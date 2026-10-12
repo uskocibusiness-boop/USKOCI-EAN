@@ -28,6 +28,16 @@ Examples:
 - Existing `taxonomy_capability_tier_v1` and `worker_need_fit_v1` remain unchanged. The new evaluation is `taxonomy_capability_tier_inherited_v1`, service-only and **not called by live dispatch**; category matching alone is never a push entitlement.
 - Verified standalone PostgreSQL CI workflow targets both 16 and 17 with solely synthetic data. No user data, paid AI, Supabase credentials, actual worker writes or push.
 
+## Executed source-only deliverables
+
+- **82 total curated categories/service identities** under two real execution roots: existing 14 seed roots, 1 new ON_SITE everyday-help root, 5 intermediate categories, 62 new distinct service leaves; the seed registers **zero** aliases/synonym strings. Same-city and other-city ticket purchasing share a single `Kupovina karata` identity, not one identity per place.
+- **6 operator-reviewed standard child-coverage links** allow ordinary moler, cleaning, ironing and garden tasks while intentionally not granting generic physical work, specialist electrical work, unrelated errands or decorative craft competence.
+- `taxonomy_ai_catalog_context_v1(mode,limit,after)`: read-only stable paginated catalog context for future Gemini/worker interview, returning real IDs, parent chain, root scope, catalog version and explicit **NO AUTHORITY** flags. Pagination is max 100 records; cross-mode/invalid ancestry fails closed rather than silently exposing a wrong path.
+- `public.rpc_taxonomy_ai_catalog_context_service`: read-only service_role-only PostgREST wrapper, no anonymous/authenticated access.
+- Both synthetic PostgreSQL 16 and 17 jobs install the *actual* source candidates and verify the two roots, multi-level paths, eligibility, no alias inflation, opt-outs, permissions and failure on second install.
+
+The read-only catalog context is **not an AI model**, a semantic embedding search service or production classifier. The current paid provider is **not called** in this phase. The exact Gemini-driven candidate retrieval and real human confirmation are still part of the following integration phase.
+
 ## Fail-closed, future work needed before any live activation
 
 1. Curate a substantial **service identity** catalog, with reviewed semantic definitions and parent relations, *not a dictionary of synonyms*. Avoid assigning unrelated everyday tasks to an imprecise root purely because no root exists.
