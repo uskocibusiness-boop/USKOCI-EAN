@@ -480,24 +480,31 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         {lookupMessage}
       </T> : null}
       {contextOnly ? <T variant="note" tone="muted">Mapa kao orijentir: {toSerbianLatin(alternatives[0].label)}</T> : null}
-      {!position || correctionOpen ? <>
-        <Button tone="neutral" label={here === 'BUSY' ? 'Tražimo gde si…' : 'Ovde gde sam'} kind="secondary"
-          disabled={controlDisabled || !focused || here === 'BUSY'} onPress={useHere} />
-        {here === 'DENIED' ? <T variant="note" accessibilityRole="alert">Lokacija nije dozvoljena. Reci ulicu ili označi mesto na mapi.</T> : null}
-        {here === 'UNAVAILABLE' ? <T variant="note" accessibilityRole="alert">Ne možemo da očitamo gde si. Reci ulicu ili označi mesto na mapi.</T> : null}
-      </> : null}
+      {/* Optional location shortcuts stay in one wrapping row, never three full-width actions. */}
+      <View testID="location-quick-actions" style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+        {!position || correctionOpen ? <Button tone="neutral" label={here === 'BUSY' ? 'Tražimo…' : 'Moja lokacija'}
+          accessibilityLabel={here === 'BUSY' ? 'Tražimo gde si…' : 'Ovde gde sam'} kind="secondary" compact
+          style={{ alignSelf: 'flex-start', borderRadius: sys.radius.pill, paddingHorizontal: 12 }}
+          disabled={controlDisabled || !focused || here === 'BUSY'} onPress={useHere} /> : null}
+        {!position && !searchOpen && !loading ? <Button tone="neutral" label="Pronađi" accessibilityLabel="Pronađi drugo mesto" kind="quiet" compact
+          style={{ alignSelf: 'flex-start', borderRadius: sys.radius.pill, paddingHorizontal: 12 }}
+          disabled={controlDisabled || !focused} onPress={() => { if (owns()) setSearchOpen(true); }} /> : null}
+        {!position && !placeByHand && !loading && !ambiguous && !contextOnly ? <Button tone="neutral" label="Na mapi" accessibilityLabel="Označi na mapi" kind="quiet" compact
+          style={{ alignSelf: 'flex-start', borderRadius: sys.radius.pill, paddingHorizontal: 12 }}
+          disabled={controlDisabled || !focused} onPress={openManualMap} /> : null}
+      </View>
+      {(!position || correctionOpen) && here === 'DENIED' ? <T variant="note" accessibilityRole="alert">Lokacija nije dozvoljena. Reci ulicu ili označi mesto na mapi.</T> : null}
+      {(!position || correctionOpen) && here === 'UNAVAILABLE' ? <T variant="note" accessibilityRole="alert">Ne možemo da očitamo gde si. Reci ulicu ili označi mesto na mapi.</T> : null}
       {!position && searchOpen ? <>
         <LocationField label={`${title} — pronađi mesto`} shownLabel="Pronađi mesto" value={searchText}
           maxLength={1000} editable={!controlDisabled && focused && !loading} onChangeText={changeSearch} />
         <Button tone="neutral" label={loading ? 'Tražimo mesto…' : 'Pronađi na mapi'} kind="secondary"
           disabled={controlDisabled || !focused || !searchText.trim() || !countryCode || loading} onPress={search} />
-      </> : !position && !loading ? <Button tone="neutral" label="Pronađi drugo mesto" kind="quiet"
-        disabled={controlDisabled || !focused} onPress={() => { if (owns()) setSearchOpen(true); }} /> : null}
+      </> : null}
       {ambiguous ? candidateChoices : null}
       {ambiguous && onCorrectInConversation ? <Button tone="neutral" label="Dopuni mesto u razgovoru" kind="quiet"
         disabled={controlDisabled || !focused} onPress={() => { if (owns()) onCorrectInConversation(); }} /> : null}
-      {!position && !placeByHand && !loading && !ambiguous && !contextOnly ? <Button tone="neutral" label="Označi na mapi" kind="quiet"
-        disabled={controlDisabled || !focused} onPress={openManualMap} /> : null}
+
       {position || placeByHand || ambiguous || contextOnly ? <>
         {/* The expand control is the small map's own top-right corner (owner, 2026-10-07), not a button under it. */}
         <ResolvedPinMap position={position} cameraHint={shownCameraHint}
