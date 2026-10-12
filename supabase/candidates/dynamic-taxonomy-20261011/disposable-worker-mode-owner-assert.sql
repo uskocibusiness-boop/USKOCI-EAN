@@ -29,13 +29,18 @@ BEGIN
  v:=public.rpc_set_worker_execution_modes('20000000-0000-4000-8000-000000000001',ARRAY['REMOTE','ON_SITE']);
  IF v->'modes' <> '["ON_SITE","REMOTE"]'::jsonb THEN
   RAISE EXCEPTION 'BOTH_MODE_CANONICAL_SORT_WRONG_%',v; END IF;
- SELECT count(*) INTO n FROM private.worker_execution_mode_choices
- WHERE worker_account_id='10000000-0000-4000-8000-000000000001';
- RAISE EXCEPTION 'NEVER_REACH_DIRECT_PRIVATE_SELECT';
-EXCEPTION
- WHEN insufficient_privilege THEN
-  NULL; -- Direct table read forbidden, while owner RPC is allowed.
 END $worker_a$;
+-- Place privilege denial in a separate block: its exception must not roll back
+-- the successful worker consent saves from the previous block.
+DO $private_table_rejected$
+DECLARE n integer;
+BEGIN
+ BEGIN
+  SELECT count(*) INTO n FROM private.worker_execution_mode_choices;
+  RAISE EXCEPTION 'DIRECT_PRIVATE_TABLE_READ_ALLOWED';
+ EXCEPTION WHEN insufficient_privilege THEN NULL;
+ END;
+END $private_table_rejected$;
 -- Assert invalid arrays and unauthorized worker profiles throw.
 DO $worker_a_negative$
 DECLARE k text;
