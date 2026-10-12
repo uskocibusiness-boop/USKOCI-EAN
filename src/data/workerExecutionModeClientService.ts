@@ -61,15 +61,17 @@ export const workerExecutionModeClientService = {
     if (!desired.length || desired.length !== modes.length || new Set(modes).size !== modes.length)
       throw new Error('WORKER_MODE_SELECTION_REQUIRED');
     const profileId = await ownedWorkerId(accountId, accountRevision);
-    const { error } = await supabaseKlijent().rpc('rpc_set_worker_execution_modes', {
-      p_worker_profile_id: profileId, p_modes: desired,
-    });
+    try {
+      await supabaseKlijent().rpc('rpc_set_worker_execution_modes', {
+        p_worker_profile_id: profileId, p_modes: desired,
+      });
+    } catch { /* A disconnected write may still have committed; read server truth. */ }
     scoped(accountId, accountRevision);
-    // RPC responses (including transient network errors) cannot prove a write
-    // did or did not happen. Always read server truth before declaring success.
+    // Only server readback is a success receipt; RPC errors or lost ACKs
+    // must not cause a second blind write for the same user.
     const readback = await this.read(accountId, accountRevision);
     scoped(accountId, accountRevision);
-    if (error || readback.workerProfileId !== profileId || !readback.confirmed
+    if (readback.workerProfileId !== profileId || !readback.confirmed
       || readback.modes.join(',') !== desired.join(',')) throw new Error('WORKER_MODE_SAVE_NOT_CONFIRMED');
     return readback;
   },
