@@ -35,7 +35,7 @@ describe('fixed-window start-only review, without invented duration', () => {
     }
   });
   it('still rejects a start in the past and does not synthesize a finish', () => {
-    const past = fixed([['need.ends_at', null], ['need.starts_at', '2026-10-11T05:00:00.000Z']]);
+    const past = facts([['need.schedule_kind', 'FIXED_WINDOW'], ['need.starts_at', '2026-10-11T05:00:00.000Z'], ['need.ends_at', null]]);
     expect(reviewStartPassed(past, now)).toBe(true);
     expect(reviewFactProblem(past, now)).toBe(REVIEW_FACT_COPY.FIXED_WINDOW_START_PASSED);
     expect(past.publicProjection.find(f => f.key === 'need.ends_at')?.value).toBeNull();
