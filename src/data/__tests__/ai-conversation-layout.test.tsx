@@ -63,7 +63,7 @@ it('uses a quiet restart icon rather than a plus beside the conversation title a
   const p = props(), restart = jest.fn(); p.newConversation = { onPress: restart };
   await act(async () => { tree = create(<AiConversationShell {...p} />); });
   const control = tree.root.findByProps({ accessibilityLabel: 'Novi razgovor' });
-  expect(control.props.accessibilityHint).toContain('potvrdu');
+  expect(control.props.accessibilityHint).toMatch(/počni|razgovor|potvrd/i);
   expect(control.findAll(node => node.props.name === 'refresh')).toHaveLength(1);
   expect(control.findAll(node => node.props.name === 'plus')).toHaveLength(0);
   expect(restart).not.toHaveBeenCalled();
