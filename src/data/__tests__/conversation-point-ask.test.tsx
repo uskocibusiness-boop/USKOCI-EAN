@@ -429,6 +429,18 @@ describe('the conversation point ask', () => {
     expect(mockSave).not.toHaveBeenCalled();
   });
 
+  it('passes a full spoken stationary house address as an exact automatic search seed, without confirming a pin', async () => {
+    mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...review().value,
+      geography: { mode: 'STATIONARY', start: { city: 'Novi Sad' } },
+      exactAddress: 'Bulevar oslobođenja 25, Novi Sad' } } });
+    await mount();
+    expect(editor().props.initialQuery).toBe('Bulevar oslobođenja 25, Novi Sad');
+    expect(editor().props.initialQuestion).toBeUndefined();
+    expect(editor().props.autoLocate).toBe(true);
+    expect(editor().props.allowCityContextLookup).toBeUndefined();
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
   it('does not geocode vague here/ovde descriptions before clarifying the real place', async () => {
     mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...review().value,
       geography: { mode: 'STATIONARY', start: { label: 'ovde', city: 'Novi Sad' } }, exactAddress: null } } });

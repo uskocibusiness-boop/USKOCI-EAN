@@ -938,3 +938,20 @@ it('retires unresolved camera context on disable and rejects the retained map ac
   expect(map().props.cameraHint).toEqual([candidate.position, other.position]);
   expect(resolver.search).toHaveBeenCalledTimes(2);
 });
+
+it('city-only quick actions wrap without automatically searching or displaying a map', async () => {
+  const resolver = configured();
+  await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Novi Sad',
+    initialQuestion: 'Mesto zadatka — koja ulica, objekat ili bliže mesto?' });
+  expect(resolver.search).not.toHaveBeenCalled();
+  expect(tree.root.findAllByType('PinMap' as React.ElementType)).toHaveLength(0);
+  const row = tree.root.findByProps({ testID: 'location-quick-actions' });
+  expect(row.props.style).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
+  for (const label of ['Ovde gde sam', 'Pronađi drugo mesto', 'Označi na mapi']) {
+    expect(button(label).props.compact).toBe(true);
+  }
+  expect(button('Ovde gde sam').props.label).toBe('Moja lokacija');
+  expect(button('Pronađi drugo mesto').props.label).toBe('Pronađi');
+  expect(button('Označi na mapi').props.label).toBe('Na mapi');
+  expect(props.onConfirm).not.toHaveBeenCalled();
+});
