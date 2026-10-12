@@ -113,11 +113,13 @@ export function ReviewTodoList({ items, disabled, children }: { items: readonly 
  * conversation to change the task is the arrow of the bar and the pencil of the card, not a row of its own. `onDelete` is left out where there is
  * no draft to delete (the changes of a task that exists): then there is no way out here at all and nothing is drawn.
  */
-export function ReviewWaysOut({ onDelete, disabled }: { onDelete?: () => void; disabled: boolean }) {
-  if (!onDelete) return null;
+export function ReviewWaysOut({ onDelete, onEdit, disabled }: { onDelete?: () => void; onEdit?: () => void; disabled: boolean }) {
+  if (!onDelete && !onEdit) return null;
   return <Section>
-    <ListRow leading={<Glyph name="trash" size={24} tone="danger" />} title="Obriši nacrt" accessibilityLabel="Obriši nacrt" tone="danger" disabled={disabled} last
-      onPress={onDelete} />
+    {onEdit ? <ListRow leading={<Glyph name="edit" size={24} />} title="Izmeni zadatak" accessibilityLabel="Izmeni zadatak" disabled={disabled} last={!onDelete}
+      onPress={onEdit} /> : null}
+    {onDelete ? <ListRow leading={<Glyph name="trash" size={24} tone="danger" />} title="Obriši nacrt" accessibilityLabel="Obriši nacrt" tone="danger" disabled={disabled} last
+      onPress={onDelete} /> : null}
   </Section>;
 }
 

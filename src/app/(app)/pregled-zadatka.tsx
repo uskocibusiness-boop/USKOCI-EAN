@@ -50,7 +50,7 @@ import { GROUPED_FACT_LABEL, REQUIREMENT_FACT, SUPPORT_HAS_DUTY_OPERATOR, blankL
   ownerAddressFrame, partFact, privateReviewMap, reviewRowValue, reviewTodos, todoActionLabel, type GroupedPart } from '../../ui/objava/reviewFacts';
 import { PublishedMoment } from '../../ui/objava/PublishedMoment';
 import { LocationMapPreview } from '../../ui/location/LocationMapPreview';
-import { PublishButton, ReviewCaption, ReviewCard, ReviewEditing, ReviewFactRow, ReviewFrame, ReviewMoreFacts, ReviewStatus,
+import { PublishButton, ReviewEditing, ReviewFactRow, ReviewFrame, ReviewMoreFacts, ReviewStatus,
   ReviewTodoList, ReviewWaysOut, reviewStyles as s, type TodoRow } from '../../ui/objava/ReviewPresentation';
 import { Segmented } from '../../ui/system/Segmented';
 import { AddPhotos, OwnerAddress, ReviewDetail, ReviewGallery, type PreviewPart, type ReviewDetailParts } from '../../ui/objava/ReviewDetail';
@@ -463,8 +463,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const failedWith = useRef<string | null>(null);
   useEffect(() => { if (editor.error && editor.error !== failedWith.current) tick('error'); failedWith.current = editor.error; }, [editor.error]);
   const reduced = useReducedMotion();
-  // An open correction scrolls its part into view, so its field is never left under the keyboard or the footer; the card scrolls to the page it opens.
-  const scroll = useRef<ScrollView>(null), content = useRef<View>(null), rowRefs = useRef(new Map<string, View>()), detail = useRef<View>(null);
+  // An open correction scrolls its part into view, so its field is never left under the keyboard or the footer.
+  const scroll = useRef<ScrollView>(null), content = useRef<View>(null), rowRefs = useRef(new Map<string, View>());
   useEffect(() => {
     const key = edit?.fact.key, row = key ? rowRefs.current.get(key) : undefined, host = content.current;
     if (!row || !host || typeof row.measureLayout !== 'function') return;
@@ -623,12 +623,6 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     && Number.isSafeInteger(peopleFact.value) && peopleFact.value >= 1 && peopleFact.value <= 50 ? peopleFact.value : undefined;
   // Existing headcount is an editable fact, not something missing from the task.
   const moreFacts = command ? [] : publicFacts.filter(item => !!item.id && MORE_LISTS.includes(item.key) && blankList(item));
-  /** The card opens the page: the owner is taken to it, as a touch on the card takes everybody else. */
-  const openDetail = () => {
-    const node = detail.current, host = content.current;
-    if (!node || !host || typeof node.measureLayout !== 'function') return;
-    node.measureLayout(host as never, (_x, y) => scroll.current?.scrollTo({ y: Math.max(0, y - sys.space.base), animated: !reduced }), () => undefined);
-  };
   // Which green action a stored command offers: its resume, or the way back to the conversation. With neither, the check is the one way forward
   // and wears the green itself.
   const resumeShown = !!command && !unavailableIdentityFact && (command.state === 'ACCEPTED' || (command.state === 'EVALUATED' && outcome === 'ALLOW'));
@@ -704,34 +698,28 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
           {snapshot?.locationConflict ? <Surface kind="note" tone="warn"><T accessibilityRole="alert" style={s.warnText}>
             Mesto je promenjeno posle prethodnog pregleda. Prikazano je trenutno mesto; pregledaj ga ili izmeni pre objave.
           </T></Surface> : null}
-          {/* First half: the card, as the map and the list draw it. Second half: the page that opens from it. The card's pencil goes back to the
-              conversation, where the whole task is changed; every part of the page has its own. */}
-          <ReviewCard need={need} onOpen={openDetail} pencil={pencil('Izmeni zadatak', editInConversation)} portrait={reviewer?.photo(reviewer.profileId, 40)} />
-          <View ref={detail} collapsable={false}>
-            <ReviewCaption>Ovako izgleda kad ga otvore</ReviewCaption>
-            <ReviewDetail need={need} parts={parts} person={reviewer} knownPeopleCount={knownPeopleCount}
-              photos={photoAssets.length ? <ReviewGallery key={photoAssets.join(':')} assetIds={photoAssets} pencil={photosAt} />
-                : <AddPhotos title={hasPhotos ? 'Fotografije' : undefined} pencil={photosAt} />}
-              map={need.priblizno ? <LocationMapPreview points={[{ id: 'public-area', label: 'Približno mesto', latitude: need.priblizno.lat, longitude: need.priblizno.lng }]}
-                coarse height={184} scopeKey={`${accountId}:${review.reviewId}:preview`} /> : undefined}
-              address={hasAddress && frameOfAddress ? <OwnerAddress frame={frameOfAddress} part={{ pencil: placeAt('Izmeni, Tačna adresa') }}
-                map={privateMap.points.length ? <LocationMapPreview points={privateMap.points} route={privateMap.route}
-                  scopeKey={`${accountId}:${accountRevision}:${review.reviewId}:private-place`} height={160} /> : undefined} /> : undefined}
-              more={moreFacts.length ? <ReviewMoreFacts labels={moreFacts.map(item => factName(item.key))} disabled={quietEdit && !moreFacts.some(editingFact)}
-                open={showMore || moreFacts.some(editingFact)} onToggle={() => { if (!quietEdit) setShowMore(open => !open); }}>
-                {moreFacts.map((item, index) => {
-                  const shown = displayFact(item);
-                  return <ReviewFactRow key={item.key} label={factName(item.key)} value={priceAmountRowValue(priceMode, shown) ?? reviewRowValue(shown)}
-                    system={item.source === 'SYSTEM'} last={index === moreFacts.length - 1} edit={canEdit ? () => startEdit(item) : undefined}
-                    rowRef={node => { if (node) rowRefs.current.set(item.key, node); else rowRefs.current.delete(item.key); }}>
-                    {editingFact(item) ? editorBody() : undefined}
-                  </ReviewFactRow>;
-                })}
-              </ReviewMoreFacts> : undefined} />
-          </View>
-          {/* The way out at the end of everything there is to change and in plain sight (owner, 2026-10-07), in the danger colour: "Obriši nacrt"
-              (a new task, or a private draft opened from "Nacrti"; the changes of a published task have no draft to delete). */}
-          {!command ? <ReviewWaysOut disabled={quietEdit} onDelete={!bound ? discardDraft : draftNeed ? deleteBoundDraft : undefined} /> : null}
+          {/* The task detail as it is published: Airbnb-style clean preview with zero redundant intermediate cards. */}
+          <ReviewDetail need={need} parts={parts} person={reviewer} knownPeopleCount={knownPeopleCount}
+            photos={photoAssets.length ? <ReviewGallery key={photoAssets.join(':')} assetIds={photoAssets} pencil={photosAt} />
+              : <AddPhotos title={hasPhotos ? 'Fotografije' : undefined} pencil={photosAt} />}
+            map={need.priblizno ? <LocationMapPreview points={[{ id: 'public-area', label: 'Približno mesto', latitude: need.priblizno.lat, longitude: need.priblizno.lng }]}
+              coarse height={184} scopeKey={`${accountId}:${review.reviewId}:preview`} /> : undefined}
+            address={hasAddress && frameOfAddress ? <OwnerAddress frame={frameOfAddress} part={{ pencil: placeAt('Izmeni, Tačna adresa') }}
+              map={privateMap.points.length ? <LocationMapPreview points={privateMap.points} route={privateMap.route}
+                scopeKey={`${accountId}:${accountRevision}:${review.reviewId}:private-place`} height={160} /> : undefined} /> : undefined}
+            more={moreFacts.length ? <ReviewMoreFacts labels={moreFacts.map(item => factName(item.key))} disabled={quietEdit && !moreFacts.some(editingFact)}
+              open={showMore || moreFacts.some(editingFact)} onToggle={() => { if (!quietEdit) setShowMore(open => !open); }}>
+              {moreFacts.map((item, index) => {
+                const shown = displayFact(item);
+                return <ReviewFactRow key={item.key} label={factName(item.key)} value={priceAmountRowValue(priceMode, shown) ?? reviewRowValue(shown)}
+                  system={item.source === 'SYSTEM'} last={index === moreFacts.length - 1} edit={canEdit ? () => startEdit(item) : undefined}
+                  rowRef={node => { if (node) rowRefs.current.set(item.key, node); else rowRefs.current.delete(item.key); }}>
+                  {editingFact(item) ? editorBody() : undefined}
+                </ReviewFactRow>;
+              })}
+            </ReviewMoreFacts> : undefined} />
+          {/* The ways out at the end: edit in conversation, or delete draft */}
+          {!command ? <ReviewWaysOut disabled={quietEdit} onEdit={canEdit ? editInConversation : undefined} onDelete={!bound ? discardDraft : draftNeed ? deleteBoundDraft : undefined} /> : null}
         </>}
     </ReviewFrame>
     {confirmation.sheet}

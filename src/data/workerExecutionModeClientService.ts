@@ -17,6 +17,26 @@ export function canonicalWorkerExecutionModes(modes: readonly WorkerExecutionMod
   return result;
 }
 
+const REMOTE_KEYWORDS = [
+  'digital', 'dizajn', 'logo', 'sajt', 'programir', 'tekst', 'prevod', 'lektur',
+  'transkripcij', 'časov', 'casov', 'online', 'matematik', 'englesk', 'tabel', 'excel',
+  'web', 'video', 'foto', '3d', 'grafi', 'pisanje', 'podučavanje', 'poducavanje',
+];
+
+export function inferWorkerExecutionModes(
+  skills: readonly string[],
+  location?: { city?: string; radiusKm?: number }
+): WorkerExecutionMode[] {
+  const normalized = skills.map(s => s.toLowerCase());
+  const hasRemote = normalized.some(s => REMOTE_KEYWORDS.some(k => s.includes(k)));
+  const hasOnSite = Boolean(location?.city?.trim()) || normalized.some(s => !REMOTE_KEYWORDS.some(k => s.includes(k))) || !hasRemote;
+
+  const modes: WorkerExecutionMode[] = [];
+  if (hasOnSite) modes.push('ON_SITE');
+  if (hasRemote) modes.push('REMOTE');
+  return canonicalWorkerExecutionModes(modes);
+}
+
 function scoped(accountId: string, accountRevision: number) {
   const current = sesijaSada();
   if (!accountId || current.user?.id !== accountId || current.accountRevision !== accountRevision) {

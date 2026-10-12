@@ -9,6 +9,7 @@ import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../../lib/idempotencija';
 import { workerAvailabilityPatch } from '../../../lib/workerAiAvailabilityPatch';
 import { sesijaSada, useSesija } from '../../../store/sesija';
+import { inferWorkerExecutionModes, workerExecutionModeClientService } from '../../../data/workerExecutionModeClientService';
 
 import { useHoldToTalk } from '../../../features/voice/useHoldToTalk';
 import { AiConversationShell } from '../../../ui/aiFirst/AiConversationShell';
@@ -281,7 +282,15 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     const key=saveKey.current.key;
     await savePanel(async()=>{const saved=await api.save(reviewed,key);if(!current())return unavailable();
       const result=await read();if(!current())return unavailable();
-      if(result.ok&&result.podatak.saved?.reviewId===reviewed.reviewId)return result;
+      if(result.ok&&result.podatak.saved?.reviewId===reviewed.reviewId){
+        if(accountId){
+          try{
+            const modes=inferWorkerExecutionModes(reviewed.profile.skills,reviewed.profile.location);
+            void workerExecutionModeClientService.save(accountId,accountRevision,modes).catch(()=>undefined);
+          }catch{}
+        }
+        return result;
+      }
       // A retired-field review may be rejected although its older source hash
       // still matches. Keep that refusal scoped to this review through a read;
       // never silently alter its frozen content or relax uncertain-write guards.

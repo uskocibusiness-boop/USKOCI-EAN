@@ -160,9 +160,8 @@ it('prepares the displayed public and private review with one publish action and
   await render();
   expect(mockLatest).toHaveBeenCalledWith(CONVERSATION);
   expect(mockPrepare).toHaveBeenCalledWith({ conversationId: CONVERSATION, responseDeadline: null });
-  // The task is drawn twice, as the others get it: the card of the map and the list, and the page that opens from it. The exact address is the owner's, in its own frame.
-  expect(text()).toContain('Ovako ga vide na mapi i u listi'); expect(text()).toContain('Ovako izgleda kad ga otvore');
-  expect(text().split('Prenos ormara').length - 1).toBe(2);
+  // The task is drawn in clean preview: Airbnb-style page. The exact address is the owner's, in its own frame.
+  expect(text().split('Prenos ormara').length - 1).toBe(1);
   expect(text()).toContain('Tačna adresa'); expect(text()).toContain('Privatna 42'); expect(text()).toContain('Vidiš samo ti.');
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' })).toHaveLength(1);
   expect(publish().disabled).toBe(false);
@@ -635,20 +634,18 @@ describe('the review reads as a task', () => {
     expect(commands('Izmeni naslov')).toHaveLength(0);
     expect(commands('Izmeni, Naslov')).toHaveLength(1);
     const order = (value: string) => text().indexOf(value);
-    expect(order('Još treba')).toBeLessThan(order('Ovako ga vide na mapi i u listi'));
-    expect(order('Ovako ga vide na mapi i u listi')).toBeLessThan(order('Ovako izgleda kad ga otvore'));
-    expect(order('Ovako izgleda kad ga otvore')).toBeLessThan(order('Tačna adresa'));
+    expect(order('Još treba')).toBeLessThan(order('Prenos ormara'));
+    expect(order('Prenos ormara')).toBeLessThan(order('Tačna adresa'));
     // There is no table of facts any more, and no step between: no "Detalji", no "Privatni podaci", no "Vide svi".
     for (const gone of ['Detalji', 'Privatni podaci', 'Vide svi']) expect(text()).not.toContain(gone);
   });
 
-  it('the card is the real one: it is touched, and it is named for what it is', async () => {
+  it('the ways out offer editing and deleting the draft at the end of the review', async () => {
     mockPrepare.mockResolvedValue(ok(review()));
     await render();
-    const card = tree.root.findAll(node => node.type === ('Press' as React.ElementType) && String(node.props.accessibilityLabel ?? '').startsWith('Otvori zadatak Prenos ormara'));
-    expect(card).toHaveLength(1);
-    // The pencil over the card goes back to the conversation, where the whole task is changed; it is not one of the pencils of the parts.
+    // The ways out offer "Izmeni zadatak" at the bottom to go back to the conversation; each part also has its own pencil.
     expect(commands('Izmeni zadatak')).toHaveLength(1);
+    expect(commands('Obriši nacrt')).toHaveLength(1);
   });
 
   it('names what the task does not say yet in one row instead of a row each, and never names the category', async () => {
@@ -701,8 +698,8 @@ describe('the review reads as a task', () => {
     await act(async () => tree.unmount());
     mockPerson = { profileId: 'profile-1', name: 'Miloš P.', rating: '4,7', reviewCount: 3, profile: null, photo: () => null };
     await render();
-    expect(text().split('Miloš P.').length - 1).toBe(2); expect(text()).toContain('Objavio');
-    expect(text()).toContain('4,7 (3)'); expect(text()).toContain('4,7 · 3 ocene');
+    expect(text().split('Miloš P.').length - 1).toBe(1); expect(text()).toContain('Objavio');
+    expect(text()).toContain('4,7 · 3 ocene');
     // Without his public profile the record is only read: there is nothing to open.
     expect(tree.root.findAll(node => node.type === ('Press' as React.ElementType) && String(node.props.accessibilityLabel ?? '').startsWith('Miloš P.,')
       && node.props.accessibilityHint === 'Otvara javni profil')).toHaveLength(0);
@@ -910,8 +907,8 @@ describe('round 6: the publish review', () => {
       { id: 'start', key: 'need.starts_at', value: '2026-10-03T15:00:00.000Z', displayValue: 'subota', privacyClass: 'PUBLIC', source: 'AI_INFERENCE', status: 'CONFIRMED' },
       { id: 'end', key: 'need.ends_at', value: '2026-10-03T17:00:00.000Z', displayValue: 'subota', privacyClass: 'PUBLIC', source: 'AI_INFERENCE', status: 'CONFIRMED' }] }));
     await render();
-    // The card and the page of others say it once each: the amount with its grouping and currency, the term as one window, no seconds.
-    expect(text().split('1.500 RSD').length - 1).toBe(2);
+    // The clean preview says it once: the amount with its grouping and currency, the term as one window, no seconds.
+    expect(text().split('1.500 RSD').length - 1).toBe(1);
     expect(text()).not.toMatch(/17:00:00/);
     expect(text()).toMatch(/3\. okt( \d{4})? · 17:00–19:00/);
   });
@@ -1032,8 +1029,8 @@ describe('enum facts are chosen and the amount is typed as digits', () => {
 
   it('under "Ponude" shows no amount anywhere, and its editor leads to the price mode instead of saving one', async () => {
     mockPrepare.mockResolvedValue(ok(priced('OFFERS', 1500))); await render();
-    // The card and the page say "Tražim ponude", as the published task does; an amount left from before is nowhere.
-    expect(text()).not.toContain('1.500'); expect(text().split('Tražim ponude').length - 1).toBe(2);
+    // The clean preview says "Tražim ponude", as the published task does; an amount left from before is nowhere.
+    expect(text()).not.toContain('1.500'); expect(text().split('Tražim ponude').length - 1).toBe(1);
     // The pencil opens the way the price works (there is no amount to change); the amount is the other tab, which only leads back to it.
     await act(async () => rowEdit('Cena').onPress());
     expect(chip('Ponude').accessibilityState).toMatchObject({ checked: true });
@@ -1049,8 +1046,8 @@ describe('enum facts are chosen and the amount is typed as digits', () => {
 
   it('says a missing "Moja cena" amount in words where the number would stand', async () => {
     mockPrepare.mockResolvedValue(ok(priced('MY_PRICE', null))); await render();
-    // The card and the page say no price (never "0 RSD"), and the row of "Još treba" says what to do about it.
-    expect(text().split('Cena nije navedena').length - 1).toBe(2); expect(text()).toContain('Unesi iznos ili izaberi prikupljanje ponuda.');
+    // The clean preview says no price (never "0 RSD"), and the row of "Još treba" says what to do about it.
+    expect(text().split('Cena nije navedena').length - 1).toBe(1); expect(text()).toContain('Unesi iznos ili izaberi prikupljanje ponuda.');
     expect(text()).not.toMatch(/\b0 RSD/);
   });
 });

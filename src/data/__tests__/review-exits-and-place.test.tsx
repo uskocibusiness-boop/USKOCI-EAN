@@ -125,8 +125,8 @@ const publish = () => tree.root.findByProps({ accessibilityLabel: 'Objavi zadata
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 /** The words between two headings of the review. */
 const between = (from: string, to: string) => { const copy = text(); return copy.slice(copy.indexOf(from), copy.indexOf(to, copy.indexOf(from) + 1)); };
-/** What the others read of the task (the card and the page that opens from it), and the owner's frame of the exact address, which ends at "Prijave". */
-const others = () => between('Ovako ga vide na mapi i u listi', 'Tačna adresa');
+/** What the others read of the task in the clean preview, and the owner's frame of the exact address, which ends at "Prijave". */
+const others = () => between('Prenos ormara', 'Tačna adresa');
 const frame = () => between('Tačna adresa', 'Prijave');
 const sheets = () => tree.root.findAllByType(ConfirmSheet);
 const inSheet = (testID: string) => act(async () => { sheets()[0].findByProps({ testID }).props.onPress(); });
@@ -179,8 +179,8 @@ describe('the place the owner confirmed is read from the confirmed point, not fr
     // One place says its area line, and the street typed in the first text is not part of it (the published page says the same).
     expect(pub).toContain('Novi Sad');
     expect(pub).not.toContain('Lenke'); expect(pub).not.toContain('Pavla'); expect(pub).not.toMatch(/\b6,/); expect(pub).not.toContain(ADDRESS);
-    // The card and the page that opens from it each say it once, and the page's map of the approximate place is there.
-    expect(pub.split('Novi Sad').length - 1).toBe(2);
+    // The single review says it once, and the page's map of the approximate place is there.
+    expect(pub.split('Novi Sad').length - 1).toBe(1);
     expect(tree.root.findAllByType('LocationMapPreview' as React.ElementType).some(node => node.props.coarse === true)).toBe(true);
   });
 
@@ -226,7 +226,7 @@ describe('the place the owner confirmed is read from the confirmed point, not fr
     const shown = review({ publicProjection: [fact('title', 'need.title', 'Prenos ormara'), fact('geography', 'need.task_geography', remote)] }, null);
     mockPrepare.mockResolvedValue(ok(shown)); await render();
     expect(text()).not.toContain('Mesto:'); expect(text()).not.toContain('Tačka na mapi'); expect(text()).not.toContain('Tačna adresa');
-    expect(text().split('Na daljinu').length - 1).toBe(2);
+    expect(text().split('Na daljinu').length - 1).toBe(1);
   });
 });
 

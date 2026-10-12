@@ -90,3 +90,17 @@ test('canonical helper sorts ON_SITE then REMOTE', () => {
   expect(canonicalWorkerExecutionModes(['REMOTE', 'ON_SITE'])).toEqual(['ON_SITE', 'REMOTE']);
   expect(canonicalWorkerExecutionModes([])).toEqual([]);
 });
+
+test('inferWorkerExecutionModes deduces REMOTE, ON_SITE, or both from skills and location', () => {
+  const { inferWorkerExecutionModes } = require('../workerExecutionModeClientService');
+  // Digital only without city => REMOTE
+  expect(inferWorkerExecutionModes(['Izrada logotipa', 'Prevođenje tekstova'])).toEqual(['REMOTE']);
+  // Digital with city specified => both
+  expect(inferWorkerExecutionModes(['Izrada logotipa'], { city: 'Beograd', radiusKm: 15 })).toEqual(['ON_SITE', 'REMOTE']);
+  // On-site craft skill => ON_SITE
+  expect(inferWorkerExecutionModes(['Krečenje zidova', 'Montaža polica'])).toEqual(['ON_SITE']);
+  // Combined skills => both
+  expect(inferWorkerExecutionModes(['Krečenje', 'Grafički dizajn'])).toEqual(['ON_SITE', 'REMOTE']);
+  // Fallback when skills empty => ON_SITE
+  expect(inferWorkerExecutionModes([])).toEqual(['ON_SITE']);
+});
