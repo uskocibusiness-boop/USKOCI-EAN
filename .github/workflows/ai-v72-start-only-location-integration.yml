@@ -45,7 +45,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
       - name: Combined AI v72, Gemini safety, start-only and location regressions (mocked, no live providers)
-        run: |\n          npm test -- --runInBand --runTestsByPath \\\n            src/data/__tests__/ai-natural-server-guard.test.ts \\\n            src/data/__tests__/gemini-http-stream-regression.test.ts \\\n            src/data/__tests__/gemini-v70-safety-stream.test.ts \\\n            src/data/__tests__/review-fact-start-only.test.ts \\\n            src/data/__tests__/draft-summary-start-only.test.ts \\\n            src/data/__tests__/ai-task-review-client.test.ts \\\n            src/data/__tests__/ai-owned-intake-screen.test.tsx \\\n            src/data/__tests__/review-exits-and-place.test.tsx \\\n            src/data/__tests__/locationPointEditor.test.tsx \\\n            src/data/__tests__/conversation-point-ask.test.tsx \\\n            src/ui/location/__tests__/placeText.test.ts
+        run: npm test -- --runInBand --runTestsByPath src/data/__tests__/ai-natural-server-guard.test.ts src/data/__tests__/gemini-http-stream-regression.test.ts src/data/__tests__/gemini-v70-safety-stream.test.ts src/data/__tests__/review-fact-start-only.test.ts src/data/__tests__/draft-summary-start-only.test.ts src/data/__tests__/ai-task-review-client.test.ts src/data/__tests__/ai-owned-intake-screen.test.tsx src/data/__tests__/review-exits-and-place.test.tsx src/data/__tests__/locationPointEditor.test.tsx src/data/__tests__/conversation-point-ask.test.tsx src/ui/location/__tests__/placeText.test.ts
       - name: TypeScript source contracts
         run: npx tsc --noEmit --pretty false
       - name: Deno check of active v72 Edge source and imports
