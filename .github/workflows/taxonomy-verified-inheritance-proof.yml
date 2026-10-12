@@ -1,0 +1,74 @@
+name: Taxonomy verified standard descendant coverage (disposable PostgreSQL)
+on:
+  push:
+    branches:
+      - feature/taxonomy-verified-inheritance-20261012
+    paths:
+      - '.github/workflows/taxonomy-verified-inheritance-proof.yml'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/**'
+  pull_request:
+    paths:
+      - '.github/workflows/taxonomy-verified-inheritance-proof.yml'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/**'
+permissions:
+  contents: read
+jobs:
+  verified-standard-inheritance:
+    name: Isolated PostgreSQL ${{ matrix.postgres }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['16', '17']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Show exact source commit
+        run: git rev-parse HEAD
+      - name: Install disposable psql client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Install existing source-controlled dark-launch catalog, roots and capability evaluator
+        run: |
+          set -euo pipefail
+          dir=supabase/candidates/dynamic-taxonomy-20261011
+          psql -X -v ON_ERROR_STOP=1 -f "$dir/disposable-fixture.sql"
+          psql -X -v ON_ERROR_STOP=1 -1 -f "$dir/dev-dark-launch-locked.sql"
+          psql -X -v ON_ERROR_STOP=1 -1 -f "$dir/dev-seed-legacy-families.sql"
+          psql -X -v ON_ERROR_STOP=1 -1 -f "$dir/dev-execution-scopes-two-root.sql"
+      - name: Install ADDITIVE candidate (not the real dispatcher)
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -1 -f supabase/candidates/dynamic-taxonomy-20261011/verified-standard-inheritance.sql
+      - name: Prove reviewed moler coverage and all fail-closed boundaries
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-verified-standard-inheritance-assert.sql
+      - name: Repeat install must be rejected without mutations
+        run: |
+          set -euo pipefail
+          if psql -X -v ON_ERROR_STOP=1 -1 -f supabase/candidates/dynamic-taxonomy-20261011/verified-standard-inheritance.sql >/tmp/reinstall.log 2>&1; then
+            echo 'ERROR: unsafe reinstallation succeeded'
+            exit 1
+          fi
+          grep -q TAXONOMY_COVERAGE_ALREADY_INSTALLED /tmp/reinstall.log
+          echo TAXONOMY_VERIFIED_STANDARD_INHERITANCE_PASS
