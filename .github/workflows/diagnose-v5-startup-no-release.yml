@@ -1,0 +1,72 @@
+name: Diagnose V5 startup crash (no release)
+
+# Forensic-only: check the JS code and Android bundle. Never publishes an update.
+on:
+  push:
+    branches:
+      - work/ultra-master-integration-20261012
+    paths:
+      - .github/workflows/diagnose-v5-startup-no-release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  investigate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    env:
+      CI: '1'
+      EAS_BUILD_PROFILE: preview
+      USKOCI_OTA_TARGET: preview
+      EXPO_PUBLIC_SUPABASE_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW
+      EXPO_PUBLIC_USE_FAKE_SOURCE: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install exact lockfile dependencies and native patches
+        run: npm ci --no-audit --no-fund
+      - name: Check actual installed expo-router js-tabs exports
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const path=require('path');
+          const pkg=require('expo-router/package.json');
+          const entry=require.resolve('expo-router/js-tabs');
+          const text=fs.readFileSync(entry,'utf8');
+          console.log('expo-router version:',pkg.version);
+          console.log('expo-router/js-tabs entry:',entry);
+          console.log('Mentions BottomTabBar in entry:',/BottomTabBar/.test(text));
+          console.log('js-tabs module first 2500 bytes:',text.slice(0,2500));
+          NODE
+      - name: TypeScript validation (capture all errors)
+        id: types
+        continue-on-error: true
+        run: npx tsc --noEmit --pretty false
+      - name: Cold-start session / root navigation / tab bar tests
+        id: tests
+        continue-on-error: true
+        run: npm test -- --runInBand src/store/__tests__/session-epoch.test.ts src/store/__tests__/session-layout.test.tsx src/data/__tests__/auth-root-splash.test.tsx src/data/__tests__/ai-conversation-layout.test.tsx
+      - name: Compile actual Android OTA JavaScript bundle (DO NOT PUBLISH)
+        id: export
+        continue-on-error: true
+        run: npx expo export --platform android --output-dir /tmp/uskoci-v5-startup-diagnostic --clear
+      - name: Print forensic result and fail on errors
+        if: always()
+        env:
+          TS: ${{ steps.types.outcome }}
+          TEST: ${{ steps.tests.outcome }}
+          EXPORT: ${{ steps.export.outcome }}
+        shell: bash
+        run: |
+          echo "Typecheck=$TS ; StartupTests=$TEST ; AndroidJSBundle=$EXPORT"
+          test "$TS" = success -a "$TEST" = success -a "$EXPORT" = success
