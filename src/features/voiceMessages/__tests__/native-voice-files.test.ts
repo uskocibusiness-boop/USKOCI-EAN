@@ -97,7 +97,7 @@ jest.mock('react-native', () => {
 jest.mock('expo-audio', () => ({
   getRecordingPermissionsAsync: () => mockAudioPermissionRead(),
   requestRecordingPermissionsAsync: () => mockAudioPermissionRequest(),
-}));
+}), { virtual: true });
 import { createNativeVoiceRecorder } from '../nativeAudioAdapters';
 import { answeringHost, holdingHost } from '../../../ui/permissions/testing/answeringHost';
 
