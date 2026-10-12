@@ -53,6 +53,17 @@ const props = (): AiConversationShellProps => ({title:'Novi zadatak',card:jest.f
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 beforeEach(()=>{mockHeight=844;mockWidth=390;mockScale=1;mockReduced=false;});
 afterEach(async()=>{await act(async()=>tree?.unmount());});
+it('uses a quiet restart icon rather than a plus beside the conversation title and defers the action to its owner', async () => {
+  const p = props(), restart = jest.fn(); p.newConversation = { onPress: restart };
+  await act(async () => { tree = create(<AiConversationShell {...p} />); });
+  const control = tree.root.findByProps({ accessibilityLabel: 'Novi razgovor' });
+  expect(control.props.accessibilityHint).toContain('potvrdu');
+  expect(control.findAll(node => node.props.name === 'refresh')).toHaveLength(1);
+  expect(control.findAll(node => node.props.name === 'plus')).toHaveLength(0);
+  expect(restart).not.toHaveBeenCalled();
+  await act(async () => control.props.onPress());
+  expect(restart).toHaveBeenCalledTimes(1);
+});
 it('keeps recovery scrollable and composer reachable, without discarding a pending draft',async()=>{
   const p=props();p.pending=true;p.status=<>Provera ishoda je dostupna.</>;
   await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
