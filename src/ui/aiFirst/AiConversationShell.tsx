@@ -252,7 +252,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
     <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScreenChrome variant="detail" tone="conversation" onBack={p.onBack} title={p.title}
         right={p.newConversation || p.onOptions ? <View style={s.headerRight}>
-          {p.newConversation ? <ChromeIconButton label="Novi razgovor" hint="Započinje novi razgovor." glyph="plus"
+          {p.newConversation ? <ChromeIconButton label="Novi razgovor" hint="Nedovršen razgovor traži potvrdu pre novog početka." glyph="refresh"
             disabled={p.newConversation.disabled}
             onPress={() => { Keyboard.dismiss(); p.newConversation?.onPress(); }} /> : null}
           {p.onOptions ? <ChromeIconButton label="Opcije" hint="Opcije razgovora." glyph="more" onPress={p.onOptions} /> : null}
