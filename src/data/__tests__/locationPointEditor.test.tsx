@@ -468,6 +468,27 @@ describe('compact conversation proposal', () => {
     expect(props.onConfirm).not.toHaveBeenCalled();
   });
 
+  it('can propose a precise pin when a city-only conversation is manually corrected to a full address', async () => {
+    const city = { ...candidate, label: 'Novi Sad, Serbia',
+      position: { latitude: 45.2671, longitude: 19.8335 } };
+    const house = { ...candidate, label: 'Lenke Dunđerski 11, Novi Sad',
+      position: { latitude: 45.25, longitude: 19.82 } };
+    const resolver = configured();
+    resolver.search.mockResolvedValueOnce({ status: 'PROPOSALS', candidates: [city], requiresConfirmation: true })
+      .mockResolvedValueOnce({ status: 'PROPOSALS', candidates: [house], requiresConfirmation: true });
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Novi Sad',
+      initialQuestion: 'Mesto zadatka — koja ulica, objekat ili bliže mesto?',
+      allowCityContextLookup: true });
+    expect(map().props.position).toBeNull();
+    await press('Pronađi drugo mesto');
+    await change('pronađi mesto', 'Lenke Dunđerski 11, Novi Sad');
+    await press('Pronađi na mapi');
+    expect(resolver.search).toHaveBeenCalledTimes(2);
+    expect(map().props.position).toEqual(house.position);
+    expect(button('Potvrdi tačku: Početak')).toBeDefined();
+    expect(props.onConfirm).not.toHaveBeenCalled();
+  });
+
   it('does not offer a pin for a three-word city used only for map context', async () => {
     const city = { ...candidate, label: 'Synthetic Three Word City, Serbia',
       position: { latitude: 44.9, longitude: 20.7 } };
