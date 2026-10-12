@@ -2,84 +2,91 @@ import { canonicalWorkerExecutionModes, workerExecutionModeClientService } from 
 
 const mockRpc = jest.fn();
 const mockOwnProfile = jest.fn();
-let mockAccount: {user:{id:string}|null;accountRevision:number};
-jest.mock('../supabaseClient',()=>({supabaseKlijent:()=>({rpc:mockRpc})}));
-jest.mock('../ownProfileClientService',()=>({ownProfileClientService:{read:mockOwnProfile}}));
-jest.mock('../../store/sesija',()=>({sesijaSada:()=>mockAccount}));
+let mockAccount: { user: { id: string } | null; accountRevision: number };
+jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({ rpc: (...args: unknown[]) => mockRpc(...args) }) }));
+jest.mock('../ownProfileClientService', () => ({ ownProfileClientService: { read: (...args: unknown[]) => mockOwnProfile(...args) } }));
+jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockAccount }));
 
-const OWNER='10000000-0000-4000-8000-000000000001';
-const PROFILE='20000000-0000-4000-8000-000000000001';
-const receipt=(modes:string[],confirmed=modes.length>0)=>({
-  workerProfileId:PROFILE,confirmed,modes,confirmedAt:confirmed?'2026-10-12T00:10:52Z':null,
-  matchingAuthority:'NONE',notificationAuthority:'NONE'
-});
-
-beforeEach(()=>{
-  mockRpc.mockReset();mockOwnProfile.mockReset();
-  mockAccount={user:{id:OWNER},accountRevision:5};
-  mockOwnProfile.mockResolvedValue({accountId:OWNER,profileId:PROFILE,kind:'WORKER',stanje:'DRAFT'});
+const OWNER = '10000000-0000-4000-8000-000000000001';
+const PROFILE = '20000000-0000-4000-8000-000000000001';
+const receipt = (modes: string[], confirmed = modes.length > 0) => ({
+  workerProfileId: PROFILE, confirmed, modes, confirmedAt: confirmed ? '2026-10-12T00:10:52Z' : null,
+  matchingAuthority: 'NONE', notificationAuthority: 'NONE',
 });
 
-test('unconfirmed new worker has no automatic execution mode',async()=>{
- mockRpc.mockResolvedValue({data:receipt([],false),error:null});
- const v=await workerExecutionModeClientService.read(OWNER,5);
- expect(v.confirmed).toBe(false);expect(v.modes).toEqual([]);
- expect(mockRpc).toHaveBeenCalledWith('rpc_get_worker_execution_modes',{p_worker_profile_id:PROFILE});
+beforeEach(() => {
+  mockRpc.mockReset(); mockOwnProfile.mockReset();
+  mockAccount = { user: { id: OWNER }, accountRevision: 5 };
+  mockOwnProfile.mockResolvedValue({ accountId: OWNER, profileId: PROFILE, kind: 'WORKER', stanje: 'DRAFT' });
 });
 
-test('saves both modes in canonical order and confirms server readback',async()=>{
- mockRpc.mockImplementation(async(name:string)=>{
-  if(name==='rpc_set_worker_execution_modes')return{data:receipt(['ON_SITE','REMOTE']),error:null};
-  return{data:receipt(['ON_SITE','REMOTE']),error:null};
- });
- const v=await workerExecutionModeClientService.save(OWNER,5,['REMOTE','ON_SITE']);
- expect(v.confirmed).toBe(true);expect(v.modes).toEqual(['ON_SITE','REMOTE']);
- expect(mockRpc).toHaveBeenCalledWith('rpc_set_worker_execution_modes',{
-  p_worker_profile_id:PROFILE,p_modes:['ON_SITE','REMOTE']});
+test('unconfirmed new worker has no automatic execution mode', async () => {
+  mockRpc.mockResolvedValue({ data: receipt([], false), error: null });
+  const v = await workerExecutionModeClientService.read(OWNER, 5);
+  expect(v.confirmed).toBe(false); expect(v.modes).toEqual([]);
+  expect(mockRpc).toHaveBeenCalledWith('rpc_get_worker_execution_modes', { p_worker_profile_id: PROFILE });
 });
 
-test('lost write response still succeeds only when readback agrees',async()=>{
- mockRpc.mockImplementation(async(name:string)=>{
-  if(name==='rpc_set_worker_execution_modes')throw new Error('connection lost');
-  return{data:receipt(['REMOTE']),error:null};
- });
- await expect(workerExecutionModeClientService.save(OWNER,5,['REMOTE'])).resolves.toMatchObject({
-  confirmed:true,modes:['REMOTE']
- });
+test('saves both modes in canonical order and confirms server readback', async () => {
+  mockRpc.mockImplementation(async (name: string) => {
+    if (name === 'rpc_set_worker_execution_modes') return { data: receipt(['ON_SITE', 'REMOTE']), error: null };
+    return { data: receipt(['ON_SITE', 'REMOTE']), error: null };
+  });
+  const v = await workerExecutionModeClientService.save(OWNER, 5, ['REMOTE', 'ON_SITE']);
+  expect(v.confirmed).toBe(true); expect(v.modes).toEqual(['ON_SITE', 'REMOTE']);
+  expect(mockRpc).toHaveBeenCalledWith('rpc_set_worker_execution_modes', {
+    p_worker_profile_id: PROFILE, p_modes: ['ON_SITE', 'REMOTE'],
+  });
 });
-test('server does not confirm a different choice: no optimistic success',async()=>{
- mockRpc.mockImplementation(async(name:string)=>{
-  if(name==='rpc_set_worker_execution_modes')return{error:null};
-  return{data:receipt(['ON_SITE']),error:null};
- });
- await expect(workerExecutionModeClientService.save(OWNER,5,['REMOTE']))
-  .rejects.toThrow('WORKER_MODE_SAVE_NOT_CONFIRMED');
+
+test('lost write response still succeeds only when readback agrees', async () => {
+  mockRpc.mockImplementation(async (name: string) => {
+    if (name === 'rpc_set_worker_execution_modes') throw new Error('connection lost');
+    return { data: receipt(['REMOTE']), error: null };
+  });
+  await expect(workerExecutionModeClientService.save(OWNER, 5, ['REMOTE'])).resolves.toMatchObject({
+    confirmed: true, modes: ['REMOTE'],
+  });
 });
-test('account switch fences stale reads and saves',async()=>{
- mockOwnProfile.mockImplementation(async()=>{mockAccount.accountRevision++;return{
-  accountId:OWNER,profileId:PROFILE,kind:'WORKER'};});
- await expect(workerExecutionModeClientService.read(OWNER,5)).rejects.toThrow('WORKER_MODE_ACCOUNT_CHANGED');
- expect(mockRpc).not.toHaveBeenCalled();
+
+test('server does not confirm a different choice: no optimistic success', async () => {
+  mockRpc.mockImplementation(async (name: string) => {
+    if (name === 'rpc_set_worker_execution_modes') return { error: null };
+    return { data: receipt(['ON_SITE']), error: null };
+  });
+  await expect(workerExecutionModeClientService.save(OWNER, 5, ['REMOTE']))
+    .rejects.toThrow('WORKER_MODE_SAVE_NOT_CONFIRMED');
 });
-test('malformed server receipt cannot claim remote consent',async()=>{
- mockRpc.mockResolvedValue({data:{...receipt(['REMOTE','REMOTE'])},error:null});
- await expect(workerExecutionModeClientService.read(OWNER,5)).rejects.toThrow('WORKER_MODE_INVALID_RECEIPT');
+
+test('account switch fences stale reads and saves', async () => {
+  mockOwnProfile.mockImplementation(async () => {
+    mockAccount.accountRevision++; return {
+      accountId: OWNER, profileId: PROFILE, kind: 'WORKER',
+    };
+  });
+  await expect(workerExecutionModeClientService.read(OWNER, 5)).rejects.toThrow('WORKER_MODE_ACCOUNT_CHANGED');
+  expect(mockRpc).not.toHaveBeenCalled();
 });
-test('invalid duplicate modes never call a write RPC',async()=>{
- await expect(workerExecutionModeClientService.save(OWNER,5,['REMOTE','REMOTE']))
-  .rejects.toThrow('WORKER_MODE_SELECTION_REQUIRED');
- expect(mockRpc).not.toHaveBeenCalled();
+
+test('malformed server receipt cannot claim remote consent', async () => {
+  mockRpc.mockResolvedValue({ data: { ...receipt(['REMOTE', 'REMOTE']) }, error: null });
+  await expect(workerExecutionModeClientService.read(OWNER, 5)).rejects.toThrow('WORKER_MODE_INVALID_RECEIPT');
 });
-test('worker-profile screen links to the separate mode settings route and does not silently set both',()=>{
- const fs=require('node:fs');
- const ui=fs.readFileSync('src/ui/workerProfile/WorkerProfilePresentation.tsx','utf8');
- const screen=fs.readFileSync('src/app/(app)/profil/nacin-rada.tsx','utf8');
- expect(ui).toContain("navigate('/profil/nacin-rada')");
- expect(screen).toContain('workerExecutionModeClientService.save(');
- expect(screen).toContain('accessibilityRole="checkbox"');
- expect(screen).not.toMatch(/selected\s*=\s*\['ON_SITE',\s*'REMOTE'\]/);
+
+test('invalid duplicate modes never call a write RPC', async () => {
+  await expect(workerExecutionModeClientService.save(OWNER, 5, ['REMOTE', 'REMOTE']))
+    .rejects.toThrow('WORKER_MODE_SELECTION_REQUIRED');
+  expect(mockRpc).not.toHaveBeenCalled();
 });
-test('canonical helper sorts ON_SITE then REMOTE',()=> {
- expect(canonicalWorkerExecutionModes(['REMOTE','ON_SITE'])).toEqual(['ON_SITE','REMOTE']);
- expect(canonicalWorkerExecutionModes([])).toEqual([]);
+
+test('worker-profile screen does not link to redundant mode settings route', () => {
+  const fs = require('node:fs');
+  const ui = fs.readFileSync('src/ui/workerProfile/WorkerProfilePresentation.tsx', 'utf8');
+  expect(ui).not.toContain("navigate('/profil/nacin-rada')");
+  expect(fs.existsSync('src/app/(app)/profil/nacin-rada.tsx')).toBe(false);
+});
+
+test('canonical helper sorts ON_SITE then REMOTE', () => {
+  expect(canonicalWorkerExecutionModes(['REMOTE', 'ON_SITE'])).toEqual(['ON_SITE', 'REMOTE']);
+  expect(canonicalWorkerExecutionModes([])).toEqual([]);
 });
