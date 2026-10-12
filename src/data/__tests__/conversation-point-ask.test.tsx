@@ -418,14 +418,14 @@ describe('the conversation point ask', () => {
     expect(editor().props.slot).toBe('start'); expect(mockSave).not.toHaveBeenCalled();
   });
 
-  it('allows city-only automatic camera framing but still requests a closer address', async () => {
+  it('keeps city in the conversation without automatically requesting a map', async () => {
     mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...review().value,
       geography: { mode: 'STATIONARY', start: { city: 'Novi Sad' } }, exactAddress: null } } });
     await mount();
     expect(editor().props.initialQuery).toBe('Novi Sad');
     expect(editor().props.initialQuestion).toContain('koja ulica, objekat ili bliže mesto');
     expect(editor().props.autoLocate).toBe(true);
-    expect(editor().props.allowCityContextLookup).toBe(true);
+    expect(editor().props.allowCityContextLookup).toBeUndefined();
     expect(mockSave).not.toHaveBeenCalled();
   });
 
@@ -435,7 +435,7 @@ describe('the conversation point ask', () => {
     await mount();
     expect(editor().props.initialQuery).toBe('ovde, Novi Sad');
     expect(editor().props.initialQuestion).toContain('koja ulica, objekat ili bliže mesto');
-    expect(editor().props.allowCityContextLookup).toBe(false);
+    expect(editor().props.allowCityContextLookup).toBeUndefined();
     expect(mockSave).not.toHaveBeenCalled();
   });
 
