@@ -251,16 +251,12 @@ export function AiConversationShell(p: AiConversationShellProps) {
   <SafeAreaView edges={['top']} style={s.canvas}>
     <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScreenChrome variant="detail" tone="conversation" onBack={p.onBack} title={p.title}
-        right={p.onOptions ? <ChromeIconButton label="Opcije" hint="Opcije razgovora." glyph="more" onPress={p.onOptions} /> : undefined} />
-      {p.newConversation ? <View style={s.conversationTools}>
-        <Press accessibilityRole="button" accessibilityLabel="Novi razgovor"
-          accessibilityHint="Započinje novi razgovor."
-          disabled={p.newConversation.disabled} accessibilityState={{ disabled: !!p.newConversation.disabled }}
-          onPress={() => { Keyboard.dismiss(); p.newConversation?.onPress(); }} style={s.newConversation}>
-          <Glyph name="plus" size={20} tone={p.newConversation.disabled ? 'muted' : 'ink'} />
-          <T variant="action" tone={p.newConversation.disabled ? 'muted' : 'ink'}>Novi razgovor</T>
-        </Press>
-      </View> : null}
+        right={p.newConversation || p.onOptions ? <View style={s.headerRight}>
+          {p.newConversation ? <ChromeIconButton label="Novi razgovor" hint="Započinje novi razgovor." glyph="plus"
+            disabled={p.newConversation.disabled}
+            onPress={() => { Keyboard.dismiss(); p.newConversation?.onPress(); }} /> : null}
+          {p.onOptions ? <ChromeIconButton label="Opcije" hint="Opcije razgovora." glyph="more" onPress={p.onOptions} /> : null}
+        </View> : undefined} />
       {/* Before the first word there is no draft to pin, and an empty card pushed the one invitation on the screen
           below the fold. The caller returns null until it has something. */}
       {pinned && !inlineSummary && !cardAtEnd ? <ScrollView testID="ai-pinned-card" style={[s.cardArea,
@@ -489,6 +485,7 @@ const Turn = memo(function Turn({ fromAi, body, reduced, showSpeaker, emphasis =
 });
 
 const s = StyleSheet.create({
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
   conversationTools: { paddingHorizontal: layout.chatList, alignItems: 'flex-end' },
   newConversation: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.sm },
   canvas: { flex: 1, backgroundColor: sys.conversation.ground }, flex: { flex: 1, minHeight: 0 },

@@ -37,6 +37,7 @@ export default function Prijava() {
     journaling: false, journalRecovery: false, resetting: false, notice: null as string | null }), [id, izvor, user?.id, accountRevision]);
   const [, render] = useState(0);
   const [validation, setValidation] = useState<string | null>(null);
+  const [addCategoryToProfile, setAddCategoryToProfile] = useState(true);
   useFocusEffect(useCallback(() => {
     session.focused = true; session.focusToken++; render(v => v + 1);
     return () => { session.focused = false; };
@@ -160,7 +161,15 @@ export default function Prijava() {
       // Success belongs to the editor receipt; a late success/refusal still needs fresh readback.
       pending.reconciled = current() && conclusiveApplicationRefusal(result);
       // Only this command's own authoritative receipt retires the durable identity.
-      if (result.ok) await applicationCommandJournal.clear(accountId, pending.command.potrebaId, pending.command.clientRequestId).catch(() => undefined);
+      if (result.ok) {
+        await applicationCommandJournal.clear(accountId, pending.command.potrebaId, pending.command.clientRequestId).catch(() => undefined);
+        const taskCategory = pending.need.detalji?.kategorija ?? pending.opportunity.detalji?.kategorija ?? null;
+        const profileSkills = pending.profile.vestine ?? [];
+        const hasSkill = taskCategory ? profileSkills.some(v => v.trim().toLowerCase() === taskCategory.trim().toLowerCase()) : true;
+        if (addCategoryToProfile && taskCategory && !hasSkill) {
+          await izvor.azurirajRadnikProfil({ vestine: [...profileSkills, taskCategory] }).catch(() => undefined);
+        }
+      }
       if (session.focused && currentAccount()) render(v => v + 1);
       return result.ok ? { ok: true, podatak: { ...data, receipt: result.podatak } } : result;
     }, { settledFailure: conclusiveApplicationRefusal });
@@ -198,7 +207,20 @@ export default function Prijava() {
       ...(guidance?.calendar ? [{ label: 'Otvori raspored', onPress: () => { if (current()) router.push('/raspored'); } }] : []),
     ],
   } : null;
-  return <ApplicationComposerPresentation need={pending?.need ?? data.need} opportunity={pending?.opportunity ?? data.opportunity}
+  const currentNeed = pending?.need ?? data.need;
+  const currentOpp = pending?.opportunity ?? data.opportunity;
+  const currentProfile = pending?.profile ?? data.profile;
+  const taskCategory = currentNeed.detalji?.kategorija ?? currentOpp.detalji?.kategorija ?? null;
+  const profileSkills = currentProfile.vestine ?? [];
+  const hasCategorySkill = taskCategory
+    ? profileSkills.some(v => v.trim().toLowerCase() === taskCategory.trim().toLowerCase())
+    : true;
+  const skillOptIn = taskCategory && !hasCategorySkill ? {
+    category: taskCategory,
+    enabled: addCategoryToProfile,
+    onToggle: (enabled: boolean) => { setAddCategoryToProfile(enabled); render(v => v + 1); },
+  } : null;
+  return <ApplicationComposerPresentation need={currentNeed} opportunity={currentOpp}
     draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending && !session.resetting && !session.journaling && !session.journalRecovery && !session.reading) { session.draft = withTaskPrice(draft, data.need); setValidation(null); render(v => v + 1); } }}
     busy={editor.busy || !!pending?.inFlight || session.resetting || session.journaling} pending={!!pending} uncertain={editor.uncertain || session.journalRecovery || (!!pending && !pending.reconciled && !data.receipt)} confirmed={!!data.receipt}
     // A conclusive refusal carries its outcome beside the new-offer action immediately.
@@ -218,6 +240,7 @@ export default function Prijava() {
       // header's arrow, so the way on is not "Nazad na zadatak" a second time.
       : data.opportunity.primaNovePrijave !== true ? { reason: 'Zadatak više ne prima prijave.', actionLabel: 'Pogledaj druge zadatke',
         onAction: () => { if (current() && !session.navigated) { session.navigated = true; router.replace('/zadaci'); } } } : null}
+    skillOptIn={skillOptIn}
     submit={submit} back={back} refresh={refresh} reset={reset} pendingHelp={pendingHelp}
     openApplications={() => { if (!current() || !data.receipt || session.navigated) return; session.navigated = true;
       router.replace({ pathname: '/moje-prijave', params: { prijavaId: data.receipt.prijavaId, nova: '1' } }); }} />;

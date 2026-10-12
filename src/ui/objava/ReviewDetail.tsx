@@ -190,7 +190,10 @@ export function OwnerAddress({ frame, map, part }: { frame: AddressFrame; map?: 
       {frame.notes.map((note, index) => <T key={index} variant="note" tone="muted">{note.title ? `${note.title} · Pristup: ${note.text}` : `Pristup: ${note.text}`}</T>)}
       {frame.unconfirmed ? <T variant="note" tone="muted">{`Potvrđeno tačaka: ${frame.unconfirmed.done} od ${frame.unconfirmed.total}`}</T> : null}
       {map}
-      <T variant="note" tone="muted">Vidiš samo ti. Osoba sa kojom se dogovoriš vidi je u Dogovoru.</T>
+      <View style={s.privacyNotice}>
+        <FactArt kind="info" size={16} />
+        <T variant="note" tone="muted">Vidiš samo ti. Osoba sa kojom se dogovoriš vidi je u Dogovoru.</T>
+      </View>
     </View>
   </Surface>;
 }
@@ -251,4 +254,5 @@ const s = StyleSheet.create({
   overlay: { position: 'absolute', bottom: sys.space.md, right: sys.space.md },
   counter: { minHeight: 32, justifyContent: 'center', paddingHorizontal: sys.space.md, paddingVertical: sys.space.xs, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.surface },
+  privacyNotice: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, paddingTop: sys.space.xs },
 });

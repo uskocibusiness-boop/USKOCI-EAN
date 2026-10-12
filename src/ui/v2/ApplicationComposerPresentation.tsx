@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, Keyboard, StyleSheet, TextInput, View } from 'react-native';
+import { AccessibilityInfo, Animated, Keyboard, StyleSheet, Switch, TextInput, View } from 'react-native';
 import type { PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { fixedApplicationPrice, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { calendarInstant } from '../../lib/calendarTime';
@@ -301,7 +301,7 @@ function ExactTimeSheet({ draft, timezone, taskTime, close, accept }: {
 }
 
 /** Composer of one application: what is offered, how many people come, an optional exact time, a short note, one send. */
-export function ApplicationComposerPresentation({ need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset, blocked, pendingHelp, refreshHelps = true, initialSheet }: {
+export function ApplicationComposerPresentation({ need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset, blocked, pendingHelp, refreshHelps = true, initialSheet, skillOptIn }: {
   need: PotrebaProjekcija; opportunity: PrilikaProjekcija; draft: ApplicationDraft; change: (value: ApplicationDraft) => void;
   submit: () => void; back: () => void; busy: boolean; pending: boolean; uncertain: boolean; refresh: () => void;
   error: string | null; confirmed: boolean; openApplications: () => void; canSubmit: boolean; reset?: () => void;
@@ -313,6 +313,8 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
   refreshHelps?: boolean;
   /** A sheet open from the start. Only the internal gallery sets it; the review it opens is still retired by any change. */
   initialSheet?: 'review' | 'time';
+  /** Option to add task category into the worker's profile for future notifications and dispatches. */
+  skillOptIn?: { category: string; enabled: boolean; onToggle: (enabled: boolean) => void } | null;
 }) {
   // The review only stages presentation. The route still validates, journals and sends the command.
   // A changed draft/task cannot be sent through a retained confirmation from the previous review.
@@ -447,6 +449,24 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
           <T variant="note" tone="muted">Opciono.{draft.note.length >= NOTE_COUNTER_FROM ? ` Još ${noteLeft} ${plural(noteLeft, 'znak', 'znaka', 'znakova')}.` : ''}</T>
         </View>
       </Section>
+      {skillOptIn ? <Section title="Radni profil">
+        <Surface kind="panel">
+          <View style={s.skillRow}>
+            <View style={s.skillBody}>
+              <T variant="bodyStrong">Dodaj „{skillOptIn.category}“ u radni profil</T>
+              <T variant="note" tone="muted">Ubuduće primaj obaveštenja i preporuke za ovakve zadatke.</T>
+            </View>
+            <Switch
+              testID="composer-skill-opt-in-switch"
+              accessibilityLabel={`Dodaj ${skillOptIn.category} u radni profil`}
+              value={skillOptIn.enabled}
+              disabled={disabled}
+              onValueChange={skillOptIn.onToggle}
+              trackColor={{ false: sys.color.line, true: sys.color.green }}
+            />
+          </View>
+        </Surface>
+      </Section> : null}
     </>}
     </>}
     {editingTime && !disabled && !reviewing ? <ExactTimeSheet draft={draft} timezone={timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone}
@@ -527,4 +547,6 @@ const s = StyleSheet.create({
   center: { textAlign: 'center' },
   blocked: { alignItems: 'center', gap: sys.space.xs, paddingTop: sys.space.xs },
   pair: { flexDirection: 'row', gap: sys.space.md }, stack: { gap: sys.space.md }, cell: { flex: 1, minWidth: 0 },
+  skillRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
+  skillBody: { flex: 1, minWidth: 0, gap: sys.space.xs },
 });
