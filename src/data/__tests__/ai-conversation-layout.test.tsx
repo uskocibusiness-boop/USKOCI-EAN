@@ -53,6 +53,12 @@ const props = (): AiConversationShellProps => ({title:'Novi zadatak',card:jest.f
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 beforeEach(()=>{mockHeight=844;mockWidth=390;mockScale=1;mockReduced=false;});
 afterEach(async()=>{await act(async()=>tree?.unmount());});
+it('does not apply a second height-based keyboard adjustment over Android window resizing', async () => {
+  const p = props();
+  await act(async () => { tree = create(<AiConversationShell {...p} />); });
+  const container = tree.root.findByType('KeyboardAvoidingView' as React.ElementType);
+  expect(container.props.behavior).not.toBe('height');
+});
 it('uses a quiet restart icon rather than a plus beside the conversation title and defers the action to its owner', async () => {
   const p = props(), restart = jest.fn(); p.newConversation = { onPress: restart };
   await act(async () => { tree = create(<AiConversationShell {...p} />); });
