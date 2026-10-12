@@ -114,13 +114,19 @@ export const slotSeed = (slot: LocationSlot, value: PlaceValue): string => {
   return uniqueSeedParts([exactAddressForSlot(slot, value), place?.label, place?.area, place?.city]).join(', ');
 };
 
+/** A known city may frame the map, but is not a street address or an automatic pin. */
+export const slotIsCityOnly = (slot: LocationSlot, value: PlaceValue): boolean => {
+  if (value.geography?.mode === 'AREA_BASED') return false;
+  const city = normalizedPlaceText(slotPlace(slot, value.geography)?.city ?? '');
+  return !!city && normalizedPlaceText(slotSeed(slot, value)) === city;
+};
+
 /** A city is context, not an address. Area-wide work intentionally needs an area rather than a street. */
 export const slotNeedsCloserPlace = (slot: LocationSlot, value: PlaceValue): boolean => {
   if (value.geography?.mode === 'AREA_BASED') return false;
   const place = slotPlace(slot, value.geography);
   const label = normalizedPlaceText(place?.label ?? '');
-  const city = normalizedPlaceText(place?.city ?? '');
-  if (city && normalizedPlaceText(slotSeed(slot, value)) === city) return true;
+  if (slotIsCityOnly(slot, value)) return true;
   return !exactAddressForSlot(slot, value)
     && ['ovde', 'moja lokacija', 'trenutna lokacija', 'ovde gde sam', 'gde se nalazim'].includes(label);
 };
