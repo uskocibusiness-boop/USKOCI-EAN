@@ -194,13 +194,13 @@ describe('reviewFactProblem', () => {
   const fact = (key: string, value: unknown) => ({ id: null, key, value, displayValue: String(value), privacyClass: 'PUBLIC', source: 'EXPLICIT_USER_ANSWER', status: 'CONFIRMED' });
   const withFacts = (...facts: ReturnType<typeof fact>[]) => ({ ...review(), publicProjection: facts }) as AiTaskReviewEnvelope;
   const NOW = Date.parse('2026-09-21T12:00:00Z');
-  it('names a missing amount, a window without both ends, and a start that has passed', () => {
+  it('names missing price, optional end, invalid given end and passed start', () => {
     expect(reviewFactProblem(withFacts(fact('need.price_mode', 'MY_PRICE')), NOW)).toBe('Unesi iznos ili izaberi prikupljanje ponuda.');
     expect(reviewFactProblem(withFacts(fact('need.price_mode', 'MY_PRICE'), fact('need.price_rsd', 5000)), NOW)).toBeNull();
     expect(reviewFactProblem(withFacts(fact('need.schedule_kind', 'FIXED_WINDOW'), fact('need.starts_at', '2026-09-22T08:00:00Z')), NOW))
-      .toContain('početak i kraj');
+      .toBeNull();
     expect(reviewFactProblem(withFacts(fact('need.schedule_kind', 'FIXED_WINDOW'), fact('need.starts_at', '2026-09-22T10:00:00Z'),
-      fact('need.ends_at', '2026-09-22T09:00:00Z')), NOW)).toContain('početak i kraj');
+      fact('need.ends_at', '2026-09-22T09:00:00Z')), NOW)).toContain('kraj naveden');
     expect(reviewFactProblem(withFacts(fact('need.schedule_kind', 'FIXED_WINDOW'), fact('need.starts_at', '2026-09-21T08:00:00Z'),
       fact('need.ends_at', '2026-09-21T13:00:00Z')), NOW)).toContain('Početak termina je već prošao');
     expect(reviewFactProblem(withFacts(fact('need.schedule_kind', 'FIXED_WINDOW'), fact('need.starts_at', '2026-09-22T08:00:00Z'),

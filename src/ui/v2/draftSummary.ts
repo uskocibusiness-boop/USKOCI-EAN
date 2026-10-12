@@ -1,7 +1,7 @@
 import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import { REQUIRED_NEED_FACT_V2_KEYS, type NeedTaskGeography } from '../../contracts/needFactsV2';
 import { calendarInstant } from '../../lib/calendarTime';
-import { raspon } from '../../lib/vreme';
+import { raspon, vreme } from '../../lib/vreme';
 import { DOGOVORENA_ZONA, napomenaZone } from '../../lib/dogovorenoVreme';
 import { novac } from '../../lib/novac';
 import { osoba } from '../system/plural';
@@ -16,7 +16,14 @@ export const schedules: Record<string, string> = { FLEXIBLE: 'Fleksibilno', REMO
 
 export function fixedRange(startsAt: unknown, endsAt: unknown): string | undefined {
   const start = calendarInstant(startsAt), end = calendarInstant(endsAt);
-  if (start === null || end === null || end <= start) return undefined;
+  if (start === null) return undefined;
+  if (end === null) {
+    // A missing end is valid; a supplied but malformed end is not. Never invent duration.
+    if (endsAt !== null && endsAt !== undefined) return undefined;
+    const onlyStart = vreme(new Date(Number(start / 1000n)), { zona: DOGOVORENA_ZONA });
+    return onlyStart ? `Od ${onlyStart}${napomenaZone()}` : undefined;
+  }
+  if (end <= start) return undefined;
   // The app's one way to write a window (src/lib/vreme.ts: "26. sep · 17:00–19:00"), read in Serbian time as every agreed
   // term is, and named so only on a phone set to another zone. Display only; never inferred or saved as the task's timezone.
   const text = raspon(new Date(Number(start / 1000n)), new Date(Number(end / 1000n)), { zona: DOGOVORENA_ZONA });

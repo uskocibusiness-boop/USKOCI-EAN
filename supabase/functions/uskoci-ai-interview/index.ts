@@ -16,7 +16,7 @@ import {
 import { validLocationContext, locationProviderSchema, locationInstruction, parseLocationOutput, validLocationEnvelope, type LocationContext, type LocationAction } from '../_shared/locationReply.ts';
 
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
-import { GeminiCreditsUnavailableError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
+import { GeminiCreditsUnavailableError, GeminiSafetyBlockedError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { scopedNeedPreviewArgs, scopedNeedPreviewSafeAction } from '../_shared/taxonomyScopedShadow.mjs';
 
 const corsHeaders = {
@@ -555,11 +555,19 @@ async function callGemini(
   });
   if (new TextEncoder().encode(payloadBody).byteLength > AI_TEST_LIMITS.llmRequestBytes) throw new Error('AI_CONTEXT_TOO_LARGE');
   if (onText) {
-    const raw = await streamGeminiTask({
-      url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-      key, body: payloadBody, signal, onText: () => {}, onUsage, timeoutMs: 30000,
-    });
-    return parseOutput(JSON.parse(raw));
+    try {
+      const raw = await streamGeminiTask({
+        url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+        key, body: payloadBody, signal, onText: () => {}, onUsage, timeoutMs: 30000,
+      });
+      return parseOutput(JSON.parse(raw));
+    } catch (streamError) {
+      if (streamError instanceof GeminiSafetyBlockedError) {
+        console.error('GEMINI_STREAM_SAFETY_BLOCKED', streamError.blockReason);
+        return { safety: 'BLOCK', assistantMessage: 'Zahtev nije prihvaćen jer sadrži nedozvoljen sadržaj. Opiši zadatak na drugi način.', proposals: [] };
+      }
+      throw streamError;
+    }
   }
   const providerResponse = await boundedJson(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
@@ -698,8 +706,13 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     if (!missing.includes(dialogue.questionKey)) {
       assistantMessage = missing.length ? incompleteMessage() : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
     }
-  } else if (dialogue?.next === 'REVIEW') assistantMessage = missing.length ? incompleteMessage() : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
-  else if (dialogue?.next === 'ACK') assistantMessage = proposals.length ? 'Podaci su ažurirani u pregledu.' : 'Možeš da otvoriš pregled ili dopuniš zadatak.';
+  } else if (dialogue?.next === 'REVIEW' && missing.length) {
+    // Never say the draft is ready if it still lacks required facts. Otherwise keep
+    // the model's short, natural reply: the app owns the review CTA and publication.
+    assistantMessage = incompleteMessage();
+  }
+  // ACK is not permission to replace the answer with another robotic template.
+  // The validated assistantMessage is already bounded and is not publication authority.
   return { ...turn, proposals, assistantMessage };
 }
 
@@ -863,9 +876,6 @@ Deno.serve(async (req: Request) => {
         else if (!aiTurn.locationAction || aiTurn.safety !== 'ALLOW') aiTurn.locationAction = 'CLARIFY';
       }
     } catch (providerError) {
-      // On 2026-09-18 this line was the only trace of two failures that left the person staring at
-      // "AI jos obradjuje poruku" for over two hours, and it did not say which failure it was. It
-      // says which class of failure it was, from a closed list, and nothing of what was thrown.
       console.error('AI_PROVIDER_FAILED', providerFailureClass(providerError));
       await retireAttempt();
       if (availabilityDiagnostics && providerError instanceof GeminiCreditsUnavailableError) return response(503, { code: AI_CREDITS_UNAVAILABLE });

@@ -1,0 +1,52 @@
+name: AI v72 start-only location integrated proof
+
+on:
+  push:
+    branches:
+      - integration/ai-v72-start-only-location-20261012
+  pull_request:
+    branches:
+      - integration/ai-v72-start-only-review-20261012
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-v72-start-only-location-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integrated-source-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact integrated source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Record source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf 'Checked out source SHA: '
+          git rev-parse HEAD
+          if [ "${{ github.event_name }}" = "push" ]; then
+            test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          fi
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Set up Deno for Edge source check
+        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.5.6
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Combined AI v72, Gemini safety, start-only and location regressions (mocked, no live providers)
+        run: npm test -- --runInBand --runTestsByPath src/data/__tests__/ai-natural-server-guard.test.ts src/data/__tests__/gemini-http-stream-regression.test.ts src/data/__tests__/gemini-v70-safety-stream.test.ts src/data/__tests__/review-fact-start-only.test.ts src/data/__tests__/draft-summary-start-only.test.ts src/data/__tests__/ai-task-review-client.test.ts src/data/__tests__/ai-owned-intake-screen.test.tsx src/data/__tests__/review-exits-and-place.test.tsx src/data/__tests__/locationPointEditor.test.tsx src/data/__tests__/conversation-point-ask.test.tsx src/ui/location/__tests__/placeText.test.ts
+      - name: TypeScript source contracts
+        run: npx tsc --noEmit --pretty false
+      - name: Deno check of active v72 Edge source and imports
+        run: deno check supabase/functions/uskoci-ai-interview/index.ts
