@@ -5,6 +5,21 @@ export class GeminiCreditsUnavailableError extends Error {
   constructor() { super(AI_CREDITS_UNAVAILABLE); this.name = 'GeminiCreditsUnavailableError'; }
 }
 
+/** Provider-controlled block details must never become an error message or operator log. */
+const SAFE_GEMINI_BLOCK_REASONS = new Set([
+  'SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT', 'SPII', 'OTHER', 'BLOCK_REASON_UNSPECIFIED',
+]);
+
+export class GeminiSafetyBlockedError extends Error {
+  readonly blockReason: string;
+  constructor(rawBlockReason: unknown) {
+    super('GEMINI_SAFETY_BLOCKED');
+    this.name = 'GeminiSafetyBlockedError';
+    this.blockReason = typeof rawBlockReason === 'string' && SAFE_GEMINI_BLOCK_REASONS.has(rawBlockReason)
+      ? rawBlockReason : 'UNKNOWN';
+  }
+}
+
 /** Bounded provider stream. Only the top-level assistantMessage becomes UI text. */
 function stringAt(input: string, start: number): { value: string; end: number; complete: boolean } {
   let value = '';
@@ -227,13 +242,17 @@ export async function streamGeminiTask(input: {
       const lines = value.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trim());
       if (!lines.length) return;
       const data = JSON.parse(lines.join('\n'));
-      if (data.error || data.promptFeedback?.blockReason) throw new Error('AI_STREAM_REJECTED');
+      if (data.promptFeedback?.blockReason) throw new GeminiSafetyBlockedError(data.promptFeedback.blockReason);
+      if (data.error) throw new Error('AI_STREAM_REJECTED');
       // Counts only, and the last complete block wins because the field is cumulative.
       const usage = geminiUsage(data.usageMetadata);
       if (usage) lastUsage = usage;
       if (!Array.isArray(data.candidates) || data.candidates.length > 1) throw new Error('AI_STREAM_INVALID');
       const candidate = data.candidates[0];
       if (!candidate) return;
+      if (candidate.finishReason && ['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT'].includes(candidate.finishReason)) {
+        throw new GeminiSafetyBlockedError(candidate.finishReason);
+      }
       if (candidate.finishReason && candidate.finishReason !== 'STOP') throw new Error('AI_STREAM_INCOMPLETE');
       if (candidate.finishReason === 'STOP') stopped = true;
       for (const part of candidate.content?.parts ?? []) {
