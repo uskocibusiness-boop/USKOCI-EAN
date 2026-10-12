@@ -51,6 +51,12 @@ describe('natural server AI response without bypassing authoritative review', ()
     const model = 'Sve imam za sada. Pogledaj nacrt kad budeš spreman.';
     expect(call(reply('REVIEW', model)).assistantMessage).toBe(model);
   });
+  it('does not demand an invented end for a known fixed start', () => {
+    const input = facts().map(f => f.fact_key === 'need.schedule_kind' ? { ...f, fact_value: 'FIXED_WINDOW' } : f);
+    input.push({ fact_key: 'need.starts_at', fact_value: '2026-10-13T05:00:00Z', status: 'CONFIRMED' });
+    const spoken = 'Zabeležio sam početak u sedam; završetak možeš ostaviti otvoren.';
+    expect(call(reply('REVIEW', spoken), input).assistantMessage).toBe(spoken);
+  });
   it('preserves a specific ACK after a genuine correction, instead of repeated boilerplate', () => {
     const msg = 'U redu, zabeležio sam ispravku opisa.';
     const result = call(reply('ACK', msg, [{ key: 'need.description', value: 'Drugi opis' }]));
