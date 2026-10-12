@@ -672,7 +672,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
   for (const proposal of proposals) facts.set(proposal.key, proposal.value);
   const missing = [...new Set(['need.description', 'need.people_needed', 'need.price_mode',
     ...(facts.get('need.price_mode') === 'MY_PRICE' ? ['need.price_rsd', ...(Number(facts.get('need.people_needed')) > 1 ? ['need.price_basis'] : [])] : []),
-    'need.schedule_kind', ...(facts.get('need.schedule_kind') === 'FIXED_WINDOW' ? ['need.starts_at', 'need.ends_at'] : []),
+    'need.schedule_kind', ...(facts.get('need.schedule_kind') === 'FIXED_WINDOW' ? ['need.starts_at'] : []),
     'need.task_country_code', 'need.task_geography',
     ...Object.entries(NEED_FACT_V2_DEFINITIONS).filter(([, definition]) => definition.requiredForDraft).map(([key]) => key)])]
     .filter(key => !facts.has(key));
@@ -695,8 +695,13 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     if (!missing.includes(dialogue.questionKey)) {
       assistantMessage = missing.length ? incompleteMessage() : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
     }
-  } else if (dialogue?.next === 'REVIEW') assistantMessage = missing.length ? incompleteMessage() : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
-  else if (dialogue?.next === 'ACK') assistantMessage = proposals.length ? 'Podaci su ažurirani u pregledu.' : 'Možeš da otvoriš pregled ili dopuniš zadatak.';
+  } else if (dialogue?.next === 'REVIEW' && missing.length) {
+    // Never say the draft is ready if it still lacks required facts. Otherwise keep
+    // the model's short, natural reply: the app owns the review CTA and publication.
+    assistantMessage = incompleteMessage();
+  }
+  // ACK is not permission to replace the answer with another robotic template.
+  // The validated assistantMessage is already bounded and is not publication authority.
   return { ...turn, proposals, assistantMessage };
 }
 
