@@ -76,7 +76,7 @@ BEGIN
   RAISE EXCEPTION 'USKOCI_TAXONOMY_NEED_NOT_CURRENT_DRAFT' USING ERRCODE='PT409';
  END IF;
  IF v_need.category IS NULL OR char_length(btrim(v_need.category)) NOT BETWEEN 3 AND 120
-    OR v_need.category ~ '[<>{}\]' OR v_need.category ~ '[[:cntrl:]]' THEN
+    OR v_need.category ~ '[<>{}\\]' OR v_need.category ~ '[[:cntrl:]]' THEN
   RAISE EXCEPTION 'USKOCI_TAXONOMY_LABEL_INVALID' USING ERRCODE='22023';
  END IF;
  v_scope:=private.taxonomy_execution_scope_v1(v_need.execution_location_mode);
@@ -102,12 +102,31 @@ BEGIN
  -- Source is the current saved need, never an AI-supplied arbitrary label.
  v_preview:=private.taxonomy_preview_v1(v_need.category);
  IF v_preview->>'action'='REUSE_EXISTING' THEN
+  IF NOT EXISTS (
+    SELECT 1 FROM private.work_taxonomy_category_modes m
+    WHERE m.category_id=(v_preview->>'categoryId')::uuid
+      AND m.execution_scope=v_scope
+  ) THEN
+    RETURN jsonb_build_object('action','CLARIFY',
+     'reason','EXISTING_CATEGORY_WRONG_EXECUTION_SCOPE',
+     'executionScope',v_scope,'notificationAuthority','NONE',
+     'classificationAuthority','NONE');
+  END IF;
   RETURN jsonb_build_object('action','REVIEW_EXISTING_SERVICE',
    'categoryId',v_preview->>'categoryId','executionScope',v_scope,
    'requiresRequesterReview',true,'notificationAuthority','NONE',
    'classificationAuthority','NONE');
  END IF;
- IF v_preview->>'action' NOT IN ('PROPOSE_AUTO_PROVISIONAL','NEEDS_CLARIFICATION','REVIEW') THEN
+ IF v_preview->>'action'='SAFETY_REVIEW' THEN
+  RETURN jsonb_build_object('action','MANUAL_SAFETY_REVIEW',
+   'executionScope',v_scope,'notificationAuthority','NONE',
+   'classificationAuthority','NONE');
+ ELSIF v_preview->>'action'='REJECT' THEN
+  RETURN jsonb_build_object('action','REJECTED_SAFETY',
+   'executionScope',v_scope,'notificationAuthority','NONE',
+   'classificationAuthority','NONE');
+ END IF;
+ IF v_preview->>'action' <> 'PROPOSE_AUTO_PROVISIONAL' THEN
   RETURN jsonb_build_object('action','CLARIFY',
    'reason','AMBIGUOUS_OR_COLLIDING_SERVICE','executionScope',v_scope,
    'notificationAuthority','NONE','classificationAuthority','NONE');
