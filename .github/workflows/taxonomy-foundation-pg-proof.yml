@@ -1,0 +1,88 @@
+name: Dynamic taxonomy PostgreSQL foundation proof
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/taxonomy-foundation-pg-proof.yml'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/**'
+  push:
+    branches: [fix/match-ai-category-fallback-20261010]
+    paths:
+      - '.github/workflows/taxonomy-foundation-pg-proof.yml'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/**'
+permissions:
+  contents: read
+jobs:
+  disposable-postgres:
+    name: Disposable PostgreSQL ${{ matrix.postgres }}
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['16','17']
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install postgres client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Install fixture and actual candidate SQL (no DEV credentials)
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-fixture.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/catalog-foundation.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/service-meaning.sql
+      - name: Verify gates, canonical aliases, no worker inference and no fixed limit
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-assert.sql
+      - name: Install isolated capability tier SQL (no dispatcher integration)
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/capability-tier.sql
+      - name: Verify unrelated workers blocked and related offers require explicit opt-in
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-capability-assert.sql
+      - name: Install read-only server classification preview
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/catalog-preview.sql
+      - name: Verify preview safety branches and zero mutation
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-preview-assert.sql
+      - name: Verify registration and preview agree across locales
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-locale-assert.sql
+      - name: Verify task scope does not fragment the work catalog
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-meaning-assert.sql
+      - name: Install read-only natural-language task classifier
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/natural-task-preview.sql
+      - name: Prove sentences, quantity, square meters and unsafe compound denial
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-natural-assert.sql
+      - name: Install service-only AI claim review verifier
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/ai-claim-review.sql
+      - name: Reject forged AI category, scope, quantity and send permissions
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-ai-claim-assert.sql
+      - name: Install existing Gemini need.category service adapter
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/existing-ai-category-bridge.sql
+      - name: Prove existing full-conversation AI output resolves safely
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-existing-ai-bridge-assert.sql
+      - name: Verify concurrent upsert is one stable identity
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -c "UPDATE private.work_taxonomy_control SET auto_registration_enabled=true,max_auto_creates_per_hour=100"
+          psql -X -v ON_ERROR_STOP=1 -c "SELECT private.taxonomy_register_low_risk_v1('Dresiranje pasa','LOW_RISK_VERIFIED',true)" >/tmp/taxon-one.txt &
+          pid1=$!
+          psql -X -v ON_ERROR_STOP=1 -c "SELECT private.taxonomy_register_low_risk_v1('Дресирање паса','LOW_RISK_VERIFIED',true)" >/tmp/taxon-two.txt &
+          pid2=$!
+          wait "$pid1"
+          wait "$pid2"
+          result=$(psql -X -v ON_ERROR_STOP=1 -Atc "SELECT count(*) FROM private.work_taxonomy_categories WHERE canonical_key='dresiranje pasa'")
+          test "$result" = '1'
+          echo CONCURRENT_UNIQUE_ID_PASS
+          psql -X -v ON_ERROR_STOP=1 -c "UPDATE private.work_taxonomy_control SET auto_registration_enabled=false"

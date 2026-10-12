@@ -1,16 +1,19 @@
 export type MessagePushOwner = { accountId: string; accountRevision: number; sessionEpoch: number };
-export type MessagePushIntent = MessagePushOwner & { serial: number; eventId: string; at: number; coldRoute: number | null };
+export type MessagePushIntent = MessagePushOwner & { serial: number; eventId: string; eventType: 'MESSAGE_RECEIVED' | 'OPPORTUNITY_AVAILABLE'; at: number; coldRoute: number | null };
 let intent: MessagePushIntent | null = null;
 let serial = 0;
 const listeners = new Set<() => void>();
 const emit = () => { for (const listener of listeners) listener(); };
 
-/** Memory-only navigation intent. It is not a message, receipt or durable command. */
+/** Memory-only event hint. Neither a message nor a task id, receipt or durable command. */
 export const messagePushIntent = {
   snapshot: () => intent,
   subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
   remember(eventId: string, owner: MessagePushOwner, coldRoute: number | null) {
-    intent = { ...owner, eventId, coldRoute, serial: ++serial, at: Date.now() }; emit();
+    intent = { ...owner, eventId, eventType: 'MESSAGE_RECEIVED', coldRoute, serial: ++serial, at: Date.now() }; emit();
+  },
+  rememberOpportunity(eventId: string, owner: MessagePushOwner, coldRoute: number | null) {
+    intent = { ...owner, eventId, eventType: 'OPPORTUNITY_AVAILABLE', coldRoute, serial: ++serial, at: Date.now() }; emit();
   },
   retire(expected: number) { if (intent?.serial === expected) { intent = null; emit(); } },
   clear() { if (intent) { intent = null; emit(); } },

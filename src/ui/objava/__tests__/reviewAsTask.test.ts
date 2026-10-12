@@ -82,7 +82,7 @@ describe('what a fact does not carry is not drawn', () => {
 
   it('a fixed term with only one end says which end, as the published card does', () => {
     const task = reviewAsTask(review([fact('need.schedule_kind', 'FIXED_WINDOW'), fact('need.starts_at', '2026-10-11T07:00:00.000Z')]));
-    expect(task.vremeTekst).toMatch(/^Od 11\. okt( \d{4})? · 09:00 \(po vremenu u Srbiji\)$/);
+    expect(task.vremeTekst).toMatch(/^Početak 11\. okt( \d{4})? · 09:00 \(po vremenu u Srbiji\)$/);
   });
 
   it('a flexible term is its word, with no clock', () => {

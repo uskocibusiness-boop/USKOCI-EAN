@@ -17,6 +17,7 @@ import { validLocationContext, locationProviderSchema, locationInstruction, pars
 
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
+import { scopedNeedPreviewArgs, scopedNeedPreviewSafeAction } from '../_shared/taxonomyScopedShadow.mjs';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -353,6 +354,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     ...commonInstruction(activeFacts, timeContext),
     'Sastavite lep, kratak i smislen need.title kada razgovor daje dovoljno osnove. Need.description može biti uredna ljudska sinteza potvrđenih/poznatih činjenica i najnovije poruke, ali ne sme dodati nijedan novi materijalni uslov.',
     'Za obične atomske činjenice evidence je kratak citat korisnika. Za naslov/opis koji su sinteza, evidence može biti kratko: "Sinteza potvrđenih činjenica i razgovora".',
+    'Za need.category izdvojite stvarnu VRSTU USLUGE iz celog razgovora (radnja + predmet rada), nezavisno od prostorije, kvadrature, broja komada, adrese, cene i datuma: krečenje sobe / krečenje stana -> krečenje zidova, molerski radovi kao šira grupa. Nemojte stvarati novu kategoriju samo zato što se promenio obim. Gletovanje zidova i krečenje zidova mogu biti posebne kompetencije; farbanje automobila nije krečenje zidova. Ne ograničavajte legitimne nove vrste usluga na jedanaest starih grupa, ali ne tvrdite da je nova kategorija registrovana ili da postoje odgovarajući radnici. Kategorija je AI predlog za korisnički pregled i nezavisnu serversku klasifikaciju, nikada dokaz kompetencije, objava niti nalog za obaveštavanje.',
     'Iz dovoljno jasnog opisa predložite i nedostajuću need.category: kratak naziv stvarno opisane vrste zadatka, bez novih uslova i bez opšteg rezervnog naziva poput ostalo. Kategorija je interni podatak; ne pitajte korisnika za kategoriju. Ako opis nije jasan, pitajte šta konkretno treba uraditi. Pre REVIEW proverite i naslov i kategoriju. Ako korisnik samo završava razgovor, a već postoji jasan need.description, možete dopuniti samo nedostajući naslov ili kategoriju uz evidence koji je doslovan isečak tog postojećeg opisa; ne menjajte nijedan postojeći podatak i ne dodajte materijalne uslove iz komande završetka.',
     'dialogue opisuje sledeći korak, nije nova činjenica. next: ASK samo za nedostajući podatak, CLARIFY za stvarnu dvosmislenost, REVIEW za završetak i prelazak na pregled, ACK za izmenu bez pitanja, ANSWER kada korisnik traži objašnjenje. questionKey je tačan ključ pitanja za ASK, inače NONE. Ne birajte ASK za već poznat podatak.',
     'Ako korisnik pita zašto nešto tražite, postavi drugo pitanje o ovom zadatku ili kaže da se ponavljate, prvo odgovorite na tu poruku koristeći ANSWER i questionKey NONE. Nemojte umesto odgovora ponoviti pitanje za nedostajuće polje. Objasnite konkretno šta još nije jasno, bez ponavljanja privatne adrese.',
@@ -365,7 +367,8 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     'need.price_basis može biti samo TOTAL ili PER_PERSON i postavlja se isključivo uz need.price_mode MY_PRICE. Kada zadatak traži više od jedne osobe i korisnik je naveo svoju cenu, jednom kratko pitajte da li je taj iznos ukupno za ceo zadatak ili po osobi, i postavite činjenicu tek iz odgovora; nemojte pretpostavljati. Za jednu osobu ovu činjenicu ne pominjite i ne postavljajte.',
     'TOTAL dozvoljava prijavu i za deo traženih ljudi. Iznos prijave je round(ukupna cena zadatka × broj ljudi u prijavi / ukupno traženih ljudi), zaokružen jednom na najbliži ceo dinar. Za 9000 RSD i 3 osobe, jedna osoba dobija 3000 RSD; za 10000 RSD i 3 osobe, jedna dobija 3333, a dve 6667 RSD. Ne množite prethodno zaokruženu cenu za jednu osobu. need.price_rsd ostaje ukupna cena zadatka, ne iznos delimične prijave; ne menjajte sačuvane uslove Dogovora. PER_PERSON ostaje cena za ceo zadatak po osobi. Ovo objasnite samo kada je korisniku potrebno; ne pretvarajte objašnjenje u dodatno pitanje ili razlog za promenu osnove cene.',
     'Cena se odnosi na ceo obim posla, ukupno ili po osobi. Dnevnica ili satnica nije automatski cena za ceo zadatak. Kada korisnik navede cenu po danu/satu, prvo razjasnite obim i iznos za ceo posao; ne upisujte dnevnicu kao konačnu cenu. Odvojene dnevne smene ne predstavljajte kao neprekidan FIXED_WINDOW. Ne izmišljajte broj dana, trajanje ni ukupan iznos. Kada objašnjavate cenu po osobi, koristite tačan proizvod cene za ceo posao i broja ljudi; ne ponavljajte taj obračun u svakom odgovoru.',
-    'need.schedule_kind može biti samo FIXED_WINDOW, FLEXIBLE, REMOTE_ANYTIME, TODAY_FLEXIBLE, TOMORROW_FLEXIBLE ili WEEK_FLEXIBLE. FIXED_WINDOW zahteva i starts_at i ends_at, sa krajem posle početka.',
+    'need.schedule_kind može biti samo FIXED_WINDOW, FLEXIBLE, REMOTE_ANYTIME, TODAY_FLEXIBLE, TOMORROW_FLEXIBLE ili WEEK_FLEXIBLE. FIXED_WINDOW zahteva potvrđen starts_at. ends_at je opcion i popunjava se samo ako je korisnik zaista rekao završetak. Ako korisnik kaže sutra u 7, need.schedule_kind=FIXED_WINDOW i need.starts_at=sutra u 07:00 po server-vremenu; nikada TOMORROW_FLEXIBLE samo zato što je rekao sutra. TOMORROW_FLEXIBLE važi kada je naveden samo dan bez tačnog sata. Ne izmišljaj kraj ili trajanje. Kada su oba vremena navedena, kraj mora biti posle početka.',
+    'USKOČI ima DVE glavne grane zadataka: NA LOKACIJI ili NA DALJINU. To nije vrsta posla nego režim izvršenja. Ako korisnik izričito kaže da se zadatak obavlja onlajn/na daljinu, predloži need.task_geography.mode=REMOTE bez polazišta, odredišta i fizičkog pina. Ako mora da se dođe ili vozi, odaberi odgovarajući fizički režim. Ako isto zanimanje može i onlajn i na lokaciji, ne zaključuj režim samo iz need.category, nego pitaj šta korisnik želi. Kada korisnik potvrdi režim, ne prebacuj ga neprimetno u drugu granu. Vrsta usluge može imati više nivoa kategorije/potkategorije, bez zatvorenog spiska od 11, ali interni naziv need.category ostaje predlog korisniku i ne daje pravo na matching, objavu ili obaveštenje.',
     'need.task_geography.mode može biti STATIONARY, POINT_TO_POINT, MULTI_STOP, AREA_BASED ili REMOTE. Objekat sme imati samo mode/start/end/waypoints/serviceArea; lokacijske tačke samo label/city/area. REMOTE nema fizičke tačke. AREA_BASED koristi start ili serviceArea. Kada korisnik navede ulicu ili prepoznatljivo mesto za tačku rute, sačuvajte privacy-safe naziv ulice/POI bez kućnog broja u label ili area baš te start/end/waypoint tačke, uz poznati city, da mapa može da uokviri pravi kraj. Tačnu adresu sa kućnim brojem stavljajte isključivo u need.exact_address.',
     'Tačna privatna adresa/access notes nikada se ne prebacuju u javnu geography ili opis. Jedan need.exact_address nije dozvola da se privatna adresa pripiše polazištu druge route tačke; tačne route pinove korisnik potvrđuje na mapi.',
     'U ovoj test verziji identitet je samostalno naveden; provera dokumenta, selfija ili spoljnim KYC servisom nije dostupna. Ne predlažite need.verified_identity_required niti tvrdite da je bilo čiji identitet proveren. Ako korisnik traži provereni identitet, u odgovoru jasno objasnite da ta provera nije dostupna i da može nastaviti običnim Zadatkom. Nedostupni zahtev ne prenosite u naslov, opis, veštine ili bitne uslove kao da je ispunjen ili podržan. Postojeći takav uslov vlasnik uklanja izričitom ručnom ispravkom u pregledu.',
@@ -672,7 +675,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
   for (const proposal of proposals) facts.set(proposal.key, proposal.value);
   const missing = [...new Set(['need.description', 'need.people_needed', 'need.price_mode',
     ...(facts.get('need.price_mode') === 'MY_PRICE' ? ['need.price_rsd', ...(Number(facts.get('need.people_needed')) > 1 ? ['need.price_basis'] : [])] : []),
-    'need.schedule_kind', ...(facts.get('need.schedule_kind') === 'FIXED_WINDOW' ? ['need.starts_at', 'need.ends_at'] : []),
+    'need.schedule_kind', ...(facts.get('need.schedule_kind') === 'FIXED_WINDOW' ? ['need.starts_at'] : []),
     'need.task_country_code', 'need.task_geography',
     ...Object.entries(NEED_FACT_V2_DEFINITIONS).filter(([, definition]) => definition.requiredForDraft).map(([key]) => key)])]
     .filter(key => !facts.has(key));
@@ -869,6 +872,23 @@ Deno.serve(async (req: Request) => {
       return response(502, { code: 'AI_PROVIDER_FAILED', message: 'AI obrada trenutno nije uspela. Proverite ishod pre nastavka.' });
     }
     if (signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
+    if (schemaVersion === NEED_FACT_SCHEMA_V2 && !locationContext) {
+      // Shadow-mode ONLY: the existing Gemini has already proposed typed facts,
+      // and the authoritative owner-bound SQL completion still owns persistence.
+      // Never gate a paid AI completion on a preview RPC/network failure.
+      const taxonomyArgs = scopedNeedPreviewArgs(activeFacts, aiTurn.proposals);
+      if (taxonomyArgs) {
+        try {
+          const preview = await rpc('rpc_taxonomy_ai_scoped_preview_service', taxonomyArgs, signal, 2200);
+          const action = preview.ok ? scopedNeedPreviewSafeAction(preview.data) : 'UNAVAILABLE';
+          // An allowlisted action only, never raw task details, addresses or worker identities.
+          console.info('TAXONOMY_SCOPED_SHADOW', action);
+        } catch {
+          console.info('TAXONOMY_SCOPED_SHADOW', 'UNAVAILABLE');
+        }
+      }
+      if (signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
+    }
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
       const result = await rpc(locationContext ? 'rpc_ai_complete_need_location_turn_v1_service' : 'rpc_ai_complete_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId,
         p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: aiTurn.proposals,

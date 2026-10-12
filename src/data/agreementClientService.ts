@@ -100,7 +100,9 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
     vremeTekst: acceptedSchedule(terms),
     ...(acceptedTerms ? {
       prihvacenPocetak: calendarInstant(acceptedTerms.proposed_start_at) !== null
-        ? acceptedTerms.proposed_start_at as string : null,
+        ? acceptedTerms.proposed_start_at as string
+        : calendarInstant(acceptedTerms.declared_start_at) !== null
+          ? acceptedTerms.declared_start_at as string : null,
       prihvacenObim: typeof acceptedTerms.scope_note === 'string' && acceptedTerms.scope_note.trim()
         && Array.from(acceptedTerms.scope_note).length <= 4000 ? acceptedTerms.scope_note : null,
     } : {}),
@@ -190,7 +192,15 @@ function pendingChangeSummary(raw: Record<string, unknown>, actions: ServerActio
 
 function acceptedSchedule(terms: Record<string, unknown>): string {
   const start = terms.proposed_start_at, end = terms.proposed_end_at;
-  if (start == null && end == null) return 'Termin nije dogovoren';
+  if (start == null && end == null) {
+    // Confirmed task beginning, no invented agreement duration or calendar lock.
+    const declared = terms.declared_start_at;
+    if (typeof declared === 'string' && calendarInstant(declared) !== null) {
+      return needScheduleText({ kind: 'FIXED_WINDOW', startsAt: declared, endsAt: null },
+        DOGOVORENA_ZONA) + ' · trajanje po dogovoru';
+    }
+    return 'Termin nije dogovoren';
+  }
   if ((start != null && (typeof start !== 'string' || calendarInstant(start) === null)) ||
     (end != null && (typeof end !== 'string' || calendarInstant(end) === null))) return 'Termin nije dostupan';
   // The workspace returns accepted instants but no accepted display timezone. They were once shown

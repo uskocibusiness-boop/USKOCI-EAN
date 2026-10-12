@@ -64,7 +64,7 @@ it('says what the task says: remote is "Na daljinu" and never a city, the end of
   mockRpc.mockResolvedValue({ data: payload([remote, endOnly, long, noPlace], { counts: { total: 4, attention: 0, active: 4, finished: 0 } }), error: null });
   const [a, b, c, d] = (await applicationClientService.mojePrijaveStrana(first)).items;
   expect(a.podrucjeTekst).toBe('Na daljinu'); expect(a.vremeTekst).toBe('Na daljinu, fleksibilno');
-  expect(b.vremeTekst).toMatch(/Do .*10\. okt|Do .*okt/); expect(b.zadatak?.raspored.startsAt).toBeNull();
+  expect(b.vremeTekst).toContain('Rok do'); expect(b.zadatak?.raspored.startsAt).toBeNull();
   expect(c.vremeTekst).toMatch(/okt.*–.*okt/); expect(c.zadatak?.raspored.endsAt).toBe('2026-10-12T16:00:00+00:00');
   expect(d.podrucjeTekst).toBe('Lokacija nije navedena');   // a missing point is not a place, and not "remote"
   expect(d.vremeTekst).toContain('zona nije navedena');   // a term without a zone says so

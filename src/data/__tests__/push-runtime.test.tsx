@@ -283,3 +283,17 @@ it('unmounted foreground callback cannot show or acknowledge anything', async ()
 it('signed-out runtime never installs a foreground handler', async () => {
  mockState = { ...mockState, user: null }; await mount(); expect(mockSetHandler).not.toHaveBeenCalled();
 });
+
+it('an opportunity hint remains only an owned event until the visible Inbox resolves it', async () => {
+ const eventId='33333333-3333-4333-8333-333333333333';
+ mockCold.mockResolvedValue(response('opportunity',{kind:'INBOX',eventType:'OPPORTUNITY_AVAILABLE',eventId})); await mount();
+ expect(messagePushIntent.snapshot()).toEqual(expect.objectContaining({eventId,eventType:'OPPORTUNITY_AVAILABLE',accountId:mockState.user!.id,coldRoute:expect.any(Number)}));
+ expect(mockNavigate.mock.calls).toEqual([['/obavestenja']]);
+ expect(mockPush).not.toHaveBeenCalled();
+});
+it('opportunity metadata presents only with public opportunity text', async () => {
+ await mount(); const data={kind:'INBOX',eventType:'OPPORTUNITY_AVAILABLE',eventId:'33333333-3333-4333-8333-333333333333'};
+ expect(await present(notification({data,title:'Novi zadatak za tebe',body:'Pojavila se nova prilika koja može da ti odgovara.'}))).toEqual(visible);
+ expect(await present(notification({data,title:'Nova poruka u Dogovoru',body:'Imaš novu poruku.'}))).toEqual(hidden);
+ expect(await present(notification({data:{...data,needId:'private'},title:'Novi zadatak za tebe',body:'Pojavila se nova prilika koja može da ti odgovara.'}))).toEqual(hidden);
+});

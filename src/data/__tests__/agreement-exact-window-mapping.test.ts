@@ -53,6 +53,20 @@ it('maps the accepted exact window from the same terms the list reads, keeping t
   expect(result.exact).toMatchObject({ stanje: 'COMPLETED', verzija: 2, naslov: 'Pomoć oko krečenja stana', cena: { prikaz: '4.000 RSD' } });
 });
 
+it('preserves a declared start-only task without inventing a confirmed calendar interval', async () => {
+  const beginning = '2026-10-12T05:00:00Z';
+  const items = [row('start-snapshot', { status: 'CONFIRMED', agreementStatus: 'CONFIRMED',
+    terms: { price_rsd: 4000, declared_start_at: beginning,
+      proposed_start_at: null, proposed_end_at: null, schedule_source: 'UNSCHEDULED' } })];
+  mockRpc.mockResolvedValue({ data: { items, hasMore: false }, error: null });
+  const [agreement] = await agreementClientService.mojiDogovori({ includeRatings: false });
+  expect(agreement.prihvacenPocetak).toBe(beginning);
+  expect(agreement.vremeTekst).toContain('Početak 12. okt');
+  expect(agreement.vremeTekst).toContain('07:00');
+  expect(agreement.vremeTekst).toContain('trajanje po dogovoru');
+  expect(agreement.tacanTermin).toBeNull();
+});
+
 it('carries the same window on the one Dogovor read', async () => {
   mockRpc.mockResolvedValue({ data: row('agr-1', { status: 'CONFIRMED', agreementStatus: 'CONFIRMED',
     terms: { proposed_start_at: '2026-09-24T10:00:00Z', proposed_end_at: '2026-09-24T12:00:00Z' } }), error: null });
