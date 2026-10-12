@@ -114,7 +114,6 @@ export function LocationPointEditor(props: Props) {
 function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQuery = '', resolver: injectedResolver,
   autoLocate = false, initialQuestion, allowCityContextLookup = false, presentation = 'form', conversationSummary, onCorrectInConversation, onPromptReady, confirmAsPrimary = true, disabled, onInvalidate, onConfirm }: Props) {
   const conversation = presentation === 'conversation';
-  const cityContextOnly = conversation && !!initialQuestion && allowCityContextLookup;
   const [defaultResolver] = useState(() => createConfiguredLocationResolver());
   const resolver = injectedResolver ?? defaultResolver;
   const [position, setPosition] = useState<ResolvedPinPosition | null>(point
@@ -138,6 +137,8 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const hereRequest = useRef<AbortController | null>(null);
   useEffect(() => () => hereRequest.current?.abort(), []);
   const [searchText, setSearchText] = useState(initialQuery);
+  // Only the original known-city query is a camera hint. A later manual street search can still propose a pin.
+  const cityContextOnly = conversation && !!initialQuestion && allowCityContextLookup && searchText === initialQuery;
   const [lookup, setLookup] = useState<ConfiguredLocationResolution | { status: 'IDLE' | 'LOADING' }>({ status: 'IDLE' });
   const [lookupMode, setLookupMode] = useState<'search' | 'reverse'>('search');
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
