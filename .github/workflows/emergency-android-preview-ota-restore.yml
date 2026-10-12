@@ -3,11 +3,7 @@ name: Emergency Android preview OTA restore (fail closed)
 # One-shot emergency recovery. Changes to application sources do not trigger this workflow.
 # Never modify the installed APK, native runtime, database, or production channel.
 on:
-  push:
-    branches:
-      - work/ultra-master-integration-20261012
-    paths:
-      - .github/workflows/emergency-android-preview-ota-restore.yml
+  # Explicit operator action only. Source pushes never roll back user's preview app.
   workflow_dispatch:
 
 permissions:
