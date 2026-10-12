@@ -418,6 +418,27 @@ describe('the conversation point ask', () => {
     expect(editor().props.slot).toBe('start'); expect(mockSave).not.toHaveBeenCalled();
   });
 
+  it('allows city-only automatic camera framing but still requests a closer address', async () => {
+    mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...review().value,
+      geography: { mode: 'STATIONARY', start: { city: 'Novi Sad' } }, exactAddress: null } } });
+    await mount();
+    expect(editor().props.initialQuery).toBe('Novi Sad');
+    expect(editor().props.initialQuestion).toContain('koja ulica, objekat ili bliže mesto');
+    expect(editor().props.autoLocate).toBe(true);
+    expect(editor().props.allowCityContextLookup).toBe(true);
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  it('does not geocode vague here/ovde descriptions before clarifying the real place', async () => {
+    mockRead.mockResolvedValue({ ok: true, podatak: { ...review(), value: { ...review().value,
+      geography: { mode: 'STATIONARY', start: { label: 'ovde', city: 'Novi Sad' } }, exactAddress: null } } });
+    await mount();
+    expect(editor().props.initialQuery).toBe('ovde, Novi Sad');
+    expect(editor().props.initialQuestion).toContain('koja ulica, objekat ili bliže mesto');
+    expect(editor().props.allowCityContextLookup).toBe(false);
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
   it('seeds label-only places and advances through waypoints one at a time', async () => {
     const geography = { mode: 'MULTI_STOP' as const, start: { label: 'Glavna stanica' },
       waypoints: [{ label: 'Botanička bašta' }, { label: 'Park', area: 'Park', city: 'Novi Sad' }], end: { label: 'Muzej' } };

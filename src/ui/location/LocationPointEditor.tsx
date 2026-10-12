@@ -91,8 +91,10 @@ type Props = {
    *  standing on it instead of asking the person to search for what they just said. Opt-in: a
    *  lookup leaves a proposal pending confirmation. Only the long form treats automatic lookup as an unsaved change. */
   autoLocate?: boolean;
-  /** City-only conversational input asks for a closer place before making an automatic geocoder request. */
+  /** A closer-place question is still shown even when only the known city frames the map. */
   initialQuestion?: string;
+  /** Server-backed city-only seed: allow camera-context lookup, never an automatic pin. */
+  allowCityContextLookup?: boolean;
   /** The chat proposes one pin first; the full manual form retains all controls. */
   presentation?: 'form' | 'conversation';
   /** Visible selected-role summary above this editor; omit only its exact repeated text. */
@@ -110,7 +112,7 @@ export function LocationPointEditor(props: Props) {
   return <ScopedPointEditor key={JSON.stringify([props.scopeKey, props.countryCode, props.slot])} {...props} />;
 }
 function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQuery = '', resolver: injectedResolver,
-  autoLocate = false, initialQuestion, presentation = 'form', conversationSummary, onCorrectInConversation, onPromptReady, confirmAsPrimary = true, disabled, onInvalidate, onConfirm }: Props) {
+  autoLocate = false, initialQuestion, allowCityContextLookup = false, presentation = 'form', conversationSummary, onCorrectInConversation, onPromptReady, confirmAsPrimary = true, disabled, onInvalidate, onConfirm }: Props) {
   const conversation = presentation === 'conversation';
   const [defaultResolver] = useState(() => createConfiguredLocationResolver());
   const resolver = injectedResolver ?? defaultResolver;
@@ -135,6 +137,8 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const hereRequest = useRef<AbortController | null>(null);
   useEffect(() => () => hereRequest.current?.abort(), []);
   const [searchText, setSearchText] = useState(initialQuery);
+  // Only the original known-city query is a camera hint. A later manual street search can still propose a pin.
+  const cityContextOnly = conversation && !!initialQuestion && allowCityContextLookup && searchText === initialQuery;
   const [lookup, setLookup] = useState<ConfiguredLocationResolution | { status: 'IDLE' | 'LOADING' }>({ status: 'IDLE' });
   const [lookupMode, setLookupMode] = useState<'search' | 'reverse'>('search');
   const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
@@ -249,7 +253,8 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
       // The full form retains its separate explicit candidate selection.
       if (conversation && result.status === 'PROPOSALS' && result.candidates.length === 1) {
         const candidate = result.candidates[0];
-        if (candidateFitsSeed(searchText, candidate.label)) {
+        // A city centre is only an orientation hint, even if its provider label matches.
+        if (!cityContextOnly && candidateFitsSeed(searchText, candidate.label)) {
           const shown = toSerbianLatin(candidate.label);
           setPosition(candidate.position); setOrigin(candidate.origin); setSelectedLabel(shown);
           setAddress(shown);
@@ -265,10 +270,10 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   // but dismissing an untouched suggestion must not claim an unsaved manual change.
   // A saved point wins: nothing here may move a point the person already confirmed.
   useEffect(() => {
-    if (!autoLocate || initialQuestion || located.current || !focused || disabled || point || !searchText.trim()) return;
+    if (!autoLocate || (initialQuestion && !cityContextOnly) || located.current || !focused || disabled || point || !searchText.trim()) return;
     located.current = true;
     void runSearch(!conversation);
-  }, [autoLocate, initialQuestion, focused, disabled, point, searchText]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [autoLocate, initialQuestion, cityContextOnly, focused, disabled, point, searchText]); // eslint-disable-line react-hooks/exhaustive-deps
   const useHere = async () => {
     if (!owns() || hereRequest.current) return;
     retireSearch();
@@ -374,7 +379,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   };
   const alternatives = lookup.status === 'PROPOSALS' ? lookup.candidates : [];
   const weakSingleProposal = !position && lookupMode === 'search' && alternatives.length === 1
-    && !candidateFitsSeed(searchText, alternatives[0].label);
+    && (cityContextOnly || !candidateFitsSeed(searchText, alternatives[0].label));
   const promptLabel = address.trim() || selectedLabel || 'Tačka izabrana na mapi';
   const phase: DialogueContext['phase'] = position ? 'PROPOSAL'
     : lookupMode === 'search' && alternatives.length > 1 ? 'AMBIGUOUS' : 'UNRESOLVED';
@@ -426,7 +431,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     const alternatives = lookup.status === 'PROPOSALS' ? lookup.candidates : [];
     const ambiguous = !position && lookupMode === 'search' && alternatives.length > 1;
     const contextOnly = weakSingleProposal;
-    const streetContextOnly = contextOnly && alternatives.length === 1
+    const streetContextOnly = contextOnly && !cityContextOnly && alternatives.length === 1
       && candidateProvidesStreetContext(searchText, alternatives[0].label);
     // Ambiguous results and a weak single fallback are camera context only. A street-level
     // fallback may zoom close enough to read the street name, but still draws no pin and grants
