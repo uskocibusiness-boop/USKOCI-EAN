@@ -4,7 +4,7 @@ import { calendarInstant } from '../lib/calendarTime';
 /** The server's own refusals for these facts, in the words the review shows before the tap. */
 export const REVIEW_FACT_COPY = {
   MY_PRICE_AMOUNT_REQUIRED: 'Unesi iznos ili izaberi prikupljanje ponuda.',
-  FIXED_WINDOW_BOUNDS_REQUIRED: 'Tačan termin mora imati početak i kraj, a kraj mora biti posle početka.',
+  FIXED_WINDOW_BOUNDS_REQUIRED: 'Tačan termin mora imati početak; ako je kraj naveden, mora biti posle početka.',
   FIXED_WINDOW_START_PASSED: 'Početak termina je već prošao. Izmeni termin u pregledu, pa objavi.',
 } as const;
 
@@ -30,8 +30,12 @@ export function reviewFactProblem(review: ReviewFacts, now = Date.now()): string
     if (typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount < 1) return REVIEW_FACT_COPY.MY_PRICE_AMOUNT_REQUIRED;
   }
   if (fact('need.schedule_kind') === 'FIXED_WINDOW') {
-    const start = calendarInstant(fact('need.starts_at')), end = calendarInstant(fact('need.ends_at'));
-    if (start === null || end === null || end <= start) return REVIEW_FACT_COPY.FIXED_WINDOW_BOUNDS_REQUIRED;
+    const start = calendarInstant(fact('need.starts_at'));
+    const endValue = fact('need.ends_at');
+    // Optional end is different from an explicitly supplied but invalid end.
+    const hasEnd = endValue !== null && endValue !== undefined;
+    const end = hasEnd ? calendarInstant(endValue) : null;
+    if (start === null || (hasEnd && (end === null || end <= start))) return REVIEW_FACT_COPY.FIXED_WINDOW_BOUNDS_REQUIRED;
   }
   return reviewStartPassed(review, now) ? REVIEW_FACT_COPY.FIXED_WINDOW_START_PASSED : null;
 }

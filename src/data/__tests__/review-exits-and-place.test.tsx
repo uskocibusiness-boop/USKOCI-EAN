@@ -595,7 +595,7 @@ describe('the way out of every blocker is a visible action', () => {
     mockPrepare.mockResolvedValue(ok(review({ publicProjection: [fact('title', 'need.title', 'Prenos ormara'), fact('mode', 'need.price_mode', 'OFFERS'),
       fact('kind', 'need.schedule_kind', 'FIXED_WINDOW')] })));
     await render();
-    const row = rowOf('Tačan termin mora imati početak i kraj, a kraj mora biti posle početka.');
+    const row = rowOf('Tačan termin mora imati početak; ako je kraj naveden, mora biti posle početka.');
     expect(row.props.accessibilityHint).toBe('Dopuni u razgovoru');
     await act(async () => row.props.onPress());
     expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
