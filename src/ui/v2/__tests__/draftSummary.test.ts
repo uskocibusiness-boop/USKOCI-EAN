@@ -25,15 +25,15 @@ describe('draftSummary start-only and range formatting', () => {
 
   it('publicSummary provides truthy schedule for start-only FIXED_WINDOW', () => {
     const facts = [
-      { key: 'need.title', value: 'Montaža police', privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
-      { key: 'need.schedule_kind', value: 'FIXED_WINDOW', privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
-      { key: 'need.starts_at', value: futureStart, privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
-      { key: 'need.price_mode', value: 'OFFERS', privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
-      { key: 'need.people_needed', value: 1, privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
-      { key: 'need.task_country_code', value: 'RS', privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
-      { key: 'need.description', value: 'Opis', privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
-      { key: 'need.category', value: 'MONTIRANJE_NAMESTAJA', privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
-      { key: 'need.task_geography', value: { mode: 'STATIONARY', start: { city: 'Novi Sad', area: 'Centar' } }, privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
+      { key: 'need.title' as const, value: 'Montaža police', privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
+      { key: 'need.schedule_kind' as const, value: 'FIXED_WINDOW', privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
+      { key: 'need.starts_at' as const, value: futureStart, privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
+      { key: 'need.price_mode' as const, value: 'OFFERS', privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
+      { key: 'need.people_needed' as const, value: 1, privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
+      { key: 'need.task_country_code' as const, value: 'RS', privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
+      { key: 'need.description' as const, value: 'Opis', privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
+      { key: 'need.category' as const, value: 'MONTIRANJE_NAMESTAJA', privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
+      { key: 'need.task_geography' as const, value: { mode: 'STATIONARY', start: { city: 'Novi Sad', area: 'Centar' } }, privacyClass: 'PUBLIC' as const, status: 'CONFIRMED' as const },
     ];
     const summary = publicSummary(facts);
     expect(summary.schedule).toBeDefined();
