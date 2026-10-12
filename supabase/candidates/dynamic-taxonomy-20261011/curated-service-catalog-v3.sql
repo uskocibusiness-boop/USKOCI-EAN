@@ -59,8 +59,6 @@ WITH input(label,parent_label,scope) AS (
   ('Priprema zidova','Molerski radovi','ON_SITE'),
   ('Skidanje tapeta','Molerski radovi','ON_SITE'),
   ('Dekorativne molerske tehnike','Molerski radovi','ON_SITE'),
-  ('Krečenje zidova','Krečenje','ON_SITE'),
-  ('Krečenje plafona','Krečenje','ON_SITE'),
   ('Montaža rasvete','Električarski radovi','ON_SITE'),
   ('Zamena utičnica','Električarski radovi','ON_SITE'),
   ('Zamena prekidača','Električarski radovi','ON_SITE'),
@@ -120,6 +118,23 @@ WITH input(label,parent_label,scope) AS (
  INSERT INTO private.work_taxonomy_categories(canonical_key,label,parent_id,source,catalog_version,state)
  SELECT private.taxonomy_normalize_v1(i.label),i.label,p.id,'OPERATOR',3,'ESTABLISHED'
  FROM input i JOIN private.work_taxonomy_categories p ON p.canonical_key=private.taxonomy_normalize_v1(i.parent_label)
+ RETURNING id,label
+)
+INSERT INTO private.work_taxonomy_category_modes(category_id,execution_scope,source_ref)
+SELECT c.id,i.scope,'CURATED_SOURCE_ONLY_BASELINE'
+FROM inserted c JOIN input i ON i.label=c.label;
+
+-- Children of newly inserted service identities must be inserted in a
+-- SEPARATE statement so the parent is visible in the MVCC snapshot.
+WITH input(label,parent_label,scope) AS (
+ VALUES
+  ('Krečenje zidova','Krečenje','ON_SITE'),
+  ('Krečenje plafona','Krečenje','ON_SITE')
+), inserted AS (
+ INSERT INTO private.work_taxonomy_categories(canonical_key,label,parent_id,source,catalog_version,state)
+ SELECT private.taxonomy_normalize_v1(i.label),i.label,p.id,'OPERATOR',3,'ESTABLISHED'
+ FROM input i JOIN private.work_taxonomy_categories p
+ ON p.canonical_key=private.taxonomy_normalize_v1(i.parent_label)
  RETURNING id,label
 )
 INSERT INTO private.work_taxonomy_category_modes(category_id,execution_scope,source_ref)
