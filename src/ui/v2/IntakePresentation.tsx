@@ -536,15 +536,15 @@ const s = StyleSheet.create({
   canvas: { flex: 1, backgroundColor: sys.conversation.ground },
   muted: { color: sys.color.muted }, danger: { color: sys.color.danger },
   // The living draft is a panel above the thread (a thing that is read, in a frame, with no shadow); only its padding is its own.
-  card: { paddingVertical: sys.space.md, gap: sys.space.sm },
-  cardCompact: { paddingVertical: sys.space.sm },
+  card: { paddingVertical: sys.space.md, paddingHorizontal: sys.space.md, gap: sys.space.sm },
+  cardCompact: { paddingVertical: sys.space.sm, paddingHorizontal: sys.space.md },
   // Final, the facts are rows of one kind, 8 apart; while the draft is made they are pictures with their words in a line that wraps by whole facts.
   details: { gap: sys.space.sm },
   stickers: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.md, rowGap: sys.space.sm },
   sticker: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, flexShrink: 1, maxWidth: '100%' },
   stickerWords: { color: sys.color.fact, flexShrink: 1 },
   // The way to the review while something is missing is a quiet word at the start of its own line, as high as a finger.
-  reviewAction: { minHeight: layout.touch, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
+  reviewAction: { minHeight: layout.touch, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, paddingHorizontal: sys.space.md, paddingVertical: sys.space.xs, backgroundColor: sys.color.iconWell, borderRadius: sys.radius.pill },
   compactTitle: { ...sys.type.cardTitleCompact, color: sys.color.ink },
   titleEmpty: { color: sys.color.muted },
   // The card's own fact size (`note`), in the weight of a way forward (verify r4b ra item C: it was a raw 14/19).

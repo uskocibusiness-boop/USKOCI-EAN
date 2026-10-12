@@ -177,7 +177,7 @@ export function OwnerAddress({ frame, map, part }: { frame: AddressFrame; map?: 
     <View style={s.frame}>
       <View style={s.frameHead}>
         <View style={s.frameTitle}>
-          <FactArt kind="lock" size={24} />
+          <FactArt kind="pin" size={24} />
           <T variant="bodyStrong" accessibilityRole="header" style={s.headingText}>Tačna adresa</T>
         </View>
         {pencil ? <EditPencil pencil={pencil} /> : null}
@@ -191,8 +191,8 @@ export function OwnerAddress({ frame, map, part }: { frame: AddressFrame; map?: 
       {frame.unconfirmed ? <T variant="note" tone="muted">{`Potvrđeno tačaka: ${frame.unconfirmed.done} od ${frame.unconfirmed.total}`}</T> : null}
       {map}
       <View style={s.privacyNotice}>
-        <FactArt kind="info" size={16} />
-        <T variant="note" tone="muted">Vidiš samo ti. Osoba sa kojom se dogovoriš vidi je u Dogovoru.</T>
+        <FactArt kind="info" size={14} />
+        <T variant="meta" tone="muted">Vidiš samo ti. Osoba sa kojom se dogovoriš vidi je u Dogovoru.</T>
       </View>
     </View>
   </Surface>;

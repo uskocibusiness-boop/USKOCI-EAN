@@ -387,7 +387,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
     const owner = restartOwner.current;
     const ownsRestart = () => !!owner && restartOwner.current === owner && isCurrent();
     confirmation.ask({ title: 'Početi novi razgovor?',
-      message: 'Ovaj razgovor će biti zatvoren i više neće biti među razgovorima koje možeš da nastaviš. Njegovi podaci se ovim ne brišu. Novi razgovor počinje prazan; neposlat tekst se ne prenosi.',
+      message: 'Započinješ novi razgovor ispočetka. Raniji podaci se ovim ne brišu.',
       cancelLabel: 'Ostani ovde', confirmLabel: 'Novi razgovor', onConfirm: () => {
         if (restartBlocked() || !ownsRestart()) return;
         if (!razgovorId) { navigate(() => router.replace({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } })); return; }
