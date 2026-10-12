@@ -122,6 +122,8 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-curated-service-catalog-assert.sql
       - name: Install read-only catalog context for Gemini/worker interview
         run: psql -X -v ON_ERROR_STOP=1 -1 -f supabase/candidates/dynamic-taxonomy-20261011/ai-catalog-context-v1.sql
+      - name: Check service catalog RPC
+        run: psql -X -v ON_ERROR_STOP=1 -1 -f supabase/candidates/dynamic-taxonomy-20261011/ai-catalog-context-service-rpc.sql
       - name: Verify scoped, paged service identity paths and no model authority
         run: psql -X -v ON_ERROR_STOP=1 -1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-ai-catalog-context-assert.sql
       - name: Second catalog seed must fail closed
