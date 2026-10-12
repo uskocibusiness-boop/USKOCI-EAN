@@ -6,7 +6,7 @@ import { T } from '../../../ui/Text';
 import { DetailTopBar } from '../../../ui/system/DetailTopBar';
 import { V2Action } from '../../../ui/v2/V2Action';
 import { useConfirmSheet } from '../../../ui/system/ConfirmSheet';
-import { sys } from '../../../ui/system/tokens';
+import { brandAction, sys } from '../../../ui/system/tokens';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { canonicalWorkerExecutionModes, workerExecutionModeClientService,
   type WorkerExecutionMode, type WorkerExecutionModeReceipt } from '../../../data/workerExecutionModeClientService';
@@ -136,8 +136,8 @@ export default function WorkerModeScreen() {
     </ScrollView>
     {receipt ? <View style={styles.footer}>
       {problem?.startsWith('Ishod čuvanja') ? <V2Action label="Proveri sačuvano stanje" tone="neutral" onPress={() => { if (!saving) void load(); }} /> : null}
-      <V2Action label={saving ? 'Čuvamo izbor…' : 'Sačuvaj način rada'} disabled={!dirty || saving || reading}
-        loading={saving} onPress={() => { void save(); }} />
+      <V2Action label={saving ? 'Čuvamo izbor…' : 'Sačuvaj način rada'} kind="primary" style={brandAction}
+        disabled={!dirty || saving || reading} loading={saving} onPress={() => { void save(); }} />
     </View> : null}
     {confirm.sheet}
   </SafeAreaView>;
