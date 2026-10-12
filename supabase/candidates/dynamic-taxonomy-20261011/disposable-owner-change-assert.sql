@@ -1,15 +1,19 @@
 \set ON_ERROR_STOP on
--- Parent identities are created by the previous migrations.
+-- Parent IDs are sourced by the privileged fixture setup, not user-supplied.
+SELECT set_config('uskoci.test.remote_parent',
+ (SELECT id::text FROM private.work_taxonomy_categories
+  WHERE canonical_key=private.taxonomy_normalize_v1('Digitalne usluge')),false);
+SELECT set_config('uskoci.test.physical_parent',
+ (SELECT id::text FROM private.work_taxonomy_categories
+  WHERE canonical_key=private.taxonomy_normalize_v1('Molerski radovi')),false);
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','b0000000-0000-4000-8000-000000000001',false);
 
 DO $test$
 DECLARE d uuid; m uuid; v jsonb; request_id uuid;
 BEGIN
- SELECT id INTO STRICT d FROM private.work_taxonomy_categories
-   WHERE canonical_key=private.taxonomy_normalize_v1('Digitalne usluge');
- SELECT id INTO STRICT m FROM private.work_taxonomy_categories
-   WHERE canonical_key=private.taxonomy_normalize_v1('Molerski radovi');
+ d:=current_setting('uskoci.test.remote_parent')::uuid;
+ m:=current_setting('uskoci.test.physical_parent')::uuid;
 
  v:=public.rpc_request_taxonomy_change_for_need(
    'a0000000-0000-4000-8000-000000000001',4,d);
