@@ -126,7 +126,7 @@ BEGIN
    'executionScope',v_scope,'notificationAuthority','NONE',
    'classificationAuthority','NONE');
  END IF;
- IF v_preview->>'action' <> 'PROPOSE_AUTO_PROVISIONAL' THEN
+ IF (v_preview->>'action') IS DISTINCT FROM 'PROPOSE_AUTO_PROVISIONAL' THEN
   RETURN jsonb_build_object('action','CLARIFY',
    'reason','AMBIGUOUS_OR_COLLIDING_SERVICE','executionScope',v_scope,
    'notificationAuthority','NONE','classificationAuthority','NONE');
@@ -138,7 +138,7 @@ BEGIN
    'executionScope',v_scope,'notificationAuthority','NONE',
    'classificationAuthority','NONE');
  END IF;
- IF v_risk NOT IN ('LOW_RISK_CANDIDATE','REVIEW_REQUIRED','NEEDS_CLARIFICATION') THEN
+ IF v_risk IS NULL OR v_risk NOT IN ('LOW_RISK_CANDIDATE','REVIEW_REQUIRED','NEEDS_CLARIFICATION') THEN
   RETURN jsonb_build_object('action','CLARIFY','reason','RISK_UNRESOLVED',
    'notificationAuthority','NONE','classificationAuthority','NONE');
  END IF;
