@@ -1,0 +1,33 @@
+name: AI conversation location regressions
+on:
+  push:
+    branches: [fix/location-city-camera-regression-20261012]
+  pull_request:
+    paths:
+      - '.github/workflows/location-ai-geocode-regression.yml'
+      - 'src/ui/location/LocationPointEditor.tsx'
+      - 'src/ui/location/ConversationPointAsk.tsx'
+      - 'src/ui/location/placeText.ts'
+      - 'src/data/__tests__/locationPointEditor.test.tsx'
+      - 'src/data/__tests__/conversation-point-ask.test.tsx'
+      - 'src/ui/location/__tests__/placeText.test.ts'
+permissions:
+  contents: read
+jobs:
+  location-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install pinned dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Reproduce and guard address-to-map flow
+        run: npm test -- --runInBand --runTestsByPath src/data/__tests__/locationPointEditor.test.tsx src/data/__tests__/conversation-point-ask.test.tsx src/ui/location/__tests__/placeText.test.ts
+      - name: Validate TypeScript
+        run: npx tsc --noEmit --pretty false
