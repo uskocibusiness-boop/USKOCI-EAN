@@ -446,6 +446,19 @@ describe('compact conversation proposal', () => {
     expect(props.onInvalidate).not.toHaveBeenCalled();
   });
 
+  it('frames a city-only location while asking for a more precise place, without inventing a pin', async () => {
+    const city = { ...candidate, label: 'Novi Sad, South Backa, Serbia',
+      position: { latitude: 45.2671, longitude: 19.8335 } };
+    const resolver = configured({ status: 'PROPOSALS', candidates: [city], requiresConfirmation: true });
+    await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Novi Sad',
+      initialQuestion: 'Mesto zadatka — koja ulica, objekat ili bliže mesto?',
+      conversationSummary: { title: 'Mesto zadatka', description: 'Novi Sad' } });
+    expect(resolver.search).toHaveBeenCalledTimes(1);
+    expect(map().props).toMatchObject({ position: null, cameraHint: [city.position], height: 156, compact: true });
+    expect(button('Potvrdi tačku: Početak')).toBeUndefined();
+    expect(props.onConfirm).not.toHaveBeenCalled();
+  });
+
   it('zooms a street-only fallback close enough to read the street without inventing the house pin', async () => {
     const street = { ...candidate, label: 'Lenke Dunđerski, Novi Sad',
       position: { latitude: 45.2512, longitude: 19.8244 } };
