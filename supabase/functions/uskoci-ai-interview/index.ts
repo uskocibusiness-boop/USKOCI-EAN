@@ -695,8 +695,13 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     if (!missing.includes(dialogue.questionKey)) {
       assistantMessage = missing.length ? incompleteMessage() : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
     }
-  } else if (dialogue?.next === 'REVIEW') assistantMessage = missing.length ? incompleteMessage() : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
-  else if (dialogue?.next === 'ACK') assistantMessage = proposals.length ? 'Podaci su ažurirani u pregledu.' : 'Možeš da otvoriš pregled ili dopuniš zadatak.';
+  } else if (dialogue?.next === 'REVIEW' && missing.length) {
+    // Never say the draft is ready if it still lacks required facts. Otherwise keep
+    // the model's short, natural reply: the app owns the review CTA and publication.
+    assistantMessage = incompleteMessage();
+  }
+  // ACK is not permission to replace the answer with another robotic template.
+  // The validated assistantMessage is already bounded and is not publication authority.
   return { ...turn, proposals, assistantMessage };
 }
 
