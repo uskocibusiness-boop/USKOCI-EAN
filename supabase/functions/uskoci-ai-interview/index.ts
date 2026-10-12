@@ -672,7 +672,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
   for (const proposal of proposals) facts.set(proposal.key, proposal.value);
   const missing = [...new Set(['need.description', 'need.people_needed', 'need.price_mode',
     ...(facts.get('need.price_mode') === 'MY_PRICE' ? ['need.price_rsd', ...(Number(facts.get('need.people_needed')) > 1 ? ['need.price_basis'] : [])] : []),
-    'need.schedule_kind', ...(facts.get('need.schedule_kind') === 'FIXED_WINDOW' ? ['need.starts_at', 'need.ends_at'] : []),
+    'need.schedule_kind', ...(facts.get('need.schedule_kind') === 'FIXED_WINDOW' ? ['need.starts_at'] : []),
     'need.task_country_code', 'need.task_geography',
     ...Object.entries(NEED_FACT_V2_DEFINITIONS).filter(([, definition]) => definition.requiredForDraft).map(([key]) => key)])]
     .filter(key => !facts.has(key));
