@@ -249,7 +249,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
 
   return <DraftDisclosure.Provider value={{ expanded, toggle: () => setDisclosure({ key: p.conversationKey, expanded: !expanded }) }}>
   <SafeAreaView edges={['top']} style={s.canvas}>
-    <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScreenChrome variant="detail" tone="conversation" onBack={p.onBack} title={p.title}
         right={p.newConversation || p.onOptions ? <View style={s.headerRight}>
           {p.newConversation ? <ChromeIconButton label="Novi razgovor" hint="Počni ispočetka." glyph="refresh"
