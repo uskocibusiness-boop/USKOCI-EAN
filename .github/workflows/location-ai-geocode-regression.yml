@@ -1,7 +1,7 @@
 name: AI conversation location regressions
 on:
   push:
-    branches: [fix/location-city-camera-regression-20261012]
+    branches: [fix/location-city-camera-regression-20261012, integration/ai-v72-start-only-location-20261012]
   pull_request:
     paths:
       - '.github/workflows/location-ai-geocode-regression.yml'
