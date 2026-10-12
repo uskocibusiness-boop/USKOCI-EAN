@@ -185,7 +185,7 @@ export type WorkerActivationChecks = { basics: boolean; area: boolean; capacity?
 // The name is not typed here any more (owner, 8 Oct 2026: one name for everything, and "Lični podaci" is where it is changed), so the first check says
 // what is still done here: the skills (and the account's name, which the work profile takes when it is activated).
 const CHECKS: [keyof WorkerActivationChecks, string][] = [['basics', 'Veštine i ime naloga'], ['area', 'Područje rada']];
-export type WorkerNavigation = '/profil/lokacija' | '/profil/nacin-rada' | '/profil/dostupnost' | '/profil/obavestenja' | '/profil/podaci' | '/podrska';
+export type WorkerNavigation = '/profil/lokacija' | '/profil/dostupnost' | '/profil/obavestenja' | '/profil/podaci' | '/podrska';
 
 /**
  * Whether tasks can be offered to you, first. Active is one line with a colored check. A draft is an open section with
@@ -319,9 +319,6 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
         disabled={disabled} inputRef={skillRef} />
     </ProfileSection>
     <SettingsGroup>
-      <SettingsRow label="Način rada" detail="Na lokaciji, na daljinu ili oba"
-        icon={<FactArt kind="pin" size={32} />}
-        disabled={disabled || !profileExists} onPress={() => navigate('/profil/nacin-rada')} />
       <SettingsRow label="Područje rada" detail={area} icon={<FactArt kind="pin" size={32} />} disabled={disabled}
         onPress={() => navigate('/profil/lokacija')} />
       <SettingsRow label="Dostupnost" icon={<ClockArt size={32} quiet={disabled} />} disabled={disabled} onPress={() => navigate('/profil/dostupnost')}
