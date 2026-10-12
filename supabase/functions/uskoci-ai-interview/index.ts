@@ -17,6 +17,7 @@ import { validLocationContext, locationProviderSchema, locationInstruction, pars
 
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
+import { scopedNeedPreviewArgs, scopedNeedPreviewSafeAction } from '../_shared/taxonomyScopedShadow.mjs';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -871,6 +872,23 @@ Deno.serve(async (req: Request) => {
       return response(502, { code: 'AI_PROVIDER_FAILED', message: 'AI obrada trenutno nije uspela. Proverite ishod pre nastavka.' });
     }
     if (signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
+    if (schemaVersion === NEED_FACT_SCHEMA_V2 && !locationContext) {
+      // Shadow-mode ONLY: the existing Gemini has already proposed typed facts,
+      // and the authoritative owner-bound SQL completion still owns persistence.
+      // Never gate a paid AI completion on a preview RPC/network failure.
+      const taxonomyArgs = scopedNeedPreviewArgs(activeFacts, aiTurn.proposals);
+      if (taxonomyArgs) {
+        try {
+          const preview = await rpc('rpc_taxonomy_ai_scoped_preview_service', taxonomyArgs, signal, 2200);
+          const action = preview.ok ? scopedNeedPreviewSafeAction(preview.data) : 'UNAVAILABLE';
+          // An allowlisted action only, never raw task details, addresses or worker identities.
+          console.info('TAXONOMY_SCOPED_SHADOW', action);
+        } catch {
+          console.info('TAXONOMY_SCOPED_SHADOW', 'UNAVAILABLE');
+        }
+      }
+      if (signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
+    }
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
       const result = await rpc(locationContext ? 'rpc_ai_complete_need_location_turn_v1_service' : 'rpc_ai_complete_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId,
         p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: aiTurn.proposals,
