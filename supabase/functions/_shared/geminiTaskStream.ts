@@ -5,12 +5,18 @@ export class GeminiCreditsUnavailableError extends Error {
   constructor() { super(AI_CREDITS_UNAVAILABLE); this.name = 'GeminiCreditsUnavailableError'; }
 }
 
+/** Provider-controlled block details must never become an error message or operator log. */
+const SAFE_GEMINI_BLOCK_REASONS = new Set([
+  'SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT', 'SPII', 'OTHER', 'BLOCK_REASON_UNSPECIFIED',
+]);
+
 export class GeminiSafetyBlockedError extends Error {
   readonly blockReason: string;
-  constructor(blockReason: string) {
-    super(`GEMINI_SAFETY_BLOCKED: ${blockReason}`);
+  constructor(rawBlockReason: unknown) {
+    super('GEMINI_SAFETY_BLOCKED');
     this.name = 'GeminiSafetyBlockedError';
-    this.blockReason = blockReason;
+    this.blockReason = typeof rawBlockReason === 'string' && SAFE_GEMINI_BLOCK_REASONS.has(rawBlockReason)
+      ? rawBlockReason : 'UNKNOWN';
   }
 }
 
