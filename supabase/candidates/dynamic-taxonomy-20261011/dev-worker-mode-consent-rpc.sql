@@ -22,7 +22,7 @@ CREATE TABLE private.worker_execution_mode_choices (
  modes text[] NOT NULL,
  consent_source text NOT NULL DEFAULT 'EXPLICIT_PROFILE_REVIEW' CHECK(consent_source='EXPLICIT_PROFILE_REVIEW'),
  confirmed_at timestamptz NOT NULL DEFAULT statement_timestamp(),
- updated_at timestamptz NOT NULL DEFAULT statement_timestamp(),
+ updated_at timestamptz NOT NULL DEFAULT statement_timestamp()
 );
 -- Persisted CHECK accepts only three canonical combinations, no other input.
 ALTER TABLE private.worker_execution_mode_choices
@@ -88,6 +88,11 @@ BEGIN
    confirmed_at=statement_timestamp(),updated_at=statement_timestamp()
  WHERE private.worker_execution_mode_choices.worker_account_id=v_account
    AND private.worker_execution_mode_choices.modes IS DISTINCT FROM excluded.modes;
+ IF NOT EXISTS (SELECT 1 FROM private.worker_execution_mode_choices x
+   WHERE x.worker_profile_id=p_worker_profile_id
+   AND x.worker_account_id=v_account AND x.modes=v_modes) THEN
+  RAISE EXCEPTION 'WORKER_MODE_CHOICE_CONSISTENCY_FAILED' USING errcode='42501';
+ END IF;
  RETURN jsonb_build_object('workerProfileId',p_worker_profile_id,
   'modes',to_jsonb(v_modes),'confirmed',true,
   'matchingAuthority','NONE','notificationAuthority','NONE',
