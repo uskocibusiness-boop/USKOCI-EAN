@@ -157,7 +157,8 @@ it.each([
   ['single person price', { 'need.price_mode': 'MY_PRICE', 'need.price_rsd': 3000 }, true],
   ['group basis missing', { 'need.price_mode': 'MY_PRICE', 'need.price_rsd': 3000, 'need.people_needed': 2 }, false],
   ['group price complete', { 'need.price_mode': 'MY_PRICE', 'need.price_rsd': 3000, 'need.people_needed': 2, 'need.price_basis': 'TOTAL' }, true],
-  ['time missing', { 'need.schedule_kind': 'FIXED_WINDOW', 'need.starts_at': '2026-10-12T08:00:00Z' }, false],
+  ['start-only time known', { 'need.schedule_kind': 'FIXED_WINDOW', 'need.starts_at': '2026-10-12T08:00:00Z' }, true],
+  ['start missing', { 'need.schedule_kind': 'FIXED_WINDOW' }, false],
   ['time reversed', { 'need.schedule_kind': 'FIXED_WINDOW', 'need.starts_at': '2026-10-12T08:00:00Z', 'need.ends_at': '2026-10-12T07:00:00Z' }, false],
   ['point missing', { 'need.task_geography': { mode: 'STATIONARY', start: { city: 'Novi Sad' } } }, false],
 ] as const)('waits for conditional data: %s', async (_label, patch, visible) => {
@@ -1232,11 +1233,12 @@ it('shows actual typed fixed dates and times in Serbian time, in the app’s one
   expect(text()).toContain('10. sep · 18:00–19:00 (po vremenu u Srbiji)');
   expect(text()).not.toContain('vreme u Beogradu'); expect(text()).not.toContain('Tačan termin');
 });
-it('omits an incomplete fixed interval without inventing an end time', async () => {
+it('shows a known start without inventing an end time', async () => {
   mockLoad.mockResolvedValue(conversation({ facts: [...completeFacts().filter(f => f.key !== 'need.schedule_kind'), publicFact('need.schedule_kind', 'FIXED_WINDOW'),
     publicFact('need.starts_at', '2026-09-10T16:00:00Z')] }));
   await resume();
-  expect(text()).not.toContain('18:00'); expect(text()).not.toContain('Tačan termin');
+  expect(text()).toContain('Od 10. sep · 18:00 (po vremenu u Srbiji)');
+  expect(text()).not.toContain('18:00–'); expect(text()).not.toContain('Tačan termin');
 });
 it.each([[5, '5 osoba'], [11, '11 osoba'], [14, '14 osoba'], [22, '22 osobe']])('uses the correct people label for %s', async (count, label) => {
   mockLoad.mockResolvedValue(conversation({ facts: [...completeFacts().filter(f => f.key !== 'need.people_needed'), publicFact('need.people_needed', count)] }));
