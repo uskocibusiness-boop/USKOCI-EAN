@@ -451,10 +451,33 @@ describe('compact conversation proposal', () => {
       position: { latitude: 45.2671, longitude: 19.8335 } };
     const resolver = configured({ status: 'PROPOSALS', candidates: [city], requiresConfirmation: true });
     await render({ resolver, presentation: 'conversation', autoLocate: true, initialQuery: 'Novi Sad',
-      initialQuestion: 'Mesto zadatka — koja ulica, objekat ili bliže mesto?',
+      initialQuestion: 'Mesto zadatka — koja ulica, objekat ili bliže mesto?', allowCityContextLookup: true,
       conversationSummary: { title: 'Mesto zadatka', description: 'Novi Sad' } });
     expect(resolver.search).toHaveBeenCalledTimes(1);
     expect(map().props).toMatchObject({ position: null, cameraHint: [city.position], height: 156, compact: true });
+    expect(button('Potvrdi tačku: Početak')).toBeUndefined();
+    expect(props.onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('never auto-searches a vague here/ovde location while asking for a real point', async () => {
+    const resolver = configured();
+    await render({ resolver, presentation: 'conversation', autoLocate: true,
+      initialQuery: 'ovde, Novi Sad', initialQuestion: 'Mesto zadatka — koja ulica, objekat ili bliže mesto?',
+      allowCityContextLookup: false });
+    expect(resolver.search).not.toHaveBeenCalled();
+    expect(props.onConfirm).not.toHaveBeenCalled();
+  });
+
+  it('does not offer a pin for a three-word city used only for map context', async () => {
+    const city = { ...candidate, label: 'Synthetic Three Word City, Serbia',
+      position: { latitude: 44.9, longitude: 20.7 } };
+    const resolver = configured({ status: 'PROPOSALS', candidates: [city], requiresConfirmation: true });
+    await render({ resolver, presentation: 'conversation', autoLocate: true,
+      initialQuery: 'Synthetic Three Word City',
+      initialQuestion: 'Mesto zadatka — koja ulica, objekat ili bliže mesto?',
+      allowCityContextLookup: true });
+    expect(resolver.search).toHaveBeenCalledTimes(1);
+    expect(map().props).toMatchObject({ position: null, cameraHint: [city.position] });
     expect(button('Potvrdi tačku: Početak')).toBeUndefined();
     expect(props.onConfirm).not.toHaveBeenCalled();
   });
