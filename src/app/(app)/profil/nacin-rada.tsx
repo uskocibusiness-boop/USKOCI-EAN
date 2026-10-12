@@ -16,9 +16,9 @@ const MODES: { id: WorkerExecutionMode; title: string; detail: string; symbol: s
   { id: 'REMOTE', title: 'Na daljinu', detail: 'Zadatke mogu da završim online, bez fizičkog dolaska.', symbol: '▣' },
 ];
 function bounded<T>(promise: Promise<T>, ms = 15000): Promise<T> {
-  let timer: ReturnType<typeof setTimeout>;
+  let timer: ReturnType<typeof setTimeout> | undefined;
   return Promise.race([promise, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('WORKER_MODE_TIMEOUT')), ms); })])
-    .finally(() => clearTimeout(timer));
+    .finally(() => { if (timer !== undefined) clearTimeout(timer); });
 }
 
 export default function WorkerModeScreen() {
