@@ -48,7 +48,11 @@ function loadSources(): Sources {
     dialogue[key] = match ? quoted(match[1]) : [];
   }
   const askStart = taskEdge.indexOf('const missing = [');
-  const askText = taskEdge.slice(askStart, taskEdge.indexOf('].filter(', askStart));
+  // Stop at the actual missing-list filter: `].filter(` no longer follows the Set wrapper.
+  // The old delimiter leaked the later questions dictionary into askOrder, including optional ends_at.
+  const askEnd = taskEdge.indexOf('.filter(key => !facts.has(key))', askStart);
+  if (askStart < 0 || askEnd < 0) throw new Error('ASK_ORDER_SOURCE_NOT_FOUND');
+  const askText = taskEdge.slice(askStart, askEnd);
   const matcher = ['supabase/migrations/20260829211632_clean_dispatch_engine.sql',
     'supabase/migrations/20260909120000_clean_w02_calendar_interval_integrity.sql',
     'supabase/migrations/20260906010000_clean_ru5_selection_eligibility_revalidation.sql'].map((path) => readFrom(sourceRoot, path)).join('\n');
@@ -547,7 +551,8 @@ describe('EX-06 S02 synthetic contract corpus', () => {
 
     it('pins the asking order used by the review derivation to the Edge guard', () => {
       expect(sources.askOrder).toEqual(['need.description', 'need.people_needed', 'need.price_mode', 'need.price_rsd', 'need.price_basis', 'need.schedule_kind',
-        'need.starts_at', 'need.ends_at', 'need.task_country_code', 'need.task_geography']);
+        'need.starts_at', 'need.task_country_code', 'need.task_geography']);
+      expect(sources.registry.get('need.ends_at')?.requiredForDraft).toBe(false);
     });
 
     it('pins compatible worker fields and current personal-profile proposals to their respective sources', () => {
