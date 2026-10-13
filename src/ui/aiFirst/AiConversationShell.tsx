@@ -197,10 +197,15 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const cardAtEnd = p.cardPlacement === 'end';
   const pinned = p.card(compact);
   useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', () => { setKeyboard(true); followAfterLayout(); });
+    const show = Keyboard.addListener('keyboardDidShow', () => { setKeyboard(true); latest(true); });
     const hide = Keyboard.addListener('keyboardDidHide', () => { setKeyboard(false); followAfterLayout(); });
     return () => { show.remove(); hide.remove(); cancelFollow(); };
   }, [cancelFollow, followAfterLayout]);
+  useEffect(() => {
+    if (p.sentMessage) {
+      latest(true);
+    }
+  }, [p.sentMessage]);
   const phase = p.voice?.state.phase ?? 'IDLE';
   // The advice after a tap goes as soon as the microphone does anything.
   useEffect(() => { if (phase !== 'IDLE') setHoldHint(false); }, [phase]);
@@ -510,12 +515,14 @@ const s = StyleSheet.create({
   // One question at a time (`questionFocus`): the latest question in the larger speech of voice mode, what came before it quieter.
   question: { ...sys.type.speechLarge, color: sys.color.ink },
   earlier: { ...sys.type.copy, color: sys.color.muted },
-  // Own words have a distinct alignment and high-contrast ink fill.
-  person: { alignSelf: 'flex-end', maxWidth: '90%', marginLeft: 24, paddingVertical: 12, paddingHorizontal: 16,
-    borderRadius: sys.radius.card, borderBottomRightRadius: 8, backgroundColor: sys.color.ink },
-  personText: { ...sys.type.body, color: sys.conversation.onUser },
+  // Own words have an elegant, soft sage capsule with deep green ink text (never harsh black).
+  person: { alignSelf: 'flex-end', maxWidth: '88%', marginLeft: 28, paddingVertical: 12, paddingHorizontal: 18,
+    borderRadius: 20, borderBottomRightRadius: 6, backgroundColor: '#E8F5E9',
+    borderWidth: 1, borderColor: '#C8E6C9',
+    shadowColor: '#143D35', shadowOffset: { width: 0, height: 1.5 }, shadowOpacity: 0.08, shadowRadius: 3, elevation: 1 },
+  personText: { ...sys.type.body, color: '#143D35', fontWeight: '500' },
   /** Sent, not yet confirmed by a read: present and readable, visibly not yet part of the record. */
-  sending: { opacity: 0.85 },
+  sending: { opacity: 0.9, backgroundColor: '#EDF7EE', borderColor: '#A5D6A7' },
   // One line of the answer's type (`speech`, 26), so the dots sit where the first line of the answer will.
   typing: { flexDirection: 'row', gap: sys.space.md, alignItems: 'center', flexWrap: 'wrap', minHeight: 28 },
   dots: { flexDirection: 'row', gap: 5, alignItems: 'center', height: 26 },

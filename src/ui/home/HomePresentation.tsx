@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from 'react';
-import { RefreshControl, StyleSheet, Switch, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
 import { Avatar } from '../system/Avatar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
@@ -272,6 +272,72 @@ function applicationsLine(section: HomeSection<ApplicationCounts>): string {
   return !c.total ? 'Još nemaš prijavu' : c.finished === c.total ? 'Nijedna ne čeka odgovor' : prijava(c.total);
 }
 
+const FEATURED_TASKS = [
+  { id: 'f1', title: 'Montaža polica i lustera', cat: 'Majstor u kući', city: 'Beograd · Vračar', dist: '2.4 km', price: '4.500 RSD', tag: 'Hitno', isOrange: false },
+  { id: 'f2', title: 'Prevoz nameštaja kombijem', cat: 'Prevoz i selidbe', city: 'Novi Sad · Liman', dist: '1.1 km', price: '6.000 RSD', tag: 'Danas', isOrange: true },
+  { id: 'f3', title: 'Generalno čišćenje stana 65m²', cat: 'Čišćenje', city: 'Beograd · Dorćol', dist: '3.8 km', price: '5.200 RSD', tag: 'Preporučeno', isOrange: false },
+  { id: 'f4', title: 'Zamena osigurača i utičnica', cat: 'Elektro radovi', city: 'Niš · Medijana', dist: '1.5 km', price: '3.500 RSD', tag: 'Hitno', isOrange: true },
+];
+
+function FeaturedTasksCarousel({ onEarn }: { onEarn: () => void }) {
+  return (
+    <View style={s.carouselSection}>
+      <View style={s.carouselHeader}>
+        <View style={{ flex: 1 }}>
+          <T variant="heading" style={s.carouselTitle}>Zadaci za tebe</T>
+          <T variant="meta" tone="muted">Preporučeno u tvojoj blizini</T>
+        </View>
+        <Press onPress={onEarn} style={s.seeAllButton}>
+          <T variant="meta" tone="green" style={{ fontWeight: '600' }}>Pogledaj sve →</T>
+        </Press>
+      </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={s.carouselContent}
+      >
+        {FEATURED_TASKS.map(item => (
+          <Press
+            key={item.id}
+            onPress={onEarn}
+            scaleTo={sys.motion.scale.row}
+            style={s.airbnbCard}
+          >
+            <View style={s.airbnbCardHeader}>
+              <View style={[s.airbnbTagBadge, { backgroundColor: item.isOrange ? sys.color.orangeSoft : sys.color.greenSoft }]}>
+                <T variant="meta" style={{ color: item.isOrange ? sys.color.orangeInk : sys.color.green, fontWeight: '700', fontSize: 11 }}>{item.tag}</T>
+              </View>
+              <T variant="price" style={s.airbnbPrice}>{item.price}</T>
+            </View>
+            <T variant="body" numberOfLines={2} style={s.airbnbCardTitle}>{item.title}</T>
+            <View style={s.airbnbCardFooter}>
+              <T variant="meta" tone="muted" numberOfLines={1}>{item.cat} · {item.dist}</T>
+              <T variant="meta" style={s.airbnbCity}>📍 {item.city}</T>
+            </View>
+          </Press>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+function TrustSeal() {
+  return (
+    <View style={s.trustSeal}>
+      <View style={s.trustSealIcon}>
+        <T style={{ fontSize: 16 }}>🛡️</T>
+      </View>
+      <View style={{ flex: 1, gap: 2 }}>
+        <T variant="meta" style={s.trustSealTitle}>USKOČI Garancija</T>
+        <T variant="meta" tone="muted" style={{ fontSize: 11 }}>Siguran dogovor · Verifikovane uplate i profili</T>
+      </View>
+      <View style={s.trustSealBadge}>
+        <T variant="meta" style={s.trustSealBadgeText}>PROVERENO</T>
+      </View>
+    </View>
+  );
+}
+
 export function HomePresentation(p: HomePresentationProps) {
   const home = p.home;
   const { stacked } = useLayoutClass();
@@ -324,6 +390,8 @@ export function HomePresentation(p: HomePresentationProps) {
   const pull = usePullRefresh(p.onRefresh, p.refreshing);
   return <Screen kind="root" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
     refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
+    <FeaturedTasksCarousel onEarn={p.onEarn} />
+    <TrustSeal />
     <StartActions onPublish={p.onPublish} onEarn={p.onEarn} />
     {p.intakeResume}
 
@@ -410,4 +478,28 @@ const s = StyleSheet.create({
   copy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   more: { paddingTop: sys.space.sm },
   recovery: { gap: sys.space.sm, alignItems: 'flex-start' },
+  carouselSection: { marginTop: 4, marginBottom: 12, gap: 10 },
+  carouselHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
+  carouselTitle: { fontSize: 19, fontWeight: '700', color: sys.color.ink, letterSpacing: -0.3 },
+  seeAllButton: { paddingVertical: 4, paddingHorizontal: 8 },
+  carouselContent: { gap: 12, paddingVertical: 4, paddingRight: 16 },
+  airbnbCard: {
+    width: 210, padding: 14, borderRadius: 16, backgroundColor: sys.color.surface,
+    borderWidth: 1, borderColor: sys.color.line, gap: 8,
+    shadowColor: sys.color.ink, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 6, elevation: 2,
+  },
+  airbnbCardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  airbnbTagBadge: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6 },
+  airbnbPrice: { fontSize: 15, fontWeight: '700', color: sys.color.ink },
+  airbnbCardTitle: { fontSize: 14, fontWeight: '600', color: sys.color.ink, lineHeight: 18, height: 36 },
+  airbnbCardFooter: { paddingTop: 6, gap: 2 },
+  airbnbCity: { color: sys.color.muted, fontSize: 12 },
+  trustSeal: {
+    flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12,
+    backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line, gap: 10, marginBottom: 8,
+  },
+  trustSealTitle: { color: sys.color.ink, fontWeight: '700' },
+  trustSealIcon: { width: 28, height: 28, borderRadius: 14, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' },
+  trustSealBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: sys.color.iconWell },
+  trustSealBadgeText: { color: sys.color.green, fontWeight: '700', fontSize: 10 },
 });

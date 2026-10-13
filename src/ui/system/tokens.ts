@@ -359,7 +359,18 @@ export const CHIP_CHOSEN_INSET = 1;
  * white with a green label; orange is an accent only (the Home publish tile, what waits for you, the map's "+").
  * Pass as `style` to a V2Action; V2Action reads the surface and writes the label in `onGreen`.
  */
-export const brandAction: ViewStyle = { backgroundColor: sys.color.green, borderWidth: 0, minHeight: 54, borderRadius: sys.radius.primary };
+export const brandAction: ViewStyle = {
+  backgroundColor: sys.color.green,
+  borderWidth: 1,
+  borderColor: sys.color.greenEdge,
+  minHeight: 54,
+  borderRadius: sys.radius.primary,
+  shadowColor: sys.color.ink,
+  shadowOffset: { width: 0, height: 3 },
+  shadowOpacity: 0.16,
+  shadowRadius: 5,
+  elevation: 4,
+};
 
 /**
  * 48px icon control in a quiet well (V5 head icon button). The screen chrome no longer draws it: its arrow, X, profile,

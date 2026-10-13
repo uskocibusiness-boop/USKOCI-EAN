@@ -101,7 +101,7 @@ export function TabGlyph({ kind, selected }: { kind: TabKind; selected: boolean 
       <Glyph name={name} size={TAB_ICON} tone="muted" />
     </Animated.View>
     <Animated.View testID="tab-glyph-art" style={[s.layer, { opacity: sticker }]}>
-      <Glyph name={name} size={TAB_ICON} tone="green" />
+      <Glyph name={name} size={TAB_ICON} tone="green" on />
     </Animated.View>
   </Animated.View>;
 }

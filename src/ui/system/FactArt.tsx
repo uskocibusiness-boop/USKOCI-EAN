@@ -233,7 +233,7 @@ function art(kind: FactArtKind, c: Tone): ReactNode {
       <Rect x={10.2} y={2.8} width={10.1} height={4.2} rx={1.8} fill={c.edge} /><Rect x={10.2} y={1.4} width={10.1} height={4.2} rx={1.8} fill={c.front} />
       {line('M9.8 12.4h10.9M9.8 17.4h10.9M9.8 22.4h6.8', '#7B887E', 1.7)}</>;
     case 'agreements': return <>{shadow}
-      <Path d="M15.3 10.2h11a4.3 4.3 0 0 1 4.3 4.3v8.7a4.3 4.3 0 0 1-4.3 4.3h-1.5v3l-5-3h-4.5a4.3 4.3 0 0 1-4.3-4.3v-8.7a4.3 4.3 0 0 1 4.3-4.3Z" fill={c.soft} stroke={c.light} strokeWidth={1.1} />
+      <Path d="M15.3 10.2h11a4.3 4.3 0 0 1 4.3 4.3v8.7a4.3 4.3 0 0 1-4.3 4.3h-1.5v3l-5-3h-4.5a4.3 4.3 0 0 1-4.3-4.3v-8.7a4.3 4.3 0 0 1 4.3-4.3Z" fill="#FF850F" opacity={0.88} stroke="#E8630A" strokeWidth={1.2} />
       {edge('M8.5 3.4h13A5.5 5.5 0 0 1 27 8.9v11a5.5 5.5 0 0 1-5.5 5.5H12l-8 5V8.9a5.5 5.5 0 0 1 4.5-5.5Z')}
       {face('M8.5 1.8h13A5.5 5.5 0 0 1 27 7.3v11a5.5 5.5 0 0 1-5.5 5.5H12l-8 5V7.3a5.5 5.5 0 0 1 4.5-5.5Z')}
       {shine('M8.2 6a2.5 2.5 0 0 1 2.1-1h10.2')}{line('m9.6 13.1 3.6 3.7 7.4-7.4', WHITE, 2.5)}</>;
