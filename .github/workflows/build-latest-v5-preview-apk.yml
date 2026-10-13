@@ -60,8 +60,19 @@ jobs:
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Full regression suite
+        # Jest must validate the default-off gates in isolation. The app's preview
+        # feature flags above stay ON for the identity guard, Expo and Gradle.
+        # Tests explicitly pass '1' when covering each opt-in feature.
         env:
           NODE_ENV: test
+          EAS_BUILD_PROFILE: ''
+          USKOCI_OTA_TARGET: ''
+          EXPO_PUBLIC_P6_DISCOVERY_READER: '0'
+          EXPO_PUBLIC_EX04_OWN_TASKS_PAGED: '0'
+          EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED: '0'
+          EXPO_PUBLIC_EX04_CANDIDATES_PAGED: '0'
+          EXPO_PUBLIC_VOICE_MESSAGES: '0'
+          EXPO_PUBLIC_CONVERSATION_INBOX: '0'
         run: npm test -- --runInBand
       - name: Prebuild Android
         run: npx expo prebuild --platform android --clean
