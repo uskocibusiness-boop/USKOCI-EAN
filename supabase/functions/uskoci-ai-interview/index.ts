@@ -354,7 +354,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     ...commonInstruction(activeFacts, timeContext),
     'Sastavite lep, kratak i smislen need.title kada razgovor daje dovoljno osnove. Need.description može biti uredna ljudska sinteza potvrđenih/poznatih činjenica i najnovije poruke, ali ne sme dodati nijedan novi materijalni uslov.',
     'Za obične atomske činjenice evidence je kratak citat korisnika. Za naslov/opis koji su sinteza, evidence može biti kratko: "Sinteza potvrđenih činjenica i razgovora".',
-    'Za need.category izdvojite stvarnu VRSTU USLUGE iz celog razgovora (radnja + predmet rada), nezavisno od prostorije, kvadrature, broja komada, adrese, cene i datuma: krečenje sobe / krečenje stana -> krečenje zidova, molerski radovi kao šira grupa. Nemojte stvarati novu kategoriju samo zato što se promenio obim. Gletovanje zidova i krečenje zidova mogu biti posebne kompetencije; farbanje automobila nije krečenje zidova. Ne ograničavajte legitimne nove vrste usluga na jedanaest starih grupa, ali ne tvrdite da je nova kategorija registrovana ili da postoje odgovarajući radnici. Kategorija je AI predlog za korisnički pregled i nezavisnu serversku klasifikaciju, nikada dokaz kompetencije, objava niti nalog za obaveštavanje.',
+    'Za need.category izdvojite stvarnu VRSTU USLUGE iz celog razgovora (radnja + predmet rada), nezavisno od prostorije, kvadrature, broja komada, adrese, cene i datuma: krečenje sobe / krečenje stana -> krečenje zidova, molerski radovi kao šira grupa. Nemojte stvarati novu kategoriju samo zato što se promenio obim. Gletovanje zidova i krečenje zidova mogu biti posebne kompetencije; farbanje automobila nije krečenje zidova. Ne ograničavajte legitimne nove vrste usluga na jedanaest starih grupa, ali ne tvrdite da je nova kategorija registrovana ili da postoje odgovarajući radnici. Kategorija je AI predlog za korisnički pregled i nezavisnu serversku klasifikaciju, nikada dokaz kompetencije, objava niti nalog za obaveštavanje. Kada je u pitanju uža zanatska ili specifična delatnost, možete navesti stablo u formatu Šira grupa / Uža delatnost (na primer Zanati i popravke / Fina mehanika / Popravka pisaćih mašina ili Digitalne usluge / Izrada prezentacija) kako bi platforma automatski povezala celo stablo majstora.',
     'Iz dovoljno jasnog opisa predložite i nedostajuću need.category: kratak naziv stvarno opisane vrste zadatka, bez novih uslova i bez opšteg rezervnog naziva poput ostalo. Kategorija je interni podatak; ne pitajte korisnika za kategoriju. Ako opis nije jasan, pitajte šta konkretno treba uraditi. Pre REVIEW proverite i naslov i kategoriju. Ako korisnik samo završava razgovor, a već postoji jasan need.description, možete dopuniti samo nedostajući naslov ili kategoriju uz evidence koji je doslovan isečak tog postojećeg opisa; ne menjajte nijedan postojeći podatak i ne dodajte materijalne uslove iz komande završetka.',
     'dialogue opisuje sledeći korak, nije nova činjenica. next: ASK samo za nedostajući podatak, CLARIFY za stvarnu dvosmislenost, REVIEW za završetak i prelazak na pregled, ACK za izmenu bez pitanja, ANSWER kada korisnik traži objašnjenje. questionKey je tačan ključ pitanja za ASK, inače NONE. Ne birajte ASK za već poznat podatak.',
     'USKOČI AI je iskusan poslovođa i savetnik. Postavljajte pametna, konkretna pitanja koja vode korisnika i razjašnjavaju ključne aspekte: za selidbe i nošenje pitajte za sprat, teretni lift i teške gabaritne stvari; za krečenje za kvadraturu, stanje zidova (gletovanje/pukotine) i ko nabavlja boju; za svakodnevne zadatke (kupovina karata, čekanje u redu, donošenje) za tačan zadatak, mesto i rokove; za vikendice i gradnju za lokaciju, prilaz i priključke za struju/vodu.',
@@ -897,6 +897,26 @@ Deno.serve(async (req: Request) => {
           console.info('TAXONOMY_SCOPED_SHADOW', action);
         } catch {
           console.info('TAXONOMY_SCOPED_SHADOW', 'UNAVAILABLE');
+        }
+
+        // Live Dynamic Taxonomy: Ensure category path in taxonomy tree
+        try {
+          const rawCat = taxonomyArgs.p_ai_category.trim();
+          const pathSegments = rawCat.includes('>')
+            ? rawCat.split('>').map((s: string) => s.trim()).filter(Boolean)
+            : rawCat.includes('/')
+              ? rawCat.split('/').map((s: string) => s.trim()).filter(Boolean)
+              : [rawCat];
+          const related = Array.isArray(taxonomyArgs.p_explicit_required_skills)
+            ? taxonomyArgs.p_explicit_required_skills
+            : [];
+          await rpc('rpc_taxonomy_ensure_path_service', {
+            p_path: pathSegments,
+            p_execution_location_mode: taxonomyArgs.p_execution_location_mode,
+            p_related_labels: related,
+          }, signal, 3000);
+        } catch (ensureErr) {
+          console.info('TAXONOMY_ENSURE_PATH_DEFERRED', ensureErr);
         }
       }
       if (signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
