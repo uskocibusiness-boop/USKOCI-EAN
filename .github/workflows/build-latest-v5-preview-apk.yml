@@ -1,3 +1,5 @@
+# Preview V5 proof: run the entire regression suite before producing a signed ARM64 APK.
+# A workflow-file push intentionally requests a fresh proof from the current integration HEAD.
 name: Build latest V5 Android preview APK
 
 on:
