@@ -517,12 +517,12 @@ const s = StyleSheet.create({
   earlier: { ...sys.type.copy, color: sys.color.muted },
   // Own words have an elegant, soft sage capsule with deep green ink text (never harsh black).
   person: { alignSelf: 'flex-end', maxWidth: '88%', marginLeft: 28, paddingVertical: 12, paddingHorizontal: 18,
-    borderRadius: 20, borderBottomRightRadius: 6, backgroundColor: '#E8F5E9',
-    borderWidth: 1, borderColor: '#C8E6C9',
-    shadowColor: '#143D35', shadowOffset: { width: 0, height: 1.5 }, shadowOpacity: 0.08, shadowRadius: 3, elevation: 1 },
-  personText: { ...sys.type.body, color: '#143D35', fontWeight: '500' },
+    borderRadius: 20, borderBottomRightRadius: 6, backgroundColor: sys.conversation.userSoft,
+    borderWidth: 1, borderColor: sys.conversation.userSoftEdge,
+    shadowColor: sys.conversation.userSoftShadow, shadowOffset: { width: 0, height: 1.5 }, shadowOpacity: 0.08, shadowRadius: 3, elevation: 1 },
+  personText: { ...sys.type.body, color: sys.conversation.userSoftInk, fontWeight: '500' },
   /** Sent, not yet confirmed by a read: present and readable, visibly not yet part of the record. */
-  sending: { opacity: 0.9, backgroundColor: '#EDF7EE', borderColor: '#A5D6A7' },
+  sending: { opacity: 0.9, backgroundColor: sys.conversation.userSoftSending, borderColor: sys.conversation.userSoftSendingEdge },
   // One line of the answer's type (`speech`, 26), so the dots sit where the first line of the answer will.
   typing: { flexDirection: 'row', gap: sys.space.md, alignItems: 'center', flexWrap: 'wrap', minHeight: 28 },
   dots: { flexDirection: 'row', gap: 5, alignItems: 'center', height: 26 },
