@@ -197,7 +197,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const cardAtEnd = p.cardPlacement === 'end';
   const pinned = p.card(compact);
   useEffect(() => {
-    const show = Keyboard.addListener('keyboardDidShow', () => { setKeyboard(true); latest(true); });
+    const show = Keyboard.addListener('keyboardDidShow', () => { setKeyboard(true); followAfterLayout(); });
     const hide = Keyboard.addListener('keyboardDidHide', () => { setKeyboard(false); followAfterLayout(); });
     return () => { show.remove(); hide.remove(); cancelFollow(); };
   }, [cancelFollow, followAfterLayout]);
