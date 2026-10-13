@@ -124,6 +124,13 @@ export const sys = {
     edge: '#DEDEDE',
     user: '#292929',
     onUser: '#FFFFFF',
+    /** Softer own-message treatment for the AI thread. All colours live here, never in a screen. */
+    userSoft: '#E8F5E9',
+    userSoftSending: '#EDF7EE',
+    userSoftEdge: '#C8E6C9',
+    userSoftSendingEdge: '#A5D6A7',
+    userSoftInk: '#143D35',
+    userSoftShadow: '#143D35',
     iconWell: '#F5F5F5',
   },
   /**
