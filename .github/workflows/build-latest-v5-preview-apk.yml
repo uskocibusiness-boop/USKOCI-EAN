@@ -86,6 +86,87 @@ jobs:
       - name: Limit Android native build to phone ARM64
         run: |
           printf '\nreactNativeArchitectures=arm64-v8a\norg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8\n' >> android/gradle.properties
+      # The Android SDK package manager received a corrupt NDK ZIP in run 38476920808.
+      # Install exactly the pinned RN/Expo NDK from Google's published r27b archive,
+      # fail closed on checksum/ZIP errors, and avoid silently changing ndkVersion.
+      - name: Install verified Android NDK r27b
+        shell: bash
+        run: |
+          set -euo pipefail
+          sdk="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          ndk="$sdk/ndk/27.1.12297006"
+          clang="$ndk/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+          if [ -x "$clang" ] && grep -q '^Pkg.Revision = 27.1.12297006
+      - name: Verify and name APK
+        run: |
+          set -euo pipefail
+          test -s android/app/build/outputs/apk/release/app-release.apk
+          cp android/app/build/outputs/apk/release/app-release.apk USKOCI-V5-PREVIEW-ARM64.apk
+          sha256sum USKOCI-V5-PREVIEW-ARM64.apk > USKOCI-V5-PREVIEW-ARM64.apk.sha256
+          python3 scripts/ci/attest_ota_preview.py USKOCI-V5-PREVIEW-ARM64.apk USKOCI-V5-PREVIEW-ARM64-receipt.json
+      - name: Upload APK, checksum and receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: USKOCI-V5-PREVIEW-ARM64
+          path: |
+            USKOCI-V5-PREVIEW-ARM64.apk
+            USKOCI-V5-PREVIEW-ARM64.apk.sha256
+            USKOCI-V5-PREVIEW-ARM64-receipt.json
+          retention-days: 14
+          if-no-files-found: error
+ "$ndk/source.properties"; then
+            echo "Verified NDK r27b already installed"
+            exit 0
+          fi
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          archive="$tmp/android-ndk-r27b-linux.zip"
+          url="https://dl.google.com/android/repository/android-ndk-r27b-linux.zip"
+          sha1="6fc476b2e57d7c01ac0c95817746b927035b9749"
+          verified=0
+          for attempt in 1 2 3; do
+            rm -f "$archive"
+            echo "Downloading pinned Android NDK r27b (attempt $attempt)"
+            if curl --fail --location --silent --show-error --retry 3 --retry-all-errors \
+              --retry-delay 5 --connect-timeout 30 --max-time 1200 "$url" --output "$archive" \
+              && echo "$sha1  $archive" | sha1sum --check --status \
+              && unzip -tqq "$archive"; then
+              verified=1
+              break
+            fi
+            echo "::warning::Incomplete or corrupt NDK download, discarding and retrying"
+          done
+          if [ "$verified" != 1 ]; then
+            echo "::error::NDK r27b checksum or ZIP integrity failed after retries"
+            exit 1
+          fi
+          unzip -q "$archive" -d "$tmp"
+          test -x "$tmp/android-ndk-r27b/toolchains/llvm/prebuilt/linux-x86_64/bin/clang"
+          grep -q '^Pkg.Revision = 27.1.12297006
+      - name: Verify and name APK
+        run: |
+          set -euo pipefail
+          test -s android/app/build/outputs/apk/release/app-release.apk
+          cp android/app/build/outputs/apk/release/app-release.apk USKOCI-V5-PREVIEW-ARM64.apk
+          sha256sum USKOCI-V5-PREVIEW-ARM64.apk > USKOCI-V5-PREVIEW-ARM64.apk.sha256
+          python3 scripts/ci/attest_ota_preview.py USKOCI-V5-PREVIEW-ARM64.apk USKOCI-V5-PREVIEW-ARM64-receipt.json
+      - name: Upload APK, checksum and receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: USKOCI-V5-PREVIEW-ARM64
+          path: |
+            USKOCI-V5-PREVIEW-ARM64.apk
+            USKOCI-V5-PREVIEW-ARM64.apk.sha256
+            USKOCI-V5-PREVIEW-ARM64-receipt.json
+          retention-days: 14
+          if-no-files-found: error
+ "$tmp/android-ndk-r27b/source.properties"
+          sudo mkdir -p "$sdk/ndk"
+          sudo rm -rf "$ndk"
+          sudo mv "$tmp/android-ndk-r27b" "$ndk"
+          test -x "$clang"
+          "$clang" --version | head -n 1
+          echo "Verified Android NDK installed into $ndk"
       - name: Build release APK
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon --max-workers=2 -x lintVitalAnalyzeRelease
