@@ -1,0 +1,90 @@
+name: Build latest V5 Android preview APK
+
+on:
+  push:
+    branches: [work/ultra-master-integration-20261012]
+    paths: [.github/workflows/build-latest-v5-preview-apk.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uskoci-v5-preview-apk
+  cancel-in-progress: false
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      CI: '1'
+      NODE_ENV: production
+      EAS_BUILD_PROFILE: preview
+      USKOCI_OTA_TARGET: preview
+      USKOCI_PUSH_PROOF_BUILD: '0'
+      EXPO_PUBLIC_SUPABASE_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW
+      EXPO_PUBLIC_USE_FAKE_SOURCE: '0'
+      EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL: uskociapp://oporavak
+      EXPO_PUBLIC_P6_DISCOVERY_READER: '1'
+      EXPO_PUBLIC_EX04_OWN_TASKS_PAGED: '1'
+      EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED: '1'
+      EXPO_PUBLIC_EX04_CANDIDATES_PAGED: '1'
+      EXPO_PUBLIC_VOICE_MESSAGES: '1'
+      EXPO_PUBLIC_AI_LOCATION_DIALOGUE: '1'
+      EXPO_PUBLIC_CONVERSATION_INBOX: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install pinned dependencies
+        run: npm ci --include=dev
+      - name: Check exact preview identity
+        run: |
+          node scripts/ota-preview-guard.cjs
+          node - <<'NODE'
+          const fs=require('fs');
+          const c=require('./app.config.js')({config:JSON.parse(fs.readFileSync('app.json','utf8')).expo});
+          if(c.android.package!=='rs.uskoci.preview'||c.runtimeVersion!=='uskoci-v1-preview-r1'||c.updates.requestHeaders['expo-channel-name']!=='preview')throw Error('Not Android preview');
+          console.log('Android preview identity:',c.android.package,c.runtimeVersion);
+          NODE
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Full regression suite
+        env:
+          NODE_ENV: test
+        run: npm test -- --runInBand
+      - name: Prebuild Android
+        run: npx expo prebuild --platform android --clean
+      - name: Limit Android native build to phone ARM64
+        run: |
+          printf '\nreactNativeArchitectures=arm64-v8a\norg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8\n' >> android/gradle.properties
+      - name: Build release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon --max-workers=2 -x lintVitalAnalyzeRelease
+      - name: Verify and name APK
+        run: |
+          set -euo pipefail
+          test -s android/app/build/outputs/apk/release/app-release.apk
+          cp android/app/build/outputs/apk/release/app-release.apk USKOCI-V5-PREVIEW-ARM64.apk
+          sha256sum USKOCI-V5-PREVIEW-ARM64.apk > USKOCI-V5-PREVIEW-ARM64.apk.sha256
+          python3 scripts/ci/attest_ota_preview.py USKOCI-V5-PREVIEW-ARM64.apk USKOCI-V5-PREVIEW-ARM64-receipt.json
+      - name: Upload APK, checksum and receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: USKOCI-V5-PREVIEW-ARM64
+          path: |
+            USKOCI-V5-PREVIEW-ARM64.apk
+            USKOCI-V5-PREVIEW-ARM64.apk.sha256
+            USKOCI-V5-PREVIEW-ARM64-receipt.json
+          retention-days: 14
+          if-no-files-found: error
