@@ -143,9 +143,8 @@ function decodeClassification(v:Record<string,unknown>,profile:WorkerAiProfile):
     result.classificationCandidates.push({action:'REUSE_EXISTING',service:c.service,mode:c.mode,
       categoryId:c.categoryId,catalogVersion:version,reason:c.reason});
   }
-  result.classificationCatalogVersion=version;
-  result.classificationCatalogFingerprint=v.classificationCatalogFingerprint;
-  return result;
+  return {...result,classificationCatalogVersion:version,
+    classificationCatalogFingerprint:v.classificationCatalogFingerprint};
 }
 export function decodeWorkerAiReview(raw:unknown,account:string,cid:string):WorkerAiReview|null {
   const v=record(raw),profile=decodeWorkerAiProfile(v?.profile);
