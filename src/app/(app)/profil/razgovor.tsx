@@ -9,7 +9,7 @@ import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../../lib/idempotencija';
 import { workerAvailabilityPatch } from '../../../lib/workerAiAvailabilityPatch';
 import { sesijaSada, useSesija } from '../../../store/sesija';
-import { inferWorkerExecutionModes, workerExecutionModeClientService } from '../../../data/workerExecutionModeClientService';
+import { canonicalWorkerExecutionModes, inferWorkerExecutionModes, workerExecutionModeClientService } from '../../../data/workerExecutionModeClientService';
 
 import { useHoldToTalk } from '../../../features/voice/useHoldToTalk';
 import { AiConversationShell } from '../../../ui/aiFirst/AiConversationShell';
@@ -283,11 +283,15 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     await savePanel(async()=>{const saved=await api.save(reviewed,key);if(!current())return unavailable();
       const result=await read();if(!current())return unavailable();
       if(result.ok&&result.podatak.saved?.reviewId===reviewed.reviewId){
-        if(accountId){
-          try{
-            const modes=inferWorkerExecutionModes(reviewed.profile.skills,reviewed.profile.location);
-            void workerExecutionModeClientService.save(accountId,accountRevision,modes).catch(()=>undefined);
-          }catch{}
+        // Historical reviews keep their historical global-mode compatibility.
+        // With a signed classification, never infer ON_SITE merely from the city
+        // or REMOTE from a service name. A pending classification cannot set modes.
+        // Gate B will replace this non-atomic legacy bridge with one receipt-bound binder.
+        if(accountId&&(!reviewed.classificationState||reviewed.classificationState==='READY')){
+          const modes=reviewed.classificationState==='READY'
+            ?canonicalWorkerExecutionModes((reviewed.reviewedServiceModes??[]).map(item=>item.mode))
+            :inferWorkerExecutionModes(reviewed.profile.skills,reviewed.profile.location);
+          if(modes.length)void workerExecutionModeClientService.save(accountId,accountRevision,modes).catch(()=>undefined);
         }
         return result;
       }
