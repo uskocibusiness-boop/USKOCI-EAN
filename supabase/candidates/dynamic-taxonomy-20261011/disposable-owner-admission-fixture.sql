@@ -25,11 +25,13 @@ CREATE TABLE private.ai_task_reviews (
 );
 CREATE TABLE private.worker_ai_saves(
  review_id uuid NOT NULL, account_id uuid NOT NULL, client_request_id uuid NOT NULL,
- receipt jsonb NOT NULL DEFAULT '{}'::jsonb,PRIMARY KEY(review_id,account_id,client_request_id)
+ receipt jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT statement_timestamp(),PRIMARY KEY(review_id,account_id,client_request_id)
 );
 CREATE TABLE private.ai_task_review_commands(
  review_id uuid NOT NULL, account_id uuid NOT NULL,client_request_id uuid NOT NULL,
- state text NOT NULL DEFAULT 'ACCEPTED', PRIMARY KEY(review_id,account_id,client_request_id)
+ state text NOT NULL DEFAULT 'ACCEPTED',
+ created_at timestamptz NOT NULL DEFAULT statement_timestamp(), PRIMARY KEY(review_id,account_id,client_request_id)
 );
 -- ONLY the isolated fixture simulates a review prepared from a fully built
 -- server-owned envelope. Production must extend the two canonical review
