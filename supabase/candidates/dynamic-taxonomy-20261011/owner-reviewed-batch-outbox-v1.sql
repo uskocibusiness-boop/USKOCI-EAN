@@ -167,4 +167,63 @@ REVOKE ALL ON FUNCTION public.rpc_taxonomy_finalize_reviewed_batch_service(uuid,
  FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.rpc_taxonomy_finalize_reviewed_batch_service(uuid,uuid,text)
  TO service_role;
+-- A bounded reconciliation pass repairs dropped trigger notifications.
+-- Rechecks signed classification presence and real saved-review receipts.
+-- Must be invoked by an internal service scheduler before claiming work.
+CREATE OR REPLACE FUNCTION public.rpc_taxonomy_reconcile_reviewed_outbox_service(
+ p_limit integer DEFAULT 50
+) RETURNS integer LANGUAGE plpgsql SECURITY DEFINER
+ SET search_path=pg_catalog,private AS $recover$
+DECLARE v_enabled boolean;v_count integer;
+BEGIN
+ IF p_limit NOT BETWEEN 1 AND 200 THEN
+  RAISE EXCEPTION 'OUTBOX_RECOVERY_LIMIT_INVALID' USING errcode='22023'; END IF;
+ SELECT enabled INTO v_enabled FROM private.work_taxonomy_review_outbox_control_v1
+ WHERE singleton;
+ IF v_enabled IS DISTINCT FROM true THEN RETURN 0; END IF;
+ WITH accepted AS (
+   SELECT s.account_id,s.client_request_id,s.review_id,
+      'WORKER_CAPABILITY'::text AS purpose,
+      w.envelope->'classificationCandidates' AS plans,s.created_at
+   FROM private.worker_ai_saves s
+   JOIN private.worker_ai_reviews w ON w.id=s.review_id AND w.account_id=s.account_id
+   WHERE w.envelope->'canAccept'='true'::jsonb
+     AND w.envelope->>'classificationCatalogFingerprint' IS NOT NULL
+     AND CASE WHEN jsonb_typeof(w.envelope->'classificationCandidates')='array'
+       THEN jsonb_array_length(w.envelope->'classificationCandidates') BETWEEN 1 AND 12
+       ELSE false END
+   UNION ALL
+   SELECT c.account_id,c.client_request_id,c.review_id,
+      'NEED_SERVICE'::text AS purpose,
+      t.envelope->'classificationCandidates' AS plans,c.created_at
+   FROM private.ai_task_review_commands c
+   JOIN private.ai_task_reviews t ON t.id=c.review_id AND t.account_id=c.account_id
+   WHERE c.state IN ('ACCEPTED','EVALUATING','EVALUATED','PUBLISHED')
+     AND t.envelope->'canAccept'='true'::jsonb
+     AND t.envelope->>'classificationCatalogFingerprint' IS NOT NULL
+     AND CASE WHEN jsonb_typeof(t.envelope->'classificationCandidates')='array'
+       THEN jsonb_array_length(t.envelope->'classificationCandidates') BETWEEN 1 AND 12
+       ELSE false END
+ ),
+ missing AS (
+   SELECT a.* FROM accepted a
+   WHERE NOT EXISTS (SELECT 1 FROM private.work_taxonomy_review_outbox_v1 q
+     WHERE q.owner_account_id=a.account_id AND q.request_key=a.client_request_id)
+   ORDER BY a.created_at,a.review_id LIMIT p_limit
+ ),
+ inserted AS (
+   INSERT INTO private.work_taxonomy_review_outbox_v1
+     (owner_account_id,request_key,source_review_id,purpose,plans)
+   SELECT account_id,client_request_id,review_id,purpose,plans FROM missing
+   ON CONFLICT(owner_account_id,request_key) DO NOTHING
+   RETURNING id
+ )
+ SELECT count(*)::integer INTO v_count FROM inserted;
+ RETURN v_count;
+END $recover$;
+REVOKE ALL ON FUNCTION public.rpc_taxonomy_reconcile_reviewed_outbox_service(integer)
+ FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.rpc_taxonomy_reconcile_reviewed_outbox_service(integer)
+ TO service_role;
+
 COMMIT;
