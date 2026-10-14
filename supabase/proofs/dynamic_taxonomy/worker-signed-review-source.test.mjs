@@ -10,8 +10,8 @@ const candidate = readFileSync(
 );
 const at = part => candidate.indexOf(part);
 
-test('preserves the original three-argument review API and owner/revision locks', () => {
-  assert.match(candidate, /FUNCTION public\.rpc_prepare_worker_ai_review\(p_conversation_id uuid, p_expected_revision integer, p_activate boolean DEFAULT false\)/);
+test('new versioned RPC keeps three-argument review protocol and owner/revision locks', () => {
+  assert.match(candidate, /FUNCTION public\.rpc_prepare_worker_ai_review_taxonomy\(p_conversation_id uuid, p_expected_revision integer, p_activate boolean DEFAULT false\)/);
   for (const phrase of ['auth.uid() is null', 'private.closure_assert_open(auth.uid())',
     's.revision is distinct from p_expected_revision',
     's.base_hash<>private.worker_ai_source_hash(auth.uid())',
@@ -38,4 +38,9 @@ test('builder only stores a review, never grants taxonomy identity or push autho
   assert.match(candidate, /insert into private\.worker_ai_reviews/);
   assert.doesNotMatch(candidate, /insert into private\.work_taxonomy_worker_capabilities/i);
   assert.doesNotMatch(candidate, /perform private\.dispatch_next_wave/i);
+});
+
+test('signed builder never replaces legacy worker review endpoint',()=>{
+ assert.doesNotMatch(candidate,/CREATE OR REPLACE FUNCTION public\\.rpc_prepare_worker_ai_review\\(/);
+ assert.match(candidate,/FUNCTION public\\.rpc_prepare_worker_ai_review_taxonomy\\(/);
 });
