@@ -55,6 +55,13 @@ BEGIN
    IF jsonb_typeof(v_row)<>'object'
       OR NOT (v_row ?& array['service','mode','action','categoryId','parentId','proposedPath','reason','catalogVersion'])
       OR (SELECT count(*) FROM jsonb_object_keys(v_row)) <> 8
+      OR jsonb_typeof(v_row->'service') IS DISTINCT FROM 'string'
+      OR jsonb_typeof(v_row->'reason') IS DISTINCT FROM 'string'
+      OR jsonb_typeof(v_row->'mode') IS DISTINCT FROM 'string'
+      OR jsonb_typeof(v_row->'action') IS DISTINCT FROM 'string'
+      OR jsonb_typeof(v_row->'categoryId') IS DISTINCT FROM 'string'
+      OR jsonb_typeof(v_row->'parentId') IS DISTINCT FROM 'string'
+      OR jsonb_typeof(v_row->'catalogVersion') IS DISTINCT FROM 'number'
       OR char_length(btrim(v_row->>'service')) NOT BETWEEN 3 AND 120
       OR char_length(btrim(v_row->>'reason')) NOT BETWEEN 10 AND 1000
       OR v_row->>'mode' NOT IN ('REMOTE','ON_SITE')
@@ -75,7 +82,7 @@ BEGIN
  -- can produce a hint. A claimed/failed/cancelled or forged turn cannot.
  IF p_purpose='WORKER_CAPABILITY' THEN
    SELECT encode(extensions.digest(
-     (s.candidate::text||'|'||s.revision::text||'|'||s.base_hash)::bytea,'sha256'),'hex')
+     convert_to(s.candidate::text||'|'||s.revision::text||'|'||s.base_hash,'UTF8'),'sha256'),'hex')
    INTO v_source
    FROM private.worker_ai_turns t
    JOIN private.worker_ai_sessions s
