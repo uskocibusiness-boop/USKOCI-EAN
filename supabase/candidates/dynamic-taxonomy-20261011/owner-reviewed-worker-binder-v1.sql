@@ -88,6 +88,13 @@ BEGIN
    OR v_save.receipt->>'profileId' IS DISTINCT FROM p_profile_id::text
    OR v_save.receipt->>'profileStatus'<>'ACTIVE'
  THEN RAISE EXCEPTION 'WORKER_BINDER_SAVE_OR_ACTIVATION_REQUIRED' USING errcode='42501'; END IF;
+ -- A delayed outbox command from an OLD Save must never re-enable modes
+ -- superseded by a newer user-confirmed worker review for this same profile.
+ IF EXISTS(SELECT 1 FROM private.worker_ai_saves newer
+   WHERE newer.account_id=p_owner_account_id
+     AND newer.created_at>v_save.created_at
+     AND newer.receipt->>'profileId'=p_profile_id::text)
+ THEN RAISE EXCEPTION 'WORKER_BINDER_NEWER_SAVE_EXISTS' USING errcode='PT409'; END IF;
  -- Hold current worker profile throughout the transaction. Reject any edit
  -- after the reviewed Save, even if the new skill text happens to be identical.
  SELECT * INTO v_profile FROM public.app_profiles
