@@ -44,7 +44,7 @@ test('C/D two ordering directions give the same result without authority',()=>{
 });
 test('E no AI claim can independently validate a new unregistered alias',()=>{
  const out=inspect(withShadow(worker,[plan('Individualni časovi klizanja',lesson,'ON_SITE','REUSE_ALIAS')]),snapshot,'WORKER_CAPABILITY');
- assert.deepEqual(out.statuses,['ALIAS_NOT_VERIFIED']);
+ assert.deepEqual(out.statuses,['ALIAS_EVIDENCE_REQUIRED']);
 });
 test('F similar language is not enough to fuse three separate existing identities',()=>{
  const out=inspect(withShadow(worker,[
@@ -97,4 +97,17 @@ test('L protected model instruction does not claim consent or matching',()=>{
  assert.match(prompt,/never user consent/);
  assert.match(prompt,/never write/);
  assert.match(prompt,/UNCONFIRMED/);
+});
+
+test('Gemini shadow cannot smuggle skate rental or sharpening as skating lessons',()=>{
+ for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE']){
+  const result=inspect(withShadow(worker,[plan('Iznajmljivanje klizaljki',lesson)]),snapshot,purpose);
+  assert.deepEqual(result.output,worker);
+  assert.deepEqual(result.statuses,['SEMANTIC_IDENTITY_REVIEW_REQUIRED']);
+ }
+});
+test('Cyrillic review identity works without creating a second category',()=>{
+ const result=inspect(withShadow(need,[plan('Часови уметничког клизања')]),snapshot,'NEED_SERVICE');
+ assert.deepEqual(result.statuses,['REUSE_CANDIDATE']);
+ assert.deepEqual(result.output,need);
 });
