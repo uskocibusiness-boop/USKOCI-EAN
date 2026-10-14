@@ -107,3 +107,29 @@ plan after approval. Source tests and full Deno checks remain independent.
 **Gate before DEV:** atomic multi-service review + correct display projection,
 existing saved-review binding, legacy writer retirement, need snapshot/worker
 capability reconciliation and explicit matching/notification proof.
+
+
+## P1.5 multi-service review gate — source-only
+`supabase/functions/_shared/classificationBatch.mjs` and its typed declaration
+are the new *read-only* shared planner for 1–100 explicitly reviewed service
+claims. It reuses the same canonical-ID, parent and scope checker as both
+Gemini conversations; rejects repeated service labels or repeated category IDs
+within a single mode, treats Cyrillic/Latin spelling variants mapped to one
+canonical ID as duplicates, and does **not** infer consent across ON_SITE and
+REMOTE. Two separately expressed modes for one service remain separately
+reviewable.
+
+Entire batches fail as candidates when any member is stale, contradictory,
+unsafe, an unverified alias or a novel branch; individual statuses are retained
+for owner review. Even when every entry reuses a pre-existing category, output
+is `CANDIDATES_ONLY`, `accepted:false`, `commitAuthority:NONE` and
+`requiresAtomicBatch:true`. The limit is a *review payload bound*, not a cap on
+the taxonomy's total number of work categories. Node tests prove 3 skating
+services, multi-mode, stale versions, duplicates and authority separation.
+
+**Not implemented yet:** a server-owned review that binds the entire service
+list into the displayed digest and a single idempotent SQL batch commit which
+can create/reuse all reviewed services under one catalog lock and then
+reconcile worker/need rows under the existing confirmation. Do not call the
+single-service RPC in a loop; the first new category can bump version and
+invalidate the remaining plans.
