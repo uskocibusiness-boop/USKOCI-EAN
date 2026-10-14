@@ -6,6 +6,8 @@ on:
       - 'supabase/candidates/dynamic-taxonomy-20261011/disposable-owner-admission-*.sql'
       - 'supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-batch-admission-v1.sql'
       - 'supabase/candidates/dynamic-taxonomy-20261011/disposable-owner-batch-*.sql'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-batch-outbox-v1.sql'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/disposable-owner-outbox-assert.sql'
       - '.github/workflows/taxonomy-owner-reviewed-admission-pg-proof.yml'
   workflow_dispatch:
 permissions:
@@ -58,3 +60,8 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-owner-batch-fixture.sql
       - name: Prove atomic multi-service save, reverse identity, rollback and replay
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-owner-batch-assert.sql
+
+      - name: Install disabled, disposable post-save taxonomy outbox
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-batch-outbox-v1.sql
+      - name: Prove automatic enqueue after EXISTING save and lease-fenced retries
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-owner-outbox-assert.sql
