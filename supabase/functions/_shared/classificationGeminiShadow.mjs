@@ -72,17 +72,19 @@ function validItem(p,snapshot) {
 /** Called BEFORE old strict model parser. Invalid optional shadow is dropped
  * rather than causing an extra paid LLM turn; original answer remains unchanged.
  * The statuses are safe telemetry; never log service text, IDs, review info.
+ * reviewProposals are untrusted Gemini HINTS, never signed review consent,
+ * admission plans, save receipts, active capabilities or push eligibility.
  */
 export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
-  if(!record(raw))return {output:raw,statuses:['MISSING_ENVELOPE']};
+  if(!record(raw))return {output:raw,statuses:['MISSING_ENVELOPE'],reviewProposals:[]};
   const {[shadowField]:shadow,...output}=raw;
-  if(!Object.hasOwn(raw,shadowField))return {output,statuses:[]};
-  if(!Array.isArray(shadow)||shadow.length>maxServices)return {output,statuses:['INVALID_BATCH']};
+  if(!Object.hasOwn(raw,shadowField))return {output,statuses:[],reviewProposals:[]};
+  if(!Array.isArray(shadow)||shadow.length>maxServices)return {output,statuses:['INVALID_BATCH'],reviewProposals:[]};
   if(raw.safety==='BLOCK'||raw.safety==='REVIEW')
-    return {output,statuses:shadow.length?['SAFETY_INTERVIEW_REVIEW']:[]};
+    return {output,statuses:shadow.length?['SAFETY_INTERVIEW_REVIEW']:[],reviewProposals:[]};
   if(!record(snapshot)||!Array.isArray(snapshot.categories)||!Number.isSafeInteger(snapshot.catalogVersion))
-    return {output,statuses:['INVALID_CATALOG']};
-  const seen=new Set(), statuses=[];
+    return {output,statuses:['INVALID_CATALOG'],reviewProposals:[]};
+  const seen=new Set(), statuses=[], reviewProposals=[];
   for(const p of shadow){
     if(!validItem(p,snapshot)){statuses.push('INVALID_PLAN');continue;}
     const signature=normalizedClassificationIdentity(p.service);
@@ -96,6 +98,19 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
     if(checked.accepted && p.mode==='UNCONFIRMED') statuses.push('MODE_UNCONFIRMED');
     else if(checked.accepted && p.action==='REUSE_ALIAS') statuses.push('ALIAS_NOT_VERIFIED');
     else statuses.push(checked.status);
+    // A validated hint can be retained for LATER independent source/owner
+    // binding, but never becomes an accepted admission plan or worker consent.
+    // Only real canonical IDs or an existing reviewed parent may be retained.
+    if (p.mode !== 'UNCONFIRMED' &&
+        (checked.status === 'REUSE_CANDIDATE' && p.action === 'REUSE_EXISTING' ||
+         checked.status === 'ADMISSION_REVIEW_REQUIRED' && p.action === 'CREATE_CHILD')) {
+      reviewProposals.push({
+        service:p.service,mode:p.mode,action:p.action,categoryId:p.categoryId,
+        parentId:p.parentId,proposedPath:p.proposedPath.slice(),
+        reason:p.reason,catalogVersion:p.catalogVersion,
+      });
+    }
   }
-  return {output,statuses};
+  return {output,statuses,reviewProposals};
+}
 }
