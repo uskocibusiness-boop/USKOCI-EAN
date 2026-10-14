@@ -6,6 +6,21 @@ CREATE ROLE anon NOLOGIN;
 CREATE ROLE authenticated NOLOGIN;
 CREATE ROLE service_role NOLOGIN;
 CREATE EXTENSION pgcrypto WITH SCHEMA extensions;
+-- Exact canonical normalization copied from read-only current DEV definition.
+CREATE OR REPLACE FUNCTION private.taxonomy_normalize_v1(p_value text)
+ RETURNS text LANGUAGE sql IMMUTABLE PARALLEL SAFE SET search_path TO 'pg_catalog'
+AS $function$
+ SELECT btrim(regexp_replace(
+   translate(
+     replace(replace(replace(replace(replace(replace(lower(btrim(coalesce(p_value,''))),
+       'ђ','dj'),'љ','lj'),'њ','nj'),'џ','dz'),'đ','dj'),'ß','ss'),
+     'абвгдежзијклмнопрстћуфхцчшčćšž',
+     'abvgdezzijklmnoprstcufhccsccsz'
+   ),
+   '[[:space:]]+', ' ', 'g'
+ ))
+$function$;
+
 CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$
   SELECT coalesce(nullif(current_setting('request.jwt.claims',true),'')::jsonb,'{}'::jsonb)
 $$;
@@ -27,7 +42,7 @@ INSERT INTO public.ai_conversations VALUES
  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','NEED_INTAKE');
 INSERT INTO private.worker_ai_sessions VALUES
  ('99999999-9999-4999-8999-999999999999','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',2,
-  '{"skills":["Krecenje zidova"]}'::jsonb,'base-fingerprint');
+  '{"skills":["Krecenje zidova","Casovi matematike"]}'::jsonb,'base-fingerprint');
 INSERT INTO private.worker_ai_turns VALUES
  ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   '99999999-9999-4999-8999-999999999999',
@@ -39,3 +54,9 @@ INSERT INTO private.ai_need_turn_commands VALUES
  ('77777777-7777-4777-8777-777777777777','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
   '66666666-6666-4666-8666-666666666666','55555555-5555-4555-8555-555555555555','SUCCEEDED');
+
+-- A second independently confirmed turn permits testing a new complete snapshot.
+INSERT INTO private.worker_ai_turns VALUES(
+ 'abababab-abab-4bab-8bab-abababababab','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+ '99999999-9999-4999-8999-999999999999',
+ 'cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd','efefefef-efef-4fef-8fef-efefefefefef','SUCCEEDED');
