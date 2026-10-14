@@ -6,6 +6,13 @@ CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE
 AS $$ SELECT nullif(current_setting('test.auth_uid',true),'')::uuid $$;
+CREATE TABLE IF NOT EXISTS private.work_taxonomy_category_modes (
+ category_id uuid NOT NULL REFERENCES private.work_taxonomy_categories(id) ON DELETE RESTRICT,
+ execution_scope text NOT NULL CHECK (execution_scope IN ('REMOTE','ON_SITE')),
+ source_ref text NOT NULL,
+ mapped_at timestamptz NOT NULL DEFAULT now(),
+ PRIMARY KEY(category_id,execution_scope)
+);
 CREATE TABLE private.worker_ai_reviews (
   id uuid PRIMARY KEY,account_id uuid NOT NULL,envelope jsonb NOT NULL,
   expires_at timestamptz NOT NULL
