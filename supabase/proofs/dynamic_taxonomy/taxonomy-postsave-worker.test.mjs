@@ -89,3 +89,30 @@ test('claim and reconcile bounds fail closed without processing',async()=>{
   await assert.rejects(processTaxonomyPostSaveTick(rpc),TaxonomyWorkerProtocolError);
  }
 });
+
+test('post-Save worker accepts 12 confirmed services in BOTH scopes (24 plans)',async()=>{
+ const many=Array.from({length:24},(_,i)=>{
+  const scope=i%2?'REMOTE':'ON_SITE';
+  const service='Casovi predmeta '+Math.floor(i/2);
+  const categoryId='60000000-0000-4000-8000-'+String(Math.floor(i/2)+1).padStart(12,'0');
+  return {action:'REUSE_EXISTING',service,mode:scope,categoryId,catalogVersion:3,
+    reason:'Existing verified two-mode classroom service'};
+ });
+ const {rpc,calls}=setup({claim:[{...job,plans:many}],reply:{...receipt,
+   items:many.map(({service,mode,categoryId})=>({service,mode,categoryId}))}});
+ const result=await processTaxonomyPostSaveTick(rpc);
+ assert.equal(result.admitted,1);
+ assert.equal(calls[2].args.p_plans.length,24);
+ assert.equal(calls[3].args.p_error_code,null);
+});
+test('post-Save client refuses Need batches with multiple primary services or 25 worker modes',async()=>{
+ const badNeed={...job,purpose:'NEED_SERVICE',plans:[plans[0],plans[0]]};
+ const tooMany={...job,plans:Array.from({length:25},()=>plans[0])};
+ for(const invalid of [badNeed,tooMany]){
+  const {rpc,calls}=setup({claim:[invalid]});
+  await assert.rejects(processTaxonomyPostSaveTick(rpc),TaxonomyWorkerProtocolError);
+  assert.deepEqual(calls.map(c=>c.name),
+    ['rpc_taxonomy_reconcile_reviewed_outbox_service',
+     'rpc_taxonomy_claim_reviewed_batches_service']);
+ }
+});
