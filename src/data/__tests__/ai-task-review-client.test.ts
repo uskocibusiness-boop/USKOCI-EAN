@@ -208,3 +208,38 @@ describe('reviewFactProblem', () => {
     expect(reviewFactProblem(withFacts(fact('need.price_mode', 'OFFERS'), fact('need.schedule_kind', 'FLEXIBLE')), NOW)).toBeNull();
   });
 });
+
+
+it('Gate A signed canonical Need category and mode decode without a second acceptance', () => {
+  const base = review();
+  const signed = {
+    ...base,
+    publicProjection:[{id:null,key:'need.category',value:'Izrada prezentacija',
+      displayValue:'Izrada prezentacija',privacyClass:'PUBLIC',source:'EXPLICIT_USER_ANSWER',status:'CONFIRMED'}],
+    classificationState:'READY',
+    classificationCandidates:[{action:'REUSE_EXISTING',service:'Izrada prezentacija',mode:'REMOTE',
+      categoryId:'22222222-2222-4222-8222-222222222222',catalogVersion:9,
+      reason:'Verified existing canonical identity or registered server alias'}],
+    classificationCatalogVersion:9,classificationCatalogFingerprint:'f'.repeat(32),reviewedServiceModes:[],
+  };
+  const checked=decodeAiTaskReview(signed,OWNER);
+  expect(checked).not.toBeNull();
+  expect(checked?.classificationCandidates?.[0].categoryId).toBe('22222222-2222-4222-8222-222222222222');
+  // The category must be visible in the ordinary public task projection.
+  expect(checked?.publicProjection.find(x=>x.key==='need.category')?.displayValue).toBe('Izrada prezentacija');
+  expect(decodeAiTaskReview({...signed,classificationCandidates:[
+    {...signed.classificationCandidates[0],service:'Krečenje zidova'}]},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...signed,classificationCandidates:[
+    {...signed.classificationCandidates[0],mode:'ON_SITE'}]},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...signed,classificationCandidates:[
+    {...signed.classificationCandidates[0],categoryId:'INVALID'}]},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...signed,classificationCatalogFingerprint:'WRONG'},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...signed,reviewedServiceModes:[{service:'Izrada prezentacija',mode:'REMOTE'}]},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...signed,classificationCatalogVersion:8},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...signed,classificationState:'PENDING_CLASSIFICATION',
+    classificationCandidates:[],classificationCatalogVersion:null,classificationCatalogFingerprint:null},OWNER))
+    .toMatchObject({classificationState:'PENDING_CLASSIFICATION',canAccept:true});
+  // Pre-rollout old review remains readable and Save still passes its original digest.
+  expect(decodeAiTaskReview(base,OWNER)).toEqual(base);
+  expect(decodeAiTaskReview({...signed,classificationCatalogFingerprint:undefined},OWNER)).toBeNull();
+});
