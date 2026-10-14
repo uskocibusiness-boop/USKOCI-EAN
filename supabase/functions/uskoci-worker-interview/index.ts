@@ -2,6 +2,7 @@ import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION }
 // Distinct owned WORKER_PROFILE_V1 proposals. No task facts or canonical writes.
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
+import { loadClassificationCatalog, catalogPromptContext } from '../_shared/classificationEngine.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info',
@@ -150,8 +151,19 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   if (Deno.env.get('AI_PROVIDER')!=='gemini' || model!=='gemini-3.8-flash' || !key || Deno.env.get('USKOCI_GEMINI_PAID_TEST_ENABLED')!=='true') {
     try { await fail(); } catch {} return json(503,{code:'WORKER_AI_NOT_CONFIGURED'});
   }
+  // Feature-gated shared canonical catalog context. This is classification
+  // SHADOW ONLY: it cannot create categories or activate capabilities.
+  let taxonomyPrompt = '';
+  if (Deno.env.get('USKOCI_TAXONOMY_UNIFIED_SHADOW') === 'true') {
+    try {
+      taxonomyPrompt = catalogPromptContext(await loadClassificationCatalog(rpc));
+      console.info('WORKER_TAXONOMY_CATALOG_SHADOW', 'LOADED');
+    } catch {
+      console.info('WORKER_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE');
+    }
+  }
   const history=context.messages.slice(-30).map((row:any)=>({role:row.role==='ASSISTANT'?'model':'user',parts:[{text:String(row.body).slice(0,4000)}]}));
-  const body=JSON.stringify({systemInstruction:{parts:[{text:instruction(context,new Date().toISOString())}]},contents:history,
+  const body=JSON.stringify({systemInstruction:{parts:[{text:instruction(context,new Date().toISOString())}, ...(taxonomyPrompt ? [{text: taxonomyPrompt}] : [])]},contents:history,
     generationConfig:{temperature:0.2,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,responseMimeType:'application/json',responseSchema:workerProviderSchema()}});
   if (new TextEncoder().encode(body).byteLength>AI_TEST_LIMITS.llmRequestBytes) { try { await fail(); } catch {} return json(413,{code:'WORKER_AI_CONTEXT_TOO_LARGE'}); }
   try {
