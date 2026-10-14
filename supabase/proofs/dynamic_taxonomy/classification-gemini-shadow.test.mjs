@@ -119,3 +119,34 @@ test('shadow Cyrillic and Latin names cannot create parallel candidate services'
  assert.deepEqual(result.statuses,['ADMISSION_REVIEW_REQUIRED','DUPLICATE_SERVICE']);
  assert.deepEqual(result.output,need);
 });
+
+test('validated hints survive stripping only as non-authoritative review proposals',()=>{
+ for(const [purpose,legacy] of [['WORKER_CAPABILITY',worker],['NEED_SERVICE',need]]){
+  const reused=plan('Oštrenje klizaljki',repair);
+  const child={...plan('Časovi hokeja', ''),action:'CREATE_CHILD',
+   parentId:lesson,proposedPath:['Časovi hokeja']};
+  const ambiguous={...plan('Oštrenje klizaljki',repair),mode:'UNCONFIRMED'};
+  const wrong=plan('Iznajmljivanje klizaljki',lesson);
+  const result=inspect(withShadow(legacy,[reused,child,ambiguous,wrong]),snapshot,purpose);
+  assert.deepEqual(result.output,legacy);
+  assert.deepEqual(result.statuses,['REUSE_CANDIDATE','ADMISSION_REVIEW_REQUIRED',
+    'MODE_UNCONFIRMED','SEMANTIC_IDENTITY_REVIEW_REQUIRED']);
+  assert.deepEqual(result.reviewProposals,[reused,child],
+    'only candidates with validated identity or reviewed parent and explicit mode survive');
+  assert.notStrictEqual(result.reviewProposals[1].proposedPath,child.proposedPath);
+  assert.equal(Object.hasOwn(result.output,'reviewProposals'),false);
+ }
+});
+test('unsafe, aliased, stale and ambiguous model hints can never become review candidates',()=>{
+ const rejected=[
+  plan('Oštrenje klizaljki',repair,'ON_SITE','REUSE_ALIAS'),
+  {...plan('Časovi umetničkog klizanja',lesson),catalogVersion:8},
+  plan('Iznajmljivanje klizaljki',lesson),
+  plan('Časovi umetničkog klizanja',lesson,'REMOTE'),
+ ];
+ for(const old of [worker,need]){
+  assert.deepEqual(inspect(withShadow({...old,safety:'BLOCK'},[plan('Oštrenje klizaljki',repair)]),snapshot,'NEED_SERVICE').reviewProposals,[]);
+  assert.deepEqual(inspect(withShadow(old,rejected),snapshot,'NEED_SERVICE').reviewProposals,[]);
+  assert.deepEqual(inspect(withShadow(old,'invalid'),snapshot,'NEED_SERVICE').reviewProposals,[]);
+ }
+});
