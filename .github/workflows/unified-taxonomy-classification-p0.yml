@@ -1,0 +1,23 @@
+name: Unified Gemini taxonomy P0 (read-only)
+on:
+  pull_request:
+    paths:
+      - 'supabase/functions/_shared/classificationEngine.mjs'
+      - 'supabase/functions/uskoci-ai-interview/index.ts'
+      - 'supabase/functions/uskoci-worker-interview/index.ts'
+      - 'supabase/proofs/dynamic_taxonomy/unified-*.test.mjs'
+      - '.github/workflows/unified-taxonomy-classification-p0.yml'
+  workflow_dispatch:
+jobs:
+  classification-contract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read-only canonical catalog and Gemini integration invariants
+        run: node --test supabase/proofs/dynamic_taxonomy/unified-*.test.mjs
