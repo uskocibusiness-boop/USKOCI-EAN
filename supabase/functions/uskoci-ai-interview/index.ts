@@ -545,6 +545,7 @@ async function callGemini(
   locationContext?: LocationContext,
   taxonomyPrompt = '',
   taxonomyCatalog: Awaited<ReturnType<typeof loadClassificationCatalog>> | null = null,
+  onClassificationHints?: (hints: Record<string,any>[]) => void,
 ) {
   const contents = history.slice(-30).map((row) => ({
     role: row.role === 'ASSISTANT' ? 'model' : 'user',
@@ -555,7 +556,8 @@ async function callGemini(
     // The optional plan is never an AI fact or owner-approved need revision.
     const checked = taxonomyCatalog && !locationContext
       ? inspectGeminiClassificationShadow(value,taxonomyCatalog,'NEED_SERVICE')
-      : {output:value,statuses:[]};
+      : {output:value,statuses:[],reviewProposals:[]};
+    if (checked.reviewProposals.length) onClassificationHints?.(checked.reviewProposals);
     if (checked.statuses.length) console.info('NEED_TAXONOMY_PLAN_SHADOW',checked.statuses.join(','));
     return locationContext ? parseLocationOutput(checked.output,locationContext,parseV2Output) : parseV2Output(checked.output);
   };
@@ -848,6 +850,7 @@ Deno.serve(async (req: Request) => {
     const timeContext = serverTimeContext(new Date());
     const execute = async (onText?: (delta: string) => void, signal: AbortSignal = req.signal) => {
     let aiTurn: ParsedTurn;
+    let taxonomyReviewHints: Record<string,any>[]=[];
     // Counts the provider reports for this call. Recorded only after the turn is
     // confirmed, so accounting can never decide whether an answer is delivered.
     let reportedUsage: GeminiUsage | null = null;
@@ -903,7 +906,8 @@ Deno.serve(async (req: Request) => {
         }
       }
       aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, signal, onText,
-        (usage) => { reportedUsage = usage; }, locationContext, taxonomyPrompt, taxonomyCatalog);
+        (usage) => { reportedUsage = usage; }, locationContext, taxonomyPrompt, taxonomyCatalog,
+        (hints) => { taxonomyReviewHints = hints; });
       aiTurn = guardConversationTurn(aiTurn, text, activeFacts, timeContext, !!locationContext);
       if (locationContext) {
         // A validated answer to the shown question (e.g. 'to je to') stays a map
@@ -952,6 +956,23 @@ Deno.serve(async (req: Request) => {
       if (completed.state === 'SUCCEEDED' && (completed.receipt.proposedCount !== aiTurn.proposals.length || completed.receipt.safety !== aiTurn.safety))
         throw new Error('AI_TURN_RECEIPT_INVALID');
       if (locationContext && completed.state === 'SUCCEEDED' && result.data.location.action !== aiTurn.locationAction) throw new Error('AI_TURN_RECEIPT_INVALID');
+      // Optional, post-completion shadow hint receipt. This is not consent;
+      // missing RPC or network availability never destroys a succeeded Need turn.
+      if (completed.state === 'SUCCEEDED' && taxonomyCatalog && taxonomyReviewHints.length &&
+          Deno.env.get('USKOCI_TAXONOMY_SHADOW_CAPTURE')==='true') {
+        try {
+          const capture=await rpc('rpc_taxonomy_capture_gemini_turn_hints_service',{
+            p_account_id:accountId,p_conversation_id:conversationId,
+            p_client_request_id:requestId,p_turn_id:claimedTurnId,p_attempt_id:attemptId,
+            p_purpose:'NEED_SERVICE',p_catalog_version:taxonomyCatalog.catalogVersion,
+            p_proposals:taxonomyReviewHints,
+          },signal,2500);
+          if (!capture.ok || capture.data?.action!=='HINT_CAPTURED' ||
+              capture.data?.authority!=='NONE') {
+            console.info('NEED_TAXONOMY_HINT_CAPTURE','UNAVAILABLE');
+          }
+        } catch { console.info('NEED_TAXONOMY_HINT_CAPTURE','UNAVAILABLE'); }
+      }
       // No raw provider prose escapes before the semantic check and the exact
       // owned completion receipt. The existing stream still reports acceptance.
       if (completed.state === 'SUCCEEDED') onText?.(aiTurn.assistantMessage);
