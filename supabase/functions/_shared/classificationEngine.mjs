@@ -150,6 +150,9 @@ export function reviewClassificationProposal(input, snapshot, plan) {
  *  catalog grows, shortlist relevant branches instead of failing past 220 rows.
  *  Absent from shortlist NEVER means the category is absent from the database.
  */
+/** @param {any} snapshot
+ *  @param {{ maxItems?: number; services?: string[] }} [options]
+ */
 export function catalogPromptContext(snapshot,{maxItems=220,services=[]}={}) {
   if (!isRecord(snapshot)||!Array.isArray(snapshot.categories)||
       !Number.isSafeInteger(snapshot.catalogVersion)||snapshot.catalogVersion<1||
