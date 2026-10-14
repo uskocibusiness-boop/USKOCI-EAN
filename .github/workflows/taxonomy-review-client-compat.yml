@@ -6,6 +6,9 @@ on:
       - 'src/data/workerAiClientService.ts'
       - 'src/data/__tests__/worker-ai-client.test.ts'
       - 'src/ui/workerProfile/WorkerAiPresentation.tsx'
+      - 'src/app/(app)/profil/razgovor.tsx'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/worker-review-signed-classification-v1.sql'
+      - 'supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs'
       - 'src/data/__tests__/ai-task-review-client.test.ts'
       - 'supabase/candidates/dynamic-taxonomy-20261011/need-review-signed-classification-v1.sql'
       - '.github/workflows/taxonomy-review-client-compat.yml'
@@ -26,6 +29,8 @@ jobs:
           cache: npm
       - name: Install locked dependencies without native postinstall
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Check staged worker builder preserves owner binding and signed mode order (source only)
+        run: node --test supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs
       - name: Check old review + signed category identity contract
         run: npx jest src/data/__tests__/ai-task-review-client.test.ts src/data/__tests__/worker-ai-client.test.ts --runInBand --silent
       - name: Restore generated entry reference contracts from canonical HTML
