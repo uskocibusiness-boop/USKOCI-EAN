@@ -150,3 +150,43 @@ test('unsafe, aliased, stale and ambiguous model hints can never become review c
   assert.deepEqual(inspect(withShadow(old,'invalid'),snapshot,'NEED_SERVICE').reviewProposals,[]);
  }
 });
+
+test('worker provider requests full 24-scope post-turn snapshot; requester stays 6',()=>{
+ const base={type:'OBJECT',properties:{assistantMessage:{type:'STRING'}},required:['assistantMessage'],additionalProperties:false};
+ assert.equal(decorate(base,'WORKER_CAPABILITY').properties.classificationShadow.maxItems,24);
+ assert.equal(decorate(base,'NEED_SERVICE').properties.classificationShadow.maxItems,6);
+ assert.match(instructions('WORKER_CAPABILITY'),/FULL SNAPSHOT/);
+ assert.match(instructions('WORKER_CAPABILITY'),/finish\/acknowledgement/);
+ assert.match(instructions('WORKER_CAPABILITY'),/do not guess mode/);
+ assert.match(instructions('NEED_SERVICE'),/CURRENT task turn/);
+});
+test('worker can offer ONE exact service in both scopes, without fake second skill',()=>{
+ const modes=[plan('Časovi umetničkog klizanja',lesson,'ON_SITE'),
+   plan('Часови уметничког клизања',lesson,'REMOTE')];
+ const dualSnapshot={catalogVersion:9,categories:[{...snapshot.categories[0],modes:['ON_SITE','REMOTE']}]};
+ const result=inspect(withShadow(worker,modes),dualSnapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(result.statuses,['REUSE_CANDIDATE','REUSE_CANDIDATE']);
+ assert.equal(result.reviewProposals.length,2);
+ assert.deepEqual(result.reviewProposals.map(x=>x.mode),['ON_SITE','REMOTE']);
+ const requester=inspect(withShadow(need,modes),dualSnapshot,'NEED_SERVICE');
+ assert.deepEqual(requester.statuses,['REUSE_CANDIDATE','DUPLICATE_SERVICE']);
+});
+test('worker rejects duplicate same mode across Serbian scripts and contradictory unknown',()=>{
+ const dualSnapshot={catalogVersion:9,categories:[{...snapshot.categories[0],modes:['ON_SITE','REMOTE']}]};
+ const original=plan('Časovi umetničkog klizanja',lesson,'ON_SITE');
+ const duplicate=plan('Часови уметничког клизања',lesson,'ON_SITE');
+ const result=inspect(withShadow(worker,[original,duplicate]),dualSnapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(result.statuses,['REUSE_CANDIDATE','DUPLICATE_SERVICE']);
+ assert.equal(result.reviewProposals.length,1);
+ const unknown={...original,mode:'UNCONFIRMED'};
+ assert.deepEqual(inspect(withShadow(worker,[original,unknown]),dualSnapshot,'WORKER_CAPABILITY').statuses,
+  ['REUSE_CANDIDATE','DUPLICATE_SERVICE']);
+});
+test('worker accepts 7 distinct services but bounds forged oversized 25 proposal result',()=>{
+ const many=Array.from({length:7},(_,i)=>({...plan('Radna veština '+i,''),action:'CREATE_CHILD',
+  parentId:lesson,proposedPath:['Radna veština '+i]}));
+ const out=inspect(withShadow(worker,many),snapshot,'WORKER_CAPABILITY');
+ assert.equal(out.statuses.length,7);
+ assert.equal(out.statuses.every(x=>x==='ADMISSION_REVIEW_REQUIRED'),true);
+ assert.deepEqual(inspect(withShadow(worker,Array(25).fill(many[0])),snapshot,'WORKER_CAPABILITY').statuses,['INVALID_BATCH']);
+});
