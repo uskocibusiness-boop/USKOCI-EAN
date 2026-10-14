@@ -93,3 +93,51 @@ BEGIN
  IF (SELECT count(*) FROM private.work_taxonomy_gemini_turn_hints_v1) <> 2
  THEN RAISE EXCEPTION 'INVALID_REQUEST_CHANGED_DURABLE_ROWS'; END IF;
 END $test$;
+
+-- Multi-turn review: current saved worker skills are the authority, not model text.
+-- The SAME service may be offered at a location and remotely, but the same
+-- service/mode cannot appear twice (including Cyrillic/Latin equivalents).
+DO $worker_modes$
+DECLARE
+ v_owner uuid:='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+ v_conversation uuid:='99999999-9999-4999-8999-999999999999';
+ v_request uuid:='cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd';
+ v_turn uuid:='abababab-abab-4bab-8bab-abababababab';
+ v_attempt uuid:='efefefef-efef-4fef-8fef-efefefefefef';
+ v_on jsonb:=jsonb_build_object(
+  'service','Casovi matematike','mode','ON_SITE','action','REUSE_EXISTING',
+  'categoryId','11111111-1111-4111-8111-111111111111','parentId','',
+  'proposedPath','[]'::jsonb,'reason','Owner offers in-person mathematical lessons','catalogVersion',3);
+ v_remote jsonb:=jsonb_build_object(
+  'service','Časovi matematike','mode','REMOTE','action','REUSE_EXISTING',
+  'categoryId','11111111-1111-4111-8111-111111111111','parentId','',
+  'proposedPath','[]'::jsonb,'reason','Owner also offers online mathematical lessons','catalogVersion',3);
+ v_removed jsonb:=jsonb_build_object(
+  'service','Popravka laptopova','mode','REMOTE','action','REUSE_EXISTING',
+  'categoryId','11111111-1111-4111-8111-111111111111','parentId','',
+  'proposedPath','[]'::jsonb,'reason','This fake skill is not in the current profile','catalogVersion',3);
+BEGIN
+ -- A model must never introduce a service the CURRENT worker didn't offer.
+ BEGIN
+  PERFORM public.rpc_taxonomy_capture_gemini_turn_hints_service(
+    v_owner,v_conversation,v_request,v_turn,v_attempt,'WORKER_CAPABILITY',3,
+    jsonb_build_array(v_removed));
+  RAISE EXCEPTION 'UNOWNED_WORKER_SKILL_ACCEPTED';
+ EXCEPTION WHEN SQLSTATE '22023' THEN NULL; END;
+ BEGIN
+  PERFORM public.rpc_taxonomy_capture_gemini_turn_hints_service(
+    v_owner,v_conversation,v_request,v_turn,v_attempt,'WORKER_CAPABILITY',3,
+    jsonb_build_array(v_on,v_on));
+  RAISE EXCEPTION 'DUPLICATE_SAME_WORKER_SCOPE_ACCEPTED';
+ EXCEPTION WHEN SQLSTATE '22023' THEN NULL; END;
+ -- ON_SITE+REMOTE is legitimate evidence for a single offered service;
+ -- the exact category/skill will still need independent signed review.
+ PERFORM public.rpc_taxonomy_capture_gemini_turn_hints_service(
+   v_owner,v_conversation,v_request,v_turn,v_attempt,'WORKER_CAPABILITY',3,
+   jsonb_build_array(v_on,v_remote));
+ IF (SELECT count(*) FROM private.work_taxonomy_gemini_turn_hints_v1)<>3
+ THEN RAISE EXCEPTION 'WORKER_DUAL_SCOPE_CAPTURE_NOT_DURABLE'; END IF;
+ IF (SELECT count(*) FROM private.work_taxonomy_gemini_turn_hints_v1
+    WHERE turn_id=v_turn AND jsonb_array_length(proposals)=2)<>1
+ THEN RAISE EXCEPTION 'WORKER_DUAL_SCOPE_RECEIPT_MALFORMED'; END IF;
+END $worker_modes$;
