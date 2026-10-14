@@ -890,7 +890,13 @@ Deno.serve(async (req: Request) => {
             if (!result.ok) throw new Error('CATALOG_RPC_UNAVAILABLE');
             return result.data;
           });
-          taxonomyPrompt = catalogPromptContext(taxonomyCatalog);
+          taxonomyPrompt = catalogPromptContext(taxonomyCatalog, {
+            services: [
+              text.slice(0,2000),
+              ...activeFacts.filter((fact:any)=>fact?.fact_key==='need.category')
+                .map((fact:any)=>String(fact.fact_value??'').slice(0,2000)).slice(0,4),
+            ],
+          });
           console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'LOADED');
         } catch {
           console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE');
