@@ -25,8 +25,7 @@ AS $function$
   'saved',(select z.receipt from private.worker_ai_saves z join private.worker_ai_reviews r on r.id=z.review_id where r.conversation_id=cid AND NOT(r.envelope ? 'classificationState') limit 1))
  from private.worker_ai_sessions s join public.ai_conversations c on c.id=s.conversation_id and c.account_id=s.account_id and c.purpose='PROFILE'
  where s.conversation_id=cid;
-$function$
-
+$function$;
 
 CREATE OR REPLACE FUNCTION public.rpc_read_worker_ai_taxonomy(p_conversation_id uuid)
  RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'pg_catalog'
