@@ -161,7 +161,7 @@ export function catalogPromptContext(snapshot,{maxItems=220,services=[]}={}) {
   const byId=new Map(all.map(x=>[x.id,x]));
   const roots=all.filter(x=>x.parentId==null).sort((a,b)=>a.label.localeCompare(b.label,'sr'));
   if(roots.length>maxItems)catalogError('TOO_MANY_ROOTS');
-  const tokens=x=>(String(x??'').normalize('NFKC').toLowerCase().match(/[\\p{L}\\p{N}]+/gu)??[])
+  const tokens=x=>(String(x??'').normalize('NFKC').toLowerCase().match(/[\p{L}\p{N}]+/gu)??[])
     .filter(t=>t.length>=3);
   const query=services.flatMap(tokens);
   const wanted=new Set(query);
