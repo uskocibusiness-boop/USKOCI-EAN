@@ -1,0 +1,42 @@
+name: Taxonomy post-Save binding gated PostgreSQL proof
+on:
+  pull_request:
+    paths:
+      - 'supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-postsave-binding-tick-v1.sql'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/disposable-postsave-binding-*.sql'
+      - '.github/workflows/taxonomy-postsave-binding-pg-proof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  post-save-binding:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['16','17']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env: {POSTGRES_DB: postgres, POSTGRES_PASSWORD: postgres}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env: {PGHOST: localhost, PGPORT: '5432', PGUSER: postgres, PGPASSWORD: postgres, PGDATABASE: postgres}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Create synthetic signed worker and binding queue
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-worker-binder-fixture.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-postsave-binding-fixture.sql
+      - name: Install signed worker binder and separately gated binding tick
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-worker-binder-v1.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-postsave-binding-tick-v1.sql
+      - name: Prove disabled/default, signer, replay, and review quarantine
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-postsave-binding-assert.sql
