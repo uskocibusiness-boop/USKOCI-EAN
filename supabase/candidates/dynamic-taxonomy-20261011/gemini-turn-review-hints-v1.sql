@@ -48,7 +48,8 @@ BEGIN
    RAISE EXCEPTION 'TAXONOMY_CAPTURE_INVALID' USING errcode='22023';
  END IF;
  v_count:=jsonb_array_length(p_proposals);
- IF v_count NOT BETWEEN 1 AND CASE WHEN p_purpose='WORKER_CAPABILITY' THEN 24 ELSE 6 END THEN
+ IF (p_purpose='WORKER_CAPABILITY' AND v_count NOT BETWEEN 1 AND 24)
+    OR (p_purpose='NEED_SERVICE' AND v_count NOT BETWEEN 1 AND 6) THEN
    RAISE EXCEPTION 'TAXONOMY_CAPTURE_INVALID' USING errcode='22023';
  END IF;
  FOR v_row IN SELECT value FROM jsonb_array_elements(p_proposals) LOOP
