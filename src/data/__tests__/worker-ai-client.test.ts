@@ -100,3 +100,56 @@ it.each([{canCancel:true},{retryAllowed:true},{turn:null},{turn:{...dispatchedRe
  {turn:{...dispatchedRecovery('SUCCEEDED').turn}}])('rejects contradictory dispatched cancellation %p',patch=>{
  expect(decodeWorkerAiTurnRecovery({...dispatchedRecovery('FAILED',true),...patch},OWNER,CONVERSATION,KEY)).toBeNull();
 });
+
+
+const SIGNED_CATEGORY='66666666-6666-4666-8666-666666666666';
+const signedWorkerReview=()=>({
+  ...review(),classificationState:'READY' as const,
+  classificationCandidates:[{action:'REUSE_EXISTING' as const,service:'Prenos',mode:'ON_SITE' as const,
+    categoryId:SIGNED_CATEGORY,catalogVersion:3,reason:'Verified server canonical identity'}],
+  reviewedServiceModes:[{service:'Prenos',mode:'ON_SITE' as const}],
+  classificationCatalogVersion:3,classificationCatalogFingerprint:'c'.repeat(32),
+});
+it('accepts signed ON_SITE scope for the actual visible worker skill and preserves one Save',async()=>{
+ const signed=signedWorkerReview();
+ expect(decodeWorkerAiReview(signed,OWNER,CONVERSATION)).toEqual(signed);
+ mockRpc.mockResolvedValueOnce({data:saved(),error:null});
+ await expect(service.save(signed,KEY)).resolves.toEqual({ok:true,podatak:saved()});
+ expect(mockRpc.mock.calls).toEqual([['rpc_save_worker_ai_review',
+   {p_review_id:REVIEW,p_displayed_digest:'a'.repeat(64),p_client_request_id:KEY}]]);
+});
+it('accepts two explicit modes under one visible service without two approval buttons',()=>{
+ const first=signedWorkerReview();
+ const twice={...first,reviewedServiceModes:[...first.reviewedServiceModes,{service:'Prenos',mode:'REMOTE'}],
+   classificationCandidates:[...first.classificationCandidates,
+     {...first.classificationCandidates[0],mode:'REMOTE'}]};
+ expect(decodeWorkerAiReview(twice,OWNER,CONVERSATION)).toMatchObject({reviewedServiceModes:twice.reviewedServiceModes});
+});
+it('pending classification preserves the old skill text but never authorizes fake modes',()=>{
+ const pending={...signedWorkerReview(),classificationState:'PENDING_CLASSIFICATION',
+   classificationCandidates:[],reviewedServiceModes:[],classificationCatalogVersion:null,classificationCatalogFingerprint:null};
+ expect(decodeWorkerAiReview(pending,OWNER,CONVERSATION)).toMatchObject({classificationState:'PENDING_CLASSIFICATION'});
+ expect(decodeWorkerAiReview({...pending,reviewedServiceModes:[{service:'Prenos',mode:'ON_SITE'}]},OWNER,CONVERSATION)).toBeNull();
+});
+it.each([
+ {classificationCatalogVersion:4},
+ {classificationCatalogFingerprint:'wrong'},
+ {reviewedServiceModes:[{service:'Nepostojeća veština',mode:'ON_SITE'}]},
+ {reviewedServiceModes:[{service:'Prenos',mode:'REMOTE'}]},
+ {reviewedServiceModes:[{service:'Prenos',mode:'ON_SITE'},{service:'Prenos',mode:'ON_SITE'}]},
+ {classificationCandidates:[{...signedWorkerReview().classificationCandidates[0],categoryId:OTHER}]},
+ {classificationCandidates:[]},
+ {classificationCandidates:[{...signedWorkerReview().classificationCandidates[0],mode:'REMOTE'}]},
+ {classificationCandidates:[{...signedWorkerReview().classificationCandidates[0],extra:'not-authorized'}]},
+ {classificationState:'UNKNOWN'},
+ {classificationCatalogFingerprint:undefined},
+])('rejects contradictory or forged signed worker scope %p',patch=>{
+ expect(decodeWorkerAiReview({...signedWorkerReview(),...patch},OWNER,CONVERSATION)).toBeNull();
+});
+it('does not accept a partial classification contract or foreign signed worker review',async()=>{
+ const {reviewedServiceModes:_omit,...partial}=signedWorkerReview();
+ expect(decodeWorkerAiReview(partial,OWNER,CONVERSATION)).toBeNull();
+ expect(decodeWorkerAiReview({...signedWorkerReview(),accountId:OTHER},OWNER,CONVERSATION)).toBeNull();
+ await expect(service.save(partial as WorkerAiReview,KEY)).resolves.toMatchObject({ok:false});
+ expect(mockRpc).not.toHaveBeenCalled();
+});
