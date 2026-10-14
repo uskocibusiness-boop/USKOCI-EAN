@@ -23,21 +23,21 @@ BEGIN
  BEGIN
   PERFORM public.rpc_taxonomy_commit_admission_service(v_id);
   RAISE EXCEPTION 'COMMITTED_BEFORE_APPROVAL';
- EXCEPTION WHEN raise_exception THEN
+ EXCEPTION WHEN OTHERS THEN
   IF SQLERRM<>'ADMISSION_OWNER_APPROVAL_REQUIRED' THEN RAISE; END IF;
  END;
  PERFORM set_config('test.auth_uid','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',true);
  BEGIN
   PERFORM public.rpc_taxonomy_approve_admission(v_id,v_p->>'planDigest',repeat('a',64));
   RAISE EXCEPTION 'CROSS_ACCOUNT_APPROVAL';
- EXCEPTION WHEN raise_exception THEN
+ EXCEPTION WHEN OTHERS THEN
   IF SQLERRM<>'ADMISSION_NOT_OWNED' THEN RAISE; END IF;
  END;
  PERFORM set_config('test.auth_uid','aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',true);
  BEGIN
   PERFORM public.rpc_taxonomy_approve_admission(v_id,repeat('0',64),repeat('a',64));
   RAISE EXCEPTION 'WRONG_DIGEST_APPROVAL';
- EXCEPTION WHEN raise_exception THEN
+ EXCEPTION WHEN OTHERS THEN
   IF SQLERRM<>'ADMISSION_DISPLAY_MISMATCH' THEN RAISE; END IF;
  END;
  PERFORM public.rpc_taxonomy_approve_admission(v_id,v_p->>'planDigest',repeat('a',64));
