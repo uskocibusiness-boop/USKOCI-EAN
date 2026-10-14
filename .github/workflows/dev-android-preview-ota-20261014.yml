@@ -1,0 +1,86 @@
+# Explicit owner-requested DEV Android preview OTA, 14 October 2026.
+# Self-path trigger ONLY: no automatic OTA on further classification commits.
+name: DEV Android preview OTA 20261014
+on:
+  push:
+    branches: [feature/unified-gemini-classification-p0-20261014]
+    paths: [.github/workflows/dev-android-preview-ota-20261014.yml]
+permissions:
+  contents: read
+concurrency:
+  group: uskoci-preview-ota-owner-20261014
+  cancel-in-progress: false
+jobs:
+  publish-android-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      CI: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EAS_BUILD_PROFILE: preview
+      USKOCI_OTA_TARGET: preview
+      EXPO_PUBLIC_SUPABASE_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW
+      EXPO_PUBLIC_USE_FAKE_SOURCE: '0'
+      EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL: uskociapp://oporavak
+      EXPO_PUBLIC_P6_DISCOVERY_READER: '1'
+      EXPO_PUBLIC_EX04_OWN_TASKS_PAGED: '1'
+      EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED: '1'
+      EXPO_PUBLIC_EX04_CANDIDATES_PAGED: '1'
+      EXPO_PUBLIC_VOICE_MESSAGES: '1'
+      EXPO_PUBLIC_AI_LOCATION_DIALOGUE: '1'
+      EXPO_PUBLIC_CONVERSATION_INBOX: '1'
+    steps:
+      - name: Checkout exact owner-requested feature branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Verify Expo access and immutable preview runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}" || { echo "::error::EXPO_TOKEN is missing. Update NOT published."; exit 1; }
+          node scripts/ota-preview-guard.cjs
+          node - <<'NODE'
+          const cfg = require('./app.config.js')({config: require('./app.json').expo});
+          if (cfg.android.package !== 'rs.uskoci.preview' ||
+              cfg.runtimeVersion !== 'uskoci-v1-preview-r1' ||
+              cfg.updates.requestHeaders['expo-channel-name'] !== 'preview' ||
+              cfg.extra?.eas?.projectId !== '1e6cc490-9851-4741-9226-128612122db6') {
+             throw new Error('OWNER_PREVIEW_IDENTITY_MISMATCH: nothing published');
+          }
+          console.log('PREVIEW ONLY: verified rs.uskoci.preview / preview / uskoci-v1-preview-r1');
+          NODE
+      - name: Install locked JS dependencies
+        run: npm ci --include=dev
+      - name: Verify TypeScript before publication
+        run: npx tsc --noEmit
+      - name: Publish latest feature-branch client to Android preview ONLY
+        shell: bash
+        run: |
+          set -euo pipefail
+          msg="OWNER DEV Android preview 20261014 ${GITHUB_SHA:0:12}"
+          npx --yes eas-cli@23.2.0 update --branch preview --platform android \
+            --environment preview --clear-cache --message "$msg" --non-interactive
+      - name: Read back published preview update
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@23.2.0 update:list --branch preview --platform android \
+            --runtime-version uskoci-v1-preview-r1 --limit 3 --json --non-interactive > /tmp/uskoci-ota-readback.json
+          node - <<'NODE'
+          const x=require('/tmp/uskoci-ota-readback.json');
+          const rows=x.currentPage||[];
+          const want='OWNER DEV Android preview 20261014 '+process.env.GITHUB_SHA.slice(0,12);
+          const exact=rows.find(y=>y.branch==='preview' &&
+            y.runtimeVersion==='uskoci-v1-preview-r1' &&
+            String(y.message||'').includes(want) && y.isRollBackToEmbedded!==true);
+          if(!exact)throw Error('PREVIEW_OTA_READBACK_UNCONFIRMED: inspect Expo update dashboard');
+          console.log('PUBLISHED Android preview OTA:',exact.group,'commit:',process.env.GITHUB_SHA,
+            'runtime:',exact.runtimeVersion,'branch:',exact.branch);
+          NODE
