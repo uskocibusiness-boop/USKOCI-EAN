@@ -31,7 +31,7 @@ AS $batch$
 DECLARE
  v_id uuid;v_old private.work_taxonomy_review_batches_v1%ROWTYPE;
  v_review jsonb;v_review_digest text;v_computed_digest text;
- v_expiry timestamptz;v_review_fingerprint text;
+ v_expiry timestamptz;v_saved_at timestamptz;v_review_fingerprint text;
  v_version bigint;v_review_version bigint;v_fingerprint text;v_plans_digest text;
  v_plan jsonb;v_service text;v_mode text;v_action text;
  v_parent uuid;v_category uuid;v_canonical uuid;v_current_parent uuid;
@@ -67,9 +67,10 @@ BEGIN
     INTO v_review,v_review_digest,v_expiry,v_computed_digest
    FROM private.worker_ai_reviews w
    WHERE w.id=p_source_review_id AND w.account_id=p_owner_account_id FOR SHARE;
-  SELECT EXISTS(SELECT 1 FROM private.worker_ai_saves s
+  SELECT min(s.created_at) INTO v_saved_at FROM private.worker_ai_saves s
     WHERE s.review_id=p_source_review_id AND s.account_id=p_owner_account_id
-      AND s.client_request_id=p_request_key) INTO v_bound;
+      AND s.client_request_id=p_request_key;
+  v_bound:=v_saved_at IS NOT NULL;
  ELSE
   SELECT t.envelope,t.envelope->>'displayedContentDigest',t.expires_at,
    encode(extensions.digest(jsonb_build_object('envelope',
@@ -77,15 +78,19 @@ BEGIN
     INTO v_review,v_review_digest,v_expiry,v_computed_digest
    FROM private.ai_task_reviews t
    WHERE t.id=p_source_review_id AND t.account_id=p_owner_account_id FOR SHARE;
-  SELECT EXISTS(SELECT 1 FROM private.ai_task_review_commands c
+  SELECT min(c.created_at) INTO v_saved_at FROM private.ai_task_review_commands c
     WHERE c.review_id=p_source_review_id AND c.account_id=p_owner_account_id
       AND c.client_request_id=p_request_key
-      AND c.state IN ('ACCEPTED','EVALUATING','EVALUATED','PUBLISHED')) INTO v_bound;
+      AND c.state IN ('ACCEPTED','EVALUATING','EVALUATED','PUBLISHED');
+  v_bound:=v_saved_at IS NOT NULL;
  END IF;
  IF NOT coalesce(v_bound,false) THEN
   RAISE EXCEPTION 'BATCH_EXISTING_USER_SAVE_REQUIRED' USING errcode='42501'; END IF;
+ -- Approval must have happened WHILE the review was valid.
+ -- Outbox retries may run later; expiring the review AFTER a successful human
+ -- Save/Accept must not silently discard a confirmed service.
  IF v_review IS NULL OR v_review->'canAccept' IS DISTINCT FROM 'true'::jsonb
-    OR v_expiry<=statement_timestamp() OR v_review_digest IS NULL
+    OR v_saved_at>v_expiry OR v_review_digest IS NULL
     OR v_review_digest !~ '^[0-9a-f]{64}$'
     OR v_computed_digest IS DISTINCT FROM v_review_digest
     OR v_review->'classificationCandidates' IS DISTINCT FROM p_plans
