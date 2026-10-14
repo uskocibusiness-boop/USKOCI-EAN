@@ -10,7 +10,8 @@ const claimFields=['id','ownerAccountId','requestKey','sourceReviewId','purpose'
 const validClaim=x=>exact(x,claimFields)&&uuid(x.id)&&uuid(x.ownerAccountId)&&uuid(x.requestKey)&&
   uuid(x.sourceReviewId)&&uuid(x.leaseToken)&&purposes.has(x.purpose)&&
   Number.isInteger(x.attempts)&&x.attempts>0&&x.attempts<=1000&&
-  Array.isArray(x.plans)&&x.plans.length>0&&x.plans.length<=12&&
+  Array.isArray(x.plans)&&x.plans.length>0&&
+  x.plans.length<=(x.purpose==='WORKER_CAPABILITY'?24:1)&&
   x.plans.every(record);
 
 export class TaxonomyWorkerProtocolError extends Error {
