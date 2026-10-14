@@ -26,3 +26,31 @@ test('need strips new fields before strict facts parser and owner-bound completi
  assert.ok(checked>0&&strict>checked&&completion>strict);
  assert.doesNotMatch(need,/rpc_taxonomy_commit_admission_service/);
 });
+
+const captureSql=readFileSync(new URL('../../candidates/dynamic-taxonomy-20261011/gemini-turn-review-hints-v1.sql',import.meta.url),'utf8');
+test('both handlers write optional hint receipts only after immutable successful AI turn',()=>{
+ const wc=worker.indexOf("rpc('rpc_complete_worker_ai_turn_service'");
+ const wh=worker.indexOf("rpc('rpc_taxonomy_capture_gemini_turn_hints_service'");
+ const nc=need.indexOf("'rpc_ai_complete_need_turn_v2_service'");
+ const nh=need.indexOf("rpc('rpc_taxonomy_capture_gemini_turn_hints_service'");
+ assert.ok(wc>0&&wh>wc,'worker hint capture must follow successful turn completion');
+ assert.ok(nc>0&&nh>nc,'need hint capture must follow successful turn completion');
+ for(const source of [worker,need]){
+  assert.match(source,/USKOCI_TAXONOMY_SHADOW_CAPTURE/);
+  assert.match(source,/reviewHints|taxonomyReviewHints/);
+  assert.match(source,/HINT_CAPTURED/);
+  assert.match(source,/authority[^\n]*NONE/);
+ }
+});
+test('hint capture candidate is service-only, private, versioned and has no admission authority',()=>{
+ assert.match(captureSql,/ENABLE ROW LEVEL SECURITY/);
+ assert.match(captureSql,/REVOKE ALL ON private\.work_taxonomy_gemini_turn_hints_v1/);
+ assert.match(captureSql,/auth\.jwt\(\)->>'role'[^\n]*service_role/);
+ assert.match(captureSql,/t\.state='SUCCEEDED'/);
+ assert.match(captureSql,/UNIQUE\(purpose,account_id,turn_id\)/);
+ assert.match(captureSql,/TAXONOMY_CAPTURE_REPLAY_CONFLICT/);
+ assert.match(captureSql,/source_fingerprint/);
+ assert.doesNotMatch(captureSql,/INSERT INTO private\.work_taxonomy_categories/i);
+ assert.doesNotMatch(captureSql,/INSERT INTO public\.needs/i);
+ assert.doesNotMatch(captureSql,/INSERT INTO public\.notification_deliveries/i);
+});
