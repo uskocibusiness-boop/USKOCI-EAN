@@ -3,4 +3,8 @@ export declare function withGeminiClassificationShadowSchema<T extends { type: s
 export declare function geminiClassificationShadowInstruction(): string;
 export declare function inspectGeminiClassificationShadow(
   raw: unknown, snapshot: CatalogSnapshot, purpose: ClassificationPurpose,
-): { output: unknown; statuses: string[] };
+): { output: unknown; statuses: string[]; reviewProposals: Array<{
+  service: string; mode: 'ON_SITE' | 'REMOTE'; action: 'REUSE_EXISTING' | 'CREATE_CHILD';
+  categoryId: string; parentId: string; proposedPath: string[];
+  reason: string; catalogVersion: number;
+}> };
