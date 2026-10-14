@@ -107,6 +107,10 @@ BEGIN
       WHERE char_length(btrim(t.label)) NOT BETWEEN 3 AND 120
         OR btrim(t.label) ~ '[<>{}\\]' OR btrim(t.label) ~ '[[:cntrl:]]')
      THEN RAISE EXCEPTION 'ADMISSION_NODE_INVALID' USING errcode='22023'; END IF;
+   -- Every new level is screened; a safe leaf cannot hide an unsafe ancestor.
+   IF EXISTS (SELECT 1 FROM jsonb_array_elements_text(p_plan->'path') t(label)
+      WHERE private.taxonomy_risk_triage_v1(t.label) IN ('BLOCKED','REVIEW_REQUIRED'))
+     THEN RAISE EXCEPTION 'ADMISSION_SAFETY_REVIEW_REQUIRED' USING errcode='42501'; END IF;
    -- Server risk triage is a risk gate, NOT a semantic classifier.
    IF private.taxonomy_risk_triage_v1(p_plan->'path'->>(jsonb_array_length(p_plan->'path')-1))
       <> 'LOW_RISK_CANDIDATE'
@@ -178,6 +182,9 @@ BEGIN
  SELECT * INTO v FROM private.work_taxonomy_admissions_v1 WHERE id=p_admission_id FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'ADMISSION_NOT_FOUND' USING errcode='22023'; END IF;
  IF v.status='COMMITTED' THEN RETURN v.result; END IF;
+ IF v.plan_digest IS DISTINCT FROM
+    encode(extensions.digest(convert_to(v.plan::text,'UTF8'),'sha256'),'hex') THEN
+  RAISE EXCEPTION 'ADMISSION_PLAN_TAMPERED' USING errcode='42501'; END IF;
  IF v.status<>'APPROVED' OR v.approved_at IS NULL THEN
   RAISE EXCEPTION 'ADMISSION_OWNER_APPROVAL_REQUIRED' USING errcode='42501'; END IF;
  IF v.expires_at<=statement_timestamp() THEN RAISE EXCEPTION 'ADMISSION_EXPIRED'; END IF;
@@ -211,6 +218,8 @@ BEGIN
    IF char_length(v_label) NOT BETWEEN 3 AND 120
       OR v_label ~ '[<>{}\\]' OR v_label ~ '[[:cntrl:]]' THEN
       RAISE EXCEPTION 'ADMISSION_NODE_INVALID' USING errcode='22023'; END IF;
+   IF private.taxonomy_risk_triage_v1(v_label) IN ('BLOCKED','REVIEW_REQUIRED') THEN
+     RAISE EXCEPTION 'ADMISSION_SAFETY_REVIEW_REQUIRED' USING errcode='42501'; END IF;
    v_key:=private.taxonomy_normalize_v1(v_label);
    IF char_length(v_key) NOT BETWEEN 3 AND 160 THEN
       RAISE EXCEPTION 'ADMISSION_NORMALIZATION_INVALID'; END IF;
