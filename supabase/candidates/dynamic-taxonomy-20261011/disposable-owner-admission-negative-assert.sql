@@ -72,6 +72,7 @@ BEGIN
     'parentId',v_parent,'path',jsonb_build_array('Farbanje plafona'))
  );
  v_id:=(v_proposed->>'admissionId')::uuid;
+ PERFORM set_config('test.auth_uid','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',true);
  PERFORM public.rpc_taxonomy_approve_admission(v_id,v_proposed->>'planDigest',repeat('b',64));
  UPDATE private.work_taxonomy_admissions_v1
   SET plan=jsonb_set(plan,'{path}','["Farbanje tuđeg zahteva"]'::jsonb)
