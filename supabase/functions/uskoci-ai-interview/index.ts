@@ -18,6 +18,7 @@ import { validLocationContext, locationProviderSchema, locationInstruction, pars
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, GeminiSafetyBlockedError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { scopedNeedPreviewArgs, scopedNeedPreviewSafeAction } from '../_shared/taxonomyScopedShadow.mjs';
+import { loadClassificationCatalog, catalogPromptContext } from '../_shared/classificationEngine.mjs';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -541,6 +542,7 @@ async function callGemini(
   onText?: (delta: string) => void,
   onUsage?: (usage: GeminiUsage) => void,
   locationContext?: LocationContext,
+  taxonomyPrompt = '',
 ) {
   const contents = history.slice(-30).map((row) => ({
     role: row.role === 'ASSISTANT' ? 'model' : 'user',
@@ -550,7 +552,7 @@ async function callGemini(
   const parseOutput = (value: any) => locationContext ? parseLocationOutput(value, locationContext, parseV2Output) : parseV2Output(value);
   const instruction = schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts, timeContext, taskFinishOnly(text) && !locationContext) : legacyInstruction(activeFacts, timeContext);
   const payloadBody = JSON.stringify({
-    systemInstruction: { parts: [{ text: instruction }, ...(locationContext ? [{ text: locationInstruction(locationContext) }] : [])] },
+    systemInstruction: { parts: [{ text: instruction }, ...(locationContext ? [{ text: locationInstruction(locationContext) }] : []), ...(taxonomyPrompt ? [{text: taxonomyPrompt}] : [])] },
     contents,
     generationConfig: { temperature: 0.2, maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
       responseMimeType: 'application/json', responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? (locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : legacyProviderSchema() },
@@ -868,8 +870,24 @@ Deno.serve(async (req: Request) => {
           return response(409, { code: 'AI_TURN_NOT_CONFIRMED', message: 'Proverite ishod poruke pre nastavka.' });
         }
       }
+      // Same catalog-reader as worker AI; no category writes or matching rights.
+      // Read-only rollout gate stays OFF until reviewed admission/snapshot flow.
+      let taxonomyPrompt = '';
+      if (Deno.env.get('USKOCI_TAXONOMY_UNIFIED_SHADOW') === 'true') {
+        try {
+          const catalog = await loadClassificationCatalog(async (name, args) => {
+            const result = await rpc(name, args, signal, 4000);
+            if (!result.ok) throw new Error('CATALOG_RPC_UNAVAILABLE');
+            return result.data;
+          });
+          taxonomyPrompt = catalogPromptContext(catalog);
+          console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'LOADED');
+        } catch {
+          console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE');
+        }
+      }
       aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, signal, onText,
-        (usage) => { reportedUsage = usage; }, locationContext);
+        (usage) => { reportedUsage = usage; }, locationContext, taxonomyPrompt);
       aiTurn = guardConversationTurn(aiTurn, text, activeFacts, timeContext, !!locationContext);
       if (locationContext) {
         // A validated answer to the shown question (e.g. 'to je to') stays a map
@@ -899,25 +917,11 @@ Deno.serve(async (req: Request) => {
           console.info('TAXONOMY_SCOPED_SHADOW', 'UNAVAILABLE');
         }
 
-        // Live Dynamic Taxonomy: Ensure category path in taxonomy tree
-        try {
-          const rawCat = taxonomyArgs.p_ai_category.trim();
-          const pathSegments = rawCat.includes('>')
-            ? rawCat.split('>').map((s: string) => s.trim()).filter(Boolean)
-            : rawCat.includes('/')
-              ? rawCat.split('/').map((s: string) => s.trim()).filter(Boolean)
-              : [rawCat];
-          const related = Array.isArray(taxonomyArgs.p_explicit_required_skills)
-            ? taxonomyArgs.p_explicit_required_skills
-            : [];
-          await rpc('rpc_taxonomy_ensure_path_service', {
-            p_path: pathSegments,
-            p_execution_location_mode: taxonomyArgs.p_execution_location_mode,
-            p_related_labels: related,
-          }, signal, 3000);
-        } catch (ensureErr) {
-          console.info('TAXONOMY_ENSURE_PATH_DEFERRED', ensureErr);
-        }
+        // P0 safety: a Gemini conversation is NOT owner approval of a category.
+        // Previously this point called rpc_taxonomy_ensure_path_service with
+        // related required skills, creating ESTABLISHED rows + VERIFIED relations
+        // before need review. Keep ONLY the read-only preview above.
+        // The later explicit approval/admission transaction must own creation.
       }
       if (signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
     }
