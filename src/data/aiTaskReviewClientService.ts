@@ -19,6 +19,10 @@ export type AiTaskReviewFact = Readonly<{
   id: string | null; key: NeedFactV2Key; value: unknown; displayValue: string;
   privacyClass: 'PUBLIC' | 'PRIVATE'; source: AiNeedV2FactSource; status: AiNeedV2FactStatus;
 }>;
+export type SignedNeedClassification = Readonly<{
+  action: 'REUSE_EXISTING'; service: string; mode: 'ON_SITE' | 'REMOTE';
+  categoryId: string; catalogVersion: number; reason: string;
+}>;
 /** Owner-only server snapshot. Never persist or send these projections to public analytics. */
 export type AiTaskReviewEnvelope = Readonly<{
   reviewId: string; accountId: string; conversationId: string; schemaVersion: 'NEED_FACT_V2'; draftId: string | null; draftRevision: number;
@@ -26,6 +30,12 @@ export type AiTaskReviewEnvelope = Readonly<{
   expiresAt: string; responseDeadline: string | null;
   publicProjection: readonly AiTaskReviewFact[]; ownerPrivateProjection: readonly AiTaskReviewFact[];
   location: NeedLocationInput | null; missingRequired: readonly NeedFactV2Key[]; canAccept: boolean; safety: AiNeedSafety;
+  /** Optional during the staged rollout; all five classification fields arrive together. */
+  classificationState?: string;
+  classificationCandidates?: readonly SignedNeedClassification[];
+  classificationCatalogVersion?: number | null;
+  classificationCatalogFingerprint?: string | null;
+  reviewedServiceModes?: readonly [];
 }>;
 export type AiTaskPublicationCommand = Readonly<{
   reviewId: string; clientRequestId: string; needId: string; needRevision: number;
@@ -100,7 +110,14 @@ function fact(raw: unknown, privacy: 'PUBLIC' | 'PRIVATE'): AiTaskReviewFact | n
 }
 export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskReviewEnvelope | null {
   const r = record(raw);
-  if (!r || !only(r, ['reviewId', 'accountId', 'conversationId', 'schemaVersion', 'draftId', 'draftRevision', 'displayedContentDigest', 'factsRevision', 'sourceTurnRevision', 'geographyRevision', 'expiresAt', 'responseDeadline', 'publicProjection', 'ownerPrivateProjection', 'location', 'missingRequired', 'canAccept', 'safety'])
+  const baseKeys = ['reviewId', 'accountId', 'conversationId', 'schemaVersion', 'draftId', 'draftRevision',
+    'displayedContentDigest', 'factsRevision', 'sourceTurnRevision', 'geographyRevision', 'expiresAt',
+    'responseDeadline', 'publicProjection', 'ownerPrivateProjection', 'location', 'missingRequired',
+    'canAccept', 'safety'];
+  const classificationKeys = ['classificationState','classificationCandidates','classificationCatalogVersion',
+    'classificationCatalogFingerprint','reviewedServiceModes'];
+  const hasClassification = !!r && Object.hasOwn(r,'classificationState');
+  if (!r || !(only(r,baseKeys) || only(r,[...baseKeys,...classificationKeys]))
     || !uuid(r.reviewId) || !sameId(r.accountId, accountId) || !uuid(r.conversationId) || r.schemaVersion !== 'NEED_FACT_V2'
     || (r.draftId === null ? r.draftRevision !== 0 : !uuid(r.draftId) || !positiveInteger(r.draftRevision))
     || !hash(r.displayedContentDigest) || !hash(r.factsRevision) || !locationRevision(r.geographyRevision)
@@ -114,12 +131,46 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
   if (all.some(x => !x) || new Set(all.map(x => x?.key)).size !== all.length || new Set(r.missingRequired).size !== r.missingRequired.length) return null;
   const location = r.location === null ? null : normalizeNeedLocation(r.location);
   if ((r.location !== null && !location) || (r.canAccept && (r.safety === 'BLOCK' || !location || r.missingRequired.length > 0))) return null;
+  let signedClassification: Pick<AiTaskReviewEnvelope,'classificationState'|'classificationCandidates'|
+    'classificationCatalogVersion'|'classificationCatalogFingerprint'|'reviewedServiceModes'> = {};
+  if (hasClassification) {
+    if (typeof r.classificationState !== 'string' ||
+        !['READY','PENDING_CLASSIFICATION','REVIEW_REQUIRED','SERVICE_MODE_CONFIRMATION_REQUIRED',
+          'CATALOG_UNAVAILABLE','STALE_CATALOG'].includes(r.classificationState) ||
+        !Array.isArray(r.classificationCandidates) || !Array.isArray(r.reviewedServiceModes) ||
+        r.reviewedServiceModes.length !== 0) return null;
+    const items = r.classificationCandidates;
+    if (r.classificationState === 'READY') {
+      const candidate = record(items[0]);
+      const category = publicProjection.find(f => f?.key === 'need.category');
+      const mode = location?.geography.mode === 'REMOTE' ? 'REMOTE' :
+        ['STATIONARY','POINT_TO_POINT','MULTI_STOP','AREA_BASED'].includes(String(location?.geography.mode)) ? 'ON_SITE' : null;
+      if (items.length !== 1 || !candidate || !only(candidate,
+          ['action','service','mode','categoryId','catalogVersion','reason']) ||
+        candidate.action !== 'REUSE_EXISTING' || !uuid(candidate.categoryId) ||
+        !text(candidate.service,120) || candidate.service !== category?.value ||
+        candidate.mode !== mode || !text(candidate.reason,1000) ||
+        typeof candidate.catalogVersion !== 'number' || !Number.isSafeInteger(candidate.catalogVersion) ||
+        candidate.catalogVersion <= 0 || candidate.catalogVersion !== r.classificationCatalogVersion ||
+        typeof r.classificationCatalogFingerprint !== 'string' ||
+        !/^[a-f0-9]{32}$/.test(r.classificationCatalogFingerprint)) return null;
+    } else if (items.length !== 0 || r.classificationCatalogVersion !== null ||
+      r.classificationCatalogFingerprint !== null) return null;
+    signedClassification = {
+      classificationState:r.classificationState,
+      classificationCandidates:items as SignedNeedClassification[],
+      classificationCatalogVersion:r.classificationCatalogVersion as number | null,
+      classificationCatalogFingerprint:r.classificationCatalogFingerprint as string | null,
+      reviewedServiceModes:[],
+    };
+  }
   return { reviewId: r.reviewId, accountId: r.accountId, conversationId: r.conversationId, schemaVersion: 'NEED_FACT_V2',
     draftId: r.draftId as string | null, draftRevision: r.draftRevision as number,
     displayedContentDigest: r.displayedContentDigest, factsRevision: r.factsRevision, sourceTurnRevision: r.sourceTurnRevision,
     geographyRevision: r.geographyRevision, expiresAt: r.expiresAt, responseDeadline: r.responseDeadline as string | null,
     publicProjection: publicProjection as AiTaskReviewFact[], ownerPrivateProjection: ownerPrivateProjection as AiTaskReviewFact[],
-    location, missingRequired: r.missingRequired as NeedFactV2Key[], canAccept: r.canAccept, safety: r.safety as AiNeedSafety };
+    location, missingRequired: r.missingRequired as NeedFactV2Key[], canAccept: r.canAccept, safety: r.safety as AiNeedSafety,
+    ...signedClassification };
 }
 function decodeAiTaskPublicationCommand(raw: unknown, reviewId?: string): AiTaskPublicationCommand | null {
   const c = record(raw);
