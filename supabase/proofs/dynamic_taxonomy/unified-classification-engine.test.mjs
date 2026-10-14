@@ -34,15 +34,25 @@ test('A/B: worker and need share the exact same existing canonical ID', async()=
 test('C/D: order independent: same service identity for both directions',()=>{
   const worker=reviewClassificationProposal(input('WORKER_CAPABILITY'),snapshot,proposal('REUSE_EXISTING'));
   const need=reviewClassificationProposal(input('NEED_SERVICE'),snapshot,proposal('REUSE_ALIAS'));
-  assert.equal(worker.categoryId,need.categoryId);
+  assert.equal(worker.categoryId,lesson);
+  assert.equal(need.accepted,false);
+  assert.equal(need.status,'ALIAS_EVIDENCE_REQUIRED');
 });
 test('E: synonym path can reuse ID; it is never a second category',()=>{
-  assert.equal(reviewClassificationProposal({...input('WORKER_CAPABILITY'),service:'Individualne instrukcije umetničkog klizanja'},snapshot,proposal('REUSE_ALIAS')).categoryId,lesson);
+  const candidate=reviewClassificationProposal({...input('WORKER_CAPABILITY'),service:'Individualne instrukcije umetničkog klizanja'},snapshot,proposal('REUSE_ALIAS'));
+  assert.equal(candidate.accepted,false);
+  assert.equal(candidate.status,'ALIAS_EVIDENCE_REQUIRED');
 });
 test('F: lessons, rental and sharpening are not conflated by common wording',()=>{
   assert.equal(new Set(snapshot.categories.map(x=>x.id)).size,3);
-  const ids=[lesson,rental,repair].map(id=>reviewClassificationProposal(input('WORKER_CAPABILITY'),snapshot,proposal('REUSE_EXISTING',{categoryId:id})).categoryId);
+  const ids=nodes.map(node=>reviewClassificationProposal({...input('WORKER_CAPABILITY'),service:node.label},snapshot,proposal('REUSE_EXISTING',{categoryId:node.id})).categoryId);
   assert.equal(new Set(ids).size,3);
+  for (const wrongId of [rental,repair]) {
+    const result=reviewClassificationProposal(input('WORKER_CAPABILITY'),snapshot,proposal('REUSE_EXISTING',{categoryId:wrongId}));
+    assert.equal(result.accepted,false);
+    assert.equal(result.status,'SEMANTIC_IDENTITY_REVIEW_REQUIRED');
+    assert.equal(result.categoryId,undefined);
+  }
 });
 test('H: a remote-only request cannot gain on-site competence',()=>{
   const answer=reviewClassificationProposal(input('NEED_SERVICE','REMOTE'),snapshot,proposal('REUSE_EXISTING'));
@@ -79,4 +89,20 @@ test('incomplete catalog pagination must fail closed',async()=>{
 test('restructure is never silently applied',()=>{
   const p=reviewClassificationProposal(input('NEED_SERVICE'),snapshot,proposal('PROPOSE_RESTRUCTURE',{proposedPath:['Sport','Novi raspored']}));
   assert.equal(p.status,'ADMISSION_REVIEW_REQUIRED');assert.equal(p.accepted,false);
+});
+
+// A model cannot map a superficially similar service to the wrong canonical ID.
+test('Latin/Cyrillic representation is the same identity for both AI purposes',()=>{
+  for (const purpose of ['WORKER_CAPABILITY','NEED_SERVICE']) {
+    const answer=reviewClassificationProposal({purpose,service:'Часови уметничког клизања',mode:'ON_SITE'},snapshot,proposal('REUSE_EXISTING'));
+    assert.equal(answer.accepted,true);
+    assert.equal(answer.categoryId,lesson);
+  }
+});
+test('unverified synonyms and broad parent words never confer canonical identity',()=>{
+  for (const service of ['Privatna nastava klizanja','Klizaljke','Oštrenje klizaljki']) {
+    const answer=reviewClassificationProposal({...input('NEED_SERVICE'),service},snapshot,proposal('REUSE_EXISTING'));
+    assert.equal(answer.accepted,false);
+    assert.equal(answer.status,'SEMANTIC_IDENTITY_REVIEW_REQUIRED');
+  }
 });
