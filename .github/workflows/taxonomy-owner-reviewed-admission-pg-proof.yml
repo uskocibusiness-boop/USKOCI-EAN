@@ -4,6 +4,8 @@ on:
     paths:
       - 'supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-admission-v1.sql'
       - 'supabase/candidates/dynamic-taxonomy-20261011/disposable-owner-admission-*.sql'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-batch-admission-v1.sql'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/disposable-owner-batch-*.sql'
       - '.github/workflows/taxonomy-owner-reviewed-admission-pg-proof.yml'
   workflow_dispatch:
 permissions:
@@ -49,3 +51,10 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-owner-admission-assert.sql
       - name: Prove stale legacy writes, Cyrillic normalization and strict mode
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-owner-admission-negative-assert.sql
+
+      - name: Install disposable-only atomic multi-service catalog RPC
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-batch-admission-v1.sql
+      - name: Prepare synthetic worker/need signed review batch envelopes
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-owner-batch-fixture.sql
+      - name: Prove atomic multi-service save, reverse identity, rollback and replay
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-owner-batch-assert.sql
