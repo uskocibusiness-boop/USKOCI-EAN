@@ -41,3 +41,8 @@ INSERT INTO private.work_taxonomy_category_modes VALUES
 ('44444444-4444-4444-8444-444444444444','ON_SITE');
 INSERT INTO private.work_taxonomy_aliases VALUES
 ('22222222-2222-4222-8222-222222222222','sr','pravljenje prezentacija');
+
+-- Minimal row types needed to PARSE the existing canonical review builder.
+-- Do not execute the full builder with synthetic account or privacy data.
+CREATE TABLE public.ai_conversations(id uuid PRIMARY KEY);
+CREATE TABLE public.needs(id uuid PRIMARY KEY);
