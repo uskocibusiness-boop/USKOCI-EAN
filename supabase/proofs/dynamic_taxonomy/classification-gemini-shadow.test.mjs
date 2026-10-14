@@ -125,7 +125,7 @@ test('validated hints survive stripping only as non-authoritative review proposa
   const reused=plan('Oštrenje klizaljki',repair);
   const child={...plan('Časovi hokeja', ''),action:'CREATE_CHILD',
    parentId:lesson,proposedPath:['Časovi hokeja']};
-  const ambiguous={...plan('Oštrenje klizaljki',repair),mode:'UNCONFIRMED'};
+  const ambiguous={...plan('Časovi umetničkog klizanja',lesson),mode:'UNCONFIRMED'};
   const wrong=plan('Iznajmljivanje klizaljki',lesson);
   const result=inspect(withShadow(legacy,[reused,child,ambiguous,wrong]),snapshot,purpose);
   assert.deepEqual(result.output,legacy);
