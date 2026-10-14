@@ -7,14 +7,14 @@ const UUID=/^[a-f\d]{8}-[a-f\d]{4}-[1-8][a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12}$
 const modes=new Set(['ON_SITE','REMOTE','UNCONFIRMED']);
 const record=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const sane=(v,min,max)=>typeof v==='string'&&v.trim().length>=min&&v.trim().length<=max&&!/[<>\u0000-\u001f]/.test(v);
-const maxServices=6;
+const maxServices=purpose=>purpose==='WORKER_CAPABILITY'?12:6;
 const shadowField='classificationShadow';
 
 /** Extend the existing Gemini JSON schema without changing the old required
  * payload or permitting arbitrary provider fields. OFF => original schema.
  * An empty list is safe and preferable when the speaker did not specify work.
  */
-export function withGeminiClassificationShadowSchema(baseSchema) {
+export function withGeminiClassificationShadowSchema(baseSchema,purpose='NEED_SERVICE') {
   if(!record(baseSchema)||!record(baseSchema.properties)||baseSchema.type!=='OBJECT'
       ||Object.hasOwn(baseSchema.properties,shadowField))throw new Error('SHADOW_SCHEMA_INVALID');
   const string={type:'STRING'};
@@ -33,12 +33,14 @@ export function withGeminiClassificationShadowSchema(baseSchema) {
     required:['service','mode','action','categoryId','parentId','proposedPath','reason','catalogVersion'],
   };
   return {...baseSchema,properties:{...baseSchema.properties,
-    [shadowField]:{type:'ARRAY',maxItems:maxServices,items:item}}};
+    [shadowField]:{type:'ARRAY',maxItems:maxServices(purpose),items:item}}};
 }
 
-export function geminiClassificationShadowInstruction() {
+export function geminiClassificationShadowInstruction(purpose='NEED_SERVICE') {
   return [
-    'Additional OPTIONAL output field classificationShadow: 0 to 6 SEMANTIC SERVICE proposals for the CURRENT turn; never fabricate work.',
+    purpose==='WORKER_CAPABILITY'
+      ? 'Additional OPTIONAL output classificationShadow: a FULL SNAPSHOT (0 to 12) of services the person currently offers, after applying your patch to the existing candidate, not just newly-mentioned activities. Use EXACT service strings that the updated skills list contains; never invent work. This is non-authoritative classification metadata.'
+      : 'Additional OPTIONAL output field classificationShadow: 0 to 6 SEMANTIC SERVICE proposals for the CURRENT task turn; never fabricate work.',
     'Do not change safety/assistantMessage/facts/patch/dialogue. This extra field is PRIVATE, never user consent or catalog authority.',
     'Each item must have exactly service, mode, action, categoryId, parentId, proposedPath, reason, catalogVersion.',
     'Use catalogVersion from provided server context. For reuse: exact real categoryId, parentId="", proposedPath=[].',
@@ -46,7 +48,9 @@ export function geminiClassificationShadowInstruction() {
     'Never equate lessons, equipment rental and equipment repair merely because they mention skating.',
     'REUSE_ALIAS is only a suggested semantic candidate; no alias is verified by a model claim.',
     'Mode ON_SITE/REMOTE only if explicit or inherent to the service; otherwise UNCONFIRMED. Separate every service; both modes must be explicitly confirmed later.',
-    'If no clear service, no safe classification, or the input is an acknowledgement/finish/map reply: return classificationShadow: [].',
+    purpose==='WORKER_CAPABILITY'
+      ? 'On a finish/acknowledgement turn with no changed skills, KEEP classificationShadow for the unchanged services, using earlier EXPLICIT delivery preferences or an inherent physical/online mode. For a service with truly unclear delivery mode, ask ONE natural clarifying question and mark it UNCONFIRMED; do not guess mode, silently omit an existing service, or add it to skills. This is not a new consent step.'
+      : 'If no clear service, no safe classification, or the input is an acknowledgement/finish/map reply: return classificationShadow: [].',
     'Questions, unknown modes, unsafe, regulated and possible duplicates are review-only; category membership never proves worker capability.',
   ].join(' ');
 }
@@ -79,7 +83,7 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
   if(!record(raw))return {output:raw,statuses:['MISSING_ENVELOPE'],reviewProposals:[]};
   const {[shadowField]:shadow,...output}=raw;
   if(!Object.hasOwn(raw,shadowField))return {output,statuses:[],reviewProposals:[]};
-  if(!Array.isArray(shadow)||shadow.length>maxServices)return {output,statuses:['INVALID_BATCH'],reviewProposals:[]};
+  if(!Array.isArray(shadow)||shadow.length>maxServices(purpose))return {output,statuses:['INVALID_BATCH'],reviewProposals:[]};
   if(raw.safety==='BLOCK'||raw.safety==='REVIEW')
     return {output,statuses:shadow.length?['SAFETY_INTERVIEW_REVIEW']:[],reviewProposals:[]};
   if(!record(snapshot)||!Array.isArray(snapshot.categories)||!Number.isSafeInteger(snapshot.catalogVersion))
