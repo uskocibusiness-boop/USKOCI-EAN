@@ -1,3 +1,10 @@
+// DEV-phase-1 only. Explicit false is an immediate kill switch; other projects
+// stay default-OFF. Do NOT copy this DEV override into production release.
+const devTaxonomyFlagP1=(name:string):boolean=>{
+  const setting=Deno.env.get(name);
+  return setting==='true'||(setting!=='false'&&
+    (Deno.env.get('SUPABASE_URL')??'').replace(/\/$/,'')==='https://leqcwgzvjsxugfgzdmth.supabase.co');
+};
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION } from '../../../src/contracts/aiAvailability.ts';
 // Distinct owned WORKER_PROFILE_V1 proposals. No task facts or canonical writes.
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
@@ -156,7 +163,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   // SHADOW ONLY: it cannot create categories or activate capabilities.
   let taxonomyPrompt = '';
   let taxonomyCatalog: Awaited<ReturnType<typeof loadClassificationCatalog>> | null = null;
-  if (Deno.env.get('USKOCI_TAXONOMY_UNIFIED_SHADOW') === 'true') {
+  if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW')) {
     try {
       taxonomyCatalog = await loadClassificationCatalog(rpc);
       const reviewedSkillHints: unknown[] = Array.isArray(context.candidate?.skills)
@@ -227,7 +234,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         // The DB RPC must independently fence account, attempt and SUCCESS.
         // It does NOT approve a category, profile skill, match or push.
         if (reviewHints.length && taxonomyCatalog &&
-            Deno.env.get('USKOCI_TAXONOMY_SHADOW_CAPTURE')==='true') {
+            devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
           try {
             const ack=await rpc('rpc_taxonomy_capture_gemini_turn_hints_service',{
               p_account_id:account,p_conversation_id:input.conversationId,
