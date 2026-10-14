@@ -80,7 +80,7 @@ test('J empty, absent, invalid and over-limit shadow never change legacy facts',
  assert.deepEqual(inspect(worker,snapshot,'WORKER_CAPABILITY').output,worker);
  assert.deepEqual(inspect(withShadow(worker,[]),snapshot,'WORKER_CAPABILITY').statuses,[]);
  assert.deepEqual(inspect(withShadow(worker,'not array'),snapshot,'WORKER_CAPABILITY').statuses,['INVALID_BATCH']);
- assert.deepEqual(inspect(withShadow(worker,Array(7).fill(plan('Oštrenje klizaljki',repair))),snapshot,'WORKER_CAPABILITY').statuses,['INVALID_BATCH']);
+ assert.deepEqual(inspect(withShadow(need,Array(7).fill(plan('Oštrenje klizaljki',repair))),snapshot,'NEED_SERVICE').statuses,['INVALID_BATCH']);
  assert.deepEqual(inspect(withShadow(worker,[plan('Oštrenje klizaljki',repair),plan('Oštrenje klizaljki',repair)]),snapshot,'WORKER_CAPABILITY').statuses,
   ['REUSE_CANDIDATE','DUPLICATE_SERVICE']);
 });
