@@ -89,11 +89,21 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
   if(!record(snapshot)||!Array.isArray(snapshot.categories)||!Number.isSafeInteger(snapshot.catalogVersion))
     return {output,statuses:['INVALID_CATALOG'],reviewProposals:[]};
   const seen=new Set(), statuses=[], reviewProposals=[];
+  const workerModes=new Map();
   for(const p of shadow){
     if(!validItem(p,snapshot)){statuses.push('INVALID_PLAN');continue;}
     const signature=normalizedClassificationIdentity(p.service);
-    if(seen.has(signature)){statuses.push('DUPLICATE_SERVICE');continue;}
-    seen.add(signature);
+    // A single offered service can legitimately support BOTH ON_SITE and REMOTE.
+    // Two copies of the same service+mode (including Cyrillic/Latin synonyms)
+    // are still duplicates. Requester tasks cannot declare multiple modes.
+    const identity=purpose==='WORKER_CAPABILITY'?signature+'|'+p.mode:signature;
+    const oldModes=workerModes.get(signature)??new Set();
+    if(seen.has(identity) || (purpose==='WORKER_CAPABILITY' &&
+      ((p.mode==='UNCONFIRMED'&&oldModes.size>0)||oldModes.has('UNCONFIRMED')))){
+      statuses.push('DUPLICATE_SERVICE');continue;
+    }
+    seen.add(identity);
+    if(purpose==='WORKER_CAPABILITY'){oldModes.add(p.mode);workerModes.set(signature,oldModes);}
     const checked=reviewClassificationProposal(
       {purpose,service:p.service,mode:p.mode==='UNCONFIRMED'?null:p.mode},
       snapshot,{action:p.action,categoryId:p.categoryId||undefined,
