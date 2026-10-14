@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - 'supabase/functions/_shared/classificationEngine.mjs'
+      - 'supabase/functions/_shared/classificationEngine.d.mts'
       - 'supabase/functions/uskoci-ai-interview/index.ts'
       - 'supabase/functions/uskoci-worker-interview/index.ts'
       - 'supabase/proofs/dynamic_taxonomy/unified-*.test.mjs'
