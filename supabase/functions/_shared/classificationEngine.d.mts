@@ -20,4 +20,4 @@ export declare function reviewClassificationProposal(
   snapshot: CatalogSnapshot,
   plan: { action: string; catalogVersion: number; reason: string; categoryId?: string; parentId?: string | null; proposedPath?: string[] },
 ): { accepted: boolean; status: string; categoryId?: string; catalogVersion?: number; requiresOwnerReview?: boolean; capabilityAuthority?: string; notificationAuthority?: string };
-export declare function catalogPromptContext(snapshot: CatalogSnapshot, options?: { maxItems?: number }): string;
+export declare function catalogPromptContext(snapshot: CatalogSnapshot, options?: { maxItems?: number; services?: string[] }): string;
