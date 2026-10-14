@@ -74,6 +74,7 @@ Deno.serve(async request=>{
     'rpc_taxonomy_claim_reviewed_batches_service',
     'rpc_taxonomy_commit_reviewed_batch_service',
     'rpc_taxonomy_finalize_reviewed_batch_service',
+    'rpc_taxonomy_bind_ready_reviews_service',
    ].includes(name)||controller.signal.aborted)throw new Unavailable();
    let response:Response;
    try{
@@ -90,7 +91,26 @@ Deno.serve(async request=>{
    return boundedJson(response,controller.signal);
   };
   const result=await processTaxonomyPostSaveTick(rpc,{limit:3,reconcileLimit:25});
-  return json(result);
+  // Binding is a SEPARATE, third feature gate. The catalog COMMITTED receipt
+  // does not authorize eligibility; each binder independently checks owner,
+  // immutable Save, digest and current revision under a DB transaction.
+  // Catalog-only mode preserves its exact legacy response contract.
+  if(Deno.env.get('USKOCI_TAXONOMY_BINDING_ENABLED')!=='true')
+    return json(result);
+  const binding=await rpc('rpc_taxonomy_bind_ready_reviews_service',{p_limit:3});
+  if(!binding||typeof binding!=='object'||Array.isArray(binding))throw new Unavailable();
+  const b=binding as Record<string,unknown>;
+  const validCount=(x:unknown)=>Number.isInteger(x)&&Number(x)>=0&&Number(x)<=3;
+  if(!['BINDING_ONLY_TICK','BINDING_DISABLED'].includes(String(b.kind))
+    ||!validCount(b.claimed)||!validCount(b.bound)||!validCount(b.retry)
+    ||!validCount(b.reviewRequired)
+    ||Number(b.bound)+Number(b.retry)+Number(b.reviewRequired)!==Number(b.claimed)
+    ||b.dispatchAuthority!=='NONE'||b.notificationAuthority!=='NONE')
+    throw new Unavailable();
+  return json({...result,kind:'CATALOG_AND_BINDING_TICK',
+    binding:{kind:b.kind,claimed:b.claimed,bound:b.bound,
+      retry:b.retry,reviewRequired:b.reviewRequired},
+    dispatchAuthority:'NONE',notificationAuthority:'NONE'});
  }catch{
   // Never log taxonomy plans, account IDs, token, task text or API details.
   return json({code:'TAXONOMY_INTERNAL_UNAVAILABLE'},503);
