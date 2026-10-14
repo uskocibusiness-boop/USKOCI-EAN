@@ -25,6 +25,10 @@ BEGIN
  UPDATE private.ai_task_reviews
   SET expires_at=statement_timestamp()-interval '1 minute'
  WHERE id='10000000-0000-4000-8000-000000000018';
+ -- Disposable time travel: original Save happened while review was valid.
+ UPDATE private.ai_task_review_commands
+  SET created_at=statement_timestamp()-interval '2 minutes'
+ WHERE review_id='10000000-0000-4000-8000-000000000018';
  v_answer:=public.rpc_taxonomy_commit_reviewed_batch_service(
   'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','20000000-0000-4000-8000-000000000018',
   'NEED_SERVICE','10000000-0000-4000-8000-000000000018',v_plan);
