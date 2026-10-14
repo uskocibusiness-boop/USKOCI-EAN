@@ -1,3 +1,10 @@
+// DEV-phase-1 only. Explicit false is an immediate kill switch; other projects
+// stay default-OFF. Do NOT copy this DEV override into production release.
+const devTaxonomyFlagP1=(name:string):boolean=>{
+  const setting=Deno.env.get(name);
+  return setting==='true'||(setting!=='false'&&
+    (Deno.env.get('SUPABASE_URL')??'').replace(/\/$/,'')==='https://leqcwgzvjsxugfgzdmth.supabase.co');
+};
 // @ts-nocheck
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION, AI_AVAILABILITY_HEADER } from '../../../src/contracts/aiAvailability.ts';
 // USKOCI server-side AI intake boundary.
@@ -886,7 +893,7 @@ Deno.serve(async (req: Request) => {
       // Read-only rollout gate stays OFF until reviewed admission/snapshot flow.
       let taxonomyPrompt = '';
       let taxonomyCatalog: Awaited<ReturnType<typeof loadClassificationCatalog>> | null = null;
-      if (Deno.env.get('USKOCI_TAXONOMY_UNIFIED_SHADOW') === 'true') {
+      if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW')) {
         try {
           taxonomyCatalog = await loadClassificationCatalog(async (name, args) => {
             const result = await rpc(name, args, signal, 4000);
@@ -959,7 +966,7 @@ Deno.serve(async (req: Request) => {
       // Optional, post-completion shadow hint receipt. This is not consent;
       // missing RPC or network availability never destroys a succeeded Need turn.
       if (completed.state === 'SUCCEEDED' && taxonomyCatalog && taxonomyReviewHints.length &&
-          Deno.env.get('USKOCI_TAXONOMY_SHADOW_CAPTURE')==='true') {
+          devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
         try {
           const capture=await rpc('rpc_taxonomy_capture_gemini_turn_hints_service',{
             p_account_id:accountId,p_conversation_id:conversationId,
