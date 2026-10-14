@@ -9,7 +9,8 @@ DECLARE
  v_result jsonb;v_again jsonb;
 BEGIN
  -- Neither batch admission nor a signed review alone may grant capability.
- IF EXISTS(SELECT 1 FROM private.work_taxonomy_worker_capabilities)
+ IF EXISTS(SELECT 1 FROM private.work_taxonomy_worker_capabilities
+   WHERE NOT excluded OR (excluded=false AND allow_related_offers))
  THEN RAISE EXCEPTION 'BINDER_GRANTED_CAPABILITY_BEFORE_SAVE'; END IF;
  PERFORM set_config('request.jwt.claims','{"role":"authenticated"}',true);
  BEGIN
@@ -28,6 +29,8 @@ BEGIN
  THEN RAISE EXCEPTION 'WORKER_BINDER_RECEIPT_INVALID'; END IF;
  IF (SELECT count(*) FROM private.work_taxonomy_worker_capabilities WHERE NOT excluded)<>1
    OR (SELECT count(*) FROM private.taxonomy_confirmed_worker_modes_v1 WHERE active)<>2
+   OR EXISTS(SELECT 1 FROM private.work_taxonomy_worker_capabilities
+      WHERE worker_account_id=v_owner AND (excluded OR allow_related_offers))
    OR (SELECT count(*) FROM private.work_taxonomy_worker_bindings_v1)<>1
    OR (SELECT modes FROM private.worker_execution_mode_choices WHERE worker_profile_id=v_profile)
       IS DISTINCT FROM ARRAY['ON_SITE','REMOTE']::text[]
@@ -94,6 +97,17 @@ BEGIN
    PERFORM public.rpc_taxonomy_bind_reviewed_worker_service(v_owner,v_key,v_review,v_profile);
    RAISE EXCEPTION 'REMOVED_SKILL_WAS_BOUND';
  EXCEPTION WHEN SQLSTATE 'PT409' THEN NULL; END;
+ -- Even if the worker's profile looks identical, a NEWER signed Save
+ -- makes a delayed binder from the older Save ineligible to reactivate modes.
+ INSERT INTO private.worker_ai_saves VALUES(
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',v_owner,
+  'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',clock_timestamp()+interval '1 minute',
+  jsonb_build_object('saved',true,'profileId',v_profile,'profileStatus','ACTIVE'));
+ BEGIN
+   PERFORM public.rpc_taxonomy_bind_reviewed_worker_service(v_owner,v_key,v_review,v_profile);
+   RAISE EXCEPTION 'NEWER_WORKER_SAVE_DID_NOT_FENCE_OLD_BINDER';
+ EXCEPTION WHEN SQLSTATE 'PT409' THEN NULL; END;
+ DELETE FROM private.worker_ai_saves WHERE review_id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
  -- Restore the original skills and timing, then alter signed review: digest fails.
  UPDATE public.app_profiles SET skills=ARRAY['Casovi matematike'],updated_at=clock_timestamp()-interval '3 minutes'
  WHERE id=v_profile;
