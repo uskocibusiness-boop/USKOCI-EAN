@@ -47,5 +47,43 @@ BEGIN
  EXCEPTION WHEN OTHERS THEN
    IF SQLERRM<>'ADMISSION_UNKNOWN_CATEGORY_OR_MODE' THEN RAISE; END IF;
  END;
+ -- An unsafe ancestor is not sanitized by a harmless-looking final leaf.
+ BEGIN
+   PERFORM public.rpc_taxonomy_prepare_admission_service(
+    'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    '20000000-0000-4000-8000-000000000005',
+    'NEED_SERVICE','10000000-0000-4000-8000-000000000002',
+    jsonb_build_object('action','CREATE_CHILD','catalogVersion',5,'mode','ON_SITE',
+      'reason','Any dangerous scope has to be reviewed by safety operators first.',
+      'parentId',v_parent,'path',jsonb_build_array('Prodaja eksploziva','Farbanje plafona'))
+   );
+   RAISE EXCEPTION 'UNSAFE_ANCESTOR_ACCEPTED';
+ EXCEPTION WHEN OTHERS THEN
+   IF SQLERRM<>'ADMISSION_SAFETY_REVIEW_REQUIRED' THEN RAISE; END IF;
+ END;
+ -- A privileged database fixture simulates row corruption AFTER user approval.
+ -- Commit must rehash rather than trust mutable JSON once approval was issued.
+ v_proposed:=public.rpc_taxonomy_prepare_admission_service(
+  'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  '20000000-0000-4000-8000-000000000006',
+  'NEED_SERVICE','10000000-0000-4000-8000-000000000002',
+  jsonb_build_object('action','CREATE_CHILD','catalogVersion',5,'mode','ON_SITE',
+    'reason','Verified interior finishing proposal submitted for owner review.',
+    'parentId',v_parent,'path',jsonb_build_array('Farbanje plafona'))
+ );
+ v_id:=(v_proposed->>'admissionId')::uuid;
+ PERFORM public.rpc_taxonomy_approve_admission(v_id,v_proposed->>'planDigest',repeat('b',64));
+ UPDATE private.work_taxonomy_admissions_v1
+  SET plan=jsonb_set(plan,'{path}','["Farbanje tuđeg zahteva"]'::jsonb)
+  WHERE id=v_id;
+ BEGIN
+   PERFORM public.rpc_taxonomy_commit_admission_service(v_id);
+   RAISE EXCEPTION 'TAMPERED_APPROVED_PAYLOAD_ACCEPTED';
+ EXCEPTION WHEN OTHERS THEN
+   IF SQLERRM<>'ADMISSION_PLAN_TAMPERED' THEN RAISE; END IF;
+ END;
+ IF EXISTS (SELECT 1 FROM private.work_taxonomy_categories
+ WHERE label IN ('Farbanje tuđeg zahteva','Farbanje plafona'))
+ THEN RAISE EXCEPTION 'TAMPERED_PLAN_CREATED_CATEGORY'; END IF;
  RAISE NOTICE 'CATALOG_MODE_STALE_VERSION_AND_CYRILLIC_DISPOSABLE_PASS';
 END $proof$;
