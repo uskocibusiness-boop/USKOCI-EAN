@@ -1,8 +1,11 @@
-name: Signed Need review client compatibility
+name: Signed Need and Worker review client compatibility
 on:
   pull_request:
     paths:
       - 'src/data/aiTaskReviewClientService.ts'
+      - 'src/data/workerAiClientService.ts'
+      - 'src/data/__tests__/worker-ai-client.test.ts'
+      - 'src/ui/workerProfile/WorkerAiPresentation.tsx'
       - 'src/data/__tests__/ai-task-review-client.test.ts'
       - 'supabase/candidates/dynamic-taxonomy-20261011/need-review-signed-classification-v1.sql'
       - '.github/workflows/taxonomy-review-client-compat.yml'
@@ -24,7 +27,7 @@ jobs:
       - name: Install locked dependencies without native postinstall
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Check old review + signed category identity contract
-        run: npx jest src/data/__tests__/ai-task-review-client.test.ts --runInBand --silent
+        run: npx jest src/data/__tests__/ai-task-review-client.test.ts src/data/__tests__/worker-ai-client.test.ts --runInBand --silent
       - name: Restore generated entry reference contracts from canonical HTML
         run: node ./scripts/sync-entry-reference-assets.cjs
       - name: Type-check the complete React Native client contracts
