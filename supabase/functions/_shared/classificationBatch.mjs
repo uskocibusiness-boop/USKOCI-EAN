@@ -1,9 +1,9 @@
 // USKOCI P1.5: one proposal envelope for MANY reviewed service claims.
 // The batch planner NEVER writes to the catalog, worker profile, need or push.
 // It is deliberately not an atomic SQL commit implementation.
-import { reviewClassificationProposal } from './classificationEngine.mjs';
+import { reviewClassificationProposal, normalizedClassificationIdentity } from './classificationEngine.mjs';
 const record=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
-const key=x=>typeof x==='string'?x.normalize('NFKC').toLocaleLowerCase('sr').trim().replace(/\s+/g,' '):'';
+const key=x=>normalizedClassificationIdentity(x) ?? '';
 const purposes=new Set(['WORKER_CAPABILITY','NEED_SERVICE']);
 const scopes=new Set(['ON_SITE','REMOTE']);
 const safeDefault=Object.freeze({capabilityAuthority:'NONE',notificationAuthority:'NONE',
