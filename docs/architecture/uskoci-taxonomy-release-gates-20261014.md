@@ -14,7 +14,7 @@ Status: **SOURCE-ONLY, NOT SAFE TO ENABLE**. Branch `feature/unified-gemini-clas
 1. Shared catalog reader and shadow Gemini classifier behind `USKOCI_TAXONOMY_UNIFIED_SHADOW` OFF. Strict canonical service identity check, cross-script Serbian text equivalence, unknown/unsafe plans deferred to review. AI cannot grant skills.
 2. Candidate single- and multi-service owner-review admission SQL, fingerprinted/digested source review, matching save receipts and idempotent bounded atomic catalog mutations. Atomic batch now refuses a wrong existing category UUID unless the reviewed service matches the canonical key or a persisted server-owned alias.
 3. Pending saved review processing candidate: private outbox + reconciliation/lease/finalization SQL, default OFF, and `uskoci-taxonomy-postsave-worker` Edge function (source only) behind BOTH `USKOCI_TAXONOMY_POSTSAVE_WORKER_ENABLED=true` and `USKOCI_TAXONOMY_CATALOG_ONLY_ACK=true`. Worker can **only** return `CATALOG_ONLY_TICK`: no needs, worker matching or push authorization. Delayed processing accepts a valid saved review based on original save time, not worker execution time.
-4. Safe worker profile synchronization candidate: `worker-no-implicit-admission-v1.sql`; no novel category writer. Current confirmed existing ON_SITE skills are reused; unsupported REMOTE-only and unknown labels remain safely in the ordinary profile's skill list awaiting reconciliation. Removed skills and related opt-ins are still revoked. **Do not apply this alone:** otherwise novel services would remain unmatched indefinitely.
+4. Safe worker profile synchronization candidate: `worker-no-implicit-admission-v1.sql`; **withdrawal-only** source replacement (not deployed). It now grants **zero** worker capabilities or default ON_SITE modes, creates no categories and does not requeue from plain skill Save. It preserves established existing capability rows only while their exact canonical/registered-alias labels remain in current saved skills, and revokes removed ones and related opt-ins. Unknown and REMOTE-only labels remain in human skills. Only the saved-review-bound Worker binder may grant/re-grant exact per-service capabilities. **Do not apply alone:** strict dispatcher cutover and post-save binding must be deployed together.
 5. Strict per-service execution scope candidate: `taxonomy-strict-worker-mode-v1.sql` with a private confirmed-service/mode table, signed-save evidence requirement and default-OFF control; `worker-need-fit-strict-scope-v1.sql` matcher replacement candidate. A global REMOTE/ON_SITE choice is necessary but NOT sufficient; the service and current requester revision must also be signed. Only exact validated category identity is covered in this initial strict mode; related/inherited matching requires separate proof.
 6. Disposable PostgreSQL 16/17 contract proofs: atomic review+outbox, safe worker sync, per-service scope, worker/need shared semantics and no false automatic notification authority. Node and Deno checks test the typed Edge handlers. No DEV writes were performed for these changes.
 
@@ -187,3 +187,87 @@ production, EAS preview or HONOR device. Draft PR #26 must stay DRAFT.**
 `USKOCI_TAXONOMY_POSTSAVE_WORKER_ENABLED` and
 `USKOCI_TAXONOMY_CATALOG_ONLY_ACK` OFF. No new DEV/PROD migration was
 executed in this continuation; leave historical users/tasks intact.
+
+
+## Gate A/B safe integration checkpoint — signed worker Save and old APK (14 October 2026)
+
+**GitHub source candidates, NOT deployed.** Previous 14/14 CI SUCCESS was before
+this next set of changes. All new checks must complete on the same final SHA.
+Do not claim full release readiness from older CI green statuses.
+
+### Changes completed in source
+
+1. **Full current worker services across natural Gemini turns.** The worker shadow
+   schema now permits 24 scoped proposals for up to 12 distinct worker services,
+   while Need remains at 6 turn hints and exactly one reviewed primary service.
+   Gemini receives a current-snapshot instruction, not a new per-skill approval
+   questionnaire; each service can have ON_SITE, REMOTE or both if genuinely
+   supported. Canonical script-normalized duplicates and unconfirmed delivery
+   modes are rejected or remain pending. Worker hint capture rechecks every
+   service against the CURRENT stored worker skills and successful turn source.
+   Captured proposals are non-authoritative, even when a category UUID is known.
+2. **Versioned worker review RPC, default OFF.**
+   `worker-review-signed-classification-v1.sql` defines
+   `rpc_prepare_worker_ai_review_taxonomy(uuid,integer,boolean)` (rather than
+   replacing the legacy `rpc_prepare_worker_ai_review`). It derives candidates
+   from same-owner/current-conversation/current-candidate source-fenced hints,
+   independently resolves the actual known category/mode with the exact
+   projection, and includes all classification fields BEFORE signing the
+   existing worker review digest. No evidence = signed pending state, never
+   fabricated matching permission. `worker-taxonomy-versioned-read-v1.sql`
+   keeps legacy `private.worker_ai_document` from returning classified
+   envelopes or receipts to old clients and adds
+   `rpc_read_worker_ai_taxonomy(uuid)` for the matching signed review/Save
+   receipt. Both new RPCs are authenticated-owner-only.
+   `src/data/workerAiClientService.ts` selects both new endpoints only when
+   `EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW=true`. Default is false; old APKs
+   keep existing prepare/read, with no new technical confirmation screen.
+   A complete signed pending state remains saveable without taxonomy authority.
+3. **Worker Gate B binder, source-only.**
+   `owner-reviewed-worker-binder-v1.sql` requires the same account,
+   worker profile, immutable Save request/review/digest, committed batch plan,
+   current ACTIVE profile and exact service+scope/category identity.
+   Its transaction persists canonical worker capability, both explicit
+   per-service modes, conservative global mode union and an idempotent receipt;
+   it deactivates obsolete per-service scopes and never enables related offers,
+   dispatch or notifications. A withdrawn capability may be re-enabled ONLY
+   through the new owner-signed Save; earlier related-offer opt-in is reset.
+   A later Save or global mode change fences out an old delayed binder.
+4. **Retired legacy implicit capability grant candidate.**
+   `worker-no-implicit-admission-v1.sql` performs **revocation only** on
+   profile skill updates, without `rpc_taxonomy_ensure_path_service`,
+   INSERT of worker capability, guessed ON_SITE scope, or requeue.
+   Existing remote-only skills are retained by canonical/verified alias
+   identity rather than forced ON_SITE. This MUST deploy in concert with
+   binder/outbox and matcher switch; old unreviewed worker mode data must
+   never become strict eligible by default.
+5. **Isolated regression coverage.**
+   Updated worker safe-sync PG16/17 fixtures assert that a mere Save cannot
+   grant/revive an old withdrawn service. Worker binder PG16/17 fixtures
+   prove reactivation only from the signed review, zero related opt-ins,
+   idempotent receipts and stale/newer-save refusal.
+   `taxonomy-worker-versioned-read-pg-proof.yml` checks legacy/API
+   isolation and authenticated new read; 
+   `taxonomy-worker-signed-builder-pg-proof.yml` executes the actual
+   versioned signed review builder with synthetic owner/source dependencies.
+   Client Jest tests verify default legacy and explicit opt-in RPC selection.
+
+### Release order — intentionally NOT yet executed
+
+1. All 16 current workflow proofs on the **same** SHA green; investigate
+   actual PG runtime errors, rather than counting older success reports.
+2. Independently verify default-OFF env flags, API grants, actual DEV schema
+   constraints/triggers and old APK/OTA runtime. Run old+new simultaneous
+   device/API tests, including a classified Save while a legacy APK is open.
+3. Implement an owner- and revision-fenced post-Save outbox step that calls
+   admission **then** the correct worker/Need binder and records independent
+   binding receipts. Today's post-save worker is **CATALOG ONLY**, not a
+   binding orchestrator; do not mistake `COMMITTED` for worker eligibility.
+4. On a controlled DEV transaction/canary only, retire BOTH old automatic
+   category/capability writers and enable signed-save pipelines; leave new
+   strict matcher and push OFF until verified snapshots and worker modes exist.
+5. Shadow-test exact/related matcher, requeue and push on two real accounts
+   without false notifications; then preview APK/OTA proof and Store QA.
+
+**STOP:** PR #26 stays Draft. No DEV/PROD SQL write, Edge deployment,
+OTA/APK build, matcher activation or push dispatch was made in this checkpoint.
