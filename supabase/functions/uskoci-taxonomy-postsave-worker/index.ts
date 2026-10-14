@@ -1,3 +1,9 @@
+// DEV-phase-1 only, explicit false is a kill switch. Never enable in production.
+const devTaxonomyFlagP1=(name:string):boolean=>{
+ const setting=Deno.env.get(name);
+ return setting==='true'||(setting!=='false'&&
+  (Deno.env.get('SUPABASE_URL')??'').replace(/\/$/,'')==='https://leqcwgzvjsxugfgzdmth.supabase.co');
+};
 /** Source-only P1.7 internal catalog admission. This Edge handler is OFF by
  * default. No client-supplied review IDs, plans or beneficiary accounts.
  * Successful catalog admission never itself schedules push or grants skills.
@@ -48,8 +54,8 @@ Deno.serve(async request=>{
    sameKey(bearer.startsWith('Bearer ')?bearer.slice(7):'',secret)
  ))return json({code:'FORBIDDEN'},403);
  // Separate, double-gated release: default OFF even if deployed accidentally.
- if(Deno.env.get('USKOCI_TAXONOMY_POSTSAVE_WORKER_ENABLED')!=='true'||
-   Deno.env.get('USKOCI_TAXONOMY_CATALOG_ONLY_ACK')!=='true')
+ if(!devTaxonomyFlagP1('USKOCI_TAXONOMY_POSTSAVE_WORKER_ENABLED')||
+   !devTaxonomyFlagP1('USKOCI_TAXONOMY_CATALOG_ONLY_ACK'))
    return json({kind:'DISABLED'});
  if(running)return json({kind:'BUSY'},429);
  const rawUrl=Deno.env.get('SUPABASE_URL');
@@ -95,7 +101,7 @@ Deno.serve(async request=>{
   // does not authorize eligibility; each binder independently checks owner,
   // immutable Save, digest and current revision under a DB transaction.
   // Catalog-only mode preserves its exact legacy response contract.
-  if(Deno.env.get('USKOCI_TAXONOMY_BINDING_ENABLED')!=='true')
+  if(!devTaxonomyFlagP1('USKOCI_TAXONOMY_BINDING_ENABLED'))
     return json(result);
   const binding=await rpc('rpc_taxonomy_bind_ready_reviews_service',{p_limit:3});
   if(!binding||typeof binding!=='object'||Array.isArray(binding))throw new Unavailable();
