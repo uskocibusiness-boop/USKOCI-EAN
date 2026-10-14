@@ -102,3 +102,12 @@ test('invalid items are isolated and cannot turn an unreviewed batch into a comm
  assert.equal(b.items[1].status,'INVALID_ITEM');
  assert.equal(b.commitAuthority,'NONE');
 });
+
+test('Cyrillic/Latin NEW service is one batch proposal even without canonical ID',()=>{
+ const make=service=>({purpose:'NEED_SERVICE',service,mode:'ON_SITE',plan:{action:'CREATE_CHILD',catalogVersion:9,
+  parentId:ids[0],proposedPath:['Popravka tipografske mašine'],reason:'New service needs owner-reviewed admission, never model authority.'}});
+ const b=reviewClassificationBatch([make('Popravka tipografske mašine'),make('Поправка типографске машине')],catalog);
+ assert.equal(b.status,'DUPLICATE_SERVICE_OR_IDENTITY');
+ assert.equal(b.items[1].status,'DUPLICATE_SERVICE_OR_IDENTITY');
+ assert.equal(b.commitAuthority,'NONE');
+});
