@@ -25,3 +25,24 @@ jobs:
           node-version: '22'
       - name: Read-only canonical catalog and Gemini integration invariants
         run: node --test supabase/proofs/dynamic_taxonomy/unified-*.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs
+
+  edge-typing:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.5.6
+      - name: Install exact TypeScript dependencies without postinstall build
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Type check both real Gemini Edge handlers
+        run: |
+          deno check supabase/functions/uskoci-worker-interview/index.ts
+          deno check supabase/functions/uskoci-ai-interview/index.ts
