@@ -45,8 +45,8 @@ BEGIN
  IF p_owner_account_id IS NULL OR p_request_key IS NULL OR p_source_review_id IS NULL
     OR p_purpose NOT IN ('WORKER_CAPABILITY','NEED_SERVICE')
     OR jsonb_typeof(p_plans)<>'array'
-    OR jsonb_array_length(p_plans) NOT BETWEEN 1 AND
-      CASE WHEN p_purpose='WORKER_CAPABILITY' THEN 24 ELSE 1 END
+    OR (p_purpose='WORKER_CAPABILITY' AND jsonb_array_length(p_plans) NOT BETWEEN 1 AND 24)
+    OR (p_purpose='NEED_SERVICE' AND jsonb_array_length(p_plans)<>1)
     OR pg_column_size(p_plans)>16000
  THEN RAISE EXCEPTION 'BATCH_INPUT_INVALID' USING errcode='22023'; END IF;
  v_plans_digest:=encode(extensions.digest(convert_to(p_plans::text,'UTF8'),'sha256'),'hex');
