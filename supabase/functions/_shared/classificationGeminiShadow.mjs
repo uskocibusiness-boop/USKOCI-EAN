@@ -2,7 +2,7 @@
 // No DB writes, user-facing changes, matching or notification authority.
 // The existing worker/need typed JSON contract is preserved byte-for-byte
 // AFTER removing the optional, never-authoritative classificationShadow field.
-import { CLASSIFICATION_ACTIONS, reviewClassificationProposal } from './classificationEngine.mjs';
+import { CLASSIFICATION_ACTIONS, reviewClassificationProposal, normalizedClassificationIdentity } from './classificationEngine.mjs';
 const UUID=/^[a-f\d]{8}-[a-f\d]{4}-[1-8][a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12}$/i;
 const modes=new Set(['ON_SITE','REMOTE','UNCONFIRMED']);
 const record=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
@@ -85,7 +85,7 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
   const seen=new Set(), statuses=[];
   for(const p of shadow){
     if(!validItem(p,snapshot)){statuses.push('INVALID_PLAN');continue;}
-    const signature=p.service.trim().normalize('NFKC').toLocaleLowerCase('sr');
+    const signature=normalizedClassificationIdentity(p.service);
     if(seen.has(signature)){statuses.push('DUPLICATE_SERVICE');continue;}
     seen.add(signature);
     const checked=reviewClassificationProposal(
