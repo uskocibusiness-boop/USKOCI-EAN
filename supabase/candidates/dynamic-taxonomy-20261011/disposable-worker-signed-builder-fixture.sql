@@ -7,6 +7,7 @@ ALTER TABLE public.app_profiles ADD COLUMN kind text;
 UPDATE public.app_profiles SET
  account_id='11111111-1111-4111-8111-111111111111',kind='WORKER';
 ALTER TABLE private.worker_ai_turns ADD COLUMN state text DEFAULT 'SUCCEEDED';
+ALTER TABLE private.worker_ai_reviews ALTER COLUMN created_at SET DEFAULT clock_timestamp();
 ALTER TABLE private.worker_ai_reviews ADD COLUMN revision integer DEFAULT 2;
 ALTER TABLE private.worker_ai_reviews ADD COLUMN base_hash text DEFAULT 'base-1';
 ALTER TABLE private.worker_ai_reviews ADD COLUMN expires_at timestamptz
