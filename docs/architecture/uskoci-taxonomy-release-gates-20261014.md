@@ -51,3 +51,55 @@ Status: **SOURCE-ONLY, NOT SAFE TO ENABLE**. Branch `feature/unified-gemini-clas
 4. Observe transport only by sanitized status/code, never log private task text, owner IDs, location, review JSON or API keys.
 
 **Current STOP verdict:** New candidate SQL, disabled worker and matcher exist only as GitHub source. They are not live DEV migrations, and are not matched to a tested Android build. PR must remain Draft.
+
+
+## Gate A progress checkpoint — 14 Oct, post-PR #26 continued commits
+
+**SOURCE ONLY / NOT DEPLOYED:** The shared Gemini inspector now returns a separate
+`reviewProposals` array for validated exact canonical reuse or proposed child
+under a known parent with an explicit mode. It strips these hints from the old
+authoritative worker/need output and rejects ambiguous mode, stale/fabricated IDs,
+unverified aliases, repeated service meaning, unsafe and semantically mismatched
+claims. These are STILL UNTRUSTED suggestions and cannot authorize admission.
+
+Both actual Edge handlers now have an additional **default-OFF**
+`USKOCI_TAXONOMY_SHADOW_CAPTURE` branch after their pre-existing successful
+turn-completion RPC. It invokes an owner/conversation/turn/attempt-bound
+service-role RPC to persist a bounded, non-authoritative hint receipt. Any RPC
+error is isolated from successful customer turn completion. The initial
+`USKOCI_TAXONOMY_UNIFIED_SHADOW` remains default OFF as well.
+
+New **source-only** SQL candidate:
+`supabase/candidates/dynamic-taxonomy-20261011/gemini-turn-review-hints-v1.sql`.
+It creates a private RLS-protected turn-hint ledger and rejects false owners,
+unfinished turns, non-service JWT, mismatched replay, missing service mode and
+oversized/malformed batches. It stores a source fingerprint for later stale-review
+checking; it never creates categories, worker capabilities, need snapshots, notices
+or eligibility. It must NOT be installed alone or used as signed owner approval.
+
+Isolated, disposable PostgreSQL 16/17 proof:
+`https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/38599139999`
+**SUCCESS**, both matrix versions. Updated shared Gemini Node/Deno proof:
+`https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/38599140232`
+**SUCCESS**. Neither proof represents a live Gemini provider call or device receipt.
+
+DEV preflight still read-only: 141 taxonomy categories, 17 roots, catalog version 3,
+legacy auto-registration TRUE, no new hint table, no reviewed outbox table,
+requester interview v73 and worker interview v26. Legacy ensure-path is still
+referenced by worker sync; old registrar still exists. Two active minute crons
+remain: `uskoci_edge_workers` and `uskoci_marketplace_tick`.
+
+**Next mandatory Gate A work:** no current review builder consumes the captured
+hints. A trusted server-owned projection must (a) reconcile ALL services with
+the CURRENT saved worker skills / need.category and explicitly selected per-service
+mode, (b) validate same owner, conversation, latest source revision and catalog
+fingerprint, (c) make the exact ordinary Serbian projection visible to the user,
+(d) sign classificationCandidates and reviewedServiceModes in the existing
+canonical review digest, and (e) connect the existing Save/Accept receipt to
+atomic admission and idempotent worker/need revision binding. Do NOT directly
+promote a Gemini hint into owner consent. Legacy writer shutdown, strict matcher,
+requeue and push are still BLOCKED behind these gates.
+
+Stop/rollback: leave both shadow flags OFF; no database change on DEV or PROD
+was made in this checkpoint. PR remains Draft. The hints schema and optional
+capture are additive, not a rollback of the user's saved skills or needs.
