@@ -113,4 +113,3 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
   }
   return {output,statuses,reviewProposals};
 }
-}
