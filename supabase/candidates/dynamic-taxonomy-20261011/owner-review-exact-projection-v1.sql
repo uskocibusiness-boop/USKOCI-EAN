@@ -20,7 +20,7 @@ DECLARE
  v_category uuid;v_matches integer;v_idx integer;v_service_key text;v_scope_count integer;
  v_status text:='READY';
 BEGIN
- IF p_purpose NOT IN ('WORKER_CAPABILITY','NEED_SERVICE')
+ IF p_purpose IS NULL OR p_purpose NOT IN ('WORKER_CAPABILITY','NEED_SERVICE')
     OR jsonb_typeof(p_services) IS DISTINCT FROM 'array'
     OR jsonb_array_length(p_services) NOT BETWEEN 1 AND 12
     OR jsonb_typeof(p_service_modes) IS DISTINCT FROM 'array'
@@ -62,17 +62,17 @@ BEGIN
      END IF;
      v_modes:=array_append(v_modes,v_identity);
      v_service:=(
-       SELECT x#>>'{}' FROM jsonb_array_elements(p_services) x
-       WHERE private.taxonomy_normalize_v1(x#>>'{}')=v_key LIMIT 1);
+       SELECT x.value#>>'{}' FROM jsonb_array_elements(p_services) AS x(value)
+       WHERE private.taxonomy_normalize_v1(x.value#>>'{}')=v_key LIMIT 1);
      v_visible:=v_visible||jsonb_build_array(
        jsonb_build_object('service',v_service,'mode',v_mode));
    END LOOP;
    IF p_purpose='NEED_SERVICE' AND jsonb_array_length(v_visible)<>1 THEN
      v_status:='REVIEW_REQUIRED';
    END IF;
-   IF EXISTS (SELECT 1 FROM unnest(v_services) s
-       WHERE NOT EXISTS (SELECT 1 FROM unnest(v_modes) m
-                         WHERE split_part(m,'|',1)=s)) THEN
+   IF EXISTS (SELECT 1 FROM unnest(v_services) AS s(value)
+       WHERE NOT EXISTS (SELECT 1 FROM jsonb_array_elements(v_visible) AS m(value)
+        WHERE private.taxonomy_normalize_v1(m.value->>'service')=s.value)) THEN
      v_status:='SERVICE_MODE_CONFIRMATION_REQUIRED';
    END IF;
  END IF;
@@ -89,7 +89,7 @@ BEGIN
      v_key:=private.taxonomy_normalize_v1(v_service);
      -- Only the server's established canonical identity / stored aliases.
      -- Any semantic relation, parent or AI confidence is NOT an identity.
-     SELECT count(DISTINCT c.id),min(c.id) INTO v_matches,v_category
+     SELECT count(DISTINCT c.id),min(c.id::text)::uuid INTO v_matches,v_category
        FROM private.work_taxonomy_categories c
        JOIN private.work_taxonomy_category_modes m ON m.category_id=c.id
        WHERE c.state='ESTABLISHED' AND m.execution_scope=v_mode
