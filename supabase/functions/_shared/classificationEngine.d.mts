@@ -9,6 +9,7 @@ export type CatalogSnapshot = Readonly<{
   catalogVersion: number; categories: CatalogCategory[];
 }>;
 export type RpcClient = (name: string, args: Record<string, unknown>) => Promise<unknown>;
+export declare function normalizedClassificationIdentity(label: unknown): string | null;
 export declare const CLASSIFICATION_ACTIONS: readonly string[];
 export declare function loadClassificationCatalog(
   rpc: RpcClient,
