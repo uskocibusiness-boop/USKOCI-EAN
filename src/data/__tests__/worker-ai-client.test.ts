@@ -137,7 +137,7 @@ it.each([
  {reviewedServiceModes:[{service:'Nepostojeća veština',mode:'ON_SITE'}]},
  {reviewedServiceModes:[{service:'Prenos',mode:'REMOTE'}]},
  {reviewedServiceModes:[{service:'Prenos',mode:'ON_SITE'},{service:'Prenos',mode:'ON_SITE'}]},
- {classificationCandidates:[{...signedWorkerReview().classificationCandidates[0],categoryId:OTHER}]},
+ {classificationCandidates:[{...signedWorkerReview().classificationCandidates[0],categoryId:'not-a-uuid'}]},
  {classificationCandidates:[]},
  {classificationCandidates:[{...signedWorkerReview().classificationCandidates[0],mode:'REMOTE'}]},
  {classificationCandidates:[{...signedWorkerReview().classificationCandidates[0],extra:'not-authorized'}]},
