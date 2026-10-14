@@ -45,5 +45,7 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-owner-admission-fixture.sql
       - name: Install owner-reviewed transaction candidate
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-admission-v1.sql
-      - name: Prove approval, stale-write fencing, identity reuse and no dispatch authority
+      - name: Prove approval, identity reuse and no dispatch authority
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-owner-admission-assert.sql
+      - name: Prove stale legacy writes, Cyrillic normalization and strict mode
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-owner-admission-negative-assert.sql
