@@ -133,3 +133,86 @@ can create/reuse all reviewed services under one catalog lock and then
 reconcile worker/need rows under the existing confirmation. Do not call the
 single-service RPC in a loop; the first new category can bump version and
 invalidate the remaining plans.
+
+
+## P1.6 hidden atomic batch and post-save outbox — isolated code proof
+
+**Product rule:** Ordinary users NEVER see category trees, database branches,
+canonical UUIDs, synonym admission or a second approval button. The worker
+reviews the actual skills and their ordinary-language mode choices; the
+requester reviews the category/service and location mode. The existing Save /
+Accept / Publish controls remain the only human confirmations.
+
+### Implemented source-only
+
+`supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-batch-admission-v1.sql`
+provides one service-only RPC
+`rpc_taxonomy_commit_reviewed_batch_service(owner,requestKey,purpose,reviewId,plans)`.
+Within ONE transaction and catalog-control row lock it checks:
+
+- The **existing** owner-bound `worker_ai_saves` or
+  `ai_task_review_commands` receipt for exactly the same review/request key.
+- The entire `classificationCandidates` array is part of the original
+  unexpired review envelope; its SHA-256 digest matches the actual canonical
+  worker/need review hash formula. No model-generated plan is a save action.
+- The immutable review also signs the catalog version/fingerprint.
+- Every worker service label appears in its ordinary profile `skills` list;
+  each individual ON_SITE/REMOTE choice has its own reviewed evidence in
+  `reviewedServiceModes`. Requester service must match the reviewed
+  `need.category`, with mode from reviewed geography. These fields are not
+  yet emitted by the *live* canonical review preparers; no fallback inference.
+- REUSE uses only a registered established category with supported scope;
+  CREATE_CHILD requires a real parent and the **last new leaf exactly equals
+  the reviewed service name**. Every ancestry label goes through risk
+  screening and collisions cannot silently reparent or create false aliases.
+- A batch is bounded to 1–12 reviewed service claims, not a cap on total
+  categories. One source catalog version applies to all entries, even when
+  earlier entries create child nodes and bump that version inside the
+  transaction. Deduplicates both reviewed labels and canonical IDs.
+- An error in the second or later entry rolls back **ALL** earlier category
+  mutations and audits; a repeated request key replays the original receipt.
+- This RPC never inserts worker capabilities, need snapshots, worker relations
+  or notifications. Catalog admission is NOT matching authority.
+
+`owner-reviewed-batch-outbox-v1.sql` supplies a **disabled-by-default**
+private post-save queue: a DB trigger on the existing worker profile save and
+task review acceptance (not Gemini mid-turn), bounded claim with lease token,
+receipt-checked settlement, transient error retry, and a reconciliation RPC
+for signed saved reviews whose initial enqueue was missed. The background
+processor must call the atomic batch RPC and then finalize; only service_role
+can use those APIs. A queue failure must not veto the saved user content.
+The reconciliation scheduler / Edge worker itself has NOT been implemented
+or deployed yet.
+
+Disposable PostgreSQL 16/17 CI adds real SQL proofs for three services in
+one worker profile, requester reusing exactly the worker service UUID,
+partial-failure transaction rollback, duplicate synonym/ID, unsupported mode,
+incorrect leaf, unversioned old catalog writes, idempotent replay after catalog
+change, old-saving recovery, bounded claim, stale lease, receipt requirements,
+retry backoff, private grants and no dispatch/matching authority. The fixture
+simulates NEW signed review envelopes; it does not claim the live app already
+provides them.
+
+### Explicit remaining rollout gates
+
+1. Update **both existing canonical review builders** to sign the internally
+   generated plan array and catalog fingerprint. Worker review must bind
+   independently confirmed per-service modes in user-readable review data;
+   requester review must bind actual category and geography. Do NOT show
+   category-tree technical details or add another consent tap.
+2. Stop/replace the earlier worker save taxonomy writer that auto-creates
+   ESTABLISHED categories before this reviewed batch is processed. Coordinate
+   with unmerged PR #24 and DEV-applied authoritative worker sync.
+3. Implement and schedule the private outbox worker + recovery scan. It must
+   not turn a temporary classification failure into an invisible loss of an
+   already-published need. Keep unclassified needs visible and queue a
+   bounded safe reclassification, never fake matches.
+4. Bind admitted worker capabilities and concrete need revisions/snapshots
+   under their respective already-confirmed save results. Implement strict
+   per-service mode gates + eligible requeue/matching/push. Related results
+   need explicit opt-in; do not present them as exact competence.
+5. Two-account DEV+HONOR phone proof in both insertion orders, zero-match
+   visibility, revoked skills, worker notified when relevant later, rollback,
+   stale review, security/privacy, and live actual Gemini semantic accuracy.
+
+**DO NOT deploy candidate SQL or enable the outbox while these are missing.**
