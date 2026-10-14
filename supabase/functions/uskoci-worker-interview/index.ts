@@ -209,9 +209,11 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           key,body,signal:abort.signal,onText:()=>{},onUsage:value=>{usage.value=value;},timeoutMs:30000});
         if(abort.signal.aborted)throw new Error('WORKER_AI_CANCELLED');
         let output:Record<string,any>;
+        let reviewHints: Record<string,any>[]=[];
         try {
           const parsed = JSON.parse(raw);
-          const checked = taxonomyCatalog ? inspectGeminiClassificationShadow(parsed,taxonomyCatalog,'WORKER_CAPABILITY') : {output:parsed,statuses:[]};
+          const checked = taxonomyCatalog ? inspectGeminiClassificationShadow(parsed,taxonomyCatalog,'WORKER_CAPABILITY') : {output:parsed,statuses:[],reviewProposals:[]};
+          reviewHints=checked.reviewProposals;
           if (checked.statuses.length) console.info('WORKER_TAXONOMY_PLAN_SHADOW', checked.statuses.join(','));
           output=parseWorkerOutput(checked.output);
         } catch { await fail(); throw new Error('WORKER_AI_INVALID'); }
@@ -221,6 +223,23 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         const turn=await rpc('rpc_complete_worker_ai_turn_service',{...identity,p_attempt_id:claim.turn.attemptId,p_output:output},abort.signal);
         if (!object(turn)||turn.state!=='SUCCEEDED'||turn.turnId!==claim.turn.turnId||turn.attemptId!==claim.turn.attemptId
           ||turn.conversationId!==input.conversationId||turn.clientRequestId!==input.clientRequestId) throw new Error('WORKER_AI_INVALID');
+        // Optional, post-completion SHADOW receipt; never gates the saved turn.
+        // The DB RPC must independently fence account, attempt and SUCCESS.
+        // It does NOT approve a category, profile skill, match or push.
+        if (reviewHints.length && taxonomyCatalog &&
+            Deno.env.get('USKOCI_TAXONOMY_SHADOW_CAPTURE')==='true') {
+          try {
+            const ack=await rpc('rpc_taxonomy_capture_gemini_turn_hints_service',{
+              p_account_id:account,p_conversation_id:input.conversationId,
+              p_client_request_id:input.clientRequestId,
+              p_turn_id:claim.turn.turnId,p_attempt_id:claim.turn.attemptId,
+              p_purpose:'WORKER_CAPABILITY',p_catalog_version:taxonomyCatalog.catalogVersion,
+              p_proposals:reviewHints,
+            },abort.signal,2500);
+            if (ack?.action!=='HINT_CAPTURED' || ack?.authority!=='NONE')
+              console.info('WORKER_TAXONOMY_HINT_CAPTURE','RECEIPT_UNEXPECTED');
+          } catch { console.info('WORKER_TAXONOMY_HINT_CAPTURE','UNAVAILABLE'); }
+        }
         send('text_delta',{text:output.assistantMessage});
         // Accounting, after the turn is already confirmed and never able to undo it.
         if (usage.value) { try { await rpc('rpc_ai_test_record_usage_service',{p_operation_id:input.clientRequestId,p_model:model,
