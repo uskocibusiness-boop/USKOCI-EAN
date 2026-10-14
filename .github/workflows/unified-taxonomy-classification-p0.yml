@@ -5,6 +5,7 @@ on:
       - 'supabase/functions/_shared/classificationEngine.mjs'
       - 'supabase/functions/_shared/classificationEngine.d.mts'
       - 'supabase/functions/_shared/classificationGeminiShadow.mjs'
+      - 'supabase/functions/_shared/classificationOwnerReview.mjs'
       - 'supabase/functions/_shared/classificationGeminiShadow.d.mts'
       - 'supabase/functions/_shared/classificationBatch.mjs'
       - 'supabase/functions/_shared/classificationBatch.d.mts'
@@ -17,6 +18,7 @@ on:
       - 'supabase/proofs/dynamic_taxonomy/unified-*.test.mjs'
       - 'supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs'
       - 'supabase/proofs/dynamic_taxonomy/classification-batch.test.mjs'
+      - 'supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs'
       - '.github/workflows/unified-taxonomy-classification-p0.yml'
   workflow_dispatch:
 jobs:
@@ -31,7 +33,7 @@ jobs:
         with:
           node-version: '22'
       - name: Read-only canonical catalog and Gemini integration invariants
-        run: node --test supabase/proofs/dynamic_taxonomy/unified-*.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs supabase/proofs/dynamic_taxonomy/classification-batch.test.mjs supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs
+        run: node --test supabase/proofs/dynamic_taxonomy/unified-*.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs supabase/proofs/dynamic_taxonomy/classification-batch.test.mjs supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs
 
   edge-typing:
     runs-on: ubuntu-latest
