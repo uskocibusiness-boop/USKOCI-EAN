@@ -32,7 +32,7 @@ DECLARE
  v_id uuid;v_old private.work_taxonomy_review_batches_v1%ROWTYPE;
  v_review jsonb;v_review_digest text;v_computed_digest text;
  v_expiry timestamptz;v_review_fingerprint text;
- v_version bigint;v_fingerprint text;v_plans_digest text;
+ v_version bigint;v_review_version bigint;v_fingerprint text;v_plans_digest text;
  v_plan jsonb;v_service text;v_mode text;v_action text;
  v_parent uuid;v_category uuid;v_canonical uuid;v_current_parent uuid;
  v_label text;v_key text;v_ref text;v_count integer;v_created integer:=0;
@@ -100,6 +100,7 @@ BEGIN
  SELECT catalog_version INTO v_version FROM private.work_taxonomy_control
   WHERE singleton FOR UPDATE;
  IF v_version IS NULL THEN RAISE EXCEPTION 'BATCH_CATALOG_MISSING'; END IF;
+ v_review_version:=v_version;
  v_fingerprint:=private.taxonomy_admission_fingerprint_v1();
  IF v_fingerprint<>v_review_fingerprint THEN
   RAISE EXCEPTION 'BATCH_STALE_CATALOG' USING errcode='40001'; END IF;
@@ -109,7 +110,7 @@ BEGIN
      OR v_plan ?& array['action','service','mode','catalogVersion','reason'] IS NOT TRUE
      OR jsonb_typeof(v_plan->'catalogVersion')<>'number'
      OR (v_plan->>'catalogVersion')::bigint<> (v_review->>'classificationCatalogVersion')::bigint
-     OR (v_plan->>'catalogVersion')::bigint<>v_version
+     OR (v_plan->>'catalogVersion')::bigint<>v_review_version
      OR jsonb_typeof(v_plan->'reason')<>'string'
      OR char_length(btrim(v_plan->>'reason')) NOT BETWEEN 10 AND 1000
   THEN RAISE EXCEPTION 'BATCH_INVALID_OR_STALE_PLAN' USING errcode='22023'; END IF;
@@ -166,6 +167,10 @@ BEGIN
       OR jsonb_array_length(v_plan->'path') NOT BETWEEN 1 AND 6
       OR (v_plan->>'parentId') IS NULL THEN
     RAISE EXCEPTION 'BATCH_CHILD_STRUCTURE_INVALID' USING errcode='22023'; END IF;
+   -- A newly created leaf must be exactly the reviewed human service meaning.
+   IF private.taxonomy_normalize_v1(v_plan->'path'->>(jsonb_array_length(v_plan->'path')-1))
+       <>private.taxonomy_normalize_v1(v_service) THEN
+      RAISE EXCEPTION 'BATCH_SERVICE_LEAF_MISMATCH' USING errcode='42501'; END IF;
    v_parent:=(v_plan->>'parentId')::uuid;
    PERFORM 1 FROM private.work_taxonomy_categories c
     JOIN private.work_taxonomy_category_modes m ON m.category_id=c.id
