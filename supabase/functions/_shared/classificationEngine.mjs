@@ -145,16 +145,57 @@ export function reviewClassificationProposal(input, snapshot, plan) {
 /** Small, identity-only AI context. Model receives catalog IDs + paths but
  * cannot grant itself write privileges. Explicitly disallow mode inference.
  */
-export function catalogPromptContext(snapshot, { maxItems = 220 } = {}) {
-  if (!isRecord(snapshot) || !Array.isArray(snapshot.categories) ||
-      !Number.isSafeInteger(snapshot.catalogVersion) || snapshot.categories.length > maxItems)
+/** Prompt selection is NOT an authority or a complete catalog search.
+ *  Catalog membership is still checked on the full server snapshot. When the
+ *  catalog grows, shortlist relevant branches instead of failing past 220 rows.
+ *  Absent from shortlist NEVER means the category is absent from the database.
+ */
+export function catalogPromptContext(snapshot,{maxItems=220,services=[]}={}) {
+  if (!isRecord(snapshot)||!Array.isArray(snapshot.categories)||
+      !Number.isSafeInteger(snapshot.catalogVersion)||snapshot.catalogVersion<1||
+      !Number.isInteger(maxItems)||maxItems<25||maxItems>220||
+      !Array.isArray(services)||services.length>20||
+      services.some(x=>typeof x!=='string'||x.length>2000))
     catalogError('PROMPT_LIMIT');
+  const all=snapshot.categories;
+  const byId=new Map(all.map(x=>[x.id,x]));
+  const roots=all.filter(x=>x.parentId==null).sort((a,b)=>a.label.localeCompare(b.label,'sr'));
+  if(roots.length>maxItems)catalogError('TOO_MANY_ROOTS');
+  const tokens=x=>(String(x??'').normalize('NFKC').toLowerCase().match(/[\\p{L}\\p{N}]+/gu)??[])
+    .filter(t=>t.length>=3);
+  const query=services.flatMap(tokens);
+  const wanted=new Set(query);
+  const ranked=all.filter(x=>!roots.some(root=>root.id===x.id)).map(node=>{
+    const own=tokens(node.label);
+    const ancestry=tokens((node.path??[]).join(' '));
+    const hit=own.filter(t=>wanted.has(t)).length;
+    const wide=ancestry.filter(t=>wanted.has(t)).length;
+    return {node,score:hit*10+wide*2+(query.length?0:0)};
+  }).sort((a,b)=>b.score-a.score||
+    a.node.label.localeCompare(b.node.label,'sr')||
+    a.node.id.localeCompare(b.node.id));
+  const selected=new Map(roots.map(x=>[x.id,x]));
+  for(const {node} of ranked){
+    const lineage=[];let current=node;const visited=new Set();
+    while(current&&!selected.has(current.id)&&!visited.has(current.id)&&lineage.length<=32){
+      visited.add(current.id);lineage.push(current);
+      current=current.parentId?byId.get(current.parentId):null;
+    }
+    // Skip incomplete/unresolvable ancestry, rather than showing a fake tree.
+    if(lineage.length>32||(current===undefined&&lineage.at(-1)?.parentId))continue;
+    if(selected.size+lineage.length>maxItems)continue;
+    for(const item of lineage.reverse())selected.set(item.id,item);
+    if(selected.size>=maxItems)break;
+  }
+  const shortlist=all.length<=maxItems?all:Array.from(selected.values());
   return JSON.stringify({
-    catalogVersion: snapshot.catalogVersion,
-    classificationAuthority: 'NONE',
-    instructions: 'Use exact categoryId when semantically identical; propose, never commit, new hierarchy. Category parent is not evidence of worker skill. Mode must be separately confirmed.',
-    categories: snapshot.categories.map(x => ({
-      id:x.id, parentId:x.parentId, label:x.label, path:x.path, modes:x.modes,
+    catalogVersion:snapshot.catalogVersion,
+    classificationAuthority:'NONE',
+    shortlisted:all.length>shortlist.length,
+    totalCategories:all.length,
+    instructions:'These categories are a partial relevance shortlist, NOT the entire catalog. An unseen category may already exist. Never assume absence implies novelty or invent IDs. Use NEEDS_REVIEW for uncertain identity; propose but never commit any new branch. Parent category is not evidence of worker competence. Mode must be separately confirmed.',
+    categories:shortlist.map(x=>({
+      id:x.id,parentId:x.parentId,label:x.label,path:x.path,modes:x.modes,
     })),
   });
 }
