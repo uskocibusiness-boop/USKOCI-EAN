@@ -8,6 +8,10 @@ on:
       - 'supabase/functions/_shared/classificationGeminiShadow.d.mts'
       - 'supabase/functions/_shared/classificationBatch.mjs'
       - 'supabase/functions/_shared/classificationBatch.d.mts'
+      - 'supabase/functions/_shared/taxonomyPostSaveWorker.mjs'
+      - 'supabase/functions/_shared/taxonomyPostSaveWorker.d.mts'
+      - 'supabase/functions/uskoci-taxonomy-postsave-worker/index.ts'
+      - 'supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs'
       - 'supabase/functions/uskoci-ai-interview/index.ts'
       - 'supabase/functions/uskoci-worker-interview/index.ts'
       - 'supabase/proofs/dynamic_taxonomy/unified-*.test.mjs'
@@ -27,7 +31,7 @@ jobs:
         with:
           node-version: '22'
       - name: Read-only canonical catalog and Gemini integration invariants
-        run: node --test supabase/proofs/dynamic_taxonomy/unified-*.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs supabase/proofs/dynamic_taxonomy/classification-batch.test.mjs
+        run: node --test supabase/proofs/dynamic_taxonomy/unified-*.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs supabase/proofs/dynamic_taxonomy/classification-batch.test.mjs supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs
 
   edge-typing:
     runs-on: ubuntu-latest
@@ -49,3 +53,4 @@ jobs:
         run: |
           deno check supabase/functions/uskoci-worker-interview/index.ts
           deno check supabase/functions/uskoci-ai-interview/index.ts
+          deno check supabase/functions/uskoci-taxonomy-postsave-worker/index.ts
