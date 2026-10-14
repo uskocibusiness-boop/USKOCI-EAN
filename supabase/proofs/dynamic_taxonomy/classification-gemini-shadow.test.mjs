@@ -111,3 +111,11 @@ test('Cyrillic review identity works without creating a second category',()=>{
  assert.deepEqual(result.statuses,['REUSE_CANDIDATE']);
  assert.deepEqual(result.output,need);
 });
+
+test('shadow Cyrillic and Latin names cannot create parallel candidate services',()=>{
+ const first={...plan('Popravka tipografske mašine',''),action:'CREATE_CHILD',parentId:lesson,proposedPath:['Popravka tipografske mašine']};
+ const second={...first,service:'Поправка типографске машине'};
+ const result=inspect(withShadow(need,[first,second]),snapshot,'NEED_SERVICE');
+ assert.deepEqual(result.statuses,['ADMISSION_REVIEW_REQUIRED','DUPLICATE_SERVICE']);
+ assert.deepEqual(result.output,need);
+});
