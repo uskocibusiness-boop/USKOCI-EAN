@@ -117,10 +117,6 @@ BEGIN
  THEN RAISE EXCEPTION 'OUTBOX_RETRY_BYPASSED_BACKOFF'; END IF;
  -- A post-save delivery failure must be recoverable with no new user action.
  v_recovered:=public.rpc_taxonomy_reconcile_reviewed_outbox_service(100);
- RAISE NOTICE 'OUTBOX_RECOVERY_DEBUG recovered=%, all=%, target=%',
- v_recovered,(SELECT count(*) FROM private.work_taxonomy_review_outbox_v1),
- (SELECT count(*) FROM private.work_taxonomy_review_outbox_v1
-  WHERE source_review_id='10000000-0000-4000-8000-000000000015');
  IF v_recovered<1
     OR NOT EXISTS(SELECT 1 FROM private.work_taxonomy_review_outbox_v1
        WHERE source_review_id='10000000-0000-4000-8000-000000000015'
