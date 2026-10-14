@@ -890,7 +890,7 @@ Deno.serve(async (req: Request) => {
             if (!result.ok) throw new Error('CATALOG_RPC_UNAVAILABLE');
             return result.data;
           });
-          taxonomyPrompt = catalogPromptContext(taxonomyCatalog, {
+          taxonomyPrompt = catalogPromptContext(taxonomyCatalog, { maxItems:96,
             services: [
               text.slice(0,2000),
               ...activeFacts.filter((fact:any)=>fact?.fact_key==='need.category')
