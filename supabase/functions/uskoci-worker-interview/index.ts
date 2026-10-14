@@ -159,7 +159,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   if (Deno.env.get('USKOCI_TAXONOMY_UNIFIED_SHADOW') === 'true') {
     try {
       taxonomyCatalog = await loadClassificationCatalog(rpc);
-      taxonomyPrompt = catalogPromptContext(taxonomyCatalog, {
+      taxonomyPrompt = catalogPromptContext(taxonomyCatalog, { maxItems:96,
         services: [
           ...(Array.isArray(context.candidate?.skills) ? context.candidate.skills : [])
             .filter((x:unknown): x is string => typeof x === 'string')
