@@ -162,6 +162,17 @@ BEGIN
     WHERE c.id=v_category AND c.state='ESTABLISHED'
       AND m.execution_scope=v_mode;
    IF NOT FOUND THEN RAISE EXCEPTION 'BATCH_CATEGORY_OR_MODE_MISSING' USING errcode='22023'; END IF;
+   -- A model-provided existing ID cannot change the actual meaning of
+   -- a human-reviewed service. Only a canonical name or STORED alias qualifies.
+   IF NOT EXISTS (
+     SELECT 1 FROM private.work_taxonomy_categories c
+     WHERE c.id=v_category AND c.state='ESTABLISHED'
+       AND (c.canonical_key=v_key OR EXISTS (
+         SELECT 1 FROM private.work_taxonomy_aliases a
+         WHERE a.category_id=c.id AND a.normalized_key=v_key))
+   ) THEN
+     RAISE EXCEPTION 'BATCH_SEMANTIC_IDENTITY_MISMATCH' USING errcode='42501';
+   END IF;
   ELSE
    IF v_plan ? 'categoryId' OR jsonb_typeof(v_plan->'path')<>'array'
       OR jsonb_array_length(v_plan->'path') NOT BETWEEN 1 AND 6
