@@ -93,7 +93,11 @@ BEGIN
  END IF;
  -- Fail closed for legacy reviews: the classification must be part of the
  -- SAME server-owned payload that the owner actually reviewed.
- IF v_review_digest IS NULL OR v_review_digest !~ '^[0-9a-f]{64}
+ IF v_review_digest IS NULL OR v_review_digest !~ '^[0-9a-f]{64}$'
+    OR v_review_plan IS NULL OR v_review_plan IS DISTINCT FROM p_plan
+    OR v_review_digest IS DISTINCT FROM v_expected_review_digest THEN
+  RAISE EXCEPTION 'ADMISSION_REVIEW_PLAN_NOT_DISPLAYED' USING errcode='42501';
+ END IF;
  SELECT catalog_version INTO v_version FROM private.work_taxonomy_control WHERE singleton;
  IF v_version IS NULL OR (p_plan->>'catalogVersion')::bigint <> v_version THEN
   RAISE EXCEPTION 'ADMISSION_STALE_CATALOG' USING errcode='40001'; END IF;
