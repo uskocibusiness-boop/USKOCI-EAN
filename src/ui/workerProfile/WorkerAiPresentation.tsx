@@ -155,8 +155,20 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
       <T accessibilityRole="alert" variant="body" style={[s.grow,s.ink]}>Dopuni: {review.missingRequired.map(missingLabel).join(', ')}.</T></View>:null}
     {review.missingRequired.includes('Ime')&&onAddName?<V2Action label="Dodaj ime" kind="secondary" compact onPress={onAddName} style={s.addName}/>:null}
     <ReviewGroup part="skills" {...group}>
-      {p.skills.length?<View style={s.chips}>{p.skills.map((skill,index)=><View key={`${index}:${skill}`} style={s.chip}>
-        <T selectable variant="note" style={s.chipText}>{skill}</T></View>)}</View>:<T variant="body" tone="muted">{EMPTY}</T>}
+      {p.skills.length?<View style={s.chips}>{p.skills.map((skill,index)=>{
+        // Scope shown here is part of the server-digested review, not a client
+        // inference or a second approval form. Unclassified skills show no fake scope.
+        const scopes=review.classificationState==='READY'
+          ?review.reviewedServiceModes?.filter(item=>item.service===skill).map(item=>item.mode==='ON_SITE'?'Na lokaciji':'Na daljinu')??[]
+          :[];
+        return <View key={`${index}:${skill}`} style={s.chip}>
+          <T selectable variant="note" style={s.chipText}>{skill}</T>
+          {scopes.length?<T variant="note" tone="muted">{scopes.join(' · ')}</T>:null}
+        </View>;
+      })}</View>:<T variant="body" tone="muted">{EMPTY}</T>}
+      {review.classificationState&&review.classificationState!=='READY'
+        ?<T testID="worker-classification-pending" variant="note" tone="muted">Usluge ostaju u profilu. Njihovo povezivanje sa odgovarajućim zadacima još se proverava.</T>
+        :null}
     </ReviewGroup>
     <ReviewGroup part="area" {...group}>
       <Fact art="pin" quiet={!place}>{place?`${place} · do ${p.location.radiusKm} km`:EMPTY}</Fact>
