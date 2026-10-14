@@ -159,14 +159,13 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   if (Deno.env.get('USKOCI_TAXONOMY_UNIFIED_SHADOW') === 'true') {
     try {
       taxonomyCatalog = await loadClassificationCatalog(rpc);
-      taxonomyPrompt = catalogPromptContext(taxonomyCatalog, { maxItems:96,
-        services: [
-          ...(Array.isArray(context.candidate?.skills) ? context.candidate.skills : [])
-            .filter((x:unknown): x is string => typeof x === 'string')
-            .slice(0, 12).map((x:string)=>x.slice(0,2000)),
-          input.text.slice(0,2000),
-        ],
-      });
+      const reviewedSkillHints: unknown[] = Array.isArray(context.candidate?.skills)
+        ? context.candidate.skills as unknown[] : [];
+      const services: string[] = [input.text.slice(0,2000)];
+      for (const skill of reviewedSkillHints.slice(0,12)) {
+        if (typeof skill === 'string') services.push(skill.slice(0,2000));
+      }
+      taxonomyPrompt = catalogPromptContext(taxonomyCatalog, { maxItems:96, services });
       console.info('WORKER_TAXONOMY_CATALOG_SHADOW', 'LOADED');
     } catch {
       console.info('WORKER_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE');
