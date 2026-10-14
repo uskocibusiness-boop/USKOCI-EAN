@@ -25,5 +25,7 @@ jobs:
         run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Check old review + signed category identity contract
         run: npx jest src/data/__tests__/ai-task-review-client.test.ts --runInBand --silent
+      - name: Restore generated entry reference contracts from canonical HTML
+        run: node ./scripts/sync-entry-reference-assets.cjs
       - name: Type-check the complete React Native client contracts
         run: npx tsc --noEmit --pretty false
