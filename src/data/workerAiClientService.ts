@@ -211,16 +211,22 @@ function recoveryCall(name:'rpc_read_worker_ai_turn_recovery'|'rpc_cancel_worker
     request:()=>supabaseKlijent().rpc(name,{p_expected_user_id:owner.accountId,p_conversation_id:conversationId,p_client_request_id:clientRequestId}),
     decode:v=>decodeWorkerAiTurnRecovery(v,owner.accountId,conversationId,clientRequestId)});
 }
+// Default OFF. Only an OTA/build explicitly targeting the versioned server
+// contract may opt into signed worker classification. Existing APKs keep the
+// original exact V1 RPC, read shape and Save behavior unchanged.
+const signedWorkerReviewEnabled=()=>process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW==='true';
 export const workerAiClientService={
   recoverTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_read_worker_ai_turn_recovery',conversationId,clientRequestId),
   cancelTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_cancel_worker_ai_turn',conversationId,clientRequestId),
   open:(clientRequestId:string)=>!uuid(clientRequestId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvori radni profil.')):
     call('rpc_open_worker_ai',{p_client_request_id:clientRequestId},decodeWorkerAiSnapshot,true),
   read:(conversationId:string)=>!uuid(conversationId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvori razgovor.')):
-    call('rpc_read_worker_ai',{p_conversation_id:conversationId},(v,a)=>decodeWorkerAiSnapshot(v,a,conversationId)),
+    call(signedWorkerReviewEnabled()?'rpc_read_worker_ai_taxonomy':'rpc_read_worker_ai',
+      {p_conversation_id:conversationId},(v,a)=>decodeWorkerAiSnapshot(v,a,conversationId)),
   patch:(conversationId:string,expectedRevision:number,patch:WorkerAiPatch)=>call('rpc_patch_worker_ai',
     {p_conversation_id:conversationId,p_expected_revision:expectedRevision,p_patch:JSON.parse(JSON.stringify(patch))},(v,a)=>decodeWorkerAiSnapshot(v,a,conversationId),true),
-  prepare:(conversationId:string,expectedRevision:number,activate:boolean)=>call('rpc_prepare_worker_ai_review',
+  prepare:(conversationId:string,expectedRevision:number,activate:boolean)=>call(
+    signedWorkerReviewEnabled()?'rpc_prepare_worker_ai_review_taxonomy':'rpc_prepare_worker_ai_review',
     {p_conversation_id:conversationId,p_expected_revision:expectedRevision,p_activate:activate},(v,a)=>decodeWorkerAiReview(v,a,conversationId),true),
   save:(review:WorkerAiReview,clientRequestId:string)=>{
     const owner=scope(),frozen=owner?decodeWorkerAiReview(review,owner.accountId,review.conversationId):null;
