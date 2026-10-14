@@ -121,7 +121,7 @@ test('catalog growth beyond 220 chooses bounded relevant services without fabric
     ...services,
   ]};
   const prompt=JSON.parse(catalogPromptContext(big,{
-    maxItems:30,services:['Želim izradu unikatnih rukavica, po meri.'],
+    maxItems:30,services:['Желим израду уникатних рукавица, по мери.'],
   }));
   assert.equal(prompt.shortlisted,true);
   assert.equal(prompt.totalCategories,341);
@@ -147,4 +147,24 @@ test('catalog shortlist never falsely identifies an unshown category as absent',
   assert.equal(result.shortlisted,true);
   assert.match(result.instructions,/Never assume absence implies novelty/);
   assert.ok(result.categories.every(item=>many.categories.some(x=>x.id===item.id)));
+});
+
+test('the two existing AI contexts may both shortlist without enabling category writes',()=>{
+ const big={catalogVersion:15,categories:[
+   {id:'11111111-1111-4111-8111-111111111111',
+    label:'Ručni rad',parentId:null,path:['Ručni rad'],modes:['ON_SITE']},
+   ...Array.from({length:300},(_,i)=>({
+    id:'aaaa1111-aaaa-4aaa-8aaa-'+(i+1).toString(16).padStart(12,'0'),
+    parentId:'11111111-1111-4111-8111-111111111111',
+    label:i===298?'Izrada pletenih rukavica':'Druga usluga '+i,
+    path:['Ručni rad',i===298?'Izrada pletenih rukavica':'Druga usluga '+i],
+    modes:['ON_SITE'],
+   })),
+ ]};
+ for (const hint of ['Израда плетених рукавица','Izrada pletenih rukavica']) {
+   const prompt=JSON.parse(catalogPromptContext(big,{maxItems:96,services:[hint]}));
+   assert.equal(prompt.classificationAuthority,'NONE');
+   assert.ok(prompt.categories.length<=96);
+   assert.ok(prompt.categories.some(x=>x.label==='Izrada pletenih rukavica'));
+ }
 });
