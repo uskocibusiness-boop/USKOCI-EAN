@@ -15,6 +15,19 @@ const isRecord = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const plain = v => typeof v === 'string' && v.length <= 1000;
 const modes = new Set(['REMOTE', 'ON_SITE']);
 const inputKinds = new Set(['WORKER_CAPABILITY','NEED_SERVICE']);
+const serbianCyrillic = Object.freeze({
+  а:'a',б:'b',в:'v',г:'g',д:'d',ђ:'đ',е:'e',ж:'ž',з:'z',и:'i',ј:'j',
+  к:'k',л:'l',љ:'lj',м:'m',н:'n',њ:'nj',о:'o',п:'p',р:'r',с:'s',
+  т:'t',ћ:'ć',у:'u',ф:'f',х:'h',ц:'c',ч:'č',џ:'dž',ш:'š',
+});
+/** Cross-script normalization for the SAME written service, never semantic inference. */
+export function normalizedClassificationIdentity(label) {
+  if (!safeLabel(label)) return null;
+  return label.normalize('NFKC').toLowerCase()
+    .replace(/[\u0400-\u04ff]/g, letter => serbianCyrillic[letter] ?? letter)
+    .normalize('NFC').trim().replace(/\s+/g, ' ');
+}
+
 // The canonical ID must not be treated as a semantic match merely because it exists.
 
 
@@ -98,6 +111,15 @@ export function reviewClassificationProposal(input, snapshot, plan) {
     if (!existing) return { accepted: false, status: 'UNKNOWN_CANONICAL_ID' };
     if (input.mode && (!Array.isArray(existing.modes) || !existing.modes.includes(input.mode)))
       return { accepted: false, status: 'MODE_NOT_SUPPORTED' };
+    // Model-provided category IDs and unverified aliases have no semantic authority.
+    if (plan.action === 'REUSE_ALIAS')
+      return { accepted: false, status: 'ALIAS_EVIDENCE_REQUIRED',
+        catalogVersion: snapshot.catalogVersion, capabilityAuthority: 'NONE',
+        notificationAuthority: 'NONE' };
+    if (normalizedClassificationIdentity(input.service) !== normalizedClassificationIdentity(existing.label))
+      return { accepted: false, status: 'SEMANTIC_IDENTITY_REVIEW_REQUIRED',
+        catalogVersion: snapshot.catalogVersion, capabilityAuthority: 'NONE',
+        notificationAuthority: 'NONE' };
     return { accepted: true, status: 'REUSE_CANDIDATE',
       categoryId: existing.id, catalogVersion: snapshot.catalogVersion,
       // Worker/need confirmation is STILL required before activation or dispatch.
