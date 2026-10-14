@@ -135,8 +135,39 @@ BEGIN
   'WORKER_CAPABILITY','10000000-0000-4000-8000-000000000010',v_bad);
   RAISE EXCEPTION 'BATCH_DUPLICATE_CANONICAL_WAS_ACCEPTED';
  EXCEPTION WHEN OTHERS THEN
-  IF SQLERRM<>'BATCH_DUPLICATE_CANONICAL_ID' THEN RAISE; END IF;
+  IF SQLERRM<>'BATCH_SEMANTIC_IDENTITY_MISMATCH' THEN RAISE; END IF;
  END;
+
+ -- Negative B2: a DIFFERENT reviewed service cannot borrow a plausible
+ -- canonical UUID. The previous implementation accepted this single-item plan.
+ v_bad:=jsonb_build_array(jsonb_build_object(
+   'action','REUSE_EXISTING','service','Iznajmljivanje klizaljki',
+   'mode','ON_SITE','categoryId',v_existing,'catalogVersion',7,
+   'reason','AI accidentally proposes a completely different existing category'));
+ INSERT INTO private.worker_ai_reviews(id,account_id,envelope,expires_at)
+ VALUES('10000000-0000-4000-8000-000000000013',
+   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+   '{"canAccept":true}'::jsonb,now()+interval '2 hours');
+ PERFORM private.disposable_sign_batch_review(
+  'WORKER_CAPABILITY','10000000-0000-4000-8000-000000000013',v_bad,
+  '["Iznajmljivanje klizaljki"]'::jsonb,
+  '[{"service":"Iznajmljivanje klizaljki","mode":"ON_SITE"}]'::jsonb);
+ INSERT INTO private.worker_ai_saves(review_id,account_id,client_request_id)
+ VALUES('10000000-0000-4000-8000-000000000013',
+   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+   '20000000-0000-4000-8000-000000000013');
+ BEGIN
+  PERFORM public.rpc_taxonomy_commit_reviewed_batch_service(
+   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+   '20000000-0000-4000-8000-000000000013',
+   'WORKER_CAPABILITY','10000000-0000-4000-8000-000000000013',v_bad);
+  RAISE EXCEPTION 'BATCH_FALSE_SERVICE_ID_WAS_ACCEPTED';
+ EXCEPTION WHEN OTHERS THEN
+  IF SQLERRM<>'BATCH_SEMANTIC_IDENTITY_MISMATCH' THEN RAISE; END IF;
+ END;
+ IF EXISTS (SELECT 1 FROM private.work_taxonomy_review_batches_v1
+  WHERE source_review_id='10000000-0000-4000-8000-000000000013')
+ THEN RAISE EXCEPTION 'BATCH_FALSE_ID_RECEIPT_CREATED'; END IF;
 
  -- Negative C: new canonical leaf cannot diverge from displayed service.
  v_bad:=jsonb_build_array(jsonb_build_object(
