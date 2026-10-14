@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS private.work_taxonomy_gemini_turn_hints_v1 (
   attempt_id uuid NOT NULL,
   source_fingerprint text NOT NULL CHECK (source_fingerprint ~ '^[a-f0-9]{64}$'),
   catalog_version bigint NOT NULL CHECK (catalog_version > 0),
-  proposals jsonb NOT NULL CHECK (jsonb_typeof(proposals)='array' AND jsonb_array_length(proposals) BETWEEN 1 AND 6),
+  proposals jsonb NOT NULL CHECK (jsonb_typeof(proposals)='array' AND jsonb_array_length(proposals) BETWEEN 1 AND 12),
   payload_digest text NOT NULL CHECK (payload_digest ~ '^[a-f0-9]{64}$'),
   created_at timestamptz NOT NULL DEFAULT statement_timestamp(),
   UNIQUE(purpose,account_id,turn_id)
@@ -33,7 +33,7 @@ CREATE OR REPLACE FUNCTION public.rpc_taxonomy_capture_gemini_turn_hints_service
 AS $capture$
 DECLARE
  v_source text;v_digest text;v_existing private.work_taxonomy_gemini_turn_hints_v1%ROWTYPE;
- v_row jsonb;v_count integer;
+ v_row jsonb;v_count integer;v_seen text[]:=ARRAY[]::text[];v_normalized text;
 BEGIN
  -- Definer privileges alone are not authorization; require the actual JWT role.
  IF coalesce(auth.jwt()->>'role','') <> 'service_role' THEN
@@ -48,7 +48,7 @@ BEGIN
    RAISE EXCEPTION 'TAXONOMY_CAPTURE_INVALID' USING errcode='22023';
  END IF;
  v_count:=jsonb_array_length(p_proposals);
- IF v_count NOT BETWEEN 1 AND 6 THEN
+ IF v_count NOT BETWEEN 1 AND CASE WHEN p_purpose='WORKER_CAPABILITY' THEN 12 ELSE 6 END THEN
    RAISE EXCEPTION 'TAXONOMY_CAPTURE_INVALID' USING errcode='22023';
  END IF;
  FOR v_row IN SELECT value FROM jsonb_array_elements(p_proposals) LOOP
@@ -76,6 +76,13 @@ BEGIN
           (v_row->>'categoryId'<>'' OR v_row->>'parentId' IS NULL
            OR v_row->>'parentId'='' OR jsonb_array_length(v_row->'proposedPath')<1))
    THEN RAISE EXCEPTION 'TAXONOMY_CAPTURE_PLAN_INVALID' USING errcode='22023'; END IF;
+   -- Identity duplicates cannot be used to smuggle another mode/service.
+   -- The canonical normalizer collapses Serbian Cyrillic/Latin variants.
+   v_normalized:=private.taxonomy_normalize_v1(v_row->>'service');
+   IF v_normalized IS NULL OR char_length(v_normalized)<3 OR v_normalized=ANY(v_seen) THEN
+     RAISE EXCEPTION 'TAXONOMY_CAPTURE_DUPLICATE_OR_INVALID_SERVICE' USING errcode='22023';
+   END IF;
+   v_seen:=array_append(v_seen,v_normalized);
  END LOOP;
 
  -- Only a DURABLY COMPLETED turn with the exact owner/attempt identity
@@ -104,6 +111,23 @@ BEGIN
  END IF;
  IF v_source IS NULL THEN
    RAISE EXCEPTION 'TAXONOMY_CAPTURE_TURN_UNCONFIRMED' USING errcode='42501';
+ END IF;
+ -- A succeeded LLM turn is NOT proof that any named service is in the current
+ -- worker profile. The candidate's saved skills must contain every proposed
+ -- service now, including after a later correction/removal in the same turn.
+ -- A partial set is permitted as an untrusted hint, but the eventual owner
+ -- review will refuse READY unless it covers ALL current services.
+ IF p_purpose='WORKER_CAPABILITY' AND EXISTS(
+    SELECT 1 FROM jsonb_array_elements(p_proposals) proposal(value)
+    WHERE NOT EXISTS(
+      SELECT 1 FROM private.worker_ai_sessions s,
+        LATERAL jsonb_array_elements_text(s.candidate->'skills') offered(skill)
+      WHERE s.account_id=p_account_id AND s.conversation_id=p_conversation_id
+        AND private.taxonomy_normalize_v1(offered.skill)=
+            private.taxonomy_normalize_v1(proposal.value->>'service')
+    )
+ ) THEN
+   RAISE EXCEPTION 'TAXONOMY_CAPTURE_WORKER_SERVICE_NOT_OFFERED' USING errcode='22023';
  END IF;
  v_digest:=encode(extensions.digest(p_proposals::text,'sha256'),'hex');
  INSERT INTO private.work_taxonomy_gemini_turn_hints_v1(
