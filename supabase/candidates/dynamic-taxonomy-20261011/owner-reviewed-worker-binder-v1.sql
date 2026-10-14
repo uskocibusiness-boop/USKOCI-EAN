@@ -135,10 +135,9 @@ BEGIN
           SELECT 1 FROM private.work_taxonomy_aliases a
           WHERE a.category_id=c.id AND a.normalized_key=v_key)))
    THEN RAISE EXCEPTION 'WORKER_BINDER_CATEGORY_STALE' USING errcode='42501'; END IF;
-   IF EXISTS(SELECT 1 FROM private.work_taxonomy_worker_capabilities cap
-       WHERE cap.worker_account_id=p_owner_account_id AND cap.category_id=v_category
-       AND cap.excluded)
-   THEN RAISE EXCEPTION 'WORKER_BINDER_EXCLUDED_CAPABILITY' USING errcode='PT409'; END IF;
+   -- A past withdrawal (excluded=true) is NOT permanent: the owner may
+   -- deliberately offer this service again in a NEW signed Save. ONLY this
+   -- binder may restore it, with zero inherited related-offer consent.
    IF v_mode='ON_SITE' THEN v_onsite:=true; ELSE v_remote:=true; END IF;
  END LOOP;
  -- A recent explicit global-mode change must not be overwritten by a delayed
@@ -163,7 +162,9 @@ BEGIN
    INSERT INTO private.work_taxonomy_worker_capabilities(
       worker_account_id,category_id,confirmed_at,allow_related_offers,excluded,origin)
    VALUES(p_owner_account_id,v_category,statement_timestamp(),false,false,'WORKER_CONFIRMED')
-   ON CONFLICT(worker_account_id,category_id) DO NOTHING;
+   ON CONFLICT(worker_account_id,category_id) DO UPDATE
+     SET confirmed_at=statement_timestamp(),updated_at=statement_timestamp(),
+         excluded=false,allow_related_offers=false,origin='WORKER_CONFIRMED';
    INSERT INTO private.taxonomy_confirmed_worker_modes_v1(
      worker_account_id,category_id,execution_scope,source_review_id,source_request_key,
      confirmed_at,active)
