@@ -1,11 +1,13 @@
 -- Gate A owner-signed worker review. SOURCE ONLY: NOT DEPLOYED.
--- Preserves original 3-argument RPC, session lock, owner, base-hash and
+-- Adds a SEPARATE opt-in 3-argument RPC; legacy RPC is left unchanged.
+-- Preserves original session lock, owner, base-hash and
 -- existing review digest. One ordinary Save confirms exactly the modes shown.
 -- Gemini hints are NEVER standalone consent or a capability grant.
 -- LIMIT: hints are per succeeded turn and source fingerprint. If a multi-turn
 -- conversation lacks complete same-source hints, classification stays PENDING;
 -- text/skills remain saveable but are NOT eligible via strict taxonomy matcher.
--- Before any DEV rollout: verify legacy APK decoder compatibility and produce
+-- Before DEV rollout: install legacy-safe snapshot reader and new versioned RPC,
+-- keep new client feature flag OFF until verified. Produce
 -- disposable PostgreSQL runtime proof of digest/revision/ownership.
 BEGIN;
 DO $dependencies$
@@ -15,7 +17,7 @@ BEGIN
  OR to_regclass('private.work_taxonomy_gemini_turn_hints_v1') IS NULL
  THEN RAISE EXCEPTION 'WORKER_REVIEW_SIGNED_DEPENDENCIES_MISSING'; END IF;
 END $dependencies$;
-CREATE OR REPLACE FUNCTION public.rpc_prepare_worker_ai_review(p_conversation_id uuid, p_expected_revision integer, p_activate boolean DEFAULT false)
+CREATE OR REPLACE FUNCTION public.rpc_prepare_worker_ai_review_taxonomy(p_conversation_id uuid, p_expected_revision integer, p_activate boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
