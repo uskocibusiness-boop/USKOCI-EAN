@@ -59,7 +59,11 @@ BEGIN
  ELSE RETURN NEW; END IF;
  IF v_review IS NULL OR v_review->'canAccept' IS DISTINCT FROM 'true'::jsonb
     OR jsonb_typeof(v_review->'classificationCandidates')<>'array'
-    OR jsonb_array_length(v_review->'classificationCandidates') NOT BETWEEN 1 AND 12
+    OR NOT (
+       (v_purpose='WORKER_CAPABILITY'
+         AND jsonb_array_length(v_review->'classificationCandidates') BETWEEN 1 AND 24)
+       OR (v_purpose='NEED_SERVICE'
+         AND jsonb_array_length(v_review->'classificationCandidates')=1))
     OR v_review->>'classificationCatalogFingerprint' IS NULL
  THEN RETURN NEW; END IF;
  v_plans:=v_review->'classificationCandidates';
@@ -190,7 +194,7 @@ BEGIN
    WHERE w.envelope->'canAccept'='true'::jsonb
      AND w.envelope->>'classificationCatalogFingerprint' IS NOT NULL
      AND CASE WHEN jsonb_typeof(w.envelope->'classificationCandidates')='array'
-       THEN jsonb_array_length(w.envelope->'classificationCandidates') BETWEEN 1 AND 12
+       THEN jsonb_array_length(w.envelope->'classificationCandidates') BETWEEN 1 AND 24
        ELSE false END
    UNION ALL
    SELECT c.account_id,c.client_request_id,c.review_id,
@@ -202,7 +206,7 @@ BEGIN
      AND t.envelope->'canAccept'='true'::jsonb
      AND t.envelope->>'classificationCatalogFingerprint' IS NOT NULL
      AND CASE WHEN jsonb_typeof(t.envelope->'classificationCandidates')='array'
-       THEN jsonb_array_length(t.envelope->'classificationCandidates') BETWEEN 1 AND 12
+       THEN jsonb_array_length(t.envelope->'classificationCandidates')=1
        ELSE false END
  ),
  missing AS (
