@@ -69,6 +69,14 @@ INSERT INTO private.work_taxonomy_categories VALUES(
 INSERT INTO private.work_taxonomy_category_modes VALUES
  ('33333333-3333-4333-8333-333333333333','ON_SITE'),
  ('33333333-3333-4333-8333-333333333333','REMOTE');
+-- Legacy worker Save previously withdrew this same service. Re-adding it
+-- through the exact owner-signed review is the ONLY way to reactivate it.
+INSERT INTO private.work_taxonomy_worker_capabilities(
+ worker_account_id,category_id,confirmed_at,allow_related_offers,excluded,origin)
+VALUES(
+ '11111111-1111-4111-8111-111111111111',
+ '33333333-3333-4333-8333-333333333333',
+ clock_timestamp()-interval '2 days',true,true,'WORKER_CONFIRMED');
 -- Build a signed human-review envelope using the canonical same-baseHash digest.
 WITH document AS (
  SELECT jsonb_build_object(
