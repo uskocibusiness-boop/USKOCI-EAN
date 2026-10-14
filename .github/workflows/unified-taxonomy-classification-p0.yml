@@ -4,9 +4,12 @@ on:
     paths:
       - 'supabase/functions/_shared/classificationEngine.mjs'
       - 'supabase/functions/_shared/classificationEngine.d.mts'
+      - 'supabase/functions/_shared/classificationGeminiShadow.mjs'
+      - 'supabase/functions/_shared/classificationGeminiShadow.d.mts'
       - 'supabase/functions/uskoci-ai-interview/index.ts'
       - 'supabase/functions/uskoci-worker-interview/index.ts'
       - 'supabase/proofs/dynamic_taxonomy/unified-*.test.mjs'
+      - 'supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs'
       - '.github/workflows/unified-taxonomy-classification-p0.yml'
   workflow_dispatch:
 jobs:
@@ -21,4 +24,4 @@ jobs:
         with:
           node-version: '22'
       - name: Read-only canonical catalog and Gemini integration invariants
-        run: node --test supabase/proofs/dynamic_taxonomy/unified-*.test.mjs
+        run: node --test supabase/proofs/dynamic_taxonomy/unified-*.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs
