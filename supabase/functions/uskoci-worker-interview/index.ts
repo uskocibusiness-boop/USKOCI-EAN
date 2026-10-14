@@ -172,8 +172,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     }
   }
   const history=context.messages.slice(-30).map((row:any)=>({role:row.role==='ASSISTANT'?'model':'user',parts:[{text:String(row.body).slice(0,4000)}]}));
-  const body=JSON.stringify({systemInstruction:{parts:[{text:instruction(context,new Date().toISOString())}, ...(taxonomyPrompt ? [{text: taxonomyPrompt},{text:geminiClassificationShadowInstruction()}] : [])]},contents:history,
-    generationConfig:{temperature:0.2,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,responseMimeType:'application/json',responseSchema:taxonomyCatalog ? withGeminiClassificationShadowSchema(workerProviderSchema()) : workerProviderSchema()}});
+  const body=JSON.stringify({systemInstruction:{parts:[{text:instruction(context,new Date().toISOString())}, ...(taxonomyPrompt ? [{text: taxonomyPrompt},{text:geminiClassificationShadowInstruction('WORKER_CAPABILITY')}] : [])]},contents:history,
+    generationConfig:{temperature:0.2,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,responseMimeType:'application/json',responseSchema:taxonomyCatalog ? withGeminiClassificationShadowSchema(workerProviderSchema(),'WORKER_CAPABILITY') : workerProviderSchema()}});
   if (new TextEncoder().encode(body).byteLength>AI_TEST_LIMITS.llmRequestBytes) { try { await fail(); } catch {} return json(413,{code:'WORKER_AI_CONTEXT_TOO_LARGE'}); }
   try {
     const reserved=await reserveAiTestBudget({supabaseUrl:url,serviceRoleKey:service,accountId:account,operationId:input.clientRequestId,kind:'LLM',signal:req.signal});
