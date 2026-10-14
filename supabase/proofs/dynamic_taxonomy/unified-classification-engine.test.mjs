@@ -106,3 +106,45 @@ test('unverified synonyms and broad parent words never confer canonical identity
     assert.equal(answer.status,'SEMANTIC_IDENTITY_REVIEW_REQUIRED');
   }
 });
+
+test('catalog growth beyond 220 chooses bounded relevant services without fabricating absence',()=>{
+  const parent='77777777-7777-4777-8777-777777777777';
+  const services=Array.from({length:340},(_,i)=>{
+    const label=i===337?'Izrada unikatnih rukavica':'Usluga iz oblasti '+String(i).padStart(3,'0');
+    return {
+      id:'88888888-8888-4888-8888-'+(i+1).toString(16).padStart(12,'0'),
+      label,parentId:parent,path:['Ručni rad',label],modes:['ON_SITE'],
+    };
+  });
+  const big={catalogVersion:91,categories:[
+    {id:parent,label:'Ručni rad',parentId:null,path:['Ručni rad'],modes:['ON_SITE']},
+    ...services,
+  ]};
+  const prompt=JSON.parse(catalogPromptContext(big,{
+    maxItems:30,services:['Želim izradu unikatnih rukavica, po meri.'],
+  }));
+  assert.equal(prompt.shortlisted,true);
+  assert.equal(prompt.totalCategories,341);
+  assert.equal(prompt.catalogVersion,91);
+  assert.equal(prompt.classificationAuthority,'NONE');
+  assert.ok(prompt.categories.length<=30);
+  assert.ok(prompt.categories.some(x=>x.label==='Izrada unikatnih rukavica'));
+  assert.ok(prompt.categories.some(x=>x.id===parent));
+  assert.match(prompt.instructions,/partial relevance shortlist/);
+  assert.doesNotMatch(JSON.stringify(prompt),/po meri\./);
+});
+test('catalog shortlist never falsely identifies an unshown category as absent',()=>{
+  const parent='77777777-7777-4777-8777-777777777777';
+  const many={catalogVersion:5,categories:[
+    {id:parent,label:'Radionica',parentId:null,path:['Radionica'],modes:['ON_SITE']},
+    ...Array.from({length:250},(_,i)=>({
+      id:'88888888-8888-4888-8888-'+(i+1).toString(16).padStart(12,'0'),
+      label:'Usluga '+i,parentId:parent,path:['Radionica','Usluga '+i],modes:['ON_SITE'],
+    })),
+  ]};
+  const result=JSON.parse(catalogPromptContext(many,{maxItems:25,services:['Sasvim nova usluga']}));
+  assert.ok(result.categories.length<=25);
+  assert.equal(result.shortlisted,true);
+  assert.match(result.instructions,/Never assume absence implies novelty/);
+  assert.ok(result.categories.every(item=>many.categories.some(x=>x.id===item.id)));
+});
