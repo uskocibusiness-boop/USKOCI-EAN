@@ -153,3 +153,35 @@ it('does not accept a partial classification contract or foreign signed worker r
  await expect(service.save(partial as WorkerAiReview,KEY)).resolves.toMatchObject({ok:false});
  expect(mockRpc).not.toHaveBeenCalled();
 });
+
+
+it('old installed APK mode uses ONLY the untouched legacy prepare/read RPCs',async()=>{
+ const prior=process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;
+ try{
+  delete process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;
+  await expect(service.prepare(CONVERSATION,2,true)).resolves.toMatchObject({ok:true});
+  await expect(service.read(CONVERSATION)).resolves.toMatchObject({ok:true});
+  expect(mockRpc.mock.calls.map(c=>c[0])).toEqual(['rpc_prepare_worker_ai_review','rpc_read_worker_ai']);
+ }finally{
+  if(prior===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;
+  else process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW=prior;
+ }
+});
+it('explicit OTA opt-in uses versioned signed prepare/read without changing Save RPC',async()=>{
+ const prior=process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;
+ try{
+  process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW='true';
+  const signed=signedWorkerReview();
+  mockRpc.mockImplementation(async (name:string)=>({data:name==='rpc_prepare_worker_ai_review_taxonomy'?signed:
+    name==='rpc_read_worker_ai_taxonomy'?{...snapshot(),review:signed}:
+    name==='rpc_save_worker_ai_review'?saved():null,error:null}));
+  await expect(service.prepare(CONVERSATION,2,true)).resolves.toEqual({ok:true,podatak:signed});
+  await expect(service.read(CONVERSATION)).resolves.toMatchObject({ok:true,podatak:{review:signed}});
+  await expect(service.save(signed,KEY)).resolves.toMatchObject({ok:true});
+  expect(mockRpc.mock.calls.map(c=>c[0])).toEqual([
+    'rpc_prepare_worker_ai_review_taxonomy','rpc_read_worker_ai_taxonomy','rpc_save_worker_ai_review']);
+ }finally{
+  if(prior===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;
+  else process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW=prior;
+ }
+});
