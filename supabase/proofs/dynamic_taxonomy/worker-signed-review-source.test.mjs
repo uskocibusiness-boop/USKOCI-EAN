@@ -41,6 +41,6 @@ test('builder only stores a review, never grants taxonomy identity or push autho
 });
 
 test('signed builder never replaces legacy worker review endpoint',()=>{
- assert.doesNotMatch(candidate,/CREATE OR REPLACE FUNCTION public\\.rpc_prepare_worker_ai_review\\(/);
- assert.match(candidate,/FUNCTION public\\.rpc_prepare_worker_ai_review_taxonomy\\(/);
+ assert.doesNotMatch(candidate,/CREATE OR REPLACE FUNCTION public\.rpc_prepare_worker_ai_review\(/);
+ assert.match(candidate,/FUNCTION public\.rpc_prepare_worker_ai_review_taxonomy\(/);
 });
