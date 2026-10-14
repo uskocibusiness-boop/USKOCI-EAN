@@ -36,6 +36,8 @@ BEGIN
  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','20000000-0000-4000-8000-000000000015');
  IF EXISTS(SELECT 1 FROM private.work_taxonomy_review_outbox_v1)
  THEN RAISE EXCEPTION 'OUTBOX_DISABLED_STILL_ENQUEUED'; END IF;
+ IF public.rpc_taxonomy_reconcile_reviewed_outbox_service(20)<>0 THEN
+  RAISE EXCEPTION 'OUTBOX_DISABLED_RECOVERY_NOT_INERT'; END IF;
 
  PERFORM private.disposable_sign_batch_review(
   'WORKER_CAPABILITY','10000000-0000-4000-8000-000000000013',v_worker,
@@ -113,6 +115,14 @@ BEGIN
  THEN RAISE EXCEPTION 'OUTBOX_NETWORK_RETRY_LOST'; END IF;
  IF jsonb_array_length(public.rpc_taxonomy_claim_reviewed_batches_service(5))<>0
  THEN RAISE EXCEPTION 'OUTBOX_RETRY_BYPASSED_BACKOFF'; END IF;
+ -- A post-save delivery failure must be recoverable with no new user action.
+ IF public.rpc_taxonomy_reconcile_reviewed_outbox_service(100)<1
+    OR NOT EXISTS(SELECT 1 FROM private.work_taxonomy_review_outbox_v1
+       WHERE source_review_id='10000000-0000-4000-8000-000000000015'
+       AND state='PENDING')
+ THEN RAISE EXCEPTION 'OUTBOX_SIGNED_SAVE_RECOVERY_MISSING'; END IF;
+ IF public.rpc_taxonomy_reconcile_reviewed_outbox_service(100)<>0 THEN
+  RAISE EXCEPTION 'OUTBOX_RECOVERY_NOT_IDEMPOTENT'; END IF;
  IF has_function_privilege('authenticated',
   'public.rpc_taxonomy_claim_reviewed_batches_service(integer)','EXECUTE')
  OR has_function_privilege('anon',
