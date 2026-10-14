@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS private.work_taxonomy_gemini_turn_hints_v1 (
   attempt_id uuid NOT NULL,
   source_fingerprint text NOT NULL CHECK (source_fingerprint ~ '^[a-f0-9]{64}$'),
   catalog_version bigint NOT NULL CHECK (catalog_version > 0),
-  proposals jsonb NOT NULL CHECK (jsonb_typeof(proposals)='array' AND jsonb_array_length(proposals) BETWEEN 1 AND 12),
+  proposals jsonb NOT NULL CHECK (jsonb_typeof(proposals)='array' AND jsonb_array_length(proposals) BETWEEN 1 AND 24),
   payload_digest text NOT NULL CHECK (payload_digest ~ '^[a-f0-9]{64}$'),
   created_at timestamptz NOT NULL DEFAULT statement_timestamp(),
   UNIQUE(purpose,account_id,turn_id)
@@ -44,11 +44,11 @@ BEGIN
     p_purpose NOT IN ('WORKER_CAPABILITY','NEED_SERVICE') OR
     coalesce(p_catalog_version,0) < 1 OR
     jsonb_typeof(p_proposals) IS DISTINCT FROM 'array' OR
-    pg_column_size(p_proposals)>10000 THEN
+    pg_column_size(p_proposals)>18000 THEN
    RAISE EXCEPTION 'TAXONOMY_CAPTURE_INVALID' USING errcode='22023';
  END IF;
  v_count:=jsonb_array_length(p_proposals);
- IF v_count NOT BETWEEN 1 AND CASE WHEN p_purpose='WORKER_CAPABILITY' THEN 12 ELSE 6 END THEN
+ IF v_count NOT BETWEEN 1 AND CASE WHEN p_purpose='WORKER_CAPABILITY' THEN 24 ELSE 6 END THEN
    RAISE EXCEPTION 'TAXONOMY_CAPTURE_INVALID' USING errcode='22023';
  END IF;
  FOR v_row IN SELECT value FROM jsonb_array_elements(p_proposals) LOOP
@@ -79,6 +79,7 @@ BEGIN
    -- Identity duplicates cannot be used to smuggle another mode/service.
    -- The canonical normalizer collapses Serbian Cyrillic/Latin variants.
    v_normalized:=private.taxonomy_normalize_v1(v_row->>'service');
+   IF p_purpose='WORKER_CAPABILITY' THEN v_normalized:=v_normalized||'|'||(v_row->>'mode'); END IF;
    IF v_normalized IS NULL OR char_length(v_normalized)<3 OR v_normalized=ANY(v_seen) THEN
      RAISE EXCEPTION 'TAXONOMY_CAPTURE_DUPLICATE_OR_INVALID_SERVICE' USING errcode='22023';
    END IF;
