@@ -3,6 +3,7 @@ import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION }
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { loadClassificationCatalog, catalogPromptContext } from '../_shared/classificationEngine.mjs';
+import { withGeminiClassificationShadowSchema, inspectGeminiClassificationShadow, geminiClassificationShadowInstruction } from '../_shared/classificationGeminiShadow.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info',
@@ -154,17 +155,19 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   // Feature-gated shared canonical catalog context. This is classification
   // SHADOW ONLY: it cannot create categories or activate capabilities.
   let taxonomyPrompt = '';
+  let taxonomyCatalog: Awaited<ReturnType<typeof loadClassificationCatalog>> | null = null;
   if (Deno.env.get('USKOCI_TAXONOMY_UNIFIED_SHADOW') === 'true') {
     try {
-      taxonomyPrompt = catalogPromptContext(await loadClassificationCatalog(rpc));
+      taxonomyCatalog = await loadClassificationCatalog(rpc);
+      taxonomyPrompt = catalogPromptContext(taxonomyCatalog);
       console.info('WORKER_TAXONOMY_CATALOG_SHADOW', 'LOADED');
     } catch {
       console.info('WORKER_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE');
     }
   }
   const history=context.messages.slice(-30).map((row:any)=>({role:row.role==='ASSISTANT'?'model':'user',parts:[{text:String(row.body).slice(0,4000)}]}));
-  const body=JSON.stringify({systemInstruction:{parts:[{text:instruction(context,new Date().toISOString())}, ...(taxonomyPrompt ? [{text: taxonomyPrompt}] : [])]},contents:history,
-    generationConfig:{temperature:0.2,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,responseMimeType:'application/json',responseSchema:workerProviderSchema()}});
+  const body=JSON.stringify({systemInstruction:{parts:[{text:instruction(context,new Date().toISOString())}, ...(taxonomyPrompt ? [{text: taxonomyPrompt},{text:geminiClassificationShadowInstruction()}] : [])]},contents:history,
+    generationConfig:{temperature:0.2,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,responseMimeType:'application/json',responseSchema:taxonomyCatalog ? withGeminiClassificationShadowSchema(workerProviderSchema()) : workerProviderSchema()}});
   if (new TextEncoder().encode(body).byteLength>AI_TEST_LIMITS.llmRequestBytes) { try { await fail(); } catch {} return json(413,{code:'WORKER_AI_CONTEXT_TOO_LARGE'}); }
   try {
     const reserved=await reserveAiTestBudget({supabaseUrl:url,serviceRoleKey:service,accountId:account,operationId:input.clientRequestId,kind:'LLM',signal:req.signal});
@@ -200,7 +203,12 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           key,body,signal:abort.signal,onText:()=>{},onUsage:value=>{usage.value=value;},timeoutMs:30000});
         if(abort.signal.aborted)throw new Error('WORKER_AI_CANCELLED');
         let output:Record<string,any>;
-        try { output=parseWorkerOutput(JSON.parse(raw)); } catch { await fail(); throw new Error('WORKER_AI_INVALID'); }
+        try {
+          const parsed = JSON.parse(raw);
+          const checked = taxonomyCatalog ? inspectGeminiClassificationShadow(parsed,taxonomyCatalog,'WORKER_CAPABILITY') : {output:parsed,statuses:[]};
+          if (checked.statuses.length) console.info('WORKER_TAXONOMY_PLAN_SHADOW', checked.statuses.join(','));
+          output=parseWorkerOutput(checked.output);
+        } catch { await fail(); throw new Error('WORKER_AI_INVALID'); }
         if (finishOnly(input.text) && ['ALLOW','CLARIFY'].includes(output.safety)) {
           output={...output,patch:{},assistantMessage:'Otvori pregled profila. Tamo možeš da dopuniš podatke i potvrdiš čuvanje.'};
         }
