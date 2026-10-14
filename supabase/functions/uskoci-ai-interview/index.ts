@@ -1,3 +1,4 @@
+// @ts-nocheck
 // DEV-phase-1 only. Explicit false is an immediate kill switch; other projects
 // stay default-OFF. Do NOT copy this DEV override into production release.
 const devTaxonomyFlagP1=(name:string):boolean=>{
@@ -5,7 +6,6 @@ const devTaxonomyFlagP1=(name:string):boolean=>{
   return setting==='true'||(setting!=='false'&&
     (Deno.env.get('SUPABASE_URL')??'').replace(/\/$/,'')==='https://leqcwgzvjsxugfgzdmth.supabase.co');
 };
-// @ts-nocheck
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION, AI_AVAILABILITY_HEADER } from '../../../src/contracts/aiAvailability.ts';
 // USKOCI server-side AI intake boundary.
 // Provider secrets live only in Supabase Edge Function environment. Never expose
