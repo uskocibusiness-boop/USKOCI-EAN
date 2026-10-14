@@ -45,3 +45,65 @@ Service ≠ occupation ≠ task modifiers ≠ tools ≠ city ≠ duration. Disti
 
 ## Open acceptance tests
 A/B novel worker and need; C/D both insertion orders; E alias normalization Serbian Latin/Cyrillic; F distinct skating services; G superseded intent; H mode consent; I no workers; J later-worker requeue; K revoked skill; L concurrent upsert; M AI failure/transaction rollback; N auth/RLS/unsafe relation. These are not fully E2E proven in P0. Existing pure tests exercise a subset of the read-only invariants only.
+
+## P1 owner-review cryptographic binding — source-only (14 October 2026)
+
+### Root cause removed in SQL candidate
+The first owner-approved admission SQL candidate accepted an arbitrary service-role-provided
+`p_plan` after checking only that the owner had a valid AI review and later knew the
+`displayedContentDigest`. A review of *something else* was not proof that the user
+saw the specific canonical ID, execution mode, and novel branch that would be committed.
+Passing the previous disposable PostgreSQL tests was not sufficient to establish this.
+
+In `supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-admission-v1.sql`,
+`rpc_taxonomy_prepare_admission_service` now requires an **exact**
+`envelope.classificationProposal` equality with the proposed plan and verifies the
+existing review's canonical digest formula independently of the caller:
+
+- Worker: SHA-256 of `(envelope - displayedContentDigest || {baseHash:workerReview.base_hash})::text`.
+- Need: SHA-256 of `{envelope:(envelope - displayedContentDigest),policy:needReview.policy_binding}::text`.
+- Both require a current, owner-bound, `canAccept=true` review and unexpired digest.
+
+The authenticated `rpc_taxonomy_approve_admission` also requires a persisted
+`private.worker_ai_saves` receipt or `private.ai_task_review_commands` acceptance
+for the **same owner and review**; plan digest alone is no longer sufficient.
+The candidate uses the same client request ID for its current one-plan idempotency
+key. It does not require a second UI button: the review's existing save/accept
+action is the only intended user-confirmation event. Production integration must
+verify the front end actually renders the approved classification as part of the
+review, not merely stores it in JSON.
+
+**Compatibility:** Existing DEV review envelopes do not contain
+`classificationProposal` and therefore intentionally fail this new admission
+gate. **No new SQL or Edge function in this PR was deployed to DEV/PROD.**
+Before any activation, the canonical worker/need review constructors must include
+the exact visible classification in the envelope *before* computing their
+`displayedContentDigest`. The client must render what the digest covers and
+then call the existing save/accept action, with additive follow-up admission.
+
+The disposable PG16/17 proof now covers legacy review rejection, undisplayed
+semantic variants, cross-account approval, incorrect digest, missing or unrelated
+save receipt, replays, worker/need canonical identity, risk in an intermediate
+parent label, stale unversioned legacy writers, mode mismatch, and a modified
+plan after approval. Source tests and full Deno checks remain independent.
+
+### Known limits — NOT launch-ready
+
+1. This P1 SQL candidate admits **one classification proposal per review**.
+   A worker can have many distinct services; these must ultimately be admitted
+   as an atomic reviewed **batch** (or with catalog-version re-planning).
+   Simply calling the current single-plan transaction repeatedly can make
+   later plans stale after the first new category bumps `catalog_version`.
+2. Gemini `classificationShadow` has not been persisted into server-owned
+   review envelopes, and the app's review UI has not rendered its own classification.
+3. This catalog admission only creates/reuses IDs. It intentionally does not
+   activate worker capabilities, bind need revisions or authorize dispatch/push.
+4. Legacy worker profile synchronization may still create categories on save,
+   bypassing owner-reviewed admission. Do not activate the new writer until that
+   legacy path is gated or retired safely.
+5. Catalog semantic alias deduplication, per-service mode consent, owner revisions,
+   concurrent batch proof and Android E2E are still missing.
+
+**Gate before DEV:** atomic multi-service review + correct display projection,
+existing saved-review binding, legacy writer retirement, need snapshot/worker
+capability reconciliation and explicit matching/notification proof.
