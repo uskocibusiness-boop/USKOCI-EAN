@@ -24,6 +24,17 @@ BEGIN
  END;
  v_worker_digest:=private.disposable_bind_classification_review(
  'WORKER_CAPABILITY','10000000-0000-4000-8000-000000000001',v_plan);
+ -- A differently worded but otherwise valid AI plan is not the displayed one.
+ BEGIN
+  PERFORM public.rpc_taxonomy_prepare_admission_service(
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  '20000000-0000-4000-8000-000000000001','WORKER_CAPABILITY',
+  '10000000-0000-4000-8000-000000000001',
+  jsonb_set(v_plan,'{reason}','"Different semantic meaning was never reviewed by the owner."'::jsonb));
+  RAISE EXCEPTION 'UNDISPLAYED_PLAN_ACCEPTED';
+ EXCEPTION WHEN OTHERS THEN
+  IF SQLERRM<>'ADMISSION_REVIEW_PLAN_NOT_DISPLAYED' THEN RAISE; END IF;
+ END;
  v_p:=public.rpc_taxonomy_prepare_admission_service(
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   '20000000-0000-4000-8000-000000000001',
@@ -60,6 +71,16 @@ BEGIN
  EXCEPTION WHEN OTHERS THEN
   IF SQLERRM<>'ADMISSION_REVIEW_SAVE_REQUIRED' THEN RAISE; END IF;
  END;
+ -- A successful save for some OTHER review with same request key is no proof.
+ INSERT INTO private.worker_ai_saves(review_id,account_id,client_request_id)
+ VALUES('10000000-0000-4000-8000-000000000003',
+ 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','20000000-0000-4000-8000-000000000001');
+ BEGIN
+  PERFORM public.rpc_taxonomy_approve_admission(v_id,v_p->>'planDigest',v_worker_digest);
+  RAISE EXCEPTION 'OTHER_REVIEW_SAVE_ACCEPTED';
+ EXCEPTION WHEN OTHERS THEN
+  IF SQLERRM<>'ADMISSION_REVIEW_SAVE_REQUIRED' THEN RAISE; END IF;
+ END;
  INSERT INTO private.worker_ai_saves(review_id,account_id,client_request_id)
  VALUES('10000000-0000-4000-8000-000000000001',
  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','20000000-0000-4000-8000-000000000001');
@@ -90,6 +111,13 @@ BEGIN
   v_need_plan
  );
  PERFORM set_config('test.auth_uid','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',true);
+ BEGIN
+  PERFORM public.rpc_taxonomy_approve_admission(
+    (v_need->>'admissionId')::uuid,v_need->>'planDigest',v_need_digest);
+  RAISE EXCEPTION 'UNACCEPTED_TASK_PLAN_APPROVED';
+ EXCEPTION WHEN OTHERS THEN
+  IF SQLERRM<>'ADMISSION_REVIEW_SAVE_REQUIRED' THEN RAISE; END IF;
+ END;
  INSERT INTO private.ai_task_review_commands(review_id,account_id,client_request_id,state)
  VALUES('10000000-0000-4000-8000-000000000002',
  'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','20000000-0000-4000-8000-000000000002','ACCEPTED');
