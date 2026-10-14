@@ -86,6 +86,9 @@ begin
  insert into private.worker_ai_reviews(id,account_id,conversation_id,revision,base_hash,envelope,expires_at)
  values(r.id,auth.uid(),p_conversation_id,s.revision,s.base_hash,doc,expires);
  return doc;
-end $function$
-
+end $function$;
+REVOKE ALL ON FUNCTION public.rpc_prepare_worker_ai_review_taxonomy(uuid,integer,boolean)
+ FROM PUBLIC,anon,service_role;
+GRANT EXECUTE ON FUNCTION public.rpc_prepare_worker_ai_review_taxonomy(uuid,integer,boolean)
+ TO authenticated;
 COMMIT;
