@@ -70,6 +70,21 @@ INSERT INTO private.ai_task_reviews(id,account_id,envelope,expires_at) VALUES (
   jsonb_build_object('canAccept',true,'displayedContentDigest',repeat('b',64)),
   now()+interval '2 hours'
 );
+-- Separate immutable review IDs for each negative scenario.
+INSERT INTO private.worker_ai_reviews(id,account_id,envelope,expires_at) VALUES
+ ('10000000-0000-4000-8000-000000000003',
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  jsonb_build_object('canAccept',true,'displayedContentDigest',repeat('c',64)),now()+interval '2 hours');
+INSERT INTO private.ai_task_reviews(id,account_id,envelope,expires_at) VALUES
+ ('10000000-0000-4000-8000-000000000004',
+  'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  jsonb_build_object('canAccept',true,'displayedContentDigest',repeat('d',64)),now()+interval '2 hours'),
+ ('10000000-0000-4000-8000-000000000005',
+  'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  jsonb_build_object('canAccept',true,'displayedContentDigest',repeat('e',64)),now()+interval '2 hours'),
+ ('10000000-0000-4000-8000-000000000006',
+  'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+  jsonb_build_object('canAccept',true,'displayedContentDigest',repeat('f',64)),now()+interval '2 hours');
 INSERT INTO private.work_taxonomy_categories(canonical_key,label,state,source,catalog_version)
 VALUES(private.taxonomy_normalize_v1('Uređenje prostora'),'Uređenje prostora','ESTABLISHED','SYSTEM',3);
 INSERT INTO private.work_taxonomy_category_modes(category_id,execution_scope,source_ref)
