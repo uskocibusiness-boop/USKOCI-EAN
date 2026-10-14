@@ -698,6 +698,11 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
           {snapshot?.locationConflict ? <Surface kind="note" tone="warn"><T accessibilityRole="alert" style={s.warnText}>
             Mesto je promenjeno posle prethodnog pregleda. Prikazano je trenutno mesto; pregledaj ga ili izmeni pre objave.
           </T></Surface> : null}
+          {/* Optional signed classification status. Legacy reviews show no notice. */}
+          {review.classificationState && review.classificationState !== 'READY' ?
+            <Surface kind="note" tone="warn"><T variant="note">
+              Vrsta posla se još proverava. Tvoj nacrt ostaje sačuvan; automatske preporuke mogu sačekati potvrdu kategorije.
+            </T></Surface> : null}
           {/* The task detail as it is published: Airbnb-style clean preview with zero redundant intermediate cards. */}
           <ReviewDetail need={need} parts={parts} person={reviewer} knownPeopleCount={knownPeopleCount}
             photos={photoAssets.length ? <ReviewGallery key={photoAssets.join(':')} assetIds={photoAssets} pencil={photosAt} />
