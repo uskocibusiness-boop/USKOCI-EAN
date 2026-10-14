@@ -15,12 +15,48 @@ CREATE TABLE IF NOT EXISTS private.work_taxonomy_category_modes (
 );
 CREATE TABLE private.worker_ai_reviews (
   id uuid PRIMARY KEY,account_id uuid NOT NULL,envelope jsonb NOT NULL,
+  base_hash text NOT NULL DEFAULT 'disposable-base-hash',
   expires_at timestamptz NOT NULL
 );
 CREATE TABLE private.ai_task_reviews (
-  id uuid PRIMARY KEY,account_id uuid NOT NULL,envelope jsonb NOT NULL,
-  expires_at timestamptz NOT NULL
+ id uuid PRIMARY KEY,account_id uuid NOT NULL,envelope jsonb NOT NULL,
+ policy_binding jsonb NOT NULL DEFAULT '{}'::jsonb,
+ expires_at timestamptz NOT NULL
 );
+CREATE TABLE private.worker_ai_saves(
+ review_id uuid NOT NULL, account_id uuid NOT NULL, client_request_id uuid NOT NULL,
+ receipt jsonb NOT NULL DEFAULT '{}'::jsonb,PRIMARY KEY(review_id,account_id,client_request_id)
+);
+CREATE TABLE private.ai_task_review_commands(
+ review_id uuid NOT NULL, account_id uuid NOT NULL,client_request_id uuid NOT NULL,
+ state text NOT NULL DEFAULT 'ACCEPTED', PRIMARY KEY(review_id,account_id,client_request_id)
+);
+-- ONLY the isolated fixture simulates a review prepared from a fully built
+-- server-owned envelope. Production must extend the two canonical review
+-- preparers BEFORE their displayedContentDigest is calculated.
+CREATE OR REPLACE FUNCTION private.disposable_bind_classification_review(
+ p_purpose text,p_review_id uuid,p_plan jsonb
+) RETURNS text LANGUAGE plpgsql AS $bind$
+DECLARE e jsonb;b text;pol jsonb;d text;
+BEGIN
+ IF p_purpose='WORKER_CAPABILITY' THEN
+  SELECT envelope,base_hash INTO STRICT e,b FROM private.worker_ai_reviews
+  WHERE id=p_review_id;
+  e:=(e-'displayedContentDigest')||jsonb_build_object('classificationProposal',p_plan);
+  d:=encode(extensions.digest((e||jsonb_build_object('baseHash',b))::text,'sha256'),'hex');
+  UPDATE private.worker_ai_reviews SET envelope=e||jsonb_build_object('displayedContentDigest',d)
+  WHERE id=p_review_id;
+ ELSIF p_purpose='NEED_SERVICE' THEN
+  SELECT envelope,policy_binding INTO STRICT e,pol FROM private.ai_task_reviews
+  WHERE id=p_review_id;
+  e:=(e-'displayedContentDigest')||jsonb_build_object('classificationProposal',p_plan);
+  d:=encode(extensions.digest(jsonb_build_object('envelope',e,'policy',pol)::text,'sha256'),'hex');
+  UPDATE private.ai_task_reviews SET envelope=e||jsonb_build_object('displayedContentDigest',d)
+  WHERE id=p_review_id;
+ ELSE RAISE EXCEPTION 'UNKNOWN_FIXTURE_PURPOSE'; END IF;
+ RETURN d;
+END $bind$;
+
 -- Persist the same proof identity in a disposable owner-reviewed profile and need review.
 INSERT INTO private.worker_ai_reviews(id,account_id,envelope,expires_at) VALUES (
   '10000000-0000-4000-8000-000000000001',
