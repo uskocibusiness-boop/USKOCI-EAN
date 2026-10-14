@@ -15,6 +15,8 @@ const isRecord = v => v !== null && typeof v === 'object' && !Array.isArray(v);
 const plain = v => typeof v === 'string' && v.length <= 1000;
 const modes = new Set(['REMOTE', 'ON_SITE']);
 const inputKinds = new Set(['WORKER_CAPABILITY','NEED_SERVICE']);
+// The canonical ID must not be treated as a semantic match merely because it exists.
+
 
 function catalogError(reason) { throw new Error('CLASSIFICATION_CATALOG_' + reason); }
 
