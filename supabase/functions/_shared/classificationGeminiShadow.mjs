@@ -7,7 +7,7 @@ const UUID=/^[a-f\d]{8}-[a-f\d]{4}-[1-8][a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12}$
 const modes=new Set(['ON_SITE','REMOTE','UNCONFIRMED']);
 const record=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const sane=(v,min,max)=>typeof v==='string'&&v.trim().length>=min&&v.trim().length<=max&&!/[<>\u0000-\u001f]/.test(v);
-const maxServices=purpose=>purpose==='WORKER_CAPABILITY'?12:6;
+const maxServices=purpose=>purpose==='WORKER_CAPABILITY'?24:6;
 const shadowField='classificationShadow';
 
 /** Extend the existing Gemini JSON schema without changing the old required
@@ -39,7 +39,7 @@ export function withGeminiClassificationShadowSchema(baseSchema,purpose='NEED_SE
 export function geminiClassificationShadowInstruction(purpose='NEED_SERVICE') {
   return [
     purpose==='WORKER_CAPABILITY'
-      ? 'Additional OPTIONAL output classificationShadow: a FULL SNAPSHOT (0 to 12) of services the person currently offers, after applying your patch to the existing candidate, not just newly-mentioned activities. Use EXACT service strings that the updated skills list contains; never invent work. This is non-authoritative classification metadata.'
+      ? 'Additional OPTIONAL output classificationShadow: a FULL SNAPSHOT (0 to 24 mode proposals for at most 12) of services the person currently offers, after applying your patch to the existing candidate, not just newly-mentioned activities. Use EXACT service strings that the updated skills list contains; never invent work. This is non-authoritative classification metadata.'
       : 'Additional OPTIONAL output field classificationShadow: 0 to 6 SEMANTIC SERVICE proposals for the CURRENT task turn; never fabricate work.',
     'Do not change safety/assistantMessage/facts/patch/dialogue. This extra field is PRIVATE, never user consent or catalog authority.',
     'Each item must have exactly service, mode, action, categoryId, parentId, proposedPath, reason, catalogVersion.',
