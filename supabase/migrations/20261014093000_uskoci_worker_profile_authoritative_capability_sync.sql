@@ -88,8 +88,8 @@ BEGIN
           excluded = false,
           -- Re-adding a withdrawn skill must NOT resurrect previous related opt-ins.
           allow_related_offers = CASE
-            WHEN private.work_taxonomy_worker_capabilities.excluded THEN false
-            ELSE private.work_taxonomy_worker_capabilities.allow_related_offers
+            WHEN work_taxonomy_worker_capabilities.excluded THEN false
+            ELSE work_taxonomy_worker_capabilities.allow_related_offers
           END;
   END LOOP;
 
