@@ -1,0 +1,48 @@
+name: Worker signed review builder (disposable PostgreSQL)
+on:
+  pull_request:
+    paths:
+      - 'supabase/candidates/dynamic-taxonomy-20261011/worker-review-signed-classification-v1.sql'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/disposable-worker-signed-builder-*.sql'
+      - '.github/workflows/taxonomy-worker-signed-builder-pg-proof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  signed-review-builder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['16','17']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Prepare isolated session and Gemini evidence dependencies
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-worker-versioned-read-fixture.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-worker-signed-builder-fixture.sql
+      - name: Install new versioned signed review RPC (not legacy)
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/worker-review-signed-classification-v1.sql
+      - name: Prove signed display digest, owner, revision and unknown-mode refusal
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-worker-signed-builder-assert.sql
