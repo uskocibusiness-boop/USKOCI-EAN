@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { ScreenHeader } from '../../ui/system/ScreenHeader';
 import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { AppState } from 'react-native';
+import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { router, useFocusEffect } from 'expo-router';
 import type { PotrebaProjekcija } from '../../contracts/projections';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
@@ -97,7 +98,7 @@ function OwnedCollection() {
     onApplications={applications}
     onProfile={onProfile}
     onBack={() => navigate(() => { if (router.canGoBack()) router.back(); else router.replace('/'); })}
-    onNew={() => navigate(() => router.navigate('/nova'))}
+    onNew={() => navigate(() => router.push({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } }))}
     // The first encounter's quiet way ("Pogledaj zadatke", "Papir na stolu", 2026-10-08): other people's tasks, the Zadaci tab. Same guard as every press here.
     onExplore={() => navigate(() => router.navigate('/zadaci'))} />;
 }
