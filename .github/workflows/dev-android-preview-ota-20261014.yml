@@ -1,5 +1,5 @@
 # Owner-requested DEV Android preview OTA for Test 101 intake recovery, 15 October 2026.
-# Self-path trigger ONLY: tested Android receipt reconciliation and visible clarification questions.
+# Self-path trigger ONLY: Test101 hospital landmark map handoff fix (server and phone).
 name: DEV Android preview OTA 20261014
 on:
   push:
@@ -61,7 +61,7 @@ jobs:
       - name: Verify TypeScript before publication
         run: npx tsc --noEmit
       - name: Verify fresh Home entry and deleted-intake journal recovery
-        run: npx jest src/data/__tests__/ai-owned-intake-screen.test.tsx src/data/__tests__/v3-home-screen.test.tsx src/data/__tests__/intake-location-order.test.ts --runInBand --silent
+        run: npx jest src/data/__tests__/ai-owned-intake-screen.test.tsx src/data/__tests__/ai-natural-server-guard.test.ts src/data/__tests__/v3-home-screen.test.tsx src/data/__tests__/intake-location-order.test.ts --runInBand --silent
       - name: Publish latest feature-branch client to Android preview ONLY
         shell: bash
         run: |
