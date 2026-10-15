@@ -118,6 +118,14 @@ describe('natural server AI response without bypassing authoritative review', ()
     const staleAsk = call(reply('ASK', 'U kom delu grada je posao?'), local);
     expect(staleAsk.assistantMessage).toContain('potvrdi tačku');
   });
+  it('does not replace a natural ACK after a landmark is already recorded', () => {
+    const local = facts('need.exact_address').map(f => f.fact_key === 'need.task_geography'
+      ? { ...f, fact_value: { mode: 'STATIONARY', start: { city: 'Užice', area: 'kod bolnice u Užicu' } } } : f);
+    const msg = 'Važi, sačuvana je izmena. Možeš još nešto da dopuniš.';
+    expect(call(reply('ACK', msg), local).assistantMessage).toBe(msg);
+    expect(call(reply('ANSWER', 'To znači da pin još nije potvrđen.'), local).assistantMessage)
+      .toBe('To znači da pin još nije potvrđen.');
+  });
   it('does not confuse the city repeated as an area with a usable search hint', () => {
     const local = facts('need.exact_address').map(f => f.fact_key === 'need.task_geography'
       ? { ...f, fact_value: { mode: 'STATIONARY', start: { city: 'Užice', area: 'Užice' } } } : f);
