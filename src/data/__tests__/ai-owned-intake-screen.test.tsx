@@ -497,13 +497,29 @@ it('creates nothing until the first word, and then exactly one conversation', as
   expect(mockOpen).not.toHaveBeenCalled(); expect(mockLoad).not.toHaveBeenCalled();
   await blur(); await focus();
   expect(mockOpen).not.toHaveBeenCalled();
-  expect(text()).toContain('Reci šta ti treba.');
+  expect(text()).toContain('Ćao! 👋 Šta ti danas treba da se uradi?');
+  expect(tree.root.findAllByProps({ testID: 'ai-local-opening' })).toHaveLength(1);
+  expect(mockOpen).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
 
   await type(); await act(async () => submit().onPress());
+  expect(tree.root.findAllByProps({ testID: 'ai-local-opening' })).toHaveLength(1);
+  expect(mockSend).toHaveBeenCalledTimes(1);
   expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockSend).toHaveBeenCalledTimes(1);
   expect(mockSend.mock.calls[0][0]).toBe(id);
   await blur(); await focus();
   expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockAbandon).not.toHaveBeenCalled();
+});
+it('presents one local assistant greeting before loaded history without creating a Gemini message', async () => {
+  mockLoad.mockResolvedValue(conversation({ messages: [
+    { id: other, fromAi: false, body: 'Treba mi krečenje.', safety: null, proposedFactIds: [] },
+    { id: 'aaaaaaab-1111-4111-8111-111111111111', fromAi: true, body: 'Kada bi ti odgovaralo?', safety: 'ALLOW', proposedFactIds: [] },
+  ] }));
+  await resume();
+  const greeting = tree.root.findAllByProps({ testID: 'ai-local-opening' });
+  expect(greeting).toHaveLength(1);
+  expect(greeting[0].props.accessibilityLabel).toBe('USKOČI: Ćao! 👋 Šta ti danas treba da se uradi?');
+  expect(mockOpen).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
+  expect(text()).toContain('Kada bi ti odgovaralo?');
 });
 // UX needs R18: 38 of the first 62 conversations never received a word. The empty conversation offers whole sentences a person might say
 // (what, when, where), not names of categories; one tap puts a sentence in the field for the person to finish.
