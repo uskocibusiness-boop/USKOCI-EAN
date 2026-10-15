@@ -1,4 +1,4 @@
-import type { DogovorProjekcija, MojaPrijavaProjekcija, PotrebaProjekcija, RadnikProfilProjekcija } from '../contracts/projections';
+import type { DogovorProjekcija, MojaPrijavaProjekcija, PotrebaProjekcija, PrilikaProjekcija, RadnikProfilProjekcija } from '../contracts/projections';
 import { prijava } from '../ui/system/plural';
 import { readableTitle } from './needDetailPresentation';
 import { hasNeedAttention, ownedTaskCounts, type OwnedTaskCounts } from './marketplaceView';
@@ -31,7 +31,8 @@ export type HomeSection<T> = { kind: 'known'; value: T } | { kind: 'unavailable'
  */
 export type HomeWorkProfileRead = Pick<RadnikProfilProjekcija, 'stanje' | 'dostupanOdmah'>;
 export type HomeReads = { needs: HomeSection<PotrebaProjekcija[]>; applications: HomeSection<MojaPrijavaProjekcija[]>;
-  agreements: HomeSection<DogovorProjekcija[]>; workerProfile?: HomeSection<HomeWorkProfileRead | null> };
+  agreements: HomeSection<DogovorProjekcija[]>; workerProfile?: HomeSection<HomeWorkProfileRead | null>;
+  opportunities?: HomeSection<PrilikaProjekcija[]> };
 export type HomeTarget = { kind: 'NEED'; needId: string } | { kind: 'CANDIDATES'; needId: string }
   | { kind: 'APPLICATION'; applicationId: string } | { kind: 'AGREEMENT'; agreementId: string }
   /** R02: the Dogovor has no term yet. The row opens the form that proposes one (Izmene Dogovora, "Predloži termin"). */

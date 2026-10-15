@@ -1,6 +1,7 @@
 import { useRef, type ReactNode } from 'react';
-import { RefreshControl, StyleSheet, Switch, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
+import type { PrilikaProjekcija } from '../../contracts/projections';
 import { Avatar } from '../system/Avatar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import type { HomeAttention, HomeRaspored, HomeRow, HomeSection, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
@@ -74,6 +75,8 @@ export type HomePresentationProps = {
    * (their initials, or a drawn person). Without it, or without a profile id, the stand-in is the face.
    */
   photo?: (profileId: string, standIn: ReactNode) => ReactNode;
+  opportunities?: readonly PrilikaProjekcija[];
+  onOpenOpportunity?: (id: string) => void;
 };
 
 /** The picture of a front door. 64 dp sets both doors' height (owner, 2026-10-07: smaller doors, about 88 dp). */
@@ -274,7 +277,12 @@ function applicationsLine(section: HomeSection<ApplicationCounts>): string {
 
 /** Discovery remains the single source of truth for live tasks, distances and prices.
  * Never display invented nearby offers or imply that a sample listing is actionable. */
-function ExploreTasksAction({ onEarn }: { onEarn: () => void }) {
+function ExploreTasksAction({ onEarn, opportunities, onOpenOpportunity }: {
+  onEarn: () => void;
+  opportunities?: readonly PrilikaProjekcija[];
+  onOpenOpportunity?: (id: string) => void;
+}) {
+  const items = opportunities?.filter(item => item.primaNovePrijave !== false) ?? [];
   return (
     <View style={s.carouselSection}>
       <View style={s.carouselHeader}>
@@ -287,6 +295,51 @@ function ExploreTasksAction({ onEarn }: { onEarn: () => void }) {
           <T variant="meta" tone="green" style={{ fontWeight: '600' }}>Pogledaj sve →</T>
         </Press>
       </View>
+      {items.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carouselList}>
+          {items.slice(0, 8).map(item => {
+            const isUrgent = item.urgency?.level === 'HITNO';
+            const priceText = item.ponudjenaCena ? `${item.ponudjenaCena.iznos.toLocaleString('sr-RS')} RSD` : 'Cena po ponudi';
+            return (
+              <Press
+                key={item.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Zadatak ${item.naslov}, ${priceText}, ${item.podrucjeTekst}`}
+                haptic="select"
+                scaleTo={sys.motion.scale.row}
+                onPress={() => onOpenOpportunity ? onOpenOpportunity(item.id) : onEarn()}
+                style={[s.carouselCard, materialControl.raised]}
+              >
+                <View style={s.carouselCardHead}>
+                  {isUrgent ? (
+                    <View style={s.carouselUrgentBadge}>
+                      <T variant="meta" style={s.carouselUrgentText}>⚡ HITNO</T>
+                    </View>
+                  ) : (
+                    <View style={s.carouselCategoryBadge}>
+                      <T variant="meta" numberOfLines={1} style={s.carouselCategoryText}>{item.detalji?.kategorija ?? 'Zadatak'}</T>
+                    </View>
+                  )}
+                  <T variant="meta" tone="muted" numberOfLines={1} style={{ fontSize: 11, maxWidth: 90 }}>
+                    {item.podrucjeTekst || 'Srbija'}
+                  </T>
+                </View>
+                <T variant="bodyStrong" numberOfLines={2} style={s.carouselCardTitle}>
+                  {readableTitle(item.naslov)}
+                </T>
+                <View style={s.carouselCardBottom}>
+                  <T variant="bodyStrong" tone="green" style={s.carouselCardPrice}>
+                    {priceText}
+                  </T>
+                  <T variant="note" tone="muted" numberOfLines={1} style={{ maxWidth: 90 }}>
+                    {item.vremeTekst || 'Fleksibilno'}
+                  </T>
+                </View>
+              </Press>
+            );
+          })}
+        </ScrollView>
+      ) : null}
     </View>
   );
 }
@@ -360,7 +413,7 @@ export function HomePresentation(p: HomePresentationProps) {
   const pull = usePullRefresh(p.onRefresh, p.refreshing);
   return <Screen kind="root" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
     refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
-    <ExploreTasksAction onEarn={p.onEarn} />
+    <ExploreTasksAction onEarn={p.onEarn} opportunities={p.opportunities} onOpenOpportunity={p.onOpenOpportunity} />
     <TrustSeal />
     <StartActions onPublish={p.onPublish} onEarn={p.onEarn} />
     {p.intakeResume}
@@ -452,6 +505,26 @@ const s = StyleSheet.create({
   carouselHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, gap: sys.space.md },
   carouselTitle: { fontSize: 19, fontWeight: '700', color: sys.color.ink, letterSpacing: -0.3 },
   seeAllButton: { paddingVertical: 4, paddingHorizontal: 8 },
+  carouselList: { paddingVertical: sys.space.sm, paddingHorizontal: 2, gap: sys.space.md },
+  carouselCard: {
+    width: 230,
+    minHeight: 120,
+    padding: sys.space.md,
+    borderRadius: sys.radius.card,
+    backgroundColor: sys.color.surface,
+    borderWidth: 1,
+    borderColor: sys.color.line,
+    justifyContent: 'space-between',
+    gap: sys.space.xs,
+  },
+  carouselCardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  carouselUrgentBadge: { backgroundColor: sys.color.orangeSoft, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  carouselUrgentText: { color: sys.color.orange, fontWeight: '700', fontSize: 10 },
+  carouselCategoryBadge: { backgroundColor: sys.color.wash, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  carouselCategoryText: { color: sys.color.ink, fontWeight: '600', fontSize: 10 },
+  carouselCardTitle: { fontSize: 15, lineHeight: 20, color: sys.color.ink },
+  carouselCardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4 },
+  carouselCardPrice: { fontSize: 14, fontWeight: '700' },
   trustSeal: {
     flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12,
     backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line, gap: 10, marginBottom: 8,
