@@ -35,6 +35,7 @@ const current = [
   ['need.title', 'Prenos ormara'], ['need.category', 'Selidba'], ['need.description', 'Preneti ormar do kombija'],
   ['need.people_needed', 2], ['need.price_mode', 'OFFERS'], ['need.schedule_kind', 'FLEXIBLE'],
   ['need.task_country_code', 'RS'], ['need.task_geography', { mode: 'STATIONARY', start: { city: 'Novi Sad' } }],
+  ['need.exact_address', 'Ulica za test, Novi Sad'],
 ] as const;
 const facts = (drop?: string): Fact[] => current.filter(([key]) => key !== drop)
   .map(([fact_key, fact_value]) => ({ fact_key, fact_value, status: 'CONFIRMED' }));
@@ -99,6 +100,28 @@ describe('natural server AI response without bypassing authoritative review', ()
     const result = call(turn);
     expect(result.safety).toBe('CLARIFY');
     expect(result.proposals).toHaveLength(0);
+  });
+  it('keeps a city-only task in conversation instead of claiming review readiness', () => {
+    const found = facts('need.exact_address');
+    const result = call(reply('REVIEW', 'Otvori pregled zadatka. Tamo proveri podatke pre objave.'), found);
+    expect(result.assistantMessage).toContain('U kom delu grada');
+    expect(result.assistantMessage).toContain('orijentir');
+    expect(result.proposals).toHaveLength(0);
+  });
+  it('retargets stale ASK to a human location hint when all machine-required facts exist', () => {
+    const result = call(reply('ASK', 'Otvori pregled zadatka.'), facts('need.exact_address'));
+    expect(result.assistantMessage).toContain('ulica');
+  });
+  it('preserves a real direct answer without hijacking into a map question', () => {
+    const result = call(reply('ACK', 'To obično znači jednu ruku premaza.'), facts('need.exact_address'));
+    result.dialogue.next = 'ANSWER';
+    const spoken = call({ ...result, assistantMessage: 'Mogu to da objasnim.', dialogue: {...result.dialogue, next:'ANSWER'} }, facts('need.exact_address'));
+    expect(spoken.assistantMessage).toBe('Mogu to da objasnim.');
+  });
+  it('does not require a private street for REMOTE tasks', () => {
+    const remote = facts('need.exact_address').map(row => row.fact_key === 'need.task_geography'
+      ? { ...row, fact_value: { mode: 'REMOTE' } } : row);
+    expect(call(reply('REVIEW', 'Pogledaj nacrt.'), remote).assistantMessage).toBe('Pogledaj nacrt.');
   });
   it('keeps the BLOCK safety result intact', () => {
     const blocked = reply('REVIEW', 'Ne mogu da pomognem sa tim zahtevom.');
