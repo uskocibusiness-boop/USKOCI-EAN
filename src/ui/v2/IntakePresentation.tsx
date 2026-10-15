@@ -273,6 +273,10 @@ export function IntakePresentation(props: Props) {
   const [panel, setPanel] = useState<'options' | 'photos' | null>(null);
   // Asked inline, so the map sits beside the words. Dismissing it leaves a way back.
   const [hiddenPlace, setHiddenPlace] = useState<string | null>(null);
+  // A mounted location widget can remain outside the Android viewport after
+  // returning from the keyboard/long conversation. Keep a visible manual path
+  // to the actual map, not another Gemini turn.
+  const [mapReveal, setMapReveal] = useState<{ placeKey: string; tick: number } | null>(null);
   // A confirmed place reopens its editor only on an explicit tap of its line; this is the place that tap was for.
   const [savedPlaceEdit, setSavedPlaceEdit] = useState<string | null>(null);
   const askSeen = useRef(false);
@@ -404,7 +408,15 @@ export function IntakePresentation(props: Props) {
   const incompleteHandoff = open && !showSummary && reviewAllowed && !needsPoint && !busy && !pending && !props.error
     && lastReply?.fromAi && (SERVER_REVIEW_ENDINGS.has(lastReply.body)
       || lastReply.body === 'Pregled još nije dovršen. Možeš da dopuniš opis zadatka ili otvoriš pregled.');
-  const footerAction = incompleteHandoff
+  const canJumpToMap = askOpen && needsPoint && !placeDisabled;
+  const jumpToMap = () => {
+    if (!canJumpToMap) return;
+    Keyboard.dismiss();
+    setMapReveal(old => ({ placeKey, tick: old?.placeKey === placeKey ? old.tick + 1 : 1 }));
+  };
+  const footerAction = canJumpToMap
+    ? <V2Action label="Prikaži mesto na mapi" kind="secondary" tone="neutral" onPress={jumpToMap} />
+    : incompleteHandoff
     ? <V2Action label="Pregledaj i dopuni zadatak" kind="secondary" tone="neutral" onPress={outsidePlace(props.onReview)} />
     : completed && props.canReview
     ? <V2Action label={props.reviewLabel} style={brandAction} disabled={!reviewAllowed} onPress={outsidePlace(props.onReview)} />
@@ -444,9 +456,10 @@ export function IntakePresentation(props: Props) {
     // First-time pin lookup is interactive too. Without a key the conversation shell
     // never scrolls its newly mounted location sheet into view after the AI reply:
     // people see "Pomeri pin" but no map. The user can still scroll back normally.
-    interactiveContextKey={askOpen && (needsPoint || editingPlace || editingSavedPlace) ? placeKey : undefined}
+    interactiveContextKey={askOpen && (needsPoint || editingPlace || editingSavedPlace)
+      ? `${placeKey}:${mapReveal?.placeKey === placeKey ? mapReveal.tick : 0}` : undefined}
     // A tap on the line, which may sit far up the thread, opens its editor at the end: that editor is revealed.
-    revealInteractiveContext={editingSavedPlace}
+    revealInteractiveContext={editingSavedPlace || (askOpen && mapReveal?.placeKey === placeKey)}
     threadNotes={notes.length ? notes : undefined}
     value={value} canEdit={props.canEdit} canSend={props.canSubmit && (!editingPlace || contextualReply)}
     sendBlockedReason={editingPlace ? 'Prvo potvrdi mesto ili zatvori mapu.' : undefined}
