@@ -28,7 +28,7 @@ import { useTaskPhotoUploads } from '../../ui/media/useTaskPhotoUploads';
 
 type IntakeSnapshot = { conversation: AiNeedV2Conversation; turn: AiNeedTurnStatus | null; recovery: AiNeedTurnRecovery | null };
 type SubmittedDraft = { value: string; revision: number };
-type PendingTurn = { id: string; body: string | null; submittedDraft: SubmittedDraft | null; locationContext?: LocationDialogueRequest['locationContext'] };
+type PendingTurn = { id: string; body: string | null; submittedDraft: SubmittedDraft | null; locationContext?: LocationDialogueRequest['locationContext']; image?: { base64: string; mimeType: string } };
 
 export default function NovaPotrebaV2() {
   const params = useLocalSearchParams<{ conversationId?: string | string[]; entryKey?: string | string[] }>();
@@ -215,8 +215,8 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
   const writable = stanje?.status === 'OPEN' && stanje.safety !== 'BLOCK' && !abandoning.current;
   const canSubmit = writable && !editor.loading && !radi && !editor.uncertain && (!pending || knownRetry);
 
-  const submitTurn = async (body: string, submittedDraft: SubmittedDraft | null = null, pointLease: LocationReplyLease | null = null) => {
-    if (!canAct() || !canSubmit || !body || (pointLease && !pointLease.isCurrent())) { pointLease?.cancel(); return; }
+  const submitTurn = async (body: string, submittedDraft: SubmittedDraft | null = null, pointLease: LocationReplyLease | null = null, image?: { base64: string; mimeType: string }) => {
+    if (!canAct() || !canSubmit || (!body && !image) || (pointLease && !pointLease.isCurrent())) { pointLease?.cancel(); return; }
     // Context remains attached to the original request key, including in-memory safe retries. A restored journal id
     // has no context/lease and can only recover its receipt; it cannot replay a confirmation against a new map.
     locationFlight.current = pointLease;
@@ -233,7 +233,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
         if (!opened.ok) return opened;
         conversation.current = id = opened.podatak.conversationId;
       }
-      const command: PendingTurn = request.current ?? { id: noviUuidZahtevId(), body, submittedDraft,
+      const command: PendingTurn = request.current ?? { id: noviUuidZahtevId(), body, submittedDraft, image,
         ...(pointLease ? { locationContext: pointLease.context } : {}) };
       request.current = command;
       try {
@@ -243,7 +243,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
       }
       // Backgrounding can retire the map question while storage is pending, before an HTTP abort
       // controller exists. Returning to the foreground does not revive that confirmation lease.
-      if (!isCurrent() || !command.body || (pointLease && !pointLease.isCurrent()))
+      if (!isCurrent() || (!command.body && !command.image) || (pointLease && !pointLease.isCurrent()))
         return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
       const abort = new AbortController(); streamAbort.current?.abort(); streamAbort.current = abort;
       setStreamingText('');
@@ -251,7 +251,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
       try {
         if (command.locationContext) {
           const resolved = await resolveLocationDialogue({ mode: 'locationReply', conversationId: id,
-            text: command.body, clientRequestId: command.id, locationContext: command.locationContext }, {
+            text: command.body ?? '', clientRequestId: command.id, locationContext: command.locationContext }, {
             signal: abort.signal, isCurrent: () => isCurrent() && request.current === command && !abort.signal.aborted,
           });
           if (!resolved.ok) result = resolved;
@@ -269,7 +269,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
         } else {
           // The answer can introduce a location AND ask the next question. Wait for its canonical facts before presenting it;
           // otherwise that next question flashes above the map. Worker-profile streaming has no such location phase.
-          result = await aiNeedV2Izvor.sendMessage(id, command.body, command.id, { signal: abort.signal, onText: () => {} });
+          result = await aiNeedV2Izvor.sendMessage(id, command.body ?? '', command.id, { signal: abort.signal, onText: () => {} }, command.image);
           if (result.ok && result.podatak.state === 'SUCCEEDED' && isCurrent() && request.current === command && !abort.signal.aborted)
             turnRoles.current[result.podatak.receipt.assistantMessageId] = 'ordinary';
         }
