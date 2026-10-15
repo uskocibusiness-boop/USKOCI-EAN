@@ -336,7 +336,7 @@ export function IntakePresentation(props: Props) {
   // A city is not a usable address. Let the AI ask for the street, number or nearby
   // landmark in the normal conversation first; only then offer the human-confirmed pin.
   // An existing confirmed place always remains editable from its own line.
-  const addressReady = typeof placeFacts.exactAddress === 'string' && !!placeFacts.exactAddress.trim();
+  const addressReady = place?.geography?.mode !== 'STATIONARY' || (typeof placeFacts.exactAddress === 'string' && !!placeFacts.exactAddress.trim());
   const askOpen = showPlace && (placeComplete ? editingSavedPlace : addressReady && !pointAskHidden);
   if (askOpen) askSeen.current = true;
   // Arrival animation keeps the route's stable key; retained history uses the durable ID after the first send.
