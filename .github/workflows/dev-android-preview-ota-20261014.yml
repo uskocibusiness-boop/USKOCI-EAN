@@ -1,5 +1,5 @@
 # Owner-requested DEV Android preview OTA for Test 101 intake recovery, 15 October 2026.
-# Self-path trigger ONLY: Zero-token warm AI opening + retained intro before the first server message.
+# Self-path trigger ONLY: Zero-cost greeting verified independently of canonical transcript and map facts.
 name: DEV Android preview OTA 20261014
 on:
   push:
