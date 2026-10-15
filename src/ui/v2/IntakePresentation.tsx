@@ -333,7 +333,11 @@ export function IntakePresentation(props: Props) {
   const confirmedPoints = place?.resolvedLocation?.points ?? [];
   const placeComplete = showPlace && !needsPoint && confirmedPoints.length > 0;
   const editingSavedPlace = placeComplete && savedPlaceEdit === placeKey;
-  const askOpen = showPlace && (placeComplete ? editingSavedPlace : !pointAskHidden);
+  // A city is not a usable address. Let the AI ask for the street, number or nearby
+  // landmark in the normal conversation first; only then offer the human-confirmed pin.
+  // An existing confirmed place always remains editable from its own line.
+  const addressReady = typeof placeFacts.exactAddress === 'string' && !!placeFacts.exactAddress.trim();
+  const askOpen = showPlace && (placeComplete ? editingSavedPlace : addressReady && !pointAskHidden);
   if (askOpen) askSeen.current = true;
   // Arrival animation keeps the route's stable key; retained history uses the durable ID after the first send.
   const orderScope = conversation.conversationId || props.conversationKey || '';
@@ -345,7 +349,7 @@ export function IntakePresentation(props: Props) {
   const ordered = orderIntakeLocation(orderMemory.read(orderScope), {
     scope: orderScope, messages: conversation.messages, roles: props.turnRoles ?? {},
     causalMessageId: geographyId ? [...conversation.messages].reverse().find(message => message.fromAi && message.proposedFactIds.includes(geographyId))?.id : undefined,
-    pendingLocation: needsPoint && !!requestedPlace,
+    pendingLocation: askOpen && needsPoint && !!requestedPlace,
     confirmedLocation: !!place && gap.done === gap.total,
     canRelease: !busy && !pending && !props.error,
     preserveHistory: !open || conversation.safety === 'BLOCK', confirmationKey: fingerprint(placeKey),
@@ -495,7 +499,7 @@ export function IntakePresentation(props: Props) {
           if (editingSavedPlace) setSavedPlaceEdit(null); else setHiddenPlace(placeKey);
         }} />
     </Suspense>
-      : showPlace && !placeComplete && pointAskHidden
+      : showPlace && !placeComplete && pointAskHidden && addressReady
         ? <V2Action tone={needsPoint ? 'brand' : 'neutral'} label="Pokaži mesto na mapi" kind={needsPoint ? 'primary' : 'quiet'} style={needsPoint ? brandAction : undefined}
           onPress={() => { Keyboard.dismiss(); setHiddenPlace(null); }} /> : undefined}
     // A fragment is truthy even when every branch inside it is null, which drew an empty
