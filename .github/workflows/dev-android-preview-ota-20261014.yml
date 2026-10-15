@@ -1,5 +1,5 @@
-# Explicit owner-requested DEV Android preview OTA, 14 October 2026.
-# Self-path trigger ONLY: no automatic OTA on further classification commits.
+# Owner-requested DEV Android preview OTA for Test 101 intake recovery, 15 October 2026.
+# Self-path trigger ONLY: no automatic OTA on unrelated code commits.
 name: DEV Android preview OTA 20261014
 on:
   push:
@@ -60,6 +60,8 @@ jobs:
         run: npm ci --include=dev
       - name: Verify TypeScript before publication
         run: npx tsc --noEmit
+      - name: Verify task intake recovery and uncertain-send regression
+        run: npx jest src/data/__tests__/ai-owned-intake-screen.test.tsx --runInBand --silent
       - name: Publish latest feature-branch client to Android preview ONLY
         shell: bash
         run: |
