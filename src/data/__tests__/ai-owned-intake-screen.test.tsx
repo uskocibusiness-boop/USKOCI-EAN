@@ -1153,7 +1153,7 @@ describe('the confirmed place is a line of the conversation', () => {
     expect(mockSend).not.toHaveBeenCalled();
   });
 
-  it.each(['new', 'resumed'])('keeps the next question after location confirmation through %s conversation and later resume', async entry => {
+  it.each(['new', 'resumed'])('keeps a follow-up question visible before the pin through %s conversation and later resume', async entry => {
     const question = { ...message('next-price', true, 'Koliki iznos nudiš?'), proposedFactIds: ['need.task_geography'] };
     const initial = [...before, question];
     mockLoad.mockResolvedValue(placed(null, initial));
@@ -1163,19 +1163,19 @@ describe('the confirmed place is a line of the conversation', () => {
       mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
       await render(); await type('Bulevar oslobođenja 65, Novi Sad'); await act(async () => submit().onPress());
     }
-    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad']);
+    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad', 'USKOČI: Koliki iznos nudiš?']);
     expect(asks()).toHaveLength(1);
-    // Closing or saving without a confirmed canonical point cannot uncover the future question.
+    // The question is real and should remain visible while pin confirmation is pending.
     await act(async () => ask().onSaved());
-    expect(text()).not.toContain('Koliki iznos nudiš?');
+    expect(text()).toContain('Koliki iznos nudiš?');
     const withClarification = [...initial, message('place-reply', false, 'Kod ulaza.'), message('clarify-place', true, 'Pomeraj tačku do ulaza.')];
     mockLoad.mockResolvedValue(placed(null, withClarification));
     await act(async () => ask().onSaved());
-    expect(text()).not.toContain('Koliki iznos nudiš?');
+    expect(text()).toContain('Koliki iznos nudiš?');
     mockLoad.mockResolvedValue(placed(fromProvider, withClarification));
     await act(async () => ask().onSaved());
-    const expected = ['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad', 'Ti: Kod ulaza.',
-      'USKOČI: Pomeraj tačku do ulaza.', 'PLACE', 'USKOČI: Koliki iznos nudiš?'];
+    const expected = ['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad',
+      'USKOČI: Koliki iznos nudiš?', 'Ti: Kod ulaza.', 'USKOČI: Pomeraj tačku do ulaza.', 'PLACE'];
     expect(order()).toEqual(expected);
     expect(asks()).toHaveLength(0);
     await act(async () => tree.unmount()); await resume();
@@ -1203,7 +1203,7 @@ describe('the confirmed place is a line of the conversation', () => {
     expect(mockSend).toHaveBeenCalledTimes(sends); expect(docked()).toHaveLength(0);
   });
 
-  it('waits for both canonical route endpoints before releasing the next question', async () => {
+  it('keeps the route follow-up question visible even before both pins are confirmed', async () => {
     const route = { mode: 'POINT_TO_POINT', start: { city: 'Novi Sad' }, end: { city: 'Beograd' } };
     const messages = [...before, { ...message('route-next', true, 'Koliko osoba treba?'), proposedFactIds: ['need.task_geography'] }];
     const state = (complete: boolean) => conversation({ messages, facts: [publicFact('need.task_country_code', 'RS'), publicFact('need.task_geography', route),
@@ -1211,12 +1211,12 @@ describe('the confirmed place is a line of the conversation', () => {
         points: [{ slot: 'start', latitudeE6: 45258900, longitudeE6: 19832700, origin: { kind: 'MANUAL_PIN' } },
           ...(complete ? [{ slot: 'end', latitudeE6: 44820000, longitudeE6: 20460000, origin: { kind: 'MANUAL_PIN' } }] : [])] }), privacyClass: 'PRIVATE' }] });
     mockLoad.mockResolvedValue(state(false)); await resume();
-    expect(asks()).toHaveLength(1); expect(text()).not.toContain('Koliko osoba treba?');
+    expect(asks()).toHaveLength(1); expect(text()).toContain('Koliko osoba treba?');
     await act(async () => ask().onSaved());
-    expect(text()).not.toContain('Koliko osoba treba?');
+    expect(text()).toContain('Koliko osoba treba?');
     mockLoad.mockResolvedValue(state(true)); await act(async () => ask().onSaved());
     expect(asks()).toHaveLength(0);
-    expect(order().slice(-2)).toEqual(['PLACE', 'USKOČI: Koliko osoba treba?']);
+    expect(order().slice(-2)).toEqual(['USKOČI: Koliko osoba treba?', 'PLACE']);
   });
 
   it('closes a reopened editor once its save is confirmed, even when the same place was confirmed again', async () => {
