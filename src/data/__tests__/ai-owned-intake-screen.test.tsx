@@ -1020,6 +1020,21 @@ it('keeps the real Gemini question visible and does not open a map for city-only
   expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(0);
 });
 
+it.each(['area', 'label'] as const)('offers map pin search for spoken %s without inventing a private exact address', async slot => {
+  const geography = { mode: 'STATIONARY', start: { city: 'Užice', [slot]: 'kod bolnice u Užicu' } };
+  mockLoad.mockResolvedValue(conversation({ facts: [
+    publicFact('need.task_country_code', 'RS'),
+    publicFact('need.task_geography', geography),
+  ], messages: [
+    { id: other, fromAi: false, body: 'Kod bolnice u Užicu.', safety: null, proposedFactIds: [] },
+  ] }));
+  await resume();
+  expect(tree.root.findAllByType('PointAsk' as React.ElementType)).toHaveLength(1);
+  expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(1);
+  expect(mockSend).not.toHaveBeenCalled();
+  expect(text()).not.toContain('Privatna adresa');
+});
+
 // Confirmed locations now remain in the same lazy surface as the incomplete ask.
 // Its own suite proves preview/edit/clean-close; this screen owns visibility and competing actions.
 it('keeps a saved place inline and brings a put-away point ask back from the menu', async () => {
