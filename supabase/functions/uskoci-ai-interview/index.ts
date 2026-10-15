@@ -750,9 +750,20 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
   // permission to publish; server-owned review still controls actual readiness.
   const geography = facts.get('need.task_geography') as any;
   const streetOrLandmark = facts.get('need.exact_address');
-  const cityOnlyStationary = geography?.mode === 'STATIONARY'
-    && !(typeof streetOrLandmark === 'string' && streetOrLandmark.trim());
+  // A spoken neighborhood or POI belongs to the geography that Gemini already
+  // proposed. It starts a map SEARCH, never a verified coordinate or exact address.
+  // Requiring the private exact-address field caused endless repeated questions.
+  const tidyPlace = (part: unknown) => typeof part === 'string'
+    ? part.normalize('NFKC').toLocaleLowerCase('sr-Latn-RS').replace(/[^\\p{L}\\p{N}]+/gu, ' ').trim() : '';
+  const city = tidyPlace(geography?.start?.city);
+  const nearHint = [geography?.start?.area, geography?.start?.label].some(part => {
+    const hint = tidyPlace(part);
+    return !!hint && hint !== city && !['ovde', 'moja lokacija', 'trenutna lokacija', 'gde se nalazim'].includes(hint);
+  });
+  const hasPlaceHint = (typeof streetOrLandmark === 'string' && !!streetOrLandmark.trim()) || nearHint;
+  const cityOnlyStationary = geography?.mode === 'STATIONARY' && !hasPlaceHint;
   const nearestPlaceQuestion = 'U kom delu grada je posao? Dovoljna je ulica ili neki bliski orijentir; tačku ćemo zatim proveriti na mapi.';
+  const mapConfirmationMessage = 'Hajde da proverimo predlog mesta na mapi. Pomeri pin ako treba, pa potvrdi tačku.';
   let assistantMessage = turn.assistantMessage;
   if (dialogue?.next === 'ASK') {
     // Preserve an actual question when its field is missing; otherwise retarget
@@ -760,14 +771,15 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     if (!missing.includes(dialogue.questionKey)) {
       assistantMessage = missing.length ? incompleteMessage()
         : cityOnlyStationary ? nearestPlaceQuestion
+        : geography?.mode === 'STATIONARY' && hasPlaceHint ? mapConfirmationMessage
         : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
     }
   } else if (dialogue?.next === 'REVIEW' && missing.length) {
     assistantMessage = incompleteMessage();
-  } else if (cityOnlyStationary && !missing.length && dialogue?.next !== 'ANSWER') {
-    // A complete checklist is not the same as a usable local place. Prevent
-    // Gemini's premature generic "open review" from hiding the missing location.
-    assistantMessage = nearestPlaceQuestion;
+  } else if (!missing.length && geography?.mode === 'STATIONARY' && dialogue?.next !== 'ANSWER') {
+    // REVIEW/ACK without the owner-confirmed pin is not a review-ready state.
+    // With a real hint the UI offers map lookup; without it, ask only once for a hint.
+    assistantMessage = cityOnlyStationary ? nearestPlaceQuestion : mapConfirmationMessage;
   }
   // ACK is not permission to replace the answer with another robotic template.
   // The validated assistantMessage is already bounded and is not publication authority.
