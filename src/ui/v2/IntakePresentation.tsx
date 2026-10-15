@@ -441,7 +441,10 @@ export function IntakePresentation(props: Props) {
     footerAction={footerAction}
     newConversation={props.onRestart ? { onPress: outsidePlace(props.onRestart), disabled: props.restartDisabled || editingPlace }
       : ended && props.onNewTask ? { onPress: props.onNewTask, disabled: props.newTaskDisabled } : undefined}
-    interactiveContextKey={askOpen && (editingPlace || editingSavedPlace) ? placeKey : undefined}
+    // First-time pin lookup is interactive too. Without a key the conversation shell
+    // never scrolls its newly mounted location sheet into view after the AI reply:
+    // people see "Pomeri pin" but no map. The user can still scroll back normally.
+    interactiveContextKey={askOpen && (needsPoint || editingPlace || editingSavedPlace) ? placeKey : undefined}
     // A tap on the line, which may sit far up the thread, opens its editor at the end: that editor is revealed.
     revealInteractiveContext={editingSavedPlace}
     threadNotes={notes.length ? notes : undefined}
