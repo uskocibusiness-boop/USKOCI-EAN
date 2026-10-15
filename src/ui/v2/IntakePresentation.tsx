@@ -396,7 +396,16 @@ export function IntakePresentation(props: Props) {
   if (props.canReview) menu.push({ key: 'review', label: props.reviewLabel, icon: 'document', disabled: !reviewAllowed, onPress: outsidePlace(props.onReview) });
   // A missing point put away with "Kasnije" comes back from here. Hiding affects only its current location identity, never
   // the next place; a confirmed place is its own line in the thread and needs no menu row.
-  if (showPlace && !placeComplete && pointAskHidden) menu.push({ key: 'place', label: 'Mesto na mapi', icon: 'pin', onPress: () => setHiddenPlace(null) });
+  // Never make the first pin reachable only through automatic scroll. The
+  // overflow menu can restore a dismissed ask, or jump to an already mounted
+  // map without resending the task or affecting persisted conversation facts.
+  if (showPlace && !placeComplete) menu.push({ key: 'place', label: 'Mesto na mapi', icon: 'pin',
+    disabled: placeDisabled, onPress: () => {
+      if (placeDisabled) return;
+      Keyboard.dismiss();
+      setHiddenPlace(null);
+      setMapReveal(old => ({ placeKey, tick: old?.placeKey === placeKey ? old.tick + 1 : 1 }));
+    } });
   if (hasConversation) menu.push({ key: 'refresh', label: 'Osveži razgovor', icon: 'check', disabled: props.readbackDisabled || editingPlace, onPress: outsidePlace(props.onRefresh) });
   if (props.onNewTask) menu.push({ key: 'new', label: 'Novi zadatak', icon: 'tasks', disabled: props.newTaskDisabled, onPress: props.onNewTask });
   if (props.showAbandon) menu.push({ key: 'abandon', label: props.abandonLabel, icon: 'chat', destructive: true,
