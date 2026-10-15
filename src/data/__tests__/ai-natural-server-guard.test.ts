@@ -108,6 +108,21 @@ describe('natural server AI response without bypassing authoritative review', ()
     expect(result.assistantMessage).toContain('orijentir');
     expect(result.proposals).toHaveLength(0);
   });
+  it.each(['area', 'label'] as const)('treats a spoken %s POI as map-search input, not another city question', slot => {
+    const local = facts('need.exact_address').map(f => f.fact_key === 'need.task_geography'
+      ? { ...f, fact_value: { mode: 'STATIONARY', start: { city: 'Užice', [slot]: 'kod bolnice u Užicu' } } } : f);
+    const review = call(reply('REVIEW', 'Pogledaj nacrt zadatka.'), local);
+    expect(review.assistantMessage).toContain('proverimo predlog mesta na mapi');
+    expect(review.assistantMessage).not.toContain('U kom delu grada');
+    expect(review.proposals).toHaveLength(0);
+    const staleAsk = call(reply('ASK', 'U kom delu grada je posao?'), local);
+    expect(staleAsk.assistantMessage).toContain('potvrdi tačku');
+  });
+  it('does not confuse the city repeated as an area with a usable search hint', () => {
+    const local = facts('need.exact_address').map(f => f.fact_key === 'need.task_geography'
+      ? { ...f, fact_value: { mode: 'STATIONARY', start: { city: 'Užice', area: 'Užice' } } } : f);
+    expect(call(reply('REVIEW', 'Spremno.'), local).assistantMessage).toContain('U kom delu grada');
+  });
   it('retargets stale ASK to a human location hint when all machine-required facts exist', () => {
     const result = call(reply('ASK', 'Otvori pregled zadatka.'), facts('need.exact_address'));
     expect(result.assistantMessage).toContain('ulica');
