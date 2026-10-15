@@ -370,7 +370,9 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     'Za need.category izdvojite stvarnu VRSTU USLUGE iz celog razgovora (radnja + predmet rada), nezavisno od prostorije, kvadrature, broja komada, adrese, cene i datuma: krečenje sobe / krečenje stana -> krečenje zidova, molerski radovi kao šira grupa. Nemojte stvarati novu kategoriju samo zato što se promenio obim. Gletovanje zidova i krečenje zidova mogu biti posebne kompetencije; farbanje automobila nije krečenje zidova. Ne ograničavajte legitimne nove vrste usluga na jedanaest starih grupa, ali ne tvrdite da je nova kategorija registrovana ili da postoje odgovarajući radnici. Kategorija je AI predlog za korisnički pregled i nezavisnu serversku klasifikaciju, nikada dokaz kompetencije, objava niti nalog za obaveštavanje. Kada je u pitanju uža zanatska ili specifična delatnost, možete navesti stablo u formatu Šira grupa / Uža delatnost (na primer Zanati i popravke / Fina mehanika / Popravka pisaćih mašina ili Digitalne usluge / Izrada prezentacija) kako bi platforma automatski povezala celo stablo majstora.',
     'Iz dovoljno jasnog opisa predložite i nedostajuću need.category: kratak naziv stvarno opisane vrste zadatka, bez novih uslova i bez opšteg rezervnog naziva poput ostalo. Kategorija je interni podatak; ne pitajte korisnika za kategoriju. Ako opis nije jasan, pitajte šta konkretno treba uraditi. Pre REVIEW proverite i naslov i kategoriju. Ako korisnik samo završava razgovor, a već postoji jasan need.description, možete dopuniti samo nedostajući naslov ili kategoriju uz evidence koji je doslovan isečak tog postojećeg opisa; ne menjajte nijedan postojeći podatak i ne dodajte materijalne uslove iz komande završetka.',
     'dialogue opisuje sledeći korak, nije nova činjenica. next: ASK samo za nedostajući podatak, CLARIFY za stvarnu dvosmislenost, REVIEW za završetak i prelazak na pregled, ACK za izmenu bez pitanja, ANSWER kada korisnik traži objašnjenje. questionKey je tačan ključ pitanja za ASK, inače NONE. Ne birajte ASK za već poznat podatak.',
-    'USKOČI AI je iskusan poslovođa i savetnik. Postavljajte pametna, konkretna pitanja koja vode korisnika i razjašnjavaju ključne aspekte: za selidbe i nošenje pitajte za sprat, teretni lift i teške gabaritne stvari; za krečenje za kvadraturu, stanje zidova (gletovanje/pukotine) i ko nabavlja boju; za svakodnevne zadatke (kupovina karata, čekanje u redu, donošenje) za tačan zadatak, mesto i rokove; za vikendice i gradnju za lokaciju, prilaz i priključke za struju/vodu.',
+    'USKOČI AI je iskusan poslovođa i savetnik. Postavljajte najviše jedno VAŽNO pitanje po odgovoru, prema stvarnoj vrsti posla, ne univerzalni formular. Za krečenje proverite znači li navedena kvadratura površinu poda ili zidova, treba li gletovanje i ko kupuje boju; za selidbe sprat, lift i gabarite; za dostavu mesta i rok; za rad na daljinu opis isporuke i rok. Ne insistirajte na opcionim detaljima ako ih korisnik ne zna ili želi da ih dogovori direktno sa radnikom.',
+    'Ako je stacionarni posao poznat samo po gradu, pitajte prirodno za ulicu, kvart ili obližnji orijentir pre tvrdnje da je unos spreman za pregled. Korisnik ne mora navesti kućni broj: privatni need.exact_address može biti doslovno navedena ulica ili orijentir, samo da pokrene predlog na mapi, koji osoba zasebno potvrđuje. Nikada ne izmišljajte ulicu, broj ili koordinate.',
+    'Fraza narednih sedam dana ne znači nužno ove kalendarske nedelje. Ne pretvarajte relativni klizni raspon u WEEK_FLEXIBLE bez razjašnjenja. Za druge tipove zadatka ne pitajte za molerske detalje.',
     'Ako korisnik u toku razgovora promeni ili dopuni šta mu treba (npr. sa krečenja pređe na drugu uslugu), dialogue.taskRelation ostaje CONTINUE: dinamički ažurirajte need.title, need.description i need.category da prate novu nameru i omoguće tačan dispečing u bazi. Nemojte odbijati izmenu.',
     'Ako korisnik pita zašto nešto tražite, postavi drugo pitanje o ovom zadatku ili kaže da se ponavljate, prvo odgovorite na tu poruku koristeći ANSWER i questionKey NONE. Nemojte umesto odgovora ponoviti pitanje za nedostajuće polje. Objasnite konkretno šta još nije jasno, bez ponavljanja privatne adrese.',
     'Delimičan podatak nije isto što i nikakav podatak. Kod prenosa razlikujte mesto preuzimanja i odredište: ako je odredište poznato, a grad preuzimanja nije, pitajte samo za grad preuzimanja. Ne izmišljajte ga iz naziva ulice. Ako ponovo tražite istu vrstu podatka, recite koji tačno deo nedostaje; ne ponavljajte isto opšte pitanje. Već navedene detalje sačuvajte u kontekstu i predložite tipizovanu geografiju tek kada imate njene obavezne delove.',
@@ -743,18 +745,29 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     const key = missing.find(key => questions[key]);
     return key ? questions[key] : 'Pregled još nije dovršen. Možeš da dopuniš opis zadatka ili otvoriš pregled.';
   };
+  // A city-only stationary task is valid geography for categorisation, but not a
+  // ready point on the map. This is a conversation gate, NOT a public address or
+  // permission to publish; server-owned review still controls actual readiness.
+  const geography = facts.get('need.task_geography') as any;
+  const streetOrLandmark = facts.get('need.exact_address');
+  const cityOnlyStationary = geography?.mode === 'STATIONARY'
+    && !(typeof streetOrLandmark === 'string' && streetOrLandmark.trim());
+  const nearestPlaceQuestion = 'U kom delu grada je posao? Dovoljna je ulica ili neki bliski orijentir; tačku ćemo zatim proveriti na mapi.';
   let assistantMessage = turn.assistantMessage;
   if (dialogue?.next === 'ASK') {
-    // A missing field may be partly explained in the conversation. Preserve the
-    // specific clarification (e.g. pickup city) instead of erasing it with a generic
-    // location question. Retarget only when the requested field is already known.
+    // Preserve an actual question when its field is missing; otherwise retarget
+    // to the missing field or the unresolved human-owned place.
     if (!missing.includes(dialogue.questionKey)) {
-      assistantMessage = missing.length ? incompleteMessage() : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
+      assistantMessage = missing.length ? incompleteMessage()
+        : cityOnlyStationary ? nearestPlaceQuestion
+        : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
     }
   } else if (dialogue?.next === 'REVIEW' && missing.length) {
-    // Never say the draft is ready if it still lacks required facts. Otherwise keep
-    // the model's short, natural reply: the app owns the review CTA and publication.
     assistantMessage = incompleteMessage();
+  } else if (cityOnlyStationary && !missing.length && dialogue?.next !== 'ANSWER') {
+    // A complete checklist is not the same as a usable local place. Prevent
+    // Gemini's premature generic "open review" from hiding the missing location.
+    assistantMessage = nearestPlaceQuestion;
   }
   // ACK is not permission to replace the answer with another robotic template.
   // The validated assistantMessage is already bounded and is not publication authority.
