@@ -4,6 +4,7 @@ import { readableTitle } from '../../data/needDetailPresentation';
 import type { PrilikaProjekcija } from '../../contracts/projections';
 import { Avatar } from '../system/Avatar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { inicijali } from '../../lib/inicijali';
 import type { HomeAttention, HomeRaspored, HomeRow, HomeSection, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
 import type { OwnedTaskCounts } from '../../data/marketplaceView';
 import type { ApplicationCounts } from '../../data/myApplicationsView';
@@ -299,41 +300,95 @@ function ExploreTasksAction({ onEarn, opportunities, onOpenOpportunity }: {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carouselList}>
           {items.slice(0, 8).map(item => {
             const isUrgent = item.urgency?.level === 'HITNO';
-            const priceText = item.ponudjenaCena ? `${item.ponudjenaCena.iznos.toLocaleString('sr-RS')} RSD` : 'Cena po ponudi';
+            const priceText = item.ponudjenaCena ? `${item.ponudjenaCena.iznos.toLocaleString('sr-RS')} RSD` : 'Tražim ponude';
+            const priceBasis = item.osnovaCene === 'PER_PERSON' ? 'po osobi' : 'ukupno';
+            const peopleCount = item.pokrivenost?.ukupno ?? 1;
+            const peopleText = peopleCount > 1 ? `Treba ${peopleCount} osobe` : '1 osoba';
+            const locationText = item.podrucjeTekst?.trim() || 'Srbija';
+            const scheduleText = item.vremeTekst?.trim() || 'Fleksibilno';
+            const publisherName = item.narucilacIme?.trim() || 'Klijent';
+            const publisherInitials = inicijali(publisherName);
+
             return (
               <Press
                 key={item.id}
                 accessibilityRole="button"
-                accessibilityLabel={`Zadatak ${item.naslov}, ${priceText}, ${item.podrucjeTekst}`}
+                accessibilityLabel={`Zadatak ${item.naslov}, ${priceText}, ${locationText}, ${peopleText}`}
                 haptic="select"
                 scaleTo={sys.motion.scale.row}
                 onPress={() => onOpenOpportunity ? onOpenOpportunity(item.id) : onEarn()}
                 style={[s.carouselCard, materialControl.raised]}
               >
-                <View style={s.carouselCardHead}>
-                  {isUrgent ? (
+                {isUrgent ? (
+                  <View style={s.carouselUrgentRow}>
                     <View style={s.carouselUrgentBadge}>
                       <T variant="meta" style={s.carouselUrgentText}>⚡ HITNO</T>
                     </View>
-                  ) : (
-                    <View style={s.carouselCategoryBadge}>
-                      <T variant="meta" numberOfLines={1} style={s.carouselCategoryText}>{item.detalji?.kategorija ?? 'Zadatak'}</T>
-                    </View>
-                  )}
-                  <T variant="meta" tone="muted" numberOfLines={1} style={{ fontSize: 11, maxWidth: 90 }}>
-                    {item.podrucjeTekst || 'Srbija'}
-                  </T>
-                </View>
-                <T variant="bodyStrong" numberOfLines={2} style={s.carouselCardTitle}>
+                  </View>
+                ) : null}
+
+                <T variant="heading" numberOfLines={2} style={s.carouselCardTitle}>
                   {readableTitle(item.naslov)}
                 </T>
-                <View style={s.carouselCardBottom}>
-                  <T variant="bodyStrong" tone="green" style={s.carouselCardPrice}>
-                    {priceText}
-                  </T>
-                  <T variant="note" tone="muted" numberOfLines={1} style={{ maxWidth: 90 }}>
-                    {item.vremeTekst || 'Fleksibilno'}
-                  </T>
+
+                <View style={s.carouselFacts}>
+                  <View style={s.carouselFactRow}>
+                    <FactArt kind={item.ponudjenaCena ? 'money' : 'offers'} size={24} />
+                    <View style={s.carouselPriceCopy}>
+                      <T variant="priceRow" style={s.carouselPriceText}>
+                        {priceText}
+                      </T>
+                      {item.ponudjenaCena ? (
+                        <T variant="meta" tone="muted" style={s.carouselPriceBasis}>
+                          {priceBasis}
+                        </T>
+                      ) : null}
+                    </View>
+                  </View>
+
+                  <View style={s.carouselFactRow}>
+                    <FactArt kind="pin" size={24} />
+                    <T variant="note" numberOfLines={1} style={s.carouselFactText}>
+                      {locationText}
+                    </T>
+                  </View>
+
+                  <View style={s.carouselFactRow}>
+                    <FactArt kind="calendar" size={24} />
+                    <T variant="note" numberOfLines={1} style={s.carouselFactText}>
+                      {scheduleText}
+                    </T>
+                  </View>
+
+                  <View style={s.carouselFactRow}>
+                    <FactArt kind="users" size={24} />
+                    <T variant="note" numberOfLines={1} style={s.carouselFactText}>
+                      {peopleText}
+                    </T>
+                  </View>
+                </View>
+
+                <View style={s.carouselPublisher}>
+                  <View style={s.carouselAvatar}>
+                    <Avatar initials={publisherInitials} size={32} />
+                  </View>
+                  <View style={s.carouselPublisherMeta}>
+                    <T variant="note" numberOfLines={1} style={s.carouselPublisherName}>
+                      {publisherName}
+                    </T>
+                    {item.narucilacOcena ? (
+                      <View style={s.carouselRatingRow}>
+                        <FactArt kind="star" size={14} />
+                        <T variant="meta" tone="muted" style={s.carouselRatingText}>
+                          {item.narucilacOcena} {item.narucilacBrojOcena ? `(${item.narucilacBrojOcena})` : ''}
+                        </T>
+                      </View>
+                    ) : (
+                      <T variant="meta" tone="muted" style={s.carouselRatingText}>
+                        Novo · Otvoren zadatak
+                      </T>
+                    )}
+                  </View>
                 </View>
               </Press>
             );
@@ -507,24 +562,39 @@ const s = StyleSheet.create({
   seeAllButton: { paddingVertical: 4, paddingHorizontal: 8 },
   carouselList: { paddingVertical: sys.space.sm, paddingHorizontal: 2, gap: sys.space.md },
   carouselCard: {
-    width: 230,
-    minHeight: 120,
+    width: 275,
     padding: sys.space.md,
     borderRadius: sys.radius.card,
     backgroundColor: sys.color.surface,
     borderWidth: 1,
     borderColor: sys.color.line,
+    gap: 10,
     justifyContent: 'space-between',
-    gap: sys.space.xs,
   },
-  carouselCardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  carouselUrgentBadge: { backgroundColor: sys.color.orangeSoft, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  carouselUrgentText: { color: sys.color.orange, fontWeight: '700', fontSize: 10 },
-  carouselCategoryBadge: { backgroundColor: sys.color.wash, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  carouselCategoryText: { color: sys.color.ink, fontWeight: '600', fontSize: 10 },
-  carouselCardTitle: { fontSize: 15, lineHeight: 20, color: sys.color.ink },
-  carouselCardBottom: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4 },
-  carouselCardPrice: { fontSize: 14, fontWeight: '700' },
+  carouselUrgentRow: { flexDirection: 'row', alignItems: 'center' },
+  carouselUrgentBadge: { backgroundColor: sys.color.orangeSoft, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+  carouselUrgentText: { color: sys.color.orange, fontWeight: '700', fontSize: 11 },
+  carouselCardTitle: { fontSize: 17, lineHeight: 22, fontWeight: '700', color: sys.color.ink },
+  carouselFacts: { gap: 6 },
+  carouselFactRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  carouselPriceCopy: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
+  carouselPriceText: { color: sys.color.money, fontWeight: '700', fontSize: 15 },
+  carouselPriceBasis: { fontSize: 12 },
+  carouselFactText: { color: sys.color.fact, flex: 1, fontSize: 13 },
+  carouselPublisher: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: sys.space.sm,
+    borderTopWidth: 1,
+    borderColor: sys.color.line,
+    paddingTop: 10,
+    marginTop: 2,
+  },
+  carouselAvatar: { width: 32, height: 32, borderRadius: 16, overflow: 'hidden' },
+  carouselPublisherMeta: { flex: 1, minWidth: 0, gap: 1 },
+  carouselPublisherName: { fontSize: 13, fontWeight: '600', color: sys.color.ink },
+  carouselRatingRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  carouselRatingText: { fontSize: 11 },
   trustSeal: {
     flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12,
     backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line, gap: 10, marginBottom: 8,
