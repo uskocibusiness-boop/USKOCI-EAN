@@ -1,5 +1,5 @@
 # Owner-requested DEV Android preview OTA for Test 101 intake recovery, 15 October 2026.
-# Self-path trigger ONLY: no automatic OTA on unrelated code commits.
+# Self-path trigger ONLY: reviewed Test 101 orphan journal and Home route suite (266 checks).
 name: DEV Android preview OTA 20261014
 on:
   push:
