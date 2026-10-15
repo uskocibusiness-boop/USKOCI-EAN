@@ -10,9 +10,10 @@ let mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
 /** The zone the phone says it is in: Serbian time unless a test says otherwise (Jest itself runs in UTC). */
 let mockPhoneZone: string | undefined = 'Europe/Belgrade';
 const mockSource = { mojePotrebe: jest.fn(), mojePrijave: jest.fn(), mojiDogovori: jest.fn(), paznjaZaPocetnu: jest.fn() };
-const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
+const mockRouter = { navigate: jest.fn(), push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 const mockListOpenIntakes = jest.fn();
 jest.mock('../index', () => ({ aiNeedV2Izvor: { listOpenIntakes: (...args: unknown[]) => mockListOpenIntakes(...args) } }));
+jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }));
 jest.mock('../../ui/product/ProductSheet', () => ({ ProductSheet: ({ children, onClose, ...props }: any) =>
   require('react').createElement('Sheet', { ...props, onClose }, children(() => undefined)) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
@@ -175,7 +176,9 @@ it('keeps the current resume row usable immediately on refocus while rejecting t
 it('offers both things a person can start before any read has answered, and they go where they say', async () => {
   const wait = deferred<never[]>(); mockSource.mojePotrebe.mockReturnValue(wait.promise);
   await render();
-  await act(async () => action('Objavi zadatak').onPress()); expect(mockRouter.navigate).toHaveBeenCalledWith('/nova');
+  await act(async () => action('Objavi zadatak').onPress());
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/nova', params: { entryKey: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } });
+  expect(mockRouter.navigate).not.toHaveBeenCalledWith('/nova');
   await act(async () => tree.unmount()); await render();
   await act(async () => action('Uskoči i zaradi').onPress()); expect(mockRouter.navigate).toHaveBeenCalledWith('/zadaci');
   await act(async () => wait.resolve([]));
