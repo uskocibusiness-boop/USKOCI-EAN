@@ -37,7 +37,10 @@ export function orderIntakeLocation(previous: IntakeLocationOrder | null, input:
   // Ordinary turns can still ask for a material clarification. Keep that question visible
   // before the map is confirmed, including a later authoritative readback of a held turn.
   const clarifications = new Set(messages.filter(message => message.fromAi && (message.safety === 'CLARIFY'
-    || roles[message.id] === 'CLARIFY' || roles[message.id] === 'CORRECT')).map(message => message.id));
+    || roles[message.id] === 'CLARIFY' || roles[message.id] === 'CORRECT'
+    // Ordinary AI replies can end in a real question (e.g. a date clarification).
+    // It must be readable before a map takes focus, including after signed readback.
+    || /[?？]\s*$/.test(message.body))).map(message => message.id));
   if (active !== null) active = active.filter(id => !clarifications.has(id));
   released = released.map(span => ({ ...span, ids: span.ids.filter(id => !clarifications.has(id)) })).filter(span => span.ids.length > 0);
   const alreadyReleased = new Set(released.flatMap(span => [...span.ids]));
