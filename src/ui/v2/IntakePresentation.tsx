@@ -28,7 +28,7 @@ import { AiConversationShell } from '../aiFirst/AiConversationShell';
 import type { VoiceInput } from '../aiFirst/VoiceComposer';
 import type { LocationReplyPrompt } from '../location/ConversationPointAsk';
 import { ConfirmedPlaceLine } from '../location/ConfirmedPlaceLine';
-import { confirmedPlaceEntries } from '../location/placeText';
+import { confirmedPlaceEntries, slotNeedsCloserPlace } from '../location/placeText';
 import type { ConfirmedLocationPoint, LocationSlot } from '../../contracts/location';
 import { completeDraftProposal, publicSummary, type Summary } from './draftSummary';
 import { intakeLocationMemory, orderIntakeLocation, type IntakeTurnRole } from './intakeLocationOrder';
@@ -336,7 +336,9 @@ export function IntakePresentation(props: Props) {
   // A city is not a usable address. Let the AI ask for the street, number or nearby
   // landmark in the normal conversation first; only then offer the human-confirmed pin.
   // An existing confirmed place always remains editable from its own line.
-  const addressReady = place?.geography?.mode !== 'STATIONARY' || (typeof placeFacts.exactAddress === 'string' && !!placeFacts.exactAddress.trim());
+  // A user-spoken area/POI can seed a map search without claiming an exact address.
+  // The point is still unverified until the owner confirms it manually.
+  const addressReady = place?.geography?.mode !== 'STATIONARY' || (!!requestedPlace && !slotNeedsCloserPlace('start', requestedPlace));
   const askOpen = showPlace && (placeComplete ? editingSavedPlace : addressReady && !pointAskHidden);
   if (askOpen) askSeen.current = true;
   // Arrival animation keeps the route's stable key; retained history uses the durable ID after the first send.
