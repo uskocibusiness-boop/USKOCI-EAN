@@ -1,5 +1,5 @@
 # Owner-requested DEV Android preview OTA for Test 101 intake recovery, 15 October 2026.
-# Self-path trigger ONLY: Test101 hospital landmark map handoff fix (server and phone).
+# Self-path trigger ONLY: Test101 landmark lookup after preservation of natural AI replies.
 name: DEV Android preview OTA 20261014
 on:
   push:
