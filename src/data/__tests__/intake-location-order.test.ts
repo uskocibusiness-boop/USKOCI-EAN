@@ -25,6 +25,15 @@ it('holds only the known continuation, keeps location clarification, then releas
   expect(base.messages.map(message => message.id)).toEqual(['user', 'next']);
 });
 
+it('does not hide a real follow-up question about the date behind the location prompt', () => {
+  const messages = [m('user', false), { ...m('next'), body: 'Kada ti odgovara da se posao obavi?' }];
+  const answer = orderIntakeLocation(null, { ...base, messages, roles: { next: 'ordinary' } });
+  expect(ids(answer)).toEqual(['user', 'next']);
+  expect(answer.state.active).toEqual([]);
+  const restored = orderIntakeLocation(answer.state, { ...base, messages, roles: {} });
+  expect(ids(restored)).toEqual(['user', 'next']);
+});
+
 it('does not guess the type of old history or hide an explicit contextual reply', () => {
   expect(ids(orderIntakeLocation(null, { ...base, causalMessageId: undefined }))).toEqual(['user', 'next']);
   expect(ids(orderIntakeLocation(null, { ...base, roles: { next: 'CLARIFY' } }))).toEqual(['user', 'next']);
