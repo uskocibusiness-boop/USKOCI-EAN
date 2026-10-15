@@ -776,9 +776,11 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     }
   } else if (dialogue?.next === 'REVIEW' && missing.length) {
     assistantMessage = incompleteMessage();
-  } else if (!missing.length && geography?.mode === 'STATIONARY' && dialogue?.next !== 'ANSWER') {
-    // REVIEW/ACK without the owner-confirmed pin is not a review-ready state.
-    // With a real hint the UI offers map lookup; without it, ask only once for a hint.
+  } else if (!missing.length && dialogue?.next === 'REVIEW' && geography?.mode === 'STATIONARY'
+    && !(typeof streetOrLandmark === 'string' && streetOrLandmark.trim())) {
+    // Only an attempted REVIEW needs retargeting. A normal ACK or explanation
+    // must keep its own words, even while an unconfirmed pin exists on screen.
+    // An existing exact-address fact is also not proof of confirmed coordinates.
     assistantMessage = cityOnlyStationary ? nearestPlaceQuestion : mapConfirmationMessage;
   }
   // ACK is not permission to replace the answer with another robotic template.
