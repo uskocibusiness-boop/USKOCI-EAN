@@ -1005,6 +1005,21 @@ it('offers photos from the composer before and after the first word, inside the 
   expect(mockRouter.push).not.toHaveBeenCalled();
 });
 
+it('keeps the real Gemini question visible and does not open a map for city-only input', async () => {
+  mockLoad.mockResolvedValue(conversation({ facts: [
+    publicFact('need.task_country_code', 'RS'),
+    publicFact('need.task_geography', { mode: 'STATIONARY', start: { city: 'Užice' } }),
+  ], messages: [
+    { id: other, fromAi: false, body: 'Krečenje sobe u Užicu.', safety: null, proposedFactIds: [] },
+    { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', fromAi: true,
+      body: 'Kada bi ti odgovaralo da se posao obavi?', safety: 'ALLOW', proposedFactIds: [] },
+  ] }));
+  await resume();
+  expect(text()).toContain('Kada bi ti odgovaralo da se posao obavi?');
+  expect(tree.root.findAllByType('PointAsk' as React.ElementType)).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(0);
+});
+
 // Confirmed locations now remain in the same lazy surface as the incomplete ask.
 // Its own suite proves preview/edit/clean-close; this screen owns visibility and competing actions.
 it('keeps a saved place inline and brings a put-away point ask back from the menu', async () => {
@@ -1025,7 +1040,7 @@ it('keeps a saved place inline and brings a put-away point ask back from the men
   await closeMenu();
 
   await act(async () => tree.unmount());
-  mockLoad.mockResolvedValue(conversation({ facts: [geography], messages: said })); await resume();
+  mockLoad.mockResolvedValue(conversation({ facts: [geography, publicFact('need.exact_address', 'Bulevar oslobođenja 65, Novi Sad')], messages: said })); await resume();
   const asks = () => tree.root.findAllByType('PointAsk' as React.ElementType);
   // The ask is in the thread, beside the words: a menu row for it would do nothing.
   expect(asks()).toHaveLength(1);
@@ -1044,7 +1059,7 @@ it('keeps a saved place inline and brings a put-away point ask back from the men
 
 it('keeps a typed draft but prevents competing send, review and photo navigation during point editing', async () => {
   const geography = publicFact('need.task_geography', { mode: 'STATIONARY', start: { city: 'Novi Sad' } });
-  mockLoad.mockResolvedValue(conversation({ facts: [geography], review: { ...conversation().review, canSaveDraft: true } }));
+  mockLoad.mockResolvedValue(conversation({ facts: [geography, publicFact('need.exact_address', 'Bulevar oslobođenja 65, Novi Sad')], review: { ...conversation().review, canSaveDraft: true } }));
   await resume(); await type('Još jedna napomena');
   const send = submit().onPress;
   const photos = plus().onPress;
@@ -1073,7 +1088,7 @@ describe('the confirmed place is a line of the conversation', () => {
   const later = [message('m3', false, 'Sutra u deset.'), message('m4', true, 'Zapisao sam termin.')];
   type Pin = { latitudeE6: number; longitudeE6: number; origin: { kind: 'MANUAL_PIN' } | { kind: 'PROVIDER_CANDIDATE'; providerHint: string; candidateHint: string | null }; address?: string };
   const placed = (pin: Pin | null, messages: ReturnType<typeof message>[]) => {
-    const exactAddress = pin?.address ?? null;
+    const exactAddress = pin?.address ?? provider;
     const facts: AiNeedV2Conversation['facts'] = [publicFact('need.task_geography', geography), publicFact('need.task_country_code', 'RS')];
     if (exactAddress) facts.push({ ...publicFact('need.exact_address', exactAddress), privacyClass: 'PRIVATE' });
     if (pin) facts.push({ ...publicFact('need.resolved_location', { version: 1, binding: { taskCountryCode: 'RS', geography, exactAddress },
@@ -1230,7 +1245,7 @@ it('does not treat old city coordinates as confirmed for a new city with the sam
   const placed = publicFact('need.resolved_location', { version: 1,
     binding: { taskCountryCode: 'RS', geography: oldGeography, exactAddress: null },
     points: [{ slot: 'start', latitudeE6: 45230000, longitudeE6: 19830000, origin: { kind: 'MANUAL_PIN' } }] });
-  mockLoad.mockResolvedValue(conversation({ facts: [geography, publicFact('need.task_country_code', 'RS'), placed] }));
+  mockLoad.mockResolvedValue(conversation({ facts: [geography, publicFact('need.task_country_code', 'RS'), publicFact('need.exact_address', 'Bulevar oslobođenja 65, Beograd'), placed] }));
   await resume();
   expect(text()).not.toContain('Proveri mesto na mapi, da onaj ko uskoči zna gde treba da dođe.');
   expect(tree.root.findByType('PointAsk' as React.ElementType).props.conversationId).toBeDefined();
@@ -1494,6 +1509,7 @@ async function contextualLocationReply() {
   mockLocationDialogueEnabled = true;
   mockLoad.mockResolvedValue(conversation({ facts: [
     publicFact('need.task_geography', { mode: 'STATIONARY', start: { city: 'Novi Sad' } }),
+    publicFact('need.exact_address', 'Bulevar oslobođenja 65, Novi Sad'),
   ] }));
   await resume(); await type('Da, to je ulaz.');
   let current = true;
