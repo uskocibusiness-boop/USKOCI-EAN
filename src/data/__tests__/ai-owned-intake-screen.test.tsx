@@ -1018,6 +1018,7 @@ it('keeps the real Gemini question visible and does not open a map for city-only
   expect(text()).toContain('Kada bi ti odgovaralo da se posao obavi?');
   expect(tree.root.findAllByType('PointAsk' as React.ElementType)).toHaveLength(0);
   expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(0);
+  expect(tree.root.findByType(AiConversationShell).props.interactiveContextKey).toBeUndefined();
 });
 
 it.each(['area', 'label'] as const)('offers map pin search for spoken %s without inventing a private exact address', async slot => {
@@ -1031,6 +1032,9 @@ it.each(['area', 'label'] as const)('offers map pin search for spoken %s without
   await resume();
   expect(tree.root.findAllByType('PointAsk' as React.ElementType)).toHaveLength(1);
   expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(1);
+  // Reaching the widget in the virtual tree is not enough: the native shell
+  // needs a stable interactive key to scroll the initial pin question into view.
+  expect(tree.root.findByType(AiConversationShell).props.interactiveContextKey).toEqual(expect.any(String));
   expect(mockSend).not.toHaveBeenCalled();
   expect(text()).not.toContain('Privatna adresa');
 });
