@@ -1,5 +1,5 @@
 # Owner-requested DEV Android preview OTA for Test 101 intake recovery, 15 October 2026.
-# Self-path trigger ONLY: Test101 reveal initial landmark map on Android after a chat reply.
+# Self-path trigger ONLY: Test101 explicit Android map recovery CTA + verified scroll trigger.
 name: DEV Android preview OTA 20261014
 on:
   push:
@@ -60,7 +60,7 @@ jobs:
         run: npm ci --include=dev
       - name: Verify TypeScript before publication
         run: npx tsc --noEmit
-      - name: Verify initial landmark pin visibility, owned intake and Home navigation
+      - name: Verify explicit map-jump after landmark, owned intake and Home navigation
         run: npx jest src/data/__tests__/ai-owned-intake-screen.test.tsx src/data/__tests__/ai-natural-server-guard.test.ts src/data/__tests__/v3-home-screen.test.tsx src/data/__tests__/intake-location-order.test.ts --runInBand --silent
       - name: Publish latest feature-branch client to Android preview ONLY
         shell: bash
