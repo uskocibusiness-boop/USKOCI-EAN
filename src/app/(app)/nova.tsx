@@ -138,7 +138,24 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
       if (pending) {
         const status = await aiNeedV2Izvor.recoverTurn(id, pending.id);
         if (!current()) return unavailable();
-        if (!status.ok) return status;
+        if (!status.ok) {
+          // An authenticated server read has proved that the old owned conversation was
+          // deleted (e.g. DEV cleanup). A new task may retire ONLY its exact orphaned
+          // local UUID journal, not a timed-out or still-processing send. Resuming a
+          // named conversation never silently changes its identity.
+          if (status.kod === 'CONVERSATION_NOT_FOUND' && !resumeId && stored
+              && stored.conversationId === id && stored.clientRequestId === pending.id) {
+            await aiTurnIntentJournal.clear(stored);
+            if (!current()) return unavailable();
+            if (conversation.current === id && request.current?.id === pending.id) {
+              conversation.current = null;
+              request.current = null;
+              return { ok: true, podatak: { conversation: BLANK, turn: null, recovery: null } };
+            }
+            return unavailable();
+          }
+          return status;
+        }
         recovery = status.podatak; turn = recovery.turn;
       }
       const next = await aiNeedV2Izvor.loadConversation(id);
