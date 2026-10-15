@@ -579,12 +579,23 @@ async function callGemini(
   taxonomyPrompt = '',
   taxonomyCatalog: Awaited<ReturnType<typeof loadClassificationCatalog>> | null = null,
   onClassificationHints?: (hints: Record<string,any>[]) => void,
+  imageBase64?: string,
+  imageMime?: string,
 ) {
   const contents = history.slice(-30).map((row) => ({
     role: row.role === 'ASSISTANT' ? 'model' : 'user',
     parts: [{ text: String(row.body ?? '').slice(0, 4000) }],
   }));
-  contents.push({ role: 'user', parts: [{ text }] });
+  const userParts: any[] = [{ text: text || 'Ovo je fotografija kvara odnosno posla. Molim te analiziraj sliku i predloži opis ili detalje zadatka.' }];
+  if (imageBase64 && imageMime) {
+    userParts.push({
+      inlineData: {
+        mimeType: imageMime,
+        data: imageBase64,
+      },
+    });
+  }
+  contents.push({ role: 'user', parts: userParts });
   const parseOutput = (value: any) => {
     // The optional plan is never an AI fact or owner-approved need revision.
     const checked = taxonomyCatalog && !locationContext
@@ -795,9 +806,9 @@ Deno.serve(async (req: Request) => {
   const authorization = req.headers.get('Authorization') ?? '';
   if (!/^Bearer [^\s]+$/.test(authorization)) return response(401, { code: 'AUTH_REQUIRED', message: 'Prijavite se da biste nastavili.' });
   let body: any;
-  try { body = (await boundedJson(req, {}, 18000, 3000, req.signal)).data; }
+  try { body = (await boundedJson(req, {}, 8388608, 15000, req.signal)).data; }
   catch { return response(400, { code: 'INVALID_JSON', message: 'Zahtev nije ispravan.' }); }
-  if (!object(body) || Object.keys(body).some(key => !['conversationId', 'text', 'clientRequestId', 'mode', 'locationContext'].includes(key)))
+  if (!object(body) || Object.keys(body).some(key => !['conversationId', 'text', 'clientRequestId', 'mode', 'locationContext', 'imageBase64', 'imageMime'].includes(key)))
     return response(400, { code: 'REQUEST_INVALID', message: 'Zahtev nije ispravan.' });
   const locationMode = body.mode === 'locationReply';
   const locationContext: LocationContext | undefined = locationMode && validLocationContext(body.locationContext) ? body.locationContext : undefined;
@@ -808,8 +819,20 @@ Deno.serve(async (req: Request) => {
     return response(406, { code: 'LOCATION_STREAM_UNSUPPORTED', message: 'Odgovor o mestu koristi potvrđen pojedinačni odgovor.' });
   const conversationId = typeof body.conversationId === 'string' ? body.conversationId.trim().toLowerCase() : '';
   const text = typeof body.text === 'string' ? body.text.trim() : '';
+  let imageBase64: string | undefined = undefined;
+  let imageMime: string | undefined = undefined;
+  if (body.imageBase64 !== undefined || body.imageMime !== undefined) {
+    if (typeof body.imageBase64 !== 'string' || typeof body.imageMime !== 'string' ||
+        !['image/jpeg', 'image/png', 'image/webp'].includes(body.imageMime) ||
+        body.imageBase64.length === 0 || body.imageBase64.length > 7000000) {
+      return response(400, { code: 'IMAGE_INVALID', message: 'Slika nije ispravna (dozvoljeni formati su JPEG, PNG i WebP do 5MB).' });
+    }
+    imageBase64 = body.imageBase64;
+    imageMime = body.imageMime;
+  }
   if (!isUuid(conversationId)) return response(400, { code: 'CONVERSATION_ID_INVALID', message: 'Nacrt Zadatka nije ispravan.' });
-  if (!text || text.length > 4000) return response(400, { code: 'MESSAGE_INVALID', message: 'Unesite poruku do 4.000 znakova.' });
+  if ((!text && !imageBase64) || text.length > 4000) return response(400, { code: 'MESSAGE_INVALID', message: 'Unesite poruku do 4.000 znakova ili fotografiju.' });
+  const effectiveUserMessage = text || (imageBase64 ? 'Poslao sam fotografiju posla.' : '');
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
   if (!supabaseUrl || !anonKey) return response(500, { code: 'SERVER_CONFIG_ERROR', message: 'Serverska konfiguracija nije dostupna.' });
@@ -856,7 +879,10 @@ Deno.serve(async (req: Request) => {
       return response(404, { code: 'CONVERSATION_NOT_FOUND', message: 'Nacrt nije dostupan ovom nalogu.' });
     const schemaVersion: FactSchemaVersion = rows[0].fact_schema_version === NEED_FACT_SCHEMA_V2 ? NEED_FACT_SCHEMA_V2 : LEGACY_FACT_SCHEMA_V1;
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
-      if (!(locationMode ? exact(body, ['mode', 'conversationId', 'text', 'clientRequestId', 'locationContext']) : exact(body, ['conversationId', 'text', 'clientRequestId'])) || !isUuid(body.clientRequestId))
+      const allowedKeys = locationMode
+        ? ['mode', 'conversationId', 'text', 'clientRequestId', 'locationContext']
+        : ['conversationId', 'text', 'clientRequestId', ...(imageBase64 ? ['imageBase64', 'imageMime'] : [])];
+      if (!exact(body, allowedKeys) || !isUuid(body.clientRequestId))
         return response(400, { code: 'CLIENT_REQUEST_ID_INVALID', message: 'Ponovo otvorite unos pre slanja.' });
       requestId = body.clientRequestId.toLowerCase();
     } else if (!exact(body, ['conversationId', 'text']) || rows[0].status !== 'OPEN') {
@@ -867,7 +893,7 @@ Deno.serve(async (req: Request) => {
     let history: any[], activeFacts: any[];
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
       const result = await rpc(locationMode ? 'rpc_ai_claim_need_location_turn_v1_service' : 'rpc_ai_claim_need_turn_v2_service',
-        { ...identityArgs(), p_user_message: text, ...(locationContext ? { p_location_context: locationContext } : {}) }, req.signal);
+        { ...identityArgs(), p_user_message: effectiveUserMessage, ...(locationContext ? { p_location_context: locationContext } : {}) }, req.signal);
       if (!result.ok) {
         const name = result.data?.message;
         if (name === 'LOCATION_VERSION_CONFLICT' || name === 'LOCATION_CONTEXT_INVALID')
@@ -953,7 +979,7 @@ Deno.serve(async (req: Request) => {
           });
           taxonomyPrompt = catalogPromptContext(taxonomyCatalog, { maxItems:96,
             services: [
-              text.slice(0,2000),
+              effectiveUserMessage.slice(0,2000),
               ...activeFacts.filter((fact:any)=>fact?.fact_key==='need.category')
                 .map((fact:any)=>String(fact.fact_value??'').slice(0,2000)).slice(0,4),
             ],
@@ -963,14 +989,14 @@ Deno.serve(async (req: Request) => {
           console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE');
         }
       }
-      aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, signal, onText,
+      aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, effectiveUserMessage, timeContext, signal, onText,
         (usage) => { reportedUsage = usage; }, locationContext, taxonomyPrompt, taxonomyCatalog,
-        (hints) => { taxonomyReviewHints = hints; });
-      aiTurn = guardConversationTurn(aiTurn, text, activeFacts, timeContext, !!locationContext);
+        (hints) => { taxonomyReviewHints = hints; }, imageBase64, imageMime);
+      aiTurn = guardConversationTurn(aiTurn, effectiveUserMessage, activeFacts, timeContext, !!locationContext);
       if (locationContext) {
         // A validated answer to the shown question (e.g. 'to je to') stays a map
         // confirmation. Explicit task publication can never take that route.
-        if (explicitPublicationOnly(text) || taskFinishOnly(text) && aiTurn.locationAction !== 'CONFIRM_DISPLAYED') aiTurn.locationAction = 'CONTINUE';
+        if (explicitPublicationOnly(effectiveUserMessage) || taskFinishOnly(effectiveUserMessage) && aiTurn.locationAction !== 'CONFIRM_DISPLAYED') aiTurn.locationAction = 'CONTINUE';
         else if (!aiTurn.locationAction || aiTurn.safety !== 'ALLOW') aiTurn.locationAction = 'CLARIFY';
       }
     } catch (providerError) {

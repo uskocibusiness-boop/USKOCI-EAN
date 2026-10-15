@@ -199,7 +199,8 @@ export type StanjePrijave =
   | 'SELECTED'
   | 'WITHDRAWN'
   | 'CLOSED'
-  | 'FULL';
+  | 'FULL'
+  | 'TIME_CONFLICT_FROZEN';
 
 export type DokazPrijave = {
   sema: 'LEGACY_UNPROVEN' | 'APPLICATION_V1_SELF_DECLARED';

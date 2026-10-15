@@ -374,11 +374,11 @@ export const aiNeedV2Production = {
       decode: raw => turnRecovery(raw, account.accountId, conversationId, clientRequestId) });
   },
 
-  async sendMessage(conversationId: string, body: string, clientRequestId: string, stream?: AiTurnStreamOptions): Promise<Ishod<AiNeedTurnStatus>> {
+  async sendMessage(conversationId: string, body: string, clientRequestId: string, stream?: AiTurnStreamOptions, image?: { base64: string; mimeType: string }): Promise<Ishod<AiNeedTurnStatus>> {
     if (!uuid(conversationId) || !uuid(clientRequestId)) return fail('AI_TURN_IDENTITY_INVALID', 'Ponovo otvori razgovor.');
     const text = typeof body === 'string' ? body.trim() : '';
-    if (!text) return fail('MESSAGE_REQUIRED', 'Unesi poruku.');
-    if (!boundedText(text, 4000)) return fail('MESSAGE_TOO_LONG', 'Poruka može imati najviše 4000 znakova i ispravan tekst.');
+    if (!text && !image) return fail('MESSAGE_REQUIRED', 'Unesi poruku ili priloži fotografiju.');
+    if (text && !boundedText(text, 4000)) return fail('MESSAGE_TOO_LONG', 'Poruka može imati najviše 4000 znakova i ispravan tekst.');
     const account = scope(), deadline = Date.now() + 55_000;
     return readOwnedResult({ account, write: true, timeoutMs: 55_000, errors: ERRORS, fallback: 'AI_TURN_SEND_UNCONFIRMED', invalid: 'AI_TURN_INVALID_RESPONSE',
       request: async () => {
@@ -388,9 +388,18 @@ export const aiNeedV2Production = {
           const url = process.env.EXPO_PUBLIC_SUPABASE_URL, anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
           if (!session?.access_token || !url || !anonKey) return scopeChanged();
           return requestAiTurnStream({ ...stream, url, anonKey, accessToken: session.access_token,
-            conversationId, clientRequestId, text, deadline, current: () => scopeCurrent(account) });
+            conversationId, clientRequestId, text, deadline, current: () => scopeCurrent(account),
+            imageBase64: image?.base64, imageMime: image?.mimeType });
         }
-        const response = await supabaseKlijent().functions.invoke('uskoci-ai-interview', { body: { conversationId, text, clientRequestId }, headers: { [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION } });
+        const response = await supabaseKlijent().functions.invoke('uskoci-ai-interview', {
+          body: {
+            conversationId,
+            text,
+            clientRequestId,
+            ...(image ? { imageBase64: image.base64, imageMime: image.mimeType } : {}),
+          },
+          headers: { [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION },
+        });
         if (!scopeCurrent(account)) return scopeChanged();
         if (Date.now() >= deadline) return invalidResponse();
         if (response.error) {
