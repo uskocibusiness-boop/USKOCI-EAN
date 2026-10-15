@@ -5,11 +5,13 @@ on:
     branches:
       - integration/ai-v72-edge-source-20261012
       - work/uskoci-ui-unification-20260924
+      - feature/unified-gemini-classification-p0-20261014
     paths:
       - 'supabase/functions/uskoci-ai-interview/index.ts'
       - 'supabase/functions/_shared/geminiTaskStream.ts'
       - 'supabase/functions/_shared/taxonomyScopedShadow.mjs'
       - 'src/data/__tests__/ai-natural-server-guard.test.ts'
+      - 'src/data/__tests__/ai-v2-output-dialogue-gate.test.ts'
       - 'src/data/__tests__/gemini-v70-safety-stream.test.ts'
       - 'src/data/__tests__/gemini-http-stream-regression.test.ts'
       - '.github/workflows/dev-v72-ai-handler-proof.yml'
@@ -19,6 +21,7 @@ on:
       - 'supabase/functions/_shared/geminiTaskStream.ts'
       - 'supabase/functions/_shared/taxonomyScopedShadow.mjs'
       - 'src/data/__tests__/ai-natural-server-guard.test.ts'
+      - 'src/data/__tests__/ai-v2-output-dialogue-gate.test.ts'
       - '.github/workflows/dev-v72-ai-handler-proof.yml'
 
 permissions:
@@ -46,7 +49,7 @@ jobs:
       - name: Install exact dependencies
         run: npm ci
       - name: Gemini provider, guard, time and safety regressions (mocked only)
-        run: npx jest src/data/__tests__/ai-natural-server-guard.test.ts src/data/__tests__/gemini-http-stream-regression.test.ts src/data/__tests__/gemini-v70-safety-stream.test.ts --runInBand
+        run: npx jest src/data/__tests__/ai-natural-server-guard.test.ts src/data/__tests__/ai-v2-output-dialogue-gate.test.ts src/data/__tests__/gemini-http-stream-regression.test.ts src/data/__tests__/gemini-v70-safety-stream.test.ts --runInBand
       - name: TypeScript contracts
         run: npx tsc --noEmit
       - name: Deno Edge function and shadow module source
