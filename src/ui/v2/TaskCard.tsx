@@ -1,4 +1,5 @@
 import { memo, type ReactNode } from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
 import type { StanjePotrebe } from '../../contracts/projections';
 import type { MarketplaceItem } from '../../data/marketplaceView';
 import { Surface } from '../system/Surface';
@@ -20,7 +21,7 @@ export const CARD_PRESS_SCALE = 0.986;
  * What this account is to the task (mine, applied to, not known yet) comes from the list that read it (`relation`) and is
  * said as a state at the top of the face; nothing else is added to it. My own tasks in Moji zadaci are `OwnTaskCard`'s.
  */
-function TaskCardBase({ item, onOpen, relation, sectionSays, portrait }: {
+function TaskCardBase({ item, onOpen, relation, sectionSays, portrait, style }: {
   item: MarketplaceItem; onOpen: () => void;
   /** What this account is to a task found in discovery, from its own tasks and applications. Absent = nothing known. */
   relation?: TaskCardRelation;
@@ -28,9 +29,10 @@ function TaskCardBase({ item, onOpen, relation, sectionSays, portrait }: {
   sectionSays?: StanjePotrebe;
   /** Authorized public portrait supplied by the collection; no per-card reads are started here. */
   portrait?: ReactNode;
+  style?: StyleProp<ViewStyle>;
 }) {
   const model = useTaskRecord(item, relation, sectionSays);
-  return <Surface kind="record" onPress={onOpen} accessibilityLabel={`Otvori zadatak ${model.title}. ${model.spoken}`}>
+  return <Surface kind="record" onPress={onOpen} style={style} accessibilityLabel={`Otvori zadatak ${model.title}. ${model.spoken}`}>
     <TaskRecordBody model={model} portrait={portrait} />
   </Surface>;
 }

@@ -18,6 +18,7 @@ import { Surface } from '../system/Surface';
 import { layout } from '../system/layout';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
+import { TaskCard } from '../v2/TaskCard';
 import { materialControl, sys } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
 import { useLayoutClass, useTextScale } from '../system/textScale';
@@ -298,101 +299,14 @@ function ExploreTasksAction({ onEarn, opportunities, onOpenOpportunity }: {
       </View>
       {items.length > 0 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carouselList}>
-          {items.slice(0, 8).map(item => {
-            const isUrgent = item.urgency?.level === 'HITNO';
-            const priceText = item.ponudjenaCena ? `${item.ponudjenaCena.iznos.toLocaleString('sr-RS')} RSD` : 'Tražim ponude';
-            const priceBasis = item.osnovaCene === 'PER_PERSON' ? 'po osobi' : 'ukupno';
-            const peopleCount = item.pokrivenost?.ukupno ?? 1;
-            const peopleText = peopleCount > 1 ? `Treba ${peopleCount} osobe` : '1 osoba';
-            const locationText = item.podrucjeTekst?.trim() || 'Srbija';
-            const scheduleText = item.vremeTekst?.trim() || 'Fleksibilno';
-            const publisherName = item.narucilacIme?.trim() || 'Klijent';
-            const publisherInitials = inicijali(publisherName);
-
-            return (
-              <Press
-                key={item.id}
-                accessibilityRole="button"
-                accessibilityLabel={`Zadatak ${item.naslov}, ${priceText}, ${locationText}, ${peopleText}`}
-                haptic="select"
-                scaleTo={sys.motion.scale.row}
-                onPress={() => onOpenOpportunity ? onOpenOpportunity(item.id) : onEarn()}
-                style={[s.carouselCard, materialControl.raised]}
-              >
-                {isUrgent ? (
-                  <View style={s.carouselUrgentRow}>
-                    <View style={s.carouselUrgentBadge}>
-                      <T variant="meta" style={s.carouselUrgentText}>⚡ HITNO</T>
-                    </View>
-                  </View>
-                ) : null}
-
-                <T variant="heading" numberOfLines={2} style={s.carouselCardTitle}>
-                  {readableTitle(item.naslov)}
-                </T>
-
-                <View style={s.carouselFacts}>
-                  <View style={s.carouselFactRow}>
-                    <FactArt kind={item.ponudjenaCena ? 'money' : 'offers'} size={24} />
-                    <View style={s.carouselPriceCopy}>
-                      <T variant="priceRow" style={s.carouselPriceText}>
-                        {priceText}
-                      </T>
-                      {item.ponudjenaCena ? (
-                        <T variant="meta" tone="muted" style={s.carouselPriceBasis}>
-                          {priceBasis}
-                        </T>
-                      ) : null}
-                    </View>
-                  </View>
-
-                  <View style={s.carouselFactRow}>
-                    <FactArt kind="pin" size={24} />
-                    <T variant="note" numberOfLines={1} style={s.carouselFactText}>
-                      {locationText}
-                    </T>
-                  </View>
-
-                  <View style={s.carouselFactRow}>
-                    <FactArt kind="calendar" size={24} />
-                    <T variant="note" numberOfLines={1} style={s.carouselFactText}>
-                      {scheduleText}
-                    </T>
-                  </View>
-
-                  <View style={s.carouselFactRow}>
-                    <FactArt kind="users" size={24} />
-                    <T variant="note" numberOfLines={1} style={s.carouselFactText}>
-                      {peopleText}
-                    </T>
-                  </View>
-                </View>
-
-                <View style={s.carouselPublisher}>
-                  <View style={s.carouselAvatar}>
-                    <Avatar initials={publisherInitials} size={32} />
-                  </View>
-                  <View style={s.carouselPublisherMeta}>
-                    <T variant="note" numberOfLines={1} style={s.carouselPublisherName}>
-                      {publisherName}
-                    </T>
-                    {item.narucilacOcena ? (
-                      <View style={s.carouselRatingRow}>
-                        <FactArt kind="star" size={14} />
-                        <T variant="meta" tone="muted" style={s.carouselRatingText}>
-                          {item.narucilacOcena} {item.narucilacBrojOcena ? `(${item.narucilacBrojOcena})` : ''}
-                        </T>
-                      </View>
-                    ) : (
-                      <T variant="meta" tone="muted" style={s.carouselRatingText}>
-                        Novo · Otvoren zadatak
-                      </T>
-                    )}
-                  </View>
-                </View>
-              </Press>
-            );
-          })}
+          {items.slice(0, 8).map(item => (
+            <TaskCard
+              key={item.id}
+              item={item}
+              onOpen={() => onOpenOpportunity ? onOpenOpportunity(item.id) : onEarn()}
+              style={s.carouselCard}
+            />
+          ))}
         </ScrollView>
       ) : null}
     </View>
@@ -562,39 +476,8 @@ const s = StyleSheet.create({
   seeAllButton: { paddingVertical: 4, paddingHorizontal: 8 },
   carouselList: { paddingVertical: sys.space.sm, paddingHorizontal: 2, gap: sys.space.md },
   carouselCard: {
-    width: 275,
-    padding: sys.space.md,
-    borderRadius: sys.radius.card,
-    backgroundColor: sys.color.surface,
-    borderWidth: 1,
-    borderColor: sys.color.line,
-    gap: 10,
-    justifyContent: 'space-between',
+    width: 290,
   },
-  carouselUrgentRow: { flexDirection: 'row', alignItems: 'center' },
-  carouselUrgentBadge: { backgroundColor: sys.color.orangeSoft, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
-  carouselUrgentText: { color: sys.color.orange, fontWeight: '700', fontSize: 11 },
-  carouselCardTitle: { fontSize: 17, lineHeight: 22, fontWeight: '700', color: sys.color.ink },
-  carouselFacts: { gap: 6 },
-  carouselFactRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
-  carouselPriceCopy: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
-  carouselPriceText: { color: sys.color.money, fontWeight: '700', fontSize: 15 },
-  carouselPriceBasis: { fontSize: 12 },
-  carouselFactText: { color: sys.color.fact, flex: 1, fontSize: 13 },
-  carouselPublisher: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: sys.space.sm,
-    borderTopWidth: 1,
-    borderColor: sys.color.line,
-    paddingTop: 10,
-    marginTop: 2,
-  },
-  carouselAvatar: { width: 32, height: 32, borderRadius: 16, overflow: 'hidden' },
-  carouselPublisherMeta: { flex: 1, minWidth: 0, gap: 1 },
-  carouselPublisherName: { fontSize: 13, fontWeight: '600', color: sys.color.ink },
-  carouselRatingRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  carouselRatingText: { fontSize: 11 },
   trustSeal: {
     flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12,
     backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line, gap: 10, marginBottom: 8,
