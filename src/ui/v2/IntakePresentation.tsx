@@ -475,6 +475,9 @@ export function IntakePresentation(props: Props) {
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
     sentMessage={props.sentMessage}
     // The assistant and the one line the draft asks for (R1): the three examples under it show what to say, so no sentence explains it.
+    // Static first AI bubble: shown immediately, remains above the user's first
+    // message, never written into history or charged as a Gemini request.
+    introMessage="Ćao! 👋 Šta ti danas treba da se uradi?"
     welcome="Reci šta ti treba."
     welcomeDetail=""
     openings={TASK_OPENINGS}
