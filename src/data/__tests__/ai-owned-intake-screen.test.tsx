@@ -1738,7 +1738,8 @@ describe('adding photos inside the conversation', () => {
   const message = (messageId: string, fromAi: boolean, body: string) => ({ id: messageId, fromAi, body, safety: null, proposedFactIds: [] });
   const isLine = (node: { type: unknown; props: { testID?: unknown } }) => typeof node.type === 'string' && node.props.testID === 'task-photo-line';
   const order = () => tree.root.findByProps({ testID: 'ai-conversation-thread' }).findAll(node => isLine(node)
-    || (typeof node.props.accessibilityLabel === 'string' && /^(Ti|USKOČI): /.test(node.props.accessibilityLabel)))
+    || (typeof node.props.accessibilityLabel === 'string' && /^(Ti|USKOČI): /.test(node.props.accessibilityLabel)
+      && node.props.testID !== 'ai-local-opening'))
     .map(node => isLine(node) ? 'PHOTOS' : node.props.accessibilityLabel);
   const flush = async () => { for (let i = 0; i < 6; i++) await act(async () => { await Promise.resolve(); }); };
   const uploaded = (assetId: string) => mockUploadPhoto.mockImplementation(async (input: { clientRequestId: string; conversationId: string }) => {
