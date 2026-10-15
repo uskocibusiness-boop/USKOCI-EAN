@@ -1018,7 +1018,9 @@ it('keeps the real Gemini question visible and does not open a map for city-only
   expect(text()).toContain('Kada bi ti odgovaralo da se posao obavi?');
   expect(tree.root.findAllByType('PointAsk' as React.ElementType)).toHaveLength(0);
   expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(0);
-  expect(tree.root.findByType(AiConversationShell).props.interactiveContextKey).toBeUndefined();
+  const shell = tree.root.findByType(AiConversationShell).props;
+  expect(shell.interactiveContextKey).toBeUndefined();
+  expect(shell.footerAction?.props.label).not.toBe('Prikaži mesto na mapi');
 });
 
 it.each(['area', 'label'] as const)('offers map pin search for spoken %s without inventing a private exact address', async slot => {
@@ -1034,7 +1036,15 @@ it.each(['area', 'label'] as const)('offers map pin search for spoken %s without
   expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(1);
   // Reaching the widget in the virtual tree is not enough: the native shell
   // needs a stable interactive key to scroll the initial pin question into view.
-  expect(tree.root.findByType(AiConversationShell).props.interactiveContextKey).toEqual(expect.any(String));
+  const getShell = () => tree.root.findByType(AiConversationShell).props;
+  expect(getShell().interactiveContextKey).toEqual(expect.any(String));
+  const before = getShell().interactiveContextKey;
+  expect(getShell().footerAction.props.label).toBe('Prikaži mesto na mapi');
+  await act(async () => getShell().footerAction.props.onPress());
+  // An explicit human tap must request a fresh native scroll to the existing
+  // map widget; it never creates another AI turn, address or coordinate.
+  expect(getShell().interactiveContextKey).not.toBe(before);
+  expect(getShell().revealInteractiveContext).toBe(true);
   expect(mockSend).not.toHaveBeenCalled();
   expect(text()).not.toContain('Privatna adresa');
 });
