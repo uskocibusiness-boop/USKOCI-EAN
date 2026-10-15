@@ -572,6 +572,28 @@ it('serializes two retained send taps before render and keeps the original body 
   expect(typeof mockSend.mock.calls[0][3].onText).toBe('function');
   await act(async () => held.resolve(unknown())); expect(input().value).toBe('Treba preneti ormar sutra.'); expect(input().editable).toBe(false);
 });
+it('recovers a saved Gemini reply after Android SSE reports temporary unavailability, without a second send', async () => {
+  const answer = 'Kada bi ti odgovaralo da se posao obavi?';
+  mockSend.mockResolvedValueOnce({ ok: false, kod: 'AI_SERVICE_UNAVAILABLE', poruka: 'AI trenutno nije dostupan.' });
+  mockTurn.mockImplementation((_conversationId: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+  mockLoad.mockResolvedValue(conversation({ messages: [
+    { id: other, fromAi: true, body: answer, safety: 'ALLOW', proposedFactIds: [] },
+  ] }));
+  await render(); await type('Treba mi krečenje sobe u Užicu.'); await act(async () => submit().onPress());
+  expect(text()).toContain(answer);
+  expect(text()).not.toContain('AI trenutno nije dostupan.');
+  expect(mockSend).toHaveBeenCalledTimes(1);
+  expect(await aiTurnIntentJournal.load(mockSession.user.id)).toBeNull();
+});
+it('keeps a server-processing reply pending after stream loss without resending it', async () => {
+  mockSend.mockResolvedValueOnce({ ok: false, kod: 'AI_SERVICE_UNAVAILABLE', poruka: 'AI trenutno nije dostupan.' });
+  mockTurn.mockImplementation((_conversationId: string, requestId: string) => Promise.resolve(turn(requestId, 'PROCESSING')));
+  await render(); await type('Treba mi majstor.'); await act(async () => submit().onPress());
+  expect(text()).toContain('Asistent još obrađuje poruku.');
+  expect(text()).not.toContain('AI trenutno nije dostupan.');
+  expect(mockSend).toHaveBeenCalledTimes(1);
+  expect(await aiTurnIntentJournal.load(mockSession.user.id)).not.toBeNull();
+});
 it('requires real readback after unknown and retries the same key/body only when the server permits', async () => {
   await render(); await type(); await act(async () => submit().onPress()); const sent = mockSend.mock.calls[0];
   await act(async () => submit().onPress()); expect(mockSend).toHaveBeenCalledTimes(1);
