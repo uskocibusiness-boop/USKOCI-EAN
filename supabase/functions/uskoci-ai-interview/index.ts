@@ -2,6 +2,10 @@
 // DEV-phase-1 only. Explicit false is an immediate kill switch; other projects
 // stay default-OFF. Do NOT copy this DEV override into production release.
 const devTaxonomyFlagP1=(name:string):boolean=>{
+  // DEV-only safety hold: complex optional Gemini taxonomy schema previously returned 400.
+  // Keep the live DEV runtime and GitHub source aligned until shadow schema repair.
+  if (name==='USKOCI_TAXONOMY_UNIFIED_SHADOW' &&
+      (Deno.env.get('SUPABASE_URL')??'').replace(/\/$/,'')==='https://leqcwgzvjsxugfgzdmth.supabase.co') return false;
   const setting=Deno.env.get(name);
   return setting==='true'||(setting!=='false'&&
     (Deno.env.get('SUPABASE_URL')??'').replace(/\/$/,'')==='https://leqcwgzvjsxugfgzdmth.supabase.co');
@@ -499,12 +503,28 @@ function valueMatchesContract(key: string, value: unknown): boolean {
 function parseV2Output(parsed: any): ParsedTurn {
   rejectManualOnlyFacts(parsed);
   if (!exact(parsed, ['safety', 'assistantMessage', 'facts', 'dialogue']) || !['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(parsed.safety) ||
-    !Array.isArray(parsed.facts) || parsed.facts.length > 12) throw new Error('AI_V2_OUTPUT_INVALID');
-  if (!exact(parsed.dialogue, Object.keys(DIALOGUE_VALUES))) throw new Error('AI_V2_OUTPUT_INVALID');
-  const dialogue = { ...parsed.dialogue, questionKey: parsed.dialogue.questionKey === 'NONE' ? '' : parsed.dialogue.questionKey };
-  if (Object.entries(DIALOGUE_VALUES).some(([key, values]) =>
-    !values.includes(dialogue[key])) || (dialogue.next === 'ASK') !== (dialogue.questionKey !== ''))
+    !Array.isArray(parsed.facts) || parsed.facts.length > 12) {
+    console.info('NEED_AI_OUTPUT_GATE', 'ROOT_SHAPE');
     throw new Error('AI_V2_OUTPUT_INVALID');
+  }
+  if (!exact(parsed.dialogue, Object.keys(DIALOGUE_VALUES))) {
+    console.info('NEED_AI_OUTPUT_GATE', 'DIALOGUE_SHAPE');
+    throw new Error('AI_V2_OUTPUT_INVALID');
+  }
+  const dialogue = { ...parsed.dialogue, questionKey: parsed.dialogue.questionKey === 'NONE' ? '' : parsed.dialogue.questionKey };
+  if (Object.entries(DIALOGUE_VALUES).some(([key, values]) => !values.includes(dialogue[key]))) {
+    console.info('NEED_AI_OUTPUT_GATE', 'DIALOGUE_ENUM');
+    throw new Error('AI_V2_OUTPUT_INVALID');
+  }
+  // Metadata can be inconsistent even when typed facts are valid. Correct the
+  // non-authoritative hint; never alter or fabricate a provider fact.
+  if (dialogue.next === 'ASK' && !dialogue.questionKey) {
+    console.info('NEED_AI_OUTPUT_GATE', 'ASK_KEY_REPAIRED');
+    dialogue.next = 'ANSWER';
+  } else if (dialogue.next !== 'ASK' && dialogue.questionKey) {
+    console.info('NEED_AI_OUTPUT_GATE', 'NON_ASK_KEY_REPAIRED');
+    dialogue.questionKey = '';
+  }
   const safety = parseSafety(parsed?.safety);
   const assistantMessage = typeof parsed?.assistantMessage === 'string'
     ? parsed.assistantMessage.trim()
@@ -519,12 +539,15 @@ function parseV2Output(parsed: any): ParsedTurn {
         !interviewFactKeySet.has(key) || seen.has(key) || typeof fact.valueJson !== 'string') throw new Error('AI_V2_FACT_INVALID');
       let value: unknown;
       try { value = JSON.parse(fact.valueJson); } catch { throw new Error('AI_V2_FACT_INVALID'); }
-      if (!valueMatchesContract(key, value)) throw new Error('AI_V2_FACT_INVALID');
+      if (!valueMatchesContract(key, value)) { console.info('NEED_AI_OUTPUT_GATE', 'FACT_VALUE_INVALID'); throw new Error('AI_V2_FACT_INVALID'); }
       const displayValue = typeof fact?.displayValue === 'string' ? fact.displayValue.trim() : '';
       const evidence = typeof fact?.evidence === 'string' ? fact.evidence.trim() : '';
       const confidence = fact?.confidence;
       if (!displayValue || displayValue.length > 1000 || !evidence || evidence.length > 500 ||
-        typeof confidence !== 'number' || !Number.isFinite(confidence) || confidence < 0 || confidence > 1) throw new Error('AI_V2_FACT_INVALID');
+        typeof confidence !== 'number' || !Number.isFinite(confidence) || confidence < 0 || confidence > 1) {
+        console.info('NEED_AI_OUTPUT_GATE', 'FACT_ATTRIBUTES');
+        throw new Error('AI_V2_FACT_INVALID');
+      }
       seen.add(key);
       proposals.push({
         key,
