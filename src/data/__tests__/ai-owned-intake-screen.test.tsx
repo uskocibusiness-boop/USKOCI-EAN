@@ -1150,8 +1150,11 @@ describe('the confirmed place is a line of the conversation', () => {
   const flat = (node: ReturnType<typeof line>): string => node.children.map(child => typeof child === 'string' ? child : flat(child)).join('');
   const sentence = () => line().findAll(node => node.type === ('T' as React.ElementType) && node.props.tone === 'muted'
     && node.children.some(child => typeof child !== 'string')).map(flat);
+  // This helper asserts server transcript + confirmed location ordering only.
+  // The separate local opening is intentionally above it, without a DB message ID.
   const order = () => tree.root.findByProps({ testID: 'ai-conversation-thread' }).findAll(node => isLine(node)
-    || (typeof node.props.accessibilityLabel === 'string' && /^(Ti|USKOČI): /.test(node.props.accessibilityLabel)))
+    || (typeof node.props.accessibilityLabel === 'string' && /^(Ti|USKOČI): /.test(node.props.accessibilityLabel)
+      && node.props.testID !== 'ai-local-opening'))
     .map(node => isLine(node) ? 'PLACE' : node.props.accessibilityLabel);
   const docked = () => ['ai-composer-footer', 'ai-pinned-card'].flatMap(region => tree.root.findAllByProps({ testID: region }))
     .flatMap(region => [...region.findAll(isLine), ...region.findAllByType('PointAsk' as React.ElementType)]);
