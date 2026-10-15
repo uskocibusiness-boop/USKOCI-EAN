@@ -2,10 +2,6 @@
 // DEV-phase-1 only. Explicit false is an immediate kill switch; other projects
 // stay default-OFF. Do NOT copy this DEV override into production release.
 const devTaxonomyFlagP1=(name:string):boolean=>{
-  // DEV-only safety hold: complex optional Gemini taxonomy schema previously returned 400.
-  // Keep the live DEV runtime and GitHub source aligned until shadow schema repair.
-  if (name==='USKOCI_TAXONOMY_UNIFIED_SHADOW' &&
-      (Deno.env.get('SUPABASE_URL')??'').replace(/\/$/,'')==='https://leqcwgzvjsxugfgzdmth.supabase.co') return false;
   const setting=Deno.env.get(name);
   return setting==='true'||(setting!=='false'&&
     (Deno.env.get('SUPABASE_URL')??'').replace(/\/$/,'')==='https://leqcwgzvjsxugfgzdmth.supabase.co');

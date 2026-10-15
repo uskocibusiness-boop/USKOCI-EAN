@@ -78,7 +78,7 @@ export function assistantPrefix(input: string): string {
  * loosens nothing: each caller's decoder still refuses any key it did not ask for. Every
  * other declared constraint, including enum, nullable, maxItems, minimum and maximum, is
  * part of that subset and is forwarded unchanged. */
-const wireUnsupportedKeywords = new Set(['additionalProperties']);
+const wireUnsupportedKeywords = new Set(['additionalProperties', 'maxItems', 'minItems']);
 
 function providerSchema(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(providerSchema);
