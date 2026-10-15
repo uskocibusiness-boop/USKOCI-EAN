@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScreenHeader } from '../../ui/system/ScreenHeader';
 import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { AppState } from 'react-native';
+import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { router, useFocusEffect } from 'expo-router';
 import { composeHome, readHomeSection, type HomeAttentionPreview, type HomeReads, type HomeSection, type HomeTarget } from '../../data/homeSnapshot';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
@@ -104,7 +105,7 @@ function Home() {
     intakeResume={<IntakeResume onOpen={conversationId => navigate(() => router.navigate({ pathname: '/nova', params: { conversationId } }))} />}
     availableNow={profile?.state === 'ACTIVE' ? { value: switching.value ?? profile.availableNow, onChange: changeAvailable,
       busy: switching.busy, failed: switching.failed } : undefined}
-    onPublish={() => navigate(() => router.navigate('/nova'))} onEarn={() => navigate(() => router.navigate('/zadaci'))}
+    onPublish={() => navigate(() => router.push({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } }))} onEarn={() => navigate(() => router.navigate('/zadaci'))}
     onProfile={onProfile} onOpen={open}
     // One completed Dogovor waiting for my rating, named by the Dogovori read: its rating opens in one tap (critique A1,
     // 2026-09-24), exactly as the Dogovor screen opens it. Several, or none known: Dogovori, where each one waits.
