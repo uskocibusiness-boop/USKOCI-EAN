@@ -1071,9 +1071,10 @@ it('keeps a saved place inline and brings a put-away point ask back from the men
   await act(async () => tree.unmount());
   mockLoad.mockResolvedValue(conversation({ facts: [geography, publicFact('need.exact_address', 'Bulevar oslobođenja 65, Novi Sad')], messages: said })); await resume();
   const asks = () => tree.root.findAllByType('PointAsk' as React.ElementType);
-  // The ask is in the thread, beside the words: a menu row for it would do nothing.
+  // Keep the overflow action while an unfinished map is mounted: Android may
+  // scroll the widget out of view, so this is the user's recovery path.
   expect(asks()).toHaveLength(1);
-  await options(); expect(menuItems('Mesto na mapi')).toHaveLength(0); await closeMenu();
+  await options(); expect(menuItems('Mesto na mapi')).toHaveLength(1); await closeMenu();
   // Put away ("Kasnije", then the editor's own "Iza\u0111i ipak"), the ask gives way to its button and to the menu row.
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Kasnije' }).props.onPress());
   await act(async () => answer('confirm-sheet-confirm'));
