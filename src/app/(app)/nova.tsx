@@ -278,7 +278,21 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
       }
       if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
       unconfirmedSend.current = !result.ok && result.kod === SEND_UNCONFIRMED_CODE ? result.poruka : null;
-      if (!result.ok) return result;
+      if (!result.ok) {
+        // Android SSE can lose its terminal event even after the provider has committed
+        // the exact turn. Reconcile ONLY that signed, account-owned request ID via the
+        // existing read-only recovery path. Never resend or synthesize an AI answer.
+        if (result.kod === SEND_UNCONFIRMED_CODE || result.kod === 'AI_SERVICE_UNAVAILABLE') {
+          const checked = await read();
+          if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
+          if (checked.ok && (checked.podatak.turn?.state === 'SUCCEEDED'
+            || checked.podatak.turn?.state === 'PROCESSING')) {
+            unconfirmedSend.current = null;
+            return checked;
+          }
+        }
+        return result;
+      }
       return read();
     }); } finally {
       if (sendFlight.current === flight) sendFlight.current = null;
