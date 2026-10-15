@@ -5,7 +5,7 @@ import * as ts from 'typescript';
 
 type Proposal = { key: string; value: unknown; evidence?: string };
 type Fact = { fact_key: string; fact_value: unknown; status: string };
-type Dialogue = { next: 'ASK' | 'ACK' | 'REVIEW'; questionKey: string; taskRelation: string;
+type Dialogue = { next: 'ASK' | 'ACK' | 'REVIEW' | 'ANSWER'; questionKey: string; taskRelation: string;
   priceUnit: string; schedulePattern: string };
 type Turn = { safety: string; assistantMessage: string; proposals: Proposal[]; dialogue: Dialogue };
 type Result = Turn;
