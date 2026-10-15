@@ -602,7 +602,9 @@ it('"Moje aktivnosti" is no longer a destination: nothing on Početna leads ther
     await act(async () => tree.unmount()); await render();
     await act(async () => row(label).onPress());
   }
-  expect(mockRouter.navigate).toHaveBeenCalledTimes(labels.length);
+  // Creation is intentionally a fresh PUSH; all other Home destinations still navigate.
+  expect(mockRouter.navigate.mock.calls.length + mockRouter.push.mock.calls.length).toBe(labels.length);
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/nova', params: { entryKey: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } });
   expect(mockRouter.navigate).not.toHaveBeenCalledWith('/moje-aktivnosti');
 });
 
