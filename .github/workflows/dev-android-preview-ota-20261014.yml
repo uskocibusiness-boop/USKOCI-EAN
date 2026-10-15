@@ -60,8 +60,8 @@ jobs:
         run: npm ci --include=dev
       - name: Verify TypeScript before publication
         run: npx tsc --noEmit
-      - name: Verify task intake recovery and uncertain-send regression
-        run: npx jest src/data/__tests__/ai-owned-intake-screen.test.tsx --runInBand --silent
+      - name: Verify fresh Home entry and deleted-intake journal recovery
+        run: npx jest src/data/__tests__/ai-owned-intake-screen.test.tsx src/data/__tests__/v3-home-screen.test.tsx --runInBand --silent
       - name: Publish latest feature-branch client to Android preview ONLY
         shell: bash
         run: |
