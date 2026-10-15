@@ -1,5 +1,5 @@
 # Owner-requested DEV Android preview OTA for Test 101 intake recovery, 15 October 2026.
-# Self-path trigger ONLY: Test 101 Android receipt + natural location conversation.
+# Self-path trigger ONLY: tested Android receipt reconciliation and visible clarification questions.
 name: DEV Android preview OTA 20261014
 on:
   push:
