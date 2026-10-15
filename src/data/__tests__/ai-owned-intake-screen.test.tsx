@@ -1362,6 +1362,43 @@ function recovery(status: ReturnType<typeof turn>['podatak'], cancelled = false,
     conversationStatus: 'OPEN', turn: status, providerDispatched: dispatched, cancelled,
     canCancel: !cancelled && !dispatched && status.state !== 'SUCCEEDED', authoritative: true });
 }
+it('new task entry retires a journal ONLY after owned server proves its conversation was deleted', async () => {
+  const requestId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const orphan = { accountId: mockSession.user.id, conversationId: id, clientRequestId: requestId };
+  await aiTurnIntentJournal.save(orphan);
+  mockParams = { entryKey: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' };
+  mockRecover.mockResolvedValue({ ok: false, kod: 'CONVERSATION_NOT_FOUND', poruka: 'Razgovor nije pronađen.' });
+  await render();
+  expect(mockRecover).toHaveBeenCalledWith(id, requestId);
+  expect(await aiTurnIntentJournal.load(orphan.accountId)).toBeNull();
+  expect(mockLoad).not.toHaveBeenCalled();
+  expect(mockOpen).not.toHaveBeenCalled();
+  expect(input().editable).toBe(true);
+  await type('Treba mi krečenje sobe, 25 kvadrata, Užice.');
+  await act(async () => submit().onPress());
+  expect(mockOpen).toHaveBeenCalledTimes(1);
+  expect(mockOpen.mock.calls[0][0]).not.toBe(requestId);
+});
+it('an unresolved network read never discards a journal or silently starts a new conversation', async () => {
+  const requestId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const orphan = { accountId: mockSession.user.id, conversationId: id, clientRequestId: requestId };
+  await aiTurnIntentJournal.save(orphan);
+  mockParams = { entryKey: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' };
+  mockRecover.mockResolvedValue({ ok: false, kod: 'AI_TURN_READ_FAILED', poruka: 'Proveri vezu.' });
+  await render();
+  expect(await aiTurnIntentJournal.load(orphan.accountId)).toEqual(orphan);
+  expect(mockOpen).not.toHaveBeenCalled();
+});
+it('a named resumed conversation must not silently clear an absent server-owned journal', async () => {
+  const requestId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const orphan = { accountId: mockSession.user.id, conversationId: id, clientRequestId: requestId };
+  await aiTurnIntentJournal.save(orphan);
+  mockParams = { conversationId: id };
+  mockRecover.mockResolvedValue({ ok: false, kod: 'CONVERSATION_NOT_FOUND', poruka: 'Razgovor nije pronađen.' });
+  await render();
+  expect(await aiTurnIntentJournal.load(orphan.accountId)).toEqual(orphan);
+  expect(mockOpen).not.toHaveBeenCalled();
+});
 it('restores only the opaque pending IDs after remount before any open or provider request', async () => {
   await render(); await type('Private typed message'); await act(async () => submit().onPress());
   const requestId = mockSend.mock.calls[0][2];
