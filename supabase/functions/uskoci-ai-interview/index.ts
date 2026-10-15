@@ -754,7 +754,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
   // proposed. It starts a map SEARCH, never a verified coordinate or exact address.
   // Requiring the private exact-address field caused endless repeated questions.
   const tidyPlace = (part: unknown) => typeof part === 'string'
-    ? part.normalize('NFKC').toLocaleLowerCase('sr-Latn-RS').replace(/[^\\p{L}\\p{N}]+/gu, ' ').trim() : '';
+    ? part.normalize('NFKC').toLocaleLowerCase('sr-Latn-RS').replace(/[^\p{L}\p{N}]+/gu, ' ').trim() : '';
   const city = tidyPlace(geography?.start?.city);
   const nearHint = [geography?.start?.area, geography?.start?.label].some(part => {
     const hint = tidyPlace(part);
