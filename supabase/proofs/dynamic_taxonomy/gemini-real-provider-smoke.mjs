@@ -75,15 +75,16 @@ function makePayload(baseline,purpose,toWire) {
 }
 async function streamResponse(response) {
   if(!response.body)throw new Error('NO_STREAM_BODY');
-  const reader=response.body.getReader();let bytes=0,text='';
+  const reader=response.body.getReader();const decoder=new TextDecoder('utf-8',{fatal:true});let bytes=0,text='';
   try {
     for(;;){
       const part=await reader.read();
       if(part.done)break;
       bytes+=part.value.byteLength;
       if(bytes>262144)throw new Error('STREAM_TOO_LARGE');
-      text+=new TextDecoder().decode(part.value);
+      text+=decoder.decode(part.value,{stream:true});
     }
+    text+=decoder.decode();
   }finally{await reader.cancel().catch(()=>{});}
   let raw='',stopped=false;
   for(const e of text.split(/\r?\n\r?\n/)){
