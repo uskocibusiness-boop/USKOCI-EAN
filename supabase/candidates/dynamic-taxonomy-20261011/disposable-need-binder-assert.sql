@@ -83,6 +83,22 @@ BEGIN
    OR EXISTS(SELECT 1 FROM private.work_taxonomy_need_bindings_v1)
    OR EXISTS(SELECT 1 FROM public.needs WHERE category_id IS NOT NULL)
  THEN RAISE EXCEPTION 'NEGATIVE_BINDING_CASE_LEFT_RESIDUE'; END IF;
+ -- The owner may select candidates shortly after publishing, before the
+ -- asynchronous signed Need binder runs. The exact same saved revision must
+ -- still be eligible in SELECTION; the fixture rolls back this canary entirely.
+ BEGIN
+   UPDATE public.needs SET status='SELECTION';
+   v:=public.rpc_taxonomy_bind_reviewed_need_service(
+     '11111111-1111-4111-8111-111111111111',
+     '22222222-2222-4222-8222-222222222222',
+     '44444444-4444-4444-8444-444444444444',
+     '55555555-5555-4555-8555-555555555555',4);
+   IF v->>'status'<>'BOUND_NEED_REVISION' OR
+      (SELECT count(*) FROM private.work_taxonomy_need_snapshots
+        WHERE classification_state='CONFIRMED' AND reviewed_by_requester)<>1
+   THEN RAISE EXCEPTION 'SELECTION_SIGNED_NEED_NOT_BOUND'; END IF;
+   RAISE EXCEPTION USING ERRCODE='UD777',MESSAGE='EXPECTED_SELECTION_CANARY_ROLLBACK';
+ EXCEPTION WHEN SQLSTATE 'UD777' THEN NULL; END;
  v:=public.rpc_taxonomy_bind_reviewed_need_service(
    '11111111-1111-4111-8111-111111111111',
    '22222222-2222-4222-8222-222222222222',
