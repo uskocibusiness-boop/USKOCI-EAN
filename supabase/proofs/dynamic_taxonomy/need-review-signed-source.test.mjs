@@ -15,3 +15,16 @@ test('client requires signed service and mode to equal what user sees',()=>{
  assert.ok(client.includes('candidate.mode !== mode'));
  assert.ok(client.includes('candidate.catalogVersion !== r.classificationCatalogVersion'));
 });
+
+const versionedSql=readFileSync(new URL('../../candidates/dynamic-taxonomy-20261011/need-review-versioned-optin-dev-20261016.sql',import.meta.url),'utf8');
+test('versioned DEV Need taxonomy review is additive, authenticated-only and legacy-default',()=>{
+ assert.match(versionedSql,/CREATE OR REPLACE FUNCTION public\.rpc_prepare_ai_task_review_taxonomy\(/);
+ assert.doesNotMatch(versionedSql,/CREATE OR REPLACE FUNCTION public\.rpc_prepare_ai_task_review\(/);
+ assert.match(versionedSql,/REVOKE ALL ON FUNCTION public\.rpc_prepare_ai_task_review_taxonomy\(uuid,timestamptz,jsonb\) FROM PUBLIC/);
+ assert.match(versionedSql,/GRANT EXECUTE ON FUNCTION public\.rpc_prepare_ai_task_review_taxonomy\(uuid,timestamptz,jsonb\) TO authenticated/);
+ const candidate=versionedSql.indexOf("envelope:=envelope||jsonb_build_object('classificationState'");
+ const digest=versionedSql.indexOf("envelope:=envelope||jsonb_build_object('displayedContentDigest'");
+ assert.ok(candidate>=0&&digest>candidate,'classification must be part of signed digest');
+ assert.match(client,/EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW==='true'/);
+ assert.match(client,/signedNeedReviewEnabled\(\)\?'rpc_prepare_ai_task_review_taxonomy':'rpc_prepare_ai_task_review'/);
+});
