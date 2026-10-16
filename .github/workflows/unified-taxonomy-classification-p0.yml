@@ -17,6 +17,7 @@ on:
       - 'supabase/functions/uskoci-worker-interview/index.ts'
       - 'supabase/proofs/dynamic_taxonomy/unified-*.test.mjs'
       - 'supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs'
+      - 'supabase/proofs/dynamic_taxonomy/worker-finish-mode-completeness.test.mjs'
       - 'supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs'
       - 'supabase/proofs/dynamic_taxonomy/classification-batch.test.mjs'
       - 'supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs'
@@ -36,7 +37,7 @@ jobs:
         with:
           node-version: '22'
       - name: Read-only canonical catalog and Gemini integration invariants
-        run: node --test supabase/proofs/dynamic_taxonomy/unified-*.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs supabase/proofs/dynamic_taxonomy/classification-batch.test.mjs supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs
+        run: node --test supabase/proofs/dynamic_taxonomy/unified-*.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs supabase/proofs/dynamic_taxonomy/worker-finish-mode-completeness.test.mjs supabase/proofs/dynamic_taxonomy/classification-batch.test.mjs supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs
 
   edge-typing:
     runs-on: ubuntu-latest
