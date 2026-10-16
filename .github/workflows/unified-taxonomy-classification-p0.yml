@@ -53,6 +53,8 @@ jobs:
           deno-version: v2.5.6
       - name: Install exact TypeScript dependencies without postinstall build
         run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify exact worker and requester Gemini schemas on provider wire (offline)
+        run: node supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs --offline
       - name: Type check both real Gemini Edge handlers
         run: |
           deno check supabase/functions/uskoci-worker-interview/index.ts
