@@ -399,13 +399,13 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   return <><AiConversationShell conversationKey={data.conversationId} title="Radni profil" questionFocus
     newConversation={{ onPress: restart, disabled: !canAct() || voiceBusy }}
     closed={!!data.saved || data.status !== 'OPEN'}
-    attach={writable?{label:'Dodaj podatke',hint:'Veštine, područje, vreme, alat i vozilo.',disabled:!enabled,
+    attach={writable?{label:'Dodaj podatke',hint:'Poslovi, područje rada, vreme, alat i vozilo.',disabled:!enabled,
       onPress:()=>{if(current()&&panelScope.current===renderedPanel)setAdding(true);}}:undefined}
     card={compact=>hasProfileContent?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable}
       showReview={writable&&!data.saved} reviewReason={!enabled?unavailableNow:undefined} review={()=>{void review();}}/>:null}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
-    welcome={hasProfileContent?'Šta želiš da dopuniš?':'Koje zadatke želiš da preuzimaš?'}
-    welcomeDetail={hasProfileContent?'Reci šta želiš da promeniš. Sve izmene pregledaš pre čuvanja.':'Reci šta želiš da radiš — stručne zadatke ili svakodnevnu pomoć, poput dostave i nošenja stvari.'}
+    welcome={hasProfileContent?'Šta želiš da dopuniš?':'Čime se baviš?'}
+    welcomeDetail={hasProfileContent?'Reci šta želiš da promeniš. Sve izmene pregledaš pre čuvanja.':'Ispričaj koje poslove radiš ili želiš da preuzimaš. Ostalo ćemo razjasniti kroz razgovor.'}
     placeholder="Opiši šta radiš"
     value={input} onChange={value=>{if(canAct()&&enabled&&writable){draftRevision.current+=1;draftText.current=value;setInput(value);}}} canEdit={!!enabled&&!!writable&&!pending.current}
     canSend={!!enabled&&!!writable&&!!input.trim()&&!pending.current} pending={!!pending.current} busy={editor.busy} streamingText={stream}
