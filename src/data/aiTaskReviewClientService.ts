@@ -275,13 +275,16 @@ async function acceptFor(s: ReceiptAccount, command: Readonly<{ review: AiTaskRe
     p_displayed_content_digest: command.review.displayedContentDigest, p_client_request_id: command.clientRequestId },
     raw => decodeCommandForReview(raw, frozenReview), true);
 }
+// DEV-only opt-in to signed requester classification. Old APKs and builds
+// remain on the unmodified V2 review RPC unless explicitly configured.
+const signedNeedReviewEnabled=()=>process.env.EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW==='true';
 export const aiTaskReviewClientService = {
   prepare(request: AiTaskReviewPrepare): Promise<Ishod<AiTaskReviewEnvelope>> {
     const s = scope(); if (!s) return Promise.resolve(failure('AUTH_REQUIRED', COPY.AUTH_REQUIRED));
     if (!uuid(request?.conversationId) || (request.responseDeadline !== null && !timestamp(request.responseDeadline))) return invalid();
     const location = request.location ? normalizeNeedLocation(request.location.value) : null;
     if (request.location && (!location || !locationRevision(request.location.expectedRevision))) return invalid();
-    return rpc(s, 'rpc_prepare_ai_task_review', { p_conversation_id: request.conversationId, p_response_deadline: request.responseDeadline,
+    return rpc(s, signedNeedReviewEnabled()?'rpc_prepare_ai_task_review_taxonomy':'rpc_prepare_ai_task_review', { p_conversation_id: request.conversationId, p_response_deadline: request.responseDeadline,
       p_location: request.location ? { expectedRevision: request.location.expectedRevision, value: location } : null }, raw => {
       const review = decodeAiTaskReview(raw, s.accountId); return review && sameId(review.conversationId, request.conversationId) ? review : null;
     }, true);
