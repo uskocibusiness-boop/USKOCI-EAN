@@ -1,6 +1,12 @@
 // DEV-phase-1 only. Explicit false is an immediate kill switch; other projects
 // stay default-OFF. Do NOT copy this DEV override into production release.
 const devTaxonomyFlagP1=(name:string):boolean=>{
+  // DEV safety hold: optional taxonomy responseSchema caused provider HTTP 400.
+  // Preserve the active DEV runtime override until a provider-backed schema
+  // compatibility test proves this extra response schema is accepted.
+  // Never auto-enable or force-enable the unproven schema on canonical DEV.
+  if (name==='USKOCI_TAXONOMY_UNIFIED_SHADOW' &&
+      (Deno.env.get('SUPABASE_URL')??'').replace(/\/$/,'')==='https://leqcwgzvjsxugfgzdmth.supabase.co') return false;
   const setting=Deno.env.get(name);
   return setting==='true'||(setting!=='false'&&
     (Deno.env.get('SUPABASE_URL')??'').replace(/\/$/,'')==='https://leqcwgzvjsxugfgzdmth.supabase.co');
