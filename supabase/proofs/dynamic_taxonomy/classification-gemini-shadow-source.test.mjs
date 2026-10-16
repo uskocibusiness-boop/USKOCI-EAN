@@ -75,3 +75,20 @@ test('DEV shadow is provider-proven and environment-off remains an immediate rol
   assert.match(source,/withGeminiClassificationShadowSchema/);
  }
 });
+
+const sharedPrompt=readFileSync(new URL('../../functions/_shared/classificationGeminiShadow.mjs',import.meta.url),'utf8');
+const workerReviewUI=readFileSync(new URL('../../../src/ui/workerProfile/WorkerAiPresentation.tsx',import.meta.url),'utf8');
+test('worker shadow asks for COMPLETE current skills, never partial patch-only suggestions or invented delivery consent',()=>{
+  for(const clause of ['compare EACH distinct entry in the resulting skills array',
+    'Cover EVERY offered skill','never return only the skills newly mentioned',
+    'UNCONFIRMED rather than omitting it or guessing','ask ONE short, natural follow-up question',
+    'never owner consent']) assert.ok(sharedPrompt.includes(clause),clause);
+  assert.match(sharedPrompt,/purpose==='WORKER_CAPABILITY'/);
+  // The private shadow is advisory. It must never activate auto-notifications.
+  assert.doesNotMatch(sharedPrompt,/INSERT INTO public\.notification_deliveries/);
+});
+test('unfinished worker modes show an actionable reason instead of promising automatic matching',()=>{
+  assert.match(workerReviewUI,/review\.classificationState==='SERVICE_MODE_CONFIRMATION_REQUIRED'/);
+  assert.match(workerReviewUI,/automatske ponude sačekaće potvrdu/);
+  assert.match(workerReviewUI,/Veštine ostaju u profilu, ali automatsko pronalaženje/);
+});
