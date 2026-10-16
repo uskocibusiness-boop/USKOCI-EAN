@@ -23,7 +23,7 @@ test('questions use the FULL stored context and skip facts provided in one answe
   'skip every covered topic',
   'repeat a previously answered question',
   'invite review naturally rather than adding optional questions',
-  'Ask about working area/radius ONLY if the worker offers an on-site service',
+  'Ask about the distance/radius for accepting tasks ONLY if the worker offers on-site work',
  ])assert.ok(prompt.includes(rule),rule);
  assert.match(handler,/rpc_read_worker_ai_context_service/);
  assert.match(handler,/context\.messages\.slice\(-30\)/);
@@ -48,7 +48,7 @@ test('remote programmer/tutor scenario and on-site painter prioritize only relev
  assert.match(prompt,/next clarify ambiguous on-site versus remote delivery/);
  assert.match(prompt,/working area only for on-site work/);
  assert.match(prompt,/ask about tools or vehicle only where the stated job truly depends/);
- assert.match(prompt,/do not demand a city or radius for exclusively remote work/);
+ assert.match(prompt,/never demand an on-site travel radius for remote-only tasks/);
  assert.match(prompt,/never encode execution mode as a fake skill/);
 });
 test('finish stays optional, must not fake Save or allow unauthorized matching',()=>{
