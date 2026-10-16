@@ -44,3 +44,25 @@ test('signed builder never replaces legacy worker review endpoint',()=>{
  assert.doesNotMatch(candidate,/CREATE OR REPLACE FUNCTION public\.rpc_prepare_worker_ai_review\(/);
  assert.match(candidate,/FUNCTION public\.rpc_prepare_worker_ai_review_taxonomy\(/);
 });
+
+const workerRoute=readFileSync('src/app/(app)/profil/razgovor.tsx','utf8');
+const workerBinder=readFileSync('supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-worker-binder-v1.sql','utf8');
+test('signed worker Save never races post-Save atomic mode binder (legacy APK unchanged)',()=>{
+  const afterSave=workerRoute.slice(workerRoute.indexOf('const save=async()=>'),
+    workerRoute.indexOf('const restart=()=>'));
+  assert.ok(afterSave.length>1000,'worker Save handler must remain present');
+  assert.match(afterSave,/reviewed\.classificationState===undefined/,
+    'only unsigned legacy Save may use standalone mode RPC');
+  assert.match(afterSave,/inferWorkerExecutionModes\(reviewed\.profile\.skills,reviewed\.profile\.location\)/,
+    'existing APKs retain legacy mode inference');
+  assert.doesNotMatch(afterSave,/reviewed\.classificationState==='READY'/,
+    'signed READY Save must NOT write global modes after signed receipt');
+  assert.doesNotMatch(afterSave,/canonicalWorkerExecutionModes\(/,
+    'signed mode data must not bypass the receipt-bound server binder');
+  assert.match(workerBinder,/WORKER_BINDER_NEWER_GLOBAL_MODE/,
+    'concurrent late client writes must continue to be rejected at SQL boundary');
+  assert.match(workerBinder,/INSERT INTO private\.worker_execution_mode_choices/i,
+    'binder must atomically write confirmed global mode selection');
+  assert.match(workerBinder,/INSERT INTO private\.taxonomy_confirmed_worker_modes_v1/i,
+    'binder must atomically write per-service execution consent');
+});
