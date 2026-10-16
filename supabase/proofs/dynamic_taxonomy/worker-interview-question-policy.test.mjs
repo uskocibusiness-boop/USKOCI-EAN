@@ -73,3 +73,23 @@ test('first-screen interview copy and profile labels describe real offered work'
  assert.match(presentation,/label="Poslovi koje nudiš"/);
  assert.match(presentation,/listEditor\('skills','Poslovi koje nudiš',skills\)/);
 });
+
+test('remote-only draft profile knows the server still requires a city for activation',()=>{
+ const draftContext='Server-owned worker profile status (DRAFT requires city before activation; ACTIVE is already active)';
+ assert.ok(prompt.includes(draftContext));
+ assert.match(prompt,/NEW DRAFT worker profile still requires a city, alongside its country/);
+ assert.match(prompt,/city does NOT limit where online tasks appear/);
+ assert.match(prompt,/ask ONE natural short question for the city and country before suggesting activation/);
+ assert.match(prompt,/don't confuse administrative city with the on-site job radius/);
+ assert.match(prompt,/never demand an on-site travel radius for remote-only tasks/);
+ assert.match(prompt,/already ACTIVE profile with no city, don't reopen a location interview/);
+ assert.match(prompt,/If city and country are already known, skip this question entirely/);
+ assert.match(source,/\$\{context\.profileStatus\}/);
+});
+test('remote activation question is consistent with the server, not an invented AI requirement',()=>{
+ const activationSql=readFileSync(new URL('../../../../src/ui/workerProfile/workerProfileFacts.ts',import.meta.url),'utf8');
+ // The existing client openly models city/country as requirements for activation.
+ assert.match(activationSql,/Activation needs a country and a city/);
+ assert.match(activationSql,/place\.operatingCountryCode && place\.city\.trim\(\)\.length > 0/);
+ assert.doesNotMatch(prompt,/do not demand a city or radius for exclusively remote work/);
+});
