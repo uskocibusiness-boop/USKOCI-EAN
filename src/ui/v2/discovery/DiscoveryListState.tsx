@@ -4,7 +4,7 @@ import { StateView } from '../../system/StateView';
  * What the list of Zadaci says when it has no cards to show, in one place (composition spec 2026-10-07, T7): reading, not read, nothing here,
  * nothing for these conditions, nothing at all. Every state has a sentence and a way on, and the words are the family's: "ti", no machine
  * words, no "server". The map and the list always show every published task (owner, 2026-10-07), so an empty list is never about the
- * person's profile, only about where the map stands and what is searched.
+ * person's profile in ordinary map/list mode; the explicit 'Za mene' filter ALSO depends on confirmed offered work and matching eligibility.
  *
  * - `loading`   the first read is on its way: the placeholders have the shape of the cards that are coming.
  * - `error`     the read did not come back: one way on, to try again.
@@ -19,7 +19,7 @@ export type DiscoveryListStateKind =
   | { kind: 'error'; onRetry: () => void }
   | { kind: 'place'; point: boolean; onShowAll: () => void }
   | { kind: 'filtered'; onClear: () => void }
-  | { kind: 'forMe'; onShowAll: () => void }
+  | { kind: 'forMe'; onShowAll: () => void; onWorkProfile?: () => void }
   | { kind: 'none'; onRefresh: () => void; onNew?: () => void };
 
 export const LIST_STATE_WORDS = {
@@ -31,7 +31,8 @@ export const LIST_STATE_WORDS = {
   pointTitle: 'Nema zadataka na ovom mestu', pointBody: 'Pomeri mapu ili prikaži sve zadatke.',
   areaTitle: 'Nema zadataka u ovoj oblasti', areaBody: 'Umanji mapu ili je pomeri da vidiš zadatke u okolini.',
   filteredTitle: 'Nema zadataka u ovom prikazu', filteredBody: 'Nijedan zadatak ne odgovara ovim uslovima.',
-  forMeTitle: 'Za sada nema zadataka za tebe', forMeBody: 'Gledamo tvoj radni profil: vrstu posla, područje i vreme. Prikaži sve zadatke da vidiš i ostale.',
+  forMeTitle: 'Za sada nema odgovarajućih zadataka', forMeBody: 'Gledamo potvrđene poslove koje nudiš, područje i dostupnost. Ako si upravo podesio profil, proveri da li su tvoji poslovi sačuvani i potvrđeni.',
+  forMeEdit: 'Otvori radni profil',
   noneTitle: 'Još niko nije tražio pomoć', noneBody: 'Čim neko objavi zadatak, pojaviće se ovde i na mapi.',
   refresh: 'Osveži', publish: 'Objavi zadatak',
 } as const;
@@ -49,7 +50,9 @@ export function DiscoveryListState({ state, clearAllLabel, compact = false }: {
     case 'place': return <StateView compact={compact} art="map" title={state.point ? w.pointTitle : w.areaTitle} body={state.point ? w.pointBody : w.areaBody}
       primary={{ label: w.showAll, onPress: state.onShowAll }} />;
     case 'filtered': return <StateView compact={compact} art="map" title={w.filteredTitle} body={w.filteredBody} primary={{ label: clearAllLabel, onPress: state.onClear }} />;
-    case 'forMe': return <StateView compact={compact} art="tasks" title={w.forMeTitle} body={w.forMeBody} primary={{ label: w.showAll, onPress: state.onShowAll }} />;
+    case 'forMe': return <StateView compact={compact} art="tasks" title={w.forMeTitle} body={w.forMeBody}
+      primary={{ label: w.showAll, onPress: state.onShowAll }}
+      quiet={state.onWorkProfile ? { label: w.forMeEdit, onPress: state.onWorkProfile } : undefined} />;
     case 'none': return <StateView compact={compact} hero={!compact} art={compact ? null : 'map'} title={w.noneTitle} body={w.noneBody} primary={{ label: w.refresh, onPress: state.onRefresh }}
       quiet={state.onNew ? { label: w.publish, onPress: state.onNew } : undefined} />;
   }
