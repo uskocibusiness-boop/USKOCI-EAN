@@ -38,7 +38,9 @@ INSERT INTO public.needs(id,category_id,execution_location_mode) VALUES
  ('60000000-0000-4000-8000-000000000002',
  (SELECT id FROM private.work_taxonomy_categories WHERE label='Krečenje zidova'),'STATIONARY'),
  ('60000000-0000-4000-8000-000000000003',
- (SELECT id FROM private.work_taxonomy_categories WHERE label='Krečenje zidova'),'REMOTE');
+ (SELECT id FROM private.work_taxonomy_categories WHERE label='Krečenje zidova'),'REMOTE'),
+ ('60000000-0000-4000-8000-000000000004',
+ (SELECT id FROM private.work_taxonomy_categories WHERE label='Krečenje zidova'),'MULTI_STOP');
 INSERT INTO private.work_taxonomy_need_snapshots(
  need_id,need_revision,category_id,catalog_version,reviewed_by_requester,
  source,classification_state,original_category)
@@ -46,4 +48,5 @@ INSERT INTO private.work_taxonomy_need_snapshots(
  FROM public.needs n JOIN private.work_taxonomy_categories c ON c.id=n.category_id
  WHERE n.id IN(
   '60000000-0000-4000-8000-000000000001',
-  '60000000-0000-4000-8000-000000000002');
+  '60000000-0000-4000-8000-000000000002',
+  '60000000-0000-4000-8000-000000000004');
