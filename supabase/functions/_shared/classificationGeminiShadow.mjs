@@ -73,6 +73,20 @@ export function workerServicesMissingScope(skills,reviewProposals) {
   return {count:missing.length,labels:missing.slice(0,2)};
 }
 
+/** Finish-only response: reveal incompleteness without forcing another AI
+ * turn, promoting provider hints or pretending any consent was stored.
+ */
+export function workerFinishReviewMessage(skills,reviewProposals,catalogAvailable) {
+  if(!catalogAvailable)return 'Otvori pregled profila. Tamo možeš da dopuniš podatke i potvrdiš čuvanje.';
+  const unresolved=workerServicesMissingScope(skills,reviewProposals);
+  if(!unresolved.count)return 'Otvori pregled profila. Tamo možeš da dopuniš podatke i potvrdiš čuvanje.';
+  const examples=unresolved.labels.join(', ');
+  const more=unresolved.count-unresolved.labels.length;
+  return 'Otvori pregled profila. Za '+examples+
+    (more>0?' i još '+more+' usluga':'')+
+    ' nije potvrđeno da li radiš na lokaciji, na daljinu ili oba. Možeš to razjasniti u razgovoru, ili sačuvati profil bez automatskog povezivanja za te usluge.';
+}
+
 function validItem(p,snapshot) {
   if(!record(p)||Object.keys(p).length!==8 ||
     !['service','mode','action','categoryId','parentId','proposedPath','reason','catalogVersion'].every(k=>Object.hasOwn(p,k))
