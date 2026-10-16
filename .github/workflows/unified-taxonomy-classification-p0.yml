@@ -18,6 +18,10 @@ on:
       - 'src/app/(app)/profil/razgovor.tsx'
       - 'src/ui/workerProfile/workerProfileFacts.ts'
       - 'src/ui/workerProfile/WorkerAiPresentation.tsx'
+      - 'src/ui/v2/DiscoveryPresentation.tsx'
+      - 'src/ui/v2/discovery/DiscoveryListState.tsx'
+      - 'src/ui/v2/discovery/DiscoveryV1Route.tsx'
+      - 'supabase/proofs/dynamic_taxonomy/discovery-for-me-confirmed-work-source.test.mjs'
       - 'supabase/proofs/dynamic_taxonomy/unified-*.test.mjs'
       - 'supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs'
       - 'supabase/proofs/dynamic_taxonomy/worker-finish-mode-completeness.test.mjs'
@@ -41,7 +45,7 @@ jobs:
         with:
           node-version: '22'
       - name: Read-only canonical catalog and Gemini integration invariants
-        run: node --test supabase/proofs/dynamic_taxonomy/unified-*.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs supabase/proofs/dynamic_taxonomy/worker-finish-mode-completeness.test.mjs supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs supabase/proofs/dynamic_taxonomy/classification-batch.test.mjs supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs
+        run: node --test supabase/proofs/dynamic_taxonomy/unified-*.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs supabase/proofs/dynamic_taxonomy/worker-finish-mode-completeness.test.mjs supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs supabase/proofs/dynamic_taxonomy/discovery-for-me-confirmed-work-source.test.mjs supabase/proofs/dynamic_taxonomy/classification-batch.test.mjs supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs
 
   edge-typing:
     runs-on: ubuntu-latest
