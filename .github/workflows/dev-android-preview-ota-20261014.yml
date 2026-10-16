@@ -1,5 +1,5 @@
 # Owner-requested DEV Android preview OTA for unified TaskCard integration on Home carousel, 15 October 2026 22:56.
-# Self-path trigger ONLY: Warm greeting regression for map, media and transcript before Android preview OTA.
+# Self-path trigger ONLY: worker AI natural interview and offered-work copy gates before Android DEV preview OTA.
 name: DEV Android preview OTA 20261014
 on:
   push:
