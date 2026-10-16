@@ -167,8 +167,11 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
         </View>;
       })}</View>:<T variant="body" tone="muted">{EMPTY}</T>}
       {review.classificationState&&review.classificationState!=='READY'
-        ?<T testID="worker-classification-pending" variant="note" tone="muted">Usluge ostaju u profilu. Njihovo povezivanje sa odgovarajućim zadacima još se proverava.</T>
-        :null}
+        ?<T testID="worker-classification-pending" variant="note" tone="muted">
+          {review.classificationState==='SERVICE_MODE_CONFIRMATION_REQUIRED'
+            ?'Za deo usluga nije potvrđeno da li ih radiš na lokaciji ili na daljinu. U razgovoru razjasni način rada za svaku uslugu. Profil možeš da sačuvaš, ali automatske ponude sačekaće potvrdu.'
+            :'Veštine ostaju u profilu, ali automatsko pronalaženje odgovarajućih zadataka čeka potvrdu kategorija. U razgovoru preciziraj nejasne usluge.'}
+        </T>:null}
     </ReviewGroup>
     <ReviewGroup part="area" {...group}>
       <Fact art="pin" quiet={!place}>{place?`${place} · do ${p.location.radiusKm} km`:EMPTY}</Fact>
