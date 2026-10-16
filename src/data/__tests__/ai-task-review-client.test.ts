@@ -248,7 +248,7 @@ it('explicit preview opt-in routes requester review to signed version without ch
   const prior=process.env.EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW;
   try{
     process.env.EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW='true';
-    const signed={...review(),classificationState:'PENDING_CLASSIFICATION',
+    const signed:AiTaskReviewEnvelope={...review(),classificationState:'PENDING_CLASSIFICATION',
       classificationCandidates:[],classificationCatalogVersion:null,classificationCatalogFingerprint:null,reviewedServiceModes:[]};
     mockRpc.mockImplementation(async (name:string)=>{
       if(name==='rpc_prepare_ai_task_review_taxonomy')return answer(signed);
