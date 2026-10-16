@@ -8,50 +8,45 @@ const modes=new Set(['ON_SITE','REMOTE','UNCONFIRMED']);
 const record=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const sane=(v,min,max)=>typeof v==='string'&&v.trim().length>=min&&v.trim().length<=max&&!/[<>\u0000-\u001f]/.test(v);
 const maxServices=purpose=>purpose==='WORKER_CAPABILITY'?24:6;
-const shadowField='classificationShadow';
+const legacyShadowField='classificationShadow';
+const shadowJsonField='classificationShadowJson';
+const maxShadowJsonBytes=24576;
 
-/** Extend the existing Gemini JSON schema without changing the old required
- * payload or permitting arbitrary provider fields. OFF => original schema.
- * An empty list is safe and preferable when the speaker did not specify work.
+/** The old nested classificationShadow array made the already complex
+ * interview responseSchema much larger. That experimental provider schema was
+ * rejected with HTTP 400 on DEV. Keep the original typed interview contract and
+ * request only one OPTIONAL STRING in the provider schema. The string contains
+ * JSON metadata, parsed and independently validated below after completion.
+ * The raw metadata never becomes an AI fact, owner consent, skill or category.
+ * The older array envelope remains accepted for offline compatibility tests.
  */
 export function withGeminiClassificationShadowSchema(baseSchema,purpose='NEED_SERVICE') {
   if(!record(baseSchema)||!record(baseSchema.properties)||baseSchema.type!=='OBJECT'
-      ||Object.hasOwn(baseSchema.properties,shadowField))throw new Error('SHADOW_SCHEMA_INVALID');
-  const string={type:'STRING'};
-  const item={
-    type:'OBJECT',additionalProperties:false,
-    properties:{
-      service:string,
-      mode:{type:'STRING',enum:['ON_SITE','REMOTE','UNCONFIRMED']},
-      action:{type:'STRING',enum:CLASSIFICATION_ACTIONS.slice()},
-      categoryId:string, // '' for none, never fabricate UUID
-      parentId:string, // '' for none; new nodes require review
-      proposedPath:{type:'ARRAY',items:string,maxItems:6},
-      reason:string,
-      catalogVersion:{type:'INTEGER'},
-    },
-    required:['service','mode','action','categoryId','parentId','proposedPath','reason','catalogVersion'],
-  };
+      ||Object.hasOwn(baseSchema.properties,legacyShadowField)
+      ||Object.hasOwn(baseSchema.properties,shadowJsonField)
+      ||!['NEED_SERVICE','WORKER_CAPABILITY'].includes(purpose))
+    throw new Error('SHADOW_SCHEMA_INVALID');
   return {...baseSchema,properties:{...baseSchema.properties,
-    [shadowField]:{type:'ARRAY',maxItems:maxServices(purpose),items:item}}};
+    [shadowJsonField]:{type:'STRING'}}};
 }
 
 export function geminiClassificationShadowInstruction(purpose='NEED_SERVICE') {
   return [
     purpose==='WORKER_CAPABILITY'
-      ? 'Additional OPTIONAL output classificationShadow: a FULL SNAPSHOT (0 to 24 mode proposals for at most 12) of services the person currently offers, after applying your patch to the existing candidate, not just newly-mentioned activities. Use EXACT service strings that the updated skills list contains; never invent work. This is non-authoritative classification metadata.'
-      : 'Additional OPTIONAL output field classificationShadow: 0 to 6 SEMANTIC SERVICE proposals for the CURRENT task turn; never fabricate work.',
-    'Do not change safety/assistantMessage/facts/patch/dialogue. This extra field is PRIVATE, never user consent or catalog authority.',
-    'Each item must have exactly service, mode, action, categoryId, parentId, proposedPath, reason, catalogVersion.',
+      ? 'Additional OPTIONAL classificationShadowJson STRING: serialize a JSON array containing a FULL SNAPSHOT (0 to 24 service+mode proposals, at most 12 services) of what this person currently offers AFTER applying the profile patch. Only propose services in the updated explicit skills; never invent a job.'
+      : 'Additional OPTIONAL classificationShadowJson STRING: serialize a JSON array of 0 to 6 SEMANTIC SERVICE proposals for the CURRENT task turn; never fabricate work.',
+    'The entire classificationShadowJson field is one JSON STRING, NOT a nested JSON array property. Serialize array entries as JSON inside that string, no markdown. Use the string "[]" when nothing is clear. This field is private metadata and never user consent or catalog write authority.',
+    'Do not change assistantMessage, safety, facts, patch, dialogue or the other existing response fields. Never return the older classificationShadow array field.',
+    'Each entry inside the serialized JSON array must contain exactly service, mode, action, categoryId, parentId, proposedPath, reason, catalogVersion.',
     'Use catalogVersion from provided server context. For reuse: exact real categoryId, parentId="", proposedPath=[].',
     'For missing service: CREATE_CHILD with verified existing parentId and proposedPath of NEW descendant labels; or CREATE_NEW_BRANCH with parentId=""; never write.',
     'Never equate lessons, equipment rental and equipment repair merely because they mention skating.',
     'REUSE_ALIAS is only a suggested semantic candidate; no alias is verified by a model claim.',
     'Mode ON_SITE/REMOTE only if explicit or inherent to the service; otherwise UNCONFIRMED. Separate every service; both modes must be explicitly confirmed later.',
     purpose==='WORKER_CAPABILITY'
-      ? 'On a finish/acknowledgement turn with no changed skills, KEEP classificationShadow for the unchanged services, using earlier EXPLICIT delivery preferences or an inherent physical/online mode. For a service with truly unclear delivery mode, ask ONE natural clarifying question and mark it UNCONFIRMED; do not guess mode, silently omit an existing service, or add it to skills. This is not a new consent step.'
-      : 'If no clear service, no safe classification, or the input is an acknowledgement/finish/map reply: return classificationShadow: [].',
-    'Questions, unknown modes, unsafe, regulated and possible duplicates are review-only; category membership never proves worker capability.',
+      ? 'On a finish/acknowledgement turn with no changed skills, KEEP classificationShadowJson as a FULL SNAPSHOT for unchanged offered services. For unclear delivery modes ask ONE natural question and mark UNCONFIRMED; do not guess mode, omit offered work, or fake another skill. This is not new consent.'
+      : 'If no clear service, no safe classification, or this is an acknowledgement/finish/map reply, return classificationShadowJson as "[]".',
+    'Unsafe, regulated, ambiguous and possible duplicates are review-only; classification does not prove worker capability.',
   ].join(' ');
 }
 
@@ -81,9 +76,21 @@ function validItem(p,snapshot) {
  */
 export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
   if(!record(raw))return {output:raw,statuses:['MISSING_ENVELOPE'],reviewProposals:[]};
-  const {[shadowField]:shadow,...output}=raw;
-  if(!Object.hasOwn(raw,shadowField))return {output,statuses:[],reviewProposals:[]};
-  if(!Array.isArray(shadow)||shadow.length>maxServices(purpose))return {output,statuses:['INVALID_BATCH'],reviewProposals:[]};
+  const {[legacyShadowField]:legacyShadow,[shadowJsonField]:encoded,...output}=raw;
+  const oldFormat=Object.hasOwn(raw,legacyShadowField);
+  const newFormat=Object.hasOwn(raw,shadowJsonField);
+  if(!oldFormat&&!newFormat)return {output,statuses:[],reviewProposals:[]};
+  // Never give ambiguous mixed envelopes any classification authority.
+  if(oldFormat&&newFormat)return {output,statuses:['AMBIGUOUS_SHADOW_FORMAT'],reviewProposals:[]};
+  let shadow=legacyShadow;
+  if(newFormat){
+    if(typeof encoded!=='string'||new TextEncoder().encode(encoded).byteLength>maxShadowJsonBytes)
+      return {output,statuses:['INVALID_SHADOW_JSON'],reviewProposals:[]};
+    try { shadow=JSON.parse(encoded); }
+    catch { return {output,statuses:['INVALID_SHADOW_JSON'],reviewProposals:[]}; }
+  }
+  if(!Array.isArray(shadow)||shadow.length>maxServices(purpose))
+    return {output,statuses:['INVALID_BATCH'],reviewProposals:[]};
   if(raw.safety==='BLOCK'||raw.safety==='REVIEW')
     return {output,statuses:shadow.length?['SAFETY_INTERVIEW_REVIEW']:[],reviewProposals:[]};
   if(!record(snapshot)||!Array.isArray(snapshot.categories)||!Number.isSafeInteger(snapshot.catalogVersion))
