@@ -95,7 +95,7 @@ BEGIN
  v_category_version:=v_batch.catalog_version;
  SELECT * INTO v_need FROM public.needs n WHERE n.id=p_need_id FOR UPDATE;
  IF NOT FOUND OR v_need.requester_account_id<>p_owner_account_id OR
-    v_need.revision<>p_need_revision OR v_need.status NOT IN ('DRAFT','PUBLISHED') THEN
+    v_need.revision<>p_need_revision OR v_need.status NOT IN ('DRAFT','PUBLISHED','SELECTION') THEN
    RAISE EXCEPTION 'NEED_BINDER_CURRENT_REVISION_REQUIRED' USING errcode='PT409';
  END IF;
  v_scope:=private.taxonomy_execution_scope_v1(v_need.execution_location_mode);
