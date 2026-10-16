@@ -91,7 +91,7 @@ describe('the conversation (M1)', () => {
     await render();
     expect(shell().props.title).toBe('Radni profil'); expect(shell().props.questionFocus).toBe(true);
     expect(shell().props.attach).toMatchObject({ label: 'Dodaj podatke', disabled: false });
-    expect(shell().props.attach.hint).toBe('Veštine, područje, vreme, alat i vozilo.');
+    expect(shell().props.attach.hint).toBe('Poslovi, područje rada, vreme, alat i vozilo.');
   });
 
   it('draws no "+" when the conversation cannot take anything more', async () => {
@@ -103,10 +103,10 @@ describe('the conversation (M1)', () => {
   it('the "+" lists the four parts, each opening its own editor and writing only through "Primeni"', async () => {
     await render();
     await act(async () => { shell().props.attach.onPress(); });
-    expect(menuRows().map(row => row.props.accessibilityLabel)).toEqual(['Veštine', 'Područje rada', 'Kada imaš vremena', 'Alat i vozilo']);
-    await act(async () => { menuRow('Veštine').props.onPress(); });
+    expect(menuRows().map(row => row.props.accessibilityLabel)).toEqual(['Poslovi koje nudiš', 'Područje rada', 'Kada imaš vremena', 'Alat i vozilo']);
+    await act(async () => { menuRow('Poslovi koje nudiš').props.onPress(); });
     expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
-    expect(manual().props.only).toBe('skills'); expect(frame().props.title).toBe('Veštine');
+    expect(manual().props.only).toBe('skills'); expect(frame().props.title).toBe('Poslovi koje nudiš');
     expect(mockApi.patch).not.toHaveBeenCalled();
   });
 
@@ -154,7 +154,7 @@ describe('the review (M2)', () => {
     await render(); await openReview();
     expect(typeof review().props.onEdit).toBe('function'); expect(review().props.editDisabled).toBe(false);
     await act(async () => { review().props.onEdit('skills'); });
-    expect(manual().props.only).toBe('skills'); expect(frame().props.title).toBe('Veštine');
+    expect(manual().props.only).toBe('skills'); expect(frame().props.title).toBe('Poslovi koje nudiš');
     await act(async () => { frame().props.back(); });
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0); expect(review()).toBeTruthy();
     expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.prepare).toHaveBeenCalledTimes(1);

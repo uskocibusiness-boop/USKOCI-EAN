@@ -50,19 +50,19 @@ describe('the review in parts (M2)', () => {
     expect(copy).toContain('Novi Beograd · RS · do 15 km');
     expect(copy).toContain('Bušilica · Merdevine'); expect(copy).toContain('Kombi');
     expect(copy).toContain('Radim vikendom.'); expect(copy).not.toContain('Ana'); expect(copy.split(' | ')).not.toContain('Ime');
-    for (const title of ['Veštine', 'Područje', 'Kada imaš vremena', 'Alat i vozilo', 'O meni']) expect(copy).toContain(title);
+    for (const title of ['Poslovi koje nudiš', 'Područje', 'Kada imaš vremena', 'Alat i vozilo', 'O meni']) expect(copy).toContain(title);
   });
 
   it('puts "Izmeni" at the side of every part, naming it, and opens exactly that part', async () => {
     const edit = jest.fn<void, [WorkerAiPart]>();
     await act(async () => { tree = create(<WorkerAiReviewDetails review={full} onEdit={edit} />); });
-    const labels = ['Izmeni: Veštine', 'Izmeni: Područje', 'Izmeni: Kada imaš vremena', 'Izmeni: Alat i vozilo', 'Izmeni: O meni'];
+    const labels = ['Izmeni: Poslovi koje nudiš', 'Izmeni: Područje', 'Izmeni: Kada imaš vremena', 'Izmeni: Alat i vozilo', 'Izmeni: O meni'];
     for (const label of labels) expect(press(label)).toBeTruthy();
     for (const label of labels) await act(async () => { press(label).props.onPress(); });
     expect(edit.mock.calls.map(call => call[0])).toEqual(['skills', 'area', 'time', 'tools', 'identity']);
     // A 44 dp target, spoken as a button.
-    expect(press('Izmeni: Veštine').props.accessibilityRole).toBe('button');
-    expect(StyleSheet.flatten(press('Izmeni: Veštine').props.style).minHeight).toBeGreaterThanOrEqual(44);
+    expect(press('Izmeni: Poslovi koje nudiš').props.accessibilityRole).toBe('button');
+    expect(StyleSheet.flatten(press('Izmeni: Poslovi koje nudiš').props.style).minHeight).toBeGreaterThanOrEqual(44);
   });
 
   it('is only read when nothing can edit it (the gallery), and cannot be edited while disabled', async () => {
@@ -70,8 +70,8 @@ describe('the review in parts (M2)', () => {
     expect(tree.root.findAll(node => String(node.type) === 'Press')).toHaveLength(0);
     const edit = jest.fn();
     await act(async () => tree.update(<WorkerAiReviewDetails review={full} onEdit={edit} editDisabled />));
-    expect(press('Izmeni: Veštine').props.disabled).toBe(true);
-    await act(async () => { press('Izmeni: Veštine').props.onPress(); });
+    expect(press('Izmeni: Poslovi koje nudiš').props.disabled).toBe(true);
+    await act(async () => { press('Izmeni: Poslovi koje nudiš').props.onPress(); });
     expect(edit).not.toHaveBeenCalled();
   });
 
@@ -114,9 +114,9 @@ describe('what the conversation has understood (the progress of M1)', () => {
   it('is nothing but the draft: an empty draft is four grey bars, and nothing counts questions', async () => {
     await act(async () => { tree = create(<WorkerAiProgress profile={draft()} />); });
     const bar = tree.root.findByProps({ testID: 'worker-draft-progress' });
-    expect(bar.props.accessibilityLabel).toBe('U nacrtu profila još nema ničega. Još nema: veštine, područje i vreme. Alat i vozilo su opcioni; nisu navedeni.');
+    expect(bar.props.accessibilityLabel).toBe('U nacrtu profila još nema ničega. Još nema: poslovi, područje i vreme. Alat i vozilo su opcioni; nisu navedeni.');
     expect(bar.props.accessibilityValue).toEqual({ min: 0, max: 4, now: 0 });
-    expect(texts()).toBe('Veštine | Područje | Vreme | Alat'); expect(texts()).not.toMatch(/od 5|Pitanje/);
+    expect(texts()).toBe('Poslovi | Područje | Vreme | Alat'); expect(texts()).not.toMatch(/od 5|Pitanje/);
   });
 
   it('colours exactly the parts the draft holds, and a place only with a country and a city', async () => {
@@ -125,13 +125,13 @@ describe('what the conversation has understood (the progress of M1)', () => {
     const colour = (key: string) => StyleSheet.flatten(tree.root.findByProps({ testID: `worker-draft-progress-${key}` }).props.style).backgroundColor;
     expect(colour('skills')).toBe(sys.color.green); expect(colour('area')).toBe(sys.color.line);
     expect(colour('time')).toBe(sys.color.line); expect(colour('tools')).toBe(sys.color.green);
-    expect(tree.root.findByProps({ testID: 'worker-draft-progress' }).props.accessibilityLabel).toBe('U nacrtu profila: veštine i alat. Još nema: područje i vreme.');
+    expect(tree.root.findByProps({ testID: 'worker-draft-progress' }).props.accessibilityLabel).toBe('U nacrtu profila: poslovi i alat. Još nema: područje i vreme.');
     const all = draft({ skills: ['Selidbe'], tools: ['Bušilica'], location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20, approximatePosition: null },
       availability: { timezone: 'Europe/Belgrade', availableNow: true, rules: [], windows: [] } });
     await act(async () => tree.update(<WorkerAiProgress profile={all} />));
     const bar = tree.root.findByProps({ testID: 'worker-draft-progress' });
     expect(bar.props.accessibilityValue).toEqual({ min: 0, max: 4, now: 4 });
-    expect(bar.props.accessibilityLabel).toBe('U nacrtu profila: veštine, područje, vreme i alat.');
+    expect(bar.props.accessibilityLabel).toBe('U nacrtu profila: poslovi, područje, vreme i alat.');
   });
 
   it('counts a week or a special date as time, and "Mogu odmah" alone too', () => {
@@ -145,7 +145,7 @@ describe('what the conversation has understood (the progress of M1)', () => {
     const withoutEquipment = review({}, { availableNow: true, rules: [], windows: [] });
     await act(async () => { tree = create(<WorkerAiProgress profile={withoutEquipment.profile} />); });
     const bar = tree.root.findByProps({ testID: 'worker-draft-progress' });
-    expect(bar.props.accessibilityLabel).toBe('U nacrtu profila: veštine, područje i vreme. Alat i vozilo su opcioni; nisu navedeni.');
+    expect(bar.props.accessibilityLabel).toBe('U nacrtu profila: poslovi, područje i vreme. Alat i vozilo su opcioni; nisu navedeni.');
     expect(bar.props.accessibilityValue).toEqual({ min: 0, max: 4, now: 3 });
     expect(capturedParts(withoutEquipment.profile).find(part => part.key === 'tools')?.done).toBe(false);
   });
@@ -163,9 +163,9 @@ describe('the focused editors of "Izmeni" and "+" send only their own part', () 
   it('skills: the list editor, a word left in the box is kept, and nothing else is written', async () => {
     const apply = await open('skills');
     expect(texts()).toContain('Montaža nameštaja');
-    expect(tree.root.findAll(node => String(node.type) === 'TextInput').map(node => node.props.accessibilityLabel)).toEqual(['Nova stavka: Veštine i usluge']);
+    expect(tree.root.findAll(node => String(node.type) === 'TextInput').map(node => node.props.accessibilityLabel)).toEqual(['Nova stavka: Poslovi koje nudiš']);
     await act(async () => { press('Ukloni: Farbanje').props.onPress(); });
-    await act(async () => { box('Nova stavka: Veštine i usluge').props.onChangeText('Čišćenje'); });
+    await act(async () => { box('Nova stavka: Poslovi koje nudiš').props.onChangeText('Čišćenje'); });
     await submit();
     expect(apply).toHaveBeenCalledTimes(1); expect(apply.mock.calls[0][0]).toEqual({ skills: ['Montaža nameštaja', 'Čišćenje'] });
   });
@@ -204,7 +204,7 @@ describe('the focused editors of "Izmeni" and "+" send only their own part', () 
     await act(async () => { tree = create(<WorkerAiManual profile={profile} disabled={false} apply={jest.fn()} only="skills"
       onDraftChange={(_value, dirty) => changes.push(dirty)} />); });
     expect(changes.at(-1)).toBe(false);
-    await act(async () => { box('Nova stavka: Veštine i usluge').props.onChangeText('Čišćenje'); });
+    await act(async () => { box('Nova stavka: Poslovi koje nudiš').props.onChangeText('Čišćenje'); });
     expect(changes.at(-1)).toBe(true);
   });
 
