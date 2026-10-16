@@ -130,7 +130,7 @@ describe('Optional Gemini taxonomy shadow is wire-safe and never overrides the i
       contents: [{ role: 'user', parts: [{ text: rawSecret }] }],
       generationConfig: { responseMimeType: 'application/json', responseSchema },
     });
-    const mock = jest.fn(async () => ({ status: 400, ok: false, body: null } as Response));
+    const mock = jest.fn(async (_url: string, _init: RequestInit) => ({ status: 400, ok: false, body: null } as Response));
     globalThis.fetch = mock as typeof fetch;
     const errorLog = jest.spyOn(console, 'error').mockImplementation(() => undefined);
     const onText = jest.fn();
