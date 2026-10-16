@@ -72,10 +72,10 @@ jobs:
           EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW: 'false'
           EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'false'
         run: npx jest src/data/__tests__/ai-task-review-client.test.ts src/data/__tests__/worker-ai-client.test.ts --runInBand --silent
-      - name: Verify exact signed-review source and atomic worker Save-to-binder ownership
-        # This source proof also rejects asynchronous global-mode writes on
-        # signed Save (WORKER_BINDER_NEWER_GLOBAL_MODE race regression).
-        run: node --test supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs
+      - name: Verify signed-review, complete-worker-hints and atomic worker Save safety
+        # The coverage proof prevents partial Gemini proposals from being
+        # presented as already-confirmed worker service or notification consent.
+        run: node --test supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow-source.test.mjs
       - name: Verify preview has explicit DEV-only signed review feature gates
         shell: bash
         run: |
