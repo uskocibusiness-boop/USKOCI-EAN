@@ -60,3 +60,16 @@ test('finish stays optional, must not fake Save or allow unauthorized matching',
  assert.doesNotMatch(handler,/rpc_taxonomy_bind_reviewed_worker_service/);
  assert.doesNotMatch(handler,/rpc_taxonomy_commit_reviewed_batch_service/);
 });
+
+test('first-screen interview copy and profile labels describe real offered work',()=>{
+ const route=readFileSync(new URL('../../../src/app/(app)/profil/razgovor.tsx',import.meta.url),'utf8');
+ const labels=readFileSync(new URL('../../../src/ui/workerProfile/workerProfileFacts.ts',import.meta.url),'utf8');
+ const presentation=readFileSync(new URL('../../../src/ui/workerProfile/WorkerAiPresentation.tsx',import.meta.url),'utf8');
+ assert.match(route,/welcome=\{hasProfileContent\?'Šta želiš da dopuniš\?':'Čime se baviš\?'\}/);
+ assert.match(route,/Ispričaj koje poslove radiš ili želiš da preuzimaš/);
+ assert.doesNotMatch(route,/svakodnevnu pomoć, poput dostave i nošenja stvari/);
+ assert.match(labels,/skills: 'Poslovi koje nudiš'/);
+ assert.match(labels,/key: 'skills', label: 'Poslovi'/);
+ assert.match(presentation,/label="Poslovi koje nudiš"/);
+ assert.match(presentation,/listEditor\('skills','Poslovi koje nudiš',skills\)/);
+});
