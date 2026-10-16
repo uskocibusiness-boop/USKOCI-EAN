@@ -1,4 +1,4 @@
-import { GeminiCreditsUnavailableError, streamGeminiTask } from '../../../supabase/functions/_shared/geminiTaskStream';
+import { GeminiCreditsUnavailableError, geminiRequestBody, streamGeminiTask } from '../../../supabase/functions/_shared/geminiTaskStream';
 
 const savedFetch = globalThis.fetch;
 const rawSecret = 'Samo za test: privatna adresa 42';
@@ -64,5 +64,86 @@ describe('Gemini HTTP failure never masks provider failure with an undefined var
     await expect(result).rejects.toThrow('AI_STREAM_STOPPED');
     expect(mock).toHaveBeenCalledTimes(1);
     expect(onText).not.toHaveBeenCalled();
+  });
+});
+
+
+describe('Optional Gemini taxonomy shadow is wire-safe and never overrides the interview', () => {
+  const string = { type: 'STRING' };
+  const layouts = [
+    ['worker', {
+      type: 'OBJECT', required: ['assistantMessage', 'safety', 'patch'],
+      additionalProperties: false,
+      properties: {
+        assistantMessage: string, safety: string,
+        patch: { type: 'OBJECT', properties: {
+          skills: { type: 'ARRAY', items: string, minItems: 0, maxItems: 24 },
+        }, additionalProperties: false },
+      },
+    }],
+    ['need', {
+      type: 'OBJECT', required: ['assistantMessage', 'safety', 'facts', 'dialogue'],
+      additionalProperties: false,
+      properties: {
+        assistantMessage: string, safety: string,
+        facts: { type: 'ARRAY', items: { type: 'OBJECT', properties: {
+          key: string, valueJson: string,
+        }, additionalProperties: false }, maxItems: 12 },
+        dialogue: { type: 'OBJECT', properties: { next: string } },
+      },
+    }],
+  ] as const;
+
+  it.each(layouts)('%s schema: optional shadow is a string and original provider contract survives serialization', (_purpose, baseline) => {
+    const extended = { ...baseline, properties: {
+      ...baseline.properties, classificationShadowJson: { type: 'STRING' },
+    }};
+    const requestWith = (schema: unknown) => JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: rawSecret }] }],
+      generationConfig: {
+        temperature: 0.2, responseMimeType: 'application/json', responseSchema: schema,
+      },
+    });
+    const before = JSON.parse(geminiRequestBody(requestWith(baseline)));
+    const after = JSON.parse(geminiRequestBody(requestWith(extended)));
+    const originalSchema = before.generationConfig.responseSchema;
+    const wireSchema = after.generationConfig.responseSchema;
+    expect(wireSchema.properties.classificationShadowJson).toEqual({ type: 'STRING' });
+    const { classificationShadowJson: _metadata, ...core } = wireSchema.properties;
+    expect(core).toEqual(originalSchema.properties);
+    expect(wireSchema.required).toEqual(originalSchema.required);
+    expect(wireSchema.required).not.toContain('classificationShadowJson');
+    expect(wireSchema.properties).not.toHaveProperty('classificationShadow');
+    expect(JSON.stringify(wireSchema)).not.toContain('additionalProperties');
+    expect(JSON.stringify(wireSchema)).not.toContain('maxItems');
+    expect(JSON.stringify(wireSchema)).not.toContain('minItems');
+    expect(after.generationConfig.temperature).toBeUndefined();
+    expect(after.generationConfig.thinkingConfig).toEqual({ thinkingLevel: 'low' });
+    expect(JSON.stringify(baseline)).not.toContain('classificationShadowJson');
+  });
+
+  it.each(layouts)('%s schema: upstream HTTP 400 cannot leak interview content or silently start a second request', async (_purpose, baseline) => {
+    const responseSchema = { ...baseline, properties: {
+      ...baseline.properties, classificationShadowJson: { type: 'STRING' },
+    }};
+    const requestBody = JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: rawSecret }] }],
+      generationConfig: { responseMimeType: 'application/json', responseSchema },
+    });
+    const mock = jest.fn(async () => ({ status: 400, ok: false, body: null } as Response));
+    globalThis.fetch = mock as typeof fetch;
+    const errorLog = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const onText = jest.fn();
+    await expect(streamGeminiTask({
+      url: 'https://provider.example.test/stream', key: 'test-only-not-a-real-key',
+      body: requestBody, onText, timeoutMs: 30000,
+    })).rejects.toThrow('AI_STREAM_UNAVAILABLE');
+    expect(mock).toHaveBeenCalledTimes(1);
+    const sent = JSON.parse(String(mock.mock.calls[0][1]?.body ?? ''));
+    expect(sent.generationConfig.responseSchema.properties.classificationShadowJson)
+      .toEqual({ type: 'STRING' });
+    expect(onText).not.toHaveBeenCalled();
+    expect(JSON.stringify(errorLog.mock.calls)).not.toContain(rawSecret);
+    expect(JSON.stringify(errorLog.mock.calls)).not.toContain('test-only-not-a-real-key');
   });
 });
