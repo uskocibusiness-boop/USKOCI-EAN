@@ -13,7 +13,7 @@ import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION }
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { loadClassificationCatalog, catalogPromptContext } from '../_shared/classificationEngine.mjs';
-import { withGeminiClassificationShadowSchema, inspectGeminiClassificationShadow, geminiClassificationShadowInstruction } from '../_shared/classificationGeminiShadow.mjs';
+import { withGeminiClassificationShadowSchema, inspectGeminiClassificationShadow, geminiClassificationShadowInstruction, workerServicesMissingScope } from '../_shared/classificationGeminiShadow.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info',
@@ -228,7 +228,20 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           output=parseWorkerOutput(checked.output);
         } catch { await fail(); throw new Error('WORKER_AI_INVALID'); }
         if (finishOnly(input.text) && ['ALLOW','CLARIFY'].includes(output.safety)) {
-          output={...output,patch:{},assistantMessage:'Otvori pregled profila. Tamo možeš da dopuniš podatke i potvrdiš čuvanje.'};
+          // An explicit finish is ALWAYS respected; no extra mandatory AI
+          // interview turn. But never conceal that some unchanged offered
+          // skills lack an explicit service scope in the current shadow.
+          // Only already-validated hints count; this is UX, not consent.
+          const unresolved=taxonomyCatalog
+            ?workerServicesMissingScope(context.candidate?.skills,reviewHints)
+            :{count:0,labels:[]};
+          const examples=unresolved.labels.join(', ');
+          const more=unresolved.count-unresolved.labels.length;
+          const note=unresolved.count
+            ?'Za '+examples+(more>0?' i još '+more+' usluga':'')+
+              ' nije potvrđeno da li radiš na lokaciji, na daljinu ili oba. Možeš to razjasniti u razgovoru, ili sačuvati profil bez automatskog povezivanja za te usluge.'
+            :'Tamo možeš da dopuniš podatke i potvrdiš čuvanje.';
+          output={...output,patch:{},assistantMessage:'Otvori pregled profila. '+note};
         }
         const turn=await rpc('rpc_complete_worker_ai_turn_service',{...identity,p_attempt_id:claim.turn.attemptId,p_output:output},abort.signal);
         if (!object(turn)||turn.state!=='SUCCEEDED'||turn.turnId!==claim.turn.turnId||turn.attemptId!==claim.turn.attemptId
