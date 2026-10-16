@@ -227,9 +227,13 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   // The pictures the draft has facts for, and where each lands: a picture that is new to the conversation's memory arrives once, in its place.
   const lands = (kind: DraftSticker, index: number, child: ReactNode) => <Appear key={kind} index={index} animate={!!appear && appear.isNew(kind)} from="above">{child}</Appear>;
   return <Surface kind="panel" testID="intake-task-summary" style={[s.card, compact && s.cardCompact]}>
-    <View testID="intake-draft-head" accessible accessibilityLabel={spoken}>
-      <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={final ? 0 : compact || locationEditing ? 1 : 2}
-        style={[s.compactTitle, !summary.title && s.titleEmpty]} />
+    <View testID="intake-draft-head" accessible accessibilityLabel={spoken} style={s.cardHeaderRow}>
+      <FactArt kind="tasks" size={28} cut="art" />
+      <View style={{ flex: 1, gap: 2 }}>
+        <T variant="meta" style={s.cardHeaderBadge}>USKOČI · PREDLOG ZADATKA</T>
+        <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={final ? 0 : compact || locationEditing ? 1 : 2}
+          style={[s.compactTitle, !summary.title && s.titleEmpty]} />
+      </View>
     </View>
     {facts ? final
       ? <View testID="intake-draft-details" style={s.details}>
@@ -247,9 +251,10 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
       : !locationEditing && !ended ? <Press testID="intake-draft-review" accessibilityRole="button" accessibilityLabel={reviewLabel}
         accessibilityHint={editing ? 'Otvara pregled izmena.' : 'Otvara pregled svih podataka pre objave.'}
         accessibilityState={{ disabled: !canReview }} disabled={!canReview}
-        onPress={() => { if (canReview) onReview(); }} haptic={canReview ? 'select' : 'none'} style={s.reviewAction}>
+        onPress={() => { if (canReview) onReview(); }} haptic={canReview ? 'select' : 'none'}
+        style={[s.reviewAction, !canReview && s.reviewActionDisabled]}>
         <T variant="note" style={[s.readyText, !canReview && s.muted]}>{reviewLabel}</T>
-        <Glyph name="caret-right" tone={canReview ? 'ink' : 'muted'} />
+        <Glyph name="caret-right" tone={canReview ? 'onGreen' : 'muted'} />
       </Press> : null}
   </Surface>;
 }
@@ -570,18 +575,29 @@ const s = StyleSheet.create({
   canvas: { flex: 1, backgroundColor: sys.conversation.ground },
   muted: { color: sys.color.muted }, danger: { color: sys.color.danger },
   // The living draft is a panel above the thread (a thing that is read, in a frame, with no shadow); only its padding is its own.
-  card: { paddingVertical: sys.space.md, paddingHorizontal: sys.space.md, gap: sys.space.sm },
-  cardCompact: { paddingVertical: sys.space.sm, paddingHorizontal: sys.space.md },
+  card: {
+    paddingVertical: sys.space.md, paddingHorizontal: sys.space.base, gap: sys.space.sm,
+    backgroundColor: '#FFFFFF', borderRadius: 18, borderWidth: 1.5, borderColor: '#E2ECE6',
+    shadowColor: '#0E2920', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
+  },
+  cardCompact: { paddingVertical: sys.space.sm, paddingHorizontal: sys.space.base, borderRadius: 14 },
+  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  cardHeaderBadge: { fontSize: 11, fontWeight: '700', color: sys.color.green, letterSpacing: 0.6 },
   // Final, the facts are rows of one kind, 8 apart; while the draft is made they are pictures with their words in a line that wraps by whole facts.
   details: { gap: sys.space.sm },
   stickers: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.md, rowGap: sys.space.sm },
   sticker: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, flexShrink: 1, maxWidth: '100%' },
   stickerWords: { color: sys.color.fact, flexShrink: 1 },
-  // The way to the review while something is missing is a quiet word at the start of its own line, as high as a finger.
-  reviewAction: { minHeight: layout.touch, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, paddingHorizontal: sys.space.md, paddingVertical: sys.space.xs, backgroundColor: sys.color.iconWell, borderRadius: sys.radius.pill },
+  // The way to the review is a prominent button with full reach
+  reviewAction: {
+    minHeight: 48, alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: sys.space.sm, paddingHorizontal: sys.space.base, paddingVertical: sys.space.xs,
+    backgroundColor: sys.color.green, borderRadius: 14, marginTop: sys.space.xs,
+  },
+  reviewActionDisabled: { backgroundColor: sys.color.iconWell },
   compactTitle: { ...sys.type.cardTitleCompact, color: sys.color.ink },
   titleEmpty: { color: sys.color.muted },
   // The card's own fact size (`note`), in the weight of a way forward (verify r4b ra item C: it was a raw 14/19).
-  readyText: { flexShrink: 1, fontWeight: '600', color: sys.color.ink },
+  readyText: { flexShrink: 1, fontWeight: '700', color: '#FFFFFF', fontSize: 15 },
   unavailable: { flex: 1, paddingHorizontal: layout.gutter },
 });

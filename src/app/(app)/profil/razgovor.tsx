@@ -289,7 +289,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
         // signed per-service modes and global choice after verifying the exact
         // Save receipt. An async client write after Save would set updated_at
         // after the Save timestamp and trigger WORKER_BINDER_NEWER_GLOBAL_MODE.
-        if(accountId&&reviewed.classificationState===undefined){
+        if(accountId&&reviewed.classificationState===undefined&&reviewed.profile){
           const modes=inferWorkerExecutionModes(reviewed.profile.skills,reviewed.profile.location);
           if(modes.length)void workerExecutionModeClientService.save(accountId,accountRevision,modes).catch(()=>undefined);
         }
@@ -387,8 +387,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   // "not yet read back" only until the thread's last message is that very sentence.
   const sent=pending.current?.text??null,lastMessage=data.messages[data.messages.length-1];
   const unread=sent&&!(lastMessage?.role==='USER'&&lastMessage.body.trim()===sent.trim())?sent:null;
-  const hasProfileContent = data.messages.some(message => message.role === 'USER')
-    || data.candidate.skills.length > 0 || data.candidate.tools.length > 0
+  const hasProfileContent = data.candidate.skills.length > 0 || data.candidate.tools.length > 0
     || data.candidate.vehicles.length > 0 || data.candidate.bio.trim().length > 0;
   // The "+" of the composer (M1): the parts of the profile, each opening its own editor, for a person who would rather give a
   // part directly than say it. It changes nothing by itself; "Primeni na pregled profila" in the editor does (one patch).
@@ -397,6 +396,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     if(next==='time')showPanel('availability');else if(next!=='identity')showPanel('manual',{part:next});
   };
   return <><AiConversationShell conversationKey={data.conversationId} title="Radni profil" questionFocus
+    cardPlacement="end"
     newConversation={{ onPress: restart, disabled: !canAct() || voiceBusy }}
     closed={!!data.saved || data.status !== 'OPEN'}
     attach={writable?{label:'Dodaj podatke',hint:'Poslovi, područje rada, vreme, alat i vozilo.',disabled:!enabled,

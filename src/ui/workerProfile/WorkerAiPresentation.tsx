@@ -48,28 +48,31 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
       accessibilityValue={{text:skills}} accessibilityState={{expanded}}
       accessibilityHint="Prikazuje sažetak unetih podataka u razgovoru."
       onPress={toggle} haptic="select" style={s.previewHead}>
+      <FactArt kind="tool" size={32} cut="art" />
       <View style={[s.grow,s.previewSummary]}>
+        <T variant="meta" style={s.cardBadge}>USKOČI · RADNA KARTICA</T>
         <T variant="cardTitleCompact" numberOfLines={expanded?undefined:2} style={s.skillHeading}>{skills}</T>
       </View>
       <Glyph name={expanded?'caret-up':'caret-down'} tone="muted"/>
     </Press>
-      {showReview&&!reviewInFooter?<View style={s.reviewAction}>
-        <Press testID="worker-draft-review" accessibilityRole="button" accessibilityLabel="Pregledaj profil"
-          accessibilityHint={disabled&&reviewReason?reviewReason:'Otvara sve podatke pre završnog čuvanja.'}
-          accessibilityState={{disabled}} disabled={disabled}
-          onPress={() => { if (!disabled) review(); }} haptic={disabled?'none':'select'} style={s.reviewLink}>
-          <T variant="note" style={[s.reviewLabel,disabled&&s.muted]}>Pregledaj profil</T>
-          <ReviewCue disabled={disabled}/>
-        </Press>
-        {disabled&&reviewReason?<T accessibilityLiveRegion="polite" variant="note" tone="muted">{reviewReason}</T>:null}
-      </View>:null}
     {expanded?<View testID="worker-draft-details" style={s.previewFacts}>
-        <PreviewFact art="pin">{`${place} · ${profile.location.radiusKm} km`}</PreviewFact>
+        <PreviewFact art="pin">{`${place} · do ${profile.location.radiusKm} km`}</PreviewFact>
         <PreviewFact art="clock">{availability}</PreviewFact>
         {profile.tools.length?<PreviewFact art="tool">{list(profile.tools)}</PreviewFact>:null}
         {profile.vehicles.length?<PreviewFact art="vehicle">{list(profile.vehicles)}</PreviewFact>:null}
         {profile.availability.rules.length||profile.availability.windows.length?<PreviewFact art="calendar">{schedule}</PreviewFact>:null}
       </View>:null}
+    {showReview&&!reviewInFooter?<View style={s.reviewAction}>
+      <Press testID="worker-draft-review" accessibilityRole="button" accessibilityLabel="Pregledaj profil"
+        accessibilityHint={disabled&&reviewReason?reviewReason:'Otvara sve podatke pre završnog čuvanja.'}
+        accessibilityState={{disabled}} disabled={disabled}
+        onPress={() => { if (!disabled) review(); }} haptic={disabled?'none':'select'}
+        style={[s.reviewButton, disabled && s.reviewButtonDisabled]}>
+        <T variant="note" style={[s.reviewButtonText, disabled && s.muted]}>Pregledaj profil</T>
+        <ReviewCue disabled={disabled}/>
+      </Press>
+      {disabled&&reviewReason?<T accessibilityLiveRegion="polite" variant="note" tone="muted">{reviewReason}</T>:null}
+    </View>:null}
   </Surface>;
 }
 function ReviewCue({disabled}:{disabled:boolean}){
@@ -316,18 +319,24 @@ const s=StyleSheet.create({
   ink:{color:sys.color.ink},
   muted:{color:sys.color.muted},
   grow:{flex:1,minWidth:0},
-  card:{paddingHorizontal:sys.space.base,paddingVertical:sys.space.sm,gap:sys.space.xs,minHeight:layout.touch,
-    backgroundColor:sys.conversation.summary,borderColor:sys.conversation.edge},
-  cardCompact:{paddingVertical:sys.space.sm,borderRadius:sys.radius.cardCompact},
+  card:{
+    paddingHorizontal:sys.space.base,paddingVertical:sys.space.md,gap:sys.space.sm,minHeight:layout.touch,
+    backgroundColor:'#FFFFFF',borderRadius:18,borderWidth:1.5,borderColor:'#E2ECE6',
+    shadowColor:'#0E2920',shadowOffset:{width:0,height:4},shadowOpacity:0.08,shadowRadius:12,elevation:3,
+  },
+  cardCompact:{paddingVertical:sys.space.sm,borderRadius:14},
+  cardBadge:{fontSize:11,fontWeight:'700',color:sys.color.green,letterSpacing:0.6},
   previewHead:{minHeight:48,flexDirection:'row',alignItems:'center',gap:sys.space.md},
-  previewSummary:{gap:sys.space.xs},
+  previewSummary:{gap:2},
   skillHeading:{color:sys.color.ink},
-  previewFacts:{gap:sys.space.sm},
+  previewFacts:{gap:sys.space.sm,paddingVertical:sys.space.xs},
   previewFact:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.sm},
-  reviewAction:{gap:sys.space.xs},
-  reviewLink:{minHeight:48,flexDirection:'row',alignItems:'center',gap:sys.space.sm},
-  reviewLabel:{flex:1,minWidth:0,color:sys.color.ink,fontWeight:'700'},
-  reviewCue:{flexShrink:0,width:28,height:28,borderRadius:sys.radius.pill,backgroundColor:sys.color.ink,alignItems:'center',justifyContent:'center'},
+  reviewAction:{gap:sys.space.xs,paddingTop:sys.space.xs},
+  reviewButton:{minHeight:48,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:sys.space.sm,
+    backgroundColor:sys.color.green,borderRadius:14,paddingHorizontal:sys.space.base},
+  reviewButtonDisabled:{backgroundColor:sys.conversation.iconWell},
+  reviewButtonText:{color:'#FFFFFF',fontWeight:'700',fontSize:15},
+  reviewCue:{flexShrink:0,width:26,height:26,borderRadius:sys.radius.pill,backgroundColor:'rgba(255,255,255,0.22)',alignItems:'center',justifyContent:'center'},
   reviewCueDisabled:{backgroundColor:sys.conversation.iconWell},
   progress:{flexDirection:'row',gap:sys.space.sm,paddingTop:sys.space.xs,paddingBottom:sys.space.xs},
   progressStacked:{flexWrap:'wrap',rowGap:sys.space.sm},

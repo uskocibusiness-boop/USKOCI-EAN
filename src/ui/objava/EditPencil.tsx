@@ -24,7 +24,7 @@ export function EditPencil({ pencil, pill = false }: { pencil: PartPencil; pill?
   const { stacked } = useLayoutClass();
   return <Press accessibilityRole="button" accessibilityLabel={pencil.label} onPress={pencil.onPress} haptic="select"
     scaleTo={sys.motion.scale.button} style={pill ? s.pill : stacked ? s.pencilBare : s.pencil}>
-    <Glyph name="edit" size={20} />
+    <Glyph name="edit" size={16} tone="green" />
     {stacked ? null : <T variant="copy" style={s.word}>{pencil.word ?? 'Izmeni'}</T>}
   </Press>;
 }
@@ -38,11 +38,12 @@ export function PencilOverPhoto({ pencil, children }: { pencil?: PartPencil; chi
 }
 
 const s = StyleSheet.create({
-  pencil: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: sys.space.xs, minWidth: layout.touch,
-    minHeight: layout.touch, paddingLeft: sys.space.sm },
+  pencil: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    minHeight: 36, paddingHorizontal: 12, paddingVertical: 4, borderRadius: sys.radius.pill,
+    backgroundColor: '#F2F7F4', borderWidth: 1, borderColor: '#DEECE4' },
   // Only the drawing is left (large text, narrow window): nothing to keep apart from the words, so it stands in the middle of its touch.
   pencilBare: { alignItems: 'center', justifyContent: 'center', minWidth: layout.touch, minHeight: layout.touch },
-  word: { fontWeight: '600' },
+  word: { fontSize: 13, fontWeight: '600', color: sys.color.green },
   // The capsule is the chrome's own 44 inside its touch (the press adds the reach to 48 and beyond).
   pill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: sys.space.xs, minWidth: chrome.circle,
     minHeight: chrome.circle, paddingHorizontal: sys.space.md, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,

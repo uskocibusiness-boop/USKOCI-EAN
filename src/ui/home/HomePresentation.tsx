@@ -317,7 +317,7 @@ function TrustSeal() {
   return (
     <View style={s.trustSeal}>
       <View style={s.trustSealIcon}>
-        <T style={{ fontSize: 16 }}>🛡️</T>
+        <FactArt kind="shield" size={18} />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <T variant="meta" style={s.trustSealTitle}>Bezbedniji dogovor</T>
