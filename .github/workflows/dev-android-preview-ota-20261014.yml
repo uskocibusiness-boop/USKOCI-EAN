@@ -30,6 +30,9 @@ jobs:
       EXPO_PUBLIC_VOICE_MESSAGES: '1'
       EXPO_PUBLIC_AI_LOCATION_DIALOGUE: '1'
       EXPO_PUBLIC_CONVERSATION_INBOX: '1'
+      # Only this DEV preview client opts into existing versioned, signed review RPCs.
+      EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW: 'true'
+      EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'true'
     steps:
       - name: Checkout exact owner-requested feature branch
         uses: actions/checkout@v4
@@ -62,6 +65,15 @@ jobs:
         run: npx tsc --noEmit
       - name: Verify explicit map-jump after landmark, owned intake and Home navigation
         run: npx jest src/data/__tests__/ai-owned-intake-screen.test.tsx src/data/__tests__/ai-natural-server-guard.test.ts src/data/__tests__/v3-home-screen.test.tsx src/data/__tests__/intake-location-order.test.ts --runInBand --silent
+      - name: Verify signed Need/Worker reviews before optional OTA release
+        run: npx jest src/data/__tests__/ai-task-review-client.test.ts src/data/__tests__/worker-ai-client.test.ts --runInBand --silent
+      - name: Verify preview has explicit DEV-only signed review feature gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW}" = 'true'
+          test "${EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW}" = 'true'
+          test "${EXPO_PUBLIC_SUPABASE_URL}" = 'https://leqcwgzvjsxugfgzdmth.supabase.co'
       - name: Publish latest feature-branch client to Android preview ONLY
         shell: bash
         run: |
