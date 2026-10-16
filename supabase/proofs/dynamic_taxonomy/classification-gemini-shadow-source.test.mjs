@@ -55,19 +55,23 @@ test('hint capture candidate is service-only, private, versioned and has no admi
  assert.doesNotMatch(captureSql,/INSERT INTO public\.notification_deliveries/i);
 });
 
-test('DEV provider schema HTTP 400 safety hold cannot silently regress on redeploy',()=>{
+test('DEV shadow is provider-proven and environment-off remains an immediate rollback gate',()=>{
  const canonicalDev='https://leqcwgzvjsxugfgzdmth.supabase.co';
+ const harness=readFileSync(new URL('gemini-real-provider-smoke.mjs',import.meta.url),'utf8');
+ assert.match(harness,/WORKER_CAPABILITY/);
+ assert.match(harness,/NEED_SERVICE/);
+ assert.match(harness,/--provider/);
+ assert.match(harness,/classificationShadowJson/);
  for(const source of [worker,need]){
-  // Guard MUST precede the generic true/default-on branch, even when the
-  // environment setting was explicitly true. It is temporary, not an E2E fix.
   const start=source.indexOf('const devTaxonomyFlagP1=');
   const end=source.indexOf('};',start);
   assert.ok(start>=0&&end>start,'flag helper must exist');
   const flag=source.slice(start,end+2);
-  assert.match(flag,/name===['"]USKOCI_TAXONOMY_UNIFIED_SHADOW['"]/);
-  assert.ok(flag.includes(canonicalDev));
-  assert.match(flag,/return false;/);
-  assert.ok(flag.indexOf('return false;')<flag.indexOf('const setting=Deno.env.get(name)'),
-    'HTTP 400 safety hold must win before the environment default');
+  assert.ok(flag.includes(canonicalDev),'default ON only for canonical DEV');
+  assert.match(flag,/const setting=Deno\.env\.get\(name\)/);
+  assert.match(flag,/setting!=='false'/,'explicit false is rollback switch');
+  assert.match(flag,/setting==='true'/,'explicit on remains supported');
+  assert.doesNotMatch(flag,/name===['"]USKOCI_TAXONOMY_UNIFIED_SHADOW['"]/, 'old unconditional shadow block must be retired');
+  assert.match(source,/withGeminiClassificationShadowSchema/);
  }
 });
