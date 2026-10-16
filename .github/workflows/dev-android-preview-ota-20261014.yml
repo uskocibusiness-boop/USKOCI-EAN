@@ -1,5 +1,5 @@
 # Owner-requested DEV Android preview OTA for unified TaskCard integration on Home carousel, 15 October 2026 22:56.
-# Self-path trigger ONLY: worker AI natural interview and offered-work copy gates before Android DEV preview OTA.
+# Self-path trigger ONLY: worker AI interview, signed-work Za mene empty guidance and Android DEV preview OTA gates.
 name: DEV Android preview OTA 20261014
 on:
   push:
@@ -75,7 +75,7 @@ jobs:
       - name: Verify signed reviews, precise service consent and natural worker-interview safety
         # The coverage proof prevents partial Gemini proposals from being
         # presented as already-confirmed worker service or notification consent.
-        run: node --test supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow-source.test.mjs supabase/proofs/dynamic_taxonomy/worker-finish-mode-completeness.test.mjs supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs
+        run: node --test supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow-source.test.mjs supabase/proofs/dynamic_taxonomy/worker-finish-mode-completeness.test.mjs supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs supabase/proofs/dynamic_taxonomy/discovery-for-me-confirmed-work-source.test.mjs
       - name: Verify preview has explicit DEV-only signed review feature gates
         shell: bash
         run: |
