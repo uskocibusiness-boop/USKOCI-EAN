@@ -87,7 +87,7 @@ test('remote-only draft profile knows the server still requires a city for activ
  assert.match(source,/\$\{context\.profileStatus\}/);
 });
 test('remote activation question is consistent with the server, not an invented AI requirement',()=>{
- const activationSql=readFileSync(new URL('../../../../src/ui/workerProfile/workerProfileFacts.ts',import.meta.url),'utf8');
+ const activationSql=readFileSync(new URL('../../../src/ui/workerProfile/workerProfileFacts.ts',import.meta.url),'utf8');
  // The existing client openly models city/country as requirements for activation.
  assert.match(activationSql,/Activation needs a country and a city/);
  assert.match(activationSql,/place\.operatingCountryCode && place\.city\.trim\(\)\.length > 0/);
