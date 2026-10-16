@@ -50,6 +50,29 @@ export function geminiClassificationShadowInstruction(purpose='NEED_SERVICE') {
   ].join(' ');
 }
 
+/** Private UX-only completeness check after a worker AI turn.
+ * Only validated provider hints with explicit modes count as covered. This
+ * neither signs consent nor approves taxonomy/push. Preserve user skill order,
+ * deduplicate equivalent Serbian scripts, and cap the returned display samples.
+ */
+export function workerServicesMissingScope(skills,reviewProposals) {
+  if(!Array.isArray(skills)||!Array.isArray(reviewProposals))return {count:0,labels:[]};
+  const covered=new Set();
+  for(const hint of reviewProposals){
+    if(!record(hint)||!['ON_SITE','REMOTE'].includes(hint.mode))continue;
+    const key=normalizedClassificationIdentity(hint.service);
+    if(key)covered.add(key);
+  }
+  const seen=new Set(), missing=[];
+  for(const skill of skills.slice(0,50)){
+    const key=normalizedClassificationIdentity(skill);
+    if(!key||seen.has(key))continue;
+    seen.add(key);
+    if(!covered.has(key))missing.push(skill.trim());
+  }
+  return {count:missing.length,labels:missing.slice(0,2)};
+}
+
 function validItem(p,snapshot) {
   if(!record(p)||Object.keys(p).length!==8 ||
     !['service','mode','action','categoryId','parentId','proposedPath','reason','catalogVersion'].every(k=>Object.hasOwn(p,k))
