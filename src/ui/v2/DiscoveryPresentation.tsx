@@ -1259,7 +1259,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   useEffect(() => { if (offMap && !loading && !refreshing && !error && !props.collectionStatus && exactPinless === 0) setOffMap(false); }, [offMap, loading, refreshing, error, props.collectionStatus, exactPinless]);
 
   // The one state view: reading, not read, nothing here, nothing for these conditions, nothing at all. The map and the list always show every
-  // published task (owner, 2026-10-07): an empty list is never about the person's profile, only about where the map stands and what is searched.
+  // published task (owner, 2026-10-07); the explicit 'Za mene' subset also requires a current confirmed worker profile.
   // Tasks under these conditions exist elsewhere when the legacy read holds them, or when P6's whole-filter count says so.
   const elsewhere = p6 ? (p6.counts?.mapped ?? 0) > 0 : mapped.length > 0;
   const conditionsOn = !!view.query.trim() || discoveryFiltered(view) || !!view.place;
@@ -1273,14 +1273,14 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     : error || props.collectionStatus === 'error' ? { kind: 'error', onRetry: refreshList }
       // Only the map's area or its one point leaves nothing: the tasks are elsewhere on the map, one move or one tap away.
       : (pinPlace || area) && elsewhere && !offMap ? { kind: 'place', point: !!pinPlace, onShowAll: showAll }
-        : forMeOn && !conditionsOn ? { kind: 'forMe', onShowAll: () => chooseScope('all') }
+        : forMeOn && !conditionsOn ? { kind: 'forMe', onShowAll: () => chooseScope('all'), onWorkProfile: props.onWorkProfile }
           : conditionsOn ? { kind: 'filtered', onClear: reset }
             : { kind: 'none', onRefresh: refreshList, onNew: props.onNew };
   // Keep the last confirmed empty picture during a map pan, just as the coordinator retains its rows.
   // Store facts only: callbacks always belong to this render and account; a first read still shows loading.
   const listState: DiscoveryListStateKind = !heldEmpty ? computedState
     : heldEmpty.kind === 'place' ? { ...heldEmpty, onShowAll: showAll }
-      : heldEmpty.kind === 'forMe' ? { kind: 'forMe', onShowAll: () => chooseScope('all') }
+      : heldEmpty.kind === 'forMe' ? { kind: 'forMe', onShowAll: () => chooseScope('all'), onWorkProfile: props.onWorkProfile }
         : heldEmpty.kind === 'filtered' ? { kind: 'filtered', onClear: reset }
           : { kind: 'none', onRefresh: refreshList, onNew: props.onNew };
   useLayoutEffect(() => {
