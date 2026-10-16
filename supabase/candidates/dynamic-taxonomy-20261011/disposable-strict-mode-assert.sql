@@ -23,6 +23,7 @@ BEGIN
  IF NOT private.taxonomy_scope_eligible_v1('60000000-0000-4000-8000-000000000001',v_owner)
  OR NOT private.taxonomy_scope_eligible_v1('60000000-0000-4000-8000-000000000002',v_owner)
  OR private.taxonomy_scope_eligible_v1('60000000-0000-4000-8000-000000000003',v_owner)
+ OR NOT private.taxonomy_scope_eligible_v1('60000000-0000-4000-8000-000000000004',v_owner)
  THEN RAISE EXCEPTION 'MODE_GUARD_EXACT_SCOPE_MISMATCH'; END IF;
  -- Removing global REMOTE consent blocks only remote, not on-site.
  UPDATE private.worker_execution_mode_choices SET modes=ARRAY['ON_SITE']
