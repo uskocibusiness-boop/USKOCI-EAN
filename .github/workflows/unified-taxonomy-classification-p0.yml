@@ -17,6 +17,7 @@ on:
       - 'supabase/functions/uskoci-worker-interview/index.ts'
       - 'supabase/proofs/dynamic_taxonomy/unified-*.test.mjs'
       - 'supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs'
+      - 'supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs'
       - 'supabase/proofs/dynamic_taxonomy/classification-batch.test.mjs'
       - 'supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs'
       - 'supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs'
@@ -60,3 +61,28 @@ jobs:
           deno check supabase/functions/uskoci-worker-interview/index.ts
           deno check supabase/functions/uskoci-ai-interview/index.ts
           deno check supabase/functions/uskoci-taxonomy-postsave-worker/index.ts
+
+  provider-contract-live:
+    name: Gemini provider isolated schema proof (opt-in)
+    # Never run paid requests on normal CI or from external PRs. Explicit
+    # repository variable and a separate test-only key are both required.
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/unified-gemini-classification-p0-20261014' && vars.USKOCI_GEMINI_SMOKE_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      USKOCI_GEMINI_TEST_API_KEY: ${{ secrets.USKOCI_GEMINI_TEST_API_KEY }}
+      USKOCI_GEMINI_TEST_MODEL: ${{ vars.USKOCI_GEMINI_TEST_MODEL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dev dependencies without native hooks
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Two synthetic worker and need provider calls, no DEV access
+        run: node supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs --provider
