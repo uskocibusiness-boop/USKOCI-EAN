@@ -17,14 +17,16 @@ const plan=(service,categoryId=lesson,mode='ON_SITE',action='REUSE_EXISTING')=>(
 const worker={assistantMessage:'Proveri svoj nacrt profila.',safety:'ALLOW',patch:{skills:['Časovi umetničkog klizanja']}};
 const need={assistantMessage:'Otvori pregled zadatka.',safety:'ALLOW',facts:[],dialogue:{next:'DONE'}};
 const withShadow=(legacy,entries)=>({...legacy,classificationShadow:entries});
+const withEncodedShadow=(legacy,entries)=>({...legacy,classificationShadowJson:JSON.stringify(entries)});
 test('OFF flag baseline schema is not mutated and shadow field remains optional',()=>{
  const old={type:'OBJECT',properties:{safety:{type:'STRING'}},required:['safety'],additionalProperties:false};
  const extended=decorate(old);
  assert.deepEqual(Object.keys(old.properties),['safety']);
  assert.deepEqual(extended.required,['safety']);
- assert.deepEqual(extended.properties.classificationShadow.items.required,
-  ['service','mode','action','categoryId','parentId','proposedPath','reason','catalogVersion']);
- assert.equal(extended.properties.classificationShadow.maxItems,6);
+ assert.deepEqual(Object.keys(extended.properties),['safety','classificationShadowJson']);
+ assert.deepEqual(extended.properties.classificationShadowJson,{type:'STRING'});
+ assert.equal(Object.hasOwn(extended.properties,'classificationShadow'),false);
+ assert.equal(extended.required.includes('classificationShadowJson'),false);
  assert.equal(extended.additionalProperties,false);
 });
 test('A/B worker and requester Gemini outputs share exact canonical identity candidate',()=>{
@@ -153,8 +155,13 @@ test('unsafe, aliased, stale and ambiguous model hints can never become review c
 
 test('worker provider requests full 24-scope post-turn snapshot; requester stays 6',()=>{
  const base={type:'OBJECT',properties:{assistantMessage:{type:'STRING'}},required:['assistantMessage'],additionalProperties:false};
- assert.equal(decorate(base,'WORKER_CAPABILITY').properties.classificationShadow.maxItems,24);
- assert.equal(decorate(base,'NEED_SERVICE').properties.classificationShadow.maxItems,6);
+ for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE']){
+  assert.deepEqual(decorate(base,purpose).properties.classificationShadowJson,{type:'STRING'});
+  assert.deepEqual(decorate(base,purpose).required,base.required);
+  assert.equal(Object.hasOwn(base.properties,'classificationShadowJson'),false);
+ }
+ assert.match(instructions('WORKER_CAPABILITY'),/0 to 24/);
+ assert.match(instructions('NEED_SERVICE'),/0 to 6/);
  assert.match(instructions('WORKER_CAPABILITY'),/FULL SNAPSHOT/);
  assert.match(instructions('WORKER_CAPABILITY'),/finish\/acknowledgement/);
  assert.match(instructions('WORKER_CAPABILITY'),/do not guess mode/);
@@ -189,4 +196,74 @@ test('worker accepts 7 distinct services but bounds forged oversized 25 proposal
  assert.equal(out.statuses.length,7);
  assert.equal(out.statuses.every(x=>x==='ADMISSION_REVIEW_REQUIRED'),true);
  assert.deepEqual(inspect(withShadow(worker,Array(25).fill(many[0])),snapshot,'WORKER_CAPABILITY').statuses,['INVALID_BATCH']);
+});
+
+test('provider-safe envelope is exactly ONE optional string, independent of nested interview schema',()=>{
+ const base={type:'OBJECT',required:['assistantMessage','patch'],additionalProperties:false,
+  properties:{assistantMessage:{type:'STRING'},patch:{type:'OBJECT',required:['skills'],
+    properties:{skills:{type:'ARRAY',items:{type:'STRING'}}}}}};
+ for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE']){
+  const extended=decorate(base,purpose);
+  assert.deepEqual(extended.required,base.required);
+  assert.deepEqual(extended.properties.patch,base.properties.patch);
+  assert.deepEqual(Object.keys(extended.properties),['assistantMessage','patch','classificationShadowJson']);
+  assert.deepEqual(extended.properties.classificationShadowJson,{type:'STRING'});
+  assert.equal(Object.hasOwn(extended.properties,'classificationShadow'),false);
+  assert.equal(Object.hasOwn(base.properties,'classificationShadowJson'),false);
+ }
+ assert.throws(()=>decorate({...base,properties:{...base.properties,classificationShadowJson:{type:'STRING'}}}),
+  /SHADOW_SCHEMA_INVALID/);
+});
+
+test('encoded worker and need proposal reuse SAME category ID and preserve original output exactly',()=>{
+ for(const [purpose,legacy] of [['WORKER_CAPABILITY',worker],['NEED_SERVICE',need]]){
+  const proposal=plan('Časovi umetničkog klizanja',lesson);
+  const result=inspect(withEncodedShadow(legacy,[proposal]),snapshot,purpose);
+  assert.deepEqual(result.output,legacy);
+  assert.deepEqual(result.statuses,['REUSE_CANDIDATE']);
+  assert.deepEqual(result.reviewProposals,[proposal]);
+  assert.equal(Object.hasOwn(result.output,'classificationShadowJson'),false);
+ }
+});
+
+test('encoded CREATE_CHILD remains review-only; never generates a worker capability or DB write',()=>{
+ const proposal={...plan('Časovi hokeja',''),action:'CREATE_CHILD',
+   parentId:lesson,proposedPath:['Časovi hokeja']};
+ const out=inspect(withEncodedShadow(worker,[proposal]),snapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(out.output,worker);
+ assert.deepEqual(out.statuses,['ADMISSION_REVIEW_REQUIRED']);
+ assert.deepEqual(out.reviewProposals,[proposal]);
+});
+
+test('invalid, oversized, mixed and duplicate encoded shadows fail closed without corrupting interview',()=>{
+ const proposal=plan('Časovi umetničkog klizanja',lesson);
+ const inputs=[
+  [{...need,classificationShadowJson:'{not json'},'INVALID_SHADOW_JSON'],
+  [{...need,classificationShadowJson:42},'INVALID_SHADOW_JSON'],
+  [{...need,classificationShadowJson:' '.repeat(24577)},'INVALID_SHADOW_JSON'],
+  [{...need,classificationShadowJson:'{}'},'INVALID_BATCH'],
+  [{...need,classificationShadowJson:JSON.stringify(Array(7).fill(proposal))},'INVALID_BATCH'],
+  [{...need,classificationShadowJson:JSON.stringify([proposal]),classificationShadow:[proposal]},'AMBIGUOUS_SHADOW_FORMAT'],
+ ];
+ for(const [input,status] of inputs){
+  const out=inspect(input,snapshot,'NEED_SERVICE');
+  assert.deepEqual(out.output,need);
+  assert.deepEqual(out.statuses,[status]);
+  assert.deepEqual(out.reviewProposals,[]);
+ }
+ const dup=inspect(withEncodedShadow(need,[proposal,{...proposal,service:'Часови уметничког клизања'}]),snapshot,'NEED_SERVICE');
+ assert.deepEqual(dup.statuses,['REUSE_CANDIDATE','DUPLICATE_SERVICE']);
+ assert.equal(dup.reviewProposals.length,1);
+});
+
+test('encoded scope checks and blocked interview continue to gate proposed classification',()=>{
+ const dualSnapshot={catalogVersion:9,categories:[{...snapshot.categories[0],modes:['ON_SITE','REMOTE']}]};
+ const modes=[plan('Časovi umetničkog klizanja',lesson,'ON_SITE'),
+  plan('Часови уметничког клизања',lesson,'REMOTE')];
+ const out=inspect(withEncodedShadow(worker,modes),dualSnapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(out.statuses,['REUSE_CANDIDATE','REUSE_CANDIDATE']);
+ assert.deepEqual(out.reviewProposals.map(x=>x.mode),['ON_SITE','REMOTE']);
+ const blocked=inspect(withEncodedShadow({...worker,safety:'BLOCK'},modes),dualSnapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(blocked.reviewProposals,[]);
+ assert.deepEqual(blocked.statuses,['SAFETY_INTERVIEW_REVIEW']);
 });
