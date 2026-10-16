@@ -65,7 +65,12 @@ jobs:
         run: npx tsc --noEmit
       - name: Verify explicit map-jump after landmark, owned intake and Home navigation
         run: npx jest src/data/__tests__/ai-owned-intake-screen.test.tsx src/data/__tests__/ai-natural-server-guard.test.ts src/data/__tests__/v3-home-screen.test.tsx src/data/__tests__/intake-location-order.test.ts --runInBand --silent
-      - name: Verify signed Need/Worker reviews before optional OTA release
+      - name: Verify legacy review compatibility and explicit signed opt-in routing
+        # The old-app fixtures intentionally expect V1 RPCs. Each opt-in test
+        # separately flips its own flag to true and asserts the new route.
+        env:
+          EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW: 'false'
+          EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'false'
         run: npx jest src/data/__tests__/ai-task-review-client.test.ts src/data/__tests__/worker-ai-client.test.ts --runInBand --silent
       - name: Verify preview has explicit DEV-only signed review feature gates
         shell: bash
