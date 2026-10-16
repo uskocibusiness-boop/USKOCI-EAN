@@ -243,3 +243,31 @@ it('Gate A signed canonical Need category and mode decode without a second accep
   expect(decodeAiTaskReview(base,OWNER)).toEqual(base);
   expect(decodeAiTaskReview({...signed,classificationCatalogFingerprint:undefined},OWNER)).toBeNull();
 });
+
+it('explicit preview opt-in routes requester review to signed version without changing user Save',async()=>{
+  const prior=process.env.EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW;
+  try{
+    process.env.EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW='true';
+    const signed={...review(),classificationState:'PENDING_CLASSIFICATION',
+      classificationCandidates:[],classificationCatalogVersion:null,classificationCatalogFingerprint:null,reviewedServiceModes:[]};
+    mockRpc.mockImplementation(async (name:string)=>{
+      if(name==='rpc_prepare_ai_task_review_taxonomy')return answer(signed);
+      if(name==='rpc_accept_ai_task_review')return answer(accepted());
+      if(name==='rpc_read_ai_task_review')return answer({review:signed,command:accepted()});
+      throw new Error('UNEXPECTED_RPC');
+    });
+    await expect(service.prepare({conversationId:CONVERSATION,responseDeadline:null})).resolves
+      .toMatchObject({ok:true,podatak:{classificationState:'PENDING_CLASSIFICATION',canAccept:true}});
+    expect(mockRpc.mock.calls.map(c=>c[0])).toEqual(['rpc_prepare_ai_task_review_taxonomy']);
+    // Signed classification is review metadata; accepted Save still uses
+    // the immutable original review ID/digest, with no invented permission.
+    await expect(service.acceptAsDraft({review:signed as AiTaskReviewEnvelope,clientRequestId:KEY}))
+      .resolves.toMatchObject({ok:true});
+    expect(mockRpc.mock.calls[1][0]).toBe('rpc_accept_ai_task_review');
+    expect(mockRpc.mock.calls[1][1]).toEqual({
+      p_review_id:REVIEW,p_displayed_content_digest:'a'.repeat(64),p_client_request_id:KEY});
+  }finally{
+    if(prior===undefined)delete process.env.EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW;
+    else process.env.EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW=prior;
+  }
+});
