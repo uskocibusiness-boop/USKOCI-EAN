@@ -104,6 +104,23 @@ function validItem(p,snapshot) {
   if(p.action==='PROPOSE_RESTRUCTURE')return p.categoryId===''&&p.proposedPath.length>0;
   return p.categoryId===''&&p.parentId===''&&p.proposedPath.length===0;
 }
+// Diagnostic classes only. Never log model-authored service text, paths or IDs.
+function invalidPlanCode(p) {
+  if(!record(p))return 'TYPE';
+  if(Object.keys(p).length!==8||
+     !['service','mode','action','categoryId','parentId','proposedPath','reason','catalogVersion'].every(k=>Object.hasOwn(p,k)))
+    return 'FIELDS';
+  if(!sane(p.service,3,120))return 'SERVICE';
+  if(!modes.has(p.mode))return 'MODE';
+  if(!CLASSIFICATION_ACTIONS.includes(p.action))return 'ACTION';
+  if(typeof p.categoryId!=='string'||(p.categoryId!==''&&!UUID.test(p.categoryId))||
+     typeof p.parentId!=='string'||(p.parentId!==''&&!UUID.test(p.parentId)))return 'ID';
+  if(!Array.isArray(p.proposedPath)||p.proposedPath.length>6||
+     !p.proposedPath.every(x=>sane(x,3,120)))return 'PATH';
+  if(!sane(p.reason,10,1000))return 'REASON';
+  if(!Number.isSafeInteger(p.catalogVersion))return 'VERSION';
+  return 'ACTION_FIELDS';
+}
 
 /** Called BEFORE old strict model parser. Invalid optional shadow is dropped
  * rather than causing an extra paid LLM turn; original answer remains unchanged.
@@ -132,10 +149,12 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
     return {output,statuses:shadow.length?['SAFETY_INTERVIEW_REVIEW']:[],reviewProposals:[]};
   if(!record(snapshot)||!Array.isArray(snapshot.categories)||!Number.isSafeInteger(snapshot.catalogVersion))
     return {output,statuses:['INVALID_CATALOG'],reviewProposals:[]};
-  const seen=new Set(), statuses=[], reviewProposals=[];
+  const seen=new Set(), statuses=[], reviewProposals=[], invalidPlanCodes=[];
   const workerModes=new Map();
   for(const p of shadow){
-    if(!validItem(p,snapshot)){statuses.push('INVALID_PLAN');continue;}
+    if(!validItem(p,snapshot)){
+      statuses.push('INVALID_PLAN');invalidPlanCodes.push(invalidPlanCode(p));continue;
+    }
     const signature=normalizedClassificationIdentity(p.service);
     // A single offered service can legitimately support BOTH ON_SITE and REMOTE.
     // Two copies of the same service+mode (including Cyrillic/Latin synonyms)
@@ -169,5 +188,5 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
       });
     }
   }
-  return {output,statuses,reviewProposals};
+  return {output,statuses,reviewProposals,invalidPlanCodes};
 }

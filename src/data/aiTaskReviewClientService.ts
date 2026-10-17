@@ -19,10 +19,10 @@ export type AiTaskReviewFact = Readonly<{
   id: string | null; key: NeedFactV2Key; value: unknown; displayValue: string;
   privacyClass: 'PUBLIC' | 'PRIVATE'; source: AiNeedV2FactSource; status: AiNeedV2FactStatus;
 }>;
-export type SignedNeedClassification = Readonly<{
-  action: 'REUSE_EXISTING'; service: string; mode: 'ON_SITE' | 'REMOTE';
-  categoryId: string; catalogVersion: number; reason: string;
-}>;
+export type SignedNeedClassification = Readonly<
+  {action:'REUSE_EXISTING';service:string;mode:'ON_SITE'|'REMOTE';categoryId:string;catalogVersion:number;reason:string}|
+  {action:'CREATE_CHILD';service:string;mode:'ON_SITE'|'REMOTE';parentId:string;parentLabel:string;
+    path:string[];catalogVersion:number;reason:string}>;
 /** Owner-only server snapshot. Never persist or send these projections to public analytics. */
 export type AiTaskReviewEnvelope = Readonly<{
   reviewId: string; accountId: string; conversationId: string; schemaVersion: 'NEED_FACT_V2'; draftId: string | null; draftRevision: number;
@@ -145,9 +145,14 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
       const category = publicProjection.find(f => f?.key === 'need.category');
       const mode = location?.geography.mode === 'REMOTE' ? 'REMOTE' :
         ['STATIONARY','POINT_TO_POINT','MULTI_STOP','AREA_BASED'].includes(String(location?.geography.mode)) ? 'ON_SITE' : null;
-      if (items.length !== 1 || !candidate || !only(candidate,
-          ['action','service','mode','categoryId','catalogVersion','reason']) ||
-        candidate.action !== 'REUSE_EXISTING' || !uuid(candidate.categoryId) ||
+      const reuse=!!candidate&&candidate.action==='REUSE_EXISTING'&&only(candidate,
+        ['action','service','mode','categoryId','catalogVersion','reason'])&&uuid(candidate.categoryId);
+      const child=!!candidate&&candidate.action==='CREATE_CHILD'&&only(candidate,
+        ['action','service','mode','parentId','parentLabel','path','catalogVersion','reason'])
+        &&uuid(candidate.parentId)&&text(candidate.parentLabel,120)
+        &&Array.isArray(candidate.path)&&candidate.path.length>=1&&candidate.path.length<=6
+        &&candidate.path.every(x=>text(x,120))&&candidate.path[candidate.path.length-1]===candidate.service;
+      if (items.length !== 1 || !candidate || (!reuse&&!child) ||
         !text(candidate.service,120) || candidate.service !== category?.value ||
         candidate.mode !== mode || !text(candidate.reason,1000) ||
         typeof candidate.catalogVersion !== 'number' || !Number.isSafeInteger(candidate.catalogVersion) ||

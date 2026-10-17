@@ -8420,6 +8420,7 @@
         "S10": {
           "title": "Taxonomy candidate capture and explicit promotion (table-based)",
           "status": "NOT STARTED",
+          "source_progress_20261018": "CREATE_CHILD v2 source candidate prepared for signed worker/need review and client display; SQL/Edge not applied, no new APK/OTA, provider or post-save proof. DEV read-only: 0 Gemini hints, catalog version 3, batch writer and binder present; three task Edge logs report INVALID_PLAN. Source adds text-free invalid-plan diagnostic classes. See supabase/candidates/dynamic-taxonomy-20261011/owner-review-create-child-projection-v2.sql, worker-review-create-child-v2.sql, need-review-create-child-v2.sql. No status light is advanced by source alone.",
           "autonomous": false,
           "depends_on": "S06 result and corpus coverage report showing real unknown-term volume; owner approval",
           "first_owner_boundary": "Owner approval of closure-certificate recertification and a compatible APK, plus 'primeni' (Q6). Do not build before the owner chooses this route."

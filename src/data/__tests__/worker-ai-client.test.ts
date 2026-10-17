@@ -125,6 +125,16 @@ it('accepts two explicit modes under one visible service without two approval bu
      {...first.classificationCandidates[0],mode:'REMOTE'}]};
  expect(decodeWorkerAiReview(twice,OWNER,CONVERSATION)).toMatchObject({reviewedServiceModes:twice.reviewedServiceModes});
 });
+it('accepts a signed new child only when its visible path ends in the reviewed skill',()=>{
+ const base=signedWorkerReview();
+ const child={action:'CREATE_CHILD',service:'Prenos',mode:'ON_SITE',
+   parentId:SIGNED_CATEGORY,parentLabel:'Transport',path:['Prenos'],
+   catalogVersion:3,reason:'Owner-reviewed new service under the established parent'};
+ expect(decodeWorkerAiReview({...base,classificationCandidates:[child]},OWNER,CONVERSATION))
+   .toMatchObject({classificationCandidates:[child]});
+ expect(decodeWorkerAiReview({...base,classificationCandidates:[{...child,path:['Druga usluga']}]},OWNER,CONVERSATION)).toBeNull();
+ expect(decodeWorkerAiReview({...base,classificationCandidates:[{...child,parentId:'bad'}]},OWNER,CONVERSATION)).toBeNull();
+});
 it('pending classification preserves the old skill text but never authorizes fake modes',()=>{
  const pending={...signedWorkerReview(),classificationState:'PENDING_CLASSIFICATION',
    classificationCandidates:[],reviewedServiceModes:[],classificationCatalogVersion:null,classificationCatalogFingerprint:null};

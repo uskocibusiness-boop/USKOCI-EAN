@@ -53,6 +53,20 @@ describe('the review in parts (M2)', () => {
     for (const title of ['Poslovi koje nudiš', 'Područje', 'Kada imaš vremena', 'Alat i vozilo', 'O meni']) expect(copy).toContain(title);
   });
 
+  it('shows the reviewed parent and full new-category path before Save', async () => {
+    const signed:WorkerAiReview={...review({skills:['Izrada 3D figurica']}),
+      classificationState:'READY',classificationCatalogVersion:9,
+      classificationCatalogFingerprint:'a'.repeat(32),
+      reviewedServiceModes:[{service:'Izrada 3D figurica',mode:'REMOTE'}],
+      classificationCandidates:[{action:'CREATE_CHILD',service:'Izrada 3D figurica',mode:'REMOTE',
+        parentId:'11111111-1111-4111-8111-111111111111',parentLabel:'Digitalne usluge',
+        path:['3D izrada','Izrada 3D figurica'],catalogVersion:9,
+        reason:'Verified owner-reviewed category proposal'}]};
+    await act(async()=>{tree=create(<WorkerAiReviewDetails review={signed}/>);});
+    expect(texts()).toContain('Nova grana:');
+    expect(texts()).toContain('Digitalne usluge → 3D izrada → Izrada 3D figurica (na daljinu)');
+  });
+
   it('puts "Izmeni" at the side of every part, naming it, and opens exactly that part', async () => {
     const edit = jest.fn<void, [WorkerAiPart]>();
     await act(async () => { tree = create(<WorkerAiReviewDetails review={full} onEdit={edit} />); });

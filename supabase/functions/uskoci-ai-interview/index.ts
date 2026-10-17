@@ -599,9 +599,11 @@ async function callGemini(
     // The optional plan is never an AI fact or owner-approved need revision.
     const checked = taxonomyCatalog && !locationContext
       ? inspectGeminiClassificationShadow(value,taxonomyCatalog,'NEED_SERVICE')
-      : {output:value,statuses:[],reviewProposals:[]};
+      : {output:value,statuses:[],reviewProposals:[],invalidPlanCodes:[]};
     if (checked.reviewProposals.length) onClassificationHints?.(checked.reviewProposals);
     if (checked.statuses.length) console.info('NEED_TAXONOMY_PLAN_SHADOW',checked.statuses.join(','));
+    if ('invalidPlanCodes' in checked && checked.invalidPlanCodes?.length)
+      console.info('NEED_TAXONOMY_INVALID_PLAN_CLASS',checked.invalidPlanCodes.join(','));
     return locationContext ? parseLocationOutput(checked.output,locationContext,parseV2Output) : parseV2Output(checked.output);
   };
   const instruction = schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts, timeContext, taskFinishOnly(text) && !locationContext) : legacyInstruction(activeFacts, timeContext);

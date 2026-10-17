@@ -64,6 +64,8 @@ test('G legacy output stays unchanged on forged catalog ID, stale version and we
  const out=inspect(withShadow(need,[bad,stale,malformed]),snapshot,'NEED_SERVICE');
  assert.deepEqual(out.output,need);
  assert.deepEqual(out.statuses,['UNKNOWN_CANONICAL_ID','STALE_CATALOG','INVALID_PLAN']);
+ assert.deepEqual(out.invalidPlanCodes,['REASON']);
+ assert.doesNotMatch(JSON.stringify(out.invalidPlanCodes),/Loša usluga|too short/);
 });
 test('H neither REMOTE mismatch nor UNCONFIRMED mode permits candidate reuse',()=>{
  const out=inspect(withShadow(worker,[

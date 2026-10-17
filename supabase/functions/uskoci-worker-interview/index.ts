@@ -222,9 +222,11 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         let reviewHints: Record<string,any>[]=[];
         try {
           const parsed = JSON.parse(raw);
-          const checked = taxonomyCatalog ? inspectGeminiClassificationShadow(parsed,taxonomyCatalog,'WORKER_CAPABILITY') : {output:parsed,statuses:[],reviewProposals:[]};
+          const checked = taxonomyCatalog ? inspectGeminiClassificationShadow(parsed,taxonomyCatalog,'WORKER_CAPABILITY') : {output:parsed,statuses:[],reviewProposals:[],invalidPlanCodes:[]};
           reviewHints=checked.reviewProposals;
           if (checked.statuses.length) console.info('WORKER_TAXONOMY_PLAN_SHADOW', checked.statuses.join(','));
+          if ('invalidPlanCodes' in checked && checked.invalidPlanCodes?.length)
+            console.info('WORKER_TAXONOMY_INVALID_PLAN_CLASS',checked.invalidPlanCodes.join(','));
           output=parseWorkerOutput(checked.output);
         } catch { await fail(); throw new Error('WORKER_AI_INVALID'); }
         if (finishOnly(input.text) && ['ALLOW','CLARIFY'].includes(output.safety)) {

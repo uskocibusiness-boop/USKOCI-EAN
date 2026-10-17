@@ -224,7 +224,7 @@ it('Gate A signed canonical Need category and mode decode without a second accep
   };
   const checked=decodeAiTaskReview(signed,OWNER);
   expect(checked).not.toBeNull();
-  expect(checked?.classificationCandidates?.[0].categoryId).toBe('22222222-2222-4222-8222-222222222222');
+  expect(checked?.classificationCandidates?.[0]).toMatchObject({categoryId:'22222222-2222-4222-8222-222222222222'});
   // The category must be visible in the ordinary public task projection.
   expect(checked?.publicProjection.find(x=>x.key==='need.category')?.displayValue).toBe('Izrada prezentacija');
   expect(decodeAiTaskReview({...signed,classificationCandidates:[
@@ -242,6 +242,20 @@ it('Gate A signed canonical Need category and mode decode without a second accep
   // Pre-rollout old review remains readable and Save still passes its original digest.
   expect(decodeAiTaskReview(base,OWNER)).toEqual(base);
   expect(decodeAiTaskReview({...signed,classificationCatalogFingerprint:undefined},OWNER)).toBeNull();
+});
+it('accepts a reviewed new child and rejects a different leaf or parent',()=>{
+ const base=review();
+ const child={action:'CREATE_CHILD',service:'Izrada 3D figurica',mode:'REMOTE',
+   parentId:'11111111-1111-4111-8111-111111111111',parentLabel:'Digitalne usluge',
+   path:['Izrada 3D figurica'],catalogVersion:9,
+   reason:'Owner-reviewed new service under the established parent'};
+ const signed={...base,publicProjection:[{id:null,key:'need.category',value:'Izrada 3D figurica',
+   displayValue:'Izrada 3D figurica',privacyClass:'PUBLIC',source:'EXPLICIT_USER_ANSWER',status:'CONFIRMED'}],
+   classificationState:'READY',classificationCandidates:[child],classificationCatalogVersion:9,
+   classificationCatalogFingerprint:'f'.repeat(32),reviewedServiceModes:[]};
+ expect(decodeAiTaskReview(signed,OWNER)?.classificationCandidates).toMatchObject([child]);
+ expect(decodeAiTaskReview({...signed,classificationCandidates:[{...child,path:['Druga usluga']}]},OWNER)).toBeNull();
+ expect(decodeAiTaskReview({...signed,classificationCandidates:[{...child,parentId:'bad'}]},OWNER)).toBeNull();
 });
 
 it('explicit preview opt-in routes requester review to signed version without changing user Save',async()=>{

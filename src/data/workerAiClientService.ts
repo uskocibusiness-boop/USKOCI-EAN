@@ -41,8 +41,10 @@ export function explicitWorkerModes(skills:readonly string[],choices:Readonly<Re
   }
   return result.length<=24?result:null;
 }
-export type WorkerAiClassificationCandidate = Readonly<{action:'REUSE_EXISTING';service:string;mode:'ON_SITE'|'REMOTE';
-  categoryId:string;catalogVersion:number;reason:string}>;
+export type WorkerAiClassificationCandidate = Readonly<
+  {action:'REUSE_EXISTING';service:string;mode:'ON_SITE'|'REMOTE';categoryId:string;catalogVersion:number;reason:string}|
+  {action:'CREATE_CHILD';service:string;mode:'ON_SITE'|'REMOTE';parentId:string;parentLabel:string;
+    path:string[];catalogVersion:number;reason:string}>;
 export type WorkerAiClassificationState = 'READY'|'PENDING_CLASSIFICATION'|'REVIEW_REQUIRED'|
   'SERVICE_MODE_CONFIRMATION_REQUIRED'|'CATALOG_UNAVAILABLE'|'STALE_CATALOG';
 export type WorkerAiReviewClassification = Readonly<{
@@ -146,15 +148,25 @@ function decodeClassification(v:Record<string,unknown>,profile:WorkerAiProfile):
   const plans=new Set<string>();
   for(const rawPlan of v.classificationCandidates){
     const c=record(rawPlan);
-    if(!c||!exact(c,['action','service','mode','categoryId','catalogVersion','reason'])
-      ||c.action!=='REUSE_EXISTING'||typeof c.service!=='string'
-      ||(c.mode!=='ON_SITE'&&c.mode!=='REMOTE')||!uuid(c.categoryId)
+    if(!c||typeof c.service!=='string'
+      ||(c.mode!=='ON_SITE'&&c.mode!=='REMOTE')
       ||c.catalogVersion!==version||!text(c.reason,1000)||!c.reason.trim())return null;
+    const reuse=c.action==='REUSE_EXISTING'&&exact(c,['action','service','mode','categoryId','catalogVersion','reason'])
+      &&uuid(c.categoryId);
+    const child=c.action==='CREATE_CHILD'&&exact(c,['action','service','mode','parentId','parentLabel','path','catalogVersion','reason'])
+      &&uuid(c.parentId)&&text(c.parentLabel,120)&&c.parentLabel.trim().length>=3
+      &&Array.isArray(c.path)&&c.path.length>=1&&c.path.length<=6
+      &&c.path.every(x=>text(x,120)&&x.trim().length>=3)
+      &&c.path[c.path.length-1]===c.service;
+    if(!reuse&&!child)return null;
     const key=c.service+'|'+c.mode;
     if(!seen.has(key)||plans.has(key))return null;
     plans.add(key);
-    result.classificationCandidates.push({action:'REUSE_EXISTING',service:c.service,mode:c.mode,
-      categoryId:c.categoryId,catalogVersion:version,reason:c.reason});
+    result.classificationCandidates.push(reuse
+      ?{action:'REUSE_EXISTING',service:c.service,mode:c.mode,categoryId:c.categoryId as string,
+        catalogVersion:version,reason:c.reason}
+      :{action:'CREATE_CHILD',service:c.service,mode:c.mode,parentId:c.parentId as string,
+        parentLabel:c.parentLabel as string,path:c.path as string[],catalogVersion:version,reason:c.reason});
   }
   return {...result,classificationCatalogVersion:version,
     classificationCatalogFingerprint:v.classificationCatalogFingerprint};

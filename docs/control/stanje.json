@@ -1,15 +1,15 @@
 {
  "meta": {
-  "osvezeno": "2026-10-10T07:15:33Z",
-  "grana": "HEAD",
-  "head": "547798c9",
-  "head_poruka": "Record verified HONOR search keyboard and exact CI outcomes",
+  "osvezeno": "2026-10-17T22:32:55Z",
+  "grana": "feature/unified-qa-master-20261017",
+  "head": "74d783c2",
+  "head_poruka": "test(worker-profile): update test assertions for streamlined profile without equipment block",
   "server": {
-   "snimljeno": "2026-10-09T17:27:02Z",
-   "migracije": 238,
+   "snimljeno": "2026-10-17T22:29:02Z",
+   "migracije": 276,
    "dev_alpha": 86,
-   "poslednja": "r01_phone_read_consent_20261009",
-   "sertifikat_ok": true,
+   "poslednja": "uskoci_worker_confirmed_modes_review_dev_v1_20261017",
+   "sertifikat_ok": false,
    "privatni_status": "FRESH",
    "privatni_istorijski": null,
    "cron": [
@@ -22,9 +22,14 @@
      "job": "uskoci_marketplace_tick",
      "schedule": "* * * * *",
      "active": true
+    },
+    {
+     "job": "uskoci_taxonomy_postsave_tick_dev",
+     "schedule": "* * * * *",
+     "active": true
     }
    ],
-   "cron_24h": 2874,
+   "cron_24h": 4320,
    "cron_greske_24h": 0,
    "edge": [
     {
@@ -32,20 +37,20 @@
      "slug": "uskoci-ai-interview",
      "name": "uskoci-ai-interview",
      "status": "ACTIVE",
-     "version": 60,
+     "version": 83,
      "created_at": 1788261764727,
-     "updated_at": 1791550401052,
-     "verify_jwt": true,
+     "updated_at": 1792247354339,
+     "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_60/source/supabase/functions/uskoci-ai-interview/index.ts",
-     "ezbr_sha256": "c14bf229ea7e2e0507813219ac08b695580baea76f090d06570ea86760a93c2e"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_81/source/supabase/functions/uskoci-ai-interview/index.ts",
+     "ezbr_sha256": "8c986ea56ef99b965858cfcfce4ddd7cb3b334de4dd87919760b973c0cbf92de"
     },
     {
      "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
      "slug": "uskoci-location-search",
      "name": "uskoci-location-search",
      "status": "ACTIVE",
-     "version": 19,
+     "version": 21,
      "created_at": 1789051259284,
      "updated_at": 1789291048806,
      "verify_jwt": true,
@@ -58,7 +63,7 @@
      "slug": "uskoci-publication-evaluate",
      "name": "uskoci-publication-evaluate",
      "status": "ACTIVE",
-     "version": 19,
+     "version": 21,
      "created_at": 1789057551628,
      "updated_at": 1790034934318,
      "verify_jwt": true,
@@ -71,7 +76,7 @@
      "slug": "uskoci-data-export-worker",
      "name": "uskoci-data-export-worker",
      "status": "ACTIVE",
-     "version": 19,
+     "version": 21,
      "created_at": 1789060327220,
      "updated_at": 1790015379615,
      "verify_jwt": false,
@@ -84,7 +89,7 @@
      "slug": "uskoci-data-export-download",
      "name": "uskoci-data-export-download",
      "status": "ACTIVE",
-     "version": 19,
+     "version": 21,
      "created_at": 1789060338554,
      "updated_at": 1790015536362,
      "verify_jwt": true,
@@ -97,20 +102,20 @@
      "slug": "uskoci-worker-interview",
      "name": "uskoci-worker-interview",
      "status": "ACTIVE",
-     "version": 23,
+     "version": 40,
      "created_at": 1789291116219,
-     "updated_at": 1791050450429,
-     "verify_jwt": true,
+     "updated_at": 1792272593353,
+     "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_18/source/supabase/functions/uskoci-worker-interview/index.ts",
-     "ezbr_sha256": "98ac102cd78e9335c406f56fe26a88297b115fb4f349b0e54a6f8cc2ad580e84"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_40/source/supabase/functions/uskoci-worker-interview/index.ts",
+     "ezbr_sha256": "4f59d5ba38d64d6b2895ad75f51c432fa0361a2ebea07f3bc6bcce8644a39e1b"
     },
     {
      "id": "1ba4db69-a390-4b55-a071-97bee74d2598",
      "slug": "uskoci-speech-session",
      "name": "uskoci-speech-session",
      "status": "ACTIVE",
-     "version": 20,
+     "version": 22,
      "created_at": 1789291120076,
      "updated_at": 1789666914573,
      "verify_jwt": true,
@@ -123,7 +128,7 @@
      "slug": "uskoci-qa-classify",
      "name": "uskoci-qa-classify",
      "status": "ACTIVE",
-     "version": 18,
+     "version": 20,
      "created_at": 1789291124175,
      "updated_at": 1790042491953,
      "verify_jwt": true,
@@ -136,20 +141,20 @@
      "slug": "uskoci-push-transport",
      "name": "uskoci-push-transport",
      "status": "ACTIVE",
-     "version": 28,
+     "version": 34,
      "created_at": 1789291177945,
-     "updated_at": 1791529463031,
+     "updated_at": 1792259141728,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_d9bde875-0cd9-4998-b395-76fa3de0af92_24/source/supabase/functions/uskoci-push-transport/index.ts",
-     "ezbr_sha256": "4aa0e6314186c847df386bbc0cf1b6d2af0cb4a5b05c8fa6c10b425632e3dc7b"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_d9bde875-0cd9-4998-b395-76fa3de0af92_34/source/supabase/functions/uskoci-push-transport/index.ts",
+     "ezbr_sha256": "30b1f81cfcb0c1481aa88a00ca69785f505569ab1f0ff91e2a0eaef9988fc69c"
     },
     {
      "id": "8ed1c1f2-c0e3-45f5-9a0b-4a1fcfd4c54c",
      "slug": "uskoci-media",
      "name": "uskoci-media",
      "status": "ACTIVE",
-     "version": 19,
+     "version": 21,
      "created_at": 1789291187416,
      "updated_at": 1790827911619,
      "verify_jwt": true,
@@ -162,13 +167,65 @@
      "slug": "uskoci-account-closure-worker",
      "name": "uskoci-account-closure-worker",
      "status": "ACTIVE",
-     "version": 9,
+     "version": 11,
      "created_at": 1789587374051,
      "updated_at": 1790827630415,
      "verify_jwt": false,
      "import_map": false,
      "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_41dd529a-fcea-4866-a296-1dea5a70c08c_4/source/supabase/functions/uskoci-account-closure-worker/index.ts",
      "ezbr_sha256": "9f7373f9452ef85fb8c615bef64fc2a564aad32b39b9df80bad2152bd2c2ae11"
+    },
+    {
+     "id": "9883163f-e66e-4501-b398-4ef2c6634214",
+     "slug": "uskoci-taxonomy-postsave-worker",
+     "name": "uskoci-taxonomy-postsave-worker",
+     "status": "ACTIVE",
+     "version": 4,
+     "created_at": 1792005258288,
+     "updated_at": 1792008092028,
+     "verify_jwt": false,
+     "import_map": false,
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_9883163f-e66e-4501-b398-4ef2c6634214_2/source/supabase/functions/uskoci-taxonomy-postsave-worker/index.ts",
+     "ezbr_sha256": "4fe24382f1da75ca33dfbd3fe66ac12c259d4a3fa0318593314d79ca55b1fe88"
+    },
+    {
+     "id": "9945df6e-ec35-483c-92eb-734b938bf86c",
+     "slug": "sbfenv",
+     "name": "sbfenv",
+     "status": "ACTIVE",
+     "version": 4,
+     "created_at": 1792168210748,
+     "updated_at": 1792245055342,
+     "verify_jwt": true,
+     "import_map": false,
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_9945df6e-ec35-483c-92eb-734b938bf86c_2/source/index.ts",
+     "ezbr_sha256": "9ef5862008811b642c595a7fc292c7ce5076bd8da3da8cf8fe1ce603396baa18"
+    },
+    {
+     "id": "77b4384f-b7c3-4658-a5a2-51735aa1cc35",
+     "slug": "uskoci-gemini-schema-smoke",
+     "name": "uskoci-gemini-schema-smoke",
+     "status": "ACTIVE",
+     "version": 5,
+     "created_at": 1792169390874,
+     "updated_at": 1792169523374,
+     "verify_jwt": true,
+     "import_map": false,
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_77b4384f-b7c3-4658-a5a2-51735aa1cc35_3/source/index.ts",
+     "ezbr_sha256": "418ef9a1e848fef8c1a7902abed06c994641aaf308228f4a9ae162c423340a72"
+    },
+    {
+     "id": "6f6bd447-9a46-441b-a5bf-21543f693b0a",
+     "slug": "uskoci-gemini-provider-probe-dev",
+     "name": "uskoci-gemini-provider-probe-dev",
+     "status": "ACTIVE",
+     "version": 6,
+     "created_at": 1792170126096,
+     "updated_at": 1792170664309,
+     "verify_jwt": true,
+     "import_map": false,
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_6f6bd447-9a46-441b-a5bf-21543f693b0a_4/source/index.ts",
+     "ezbr_sha256": "16d541a376cc39c763e72498502279602ba80cef62e11c030ae03ad0a8ed63b0"
     }
    ]
   },
@@ -981,6 +1038,7 @@
     "S10": {
      "title": "Taxonomy candidate capture and explicit promotion (table-based)",
      "status": "NOT STARTED",
+     "source_progress_20261018": "CREATE_CHILD v2 source candidate prepared for signed worker/need review and client display; SQL/Edge not applied, no new APK/OTA, provider or post-save proof. DEV read-only: 0 Gemini hints, catalog version 3, batch writer and binder present; three task Edge logs report INVALID_PLAN. Source adds text-free invalid-plan diagnostic classes. See supabase/candidates/dynamic-taxonomy-20261011/owner-review-create-child-projection-v2.sql, worker-review-create-child-v2.sql, need-review-create-child-v2.sql. No status light is advanced by source alone.",
      "autonomous": false,
      "depends_on": "S06 result and corpus coverage report showing real unknown-term volume; owner approval",
      "first_owner_boundary": "Owner approval of closure-certificate recertification and a compatible APK, plus 'primeni' (Q6). Do not build before the owner chooses this route."
@@ -3635,7 +3693,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 6 serverskih funkcija",
-    "test": "7 test fajl(ova)"
+    "test": "9 test fajl(ova)"
    },
    "telefon_dokaz": "Prvo AI pitanje vidljivo, bez model/ASR poziva; stvarni razgovor otvoren. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
    "problem": "Novi razgovor task AI source/test završen; potvrda nije trajno brisanje istorije. Raniji telefon resume ostaje dokaz, ceo aktuelni AI task tok još otvoren.",
@@ -12072,7 +12130,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "174 test fajl(ova)"
+    "test": "175 test fajl(ova)"
    },
    "telefon_dokaz": "09.10 fizički HONOR 725be7bd: 725 install-r čuva postojeću sesiju, UID, prvo vreme instalacije i AI razgovor; hash/runtime provereni. Fresh login/logout/account-switch nisu dokazani ovim paketom. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon.",
    "problem": "725 install-r čuva postojeću sesiju, UID, prvo vreme instalacije i AI razgovor; hash/runtime provereni. Fresh login/logout/account-switch nisu dokazani ovim paketom.",
@@ -12548,6 +12606,10 @@
   {
    "rpc": "rpc_submit_classified_preselection_qa",
    "preko_edge": true
+  },
+  {
+   "rpc": "rpc_taxonomy_approve_admission",
+   "preko_edge": false
   }
  ],
  "aplikacija_zove_a_server_nema": [],
@@ -13698,5 +13760,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 39066722881,
+   "ime": "DEV AI acceptance (authenticated)",
+   "sha": "75661303",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-17T20:26:34Z"
+  },
+  {
+   "id": 39030696590,
+   "ime": "Signed Need review client compatibility",
+   "sha": "0c50d018",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-17T11:58:15Z"
+  },
+  {
+   "id": 39030696551,
+   "ime": "Gemini taxonomy scoped shadow inputs pure test",
+   "sha": "0c50d018",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-17T11:58:15Z"
+  },
+  {
+   "id": 39030696505,
+   "ime": "Taxonomy verified standard descendant coverage (disposable PostgreSQL)",
+   "sha": "0c50d018",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-17T11:58:15Z"
+  },
+  {
+   "id": 39030696493,
+   "ime": "Strict worker execution mode disposable proof",
+   "sha": "0c50d018",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-17T11:58:15Z"
+  },
+  {
+   "id": 39030696484,
+   "ime": "Worker signed review builder (disposable PostgreSQL)",
+   "sha": "0c50d018",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-17T11:58:15Z"
+  },
+  {
+   "id": 39030696482,
+   "ime": "Dynamic taxonomy PostgreSQL foundation proof",
+   "sha": "0c50d018",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-17T11:58:15Z"
+  },
+  {
+   "id": 39030696471,
+   "ime": "Signed taxonomy binding requeue isolated PostgreSQL proof",
+   "sha": "0c50d018",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-17T11:58:15Z"
+  },
+  {
+   "id": 39030696469,
+   "ime": "Worker taxonomy safe-sync disposable proof",
+   "sha": "0c50d018",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-17T11:58:15Z"
+  },
+  {
+   "id": 39030696468,
+   "ime": "Unified Gemini taxonomy P0 (read-only)",
+   "sha": "0c50d018",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-17T11:58:15Z"
+  },
+  {
+   "id": 39030696467,
+   "ime": "Worker old-APK and signed-review read compatibility (PostgreSQL)",
+   "sha": "0c50d018",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-17T11:58:15Z"
+  },
+  {
+   "id": 39030696464,
+   "ime": "Gemini owner-turn hint capture (disposable PostgreSQL)",
+   "sha": "0c50d018",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-17T11:58:15Z"
+  }
+ ]
 }
