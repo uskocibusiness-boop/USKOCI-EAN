@@ -1,6 +1,6 @@
 # Dinamička taksonomija: glavni pravci, dubina i međugrane
 
-Stanje 18.10.2026. SQL za novu glavnu granu i duboke putanje i obe AI Edge funkcije jesu primenjeni na kanonski DEV `leqcwgzvjsxugfgzdmth`; kompatibilan APK i stvarni AI razgovor za novu uslugu još nisu dokazani. Tačan dokaz je u `supabase/operations/dev-alpha/ledger/20261018_taxonomy_root_and_depth_application.receipt.json`.
+Stanje 18.10.2026. SQL za novu glavnu granu i duboke putanje i obe AI Edge funkcije jesu primenjeni na kanonski DEV `leqcwgzvjsxugfgzdmth`. Lokalni x86_64 debug APK je izgrađen i otvorio je aktuelni početni ekran na emulatoru; prijavljen AI razgovor i potpisani Save za novu uslugu još nisu dokazani. Tačni dokazi su u `supabase/operations/dev-alpha/ledger/20261018_taxonomy_root_and_depth_application.receipt.json` i `20261018_taxonomy_prompt_root_shortlist.receipt.json`.
 
 ## Značenje vlasnikove odluke
 
@@ -31,7 +31,8 @@ Postoje dva različita slučaja:
 
 - DEV katalog: 135 kategorija, 17 fizičkih glavnih kategorija, najveća stvarna dubina 3, verzija 3. Stari prekidač `auto_registration_enabled=false` pripada starom writer-u; novi potpisani batch ne koristi taj prekidač. Aktivni `uskoci_taxonomy_postsave_tick_dev` cron poziva outbox reconcile/claim i binder RPC-je (HTTP 200 u novim logovima), ali bez stvarnog review hinta nema dokaza da je neki korisnički zahtev završio upisom.
 - Migracija `20261017223855` podržava potpisani `CREATE_CHILD`. Migracija `20261017230303` dodaje `CREATE_NEW_BRANCH` kroz capture, potpisani pregled, transakcioni batch i oba bindera. Migracija `20261017230429` uklanja fiksni limit 32 pretka u AI katalogu. Nema novih Gemini hintova (0), pa nema dokaza stvarnog nastanka čvora iz pravog razgovora.
-- Žive Edge funkcije su `uskoci-worker-interview` v41 i `uskoci-ai-interview` v84; svi njihovi fajlovi su byte-jednaki poslatom source-u na readback-u. Klijentski dekoder/prikaz za oba intervjua je u source-u, ali nije u novom APK-u.
+- Prvo primenjene Edge verzije bile su `uskoci-worker-interview` v41 i `uskoci-ai-interview` v84, sa svim fajlovima byte-jednakim poslatom source-u na readback-u. Klijentski dekoder/prikaz za oba intervjua postoji u source-u; njegova funkcionalnost u novom APK-u tek čeka prijavljen tok.
+- Posle ispravke izbora glavnih grana žive Edge verzije su radnički v42 i naručilački v85. Lokalni debug APK (`rs.uskoci.preview`, x86_64, SHA-256 `aa305ccd80b368c8e5e0262847c3707593162728d4d9e91481933a742df38350`) izgrađen je bez novog npm paketa i instaliran preko `adb` na `emulator-5554`. Metro je spakovao 6.024 modula; aktuelni početni ekran se prikazao. To je dokaz ulaska, ne dokaz potpisanog pregleda, prijave naloga ili stvarnog Save-a. Debug APK traži lokalni Metro i nije release artefakt.
 - AI katalog trenutno dobija najviše 8 stranica po 100 čvorova po opsegu; to nije model za neograničen rast. Prompt šalje samo relevantnu listu do 96 stavki po intervjuu. Kratki tehnički token „3D“ ranije je bio izbačen iz rangiranja; source je ispravljen i pokriven testom.
 - Naknadna ispravka u obe DEV Edge funkcije (`uskoci-worker-interview` v42, `uskoci-ai-interview` v85) uklanja tvrdu grešku kada broj glavnih grana pređe budžet AI konteksta. Glavne grane sada učestvuju u rangiranju kao i potomci; izabrani potomak povlači svoje pretke. Proba sa 240 nepovezanih glavnih grana zadržala je relevantnu putanju `Digitalna izrada → Izrada 3D figurica` u 25 mesta. Ovo popravlja izbor u promptu, ali **ne uklanja** zaseban limit od 800 učitanih čvorova po režimu.
 - SQL koji gradi putanje za AI imao je granicu 32 pretka; sada je uklonjena uz zaštitu od ciklusa i vremenski limit. Sintetička putanja od 40 nivoa prošla je u transakcionoj probi i sve probe su vraćene. JS katalog prihvata dublje putanje uz ograničenje veličine odgovora.
@@ -63,6 +64,6 @@ Ceo `npm test` gate nije zelen: 607 paketa je prošlo, 12 palo (13.770 prolaznih
 ## Uslovi pre tvrdnje da je ceo tok gotov
 
 1. Bez dodatnih neodobrenih Gemini poziva, nastaviti sintetičke i negativne dokaze za `REMOTE`, dubokog roditelja, pogrešan režim, postojeći kanonski naziv/alijas, konkurentni upis i stale fingerprint. Potvrditi da nesiguran međusegment ne prolazi i da transakcija ne ostavlja polovičan upis.
-2. Napraviti kompatibilan DEV APK i proveriti potpisani prikaz i Save na emulatoru. Živi SQL/Edge bez tog klijenta nisu ceo proizvodni tok.
+2. Otvoriti potpisani prikaz i Save na sada izgrađenom debug APK-u uz prijavljen testni nalog na emulatoru. Živi SQL/Edge i prikazan početni ekran bez te provere nisu ceo proizvodni tok.
 3. Za jedan stvarni Gemini test tražiti zasebno ograničeno odobrenje sa providerom, modelom, brojem poziva, plafonom troška i nalozima. Bez validnog hinta iz oba intervjua nije dokazano da Save stvara granu iz običnog razgovora.
 4. Pre obećanja neograničenog rasta ukloniti fiksni plafon učitavanja 800 čvorova po režimu. Ukupna dubina nema nametnut poslovni limit, ali pretraga i raspoloživo vreme upita imaju realna tehnička ograničenja.
