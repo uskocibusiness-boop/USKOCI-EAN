@@ -29,7 +29,7 @@ Postoje dva različita slučaja:
 
 ## Utvrđeno sada
 
-- DEV katalog: 135 kategorija, 17 fizičkih glavnih kategorija, najveća viđena dubina 3, verzija 3. Stari prekidač `auto_registration_enabled=false`; to ne znači da je novo potpisano primanje automatski završeno.
+- DEV katalog: 135 kategorija, 17 fizičkih glavnih kategorija, najveća stvarna dubina 3, verzija 3. Stari prekidač `auto_registration_enabled=false` pripada starom writer-u; novi potpisani batch ne koristi taj prekidač. Aktivni `uskoci_taxonomy_postsave_tick_dev` cron poziva outbox reconcile/claim i binder RPC-je (HTTP 200 u novim logovima), ali bez stvarnog review hinta nema dokaza da je neki korisnički zahtev završio upisom.
 - Migracija `20261017223855` podržava potpisani `CREATE_CHILD`. Migracija `20261017230303` dodaje `CREATE_NEW_BRANCH` kroz capture, potpisani pregled, transakcioni batch i oba bindera. Migracija `20261017230429` uklanja fiksni limit 32 pretka u AI katalogu. Nema novih Gemini hintova (0), pa nema dokaza stvarnog nastanka čvora iz pravog razgovora.
 - Žive Edge funkcije su `uskoci-worker-interview` v41 i `uskoci-ai-interview` v84; svi njihovi fajlovi su byte-jednaki poslatom source-u na readback-u. Klijentski dekoder/prikaz za oba intervjua je u source-u, ali nije u novom APK-u.
 - AI katalog trenutno dobija najviše 8 stranica po 100 čvorova po opsegu; to nije model za neograničen rast. Prompt šalje samo relevantnu listu do 96 stavki po intervjuu. Kratki tehnički token „3D“ ranije je bio izbačen iz rangiranja; source je ispravljen i pokriven testom.

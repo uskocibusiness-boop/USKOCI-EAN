@@ -43,7 +43,8 @@
     "catalogVersion": 3,
     "categoryCount": 135,
     "geminiHintCount": 0,
-    "closureDigestsUnchanged": true
+    "closureDigestsUnchanged": true,
+    "postsaveWorkerObservation": "The active DEV cron calls taxonomy outbox reconcile/claim and bind-ready RPCs each minute; sampled post-deploy Edge logs returned HTTP 200. This is liveness evidence, not proof of a real category admission."
   },
   "edge": [
     {"slug": "uskoci-worker-interview", "beforeVersion": 40, "afterVersion": 41, "afterEzbrSha256": "502dcbbc5fe7d6e1b75f653003a7d6a8935ef89e94d3f82b7b7c9a895e849da3", "filesByteEqualOnReadback": "6/6", "verifyJwtPreserved": false},
