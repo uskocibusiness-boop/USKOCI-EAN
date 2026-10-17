@@ -188,14 +188,16 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
           ?review.reviewedServiceModes?.filter(item=>item.service===skill).map(item=>item.mode==='ON_SITE'?'Na lokaciji':'Na daljinu')??[]
           :[];
         const newPaths=review.classificationState==='READY'
-          ?review.classificationCandidates?.flatMap(item=>item.action==='CREATE_CHILD'&&item.service===skill
-            ?[`${item.parentLabel} → ${item.path.join(' → ')} (${item.mode==='ON_SITE'?'na lokaciji':'na daljinu'})`]
-            :[])??[]
+          ?review.classificationCandidates?.flatMap(item=>item.service===skill&&item.action==='CREATE_CHILD'
+            ?[`Nova grana: ${item.parentLabel} → ${item.path.join(' → ')} (${item.mode==='ON_SITE'?'na lokaciji':'na daljinu'})`]
+            :item.service===skill&&item.action==='CREATE_NEW_BRANCH'
+              ?[`Nova glavna grana: ${item.path.join(' → ')} (${item.mode==='ON_SITE'?'na lokaciji':'na daljinu'})`]
+              :[])??[]
           :[];
         return <View key={`${index}:${skill}`} style={s.chip}>
           <T selectable variant="note" style={s.chipText}>{skill}</T>
           {scopes.length?<T variant="note" tone="muted">{scopes.join(' · ')}</T>:null}
-          {newPaths.map(path=><T key={path} variant="note" tone="muted">Nova grana: {path}</T>)}
+          {newPaths.map(path=><T key={path} variant="note" tone="muted">{path}</T>)}
         </View>;
       })}</View>:<T variant="body" tone="muted">{EMPTY}</T>}
       {review.classificationState&&review.classificationState!=='READY'

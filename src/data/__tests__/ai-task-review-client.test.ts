@@ -257,6 +257,19 @@ it('accepts a reviewed new child and rejects a different leaf or parent',()=>{
  expect(decodeAiTaskReview({...signed,classificationCandidates:[{...child,path:['Druga usluga']}]},OWNER)).toBeNull();
  expect(decodeAiTaskReview({...signed,classificationCandidates:[{...child,parentId:'bad'}]},OWNER)).toBeNull();
 });
+it('accepts a signed new main branch only with a null parent and visible leaf',()=>{
+ const base=review();
+ const root={action:'CREATE_NEW_BRANCH',service:'Izrada 3D figurica',mode:'REMOTE',
+   parentId:null,parentLabel:null,path:['3D izrada','Izrada 3D figurica'],catalogVersion:9,
+   reason:'No established parent correctly describes this confirmed service'};
+ const signed={...base,publicProjection:[{id:null,key:'need.category',value:'Izrada 3D figurica',
+   displayValue:'Izrada 3D figurica',privacyClass:'PUBLIC',source:'EXPLICIT_USER_ANSWER',status:'CONFIRMED'}],
+   classificationState:'READY',classificationCandidates:[root],classificationCatalogVersion:9,
+   classificationCatalogFingerprint:'f'.repeat(32),reviewedServiceModes:[]};
+ expect(decodeAiTaskReview(signed,OWNER)?.classificationCandidates).toMatchObject([root]);
+ expect(decodeAiTaskReview({...signed,classificationCandidates:[{...root,parentId:'11111111-1111-4111-8111-111111111111'}]},OWNER)).toBeNull();
+ expect(decodeAiTaskReview({...signed,classificationCandidates:[{...root,path:['Drugi posao']}]},OWNER)).toBeNull();
+});
 
 it('explicit preview opt-in routes requester review to signed version without changing user Save',async()=>{
   const prior=process.env.EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW;

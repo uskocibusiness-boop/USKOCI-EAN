@@ -44,6 +44,8 @@ export function explicitWorkerModes(skills:readonly string[],choices:Readonly<Re
 export type WorkerAiClassificationCandidate = Readonly<
   {action:'REUSE_EXISTING';service:string;mode:'ON_SITE'|'REMOTE';categoryId:string;catalogVersion:number;reason:string}|
   {action:'CREATE_CHILD';service:string;mode:'ON_SITE'|'REMOTE';parentId:string;parentLabel:string;
+    path:string[];catalogVersion:number;reason:string}|
+  {action:'CREATE_NEW_BRANCH';service:string;mode:'ON_SITE'|'REMOTE';parentId:null;parentLabel:null;
     path:string[];catalogVersion:number;reason:string}>;
 export type WorkerAiClassificationState = 'READY'|'PENDING_CLASSIFICATION'|'REVIEW_REQUIRED'|
   'SERVICE_MODE_CONFIRMATION_REQUIRED'|'CATALOG_UNAVAILABLE'|'STALE_CATALOG';
@@ -158,15 +160,22 @@ function decodeClassification(v:Record<string,unknown>,profile:WorkerAiProfile):
       &&Array.isArray(c.path)&&c.path.length>=1&&c.path.length<=6
       &&c.path.every(x=>text(x,120)&&x.trim().length>=3)
       &&c.path[c.path.length-1]===c.service;
-    if(!reuse&&!child)return null;
+    const root=c.action==='CREATE_NEW_BRANCH'&&exact(c,['action','service','mode','parentId','parentLabel','path','catalogVersion','reason'])
+      &&c.parentId===null&&c.parentLabel===null
+      &&Array.isArray(c.path)&&c.path.length>=1&&c.path.length<=6
+      &&c.path.every(x=>text(x,120)&&x.trim().length>=3)
+      &&c.path[c.path.length-1]===c.service;
+    if(!reuse&&!child&&!root)return null;
     const key=c.service+'|'+c.mode;
     if(!seen.has(key)||plans.has(key))return null;
     plans.add(key);
     result.classificationCandidates.push(reuse
       ?{action:'REUSE_EXISTING',service:c.service,mode:c.mode,categoryId:c.categoryId as string,
         catalogVersion:version,reason:c.reason}
-      :{action:'CREATE_CHILD',service:c.service,mode:c.mode,parentId:c.parentId as string,
-        parentLabel:c.parentLabel as string,path:c.path as string[],catalogVersion:version,reason:c.reason});
+      :child?{action:'CREATE_CHILD',service:c.service,mode:c.mode,parentId:c.parentId as string,
+        parentLabel:c.parentLabel as string,path:c.path as string[],catalogVersion:version,reason:c.reason}
+      :{action:'CREATE_NEW_BRANCH',service:c.service,mode:c.mode,parentId:null,parentLabel:null,
+        path:c.path as string[],catalogVersion:version,reason:c.reason});
   }
   return {...result,classificationCatalogVersion:version,
     classificationCatalogFingerprint:v.classificationCatalogFingerprint};

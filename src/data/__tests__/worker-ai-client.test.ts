@@ -135,6 +135,16 @@ it('accepts a signed new child only when its visible path ends in the reviewed s
  expect(decodeWorkerAiReview({...base,classificationCandidates:[{...child,path:['Druga usluga']}]},OWNER,CONVERSATION)).toBeNull();
  expect(decodeWorkerAiReview({...base,classificationCandidates:[{...child,parentId:'bad'}]},OWNER,CONVERSATION)).toBeNull();
 });
+it('accepts a signed new main branch only with a null parent and reviewed skill',()=>{
+ const base=signedWorkerReview();
+ const root={action:'CREATE_NEW_BRANCH',service:'Prenos',mode:'ON_SITE',
+   parentId:null,parentLabel:null,path:['Nova vrsta pomoći','Prenos'],
+   catalogVersion:3,reason:'No established main branch covers this explicit service'};
+ expect(decodeWorkerAiReview({...base,classificationCandidates:[root]},OWNER,CONVERSATION))
+   .toMatchObject({classificationCandidates:[root]});
+ expect(decodeWorkerAiReview({...base,classificationCandidates:[{...root,parentId:SIGNED_CATEGORY}]},OWNER,CONVERSATION)).toBeNull();
+ expect(decodeWorkerAiReview({...base,classificationCandidates:[{...root,path:['Druga usluga']}]},OWNER,CONVERSATION)).toBeNull();
+});
 it('pending classification preserves the old skill text but never authorizes fake modes',()=>{
  const pending={...signedWorkerReview(),classificationState:'PENDING_CLASSIFICATION',
    classificationCandidates:[],reviewedServiceModes:[],classificationCatalogVersion:null,classificationCatalogFingerprint:null};

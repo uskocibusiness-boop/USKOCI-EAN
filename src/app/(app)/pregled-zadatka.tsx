@@ -704,9 +704,9 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
             <Surface kind="note" tone="warn"><T variant="note">
               Vrsta posla još nije potvrđena za automatsko povezivanje sa radnicima. Zadatak može da bude objavljen, ali preporuke će sačekati proveru kategorije.
             </T></Surface> : null}
-          {review.classificationCandidates?.filter(item=>item.action==='CREATE_CHILD').map(item=>
+          {review.classificationCandidates?.filter(item=>item.action==='CREATE_CHILD'||item.action==='CREATE_NEW_BRANCH').map(item=>
             <Surface key={`${item.service}:${item.mode}`} kind="note"><T variant="note">
-              Nova grana za ovaj zadatak: {item.parentLabel} → {item.path.join(' → ')}. Biće dodata posle potvrde, ako prođe završnu proveru.
+              {item.action==='CREATE_CHILD'?'Nova grana':'Nova glavna grana'} za ovaj zadatak: {item.action==='CREATE_CHILD'?`${item.parentLabel} → `:''}{item.path.join(' → ')}. Biće dodata posle potvrde, ako prođe završnu proveru.
             </T></Surface>)}
           {/* The task detail as it is published: Airbnb-style clean preview with zero redundant intermediate cards. */}
           <ReviewDetail need={need} parts={parts} person={reviewer} knownPeopleCount={knownPeopleCount}

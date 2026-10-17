@@ -22,6 +22,8 @@ export type AiTaskReviewFact = Readonly<{
 export type SignedNeedClassification = Readonly<
   {action:'REUSE_EXISTING';service:string;mode:'ON_SITE'|'REMOTE';categoryId:string;catalogVersion:number;reason:string}|
   {action:'CREATE_CHILD';service:string;mode:'ON_SITE'|'REMOTE';parentId:string;parentLabel:string;
+    path:string[];catalogVersion:number;reason:string}|
+  {action:'CREATE_NEW_BRANCH';service:string;mode:'ON_SITE'|'REMOTE';parentId:null;parentLabel:null;
     path:string[];catalogVersion:number;reason:string}>;
 /** Owner-only server snapshot. Never persist or send these projections to public analytics. */
 export type AiTaskReviewEnvelope = Readonly<{
@@ -152,7 +154,12 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
         &&uuid(candidate.parentId)&&text(candidate.parentLabel,120)
         &&Array.isArray(candidate.path)&&candidate.path.length>=1&&candidate.path.length<=6
         &&candidate.path.every(x=>text(x,120))&&candidate.path[candidate.path.length-1]===candidate.service;
-      if (items.length !== 1 || !candidate || (!reuse&&!child) ||
+      const root=!!candidate&&candidate.action==='CREATE_NEW_BRANCH'&&only(candidate,
+        ['action','service','mode','parentId','parentLabel','path','catalogVersion','reason'])
+        &&candidate.parentId===null&&candidate.parentLabel===null
+        &&Array.isArray(candidate.path)&&candidate.path.length>=1&&candidate.path.length<=6
+        &&candidate.path.every(x=>text(x,120))&&candidate.path[candidate.path.length-1]===candidate.service;
+      if (items.length !== 1 || !candidate || (!reuse&&!child&&!root) ||
         !text(candidate.service,120) || candidate.service !== category?.value ||
         candidate.mode !== mode || !text(candidate.reason,1000) ||
         typeof candidate.catalogVersion !== 'number' || !Number.isSafeInteger(candidate.catalogVersion) ||
