@@ -3,6 +3,8 @@ on:
   pull_request:
     paths:
       - 'supabase/candidates/dynamic-taxonomy-20261011/worker-review-signed-classification-v1.sql'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/worker-review-explicit-modes-v1.sql'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/disposable-worker-explicit-modes-assert.sql'
       - 'supabase/candidates/dynamic-taxonomy-20261011/disposable-worker-signed-builder-*.sql'
       - '.github/workflows/taxonomy-worker-signed-builder-pg-proof.yml'
   workflow_dispatch:
@@ -46,3 +48,7 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/worker-review-signed-classification-v1.sql
       - name: Prove signed display digest, owner, revision and unknown-mode refusal
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-worker-signed-builder-assert.sql
+      - name: Install explicit owner-confirmed per-service mode RPC alongside original
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/worker-review-explicit-modes-v1.sql
+      - name: Prove explicit mode owner consent and digested review without Gemini hints
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-worker-explicit-modes-assert.sql
