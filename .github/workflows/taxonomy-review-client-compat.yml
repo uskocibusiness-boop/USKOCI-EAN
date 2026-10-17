@@ -6,6 +6,7 @@ on:
       - 'src/data/workerAiClientService.ts'
       - 'src/data/__tests__/worker-ai-client.test.ts'
       - 'src/ui/workerProfile/WorkerAiPresentation.tsx'
+      - 'src/ui/workerProfile/__tests__/worker-review-parts.test.tsx'
       - 'src/app/(app)/profil/razgovor.tsx'
       - 'supabase/candidates/dynamic-taxonomy-20261011/worker-review-signed-classification-v1.sql'
       - 'supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs'
@@ -33,6 +34,8 @@ jobs:
         run: node --test supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs
       - name: Check old review + signed category identity contract
         run: npx jest src/data/__tests__/ai-task-review-client.test.ts src/data/__tests__/worker-ai-client.test.ts --runInBand --silent
+      - name: Verify worker review notification copy for pending and confirmed matching
+        run: npx jest src/ui/workerProfile/__tests__/worker-review-parts.test.tsx --runInBand --silent
       - name: Restore generated entry reference contracts from canonical HTML
         run: node ./scripts/sync-entry-reference-assets.cjs
       - name: Type-check the complete React Native client contracts
