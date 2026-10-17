@@ -75,6 +75,11 @@ jobs:
           EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'false'
         run: npx jest src/data/__tests__/ai-task-review-client.test.ts src/data/__tests__/worker-ai-client.test.ts --runInBand --silent
       - name: Verify worker per-service selection UI and transport before preview OTA
+        # Legacy cases require OFF. Explicit-mode cases set BOTH signed flags
+        # to true inside their test, so this still proves the new route.
+        env:
+          EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW: 'false'
+          EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'false'
         run: npx jest src/ui/workerProfile/__tests__/worker-review-parts.test.tsx src/data/__tests__/worker-ai-client.test.ts --runInBand --silent
       - name: Verify signed reviews, precise service consent and natural worker-interview safety
         # The coverage proof prevents partial Gemini proposals from being
