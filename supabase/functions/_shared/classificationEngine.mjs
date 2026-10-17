@@ -60,7 +60,7 @@ export async function loadClassificationCatalog(rpc, { maxPages = 8, pageSize = 
         if (!isRecord(row) || !UUID.test(row.categoryId) || !safeLabel(row.label) ||
           !(row.parentId === null || UUID.test(row.parentId)) ||
           !Array.isArray(row.path) || row.path.length === 0 ||
-          row.path.length > 32 || !row.path.every(safeLabel))
+          JSON.stringify(row.path).length > 65536 || !row.path.every(safeLabel))
           catalogError('INVALID_CATEGORY');
         const node = { id: row.categoryId, label: row.label, parentId: row.parentId,
           path: row.path.slice(), isLeaf: row.isLeaf === true };
@@ -126,8 +126,12 @@ export function reviewClassificationProposal(input, snapshot, plan) {
       requiresOwnerReview: true, capabilityAuthority: 'NONE', notificationAuthority: 'NONE' };
   }
   if (['CREATE_CHILD','CREATE_NEW_BRANCH','PROPOSE_RESTRUCTURE'].includes(plan.action)) {
-    if (plan.action === 'CREATE_CHILD' && !categories.has(plan.parentId))
-      return { accepted: false, status: 'UNKNOWN_PARENT_ID' };
+    if (plan.action === 'CREATE_CHILD') {
+      const parent = categories.get(plan.parentId);
+      if (!parent) return { accepted: false, status: 'UNKNOWN_PARENT_ID' };
+      if (input.mode && (!Array.isArray(parent.modes) || !parent.modes.includes(input.mode)))
+        return { accepted: false, status: 'PARENT_MODE_NOT_SUPPORTED' };
+    }
     if (!Array.isArray(plan.proposedPath) || !plan.proposedPath.length ||
         plan.proposedPath.length > 12 || !plan.proposedPath.every(safeLabel))
       return { accepted: false, status: 'INVALID_PATH' };
@@ -165,7 +169,9 @@ export function catalogPromptContext(snapshot,{maxItems=220,services=[]}={}) {
   const roots=all.filter(x=>x.parentId==null).sort((a,b)=>a.label.localeCompare(b.label,'sr'));
   if(roots.length>maxItems)catalogError('TOO_MANY_ROOTS');
   const tokens=x=>(String(x??'').normalize('NFKC').toLowerCase().replace(/[\u0400-\u04ff]/g,ch=>serbianCyrillic[ch]??ch).match(/[\p{L}\p{N}]+/gu)??[])
-    .filter(t=>t.length>=3);
+    // Keep short technical terms such as 3D and AI2; ordinary two-letter
+    // words add noise to the shortlist and remain excluded.
+    .filter(t=>t.length>=3||(t.length>=2&&/[\p{L}]/u.test(t)&&/[\p{N}]/u.test(t)));
   const query=services.flatMap(tokens);
   const wanted=new Set(query);
   const ranked=all.filter(x=>!roots.some(root=>root.id===x.id)).map(node=>{
@@ -180,12 +186,13 @@ export function catalogPromptContext(snapshot,{maxItems=220,services=[]}={}) {
   const selected=new Map(roots.map(x=>[x.id,x]));
   for(const {node} of ranked){
     const lineage=[];let current=node;const visited=new Set();
-    while(current&&!selected.has(current.id)&&!visited.has(current.id)&&lineage.length<=32){
+    while(current&&!selected.has(current.id)&&!visited.has(current.id)){
       visited.add(current.id);lineage.push(current);
       current=current.parentId?byId.get(current.parentId):null;
     }
     // Skip incomplete/unresolvable ancestry, rather than showing a fake tree.
-    if(lineage.length>32||(current===undefined&&lineage.at(-1)?.parentId))continue;
+    if((current===undefined&&lineage.at(-1)?.parentId)||
+       (current&&visited.has(current.id)&&!selected.has(current.id)))continue;
     if(selected.size+lineage.length>maxItems)continue;
     for(const item of lineage.reverse())selected.set(item.id,item);
     if(selected.size>=maxItems)break;

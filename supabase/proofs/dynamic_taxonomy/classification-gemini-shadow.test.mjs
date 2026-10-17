@@ -234,7 +234,17 @@ test('encoded CREATE_CHILD remains review-only; never generates a worker capabil
  const out=inspect(withEncodedShadow(worker,[proposal]),snapshot,'WORKER_CAPABILITY');
  assert.deepEqual(out.output,worker);
  assert.deepEqual(out.statuses,['ADMISSION_REVIEW_REQUIRED']);
+  assert.deepEqual(out.reviewProposals,[proposal]);
+});
+test('new top-level branch is retained only as a hint under the chosen execution mode',()=>{
+ const proposal={...plan('Izrada posebnih figurica',''),action:'CREATE_NEW_BRANCH',
+   parentId:'',proposedPath:['Nove 3D usluge','Izrada posebnih figurica']};
+ const out=inspect(withEncodedShadow(need,[proposal]),snapshot,'NEED_SERVICE');
+ assert.deepEqual(out.output,need);
+ assert.deepEqual(out.statuses,['ADMISSION_REVIEW_REQUIRED']);
  assert.deepEqual(out.reviewProposals,[proposal]);
+ const uncertain=inspect(withEncodedShadow(need,[{...proposal,mode:'UNCONFIRMED'}]),snapshot,'NEED_SERVICE');
+ assert.deepEqual(uncertain.reviewProposals,[]);
 });
 
 test('invalid, oversized, mixed and duplicate encoded shadows fail closed without corrupting interview',()=>{

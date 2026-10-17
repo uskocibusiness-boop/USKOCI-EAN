@@ -180,7 +180,8 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
     // Only real canonical IDs or an existing reviewed parent may be retained.
     if (p.mode !== 'UNCONFIRMED' &&
         (checked.status === 'REUSE_CANDIDATE' && p.action === 'REUSE_EXISTING' ||
-         checked.status === 'ADMISSION_REVIEW_REQUIRED' && p.action === 'CREATE_CHILD')) {
+         checked.status === 'ADMISSION_REVIEW_REQUIRED' &&
+           ['CREATE_CHILD','CREATE_NEW_BRANCH'].includes(p.action))) {
       reviewProposals.push({
         service:p.service,mode:p.mode,action:p.action,categoryId:p.categoryId,
         parentId:p.parentId,proposedPath:p.proposedPath.slice(),

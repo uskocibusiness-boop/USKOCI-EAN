@@ -63,6 +63,12 @@ test('novel services: no AI-only auto-creation and no invented parent',()=>{
   const plan=reviewClassificationProposal(input('NEED_SERVICE'),snapshot,proposal('CREATE_NEW_BRANCH',{parentId:null,proposedPath:['Nova legitimna oblast','Retka usluga']}));
   assert.equal(plan.accepted,false);assert.equal(plan.status,'ADMISSION_REVIEW_REQUIRED');
 });
+test('new child cannot inherit a parent from the wrong execution mode',()=>{
+  const answer=reviewClassificationProposal(input('NEED_SERVICE','REMOTE'),snapshot,
+    proposal('CREATE_CHILD',{parentId:lesson,proposedPath:['Onlajn časovi klizanja']}));
+  assert.equal(answer.accepted,false);
+  assert.equal(answer.status,'PARENT_MODE_NOT_SUPPORTED');
+});
 test('catalog version must be fresh',()=>{
   assert.equal(reviewClassificationProposal(input('NEED_SERVICE'),snapshot,proposal('REUSE_EXISTING',{catalogVersion:6})).status,'STALE_CATALOG');
 });
@@ -132,6 +138,39 @@ test('catalog growth beyond 220 chooses bounded relevant services without fabric
   assert.ok(prompt.categories.some(x=>x.id===parent));
   assert.match(prompt.instructions,/partial relevance shortlist/);
   assert.doesNotMatch(JSON.stringify(prompt),/po meri\./);
+});
+test('shortlist preserves the technical 3D token when choosing a parent branch',()=>{
+  const root='77777777-7777-4777-8777-777777777777';
+  const threeD='88888888-8888-4888-8888-888888888888';
+  const many={catalogVersion:8,categories:[
+    {id:root,label:'Digitalne usluge',parentId:null,path:['Digitalne usluge'],modes:['REMOTE']},
+    ...Array.from({length:45},(_,i)=>({
+      id:'99999999-9999-4999-8999-'+(i+1).toString(16).padStart(12,'0'),
+      label:'Usluga '+String(i).padStart(3,'0'),parentId:root,
+      path:['Digitalne usluge','Usluga '+String(i).padStart(3,'0')],modes:['REMOTE'],
+    })),
+    {id:threeD,label:'3D modelovanje',parentId:root,
+      path:['Digitalne usluge','3D modelovanje'],modes:['REMOTE']},
+  ]};
+  const prompt=JSON.parse(catalogPromptContext(many,{maxItems:25,
+    services:['Izrada 3D figurica po narudžbini']}));
+  assert.ok(prompt.categories.some(x=>x.id===threeD));
+});
+test('existing branches deeper than 32 levels remain eligible for AI context',async()=>{
+  const deep=Array.from({length:40},(_,i)=>({
+    id:'aaaaaaaa-aaaa-4aaa-8aaa-'+(i+1).toString(16).padStart(12,'0'),
+    label:i===39?'Izrada posebnih figurica':'Nivo '+String(i+1),
+    parentId:i===0?null:'aaaaaaaa-aaaa-4aaa-8aaa-'+i.toString(16).padStart(12,'0'),
+    path:Array.from({length:i+1},(_,j)=>j===39?'Izrada posebnih figurica':'Nivo '+String(j+1)),
+    modes:['REMOTE'],
+  }));
+  const loaded=await loadClassificationCatalog(async(_name,args)=>
+    page(args.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE',
+      args.p_execution_location_mode==='REMOTE'?deep:[]));
+  assert.equal(loaded.categories.length,40);
+  const prompt=JSON.parse(catalogPromptContext(loaded,{maxItems:50,
+    services:['Izrada posebnih figurica']}));
+  assert.ok(prompt.categories.some(x=>x.id===deep[39].id));
 });
 test('catalog shortlist never falsely identifies an unshown category as absent',()=>{
   const parent='77777777-7777-4777-8777-777777777777';
