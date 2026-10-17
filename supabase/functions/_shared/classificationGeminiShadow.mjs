@@ -39,7 +39,7 @@ export function geminiClassificationShadowInstruction(purpose='NEED_SERVICE') {
     'Do not change assistantMessage, safety, facts, patch, dialogue or the other existing response fields. Never return the older classificationShadow array field.',
     'Each entry inside the serialized JSON array must contain exactly service, mode, action, categoryId, parentId, proposedPath, reason, catalogVersion.',
     'Use catalogVersion from provided server context. For reuse: exact real categoryId, parentId="", proposedPath=[].',
-    'For missing service: CREATE_CHILD with verified existing parentId and proposedPath of NEW descendant labels; or CREATE_NEW_BRANCH with parentId=""; never write.',
+    'For a missing service: CREATE_CHILD with a real parentId from the supplied catalog in the confirmed mode, or CREATE_NEW_BRANCH with parentId="" only when no suitable parent exists. proposedPath contains 1 to 6 NEW labels, ordered from the parent toward the service; its final label must be exactly the service text. Intermediate labels may be included when useful. categoryId="" for either creation action. Give a concrete reason of 10 to 1000 characters; never write or claim a category was created.',
     'Never equate lessons, equipment rental and equipment repair merely because they mention skating.',
     'REUSE_ALIAS is only a suggested semantic candidate; no alias is verified by a model claim.',
     'Mode ON_SITE/REMOTE only if explicit or inherent to the service; otherwise UNCONFIRMED. Separate every service; both modes must be explicitly confirmed later.',

@@ -60,8 +60,15 @@ test('H: a remote-only request cannot gain on-site competence',()=>{
 });
 test('novel services: no AI-only auto-creation and no invented parent',()=>{
   assert.equal(reviewClassificationProposal(input('NEED_SERVICE'),snapshot,proposal('CREATE_CHILD',{parentId:'44444444-4444-4444-8444-444444444444',proposedPath:['Sport','Retka usluga']})).status,'UNKNOWN_PARENT_ID');
-  const plan=reviewClassificationProposal(input('NEED_SERVICE'),snapshot,proposal('CREATE_NEW_BRANCH',{parentId:null,proposedPath:['Nova legitimna oblast','Retka usluga']}));
+  const plan=reviewClassificationProposal(input('NEED_SERVICE'),snapshot,proposal('CREATE_NEW_BRANCH',{parentId:null,proposedPath:['Nova legitimna oblast','Časovi umetničkog klizanja']}));
   assert.equal(plan.accepted,false);assert.equal(plan.status,'ADMISSION_REVIEW_REQUIRED');
+});
+test('new path must end in the service and contain at most six new nodes',()=>{
+  const base={...input('NEED_SERVICE'),service:'Izrada figurica'};
+  assert.equal(reviewClassificationProposal(base,snapshot,proposal('CREATE_NEW_BRANCH',
+    {parentId:null,proposedPath:['Nove usluge','Drugi zadatak']})).status,'SERVICE_LEAF_MISMATCH');
+  assert.equal(reviewClassificationProposal(base,snapshot,proposal('CREATE_NEW_BRANCH',
+    {parentId:null,proposedPath:['Jedan','Dva','Tri','Četiri','Pet','Šest','Izrada figurica']})).status,'INVALID_PATH');
 });
 test('new child cannot inherit a parent from the wrong execution mode',()=>{
   const answer=reviewClassificationProposal(input('NEED_SERVICE','REMOTE'),snapshot,

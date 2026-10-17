@@ -1,0 +1,69 @@
+{
+  "package": "TAXONOMY_ROOT_BRANCH_V3_AND_DEEP_ANCESTRY_V2",
+  "state": "DEV_SQL_AND_EDGE_APPLIED_NO_PROVIDER_OR_APK_PROOF",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "authorization": "Owner explicitly authorized all applications for completing intelligent taxonomy expansion in the 2026-10-18 continuation. No paid provider call, phone action or push send is included.",
+  "migrations": [
+    {
+      "version": "20261017230303",
+      "name": "taxonomy_root_branch_v3_20261018",
+      "localFile": "supabase/migrations/20261017230303_taxonomy_root_branch_v3_20261018.sql",
+      "storedSha256": "10a1a482ca8da2a23a0287b1146d12036cd529bab5195689285e925961729542",
+      "localSha256": "753da37dd7dbbef5366c098401e03401c53bb3d6aa211768fd398b03311362fe",
+      "storedBytes": 45524,
+      "localBytes": 45522
+    },
+    {
+      "version": "20261017230429",
+      "name": "taxonomy_deep_ancestry_v2_20261018",
+      "localFile": "supabase/migrations/20261017230429_taxonomy_deep_ancestry_v2_20261018.sql",
+      "storedSha256": "7d759e2efb0ffbb3d9db4a7b2c8b02cb87f1ee906eaf3a672f2dd3c8265a2e1c",
+      "localSha256": "f748c5354ccd8ed6666ea061bae8e086f01cd08e64bbc548eae227f9f055898b",
+      "storedBytes": 4298,
+      "localBytes": 4296
+    }
+  ],
+  "transportNote": "The connected migration tool stored each LF source plus a trailing CRLF from the shell reader. SHA-256 of local bytes plus those exact two bytes equals storedSha256 for both statements.",
+  "proof": {
+    "before": "The old batch writer rejected a signed CREATE_NEW_BRANCH plan with BATCH_SCOPE_OR_SERVICE_INVALID. The old catalog reader rejected a synthetic 40-level path with CATALOG_PARENT_OR_MODE_INTEGRITY_ERROR.",
+    "afterInRollback": "The v3 signed worker projection returned a null-parent root plan. The v3 writer created a synthetic two-level ON_SITE worker root path and replay returned the same receipt. After application, a synthetic REMOTE requester review created a one-level root path. The new catalog reader returned the 40-level path. Forward plus revert restored exact old function MD5 values. All synthetic sessions, hints, reviews and categories were rolled back.",
+    "closureProgramDigest": "90d60aa9529996103b91ca54fb4be94770d6862453fbe521f878c603d6ab3f1e",
+    "closureSchemaDigest": "cf46968b2eba30cedca7e4b1cdddc63e6e31862fa38eae64952a3acb714e3275"
+  },
+  "postflight": {
+    "functionMd5": {
+      "captureHints": "449ba27744b6846d487c9b98b55ecec7",
+      "reviewProjection": "b72276424e5abbf99145e0cdab350924",
+      "batchWriter": "b2b80811e44f5d802e27f3cbf13dda0d",
+      "workerBinder": "c71b295abe45c81036bc95679a38b00c",
+      "needBinder": "5b736e015fc6556cf70aa955b18cc7ba",
+      "aiCatalogContext": "b658756bc9c99acf3fd07688050e9792"
+    },
+    "privileges": "The private review helper has no anon/authenticated/service_role EXECUTE. Service-role RPCs remain service_role-only; no anon/authenticated EXECUTE. Catalog context remains service_role-only.",
+    "catalogVersion": 3,
+    "categoryCount": 135,
+    "geminiHintCount": 0,
+    "closureDigestsUnchanged": true
+  },
+  "edge": [
+    {"slug": "uskoci-worker-interview", "beforeVersion": 40, "afterVersion": 41, "afterEzbrSha256": "502dcbbc5fe7d6e1b75f653003a7d6a8935ef89e94d3f82b7b7c9a895e849da3", "filesByteEqualOnReadback": "6/6", "verifyJwtPreserved": false},
+    {"slug": "uskoci-ai-interview", "beforeVersion": 83, "afterVersion": 84, "afterEzbrSha256": "83b2473ca581dd427cb8ab35a719125ef02d70ac9608c6f02e06dc75c6f71cc8", "filesByteEqualOnReadback": "9/9", "verifyJwtPreserved": false}
+  ],
+  "revertCandidates": [
+    "supabase/candidates/dynamic-taxonomy-20261011/create-new-branch-v3-revert-dev.sql",
+    "supabase/candidates/dynamic-taxonomy-20261011/ai-catalog-context-deep-ancestry-v2-revert.sql"
+  ],
+  "tests": {
+    "dynamicTaxonomyNode": "138 passed, 0 failed",
+    "signedClientReviewJest": "80 passed, 0 failed",
+    "typescript": "npx tsc --noEmit --pretty false passed",
+    "fullJest": "607 suites passed, 12 failed; 13770 tests passed, 50 failed, 9 skipped. Failures are in discovery/UI/legacy navigation/Reanimated contract suites, not the focused taxonomy suites. The full gate is not green."
+  },
+  "notProven": [
+    "No new paid Gemini call or real unknown-service conversation has proved valid capture on both interviews.",
+    "No actual worker capability or requester task was bound to a newly created category.",
+    "No compatible native APK, emulator journey, physical-phone test, matching or push delivery was proved.",
+    "The AI catalog loader still caps complete pagination at 800 categories per execution mode and fails closed above that limit.",
+    "The pre-existing live-versus-recorded closure certificate mismatch remains open."
+  ]
+}

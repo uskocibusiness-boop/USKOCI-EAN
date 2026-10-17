@@ -133,8 +133,12 @@ export function reviewClassificationProposal(input, snapshot, plan) {
         return { accepted: false, status: 'PARENT_MODE_NOT_SUPPORTED' };
     }
     if (!Array.isArray(plan.proposedPath) || !plan.proposedPath.length ||
-        plan.proposedPath.length > 12 || !plan.proposedPath.every(safeLabel))
+        plan.proposedPath.length > 6 || !plan.proposedPath.every(safeLabel))
       return { accepted: false, status: 'INVALID_PATH' };
+    if (plan.action !== 'PROPOSE_RESTRUCTURE' &&
+        normalizedClassificationIdentity(plan.proposedPath.at(-1)) !==
+        normalizedClassificationIdentity(input.service))
+      return { accepted: false, status: 'SERVICE_LEAF_MISMATCH' };
     if (plan.action === 'CREATE_NEW_BRANCH' && plan.parentId != null)
       return { accepted: false, status: 'NEW_BRANCH_MUST_HAVE_NO_PARENT' };
     return { accepted: false, status: 'ADMISSION_REVIEW_REQUIRED',

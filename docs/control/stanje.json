@@ -1,14 +1,14 @@
 {
  "meta": {
-  "osvezeno": "2026-10-17T22:55:34Z",
+  "osvezeno": "2026-10-17T23:15:43Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "15d82e84",
-  "head_poruka": "feat(taxonomy): prepare deeper catalog and root-branch hints",
+  "head": "9d620d5d",
+  "head_poruka": "feat(taxonomy): prepare signed root branch source path",
   "server": {
-   "snimljeno": "2026-10-17T22:39:56Z",
-   "migracije": 277,
+   "snimljeno": "2026-10-17T23:14:44Z",
+   "migracije": 279,
    "dev_alpha": 86,
-   "poslednja": "create_child_v2_signed_review_dev_20261018",
+   "poslednja": "taxonomy_deep_ancestry_v2_20261018",
    "sertifikat_ok": false,
    "privatni_status": "FRESH",
    "privatni_istorijski": null,
@@ -37,13 +37,13 @@
      "slug": "uskoci-ai-interview",
      "name": "uskoci-ai-interview",
      "status": "ACTIVE",
-     "version": 83,
+     "version": 84,
      "created_at": 1788261764727,
-     "updated_at": 1792247354339,
+     "updated_at": 1792278388753,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_81/source/supabase/functions/uskoci-ai-interview/index.ts",
-     "ezbr_sha256": "8c986ea56ef99b965858cfcfce4ddd7cb3b334de4dd87919760b973c0cbf92de"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_84/source/supabase/functions/uskoci-ai-interview/index.ts",
+     "ezbr_sha256": "83b2473ca581dd427cb8ab35a719125ef02d70ac9608c6f02e06dc75c6f71cc8"
     },
     {
      "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
@@ -102,13 +102,13 @@
      "slug": "uskoci-worker-interview",
      "name": "uskoci-worker-interview",
      "status": "ACTIVE",
-     "version": 40,
+     "version": 41,
      "created_at": 1789291116219,
-     "updated_at": 1792272593353,
+     "updated_at": 1792278378301,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_40/source/supabase/functions/uskoci-worker-interview/index.ts",
-     "ezbr_sha256": "4f59d5ba38d64d6b2895ad75f51c432fa0361a2ebea07f3bc6bcce8644a39e1b"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_41/source/supabase/functions/uskoci-worker-interview/index.ts",
+     "ezbr_sha256": "502dcbbc5fe7d6e1b75f653003a7d6a8935ef89e94d3f82b7b7c9a895e849da3"
     },
     {
      "id": "1ba4db69-a390-4b55-a071-97bee74d2598",
@@ -1038,7 +1038,7 @@
     "S10": {
      "title": "Taxonomy candidate capture and explicit promotion (table-based)",
      "status": "IN PROGRESS",
-     "source_progress_20261018": "CREATE_CHILD v2 signed worker/need review SQL applied to canonical DEV as migration 20261017223855 (owner 'Primeni'); receipt: supabase/operations/dev-alpha/ledger/20261018_create_child_v2_signed_review_dev_application.receipt.json. Full forward dry run ended in ROLLBACK before application. Postflight: helper and both review bodies present, grants correct, closure digest unchanged, catalog version 3, Gemini hints 0. Client decoder/UI source prepared but no new APK/OTA. Edge invalid-plan diagnostics remain source-only; prior task logs report INVALID_PLAN without reason. Follow-up SOURCE ONLY: 3D shortlist/parent-mode/deep-path fixes, non-authoritative new-root hint, two preflighted SQL candidates and architecture in docs/implementation/dynamic-taxonomy-20261018/PLAN.md; 137/137 focused dynamic-taxonomy tests and TypeScript pass. New-root capture/review/batch/binder SQL and client decoder/UI are prepared as source-only v3 candidate, with PostgreSQL execution proof, exact revert and deployment still pending. Existing-node restructure is NOT implemented or deployed. No paid provider, actual child creation, admission, binder, matching, push or phone proof. Pre-existing live/certified closure digest mismatch remains open.",
+     "source_progress_20261018": "CREATE_CHILD v2 review applied as migration 20261017223855. Owner explicitly authorized taxonomy applications on 2026-10-18. Root-branch v3 and deep-ancestry v2 SQL applied to canonical DEV as migrations 20261017230303 and 20261017230429; worker AI Edge v41 and need AI Edge v84 deployed with all files byte-equal on readback. Transactional synthetic FAIL-before/PASS-after proofs cover root review, two-level ON_SITE worker batch and replay, one-level REMOTE need batch, 40-level catalog traversal and exact SQL reverts; every synthetic fixture rolled back. Source client decoder/UI is prepared but no compatible APK. Live catalog version 3, 135 categories, zero Gemini hints and unchanged closure digest. Actual Gemini conversation, category admission from the app, capability/need binding, matching, push and phone proof remain open. Existing-node reparent is outside the latest owner scope. Full Jest has 12 failing suites unrelated to taxonomy; focused taxonomy 138/138 and client review 80/80 pass. The 800-per-scope loader cap and pre-existing live/certified closure mismatch remain open. Evidence: supabase/operations/dev-alpha/ledger/20261018_taxonomy_root_and_depth_application.receipt.json.",
      "autonomous": false,
      "depends_on": "S06 result and corpus coverage report showing real unknown-term volume; owner approval",
      "first_owner_boundary": "SQL review package approved and applied 2026-10-18. Edge deployment, any paid provider call, DEV data mutation, device/OTA release and closure recertification retain their separate gates; first prove compatible client and capture path."
