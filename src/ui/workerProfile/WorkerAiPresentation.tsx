@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
-import type { WorkerAiPatch, WorkerAiProfile, WorkerAiReview } from '../../data/workerAiClientService';
+import type { WorkerAiPatch, WorkerAiProfile, WorkerAiReview, WorkerAiModeChoice } from '../../data/workerAiClientService';
 import { capabilityTerms } from '../../lib/capabilityTerms';
 import { countryCode } from '../../lib/market';
 import { T } from '../Text';
@@ -127,6 +127,28 @@ function ReviewGroup({part,onEdit,editDisabled=false,children}:{part:WorkerAiPar
     <View style={s.groupBody}>{children}</View>
   </View>;
 }
+
+/** Explicit choices are a NEW signed review, never an automatic classification.
+ * No selection is pre-filled for pending skills. Each service is independent.
+ */
+export function WorkerAiModeConfirmation({skills,choices,disabled,onChange}:{
+  skills:readonly string[];choices:Readonly<Record<string,WorkerAiModeChoice|undefined>>;
+  disabled:boolean;onChange:(service:string,mode:WorkerAiModeChoice)=>void;
+}){
+  return <Surface kind="panel" testID="worker-explicit-mode-confirmation">
+    <T variant="bodyStrong">Gde obavljaš ove poslove?</T>
+    <T variant="note" tone="muted">Izaberi za svaki posao posebno. Ovo je tvoja potvrda, ne pretpostavka asistenta.</T>
+    {skills.map(skill=><View key={skill} style={{gap:sys.space.xs}}>
+      <T variant="bodyStrong">{skill}</T>
+      <FactChoiceEditor label={`Način rada za: ${skill}`}
+        options={[{value:'ON_SITE',label:'Na lokaciji'},{value:'REMOTE',label:'Na daljinu'},{value:'BOTH',label:'Oba načina'}]}
+        value={choices[skill]??null} disabled={disabled}
+        onChange={value=>onChange(skill,value as WorkerAiModeChoice)}/>
+    </View>)}
+    <T variant="note" tone="muted">Ako kategorija još nije potvrđena, profil može da se sačuva, ali automatsko povezivanje će sačekati. Nijedna opcija neće uključiti obaveštenja sama od sebe.</T>
+  </Surface>;
+}
+
 /** Owner 2026-10-07: the interview ends by saying what the profile is for — ink with the bell, not grey small print. */
 // "novim i već otvorenim": publishing queues new tasks, and saving the profile re-queues the open ones (requeue_open_needs_for_worker_v5).
 export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Podaci iz tvog radnog profila koriste se za obaveštenja o novim i već otvorenim zadacima koji odgovaraju tvojim veštinama, području i vremenu.';

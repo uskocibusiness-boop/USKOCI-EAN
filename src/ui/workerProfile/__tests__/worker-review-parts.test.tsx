@@ -11,7 +11,7 @@ jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ReviewedWorkAreaMap' }));
 
-import { WORKER_PROFILE_NOTIFICATIONS_NOTE, WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE, WorkerAiManual, WorkerAiNotificationsNote, WorkerAiProgress, WorkerAiReviewDetails } from '../WorkerAiPresentation';
+import { WORKER_PROFILE_NOTIFICATIONS_NOTE, WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE, WorkerAiManual, WorkerAiModeConfirmation, WorkerAiNotificationsNote, WorkerAiProgress, WorkerAiReviewDetails } from '../WorkerAiPresentation';
 import { TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY, capturedParts, toolsAndVehiclesNote, type WorkerAiPart } from '../workerProfileFacts';
 import { sys } from '../../system/tokens';
 
@@ -224,4 +224,19 @@ describe('the focused editors of "Izmeni" and "+" send only their own part', () 
     expect(Object.keys(apply.mock.calls[0][0]).sort()).toEqual(['bio', 'location', 'skills', 'tools', 'vehicles']);
     expect(tree.root.findAll(node => String(node.type) === 'TextInput').map(node => node.props.accessibilityLabel)).not.toContain('Ime na profilu');
   });
+});
+
+describe('explicit worker mode confirmation',()=>{
+ it('does not preselect a delivery mode or grant any notification authority',async()=>{
+  const change=jest.fn();
+  await act(async()=>{tree=create(<WorkerAiModeConfirmation skills={['Časovi matematike','Sklapanje nameštaja']}
+   choices={{}} disabled={false} onChange={change}/>);});
+  expect(tree.root.findByProps({testID:'worker-explicit-mode-confirmation'})).toBeTruthy();
+  const radios=tree.root.findAll(x=>String(x.type)==='Press'&&x.props.accessibilityRole==='radio');
+  expect(radios).toHaveLength(6);
+  expect(radios.every(x=>x.props.accessibilityState.checked===false)).toBe(true);
+  await act(async()=>{radios[2].props.onPress();});
+  expect(change).toHaveBeenCalledWith('Časovi matematike','BOTH');
+  expect(texts()).toContain('Ovo je tvoja potvrda, ne pretpostavka asistenta.');
+ });
 });

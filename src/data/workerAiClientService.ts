@@ -28,6 +28,19 @@ export type WorkerAiTurnRecovery = Readonly<{ schemaVersion:'WORKER_PROFILE_V1';
   conversationStatus:'OPEN'|'COMPLETED'|'ABANDONED'; clientRequestId:string; turn:WorkerAiTurn|null;
   providerDispatched:boolean; cancelled:boolean; canCancel:boolean; retryAllowed:boolean; authoritative:true }>;
 export type WorkerAiReviewedMode = Readonly<{service:string;mode:'ON_SITE'|'REMOTE'}>;
+export type WorkerAiModeChoice = 'ON_SITE'|'REMOTE'|'BOTH';
+// Client never assumes a scope from the skill label, city or AI text.
+export function explicitWorkerModes(skills:readonly string[],choices:Readonly<Record<string,WorkerAiModeChoice|undefined>>):WorkerAiReviewedMode[]|null {
+  if(!skills.length||skills.length>12||new Set(skills).size!==skills.length)return null;
+  const result:WorkerAiReviewedMode[]=[];
+  for(const service of skills){
+    const value=choices[service];
+    if(!['ON_SITE','REMOTE','BOTH'].includes(value??''))return null;
+    if(value==='ON_SITE'||value==='BOTH')result.push({service,mode:'ON_SITE'});
+    if(value==='REMOTE'||value==='BOTH')result.push({service,mode:'REMOTE'});
+  }
+  return result.length<=24?result:null;
+}
 export type WorkerAiClassificationCandidate = Readonly<{action:'REUSE_EXISTING';service:string;mode:'ON_SITE'|'REMOTE';
   categoryId:string;catalogVersion:number;reason:string}>;
 export type WorkerAiClassificationState = 'READY'|'PENDING_CLASSIFICATION'|'REVIEW_REQUIRED'|
@@ -215,6 +228,8 @@ function recoveryCall(name:'rpc_read_worker_ai_turn_recovery'|'rpc_cancel_worker
 // contract may opt into signed worker classification. Existing APKs keep the
 // original exact V1 RPC, read shape and Save behavior unchanged.
 const signedWorkerReviewEnabled=()=>process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW==='true';
+export const workerExplicitModeReviewEnabled=()=>signedWorkerReviewEnabled()
+  &&process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES==='true';
 export const workerAiClientService={
   recoverTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_read_worker_ai_turn_recovery',conversationId,clientRequestId),
   cancelTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_cancel_worker_ai_turn',conversationId,clientRequestId),
@@ -228,6 +243,18 @@ export const workerAiClientService={
   prepare:(conversationId:string,expectedRevision:number,activate:boolean)=>call(
     signedWorkerReviewEnabled()?'rpc_prepare_worker_ai_review_taxonomy':'rpc_prepare_worker_ai_review',
     {p_conversation_id:conversationId,p_expected_revision:expectedRevision,p_activate:activate},(v,a)=>decodeWorkerAiReview(v,a,conversationId),true),
+  // A new, separately gated signed review uses ONLY modes explicitly selected
+  // by this authenticated worker. It cannot modify existing signed or legacy reviews.
+  prepareConfirmed:(conversationId:string,expectedRevision:number,activate:boolean,modes:WorkerAiReviewedMode[])=>{
+    if(!workerExplicitModeReviewEnabled())return Promise.resolve(failure('WORKER_MODE_CONFIRMATION_OFF','Potvrda načina rada nije dostupna u ovoj verziji.'));
+    if(!uuid(conversationId)||!revision(expectedRevision)||!Array.isArray(modes)||!modes.length||modes.length>24||
+      modes.some(x=>!x||typeof x.service!=='string'||!x.service.trim()||!['ON_SITE','REMOTE'].includes(x.mode)))
+      return Promise.resolve(failure('WORKER_MODE_CONFIRMATION_INVALID','Izaberi način rada za svaki posao.'));
+    return call('rpc_prepare_worker_ai_review_taxonomy_confirmed',
+      {p_conversation_id:conversationId,p_expected_revision:expectedRevision,p_activate:activate,
+        p_selected_modes:modes.map(x=>({service:x.service,mode:x.mode}))},
+      (v,a)=>decodeWorkerAiReview(v,a,conversationId),true);
+  },
   save:(review:WorkerAiReview,clientRequestId:string)=>{
     const owner=scope(),frozen=owner?decodeWorkerAiReview(review,owner.accountId,review.conversationId):null;
     if(!frozen||!uuid(clientRequestId)||!frozen.canAccept)return Promise.resolve(failure('WORKER_AI_REVIEW_REQUIRED','Otvori potpun pregled profila.'));

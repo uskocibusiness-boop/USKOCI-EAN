@@ -1,4 +1,4 @@
-import {workerAiClientService as service,decodeWorkerAiTurnRecovery,decodeWorkerAiProfile,decodeWorkerAiReview,decodeWorkerAiSnapshot,type WorkerAiProfile,type WorkerAiReview,type WorkerAiSaved} from '../workerAiClientService';
+import {workerAiClientService as service,explicitWorkerModes,decodeWorkerAiTurnRecovery,decodeWorkerAiProfile,decodeWorkerAiReview,decodeWorkerAiSnapshot,type WorkerAiProfile,type WorkerAiReview,type WorkerAiSaved} from '../workerAiClientService';
 const OWNER='11111111-1111-4111-8111-111111111111',OTHER='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',CONVERSATION='22222222-2222-4222-8222-222222222222',
  PROFILE='33333333-3333-4333-8333-333333333333',REVIEW='44444444-4444-4444-8444-444444444444',KEY='55555555-5555-4555-8555-555555555555';
 let mockSession: {user:{id:string};accountRevision:number;session?:{access_token:string}}={user:{id:OWNER},accountRevision:1};const mockRpc=jest.fn();
@@ -183,5 +183,48 @@ it('explicit OTA opt-in uses versioned signed prepare/read without changing Save
  }finally{
   if(prior===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;
   else process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW=prior;
+ }
+});
+
+it('explicit worker mode contract never assumes scope or silently omits a skill',()=>{
+ const skills=['Časovi matematike','Montaža nameštaja'];
+ expect(explicitWorkerModes(skills,{})).toBeNull();
+ expect(explicitWorkerModes(skills,{'Časovi matematike':'BOTH'})).toBeNull();
+ expect(explicitWorkerModes(skills,{'Časovi matematike':'BOTH','Montaža nameštaja':'ON_SITE'}))
+  .toEqual([{service:'Časovi matematike',mode:'ON_SITE'},{service:'Časovi matematike',mode:'REMOTE'},
+    {service:'Montaža nameštaja',mode:'ON_SITE'}]);
+ expect(explicitWorkerModes(['Ponovljeno','Ponovljeno'],{'Ponovljeno':'REMOTE'})).toBeNull();
+});
+it('manual scope RPC remains disabled unless both signed-review and explicit-mode flags are enabled',async()=>{
+ const old=process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES;
+ const signed=process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;
+ try{
+  process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES='true';
+  process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW='false';
+  const result=await service.prepareConfirmed(CONVERSATION,2,true,[{service:'Prenos',mode:'ON_SITE'}]);
+  expect(result.ok).toBe(false);expect(mockRpc).not.toHaveBeenCalled();
+ }finally{
+  if(old===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES;else process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES=old;
+  if(signed===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;else process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW=signed;
+ }
+});
+it('signed manual mode request sends the exact worker-selected service and scope, never a global guess',async()=>{
+ const old=process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES;
+ const signed=process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;
+ try{
+  process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES='true';
+  process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW='true';
+  const pending={...review(),classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',
+    classificationCandidates:[],reviewedServiceModes:[],classificationCatalogVersion:null,
+    classificationCatalogFingerprint:null};
+  mockRpc.mockResolvedValueOnce({data:pending,error:null});
+  const result=await service.prepareConfirmed(CONVERSATION,2,true,[{service:'Prenos',mode:'ON_SITE'}]);
+  expect(result.ok).toBe(true);
+  expect(mockRpc).toHaveBeenCalledWith('rpc_prepare_worker_ai_review_taxonomy_confirmed',
+   {p_conversation_id:CONVERSATION,p_expected_revision:2,p_activate:true,
+    p_selected_modes:[{service:'Prenos',mode:'ON_SITE'}]});
+ }finally{
+  if(old===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES;else process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES=old;
+  if(signed===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;else process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW=signed;
  }
 });
