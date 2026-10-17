@@ -146,6 +146,29 @@ test('catalog growth beyond 220 chooses bounded relevant services without fabric
   assert.match(prompt.instructions,/partial relevance shortlist/);
   assert.doesNotMatch(JSON.stringify(prompt),/po meri\./);
 });
+test('many top-level branches do not block a relevant deep service',()=>{
+  const rootId='77777777-7777-4777-8777-777777777777';
+  const childId='88888888-8888-4888-8888-888888888888';
+  const roots=Array.from({length:240},(_,i)=>({
+    id:'aaaaaaaa-aaaa-4aaa-8aaa-'+(i+1).toString(16).padStart(12,'0'),
+    label:'Opšta oblast '+String(i).padStart(3,'0'),parentId:null,
+    path:['Opšta oblast '+String(i).padStart(3,'0')],modes:['REMOTE'],
+  }));
+  const catalog={catalogVersion:12,categories:[...roots,
+    {id:rootId,label:'Digitalna izrada',parentId:null,path:['Digitalna izrada'],modes:['REMOTE']},
+    {id:childId,label:'Izrada 3D figurica',parentId:rootId,
+      path:['Digitalna izrada','Izrada 3D figurica'],modes:['REMOTE']},
+  ]};
+  const prompt=JSON.parse(catalogPromptContext(catalog,{
+    maxItems:25,services:['Izrada 3D figurica'],
+  }));
+  assert.equal(prompt.shortlisted,true);
+  assert.equal(prompt.totalCategories,242);
+  assert.ok(prompt.categories.length<=25);
+  assert.ok(prompt.categories.some(x=>x.id===rootId));
+  assert.ok(prompt.categories.some(x=>x.id===childId));
+  assert.match(prompt.instructions,/partial relevance shortlist/);
+});
 test('shortlist preserves the technical 3D token when choosing a parent branch',()=>{
   const root='77777777-7777-4777-8777-777777777777';
   const threeD='88888888-8888-4888-8888-888888888888';

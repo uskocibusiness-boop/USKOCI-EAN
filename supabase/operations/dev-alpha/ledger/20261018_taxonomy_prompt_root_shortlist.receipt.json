@@ -1,0 +1,33 @@
+{
+  "package": "TAXONOMY_PROMPT_ROOT_SHORTLIST",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "authorization": "Owner's 2026-10-18 explicit authorization to apply and refine the intelligent taxonomy path on canonical DEV.",
+  "change": "The AI prompt shortlist ranks root categories and descendants together, retaining ancestors for selected descendants. Root count no longer causes a hard prompt-context failure. Full-catalog identity checks and the 800-per-scope loader cap are unchanged.",
+  "edge": [
+    {
+      "slug": "uskoci-worker-interview",
+      "beforeVersion": 41,
+      "afterVersion": 42,
+      "afterEzbrSha256": "acb981255868245e8b024ac993b9dc4b72aba9d127b0eda6ab5fa86236e198b7",
+      "filesByteEqualOnReadback": "6/6",
+      "verifyJwtPreserved": false
+    },
+    {
+      "slug": "uskoci-ai-interview",
+      "beforeVersion": 84,
+      "afterVersion": 85,
+      "afterEzbrSha256": "dffbcf60b299eea16b83400d2ec383307889369d8fee426b66c1049835b06a9d",
+      "filesByteEqualOnReadback": "9/9",
+      "verifyJwtPreserved": false
+    }
+  ],
+  "tests": {
+    "classificationEngineNode": "22 passed, 0 failed; includes 240-root / 25-item relevant lineage proof",
+    "typescript": "npx tsc --noEmit --pretty false passed"
+  },
+  "notProven": [
+    "A real paid Gemini turn, signed owner review and Save have not yet created or bound a new category.",
+    "The client change is not in a compatible APK; emulator and device flow remain unproved.",
+    "Catalog loading still fails closed beyond 800 categories per execution mode."
+  ]
+}

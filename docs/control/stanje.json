@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-17T23:18:56Z",
+  "osvezeno": "2026-10-17T23:26:15Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "a7694e0b",
-  "head_poruka": "feat(taxonomy): apply reviewed root and deep path DEV packages",
+  "head": "10765b5e",
+  "head_poruka": "docs(taxonomy): record live outbox liveness and old toggle scope",
   "server": {
    "snimljeno": "2026-10-17T23:14:44Z",
    "migracije": 279,
@@ -1038,7 +1038,7 @@
     "S10": {
      "title": "Taxonomy candidate capture and explicit promotion (table-based)",
      "status": "IN PROGRESS",
-     "source_progress_20261018": "CREATE_CHILD v2 review applied as migration 20261017223855. Owner explicitly authorized taxonomy applications on 2026-10-18. Root-branch v3 and deep-ancestry v2 SQL applied to canonical DEV as migrations 20261017230303 and 20261017230429; worker AI Edge v41 and need AI Edge v84 deployed with all files byte-equal on readback. Transactional synthetic FAIL-before/PASS-after proofs cover root review, two-level ON_SITE worker batch and replay, one-level REMOTE need batch, two new descendants below a 40-level parent (depth 42), 40-level catalog traversal, wrong-mode/duplicate-identity rejection and exact SQL reverts; every synthetic fixture rolled back. Source client decoder/UI is prepared but no compatible APK. Live catalog version 3, 135 categories, zero Gemini hints and unchanged closure digest. Actual Gemini conversation, category admission from the app, capability/need binding, matching, push and phone proof remain open. Existing-node reparent is outside the latest owner scope. Full Jest has 12 failing suites unrelated to taxonomy; focused taxonomy 138/138 and client review 80/80 pass. The 800-per-scope loader cap, safe handling of an existing category missing the requested mode, and pre-existing live/certified closure mismatch remain open. Evidence: supabase/operations/dev-alpha/ledger/20261018_taxonomy_root_and_depth_application.receipt.json.",
+     "source_progress_20261018": "CREATE_CHILD v2 review applied as migration 20261017223855. Owner explicitly authorized taxonomy applications on 2026-10-18. Root-branch v3 and deep-ancestry v2 SQL applied to canonical DEV as migrations 20261017230303 and 20261017230429; worker AI Edge v42 and need AI Edge v85 deployed with all files byte-equal on readback; prompt shortlist now ranks roots and descendants together and passed a 240-root relevance test. Transactional synthetic FAIL-before/PASS-after proofs cover root review, two-level ON_SITE worker batch and replay, one-level REMOTE need batch, two new descendants below a 40-level parent (depth 42), 40-level catalog traversal, wrong-mode/duplicate-identity rejection and exact SQL reverts; every synthetic fixture rolled back. Source client decoder/UI is prepared but no compatible APK. Live catalog version 3, 135 categories, zero Gemini hints and unchanged closure digest. Actual Gemini conversation, category admission from the app, capability/need binding, matching, push and phone proof remain open. Existing-node reparent is outside the latest owner scope. Full Jest has 12 failing suites unrelated to taxonomy; focused taxonomy 138/138 and client review 80/80 pass. The 800-per-scope loader cap, safe handling of an existing category missing the requested mode, and pre-existing live/certified closure mismatch remain open. Evidence: supabase/operations/dev-alpha/ledger/20261018_taxonomy_root_and_depth_application.receipt.json.",
      "autonomous": false,
      "depends_on": "S06 result and corpus coverage report showing real unknown-term volume; owner approval",
      "first_owner_boundary": "SQL review package approved and applied 2026-10-18. Edge deployment, any paid provider call, DEV data mutation, device/OTA release and closure recertification retain their separate gates; first prove compatible client and capture path."

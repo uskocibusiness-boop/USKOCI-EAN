@@ -170,24 +170,25 @@ export function catalogPromptContext(snapshot,{maxItems=220,services=[]}={}) {
     catalogError('PROMPT_LIMIT');
   const all=snapshot.categories;
   const byId=new Map(all.map(x=>[x.id,x]));
-  const roots=all.filter(x=>x.parentId==null).sort((a,b)=>a.label.localeCompare(b.label,'sr'));
-  if(roots.length>maxItems)catalogError('TOO_MANY_ROOTS');
   const tokens=x=>(String(x??'').normalize('NFKC').toLowerCase().replace(/[\u0400-\u04ff]/g,ch=>serbianCyrillic[ch]??ch).match(/[\p{L}\p{N}]+/gu)??[])
     // Keep short technical terms such as 3D and AI2; ordinary two-letter
     // words add noise to the shortlist and remain excluded.
     .filter(t=>t.length>=3||(t.length>=2&&/[\p{L}]/u.test(t)&&/[\p{N}]/u.test(t)));
   const query=services.flatMap(tokens);
   const wanted=new Set(query);
-  const ranked=all.filter(x=>!roots.some(root=>root.id===x.id)).map(node=>{
+  // Roots are candidates too. Reserving space for every root would make a
+  // growing catalog unusable and crowd relevant descendants out of the prompt.
+  // The full server snapshot remains authoritative after this shortlist.
+  const ranked=all.map(node=>{
     const own=tokens(node.label);
     const ancestry=tokens((node.path??[]).join(' '));
     const hit=own.filter(t=>wanted.has(t)).length;
     const wide=ancestry.filter(t=>wanted.has(t)).length;
-    return {node,score:hit*10+wide*2+(query.length?0:0)};
+    return {node,score:hit*10+wide*2+(!query.length&&node.parentId==null?1:0)};
   }).sort((a,b)=>b.score-a.score||
     a.node.label.localeCompare(b.node.label,'sr')||
     a.node.id.localeCompare(b.node.id));
-  const selected=new Map(roots.map(x=>[x.id,x]));
+  const selected=new Map();
   for(const {node} of ranked){
     const lineage=[];let current=node;const visited=new Set();
     while(current&&!selected.has(current.id)&&!visited.has(current.id)){
