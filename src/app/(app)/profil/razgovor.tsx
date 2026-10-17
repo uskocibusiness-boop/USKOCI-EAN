@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, BackHandler } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { workerAiClientService as api, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
+import { workerAiClientService as api, workerExplicitModeReviewEnabled, explicitWorkerModes, type WorkerAiModeChoice, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
 import { workerAiTurnIntentJournal as journal, type WorkerAiTurnIntent } from '../../../data/workerAiTurnIntentJournal';
 import type { Ishod } from '../../../data/ports';
 import { uuid } from '../../../data/serverReceipt';
@@ -17,7 +17,7 @@ import { useAccountName } from '../../../ui/profile/useAccountName';
 import { ActionSheet } from '../../../ui/system/ActionSheet';
 import { brandAction, sys } from '../../../ui/system/tokens';
 import { WorkerProfileFrame, WorkerProfileStatus } from '../../../ui/workerProfile/WorkerProfilePresentation';
-import { WorkerAiActivation, WorkerAiCard, WorkerAiManual, WorkerAiNotificationsNote, WorkerAiReviewDetails, type WorkerAiManualDraft, type WorkerAiManualPart } from '../../../ui/workerProfile/WorkerAiPresentation';
+import { WorkerAiActivation, WorkerAiCard, WorkerAiManual, WorkerAiModeConfirmation, WorkerAiNotificationsNote, WorkerAiReviewDetails, type WorkerAiManualDraft, type WorkerAiManualPart } from '../../../ui/workerProfile/WorkerAiPresentation';
 import { WORKER_PART_TITLE, type WorkerAiPart } from '../../../ui/workerProfile/workerProfileFacts';
 import { AvailabilityForm } from '../../../ui/calendar/AvailabilityForm';
 import { CalendarScreen } from '../../../ui/calendar/CalendarControls';
@@ -60,6 +60,9 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const [recovery,setRecovery]=useState<WorkerAiTurnRecovery|null>(null),[,intentChanged]=useState(0);
   const pending=useRef<Attempt|null>(null),saveKey=useRef<{reviewId:string;key:string}|null>(null);
   const [rejectedReviewId,setRejectedReviewId]=useState<string|null>(null);
+  // Key selections to the exact worker candidate, not the changing review ID.
+  // Never infer choices or persist them across a changed service list/revision.
+  const [modeDraft,setModeDraft]=useState<{source:string;values:Record<string,WorkerAiModeChoice>}>({source:'',values:{}});
   // A prepared review is authoritative. Retain its activation choice when a
   // later conversation turn retires the review; returning to review must not
   // silently turn a deliberate "keep draft" back into activation.
@@ -276,6 +279,24 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       if(!current())return unavailable();if(!prepared.ok)return prepared;
       const next=await read();if(next.ok&&current())showPanel('review');return next;});
   };
+  const confirmModes=async()=>{
+    if(!workerExplicitModeReviewEnabled()||!canAct()||!enabled||!writable||
+       reviewNeedsRestart||!data||!data.review||data.saved||editor.busy)return;
+    const review=data.review;
+    const source=`${data.conversationId}:${data.revision}:${JSON.stringify(data.candidate.skills)}`;
+    if(modeDraft.source!==source)return;
+    const selected=explicitWorkerModes(review.profile.skills,modeDraft.values);
+    if(!selected)return;
+    await savePanel(async()=>{
+      const prepared=await api.prepareConfirmed(data.conversationId,data.revision,review.activate,selected);
+      if(!current())return unavailable();
+      if(!prepared.ok)return prepared;
+      saveKey.current=null; // A newly signed review always gets a distinct Save request.
+      const refreshed=await read();
+      if(refreshed.ok&&current())showPanel('review');
+      return refreshed;
+    });
+  };
   const save=async()=>{
     const reviewed=data?.review;if(!canAct()||!enabled||!writable||reviewNeedsRestart||!data||!reviewed||!reviewed.canAccept||reviewed.revision!==data.revision||Date.parse(reviewed.expiresAt)<=Date.now())return;
     if(saveKey.current?.reviewId!==reviewed.reviewId)saveKey.current={reviewId:reviewed.reviewId,key:noviUuidZahtevId()};
@@ -283,11 +304,15 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     await savePanel(async()=>{const saved=await api.save(reviewed,key);if(!current())return unavailable();
       const result=await read();if(!current())return unavailable();
       if(result.ok&&result.podatak.saved?.reviewId===reviewed.reviewId){
-        if(accountId){
-          try{
-            const modes=inferWorkerExecutionModes(reviewed.profile.skills,reviewed.profile.location);
-            void workerExecutionModeClientService.save(accountId,accountRevision,modes).catch(()=>undefined);
-          }catch{}
+        // Legacy (unsigned) saves retain their historical global-mode bridge.
+        // A SIGNED review — READY or PENDING — must not issue a second global
+        // mode write here. The post-Save binder atomically persists both the
+        // signed per-service modes and global choice after verifying the exact
+        // Save receipt. An async client write after Save would set updated_at
+        // after the Save timestamp and trigger WORKER_BINDER_NEWER_GLOBAL_MODE.
+        if(accountId&&reviewed.classificationState===undefined&&reviewed.profile){
+          const modes=inferWorkerExecutionModes(reviewed.profile.skills,reviewed.profile.location);
+          if(modes.length)void workerExecutionModeClientService.save(accountId,accountRevision,modes).catch(()=>undefined);
         }
         return result;
       }
@@ -339,6 +364,9 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     {busyPanelCopy}{editor.error?<T accessibilityRole="alert">{editor.error}</T>:null}
     <V2Action tone="neutral" label="Proveri razgovor" onPress={refresh} disabled={editor.busy}/>{confirmSheet.sheet}</WorkerProfileFrame>;
   if(panel==='review'&&data.review){const frozen=data.review,
+    modesSource=`${data.conversationId}:${data.revision}:${JSON.stringify(data.candidate.skills)}`,
+    currentModes=modeDraft.source===modesSource?modeDraft.values:{},
+    selectedModes=explicitWorkerModes(frozen.profile.skills,currentModes),
     // The account got its name (in "Lični podaci") while this review still says it is missing: a fresh review puts it in.
     nameAdded=frozen.missingRequired.includes('Ime')&&!!accountName,
     expired=Date.parse(frozen.expiresAt)<=Date.now()||frozen.revision!==data.revision||nameAdded;
@@ -356,8 +384,19 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       {data.saved?<T accessibilityRole="alert" variant="title" style={{color:sys.color.green}}>Profil je sačuvan{data.saved.profileStatus==='ACTIVE'?' i aktivan':''}.</T>:null}
       <WorkerAiReviewDetails review={frozen} onEdit={data.saved?undefined:editPart} editDisabled={!enabled||!writable||expired||reviewNeedsRestart}
         onAddName={data.saved||expired?undefined:()=>leave(()=>router.push('/profil/podaci'))}/>
-      {/* Owner 2026-10-07: the interview ends by saying what it is for, as a fixed line (no extra AI call, no server change). */}
-      {!data.saved?<WorkerAiNotificationsNote/>:null}
+      {workerExplicitModeReviewEnabled()&&!data.saved&&frozen.classificationState!==undefined&&frozen.classificationState!=='READY'?<WorkerAiModeConfirmation
+        skills={frozen.profile.skills} choices={currentModes}
+        disabled={!enabled||!writable||expired||reviewNeedsRestart||editor.busy}
+        onChange={(service,choice)=>setModeDraft(old=>({
+          source:modesSource,values:{...(old.source===modesSource?old.values:{}),[service]:choice}
+        }))}/>:null}
+      {workerExplicitModeReviewEnabled()&&!data.saved&&frozen.classificationState!==undefined&&frozen.classificationState!=='READY'?<V2Action tone="neutral"
+        label="Potvrdi način rada za sve poslove"
+        disabled={!selectedModes||!enabled||!writable||expired||editor.busy||reviewNeedsRestart}
+        reason={!selectedModes?'Izaberi način rada posebno za svaki posao.':null}
+        onPress={()=>{void confirmModes();}}/>:null}
+      {/* Describe notification readiness honestly: signed pending reviews grant no matching authority. */}
+      {!data.saved?<WorkerAiNotificationsNote matchingReady={frozen.classificationState===undefined||frozen.classificationState==='READY'}/>:null}
       {busyPanelCopy}
       {/* The save button below is grey for one of these reasons; the details above name a missing field themselves. */}
       {!data.saved&&(expired||!writable)?<T variant="meta" tone="muted">{expired?'Ovaj pregled više ne važi. Učitaj novi pregled pre čuvanja.':statusCopy??'Ovaj predlog trenutno ne može da se sačuva.'}</T>:null}
@@ -383,8 +422,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   // "not yet read back" only until the thread's last message is that very sentence.
   const sent=pending.current?.text??null,lastMessage=data.messages[data.messages.length-1];
   const unread=sent&&!(lastMessage?.role==='USER'&&lastMessage.body.trim()===sent.trim())?sent:null;
-  const hasProfileContent = data.messages.some(message => message.role === 'USER')
-    || data.candidate.skills.length > 0 || data.candidate.tools.length > 0
+  const hasProfileContent = data.candidate.skills.length > 0 || data.candidate.tools.length > 0
     || data.candidate.vehicles.length > 0 || data.candidate.bio.trim().length > 0;
   // The "+" of the composer (M1): the parts of the profile, each opening its own editor, for a person who would rather give a
   // part directly than say it. It changes nothing by itself; "Primeni na pregled profila" in the editor does (one patch).
@@ -393,15 +431,16 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     if(next==='time')showPanel('availability');else if(next!=='identity')showPanel('manual',{part:next});
   };
   return <><AiConversationShell conversationKey={data.conversationId} title="Radni profil" questionFocus
+    cardPlacement="end"
     newConversation={{ onPress: restart, disabled: !canAct() || voiceBusy }}
     closed={!!data.saved || data.status !== 'OPEN'}
-    attach={writable?{label:'Dodaj podatke',hint:'Veštine, područje, vreme, alat i vozilo.',disabled:!enabled,
+    attach={writable?{label:'Dodaj podatke',hint:'Poslovi, područje rada, vreme, alat i vozilo.',disabled:!enabled,
       onPress:()=>{if(current()&&panelScope.current===renderedPanel)setAdding(true);}}:undefined}
     card={compact=>hasProfileContent?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable}
       showReview={writable&&!data.saved} reviewReason={!enabled?unavailableNow:undefined} review={()=>{void review();}}/>:null}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
-    welcome={hasProfileContent?'Šta želiš da dopuniš?':'Koje zadatke želiš da preuzimaš?'}
-    welcomeDetail={hasProfileContent?'Reci šta želiš da promeniš. Sve izmene pregledaš pre čuvanja.':'Reci šta želiš da radiš — stručne zadatke ili svakodnevnu pomoć, poput dostave i nošenja stvari.'}
+    welcome={hasProfileContent?'Šta želiš da dopuniš?':'Čime se baviš?'}
+    welcomeDetail={hasProfileContent?'Reci šta želiš da promeniš. Sve izmene pregledaš pre čuvanja.':'Ispričaj koje poslove radiš ili želiš da preuzimaš. Ostalo ćemo razjasniti kroz razgovor.'}
     placeholder="Opiši šta radiš"
     value={input} onChange={value=>{if(canAct()&&enabled&&writable){draftRevision.current+=1;draftText.current=value;setInput(value);}}} canEdit={!!enabled&&!!writable&&!pending.current}
     canSend={!!enabled&&!!writable&&!!input.trim()&&!pending.current} pending={!!pending.current} busy={editor.busy} streamingText={stream}

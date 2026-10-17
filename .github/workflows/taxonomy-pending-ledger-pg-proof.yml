@@ -1,0 +1,38 @@
+name: USKOCI pending classification post-Save ledger proof
+on:
+  pull_request:
+    paths:
+      - 'supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-pending-ledger-v1.sql'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/disposable-pending-ledger-*.sql'
+      - '.github/workflows/taxonomy-pending-ledger-pg-proof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pending-ledger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['16','17']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env: {POSTGRES_DB: postgres, POSTGRES_PASSWORD: postgres}
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env: {PGHOST: localhost, PGPORT: '5432', PGUSER: postgres, PGPASSWORD: postgres, PGDATABASE: postgres}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {persist-credentials: false}
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Install synthetic review/save fixtures
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-pending-ledger-fixture.sql
+      - name: Install disabled private pending ledger
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-pending-ledger-v1.sql
+      - name: Prove real Save, accepted need, replay, recovery and no authority
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-pending-ledger-assert.sql

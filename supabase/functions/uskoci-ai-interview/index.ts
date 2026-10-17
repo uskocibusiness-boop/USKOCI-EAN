@@ -1,4 +1,14 @@
 // @ts-nocheck
+// DEV-phase-1 only. Explicit false is an immediate kill switch; other projects
+// stay default-OFF. Do NOT copy this DEV override into production release.
+const devTaxonomyFlagP1=(name:string):boolean=>{
+  // DEV provider compatibility for the optional STRING schema was verified via
+  // two real Gemini calls (worker and requester, HTTP 200, 2026-10-16).
+  // Explicit environment false remains an immediate rollback switch.
+  const setting=Deno.env.get(name);
+  return setting==='true'||(setting!=='false'&&
+    (Deno.env.get('SUPABASE_URL')??'').replace(/\/$/,'')==='https://leqcwgzvjsxugfgzdmth.supabase.co');
+};
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION, AI_AVAILABILITY_HEADER } from '../../../src/contracts/aiAvailability.ts';
 // USKOCI server-side AI intake boundary.
 // Provider secrets live only in Supabase Edge Function environment. Never expose
@@ -18,6 +28,8 @@ import { validLocationContext, locationProviderSchema, locationInstruction, pars
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, GeminiSafetyBlockedError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { scopedNeedPreviewArgs, scopedNeedPreviewSafeAction } from '../_shared/taxonomyScopedShadow.mjs';
+import { loadClassificationCatalog, catalogPromptContext } from '../_shared/classificationEngine.mjs';
+import { withGeminiClassificationShadowSchema, inspectGeminiClassificationShadow, geminiClassificationShadowInstruction } from '../_shared/classificationGeminiShadow.mjs';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -357,7 +369,10 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     'Za need.category izdvojite stvarnu VRSTU USLUGE iz celog razgovora (radnja + predmet rada), nezavisno od prostorije, kvadrature, broja komada, adrese, cene i datuma: krečenje sobe / krečenje stana -> krečenje zidova, molerski radovi kao šira grupa. Nemojte stvarati novu kategoriju samo zato što se promenio obim. Gletovanje zidova i krečenje zidova mogu biti posebne kompetencije; farbanje automobila nije krečenje zidova. Ne ograničavajte legitimne nove vrste usluga na jedanaest starih grupa, ali ne tvrdite da je nova kategorija registrovana ili da postoje odgovarajući radnici. Kategorija je AI predlog za korisnički pregled i nezavisnu serversku klasifikaciju, nikada dokaz kompetencije, objava niti nalog za obaveštavanje. Kada je u pitanju uža zanatska ili specifična delatnost, možete navesti stablo u formatu Šira grupa / Uža delatnost (na primer Zanati i popravke / Fina mehanika / Popravka pisaćih mašina ili Digitalne usluge / Izrada prezentacija) kako bi platforma automatski povezala celo stablo majstora.',
     'Iz dovoljno jasnog opisa predložite i nedostajuću need.category: kratak naziv stvarno opisane vrste zadatka, bez novih uslova i bez opšteg rezervnog naziva poput ostalo. Kategorija je interni podatak; ne pitajte korisnika za kategoriju. Ako opis nije jasan, pitajte šta konkretno treba uraditi. Pre REVIEW proverite i naslov i kategoriju. Ako korisnik samo završava razgovor, a već postoji jasan need.description, možete dopuniti samo nedostajući naslov ili kategoriju uz evidence koji je doslovan isečak tog postojećeg opisa; ne menjajte nijedan postojeći podatak i ne dodajte materijalne uslove iz komande završetka.',
     'dialogue opisuje sledeći korak, nije nova činjenica. next: ASK samo za nedostajući podatak, CLARIFY za stvarnu dvosmislenost, REVIEW za završetak i prelazak na pregled, ACK za izmenu bez pitanja, ANSWER kada korisnik traži objašnjenje. questionKey je tačan ključ pitanja za ASK, inače NONE. Ne birajte ASK za već poznat podatak.',
-    'USKOČI AI je iskusan poslovođa i savetnik. Postavljajte pametna, konkretna pitanja koja vode korisnika i razjašnjavaju ključne aspekte: za selidbe i nošenje pitajte za sprat, teretni lift i teške gabaritne stvari; za krečenje za kvadraturu, stanje zidova (gletovanje/pukotine) i ko nabavlja boju; za svakodnevne zadatke (kupovina karata, čekanje u redu, donošenje) za tačan zadatak, mesto i rokove; za vikendice i gradnju za lokaciju, prilaz i priključke za struju/vodu.',
+    'Razgovaraj na ti, na prirodnom srpskom, srdačno i kratko. Budi praktičan sagovornik, ne robot ili anketar. Izbegni ukočene potvrde ("Zabeleženo za lokaciju...", "Sledeći korak...") i prepričavanje kompletnog zadatka posle svakog odgovora. Kratko potvrdi samo kada to nešto objašnjava, pa postavi JEDNO jasno pitanje. Ne spajaj mesto i termin u isto pitanje. Ako korisnik sam navede više činjenica, zapamti sve bez dodatnih pitanja. Ne obećavaj pronađenu mapu, tačne koordinate, izvršioca ili objavu pre proverene potvrde. Ne pozdravljaj ponovo: prva pozdravna poruka je statički prikazana na telefonu, bez AI poziva.',
+    'USKOČI AI je iskusan poslovođa i savetnik. Postavljajte najviše jedno VAŽNO pitanje po odgovoru, prema stvarnoj vrsti posla, ne univerzalni formular. Za krečenje proverite znači li navedena kvadratura površinu poda ili zidova, treba li gletovanje i ko kupuje boju; za selidbe sprat, lift i gabarite; za dostavu mesta i rok; za rad na daljinu opis isporuke i rok. Ne insistirajte na opcionim detaljima ako ih korisnik ne zna ili želi da ih dogovori direktno sa radnikom.',
+    'Ako je stacionarni posao poznat samo po gradu, pitajte prirodno za ulicu, kvart ili obližnji orijentir pre tvrdnje da je unos spreman za pregled. Korisnik ne mora navesti kućni broj: privatni need.exact_address može biti doslovno navedena ulica ili orijentir, samo da pokrene predlog na mapi, koji osoba zasebno potvrđuje. Nikada ne izmišljajte ulicu, broj ili koordinate.',
+    'Fraza narednih sedam dana ne znači nužno ove kalendarske nedelje. Ne pretvarajte relativni klizni raspon u WEEK_FLEXIBLE bez razjašnjenja. Za druge tipove zadatka ne pitajte za molerske detalje.',
     'Ako korisnik u toku razgovora promeni ili dopuni šta mu treba (npr. sa krečenja pređe na drugu uslugu), dialogue.taskRelation ostaje CONTINUE: dinamički ažurirajte need.title, need.description i need.category da prate novu nameru i omoguće tačan dispečing u bazi. Nemojte odbijati izmenu.',
     'Ako korisnik pita zašto nešto tražite, postavi drugo pitanje o ovom zadatku ili kaže da se ponavljate, prvo odgovorite na tu poruku koristeći ANSWER i questionKey NONE. Nemojte umesto odgovora ponoviti pitanje za nedostajuće polje. Objasnite konkretno šta još nije jasno, bez ponavljanja privatne adrese.',
     'Delimičan podatak nije isto što i nikakav podatak. Kod prenosa razlikujte mesto preuzimanja i odredište: ako je odredište poznato, a grad preuzimanja nije, pitajte samo za grad preuzimanja. Ne izmišljajte ga iz naziva ulice. Ako ponovo tražite istu vrstu podatka, recite koji tačno deo nedostaje; ne ponavljajte isto opšte pitanje. Već navedene detalje sačuvajte u kontekstu i predložite tipizovanu geografiju tek kada imate njene obavezne delove.',
@@ -490,12 +505,28 @@ function valueMatchesContract(key: string, value: unknown): boolean {
 function parseV2Output(parsed: any): ParsedTurn {
   rejectManualOnlyFacts(parsed);
   if (!exact(parsed, ['safety', 'assistantMessage', 'facts', 'dialogue']) || !['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(parsed.safety) ||
-    !Array.isArray(parsed.facts) || parsed.facts.length > 12) throw new Error('AI_V2_OUTPUT_INVALID');
-  if (!exact(parsed.dialogue, Object.keys(DIALOGUE_VALUES))) throw new Error('AI_V2_OUTPUT_INVALID');
-  const dialogue = { ...parsed.dialogue, questionKey: parsed.dialogue.questionKey === 'NONE' ? '' : parsed.dialogue.questionKey };
-  if (Object.entries(DIALOGUE_VALUES).some(([key, values]) =>
-    !values.includes(dialogue[key])) || (dialogue.next === 'ASK') !== (dialogue.questionKey !== ''))
+    !Array.isArray(parsed.facts) || parsed.facts.length > 12) {
+    console.info('NEED_AI_OUTPUT_GATE', 'ROOT_SHAPE');
     throw new Error('AI_V2_OUTPUT_INVALID');
+  }
+  if (!exact(parsed.dialogue, Object.keys(DIALOGUE_VALUES))) {
+    console.info('NEED_AI_OUTPUT_GATE', 'DIALOGUE_SHAPE');
+    throw new Error('AI_V2_OUTPUT_INVALID');
+  }
+  const dialogue = { ...parsed.dialogue, questionKey: parsed.dialogue.questionKey === 'NONE' ? '' : parsed.dialogue.questionKey };
+  if (Object.entries(DIALOGUE_VALUES).some(([key, values]) => !values.includes(dialogue[key]))) {
+    console.info('NEED_AI_OUTPUT_GATE', 'DIALOGUE_ENUM');
+    throw new Error('AI_V2_OUTPUT_INVALID');
+  }
+  // Metadata can be inconsistent even when typed facts are valid. Correct the
+  // non-authoritative hint; never alter or fabricate a provider fact.
+  if (dialogue.next === 'ASK' && !dialogue.questionKey) {
+    console.info('NEED_AI_OUTPUT_GATE', 'ASK_KEY_REPAIRED');
+    dialogue.next = 'ANSWER';
+  } else if (dialogue.next !== 'ASK' && dialogue.questionKey) {
+    console.info('NEED_AI_OUTPUT_GATE', 'NON_ASK_KEY_REPAIRED');
+    dialogue.questionKey = '';
+  }
   const safety = parseSafety(parsed?.safety);
   const assistantMessage = typeof parsed?.assistantMessage === 'string'
     ? parsed.assistantMessage.trim()
@@ -510,12 +541,15 @@ function parseV2Output(parsed: any): ParsedTurn {
         !interviewFactKeySet.has(key) || seen.has(key) || typeof fact.valueJson !== 'string') throw new Error('AI_V2_FACT_INVALID');
       let value: unknown;
       try { value = JSON.parse(fact.valueJson); } catch { throw new Error('AI_V2_FACT_INVALID'); }
-      if (!valueMatchesContract(key, value)) throw new Error('AI_V2_FACT_INVALID');
+      if (!valueMatchesContract(key, value)) { console.info('NEED_AI_OUTPUT_GATE', 'FACT_VALUE_INVALID'); throw new Error('AI_V2_FACT_INVALID'); }
       const displayValue = typeof fact?.displayValue === 'string' ? fact.displayValue.trim() : '';
       const evidence = typeof fact?.evidence === 'string' ? fact.evidence.trim() : '';
       const confidence = fact?.confidence;
       if (!displayValue || displayValue.length > 1000 || !evidence || evidence.length > 500 ||
-        typeof confidence !== 'number' || !Number.isFinite(confidence) || confidence < 0 || confidence > 1) throw new Error('AI_V2_FACT_INVALID');
+        typeof confidence !== 'number' || !Number.isFinite(confidence) || confidence < 0 || confidence > 1) {
+        console.info('NEED_AI_OUTPUT_GATE', 'FACT_ATTRIBUTES');
+        throw new Error('AI_V2_FACT_INVALID');
+      }
       seen.add(key);
       proposals.push({
         key,
@@ -541,19 +575,41 @@ async function callGemini(
   onText?: (delta: string) => void,
   onUsage?: (usage: GeminiUsage) => void,
   locationContext?: LocationContext,
+  taxonomyPrompt = '',
+  taxonomyCatalog: Awaited<ReturnType<typeof loadClassificationCatalog>> | null = null,
+  onClassificationHints?: (hints: Record<string,any>[]) => void,
+  imageBase64?: string,
+  imageMime?: string,
 ) {
   const contents = history.slice(-30).map((row) => ({
     role: row.role === 'ASSISTANT' ? 'model' : 'user',
     parts: [{ text: String(row.body ?? '').slice(0, 4000) }],
   }));
-  contents.push({ role: 'user', parts: [{ text }] });
-  const parseOutput = (value: any) => locationContext ? parseLocationOutput(value, locationContext, parseV2Output) : parseV2Output(value);
+  const userParts: any[] = [{ text: text || 'Ovo je fotografija kvara odnosno posla. Molim te analiziraj sliku i predloži opis ili detalje zadatka.' }];
+  if (imageBase64 && imageMime) {
+    userParts.push({
+      inlineData: {
+        mimeType: imageMime,
+        data: imageBase64,
+      },
+    });
+  }
+  contents.push({ role: 'user', parts: userParts });
+  const parseOutput = (value: any) => {
+    // The optional plan is never an AI fact or owner-approved need revision.
+    const checked = taxonomyCatalog && !locationContext
+      ? inspectGeminiClassificationShadow(value,taxonomyCatalog,'NEED_SERVICE')
+      : {output:value,statuses:[],reviewProposals:[]};
+    if (checked.reviewProposals.length) onClassificationHints?.(checked.reviewProposals);
+    if (checked.statuses.length) console.info('NEED_TAXONOMY_PLAN_SHADOW',checked.statuses.join(','));
+    return locationContext ? parseLocationOutput(checked.output,locationContext,parseV2Output) : parseV2Output(checked.output);
+  };
   const instruction = schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts, timeContext, taskFinishOnly(text) && !locationContext) : legacyInstruction(activeFacts, timeContext);
   const payloadBody = JSON.stringify({
-    systemInstruction: { parts: [{ text: instruction }, ...(locationContext ? [{ text: locationInstruction(locationContext) }] : [])] },
+    systemInstruction: { parts: [{ text: instruction }, ...(locationContext ? [{ text: locationInstruction(locationContext) }] : []), ...(taxonomyPrompt ? [{text: taxonomyPrompt},{text:geminiClassificationShadowInstruction()}] : [])] },
     contents,
     generationConfig: { temperature: 0.2, maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
-      responseMimeType: 'application/json', responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? (locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : legacyProviderSchema() },
+      responseMimeType: 'application/json', responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? (locationContext ? locationProviderSchema(v2ProviderSchema()) : taxonomyCatalog ? withGeminiClassificationShadowSchema(v2ProviderSchema()) : v2ProviderSchema()) : legacyProviderSchema() },
   });
   if (new TextEncoder().encode(payloadBody).byteLength > AI_TEST_LIMITS.llmRequestBytes) throw new Error('AI_CONTEXT_TOO_LARGE');
   if (onText) {
@@ -700,18 +756,43 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     const key = missing.find(key => questions[key]);
     return key ? questions[key] : 'Pregled još nije dovršen. Možeš da dopuniš opis zadatka ili otvoriš pregled.';
   };
+  // A city-only stationary task is valid geography for categorisation, but not a
+  // ready point on the map. This is a conversation gate, NOT a public address or
+  // permission to publish; server-owned review still controls actual readiness.
+  const geography = facts.get('need.task_geography') as any;
+  const streetOrLandmark = facts.get('need.exact_address');
+  // A spoken neighborhood or POI belongs to the geography that Gemini already
+  // proposed. It starts a map SEARCH, never a verified coordinate or exact address.
+  // Requiring the private exact-address field caused endless repeated questions.
+  const tidyPlace = (part: unknown) => typeof part === 'string'
+    ? part.normalize('NFKC').toLocaleLowerCase('sr-Latn-RS').replace(/[^\p{L}\p{N}]+/gu, ' ').trim() : '';
+  const city = tidyPlace(geography?.start?.city);
+  const nearHint = [geography?.start?.area, geography?.start?.label].some(part => {
+    const hint = tidyPlace(part);
+    return !!hint && hint !== city && !['ovde', 'moja lokacija', 'trenutna lokacija', 'gde se nalazim'].includes(hint);
+  });
+  const hasPlaceHint = (typeof streetOrLandmark === 'string' && !!streetOrLandmark.trim()) || nearHint;
+  const cityOnlyStationary = geography?.mode === 'STATIONARY' && !hasPlaceHint;
+  const nearestPlaceQuestion = 'U kom delu grada je posao? Dovoljna je ulica ili neki bliski orijentir; tačku ćemo zatim proveriti na mapi.';
+  const mapConfirmationMessage = 'Hajde da proverimo predlog mesta na mapi. Pomeri pin ako treba, pa potvrdi tačku.';
   let assistantMessage = turn.assistantMessage;
   if (dialogue?.next === 'ASK') {
-    // A missing field may be partly explained in the conversation. Preserve the
-    // specific clarification (e.g. pickup city) instead of erasing it with a generic
-    // location question. Retarget only when the requested field is already known.
+    // Preserve an actual question when its field is missing; otherwise retarget
+    // to the missing field or the unresolved human-owned place.
     if (!missing.includes(dialogue.questionKey)) {
-      assistantMessage = missing.length ? incompleteMessage() : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
+      assistantMessage = missing.length ? incompleteMessage()
+        : cityOnlyStationary ? nearestPlaceQuestion
+        : geography?.mode === 'STATIONARY' && hasPlaceHint ? mapConfirmationMessage
+        : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
     }
   } else if (dialogue?.next === 'REVIEW' && missing.length) {
-    // Never say the draft is ready if it still lacks required facts. Otherwise keep
-    // the model's short, natural reply: the app owns the review CTA and publication.
     assistantMessage = incompleteMessage();
+  } else if (!missing.length && dialogue?.next === 'REVIEW' && geography?.mode === 'STATIONARY'
+    && !(typeof streetOrLandmark === 'string' && streetOrLandmark.trim())) {
+    // Only an attempted REVIEW needs retargeting. A normal ACK or explanation
+    // must keep its own words, even while an unconfirmed pin exists on screen.
+    // An existing exact-address fact is also not proof of confirmed coordinates.
+    assistantMessage = cityOnlyStationary ? nearestPlaceQuestion : mapConfirmationMessage;
   }
   // ACK is not permission to replace the answer with another robotic template.
   // The validated assistantMessage is already bounded and is not publication authority.
@@ -724,9 +805,9 @@ Deno.serve(async (req: Request) => {
   const authorization = req.headers.get('Authorization') ?? '';
   if (!/^Bearer [^\s]+$/.test(authorization)) return response(401, { code: 'AUTH_REQUIRED', message: 'Prijavite se da biste nastavili.' });
   let body: any;
-  try { body = (await boundedJson(req, {}, 18000, 3000, req.signal)).data; }
+  try { body = (await boundedJson(req, {}, 8388608, 15000, req.signal)).data; }
   catch { return response(400, { code: 'INVALID_JSON', message: 'Zahtev nije ispravan.' }); }
-  if (!object(body) || Object.keys(body).some(key => !['conversationId', 'text', 'clientRequestId', 'mode', 'locationContext'].includes(key)))
+  if (!object(body) || Object.keys(body).some(key => !['conversationId', 'text', 'clientRequestId', 'mode', 'locationContext', 'imageBase64', 'imageMime'].includes(key)))
     return response(400, { code: 'REQUEST_INVALID', message: 'Zahtev nije ispravan.' });
   const locationMode = body.mode === 'locationReply';
   const locationContext: LocationContext | undefined = locationMode && validLocationContext(body.locationContext) ? body.locationContext : undefined;
@@ -737,8 +818,20 @@ Deno.serve(async (req: Request) => {
     return response(406, { code: 'LOCATION_STREAM_UNSUPPORTED', message: 'Odgovor o mestu koristi potvrđen pojedinačni odgovor.' });
   const conversationId = typeof body.conversationId === 'string' ? body.conversationId.trim().toLowerCase() : '';
   const text = typeof body.text === 'string' ? body.text.trim() : '';
+  let imageBase64: string | undefined = undefined;
+  let imageMime: string | undefined = undefined;
+  if (body.imageBase64 !== undefined || body.imageMime !== undefined) {
+    if (typeof body.imageBase64 !== 'string' || typeof body.imageMime !== 'string' ||
+        !['image/jpeg', 'image/png', 'image/webp'].includes(body.imageMime) ||
+        body.imageBase64.length === 0 || body.imageBase64.length > 7000000) {
+      return response(400, { code: 'IMAGE_INVALID', message: 'Slika nije ispravna (dozvoljeni formati su JPEG, PNG i WebP do 5MB).' });
+    }
+    imageBase64 = body.imageBase64;
+    imageMime = body.imageMime;
+  }
   if (!isUuid(conversationId)) return response(400, { code: 'CONVERSATION_ID_INVALID', message: 'Nacrt Zadatka nije ispravan.' });
-  if (!text || text.length > 4000) return response(400, { code: 'MESSAGE_INVALID', message: 'Unesite poruku do 4.000 znakova.' });
+  if ((!text && !imageBase64) || text.length > 4000) return response(400, { code: 'MESSAGE_INVALID', message: 'Unesite poruku do 4.000 znakova ili fotografiju.' });
+  const effectiveUserMessage = text || (imageBase64 ? 'Poslao sam fotografiju posla.' : '');
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
   if (!supabaseUrl || !anonKey) return response(500, { code: 'SERVER_CONFIG_ERROR', message: 'Serverska konfiguracija nije dostupna.' });
@@ -785,7 +878,10 @@ Deno.serve(async (req: Request) => {
       return response(404, { code: 'CONVERSATION_NOT_FOUND', message: 'Nacrt nije dostupan ovom nalogu.' });
     const schemaVersion: FactSchemaVersion = rows[0].fact_schema_version === NEED_FACT_SCHEMA_V2 ? NEED_FACT_SCHEMA_V2 : LEGACY_FACT_SCHEMA_V1;
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
-      if (!(locationMode ? exact(body, ['mode', 'conversationId', 'text', 'clientRequestId', 'locationContext']) : exact(body, ['conversationId', 'text', 'clientRequestId'])) || !isUuid(body.clientRequestId))
+      const allowedKeys = locationMode
+        ? ['mode', 'conversationId', 'text', 'clientRequestId', 'locationContext']
+        : ['conversationId', 'text', 'clientRequestId', ...(imageBase64 ? ['imageBase64', 'imageMime'] : [])];
+      if (!exact(body, allowedKeys) || !isUuid(body.clientRequestId))
         return response(400, { code: 'CLIENT_REQUEST_ID_INVALID', message: 'Ponovo otvorite unos pre slanja.' });
       requestId = body.clientRequestId.toLowerCase();
     } else if (!exact(body, ['conversationId', 'text']) || rows[0].status !== 'OPEN') {
@@ -796,7 +892,7 @@ Deno.serve(async (req: Request) => {
     let history: any[], activeFacts: any[];
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
       const result = await rpc(locationMode ? 'rpc_ai_claim_need_location_turn_v1_service' : 'rpc_ai_claim_need_turn_v2_service',
-        { ...identityArgs(), p_user_message: text, ...(locationContext ? { p_location_context: locationContext } : {}) }, req.signal);
+        { ...identityArgs(), p_user_message: effectiveUserMessage, ...(locationContext ? { p_location_context: locationContext } : {}) }, req.signal);
       if (!result.ok) {
         const name = result.data?.message;
         if (name === 'LOCATION_VERSION_CONFLICT' || name === 'LOCATION_CONTEXT_INVALID')
@@ -837,6 +933,7 @@ Deno.serve(async (req: Request) => {
     const timeContext = serverTimeContext(new Date());
     const execute = async (onText?: (delta: string) => void, signal: AbortSignal = req.signal) => {
     let aiTurn: ParsedTurn;
+    let taxonomyReviewHints: Record<string,any>[]=[];
     // Counts the provider reports for this call. Recorded only after the turn is
     // confirmed, so accounting can never decide whether an answer is delivered.
     let reportedUsage: GeminiUsage | null = null;
@@ -868,13 +965,37 @@ Deno.serve(async (req: Request) => {
           return response(409, { code: 'AI_TURN_NOT_CONFIRMED', message: 'Proverite ishod poruke pre nastavka.' });
         }
       }
-      aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, text, timeContext, signal, onText,
-        (usage) => { reportedUsage = usage; }, locationContext);
-      aiTurn = guardConversationTurn(aiTurn, text, activeFacts, timeContext, !!locationContext);
+      // Same catalog-reader as worker AI; no category writes or matching rights.
+      // Read-only rollout gate stays OFF until reviewed admission/snapshot flow.
+      let taxonomyPrompt = '';
+      let taxonomyCatalog: Awaited<ReturnType<typeof loadClassificationCatalog>> | null = null;
+      if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW')) {
+        try {
+          taxonomyCatalog = await loadClassificationCatalog(async (name, args) => {
+            const result = await rpc(name, args, signal, 4000);
+            if (!result.ok) throw new Error('CATALOG_RPC_UNAVAILABLE');
+            return result.data;
+          });
+          taxonomyPrompt = catalogPromptContext(taxonomyCatalog, { maxItems:96,
+            services: [
+              effectiveUserMessage.slice(0,2000),
+              ...activeFacts.filter((fact:any)=>fact?.fact_key==='need.category')
+                .map((fact:any)=>String(fact.fact_value??'').slice(0,2000)).slice(0,4),
+            ],
+          });
+          console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'LOADED');
+        } catch {
+          console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE');
+        }
+      }
+      aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, effectiveUserMessage, timeContext, signal, onText,
+        (usage) => { reportedUsage = usage; }, locationContext, taxonomyPrompt, taxonomyCatalog,
+        (hints) => { taxonomyReviewHints = hints; }, imageBase64, imageMime);
+      aiTurn = guardConversationTurn(aiTurn, effectiveUserMessage, activeFacts, timeContext, !!locationContext);
       if (locationContext) {
         // A validated answer to the shown question (e.g. 'to je to') stays a map
         // confirmation. Explicit task publication can never take that route.
-        if (explicitPublicationOnly(text) || taskFinishOnly(text) && aiTurn.locationAction !== 'CONFIRM_DISPLAYED') aiTurn.locationAction = 'CONTINUE';
+        if (explicitPublicationOnly(effectiveUserMessage) || taskFinishOnly(effectiveUserMessage) && aiTurn.locationAction !== 'CONFIRM_DISPLAYED') aiTurn.locationAction = 'CONTINUE';
         else if (!aiTurn.locationAction || aiTurn.safety !== 'ALLOW') aiTurn.locationAction = 'CLARIFY';
       }
     } catch (providerError) {
@@ -899,25 +1020,11 @@ Deno.serve(async (req: Request) => {
           console.info('TAXONOMY_SCOPED_SHADOW', 'UNAVAILABLE');
         }
 
-        // Live Dynamic Taxonomy: Ensure category path in taxonomy tree
-        try {
-          const rawCat = taxonomyArgs.p_ai_category.trim();
-          const pathSegments = rawCat.includes('>')
-            ? rawCat.split('>').map((s: string) => s.trim()).filter(Boolean)
-            : rawCat.includes('/')
-              ? rawCat.split('/').map((s: string) => s.trim()).filter(Boolean)
-              : [rawCat];
-          const related = Array.isArray(taxonomyArgs.p_explicit_required_skills)
-            ? taxonomyArgs.p_explicit_required_skills
-            : [];
-          await rpc('rpc_taxonomy_ensure_path_service', {
-            p_path: pathSegments,
-            p_execution_location_mode: taxonomyArgs.p_execution_location_mode,
-            p_related_labels: related,
-          }, signal, 3000);
-        } catch (ensureErr) {
-          console.info('TAXONOMY_ENSURE_PATH_DEFERRED', ensureErr);
-        }
+        // P0 safety: a Gemini conversation is NOT owner approval of a category.
+        // Previously this point called rpc_taxonomy_ensure_path_service with
+        // related required skills, creating ESTABLISHED rows + VERIFIED relations
+        // before need review. Keep ONLY the read-only preview above.
+        // The later explicit approval/admission transaction must own creation.
       }
       if (signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
     }
@@ -932,6 +1039,23 @@ Deno.serve(async (req: Request) => {
       if (completed.state === 'SUCCEEDED' && (completed.receipt.proposedCount !== aiTurn.proposals.length || completed.receipt.safety !== aiTurn.safety))
         throw new Error('AI_TURN_RECEIPT_INVALID');
       if (locationContext && completed.state === 'SUCCEEDED' && result.data.location.action !== aiTurn.locationAction) throw new Error('AI_TURN_RECEIPT_INVALID');
+      // Optional, post-completion shadow hint receipt. This is not consent;
+      // missing RPC or network availability never destroys a succeeded Need turn.
+      if (completed.state === 'SUCCEEDED' && taxonomyCatalog && taxonomyReviewHints.length &&
+          devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
+        try {
+          const capture=await rpc('rpc_taxonomy_capture_gemini_turn_hints_service',{
+            p_account_id:accountId,p_conversation_id:conversationId,
+            p_client_request_id:requestId,p_turn_id:claimedTurnId,p_attempt_id:attemptId,
+            p_purpose:'NEED_SERVICE',p_catalog_version:taxonomyCatalog.catalogVersion,
+            p_proposals:taxonomyReviewHints,
+          },signal,2500);
+          if (!capture.ok || capture.data?.action!=='HINT_CAPTURED' ||
+              capture.data?.authority!=='NONE') {
+            console.info('NEED_TAXONOMY_HINT_CAPTURE','UNAVAILABLE');
+          }
+        } catch { console.info('NEED_TAXONOMY_HINT_CAPTURE','UNAVAILABLE'); }
+      }
       // No raw provider prose escapes before the semantic check and the exact
       // owned completion receipt. The existing stream still reports acceptance.
       if (completed.state === 'SUCCEEDED') onText?.(aiTurn.assistantMessage);

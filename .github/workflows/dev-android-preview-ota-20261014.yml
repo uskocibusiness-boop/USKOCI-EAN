@@ -1,0 +1,119 @@
+# Owner-requested DEV Android preview OTA for unified TaskCard integration on Home carousel, 15 October 2026 22:56.
+# Self-path trigger ONLY: worker AI interview, signed-work Za mene empty guidance and Android DEV preview OTA gates.
+name: DEV Android preview OTA 20261014
+on:
+  push:
+    branches: [feature/unified-gemini-classification-p0-20261014]
+    paths: [.github/workflows/dev-android-preview-ota-20261014.yml]
+permissions:
+  contents: read
+concurrency:
+  group: uskoci-preview-ota-owner-20261014
+  cancel-in-progress: false
+jobs:
+  publish-android-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      CI: '1'
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EAS_BUILD_PROFILE: preview
+      USKOCI_OTA_TARGET: preview
+      EXPO_PUBLIC_SUPABASE_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW
+      EXPO_PUBLIC_USE_FAKE_SOURCE: '0'
+      EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL: uskociapp://oporavak
+      EXPO_PUBLIC_P6_DISCOVERY_READER: '1'
+      EXPO_PUBLIC_EX04_OWN_TASKS_PAGED: '1'
+      EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED: '1'
+      EXPO_PUBLIC_EX04_CANDIDATES_PAGED: '1'
+      EXPO_PUBLIC_VOICE_MESSAGES: '1'
+      EXPO_PUBLIC_AI_LOCATION_DIALOGUE: '1'
+      EXPO_PUBLIC_CONVERSATION_INBOX: '1'
+      # Only this DEV preview client opts into existing versioned, signed review RPCs.
+      EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW: 'true'
+      EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'true'
+      # DEV preview ONLY: owner chooses ON_SITE/REMOTE/BOTH per pending service.
+      EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES: 'true'
+    steps:
+      - name: Checkout exact owner-requested feature branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Verify Expo access and immutable preview runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${EXPO_TOKEN:-}" || { echo "::error::EXPO_TOKEN is missing. Update NOT published."; exit 1; }
+          node scripts/ota-preview-guard.cjs
+          node - <<'NODE'
+          const cfg = require('./app.config.js')({config: require('./app.json').expo});
+          if (cfg.android.package !== 'rs.uskoci.preview' ||
+              cfg.runtimeVersion !== 'uskoci-v1-preview-r1' ||
+              cfg.updates.requestHeaders['expo-channel-name'] !== 'preview' ||
+              cfg.extra?.eas?.projectId !== '1e6cc490-9851-4741-9226-128612122db6') {
+             throw new Error('OWNER_PREVIEW_IDENTITY_MISMATCH: nothing published');
+          }
+          console.log('PREVIEW ONLY: verified rs.uskoci.preview / preview / uskoci-v1-preview-r1');
+          NODE
+      - name: Install locked JS dependencies
+        run: npm ci --include=dev
+      - name: Verify TypeScript before publication
+        run: npx tsc --noEmit
+      - name: Verify explicit map-jump after landmark, owned intake and Home navigation
+        run: npx jest src/data/__tests__/ai-owned-intake-screen.test.tsx src/data/__tests__/ai-natural-server-guard.test.ts src/data/__tests__/v3-home-screen.test.tsx src/data/__tests__/intake-location-order.test.ts --runInBand --silent
+      - name: Verify legacy review compatibility and explicit signed opt-in routing
+        # The old-app fixtures intentionally expect V1 RPCs. Each opt-in test
+        # separately flips its own flag to true and asserts the new route.
+        env:
+          EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW: 'false'
+          EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'false'
+        run: npx jest src/data/__tests__/ai-task-review-client.test.ts src/data/__tests__/worker-ai-client.test.ts --runInBand --silent
+      - name: Verify worker per-service selection UI and transport before preview OTA
+        # Legacy cases require OFF. Explicit-mode cases set BOTH signed flags
+        # to true inside their test, so this still proves the new route.
+        env:
+          EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW: 'false'
+          EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'false'
+        run: npx jest src/ui/workerProfile/__tests__/worker-review-parts.test.tsx src/data/__tests__/worker-ai-client.test.ts --runInBand --silent
+      - name: Verify signed reviews, precise service consent and natural worker-interview safety
+        # The coverage proof prevents partial Gemini proposals from being
+        # presented as already-confirmed worker service or notification consent.
+        run: node --test supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow-source.test.mjs supabase/proofs/dynamic_taxonomy/worker-finish-mode-completeness.test.mjs supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs supabase/proofs/dynamic_taxonomy/discovery-for-me-confirmed-work-source.test.mjs
+      - name: Verify preview has explicit DEV-only signed review feature gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW}" = 'true'
+          test "${EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW}" = 'true'
+          test "${EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES}" = 'true'
+          test "${EXPO_PUBLIC_SUPABASE_URL}" = 'https://leqcwgzvjsxugfgzdmth.supabase.co'
+      - name: Publish latest feature-branch client to Android preview ONLY
+        shell: bash
+        run: |
+          set -euo pipefail
+          msg="OWNER DEV Android preview 20261014 ${GITHUB_SHA:0:12}"
+          npx --yes eas-cli@23.2.0 update --branch preview --platform android \
+            --environment preview --clear-cache --message "$msg" --non-interactive
+      - name: Read back published preview update
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes eas-cli@23.2.0 update:list --branch preview --platform android \
+            --runtime-version uskoci-v1-preview-r1 --limit 3 --json --non-interactive > /tmp/uskoci-ota-readback.json
+          node - <<'NODE'
+          const x=require('/tmp/uskoci-ota-readback.json');
+          const rows=x.currentPage||[];
+          const want='OWNER DEV Android preview 20261014 '+process.env.GITHUB_SHA.slice(0,12);
+          const exact=rows.find(y=>y.branch==='preview' &&
+            y.runtimeVersion==='uskoci-v1-preview-r1' &&
+            String(y.message||'').includes(want) && y.isRollBackToEmbedded!==true);
+          if(!exact)throw Error('PREVIEW_OTA_READBACK_UNCONFIRMED: inspect Expo update dashboard');
+          console.log('PUBLISHED Android preview OTA:',exact.group,'commit:',process.env.GITHUB_SHA,
+            'runtime:',exact.runtimeVersion,'branch:',exact.branch);
+          NODE

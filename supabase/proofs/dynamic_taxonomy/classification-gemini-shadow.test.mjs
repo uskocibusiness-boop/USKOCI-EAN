@@ -1,0 +1,269 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { withGeminiClassificationShadowSchema as decorate, inspectGeminiClassificationShadow as inspect, geminiClassificationShadowInstruction as instructions } from '../../functions/_shared/classificationGeminiShadow.mjs';
+
+const lesson='11111111-1111-4111-8111-111111111111';
+const rental='22222222-2222-4222-8222-222222222222';
+const repair='33333333-3333-4333-8333-333333333333';
+const snapshot={catalogVersion:9,categories:[
+  {id:lesson,label:'Časovi umetničkog klizanja',modes:['ON_SITE']},
+  {id:rental,label:'Iznajmljivanje klizaljki',modes:['ON_SITE']},
+  {id:repair,label:'Oštrenje klizaljki',modes:['ON_SITE']},
+]};
+const reason='Distinct, expressly offered skating-related service';
+const plan=(service,categoryId=lesson,mode='ON_SITE',action='REUSE_EXISTING')=>({
+  service,mode,action,categoryId,parentId:'',proposedPath:[],reason,catalogVersion:9,
+});
+const worker={assistantMessage:'Proveri svoj nacrt profila.',safety:'ALLOW',patch:{skills:['Časovi umetničkog klizanja']}};
+const need={assistantMessage:'Otvori pregled zadatka.',safety:'ALLOW',facts:[],dialogue:{next:'DONE'}};
+const withShadow=(legacy,entries)=>({...legacy,classificationShadow:entries});
+const withEncodedShadow=(legacy,entries)=>({...legacy,classificationShadowJson:JSON.stringify(entries)});
+test('OFF flag baseline schema is not mutated and shadow field remains optional',()=>{
+ const old={type:'OBJECT',properties:{safety:{type:'STRING'}},required:['safety'],additionalProperties:false};
+ const extended=decorate(old);
+ assert.deepEqual(Object.keys(old.properties),['safety']);
+ assert.deepEqual(extended.required,['safety']);
+ assert.deepEqual(Object.keys(extended.properties),['safety','classificationShadowJson']);
+ assert.deepEqual(extended.properties.classificationShadowJson,{type:'STRING'});
+ assert.equal(Object.hasOwn(extended.properties,'classificationShadow'),false);
+ assert.equal(extended.required.includes('classificationShadowJson'),false);
+ assert.equal(extended.additionalProperties,false);
+});
+test('A/B worker and requester Gemini outputs share exact canonical identity candidate',()=>{
+ for(const [purpose,legacy] of [['WORKER_CAPABILITY',worker],['NEED_SERVICE',need]]){
+  const outcome=inspect(withShadow(legacy,[plan('Časovi umetničkog klizanja')]),snapshot,purpose);
+  assert.deepEqual(outcome.output,legacy,'legacy wire shape must never receive taxonomy fields');
+  assert.deepEqual(outcome.statuses,['REUSE_CANDIDATE']);
+ }
+});
+test('C/D two ordering directions give the same result without authority',()=>{
+ for(const purposes of [
+  ['WORKER_CAPABILITY','NEED_SERVICE'],['NEED_SERVICE','WORKER_CAPABILITY']
+ ]){
+   assert.deepEqual(purposes.map(p=>inspect(withShadow(need,[plan('Oštrenje klizaljki',repair)]),snapshot,p).statuses),
+    [['REUSE_CANDIDATE'],['REUSE_CANDIDATE']]);
+ }
+});
+test('E no AI claim can independently validate a new unregistered alias',()=>{
+ const out=inspect(withShadow(worker,[plan('Individualni časovi klizanja',lesson,'ON_SITE','REUSE_ALIAS')]),snapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(out.statuses,['ALIAS_EVIDENCE_REQUIRED']);
+});
+test('F similar language is not enough to fuse three separate existing identities',()=>{
+ const out=inspect(withShadow(worker,[
+  plan('Časovi umetničkog klizanja',lesson),
+  plan('Iznajmljivanje klizaljki',rental),
+  plan('Oštrenje klizaljki',repair),
+ ]),snapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(out.statuses,['REUSE_CANDIDATE','REUSE_CANDIDATE','REUSE_CANDIDATE']);
+ assert.equal(snapshot.categories.length,3);
+});
+test('G legacy output stays unchanged on forged catalog ID, stale version and weird JSON',()=>{
+ const bad=plan('Časovi umetničkog klizanja','44444444-4444-4444-8444-444444444444');
+ const stale={...plan('Oštrenje klizaljki',repair),catalogVersion:8};
+ const malformed={...plan('Loša usluga'),reason:'too short'};
+ const out=inspect(withShadow(need,[bad,stale,malformed]),snapshot,'NEED_SERVICE');
+ assert.deepEqual(out.output,need);
+ assert.deepEqual(out.statuses,['UNKNOWN_CANONICAL_ID','STALE_CATALOG','INVALID_PLAN']);
+});
+test('H neither REMOTE mismatch nor UNCONFIRMED mode permits candidate reuse',()=>{
+ const out=inspect(withShadow(worker,[
+  plan('Časovi umetničkog klizanja',lesson,'REMOTE'),
+  plan('Oštrenje klizaljki',repair,'UNCONFIRMED'),
+ ]),snapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(out.statuses,['MODE_NOT_SUPPORTED','MODE_UNCONFIRMED']);
+});
+test('I novel service belongs to owner-reviewed admission, not provider output',()=>{
+ const child={...plan('Dresiranje egzotičnih ptica',''),action:'CREATE_CHILD',
+  parentId:lesson,proposedPath:['Dresiranje egzotičnih ptica']};
+ const out=inspect(withShadow(need,[child]),snapshot,'NEED_SERVICE');
+ assert.deepEqual(out.statuses,['ADMISSION_REVIEW_REQUIRED']);
+});
+test('J empty, absent, invalid and over-limit shadow never change legacy facts',()=>{
+ assert.deepEqual(inspect(worker,snapshot,'WORKER_CAPABILITY').output,worker);
+ assert.deepEqual(inspect(withShadow(worker,[]),snapshot,'WORKER_CAPABILITY').statuses,[]);
+ assert.deepEqual(inspect(withShadow(worker,'not array'),snapshot,'WORKER_CAPABILITY').statuses,['INVALID_BATCH']);
+ assert.deepEqual(inspect(withShadow(need,Array(7).fill(plan('Oštrenje klizaljki',repair))),snapshot,'NEED_SERVICE').statuses,['INVALID_BATCH']);
+ assert.deepEqual(inspect(withShadow(worker,[plan('Oštrenje klizaljki',repair),plan('Oštrenje klizaljki',repair)]),snapshot,'WORKER_CAPABILITY').statuses,
+  ['REUSE_CANDIDATE','DUPLICATE_SERVICE']);
+});
+test('K blocked/review interview cannot produce even a reuse candidate',()=>{
+ for(const safety of ['BLOCK','REVIEW']){
+  const old={...need,safety};
+  const out=inspect(withShadow(old,[plan('Oštrenje klizaljki',repair)]),snapshot,'NEED_SERVICE');
+  assert.deepEqual(out.output,old);
+  assert.deepEqual(out.statuses,['SAFETY_INTERVIEW_REVIEW']);
+ }
+});
+test('L protected model instruction does not claim consent or matching',()=>{
+ const prompt=instructions();
+ assert.match(prompt,/never user consent/);
+ assert.match(prompt,/never write/);
+ assert.match(prompt,/UNCONFIRMED/);
+});
+
+test('Gemini shadow cannot smuggle skate rental or sharpening as skating lessons',()=>{
+ for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE']){
+  const result=inspect(withShadow(worker,[plan('Iznajmljivanje klizaljki',lesson)]),snapshot,purpose);
+  assert.deepEqual(result.output,worker);
+  assert.deepEqual(result.statuses,['SEMANTIC_IDENTITY_REVIEW_REQUIRED']);
+ }
+});
+test('Cyrillic review identity works without creating a second category',()=>{
+ const result=inspect(withShadow(need,[plan('Часови уметничког клизања')]),snapshot,'NEED_SERVICE');
+ assert.deepEqual(result.statuses,['REUSE_CANDIDATE']);
+ assert.deepEqual(result.output,need);
+});
+
+test('shadow Cyrillic and Latin names cannot create parallel candidate services',()=>{
+ const first={...plan('Popravka tipografske mašine',''),action:'CREATE_CHILD',parentId:lesson,proposedPath:['Popravka tipografske mašine']};
+ const second={...first,service:'Поправка типографске машине'};
+ const result=inspect(withShadow(need,[first,second]),snapshot,'NEED_SERVICE');
+ assert.deepEqual(result.statuses,['ADMISSION_REVIEW_REQUIRED','DUPLICATE_SERVICE']);
+ assert.deepEqual(result.output,need);
+});
+
+test('validated hints survive stripping only as non-authoritative review proposals',()=>{
+ for(const [purpose,legacy] of [['WORKER_CAPABILITY',worker],['NEED_SERVICE',need]]){
+  const reused=plan('Oštrenje klizaljki',repair);
+  const child={...plan('Časovi hokeja', ''),action:'CREATE_CHILD',
+   parentId:lesson,proposedPath:['Časovi hokeja']};
+  const ambiguous={...plan('Časovi umetničkog klizanja',lesson),mode:'UNCONFIRMED'};
+  const wrong=plan('Iznajmljivanje klizaljki',lesson);
+  const result=inspect(withShadow(legacy,[reused,child,ambiguous,wrong]),snapshot,purpose);
+  assert.deepEqual(result.output,legacy);
+  assert.deepEqual(result.statuses,['REUSE_CANDIDATE','ADMISSION_REVIEW_REQUIRED',
+    'MODE_UNCONFIRMED','SEMANTIC_IDENTITY_REVIEW_REQUIRED']);
+  assert.deepEqual(result.reviewProposals,[reused,child],
+    'only candidates with validated identity or reviewed parent and explicit mode survive');
+  assert.notStrictEqual(result.reviewProposals[1].proposedPath,child.proposedPath);
+  assert.equal(Object.hasOwn(result.output,'reviewProposals'),false);
+ }
+});
+test('unsafe, aliased, stale and ambiguous model hints can never become review candidates',()=>{
+ const rejected=[
+  plan('Oštrenje klizaljki',repair,'ON_SITE','REUSE_ALIAS'),
+  {...plan('Časovi umetničkog klizanja',lesson),catalogVersion:8},
+  plan('Iznajmljivanje klizaljki',lesson),
+  plan('Časovi umetničkog klizanja',lesson,'REMOTE'),
+ ];
+ for(const old of [worker,need]){
+  assert.deepEqual(inspect(withShadow({...old,safety:'BLOCK'},[plan('Oštrenje klizaljki',repair)]),snapshot,'NEED_SERVICE').reviewProposals,[]);
+  assert.deepEqual(inspect(withShadow(old,rejected),snapshot,'NEED_SERVICE').reviewProposals,[]);
+  assert.deepEqual(inspect(withShadow(old,'invalid'),snapshot,'NEED_SERVICE').reviewProposals,[]);
+ }
+});
+
+test('worker provider requests full 24-scope post-turn snapshot; requester stays 6',()=>{
+ const base={type:'OBJECT',properties:{assistantMessage:{type:'STRING'}},required:['assistantMessage'],additionalProperties:false};
+ for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE']){
+  assert.deepEqual(decorate(base,purpose).properties.classificationShadowJson,{type:'STRING'});
+  assert.deepEqual(decorate(base,purpose).required,base.required);
+  assert.equal(Object.hasOwn(base.properties,'classificationShadowJson'),false);
+ }
+ assert.match(instructions('WORKER_CAPABILITY'),/0 to 24/);
+ assert.match(instructions('NEED_SERVICE'),/0 to 6/);
+ assert.match(instructions('WORKER_CAPABILITY'),/FULL SNAPSHOT/);
+ assert.match(instructions('WORKER_CAPABILITY'),/finish\/acknowledgement/);
+ assert.match(instructions('WORKER_CAPABILITY'),/do not guess mode/);
+ assert.match(instructions('NEED_SERVICE'),/CURRENT task turn/);
+});
+test('worker can offer ONE exact service in both scopes, without fake second skill',()=>{
+ const modes=[plan('Časovi umetničkog klizanja',lesson,'ON_SITE'),
+   plan('Часови уметничког клизања',lesson,'REMOTE')];
+ const dualSnapshot={catalogVersion:9,categories:[{...snapshot.categories[0],modes:['ON_SITE','REMOTE']}]};
+ const result=inspect(withShadow(worker,modes),dualSnapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(result.statuses,['REUSE_CANDIDATE','REUSE_CANDIDATE']);
+ assert.equal(result.reviewProposals.length,2);
+ assert.deepEqual(result.reviewProposals.map(x=>x.mode),['ON_SITE','REMOTE']);
+ const requester=inspect(withShadow(need,modes),dualSnapshot,'NEED_SERVICE');
+ assert.deepEqual(requester.statuses,['REUSE_CANDIDATE','DUPLICATE_SERVICE']);
+});
+test('worker rejects duplicate same mode across Serbian scripts and contradictory unknown',()=>{
+ const dualSnapshot={catalogVersion:9,categories:[{...snapshot.categories[0],modes:['ON_SITE','REMOTE']}]};
+ const original=plan('Časovi umetničkog klizanja',lesson,'ON_SITE');
+ const duplicate=plan('Часови уметничког клизања',lesson,'ON_SITE');
+ const result=inspect(withShadow(worker,[original,duplicate]),dualSnapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(result.statuses,['REUSE_CANDIDATE','DUPLICATE_SERVICE']);
+ assert.equal(result.reviewProposals.length,1);
+ const unknown={...original,mode:'UNCONFIRMED'};
+ assert.deepEqual(inspect(withShadow(worker,[original,unknown]),dualSnapshot,'WORKER_CAPABILITY').statuses,
+  ['REUSE_CANDIDATE','DUPLICATE_SERVICE']);
+});
+test('worker accepts 7 distinct services but bounds forged oversized 25 proposal result',()=>{
+ const many=Array.from({length:7},(_,i)=>({...plan('Radna veština '+i,''),action:'CREATE_CHILD',
+  parentId:lesson,proposedPath:['Radna veština '+i]}));
+ const out=inspect(withShadow(worker,many),snapshot,'WORKER_CAPABILITY');
+ assert.equal(out.statuses.length,7);
+ assert.equal(out.statuses.every(x=>x==='ADMISSION_REVIEW_REQUIRED'),true);
+ assert.deepEqual(inspect(withShadow(worker,Array(25).fill(many[0])),snapshot,'WORKER_CAPABILITY').statuses,['INVALID_BATCH']);
+});
+
+test('provider-safe envelope is exactly ONE optional string, independent of nested interview schema',()=>{
+ const base={type:'OBJECT',required:['assistantMessage','patch'],additionalProperties:false,
+  properties:{assistantMessage:{type:'STRING'},patch:{type:'OBJECT',required:['skills'],
+    properties:{skills:{type:'ARRAY',items:{type:'STRING'}}}}}};
+ for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE']){
+  const extended=decorate(base,purpose);
+  assert.deepEqual(extended.required,base.required);
+  assert.deepEqual(extended.properties.patch,base.properties.patch);
+  assert.deepEqual(Object.keys(extended.properties),['assistantMessage','patch','classificationShadowJson']);
+  assert.deepEqual(extended.properties.classificationShadowJson,{type:'STRING'});
+  assert.equal(Object.hasOwn(extended.properties,'classificationShadow'),false);
+  assert.equal(Object.hasOwn(base.properties,'classificationShadowJson'),false);
+ }
+ assert.throws(()=>decorate({...base,properties:{...base.properties,classificationShadowJson:{type:'STRING'}}}),
+  /SHADOW_SCHEMA_INVALID/);
+});
+
+test('encoded worker and need proposal reuse SAME category ID and preserve original output exactly',()=>{
+ for(const [purpose,legacy] of [['WORKER_CAPABILITY',worker],['NEED_SERVICE',need]]){
+  const proposal=plan('Časovi umetničkog klizanja',lesson);
+  const result=inspect(withEncodedShadow(legacy,[proposal]),snapshot,purpose);
+  assert.deepEqual(result.output,legacy);
+  assert.deepEqual(result.statuses,['REUSE_CANDIDATE']);
+  assert.deepEqual(result.reviewProposals,[proposal]);
+  assert.equal(Object.hasOwn(result.output,'classificationShadowJson'),false);
+ }
+});
+
+test('encoded CREATE_CHILD remains review-only; never generates a worker capability or DB write',()=>{
+ const proposal={...plan('Časovi hokeja',''),action:'CREATE_CHILD',
+   parentId:lesson,proposedPath:['Časovi hokeja']};
+ const out=inspect(withEncodedShadow(worker,[proposal]),snapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(out.output,worker);
+ assert.deepEqual(out.statuses,['ADMISSION_REVIEW_REQUIRED']);
+ assert.deepEqual(out.reviewProposals,[proposal]);
+});
+
+test('invalid, oversized, mixed and duplicate encoded shadows fail closed without corrupting interview',()=>{
+ const proposal=plan('Časovi umetničkog klizanja',lesson);
+ const inputs=[
+  [{...need,classificationShadowJson:'{not json'},'INVALID_SHADOW_JSON'],
+  [{...need,classificationShadowJson:42},'INVALID_SHADOW_JSON'],
+  [{...need,classificationShadowJson:' '.repeat(24577)},'INVALID_SHADOW_JSON'],
+  [{...need,classificationShadowJson:'{}'},'INVALID_BATCH'],
+  [{...need,classificationShadowJson:JSON.stringify(Array(7).fill(proposal))},'INVALID_BATCH'],
+  [{...need,classificationShadowJson:JSON.stringify([proposal]),classificationShadow:[proposal]},'AMBIGUOUS_SHADOW_FORMAT'],
+ ];
+ for(const [input,status] of inputs){
+  const out=inspect(input,snapshot,'NEED_SERVICE');
+  assert.deepEqual(out.output,need);
+  assert.deepEqual(out.statuses,[status]);
+  assert.deepEqual(out.reviewProposals,[]);
+ }
+ const dup=inspect(withEncodedShadow(need,[proposal,{...proposal,service:'Часови уметничког клизања'}]),snapshot,'NEED_SERVICE');
+ assert.deepEqual(dup.statuses,['REUSE_CANDIDATE','DUPLICATE_SERVICE']);
+ assert.equal(dup.reviewProposals.length,1);
+});
+
+test('encoded scope checks and blocked interview continue to gate proposed classification',()=>{
+ const dualSnapshot={catalogVersion:9,categories:[{...snapshot.categories[0],modes:['ON_SITE','REMOTE']}]};
+ const modes=[plan('Časovi umetničkog klizanja',lesson,'ON_SITE'),
+  plan('Часови уметничког клизања',lesson,'REMOTE')];
+ const out=inspect(withEncodedShadow(worker,modes),dualSnapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(out.statuses,['REUSE_CANDIDATE','REUSE_CANDIDATE']);
+ assert.deepEqual(out.reviewProposals.map(x=>x.mode),['ON_SITE','REMOTE']);
+ const blocked=inspect(withEncodedShadow({...worker,safety:'BLOCK'},modes),dualSnapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(blocked.reviewProposals,[]);
+ assert.deepEqual(blocked.statuses,['SAFETY_INTERVIEW_REVIEW']);
+});

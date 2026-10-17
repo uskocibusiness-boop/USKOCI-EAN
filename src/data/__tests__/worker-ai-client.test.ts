@@ -1,4 +1,4 @@
-import {workerAiClientService as service,decodeWorkerAiTurnRecovery,decodeWorkerAiProfile,decodeWorkerAiReview,decodeWorkerAiSnapshot,type WorkerAiProfile,type WorkerAiReview,type WorkerAiSaved} from '../workerAiClientService';
+import {workerAiClientService as service,explicitWorkerModes,decodeWorkerAiTurnRecovery,decodeWorkerAiProfile,decodeWorkerAiReview,decodeWorkerAiSnapshot,type WorkerAiProfile,type WorkerAiReview,type WorkerAiSaved} from '../workerAiClientService';
 const OWNER='11111111-1111-4111-8111-111111111111',OTHER='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',CONVERSATION='22222222-2222-4222-8222-222222222222',
  PROFILE='33333333-3333-4333-8333-333333333333',REVIEW='44444444-4444-4444-8444-444444444444',KEY='55555555-5555-4555-8555-555555555555';
 let mockSession: {user:{id:string};accountRevision:number;session?:{access_token:string}}={user:{id:OWNER},accountRevision:1};const mockRpc=jest.fn();
@@ -99,4 +99,132 @@ it('accepts cancelled FAILED while preserving true dispatch evidence',()=>{
 it.each([{canCancel:true},{retryAllowed:true},{turn:null},{turn:{...dispatchedRecovery('PROCESSING').turn}},
  {turn:{...dispatchedRecovery('SUCCEEDED').turn}}])('rejects contradictory dispatched cancellation %p',patch=>{
  expect(decodeWorkerAiTurnRecovery({...dispatchedRecovery('FAILED',true),...patch},OWNER,CONVERSATION,KEY)).toBeNull();
+});
+
+
+const SIGNED_CATEGORY='66666666-6666-4666-8666-666666666666';
+const signedWorkerReview=()=>({
+  ...review(),classificationState:'READY' as const,
+  classificationCandidates:[{action:'REUSE_EXISTING' as const,service:'Prenos',mode:'ON_SITE' as const,
+    categoryId:SIGNED_CATEGORY,catalogVersion:3,reason:'Verified server canonical identity'}],
+  reviewedServiceModes:[{service:'Prenos',mode:'ON_SITE' as const}],
+  classificationCatalogVersion:3,classificationCatalogFingerprint:'c'.repeat(32),
+});
+it('accepts signed ON_SITE scope for the actual visible worker skill and preserves one Save',async()=>{
+ const signed=signedWorkerReview();
+ expect(decodeWorkerAiReview(signed,OWNER,CONVERSATION)).toEqual(signed);
+ mockRpc.mockResolvedValueOnce({data:saved(),error:null});
+ await expect(service.save(signed,KEY)).resolves.toEqual({ok:true,podatak:saved()});
+ expect(mockRpc.mock.calls).toEqual([['rpc_save_worker_ai_review',
+   {p_review_id:REVIEW,p_displayed_digest:'a'.repeat(64),p_client_request_id:KEY}]]);
+});
+it('accepts two explicit modes under one visible service without two approval buttons',()=>{
+ const first=signedWorkerReview();
+ const twice={...first,reviewedServiceModes:[...first.reviewedServiceModes,{service:'Prenos',mode:'REMOTE'}],
+   classificationCandidates:[...first.classificationCandidates,
+     {...first.classificationCandidates[0],mode:'REMOTE'}]};
+ expect(decodeWorkerAiReview(twice,OWNER,CONVERSATION)).toMatchObject({reviewedServiceModes:twice.reviewedServiceModes});
+});
+it('pending classification preserves the old skill text but never authorizes fake modes',()=>{
+ const pending={...signedWorkerReview(),classificationState:'PENDING_CLASSIFICATION',
+   classificationCandidates:[],reviewedServiceModes:[],classificationCatalogVersion:null,classificationCatalogFingerprint:null};
+ expect(decodeWorkerAiReview(pending,OWNER,CONVERSATION)).toMatchObject({classificationState:'PENDING_CLASSIFICATION'});
+ expect(decodeWorkerAiReview({...pending,reviewedServiceModes:[{service:'Prenos',mode:'ON_SITE'}]},OWNER,CONVERSATION)).toBeNull();
+});
+it.each([
+ {classificationCatalogVersion:4},
+ {classificationCatalogFingerprint:'wrong'},
+ {reviewedServiceModes:[{service:'Nepostojeća veština',mode:'ON_SITE'}]},
+ {reviewedServiceModes:[{service:'Prenos',mode:'REMOTE'}]},
+ {reviewedServiceModes:[{service:'Prenos',mode:'ON_SITE'},{service:'Prenos',mode:'ON_SITE'}]},
+ {classificationCandidates:[{...signedWorkerReview().classificationCandidates[0],categoryId:'not-a-uuid'}]},
+ {classificationCandidates:[]},
+ {classificationCandidates:[{...signedWorkerReview().classificationCandidates[0],mode:'REMOTE'}]},
+ {classificationCandidates:[{...signedWorkerReview().classificationCandidates[0],extra:'not-authorized'}]},
+ {classificationState:'UNKNOWN'},
+ {classificationCatalogFingerprint:undefined},
+])('rejects contradictory or forged signed worker scope %p',patch=>{
+ expect(decodeWorkerAiReview({...signedWorkerReview(),...patch},OWNER,CONVERSATION)).toBeNull();
+});
+it('does not accept a partial classification contract or foreign signed worker review',async()=>{
+ const {reviewedServiceModes:_omit,...partial}=signedWorkerReview();
+ expect(decodeWorkerAiReview(partial,OWNER,CONVERSATION)).toBeNull();
+ expect(decodeWorkerAiReview({...signedWorkerReview(),accountId:OTHER},OWNER,CONVERSATION)).toBeNull();
+ await expect(service.save(partial as WorkerAiReview,KEY)).resolves.toMatchObject({ok:false});
+ expect(mockRpc).not.toHaveBeenCalled();
+});
+
+
+it('old installed APK mode uses ONLY the untouched legacy prepare/read RPCs',async()=>{
+ const prior=process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;
+ try{
+  delete process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;
+  await expect(service.prepare(CONVERSATION,2,true)).resolves.toMatchObject({ok:true});
+  await expect(service.read(CONVERSATION)).resolves.toMatchObject({ok:true});
+  expect(mockRpc.mock.calls.map(c=>c[0])).toEqual(['rpc_prepare_worker_ai_review','rpc_read_worker_ai']);
+ }finally{
+  if(prior===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;
+  else process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW=prior;
+ }
+});
+it('explicit OTA opt-in uses versioned signed prepare/read without changing Save RPC',async()=>{
+ const prior=process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;
+ try{
+  process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW='true';
+  const signed=signedWorkerReview();
+  mockRpc.mockImplementation(async (name:string)=>({data:name==='rpc_prepare_worker_ai_review_taxonomy'?signed:
+    name==='rpc_read_worker_ai_taxonomy'?{...snapshot(),review:signed}:
+    name==='rpc_save_worker_ai_review'?saved():null,error:null}));
+  await expect(service.prepare(CONVERSATION,2,true)).resolves.toEqual({ok:true,podatak:signed});
+  await expect(service.read(CONVERSATION)).resolves.toMatchObject({ok:true,podatak:{review:signed}});
+  await expect(service.save(signed,KEY)).resolves.toMatchObject({ok:true});
+  expect(mockRpc.mock.calls.map(c=>c[0])).toEqual([
+    'rpc_prepare_worker_ai_review_taxonomy','rpc_read_worker_ai_taxonomy','rpc_save_worker_ai_review']);
+ }finally{
+  if(prior===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;
+  else process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW=prior;
+ }
+});
+
+it('explicit worker mode contract never assumes scope or silently omits a skill',()=>{
+ const skills=['Časovi matematike','Montaža nameštaja'];
+ expect(explicitWorkerModes(skills,{})).toBeNull();
+ expect(explicitWorkerModes(skills,{'Časovi matematike':'BOTH'})).toBeNull();
+ expect(explicitWorkerModes(skills,{'Časovi matematike':'BOTH','Montaža nameštaja':'ON_SITE'}))
+  .toEqual([{service:'Časovi matematike',mode:'ON_SITE'},{service:'Časovi matematike',mode:'REMOTE'},
+    {service:'Montaža nameštaja',mode:'ON_SITE'}]);
+ expect(explicitWorkerModes(['Ponovljeno','Ponovljeno'],{'Ponovljeno':'REMOTE'})).toBeNull();
+});
+it('manual scope RPC remains disabled unless both signed-review and explicit-mode flags are enabled',async()=>{
+ const old=process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES;
+ const signed=process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;
+ try{
+  process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES='true';
+  process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW='false';
+  const result=await service.prepareConfirmed(CONVERSATION,2,true,[{service:'Prenos',mode:'ON_SITE'}]);
+  expect(result.ok).toBe(false);expect(mockRpc).not.toHaveBeenCalled();
+ }finally{
+  if(old===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES;else process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES=old;
+  if(signed===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;else process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW=signed;
+ }
+});
+it('signed manual mode request sends the exact worker-selected service and scope, never a global guess',async()=>{
+ const old=process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES;
+ const signed=process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;
+ try{
+  process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES='true';
+  process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW='true';
+  const pending={...review(),classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',
+    classificationCandidates:[],reviewedServiceModes:[],classificationCatalogVersion:null,
+    classificationCatalogFingerprint:null};
+  mockRpc.mockResolvedValueOnce({data:pending,error:null});
+  const result=await service.prepareConfirmed(CONVERSATION,2,true,[{service:'Prenos',mode:'ON_SITE'}]);
+  expect(result.ok).toBe(true);
+  expect(mockRpc).toHaveBeenCalledWith('rpc_prepare_worker_ai_review_taxonomy_confirmed',
+   {p_conversation_id:CONVERSATION,p_expected_revision:2,p_activate:true,
+    p_selected_modes:[{service:'Prenos',mode:'ON_SITE'}]});
+ }finally{
+  if(old===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES;else process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES=old;
+  if(signed===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;else process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW=signed;
+ }
 });

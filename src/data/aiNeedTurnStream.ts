@@ -51,6 +51,7 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
   url: string; anonKey: string; accessToken: string; conversationId: string; clientRequestId: string;
   text: string; current: () => boolean; deadline: number;
   endpoint?: 'uskoci-ai-interview' | 'uskoci-worker-interview';
+  imageBase64?: string; imageMime?: string;
 }): Promise<{ data: unknown; error: { message: string } | null }> {
   const abort = new AbortController(), stop = () => abort.abort();
   const timer = setTimeout(stop, Math.max(0, input.deadline - Date.now()));
@@ -64,7 +65,12 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
     const response = await fetch(input.url + '/functions/v1/' + (input.endpoint ?? 'uskoci-ai-interview'), {
       method: 'POST', signal: abort.signal, redirect: 'error',
       headers: { Authorization: 'Bearer ' + input.accessToken, apikey: input.anonKey, 'Content-Type': 'application/json', Accept: 'text/event-stream', [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION },
-      body: JSON.stringify({ conversationId: input.conversationId, text: input.text, clientRequestId: input.clientRequestId }),
+      body: JSON.stringify({
+        conversationId: input.conversationId,
+        text: input.text,
+        clientRequestId: input.clientRequestId,
+        ...(input.imageBase64 && input.imageMime ? { imageBase64: input.imageBase64, imageMime: input.imageMime } : {}),
+      }),
     });
     if (!current() || response.redirected || !response.body) throw new Error('AI_STREAM_STOPPED');
     if (!response.ok && response.status !== 409) {

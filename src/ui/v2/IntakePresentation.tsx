@@ -28,7 +28,7 @@ import { AiConversationShell } from '../aiFirst/AiConversationShell';
 import type { VoiceInput } from '../aiFirst/VoiceComposer';
 import type { LocationReplyPrompt } from '../location/ConversationPointAsk';
 import { ConfirmedPlaceLine } from '../location/ConfirmedPlaceLine';
-import { confirmedPlaceEntries } from '../location/placeText';
+import { confirmedPlaceEntries, slotNeedsCloserPlace } from '../location/placeText';
 import type { ConfirmedLocationPoint, LocationSlot } from '../../contracts/location';
 import { completeDraftProposal, publicSummary, type Summary } from './draftSummary';
 import { intakeLocationMemory, orderIntakeLocation, type IntakeTurnRole } from './intakeLocationOrder';
@@ -227,9 +227,13 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   // The pictures the draft has facts for, and where each lands: a picture that is new to the conversation's memory arrives once, in its place.
   const lands = (kind: DraftSticker, index: number, child: ReactNode) => <Appear key={kind} index={index} animate={!!appear && appear.isNew(kind)} from="above">{child}</Appear>;
   return <Surface kind="panel" testID="intake-task-summary" style={[s.card, compact && s.cardCompact]}>
-    <View testID="intake-draft-head" accessible accessibilityLabel={spoken}>
-      <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={final ? 0 : compact || locationEditing ? 1 : 2}
-        style={[s.compactTitle, !summary.title && s.titleEmpty]} />
+    <View testID="intake-draft-head" accessible accessibilityLabel={spoken} style={s.cardHeaderRow}>
+      <FactArt kind="tasks" size={28} cut="art" />
+      <View style={{ flex: 1, gap: 2 }}>
+        <T variant="meta" style={s.cardHeaderBadge}>USKOČI · PREDLOG ZADATKA</T>
+        <CardTitle title={summary.title ?? 'Zadatak u nastajanju'} lines={final ? 0 : compact || locationEditing ? 1 : 2}
+          style={[s.compactTitle, !summary.title && s.titleEmpty]} />
+      </View>
     </View>
     {facts ? final
       ? <View testID="intake-draft-details" style={s.details}>
@@ -247,9 +251,10 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
       : !locationEditing && !ended ? <Press testID="intake-draft-review" accessibilityRole="button" accessibilityLabel={reviewLabel}
         accessibilityHint={editing ? 'Otvara pregled izmena.' : 'Otvara pregled svih podataka pre objave.'}
         accessibilityState={{ disabled: !canReview }} disabled={!canReview}
-        onPress={() => { if (canReview) onReview(); }} haptic={canReview ? 'select' : 'none'} style={s.reviewAction}>
+        onPress={() => { if (canReview) onReview(); }} haptic={canReview ? 'select' : 'none'}
+        style={[s.reviewAction, !canReview && s.reviewActionDisabled]}>
         <T variant="note" style={[s.readyText, !canReview && s.muted]}>{reviewLabel}</T>
-        <Glyph name="caret-right" tone={canReview ? 'ink' : 'muted'} />
+        <Glyph name="caret-right" tone={canReview ? 'onGreen' : 'muted'} />
       </Press> : null}
   </Surface>;
 }
@@ -273,6 +278,10 @@ export function IntakePresentation(props: Props) {
   const [panel, setPanel] = useState<'options' | 'photos' | null>(null);
   // Asked inline, so the map sits beside the words. Dismissing it leaves a way back.
   const [hiddenPlace, setHiddenPlace] = useState<string | null>(null);
+  // A mounted location widget can remain outside the Android viewport after
+  // returning from the keyboard/long conversation. Keep a visible manual path
+  // to the actual map, not another Gemini turn.
+  const [mapReveal, setMapReveal] = useState<{ placeKey: string; tick: number } | null>(null);
   // A confirmed place reopens its editor only on an explicit tap of its line; this is the place that tap was for.
   const [savedPlaceEdit, setSavedPlaceEdit] = useState<string | null>(null);
   const askSeen = useRef(false);
@@ -333,7 +342,13 @@ export function IntakePresentation(props: Props) {
   const confirmedPoints = place?.resolvedLocation?.points ?? [];
   const placeComplete = showPlace && !needsPoint && confirmedPoints.length > 0;
   const editingSavedPlace = placeComplete && savedPlaceEdit === placeKey;
-  const askOpen = showPlace && (placeComplete ? editingSavedPlace : !pointAskHidden);
+  // A city is not a usable address. Let the AI ask for the street, number or nearby
+  // landmark in the normal conversation first; only then offer the human-confirmed pin.
+  // An existing confirmed place always remains editable from its own line.
+  // A user-spoken area/POI can seed a map search without claiming an exact address.
+  // The point is still unverified until the owner confirms it manually.
+  const addressReady = place?.geography?.mode !== 'STATIONARY' || (!!requestedPlace && !slotNeedsCloserPlace('start', requestedPlace));
+  const askOpen = showPlace && (placeComplete ? editingSavedPlace : addressReady && !pointAskHidden);
   if (askOpen) askSeen.current = true;
   // Arrival animation keeps the route's stable key; retained history uses the durable ID after the first send.
   const orderScope = conversation.conversationId || props.conversationKey || '';
@@ -345,7 +360,7 @@ export function IntakePresentation(props: Props) {
   const ordered = orderIntakeLocation(orderMemory.read(orderScope), {
     scope: orderScope, messages: conversation.messages, roles: props.turnRoles ?? {},
     causalMessageId: geographyId ? [...conversation.messages].reverse().find(message => message.fromAi && message.proposedFactIds.includes(geographyId))?.id : undefined,
-    pendingLocation: needsPoint && !!requestedPlace,
+    pendingLocation: askOpen && needsPoint && !!requestedPlace,
     confirmedLocation: !!place && gap.done === gap.total,
     canRelease: !busy && !pending && !props.error,
     preserveHistory: !open || conversation.safety === 'BLOCK', confirmationKey: fingerprint(placeKey),
@@ -386,7 +401,16 @@ export function IntakePresentation(props: Props) {
   if (props.canReview) menu.push({ key: 'review', label: props.reviewLabel, icon: 'document', disabled: !reviewAllowed, onPress: outsidePlace(props.onReview) });
   // A missing point put away with "Kasnije" comes back from here. Hiding affects only its current location identity, never
   // the next place; a confirmed place is its own line in the thread and needs no menu row.
-  if (showPlace && !placeComplete && pointAskHidden) menu.push({ key: 'place', label: 'Mesto na mapi', icon: 'pin', onPress: () => setHiddenPlace(null) });
+  // Never make the first pin reachable only through automatic scroll. The
+  // overflow menu can restore a dismissed ask, or jump to an already mounted
+  // map without resending the task or affecting persisted conversation facts.
+  if (showPlace && !placeComplete) menu.push({ key: 'place', label: 'Mesto na mapi', icon: 'pin',
+    disabled: placeDisabled, onPress: () => {
+      if (placeDisabled) return;
+      Keyboard.dismiss();
+      setHiddenPlace(null);
+      setMapReveal(old => ({ placeKey, tick: old?.placeKey === placeKey ? old.tick + 1 : 1 }));
+    } });
   if (hasConversation) menu.push({ key: 'refresh', label: 'Osveži razgovor', icon: 'check', disabled: props.readbackDisabled || editingPlace, onPress: outsidePlace(props.onRefresh) });
   if (props.onNewTask) menu.push({ key: 'new', label: 'Novi zadatak', icon: 'tasks', disabled: props.newTaskDisabled, onPress: props.onNewTask });
   if (props.showAbandon) menu.push({ key: 'abandon', label: props.abandonLabel, icon: 'chat', destructive: true,
@@ -398,7 +422,15 @@ export function IntakePresentation(props: Props) {
   const incompleteHandoff = open && !showSummary && reviewAllowed && !needsPoint && !busy && !pending && !props.error
     && lastReply?.fromAi && (SERVER_REVIEW_ENDINGS.has(lastReply.body)
       || lastReply.body === 'Pregled još nije dovršen. Možeš da dopuniš opis zadatka ili otvoriš pregled.');
-  const footerAction = incompleteHandoff
+  const canJumpToMap = askOpen && needsPoint && !placeDisabled;
+  const jumpToMap = () => {
+    if (!canJumpToMap) return;
+    Keyboard.dismiss();
+    setMapReveal(old => ({ placeKey, tick: old?.placeKey === placeKey ? old.tick + 1 : 1 }));
+  };
+  const footerAction = canJumpToMap
+    ? <V2Action label="Prikaži mesto na mapi" kind="secondary" tone="neutral" onPress={jumpToMap} />
+    : incompleteHandoff
     ? <V2Action label="Pregledaj i dopuni zadatak" kind="secondary" tone="neutral" onPress={outsidePlace(props.onReview)} />
     : completed && props.canReview
     ? <V2Action label={props.reviewLabel} style={brandAction} disabled={!reviewAllowed} onPress={outsidePlace(props.onReview)} />
@@ -435,15 +467,22 @@ export function IntakePresentation(props: Props) {
     footerAction={footerAction}
     newConversation={props.onRestart ? { onPress: outsidePlace(props.onRestart), disabled: props.restartDisabled || editingPlace }
       : ended && props.onNewTask ? { onPress: props.onNewTask, disabled: props.newTaskDisabled } : undefined}
-    interactiveContextKey={askOpen && (editingPlace || editingSavedPlace) ? placeKey : undefined}
+    // First-time pin lookup is interactive too. Without a key the conversation shell
+    // never scrolls its newly mounted location sheet into view after the AI reply:
+    // people see "Pomeri pin" but no map. The user can still scroll back normally.
+    interactiveContextKey={askOpen && (needsPoint || editingPlace || editingSavedPlace)
+      ? `${placeKey}:${mapReveal?.placeKey === placeKey ? mapReveal.tick : 0}` : undefined}
     // A tap on the line, which may sit far up the thread, opens its editor at the end: that editor is revealed.
-    revealInteractiveContext={editingSavedPlace}
+    revealInteractiveContext={editingSavedPlace || (askOpen && mapReveal?.placeKey === placeKey)}
     threadNotes={notes.length ? notes : undefined}
     value={value} canEdit={props.canEdit} canSend={props.canSubmit && (!editingPlace || contextualReply)}
     sendBlockedReason={editingPlace ? 'Prvo potvrdi mesto ili zatvori mapu.' : undefined}
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
     sentMessage={props.sentMessage}
     // The assistant and the one line the draft asks for (R1): the three examples under it show what to say, so no sentence explains it.
+    // Static first AI bubble: shown immediately, remains above the user's first
+    // message, never written into history or charged as a Gemini request.
+    introMessage="Ćao! 👋 Šta ti danas treba da se uradi?"
     welcome="Reci šta ti treba."
     welcomeDetail=""
     openings={TASK_OPENINGS}
@@ -495,7 +534,7 @@ export function IntakePresentation(props: Props) {
           if (editingSavedPlace) setSavedPlaceEdit(null); else setHiddenPlace(placeKey);
         }} />
     </Suspense>
-      : showPlace && !placeComplete && pointAskHidden
+      : showPlace && !placeComplete && pointAskHidden && addressReady
         ? <V2Action tone={needsPoint ? 'brand' : 'neutral'} label="Pokaži mesto na mapi" kind={needsPoint ? 'primary' : 'quiet'} style={needsPoint ? brandAction : undefined}
           onPress={() => { Keyboard.dismiss(); setHiddenPlace(null); }} /> : undefined}
     // A fragment is truthy even when every branch inside it is null, which drew an empty
@@ -536,18 +575,29 @@ const s = StyleSheet.create({
   canvas: { flex: 1, backgroundColor: sys.conversation.ground },
   muted: { color: sys.color.muted }, danger: { color: sys.color.danger },
   // The living draft is a panel above the thread (a thing that is read, in a frame, with no shadow); only its padding is its own.
-  card: { paddingVertical: sys.space.md, paddingHorizontal: sys.space.md, gap: sys.space.sm },
-  cardCompact: { paddingVertical: sys.space.sm, paddingHorizontal: sys.space.md },
+  card: {
+    paddingVertical: sys.space.md, paddingHorizontal: sys.space.base, gap: sys.space.sm,
+    backgroundColor: '#FFFFFF', borderRadius: 18, borderWidth: 1.5, borderColor: '#E2ECE6',
+    shadowColor: '#0E2920', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
+  },
+  cardCompact: { paddingVertical: sys.space.sm, paddingHorizontal: sys.space.base, borderRadius: 14 },
+  cardHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
+  cardHeaderBadge: { fontSize: 11, fontWeight: '700', color: sys.color.green, letterSpacing: 0.6 },
   // Final, the facts are rows of one kind, 8 apart; while the draft is made they are pictures with their words in a line that wraps by whole facts.
   details: { gap: sys.space.sm },
   stickers: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.md, rowGap: sys.space.sm },
   sticker: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, flexShrink: 1, maxWidth: '100%' },
   stickerWords: { color: sys.color.fact, flexShrink: 1 },
-  // The way to the review while something is missing is a quiet word at the start of its own line, as high as a finger.
-  reviewAction: { minHeight: layout.touch, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, paddingHorizontal: sys.space.md, paddingVertical: sys.space.xs, backgroundColor: sys.color.iconWell, borderRadius: sys.radius.pill },
+  // The way to the review is a prominent button with full reach
+  reviewAction: {
+    minHeight: 48, alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: sys.space.sm, paddingHorizontal: sys.space.base, paddingVertical: sys.space.xs,
+    backgroundColor: sys.color.green, borderRadius: 14, marginTop: sys.space.xs,
+  },
+  reviewActionDisabled: { backgroundColor: sys.color.iconWell },
   compactTitle: { ...sys.type.cardTitleCompact, color: sys.color.ink },
   titleEmpty: { color: sys.color.muted },
   // The card's own fact size (`note`), in the weight of a way forward (verify r4b ra item C: it was a raw 14/19).
-  readyText: { flexShrink: 1, fontWeight: '600', color: sys.color.ink },
+  readyText: { flexShrink: 1, fontWeight: '700', color: '#FFFFFF', fontSize: 15 },
   unavailable: { flex: 1, paddingHorizontal: layout.gutter },
 });

@@ -38,6 +38,8 @@ export type AiConversationShellProps = {
   /** A completed draft can become the next decision at the end of the thread, shown once. */
   cardPlacement?: 'top' | 'end';
   messages: readonly ConversationMessage[]; welcome: string; welcomeDetail: string;
+  /** Fixed UI greeting, not an AI turn, not saved or sent to the provider. */
+  introMessage?: string;
   value: string; canEdit: boolean; canSend: boolean; pending: boolean; busy: boolean;
   onChange: (value: string) => void; onSend: () => void; onBack: () => void;
   /** A caller-owned unfinished step can temporarily hold sending without erasing the typed draft. */
@@ -271,7 +273,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
       <ScrollView ref={thread} innerViewRef={threadContent} testID="ai-conversation-thread" style={s.flex}
         // Before the first word the invitation is the only thing on screen, so it sits in the space it has. As soon as
         // there is a thread, the thread starts at the top as threads do.
-        contentContainerStyle={[s.thread, p.messages.length === 0 && !p.sentMessage && !p.status && !p.context && !notes.length && s.threadEmpty]}
+        contentContainerStyle={[s.thread, p.messages.length === 0 && !p.introMessage && !p.sentMessage && !p.status && !p.context && !notes.length && s.threadEmpty]}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
         onScrollBeginDrag={() => { cancelContextReveal(); cancelFollow(); userScrolling.current = true; momentumAllowed.current = true; }}
         onScroll={syncReadingPosition}
@@ -318,11 +320,14 @@ export function AiConversationShell(p: AiConversationShellProps) {
           }
         }}>{pinned && inlineSummary && !cardAtEnd ? <View testID="ai-inline-card">{pinned}</View> : null}</View>
         <View style={s.turns}>
+        {p.introMessage ? <View testID="ai-local-opening" accessibilityLabel={`USKOČI: ${p.introMessage}`} style={s.assistant}>
+          <Mark /><T selectable style={s.answer}>{p.introMessage}</T>
+        </View> : null}
         {welcomeShown ? <View style={s.welcome}>
-          {!keyboard ? <View importantForAccessibility="no-hide-descendants" style={s.presence}>
+          {!keyboard && !p.introMessage ? <View importantForAccessibility="no-hide-descendants" style={s.presence}>
             <AiAssistantWelcome conversationKey={p.conversationKey} memory={assistantWelcome} />
           </View> : null}
-          <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T>
+          {!p.introMessage ? <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T> : null}
           {p.welcomeDetail ? <T variant="copy" tone="muted" style={s.welcomeCopy}>{p.welcomeDetail}</T> : null}
           {openings.length && p.canEdit ? <View style={s.openings}>
             <Section title="Na primer">

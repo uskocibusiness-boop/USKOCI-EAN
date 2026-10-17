@@ -1,8 +1,10 @@
 import { useRef, type ReactNode } from 'react';
-import { RefreshControl, StyleSheet, Switch, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
+import type { PrilikaProjekcija } from '../../contracts/projections';
 import { Avatar } from '../system/Avatar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { inicijali } from '../../lib/inicijali';
 import type { HomeAttention, HomeRaspored, HomeRow, HomeSection, HomeSnapshot, HomeTarget } from '../../data/homeSnapshot';
 import type { OwnedTaskCounts } from '../../data/marketplaceView';
 import type { ApplicationCounts } from '../../data/myApplicationsView';
@@ -16,6 +18,7 @@ import { Surface } from '../system/Surface';
 import { layout } from '../system/layout';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
+import { TaskCard } from '../v2/TaskCard';
 import { materialControl, sys } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
 import { useLayoutClass, useTextScale } from '../system/textScale';
@@ -74,6 +77,8 @@ export type HomePresentationProps = {
    * (their initials, or a drawn person). Without it, or without a profile id, the stand-in is the face.
    */
   photo?: (profileId: string, standIn: ReactNode) => ReactNode;
+  opportunities?: readonly PrilikaProjekcija[];
+  onOpenOpportunity?: (id: string) => void;
 };
 
 /** The picture of a front door. 64 dp sets both doors' height (owner, 2026-10-07: smaller doors, about 88 dp). */
@@ -274,7 +279,12 @@ function applicationsLine(section: HomeSection<ApplicationCounts>): string {
 
 /** Discovery remains the single source of truth for live tasks, distances and prices.
  * Never display invented nearby offers or imply that a sample listing is actionable. */
-function ExploreTasksAction({ onEarn }: { onEarn: () => void }) {
+function ExploreTasksAction({ onEarn, opportunities, onOpenOpportunity }: {
+  onEarn: () => void;
+  opportunities?: readonly PrilikaProjekcija[];
+  onOpenOpportunity?: (id: string) => void;
+}) {
+  const items = opportunities?.filter(item => item.primaNovePrijave !== false) ?? [];
   return (
     <View style={s.carouselSection}>
       <View style={s.carouselHeader}>
@@ -287,6 +297,18 @@ function ExploreTasksAction({ onEarn }: { onEarn: () => void }) {
           <T variant="meta" tone="green" style={{ fontWeight: '600' }}>Pogledaj sve →</T>
         </Press>
       </View>
+      {items.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carouselList}>
+          {items.slice(0, 8).map(item => (
+            <TaskCard
+              key={item.id}
+              item={item}
+              onOpen={() => onOpenOpportunity ? onOpenOpportunity(item.id) : onEarn()}
+              style={s.carouselCard}
+            />
+          ))}
+        </ScrollView>
+      ) : null}
     </View>
   );
 }
@@ -295,7 +317,7 @@ function TrustSeal() {
   return (
     <View style={s.trustSeal}>
       <View style={s.trustSealIcon}>
-        <T style={{ fontSize: 16 }}>🛡️</T>
+        <FactArt kind="shield" size={18} />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <T variant="meta" style={s.trustSealTitle}>Bezbedniji dogovor</T>
@@ -360,7 +382,7 @@ export function HomePresentation(p: HomePresentationProps) {
   const pull = usePullRefresh(p.onRefresh, p.refreshing);
   return <Screen kind="root" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
     refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
-    <ExploreTasksAction onEarn={p.onEarn} />
+    <ExploreTasksAction onEarn={p.onEarn} opportunities={p.opportunities} onOpenOpportunity={p.onOpenOpportunity} />
     <TrustSeal />
     <StartActions onPublish={p.onPublish} onEarn={p.onEarn} />
     {p.intakeResume}
@@ -452,6 +474,10 @@ const s = StyleSheet.create({
   carouselHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, gap: sys.space.md },
   carouselTitle: { fontSize: 19, fontWeight: '700', color: sys.color.ink, letterSpacing: -0.3 },
   seeAllButton: { paddingVertical: 4, paddingHorizontal: 8 },
+  carouselList: { paddingVertical: sys.space.sm, paddingHorizontal: 2, gap: sys.space.md },
+  carouselCard: {
+    width: 290,
+  },
   trustSeal: {
     flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12,
     backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line, gap: 10, marginBottom: 8,

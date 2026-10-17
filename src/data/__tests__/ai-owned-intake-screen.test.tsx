@@ -497,13 +497,29 @@ it('creates nothing until the first word, and then exactly one conversation', as
   expect(mockOpen).not.toHaveBeenCalled(); expect(mockLoad).not.toHaveBeenCalled();
   await blur(); await focus();
   expect(mockOpen).not.toHaveBeenCalled();
-  expect(text()).toContain('Reci šta ti treba.');
+  expect(text()).toContain('Ćao! 👋 Šta ti danas treba da se uradi?');
+  expect(tree.root.findAllByProps({ testID: 'ai-local-opening' })).toHaveLength(1);
+  expect(mockOpen).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
 
   await type(); await act(async () => submit().onPress());
+  expect(tree.root.findAllByProps({ testID: 'ai-local-opening' })).toHaveLength(1);
+  expect(mockSend).toHaveBeenCalledTimes(1);
   expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockSend).toHaveBeenCalledTimes(1);
   expect(mockSend.mock.calls[0][0]).toBe(id);
   await blur(); await focus();
   expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockAbandon).not.toHaveBeenCalled();
+});
+it('presents one local assistant greeting before loaded history without creating a Gemini message', async () => {
+  mockLoad.mockResolvedValue(conversation({ messages: [
+    { id: other, fromAi: false, body: 'Treba mi krečenje.', safety: null, proposedFactIds: [] },
+    { id: 'aaaaaaab-1111-4111-8111-111111111111', fromAi: true, body: 'Kada bi ti odgovaralo?', safety: 'ALLOW', proposedFactIds: [] },
+  ] }));
+  await resume();
+  const greeting = tree.root.findAllByProps({ testID: 'ai-local-opening' });
+  expect(greeting).toHaveLength(1);
+  expect(greeting[0].props.accessibilityLabel).toBe('USKOČI: Ćao! 👋 Šta ti danas treba da se uradi?');
+  expect(mockOpen).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
+  expect(text()).toContain('Kada bi ti odgovaralo?');
 });
 // UX needs R18: 38 of the first 62 conversations never received a word. The empty conversation offers whole sentences a person might say
 // (what, when, where), not names of categories; one tap puts a sentence in the field for the person to finish.
@@ -571,6 +587,28 @@ it('serializes two retained send taps before render and keeps the original body 
   expect(mockSend.mock.calls[0].slice(0,3)).toEqual([id, 'Treba preneti ormar sutra.', expect.stringMatching(/^[a-f0-9-]{36}$/)]);
   expect(typeof mockSend.mock.calls[0][3].onText).toBe('function');
   await act(async () => held.resolve(unknown())); expect(input().value).toBe('Treba preneti ormar sutra.'); expect(input().editable).toBe(false);
+});
+it('recovers a saved Gemini reply after Android SSE reports temporary unavailability, without a second send', async () => {
+  const answer = 'Kada bi ti odgovaralo da se posao obavi?';
+  mockSend.mockResolvedValueOnce({ ok: false, kod: 'AI_SERVICE_UNAVAILABLE', poruka: 'AI trenutno nije dostupan.' });
+  mockTurn.mockImplementation((_conversationId: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
+  mockLoad.mockResolvedValue(conversation({ messages: [
+    { id: other, fromAi: true, body: answer, safety: 'ALLOW', proposedFactIds: [] },
+  ] }));
+  await render(); await type('Treba mi krečenje sobe u Užicu.'); await act(async () => submit().onPress());
+  expect(text()).toContain(answer);
+  expect(text()).not.toContain('AI trenutno nije dostupan.');
+  expect(mockSend).toHaveBeenCalledTimes(1);
+  expect(await aiTurnIntentJournal.load(mockSession.user.id)).toBeNull();
+});
+it('keeps a server-processing reply pending after stream loss without resending it', async () => {
+  mockSend.mockResolvedValueOnce({ ok: false, kod: 'AI_SERVICE_UNAVAILABLE', poruka: 'AI trenutno nije dostupan.' });
+  mockTurn.mockImplementation((_conversationId: string, requestId: string) => Promise.resolve(turn(requestId, 'PROCESSING')));
+  await render(); await type('Treba mi majstor.'); await act(async () => submit().onPress());
+  expect(text()).toContain('Asistent još obrađuje poruku.');
+  expect(text()).not.toContain('AI trenutno nije dostupan.');
+  expect(mockSend).toHaveBeenCalledTimes(1);
+  expect(await aiTurnIntentJournal.load(mockSession.user.id)).not.toBeNull();
 });
 it('requires real readback after unknown and retries the same key/body only when the server permits', async () => {
   await render(); await type(); await act(async () => submit().onPress()); const sent = mockSend.mock.calls[0];
@@ -983,6 +1021,50 @@ it('offers photos from the composer before and after the first word, inside the 
   expect(mockRouter.push).not.toHaveBeenCalled();
 });
 
+it('keeps the real Gemini question visible and does not open a map for city-only input', async () => {
+  mockLoad.mockResolvedValue(conversation({ facts: [
+    publicFact('need.task_country_code', 'RS'),
+    publicFact('need.task_geography', { mode: 'STATIONARY', start: { city: 'Užice' } }),
+  ], messages: [
+    { id: other, fromAi: false, body: 'Krečenje sobe u Užicu.', safety: null, proposedFactIds: [] },
+    { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', fromAi: true,
+      body: 'Kada bi ti odgovaralo da se posao obavi?', safety: 'ALLOW', proposedFactIds: [] },
+  ] }));
+  await resume();
+  expect(text()).toContain('Kada bi ti odgovaralo da se posao obavi?');
+  expect(tree.root.findAllByType('PointAsk' as React.ElementType)).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(0);
+  const shell = tree.root.findByType(AiConversationShell).props;
+  expect(shell.interactiveContextKey).toBeUndefined();
+  expect(shell.footerAction?.props.label).not.toBe('Prikaži mesto na mapi');
+});
+
+it.each(['area', 'label'] as const)('offers map pin search for spoken %s without inventing a private exact address', async slot => {
+  const geography = { mode: 'STATIONARY', start: { city: 'Užice', [slot]: 'kod bolnice u Užicu' } };
+  mockLoad.mockResolvedValue(conversation({ facts: [
+    publicFact('need.task_country_code', 'RS'),
+    publicFact('need.task_geography', geography),
+  ], messages: [
+    { id: other, fromAi: false, body: 'Kod bolnice u Užicu.', safety: null, proposedFactIds: [] },
+  ] }));
+  await resume();
+  expect(tree.root.findAllByType('PointAsk' as React.ElementType)).toHaveLength(1);
+  expect(tree.root.findAllByProps({ testID: 'ai-task-context' })).toHaveLength(1);
+  // Reaching the widget in the virtual tree is not enough: the native shell
+  // needs a stable interactive key to scroll the initial pin question into view.
+  const getShell = () => tree.root.findByType(AiConversationShell).props;
+  expect(getShell().interactiveContextKey).toEqual(expect.any(String));
+  const before = getShell().interactiveContextKey;
+  expect(getShell().footerAction.props.label).toBe('Prikaži mesto na mapi');
+  await act(async () => getShell().footerAction.props.onPress());
+  // An explicit human tap must request a fresh native scroll to the existing
+  // map widget; it never creates another AI turn, address or coordinate.
+  expect(getShell().interactiveContextKey).not.toBe(before);
+  expect(getShell().revealInteractiveContext).toBe(true);
+  expect(mockSend).not.toHaveBeenCalled();
+  expect(text()).not.toContain('Privatna adresa');
+});
+
 // Confirmed locations now remain in the same lazy surface as the incomplete ask.
 // Its own suite proves preview/edit/clean-close; this screen owns visibility and competing actions.
 it('keeps a saved place inline and brings a put-away point ask back from the menu', async () => {
@@ -1003,11 +1085,12 @@ it('keeps a saved place inline and brings a put-away point ask back from the men
   await closeMenu();
 
   await act(async () => tree.unmount());
-  mockLoad.mockResolvedValue(conversation({ facts: [geography], messages: said })); await resume();
+  mockLoad.mockResolvedValue(conversation({ facts: [geography, publicFact('need.exact_address', 'Bulevar oslobođenja 65, Novi Sad')], messages: said })); await resume();
   const asks = () => tree.root.findAllByType('PointAsk' as React.ElementType);
-  // The ask is in the thread, beside the words: a menu row for it would do nothing.
+  // Keep the overflow action while an unfinished map is mounted: Android may
+  // scroll the widget out of view, so this is the user's recovery path.
   expect(asks()).toHaveLength(1);
-  await options(); expect(menuItems('Mesto na mapi')).toHaveLength(0); await closeMenu();
+  await options(); expect(menuItems('Mesto na mapi')).toHaveLength(1); await closeMenu();
   // Put away ("Kasnije", then the editor's own "Iza\u0111i ipak"), the ask gives way to its button and to the menu row.
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Kasnije' }).props.onPress());
   await act(async () => answer('confirm-sheet-confirm'));
@@ -1022,7 +1105,7 @@ it('keeps a saved place inline and brings a put-away point ask back from the men
 
 it('keeps a typed draft but prevents competing send, review and photo navigation during point editing', async () => {
   const geography = publicFact('need.task_geography', { mode: 'STATIONARY', start: { city: 'Novi Sad' } });
-  mockLoad.mockResolvedValue(conversation({ facts: [geography], review: { ...conversation().review, canSaveDraft: true } }));
+  mockLoad.mockResolvedValue(conversation({ facts: [geography, publicFact('need.exact_address', 'Bulevar oslobođenja 65, Novi Sad')], review: { ...conversation().review, canSaveDraft: true } }));
   await resume(); await type('Još jedna napomena');
   const send = submit().onPress;
   const photos = plus().onPress;
@@ -1051,7 +1134,7 @@ describe('the confirmed place is a line of the conversation', () => {
   const later = [message('m3', false, 'Sutra u deset.'), message('m4', true, 'Zapisao sam termin.')];
   type Pin = { latitudeE6: number; longitudeE6: number; origin: { kind: 'MANUAL_PIN' } | { kind: 'PROVIDER_CANDIDATE'; providerHint: string; candidateHint: string | null }; address?: string };
   const placed = (pin: Pin | null, messages: ReturnType<typeof message>[]) => {
-    const exactAddress = pin?.address ?? null;
+    const exactAddress = pin?.address ?? provider;
     const facts: AiNeedV2Conversation['facts'] = [publicFact('need.task_geography', geography), publicFact('need.task_country_code', 'RS')];
     if (exactAddress) facts.push({ ...publicFact('need.exact_address', exactAddress), privacyClass: 'PRIVATE' });
     if (pin) facts.push({ ...publicFact('need.resolved_location', { version: 1, binding: { taskCountryCode: 'RS', geography, exactAddress },
@@ -1067,8 +1150,11 @@ describe('the confirmed place is a line of the conversation', () => {
   const flat = (node: ReturnType<typeof line>): string => node.children.map(child => typeof child === 'string' ? child : flat(child)).join('');
   const sentence = () => line().findAll(node => node.type === ('T' as React.ElementType) && node.props.tone === 'muted'
     && node.children.some(child => typeof child !== 'string')).map(flat);
+  // This helper asserts server transcript + confirmed location ordering only.
+  // The separate local opening is intentionally above it, without a DB message ID.
   const order = () => tree.root.findByProps({ testID: 'ai-conversation-thread' }).findAll(node => isLine(node)
-    || (typeof node.props.accessibilityLabel === 'string' && /^(Ti|USKOČI): /.test(node.props.accessibilityLabel)))
+    || (typeof node.props.accessibilityLabel === 'string' && /^(Ti|USKOČI): /.test(node.props.accessibilityLabel)
+      && node.props.testID !== 'ai-local-opening'))
     .map(node => isLine(node) ? 'PLACE' : node.props.accessibilityLabel);
   const docked = () => ['ai-composer-footer', 'ai-pinned-card'].flatMap(region => tree.root.findAllByProps({ testID: region }))
     .flatMap(region => [...region.findAll(isLine), ...region.findAllByType('PointAsk' as React.ElementType)]);
@@ -1116,7 +1202,7 @@ describe('the confirmed place is a line of the conversation', () => {
     expect(mockSend).not.toHaveBeenCalled();
   });
 
-  it.each(['new', 'resumed'])('keeps the next question after location confirmation through %s conversation and later resume', async entry => {
+  it.each(['new', 'resumed'])('keeps a follow-up question visible before the pin through %s conversation and later resume', async entry => {
     const question = { ...message('next-price', true, 'Koliki iznos nudiš?'), proposedFactIds: ['need.task_geography'] };
     const initial = [...before, question];
     mockLoad.mockResolvedValue(placed(null, initial));
@@ -1126,19 +1212,19 @@ describe('the confirmed place is a line of the conversation', () => {
       mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'SUCCEEDED')));
       await render(); await type('Bulevar oslobođenja 65, Novi Sad'); await act(async () => submit().onPress());
     }
-    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad']);
+    expect(order()).toEqual(['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad', 'USKOČI: Koliki iznos nudiš?']);
     expect(asks()).toHaveLength(1);
-    // Closing or saving without a confirmed canonical point cannot uncover the future question.
+    // The question is real and should remain visible while pin confirmation is pending.
     await act(async () => ask().onSaved());
-    expect(text()).not.toContain('Koliki iznos nudiš?');
+    expect(text()).toContain('Koliki iznos nudiš?');
     const withClarification = [...initial, message('place-reply', false, 'Kod ulaza.'), message('clarify-place', true, 'Pomeraj tačku do ulaza.')];
     mockLoad.mockResolvedValue(placed(null, withClarification));
     await act(async () => ask().onSaved());
-    expect(text()).not.toContain('Koliki iznos nudiš?');
+    expect(text()).toContain('Koliki iznos nudiš?');
     mockLoad.mockResolvedValue(placed(fromProvider, withClarification));
     await act(async () => ask().onSaved());
-    const expected = ['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad', 'Ti: Kod ulaza.',
-      'USKOČI: Pomeraj tačku do ulaza.', 'PLACE', 'USKOČI: Koliki iznos nudiš?'];
+    const expected = ['USKOČI: Gde treba da se dođe?', 'Ti: Bulevar oslobođenja 65, Novi Sad',
+      'USKOČI: Koliki iznos nudiš?', 'Ti: Kod ulaza.', 'USKOČI: Pomeraj tačku do ulaza.', 'PLACE'];
     expect(order()).toEqual(expected);
     expect(asks()).toHaveLength(0);
     await act(async () => tree.unmount()); await resume();
@@ -1166,7 +1252,7 @@ describe('the confirmed place is a line of the conversation', () => {
     expect(mockSend).toHaveBeenCalledTimes(sends); expect(docked()).toHaveLength(0);
   });
 
-  it('waits for both canonical route endpoints before releasing the next question', async () => {
+  it('keeps the route follow-up question visible even before both pins are confirmed', async () => {
     const route = { mode: 'POINT_TO_POINT', start: { city: 'Novi Sad' }, end: { city: 'Beograd' } };
     const messages = [...before, { ...message('route-next', true, 'Koliko osoba treba?'), proposedFactIds: ['need.task_geography'] }];
     const state = (complete: boolean) => conversation({ messages, facts: [publicFact('need.task_country_code', 'RS'), publicFact('need.task_geography', route),
@@ -1174,12 +1260,12 @@ describe('the confirmed place is a line of the conversation', () => {
         points: [{ slot: 'start', latitudeE6: 45258900, longitudeE6: 19832700, origin: { kind: 'MANUAL_PIN' } },
           ...(complete ? [{ slot: 'end', latitudeE6: 44820000, longitudeE6: 20460000, origin: { kind: 'MANUAL_PIN' } }] : [])] }), privacyClass: 'PRIVATE' }] });
     mockLoad.mockResolvedValue(state(false)); await resume();
-    expect(asks()).toHaveLength(1); expect(text()).not.toContain('Koliko osoba treba?');
+    expect(asks()).toHaveLength(1); expect(text()).toContain('Koliko osoba treba?');
     await act(async () => ask().onSaved());
-    expect(text()).not.toContain('Koliko osoba treba?');
+    expect(text()).toContain('Koliko osoba treba?');
     mockLoad.mockResolvedValue(state(true)); await act(async () => ask().onSaved());
     expect(asks()).toHaveLength(0);
-    expect(order().slice(-2)).toEqual(['PLACE', 'USKOČI: Koliko osoba treba?']);
+    expect(order().slice(-2)).toEqual(['USKOČI: Koliko osoba treba?', 'PLACE']);
   });
 
   it('closes a reopened editor once its save is confirmed, even when the same place was confirmed again', async () => {
@@ -1208,7 +1294,7 @@ it('does not treat old city coordinates as confirmed for a new city with the sam
   const placed = publicFact('need.resolved_location', { version: 1,
     binding: { taskCountryCode: 'RS', geography: oldGeography, exactAddress: null },
     points: [{ slot: 'start', latitudeE6: 45230000, longitudeE6: 19830000, origin: { kind: 'MANUAL_PIN' } }] });
-  mockLoad.mockResolvedValue(conversation({ facts: [geography, publicFact('need.task_country_code', 'RS'), placed] }));
+  mockLoad.mockResolvedValue(conversation({ facts: [geography, publicFact('need.task_country_code', 'RS'), publicFact('need.exact_address', 'Bulevar oslobođenja 65, Beograd'), placed] }));
   await resume();
   expect(text()).not.toContain('Proveri mesto na mapi, da onaj ko uskoči zna gde treba da dođe.');
   expect(tree.root.findByType('PointAsk' as React.ElementType).props.conversationId).toBeDefined();
@@ -1362,6 +1448,43 @@ function recovery(status: ReturnType<typeof turn>['podatak'], cancelled = false,
     conversationStatus: 'OPEN', turn: status, providerDispatched: dispatched, cancelled,
     canCancel: !cancelled && !dispatched && status.state !== 'SUCCEEDED', authoritative: true });
 }
+it('new task entry retires a journal ONLY after owned server proves its conversation was deleted', async () => {
+  const requestId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const orphan = { accountId: mockSession.user.id, conversationId: id, clientRequestId: requestId };
+  await aiTurnIntentJournal.save(orphan);
+  mockParams = { entryKey: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' };
+  mockRecover.mockResolvedValue({ ok: false, kod: 'CONVERSATION_NOT_FOUND', poruka: 'Razgovor nije pronađen.' });
+  await render();
+  expect(mockRecover).toHaveBeenCalledWith(id, requestId);
+  expect(await aiTurnIntentJournal.load(orphan.accountId)).toBeNull();
+  expect(mockLoad).not.toHaveBeenCalled();
+  expect(mockOpen).not.toHaveBeenCalled();
+  expect(input().editable).toBe(true);
+  await type('Treba mi krečenje sobe, 25 kvadrata, Užice.');
+  await act(async () => submit().onPress());
+  expect(mockOpen).toHaveBeenCalledTimes(1);
+  expect(mockOpen.mock.calls[0][0]).not.toBe(requestId);
+});
+it('an unresolved network read never discards a journal or silently starts a new conversation', async () => {
+  const requestId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const orphan = { accountId: mockSession.user.id, conversationId: id, clientRequestId: requestId };
+  await aiTurnIntentJournal.save(orphan);
+  mockParams = { entryKey: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee' };
+  mockRecover.mockResolvedValue({ ok: false, kod: 'AI_TURN_READ_FAILED', poruka: 'Proveri vezu.' });
+  await render();
+  expect(await aiTurnIntentJournal.load(orphan.accountId)).toEqual(orphan);
+  expect(mockOpen).not.toHaveBeenCalled();
+});
+it('a named resumed conversation must not silently clear an absent server-owned journal', async () => {
+  const requestId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const orphan = { accountId: mockSession.user.id, conversationId: id, clientRequestId: requestId };
+  await aiTurnIntentJournal.save(orphan);
+  mockParams = { conversationId: id };
+  mockRecover.mockResolvedValue({ ok: false, kod: 'CONVERSATION_NOT_FOUND', poruka: 'Razgovor nije pronađen.' });
+  await render();
+  expect(await aiTurnIntentJournal.load(orphan.accountId)).toEqual(orphan);
+  expect(mockOpen).not.toHaveBeenCalled();
+});
 it('restores only the opaque pending IDs after remount before any open or provider request', async () => {
   await render(); await type('Private typed message'); await act(async () => submit().onPress());
   const requestId = mockSend.mock.calls[0][2];
@@ -1435,6 +1558,7 @@ async function contextualLocationReply() {
   mockLocationDialogueEnabled = true;
   mockLoad.mockResolvedValue(conversation({ facts: [
     publicFact('need.task_geography', { mode: 'STATIONARY', start: { city: 'Novi Sad' } }),
+    publicFact('need.exact_address', 'Bulevar oslobođenja 65, Novi Sad'),
   ] }));
   await resume(); await type('Da, to je ulaz.');
   let current = true;
@@ -1614,7 +1738,8 @@ describe('adding photos inside the conversation', () => {
   const message = (messageId: string, fromAi: boolean, body: string) => ({ id: messageId, fromAi, body, safety: null, proposedFactIds: [] });
   const isLine = (node: { type: unknown; props: { testID?: unknown } }) => typeof node.type === 'string' && node.props.testID === 'task-photo-line';
   const order = () => tree.root.findByProps({ testID: 'ai-conversation-thread' }).findAll(node => isLine(node)
-    || (typeof node.props.accessibilityLabel === 'string' && /^(Ti|USKOČI): /.test(node.props.accessibilityLabel)))
+    || (typeof node.props.accessibilityLabel === 'string' && /^(Ti|USKOČI): /.test(node.props.accessibilityLabel)
+      && node.props.testID !== 'ai-local-opening'))
     .map(node => isLine(node) ? 'PHOTOS' : node.props.accessibilityLabel);
   const flush = async () => { for (let i = 0; i < 6; i++) await act(async () => { await Promise.resolve(); }); };
   const uploaded = (assetId: string) => mockUploadPhoto.mockImplementation(async (input: { clientRequestId: string; conversationId: string }) => {

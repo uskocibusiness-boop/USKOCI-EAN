@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScreenHeader } from '../../ui/system/ScreenHeader';
 import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { AppState } from 'react-native';
+import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { router, useFocusEffect } from 'expo-router';
 import { composeHome, readHomeSection, type HomeAttentionPreview, type HomeReads, type HomeSection, type HomeTarget } from '../../data/homeSnapshot';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
@@ -51,12 +52,13 @@ function Home() {
     try {
       // The work profile is read beside the four (R20, R06) and is the one read that is not counted: a screen whose profile could
       // not be read is not a failed screen, it just says nothing about the profile.
-      const [needs, applications, agreements, attention, workerProfile] = await Promise.all([
+      const [needs, applications, agreements, attention, workerProfile, opportunities] = await Promise.all([
         readHomeSection(() => source.mojePotrebe({ includeUrgency: false })), readHomeSection(() => source.mojePrijave()), readHomeSection(() => source.mojiDogovori()),
-        readHomeSection(() => source.paznjaZaPocetnu()), readHomeSection(() => source.mojRadnikProfil())]);
+        readHomeSection(() => source.paznjaZaPocetnu()), readHomeSection(() => source.mojRadnikProfil()),
+        readHomeSection(() => source.otvorenePrilike({ signal }))]);
       // Every failed read is unavailable, never an account with nothing in it.
       if ([needs, applications, agreements, attention].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
-      return { needs, applications, agreements, attention, workerProfile };
+      return { needs, applications, agreements, attention, workerProfile, opportunities };
     } finally { signal.removeEventListener('abort', retireRetry); }
   }, [source]);
   const resource = useFocusedResource(load, KEEP_LAST_READ);
@@ -100,11 +102,13 @@ function Home() {
   const onProfile = () => navigate(() => router.navigate('/profil'));
   const profile = home?.workerProfile?.kind === 'known' ? home.workerProfile.value : null;
   return <HomePresentation header={<ScreenHeader title="Početna" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
+    opportunities={resource.data?.opportunities?.kind === 'known' ? resource.data.opportunities.value : undefined}
+    onOpenOpportunity={id => navigate(() => router.navigate({ pathname: '/prilike/[id]', params: { id } }))}
     stale={!!resource.refreshError && !!home}
     intakeResume={<IntakeResume onOpen={conversationId => navigate(() => router.navigate({ pathname: '/nova', params: { conversationId } }))} />}
     availableNow={profile?.state === 'ACTIVE' ? { value: switching.value ?? profile.availableNow, onChange: changeAvailable,
       busy: switching.busy, failed: switching.failed } : undefined}
-    onPublish={() => navigate(() => router.navigate('/nova'))} onEarn={() => navigate(() => router.navigate('/zadaci'))}
+    onPublish={() => navigate(() => router.push({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } }))} onEarn={() => navigate(() => router.navigate('/zadaci'))}
     onProfile={onProfile} onOpen={open}
     // One completed Dogovor waiting for my rating, named by the Dogovori read: its rating opens in one tap (critique A1,
     // 2026-09-24), exactly as the Dogovor screen opens it. Several, or none known: Dogovori, where each one waits.

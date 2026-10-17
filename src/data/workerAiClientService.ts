@@ -27,9 +27,34 @@ export type WorkerAiTurn = Readonly<{ turnId: string; conversationId: string; cl
 export type WorkerAiTurnRecovery = Readonly<{ schemaVersion:'WORKER_PROFILE_V1'; accountId:string; conversationId:string; profileId:string;
   conversationStatus:'OPEN'|'COMPLETED'|'ABANDONED'; clientRequestId:string; turn:WorkerAiTurn|null;
   providerDispatched:boolean; cancelled:boolean; canCancel:boolean; retryAllowed:boolean; authoritative:true }>;
+export type WorkerAiReviewedMode = Readonly<{service:string;mode:'ON_SITE'|'REMOTE'}>;
+export type WorkerAiModeChoice = 'ON_SITE'|'REMOTE'|'BOTH';
+// Client never assumes a scope from the skill label, city or AI text.
+export function explicitWorkerModes(skills:readonly string[],choices:Readonly<Record<string,WorkerAiModeChoice|undefined>>):WorkerAiReviewedMode[]|null {
+  if(!skills.length||skills.length>12||new Set(skills).size!==skills.length)return null;
+  const result:WorkerAiReviewedMode[]=[];
+  for(const service of skills){
+    const value=choices[service];
+    if(!['ON_SITE','REMOTE','BOTH'].includes(value??''))return null;
+    if(value==='ON_SITE'||value==='BOTH')result.push({service,mode:'ON_SITE'});
+    if(value==='REMOTE'||value==='BOTH')result.push({service,mode:'REMOTE'});
+  }
+  return result.length<=24?result:null;
+}
+export type WorkerAiClassificationCandidate = Readonly<{action:'REUSE_EXISTING';service:string;mode:'ON_SITE'|'REMOTE';
+  categoryId:string;catalogVersion:number;reason:string}>;
+export type WorkerAiClassificationState = 'READY'|'PENDING_CLASSIFICATION'|'REVIEW_REQUIRED'|
+  'SERVICE_MODE_CONFIRMATION_REQUIRED'|'CATALOG_UNAVAILABLE'|'STALE_CATALOG';
+export type WorkerAiReviewClassification = Readonly<{
+  classificationState:WorkerAiClassificationState;
+  classificationCandidates:WorkerAiClassificationCandidate[];
+  reviewedServiceModes:WorkerAiReviewedMode[];
+  classificationCatalogVersion:number|null;
+  classificationCatalogFingerprint:string|null;
+}>;
 export type WorkerAiReview = Readonly<{ schemaVersion:'WORKER_PROFILE_V1'; reviewId:string; conversationId:string; accountId:string;
   profileId:string; revision:number; profile:WorkerAiProfile; activate:boolean; missingRequired:string[]; canAccept:boolean;
-  expiresAt:string; displayedContentDigest:string }>;
+  expiresAt:string; displayedContentDigest:string }> & Partial<WorkerAiReviewClassification>;
 export type WorkerAiSaved = Readonly<{ reviewId:string; conversationId:string; accountId:string; profileId:string;
   profileStatus:'DRAFT'|'ACTIVE'; saved:true; authoritative:true }>;
 export type WorkerAiSnapshot = Readonly<{ schemaVersion:'WORKER_PROFILE_V1'; conversationId:string; accountId:string; profileId:string;
@@ -87,15 +112,67 @@ export function decodeWorkerAiTurnRecovery(raw:unknown,account:string,cid:string
     conversationStatus:v.conversationStatus,clientRequestId:v.clientRequestId,turn,providerDispatched:v.providerDispatched,
     cancelled:v.cancelled,canCancel:v.canCancel,retryAllowed:v.retryAllowed,authoritative:true};
 }
+// Gate A: strict dual-wire parser. An old installed APK still receives its exact
+// WORKER_PROFILE_V1 review; a new signed projection must display EVERY mode that
+// can later be bound. Neither Gemini hints nor global mode heuristics grant it.
+const classKeys=['classificationState','classificationCandidates','reviewedServiceModes',
+  'classificationCatalogVersion','classificationCatalogFingerprint'] as const;
+const knownStates:readonly WorkerAiClassificationState[]=['READY','PENDING_CLASSIFICATION','REVIEW_REQUIRED',
+  'SERVICE_MODE_CONFIRMATION_REQUIRED','CATALOG_UNAVAILABLE','STALE_CATALOG'];
+function decodeClassification(v:Record<string,unknown>,profile:WorkerAiProfile):WorkerAiReviewClassification|null {
+  if(!knownStates.includes(v.classificationState as WorkerAiClassificationState)
+    ||!Array.isArray(v.classificationCandidates)||v.classificationCandidates.length>24
+    ||!Array.isArray(v.reviewedServiceModes)||v.reviewedServiceModes.length>24)return null;
+  const state=v.classificationState as WorkerAiClassificationState;
+  const result:WorkerAiReviewClassification={classificationState:state,
+    classificationCandidates:[],reviewedServiceModes:[],
+    classificationCatalogVersion:null,classificationCatalogFingerprint:null};
+  if(state!=='READY')return v.classificationCandidates.length===0&&v.reviewedServiceModes.length===0
+    &&v.classificationCatalogVersion===null&&v.classificationCatalogFingerprint===null?result:null;
+  const version=v.classificationCatalogVersion;
+  if(!revision(version)||version<1||typeof v.classificationCatalogFingerprint!=='string'
+    ||!/^([a-f0-9]{32})$/.test(v.classificationCatalogFingerprint))return null;
+  const seen=new Set<string>(),covered=new Set<string>(),canonicalSkills=new Set(profile.skills);
+  for(const rawMode of v.reviewedServiceModes){
+    const m=record(rawMode);
+    if(!m||!exact(m,['service','mode'])||typeof m.service!=='string'||!canonicalSkills.has(m.service)
+      ||(m.mode!=='ON_SITE'&&m.mode!=='REMOTE'))return null;
+    const key=m.service+'|'+m.mode;
+    if(seen.has(key))return null;
+    seen.add(key);covered.add(m.service);
+    result.reviewedServiceModes.push({service:m.service,mode:m.mode});
+  }
+  if(covered.size!==canonicalSkills.size||!seen.size||v.classificationCandidates.length!==seen.size)return null;
+  const plans=new Set<string>();
+  for(const rawPlan of v.classificationCandidates){
+    const c=record(rawPlan);
+    if(!c||!exact(c,['action','service','mode','categoryId','catalogVersion','reason'])
+      ||c.action!=='REUSE_EXISTING'||typeof c.service!=='string'
+      ||(c.mode!=='ON_SITE'&&c.mode!=='REMOTE')||!uuid(c.categoryId)
+      ||c.catalogVersion!==version||!text(c.reason,1000)||!c.reason.trim())return null;
+    const key=c.service+'|'+c.mode;
+    if(!seen.has(key)||plans.has(key))return null;
+    plans.add(key);
+    result.classificationCandidates.push({action:'REUSE_EXISTING',service:c.service,mode:c.mode,
+      categoryId:c.categoryId,catalogVersion:version,reason:c.reason});
+  }
+  return {...result,classificationCatalogVersion:version,
+    classificationCatalogFingerprint:v.classificationCatalogFingerprint};
+}
 export function decodeWorkerAiReview(raw:unknown,account:string,cid:string):WorkerAiReview|null {
   const v=record(raw),profile=decodeWorkerAiProfile(v?.profile);
-  if(!v||!exact(v,['schemaVersion','reviewId','conversationId','accountId','profileId','revision','profile','activate','missingRequired','canAccept','expiresAt','displayedContentDigest'])
+  const legacy=['schemaVersion','reviewId','conversationId','accountId','profileId','revision','profile','activate','missingRequired','canAccept','expiresAt','displayedContentDigest'];
+  const extra=!!v&&classKeys.some(key=>Object.hasOwn(v,key));
+  if(!v||!exact(v,extra?[...legacy,...classKeys]:legacy)
     ||v.schemaVersion!=='WORKER_PROFILE_V1'||!uuid(v.reviewId)||!sameId(v.conversationId,cid)||!sameId(v.accountId,account)||!uuid(v.profileId)
     ||!revision(v.revision)||!profile||typeof v.activate!=='boolean'||typeof v.canAccept!=='boolean'||!Array.isArray(v.missingRequired)
     ||v.missingRequired.length>4||v.missingRequired.some(x=>!['Ime','Mesto rada','Veštine','Država i mesto rada'].includes(x))
     ||v.canAccept!==(v.missingRequired.length===0)||!text(v.expiresAt,40)||calendarInstant(v.expiresAt)===null||!digest(v.displayedContentDigest))return null;
+  const classification=extra?decodeClassification(v,profile):null;
+  if(extra&&!classification)return null;
   return {schemaVersion:'WORKER_PROFILE_V1',reviewId:v.reviewId,conversationId:v.conversationId,accountId:v.accountId,profileId:v.profileId,
-    revision:v.revision,profile,activate:v.activate,missingRequired:[...v.missingRequired],canAccept:v.canAccept,expiresAt:v.expiresAt,displayedContentDigest:v.displayedContentDigest};
+    revision:v.revision,profile,activate:v.activate,missingRequired:[...v.missingRequired],canAccept:v.canAccept,expiresAt:v.expiresAt,displayedContentDigest:v.displayedContentDigest,
+    ...classification};
 }
 function decodeWorkerAiSaved(raw:unknown,review:WorkerAiReview):WorkerAiSaved|null {
   const v=record(raw);
@@ -147,17 +224,37 @@ function recoveryCall(name:'rpc_read_worker_ai_turn_recovery'|'rpc_cancel_worker
     request:()=>supabaseKlijent().rpc(name,{p_expected_user_id:owner.accountId,p_conversation_id:conversationId,p_client_request_id:clientRequestId}),
     decode:v=>decodeWorkerAiTurnRecovery(v,owner.accountId,conversationId,clientRequestId)});
 }
+// Default OFF. Only an OTA/build explicitly targeting the versioned server
+// contract may opt into signed worker classification. Existing APKs keep the
+// original exact V1 RPC, read shape and Save behavior unchanged.
+const signedWorkerReviewEnabled=()=>process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW==='true';
+export const workerExplicitModeReviewEnabled=()=>signedWorkerReviewEnabled()
+  &&process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES==='true';
 export const workerAiClientService={
   recoverTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_read_worker_ai_turn_recovery',conversationId,clientRequestId),
   cancelTurn:(conversationId:string,clientRequestId:string)=>recoveryCall('rpc_cancel_worker_ai_turn',conversationId,clientRequestId),
   open:(clientRequestId:string)=>!uuid(clientRequestId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvori radni profil.')):
     call('rpc_open_worker_ai',{p_client_request_id:clientRequestId},decodeWorkerAiSnapshot,true),
   read:(conversationId:string)=>!uuid(conversationId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvori razgovor.')):
-    call('rpc_read_worker_ai',{p_conversation_id:conversationId},(v,a)=>decodeWorkerAiSnapshot(v,a,conversationId)),
+    call(signedWorkerReviewEnabled()?'rpc_read_worker_ai_taxonomy':'rpc_read_worker_ai',
+      {p_conversation_id:conversationId},(v,a)=>decodeWorkerAiSnapshot(v,a,conversationId)),
   patch:(conversationId:string,expectedRevision:number,patch:WorkerAiPatch)=>call('rpc_patch_worker_ai',
     {p_conversation_id:conversationId,p_expected_revision:expectedRevision,p_patch:JSON.parse(JSON.stringify(patch))},(v,a)=>decodeWorkerAiSnapshot(v,a,conversationId),true),
-  prepare:(conversationId:string,expectedRevision:number,activate:boolean)=>call('rpc_prepare_worker_ai_review',
+  prepare:(conversationId:string,expectedRevision:number,activate:boolean)=>call(
+    signedWorkerReviewEnabled()?'rpc_prepare_worker_ai_review_taxonomy':'rpc_prepare_worker_ai_review',
     {p_conversation_id:conversationId,p_expected_revision:expectedRevision,p_activate:activate},(v,a)=>decodeWorkerAiReview(v,a,conversationId),true),
+  // A new, separately gated signed review uses ONLY modes explicitly selected
+  // by this authenticated worker. It cannot modify existing signed or legacy reviews.
+  prepareConfirmed:(conversationId:string,expectedRevision:number,activate:boolean,modes:WorkerAiReviewedMode[])=>{
+    if(!workerExplicitModeReviewEnabled())return Promise.resolve(failure('WORKER_MODE_CONFIRMATION_OFF','Potvrda načina rada nije dostupna u ovoj verziji.'));
+    if(!uuid(conversationId)||!revision(expectedRevision)||!Array.isArray(modes)||!modes.length||modes.length>24||
+      modes.some(x=>!x||typeof x.service!=='string'||!x.service.trim()||!['ON_SITE','REMOTE'].includes(x.mode)))
+      return Promise.resolve(failure('WORKER_MODE_CONFIRMATION_INVALID','Izaberi način rada za svaki posao.'));
+    return call('rpc_prepare_worker_ai_review_taxonomy_confirmed',
+      {p_conversation_id:conversationId,p_expected_revision:expectedRevision,p_activate:activate,
+        p_selected_modes:modes.map(x=>({service:x.service,mode:x.mode}))},
+      (v,a)=>decodeWorkerAiReview(v,a,conversationId),true);
+  },
   save:(review:WorkerAiReview,clientRequestId:string)=>{
     const owner=scope(),frozen=owner?decodeWorkerAiReview(review,owner.accountId,review.conversationId):null;
     if(!frozen||!uuid(clientRequestId)||!frozen.canAccept)return Promise.resolve(failure('WORKER_AI_REVIEW_REQUIRED','Otvori potpun pregled profila.'));

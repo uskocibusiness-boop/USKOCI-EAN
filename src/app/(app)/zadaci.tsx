@@ -1,6 +1,7 @@
 import { useDiscoveryWorkArea } from '../../hooks/useDiscoveryWorkArea';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
+import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import Constants from 'expo-constants';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
@@ -138,7 +139,7 @@ function Discovery() {
       onBack={() => navigate(() => router.canGoBack() ? router.back() : router.navigate('/'))}
       onProfile={() => navigate(() => router.navigate('/profil'))}
       onNotifications={() => navigate(() => router.navigate('/obavestenja'))}
-      onNew={() => navigate(() => router.navigate('/nova'))} />;
+      onNew={() => navigate(() => router.push({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } }))} />;
 }
 
 const traceSheet = (view: MarketplaceView) => view.sheet === 'full' ? 2 : view.sheet === 'half' ? 1 : view.sheet === 'peek' ? 0 : -1;

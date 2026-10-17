@@ -1,0 +1,97 @@
+name: Unified Gemini taxonomy P0 (read-only)
+on:
+  pull_request:
+    paths:
+      - 'supabase/functions/_shared/classificationEngine.mjs'
+      - 'supabase/functions/_shared/classificationEngine.d.mts'
+      - 'supabase/functions/_shared/classificationGeminiShadow.mjs'
+      - 'supabase/functions/_shared/classificationOwnerReview.mjs'
+      - 'supabase/functions/_shared/classificationGeminiShadow.d.mts'
+      - 'supabase/functions/_shared/classificationBatch.mjs'
+      - 'supabase/functions/_shared/classificationBatch.d.mts'
+      - 'supabase/functions/_shared/taxonomyPostSaveWorker.mjs'
+      - 'supabase/functions/_shared/taxonomyPostSaveWorker.d.mts'
+      - 'supabase/functions/uskoci-taxonomy-postsave-worker/index.ts'
+      - 'supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs'
+      - 'supabase/functions/uskoci-ai-interview/index.ts'
+      - 'supabase/functions/uskoci-worker-interview/index.ts'
+      - 'src/app/(app)/profil/razgovor.tsx'
+      - 'src/ui/workerProfile/workerProfileFacts.ts'
+      - 'src/ui/workerProfile/WorkerAiPresentation.tsx'
+      - 'src/ui/v2/DiscoveryPresentation.tsx'
+      - 'src/ui/v2/discovery/DiscoveryListState.tsx'
+      - 'src/ui/v2/discovery/DiscoveryV1Route.tsx'
+      - 'supabase/proofs/dynamic_taxonomy/discovery-for-me-confirmed-work-source.test.mjs'
+      - 'supabase/proofs/dynamic_taxonomy/unified-*.test.mjs'
+      - 'supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs'
+      - 'supabase/proofs/dynamic_taxonomy/worker-finish-mode-completeness.test.mjs'
+      - 'supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs'
+      - 'supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs'
+      - 'supabase/proofs/dynamic_taxonomy/classification-batch.test.mjs'
+      - 'supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs'
+      - 'supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/need-review-signed-classification-v1.sql'
+      - '.github/workflows/unified-taxonomy-classification-p0.yml'
+  workflow_dispatch:
+jobs:
+  classification-contract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read-only canonical catalog and Gemini integration invariants
+        run: node --test supabase/proofs/dynamic_taxonomy/unified-*.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs supabase/proofs/dynamic_taxonomy/worker-finish-mode-completeness.test.mjs supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs supabase/proofs/dynamic_taxonomy/discovery-for-me-confirmed-work-source.test.mjs supabase/proofs/dynamic_taxonomy/classification-batch.test.mjs supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs
+
+  edge-typing:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.5.6
+      - name: Install exact TypeScript dependencies without postinstall build
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Verify exact worker and requester Gemini schemas on provider wire (offline)
+        run: node supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs --offline
+      - name: Type check both real Gemini Edge handlers
+        run: |
+          deno check supabase/functions/uskoci-worker-interview/index.ts
+          deno check supabase/functions/uskoci-ai-interview/index.ts
+          deno check supabase/functions/uskoci-taxonomy-postsave-worker/index.ts
+
+  provider-contract-live:
+    name: Gemini provider isolated schema proof (opt-in)
+    # Never run paid requests on normal CI or from external PRs. Explicit
+    # repository variable and a separate test-only key are both required.
+    if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.head_ref == 'feature/unified-gemini-classification-p0-20261014' && vars.USKOCI_GEMINI_SMOKE_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      USKOCI_GEMINI_TEST_API_KEY: ${{ secrets.USKOCI_GEMINI_TEST_API_KEY }}
+      USKOCI_GEMINI_TEST_MODEL: ${{ vars.USKOCI_GEMINI_TEST_MODEL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dev dependencies without native hooks
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Two synthetic worker and need provider calls, no DEV access
+        run: node supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs --provider

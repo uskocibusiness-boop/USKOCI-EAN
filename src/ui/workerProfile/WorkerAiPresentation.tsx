@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
-import type { WorkerAiPatch, WorkerAiProfile, WorkerAiReview } from '../../data/workerAiClientService';
+import type { WorkerAiPatch, WorkerAiProfile, WorkerAiReview, WorkerAiModeChoice } from '../../data/workerAiClientService';
 import { capabilityTerms } from '../../lib/capabilityTerms';
 import { countryCode } from '../../lib/market';
 import { T } from '../Text';
@@ -48,28 +48,31 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
       accessibilityValue={{text:skills}} accessibilityState={{expanded}}
       accessibilityHint="Prikazuje sažetak unetih podataka u razgovoru."
       onPress={toggle} haptic="select" style={s.previewHead}>
+      <FactArt kind="tool" size={32} cut="art" />
       <View style={[s.grow,s.previewSummary]}>
+        <T variant="meta" style={s.cardBadge}>USKOČI · RADNA KARTICA</T>
         <T variant="cardTitleCompact" numberOfLines={expanded?undefined:2} style={s.skillHeading}>{skills}</T>
       </View>
       <Glyph name={expanded?'caret-up':'caret-down'} tone="muted"/>
     </Press>
-      {showReview&&!reviewInFooter?<View style={s.reviewAction}>
-        <Press testID="worker-draft-review" accessibilityRole="button" accessibilityLabel="Pregledaj profil"
-          accessibilityHint={disabled&&reviewReason?reviewReason:'Otvara sve podatke pre završnog čuvanja.'}
-          accessibilityState={{disabled}} disabled={disabled}
-          onPress={() => { if (!disabled) review(); }} haptic={disabled?'none':'select'} style={s.reviewLink}>
-          <T variant="note" style={[s.reviewLabel,disabled&&s.muted]}>Pregledaj profil</T>
-          <ReviewCue disabled={disabled}/>
-        </Press>
-        {disabled&&reviewReason?<T accessibilityLiveRegion="polite" variant="note" tone="muted">{reviewReason}</T>:null}
-      </View>:null}
     {expanded?<View testID="worker-draft-details" style={s.previewFacts}>
-        <PreviewFact art="pin">{`${place} · ${profile.location.radiusKm} km`}</PreviewFact>
+        <PreviewFact art="pin">{`${place} · do ${profile.location.radiusKm} km`}</PreviewFact>
         <PreviewFact art="clock">{availability}</PreviewFact>
         {profile.tools.length?<PreviewFact art="tool">{list(profile.tools)}</PreviewFact>:null}
         {profile.vehicles.length?<PreviewFact art="vehicle">{list(profile.vehicles)}</PreviewFact>:null}
         {profile.availability.rules.length||profile.availability.windows.length?<PreviewFact art="calendar">{schedule}</PreviewFact>:null}
       </View>:null}
+    {showReview&&!reviewInFooter?<View style={s.reviewAction}>
+      <Press testID="worker-draft-review" accessibilityRole="button" accessibilityLabel="Pregledaj profil"
+        accessibilityHint={disabled&&reviewReason?reviewReason:'Otvara sve podatke pre završnog čuvanja.'}
+        accessibilityState={{disabled}} disabled={disabled}
+        onPress={() => { if (!disabled) review(); }} haptic={disabled?'none':'select'}
+        style={[s.reviewButton, disabled && s.reviewButtonDisabled]}>
+        <T variant="note" style={[s.reviewButtonText, disabled && s.muted]}>Pregledaj profil</T>
+        <ReviewCue disabled={disabled}/>
+      </Press>
+      {disabled&&reviewReason?<T accessibilityLiveRegion="polite" variant="note" tone="muted">{reviewReason}</T>:null}
+    </View>:null}
   </Surface>;
 }
 function ReviewCue({disabled}:{disabled:boolean}){
@@ -124,12 +127,35 @@ function ReviewGroup({part,onEdit,editDisabled=false,children}:{part:WorkerAiPar
     <View style={s.groupBody}>{children}</View>
   </View>;
 }
+
+/** Explicit choices are a NEW signed review, never an automatic classification.
+ * No selection is pre-filled for pending skills. Each service is independent.
+ */
+export function WorkerAiModeConfirmation({skills,choices,disabled,onChange}:{
+  skills:readonly string[];choices:Readonly<Record<string,WorkerAiModeChoice|undefined>>;
+  disabled:boolean;onChange:(service:string,mode:WorkerAiModeChoice)=>void;
+}){
+  return <Surface kind="panel" testID="worker-explicit-mode-confirmation">
+    <T variant="bodyStrong">Gde obavljaš ove poslove?</T>
+    <T variant="note" tone="muted">Izaberi za svaki posao posebno. Ovo je tvoja potvrda, ne pretpostavka asistenta.</T>
+    {skills.map(skill=><View key={skill} style={{gap:sys.space.xs}}>
+      <T variant="bodyStrong">{skill}</T>
+      <FactChoiceEditor label={`Način rada za: ${skill}`}
+        options={[{value:'ON_SITE',label:'Na lokaciji'},{value:'REMOTE',label:'Na daljinu'},{value:'BOTH',label:'Oba načina'}]}
+        value={choices[skill]??null} disabled={disabled}
+        onChange={value=>onChange(skill,value as WorkerAiModeChoice)}/>
+    </View>)}
+    <T variant="note" tone="muted">Ako kategorija još nije potvrđena, profil može da se sačuva, ali automatsko povezivanje će sačekati. Nijedna opcija neće uključiti obaveštenja sama od sebe.</T>
+  </Surface>;
+}
+
 /** Owner 2026-10-07: the interview ends by saying what the profile is for — ink with the bell, not grey small print. */
 // "novim i već otvorenim": publishing queues new tasks, and saving the profile re-queues the open ones (requeue_open_needs_for_worker_v5).
 export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Podaci iz tvog radnog profila koriste se za obaveštenja o novim i već otvorenim zadacima koji odgovaraju tvojim veštinama, području i vremenu.';
-export function WorkerAiNotificationsNote(){
+export const WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE='Profil možeš da sačuvaš, ali automatska obaveštenja za nepotvrđene poslove neće stizati dok kategorija i način rada ne budu potvrđeni.';
+export function WorkerAiNotificationsNote({matchingReady=true}:{matchingReady?:boolean}={}){
   return <Surface kind="note" style={s.noteBox}><FactArt kind="bell" size={24} cut="art"/>
-    <T testID="worker-review-notifications-note" variant="note" style={[s.grow,s.ink]}>{WORKER_PROFILE_NOTIFICATIONS_NOTE}</T></Surface>;
+    <T testID="worker-review-notifications-note" variant="note" style={[s.grow,s.ink]}>{matchingReady?WORKER_PROFILE_NOTIFICATIONS_NOTE:WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE}</T></Surface>;
 }
 /** The server names the missing name "Ime"; it is the name of the ACCOUNT now (owner, 8 Oct 2026), so that is what the person is told to add. */
 const missingLabel=(label:string)=>label==='Ime'?'Ime naloga':label;
@@ -155,8 +181,23 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
       <T accessibilityRole="alert" variant="body" style={[s.grow,s.ink]}>Dopuni: {review.missingRequired.map(missingLabel).join(', ')}.</T></View>:null}
     {review.missingRequired.includes('Ime')&&onAddName?<V2Action label="Dodaj ime" kind="secondary" compact onPress={onAddName} style={s.addName}/>:null}
     <ReviewGroup part="skills" {...group}>
-      {p.skills.length?<View style={s.chips}>{p.skills.map((skill,index)=><View key={`${index}:${skill}`} style={s.chip}>
-        <T selectable variant="note" style={s.chipText}>{skill}</T></View>)}</View>:<T variant="body" tone="muted">{EMPTY}</T>}
+      {p.skills.length?<View style={s.chips}>{p.skills.map((skill,index)=>{
+        // Scope shown here is part of the server-digested review, not a client
+        // inference or a second approval form. Unclassified skills show no fake scope.
+        const scopes=review.classificationState==='READY'
+          ?review.reviewedServiceModes?.filter(item=>item.service===skill).map(item=>item.mode==='ON_SITE'?'Na lokaciji':'Na daljinu')??[]
+          :[];
+        return <View key={`${index}:${skill}`} style={s.chip}>
+          <T selectable variant="note" style={s.chipText}>{skill}</T>
+          {scopes.length?<T variant="note" tone="muted">{scopes.join(' · ')}</T>:null}
+        </View>;
+      })}</View>:<T variant="body" tone="muted">{EMPTY}</T>}
+      {review.classificationState&&review.classificationState!=='READY'
+        ?<T testID="worker-classification-pending" variant="note" tone="muted">
+          {review.classificationState==='SERVICE_MODE_CONFIRMATION_REQUIRED'
+            ?'Za deo usluga nije potvrđeno da li ih radiš na lokaciji ili na daljinu. U razgovoru razjasni način rada za svaku uslugu. Profil možeš da sačuvaš, ali automatske ponude sačekaće potvrdu.'
+            :'Poslovi koje nudiš ostaju u profilu, ali automatsko pronalaženje odgovarajućih zadataka čeka potvrdu kategorija. U razgovoru preciziraj nejasne usluge.'}
+        </T>:null}
     </ReviewGroup>
     <ReviewGroup part="area" {...group}>
       <Fact art="pin" quiet={!place}>{place?`${place} · do ${p.location.radiusKm} km`:EMPTY}</Fact>
@@ -275,7 +316,7 @@ export function WorkerAiManual({profile,disabled,apply,initialDraft,onDraftChang
   const body=!only?<>
     <T variant="meta" tone="muted">Izmene ostaju u predlogu do završnog pregleda i čuvanja. U polja sa više stavki upiši jednu stavku po redu.</T>
     <View style={s.section}><T variant="heading" style={s.ink}>Šta radiš</T>
-      <Field disabled={disabled} label="Veštine i usluge" value={skills} change={v=>change('skills',v)} multiline/>
+      <Field disabled={disabled} label="Poslovi koje nudiš" value={skills} change={v=>change('skills',v)} multiline/>
       <Field disabled={disabled} label="Alat i oprema" value={tools} change={v=>change('tools',v)} multiline/><Field disabled={disabled} label="Vozila" value={vehicles} change={v=>change('vehicles',v)} multiline/>
       <Field disabled={disabled} label="O meni" value={bio} change={v=>change('bio',v)} multiline/></View>
     {area}
@@ -283,7 +324,7 @@ export function WorkerAiManual({profile,disabled,apply,initialDraft,onDraftChang
     <T variant="meta" tone="muted">Izmena ostaje u predlogu do završnog pregleda i čuvanja.</T>
     {only==='identity'?<View style={s.section}>
       <Field disabled={disabled} label="O meni" value={bio} change={v=>change('bio',v)} multiline/></View>:null}
-    {only==='skills'?listEditor('skills','Veštine i usluge',skills):null}
+    {only==='skills'?listEditor('skills','Poslovi koje nudiš',skills):null}
     {only==='tools'?<>{listEditor('tools','Alat i oprema',tools)}{listEditor('vehicles','Vozila',vehicles)}</>:null}
     {only==='area'?area:null}
   </>;
@@ -301,18 +342,24 @@ const s=StyleSheet.create({
   ink:{color:sys.color.ink},
   muted:{color:sys.color.muted},
   grow:{flex:1,minWidth:0},
-  card:{paddingHorizontal:sys.space.base,paddingVertical:sys.space.sm,gap:sys.space.xs,minHeight:layout.touch,
-    backgroundColor:sys.conversation.summary,borderColor:sys.conversation.edge},
-  cardCompact:{paddingVertical:sys.space.sm,borderRadius:sys.radius.cardCompact},
+  card:{
+    paddingHorizontal:sys.space.base,paddingVertical:sys.space.md,gap:sys.space.sm,minHeight:layout.touch,
+    backgroundColor:'#FFFFFF',borderRadius:18,borderWidth:1.5,borderColor:'#E2ECE6',
+    shadowColor:'#0E2920',shadowOffset:{width:0,height:4},shadowOpacity:0.08,shadowRadius:12,elevation:3,
+  },
+  cardCompact:{paddingVertical:sys.space.sm,borderRadius:14},
+  cardBadge:{fontSize:11,fontWeight:'700',color:sys.color.green,letterSpacing:0.6},
   previewHead:{minHeight:48,flexDirection:'row',alignItems:'center',gap:sys.space.md},
-  previewSummary:{gap:sys.space.xs},
+  previewSummary:{gap:2},
   skillHeading:{color:sys.color.ink},
-  previewFacts:{gap:sys.space.sm},
+  previewFacts:{gap:sys.space.sm,paddingVertical:sys.space.xs},
   previewFact:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.sm},
-  reviewAction:{gap:sys.space.xs},
-  reviewLink:{minHeight:48,flexDirection:'row',alignItems:'center',gap:sys.space.sm},
-  reviewLabel:{flex:1,minWidth:0,color:sys.color.ink,fontWeight:'700'},
-  reviewCue:{flexShrink:0,width:28,height:28,borderRadius:sys.radius.pill,backgroundColor:sys.color.ink,alignItems:'center',justifyContent:'center'},
+  reviewAction:{gap:sys.space.xs,paddingTop:sys.space.xs},
+  reviewButton:{minHeight:48,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:sys.space.sm,
+    backgroundColor:sys.color.green,borderRadius:14,paddingHorizontal:sys.space.base},
+  reviewButtonDisabled:{backgroundColor:sys.conversation.iconWell},
+  reviewButtonText:{color:'#FFFFFF',fontWeight:'700',fontSize:15},
+  reviewCue:{flexShrink:0,width:26,height:26,borderRadius:sys.radius.pill,backgroundColor:'rgba(255,255,255,0.22)',alignItems:'center',justifyContent:'center'},
   reviewCueDisabled:{backgroundColor:sys.conversation.iconWell},
   progress:{flexDirection:'row',gap:sys.space.sm,paddingTop:sys.space.xs,paddingBottom:sys.space.xs},
   progressStacked:{flexWrap:'wrap',rowGap:sys.space.sm},

@@ -698,6 +698,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
           {snapshot?.locationConflict ? <Surface kind="note" tone="warn"><T accessibilityRole="alert" style={s.warnText}>
             Mesto je promenjeno posle prethodnog pregleda. Prikazano je trenutno mesto; pregledaj ga ili izmeni pre objave.
           </T></Surface> : null}
+          {/* A legacy review has NO signed classification authority either. Do not
+              suggest workers will be notified merely because publication succeeded. */}
+          {review.classificationState !== 'READY' ?
+            <Surface kind="note" tone="warn"><T variant="note">
+              Vrsta posla još nije potvrđena za automatsko povezivanje sa radnicima. Zadatak može da bude objavljen, ali preporuke će sačekati proveru kategorije.
+            </T></Surface> : null}
           {/* The task detail as it is published: Airbnb-style clean preview with zero redundant intermediate cards. */}
           <ReviewDetail need={need} parts={parts} person={reviewer} knownPeopleCount={knownPeopleCount}
             photos={photoAssets.length ? <ReviewGallery key={photoAssets.join(':')} assetIds={photoAssets} pencil={photosAt} />

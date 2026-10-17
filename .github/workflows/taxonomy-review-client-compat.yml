@@ -1,0 +1,42 @@
+name: Signed Need and Worker review client compatibility
+on:
+  pull_request:
+    paths:
+      - 'src/data/aiTaskReviewClientService.ts'
+      - 'src/data/workerAiClientService.ts'
+      - 'src/data/__tests__/worker-ai-client.test.ts'
+      - 'src/ui/workerProfile/WorkerAiPresentation.tsx'
+      - 'src/ui/workerProfile/__tests__/worker-review-parts.test.tsx'
+      - 'src/app/(app)/profil/razgovor.tsx'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/worker-review-signed-classification-v1.sql'
+      - 'supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs'
+      - 'src/data/__tests__/ai-task-review-client.test.ts'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/need-review-signed-classification-v1.sql'
+      - '.github/workflows/taxonomy-review-client-compat.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  strict-review-decoder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies without native postinstall
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Check staged worker builder preserves owner binding and signed mode order (source only)
+        run: node --test supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs
+      - name: Check old review + signed category identity contract
+        run: npx jest src/data/__tests__/ai-task-review-client.test.ts src/data/__tests__/worker-ai-client.test.ts --runInBand --silent
+      - name: Verify worker review notification copy for pending and confirmed matching
+        run: npx jest src/ui/workerProfile/__tests__/worker-review-parts.test.tsx --runInBand --silent
+      - name: Restore generated entry reference contracts from canonical HTML
+        run: node ./scripts/sync-entry-reference-assets.cjs
+      - name: Type-check the complete React Native client contracts
+        run: npx tsc --noEmit --pretty false
