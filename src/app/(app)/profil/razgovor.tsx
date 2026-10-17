@@ -384,13 +384,13 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
       {data.saved?<T accessibilityRole="alert" variant="title" style={{color:sys.color.green}}>Profil je sačuvan{data.saved.profileStatus==='ACTIVE'?' i aktivan':''}.</T>:null}
       <WorkerAiReviewDetails review={frozen} onEdit={data.saved?undefined:editPart} editDisabled={!enabled||!writable||expired||reviewNeedsRestart}
         onAddName={data.saved||expired?undefined:()=>leave(()=>router.push('/profil/podaci'))}/>
-      {workerExplicitModeReviewEnabled()&&!data.saved?<WorkerAiModeConfirmation
+      {workerExplicitModeReviewEnabled()&&!data.saved&&frozen.classificationState!==undefined&&frozen.classificationState!=='READY'?<WorkerAiModeConfirmation
         skills={frozen.profile.skills} choices={currentModes}
         disabled={!enabled||!writable||expired||reviewNeedsRestart||editor.busy}
         onChange={(service,choice)=>setModeDraft(old=>({
           source:modesSource,values:{...(old.source===modesSource?old.values:{}),[service]:choice}
         }))}/>:null}
-      {workerExplicitModeReviewEnabled()&&!data.saved?<V2Action tone="neutral"
+      {workerExplicitModeReviewEnabled()&&!data.saved&&frozen.classificationState!==undefined&&frozen.classificationState!=='READY'?<V2Action tone="neutral"
         label="Potvrdi način rada za sve poslove"
         disabled={!selectedModes||!enabled||!writable||expired||editor.busy||reviewNeedsRestart}
         reason={!selectedModes?'Izaberi način rada posebno za svaki posao.':null}

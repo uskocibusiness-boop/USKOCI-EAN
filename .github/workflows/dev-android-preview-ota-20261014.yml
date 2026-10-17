@@ -33,6 +33,8 @@ jobs:
       # Only this DEV preview client opts into existing versioned, signed review RPCs.
       EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW: 'true'
       EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'true'
+      # DEV preview ONLY: owner chooses ON_SITE/REMOTE/BOTH per pending service.
+      EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES: 'true'
     steps:
       - name: Checkout exact owner-requested feature branch
         uses: actions/checkout@v4
@@ -72,6 +74,8 @@ jobs:
           EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW: 'false'
           EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'false'
         run: npx jest src/data/__tests__/ai-task-review-client.test.ts src/data/__tests__/worker-ai-client.test.ts --runInBand --silent
+      - name: Verify worker per-service selection UI and transport before preview OTA
+        run: npx jest src/ui/workerProfile/__tests__/worker-review-parts.test.tsx src/data/__tests__/worker-ai-client.test.ts --runInBand --silent
       - name: Verify signed reviews, precise service consent and natural worker-interview safety
         # The coverage proof prevents partial Gemini proposals from being
         # presented as already-confirmed worker service or notification consent.
@@ -82,6 +86,7 @@ jobs:
           set -euo pipefail
           test "${EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW}" = 'true'
           test "${EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW}" = 'true'
+          test "${EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES}" = 'true'
           test "${EXPO_PUBLIC_SUPABASE_URL}" = 'https://leqcwgzvjsxugfgzdmth.supabase.co'
       - name: Publish latest feature-branch client to Android preview ONLY
         shell: bash
