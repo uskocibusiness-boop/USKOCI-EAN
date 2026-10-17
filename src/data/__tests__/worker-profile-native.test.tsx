@@ -576,7 +576,7 @@ describe('the saved profile is read first', () => {
     expect(texts()).toContain('Šta radiš'); expect(texts()).toContain('Prevoz, utovar');
     expect(texts()).toContain('Gde'); expect(texts()).toContain('Novi Sad · 20 km');
     expect(texts()).toContain('Kada'); expect(texts()).toContain('Mogu odmah'); expect(texts()).not.toContain('Mogu odmah · dostupnost'); expect(texts()).toContain('Nedeljni raspored');
-    expect(texts()).toContain('Oprema'); expect(texts()).toContain('Alat'); expect(texts()).toContain('Bušilica'); expect(texts()).toContain('Vozila'); expect(texts()).toContain('Kombi');
+    expect(texts()).not.toContain('Oprema'); expect(texts()).not.toContain('Alat'); expect(texts()).not.toContain('Vozila');
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Izmeni: O meni' })).toHaveLength(0);
     // The two buttons of the older reading ("Izmeni razgovorom" and "Izmeni ručno") are gone, and so is the notifications row: the rows lead to the part they change.
     for (const gone of ['Izmeni razgovorom', 'Izmeni ručno', 'Obaveštenja o zadacima', 'Područje rada', 'Dostupnost']) expect([gone, tree.root.findAllByProps({ accessibilityLabel: gone }).length]).toEqual([gone, 0]);
@@ -607,10 +607,10 @@ describe('the saved profile is read first', () => {
       'Javni profil: ime, „O meni“ i grad vide osobe koje otvore tvoj profil.',
       'Zadaci · Za mene: lista po tvom području i vremenu.']);
   });
-  it('says what tools and vehicles do now that MATCH-V1 is applied behind the "ⓘ" of Oprema: information only, no condition of a task', async () => {
+  it('keeps saved profile streamlined without equipment block', async () => {
     await renderReading();
-    expect(infoLines('worker-kit-info')).toEqual(['Samo informacija: ne utiču na pretragu ni na obaveštenja.']);
-    expect(texts()).toContain('Oprema'); expect(texts()).not.toContain('samo informacija'); expect(texts()).not.toMatch(/ne nudi i ne možeš da se prijaviš/);
+    expect(tree.root.findAllByProps({ testID: 'worker-kit-info' })).toHaveLength(0);
+    expect(texts()).not.toContain('Oprema');
   });
   it('the explanations of the hand-edited profile are behind the bar\'s "ⓘ": the equipment note and the people count only there', async () => {
     await renderReading();
