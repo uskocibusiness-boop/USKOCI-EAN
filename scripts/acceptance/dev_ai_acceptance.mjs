@@ -295,6 +295,71 @@ async function needScenario() {
   return scenario;
 }
 
+// One owner-directed turn at a time. The CI environment supplies the existing
+// QA account's credential; each call uses the same Auth/RPC/Edge boundaries as
+// the app and keeps the AI's question in the sanitized report.
+async function customNeedScenario() {
+  const conversationId = process.env.DEV_ACCEPTANCE_CONVERSATION_ID ?? '';
+  const message = process.env.DEV_ACCEPTANCE_MESSAGE ?? '';
+  const reviewId = process.env.DEV_ACCEPTANCE_REVIEW_ID ?? '';
+  const requestId = process.env.DEV_ACCEPTANCE_REQUEST_ID ?? '';
+  if (scenarios === 'custom_need_turn') {
+    if (!message || message.length > 2000) throw new Error('CUSTOM_MESSAGE_REQUIRED_OR_TOO_LONG');
+    const opened = conversationId
+      ? { conversationId }
+      : await rpc('rpc_ai_open_need_conversation_owned_v2', { p_client_request_id: randomUUID() });
+    const key = randomUUID();
+    const response = await providerTurn('uskoci-ai-interview', opened.conversationId, key, message);
+    const turn = await rpc('rpc_ai_read_need_turn_v2', { p_conversation_id: opened.conversationId, p_client_request_id: key });
+    const result = { conversationId: opened.conversationId, userText: message, assistantText: response.assistantText,
+      httpStatus: response.status, error: response.error ?? response.json?.code ?? null,
+      final: response.final, turnState: turn?.state ?? null, retryAllowed: turn?.retryAllowed ?? null };
+    if (result.error || response.status !== 200) report.result = 'INCOMPLETE';
+    return result;
+  }
+  if (scenarios === 'custom_need_review') {
+    if (!conversationId) throw new Error('CUSTOM_CONVERSATION_REQUIRED');
+    const preview = await rpc('rpc_ai_need_review_v2', { p_conversation_id: conversationId });
+    const review = await rpc('rpc_prepare_ai_task_review',
+      { p_conversation_id: conversationId, p_response_deadline: null, p_location: null });
+    return { conversationId, preview, reviewId: review.reviewId, canAccept: review.canAccept,
+      missingRequired: review.missingRequired, publicProjection: review.publicProjection,
+      location: review.location, safety: review.safety };
+  }
+  if (scenarios === 'custom_need_publish') {
+    if (!reviewId || !requestId) throw new Error('CUSTOM_REVIEW_AND_REQUEST_REQUIRED');
+    let read = await rpc('rpc_read_ai_task_review', { p_review_id: reviewId });
+    if (!read?.review?.canAccept) throw new Error('CUSTOM_REVIEW_NOT_ACCEPTABLE');
+    let command = read.command;
+    if (!command) command = await rpc('rpc_accept_ai_task_review', {
+      p_review_id: reviewId, p_displayed_content_digest: read.review.displayedContentDigest,
+      p_client_request_id: requestId,
+    });
+    if (command.clientRequestId !== requestId) throw new Error('CUSTOM_COMMAND_ID_MISMATCH');
+    let evaluated = null;
+    if (command.state === 'ACCEPTED') {
+      evaluated = await api('/functions/v1/uskoci-publication-evaluate', {
+        method: 'POST', body: JSON.stringify({ needId: command.needId,
+          expectedRevision: command.needRevision, acceptedReviewId: reviewId }),
+      }, { timeout: 55000 });
+      read = await rpc('rpc_read_ai_task_review', { p_review_id: reviewId });
+      command = read.command;
+    }
+    if (command.state === 'EVALUATED' && command.evaluation?.kind === 'DECISION'
+      && command.evaluation.decision?.outcome === 'ALLOW') {
+      command = await rpc('rpc_publish_accepted_ai_task_review',
+        { p_review_id: reviewId, p_client_request_id: requestId });
+    }
+    const need = command.needId
+      ? await api(`/rest/v1/needs?id=eq.${command.needId}&select=id,status,revision,title,description,approximate_city`)
+      : null;
+    if (command.state !== 'PUBLISHED' || need?.body?.[0]?.status !== 'PUBLISHED') report.result = 'INCOMPLETE';
+    return { reviewId, command, evaluationHttpStatus: evaluated?.status ?? null,
+      evaluation: evaluated?.body ?? null, readback: need?.body ?? null };
+  }
+  throw new Error('CUSTOM_SCENARIO_UNKNOWN');
+}
+
 /**
  * Close an unknown-outcome turn the way the app does: the owning signed-in account
  * calls the canonical cancel RPC. It marks the turn FAILED with a cancellation time
@@ -315,6 +380,11 @@ try {
   if (process.env.DEV_ACCEPTANCE_CANCEL) {
     report.scenarios.turnCancellation = await cancelTurn(process.env.DEV_ACCEPTANCE_CANCEL);
     report.result = report.scenarios.turnCancellation.after?.turn?.state === 'FAILED' ? 'PASS' : 'INCOMPLETE';
+    throw { skipScenarios: true };
+  }
+  if (scenarios.startsWith('custom_need_')) {
+    report.scenarios.customNeed = await customNeedScenario();
+    if (report.result === 'RUNNING') report.result = 'PASS';
     throw { skipScenarios: true };
   }
   if (scenarios === 'both' || scenarios === 'worker') report.scenarios.workerProfile = await workerScenario();

@@ -18,7 +18,23 @@ on:
         description: Which acceptance scenarios to run
         type: choice
         default: both
-        options: [both, worker, need]
+        options: [both, worker, need, custom_need_turn, custom_need_review, custom_need_publish]
+      conversation_id:
+        description: Existing AI conversation ID for a follow-up turn or review
+        type: string
+        required: false
+      message:
+        description: User-approved text for one AI turn
+        type: string
+        required: false
+      review_id:
+        description: Prepared review ID to publish
+        type: string
+        required: false
+      request_id:
+        description: Stable idempotency key for publication
+        type: string
+        required: false
       max_provider_calls:
         description: Hard ceiling of real provider calls for this run
         type: string
@@ -60,6 +76,10 @@ jobs:
           DEV_ACCEPTANCE_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
           DEV_ACCEPTANCE_SCENARIOS: ${{ inputs.scenarios }}
           DEV_ACCEPTANCE_MAX_PROVIDER_CALLS: ${{ inputs.max_provider_calls }}
+          DEV_ACCEPTANCE_CONVERSATION_ID: ${{ inputs.conversation_id }}
+          DEV_ACCEPTANCE_MESSAGE: ${{ inputs.message }}
+          DEV_ACCEPTANCE_REVIEW_ID: ${{ inputs.review_id }}
+          DEV_ACCEPTANCE_REQUEST_ID: ${{ inputs.request_id }}
           DEV_ACCEPTANCE_OUT: artifacts/dev-acceptance
         run: node scripts/acceptance/dev_ai_acceptance.mjs
       - name: Keep the sanitized evidence
