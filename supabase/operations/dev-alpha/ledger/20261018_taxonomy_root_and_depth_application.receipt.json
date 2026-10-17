@@ -26,7 +26,7 @@
   "transportNote": "The connected migration tool stored each LF source plus a trailing CRLF from the shell reader. SHA-256 of local bytes plus those exact two bytes equals storedSha256 for both statements.",
   "proof": {
     "before": "The old batch writer rejected a signed CREATE_NEW_BRANCH plan with BATCH_SCOPE_OR_SERVICE_INVALID. The old catalog reader rejected a synthetic 40-level path with CATALOG_PARENT_OR_MODE_INTEGRITY_ERROR.",
-    "afterInRollback": "The v3 signed worker projection returned a null-parent root plan. The v3 writer created a synthetic two-level ON_SITE worker root path and replay returned the same receipt. After application, a synthetic REMOTE requester review created a one-level root path. The new catalog reader returned the 40-level path. Forward plus revert restored exact old function MD5 values. All synthetic sessions, hints, reviews and categories were rolled back.",
+    "afterInRollback": "The v3 signed worker projection returned a null-parent root plan. The v3 writer created a synthetic two-level ON_SITE worker root path and replay returned the same receipt. After application, a synthetic REMOTE requester review created a one-level root path. CREATE_CHILD added two new descendants under a synthetic 40-level parent, yielding depth 42. The new catalog reader returned a 40-level path. A wrong-mode parent and a duplicate root identity across modes stayed PENDING_CLASSIFICATION. Forward plus revert restored exact old function MD5 values. All synthetic sessions, hints, reviews and categories were rolled back.",
     "closureProgramDigest": "90d60aa9529996103b91ca54fb4be94770d6862453fbe521f878c603d6ab3f1e",
     "closureSchemaDigest": "cf46968b2eba30cedca7e4b1cdddc63e6e31862fa38eae64952a3acb714e3275"
   },
@@ -64,6 +64,7 @@
     "No actual worker capability or requester task was bound to a newly created category.",
     "No compatible native APK, emulator journey, physical-phone test, matching or push delivery was proved.",
     "The AI catalog loader still caps complete pagination at 800 categories per execution mode and fails closed above that limit.",
+    "An established category in only one execution mode cannot automatically gain the other mode. The system safely leaves that case pending rather than duplicating its global canonical ID.",
     "The pre-existing live-versus-recorded closure certificate mismatch remains open."
   ]
 }

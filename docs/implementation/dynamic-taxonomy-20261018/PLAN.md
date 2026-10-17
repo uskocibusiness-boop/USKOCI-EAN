@@ -35,7 +35,8 @@ Postoje dva različita slučaja:
 - AI katalog trenutno dobija najviše 8 stranica po 100 čvorova po opsegu; to nije model za neograničen rast. Prompt šalje samo relevantnu listu do 96 stavki po intervjuu. Kratki tehnički token „3D“ ranije je bio izbačen iz rangiranja; source je ispravljen i pokriven testom.
 - SQL koji gradi putanje za AI imao je granicu 32 pretka; sada je uklonjena uz zaštitu od ciklusa i vremenski limit. Sintetička putanja od 40 nivoa prošla je u transakcionoj probi i sve probe su vraćene. JS katalog prihvata dublje putanje uz ograničenje veličine odgovora.
 - Stari zasebni kandidat `gemini-turn-root-hints-v2.sql` nije primenjen; objedinjeni v3 paket sadrži istu capture izmenu. Ne primenjivati ga naknadno.
-- Dijagnostičke klase za `INVALID_PLAN` su u Edge source-u, ali nisu deploy-ovane. Pet ranijih logova za task AI pokazuju `INVALID_PLAN`, a DEV hint tabela je prazna.
+- Dijagnostičke klase za `INVALID_PLAN` su sada u obe žive Edge funkcije. Pet ranijih logova za task AI pokazuju `INVALID_PLAN`, ali nema novog stvarnog poziva koji bi pokazao uzrok tih starijih logova; DEV hint tabela je prazna.
+- Jedna kategorija postoji globalno, a režimi su zasebne veze. U DEV katalogu 134 kategorije imaju jedan režim i jedna oba. Ako naziv već postoji samo za `ON_SITE`, pokušaj nove `REMOTE` glavne grane sa istim kanonskim nazivom ostaje `PENDING_CLASSIFICATION`; sistem ne pravi drugi ID. Proširenje postojećeg ID-a na drugi režim traži poseban, jasno potvrđen i bezbednosno proveren tok; ne podrazumevati da je svaka terenska usluga moguća online.
 
 ## Redosled implementacije i dokaza
 
@@ -53,6 +54,8 @@ Jedan nepoznat posao u zadatku i isti posao na radničkom profilu prolaze razgov
 ## Source provera ovog prolaza
 
 `classificationEngine.mjs` zadržava tehnički token `3D`, odbija roditelja u pogrešnom režimu i prihvata putanje dublje od 32 nivoa. `classificationGeminiShadow.mjs` čuva `CREATE_NEW_BRANCH` kao neautoritativan hint i modelu sada eksplicitno kaže da poslednji segment bude korisnikova usluga, uz najviše šest novih segmenata po potvrdi. DEV transakcione probe pokazale su FAIL pre / PASS posle za root i duboku putanju, sintetički dvonivovski root upis i idempotentni replay. Revert u transakciji vraća tačne prethodne MD5 definicije; closure digest je isti. Ciljni dinamičko-taksonomski testovi: **138/138**; dva klijentska paketa: **80/80**; TypeScript provera: prolaz. Nije potvrđen validan Gemini hint iz stvarnog razgovora, stvarni korisnički upis, vezivanje na profil/zadatak ili push.
+
+Dodatne DEV probe su potvrdile sintetički `REMOTE` root za naručioca i dva nova potomka ispod roditelja na dubini 40 (novi list na dubini 42). Roditelj u pogrešnom režimu i pokušaj dupliranja globalnog kanonskog naziva u drugom režimu ostali su na čekanju. Sve je vraćeno `ROLLBACK`-om; katalog i dalje ima 135 čvorova, verziju 3.
 
 Ceo `npm test` gate nije zelen: 607 paketa je prošlo, 12 palo (13.770 prolaznih, 50 palih i 9 preskočenih testova). Pali paketi obuhvataju stare kontrakte navigacije, Reanimated patch i UI/mokove radnog razgovora; ciljni testovi taksonomije su prošli. Ove padove ne prikazivati kao odobrenje za izdavanje APK-a. Izolovani spisak neuspeha je sačuvan u projektnom radnom direktorijumu, van repozitorijuma.
 
