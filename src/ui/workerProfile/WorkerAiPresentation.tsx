@@ -130,9 +130,10 @@ function ReviewGroup({part,onEdit,editDisabled=false,children}:{part:WorkerAiPar
 /** Owner 2026-10-07: the interview ends by saying what the profile is for — ink with the bell, not grey small print. */
 // "novim i već otvorenim": publishing queues new tasks, and saving the profile re-queues the open ones (requeue_open_needs_for_worker_v5).
 export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Podaci iz tvog radnog profila koriste se za obaveštenja o novim i već otvorenim zadacima koji odgovaraju tvojim veštinama, području i vremenu.';
-export function WorkerAiNotificationsNote(){
+export const WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE='Profil možeš da sačuvaš, ali automatska obaveštenja za nepotvrđene poslove neće stizati dok kategorija i način rada ne budu potvrđeni.';
+export function WorkerAiNotificationsNote({matchingReady=true}:{matchingReady?:boolean}={}){
   return <Surface kind="note" style={s.noteBox}><FactArt kind="bell" size={24} cut="art"/>
-    <T testID="worker-review-notifications-note" variant="note" style={[s.grow,s.ink]}>{WORKER_PROFILE_NOTIFICATIONS_NOTE}</T></Surface>;
+    <T testID="worker-review-notifications-note" variant="note" style={[s.grow,s.ink]}>{matchingReady?WORKER_PROFILE_NOTIFICATIONS_NOTE:WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE}</T></Surface>;
 }
 /** The server names the missing name "Ime"; it is the name of the ACCOUNT now (owner, 8 Oct 2026), so that is what the person is told to add. */
 const missingLabel=(label:string)=>label==='Ime'?'Ime naloga':label;

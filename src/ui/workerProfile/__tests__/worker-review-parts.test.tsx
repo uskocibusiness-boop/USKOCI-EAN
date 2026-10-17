@@ -11,7 +11,7 @@ jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ReviewedWorkAreaMap' }));
 
-import { WORKER_PROFILE_NOTIFICATIONS_NOTE, WorkerAiManual, WorkerAiNotificationsNote, WorkerAiProgress, WorkerAiReviewDetails } from '../WorkerAiPresentation';
+import { WORKER_PROFILE_NOTIFICATIONS_NOTE, WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE, WorkerAiManual, WorkerAiNotificationsNote, WorkerAiProgress, WorkerAiReviewDetails } from '../WorkerAiPresentation';
 import { TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY, capturedParts, toolsAndVehiclesNote, type WorkerAiPart } from '../workerProfileFacts';
 import { sys } from '../../system/tokens';
 
@@ -104,6 +104,14 @@ describe('the review in parts (M2)', () => {
     const note = tree.root.findByProps({ testID: 'worker-review-notifications-note' });
     expect(note.props.children).toBe(WORKER_PROFILE_NOTIFICATIONS_NOTE); expect(note.props.tone).toBeUndefined();
     expect(note.props.variant).not.toBe('meta');
+  });
+
+  it('does not promise matching notifications when signed worker classification is pending', async () => {
+    await act(async () => { tree = create(<WorkerAiNotificationsNote matchingReady={false} />); });
+    const note = tree.root.findByProps({ testID: 'worker-review-notifications-note' });
+    expect(note.props.children).toBe(WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE);
+    expect(note.props.children).toMatch(/neće stizati dok kategorija i način rada/);
+    expect(note.props.children).not.toBe(WORKER_PROFILE_NOTIFICATIONS_NOTE);
   });
 });
 
