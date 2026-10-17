@@ -5,12 +5,14 @@ on:
       - '.github/workflows/taxonomy-dark-launch-locked-pg-proof.yml'
       - 'supabase/candidates/dynamic-taxonomy-20261011/dev-dark-launch-locked.sql'
       - 'supabase/candidates/dynamic-taxonomy-20261011/dark-launch-assert.sql'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/dev-risk-action-vocabulary-20261017.sql'
   push:
     branches: [fix/match-ai-category-fallback-20261010]
     paths:
       - '.github/workflows/taxonomy-dark-launch-locked-pg-proof.yml'
       - 'supabase/candidates/dynamic-taxonomy-20261011/dev-dark-launch-locked.sql'
       - 'supabase/candidates/dynamic-taxonomy-20261011/dark-launch-assert.sql'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/dev-risk-action-vocabulary-20261017.sql'
 permissions:
   contents: read
 jobs:
@@ -52,6 +54,10 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -1 -f supabase/candidates/dynamic-taxonomy-20261011/dev-dark-launch-locked.sql
       - name: Prove server preview works but registration, user authority, DML and push remain disabled
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/dark-launch-assert.sql
+      - name: Verify reversible low-risk vocabulary without enabling auto registration
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/dev-risk-action-vocabulary-20261017.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/dev-risk-action-vocabulary-20261017.sql
       - name: Prove a repeat install fails closed without changing data
         run: |
           set -euo pipefail
