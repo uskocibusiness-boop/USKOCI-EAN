@@ -83,14 +83,6 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
         : <ListRow leading={<ClockArt size={32} quiet />} title="Mogu odmah" value={draft.dostupanOdmah ? 'Uključeno' : 'Isključeno'} />}
       {!readOnly ? <SettingsRow label="Nedeljni raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled} onPress={() => navigate('/profil/dostupnost')} last /> : null}
     </SettingsGroup>
-    {/* The tools and the vehicles are information only; that is the sentence behind the "ⓘ" at the title, not a chip or a line on the screen. */}
-    <View testID="worker-profile-kit" style={s.group}>
-      <InfoTitle title="Oprema" testID="worker-kit-info" info={[toolsAndVehiclesNote()]} />
-      <SettingsGroup>
-        <KitRow label="Alat" art="tool" items={draft.alati} />
-        <KitRow label="Vozila" art="vehicle" items={draft.vozila} last />
-      </SettingsGroup>
-    </View>
   </View>;
 }
 

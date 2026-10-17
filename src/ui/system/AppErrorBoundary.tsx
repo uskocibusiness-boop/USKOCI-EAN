@@ -14,21 +14,32 @@ import { brandAction, sys } from './tokens';
  * or go back to the start. It never shows the raw error to the person and never claims that anything was or
  * was not saved; the error goes to the log, where a development build shows it.
  */
+import { supabaseKlijent, supabaseKonfigurisan } from '../../data/supabaseClient';
+
 export function AppErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   if (__DEV__) console.error('[USKOČI] Screen failed to render', error);
   const home = () => {
     try { router.replace('/'); } catch { /* navigation itself is what failed; drawing again is the way out */ }
     void retry();
   };
+  const signOut = () => {
+    try {
+      if (supabaseKonfigurisan()) void supabaseKlijent().auth.signOut();
+      router.replace('/auth');
+    } catch {
+      router.replace('/auth');
+    }
+  };
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <View style={s.body}>
       <View accessible accessibilityRole="image" accessibilityLabel="USKOČI"><BrandMark size={56} /></View>
       <T accessibilityRole="header" variant="title" style={s.title}>Ovaj ekran se nije otvorio</T>
-      <T variant="body" tone="muted" style={s.center}>Pokušaj ponovo. Ako se ponovi, vrati se na početak aplikacije.</T>
+      <T variant="body" tone="muted" style={s.center}>Pokušaj ponovo ili se prijavi ponovo ako je sesija istekla.</T>
     </View>
     <View style={s.actions}>
       <V2Action label="Pokušaj ponovo" kind="primary" onPress={() => { void retry(); }} style={brandAction} />
       <V2Action label="Na početak" kind="quiet" onPress={home} />
+      <V2Action label="Prijavi se ponovo" kind="quiet" onPress={signOut} />
     </View>
   </SafeAreaView>;
 }

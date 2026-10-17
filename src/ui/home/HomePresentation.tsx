@@ -24,6 +24,7 @@ import { plural, prijava } from '../system/plural';
 import { useLayoutClass, useTextScale } from '../system/textScale';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { HomeLaunchArt } from './HomeLaunchArt';
+import { AnimatedRadar } from '../v2/RadarIcon';
 import { ListSkeleton } from '../notifications/ListSkeleton';
 import { HowItWorks } from './HowItWorks';
 
@@ -106,7 +107,9 @@ function StartActions({ onPublish, onEarn }: { onPublish: () => void; onEarn: ()
     <Press accessibilityRole="button" accessibilityLabel="Uskoči i zaradi" accessibilityHint="Pronađi zadatak."
       haptic="select" onPress={onEarn} scaleTo={sys.motion.scale.row} style={[s.door, materialControl.raised, { minHeight }]}>
       <View style={s.doorMain}>
-        <HomeLaunchArt kind="discover" size={DOOR_ART} />
+        <View style={{ width: DOOR_ART, height: DOOR_ART, alignItems: 'center', justifyContent: 'center' }}>
+          <AnimatedRadar size={Math.round(DOOR_ART * 0.72)} color={sys.color.ink} sweepColor={sys.color.orange} />
+        </View>
         <View style={s.doorCopy}>
           <T accessibilityRole="header" style={s.doorTitle}>Uskoči i zaradi</T>
           <T variant="copy" tone="muted">Pronađi zadatak.</T>
