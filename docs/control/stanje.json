@@ -1,14 +1,14 @@
 {
  "meta": {
-  "osvezeno": "2026-10-17T22:35:38Z",
+  "osvezeno": "2026-10-17T22:41:05Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "89bbb7a7",
-  "head_poruka": "feat(taxonomy): prepare signed CREATE_CHILD review path",
+  "head": "2310fb1b",
+  "head_poruka": "chore(taxonomy): prepare transactional DEV forward and revert",
   "server": {
-   "snimljeno": "2026-10-17T22:29:02Z",
-   "migracije": 276,
+   "snimljeno": "2026-10-17T22:39:56Z",
+   "migracije": 277,
    "dev_alpha": 86,
-   "poslednja": "uskoci_worker_confirmed_modes_review_dev_v1_20261017",
+   "poslednja": "create_child_v2_signed_review_dev_20261018",
    "sertifikat_ok": false,
    "privatni_status": "FRESH",
    "privatni_istorijski": null,
@@ -1037,11 +1037,11 @@
     },
     "S10": {
      "title": "Taxonomy candidate capture and explicit promotion (table-based)",
-     "status": "NOT STARTED",
-     "source_progress_20261018": "CREATE_CHILD v2 source candidate prepared for signed worker/need review and client display; SQL/Edge not applied, no new APK/OTA, provider or post-save proof. DEV read-only: 0 Gemini hints, catalog version 3, batch writer and binder present; three task Edge logs report INVALID_PLAN. Source adds text-free invalid-plan diagnostic classes. Transactional forward and exact live-body revert under supabase/candidates/dynamic-taxonomy-20261011/create-child-v2-{forward,revert}-dev.sql; disposable PG proof still open. No status light is advanced by source alone.",
+     "status": "IN PROGRESS",
+     "source_progress_20261018": "CREATE_CHILD v2 signed worker/need review SQL applied to canonical DEV as migration 20261017223855 (owner 'Primeni'); receipt: supabase/operations/dev-alpha/ledger/20261018_create_child_v2_signed_review_dev_application.receipt.json. Full forward dry run ended in ROLLBACK before application. Postflight: helper and both review bodies present, grants correct, closure digest unchanged, catalog version 3, Gemini hints 0. Client decoder/UI source prepared but no new APK/OTA. Edge invalid-plan diagnostics remain source-only; three prior task logs report INVALID_PLAN without reason. No paid provider, actual child creation, admission, binder, matching, push or phone proof. Pre-existing live/certified closure digest mismatch remains open.",
      "autonomous": false,
      "depends_on": "S06 result and corpus coverage report showing real unknown-term volume; owner approval",
-     "first_owner_boundary": "Owner approval of closure-certificate recertification and a compatible APK, plus 'primeni' (Q6). Do not build before the owner chooses this route."
+     "first_owner_boundary": "SQL review package approved and applied 2026-10-18. Edge deployment, any paid provider call, DEV data mutation, device/OTA release and closure recertification retain their separate gates; first prove compatible client and capture path."
     },
     "S11": {
      "title": "Opportunity push device proof (conditional on Q2)",

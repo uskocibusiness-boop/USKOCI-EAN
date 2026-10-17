@@ -5,10 +5,10 @@
     "migration": "20261002172532 dev_alpha_ex05_rc02_media_cancel_lock_order",
     "concurrencyAcceptance": false
   },
-  "generated_at": "2026-10-17T22:29:02Z",
-  "ledger_total": 276,
+  "generated_at": "2026-10-17T22:39:56Z",
+  "ledger_total": 277,
   "ledger_dev_alpha": 86,
-  "ledger_last": "uskoci_worker_confirmed_modes_review_dev_v1_20261017",
+  "ledger_last": "create_child_v2_signed_review_dev_20261018",
   "certificate_certified": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
   "cron": [
     {
@@ -510,7 +510,7 @@
   "project": "leqcwgzvjsxugfgzdmth",
   "certificate_live": "88cab17911f89a7d8d800ae229db568dd2aaed106395ad8acc3207917acd72ec",
   "retention_ai_ready": false,
-  "how": "Catalog, cron, ledger, full live digest and readiness read directly via dev_snapshot.sql at generated_at; Edge slug/version/verify_jwt inventory refreshed via list_edge_functions. Historical scoped evidence fields retain their named dates.",
+  "how": "Ledger count/name and closure digest refreshed after CREATE_CHILD v2 migration 20261017223855. Existing RPC/cron/Edge inventory retains its prior observation timestamps; no Edge function was deployed. Historical scoped evidence fields retain their named dates.",
   "private_current_status": "FRESH",
   "private_observed_at": "2026-10-01T11:42:14Z",
   "application_receipt": "supabase/operations/dev-alpha/ledger/20261002_ai_location_01_application.receipt.json",

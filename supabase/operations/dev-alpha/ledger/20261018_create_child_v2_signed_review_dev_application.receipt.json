@@ -1,0 +1,45 @@
+{
+  "package": "CREATE_CHILD_V2_SIGNED_REVIEW",
+  "state": "DEV_SQL_APPLIED_REVIEW_ONLY",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "authorization": "Owner replied 'Primeni' to the named CREATE_CHILD v2 DEV application request on 2026-10-18 local time.",
+  "migration": {
+    "version": "20261017223855",
+    "name": "create_child_v2_signed_review_dev_20261018",
+    "statementCount": 1,
+    "storedSha256": "00ddbcf3f3d16bef72df0afbaeff9506f757858d2f0fb65e7acc117d1c4dd967",
+    "localFile": "supabase/migrations/20261017223855_create_child_v2_signed_review_dev_20261018.sql",
+    "localSha256": "e5575614c0ccd24af807a2676f256f9afb054bcfc2c02339a09b57a7cf6f5c8f",
+    "transportNote": "The connected migration tool recorded the LF-only source plus one trailing CRLF emitted by the shell reader. Function bodies and preflight are the same; stored and local whole-statement hashes differ only by those final two bytes."
+  },
+  "preflight": {
+    "workerFunctionMd5": "6bf1fda8e6986c7efa48cfa1d9d4a099",
+    "needFunctionMd5": "34e3d195c3047d477ce77b30d7e859fe",
+    "geminiHintRows": 0,
+    "catalogVersion": 3,
+    "closureDigest": "88cab17911f89a7d8d800ae229db568dd2aaed106395ad8acc3207917acd72ec",
+    "recordedCertificateDigest": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb"
+  },
+  "dryRun": "Full forward SQL executed inside a DEV transaction ending in ROLLBACK; helper was present inside the transaction and the closure digest was unchanged.",
+  "postflight": {
+    "helperFunctionMd5": "675545ef79a4d3f2f08b442c1469872a",
+    "workerFunctionMd5": "24999ac82072a8a01ff2838ab1ae8406",
+    "needFunctionMd5": "aa87f3bba1970a4744476083f40e6801",
+    "helperExecutableByAnon": false,
+    "helperExecutableByAuthenticated": false,
+    "helperExecutableByServiceRole": false,
+    "workerReviewExecutableByAuthenticated": true,
+    "needReviewExecutableByAuthenticated": true,
+    "geminiHintRows": 0,
+    "catalogVersion": 3,
+    "closureDigest": "88cab17911f89a7d8d800ae229db568dd2aaed106395ad8acc3207917acd72ec",
+    "migrationRows": 1
+  },
+  "notProven": [
+    "No valid Gemini hint exists yet on DEV.",
+    "No paid provider call, actual CREATE_CHILD review, category admission, binder, matching or push proof was run.",
+    "No new APK, OTA, Edge function or physical-device change was made.",
+    "The pre-existing live-versus-recorded closure certificate mismatch remains open."
+  ],
+  "revertCandidate": "supabase/candidates/dynamic-taxonomy-20261011/create-child-v2-revert-dev.sql"
+}
