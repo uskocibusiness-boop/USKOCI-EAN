@@ -1,6 +1,6 @@
 # AI zadatak / radni profil — prvi povezani UX rez (18.10.2026)
 
-Opseg: EAN checkout `feature/unified-qa-master-20261017`, izvorni kod. Ovaj zapis ne potvrđuje novu instalaciju APK-a, Edge primenu ili novi AI poziv. Canonical DEV ostaje `leqcwgzvjsxugfgzdmth` u prethodno potvrđenom stanju. Pre rada su već postojali izmenjen `eas.json` i nevezani `supabase/candidates/register_3d_print_taxonomy.sql`; nisu dirani.
+Opseg: EAN checkout `feature/unified-qa-master-20261017`, izvorni kod i dve AI Edge instrukcije objavljene na canonical DEV `leqcwgzvjsxugfgzdmth` po posebnom vlasnikovom odobrenju „Primeni na DEV“. Ovaj zapis ne potvrđuje novu instalaciju APK-a niti novi AI poziv. Pre rada su već postojali izmenjen `eas.json` i nevezani `supabase/candidates/register_3d_print_taxonomy.sql`; nisu dirani.
 
 ## Zašto
 
@@ -30,7 +30,14 @@ Nijedna regionalna granica trenutno nije modelovana u radnom profilu. `WorkerAiP
 - matcher koji poredi teritoriju po konkretnoj terenskoj usluzi, čuva REMOTE nezavisno, štiti od masovnog push-a za preširoku oblast i ne dodeljuje zadatak bez pouzdane lokacije;
 - stvarni dvonaložni DEV test za Novi Sad, Vojvodinu, Srbiju, granice i jedno ovlašćeno push odredište.
 
-Taj paket zahteva novu šemu i primenu na DEV. Ovo je priprema i lokalni source rez; nema razloga da UI tvrdi da je takva pokrivenost već aktivna.
+Taj paket zahteva novu šemu i primenu na DEV. Ovaj UX/AI rez ne daje osnov da UI tvrdi da je regionalna pokrivenost već aktivna.
+
+## DEV Edge primena i readback
+
+- Pre objave: `uskoci-ai-interview` v88 i `uskoci-worker-interview` v43, obe sa `verify_jwt=false`. Aktivni entrypoint-i odgovarali su prethodnom lokalnom komitu.
+- Za obe funkcije promenjen je samo odgovarajući entrypoint (po jedan novi AI instrukcioni pasus). Sve prateće datoteke uzete su iz zatečenog aktivnog paketa. Naročito je za worker očuvana aktivna verzija `_shared/classificationGeminiShadow.mjs`, koja se razlikovala od lokalne kopije; nije nenamerno zamenjena.
+- Posle objave: `uskoci-ai-interview` **v89 ACTIVE**, 9/9 fajlova identično pripremljenom paketu; `uskoci-worker-interview` **v44 ACTIVE**, 6/6 fajlova identično pripremljenom paketu. `verify_jwt=false` je ostao isti. Readback je izvršen direktno sa canonical DEV projekta. Nije bilo promene baze, AI poziva niti testnog upisa u ovom koraku.
+- Ovo potvrđuje objavu tačnih instrukcija. Ne potvrđuje ponašanje Gemini odgovora, ispravnost ekstrakcije u stvarnom razgovoru, end-to-end matching, push niti novi APK.
 
 ## Provere
 
@@ -44,4 +51,4 @@ Taj paket zahteva novu šemu i primenu na DEV. Ovo je priprema i lokalni source 
 
 ## Preostalo do tvrdnje „radi na telefonu“
 
-Izvorni kod mora u novi APK, Edge instrukcije moraju biti zasebno pregledane/primenjene, a zatim treba probati stvaran razgovor sa drugim nalogom. Ovaj rez ne menja postojeći signed taxonomy mehanizam i ne dokazuje novokonstruisanu granu, regionalni dispatch, drugi nalog, push ili fizički telefon. Snimci ovog nativnog pregleda su u task `outputs` direktorijumu kao `USKOCI_AI_TASK_START_SOURCE_20261018.png` i `USKOCI_AI_WORKER_EDIT_SOURCE_20261018.png`.
+Izvorni kod mora u novi APK, a zatim treba probati stvaran razgovor sa drugim nalogom. Edge instrukcije jesu objavljene i pročitane nazad; ovaj rez ne menja postojeći signed taxonomy mehanizam i ne dokazuje novokonstruisanu granu, regionalni dispatch, drugi nalog, push ili fizički telefon. Snimci ovog nativnog pregleda su u task `outputs` direktorijumu kao `USKOCI_AI_TASK_START_SOURCE_20261018.png` i `USKOCI_AI_WORKER_EDIT_SOURCE_20261018.png`.

@@ -1,0 +1,28 @@
+{
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "environment": "DEV",
+  "applied_at_utc": "2026-10-18T07:00:11Z",
+  "authorization": "Owner reply: Primeni na DEV (only the two AI instructions; no paid AI calls or database changes)",
+  "source_commit": "a5411de",
+  "method": "Supabase Edge connector; preserved active dependency files and verify_jwt",
+  "functions": [
+    {
+      "slug": "uskoci-ai-interview",
+      "before_version": 88,
+      "after_version": 89,
+      "after_ezbr_sha256": "e88709c006376c675b6f9d8b8fe9e8f2e147b13f733fbcce4e6a7345169bcba2",
+      "verify_jwt": false,
+      "readback_files_equal": "9/9"
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "before_version": 43,
+      "after_version": 44,
+      "after_ezbr_sha256": "bb6ada7ef9169f60d3ce4365ef9d1ea6ffa279ea6fc5730dd3297dcaa33",
+      "verify_jwt": false,
+      "readback_files_equal": "6/6",
+      "note": "Preserved live _shared/classificationGeminiShadow.mjs despite local drift"
+    }
+  ],
+  "validation_limit": "Exact file readback only; no Gemini invocation, database write, APK installation, matching or push test"
+}
