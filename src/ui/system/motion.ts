@@ -2,9 +2,8 @@ import { useEffect, useSyncExternalStore } from 'react';
 import { AccessibilityInfo, AppState } from 'react-native';
 
 /**
- * The one "reduce motion" source (2026-09-24). Until today the app asked three ways — this file per component,
- * `useSystemReducedMotion` per component, and Reanimated's launch-time value that never changes — so a screen could
- * keep moving after the person turned motion off. Now there is one small store:
+ * The shared live reduced-motion preference. A launch-only answer can miss a
+ * setting changed while the app is open, so this store follows the platform:
  *
  * - the root layout seeds it with the value the platform reported at launch (`useReducedMotionRoot`), so the first
  *   frame of the first screen already respects it;
@@ -16,13 +15,13 @@ import { AccessibilityInfo, AppState } from 'react-native';
  * No Reanimated import here: route suites mock `react-native`, and this file must load wherever a screen does. A
  * reader without a mounted root never touches a native API; it reads "not reduced" until a root follows the platform,
  * except a reader that outlives a root, which keeps the last answer that root knew (see `forgetWhenUnused`).
- * The motion values themselves are `sys.motion`, with its rule: nothing that states a fact animates.
+ * Shared motion defaults live in `sys.motion`. Purposeful transitions may clarify
+ * an interaction; they must preserve the actual state and respect this preference.
  *
- * Rule R7 (the eight rules are written on `sys.motion`, in `tokens.ts`): this is the ONE reduced-motion source, and
- * "reduced" means the same thing everywhere. Movement is off and a state change is instant: a press does not scale, a row
+ * "Reduced" means the same thing everywhere. Movement is off and a state change is instant: a press does not scale, a row
  * does not arrive, a sheet settles with `{ duration: 0 }`, a loop (skeleton breath, typing dots, glow) does not start,
  * Lottie shows its first frame, and a screen change uses the navigation animation 'none'. A haptic is not movement: it
- * stays, because a tick is an outcome (rule R5), and a person who asked for less motion has not asked for less feedback.
+ * stays, because a person who asked for less motion has not asked for less feedback.
  * A component that moves on its own reads `useReducedMotion` from here, never Reanimated's launch-time value and never
  * `AccessibilityInfo` itself.
  */

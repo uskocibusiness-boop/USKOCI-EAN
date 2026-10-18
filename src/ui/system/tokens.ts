@@ -28,7 +28,7 @@ function artTone(front: string, edge = mix(front, BLACK, 0.3)) {
   return { front, edge, light: mix(front, WHITE, 0.5), soft: mix(front, WHITE, 0.9) };
 }
 /**
- * How far a pressed surface gives (rule R8): a button gives the most, a row or a card less, a big surface not at all.
+ * Default press feedback: a button gives the most, a row or a card less, a big surface not at all.
  * `sys.motion.scale` is this ladder; `sys.motion.pressScale` stays as its button rung for the one component that reads it.
  */
 const PRESS_LADDER = { button: 0.97, row: 0.985, none: 1 } as const;
@@ -76,7 +76,7 @@ export const sys = {
     dim: '#00000059',
     /**
      * The white veil a full-screen step panel lies on over the map (the Zadaci search, Discovery V47): the map still shows
-     * through it, the white cards on it are what is read. No blur: there is no blur package, and none is added for this.
+     * through it, and the white cards on it remain readable.
      */
     veil: '#FFFFFFE6',
     /** Hairlines on a filled control, and the ring that appears only while listening. */
@@ -207,38 +207,23 @@ export const sys = {
     speechLarge: { fontSize: 20, lineHeight: 30, fontWeight: '500' } as TextStyle,
   },
   /**
-   * Motion, in milliseconds. Short, and only on a real change of state: a press, a switch, something arriving or
-   * leaving, a screen pushed, the map camera moving. Exit is shorter than entry, and UI never eases in.
+   * Shared motion defaults, in milliseconds. The current design direction allows
+   * purposeful motion that explains an interaction, keeps reading comfortable and
+   * responds promptly. These values are a starting point, not a frozen composition.
    *
-   * THE RULE: nothing that states a fact animates. A price, an amount, a time, a place, a count, a status word or a
-   * button label appears in its final form — never counted up, cross-faded between values or slid in on its own. What
-   * moves is the container that carries it (a row arriving, a sheet opening), and under reduced motion nothing moves
-   * at all: read `useReducedMotion` from `ui/system/motion`, the one source for that preference.
+   * Preserve real data throughout a transition: delivery status, player progress,
+   * money and counts must still describe the authoritative state. Animation is not
+   * evidence that an operation succeeded, and must not delay an available action.
    *
-   * THE EIGHT RULES (UI/UX pass, 2026-10-02; audit MO-M9). Every motion value is a token below, and
-   * `__tests__/one-token-source.test.ts` fails on a `duration:`, a spring or a `scaleTo={0.9x}` spelled anywhere else:
+   * Prefer native-driven transforms and opacity where they fit. Choose another
+   * supported technique when the interaction needs it, and verify its native
+   * lifecycle and list performance; retain message drafts and reading positions.
+   * Avoid replaying entrances on ordinary refreshes. Pause decorative loops when
+   * their screen is unfocused, the app is backgrounded or reduced motion is on.
    *
-   *   R1 Only transform and opacity move: never height, width, top or an SVG prop (the locked V4.9 entry scene is the one
-   *      exception). An SVG draw pass is what the B22 Reanimated flood replays.
-   *   R2 Enter decelerates and is longer than exit: `easeOut` is passed explicitly to every React Navigation, Reanimated
-   *      entrance or Animated.timing spec (a spec without a curve runs on the library's own ease-in-out, which spends the
-   *      first tenth of the time at 3 % of the way). enter 240, exit 160, push 240, toggle 180, press 120 in and the `spring` out.
-   *   R3 Sheets and anything the finger carries settle on ONE critically damped spring, `sheetSpring`. Nothing that carries
-   *      text overshoots.
-   *   R4 B22 (a flood of dead Reanimated native views): mounted-forever views; no `exiting` or layout animation anywhere; a
-   *      row's animated wrapper is decided at mount and never switches; at most two Reanimated views per list row; an
-   *      `entering` only for a genuinely new id, capped at six rows (`stagger`); loops (`loop`: the skeleton breath, the
-   *      typing dots, the glow) run only on the focused screen, stop in the background and under reduced motion, and never
-   *      more than four at once. New motion is RN Animated on the native driver, not Reanimated.
-   *   R5 Haptics are outcomes, not touches: a tick belongs to a toggle or a confirmed result, never to a finger that has
-   *      only gone down on navigation (which may be the start of a scroll). Every tick is made by `ui/system/haptics`: the
-   *      system's own constants on Android, the generators on iOS, never closer than `tickGap`, and it stays under reduced
-   *      motion (a tick is not movement).
-   *   R6 Warm is still; cold after a skeleton arrives once (`arrive`); photos cross-dissolve (`toggle`, 180 ms); a spinner
-   *      lives only inside a button.
-   *   R7 One reduced-motion source, `ui/system/motion`: movement off, state changes instant, Lottie on its first frame,
-   *      navigation 'none'.
-   *   R8 The press-scale ladder `scale`: 0.97 a button, 0.985 a row or card, none for a big surface.
+   * Read the live preference from `ui/system/motion`: under reduced motion settle
+   * immediately, stop loops and keep state changes readable. Haptics remain separate
+   * and use `ui/system/haptics` for consistent feedback and rate limiting.
    */
   motion: {
     /** Response to a finger. */
@@ -251,35 +236,35 @@ export const sys = {
     /**
      * A screen pushed onto the stack: it enters, so it is as long as `enter` and decelerates. `(app)/_layout.tsx` passes
      * this duration AND `easeOut` to the navigator's transition spec; with only a duration React Native falls back to its
-     * own ease-in-out, a slow start that reads as lag (rule R2).
+     * own ease-in-out, which gives that transition a slower start.
      */
     push: 240,
     /** The map camera flying to a place. */
     camera: 360,
     /** The step between rows arriving together; stops after six rows. */
     stagger: 40,
-    /** Decelerating: fast at the start, settling at the end. The one curve for everything that enters. */
+    /** Default decelerating entrance: fast at the start, settling at the end. */
     easeOut: [0.23, 1, 0.32, 1] as const,
     /**
-     * The least time between two ticks of the same weight or a lighter one (`ui/system/haptics.ts`, rule R5): "less is
+     * The least time between two ticks of the same weight or a lighter one (`ui/system/haptics.ts`): "less is
      * more" on a phone, and two taps of the vibrator a hair apart feel like one buzz. A heavier tick (an outcome after a
      * touch) is never held back by a lighter one.
      */
     tickGap: 120,
     /** How far a pressed surface gives under the finger. Legacy name: the button rung of `scale`, read by Press. */
     pressScale: PRESS_LADDER.button,
-    /** The press-scale ladder (rule R8): `button`, `row` (a row or a card), `none` (a big surface). */
+    /** The press-scale ladder: `button`, `row` (a row or a card), `none` (a big surface). */
     scale: PRESS_LADDER,
-    /** Everything under a finger settles on a spring, not a timing curve. */
+    /** Default spring for direct manipulation. */
     spring: { duration: 400, dampingRatio: 0.85 },
     /**
-     * The one settle for every sheet (rule R3): critically damped, no bounce, in the form Gorhom's `animationConfigs` takes.
+     * Default sheet settle, in the form Gorhom's `animationConfigs` takes.
      * Reduced motion replaces it with `{ duration: 0 }`.
      */
     sheetSpring: { stiffness: 300, damping: 30, mass: 1, overshootClamping: true },
     /**
      * A sheet that a COMMAND closes (a button, the ×, Android Back, a tap outside): a short timing on `easeOut`, 160-180 ms,
-     * quicker than the spring that opens it (plan 2.20; rule R2: exit is shorter than entry). Gorhom's `close()` takes it as
+     * quicker than the spring that opens it. Gorhom's `close()` takes it as
      * its own configuration; what the finger carries (a drag down) keeps `sheetSpring`.
      */
     sheetClose: 170,
@@ -291,8 +276,8 @@ export const sys = {
      */
     dialog: { enter: 200, from: 0.96 },
     /**
-     * Loops, in milliseconds per half-turn (rule R4: focused screen only, never more than four at once, stopped in the
-     * background and under reduced motion): the skeleton breath, the typing dots, the glow while listening.
+     * Loops, in milliseconds per half-turn. Pause outside the focused foreground
+     * screen and under reduced motion: skeleton breath, typing dots, listening glow.
      */
     loop: { breath: 700, typing: 520, glow: 1600 },
     /** Illustrations on the active screen: native-driver transforms and brief eye movement. */
@@ -301,7 +286,7 @@ export const sys = {
     /** The Home earning tile's sweep; pauses with the app and under Reduce Motion. */
     radarSweep: 2600,
     /**
-     * A moment, not a response: the picture of an empty state settling in once (rule R6). Long on purpose, so it is
+     * The picture of an empty state settling in once. Long on purpose, so it is
      * never used for a control, a fact or anything the finger waits on.
      */
     arrive: { duration: 800, easing: [0.22, 0.8, 0.25, 1] as const },

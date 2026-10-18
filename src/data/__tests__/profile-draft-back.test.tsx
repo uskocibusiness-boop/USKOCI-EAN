@@ -13,6 +13,9 @@ jest.mock('../../hooks/useOwnedEditor', () => ({ useOwnedEditor: () => mockEdito
 jest.mock('../requesterProfileClientService', () => ({ requesterProfileClientService: { read: jest.fn(), save: jest.fn() } }));
 jest.mock('../locationClientService', () => ({ workerLocationClientService: { read: jest.fn(), save: jest.fn() } }));
 jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn() },
+  // These cases exercise the retained full-area editor. Point-only confirmation
+  // has its own owned-mode/revision fixtures in worker-area-route.test.tsx.
+  useLocalSearchParams: () => ({}),
   useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
@@ -48,7 +51,7 @@ jest.mock('../../ui/product/ProductSheet', () => ({ SHEET_TOUCH: 48, ProductShee
 
 import { router } from 'expo-router';
 import Personal from '../../app/(app)/profil/podaci';
-import Area from '../../app/(app)/profil/lokacija';
+import Area, { WorkerLocationForm } from '../../app/(app)/profil/lokacija';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 
 let tree: ReactTestRenderer;
@@ -68,6 +71,7 @@ async function render(kind: Kind) {
     : { accountId: 'owner-a', profileId: 'worker-a', revision: 'r1', operatingCountryCode: 'RS', city: 'Novi Sad',
       radiusKm: 25, approximatePosition: null };
   await act(async () => { tree = create(route(kind)); });
+  if (kind === 'area') expect(tree.root.findByType(WorkerLocationForm).props.pointOnly).not.toBe(true);
 }
 beforeEach(() => {
   jest.clearAllMocks(); mockFocused = true; mockBack.handlers = []; mockSession = { user: { id: 'owner-a' }, accountRevision: 1 };
