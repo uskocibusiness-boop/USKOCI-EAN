@@ -22,6 +22,9 @@ function fixture(options={}){
    return json(options.dispatch??{dispatched:true,turn:turn('PROCESSING')});
   }
   if(url.endsWith('/rpc_complete_worker_ai_turn_service')){if(options.completionError)throw Error('SYNTHETIC_ACK_LOST');return json(options.receipt??turn());}
+  if(url.endsWith('/rpc_taxonomy_ai_catalog_context_service'))return json(options.catalog(JSON.parse(init.body)));
+  if(url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'))return json({action:'HINT_CAPTURED',authority:'NONE'});
+  if(url.endsWith('/rpc_ai_test_record_usage_service'))return json({recorded:true});
   if(url.endsWith('/rpc_fail_worker_ai_turn_service'))return options.fail?.(init)??json(turn('FAILED'));
   if(url.startsWith('https://generativelanguage.googleapis.com/')){
    if(options.provider) return options.provider(init);
@@ -66,6 +69,30 @@ test('distinct owned profile streams real Unicode text, reserves approved budget
  assert.equal(providers(f).length,1);assert.equal(completions(f).length,1);assert.deepEqual(completions(f)[0].body.p_output,f.output);
  assert.equal(providers(f)[0].body.generationConfig.maxOutputTokens,8192);assert.equal(f.calls.find(c=>c.url.includes('budget')).body.p_operation_id,key);
  assert.ok(!JSON.stringify(es).includes('PROVIDER_SYNTHETIC'));assert.ok(!f.calls.some(c=>c.url.includes('rpc_save_worker')));
+});
+
+for(const registered of [true,false])test(`worker actual handler keeps original service and captures only server-registered alias=${registered}`,async()=>{
+ const service='3D štampa',category=id(20);
+ const proposal={service,mode:'REMOTE',action:'REUSE_ALIAS',categoryId:category,parentId:'',proposedPath:[],reason:'Explicit synthetic worker service and remote mode.',catalogVersion:7};
+ const output={assistantMessage:'Proveri svoj nacrt.',safety:'ALLOW',patch:{skills:[service]},classificationShadowJson:JSON.stringify([proposal])};
+ const f=fixture({output,env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
+  catalog:body=>({action:'CATALOG_CONTEXT',scope:body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE',catalogVersion:7,
+   catalogFingerprint:'a'.repeat(32),items:body.p_execution_location_mode==='REMOTE'?[{
+    categoryId:category,parentId:null,label:'3D printovanje',aliases:registered?[service]:[],path:['3D printovanje'],isLeaf:true,
+   }]:[],nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'}),
+ });
+ const es=await events(f);
+ assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);assert.equal(failures(f).length,0);
+ assert.equal(completions(f).length,1);
+ assert.deepEqual(completions(f)[0].body.p_output.patch.skills,[service]);
+ assert.equal(Object.hasOwn(completions(f)[0].body.p_output,'classificationShadowJson'),false);
+ const capture=f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
+ assert.equal(capture.length,registered?1:0);
+ if(registered){
+  assert.deepEqual(capture[0].body.p_proposals,[{...proposal,action:'REUSE_EXISTING'}]);
+  assert.ok(f.calls.indexOf(capture[0])>f.calls.indexOf(completions(f)[0]));
+ }
+ assert.ok(!f.calls.some(c=>/save_worker|ensure_path|commit_admission|publish|push/.test(c.url)));
 });
 test('completed/unknown claim replay cannot reserve or call the provider again',async()=>{
  const f=fixture({replay:true});assert.deepEqual(await(await f.invoke()).json(),turn());assert.equal(providers(f).length,0);assert.equal(f.calls.length,2);

@@ -1,10 +1,10 @@
 {
   "project_id": "leqcwgzvjsxugfgzdmth",
-  "status": "SOURCE_TESTED_NOT_DEPLOYED",
+  "status": "APPLIED_DEV_EXACT_READBACK",
   "date": "2026-10-18",
   "source_base": "2f68ae6f",
   "scope": "Only two Edge entrypoints: task post-completion catalog scope and both Auth error classifications. No prompt/catalog/database changes, paid calls or push.",
-  "approval": "Pending a new named Edge approval; the completed six-call test approval does not include this deployment.",
+  "approval": "Owner standing application order 2026-10-18; AGENTS.md 3.1 supersedes repeated per-package approval.",
   "functions": [
     {
       "slug": "uskoci-ai-interview",
@@ -124,5 +124,6 @@
     "End-to-end signed Save/binding/matching/push",
     "Underlying transient Auth network cause"
   ],
-  "local_bundle_archive": "edge-recovery-package.zip (private work artifact)"
+  "local_bundle_archive": "edge-recovery-package.zip (private work artifact)",
+  "receipt": "supabase/operations/dev-alpha/ledger/20261018115150_interview_recovery.receipt.json"
 }

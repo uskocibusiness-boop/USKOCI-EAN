@@ -1,0 +1,33 @@
+{
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "environment": "DEV",
+  "applied_at_utc": "2026-10-18T11:51:50.633000+00:00",
+  "authorization": "Owner standing application order 2026-10-18; AGENTS.md 3.1 supersedes repeated per-package approval.",
+  "source_commit": "5f515a08c009528043d3184566e4f59ca1bcb867",
+  "scope": "Only two Edge entrypoints: task post-completion catalog scope and both Auth error classifications. No prompt/catalog/database changes, paid calls or push.",
+  "candidate_manifest": "docs/implementation/v5-ai-first/INTERVIEW_RECOVERY_CANDIDATE_20261018.json",
+  "functions": [
+    {
+      "slug": "uskoci-ai-interview",
+      "before_version": 90,
+      "after_version": 91,
+      "before_ezbr_sha256": "85549aa37b6e9d10ab8d8f3cac714bb4c8cf69aa3a15aef64385f04307105b24",
+      "after_ezbr_sha256": "47c9c9ef6baabfbdc0ff0bba5abb0eb20e1c56d7fbc88ca0df405fa07cce33c0",
+      "verify_jwt": false,
+      "readback_files_equal": 9,
+      "status": "ACTIVE"
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "before_version": 45,
+      "after_version": 46,
+      "before_ezbr_sha256": "52f9b43adcf61bc6f2d1517cdcca5724b79266c26457fb920d28cfe150fa4264",
+      "after_ezbr_sha256": "9ffca6649fe5b95fd2b77e3a2265e73f4d06818e5f03c36aa106e6a31f33cfbb",
+      "verify_jwt": false,
+      "readback_files_equal": 6,
+      "status": "ACTIVE"
+    }
+  ],
+  "provider_calls": 0,
+  "database_changes": false
+}

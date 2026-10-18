@@ -8,7 +8,6 @@ import { Press } from '../Press';
 import { FactArt, type FactArtKind, type FactArtRole } from '../system/FactArt';
 import { ClockArt } from '../system/ClockArt';
 import { Glyph } from '../system/Glyph';
-import { useLayoutClass } from '../system/textScale';
 import { layout } from '../system/layout';
 import { Surface } from '../system/Surface';
 import { sys, field, brandAction } from '../system/tokens';
@@ -22,7 +21,7 @@ import { displayedPinPosition } from '../location/ResolvedPinMap.types';
 import { civilClock, civilDay, scheduleZone, weekdays } from '../calendar/calendarPresentation';
 import { raspon } from '../../lib/vreme';
 import { plural } from '../system/plural';
-import { WORKER_PART_TITLE, capturedParts, toolsAndVehiclesNote, type WorkerAiPart } from './workerProfileFacts';
+import { WORKER_PART_TITLE, toolsAndVehiclesNote, type WorkerAiPart } from './workerProfileFacts';
 
 /** One word for nothing given (2026-09-24): three different empty words read as three different states. */
 const EMPTY='Nije navedeno';
@@ -37,26 +36,29 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
 }){
   const { expanded, toggle } = useAiDraftDisclosure();
   const skills = profile.skills.length ? profile.skills.join(' · ') : 'Šta možeš da preuzmeš?';
-  const place = `${profile.location.city.trim() ? cityLabel(profile.location.city) : 'Područje nije navedeno'}${profile.location.operatingCountryCode ? ` · ${profile.location.operatingCountryCode}` : ''}`;
+  const place = profile.location.city.trim()
+    ?`${cityLabel(profile.location.city)}${profile.location.operatingCountryCode ? ` · ${profile.location.operatingCountryCode}` : ''}`:null;
   const availability = profile.availability.availableNow ? 'Mogu odmah' : 'Mogu odmah: isključeno';
   const schedule = `${plural(profile.availability.rules.length, 'redovan termin', 'redovna termina', 'redovnih termina')} · ${plural(profile.availability.windows.length, 'poseban termin', 'posebna termina', 'posebnih termina')}`;
   return <Surface kind="panel" testID="worker-draft-summary"
     style={[s.card,compact&&s.cardCompact]}>
-    <WorkerAiProgress profile={profile}/>
     <Press testID="worker-draft-disclosure" accessibilityRole="button"
-      accessibilityLabel={expanded ? 'Sakrij detalje radnog profila' : 'Pokaži detalje radnog profila'}
+      accessibilityLabel={expanded ? 'Sakrij detalje nacrta radnog profila' : 'Pokaži detalje nacrta radnog profila'}
       accessibilityValue={{text:skills}} accessibilityState={{expanded}}
       accessibilityHint="Prikazuje sažetak unetih podataka u razgovoru."
       onPress={toggle} haptic="select" style={s.previewHead}>
       <FactArt kind="tool" size={32} cut="art" />
       <View style={[s.grow,s.previewSummary]}>
-        <T variant="meta" style={s.cardBadge}>USKOČI · RADNA KARTICA</T>
+        <T variant="note" tone="muted">Nacrt radnog profila</T>
         <T variant="cardTitleCompact" numberOfLines={expanded?undefined:2} style={s.skillHeading}>{skills}</T>
       </View>
       <Glyph name={expanded?'caret-up':'caret-down'} tone="muted"/>
     </Press>
+    {/* Candidate strings and the inherited profile city do not prove classification,
+        service mode or matching readiness. Those belong to the guarded review. */}
+    <T testID="worker-draft-review-note" variant="note" tone="muted">Proveri usluge i način rada pre čuvanja.</T>
     {expanded?<View testID="worker-draft-details" style={s.previewFacts}>
-        <PreviewFact art="pin">{`${place} · predlog terenskog kruga do ${profile.location.radiusKm} km`}</PreviewFact>
+        {place?<PreviewFact art="pin">{`Grad u nacrtu: ${place}`}</PreviewFact>:null}
         <PreviewFact art="clock">{availability}</PreviewFact>
         {profile.tools.length?<PreviewFact art="tool">{list(profile.tools)}</PreviewFact>:null}
         {profile.vehicles.length?<PreviewFact art="vehicle">{list(profile.vehicles)}</PreviewFact>:null}
@@ -78,23 +80,6 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
 function ReviewCue({disabled}:{disabled:boolean}){
   return <View style={[s.reviewCue,disabled&&s.reviewCueDisabled]}>
     <Glyph name="caret-right" size={16} tone={disabled?'muted':'onGreen'}/>
-  </View>;
-}
-/**
- * The two core facts needed for a useful profile. Time and equipment remain
- * available in review, but do not look like mandatory interview steps.
- */
-export function WorkerAiProgress({profile}:{profile:WorkerAiProfile}){
-  const parts=capturedParts(profile).filter(part=>part.key==='skills'||part.key==='area');
-  const missing=parts.filter(part=>!part.done).map(part=>part.label.toLowerCase());
-  const speech=missing.length?`Za pregled još treba: ${missing.join(' i ')}.`:'Usluge i područje su u nacrtu. Profil možeš da pregledaš.';
-  const {stacked}=useLayoutClass();
-  return <View testID="worker-draft-progress" accessible accessibilityRole="progressbar" accessibilityLabel={speech}
-    accessibilityValue={{min:0,max:parts.length,now:parts.filter(part=>part.done).length}} style={[s.progress,stacked&&s.progressStacked]}>
-    {parts.map(part=><View key={part.key} style={[s.progressPart,stacked&&s.progressPartStacked]}>
-      <View testID={`worker-draft-progress-${part.key}`} style={[s.progressBar,part.done&&s.progressBarDone]}/>
-      <T variant="meta" numberOfLines={1} style={part.done?s.ink:s.muted}>{part.label}</T>
-    </View>)}
   </View>;
 }
 function PreviewFact({art,children}:{art:FactArtKind;children:string}){
@@ -364,13 +349,12 @@ const s=StyleSheet.create({
   grow:{flex:1,minWidth:0},
   card:{
     paddingHorizontal:sys.space.base,paddingVertical:sys.space.md,gap:sys.space.sm,minHeight:layout.touch,
-    backgroundColor:'#FFFFFF',borderRadius:18,borderWidth:1.5,borderColor:'#E2ECE6',
-    shadowColor:'#0E2920',shadowOffset:{width:0,height:4},shadowOpacity:0.08,shadowRadius:12,elevation:3,
+    backgroundColor:sys.color.surface,borderRadius:18,borderWidth:1.5,borderColor:sys.color.cardLine,
+    shadowColor:sys.color.ink,shadowOffset:{width:0,height:4},shadowOpacity:0.08,shadowRadius:12,elevation:3,
   },
   cardCompact:{paddingVertical:sys.space.sm,borderRadius:14},
-  cardBadge:{fontSize:11,fontWeight:'700',color:sys.color.green,letterSpacing:0.6},
   previewHead:{minHeight:48,flexDirection:'row',alignItems:'center',gap:sys.space.md},
-  previewSummary:{gap:2},
+  previewSummary:{gap:sys.space.xs},
   skillHeading:{color:sys.color.ink},
   previewFacts:{gap:sys.space.sm,paddingVertical:sys.space.xs},
   previewFact:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.sm},
@@ -381,12 +365,6 @@ const s=StyleSheet.create({
   reviewButtonText:{color:'#FFFFFF',fontWeight:'700',fontSize:15},
   reviewCue:{flexShrink:0,width:26,height:26,borderRadius:sys.radius.pill,backgroundColor:'rgba(255,255,255,0.22)',alignItems:'center',justifyContent:'center'},
   reviewCueDisabled:{backgroundColor:sys.conversation.iconWell},
-  progress:{flexDirection:'row',gap:sys.space.sm,paddingTop:sys.space.xs,paddingBottom:sys.space.xs},
-  progressStacked:{flexWrap:'wrap',rowGap:sys.space.sm},
-  progressPart:{flexGrow:1,flexShrink:1,flexBasis:0,minWidth:0,gap:sys.space.xs},
-  progressPartStacked:{flexBasis:'45%'},
-  progressBar:{height:4,borderRadius:2,backgroundColor:sys.color.line},
-  progressBarDone:{backgroundColor:sys.color.green},
   review:{gap:layout.section},
   addName:{alignSelf:'flex-start'},
   // A part of the review: title and "Izmeni" on one line, the facts under it; the parts are parted by the gap between them, not by a line.

@@ -437,7 +437,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     closed={!!data.saved || data.status !== 'OPEN'}
     attach={writable?{label:'Dodaj podatke',hint:'Usluge, područje rada, vreme, alat i vozilo.',disabled:!enabled,
       onPress:()=>{if(current()&&panelScope.current===renderedPanel)setAdding(true);}}:undefined}
-    card={compact=>hasProfileContent?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable}
+    card={compact=>hasProfileContent&&!data.saved?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable}
       showReview={writable&&!data.saved} reviewReason={!enabled?unavailableNow:undefined} review={()=>{void review();}}/>:null}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
     showWelcomeArt={!hasProfileContent}

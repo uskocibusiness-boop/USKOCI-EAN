@@ -98,9 +98,14 @@ jobs:
         run: |
           node --test scripts/__tests__/build-contract.test.cjs scripts/__tests__/entry-assets.test.cjs scripts/__tests__/design-lab-boundary.test.cjs
           node --test supabase/proofs/ai/interview_auth_preflight.test.mjs supabase/proofs/ai/v5_ai_stream.test.mjs supabase/proofs/ai/v5_worker_edge.test.mjs supabase/proofs/ai/historical_intake_source.test.mjs
+          node --test supabase/proofs/dynamic_taxonomy/classification-verified-alias.test.mjs
           npm test -- --runInBand
       - name: Prebuild Android
         run: npx expo prebuild --platform android --clean
+      - name: Record exact prebuild source changes
+        run: |
+          git status --porcelain=v1 > PREBUILD_SOURCE_STATUS.txt
+          git diff --binary HEAD > PREBUILD_SOURCE_DIFF.patch
       - name: Select Android native target
         run: |
           node <<'NODE'
@@ -176,5 +181,7 @@ jobs:
             ${{ env.USKOCI_APK_NAME }}.apk
             ${{ env.USKOCI_APK_NAME }}.apk.sha256
             ${{ env.USKOCI_APK_NAME }}-receipt.json
+            PREBUILD_SOURCE_STATUS.txt
+            PREBUILD_SOURCE_DIFF.patch
           retention-days: 14
           if-no-files-found: error

@@ -42,7 +42,7 @@ export function geminiClassificationShadowInstruction(purpose='NEED_SERVICE') {
     'Use catalogVersion from provided server context. If an existing category covers the service, use action REUSE_EXISTING, its exact real categoryId, parentId="", proposedPath=[].',
     'For a missing service: CREATE_CHILD with a real parentId from the supplied catalog in the confirmed mode, or CREATE_NEW_BRANCH with parentId="" only when no suitable parent exists. proposedPath contains 1 to 6 NEW labels, ordered from the parent toward the service; its final label must be exactly the service text. Intermediate labels may be included when useful. categoryId="" for either creation action. Give a concrete reason of 10 to 1000 characters; never write or claim a category was created.',
     'Never equate lessons, equipment rental and equipment repair merely because they mention skating.',
-    'REUSE_ALIAS is only a suggested semantic candidate; no alias is verified by a model claim.',
+    'REUSE_ALIAS is only a suggested semantic candidate; no alias is verified by a model claim. Only aliases listed by the server for that exact category may be reused. Keep service equal to the actual offered skill or task service; do not replace the skill with a broader category label.',
     'Mode ON_SITE/REMOTE only if explicit or inherent to the service; otherwise UNCONFIRMED. Separate every service; both modes must be explicitly confirmed later.',
     purpose==='WORKER_CAPABILITY'
       ? 'After applying the profile patch, compare EACH distinct entry in the resulting skills array with classificationShadowJson. Cover EVERY offered skill with at least one proposal (ON_SITE, REMOTE, or UNCONFIRMED), even if it was added in an earlier turn; never return only the skills newly mentioned by the user. If both modes are explicitly confirmed, represent both modes separately. On a finish/acknowledgement turn with unchanged skills, KEEP a FULL SNAPSHOT of those same skills. When delivery mode for any service is unclear ask ONE short, natural follow-up question and mark that service UNCONFIRMED rather than omitting it or guessing; do not guess mode, create a fake skill or infer consent from city. When more than 12 services are offered, clarify/organize the list before classification instead of silently dropping services. Shadow is a suggestion, never owner consent.'
@@ -174,17 +174,19 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
         parentId:p.parentId||null,proposedPath:p.proposedPath,
         reason:p.reason,catalogVersion:p.catalogVersion});
     if(checked.accepted && p.mode==='UNCONFIRMED') statuses.push('MODE_UNCONFIRMED');
-    else if(checked.accepted && p.action==='REUSE_ALIAS') statuses.push('ALIAS_NOT_VERIFIED');
     else statuses.push(checked.status);
     // A validated hint can be retained for LATER independent source/owner
     // binding, but never becomes an accepted admission plan or worker consent.
     // Only real canonical IDs or an existing reviewed parent may be retained.
     if (p.mode !== 'UNCONFIRMED' &&
-        (checked.status === 'REUSE_CANDIDATE' && p.action === 'REUSE_EXISTING' ||
+        (checked.status === 'REUSE_CANDIDATE' && ['REUSE_EXISTING','REUSE_ALIAS'].includes(p.action) ||
          checked.status === 'ADMISSION_REVIEW_REQUIRED' &&
            ['CREATE_CHILD','CREATE_NEW_BRANCH'].includes(p.action))) {
       reviewProposals.push({
-        service:p.service,mode:p.mode,action:p.action,categoryId:p.categoryId,
+        // SQL captures the existing REUSE_EXISTING wire action. Verification
+        // comes from the catalog gate above; the original service stays intact
+        // for candidate/source binding and later owner-visible mode confirmation.
+        service:p.service,mode:p.mode,action:checked.status==='REUSE_CANDIDATE'?'REUSE_EXISTING':p.action,categoryId:p.categoryId,
         parentId:p.parentId,proposedPath:p.proposedPath.slice(),
         reason:p.reason,catalogVersion:p.catalogVersion,
       });

@@ -11,9 +11,8 @@ jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ReviewedWorkAreaMap' }));
 
-import { WORKER_PROFILE_NOTIFICATIONS_NOTE, WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE, WorkerAiManual, WorkerAiModeConfirmation, WorkerAiNotificationsNote, WorkerAiProgress, WorkerAiReviewDetails } from '../WorkerAiPresentation';
+import { WORKER_PROFILE_NOTIFICATIONS_NOTE, WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE, WorkerAiCard, WorkerAiManual, WorkerAiModeConfirmation, WorkerAiNotificationsNote, WorkerAiReviewDetails } from '../WorkerAiPresentation';
 import { TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY, capturedParts, toolsAndVehiclesNote, type WorkerAiPart } from '../workerProfileFacts';
-import { sys } from '../../system/tokens';
 
 /**
  * T4b1 (2026-10-07), M2 and the progress of M1. The review is the profile in parts, each with "Izmeni" at its side; the
@@ -132,32 +131,34 @@ describe('the review in parts (M2)', () => {
   });
 });
 
-describe('what the conversation has understood (the progress of M1)', () => {
+describe('the conversation draft is not matching readiness', () => {
   const draft = (patch: Partial<WorkerAiReview['profile']> = {}) => review({ skills: [], location: { operatingCountryCode: null, city: '', radiusKm: 20, approximatePosition: null }, ...patch },
     { rules: [], windows: [] }).profile;
 
-  it('shows only the two core facts, not optional equipment or time as required steps', async () => {
-    await act(async () => { tree = create(<WorkerAiProgress profile={draft()} />); });
-    const bar = tree.root.findByProps({ testID: 'worker-draft-progress' });
-    expect(bar.props.accessibilityLabel).toBe('Za pregled još treba: usluge i područje.');
-    expect(bar.props.accessibilityValue).toEqual({ min: 0, max: 2, now: 0 });
-    expect(texts()).toBe('Usluge | Područje'); expect(texts()).not.toMatch(/Alat|Vreme|od 5|Pitanje/);
+  it.each([
+    ['empty', draft()],
+    ['services and city only', draft({ skills: ['3D štampa'], location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20, approximatePosition: null } })],
+  ] as const)('%s: offers review without inferring completion from candidate fields', async (_name, profile) => {
+    const openReview = jest.fn();
+    await act(async () => { tree = create(<WorkerAiCard profile={profile} compact={false} disabled={false} review={openReview} />); });
+    expect(texts()).toContain('Nacrt radnog profila');
+    expect(texts()).toContain('Proveri usluge i način rada pre čuvanja.');
+    expect(texts()).not.toMatch(/sprem|potvrđen|aktivan|obaveštenja|od 2|od 5/i);
+    expect(tree.root.findAllByProps({ accessibilityRole: 'progressbar' })).toHaveLength(0);
+    expect(tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pregledaj profil')).toHaveLength(1);
+    expect(openReview).not.toHaveBeenCalled();
+    await act(async () => { press('Pregledaj profil').props.onPress(); });
+    expect(openReview).toHaveBeenCalledTimes(1);
   });
 
-  it('colours exactly the parts the draft holds, and a place only with a country and a city', async () => {
-    const some = draft({ skills: ['Selidbe'], tools: ['Bušilica'], location: { operatingCountryCode: null, city: 'Novi Sad', radiusKm: 20, approximatePosition: null } });
-    await act(async () => { tree = create(<WorkerAiProgress profile={some} />); });
-    const colour = (key: string) => StyleSheet.flatten(tree.root.findByProps({ testID: `worker-draft-progress-${key}` }).props.style).backgroundColor;
-    expect(colour('skills')).toBe(sys.color.green); expect(colour('area')).toBe(sys.color.line);
-    expect(tree.root.findAllByProps({ testID: 'worker-draft-progress-time' })).toHaveLength(0);
-    expect(tree.root.findAllByProps({ testID: 'worker-draft-progress-tools' })).toHaveLength(0);
-    expect(tree.root.findByProps({ testID: 'worker-draft-progress' }).props.accessibilityLabel).toBe('Za pregled još treba: područje.');
-    const all = draft({ skills: ['Selidbe'], tools: ['Bušilica'], location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20, approximatePosition: null },
-      availability: { timezone: 'Europe/Belgrade', availableNow: true, rules: [], windows: [] } });
-    await act(async () => tree.update(<WorkerAiProgress profile={all} />));
-    const bar = tree.root.findByProps({ testID: 'worker-draft-progress' });
-    expect(bar.props.accessibilityValue).toEqual({ min: 0, max: 2, now: 2 });
-    expect(bar.props.accessibilityLabel).toBe('Usluge i područje su u nacrtu. Profil možeš da pregledaš.');
+  it('does not present an inherited city/radius as confirmed on-site coverage for a remote draft', async () => {
+    const profile = draft({ skills: ['3D štampa'], bio: 'Izrađujem kod sebe, uz slanje ili preuzimanje.',
+      location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20, approximatePosition: null } });
+    await act(async () => { tree = create(<WorkerAiCard profile={profile} compact={false} disabled={false} review={jest.fn()} />); });
+    await act(async () => { tree.root.findByProps({ testID: 'worker-draft-disclosure' }).props.onPress(); });
+    expect(texts()).toContain('Grad u nacrtu: Novi Sad · RS');
+    expect(texts()).not.toMatch(/20 km|terenski krug|područje je potvrđeno/i);
+    expect(tree.root.findAllByProps({ accessibilityRole: 'progressbar' })).toHaveLength(0);
   });
 
   it('counts a week or a special date as time, and "Mogu odmah" alone too', () => {
@@ -167,12 +168,11 @@ describe('what the conversation has understood (the progress of M1)', () => {
     expect(time({ windows: [{ id: 'w', startsAt: '2026-09-26T08:00:00Z', endsAt: '2026-09-26T10:30:00Z', state: 'AVAILABLE', label: '' }] })).toBe(true);
   });
 
-  it('does not ask for optional equipment when the core facts are present or invent confirmed absence', async () => {
+  it('does not ask for optional equipment or a mandatory area checklist before review', async () => {
     const withoutEquipment = review({}, { availableNow: true, rules: [], windows: [] });
-    await act(async () => { tree = create(<WorkerAiProgress profile={withoutEquipment.profile} />); });
-    const bar = tree.root.findByProps({ testID: 'worker-draft-progress' });
-    expect(bar.props.accessibilityLabel).toBe('Usluge i područje su u nacrtu. Profil možeš da pregledaš.');
-    expect(bar.props.accessibilityValue).toEqual({ min: 0, max: 2, now: 2 });
+    await act(async () => { tree = create(<WorkerAiCard profile={withoutEquipment.profile} compact={true} disabled={false} review={jest.fn()} />); });
+    expect(texts()).not.toMatch(/još treba|nije navedeno|alat|vozilo|područje/i);
+    expect(press('Pregledaj profil').props.disabled).toBe(false);
     expect(capturedParts(withoutEquipment.profile).find(part => part.key === 'tools')?.done).toBe(false);
   });
 });

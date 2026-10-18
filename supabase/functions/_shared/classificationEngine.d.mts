@@ -4,9 +4,10 @@ export type ClassificationPurpose = 'WORKER_CAPABILITY' | 'NEED_SERVICE';
 export type CatalogCategory = Readonly<{
   id: string; label: string; parentId: string | null;
   path: readonly string[]; isLeaf: boolean; modes: readonly ClassificationScope[];
+  aliases?: readonly string[];
 }>;
 export type CatalogSnapshot = Readonly<{
-  catalogVersion: number; categories: CatalogCategory[];
+  catalogVersion: number; catalogFingerprint?: string; categories: CatalogCategory[];
 }>;
 export type RpcClient = (name: string, args: Record<string, unknown>) => Promise<unknown>;
 export declare function normalizedClassificationIdentity(label: unknown): string | null;

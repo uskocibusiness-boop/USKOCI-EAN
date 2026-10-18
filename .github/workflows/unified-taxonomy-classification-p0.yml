@@ -32,8 +32,64 @@ on:
       - 'supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs'
       - 'supabase/candidates/dynamic-taxonomy-20261011/need-review-signed-classification-v1.sql'
       - '.github/workflows/unified-taxonomy-classification-p0.yml'
+      - 'supabase/migrations/20261018115356_taxonomy_catalog_verified_alias_context.sql'
+      - 'supabase/proofs/dynamic_taxonomy/catalog-alias-context/**'
+      - 'supabase/proofs/dynamic_taxonomy/classification-verified-alias.test.mjs'
   workflow_dispatch:
 jobs:
+
+  catalog-alias-postgres:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Prepare exact previous catalog reader with isolated tables
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f supabase/proofs/dynamic_taxonomy/catalog-alias-context/fixture.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/proofs/dynamic_taxonomy/catalog-alias-context/before.sql
+      - name: Reproduce missing verified-alias context
+        run: |
+          if psql -X -v ON_ERROR_STOP=1 -f supabase/proofs/dynamic_taxonomy/catalog-alias-context/assert.sql > before.log 2>&1; then
+            echo "Expected the exact previous reader to fail"
+            exit 1
+          fi
+          cat before.log
+          grep -q ALIAS_CONTEXT_MISSING before.log
+      - name: Apply and prove exact alias reader, paging and role guards
+        run: |
+          psql -X --single-transaction -v ON_ERROR_STOP=1 -f supabase/migrations/20261018115356_taxonomy_catalog_verified_alias_context.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/proofs/dynamic_taxonomy/catalog-alias-context/assert.sql
+      - name: Prove rollback restores the original function
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f supabase/proofs/dynamic_taxonomy/catalog-alias-context/before.sql
+          test "$(psql -X -Atc "select md5(pg_get_functiondef('private.taxonomy_ai_catalog_context_v1(text,integer,text)'::regprocedure))")" = b658756bc9c99acf3fd07688050e9792
+      - name: Prove candidate reapplies after rollback
+        run: |
+          psql -X --single-transaction -v ON_ERROR_STOP=1 -f supabase/migrations/20261018115356_taxonomy_catalog_verified_alias_context.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/proofs/dynamic_taxonomy/catalog-alias-context/assert.sql
+
   classification-contract:
     runs-on: ubuntu-latest
     permissions:
@@ -45,7 +101,7 @@ jobs:
         with:
           node-version: '22'
       - name: Read-only canonical catalog and Gemini integration invariants
-        run: node --test supabase/proofs/dynamic_taxonomy/unified-*.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs supabase/proofs/dynamic_taxonomy/worker-finish-mode-completeness.test.mjs supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs supabase/proofs/dynamic_taxonomy/discovery-for-me-confirmed-work-source.test.mjs supabase/proofs/dynamic_taxonomy/classification-batch.test.mjs supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs
+        run: node --test supabase/proofs/dynamic_taxonomy/classification-verified-alias.test.mjs supabase/proofs/dynamic_taxonomy/unified-*.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow*.test.mjs supabase/proofs/dynamic_taxonomy/worker-finish-mode-completeness.test.mjs supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs supabase/proofs/dynamic_taxonomy/discovery-for-me-confirmed-work-source.test.mjs supabase/proofs/dynamic_taxonomy/classification-batch.test.mjs supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs
 
   edge-typing:
     runs-on: ubuntu-latest

@@ -76,6 +76,29 @@ for(const captureFails of [false,true])test(`Need catalog survives through compl
  assert.ok(!f.calls.some(c=>/ensure_path|commit_admission|publish|push/.test(c.url)));
 });
 
+for(const registered of [true,false])test(`Need actual handler captures only server-registered alias=${registered} after owned completion`,async()=>{
+ const category=id(20),service='3D štampa';
+ const proposal={service,mode:'REMOTE',action:'REUSE_ALIAS',categoryId:category,parentId:'',proposedPath:[],reason:'Explicit synthetic task service and remote mode.',catalogVersion:7};
+ const output=withDialogue({safety:'ALLOW',assistantMessage:'Proveri nacrt.',facts:[],classificationShadowJson:JSON.stringify([proposal])});
+ const f=fixture({env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
+  catalog:body=>({action:'CATALOG_CONTEXT',scope:body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE',catalogVersion:7,
+   catalogFingerprint:'a'.repeat(32),items:body.p_execution_location_mode==='REMOTE'?[{
+    categoryId:category,parentId:null,label:'3D printovanje',aliases:registered?[service]:[],path:['3D printovanje'],isLeaf:true,
+   }]:[],nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'}),
+  provider:()=>new Response('data: '+JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify(output)}]},finishReason:'STOP'}]})+'\n\n',
+   {headers:{'Content-Type':'text/event-stream'}}),
+ });
+ const es=await events(f);
+ assert.equal(es.at(-1).kind,'final');assert.equal(writes(f).length,1);assert.equal(providers(f).length,1);assert.equal(failures(f).length,0);
+ const capture=f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
+ assert.equal(capture.length,registered?1:0);
+ if(registered){
+  assert.deepEqual(capture[0].body.p_proposals,[{...proposal,action:'REUSE_EXISTING'}]);
+  assert.ok(f.calls.indexOf(capture[0])>f.calls.indexOf(writes(f)[0]));
+ }
+ assert.ok(!f.calls.some(c=>/ensure_path|commit_admission|publish|push/.test(c.url)));
+});
+
 for(const diagnostics of [false,true]) for(const status of [402,429])
 test(`SSE provider ${status}, diagnostics=${diagnostics}: one safe terminal error, no prose or successful receipt`,async()=>{
  const f=fixture({headers:diagnostics?{'x-client-info':'uskoci-app/ai-availability-v1'}:{},
