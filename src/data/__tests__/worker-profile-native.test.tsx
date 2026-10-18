@@ -94,6 +94,19 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 
+it('opens a dedicated map confirmation bound to the saved worker and leaves area edits in AI', async () => {
+  await renderReading();
+  await click('Potvrdi tačku na mapi');
+  expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/profil/lokacija', params: { mode: 'point', profileId: profile.id } });
+  expect(mockWrite).not.toHaveBeenCalled();
+  const retained = tree.root.findByType(WorkerProfileForm).props.confirmMap;
+  mockModeView = { kind: 'confirmed', modes: ['REMOTE'] };
+  await act(async () => tree.update(<Profile />));
+  mockRouter.navigate.mockClear();
+  await act(async () => retained());
+  expect(mockRouter.navigate).not.toHaveBeenCalled();
+});
+
 it('passes owned remote mode into the saved profile instead of assuming its city is coverage', async () => {
   mockModeView = { kind: 'confirmed', modes: ['REMOTE'] };
   await renderReading();

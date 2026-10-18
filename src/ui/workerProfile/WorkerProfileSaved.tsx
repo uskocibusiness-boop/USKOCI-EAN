@@ -36,7 +36,7 @@ export type AvailableNowControl = { value: boolean; onChange: (value: boolean) =
  * The route owns status, available-now writes and restrictions on a suspended profile.
  */
 export function WorkerProfileSaved({ draft, status, disabled, navigate, openConversation, accountName = null, onUseAccountName, nameWorking = false,
-  face, rating, availableNow, readOnly = false, executionModes, refreshModes, showConversationAction = true }: {
+  face, rating, availableNow, readOnly = false, executionModes, refreshModes, showConversationAction = true, confirmMap }: {
   draft: WorkerDraft; status: ReactNode; disabled: boolean; navigate: (path: SavedProfilePath) => void;
   /** A part opens as local context in the same owned AI conversation. */ openConversation?: (part?: WorkerAiPart) => void;
   /** Hide the generic entry when the route already supplies its main conversation action. */ showConversationAction?: boolean;
@@ -48,6 +48,7 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
   /** The rating in the card (a line, or nothing). */ rating?: ReactNode;
   /** The switch "Mogu odmah"; without it the row says its state and cannot be touched. */ availableNow?: AvailableNowControl;
   executionModes?: WorkerExecutionModeView; refreshModes?: () => void;
+  /** A separate, explicit confirmation of the saved area's approximate point. */ confirmMap?: () => void;
 }) {
   const grad = draft.grad.trim() ? cityLabel(draft.grad) : '';
   const area = grad ? (draft.radius ? `${grad} · ${draft.radius} km` : grad) : '';
@@ -85,6 +86,8 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
           disabled={disabled} onPress={() => openConversation ? openConversation('area') : navigate('/profil/lokacija')} last />
         : grad ? <ListRow title="Grad profila" value={grad} leading={<FactArt kind="pin" size={32} />} last /> : null}
     </SettingsGroup>
+    {onSite && !readOnly && confirmMap ? <V2Action label="Potvrdi tačku na mapi" tone="neutral" kind="quiet" compact disabled={disabled}
+      onPress={() => { if (!disabled) confirmMap(); }} /> : null}
     <SettingsGroup title="Kada">
       {availableNow && !readOnly
         ? <ListRow leading={<ClockArt size={32} quiet={disabled} />} title="Mogu odmah"

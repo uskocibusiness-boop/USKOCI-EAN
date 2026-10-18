@@ -237,7 +237,7 @@ export type WorkerProfileFocusRequest = { target: 'skill' | 'tool' | 'vehicle'; 
  * (`onUseAccountName`, the person's own action, never automatic), which goes by itself once the two agree.
  */
 export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation, showConversationAction = true, profileExists = true, introOnly = false,
-  reading = false, accountName = null, onUseAccountName, nameWorking = false, onEditPart, face, rating, availableNow, openSection, executionModes, refreshModes }: {
+  reading = false, accountName = null, onUseAccountName, nameWorking = false, onEditPart, face, rating, availableNow, openSection, executionModes, refreshModes, confirmMap }: {
   draft: WorkerDraft; change: (value: WorkerDraft) => void; disabled: boolean; status: StanjeProfila | null;
   navigate: (path: WorkerNavigation) => void; focusRequest?: WorkerProfileFocusRequest | null;
   checks?: WorkerActivationChecks; readyToActivate?: boolean; openConversation?: (part?: WorkerAiPart) => void; profileExists?: boolean;
@@ -245,6 +245,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
   /** Only a pristine first visit. Retained drafts and uncertain writes must keep their recovery editor. */ introOnly?: boolean;
   reading?: boolean;
   executionModes?: WorkerExecutionModeView; refreshModes?: () => void;
+  confirmMap?: () => void;
   /** Opens the editor of one part (a row of the read profile). */ onEditPart?: (part: SavedProfilePart) => void;
   /** The face in the card of the read profile. */ face?: ReactNode;
   /** The rating line in that card. */ rating?: ReactNode;
@@ -281,7 +282,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
     ? <NameDifference workName={draft.ime} accountName={accountName!} disabled={disabled || nameWorking} working={nameWorking} onUse={onUseAccountName} /> : null;
   if (reading) return <WorkerProfileSaved draft={draft} disabled={disabled} navigate={navigate} openConversation={openConversation}
     showConversationAction={showConversationAction}
-    executionModes={executionModes} refreshModes={refreshModes}
+    executionModes={executionModes} refreshModes={refreshModes} confirmMap={confirmMap}
     readOnly={status === 'SUSPENDED'} face={face} rating={rating} availableNow={availableNow}
     accountName={accountName} onUseAccountName={onUseAccountName} nameWorking={nameWorking}
     status={<ActivationStatus status={status} readyToActivate={false} disabled={disabled} navigate={navigate} />} />;

@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState, type ReactElement, type ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { router } from 'expo-router';
+import { useCallback, useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react';
+import { AppState, StyleSheet, View } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import type { CoarsePosition, WorkerLocation, WorkerLocationInput } from '../../../contracts/location';
 import { workerLocationClientService } from '../../../data/locationClientService';
 import { normalizeWorkerLocation } from '../../../lib/location';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
+import { useWorkerExecutionModes } from '../../../hooks/useWorkerExecutionModes';
 import { useUnsavedProfileBack } from '../../../hooks/useUnsavedProfileBack';
 import { LocationField, locationStyles } from '../../../ui/location/LocationControls';
 import { layout } from '../../../ui/system/layout';
@@ -25,6 +26,7 @@ import type { createConfiguredLocationResolver } from '../../../data/configuredL
 /** The form's two parts: fields and the save action that stays above the keyboard. */
 export type WorkerLocationParts = { body: ReactNode; footer: ReactNode };
 type WorkerLocationFormProps = { location: WorkerLocation; busy: boolean; uncertain: boolean;
+  /** Confirm only the saved area's coarse center; the AI-owned city and radius are facts here. */ pointOnly?: boolean;
   onDirtyChange?: (dirty: boolean) => void;
   resolver?: Pick<ReturnType<typeof createConfiguredLocationResolver>, 'search' | 'cancel'>; onSave: (value: WorkerLocationInput) => void;
   /** Where the route places the parts (the screen's sticky footer); by default they are drawn one under the other. */
@@ -62,7 +64,7 @@ const stacked = ({ body, footer }: WorkerLocationParts) => <View style={{ gap: 2
 const samePosition = (a: CoarsePosition | null, b: CoarsePosition | null) =>
   a === b || (!!a && !!b && a.latitude === b.latitude && a.longitude === b.longitude);
 function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver, children = stacked, error: refusal, onRetry, countryOptions,
-  reading = false, saved = false, onDirtyChange }: WorkerLocationFormProps & { countryOptions: CountryOptions }) {
+  reading = false, saved = false, onDirtyChange, pointOnly = false }: WorkerLocationFormProps & { countryOptions: CountryOptions }) {
   const [city, setCity] = useState(location.city);
   const [country, setCountry] = useState<string | null>(location.operatingCountryCode);
   const [radius, setRadius] = useState(String(location.radiusKm));
@@ -70,7 +72,7 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
   const [position, setPosition] = useState(location.approximatePosition);
   const [mapEpoch, setMapEpoch] = useState(0);
   const [searchEpoch, setSearchEpoch] = useState(0);
-  const disabled = busy || uncertain;
+  const disabled = busy || uncertain || reading;
   const changePlace = (change: () => void) => {
     if (disabled) return;
     change(); setPosition(null); setMapEpoch(value => value + 1); setError(false);
@@ -84,7 +86,7 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
   const settled = saved && !dirty;
   const submit = () => {
-    if (disabled || reading || settled || !selectableCountry(countryOptions.countries, country)) return;
+    if (disabled || reading || settled || (pointOnly && !position) || !selectableCountry(countryOptions.countries, country)) return;
     const value = normalizeWorkerLocation({ operatingCountryCode: country, city: city.trim(), radiusKm: /^\d+$/.test(radius) ? Number(radius) : NaN,
       approximatePosition: position });
     if (!value) { setError(true); return; }
@@ -95,11 +97,15 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
   // read of the saved area that is still running (a save during it would be refused without a word). Once saved, the
   // line above the button already says why.
   const reason = settled ? null : !selectable ? 'Izaberi dostupnu državu.'
-    : reading ? 'Učitavamo sačuvano područje…' : null;
+    : reading ? 'Učitavamo sačuvano područje…' : pointOnly && !position ? 'Označi približnu tačku na mapi.' : null;
   const body = <View style={{ gap: 24 }}>
     {/* Privacy wording, word for word. "Izaberi područje u kom radiš." and a second title under the bar are gone. */}
     <View style={s.note}><FactArt kind="lock" size={20} />
       <T variant="copy" tone="muted" style={s.grow}>Kućna adresa i GPS dozvola nisu potrebni.</T></View>
+    {pointOnly ? <View style={s.radius}>
+      <T variant="bodyStrong">{`${city} · ${radius} km`}</T>
+      <T variant="note" tone="muted">{country} · Područje iz sačuvanog profila</T>
+    </View> : <>
     <CountryField label="Država rada" value={country} disabled={disabled} options={countryOptions}
       onChange={code => changePlace(() => setCountry(code))} />
     <LocationField label="Grad ili mesto rada" value={city} maxLength={160} editable={!disabled}
@@ -115,6 +121,7 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
           </Press>; })}
       </View>
     </View>
+    </>}
     {country && city.trim() ? <View style={locationStyles.section}>
       {/* The instruction stays; how precisely the point is kept is behind the "ⓘ" at the title (owner's phone, 8 Oct 2026: too much explaining text). */}
       <InfoTitle title="Približno područje na mapi" testID="area-map-info" info={['Čuva se približna tačka, zaokružena na oko kilometar.']} />
@@ -129,7 +136,7 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
           if (!coarse) return;
           setPosition(coarse); setError(false); setSearchEpoch(value => value + 1);
         } }} />
-      {position ? <V2Action label="Ukloni približnu tačku" kind="quiet" disabled={disabled} style={quietStart}
+      {position && !pointOnly ? <V2Action label="Ukloni približnu tačku" kind="quiet" disabled={disabled} style={quietStart}
         onPress={() => { if (!disabled) { setPosition(null); setMapEpoch(value => value + 1); } }} /> : null}
     </View> : null}
     {error ? <T accessibilityRole="alert" tone="danger">Unesi mesto rada.</T> : null}
@@ -139,12 +146,12 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
   const retry = (uncertain || !!refusal) && onRetry;
   const footer = <>
     {settled && !retry ? <View style={s.saved}><FactArt kind="check" size={20} />
-      <T accessibilityRole="alert" tone="success" style={s.grow}>Područje rada je sačuvano.</T></View>
+      <T accessibilityRole="alert" tone="success" style={s.grow}>{pointOnly ? 'Približna tačka je sačuvana.' : 'Područje rada je sačuvano.'}</T></View>
       : null}
     {retry ? <V2Action label="Pokušaj ponovo" onPress={retry} disabled={busy || reading} loading={reading} style={brandAction}
       error={refusal ?? undefined} />
-      : <V2Action label="Sačuvaj područje rada" onPress={submit} loading={busy} style={brandAction}
-        disabled={disabled || reading || settled || !selectable} reason={busy ? null : reason} error={refusal ?? undefined} />}
+      : <V2Action label={pointOnly ? 'Potvrdi tačku' : 'Sačuvaj područje rada'} onPress={submit} loading={busy} style={brandAction}
+        disabled={disabled || reading || settled || !selectable || (pointOnly && !position)} reason={busy ? null : reason} error={refusal ?? undefined} />}
   </>;
   return children({ body, footer });
 }
@@ -153,6 +160,70 @@ function ScopedWorkerLocationForm({ location, busy, uncertain, onSave, resolver,
 const quietStart = { alignSelf: 'flex-start' } as const;
 
 export default function PodrucjeRada() {
+  const params = useLocalSearchParams<{ mode?: string; profileId?: string }>();
+  return params.mode === 'point' ? <WorkerPointConfirmation expectedProfileId={typeof params.profileId === 'string' ? params.profileId : null} />
+    : <WorkerAreaEditor />;
+}
+
+/** The existing owned location writer is independent from the signed AI review. A point change invalidates an older
+ * conversation's source hash; neither this screen nor its save may rebase or mutate a frozen AI proposal. */
+function WorkerPointConfirmation({ expectedProfileId }: { expectedProfileId: string | null }) {
+  const read = useCallback(() => workerLocationClientService.read(), []);
+  const editor = useOwnedEditor(read);
+  const location = editor.data;
+  const modes = useWorkerExecutionModes(location?.profileId ?? null);
+  const [dirty, setDirty] = useState(false);
+  const leave = useUnsavedProfileBack({ dirty: !!location && dirty, busy: editor.busy, uncertain: editor.uncertain,
+    revision: location?.revision ?? null, onBack: () => router.canGoBack() ? router.back() : router.replace('/profil/radnik') });
+  const eligible = !!location && !!expectedProfileId && location.profileId === expectedProfileId
+    && modes.view.kind === 'confirmed' && modes.view.modes.includes('ON_SITE');
+  const mapScope = location ? `${location.accountId}:${location.profileId}:${location.revision}` : null;
+  const admittedScope = useRef<string | null>(null);
+  if (eligible) admittedScope.current = mapScope;
+  else if (modes.view.kind === 'confirmed' || modes.view.kind === 'unconfirmed') admittedScope.current = null;
+  // A retained native callback must not revive a map after a mode/account/profile refresh.
+  const current = useRef({ eligible, revision: location?.revision });
+  current.current = { eligible, revision: location?.revision };
+  useEffect(() => () => { current.current.eligible = false; }, []);
+  const refresh = () => { void editor.refresh(); modes.refresh(); };
+  const frame = (body: ReactNode) => <WorkerProfileFrame title="Tačka na mapi" backLabel="Nazad" back={leave.back}>{body}{leave.sheet}</WorkerProfileFrame>;
+  if (!location) return frame(editor.error && !editor.loading
+    ? <StateView kind="error" title="Područje rada nije učitano" body={editor.error} primary={{ label: 'Pokušaj ponovo', onPress: refresh }} />
+    : <StateView kind="loading" title="Učitavamo područje rada…" skeleton={{ count: 2, rows: 1 }} />);
+  if (!expectedProfileId || location.profileId !== expectedProfileId) return frame(<StateView kind="error" title="Otvori mapu iz svog radnog profila"
+    primary={{ label: 'Nazad na profil', onPress: leave.back }} />);
+  const modeNotice = modes.view.kind === 'loading'
+    ? <StateView kind="loading" title="Proveravamo način rada…" skeleton={{ count: 1, rows: 1 }} />
+    : modes.view.kind === 'unavailable' ? <StateView kind="error" title="Način rada nije učitan" primary={{ label: 'Pokušaj ponovo', onPress: refresh }} />
+      : !eligible ? <StateView kind="empty" title={modes.view.kind === 'confirmed' ? 'Za rad na daljinu mapa nije potrebna' : 'Prvo potvrdi način rada u razgovoru'}
+        primary={{ label: 'Nazad na profil', onPress: leave.back }} /> : null;
+  if (modeNotice && admittedScope.current !== mapScope) return frame(modeNotice);
+  if (!location.city.trim() || !location.operatingCountryCode) return frame(<StateView kind="empty" title="Dopuni područje kroz razgovor"
+    body="Na radnom profilu izaberi „Gde“ i navedi grad u kom radiš. Zatim potvrdi njegov približan centar."
+    primary={{ label: 'Nazad na profil', onPress: leave.back }} />);
+  return <WorkerLocationForm pointOnly location={location} busy={editor.busy || !eligible} uncertain={editor.uncertain}
+    onDirtyChange={setDirty} reading={editor.loading} saved={editor.saved} error={editor.error} onRetry={refresh}
+    onSave={value => {
+      if (!current.current.eligible || current.current.revision !== location.revision || !value.approximatePosition
+        || AppState.currentState === 'background' || AppState.currentState === 'inactive') return;
+      // Only the displayed coarse point can change. City/country/radius always come from this owned read.
+      void editor.save(async () => {
+        const result = await workerLocationClientService.save({ expectedRevision: location.revision, confirmed: true,
+          value: { operatingCountryCode: location.operatingCountryCode!, city: location.city, radiusKm: location.radiusKm,
+            approximatePosition: value.approximatePosition } });
+        return result.ok ? { ok: true, podatak: result.podatak.location } : result;
+      });
+    }}>
+    {({ body, footer }) => <WorkerProfileFrame title="Tačka na mapi" backLabel="Nazad" back={leave.back} footer={eligible ? footer : undefined}>
+      {modeNotice}
+      {/* Keep an unsaved point through a temporary mode refresh, with every map action disabled and hidden. */}
+      <View style={!eligible ? { display: 'none' } : undefined} accessibilityElementsHidden={!eligible}
+        importantForAccessibility={eligible ? 'auto' : 'no-hide-descendants'}>{body}</View>{leave.sheet}
+    </WorkerProfileFrame>}
+  </WorkerLocationForm>;
+}
+
+function WorkerAreaEditor() {
   const read = useCallback(() => workerLocationClientService.read(), []);
   const editor = useOwnedEditor(read);
   const [dirty, setDirty] = useState(false);

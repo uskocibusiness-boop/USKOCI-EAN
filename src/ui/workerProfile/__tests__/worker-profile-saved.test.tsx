@@ -42,6 +42,30 @@ const show = async (patch: Partial<React.ComponentProps<typeof WorkerProfileSave
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('what the saved profile shows', () => {
+  it('keeps map confirmation separate from the AI area edit and from the primary action', async () => {
+    const confirmMap = jest.fn();
+    const { openConversation, navigate } = await show({ confirmMap });
+    await act(async () => press('Gde').props.onPress());
+    expect(openConversation).toHaveBeenCalledWith('area');
+    expect(action('Potvrdi tačku na mapi').props.kind).toBe('quiet');
+    await act(async () => action('Potvrdi tačku na mapi').props.onPress());
+    expect(confirmMap).toHaveBeenCalledWith(); expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it.each(['remote', 'unconfirmed', 'loading', 'unavailable', 'suspended', 'disabled'])(
+    '%s cannot request a map confirmation', async state => {
+      const confirmMap = jest.fn();
+      await show({ confirmMap, readOnly: state === 'suspended', disabled: state === 'disabled',
+        executionModes: state === 'remote' ? { kind: 'confirmed', modes: ['REMOTE'] }
+          : ['unconfirmed', 'loading', 'unavailable'].includes(state) ? { kind: state as 'unconfirmed' | 'loading' | 'unavailable' }
+            : { kind: 'confirmed', modes: ['ON_SITE'] } });
+      if (state === 'disabled') {
+        expect(action('Potvrdi tačku na mapi').props.disabled).toBe(true);
+        await act(async () => action('Potvrdi tačku na mapi').props.onPress());
+      } else expect(action('Potvrdi tačku na mapi')).toBeUndefined();
+      expect(confirmMap).not.toHaveBeenCalled();
+    });
+
   it('shows confirmed remote work with the profile city, never an inherited on-site radius or location editor', async () => {
     const spies = await show({ executionModes: { kind: 'confirmed', modes: ['REMOTE'] } },
       draft({ vestine: ['3D štampa'], biografija: 'Izrada kod mene uz slanje.' }));

@@ -200,7 +200,7 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
         scopeKey={`worker-review:${review.accountId}:${review.profileId}:${review.reviewId}:${review.revision}`}
         onChoose={()=>{ /* Frozen review, never a location editor. */ }}/>:null}
       {onSite
-        ?<T variant="note" tone="muted">{point?'Približan centar za terenske zadatke.':'Približnu tačku za terenske zadatke dodaješ posle čuvanja, u delu Područje rada.'}</T>:null}
+        ?<T variant="note" tone="muted">{point?'Približan centar za terenske zadatke.':'Posle čuvanja profila izaberi „Potvrdi tačku na mapi“ za terenske zadatke.'}</T>:null}
     </ReviewGroup>
     <ReviewGroup part="time" {...group}>
       <Fact art="clock">{p.availability.availableNow?'Mogu odmah, dok to ne isključiš':'Mogu odmah: isključeno'}</Fact>

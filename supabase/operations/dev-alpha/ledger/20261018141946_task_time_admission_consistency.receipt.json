@@ -1,0 +1,123 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "authority": "Owner standing PRIMENI 2026-10-18",
+  "migration": "20261018141946",
+  "sourceCommit": "9f39445545a8474bf810c34a0373aad049418b8d",
+  "sha256": "5a98b3a3a43599675f5ca755c79fe6cbdde996effbf026514e4c43577cb6270f",
+  "scope": "Execution-time admission for new submissions, selections and KEEP/UPDATE; both candidate read models agree.",
+  "functions": [
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "secdef": true,
+      "bodyMd5": "fde9531de375bd50c6a526c2adee2756",
+      "signature": "rpc_submit_response(uuid,integer,uuid,integer,integer,timestamp with time zone,timestamp with time zone,text,text)",
+      "definitionMd5": "7760ffe2c774a66147d4829e0cfd7a91"
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "secdef": true,
+      "bodyMd5": "f92a988e0fa8f01dde6318867e5df9fb",
+      "signature": "rpc_resolve_stale_response_after_need_edit(uuid,integer,integer,text,text,integer,integer,timestamp with time zone,timestamp with time zone,text)",
+      "definitionMd5": "db21ba35db8fa19bba07d4db39fe2bcc"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "secdef": true,
+      "bodyMd5": "f1b07f739d3e256822ded8d2b01b3b11",
+      "signature": "private.need_candidate_states_v5(uuid)",
+      "definitionMd5": "6e9656abe2475b53b6dc49ead1131620"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "secdef": true,
+      "bodyMd5": "91e873f74c8df477ab846391dfa53add",
+      "signature": "private.need_candidate_states_v5(uuid,uuid[])",
+      "definitionMd5": "1c25fd199f84964d2ffbb5b54d5aeca0"
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=public, pg_temp"
+      ],
+      "secdef": true,
+      "bodyMd5": "5556d638e3befbe9739344b57d94d46a",
+      "signature": "rpc_select_response(uuid,integer,uuid,integer,text,text)",
+      "definitionMd5": "2bd9a91b3f4b8179173c622c974270f9"
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "secdef": true,
+      "bodyMd5": "0fd72e91c11eeac2c2501f3a8f753734",
+      "signature": "private.need_search_time_admitted_v1(uuid,timestamp with time zone)",
+      "definitionMd5": "e72b25a26bc41c79bdd5b194844c8950"
+    }
+  ],
+  "metadataUnchanged": [
+    "ACL",
+    "owner",
+    "SECURITY DEFINER",
+    "search_path"
+  ],
+  "newConflict": {
+    "sqlstate": "PT409",
+    "reason": "NEED_EXECUTION_WINDOW_EXPIRED"
+  },
+  "ci": {
+    "run": 39135356268,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39135356268",
+    "postgres": [
+      16,
+      17
+    ],
+    "conclusion": "success",
+    "proof": [
+      "predecessor reproduces expiry defect",
+      "new writes refuse expired execution",
+      "idempotent replay and WITHDRAW survive expiry",
+      "existing selected Agreement and partial slots preserved",
+      "wall clock after blocked Need lock",
+      "exact rollback and reapplication"
+    ]
+  },
+  "clientFocusedTests": 83,
+  "businessCountsBefore": {
+    "responses": 1,
+    "agreements": 1
+  },
+  "businessCountsAfter": {
+    "responses": 1,
+    "agreements": 1
+  },
+  "dataEffects": {
+    "businessDml": false,
+    "taskPublish": 0,
+    "profileSave": 0,
+    "push": 0
+  },
+  "rollback": "supabase/candidates/task-time-consistency-20261018/revert.sql",
+  "limits": [
+    "Disposable proof isolates eligibility with a documented matcher stub.",
+    "No real late application or selection created on DEV."
+  ]
+}

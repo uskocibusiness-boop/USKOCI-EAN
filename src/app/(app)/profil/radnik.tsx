@@ -74,6 +74,8 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   }, [izvor, owns]);
   const editor = useOwnedEditor(read);
   const executionModes = useWorkerExecutionModes(editor.data?.profile?.id ?? null, editor.data?.read ?? 0);
+  const latestModes = useRef(executionModes.view);
+  latestModes.current = executionModes.view;
   const latestStatus = useRef(editor.data?.profile?.stanje);
   latestStatus.current = editor.data?.profile?.stanje;
   const [draft, setDraft] = useState<Draft | null>(null), draftRef = useRef<Draft | null>(null), draftGeneration = useRef(0);
@@ -184,9 +186,11 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     if (!enabled || !current() || transportRef.current || !editor.data || !pendingRef.current || editor.data.read <= pendingRef.current.afterRead) return;
     pendingRef.current = null; setPending(null); setMessage(null); setValidation(null); draftGeneration.current++;
   };
-  const navigate = (path: WorkerNavigation) => {
+  const navigate = (path: WorkerNavigation, pointOnly = false) => {
     if (!enabled || !current() || transportRef.current || pendingRef.current) return;
     if (latestStatus.current === 'SUSPENDED' && (path === '/profil/lokacija' || path === '/profil/dostupnost')) return;
+    if (pointOnly && (latestModes.current.kind !== 'confirmed'
+      || !latestModes.current.modes.includes('ON_SITE') || !editor.data?.profile)) return;
     if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)
       && !(path === '/podrska' && latestStatus.current === 'SUSPENDED')) {
       // Support is not a setting, so it has its own sentence (review of step 9, 2026-09-24).
@@ -196,6 +200,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     // native scroll clamp must not overwrite where this owner was reading.
     returningTo.current = { y: readingOffset.current, fromFocus: focus };
     if (path === '/profil/obavestenja') router.navigate({ pathname: path, params: { skup: 'WORKER' } });
+    else if (path === '/profil/lokacija' && pointOnly) router.navigate({ pathname: path, params: { mode: 'point', profileId: editor.data!.profile!.id } });
     else router.navigate(path);
   };
   // A row of the read profile that changes something opens the editor of ITS part. Nothing is written by the tap; unsaved work and a save in flight keep it out.
@@ -337,7 +342,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
         openConversation={openConversation} showConversationAction={!(reading && status === 'DRAFT')} profileExists={profile !== null} introOnly={introOnly}
         reading={reading} onEditPart={editPart} openSection={openSection} face={face} rating={accountId ? <RatingLine accountId={accountId} /> : undefined}
         availableNow={availableNowControl}
-        executionModes={executionModes.view} refreshModes={executionModes.refresh}
+        executionModes={executionModes.view} refreshModes={executionModes.refresh} confirmMap={() => navigate('/profil/lokacija', true)}
         accountName={accountName} onUseAccountName={() => { void adoptAccountName(); }} nameWorking={nameWorking} /></View>}
     {leave.sheet}
   </WorkerProfileFrame>;
