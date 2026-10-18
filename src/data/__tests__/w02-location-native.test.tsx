@@ -26,7 +26,6 @@ jest.mock('../../hooks/useOwnedEditor', () => ({ useOwnedEditor: jest.fn() }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ResolvedPinMap' }));
 
 import { NeedLocationForm, saveBlockReason } from '../../ui/location/NeedLocationForm';

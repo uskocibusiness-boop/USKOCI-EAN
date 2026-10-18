@@ -25,6 +25,7 @@ jest.mock('../../ui/entry/entryV49Math', () => {
 });
 let mockAccount = { accountRevision: 0, user: null as null | { id: string } };
 let mockFontScale = 1;
+let mockInsets = { top: 33, bottom: 0, left: 0, right: 0 };
 const mockFinish = jest.fn();
 const mockForeground = new Set<(state: string) => void>();
 const mockTiming = jest.fn((value: number) => value);
@@ -41,7 +42,7 @@ jest.mock('react-native', () => {
     return ['View', 'ScrollView', 'Pressable', 'Text', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
-jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 33, bottom: 0 }) }));
+jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => mockInsets }));
 jest.mock('react-native-reanimated', () => ({ __esModule: true,
   default: { View: 'AnimatedView', createAnimatedComponent: (component: unknown) => component },
   useReducedMotion: () => mockReduced,
@@ -92,7 +93,7 @@ const button = (label: string) => tree.root.findAll(node => String(node.type) ==
 const press = async (label: string) => { await act(async () => button(label).props.onPress()); };
 const advance = async (ms: number) => { await act(async () => { jest.advanceTimersByTime(ms); }); };
 const render = async () => { await act(async () => { tree = create(element()); }); };
-beforeEach(() => { jest.useFakeTimers(); jest.clearAllMocks(); mockForeground.clear(); mockSharedAssignments.length = 0; mockFrameTime = null; mockIntentTime = null; mockPhase = 'welcome'; mockReduced = false; mockFontScale = 1; mockAccount = { accountRevision: 0, user: null }; requester.mockResolvedValue(undefined); worker.mockResolvedValue(undefined); });
+beforeEach(() => { jest.useFakeTimers(); jest.clearAllMocks(); mockForeground.clear(); mockSharedAssignments.length = 0; mockFrameTime = null; mockIntentTime = null; mockPhase = 'welcome'; mockReduced = false; mockFontScale = 1; mockInsets = { top: 33, bottom: 0, left: 0, right: 0 }; mockAccount = { accountRevision: 0, user: null }; requester.mockResolvedValue(undefined); worker.mockResolvedValue(undefined); });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 
 it('shows the vector lockup and two real intent controls without dispatching on mount', async () => {
@@ -114,6 +115,30 @@ it('keeps entry illustration assets local and decorative, with usable authentica
   }
   for (const name of ['Prijavi se', 'Napravi nalog']) expect(StyleSheet.flatten(button(name).props.style).minHeight).toBeGreaterThanOrEqual(48);
 });
+
+// This checks the mounted entry actually used by /auth. The retired reference
+// screen's source-string checks could pass while the real entry lost its insets.
+it.each([[0, 0, 1], [48, 34, 1], [96, 48, 2], [24, 80, 2]])(
+  'keeps measured auth actions reachable with top %i, bottom %i and text scale %i', async (top, bottom, scale) => {
+    mockInsets = { top, bottom, left: 0, right: 0 }; mockFontScale = scale;
+    await render();
+    const measuredFooterHeight = 210;
+    await act(async () => tree.root.findByProps({ testID: 'entry-auth-footer' }).props.onLayout({
+      nativeEvent: { layout: { width: 390, height: measuredFooterHeight, x: 0, y: 0 } },
+    }));
+    const brand = StyleSheet.flatten(tree.root.findByProps({ testID: 'entry-brand-panel' }).props.style);
+    const footer = StyleSheet.flatten(tree.root.findByProps({ testID: 'entry-auth-footer' }).props.style);
+    const scroll = tree.root.findByType('ScrollView' as React.ElementType);
+    expect(brand.top).toBeGreaterThanOrEqual(top);
+    expect(scroll.props.scrollEnabled).toBe(true);
+    expect(StyleSheet.flatten(scroll.props.contentContainerStyle).minHeight)
+      .toBeGreaterThanOrEqual(footer.top + measuredFooterHeight + bottom);
+    for (const label of ['Prijavi se', 'Napravi nalog']) expect(button(label).props.disabled).toBe(false);
+    await press('Prijavi se'); expect(signIn).toHaveBeenCalledTimes(1);
+    await press('Napravi nalog'); expect(signUp).toHaveBeenCalledTimes(1);
+  },
+);
+
 it('preserves both image instances and their native ancestors through intro, selection, cancellation and completion', async () => {
   mockPhase = 'intro'; await render();
   const images = tree.root.findAllByType('OriginalImage' as React.ElementType);

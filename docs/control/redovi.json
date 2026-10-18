@@ -7873,6 +7873,15 @@
         "napomena": "Klijent otvara izmene Dogovora; izvor src/app/obavestenja.tsx."
       }
     },
+    "client_cleanup_20261018": {
+      "state": "SOURCE_TEST_ANDROID_EXPORT_VERIFIED",
+      "base_commit": "bb0ba8df8b9eabf492607415f41a2a02d96ed672",
+      "report": "docs/current/CLIENT_CLEANUP_20261018.md",
+      "evidence": "docs/current/evidence/CLIENT_CLEANUP_20261018.json",
+      "result": "15 mrtvih source modula, 1 template reset skripta i 5 povučenih test-fajlova uklonjeni; 44 stara mock-a očišćena. Aktivan UI/ponašanje i server nepromenjeni. TypeScript, 619/619 Jest grupa i 13824/13824 testova PASS; Android source/asset paritet proveren, bez tvrdnje o identičnom HBC hash-u ili ubrzanju.",
+      "previous_apk": "CI 39163968732 SUCCESS, bb0ba8d, ARM64 artifact 12149464814; sadrži prethodni reliability paket, ne ovo čišćenje; nije instaliran u ovom radu.",
+      "next": "Home core bounded read i nepotpune stranice Dogovora; zatim dokaz pariteta preostalih location/review/permission kandidata. Nema novog DEV očitavanja/primene niti podizanja phone/release prihvatanja."
+    },
     "premium_baseline_20261018": {
       "state": "SOURCE_INTEGRATION_IN_PROGRESS",
       "sourceBeforeCleanup": "eaa38a04e20be24bba71840660493b634180ee72",

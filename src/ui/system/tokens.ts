@@ -43,11 +43,8 @@ export const sys = {
    */
   map: colorTokens.map,
   /**
-   * Illustration tones: the Home drawing's own greens, paper and spark. Only for pictures, never for words or controls.
-   * NOT `sys.color.art` (above): that is the tone set of a fact picture (FactArt). Two things with one word; do not
-   * rename this one, `HomeIllustration` imports `sys.art`.
-   * Where the drawing used a colour a hair off the palette it now uses the palette colour (its ground shadow is iconWell,
-   * the back sheet greenSoft, the pin orange); these are the tones that are deliberately its own.
+   * Illustration-only tones, distinct from the semantic fact-picture palette in
+   * `sys.color.art`. Retained as a shared palette role, never for text or controls.
    */
   art: colorTokens.illustration.home,
   /** Picker illustration shades share the pure color owner; never use them for control text. */

@@ -17,7 +17,6 @@ jest.mock('expo-router', () => { const React = require('react');
 });
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ bottom: 24 }) }));
 jest.mock('phosphor-react-native', () => ({ House: 'Icon', Handshake: 'Icon' }));
-jest.mock('../../ui/referenceEntry/ReferenceEntryHero', () => ({ CanonicalMark: 'Mark' }));
 import Tabs from '../../app/(app)/_layout';
 import { Press } from '../../ui/Press';
 import { StyleSheet } from 'react-native';

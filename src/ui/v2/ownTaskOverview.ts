@@ -192,7 +192,7 @@ export function ownTaskOverview(input: {
  * BUILT BEHIND A SWITCH, OFF: the owner's own read of a task carries neither the time it was published nor how many photos it has, so today
  * the card cannot be told the truth. TRAŽI SERVER: `publishedAt` (the instant of `published_at`, which `rpc_publish_need` already returns once,
  * `publication.ts: publishedAt`) and the count of the task's photos in the owner's task read; the page then passes them in (`publishedAt`,
- * `photoCount`), turns `NO_APPLICATIONS_HELP_ON` on and mounts `NoApplicationsHelp` (`offer/NoApplicationsHelp.tsx`). With the switch off, or
+ * `photoCount`), turns `NO_APPLICATIONS_HELP_ON` on and passes `waitingHelp` to `NeedPresentation`. With the switch off, or
  * with a time that is missing or is not a time, the answer is null: never a guess.
  */
 export const NO_APPLICATIONS_HELP_ON = false;

@@ -18,7 +18,6 @@ jest.mock('react-native', () => {
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
-jest.mock('../../v2/icons', () => ({ V2Icon: 'V2Icon' }));
 jest.mock('../../system/DetailTopBar', () => ({ DetailTopBar: 'DetailTopBar' }));
 jest.mock('../../v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../system/Avatar', () => ({ Avatar: 'Avatar', FaceEdge: 'FaceEdge' }));

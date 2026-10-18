@@ -19,7 +19,6 @@ jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => false }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 import { MyApplicationsPresentation } from '../../ui/v2/MyApplicationsPresentation';
 import { PublicNeedPresentation } from '../../ui/v2/PublicNeedPresentation';
 

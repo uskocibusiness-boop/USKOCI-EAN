@@ -38,7 +38,6 @@ jest.mock('../locationClientService', () => ({ needLocationClientService: {
 } }));
 jest.mock('../productionLocationResolver', () => ({ createProductionLocationResolver: () => ({ cancel: mockCancelResolver }) }));
 jest.mock('../../ui/location/NeedLocationForm', () => ({ NeedLocationForm: 'LocationForm' }));
-jest.mock('../../ui/aiFirst/ResponseDeadlineEditor', () => ({ ResponseDeadlineEditor: 'DeadlineEditor' }));
 jest.mock('../../ui/calendar/CalendarControls', () => ({ CivilField: 'CivilField' }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto', mediaAssetId: () => null }));
 jest.mock('../../ui/location/LocationMapPreview', () => ({ LocationMapPreview: 'LocationMapPreview' }));
@@ -60,7 +59,6 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 import ReviewRoute from '../../app/(app)/pregled-zadatka';
 import { ConfirmSheet, confirmFormOf } from '../../ui/system/ConfirmSheet';
 import { sys, brandAction } from '../../ui/system/tokens';

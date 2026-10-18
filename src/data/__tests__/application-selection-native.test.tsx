@@ -37,7 +37,6 @@ jest.mock('../ownProfileClientService', () => ({ ownProfileClientService: { read
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockAccount, sesijaSada: () => mockAccount }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({
   from: () => { const builder = { select: () => builder, eq: () => builder, maybeSingle: mockLinkQuery }; return builder; },

@@ -28,7 +28,6 @@ jest.mock('../../store/sesija', () => ({ useSesija: () => mockAccount, sesijaSad
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'Bell' }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: jest.fn() }));
 jest.mock('../ru4Production', () => ({ ru4Production: { resolveChangedApplication: (...args: any[]) => mockResolve(...args) } }));
 jest.mock('../myApplicationsClientService', () => ({ readExistingApplicationInterval: (...args: any[]) => mockInterval(...args),

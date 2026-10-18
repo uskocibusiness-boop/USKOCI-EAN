@@ -17,7 +17,6 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReduced }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 import { applyClosedReason, PublicNeedPresentation } from '../../ui/v2/PublicNeedPresentation';
 import { NeedPresentation } from '../../ui/v2/NeedPresentation';
 

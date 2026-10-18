@@ -119,8 +119,8 @@ export function CivilField({ label, mode, value, onChange, disabled }: {
     {/* iOS: the spinner in the one sheet engine (the hand-made slide Modal was one of the nine Modals of the master
         plan). Turning the wheel only moves the selection; "Izaberi" accepts it, anything else leaves the value as it was.
         Release gate (review of owner step 10): no suite runs this branch on iOS, and the field is also used inside other
-        sheets and a pageSheet Modal (AgreementActionsScreen, FactValueEditors, ResponseDeadlineEditor,
-        ApplicationSelectionPresentation). It needs an iOS device pass before an iOS release; Android does not use it. */}
+        sheets (AgreementActionsScreen, ApplicationSelectionPresentation). It needs an iOS device pass
+        before an iOS release; Android does not use it. */}
     {open && Platform.OS === 'ios' ? <ProductSheet title={label} closeButton={false} reduced={reduced} onClose={() => setOpen(false)}
       footer={dismiss => <>
         <V2Action label="Izaberi" style={brandAction} onPress={() => { onChange(civil(selection)); dismiss(); }} />

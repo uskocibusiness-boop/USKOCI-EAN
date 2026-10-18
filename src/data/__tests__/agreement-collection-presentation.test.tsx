@@ -15,7 +15,6 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../../ui/v2/AgreementCollectionPresentation';
 import { Segmented } from '../../ui/system/Segmented';
 import { AgreementPeople, AgreementPersonBar } from '../../ui/v2/AgreementPresentation';

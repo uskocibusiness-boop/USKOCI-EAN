@@ -32,7 +32,7 @@ const TOKEN_SCOPE = [
   'src/ui/Press.tsx', 'src/ui/Text.tsx', 'src/ui/system/Segmented.tsx', 'src/ui/BuildIdentity.tsx',
   'src/ui/location/ResolvedPinMap.tsx', 'src/ui/media/AuthorizedPhoto.tsx', 'src/ui/media/AgreementPhotoComposer.tsx',
   'src/ui/v2/IntakePresentation.tsx', 'src/app/(app)/pregled-zadatka.tsx', 'src/ui/v2/DiscoveryMap.tsx',
-  'src/ui/v2/DiscoveryMap.web.tsx', 'src/ui/v2/icons.tsx',
+  'src/ui/v2/DiscoveryMap.web.tsx',
 ];
 /** Read reduced motion from `ui/system/motion`, never from Reanimated's launch-time value. */
 const MOTION_SCOPE = [
@@ -43,7 +43,7 @@ const MOTION_SCOPE = [
 ];
 /** Held hand-written colours until 2026-09-24. */
 const COLOUR_SCOPE = [
-  'src/ui/home/HomePresentation.tsx', 'src/ui/home/HomeIllustration.tsx', 'src/ui/Text.tsx',
+  'src/ui/home/HomePresentation.tsx', 'src/ui/Text.tsx',
   'src/ui/v2/TaskCard.tsx', 'src/ui/v2/ApplicationComposerPresentation.tsx', 'src/ui/reviews/AgreementReviewScreen.tsx',
   'src/ui/reviews/AgreementReviewPresentation.tsx', 'src/designLab/dizajn-prijava.tsx',
 ];
@@ -339,7 +339,7 @@ const ratchetOffences = (path: string, found: Record<string, number>, allowed: R
  * the 340 / 360 / 375 / 380 / 390 dp threshold of its own (audit Z11: 26 ad-hoc sites, the owner's phone is 361 dp and fell on
  * the stacked side of some and the compact side of others). Each wave moves its files onto `useLayoutClass()` and deletes the
  * entry. New responsive primitives may be reviewed explicitly; stale entries fail.
- * Transitional entry consumers: EntryWelcome.tsx and ReferenceEntryHero.tsx.
+ * Transitional entry consumer: EntryWelcome.tsx.
  */
 const WINDOW_WIDTH_READERS = new Set([
   'src/app/(app)/_layout.tsx', // the tab bar, 340
@@ -348,7 +348,6 @@ const WINDOW_WIDTH_READERS = new Set([
   'src/ui/calendar/AgendaScreen.tsx', // 360
   'src/ui/calendar/AvailabilityForm.tsx', // 360
   'src/ui/entry/EntryWelcome.tsx', // Transitional entry consumer
-  'src/ui/referenceEntry/ReferenceEntryHero.tsx', // Transitional entry consumer
   'src/ui/system/PickerTile.tsx', // 360
   'src/ui/v2/DiscoveryPresentation.tsx',
   'src/ui/v2/discovery/DiscoverySearchPanel.tsx', // 360 and 380

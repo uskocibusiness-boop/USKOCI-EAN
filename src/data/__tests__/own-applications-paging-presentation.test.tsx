@@ -23,7 +23,6 @@ jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: 'a' }, 
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'Bell' }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: jest.fn() }));
 import { MyApplicationsPresentation, type ApplicationsPaging, type ApplicationsTab } from '../../ui/v2/MyApplicationsPresentation';

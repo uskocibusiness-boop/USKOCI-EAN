@@ -45,7 +45,9 @@ Usaglašeni posao: [komentar Work analize i izvršavanje plana](../implementatio
 
 ## Šta znači „trenutno“
 
-Naknadni DEV paket od 18.10: [primena, otkrivena invoker regresija i proverena forward ispravka](DEV_RELIABILITY_APPLICATION_20261018.md). DEV ledger 288; Početna ima ograničeni javni preview i tri taxonomy konflikta PT409. Nema novog APK-a/OTA ni podizanja phone/release prihvatanja. Prethodni baseline i lokalni izveštaji zadržavaju svoje datirane granice.
+Naknadni DEV paket od 18.10: [primena, otkrivena invoker regresija i proverena forward ispravka](DEV_RELIABILITY_APPLICATION_20261018.md). DEV ledger 288; Početna ima ograničeni javni preview i tri taxonomy konflikta PT409. Phone APK iz `bb0ba8d`, CI `39163968732`, sada je BUILT, ali nije ovde instaliran; nema OTA objave ili podizanja phone/release prihvatanja.
+
+Najnovije: [tehničko čišćenje klijenta](CLIENT_CLEANUP_20261018.md), 15 mrtvih modula i 44 zastarela mock-a, puna regresija 619 grupa / 13.824 testa PASS. Aktivan UI/ponašanje i server ostaju nepromenjeni; potvrđen je Android source/asset paritet. Ovo čišćenje nije u prethodnom APK-u. Slede Home core čitanje i oporavak nepotpunih stranica Dogovora, zatim ciljano preostalo čišćenje. Prethodni baseline i lokalni izveštaji zadržavaju svoje datirane granice.
 
 Svaki zaključak označi: SOURCE, TEST, DEV APPLIED, APK BUILT, EMULATOR, PHONE ili RELEASE. Datum i tačan izvor pripadaju dokazu. Stara slika može pokazati stari problem; njen naziv AFTER_FIX nije potvrda da prikazuje sadašnji kod. [Manifest isporuke](../implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.json) povezuje `buildIdentity`, hash APK-a, OTA identitet, DEV stanje i datirane slike; posebno razlikuje instalirani izvor, novi kandidat i neuspešne ranije pokušaje. Emulator dokaz ne podiže PHONE/RELEASE status.
 

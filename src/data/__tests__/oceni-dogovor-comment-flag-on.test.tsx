@@ -35,7 +35,6 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => ({ dogovor: (...args: unknown[]) => mockAgreement(...args) }) }));
 jest.mock('../../ui/media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
 jest.mock('../../ui/system/DetailTopBar', () => ({ DetailTopBar: 'DetailTopBar' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/system/SuccessMark', () => ({ SuccessMark: 'SuccessMark' }));

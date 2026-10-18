@@ -29,7 +29,6 @@ jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource}));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockAccount, sesijaSada: () => mockAccount }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
 const mockStorage = new Map<string, string>();

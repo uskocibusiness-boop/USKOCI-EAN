@@ -17,7 +17,6 @@ jest.mock('expo-router', () => ({ useFocusEffect: (effect: () => void) => requir
 jest.mock('../../system/motion', () => ({ useReducedMotion: () => false }));
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
-jest.mock('../../v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('../../media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 import { FactRow } from '../../system/FactRow';
 import { PublicNeedPresentation } from '../../v2/PublicNeedPresentation';

@@ -25,7 +25,6 @@ jest.mock('react-native', () => {
   return new Proxy(native, { get: (target, key) => key === 'useWindowDimensions' ? mockDimensions : Reflect.get(target, key) });
 });
 const mockDimensions = jest.fn();
-jest.mock('../src/ui/referenceEntry/ReferenceEntryHero', () => ({ CanonicalMark: () => null }));
 jest.mock('phosphor-react-native', () => ({
   House: () => null, Package: () => null, Plus: () => null, Handshake: () => null,
   User: () => null, PaperPlaneTilt: () => null, MapTrifold: () => null,

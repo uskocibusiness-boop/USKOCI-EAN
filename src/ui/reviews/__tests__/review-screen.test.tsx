@@ -23,7 +23,6 @@ jest.mock('../../Text',()=>({T:'T'}));
 jest.mock('../../../store/uloga',()=>({useIzvor:()=>({dogovor:(...args:unknown[])=>mockAgreement(...args)})}));
 jest.mock('../../media/ContextPhotos',()=>({ProfilePhoto:'ProfilePhoto'}));
 jest.mock('../../Press',()=>({Press:'Press'}));
-jest.mock('../../v2/icons',()=>({V2Icon:'V2Icon'}));
 jest.mock('../../../data/reviewsClientService',()=>({
  ...jest.requireActual('../../../data/reviewsClientService'),
  reviewsClientService:{context:(...args:unknown[])=>mockContext(...args),submit:(...args:unknown[])=>mockSubmit(...args),

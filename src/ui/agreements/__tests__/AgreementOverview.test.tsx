@@ -17,7 +17,6 @@ jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../system/motion', () => ({ useReducedMotion: () => true }));
 jest.mock('../../media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto' }));
-jest.mock('../../v2/icons', () => ({ V2Icon: 'V2Icon' }));
 
 import { InfoButton } from '../../system/InfoButton';
 import { AgreementOverview, type AgreementOverviewProps } from '../AgreementOverview';

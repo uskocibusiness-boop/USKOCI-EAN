@@ -27,7 +27,6 @@ jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalS
   useFocusEffect: (callback: () => void) => require('react').useEffect(() => mockFocused ? callback() : undefined, [callback, mockFocused]) }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
 // Same presentation-only sheet boundary as profile-draft-back.test.tsx; the real leave hook and confirmation run.
 jest.mock('../../ui/product/ProductSheet', () => ({ SHEET_TOUCH: 48, ProductSheet: ({ children, footer, onClose }: any) =>
   require('react').createElement('Sheet', null, children(onClose), footer?.(onClose)) }));

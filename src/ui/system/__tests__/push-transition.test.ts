@@ -30,7 +30,6 @@ jest.mock('react-native', () => {
   return new Proxy(native, { get: (target, key) => key === 'useWindowDimensions' ? mockDimensions : Reflect.get(target, key) });
 });
 const mockDimensions = jest.fn();
-jest.mock('../../referenceEntry/ReferenceEntryHero', () => ({ CanonicalMark: () => null }));
 
 type Options = { animation?: string; transitionSpec?: { animation: string; config: { duration: number; easing: (t: number) => number } };
   tabBarStyle?: { display?: string } };

@@ -23,7 +23,6 @@ jest.mock('../../store/uloga', () => ({ useIzvor: () => ({}), useUloga: () => 'u
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: 'a' }, accountRevision: 1 }), sesijaSada: () => ({ user: { id: 'a' }, accountRevision: 1 }) }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action', ACTION_MIN_HEIGHT: 48 }));
 jest.mock('../../ui/product/ProductDetails', () => ({ ProductHeader: 'Header' }));
 jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));

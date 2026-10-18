@@ -41,7 +41,6 @@ jest.mock('../../store/sesija', () => ({
 }));
 jest.mock('../../store/uloga', () => ({ useUloga: () => 'uskocer', ulogaSada: () => 'uskocer', useIzvor: () => mockSource }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 
 import Detail from '../../app/(app)/prilike/[id]';

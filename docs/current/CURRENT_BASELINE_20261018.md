@@ -1,6 +1,6 @@
 # Aktuelni presek za Premium White
 
-Naknadni lokalni tehnički paket na polazištu `aa61d04e`: [ograničeni Home pregled, build paritet i SQL kandidati](LOCAL_RELIABILITY_PACKAGE_20261018.md). Nije primenjen na DEV niti ugrađen u ovde opisani APK; istorijski baseline i njegovi device dokazi ispod ostaju odvojeni.
+Ostatak ovog dokumenta je datirani početni presek. Naknadni lokalni tehnički paket na polazištu `aa61d04e`: [ograničeni Home pregled, build paritet i SQL kandidati](LOCAL_RELIABILITY_PACKAGE_20261018.md). Potom je [reliability paket primenjen na DEV, ledger 288](DEV_RELIABILITY_APPLICATION_20261018.md), a phone APK iz `bb0ba8d`, CI `39163968732`, uspešno izgrađen (nije ovde instaliran). Najnoviji zaseban [client cleanup](CLIENT_CLEANUP_20261018.md) ima punu regresiju i Android export dokaz, bez promene aktivnog prikaza; nije u tom prethodnom APK-u. Istorijski baseline i njegovi device dokazi ispod ostaju odvojeni.
 
 Ovaj presek je primena najnovijeg naloga vlasnika od 18.10.2026: postojeći proizvod postaje proverljivo polazište za redizajn. Ne znači da su svi ekrani već redizajnirani. Status rada ostaje u `docs/control/redovi.json`; ovaj dokument objašnjava odakle nastavljamo.
 

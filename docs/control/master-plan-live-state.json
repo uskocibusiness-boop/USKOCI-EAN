@@ -22,11 +22,21 @@
     "note": "Release nije potvrđen. Aktuelni baseline odvaja istorijski APK, lokalni kandidat, DEV readback i novu proveru. Legal/store brojači ostaju nepoznati bez odgovarajućeg dokaza; stari 30.09. zbir nije današnje stanje."
   },
   "next": {
-    "title": "Originalne ikone, globalna navigacija i Početna",
-    "note": "DEV APPLIED: bounded Home preview do 3 i tri taxonomy PT409 konflikta; ledger 285→288. Prva invoker regresija otkrivena, vraćena i ispravljena bez širenja prava. SQL 27/27, Jest 208/208, stvarne 3 uloge/RLS/PostGIS PASS; nema novog APK/OTA/phone dokaza. DEV_RELIABILITY_APPLICATION_20261018.md. Home privremeno zadržava aktuelne zadatke; core read model i povezani AI/location/UI tokovi ostaju otvoreni. Mapa ostaje dobra osnova uz polish."
+    "title": "Home core čitanje i dovršavanje tehničkog čišćenja klijenta",
+    "note": "SOURCE/TEST: 15 mrtvih modula i 44 stara mock-a povučena bez promene aktivnog UI/ponašanja; 619 grupa / 13824 testa PASS, Android source/asset paritet potvrđen. CLIENT_CLEANUP_20261018.md. Prethodni DEV reliability paket: ledger 288, preview do 3 zadatka i taxonomy PT409; njegov phone APK bb0ba8d / CI 39163968732 je BUILT, ne INSTALLED i ne sadrži novo čišćenje. Slede bounded Home core i oporavak nepotpunih stranica Dogovora; vizuelni/AI/location tokovi ostaju u postojećem planu. Mapa ostaje dobra osnova."
   },
   "evidencePolicy": "Evidence su datirani zapisi rezultata na navedenom SHA/run-u, a ne aktivne instrukcije. Stare formulacije o odobrenju, freeze pravilima i STOP uslovima u njihovom result tekstu imaju samo istorijski status; aktuelni rad uređuju AGENTS.md, CURRENT_BASELINE_20261018 i PREMIUM_WHITE_CANON.",
   "evidence": [
+    {
+      "id": "CLIENT-CLEANUP-20261018",
+      "result": "SOURCE/TEST/ANDROID EXPORT: 15 nepovezanih modula, template reset i 5 test-fajlova povučeni; 44 mock-a očišćena; puna regresija 619/13824 PASS. docs/current/evidence/CLIENT_CLEANUP_20261018.json. Bez aktivne UI/server promene, bez device/release prihvatanja."
+    },
+    {
+      "id": "RELIABILITY-PHONE-APK-20261018",
+      "run": 39163968732,
+      "sha": "bb0ba8df8b9eabf492607415f41a2a02d96ed672",
+      "result": "BUILT: ARM64 artifact 12149464814; CI puna regresija 624/13839 PASS; CI receipt APK SHA256 46991a162f693371200c6e90323652250210b8b43d9b6e10a99603554c582427. Nije instaliran/proveren na uređaju u ovom radu; ne sadrži naknadni client cleanup."
+    },
     {
       "id": "P6-30K-FINALCOST",
       "run": 36632921473,

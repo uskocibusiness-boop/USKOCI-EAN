@@ -42,9 +42,6 @@ jest.mock('../needLifecycleClientService', () => {
 });
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'V2Action' }));
-jest.mock('../../ui/aiFirst/tokens', () => ({
-  aiFirst: { color: { line: '#000', ink: '#000', muted: '#000', danger: '#000' } },
-}));
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NeedLifecycleActions } from '../../ui/needs/NeedLifecycleActions';

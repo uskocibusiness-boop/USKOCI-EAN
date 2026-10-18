@@ -12,7 +12,6 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: (props: unkno
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockOwner, sesijaSada: () => mockOwner }));
 jest.mock('../../ui/Press', () => ({ Press: (props: unknown) => require('react').createElement('Press', props) }));
 jest.mock('../../ui/Text', () => ({ T: (props: unknown) => require('react').createElement('Text', props) }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: () => null }));
 jest.mock('../../ui/notifications/PushPreferences', () => ({ PushPreferences: (props: unknown) => require('react').createElement('PushPreferences', props) }));
 let tree: Renderer.ReactTestRenderer;
 // The arrow says "Nazad" (round-5 review, 2026-09-24): the screen also opens from the gear in Obaveštenja, where

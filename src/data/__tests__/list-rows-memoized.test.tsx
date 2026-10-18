@@ -39,7 +39,6 @@ jest.mock('../../ui/Text', () => { const React = require('react'); return { T: j
 jest.mock('../../ui/Press', () => { const React = require('react'); return { Press: jest.fn((props: any) => React.createElement('Press', props)) }; });
 jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('../../ui/v2/DiscoveryMap', () => ({ DiscoveryMap: 'DiscoveryMap' }));
 import { Press } from '../../ui/Press';
 import { T } from '../../ui/Text';

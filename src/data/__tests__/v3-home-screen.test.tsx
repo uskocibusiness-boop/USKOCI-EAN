@@ -35,7 +35,6 @@ jest.mock('../../ui/InboxBell', () => ({ InboxBell: 'InboxBell' }));
 jest.mock('../../ui/system/ActualUserAvatar', () => ({ ActualUserAvatar: ({ onPress }: { onPress: () => void }) =>
   require('react').createElement('Press', { accessibilityRole: 'button', accessibilityLabel: 'Moj profil', onPress }) }));
 jest.mock('../../ui/entry/BrandAssets', () => ({ BrandLockup: 'BrandLockup' }));
-jest.mock('../../ui/home/HomeIllustration', () => ({ HomeIllustration: 'HomeIllustration' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));

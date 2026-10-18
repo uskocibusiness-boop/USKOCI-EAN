@@ -29,7 +29,6 @@ jest.mock('../../system/motion', () => ({ useReducedMotion: () => mockReduced })
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../system/FactArt', () => ({ FactArt: 'FactArt' }));
-jest.mock('../../v2/icons', () => ({ V2Icon: 'Icon' }));
 jest.mock('../../v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../../lib/idempotencija', () => ({ noviUuidZahtevId: () => 'GESTURE_SYNTHETIC' }));
 import { DraftCard, draftStickers } from '../../v2/IntakePresentation';

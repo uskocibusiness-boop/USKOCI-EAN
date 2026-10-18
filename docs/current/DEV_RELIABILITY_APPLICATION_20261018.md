@@ -1,6 +1,8 @@
 # DEV reliability application — 18.10.2026.
 
-Primenjeno na DEV `leqcwgzvjsxugfgzdmth`, ne na produkciju. Izvor prethodnog lokalnog paketa je objavljen kao `f2eec00917534d98522c8d4f9f3f230982815c26` (isti testirani tree). Novi APK/OTA nije napravljen niti instaliran.
+Primenjeno na DEV `leqcwgzvjsxugfgzdmth`, ne na produkciju. Izvor prethodnog lokalnog paketa je objavljen kao `f2eec00917534d98522c8d4f9f3f230982815c26` (isti testirani tree).
+
+**Naknadni konačan build rezultat, 18.10.2026:** [run 39163968732](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39163968732), izvor `bb0ba8df8b9eabf492607415f41a2a02d96ed672`, **SUCCESS**. Puna regresija 624/624 / 13.839/13.839, ARM64 phone artifact `12149464814`. CI receipt: APK SHA-256 `46991a162f693371200c6e90323652250210b8b43d9b6e10a99603554c582427`. Pročitani su CI rezultat, artifact metadata i receipt log; nije ovde preuzet/re-hashovan niti instaliran, nema OTA objave ili novog device dokaza. Raniji neuspeh i međustanja ispod ostaju istorija. Naknadni [client cleanup](CLIENT_CLEANUP_20261018.md) nije deo ovog APK-a.
 
 ## Stvarni rezultat
 
@@ -36,12 +38,12 @@ Marker `NATIVE_RELIABILITY_REQUEST_20261018.json` pokreće postojeći preview AP
 
 Objavljeno kao `73e1915b38151c7dca23bc90a864a96912832d9f`, tačan tree `db3427bdea863a219b412815649ef23f267d4b6c`. APK run `39163340552` je stvarno pokrenut; SQL/integritet i preview identitet u njemu su prošli. U trenutku ovog zapisa build nije završen. Odvojeni Home CI run `39163339322` odbijen je pre pokretanja poslova: `runner.temp` nije dozvoljen u job-level `env`. Ispravka koristi `$RUNNER_TEMP` tek u izvršnom koraku, kao već uspešan APK korak; dodatni negativni test odbija originalni mutant. Ovo je CI konfiguracioni propust, ne novi DEV pad.
 
-## Ostaje otvoreno
+## Istorija build pokušaja i preostali posao
 
 APK run `39163340552` je potom završen neuspešno pre native pakovanja: 623/624 Jest fajla i 13837/13839 provera PASS; oba pada su postojeći Reanimated workflow guard, zbog zastavice za gašenje npm skripti u odvojenoj PGlite test instalaciji. Ne postoji novi APK iz tog pokušaja. Zastavica je uklonjena iz obe procedure, zaštita i njeni mutacioni testovi nisu menjani; repo patch guard sada ide pre pune regresije. Marker beleži drugi pokušaj. Nema prikrivanja pada ili predstavljanja prvog pokušaja kao uspešne isporuke.
 
-Naknadno: Home CI ispravka je objavljena kao `7ac37293184e28addae2170422f33a2b012efe34`. [Run 39163556694](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39163556694): aktuelni `current-bounded-reader` **SUCCESS**, istorijski replay posao namerno nije deo ove grane. Prošli su migration integrity, TypeScript, 27 SQL i 208 povezanih Jest provera. [APK run 39163340552](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39163340552) ostaje zaseban izvor `73e1915`; u trenutku čitanja prolazi preflight i još izvršava punu regresiju. CI dopuna nije menjala aplikacioni TS ni SQL.
+Naknadno: Home CI ispravka je objavljena kao `7ac37293184e28addae2170422f33a2b012efe34`. [Run 39163556694](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39163556694): aktuelni `current-bounded-reader` **SUCCESS**, istorijski replay posao namerno nije deo ove grane. Prošli su migration integrity, TypeScript, 27 SQL i 208 povezanih Jest provera. [APK run 39163340552](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39163340552) ostaje zaseban neuspešan pokušaj iz `73e1915`, kako je zabeleženo iznad; ranija beleška o regresiji u toku bila je samo međustanje. CI dopuna nije menjala aplikacioni TS ni SQL. Uspešan ponovljeni native build naveden je na vrhu dokumenta.
 
 Sledeći konkretan source nalaz (nije implementiran niti proglašen runtime kvarom): Home core u `src/app/(app)/index.tsx` čeka četiri čitanja. `mojePotrebe` vraća ceo `rpc_list_my_tasks`, `mojePrijave` ceo `rpc_list_my_applications`, a `mojiDogovori` obilazi do 20 stranica po 100. Postojeći attention aggregate nema sve brojeve/draft/termin činjenice potrebne da se te liste samo odseku. Dodatno, u `agreementClientService.ts` neispravan `hasMore` ili `hasMore=true` bez poslednjeg kursora prekida obilazak kao da je potpun; to zahteva novu ciljanu reprodukciju i fail-closed ispravku. Ove promene nisu krišom ubačene u već pokrenuti APK.
 
-DEV PostgREST HTTP stale konflikt, kompletan migracioni replay, reprezentativno opterećenje, APK/uređaj i dva naloga kroz ceo tok nisu dokazani. Home core lične kolekcije se još čitaju širokim putem. Vizuelni rad, AI vreme/lokacije/rute, Dogovori, grupni čet i obaveštenja ostaju otvorene povezane celine, ne rešene ovim paketom.
+DEV PostgREST HTTP stale konflikt, kompletan migracioni replay, reprezentativno opterećenje, nova instalacija/uređaj i dva naloga kroz ceo tok nisu dokazani. Native APK build jeste uspešan, kako je navedeno na vrhu, ali nije dokaz tih tokova. Home core lične kolekcije se još čitaju širokim putem. Vizuelni rad, AI vreme/lokacije/rute, Dogovori, grupni čet i obaveštenja ostaju otvorene povezane celine, ne rešene ovim paketom.

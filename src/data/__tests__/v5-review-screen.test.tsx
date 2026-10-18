@@ -32,7 +32,6 @@ jest.mock('../locationClientService', () => ({ needLocationClientService: {
 } }));
 jest.mock('../productionLocationResolver', () => ({ createProductionLocationResolver: () => ({ cancel: mockCancelResolver }) }));
 jest.mock('../../ui/location/NeedLocationForm', () => ({ NeedLocationForm: 'LocationForm' }));
-jest.mock('../../ui/aiFirst/ResponseDeadlineEditor', () => ({ ResponseDeadlineEditor: 'DeadlineEditor' }));
 jest.mock('../../ui/calendar/CalendarControls', () => ({ CivilField: 'CivilField' }));
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto', mediaAssetId: (path: string) => mockAssets.includes(path) ? path : null }));
 // The preview's read-only public map is MapLibre; the harness draws it as a host element.
@@ -55,7 +54,6 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
-jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 import ReviewRoute from '../../app/(app)/pregled-zadatka';
 import { AccessibilityInfo, StyleSheet } from 'react-native';
 import { sys, brandAction } from '../../ui/system/tokens';
@@ -478,7 +476,9 @@ it.each([null, '2026-10-12T10:15:00.000Z'])('preserves the server application de
   await render();
   expect(mockPrepare).toHaveBeenCalledWith({conversationId:CONVERSATION,responseDeadline:deadline});
   expect(tree.root.findAllByProps({accessibilityLabel:'Izmeni, Rok za prijave'})).toHaveLength(0);
-  expect(tree.root.findAllByType('DeadlineEditor' as React.ElementType)).toHaveLength(0);
+  for (const label of ['Datum roka za prijave', 'Vreme roka za prijave', 'Primeni rok na pregled']) {
+    expect(tree.root.findAllByProps({ accessibilityLabel: label })).toHaveLength(0);
+  }
   if(deadline) expect(text()).toMatch(/Prijave do 12\. okt( \d{4})? · 12:15 \(po vremenu u Srbiji\)/);
   else expect(text()).toContain('Bez posebnog roka');
   expect(mockAccept).not.toHaveBeenCalled();

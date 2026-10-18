@@ -7,7 +7,6 @@ jest.mock('react-native', () => {
     return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput', 'RefreshControl'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
-jest.mock('../../src/ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
 jest.mock('../../src/ui/Text', () => ({ T: 'T' }));
 jest.mock('../../src/ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../src/ui/support/SupportContextEntry', () => ({ SupportContextEntry: 'SupportContextEntry' }));
