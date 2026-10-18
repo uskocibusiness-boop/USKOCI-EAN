@@ -264,15 +264,18 @@ for(const [now,date,time,offset] of [
   assert.ok(!prompt(providerCall(f)).includes('2099-01-01'));
 });
 
-for(const [now,startsAt,endsAt] of [
-  ['2026-10-18T12:00:00Z','2026-10-19T00:00:00+02:00','2026-10-26T00:00:00+01:00'],
-  ['2026-03-22T12:00:00Z','2026-03-23T00:00:00+01:00','2026-03-30T00:00:00+02:00'],
-  ['2026-10-25T01:30:00Z','2026-10-26T00:00:00+01:00','2026-11-02T00:00:00+01:00'],
-  ['2026-12-31T23:30:00Z','2027-01-04T00:00:00+01:00','2027-01-11T00:00:00+01:00'],
-  ['2026-10-19T10:00:00Z','2026-10-26T00:00:00+01:00','2026-11-02T00:00:00+01:00'],
+for(const [now,startsAt,endsAt,inclusiveLastDate] of [
+  ['2026-10-18T12:00:00Z','2026-10-19T00:00:00+02:00','2026-10-26T00:00:00+01:00','2026-10-25'],
+  ['2026-03-22T12:00:00Z','2026-03-23T00:00:00+01:00','2026-03-30T00:00:00+02:00','2026-03-29'],
+  ['2026-10-25T01:30:00Z','2026-10-26T00:00:00+01:00','2026-11-02T00:00:00+01:00','2026-11-01'],
+  ['2026-12-31T23:30:00Z','2027-01-04T00:00:00+01:00','2027-01-11T00:00:00+01:00','2027-01-10'],
+  ['2026-10-19T10:00:00Z','2026-10-26T00:00:00+01:00','2026-11-02T00:00:00+01:00','2026-11-01'],
 ])test(`server next calendar week uses per-date offsets and exclusive end at ${now}`,async()=>{
   const f=fixture({now});assert.equal((await f.invoke()).status,200);
-  assert.deepEqual(timeContext(providerCall(f)).nextCalendarWeek,{startsAt,endsAt});
+  assert.deepEqual(timeContext(providerCall(f)).nextCalendarWeek,{startsAt,endsAt,inclusiveLastDate});
+  assert.ok(prompt(providerCall(f)).includes('inclusiveLastDate poslednji uključeni dan'));
+  assert.ok(prompt(providerCall(f)).includes('od 19. do 25. oktobra, ne 19–26'));
+  assert.ok(prompt(providerCall(f)).includes('Ne duplirajte promenljivu cenu i datume u need.description'));
   const write=materialWrites(f).find(c=>c.url.includes('/rpc_ai_complete_need_turn_v2_service'));
   assert.ok(write);assert.ok(!JSON.stringify(write.body).includes('nextCalendarWeek'));
 });
