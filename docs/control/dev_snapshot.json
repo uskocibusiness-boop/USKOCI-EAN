@@ -14,7 +14,17 @@
     "closureProgramDigest": "90d60aa9529996103b91ca54fb4be94770d6862453fbe521f878c603d6ab3f1e",
     "closureSchemaDigest": "cf46968b2eba30cedca7e4b1cdddc63e6e31862fa38eae64952a3acb714e3275"
   },
-  "generated_at": "2026-10-17T23:14:44Z",
+  "taxonomy_loader_refresh_20261018": {
+    "scope": "Read-only postflight for Edge-only catalog loader expansion. Only the two AI Edge metadata entries, catalog count/version and closure digests were re-read; other snapshot sections retain their earlier observation timestamps.",
+    "receipt": "supabase/operations/dev-alpha/ledger/20261018_taxonomy_catalog_loader_20_edge.receipt.json",
+    "workerEdgeVersion": 43,
+    "requesterEdgeVersion": 86,
+    "categoryCount": 135,
+    "catalogVersion": 3,
+    "closureProgramDigest": "90d60aa9529996103b91ca54fb4be94770d6862453fbe521f878c603d6ab3f1e",
+    "closureSchemaDigest": "cf46968b2eba30cedca7e4b1cdddc63e6e31862fa38eae64952a3acb714e3275"
+  },
+  "generated_at": "2026-10-18T04:12:15Z",
   "ledger_total": 279,
   "ledger_dev_alpha": 86,
   "ledger_last": "taxonomy_deep_ancestry_v2_20261018",
@@ -529,13 +539,13 @@
       "slug": "uskoci-ai-interview",
       "name": "uskoci-ai-interview",
       "status": "ACTIVE",
-      "version": 84,
+      "version": 86,
       "created_at": 1788261764727,
-      "updated_at": 1792278388753,
+      "updated_at": 1792296713017,
       "verify_jwt": false,
       "import_map": false,
-      "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_84/source/supabase/functions/uskoci-ai-interview/index.ts",
-      "ezbr_sha256": "83b2473ca581dd427cb8ab35a719125ef02d70ac9608c6f02e06dc75c6f71cc8"
+      "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_86/source/supabase/functions/uskoci-ai-interview/index.ts",
+      "ezbr_sha256": "b964077b025b668771d9bcdc60eba41f66ee44bb7ec2a69f5be36156094ec9e9"
     },
     {
       "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
@@ -594,13 +604,13 @@
       "slug": "uskoci-worker-interview",
       "name": "uskoci-worker-interview",
       "status": "ACTIVE",
-      "version": 41,
+      "version": 43,
       "created_at": 1789291116219,
-      "updated_at": 1792278378301,
+      "updated_at": 1792296705478,
       "verify_jwt": false,
       "import_map": false,
-      "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_41/source/supabase/functions/uskoci-worker-interview/index.ts",
-      "ezbr_sha256": "502dcbbc5fe7d6e1b75f653003a7d6a8935ef89e94d3f82b7b7c9a895e849da3"
+      "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_43/source/supabase/functions/uskoci-worker-interview/index.ts",
+      "ezbr_sha256": "a299fd1f56a194405aafe7ce84b5107d8f945470fda7e95a98372d31c4f26d9d"
     },
     {
       "id": "1ba4db69-a390-4b55-a071-97bee74d2598",

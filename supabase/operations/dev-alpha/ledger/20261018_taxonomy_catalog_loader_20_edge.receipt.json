@@ -1,0 +1,52 @@
+{
+  "package": "TAXONOMY_CATALOG_LOADER_20_EDGE",
+  "state": "CANONICAL_DEV_EDGE_APPLIED_READBACK_EQUAL_NO_PROVIDER_PROBE",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "appliedAtUtc": "2026-10-18T04:12:15Z",
+  "sourceCommit": "2c713f82f95c170468008afe38768ea3d688454c",
+  "authorization": "Owner's 2026-10-18 explicit authorization to apply and refine intelligent taxonomy expansion on canonical DEV. No paid Gemini call, real data write or push was made.",
+  "change": "The shared catalog reader defaults to 20 pages of 100 categories per execution mode instead of 8. Incomplete pagination still fails closed. The AI prompt shortlist remains bounded at 96 items.",
+  "sharedSource": {
+    "path": "supabase/functions/_shared/classificationEngine.mjs",
+    "sha256": "f8ba61c6393cd3f97b4648ab47735e253f85a0dbb0db489ebdb4e93bc081a282",
+    "onlyDifferenceFromPreviousLiveFile": "maxPages = 8 -> maxPages = 20"
+  },
+  "edge": [
+    {
+      "slug": "uskoci-worker-interview",
+      "beforeVersion": 42,
+      "afterVersion": 43,
+      "afterEzbrSha256": "a299fd1f56a194405aafe7ce84b5107d8f945470fda7e95a98372d31c4f26d9d",
+      "filesByteEqualOnReadback": "6/6",
+      "verifyJwtPreserved": false
+    },
+    {
+      "slug": "uskoci-ai-interview",
+      "beforeVersion": 85,
+      "afterVersion": 86,
+      "afterEzbrSha256": "b964077b025b668771d9bcdc60eba41f66ee44bb7ec2a69f5be36156094ec9e9",
+      "filesByteEqualOnReadback": "9/9",
+      "verifyJwtPreserved": false
+    }
+  ],
+  "postflight": {
+    "edgeStatus": "ACTIVE for both versions on list_edge_functions",
+    "catalogVersion": 3,
+    "establishedCategories": 135,
+    "closureProgramDigest": "90d60aa9529996103b91ca54fb4be94770d6862453fbe521f878c603d6ab3f1e",
+    "closureSchemaDigest": "cf46968b2eba30cedca7e4b1cdddc63e6e31862fa38eae64952a3acb714e3275",
+    "closureDigestsUnchanged": true
+  },
+  "proof": {
+    "synthetic805NodePagination": "PASS; all 805 distinct categories loaded over nine ON_SITE pages, plus one REMOTE page",
+    "dynamicTaxonomyNode": "140 passed, 0 failed",
+    "typescript": "npx tsc --noEmit --pretty false passed",
+    "provider": "Not called; no billable Gemini or authenticated conversation proof"
+  },
+  "revert": "Redeploy the identical version-42 worker and version-85 requester file sets, replacing only classificationEngine.mjs with the maxPages = 8 file from 2c713f82^; preserve verify_jwt = false. The previous Edge versions remain retrievable from Supabase.",
+  "limits": [
+    "The reader still fails closed beyond 2000 categories in either execution mode.",
+    "Up to 20 sequential read RPCs per mode can increase AI response latency; no large live-catalog timing measurement exists.",
+    "Signed review, Save, new category admission, matching and push are not proven by this deployment."
+  ]
+}

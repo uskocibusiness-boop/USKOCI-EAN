@@ -1,11 +1,11 @@
 {
  "meta": {
-  "osvezeno": "2026-10-18T04:10:38Z",
+  "osvezeno": "2026-10-18T04:13:16Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "bc8b8373",
-  "head_poruka": "docs(taxonomy): record local emulator build and entry proof",
+  "head": "2c713f82",
+  "head_poruka": "fix(v5): align worker profile copy and taxonomy QA boundaries",
   "server": {
-   "snimljeno": "2026-10-17T23:14:44Z",
+   "snimljeno": "2026-10-18T04:12:15Z",
    "migracije": 279,
    "dev_alpha": 86,
    "poslednja": "taxonomy_deep_ancestry_v2_20261018",
@@ -37,13 +37,13 @@
      "slug": "uskoci-ai-interview",
      "name": "uskoci-ai-interview",
      "status": "ACTIVE",
-     "version": 84,
+     "version": 86,
      "created_at": 1788261764727,
-     "updated_at": 1792278388753,
+     "updated_at": 1792296713017,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_84/source/supabase/functions/uskoci-ai-interview/index.ts",
-     "ezbr_sha256": "83b2473ca581dd427cb8ab35a719125ef02d70ac9608c6f02e06dc75c6f71cc8"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_86/source/supabase/functions/uskoci-ai-interview/index.ts",
+     "ezbr_sha256": "b964077b025b668771d9bcdc60eba41f66ee44bb7ec2a69f5be36156094ec9e9"
     },
     {
      "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
@@ -102,13 +102,13 @@
      "slug": "uskoci-worker-interview",
      "name": "uskoci-worker-interview",
      "status": "ACTIVE",
-     "version": 41,
+     "version": 43,
      "created_at": 1789291116219,
-     "updated_at": 1792278378301,
+     "updated_at": 1792296705478,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_41/source/supabase/functions/uskoci-worker-interview/index.ts",
-     "ezbr_sha256": "502dcbbc5fe7d6e1b75f653003a7d6a8935ef89e94d3f82b7b7c9a895e849da3"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_43/source/supabase/functions/uskoci-worker-interview/index.ts",
+     "ezbr_sha256": "a299fd1f56a194405aafe7ce84b5107d8f945470fda7e95a98372d31c4f26d9d"
     },
     {
      "id": "1ba4db69-a390-4b55-a071-97bee74d2598",
@@ -1039,7 +1039,7 @@
      "title": "Taxonomy candidate capture and explicit promotion (table-based)",
      "status": "IN PROGRESS",
      "source_progress_20261018": "CREATE_CHILD v2 review applied as migration 20261017223855. Owner explicitly authorized taxonomy applications on 2026-10-18. Root-branch v3 and deep-ancestry v2 SQL applied to canonical DEV as migrations 20261017230303 and 20261017230429; worker AI Edge v42 and need AI Edge v85 deployed with all files byte-equal on readback; prompt shortlist now ranks roots and descendants together and passed a 240-root relevance test. Transactional synthetic FAIL-before/PASS-after proofs cover root review, two-level ON_SITE worker batch and replay, one-level REMOTE need batch, two new descendants below a 40-level parent (depth 42), 40-level catalog traversal, wrong-mode/duplicate-identity rejection and exact SQL reverts; every synthetic fixture rolled back. Source client decoder/UI is prepared; a local x86_64 debug APK was built, installed on emulator-5554 and displayed the current entry screen, while signed review and Save remain unproved. Live catalog version 3, 135 categories, zero Gemini hints and unchanged closure digest. Actual Gemini conversation, category admission from the app, capability/need binding, matching, push and phone proof remain open. Existing-node reparent is outside the latest owner scope. Full Jest has 12 failing suites unrelated to taxonomy; focused taxonomy 139/139 and client review 80/80 pass. The 800-per-scope loader cap, safe handling of an existing category missing the requested mode, and pre-existing live/certified closure mismatch remain open. Evidence: supabase/operations/dev-alpha/ledger/20261018_taxonomy_root_and_depth_application.receipt.json.",
-     "source_progress_20261018_continuation": "Shared Edge source catalog loader default raised from 8 to 20 pages of 100 per mode; a 805-category pagination proof passes, and focused taxonomy proofs pass 140/140. This is SOURCE ONLY; DEV Edge still uses deployed worker v42 and need v85, so its previous 800-per-mode cap remains until a proven deploy. The 2000-per-mode limit and sequential-read latency remain bounded risks. The existing approved Reanimated 4.5.1 patch was applied to local dependencies and its guard passed; both new taxonomy CI workflows now run npm postinstall. The first complete Jest run during continuation had 5 failing/614 passing suites (14 failing/13806 passing tests); all five failing suites subsequently passed targeted reruns, while a second complete run was interrupted before completion. No paid Gemini call or live admission was made in this continuation.",
+     "source_progress_20261018_continuation": "Shared Edge catalog loader now defaults to 20 pages of 100 per mode; a 805-category pagination proof and focused taxonomy proofs 140/140 pass. Applied to canonical DEV: worker AI v43, requester AI v86, all 6/6 and 9/9 files byte-equal on readback, JWT setting preserved, 135 established categories/version 3 and both closure digests unchanged. Receipt: supabase/operations/dev-alpha/ledger/20261018_taxonomy_catalog_loader_20_edge.receipt.json. The 2000-per-mode limit and sequential-read latency remain bounded risks. Existing approved Reanimated 4.5.1 patch was applied locally; both new taxonomy CI workflows now run npm postinstall. First complete Jest run during continuation had 5 failing/614 passing suites (14 failing/13806 passing tests); all five failing suites subsequently passed targeted reruns, while a second complete run was interrupted before completion. No paid Gemini call or live admission was made.",
      "autonomous": false,
      "depends_on": "S06 result and corpus coverage report showing real unknown-term volume; owner approval",
      "first_owner_boundary": "SQL review package approved and applied 2026-10-18. Edge deployment, any paid provider call, DEV data mutation, device/OTA release and closure recertification retain their separate gates; first prove compatible client and capture path."
