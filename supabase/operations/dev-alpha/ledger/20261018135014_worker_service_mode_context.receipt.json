@@ -1,0 +1,120 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "environment": "DEV",
+  "authorization": "Standing owner PRIMENI / AGENTS 3.1",
+  "sourceCommit": "7c31830d5153237f90edd16470b2cfba99f6e32c",
+  "scope": "Additive read-only saved service-mode context and worker Edge guard; draft hints are not saved consent. No owner profile changes by deployment.",
+  "migration": {
+    "version": "20261018135014",
+    "name": "worker_service_mode_context",
+    "path": "supabase/migrations/20261018135014_worker_service_mode_context.sql",
+    "sha256": "2bd161a6a9fc0930dd049920854649424fea0b0866a4798566907c588f8a43bc",
+    "ledgerExact": true,
+    "candidateDifference": "one transport trailing newline; function bodies byte-identical to isolated proof",
+    "functions": [
+      {
+        "acl": "{postgres=X/postgres}",
+        "md5": "e5bec71fecb4f0a9a4e837fdce28fbf5",
+        "owner": "postgres",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "signature": "private.worker_ai_service_mode_context_v1(uuid,uuid)",
+        "volatility": "s",
+        "anonExecute": false,
+        "serviceExecute": false,
+        "securityDefiner": false,
+        "authenticatedExecute": false
+      },
+      {
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "md5": "6bd424ebe7d0794386a6eed7d1d80d86",
+        "owner": "postgres",
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "signature": "rpc_read_worker_ai_context_service(uuid,uuid)",
+        "volatility": "s",
+        "anonExecute": false,
+        "serviceExecute": true,
+        "securityDefiner": true,
+        "authenticatedExecute": false
+      }
+    ]
+  },
+  "workerEdge": {
+    "beforeVersion": 49,
+    "beforeBundle": "cace4d436c8965db9f7938be46e1536a4b8a552a393af9440b30df48fc5fb278",
+    "afterVersion": 50,
+    "afterBundle": "4363b4828288316eded551f0bc60aa28838bd6075d40c039283cdc2901586995",
+    "verifyJwt": false,
+    "updatedAt": 1792331487175,
+    "files": [
+      {
+        "path": "supabase/functions/uskoci-worker-interview/index.ts",
+        "bytes": 34587,
+        "sha256": "a2beff4f5b9642a5cb77f79154eaaf4d32a41b44e2e3a440a8a211ac452aa387",
+        "exactReadback": true
+      },
+      {
+        "path": "src/contracts/aiAvailability.ts",
+        "bytes": 468,
+        "sha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+        "exactReadback": true
+      },
+      {
+        "path": "supabase/functions/_shared/aiTestBudget.ts",
+        "bytes": 5351,
+        "sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+        "exactReadback": true
+      },
+      {
+        "path": "supabase/functions/_shared/geminiTaskStream.ts",
+        "bytes": 16466,
+        "sha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5",
+        "exactReadback": true
+      },
+      {
+        "path": "supabase/functions/_shared/classificationEngine.mjs",
+        "bytes": 15292,
+        "sha256": "cdedf45565f92235ac2f8c75be9f754128bfa59f3c37fec6d7b394b677d748d3",
+        "exactReadback": true
+      },
+      {
+        "path": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+        "bytes": 15936,
+        "sha256": "e6736505d82c08b21ac2e088c26662cd1a413f5255a58586238eeedf1f856210",
+        "exactReadback": true
+      },
+      {
+        "path": "supabase/functions/_shared/workerServiceModeContext.mjs",
+        "bytes": 9016,
+        "sha256": "1fdac04aecc7f582353672de96020c47ff3e84e44d71e74554369e0e3914bc3b",
+        "exactReadback": true
+      }
+    ]
+  },
+  "proof": {
+    "ci": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39133207546",
+    "result": "SUCCESS",
+    "actualHandlerTests": 55,
+    "classificationTests": 128,
+    "postgres": "17, context + Save/binder continuity + rollback/reapply",
+    "denoTypes": "PASS",
+    "providerTest": "PENDING_NATIVE"
+  },
+  "unchanged": {
+    "sourceDigest": "88cab17911f89a7d8d800ae229db568dd2aaed106395ad8acc3207917acd72ec",
+    "programDigest": "90d60aa9529996103b91ca54fb4be94770d6862453fbe521f878c603d6ab3f1e",
+    "retentionReady": false,
+    "saves": 4,
+    "categories": 135,
+    "aliases": 3
+  },
+  "rollback": "Exact SQL before/revert in candidate directory; worker49 six-file predecessor stored privately before deployment. Revert Edge first, then reader/helper. Do not run fixture/assertions on DEV.",
+  "limits": [
+    "USER quote provenance is not semantic or signed consent; review+explicit Save remain required.",
+    "Closure certificate mismatch and missing active retention policy predate this package.",
+    "Real provider/native correction proof recorded separately."
+  ]
+}

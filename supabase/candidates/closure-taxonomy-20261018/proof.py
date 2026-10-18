@@ -49,10 +49,13 @@ SET check_function_bodies=off;
             if c['notNull']: col+=' NOT NULL'
             cols.append(col)
         s += f"CREATE TABLE {t['name']}({','.join(cols)});\n"
-    # FKs are attached only after every actual captured relation exists.
-    for t in TABLES.values():
-        for c in t['constraints'] or []:
-            s+=f"ALTER TABLE {t['name']} ADD CONSTRAINT {ident(c['name'])} {c['definition']};\n"
+    # Every referenced PRIMARY/UNIQUE key must exist before any FK is attached;
+    # alphabetical table order places confirmed_modes before capabilities.
+    for foreign_key_phase in [False,True]:
+        for t in TABLES.values():
+            for c in t['constraints'] or []:
+                if c['definition'].startswith('FOREIGN KEY') == foreign_key_phase:
+                    s+=f"ALTER TABLE {t['name']} ADD CONSTRAINT {ident(c['name'])} {c['definition']};\n"
     # Preserve every captured body and ACL, allowing the production preflight to
     # execute unchanged. Unexecuted full-stack dependencies are deliberately not
     # fabricated: this remains a component proof, with validation disabled only
