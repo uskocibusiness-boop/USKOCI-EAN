@@ -734,9 +734,8 @@ describe('the review reads as a task', () => {
   });
 });
 
-// "Izmeni" on a moment or a list used to call back() and leave the review without a word, because
-// the only editor was a text box. These pin the two editors that replaced that exit. The pencil of a part opens the fact it is made of ( the time:
-// the start of a fixed term, else the kind of time; the editor is the same one a row opened).
+// Price, time and requirements return to their topic in the same owned intake.
+// The review remains frozen until an explicit message produces a new proposal.
 function scheduledReview(): AiTaskReviewEnvelope {
   const base = review();
   return { ...base, publicProjection: [...base.publicProjection,
@@ -754,6 +753,8 @@ it.each([['Termin','task.time'],['Veštine','task.requirements']] as const)('ret
   expect(route).toEqual({pathname:'/nova',params:{conversationId:CONVERSATION,aiCorrection:expect.any(String)}});
   expect(takeAiCorrection(route.params.aiCorrection,{accountId:OWNER,accountRevision:1},'task',CONVERSATION)?.target).toBe(target);
   expect(mockCorrect).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled();
+  expect(commands('Sačuvaj ispravku')).toHaveLength(0);
+  expect(commands('Odustani od ispravke')).toHaveLength(0);
 });
 // "Sačuvaj nacrt": the engine could always keep a reviewed task as a private draft without asking
 // for publication, and no screen let a person ask for that.

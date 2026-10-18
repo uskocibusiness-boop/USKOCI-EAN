@@ -48,8 +48,8 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
   const [correction,setCorrection]=useState<AiCorrectionIntent|null>(null);
   const panelScope=useRef<object>({}),renderedPanel=panelScope.current,panelWrite=useRef(false);
   const manualEdits=useRef({dirty:false,revision:0,sourceRevision:null as number|null,value:null as WorkerAiManualDraft|null}),manualQuestion=useRef<object|null>(null);
-  // A focused editor opens one part (`part`); where it was opened from (`origin`: the conversation, or the review) is where Back and a
-  // confirmed discard return. The whole manual form and the week open with no part and return to the conversation.
+  // Retain the origin and local state of an already-open legacy editor for its
+  // guarded Back/readback. New edits select a topic in this same conversation.
   const [part,setPart]=useState<WorkerAiManualPart|null>(null),origin=useRef<'chat'|'review'>('chat');
   const showPanel=(next:Panel,opening?:{part?:WorkerAiManualPart;from?:'chat'|'review'})=>{
     manualEdits.current={dirty:false,revision:manualEdits.current.revision+1,sourceRevision:null,value:null};manualQuestion.current=null;
@@ -487,11 +487,11 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
       {pending.current?.text&&recovery?.retryAllowed?<V2Action tone="neutral" label="Pošalji ponovo" disabled={!canAct()||voiceBusy} onPress={()=>{if(pending.current?.text)void send(pending.current.text);}}/>:null}
       {data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={brandAction}/>:null}
     </>}/>{confirmSheet.sheet}
-    {menu?<ActionSheet label="Opcije profila" onClose={()=>setMenu(false)} actions={[
-      {key:'manual',label:'Ručno uredi podatke',icon:'document',disabled:!enabled||!writable,subtitle:unavailableNow,
-        onPress:()=>{if(canAct()&&enabled&&writable)showPanel('manual');}},
-      {key:'week',label:'Uredi nedelju i posebne datume',icon:'calendar',disabled:!enabled||!writable,subtitle:unavailableNow,
-        onPress:()=>{if(canAct()&&enabled&&writable)showPanel('availability');}},
+    {menu?<ActionSheet label="Izmene kroz razgovor" onClose={()=>setMenu(false)} actions={[
+      {key:'identity',label:'O meni',icon:'document',disabled:!enabled||!writable,subtitle:unavailableNow,
+        onPress:()=>correctPart('identity')},
+      {key:'time',label:'Raspored i dostupnost',icon:'calendar',disabled:!enabled||!writable,subtitle:unavailableNow,
+        onPress:()=>correctPart('time')},
     ]}/>:null}
     {adding?<ActionSheet label="Dodaj podatke" onClose={()=>setAdding(false)} actions={([
       ['skills','tasks'],['area','pin'],['time','clock'],['tools','tool'],

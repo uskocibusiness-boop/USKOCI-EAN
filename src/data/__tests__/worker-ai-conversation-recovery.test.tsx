@@ -3,6 +3,15 @@ import {act,create,type ReactTestRenderer} from 'react-test-renderer';
 const A='11111111-1111-4111-8111-111111111111',B='22222222-2222-4222-8222-222222222222',C='33333333-3333-4333-8333-333333333333',K='44444444-4444-4444-8444-444444444444';
 let mockAccount=A,mockRevision=1,mockFocused=true,mockParams:{conversationId?:string}={conversationId:C};
 let mockRealAvailability=false,mockRealManual=false,mockFontScale=1;
+// No current menu opens a manual form. These fixtures restore the panel of an
+// already-mounted legacy editor to keep its draft/revision/readback guards tested.
+let mockRestoreLegacyPanel:((panel:'manual'|'availability')=>void)|null=null;
+jest.mock('react',()=>{
+ const React=jest.requireActual('react');
+ return {...React,useState:(initial:unknown)=>{
+  const state=React.useState(initial);if(initial==='chat')mockRestoreLegacyPanel=state[1];return state;
+ }};
+});
 // ONE NAME (owner, 8 Oct 2026): the profile is saved under the ACCOUNT's name; the hook is mocked (the real one reads the server). No name by default.
 let mockAccountName:{state:string;name?:string|null}={state:'ready',name:null};
 const mockListeners=new Set<(s:string)=>void>();
@@ -62,10 +71,9 @@ const shell=()=>tree.root.findByType('Shell' as any),action=(label:string)=>tree
 const visibleText=()=>tree.root.findAllByType('T' as any).flatMap(node=>node.children.filter(child=>typeof child==='string')).join(' ');
 const flush=async()=>{await act(async()=>{});};
 const deferred=()=>{let resolve!:(value:unknown)=>void;const promise=new Promise(done=>{resolve=done;});return{promise,resolve};};
-// Editing by hand and the week moved behind "···" (an ActionSheet, 2026-09-24); a test opens the menu, reads the row and
-// closes the menu without a choice, as Back does.
-const manualDisabled=async()=>{await act(async()=>{shell().props.onOptions();});
- const [row]=tree.root.findAll(node=>node.props.accessibilityRole==='menuitem'&&node.props.accessibilityLabel==='Ručno uredi podatke');
+// The same pending/recovery fence applies to choosing a new AI correction topic.
+const correctionDisabled=async()=>{await act(async()=>{shell().props.onOptions();});
+ const [row]=tree.root.findAll(node=>node.props.accessibilityRole==='menuitem'&&node.props.accessibilityLabel==='O meni');
  const disabled=row.props.accessibilityState.disabled;await act(async()=>{tree.root.findByType(ActionSheet).props.onClose();});return disabled;};
 const render=async()=>{await act(async()=>{tree=create(<Screen/>);});};
 const click=async(label:string)=>{await act(async()=>{action(label).props.onPress();});};
@@ -73,7 +81,7 @@ const click=async(label:string)=>{await act(async()=>{action(label).props.onPres
 const sheets=()=>tree.root.findAllByType(ConfirmSheet);
 const answer=async(testID:'confirm-sheet-confirm'|'confirm-sheet-cancel')=>{await act(async()=>{tree.root.findByType(ConfirmSheet).findByProps({testID}).props.onPress();});};
 beforeEach(()=>{jest.clearAllMocks();mockAccount=A;mockRevision=1;mockFocused=true;mockParams={conversationId:C};mockStored=null;
- mockRealAvailability=false;mockRealManual=false;mockFontScale=1;mockAccountName={state:'ready',name:null};mockBackHandlers.clear();
+ mockRealAvailability=false;mockRealManual=false;mockFontScale=1;mockAccountName={state:'ready',name:null};mockBackHandlers.clear();mockRestoreLegacyPanel=null;
  mockRouter.canGoBack.mockReturnValue(true);
  mockJournal.load.mockImplementation(async()=>mockStored);mockJournal.save.mockImplementation(async(i:unknown)=>{mockStored=i;});mockJournal.clear.mockImplementation(async()=>{mockStored=null;});
  mockApi.read.mockResolvedValue(ok(snapshot()));mockApi.open.mockResolvedValue(ok(snapshot()));mockApi.recoverTurn.mockImplementation(async(_cid,key)=>ok({...recovery(),clientRequestId:key}));
@@ -90,7 +98,7 @@ it('a new empty interview starts with the invitation instead of an empty profile
  expect(shell().props.card(false)).toBeNull();
  expect(shell().props.welcome).toBe('Čime se baviš?');
  expect(shell().props.canEdit).toBe(true);
- expect(await manualDisabled()).toBe(false);
+ expect(await correctionDisabled()).toBe(false);
  expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.prepare).not.toHaveBeenCalled();
 });
 it('duplicate active events preserve the worker chat, typed draft and in-flight answer without another read',async()=>{
@@ -213,11 +221,7 @@ const enterPanel=async(panel:string)=>{
  if(panel==='review'){
   mockApi.prepare.mockResolvedValue(ok({}));mockApi.read.mockResolvedValue(ok(reviewed()));
   await act(async()=>shell().props.card(false).props.review());
- }else{
-  await act(async()=>shell().props.onOptions());
-  const label=panel==='manual'?'Ručno uredi podatke':'Uredi nedelju i posebne datume';
-  await act(async()=>tree.root.findAll(node=>node.props.accessibilityRole==='menuitem'&&node.props.accessibilityLabel===label)[0].props.onPress());
- }
+ }else await act(async()=>mockRestoreLegacyPanel!(panel as 'manual'|'availability'));
 };
 const panelSubmit=(panel:string)=>panel==='manual'?()=>tree.root.findByType('Manual' as any).props.apply({headline:'Novi naslov'})
  :panel==='availability'?()=>tree.root.findByType('Availability' as any).props.onSave({...availability(),availableNow:true})
@@ -308,12 +312,12 @@ it('a keystroke invalidates a retained manual discard decision',async()=>{
  expect(manualField('O meni').props.value).toBe('Noviji unos');expect(sheets()).toHaveLength(0);
  expect(mockApi.patch).not.toHaveBeenCalled();
 });
-it('the review says the profile drives new-task notifications for matching tasks (owner 2026-10-07)',async()=>{
+it('the review ties matching to confirmed profile data and keeps notifications optional',async()=>{
  await render();await enterPanel('review');
  const note=tree.root.findAll(node=>node.props?.testID==='worker-review-notifications-note');
  expect(note.length).toBeGreaterThan(0);
- expect(note[0].props.children).toContain('potvrđen način rada, područje i vreme');
- expect(note[0].props.children).toContain('Ako uključiš obaveštenja');
+ expect(note[0].props.children).toContain('potvrđenim uslugama, načinom rada, područjem i vremenom');
+ expect(note[0].props.children).toContain('Obaveštenja su tvoj izbor');
  expect(note[0].props.children).not.toContain('novim i već otvorenim');
  expect(note[0].props.tone).toBeUndefined();
 });
@@ -371,7 +375,9 @@ it.each([1,1.6])('worker availability has one Android vertical scroll path and r
 });
 it.each(['manual','availability','review'])('Back from %s retires retained form writes before chat or route departure',async panel=>{
  await render();const chatBack=shell().props.onBack;await enterPanel(panel);
- await act(async()=>chatBack());expect(mockRouter.back).not.toHaveBeenCalled();
+ // Only review has a current chat entry. Legacy fixtures restore an already-open
+ // panel; their real Back must still retire its retained write below.
+ if(panel==='review'){await act(async()=>chatBack());expect(mockRouter.back).not.toHaveBeenCalled();}
  const props=panel==='manual'?tree.root.findByType('Manual' as any).props:panel==='availability'?tree.root.findByType('Availability' as any).props:action('Sačuvaj i aktiviraj profil').props;
  const retained=()=>panel==='manual'?props.apply({headline:'Skrivena izmena'}):panel==='availability'?props.onSave({...availability(),availableNow:true}):props.onPress();
  await act(async()=>panelBack(panel)());expect(shell()).toBeTruthy();
@@ -462,21 +468,24 @@ it('held speech that is empty or over the limit is refused without a send',async
  await act(async()=>expect(receive({text:'a'.repeat(4001),isCurrent:()=>true,session:{mode:'hold'}})).toBe(false));
  expect(mockJournal.save).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
 });
-it('keeps editing by hand and the week behind "···", and offers no menu when the proposal cannot be changed',async()=>{
+it('offers conversational corrections in "···", and no menu when the proposal cannot be changed',async()=>{
  await render();expect(tree.root.findAllByProps({label:'Ručno uredi podatke'})).toHaveLength(0);
  await act(async()=>{shell().props.onOptions();});
  const row=(label:string)=>tree.root.findAll(node=>node.props.accessibilityRole==='menuitem'&&node.props.accessibilityLabel===label)[0];
- expect(row('Ručno uredi podatke').props.accessibilityState.disabled).toBe(false);
- expect(row('Uredi nedelju i posebne datume')).toBeDefined();
- await act(async()=>{row('Ručno uredi podatke').props.onPress();});
- expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);expect(tree.root.findAllByType('Manual' as never)).toHaveLength(1);
+ expect(row('O meni').props.accessibilityState.disabled).toBe(false);
+ expect(row('Raspored i dostupnost')).toBeDefined();
+ expect(row('Ručno uredi podatke')).toBeUndefined();expect(row('Uredi nedelju i posebne datume')).toBeUndefined();
+ await act(async()=>{row('O meni').props.onPress();});
+ expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0);
+ expect(shell().props.correction.target).toBe('worker.identity');
+ expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.patch).not.toHaveBeenCalled();
  await act(async()=>tree.unmount());mockApi.read.mockResolvedValue(ok({...snapshot(),stale:true}));await render();
  expect(shell().props.onOptions).toBeUndefined();
 });
 it('restores opaque pending key before any open or provider request and exposes safe cancel',async()=>{
  mockStored=intent();mockParams={};await render();expect(mockApi.open).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
  expect(mockApi.recoverTurn).toHaveBeenCalledWith(C,K);expect(mockRouter.setParams).toHaveBeenCalledWith({conversationId:C});
- expect(shell().props.canSend).toBe(false);expect(await manualDisabled()).toBe(true);
+ expect(shell().props.canSend).toBe(false);expect(await correctionDisabled()).toBe(true);
  expect(action('Otkaži prethodno slanje').props.disabled).toBe(false);expect(tree.root.findAllByProps({label:'Pošalji ponovo'})).toHaveLength(0);
  await click('Otkaži prethodno slanje');expect(mockApi.cancelTurn).toHaveBeenCalledWith(C,K);expect(mockJournal.clear).toHaveBeenCalledWith(intent());expect(shell().props.canEdit).toBe(true);
 });
@@ -484,7 +493,7 @@ it('lost preclaim response keeps typed body in memory and retries only the same 
  await render();act(()=>shell().props.onChange('Sačuvan samo u memoriji'));await act(async()=>{shell().props.onSend();});
  const key=mockApi.send.mock.calls[0][2];expect(mockJournal.save).toHaveBeenCalledWith({accountId:A,conversationId:C,clientRequestId:key});
  expect(JSON.stringify(mockJournal.save.mock.calls)).not.toContain('Sačuvan');expect(mockApi.send).toHaveBeenCalledTimes(1);
- expect(shell().props.value).toBe('Sačuvan samo u memoriji');expect(await manualDisabled()).toBe(true);
+ expect(shell().props.value).toBe('Sačuvan samo u memoriji');expect(await correctionDisabled()).toBe(true);
  await click('Pošalji ponovo');expect(mockApi.send).toHaveBeenCalledTimes(2);expect(mockApi.send.mock.calls[1].slice(0,3)).toEqual(mockApi.send.mock.calls[0].slice(0,3));
 });
 it('the composer retries a known unsent worker turn using its original body and request ID',async()=>{
@@ -496,7 +505,7 @@ it('the composer retries a known unsent worker turn using its original body and 
 });
 it('a server without dispatched-exit capability cannot enable retry, cancellation or manual save',async()=>{
  mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn('UNKNOWN_OUTCOME'))));mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:false,retryAllowed:false})));
- await render();expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.clear).not.toHaveBeenCalled();expect(await manualDisabled()).toBe(true);
+ await render();expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.clear).not.toHaveBeenCalled();expect(await correctionDisabled()).toBe(true);
  expect(tree.root.findAllByProps({label:'Otkaži prethodno slanje'})).toHaveLength(0);expect(tree.root.findAllByProps({label:'Pošalji ponovo'})).toHaveLength(0);
  await click('Proveri razgovor');expect(mockApi.send).not.toHaveBeenCalled();expect(action('Novi razgovor')).toBeTruthy();
 });

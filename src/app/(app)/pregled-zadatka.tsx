@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, BackHandler, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { AppState, BackHandler, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SupportContextEntry } from '../../ui/support/SupportContextEntry';
@@ -10,8 +10,7 @@ import { publishedTaskRoute, rememberPublication } from '../../data/publicationH
 import { readIntakeReviewReturn } from '../../data/intakeReviewReturn';
 import { rememberAiCorrection, taskCorrectionTarget, type AiCorrectionTarget } from '../../data/aiCorrectionIntent';
 import { aiNeedV2Izvor, izvor } from '../../data';
-import { choiceCorrectionText, editorCorrection, factChoiceValue, factChoices, factCorrectionValue, factEditorKind, factLabel,
-  factListItems, factTimestampFields, listCorrectionText, priceAmountRowValue, timestampCorrectionText } from '../../data/aiNeedV2Ui';
+import { factLabel, priceAmountRowValue } from '../../data/aiNeedV2Ui';
 import { needRequirementRows } from '../../data/needDetailPresentation';
 import type { NeedFactV2Key } from '../../contracts/needFactsV2';
 import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
@@ -42,18 +41,14 @@ import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { needLocationClientService } from '../../data/locationClientService';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
 import type { NeedLocationInput, NeedLocationReview } from '../../contracts/location';
-import { FactListEditor, FactTimestampEditor } from '../../ui/aiFirst/FactValueEditors';
-import { FactChoiceEditor } from '../../ui/v2/FactChoiceEditor';
-import { AmountField, AmountWithOffers } from '../../ui/v2/AmountField';
 import { ResponseDeadlineEditor } from '../../ui/aiFirst/ResponseDeadlineEditor';
 import { mediaAssetId } from '../../ui/media/AuthorizedPhoto';
-import { GROUPED_FACT_LABEL, REQUIREMENT_FACT, SUPPORT_HAS_DUTY_OPERATOR, blankList, groupOf, groupedFacts, manualCheckCopy,
+import { REQUIREMENT_FACT, SUPPORT_HAS_DUTY_OPERATOR, blankList, manualCheckCopy,
   ownerAddressFrame, partFact, privateReviewMap, reviewRowValue, reviewTodos, todoActionLabel, type GroupedPart } from '../../ui/objava/reviewFacts';
 import { PublishedMoment } from '../../ui/objava/PublishedMoment';
 import { LocationMapPreview } from '../../ui/location/LocationMapPreview';
-import { PublishButton, ReviewEditing, ReviewFactRow, ReviewFrame, ReviewMoreFacts, ReviewStatus,
+import { PublishButton, ReviewFactRow, ReviewFrame, ReviewMoreFacts, ReviewStatus,
   ReviewTodoList, ReviewWaysOut, reviewStyles as s, type TodoRow } from '../../ui/objava/ReviewPresentation';
-import { Segmented } from '../../ui/system/Segmented';
 import { AddPhotos, OwnerAddress, ReviewDetail, ReviewGallery, type PreviewPart, type ReviewDetailParts } from '../../ui/objava/ReviewDetail';
 import type { PartPencil } from '../../ui/objava/EditPencil';
 import { reviewAsTask } from '../../ui/objava/reviewAsTask';
@@ -64,8 +59,6 @@ type Snapshot = { review: AiTaskReviewEnvelope; command: AiTaskPublicationComman
   draftNeed: PotrebaProjekcija | null;
   /** The bound task is (or, once accepted, was) a private draft, so the words are those of a first publication, not of an edit. */
   firstPublication: boolean };
-/** `text` is always what `correctionFromText` reads; a picker, a list field, a choice or the amount field only writes it. */
-type Edit = { fact: AiNeedV2Fact; text: string; error: string | null; date?: string; time?: string; items?: string[]; choice?: string | null };
 const changed = (): Ishod<never> => ({ ok: false, kod: 'REVIEW_CHANGED', poruka: 'Ponovo otvori pregled za trenutni nalog.' });
 function displayFact(fact: AiTaskReviewFact): AiNeedV2Fact {
   const definition = NEED_FACT_V2_DEFINITIONS[fact.key];
@@ -86,7 +79,6 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const accountId = user?.id;
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const pending = useRef<{ review: AiTaskReviewEnvelope; id: string } | null>(null);
-  const [edit, setEdit] = useState<Edit | null>(null);
   const [locationEditor, setLocationEditor] = useState<NeedLocationReview | null>(null);
   // What the task does not say yet is named in one row ("Dodaj još podataka"), and that row opens it. Nothing is hidden;
   // a wall of "Nema navedenih stavki" is just not a wall.
@@ -128,7 +120,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       if (locationOpening.current) locationOpening.current.active = false;
       locationOpening.current = null; setOpening(false);
       question.current = null; closeConfirmation();
-      setEdit(null); setLocationEditor(null); setDeadlineEditor(false); resolver.cancel(); };
+      setLocationEditor(null); setDeadlineEditor(false); resolver.cancel(); };
   }, [accountId, accountRevision, resolver, closeConfirmation]));
   const read = useCallback(async (): Promise<Ishod<Snapshot>> => {
     const scope = focus.current;
@@ -206,7 +198,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const bound = !!review?.draftId, draftNeed = snapshot?.draftNeed ?? null;
   const firstPublication = bound && !!snapshot?.firstPublication;
   const revising = bound && !firstPublication;
-  const view = useMemo(() => ({}), [snapshot, edit, locationEditor, deadlineEditor, intakeReturn]), currentView = useRef(view); currentView.current = view;
+  const view = useMemo(() => ({}), [snapshot, locationEditor, deadlineEditor, intakeReturn]), currentView = useRef(view); currentView.current = view;
   const renderedFocus = focus.current;
   const current = () => renderedFocus !== null && focus.current === renderedFocus && currentView.current === view
     && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
@@ -228,7 +220,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // "Objavi" and "Sačuvaj nacrt" are the same acceptance of the same displayed review, under one
   // retained command identity; they differ only in whether evaluation and publication follow now.
   const accept = async (andPublish: boolean) => {
-    if (!canAct() || !review || !review.canAccept || unavailableIdentityFact || edit || locationEditor || deadlineEditor || command || review.accountId !== accountId) return;
+    if (!canAct() || !review || !review.canAccept || unavailableIdentityFact || locationEditor || deadlineEditor || command || review.accountId !== accountId) return;
     const accepted = pending.current ?? { review, id: noviUuidZahtevId() }; pending.current = accepted;
     // Marked only once the editor has taken the write (the export screen's rule), so a refused second press never
     // clears the first one's spinner.
@@ -258,22 +250,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       return publishedRead(await read());
     });
   };
-  const saveEdit = async () => {
-    if (!canAct() || !edit || command) return;
-    // Under "Ponude" the amount editor offers no save: a number left from before must not be sent as the price.
-    if (factEditorKind(edit.fact) === 'amount' && priceMode === 'OFFERS') return;
-    const parsed = editorCorrection(edit.fact, edit.text);
-    if (!parsed.ok) { setEdit({ ...edit, error: parsed.message }); return; }
-    await editor.save(async () => {
-      const result = await aiNeedV2Izvor.correctFact(edit.fact.id, parsed.value, parsed.displayValue);
-      if (!current()) return changed();
-      if (!result.ok) return result;
-      setEdit(null); pending.current = null;
-      return read();
-    });
-  };
   const removeUnavailableIdentityRequirement = async () => {
-    if (!canAct() || !unavailableIdentityFact?.id || command || edit || locationEditor || deadlineEditor) return;
+    if (!canAct() || !unavailableIdentityFact?.id || command || locationEditor || deadlineEditor) return;
     const factId = unavailableIdentityFact.id;
     await editor.save(async () => {
       const result = await aiNeedV2Izvor.correctFact(factId, false, 'Ne');
@@ -284,7 +262,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     });
   };
   const openLocation = async () => {
-    if (!canAct() || !conversationId || !review || command || edit || deadlineEditor || opening) return;
+    if (!canAct() || !conversationId || !review || command || deadlineEditor || opening) return;
     const request = { active: true }; locationOpening.current = request;
     setOpening(true); setOpenError(null);
     let result: Awaited<ReturnType<typeof needLocationClientService.read>>;
@@ -304,7 +282,6 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       await editor.refresh();
       return;
     }
-    setEdit(null);
     setLocationEditor({ ...result.podatak, value: proposed?.value ?? result.podatak.value });
   };
   const proposeLocation = async (value: NeedLocationInput) => {
@@ -345,7 +322,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // Review corrections return to the same conversation and unsent draft, with a visible topic hint only.
   // Nothing is sent; an open correction, place confirmation or deadline change keeps the return guarded.
   const editInConversation = (target: AiCorrectionTarget = 'task.details') => {
-    if (busyNow.current || !canAct() || command || edit || locationEditor || deadlineEditor || !conversationId || !accountId) return;
+    if (busyNow.current || !canAct() || command || locationEditor || deadlineEditor || !conversationId || !accountId) return;
     const correction = rememberAiCorrection({ accountId, accountRevision }, target, conversationId);
     if (!correction) return;
     const retained = readIntakeReviewReturn(intakeReturn, conversationId);
@@ -367,10 +344,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     return name.length > 60 ? `${name.slice(0, 59).trimEnd()}…` : name;
   };
   const deleteBoundDraft = () => {
-    if (!busyNow.current && canAct() && !command && !edit && !locationEditor && !deadlineEditor) lifecycleMenu.current?.request('DELETE_DRAFT');
+    if (!busyNow.current && canAct() && !command && !locationEditor && !deadlineEditor) lifecycleMenu.current?.request('DELETE_DRAFT');
   };
   const discardDraft = () => {
-    if (busyNow.current || !canAct() || !conversationId || bound || command || edit || locationEditor || deadlineEditor || question.current) return;
+    if (busyNow.current || !canAct() || !conversationId || bound || command || locationEditor || deadlineEditor || question.current) return;
     const asked = {}, id: string = conversationId; question.current = asked;
     const name = draftName();
     confirmation.ask({ title: name ? `Obrisati nacrt „${name}“?` : 'Obrisati nacrt?', confirmLabel: 'Obriši nacrt', tone: 'danger',
@@ -454,29 +431,22 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // would be refused by the very question it asked.
   const screenBusy = editor.busy || editor.loading || editor.uncertain || opening;
   const disabled = screenBusy || lifecycleActive;
-  const publishBlocked = !review || disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!edit || !!locationEditor || !!deadlineEditor;
+  const publishBlocked = !review || disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!locationEditor || !!deadlineEditor;
   // "Loading = the write this action started": only the publish spins the publish button; while a draft or a fact saves
   // it simply waits grey.
   const publishWorking = editor.busy && publishing;
-  // Everything else on the review waits while a save runs, another edit or the deadline is open, or an outcome is not read yet.
-  const quietEdit = disabled || !!edit || !!locationEditor || deadlineEditor;
+  // Everything else waits while a save runs, the place/deadline is open, or an outcome is not read yet.
+  const quietEdit = disabled || !!locationEditor || deadlineEditor;
   // One line ABOVE the publish button, in the foot, ONLY when the button is grey: the first thing in its way, short (the full list is "Još treba"
   // above). A grey button always says why, and the reason stands over it, not under it, where it read as the next thing. A button that can be pressed
   // says what it does by its name and has no sentence over it ("Objavljuješ ovu verziju zadatka." said what "Objavi zadatak" is; the owner, 8 Oct 2026).
   const caption = todos.length || unavailableIdentityFact ? 'Prvo uradi ono što piše pod „Još treba“.'
-    : edit ? 'Sačuvaj ili otkaži otvorenu izmenu.'
-      : deadlineEditor ? 'Sačuvaj ili zatvori rok za prijave.' : null;
+    : deadlineEditor ? 'Sačuvaj ili zatvori rok za prijave.' : null;
   // A command that fails ticks once with the failure pattern (haptics rule R5), whether it ends in a refusal or in an outcome not known.
   const failedWith = useRef<string | null>(null);
   useEffect(() => { if (editor.error && editor.error !== failedWith.current) tick('error'); failedWith.current = editor.error; }, [editor.error]);
   const reduced = useReducedMotion();
-  // An open correction scrolls its part into view, so its field is never left under the keyboard or the footer.
-  const scroll = useRef<ScrollView>(null), content = useRef<View>(null), rowRefs = useRef(new Map<string, View>());
-  useEffect(() => {
-    const key = edit?.fact.key, row = key ? rowRefs.current.get(key) : undefined, host = content.current;
-    if (!row || !host || typeof row.measureLayout !== 'function') return;
-    row.measureLayout(host as never, (_x, y) => scroll.current?.scrollTo({ y: Math.max(0, y - 16), animated: !reduced }), () => undefined);
-  }, [edit?.fact.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const scroll = useRef<ScrollView>(null);
   // The place is its own step: the arrow and Android Back both return to the review, and nothing is saved by leaving.
   // Leaving saves nothing, so only a write in flight holds it: after an unconfirmed outcome the way out stays open.
   const closePlace = () => { if (editor.busy) return; resolver.cancel(); setLocationEditor(null); };
@@ -487,71 +457,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => { closePlaceNow.current(); return true; });
     return () => subscription.remove();
   }, [placeOpen]));
-  /** `replacing`: the amount's "Izaberi način cene" hands its open editor over to the price mode's, nothing saved. */
-  const startEdit = (fact: AiTaskReviewFact, replacing = false) => {
-    if (!canAct() || (edit && !replacing) || locationEditor || deadlineEditor || command) return;
-    // A place is structured and has its own editor; every other fact is corrected right here.
-    const shown = displayFact(fact), kind = factEditorKind(shown);
-    if (kind === 'none' || PLACE_KEYS.includes(fact.key)) { void openLocation(); return; }
-    // A choice starts on the stored value when it is one of the choices, and on none otherwise (a retired value).
-    const choice = kind === 'choice' ? factChoiceValue(shown) : undefined;
-    setEdit({ fact: shown, text: kind === 'choice' ? choiceCorrectionText(shown, choice ?? null) : factCorrectionValue(shown), error: null,
-      ...(kind === 'timestamp' ? factTimestampFields(shown) : {}), ...(kind === 'list' ? { items: factListItems(shown) } : {}),
-      ...(kind === 'choice' ? { choice } : {}) });
-  };
   // People never see or choose a category (owner decision 2026-09-21, deep read 9.2). The AI still
   // writes it for the server, which reads a kind of work from it only to match; it is no part of the page here.
   const publicFacts = review?.publicProjection ?? [];
   const factOf = (key: NeedFactV2Key) => publicFacts.find(item => item.key === key);
-  const editingFact = (item: AiTaskReviewFact | undefined) => !!item?.id && edit?.fact.id === item.id;
   /** What a fact is called to a person on this page: the label of the fact, and "Broj ljudi" where its own is only "Ljudi". */
   const factName = (key: NeedFactV2Key) => key === 'need.people_needed' ? 'Broj ljudi' : factLabel(key);
-  /**
-   * The editor of the correction that is open: exactly the editor a row opened before (a moment, a list, a choice, an amount or a text),
-   * with its two commands. A line made of several facts (the price, the time) says which of them is being corrected and moves between them,
-   * and nothing is saved by moving: each is still its own correction with its own command.
-   */
-  const editorBody = () => {
-    if (!edit) return null;
-    const kind = factEditorKind(edit.fact), label = factLabel(edit.fact.key);
-    // Under "Ponude" the task carries no amount: its editor shows none and saves none, it only leads to the price mode.
-    const amountWithOffers = kind === 'amount' && priceMode === 'OFFERS';
-    const group = groupOf(edit.fact.key), siblings = group ? groupedFacts(group, publicFacts) : [];
-    return <>
-      {siblings.length > 1 ? <Segmented options={siblings.map(item => ({ key: item.key, label: GROUPED_FACT_LABEL[item.key] ?? factLabel(item.key) }))}
-        value={edit.fact.key} onChange={key => { const next = siblings.find(item => item.key === key); if (next) startEdit(next, true); }} /> : null}
-      {kind === 'timestamp' ? <FactTimestampEditor label={label} date={edit.date ?? ''} time={edit.time ?? ''}
-        disabled={disabled} onChange={(date, time) => { if (canAct()) setEdit({ ...edit, date, time, error: null,
-          text: timestampCorrectionText(edit.fact, date, time) }); }} />
-      : kind === 'list' ? <FactListEditor label={label} items={edit.items ?? []} disabled={disabled}
-        onChange={(items, typed) => { if (!canAct()) return;
-          const pending = typed.trim();
-          setEdit({ ...edit, items, error: null,
-            text: listCorrectionText(pending && !items.includes(pending) ? [...items, pending] : items) }); }} />
-      : kind === 'choice' ? <FactChoiceEditor label={label} options={factChoices(edit.fact)} value={edit.choice ?? null}
-        disabled={disabled} onChange={choice => { if (canAct()) setEdit({ ...edit, choice, error: null,
-          text: choiceCorrectionText(edit.fact, choice) }); }} />
-      : amountWithOffers ? <AmountWithOffers disabled={disabled}
-        onChooseMode={priceModeFact?.id ? () => startEdit(priceModeFact, true) : undefined} />
-      : kind === 'amount' ? <AmountField label={label} digits={edit.text} disabled={disabled}
-        onChange={digits => { if (canAct()) setEdit({ ...edit, text: digits, error: null }); }} />
-      : <TextInput accessibilityLabel={`Nova vrednost: ${label}`} value={edit.text} multiline
-        onChangeText={text => { if (canAct()) setEdit({ ...edit, text, error: null }); }} editable={!disabled} style={s.input} />}
-      {edit.error ? <T accessibilityRole="alert" style={s.error}>{edit.error}</T> : null}
-      {amountWithOffers ? null : <V2Action label="Sačuvaj ispravku" disabled={disabled} onPress={saveEdit} />}
-      <V2Action label="Odustani od ispravke" kind="quiet" disabled={disabled} onPress={() => setEdit(null)} />
-    </>;
-  };
-  /**
-   * The same editor, framed by the name of what is corrected, standing in the place of the part of the page it corrects. A line made of several
-   * facts names what is corrected by its tabs, so it needs no name of its own.
-   */
-  const editorOf = () => {
-    if (!edit) return undefined;
-    const group = groupOf(edit.fact.key), tabbed = !!group && groupedFacts(group, publicFacts).length > 1;
-    return <ReviewEditing name={tabbed ? undefined : factName(edit.fact.key)}
-      rowRef={node => { if (node) rowRefs.current.set(edit.fact.key, node); else rowRefs.current.delete(edit.fact.key); }}>{editorBody()}</ReviewEditing>;
-  };
   /** What is shown at the top of the screen after a failure about the place is said where it can be read (a note, and the screen goes up to it). */
   const showAtTop = () => scroll.current?.scrollTo({ y: 0, animated: !reduced });
 
@@ -581,9 +492,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const photoAssets = (Array.isArray(photoPaths) ? photoPaths.map(path => typeof path === 'string' ? mediaAssetId(path) : null) : [])
     .filter((assetId): assetId is string => !!assetId);
   const hasPhotos = Array.isArray(photoPaths) && photoPaths.length > 0;
-  // Each row is a way to its fix and says so in words (owner's phone, 2026-10-07: "Početak termina je već prošao" was a sentence with a faint arrow
-  // beside a grey button): the time or the amount opens its editor right there, the place opens the place step, and a fact this screen
-  // cannot edit (it has no row to open) goes back to the conversation instead of leaving a row that does nothing.
+  // Each missing detail opens its topic in the same conversation. Location keeps
+  // its explicit map confirmation; the review itself never patches ordinary facts.
   const todoRows: TodoRow[] = todos.map(todo => {
     const target = todo.target;
     const fact = target && target !== 'conversation' && target !== 'location'
@@ -600,7 +510,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   </View> : null;
   // The place's pencil is not drawn while anything else is in flight; while the place itself is being read it says so ("Otvaramo…"), because
   // pressing it is what started that.
-  const placeBusy = editor.busy || editor.loading || editor.uncertain || lifecycleActive || !!edit || deadlineEditor;
+  const placeBusy = editor.busy || editor.loading || editor.uncertain || lifecycleActive || deadlineEditor;
 
   /* ---------------------------------------------------------------------------------------------- the pencils of the parts */
   // A pencil is drawn only while the screen can act and nothing else is open (a stored command is read only, a save is running, another correction
@@ -611,20 +521,20 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   /** The pencil returns to the owned intake with a local topic; it changes no facts. */
   const single = (key: NeedFactV2Key, name: string): PreviewPart => {
     const item = factOf(key);
-    return { pencil: item?.id ? pencil(`Izmeni, ${name}`, () => editInConversation(taskCorrectionTarget(item.key))) : undefined, editor: editingFact(item) ? editorOf() : undefined, note: systemNote(item) };
+    return { pencil: item?.id ? pencil(`Izmeni, ${name}`, () => editInConversation(taskCorrectionTarget(item.key))) : undefined, note: systemNote(item) };
   };
   /** Price and time each have one conversational topic; their facts remain frozen until a new reviewed answer. */
   const grouped = (group: GroupedPart, name: string): PreviewPart => {
     const primary = partFact(group, publicFacts);
     return { pencil: primary ? pencil(`Izmeni, ${name}`, () => editInConversation(group === 'value' ? 'task.price' : 'task.time')) : undefined,
-      editor: edit && groupOf(edit.fact.key) === group ? editorOf() : undefined, note: systemNote(primary) };
+      note: systemNote(primary) };
   };
   const placeWord = opening ? 'Otvaramo…' : review?.location ? undefined : 'Dodaj';
   const placeAt = (label: string): PartPencil | undefined => !command && !placeBusy
     ? { label, ...(placeWord ? { word: placeWord } : {}), onPress: () => { void openLocation(); } } : undefined;
   const placeLabel = review?.location ? 'Izmeni, Mesto' : 'Dodaj mesto';
   const photosAt: PartPencil | undefined = !command && !quietEdit ? { label: hasPhotos ? 'Izmeni, Fotografije' : 'Dodaj fotografije', ...(hasPhotos ? {} : { word: 'Dodaj' }),
-    onPress: () => { if (!canAct() || !conversationId || edit || locationEditor || deadlineEditor) return;
+    onPress: () => { if (!canAct() || !conversationId || locationEditor || deadlineEditor) return;
       navigate(() => router.push({ pathname: '/fotografije-zadatka', params: { conversationId } })); } } : undefined;
   const peopleFact = factOf('need.people_needed');
   const knownPeopleCount = peopleFact?.status !== 'UNKNOWN' && typeof peopleFact?.value === 'number'
@@ -646,7 +556,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     {/* A draft opened from "Nacrti" is deleted by the lifecycle's own command, as on the draft's screen: its question, its sending and
         its outcome are drawn here, where the person is looking, and everything else on the screen waits while it is on. */}
     {draftNeed && !command ? <NeedLifecycleActions need={draftNeed} needId={draftNeed.id} menu={lifecycleMenu}
-      disabled={screenBusy || !!edit || !!locationEditor || deadlineEditor} onActiveChange={setLifecycleActive} onRefresh={refresh} /> : null}
+      disabled={screenBusy || !!locationEditor || deadlineEditor} onActiveChange={setLifecycleActive} onRefresh={refresh} /> : null}
     {editor.error && !resultCopy ? <T accessibilityRole="alert" style={s.error}>{editor.error}</T> : null}
     {/* After the tap there is one way forward at a time — open the published task, publish the saved draft, or go and change it — and that
         one wears the brand green; what checks the outcome, or leaves for the tasks, stands under it in white. */}
@@ -684,7 +594,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   };
 
   return <>
-    <ReviewFrame scrollRef={scroll} contentRef={content} footer={footer}
+    <ReviewFrame scrollRef={scroll} footer={footer}
       header={<DetailTopBar backLabel="Nazad u razgovor" onBack={back} title={published ? 'Objavljeno' : revising ? 'Pregled izmena' : 'Pregled pre objave'} />}>
         {!review || !need ? editor.loading
           ? <StateView kind="loading" title="Pripremamo pregled…" skeleton={{ count: 1, rows: 3, variant: 'preview' }} />
@@ -699,7 +609,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
             disabled={disabled} canAct={canAct} navigate={navigate} /> : null}
           {command ? identityBlock : null}
           {/* What stands in the way comes first, because it is why the green action under the page is grey. */}
-          {todoRows.length || (!command && unavailableIdentityFact) ? <ReviewTodoList items={todoRows} disabled={disabled || !!edit || deadlineEditor}>
+          {todoRows.length || (!command && unavailableIdentityFact) ? <ReviewTodoList items={todoRows} disabled={disabled || deadlineEditor}>
             {identityBlock}
           </ReviewTodoList> : null}
           {openError ? <Surface kind="note" tone="danger"><T accessibilityRole="alert" style={s.error}>{openError}</T></Surface> : null}
@@ -725,15 +635,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
             address={hasAddress && frameOfAddress ? <OwnerAddress frame={frameOfAddress} part={{ pencil: placeAt('Izmeni, Tačna adresa') }}
               map={privateMap.points.length ? <LocationMapPreview points={privateMap.points} route={privateMap.route}
                 scopeKey={`${accountId}:${accountRevision}:${review.reviewId}:private-place`} height={160} /> : undefined} /> : undefined}
-            more={moreFacts.length ? <ReviewMoreFacts labels={moreFacts.map(item => factName(item.key))} disabled={quietEdit && !moreFacts.some(editingFact)}
-              open={showMore || moreFacts.some(editingFact)} onToggle={() => { if (!quietEdit) setShowMore(open => !open); }}>
+            more={moreFacts.length ? <ReviewMoreFacts labels={moreFacts.map(item => factName(item.key))} disabled={quietEdit}
+              open={showMore} onToggle={() => { if (!quietEdit) setShowMore(open => !open); }}>
               {moreFacts.map((item, index) => {
                 const shown = displayFact(item);
                 return <ReviewFactRow key={item.key} label={factName(item.key)} value={priceAmountRowValue(priceMode, shown) ?? reviewRowValue(shown)}
-                  system={item.source === 'SYSTEM'} last={index === moreFacts.length - 1} edit={canEdit ? () => editInConversation(taskCorrectionTarget(item.key)) : undefined}
-                  rowRef={node => { if (node) rowRefs.current.set(item.key, node); else rowRefs.current.delete(item.key); }}>
-                  {editingFact(item) ? editorBody() : undefined}
-                </ReviewFactRow>;
+                  system={item.source === 'SYSTEM'} last={index === moreFacts.length - 1} edit={canEdit ? () => editInConversation(taskCorrectionTarget(item.key)) : undefined} />;
               })}
             </ReviewMoreFacts> : undefined} />
           {/* The ways out at the end: edit in conversation, or delete draft */}
@@ -744,8 +651,6 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   </>;
 }
 
-/** Facts whose editor is the place step. */
-const PLACE_KEYS: readonly NeedFactV2Key[] = ['need.task_country_code', 'need.task_geography', 'need.exact_address', 'need.access_notes', 'need.resolved_location'];
 /** The lists of what a task asks of a person: with nothing in them the page of others draws no line for them, and the review offers them as "Dodaj još podataka". */
 const MORE_LISTS: readonly NeedFactV2Key[] = ['need.required_skills', 'need.required_tools', 'need.required_vehicles', 'need.required_licenses', 'need.critical_conditions'];
 

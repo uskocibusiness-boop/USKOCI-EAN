@@ -3,18 +3,23 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { rememberAiCorrection } from '../aiCorrectionIntent';
 
 /**
- * The worker-profile conversation and its review, as parts (T4b1, 2026-10-07).
- *
- * M1: the title is "Radni profil", the latest question is the large one (`questionFocus`), and the "+" of the composer
- * opens the parts of the profile, each in its own editor. M2: every part of the review has "Izmeni"; it opens that part's
- * editor, and a change made there is followed by a FRESH review of the new proposal (one patch, one prepare, one read),
- * and the person lands on it. Back from such an editor returns to the review, not to the conversation. The guards of the
- * conversation itself are tested in worker-ai-conversation-recovery.test.tsx and are not repeated here.
+ * All normal edits select a topic in the same conversation without sending or
+ * patching. Legacy editor cases below simulate an already-open panel solely to
+ * preserve its existing recovery contract; they are not a new navigation path.
  */
 const mockAccount = '11111111-1111-4111-8111-111111111111', mockProfile = '22222222-2222-4222-8222-222222222222', mockConversation = '33333333-3333-4333-8333-333333333333';
 const A = mockAccount, B = mockProfile, C = mockConversation;
 let mockRouteId = C;
 let mockCorrection: string | undefined, mockFocused=true;
+let mockRestoreLegacyPanel: ((panel: 'manual' | 'availability') => void) | null = null;
+jest.mock('react', () => {
+  const React = jest.requireActual('react');
+  return { ...React, useState: (initial: unknown) => {
+    const state = React.useState(initial);
+    if (initial === 'chat') mockRestoreLegacyPanel = state[1];
+    return state;
+  } };
+});
 const mockListeners = new Set<(s: string) => void>();
 const mockApi = { read: jest.fn(), open: jest.fn(), send: jest.fn(), recoverTurn: jest.fn(), cancelTurn: jest.fn(), patch: jest.fn(), prepare: jest.fn(), save: jest.fn(), abandon: jest.fn() };
 const mockJournal = { load: jest.fn(), save: jest.fn(), clear: jest.fn() };
@@ -56,7 +61,6 @@ import Screen from '../../app/(app)/profil/razgovor';
 import { ActionSheet } from '../../ui/system/ActionSheet';
 import { Press } from '../../ui/Press';
 import { brandAction } from '../../ui/system/tokens';
-import { CalendarScreen } from '../../ui/calendar/CalendarControls';
 
 const ok = (podatak: unknown) => ({ ok: true, podatak });
 const availability = () => ({ timezone: 'Europe/Belgrade', availableNow: false, rules: [], windows: [] });
@@ -77,6 +81,7 @@ const action = (label: string) => tree.root.findByProps({ label });
 const menuRows = () => tree.root.findAllByType(Press).filter(node => node.props.accessibilityRole === 'menuitem');
 const menuRow = (label: string) => menuRows().find(node => node.props.accessibilityLabel === label)!;
 const render = async () => { await act(async () => { tree = create(<Screen />); }); };
+const restoreLegacyManual = async () => { await act(async () => { mockRestoreLegacyPanel!('manual'); }); };
 const click = async (label: string) => { await act(async () => { action(label).props.onPress(); }); };
 const openReview = async () => {
   mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(reviewed()));
@@ -84,7 +89,7 @@ const openReview = async () => {
 };
 beforeEach(() => {
   jest.clearAllMocks(); mockRouteId = C; mockRouter.canGoBack.mockReturnValue(true); mockAccountName = { state: 'ready', name: null };
-  mockCorrection=undefined;mockFocused=true;
+  mockCorrection=undefined;mockFocused=true;mockRestoreLegacyPanel=null;
   mockJournal.load.mockResolvedValue(null); mockJournal.save.mockResolvedValue(undefined); mockJournal.clear.mockResolvedValue(undefined);
   mockApi.read.mockResolvedValue(ok(snapshot())); mockApi.open.mockResolvedValue(ok(snapshot()));
   mockApi.recoverTurn.mockResolvedValue(ok({}));
@@ -148,11 +153,35 @@ describe('the conversation (M1)', () => {
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0);
   });
 
-  it('"···" still opens the whole manual form and the week, with no part', async () => {
+  it.each([['O meni', 'worker.identity'], ['Raspored i dostupnost', 'worker.time']] as const)(
+    '"···" selects %s in the same conversation without overwriting or sending the draft', async (label, target) => {
     await render();
+    await act(async () => shell().props.onChange('Moj neposlati odgovor'));
     await act(async () => { shell().props.onOptions(); });
-    await act(async () => { menuRow('Ručno uredi podatke').props.onPress(); });
-    expect(manual().props.only).toBeUndefined(); expect(frame().props.title).toBeUndefined();
+    expect(menuRows().map(row => row.props.accessibilityLabel)).toEqual(['O meni', 'Raspored i dostupnost']);
+    await act(async () => { menuRow(label).props.onPress({ nativeEvent: {} }); });
+    expect(shell().props.correction.target).toBe(target);
+    expect(shell().props.conversationKey).toBe(C);
+    expect(shell().props.value).toBe('Moj neposlati odgovor');
+    expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
+    expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0);
+    expect(tree.root.findAllByType('Availability' as never)).toHaveLength(0);
+    expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.send).not.toHaveBeenCalled();
+    expect(mockApi.open).not.toHaveBeenCalled(); expect(mockApi.prepare).not.toHaveBeenCalled();
+  });
+
+  it.each(['O meni', 'Raspored i dostupnost'])(
+    'rejects a retained %s menu action after leaving and refocusing', async label => {
+    await render();
+    await act(async () => shell().props.onChange('Sačuvaj moj neposlati tekst'));
+    await act(async () => shell().props.onOptions());
+    const retained = tree.root.findByType(ActionSheet).props.actions.find((item: { label: string }) => item.label === label).onPress;
+    await act(async () => { mockFocused = false; tree.update(<Screen />); });
+    await act(async () => { mockFocused = true; tree.update(<Screen />); });
+    await act(async () => retained());
+    expect(shell().props.correction).toBeUndefined();
+    expect(shell().props.value).toBe('Sačuvaj moj neposlati tekst');
+    expect(mockApi.send).not.toHaveBeenCalled(); expect(mockApi.patch).not.toHaveBeenCalled();
   });
 });
 
@@ -223,8 +252,7 @@ describe('the review (M2)', () => {
     await render(); await openReview();
     mockApi.prepare.mockClear();
     await act(async () => { review().props.onEdit('tools'); });
-    await act(async () => shell().props.onOptions());
-    await act(async () => menuRow('Ručno uredi podatke').props.onPress());
+    await restoreLegacyManual();
     mockApi.patch.mockResolvedValue({ ok: false, kod: 'UNKNOWN', poruka: 'Ishod nije potvrđen.' });
     await act(async () => { manual().props.apply({ tools: ['Bušilica'], vehicles: [] }); });
     expect(mockApi.prepare).not.toHaveBeenCalled();
@@ -300,8 +328,7 @@ describe('one name: the review is made under the account\'s name', () => {
     await open();
     mockApi.patch.mockClear(); mockApi.prepare.mockClear();
     await act(async () => { review().props.onEdit('area'); });
-    await act(async () => shell().props.onOptions());
-    await act(async () => menuRow('Ručno uredi podatke').props.onPress());
+    await restoreLegacyManual();
     mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.read.mockResolvedValue(ok(reviewed(1)));
     await act(async () => { manual().props.apply({ location: { city: 'Zemun', operatingCountryCode: 'RS', radiusKm: 25 } }); });
     expect(mockApi.patch).toHaveBeenCalledTimes(1);
@@ -353,8 +380,7 @@ describe('activation choice belongs to the conversation', () => {
     await prepareFalse();
     await act(async () => shell().props.attach.onPress());
     await act(async () => menuRow('Alat i vozilo').props.onPress());
-    await act(async () => shell().props.onOptions());
-    await act(async () => menuRow('Ručno uredi podatke').props.onPress());
+    await restoreLegacyManual();
     mockApi.patch.mockResolvedValue(ok(snapshot(1)));
     await act(async () => manual().props.apply({ tools: ['Bušilica'], vehicles: [] }));
     await act(async () => shell().props.card(false).props.review());
