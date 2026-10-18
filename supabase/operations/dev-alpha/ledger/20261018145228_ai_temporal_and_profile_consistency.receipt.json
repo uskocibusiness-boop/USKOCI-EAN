@@ -1,0 +1,154 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "authority": "Owner standing PRIMENI 2026-10-18",
+  "scope": "Date-specific Belgrade offsets, authoritative next-week boundaries and consistent worker biography corrections",
+  "sourceCommit": "35f93e7ced703cd9cac3da6491410742d70cadea",
+  "packages": [
+    {
+      "slug": "uskoci-ai-interview",
+      "beforeVersion": 96,
+      "beforeBundle": "a3e1b399e42fd02cb6006d9bb02b678a8d772b089cf19bda672d04693c1cb165",
+      "afterVersion": 97,
+      "bundleSha256": "052b8dd148585673eac8650ed76af29b94cb306be56914c352177f7085957764",
+      "verifyJwt": false,
+      "updatedAt": 1792335145923,
+      "files": [
+        {
+          "path": "supabase/functions/uskoci-ai-interview/index.ts",
+          "sha256": "6e6b5c9491645e117add917f0b75fead78ef18d0d058c83524765f51c9756fab",
+          "bytes": 95944,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "sha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+          "bytes": 468,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "src/contracts/needFactsV2.ts",
+          "sha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6",
+          "bytes": 7029,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/locationReply.ts",
+          "sha256": "95ae06cb6f096dec38edbb45fc024edabbfdc02f0b71431fddaa892c4b1fe36c",
+          "bytes": 7606,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+          "bytes": 5351,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "sha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5",
+          "bytes": 16466,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/taxonomyScopedShadow.mjs",
+          "sha256": "c91b7bc3bb95f6cfc370c5a589bd12aba28089261b32d773573853cc62f75e8b",
+          "bytes": 1910,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/classificationEngine.mjs",
+          "sha256": "cdedf45565f92235ac2f8c75be9f754128bfa59f3c37fec6d7b394b677d748d3",
+          "bytes": 15292,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+          "sha256": "f0a80eb886de14f5f432da985a6745e89a2d3bc003a72bbb67637bca34db17ff",
+          "bytes": 17298,
+          "byteIdenticalReadback": true
+        }
+      ],
+      "changed": [
+        "supabase/functions/uskoci-ai-interview/index.ts"
+      ]
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "beforeVersion": 52,
+      "beforeBundle": "b6ec594a7625913b9bc10ba33b2e7c0ac2cb4e02c062e91bca030c8a89594bf2",
+      "afterVersion": 53,
+      "bundleSha256": "263ebf3e3cbef2b33694824d3b6975edeb2365839b730dea23d62c614d5931ff",
+      "verifyJwt": false,
+      "updatedAt": 1792335148903,
+      "files": [
+        {
+          "path": "supabase/functions/uskoci-worker-interview/index.ts",
+          "sha256": "88f3a77cfa1f5eac897135f07e57c4898251c4cbf122d0890824b2f0671e501c",
+          "bytes": 35566,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "sha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+          "bytes": 468,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+          "bytes": 5351,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "sha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5",
+          "bytes": 16466,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/classificationEngine.mjs",
+          "sha256": "cdedf45565f92235ac2f8c75be9f754128bfa59f3c37fec6d7b394b677d748d3",
+          "bytes": 15292,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+          "sha256": "f0a80eb886de14f5f432da985a6745e89a2d3bc003a72bbb67637bca34db17ff",
+          "bytes": 17298,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/workerServiceModeContext.mjs",
+          "sha256": "1fdac04aecc7f582353672de96020c47ff3e84e44d71e74554369e0e3914bc3b",
+          "bytes": 9016,
+          "byteIdenticalReadback": true
+        }
+      ],
+      "changed": [
+        "supabase/functions/uskoci-worker-interview/index.ts"
+      ]
+    }
+  ],
+  "verification": {
+    "ciRun": 39137825790,
+    "ciConclusion": "success",
+    "taskActualHandlerContextTests": 153,
+    "parserTests": 25,
+    "workerHandlerAndPolicyTests": 70,
+    "classificationContractTests": 129,
+    "deployedFileComparison": "BYTE_IDENTICAL"
+  },
+  "dataEffects": {
+    "migration": false,
+    "providerCallsDuringDeployment": 0,
+    "profileSave": 0,
+    "taskPublish": 0
+  },
+  "rollback": "Exact predecessor packages retained in temporal-before-private.json",
+  "limits": [
+    "Natural-language intent still depends on provider interpretation; no universal semantic understanding is claimed.",
+    "Timestamp guard validates newly proposed local times and retains literal user ISO instants; it does not silently rewrite existing facts.",
+    "Worker biography consistency is an instruction change that requires live response verification, not a deterministic summary engine.",
+    "Repeated schedules, generic task replacement invalidation and regional coverage remain separate packages."
+  ]
+}
