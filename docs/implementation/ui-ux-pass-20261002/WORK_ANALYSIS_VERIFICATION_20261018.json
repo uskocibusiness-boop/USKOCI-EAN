@@ -1,0 +1,181 @@
+{
+  "observedAt": "2026-10-18T08:36:46.050885+00:00",
+  "sourceHead": "1b1d9d1f739cd98940f30150fb8defe5283c379a",
+  "input": {
+    "name": "USKOCI_DUBINSKA_ANALIZA_20261018.html",
+    "sha256": "dd0a3b519c0efc3277786612e31d67f2201b325d9a2c11d72f98273710140dbf",
+    "bytes": 120396,
+    "sectionsRead": 18
+  },
+  "boundary": "Read-only comparison; no runtime, DEV, paid provider, push, APK or device changes. Work test PASS is attributed to the supplied report, not re-executed.",
+  "live": {
+    "migrations": 280,
+    "latest": "20261018075854",
+    "closureLive": "88cab17911f89a7d8d800ae229db568dd2aaed106395ad8acc3207917acd72ec",
+    "closureCertified": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "retentionAiReady": false,
+    "legal": {
+      "ready": false,
+      "reason": "LEGAL_DOCUMENTS_NOT_PUBLISHED",
+      "documents": [],
+      "acceptedCurrentBundle": false
+    }
+  },
+  "functionReads": [
+    {
+      "name": "candidate_profile_ids",
+      "sha256": "f1281778591c491021e826c0f3b1452025e47a03f3a7ca0fe0fee1949708fbcb"
+    },
+    {
+      "name": "taxonomy_requirement_tier_inherited_v1",
+      "sha256": "b0545268d115c61ca636aaf2735365cdc29eee550d12f461f6028df93d2a66c6"
+    },
+    {
+      "name": "taxonomy_scope_eligible_v1",
+      "sha256": "bdfc516ae06faa8664ca805263c572d9c124ac92d4ae647a9702ed6d99c266ea"
+    }
+  ],
+  "edge": [
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 89,
+      "bundleSha256": "e88709c006376c675b6f9d8b8fe9e8f2e147b13f733fbcce4e6a7345169bcba2",
+      "equalFiles": 9,
+      "totalFiles": 9,
+      "files": [
+        {
+          "name": "supabase/functions/uskoci-ai-interview/index.ts",
+          "liveSha256": "94a332f52366501a4cced91f6deafa769c0b00006954f85ec0acc7d1598c3f76",
+          "headSha256": "94a332f52366501a4cced91f6deafa769c0b00006954f85ec0acc7d1598c3f76"
+        },
+        {
+          "name": "src/contracts/aiAvailability.ts",
+          "liveSha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+          "headSha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409"
+        },
+        {
+          "name": "src/contracts/needFactsV2.ts",
+          "liveSha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6",
+          "headSha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6"
+        },
+        {
+          "name": "supabase/functions/_shared/locationReply.ts",
+          "liveSha256": "95ae06cb6f096dec38edbb45fc024edabbfdc02f0b71431fddaa892c4b1fe36c",
+          "headSha256": "95ae06cb6f096dec38edbb45fc024edabbfdc02f0b71431fddaa892c4b1fe36c"
+        },
+        {
+          "name": "supabase/functions/_shared/aiTestBudget.ts",
+          "liveSha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+          "headSha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24"
+        },
+        {
+          "name": "supabase/functions/_shared/geminiTaskStream.ts",
+          "liveSha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5",
+          "headSha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5"
+        },
+        {
+          "name": "supabase/functions/_shared/taxonomyScopedShadow.mjs",
+          "liveSha256": "c91b7bc3bb95f6cfc370c5a589bd12aba28089261b32d773573853cc62f75e8b",
+          "headSha256": "c91b7bc3bb95f6cfc370c5a589bd12aba28089261b32d773573853cc62f75e8b"
+        },
+        {
+          "name": "supabase/functions/_shared/classificationEngine.mjs",
+          "liveSha256": "f8ba61c6393cd3f97b4648ab47735e253f85a0dbb0db489ebdb4e93bc081a282",
+          "headSha256": "f8ba61c6393cd3f97b4648ab47735e253f85a0dbb0db489ebdb4e93bc081a282"
+        },
+        {
+          "name": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+          "liveSha256": "6162cedad8e1bff5dca357a63c581030438a99db6eb59493ea6941576939a534",
+          "headSha256": "6162cedad8e1bff5dca357a63c581030438a99db6eb59493ea6941576939a534"
+        }
+      ]
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 44,
+      "bundleSha256": "bb6ada7ef9169f60d3ce4365ef9d1ea6ffa279ea6fc5730dd3297dcaf7dcaa33",
+      "equalFiles": 5,
+      "totalFiles": 6,
+      "files": [
+        {
+          "name": "supabase/functions/uskoci-worker-interview/index.ts",
+          "liveSha256": "899372b1d6b26fdf9627d9308527f9ce16581e0a2230d62113688d0c9fadd4d6",
+          "headSha256": "899372b1d6b26fdf9627d9308527f9ce16581e0a2230d62113688d0c9fadd4d6"
+        },
+        {
+          "name": "src/contracts/aiAvailability.ts",
+          "liveSha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+          "headSha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409"
+        },
+        {
+          "name": "supabase/functions/_shared/aiTestBudget.ts",
+          "liveSha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+          "headSha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24"
+        },
+        {
+          "name": "supabase/functions/_shared/geminiTaskStream.ts",
+          "liveSha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5",
+          "headSha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5"
+        },
+        {
+          "name": "supabase/functions/_shared/classificationEngine.mjs",
+          "liveSha256": "f8ba61c6393cd3f97b4648ab47735e253f85a0dbb0db489ebdb4e93bc081a282",
+          "headSha256": "f8ba61c6393cd3f97b4648ab47735e253f85a0dbb0db489ebdb4e93bc081a282"
+        },
+        {
+          "name": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+          "liveSha256": "13238d2bed7364687eb3c0510aea21e4bb3cf817ed8ff5a5c456b64470e181ba",
+          "headSha256": "6162cedad8e1bff5dca357a63c581030438a99db6eb59493ea6941576939a534"
+        }
+      ]
+    }
+  ],
+  "taxonomyObservation": {
+    "observedAt": "2026-10-18T08:37:44.348677+00:00",
+    "categories": 135,
+    "aliases": 3,
+    "standardCoverage": 56,
+    "workerCapabilities": 2,
+    "needBindings": 2,
+    "workerBindings": 0,
+    "confirmedModes": 0,
+    "strictScope": false,
+    "bindingEnabled": true,
+    "outboxEnabled": true
+  },
+  "productionGuard": {
+    "source": "committed HEAD:eas.json and existing app.config.js/validatePreview",
+    "package": "rs.uskoci",
+    "canonicalDevAccepted": true,
+    "networkCalls": 0,
+    "buildPerformed": false
+  },
+  "buildFlags": {
+    "names": [
+      "EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW",
+      "EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW",
+      "EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES"
+    ],
+    "headPreview": "not explicitly set",
+    "localPreview": "all true in pre-existing uncommitted eas.json",
+    "apkWorkflows": "not explicitly set in the two reviewed workflows",
+    "previewOtaWorkflow": "all true",
+    "externalEasEnvironment": "not read"
+  },
+  "advisors": {
+    "security": {
+      "authenticatedDefiners": 192,
+      "anonDefiners": 2,
+      "mutableSearchPath": 1,
+      "leakedPasswordProtectionDisabled": 1
+    },
+    "performance": {
+      "unindexedForeignKeys": 93,
+      "authRlsInitplan": 18,
+      "multiplePermissivePolicies": 5,
+      "noPrimaryKey": 7,
+      "unusedIndex": 15
+    },
+    "interpretation": "Advisor counts are not confirmed vulnerabilities; no mass index/ACL mutation is authorised."
+  }
+}

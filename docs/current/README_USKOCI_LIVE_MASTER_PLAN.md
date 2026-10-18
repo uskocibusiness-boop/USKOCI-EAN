@@ -35,6 +35,8 @@ Jedan aktivan proizvod, jedan registar statusa i postojeći LIVE plan. Ovaj fajl
 
 Izveštaj ovog inventara: [čišćenje i predlog povezane aplikacije](../implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md). To je datirani nalaz uz isti registar, ne drugi tracker.
 
+Naredni usaglašeni posao: [komentar Work analize, nove read-only provere i redosled izvođenja](../implementation/ui-ux-pass-20261002/WORK_ANALYSIS_RECONCILIATION_20261018.md). Njegovi sledeći koraci preneti su u postojeće redove registra; originalne ranije napomene su sačuvane. Pregled ne znači da su implementacioni paketi već zatvoreni.
+
 ## Šta znači „trenutno“
 
 Svaki zaključak označi: SOURCE, TEST, DEV APPLIED, APK BUILT, EMULATOR, PHONE ili RELEASE. Datum i tačan izvor pripadaju dokazu. Stara slika može pokazati stari problem; njen naziv AFTER_FIX nije potvrda da prikazuje sadašnji kod. Budući manifest isporuke treba da poveže postojeći `buildIdentity`, hash APK-a, OTA identitet, DEV snapshot i slike. Taj potpuni manifest nije napravljen ovim uređivanjem dokumentacije.

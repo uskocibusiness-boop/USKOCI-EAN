@@ -19,8 +19,8 @@
     "note": "Objavljeni legal/retention/processor setovi: 0/0/0 (DEV read 30.09.2026). Brojevi legal/store PASS se ne upisuju bez dokaza za konkretne gate-ove."
   },
   "next": {
-    "title": "Jedan aktuelni ulaz → povezan AI/profil i uredniji ekrani → dokaz tačnog APK-a",
-    "note": "Ulazna dokumentacija i inventar sređeni 18.10.2026; source 938df57d pre čišćenja. Nema novog APK-a iz ovog paketa. Sledeće: identitet isporuke, razdvajanje dizajn laboratorije, AI → sačuvani profil i Home/Zadaci tok. Region kandidat ostaje nepriključen; matching/push i pravne/release granice ostaju zasebne. Detalji u CURRENT_BASELINE_CLEANUP_20261018.md i istim redovima registra."
+    "title": "Usaglasiti isporuku → potvrđeni AI/worker model → matching i povezani UX",
+    "note": "Work analiza upoređena sa aktuelnim kodom i živim DEV čitanjem 18.10. Production guard prihvata DEV; signed flags se razlikuju; worker helper 5/6 prema repo-u. Sledeći paket priprema tačnu konfiguraciju i bundle, uz closure obuhvat. Potom AI/save/binding/region i UX zajedno, pa odobren dvonaložni matching/push dokaz. Plan i granice: WORK_ANALYSIS_RECONCILIATION_20261018.md. Nema novog APK-a ili server primene u ovom poređenju."
   },
   "evidence": [
     {
@@ -694,6 +694,12 @@
       "run": null,
       "sha": "938df57d81e98821255d361afd6b6201e996889d",
       "result": "DOCUMENTATION + STATIC INVENTORY ONLY. Eight originals archived with SHA-256; current entry/design direction clarified; 21 design routes, 25 static candidates, 620 discovered test files. No full test pass, new APK, DEV or device claim. docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md"
+    },
+    {
+      "id": "WORK-ANALYSIS-RECONCILIATION-20261018",
+      "run": null,
+      "sha": "1b1d9d1f739cd98940f30150fb8defe5283c379a",
+      "result": "Read all 18 sections and reconciled 20 findings; reproduced production DEV acceptance, read live closure/legal/candidates/scope and both Edge bundles. Documentation and existing row next actions only; no new deployment/native proof. docs/implementation/ui-ux-pass-20261002/WORK_ANALYSIS_RECONCILIATION_20261018.md"
     }
   ]
 }

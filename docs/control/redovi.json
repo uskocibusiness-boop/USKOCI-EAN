@@ -25,7 +25,7 @@
         "dokaz": "09.10 fizički HONOR 725be7bd: 725 telefon: Home nastavak vraća isti sačuvani task razgovor i potvrđeno mesto; b9 restart dokaz ostaje zaseban. Širi Home poslovni tok nije ponovo prihvaćen. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon."
       },
       "problem": "725 telefon: Home nastavak vraća isti sačuvani task razgovor i potvrđeno mesto; b9 restart dokaz ostaje zaseban. Širi Home poslovni tok nije ponovo prihvaćen.",
-      "sledece": "Zadržati dve glavne radnje i završiti povezani tok; bez ponovnog otvaranja popravljenog R09.",
+      "sledece": "Na istom kandidatu završiti Home: dve namere, nastavak razgovora i stvarne stavke bez praznog odeljka; sačuvati isključivanje sopstvenih zadataka iz tuđeg pregleda. Radar tek treba povezati. WORK_ANALYSIS_RECONCILIATION_20261018.md, paketi 5–6.",
       "source_progress_20261018": "Animirani radar u kartici 'Uskoči i zaradi' u izvoru sada čita trajanje iz zajedničkih motion tokena i zaustavlja nativnu transform petlju kada je aplikacija u pozadini ili je uključen Reduce Motion. AI asistent koristi zajedničke tokene za disanje i treptaj. Motion ratchet 84/84 prolazi; novi APK i fizička provera kretanja nisu urađeni.",
       "source_progress_20261018_home_recommendations": "Na prijavljenom emulatoru Početna je u 'Zadaci za tebe' prikazala dva zadatka istog naloga. Izvor sada uklanja ID-jeve iz uspešno pročitane lične liste, a pri neuspehu tog čitanja izostavlja preporuke da ne predstavi svoj posao kao tuđi. Prazan karusel se ne crta; dve glavne radnje ostaju iznad preporuka. Ciljani Jest 110/110, TypeScript i diff check prolaze; Metro emulator je prikazao Početnu bez sopstvenih kartica i bez praznog zaglavlja. Fizički telefon i release APK nisu provereni. Dokaz: docs/implementation/ui-ux-pass-20261002/HOME_OWN_TASK_PREVIEW_20261018.md.",
       "funkcionalni_audit": {
@@ -216,7 +216,7 @@
       },
       "problem": "Novi razgovor task AI source/test završen; potvrda nije trajno brisanje istorije. Raniji telefon resume ostaje dokaz, ceo aktuelni AI task tok još otvoren.",
       "source_progress_20261018": "Kartica živog AI nacrta u izvoru više ne zadaje lokalne sirove boje i senku preko Surface panel komponente; koristi zajednički materijal bez senke. AI intake ekran prolazi ciljane testove; novi APK i stvaran pregled razgovora na uređaju nisu urađeni.",
-      "sledece": "Nastaviti preostali native obuhvat: novi photo upload/uklanjanje, privatni čet dva naloga i javni odgovor na tačno pitanje.600efd10 instaliran; dokazan je samo navedeni postojeći draft/picker cancel/viewer put. docs/implementation/evidence/media-qa-finish-20261010/REPORT.md.",
+      "sledece": "Paket 1 usaglasiti preview flags i tačan Edge bundle; paket 3 završiti AI → kratak sažetak → pregled → objava, remote izradu/predaju i ispravku podataka; zatim ograničen odobren živi prolaz. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1692,7 +1692,7 @@
       ],
       "telefon": null,
       "problem": "Poslednja zabeležena politika je OFF sa praznim kategorijama; nije ponovo čitana ni promenjena. RPC nema trajnu potvrdu pojedinačne aktivacije niti vezivanje pregledane verzije politike.",
-      "sledece": "Vlasnik je izričito vratio HITNO u obim. Klijentski meni/pregled/potvrda/oporavak su povezani u izvoru. Pre stvarne aktivacije potrebni su konkretna politika i imenovana serverska primena; bez slepog ponavljanja neizvesnog zahteva.",
+      "sledece": "Van sadašnjeg V1 obuhvata po kasnijoj odluci vlasnika 7.10.2026. Ne aktivirati zaseban HITNO iz starijeg reda; raniji source i dokazi ostaju istorija. Work analiza §16 i AGENTS §3.5 potvrđuju odlaganje.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1755,7 +1755,7 @@
       },
       "problem": "10.10 izvor: sačuvana kartica ima ceo opis/proširive činjenice; activation OFF ostaje kroz razgovor; suspended mutation/support granice proverene. AI-only DRAFT/manual/deep-link migracija i native dokaz još otvoreni.",
       "source_progress_20261018": "Sačuvani radni profil sada u izvoru prikazuje alat i vozila, sa objašnjenjem njihovog uticaja. Rečnik radničkih ponuda u izvoru usklađen je na 'usluge', a testovi pregleda i razgovora su ažurirani. Ciljani Jest za profil, razgovor i Discovery 302/302, dodatna provera razgovora 121/121 i naknadni Home/intake/native profil 365/365 prošli. Nova verzija APK-a sa ovom izmenom nije izgrađena niti je sačuvani profil proveravan na emulatoru/telefonu.",
-      "sledece": "Nastaviti AI-only worker: DRAFT kartica, poslovne izmene kroz isti razgovor, potvrđena približna mapa kao kandidat (bez paralelnog live save), postojeći kalendar. Potom tačan APK/create-edit-save-reopen. Dokaz: docs/implementation/evidence/worker-reading-20261010/REPORT.md.",
+      "sledece": "Paketi 1–3: ista isporuka i potvrđeni model usluge/režima/područja → signed Save → worker binding → ponovno čitanje. Živo 18.10: 0 worker binding i 0 mode redova; ne uključivati strict gate samo promenom zastavice. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2067,7 +2067,7 @@
         "dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon."
       },
       "problem": "10.10 izvor: sačuvana kartica ima ceo opis/proširive činjenice; activation OFF ostaje kroz razgovor; suspended mutation/support granice proverene. AI-only DRAFT/manual/deep-link migracija i native dokaz još otvoreni.",
-      "sledece": "Nastaviti AI-only worker: DRAFT kartica, poslovne izmene kroz isti razgovor, potvrđena približna mapa kao kandidat (bez paralelnog live save), postojeći kalendar. Potom tačan APK/create-edit-save-reopen. Dokaz: docs/implementation/evidence/worker-reading-20261010/REPORT.md.",
+      "sledece": "Paket 3: jedan sačuvani pregled potvrđenih usluga/režima/područja i glavni AI ulaz za izmene; ukloniti dupliranje alijasa i paralelan obavezan ručni editor. Dokaz create/edit/save/reopen na istom kandidatu. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2324,7 +2324,7 @@
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "Početna kamera povezana sa postojećim owned radnim područjem. Lično mesto je zaseban ugovor; current APK nije potvrđen.",
-      "sledece": "Objedinjeni native checkpoint prema docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_39_P5_WORK_AREA_AND_WORKER_REVIEW.md; zatim preostali P5 AI/matching i P6. Provider/server promene ostaju zasebno odobrene.",
+      "sledece": "Paket 2: nastaviti postojeći regionalni kandidat kroz potvrdu, signed Save/readback, verzionisane oblasti, candidate selection i export/closure obuhvat. Ne predstavljati country guard ili lep tekst regiona kao završenu pokrivenost. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2404,7 +2404,7 @@
         "dokaz": "2026-09-24: Dostupnost (vreme HH:MM, Po vremenu u Srbiji, čuvanje isključeno dok se ništa ne promeni) viđena na emulatoru, build d7152e9f, samo čitanje (docs/implementation/design-system/r1-emulator-d7152e9f/R1_RECEIPT.json). Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "Audit 24.09: DN-05: kopiranje dostupnosti može izbaciti termin iz dana sa kog se kopira; ponovljeno čistom funkcijom. DN-10/11: osvežavanje i bitno objašnjenje nisu pouzdano dostupni čitaču ekrana. → Ispravljeno u kodu (round 5c): DN-05, DN-10, DN-11. „Mogu odmah“ se čuva odmah (odluka vlasnika 2). 24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu).",
-      "sledece": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): proveriti kopiranje dana, „Osveži raspored“ za čitač ekrana i „Mogu odmah“ na emulatoru. Dopuna 24.09: završiti nalaze DN-05, DN-10, DN-11 iz nezavisnog audita pre prihvatanja ovog toka. Materijal/kompozicija iteracija3 (02.10): novi izvor i ograničenja u docs/implementation/ui-ux-pass-20261002/MATERIAL_COMPOSITION_ITERATION3_20261002.md; potreban tačan APK i vizuelna provera, nije potvrda telefona. Inbox/native krug03.10: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md; source3 je instaliran na telefonu i emulatoru, ograničen vizuelni pregled potvrđen. Novi Poruke reader je DEV APPLIED; novi četiri-tab UI i robot zahtevaju sledeći tačan APK. Push nije proglašen završenim. Native03.10: source97926fef installed both devices with exact attestations; HONOR inbox and emulator chat/keyboard/Back/notification/large-text were inspected. Scope and five next-source refinements: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md. No whole-flow/voice/push completion claimed. Krug03.10/759c327e: na emulatoru pročitani kalendar i dostupnost, otvoren novi termin pa odustajanje i povratak u isti kalendar; bez upisa termina/statusa. Fizički tok čuvanja nije ovim potvrđen. Detalji: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md.",
+      "sledece": "Izmene radnog vremena voditi kroz isti AI tok i autoritativni podatak prema vlasnikovom zahtevu; kalendar čuva pregled obaveza. Proveriti vremensku zonu, konflikt i ponovno čitanje; ne vraćati obavezan ručni upitnik iz starog nacrta. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2519,7 +2519,7 @@
         "dokaz": "Početni zoom, FULL bela lista, Mapa kapsula i vraćena navigacija potvrđeni na52720. docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
       "problem": "Telefon068: funkcionalni GPS fix i prazno→prazno potvrđeni. Nearby framing koristi pogrešnu HALF marginu; namenski PEEK fix i kompaktno Back/lupa/filter zaglavlje pripremljeni. Novi APK nije još prihvaćen.",
-      "sledece": "10.10: fizički proveriti Back u svim položajima liste; My location odmah koristi samo svež/precizan potvrđen uzorak uz permission/services provere, bez trajnog/background praćenja. Source trenutno čeka novo GPS očitavanje pri svakom kliku. Raniji dokaz/sledeće: Tačan native prebuild/APK: overlay dozvola uklonjena, Nearby razmera, header Back/search/filter/FULL. Numerički budžet kroz ceo server ugovor ostaje otvoren.",
+      "sledece": "Paketi 4–5: uskladiti inherited sposobnost i potvrđeni režim, region-aware kandidate pre matcher-a; potom remote/teren, mapa/lista/filteri i Back na istom kandidatu. Javni pregled ostaje odvojen od personalizovanog match-a. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -5619,7 +5619,7 @@
         "dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije."
       },
       "problem": "One real MESSAGE_RECEIVED delivery/tap is owner-confirmed. OPPORTUNITY has local behavior, cancellation race and complete108catalog transition/refusal evidence, but is NOT DEPLOYED. Exact promotion and remaining profile/time/selection concurrency checks are open; selected phone worker is DRAFT/empty. All-category/group/automatic push and store remain unproven.",
-      "sledece": "Exact promotion wrapper plus remaining matching/time/concurrency cases; then one natural offer to an active owner-selected profile/device. Keep global queue disabled and preserve admission history.",
+      "sledece": "Paket 4: najpre read-only korelisati prijavljeni UNKNOWN i readiness sa događajem; zatim odobren jedan događaj za drugi nalog/uređaj kroz event → delivery → ticket/receipt → prikaz → tap. Ne ponavljati naslepo slanje niti uključivati globalni queue. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -6564,7 +6564,7 @@
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "Zahtev za izvoz čeka pravilo čuvanja podataka (pravnik).",
-      "sledece": "R19: komande izvoza, provera roka, sažetaka, veličine i sačuvanog naloga postoje. Operativna dostupnost zavisi od stvarnih objavljenih pravila/rokova i isporuke workera; legalna spremnost nije ponovo izmerena. Ne zaobilaziti POLICY_NOT_READY. docs/implementation/design-system/r19-task-agreement-20260925/AI_ACCOUNT_AUDIT.md Završni krug04: sačuvano postojeće upozorenje o neuspelom lokalnom čišćenju pri isteku. | 2.10.: generisanje traži aktivnu politiku privatnosti i raspored čuvanja SA izvoznim vezivanjem za svih 15 klasa (projekcija OWN_ACCOUNT_V5_10, 52 skupa); mapa obrađivača nije preduslov; nijedna funkcija ne objavljuje vezivanje. Mapa izvoz–zatvaranje: legal-drafts LEG-15 odeljak 3.",
+      "sledece": "Pre regionalne/worker aktivacije inventarisati izvoz svih review/hint/outbox/snapshot i coverage podataka; rešiti važeći closure/retention obuhvat i legal readiness, pa dokazati download u odobrenom scenariju. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -6636,7 +6636,7 @@
       ],
       "telefon": null,
       "problem": "Na drugom uređaju nema lokalnog START identifikatora za praćenje brisanja; ograničeni nalog ne može običnim čitanjem da otkrije izvršenje. Uspeh radnika i probno brisanje ne rešavaju taj oporavak.",
-      "sledece": "R19: pregled, lokalni dnevnik, potvrda i čitanje istog START ključa postoje. Bez lokalnog ključa (drugi uređaj) nedostaje otkrivanje postojeće operacije. Potreban zaseban dokaz i odobren ugovor za oporavak, uz pravila sertifikata. Pravi nalog nije brisan; sveža privatna kontrola sertifikata je odbijena. docs/implementation/design-system/r19-task-agreement-20260925/AI_ACCOUNT_AUDIT.md Završni krug04: ispravljeno zadržavanje starog pregleda pri neuspelom osvežavanju; nijedno brisanje nije pokrenuto. Round20: zatvaranje dijaloga i dupli izlazi ispravljeni; novi APK/emulator još nisu prihvaćeni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md | 2.10.: zatvaranje ne zavisi od rasporeda čuvanja (adapter vezan za događaj, legalPolicyAttested false), ali nedostaje putanja van aplikacije (LEG-08 odeljak 3), a nalog sa predmetom podrške ili prijavom bezbednosti (podnosilac ili meta) staje na EXCEPTIONS_PENDING bez izlaza (LEG-10 7.5, LEG-14 4.2); vlasnik je 2.10. PRIHVATIO to ograničenje (A30) i objaviće ga u javnom tekstu. Nikad pokrenuto na DEV (0 izvršenja).",
+      "sledece": "Potvrđen živi closure mismatch 18.10.2026; utvrditi obuhvat i dokazati ceo program pre izolovane recertifikacije. Ne prepisivati samo hash. Sačuvati zahtev za oporavak sa drugog uređaja; bez brisanja stvarnih naloga. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -6715,7 +6715,7 @@
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
       "problem": "28.09: dve grane privatnosti nisu prenete u kanonski kod niti primenjene na DEV: smanjenje sačuvanih privatnih činjenica u AI kontekstu i usklađivanje tehničkog spiska obrađivača. Zasebne CI provere nisu dokaz integracije. Preneti ciljane izmene uz očuvanje novijih AI zaštita.",
-      "sledece": "Audit 24.09: nova privatnost/podrška je u APK-u 644cab09; galerijska slika nije dokaz pravih rokova, izvoza ili brisanja. Sveža privatna kontrola sertifikata je odbijena, poslednja dostupna potvrda ostaje od 23.09. R14 (25.09): zajednički prikaz podešavanja koristi otvorene bele grupe i snažniji tekst. Tipovi i 314 grupa / 6114 testova prolaze. APK 36144235695 (668ca648) je potvrđen i instaliran na emulatoru; pregledano je 15 prikaza, uključujući tastaturu i oporavak fotografije. R14-N01: pomeranje do poslednje poruke pri otvaranju tastature ostaje za doradu. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md Aktuelni ograničeni pregled: docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md Odluka vlasnika 28.09: ove dve grane ostaviti za završni pregled privatnosti cele aplikacije pre javnog izdanja; sada nisu prioritet za primenu. | 2.10.: nalazi G-01, G-02, G-05 i odluke o čuvanju (legal-drafts LEG-10 odeljak 6 i 7.4); dve grane privatnosti ostaju odložene (AGENTS 4.5).",
+      "sledece": "Uskladiti obuhvat novih taksonomskih/worker podataka, odobreni pravni paket i closure/retention readiness; proveriti caller/owner granice relevantnih RPC-ja. Advisor nije sam po sebi potvrđena ranjivost. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -7092,7 +7092,7 @@
       "server": [],
       "telefon": null,
       "problem": "Automatski spisak „Server ume, aplikacija ne koristi“ na tabli pokazuje zamenjene stare verzije koje ulogovani korisnik i dalje može da pozove.",
-      "sledece": "Posle provere ukloniti pristup starim verzijama.",
+      "sledece": "Paket 1: production mora odbiti DEV; uskladiti commit-ovane APK/OTA flags, worker helper i identitet isporuke. Zatim ciljano uklanjanje legacy RPC/UI potrošača tek uz dokaz kompatibilnosti. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -10896,6 +10896,30 @@
       "scope": "Existing current entry, authority/design maps and scoped reading order updated. Eight original files preserved byte-exact. No runtime/test removal, APK, DEV, paid AI, push or device action.",
       "verification": "Jest discovery: 620 files, not a passing-suite claim. Archive hashes, entry links, scope diff and existing generators verified in this documentation package.",
       "boundary": "No phone/release acceptance changed. Source/DEV/build/device evidence remain separate. Existing eas.json and untracked SQL candidate excluded."
+    },
+    "work_analysis_reconciliation_20261018": {
+      "status": "REVIEW + LIVE READ-ONLY VERIFICATION; IMPLEMENTATION PACKAGES OPEN",
+      "report": "docs/implementation/ui-ux-pass-20261002/WORK_ANALYSIS_RECONCILIATION_20261018.md",
+      "evidence": "docs/implementation/ui-ux-pass-20261002/WORK_ANALYSIS_VERIFICATION_20261018.json",
+      "inputSha256": "dd0a3b519c0efc3277786612e31d67f2201b325d9a2c11d72f98273710140dbf",
+      "sourceHead": "1b1d9d1f739cd98940f30150fb8defe5283c379a",
+      "previousNextActions": {
+        "A01": "Zadržati dve glavne radnje i završiti povezani tok; bez ponovnog otvaranja popravljenog R09.",
+        "A02": "Nastaviti preostali native obuhvat: novi photo upload/uklanjanje, privatni čet dva naloga i javni odgovor na tačno pitanje.600efd10 instaliran; dokazan je samo navedeni postojeći draft/picker cancel/viewer put. docs/implementation/evidence/media-qa-finish-20261010/REPORT.md.",
+        "A16": "Vlasnik je izričito vratio HITNO u obim. Klijentski meni/pregled/potvrda/oporavak su povezani u izvoru. Pre stvarne aktivacije potrebni su konkretna politika i imenovana serverska primena; bez slepog ponavljanja neizvesnog zahteva.",
+        "B00": "Nastaviti AI-only worker: DRAFT kartica, poslovne izmene kroz isti razgovor, potvrđena približna mapa kao kandidat (bez paralelnog live save), postojeći kalendar. Potom tačan APK/create-edit-save-reopen. Dokaz: docs/implementation/evidence/worker-reading-20261010/REPORT.md.",
+        "B01": "Nastaviti AI-only worker: DRAFT kartica, poslovne izmene kroz isti razgovor, potvrđena približna mapa kao kandidat (bez paralelnog live save), postojeći kalendar. Potom tačan APK/create-edit-save-reopen. Dokaz: docs/implementation/evidence/worker-reading-20261010/REPORT.md.",
+        "B02": "Objedinjeni native checkpoint prema docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_39_P5_WORK_AREA_AND_WORKER_REVIEW.md; zatim preostali P5 AI/matching i P6. Provider/server promene ostaju zasebno odobrene.",
+        "B03": "24.09. uveče (cloud, b4531ef; Jest 302/5.882, 9 proof testova zeleno, APK run 36038648243; NIJE provereno na emulatoru/telefonu): proveriti kopiranje dana, „Osveži raspored“ za čitač ekrana i „Mogu odmah“ na emulatoru. Dopuna 24.09: završiti nalaze DN-05, DN-10, DN-11 iz nezavisnog audita pre prihvatanja ovog toka. Materijal/kompozicija iteracija3 (02.10): novi izvor i ograničenja u docs/implementation/ui-ux-pass-20261002/MATERIAL_COMPOSITION_ITERATION3_20261002.md; potreban tačan APK i vizuelna provera, nije potvrda telefona. Inbox/native krug03.10: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md; source3 je instaliran na telefonu i emulatoru, ograničen vizuelni pregled potvrđen. Novi Poruke reader je DEV APPLIED; novi četiri-tab UI i robot zahtevaju sledeći tačan APK. Push nije proglašen završenim. Native03.10: source97926fef installed both devices with exact attestations; HONOR inbox and emulator chat/keyboard/Back/notification/large-text were inspected. Scope and five next-source refinements: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md. No whole-flow/voice/push completion claimed. Krug03.10/759c327e: na emulatoru pročitani kalendar i dostupnost, otvoren novi termin pa odustajanje i povratak u isti kalendar; bez upisa termina/statusa. Fizički tok čuvanja nije ovim potvrđen. Detalji: docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md.",
+        "B04": "10.10: fizički proveriti Back u svim položajima liste; My location odmah koristi samo svež/precizan potvrđen uzorak uz permission/services provere, bez trajnog/background praćenja. Source trenutno čeka novo GPS očitavanje pri svakom kliku. Raniji dokaz/sledeće: Tačan native prebuild/APK: overlay dozvola uklonjena, Nearby razmera, header Back/search/filter/FULL. Numerički budžet kroz ceo server ugovor ostaje otvoren.",
+        "P04": "Exact promotion wrapper plus remaining matching/time/concurrency cases; then one natural offer to an active owner-selected profile/device. Keep global queue disabled and preserve admission history.",
+        "N09": "R19: komande izvoza, provera roka, sažetaka, veličine i sačuvanog naloga postoje. Operativna dostupnost zavisi od stvarnih objavljenih pravila/rokova i isporuke workera; legalna spremnost nije ponovo izmerena. Ne zaobilaziti POLICY_NOT_READY. docs/implementation/design-system/r19-task-agreement-20260925/AI_ACCOUNT_AUDIT.md Završni krug04: sačuvano postojeće upozorenje o neuspelom lokalnom čišćenju pri isteku. | 2.10.: generisanje traži aktivnu politiku privatnosti i raspored čuvanja SA izvoznim vezivanjem za svih 15 klasa (projekcija OWN_ACCOUNT_V5_10, 52 skupa); mapa obrađivača nije preduslov; nijedna funkcija ne objavljuje vezivanje. Mapa izvoz–zatvaranje: legal-drafts LEG-15 odeljak 3.",
+        "N10": "R19: pregled, lokalni dnevnik, potvrda i čitanje istog START ključa postoje. Bez lokalnog ključa (drugi uređaj) nedostaje otkrivanje postojeće operacije. Potreban zaseban dokaz i odobren ugovor za oporavak, uz pravila sertifikata. Pravi nalog nije brisan; sveža privatna kontrola sertifikata je odbijena. docs/implementation/design-system/r19-task-agreement-20260925/AI_ACCOUNT_AUDIT.md Završni krug04: ispravljeno zadržavanje starog pregleda pri neuspelom osvežavanju; nijedno brisanje nije pokrenuto. Round20: zatvaranje dijaloga i dupli izlazi ispravljeni; novi APK/emulator još nisu prihvaćeni. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_20_CLOSURE_AND_NATIVE.md | 2.10.: zatvaranje ne zavisi od rasporeda čuvanja (adapter vezan za događaj, legalPolicyAttested false), ali nedostaje putanja van aplikacije (LEG-08 odeljak 3), a nalog sa predmetom podrške ili prijavom bezbednosti (podnosilac ili meta) staje na EXCEPTIONS_PENDING bez izlaza (LEG-10 7.5, LEG-14 4.2); vlasnik je 2.10. PRIHVATIO to ograničenje (A30) i objaviće ga u javnom tekstu. Nikad pokrenuto na DEV (0 izvršenja).",
+        "N11": "Audit 24.09: nova privatnost/podrška je u APK-u 644cab09; galerijska slika nije dokaz pravih rokova, izvoza ili brisanja. Sveža privatna kontrola sertifikata je odbijena, poslednja dostupna potvrda ostaje od 23.09. R14 (25.09): zajednički prikaz podešavanja koristi otvorene bele grupe i snažniji tekst. Tipovi i 314 grupa / 6114 testova prolaze. APK 36144235695 (668ca648) je potvrđen i instaliran na emulatoru; pregledano je 15 prikaza, uključujući tastaturu i oporavak fotografije. R14-N01: pomeranje do poslednje poruke pri otvaranju tastature ostaje za doradu. Telefon i stvarni poslovni tokovi nisu ovim potvrđeni. docs/implementation/design-system/r14-readable-experience-20260925/REPORT.md Aktuelni ograničeni pregled: docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md Odluka vlasnika 28.09: ove dve grane ostaviti za završni pregled privatnosti cele aplikacije pre javnog izdanja; sada nisu prioritet za primenu. | 2.10.: nalazi G-01, G-02, G-05 i odluke o čuvanju (legal-drafts LEG-10 odeljak 6 i 7.4); dve grane privatnosti ostaju odložene (AGENTS 4.5).",
+        "S04": "Posle provere ukloniti pristup starim verzijama."
+      },
+      "scope": "All 18 sections / 20 findings / 62-row appendix read. Production guard reproduced; Edge 9/9 requester, 5/6 worker; closure/legal and mode/binding counts read live. Existing row next actions reconciled; phone evidence unchanged.",
+      "limits": "No fresh full Jest/native proof; Work test results attributed to a575838c and delta 938df57d. No deployment or client changes."
     }
   }
 }
