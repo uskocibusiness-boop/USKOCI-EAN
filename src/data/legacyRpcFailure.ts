@@ -39,6 +39,7 @@ const COPY: Readonly<Record<string, string>> = Object.freeze({
   NEED_FULL: 'Sva mesta na ovom zadatku su popunjena.',
   NEED_REMAINING_CAPACITY_EXCEEDED: 'Broj ljudi premašuje preostala mesta na zadatku.',
   RESPONSE_WINDOW_EXPIRED: 'Rok za prijave je istekao.',
+  NEED_EXECUTION_WINDOW_EXPIRED: 'Vreme za ovaj zadatak je prošlo. Nove prijave i izbor više nisu dostupni.',
   INVALID_PROPOSED_INTERVAL: 'Navedi početak i kraj termina; kraj mora biti posle početka.',
   AGREEMENT_CALENDAR_INTERVAL_INVALID: 'Proveri tačan početak i kraj predloženog termina.',
   NEED_FIXED_INTERVAL_INVALID: 'Termin zadatka nije potpun. Ponovo otvori zadatak.',

@@ -1,0 +1,85 @@
+{
+  "kind": "FORWARD_CANDIDATE_NOT_APPLIED",
+  "date": "2026-10-18",
+  "functions": [
+    {
+      "signature": "public.rpc_select_response(uuid,integer,uuid,integer,text,text)",
+      "predecessorDefinitionMd5": "239010b8f470fdc1e917010ba7ddcb8b",
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "predecessorBodyMd5": "faab1bde1460e904e9a083d2a8382b18",
+      "candidateBodyMd5": "5556d638e3befbe9739344b57d94d46a"
+    },
+    {
+      "signature": "public.rpc_resolve_stale_response_after_need_edit(uuid,integer,integer,text,text,integer,integer,timestamp with time zone,timestamp with time zone,text)",
+      "predecessorDefinitionMd5": "f4c164c02efa6d07dc6f8be2740bd097",
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "predecessorBodyMd5": "5d8e51d8dbb8d92528d794bd83233dd3",
+      "candidateBodyMd5": "f92a988e0fa8f01dde6318867e5df9fb"
+    },
+    {
+      "signature": "public.rpc_submit_response(uuid,integer,uuid,integer,integer,timestamp with time zone,timestamp with time zone,text,text)",
+      "predecessorDefinitionMd5": "4652bb78320056370eddf035fe9a7650",
+      "acl": "{postgres=X/postgres,service_role=X/postgres,authenticated=X/postgres}",
+      "predecessorBodyMd5": "b058ee01fc16a6f3018969ac911afbe4",
+      "candidateBodyMd5": "fde9531de375bd50c6a526c2adee2756"
+    },
+    {
+      "signature": "private.need_candidate_states_v5(uuid)",
+      "predecessorDefinitionMd5": "af69ebbdaac464af7d03a856c33871aa",
+      "acl": "{postgres=X/postgres}",
+      "predecessorBodyMd5": "3f24c4533d63cefdb6f8421443faf150",
+      "candidateBodyMd5": "f1b07f739d3e256822ded8d2b01b3b11"
+    },
+    {
+      "signature": "private.need_candidate_states_v5(uuid,uuid[])",
+      "predecessorDefinitionMd5": "f0af0786ee2c78706d4c18f82420498c",
+      "acl": "{postgres=X/postgres}",
+      "predecessorBodyMd5": "28e1422d1a74b24911242fd4577e4450",
+      "candidateBodyMd5": "91e873f74c8df477ab846391dfa53add"
+    }
+  ],
+  "dependencies": [
+    {
+      "signature": "private.availability_timezone_valid(text)",
+      "definitionMd5": "3447807140aa439a84c9c9c73e01e10e"
+    },
+    {
+      "signature": "private.relative_schedule_end_v5(text,timestamp with time zone,text)",
+      "definitionMd5": "f91c32bc3ce5841bf9f797bd403abc9c"
+    },
+    {
+      "signature": "private.need_search_time_admitted_v1(uuid,timestamp with time zone)",
+      "definitionMd5": "e72b25a26bc41c79bdd5b194844c8950"
+    },
+    {
+      "signature": "public.fn_need_covered_slots(uuid)",
+      "definitionMd5": "2af495e39320cac525dd15fe16a5e3a6"
+    },
+    {
+      "signature": "private.assert_application_price_v5(needs,integer,integer)",
+      "definitionMd5": "ec09b407cf4ac5ee473b48106739ee80"
+    },
+    {
+      "signature": "private.accounts_same_world(uuid,uuid)",
+      "definitionMd5": "2d6beb6df93bc8eb6ae2622de8319ac5"
+    },
+    {
+      "signature": "private.lower_arr(text[])",
+      "definitionMd5": "e5c312154cab99884d794656bb9b2550"
+    },
+    {
+      "signature": "private.work_kinds_v5(text[])",
+      "definitionMd5": "09891e19cad7b45c9553f2d1773985d1"
+    },
+    {
+      "signature": "private.match_detail_without_calendar(uuid,uuid)",
+      "definitionMd5": "def0a35f220ca6df1ac0e9258f714f4e"
+    },
+    {
+      "signature": "private.match_detail_for_calendar_interval(uuid,uuid,timestamp with time zone,timestamp with time zone)",
+      "definitionMd5": "9a1a961940c46c4c2e45f229f7419052"
+    }
+  ],
+  "newConflict": "NEED_EXECUTION_WINDOW_EXPIRED",
+  "newSqlstate": "PT409"
+}

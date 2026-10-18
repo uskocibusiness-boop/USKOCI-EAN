@@ -57,7 +57,18 @@ it('binds a worker eligibility refusal to exact SQLSTATE and allowlisted hard bl
   });
   expect(JSON.stringify(result)).not.toContain('private hint');
 });
+it('treats the exact expired execution window refusal as a confirmed no-write result for submit and selection', async () => {
+  mockRpc.mockResolvedValue({ data: null, error: { code: 'PT409', message: 'NEED_EXECUTION_WINDOW_EXPIRED', details: 'private time evidence' } });
+  const result = await client.podnesiPrijavu(submit());
+  expect(conclusiveApplicationRefusal(result)).toBe(true);
+  expect(result).toMatchObject({ ok: false, kod: 'NEED_EXECUTION_WINDOW_EXPIRED',
+    poruka: 'Vreme za ovaj zadatak je prošlo. Nove prijave i izbor više nisu dostupni.', hardBlockers: [] });
+  const selection = await client.izaberiPrijavu(select());
+  expect(selection).toMatchObject({ ok: false, kod: 'NEED_EXECUTION_WINDOW_EXPIRED', poruka: result.ok ? '' : result.poruka });
+  expect(JSON.stringify([result, selection])).not.toContain('private time evidence');
+});
 it.each([
+  ['unproven execution expiry', { code: 'P0001', message: 'NEED_EXECUTION_WINDOW_EXPIRED' }],
   ['wrong SQLSTATE', { code: '22023', message: 'WORKER_NOT_ELIGIBLE', details: '["MISSING_REQUIRED_TOOL"]' }],
   ['malformed blocker detail', { code: 'P0001', message: 'WORKER_NOT_ELIGIBLE', details: 'private worker detail' }],
   ['unknown blocker detail', { code: 'P0001', message: 'WORKER_NOT_ELIGIBLE', details: '["PRIVATE_NAME"]' }],
