@@ -29,6 +29,9 @@ function fixture(config={}){
    if(url.startsWith('https://generativelanguage.googleapis.com/'))return config.provider?.(init)??providerStream();
    if(url.endsWith('/rpc_ai_complete_need_turn_v2_service')){if(config.completionError)throw Error('SYNTHETIC_COMPLETION_ACK_LOST');return json(config.badReceipt?{...turn(),turnId:id(99)}:turn());}
    if(url.endsWith('/rpc_ai_fail_need_turn_v2_service'))return json(config.failureReceipt??turn('FAILED'));
+   if(url.endsWith('/rpc_ai_test_record_usage_service'))return json({recorded:true});
+   if(url.endsWith('/rpc_taxonomy_ai_catalog_context_service'))return json(config.catalog(body));
+   if(url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'))return config.capture?.(body)??json({action:'HINT_CAPTURED',authority:'NONE'});
    assert.fail('UNEXPECTED_ROUTE');
  };
  const {handler}=loadOwnedIntakeHandler({fetch,env:name=>env[name],setTimeout:config.setTimeout});
@@ -38,6 +41,40 @@ async function events(f){const response=await f.invoke();assert.match(response.h
 const providers=f=>f.calls.filter(c=>c.url.startsWith('https://generativelanguage.googleapis.com/'));
 const writes=f=>f.calls.filter(c=>c.url.endsWith('/rpc_ai_complete_need_turn_v2_service'));
 const failures=f=>f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service'));
+
+test('confirmed Need finishes the stream and records usage even with the optional catalog disabled',async()=>{
+ const output=withDialogue({safety:'ALLOW',assistantMessage:'Predlog je spreman za pregled.',facts:[]});
+ const usageMetadata={promptTokenCount:100, candidatesTokenCount:20, totalTokenCount:120};
+ const f=fixture({provider:()=>new Response('data: '+JSON.stringify({candidates:[{
+   content:{parts:[{text:JSON.stringify(output)}]},finishReason:'STOP'}],usageMetadata})+'\n\n',
+   {headers:{'Content-Type':'text/event-stream'}})});
+ const es=await events(f);
+ assert.deepEqual(es.map(e=>e.kind),['accepted','text_delta','final']);
+ assert.equal(writes(f).length,1);assert.equal(failures(f).length,0);assert.equal(providers(f).length,1);
+ const usage=f.calls.filter(c=>c.url.endsWith('/rpc_ai_test_record_usage_service'));
+ assert.equal(usage.length,1);assert.equal(usage[0].body.p_operation_id,key);
+ assert.equal(usage[0].body.p_total_tokens,120);
+});
+
+for(const captureFails of [false,true])test(`Need catalog survives through completion; optional hint capture failure=${captureFails} cannot lose final or usage`,async()=>{
+ const category=id(20),service='Izrada maketa';
+ const proposal={service,mode:'REMOTE',action:'REUSE_EXISTING',categoryId:category,parentId:'',proposedPath:[],reason:'Explicit synthetic service matches catalog identity',catalogVersion:7};
+ const output=withDialogue({safety:'ALLOW',assistantMessage:'Predlog je spreman za pregled.',facts:[],classificationShadowJson:JSON.stringify([proposal])});
+ const f=fixture({env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
+  catalog:body=>({action:'CATALOG_CONTEXT',scope:body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE',catalogVersion:7,
+   items:body.p_execution_location_mode==='REMOTE'?[{categoryId:category,parentId:null,label:service,path:[service],isLeaf:true}]:[],
+   nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'}),
+  capture:()=>captureFails?new Response('{}',{status:503}):json({action:'HINT_CAPTURED',authority:'NONE'}),
+  provider:()=>new Response('data: '+JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify(output)}]},finishReason:'STOP'}],
+   usageMetadata:{promptTokenCount:100,candidatesTokenCount:20,totalTokenCount:120}})+'\n\n',{headers:{'Content-Type':'text/event-stream'}})});
+ const es=await events(f);
+ assert.deepEqual(es.map(e=>e.kind),['accepted','text_delta','final']);assert.equal(providers(f).length,1);assert.equal(failures(f).length,0);
+ const capture=f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
+ assert.equal(capture.length,1);assert.equal(capture[0].body.p_proposals[0].categoryId,category);
+ assert.ok(f.calls.indexOf(capture[0])>f.calls.indexOf(writes(f)[0]));
+ assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_ai_test_record_usage_service')).length,1);
+ assert.ok(!f.calls.some(c=>/ensure_path|commit_admission|publish|push/.test(c.url)));
+});
 
 for(const diagnostics of [false,true]) for(const status of [402,429])
 test(`SSE provider ${status}, diagnostics=${diagnostics}: one safe terminal error, no prose or successful receipt`,async()=>{

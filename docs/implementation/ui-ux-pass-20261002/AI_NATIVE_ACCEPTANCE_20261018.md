@@ -1,4 +1,8 @@
-# Ograničen sledeći AI test — pripremljen, NIJE IZVRŠEN
+# Ograničen AI test — IZVRŠEN 18.10.2026. sa nalazima
+
+**Naknadni status:** vlasnik je odobrio ovaj ograničeni test. Iskorišćeno je svih šest poziva; tri task i tri worker odgovora su upisana. Pronađene su greške završetka task handler-a, Auth poruka i worker retry kontrole, kao i otvoren raskorak alias/ID klasifikacije. Obuhvat nije uključivao objavu, Save, matching ili push. [Rezultat i granice](AI_NATIVE_RESULT_20261018.md), [strukturisani dokaz](AI_NATIVE_RESULT_20261018.json). Dozvola za dalje plaćene pozive nije preostala.
+
+Tekst ispod je sačuvani predlog scenarija pre izvršavanja; formulacije „predlog“ i „traži odobrenje“ odnose se na taj raniji trenutak.
 
 Ovo su sintetički ulazi za proveru upravo objavljenih instrukcija, uz postojeći plan. Nisu transkript korisnika, dokaz prolaza ili odobrenje za plaćeni poziv.
 

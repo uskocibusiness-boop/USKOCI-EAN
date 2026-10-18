@@ -16,7 +16,8 @@ export function loadOwnedIntakeHandler(options){
  const historical=options.historicalPre132?historicalIntakeSource():null;
  const context=vm.createContext({Request,Response,Headers,URL,URLSearchParams,Intl,TextEncoder,TextDecoder,ReadableStream,AbortController,crypto:webcrypto,
   Date:options.Date??Date,setTimeout:options.setTimeout??setTimeout,clearTimeout:options.clearTimeout??clearTimeout,
-  fetch:options.fetch,console:{error:(...args)=>{if(options.log)options.log(args);else assert.ok(args.every(x=>typeof x==='number'||/^[A-Z_]+$/.test(x)));}},
+  fetch:options.fetch,console:{error:(...args)=>{if(options.log)options.log(args);else assert.ok(args.every(x=>typeof x==='number'||/^[A-Z_]+$/.test(x)));},
+   info:(...args)=>{if(options.log)options.log(args);else assert.ok(args.every(x=>typeof x==='number'||/^[A-Z_,]+$/.test(x)));}},
   Deno:{env:{get:options.env},serve:fn=>{assert.equal(handler,undefined);handler=fn;}}});
  function evaluate(file,require){
   const bytes=historical?historical.read(file):readFileSync(resolve(root,file));sourceHashes[file]=createHash('sha256').update(bytes).digest('hex');
@@ -29,11 +30,16 @@ export function loadOwnedIntakeHandler(options){
  const availability=historical?null:evaluate('src/contracts/aiAvailability.ts',()=>assert.fail('UNDECLARED_AVAILABILITY_IMPORT'));
  const location=historical?null:evaluate('supabase/functions/_shared/locationReply.ts',()=>assert.fail('UNDECLARED_LOCATION_IMPORT'));
  const taxonomy=historical?null:evaluate('supabase/functions/_shared/taxonomyScopedShadow.mjs',()=>assert.fail('UNDECLARED_TAXONOMY_IMPORT'));
+ const classification=historical?null:evaluate('supabase/functions/_shared/classificationEngine.mjs',()=>assert.fail('UNDECLARED_CLASSIFICATION_IMPORT'));
+ const classificationShadow=historical?null:evaluate('supabase/functions/_shared/classificationGeminiShadow.mjs',name=>{
+  assert.equal(name,'./classificationEngine.mjs');return classification;
+ });
  const stream=evaluate('supabase/functions/_shared/geminiTaskStream.ts',name=>{
   assert.ok(!historical&&name==='../../../src/contracts/aiAvailability.ts','UNDECLARED_STREAM_IMPORT');return availability;
  });
  const imports={'../../../src/contracts/needFactsV2.ts':shared,'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,
-  ...(!historical?{'../../../src/contracts/aiAvailability.ts':availability,'../_shared/locationReply.ts':location,'../_shared/taxonomyScopedShadow.mjs':taxonomy}:{})};
+  ...(!historical?{'../../../src/contracts/aiAvailability.ts':availability,'../_shared/locationReply.ts':location,'../_shared/taxonomyScopedShadow.mjs':taxonomy,
+   '../_shared/classificationEngine.mjs':classification,'../_shared/classificationGeminiShadow.mjs':classificationShadow}:{})};
  evaluate(entry,name=>{assert.ok(Object.hasOwn(imports,name),'UNDECLARED_EDGE_IMPORT');return imports[name];});
  assert.equal(typeof handler,'function');return {handler,sourceHashes,sourceBinding:historical?.binding??{kind:'CURRENT_SOURCE'}};
 }

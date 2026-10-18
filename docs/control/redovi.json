@@ -222,9 +222,9 @@
         "stanje": "DELIMIČNO",
         "dokaz": "Prvo AI pitanje vidljivo, bez model/ASR poziva; stvarni razgovor otvoren. docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
-      "problem": "Novi razgovor task AI source/test završen; potvrda nije trajno brisanje istorije. Raniji telefon resume ostaje dokaz, ceo aktuelni AI task tok još otvoren.",
+      "problem": "Ograničeni živi test 18.10 na b92: tri task odgovora SUCCEEDED, REMOTE i korekcija slanja potvrđeni u nacrtu. Pronađen post-completion scope kvar: task usage nedostaje. Lokalna ispravka testirana; DEV v90 još star. Objavljivanje nije deo ovog testa.",
       "source_progress_20261018": "Kartica živog AI nacrta u izvoru više ne zadaje lokalne sirove boje i senku preko Surface panel komponente; koristi zajednički materijal bez senke. AI intake ekran prolazi ciljane testove; novi APK i stvaran pregled razgovora na uređaju nisu urađeni.",
-      "sledece": "Paket 1 usaglasiti preview flags i tačan Edge bundle; paket 3 završiti AI → kratak sažetak → pregled → objava, remote izradu/predaju i ispravku podataka; zatim ograničen odobren živi prolaz. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
+      "sledece": "Primeniti imenovani Edge recovery kandidat posle odobrenja, proveriti exact readback; zatim alias/ID i nastavak AI → pregled → objava u postojećem planu. Šest plaćenih poziva iskorišćeno. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -478,6 +478,17 @@
         "test_result": "docs/implementation/ui-ux-pass-20261002/TEST_RESULT_20261018.json",
         "native_result": "docs/implementation/ui-ux-pass-20261002/NATIVE_RESULT_20261018.json",
         "native_scope": "Bounded emulator b92b55d0 navigation/read/embedded identity only; no paid AI, Save, push or physical phone acceptance."
+      },
+      "bounded_ai_test_20261018": {
+        "state": "LIVE_TEST_COMPLETED_WITH_FINDINGS / LOCAL_FIXES_NOT_DEPLOYED",
+        "report": "docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+        "result": "docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.json",
+        "edge_candidate": "docs/implementation/v5-ai-first/INTERVIEW_RECOVERY_CANDIDATE_20261018.json",
+        "phone_acceptance_changed": false,
+        "previous": {
+          "problem": "Novi razgovor task AI source/test završen; potvrda nije trajno brisanje istorije. Raniji telefon resume ostaje dokaz, ceo aktuelni AI task tok još otvoren.",
+          "sledece": "Paket 1 usaglasiti preview flags i tačan Edge bundle; paket 3 završiti AI → kratak sažetak → pregled → objava, remote izradu/predaju i ispravku podataka; zatim ograničen odobren živi prolaz. WORK_ANALYSIS_RECONCILIATION_20261018.md."
+        }
       }
     },
     {
@@ -1770,9 +1781,9 @@
         "stanje": "DELIMIČNO",
         "dokaz": "59876dc6: Još nema ocena, stvarni broj 0, Istorija/Back i profilno zvono potvrđeni; šire granice otvorene. docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json"
       },
-      "problem": "10.10 izvor: sačuvana kartica ima ceo opis/proširive činjenice; activation OFF ostaje kroz razgovor; suspended mutation/support granice proverene. AI-only DRAFT/manual/deep-link migracija i native dokaz još otvoreni.",
+      "problem": "Ograničeni živi test 18.10: tri worker odgovora, remote opis i opciona oprema rade u kandidatu. Sačuvani profil neizmenjen. Shadow predlozi odbijeni sa SEMANTIC_IDENTITY_REVIEW_REQUIRED; Save/binding/režimi nisu provereni. Lokalni Auth/retry patch testiran, nije isporučen.",
       "source_progress_20261018": "Sačuvani radni profil sada u izvoru prikazuje alat i vozila, sa objašnjenjem njihovog uticaja. Rečnik radničkih ponuda u izvoru usklađen je na 'usluge', a testovi pregleda i razgovora su ažurirani. Ciljani Jest za profil, razgovor i Discovery 302/302, dodatna provera razgovora 121/121 i naknadni Home/intake/native profil 365/365 prošli. Nova verzija APK-a sa ovom izmenom nije izgrađena niti je sačuvani profil proveravan na emulatoru/telefonu.",
-      "sledece": "Paketi 1–3: ista isporuka i potvrđeni model usluge/režima/područja → signed Save → worker binding → ponovno čitanje. Živo 18.10: 0 worker binding i 0 mode redova; ne uključivati strict gate samo promenom zastavice. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
+      "sledece": "Usaglasiti autoritativni alias/ID sa Edge review i SQL binder-om, prikazati stvarni status potvrde u pregledu; objedinjeni APK i odobren Save → binding → reread. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2064,6 +2075,17 @@
         "test_result": "docs/implementation/ui-ux-pass-20261002/TEST_RESULT_20261018.json",
         "native_result": "docs/implementation/ui-ux-pass-20261002/NATIVE_RESULT_20261018.json",
         "native_scope": "Bounded emulator b92b55d0 navigation/read/embedded identity only; no paid AI, Save, push or physical phone acceptance."
+      },
+      "bounded_ai_test_20261018": {
+        "state": "LIVE_TEST_COMPLETED_WITH_FINDINGS / LOCAL_FIXES_NOT_DEPLOYED",
+        "report": "docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+        "result": "docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.json",
+        "edge_candidate": "docs/implementation/v5-ai-first/INTERVIEW_RECOVERY_CANDIDATE_20261018.json",
+        "phone_acceptance_changed": false,
+        "previous": {
+          "problem": "10.10 izvor: sačuvana kartica ima ceo opis/proširive činjenice; activation OFF ostaje kroz razgovor; suspended mutation/support granice proverene. AI-only DRAFT/manual/deep-link migracija i native dokaz još otvoreni.",
+          "sledece": "Paketi 1–3: ista isporuka i potvrđeni model usluge/režima/područja → signed Save → worker binding → ponovno čitanje. Živo 18.10: 0 worker binding i 0 mode redova; ne uključivati strict gate samo promenom zastavice. WORK_ANALYSIS_RECONCILIATION_20261018.md."
+        }
       }
     },
     {
@@ -2092,8 +2114,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon."
       },
-      "problem": "10.10 izvor: sačuvana kartica ima ceo opis/proširive činjenice; activation OFF ostaje kroz razgovor; suspended mutation/support granice proverene. AI-only DRAFT/manual/deep-link migracija i native dokaz još otvoreni.",
-      "sledece": "Paket 3: jedan sačuvani pregled potvrđenih usluga/režima/područja i glavni AI ulaz za izmene; ukloniti dupliranje alijasa i paralelan obavezan ručni editor. Dokaz create/edit/save/reopen na istom kandidatu. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
+      "problem": "Worker nacrt iz stvarnog testa prepoznaje uslugu na daljinu i čuva postojeću opremu/dostupnost. Zelene trake ne dokazuju kanonsku spremnost; shadow hint ima odbijanje identiteta. Nema novog Save ili native dokaza lokalnog retry patch-a.",
+      "sledece": "Jedan pregled usluge/režima sa jasnim nepotvrđenim statusom; povezati proverene aliase; proveriti create/edit/save/reopen na narednom objedinjenom kandidatu. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2331,6 +2353,17 @@
         "test_result": "docs/implementation/ui-ux-pass-20261002/TEST_RESULT_20261018.json",
         "native_result": "docs/implementation/ui-ux-pass-20261002/NATIVE_RESULT_20261018.json",
         "native_scope": "Bounded emulator b92b55d0 navigation/read/embedded identity only; no paid AI, Save, push or physical phone acceptance."
+      },
+      "bounded_ai_test_20261018": {
+        "state": "LIVE_TEST_COMPLETED_WITH_FINDINGS / LOCAL_FIXES_NOT_DEPLOYED",
+        "report": "docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+        "result": "docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.json",
+        "edge_candidate": "docs/implementation/v5-ai-first/INTERVIEW_RECOVERY_CANDIDATE_20261018.json",
+        "phone_acceptance_changed": false,
+        "previous": {
+          "problem": "10.10 izvor: sačuvana kartica ima ceo opis/proširive činjenice; activation OFF ostaje kroz razgovor; suspended mutation/support granice proverene. AI-only DRAFT/manual/deep-link migracija i native dokaz još otvoreni.",
+          "sledece": "Paket 3: jedan sačuvani pregled potvrđenih usluga/režima/područja i glavni AI ulaz za izmene; ukloniti dupliranje alijasa i paralelan obavezan ručni editor. Dokaz create/edit/save/reopen na istom kandidatu. WORK_ANALYSIS_RECONCILIATION_20261018.md."
+        }
       }
     },
     {
@@ -6998,8 +7031,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "09.10 fizički HONOR 725be7bd: 725 odloženi/stale/error/paging testovi PASS; native filter i map/list stanja očuvani. ce23 povremeni warm VIEW About ostaje bez dokazanog uzroka/popravke. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon."
       },
-      "problem": "Guard kasnog pin-dismiss/AI callback/source ownership testiran; Nearby explicit flight/debounce ima prednost nad list-detent zoom-om. Native lifecycle scope nije ceo završen.",
-      "sledece": "Potvrditi tačan follow-up build; nastaviti povezani lifecycle/loša mreža i raniji About slučaj bez proizvoljnog refaktora.",
+      "problem": "U stvarnom AI testu tri HTTP pokušaja odbijena pre provajdera. Auth nedostupnost pogrešno mapirana na 401/400, a worker composer nije nudio dozvoljen retry. Popravke lokalno 73 Edge + 141 client PASS; osnovni uzrok povremenog Auth kašnjenja nije dokazan.",
+      "sledece": "Novi Edge recovery paket na odobrenje, zatim objedinjeni APK sa worker retry i native provera poznatog/nesigurnog ishoda, Back/reopen i mrežnog oporavka. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -7119,6 +7152,17 @@
         "test_result": "docs/implementation/ui-ux-pass-20261002/TEST_RESULT_20261018.json",
         "native_result": "docs/implementation/ui-ux-pass-20261002/NATIVE_RESULT_20261018.json",
         "native_scope": "Bounded emulator b92b55d0 navigation/read/embedded identity only; no paid AI, Save, push or physical phone acceptance."
+      },
+      "bounded_ai_test_20261018": {
+        "state": "LIVE_TEST_COMPLETED_WITH_FINDINGS / LOCAL_FIXES_NOT_DEPLOYED",
+        "report": "docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+        "result": "docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.json",
+        "edge_candidate": "docs/implementation/v5-ai-first/INTERVIEW_RECOVERY_CANDIDATE_20261018.json",
+        "phone_acceptance_changed": false,
+        "previous": {
+          "problem": "Guard kasnog pin-dismiss/AI callback/source ownership testiran; Nearby explicit flight/debounce ima prednost nad list-detent zoom-om. Native lifecycle scope nije ceo završen.",
+          "sledece": "Potvrditi tačan follow-up build; nastaviti povezani lifecycle/loša mreža i raniji About slučaj bez proizvoljnog refaktora."
+        }
       }
     },
     {
@@ -7133,8 +7177,8 @@
       "servisi": [],
       "server": [],
       "telefon": null,
-      "problem": "Automatski spisak „Server ume, aplikacija ne koristi“ na tabli pokazuje zamenjene stare verzije koje ulogovani korisnik i dalje može da pozove.",
-      "sledece": "Paket 1: production mora odbiti DEV; uskladiti commit-ovane APK/OTA flags, worker helper i identitet isporuke. Zatim ciljano uklanjanje legacy RPC/UI potrošača tek uz dokaz kompatibilnosti. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
+      "problem": "Preview flags, proizvodna granica i izdvajanje razvojnih ruta dokazani prethodnim paketom. Stari serverski potrošači ostaju zaseban cleanup. Sadašnji Node handler testovi otkrili scope/Auth kvar koji puni Jest nije izvršavao; dodati u preview CI.",
+      "sledece": "Zadržati aktivne ugovore; ciljano uklanjanje legacy potrošača samo uz kompatibilnost. Naredni preview CI mora izvršiti nov Node Edge skup; trenutni recovery kandidat još nije deployed. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -7182,6 +7226,17 @@
         "test_result": "docs/implementation/ui-ux-pass-20261002/TEST_RESULT_20261018.json",
         "native_result": "docs/implementation/ui-ux-pass-20261002/NATIVE_RESULT_20261018.json",
         "native_scope": "Bounded emulator b92b55d0 navigation/read/embedded identity only; no paid AI, Save, push or physical phone acceptance."
+      },
+      "bounded_ai_test_20261018": {
+        "state": "LIVE_TEST_COMPLETED_WITH_FINDINGS / LOCAL_FIXES_NOT_DEPLOYED",
+        "report": "docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+        "result": "docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.json",
+        "edge_candidate": "docs/implementation/v5-ai-first/INTERVIEW_RECOVERY_CANDIDATE_20261018.json",
+        "phone_acceptance_changed": false,
+        "previous": {
+          "problem": "Automatski spisak „Server ume, aplikacija ne koristi“ na tabli pokazuje zamenjene stare verzije koje ulogovani korisnik i dalje može da pozove.",
+          "sledece": "Paket 1: production mora odbiti DEV; uskladiti commit-ovane APK/OTA flags, worker helper i identitet isporuke. Zatim ciljano uklanjanje legacy RPC/UI potrošača tek uz dokaz kompatibilnosti. WORK_ANALYSIS_RECONCILIATION_20261018.md."
+        }
       }
     }
   ],
@@ -10970,6 +11025,20 @@
       },
       "scope": "All 18 sections / 20 findings / 62-row appendix read. Production guard reproduced; Edge 9/9 requester, 5/6 worker; closure/legal and mode/binding counts read live. Existing row next actions reconciled; phone evidence unchanged.",
       "limits": "No fresh full Jest/native proof; Work test results attributed to a575838c and delta 938df57d. No deployment or client changes."
+    },
+    "bounded_ai_test_20261018": {
+      "state": "SIX_CALL_ALLOWANCE_EXHAUSTED / FINDINGS_OPEN",
+      "report": "docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+      "result": "docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.json",
+      "edge_candidate": "docs/implementation/v5-ai-first/INTERVIEW_RECOVERY_CANDIDATE_20261018.json",
+      "edge_versions_tested": {
+        "need": 90,
+        "worker": 45
+      },
+      "native_source": "b92b55d0",
+      "checks": "73 Node Edge + 141 targeted client PASS; tsc exit 0. No full rerun for new patch.",
+      "no_business_commit": "0 new needs / 0 worker saves; saved profile unchanged; no push or STT.",
+      "next": "Named Edge fix approval; authoritative alias identity; native retry/review; approved Save/binding/matching proof."
     }
   }
 }

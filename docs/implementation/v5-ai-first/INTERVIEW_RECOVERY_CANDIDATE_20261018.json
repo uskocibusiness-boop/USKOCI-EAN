@@ -1,0 +1,128 @@
+{
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "status": "SOURCE_TESTED_NOT_DEPLOYED",
+  "date": "2026-10-18",
+  "source_base": "2f68ae6f",
+  "scope": "Only two Edge entrypoints: task post-completion catalog scope and both Auth error classifications. No prompt/catalog/database changes, paid calls or push.",
+  "approval": "Pending a new named Edge approval; the completed six-call test approval does not include this deployment.",
+  "functions": [
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 90,
+      "verify_jwt": false,
+      "before_bundle_sha256": "85549aa37b6e9d10ab8d8f3cac714bb4c8cf69aa3a15aef64385f04307105b24",
+      "files": [
+        {
+          "path": "supabase/functions/uskoci-ai-interview/index.ts",
+          "sha256": "71b1524b9fdee537d43f2fc6960408bef658c4ec51501105cb31758ef6722bb3",
+          "live_sha256": "17e5dd2cc876d9993da660d049037379e7f17403353d91f9ede41de2120ae5e5",
+          "changed": true
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "sha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+          "live_sha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+          "changed": false
+        },
+        {
+          "path": "src/contracts/needFactsV2.ts",
+          "sha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6",
+          "live_sha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6",
+          "changed": false
+        },
+        {
+          "path": "supabase/functions/_shared/locationReply.ts",
+          "sha256": "95ae06cb6f096dec38edbb45fc024edabbfdc02f0b71431fddaa892c4b1fe36c",
+          "live_sha256": "95ae06cb6f096dec38edbb45fc024edabbfdc02f0b71431fddaa892c4b1fe36c",
+          "changed": false
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+          "live_sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+          "changed": false
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "sha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5",
+          "live_sha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5",
+          "changed": false
+        },
+        {
+          "path": "supabase/functions/_shared/taxonomyScopedShadow.mjs",
+          "sha256": "c91b7bc3bb95f6cfc370c5a589bd12aba28089261b32d773573853cc62f75e8b",
+          "live_sha256": "c91b7bc3bb95f6cfc370c5a589bd12aba28089261b32d773573853cc62f75e8b",
+          "changed": false
+        },
+        {
+          "path": "supabase/functions/_shared/classificationEngine.mjs",
+          "sha256": "f8ba61c6393cd3f97b4648ab47735e253f85a0dbb0db489ebdb4e93bc081a282",
+          "live_sha256": "f8ba61c6393cd3f97b4648ab47735e253f85a0dbb0db489ebdb4e93bc081a282",
+          "changed": false
+        },
+        {
+          "path": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+          "sha256": "6162cedad8e1bff5dca357a63c581030438a99db6eb59493ea6941576939a534",
+          "live_sha256": "6162cedad8e1bff5dca357a63c581030438a99db6eb59493ea6941576939a534",
+          "changed": false
+        }
+      ]
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 45,
+      "verify_jwt": false,
+      "before_bundle_sha256": "52f9b43adcf61bc6f2d1517cdcca5724b79266c26457fb920d28cfe150fa4264",
+      "files": [
+        {
+          "path": "supabase/functions/uskoci-worker-interview/index.ts",
+          "sha256": "7846454da11319c2e95c4ccfea5410898a1d889426dd9287a6241332e7021efb",
+          "live_sha256": "eca3e5667bf0162b462f68484d0c2761e76f13040562274be439faf871dd5b52",
+          "changed": true
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "sha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+          "live_sha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+          "changed": false
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+          "live_sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+          "changed": false
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "sha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5",
+          "live_sha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5",
+          "changed": false
+        },
+        {
+          "path": "supabase/functions/_shared/classificationEngine.mjs",
+          "sha256": "f8ba61c6393cd3f97b4648ab47735e253f85a0dbb0db489ebdb4e93bc081a282",
+          "live_sha256": "f8ba61c6393cd3f97b4648ab47735e253f85a0dbb0db489ebdb4e93bc081a282",
+          "changed": false
+        },
+        {
+          "path": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+          "sha256": "6162cedad8e1bff5dca357a63c581030438a99db6eb59493ea6941576939a534",
+          "live_sha256": "6162cedad8e1bff5dca357a63c581030438a99db6eb59493ea6941576939a534",
+          "changed": false
+        }
+      ]
+    }
+  ],
+  "rollback": "Redeploy the exact preflight files for v90/v45, retaining verify_jwt=false and existing secrets. No data or database rollback.",
+  "offline_checks": {
+    "edge_runtime_pass": 73,
+    "client_pass": 141,
+    "typecheck_exit": 0
+  },
+  "not_fixed": [
+    "Worker shadow alias identity gap",
+    "End-to-end signed Save/binding/matching/push",
+    "Underlying transient Auth network cause"
+  ],
+  "local_bundle_archive": "edge-recovery-package.zip (private work artifact)"
+}

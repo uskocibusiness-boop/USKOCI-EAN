@@ -127,10 +127,14 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     if (!parsed || !keys(parsed,['conversationId','clientRequestId','text']) || !id(parsed.conversationId) || !id(parsed.clientRequestId) || !text(parsed.text,4000))
       return json(400,{code:'WORKER_AI_INPUT_INVALID'});
     input=parsed;
-    const authenticated=await boundedJson(url+'/auth/v1/user',{headers:{apikey:anon,Authorization:authorization}},65536,5000,req.signal);
-    if (!authenticated.ok || !id(authenticated.data?.id)) return json(401,{code:'AUTH_REQUIRED'});
-    account=authenticated.data.id;
   } catch { return json(400,{code:'WORKER_AI_INPUT_INVALID'}); }
+  // A failed Auth transport is not malformed user input or proof of an expired session.
+  try {
+    const authenticated=await boundedJson(url+'/auth/v1/user',{headers:{apikey:anon,Authorization:authorization}},65536,5000,req.signal);
+    if (!authenticated.ok && (authenticated.status===401 || authenticated.status===403)) return json(401,{code:'AUTH_REQUIRED'});
+    if (!authenticated.ok || !id(authenticated.data?.id)) return json(503,{code:'AUTH_UNAVAILABLE'});
+    account=authenticated.data.id;
+  } catch { return json(503,{code:'AUTH_UNAVAILABLE'}); }
   const rpc=async(name:string,args:Record<string,unknown>,signal=req.signal,timeout=8000)=> {
     const result=await boundedJson(url+'/rest/v1/rpc/'+name,{method:'POST',headers:{apikey:service,Authorization:'Bearer '+service,'Content-Type':'application/json'},body:JSON.stringify(args)},524288,timeout,signal);
     if (!result.ok) throw new Error('WORKER_AI_RPC_FAILED'); return result.data;

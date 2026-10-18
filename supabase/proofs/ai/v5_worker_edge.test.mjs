@@ -1,6 +1,5 @@
 // Exact source, explicitly synthetic I/O. No live provider or database proof.
 import test from 'node:test';import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';import {resolve} from 'node:path';import vm from 'node:vm';import ts from 'typescript';
 import {loadWorkerRecoveryHandler} from './worker_recovery_edge_runtime.mjs';
 const id=n=>`${String(n).padStart(8,'0')}-1111-4111-8111-111111111111`;
 const account=id(1),conversation=id(2),key=id(3),turnId=id(4),attemptId=id(5);
@@ -32,20 +31,8 @@ function fixture(options={}){
   }
   assert.fail('UNEXPECTED_NETWORK_OR_CANONICAL_WRITER');
  };
- const context=vm.createContext({Request,Response,Headers,URL,TextEncoder,TextDecoder,ReadableStream,AbortController,Date,Intl,setTimeout:options.setTimeout??setTimeout,clearTimeout,fetch,
-   Deno:{env:{get:name=>env[name]},serve:fn=>{handler=fn;}}});
- const evaluate=(file,imports={})=>{
-  const source=readFileSync(resolve(file),'utf8'),compiled=ts.transpileModule(source,{fileName:file,reportDiagnostics:true,
-   compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}});
-  assert.equal(compiled.diagnostics.filter(x=>x.category===ts.DiagnosticCategory.Error).length,0);
-  return new vm.Script(`(function(exports,require){${compiled.outputText}\nreturn exports;})`,{filename:file}).runInContext(context)({},name=>{
-   assert.ok(Object.hasOwn(imports,name),'UNDECLARED_IMPORT');return imports[name];});
- };
- const availability=evaluate('src/contracts/aiAvailability.ts');
- const budget=evaluate('supabase/functions/_shared/aiTestBudget.ts'),stream=evaluate('supabase/functions/_shared/geminiTaskStream.ts',
-  {'../../../src/contracts/aiAvailability.ts':availability});
- evaluate('supabase/functions/uskoci-worker-interview/index.ts',{'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,
-  '../../../src/contracts/aiAvailability.ts':availability});
+ const loaded=loadWorkerRecoveryHandler({fetch,env:name=>env[name],setTimeout:options.setTimeout});
+ handler=loaded.handler;
  return {calls,output,invoke:(patch={})=>handler(new Request('https://edge.invalid',{method:'POST',signal:options.signal,headers:{Authorization:'Bearer SYNTHETIC',Accept:'text/event-stream','Content-Type':'application/json',...options.headers},
   body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:'SYNTHETIC_USER_MESSAGE',...patch})}))};
 }
@@ -54,10 +41,11 @@ const completions=f=>f.calls.filter(c=>c.url.endsWith('/rpc_complete_worker_ai_t
 const failures=f=>f.calls.filter(c=>c.url.endsWith('/rpc_fail_worker_ai_turn_service'));
 async function events(f,patch={}){const r=await f.invoke(patch);assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/text\/event-stream/);
  return (await r.text()).trim().split('\n\n').map(e=>JSON.parse(e.slice(6)));}
-test('recovery proof loader binds the current four-file worker bundle without network',async()=>{
+test('recovery proof loader binds the current six-file worker bundle without network',async()=>{
  const loaded=loadWorkerRecoveryHandler({fetch:()=>assert.fail('NETWORK_NOT_ALLOWED'),env:()=>''});
  assert.deepEqual(Object.keys(loaded.sourceHashes).sort(),['src/contracts/aiAvailability.ts','supabase/functions/_shared/aiTestBudget.ts',
-  'supabase/functions/_shared/geminiTaskStream.ts','supabase/functions/uskoci-worker-interview/index.ts'].sort());
+  'supabase/functions/_shared/geminiTaskStream.ts','supabase/functions/uskoci-worker-interview/index.ts',
+  'supabase/functions/_shared/classificationEngine.mjs','supabase/functions/_shared/classificationGeminiShadow.mjs'].sort());
  assert.equal((await loaded.handler(new Request('https://edge.invalid',{method:'GET'}))).status,405);
 });
 for(const status of [402,429])for(const diagnostics of [false,true])

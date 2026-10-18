@@ -19,8 +19,8 @@
     "note": "Objavljeni legal/retention/processor setovi: 0/0/0 (DEV read 30.09.2026). Brojevi legal/store PASS se ne upisuju bez dokaza za konkretne gate-ove."
   },
   "next": {
-    "title": "Potvrđeni worker model i regionalni matching posle proverene DEV isporuke",
-    "note": "Paket 18.10: production guard, signed build flags, razvojne rute van bundle-a, nezavisan postinstall, Home radar i prazna stanja. Edge requester v90 / worker v45 imaju exact readback. Lokalni Jest 620 paketa / 13.820 testova + 9 skip; CI 620 paketa / 13.829 testova bez skip, TypeScript PASS. APK b92b55d0 sastavljen i instaliran na emulatoru: Home → Zadaci, sačuvani profil, povratni AI uvod i ugrađeni update provereni. sourceDirty prebuild napomena ostaje u NATIVE_RESULT. Nema plaćenog AI testa ni pune Save/matching/push potvrde. Regionalni model, gost, closure i celoviti tokovi ostaju otvoreni."
+    "title": "AI test završen: isporučiti popravke i povezati alias/ID potvrdu",
+    "note": "18.10: odobrenih 6 Gemini tekstualnih poziva završeno na emulator APK-u b92b55d0 i DEV Edge v90/v45. REMOTE izrada, korekcija slanja i opciona oprema potvrđeni u nacrtima. Pronađeni task post-completion/usage kvar, Auth pogrešne poruke i worker retry. Lokalno 73 Edge + 141 client PASS, tsc 0; novi Edge kandidat nije primenjen, novi APK nije izgrađen. Worker shadow odbija semantički identitet iako postoji alias u bazi. Nema novog Save/publish/matching/push dokaza. Vidi AI_NATIVE_RESULT_20261018; telefon i release status nisu podignuti."
   },
   "evidence": [
     {
@@ -706,6 +706,12 @@
       "run": 39118632476,
       "sha": "b92b55d09e257270016a780e6fc8c057f6a06015",
       "result": "CI tests + APK PASS; bounded emulator read/navigation and embedded identity; NOT full AI/matching/push or physical phone acceptance"
+    },
+    {
+      "id": "BOUNDED-AI-TEST-20261018",
+      "sha": "b92b55d09e257270016a780e6fc8c057f6a06015",
+      "result": "6 real calls completed with findings; local fixes 73 Edge + 141 client PASS, not deployed.",
+      "report": "docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md"
     }
   ]
 }

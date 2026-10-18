@@ -487,6 +487,13 @@ it('lost preclaim response keeps typed body in memory and retries only the same 
  expect(shell().props.value).toBe('Sačuvan samo u memoriji');expect(await manualDisabled()).toBe(true);
  await click('Pošalji ponovo');expect(mockApi.send).toHaveBeenCalledTimes(2);expect(mockApi.send.mock.calls[1].slice(0,3)).toEqual(mockApi.send.mock.calls[0].slice(0,3));
 });
+it('the composer retries a known unsent worker turn using its original body and request ID',async()=>{
+ await render();act(()=>shell().props.onChange('Samo u memoriji'));await act(async()=>{shell().props.onSend();});
+ const sent=mockApi.send.mock.calls[0].slice(0,3);
+ expect(shell().props.canEdit).toBe(false);expect(shell().props.canSend).toBe(true);
+ await act(async()=>{shell().props.onSend();});
+ expect(mockApi.send).toHaveBeenCalledTimes(2);expect(mockApi.send.mock.calls[1].slice(0,3)).toEqual(sent);
+});
 it('a server without dispatched-exit capability cannot enable retry, cancellation or manual save',async()=>{
  mockStored=intent();mockApi.read.mockResolvedValue(ok(snapshot(turn('UNKNOWN_OUTCOME'))));mockApi.recoverTurn.mockResolvedValue(ok(recovery('UNKNOWN_OUTCOME',{providerDispatched:true,canCancel:false,retryAllowed:false})));
  await render();expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.clear).not.toHaveBeenCalled();expect(await manualDisabled()).toBe(true);

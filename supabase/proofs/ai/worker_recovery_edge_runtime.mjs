@@ -17,7 +17,7 @@ export function loadWorkerRecoveryHandler(options){
   Deno:{env:{get:options.env},serve:fn=>{assert.equal(handler,undefined);handler=fn;}}});
  function evaluate(file,require){
   const bytes=readFileSync(resolve(root,file));sourceHashes[file]=createHash('sha256').update(bytes).digest('hex');
-  const compiled=ts.transpileModule(bytes.toString('utf8'),{fileName:file,reportDiagnostics:true,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}});
+  const compiled=ts.transpileModule(bytes.toString('utf8'),{fileName:file.replace(/\.mjs$/,'.ts'),reportDiagnostics:true,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}});
   assert.deepEqual(compiled.diagnostics?.filter(x=>x.category===ts.DiagnosticCategory.Error),[]);
   return new vm.Script(`(function(exports,require){${compiled.outputText}\nreturn exports;})`,{filename:file}).runInContext(context)({},require);
  }
@@ -26,7 +26,12 @@ export function loadWorkerRecoveryHandler(options){
  const stream=evaluate('supabase/functions/_shared/geminiTaskStream.ts',name=>{
   assert.equal(name,'../../../src/contracts/aiAvailability.ts','UNDECLARED_STREAM_IMPORT');return availability;
  });
- const imports={'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,'../../../src/contracts/aiAvailability.ts':availability};
+ const classification=evaluate('supabase/functions/_shared/classificationEngine.mjs',()=>assert.fail('UNDECLARED_CLASSIFICATION_IMPORT'));
+ const classificationShadow=evaluate('supabase/functions/_shared/classificationGeminiShadow.mjs',name=>{
+  assert.equal(name,'./classificationEngine.mjs');return classification;
+ });
+ const imports={'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,'../../../src/contracts/aiAvailability.ts':availability,
+  '../_shared/classificationEngine.mjs':classification,'../_shared/classificationGeminiShadow.mjs':classificationShadow};
  evaluate(entry,name=>{assert.ok(Object.hasOwn(imports,name),'UNDECLARED_EDGE_IMPORT');return imports[name];});
  assert.equal(typeof handler,'function');return {handler,sourceHashes,sourceBinding:{kind:'CURRENT_SOURCE141'}};
 }

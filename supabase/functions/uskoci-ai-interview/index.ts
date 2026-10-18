@@ -845,9 +845,12 @@ Deno.serve(async (req: Request) => {
     const verified = await boundedJson(supabaseUrl + '/auth/v1/user', {
       headers: { apikey: anonKey, Authorization: authorization },
     }, 65536, 5000, req.signal, true);
-    if (!verified.ok || !isUuid(verified.data?.id)) return response(401, { code: 'AUTH_REQUIRED', message: 'Prijavite se da biste nastavili.' });
+    if (!verified.ok && (verified.status === 401 || verified.status === 403))
+      return response(401, { code: 'AUTH_REQUIRED', message: 'Prijavite se da biste nastavili.' });
+    if (!verified.ok || !isUuid(verified.data?.id))
+      return response(503, { code: 'AUTH_UNAVAILABLE', message: 'Provera naloga trenutno nije dostupna. Pokušaj ponovo.' });
     accountId = verified.data.id.toLowerCase();
-  } catch { return response(401, { code: 'AUTH_REQUIRED', message: 'Nalog nije mogao da se proveri.' }); }
+  } catch { return response(503, { code: 'AUTH_UNAVAILABLE', message: 'Provera naloga trenutno nije dostupna. Pokušaj ponovo.' }); }
   const release = admitUser(accountId);
   if (!release) return response(429, { code: 'AI_RATE_LIMITED', message: 'Sačekajte trenutak pre sledeće poruke.' });
   const availabilityDiagnostics = req.headers.get(AI_DIAGNOSTICS_HEADER) === AI_DIAGNOSTICS_VERSION;
@@ -940,6 +943,9 @@ Deno.serve(async (req: Request) => {
     // Counts the provider reports for this call. Recorded only after the turn is
     // confirmed, so accounting can never decide whether an answer is delivered.
     let reportedUsage: GeminiUsage | null = null;
+    // The catalog is also read after completion when capturing review hints.
+    // Keep it in the execution scope so a persisted turn can finish its stream and accounting.
+    let taxonomyCatalog: Awaited<ReturnType<typeof loadClassificationCatalog>> | null = null;
     try {
       if (wantsStream && (schemaVersion !== NEED_FACT_SCHEMA_V2 || provider !== 'gemini' || geminiModel !== 'gemini-3.8-flash')) {
         await retireAttempt();
@@ -971,7 +977,6 @@ Deno.serve(async (req: Request) => {
       // Same catalog-reader as worker AI; no category writes or matching rights.
       // Read-only rollout gate stays OFF until reviewed admission/snapshot flow.
       let taxonomyPrompt = '';
-      let taxonomyCatalog: Awaited<ReturnType<typeof loadClassificationCatalog>> | null = null;
       if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW')) {
         try {
           taxonomyCatalog = await loadClassificationCatalog(async (name, args) => {

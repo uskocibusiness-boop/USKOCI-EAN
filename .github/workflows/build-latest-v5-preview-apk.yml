@@ -97,6 +97,7 @@ jobs:
           EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES: 'false'
         run: |
           node --test scripts/__tests__/build-contract.test.cjs scripts/__tests__/entry-assets.test.cjs scripts/__tests__/design-lab-boundary.test.cjs
+          node --test supabase/proofs/ai/interview_auth_preflight.test.mjs supabase/proofs/ai/v5_ai_stream.test.mjs supabase/proofs/ai/v5_worker_edge.test.mjs supabase/proofs/ai/historical_intake_source.test.mjs
           npm test -- --runInBand
       - name: Prebuild Android
         run: npx expo prebuild --platform android --clean

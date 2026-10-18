@@ -177,6 +177,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     }});
   const voiceBusy=voice.state.phase!=='IDLE';
   const enabled=canAct()&&!voiceBusy&&!awaiting&&!pending.current;
+  const canRetry=canAct()&&!voiceBusy&&!awaiting&&!!writable&&!!pending.current?.text&&recovery?.retryAllowed===true;
   const manualBackBlocked=useRef(false);
   manualBackBlocked.current=editor.busy||editor.loading||editor.uncertain||resuming;
   useEffect(()=>{
@@ -444,12 +445,13 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     welcomeDetail={hasProfileContent?'Reci šta želiš da promeniš. Sve izmene pregledaš pre čuvanja.':'Ispričaj koje usluge pružaš ili želiš da pružaš. Ostalo ćemo razjasniti kroz razgovor.'}
     placeholder="Opiši šta radiš"
     value={input} onChange={value=>{if(canAct()&&enabled&&writable){draftRevision.current+=1;draftText.current=value;setInput(value);}}} canEdit={!!enabled&&!!writable&&!pending.current}
-    canSend={!!enabled&&!!writable&&!!input.trim()&&!pending.current} pending={!!pending.current} busy={editor.busy} streamingText={stream}
+    canSend={canRetry||(!!enabled&&!!writable&&!!input.trim()&&!pending.current)} pending={!!pending.current} busy={editor.busy} streamingText={stream}
     // What was just sent and is not yet read back stays on screen (review r4 ra item 2): without it, voice mode fell
     // back to the previous exchange and showed the old answer as the reply to what was just said. A recovered intent
     // has no text (storage holds only ids), and then nothing is shown. Once the read holds it, the thread shows it once.
     sentMessage={unread}
-    onSend={()=>{if(!voiceBusy)void send(input.trim(),{value:input,revision:draftRevision.current});}} onBack={back} onOptions={writable?()=>{if(current()&&panelScope.current===renderedPanel)setMenu(true);}:undefined}
+    onSend={()=>{if(voiceBusy)return;if(pending.current){if(canRetry&&pending.current.text)void send(pending.current.text);return;}
+      void send(input.trim(),{value:input,revision:draftRevision.current});}} onBack={back} onOptions={writable?()=>{if(current()&&panelScope.current===renderedPanel)setMenu(true);}:undefined}
     // A fragment is truthy even when empty, which drew an empty recovery panel in the thread; the slot is filled only
     // when there is something to say.
     status={statusCopy||editor.error?<>{statusCopy?<T variant="meta" tone="muted">{statusCopy}</T>:null}
