@@ -10,20 +10,19 @@ import { sheetLift, sys } from './tokens';
  * "Poruka": the one short bar that says what just happened (plan 2.4). It replaces the ten scattered success lines and
  * announcements ("Dostupnost je sačuvana.", "Podešavanja su sačuvana.", …) with ONE place, one look and one behaviour:
  *
- * - a white capsule on `sheetLift`, black 15 px words, at most one green text button ("Vrati" to undo, "Otvori" to go to
- *   it), 16 dp in from both edges and above the bottom bar;
+ * - a readable message above the bottom controls, with an optional named action; material and optical spacing are shared defaults;
  * - enters 8 dp low and transparent over `sys.motion.enter`, leaves over `sys.motion.exit`; under reduced motion it only
  *   appears and disappears;
  * - read out to a screen reader when it appears (`announceForAccessibility`);
  * - only ONE at a time: a new message replaces the one on show;
  * - gone after 4 s, or 6 s when it carries an action (the person needs the time to read it and reach for it);
- * - a success tick only when the caller says the outcome is CONFIRMED BY THE SERVER (rule R5: a haptic is an outcome, never a press).
+ * - a success tick only when the caller says the outcome is CONFIRMED BY THE SERVER.
  *
  * It is a tiny module-level store plus a host: a screen calls `poruka.show(...)` and never renders anything. The `(app)` layout
  * mounts the host for every screen of its navigator. A screen drawn ABOVE that navigator (the root stack's `dogovor/[id]`,
  * `obavestenja` and `prijave` cover it) mounts its own `<PorukaHost clearance={...} />`: more than one host is safe, because
  * the message, its time, its reading aloud and its tick belong to the store, and the host under a covered screen is not seen.
- * Native `Animated` on the native driver, never Reanimated (rule R4, B22).
+ * The current renderer uses native-driven Animated. Another engine must preserve cleanup, reduced motion and replacement semantics.
  */
 
 /** How long a message stays: the words alone, and with an action. */

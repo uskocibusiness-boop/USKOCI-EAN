@@ -18,5 +18,7 @@ test('development scenes cannot become Expo product routes or runtime imports', 
     const content = fs.readFileSync(file, 'utf8');
     assert.doesNotMatch(content, /(?:from\s*|require\(\s*|import\(\s*)['"][^'"]*(?:designLab|\/dizajn-)/, path.relative(root, file));
   }
-  assert.equal(fs.readdirSync(path.join(root, 'src/designLab')).filter(file => file.endsWith('.tsx')).length, 21);
+  const scenes = fs.readdirSync(path.join(root, 'src/designLab')).filter(file => file.endsWith('.tsx'));
+  assert.ok(scenes.length > 0, 'Keep an explicit, separate inventory of development scenes.');
+  for (const file of scenes) assert.match(file, /^dizajn-[\w-]+\.tsx$/);
 });

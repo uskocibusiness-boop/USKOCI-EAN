@@ -54,13 +54,13 @@ it('follows the caller when it owns the state, and tells it what the press asks 
   expect(onToggle).toHaveBeenLastCalledWith(false);
 });
 
-it('turns its caret over in 180 ms on a real change, and at once under reduced motion', async () => {
+it('uses the shared selection timing on a real change, and settles immediately under reduced motion', async () => {
   const timing = jest.spyOn(Animated, 'timing');
   await render(<Disclosure label="Tok Dogovora"><Text>događaji</Text></Disclosure>);
   expect(rotation()).toBe('0deg');
   timing.mockClear();
   await tap('Tok Dogovora');
-  expect(timing).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ toValue: 1, duration: 180, useNativeDriver: true }));
+  expect(timing).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ toValue: 1, duration: sys.motion.toggle, useNativeDriver: true }));
   await act(async () => tree.unmount());
   mockReduced = true; timing.mockClear();
   await render(<Disclosure label="Tok Dogovora"><Text>događaji</Text></Disclosure>);

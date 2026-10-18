@@ -78,6 +78,8 @@ jobs:
           NODE
       - name: TypeScript
         run: npx tsc --noEmit
+      - name: Current source ownership
+        run: node scripts/validate-current-baseline.mjs
       - name: Full regression suite
         # Jest must validate the default-off gates in isolation. The app's preview
         # feature flags above stay ON for the identity guard, Expo and Gradle.
@@ -99,7 +101,16 @@ jobs:
           node --test scripts/__tests__/build-contract.test.cjs scripts/__tests__/entry-assets.test.cjs scripts/__tests__/design-lab-boundary.test.cjs
           node --test supabase/proofs/ai/interview_auth_preflight.test.mjs supabase/proofs/ai/v5_ai_stream.test.mjs supabase/proofs/ai/v5_worker_edge.test.mjs supabase/proofs/ai/historical_intake_source.test.mjs
           node --test supabase/proofs/dynamic_taxonomy/classification-verified-alias.test.mjs
-          npm test -- --runInBand
+          mkdir -p artifacts/validation
+          npm test -- --runInBand --json --outputFile=artifacts/validation/jest.json
+      - name: Upload regression evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: USKOCI-CURRENT-REGRESSION
+          path: artifacts/validation/jest.json
+          retention-days: 14
+          if-no-files-found: warn
       - name: Prebuild Android
         run: npx expo prebuild --platform android --clean
       - name: Record exact prebuild source changes

@@ -168,37 +168,24 @@ describe('the card\'s line of the kinds of work', () => {
     expect(Array.from(long).length).toBeLessThanOrEqual(28); expect(long.endsWith('…')).toBe(true);
   });
 });
-
-// The switch "Mogu odmah" is the person's own act and is saved by the route (as Početna saves it); this screen only draws it.
-describe('"Mogu odmah"', () => {
-  it('is a switch of its own row when the route gives it, with the state it is given', async () => {
-    const onChange = jest.fn();
-    await show({ availableNow: { value: true, onChange } });
-    expect(toggle().props).toMatchObject({ value: true, disabled: false, accessibilityLabel: 'Mogu odmah', thumbColor: sys.color.surface });
-    expect(toggle().props.trackColor).toEqual({ true: sys.color.green, false: sys.color.control });
-    await act(async () => { toggle().props.onValueChange(false); }); expect(onChange).toHaveBeenCalledWith(false);
+describe('availability is edited through AI', () => {
+  it('shows the saved state and opens a topic without a switch or optimistic change', async () => {
+    const onEdit = jest.fn(); await show({ availableNow: { value: true, onEdit } });
+    expect(toggle()).toBeUndefined(); expect(all()).toContain('Mogu odmah');
+    await act(async () => press('Dostupnost').props.onPress());
+    expect(onEdit).toHaveBeenCalledTimes(1); expect(all()).toContain('Mogu odmah');
   });
-
-  it('says it saves, waits meanwhile, and says when the save did not take', async () => {
-    await show({ availableNow: { value: true, onChange: jest.fn(), busy: true } });
-    expect(all()).toContain('Čuvamo…'); expect(toggle().props.disabled).toBe(true);
-    await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled={false} navigate={jest.fn()}
-      availableNow={{ value: false, onChange: jest.fn(), failed: true }} />));
-    expect(all()).toContain('Nije sačuvano. Pokušaj ponovo.'); expect(toggle().props.value).toBe(false); expect(toggle().props.disabled).toBe(false);
+  it('does not run a retained action while disabled', async () => {
+    const onEdit = jest.fn(); await show({ disabled: true, availableNow: { value: false, onEdit } });
+    expect(press('Dostupnost').props.disabled).toBe(true);
+    await act(async () => press('Dostupnost').props.onPress()); expect(onEdit).not.toHaveBeenCalled();
   });
-
-  it('waits while the screen is busy', async () => {
-    await show({ disabled: true, availableNow: { value: true, onChange: jest.fn() } });
-    expect(toggle().props.disabled).toBe(true);
-  });
-
-  it('only tells where there is no switch (a suspended profile): "Uključeno" or "Isključeno", and nothing to touch', async () => {
-    await show({}, draft({ dostupanOdmah: true }));
-    expect(toggle()).toBeUndefined(); expect(all()).toContain('Mogu odmah'); expect(all()).toContain('Uključeno');
-    await act(async () => tree.update(<WorkerProfileSaved draft={draft({ dostupanOdmah: false })} status={<></>} disabled={false} navigate={jest.fn()} />));
-    expect(all()).toContain('Isključeno'); expect(all()).not.toContain('Uključeno');
+  it('keeps suspended availability read-only', async () => {
+    await show({ readOnly: true }, draft({ dostupanOdmah: true }));
+    expect(toggle()).toBeUndefined(); expect(all()).toContain('Uključeno');
   });
 });
+
 
 // "Na šta utiče" was a group of three rows on this screen. It is the sentences behind the "ⓘ" in the bar now: the screen keeps the fact, the
 // explanation is one tap away (analysis rule J5).
@@ -352,14 +339,14 @@ describe('saved biography and suspended state', () => {
     await act(async () => press('Prikaži manje: O meni').props.onPress()); expect(copy().props.numberOfLines).toBe(4);
   });
   it('keeps facts readable while a suspended profile has no editing or availability entry', async () => {
-    const onChange = jest.fn();
-    const { navigate, openConversation } = await show({ readOnly: true, accountName: 'Milos', onUseAccountName: jest.fn(), availableNow: { value: true, onChange } },
+    const onEdit = jest.fn();
+    const { navigate, openConversation } = await show({ readOnly: true, accountName: 'Milos', onUseAccountName: jest.fn(), availableNow: { value: true, onEdit } },
       draft({ alati: Array.from({ length: 5 }, (_, index) => `Alat ${index}`) }));
     expect(action('Uredi kroz razgovor')).toBeUndefined(); expect(press('Gde')).toBeUndefined();
     expect(action('Koristi „Milos“').props.disabled).toBe(true);
     expect(press('Nedeljni raspored')).toBeUndefined(); expect(toggle()).toBeUndefined();
     await act(async () => press('Prikaži sve: Alat').props.onPress()); expect(all()).toContain('Alat 4');
-    expect(onChange).not.toHaveBeenCalled(); expect(navigate).not.toHaveBeenCalled(); expect(openConversation).not.toHaveBeenCalled();
+    expect(onEdit).not.toHaveBeenCalled(); expect(navigate).not.toHaveBeenCalled(); expect(openConversation).not.toHaveBeenCalled();
   });
 });
 

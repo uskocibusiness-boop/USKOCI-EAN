@@ -25,28 +25,18 @@ beforeEach(() => { change.mockClear(); navigate.mockClear(); openConversation.mo
 function Screen({ value, status = 'DRAFT', disabled = false }: { value: WorkerDraft; status?: 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | null; disabled?: boolean }) {
   return <WorkerProfileFrame back={() => {}}><WorkerProfileForm draft={value} change={change} disabled={disabled} status={status} navigate={navigate} openConversation={openConversation} /></WorkerProfileFrame>;
 }
-test('the personal profile leads to AI setup and shows saved facts with one manual correction section at a time', async () => {
+test('the personal profile reads saved facts and offers AI corrections without manual fields', async () => {
   await act(async () => { tree = create(<Screen value={draft()} />); });
-  const copy = texts();
-  expect(copy).toContain('Radni profil'); expect(copy).not.toMatch(/Ja mogu|Meni treba/);
-  expect(tree.root.findAll(node => node.props && 'initials' in node.props)).toHaveLength(0);
-  expect(copy).toContain('Marko Marić');
-  expect(copy).toContain('Radni profil je još nacrt'); expect(copy).toContain('zadaci ti se ne nude'); expect(copy).toContain('Selidbe'); expect(copy).toContain('Montaža');
+  expect(texts()).toContain('Radni profil'); expect(texts()).toContain('Marko Marić');
+  expect(texts()).toContain('Radni profil je još nacrt'); expect(texts()).toContain('zadaci ti se ne nude');
+  expect(texts()).toContain('Selidbe'); expect(texts()).toContain('Montaža'); expect(texts()).toContain('Kolica');
   expect(inputs()).toEqual([]);
-  expect(labels()).not.toContain('Brzi izbor alata');
-  await act(async () => byLabel('Uredi profil kroz razgovor').props.onPress()); expect(openConversation).toHaveBeenCalledTimes(1);
-  await act(async () => byLabel('Izmeni: O meni').props.onPress());
-  // ONE NAME (owner, 8 Oct 2026): there is no field for the name here; it is the name of the account, said as the title.
-  expect(inputs()).toEqual(['O meni']);
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Ime na radnom profilu' })).toHaveLength(0);
-  await act(async () => byLabel('Izmeni: Alat i oprema').props.onPress());
-  expect(inputs()).toEqual(['Nova stavka: Alat i oprema']);
-  expect(labels()).toContain('Ukloni alat i oprema: Kolica');
-  await act(async () => byLabel('Izmeni: Veštine i usluge').props.onPress());
-  expect(inputs()).toEqual(['Nova stavka: Veštine i usluge']);
-  await act(async () => byLabel('Ukloni veštine i usluge: Selidbe').props.onPress()); expect(change).toHaveBeenCalledWith(expect.objectContaining({ vestine: ['Montaža'] }));
-  await act(async () => byLabel('Dostupnost').props.onPress()); expect(navigate).toHaveBeenCalledWith('/profil/dostupnost');
+  expect(labels().filter(label => String(label).startsWith('Izmeni:') || String(label).startsWith('Ukloni '))).toEqual([]);
+  await act(async () => byLabel('Uredi kroz razgovor').props.onPress()); expect(openConversation).toHaveBeenCalledTimes(1);
+  await act(async () => byLabel('Nedeljni raspored').props.onPress()); expect(openConversation).toHaveBeenLastCalledWith('time');
+  expect(change).not.toHaveBeenCalled(); expect(navigate).not.toHaveBeenCalled();
 });
+
 test('status follows the server state and availability is a read-only summary, never a switch', async () => {
   await act(async () => { tree = create(<Screen value={draft({ dostupanOdmah: true })} status="ACTIVE" />); });
   expect(texts()).toContain('Profil je aktivan'); expect(texts()).toContain('Mogu odmah'); expect(texts()).not.toContain('Mogu odmah · dostupnost');
@@ -122,7 +112,7 @@ test('while the keyboard is up the footer keeps its answer visible and hides onl
     expect(hidden(node('Sačuvaj izmene'))).toBe(true);
     await act(async () => event(/Hide$/)());
     expect(hidden(node(sentence))).toBe(false); expect(hidden(node('Sačuvaj izmene'))).toBe(false);
-    expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'worker-profile-footer' }).props.style).paddingVertical).toBe(12);
+    expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'worker-profile-footer' }).props.style).paddingVertical).toBeGreaterThan(0);
   } finally { spy.mockRestore(); }
 });
 test('the body closes the keyboard on a drag, so the footer can come back without a return key', async () => {

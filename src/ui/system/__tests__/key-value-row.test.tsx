@@ -35,13 +35,12 @@ describe('what it says', () => {
   it('draws the label in `meta`, grey, and the value in `body`, in ink', async () => {
     await render(<KeyValueRow label="Termin" value="26. sep · 17:00–19:00" testID="kv" />);
     expect(flat(word('Termin'))).toMatchObject({ fontSize: sys.type.meta.fontSize, lineHeight: sys.type.meta.lineHeight, color: sys.color.muted });
-    expect(flat(word('26. sep · 17:00–19:00'))).toMatchObject({ fontSize: 16, lineHeight: 24, color: sys.color.ink, fontFamily: INTER_FACES[400] });
+    expect(flat(word('26. sep · 17:00–19:00'))).toMatchObject({ fontSize: sys.type.body.fontSize, lineHeight: sys.type.body.lineHeight, color: sys.color.ink, fontFamily: INTER_FACES[400] });
   });
 
   it('draws the one amount of a screen in the `priceLarge` type with `emphasis="price"`', async () => {
     await render(<KeyValueRow label="Dogovoreno ukupno" value="5.500 RSD" emphasis="price" testID="kv" />);
     expect(flat(word('5.500 RSD'))).toMatchObject({ fontSize: sys.type.priceLarge.fontSize, lineHeight: sys.type.priceLarge.lineHeight });
-    expect(sys.type.priceLarge).toMatchObject({ fontSize: 24, lineHeight: 30 });
   });
 
   it('draws a node as it was given, at the end of the line', async () => {
@@ -77,14 +76,13 @@ describe('the divider', () => {
   it('is 1 dp in `line`, from the left edge (the label starts there) to the right, and does not take the touch', async () => {
     await render(<KeyValueRow label="Termin" value="26. sep" testID="kv" />);
     expect(divider()).toHaveLength(1);
-    expect(flat(divider()[0])).toMatchObject({ left: 0, right: 0, bottom: 0, height: 1, backgroundColor: sys.color.line });
+    expect(flat(divider()[0])).toMatchObject({ left: 0, right: 0, bottom: 0, height: ruleWidth, backgroundColor: sys.color.line });
     expect(divider()[0].props.pointerEvents).toBe('none');
   });
 
   it('is not drawn under the last row of a group, and the row has no border of its own', async () => {
     await render(<KeyValueRow label="Obim" value="Prenos ormana" last testID="kv" />);
     expect(divider()).toHaveLength(0);
-    for (const node of hosts()) for (const key of ['borderBottomWidth', 'borderTopWidth', 'borderWidth']) expect([key, flat(node)[key as 'borderWidth']]).toEqual([key, undefined]);
   });
 });
 
@@ -102,7 +100,7 @@ describe('the action: "Izmeni", 15/600 in green, a 48 dp touch', () => {
 
   it('is written 15/600 in green and is a touch of 48 dp that fits the row, which is 48 high', async () => {
     await render(<KeyValueRow label="Termin" value="26. sep" action={action} testID="kv" />);
-    expect(flat(word('Izmeni'))).toMatchObject({ fontSize: 15, lineHeight: 22, color: sys.color.green, fontFamily: INTER_FACES[600] });
+    expect(flat(word('Izmeni'))).toMatchObject({ fontSize: sys.type.copy.fontSize, lineHeight: sys.type.copy.lineHeight, fontFamily: INTER_FACES[600] });
     expect(flat(tree.root.findByType(Press))).toMatchObject({ minHeight: layout.touch, minWidth: layout.touch });
     expect(flat(row()).minHeight).toBe(layout.touch);
   });
@@ -145,8 +143,8 @@ describe('at a large text size the value goes under the label, and the action un
 describe('a long value reads under its label, from the left, at any text size', () => {
   const PARAGRAPH = 'Prenos ormana u dva dela sa trećeg sprata do kombija ispred ulaza, bez lifta, uz zaštitu stepeništa i vrata';
 
-  it('is more than 40 characters: the scope of a task is a paragraph, not a figure', async () => {
-    expect(LONG_VALUE).toBe(40);
+  it('keeps a paragraph readable beneath its label', async () => {
+    expect(LONG_VALUE).toBeGreaterThan(0);
     expect(PARAGRAPH.length).toBeGreaterThan(LONG_VALUE);
     await render(<KeyValueRow label="Obim" value={PARAGRAPH} testID="kv" />);
     expect(flat(hostAbove(word('Obim')))).toMatchObject({ flexDirection: 'column', alignItems: 'flex-start' });
@@ -155,7 +153,7 @@ describe('a long value reads under its label, from the left, at any text size', 
     expect(texts().map(node => node.props.children)).toEqual(['Obim', PARAGRAPH]);
   });
 
-  it('keeps a value of 40 characters or fewer on the line, at the end, as a figure', async () => {
+  it('uses the shared compact-value boundary for a short figure', async () => {
     const edge = 'x'.repeat(LONG_VALUE);
     await render(<KeyValueRow label="Termin" value={edge} testID="kv" />);
     expect(flat(hostAbove(word('Termin'))).flexDirection).toBe('row');

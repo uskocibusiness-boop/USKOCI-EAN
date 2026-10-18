@@ -155,21 +155,11 @@ function ConfirmSheetBottom({ title, message, confirmLabel, cancelLabel = 'Odust
 export const DIALOG_MAX_WIDTH = 340;
 const EASE_OUT = Easing.bezier(...sys.motion.easeOut);
 
-/**
- * The question as a dialog: a native transparent Modal (it owns focus and Android Back, and covers the status bar) over a
- * dimmed screen, and in it a white card with corner 24 and a soft shadow, at most 340 wide and 24 from every edge. The title
- * names what happens, one sentence says what follows (it scrolls when the person's text size makes it long, with the title and
- * the two commands staying put), then ONE confirm in green (danger red for something that ends) and a quiet way out.
- *
- * MOTION. It opens on a scale from 0.96 to 1 over 200 ms on the decelerating curve (native `Animated`, native driver; rule R4:
- * no Reanimated `exiting`, B22), inside the Modal's own fade (`animationType="fade"`: the window fades in over the system's
- * short animation time, the dim with it). It LEAVES on that same native window fade: the screen is told the question is over
- * the moment it is answered, and the platform lets the dialog's window fade out after React has dropped it. A leaving driven
- * from JS (the plan's 140 ms fade and shrink) would have to keep the card in the tree after its screen believes it is gone;
- * about thirty screen suites assert that it is gone at once, and a card that lingers shows up in their text. Under reduced
- * motion `animationType` is `none` and the card does not scale: it is there, and then it is gone. The window's own fade is the
- * system's, so it also follows the person's "remove animations" setting.
- */
+/** Native modal owns focus and Android Back. Content scrolls when text is large
+ * while the title and commands stay available. Material, width and motion use
+ * shared defaults. Dismissal settles the request once and returns focus promptly;
+ * reduced motion disables transition movement. Other animation techniques remain
+ * possible when they preserve those behaviors and native lifecycle safety. */
 function ConfirmDialog({ title, message, confirmLabel, cancelLabel = 'Odustani', tone = 'default', onConfirm, onCancel, onClosed,
   reduced: callerReduced }: ConfirmRequest & { onClosed: () => void; reduced?: boolean }) {
   const systemReduced = useReducedMotion();

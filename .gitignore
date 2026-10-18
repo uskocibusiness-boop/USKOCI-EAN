@@ -57,3 +57,6 @@ supabase/.temp/
 /artifacts/
 /dist-w01/
 __pycache__/
+
+# Local scratch and disposable logs; retained evidence belongs in docs/.
+/work/

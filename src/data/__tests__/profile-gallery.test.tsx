@@ -65,18 +65,12 @@ it('lists every scene by its visible name and draws each one, with Nazad back to
   // About fifty scenes in one walk: under the full parallel run this takes longer than the 5 s default.
 }, 60_000);
 
-it('a scene edits only its own copy: a free-text vehicle is retained locally and nothing is sent', async () => {
+it('the worker gallery follows AI-only corrections and never exposes manual profile fields', async () => {
   await act(async () => { tree = create(<Gallery />); });
   await act(async () => presses().find(node => node.props.accessibilityLabel === 'Radni profil: aktivan')!.props.onPress());
-  await act(async () => presses().find(node => node.props.accessibilityLabel === 'Izmeni: Vozila')!.props.onPress());
-  const input = () => tree.root.findAll(node => String(node.type) === 'TextInput')
-    .find(node => node.props.accessibilityLabel === 'Nova stavka: Vozila')!;
-  await act(async () => input().props.onChangeText('Automobil'));
-  await act(async () => presses().find(node => node.props.accessibilityLabel === 'Dodaj: Vozila')!.props.onPress());
-  expect(texts()).toContain('Automobil');
-  expect(input().props.value).toBe('');
-  await act(async () => presses().find(node => node.props.accessibilityLabel === 'Nazad na listu scena')!.props.onPress());
-  await act(async () => presses().find(node => node.props.accessibilityLabel === 'Radni profil: aktivan')!.props.onPress());
-  expect(texts()).not.toContain('Automobil');
+  expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
+  expect(presses().map(node=>node.props.accessibilityLabel)).not.toContain('Izmeni: Vozila');
+  await act(async () => presses().find(node => node.props.accessibilityLabel === 'Uredi kroz razgovor')!.props.onPress());
+  expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
   nothingReadOrWritten();
 });

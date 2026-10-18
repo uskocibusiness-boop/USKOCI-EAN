@@ -1,0 +1,49 @@
+{
+  "sourceBeforeCleanup": "eaa38a04e20be24bba71840660493b634180ee72",
+  "items": [
+    {
+      "file": "scripts/validate-product-design-truth.mjs",
+      "removed": "Exact historical three-zone tabs and prohibition of Home; historical matrix size and decoration workflow treated as present authority.",
+      "replacement": "Removed executable legacy script. scripts/validate-current-baseline.mjs checks actual file ownership only; runtime navigation, safe targets and Back retain behavior tests."
+    },
+    {
+      "file": "assets/expo.icon + app.json",
+      "removed": "Unreferenced Expo template icon package and active iOS override.",
+      "replacement": "Same existing USKOCI icon resource already selected by app. Source config verified; no iOS native proof claimed."
+    },
+    {
+      "file": "supabase/candidates/register_3d_print_taxonomy.sql",
+      "removed": "Untracked hardcoded manual test-account candidate from active candidates.",
+      "replacement": "Unchanged bytes retained as non-executable historical txt; no SQL run. Live approved Edge source readback is current baseline."
+    },
+    {
+      "file": ".gitignore",
+      "removed": "Scratch build/proof logs showing as new product source.",
+      "replacement": "/work/ ignored; retained evidence is copied into docs/current/evidence."
+    },
+    {
+      "file": "scripts/control/osvezi-master-plan.mjs",
+      "removed": "Fallback to obsolete repository identity.",
+      "replacement": "Unknown stays null; actual source metadata comes from current registry state."
+    }
+  ],
+  "checks": {
+    "buildBoundaryNodeTests": {
+      "passed": 19,
+      "failed": 0
+    },
+    "livePlanGeneratorNodeTests": {
+      "passed": 4,
+      "failed": 0
+    },
+    "typescript": "PASS on integrated candidate; immutable CI repeats before APK"
+  },
+  "notClaims": [
+    "Every historical test reviewed",
+    "All old source removed",
+    "Complete UI redesign",
+    "New logo artwork",
+    "New server deployment",
+    "iOS native build"
+  ]
+}

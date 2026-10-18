@@ -18,30 +18,12 @@ import { CardStatus, CardStatusLine, REQUIREMENT_ART, VALUE_WORDS, capacityWords
 import { useTaskAge } from './taskAge';
 import { distanceOf, useDistanceFrom } from './taskDistance';
 
-/**
- * The face of a task as the Zadaci family draws it (composition spec 2026-10-07, 4.2; the owner's pick of 8 Oct 2026, "Etiketa" with his
- * note): the list's card, the pin's card on the map and, by the same words in the same order, the head of the detail. One face, so a task
- * does not change its clothes between the map, the list and the page that opens: [state] -> title -> what it pays -> where -> when ->
- * (one condition) -> how many places -> who posted it, and how long ago.
- *
- * What this account is to the task ("Tvoj", "Prijava poslata") is a small mark beside the amount or just below it, not above the title.
- * The short owner mark stays inline; worker states take their own line after the 361 dp / 1.15 phone review (9 Oct 2026); what is above the title is only HITNO and a task's own life (a draft, a closed task). The place says how far it is ("Liman, Novi Sad · oko 3 km") only
- * when that can be said (see `taskDistance`): a task's public point and the one place the person said they are, and otherwise nothing.
- *
- * The amount is a fact like the others (the owner: not the price on the right, but under the title with its picture on the left, like
- * everything else): the money picture, the sum and what it buys, the first of the fact rows. The face writes no word for what the sum is,
- * neither "cena" nor "budžet" (people know what it is); a screen reader says "Budžet 6.000 RSD ukupno". A task with no sum is the price
- * tag and its words ("Tražim ponude"), never the sum's type.
- *
- * Four type sizes and no more: the title (heading 18), the amount (16), every fact and the person (note 14), the state (12). The title
- * takes the full width, because a title and an amount side by side broke into three-line titles on the owner's 361 dp phone. Nothing is
- * invented: what the read does not say is left out. (The picked variant's reason row, "Imaš kombi", is not drawn: the list holds no work profile, and a
- * reason that is not read is not made up. How far a task is stands in the place's own line, and only when it is computed from the task's public point.) The count of people is said only when
- * the task needs more than one ("Treba 3 osobe"): a "0/1" meant nothing to the one looking for work (the owner, 8 Oct 2026).
- *
- * The body draws no card and no press of its own: the container is a `Surface record` (the list) or the pin's sheet (the map), and
- * says the whole face to a screen reader ONCE (`TaskRecordModel.spoken`), so nothing in here is a stop of its own.
- */
+/** Shared task facts for map, list and detail variants. Composition and density may
+ * differ by role while title, price/offers, public place, schedule, slots and actor
+ * relation retain the same meaning. Do not invent distance, equipment, reputation
+ * or status absent from the read model. Owner and worker variants use their own
+ * actions and capacity wording. The containing control owns its spoken summary
+ * and interaction; decorative content must not add duplicate accessibility stops. */
 export type TaskRecordModel = {
   title: string;
   /** The whole state, as the sentence says it ("Tvoj zadatak"). */

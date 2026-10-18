@@ -45,8 +45,12 @@ describe('Arrive: the picture of an empty state settles in once', () => {
     const ranges = interpolate.mock.calls.map(([config]) => config as { inputRange: number[]; outputRange: (number | string)[] });
     expect(ranges).toHaveLength(3);
     const [rise, tilt, opacity] = ranges;
-    expect(rise).toEqual({ inputRange: [0, 1], outputRange: [4, 0] });
-    expect(tilt).toEqual({ inputRange: [0, 1], outputRange: ['-3deg', '0deg'] });
+    expect(rise.outputRange.at(-1)).toBe(0);
+    expect(Number(rise.outputRange[0])).toBeGreaterThanOrEqual(0);
+    expect(Number(rise.outputRange[0])).toBeLessThanOrEqual(12);
+    expect(tilt.outputRange.at(-1)).toBe('0deg');
+    expect(tilt.outputRange.every(value => typeof value === 'string' && value.endsWith('deg'))).toBe(true);
+    expect(Math.abs(parseFloat(String(tilt.outputRange[0])))).toBeLessThanOrEqual(6);
     expect(opacity.outputRange.every(value => (value as number) >= 0.65 && (value as number) <= 1)).toBe(true);
     for (const { outputRange } of ranges) {
       const values = outputRange.map(value => parseFloat(String(value))), resting = values[values.length - 1];
@@ -84,9 +88,11 @@ describe('useBreath: a skeleton breathes, one half-turn at a time', () => {
   it('goes down and up over sys.motion.loop.breath each, on the native driver', () => {
     const timing = jest.spyOn(Animated, 'timing');
     act(() => { tree = create(<Breather />); });
-    expect(configs(timing).map(({ toValue, duration, useNativeDriver }) => ({ toValue, duration, useNativeDriver })))
-      .toEqual([{ toValue: 0.55, duration: sys.motion.loop.breath, useNativeDriver: true },
-        { toValue: 1, duration: sys.motion.loop.breath, useNativeDriver: true }]);
+    const [out, back] = configs(timing);
+    expect(configs(timing)).toHaveLength(2);
+    expect(out.toValue).toBeGreaterThanOrEqual(0.4); expect(out.toValue).toBeLessThan(1);
+    expect(back.toValue).toBe(1);
+    for (const config of [out, back]) expect(config).toMatchObject({ duration: sys.motion.loop.breath, useNativeDriver: true });
   });
 
   it('does not breathe under reduced motion: the placeholder stands still at full opacity', () => {

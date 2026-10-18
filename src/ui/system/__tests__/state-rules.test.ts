@@ -1,5 +1,3 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { plainWords, repeatsTheAction, stateProblems, type StateDescription } from '../stateRules';
 
 /**
@@ -48,13 +46,13 @@ describe('the sentence and the button never say the same thing twice', () => {
     expect(repeatsTheAction('Bilo šta.', '')).toBe(false);
   });
 
-  it('flags the old way of writing an error: "... pokušaj ponovo." over a button "Pokušaj ponovo"', () => {
+  it('allows explanatory wording to repeat a command without losing the recovery action', () => {
     expect(stateProblems(state({ kind: 'error', title: 'Ne možemo da učitamo Dogovore', body: 'Proveri internet vezu i pokušaj ponovo.',
-      primary: { label: 'Pokušaj ponovo' } }))).toEqual(['repeats-the-action']);
+      primary: { label: 'Pokušaj ponovo' } }))).toEqual([]);
     expect(stateProblems(state({ kind: 'error', title: 'Ne možemo da učitamo Dogovore', body: 'Proveri vezu.', primary: { label: 'Pokušaj ponovo' } }))).toEqual([]);
   });
 
-  it('flags the same words on the green action and the quiet one', () => {
+  it('flags duplicate labels on the primary and secondary actions', () => {
     expect(stateProblems(state({ kind: 'empty', cause: 'first', title: 'Još nemaš Dogovor', body: 'Dogovor se pojavljuje ovde.',
       primary: { label: 'Pogledaj zadatke' }, quiet: { label: 'pogledaj zadatke' } }))).toEqual(['same-label-twice']);
   });
@@ -66,7 +64,7 @@ describe('what an empty list says depends on why it is empty', () => {
       primary: { label: 'Objavi prvi zadatak' } }))).toEqual(['first-time-says-filter']);
   });
 
-  it('a filter speaks about the view, and its green action takes the narrowing away; it never says "Još nemaš ..."', () => {
+  it('a filter speaks about the view and offers a filter reset; it never says "Još nemaš ..."', () => {
     expect(stateProblems(state({ kind: 'empty', cause: 'filtered', title: 'Nema zadataka u ovom prikazu', body: 'Promeni pretragu ili filtere.',
       primary: { label: 'Poništi filtere' } }))).toEqual([]);
     expect(stateProblems(state({ kind: 'empty', cause: 'filtered', title: 'Još nemaš zadatak', body: 'Promeni pretragu ili filtere.',
@@ -88,25 +86,10 @@ describe('plain words', () => {
   });
 });
 
-describe('the rules are written where a person building a screen looks: the header of StateView', () => {
-  const header = readFileSync(join(__dirname, '../StateView.tsx'), 'utf8').replace(/\r\n/g, '\n').split('\n').filter(line => /^\s*(?:\/\*\*|\*|\*\/)/.test(line)).join('\n');
+// The behavioral cases above cover each state rule. Historical header wording,
+// including the old "one green action" instruction, is not an executable contract.
 
-  it('names the three causes of an empty list and the checks that hold them', () => {
-    expect(header).toMatch(/EMPTY STATES/);
-    for (const cause of ['first', 'filtered', 'done']) expect([cause, header.includes(`\`${cause}\``)]).toEqual([cause, true]);
-    expect(header).toMatch(/Još nemaš/);
-    expect(header).toMatch(/u ovom prikazu/);
-    expect(header).toMatch(/stateProblems/);
-  });
-
-  it('says the four rules every state follows: a sentence, one way forward, one green action, and never the button\'s verb again', () => {
-    expect(header).toMatch(/sentence/);
-    expect(header).toMatch(/one green action/i);
-    expect(header).toMatch(/never repeats/i);
-  });
-});
-
-describe('a picture at the size of a door is for the first time only', () => {
+describe('artwork emphasis is independent of the state meaning', () => {
   const first = { kind: 'empty' as const, cause: 'first' as const, title: 'Još nemaš zadatak', body: 'Reci šta ti treba. Nacrt pregledaš pre objave.',
     primary: { label: 'Objavi prvi zadatak' }, quiet: { label: 'Pogledaj zadatke' } };
 
@@ -116,10 +99,10 @@ describe('a picture at the size of a door is for the first time only', () => {
     expect(stateProblems(state({ ...first, hero: false, cause: 'filtered', title: 'Nema zadataka u ovom prikazu', body: 'Promeni pretragu ili filtere.' }))).toEqual([]);
   });
 
-  it('flags a hero that is a filter, a "done", or a failure: those keep the quiet 96', () => {
+  it('allows emphasis for filtered, completed and failure states while preserving their words', () => {
     expect(stateProblems(state({ kind: 'empty', cause: 'filtered', hero: true, title: 'Nema zadataka u ovom prikazu', body: 'Promeni pretragu ili filtere.',
-      primary: { label: 'Poništi filtere' } }))).toEqual(['hero-is-for-the-first-time']);
-    expect(stateProblems(state({ kind: 'empty', cause: 'done', hero: true, title: 'Ništa ne čeka tvoju odluku', body: 'Kad se nešto promeni, javićemo ti.' }))).toEqual(['hero-is-for-the-first-time']);
-    expect(stateProblems(state({ kind: 'error', hero: true, title: 'Ne možemo da učitamo Dogovore', body: 'Proveri vezu.', primary: { label: 'Pokušaj ponovo' } }))).toEqual(['hero-is-for-the-first-time']);
+      primary: { label: 'Poništi filtere' } }))).toEqual([]);
+    expect(stateProblems(state({ kind: 'empty', cause: 'done', hero: true, title: 'Ništa ne čeka tvoju odluku', body: 'Kad se nešto promeni, javićemo ti.' }))).toEqual([]);
+    expect(stateProblems(state({ kind: 'error', hero: true, title: 'Ne možemo da učitamo Dogovore', body: 'Proveri vezu.', primary: { label: 'Pokušaj ponovo' } }))).toEqual([]);
   });
 });

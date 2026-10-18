@@ -151,7 +151,7 @@ export default function DizajnPocetna() {
   const scene = SCENES.find(value => value === params.scene) ?? 'upcoming';
   const textLayout = params.text === '1.3' ? LARGE_LAYOUT : params.text === '1.15' ? COMPACT_LAYOUT : null;
   if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
-  const extra: Partial<HomePresentationProps> = scene === 'worker' || scene === 'owner' ? { availableNow: { value: true, onChange: noop } }
+  const extra: Partial<HomePresentationProps> = scene === 'worker' || scene === 'owner' ? { availableNow: { value: true, onEdit: noop } }
     : scene === 'stale' ? { stale: true } : scene === 'loading' ? { loading: true } : {};
   return <LayoutClassOverride.Provider value={textLayout}>
     <HomePresentation key={scene} home={scene === 'loading' ? null : FIXTURES[scene]} header={STILL_HEADER} loading={false} refreshing={false} error={false}

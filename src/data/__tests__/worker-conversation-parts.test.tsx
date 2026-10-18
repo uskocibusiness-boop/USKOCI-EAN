@@ -2,24 +2,11 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { rememberAiCorrection } from '../aiCorrectionIntent';
 
-/**
- * All normal edits select a topic in the same conversation without sending or
- * patching. Legacy editor cases below simulate an already-open panel solely to
- * preserve its existing recovery contract; they are not a new navigation path.
- */
+/** AI topics keep one owned conversation and its unsent draft; only an explicit turn changes the proposal. */
 const mockAccount = '11111111-1111-4111-8111-111111111111', mockProfile = '22222222-2222-4222-8222-222222222222', mockConversation = '33333333-3333-4333-8333-333333333333';
 const A = mockAccount, B = mockProfile, C = mockConversation;
-let mockRouteId = C;
+let mockRouteId: string | undefined = C;
 let mockCorrection: string | undefined, mockFocused=true;
-let mockRestoreLegacyPanel: ((panel: 'manual' | 'availability') => void) | null = null;
-jest.mock('react', () => {
-  const React = jest.requireActual('react');
-  return { ...React, useState: (initial: unknown) => {
-    const state = React.useState(initial);
-    if (initial === 'chat') mockRestoreLegacyPanel = state[1];
-    return state;
-  } };
-});
 const mockListeners = new Set<(s: string) => void>();
 const mockApi = { read: jest.fn(), open: jest.fn(), send: jest.fn(), recoverTurn: jest.fn(), cancelTurn: jest.fn(), patch: jest.fn(), prepare: jest.fn(), save: jest.fn(), abandon: jest.fn() };
 const mockJournal = { load: jest.fn(), save: jest.fn(), clear: jest.fn() };
@@ -75,13 +62,11 @@ let tree: ReactTestRenderer;
 const shell = () => tree.root.findByType('Shell' as never);
 const frame = () => tree.root.findByType('Frame' as never);
 const review = () => tree.root.findByType('Review' as never);
-const manual = () => tree.root.findByType('Manual' as never);
 const action = (label: string) => tree.root.findByProps({ label });
 /** The rows of an open menu, once each (a Press is several nodes in the tree). */
 const menuRows = () => tree.root.findAllByType(Press).filter(node => node.props.accessibilityRole === 'menuitem');
 const menuRow = (label: string) => menuRows().find(node => node.props.accessibilityLabel === label)!;
 const render = async () => { await act(async () => { tree = create(<Screen />); }); };
-const restoreLegacyManual = async () => { await act(async () => { mockRestoreLegacyPanel!('manual'); }); };
 const click = async (label: string) => { await act(async () => { action(label).props.onPress(); }); };
 const openReview = async () => {
   mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(reviewed()));
@@ -89,7 +74,7 @@ const openReview = async () => {
 };
 beforeEach(() => {
   jest.clearAllMocks(); mockRouteId = C; mockRouter.canGoBack.mockReturnValue(true); mockAccountName = { state: 'ready', name: null };
-  mockCorrection=undefined;mockFocused=true;mockRestoreLegacyPanel=null;
+  mockCorrection=undefined;mockFocused=true;
   mockJournal.load.mockResolvedValue(null); mockJournal.save.mockResolvedValue(undefined); mockJournal.clear.mockResolvedValue(undefined);
   mockApi.read.mockResolvedValue(ok(snapshot())); mockApi.open.mockResolvedValue(ok(snapshot()));
   mockApi.recoverTurn.mockResolvedValue(ok({}));
@@ -97,13 +82,24 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('the conversation (M1)', () => {
-  it('consumes a new saved-profile topic on refocus of the same route, preserving unsent text',async()=>{
+  it('a topic-only visit cannot admit an invalid conversation ID retained from the previous route params', async () => {
+    mockRouteId='not-a-uuid'; await render();
+    expect(mockApi.read).not.toHaveBeenCalled(); expect(mockApi.open).not.toHaveBeenCalled();
+    mockRouteId=undefined;
+    mockCorrection=rememberAiCorrection({accountId:A,accountRevision:1},'worker.time')!.token;
+    await act(async()=>tree.update(<Screen/>));
+    expect(mockApi.read).not.toHaveBeenCalled(); expect(mockApi.open).not.toHaveBeenCalled();
+    expect(mockJournal.load).not.toHaveBeenCalled(); expect(mockApi.send).not.toHaveBeenCalled();
+    expect(tree.root.findAllByType('Shell' as never)).toHaveLength(0);
+  });
+  it.each(['worker.identity','worker.time','worker.area'] as const)('consumes %s on refocus of the same route, preserving unsent text',async(target)=>{
     await render();await act(async()=>shell().props.onChange('Moj neposlati odgovor'));
     mockFocused=false;await act(async()=>tree.update(<Screen/>));
-    mockCorrection=rememberAiCorrection({accountId:A,accountRevision:1},'worker.identity')!.token;
+    mockCorrection=rememberAiCorrection({accountId:A,accountRevision:1},target)!.token;
+    mockRouteId=undefined; // Topic-only navigation replaces search params, not the owned conversation.
     await act(async()=>tree.update(<Screen/>));
     mockFocused=true;await act(async()=>tree.update(<Screen/>));
-    expect(shell().props.correction.target).toBe('worker.identity');expect(shell().props.value).toBe('Moj neposlati odgovor');
+    expect(shell().props.correction.target).toBe(target);expect(shell().props.value).toBe('Moj neposlati odgovor');
     expect(shell().props.conversationKey).toBe(C);expect(mockApi.open).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
   });
   it('is titled "Radni profil", puts the latest question first, and offers the "+" for the parts', async () => {
@@ -186,6 +182,19 @@ describe('the conversation (M1)', () => {
 });
 
 describe('the review (M2)', () => {
+  it('defers an external topic during signed preparation and keeps the unsent text when it completes', async () => {
+    let finish!: (value: unknown) => void;
+    await render(); await act(async () => shell().props.onChange('Moj neposlati odgovor'));
+    mockApi.prepare.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    await act(async () => { void shell().props.card(false).props.review(); });
+    mockCorrection = rememberAiCorrection({ accountId: A, accountRevision: 1 }, 'worker.time')!.token;
+    await act(async () => tree.update(<Screen />));
+    expect(tree.root.findAllByType('Shell' as never)[0]?.props.correction).toBeFalsy();
+    mockApi.read.mockResolvedValue(ok(reviewed()));
+    await act(async () => finish(ok({})));
+    expect(shell().props.correction.target).toBe('worker.time'); expect(shell().props.value).toBe('Moj neposlati odgovor');
+    expect(mockApi.prepare).toHaveBeenCalledTimes(1); expect(mockApi.send).not.toHaveBeenCalled();
+  });
   it('is titled "Tvoj radni profil", with the green save and "Nazad na razgovor" under it', async () => {
     await render(); await openReview();
     expect(frame().props.title).toBe('Tvoj radni profil');
@@ -246,18 +255,6 @@ describe('the review (M2)', () => {
     mockApi.read.mockResolvedValue(ok(reviewed(1,false)));
     await act(async () => shell().props.card(false).props.review());
     expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, false);
-  });
-
-  it('a patch that is refused or unconfirmed prepares nothing and keeps the editor with its error', async () => {
-    await render(); await openReview();
-    mockApi.prepare.mockClear();
-    await act(async () => { review().props.onEdit('tools'); });
-    await restoreLegacyManual();
-    mockApi.patch.mockResolvedValue({ ok: false, kod: 'UNKNOWN', poruka: 'Ishod nije potvrđen.' });
-    await act(async () => { manual().props.apply({ tools: ['Bušilica'], vehicles: [] }); });
-    expect(mockApi.prepare).not.toHaveBeenCalled();
-    expect(tree.root.findAllByType('Manual' as never)).toHaveLength(1);
-    expect(tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children).join(' ')).toContain('Ishod nije potvrđen.');
   });
 
   it('a review that has expired cannot be edited: it is read again first', async () => {
@@ -322,20 +319,6 @@ describe('one name: the review is made under the account\'s name', () => {
     expect(mockApi.prepare).not.toHaveBeenCalled(); expect(tree.root.findAllByType('Review' as never)).toHaveLength(0);
   });
 
-  it('puts the account\'s name into any other change of the proposal too, while it carries another, and never over a name the patch itself carries', async () => {
-    mockAccountName = { state: 'ready', name: 'Milos' };
-    mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.prepare.mockResolvedValue(ok({}));
-    await open();
-    mockApi.patch.mockClear(); mockApi.prepare.mockClear();
-    await act(async () => { review().props.onEdit('area'); });
-    await restoreLegacyManual();
-    mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.read.mockResolvedValue(ok(reviewed(1)));
-    await act(async () => { manual().props.apply({ location: { city: 'Zemun', operatingCountryCode: 'RS', radiusKm: 25 } }); });
-    expect(mockApi.patch).toHaveBeenCalledTimes(1);
-    expect(mockApi.patch).toHaveBeenCalledWith(C, 0, { location: { city: 'Zemun', operatingCountryCode: 'RS', radiusKm: 25 }, displayName: 'Milos' });
-    expect(mockApi.prepare).not.toHaveBeenCalled();
-  });
-
   it('the review of an account that has no name at all says so and leads to the one place it is written', async () => {
     const lacking = { ...reviewed(), review: { ...reviewed().review, missingRequired: ['Ime'], canAccept: false } };
     mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(lacking));
@@ -375,17 +358,6 @@ describe('activation choice belongs to the conversation', () => {
     await prepareFalse(); await act(async () => shell().props.card(false).props.review());
     expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, false);
     expect(action('Sačuvaj profil')).toBeTruthy(); expect(mockApi.save).not.toHaveBeenCalled();
-  });
-  it('retains false when a candidate patch retires the frozen review', async () => {
-    await prepareFalse();
-    await act(async () => shell().props.attach.onPress());
-    await act(async () => menuRow('Alat i vozilo').props.onPress());
-    await restoreLegacyManual();
-    mockApi.patch.mockResolvedValue(ok(snapshot(1)));
-    await act(async () => manual().props.apply({ tools: ['Bušilica'], vehicles: [] }));
-    await act(async () => shell().props.card(false).props.review());
-    expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, false);
-    expect(mockApi.save).not.toHaveBeenCalled();
   });
   it('keeps the draft choice after a conversation turn retires the review', async () => {
     await prepareFalse();

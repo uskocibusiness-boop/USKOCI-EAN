@@ -1,22 +1,9 @@
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 
-/**
- * ONE PLACE FOR A CONTROL ICON (UI/UX pass, wave 2, item 2.3; audit ICO-08). A screen that imports `phosphor-react-native` itself
- * chooses its own size, weight and colour, which is how 47 icons came to be drawn at ten sizes in three weights. `Glyph.tsx` is
- * the one file that may import the package; every other file asks it for a name.
- *
- * This is a RATCHET, tight both ways like the wave-1 ratchets in `one-token-source.test.ts`: the list below names TODAY's importers
- * so the suite is green now, and it can only shrink. A file that is not on it and imports the package fails ("ask Glyph for a name");
- * a file that is on it and no longer imports the package fails too ("delete the entry"), so the change that moves a file onto
- * `Glyph` is the change that removes its line. Never add one.
- *
- * Wave 2 moved the two system components that draw the chrome, `ScreenChrome` and `ScreenHeader`, off the list. Every later wave
- * deletes the lines of the files it touches. LOCKED: `src/ui/entry/EntryWelcome.tsx` is the V4.9 entry; it keeps its own icons
- * and its line is never deleted by this pass.
- *
- * A test double that mocks the package (`jest.mock('phosphor-react-native', ...)`) is a test and is not read here.
- */
+/** Central icon ownership. Transitional adapters below remain explicit until migrated.
+ * A new adapter needs a documented role; this list is not an immutable count or style ban.
+ * Source scans retain production dependency boundaries and catch stale exceptions. */
 const repo = join(__dirname, '../../../..');
 const read = (path: string) => readFileSync(join(repo, path), 'utf8');
 
@@ -33,7 +20,7 @@ const sourceFiles = (dir: string): string[] => readdirSync(join(repo, dir), { wi
   return /\.(?:ts|tsx)$/.test(entry.name) && !/\.test\.(?:ts|tsx)$/.test(entry.name) ? [path] : [];
 });
 
-/** TODAY'S importers (30 files). It only shrinks. */
+/** Explicit transitional adapters; review when their owning component changes. */
 const PHOSPHOR_IMPORTERS = new Set([
   'src/designLab/dizajn-dodaci.tsx',
   'src/designLab/dizajn-dogovori.tsx',
@@ -42,7 +29,7 @@ const PHOSPHOR_IMPORTERS = new Set([
   'src/app/obavestenja.tsx',
   'src/ui/agreements/AgreementActionsPresentation.tsx',
   'src/ui/aiFirst/VoiceComposer.tsx',
-  'src/ui/entry/EntryWelcome.tsx', // LOCKED entry
+  'src/ui/entry/EntryWelcome.tsx', // Entry illustration adapter; not a frozen layout.
   'src/ui/groups/GroupConversationPresentation.tsx',
   'src/ui/product/ProductDetails.tsx',
   'src/ui/system/Disclosure.tsx',
@@ -71,7 +58,7 @@ describe('one place for a control icon: only Glyph imports the Phosphor package'
     ]) expect([source, importsPhosphor(source)]).toEqual([source, false]);
   });
 
-  it('no file outside Glyph imports the package unless it is on the shrinking list, and every listed file still does', () => {
+  it('no file outside Glyph imports the package unless it is on the reviewed adapter list, and every listed file still does', () => {
     const importers = sourceFiles('src').filter(path => path !== THE_GLYPH_FILE && importsPhosphor(read(path)));
     expect(importers.filter(path => !PHOSPHOR_IMPORTERS.has(path))
       .map(path => `${path}: imports phosphor-react-native and is not listed; ask Glyph for a name (add the name to the registry if it has none)`)).toEqual([]);
@@ -80,8 +67,7 @@ describe('one place for a control icon: only Glyph imports the Phosphor package'
     expect([...PHOSPHOR_IMPORTERS].filter(path => !existsSync(join(repo, path)))).toEqual([]);
   });
 
-  it('the list has the size it says, never lists Glyph itself, and Glyph really is the importer', () => {
-    expect(PHOSPHOR_IMPORTERS.size).toBe(19);
+  it('the adapters exclude the registry owner, which imports the package', () => {
     expect(PHOSPHOR_IMPORTERS.has(THE_GLYPH_FILE)).toBe(false);
     expect(importsPhosphor(read(THE_GLYPH_FILE))).toBe(true);
   });

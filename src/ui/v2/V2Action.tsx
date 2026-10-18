@@ -15,11 +15,9 @@ export const ACTION_MIN_HEIGHT = 48;
  * The one action of the app (master design plan, 2026-09-24: `V2Action` keeps its name, the old `Button` is gone).
  * Reuses existing UI-thread press feedback, system reduced motion and haptics.
  *
- * EVERY primary action is green with a white label (owner: one green primary action per screen; plan 2.18): `kind="primary"`
- * and a `brandAction` style, in any tone. `tone="neutral"` only changes the ink of a secondary or quiet control's label; it
- * never turns a primary black (it did, for `tone="neutral"` + `brandAction`, on four screens).
- * Secondary is white with a line; quiet is a link; destructive uses danger ink.
- * Existing `brandAction` callers share the same green surface and white label.
+ * Brand commands use deep green; `tone="accent"` supports publication and important next actions in orange.
+ * The label follows the actual material: white on green, dark ink on orange. Neutral secondary controls use body ink.
+ * Secondary is white with a line; quiet is a link; destructive uses danger ink. Legacy `brandAction` remains compatible.
  *
  * States, each said to the eye and to a screen reader:
  * - disabled: a quiet wash with the label AND its icon in muted ink, readable (5.0:1), never a faded ghost of the live
@@ -42,8 +40,8 @@ export function V2Action({ label, accessibilityLabel, onPress, disabled = false,
   /** Row context for assistive technology without repeating the task title on the visible action. */
   accessibilityLabel?: string;
   kind?: 'primary' | 'secondary' | 'quiet' | 'destructive'; icon?: ReactNode; style?: StyleProp<ViewStyle>;
-  /** `neutral` writes a secondary or quiet control's label in ink instead of green. It never changes a primary: that is green. */
-  tone?: 'brand' | 'neutral';
+  /** Purpose of the command; accent primaries use dark ink on orange, accent links use readable orange ink. */
+  tone?: 'brand' | 'neutral' | 'accent';
   /** Smaller type for a secondary control that must not compete with the content. The
    *  touch target keeps its full minimum height, so it is no harder to hit. */
   compact?: boolean;
@@ -55,16 +53,17 @@ export function V2Action({ label, accessibilityLabel, onPress, disabled = false,
 }) {
   const flat = StyleSheet.flatten(style) ?? {};
   const onBrand = flat.backgroundColor === brandAction.backgroundColor;
+  const onAccent = flat.backgroundColor === sys.color.orange || (!flat.backgroundColor && kind === 'primary' && tone === 'accent');
   const confirmed = useConfirmed(success && !loading);
   const inactive = disabled || loading;
   // Loading is the button at work, not a button that cannot be used: it keeps its own colour.
   const resting = disabled && !loading;
-  const filled = onBrand || kind === 'primary' || kind === 'secondary';
-  const color = resting ? sys.color.muted : onBrand ? sys.color.onGreen : kind === 'primary' ? sys.color.surface
-    : kind === 'destructive' ? sys.color.danger : tone === 'neutral' ? sys.color.ink : sys.color.green;
+  const filled = onBrand || onAccent || kind === 'primary' || kind === 'secondary';
+  const color = resting ? sys.color.muted : onBrand ? sys.color.onGreen : onAccent ? sys.color.onOrange : kind === 'primary' ? sys.color.onGreen
+    : kind === 'destructive' ? sys.color.danger : tone === 'neutral' ? sys.color.ink : tone === 'accent' ? sys.color.orangeInk : sys.color.green;
   // A disabled button draws its icon in the label's muted ink: the caller's icon was coloured for the live surface.
   const lead = loading ? <ActivityIndicator size="small" color={color} /> : confirmed ? <ConfirmedCheck color={color} />
-    : resting && isValidElement<{ color?: string }>(icon) ? cloneElement(icon, { color }) : icon;
+    : (resting || onAccent) && isValidElement<{ color?: string }>(icon) ? cloneElement(icon, { color }) : icon;
   const why = resting && !error && reason ? reason : null;
   // The column is decided by whether the caller passes a line at all, not by whether one shows now: switching between
   // the bare button and the column rebuilt the button, and TalkBack lost its place on it just as its error appeared.
@@ -77,7 +76,7 @@ export function V2Action({ label, accessibilityLabel, onPress, disabled = false,
     style={[{ minHeight: kind === 'primary' ? 54 : ACTION_MIN_HEIGHT, borderRadius: sys.radius.control,
       paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm, gap: sys.space.sm,
       flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-      backgroundColor: kind === 'primary' ? sys.color.green : kind === 'secondary' ? sys.color.surface : 'transparent',
+      backgroundColor: kind === 'primary' ? (tone === 'accent' ? sys.color.orange : sys.color.green) : kind === 'secondary' ? sys.color.surface : 'transparent',
       borderWidth: kind === 'secondary' ? 1 : 0, borderColor: sys.color.lineStrong }, inner,
       resting && filled ? s.restingFilled : null, error ? s.errorEdge : null]}>
     {lead}<T variant={compact ? 'meta' : 'action'} style={{ flexShrink: 1, textAlign: 'center', color }}>{label}</T>

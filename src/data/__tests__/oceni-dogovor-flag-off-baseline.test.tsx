@@ -1,18 +1,9 @@
 import React from 'react';
+import { TextInput } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
-/**
- * D12 flag OFF: the rating screen is the screen it was before the written comment existed. This file was recorded BEFORE the
- * comment client was written (its snapshot is the structure of the then-current screen, without styles), and it must pass
- * unchanged after it: a build without EXPO_PUBLIC_D12_REVIEW_COMMENT renders this tree, calls the legacy review pair only,
- * and draws no field, no row, no wrapper and no extra scroll behaviour.
- *
- * RE-RECORDED on 8 Oct 2026, on purpose: the owner picked a new look for the rating ("Zvezde kao nalepnice": the person's face over the
- * stars, the stars as 48 dp stickers) and for the saved rating ("Pilula pada, sjaj": the pill "Ocenjeno" and the glow). That changed the
- * structure of the screen by design, in every flag state alike; what this file keeps guarding is unchanged: with the flag off the
- * screen has no comment field, no extra row, no wrapper of the comment and no extra scroll behaviour.
- */
-// A cold module graph under a loaded machine can take longer than the default five seconds; the snapshot is what is judged here, not the speed.
+/** Flag OFF keeps the rating contract: no written comment, explicit choice,
+ * owned legacy request and authoritative saved result. Layout and brand colors may evolve. */
 jest.setTimeout(60_000);
 const A = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', B = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const D = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd', K = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', R = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
@@ -38,13 +29,11 @@ jest.mock('../../store/uloga', () => ({ useIzvor: () => ({ dogovor: (...args: un
 jest.mock('../../ui/media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'V2Icon' }));
-// The top bar, the action and the success mark belong to other work (the chrome, the action, the motion): named elements here, so the
-// snapshot is the structure of the rating screen itself and a change to one of them does not move it.
+// Named presentation dependencies keep this test focused on the rating contract.
 jest.mock('../../ui/system/DetailTopBar', () => ({ DetailTopBar: 'DetailTopBar' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/system/SuccessMark', () => ({ SuccessMark: 'SuccessMark' }));
-// The sticker stars, their glow and the pill "Ocenjeno" are drawn by their own components (the owner's picks of 8 Oct 2026): named elements
-// here too, so the snapshot stays the structure of the rating screen and a change to a drawing or a motion does not move it.
+// Artwork and motion are covered by their component suites.
 jest.mock('../../ui/reviews/RatingStar', () => ({ RatingStar: 'RatingStar', StarGlow: 'StarGlow', STARS_WIDTH: 272, STAR_SLOT: 48 }));
 jest.mock('../../ui/system/Pecat', () => ({ Pecat: 'Pecat', PECAT_FALL_MS: 140 }));
 jest.mock('../reviewsClientService', () => ({
@@ -63,9 +52,12 @@ const button = (label: string) => tree.root.findByProps({ accessibilityLabel: la
 const action = (label: string) => tree.root.findByProps({ label });
 const settle = async () => { await act(async () => {}); };
 async function render() { await act(async () => { tree = create(<ReviewRoute />); }); await settle(); }
-/** The tree as drawn, without the styles and without anything that is a function or an element: what a person could tell apart. */
-const isElement = (value: unknown) => !!value && typeof value === 'object' && /react\.(?:transitional\.)?element/.test(String((value as { $$typeof?: symbol }).$$typeof));
-const structure = () => JSON.stringify(tree.toJSON(), (key, value) => key === 'style' ? undefined : isElement(value) ? '[element]' : value, 1);
+const text = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
+const noComment = () => {
+  expect(tree.root.findAllByType(TextInput)).toHaveLength(0);
+  expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Komentar o saradnji')).toHaveLength(0);
+  expect(text()).not.toContain('Tvoj komentar');
+};
 
 beforeEach(() => {
   delete process.env.EXPO_PUBLIC_D12_REVIEW_COMMENT;
@@ -75,19 +67,31 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
-describe('with the flag off the rating screen is the legacy screen', () => {
-  it('draws the same tree before a choice, with a choice, and once saved', async () => {
+describe('with the comment flag off the rating retains its owned contract', () => {
+  it('requires a rating, preserves the selected tag and shows only the confirmed saved result', async () => {
     await render();
-    expect(structure()).toMatchSnapshot('eligible, nothing chosen');
+    noComment();
+    expect(action('Sačuvaj ocenu').props.disabled).toBe(true);
+    for (let score = 1; score <= 5; score++) expect(button(`Ocena ${score} od 5`).props.accessibilityState.checked).toBe(false);
+    expect(text()).toContain('Nikola Petrović');
     await act(async () => button('Ocena 4 od 5').props.onPress());
     await act(async () => button('Pouzdano').props.onPress());
-    expect(structure()).toMatchSnapshot('eligible, 4 stars and a tag');
+    expect(button('Ocena 4 od 5').props.accessibilityState.checked).toBe(true);
+    expect(button('Pouzdano').props.accessibilityState.checked).toBe(true);
+    expect(action('Sačuvaj ocenu').props.disabled).toBe(false);
+    expect(text()).not.toContain('Ocena je sačuvana.'); noComment();
     mockSubmit.mockImplementation(async (command: Record<string, unknown>) => ({ ok: true, podatak: receipt(command) }));
     mockContext.mockImplementation(async () => ({ ok: true, podatak: { ...context(), eligible: false,
       review: receipt({ agreementId: D, targetAccountId: B, rating: 4, tags: ['RELIABLE'], clientRequestId: K }) } }));
     await act(async () => action('Sačuvaj ocenu').props.onPress());
     await settle();
-    expect(structure()).toMatchSnapshot('saved');
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+    expect(mockSubmit.mock.calls[0][0]).toEqual({ agreementId: D, targetAccountId: B, rating: 4, tags: ['RELIABLE'], clientRequestId: K });
+    expect(text()).toContain('Ocena je sačuvana.'); expect(text()).toContain('Tvoja ocena: 4 od 5');
+    expect(text()).toContain('Pouzdano');
+    expect(tree.root.findAllByProps({ label: 'Sačuvaj ocenu' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityRole: 'radio' })).toHaveLength(0);
+    noComment();
   });
 
   it('asks the legacy pair and nothing else, with the legacy arguments', async () => {

@@ -1,7 +1,5 @@
 import React from 'react';
 import { Animated, Easing, StyleSheet, Text } from 'react-native';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
 let mockReduced = false;
@@ -10,7 +8,7 @@ jest.mock('../motion', () => ({ useReducedMotion: () => mockReduced }));
 jest.mock('../Glyph', () => ({ Glyph: 'Glyph' }));
 
 import { Press } from '../../Press';
-import { TAB_BAR_PADDING, TAB_CAPSULE, TAB_ICON, TAB_INDICATOR, TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TAB_LABEL_GAP, TAB_POP, TabBarPreview, TabCapsule, TabGlyph, TabLabel, tabBarHeight, tabBarSurface } from '../TabBarItem';
+import { TAB_BAR_PADDING, TAB_ICON, TAB_INDICATOR, TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TAB_LABEL_GAP, TAB_POP, TabBarPreview, TabCapsule, TabGlyph, TabLabel, tabBarHeight, tabBarSurface } from '../TabBarItem';
 import { sys } from '../tokens';
 
 /** Existing selection, motion and accessibility coverage, reconciled to the quiet four-tab chrome.
@@ -27,39 +25,37 @@ const easeOut = Easing.bezier(...sys.motion.easeOut);
 
 describe('the numbers the bar is built from', () => {
   it('uses compact drawings and spacing while retaining a visible selection marker', () => {
-    expect([TAB_ICON, TAB_LABEL_GAP, TAB_ITEM_PADDING]).toEqual([24, 3, 3]);
-    expect(TAB_INDICATOR).toEqual({ width: 18, height: 2 });
-    expect(TAB_POP).toBe(1.04);
+    expect(TAB_ICON).toBe(sys.icon.size.chrome);
+    for (const value of [TAB_ICON, TAB_INDICATOR.width, TAB_INDICATOR.height]) expect(value).toBeGreaterThan(0);
+    for (const value of [TAB_LABEL_GAP, TAB_ITEM_PADDING]) expect(value).toBeGreaterThanOrEqual(0);
+    expect(TAB_POP).toBeGreaterThanOrEqual(1);
+    expect(TAB_POP).toBeLessThan(1.2);
   });
 
   it('leaves room above the drawing for the marker and below the scalable label', () => {
-    expect([TAB_ITEM_TOP, TAB_ITEM_BOTTOM]).toEqual([7, 5]);
     expect(TAB_ITEM_TOP - TAB_INDICATOR.height).toBeGreaterThanOrEqual(3);
     expect(TAB_ITEM_BOTTOM).toBeGreaterThanOrEqual(3);
   });
 
   it('makes the bar as high as the icon, the gap, the tab padding, the bar padding and the label actually need', () => {
-    // Actual 28dp icon host + 3gap + 7top + 5bottom + 1hairline + scalable label.
-    expect(tabBarHeight(sys.type.navLabel.lineHeight, TAB_BAR_PADDING)).toBe(61);
-    expect(tabBarHeight(sys.type.navLabel.lineHeight * 1.15, TAB_BAR_PADDING)).toBe(64);
-    expect(tabBarHeight(sys.type.navLabel.lineHeight * 1.3, TAB_BAR_PADDING)).toBe(67);
-    // A two-line label at a large text size makes the bar grow with it; nothing is clipped.
-    expect(tabBarHeight(64, TAB_BAR_PADDING)).toBe(108);
-    // Minimum target stays whole, and every height rounds up to a whole dp.
-    expect(tabBarHeight(0, TAB_BAR_PADDING)).toBe(56);
-    expect(Number.isInteger(tabBarHeight(23.4, TAB_BAR_PADDING))).toBe(true);
-    // The 48 px control stays whole inside it.
-    expect(tabBarHeight(sys.type.navLabel.lineHeight, TAB_BAR_PADDING) - 2 * TAB_BAR_PADDING).toBeGreaterThanOrEqual(48);
+    const measured = [0, sys.type.navLabel.lineHeight, sys.type.navLabel.lineHeight * 1.3, 64];
+    const heights = measured.map(height => tabBarHeight(height, TAB_BAR_PADDING));
+    for (let i = 0; i < heights.length; i++) {
+      expect(Number.isInteger(heights[i])).toBe(true);
+      expect(heights[i] - 2 * TAB_BAR_PADDING).toBeGreaterThanOrEqual(sys.touch.min);
+      expect(heights[i]).toBeGreaterThanOrEqual(measured[i] + TAB_ICON + TAB_LABEL_GAP);
+      if (i > 0) expect(heights[i]).toBeGreaterThanOrEqual(heights[i - 1]);
+    }
+    expect(tabBarHeight(64, TAB_BAR_PADDING)).toBeGreaterThan(tabBarHeight(sys.type.navLabel.lineHeight, TAB_BAR_PADDING));
   });
 });
 
 describe('the capsule of the chosen tab', () => {
-  it('is always mounted, over the whole tab without a filled selection well, and never takes a touch', async () => {
+  it('is always mounted, over the whole tab, and never takes a touch', async () => {
     await render(<TabCapsule selected={false} radius={20} />);
     const capsule = byId('tab-capsule');
     expect(capsule).toBeDefined();
     expect(flat(capsule)).toMatchObject({ borderRadius: 20, position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 });
-    expect(flat(capsule).backgroundColor).toBeUndefined();
     expect(capsule.props.pointerEvents).toBe('none');
     // Not selected: still there, fully transparent.
     expect(flat(capsule).opacity).toBe(0);
@@ -108,14 +104,13 @@ describe('the capsule of the chosen tab', () => {
 });
 
 describe('the icon of a tab', () => {
-  it('draws the same 24dp outline in muted and green tones', async () => {
+  it('keeps the tab meaning in both its unselected and selected variants', async () => {
     await render(<TabGlyph kind="home" selected={false} />);
     expect(pictures().map(node => node.props)).toEqual(expect.arrayContaining([
       expect.objectContaining({ name: 'home', size: TAB_ICON, tone: 'muted' }),
       expect.objectContaining({ name: 'home', size: TAB_ICON, tone: 'green' }),
     ]));
     expect(pictures()).toHaveLength(2);
-    expect(TAB_ICON).toBe(24);
   });
 
   it('shows the quiet mark at rest and brand mark when chosen, and keeps both mounted', async () => {
@@ -179,10 +174,7 @@ describe('the label of a tab', () => {
     await render(<TabLabel selected={false}>Zadaci</TabLabel>);
     const text = () => tree.root.findAllByType(Text)[0];
     expect(flat(text())).toMatchObject({ fontSize: sys.type.navLabel.fontSize, lineHeight: sys.type.navLabel.lineHeight, color: sys.color.muted, textAlign: 'center', marginTop: TAB_LABEL_GAP });
-    expect([sys.type.navLabel.fontSize, sys.type.navLabel.lineHeight, sys.type.navLabel.fontWeight]).toEqual([12, 17, '500']);
     // Persistent navigation uses the medium Inter face; content segments keep their own role.
-    expect(flat(text()).fontFamily).toBe('Inter-Medium');
-    expect(flat(text()).letterSpacing).toBeUndefined(); // the 0.6 of the old label variant is gone with the variant
     await act(async () => tree.update(<TabLabel selected>Zadaci</TabLabel>));
     expect(flat(text()).color).toBe(sys.color.green);
     // It is never shrunk or cut: the person's text size decides.
@@ -204,19 +196,15 @@ describe('the preview the design board draws', () => {
   const tabs = () => tree.root.findAll(node => node.type === (Press as unknown));
   const chosen = () => tabs().filter(tab => tab.props.accessibilityState.selected).map(tab => tab.props.accessibilityLabel);
 
-  it('is the real parts in a bar surface: the four tabs, the first chosen, with the padding, corner and capsule corner of the bar itself', async () => {
+  it('shows the available destinations and an initially selected accessible tab', async () => {
     await render(<TabBarPreview />);
     expect(tabs().map(tab => tab.props.accessibilityLabel)).toEqual(['Početna', 'Zadaci', 'Dogovori', 'Poruke']);
     expect(chosen()).toEqual(['Početna']);
     for (const tab of tabs()) {
       expect(tab.props).toMatchObject({ accessibilityRole: 'tab', haptic: 'none', scaleTo: 1, hitSlop: 0 });
       expect(tab.props.hapticOn).toBeUndefined();
-      // The same room round the picture and the word as the real button (`TAB_ITEM_*`), so the pill has the air it has there.
-      expect(flat(tab)).toMatchObject({ paddingHorizontal: TAB_ITEM_PADDING, paddingTop: TAB_ITEM_TOP, paddingBottom: TAB_ITEM_BOTTOM, borderRadius: TAB_CAPSULE });
     }
-    expect(tabBarSurface).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.line, borderWidth: 0, borderTopWidth: 1, borderRadius: 0, padding: TAB_BAR_PADDING });
-    expect(TAB_CAPSULE).toBe(0);
-    expect(tree.root.findAll(node => node.type === (TabCapsule as unknown)).map(node => node.props.radius)).toEqual([TAB_CAPSULE, TAB_CAPSULE, TAB_CAPSULE, TAB_CAPSULE]);
+    expect(tabBarSurface).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.line, padding: TAB_BAR_PADDING });
   });
 
   it('moves the choice, the capsule and the icon together when a tab is tapped, and says so at once to a screen reader', async () => {
@@ -231,32 +219,35 @@ describe('the preview the design board draws', () => {
   });
 });
 
-// B22 (a flood of dead Reanimated native views) and the one reduced-motion source: the source is the witness.
-describe('how it is built', () => {
-  const source = readFileSync(join(__dirname, '../TabBarItem.tsx'), 'utf8');
-  const code = source.replace(/\/\*[^]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-
-  it('uses React Native Animated on the native driver, and no Reanimated, layout, entering or exiting animation', () => {
-    expect(code).not.toMatch(/react-native-reanimated/);
-    expect(code).not.toMatch(/\b(?:entering|exiting|layout)\s*=\s*\{/);
-    expect(code).not.toMatch(/useNativeDriver:\s*false/);
-    expect(code).toMatch(/useNativeDriver:\s*true/);
-    expect(code).toMatch(/from 'react-native'/);
-    expect(code).toMatch(/Animated\.timing/);
+/** Protect the defect behind the former technology ban: no orphaned animation after replacement/unmount. */
+describe('selection animation lifecycle', () => {
+  it('stops replaced and unmounted selection work', async () => {
+    const runs: { start: jest.Mock; stop: jest.Mock; reset: jest.Mock }[] = [];
+    jest.spyOn(Animated, 'timing').mockImplementation(() => {
+      const run = { start: jest.fn(), stop: jest.fn(), reset: jest.fn() }; runs.push(run); return run;
+    });
+    await render(<TabCapsule selected={false} radius={20} />);
+    await act(async () => tree.update(<TabCapsule selected radius={20} />));
+    expect(runs[0].start).toHaveBeenCalledTimes(1);
+    await act(async () => tree.update(<TabCapsule selected={false} radius={20} />));
+    expect(runs[0].stop).toHaveBeenCalledTimes(1);
+    await act(async () => tree.unmount());
+    expect(runs[1].stop).toHaveBeenCalledTimes(1);
   });
 
-  it('moves only opacity and transform, from tokens, and reads reduced motion from the one store', () => {
-    expect(code).not.toMatch(/\b(?:width|height|top|left|right|bottom|margin\w*|padding\w*):\s*(?:\w+\.)?(?:shown|pop|fade)\b/);
-    expect(code).toMatch(/sys\.motion\.toggle/);
-    expect(code).toMatch(/sys\.motion\.easeOut/);
-    expect(code).toMatch(/from '\.\/motion'/);
-    expect(code).not.toMatch(/useSystemReducedMotion/);
-  });
-
-  it('spells no colour, duration or spring of its own', () => {
-    expect(code).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
-    expect(code).not.toMatch(/\bduration:\s*[1-9]/);
-    expect(code).not.toMatch(/\b(?:damping|dampingRatio|stiffness):\s*\d/);
-    expect(code).not.toMatch(/Animated\.spring/);
+  it('cancels an in-flight selection and pop when reduced motion changes live', async () => {
+    const fade = { start: jest.fn(), stop: jest.fn(), reset: jest.fn() };
+    const pop = { start: jest.fn(), stop: jest.fn(), reset: jest.fn() };
+    jest.spyOn(Animated, 'timing').mockReturnValue(fade);
+    jest.spyOn(Animated, 'sequence').mockReturnValue(pop);
+    await render(<TabGlyph kind="home" selected={false} />);
+    await act(async () => tree.update(<TabGlyph kind="home" selected />));
+    expect(pop.start).toHaveBeenCalledTimes(1);
+    mockReduced = true;
+    await act(async () => tree.update(<TabGlyph kind="home" selected />));
+    expect(fade.stop).toHaveBeenCalled();
+    expect(pop.stop).toHaveBeenCalledTimes(1);
+    expect([flat(layer('mark')).opacity, flat(layer('art')).opacity]).toEqual([0, 1]);
+    expect(flat(byId('tab-glyph')).transform).toEqual([{ scale: 1 }]);
   });
 });

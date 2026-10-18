@@ -232,12 +232,13 @@ describe('the pill: plus, text, microphone (or send)', () => {
     expect(flat(pill.props.style).boxShadow ?? flat(pill.props.style).elevation).toBeDefined();
   });
 
-  it('draws a green send that can go when there is text, and a grey one when there is none', async () => {
+  it('shows whether Send is available and blocks an empty message', async () => {
     await render({ state: { ...props.state, draft: 'Nešto' } });
     const circle = (node: ReactTestInstance) => flat(node.findAll(child => String(child.type) === 'View')[0].props.style);
-    expect(circle(button('Pošalji poruku')).backgroundColor).toBe(sys.color.green);
+    const activeFill = circle(button('Pošalji poruku')).backgroundColor;
+    expect(button('Pošalji poruku').props.disabled).toBeFalsy();
     await act(async () => tree.update(<AgreementChat {...props} state={{ ...props.state, draft: '' }} />));
-    expect(circle(button('Pošalji poruku')).backgroundColor).toBe(sys.color.control);
+    expect(circle(button('Pošalji poruku')).backgroundColor).not.toBe(activeFill);
     expect(button('Pošalji poruku').props.disabled).toBe(true);
   });
 

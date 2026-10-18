@@ -12,11 +12,14 @@ import { AccessibilityInfo, AppState } from 'react-native';
  * - every screen and component reads it with `useReducedMotion`, through `useSyncExternalStore`, so one change reaches
  *   all of them in the same render.
  *
- * No Reanimated import here: route suites mock `react-native`, and this file must load wherever a screen does. A
+ * This preference store is independent of the animation engine chosen by a component. A
  * reader without a mounted root never touches a native API; it reads "not reduced" until a root follows the platform,
  * except a reader that outlives a root, which keeps the last answer that root knew (see `forgetWhenUnused`).
- * Shared motion defaults live in `sys.motion`. Purposeful transitions may clarify
- * an interaction; they must preserve the actual state and respect this preference.
+ * Shared motion defaults live in `motionTokens.ts`, exposed through `sys.motion`.
+ * Its press/feedback/content/navigation/sheet/assistant categories offer purposeful
+ * variants, not one duration for all transitions. Selecting a preset does not
+ * subscribe to focus/AppState or start anything: the consumer keeps its lifecycle
+ * cancellation, native execution and current reading/draft/refresh state.
  *
  * "Reduced" means the same thing everywhere. Movement is off and a state change is instant: a press does not scale, a row
  * does not arrive, a sheet settles with `{ duration: 0 }`, a loop (skeleton breath, typing dots, glow) does not start,

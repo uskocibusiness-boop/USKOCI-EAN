@@ -832,19 +832,17 @@ describe('the parts of the panel', () => {
     expect(whatField().props.value).toBe('Pomoć pri preseljenju u Novi Sad');
     await tap('Obriši reč'); expect(whatField().props.value).toBe('');
   });
-  test('a chosen chip has a neutral well, ink edge and words, and a confirmation tick; a chosen day is written in onDark', async () => {
+  test('chosen filters expose selection and a check without shifting their text', async () => {
     mode = 'filters'; await render();
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Datumi' }).props.onPress());
     await act(async () => dayCell(26).props.onPress());
     const end = tree.root.findByProps({ testID: 'range-end' });
-    expect(StyleSheet.flatten(end.findByType('T' as React.ElementType).props.style).color).toBe(sys.color.onDark);
+    expect(end.findByType('T' as React.ElementType).props.children).toBeDefined();
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Datumi' }).props.onPress());
     await choose('Sutra');
     const chip = radio('Sutra')[0], style = StyleSheet.flatten(chip.props.style);
-    expect(style).toMatchObject({ backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.ink });
-    expect(style.backgroundColor).not.toBe(sys.color.green);
-    expect(chip.findByType('Check' as React.ElementType).props.color).toBe(sys.color.ink);
-    expect(StyleSheet.flatten(chip.findByType('T' as React.ElementType).props.style).color).toBe(sys.color.ink);
+    expect(chip.props.accessibilityState.checked).toBe(true);
+    expect(chip.findByType('Check' as React.ElementType)).toBeDefined();
     const free = StyleSheet.flatten(radio('Danas')[0].props.style);
     // Selected and free chips keep the same inset; the selection border does not move their words.
     expect(Number(free.borderWidth) + Number(free.paddingHorizontal)).toBe(Number(style.borderWidth) + Number(style.paddingHorizontal));

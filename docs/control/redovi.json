@@ -7870,6 +7870,22 @@
         "ocena": "tacno",
         "napomena": "Klijent otvara izmene Dogovora; izvor src/app/obavestenja.tsx."
       }
+    },
+    "premium_baseline_20261018": {
+      "state": "SOURCE_INTEGRATION_IN_PROGRESS",
+      "sourceBeforeCleanup": "eaa38a04e20be24bba71840660493b634180ee72",
+      "report": "docs/current/CURRENT_BASELINE_20261018.md",
+      "canon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+      "dev": "Read-only: task99, worker53, push35; 285 migrations; all 18 deployed Edge package files equal local normalized source.",
+      "scope": "Retire visual freezes; preserve functional/privacy/accessibility protections. Integrate existing local foundation and AI-only entry cleanup.",
+      "notClaimed": [
+        "all screens redesigned",
+        "new icons generated",
+        "regional matching complete",
+        "new APK installed",
+        "physical phone verification"
+      ],
+      "status": "SOURCE_READY_CI_PENDING"
     }
   },
   "finalization": {

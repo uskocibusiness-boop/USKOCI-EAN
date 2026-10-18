@@ -60,6 +60,7 @@ import { StyleSheet } from 'react-native';
 import { HomePresentation } from '../../ui/home/HomePresentation';
 import { HOW_IT_WORKS_KEY, forgetHiddenHowItWorks } from '../../ui/home/HowItWorks';
 import { composeHome, type HomeSnapshot } from '../homeSnapshot';
+import { takeAiCorrection } from '../aiCorrectionIntent';
 import Pocetna from '../../app/(app)/index';
 
 let tree: ReactTestRenderer;
@@ -1142,8 +1143,6 @@ describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and w
   afterEach(() => { delete (mockSource as Record<string, unknown>).mojRadnikProfil; });
   const termless = (id: string, patch: object = {}) => ({ ...agreement(id, 'narucilac'), naslov: 'Krečenje stana u belo', vremeTekst: 'Termin nije potvrđen',
     prihvacenPocetak: null, tacanTermin: null, izmenaCeka: null, ...patch });
-  const week = { timezone: 'Europe/Belgrade', rules: [], windows: [] };
-  const available = (value: boolean) => ({ ...week, availableNow: value, accountId: A, profileId: 'p1', revision: 'rev-1' });
   const switchNode = () => tree.root.findAll(node => node.props.accessibilityLabel === 'Mogu odmah' && typeof node.props.onValueChange === 'function')[0];
 
   it('asks for a term where a confirmed Dogovor has none, opens the form that proposes one, and no longer says that nothing waits (R02)', async () => {
@@ -1234,42 +1233,25 @@ describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and w
       await render();
       expect(text()).not.toContain('Podesi radni profil'); expect(text()).not.toContain('Deo pregleda');
     });
-
-  // The owner's phone, 8 Oct 2026: "Slobodan sam sada / Uključeno. Važi dok ga ne isključiš." was a masculine form and a second name for what
-  // Dostupnost calls "Mogu odmah". The row is called what Dostupnost calls it, and says "Uključeno" or nothing.
-  it('draws the "Mogu odmah" switch only for an active profile, saves the saved week with only the status changed, and says "Uključeno" once it is on (R06)', async () => {
-    profileRead.mockResolvedValue({ stanje: 'ACTIVE', dostupanOdmah: false });
-    mockAvailability.read.mockResolvedValue({ ok: true, podatak: available(false) });
-    mockAvailability.save.mockResolvedValue({ ok: true, podatak: { saved: true, idempotentReplay: false, availability: available(true) } });
-    await render();
-    expect(text()).toContain('Mogu odmah'); expect(text()).not.toContain('Slobodan sam'); expect(text()).not.toContain('Uključi kad možeš da kreneš odmah.');
-    expect(text()).not.toContain('Uključeno');
-    expect(switchNode().props.value).toBe(false);
-    await act(async () => switchNode().props.onValueChange(true));
-    expect(mockAvailability.read).toHaveBeenCalledTimes(1);
-    expect(mockAvailability.save).toHaveBeenCalledWith({ expectedRevision: 'rev-1', value: { ...week, availableNow: true } });
-    expect(switchNode().props.value).toBe(true); expect(switchNode().props.disabled).toBeFalsy();
-    expect(text()).toContain('Uključeno'); expect(text()).not.toContain('Važi dok ga ne isključiš.');
+it('opens availability as an AI topic and keeps the saved state until review and save', async () => {
+    profileRead.mockResolvedValue({ stanje:'ACTIVE',dostupanOdmah:false }); await render();
+    expect(switchNode()).toBeUndefined(); expect(text()).toContain('Mogu odmah: isključeno');
+    await act(async()=>row('Izmeni dostupnost kroz razgovor').onPress());
+    const route=mockRouter.navigate.mock.calls.at(-1)![0];
+    expect(takeAiCorrection(route.params.aiCorrection,{accountId:A,accountRevision:1},'worker','cccccccc-cccc-4ccc-8ccc-cccccccccccc')?.target).toBe('worker.time');
+    expect(mockAvailability.read).not.toHaveBeenCalled(); expect(mockAvailability.save).not.toHaveBeenCalled();
+    expect(text()).toContain('Mogu odmah: isključeno');
   });
 
-  it('shows the switch at work while it saves, ignores a second touch, and returns it to where it was, saying so, when the save is not confirmed', async () => {
-    profileRead.mockResolvedValue({ stanje: 'ACTIVE', dostupanOdmah: true });
-    const read = deferred<unknown>(); mockAvailability.read.mockReturnValue(read.promise);
-    await render();
-    expect(switchNode().props.value).toBe(true);
-    await act(async () => switchNode().props.onValueChange(false));
-    expect(switchNode().props.value).toBe(false); expect(switchNode().props.disabled).toBe(true); expect(text()).toContain('Čuvamo…');
-    await act(async () => switchNode().props.onValueChange(true));
-    expect(mockAvailability.read).toHaveBeenCalledTimes(1);
-    await act(async () => read.resolve({ ok: false, kod: 'WORKER_AVAILABILITY_READ_FAILED', poruka: 'x' }));
-    expect(switchNode().props.value).toBe(true); expect(switchNode().props.disabled).toBeFalsy();
-    expect(text()).toContain('Nije sačuvano. Pokušaj ponovo.'); expect(mockAvailability.save).not.toHaveBeenCalled();
-    // A conflict or a refusal at the save says the same, and the next read of the screen is the truth again.
-    mockAvailability.read.mockResolvedValue({ ok: true, podatak: available(true) });
-    mockAvailability.save.mockResolvedValue({ ok: false, kod: 'AVAILABILITY_VERSION_CONFLICT', poruka: 'x' });
-    await act(async () => switchNode().props.onValueChange(false));
-    expect(switchNode().props.value).toBe(true); expect(text()).toContain('Nije sačuvano. Pokušaj ponovo.');
+it('retires a captured availability entry after focus or account changes', async () => {
+    profileRead.mockResolvedValue({ stanje:'ACTIVE',dostupanOdmah:true }); await render();
+    const retained=row('Izmeni dostupnost kroz razgovor').onPress;
+    mockFocused=false; await act(async()=>tree.update(<Pocetna/>));
+    await act(async()=>retained()); expect(mockRouter.navigate).not.toHaveBeenCalled();
+    mockFocused=true; mockSession={user:{id:B},accountRevision:2}; await act(async()=>tree.update(<Pocetna/>));
+    await act(async()=>retained()); expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(mockAvailability.save).not.toHaveBeenCalled();
   });
+
 });
 
 it('runs the Home radar only while its route and card are visible', async () => {

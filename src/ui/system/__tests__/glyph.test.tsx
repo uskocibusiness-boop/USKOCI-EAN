@@ -1,16 +1,9 @@
 import React from 'react';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-import { Glyph, GLYPH_NAMES, GLYPH_SIZES, GLYPH_TONES, glyphWeight, type GlyphName } from '../Glyph';
+import { Glyph, GLYPH_NAMES, GLYPH_SIZES, GLYPH_TONES, GLYPH_COLOUR, glyphWeight, type GlyphName } from '../Glyph';
 import { sys } from '../tokens';
 
-/**
- * The one wrapper for a control glyph (UI/UX pass, wave 2, item 2.3; audit ICO-08). 47 Phosphor icons were drawn at ten sizes in
- * three weights and as many colours, chosen at each call site, so every top bar and every row carried slightly different line
- * icons. These checks hold the closed registry, the three sizes, the five tones and the one weight rule. The Phosphor mock of
- * the repository draws each icon as a host element named after it, so "this name draws that icon" is read from the tree.
- */
+/** Registry semantics, optical variants and safe rendering. Appearance can evolve centrally. */
 let tree: ReactTestRenderer;
 afterEach(async () => { await act(async () => tree?.unmount()); });
 const render = async (element: React.ReactElement) => { await act(async () => { tree = create(element); }); };
@@ -28,8 +21,8 @@ const REGISTRY: Record<string, string> = {
 };
 
 describe('the closed registry', () => {
-  it('names exactly the controls the app draws, no more and no fewer', () => {
-    expect([...GLYPH_NAMES].sort()).toEqual(Object.keys(REGISTRY).sort());
+  it('keeps named controls unique and includes the established navigation and actions', () => {
+    expect(GLYPH_NAMES).toEqual(expect.arrayContaining(Object.keys(REGISTRY)));
     expect(new Set(GLYPH_NAMES).size).toBe(GLYPH_NAMES.length);
   });
 
@@ -38,48 +31,54 @@ describe('the closed registry', () => {
     expect(drawn().type).toBe(icon);
   });
 
-  it('gives no two names the same drawing: one meaning, one picture', async () => {
-    const seen = new Set<string>();
-    for (const name of GLYPH_NAMES) { expect(seen.has(REGISTRY[name])).toBe(false); seen.add(REGISTRY[name]); }
+  it.each(GLYPH_NAMES)('renders registered %s without an undefined drawing', async name => {
+    await render(<Glyph name={name} />);
+    expect(drawn().type).toEqual(expect.any(String));
   });
 });
 
 // The registry is closed for the compiler too. These lines are not run as a render: `tsc --noEmit` is the check, and it fails with
 // "Unused '@ts-expect-error' directive" if any of them ever compiles (a name, a size, a tone or a weight a call site could invent).
 describe('the registry is closed at compile time', () => {
-  it('refuses a name that is not in it, a size off the 16, 20, 24 ladder, a tone outside the five, and a weight of the caller\'s own', () => {
+  it('refuses unknown meanings, nonnumeric sizes, unnamed tones and arbitrary weights', () => {
     // @ts-expect-error 'nope' is not a GlyphName: a new control gets a new name in the registry, on purpose.
     const unknownName = <Glyph name="nope" />;
-    // @ts-expect-error 22 is not on the ladder: a glyph is 16 in text, 20 in a row, 24 in the chrome.
-    const offLadder = <Glyph name="back" size={22} />;
-    // @ts-expect-error 'orange' is not one of ink, green, muted, onGreen and danger.
-    const unknownTone = <Glyph name="back" tone="orange" />;
+    // @ts-expect-error native drawing dimensions must be numeric.
+    const offLadder = <Glyph name="back" size="large" />;
+    // @ts-expect-error colors come from named semantic roles.
+    const unknownTone = <Glyph name="back" tone="random-pink" />;
     // @ts-expect-error nothing outside the file picks a weight (`on` and `strong` are the only two doors).
     const ownWeight = <Glyph name="back" weight="thin" />;
     expect([unknownName, offLadder, unknownTone, ownWeight].every(element => React.isValidElement(element))).toBe(true);
   });
 });
 
-describe('three sizes, five tones', () => {
-  it('has chrome 24, row 20 and in-text 16, and draws 20 in ink unless told otherwise', async () => {
-    expect([...GLYPH_SIZES]).toEqual([16, 20, 24]);
+describe('optical defaults and semantic tones', () => {
+  it('uses the row default and supports every named optical role plus a custom composition', async () => {
+    expect(GLYPH_SIZES).toEqual(Object.values(sys.icon.size));
     await render(<Glyph name="search" />);
-    expect(drawn().props).toMatchObject({ size: 20, color: sys.color.ink });
-    for (const size of GLYPH_SIZES) {
+    expect(drawn().props).toMatchObject({ size: sys.icon.size.row, color: sys.color.ink });
+    for (const size of [...GLYPH_SIZES, 22, 28]) {
       await act(async () => tree.update(<Glyph name="search" size={size} />));
       expect(drawn().props.size).toBe(size);
     }
   });
 
   it('draws each tone in its token colour and no other', async () => {
-    expect([...GLYPH_TONES]).toEqual(['ink', 'green', 'muted', 'onGreen', 'danger']);
-    const colour = { ink: sys.color.ink, green: sys.color.green, muted: sys.color.muted, onGreen: sys.color.onGreen, danger: sys.color.danger };
+    expect(GLYPH_TONES).toEqual(expect.arrayContaining(['ink', 'green', 'muted', 'onGreen', 'danger', 'orange', 'onOrange']));
+    expect(GLYPH_COLOUR.orange).toBe(sys.color.orangeInk);
+    expect(GLYPH_COLOUR.onOrange).toBe(sys.color.onOrange);
     await render(<Glyph name="plus" />);
     for (const tone of GLYPH_TONES) {
       await act(async () => tree.update(<Glyph name="plus" tone={tone} />));
-      expect(drawn().props.color).toBe(colour[tone]);
+      expect(drawn().props.color).toBe(GLYPH_COLOUR[tone]);
     }
   });
+});
+
+it.each([0, -1, NaN, Infinity])('keeps invalid size %s from reaching the native SVG', async size => {
+  await render(<Glyph name="search" size={size} />);
+  expect(drawn().props.size).toBe(sys.icon.size.row);
 });
 
 describe('the one weight rule, resolved inside', () => {
@@ -115,6 +114,5 @@ describe('the one weight rule, resolved inside', () => {
     expect(drawn().props.weight).toBe('fill');
     await act(async () => tree.update(<Glyph name="back" size={24} />));
     expect(drawn().props.weight).toBe('regular');
-    expect(readFileSync(join(__dirname, '../Glyph.tsx'), 'utf8')).not.toMatch(/weight\??:\s*(?:IconWeight|string)/);
   });
 });

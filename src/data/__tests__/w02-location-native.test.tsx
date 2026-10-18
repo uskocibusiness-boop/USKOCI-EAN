@@ -32,7 +32,7 @@ jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'Resolved
 import { NeedLocationForm, saveBlockReason } from '../../ui/location/NeedLocationForm';
 import { WorkerLocationForm, radiusChoices } from '../../app/(app)/profil/lokacija';
 import { StyleSheet } from 'react-native';
-import { sys } from '../../ui/system/tokens';
+import { sys, brandAction } from '../../ui/system/tokens';
 
 const review = (): NeedLocationReview => ({ accountId: 'account-a', conversationId: 'conversation-a', editable: true,
   confirmed: true, revision: 'revision-a', value: { geography: { mode: 'STATIONARY', start: { city: 'Novi Sad' } },
@@ -265,7 +265,7 @@ describe('actual native Need location form', () => {
     await act(async () => tree.update(<NeedLocationForm review={{ ...loaded, editable: state !== 'read-only' }} busy={state === 'busy'} uncertain={state === 'uncertain'} onSave={onSave} />));
     // The one green save keeps its words; at work it spins (loading) instead of changing its label.
     const button = tree.root.findByProps({ label: 'Sačuvaj mesto' });
-    expect(StyleSheet.flatten(button.props.style).backgroundColor).toBe(sys.color.green);
+    expect(StyleSheet.flatten(button.props.style).backgroundColor).toBe(brandAction.backgroundColor);
     expect(button.props.loading).toBe(state === 'busy');
     expect(button.props.disabled).toBe(true);
     await act(async () => button.props.onPress());

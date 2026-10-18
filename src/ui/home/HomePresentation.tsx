@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
 import type { PrilikaProjekcija } from '../../contracts/projections';
 import { Avatar } from '../system/Avatar';
@@ -52,12 +52,8 @@ export type HomePresentationProps = {
    */
   onRatings: (agreementId: string | null) => void;
   onMyTasks: () => void; onMyApplications: () => void; onRefresh: () => void;
-  /**
-   * R06, "Mogu odmah" (the name Dostupnost gives it, and without a gender): the one switch of the work profile, drawn only for an
-   * account whose profile is active. The route saves it through the availability client and says whether it is at work or failed;
-   * without it the row is not drawn.
-   */
-  availableNow?: { value: boolean; onChange: (value: boolean) => void; busy?: boolean; failed?: boolean };
+  /** Saved availability is a fact; its action continues the AI conversation. */
+  availableNow?: { value: boolean; onEdit: () => void };
   /**
    * The face of the other person in the card of the next Dogovor. The route hands over the element that reads their photo (a data
    * client), exactly as it hands over the header's avatar; the presentation passes the stand-in it would draw itself
@@ -232,17 +228,10 @@ function MineRow({ art, title, detail, onPress, last = false }: {
     accessibilityLabel={detail ? `${title}. ${detail}` : title} />;
 }
 
-/**
- * R06: one switch, for an account whose work profile is active. It is called what Dostupnost calls it, "Mogu odmah" (it was "Slobodan
- * sam sada": a second name for one thing, and a masculine one, the owner's phone, 8 Oct 2026). The switch says whether it is on; the line
- * under it says only what the switch cannot: that it is on, while it saves, or that saving failed. How long it holds is Dostupnost's to say.
- * The route owns the save. The row is a row that tells and carries a control, so it is not a button itself.
- */
+/** No optimistic availability toggle: the status changes after AI review and Save. */
 function AvailableNowRow({ control, last }: { control: NonNullable<HomePresentationProps['availableNow']>; last: boolean }) {
-  const subtitle = control.failed ? 'Nije sačuvano. Pokušaj ponovo.' : control.busy ? 'Čuvamo…' : control.value ? 'Uključeno' : undefined;
-  return <ListRow leading={<FactArt kind="clock" size={32} />} title="Mogu odmah" subtitle={subtitle} last={last}
-    trailing={<Switch value={control.value} disabled={control.busy} onValueChange={control.onChange}
-      accessibilityLabel="Mogu odmah" trackColor={{ true: sys.color.green, false: sys.color.control }} thumbColor={sys.color.surface} />} />;
+  return <ListRow leading={<FactArt kind="clock" size={32} />} title="Dostupnost" subtitle={control.value ? 'Mogu odmah' : 'Mogu odmah: isključeno'} last={last}
+    accessibilityLabel="Izmeni dostupnost kroz razgovor" onPress={control.onEdit} />;
 }
 
 /** Said once and quietly: a part of the overview that could not be read names itself, and the shared recovery above retries it. */
@@ -348,7 +337,7 @@ export function HomePresentation(p: HomePresentationProps) {
   const applicationsDetail = home ? applicationsLine(home.mine.applications) : p.error ? 'Trenutno nedostupno' : null;
   const profile = home?.workerProfile?.kind === 'known' ? home.workerProfile.value : null;
   const setupProfile = !!profile && (profile.state === 'NONE' || profile.state === 'DRAFT');
-  const switchShown = !!profile && profile.state === 'ACTIVE' && !!p.availableNow;
+  const availabilityShown = !!profile && profile.state === 'ACTIVE' && !!p.availableNow;
   // The rows of "Čeka te", in the order they are drawn, so only the last one has no divider. At most WAITING_LIMIT of them (the server's
   // things first, then what the phone itself found, then the ratings); what does not fit is counted in the line under them, together with
   // what the server and the phone already said they left out. With no appointment ahead the first of them is the one record of the screen
@@ -423,9 +412,9 @@ export function HomePresentation(p: HomePresentationProps) {
     {/* My lists stand in one group of rows directly under what is above, with the one section gap and no heading or line of their own. */}
     <View>
       <MineRow art="tasks" title="Moji zadaci" detail={tasksDetail} onPress={p.onMyTasks} />
-      <MineRow art="offers" title="Moje prijave" detail={applicationsDetail} onPress={p.onMyApplications} last={!setupProfile && !switchShown} />
+      <MineRow art="offers" title="Moje prijave" detail={applicationsDetail} onPress={p.onMyApplications} last={!setupProfile && !availabilityShown} />
       <OptionalReadState kind="worker" state={p.workProfileRead} />
-      {switchShown ? <AvailableNowRow control={p.availableNow!} last={!setupProfile} /> : null}
+      {availabilityShown ? <AvailableNowRow control={p.availableNow!} last={!setupProfile} /> : null}
       {/* R20: until the work profile exists, one row says what it is for and opens its conversation. */}
       {setupProfile ? <ListRow leading={<FactArt kind="users" size={32} />} title="Podesi radni profil" subtitle="Dobijaš zadatke koji ti odgovaraju."
         onPress={() => p.onOpen({ kind: 'WORKER_PROFILE' })} last accessibilityLabel="Podesi radni profil. Dobijaš zadatke koji ti odgovaraju." /> : null}

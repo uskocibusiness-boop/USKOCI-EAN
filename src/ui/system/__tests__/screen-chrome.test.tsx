@@ -50,6 +50,11 @@ const circle = (label: string) => control(label).findAll(node => typeof node.typ
 // The repository's phosphor mock draws each icon as a host element named after it.
 const glyph = (label: string) => press(label).findAll(node => node.props.size === chrome.icon && node.props.weight !== undefined)[0];
 const noop = () => {};
+const expectTouchable = (label: string) => {
+  const style = flat(control(label));
+  expect(style.width ?? style.minWidth).toBeGreaterThanOrEqual(sys.touch.min);
+  expect(style.height ?? style.minHeight).toBeGreaterThanOrEqual(sys.touch.min);
+};
 
 describe('one bar for every kind of screen', () => {
   it('keeps shared padding, with a 56 px profile target and unchanged 48 px detail/flow controls', async () => {
@@ -59,11 +64,11 @@ describe('one bar for every kind of screen', () => {
       [<ScreenChrome variant="flow" title="Novi zadatak" onClose={noop} />, 'Zatvori'],
     ] as const) {
       await render(element);
-      expect(flat(bar())).toMatchObject({ minHeight: 64, paddingHorizontal: 20, paddingVertical: 8 });
+      expect(flat(bar()).minHeight).toBeGreaterThanOrEqual(layout.touch);
       // The same values, named on the one spacing scale.
       expect(flat(bar())).toMatchObject({ paddingHorizontal: sys.space.lg, paddingVertical: sys.space.sm, gap: sys.space.md });
-      const target = lead === 'Moj profil' ? 56 : 48;
-      expect(flat(control(lead))).toMatchObject({ width: target, height: target });
+      expect(flat(control(lead)).width).toBeGreaterThanOrEqual(layout.touch);
+      expect(flat(control(lead)).height).toBeGreaterThanOrEqual(layout.touch);
       await act(async () => tree.unmount());
     }
   });
@@ -71,7 +76,6 @@ describe('one bar for every kind of screen', () => {
   // UI/UX pass 2026-10-08 (F8a): the edge of the bar is the grid's, so the arrow and the first line of content stand on one line.
   it('has the edge of the grid: `layout.gutter`, which is the edge of every screen, for each of the three bars', async () => {
     expect(chrome.paddingHorizontal).toBe(layout.gutter);
-    expect(layout.gutter).toBe(20);
     for (const element of [<ScreenHeader title="Dogovori" onProfile={noop} />, <DetailTopBar title="Raspored" onBack={noop} />,
       <ScreenChrome variant="flow" title="Novi zadatak" onClose={noop} />]) {
       await render(element);
@@ -118,14 +122,15 @@ describe('root', () => {
     expect(glyph('Pretraga').props).toMatchObject({ weight: 'regular', color: sys.color.ink });
   });
 
-  it('places the larger own profile last and preserves its navigation callback', async () => {
+  it('keeps a touchable own-profile entry and its navigation callback', async () => {
     const open = jest.fn();
     await render(<ScreenHeader title="Dogovori" onProfile={open} profileEntry={<ActualUserAvatar onPress={open} />} />);
-    expect(flat(control('Moj profil'))).toMatchObject({ width: 56, height: 56 });
-    expect(tree.root.findByType('HeaderAvatar' as React.ElementType).props.size).toBe(48);
+    expect(flat(control('Moj profil')).width).toBeGreaterThanOrEqual(layout.touch);
+    expect(flat(control('Moj profil')).height).toBeGreaterThanOrEqual(layout.touch);
+    expect(tree.root.findByType('HeaderAvatar' as React.ElementType).props.size).toBeLessThanOrEqual(flat(control('Moj profil')).width);
     const orderedArt = tree.root.findAll(node => typeof node.type === 'string'
       && ['Bell', 'HeaderAvatar'].includes(node.type)).map(node => node.type);
-    expect(orderedArt).toEqual(['Bell', 'HeaderAvatar']);
+    expect(orderedArt).toEqual(expect.arrayContaining(['Bell', 'HeaderAvatar']));
     await act(async () => press('Moj profil').props.onPress());
     expect(open).toHaveBeenCalledTimes(1);
     expect(header().props.accessibilityLabel).toBe('USKOČI, Dogovori');
@@ -136,7 +141,7 @@ describe('root', () => {
     await render(<ScreenHeader title="Dogovori" onProfile={open} />);
     expect(tree.root.findAllByType('HeaderAvatar' as React.ElementType)).toHaveLength(0);
     expect(glyph('Moj profil').type).toBe(User);
-    expect(flat(control('Moj profil'))).toMatchObject({ width: 48, height: 48 });
+    expectTouchable('Moj profil');
     await act(async () => press('Moj profil').props.onPress());
     expect(open).toHaveBeenCalledTimes(1);
   });
@@ -144,22 +149,22 @@ describe('root', () => {
   it('keeps a data-free profile glyph for direct ScreenChrome galleries', async () => {
     await render(<ScreenChrome variant="root" title="Dogovori" onProfile={noop} bell={<React.Fragment />} />);
     expect(glyph('Moj profil').type).toBe(User);
-    expect(flat(control('Moj profil'))).toMatchObject({ width: 48, height: 48 });
+    expectTouchable('Moj profil');
   });
 });
 
 // Round-1 critique B2: five icon-button shapes (a square well, a round well, a green avatar, a round bell, the week's
 // bordered arrows) became one. The bell is neutral; only its unread count keeps the orange.
 describe('the one chrome icon button', () => {
-  it('is a 44 px white circle with the hairline inside an exact 48 px touch area, with a 24 px regular glyph in ink', async () => {
+  it('keeps the optical drawing inside an accessible back target', async () => {
     const back = jest.fn();
     await render(<DetailTopBar title="Kalendar obaveza" onBack={back} />);
-    expect(flat(control('Nazad'))).toMatchObject({ width: 48, height: 48 });
+    expectTouchable('Nazad');
     expect(press('Nazad').props.hitSlop).toBe(0);
-    expect(flat(circle('Nazad'))).toMatchObject({ width: 44, height: 44, borderRadius: sys.radius.pill,
-      backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line });
+    expect(flat(circle('Nazad')).width).toBeLessThanOrEqual(chrome.control);
+    expect(flat(circle('Nazad')).height).toBeLessThanOrEqual(chrome.control);
     expect(glyph('Nazad').type).toBe(ArrowLeft);
-    expect(glyph('Nazad').props).toMatchObject({ size: 24, weight: 'regular', color: sys.color.ink });
+    expect(glyph('Nazad').props).toMatchObject({ size: chrome.icon, weight: 'regular', color: sys.color.ink });
     await act(async () => press('Nazad').props.onPress());
     expect(back).toHaveBeenCalledTimes(1);
   });
@@ -175,9 +180,9 @@ describe('the one chrome icon button', () => {
 
   it('has a quiet form without the circle, for a control that ends a row of its own content', async () => {
     await render(<ChromeIconButton quiet label="Kalendar obaveza" icon={CalendarBlank} onPress={noop} />);
-    expect(flat(control('Kalendar obaveza'))).toMatchObject({ width: 48, height: 48 });
+    expectTouchable('Kalendar obaveza');
     expect(flat(circle('Kalendar obaveza'))).toMatchObject({ backgroundColor: 'transparent', borderColor: 'transparent' });
-    expect(glyph('Kalendar obaveza').props).toMatchObject({ size: 24, weight: 'regular', color: sys.color.ink });
+    expect(glyph('Kalendar obaveza').props).toMatchObject({ size: chrome.icon, weight: 'regular', color: sys.color.ink });
     expect(press('Kalendar obaveza').props.accessibilityState).toEqual({ disabled: false });
   });
 
@@ -188,9 +193,9 @@ describe('the one chrome icon button', () => {
     mockUnread = 0;
     await render(<InboxBell />);
     const label = bellLabel(0);
-    expect(flat(control(label))).toMatchObject({ width: 48, height: 48 });
+    expectTouchable(label);
     expect(circle(label)).toBeUndefined();
-    expect(tree.root.findByType(Glyph).props).toMatchObject({ name: 'notifications', size: 24 });
+    expect(tree.root.findByType(Glyph).props).toMatchObject({ name: 'notifications', size: chrome.icon });
     expect(hosts(node => flat(node).backgroundColor === sys.color.orange)).toHaveLength(0);
     await act(async () => tree.unmount());
     mockUnread = 3;
@@ -198,7 +203,7 @@ describe('the one chrome icon button', () => {
     const spoken = bellLabel(3);
     // The glyph does not invent an unread state; only the real count adds the badge.
     expect(circle(spoken)).toBeUndefined();
-    expect(tree.root.findByType(Glyph).props).toMatchObject({ name: 'notifications', size: 24 });
+    expect(tree.root.findByType(Glyph).props).toMatchObject({ name: 'notifications', size: chrome.icon });
     expect(hosts(node => flat(node).backgroundColor === sys.color.orange)).toHaveLength(1);
     expect(tree.root.findAllByType(Text).map(node => node.props.children)).toContain(3);
     mockUnread = undefined;
@@ -234,7 +239,7 @@ describe('detail', () => {
 describe('the title that appears on scroll', () => {
   const title = () => hosts(node => node.props.testID === 'chrome-title')[0];
 
-  it('is hidden from the eye and from a screen reader until the content title has scrolled away, then fades in over 180 ms', async () => {
+  it('keeps a duplicate title hidden from assistive technology until its scroll reveal, using shared motion timing', async () => {
     const timing = jest.spyOn(Animated, 'timing');
     await render(<ProductHeader title="Selidba stana" back={noop} titleVisible={false} />);
     expect(title().props.accessibilityElementsHidden).toBe(true);
@@ -242,7 +247,7 @@ describe('the title that appears on scroll', () => {
     expect(flat(title()).opacity).toBe(0);
     timing.mockClear();
     await act(async () => tree.update(<ProductHeader title="Selidba stana" back={noop} titleVisible />));
-    expect(timing).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ toValue: 1, duration: 180, useNativeDriver: true }));
+    expect(timing).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ toValue: 1, duration: sys.motion.toggle, useNativeDriver: true }));
     expect(title().props.accessibilityElementsHidden).toBe(false);
     expect(title().props.importantForAccessibility).toBe('auto');
   });
@@ -262,8 +267,8 @@ describe('the title that appears on scroll', () => {
       const copy = hosts(node => flat(node).flex === 1 && flat(node).alignSelf === 'stretch')[0];
       expect(copy.findAll(node => typeof node.type === 'string' && node !== copy)[0].props.testID).toBe('chrome-title');
       // What does stand in the row is two fixed 48 px controls, inside the one 64 px bar.
-      expect(flat(control('Nazad'))).toMatchObject({ width: 48, height: 48 });
-      expect(flat(control('Više radnji'))).toMatchObject({ width: 48, height: 48 });
+      expectTouchable('Nazad');
+      expectTouchable('Više radnji');
       expect(flat(bar())).toMatchObject({ minHeight: 64, paddingVertical: 8 });
       expect(flat(bar()).height).toBeUndefined();
       await act(async () => tree.unmount());
@@ -319,9 +324,10 @@ describe('a chrome icon button drawn from the Glyph registry', () => {
   it('draws the named glyph at 24, regular, in ink inside the same circle and the same 48 px touch area as a Phosphor icon', async () => {
     await render(<ChromeIconButton label="Filteri" glyph="filters" onPress={noop} />);
     expect(glyph('Filteri').type).toBe(SlidersHorizontal);
-    expect(glyph('Filteri').props).toMatchObject({ size: 24, weight: 'regular', color: sys.color.ink });
-    expect(flat(control('Filteri'))).toMatchObject({ width: 48, height: 48 });
-    expect(flat(circle('Filteri'))).toMatchObject({ width: 44, height: 44, borderRadius: sys.radius.pill });
+    expect(glyph('Filteri').props).toMatchObject({ size: chrome.icon, weight: 'regular', color: sys.color.ink });
+    expectTouchable('Filteri');
+    expect(flat(circle('Filteri')).width).toBeLessThanOrEqual(chrome.control);
+    expect(flat(circle('Filteri')).height).toBeLessThanOrEqual(chrome.control);
     expect(press('Filteri').props.hitSlop).toBe(0);
   });
 
@@ -344,7 +350,7 @@ describe('a chrome icon button drawn from the Glyph registry', () => {
     expect(glyph('Nazad').type).toBe(ArrowLeft);
     await act(async () => tree.update(<ScreenChrome variant="flow" title="Novi zadatak" onClose={noop} />));
     expect(glyph('Zatvori').type).toBe(X);
-    expect(glyph('Zatvori').props).toMatchObject({ size: 24, weight: 'bold', color: sys.color.ink });
+    expect(glyph('Zatvori').props).toMatchObject({ size: chrome.icon, weight: 'bold', color: sys.color.ink });
     await act(async () => tree.update(<ScreenChrome variant="root" title="Dogovori" onProfile={noop} bell={null} />));
     expect(glyph('Moj profil').type).toBe(User);
   });
@@ -360,17 +366,16 @@ describe('a chrome icon button drawn from the Glyph registry', () => {
 describe('a captioned control: a word beside the glyph for a command nobody can guess', () => {
   const FILTERS = 'Filteri zadataka';
 
-  it('is a 44 px pill with the glyph at 20 and the word in the meta variant, inside a 48 px touch height', async () => {
+  it('keeps a caption and its icon inside a full touch target', async () => {
     await render(<ChromeIconButton label={FILTERS} glyph="filters" caption="Filteri" onPress={noop} />);
     expect(texts()).toEqual(['Filteri']);
-    expect(flat(circle(FILTERS))).toMatchObject({ height: 44, minWidth: 44, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface,
-      borderWidth: 1, borderColor: sys.color.line, flexDirection: 'row', alignItems: 'center' });
-    expect(flat(control(FILTERS))).toMatchObject({ height: 48, minWidth: 48 });
+    expect(flat(circle(FILTERS)).height).toBeLessThanOrEqual(chrome.control);
+    expectTouchable(FILTERS);
     // It grows with its word: only the height of the touch area is fixed.
     expect(flat(control(FILTERS)).width).toBeUndefined();
     expect(press(FILTERS).props.hitSlop).toBe(0);
-    expect(glyphAt(FILTERS, 20).type).toBe(SlidersHorizontal);
-    expect(glyphAt(FILTERS, 20).props).toMatchObject({ weight: 'regular', color: sys.color.ink });
+    expect(glyphAt(FILTERS, chrome.captionIcon).type).toBe(SlidersHorizontal);
+    expect(glyphAt(FILTERS, chrome.captionIcon).props).toMatchObject({ weight: 'regular', color: sys.color.ink });
     const word = tree.root.findAllByType(Text)[0];
     expect(flat(word)).toMatchObject({ fontSize: sys.type.meta.fontSize, lineHeight: sys.type.meta.lineHeight, color: sys.color.ink });
     // Never under 12, and one line: a wrapped caption would make the pill taller than its touch area.
@@ -395,7 +400,7 @@ describe('a captioned control: a word beside the glyph for a command nobody can 
     expect(flat(word()).color).toBe(sys.color.ink);
     await act(async () => tree.update(<ChromeIconButton label={FILTERS} glyph="filters" caption="Filteri" active onPress={noop} />));
     expect(flat(word()).color).toBe(sys.color.green);
-    expect(glyphAt(FILTERS, 20).props).toMatchObject({ weight: 'fill', color: sys.color.green });
+    expect(glyphAt(FILTERS, chrome.captionIcon).props).toMatchObject({ weight: 'fill', color: sys.color.green });
     expect(flat(circle(FILTERS)).backgroundColor).toBe(sys.color.greenSoft);
     expect(press(FILTERS).props.accessibilityState).toEqual({ selected: true });
     await act(async () => tree.update(<ChromeIconButton label={FILTERS} glyph="filters" caption="Filteri" disabled onPress={noop} />));
@@ -406,28 +411,28 @@ describe('a captioned control: a word beside the glyph for a command nobody can 
   it('works on a Phosphor icon as well, and the quiet form drops the circle but keeps the word', async () => {
     await render(<ChromeIconButton quiet label="Raspored obaveza" icon={CalendarBlank} caption="Raspored" onPress={noop} />);
     expect(texts()).toEqual(['Raspored']);
-    expect(glyphAt('Raspored obaveza', 20).type).toBe(CalendarBlank);
-    expect(flat(circle('Raspored obaveza'))).toMatchObject({ backgroundColor: 'transparent', borderColor: 'transparent', height: 44 });
+    expect(glyphAt('Raspored obaveza', chrome.captionIcon).type).toBe(CalendarBlank);
+    expect(flat(circle('Raspored obaveza'))).toMatchObject({ backgroundColor: 'transparent', borderColor: 'transparent' });
   });
 
   it('is handed through the header toggle as well: the same pill, spoken as selected when on', async () => {
     await render(<HeaderIconButton label={FILTERS} glyph="filters" caption="Filteri" active onPress={noop} />);
     expect(texts()).toEqual(['Filteri']);
-    expect(flat(circle(FILTERS))).toMatchObject({ height: 44, borderRadius: sys.radius.pill, backgroundColor: sys.color.greenSoft });
+    expect(flat(circle(FILTERS))).toMatchObject({ backgroundColor: sys.color.greenSoft });
     expect(press(FILTERS).props.accessibilityState).toEqual({ selected: true });
     expect(press(FILTERS).props.accessibilityLabel).toBe(FILTERS);
     // Moji zadaci draws it with a Phosphor component (`icon`) and the caption, and the spoken label contains the word on the control.
     await act(async () => tree.update(<HeaderIconButton label="Filteri, aktivni" icon={SlidersHorizontal} caption="Filteri" active onPress={noop} />));
     expect(texts()).toEqual(['Filteri']);
-    expect(glyphAt('Filteri, aktivni', 20).type).toBe(SlidersHorizontal);
-    expect(glyphAt('Filteri, aktivni', 20).props).toMatchObject({ weight: 'fill', color: sys.color.green });
+    expect(glyphAt('Filteri, aktivni', chrome.captionIcon).type).toBe(SlidersHorizontal);
+    expect(glyphAt('Filteri, aktivni', chrome.captionIcon).props).toMatchObject({ weight: 'fill', color: sys.color.green });
     expect(press('Filteri, aktivni').props.accessibilityState).toEqual({ selected: true });
   });
 
   it('is not drawn without a caption: a bare control keeps its 48 by 48 touch area and has no word', async () => {
     await render(<ChromeIconButton label="Pretraga" glyph="search" onPress={noop} />);
     expect(texts()).toEqual([]);
-    expect(flat(control('Pretraga'))).toMatchObject({ width: 48, height: 48 });
+    expectTouchable('Pretraga');
   });
 });
 

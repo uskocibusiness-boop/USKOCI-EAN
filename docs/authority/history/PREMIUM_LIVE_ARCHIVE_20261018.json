@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-10-18T18:15:18.411Z",
+  "status": "HISTORICAL_EXACT_BYTES_NOT_ACTIVE_AUTHORITY",
+  "files": [
+    {
+      "source": "docs/current/USKOCI_OPERATIVNI_MASTER_PLAN_LIVE.html",
+      "archive": "docs/authority/history/USKOCI_OPERATIVNI_MASTER_PLAN_PRE_PREMIUM_20261018.html",
+      "sha256": "6297ed77382e1349001e41bf5fb001c569285387612401df3f55a4121d9d034e",
+      "bytes": 1291469
+    },
+    {
+      "source": "docs/authority/AUTHORITY_MANIFEST.json",
+      "archive": "docs/authority/history/AUTHORITY_MANIFEST_PRE_ROW_APPLICABILITY_20261018.json",
+      "sha256": "a8f53f4e7ea25d31dd92a0bfa664ac13bb501b5636c06620faef98940a4b903f",
+      "bytes": 159935
+    }
+  ]
+}

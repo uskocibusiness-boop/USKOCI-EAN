@@ -204,11 +204,12 @@ describe('a tick is never worth a crash or a lost tap', () => {
 describe('two ticks closer than sys.motion.tickGap are one: "less is more"', () => {
   const at = (ms: number) => { now = 100_000 + ms; };
 
-  it('the gap is 120 ms: a second tick of the same kind at 119 ms is dropped and at 120 ms it plays', async () => {
-    expect(sys.motion.tickGap).toBe(120);
-    tick('select'); at(119); tick('select'); await flush();
+  it('drops an equal tick inside the configured brief gap and allows it exactly at the boundary', async () => {
+    expect(sys.motion.tickGap).toBeGreaterThanOrEqual(80);
+    expect(sys.motion.tickGap).toBeLessThanOrEqual(250);
+    tick('select'); at(sys.motion.tickGap - 1); tick('select'); await flush();
     expect(played()).toBe(1);
-    at(120); tick('select'); await flush();
+    at(sys.motion.tickGap); tick('select'); await flush();
     expect(played()).toBe(2);
   });
 
@@ -226,7 +227,7 @@ describe('two ticks closer than sys.motion.tickGap are one: "less is more"', () 
   });
 
   it('a dropped tick does not push the window on: the gap is counted from the last tick that PLAYED', async () => {
-    tick('select'); at(100); tick('select'); at(130); tick('select'); await flush();
+    tick('select'); at(sys.motion.tickGap - 20); tick('select'); at(sys.motion.tickGap + 10); tick('select'); await flush();
     expect(played()).toBe(2);
   });
 

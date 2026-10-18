@@ -670,8 +670,9 @@ describe('D03 actual message component', () => {
       const send = button('Pošalji poruku');
       expect(flat(send.props.style)).toMatchObject({ width: 48, height: 48 });
       const circle = (node: typeof send) => flat(node.findAll(child => String(child.type) === 'View')[0].props.style);
-      // The send is the one green primary of the screen (white glyph); grey while nothing can go.
-      expect(circle(send).backgroundColor).toBe(sys.color.green); expect(flat(send.props.style).opacity).toBeUndefined();
+      // The send command remains named and available for the valid draft.
+      expect(send.props.disabled).toBeFalsy();
+      expect(send.props.accessibilityLabel).toBe('Pošalji poruku');
       const commandSlot = send.parent!;
       const writingRow = commandSlot.parent!;
       const pill = writingRow.parent!;

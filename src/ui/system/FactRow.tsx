@@ -15,16 +15,14 @@ export type FactRowProps = {
   testID?: string;
 };
 
-/**
- * The picture's side and the air after it: the old cards drew 16, 24, 28 and 32, with 8, 12, 14 and 16 beside them. It is 28, one size, because above 24 the
- * picture is the 2.5D sticker and not the flat mark (`factCutFor`): the owner asked for the 2.5D pictures back on the facts of a card (2026-10-08).
- */
+/** Shared current artwork slot. Card/detail variants and their placeholders
+ * consume this owner; the optical size may evolve with the artwork family. */
 const ART = 28;
 /** The same number for the placeholders that stand in for a fact (`Skeleton`, F8b): a picture that changes size changes them with it. */
 export const FACT_ROW_ART = ART;
 
 /**
- * One fact of a thing, as a row (composition spec 2026-10-07, N4): the 2.5D picture at 28 dp, 12 dp, the fact. `CardFact`,
+ * Shared fact row and its accessible value. `CardFact`,
  * `OwnTaskFact`, `AgreementFact`, `TaskDecisionLogistics` and `ProductFact` each drew this with their own size and gap.
  *
  * The fact is the line, so it wraps at any text size and the picture stays on its FIRST line (a fact of three lines does not

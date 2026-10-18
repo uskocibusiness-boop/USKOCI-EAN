@@ -6,7 +6,7 @@ import { useReducedMotion } from './motion';
 
 /* A row arriving in a list.
  *
- * The rule the app follows, from `DESIGN_SKILLS.md`: motion is feedback, never decoration. A card
+ * Content motion explains a transition; optional artwork has its own lifecycle. A card
  * that was already there when the screen opened has nothing to tell you by sliding in, and replaying
  * the whole list on every pull-to-refresh is exactly the churn that rule forbids. So each row
  * animates once, the first time this screen ever sees its id, and never again — a refresh that
@@ -16,7 +16,7 @@ import { useReducedMotion } from './motion';
  */
 
 /**
- * How many rows may arrive together (rule R4 of `sys.motion`): the stagger stops here, and so does the animated view.
+ * How many rows may arrive together : the stagger stops here, and so does the animated view.
  * Past six rows an entrance is a wait, not a rhythm, and every animated view is one more native view that Reanimated has
  * to keep a tag for (B22).
  */
@@ -93,7 +93,7 @@ export type AppearFrom = 'above' | 'below';
 
 /**
  * The one entrance a row can have: it settles from `ARRIVAL_RISE` above or below its place while it fades in, and it decelerates
- * (rule R2: every entrance is passed `easeOut` explicitly). Without `.easing(...)` Reanimated falls back to ease-in-out on a
+ * using the shared entrance curve. Without `.easing(...)` Reanimated falls back to ease-in-out on a
  * quadratic, which has covered only 2 % of the way after the first tenth of the time and so starts late.
  *
  * The curve is built when a row arrives, not when this file loads, so a suite that stands in for Reanimated without an
@@ -107,7 +107,7 @@ const arrival = (index: number, from: AppearFrom = 'below') => FadeInDown.durati
 /**
  * The stagger step (`sys.motion.stagger`) is per row, and stops at `ROWS_THAT_ARRIVE`.
  *
- * Whether the row is drawn on a Reanimated view is decided ONCE, when it mounts (rule R4, B22): a row that mounted
+ * Whether the row is drawn on a Reanimated view is decided ONCE, when it mounts : a row that mounted
  * settled is a plain `View` for the rest of its life and a row that mounted arriving keeps its animated view and the
  * entrance it was given. The element type never changes afterwards, so a later `animate` flip can neither remount the card
  * inside (losing its press state and its photo) nor create an animated view that Reanimated would have to track. A list

@@ -65,8 +65,7 @@ const readyDraft = (change: Record<string, unknown> = {}) => ({
 let tree: ReactTestRenderer | undefined;
 const action = (label: string) => tree!.root.findAll(node => String(node.type) === 'V2Action' && node.props.label === label)[0];
 const form = () => tree!.root.findByType('WorkerProfileForm' as React.ElementType);
-async function render(legacy = false) { await act(async () => { tree = create(<Profile />); }); await act(async () => {});
-  if (legacy) await act(async () => form().props.onEditPart('skills'));
+async function render() { await act(async () => { tree = create(<Profile />); }); await act(async () => {});
 }
 
 beforeEach(() => {
@@ -93,79 +92,8 @@ describe('PKG-005 progressive Worker onboarding', () => {
     const token = mockNavigate.mock.calls[0][0].params.aiCorrection;
     expect(takeAiCorrection(token, { accountId: mockAccountId, accountRevision: mockAccountRevision }, 'worker',
       '30000000-0000-4000-8000-000000000001')).toMatchObject({ target: 'worker.area' });
-    expect(form().props.reading).toBe(true); expect(form().props.openSection).toBeNull();
+    expect(form().props.reading).toBe(true); expect(form().props.openSection).toBeUndefined();
     expect(writeProfile).not.toHaveBeenCalled();
-  });
-
-  it('saves the first canonical draft before exposing any activation attempt, then routes the missing area prerequisite', async () => {
-    readProfile.mockResolvedValueOnce(null).mockResolvedValue(readyDraft({ grad: '' }));
-    await render(true);
-
-    expect(action('Uredi kroz razgovor')).toBeTruthy();
-    expect(action('Sačuvaj profil')).toBeUndefined();
-    expect(tree!.root.findAll(node => String(node.type) === 'V2Action' && node.props.label === 'Proveri i aktiviraj profil')).toHaveLength(0);
-
-    // The name is not typed here: the first save is made under the name of the account.
-    await act(async () => form().props.change({ ...form().props.draft, vestine: ['Selidbe'] }));
-    await act(async () => { action('Sačuvaj profil').props.onPress(); });
-    await act(async () => {});
-
-    expect(writeProfile).toHaveBeenCalledWith({ ime: 'Ana', vestine: ['Selidbe'], zavrsi: false });
-    expect(action('Podesi područje rada')).toBeTruthy();
-    expect(tree!.root.findAll(node => String(node.type) === 'V2Action' && node.props.label === 'Proveri i aktiviraj profil')).toHaveLength(0);
-
-    await act(async () => action('Podesi područje rada').props.onPress());
-    expect(mockNavigate).toHaveBeenCalledWith('/profil/lokacija');
-  });
-
-  it('activates a ready personal profile without requiring legacy capacityRevision', async () => {
-    readProfile.mockResolvedValue(readyDraft({ capacityRevision: null }));
-    await render(true);
-
-    expect(action('Učitaj kapacitet profila')).toBeUndefined();
-    expect(action('Proveri i aktiviraj profil')).toBeTruthy();
-    await act(async () => action('Proveri i aktiviraj profil').props.onPress());
-    expect(writeProfile).toHaveBeenCalledWith({ zavrsi: true });
-  });
-
-  it('exposes activation when canonical draft, area and minimum personal profile facts are present', async () => {
-    readProfile.mockResolvedValue(readyDraft());
-    await render(true);
-
-    expect(action('Proveri i aktiviraj profil')).toBeTruthy();
-    await act(async () => { action('Proveri i aktiviraj profil').props.onPress(); });
-    await act(async () => {});
-    expect(writeProfile).toHaveBeenCalledWith({ zavrsi: true });
-  });
-
-  it('guides an incomplete pristine DRAFT to the missing visible field without calling activation', async () => {
-    readProfile.mockResolvedValue(readyDraft({ ime: '', vestine: [] }));
-    await render(true);
-
-    expect(action('Dopuni osnovne podatke')).toBeTruthy();
-    await act(async () => action('Dopuni osnovne podatke').props.onPress());
-    expect(writeProfile).not.toHaveBeenCalled();
-    // The name of the account is there, so what is missing is the skill.
-    expect(form().props.focusRequest).toMatchObject({ target: 'skill' });
-  });
-
-  it('activates under the account\'s name, even when the work profile carries a one-character name of its own', async () => {
-    readProfile.mockResolvedValue(readyDraft({ ime: 'A', vestine: ['Selidbe'] }));
-    await render(true);
-
-    expect(action('Dopuni osnovne podatke')).toBeUndefined();
-    await act(async () => action('Proveri i aktiviraj profil').props.onPress());
-    expect(writeProfile).toHaveBeenCalledWith({ ime: 'Ana', zavrsi: true });
-  });
-
-  it('leads to "Lični podaci" when neither the account nor the profile has a name, and activates nothing', async () => {
-    mockAccountName = { state: 'ready', name: null };
-    readProfile.mockResolvedValue(readyDraft({ ime: '' }));
-    await render(true);
-
-    expect(action('Dodaj ime')).toBeTruthy(); expect(action('Proveri i aktiviraj profil')).toBeUndefined();
-    await act(async () => action('Dodaj ime').props.onPress());
-    expect(writeProfile).not.toHaveBeenCalled(); expect(mockNavigate).toHaveBeenCalledWith('/profil/podaci');
   });
 
   it('hands the form the name of the account and the one action that writes it into the work profile', async () => {
@@ -197,13 +125,6 @@ describe('PKG-005 progressive Worker onboarding', () => {
     expect(footer().props.error).toBe('Sačuvaj unos pre otvaranja razgovora.');
   });
 
-  it('keeps the guide instruction in the retained editor footer while the field it focuses opens the keyboard', async () => {
-    readProfile.mockResolvedValue(readyDraft({ ime: '', vestine: [] }));
-    await render(true);
-    await act(async () => action('Dopuni osnovne podatke').props.onPress());
-    expect(tree!.root.findByType('Footer' as React.ElementType).props.error).toBe('Pre aktivacije dodaj bar jednu veštinu.');
-  });
-
   // The approved draft of the product (8 Oct 2026, P3): a finished profile is read, a row of it opens the editor of ITS part, and the card has a face and a rating.
   describe('the profile read first, and what the route hands the form for it', () => {
     it('reads a clean active or suspended profile, and edits a draft, an edited one and a profile that does not exist yet', async () => {
@@ -219,17 +140,13 @@ describe('PKG-005 progressive Worker onboarding', () => {
       await act(async () => form().props.change({ ...form().props.draft, biografija: 'Radim sa bratom' }));
       expect(form().props.reading).toBe(false);
     });
+it('opens contextual AI edits without exposing manual fields or writing', async () => {
+ readProfile.mockResolvedValue(readyDraft({stanje:'ACTIVE'})); await render(); expect(form().props.aiOnly).toBe(true);
+ for(const part of ['tools','vehicles']) { await act(async()=>form().props.onEditPart(part));
+ const route=mockNavigate.mock.calls.at(-1)![0]; expect(takeAiCorrection(route.params.aiCorrection,{accountId:mockAccountId,accountRevision:mockAccountRevision},'worker','30000000-0000-4000-8000-000000000001')?.target).toBe('worker.tools'); }
+ expect(form().props.reading).toBe(true); expect(writeProfile).not.toHaveBeenCalled();
+});
 
-    it('hands the form a way to open one part, and a tap on it turns the reading into the editor with that part open and nothing written', async () => {
-      readProfile.mockResolvedValue(readyDraft({ stanje: 'ACTIVE' })); await render();
-      expect(form().props.reading).toBe(true); expect(form().props.openSection).toBeNull();
-      await act(async () => form().props.onEditPart('tools'));
-      expect(form().props.reading).toBe(false); expect(form().props.openSection).toMatchObject({ section: 'tools', token: 1 });
-      expect(writeProfile).not.toHaveBeenCalled(); expect(mockNavigate).not.toHaveBeenCalled();
-      // Another part is another request.
-      await act(async () => form().props.onEditPart('vehicles'));
-      expect(form().props.openSection).toMatchObject({ section: 'vehicles', token: 2 });
-    });
 
     it('does not open a part while the screen cannot take a tap: a save is in flight', async () => {
       let finish!: (value: unknown) => void;
@@ -238,7 +155,7 @@ describe('PKG-005 progressive Worker onboarding', () => {
       await render();
       await act(async () => { void form().props.onUseAccountName(); });
       await act(async () => form().props.onEditPart('skills'));
-      expect(form().props.openSection).toBeNull();
+      expect(form().props.openSection).toBeUndefined();
       readProfile.mockResolvedValue(readyDraft({ stanje: 'ACTIVE', ime: 'Milos' }));
       await act(async () => finish({ ok: true, podatak: null }));
     });
@@ -265,9 +182,9 @@ describe('PKG-005 progressive Worker onboarding', () => {
       expect(form().props.face.type).not.toBe('ProfilePhoto'); expect(form().props.face.props).toMatchObject({ size: 56 });
     });
 
-    it('hands the form the switch "Mogu odmah" for an active profile only, with the state the profile has', async () => {
+    it('hands the form saved availability and an AI edit action only for an active profile', async () => {
       readProfile.mockResolvedValue(readyDraft({ stanje: 'ACTIVE', dostupanOdmah: true })); await render();
-      expect(form().props.availableNow).toMatchObject({ value: true, busy: false, failed: false }); expect(typeof form().props.availableNow.onChange).toBe('function');
+      expect(form().props.availableNow).toMatchObject({ value: true }); expect(typeof form().props.availableNow.onEdit).toBe('function');
       await act(async () => tree!.unmount()); tree = undefined;
       for (const stanje of ['DRAFT', 'SUSPENDED'] as const) {
         readProfile.mockResolvedValue(readyDraft({ stanje })); await render();
@@ -278,7 +195,7 @@ describe('PKG-005 progressive Worker onboarding', () => {
 
     it('returns the legacy "O meni" link to the AI conversation once per nonce without opening or saving a manual editor', async () => {
       mockParams = { uredi: 'o-meni', n: '7' }; readProfile.mockResolvedValue(readyDraft({ stanje: 'ACTIVE' })); await render();
-      expect(form().props.reading).toBe(true); expect(form().props.openSection).toBeNull();
+      expect(form().props.reading).toBe(true); expect(form().props.openSection).toBeUndefined();
       expect(mockNavigate).toHaveBeenCalledTimes(1);
       expect(mockNavigate).toHaveBeenLastCalledWith({ pathname: '/profil/razgovor', params: { aiCorrection: expect.any(String) } });
       // Rendering again with the same link must not consume a second correction intent.
@@ -291,7 +208,7 @@ describe('PKG-005 progressive Worker onboarding', () => {
       for (const params of [{ uredi: 'o-meni' }, { uredi: 'drugo', n: '1' }, {}]) {
         mockNavigate.mockClear();
         mockParams = params; await render();
-        expect([JSON.stringify(params), form().props.reading, form().props.openSection]).toEqual([JSON.stringify(params), true, null]);
+        expect([JSON.stringify(params), form().props.reading, form().props.openSection]).toEqual([JSON.stringify(params), true, undefined]);
         expect(mockNavigate).not.toHaveBeenCalled();
         await act(async () => tree!.unmount()); tree = undefined;
       }

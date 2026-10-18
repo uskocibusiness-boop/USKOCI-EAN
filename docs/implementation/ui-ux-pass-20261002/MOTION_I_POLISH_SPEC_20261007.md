@@ -1,3 +1,7 @@
+> **ISTORIJSKI VIZUELNI IZVOR — povučena aktivna smernica, 18.10.2026.** Jedini važeći izgled i UX vodi [Premium White canon](../design-system/PREMIUM_WHITE_CANON.md), sa devet talasa, jednim pregledom i jednom akcijom „Izmeni kroz razgovor“. Aktuelni rad počinje u [indeksu](../../current/README_USKOCI_LIVE_MASTER_PLAN.md). Donji datirani tekst, prethodni rezultati i citati ostaju sačuvani; njihove reči „current“, „binding“, „locked“, „apply everywhere“ i stare procedure nisu novi nalozi. R1–R8, tačne krive/trajanja, zabrana pokreta u četu i stare freeze odluke više nisu aktivni estetski zahtevi. Povlačenje se odnosi na estetiku, kompoziciju i prevaziđeni tok; ne ukida privatnost, prava, očuvanje podataka, pristupačnost, revizije ili recovery. Njihov stvarni ugovor proverava se u aktuelnom kodu/serveru. Ovaj banner ne dokazuje implementaciju niti isporuku novog UI-ja.
+
+---
+
 # Pokret i doterivanje: benchmark i specifikacija (7. oktobar 2026)
 
 Agent za dizajn-benchmark (Sonnet 5.5, nasleđeno od roditelja). **Samo specifikacija:** nijedan izvorni fajl, uređaj, DEV baza ni zavisnost nisu dotaknuti; ovo je jedini novi fajl.

@@ -1,4 +1,10 @@
 {
+  "_currentApplicability": {
+    "status": "HISTORICAL_SNAPSHOT_ONLY",
+    "asOf": "2026-10-18",
+    "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+    "note": "Original 2026-09-08 screens and statuses below are preserved history, not current routes or delivery acceptance."
+  },
   "generated_at": "2026-09-08",
   "canonical_git_head": "38e9a38f7c9713cc7061f347eb083d84022dcdfd",
   "supabase_ref": "leqcwgzvjsxugfgzdmth",

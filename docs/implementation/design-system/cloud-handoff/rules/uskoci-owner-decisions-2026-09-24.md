@@ -8,6 +8,10 @@ metadata:
   modified: 2026-09-24T05:18:30.726Z
 ---
 
+> **ISTORIJSKI VIZUELNI IZVOR — povučena aktivna smernica, 18.10.2026.** Jedini važeći izgled i UX vodi [Premium White canon](../../PREMIUM_WHITE_CANON.md), sa devet talasa, jednim pregledom i jednom akcijom „Izmeni kroz razgovor“. Aktuelni rad počinje u [indeksu](../../../../current/README_USKOCI_LIVE_MASTER_PLAN.md). Donji datirani tekst, prethodni rezultati i citati ostaju sačuvani; njihove reči „current“, „binding“, „locked“, „apply everywhere“ i stare procedure nisu novi nalozi. Stari „Mogu odmah“ direktni upis nije cilj novog AI toka. „Samo u Dogovoru“ ne znači automatsko deljenje: potrebna je svesna smerna dozvola; opoziv ne povlači već pročitane ili obične poruke. Povlačenje se odnosi na estetiku, kompoziciju i prevaziđeni tok; ne ukida privatnost, prava, očuvanje podataka, pristupačnost, revizije ili recovery. Njihov stvarni ugovor proverava se u aktuelnom kodu/serveru. Ovaj banner ne dokazuje implementaciju niti isporuku novog UI-ja.
+
+---
+
 On 2026-09-24 the owner answered two open questions from the UI unification work:
 
 1. The rewritten voice privacy notice (`VOICE_PROCESSING_NOTICE` in `src/features/voice/useHoldToTalk.ts`, commit

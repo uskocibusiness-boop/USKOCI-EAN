@@ -8,6 +8,10 @@ metadata:
   modified: 2026-09-23T21:28:42.446Z
 ---
 
+> **ISTORIJSKI VIZUELNI IZVOR — povučena aktivna smernica, 18.10.2026.** Jedini važeći izgled i UX vodi [Premium White canon](../../PREMIUM_WHITE_CANON.md), sa devet talasa, jednim pregledom i jednom akcijom „Izmeni kroz razgovor“. Aktuelni rad počinje u [indeksu](../../../../current/README_USKOCI_LIVE_MASTER_PLAN.md). Donji datirani tekst, prethodni rezultati i citati ostaju sačuvani; njihove reči „current“, „binding“, „locked“, „apply everywhere“ i stare procedure nisu novi nalozi. Povlačenje se odnosi na estetiku, kompoziciju i prevaziđeni tok; ne ukida privatnost, prava, očuvanje podataka, pristupačnost, revizije ili recovery. Njihov stvarni ugovor proverava se u aktuelnom kodu/serveru. Ovaj banner ne dokazuje implementaciju niti isporuku novog UI-ja.
+
+---
+
 On 2026-09-23 (late night) the owner sent "USKOČI — AUTONOMOUS PRODUCT COMPLETION / PERFECTION DIRECTIVE" and, with it,
 "probavaj na emulatoru a ne telefonu, isključi telefon, koristi emulator za sve".
 

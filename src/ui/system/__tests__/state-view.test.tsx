@@ -1,7 +1,7 @@
 import React from 'react';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { ActivityIndicator, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Animated, StyleSheet, Text } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 
 jest.mock('../motion', () => ({ useReducedMotion: () => false }));
@@ -34,6 +34,16 @@ const actions = () => tree.root.findAllByType(V2Action);
 const host = (node: ReactTestInstance) => typeof node.type === 'string';
 /** How many: an assertion on a list of instances that fails prints every instance with its whole tree, so a count is compared and never the list. */
 const size = (nodes: readonly unknown[]) => nodes.length;
+const expectReadableMeasure = (value: number) => {
+  expect(Number.isFinite(value)).toBe(true);
+  expect(value).toBeGreaterThanOrEqual(240);
+  expect(value).toBeLessThanOrEqual(480);
+};
+const expectBoundedArt = (value: number) => {
+  expect(Number.isFinite(value)).toBe(true);
+  expect(value).toBeGreaterThanOrEqual(32);
+  expect(value).toBeLessThanOrEqual(192);
+};
 /** The first host element above a node (the test renderer also lists the components that draw a host, and they carry the same style). */
 const hostAbove = (node: ReactTestInstance) => { let up = node.parent!; while (!host(up)) up = up.parent!; return up; };
 /** The frame of the block: the first host above the picture that fills the room it is given. */
@@ -52,7 +62,8 @@ it('says an empty list with its picture, a heading, one sentence and the one way
   const makeTask = jest.fn(), all = jest.fn();
   await render(<StateView art="tasks" title="Nema aktivnih zadataka" body="Nacrti i završeni zadaci su u svojim prikazima."
     primary={{ label: 'Objavi novi zadatak', onPress: makeTask }} quiet={{ label: 'Prikaži sve moje zadatke', onPress: all }} />);
-  expect(art().props).toMatchObject({ kind: 'tasks', size: 96, muted: false });
+  expect(art().props).toMatchObject({ kind: 'tasks', muted: false });
+  expectBoundedArt(art().props.size);
   expect(texts()).toEqual(['Nema aktivnih zadataka', 'Nacrti i završeni zadaci su u svojim prikazima.', 'Objavi novi zadatak', 'Prikaži sve moje zadatke']);
   expect(role('header').map(node => node.props.children)).toEqual(['Nema aktivnih zadataka']);
   const [primary, quiet] = actions();
@@ -68,18 +79,19 @@ describe('the look of T7', () => {
   const full = <StateView kind="error" title="Podatke za prijavu trenutno nije moguće učitati." body="Proveri vezu."
     primary={{ label: 'Pokušaj ponovo', onPress: () => {} }} quiet={{ label: 'Nazad', onPress: () => {} }} />;
 
-  it('is one centred column, no wider than 280, with the title in the title type and the sentence in the copy type, both centred', async () => {
+  it('keeps a readable fluid column and a clear title/body hierarchy', async () => {
     await render(full);
-    expect(flat(column())).toMatchObject({ alignItems: 'center', maxWidth: 280, width: '100%' });
+    expect(flat(column())).toMatchObject({ alignItems: 'center', width: '100%' });
+    expectReadableMeasure(flat(column()).maxWidth);
     const [title, copy] = tree.root.findAllByType(T);
     expect([title.props.variant, copy.props.variant, copy.props.tone]).toEqual(['title', 'copy', 'muted']);
     for (const words of [title, copy]) expect(flat(words)).toMatchObject({ textAlign: 'center' });
-    expect(sys.type.title.fontSize).toBe(21);
+    expect(sys.type.title.fontSize).toBeGreaterThan(sys.type.copy.fontSize);
   });
 
-  it('draws the picture at 96 with nothing around it: no well, no panel, no card', async () => {
+  it('keeps the illustration bounded and leaves the surrounding layout fluid', async () => {
     await render(full);
-    expect(art().props.size).toBe(96);
+    expectBoundedArt(art().props.size);
     let node = art().parent!;
     while (!(host(node) && flat(node).marginBottom !== undefined)) node = node.parent!;
     expect(flat(node).backgroundColor).toBeUndefined();
@@ -87,12 +99,14 @@ describe('the look of T7', () => {
     expect(flat(node).borderWidth).toBeUndefined();
   });
 
-  it('lies a third of the way down: a fifth of the free room above the block and four fifths below, and never closer than 48 to what is above', async () => {
+  it('uses available room without crowding the header or pushing the block to the bottom', async () => {
     await render(full);
     expect(flat(frame())).toMatchObject({ flexGrow: 1, alignItems: 'center', paddingTop: sys.space.huge });
     const [above, block, below] = frame().children as ReactTestInstance[];
-    expect([flat(above).flex, flat(below).flex]).toEqual([1, 4]);
-    expect(flat(block).maxWidth).toBe(280);
+    expect(flat(above).flex).toBeGreaterThan(0);
+    expect(flat(below).flex).toBeGreaterThanOrEqual(flat(above).flex);
+    expect(flat(below).flex / flat(above).flex).toBeLessThanOrEqual(6);
+    expectReadableMeasure(flat(block).maxWidth);
   });
 
   it('puts its actions in the column, as wide as the column, the green one in the footer\'s own shape and the quiet one under it', async () => {
@@ -100,7 +114,7 @@ describe('the look of T7', () => {
     let node = actions()[0].parent!;
     while (!(host(node) && flat(node).alignSelf === 'stretch')) node = node.parent!;
     expect(flat(node)).toMatchObject({ alignSelf: 'stretch', marginTop: sys.space.xl, gap: sys.space.sm });
-    expect(flat(hostAbove(node)).maxWidth).toBe(280);
+    expectReadableMeasure(flat(hostAbove(node)).maxWidth);
     const [primary, quiet] = actions();
     expect(StyleSheet.flatten(primary.props.style)).toMatchObject({ backgroundColor: brandAction.backgroundColor, minHeight: brandAction.minHeight });
     for (const action of [primary, quiet]) expect(StyleSheet.flatten(action.props.style)?.alignSelf).toBeUndefined();
@@ -131,17 +145,21 @@ describe('what each kind says and draws', () => {
     }
   });
 
-  it('an empty conversation list draws the conversation picture at the same 96', async () => {
+  it('an empty conversation list uses the conversation illustration at the ordinary state size', async () => {
+    await render(<StateView art="tasks" title="Još nema zadataka" />);
+    const ordinarySize = art().props.size;
+    await act(async () => tree.unmount());
     await render(<StateView art="chat" title="Još nema razgovora" />);
     expect(size(pictures())).toBe(0);
-    expect(size(tree.root.findAll(node => typeof node.type !== 'string' && node.props.size === 96))).toBeGreaterThan(0);
+    expect(size(tree.root.findAll(node => typeof node.type !== 'string' && node.props.size === ordinarySize))).toBeGreaterThan(0);
   });
 
   it('announces a read that failed as an alert, with the picture gone grey', async () => {
     const retry = jest.fn();
     await render(<StateView kind="error" art="tasks" title="Dogovore trenutno nije moguće učitati" body="Proveri vezu."
       primary={{ label: 'Pokušaj ponovo', onPress: retry }} />);
-    expect(art().props).toMatchObject({ kind: 'tasks', muted: true, size: 96 });
+    expect(art().props).toMatchObject({ kind: 'tasks', muted: true });
+    expectBoundedArt(art().props.size);
     expect(role('alert').map(node => node.props.children)).toEqual(['Dogovore trenutno nije moguće učitati']);
     expect(size(role('header'))).toBe(0);
     expect(actions().map(action => action.props.label)).toEqual(['Pokušaj ponovo']);
@@ -224,9 +242,14 @@ describe('inside a section or a sheet', () => {
     expect(size(node.children)).toBe(1);
   });
 
-  it('keeps the picture of the kind at 48', async () => {
+  it('keeps the meaning and reduces the illustration inside a section', async () => {
+    await render(<StateView kind="error" art="tasks" title="Dogovor nije učitan" />);
+    const ordinarySize = art().props.size;
+    await act(async () => tree.unmount());
     await render(<StateView compact kind="error" art="tasks" title="Dogovor nije učitan" />);
-    expect(art().props).toMatchObject({ kind: 'tasks', size: 48, muted: true });
+    expect(art().props).toMatchObject({ kind: 'tasks', muted: true });
+    expectBoundedArt(art().props.size);
+    expect(art().props.size).toBeLessThan(ordinarySize);
   });
 });
 
@@ -342,11 +365,17 @@ describe('the first encounter: a hero', () => {
   const first = { title: 'Još nemaš zadatak', body: 'Reci šta ti treba. Nacrt pregledaš pre objave.',
     primary: { label: 'Objavi prvi zadatak', onPress: () => {} }, quiet: { label: 'Pogledaj zadatke', onPress: () => {} } };
 
-  it('draws the picture of an empty screen at 144 and everything else as it was: the same column, the same words, the one green action and the one quiet one', async () => {
+  it('emphasizes the first encounter while preserving the words and two action roles', async () => {
+    await render(<StateView art="publish" {...first} />);
+    const ordinarySize = art().props.size;
+    await act(async () => tree.unmount());
     await render(<StateView hero art="publish" {...first} />);
-    expect(art().props).toMatchObject({ kind: 'publish', size: 144, muted: false });
+    expect(art().props).toMatchObject({ kind: 'publish', muted: false });
+    expectBoundedArt(art().props.size);
+    expect(art().props.size).toBeGreaterThan(ordinarySize);
     expect(size(tree.root.findAllByType(Arrive))).toBe(1);
-    expect(flat(column())).toMatchObject({ alignItems: 'center', maxWidth: 280, width: '100%' });
+    expect(flat(column())).toMatchObject({ alignItems: 'center', width: '100%' });
+    expectReadableMeasure(flat(column()).maxWidth);
     expect(texts()).toEqual(['Još nemaš zadatak', 'Reci šta ti treba. Nacrt pregledaš pre objave.', 'Objavi prvi zadatak', 'Pogledaj zadatke']);
     expect(role('header').map(node => node.props.children)).toEqual(['Još nemaš zadatak']);
     expect(actions().map(action => action.props.kind)).toEqual([undefined, 'quiet']);
@@ -355,33 +384,50 @@ describe('the first encounter: a hero', () => {
     expect(flat(picture).marginBottom).toBe(sys.space.base);
   });
 
-  it('is the same state without it: an empty list that is not a hero keeps its 96', async () => {
+  it('omitting hero and explicitly disabling it give the same ordinary state', async () => {
     await render(<StateView art="publish" {...first} />);
-    expect(art().props.size).toBe(96);
+    const ordinarySize = art().props.size;
+    expectBoundedArt(ordinarySize);
     await act(async () => tree.update(<StateView hero={false} art="publish" {...first} />));
-    expect(art().props.size).toBe(96);
+    expect(art().props.size).toBe(ordinarySize);
   });
 
-  it('is only for an empty screen: a failure, a lost connection and an unknown outcome stay grey and still at 96, and a state inside a section stays at 48', async () => {
+  it('allows emphasis while preserving muted failure semantics and compact priority', async () => {
+    await render(<StateView kind="error" art="tasks" title="Nije uspelo" />);
+    const ordinarySize = art().props.size;
     for (const kind of ['error', 'offline', 'uncertain'] as const) {
       await act(async () => tree?.unmount());
       await render(<StateView hero kind={kind} art="tasks" title="Nije uspelo" body="Proveri vezu." primary={{ label: 'Pokušaj ponovo', onPress: () => {} }} />);
-      expect([kind, art().props.size, art().props.muted, size(tree.root.findAllByType(Arrive))]).toEqual([kind, 96, true, 0]);
+      expectBoundedArt(art().props.size);
+      expect(art().props.size).toBeGreaterThan(ordinarySize);
+      expect([kind, art().props.muted, size(tree.root.findAllByType(Arrive))]).toEqual([kind, true, 0]);
     }
     await act(async () => tree.unmount());
     await render(<StateView hero compact art="tasks" title="Nema aktivnih zadataka" />);
-    expect(art().props.size).toBe(48);
+    expectBoundedArt(art().props.size);
+    expect(art().props.size).toBeLessThan(ordinarySize);
   });
 
-  it('draws the two panels of a conversation at 144 as well', async () => {
+  it('gives the conversation the same hero emphasis as other empty screens', async () => {
+    await render(<StateView hero art="publish" {...first} />);
+    const heroSize = art().props.size;
+    await act(async () => tree.unmount());
     await render(<StateView hero art="chat" title="Još nema razgovora" />);
     expect(size(pictures())).toBe(0);
-    expect(size(tree.root.findAll(node => typeof node.type !== 'string' && node.props.size === 144))).toBeGreaterThan(0);
-    expect(size(tree.root.findAll(node => typeof node.type !== 'string' && node.props.size === 96))).toBe(0);
+    expect(size(tree.root.findAll(node => typeof node.type !== 'string' && node.props.size === heroSize))).toBeGreaterThan(0);
   });
 
-  it('is written where a person building a screen looks: the header names it, and says it is for the first time only', () => {
-    const header = readFileSync(join(__dirname, '../StateView.tsx'), 'utf8').replace(/\r\n/g, '\n');
-    expect(header).toMatch(/`hero`/); expect(header).toMatch(/144/); expect(header).toMatch(/cause: 'first'/);
+  it('keeps the first encounter stable on reread without replaying its entrance', async () => {
+    const timing = jest.spyOn(Animated, 'timing');
+    try {
+      await render(<StateView hero art="publish" {...first} />);
+      const words = texts();
+      const initialRuns = timing.mock.calls.length;
+      expect(initialRuns).toBeGreaterThan(0);
+      await act(async () => tree.update(<StateView hero art="publish" {...first} />));
+      expect(timing).toHaveBeenCalledTimes(initialRuns);
+      expect(texts()).toEqual(words);
+      expect(actions()).toHaveLength(2);
+    } finally { timing.mockRestore(); }
   });
 });

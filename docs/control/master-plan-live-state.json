@@ -1,10 +1,13 @@
 {
   "source": {
-    "repo": "uskocibusiness-boop/USKOCI-EAN"
+    "repo": "uskocibusiness-boop/USKOCI-EAN",
+    "workspace": "USKOCI-EAN",
+    "branch": "feature/unified-qa-master-20261017",
+    "baseline": "docs/current/CURRENT_BASELINE_20261018.json"
   },
   "p6": {
-    "status": "ZAVRŠEN (sa granicama)",
-    "note": "P6 je zatvoren 2026-09-30 po odluci vlasnika: na postojećim dokazima, uz eksplicitne granice; QA robot je zaseban paket i nije uslov. Zatvoreno: server rpc_discovery_v1 (PAGE/MAP/PLACES/EXACT_PUBLIC + POINT_MEMBERS) primenjen na DEV (PKG045b ledger 211, rollout v3 ledger 212, receipt-i), 30k SQL screening zelen pri jit=on (Round67/71), klijent (owner, fencing, koordinator, ekran, most, marker sloj, overlay, rok čitanja, DEV trag) sa CI dokazom, cutover: EXPO_PUBLIC_P6_DISCOVERY_READER=1 u DEV APK workflow-u (kill switch = ukloniti liniju), pravo čitanja sačuvano (anonimni negativni smoke 5/5). Tri stvarna nalaza pregleda popravljena test-prvo (obnova isteklog sidra, overlay ne trepće, pin spušta sheet). Native: CI emulator journey #12 12/12 koraka i 92/92 provere; lokalni AVD protiv DEV-a: 8=8, 20/20 povrataka, bez ANR; telefon HONOR: stari čitač (20 povrataka, ANR 0, smoke starog klijenta 6/6) i P6 kandidat u Round 74 (APK 36735155343 = tag p6-closed-20260930, adb install -r, sesija očuvana: 24/24 provere PASS; feedback p95 86 ms, sporih frejmova 2,5 %, ANR 0, 20/20 povrataka; pin→kartica p95 1503 ms i povratak p95 822 ms iznad cilja, polish EX-03). GRANICE (tačno, P6_CLOSURE_RECEIPT.md): L1 IZMERENO na telefonu u Round 74 (feedback i frejmovi ispunjeni; pin→kartica i povratak iznad cilja, ciljevi nisu ublaženi); L2 ANR na CI emulatoru (1, Reanimated poplava, počinje pri prijavi, RNR-01, van P6); L3 tri kasnija klijentska commit-a bez native dokaza; L4 hosted-like jit=off MAP 1011/1032 ms iznad 1000 ms; L5 bez testa konkurentnosti; L6 dokaz granice REAL/TEST sveta pripremljen, nije pokrenut; L7 lične liste A09/A11/B10 bez straničenja (red EX-04); L8 iOS; L9-L10 rezerva starog čitača, RC-03."
+    "status": "POSTOJEĆI READER / RANIJE ZATVARANJE SA GRANICAMA",
+    "note": "P6 je postojeća primenjena funkcionalnost, sa datiranim zatvaranjem 30.09.2026. i njegovim granicama. Aktuelni posao je Premium White organizacija, map/list/filter/Back kontinuitet i dokaz konkretnog novog APK-a. Prethodni benchmark rezultati su datirani dokazi; ovo nije novo merenje."
   },
   "release": {
     "status": "NOT READY",
@@ -16,11 +19,11 @@
       "done": null,
       "total": 28
     },
-    "note": "Objavljeni legal/retention/processor setovi: 0/0/0 (DEV read 30.09.2026). Brojevi legal/store PASS se ne upisuju bez dokaza za konkretne gate-ove."
+    "note": "Release nije potvrđen. Aktuelni baseline odvaja istorijski APK, lokalni kandidat, DEV readback i novu proveru. Legal/store brojači ostaju nepoznati bez odgovarajućeg dokaza; stari 30.09. zbir nije današnje stanje."
   },
   "next": {
-    "title": "Zavisne činjenice, regionalna pokrivenost i sledeća UI celina",
-    "note": "AI za zadatke 99 i radni profil 53, zajedno sa APK-om 0175d364, primenjeni su i ciljano provereni. Slede eksplicitna zamena zadatka, područja po usluzi, strukturne grupe kategorija, povezani UI i dva naloga kroz dogovor i obaveštenje."
+    "title": "Premium White foundation i fizičko čišćenje aktivnih izvora",
+    "note": "Odobreni talas 1: jedan canon, centralni tokeni/Surface/motion, povučene stare estetske zabrane i proveren aktivni ulaz. Posle objedinjene regresije sledi tačan APK i native pregled. Talasi 2–9 ostaju povezani plan iz canona; trenutni dokumentacioni rezultat ih ne zatvara."
   },
   "evidence": [
     {

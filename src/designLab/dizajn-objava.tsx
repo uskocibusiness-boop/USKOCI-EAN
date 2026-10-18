@@ -13,17 +13,13 @@ import type { createConfiguredLocationResolver } from '../data/configuredLocatio
 import { NeedLocationForm } from '../ui/location/NeedLocationForm';
 import { LocationMapPreview } from '../ui/location/LocationMapPreview';
 import { LocationScreen } from '../ui/location/LocationControls';
-import { PublishButton, ReviewCaption, ReviewCard, ReviewEditing, ReviewFactRow, ReviewFrame, ReviewMoreFacts, ReviewStatus, ReviewTodoList, ReviewWaysOut,
+import { PublishButton, ReviewCaption, ReviewCard, ReviewFactRow, ReviewFrame, ReviewMoreFacts, ReviewStatus, ReviewTodoList, ReviewWaysOut,
   type TodoRow } from '../ui/objava/ReviewPresentation';
-import { AddPhotos, OwnerAddress, ReviewDetail, ReviewGallery, type DetailPerson, type PreviewPart, type ReviewDetailParts } from '../ui/objava/ReviewDetail';
+import { AddPhotos, OwnerAddress, ReviewDetail, ReviewGallery, type DetailPerson, type ReviewDetailParts } from '../ui/objava/ReviewDetail';
 import type { PartPencil } from '../ui/objava/EditPencil';
 import { reviewAsTask } from '../ui/objava/reviewAsTask';
 import { blankList, ownerAddressFrame, privateReviewMap } from '../ui/objava/reviewFacts';
-import { FactTimestampEditor } from '../ui/aiFirst/FactValueEditors';
-import { ResponseDeadlineEditor } from '../ui/aiFirst/ResponseDeadlineEditor';
-import { AmountField } from '../ui/v2/AmountField';
 import { Avatar, type AvatarSize } from '../ui/system/Avatar';
-import { Segmented } from '../ui/system/Segmented';
 import { PublishedMoment } from '../ui/objava/PublishedMoment';
 import { PhotoGrid, PhotoStatus, PhotoTile, PhotosLoading, PhotosPrivacyNote, type PhotoTileState } from '../ui/objava/TaskPhotosPresentation';
 import { PHOTO_LIMIT, PHOTO_WORDS, photoCount } from '../ui/media/photoWords';
@@ -55,7 +51,7 @@ import { T } from '../ui/Text';
  * production preview with public fixture coordinates; external map links launch only if explicitly pressed.
  *
  * The review is drawn with the route's own frame (`ReviewFrame`), parts and foot, in the order the route draws them: what stands in the way, the
- * REAL card of the task (as the map and the list draw it), then the REAL page that opens from it, with the owner's pencil on each part and the
+ * REAL card of the task (as the map and the list draw it), then the REAL page that opens from it, with one AI correction entry, map/media controls and the
  * frame of his exact address (`reviewAsTask` makes the one from the other, as the route does). "Veliki tekst" is the same screen under
  * `LayoutClassOverride` (the lab has no text scale of its own), and "Dugi nazivi" the longest words a task can have.
  */
@@ -73,9 +69,9 @@ const SCENES: Scene[] = [
   { key: 'pregled-ruta', group: 'Pregled pre objave', label: 'Od mesta do mesta' },
   { key: 'pregled-daljina', group: 'Pregled pre objave', label: 'Rad na daljinu' },
   { key: 'pregled-bez-fotografija', group: 'Pregled pre objave', label: 'Bez fotografija, bez lica' },
-  { key: 'pregled-cena', group: 'Pregled pre objave', label: 'Izmena cene (olovka)' },
-  { key: 'pregled-termin', group: 'Pregled pre objave', label: 'Izmena termina (olovka)' },
-  { key: 'pregled-rok', group: 'Pregled pre objave', label: 'Izmena roka za prijave' },
+  { key: 'pregled-cena', group: 'Pregled pre objave', label: 'Cena kroz AI razgovor' },
+  { key: 'pregled-termin', group: 'Pregled pre objave', label: 'Termin kroz AI razgovor' },
+  { key: 'pregled-rok', group: 'Pregled pre objave', label: 'Rok za prijave (samo pregled)' },
   { key: 'pregled-vise', group: 'Pregled pre objave', label: 'Dodaj još podataka (otvoreno)' },
   { key: 'pregled-ucitavanje', group: 'Pregled pre objave', label: 'Učitavanje' },
   { key: 'pregled-greska', group: 'Pregled pre objave', label: 'Greška (bez veze)' },
@@ -201,19 +197,26 @@ function Picture({ size }: { size?: number }) {
 export default function DizajnObjava() {
   const internal = __DEV__ || String(Constants.expoConfig?.android?.package ?? '').endsWith('.dev');
   const [scene, setScene] = useState<string | null>(null);
+  const [aiTopic, setAiTopic] = useState<string | null>(null);
   const confirm = useConfirmSheet(), closeQuestion = confirm.close;
   // Android Back inside a scene returns to the list, as "Nazad" does (the sibling galleries do the same).
   useEffect(() => {
     if (!scene) return;
-    const subscription = BackHandler.addEventListener('hardwareBackPress', () => { closeQuestion(); setScene(null); return true; });
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      closeQuestion();
+      if (aiTopic) setAiTopic(null);
+      else if (scene === 'pregled-cena' || scene === 'pregled-termin') setScene('pregled-spremno');
+      else setScene(null);
+      return true;
+    });
     return () => subscription.remove();
-  }, [scene]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [scene, aiTopic]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (scene === 'foto-ukloni') confirm.ask({ title: 'Ukloniti fotografiju?', message: 'Fotografija se uklanja iz nacrta zadatka.',
       confirmLabel: 'Ukloni', tone: 'danger', onConfirm: noop });
   }, [scene]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!internal) return <View style={s.screen}><T>Nije dostupno.</T></View>;
-  const toList = () => { confirm.close(); setScene(null); };
+  const toList = () => { confirm.close(); setAiTopic(null); setScene(null); };
   if (!scene) return <Screen kind="detail" header={<DetailTopBar title="Galerija: objava zadatka" onBack={() => router.back()} backLabel="Zatvori galeriju" />}>
     <T variant="note" tone="muted">Primeri stanja sa izmišljenim podacima. Ništa se ne čita i ne šalje.</T>
     {SCENES.filter((item, index) => index === 0 || SCENES[index - 1].group !== item.group).map(first => <Section key={first.group} title={first.group}>
@@ -222,11 +225,28 @@ export default function DizajnObjava() {
     </Section>)}
   </Screen>;
 
+  // A local demonstration of the production topic handoff, never a second fact editor or an AI request.
+  // Opening a topic leaves every fixture unchanged; real corrections require another reviewed answer.
+  const topic = aiTopic ?? (scene === 'pregled-cena' ? 'Cena' : scene === 'pregled-termin' ? 'Termin' : null);
+  if (topic) {
+    const returnToReview = () => {
+      setAiTopic(null);
+      if (scene === 'pregled-cena' || scene === 'pregled-termin') setScene('pregled-spremno');
+    };
+    return <Screen kind="flow" header={<DetailTopBar title="Izmena kroz razgovor" onBack={returnToReview} backLabel="Nazad na pregled" />}
+      footer={<FlowFooter><V2Action label="Nazad na pregled" kind="quiet" onPress={returnToReview} /></FlowFooter>}>
+      <FactArt kind="chat" size={48} />
+      <T variant="title" accessibilityRole="header">{topic}</T>
+      <T variant="copy">U aplikaciji se otvara isti AI razgovor sa ovom temom. Kažeš šta menjaš, pa proveriš novi pregled pre objave.</T>
+      <T variant="note" tone="muted">Galerijski primer: AI se ne poziva i ništa se ne menja niti šalje.</T>
+    </Screen>;
+  }
+
   /* ------------------------------------------------------------------------------------------------ the review */
   type ReviewOptions = { todos?: TodoRow[]; status?: { published: boolean; text: string; action?: ReactNode }; command?: ReactNode; working?: boolean;
     loading?: boolean; failure?: boolean; error?: string; revising?: boolean; large?: boolean; facts?: Fact[]; location?: NeedLocationInput | null;
     /** How many photos the draft has: none shows the owner's way to add them. */ photos?: number; nobody?: boolean; deadline?: string | null;
-    editing?: 'value' | 'time' | 'deadline'; moreOpen?: boolean };
+    moreOpen?: boolean };
   const review = (options: ReviewOptions = {}) => {
     const todos = options.todos ?? [];
     const blocked = !!todos.length || !!options.working || !!options.error;
@@ -238,33 +258,18 @@ export default function DizajnObjava() {
       location, publicProjection: facts }, person);
     // A pencil is drawn only while the screen can act, as on the route (a save is running, an outcome is not read yet, a command is stored).
     const idle = !options.command && !options.working && !options.error;
-    const pencil = (label: string, word?: string): PartPencil | undefined => idle && !options.editing ? { label, onPress: noop, ...(word ? { word } : {}) } : undefined;
-    const part = (name: string, editor?: ReactNode): PreviewPart => ({ pencil: pencil(`Izmeni, ${name}`), editor });
-    // A line made of several facts names what is corrected by its tabs, so its editor has no name of its own.
-    const editing = (children: ReactNode) => <ReviewEditing>{children}</ReviewEditing>;
-    const commands = <>
-      <V2Action label="Sačuvaj ispravku" onPress={noop} />
-      <V2Action label="Odustani od ispravke" kind="quiet" onPress={noop} />
-    </>;
-    const priceEditor = options.editing === 'value' ? editing(<>
-      <Segmented options={[{ key: 'amount', label: 'Iznos' }, { key: 'mode', label: 'Način cene' }, { key: 'basis', label: 'Osnova cene' }]} value="amount" onChange={noop} />
-      <AmountField label="Iznos" digits="4500" disabled={false} onChange={noop} />
-      {commands}
-    </>) : undefined;
-    const timeEditor = options.editing === 'time' ? editing(<>
-      <Segmented options={[{ key: 'kind', label: 'Vrsta termina' }, { key: 'start', label: 'Početak' }, { key: 'end', label: 'Kraj' }]} value="start" onChange={noop} />
-      <FactTimestampEditor label="Početak" date="2026-10-11" time="10:00" disabled={false} onChange={noop} />
-      {commands}
-    </>) : undefined;
+    const pencil = (label: string, onPress: () => void, word?: string): PartPencil | undefined => idle ? { label, onPress, ...(word ? { word } : {}) } : undefined;
+    const openPlace = () => setScene(location?.geography.mode === 'REMOTE' ? 'mesto-daljina'
+      : location?.geography.mode === 'POINT_TO_POINT' ? 'mesto-ruta' : 'mesto-forma');
     const parts: ReviewDetailParts = {
-      title: part('Naslov'), value: part('Cena', priceEditor), place: { pencil: pencil(location ? 'Izmeni, Mesto' : 'Dodaj mesto', location ? undefined : 'Dodaj') },
-      time: part('Termin', timeEditor), people: part('Broj ljudi'), description: part('Opis'), map: { pencil: pencil('Izmeni, Približno mesto') },
-      deadline: options.editing === 'deadline' ? { editor: <ResponseDeadlineEditor value={null} timezone="Europe/Belgrade" disabled={false} apply={noop} cancel={noop} /> }
-        : { pencil: pencil('Izmeni, Rok za prijave') },
-      requirements: Object.fromEntries(['Veštine', 'Alat', 'Vozilo', 'Dozvole', 'Bitni uslovi', 'Najmanje iskustva'].map(label => [label, part(label)])),
+      title: {}, value: {}, place: { pencil: pencil(location ? 'Izmeni, Mesto' : 'Dodaj mesto', openPlace, location ? undefined : 'Dodaj') },
+      time: {}, people: {}, description: {}, map: { pencil: pencil('Izmeni, Približno mesto', openPlace) },
+      // Application deadline is not an AI fact. Display a known value; do not advertise an unsupported correction.
+      deadline: {},
+      requirements: {},
     };
     const photoCount = options.photos ?? 2;
-    const photoPencil = pencil(photoCount ? 'Izmeni, Fotografije' : 'Dodaj fotografije', photoCount ? undefined : 'Dodaj');
+    const photoPencil = pencil(photoCount ? 'Izmeni, Fotografije' : 'Dodaj fotografije', () => setScene(photoCount ? 'foto-mreza' : 'foto-prazno'), photoCount ? undefined : 'Dodaj');
     const privateMap = privateReviewMap(location);
     const frameOfAddress = ownerAddressFrame(location, location === PLACED ? PRIVATE_FACTS : location === PLACED_ROUTE ? ROUTE_PRIVATE_FACTS : NO_ADDRESS_FACTS);
     const remote = need.detalji?.rezimLokacije === 'REMOTE';
@@ -276,7 +281,7 @@ export default function DizajnObjava() {
       : <>
         {options.status ? <ReviewStatus published={options.status.published} fresh={false} text={options.status.text} action={options.status.action} /> : null}
         {todos.length ? <ReviewTodoList items={todos} disabled={false} /> : null}
-        <ReviewCard need={need} onOpen={noop} pencil={pencil('Izmeni zadatak')} portrait={person ? PERSON.photo?.(PERSON.profileId, 40) : undefined} />
+        <ReviewCard need={need} onOpen={noop} portrait={person ? PERSON.photo?.(PERSON.profileId, 40) : undefined} />
         <View>
           <ReviewCaption>Ovako izgleda kad ga otvore</ReviewCaption>
           <ReviewDetail need={need} parts={parts} person={person}
@@ -284,14 +289,14 @@ export default function DizajnObjava() {
               : <AddPhotos pencil={photoPencil} />}
             map={need.priblizno ? <LocationMapPreview points={[{ id: 'public-area', label: 'Približno mesto', latitude: need.priblizno.lat, longitude: need.priblizno.lng }]}
               coarse height={184} scopeKey="galerija:pregled" /> : undefined}
-            address={hasAddress ? <OwnerAddress frame={frameOfAddress} part={{ pencil: pencil('Izmeni, Tačna adresa') }}
+            address={hasAddress ? <OwnerAddress frame={frameOfAddress} part={{ pencil: pencil('Izmeni, Tačna adresa', openPlace) }}
               map={privateMap.points.length ? <LocationMapPreview points={privateMap.points} route={privateMap.route} scopeKey="galerija:pregled:privatno" height={160} /> : undefined} /> : undefined}
             more={!options.command && blank.length ? <ReviewMoreFacts labels={blank.map(item => factLabel(item.key))} open={!!options.moreOpen} disabled={false} onToggle={noop}>
-              {blank.map((item, index) => <ReviewFactRow key={item.key} label={factLabel(item.key)} value="Nema navedenih stavki" system={false} edit={noop}
+              {blank.map((item, index) => <ReviewFactRow key={item.key} label={factLabel(item.key)} value="Nema navedenih stavki" system={false}
                 last={index === blank.length - 1} />)}
             </ReviewMoreFacts> : undefined} />
         </View>
-        {options.command ? null : <ReviewWaysOut disabled={!!options.working} onDelete={options.revising ? undefined : () => confirm.ask({
+        {options.command ? null : <ReviewWaysOut disabled={!!options.working} onEdit={idle ? () => setAiTopic('Zadatak') : undefined} onDelete={options.revising ? undefined : () => confirm.ask({
           title: `Obrisati nacrt „${need.naslov}“?`, confirmLabel: 'Obriši nacrt', tone: 'danger',
           message: 'Zadatak se neće objaviti, a razgovor o njemu više ne možeš da nastaviš.', onConfirm: noop })} />}
       </>;
@@ -311,9 +316,9 @@ export default function DizajnObjava() {
     return <>{options.large ? <LayoutClassOverride.Provider value={LARGE_LAYOUT}>{frame}</LayoutClassOverride.Provider> : frame}{confirm.sheet}</>;
   };
   const todos: TodoRow[] = [
-    { key: 'missing', text: 'Nedostaje: Broj ljudi.', onPress: noop, actionLabel: 'Dopuni u razgovoru' },
-    { key: 'location', text: 'Mesto na mapi nije potvrđeno.', onPress: noop, actionLabel: 'Dodaj mesto' },
-    { key: 'fact', text: 'Unesi iznos ili izaberi prikupljanje ponuda.', onPress: noop, actionLabel: 'Unesi iznos' },
+    { key: 'missing', text: 'Nedostaje: Broj ljudi.', onPress: () => setAiTopic('Broj ljudi'), actionLabel: 'Dopuni u razgovoru' },
+    { key: 'location', text: 'Mesto na mapi nije potvrđeno.', onPress: () => setScene('mesto-forma'), actionLabel: 'Dodaj mesto' },
+    { key: 'fact', text: 'Reci iznos ili da želiš ponude.', onPress: () => setAiTopic('Cena'), actionLabel: 'Dopuni cenu u razgovoru' },
   ];
 
   /* ------------------------------------------------------------------------------------------------ the place */
@@ -400,9 +405,7 @@ export default function DizajnObjava() {
     : scene === 'pregled-ruta' ? review({ facts: REVIEW_FACTS.map(item => item.key === 'need.task_geography' ? fact('need.task_geography', ROUTE) : item), location: PLACED_ROUTE })
     : scene === 'pregled-daljina' ? review({ facts: REMOTE_FACTS, location: REMOTE_PLACE })
     : scene === 'pregled-bez-fotografija' ? review({ photos: 0, nobody: true })
-    : scene === 'pregled-cena' ? review({ editing: 'value' })
-    : scene === 'pregled-termin' ? review({ editing: 'time' })
-    : scene === 'pregled-rok' ? review({ editing: 'deadline' })
+    : scene === 'pregled-rok' ? review({ deadline: '2026-10-12T10:15:00.000Z' })
     : scene === 'pregled-vise' ? review({ moreOpen: true, deadline: '2026-10-12T10:15:00.000Z' })
     : scene === 'pregled-ucitavanje' ? review({ loading: true })
     : scene === 'pregled-greska' ? review({ failure: true })

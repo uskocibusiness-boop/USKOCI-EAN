@@ -38,7 +38,6 @@ let mockEditor: Record<string, unknown> = {};
 jest.mock('../../hooks/useOwnedEditor', () => ({ useOwnedEditor: () => mockEditor }));
 
 import { router } from 'expo-router';
-import Dostupnost from '../../app/(app)/profil/dostupnost';
 import { AvailabilityForm, RuleSheet } from '../../ui/calendar/AvailabilityForm';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 
@@ -303,94 +302,7 @@ describe('copying a day', () => {
   });
 });
 
-describe('leaving Dostupnost', () => {
-  const data = availability();
-  const editor = (patch: Record<string, unknown> = {}) => ({ data, loading: false, busy: false, error: null, uncertain: false, saved: false,
-    refresh: jest.fn().mockResolvedValue(undefined), save: jest.fn(), ...patch });
-  const screen = async () => { await act(async () => { tree = create(<Dostupnost />); }); };
-  const back = async () => { await act(async () => host('Nazad').props.onPress()); };
-  const toggle = async () => { await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mogu odmah' }).props.onValueChange(true)); };
 
-  it('saves "Mogu odmah" through the editor at once (owner decision 2026-09-24)', async () => {
-    mockEditor = editor(); await screen();
-    await toggle();
-    expect(mockEditor.save).toHaveBeenCalledTimes(1);
-  });
-
-  it('goes back at once when nothing has changed', async () => {
-    mockEditor = editor(); await screen();
-    await back();
-    expect(router.back).toHaveBeenCalledTimes(1); expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
-    expect(mockBack.handlers[0]()).toBe(false);
-  });
-
-  it('asks before dropping unsaved changes, and leaves only on "Odbaci izmene"', async () => {
-    mockEditor = editor(); await screen();
-    await toggle();
-    await back();
-    expect(router.back).not.toHaveBeenCalled();
-    const ask = tree.root.findByType(ConfirmSheet);
-    expect(ask.props).toMatchObject({ title: 'Odbaciti izmene?', message: 'Unete izmene neće biti sačuvane.', confirmLabel: 'Odbaci izmene',
-      cancelLabel: 'Nastavi uređivanje', tone: 'danger' });
-    await act(async () => ask.findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress());
-    expect(router.back).toHaveBeenCalledTimes(1);
-  });
-
-  it('hears the hardware Back only while there is something to lose', async () => {
-    mockEditor = editor(); await screen();
-    expect(mockBack.handlers).toHaveLength(1);
-    await toggle();
-    let handled = false;
-    await act(async () => { handled = mockBack.handlers[0](); });
-    expect(handled).toBe(true); expect(tree.root.findByType(ConfirmSheet).props.title).toBe('Odbaciti izmene?');
-    expect(router.back).not.toHaveBeenCalled();
-  });
-
-  it('does not ask while a save runs: the editor settles the write either way', async () => {
-    mockEditor = editor(); await screen();
-    await toggle();
-    mockEditor = editor({ busy: true });
-    await act(async () => tree.update(<Dostupnost />));
-    expect(mockBack.handlers[0]()).toBe(false);
-    await back();
-    expect(router.back).toHaveBeenCalledTimes(1); expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
-  });
-
-  it('shows a first read that failed as the shared error state, with the read again as its one action', async () => {
-    mockEditor = editor({ data: null, error: 'Podaci nisu učitani. Proveri vezu i pokušaj ponovo.' }); await screen();
-    expect(text()).toContain('Dostupnost nije učitana.'); expect(text()).toContain('Podaci nisu učitani.');
-    await press('Pokušaj ponovo');
-    expect(mockEditor.refresh).toHaveBeenCalledTimes(1);
-  });
-
-  // Review of owner step 10: after a save whose outcome was not confirmed, "Unete izmene neće biti sačuvane." could be
-  // untrue (the save may have gone through), so Back leaves without that question; the next visit reads the saved state.
-  it('does not claim the changes will be lost after a save that was not confirmed', async () => {
-    mockEditor = editor(); await screen();
-    await toggle();
-    mockEditor = editor({ uncertain: true, error: 'Čuvanje nije potvrđeno. Proveri sačuvano stanje pre novog pokušaja.' });
-    await act(async () => tree.update(<Dostupnost />));
-    expect(mockBack.handlers[0]()).toBe(false);
-    await back();
-    expect(router.back).toHaveBeenCalledTimes(1); expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
-  });
-
-  // Review of owner step 10: without a work profile, reading again cannot help; the one action leads to the profile.
-  it('leads to the work profile when there is none to read availability from', async () => {
-    mockEditor = editor({ data: null, error: 'Najpre sačuvaj svoj radni profil.' }); await screen();
-    // Round-5c: a precondition, not a failed read. Drawn as an empty state whose title is the whole message, said once.
-    expect(text()).not.toContain('Dostupnost nije učitana.');
-    expect(text().split('Najpre sačuvaj svoj radni profil.')).toHaveLength(2);
-    expect(tree.root.findAll(node => node.props.kind === 'empty' && node.props.title === 'Najpre sačuvaj svoj radni profil.').length).toBeGreaterThan(0);
-    expect(tree.root.findAll(node => node.props.kind === 'error')).toHaveLength(0);
-    expect(all('Pokušaj ponovo')).toHaveLength(0);
-    await press('Dopuni radni profil');
-    expect(router.navigate).toHaveBeenCalledWith('/profil/radnik'); expect(mockEditor.refresh).not.toHaveBeenCalled();
-    // The screen matches the words of the availability read's WORKER_PROFILE_REQUIRED; the two copies stay one.
-    const service = readFileSync(join(__dirname, '../workerAvailabilityClientService.ts'), 'utf8');
-    expect(service).toContain("WORKER_PROFILE_REQUIRED: 'Najpre sačuvaj svoj radni profil.'");
-  });
-});
 
 // Review of owner step 10: a slot over midnight is two rules (22:00–24:00, then 00:00–06:00 on the next day). Copying the
 // day used to end every night at midnight without saying so.

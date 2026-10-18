@@ -97,7 +97,7 @@ export function buildLiveState({ previous, manual, rows, head, branch, dirty, no
   return {
     schemaVersion: 1,
     generatedAt: now,
-    source: { repo: manual?.source?.repo ?? previous?.source?.repo ?? 'Uskoci1/USKOCI-CLEAN', branch, head, dirty, redoviPath },
+    source: { repo: manual?.source?.repo ?? previous?.source?.repo ?? null, branch, head, dirty, redoviPath },
     p6: manual?.p6 ?? previous?.p6 ?? { status: 'OPEN', note: '' },
     release: manual?.release ?? previous?.release ?? { status: 'NOT READY', note: '' },
     next: manual?.next ?? previous?.next ?? { title: '', note: '' },

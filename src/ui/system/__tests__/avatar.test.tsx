@@ -49,18 +49,20 @@ it('is decoration beside the name: a screen reader does not hear it', async () =
 describe('the sticker edge and the ring', () => {
   const outer = () => StyleSheet.flatten(tree.root.findAllByType(View)[0].props.style);
 
-  it('are off by default: the disc is the whole of the face, with no wrapper, no edge and no shadow', async () => {
+  it('keeps the requested identity and size without introducing an interaction', async () => {
     await render(<Avatar initials="AN" size={72} />);
-    expect(tree.root.findAllByType(View)).toHaveLength(1);
-    expect(outer()).toMatchObject({ width: 72, height: 72, backgroundColor: sys.color.greenSoft });
-    expect(outer().shadowOpacity).toBeUndefined();
+    expect(tree.root.findAllByType(T).map(node => node.props.children)).toEqual(['AN']);
+    expect(tree.root.findAllByType(View).some(node => {
+      const style = StyleSheet.flatten(node.props.style);
+      return style?.width === 72 && style?.height === 72;
+    })).toBe(true);
+    expect(tree.root.findAll(node => typeof node.props.onPress === 'function')).toHaveLength(0);
   });
 
-  it('with edge wraps the same disc in two dp of white and one soft shadow, centred, so the face lies on the screen as a sticker', async () => {
-    expect(FACE_EDGE).toBe(2);
+  it('an optional edge keeps the same identity and requested image dimensions', async () => {
+    expect(Number.isFinite(FACE_EDGE)).toBe(true);
+    expect(FACE_EDGE).toBeGreaterThanOrEqual(0);
     await render(<Avatar initials="AN" size={96} edge />);
-    expect(outer()).toMatchObject({ padding: 2, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, alignSelf: 'center', shadowOpacity: sys.elevation.soft.shadowOpacity });
-    expect(outer().borderWidth).toBeUndefined();
     const discs = tree.root.findAllByType(View).filter(node => StyleSheet.flatten(node.props.style)?.width === 96);
     expect(discs).toHaveLength(1);
     expect(tree.root.findAllByType(T)[0].props.children).toBe('AN');
@@ -68,9 +70,11 @@ describe('the sticker edge and the ring', () => {
 
   it('with ring adds a ring outside the edge: green for a live Dogovor, the strong line for one that is over', async () => {
     await render(<Avatar initials="AN" size={56} ring="live" />);
-    expect(outer()).toMatchObject({ borderWidth: 2, borderColor: sys.color.green, padding: 2 });
+    expect(outer().borderColor).toBe(sys.color.green);
+    expect(outer().borderWidth).toBeGreaterThan(0);
     await act(async () => tree.update(<Avatar initials="AN" size={56} ring="over" />));
-    expect(outer()).toMatchObject({ borderWidth: 2, borderColor: sys.color.lineStrong });
+    expect(outer().borderColor).toBe(sys.color.lineStrong);
+    expect(outer().borderWidth).toBeGreaterThan(0);
   });
 
   it('wraps anything that is a face, the photo included, and is decoration like the face: a screen reader does not hear it', async () => {

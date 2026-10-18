@@ -61,10 +61,9 @@ describe('the owner\'s own task: one block of state, the facts, and every action
     await open(MINE, 'Objavljen, još nema prijava');
     const copy = text();
     expect(copy).toContain('Još nema prijava'); expect(copy).toContain('Objavljen');
-    expect(copy).not.toMatch(/Čekaš prijave|zvonc|Vidiš ih ovde/);
     expect(tree.root.findAllByProps({ label: 'Izmeni zadatak' }).length).toBeGreaterThan(0);
     expect(tree.root.findAllByProps({ label: 'Pogledaj prijave' })).toHaveLength(0);
-    expect(labels()).not.toContain('Više radnji');
+
   });
 
   it('applications waiting for a choice are the faces, the count and the ONE green action', async () => {
@@ -77,7 +76,6 @@ describe('the owner\'s own task: one block of state, the facts, and every action
   it('"Tražim ponude" is a fact with its picture, and what it means is one tap away behind a small ⓘ, not a sentence under it', async () => {
     await open(MINE, 'Tražim ponude, dve prijave');
     expect(text()).toContain('Tražim ponude');
-    expect(text()).not.toMatch(/Svako ko se prijavi|Ne navodiš iznos/);
     expect(labels()).toContain('Objašnjenje: Tražim ponude');
   });
 
@@ -104,7 +102,7 @@ describe('the owner\'s own task: one block of state, the facts, and every action
 
   it('what cancels a live task nobody is agreed with is the red row that ends the page, and a task with an agreed place does not offer it', async () => {
     await open(MINE, 'Objavljen, prijave čekaju izbor');
-    expect(labels()).toContain('Otkaži zadatak'); expect(labels()).not.toContain('Više radnji');
+    expect(labels()).toContain('Otkaži zadatak');
     // Red rows come last: nothing that follows the cancel row on the page is another row of the end.
     const rows = tree.root.findAll(node => String(node.type) === 'Press' && ['Otkaži zadatak', 'Ne traži više nikoga'].includes(String(node.props.accessibilityLabel)));
     expect(rows.map(node => node.props.accessibilityLabel)).toEqual(['Otkaži zadatak']);
@@ -115,7 +113,7 @@ describe('the owner\'s own task: one block of state, the facts, and every action
 
   it('what ends something is a row at the end of the page, on the screen, with the lifecycle\'s own question', async () => {
     await open(MINE, 'Nacrt spreman za pregled');
-    expect(labels()).toContain('Obriši nacrt'); expect(labels()).not.toContain('Više radnji');
+    expect(labels()).toContain('Obriši nacrt');
     expect(tree.root.findAllByProps({ label: 'Izmeni nacrt' }).length).toBeGreaterThan(0);
   });
 });

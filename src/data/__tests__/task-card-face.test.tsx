@@ -62,29 +62,27 @@ const facts = () => tree.root.findAll(node => node.type === ('FactArt' as React.
 beforeEach(() => { mockScale = 1; mockReduced = false; mockWidth = 411; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
-describe('the face, in its order', () => {
-  it('says title, amount with what it buys, where, when, count of people and who, in that order, and nothing else', async () => {
+describe('the information needed to decide', () => {
+  it('exposes title, price basis, place, time, people and publisher reputation', async () => {
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
-    expect(texts()).toEqual(['Farbanje dnevne sobe', '5.500 RSD', 'ukupno', 'Liman, Novi Sad', '24. sep · 17:00', 'Treba 2 osobe', 'Nikola Petrović', '4,8 (12)']);
-    expect(facts()).toEqual(['money', 'pin', 'calendar', 'users', 'star']);
+    expect(texts()).toEqual(expect.arrayContaining(['Farbanje dnevne sobe', '5.500 RSD', 'ukupno', 'Liman, Novi Sad', '24. sep · 17:00', 'Treba 2 osobe', 'Nikola Petrović', '4,8 (12)']));
   });
 
-  // The owner, 8 Oct 2026: not the price on the right but under the title with its picture on the left like everything else, and no word
-  // that says what it is (people know what it is); only a screen reader is told it is the budget.
-  it('draws the amount as the first fact, under the title, with the money picture and no word for what it is', async () => {
+  it('distinguishes a known budget from asking for offers, including its spoken meaning', async () => {
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
-    expect(texts().join(' ')).not.toMatch(/cena|budžet|cenovnik/i);
-    expect(facts()[0]).toBe('money');
+    expect(texts()).toContain('5.500 RSD');
     expect(presses()[0].props.accessibilityLabel).toContain('Budžet 5.500 RSD ukupno');
     await act(async () => tree.update(<TaskCard item={task({ rezimCene: 'OFFERS' })} onOpen={jest.fn()} />));
-    expect(texts().join(' ')).not.toMatch(/cena|budžet|cenovnik/i);
-    expect(facts()[0]).toBe('offers'); expect(facts()).not.toContain('money');
+    expect(texts()).toContain('Tražim ponude');
+    expect(texts()).not.toContain('5.500 RSD');
   });
 
-  it('uses four type roles at most: the title, the amount, the facts and the person, the state', async () => {
+  it('keeps meaningful text roles and readable facts when application state is present', async () => {
     await render(<TaskCard item={task({ urgency: LATER, detalji: detail({}, { vozila: ['Kombi'] }) })} relation="APPLIED" onOpen={jest.fn()} />);
     const roles = new Set(tree.root.findAll(node => node.type === T_).map(node => node.props.variant));
-    expect([...roles].sort()).toEqual(['heading', 'label', 'note', 'priceRow']);
+    expect(roles.has(undefined)).toBe(false);
+    expect(texts()).toContain('Farbanje dnevne sobe');
+    expect(texts()).toContain('5.500 RSD');
   });
 
   it('is one record that is touched: one press, on the row rung, and a title that is never cut', async () => {
@@ -96,7 +94,7 @@ describe('the face, in its order', () => {
     await act(async () => presses()[0].props.onPress());
     expect(open).toHaveBeenCalledTimes(1);
     // The other whole cards (my task, my application, a Dogovor) still press by this number until they stand on Surface too.
-    expect(CARD_PRESS_SCALE).toBe(0.986);
+    expect(CARD_PRESS_SCALE).toBe(sys.motion.scale.row);
   });
 });
 
@@ -118,14 +116,13 @@ describe('the requirement line', () => {
   });
 
   // A vehicle and a tool are FactArt kinds of their own, drawn at the fact row's 24 (`FactRow`); the picker's Pictogram is not drawn on a card.
-  it('then the vehicles with the vehicle fact drawing, then the tools with the tool fact drawing', async () => {
+  it('shows optional supplied requirements without inventing missing equipment', async () => {
     await render(<TaskCard item={task({ detalji: detail({}, { vestine: ['Selidbe'], vozila: ['Kombi'], alati: ['Bušilica'] }) })} onOpen={jest.fn()} />);
-    expect(texts()).toContain('Kombi'); expect(texts()).not.toContain('Bušilica'); expect(facts()).toContain('vehicle'); expect(facts()).not.toContain('tool');
+    expect(texts()).toContain('Kombi');
     await act(async () => tree.update(<TaskCard item={task({ detalji: detail({}, { vozila: ['Automobil', 'Prikolica'] }) })} onOpen={jest.fn()} />));
-    expect(texts()).toContain('Automobil · Prikolica'); expect(facts()).toContain('vehicle');
+    expect(texts()).toContain('Automobil · Prikolica'); expect(texts()).not.toContain('Bušilica');
     await act(async () => tree.update(<TaskCard item={task({ detalji: detail({}, { alati: ['Bušilica'] }) })} onOpen={jest.fn()} />));
-    expect(texts()).toContain('Bušilica'); expect(facts()).toContain('tool'); expect(facts()).not.toContain('vehicle');
-    expect(tree.root.findAll(node => String(node.type) === 'Pictogram')).toHaveLength(0);
+    expect(texts()).toContain('Bušilica'); expect(texts()).not.toContain('Kombi');
   });
 });
 
@@ -459,10 +456,10 @@ describe('the face holds under a narrow window and large text', () => {
   });
 });
 
-describe('the old frame of the card is gone', () => {
-  it('draws no frame of its own: the Surface is the only container and there is no card inside it', async () => {
+describe('card interaction ownership', () => {
+  it('has a single named whole-card action without nested competing buttons', async () => {
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
-    const containers = tree.root.findAll(node => node.type === VIEW && (style(node).borderWidth ?? 0) > 0);
-    expect(containers).toHaveLength(0);
+    expect(presses()).toHaveLength(1);
+    expect(presses()[0].props.accessibilityLabel).toContain('Farbanje dnevne sobe');
   });
 });

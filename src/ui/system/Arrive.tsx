@@ -7,7 +7,7 @@ import { sys } from './tokens';
  * V41's "art arrive" (v17-art-arrive): the illustration of an empty state settles in once — a small rise, a
  * slight tilt that straightens, and full opacity — so an empty screen reads as ready, not broken. It runs once on
  * mount, on the native driver, and not at all under reduced motion. Only for illustrations, never for text or
- * controls. How long it takes and the curve it follows are `sys.motion.arrive` (rule R6).
+ * controls. How long it takes and the curve it follows are `sys.motion.arrive` .
  *
  * It only SETTLES (owner, 2026-10-08, "bez odskoka"): the picture goes from where it starts (4 dp low, tilted 3° the other way, a little
  * transparent) to where it stays, and never goes past it. It used to rise 3 dp over its place and tilt 1° past straight before it came back;
@@ -32,7 +32,7 @@ export function Arrive({ children, delay = 80 }: { children: ReactNode; delay?: 
 
 /**
  * A loading placeholder that breathes (V41 skeleton), so a wait reads as work in progress. Opacity only, on the native
- * driver, stopped under reduced motion. A half-turn is `sys.motion.loop.breath` (rule R4: a loop is a token too).
+ * driver, stopped under reduced motion. A half-turn is `sys.motion.loop.breath` .
  */
 export function useBreath(): Animated.Value | Animated.AnimatedInterpolation<number> {
   const reduced = useReducedMotion();

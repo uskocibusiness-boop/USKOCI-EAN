@@ -1,3 +1,13 @@
+# ISTORIJSKA REFERENCA — nije aktivan dizajn canon
+
+Označeno 18.10.2026. **Aktuelni izgled i UX definiše [USKOČI Premium White](../implementation/design-system/PREMIUM_WHITE_CANON.md).** Donji tekst je sačuvan kao datirano poreklo. Njegove ranije reči „current“, „locked“, „rulebook“, obavezna geometrija, ručni editori i proceduralna odobrenja nisu sadašnja uputstva. Poslovne zaštite opstaju kroz aktuelne ugovore; stare tvrdnje o implementaciji nisu današnji status.
+
+[Forenzička klasifikacija pravila i testova](../implementation/design-system/DESIGN_CONSTRAINT_REGISTRY_20261018.md). Status proizvoda ostaje u postojećem registru i LIVE planu.
+
+---
+
+## Sačuvan prethodni dokument
+
 # USKOČI Figma Make Master Prompt
 
 Build a high-fidelity, interactive mobile prototype for the existing USKOČI React Native product. This is not a new marketplace concept. Use the supplied Product Canon, Screen Inventory, State Matrix, User Flows, Information Architecture, Design Rules, Component Inventory and Implementation Gap as authoritative context.

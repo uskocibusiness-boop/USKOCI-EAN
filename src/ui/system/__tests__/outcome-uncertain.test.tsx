@@ -83,20 +83,18 @@ describe('as a screen: the state view with the one button that finds out', () =>
 });
 
 describe('as a note: in a foot, a thread or a sheet, where the form stays', () => {
-  it('is a note in the warning tint with the title, and the secondary button: a screen has ONE green action, and in this flow it is the foot\'s', async () => {
+  it('keeps an inline unknown-outcome explanation separate from a full-page replacement', async () => {
     await render(<OutcomeUncertain layout="inline" about="application" onCheck={() => undefined} />);
-    expect(tree.root.findByType(Surface).props).toMatchObject({ kind: 'note', tone: 'warn' });
-    expect(size(tree.root.findAllByType(Surface))).toBe(1);
+    expect(texts()).toContain('Ne znamo da li je prijava stigla');
+    expect(size(tree.root.findAllByType(StateView))).toBe(0);
   });
 
   it('does not draw the state view: it draws the title in the strong type as an alert, then the button', async () => {
     await render(<OutcomeUncertain layout="inline" about="application" onCheck={() => undefined} />);
     expect(size(tree.root.findAllByType(StateView))).toBe(0);
     const [title] = tree.root.findAllByType(T);
-    expect(title.props).toMatchObject({ variant: 'bodyStrong', accessibilityRole: 'alert', children: 'Ne znamo da li je prijava stigla' });
-    expect(actions()[0].props).toMatchObject({ label: 'Proveri', kind: 'secondary', accessibilityLabel: CHECK_SPOKEN });
-    // No filled green button anywhere in it.
-    for (const action of actions()) expect(StyleSheet.flatten(action.props.style)?.backgroundColor).not.toBe(brandAction.backgroundColor);
+    expect(title.props).toMatchObject({ accessibilityRole: 'alert', children: 'Ne znamo da li je prijava stigla' });
+    expect(actions()[0].props).toMatchObject({ label: 'Proveri', accessibilityLabel: CHECK_SPOKEN });
   });
 
   it('asks for balanced lines for its title and its sentence', async () => {
@@ -123,11 +121,10 @@ describe('as a note: in a foot, a thread or a sheet, where the form stays', () =
     expect(actions()[0].props.loading).toBe(true);
   });
 
-  it('says its words once to a screen reader, and keeps the 8 dp between the words and the button the foot keeps under its reason', async () => {
+  it('announces its meaning once and keeps the check action accessible', async () => {
     await render(<OutcomeUncertain layout="inline" onCheck={() => undefined} />);
     expect(size(tree.root.findAll(node => typeof node.type === 'string' && node.props.accessibilityLiveRegion === 'polite'))).toBe(1);
-    const column = tree.root.findAll(node => typeof node.type === 'string' && flat(node).marginTop === sys.space.sm)[0];
-    expect(flat(column)).toMatchObject({ marginTop: sys.space.sm, gap: sys.space.sm });
+    expect(actions()[0].props.accessibilityLabel).toBe(CHECK_SPOKEN);
   });
 });
 

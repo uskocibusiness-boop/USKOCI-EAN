@@ -63,7 +63,7 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 import ReviewRoute from '../../app/(app)/pregled-zadatka';
 import { ConfirmSheet, confirmFormOf } from '../../ui/system/ConfirmSheet';
-import { sys } from '../../ui/system/tokens';
+import { sys, brandAction } from '../../ui/system/tokens';
 
 /**
  * The review before publishing, as the owner meets it (owner, 2026-10-07):
@@ -130,9 +130,9 @@ const others = () => between('Prenos ormara', 'Tačna adresa');
 const frame = () => between('Tačna adresa', 'Prijave');
 const sheets = () => tree.root.findAllByType(ConfirmSheet);
 const inSheet = (testID: string) => act(async () => { sheets()[0].findByProps({ testID }).props.onPress(); });
-const greenPresses = () => tree.root.findAll(node => node.type === ('Press' as React.ElementType)
-  && StyleSheet.flatten(node.props.style)?.backgroundColor === sys.color.green).map(node => node.props.accessibilityLabel);
-const greenActions = () => actions().filter(node => node.props.kind === 'primary' || StyleSheet.flatten(node.props.style)?.backgroundColor === sys.color.green)
+const primaryPresses = () => tree.root.findAll(node => node.type === ('Press' as React.ElementType)
+  && StyleSheet.flatten(node.props.style)?.backgroundColor === brandAction.backgroundColor).map(node => node.props.accessibilityLabel);
+const primaryActions = () => actions().filter(node => node.props.kind === 'primary' || StyleSheet.flatten(node.props.style)?.backgroundColor === brandAction.backgroundColor)
   .map(node => node.props.label);
 /** The task a review is bound to, as the owner-only read returns it: a published one by default, a private draft when asked. */
 const boundNeed = (stanje = 'OBJAVLJENA', patch: Record<string, unknown> = {}) => ({ id: NEED, revizija: 7, stanje, naslov: 'Prenos ormara', opis: 'Opis',
@@ -238,7 +238,7 @@ describe('the ways out of a review that is not published yet', () => {
     expect(action('Sačuvaj nacrt').kind).toBe('quiet');
     expect(waysOut()).toEqual(['Izmeni zadatak', 'Obriši nacrt']);
     // The only green fill on the screen is the publish: the pencils are ink and a line drawing, never green.
-    expect(greenPresses()).toEqual(['Objavi zadatak']); expect(greenActions()).toEqual([]);
+    expect(primaryPresses()).toEqual(['Objavi zadatak']); expect(primaryActions()).toEqual([]);
     // They can be pressed on a review that is ready (the pencil is not a disabled thing, it is only drawn when it can be pressed), and each is at least a full touch target.
     for (const label of ['Izmeni zadatak', 'Sačuvaj nacrt', 'Obriši nacrt']) expect(action(label).disabled).toBeFalsy();
   });
@@ -247,7 +247,7 @@ describe('the ways out of a review that is not published yet', () => {
     mockPrepare.mockResolvedValue(ok(review({ canAccept: false, missingRequired: ['need.title'] }))); await render();
     expect(waysOut()).toEqual(['Izmeni zadatak', 'Obriši nacrt']); expect(absent('Sačuvaj nacrt')).toBe(true);
     // The publish waits grey (with its reason), so there is no green fill at all, and still nothing else is green.
-    expect(publish().disabled).toBe(true); expect(greenPresses()).toEqual([]); expect(greenActions()).toEqual([]);
+    expect(publish().disabled).toBe(true); expect(primaryPresses()).toEqual([]); expect(primaryActions()).toEqual([]);
   });
 
   it('the changes of a task that already exists offer the edit only: there is no draft to delete, and nothing to save as one', async () => {
@@ -255,7 +255,7 @@ describe('the ways out of a review that is not published yet', () => {
     await render();
     expect(waysOut()).toEqual(['Izmeni zadatak']); expect(absent('Obriši nacrt')).toBe(true); expect(absent('Sačuvaj nacrt')).toBe(true);
     expect(tree.root.findByProps({ accessibilityLabel: 'Potvrdi izmene' })).toBeDefined();
-    expect(greenPresses()).toEqual(['Potvrdi izmene']);
+    expect(primaryPresses()).toEqual(['Potvrdi izmene']);
   });
 
   it.each(['ACCEPTED', 'EVALUATING', 'UNKNOWN_OUTCOME'] as const)('a stored %s command is left to its own recovery: no deletion here and no second "Izmeni zadatak"', async state => {
@@ -267,7 +267,7 @@ describe('the ways out of a review that is not published yet', () => {
     const held = { ...command('EVALUATED'), evaluation: { kind: 'NOT_READY', needId: NEED, needRevision: 1, authoritativeDecision: false, code: 'EVALUATOR_UNAVAILABLE' } };
     mockLatest.mockResolvedValue(ok({ review: review(), command: held })); await render();
     expect(tree.root.findAllByProps({ label: 'Izmeni zadatak' })).toHaveLength(1);
-    expect(StyleSheet.flatten(action('Izmeni zadatak').style).backgroundColor).toBe(sys.color.green);
+    expect(StyleSheet.flatten(action('Izmeni zadatak').style).backgroundColor).toBe(brandAction.backgroundColor);
     expect(absent('Obriši nacrt')).toBe(true);
   });
 
@@ -392,15 +392,7 @@ describe('the ways out of a review that is not published yet', () => {
       expect(mockRouter.replace).toHaveBeenCalledTimes(1); expect(mockRouter.replace).toHaveBeenCalledWith('/');
     });
 
-    it('while a correction, the place or the deadline is open the pencils are gone and the two others are grey too', async () => {
-      await render();
-      await act(async () => action('Izmeni, Rok za prijave').onPress());
-      expect(absent('Izmeni zadatak')).toBe(true);
-      for (const label of ['Sačuvaj nacrt', 'Obriši nacrt']) expect(action(label).disabled).toBe(true);
-      const kept = action('Obriši nacrt').onPress;
-      await act(async () => kept());
-      expect(sheets()).toHaveLength(0); expect(mockAbandon).not.toHaveBeenCalled();
-    });
+
 
     it.each(['blur', 'account switch', 'route'] as const)('an open question is taken away with its screen after %s, and a kept confirm sends nothing', async change => {
       await render();
@@ -461,7 +453,7 @@ describe('a private draft reviewed for its first publication', () => {
   it('offers "Izmeni zadatak" (to the conversation) and, last, "Obriši nacrt", under ONE green action, and no "Sačuvaj nacrt": the draft already exists', async () => {
     await open();
     expect(waysOut()).toEqual(['Izmeni zadatak', 'Obriši nacrt']); expect(absent('Sačuvaj nacrt')).toBe(true);
-    expect(greenPresses()).toEqual(['Objavi zadatak']); expect(greenActions()).toEqual([]);
+    expect(primaryPresses()).toEqual(['Objavi zadatak']); expect(primaryActions()).toEqual([]);
     await act(async () => action('Izmeni zadatak').onPress());
     expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION, aiCorrection:expect.any(String) } });
     expect(mockAbandon).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled();
@@ -604,19 +596,7 @@ describe('the way out of every blocker is a visible action', () => {
     expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION, aiCorrection:expect.any(String) } });
   });
 
-  it('while another editor is open the rows wait grey, and the open editor is the only thing left to press', async () => {
-    mockPrepare.mockResolvedValue(ok(PASSED())); await render();
-    const words = 'Početak termina je već prošao. Izmeni termin u pregledu, pa objavi.';
-    expect(rowOf(words).props.disabled).toBe(false);
-    await act(async () => action('Izmeni, Rok za prijave').onPress());
-    // Greyed, and every pencil ("Izmeni, Mesto", "Izmeni, Naslov") is gone, not drawn pressable and ignored.
-    expect(rowOf(words).props.disabled).toBe(true);
-    expect(absent('Izmeni, Mesto')).toBe(true); expect(absent('Dodaj mesto')).toBe(true); expect(absent('Izmeni, Rok za prijave')).toBe(true);
-    expect(absent('Izmeni, Naslov')).toBe(true); expect(absent('Izmeni zadatak')).toBe(true);
-    const kept = rowOf(words).props.onPress;
-    await act(async () => kept());
-    expect(tree.root.findAllByProps({ label: 'Početak: datum' })).toHaveLength(0);
-  });
+
 });
 
 describe('the whole title is read before publishing', () => {

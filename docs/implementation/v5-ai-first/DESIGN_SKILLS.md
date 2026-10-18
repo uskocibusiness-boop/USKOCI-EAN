@@ -1,3 +1,13 @@
+# ISTORIJSKA REFERENCA — nije aktivan dizajn canon
+
+Označeno 18.10.2026. **Aktuelni izgled i UX definiše [USKOČI Premium White](../design-system/PREMIUM_WHITE_CANON.md).** Donji tekst je sačuvan kao datirano poreklo. Njegove ranije reči „current“, „locked“, „rulebook“, obavezna geometrija, ručni editori i proceduralna odobrenja nisu sadašnja uputstva. Poslovne zaštite opstaju kroz aktuelne ugovore; stare tvrdnje o implementaciji nisu današnji status.
+
+[Forenzička klasifikacija pravila i testova](../design-system/DESIGN_CONSTRAINT_REGISTRY_20261018.md). Status proizvoda ostaje u postojećem registru i LIVE planu.
+
+---
+
+## Sačuvan prethodni dokument
+
 # Persistent owner design skill selection
 
 > **Current scope, 2026-10-18:** the owner now requests a clean current app and freedom to redesign the UI/UX. This list is a historical skill-selection reference, not a requirement to reload every skill or reproduce V28/manual-profile/Entry layouts. Use available skills relevant to the actual change, under the current owner direction and repository boundaries. Missing external donor paths are declared, not treated as current workspace authority. Package examples in skills still do not authorize dependencies. The dated source below remains for provenance.

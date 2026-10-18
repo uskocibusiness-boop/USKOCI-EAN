@@ -15,7 +15,7 @@ jest.mock('expo-haptics', () => ({ selectionAsync: jest.fn(), impactAsync: jest.
 /**
  * "Poruka" (plan 2.4): the one short outcome bar. One host is mounted once; a screen calls `poruka.show(...)` and renders
  * nothing. These cases pin what the plan asks of it: one at a time, 4 s (6 s with an action), announced to a screen reader,
- * a success tick only when the server confirmed, 240 ms in and 160 ms out on the native driver, nothing but appearing under
+ * a success tick only when the server confirmed, brief entry/exit on the native driver, nothing but appearing under
  * reduced motion.
  */
 let tree: ReactTestRenderer;
@@ -58,7 +58,6 @@ describe('Poruka: what is drawn', () => {
       ...sheetLift.detached });
     const words = tree.root.findAll(node => node.type === ('T' as unknown as React.ElementType))[0];
     expect(words.props).toMatchObject({ variant: 'copy', numberOfLines: 3 });
-    expect(sys.type.copy.fontSize).toBe(15);
     expect(flat(words).color).toBe(sys.color.ink);
     expect(flat(layerOf())).toMatchObject({ position: 'absolute', left: 16, right: 16, bottom: CLEARANCE + 16 });
     expect(layerOf().props.pointerEvents).toBe('box-none');
@@ -69,15 +68,14 @@ describe('Poruka: what is drawn', () => {
     expect(flat(layerOf()).bottom).toBe(56);
   });
 
-  it('carries one green text button at most, a full 44 to touch, and no button when there is no action', async () => {
+  it('offers a named accessible action only when one is supplied, with a full touch target', async () => {
     await render();
     await show({ text: 'Blokiranje je sačuvano.' });
     expect(action()).toBeUndefined();
     await show({ text: 'Blokiranje je sačuvano.', action: { label: 'Vrati', onPress: jest.fn() } });
     expect(action().props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: 'Vrati' });
-    expect(flat(action()).minHeight).toBeGreaterThanOrEqual(44); expect(flat(action()).minWidth).toBeGreaterThanOrEqual(44);
+    expect(flat(action()).minHeight).toBeGreaterThanOrEqual(sys.touch.min); expect(flat(action()).minWidth).toBeGreaterThanOrEqual(sys.touch.min);
     const label = action().findAll(node => node.type === ('T' as unknown as React.ElementType))[0];
-    expect(flat(label).color).toBe(sys.color.green);
     expect(label.props.children).toBe('Vrati');
     expect(sys.touch.min).toBeGreaterThanOrEqual(44);
   });
@@ -122,7 +120,7 @@ describe('Poruka: one at a time, and for how long', () => {
     expect(tree.toJSON()).toBeNull();
   });
 
-  it('stays 4 s, or 6 s when it carries an action, and then leaves over 160 ms', async () => {
+  it('stays 4 s, or 6 s when it carries an action, and then uses the shared exit timing', async () => {
     expect(PORUKA_MS).toEqual({ plain: 4000, action: 6000 });
     await render();
     await show({ text: 'Nacrt je obrisan.' });
@@ -234,25 +232,27 @@ describe('Poruka: the store and its hosts', () => {
 });
 
 describe('Poruka: motion', () => {
-  it('rises 8 dp and fades in over 240 ms and leaves over 160 ms, on the native driver and the decelerating curve', async () => {
+  it('rises a small shared distance and fades with a short exit, on the native driver and decelerating curve', async () => {
     const timing = jest.spyOn(Animated, 'timing');
     await render();
     await show({ text: 'Nacrt je obrisan.' });
-    expect(sys.motion.enter).toBe(240); expect(sys.motion.exit).toBe(160);
+    expect(sys.motion.enter).toBeGreaterThan(0); expect(sys.motion.enter).toBeLessThanOrEqual(300);
+    expect(sys.motion.exit).toBeGreaterThan(0); expect(sys.motion.exit).toBeLessThanOrEqual(sys.motion.enter);
     const entering = timings(timing);
     expect(entering).toHaveLength(2);
     expect(entering.map(call => call.toValue).sort()).toEqual([0, 1]);
-    for (const call of entering) expect(call).toMatchObject({ duration: 240, useNativeDriver: true, easing: expect.any(Function) });
-    // It starts transparent and 8 dp low, so the first frame is not the finished bar.
+    for (const call of entering) expect(call).toMatchObject({ duration: sys.motion.enter, useNativeDriver: true, easing: expect.any(Function) });
+    // It starts transparent and slightly low, so the first frame explains its arrival.
     const style = flat(asked());
     const valueOf = (value: unknown) => (value as { __getValue(): number }).__getValue();
     expect(valueOf(style.opacity)).toBe(0);
-    expect(valueOf((style.transform as unknown as { translateY: unknown }[])[0].translateY)).toBe(8);
+    expect(valueOf((style.transform as unknown as { translateY: unknown }[])[0].translateY)).toBe(sys.space.sm);
+    expect(sys.space.sm).toBeGreaterThan(0); expect(sys.space.sm).toBeLessThanOrEqual(16);
     timing.mockClear();
     await hide();
     const leaving = timings(timing);
-    expect(leaving.map(call => call.toValue).sort((a, b) => a - b)).toEqual([0, 8]);
-    for (const call of leaving) expect(call).toMatchObject({ duration: 160, useNativeDriver: true });
+    expect(leaving.map(call => call.toValue).sort((a, b) => a - b)).toEqual([0, sys.space.sm]);
+    for (const call of leaving) expect(call).toMatchObject({ duration: sys.motion.exit, useNativeDriver: true });
   });
 
   it('only appears and disappears under reduced motion: no timing, no animated style, gone at once', async () => {

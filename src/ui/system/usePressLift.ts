@@ -15,9 +15,9 @@ const EASE_OUT = Easing.bezier(...sys.motion.easeOut);
  *   inside a card, so that one frame — border, ground and everything on it — gives as ONE object.
  * - `style` goes on the `Animated.View` that is that frame. It is the only Reanimated view the press needs: one shared
  *   value and one animated style for the card, however many targets it holds.
- * - `to` is the rung of the press-scale ladder (rule R8): a row or a card gives the `row` rung, a button the `button` one.
+ * - `to` is the rung of the press-scale ladder : a row or a card gives the `row` rung, a button the `button` one.
  *
- * Reduced motion (rule R7) is read from the one store: `give` does nothing, and `settle` puts the surface back at once, even
+ * Reduced motion  is read from the one store: `give` does nothing, and `settle` puts the surface back at once, even
  * when the setting changed in the middle of a press, so a card can never be left shrunk.
  */
 export function usePressLift(to: number = sys.motion.scale.row) {

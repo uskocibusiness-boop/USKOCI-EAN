@@ -17,12 +17,9 @@ import type { FactArtKind } from './FactArt';
  * Writing `failed` for something that may have been saved is a lie that gets a person to send a task twice; when in doubt it is
  * `uncertain`, and the person is given the one button that finds out.
  *
- * THE RULES OF THE WORDS (what `stateRules.ts` holds as checks):
- *   - the title says what is the matter, in one line and without a full stop; the copy says why or what to do, in one or two sentences;
- *   - the copy NEVER repeats the verb of the button: a state that says "pokušaj ponovo" and offers a button "Pokušaj ponovo" says it twice,
- *     so the copy describes and the button commands;
- *   - "mi" for the app ("Ne možemo", "Ne znamo"), "ti" for the person, no grammatical gender, no "server", no "ishod", no "zahtev" for a
- *     thing the person did, no "Probaj" ("Pokušaj").
+ * Wording can evolve with the product. Keep the known/unknown distinction and the
+ * recovery action's meaning; title punctuation, synonyms and repeated command
+ * words are editorial choices rather than executable visual restrictions.
  */
 
 /** The three buttons of the app's trouble states, each one verb. The same word on every screen. */

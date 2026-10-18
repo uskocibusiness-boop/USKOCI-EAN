@@ -1,3 +1,13 @@
+# ISTORIJSKA REFERENCA — nije aktivan dizajn canon
+
+Označeno 18.10.2026. **Aktuelni izgled i UX definiše [USKOČI Premium White](PREMIUM_WHITE_CANON.md).** Donji tekst je sačuvan kao datirano poreklo. Njegove ranije reči „current“, „locked“, „rulebook“, obavezna geometrija, ručni editori i proceduralna odobrenja nisu sadašnja uputstva. Poslovne zaštite opstaju kroz aktuelne ugovore; stare tvrdnje o implementaciji nisu današnji status.
+
+[Forenzička klasifikacija pravila i testova](DESIGN_CONSTRAINT_REGISTRY_20261018.md). Status proizvoda ostaje u postojećem registru i LIVE planu.
+
+---
+
+## Sačuvan prethodni dokument
+
 # USKOČI standard toolset
 
 Decided 2026-09-23 (night) under the owner's master UI/UX directive, step B: inventory every available skill, plugin,

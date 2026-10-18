@@ -21,6 +21,7 @@ import { displayedPinPosition } from '../../../ui/location/ResolvedPinMap.types'
 import { WorkerAreaSearch } from '../../../ui/location/WorkerAreaSearch';
 import { InfoTitle } from '../../../ui/settings/InfoTitle';
 import { WorkerProfileFrame } from '../../../ui/workerProfile/WorkerProfilePresentation';
+import { WorkerAiTopicEntry } from '../../../ui/workerProfile/WorkerAiTopicEntry';
 import type { createConfiguredLocationResolver } from '../../../data/configuredLocationResolver';
 
 /** The form's two parts: fields and the save action that stays above the keyboard. */
@@ -162,7 +163,7 @@ const quietStart = { alignSelf: 'flex-start' } as const;
 export default function PodrucjeRada() {
   const params = useLocalSearchParams<{ mode?: string; profileId?: string }>();
   return params.mode === 'point' ? <WorkerPointConfirmation expectedProfileId={typeof params.profileId === 'string' ? params.profileId : null} />
-    : <WorkerAreaEditor />;
+    : <WorkerAiTopicEntry part="area" />;
 }
 
 /** The existing owned location writer is independent from the signed AI review. A point change invalidates an older
@@ -220,31 +221,6 @@ function WorkerPointConfirmation({ expectedProfileId }: { expectedProfileId: str
       <View style={!eligible ? { display: 'none' } : undefined} accessibilityElementsHidden={!eligible}
         importantForAccessibility={eligible ? 'auto' : 'no-hide-descendants'}>{body}</View>{leave.sheet}
     </WorkerProfileFrame>}
-  </WorkerLocationForm>;
-}
-
-function WorkerAreaEditor() {
-  const read = useCallback(() => workerLocationClientService.read(), []);
-  const editor = useOwnedEditor(read);
-  const [dirty, setDirty] = useState(false);
-  const leave = useUnsavedProfileBack({ dirty: !!editor.data && dirty, busy: editor.busy, uncertain: editor.uncertain,
-    revision: editor.data?.revision ?? null, onBack: () => router.canGoBack() ? router.back() : router.replace('/profil') });
-  const refresh = () => { void editor.refresh(); };
-  const location = editor.data;
-  // The form stays on screen while it is read again; only a first read or a failed one without data replaces it.
-  if (!location) return <WorkerProfileFrame title="Područje rada" backLabel="Nazad" back={leave.back}>
-    {editor.error && !editor.loading ? <StateView kind="error" title="Područje rada nije učitano" body={editor.error}
-      primary={{ label: 'Pokušaj ponovo', onPress: refresh }} />
-      : <StateView kind="loading" title="Učitavamo područje rada…" skeleton={{ count: 2, rows: 1 }} />}
-  </WorkerProfileFrame>;
-  // The saved line stands in the footer above the save (it used to sit at the top of the body, out of sight of the button).
-  return <WorkerLocationForm key={location.revision} location={location} busy={editor.busy} uncertain={editor.uncertain}
-    onDirtyChange={setDirty} reading={editor.loading} saved={editor.saved} error={editor.error} onRetry={refresh}
-    onSave={value => {
-      void editor.save(async () => { const result = await workerLocationClientService.save({ expectedRevision: location.revision, confirmed: true, value });
-        return result.ok ? { ok: true, podatak: result.podatak.location } : result; });
-    }}>
-    {({ body, footer }) => <WorkerProfileFrame title="Područje rada" backLabel="Nazad" back={leave.back} footer={footer}>{body}{leave.sheet}</WorkerProfileFrame>}
   </WorkerLocationForm>;
 }
 

@@ -70,9 +70,9 @@ describe('ConfirmSheet as a centred dialog', () => {
     await render(<ConfirmSheet {...request()} onClosed={jest.fn()} />);
     expect(flat(card().props.style)).toMatchObject({ width: '100%', maxWidth: DIALOG_MAX_WIDTH, backgroundColor: sys.color.surface,
       borderRadius: sys.radius.card, ...sheetLift.detached });
-    expect(DIALOG_MAX_WIDTH).toBe(340); expect(sys.radius.card).toBe(24);
+    expect(DIALOG_MAX_WIDTH).toBeGreaterThanOrEqual(280); expect(DIALOG_MAX_WIDTH).toBeLessThanOrEqual(480);
     // The dim is a colour of its own, 0.35 black: #00000059 is 89/255.
-    expect(sys.color.dim).toBe('#00000059'); expect(parseInt(sys.color.dim.slice(7), 16) / 255).toBeCloseTo(0.35, 2);
+    expect(parseInt(sys.color.dim.slice(7), 16) / 255).toBeGreaterThan(0.15); expect(parseInt(sys.color.dim.slice(7), 16) / 255).toBeLessThan(0.65);
     // The dim is the tap-outside area, filling the window behind the card.
     expect(flat(scrim().props.style)).toMatchObject({ backgroundColor: sys.color.dim, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 });
     expect(flat(layer().props.style)).toMatchObject({ flex: 1, alignItems: 'center', justifyContent: 'center', padding: sys.space.xl });

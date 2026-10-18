@@ -36,12 +36,10 @@ import { tick } from '../../ui/system/haptics';
 import { layout } from '../../ui/system/layout';
 import { Surface } from '../../ui/system/Surface';
 import { brandAction, sys } from '../../ui/system/tokens';
-import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
 import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { needLocationClientService } from '../../data/locationClientService';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
 import type { NeedLocationInput, NeedLocationReview } from '../../contracts/location';
-import { ResponseDeadlineEditor } from '../../ui/aiFirst/ResponseDeadlineEditor';
 import { mediaAssetId } from '../../ui/media/AuthorizedPhoto';
 import { REQUIREMENT_FACT, SUPPORT_HAS_DUTY_OPERATOR, blankList, manualCheckCopy,
   ownerAddressFrame, partFact, privateReviewMap, reviewRowValue, reviewTodos, todoActionLabel, type GroupedPart } from '../../ui/objava/reviewFacts';
@@ -83,9 +81,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // What the task does not say yet is named in one row ("Dodaj još podataka"), and that row opens it. Nothing is hidden;
   // a wall of "Nema navedenih stavki" is just not a wall.
   const [showMore, setShowMore] = useState(false);
-  const [deadlineEditor, setDeadlineEditor] = useState(false);
-  // True only while the write in flight is the publish itself: every other save (a draft, a corrected fact, the place,
-  // the deadline) also makes the editor busy, and "Objavi zadatak" must not spin for those.
+  // Only publication spins its button; draft save and place confirmation share the busy guard.
   const [publishing, setPublishing] = useState(false);
   // The place is being read before its editor opens: the "Uredi mesto" action says so.
   const [opening, setOpening] = useState(false);
@@ -99,10 +95,6 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // publication, and it ends in the task's own overview.
   const [moment, setMoment] = useState(false);
   const momentShown = useRef(false);
-  const deadlineProposal = useRef<string | null | undefined>(undefined);
-  // The deadline is a term other people read, so it is set and shown in Serbian time like every
-  // agreed time (owner rule 8.27); the facts above it already read in that zone.
-  const deadlineTimezone = DOGOVORENA_ZONA;
   const locationProposal = useRef<{ expectedRevision: string; value: NeedLocationInput } | null>(null);
   const resolver = useMemo(() => createProductionLocationResolver(), [accountId, accountRevision, conversationId]);
   // "Obriši nacrt" asks first, in the centred dialog; the question belongs to this focus and goes with it.
@@ -120,7 +112,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       if (locationOpening.current) locationOpening.current.active = false;
       locationOpening.current = null; setOpening(false);
       question.current = null; closeConfirmation();
-      setLocationEditor(null); setDeadlineEditor(false); resolver.cancel(); };
+      setLocationEditor(null); resolver.cancel(); };
   }, [accountId, accountRevision, resolver, closeConfirmation]));
   const read = useCallback(async (): Promise<Ishod<Snapshot>> => {
     const scope = focus.current;
@@ -162,7 +154,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       }
     }
     const prepared = await aiTaskReviewClientService.prepare({ conversationId,
-      responseDeadline: deadlineProposal.current !== undefined ? deadlineProposal.current : latest.podatak?.review.responseDeadline ?? null,
+      responseDeadline: latest.podatak?.review.responseDeadline ?? null,
       ...(location ? { location } : {}) });
     if (!current()) return changed();
     if (!prepared.ok) return prepared;
@@ -198,7 +190,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const bound = !!review?.draftId, draftNeed = snapshot?.draftNeed ?? null;
   const firstPublication = bound && !!snapshot?.firstPublication;
   const revising = bound && !firstPublication;
-  const view = useMemo(() => ({}), [snapshot, locationEditor, deadlineEditor, intakeReturn]), currentView = useRef(view); currentView.current = view;
+  const view = useMemo(() => ({}), [snapshot, locationEditor, intakeReturn]), currentView = useRef(view); currentView.current = view;
   const renderedFocus = focus.current;
   const current = () => renderedFocus !== null && focus.current === renderedFocus && currentView.current === view
     && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
@@ -220,7 +212,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // "Objavi" and "Sačuvaj nacrt" are the same acceptance of the same displayed review, under one
   // retained command identity; they differ only in whether evaluation and publication follow now.
   const accept = async (andPublish: boolean) => {
-    if (!canAct() || !review || !review.canAccept || unavailableIdentityFact || locationEditor || deadlineEditor || command || review.accountId !== accountId) return;
+    if (!canAct() || !review || !review.canAccept || unavailableIdentityFact || locationEditor || command || review.accountId !== accountId) return;
     const accepted = pending.current ?? { review, id: noviUuidZahtevId() }; pending.current = accepted;
     // Marked only once the editor has taken the write (the export screen's rule), so a refused second press never
     // clears the first one's spinner.
@@ -251,7 +243,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     });
   };
   const removeUnavailableIdentityRequirement = async () => {
-    if (!canAct() || !unavailableIdentityFact?.id || command || locationEditor || deadlineEditor) return;
+    if (!canAct() || !unavailableIdentityFact?.id || command || locationEditor) return;
     const factId = unavailableIdentityFact.id;
     await editor.save(async () => {
       const result = await aiNeedV2Izvor.correctFact(factId, false, 'Ne');
@@ -262,7 +254,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     });
   };
   const openLocation = async () => {
-    if (!canAct() || !conversationId || !review || command || deadlineEditor || opening) return;
+    if (!canAct() || !conversationId || !review || command || opening) return;
     const request = { active: true }; locationOpening.current = request;
     setOpening(true); setOpenError(null);
     let result: Awaited<ReturnType<typeof needLocationClientService.read>>;
@@ -293,15 +285,6 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       return result;
     });
   };
-  const proposeDeadline = async (value: string | null) => {
-    if (!canAct() || !deadlineEditor || command) return;
-    deadlineProposal.current = value;
-    await editor.save(async () => {
-      const result = await read();
-      if (current() && result.ok) setDeadlineEditor(false);
-      return result;
-    });
-  };
   const revisePublishedDraft = async () => {
     if (!canAct() || !command) return;
     const supportedEditExit = command.state === 'EVALUATED' && (command.evaluation?.kind === 'NOT_READY'
@@ -320,9 +303,9 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     });
   };
   // Review corrections return to the same conversation and unsent draft, with a visible topic hint only.
-  // Nothing is sent; an open correction, place confirmation or deadline change keeps the return guarded.
+  // Nothing is sent; an open correction, place confirmation keeps the return guarded.
   const editInConversation = (target: AiCorrectionTarget = 'task.details') => {
-    if (busyNow.current || !canAct() || command || locationEditor || deadlineEditor || !conversationId || !accountId) return;
+    if (busyNow.current || !canAct() || command || locationEditor || !conversationId || !accountId) return;
     const correction = rememberAiCorrection({ accountId, accountRevision }, target, conversationId);
     if (!correction) return;
     const retained = readIntakeReviewReturn(intakeReturn, conversationId);
@@ -344,10 +327,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     return name.length > 60 ? `${name.slice(0, 59).trimEnd()}…` : name;
   };
   const deleteBoundDraft = () => {
-    if (!busyNow.current && canAct() && !command && !locationEditor && !deadlineEditor) lifecycleMenu.current?.request('DELETE_DRAFT');
+    if (!busyNow.current && canAct() && !command && !locationEditor) lifecycleMenu.current?.request('DELETE_DRAFT');
   };
   const discardDraft = () => {
-    if (busyNow.current || !canAct() || !conversationId || bound || command || locationEditor || deadlineEditor || question.current) return;
+    if (busyNow.current || !canAct() || !conversationId || bound || command || locationEditor || question.current) return;
     const asked = {}, id: string = conversationId; question.current = asked;
     const name = draftName();
     confirmation.ask({ title: name ? `Obrisati nacrt „${name}“?` : 'Obrisati nacrt?', confirmLabel: 'Obriši nacrt', tone: 'danger',
@@ -431,17 +414,16 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // would be refused by the very question it asked.
   const screenBusy = editor.busy || editor.loading || editor.uncertain || opening;
   const disabled = screenBusy || lifecycleActive;
-  const publishBlocked = !review || disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!locationEditor || !!deadlineEditor;
+  const publishBlocked = !review || disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
   // "Loading = the write this action started": only the publish spins the publish button; while a draft or a fact saves
   // it simply waits grey.
   const publishWorking = editor.busy && publishing;
-  // Everything else waits while a save runs, the place/deadline is open, or an outcome is not read yet.
-  const quietEdit = disabled || !!locationEditor || deadlineEditor;
+  // Everything else waits while a save runs, the place is open, or an outcome is not read yet.
+  const quietEdit = disabled || !!locationEditor;
   // One line ABOVE the publish button, in the foot, ONLY when the button is grey: the first thing in its way, short (the full list is "Još treba"
   // above). A grey button always says why, and the reason stands over it, not under it, where it read as the next thing. A button that can be pressed
   // says what it does by its name and has no sentence over it ("Objavljuješ ovu verziju zadatka." said what "Objavi zadatak" is; the owner, 8 Oct 2026).
-  const caption = todos.length || unavailableIdentityFact ? 'Prvo uradi ono što piše pod „Još treba“.'
-    : deadlineEditor ? 'Sačuvaj ili zatvori rok za prijave.' : null;
+  const caption = todos.length || unavailableIdentityFact ? 'Prvo uradi ono što piše pod „Još treba“.' : null;
   // A command that fails ticks once with the failure pattern (haptics rule R5), whether it ends in a refusal or in an outcome not known.
   const failedWith = useRef<string | null>(null);
   useEffect(() => { if (editor.error && editor.error !== failedWith.current) tick('error'); failedWith.current = editor.error; }, [editor.error]);
@@ -510,31 +492,20 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   </View> : null;
   // The place's pencil is not drawn while anything else is in flight; while the place itself is being read it says so ("Otvaramo…"), because
   // pressing it is what started that.
-  const placeBusy = editor.busy || editor.loading || editor.uncertain || lifecycleActive || deadlineEditor;
+  const placeBusy = editor.busy || editor.loading || editor.uncertain || lifecycleActive;
 
-  /* ---------------------------------------------------------------------------------------------- the pencils of the parts */
-  // A pencil is drawn only while the screen can act and nothing else is open (a stored command is read only, a save is running, another correction
-  // is open, an outcome is not read yet): nothing looks pressable that is not, and the one open thing is the only thing left to press.
+  // Ordinary facts have one conversation entry below the preview. Map and photos retain
+  // their dedicated confirmation controls; stored commands and uncertain outcomes stay locked.
   const canEdit = !command && !quietEdit;
-  const pencil = (label: string, onPress: () => void, word?: string): PartPencil | undefined => canEdit ? { label, onPress, ...(word ? { word } : {}) } : undefined;
   const systemNote = (item: AiTaskReviewFact | undefined) => item?.source === 'SYSTEM' ? 'Podrazumevana vrednost' : undefined;
-  /** The pencil returns to the owned intake with a local topic; it changes no facts. */
-  const single = (key: NeedFactV2Key, name: string): PreviewPart => {
-    const item = factOf(key);
-    return { pencil: item?.id ? pencil(`Izmeni, ${name}`, () => editInConversation(taskCorrectionTarget(item.key))) : undefined, note: systemNote(item) };
-  };
-  /** Price and time each have one conversational topic; their facts remain frozen until a new reviewed answer. */
-  const grouped = (group: GroupedPart, name: string): PreviewPart => {
-    const primary = partFact(group, publicFacts);
-    return { pencil: primary ? pencil(`Izmeni, ${name}`, () => editInConversation(group === 'value' ? 'task.price' : 'task.time')) : undefined,
-      note: systemNote(primary) };
-  };
+  const single = (key: NeedFactV2Key): PreviewPart => ({ note: systemNote(factOf(key)) });
+  const grouped = (group: GroupedPart): PreviewPart => ({ note: systemNote(partFact(group, publicFacts)) });
   const placeWord = opening ? 'Otvaramo…' : review?.location ? undefined : 'Dodaj';
   const placeAt = (label: string): PartPencil | undefined => !command && !placeBusy
     ? { label, ...(placeWord ? { word: placeWord } : {}), onPress: () => { void openLocation(); } } : undefined;
   const placeLabel = review?.location ? 'Izmeni, Mesto' : 'Dodaj mesto';
   const photosAt: PartPencil | undefined = !command && !quietEdit ? { label: hasPhotos ? 'Izmeni, Fotografije' : 'Dodaj fotografije', ...(hasPhotos ? {} : { word: 'Dodaj' }),
-    onPress: () => { if (!canAct() || !conversationId || locationEditor || deadlineEditor) return;
+    onPress: () => { if (!canAct() || !conversationId || locationEditor) return;
       navigate(() => router.push({ pathname: '/fotografije-zadatka', params: { conversationId } })); } } : undefined;
   const peopleFact = factOf('need.people_needed');
   const knownPeopleCount = peopleFact?.status !== 'UNKNOWN' && typeof peopleFact?.value === 'number'
@@ -556,7 +527,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     {/* A draft opened from "Nacrti" is deleted by the lifecycle's own command, as on the draft's screen: its question, its sending and
         its outcome are drawn here, where the person is looking, and everything else on the screen waits while it is on. */}
     {draftNeed && !command ? <NeedLifecycleActions need={draftNeed} needId={draftNeed.id} menu={lifecycleMenu}
-      disabled={screenBusy || !!locationEditor || deadlineEditor} onActiveChange={setLifecycleActive} onRefresh={refresh} /> : null}
+      disabled={screenBusy || !!locationEditor} onActiveChange={setLifecycleActive} onRefresh={refresh} /> : null}
     {editor.error && !resultCopy ? <T accessibilityRole="alert" style={s.error}>{editor.error}</T> : null}
     {/* After the tap there is one way forward at a time — open the published task, publish the saved draft, or go and change it — and that
         one wears the brand green; what checks the outcome, or leaves for the tasks, stands under it in white. */}
@@ -583,14 +554,14 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const frameOfAddress = review ? ownerAddressFrame(review.location, review.ownerPrivateProjection) : null;
   const hasAddress = !remote && !!frameOfAddress && !!(frameOfAddress.places.length || frameOfAddress.fullAddress || frameOfAddress.notes.length || privateMap.points.length);
   const parts: ReviewDetailParts = {
-    title: single('need.title', 'Naslov'), value: grouped('value', 'Cena'), place: { pencil: placeAt(placeLabel) }, time: grouped('time', 'Termin'),
-    people: single('need.people_needed', 'Broj ljudi'), description: single('need.description', 'Opis'),
+    title: single('need.title'), value: grouped('value'), place: { pencil: placeAt(placeLabel) }, time: grouped('time'),
+    people: single('need.people_needed'), description: single('need.description'),
     map: { pencil: placeAt('Izmeni, Približno mesto') },
-    deadline: { pencil: pencil('Izmeni, Rok za prijave', () => { if (canAct()) setDeadlineEditor(true); }),
-      editor: deadlineEditor && review ? <ResponseDeadlineEditor value={review.responseDeadline} timezone={deadlineTimezone} disabled={disabled}
-        apply={value => { void proposeDeadline(value); }} cancel={() => { if (canAct()) setDeadlineEditor(false); }} /> : undefined },
+    // The current server review owns this value. AI does not yet expose an
+    // application-deadline fact; the completion date is a separate concept.
+    deadline: {},
     requirements: need ? Object.fromEntries(needRequirementRows(need).flatMap(row => REQUIREMENT_FACT[row.label]
-      ? [[row.label, single(REQUIREMENT_FACT[row.label], row.label)] as const] : [])) : {},
+      ? [[row.label, single(REQUIREMENT_FACT[row.label])] as const] : [])) : {},
   };
 
   return <>
@@ -609,7 +580,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
             disabled={disabled} canAct={canAct} navigate={navigate} /> : null}
           {command ? identityBlock : null}
           {/* What stands in the way comes first, because it is why the green action under the page is grey. */}
-          {todoRows.length || (!command && unavailableIdentityFact) ? <ReviewTodoList items={todoRows} disabled={disabled || deadlineEditor}>
+          {todoRows.length || (!command && unavailableIdentityFact) ? <ReviewTodoList items={todoRows} disabled={disabled}>
             {identityBlock}
           </ReviewTodoList> : null}
           {openError ? <Surface kind="note" tone="danger"><T accessibilityRole="alert" style={s.error}>{openError}</T></Surface> : null}
@@ -640,7 +611,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
               {moreFacts.map((item, index) => {
                 const shown = displayFact(item);
                 return <ReviewFactRow key={item.key} label={factName(item.key)} value={priceAmountRowValue(priceMode, shown) ?? reviewRowValue(shown)}
-                  system={item.source === 'SYSTEM'} last={index === moreFacts.length - 1} edit={canEdit ? () => editInConversation(taskCorrectionTarget(item.key)) : undefined} />;
+                  system={item.source === 'SYSTEM'} last={index === moreFacts.length - 1} />;
               })}
             </ReviewMoreFacts> : undefined} />
           {/* The ways out at the end: edit in conversation, or delete draft */}

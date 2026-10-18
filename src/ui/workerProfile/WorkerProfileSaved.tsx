@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { StyleSheet, Switch, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { cityLabel } from '../profile/cityLabel';
@@ -19,7 +19,7 @@ import type { WorkerAiPart } from './workerProfileFacts';
 
 /** The places the saved profile opens: the area and the week of a worker. */
 export type SavedProfilePath = '/profil/lokacija' | '/profil/dostupnost';
-/** The parts of the profile a row opens the editor of. */
+/** Profile sections accepted by contextual AI edits. */
 export type SavedProfilePart = 'skills' | 'tools' | 'vehicles';
 
 /** Short equipment lists fit in their row; longer lists have a disclosure. */
@@ -27,13 +27,13 @@ export const KIT_INLINE_MAX = 3;
 /** Number of services shown before the disclosure. */
 export const SKILL_CHIPS_MAX = 8;
 
-/** The switch "Mogu odmah": its state, what it does when it is touched, and whether it is saving or the last save failed. The route owns the save. */
-export type AvailableNowControl = { value: boolean; onChange: (value: boolean) => void; busy?: boolean; failed?: boolean };
+/** The saved availability state and the owned AI entry used to change it. */
+export type AvailableNowControl = { value: boolean; onEdit: () => void };
 
 /**
  * The saved card reads all canonical facts. Disclosures reveal long lists without
  * entering an editor or sending a command. Editing is an explicit conversation action.
- * The route owns status, available-now writes and restrictions on a suspended profile.
+ * The route owns status, the AI entry and restrictions on a suspended profile.
  */
 export function WorkerProfileSaved({ draft, status, disabled, navigate, openConversation, accountName = null, onUseAccountName, nameWorking = false,
   face, rating, availableNow, readOnly = false, executionModes, refreshModes, showConversationAction = true, confirmMap }: {
@@ -46,7 +46,7 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
   /** That write is in flight. */ nameWorking?: boolean;
   /** The face in the card: the photo, or what stands in for it. */ face?: ReactNode;
   /** The rating in the card (a line, or nothing). */ rating?: ReactNode;
-  /** The switch "Mogu odmah"; without it the row says its state and cannot be touched. */ availableNow?: AvailableNowControl;
+  /** The saved state; editing opens an AI topic and does not toggle it. */ availableNow?: AvailableNowControl;
   executionModes?: WorkerExecutionModeView; refreshModes?: () => void;
   /** A separate, explicit confirmation of the saved area's approximate point. */ confirmMap?: () => void;
 }) {
@@ -90,12 +90,10 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
       onPress={() => { if (!disabled) confirmMap(); }} /> : null}
     <SettingsGroup title="Kada">
       {availableNow && !readOnly
-        ? <ListRow leading={<ClockArt size={32} quiet={disabled} />} title="Mogu odmah"
-          subtitle={availableNow.failed ? 'Nije sačuvano. Pokušaj ponovo.' : availableNow.busy ? 'Čuvamo…' : undefined}
-          trailing={<Switch testID="worker-available-now" value={availableNow.value} disabled={disabled || !!availableNow.busy} onValueChange={availableNow.onChange}
-            accessibilityLabel="Mogu odmah" trackColor={{ true: sys.color.green, false: sys.color.control }} thumbColor={sys.color.surface} />} />
+        ? <SettingsRow label="Dostupnost" value={availableNow.value ? 'Mogu odmah' : 'Mogu odmah: isključeno'}
+          icon={<ClockArt size={32} quiet={disabled} />} disabled={disabled} onPress={() => { if (!disabled) availableNow.onEdit(); }} />
         : <ListRow leading={<ClockArt size={32} quiet />} title="Mogu odmah" value={draft.dostupanOdmah ? 'Uključeno' : 'Isključeno'} />}
-      {!readOnly ? <SettingsRow label="Nedeljni raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled}
+      {!readOnly && !availableNow ? <SettingsRow label="Nedeljni raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled}
         onPress={() => openConversation ? openConversation('time') : navigate('/profil/dostupnost')} last /> : null}
     </SettingsGroup>
     {draft.alati.length || draft.vozila.length ? <SettingsGroup>

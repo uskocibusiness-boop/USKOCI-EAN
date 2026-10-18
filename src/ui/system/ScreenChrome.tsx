@@ -8,22 +8,10 @@ import { layout } from './layout';
 import { useReducedMotion } from './motion';
 import { materialControl, sys } from './tokens';
 
-/**
- * The one screen chrome (master design plan, 2026-09-24): every screen's top bar is one of three kinds, and all three
- * share one height, one control size, one icon size, one side padding and one title style, so moving from screen to
- * screen never shifts the arrow, the title or the first line of content.
- *
- * - `root`   — the root headers: the USKOČI mark on the left, existing controls and inbox, then the profile at far right.
- *              The tab bar already says which part of the app this is, so no section title is drawn; the section's
- *              name reaches a screen reader as the mark's label ("USKOČI, Dogovori").
- * - `detail` — a screen opened from somewhere: the arrow back, the content's name when the content does not already
- *              carry it large, and at most one control on the right (the "···" of rare actions).
- * - `flow`   — one job with one way out: the close X, the flow's name and where you are in it ("Korak 2 od 4").
- *
- * No eyebrow and no sentence that explains where you are (owner, 2026-09-23): a person who opened a task knows they
- * opened a task. `ScreenHeader`, `DetailTopBar` and `ProductHeader` are thin wrappers over this, so every screen that
- * uses them follows without being edited.
- */
+/** Shared navigation chrome for root, detail and flow screens. Wrappers preserve
+ * destination, back/close semantics, readable titles and injected identity.
+ * Composition, supporting copy, materials and optical dimensions may evolve
+ * by role; interaction targets and large-text behavior remain protected. */
 export const chrome = {
   /** 48 px controls (an important command is never under 48) with 8 px above and below. */
   minHeight: 64,
@@ -32,13 +20,13 @@ export const chrome = {
   paddingVertical: sys.space.sm,
   gap: sys.space.md,
   /** The touch area of every chrome control. */
-  control: 48,
+  control: sys.touch.min,
   /** The circle drawn inside that area. */
   circle: 44,
   /** The glyph in a bare circle: the chrome size of the Glyph registry. */
-  icon: 24,
+  icon: sys.icon.size.chrome,
   /** The glyph beside a word, in a captioned pill: the row size of the Glyph registry. */
-  captionIcon: 20,
+  captionIcon: sys.icon.size.row,
 } as const;
 
 /**
@@ -48,7 +36,7 @@ export const chrome = {
 type ChromeArt = { icon: GlyphIcon; glyph?: never } | { glyph: GlyphName; icon?: never };
 
 /**
- * Leaving a screen is not a result (rule R5: a tick is an outcome, not a touch), so the arrow back and the close X make no sound unless
+ * Leaving a screen is not a result, so the arrow back and the close X make no sound unless
  * a caller asks for one. The rule is read from the NAME in the Glyph registry, so a screen that draws `glyph="back"` itself is silent
  * without knowing it. A Phosphor component handed in as `icon` is a component, not a name: nothing is guessed from which one it is
  * (a week arrow is an ArrowLeft too, and it is a change of state), so it keeps the tick it had.

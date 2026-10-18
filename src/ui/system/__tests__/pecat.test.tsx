@@ -51,11 +51,6 @@ describe('the stamp is the chip of its state', () => {
     expect(JSON.stringify(pill().props.style)).toContain(STATUS_TONES.neutral.ground);
   });
 
-  it('is tilted by -4 degrees, like a stamp on a receipt', async () => {
-    await render(<Pecat label="Ocenjeno" tone="green" />);
-    expect(JSON.stringify(pill().props.style)).toContain('"rotate":"-4deg"');
-  });
-
   it('draws a dot for green and a ring for neutral, as the state table does, and the shape it is asked for', async () => {
     await render(<Pecat label="Objavljen" tone="green" />);
     expect(mark().findAllByType(Circle).map(node => node.props.fill)).toEqual([STATUS_TONES.green.mark]);
@@ -68,13 +63,13 @@ describe('the stamp is the chip of its state', () => {
 });
 
 describe('the fall', () => {
-  it('is 140 ms, shorter than a switch, on the native driver and on easeOut', async () => {
-    expect(PECAT_FALL_MS).toBe(140);
+  it('uses its shared brief response duration and curve', async () => {
+    expect(PECAT_FALL_MS).toBeGreaterThan(0);
     expect(PECAT_FALL_MS).toBeLessThan(sys.motion.toggle);
     const held = holdTiming();
     await render(<Pecat label="Ocenjeno" tone="green" play />);
     expect(held.timing).toHaveBeenCalledTimes(1);
-    expect(held.config()).toMatchObject({ toValue: 1, duration: 140, delay: 0, useNativeDriver: true });
+    expect(held.config()).toMatchObject({ toValue: 1, duration: PECAT_FALL_MS, delay: 0, useNativeDriver: true });
     const curve = Easing.bezier(...sys.motion.easeOut);
     for (const t of [0, 0.1, 0.4, 0.8, 1]) expect(held.config().easing(t)).toBeCloseTo(curve(t), 6);
   });

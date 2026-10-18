@@ -1,35 +1,24 @@
-import { createContext, useContext, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Press } from '../Press';
 import { layout, ruleWidth } from './layout';
 import { cardCompact, floating, inset, raisedItem, sys } from './tokens';
 
-/**
- * The one container (composition spec 2026-10-07, section 2 "B" and "U4"). The app had six kinds of container, and the same
- * "record" (a task, a Dogovor, an appointment) looked three ways. There are four now, and what each one MEANS is fixed:
- *
- * - `record`  a thing that is touched: a task, a Dogovor, an application, an appointment, a candidate. White, 24 corners,
- *             16 padding, and the shadow (`raisedItem`). A shadow means "touch me", so nothing that is only read has one.
- * - `panel`   a thing that is only read and wants a frame: an edge of 1 dp (`cardLine`), no shadow.
- * - `float`   what lies over something else (the pills and controls over the map, the composer): `floating`, plus the 1 dp
- *             `line` so it holds its edge over tiles. The caller sets the corner (`sys.radius.pill` for a pill).
- * - `note`    a sentence that has to stand out, as a flat tint (`inset`): `wash` by default, `warn` or `danger` for a
- *             state. It is NOT a card.
- *
- * Never a card inside a card, around a list of rows or around one row. A `Surface` inside a `Surface` speaks in development
- * builds (not under Jest, which also has `__DEV__` on, and not in a store build): the exception is a `note`, which is a tint
- * and may stand in a card. This file is the only one that spells `raisedItem`, `card`, `cardCompact`, `floating` or `inset`
- * (`__tests__/surface-kinds-ratchet.test.ts` holds the files that still do, and the list only shrinks).
- */
-export type SurfaceKind = 'record' | 'panel' | 'float' | 'note';
-export type SurfaceTone = 'wash' | 'warn' | 'danger';
-
+/** Material primitives, not content templates. A discovery card, my task and an agreement
+ * share tokens but choose their own hierarchy, actions, imagery and density in their family.
+ * Legacy kinds retain sensible defaults; variants allow intentional evolution without forks.
+ * A shadow is elevation, not evidence of interactivity or a successful business operation. */
+export type SurfaceKind = 'record' | 'panel' | 'float' | 'note' | 'hero' | 'media' | 'inset';
+export type SurfaceTone = 'neutral' | 'wash' | 'brand' | 'accent' | 'success' | 'info' | 'warn' | 'danger' | 'violet';
+export type SurfaceVariant = 'flat' | 'outlined' | 'elevated' | 'tinted';
+export type SurfaceDensity = keyof typeof sys.surface.padding;
 export type SurfaceProps = {
   kind: SurfaceKind;
-  /** Only for a `note`; the tint. `wash` when it is left out. */
   tone?: SurfaceTone;
-  /** Only for a `record`: the whole card is one button, and gives under the finger. */
+  variant?: SurfaceVariant;
+  density?: SurfaceDensity;
   onPress?: () => void;
+  disabled?: boolean;
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
   testID?: string;
@@ -37,52 +26,69 @@ export type SurfaceProps = {
   accessibilityHint?: string;
 };
 
-/** What the nearest enclosing Surface is, so a Surface inside another one can say so. */
-const Enclosing = createContext<SurfaceKind | null>(null);
+type EnclosingSurface = { kind: SurfaceKind; interactive: boolean };
+const Enclosing = createContext<EnclosingSurface | null>(null);
 
-/**
- * The things a Surface is told off for, as words. Pure, so a test can see them without a development build: whether they are
- * SPOKEN is `speaks`.
- */
-export function surfaceWarnings({ kind, enclosing, pressed }: { kind: SurfaceKind; enclosing: SurfaceKind | null; pressed: boolean }): string[] {
-  const found: string[] = [];
-  if (enclosing !== null && kind !== 'note') {
-    found.push(`Surface: a ${kind} stands inside a ${enclosing}. A card is never inside a card: use a Section, a ListRow or a note.`);
-  }
-  if (pressed && kind !== 'record') found.push(`Surface: onPress is ignored on a ${kind}; only a record is touched.`);
-  return found;
+/** Nesting a passive status or media section is legitimate. Nested whole-card buttons
+ * compete for a single gesture and accessibility focus: use sibling actions instead. */
+export function surfaceWarnings({ kind, enclosing, pressed, enclosingPressed = false }: {
+  kind: SurfaceKind; enclosing: SurfaceKind | null; pressed: boolean; enclosingPressed?: boolean;
+}): string[] {
+  return enclosing && pressed && enclosingPressed
+    ? [`Surface: interactive ${kind} is inside interactive ${enclosing}. Use sibling actions so one gesture has one owner.`] : [];
 }
-
-/** Development builds only, and never under Jest (which also has `__DEV__` on): a test must not print, and a store build says nothing. */
-export function speaks(env: { dev: boolean; test: boolean }): boolean {
-  return env.dev && !env.test;
-}
+export const speaks = (env: { dev: boolean; test: boolean }): boolean => env.dev && !env.test;
 const underTest = () => process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
 
-export function Surface({ kind, tone = 'wash', onPress, children, style, testID, accessibilityLabel, accessibilityHint }: SurfaceProps) {
+export function Surface({ kind, tone, variant, density, onPress, disabled = false, children, style, testID,
+  accessibilityLabel, accessibilityHint }: SurfaceProps) {
   const enclosing = useContext(Enclosing);
   const pressed = onPress !== undefined;
+  const context = useMemo(() => ({ kind, interactive: pressed }), [kind, pressed]);
   useEffect(() => {
     if (!speaks({ dev: __DEV__, test: underTest() })) return;
-    for (const message of surfaceWarnings({ kind, enclosing, pressed })) console.warn(message);
-  }, [kind, enclosing, pressed]);
+    for (const message of surfaceWarnings({ kind, enclosing: enclosing?.kind ?? null, pressed, enclosingPressed: enclosing?.interactive })) console.warn(message);
+  }, [kind, enclosing?.kind, enclosing?.interactive, pressed]);
 
-  const look = [s[kind], kind === 'note' ? s[tone] : null, style];
-  const body = kind === 'record' && onPress
+  const effectiveTone = tone ?? (kind === 'hero' ? 'brand' : kind === 'note' || kind === 'inset' ? 'wash' : 'neutral');
+  const look = [s[kind], variant ? materials[variant] : null,
+    effectiveTone !== 'neutral' ? tones[effectiveTone] : null,
+    density ? { padding: sys.surface.padding[density], paddingHorizontal: sys.surface.padding[density], paddingVertical: sys.surface.padding[density] } : null,
+    pressed ? s.touch : null, style];
+  const body = onPress
     ? <Press testID={testID} accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityHint={accessibilityHint}
-      onPress={onPress} haptic="select" scaleTo={sys.motion.scale.row} style={look}>{children}</Press>
+      accessibilityState={{ disabled }} disabled={disabled} onPress={() => { if (!disabled) onPress(); }}
+      haptic={disabled ? 'none' : 'select'} scaleTo={sys.motion.scale.row} style={look}>{children}</Press>
     : <View testID={testID} accessible={accessibilityLabel ? true : undefined} accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint} style={look}>{children}</View>;
-  return <Enclosing.Provider value={kind}>{body}</Enclosing.Provider>;
+  return <Enclosing.Provider value={context}>{body}</Enclosing.Provider>;
 }
 
+// Clear previous material elevation when the caller deliberately chooses flat/outlined.
+const noLift: ViewStyle = { boxShadow: [], elevation: 0, shadowOpacity: 0 };
+const materials = StyleSheet.create({
+  flat: { ...noLift, borderWidth: 0 },
+  outlined: { ...noLift, borderWidth: ruleWidth, borderColor: sys.color.cardLine },
+  elevated: { ...raisedItem },
+  tinted: { ...noLift, borderWidth: 0 },
+});
+const tones = StyleSheet.create({
+  wash: { backgroundColor: sys.color.wash },
+  brand: { backgroundColor: sys.status.brand.background },
+  accent: { backgroundColor: sys.status.accent.background },
+  success: { backgroundColor: sys.status.success.background },
+  info: { backgroundColor: sys.status.info.background },
+  warn: { backgroundColor: sys.status.warning.background },
+  danger: { backgroundColor: sys.status.danger.background },
+  violet: { backgroundColor: sys.status.violet.background },
+});
 const s = StyleSheet.create({
   record: { ...raisedItem, borderRadius: sys.radius.card, padding: layout.card },
   panel: { ...cardCompact },
   float: { ...floating, backgroundColor: sys.color.surface, borderWidth: ruleWidth, borderColor: sys.color.line, borderRadius: sys.radius.card },
-  // `inset` pads 14, which is off the scale; the note keeps its tint and corner and takes 12 over and under, 16 across.
   note: { ...inset, paddingVertical: sys.space.md, paddingHorizontal: sys.space.base },
-  wash: { backgroundColor: sys.color.wash },
-  warn: { backgroundColor: sys.color.warnSoft },
-  danger: { backgroundColor: sys.color.dangerSoft },
+  hero: { backgroundColor: sys.color.surface, borderRadius: sys.radius.hero, padding: sys.surface.padding.spacious },
+  media: { backgroundColor: sys.color.surface, borderRadius: sys.radius.media, borderWidth: ruleWidth, borderColor: sys.color.cardLine },
+  inset: { backgroundColor: sys.color.wash, borderRadius: sys.radius.control, padding: sys.surface.padding.compact },
+  touch: { minHeight: layout.touch, minWidth: layout.touch },
 });

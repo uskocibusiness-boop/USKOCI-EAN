@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-10-18",
+  "sourceBeforeCleanup": "eaa38a04e20be24bba71840660493b634180ee72",
+  "branch": "feature/unified-qa-master-20261017",
+  "activeOwners": {
+    "workInstructions": "AGENTS.md",
+    "workStatus": "docs/control/redovi.json",
+    "designCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+    "designConstraintRegister": "docs/implementation/design-system/DESIGN_CONSTRAINT_REGISTRY_20261018.json",
+    "designTokens": "src/ui/system/tokens.ts",
+    "colorValues": "src/theme/colorTokens.ts",
+    "surface": "src/ui/system/Surface.tsx",
+    "motionValues": "src/ui/system/motionTokens.ts",
+    "motionLifecycle": "src/ui/system/motion.ts",
+    "navigation": "src/app/(app)/_layout.tsx",
+    "testConfiguration": "jest.config.cjs",
+    "integratedApkBuild": ".github/workflows/build-latest-v5-preview-apk.yml"
+  },
+  "devObservation": {
+    "at": "2026-10-18T18:03:08Z",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "status": "ACTIVE_HEALTHY",
+    "migrations": 285,
+    "latestMigration": "20261018144207",
+    "taskInterviewVersion": 99,
+    "workerInterviewVersion": 53,
+    "pushTransportVersion": 35,
+    "method": "Read-only MCP project, Edge list and SQL migration metadata",
+    "mutationsThisCleanup": false,
+    "catalogFingerprint": {
+      "functions": 635,
+      "tables": 166,
+      "policies": 79,
+      "evidence": "docs/current/evidence/premium-baseline-20261018/dev-schema-fingerprint.json",
+      "scope": "Definition hashes, signatures, ACL and RLS metadata only; not a data or Storage backup."
+    }
+  },
+  "lastVerifiedApkBeforeCleanup": {
+    "ciRun": 39138831963,
+    "source": "0175d364938ba157990ab4af777ed86c28678dad",
+    "sha256": "c74d590ce2c9bdc28e412f3b256d588188aa0e7ed8234706edf90f730ee942b4",
+    "target": "emulator",
+    "note": "Historical starting artifact, not the cleaned source package. New build and installation must be recorded separately."
+  },
+  "cleanupVerification": {
+    "status": "SOURCE_READY_CI_PENDING",
+    "localTypeScript": "PASS",
+    "buildBoundaryTests": 19,
+    "liveGeneratorTests": 4,
+    "targetedTests": "PASS; overlapping counts recorded in design/client closure, not summed",
+    "fullRegression": "PENDING",
+    "newApk": "PENDING",
+    "nativeVerification": "PENDING",
+    "evidence": "docs/current/evidence/premium-baseline-20261018",
+    "scope": "Current baseline, design authority and foundation; not completion of nine UI waves."
+  }
+}

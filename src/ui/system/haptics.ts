@@ -5,7 +5,7 @@ import { sys } from './tokens';
 /**
  * The one place a haptic tick is made (UI/UX pass, motion item M-03; `MOTION_I_POLISH_SPEC_20261007.md` A6).
  *
- * WHEN a tick happens is the caller's: rule R5 of `sys.motion` says a tick is an outcome, never a touch, so a control ticks
+ * WHEN a tick happens is the caller's: meaningful feedback follows the command or confirmed outcome, so a control ticks
  * when its tap completes (`Press`), a result ticks when the server confirmed it, and navigation ticks nothing. HOW it feels
  * is this file's, and it differs by platform:
  *
@@ -26,7 +26,7 @@ import { sys } from './tokens';
  * A tick is never worth a crash or a lost tap: nothing here throws or rejects. No haptics engine, a native module that is
  * missing, a build whose JS is newer than its native half, a test double: all of it is silence.
  *
- * A tick is not movement, so it does NOT follow "reduce motion" (R5 and R7, spec A6 and A7): a person who asked for less
+ * A tick is not movement, so it does NOT follow "reduce motion" : a person who asked for less
  * motion has not asked for less feedback. This file therefore never reads the reduced-motion store.
  *
  * "Less is more": two ticks closer than `sys.motion.tickGap` feel like one buzz. Of two ticks inside the gap the heavier one

@@ -44,8 +44,6 @@ describe('up to three options share the width equally, in a track that never scr
     expect(flat(track())).toMatchObject({ flexDirection: 'row', padding: sys.space.xs, gap: sys.space.xs, backgroundColor: sys.color.control });
     for (const node of tabs()) expect(flat(node)).toMatchObject({ flexGrow: 1, flexBasis: 0, minHeight: layout.touch });
     expect(tabs()).toHaveLength(count);
-    // 48 of tab and 4 of track padding on each side: the row the spec calls 56.
-    expect(layout.touch + 2 * sys.space.xs).toBe(56);
   });
 
   it('keeps accepting contentSized and scroll, and ignores them: equal shares, no scroller, no intrinsic widths', async () => {

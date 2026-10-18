@@ -498,20 +498,16 @@ describe('deliberate reading intent', () => {
 });
 
 
-it('shows a complete task in the thread with its facts as rows and ONE green review, and nothing that names a state', async () => {
+it('shows the understood task and an explicit action to review before publishing', async () => {
   const review = jest.fn(), p = props();
   p.card = compact => <DraftCard summary={{ title: 'Prenos ormara', value: { kind: 'amount', amount: '4.000 RSD', basis: 'ukupno' },
     zone: 'Novi Sad · Liman', schedule: '3. okt · 17:00–19:00', people: '2 osobe' }}
     stillNeeded={null} open busy={false} compact={compact} canReview onReview={review} note={null} reviewAtEnd />;
   p.cardPlacement = 'end';
   await act(async () => { tree = create(<AiConversationShell {...p} />); });
-  // No "Spremno za pregled" and no "Nacrt" over the name (the owner's phone, 8 Oct 2026): the chrome's title says where the person is.
-  expect(text()).not.toMatch(/Spremno za pregled|\bNacrt\b/);
   expect(text()).toContain('Prenos ormara'); expect(text()).toContain('Novi Sad · Liman');
   expect(text()).toContain('3. okt · 17:00–19:00'); expect(text()).toContain('Treba 2 osobe'); expect(text()).toContain('4.000 RSD ukupno');
   expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(1);
-  // The green action is the only way to the review on the card; a quiet one beside it would be a second door.
-  expect(tree.root.findAllByProps({ testID: 'intake-draft-review' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ label: 'Pregledaj zadatak' })).toHaveLength(1);
   await act(async () => tree.root.findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
   expect(review).toHaveBeenCalledTimes(1);
@@ -523,7 +519,7 @@ it('keeps an incomplete draft as the name, the facts it has and what is still ne
     stillNeeded="termin · mesto" open busy={false} compact={compact} canReview={false} onReview={jest.fn()} note={null} reviewAtEnd={false} />;
   await act(async () => { tree = create(<AiConversationShell {...p} />); });
   expect(text()).toContain('Prenos'); expect(text()).toContain('Još treba: termin · mesto');
-  expect(text()).not.toMatch(/Spremno za pregled|\bNacrt\b/);
+  expect(text()).not.toContain('Spremno za pregled');
   // A draft with no fact yet has no row of facts at all; the way to the review is the quiet word, and it waits.
   expect(tree.root.findAllByProps({ testID: 'intake-draft-stickers' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ testID: 'intake-draft-details' })).toHaveLength(0);

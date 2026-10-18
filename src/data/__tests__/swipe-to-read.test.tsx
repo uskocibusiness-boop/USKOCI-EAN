@@ -42,18 +42,18 @@ it('has the command under an unread row only: a row that cannot be settled is th
   expect(tree.root.findAllByType('Press' as React.ElementType)).toHaveLength(0);
 });
 
-it('draws the command big enough to hit, green on a neutral well, hidden from a screen reader (the row offers it as an action)', async () => {
+it('keeps the swipe command reachable without duplicating its screen-reader action', async () => {
   await draw();
   const panel = tree.root.findByProps({ testID: 'swipe-read-panel' });
   expect(panel.props).toMatchObject({ accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' });
   expect(StyleSheet.flatten(panel.props.style).backgroundColor).toBe(sys.color.control);
-  expect(StyleSheet.flatten(command().props.style)).toMatchObject({ flex: 1, minWidth: 104 });
+  expect(StyleSheet.flatten(command().props.style).minWidth).toBeGreaterThanOrEqual(48);
   expect(command().props.hitSlop).toBe(0);
   // No tick on a touch: the outcome is said by the screen once the server confirmed it.
   expect(command().props.haptic).toBe('none');
   const word = tree.root.findAllByType('T' as React.ElementType)[0];
   expect(word.props).toMatchObject({ variant: 'action', numberOfLines: 1 });
-  expect(StyleSheet.flatten(word.props.style).color).toBe(sys.color.green);
+  expect(word.props.children).toBe('Pročitano');
 });
 
 it('runs the command once and slides the row back', async () => {

@@ -1,7 +1,9 @@
+import { colorTokens } from '../../theme/colorTokens';
 import { Platform, type TextStyle, type ViewStyle } from 'react-native';
-import { elevation, palette, radius, space, touch, type } from '../../theme/tokens';
+import { elevation, radius, space, touch, type } from '../../theme/tokens';
 import { withInter } from '../interFont';
 import { layout, ruleWidth } from './layout';
+import { motionTokens } from './motionTokens';
 
 /**
  * `sys` is the one surface screens and components read for colour, type, space, corners, touch and motion (2026-09-24:
@@ -12,152 +14,34 @@ import { layout, ruleWidth } from './layout';
  */
 export { nested } from '../../theme/tokens';
 
-const WHITE = '#FFFFFF', BLACK = '#000000';
-/** The one divider colour: `sys.color.line` and `sys.rule.color` are this value. */
-const LINE = '#EBEBEB';
-/** The four colours the fact-picture tones in `sys.color.art` are derived from; `sys.color` spells the same values by name. */
-const GREEN = '#00845A', ORANGE = '#FF7A1A', MUTED = '#525252', DANGER = '#963F34';
-const hexChannels = (hex: string) => [1, 3, 5].map(at => parseInt(hex.slice(at, at + 2), 16));
-/** `from` moved `amount` (0 to 1) of the way towards `toward`, as upper-case #RRGGBB: the only way an art tone is made. */
-function mix(from: string, toward: string, amount: number): string {
-  const a = hexChannels(from), b = hexChannels(toward);
-  return `#${a.map((value, at) => Math.round(value + (b[at] - value) * amount).toString(16).padStart(2, '0')).join('').toUpperCase()}`;
-}
-/** One tone of a fact picture: the face, the darker edge it stands on, a light detail and a soft fill. */
-function artTone(front: string, edge = mix(front, BLACK, 0.3)) {
-  return { front, edge, light: mix(front, WHITE, 0.5), soft: mix(front, WHITE, 0.9) };
-}
 /**
- * Default press feedback: a button gives the most, a row or a card less, a big surface not at all.
- * `sys.motion.scale` is this ladder; `sys.motion.pressScale` stays as its button rung for the one component that reads it.
- */
-const PRESS_LADDER = { button: 0.97, row: 0.985, none: 1 } as const;
-
-/**
- * Shared consumer UI system, owner takeover 2026-10-02. White reading surfaces;
+ * USKOČI Premium White foundation, 2026-10-18. White reading canvas;
  * ink for content and money, green for the primary action/confirmed success,
  * warm orange for attention. Emerald location (owner, 8 Oct 2026), blue for the AI, coral people and gold
  * time belong to selective artwork, not invented status. Small orange labels use
  * the contrast-safe orangeInk; orange surfaces use dark labels. Neutral wells are
  * controls, not a requirement to wrap every fact in another card. Entry artwork's
- * own palette remains scoped. Historical design decisions live in Design Master.
+ * own palette remains scoped. Active authority: docs/implementation/design-system/PREMIUM_WHITE_CANON.md; historical compositions are evidence only.
  */
 export const sys = {
-  color: {
-    surface: '#FFFFFF',
-    /** Screens and reading groups are white; `wash` is a neutral control/recessed-state surface. */
-    ground: '#FFFFFF',
-    wash: '#F7F7F7',
-    /** Segmented track and icon wells. */
-    control: '#E8E8E8',
-    iconWell: '#F5F5F5',
-    ink: '#202020',
-    muted: MUTED,
-    green: GREEN,
-    /** Legacy name: a neutral selection well; the icon, edge or label carries green. */
-    greenSoft: '#F3F3F3',
-    orange: ORANGE,
-    orangeSoft: '#FFF5E9',
-    onOrange: '#30200F',
-    /** The label on the one primary action, which is green. */
-    onGreen: '#FFFFFF',
-    line: LINE,
-    lineStrong: '#CDCDCD',
-    cardLine: '#DEDEDE',
-    danger: DANGER,
-    dangerSoft: '#FBECE9',
-    warn: '#8A5100',
-    warnSoft: '#FFF4DF',
-    /** Owner 2026-10-02: prices are ink; color and depth belong to artwork and meaningful actions. */
-    money: '#202020',
-    skeleton: '#EEEEEE',
-    scrim: '#00000066',
-    /** The dim behind a centred dialog (plan 2.20: 0.35; a bottom sheet's own backdrop is 0.3 and lives in the sheet engine). */
-    dim: '#00000059',
-    /**
-     * The white veil a full-screen step panel lies on over the map (the Zadaci search, Discovery V47): the map still shows
-     * through it, and the white cards on it remain readable.
-     */
-    veil: '#FFFFFFE6',
-    /** Hairlines on a filled control, and the ring that appears only while listening. */
-    greenEdge: '#226B52',
-    orangeEdge: '#E57917',
-    orangeHalo: '#FFD2A8',
-    /** A fact beside its icon on a card (where, when): a step darker than muted, so a scanned list reads. */
-    fact: '#404040',
-    /** A count that asks for attention, on white: few places left. */
-    attentionInk: '#985223',
-    /** The words on a waiting chip, which sits on orangeSoft. */
-    waitingInk: '#874515',
-    /** Orange as words. The action orange fails as text (2.5:1), so a word that must read orange uses this. */
-    orangeInk: palette.orangeInk,
-    /**
-     * Words on a filled green surface that is not the primary action (a chosen day). It has no quiet partner: the old
-     * `onDarkMuted` read 2.4:1 on green (it passed only on the retired forest ground), so nothing may say it.
-     */
-    onDark: palette.onDark,
-    /** Material tones derive from the actual brand tokens. FactArt caches each static drawing;
-     * small functional marks remain flat, with contrast-safe state colors. */
-    art: {
-      brand: artTone(GREEN),
-      accent: artTone(ORANGE, mix(ORANGE, BLACK, 0.2)),
-      quiet: artTone(mix(MUTED, WHITE, 0.35), MUTED),
-      danger: artTone(DANGER),
-    },
-    /** Semantic artwork roles: restrained color for place, communication, people and time; never a status inferred from art. */
-    artRole: {
-      // Owner, 8 Oct 2026 (picking board): the blue drawings became emerald, one family with the others; this is the recoloured pin.
-      location: artTone('#0F8C61'),
-      ai: artTone('#3979C4'),
-      skills: artTone('#168579'),
-      people: artTone('#D76B5C'),
-      time: artTone('#DBAC35', '#8D6B12'),
-      confirmed: artTone(GREEN),
-      waiting: artTone(ORANGE, mix(ORANGE, BLACK, 0.2)),
-    },
+  color: colorTokens.color,
+  /** Semantic pairs are content roles, not inferred business status. Always show a label or icon too. */
+  status: colorTokens.status,
+  /** Optical defaults for controls. Other positive sizes may serve a verified composition. */
+  icon: { size: { inline: 16, row: 20, chrome: 24, emphasis: 32 } },
+  /** Surface density depends on content and role; a task preview is not a form or a chat message. */
+  surface: {
+    padding: { compact: space.md, comfortable: space.base, spacious: space.xl },
+    mediaAspectRatio: 1.6,
   },
   /** White conversations; speaker alignment, a quiet edge and the solid own-message fill establish hierarchy. */
-  conversation: {
-    ground: '#FFFFFF',
-    surface: '#FFFFFF',
-    summary: '#FFFFFF',
-    edge: '#DEDEDE',
-    user: '#292929',
-    onUser: '#FFFFFF',
-    /** Softer own-message treatment for the AI thread. All colours live here, never in a screen. */
-    userSoft: '#E8F5E9',
-    userSoftSending: '#EDF7EE',
-    userSoftEdge: '#C8E6C9',
-    userSoftSendingEdge: '#A5D6A7',
-    userSoftInk: '#143D35',
-    userSoftShadow: '#143D35',
-    iconWell: '#F5F5F5',
-  },
+  conversation: colorTokens.conversation,
   /**
    * Public map geography: colors only, independent from the interactive brand markers and their states.
    * Owner 2026-10-07 ("obojenije, da se vide lepo ulice"): a warm light ground so white streets read against it, firmer
    * street edges, light-yellow main streets, greener parks and bluer water. Supersedes the near-white palette (U07 default).
    */
-  map: {
-    ground: '#EFEDE8',
-    residential: '#E9E7E1',
-    park: '#BEE09F',
-    woodland: '#A5D387',
-    water: '#8DCAEE',
-    waterLine: '#5FAED6',
-    waterLabel: '#2B5A72',
-    building: '#DCDAD4',
-    buildingEdge: '#C9C6BF',
-    road: '#FFFFFF',
-    roadEdge: '#C2C6CA',
-    roadMajor: '#FFE9A6',
-    roadMajorEdge: '#E1BD5C',
-    path: '#AFC498',
-    transit: '#A8B1B7',
-    boundary: '#98A2A7',
-    label: '#2E393F',
-    roadLabel: '#46525A',
-  },
+  map: colorTokens.map,
   /**
    * Illustration tones: the Home drawing's own greens, paper and spark. Only for pictures, never for words or controls.
    * NOT `sys.color.art` (above): that is the tone set of a fact picture (FactArt). Two things with one word; do not
@@ -165,24 +49,9 @@ export const sys = {
    * Where the drawing used a colour a hair off the palette it now uses the palette colour (its ground shadow is iconWell,
    * the back sheet greenSoft, the pin orange); these are the tones that are deliberately its own.
    */
-  art: {
-    /** The two ends of the green disc's gradient. */
-    leafLight: '#21A879',
-    leafDeep: GREEN,
-    paperEdge: '#D8E7DF',
-    /** The title line on the paper, and the two quieter lines under it. */
-    paperTitle: '#327960',
-    paperRule: '#C8DBD0',
-    spark: '#FFAD60',
-    dot: '#AECDBB',
-  },
-  /**
-   * One scale, defined once in `theme/tokens`: 12 for what is touched or sits in a row (control, chip, badge and the
-   * primary action alike), 24 for a card, 28 for a sheet. A circle or capsule is `pill`, never half of its own width.
-   *
-   * `check` (6) is the one corner below that scale: the corner of a checkbox box (22–24 px); nothing but a checkbox uses
-   * it. The row corner (12) on a box that small drew a circle, which reads as a radio (card review r3 item 8).
-   */
+  art: colorTokens.illustration.home,
+  /** Named corner roles evolve with the canon. Small marks, controls, comparison cards and heroes
+   * need different proportions. A capsule is geometric; nested corners follow their parent. */
   radius: { ...radius, check: 6 },
   space,
   type: {
@@ -225,81 +94,16 @@ export const sys = {
    * immediately, stop loops and keep state changes readable. Haptics remain separate
    * and use `ui/system/haptics` for consistent feedback and rate limiting.
    */
-  motion: {
-    /** Response to a finger. */
-    press: 120,
-    /** A switch, a chip, a segment. */
-    toggle: 180,
-    /** Something arriving: a row, a panel, a confirmation. */
-    enter: 240,
-    exit: 160,
-    /**
-     * A screen pushed onto the stack: it enters, so it is as long as `enter` and decelerates. `(app)/_layout.tsx` passes
-     * this duration AND `easeOut` to the navigator's transition spec; with only a duration React Native falls back to its
-     * own ease-in-out, which gives that transition a slower start.
-     */
-    push: 240,
-    /** The map camera flying to a place. */
-    camera: 360,
-    /** The step between rows arriving together; stops after six rows. */
-    stagger: 40,
-    /** Default decelerating entrance: fast at the start, settling at the end. */
-    easeOut: [0.23, 1, 0.32, 1] as const,
-    /**
-     * The least time between two ticks of the same weight or a lighter one (`ui/system/haptics.ts`): "less is
-     * more" on a phone, and two taps of the vibrator a hair apart feel like one buzz. A heavier tick (an outcome after a
-     * touch) is never held back by a lighter one.
-     */
-    tickGap: 120,
-    /** How far a pressed surface gives under the finger. Legacy name: the button rung of `scale`, read by Press. */
-    pressScale: PRESS_LADDER.button,
-    /** The press-scale ladder: `button`, `row` (a row or a card), `none` (a big surface). */
-    scale: PRESS_LADDER,
-    /** Default spring for direct manipulation. */
-    spring: { duration: 400, dampingRatio: 0.85 },
-    /**
-     * Default sheet settle, in the form Gorhom's `animationConfigs` takes.
-     * Reduced motion replaces it with `{ duration: 0 }`.
-     */
-    sheetSpring: { stiffness: 300, damping: 30, mass: 1, overshootClamping: true },
-    /**
-     * A sheet that a COMMAND closes (a button, the ×, Android Back, a tap outside): a short timing on `easeOut`, 160-180 ms,
-     * quicker than the spring that opens it. Gorhom's `close()` takes it as
-     * its own configuration; what the finger carries (a drag down) keeps `sheetSpring`.
-     */
-    sheetClose: 170,
-    /**
-     * A centred dialog (plan 2.20): the card opens on a scale from `from` to 1 over `enter`, decelerating (`easeOut`), inside the
-     * native Modal's own fade. It leaves on that same window fade, which the platform plays after the screen has already been
-     * told the question is over, so no JS exit is spelled here (plan: 140 ms; the system's short animation time is what the
-     * window fade takes). Under reduced motion it neither fades nor scales: it is there, and then it is gone.
-     */
-    dialog: { enter: 200, from: 0.96 },
-    /**
-     * Loops, in milliseconds per half-turn. Pause outside the focused foreground
-     * screen and under reduced motion: skeleton breath, typing dots, listening glow.
-     */
-    loop: { breath: 700, typing: 520, glow: 1600 },
-    /** Illustrations on the active screen: native-driver transforms and brief eye movement. */
-    assistant: { floatHalf: 2400, winkClose: 120, winkOpen: 140, blinkClose: 95, blinkOpen: 110,
-      nextBlinkMin: 3500, nextBlinkJitter: 2800 },
-    /** The Home earning tile's sweep; pauses with the app and under Reduce Motion. */
-    radarSweep: 2600,
-    /**
-     * The picture of an empty state settling in once. Long on purpose, so it is
-     * never used for a control, a fact or anything the finger waits on.
-     */
-    arrive: { duration: 800, easing: [0.22, 0.8, 0.25, 1] as const },
-  },
+  motion: motionTokens,
   touch,
   elevation,
   /**
-   * The grid every screen stands on (UI pass 2026-10-08, `layout.ts`): the edge of a screen 20, sections 24 apart, a group 12,
-   * a zone 32. Spaces between things are `sys.space` (4 8 12 16 24 32 48); `sys.space.lg` (20) is only the edge.
+   * Shared spacing and reading-width defaults. Extend named roles when a card family needs a different composition;
+   * preserve touch targets, large-text reflow and safe areas rather than an immutable spacing list.
    */
   layout,
-  /** The one divider: 1 dp, never `StyleSheet.hairlineWidth` (one physical pixel, a different line on every phone). */
-  rule: { width: ruleWidth, color: LINE },
+  /** Default divider width. Components may use a named optical variant when contrast and density justify it. */
+  rule: { width: ruleWidth, color: colorTokens.color.line },
 } as const;
 
 /** Flat reading panels retain their original edge/padding. Navigable marketplace items explicitly opt into raisedItem. */
@@ -343,18 +147,17 @@ export const field: Omit<TextStyle, 'cursor'> = { ...fieldBox, ...withInter(sys.
 export const inset: ViewStyle = { borderRadius: sys.radius.control, padding: 14 };
 /**
  * A chosen pill chip (one look over the map and in the search panel): a neutral well with a 2 px
- * green edge, and the caller writes its label in green beside a green tick. Never the green fill:
- * that is the one primary action's. A free chip has a 1 px edge, so a chosen one takes 1 px off its side padding
+ * green edge, and the caller writes its label in green beside a green tick. This is a compatible default,
+ * not the only permitted selection material. A free chip has a 1 px edge, so a chosen one takes 1 px off its side padding
  * (`CHIP_CHOSEN_INSET`) and its words do not move.
  */
 export const chipChosen: ViewStyle = { backgroundColor: sys.color.greenSoft, borderWidth: 2, borderColor: sys.color.green };
 export const CHIP_CHOSEN_INSET = 1;
 
 /**
- * The one primary action on a screen: green surface with a white label, as V28 and V41 draw it. The owner, looking at
- * the orange "Oceni saradnju" on his phone (2026-09-23 evening): "nije ove boje … loš fazon". Every other action stays
- * white with a green label; orange is an accent only (the Home publish tile, what waits for you, the map's "+").
- * Pass as `style` to a V2Action; V2Action reads the surface and writes the label in `onGreen`.
+ * Deep-green command material retained for existing callers. It is one supported action treatment;
+ * V2Action also offers an accent primary with readable dark ink for publication or an important next step.
+ * Pass as `style` to a V2Action; its label follows this material using `onGreen`.
  */
 export const brandAction: ViewStyle = {
   backgroundColor: sys.color.green,

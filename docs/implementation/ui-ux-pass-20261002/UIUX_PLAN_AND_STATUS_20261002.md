@@ -1,3 +1,7 @@
+> **ISTORIJSKI VIZUELNI IZVOR — povučena aktivna smernica, 18.10.2026.** Jedini važeći izgled i UX vodi [Premium White canon](../design-system/PREMIUM_WHITE_CANON.md), sa devet talasa, jednim pregledom i jednom akcijom „Izmeni kroz razgovor“. Aktuelni rad počinje u [indeksu](../../current/README_USKOCI_LIVE_MASTER_PLAN.md). Donji datirani tekst, prethodni rezultati i citati ostaju sačuvani; njihove reči „current“, „binding“, „locked“, „apply everywhere“ i stare procedure nisu novi nalozi. Povlačenje se odnosi na estetiku, kompoziciju i prevaziđeni tok; ne ukida privatnost, prava, očuvanje podataka, pristupačnost, revizije ili recovery. Njihov stvarni ugovor proverava se u aktuelnom kodu/serveru. Ovaj banner ne dokazuje implementaciju niti isporuku novog UI-ja.
+
+---
+
 # UI/UX pass - the plan and where it stands (kept in the repository 2026-10-02)
 
 Current continuation,6 October: [Home/worker exact local checkpoint](HOME_WORKER_REFINEMENT_20261006.md). The later owner direction and native review retain **two equally prominent Home actions**, with art left/text right. Earlier one-primary-tile descriptions below are historical iterations. The62-row registry and LIVE plan remain the execution authority.

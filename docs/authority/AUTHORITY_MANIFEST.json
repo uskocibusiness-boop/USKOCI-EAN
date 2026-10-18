@@ -1,4 +1,14 @@
 {
+  "_currentApplicability": {
+    "status": "HISTORICAL_PROVENANCE_ONLY",
+    "asOf": "2026-10-18",
+    "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+    "note": "Original sources, authority/status labels, counts and hashes below describe the historical manifest. They do not freeze the current visual design or prove current implementation. Source rows are preserved. Historical precedence and row-level AUTHORITATIVE/CURRENT labels below are preserved provenance, not current visual authority. Nine waves and one review/one AI edit belong to the active canon.",
+    "activeBaseline": "docs/current/CURRENT_BASELINE_20261018.md",
+    "currentPrecedence": "Najnovija izričita odluka vlasnika; AGENTS; PREMIUM_WHITE_CANON isključivo za izgled/UX; aktuelni kod/server za funkcionalne ugovore i dokaz primene.",
+    "rowApplicability": "Svaki sources zapis eksplicitno ima HISTORICAL_PROVENANCE_ONLY; originalna polja, source hash-evi i putanje ostaju sačuvani.",
+    "previousManifest": "docs/authority/history/AUTHORITY_MANIFEST_PRE_ROW_APPLICABILITY_20261018.json"
+  },
   "schema_version": 1,
   "generated_at": "2026-09-11T05:21:46.256Z",
   "precedence": "Newest explicit owner decision; physical facts from newest realGit/Supabase observations; CLEANbusiness/SPOJV2visual; originalsources belowonlywithinclassifieddomain",
@@ -24,7 +34,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.122Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\ATLAS.html",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/brand/intent-r.svg",
@@ -39,7 +56,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.128Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\brand\\intent-r.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/brand/intent-w.svg",
@@ -54,7 +78,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.130Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\brand\\intent-w.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/brand/uskoci-lockup.svg",
@@ -69,7 +100,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.132Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\brand\\uskoci-lockup.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/brand/uskoci-mark.svg",
@@ -84,7 +122,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.135Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\brand\\uskoci-mark.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/empty/agreements.svg",
@@ -99,7 +144,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.137Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\empty\\agreements.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/empty/applications.svg",
@@ -114,7 +166,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.139Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\empty\\applications.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/empty/calendar.svg",
@@ -129,7 +188,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.142Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\empty\\calendar.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/empty/chat.svg",
@@ -144,7 +210,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.143Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\empty\\chat.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/empty/inbox.svg",
@@ -159,7 +232,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.145Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\empty\\inbox.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/empty/map.svg",
@@ -174,7 +254,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.147Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\empty\\map.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/empty/reviews.svg",
@@ -189,7 +276,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.149Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\empty\\reviews.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/empty/search.svg",
@@ -204,7 +298,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.151Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\empty\\search.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/empty/tasks.svg",
@@ -219,7 +320,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.152Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\empty\\tasks.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/agreements.svg",
@@ -234,7 +342,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.154Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\agreements.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/arrow.svg",
@@ -249,7 +364,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.155Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\arrow.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/attention.svg",
@@ -264,7 +386,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.157Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\attention.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/back.svg",
@@ -279,7 +408,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.159Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\back.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/bell.svg",
@@ -294,7 +430,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.161Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\bell.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/bike.svg",
@@ -309,7 +452,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.163Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\bike.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/bolt.svg",
@@ -324,7 +474,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.164Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\bolt.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/box.svg",
@@ -339,7 +496,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.166Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\box.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/calendar.svg",
@@ -354,7 +518,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.167Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\calendar.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/car.svg",
@@ -369,7 +540,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.168Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\car.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/chat.svg",
@@ -384,7 +562,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.169Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\chat.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/check.svg",
@@ -399,7 +584,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.171Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\check.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/chevron.svg",
@@ -414,7 +606,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.172Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\chevron.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/clock.svg",
@@ -429,7 +628,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.174Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\clock.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/close.svg",
@@ -444,7 +650,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.175Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\close.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/download.svg",
@@ -459,7 +672,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.177Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\download.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/edit.svg",
@@ -474,7 +694,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.178Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\edit.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/estate.svg",
@@ -489,7 +716,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.180Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\estate.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/eye.svg",
@@ -504,7 +738,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.181Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\eye.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/filter.svg",
@@ -519,7 +760,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.183Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\filter.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/image.svg",
@@ -534,7 +782,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.185Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\image.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/info.svg",
@@ -549,7 +804,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.186Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\info.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/leaf.svg",
@@ -564,7 +826,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.187Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\leaf.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/link.svg",
@@ -579,7 +848,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.189Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\link.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/list.svg",
@@ -594,7 +870,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.191Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\list.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/location.svg",
@@ -609,7 +892,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.192Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\location.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/lock.svg",
@@ -624,7 +914,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.194Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\lock.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/mail.svg",
@@ -639,7 +936,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.195Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\mail.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/map.svg",
@@ -654,7 +958,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.196Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\map.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/mic.svg",
@@ -669,7 +980,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.199Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\mic.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/people.svg",
@@ -684,7 +1002,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.201Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\people.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/pin.svg",
@@ -699,7 +1024,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.202Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\pin.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/plus.svg",
@@ -714,7 +1046,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.203Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\plus.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/receipt.svg",
@@ -729,7 +1068,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.205Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\receipt.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/refresh.svg",
@@ -744,7 +1090,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.206Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\refresh.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/search.svg",
@@ -759,7 +1112,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.209Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\search.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/send.svg",
@@ -774,7 +1134,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.210Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\send.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/shield.svg",
@@ -789,7 +1156,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.212Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\shield.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/sparkless.svg",
@@ -804,7 +1178,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.213Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\sparkless.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/star.svg",
@@ -819,7 +1200,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.215Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\star.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/tool.svg",
@@ -834,7 +1222,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.217Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\tool.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/trailer.svg",
@@ -849,7 +1244,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.219Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\trailer.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/trash.svg",
@@ -864,7 +1266,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.220Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\trash.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/truck.svg",
@@ -879,7 +1288,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.222Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\truck.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/van.svg",
@@ -894,7 +1310,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.224Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\van.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/wallet.svg",
@@ -909,7 +1332,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.226Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\wallet.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/warning.svg",
@@ -924,7 +1354,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.227Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\warning.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/icons/wifi.svg",
@@ -939,7 +1376,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.228Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\icons\\wifi.svg",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/assets/manifest.json",
@@ -954,7 +1398,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.229Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\assets\\manifest.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/contracts/BINDING_MATRIX_66.json",
@@ -969,7 +1420,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.230Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\contracts\\BINDING_MATRIX_66.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/contracts/FUNCTION_STATUS_186.json",
@@ -984,7 +1442,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.232Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\contracts\\FUNCTION_STATUS_186.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/contracts/SCREEN_CATALOG_66.json",
@@ -999,7 +1464,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.233Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\contracts\\SCREEN_CATALOG_66.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/contracts/SCREEN_CONTRACTS_66.json",
@@ -1014,7 +1486,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.234Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\contracts\\SCREEN_CONTRACTS_66.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/docs/ACTION_CONTRACT.md",
@@ -1029,7 +1508,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.235Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\docs\\ACTION_CONTRACT.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/docs/BINDING_GUIDE.md",
@@ -1044,7 +1530,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.235Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\docs\\BINDING_GUIDE.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/docs/DESIGN_SYSTEM.md",
@@ -1059,7 +1552,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.236Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\docs\\DESIGN_SYSTEM.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/docs/FUNCTION_STATUS_186.md",
@@ -1074,7 +1574,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.237Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\docs\\FUNCTION_STATUS_186.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/docs/MOTION_SPEC.md",
@@ -1089,7 +1596,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.238Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\docs\\MOTION_SPEC.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/docs/NATIVE_TRANSFER.md",
@@ -1104,7 +1618,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.239Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\docs\\NATIVE_TRANSFER.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/docs/OPEN_DECISIONS.md",
@@ -1119,7 +1640,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.240Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\docs\\OPEN_DECISIONS.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/docs/OPEN_GAPS.md",
@@ -1134,7 +1662,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.241Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\docs\\OPEN_GAPS.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/docs/QA_ACCEPTANCE.md",
@@ -1149,7 +1684,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.242Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\docs\\QA_ACCEPTANCE.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/docs/READINESS.md",
@@ -1164,7 +1706,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.243Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\docs\\READINESS.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/docs/REPRODUCE.md",
@@ -1179,7 +1728,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.244Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\docs\\REPRODUCE.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/docs/SCREEN_REVIEW_66.md",
@@ -1194,7 +1750,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.245Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\docs\\SCREEN_REVIEW_66.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/docs/SELF_REVIEW.md",
@@ -1209,7 +1772,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.246Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\docs\\SELF_REVIEW.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/docs/SOURCE_PROVENANCE.md",
@@ -1224,7 +1794,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.246Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\docs\\SOURCE_PROVENANCE.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/docs/WHAT_CHANGED.md",
@@ -1239,7 +1816,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.247Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\docs\\WHAT_CHANGED.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/motion/geometry.json",
@@ -1254,7 +1838,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.287Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\motion\\geometry.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/motion/html-reference-frames.json",
@@ -1269,7 +1860,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.288Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\motion\\html-reference-frames.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/motion/original-parts.json",
@@ -1284,7 +1882,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.290Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\motion\\original-parts.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/motion/original-rIntroFrame.js",
@@ -1299,7 +1904,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.302Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\motion\\original-rIntroFrame.js",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/motion/selection-timeline.json",
@@ -1314,7 +1926,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.309Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\motion\\selection-timeline.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/prototype/USKOCI_SPOJ_V2.html",
@@ -1329,7 +1948,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.318Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\prototype\\USKOCI_SPOJ_V2.html",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/reference/ACCEPTANCE_JOURNEYS.json",
@@ -1344,7 +1970,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.319Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\reference\\ACCEPTANCE_JOURNEYS.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/reference/AI_VOICE_INTERACTION.md",
@@ -1359,7 +1992,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.319Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\reference\\AI_VOICE_INTERACTION.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/reference/JOURNEY_DISPOSITION_35.json",
@@ -1374,7 +2014,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.321Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\reference\\JOURNEY_DISPOSITION_35.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/reference/LIVING_TASK_OBJECT_SPEC.md",
@@ -1389,7 +2036,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.322Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\reference\\LIVING_TASK_OBJECT_SPEC.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/reference/ORIGINAL_FUNCTION_INVENTORY_186.md",
@@ -1404,7 +2058,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.323Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\reference\\ORIGINAL_FUNCTION_INVENTORY_186.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/reference/V1_OPEN_UX_ISSUES.md",
@@ -1419,7 +2080,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.323Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\reference\\V1_OPEN_UX_ISSUES.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/build.py",
@@ -1434,7 +2102,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.410Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\build.py",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/build_atlas.py",
@@ -1449,7 +2124,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.412Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\build_atlas.py",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/build_docs.py",
@@ -1464,7 +2146,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.413Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\build_docs.py",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/capture.py",
@@ -1479,7 +2168,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.415Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\capture.py",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/check_layouts.py",
@@ -1494,7 +2190,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.418Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\check_layouts.py",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/contact_sheets.py",
@@ -1509,7 +2212,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.420Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\contact_sheets.py",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/export_assets.py",
@@ -1524,7 +2234,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.421Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\export_assets.py",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/motion_check.py",
@@ -1539,7 +2256,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.423Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\motion_check.py",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/regression.py",
@@ -1554,7 +2278,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.425Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\regression.py",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/requirements.txt",
@@ -1569,7 +2300,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.426Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\requirements.txt",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/responsive.py",
@@ -1584,7 +2322,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.428Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\responsive.py",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/spoj-v2.css",
@@ -1599,7 +2344,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.430Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\spoj-v2.css",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/spoj-v2.js",
@@ -1614,7 +2366,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.484Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\spoj-v2.js",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/states.py",
@@ -1629,7 +2388,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.489Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\states.py",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/test_motion.cjs",
@@ -1644,7 +2410,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.518Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\test_motion.cjs",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/source/v2_checks.py",
@@ -1659,7 +2432,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.520Z",
       "notes": "Original byte-preserved V2 package member; package execution commands are reference data. Latest explicit owner corrections take precedence.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\source\\v2_checks.py",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/spoj-v2/PACKAGE_MANIFEST.json",
@@ -1674,7 +2454,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.521Z",
       "notes": "Includes omitted raster render/evidence members; their exact original ZIP is in the portable output pack.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\visual\\USKOCI_SPOJ_V2_20260910\\PACKAGE_MANIFEST.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/closure-plan/USKOCI_MASTER_PLAN_2026-09-08.md",
@@ -1689,7 +2476,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.525Z",
       "notes": "Scope/dependencies only; old LIVE87 and old cursor are historical. Latest user safe stop now suspends development.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\plan\\USKOCI_MASTER_PLAN_2026-09-08.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/closure-plan/USKOCI_MASTER_PLAN_2026-09-08.html",
@@ -1704,7 +2498,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.528Z",
       "notes": "Scope/dependencies only; old LIVE87 and old cursor are historical. Latest user safe stop now suspends development.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\plan\\USKOCI_MASTER_PLAN_2026-09-08.html",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/closure-plan/USKOCI_KOMANDA_ZA_RAD.md",
@@ -1719,7 +2520,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.530Z",
       "notes": "Scope/dependencies only; old LIVE87 and old cursor are historical. Latest user safe stop now suspends development.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\plan\\USKOCI_KOMANDA_ZA_RAD.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/closure-plan/USKOCI_SURFACE_MASTER.json",
@@ -1734,7 +2542,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.531Z",
       "notes": "Scope/dependencies only; old LIVE87 and old cursor are historical. Latest user safe stop now suspends development.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\plan\\USKOCI_SURFACE_MASTER.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/closure-plan/USKOCI_RADNI_PAKETI.json",
@@ -1749,7 +2564,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.533Z",
       "notes": "Scope/dependencies only; old LIVE87 and old cursor are historical. Latest user safe stop now suspends development.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\plan\\USKOCI_RADNI_PAKETI.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/closure-plan/USKOCI_PROVERE_I_IZVORI.json",
@@ -1764,7 +2586,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.534Z",
       "notes": "Scope/dependencies only; old LIVE87 and old cursor are historical. Latest user safe stop now suspends development.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\plan\\USKOCI_PROVERE_I_IZVORI.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/closure-plan/SHA256.json",
@@ -1779,7 +2608,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.535Z",
       "notes": "",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\plan\\SHA256.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/prior-handoff/00_UPLOAD_AND_START.md",
@@ -1796,7 +2632,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.536Z",
       "notes": "Do not execute the old cursor; current NEXT_AI_HANDOFF owns continuation.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\handoff\\USKOCI_CODEX_HANDOFF_2026-09-10\\00_UPLOAD_AND_START.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/prior-handoff/01_CODEX_MASTER_START_COMMAND.md",
@@ -1813,7 +2656,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.537Z",
       "notes": "Do not execute the old cursor; current NEXT_AI_HANDOFF owns continuation.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\handoff\\USKOCI_CODEX_HANDOFF_2026-09-10\\01_CODEX_MASTER_START_COMMAND.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/prior-handoff/02_CURRENT_CURSOR.md",
@@ -1830,7 +2680,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.538Z",
       "notes": "Do not execute the old cursor; current NEXT_AI_HANDOFF owns continuation.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\handoff\\USKOCI_CODEX_HANDOFF_2026-09-10\\02_CURRENT_CURSOR.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/prior-handoff/03_SECRET_AND_PROVIDER_CHECKLIST.md",
@@ -1847,7 +2704,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.539Z",
       "notes": "Do not execute the old cursor; current NEXT_AI_HANDOFF owns continuation.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\handoff\\USKOCI_CODEX_HANDOFF_2026-09-10\\03_SECRET_AND_PROVIDER_CHECKLIST.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/prior-handoff/04_REUSE_DONOR_RULE.md",
@@ -1864,7 +2728,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.540Z",
       "notes": "Do not execute the old cursor; current NEXT_AI_HANDOFF owns continuation.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\packages\\handoff\\USKOCI_CODEX_HANDOFF_2026-09-10\\04_REUSE_DONOR_RULE.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner/20260910_PRODUCT_COMPLETION_COMMAND.txt",
@@ -1879,7 +2750,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.542Z",
       "notes": "Verbatim user request, not a newly authored master. Contains full supplied product decisions; latest explicit user message wins conflicts.",
       "original_local_source": "C:/Users/user/.codex/attachments/5962b878-705c-439d-a9a9-f84bc1ea9560/pasted-text.txt",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner/20260910_NATIVE_DESIGN_MAX_COMMAND.txt",
@@ -1894,7 +2772,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.544Z",
       "notes": "Verbatim owner attachment; no new master.",
       "original_local_source": "C:/Users/user/.codex/attachments/fb8efa07-faa7-4f9c-923d-0a1dee5f79f5/pasted-text.txt",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/design/USKOCI_MASTER_DESIGN_SYNTHESIS_20260908.md",
@@ -1909,7 +2794,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.547Z",
       "notes": "Original header says AWAITING OWNER SELECTION. Useful D05/cancellation/surface analysis. Old 4500ms/ODZIV/Onest proposals cannot override latest SPOJ V2 4380ms visual source or owner decisions.",
       "original_local_source": "C:/Users/user/Downloads/USKOCI_MASTER_DESIGN_SYNTHESIS_20260908.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/history/USKOCI_RECONCILED_CURRENT_TRUTH.md",
@@ -1924,7 +2816,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.548Z",
       "notes": "Retained source; newest owner commands and physical snapshot take precedence.",
       "original_local_source": "C:/Users/user/Downloads/USKOCI_RECONCILED_CURRENT_TRUTH.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/history/USKOCI_CONFLICT_SUPERSESSION_LEDGER.csv",
@@ -1939,7 +2838,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.551Z",
       "notes": "Not current implementation evidence.",
       "original_local_source": "C:/Users/user/Downloads/USKOCI_CONFLICT_SUPERSESSION_LEDGER.csv",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/history/AGENTS_PRE_HANDOFF_20260911.md",
@@ -1956,7 +2862,14 @@
       "last_physically_validated": "2026-09-11T04:49:28.553Z",
       "notes": "Exact previous file preserved before replacing the root with a short reading map.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\USKOCI-SAFE-HANDOFF\\AGENTS.md",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/history/AGENTS_PRE_SLIM_20260930.md",
@@ -1973,7 +2886,14 @@
       "last_physically_validated": "2026-09-30T18:40:00.000Z",
       "notes": "Exact dated log of the root AGENTS.md (2026-09-11 to 2026-09-30, git blob 1f0557fd917abde0c823ebb97ff3cf103029dc55), archived byte-exact when the root became a rulebook. History, not the reading order.",
       "original_local_source": "AGENTS.md at the canonical branch before the slimming commit",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner/OWNER_SESSION_MESSAGES_20260910_11.json",
@@ -1988,7 +2908,14 @@
       "last_physically_validated": "2026-09-11T04:49:29.093Z",
       "notes": "Includes two complete direct async answers, turbo mode, Entry/Auth corrections, safe stop and authority-pack request; quoted third-party explanations remain quoted context, not verified facts. Does not claim older questionnaire completeness.",
       "original_local_source": "C:\\Users\\user\\Documents\\Codex\\2026-09-10\\ana\\work\\safe-handoff-owner-messages.json",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner-history/01_CURRENT_CANON/CURRENT_PRODUCT_CANON.md",
@@ -2021,7 +2948,14 @@
           "sha256": "8f2d3372c28cf1677b56fe8c616d66ddc8b555059ffe8f5003bdbc0feabd32ec"
         }
       ],
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner-history/01_CURRENT_CANON/ENTITY_COMPONENT_FAMILY_CONTRACT.md",
@@ -2054,7 +2988,14 @@
           "sha256": "8d35a818c379c0e7c4b96ea96a7495740d448d11c6d15841b750d13f2f4bf266"
         }
       ],
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner-history/01_CURRENT_CANON/FINAL_28_ACTIVE_SURFACES.md",
@@ -2087,7 +3028,14 @@
           "sha256": "cba8d02f278a5581ec83fb8fd9eb6c73ab8bd4af95b5a2b5ea24499928a69062"
         }
       ],
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner-history/01_CURRENT_CANON/OWNER_IMPLEMENTATION_CLOSURE_2026-09-03.md",
@@ -2120,7 +3068,14 @@
           "sha256": "45cd8f0b506cd5c1b582dfc4214dc2b1d007bf0f40bf72b2434c8d99949402ae"
         }
       ],
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner-history/01_CURRENT_CANON/OWNER_REVIEW_21_FINAL_COMPLETE_SOURCE.md",
@@ -2165,7 +3120,14 @@
           "sha256": "0976893e6abd097889ab6faf3630bb6238f2ff519aa0a4024b6d7efc87f50eed"
         }
       ],
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner-history/01_CURRENT_CANON/PUBLIC_PRESELECTION_QA_CONTRACT.md",
@@ -2198,7 +3160,14 @@
           "sha256": "157f90b8a6c7758e33218201c91ad6fe2c0f125616889c115dce483e89c4b741"
         }
       ],
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner-history/01_CURRENT_CANON/V1_PROVIDER_SELECTIONS_2026-09-03.md",
@@ -2234,7 +3203,14 @@
           "sha256": "b02c905a8e7bd0639065ce742dea48e821077a8b9ee356edb6542d2d943b6e9b"
         }
       ],
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner-history/01_OWNER_LOCKS/OWNER_LOCKED_DECISIONS.md",
@@ -2274,7 +3250,14 @@
           "sha256": "18395ad8abfa9196eb622961abae15f57b58167c852d375f659f66c3c699f2e7"
         }
       ],
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner-history/02_RECONCILIATION/07_C12_SEMANTIC_DECISION_RECONCILIATION_21_21.csv",
@@ -2312,7 +3295,14 @@
           "sha256": "c9858bc548f8df0936fd39f15797b3571c69d788e6df43b05a371100bffae724"
         }
       ],
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner-history/02_RECONCILIATION/10_C12_RECONCILIATION_SUMMARY.md",
@@ -2350,7 +3340,14 @@
           "sha256": "3e346c7211f730aa5bfcb60151e53befc6902970d90c666f14df08c00e641d6d"
         }
       ],
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner-history/03_HISTORICAL_C12/105_PRODUCT_DECISION_REGISTER.md",
@@ -2380,7 +3377,14 @@
           "sha256": "3f556215f5b1cb95fc1733179508b630d4a1f8cf3aa67c64c8b60e7aa8e67a63"
         }
       ],
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner-history/03_HISTORICAL_C12/105_PRODUCT_DECISION_REGISTER.csv",
@@ -2410,7 +3414,14 @@
           "sha256": "79bec814895df041ef124f41365b1e36356f3b86e439e018c554cd6a2d21cb3c"
         }
       ],
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner-history/03_HISTORICAL_C12/112_FINAL_PRODUCT_SPECIFICATION.md",
@@ -2440,7 +3451,14 @@
           "sha256": "d433ed7cb08180ccf0d4634747a90b8b6f8bf3a6031e283272c5c0357e1ff4c7"
         }
       ],
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner-history/04_DRAFT_LEGAL/USKOCI_AI_SAFETY_LEGAL_CONSTITUTION_2026-09-02.md",
@@ -2473,7 +3491,14 @@
           "sha256": "0cfca7e8d68ac413614e715f4213cfb2823693d21e310ccd987ae20ebd3d3ad3"
         }
       ],
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/sources/owner-history/RECOVERY_PROVENANCE.json",
@@ -2487,7 +3512,14 @@
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
       "notes": "14 complete source files verified against16 original archive provenance chains;50 unique reconciled rows and final21/21 review. Raw50-message conversation not recovered; approvedRC2contents not recovered.",
       "bytes": 22735,
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/product-design-truth/USKOCI_PRODUCT_CANON.md",
@@ -2501,7 +3533,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/product-design-truth/USKOCI_INFORMATION_ARCHITECTURE.md",
@@ -2515,7 +3554,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/product-design-truth/USKOCI_USER_FLOWS.md",
@@ -2529,7 +3575,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/product-design-truth/USKOCI_SCREEN_INVENTORY.md",
@@ -2543,7 +3596,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/product-design-truth/USKOCI_SCREEN_STATE_MATRIX.json",
@@ -2557,7 +3617,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/product-design-truth/DESIGN.md",
@@ -2573,7 +3640,14 @@
         "docs/authority/AUTHORITY_INDEX.md"
       ],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/reference/USKOCI_HTML_REFERENCA_IZGLEDA_APP.html",
@@ -2589,7 +3663,14 @@
         "docs/authority/AUTHORITY_INDEX.md"
       ],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/implementation/ru4/RU4_OWNER_LOCK_V1.md",
@@ -2603,7 +3684,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/implementation/ru3/RS_PUBLICATION_POLICY_MINIMUM_OWNER_LOCK_V1.md",
@@ -2617,7 +3705,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/governance/2026-09-07/01_USKOCI_CODEX_ULTRA_EXECUTION_MASTER_V3_2026-09-07.md",
@@ -2633,7 +3728,14 @@
         "docs/authority/AUTHORITY_INDEX.md"
       ],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/governance/2026-09-07/USKOCI_CODEX_EXECUTION_MASTER_V2_2026-09-07.md",
@@ -2649,7 +3751,14 @@
         "docs/authority/AUTHORITY_INDEX.md"
       ],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/implementation/P1_LEGAL_CONSENT_20260908.md",
@@ -2663,7 +3772,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/implementation/P4_PROCESSOR_MAP_20260908.md",
@@ -2677,7 +3793,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/implementation/P3_RETENTION_SCHEDULE_20260908.md",
@@ -2691,7 +3814,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/implementation/P3_RETENTION_EXECUTION_20260910.md",
@@ -2705,7 +3835,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/implementation/P2_EXPORT_DELIVERY_20260910.md",
@@ -2719,7 +3856,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/implementation/D0140A_POLICY_BUNDLE_REGISTRATION_20260908.md",
@@ -2733,7 +3877,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/implementation/LIVE_MIGRATION_STATE.json",
@@ -2747,7 +3898,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/implementation/evidence/live108-20260911/verification.json",
@@ -2761,7 +3919,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "src/ui/v2/tokens.ts",
@@ -2775,7 +3940,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "src/ui/entry/spojBrandData.ts",
@@ -2789,7 +3961,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "src/ui/entry/spojBrandMath.ts",
@@ -2803,7 +3982,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "src/ui/entry/BrandScene.tsx",
@@ -2817,7 +4003,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "src/ui/entry/EntryWelcome.tsx",
@@ -2831,7 +4024,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains."
+      "notes": "Existing exact Git source retained without editing its historical contents; checkoutCRLF may differ, verify raw gitshow bytes. Current owner decisions and fresh physical snapshot govern respective domains.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "AGENTS.md",
@@ -2848,7 +4048,14 @@
       "superseded_by": [],
       "last_physically_validated": "2026-09-30T20:37:17.000Z",
       "notes": "The binding rulebook since 2026-09-30 (rules and conditional rules, no dated log); the dated log is archived byte-exact. Currentdocumentationonly; no product/livepromotion implied. Manifestitselfexcludedfromselfhash.",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "HANDOFF.md",
@@ -2862,7 +4069,14 @@
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
       "notes": "Currentdocumentationonly; no product/livepromotion implied. Manifestitselfexcludedfromselfhash.",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/implementation/CURRENT_IMPLEMENTATION_HANDOFF.md",
@@ -2876,7 +4090,14 @@
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
       "notes": "Currentdocumentationonly; no product/livepromotion implied. Manifestitselfexcludedfromselfhash.",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/implementation/CURRENT_IMPLEMENTATION_STATUS.md",
@@ -2890,7 +4111,14 @@
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
       "notes": "Currentdocumentationonly; no product/livepromotion implied. Manifestitselfexcludedfromselfhash.",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/implementation/IMPLEMENTATION_CONTINUITY.md",
@@ -2904,7 +4132,14 @@
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
       "notes": "Currentdocumentationonly; no product/livepromotion implied. Manifestitselfexcludedfromselfhash.",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/implementation/NEXT_AI_HANDOFF_20260911_0504.md",
@@ -2918,7 +4153,14 @@
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
       "notes": "Currentdocumentationonly; no product/livepromotion implied. Manifestitselfexcludedfromselfhash.",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/implementation/NEXT_AI_HANDOFF_MANIFEST.json",
@@ -2932,7 +4174,14 @@
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
       "notes": "Currentdocumentationonly; no product/livepromotion implied. Manifestitselfexcludedfromselfhash.",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": "docs/authority/AUTHORITY_INDEX.md",
@@ -2946,7 +4195,14 @@
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
       "notes": "Currentdocumentationonly; no product/livepromotion implied. Manifestitselfexcludedfromselfhash.",
-      "hash_basis": "raw_repo_file"
+      "hash_basis": "raw_repo_file",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     },
     {
       "path": ".gitattributes",
@@ -2960,7 +4216,14 @@
       "supersedes": [],
       "superseded_by": [],
       "last_physically_validated": "2026-09-11T05:21:46.256Z",
-      "notes": "Git attributes preserve exact owner/design source bytes and stable authored handoff hashes across platforms. Existing security/test rules unchanged."
+      "notes": "Git attributes preserve exact owner/design source bytes and stable authored handoff hashes across platforms. Existing security/test rules unchanged.",
+      "currentApplicability": {
+        "status": "HISTORICAL_PROVENANCE_ONLY",
+        "asOf": "2026-10-18",
+        "visualAuthority": "RETIRED",
+        "activeDesignCanon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
+        "functionalUse": "Datirani izvor domena; primenljivost proveriti prema novijoj odluci i aktuelnom kodu/serveru. Originalne authority_level/status vrednosti su istorija."
+      }
     }
   ],
   "missing_sources": [

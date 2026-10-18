@@ -8,11 +8,11 @@ import { useTextScale } from './textScale';
 import { sys } from './tokens';
 
 /**
- * Quiet navigation chrome. Illustrations remain in content; a tab keeps the same open line drawing
- * in both states. The selected marker and label establish location without a second filled card.
+ * Navigation chrome with a consistent icon meaning across selected and unselected variants.
+ * Marker, label and accessibility state establish the current location.
  * Existing native-driver selection transitions, measured labels and accessibility semantics remain.
  */
-export const TAB_ICON = 24;
+export const TAB_ICON = sys.icon.size.chrome;
 export const TAB_LABEL_GAP = 3;
 export const TAB_ITEM_PADDING = 3;
 export const TAB_ITEM_TOP = 7;
@@ -74,7 +74,7 @@ export function TabCapsule({ selected, radius }: { selected: boolean; radius: nu
 }
 
 /**
- * The same outline in muted and brand tones, cross-fading over the toggle token.
+ * The same icon meaning in muted and selected brand variants, cross-fading over the toggle token.
  * A small selection response runs only on a rising selection, never on initial display or deselection.
  */
 export function TabGlyph({ kind, selected }: { kind: TabKind; selected: boolean }) {

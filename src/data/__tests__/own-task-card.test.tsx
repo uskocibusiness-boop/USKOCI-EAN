@@ -192,17 +192,16 @@ describe('the rest of the row', () => {
     for (const node of tree.root.findAll(node => node.type === VIEW)) expect(style(node)).not.toHaveProperty('opacity');
   });
 
-  it('is a raised record with a neutral edge and 24 corners: the state is the chip, never the colour of the frame', async () => {
+  it('communicates owner status in words independently of card decoration', async () => {
     await render(<OwnTaskCard item={task()} onOpen={jest.fn()} />);
-    const frame = tree.root.findAll(node => node.type === VIEW && style(node).borderColor !== undefined)[0];
-    expect(style(frame)).toMatchObject({ borderColor: sys.color.line, borderWidth: 1, borderRadius: sys.radius.card, padding: 0 });
+    expect(texts()).toContain('Bira se · 3');
+    expect(presses()[0].props.accessibilityValue.text).toContain('Bira se');
   });
 
-  it('only a task that waits for my decision has a foot, and the foot has one line above it and no other', async () => {
+  it('offers the owner the pending decision and keeps discovery available without applications', async () => {
     await render(<OwnTaskCard item={task()} onOpen={jest.fn()} onApplications={jest.fn()} />);
-    const lines = () => tree.root.findAll(node => node.type === VIEW && style(node).height === 1 && style(node).backgroundColor === sys.color.line);
-    expect(lines()).toHaveLength(1);
+    expect(presses()).toHaveLength(2);
     await render(<OwnTaskCard item={task({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0 })} onOpen={jest.fn()} onApplications={jest.fn()} />);
-    expect(lines()).toHaveLength(0); expect(presses()).toHaveLength(1);
+    expect(presses()).toHaveLength(1);
   });
 });

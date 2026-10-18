@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { ScreenHeader } from '../../ui/system/ScreenHeader';
 import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { AppState } from 'react-native';
@@ -10,7 +10,7 @@ import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
 import { HomePresentation } from '../../ui/home/HomePresentation';
 import { IntakeResume } from '../../ui/home/IntakeResume';
-import { writeAvailableNow } from '../../data/availableNowWrite';
+import { rememberAiCorrection } from '../../data/aiCorrectionIntent';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
 import { homeOpportunityPreview } from '../../data/homeOpportunityPreview';
 
@@ -79,11 +79,6 @@ function Home() {
     opportunitiesResource.data?.value,
     resource.data?.needs,
   ), [resource.data, opportunitiesResource.data]);
-  // R06: what the switch shows while it saves and after it saved is this screen's own until the next read lands; that read is the
-  // truth again, so it takes the override away.
-  const [switching, setSwitching] = useState<{ value: boolean | null; busy: boolean; failed: boolean }>({ value: null, busy: false, failed: false });
-  const saving = useRef(false);
-  useEffect(() => { setSwitching(held => held.busy || held.value === null && !held.failed ? held : { value: null, busy: false, failed: false }); }, [workerResource.data]);
   const current = () => !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
     && sesijaSada().accountRevision === accountRevision && izvorSada() === source
     && AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
@@ -106,19 +101,11 @@ function Home() {
     else if (target.kind === 'WORKER_PROFILE') router.navigate('/profil/razgovor');
     else router.navigate({ pathname: '/moje-prijave', params: { prijavaId: target.applicationId } });
   });
-  // R06: "Mogu odmah" is saved exactly as the profile's own switch saves it: the saved week with only the status changed, against the
-  // revision it was read at. One save at a time; the screen belongs to one account (it is keyed by it), so the answer is always its own.
-  const changeAvailable = (value: boolean) => {
-    if (!current() || saving.current) return;
-    saving.current = true;
-    setSwitching({ value, busy: true, failed: false });
-    void (async () => {
-      // The one write of "Mogu odmah" (src/data/availableNowWrite.ts), shared with Radni profil.
-      const saved = await writeAvailableNow(value);
-      saving.current = false;
-      setSwitching(saved === null ? { value: null, busy: false, failed: true } : { value: saved, busy: false, failed: false });
-    })();
-  };
+  const editAvailability = () => navigate(() => {
+    if (!user?.id) return;
+    const correction = rememberAiCorrection({ accountId: user.id, accountRevision }, 'worker.time');
+    if (correction) router.navigate({ pathname: '/profil/razgovor', params: { aiCorrection: correction.token } });
+  });
   // My own tasks and my applications are reached from here, as two front doors; "Moje aktivnosti" is no longer a
   // destination (2026-09-23). Every press keeps the focus, account and foreground guards above.
   const onProfile = () => navigate(() => router.navigate('/profil'));
@@ -132,8 +119,7 @@ function Home() {
     onOpenOpportunity={id => navigate(() => router.navigate({ pathname: '/prilike/[id]', params: { id } }))}
     stale={!!resource.refreshError && !!home}
     intakeResume={<IntakeResume onOpen={conversationId => navigate(() => router.navigate({ pathname: '/nova', params: { conversationId } }))} />}
-    availableNow={profile?.state === 'ACTIVE' ? { value: switching.value ?? profile.availableNow, onChange: changeAvailable,
-      busy: switching.busy, failed: switching.failed } : undefined}
+    availableNow={profile?.state === 'ACTIVE' ? { value: profile.availableNow, onEdit: editAvailability } : undefined}
     onPublish={() => navigate(() => router.push({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } }))} onEarn={() => navigate(() => router.navigate('/zadaci'))}
     onProfile={onProfile} onOpen={open}
     // One completed Dogovor waiting for my rating, named by the Dogovori read: its rating opens in one tap (critique A1,

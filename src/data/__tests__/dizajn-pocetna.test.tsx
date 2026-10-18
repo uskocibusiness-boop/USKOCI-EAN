@@ -106,7 +106,7 @@ it.each([
 it.each([
   ['waits', ['Pomoć pri selidbi', 'Odgovori na predlog izmene', 'Predloži termin', 'Podesi radni profil', 'Sledeće']],
   ['rated', ['Pomoć pri selidbi', 'Oceni 2 završena Dogovora']],
-  ['worker', ['Mogu odmah', 'Uključeno', 'Moji zadaci']],
+  ['worker', ['Mogu odmah', 'Dostupnost', 'Moji zadaci']],
   ['stale', ['Nema veze. Prikazano je poslednje učitano.', 'Pomoć pri selidbi', 'Danas · 14:00–16:00']],
   ['loading', ['Objavi zadatak', 'Moji zadaci', 'Moje prijave']],
 ])('renders the real Home for the scene %s with its own words and no live action', async (scene, words) => {
@@ -122,6 +122,8 @@ it.each([
   // The profile's setup row stands only where the profile still has to be set up; the switch only where it is active.
   expect(text().includes('Podesi radni profil')).toBe(scene === 'waits');
   expect(text().includes('Mogu odmah')).toBe(scene === 'worker'); expect(text()).not.toContain('Slobodan sam');
+  expect(tree.root.findAllByProps({ accessibilityRole: 'switch' })).toHaveLength(0);
+  if (scene === 'worker') expect(tree.root.findAllByProps({ accessibilityLabel: 'Izmeni dostupnost kroz razgovor' }).length).toBeGreaterThan(0);
   expect(text().includes('Nema veze')).toBe(scene === 'stale');
   await act(async () => {
     for (const control of tree.root.findAll(node => ['Press', 'Action'].includes(String(node.type)))) control.props.onPress?.();
@@ -138,7 +140,7 @@ it('draws the owner\'s own overview as the task and the action of each thing tha
   mockParams = { scene: 'owner' };
   await render();
   const copy = text();
-  for (const word of ['Predloži termin', 'Krečenje stana od 80 m² u belo', 'Nastavi nacrt', 'Prevoz od Petrovaradina do centra Novog Sada', 'Moji zadaci', '8 aktivnih · 1 nacrt', 'Moje prijave', '1 čeka odgovor', 'Mogu odmah', 'Uključeno'])
+  for (const word of ['Predloži termin', 'Krečenje stana od 80 m² u belo', 'Nastavi nacrt', 'Prevoz od Petrovaradina do centra Novog Sada', 'Moji zadaci', '8 aktivnih · 1 nacrt', 'Moje prijave', '1 čeka odgovor', 'Mogu odmah', 'Dostupnost'])
     expect(copy).toContain(word);
   for (const word of ['Raspored', 'Sledeće', 'bez tačnog termina', 'Termin još nije dogovoren.', 'Nacrt još nije objavljen.', 'Slobodan sam', 'Važi dok ga ne isključiš', 'aktivna']) expect(copy).not.toContain(word);
 });

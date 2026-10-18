@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { BackHandler, Image, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
@@ -179,27 +179,25 @@ function Password({ phase = 'form', values = { current: '', next: '', repeat: ''
 const FILLED = { current: 'primer-stara-1', next: 'primer-nova-22', repeat: 'primer-nova-22' };
 
 /**
- * The worker profile as the route composes it: the form edits a local copy; the footer shows one state. `reading` is the saved profile read, as a
+ * The worker profile as the route composes it: saved facts stay read-only; corrections open an AI topic. `reading` is the saved profile read, as a
  * finished profile is first drawn; `accountName` is the name of the ACCOUNT (the one name: it is the title, and while the profile carries another
  * the difference is said with its button).
  */
 function Worker({ initial, status, checks, readyToActivate = false, disabled = false, footer, reading = false, accountName = null, nameWorking = false,
-  switchState = 'idle', rated = true, openSection = null }: {
+  rated = true }: {
   initial: WorkerDraft; status: StanjeProfila | null; checks?: WorkerActivationChecks; readyToActivate?: boolean; disabled?: boolean; footer?: ReactNode;
   reading?: boolean; accountName?: string | null; nameWorking?: boolean;
-  /** The switch "Mogu odmah" of the read profile: at rest, saving, or the last save failed. */ switchState?: 'idle' | 'busy' | 'failed';
   /** Whether the card shows a rating. */ rated?: boolean;
-  /** The editor opened on one part, as a row of the read profile opens it. */ openSection?: 'identity' | 'skills' | 'tools' | 'vehicles' | null }) {
+}) {
   const [value, setValue] = useState(initial);
-  const [now, setNow] = useState(initial.dostupanOdmah);
-  const opening = useMemo(() => openSection ? { section: openSection, token: 1 } : null, [openSection]);
+  const now = initial.dostupanOdmah;
   return <WorkerProfileFrame back={toList.current} footer={footer}
     right={<HeaderInfo title="Na šta utiče radni profil" info={workerProfileInfoLines(!reading)} />}>
     <WorkerProfileForm draft={value} change={setValue} disabled={disabled} status={status} navigate={noop} checks={checks}
       readyToActivate={readyToActivate} openConversation={noop} profileExists={status !== null}
-      reading={reading} onEditPart={reading ? noop : undefined} openSection={opening}
+      reading={reading} aiOnly introOnly={status === null} showConversationAction={!footer} onEditPart={reading ? noop : undefined}
       face={<Avatar initials={inicijali(accountName ?? value.ime)} size={56} />} rating={rated ? <RatingLineView average={4.8} count={12} /> : undefined}
-      availableNow={status === 'ACTIVE' ? { value: now, onChange: setNow, busy: switchState === 'busy', failed: switchState === 'failed' } : undefined}
+      availableNow={status === 'ACTIVE' ? { value: now, onEdit: () => {} } : undefined}
       accountName={accountName} onUseAccountName={accountName ? noop : undefined} nameWorking={nameWorking} />
   </WorkerProfileFrame>;
 }
@@ -370,14 +368,14 @@ const GROUPS: Group[] = [
     { key: 'worker-missing', label: 'Radni profil: nacrt, nedostaje', draw: () => <Worker initial={draft({ vestine: [], capacity: '' })} status="DRAFT"
       accountName="Ana Petrović" checks={{ basics: false, area: true, capacity: false }}
       footer={<WorkerProfileFooter error="Pre aktivacije dodaj bar jednu veštinu.">
-        {primary('Dopuni osnovne podatke')}{quiet('Sačuvaj kao nacrt')}</WorkerProfileFooter>} /> },
+        {primary('Uredi kroz razgovor')}</WorkerProfileFooter>} /> },
     // The account has no name at all, so the one place it is written is the primary (the name is not typed in the work profile).
     { key: 'worker-no-name', label: 'Radni profil: nacrt, nalog bez imena', draw: () => <Worker initial={draft({ ime: '' })} status="DRAFT"
       checks={{ basics: false, area: true }} footer={<WorkerProfileFooter>{primary('Dodaj ime')}{quiet('Sačuvaj kao nacrt')}</WorkerProfileFooter>} /> },
     { key: 'worker-ready', label: 'Radni profil: spreman za aktivaciju', draw: () => <Worker initial={draft()} status="DRAFT" checks={READY} readyToActivate
-      footer={<WorkerProfileFooter>{primary('Proveri i aktiviraj profil')}{quiet('Sačuvaj kao nacrt')}</WorkerProfileFooter>} /> },
+      footer={<WorkerProfileFooter>{primary('Pregledaj kroz razgovor')}</WorkerProfileFooter>} /> },
     { key: 'worker-active', label: 'Radni profil: aktivan', draw: () => <Worker initial={draft()} status="ACTIVE" checks={READY}
-      footer={<WorkerProfileFooter>{primary('Sačuvaj izmene')}</WorkerProfileFooter>} /> },
+       /> },
     { key: 'worker-saved', label: 'Radni profil: sačuvano', draw: () => <Worker initial={draft()} status="ACTIVE" checks={READY}
       footer={<WorkerProfileFooter message="Izmene profila su sačuvane.">{primary('Sačuvaj izmene', { success: true })}</WorkerProfileFooter>} /> },
     { key: 'worker-saving', label: 'Radni profil: čuva se', draw: () => <Worker initial={draft()} status="ACTIVE" checks={READY} disabled
@@ -388,11 +386,11 @@ const GROUPS: Group[] = [
     { key: 'worker-retry', label: 'Radni profil: ponovi čuvanje', draw: () => <Worker initial={draft({ ime: 'Ana P.' })} status="ACTIVE" checks={READY} disabled
       footer={<WorkerProfileFooter held>{primary('Sačuvaj ponovo')}{quiet('Izmeni podatke')}</WorkerProfileFooter>} /> },
     { key: 'worker-suspended', label: 'Radni profil: suspendovan', draw: () => <Worker initial={draft()} status="SUSPENDED" checks={READY}
-      footer={<WorkerProfileFooter>{primary('Sačuvaj izmene')}</WorkerProfileFooter>} /> },
+       /> },
     { key: 'worker-full', label: 'Radni profil: puna lista vozila', draw: () => <Worker initial={draft({ vozila: Array.from({ length: 50 }, (_, i) => `Vozilo ${i + 1}`) })}
-      status="ACTIVE" checks={READY} footer={<WorkerProfileFooter>{primary('Sačuvaj izmene')}</WorkerProfileFooter>} /> },
+      status="ACTIVE" checks={READY}  /> },
     { key: 'worker-long', label: 'Radni profil: dugački nazivi', draw: () => <Worker initial={LONG} status="ACTIVE" checks={READY}
-      footer={<WorkerProfileFooter>{primary('Sačuvaj izmene')}</WorkerProfileFooter>} /> },
+       /> },
     { key: 'worker-review', label: 'Radni profil: pregled iz razgovora', draw: () => <WorkerProfileFrame back={toList.current}
       footer={primary('Sačuvaj profil')}>
       <WorkerAiReviewDetails review={REVIEW} /><WorkerAiActivation activate={false} disabled={false} change={noop} />
@@ -416,14 +414,14 @@ const GROUPS: Group[] = [
       status="ACTIVE" checks={READY} accountName="Ana Petrović" /> },
     { key: 'worker-read-no-rating', label: 'Radni profil: pročitan, bez ocene', draw: () => <Worker reading rated={false} initial={draft()}
       status="ACTIVE" checks={READY} accountName="Ana Petrović" /> },
-    { key: 'worker-read-switch-busy', label: 'Radni profil: Mogu odmah se čuva', draw: () => <Worker reading switchState="busy" initial={draft()}
+    { key: 'worker-read-switch-busy', label: 'Radni profil: prikaz dostupnosti', draw: () => <Worker reading initial={draft()}
       status="ACTIVE" checks={READY} accountName="Ana Petrović" /> },
-    { key: 'worker-read-switch-failed', label: 'Radni profil: Mogu odmah nije sačuvano', draw: () => <Worker reading switchState="failed" initial={draft()}
+    { key: 'worker-read-switch-failed', label: 'Radni profil: dostupnost, bez ručnog prekidača', draw: () => <Worker reading initial={draft()}
       status="ACTIVE" checks={READY} accountName="Ana Petrović" /> },
-    // A row of the read profile opens the editor of its part (no field focused, so no keyboard).
-    { key: 'worker-edit-tools', label: 'Radni profil: izmena alata (iz reda „Alat“)', draw: () => <Worker openSection="tools" initial={draft({ alati: KIT_TOOLS })}
-      status="ACTIVE" checks={READY} accountName="Ana Petrović" footer={<WorkerProfileFooter>{primary('Sačuvaj izmene')}</WorkerProfileFooter>} /> },
-    { key: 'worker-edit-about', label: 'Radni profil: izmena opisa (iz „Lični podaci › O meni“)', draw: () => <Worker openSection="identity" initial={draft({ biografija: 'Radim sa bratom.' })}
+    // Ordinary corrections belong to the AI conversation; these scenes show saved facts.
+    { key: 'worker-edit-tools', label: 'Radni profil: oprema, izmena kroz razgovor', draw: () => <Worker initial={draft({ alati: KIT_TOOLS })}
+      status="ACTIVE" checks={READY} accountName="Ana Petrović"  /> },
+    { key: 'worker-edit-about', label: 'Radni profil: opis, izmena kroz razgovor', draw: () => <Worker initial={draft({ biografija: 'Radim sa bratom.' })}
       status="ACTIVE" checks={READY} accountName="Ana Petrović" /> },
     { key: 'worker-read-suspended', label: 'Radni profil: pročitan, suspendovan', draw: () => <Worker reading initial={draft()} status="SUSPENDED" checks={READY}
       accountName="Ana Petrović" /> },
@@ -440,7 +438,7 @@ const GROUPS: Group[] = [
       footer={<WorkerProfileFooter error="Čuvanje nije potvrđeno. Pogledaj sačuvani profil pre nego što pokušaš ponovo." held>
         {primary('Pogledaj sačuvani profil')}</WorkerProfileFooter>} /> },
     { key: 'worker-edit-name-different', label: 'Radni profil: izmena, ime drugačije', draw: () => <Worker initial={draft({ ime: 'Pera peric' })} status="ACTIVE"
-      checks={READY} accountName="Milos" footer={<WorkerProfileFooter>{primary('Sačuvaj izmene')}</WorkerProfileFooter>} /> },
+      checks={READY} accountName="Milos"  /> },
     { key: 'worker-read-large', label: 'Radni profil: pročitan, veliki tekst (1,3)', large: true, draw: () => <Worker reading
       initial={draft({ ime: 'Pera peric', alati: KIT_TOOLS, vozila: KIT_VEHICLES })} status="ACTIVE" checks={READY} accountName="Milos" /> },
     { key: 'worker-read-owner', label: 'Radni profil: pročitan, tekst 1,15', owner: true, draw: () => <Worker reading

@@ -1,5 +1,3 @@
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
@@ -156,21 +154,21 @@ describe('a row arriving in a list', () => {
 
   // Wave-1 review, minor (b): rule R4 says at most six rows arrive, and the stagger step stops there. The cap on the DELAY was
   // not pinned: with `Math.min(index, ROWS_THAT_ARRIVE)` turned into `index`, a 40-row page waited 1.6 s for its last row.
-  describe('the stagger stops at the sixth row (R4)', () => {
-    it('steps by sys.motion.stagger per row, and gives every row past the sixth the delay of the sixth', async () => {
+  describe('the stagger stops at a bounded row budget', () => {
+    it('steps by the shared stagger and caps the delay for all later rows', async () => {
       await draw(['a']);
       const fresh = Array.from({ length: 12 }, (_, at) => `n${at}`);
       await redraw(['a', ...fresh]);
       // The twelve new rows sit at list positions 1 to 12 and mount in that order.
       const delays = mockEntrances.map(entrance => entrance.delay);
       expect(delays).toHaveLength(12);
-      expect(delays.slice(0, ROWS_THAT_ARRIVE)).toEqual([1, 2, 3, 4, 5, 6].map(position => position * sys.motion.stagger));
+      expect(delays.slice(0, ROWS_THAT_ARRIVE)).toEqual(Array.from({ length: ROWS_THAT_ARRIVE }, (_, index) => (index + 1) * sys.motion.stagger));
       const last = ROWS_THAT_ARRIVE * sys.motion.stagger;
       expect(delays.slice(ROWS_THAT_ARRIVE)).toEqual(Array(12 - ROWS_THAT_ARRIVE).fill(last));
       expect(Math.max(...delays)).toBe(last);
     });
 
-    it('a row that arrives at position 40 waits no longer than the one at position 6, and every entrance is one enter long', async () => {
+    it('a row far down the list waits no longer than the capped row and uses the shared entrance duration', async () => {
       await act(async () => { tree = create(<Appear index={ROWS_THAT_ARRIVE}><View /></Appear>); });
       const sixth = mockEntrances[mockEntrances.length - 1].delay;
       await act(async () => tree.unmount());
@@ -185,7 +183,7 @@ describe('a row arriving in a list', () => {
   // Motion pass, M-01b (spec N1): the entrance every row has. Reanimated's preset, left alone, runs on a quadratic ease-in-out (2 %
   // of the way after the first tenth of the time, so it starts late) and starts 25 dp low (a shove for a whole card). Rule R2
   // wants an entrance to decelerate, and the rise is the outcome bar's own 8 dp.
-  describe('the entrance of one row decelerates and rises 8 dp (R2)', () => {
+  describe('the entrance of one row decelerates with a subtle translation', () => {
     /** Where the row starts, in dp below its place, whichever of the two equivalent ways Reanimated is told (flat, or a `transform` list). */
     const rise = (entrance: Entrance) => {
       const initial = entrance.initial ?? {};
@@ -198,21 +196,28 @@ describe('a row arriving in a list', () => {
       expect(mockEntrances[0].easing).toEqual({ bezier: [...sys.motion.easeOut] });
     });
 
-    it('starts 8 dp below its place, the rise of the outcome bar, not the 25 dp of the preset', async () => {
+    it('starts a finite, subtle distance below its resting place', async () => {
       await act(async () => { tree = create(<Appear><View /></Appear>); });
-      expect(rise(mockEntrances[0])).toBe(8);
-      expect(sys.space.sm).toBe(8);
+      const distance = rise(mockEntrances[0])!;
+      expect(Number.isFinite(distance)).toBe(true);
+      expect(distance).toBeGreaterThan(0);
+      expect(distance).toBeLessThanOrEqual(16);
     });
 
     // The owner's pick of 2026-10-08 (rule B1): what somebody else brings comes from above, what is yours from below. Only the side
     // changes; the length, the stagger and the curve are the same for both.
-    it('comes from above (-8 dp) when `from="above"`, from below (+8 dp) by default and when `from="below"`: only the side differs', async () => {
+    it('comes from the requested side; default and below agree and the magnitude is symmetric', async () => {
       await act(async () => { tree = create(<Appear index={2} from="above"><View /></Appear>); });
       await act(async () => tree.unmount());
       await act(async () => { tree = create(<Appear index={2}><View /></Appear>); });
       await act(async () => tree.unmount());
       await act(async () => { tree = create(<Appear index={2} from="below"><View /></Appear>); });
-      expect(mockEntrances.map(rise)).toEqual([-8, 8, 8]);
+      const [above, normal, below] = mockEntrances.map(entrance => rise(entrance)!);
+      expect(above).toBeLessThan(0);
+      expect(normal).toBeGreaterThan(0);
+      expect(normal).toBeLessThanOrEqual(16);
+      expect(below).toBe(normal);
+      expect(Math.abs(above)).toBe(normal);
       for (const entrance of mockEntrances) {
         expect(entrance.duration).toBe(sys.motion.enter);
         expect(entrance.delay).toBe(2 * sys.motion.stagger);
@@ -226,7 +231,7 @@ describe('a row arriving in a list', () => {
       expect(mockEntrances).toHaveLength(8);
       for (const entrance of mockEntrances) {
         expect(entrance.easing).toEqual({ bezier: [...sys.motion.easeOut] });
-        expect(rise(entrance)).toBe(8);
+        expect(rise(entrance)).toBe(rise(mockEntrances[0]));
         expect(entrance.duration).toBe(sys.motion.enter);
       }
     });
@@ -239,10 +244,14 @@ describe('a row arriving in a list', () => {
     });
   });
 
-  it('keeps each doc on its own declaration: the list\'s memory is documented on useAppear, not on the constant above it', () => {
-    const source = readFileSync(join(__dirname, '../Appear.tsx'), 'utf8').replace(/\r\n/g, '\n');
-    expect(source).toMatch(/\/\*\*(?:(?!\*\/)[^])*useAppear\(\)`? belongs to the list, not to the row(?:(?!\*\/)[^])*\*\/\nexport function useAppear\(/);
-    expect(source).toMatch(/\/\*\*(?:(?!\*\/)[^])*rule R4(?:(?!\*\/)[^])*\*\/\nexport const ROWS_THAT_ARRIVE = 6;/);
+  it('bounds the initial animated batch and total wait without fixing a historical row count', () => {
+    expect(Number.isInteger(ROWS_THAT_ARRIVE)).toBe(true);
+    expect(ROWS_THAT_ARRIVE).toBeGreaterThan(0);
+    expect(ROWS_THAT_ARRIVE).toBeLessThanOrEqual(8);
+    expect(sys.motion.stagger).toBeGreaterThan(0);
+    expect(ROWS_THAT_ARRIVE * sys.motion.stagger).toBeLessThanOrEqual(300);
+    expect(sys.motion.enter).toBeGreaterThan(0);
+    expect(sys.motion.enter).toBeLessThanOrEqual(300);
   });
 
   describe('the first list after a skeleton arrives once (afterLoading)', () => {

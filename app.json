@@ -14,7 +14,7 @@
     "scheme": "uskociapp",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/brand/app-icon/icon.png"
     },
     "android": {
       "package": "rs.uskoci.preview",

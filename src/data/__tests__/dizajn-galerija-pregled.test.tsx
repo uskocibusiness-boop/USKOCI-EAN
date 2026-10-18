@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 /**
@@ -36,6 +37,7 @@ jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'Authorize
 jest.mock('../supabaseClient', () => ({ supabaseKonfigurisan: () => false, supabaseKlijent: () => { throw new Error('a gallery must not reach the data client'); } }));
 
 import DizajnObjava from '../../designLab/dizajn-objava';
+import { brandAction } from '../../ui/system/tokens';
 
 let tree: ReactTestRenderer;
 const originalDev = __DEV__;
@@ -50,8 +52,18 @@ const open = async (scene: string) => {
   expect(row).toBeDefined();
   await act(async () => row.props.onPress());
 };
-const PENCILS = ['Izmeni zadatak', 'Izmeni, Naslov', 'Izmeni, Cena', 'Izmeni, Mesto', 'Izmeni, Termin', 'Izmeni, Broj ljudi', 'Izmeni, Opis', 'Izmeni, Alat',
-  'Izmeni, Približno mesto', 'Izmeni, Tačna adresa', 'Izmeni, Rok za prijave', 'Izmeni, Fotografije'];
+const PENCILS = ['Izmeni zadatak', 'Izmeni, Mesto',
+  'Izmeni, Približno mesto', 'Izmeni, Tačna adresa', 'Izmeni, Fotografije'];
+const press = async (label: string) => {
+  const button = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0];
+  expect(button).toBeDefined();
+  await act(async () => button.props.onPress());
+};
+const expectNoManualFactEditor = () => {
+  expect(tree.root.findAll(node => ['TextInput', 'CivilField'].includes(String(node.type)))).toHaveLength(0);
+  expect(labels()).not.toContain('Sačuvaj ispravku');
+  expect(labels()).not.toContain('Izmeni, Rok za prijave');
+};
 beforeEach(() => { jest.clearAllMocks(); mockPackage = 'rs.uskoci.app.dev'; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); tree = undefined as unknown as ReactTestRenderer; testRuntime.__DEV__ = originalDev; });
 
@@ -61,7 +73,7 @@ it('shows nothing but its refusal in a store build', async () => {
   expect(text()).toBe('Nije dostupno.');
 });
 
-describe('a review that is ready is the task as the others read it, with a pencil on each part', () => {
+describe('a ready review presents facts, one AI correction entry and explicit map/media controls', () => {
   it('draws the real card, then the real page, each under its caption, and the owner\'s frame of the exact address at the end of the page', async () => {
     await open('Spremno za objavu');
     const copy = text();
@@ -78,13 +90,15 @@ describe('a review that is ready is the task as the others read it, with a penci
     for (const gone of ['Detalji', 'Privatni podaci', 'Vide svi', 'Korak']) expect(copy).not.toContain(gone);
   });
 
-  it('every part has its own pencil, named for what it changes, and the only green is the publish', async () => {
+  it('names supported corrections and gives publication the shared primary-action role', async () => {
     await open('Spremno za objavu');
     const named = labels();
     for (const pencil of PENCILS) expect(named).toContain(pencil);
     expect(named).toContain('Obriši nacrt'); expect(named).toContain('Objavi zadatak');
-    const green = tree.root.findAll(node => String(node.type) === 'Press' && node.props.style && JSON.stringify(node.props.style).includes('#00845A'));
-    expect(green.map(node => node.props.accessibilityLabel)).toEqual(['Objavi zadatak']);
+    const publish = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Objavi zadatak');
+    expect(publish).toHaveLength(1);
+    expect(StyleSheet.flatten(publish[0].props.style)).toMatchObject({ backgroundColor: brandAction.backgroundColor, minHeight: brandAction.minHeight });
+    expectNoManualFactEditor();
   });
 
   it('"Tražim ponude" shows no amount anywhere, and a term nobody fixed is the word "Fleksibilno"', async () => {
@@ -153,38 +167,63 @@ describe('the other shapes of a task', () => {
     for (const node of tree.root.findAll(node => String(node.type) === 'T' && String(node.props.children).startsWith('Prenos klavira'))) expect(node.props.numberOfLines).toBeUndefined();
   });
 
-  it('under a large text size the pencils keep their names and lose their word', async () => {
+  it('keeps correction actions named at normal and large text', async () => {
     await open('Spremno za objavu');
-    expect(text()).toContain('Izmeni');
+    expect(labels()).toContain('Izmeni zadatak'); expect(labels()).not.toContain('Izmeni, Naslov');
     await act(async () => tree.unmount());
     await open('Veliki tekst');
-    expect(text()).not.toMatch(/(^| \| )Izmeni( \| |$)/); expect(labels()).toContain('Izmeni, Naslov');
+    expect(labels()).toContain('Izmeni zadatak'); expect(labels()).not.toContain('Izmeni, Naslov');
   });
 });
 
-describe('a part that is being corrected is its editor, and nothing else can be pressed', () => {
-  it('the price is an amount field with the tabs of its facts, and the other pencils are gone', async () => {
-    await open('Izmena cene (olovka)');
-    expect(labels()).toContain('Iznos u dinarima'); expect(labels()).toEqual(expect.arrayContaining(['Iznos', 'Način cene', 'Osnova cene']));
-    expect(tree.root.findAllByProps({ label: 'Sačuvaj ispravku' })).toHaveLength(1); expect(tree.root.findAllByProps({ label: 'Odustani od ispravke' })).toHaveLength(1);
-    expect(labels()).not.toContain('Izmeni, Naslov'); expect(labels()).not.toContain('Izmeni zadatak');
+describe('fact corrections demonstrate the AI topic handoff without pretending to save anything', () => {
+  it.each([['Cena kroz AI razgovor', 'Cena'], ['Termin kroz AI razgovor', 'Termin']])('%s is a clearly marked local conversation example', async (scene, topic) => {
+    await open(scene);
+    expect(text()).toContain('Izmena kroz razgovor');
+    expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header').map(node => node.props.children)).toContain(topic);
+    expect(text()).toContain('isti AI razgovor');
+    expect(text()).toContain('AI se ne poziva i ništa se ne menja niti šalje.');
+    expectNoManualFactEditor();
+    expect(labels()).not.toContain('Objavi zadatak');
+    expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
-  it('the time is the pickers of its start, with the tabs of its facts', async () => {
-    await open('Izmena termina (olovka)');
-    expect(tree.root.findAllByProps({ label: 'Početak: datum' })).toHaveLength(1); expect(labels()).toEqual(expect.arrayContaining(['Vrsta termina', 'Početak', 'Kraj']));
+  it('the single AI edit action returns without changing the fixture', async () => {
+    await open('Spremno za objavu');
+    const original = text();
+    expect(tree.root.findAll(node=>String(node.type)==='Press'&&node.props.accessibilityLabel==='Izmeni zadatak')).toHaveLength(1);
+    for(const topic of ['Naslov','Cena','Termin','Broj ljudi','Opis','Alat']) expect(labels()).not.toContain(`Izmeni, ${topic}`);
+    await press('Izmeni zadatak');
+    expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header').map(node => node.props.children)).toContain('Zadatak');
+    expectNoManualFactEditor();
+    await press('Nazad na pregled');
+    expect(text()).toBe(original);
   });
 
-  it('the deadline is its own editor, in the place of the deadline', async () => {
-    await open('Izmena roka za prijave');
-    expect(tree.root.findAllByProps({ label: 'Datum roka za prijave' })).toHaveLength(1);
-    expect(text()).not.toContain('Prijave do');
+  it('an existing application deadline is read-only until an actual correction contract exists', async () => {
+    await open('Rok za prijave (samo pregled)');
+    expect(text()).toMatch(/Prijave do 12\. okt( \d{4})? · 12:15 \(po vremenu u Srbiji\)/);
+    expectNoManualFactEditor();
+    expect(tree.root.findAllByProps({ label: 'Datum roka za prijave' })).toHaveLength(0);
   });
 
-  it('what the page does not say yet is one row, which opens the facts as rows with their pencil', async () => {
+  it('keeps map confirmation and photographs as dedicated local gallery steps', async () => {
+    await open('Spremno za objavu');
+    await press('Izmeni, Mesto');
+    expect(tree.root.findByType('NeedLocationForm' as React.ElementType).props.reviewOnly).toBe(true);
+    expect(tree.root.findByType('NeedLocationForm' as React.ElementType).props.review.value.resolvedLocation).toBeDefined();
+    await act(async () => tree.unmount());
+    await open('Spremno za objavu');
+    await press('Izmeni, Fotografije');
+    expect(text()).toContain('Fotografije zadatka');
+    expect(text()).not.toContain('Izmena kroz razgovor');
+  });
+
+  it('omitted facts remain readable without per-fact editors', async () => {
     await open('Dodaj još podataka (otvoreno)');
     expect(text()).toContain('Dodaj još podataka'); expect(text()).toContain('Veštine · Vozilo · Dozvole · Bitni uslovi');
-    expect(labels()).toEqual(expect.arrayContaining(['Izmeni, Veštine', 'Izmeni, Vozilo', 'Izmeni, Dozvole', 'Izmeni, Bitni uslovi']));
+    for(const topic of ['Veštine','Vozilo','Dozvole','Bitni uslovi']) expect(labels()).not.toContain(`Izmeni, ${topic}`);
+    expect(labels()).toContain('Izmeni zadatak');
     expect(text()).toMatch(/Prijave do 12\. okt( \d{4})? · 12:15 \(po vremenu u Srbiji\)/);
   });
 });

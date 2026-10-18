@@ -1,3 +1,13 @@
+# ISTORIJSKA REFERENCA — nije aktivan dizajn canon
+
+Označeno 18.10.2026. **Aktuelni izgled i UX definiše [USKOČI Premium White](PREMIUM_WHITE_CANON.md).** Donji tekst je sačuvan kao datirano poreklo. Njegove ranije reči „current“, „locked“, „rulebook“, obavezna geometrija, ručni editori i proceduralna odobrenja nisu sadašnja uputstva. Poslovne zaštite opstaju kroz aktuelne ugovore; stare tvrdnje o implementaciji nisu današnji status.
+
+[Forenzička klasifikacija pravila i testova](DESIGN_CONSTRAINT_REGISTRY_20261018.md). Status proizvoda ostaje u postojećem registru i LIVE planu.
+
+---
+
+## Sačuvan prethodni dokument
+
 # USKOČI icon system
 
 Current refinement (2026-10-03): persistent navigation and root chrome use the shared Glyph outline family; illustrations remain in content. Original local launch/map/messages artwork is joined by the work-profile tool tote, recorded in assets/illustrations/PROVENANCE.json. These decorative objects are not proof of account skills or equipment. Existing small fact/status semantics remain. The historical wave record below explains its original scope; matching native acceptance is recorded in the current UI/UX report.

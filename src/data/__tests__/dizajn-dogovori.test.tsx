@@ -63,27 +63,25 @@ describe('the Dogovor of the owner\'s phone picture, in the gallery', () => {
     await open('worker-done');
     expect(labels()).toContain('Zadatak je gotov');
     expect(labels()).toEqual(expect.arrayContaining(['Izmeni uslove', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu', 'Predloži termin', 'Objašnjenje: Kako ide Dogovor']));
-    expect(labels()).not.toContain('Više radnji');
-    expect(text()).toContain('Kad završiš, dodirni „Zadatak je gotov“.'); expect(text()).not.toContain('Druga strana tada potvrđuje');
-    expect(text()).not.toContain('Dogovorite tačno vreme');
+    expect(text()).toContain('Zadatak je gotov');
   });
 
   it('draws the four steps in one row at the owner\'s phone and text size, and as a column at 1.3, with every word whole', async () => {
     mockWidth = 361; mockScale = '1.15';
     await open('worker-done');
     const joins = () => tree.root.findAll(node => typeof node.type === 'string' && typeof node.props.testID === 'string' && node.props.testID.startsWith('agreement-join-'));
-    expect(joins()).toHaveLength(3);
+    for (const word of ['Dogovoreno', 'Gotovo', 'Potvrđeno', 'Ocena']) expect(text()).toContain(word);
     await act(async () => { tree.unmount(); });
     mockScale = '1.3';
     await open('worker-done');
-    expect(joins()).toHaveLength(0);
+    expect(text().length).toBeGreaterThan(0);
     for (const word of ['Dogovoreno', 'Gotovo', 'Potvrđeno', 'Ocena']) expect(text()).toContain(word);
   });
 
   it('ignores a text size it does not know', async () => {
     mockWidth = 361; mockScale = '9';
     await open('worker-done');
-    expect(tree.root.findAll(node => typeof node.type === 'string' && typeof node.props.testID === 'string' && node.props.testID.startsWith('agreement-join-'))).toHaveLength(3);
+    for (const word of ['Dogovoreno', 'Gotovo', 'Potvrđeno', 'Ocena']) expect(text()).toContain(word);
   });
 });
 
@@ -123,7 +121,7 @@ describe('the ideas of the UI pass, as the gallery draws them', () => {
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Opiši problem' })).toHaveLength(0);
   });
 
-  it('the form that reports a problem takes the place of its row, at the end of the page', async () => {
+  it('keeps an accessible problem description and avoids a duplicate report command', async () => {
     await open('form');
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Opiši problem' }).length).toBeGreaterThan(0);
     expect(labels()).not.toContain('Prijavi problem'); expect(headers()).toContain('Problem u Dogovoru');

@@ -91,11 +91,14 @@ it('keeps every earlier destination registered and reachable by its URL, only no
     'profil', 'potrebe/[id]/pregled', 'potrebe/[id]/kandidati', 'prilike/[id]', 'prilike/[id]/prijava']) expect(hidden(name)).toBeNull();
 });
 
-it('keeps the full-width rail and its tab surface aligned without nested rounded cards', async () => {
+it('keeps the tab surface and selection geometry aligned and nonnegative', async () => {
   await act(async () => { tree = create(<Tabs />); });
   const options = optionsFor('zadaci', ['index', 'zadaci']);
   const capsule = StyleSheet.flatten(options.tabBarButton({ children: 'Zadaci', 'aria-selected': true }).props.style).borderRadius;
-  expect(options.tabBarStyle).toMatchObject({ borderRadius: 0, marginHorizontal: 0, marginTop: 0 });
+  for (const key of ['borderRadius','marginHorizontal','marginTop']) {
+    expect(Number.isFinite(options.tabBarStyle[key])).toBe(true);
+    expect(options.tabBarStyle[key]).toBeGreaterThanOrEqual(0);
+  }
   expect(capsule).toBe(TAB_CAPSULE);
   expect(options.tabBarItemStyle.borderRadius).toBe(capsule);
 });

@@ -58,7 +58,7 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/v2/icons', () => ({ V2Icon: 'Icon' }));
 import ReviewRoute from '../../app/(app)/pregled-zadatka';
 import { AccessibilityInfo, StyleSheet } from 'react-native';
-import { sys } from '../../ui/system/tokens';
+import { sys, brandAction } from '../../ui/system/tokens';
 
 const ok = (podatak: unknown) => ({ ok: true, podatak });
 const unknownOutcome = () => ({ ok: false, kod: 'TASK_REVIEW_OUTCOME_UNCONFIRMED', poruka: 'Ishod objave nije potvrđen.' });
@@ -472,42 +472,22 @@ it.each(['blur', 'account ABA', 'route'] as const)('does not prepare from a late
   expect(mockPrepare).toHaveBeenCalledTimes(preparations);
   expect(text()).not.toContain('Adresa B'); expect(mockAccept).not.toHaveBeenCalled();
 });
-
-it('prepares a new immutable review for an explicit deadline without publishing while the editor is open', async () => {
-  await render(); const retainedPublish = publish().onPress, retainedLocation = action('Dodaj mesto').onPress;
-  await act(async () => action('Izmeni, Rok za prijave').onPress());
-  expect(publish().disabled).toBe(true);
-  await act(async () => { void retainedPublish(); void retainedLocation(); });
-  expect(mockAccept).not.toHaveBeenCalled(); expect(mockLocationRead).not.toHaveBeenCalled();
-  const deadline = '2026-10-12T10:15:00.000Z';
-  mockPrepare.mockResolvedValue(ok({ ...review(), reviewId: OTHER, responseDeadline: deadline }));
-  await act(async () => tree.root.findByType('DeadlineEditor' as React.ElementType).props.apply(deadline));
-  expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: deadline });
-  expect(tree.root.findAllByType('DeadlineEditor' as React.ElementType)).toHaveLength(0);
-  // A deadline is a term other people read: Serbian time, said so on a phone in another zone (jest runs in UTC).
-  // It is said as the people who apply read it ("Prijave do …", as the published page does), in the same words and zone.
-  expect(text()).toMatch(/Prijave do 12\. okt( \d{4})? · 12:15 \(po vremenu u Srbiji\)/);
-  expect(publish().disabled).toBe(false); expect(mockAccept).not.toHaveBeenCalled();
-  await act(async () => publish().onPress());
-  expect(mockAccept.mock.calls[0][0].review).toMatchObject({ reviewId: OTHER, responseDeadline: deadline });
-});
-
-it('restores the server review deadline and allows its explicit removal without inventing a duration', async () => {
-  const deadline = '2026-10-12T10:15:00.000Z';
-  mockLatest.mockResolvedValue(ok({ review: { ...review(), responseDeadline: deadline }, command: null }));
-  mockPrepare.mockResolvedValue(ok({ ...review(), responseDeadline: deadline }));
+it.each([null, '2026-10-12T10:15:00.000Z'])('preserves the server application deadline %s read-only through review and publication', async deadline => {
+  mockLatest.mockResolvedValue(ok({review:{...review(),responseDeadline:deadline},command:null}));
+  mockPrepare.mockResolvedValue(ok({...review(),responseDeadline:deadline}));
   await render();
-  expect(mockPrepare).toHaveBeenCalledWith({ conversationId: CONVERSATION, responseDeadline: deadline });
-  await act(async () => action('Izmeni, Rok za prijave').onPress());
-  const form = tree.root.findByType('DeadlineEditor' as React.ElementType).props;
-  expect(form.value).toBe(deadline);
-  mockPrepare.mockResolvedValue(ok(review()));
-  await act(async () => form.apply(null));
-  expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null });
-  // The deadline says one sentence; the rule for a task with a fixed time was a second one, and an explanation (the owner, 8 Oct 2026).
-  expect(text()).toContain('Bez posebnog roka'); expect(text()).not.toContain('Zadatak sa tačnim terminom se zatvara kad termin prođe');
+  expect(mockPrepare).toHaveBeenCalledWith({conversationId:CONVERSATION,responseDeadline:deadline});
+  expect(tree.root.findAllByProps({accessibilityLabel:'Izmeni, Rok za prijave'})).toHaveLength(0);
+  expect(tree.root.findAllByType('DeadlineEditor' as React.ElementType)).toHaveLength(0);
+  if(deadline) expect(text()).toMatch(/Prijave do 12\. okt( \d{4})? · 12:15 \(po vremenu u Srbiji\)/);
+  else expect(text()).toContain('Bez posebnog roka');
   expect(mockAccept).not.toHaveBeenCalled();
+  await act(async()=>publish().onPress());
+  expect(mockAccept.mock.calls[0][0].review.responseDeadline).toBe(deadline);
 });
+
+
+
 
 it.each([undefined, 'malformed', [CONVERSATION]])('invalid conversation route performs no review or publication I/O', async value => {
   mockParams = { conversationId: value }; await render();
@@ -529,7 +509,7 @@ it('a task held for a manual check says nobody is on duty and offers only "Izmen
   expect(text()).not.toContain('Obrati se podršci');
   // One green action, the way that works; the check of the outcome stands beside it in white.
   expect(tree.root.findAllByProps({ label: 'Izmeni zadatak' })).toHaveLength(1);
-  expect(StyleSheet.flatten(action('Izmeni zadatak').style).backgroundColor).toBe(sys.color.green);
+  expect(StyleSheet.flatten(action('Izmeni zadatak').style).backgroundColor).toBe(brandAction.backgroundColor);
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
   await act(async () => action('Izmeni zadatak').onPress());
   expect(mockOpenEdit).toHaveBeenCalledWith(NEED);
@@ -611,9 +591,8 @@ it.each(['EVALUATING', 'UNKNOWN_OUTCOME'] as const)('does not turn historical tr
   expect(mockOpenEdit).not.toHaveBeenCalled(); expect(mockCorrect).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
 });
 
-// The review was a table: twelve identical two-line rows, four of them saying "Nema navedenih stavki", each with its own Izmeni, under a section
-// header rather than under the task. It is now the task itself, as the people who will read it get it (owner, 8 Oct 2026): the real card, then the real
-// page that opens from it, with a pencil on each part. These pin that composition, so the wall cannot come back unnoticed.
+// The preview preserves the actual facts and their privacy. Ordinary corrections
+// share one owned AI entry; map and media keep their explicit confirmation steps.
 describe('the review reads as a task', () => {
   const withEmpties = (): AiTaskReviewEnvelope => ({ ...review(), publicProjection: [
     ...review().publicProjection,
@@ -631,9 +610,10 @@ describe('the review reads as a task', () => {
     expect(text()).toContain('Prenos ormara');
     // "Ovako će drugi videti zadatak" was a sentence about where the person is (plan 2.17, 3.3); the two captions say what each half IS, as the owner asked.
     expect(text()).not.toContain('Ovako će drugi videti zadatak');
-    // The correction of the title is the pencil of the title on the page, not a lonely button under a card (composition spec 4.6).
+    // A single conversation entry covers ordinary facts without a pencil on each row.
     expect(commands('Izmeni naslov')).toHaveLength(0);
-    expect(commands('Izmeni, Naslov')).toHaveLength(1);
+    expect(commands('Izmeni, Naslov')).toHaveLength(0);
+    expect(commands('Izmeni zadatak')).toHaveLength(1);
     const order = (value: string) => text().indexOf(value);
     expect(order('Još treba')).toBeLessThan(order('Prenos ormara'));
     expect(order('Prenos ormara')).toBeLessThan(order('Tačna adresa'));
@@ -644,7 +624,7 @@ describe('the review reads as a task', () => {
   it('the ways out offer editing and deleting the draft at the end of the review', async () => {
     mockPrepare.mockResolvedValue(ok(review()));
     await render();
-    // The ways out offer "Izmeni zadatak" at the bottom to go back to the conversation; each part also has its own pencil.
+    // Editing returns to the existing conversation; deleting is a separate confirmed action.
     expect(commands('Izmeni zadatak')).toHaveLength(1);
     expect(commands('Obriši nacrt')).toHaveLength(1);
   });
@@ -664,12 +644,13 @@ describe('the review reads as a task', () => {
   it('opens them on request, so nothing is hidden from what is being accepted', async () => {
     mockPrepare.mockResolvedValue(ok(withEmpties()));
     await render();
-    // One row of the page: its word opens what is not said yet as rows with their pencil.
+    // Expansion reveals omitted facts, without creating a second editing system.
     const opener = commands('Dodaj još podataka: Veštine, Alat')[0];
     expect(opener).toBeDefined();
     await act(async () => { opener.props.onPress(); });
-    expect(commands('Izmeni, Veštine')).toHaveLength(1); expect(commands('Izmeni, Alat')).toHaveLength(1);
-    await act(async () => rowEdit('Alat').onPress());
+    expect(text()).toContain('Veštine'); expect(text()).toContain('Alat');
+    expect(commands('Izmeni, Veštine')).toHaveLength(0); expect(commands('Izmeni, Alat')).toHaveLength(0);
+    await act(async () => action('Izmeni zadatak').onPress());
     expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/nova',params:{conversationId:CONVERSATION,aiCorrection:expect.any(String)}}); expect(mockCorrect).not.toHaveBeenCalled();
   });
 
@@ -724,17 +705,18 @@ describe('the review reads as a task', () => {
       { id: 'people', key: 'need.people_needed', value: 1, displayValue: '1', privacyClass: 'PUBLIC', source: 'SYSTEM', status: 'CONFIRMED' }] }));
     await render();
     expect(text()).not.toContain('Dodaj još podataka'); expect(text()).toContain('Traži 1 osobu');
-    expect(commands('Izmeni, Broj ljudi')).toHaveLength(1);
+    expect(commands('Izmeni, Broj ljudi')).toHaveLength(0);
+    expect(commands('Izmeni zadatak')).toHaveLength(1);
     expect(text()).toContain('Podrazumevana vrednost');
     await act(async () => tree.unmount());
     mockPrepare.mockResolvedValue(ok({ ...base, publicProjection: [...base.publicProjection,
       { id: 'people', key: 'need.people_needed', value: 3, displayValue: '3', privacyClass: 'PUBLIC', source: 'AI_INFERENCE', status: 'CONFIRMED' }] }));
     await render();
-    expect(text()).toContain('Traži 3 osobe'); expect(text()).not.toContain('Dodaj još podataka'); expect(commands('Izmeni, Broj ljudi')).toHaveLength(1);
+    expect(text()).toContain('Traži 3 osobe'); expect(text()).not.toContain('Dodaj još podataka'); expect(commands('Izmeni, Broj ljudi')).toHaveLength(0);
   });
 });
 
-// Price, time and requirements return to their topic in the same owned intake.
+// Price, time and requirements return to the same owned intake through one entry.
 // The review remains frozen until an explicit message produces a new proposal.
 function scheduledReview(): AiTaskReviewEnvelope {
   const base = review();
@@ -744,14 +726,14 @@ function scheduledReview(): AiTaskReviewEnvelope {
     { id: 'skills', key: 'need.required_skills', value: ['Prevoz, utovar', 'Montaža'], displayValue: 'prevoz i montaža', privacyClass: 'PUBLIC',
       source: 'AI_INFERENCE', status: 'NEEDS_CONFIRMATION' }] };
 }
-const rowEdit = (label: string) => tree.root.findByProps({ accessibilityLabel: `Izmeni, ${label}` }).props;
 const field = (label: string) => tree.root.findByProps({ label }).props;
-it.each([['Termin','task.time'],['Veštine','task.requirements']] as const)('returns %s to the same AI conversation without patching facts', async (label,target) => {
+it('returns time and requirements to the same AI conversation without patching facts', async () => {
   mockPrepare.mockResolvedValue(ok(scheduledReview())); await render();
-  await act(async () => rowEdit(label).onPress());
+  expect(commands('Izmeni, Termin')).toHaveLength(0); expect(commands('Izmeni, Veštine')).toHaveLength(0);
+  await act(async () => action('Izmeni zadatak').onPress());
   const route=mockRouter.replace.mock.calls.at(-1)![0];
   expect(route).toEqual({pathname:'/nova',params:{conversationId:CONVERSATION,aiCorrection:expect.any(String)}});
-  expect(takeAiCorrection(route.params.aiCorrection,{accountId:OWNER,accountRevision:1},'task',CONVERSATION)?.target).toBe(target);
+  expect(takeAiCorrection(route.params.aiCorrection,{accountId:OWNER,accountRevision:1},'task',CONVERSATION)?.target).toBe('task.details');
   expect(mockCorrect).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled();
   expect(commands('Sačuvaj ispravku')).toHaveLength(0);
   expect(commands('Odustani od ispravke')).toHaveLength(0);
@@ -793,7 +775,7 @@ it('spins "Objavi zadatak" only for the publish itself: while a draft saves it w
   await act(async () => { void publish().onPress(); });
   expect(mockAccept).toHaveBeenCalledTimes(1);
   expect(publish().accessibilityState).toEqual({ disabled: true, busy: true });
-  expect(spinners()).toHaveLength(1); expect(fill()).toBe(sys.color.green);
+  expect(spinners()).toHaveLength(1); expect(fill()).toBe(brandAction.backgroundColor);
   await act(async () => { held.resolve(unknownOutcome()); });
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' }).flatMap(node => node.findAllByType('ActivityIndicator' as React.ElementType))).toHaveLength(0);
 });
@@ -895,22 +877,20 @@ describe('round 6: the publish review', () => {
   });
 });
 
-// The price mode, the price basis and the kind of time were corrected in a text box where the person had to type a word
-// the parser knew ("Moja cena"), and the amount in the same box. They are now pill chips and a digits-only RSD field.
-// The saved patch is what the box sent: the value, with the chosen label (or the typed digits) as its display text.
+// Entering a correction changes no reviewed price or time until an explicit AI message.
 describe('AI correction of price and time preserves the reviewed facts until an explicit message', () => {
   type Fact = AiTaskReviewEnvelope['publicProjection'][number];
   const fact=(id:string,key:Fact['key'],value:unknown,displayValue:string):Fact=>({id,key,value,displayValue,privacyClass:'PUBLIC',source:'AI_INFERENCE',status:'CONFIRMED'}) as Fact;
   const priced=(mode:unknown,amount:unknown):AiTaskReviewEnvelope=>({...review(),publicProjection:[...review().publicProjection,
     fact('mode','need.price_mode',mode,String(mode)),fact('price','need.price_rsd',amount,String(amount))]});
-  it.each(['MY_PRICE','OFFERS'] as const)('returns %s to its owned intake with only a price topic',async mode=>{
+  it.each(['MY_PRICE','OFFERS'] as const)('returns %s to its owned intake through the single edit action',async mode=>{
     const original=priced(mode,1500),before=JSON.stringify(original);
     mockPrepare.mockResolvedValue(ok(original));await render();
     if(mode==='OFFERS'){expect(text()).not.toContain('1.500');expect(text()).toContain('Tražim ponude');}
-    await act(async()=>rowEdit('Cena').onPress());
+    await act(async()=>action('Izmeni zadatak').onPress());
     const route=mockRouter.replace.mock.calls.at(-1)![0];
     expect(route).toEqual({pathname:'/nova',params:{conversationId:CONVERSATION,aiCorrection:expect.any(String)}});
-    expect(takeAiCorrection(route.params.aiCorrection,{accountId:OWNER,accountRevision:1},'task',CONVERSATION)?.target).toBe('task.price');
+    expect(takeAiCorrection(route.params.aiCorrection,{accountId:OWNER,accountRevision:1},'task',CONVERSATION)?.target).toBe('task.details');
     expect(JSON.stringify(original)).toBe(before);expect(mockCorrect).not.toHaveBeenCalled();expect(mockAccept).not.toHaveBeenCalled();
   });
   it('keeps a missing amount honest instead of inventing zero',async()=>{

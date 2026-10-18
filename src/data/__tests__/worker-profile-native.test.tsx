@@ -1,5 +1,4 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 let mockAccount = '10000000-0000-4000-8000-000000000001', mockRevision = 1;
 let mockIntent = 'uskocer', mockFocused = true, mockPlatform = 'android';
@@ -63,28 +62,11 @@ const hardwareBack = () => {
   act(() => { handled = [...mockBackHandlers].reverse().some(handler => handler()); });
   return handled;
 };
-// UI/UX pass 2026-10-08 (F6): the word that opens a part is "Izmeni" at the end of its title, and "Gotovo" while it is open; the spoken name carries the same word.
-const openEditor = (label: string) => {
-  if (tree.root.findAllByProps({ accessibilityLabel: `Gotovo: ${label}` }).length === 0) click(`Izmeni: ${label}`);
-};
-const input = (label: string, value: string) => {
-  openEditor(label.startsWith('Nova stavka: ') ? label.slice('Nova stavka: '.length) : 'O meni');
-  act(() => control(label).props.onChangeText(value));
-};
 const settle = async () => { await act(async () => {}); };
 async function renderReading() { await act(async () => { tree = create(<Profile />, {
   createNodeMock: element => element.type === 'ScrollView' ? { scrollTo: mockScrollTo } : element.type === 'TextInput' ? { focus: mockFocusField } : null,
 }); }); }
-// Guard tests below still exercise the legacy editor through its component command
-// boundary. The saved-card UI no longer admits that path; its real affordances
-// are covered separately in "the saved profile is read first". Legacy deep links
-// and DRAFT editing remain a separate migration, not silently removed here.
-const toEditor = () => {
-  if (tree.root.findAllByProps({ testID: 'worker-skills-row' }).length === 0 && tree.root.findAllByProps({ testID: 'worker-profile-intro' }).length === 0) return;
-  act(() => tree.root.findByType(WorkerProfileForm).props.onEditPart('skills'));
-  act(() => control('Gotovo: Veštine i usluge').props.onPress());
-};
-async function render() { await renderReading(); toEditor(); }
+async function render() { await renderReading(); }
 beforeEach(() => {
   jest.clearAllMocks(); mockRead.mockReset().mockResolvedValue(profile); mockWrite.mockReset().mockResolvedValue({ ok: true, podatak: null });
   mockAccount = '10000000-0000-4000-8000-000000000001'; mockRevision = 1; mockIntent = 'uskocer'; mockFocused = true; mockPlatform = 'android';
@@ -115,44 +97,6 @@ it('passes owned remote mode into the saved profile instead of assuming its city
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Gde' })).toHaveLength(0);
 });
 
-// Since 2026-09-24 availability and the work area are summary rows that open their own editors: no switch, no dead fields.
-it.each(['android', 'ios'])('renders the actual V2 form and keyboard boundary on %s, retaining true availability and comma-containing terms', async platform => {
-  mockPlatform = platform; await render();
-  expect(texts()).toContain('Mogu odmah'); expect(texts()).not.toContain('Mogu odmah · dostupnost'); expect(texts()).toContain('Novi Sad · 20 km');
-  expect(tree.root.findAll(node => String(node.type) === 'Switch')).toHaveLength(0);
-  expect(texts()).toContain('Prevoz, utovar');
-  // Availability is a factual row; notification consent remains in its own settings flow. What the data does is behind the "ⓘ" in the bar, not on the screen.
-  expect(texts()).not.toContain('njihov broj navodiš u toj ponudi');
-  expect(infoLines()).toContain('Ako za neki zadatak obezbeđuješ više ljudi, njihov broj navodiš u toj ponudi.');
-  expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
-  expect(tree.root.findByType('KeyboardAvoidingView' as any).props.behavior).toBe(platform === 'ios' ? 'padding' : 'height');
-  // The tab bar is hidden on this flow since 2026-09-23, so the screen owns its bottom inset.
-  expect(tree.root.findByType('SafeAreaView' as any).props.edges).toEqual(['top', 'bottom']);
-  expect(mockWrite).not.toHaveBeenCalled();
-});
-
-it('opens the personal editor explicitly and keeps its regular field on the bundled Inter face', async () => {
-  await render(); openEditor('O meni');
-  const name = StyleSheet.flatten(control('O meni').props.style);
-  expect(name.fontFamily).toBe('Inter-Regular');
-  expect(name.fontWeight).toBeUndefined();
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Koliko ljudi možeš da obezbediš' })).toHaveLength(0);
-});
-
-it.each(['ACTIVE'])('a clean %s profile has no save footer, while editing and validation retain it', async stanje => {
-  mockRead.mockResolvedValue({ ...profile, stanje }); await render();
-  expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(0);
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Sačuvaj izmene' })).toHaveLength(0);
-  input('O meni', 'Novo ime');
-  expect(control('Sačuvaj izmene')).toBeTruthy();
-  input('O meni', profile.biografija);
-  expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(0);
-  input('Nova stavka: Alat i oprema', 'Merdevine'); click('Sačuvaj izmene');
-  expect(texts()).toContain('još nije dodata');
-  expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(1);
-  expect(mockWrite).not.toHaveBeenCalled();
-});
-
 it('an absent pristine profile opens the guarded conversation without creating an empty profile', async () => {
   mockRead.mockResolvedValue(null); await render();
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Sačuvaj profil' })).toHaveLength(0);
@@ -161,345 +105,17 @@ it('an absent pristine profile opens the guarded conversation without creating a
   expect(mockWrite).not.toHaveBeenCalled();
 });
 
-it('a successfully absent profile saves manual input as a first draft, under the name of the account, before activation', async () => {
-  mockAccountName = { state: 'ready', name: 'Milos' };
-  mockRead.mockResolvedValueOnce(null).mockResolvedValue({ ...profile, ime: 'Milos', biografija: 'Radim sa bratom', stanje: 'DRAFT' }); await render();
-  expect(texts()).toContain('Izaberi gde želiš da radiš'); expect(texts()).not.toContain('Pogledaj i uredi dostupnost');
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Koliko ljudi možeš da obezbediš' })).toHaveLength(0);
-  input('O meni', 'Radim sa bratom');
-  click('Sačuvaj profil'); await settle();
-  // The name is not typed in the work profile: the first save creates it under the ACCOUNT's name.
-  expect(mockWrite).toHaveBeenCalledWith({ ime: 'Milos', biografija: 'Radim sa bratom', zavrsi: false });
-  expect(texts()).toContain('Profil je sačuvan. Nastavi sa podešavanjem.');
-  expect(control('Proveri i aktiviraj profil')).toBeTruthy();
-});
 it('read failure offers retry without constructing a false/15km draft', async () => {
   mockRead.mockRejectedValueOnce(new Error('private diagnostic')); await render();
   expect(texts()).toContain('Profil nije učitan'); expect(texts()).not.toContain('private diagnostic');
   expect(tree.root.findAllByProps({ label: 'Dostupnost' })).toHaveLength(0);
   click('Ponovo učitaj profil'); await settle(); expect(texts()).toContain('Mogu odmah');
 });
-it('location is read-only here and routes to the area editor', async () => {
-  await render();
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Grad ili mesto rada' })).toHaveLength(0);
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Radijus rada (km)' })).toHaveLength(0);
-  expect(texts()).toContain('Novi Sad · 20 km');
-  click('Područje rada'); expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/lokacija');
-});
-it('opens existing notification settings on WORKER without implying that profile save enables push', async () => {
-  await render(); click('Obaveštenja o zadacima');
-  expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/profil/obavestenja', params: { skup: 'WORKER' } });
-  expect(mockWrite).not.toHaveBeenCalled();
-});
 
 const readingScroll = () => tree.root.findByType('ScrollView' as any);
 const scrollEvent = (y: number) => ({ nativeEvent: { contentOffset: { x: 0, y } } });
 const formLayout = () => tree.root.findByProps({ testID: 'worker-profile-reading' }).props.onLayout();
 async function focusProfile(focused: boolean) { mockFocused = focused; await act(async () => tree.update(<Profile />)); }
-
-it.each(['Obaveštenja o zadacima', 'Područje rada', 'Dostupnost'])('returns from %s to the reading position after native form layout, ignoring blur clamps', async label => {
-  await render();
-  const oldScroll = readingScroll().props.onScroll;
-  const oldLayout = tree.root.findByProps({ testID: 'worker-profile-reading' }).props.onLayout;
-  act(() => oldScroll(scrollEvent(640))); click(label);
-  // A layout before actual navigation and a late native clamp cannot consume the snapshot.
-  act(() => { oldLayout(); oldScroll(scrollEvent(0)); });
-  await focusProfile(false);
-  expect(tree.root.findAllByProps({ testID: 'worker-profile-reading' })).toHaveLength(0);
-  act(() => { oldLayout(); oldScroll(scrollEvent(0)); readingScroll().props.onScroll(scrollEvent(0)); });
-  expect(mockScrollTo).not.toHaveBeenCalled();
-  await focusProfile(true);
-  act(() => readingScroll().props.onScroll(scrollEvent(0)));
-  expect(mockScrollTo).not.toHaveBeenCalled();
-  act(() => formLayout());
-  expect(mockScrollTo).toHaveBeenCalledWith({ y: 640, animated: false });
-  act(() => { formLayout(); oldLayout(); });
-  expect(mockScrollTo).toHaveBeenCalledTimes(1);
-  expect(mockWrite).not.toHaveBeenCalled();
-});
-
-it('a drag on return takes precedence over a delayed reading restoration', async () => {
-  await render(); act(() => readingScroll().props.onScroll(scrollEvent(640))); click('Dostupnost');
-  await focusProfile(false); await focusProfile(true);
-  act(() => readingScroll().props.onScrollBeginDrag(scrollEvent(24)));
-  act(() => formLayout()); expect(mockScrollTo).not.toHaveBeenCalled();
-  // The next visit starts from the newer position chosen by the person.
-  click('Područje rada'); await focusProfile(false); await focusProfile(true);
-  act(() => formLayout()); expect(mockScrollTo).toHaveBeenCalledWith({ y: 24, animated: false });
-});
-
-it('reading restoration survives a return read error but never crosses an account revision', async () => {
-  await render(); act(() => readingScroll().props.onScroll(scrollEvent(640))); click('Dostupnost');
-  await focusProfile(false); mockRead.mockRejectedValueOnce(new Error('offline')); await focusProfile(true);
-  expect(tree.root.findAllByProps({ testID: 'worker-profile-reading' })).toHaveLength(0);
-  act(() => readingScroll().props.onScroll(scrollEvent(0))); expect(mockScrollTo).not.toHaveBeenCalled();
-  click('Ponovo učitaj profil'); await settle(); act(() => formLayout());
-  expect(mockScrollTo).toHaveBeenCalledWith({ y: 640, animated: false });
-  const oldLayout = tree.root.findByProps({ testID: 'worker-profile-reading' }).props.onLayout;
-  click('Područje rada'); await focusProfile(false); mockScrollTo.mockClear();
-  mockRevision += 2; await focusProfile(true);
-  act(() => { oldLayout(); formLayout(); });
-  expect(mockScrollTo).not.toHaveBeenCalled(); expect(mockWrite).not.toHaveBeenCalled();
-});
-
-it('notification settings cannot drop an edited profile or use a callback from another account revision', async () => {
-  await render();
-  const retained = control('Obaveštenja o zadacima').props.onPress;
-  input('O meni', 'Lokalna izmena'); click('Obaveštenja o zadacima');
-  expect(mockRouter.navigate).not.toHaveBeenCalled();
-  expect(texts()).toContain('Sačuvaj unos pre otvaranja drugog podešavanja.');
-  expect(control('O meni').props.value).toBe('Lokalna izmena');
-  mockRevision += 2; act(() => retained());
-  expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(mockWrite).not.toHaveBeenCalled();
-});
-it('notification navigation stays blocked while a profile save has an unknown outcome', async () => {
-  mockWrite.mockResolvedValue({ ok: false, kod: 'TIMEOUT', poruka: 'unknown' });
-  await render(); const retained = control('Obaveštenja o zadacima').props.onPress;
-  input('O meni', 'Unos koji ostaje'); click('Sačuvaj izmene'); await settle();
-  act(() => retained()); click('Obaveštenja o zadacima');
-  expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(mockWrite).toHaveBeenCalledTimes(1);
-  expect(control('O meni').props.value).toBe('Unos koji ostaje');
-});
-it('sends only edited fields and confirms success only after matching server readback', async () => {
-  let finish!: (result: unknown) => void;
-  mockWrite.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-  await render(); input('O meni', '  Ana Petrović  ');
-  const save = control('Sačuvaj izmene').props.onPress;
-  act(() => { save(); save(); }); expect(mockWrite).toHaveBeenCalledTimes(1);
-  expect(mockWrite).toHaveBeenCalledWith({ biografija: 'Ana Petrović', zavrsi: false });
-  expect(texts()).not.toContain('Izmene profila su sačuvane');
-  expect(control('Čuvamo profil…').props.disabled).toBe(true);
-  mockRead.mockResolvedValue({ ...profile, biografija: 'Ana Petrović', grad: 'Zemun' });
-  await act(async () => finish({ ok: true, podatak: null }));
-  expect(texts()).toContain('Izmene profila su sačuvane.');
-  expect(texts()).toContain('Zemun · 20 km');
-  expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(1);
-  expect(mockRouter.back).not.toHaveBeenCalled();
-});
-it('activation remains unconfirmed while the server still reports DRAFT and never navigates on transport success alone', async () => {
-  mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await render();
-  click('Proveri i aktiviraj profil'); await settle();
-  expect(mockWrite).toHaveBeenCalledWith({ zavrsi: true });
-  expect(texts()).not.toContain('Profil je aktivan. Sačuvani podaci');
-  expect(control('Pogledaj sačuvani profil')).toBeTruthy(); expect(mockRouter.back).not.toHaveBeenCalled();
-  mockRead.mockResolvedValue(profile); click('Pogledaj sačuvani profil'); await settle();
-  expect(texts()).toContain('Profil je aktivan i sačuvan.'); expect(mockWrite).toHaveBeenCalledTimes(1);
-});
-it('a missing required skill prevents activation but permits an explicitly saved draft', async () => {
-  mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT', vestine: [] }); await render();
-  // PKG-005 progressive CTA: activation is not offered until the basics exist; the primary action guides to the missing skill.
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Proveri i aktiviraj profil' })).toHaveLength(0);
-  click('Dopuni osnovne podatke'); expect(texts()).toContain('bar jednu veštinu'); expect(mockWrite).not.toHaveBeenCalled();
-  click('Sačuvaj kao nacrt'); await settle(); expect(mockWrite).toHaveBeenCalledWith({ zavrsi: false });
-  expect(texts()).toContain('Izmene profila su sačuvane.');
-});
-it('an ACTIVE readback with concurrently changed visible activation facts is not confirmed as the reviewed profile', async () => {
-  mockRead.mockResolvedValueOnce({ ...profile, stanje: 'DRAFT' }).mockResolvedValue({ ...profile, vestine: ['Druga usluga'] });
-  await render(); click('Proveri i aktiviraj profil'); await settle();
-  expect(texts()).not.toContain('Profil je aktivan i sačuvan.');
-  expect(control('Pogledaj sačuvani profil')).toBeTruthy();
-  expect(texts()).toContain('Prevoz, utovar');
-});
-it('unknown outcome preserves the immutable command and requires readback before explicit retry', async () => {
-  mockWrite.mockResolvedValue({ ok: false, kod: 'TIMEOUT', poruka: 'raw upstream' });
-  await render(); input('O meni', 'Novo ime'); const oldInput = control('O meni').props.onChangeText;
-  const oldSave = control('Sačuvaj izmene').props.onPress;
-  click('Sačuvaj izmene'); await settle(); act(() => { oldSave(); oldInput('Kasniji tekst'); });
-  expect(mockWrite).toHaveBeenCalledTimes(1); expect(control('O meni').props.value).toBe('Novo ime');
-  expect(control('O meni').props.editable).toBe(false); expect(texts()).not.toContain('raw upstream');
-  expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(1);
-  click('Pogledaj sačuvani profil'); await settle(); act(() => oldSave()); expect(mockWrite).toHaveBeenCalledTimes(1);
-  click('Sačuvaj ponovo'); await settle(); expect(mockWrite).toHaveBeenCalledTimes(2);
-  expect(mockWrite.mock.calls[1][0]).toEqual(mockWrite.mock.calls[0][0]);
-});
-it('fresh mismatching readback permits explicit editing without silently dropping the attempted draft', async () => {
-  mockWrite.mockResolvedValue({ ok: false, kod: 'REFUSED', poruka: 'no' }); await render();
-  input('O meni', 'Moj nacrt'); click('Sačuvaj izmene'); await settle();
-  click('Pogledaj sačuvani profil'); await settle(); click('Izmeni podatke');
-  expect(control('O meni').props.value).toBe('Moj nacrt'); expect(control('O meni').props.editable).toBe(true);
-});
-it('optional resources preserve exact items and refuse to silently lose an unadded item', async () => {
-  await render(); input('Nova stavka: Alat i oprema', 'Merdevine');
-  click('Sačuvaj izmene'); expect(mockWrite).not.toHaveBeenCalled(); expect(texts()).toContain('još nije dodata');
-  click('Dodaj: Alat i oprema'); input('Nova stavka: Vozila', 'Automobil'); click('Dodaj: Vozila');
-  click('Sačuvaj izmene'); await settle();
-  expect(mockWrite).toHaveBeenCalledWith({ zavrsi: false, alati: ['Bušilica', 'Merdevine'], vozila: ['Kombi', 'Automobil'] });
-  expect(mockWrite.mock.calls[0][0]).not.toHaveProperty('licence'); expect(mockWrite.mock.calls[0][0]).not.toHaveProperty('vestine');
-});
-it('a save blocked by an unadded tool reopens that editor after switching to identity', async () => {
-  await render(); input('Nova stavka: Alat i oprema', 'Merdevine');
-  openEditor('O meni');
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Nova stavka: Alat i oprema' })).toHaveLength(0);
-  click('Sačuvaj izmene'); await settle();
-  expect(mockWrite).not.toHaveBeenCalled();
-  expect(texts()).toContain('još nije dodata');
-  expect(control('Gotovo: Alat i oprema')).toBeTruthy();
-  expect(control('Nova stavka: Alat i oprema').props.value).toBe('Merdevine');
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'O meni' })).toHaveLength(0);
-});
-it('availability is a read-only summary that links to its revision-bound writer', async () => {
-  await render(); expect(tree.root.findAll(node => String(node.type) === 'Switch')).toHaveLength(0);
-  expect(texts()).toContain('Mogu odmah'); expect(texts()).not.toContain('Mogu odmah · dostupnost');
-  click('Dostupnost'); expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/dostupnost');
-  expect(mockWrite).not.toHaveBeenCalled();
-});
-it('keeps retired license and permanent team facts out of the personal profile and an unrelated save', async () => {
-  await render();
-  expect(texts()).not.toMatch(/Licence koje navodiš|B, C|Kapacitet tima/);
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Nova stavka: Licence koje navodiš' })).toHaveLength(0);
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Koliko ljudi možeš da obezbediš' })).toHaveLength(0);
-  input('O meni', 'Ana Petrović');
-  mockRead.mockResolvedValue({ ...profile, biografija: 'Ana Petrović' });
-  click('Sačuvaj izmene'); await settle();
-  expect(mockWrite).toHaveBeenCalledWith({ zavrsi: false, biografija: 'Ana Petrović' });
-  expect(texts()).toContain('Izmene profila su sačuvane.');
-});
-it('activation confirms visible personal facts independently of legacy license and team readback', async () => {
-  mockRead.mockResolvedValueOnce({ ...profile, stanje: 'DRAFT', capacityRevision: undefined })
-    .mockResolvedValue({ ...profile, licence: [], kapacitetTima: 5, capacityRevision: 'b'.repeat(64) });
-  await render(); click('Proveri i aktiviraj profil'); await settle();
-  expect(mockWrite).toHaveBeenCalledWith({ zavrsi: true });
-  expect(texts()).toContain('Profil je aktivan i sačuvan.');
-  expect(texts()).not.toContain('B, C');
-});
-it.each(['account'])('retires retained callbacks and late reads across %s changes', async change => {
-  await render(); input('O meni', 'Unos starog naloga'); const oldSave = control('Sačuvaj izmene').props.onPress;
-  let late!: (value: unknown) => void; mockRead.mockImplementationOnce(() => new Promise(resolve => { late = resolve; }));
-  if (change === 'account') mockRevision += 2;
-  await act(async () => tree.update(<Profile />)); act(() => oldSave()); expect(mockWrite).not.toHaveBeenCalled();
-  await act(async () => late({ ...profile, biografija: 'Aktuelni nalog' }));
-  // The new account's profile is read first, like any finished profile.
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'O meni' })).toHaveLength(0);
-  toEditor(); openEditor('O meni');
-  expect(control('O meni').props.value).toBe('Aktuelni nalog'); expect(texts()).not.toContain('Unos starog naloga');
-});
-// Owner decision 1 (2026-09-19): the app has no global mode. This used to be a row of the table above.
-it('a flip of the retired app mode keeps the typed draft and lets the retained save run', async () => {
-  await render(); input('O meni', 'Unos koji ostaje'); const oldSave = control('Sačuvaj izmene').props.onPress;
-  mockIntent = 'narucilac'; await act(async () => tree.update(<Profile />));
-  expect(control('O meni').props.value).toBe('Unos koji ostaje');
-  await act(async () => oldSave()); expect(mockWrite).toHaveBeenCalledTimes(1);
-});
-it('blur retains draft and new-item input, while old callbacks cannot run after refocus', async () => {
-  await render(); input('O meni', 'Sačuvani lokalni unos'); input('Nova stavka: Veštine i usluge', 'Krečenje');
-  input('Nova stavka: Alat i oprema', 'Merdevine');
-  const save = control('Sačuvaj izmene').props.onPress;
-  mockFocused = false; await act(async () => tree.update(<Profile />)); expect(texts()).not.toContain('Sačuvani lokalni unos');
-  mockFocused = true; await act(async () => tree.update(<Profile />)); act(() => save()); expect(mockWrite).not.toHaveBeenCalled();
-  openEditor('O meni');
-  expect(control('O meni').props.value).toBe('Sačuvani lokalni unos');
-  openEditor('Veštine i usluge');
-  expect(control('Nova stavka: Veštine i usluge').props.value).toBe('Krečenje');
-  openEditor('Alat i oprema');
-  expect(control('Nova stavka: Alat i oprema').props.value).toBe('Merdevine');
-});
-it('background hides the form and foreground waits for a pending write then rereads its actual result', async () => {
-  let finish!: (value: unknown) => void; mockWrite.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-  await render(); input('O meni', 'Potvrđeno ime'); click('Sačuvaj izmene');
-  act(() => mockListeners.forEach(listener => listener('background'))); expect(texts()).not.toContain('Potvrđeno ime');
-  act(() => mockListeners.forEach(listener => listener('active'))); await settle(); expect(mockRead).toHaveBeenCalledTimes(1);
-  mockRead.mockResolvedValue({ ...profile, biografija: 'Potvrđeno ime' });
-  await act(async () => finish({ ok: true, podatak: null }));
-  expect(mockRead).toHaveBeenCalledTimes(2); expect(texts()).toContain('Izmene profila su sačuvane.');
-});
-it('a pending write across blur/refocus cannot open another write or lose its later result', async () => {
-  let finish!: (value: unknown) => void; mockWrite.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-  await render(); input('O meni', 'Posle povratka'); click('Sačuvaj izmene');
-  mockFocused = false; await act(async () => tree.update(<Profile />));
-  mockFocused = true; await act(async () => tree.update(<Profile />));
-  expect(control('Čuvamo profil…').props.disabled).toBe(true);
-  mockRead.mockResolvedValue({ ...profile, biografija: 'Posle povratka' });
-  await act(async () => finish({ ok: true, podatak: null }));
-  expect(texts()).toContain('Izmene profila su sačuvane.'); expect(mockWrite).toHaveBeenCalledTimes(1);
-});
-it('late write after account ABA cannot reread or announce old account success', async () => {
-  let finish!: (value: unknown) => void; mockWrite.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-  await render(); input('O meni', 'Stari unos'); click('Sačuvaj izmene');
-  mockRevision += 2; await act(async () => tree.update(<Profile />)); const reads = mockRead.mock.calls.length;
-  await act(async () => finish({ ok: true, podatak: null }));
-  expect(mockRead).toHaveBeenCalledTimes(reads); expect(texts()).not.toContain('Izmene profila su sačuvane');
-});
-it('read timeout is bounded and late response cannot overwrite a successful replacement', async () => {
-  jest.useFakeTimers(); let late!: (value: unknown) => void;
-  mockRead.mockImplementationOnce(() => new Promise(resolve => { late = resolve; })); await render();
-  await act(async () => jest.advanceTimersByTime(15_000)); click('Ponovo učitaj profil'); await settle();
-  await act(async () => late({ ...profile, biografija: 'Istekli odgovor' }));
-  toEditor(); openEditor('O meni'); expect(control('O meni').props.value).toBe('');
-});
-it('a hanging transport becomes unknown without automatic replay or a late success announcement', async () => {
-  jest.useFakeTimers(); let late!: (value: unknown) => void;
-  mockWrite.mockImplementationOnce(() => new Promise(resolve => { late = resolve; })); await render();
-  input('O meni', 'Zadržan unos'); click('Sačuvaj izmene');
-  await act(async () => jest.advanceTimersByTime(65_000)); expect(control('Pogledaj sačuvani profil')).toBeTruthy();
-  await act(async () => late({ ok: true, podatak: null })); expect(mockRead).toHaveBeenCalledTimes(1);
-  expect(mockWrite).toHaveBeenCalledTimes(1); expect(texts()).not.toContain('Izmene profila su sačuvane');
-});
-it('owned related settings navigation avoids losing a dirty active-profile draft', async () => {
-  await render();
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Proveri i aktiviraj profil' })).toHaveLength(0);
-  click('Dostupnost'); expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/dostupnost');
-  input('O meni', 'Lokalna izmena'); click('Područje rada');
-  expect(mockRouter.navigate).toHaveBeenCalledTimes(1); expect(texts()).toContain('Sačuvaj unos pre otvaranja');
-});
-
-it.each(['toolbar', 'hardware'])('%s Back asks before discarding a local draft and cancel preserves it', async entry => {
-  await render(); input('O meni', 'Lokalno ime');
-  const goBack = () => entry === 'toolbar' ? click('Nazad') : expect(hardwareBack()).toBe(true);
-  goBack();
-  expect(mockRouter.back).not.toHaveBeenCalled();
-  expect(control('Odbaci izmene')).toBeTruthy();
-  click('Nastavi uređivanje');
-  expect(mockRouter.back).not.toHaveBeenCalled();
-  expect(control('O meni').props.value).toBe('Lokalno ime');
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Odbaci izmene' })).toHaveLength(0);
-  goBack(); click('Odbaci izmene');
-  expect(mockRouter.back).toHaveBeenCalledTimes(1);
-  expect(mockWrite).not.toHaveBeenCalled();
-});
-
-it('confirmed discard resets a cached route draft before reentry and retires its retained save callback', async () => {
-  await render(); input('O meni', 'QA lokalno');
-  const previousSave = control('Sačuvaj izmene').props.onPress;
-  click('Nazad'); click('Odbaci izmene');
-  expect(mockRouter.back).toHaveBeenCalledTimes(1);
-  // The router mock keeps the actual route mounted, just as a cached native route can remain mounted. Leaving reads the
-  // profile again next time (T4b1), and the editor it opens holds the saved values.
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'O meni' })).toHaveLength(0);
-  toEditor(); openEditor('O meni');
-  expect(control('O meni').props.value).toBe(profile.biografija);
-  expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(0);
-  act(() => previousSave()); expect(mockWrite).not.toHaveBeenCalled();
-  mockFocused = false; await act(async () => tree.update(<Profile />));
-  mockFocused = true; await act(async () => tree.update(<Profile />));
-  openEditor('O meni');
-  expect(control('O meni').props.value).toBe(profile.biografija);
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Sačuvaj izmene' })).toHaveLength(0);
-  expect(texts()).not.toContain('QA lokalno');
-  expect(mockWrite).not.toHaveBeenCalled();
-});
-
-it.each(['toolbar', 'hardware'])('%s Back retains an in-flight or unconfirmed command until successful readback', async entry => {
-  let finish!: (result: unknown) => void;
-  mockWrite.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-  await render(); input('O meni', 'Potvrđeno ime'); click('Sačuvaj izmene');
-  const goBack = () => entry === 'toolbar' ? click('Nazad') : expect(hardwareBack()).toBe(true);
-  goBack();
-  expect(mockRouter.back).not.toHaveBeenCalled();
-  expect(texts()).toContain('Prvo proveri ishod čuvanja. Tvoj unos je zadržan.');
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Odbaci izmene' })).toHaveLength(0);
-  await act(async () => finish({ ok: false, kod: 'TIMEOUT', poruka: 'unknown' }));
-  goBack();
-  expect(mockRouter.back).not.toHaveBeenCalled();
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Odbaci izmene' })).toHaveLength(0);
-  expect(control('O meni').props.value).toBe('Potvrđeno ime');
-  mockRead.mockResolvedValue({ ...profile, biografija: 'Potvrđeno ime' });
-  click('Pogledaj sačuvani profil'); await settle();
-  expect(texts()).toContain('Izmene profila su sačuvane.');
-  if (entry === 'hardware') expect(hardwareBack()).toBe(false);
-  click('Nazad');
-  expect(mockRouter.back).toHaveBeenCalledTimes(1);
-  expect(mockWrite).toHaveBeenCalledTimes(1);
-});
 
 // A draft profile is not merely incomplete: private.dispatch_cheap_candidate_admitted requires
 // profile_status = 'ACTIVE', so while it is a draft nothing is offered at all. Saying only
@@ -523,73 +139,6 @@ it('says the same about a suspended profile, and nothing at all about an active 
   expect(texts()).not.toContain('zadaci ti se ne nude');
 });
 
-describe('manual corrections after a summary edit tap', () => {
-  it('shows saved facts without a catalogue and permits explicit removal in the vehicle editor', async () => {
-    await render(); expect(texts()).toContain('Kombi');
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Brzi izbor vozila' })).toHaveLength(0);
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Ukloni vozila: Kombi' })).toHaveLength(0);
-    openEditor('Vozila'); click('Ukloni vozila: Kombi'); click('Sačuvaj izmene'); await settle();
-    expect(mockWrite).toHaveBeenCalledWith({ zavrsi: false, vozila: [] });
-  });
-  it('adds free text after saved terms without a catalogue choice', async () => {
-    await render(); input('Nova stavka: Vozila', 'Automobil'); click('Dodaj: Vozila'); click('Sačuvaj izmene'); await settle();
-    expect(mockWrite).toHaveBeenCalledWith({ zavrsi: false, vozila: ['Kombi', 'Automobil'] });
-  });
-  it('opens one editor at a time and retains unsaved input when switching sections', async () => {
-    await render(); input('Nova stavka: Alat i oprema', 'Merdevine');
-    openEditor('Vozila');
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Nova stavka: Alat i oprema' })).toHaveLength(0);
-    expect(control('Izmeni: Alat i oprema')).toBeTruthy(); expect(tree.root.findAllByProps({ accessibilityLabel: 'Gotovo: Alat i oprema' })).toHaveLength(0);
-    openEditor('Alat i oprema');
-    expect(control('Nova stavka: Alat i oprema').props.value).toBe('Merdevine');
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Nova stavka: Vozila' })).toHaveLength(0);
-    expect(mockWrite).not.toHaveBeenCalled();
-  });
-  it('a full list keeps its field and add action disabled and says why', async () => {
-    const full = Array.from({ length: 50 }, (_, i) => 'Vozilo ' + (i + 1));
-    mockRead.mockResolvedValue({ ...profile, vozila: full }); await render(); openEditor('Vozila');
-    expect(control('Dodaj: Vozila').props.disabled).toBe(true);
-    click('Dodaj: Vozila');
-    expect(control('Nova stavka: Vozila').props.editable).toBe(false); expect(texts()).toContain('Najviše 50 stavki.');
-    expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(0);
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Sačuvaj izmene' })).toHaveLength(0);
-    expect(mockWrite).not.toHaveBeenCalled();
-  });
-});
-
-// Review of step 9 (2026-09-24): the support row is not a setting, so a dirty draft gets its own sentence.
-it('asks to save a dirty draft before writing to support, in words about support', async () => {
-  await render();
-  input('O meni', 'Lokalna izmena');
-  act(() => tree.root.findByType(WorkerProfileForm).props.navigate('/podrska'));
-  expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(texts()).toContain('Sačuvaj unos pre nego što pišeš podršci.');
-  expect(texts()).not.toContain('Sačuvaj unos pre otvaranja drugog podešavanja.');
-});
-
-describe('activation checklist', () => {
-  it('names what a draft is missing, item by item', async () => {
-    mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT', vestine: [] }); await render();
-    expect(control('Veštine i ime naloga: nedostaje')).toBeTruthy();
-    expect(control('Područje rada: spremno')).toBeTruthy();
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Kapacitet tima: spremno' })).toHaveLength(0);
-    expect(texts()).not.toContain('Sve je spremno za aktivaciju.');
-  });
-  it('says a complete draft is ready', async () => {
-    mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await render();
-    expect(texts()).toContain('Sve je spremno za aktivaciju.'); expect(control('Proveri i aktiviraj profil')).toBeTruthy();
-    expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(1);
-  });
-  it('activation needs no legacy capacity revision, but unsaved visible edits still require saving first', async () => {
-    mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT', capacityRevision: undefined }); await render();
-    expect(control('Proveri i aktiviraj profil')).toBeTruthy();
-    expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(1);
-    expect(texts()).toContain('Sve je spremno za aktivaciju.');
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Učitaj kapacitet profila' })).toHaveLength(0);
-    input('O meni', 'Ana Petrović');
-    expect(control('Sačuvaj izmene')).toBeTruthy(); expect(texts()).not.toContain('Sve je spremno za aktivaciju.');
-  });
-});
-
 // A finished profile is read first. Its primary action and contextual area/week entries open AI;
 // reading a fact or opening a conversation never writes the profile.
 describe('the saved profile is read first', () => {
@@ -600,11 +149,11 @@ describe('the saved profile is read first', () => {
     expect(texts()).not.toContain('Tvoj radni profil'); expect(texts()).toContain('Ana');
     expect(texts()).toContain('Šta radiš'); expect(texts()).toContain('Prevoz, utovar');
     expect(texts()).toContain('Gde'); expect(texts()).toContain('Novi Sad · 20 km');
-    expect(texts()).toContain('Kada'); expect(texts()).toContain('Mogu odmah'); expect(texts()).not.toContain('Mogu odmah · dostupnost'); expect(texts()).toContain('Nedeljni raspored');
+    expect(texts()).toContain('Kada'); expect(texts()).toContain('Mogu odmah'); expect(texts()).not.toContain('Mogu odmah · dostupnost'); expect(texts()).toContain('Dostupnost');
     expect(texts()).toContain('Oprema'); expect(texts()).toContain('Alat'); expect(texts()).toContain('Bušilica'); expect(texts()).toContain('Vozila'); expect(texts()).toContain('Kombi');
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Izmeni: O meni' })).toHaveLength(0);
     // The two buttons of the older reading ("Izmeni razgovorom" and "Izmeni ručno") are gone, and so is the notifications row: the rows lead to the part they change.
-    for (const gone of ['Izmeni razgovorom', 'Izmeni ručno', 'Obaveštenja o zadacima', 'Područje rada', 'Dostupnost']) expect([gone, tree.root.findAllByProps({ accessibilityLabel: gone }).length]).toEqual([gone, 0]);
+    for (const gone of ['Izmeni razgovorom', 'Izmeni ručno', 'Obaveštenja o zadacima', 'Područje rada']) expect([gone, tree.root.findAllByProps({ accessibilityLabel: gone }).length]).toEqual([gone, 0]);
     // "Na šta utiče" was a block of rows; it is the sentences behind the "ⓘ" in the bar now.
     expect(texts()).not.toContain('Na šta utiče'); expect(texts()).not.toContain('Javni profil');
     expect(control('Objašnjenje: Na šta utiče radni profil')).toBeTruthy();
@@ -637,14 +186,7 @@ describe('the saved profile is read first', () => {
     expect(tree.root.findAllByProps({ testID: 'worker-kit-info' }).length).toBeGreaterThan(0);
     expect(texts()).toContain('Oprema');
   });
-  it('the explanations of the hand-edited profile are behind the bar\'s "ⓘ": the equipment note and the people count only there', async () => {
-    await renderReading();
-    expect(infoLines()).not.toContain('Ako za neki zadatak obezbeđuješ više ljudi, njihov broj navodiš u toj ponudi.');
-    toEditor();
-    expect(infoLines()).toContain('Ako za neki zadatak obezbeđuješ više ljudi, njihov broj navodiš u toj ponudi.');
-    expect(infoLines()).toContain('Samo informacija: ne utiču na pretragu ni na obaveštenja.');
-    expect(texts()).not.toContain('Samo informacija');
-  });
+
   it('"Uredi kroz razgovor" opens the guarded conversation, and writes nothing', async () => {
     await renderReading(); click('Uredi kroz razgovor');
     expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
@@ -652,7 +194,7 @@ describe('the saved profile is read first', () => {
   it('"Gde" leads to the area and "Nedeljni raspored" to the week, and neither writes anything', async () => {
     await renderReading();
     click('Gde'); expect(mockRouter.navigate).toHaveBeenLastCalledWith({pathname:'/profil/razgovor',params:{aiCorrection:expect.any(String)}});
-    click('Nedeljni raspored'); expect(mockRouter.navigate).toHaveBeenLastCalledWith({pathname:'/profil/razgovor',params:{aiCorrection:expect.any(String)}});
+    click('Dostupnost'); expect(mockRouter.navigate).toHaveBeenLastCalledWith({pathname:'/profil/razgovor',params:{aiCorrection:expect.any(String)}});
     expect(mockWrite).not.toHaveBeenCalled();
   });
   it.each([['Gde', 'worker.area'], ['Nedeljni raspored', 'worker.time']] as const)(
@@ -690,12 +232,7 @@ describe('the saved profile is read first', () => {
     mockRead.mockResolvedValue({ ...profile, ime: 'Milos' });
     await act(async () => finish({ ok: true, podatak: null }));
   });
-  it('"Nazad" leaves the editor it opened, and the profile is read again next time', async () => {
-    await renderReading(); toEditor();
-    expect(control('Izmeni: O meni')).toBeTruthy();
-    click('Nazad'); expect(mockRouter.back).toHaveBeenCalledTimes(1);
-    expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
-  });
+
   it('a suspended profile is read too, with the support way out and no switch, and a draft is not read but guided', async () => {
     mockRead.mockResolvedValue({ ...profile, stanje: 'SUSPENDED' }); await renderReading();
     expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
@@ -718,78 +255,6 @@ describe('the saved profile is read first', () => {
   });
 });
 
-// The switch "Mogu odmah" (approved draft, P3): the same one Početna has, saved by the same client against the revision the week was read at. The route saves
-// nothing of the work profile itself; what the switch shows after it saved is its own answer until the next read lands.
-describe('"Mogu odmah"', () => {
-  const REVISION = 'r'.repeat(64);
-  const week = (availableNow: boolean) => ({ accountId: mockAccount, profileId: profile.id, revision: REVISION, timezone: 'Europe/Belgrade', availableNow,
-    rules: [{ id: 'rule-1' }], windows: [] as unknown[] });
-  const toggle = () => tree.root.findByProps({ testID: 'worker-available-now' });
-  const flip = async (value: boolean) => { await act(async () => { toggle().props.onValueChange(value); }); };
-  beforeEach(() => {
-    mockAvailabilityRead.mockReset().mockResolvedValue({ ok: true, podatak: week(true) });
-    mockAvailabilitySave.mockReset().mockImplementation(async (command: { value: { availableNow: boolean } }) => ({ ok: true,
-      podatak: { saved: true, idempotentReplay: false, availability: week(command.value.availableNow) } }));
-  });
-  it('is a switch in its own row, with the state the profile has, for an active profile', async () => {
-    await renderReading();
-    expect(toggle().props).toMatchObject({ value: true, disabled: false, accessibilityLabel: 'Mogu odmah' });
-    expect(mockAvailabilityRead).not.toHaveBeenCalled();   // loaded only when it is touched
-    await act(async () => tree.unmount());
-    mockRead.mockResolvedValue({ ...profile, dostupanOdmah: false }); await renderReading();
-    expect(toggle().props.value).toBe(false);
-  });
-  it('saves as Početna does: the saved week with only the status changed, against the revision it was read at, and writes nothing of the profile', async () => {
-    await renderReading(); await flip(false);
-    expect(mockAvailabilityRead).toHaveBeenCalledTimes(1); expect(mockAvailabilitySave).toHaveBeenCalledTimes(1);
-    expect(mockAvailabilitySave).toHaveBeenCalledWith({ expectedRevision: REVISION, value: { timezone: 'Europe/Belgrade', availableNow: false, rules: [{ id: 'rule-1' }], windows: [] } });
-    expect(toggle().props.value).toBe(false); expect(texts()).not.toContain('Čuvamo…'); expect(texts()).not.toContain('Nije sačuvano. Pokušaj ponovo.');
-    expect(mockWrite).not.toHaveBeenCalled();
-  });
-  it('says it is saving, holds a second touch until the save settles, and takes the answer of the save', async () => {
-    let finish!: (result: unknown) => void;
-    mockAvailabilitySave.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-    await renderReading(); await flip(false);
-    expect(texts()).toContain('Čuvamo…'); expect(toggle().props.disabled).toBe(true); expect(toggle().props.value).toBe(false);
-    await flip(true); expect(mockAvailabilityRead).toHaveBeenCalledTimes(1); expect(mockAvailabilitySave).toHaveBeenCalledTimes(1);
-    await act(async () => finish({ ok: true, podatak: { saved: true, idempotentReplay: false, availability: week(false) } }));
-    expect(texts()).not.toContain('Čuvamo…'); expect(toggle().props.disabled).toBe(false); expect(toggle().props.value).toBe(false);
-  });
-  it.each([
-    ['the save is refused', () => mockAvailabilitySave.mockResolvedValue({ ok: false, kod: 'AVAILABILITY_VERSION_CONFLICT', poruka: 'x' })],
-    ['the save throws', () => mockAvailabilitySave.mockRejectedValue(new Error('offline'))],
-    ['the week cannot be read', () => mockAvailabilityRead.mockResolvedValue({ ok: false, kod: 'WORKER_AVAILABILITY_READ_FAILED', poruka: 'x' })],
-    ['the read throws', () => mockAvailabilityRead.mockRejectedValue(new Error('offline'))],
-  ])('says it did not take when %s, and shows the profile\'s own state again', async (_name, arrange) => {
-    arrange(); await renderReading(); await flip(false);
-    expect(texts()).toContain('Nije sačuvano. Pokušaj ponovo.'); expect(toggle().props.value).toBe(true); expect(toggle().props.disabled).toBe(false);
-    expect(mockWrite).not.toHaveBeenCalled();
-    // A second try is its own request.
-    mockAvailabilityRead.mockReset().mockResolvedValue({ ok: true, podatak: week(true) });
-    mockAvailabilitySave.mockReset().mockResolvedValue({ ok: true, podatak: { saved: true, idempotentReplay: false, availability: week(false) } });
-    await flip(false); expect(toggle().props.value).toBe(false); expect(texts()).not.toContain('Nije sačuvano. Pokušaj ponovo.');
-  });
-  it('is not touched while the screen is busy: a name being written locks it, and the profile stays read meanwhile', async () => {
-    let finish!: (result: unknown) => void;
-    mockAccountName = { state: 'ready', name: 'Milos' }; mockRead.mockResolvedValue({ ...profile, ime: 'Pera peric' });
-    mockWrite.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-    await renderReading(); click('Koristi „Milos“'); await settle();
-    expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
-    expect(toggle().props.disabled).toBe(true);
-    await flip(false); expect(mockAvailabilityRead).not.toHaveBeenCalled();
-    mockRead.mockResolvedValue({ ...profile, ime: 'Milos' });
-    await act(async () => finish({ ok: true, podatak: null }));
-    expect(toggle().props.disabled).toBe(false);
-  });
-  it('does not announce an answer for another account: a save that lands after the account changed says nothing', async () => {
-    let finish!: (result: unknown) => void;
-    mockAvailabilitySave.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-    await renderReading(); await flip(false);
-    mockRevision += 2; await act(async () => tree.update(<Profile />));
-    await act(async () => finish({ ok: true, podatak: { saved: true, idempotentReplay: false, availability: week(false) } }));
-    expect(texts()).not.toContain('Nije sačuvano. Pokušaj ponovo.'); expect(toggle().props.value).toBe(true);
-  });
-});
 
 // "Lični podaci" writes the account's name, and "O meni" is the work profile's text: the row leads here, to the editor of that part (`uredi=o-meni`), once for each tap
 // (the nonce `n`), and it opens without putting the keyboard up.
@@ -825,13 +290,7 @@ describe('"O meni" written from "Lični podaci"', () => {
 // the difference is said quietly with one button that is the person's own action, and a first save or an activation always carries the account's name.
 describe('one name for the account and the work profile', () => {
   const different = { ...profile, ime: 'Pera peric' };
-  it('has no field for the name, in the editor either', async () => {
-    mockAccountName = { state: 'ready', name: 'Milos' }; mockRead.mockResolvedValue(different); await render();
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Ime na radnom profilu' })).toHaveLength(0);
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Ime na profilu' })).toHaveLength(0);
-    openEditor('O meni');
-    expect(tree.root.findAll(node => String(node.type) === 'TextInput').map(node => node.props.accessibilityLabel)).toEqual(['O meni']);
-  });
+
   it('reads under the account\'s name, says the difference quietly and offers one button that writes only the name', async () => {
     mockAccountName = { state: 'ready', name: 'Milos' }; mockRead.mockResolvedValue(different); await renderReading();
     expect(texts()).toContain('Milos'); expect(texts()).toContain('Na radnom profilu piše „Pera peric“.');
@@ -864,52 +323,7 @@ describe('one name for the account and the work profile', () => {
     expect(mockWrite).toHaveBeenCalledWith({ zavrsi: false, ime: 'Milos' });
     expect(texts()).not.toContain('Ime radnog profila je promenjeno.'); expect(control('Pogledaj sačuvani profil')).toBeTruthy();
   });
-  it('with unsaved edits the button asks to save them first and writes nothing', async () => {
-    mockAccountName = { state: 'ready', name: 'Milos' }; mockRead.mockResolvedValue(different); await render();
-    input('O meni', 'Nešto novo'); click('Koristi „Milos“');
-    expect(mockWrite).not.toHaveBeenCalled(); expect(texts()).toContain('Sačuvaj unos pre promene imena.');
-  });
-  it('activation always goes under the account\'s name, even over another name the profile carried', async () => {
-    mockAccountName = { state: 'ready', name: 'Milos' };
-    mockRead.mockResolvedValue({ ...different, stanje: 'DRAFT' }); await render();
-    mockRead.mockResolvedValue({ ...profile, ime: 'Milos' });   // the server reports ACTIVE under the account's name
-    click('Proveri i aktiviraj profil'); await settle();
-    expect(mockWrite).toHaveBeenCalledWith({ ime: 'Milos', zavrsi: true });
-    expect(texts()).toContain('Profil je aktivan i sačuvan.');
-  });
-  it('an ordinary save of a profile that already has a name does not change it behind the person\'s back', async () => {
-    mockAccountName = { state: 'ready', name: 'Milos' }; mockRead.mockResolvedValue(different); await render();
-    input('Nova stavka: Alat i oprema', 'Merdevine'); click('Dodaj: Alat i oprema');
-    mockRead.mockResolvedValue({ ...different, alati: ['Bušilica', 'Merdevine'] });
-    click('Sačuvaj izmene'); await settle();
-    expect(mockWrite).toHaveBeenCalledWith({ zavrsi: false, alati: ['Bušilica', 'Merdevine'] });
-    expect(mockWrite.mock.calls[0][0]).not.toHaveProperty('ime');
-  });
-  it('a draft with no name of its own takes the account\'s on the first ordinary save', async () => {
-    mockAccountName = { state: 'ready', name: 'Milos' }; mockRead.mockResolvedValue({ ...profile, ime: '', stanje: 'DRAFT' }); await render();
-    input('O meni', 'Radim sa bratom');
-    mockRead.mockResolvedValue({ ...profile, ime: 'Milos', biografija: 'Radim sa bratom', stanje: 'DRAFT' });
-    click('Sačuvaj izmene'); await settle();
-    expect(mockWrite).toHaveBeenCalledWith({ zavrsi: false, ime: 'Milos', biografija: 'Radim sa bratom' });
-  });
-  it('with no name on the account and none on the profile the primary leads to the one place it is written', async () => {
-    mockAccountName = { state: 'ready', name: null };
-    mockRead.mockResolvedValue({ ...profile, ime: '', stanje: 'DRAFT' }); await render();
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Proveri i aktiviraj profil' })).toHaveLength(0);
-    expect(control('Veštine i ime naloga: nedostaje')).toBeTruthy();
-    click('Dodaj ime'); expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/podaci'); expect(mockWrite).not.toHaveBeenCalled();
-  });
-  it('waits for the name of the account before it activates', async () => {
-    mockAccountName = { state: 'loading' }; mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await render();
-    expect(control('Proveri i aktiviraj profil').props.disabled).toBe(true);
-    click('Proveri i aktiviraj profil'); await settle(); expect(mockWrite).not.toHaveBeenCalled();
-  });
-  it('a name of the account that cannot be read leaves the profile\'s own in place and draws no difference', async () => {
-    mockAccountName = { state: 'error', retry: jest.fn() }; mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await render();
-    expect(tree.root.findAllByProps({ testID: 'worker-name-difference' })).toHaveLength(0);
-    click('Proveri i aktiviraj profil'); await settle();
-    expect(mockWrite).toHaveBeenCalledWith({ zavrsi: true });
-  });
+
   it('the first conversation entry of an empty account still writes nothing', async () => {
     mockAccountName = { state: 'ready', name: 'Milos' }; mockRead.mockResolvedValue(null); await render();
     click('Uredi kroz razgovor'); expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
@@ -924,7 +338,7 @@ it('suspension retires callbacks captured before a same-focus authoritative read
   click('Koristi „Milos“'); await settle();
   expect(texts()).toContain('Profil je trenutno suspendovan');
   act(() => { retained.openConversation(); retained.navigate('/profil/dostupnost');
-    retained.navigate('/profil/lokacija'); retained.onEditPart('skills'); retained.availableNow.onChange(false); });
+    retained.navigate('/profil/lokacija'); retained.onEditPart('skills'); retained.availableNow.onEdit(); });
   expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockRouter.navigate).not.toHaveBeenCalled();
   expect(mockAvailabilityRead).not.toHaveBeenCalled(); expect(mockAvailabilitySave).not.toHaveBeenCalled();
   expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
@@ -943,36 +357,6 @@ it('a suspended profile cannot synchronize a different name, including through a
   act(() => tree.root.findByType(WorkerProfileForm).props.onUseAccountName());
   expect(mockWrite).not.toHaveBeenCalled();
 });
-it('suspension during a legacy edit preserves the draft and pending readback but admits no further save', async () => {
-  await render(); input('O meni', 'Moj sačuvani lokalni unos');
-  const retained = tree.root.findByType(WorkerProfileForm).props;
-  const save = control('Sačuvaj izmene').props.onPress;
-  mockWrite.mockResolvedValueOnce({ ok: false, kod: 'UNKNOWN', poruka: 'Nepotvrđeno' });
-  click('Sačuvaj izmene'); await settle();
-  mockRead.mockResolvedValue({ ...profile, stanje: 'SUSPENDED', biografija: 'Ranije sačuvan opis' });
-  click('Pogledaj sačuvani profil'); await settle();
-  expect(texts()).toContain('Ranije sačuvan opis');
-  expect(texts()).toContain('Nesačuvani unos je zadržan.');
-  expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
-  act(() => { retained.change({ ...retained.draft, biografija: 'Zastarela promena' }); save(); }); await settle();
-  expect(mockWrite).toHaveBeenCalledTimes(1);
-  // Resolving the restriction later must not replace the authored local text.
-  mockRead.mockResolvedValue(profile); click('Pogledaj sačuvani profil'); await settle();
-  click('Izmeni podatke'); openEditor('O meni');
-  expect(control('O meni').props.value).toBe('Moj sačuvani lokalni unos');
-});
-
-it('suspended support has no impossible save prerequisite and retains an unsaved local draft', async () => {
-  await render(); input('O meni', 'Moj lokalni opis');
-  const background = async () => { await act(async () => { for (const listener of [...mockListeners]) listener('background'); }); };
-  const resume = async () => { await act(async () => { for (const listener of [...mockListeners]) listener('active'); }); };
-  await background(); mockRead.mockResolvedValue({ ...profile, stanje: 'SUSPENDED' }); await resume();
-  click('Obrati se podršci'); expect(mockRouter.navigate).toHaveBeenCalledWith('/podrska');
-  expect(mockWrite).not.toHaveBeenCalled();
-  await background(); mockRead.mockResolvedValue(profile); await resume();
-  openEditor('O meni'); expect(control('O meni').props.value).toBe('Moj lokalni opis');
-});
-
 
 it('a first visit is only a calm AI entry; opening it creates no profile or manual fields', async () => {
   mockRead.mockResolvedValue(null); await renderReading();
@@ -981,4 +365,62 @@ it('a first visit is only a calm AI entry; opening it creates no profile or manu
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Izmeni: O meni' })).toHaveLength(0);
   click('Uredi kroz razgovor');
   expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
+});
+
+it.each([true, false])('availability %s remains a saved fact and opens the time topic without a direct write', async available => {
+  mockRead.mockResolvedValue({ ...profile, dostupanOdmah: available }); await renderReading();
+  expect(tree.root.findAll(node => String(node.type) === 'Switch')).toHaveLength(0);
+  click('Dostupnost');
+  const route = mockRouter.navigate.mock.calls.at(-1)![0];
+  expect(takeAiCorrection(route.params.aiCorrection, { accountId: mockAccount, accountRevision: mockRevision }, 'worker',
+    '30000000-0000-4000-8000-000000000001')?.target).toBe('worker.time');
+  expect(mockAvailabilityRead).not.toHaveBeenCalled(); expect(mockAvailabilitySave).not.toHaveBeenCalled(); expect(mockWrite).not.toHaveBeenCalled();
+  expect(tree.root.findByType(WorkerProfileForm).props.draft.dostupanOdmah).toBe(available);
+});
+
+it('an unconfirmed name command holds Back and topic navigation until readback, then allows one explicit retry', async () => {
+  mockAccountName = { state: 'ready', name: 'Milos' };
+  await renderReading();
+  const retained = tree.root.findByType(WorkerProfileForm).props;
+  mockWrite.mockResolvedValueOnce({ ok: false, kod: 'UNKNOWN', poruka: 'Nepotvrđeno' });
+  click('Koristi „Milos“'); await settle();
+  click('Nazad'); expect(hardwareBack()).toBe(true);
+  act(() => { retained.availableNow.onEdit(); retained.openConversation('area'); });
+  expect(mockRouter.back).not.toHaveBeenCalled(); expect(mockRouter.navigate).not.toHaveBeenCalled();
+  expect(mockWrite).toHaveBeenCalledTimes(1);
+  click('Pogledaj sačuvani profil'); await settle();
+  expect(mockWrite).toHaveBeenCalledTimes(1);
+  mockRead.mockResolvedValue({ ...profile, ime: 'Milos' });
+  click('Sačuvaj ponovo'); await settle();
+  expect(mockWrite.mock.calls.map(call => call[0])).toEqual([{ zavrsi: false, ime: 'Milos' }, { zavrsi: false, ime: 'Milos' }]);
+  expect(texts()).toContain('Ime radnog profila je promenjeno.');
+});
+
+it('late name-save completion and retained availability cannot cross an account generation', async () => {
+  let finish!: (value: unknown) => void;
+  mockAccountName = { state: 'ready', name: 'Milos' };
+  mockWrite.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  await renderReading(); const retained = tree.root.findByType(WorkerProfileForm).props.availableNow.onEdit;
+  click('Koristi „Milos“'); await settle();
+  mockRevision += 2; await act(async () => tree.update(<Profile />));
+  const reads = mockRead.mock.calls.length;
+  await act(async () => { finish({ ok: true, podatak: null }); retained(); });
+  expect(mockRead).toHaveBeenCalledTimes(reads); expect(mockRouter.navigate).not.toHaveBeenCalled();
+  expect(texts()).not.toContain('Ime radnog profila je promenjeno.');
+});
+
+it('a retained legacy draft and unknown command remain recoverable without reopening manual fields', async () => {
+  await renderReading();
+  const legacy = tree.root.findByType(WorkerProfileForm).props;
+  // Models local state already held by a retained route, not an exposed UI editor.
+  act(() => legacy.change({ ...legacy.draft, biografija: 'Zadržani lokalni opis' }));
+  expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
+  mockWrite.mockResolvedValueOnce({ ok: false, kod: 'UNKNOWN', poruka: 'Nepotvrđeno' });
+  click('Sačuvaj izmene'); await settle();
+  click('Uredi kroz razgovor'); expect(mockRouter.navigate).not.toHaveBeenCalled();
+  expect(tree.root.findByType(WorkerProfileForm).props.draft.biografija).toBe('Zadržani lokalni opis');
+  mockRead.mockResolvedValue({ ...profile, biografija: 'Zadržani lokalni opis' });
+  click('Pogledaj sačuvani profil'); await settle();
+  expect(mockWrite).toHaveBeenCalledTimes(1); expect(texts()).toContain('Izmene profila su sačuvane.');
+  expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
 });

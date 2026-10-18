@@ -95,7 +95,7 @@ describe('the group "Ulaz i prijava na nalog"', () => {
     }
   }, 60000);
 
-  it('the first step in every state: fields with their label, the one green command in the foot, and what is wrong said under the form or the field', async () => {
+  it('exposes named authentication fields, recovery actions and truthful inline errors', async () => {
     await open('Ulaz: prijava');
     expect(inputs()).toEqual(['Email', 'Lozinka']); expect(text()).toContain('Prijavi se ili napravi nalog'); expect(text()).toContain('Zaboravljena lozinka?');
     await exit();

@@ -8,19 +8,10 @@ import { Surface } from './Surface';
 import { useLayoutClass } from './textScale';
 import { sys } from './tokens';
 
-/**
- * "Nema veze" as a line, not as a screen (R31; composition spec 2026-10-07, T7: "bez veze: `note` traka ispod trake, ne ekran"). A read failed
- * because the phone is not connected, and the screen still has what it loaded before: the person keeps it and is told, in one flat line
- * under the bar, that it is the last thing that was loaded. A screen with nothing to show draws the full state instead (`StateView
- * kind="offline"`): this line is only for a screen that has something to keep.
- *
- * It is a `note` (`Surface`, a flat tint, no shadow, no card), with the one quiet word "Osveži" at its end when the screen can read again.
- * That word is the 48 dp touch, so the line is as high as a touch and no higher. At a large text size the word goes under the sentence
- * instead of crushing it. The line says "Nema veze" only when the screen KNOWS it is the connection (a failure of the call itself, no
- * answer at all); when the service answered with an error it is `OUTCOME.unavailable`, and when it is not known it is `cannotLoad`.
- *
- * Presentation only; whether the phone is offline, and what refreshing does, are the screen's.
- */
+/** Connection warning while previously loaded content stays usable. The warning
+ * identifies stale data and offers refresh when available. Layout and material may
+ * evolve; keep the live announcement, readable large text and duplicate-request
+ * protection. Service errors and unknown writes have separate recovery states. */
 export function OfflineLine({ onRefresh, hasLast = true, refreshing = false, testID }: {
   /** Reads again. Without it the line only tells. */
   onRefresh?: () => void;

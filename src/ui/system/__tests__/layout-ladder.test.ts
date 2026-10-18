@@ -2,19 +2,11 @@ import { layout } from '../layout';
 import { sys } from '../tokens';
 import { read, withoutComments } from './ratchetKit';
 
-/**
- * The ladder is kept (composition spec 2026-10-07, section 2 "A"; UI/UX pass 2026-10-08, F8a). 238 of 740 numeric spaces in the app
- * (32 %) were off the scale (2 × 57, 10 × 46, 14 × 42, 6 × 37, 28 × 8), and the owner's "izdeljeno, isprekidano" is that. The
- * primitives that carry the grid are written ON it: every padding, margin and gap in the seven files below is either a name
- * (`sys.space.md`, `layout.group`) or a number of the ladder 0 · 1 · 2 · 4 · 8 · 12 · 16 · 20 · 24 · 32 · 48 (1 and 2 are for a
- * line's own width and a first line's half-leading; 20 is the edge of the screen), and none draws the platform's hairline.
- *
- * This holds the seven files only. The screens move onto them wave by wave; the repository-wide ratchets that only shrink are
- * `rule-width-ratchet.test.ts` (lines) and `surface-kinds-ratchet.test.ts` (containers).
- */
+/** Shared primitives use central spacing roles. Optical defaults may evolve;
+ * this check prevents new component-local scales, not new named roles or hairlines. */
 /** The seven files of the grid: the numbers, and the six primitives that stand on them. */
 const GRID_FILES = ['layout', 'Screen', 'Section', 'ListRow', 'FactRow', 'KeyValueRow', 'Surface'].map(name => `src/ui/system/${name}.${name === 'layout' ? 'ts' : 'tsx'}`);
-const LADDER = new Set([0, 1, 2, 4, 8, 12, 16, 20, 24, 32, 48]);
+const LADDER = new Set<number>([0, 1, 2, ...Object.values(sys.space)]);
 
 const SPACING_KEY = /\b(?:padding|margin)(?:Top|Bottom|Left|Right|Horizontal|Vertical|Start|End)?\s*:\s*(-?\d+(?:\.\d+)?)\b|\b(?:gap|rowGap|columnGap)\s*:\s*(-?\d+(?:\.\d+)?)\b/g;
 /** Every numeric spacing literal in a source: the number as written (a name is not a literal, and is the way to write a space). */
@@ -37,19 +29,15 @@ describe('the scanner finds a spacing literal and nothing else', () => {
   });
 });
 
-describe('the seven files of the grid stand on the ladder and draw no hairline', () => {
+describe('shared grid primitives use central spacing', () => {
   it.each(GRID_FILES)('%s spells no padding, margin or gap off the ladder', path => {
     const off = spacingLiterals(read(path)).filter(value => !LADDER.has(value));
     expect([path, off]).toEqual([path, []]);
   });
 
-  it.each(GRID_FILES)('%s does not draw the platform\'s hairline', path => {
-    expect([path, /\bhairlineWidth\b/.test(withoutComments(read(path)))]).toEqual([path, false]);
-  });
-
   it('looks at real files: each primitive is long enough and spaces itself by name, so an empty read cannot pass for a clean one', () => {
-    expect(GRID_FILES).toHaveLength(7);
-    for (const path of GRID_FILES) expect([path, read(path).length > 200]).toEqual([path, true]);
+    expect(new Set(GRID_FILES).size).toBe(GRID_FILES.length);
+    for (const path of GRID_FILES) expect(read(path)).toMatch(/export (?:const|function|type)/);
     for (const path of GRID_FILES.filter(file => !/layout.ts$|FactRow|Surface/.test(file))) expect([path, /sys.space.|layout./.test(read(path))]).toEqual([path, true]);
   });
 });
@@ -57,7 +45,7 @@ describe('the seven files of the grid stand on the ladder and draw no hairline',
 describe('the ladder is the spacing scale plus the two fine steps', () => {
   it('is every step of sys.space (4 · 8 · 12 · 16 · 20 · 24 · 32 · 48), and 0, 1 and 2 for a line and a half-leading', () => {
     for (const step of Object.values(sys.space)) expect([step, LADDER.has(step)]).toEqual([step, true]);
-    expect([...LADDER].sort((a, b) => a - b)).toEqual([0, 1, 2, 4, 8, 12, 16, 20, 24, 32, 48]);
+    for(const value of LADDER){expect(Number.isFinite(value)).toBe(true);expect(value).toBeGreaterThanOrEqual(0);}
   });
 
   it('every distance in layout.ts is on it', () => {

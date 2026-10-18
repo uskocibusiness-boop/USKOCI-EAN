@@ -157,8 +157,10 @@ describe('the one foot action', () => {
     // Review r4 item 7 (was: danger red on every open card). Withdrawing is rare, so the link is quiet ink; the danger
     // colour stays in the question it opens (the screen's ConfirmSheet, tone "danger").
     expect(style(textNode('Povuci prijavu')).color).toBe(sys.color.ink);
-    await render(<ApplicationCard row={inState('SELECTED')} {...handlers()} />);
-    expect(style(textNode('Otvori Dogovor')).color).toBe(sys.color.green);
+    const selectedHandlers = handlers();
+    await render(<ApplicationCard row={inState('SELECTED')} {...selectedHandlers} />);
+    await act(async () => presses()[1].props.onPress());
+    expect(selectedHandlers.onAgreement).toHaveBeenCalledTimes(1);
     await render(<ApplicationCard row={inState('STALE_REVIEW_REQUIRED')} {...handlers()} />);
     expect(style(textNode('Pregledaj izmene zadatka')).color).toBe(sys.color.warn);
   });

@@ -1,0 +1,151 @@
+{
+  "at": "2026-10-18T18:05:42.568064+00:00",
+  "files": [
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 99,
+      "file": "supabase/functions/uskoci-ai-interview/index.ts",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "11934dde3839112f4aff7cc22d25464c7d0e0e119c94a71b0d5e5a346a167446"
+    },
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 99,
+      "file": "src/contracts/aiAvailability.ts",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409"
+    },
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 99,
+      "file": "src/contracts/needFactsV2.ts",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6"
+    },
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 99,
+      "file": "supabase/functions/_shared/locationReply.ts",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "f4661eb796660e69d0663c498ae5f0977be0835bdd516147ab80e57ad7a02dc6"
+    },
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 99,
+      "file": "supabase/functions/_shared/aiTestBudget.ts",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24"
+    },
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 99,
+      "file": "supabase/functions/_shared/geminiTaskStream.ts",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5"
+    },
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 99,
+      "file": "supabase/functions/_shared/taxonomyScopedShadow.mjs",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "c91b7bc3bb95f6cfc370c5a589bd12aba28089261b32d773573853cc62f75e8b"
+    },
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 99,
+      "file": "supabase/functions/_shared/classificationEngine.mjs",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "cdedf45565f92235ac2f8c75be9f754128bfa59f3c37fec6d7b394b677d748d3"
+    },
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 99,
+      "file": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "f0a80eb886de14f5f432da985a6745e89a2d3bc003a72bbb67637bca34db17ff"
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 53,
+      "file": "supabase/functions/uskoci-worker-interview/index.ts",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "88f3a77cfa1f5eac897135f07e57c4898251c4cbf122d0890824b2f0671e501c"
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 53,
+      "file": "src/contracts/aiAvailability.ts",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409"
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 53,
+      "file": "supabase/functions/_shared/aiTestBudget.ts",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24"
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 53,
+      "file": "supabase/functions/_shared/geminiTaskStream.ts",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5"
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 53,
+      "file": "supabase/functions/_shared/classificationEngine.mjs",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "cdedf45565f92235ac2f8c75be9f754128bfa59f3c37fec6d7b394b677d748d3"
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 53,
+      "file": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "f0a80eb886de14f5f432da985a6745e89a2d3bc003a72bbb67637bca34db17ff"
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 53,
+      "file": "supabase/functions/_shared/workerServiceModeContext.mjs",
+      "localFound": true,
+      "normalizedEqual": true,
+      "normalizedSha256": "1fdac04aecc7f582353672de96020c47ff3e84e44d71e74554369e0e3914bc3b"
+    },
+    {
+      "slug": "uskoci-push-transport",
+      "version": 35,
+      "file": "functions/uskoci-push-transport/index.ts",
+      "localFound": true,
+      "localPath": "supabase/functions/uskoci-push-transport/index.ts",
+      "normalizedEqual": true,
+      "normalizedSha256": "021db91ebf3794b130351d68f8a836dc042f6497ef989688335907a59d6fb6fc"
+    },
+    {
+      "slug": "uskoci-push-transport",
+      "version": 35,
+      "file": "functions/_shared/pushNotificationCopy.mjs",
+      "localFound": true,
+      "localPath": "supabase/functions/_shared/pushNotificationCopy.mjs",
+      "normalizedEqual": true,
+      "normalizedSha256": "a66cccb7e5d8a7500f905fd5d7e7df95a90eac0afbf9e9172714f926b498a731"
+    }
+  ]
+}

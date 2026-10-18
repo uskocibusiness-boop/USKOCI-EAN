@@ -1,55 +1,25 @@
+import { colorTokens } from './colorTokens';
+
 /**
- * USKOČI — base scales and legacy illustration palette.
- * Screens consume ui/system/tokens. Owner correction, 2026-09-25: white reading surfaces,
- * neutral shadows, color in art and actions. Historical ivory/sage values are not screen backgrounds.
+ * USKOČI — base scales and compatibility color names.
+ * Screens consume ui/system/tokens. Premium White canon, 2026-10-18: a white canvas, semantic tints and content-specific materials.
+ * Legacy illustration colors below are not a separate screen design authority.
  * Text/background pairs must pass WCAG AA (4.5:1); current measurements belong to the R12 report.
  */
 
+/** Compatibility names only. No independent screen palette; illustration shades remain named separately. */
 export const palette = {
-  // tamna strana — zaglavlja, hero kartice, istaknute površine
-  forest900: '#0A2C28',
-  forest800: '#0E3D37', // vlasnikov forest
-  forest700: '#1B574C',
-  forest600: '#276D5F',
-  teal500: '#2E7A6A', // vlasnikov teal
-  teal400: '#5D9387', // vlasnikov teal2 — SAMO kao površina, ne kao tekst na tamnom
-
-  // srednji tonovi — popuna rupe; ivice, razdelnici, neaktivna stanja, mapa
-  sage300: '#9BB1A0',
-  sage200: '#C9C7B2',
-  line100: '#E7D6BE', // vlasnikova linija
-
-  // svetla strana — razmaknuta da postoji dubina
-  cream050: '#F8EBD7', // vlasnikov cream
-  ground: '#FFFFFF', // podloga aplikacije
-  surface: '#FFFFFF', // kartica
-  raised: '#FFFFFF', // modal, sheet, ono što lebdi
-
-  // narandžasta ima DVA tokena i to nije stilski hir:
-  // #FF7908 kao tekst na svetloj podlozi daje 2.51 — to je defekt.
-  orange: '#FF7908', // POVRŠINA: dugme, badž. Tamno mastilo na njoj = 6.71
-  orangeInk: '#C23C00', // TEKST na svetloj podlozi = 5.21
-  orangeSoft: '#FFF0E2', // podloga za narandžasti akcenat
-  onOrange: '#25150A', // mastilo koje ide NA narandžastu
-
-  // tekst
-  ink: '#0E3D37', // na svetloj = 11.78
-  inkMuted: '#586B62', // na beloj = 5.7 (original #657872 je padao na 3.98)
-  onDark: '#FFFFFF',
-  // onDarkMuted je uklonjen 2026-09-24: prolazio je samo na penzionisanoj forest podlozi, a na zelenoj daje 2.4.
-
-  // semantika — nikad sama, uvek uz ikonu ili tekst
-  success: '#1D6F4B',
-  successBg: '#EAF6EF',
-  danger: '#9E3626',
-  dangerBg: '#F8E3DE',
-  warn: '#8A5100',
-  warnBg: '#FFF4DF',
-  info: '#245EA8',
-  infoBg: '#EAF2FF',
+  ...colorTokens.illustration.legacy,
+  ground: colorTokens.color.ground, surface: colorTokens.color.surface, raised: colorTokens.color.surface,
+  orange: colorTokens.color.orange, orangeInk: colorTokens.color.orangeInk, orangeSoft: colorTokens.color.orangeSoft, onOrange: colorTokens.color.onOrange,
+  ink: colorTokens.color.ink, inkMuted: colorTokens.color.muted, onDark: colorTokens.color.onDark,
+  success: colorTokens.color.success, successBg: colorTokens.color.successSoft,
+  danger: colorTokens.color.danger, dangerBg: colorTokens.color.dangerSoft,
+  warn: colorTokens.color.warn, warnBg: colorTokens.color.warnSoft,
+  info: colorTokens.color.info, infoBg: colorTokens.color.infoSoft,
 } as const;
 
-/** 4/8 ritam. Ne uvoditi vrednosti van ove skale. */
+/** Shared 4/8 rhythm. Add named optical/content variants here when a verified composition needs them. */
 export const space = {
   xs: 4,
   sm: 8,
@@ -61,24 +31,9 @@ export const space = {
   huge: 48,
 } as const;
 
-/**
- * Zaobljenja. Jedna lestvica za celu aplikaciju, imenovana po ULOZI a ne po broju.
- *
- * Do 2026-09-18 su postojale dve lestvice koje se ne slažu — ova (8/12/16/20) i
- * `sys.radius` (9/13/16/17/18/22/28) — pa je u fajlovima bilo 27 različitih ručno
- * upisanih vrednosti. Dva ćoška koja se skoro slažu su gore od dva koja se razlikuju:
- * ništa se ne poravna i ništa ne izgleda namerno. Ovo je sada jedini izvor, a
- * `sys.radius` je pogled na njega.
- *
- * Krug i kapsula NISU na lestvici — oni su `pill`, jer polovina širine nije izbor
- * dizajna nego geometrija. Ugnežden ćošak se računa: `nested(spolja, razmak)`.
- *
- * 2026-09-24 (kritika emulatora B6): lestvica je i dalje imala parove koji se skoro slažu —
- * 16/17 (polje i glavna akcija), 20/26 (dve kartice), 9/13 (badž i čip) — pa su se dugme i
- * polje jedno pored drugog razlikovali za piksel. Sada su tri koraka i kapsula: 12 za sve što
- * se dodiruje ili stoji u redu, 24 za karticu, 28 za plahtu odozdo, `pill` za krug. Imena
- * uloga ostaju, da se vidi ČEMU ćošak služi; više uloga deli jedan korak.
- */
+/** Named corner roles. Values are current defaults, not immutable screenshots.
+ * Compact comparison items, controls and media may differ; keep changes centralized.
+ * Circles/capsules use pill and inset geometry uses nested(). */
 export const radius = {
   /** Sitna oznaka: tačka, brojač, mali badž. */
   badge: 12,
@@ -88,12 +43,15 @@ export const radius = {
   control: 12,
   /** Glavna akcija na ekranu: isti ćošak kao polje i dugme pored nje. */
   primary: 12,
-  /** Zbijena kartica (stavka liste): isti ćošak kao kartica. */
-  cardCompact: 24,
-  /** Kartica. Vlasnikov zahtev 2026-09-20: kartica treba da bude okrugla i mekana, ne oštra. */
+  /** Zbijena kartica za poređenje u listi. */
+  cardCompact: 20,
+  /** Standardna kartica sadržaja. */
   card: 24,
   /** Plahta odozdo i velika površina: jedan korak iznad kartice. */
   sheet: 28,
+  /** An image frame and a larger brand/intent composition. */
+  media: 20,
+  hero: 28,
   /** Sve što je krug ili kapsula. */
   pill: 999,
 } as const;
@@ -136,34 +94,34 @@ export const type = {
 } as const;
 
 /**
- * Pokret više nije ovde: jedina lestvica pokreta je `sys.motion` (src/ui/system/tokens.ts, 2026-09-24), uz pravilo da
- * se ništa što iskazuje činjenicu ne pomera, a jedini izvor za „smanji pokret“ je src/ui/system/motion.ts.
+ * Pokret više nije ovde: jedina lestvica pokreta je `sys.motion` (src/ui/system/tokens.ts, 2026-09-24), sa kategorijama za različite interakcije.
+ * Stvarne činjenice ostaju tačne tokom prelaza; živi Reduce Motion izvor je src/ui/system/motion.ts.
  */
 
 /** Minimalna dodirna meta. Ako je vizuelno manje, širi se hitSlop-om. */
 export const touch = {
-  min: 44,
+  min: 48,
   gap: 8,
 } as const;
 
 export const elevation = {
   /** A card resting on a white screen: definition without a grey smear (V4.9 card shadow). */
   soft: {
-    shadowColor: '#000000',
+    shadowColor: colorTokens.shadow,
     shadowOpacity: 0.04,
     shadowRadius: 22,
     shadowOffset: { width: 0, height: 6 },
     elevation: 1,
   },
   card: {
-    shadowColor: '#000000',
+    shadowColor: colorTokens.shadow,
     shadowOpacity: 0.06,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
   raised: {
-    shadowColor: '#000000',
+    shadowColor: colorTokens.shadow,
     shadowOpacity: 0.12,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 8 },

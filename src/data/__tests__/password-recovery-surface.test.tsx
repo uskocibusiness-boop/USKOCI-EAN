@@ -210,7 +210,7 @@ describe('the frame of the link screen', () => {
     expect(hosts('Pressable').filter(node => node.props.accessibilityLabel === 'Nazad')).toHaveLength(1);
   });
 
-  it('has exactly ONE command in the foot of the screen in every state, and it is the one green command', async () => {
+  it('provides the correct recovery command for editing, confirmed save, invalid link and unavailable verification', async () => {
     const commands = () => hosts('Pressable', footer()).map(node => textOf(node).trim());
     await render();
     expect(commands()).toEqual(['Sačuvaj novu lozinku']);

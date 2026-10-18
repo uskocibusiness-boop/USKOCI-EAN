@@ -1,4 +1,4 @@
-/** Pure geometry port of the locked HTML rIntroFrame. No navigation or state writes.
+/** Existing native brand geometry, retained until its connected entry redesign. No navigation or state writes.
  * Coordinates supplied by the caller must be measured in the same coordinate space.
  * This is a reference adapter, not a replacement for existing native entry hooks.
  */

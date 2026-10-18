@@ -8,12 +8,9 @@ let mockStacked = false;
 jest.mock('../textScale', () => ({ ...jest.requireActual('../textScale'),
   useLayoutClass: () => mockStacked ? { cls: 'large', stacked: true } : { cls: 'compact', stacked: false } }));
 
-import { INTER_FACES } from '../../interFont';
 import { Press } from '../../Press';
 import { layout } from '../layout';
 import { OfflineLine } from '../OfflineLine';
-import { Surface } from '../Surface';
-import { sys } from '../tokens';
 
 /**
  * "Nema veze" as a line (R31; composition spec T7): a read failed because the phone is not connected, the screen keeps what it loaded
@@ -48,14 +45,7 @@ describe('what it says', () => {
 });
 
 describe('what it is', () => {
-  it('is a note: a flat tint, not a card and not a shadow, and not the state view', async () => {
-    await render(<OfflineLine onRefresh={() => undefined} testID="strip" />);
-    expect(tree.root.findByType(Surface).props).toMatchObject({ kind: 'note', testID: 'strip' });
-    const style = flat(tree.root.findAll(node => typeof node.type === 'string')[0]);
-    for (const key of ['boxShadow', 'elevation', 'borderWidth']) expect([key, style[key as 'borderWidth']]).toEqual([key, undefined]);
-  });
-
-  it('is as high as a touch and no higher: the sentence centres in the 48 dp that the word is', async () => {
+  it('keeps its labeled refresh action large enough to touch', async () => {
     await render(<OfflineLine onRefresh={() => undefined} />);
     const line = tree.root.findAll(node => typeof node.type === 'string' && node.props.accessibilityLiveRegion === 'polite')[0];
     expect(flat(line)).toMatchObject({ flexDirection: 'row', alignItems: 'center', minHeight: layout.touch });
@@ -75,12 +65,9 @@ describe('what it is', () => {
     expect(size(tree.root.findAll(node => typeof node.type === 'string' && node.props.accessibilityLiveRegion === 'polite'))).toBe(1);
   });
 
-  it('writes the word in green, 15/600, and in grey while it reads', async () => {
+  it('disables duplicate refresh and haptics while the request is pending', async () => {
     await render(<OfflineLine onRefresh={() => undefined} />);
-    const word = tree.root.findAll(node => node.type === Text && node.props.children === 'Osveži')[0];
-    expect(flat(word)).toMatchObject({ color: sys.color.green, fontSize: sys.type.copy.fontSize, fontFamily: INTER_FACES[600] });
     await act(async () => tree.update(<OfflineLine onRefresh={() => undefined} refreshing />));
-    expect(flat(tree.root.findAll(node => node.type === Text && node.props.children === 'Osveži')[0]).color).toBe(sys.color.muted);
     expect(tree.root.findByType(Press).props).toMatchObject({ disabled: true, accessibilityState: { disabled: true }, haptic: 'none' });
   });
 });

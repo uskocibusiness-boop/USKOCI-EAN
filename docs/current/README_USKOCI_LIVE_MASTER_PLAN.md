@@ -5,17 +5,21 @@ Jedan aktivan proizvod, jedan registar statusa i postojeći LIVE plan. Ovaj fajl
 ## Redosled čitanja
 
 1. Najnovija poruka vlasnika i [AGENTS.md](../../AGENTS.md): pravila, poslovne granice i dozvole.
-2. [Registar 62 toka](../control/redovi.json) i [LIVE prikaz](USKOCI_OPERATIVNI_MASTER_PLAN_LIVE.html): dokazi i otvoren posao.
-3. Za UI: [sadašnji dizajnerski pravac](../implementation/OWNER_DESIGN_DIRECTION_20260922.md). Za drugi domen: relevantan izvor iz [mape autoriteta](../authority/AUTHORITY_INDEX.md).
+2. [Aktuelni fizički presek i granice kandidata](CURRENT_BASELINE_20261018.md), zatim [Registar 62 toka](../control/redovi.json) i [LIVE prikaz](USKOCI_OPERATIVNI_MASTER_PLAN_LIVE.html): dokazi i otvoren posao.
+3. Za UI: [jedini aktivan Premium White canon](../implementation/design-system/PREMIUM_WHITE_CANON.md) i [forenzički registar ograničenja](../implementation/design-system/DESIGN_CONSTRAINT_REGISTRY_20261018.md). Za drugi domen: relevantan izvor iz [mape autoriteta](../authority/AUTHORITY_INDEX.md).
 4. Izvorni kod i dokaz za konkretan tok koji se menja. Stare nacrte i handoff dokumente otvaraj po potrebi, ne kao lanac obaveznog čitanja niti kao trenutno stanje.
 
 ## Radni prostor — zatečeno 18.10.2026.
 
 - Aktivni checkout ove sesije: `C:\Users\user\Desktop\USKOCI ZAVRSAVANJE\USKOCI-EAN`.
-- Grana pri inventaru: `feature/unified-qa-master-20261017`; početni HEAD `938df57d81e98821255d361afd6b6201e996889d`. Proveri `git status` i `git branch --show-current` pri nastavku; ovaj datum ne zaključava buduću granu.
+- Grana pri inventaru: `feature/unified-qa-master-20261017`; pre-cleanup HEAD `eaa38a04e20be24bba71840660493b634180ee72` uz sačuvane zatečene radne izmene. Proveri `git status` i `git branch --show-current` pri nastavku; ovaj datum ne zaključava buduću granu.
 - Kanonski DEV/ALPHA: `leqcwgzvjsxugfgzdmth`. Kod u lokalnom folderu nije dokaz primene na taj projekat.
 - `USKOCI-CLEAN`, donor folderi i raniji APK-ovi nisu automatski trenutna radna kopija. Ne prebacuj rad tamo zbog starog uputstva.
 - Izvor APK-a, eventualni OTA update i instalacija na uređaju proveravaju se posebno. Ime fajla, verzija `1.0.0` ili najnoviji datum nisu dovoljni.
+
+## Jedan aktivan dizajn
+
+Premium White je odobrena foundation smernica, sa devet povezanih talasa iz §15 canona. Istorijski R1–R8/V28/V31, stare motion zabrane, identični pikseli i ručni formulari nisu drugi aktivni ugovor. Fizički history banner označava povučeni vizuelni autoritet; funkcionalni ugovori i datirani dokazi se čitaju u svom domenu. [Registar ograničenja](../implementation/design-system/DESIGN_CONSTRAINT_REGISTRY_20261018.md) razdvaja mehaničkog kandidata, pregledan nalaz i stvarnu fizičku izmenu. Broj klasifikovanih redova nije broj zatvorenih problema.
 
 ## Gde je šta
 

@@ -11,9 +11,9 @@ Stara pravila o čekanju vlasnika, odvojenom odobrenju svakog troška/testa/pake
 ## 2. Gde nastaviti
 
 - Proveri stvarni Git checkout, granu i radne izmene. Aktuelni proizvod je postojeći Expo / React Native USKOČI; naziv starog foldera ili grane ne određuje današnji izvor.
-- `docs/current/README_USKOCI_LIVE_MASTER_PLAN.md` je mapa aktuelnog rada.
+- `docs/current/README_USKOCI_LIVE_MASTER_PLAN.md` je mapa aktuelnog rada; `docs/current/CURRENT_BASELINE_20261018.md` razdvaja fizički presek, lokalni kandidat i instalirani APK.
 - `docs/control/redovi.json` i postojeći LIVE plan povezuju tokove, rezultate i sledeći posao. Dopunjavaj njih umesto pravljenja paralelnih glavnih planova.
-- `docs/implementation/OWNER_DESIGN_DIRECTION_20260922.md` nosi aktuelan vizuelni pravac; datum u nazivu je istorijski.
+- `docs/implementation/design-system/PREMIUM_WHITE_CANON.md` je jedini aktivan vizuelni i UX canon. `OWNER_DESIGN_DIRECTION_20260922.md` i stare design smernice ostaju istorijske reference.
 - Čitaj relevantan kod i najnoviji dokaz za deo koji menjaš. Stari dokumenti su reference po potrebi, a ne obavezan lanac čitanja.
 - Kanonski DEV/ALPHA je `leqcwgzvjsxugfgzdmth`. Primena i tačno pročitani server odlučuju šta je objavljeno.
 
@@ -39,7 +39,7 @@ Migracije su forward verzije; rezultat primene potvrdi čitanjem funkcija, prava
 
 ## 4. Cilj proizvoda
 
-Jedna osoba, jedan nalog: može i da objavljuje zadatke i da uskače. AI vodi koristan prirodan razgovor, pamti delimične odgovore, razume ispravke i pita samo ono što je važno. Pregled pokazuje šta je razumeo; eksplicitno čuvanje/objava završava promenu. Taksonomija i ID-jevi ostaju u pozadini.
+Jedna osoba, jedan nalog: može i da objavljuje zadatke i da uskače. AI vodi koristan prirodan razgovor, pamti delimične odgovore, razume ispravke i pita samo ono što je važno. Jedna živa kartica pokazuje šta je razumeo; jedan završni pregled ima jednu akciju „Izmeni kroz razgovor“, a eksplicitno čuvanje/objava završava promenu. Nema olovaka uz svaku činjenicu niti običnih paralelnih ručnih formulara za detalje zadatka i radnog profila. Ljudska potvrda mape, identitet, mediji i sistemske dozvole zadržavaju svoju svrhu. Taksonomija i ID-jevi ostaju u pozadini.
 
 Usluga, način rada, područje, termini i dogovor imaju isti smisao u razgovoru, pregledu, sačuvanom zapisu, matching-u i obaveštenju. Izrada kod izvršioca uz dostavu/preuzimanje nije sama po sebi dolazak kod naručioca. Alati i vozila su relevantni samo kada pomažu konkretnoj odluci, a ne obavezan upitnik.
 
@@ -47,11 +47,13 @@ Tehnička ispravnost obuhvata autentifikaciju, vlasništvo, privatnost, RLS, rev
 
 ## 5. Dizajn i UX — novi pravac vlasnika
 
-Cilj je premium, miran i dosledan izgled sa jasnoćom i fluidnošću najboljih Apple interfejsa, prilagođen USKOČI i Androidu. Svaki ekran dobija svrhu, hijerarhiju, korisno prazno stanje, razumljiv oporavak i jasan sledeći korak. Pojednostavi nepotrebne tekstove, formulare, ponovljene kartice i izbore. Prvi korisnik treba da razume tok bez poznavanja projekta.
+Cilj je USKOČI Premium White: belo platno, taman tekst, duboka zelena, topla narandžasta, semantičke pomoćne boje i originalne dvobojne 2.5D ikone. Airbnb disciplina/preglednost i Apple jasnoća/fluidnost služe kao kvalitetna referenca, bez kopiranja tuđeg identiteta. Aktivan ugovor je `docs/implementation/design-system/PREMIUM_WHITE_CANON.md`, prilagođen USKOČI i Androidu. Rad prati devet talasa iz canona: globalni sistem; Početna; Zadaci; AI; prijave/izbor; Dogovori; Poruke/deljenje; Profil; obaveštenja/podešavanja/privatnost/podrška/polish. Svaki ekran dobija svrhu, hijerarhiju, korisno prazno stanje, razumljiv oporavak i jasan sledeći korak. Pojednostavi nepotrebne tekstove, formulare, ponovljene kartice i izbore. Prvi korisnik treba da razume tok bez poznavanja projekta.
 
 Postojeći beli prostor, zelena/narandžasta prepoznatljivost i komponente su polazna osnova, ne vizuelni kavez. Raspored, ikone, tipografija, razmaci, ilustracije i animacije mogu se stručno preoblikovati. Stare SPOJ/V28/V41/V46 kompozicije, tačne dimenzije i zabrane menjanja pojedinih kartica nisu obavezne. Razvijaj jedan zajednički sistem umesto gomilanja paralelnih verzija.
 
 Gotove kvalitetne komponente i biblioteke mogu se upotrebiti kada rešavaju konkretnu potrebu; proveri licencu, održavanje, native kompatibilnost, performanse i uklapanje u postojeći kod. Smernice i stil testovi služe kvalitetu, a ne očuvanju zastarelog izgleda. Pristupačnost, čitljivost, tastatura, safe area i povratak pripadaju funkcionalnom dizajnu. Animacije pružaju neposredan odziv i jasan prelaz; poštuju sistemsku postavku smanjenog pokreta.
+
+Sklapanje dogovora nije automatsko deljenje privatnog telefona ili adrese. Deljenje je svesno, smerno i prema važećoj server dozvoli; opoziv budućeg pristupa ne povlači već pročitani ili kopirani sadržaj i obične poruke. Budžet, ponuda i prihvaćena cena ostaju različiti; bez dokaza isplate nema statistike „Zarađeno“.
 
 ## 6. Rezultat i evidencija
 

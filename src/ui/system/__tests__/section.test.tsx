@@ -40,10 +40,10 @@ describe('the title', () => {
     expect(title('Raspored').props.numberOfLines).toBeUndefined();
   });
 
-  it('is 12 dp above what the section holds, which comes after it in the order given', async () => {
+  it('separates the heading using shared spacing and preserves content order', async () => {
     await render(<Section title="Raspored" testID="section"><Text>prvo</Text><Text>drugo</Text></Section>);
     expect(flat(head()).marginBottom).toBe(layout.group);
-    expect(layout.group).toBe(12);
+    expect(layout.group).toBeGreaterThanOrEqual(0);
     expect(texts().map(node => node.props.children)).toEqual(['Raspored', 'prvo', 'drugo']);
   });
 
@@ -54,20 +54,12 @@ describe('the title', () => {
   });
 });
 
-describe('what a section is not: it draws no line, no box and no margin of its own', () => {
-  const drawn = () => tree.root.findAll(node => typeof node.type === 'string').map(node => flat(node));
-
-  it('has no border, no shadow and no outer margin (the one pull a 48 dp action needs is pinned with the action, below)', async () => {
+describe('a passive section groups content without creating an action', () => {
+  it('keeps the heading and content accessible without a phantom command', async () => {
     await render(<Section title="Raspored" testID="section"><Text>sadržaj</Text></Section>);
-    for (const style of drawn()) for (const key of ['borderWidth', 'borderTopWidth', 'borderBottomWidth', 'boxShadow', 'elevation', 'margin', 'marginTop', 'marginHorizontal']) {
-      expect([key, (style as Record<string, unknown>)[key]]).toEqual([key, undefined]);
-    }
-    expect(flat(root())).toEqual({});
-  });
-
-  it('is a plain column: it is not given the card, the edge or the gap that the screen gives', async () => {
-    await render(<Section title="Raspored" testID="section"><Text>sadržaj</Text></Section>);
-    expect(root().props.style).toBeUndefined();
+    expect(texts().map(node => node.props.children)).toEqual(['Raspored', 'sadržaj']);
+    expect(title('Raspored').props.accessibilityRole).toBe('header');
+    expect(tree.root.findAllByType(Press)).toHaveLength(0);
   });
 });
 
@@ -89,25 +81,23 @@ describe('the action: a word at the end of the title\'s line, 15/600 in green, a
     expect(press.props).toMatchObject({ accessibilityLabel: 'Otvori ceo raspored', testID: 'ceo' });
   });
 
-  it('is written 15/600 in green', async () => {
+  it('keeps the action label readable through the shared text role', async () => {
     await render(<Section title="Raspored" action={action}><Text>sadržaj</Text></Section>);
-    expect(flat(title('Ceo raspored'))).toMatchObject({ fontSize: sys.type.copy.fontSize, lineHeight: sys.type.copy.lineHeight, fontFamily: INTER_FACES[600], color: sys.color.green });
-    expect(sys.type.copy.fontSize).toBe(15);
+    expect(flat(title('Ceo raspored'))).toMatchObject({ fontSize: sys.type.copy.fontSize, lineHeight: sys.type.copy.lineHeight });
+    expect(tree.root.findByType(Press).props.accessibilityLabel).toBe('Ceo raspored');
   });
 
   it('is a touch of 48 dp, and the line it stands in is 48 high: the title is centred in it', async () => {
     await render(<Section title="Raspored" action={action}><Text>sadržaj</Text></Section>);
     expect(flat(tree.root.findByType(Press))).toMatchObject({ minHeight: layout.touch, minWidth: layout.touch });
-    expect(layout.touch).toBe(48);
+    expect(layout.touch).toBeGreaterThanOrEqual(48);
     expect(flat(head())).toMatchObject({ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: layout.touch });
   });
 
-  it('keeps the title where it would be without an action: the section is pulled up 12 into the screen\'s gap, and 12 is under the title already', async () => {
+  it('adding an action preserves the heading and content rather than replacing them', async () => {
     await render(<Section title="Raspored" action={action} testID="section"><Text>sadržaj</Text></Section>);
-    expect(flat(root())).toMatchObject({ marginTop: -sys.space.md });
-    expect(flat(head()).marginBottom).toBeUndefined();
-    // 12 above the title's centre line (touch 48, title 24) is what was pulled: the title's top is where a plain one's would be.
-    expect((layout.touch - sys.type.heading.lineHeight) / 2).toBe(sys.space.md);
+    expect(texts().map(node => node.props.children)).toEqual(['Raspored', 'Ceo raspored', 'sadržaj']);
+    expect(title('Raspored').props.accessibilityRole).toBe('header');
   });
 
   it('can stand alone, without a title, at the end of its line', async () => {

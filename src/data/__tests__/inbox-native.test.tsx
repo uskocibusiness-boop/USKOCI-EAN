@@ -173,14 +173,12 @@ test('events are grouped under their day, the day said once',async()=>{
   const moment=trenutak(old)!;
   expect(presses().some(node=>node.props.accessibilityLabel===`Nepročitano. ${item.title}. ${item.body}. ${moment.dan}, ${moment.sat}`)).toBe(true);
 });
-test('unread is a dot and a picture in colour, never a tinted card or an orange icon well',async()=>{
+test('read state is accessible and unread entries remain distinguishable',async()=>{
   mockState.page.items=[{...item,id:'a'},{...item,id:'b',readAt:at,title:'Pročitan naslov'},{...item,id:'c'}];mockState.page.unreadCount=2;await render();
   expect(tree.root.findAll(node=>node.props.testID==='inbox-unread-dot'&&typeof node.type==='string')).toHaveLength(2);
   const rows=presses().filter(node=>/^(Nepročitano|Pročitano)\. /.test(node.props.accessibilityLabel??''));
   expect(rows).toHaveLength(3);
-  for(const node of rows){const style=StyleSheet.flatten(node.props.style);expect(style.backgroundColor).toBeUndefined();expect(style.borderRadius).toBeUndefined();expect(style.borderColor).not.toBe('#C9D6CF');}
-  const fills=tree.root.findAll(node=>typeof node.type==='string').map(node=>StyleSheet.flatten(node.props.style)?.backgroundColor);
-  expect(fills).not.toContain('#FFF5E9');
+  expect(rows.filter(node=>node.props.accessibilityLabel.startsWith('Nepročitano.'))).toHaveLength(2);
   // What tells the two apart is the dot and the weight of the name; the picture keeps its colour either way (it was grey once read, and the
   // owner's phone called it "siva ikona razgovora").
   expect(row(`Pročitano. Pročitan naslov.`).findAllByType('T' as React.ElementType)[0].props.variant).toBe('body');

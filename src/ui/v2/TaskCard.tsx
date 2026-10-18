@@ -3,6 +3,7 @@ import type { StyleProp, ViewStyle } from 'react-native';
 import type { StanjePotrebe } from '../../contracts/projections';
 import type { MarketplaceItem } from '../../data/marketplaceView';
 import { Surface } from '../system/Surface';
+import { sys } from '../system/tokens';
 import { TaskRecordBody, useTaskRecord } from './discovery/TaskRecordBody';
 import type { TaskCardRelation } from './TaskFace';
 
@@ -11,7 +12,7 @@ import type { TaskCardRelation } from './TaskFace';
  * `Surface record` does, on the row rung of the press ladder (`sys.motion.scale.row`); this constant stays for the cards that
  * still spell their own press until they stand on `Surface` too.
  */
-export const CARD_PRESS_SCALE = 0.986;
+export const CARD_PRESS_SCALE = sys.motion.scale.row;
 
 /**
  * A task in a list: a `Surface record`, because it is a thing that is touched (composition spec 2026-10-07, 4.2). One press

@@ -746,7 +746,7 @@ describe('a restricted account has a screen of its own', () => {
     expect(button('Prijavi se')).toBeDefined();
   });
 
-  it('draws "Obrati se podršci" as the one green command, and says the sentence about it, only when the owner has given a public address', async () => {
+  it('offers support only with a configured public address, and recovers when no mail handler opens', async () => {
     await withSupportAddress(async () => {
       mockSession = { ...mockSession, signOutReason: { kind: 'RESTRICTED_ACCOUNT', revision: 5 } };
       await act(async () => { tree = create(<AuthScreen />); });

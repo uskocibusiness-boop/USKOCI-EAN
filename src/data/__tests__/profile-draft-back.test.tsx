@@ -9,13 +9,13 @@ let mockSession = { user: { id: 'owner-a' }, accountRevision: 1 };
 let mockEditor: { data: Record<string, unknown>; busy: boolean; uncertain: boolean; loading: boolean; error: null;
   saved: boolean; refresh: jest.Mock; save: jest.Mock };
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
+jest.mock('../../hooks/useWorkerExecutionModes', () => ({ useWorkerExecutionModes: () => ({ view: { kind: 'confirmed', modes: ['ON_SITE'] }, refresh: jest.fn() }) }));
 jest.mock('../../hooks/useOwnedEditor', () => ({ useOwnedEditor: () => mockEditor }));
 jest.mock('../requesterProfileClientService', () => ({ requesterProfileClientService: { read: jest.fn(), save: jest.fn() } }));
 jest.mock('../locationClientService', () => ({ workerLocationClientService: { read: jest.fn(), save: jest.fn() } }));
 jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn() },
-  // These cases exercise the retained full-area editor. Point-only confirmation
-  // has its own owned-mode/revision fixtures in worker-area-route.test.tsx.
-  useLocalSearchParams: () => ({}),
+  // Manual account identity and explicit coarse-point confirmation retain discard protection.
+  useLocalSearchParams: () => ({ mode: 'point', profileId: 'worker-a' }),
   useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
@@ -62,16 +62,16 @@ const frame = () => tree.root.findAll(node => ['SettingsScreen', 'WorkerProfileF
 const back = async () => { await act(async () => { const p = frame().props; (p.onBack ?? p.back)(); }); };
 // The radius is chosen from the distances, one tap each (there is no numeric field any more): "50 km" is a change from the saved 25.
 const input = (kind: Kind) => kind === 'name' ? tree.root.findByProps({ accessibilityLabel: 'Ime za prikaz' })
-  : tree.root.findByProps({ accessibilityLabel: '50 km' });
-const edit = async (kind: Kind) => { await act(async () => kind === 'name' ? input(kind).props.onChangeText('Novo ime') : input(kind).props.onPress()); };
-const edited = (kind: Kind) => kind === 'name' ? input(kind).props.value === 'Novo ime' : input(kind).props.accessibilityState.checked === true;
+  : tree.root.findByType('PinMap' as any);
+const edit = async (kind: Kind) => { await act(async () => kind === 'name' ? input(kind).props.onChangeText('Novo ime') : input(kind).props.onChoose({ latitude: 45.27, longitude: 19.83 })); };
+const edited = (kind: Kind) => kind === 'name' ? input(kind).props.value === 'Novo ime' : input(kind).props.position?.latitude === 45.27;
 const tap = async (id: string) => { await act(async () => tree.root.findByProps({ testID: id }).props.onPress()); };
 async function render(kind: Kind) {
   mockEditor.data = kind === 'name' ? { displayName: 'Prethodno ime', revision: 'r1' }
     : { accountId: 'owner-a', profileId: 'worker-a', revision: 'r1', operatingCountryCode: 'RS', city: 'Novi Sad',
-      radiusKm: 25, approximatePosition: null };
+      radiusKm: 25, approximatePosition: { latitude: 45.25, longitude: 19.82 } };
   await act(async () => { tree = create(route(kind)); });
-  if (kind === 'area') expect(tree.root.findByType(WorkerLocationForm).props.pointOnly).not.toBe(true);
+  if (kind === 'area') expect(tree.root.findByType(WorkerLocationForm).props.pointOnly).toBe(true);
 }
 beforeEach(() => {
   jest.clearAllMocks(); mockFocused = true; mockBack.handlers = []; mockSession = { user: { id: 'owner-a' }, accountRevision: 1 };
