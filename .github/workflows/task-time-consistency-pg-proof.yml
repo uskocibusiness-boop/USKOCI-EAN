@@ -58,6 +58,8 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f "$root/candidate.sql"
           psql -X -v ON_ERROR_STOP=1 -f "$root/assert.sql"
           bash "$root/lock-wait-proof.sh"
+      - name: Prove application deadline expiry during lock wait without a completion deadline
+        run: bash supabase/candidates/task-time-consistency-20261018/response-deadline-lock-wait-proof.sh
       - name: Prove exact rollback, reapplication and final metadata
         run: |
           root=supabase/candidates/task-time-consistency-20261018
@@ -66,4 +68,3 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f "$root/candidate.sql"
           psql -X -v ON_ERROR_STOP=1 -f "$root/assert.sql"
           psql -X -v ON_ERROR_STOP=1 -f "$root/assert-metadata.sql"
-
