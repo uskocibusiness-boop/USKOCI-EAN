@@ -12,6 +12,8 @@ Kategorije i njihovi ID-jevi ostaju u pozadini. Alati i vozila nisu obavezan int
 
 ## Vizuelna osnova
 
+**Najnovija dopuna vlasnika, 18.10.2026:** premium Apple jasnoća i fluidnost, stručno prilagođene USKOČI. Svaki ekran može da se prekomponuje; nepotrebni tekstovi, obrasci i ponovljene informacije se uklanjaju. Sledeća osnova je smer, a ne zaključan recept. Stare zabrane redizajna i pojedinačne dozvole za rutinske izmene su ukinute u aktuelnom AGENTS.md. Gotova kvalitetna rešenja mogu da se ugrade uz proveru licence, native kompatibilnosti i svrhe.
+
 - Bele čitljive površine, taman osnovni tekst, siva pomoćna informacija. Zelena označava jasnu glavnu akciju/izbor; narandžasta nosi prepoznatljivost i pažnju u smislenom kontekstu.
 - Inter i postojeći sistemski tokeni su radna osnova. Jedan sistem kontrola i razmaka. Ne uvoditi još jednu paletu ili „v6“ porodicu paralelnih ekrana.
 - Jedna dominantna radnja po koraku. Činjenice imaju prednost nad ilustracijom. Kartica samo kada grupisanje pomaže razumevanju ili otvara konkretnu stavku.
