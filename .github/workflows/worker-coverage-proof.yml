@@ -1,0 +1,72 @@
+name: Worker coverage geography (disposable PostGIS)
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/unified-qa-master-20261017]
+    paths:
+      - 'supabase/candidates/worker-coverage-20261018/**'
+      - 'supabase/proofs/worker_coverage/**'
+      - '.github/workflows/worker-coverage-proof.yml'
+  pull_request:
+    paths:
+      - 'supabase/candidates/worker-coverage-20261018/**'
+      - 'supabase/proofs/worker_coverage/**'
+      - '.github/workflows/worker-coverage-proof.yml'
+permissions:
+  contents: read
+jobs:
+  postgis:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgis/postgis:16-3.5
+        env:
+          POSTGRES_PASSWORD: synthetic_disposable_only
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Exact patch and revert source
+        run: node --test supabase/proofs/worker_coverage/source.test.mjs
+      - name: Country fallback regression and multi-area geometry (NO DEV)
+        env:
+          PG_CONTAINER: ${{ job.services.postgres.id }}
+        run: |
+          set -euo pipefail
+          pg_admin() { docker exec -i "$PG_CONTAINER" psql -X -U postgres -d postgres -v ON_ERROR_STOP=1; }
+          pg_proof() { docker exec -i "$PG_CONTAINER" psql -X -U postgres -d coverage_proof -v ON_ERROR_STOP=1; }
+          printf '%s\n' 'CREATE DATABASE coverage_proof TEMPLATE template0;' | pg_admin
+          printf '%s\n' 'CREATE SCHEMA extensions; CREATE EXTENSION postgis WITH SCHEMA extensions; CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;' | pg_proof
+          c=supabase/candidates/worker-coverage-20261018
+          p=supabase/proofs/worker_coverage
+          pg_proof < supabase/proofs/match_category_fallback/disposable-schema.sql
+          pg_proof < supabase/proofs/match_category_fallback/live-work-kinds-v5.sql
+          pg_proof < "$c/live-worker-need-fit.sql"
+          pg_proof < "$p/country-fixture.sql"
+          pg_proof < "$p/country-baseline.sql"
+          if pg_proof < "$p/country-assert.sql" > "$RUNNER_TEMP/before.log" 2>&1; then
+            echo 'ERROR: regression unexpectedly passed before patch'; exit 1
+          fi
+          grep -q 'CATEGORY_PROOF_FAIL_same_city_other_country' "$RUNNER_TEMP/before.log"
+          echo 'EXPECTED_FAIL_BEFORE: cross-country city collision reproduced'
+          pg_proof < "$c/country-guard.candidate.sql"
+          pg_proof < "$p/country-assert.sql"
+          pg_proof < "$c/country-guard.revert.sql"
+          pg_proof < "$p/country-baseline.sql"
+          pg_proof < "$c/country-guard.candidate.sql"
+          pg_proof < "$p/country-assert.sql"
+          echo 'COUNTRY_GUARD_PASS_AFTER_EXACT_REVERT_REAPPLY'
+          pg_proof < "$c/coverage-core.candidate.sql"
+          pg_proof < "$p/coverage-assert.sql"
+          pg_proof < "$c/coverage-core.revert.sql"
+          pg_proof < "$c/coverage-core.candidate.sql"
+          pg_proof < "$p/coverage-assert.sql"
+          echo 'COVERAGE_GEOMETRY_PASS_REAL_POSTGIS_SYNTHETIC_SHAPES'
+          echo 'NOT a signed-profile-save, catalogue, dispatch, Gemini, device or push proof'
