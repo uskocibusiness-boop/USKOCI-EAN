@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-18T04:31:08Z",
+  "osvezeno": "2026-10-18T05:27:17Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "2b28b8ba",
-  "head_poruka": "docs(taxonomy): record DEV catalog loader Edge rollout",
+  "head": "995c122b",
+  "head_poruka": "fix(home): exclude own tasks from worker preview",
   "server": {
    "snimljeno": "2026-10-18T04:12:15Z",
    "migracije": 279,

@@ -150,8 +150,8 @@ export function AgreementCollectionPresentation(props: Props) {
     {loading ? <StateView kind="loading" title="Učitavamo Dogovore…" skeleton={{ count: 3, rows: 2 }} />
       : error ? <StateView kind="error" art="agreements" title="Ne možemo da učitamo Dogovore" body="Proveri internet vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
-        : emptyRole ? <StateView art="agreements" title="Nema Dogovora u ovoj ulozi" primary={{ label: 'Prikaži sve uloge', onPress: clearRole }} />
-        : items.length ? <StateView art="agreements"
+        : emptyRole ? <StateView compact art="agreements" title="Nema Dogovora u ovoj ulozi" primary={{ label: 'Prikaži sve uloge', onPress: clearRole }} />
+        : items.length ? <StateView compact art="agreements"
           title={filtering ? 'Nijedan Dogovor ne čeka tvoju potvrdu' : section === 'active' ? 'Nema aktivnih Dogovora'
             : historyInActive && !narrowedEmpty ? 'Saradnje su uz aktivne zadatke' : historyEmptyTitle}
           body={historyInActive ? 'Završene i otkazane saradnje ostaju uz isti zadatak dok još ima obaveza. Pronađi ih u Aktivni.' : undefined}

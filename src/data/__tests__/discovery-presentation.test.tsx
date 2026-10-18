@@ -2425,7 +2425,7 @@ test('an empty list can remain fully open over the map without duplicating its g
   expect(StyleSheet.flatten(press('Mapa').parent!.props.style).backgroundColor).toBe(sys.color.surface);
   expect(action('Poništi filtere')).toBeDefined();
   // Its top line remains a count (and the handle); the full recovery surface is not forced back to half height.
-  expect(texts(countLine())).toBe('Nema zadataka');
+  expect(texts(countLine())).toBe('0 zadataka');
   await act(async () => listSheet().props.onChange(2)); expect(listSheet().props.index).toBe(2); expect(press('Mapa')).toBeDefined();
   // With tasks again, the whole list is open to it.
   await act(async () => quick('Danas').props.onPress()); await dragSheet(2); await physicalSheetAt(2);

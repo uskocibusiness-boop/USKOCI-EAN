@@ -290,8 +290,7 @@ function ExploreTasksAction({ onEarn, opportunities, onOpenOpportunity }: {
     <View style={s.carouselSection}>
       <View style={s.carouselHeader}>
         <View style={{ flex: 1 }}>
-          <T variant="heading" style={s.carouselTitle}>Zadaci za tebe</T>
-          <T variant="meta" tone="muted">Otvori aktuelne zadatke i pronađi nešto što ti odgovara.</T>
+          <T variant="heading" style={s.carouselTitle}>Aktuelni zadaci</T>
         </View>
         <Press accessibilityRole="button" accessibilityLabel="Pogledaj aktuelne zadatke"
           onPress={onEarn} style={s.seeAllButton}>
@@ -299,7 +298,7 @@ function ExploreTasksAction({ onEarn, opportunities, onOpenOpportunity }: {
         </Press>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carouselList}>
-        {items.slice(0, 8).map(item => (
+        {items.slice(0, 3).map(item => (
           <TaskCard
             key={item.id}
             item={item}
@@ -308,23 +307,6 @@ function ExploreTasksAction({ onEarn, opportunities, onOpenOpportunity }: {
           />
         ))}
       </ScrollView>
-    </View>
-  );
-}
-
-function TrustSeal() {
-  return (
-    <View style={s.trustSeal}>
-      <View style={s.trustSealIcon}>
-        <FactArt kind="shield" size={18} />
-      </View>
-      <View style={{ flex: 1, gap: 2 }}>
-        <T variant="meta" style={s.trustSealTitle}>Bezbedniji dogovor</T>
-        <T variant="meta" tone="muted" style={{ fontSize: 11 }}>Proveri uslove i profil pre prihvatanja.</T>
-      </View>
-      <View style={s.trustSealBadge}>
-        <T variant="meta" style={s.trustSealBadgeText}>SAVET</T>
-      </View>
     </View>
   );
 }
@@ -381,13 +363,7 @@ export function HomePresentation(p: HomePresentationProps) {
   const pull = usePullRefresh(p.onRefresh, p.refreshing);
   return <Screen kind="root" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
     refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
-    <TrustSeal />
     <StartActions onPublish={p.onPublish} onEarn={p.onEarn} />
-    <ExploreTasksAction onEarn={p.onEarn} opportunities={p.opportunities} onOpenOpportunity={p.onOpenOpportunity} />
-    {p.intakeResume}
-
-    {/* "Kako radi" (N4): one quiet row for a brand-new account, with a "Sakrij" that hides it for good (HowItWorks). */}
-    {home?.firstRun ? <HowItWorks stacked={stacked} /> : null}
     {p.loading && !home ? <HomeSkeleton /> : null}
     {recovery ? <Surface kind="note" testID="home-recovery" style={s.recovery}>
       <T accessibilityRole="alert" variant="note">{recovery === 'stale' ? 'Nema veze. Prikazano je poslednje učitano.'
@@ -399,6 +375,11 @@ export function HomePresentation(p: HomePresentationProps) {
     {next && raspored ? <Section title="Sledeće">
       <Appear index={0} animate={agreements.isNew(next.id)}><RasporedCard row={next} raspored={raspored} photo={p.photo} onOpen={p.onOpen} /></Appear>
     </Section> : null}
+
+    {p.intakeResume}
+    <ExploreTasksAction onEarn={p.onEarn} opportunities={p.opportunities} onOpenOpportunity={p.onOpenOpportunity} />
+    {/* "Kako radi" (N4): one quiet row for a brand-new account, with a "Sakrij" that hides it for good (HowItWorks). */}
+    {home?.firstRun ? <HowItWorks stacked={stacked} /> : null}
 
     {home && waitingShown ? <Section title="Čeka te">
       {attentionUnavailable ? <Unavailable text="Ne možemo da učitamo ono što te čeka." /> : null}
@@ -472,17 +453,9 @@ const s = StyleSheet.create({
   carouselSection: { marginTop: 4, marginBottom: 12, gap: 10 },
   carouselHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, gap: sys.space.md },
   carouselTitle: { fontSize: 19, fontWeight: '700', color: sys.color.ink, letterSpacing: -0.3 },
-  seeAllButton: { paddingVertical: 4, paddingHorizontal: 8 },
+  seeAllButton: { minHeight: 48, justifyContent: 'center', paddingHorizontal: sys.space.sm },
   carouselList: { paddingVertical: sys.space.sm, paddingHorizontal: 2, gap: sys.space.md },
   carouselCard: {
     width: 290,
   },
-  trustSeal: {
-    flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 12,
-    backgroundColor: sys.color.wash, borderWidth: 1, borderColor: sys.color.line, gap: 10, marginBottom: 8,
-  },
-  trustSealTitle: { color: sys.color.ink, fontWeight: '700' },
-  trustSealIcon: { width: 28, height: 28, borderRadius: 14, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' },
-  trustSealBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, backgroundColor: sys.color.iconWell },
-  trustSealBadgeText: { color: sys.color.green, fontWeight: '700', fontSize: 10 },
 });

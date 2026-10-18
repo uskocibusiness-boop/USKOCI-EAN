@@ -150,7 +150,7 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
       </View>
     : error ? null
       // Nobody has talked yet: the first encounter, the two panels at the size of a door; the quieter sets keep their 96.
-      : <StateView kind="empty" hero={!closedKnown} art="chat" title={emptyTitle} body={emptyBody}
+      : <StateView kind="empty" hero={!closedKnown} compact={closedKnown} art="chat" title={emptyTitle} body={emptyBody}
           primary={onAgreements && emptyTitle === 'Još nema razgovora' ? { label: 'Otvori Dogovore', onPress: onAgreements, disabled: openDisabled } : undefined} />;
   const footer = items !== null && (hasMore || pageError || paging) ? <View style={s.footer}>
     {pageError ? <T variant="note" accessibilityRole="alert">Stariji razgovori nisu učitani. Pokušaj ponovo da nastaviš.</T> : null}

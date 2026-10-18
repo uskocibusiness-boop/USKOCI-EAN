@@ -6,6 +6,7 @@
       "id": "A01",
       "grupa": "Put A · Objavi zadatak",
       "naslov": "Početna: dve glavne radnje i šta čeka mene",
+      "source_progress_20261018_home_quiet_states": "Savetodavna kartica uklonjena sa Početne; dve glavne radnje prve, Sledeće zadržano, pregled tačno nazvan Aktuelni zadaci jer Home ne dokazuje matching. Najviše tri tuđe kartice. Ciljani Jest 414/414, TypeScript PASS; Metro emulator prikazao Početnu bez kartice. Fizički telefon i release APK čekaju. Dokaz: docs/implementation/ui-ux-pass-20261002/HOME_AND_QUIET_STATES_20261018.md.",
       "nacrt": "UX nacrt §4 korak 1",
       "stari": [
         "F-HOME"
@@ -2465,6 +2466,7 @@
       "id": "B04",
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Mapa i lista prilika",
+      "source_progress_20261018_empty_count": "Brojač prazne liste sada kaže 0 zadataka; objašnjenje i naredna radnja ostaju u stanju liste, bez duplog naslova. Ciljani Jest 414/414 i TypeScript PASS. Veliki skup, kamera i filteri nisu menjani. Dokaz: docs/implementation/ui-ux-pass-20261002/HOME_AND_QUIET_STATES_20261018.md.",
       "nacrt": "UX nacrt §5 korak 1",
       "stari": [
         "FUNC-3772",
@@ -4167,6 +4169,7 @@
       "id": "D01",
       "grupa": "Dogovor",
       "naslov": "Lista Dogovora",
+      "source_progress_20261018_quiet_state": "Prazan Aktivni/Istorija podskup dobio kompaktan prikaz kada postoje Dogovori u drugom podskupu; uvodni potpuno prazan ekran ostaje. Ciljani Jest 414/414 i Metro emulator vizuelno provereni; HONOR/release čekaju. Dokaz: docs/implementation/ui-ux-pass-20261002/HOME_AND_QUIET_STATES_20261018.md.",
       "nacrt": "UX nacrt §3",
       "stari": [
         "F-AGR-LIST"
@@ -4408,6 +4411,7 @@
       "id": "D03",
       "grupa": "Dogovor",
       "naslov": "Poruke",
+      "source_progress_20261018_quiet_state": "Prazan Aktivni/Završeni podskup dobio kompaktan prikaz kada postoji drugi skup razgovora; prvi susret ostaje uvodni. Ciljani Jest 414/414 i Metro emulator vizuelno provereni; fizički uređaj i poruka kroz tok čekaju. Dokaz: docs/implementation/ui-ux-pass-20261002/HOME_AND_QUIET_STATES_20261018.md.",
       "nacrt": "UX nacrt §4 korak 11",
       "stari": [
         "FUNC-3785"

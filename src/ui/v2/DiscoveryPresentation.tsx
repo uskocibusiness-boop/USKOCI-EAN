@@ -1306,7 +1306,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // The top edge is a glanceable count of the actual list. Area and pinless context remain in its
   // accessible name, the search summary and the list's own section heading.
   const count = <T variant="note" style={s.count}>
-    {replacingWords ?? collectionWords ?? (loading || error ? line.words : shownCount ? countWords(shownCount) : 'Nema zadataka')}
+    {replacingWords ?? collectionWords ?? (loading || error ? line.words : countWords(shownCount))}
   </T>;
   // The server reads the open tasks newest first (UX plan 2.14), and says so over the list: only a P6 page that holds more than one.
   const sorted = !!p6 && !loading && !refreshing && !error && !collectionWords && shownCount > 1;
