@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
 import {workerServicesMissingScope,workerFinishReviewMessage}
   from '../../functions/_shared/classificationGeminiShadow.mjs';
 
@@ -41,13 +40,5 @@ test('finish guidance is bounded and does not enter a mandatory question loop',(
  assert.doesNotMatch(msg,/Usluga broj 45/);
  assert.match(msg,/Možeš to razjasniti u razgovoru, ili sačuvati profil/);
 });
-test('worker completion uses helper after validation and before DB completion, no new writes or credentials',()=>{
- const source=readFileSync(new URL('../../functions/uskoci-worker-interview/index.ts',import.meta.url),'utf8');
- const hint=source.indexOf('reviewHints=checked.reviewProposals');
- const message=source.indexOf('workerFinishReviewMessage(');
- const finish=source.indexOf("rpc('rpc_complete_worker_ai_turn_service'");
- assert.ok(hint>0&&message>hint&&finish>message);
- assert.match(source,/if \(finishOnly\(input\.text\) && \['ALLOW','CLARIFY'\]\.includes\(output\.safety\)\)/);
- assert.match(source,/output=\{\.\.\.output,patch:\{\},assistantMessage:workerFinishReviewMessage\(/);
- assert.doesNotMatch(source,/rpc_taxonomy_commit_admission_service/);
-});
+// Actual finish output after mode preservation is exercised through the real
+// worker handler in proofs/ai/v5_worker_edge.test.mjs, not source formatting.

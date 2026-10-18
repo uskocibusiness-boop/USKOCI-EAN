@@ -175,6 +175,7 @@ test('bio-only edit preserves saved REMOTE despite a prior unconfirmed draft and
  const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
  assert.ok(prompt.includes('savedServices'));assert.ok(prompt.includes('does NOT mean this person offers both'));
  assert.ok(!Object.hasOwn(completions(f)[0].body.p_output,'serviceModeChangesJson'));
+ assert.ok(!Object.hasOwn(completions(f)[0].body.p_output,'classificationShadowJson'));
 });
 test('a server-registered alias of the same service cannot bypass saved REMOTE continuity',async()=>{
  const service='Modeli po meri';

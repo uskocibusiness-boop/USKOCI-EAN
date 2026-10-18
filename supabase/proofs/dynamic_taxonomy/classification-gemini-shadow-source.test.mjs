@@ -12,13 +12,8 @@ test('both worker and need use one shadow schema/inspection module',()=>{
   assert.match(source,/USKOCI_TAXONOMY_UNIFIED_SHADOW/);
  }
 });
-test('worker strips new fields before existing authoritative RPC completion',()=>{
- const stripped=worker.indexOf('inspectGeminiClassificationShadow(parsed');
- const parsed=worker.indexOf('output=parseWorkerOutput(checked.output)');
- const commit=worker.indexOf("rpc('rpc_complete_worker_ai_turn_service'");
- assert.ok(stripped>0&&parsed>stripped&&commit>parsed);
- assert.doesNotMatch(worker,/rpc_taxonomy_commit_admission_service/);
-});
+// The worker's field stripping and mutation boundary run against the actual
+// handler in proofs/ai/v5_worker_edge.test.mjs, independent of variable names.
 test('need strips new fields before strict facts parser and owner-bound completion',()=>{
  const checked=need.indexOf('inspectGeminiClassificationShadow(value');
  const strict=need.indexOf('parseV2Output(checked.output)');
