@@ -1,0 +1,57 @@
+{
+  "authority": "Owner standing PRIMENI / current AGENTS",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "migration": {
+    "name": "taxonomy_new_branch_scope_continuity",
+    "version": "20261018144207"
+  },
+  "sourceCommit": "a3e1607e222ba7206e6830e72967a752893cc079",
+  "sha256": "840ae13e7f7bc9609f4e46cd591eef0bf75865225eae80ab34b64a721b43b176",
+  "ciRun": 39136988510,
+  "postgres": [
+    "16 PASS",
+    "17 PASS"
+  ],
+  "functions": [
+    {
+      "signature": "public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)",
+      "beforeDefinitionMd5": "b2b80811e44f5d802e27f3cbf13dda0d",
+      "afterDefinitionMd5": "d9379f5ecf44d9be0b364ec3398b8010",
+      "afterBodyMd5": "6ff6db358e4f5a3ee7f6566533ef403a",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "config": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "signature": "private.taxonomy_review_candidate_projection_v2(text,jsonb,jsonb,uuid,uuid)",
+      "beforeDefinitionMd5": "b72276424e5abbf99145e0cdab350924",
+      "afterDefinitionMd5": "2163c8fe213d39b32a91288e05a132ac",
+      "afterBodyMd5": "5d1d83cb4f52da1aabc2f07a951cec2c",
+      "acl": "{postgres=X/postgres}",
+      "owner": "postgres",
+      "securityDefiner": false,
+      "config": [
+        "search_path=pg_catalog, private"
+      ]
+    }
+  ],
+  "metadataPreserved": true,
+  "closureSourceUnchanged": "88cab17911f89a7d8d800ae229db568dd2aaed106395ad8acc3207917acd72ec",
+  "closureCertificateUnchanged": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+  "dataCountsUnchanged": {
+    "categoryCount": 135,
+    "categoryModeCount": 137,
+    "savedProfileCount": 5
+  },
+  "proof": "Exact before bug, CREATE_CHILD and CREATE_NEW_BRANCH with six new levels, both explicit scopes in either order, shared leaf ID, real worker and need binders, replay and negative cases, exact rollback and reapply in disposable PostgreSQL.",
+  "liveBusinessWrites": 0,
+  "providerCalls": 0,
+  "limits": [
+    "No live Gemini unknown-service Save was performed by this deployment.",
+    "Structural intermediate-label policy and pending automatic replan remain open.",
+    "Only nodes born in the same owner-reviewed atomic batch can receive its second explicitly reviewed scope; preexisting categories are not widened."
+  ]
+}
