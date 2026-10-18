@@ -37,9 +37,10 @@ export type AvailableNowControl = { value: boolean; onChange: (value: boolean) =
  * The route owns status, available-now writes and restrictions on a suspended profile.
  */
 export function WorkerProfileSaved({ draft, status, disabled, navigate, openConversation, accountName = null, onUseAccountName, nameWorking = false,
-  face, rating, availableNow, readOnly = false, executionModes, refreshModes }: {
+  face, rating, availableNow, readOnly = false, executionModes, refreshModes, showConversationAction = true }: {
   draft: WorkerDraft; status: ReactNode; disabled: boolean; navigate: (path: SavedProfilePath) => void;
   /** A part opens as local context in the same owned AI conversation. */ openConversation?: (part?: WorkerAiPart) => void;
+  /** Hide the generic entry when the route already supplies its main conversation action. */ showConversationAction?: boolean;
   /** A suspended profile remains readable; its area and week cannot be edited. */ readOnly?: boolean;
   /** The name of the account, when it could be read. */ accountName?: string | null;
   /** Writes the account's name into the work profile; without it the difference is only said. */ onUseAccountName?: () => void;
@@ -71,7 +72,7 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
       </View>
       {draft.biografija.trim() ? <Biography text={draft.biografija} /> : null}
     </Surface> : null}
-    {openConversation && !readOnly ? <V2Action label="Uredi kroz razgovor" tone="neutral" disabled={disabled} onPress={() => openConversation()} /> : null}
+    {openConversation && showConversationAction && !readOnly ? <V2Action label="Uredi kroz razgovor" tone="neutral" disabled={disabled} onPress={() => openConversation()} /> : null}
     {status}
     {onUseAccountName && namesDiffer(draft.ime, accountName)
       ? <NameDifference workName={draft.ime} accountName={accountName!} disabled={disabled || nameWorking || readOnly} working={nameWorking} onUse={onUseAccountName} /> : null}

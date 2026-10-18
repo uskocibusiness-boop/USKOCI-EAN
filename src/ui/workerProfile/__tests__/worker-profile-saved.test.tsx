@@ -97,6 +97,14 @@ describe('what the saved profile shows', () => {
     expect(openConversation).toHaveBeenCalledWith();
   });
 
+  it('keeps area and schedule corrections in AI when the generic conversation action is supplied by the route footer', async () => {
+    const { navigate, openConversation } = await show({ showConversationAction: false });
+    expect(action('Uredi kroz razgovor')).toBeUndefined();
+    await act(async () => { press('Gde').props.onPress(); press('Nedeljni raspored').props.onPress(); });
+    expect(openConversation.mock.calls).toEqual([['area'], ['time']]);
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it('says what is missing in one plain sentence each, and invents nothing', async () => {
     await show({}, draft({ ime: '', biografija: '', vestine: [], alati: [], vozila: [], grad: '', radius: '', dostupanOdmah: false }));
     const copy = all();

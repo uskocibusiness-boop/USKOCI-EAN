@@ -4,7 +4,7 @@ import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { AppState } from 'react-native';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { router, useFocusEffect } from 'expo-router';
-import { composeHome, readHomeSection, type HomeAttentionPreview, type HomeReads, type HomeSection, type HomeTarget } from '../../data/homeSnapshot';
+import { composeHome, readHomeOptional, readHomeSection, type HomeAttentionPreview, type HomeReads, type HomeSection, type HomeTarget } from '../../data/homeSnapshot';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
@@ -35,15 +35,20 @@ function Home() {
   const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const retrying = useRef<object | null>(null);
+  const optionalRetrying = useRef<{ worker: object | null; opportunities: object | null }>({ worker: null, opportunities: null });
   const [scope, setScope] = useState<object | null>(null);
   const [focused, setFocused] = useState(false);
   useFocusEffect(useCallback(() => {
     const owner = {}; focus.current = owner; navigating.current = false; retrying.current = null;
+    optionalRetrying.current = { worker: null, opportunities: null };
     // A silent refresh keeps the old snapshot without an immediate render. Publish
     // this focus token now so current actions do not wait for a network response;
     // callbacks retained from a previous focus still fail the identity check below.
     setScope(owner); setFocused(true);
-    return () => { if (focus.current === owner) { focus.current = null; setFocused(false); } };
+    const subscription = AppState.addEventListener('change', state => {
+      if (state !== 'active') optionalRetrying.current = { worker: null, opportunities: null };
+    });
+    return () => { subscription.remove(); if (focus.current === owner) { focus.current = null; setFocused(false); } };
   }, []));
   const load = useCallback(async (signal: AbortSignal): Promise<HomeReads & { attention: HomeSection<HomeAttentionPreview> }> => {
     const retry = retrying.current;
@@ -52,32 +57,43 @@ function Home() {
     const retireRetry = () => { if (retrying.current === retry) retrying.current = null; };
     signal.addEventListener('abort', retireRetry, { once: true });
     try {
-      // The work profile is read beside the four (R20, R06) and is the one read that is not counted: a screen whose profile could
-      // not be read is not a failed screen, it just says nothing about the profile.
-      const [needs, applications, agreements, attention, workerProfile, opportunities] = await Promise.all([
+      // Complete account lists and attention form the core overview. Optional reads never hold it up.
+      const [needs, applications, agreements, attention] = await Promise.all([
         readHomeSection(() => source.mojePotrebe({ includeUrgency: false })), readHomeSection(() => source.mojePrijave()), readHomeSection(() => source.mojiDogovori()),
-        readHomeSection(() => source.paznjaZaPocetnu()), readHomeSection(() => source.mojRadnikProfil()),
-        readHomeSection(() => source.otvorenePrilike({ signal }))]);
+        readHomeSection(() => source.paznjaZaPocetnu())]);
       // Every failed read is unavailable, never an account with nothing in it.
       if ([needs, applications, agreements, attention].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
-      return { needs, applications, agreements, attention, workerProfile, opportunities };
+      return { needs, applications, agreements, attention };
     } finally { signal.removeEventListener('abort', retireRetry); }
   }, [source]);
   const resource = useFocusedResource(load, KEEP_LAST_READ);
-  const home = useMemo(() => resource.data ? composeHome(resource.data, resource.data.attention) : null, [resource.data]);
+  const loadWorker = useCallback(() => readHomeOptional(() => source.mojRadnikProfil()), [source]);
+  const loadOpportunities = useCallback((signal: AbortSignal) => readHomeOptional(() => source.otvorenePrilike({ signal })), [source]);
+  const workerResource = useFocusedResource(loadWorker, KEEP_LAST_READ);
+  const opportunitiesResource = useFocusedResource(loadOpportunities, KEEP_LAST_READ);
+  const home = useMemo(() => resource.data ? composeHome({ ...resource.data,
+    workerProfile: workerResource.data ? { kind: 'known', value: workerResource.data.value }
+      : workerResource.error ? { kind: 'unavailable' } : undefined,
+  }, resource.data.attention) : null, [resource.data, workerResource.data, workerResource.error]);
   const opportunities = useMemo(() => homeOpportunityPreview(
-    resource.data?.opportunities?.kind === 'known' ? resource.data.opportunities.value : undefined,
+    opportunitiesResource.data?.value,
     resource.data?.needs,
-  ), [resource.data]);
+  ), [resource.data, opportunitiesResource.data]);
   // R06: what the switch shows while it saves and after it saved is this screen's own until the next read lands; that read is the
   // truth again, so it takes the override away.
   const [switching, setSwitching] = useState<{ value: boolean | null; busy: boolean; failed: boolean }>({ value: null, busy: false, failed: false });
   const saving = useRef(false);
-  useEffect(() => { setSwitching(held => held.busy || held.value === null && !held.failed ? held : { value: null, busy: false, failed: false }); }, [resource.data]);
+  useEffect(() => { setSwitching(held => held.busy || held.value === null && !held.failed ? held : { value: null, busy: false, failed: false }); }, [workerResource.data]);
   const current = () => !!scope && focus.current === scope && !!user?.id && sesijaSada().user?.id === user.id
     && sesijaSada().accountRevision === accountRevision && izvorSada() === source
     && AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
   const navigate = (action: () => void) => { if (current() && !navigating.current) { navigating.current = true; action(); } };
+  const refreshOptional = (kind: 'worker' | 'opportunities') => {
+    const target = kind === 'worker' ? workerResource : opportunitiesResource;
+    if (!current() || target.loading || target.refreshing || optionalRetrying.current[kind]) return;
+    const retry = {}; optionalRetrying.current[kind] = retry;
+    void target.refresh(true).finally(() => { if (optionalRetrying.current[kind] === retry) optionalRetrying.current[kind] = null; });
+  };
   const open = (target: HomeTarget) => navigate(() => {
     if (target.kind === 'NEED') router.navigate({ pathname: '/potrebe/[id]/pregled', params: { id: target.needId } });
     else if (target.kind === 'CANDIDATES') router.navigate({ pathname: '/potrebe/[id]/kandidati', params: { id: target.needId } });
@@ -109,6 +125,10 @@ function Home() {
   const profile = home?.workerProfile?.kind === 'known' ? home.workerProfile.value : null;
   return <HomePresentation active={focused} header={<ScreenHeader title="Početna" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
     opportunities={opportunities}
+    workProfileRead={{ loading: workerResource.loading, refreshing: workerResource.refreshing, error: workerResource.error,
+      stale: !!workerResource.refreshError, onRetry: () => refreshOptional('worker') }}
+    opportunitiesRead={{ loading: opportunitiesResource.loading, refreshing: opportunitiesResource.refreshing, error: opportunitiesResource.error,
+      stale: !!opportunitiesResource.refreshError, onRetry: () => refreshOptional('opportunities') }}
     onOpenOpportunity={id => navigate(() => router.navigate({ pathname: '/prilike/[id]', params: { id } }))}
     stale={!!resource.refreshError && !!home}
     intakeResume={<IntakeResume onOpen={conversationId => navigate(() => router.navigate({ pathname: '/nova', params: { conversationId } }))} />}
@@ -130,6 +150,7 @@ function Home() {
     onRefresh={() => {
       if (!current() || resource.loading || retrying.current) return;
       const retry = {}; retrying.current = retry;
+      refreshOptional('worker'); refreshOptional('opportunities');
       void resource.refresh(true).finally(() => { if (retrying.current === retry) retrying.current = null; });
     }} />;
 }

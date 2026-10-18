@@ -66,7 +66,27 @@ export type HomePresentationProps = {
   photo?: (profileId: string, standIn: ReactNode) => ReactNode;
   opportunities?: readonly PrilikaProjekcija[];
   onOpenOpportunity?: (id: string) => void;
+  workProfileRead?: HomeOptionalRead;
+  opportunitiesRead?: HomeOptionalRead;
 };
+
+type HomeOptionalRead = { loading: boolean; refreshing: boolean; error: boolean; stale: boolean; onRetry: () => void };
+
+/** Optional content has its own quiet recovery, without replacing the account's core overview. */
+function OptionalReadState({ kind, state }: { kind: 'worker' | 'opportunities'; state?: HomeOptionalRead }) {
+  if (!state || !state.loading && !state.refreshing && !state.error && !state.stale) return null;
+  const worker = kind === 'worker';
+  return <View testID={`home-${kind}-read`} style={s.recovery}>
+    <T variant="note" tone="muted" accessibilityRole={state.error || state.stale ? 'alert' : undefined}>
+      {state.loading ? worker ? 'Učitavamo radni profil…' : 'Učitavamo aktuelne zadatke…'
+        : state.refreshing ? worker ? 'Osvežavamo radni profil…' : 'Osvežavamo aktuelne zadatke…'
+        : state.stale ? worker ? 'Radni profil nije osvežen. Prikazano je poslednje učitano.' : 'Aktuelni zadaci nisu osveženi. Prikazano je poslednje učitano.'
+          : worker ? 'Radni profil trenutno nije učitan.' : 'Aktuelni zadaci trenutno nisu učitani.'}
+    </T>
+    {state.error || state.stale || state.refreshing ? <V2Action kind="quiet" compact tone="neutral" label={worker ? 'Osveži radni profil' : 'Osveži aktuelne zadatke'}
+      loading={state.refreshing} disabled={state.loading || state.refreshing} onPress={state.onRetry} /> : null}
+  </View>;
+}
 
 /** The picture of a front door. 64 dp sets both doors' height (owner, 2026-10-07: smaller doors, about 88 dp). */
 const DOOR_ART = 64;
@@ -373,6 +393,7 @@ export function HomePresentation(p: HomePresentationProps) {
     </Section> : null}
 
     {p.intakeResume}
+    <OptionalReadState kind="opportunities" state={p.opportunitiesRead} />
     <ExploreTasksAction onEarn={p.onEarn} opportunities={p.opportunities} onOpenOpportunity={p.onOpenOpportunity} />
     {/* "Kako radi" (N4): one quiet row for a brand-new account, with a "Sakrij" that hides it for good (HowItWorks). */}
     {home?.firstRun ? <HowItWorks stacked={stacked} /> : null}
@@ -403,6 +424,7 @@ export function HomePresentation(p: HomePresentationProps) {
     <View>
       <MineRow art="tasks" title="Moji zadaci" detail={tasksDetail} onPress={p.onMyTasks} />
       <MineRow art="offers" title="Moje prijave" detail={applicationsDetail} onPress={p.onMyApplications} last={!setupProfile && !switchShown} />
+      <OptionalReadState kind="worker" state={p.workProfileRead} />
       {switchShown ? <AvailableNowRow control={p.availableNow!} last={!setupProfile} /> : null}
       {/* R20: until the work profile exists, one row says what it is for and opens its conversation. */}
       {setupProfile ? <ListRow leading={<FactArt kind="users" size={32} />} title="Podesi radni profil" subtitle="Dobijaš zadatke koji ti odgovaraju."

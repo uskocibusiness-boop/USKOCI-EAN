@@ -112,6 +112,14 @@ export async function readHomeSection<T>(read: () => Promise<T>): Promise<HomeSe
   } catch { return { kind: 'unavailable' }; } finally { if (timer) clearTimeout(timer); }
 }
 
+/** Independently refreshed content fails its resource read so the last successful value can stay visible.
+ * Wrap null because a successful null work profile means "none", not "still unread". */
+export async function readHomeOptional<T>(read: () => Promise<T>): Promise<{ value: T }> {
+  const section = await readHomeSection(read);
+  if (section.kind === 'unavailable') throw new Error('HOME_OPTIONAL_READ_FAILED');
+  return { value: section.value };
+}
+
 // One next Dogovor (2026-09-23): the rest are one tab away, in Dogovori.
 const HOME_ATTENTION_LIMIT = 3, HOME_AGREEMENT_LIMIT = 1;
 /** "Čeka te" holds the server's rows (three at most) and the phone's own prompts together: four rows, never a list that crowds out Raspored. */

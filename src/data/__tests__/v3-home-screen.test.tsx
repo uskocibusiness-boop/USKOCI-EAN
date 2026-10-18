@@ -1296,3 +1296,109 @@ it('keeps the radar static in an inert gallery with no active route', async () =
   await direct(emptyHome());
   expect(tree.root.findByType('AnimatedRadar' as any).props.animate).toBe(false);
 });
+
+describe('independent optional Home reads', () => {
+  const worker = jest.fn(), opportunities = jest.fn();
+  const offered = (id = B) => ({ id, naslov: `Tuđ zadatak ${id}`, vremeTekst: 'Fleksibilno', podrucjeTekst: 'Novi Sad',
+    rezimCene: 'OFFERS', primaNovePrijave: true, pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 } });
+  const presentation = () => tree.root.findByType(HomePresentation).props;
+  beforeEach(() => {
+    (mockSource as Record<string, unknown>).mojRadnikProfil = worker;
+    (mockSource as Record<string, unknown>).otvorenePrilike = opportunities;
+    worker.mockReset().mockResolvedValue(null); opportunities.mockReset().mockResolvedValue([]);
+  });
+  afterEach(() => {
+    delete (mockSource as Record<string, unknown>).mojRadnikProfil;
+    delete (mockSource as Record<string, unknown>).otvorenePrilike;
+    jest.useRealTimers();
+  });
+
+  it('shows complete core counts and attention while both optional reads wait, and each optional result appears independently', async () => {
+    const work = deferred<null>(), tasks = deferred<ReturnType<typeof offered>[]>();
+    worker.mockReturnValueOnce(work.promise); opportunities.mockReturnValueOnce(tasks.promise);
+    mockSource.mojePotrebe.mockResolvedValue([need('owned')]);
+    mockSource.mojePrijave.mockResolvedValue([application('sent')]);
+    mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [{ id: 'answer', title: 'Pregledaj prijave', detail: 'Čeka tvoj izbor.',
+      target: { kind: 'CANDIDATES', needId: 'owned' } }], more: 0, asOf: '2026-10-18T12:00:00Z' });
+    await render();
+    expect(presentation().loading).toBe(false); expect(presentation().home.firstRun).toBe(false);
+    expect(row('Moji zadaci').accessibilityLabel).toContain('1 aktivan');
+    expect(row('Moje prijave').accessibilityLabel).toContain('1'); expect(text()).toContain('Pregledaj prijave');
+    expect(text()).toContain('Učitavamo radni profil…'); expect(text()).toContain('Učitavamo aktuelne zadatke…');
+    expect(presentation().home.workerProfile).toBeUndefined();
+    await act(async () => tasks.resolve([offered()]));
+    expect(presentation().opportunities).toHaveLength(1); expect(text()).toContain('Aktuelni zadaci');
+    expect(text()).toContain('Učitavamo radni profil…');
+    await act(async () => work.resolve(null));
+    expect(text()).toContain('Podesi radni profil');
+  });
+
+  it('keeps first-run truth from complete core reads while optional reads time out and offers explicit recovery', async () => {
+    jest.useFakeTimers();
+    worker.mockReturnValue(new Promise(() => undefined)); opportunities.mockReturnValue(new Promise(() => undefined));
+    await render();
+    expect(presentation().home.firstRun).toBe(true); expect(presentation().loading).toBe(false);
+    await act(async () => jest.advanceTimersByTime(15_000));
+    expect(presentation().home.firstRun).toBe(true); expect(presentation().home.partial).toBe(false);
+    expect(text()).toContain('Radni profil trenutno nije učitan.');
+    expect(text()).toContain('Aktuelni zadaci trenutno nisu učitani.');
+    expect(text()).not.toContain('Podesi radni profil');
+    expect(action('Osveži radni profil')).toBeDefined(); expect(action('Osveži aktuelne zadatke')).toBeDefined();
+  });
+
+  it('retains both last-known optional values after a failed refresh, and retries only the chosen section once', async () => {
+    worker.mockResolvedValueOnce({ stanje: 'DRAFT', dostupanOdmah: false }); opportunities.mockResolvedValueOnce([offered()]);
+    await render();
+    worker.mockRejectedValueOnce(new Error('offline')); opportunities.mockRejectedValueOnce(new Error('offline'));
+    await act(async () => presentation().onRefresh());
+    expect(presentation().home.workerProfile).toEqual({ kind: 'known', value: { state: 'DRAFT', availableNow: false } });
+    expect(presentation().opportunities.map((item: { id: string }) => item.id)).toEqual([B]);
+    expect(text()).toContain('Radni profil nije osvežen. Prikazano je poslednje učitano.');
+    expect(text()).toContain('Aktuelni zadaci nisu osveženi. Prikazano je poslednje učitano.');
+    const wait = deferred<null>(); worker.mockReturnValueOnce(wait.promise);
+    const retry = action('Osveži radni profil').onPress;
+    await act(async () => { retry(); retry(); });
+    expect(worker).toHaveBeenCalledTimes(3); expect(opportunities).toHaveBeenCalledTimes(2);
+    expect(text()).toContain('Osvežavamo radni profil…');
+    expect(action('Osveži radni profil')).toMatchObject({ loading: true, disabled: true });
+    expect(mockSource.mojePotrebe).toHaveBeenCalledTimes(2);
+    await act(async () => wait.resolve(null));
+    expect(presentation().home.workerProfile.value.state).toBe('NONE');
+    expect(text()).not.toContain('Radni profil nije osvežen.');
+    await act(async () => action('Osveži aktuelne zadatke').onPress());
+    expect(opportunities).toHaveBeenCalledTimes(3); expect(worker).toHaveBeenCalledTimes(3);
+    expect(presentation().opportunities).toEqual([]); expect(text()).not.toContain('Aktuelni zadaci nisu osveženi.');
+  });
+
+  it.each(['focus', 'account', 'account revision', 'background'])('rejects both delayed optional results after a change of %s', async change => {
+    const work = deferred<{ stanje: string; dostupanOdmah: boolean }>(), tasks = deferred<ReturnType<typeof offered>[]>();
+    worker.mockReturnValueOnce(work.promise); opportunities.mockReturnValueOnce(tasks.promise);
+    await render();
+    if (change === 'focus') {
+      await act(async () => { mockFocused = false; tree.update(<Pocetna />); });
+      await act(async () => { mockFocused = true; tree.update(<Pocetna />); });
+    } else if (change === 'background') {
+      await act(async () => { mockAppState = 'background'; mockAppStateListeners.forEach(listener => listener('background')); });
+      await act(async () => { mockAppState = 'active'; mockAppStateListeners.forEach(listener => listener('active')); });
+    } else {
+      await act(async () => { mockSession = { user: { id: change === 'account' ? B : A }, accountRevision: 2 }; tree.update(<Pocetna />); });
+    }
+    await act(async () => { work.resolve({ stanje: 'ACTIVE', dostupanOdmah: true }); tasks.resolve([offered()]); });
+    expect(presentation().home.workerProfile.value.state).toBe('NONE'); expect(presentation().opportunities).toEqual([]);
+    expect(presentation().availableNow).toBeUndefined(); expect(text()).not.toContain(`Tuđ zadatak ${B}`);
+  });
+
+  it('rejects retry callbacks retained from a previous focus while current retries remain available', async () => {
+    worker.mockRejectedValue(new Error('offline')); opportunities.mockRejectedValue(new Error('offline'));
+    await render();
+    const oldWorker = action('Osveži radni profil').onPress, oldTasks = action('Osveži aktuelne zadatke').onPress;
+    await act(async () => { mockFocused = false; tree.update(<Pocetna />); });
+    await act(async () => { mockFocused = true; tree.update(<Pocetna />); });
+    await act(async () => { oldWorker(); oldTasks(); });
+    expect(worker).toHaveBeenCalledTimes(2); expect(opportunities).toHaveBeenCalledTimes(2);
+    worker.mockResolvedValue(null); opportunities.mockResolvedValue([]);
+    await act(async () => { action('Osveži radni profil').onPress(); action('Osveži aktuelne zadatke').onPress(); });
+    expect(worker).toHaveBeenCalledTimes(3); expect(opportunities).toHaveBeenCalledTimes(3);
+    expect(presentation().workProfileRead.error).toBe(false); expect(presentation().opportunitiesRead.error).toBe(false);
+  });
+});

@@ -46,6 +46,7 @@ import Profile from '../../app/(app)/profil/radnik';
 import { WorkerProfileForm } from '../../ui/workerProfile/WorkerProfilePresentation';
 import { Avatar } from '../../ui/system/Avatar';
 import { inicijali } from '../../lib/inicijali';
+import { takeAiCorrection } from '../aiCorrectionIntent';
 const profile = { id: '20000000-0000-4000-8000-000000000001', ime: 'Ana', grad: 'Novi Sad', biografija: '',
   vestine: ['Prevoz, utovar'], alati: ['Bušilica'], vozila: ['Kombi'], licence: ['B, C'], stanje: 'ACTIVE', dostupanOdmah: true, radijusKm: 20, kapacitetTima: 1, capacityRevision: 'a'.repeat(64) };
 let tree: ReactTestRenderer;
@@ -641,6 +642,21 @@ describe('the saved profile is read first', () => {
     click('Nedeljni raspored'); expect(mockRouter.navigate).toHaveBeenLastCalledWith({pathname:'/profil/razgovor',params:{aiCorrection:expect.any(String)}});
     expect(mockWrite).not.toHaveBeenCalled();
   });
+  it.each([['Gde', 'worker.area'], ['Nedeljni raspored', 'worker.time']] as const)(
+    'a saved draft opens %s in the same AI journey and keeps only its main footer action', async (label, target) => {
+      mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await renderReading();
+      expect(control('Nastavi kroz razgovor')).toBeTruthy();
+      expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(1);
+      expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi kroz razgovor' })).toHaveLength(0);
+      click(label);
+      expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
+      const route = mockRouter.navigate.mock.calls[0][0];
+      expect(route).toEqual({ pathname: '/profil/razgovor', params: { aiCorrection: expect.any(String) } });
+      expect(takeAiCorrection(route.params.aiCorrection, { accountId: mockAccount, accountRevision: mockRevision }, 'worker',
+        '30000000-0000-4000-8000-000000000001')?.target).toBe(target);
+      expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockWrite).not.toHaveBeenCalled();
+      expect(mockAvailabilitySave).not.toHaveBeenCalled();
+    });
   it('saved skills and equipment stay readable without opening a manual editor', async () => {
     await renderReading();
     for (const label of ['Šta radiš', 'Alat', 'Vozila']) {

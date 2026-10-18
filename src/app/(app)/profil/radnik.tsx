@@ -334,7 +334,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     {!visible ? <WorkerProfileStatus loading={!foreground || resumeRequired || editor.loading || transportBusy} error={editor.error} retry={refresh} />
       : <View testID="worker-profile-reading" onLayout={resumeReading}><WorkerProfileForm draft={reading ? workerDraft(profile) : draft!.value} change={change} disabled={!enabled || !!pending} status={status} navigate={navigate} focusRequest={focusRequest}
         checks={{ basics: basicsReady, area: locationReady }} readyToActivate={!!primary.activates && !pending}
-        openConversation={reading && status === 'DRAFT' ? undefined : openConversation} profileExists={profile !== null} introOnly={introOnly}
+        openConversation={openConversation} showConversationAction={!(reading && status === 'DRAFT')} profileExists={profile !== null} introOnly={introOnly}
         reading={reading} onEditPart={editPart} openSection={openSection} face={face} rating={accountId ? <RatingLine accountId={accountId} /> : undefined}
         availableNow={availableNowControl}
         executionModes={executionModes.view} refreshModes={executionModes.refresh}

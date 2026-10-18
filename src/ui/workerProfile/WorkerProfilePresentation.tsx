@@ -236,11 +236,12 @@ export type WorkerProfileFocusRequest = { target: 'skill' | 'tool' | 'vehicle'; 
  * and while the work profile still carries another name, the difference is said quietly with its one button, "Koristi „<ime naloga>“"
  * (`onUseAccountName`, the person's own action, never automatic), which goes by itself once the two agree.
  */
-export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation, profileExists = true, introOnly = false,
+export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation, showConversationAction = true, profileExists = true, introOnly = false,
   reading = false, accountName = null, onUseAccountName, nameWorking = false, onEditPart, face, rating, availableNow, openSection, executionModes, refreshModes }: {
   draft: WorkerDraft; change: (value: WorkerDraft) => void; disabled: boolean; status: StanjeProfila | null;
   navigate: (path: WorkerNavigation) => void; focusRequest?: WorkerProfileFocusRequest | null;
   checks?: WorkerActivationChecks; readyToActivate?: boolean; openConversation?: (part?: WorkerAiPart) => void; profileExists?: boolean;
+  /** A saved draft uses its footer action; individual rows still open AI corrections. */ showConversationAction?: boolean;
   /** Only a pristine first visit. Retained drafts and uncertain writes must keep their recovery editor. */ introOnly?: boolean;
   reading?: boolean;
   executionModes?: WorkerExecutionModeView; refreshModes?: () => void;
@@ -279,6 +280,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
   const difference = namesDiffer(draft.ime, accountName) && onUseAccountName
     ? <NameDifference workName={draft.ime} accountName={accountName!} disabled={disabled || nameWorking} working={nameWorking} onUse={onUseAccountName} /> : null;
   if (reading) return <WorkerProfileSaved draft={draft} disabled={disabled} navigate={navigate} openConversation={openConversation}
+    showConversationAction={showConversationAction}
     executionModes={executionModes} refreshModes={refreshModes}
     readOnly={status === 'SUSPENDED'} face={face} rating={rating} availableNow={availableNow}
     accountName={accountName} onUseAccountName={onUseAccountName} nameWorking={nameWorking}
