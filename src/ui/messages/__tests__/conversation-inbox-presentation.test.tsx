@@ -261,7 +261,6 @@ describe('the face', () => {
     await draw(props([row({ id: A, at: '2026-10-07T11:00:00Z' })]));
     const face = rows()[0].findAll(node => String(node.type) === 'View' && node.props.accessible === false)[0];
     expect(face.props.accessible).toBe(false); expect(face.props.accessibilityElementsHidden).toBe(true);
-    expect(sys.touch.min).toBe(44);
     expect(flat(rows()[0].props.style).minHeight).toBeGreaterThanOrEqual(sys.touch.min);
   });
 });

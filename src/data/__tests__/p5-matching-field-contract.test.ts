@@ -480,8 +480,9 @@ describe('EX-06 S05 field-to-consumer map: collected-without-consumer and dead r
     expect(lf(WP)).toContain("supabase.from('app_profiles').update(patch)");
   });
 
-  it('X-07: the experience gate reads years_experience while the editor offers only a free-text bio labelled "O tvom iskustvu"', () => {
-    expect(lf('src/ui/workerProfile/WorkerProfilePresentation.tsx')).toContain('label="O meni"');
+  it('X-07: the experience gate uses structured years_experience, not a free-text biography', () => {
+    // The retired manual editor is not a field owner. Keep the matching contract:
+    // a biography or AI wording cannot substitute for the stored experience fact.
     expect(lf(DE)).toMatch(/coalesce\(p\.years_experience,0\) >= n\.minimum_experience_years/);
   });
 
