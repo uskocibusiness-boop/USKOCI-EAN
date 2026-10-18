@@ -124,13 +124,14 @@ jobs:
       - name: Install locked application and isolated exact PostgreSQL test runtime
         run: |
           npm ci
-          npm install --prefix "$RUNNER_TEMP/home-reader-pg" --ignore-scripts --no-audit --no-fund --save-exact @electric-sql/pglite@0.5.10
+          npm install --prefix "$RUNNER_TEMP/home-reader-pg" --no-audit --no-fund --save-exact @electric-sql/pglite@0.5.10
       - name: Verify source, types, migration provenance and actual column-grant regression
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           node --test scripts/ci/current-workflow-context.test.cjs
+          node scripts/verify-native-patches.cjs --repo
           sh supabase/migrations/check_md5.sh
           npx tsc --noEmit
           PGLITE_MODULE="$RUNNER_TEMP/home-reader-pg/node_modules/@electric-sql/pglite" node --test supabase/proofs/home-read-reliability-20261018/local-proof.cjs supabase/proofs/home-read-reliability-20261018/taxonomy-proof.cjs supabase/proofs/home-read-reliability-20261018/invoker-fix-proof.cjs

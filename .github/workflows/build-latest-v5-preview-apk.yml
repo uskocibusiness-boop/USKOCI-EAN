@@ -66,7 +66,8 @@ jobs:
       - name: Verify the DEV reliability migration source before the native checkpoint
         run: |
           sh supabase/migrations/check_md5.sh
-          npm install --prefix "$RUNNER_TEMP/home-reader-pg" --ignore-scripts --no-audit --no-fund --save-exact @electric-sql/pglite@0.5.10
+          npm install --prefix "$RUNNER_TEMP/home-reader-pg" --no-audit --no-fund --save-exact @electric-sql/pglite@0.5.10
+          node scripts/verify-native-patches.cjs --repo
           PGLITE_MODULE="$RUNNER_TEMP/home-reader-pg/node_modules/@electric-sql/pglite" node --test supabase/proofs/home-read-reliability-20261018/local-proof.cjs supabase/proofs/home-read-reliability-20261018/taxonomy-proof.cjs supabase/proofs/home-read-reliability-20261018/invoker-fix-proof.cjs
       - name: Check exact preview identity
         run: |

@@ -1,5 +1,8 @@
 {
   "kind": "OWNER_AUTHORIZED_DEV_PREVIEW_CHECKPOINT",
+  "attempt": 2,
+  "previousRun": 39163340552,
+  "retryReason": "Full regression: 13837 passed, 2 native-patch workflow-guard failures. Removed isolated SQL install's incompatible flag; native guard unchanged and moved before the full run.",
   "project": "leqcwgzvjsxugfgzdmth",
   "workflow": ".github/workflows/build-latest-v5-preview-apk.yml",
   "sourceAuthority": "Exact triggering commit/tree recorded by the existing build workflow, not an old APK or mutable branch label",
