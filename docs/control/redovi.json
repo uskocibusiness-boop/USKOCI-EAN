@@ -222,9 +222,9 @@
         "stanje": "DELIMIČNO",
         "dokaz": "Prvo AI pitanje vidljivo, bez model/ASR poziva; stvarni razgovor otvoren. docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
-      "problem": "Ograničeni živi test 18.10 na b92: tri task odgovora SUCCEEDED, REMOTE i korekcija slanja potvrđeni u nacrtu. Pronađen post-completion scope kvar: task usage nedostaje. Lokalna ispravka testirana; DEV v90 još star. Objavljivanje nije deo ovog testa.",
-      "source_progress_20261018": "Kartica živog AI nacrta u izvoru više ne zadaje lokalne sirove boje i senku preko Surface panel komponente; koristi zajednički materijal bez senke. AI intake ekran prolazi ciljane testove; novi APK i stvaran pregled razgovora na uređaju nisu urađeni.",
-      "sledece": "Primeniti imenovani Edge recovery kandidat posle odobrenja, proveriti exact readback; zatim alias/ID i nastavak AI → pregled → objava u postojećem planu. Šest plaćenih poziva iskorišćeno. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+      "problem": "Task 99 primenjen. Stvarni razgovor sada objašnjava 19–25. oktobar, čuva DST granice i dopunske odgovore i uklanja zastarelo ponavljanje datuma iz opisa. Reprodukovano prepisivanje odgovora nepotpunom lokacijom ispravljeno.",
+      "source_progress_20261018": "APK 0175d364 izgrađen i instaliran uz očuvanu sesiju. Na novom APK-u provereni pregled REMOTE zadatka sa dostavom, Naručilac, završne akcije i povratak sa izmene cene u isti razgovor uz očuvan neposlati tekst. Task Edge 99 ima zasebnu stvarnu probu direktnog odgovora i tačnih DST granica. Nova objava nije izvršena tokom završnog UI prolaza.",
+      "sledece": "Nastaviti eksplicitni KEEP/SET/REMOVE ugovor zavisnih podataka, ponovljene termine i regionalnu geografiju kroz pregled i čuvanje.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -488,6 +488,17 @@
         "previous": {
           "problem": "Novi razgovor task AI source/test završen; potvrda nije trajno brisanje istorije. Raniji telefon resume ostaje dokaz, ceo aktuelni AI task tok još otvoren.",
           "sledece": "Paket 1 usaglasiti preview flags i tačan Edge bundle; paket 3 završiti AI → kratak sažetak → pregled → objava, remote izradu/predaju i ispravku podataka; zatim ograničen odobren živi prolaz. WORK_ANALYSIS_RECONCILIATION_20261018.md."
+        }
+      },
+      "alias_delivery_20261018": {
+        "state": "DEV_APPLIED_PREMIUM_APK_INSTALLED_TARGETED_NATIVE_PROVEN",
+        "report": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.md",
+        "result": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.json",
+        "phone_acceptance_changed": false,
+        "previous": {
+          "problem": "Ograničeni živi test 18.10 na b92: tri task odgovora SUCCEEDED, REMOTE i korekcija slanja potvrđeni u nacrtu. Pronađen post-completion scope kvar: task usage nedostaje. Lokalna ispravka testirana; DEV v90 još star. Objavljivanje nije deo ovog testa.",
+          "sledece": "Primeniti imenovani Edge recovery kandidat posle odobrenja, proveriti exact readback; zatim alias/ID i nastavak AI → pregled → objava u postojećem planu. Šest plaćenih poziva iskorišćeno. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+          "source_progress_20261018": "Kartica živog AI nacrta u izvoru više ne zadaje lokalne sirove boje i senku preko Surface panel komponente; koristi zajednički materijal bez senke. AI intake ekran prolazi ciljane testove; novi APK i stvaran pregled razgovora na uređaju nisu urađeni."
         }
       }
     },
@@ -1781,9 +1792,9 @@
         "stanje": "DELIMIČNO",
         "dokaz": "59876dc6: Još nema ocena, stvarni broj 0, Istorija/Back i profilno zvono potvrđeni; šire granice otvorene. docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json"
       },
-      "problem": "Ograničeni živi test 18.10: tri worker odgovora, remote opis i opciona oprema rade u kandidatu. Sačuvani profil neizmenjen. Shadow predlozi odbijeni sa SEMANTIC_IDENTITY_REVIEW_REQUIRED; Save/binding/režimi nisu provereni. Lokalni Auth/retry patch testiran, nije isporučen.",
-      "source_progress_20261018": "Sačuvani radni profil sada u izvoru prikazuje alat i vozila, sa objašnjenjem njihovog uticaja. Rečnik radničkih ponuda u izvoru usklađen je na 'usluge', a testovi pregleda i razgovora su ažurirani. Ciljani Jest za profil, razgovor i Discovery 302/302, dodatna provera razgovora 121/121 i naknadni Home/intake/native profil 365/365 prošli. Nova verzija APK-a sa ovom izmenom nije izgrađena niti je sačuvani profil proveravan na emulatoru/telefonu.",
-      "sledece": "Usaglasiti autoritativni alias/ID sa Edge review i SQL binder-om, prikazati stvarni status potvrde u pregledu; objedinjeni APK i odobren Save → binding → reread. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+      "problem": "Worker 53 primenjen. Poznato krečenje dobija READY ON_SITE predlog; kombi/jezik nisu dodatne usluge. Izričita promena područja uklanja staru Vojvodinu iz bio opisa. Nacrt nije sačuvan; postojeći profil ostaje 3D REMOTE.",
+      "source_progress_20261018": "APK 0175d364 izgrađen i instaliran. Provereni sačuvani 3D REMOTE profil, odbijanje terenske mape za REMOTE, AI meni i povratak iz ON_SITE nacrta u isti razgovor. Novi ON_SITE nacrt nije sačuvan; pet postojećih Save zapisa i potvrđeni REMOTE ostaju. Native UI prolaz nije poslao nov AI zahtev. Potpuni AI-only profil i regionalna podrška ostaju otvoreni.",
+      "sledece": "Povezati verzionisanu teritoriju po usluzi kroz AI, pregled, Save i oba nivoa kandidata; ne pretvarati bio tekst u geometriju.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2086,6 +2097,17 @@
           "problem": "10.10 izvor: sačuvana kartica ima ceo opis/proširive činjenice; activation OFF ostaje kroz razgovor; suspended mutation/support granice proverene. AI-only DRAFT/manual/deep-link migracija i native dokaz još otvoreni.",
           "sledece": "Paketi 1–3: ista isporuka i potvrđeni model usluge/režima/područja → signed Save → worker binding → ponovno čitanje. Živo 18.10: 0 worker binding i 0 mode redova; ne uključivati strict gate samo promenom zastavice. WORK_ANALYSIS_RECONCILIATION_20261018.md."
         }
+      },
+      "alias_delivery_20261018": {
+        "state": "DEV_APPLIED_PREMIUM_APK_INSTALLED_TARGETED_NATIVE_PROVEN",
+        "report": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.md",
+        "result": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.json",
+        "phone_acceptance_changed": false,
+        "previous": {
+          "problem": "Ograničeni živi test 18.10: tri worker odgovora, remote opis i opciona oprema rade u kandidatu. Sačuvani profil neizmenjen. Shadow predlozi odbijeni sa SEMANTIC_IDENTITY_REVIEW_REQUIRED; Save/binding/režimi nisu provereni. Lokalni Auth/retry patch testiran, nije isporučen.",
+          "sledece": "Usaglasiti autoritativni alias/ID sa Edge review i SQL binder-om, prikazati stvarni status potvrde u pregledu; objedinjeni APK i odobren Save → binding → reread. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+          "source_progress_20261018": "Sačuvani radni profil sada u izvoru prikazuje alat i vozila, sa objašnjenjem njihovog uticaja. Rečnik radničkih ponuda u izvoru usklađen je na 'usluge', a testovi pregleda i razgovora su ažurirani. Ciljani Jest za profil, razgovor i Discovery 302/302, dodatna provera razgovora 121/121 i naknadni Home/intake/native profil 365/365 prošli. Nova verzija APK-a sa ovom izmenom nije izgrađena niti je sačuvani profil proveravan na emulatoru/telefonu."
+        }
       }
     },
     {
@@ -2114,8 +2136,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon."
       },
-      "problem": "Worker nacrt iz stvarnog testa prepoznaje uslugu na daljinu i čuva postojeću opremu/dostupnost. Zelene trake ne dokazuju kanonsku spremnost; shadow hint ima odbijanje identiteta. Nema novog Save ili native dokaza lokalnog retry patch-a.",
-      "sledece": "Jedan pregled usluge/režima sa jasnim nepotvrđenim statusom; povezati proverene aliase; proveriti create/edit/save/reopen na narednom objedinjenom kandidatu. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+      "problem": "0175d364 je instaliran uz sačuvanu sesiju. Native provereni čistiji REMOTE saved profil, ON_SITE nacrt bez Save-a, AI menu/tema bez automatskog slanja, task review i terenska mapa odbijena za sačuvani REMOTE profil.",
+      "sledece": "Nastaviti povezani Home/Discovery/Dogovori dizajn i pozitivnu ON_SITE map potvrdu kada profil zaista ima taj sačuvan režim; regionalna pokrivenost ostaje zaseban ugovor.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2363,6 +2385,16 @@
         "previous": {
           "problem": "10.10 izvor: sačuvana kartica ima ceo opis/proširive činjenice; activation OFF ostaje kroz razgovor; suspended mutation/support granice proverene. AI-only DRAFT/manual/deep-link migracija i native dokaz još otvoreni.",
           "sledece": "Paket 3: jedan sačuvani pregled potvrđenih usluga/režima/područja i glavni AI ulaz za izmene; ukloniti dupliranje alijasa i paralelan obavezan ručni editor. Dokaz create/edit/save/reopen na istom kandidatu. WORK_ANALYSIS_RECONCILIATION_20261018.md."
+        }
+      },
+      "alias_delivery_20261018": {
+        "state": "DEV_APPLIED_PREMIUM_APK_INSTALLED_TARGETED_NATIVE_PROVEN",
+        "report": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.md",
+        "result": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.json",
+        "phone_acceptance_changed": false,
+        "previous": {
+          "problem": "Worker nacrt iz stvarnog testa prepoznaje uslugu na daljinu i čuva postojeću opremu/dostupnost. Zelene trake ne dokazuju kanonsku spremnost; shadow hint ima odbijanje identiteta. Nema novog Save ili native dokaza lokalnog retry patch-a.",
+          "sledece": "Jedan pregled usluge/režima sa jasnim nepotvrđenim statusom; povezati proverene aliase; proveriti create/edit/save/reopen na narednom objedinjenom kandidatu. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md"
         }
       }
     },
@@ -5400,8 +5432,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "Novo zvono vidi se na telefonu; ova provera nije nova push dostava. docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
-      "problem": "Inbox/exact-target klijent je u current full regresiji zelen. Provider→tap→exact→displayed-ACK na jednom istom novom događaju nije dokazano na current artefaktu; exact transport ostaje OFF.",
-      "sledece": "10.10: doraditi slab kontrast crteža zvona uz postojeći48dp cilj, badge, scope i reduced-motion; sačuvati jedan sistem obaveštenja. Raniji dokaz/sledeće: Kad bude odobrena provider/device provera, korelisati jedan novi message event kroz ceo lanac na finalnom Android kandidatu; zatim iOS. Do tada ne menjati transport flag.",
+      "problem": "Postojeći in-app/exact-target klijent ostaje. Strogi matching ON ne pravi nove evente; u ovom paketu nema novog stvarnog cross-account opportunity/in-app/push događaja.",
+      "sledece": "Posle regularne prijave drugog postojećeg QA naloga povezati jedan task → match → opportunity → in-app event sa tačnim vlasnikom i sadržajem, pa odvojeno device dostavu.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -5495,6 +5527,16 @@
           "edgeDeployed": false,
           "edgeCandidate": "docs/implementation/evidence/visual-rounds-20261010/ai-edge-candidate-59876dc6.json",
           "storeReady": false
+        }
+      },
+      "alias_delivery_20261018": {
+        "state": "DEV_APPLIED_PREMIUM_APK_INSTALLED_TARGETED_NATIVE_PROVEN",
+        "report": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.md",
+        "result": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.json",
+        "phone_acceptance_changed": false,
+        "previous": {
+          "problem": "Inbox/exact-target klijent je u current full regresiji zelen. Provider→tap→exact→displayed-ACK na jednom istom novom događaju nije dokazano na current artefaktu; exact transport ostaje OFF.",
+          "sledece": "10.10: doraditi slab kontrast crteža zvona uz postojeći48dp cilj, badge, scope i reduced-motion; sačuvati jedan sistem obaveštenja. Raniji dokaz/sledeće: Kad bude odobrena provider/device provera, korelisati jedan novi message event kroz ceo lanac na finalnom Android kandidatu; zatim iOS. Do tada ne menjati transport flag."
         }
       }
     },
@@ -5685,8 +5727,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije."
       },
-      "problem": "One real MESSAGE_RECEIVED delivery/tap is owner-confirmed. OPPORTUNITY has local behavior, cancellation race and complete108catalog transition/refusal evidence, but is NOT DEPLOYED. Exact promotion and remaining profile/time/selection concurrency checks are open; selected phone worker is DRAFT/empty. All-category/group/automatic push and store remain unproven.",
-      "sledece": "Paket 4: najpre read-only korelisati prijavljeni UNKNOWN i readiness sa događajem; zatim odobren jedan događaj za drugi nalog/uređaj kroz event → delivery → ticket/receipt → prikaz → tap. Ne ponavljati naslepo slanje niti uključivati globalni queue. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
+      "problem": "Push v35 je objavljen, 2/2 fajla byte-identična. Reprodukovan v34 begin-receipt mismatch popravljen (3 fail-before / 128 pass-after). Global transport=true; single/message=false; opportunity flag absent. Nema novog provider send-a ili device acceptance; jedan UNKNOWN ostaje bez retry-a.",
+      "sledece": "Proveriti stvarni uređaj/session/consent i jedan izolovan novi event; korelisati delivery, Expo ticket/receipt, prikaz i tap. Bez globalnog backlog flush-a; emulator je native push UNSUPPORTED.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -5818,6 +5860,16 @@
           "device_proof": "Nema novog test slanja, APK-a ili uređajske potvrde v21.",
           "status": "P4 CLIENT SOURCE/CI PASS / EXACT PROVIDER TRANSPORT GATED+OFF / CURRENT NATIVE PENDING",
           "state_sync": "Push još nosi samo INBOX. Odabrano obaveštenje je sada povezano sa tačnom porukom. Jedan dodir push→tačna poruka zahteva transport eventId i uređajski dokaz."
+        }
+      },
+      "alias_delivery_20261018": {
+        "state": "DEV_APPLIED_PREMIUM_APK_INSTALLED_TARGETED_NATIVE_PROVEN",
+        "report": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.md",
+        "result": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.json",
+        "phone_acceptance_changed": false,
+        "previous": {
+          "problem": "One real MESSAGE_RECEIVED delivery/tap is owner-confirmed. OPPORTUNITY has local behavior, cancellation race and complete108catalog transition/refusal evidence, but is NOT DEPLOYED. Exact promotion and remaining profile/time/selection concurrency checks are open; selected phone worker is DRAFT/empty. All-category/group/automatic push and store remain unproven.",
+          "sledece": "Paket 4: najpre read-only korelisati prijavljeni UNKNOWN i readiness sa događajem; zatim odobren jedan događaj za drugi nalog/uređaj kroz event → delivery → ticket/receipt → prikaz → tap. Ne ponavljati naslepo slanje niti uključivati globalni queue. WORK_ANALYSIS_RECONCILIATION_20261018.md."
         }
       }
     },
@@ -6630,8 +6682,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
-      "problem": "Zahtev za izvoz čeka pravilo čuvanja podataka (pravnik).",
-      "sledece": "Pre regionalne/worker aktivacije inventarisati izvoz svih review/hint/outbox/snapshot i coverage podataka; rešiti važeći closure/retention obuhvat i legal readiness, pa dokazati download u odobrenom scenariju. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
+      "problem": "F01: postojeći export katalog ima 52 celine, a nova taksonomska i DEV-copy lična polja zahtevaju obuhvat. Kandidat je commitovan, nije primenjen; current closure/retention certificate mismatch ostaje. F01 komponentni dokaz sada PASS: CI 39134261166, 13 provera / 20 relacija; paket nije primenjen.",
+      "sledece": "Završiti dokaz vlasničkog izvoza novih projekcija bez tuđih redova, lease/credentials ili neograničenih sirovih JSON kopija, uz komponentne i potpune Auth/Storage provere.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -6677,6 +6729,16 @@
         "source": "e57250a47208ace98b98f26268ccc641eb9cd7ab",
         "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
         "scope": "HONOR privacy, closure blockers/review close, blocked-users empty, export no-request, support empty and Back. No mutation; not full business acceptance."
+      },
+      "alias_delivery_20261018": {
+        "state": "DEV_APPLIED_PREMIUM_APK_INSTALLED_TARGETED_NATIVE_PROVEN",
+        "report": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.md",
+        "result": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.json",
+        "phone_acceptance_changed": false,
+        "previous": {
+          "problem": "Zahtev za izvoz čeka pravilo čuvanja podataka (pravnik).",
+          "sledece": "Pre regionalne/worker aktivacije inventarisati izvoz svih review/hint/outbox/snapshot i coverage podataka; rešiti važeći closure/retention obuhvat i legal readiness, pa dokazati download u odobrenom scenariju. WORK_ANALYSIS_RECONCILIATION_20261018.md."
+        }
       }
     },
     {
@@ -6702,8 +6764,8 @@
         "uskoci-account-closure-worker"
       ],
       "telefon": null,
-      "problem": "Na drugom uređaju nema lokalnog START identifikatora za praćenje brisanja; ograničeni nalog ne može običnim čitanjem da otkrije izvršenje. Uspeh radnika i probno brisanje ne rešavaju taj oporavak.",
-      "sledece": "Potvrđen živi closure mismatch 18.10.2026; utvrditi obuhvat i dokazati ceo program pre izolovane recertifikacije. Ne prepisivati samo hash. Sačuvati zahtev za oporavak sa drugog uređaja; bez brisanja stvarnih naloga. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
+      "problem": "F01: 13 taksonomskih tabela i 7 DEV backup/snapshot tabela sa 8.962 reda zahtevaju closure obuhvat i writer guard. Kandidat je commitovan, ali nije primenjen. Nema novog brisanja naloga niti sertifikacije; potpuni Auth/Storage dokaz ostaje. F01 komponentni dokaz sada PASS: CI 39134261166, 13 provera / 20 relacija; paket nije primenjen.",
+      "sledece": "Dovršiti postojeći AF-D22 executor proof, ownership/hold/FK redosled, protection-before-write i stare lease/race negative; potrebni su izolovani stvarni Auth/Storage završetak i reviewed certificate admission.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -6758,6 +6820,16 @@
         "source": "e57250a47208ace98b98f26268ccc641eb9cd7ab",
         "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
         "scope": "HONOR privacy, closure blockers/review close, blocked-users empty, export no-request, support empty and Back. No mutation; not full business acceptance."
+      },
+      "alias_delivery_20261018": {
+        "state": "DEV_APPLIED_PREMIUM_APK_INSTALLED_TARGETED_NATIVE_PROVEN",
+        "report": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.md",
+        "result": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.json",
+        "phone_acceptance_changed": false,
+        "previous": {
+          "problem": "Na drugom uređaju nema lokalnog START identifikatora za praćenje brisanja; ograničeni nalog ne može običnim čitanjem da otkrije izvršenje. Uspeh radnika i probno brisanje ne rešavaju taj oporavak.",
+          "sledece": "Potvrđen živi closure mismatch 18.10.2026; utvrditi obuhvat i dokazati ceo program pre izolovane recertifikacije. Ne prepisivati samo hash. Sačuvati zahtev za oporavak sa drugog uređaja; bez brisanja stvarnih naloga. WORK_ANALYSIS_RECONCILIATION_20261018.md."
+        }
       }
     },
     {
@@ -6781,8 +6853,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
-      "problem": "28.09: dve grane privatnosti nisu prenete u kanonski kod niti primenjene na DEV: smanjenje sačuvanih privatnih činjenica u AI kontekstu i usklađivanje tehničkog spiska obrađivača. Zasebne CI provere nisu dokaz integracije. Preneti ciljane izmene uz očuvanje novijih AI zaštita.",
-      "sledece": "Uskladiti obuhvat novih taksonomskih/worker podataka, odobreni pravni paket i closure/retention readiness; proveriti caller/owner granice relevantnih RPC-ja. Advisor nije sam po sebi potvrđena ranjivost. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
+      "problem": "retention_ai_source_ready=false; izvršni source/program i certified digest nisu usaglašeni. F01 kandidat je commitovan, ali nema završni puni dokaz i potvrđenu aktivnu politiku zadržavanja. Mode-context paket nije promenio closure digeste. F01 komponentni dokaz sada PASS: CI 39134261166, 13 provera / 20 relacija; paket nije primenjen.",
+      "sledece": "Završiti data inventory, hold i retention obuhvat novih kopija i aktivnu politiku bez izmišljanja rokova; proveriti tačan izvor pre zasebne sertifikacije.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -6864,6 +6936,16 @@
         "source": "e57250a47208ace98b98f26268ccc641eb9cd7ab",
         "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
         "scope": "HONOR privacy, closure blockers/review close, blocked-users empty, export no-request, support empty and Back. No mutation; not full business acceptance."
+      },
+      "alias_delivery_20261018": {
+        "state": "DEV_APPLIED_PREMIUM_APK_INSTALLED_TARGETED_NATIVE_PROVEN",
+        "report": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.md",
+        "result": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.json",
+        "phone_acceptance_changed": false,
+        "previous": {
+          "problem": "28.09: dve grane privatnosti nisu prenete u kanonski kod niti primenjene na DEV: smanjenje sačuvanih privatnih činjenica u AI kontekstu i usklađivanje tehničkog spiska obrađivača. Zasebne CI provere nisu dokaz integracije. Preneti ciljane izmene uz očuvanje novijih AI zaštita.",
+          "sledece": "Uskladiti obuhvat novih taksonomskih/worker podataka, odobreni pravni paket i closure/retention readiness; proveriti caller/owner granice relevantnih RPC-ja. Advisor nije sam po sebi potvrđena ranjivost. WORK_ANALYSIS_RECONCILIATION_20261018.md."
+        }
       }
     },
     {
@@ -7031,8 +7113,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "09.10 fizički HONOR 725be7bd: 725 odloženi/stale/error/paging testovi PASS; native filter i map/list stanja očuvani. ce23 povremeni warm VIEW About ostaje bez dokazanog uzroka/popravke. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon."
       },
-      "problem": "U stvarnom AI testu tri HTTP pokušaja odbijena pre provajdera. Auth nedostupnost pogrešno mapirana na 401/400, a worker composer nije nudio dozvoljen retry. Popravke lokalno 73 Edge + 141 client PASS; osnovni uzrok povremenog Auth kašnjenja nije dokazan.",
-      "sledece": "Novi Edge recovery paket na odobrenje, zatim objedinjeni APK sa worker retry i native provera poznatog/nesigurnog ishoda, Back/reopen i mrežnog oporavka. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+      "problem": "Recovery/Auth klasifikacija, continuity i bio-only očuvanje režima primenjeni; poslednji stvarni Save i svež razgovor bez AI poziva potvrđeni. Širi offline/cancel/unknown/restart tokovi nisu u celini provereni na novom APK-u.",
+      "sledece": "Proveriti preostale offline/cancel/unknown/restart tokove na aktuelnom APK-u; zadržati postojeću sesiju i ne ponavljati nepoznat provider ishod.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -7163,6 +7245,16 @@
           "problem": "Guard kasnog pin-dismiss/AI callback/source ownership testiran; Nearby explicit flight/debounce ima prednost nad list-detent zoom-om. Native lifecycle scope nije ceo završen.",
           "sledece": "Potvrditi tačan follow-up build; nastaviti povezani lifecycle/loša mreža i raniji About slučaj bez proizvoljnog refaktora."
         }
+      },
+      "alias_delivery_20261018": {
+        "state": "DEV_APPLIED_PREMIUM_APK_INSTALLED_TARGETED_NATIVE_PROVEN",
+        "report": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.md",
+        "result": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.json",
+        "phone_acceptance_changed": false,
+        "previous": {
+          "problem": "U stvarnom AI testu tri HTTP pokušaja odbijena pre provajdera. Auth nedostupnost pogrešno mapirana na 401/400, a worker composer nije nudio dozvoljen retry. Popravke lokalno 73 Edge + 141 client PASS; osnovni uzrok povremenog Auth kašnjenja nije dokazan.",
+          "sledece": "Novi Edge recovery paket na odobrenje, zatim objedinjeni APK sa worker retry i native provera poznatog/nesigurnog ishoda, Back/reopen i mrežnog oporavka. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md"
+        }
       }
     },
     {
@@ -7177,8 +7269,8 @@
       "servisi": [],
       "server": [],
       "telefon": null,
-      "problem": "Preview flags, proizvodna granica i izdvajanje razvojnih ruta dokazani prethodnim paketom. Stari serverski potrošači ostaju zaseban cleanup. Sadašnji Node handler testovi otkrili scope/Auth kvar koji puni Jest nije izvršavao; dodati u preview CI.",
-      "sledece": "Zadržati aktivne ugovore; ciljano uklanjanje legacy potrošača samo uz kompatibilnost. Naredni preview CI mora izvršiti nov Node Edge skup; trenutni recovery kandidat još nije deployed. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+      "problem": "DEV task 99/worker 53/push 35 exact. Strict matching ON. Deadline i novi taxonomy branch continuity SQL primenjeni posle PG 16/17. F01 komponentni dokaz prolazi, puna closure politika i izvršenje ostaju otvoreni.",
+      "sledece": "Završiti F01 potpunim Auth/Storage dokazom i stvarnom politikom, sa tačnim readback-om i zasebnom sertifikacijom.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -7236,6 +7328,16 @@
         "previous": {
           "problem": "Automatski spisak „Server ume, aplikacija ne koristi“ na tabli pokazuje zamenjene stare verzije koje ulogovani korisnik i dalje može da pozove.",
           "sledece": "Paket 1: production mora odbiti DEV; uskladiti commit-ovane APK/OTA flags, worker helper i identitet isporuke. Zatim ciljano uklanjanje legacy RPC/UI potrošača tek uz dokaz kompatibilnosti. WORK_ANALYSIS_RECONCILIATION_20261018.md."
+        }
+      },
+      "alias_delivery_20261018": {
+        "state": "DEV_APPLIED_PREMIUM_APK_INSTALLED_TARGETED_NATIVE_PROVEN",
+        "report": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.md",
+        "result": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.json",
+        "phone_acceptance_changed": false,
+        "previous": {
+          "problem": "Preview flags, proizvodna granica i izdvajanje razvojnih ruta dokazani prethodnim paketom. Stari serverski potrošači ostaju zaseban cleanup. Sadašnji Node handler testovi otkrili scope/Auth kvar koji puni Jest nije izvršavao; dodati u preview CI.",
+          "sledece": "Zadržati aktivne ugovore; ciljano uklanjanje legacy potrošača samo uz kompatibilnost. Naredni preview CI mora izvršiti nov Node Edge skup; trenutni recovery kandidat još nije deployed. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md"
         }
       }
     }
@@ -11039,6 +11141,12 @@
       "checks": "73 Node Edge + 141 targeted client PASS; tsc exit 0. No full rerun for new patch.",
       "no_business_commit": "0 new needs / 0 worker saves; saved profile unchanged; no push or STT.",
       "next": "Named Edge fix approval; authoritative alias identity; native retry/review; approved Save/binding/matching proof."
+    },
+    "alias_delivery_20261018": {
+      "status": "DEV_APPLIED_PREMIUM_APK_INSTALLED_TARGETED_NATIVE_PROVEN",
+      "report": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.md",
+      "emulator_only": true,
+      "release_acceptance": false
     }
   }
 }

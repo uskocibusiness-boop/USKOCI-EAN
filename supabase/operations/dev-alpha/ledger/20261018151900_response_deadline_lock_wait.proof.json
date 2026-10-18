@@ -1,0 +1,23 @@
+{
+  "kind": "SUPPLEMENTAL_DISPOSABLE_PROOF_NO_DEPLOYMENT",
+  "ci": 39139810115,
+  "source": "60fa276d48d4942db25582cb54aa1ed7930a652d",
+  "postgres": [
+    16,
+    17
+  ],
+  "conclusion": "PASS",
+  "appliedMigrationUnderTest": "20261018141946",
+  "exactLiveHelperMd5": "e72b25a26bc41c79bdd5b194844c8950",
+  "cases": [
+    "SUBMIT",
+    "SELECT",
+    "KEEP",
+    "UPDATE"
+  ],
+  "conditions": "response_deadline expires during Need lock wait; REMOTE_ANYTIME; starts_at and ends_at null",
+  "result": "All four writes reject after lock; no new command/agreement/charge/application/version; committed replay and withdraw preserved",
+  "newMigration": false,
+  "liveBusinessWrites": false,
+  "remainingDetail": "Lock-wait expiry uses NEED_EXECUTION_WINDOW_EXPIRED instead of the more precise RESPONSE_WINDOW_EXPIRED. Client says time for task has passed; rejection is correct."
+}

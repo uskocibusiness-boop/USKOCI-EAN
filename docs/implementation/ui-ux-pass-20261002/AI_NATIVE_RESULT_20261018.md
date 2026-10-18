@@ -1,3 +1,5 @@
+> Naknadna isporuka 18.10: recovery i alias paket su primenjeni. Sledeći datirani dokaz: AI_ALIAS_DELIVERY_20261018.md / outputs/USKOCI_ISPORUKA_20261018/IZVESTAJ.md. Brojevi i neuspehi ovog ranijeg testa ostaju istorijski dokaz.
+
 # USKOČI — rezultat šest stvarnih AI poziva, 18.10.2026.
 
 **Status: ograničeni test završen, sa pronađenim greškama. Ceo AI → potvrda → matching tok još nije potvrđen.**

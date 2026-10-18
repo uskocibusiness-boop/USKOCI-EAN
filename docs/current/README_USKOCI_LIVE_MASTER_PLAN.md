@@ -37,11 +37,11 @@ Izveštaj ovog inventara: [čišćenje i predlog povezane aplikacije](../impleme
 
 Aktuelni APK workflow je **Build latest V5 Android preview APK** (`build-latest-v5-preview-apk.yml`). Pokrenuti ga na stvarnom integration HEAD-u i sačuvati izvorni SHA, run ID i artifact receipt. Stariji `build-android-dev-apk.yml` ima ograničenje na istorijsku granu `work/uskoci-ui-unification-20260924`; njegovo prisustvo nije nalog za promenu trenutne grane niti za isporuku starog izvora.
 
-Naredni usaglašeni posao: [komentar Work analize, nove read-only provere i redosled izvođenja](../implementation/ui-ux-pass-20261002/WORK_ANALYSIS_RECONCILIATION_20261018.md). Njegovi sledeći koraci preneti su u postojeće redove registra; originalne ranije napomene su sačuvane. Pregled ne znači da su implementacioni paketi već zatvoreni.
+Usaglašeni posao: [komentar Work analize i izvršavanje plana](../implementation/ui-ux-pass-20261002/WORK_ANALYSIS_RECONCILIATION_20261018.md). Odeljci 1–9 čuvaju početni pregled; odeljak 10 i [datirani izveštaj isporuke](../implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.md) navode naknadno primenjene celine i preostali posao. Isti rezultati ulaze u postojeće redove registra.
 
 ## Šta znači „trenutno“
 
-Svaki zaključak označi: SOURCE, TEST, DEV APPLIED, APK BUILT, EMULATOR, PHONE ili RELEASE. Datum i tačan izvor pripadaju dokazu. Stara slika može pokazati stari problem; njen naziv AFTER_FIX nije potvrda da prikazuje sadašnji kod. Budući manifest isporuke treba da poveže postojeći `buildIdentity`, hash APK-a, OTA identitet, DEV snapshot i slike. Taj potpuni manifest nije napravljen ovim uređivanjem dokumentacije.
+Svaki zaključak označi: SOURCE, TEST, DEV APPLIED, APK BUILT, EMULATOR, PHONE ili RELEASE. Datum i tačan izvor pripadaju dokazu. Stara slika može pokazati stari problem; njen naziv AFTER_FIX nije potvrda da prikazuje sadašnji kod. [Manifest isporuke](../implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.json) povezuje `buildIdentity`, hash APK-a, OTA identitet, DEV stanje i datirane slike; posebno razlikuje instalirani izvor, novi kandidat i neuspešne ranije pokušaje. Emulator dokaz ne podiže PHONE/RELEASE status.
 
 ## Održavanje postojećeg LIVE plana
 

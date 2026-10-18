@@ -1,14 +1,14 @@
 {
  "meta": {
-  "osvezeno": "2026-10-18T11:20:12Z",
+  "osvezeno": "2026-10-18T15:45:01Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "2f68ae6f",
-  "head_poruka": "docs: record passing suite and installed emulator candidate [skip ci]",
+  "head": "60fa276d",
+  "head_poruka": "test(db): prove application expiry after lock wait without execution deadline",
   "server": {
-   "snimljeno": "2026-10-18T07:59:13Z",
-   "migracije": 280,
+   "snimljeno": "2026-10-18T15:41:07Z",
+   "migracije": 285,
    "dev_alpha": 87,
-   "poslednja": "dev_alpha_worker_city_country_guard_20261018",
+   "poslednja": "taxonomy_new_branch_scope_continuity",
    "sertifikat_ok": false,
    "privatni_status": "FRESH",
    "privatni_istorijski": null,
@@ -37,13 +37,13 @@
      "slug": "uskoci-ai-interview",
      "name": "uskoci-ai-interview",
      "status": "ACTIVE",
-     "version": 90,
+     "version": 99,
      "created_at": 1788261764727,
-     "updated_at": 1792318029980,
+     "updated_at": 1792336182517,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_90/source/supabase/functions/uskoci-ai-interview/index.ts",
-     "ezbr_sha256": "85549aa37b6e9d10ab8d8f3cac714bb4c8cf69aa3a15aef64385f04307105b24"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_99/source/supabase/functions/uskoci-ai-interview/index.ts",
+     "ezbr_sha256": "2973886bab3da5ccb77af7b4ff0a036f85a7d11c6ecb7cafe379df3551ce36e8"
     },
     {
      "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
@@ -102,13 +102,13 @@
      "slug": "uskoci-worker-interview",
      "name": "uskoci-worker-interview",
      "status": "ACTIVE",
-     "version": 45,
+     "version": 53,
      "created_at": 1789291116219,
-     "updated_at": 1792318018954,
+     "updated_at": 1792335148903,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_45/source/supabase/functions/uskoci-worker-interview/index.ts",
-     "ezbr_sha256": "52f9b43adcf61bc6f2d1517cdcca5724b79266c26457fb920d28cfe150fa4264"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_53/source/supabase/functions/uskoci-worker-interview/index.ts",
+     "ezbr_sha256": "263ebf3e3cbef2b33694824d3b6975edeb2365839b730dea23d62c614d5931ff"
     },
     {
      "id": "1ba4db69-a390-4b55-a071-97bee74d2598",
@@ -141,13 +141,13 @@
      "slug": "uskoci-push-transport",
      "name": "uskoci-push-transport",
      "status": "ACTIVE",
-     "version": 34,
+     "version": 35,
      "created_at": 1789291177945,
-     "updated_at": 1792259141728,
+     "updated_at": 1792328540912,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_d9bde875-0cd9-4998-b395-76fa3de0af92_34/source/supabase/functions/uskoci-push-transport/index.ts",
-     "ezbr_sha256": "30b1f81cfcb0c1481aa88a00ca69785f505569ab1f0ff91e2a0eaef9988fc69c"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_d9bde875-0cd9-4998-b395-76fa3de0af92_35/source/supabase/functions/uskoci-push-transport/index.ts",
+     "ezbr_sha256": "572d122aa7c3cad86c448e4fd67475ed95fd5c91013de8abd09808a2d58cb2a3"
     },
     {
      "id": "8ed1c1f2-c0e3-45f5-9a0b-4a1fcfd4c54c",
@@ -3504,6 +3504,12 @@
    "checks": "73 Node Edge + 141 targeted client PASS; tsc exit 0. No full rerun for new patch.",
    "no_business_commit": "0 new needs / 0 worker saves; saved profile unchanged; no push or STT.",
    "next": "Named Edge fix approval; authoritative alias identity; native retry/review; approved Save/binding/matching proof."
+  },
+  "alias_delivery_20261018": {
+   "status": "DEV_APPLIED_PREMIUM_APK_INSTALLED_TARGETED_NATIVE_PROVEN",
+   "report": "docs/implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.md",
+   "emulator_only": true,
+   "release_acceptance": false
   }
  },
  "redovi": [
@@ -3746,8 +3752,8 @@
     "test": "9 test fajl(ova)"
    },
    "telefon_dokaz": "Prvo AI pitanje vidljivo, bez model/ASR poziva; stvarni razgovor otvoren. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
-   "problem": "Ograničeni živi test 18.10 na b92: tri task odgovora SUCCEEDED, REMOTE i korekcija slanja potvrđeni u nacrtu. Pronađen post-completion scope kvar: task usage nedostaje. Lokalna ispravka testirana; DEV v90 još star. Objavljivanje nije deo ovog testa.",
-   "sledece": "Primeniti imenovani Edge recovery kandidat posle odobrenja, proveriti exact readback; zatim alias/ID i nastavak AI → pregled → objava u postojećem planu. Šest plaćenih poziva iskorišćeno. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+   "problem": "Task 99 primenjen. Stvarni razgovor sada objašnjava 19–25. oktobar, čuva DST granice i dopunske odgovore i uklanja zastarelo ponavljanje datuma iz opisa. Reprodukovano prepisivanje odgovora nepotpunom lokacijom ispravljeno.",
+   "sledece": "Nastaviti eksplicitni KEEP/SET/REMOVE ugovor zavisnih podataka, ponovljene termine i regionalnu geografiju kroz pregled i čuvanje.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -5749,8 +5755,8 @@
     "test": "7 test fajl(ova)"
    },
    "telefon_dokaz": "59876dc6: Još nema ocena, stvarni broj 0, Istorija/Back i profilno zvono potvrđeni; šire granice otvorene. docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json",
-   "problem": "Ograničeni živi test 18.10: tri worker odgovora, remote opis i opciona oprema rade u kandidatu. Sačuvani profil neizmenjen. Shadow predlozi odbijeni sa SEMANTIC_IDENTITY_REVIEW_REQUIRED; Save/binding/režimi nisu provereni. Lokalni Auth/retry patch testiran, nije isporučen.",
-   "sledece": "Usaglasiti autoritativni alias/ID sa Edge review i SQL binder-om, prikazati stvarni status potvrde u pregledu; objedinjeni APK i odobren Save → binding → reread. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+   "problem": "Worker 53 primenjen. Poznato krečenje dobija READY ON_SITE predlog; kombi/jezik nisu dodatne usluge. Izričita promena područja uklanja staru Vojvodinu iz bio opisa. Nacrt nije sačuvan; postojeći profil ostaje 3D REMOTE.",
+   "sledece": "Povezati verzionisanu teritoriju po usluzi kroz AI, pregled, Save i oba nivoa kandidata; ne pretvarati bio tekst u geometriju.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -6071,8 +6077,8 @@
     "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon.",
-   "problem": "Worker nacrt iz stvarnog testa prepoznaje uslugu na daljinu i čuva postojeću opremu/dostupnost. Zelene trake ne dokazuju kanonsku spremnost; shadow hint ima odbijanje identiteta. Nema novog Save ili native dokaza lokalnog retry patch-a.",
-   "sledece": "Jedan pregled usluge/režima sa jasnim nepotvrđenim statusom; povezati proverene aliase; proveriti create/edit/save/reopen na narednom objedinjenom kandidatu. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+   "problem": "0175d364 je instaliran uz sačuvanu sesiju. Native provereni čistiji REMOTE saved profil, ON_SITE nacrt bez Save-a, AI menu/tema bez automatskog slanja, task review i terenska mapa odbijena za sačuvani REMOTE profil.",
+   "sledece": "Nastaviti povezani Home/Discovery/Dogovori dizajn i pozitivnu ON_SITE map potvrdu kada profil zaista ima taj sačuvan režim; regionalna pokrivenost ostaje zaseban ugovor.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -10204,8 +10210,8 @@
     "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "Novo zvono vidi se na telefonu; ova provera nije nova push dostava. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
-   "problem": "Inbox/exact-target klijent je u current full regresiji zelen. Provider→tap→exact→displayed-ACK na jednom istom novom događaju nije dokazano na current artefaktu; exact transport ostaje OFF.",
-   "sledece": "10.10: doraditi slab kontrast crteža zvona uz postojeći48dp cilj, badge, scope i reduced-motion; sačuvati jedan sistem obaveštenja. Raniji dokaz/sledeće: Kad bude odobrena provider/device provera, korelisati jedan novi message event kroz ceo lanac na finalnom Android kandidatu; zatim iOS. Do tada ne menjati transport flag.",
+   "problem": "Postojeći in-app/exact-target klijent ostaje. Strogi matching ON ne pravi nove evente; u ovom paketu nema novog stvarnog cross-account opportunity/in-app/push događaja.",
+   "sledece": "Posle regularne prijave drugog postojećeg QA naloga povezati jedan task → match → opportunity → in-app event sa tačnim vlasnikom i sadržajem, pa odvojeno device dostavu.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -10587,8 +10593,8 @@
    },
    "note": {},
    "telefon_dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije.",
-   "problem": "One real MESSAGE_RECEIVED delivery/tap is owner-confirmed. OPPORTUNITY has local behavior, cancellation race and complete108catalog transition/refusal evidence, but is NOT DEPLOYED. Exact promotion and remaining profile/time/selection concurrency checks are open; selected phone worker is DRAFT/empty. All-category/group/automatic push and store remain unproven.",
-   "sledece": "Paket 4: najpre read-only korelisati prijavljeni UNKNOWN i readiness sa događajem; zatim odobren jedan događaj za drugi nalog/uređaj kroz event → delivery → ticket/receipt → prikaz → tap. Ne ponavljati naslepo slanje niti uključivati globalni queue. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
+   "problem": "Push v35 je objavljen, 2/2 fajla byte-identična. Reprodukovan v34 begin-receipt mismatch popravljen (3 fail-before / 128 pass-after). Global transport=true; single/message=false; opportunity flag absent. Nema novog provider send-a ili device acceptance; jedan UNKNOWN ostaje bez retry-a.",
+   "sledece": "Proveriti stvarni uređaj/session/consent i jedan izolovan novi event; korelisati delivery, Expo ticket/receipt, prikaz i tap. Bez globalnog backlog flush-a; emulator je native push UNSUPPORTED.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -11847,8 +11853,8 @@
     "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
-   "problem": "Zahtev za izvoz čeka pravilo čuvanja podataka (pravnik).",
-   "sledece": "Pre regionalne/worker aktivacije inventarisati izvoz svih review/hint/outbox/snapshot i coverage podataka; rešiti važeći closure/retention obuhvat i legal readiness, pa dokazati download u odobrenom scenariju. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
+   "problem": "F01: postojeći export katalog ima 52 celine, a nova taksonomska i DEV-copy lična polja zahtevaju obuhvat. Kandidat je commitovan, nije primenjen; current closure/retention certificate mismatch ostaje. F01 komponentni dokaz sada PASS: CI 39134261166, 13 provera / 20 relacija; paket nije primenjen.",
+   "sledece": "Završiti dokaz vlasničkog izvoza novih projekcija bez tuđih redova, lease/credentials ili neograničenih sirovih JSON kopija, uz komponentne i potpune Auth/Storage provere.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -11947,8 +11953,8 @@
     "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "",
-   "problem": "Na drugom uređaju nema lokalnog START identifikatora za praćenje brisanja; ograničeni nalog ne može običnim čitanjem da otkrije izvršenje. Uspeh radnika i probno brisanje ne rešavaju taj oporavak.",
-   "sledece": "Potvrđen živi closure mismatch 18.10.2026; utvrditi obuhvat i dokazati ceo program pre izolovane recertifikacije. Ne prepisivati samo hash. Sačuvati zahtev za oporavak sa drugog uređaja; bez brisanja stvarnih naloga. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
+   "problem": "F01: 13 taksonomskih tabela i 7 DEV backup/snapshot tabela sa 8.962 reda zahtevaju closure obuhvat i writer guard. Kandidat je commitovan, ali nije primenjen. Nema novog brisanja naloga niti sertifikacije; potpuni Auth/Storage dokaz ostaje. F01 komponentni dokaz sada PASS: CI 39134261166, 13 provera / 20 relacija; paket nije primenjen.",
+   "sledece": "Dovršiti postojeći AF-D22 executor proof, ownership/hold/FK redosled, protection-before-write i stare lease/race negative; potrebni su izolovani stvarni Auth/Storage završetak i reviewed certificate admission.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -12054,8 +12060,8 @@
     "test": "5 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
-   "problem": "28.09: dve grane privatnosti nisu prenete u kanonski kod niti primenjene na DEV: smanjenje sačuvanih privatnih činjenica u AI kontekstu i usklađivanje tehničkog spiska obrađivača. Zasebne CI provere nisu dokaz integracije. Preneti ciljane izmene uz očuvanje novijih AI zaštita.",
-   "sledece": "Uskladiti obuhvat novih taksonomskih/worker podataka, odobreni pravni paket i closure/retention readiness; proveriti caller/owner granice relevantnih RPC-ja. Advisor nije sam po sebi potvrđena ranjivost. WORK_ANALYSIS_RECONCILIATION_20261018.md.",
+   "problem": "retention_ai_source_ready=false; izvršni source/program i certified digest nisu usaglašeni. F01 kandidat je commitovan, ali nema završni puni dokaz i potvrđenu aktivnu politiku zadržavanja. Mode-context paket nije promenio closure digeste. F01 komponentni dokaz sada PASS: CI 39134261166, 13 provera / 20 relacija; paket nije primenjen.",
+   "sledece": "Završiti data inventory, hold i retention obuhvat novih kopija i aktivnu politiku bez izmišljanja rokova; proveriti tačan izvor pre zasebne sertifikacije.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -12393,8 +12399,8 @@
     "test": "2 test fajl(ova)"
    },
    "telefon_dokaz": "09.10 fizički HONOR 725be7bd: 725 odloženi/stale/error/paging testovi PASS; native filter i map/list stanja očuvani. ce23 povremeni warm VIEW About ostaje bez dokazanog uzroka/popravke. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon.",
-   "problem": "U stvarnom AI testu tri HTTP pokušaja odbijena pre provajdera. Auth nedostupnost pogrešno mapirana na 401/400, a worker composer nije nudio dozvoljen retry. Popravke lokalno 73 Edge + 141 client PASS; osnovni uzrok povremenog Auth kašnjenja nije dokazan.",
-   "sledece": "Novi Edge recovery paket na odobrenje, zatim objedinjeni APK sa worker retry i native provera poznatog/nesigurnog ishoda, Back/reopen i mrežnog oporavka. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+   "problem": "Recovery/Auth klasifikacija, continuity i bio-only očuvanje režima primenjeni; poslednji stvarni Save i svež razgovor bez AI poziva potvrđeni. Širi offline/cancel/unknown/restart tokovi nisu u celini provereni na novom APK-u.",
+   "sledece": "Proveriti preostale offline/cancel/unknown/restart tokove na aktuelnom APK-u; zadržati postojeću sesiju i ne ponavljati nepoznat provider ishod.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -12548,8 +12554,8 @@
    },
    "note": {},
    "telefon_dokaz": "",
-   "problem": "Preview flags, proizvodna granica i izdvajanje razvojnih ruta dokazani prethodnim paketom. Stari serverski potrošači ostaju zaseban cleanup. Sadašnji Node handler testovi otkrili scope/Auth kvar koji puni Jest nije izvršavao; dodati u preview CI.",
-   "sledece": "Zadržati aktivne ugovore; ciljano uklanjanje legacy potrošača samo uz kompatibilnost. Naredni preview CI mora izvršiti nov Node Edge skup; trenutni recovery kandidat još nije deployed. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
+   "problem": "DEV task 99/worker 53/push 35 exact. Strict matching ON. Deadline i novi taxonomy branch continuity SQL primenjeni posle PG 16/17. F01 komponentni dokaz prolazi, puna closure politika i izvršenje ostaju otvoreni.",
+   "sledece": "Završiti F01 potpunim Auth/Storage dokazom i stvarnom politikom, sa tačnim readback-om i zasebnom sertifikacijom.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -13812,100 +13818,100 @@
  },
  "ci": [
   {
-   "id": 39118632476,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "b92b55d0",
+   "id": 39139810115,
+   "ime": "Task time consistency disposable proof",
+   "sha": "60fa276d",
    "stanje": "completed",
    "ishod": "success",
-   "vreme": "2026-10-18T10:17:01Z"
+   "vreme": "2026-10-18T15:17:28Z"
   },
   {
-   "id": 39118586835,
+   "id": 39138831963,
    "ime": "Build latest V5 Android preview APK",
-   "sha": "07c9d9e2",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-10-18T10:16:19Z"
-  },
-  {
-   "id": 39109590162,
-   "ime": "Worker coverage geography (disposable PostGIS)",
-   "sha": "48eae637",
+   "sha": "0175d364",
    "stanje": "completed",
    "ishod": "success",
-   "vreme": "2026-10-18T07:57:22Z"
+   "vreme": "2026-10-18T15:04:33Z"
   },
   {
-   "id": 39066722881,
-   "ime": "DEV AI acceptance (authenticated)",
-   "sha": "75661303",
+   "id": 39137933165,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "d903f867",
    "stanje": "completed",
    "ishod": "failure",
-   "vreme": "2026-10-17T20:26:34Z"
+   "vreme": "2026-10-18T14:52:22Z"
   },
   {
-   "id": 39030696590,
-   "ime": "Signed Need review client compatibility",
-   "sha": "0c50d018",
+   "id": 39137825790,
+   "ime": "Unified Gemini taxonomy P0 (read-only)",
+   "sha": "35f93e7c",
    "stanje": "completed",
    "ishod": "success",
-   "vreme": "2026-10-17T11:58:15Z"
+   "vreme": "2026-10-18T14:50:54Z"
   },
   {
-   "id": 39030696551,
-   "ime": "Gemini taxonomy scoped shadow inputs pure test",
-   "sha": "0c50d018",
+   "id": 39137097661,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "d2e6b69f",
    "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-17T11:58:15Z"
+   "ishod": "failure",
+   "vreme": "2026-10-18T14:41:07Z"
   },
   {
-   "id": 39030696505,
-   "ime": "Taxonomy verified standard descendant coverage (disposable PostgreSQL)",
-   "sha": "0c50d018",
+   "id": 39136988510,
+   "ime": "Taxonomy new branch scopes disposable proof",
+   "sha": "a3e1607e",
    "stanje": "completed",
    "ishod": "success",
-   "vreme": "2026-10-17T11:58:15Z"
+   "vreme": "2026-10-18T14:39:40Z"
   },
   {
-   "id": 39030696493,
-   "ime": "Strict worker execution mode disposable proof",
-   "sha": "0c50d018",
+   "id": 39136646813,
+   "ime": "Unified Gemini taxonomy P0 (read-only)",
+   "sha": "172c0399",
    "stanje": "completed",
    "ishod": "success",
-   "vreme": "2026-10-17T11:58:15Z"
+   "vreme": "2026-10-18T14:35:02Z"
   },
   {
-   "id": 39030696484,
-   "ime": "Worker signed review builder (disposable PostgreSQL)",
-   "sha": "0c50d018",
+   "id": 39135356268,
+   "ime": "Task time consistency disposable proof",
+   "sha": "9f394455",
    "stanje": "completed",
    "ishod": "success",
-   "vreme": "2026-10-17T11:58:15Z"
+   "vreme": "2026-10-18T14:17:57Z"
   },
   {
-   "id": 39030696482,
-   "ime": "Dynamic taxonomy PostgreSQL foundation proof",
-   "sha": "0c50d018",
+   "id": 39134261166,
+   "ime": "Closure taxonomy extension (isolated PostgreSQL component)",
+   "sha": "c5542110",
    "stanje": "completed",
    "ishod": "success",
-   "vreme": "2026-10-17T11:58:15Z"
+   "vreme": "2026-10-18T14:03:15Z"
   },
   {
-   "id": 39030696471,
-   "ime": "Signed taxonomy binding requeue isolated PostgreSQL proof",
-   "sha": "0c50d018",
+   "id": 39133682451,
+   "ime": "Closure taxonomy extension (isolated PostgreSQL component)",
+   "sha": "a5c0dced",
    "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-17T11:58:15Z"
+   "ishod": "failure",
+   "vreme": "2026-10-18T13:55:29Z"
   },
   {
-   "id": 39030696469,
-   "ime": "Worker taxonomy safe-sync disposable proof",
-   "sha": "0c50d018",
+   "id": 39133538205,
+   "ime": "Closure taxonomy extension (isolated PostgreSQL component)",
+   "sha": "f456db11",
    "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-17T11:58:15Z"
+   "ishod": "failure",
+   "vreme": "2026-10-18T13:53:30Z"
+  },
+  {
+   "id": 39133275847,
+   "ime": "Closure taxonomy extension (isolated PostgreSQL component)",
+   "sha": "df846bbc",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-18T13:49:59Z"
   }
  ]
 }

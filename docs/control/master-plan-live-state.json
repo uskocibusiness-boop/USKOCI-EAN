@@ -19,8 +19,8 @@
     "note": "Objavljeni legal/retention/processor setovi: 0/0/0 (DEV read 30.09.2026). Brojevi legal/store PASS se ne upisuju bez dokaza za konkretne gate-ove."
   },
   "next": {
-    "title": "AI test završen: isporučiti popravke i povezati alias/ID potvrdu",
-    "note": "18.10: odobrenih 6 Gemini tekstualnih poziva završeno na emulator APK-u b92b55d0 i DEV Edge v90/v45. REMOTE izrada, korekcija slanja i opciona oprema potvrđeni u nacrtima. Pronađeni task post-completion/usage kvar, Auth pogrešne poruke i worker retry. Lokalno 73 Edge + 141 client PASS, tsc 0; novi Edge kandidat nije primenjen, novi APK nije izgrađen. Worker shadow odbija semantički identitet iako postoji alias u bazi. Nema novog Save/publish/matching/push dokaza. Vidi AI_NATIVE_RESULT_20261018; telefon i release status nisu podignuti."
+    "title": "Zavisne činjenice, regionalna pokrivenost i sledeća UI celina",
+    "note": "AI za zadatke 99 i radni profil 53, zajedno sa APK-om 0175d364, primenjeni su i ciljano provereni. Slede eksplicitna zamena zadatka, područja po usluzi, strukturne grupe kategorija, povezani UI i dva naloga kroz dogovor i obaveštenje."
   },
   "evidence": [
     {
@@ -712,6 +712,12 @@
       "sha": "b92b55d09e257270016a780e6fc8c057f6a06015",
       "result": "6 real calls completed with findings; local fixes 73 Edge + 141 client PASS, not deployed.",
       "report": "docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md"
+    },
+    {
+      "id": "AI-ALIAS-DELIVERY-20261018",
+      "run": 39138831963,
+      "sha": "0175d364938ba157990ab4af777ed86c28678dad",
+      "result": "DEV99/53/35 exact;0175d364 installed with actual About and targeted flows;620 suites/13884 tests; real AI date/bio corrections; six-level taxonomy SQL applied; regional and full release work remains."
     }
   ]
 }

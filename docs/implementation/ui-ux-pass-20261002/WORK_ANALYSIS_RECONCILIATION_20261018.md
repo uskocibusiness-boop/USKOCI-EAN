@@ -2,6 +2,8 @@
 
 Datum: 18.10.2026. Pročitano svih 18 odeljaka, 20 nalaza F01–F20 i prilog sa 62 reda iz dostavljene analize. Ovo je dopuna postojećeg LIVE plana i registra, ne novi master ili potvrda završene aplikacije.
 
+> **Naknadni nalog i primena istog dana:** aktuelni `AGENTS.md` i `OWNER_DESIGN_DIRECTION_20260922.md` zamenjuju ranije zabrane redizajna i pojedinačne dozvole. Vlasnik je dao trajno PRIMENI. Odeljci 1–9 čuvaju prvobitno poređenje; sadašnje isporuke i preostali posao navedeni su u §10 i povezanom izveštaju. Ranije rečenice o zamrznutom izgledu, čekanju odobrenja ili read-only obimu nisu tekući nalog.
+
 ## 1. Zaključak
 
 Work analiza je korisna, tehnički konkretna i uglavnom dobro razlikuje implementaciju od dokaza rada. Slažem se sa njenom glavnom ocenom: postoji razvijeno jezgro; najveći preostali posao je povezivanje novih razgovora, potvrđenih podataka, matching-a, obaveštenja i jedne proverene isporuke.
@@ -194,3 +196,29 @@ Rok se određuje posle prvog povezanog prolaza i identifikovanih prepreka. Za sv
 - [Supabase privileged-function advisor](https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable), [search_path](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable), [FK](https://supabase.com/docs/guides/database/database-linter?lint=0001_unindexed_foreign_keys), [RLS initplan](https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan), [multiple policies](https://supabase.com/docs/guides/database/database-linter?lint=0006_multiple_permissive_policies), [password protection](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
 
 Ovaj paket je pregled, nezavisna read-only provera i usaglašavanje narednog rada. Ne zatvara F01–F20, ne menja runtime, ne objavljuje novi Edge/APK i ne podiže telefon/release status.
+
+## 10. Izvršavanje posle usaglašavanja — 18.10.2026.
+
+Detaljan datirani dokaz i galerija održavaju se u `AI_ALIAS_DELIVERY_20261018.md/.json`; isti rezultati ulaze u postojeća 62 reda registra. Ovaj odeljak dopunjuje redosled rada, bez novog trackera.
+
+### Primenjene povezane celine
+
+- **Rad i dizajn:** stari AGENTS arhiviran, aktuelni autonomni način rada i sloboda redizajna commitovani i poslati na Git (`6c78c545`). Jedan nalog i obe korisničke namere ostaju model proizvoda.
+- **AI i profil:** vraćanje iz izmena u isti razgovor, proverena razlika saved/draft service-mode, očuvanje potvrđenog REMOTE pri bio-only izmeni, pravilna klasifikacija postojeće usluge i server readback. Tačne verzije i kasnije izmene su u izveštaju.
+- **Termini i direktni odgovori:** task99 / worker53 primenjeni. Stvarna proba čuva narednu nedelju preko promene sata, naknadni odgovor i ispravlja javni bio kada se područje izričito suzi. Uklonjeno prepisivanje smislenog odgovora lokacijskim pitanjem kada postoji samo grad; ponovljena proba odgovara 19–25. oktobar, uklanja stari datum iz opisa i čuva strukturirane granice.
+- **Matching i rokovi:** strict confirmed-scope uključen; prijava/izbor i candidate readers usklađeni sa isteklim terminom izvršenja kroz SQL `20261018141946`. PG16/17 dokazuju race, replay, withdrawal i postojeći dogovor.
+- **Grananje:** SQL `20261018144207` ispravlja nevažeći parent UUID obrazac i dozvoljava oba eksplicitna moda za isti novonastali path u jednom batch-u. PG16/17: šest novih nivoa, stvarni worker/need binders, replay i negativni slučajevi. Sam deploy nije kreirao kategorije.
+- **UI i čišćenje:** mirniji pregled zadatka, kompaktne olovke, tačan Naručilac, jasnije usluge i način rada na profilu, odvojena potvrda tačke na mapi za ON_SITE; ručni meni zamenjen AI temama i uklonjen nedosežni task inline editor. APK 0175d364 je instaliran na emulatoru uz sačuvanu sesiju. Stvarni About, REMOTE profil i map guard, pregled i povratak u isti razgovor ciljano su provereni. CI: 620 paketa / 13.884 testa; detalji i granice su u manifestu isporuke.
+- **Push:** transport v35 usklađen sa događajem iz baze. Ovo je dokaz ugovora i primene, bez tvrdnje da je potvrđen današnji prijem na fizičkom telefonu.
+
+### Preostale celine — konkretan redosled
+
+1. **Zavisni podaci razgovora i složeni termini.** Zona po konkretnom datumu i granice naredne nedelje već su primenjeni i stvarno provereni. Zamena celog zadatka i dalje traži eksplicitan KEEP/SET/REMOVE plan vezan za važeću reviziju: UNKNOWN nije povlačenje stare činjenice. Lokacija i njen potvrđeni položaj povlače se zajedno; termini, cena, zahtevi i javni sažeci moraju ostati usklađeni. Više odvojenih dnevnih prozora ostaje zaseban model.
+2. **Strukturne grupe taksonomije.** Razdvojiti naziv grupe od konkretne usluge. Provera rizika ide pre generičkih naziva; nova strukturna grupa ne sme kasnije postati direktna sposobnost putem REUSE, binder-a ili matching-a. Novi marker mora biti u fingerprint-u i svim relevantnim reader/writer putanjama. Samo popuštanje action-prefix provere nije dovoljno.
+3. **Područja rada i rute.** Verziona evidencija stvarnih gradova/regiona/država → AI predlog → isti potpisani pregled → Save → projection → oba shortlist izvora. Stari radijus/limit kandidata ne sme da odstrani regionalnog radnika pre finalnog fita. Za rutu proveriti sve obavezne tačke. Tekst „cela Vojvodina“ u bio nije geografski ugovor.
+4. **Dva naloga i obaveštenja.** Objava → različit odgovarajući radnik → događaj → Expo prihvatanje/receipt → prikaz → tap na pravo odredište. Samopoklapanje OWN_NEED, emulator UNSUPPORTED i provider accepted ostaju različiti dokazi. Postojeći testni nalog ne menjati rotacijom lozinke radi prečice.
+5. **Sledeća premium UI celina.** Na Početnoj podići stvarnu sledeću obavezu/nacrt, umiriti velike ulazne kartice; Profil skratiti i podići radne usluge. Listu Zadataka učiniti kompaktnijom za poređenje, uz postojeći paging i grupisanje mape. Prazni Dogovori/Poruke vode u objavu ili pretragu; chat daje više prostora porukama i otvara duže uslove na zahtev. Zadržati zelenu/narandžastu prepoznatljivost i postojeće pristupačne komponente.
+6. **Preostalo čišćenje uz zamenu.** Raspored dogovora ostaje kalendar; ulaz u dostupnost povezati sa AI tek uz dokaz očuvanja pravila/izuzetaka. „Mogu odmah“ svesno usaglasiti sa AI tokom. Lokacijski ekran suziti na ljudsku potvrdu tačke/rute bez gubitka recovery-ja. Legacy kod uklanjati po dokazanim pozivaocima i zamenjenim tokovima.
+7. **Završna isporuka i F01.** Komponentni closure dokaz je prošao, ali potpuni Auth/Storage/export i aktivna politika još nisu dokazani. Ne menjati sertifikat samo radi podudaranja hasha. Cela aplikacija dobija status isporučene tek na osnovu povezanih korisničkih scenarija, a ne broja testova ili samog builda.
+
+Rutinska implementacija i primena navedenih celina već su odobrene. Stvarni nepoznati podaci i dokazi ostaju eksplicitni; ne pretvaraju se u pretpostavljene činjenice radi zatvaranja plana.
