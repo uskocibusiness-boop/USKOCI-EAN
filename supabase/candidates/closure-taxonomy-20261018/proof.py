@@ -90,8 +90,9 @@ def row(t, owner):
         elif typ=='jsonb':
             semantic={'service':canary,'mode':'REMOTE','action':'REUSE_EXISTING','lease_token':'NEVER_EXPORT_LEASE'}
             value=[semantic] if name in ['plans','proposals'] else semantic
+            if name=='portfolio': value=[canary,semantic]
             if name=='payload':
-                value={'worker_profile':{'account_id':owner,'bio':canary},'worker_messages':[{'account_id':owner,'body':canary},{'account_id':PEER if owner==OWNER else OWNER,'body':'FOREIGN_COPY_MUST_NOT_EXPORT'}]}
+                value={'worker_profile':{'account_id':owner,'bio':canary,'portfolio':[canary,semantic]},'worker_messages':[{'account_id':owner,'body':canary},{'account_id':PEER if owner==OWNER else OWNER,'body':'FOREIGN_COPY_MUST_NOT_EXPORT'}]}
         elif typ in ['text[]','character varying[]']: value=['REMOTE'] if name=='modes' else [canary]
         elif typ=='text':
             special={'purpose':'WORKER_CAPABILITY','execution_scope':'REMOTE','consent_source':'EXPLICIT_PROFILE_REVIEW','origin':'WORKER_CONFIRMED','source':'OWNER_REVIEWED_BATCH','resolution_state':'OPEN','binding_state':'PENDING','state':'CLAIMED','status':'COMMITTED','classification_state':'CONFIRMED' if 'need_snapshots' in t['name'] else 'REVIEW_REQUIRED','catalog_fingerprint':'a'*32}
@@ -172,7 +173,13 @@ def prove():
     # Use the exact preexisting candidate projector from the repository capture.
     export=json.loads(sql(f"SELECT coalesce(jsonb_agg(to_jsonb(x)),'[]') FROM private.closure_taxonomy_export_rows_v1({q(OWNER)}) x"))
     encoded=json.dumps(export);assert 'CANARY_11111111' in encoded and 'CANARY_22222222' not in encoded
-    assert 'NEVER_EXPORT_LEASE' not in encoded and 'FOREIGN_COPY_MUST_NOT_EXPORT' not in encoded
+    assert 'NEVER_EXPORT_LEASE' not in encoded, ('OPAQUE_FIELD_EXPORTED',[x['key'] for x in export if 'NEVER_EXPORT_LEASE' in json.dumps(x)])
+    assert 'FOREIGN_COPY_MUST_NOT_EXPORT' not in encoded, ('FOREIGN_ROW_EXPORTED',[x['key'] for x in export if 'FOREIGN_COPY_MUST_NOT_EXPORT' in json.dumps(x)])
+    for item in export:
+        if item['key'] in ['archivedProfiles','archivedWorkerProfile']:
+            assert item['value']['portfolio']==['CANARY_11111111'], ('PORTFOLIO_PROJECTION',item['key'])
+        if item['key']=='archivedWorkerReset':
+            assert item['value']['payload']['worker_profile'][0]['portfolio']==['CANARY_11111111'], 'RESET_PORTFOLIO_PROJECTION'
     assert len(export)==20;checks.append('OWNED_EXPORT_20_RELATIONS_WITH_PEER_AND_LEASE_EXCLUSION')
     orphan=sql(f"BEGIN;DELETE FROM private.work_taxonomy_need_skills WHERE need_id={q(uid(OWNER,'need'))};DELETE FROM private.work_taxonomy_need_snapshots WHERE need_id={q(uid(OWNER,'need'))};DELETE FROM public.needs WHERE requester_account_id={q(OWNER)};UPDATE private.dev_phase1_20261014_dispatch_snapshot SET round_no=round_no+1 WHERE need_id={q(uid(OWNER,'need'))};SELECT count(*) FROM private.closure_taxonomy_export_rows_v1({q(OWNER)}) WHERE key='archivedTaskDispatch';ROLLBACK;")
     assert '\n1\n' in '\n'+orphan+'\n'

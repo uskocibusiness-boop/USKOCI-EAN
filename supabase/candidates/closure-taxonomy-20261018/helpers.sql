@@ -130,6 +130,7 @@ BEGIN
  FOR k IN SELECT jsonb_array_elements_text(c->'fields') LOOP
   v:=t->k;
   IF k IN('proposals','plan','plans','result','binding_result') THEN v:=private.closure_taxonomy_semantic_v1(v);
+  ELSIF k='portfolio' THEN v:=private.data_export_array_v5(v,'string');
   ELSIF k='payload' THEN
    FOR s IN SELECT jsonb_build_object('key',key,'fields',value) FROM jsonb_each(private.closure_taxonomy_reset_sections_v1()) LOOP
     entry:=v->(s->>'key');projected:='[]';
@@ -138,6 +139,7 @@ BEGIN
      -- Snapshot arrays can contain foreign source copies; never trust only the outer owner.
      IF owner IS NOT NULL AND owner<>a::text THEN CONTINUE;END IF;
      SELECT coalesce(jsonb_object_agg(field,rowvalue->field),'{}') INTO entry FROM jsonb_array_elements_text(s->'fields') field;
+     IF entry?'portfolio' THEN entry:=jsonb_set(entry,'{portfolio}',private.data_export_array_v5(entry->'portfolio','string'));END IF;
      IF entry?'candidate' THEN entry:=jsonb_set(entry,'{candidate}',private.data_export_worker_candidate_v5(entry->'candidate'));END IF;
      IF entry?'envelope' THEN entry:=jsonb_set(entry,'{envelope}',jsonb_build_object('profile',private.data_export_worker_candidate_v5(entry#>'{envelope,profile}')));END IF;
      FOR semantic_key IN SELECT unnest(ARRAY['proposals','plan','plans','result','binding_result']) LOOP
