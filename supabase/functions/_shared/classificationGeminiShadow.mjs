@@ -40,6 +40,7 @@ export function geminiClassificationShadowInstruction(purpose='NEED_SERVICE') {
     'Each entry inside the serialized JSON array must contain exactly service, mode, action, categoryId, parentId, proposedPath, reason, catalogVersion.',
     'The action value MUST be exactly one of REUSE_EXISTING, REUSE_ALIAS, CREATE_CHILD, CREATE_NEW_BRANCH, PROPOSE_RESTRUCTURE, ASK_CLARIFICATION, NEEDS_REVIEW, REJECT_UNSUPPORTED_OR_UNSAFE. Do not use shorter words such as REUSE, EXISTING, NEW, or CREATE.',
     'Use catalogVersion from provided server context. If an existing category covers the service, use action REUSE_EXISTING, its exact real categoryId, parentId="", proposedPath=[].',
+    'For BOTH REUSE_EXISTING and REUSE_ALIAS: categoryId must be the exact non-empty UUID of that existing category; parentId must be the empty string ""; proposedPath must be the empty array []. Do not copy the catalog parentId or path into a reuse entry. Do not use null, omit these fields, or add alias/evidence fields. The service field keeps the actual offered service wording.',
     'For a missing service: CREATE_CHILD with a real parentId from the supplied catalog in the confirmed mode, or CREATE_NEW_BRANCH with parentId="" only when no suitable parent exists. proposedPath contains 1 to 6 NEW labels, ordered from the parent toward the service; its final label must be exactly the service text. Intermediate labels may be included when useful. categoryId="" for either creation action. Give a concrete reason of 10 to 1000 characters; never write or claim a category was created.',
     'Never equate lessons, equipment rental and equipment repair merely because they mention skating.',
     'REUSE_ALIAS is only a suggested semantic candidate; no alias is verified by a model claim. Only aliases listed by the server for that exact category may be reused. Keep service equal to the actual offered skill or task service; do not replace the skill with a broader category label.',
@@ -120,6 +121,28 @@ function invalidPlanCode(p) {
      !p.proposedPath.every(x=>sane(x,3,120)))return 'PATH';
   if(!sane(p.reason,10,1000))return 'REASON';
   if(!Number.isSafeInteger(p.catalogVersion))return 'VERSION';
+  // Fixed reason enums expose which wire constraint failed, never the model's
+  // service, UUID, reason or path. The strict validator above stays unchanged.
+  if(['REUSE_EXISTING','REUSE_ALIAS'].includes(p.action)){
+    if(!p.categoryId)return 'REUSE_CATEGORY_REQUIRED';
+    if(p.parentId!=='')return 'REUSE_PARENT_MUST_BE_EMPTY';
+    if(p.proposedPath.length!==0)return 'REUSE_PATH_MUST_BE_EMPTY';
+  }else if(p.action==='CREATE_CHILD'){
+    if(!p.parentId)return 'CHILD_PARENT_REQUIRED';
+    if(p.categoryId!=='')return 'CHILD_CATEGORY_MUST_BE_EMPTY';
+    if(p.proposedPath.length===0)return 'CHILD_PATH_REQUIRED';
+  }else if(p.action==='CREATE_NEW_BRANCH'){
+    if(p.categoryId!=='')return 'BRANCH_CATEGORY_MUST_BE_EMPTY';
+    if(p.parentId!=='')return 'BRANCH_PARENT_MUST_BE_EMPTY';
+    if(p.proposedPath.length===0)return 'BRANCH_PATH_REQUIRED';
+  }else if(p.action==='PROPOSE_RESTRUCTURE'){
+    if(p.categoryId!=='')return 'RESTRUCTURE_CATEGORY_MUST_BE_EMPTY';
+    if(p.proposedPath.length===0)return 'RESTRUCTURE_PATH_REQUIRED';
+  }else{
+    if(p.categoryId!=='')return 'REVIEW_CATEGORY_MUST_BE_EMPTY';
+    if(p.parentId!=='')return 'REVIEW_PARENT_MUST_BE_EMPTY';
+    if(p.proposedPath.length!==0)return 'REVIEW_PATH_MUST_BE_EMPTY';
+  }
   return 'ACTION_FIELDS';
 }
 

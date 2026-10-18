@@ -1,0 +1,133 @@
+{
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "environment": "DEV",
+  "source_commit": "43e190db7aa6e691b26d6c9f091573fced251cac",
+  "authorization": "Owner standing application order 2026-10-18 / AGENTS 3.1",
+  "applied_at_utc": "2026-10-18T12:06:02Z",
+  "status": "APPLIED_DEV_EXACT_READBACK",
+  "migration": {
+    "local_file": "supabase/migrations/20261018115356_taxonomy_catalog_verified_alias_context.sql",
+    "remote_version": "20261018120335",
+    "name": "taxonomy_catalog_verified_alias_context",
+    "sha256": "8be7cbcc95aaca2d6733e440f4a8e506541279461eb6500f6c32f3e0e07c76c5",
+    "before_function_md5": "b658756bc9c99acf3fd07688050e9792",
+    "after_function_md5": "0c418436bd08f75c3179c80b34a2ad23",
+    "scope": "One existing read-only catalog function; no category data, table, trigger, role or ACL changes. Connector ledger timestamp differs from CLI-created source filename; exact payload hashes identify application."
+  },
+  "functions": [
+    {
+      "name": "uskoci-ai-interview",
+      "before_version": 91,
+      "after_version": 92,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "before_bundle_sha256": "47c9c9ef6baabfbdc0ff0bba5abb0eb20e1c56d7fbc88ca0df405fa07cce33c0",
+      "after_bundle_sha256": "cef3aca5740b708c02cc25e1b6af2b64d44aa0a3af51aec1abe454d46972ec18",
+      "exact_readback_files": [
+        {
+          "path": "supabase/functions/uskoci-ai-interview/index.ts",
+          "sha256": "71b1524b9fdee537d43f2fc6960408bef658c4ec51501105cb31758ef6722bb3"
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "sha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409"
+        },
+        {
+          "path": "src/contracts/needFactsV2.ts",
+          "sha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6"
+        },
+        {
+          "path": "supabase/functions/_shared/locationReply.ts",
+          "sha256": "95ae06cb6f096dec38edbb45fc024edabbfdc02f0b71431fddaa892c4b1fe36c"
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24"
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "sha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5"
+        },
+        {
+          "path": "supabase/functions/_shared/taxonomyScopedShadow.mjs",
+          "sha256": "c91b7bc3bb95f6cfc370c5a589bd12aba28089261b32d773573853cc62f75e8b"
+        },
+        {
+          "path": "supabase/functions/_shared/classificationEngine.mjs",
+          "sha256": "cdedf45565f92235ac2f8c75be9f754128bfa59f3c37fec6d7b394b677d748d3"
+        },
+        {
+          "path": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+          "sha256": "6b8a3550cb87ce8d6e42c200dcbf71f669e2b8bb0b6ba6df29d84dbafd867527"
+        }
+      ]
+    },
+    {
+      "name": "uskoci-worker-interview",
+      "before_version": 46,
+      "after_version": 47,
+      "status": "ACTIVE",
+      "verify_jwt": false,
+      "before_bundle_sha256": "9ffca6649fe5b95fd2b77e3a2265e73f4d06818e5f03c36aa106e6a31f33cfbb",
+      "after_bundle_sha256": "37ada27db43d62d46c8a34b9e367e38c1b0e4c8c6994b618ba99dc972b6de150",
+      "exact_readback_files": [
+        {
+          "path": "supabase/functions/uskoci-worker-interview/index.ts",
+          "sha256": "7846454da11319c2e95c4ccfea5410898a1d889426dd9287a6241332e7021efb"
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "sha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409"
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24"
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "sha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5"
+        },
+        {
+          "path": "supabase/functions/_shared/classificationEngine.mjs",
+          "sha256": "cdedf45565f92235ac2f8c75be9f754128bfa59f3c37fec6d7b394b677d748d3"
+        },
+        {
+          "path": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+          "sha256": "6b8a3550cb87ce8d6e42c200dcbf71f669e2b8bb0b6ba6df29d84dbafd867527"
+        }
+      ]
+    }
+  ],
+  "catalog": {
+    "version": 4,
+    "categories": 135,
+    "aliases": 3,
+    "fingerprint": "9e7b3b3d05c6b636067ee37dea9e8980",
+    "anon_execute": false,
+    "authenticated_execute": false,
+    "service_execute": true
+  },
+  "closure": {
+    "source_digest": "88cab17911f89a7d8d800ae229db568dd2aaed106395ad8acc3207917acd72ec",
+    "program_digest": "90d60aa9529996103b91ca54fb4be94770d6862453fbe521f878c603d6ab3f1e",
+    "certified_digest": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "retention_ai_ready": false,
+    "preexisting_mismatch": true,
+    "preexisting_evidence": "supabase/operations/dev-alpha/ledger/20261018075854_worker_city_country_guard.receipt.json",
+    "note": "Private baseline closure_digest label referred to program digest, not source digest. Single-query read and earlier receipt prove no new closure drift. No certificate rebind performed."
+  },
+  "proof": {
+    "ci_run": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39125442166",
+    "postgres_alias_before_failure": true,
+    "postgres_alias_after_rollback_reapply_pass": true,
+    "edge_deno_typecheck_pass": true,
+    "local_node_edge_and_alias_pass": 88,
+    "local_ui_pass": 96,
+    "local_typescript_exit": 0
+  },
+  "rollback": {
+    "database": "Exact previous function in supabase/proofs/dynamic_taxonomy/catalog-alias-context/before.sql, apply as a new forward migration if needed. Restore previous Edge bundles first.",
+    "edge": "Exact v91/v46 files preserved privately in work/ai-acceptance-20261018/recovery-applied-readback.json."
+  },
+  "acceptance": "Deployment and offline invariants only. Native/provider/Save acceptance recorded separately."
+}

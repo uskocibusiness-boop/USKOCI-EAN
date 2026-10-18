@@ -105,6 +105,60 @@ test('L protected model instruction does not claim consent or matching',()=>{
  assert.match(prompt,/Do not use shorter words such as REUSE/);
 });
 
+test('both interview instructions spell out the identical minimal wire shape for both reuse actions',()=>{
+ for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE']){
+  const instruction=instructions(purpose);
+  assert.match(instruction,/For BOTH REUSE_EXISTING and REUSE_ALIAS:/);
+  assert.match(instruction,/categoryId must be the exact non-empty UUID/);
+  assert.match(instruction,/parentId must be the empty string ""/);
+  assert.match(instruction,/proposedPath must be the empty array \[\]/);
+  assert.match(instruction,/Do not copy the catalog parentId or path into a reuse entry/);
+ }
+});
+
+test('action field diagnostics reject malformed plans without rewriting them or logging private values',()=>{
+ const malformed=[];
+ for(const action of ['REUSE_EXISTING','REUSE_ALIAS']){
+  malformed.push(
+   [{...plan('PRIVATE_SERVICE',lesson,'ON_SITE',action),categoryId:''},'REUSE_CATEGORY_REQUIRED'],
+   [{...plan('PRIVATE_SERVICE',lesson,'ON_SITE',action),parentId:rental},'REUSE_PARENT_MUST_BE_EMPTY'],
+   [{...plan('PRIVATE_SERVICE',lesson,'ON_SITE',action),proposedPath:['PRIVATE_PATH']},'REUSE_PATH_MUST_BE_EMPTY'],
+  );
+ }
+ const child={...plan('PRIVATE_SERVICE','', 'ON_SITE','CREATE_CHILD'),parentId:lesson,proposedPath:['PRIVATE_PATH']};
+ malformed.push(
+  [{...child,parentId:''},'CHILD_PARENT_REQUIRED'],
+  [{...child,categoryId:repair},'CHILD_CATEGORY_MUST_BE_EMPTY'],
+  [{...child,proposedPath:[]},'CHILD_PATH_REQUIRED'],
+  [{...child,action:'CREATE_NEW_BRANCH',parentId:'',categoryId:repair},'BRANCH_CATEGORY_MUST_BE_EMPTY'],
+  [{...child,action:'CREATE_NEW_BRANCH'},'BRANCH_PARENT_MUST_BE_EMPTY'],
+  [{...child,action:'CREATE_NEW_BRANCH',parentId:'',proposedPath:[]},'BRANCH_PATH_REQUIRED'],
+  [{...child,action:'PROPOSE_RESTRUCTURE',categoryId:repair},'RESTRUCTURE_CATEGORY_MUST_BE_EMPTY'],
+  [{...child,action:'PROPOSE_RESTRUCTURE',proposedPath:[]},'RESTRUCTURE_PATH_REQUIRED'],
+ );
+ for(const action of ['ASK_CLARIFICATION','NEEDS_REVIEW','REJECT_UNSUPPORTED_OR_UNSAFE']){
+  const base={...plan('PRIVATE_SERVICE','','ON_SITE',action)};
+  malformed.push(
+   [{...base,categoryId:repair},'REVIEW_CATEGORY_MUST_BE_EMPTY'],
+   [{...base,parentId:rental},'REVIEW_PARENT_MUST_BE_EMPTY'],
+   [{...base,proposedPath:['PRIVATE_PATH']},'REVIEW_PATH_MUST_BE_EMPTY'],
+  );
+ }
+ for(const [proposal,code] of malformed){
+  const original=structuredClone(proposal);
+  for(const [purpose,legacy] of [['WORKER_CAPABILITY',worker],['NEED_SERVICE',need]]){
+   const outcome=inspect(withEncodedShadow(legacy,[proposal]),snapshot,purpose);
+   assert.deepEqual(outcome.output,legacy);
+   assert.deepEqual(outcome.statuses,['INVALID_PLAN']);
+   assert.deepEqual(outcome.reviewProposals,[]);
+   assert.deepEqual(outcome.invalidPlanCodes,[code]);
+   assert.match(code,/^[A-Z_]+$/);
+   assert.doesNotMatch(JSON.stringify(outcome.invalidPlanCodes),/PRIVATE_|11111111|22222222|33333333/);
+  }
+  assert.deepEqual(proposal,original,'diagnostics do not repair or coerce provider data');
+ }
+});
+
 test('Gemini shadow cannot smuggle skate rental or sharpening as skating lessons',()=>{
  for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE']){
   const result=inspect(withShadow(worker,[plan('Iznajmljivanje klizaljki',lesson)]),snapshot,purpose);
