@@ -1,0 +1,53 @@
+{
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "environment": "DEV",
+  "applied_at_utc": "2026-10-18T12:13:25Z",
+  "source_commit": "49d223508a0fd1f1200a6afa68761288feb237ec",
+  "authorization": "Owner standing application order 2026-10-18 / AGENTS 3.1",
+  "scope": "Explicit wire requirements for both reuse actions and value-free invalid-action diagnostics; strict validator unchanged. No DB changes.",
+  "functions": [
+    {
+      "slug": "uskoci-ai-interview",
+      "before_version": 92,
+      "after_version": 93,
+      "before_bundle_sha256": "cef3aca5740b708c02cc25e1b6af2b64d44aa0a3af51aec1abe454d46972ec18",
+      "after_bundle_sha256": "b1d1ded78be1eff09f7fb200e1e4397ffc3af41330d0d2d827e8011f833e3953",
+      "verify_jwt": false,
+      "status": "ACTIVE",
+      "exact_readback_files": 9,
+      "changed_files": [
+        "supabase/functions/_shared/classificationGeminiShadow.mjs"
+      ]
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "before_version": 47,
+      "after_version": 48,
+      "before_bundle_sha256": "37ada27db43d62d46c8a34b9e367e38c1b0e4c8c6994b618ba99dc972b6de150",
+      "after_bundle_sha256": "6c352062d5799964846d4abab9dbc2dd486a7677c21771981c3ed4523193f248",
+      "verify_jwt": false,
+      "status": "ACTIVE",
+      "exact_readback_files": 6,
+      "changed_files": [
+        "supabase/functions/_shared/classificationGeminiShadow.mjs"
+      ]
+    }
+  ],
+  "shared_module_sha256": "e6736505d82c08b21ac2e088c26662cd1a413f5255a58586238eeedf1f856210",
+  "evidence": {
+    "ci_run": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39126300289",
+    "ci": "SUCCESS",
+    "focused_tests": 53,
+    "actual_handler_tests": 77,
+    "new_regressions_before_fail_after_pass": 2
+  },
+  "observed_trigger": "Live worker v47 INVALID_PLAN / ACTION_FIELDS at12:09:23Z. Exact raw malformed fields were not retained and are not inferred.",
+  "rollback": "Exact v92/v47 files preserved in private work/ai-alias-delivery-20261018/reuse-wire-applied-readback.json before field.",
+  "migration_filename_alignment": {
+    "original_proof_path": "supabase/migrations/20261018115356_taxonomy_catalog_verified_alias_context.sql",
+    "current_path": "supabase/migrations/20261018120335_taxonomy_catalog_verified_alias_context.sql",
+    "remote_version": "20261018120335",
+    "sha256_unchanged": "8be7cbcc95aaca2d6733e440f4a8e506541279461eb6500f6c32f3e0e07c76c5",
+    "reason": "Use the real connector-created ledger version locally so a future db push does not attempt the already-applied SQL as a new migration. Source bytes unchanged; workflow references aligned."
+  }
+}

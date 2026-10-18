@@ -29,11 +29,13 @@ Jedan aktivan proizvod, jedan registar statusa i postojeći LIVE plan. Ovaj fajl
 | Podaci i poslovna pravila | `src/data/`, `src/features/`, `supabase/functions/`, primenjene migracije i ledger |
 | Razvojni prikazi | 21 sačuvana scena u `src/designLab/`, van Expo Router ruta; Android export proverava da ih nema u proizvodnom bundle-u |
 | Testovi | Aktuelni `jest.config.cjs`; broj i prolaznost čitati iz stvarnog izvršavanja |
-| Build | `app.config.js`, `app.json`, `eas.json`, `metro.config.cjs`, postojeći CI workflow-i |
+| Build | `app.config.js`, `app.json`, `eas.json`, `metro.config.cjs`; za aktuelni objedinjeni APK: `.github/workflows/build-latest-v5-preview-apk.yml` sa `target=emulator` |
 | DEV dokaz | `supabase/operations/dev-alpha/ledger/`, datirani `docs/control/dev_snapshot.json` |
 | Istorija | `docs/authority/history/` i datirani izveštaji; nisu novi nalozi za rad |
 
 Izveštaj ovog inventara: [čišćenje i predlog povezane aplikacije](../implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md). To je datirani nalaz uz isti registar, ne drugi tracker.
+
+Aktuelni APK workflow je **Build latest V5 Android preview APK** (`build-latest-v5-preview-apk.yml`). Pokrenuti ga na stvarnom integration HEAD-u i sačuvati izvorni SHA, run ID i artifact receipt. Stariji `build-android-dev-apk.yml` ima ograničenje na istorijsku granu `work/uskoci-ui-unification-20260924`; njegovo prisustvo nije nalog za promenu trenutne grane niti za isporuku starog izvora.
 
 Naredni usaglašeni posao: [komentar Work analize, nove read-only provere i redosled izvođenja](../implementation/ui-ux-pass-20261002/WORK_ANALYSIS_RECONCILIATION_20261018.md). Njegovi sledeći koraci preneti su u postojeće redove registra; originalne ranije napomene su sačuvane. Pregled ne znači da su implementacioni paketi već zatvoreni.
 
