@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-18T04:13:16Z",
+  "osvezeno": "2026-10-18T04:31:08Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "2c713f82",
-  "head_poruka": "fix(v5): align worker profile copy and taxonomy QA boundaries",
+  "head": "2b28b8ba",
+  "head_poruka": "docs(taxonomy): record DEV catalog loader Edge rollout",
   "server": {
    "snimljeno": "2026-10-18T04:12:15Z",
    "migracije": 279,

@@ -285,6 +285,7 @@ function ExploreTasksAction({ onEarn, opportunities, onOpenOpportunity }: {
   onOpenOpportunity?: (id: string) => void;
 }) {
   const items = opportunities?.filter(item => item.primaNovePrijave !== false) ?? [];
+  if (items.length === 0) return null;
   return (
     <View style={s.carouselSection}>
       <View style={s.carouselHeader}>
@@ -297,18 +298,16 @@ function ExploreTasksAction({ onEarn, opportunities, onOpenOpportunity }: {
           <T variant="meta" tone="green" style={{ fontWeight: '600' }}>Pogledaj sve →</T>
         </Press>
       </View>
-      {items.length > 0 ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carouselList}>
-          {items.slice(0, 8).map(item => (
-            <TaskCard
-              key={item.id}
-              item={item}
-              onOpen={() => onOpenOpportunity ? onOpenOpportunity(item.id) : onEarn()}
-              style={s.carouselCard}
-            />
-          ))}
-        </ScrollView>
-      ) : null}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carouselList}>
+        {items.slice(0, 8).map(item => (
+          <TaskCard
+            key={item.id}
+            item={item}
+            onOpen={() => onOpenOpportunity ? onOpenOpportunity(item.id) : onEarn()}
+            style={s.carouselCard}
+          />
+        ))}
+      </ScrollView>
     </View>
   );
 }
@@ -382,9 +381,9 @@ export function HomePresentation(p: HomePresentationProps) {
   const pull = usePullRefresh(p.onRefresh, p.refreshing);
   return <Screen kind="root" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
     refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
-    <ExploreTasksAction onEarn={p.onEarn} opportunities={p.opportunities} onOpenOpportunity={p.onOpenOpportunity} />
     <TrustSeal />
     <StartActions onPublish={p.onPublish} onEarn={p.onEarn} />
+    <ExploreTasksAction onEarn={p.onEarn} opportunities={p.opportunities} onOpenOpportunity={p.onOpenOpportunity} />
     {p.intakeResume}
 
     {/* "Kako radi" (N4): one quiet row for a brand-new account, with a "Sakrij" that hides it for good (HowItWorks). */}

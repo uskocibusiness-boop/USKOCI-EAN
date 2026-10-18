@@ -26,6 +26,7 @@
       "problem": "725 telefon: Home nastavak vraća isti sačuvani task razgovor i potvrđeno mesto; b9 restart dokaz ostaje zaseban. Širi Home poslovni tok nije ponovo prihvaćen.",
       "sledece": "Zadržati dve glavne radnje i završiti povezani tok; bez ponovnog otvaranja popravljenog R09.",
       "source_progress_20261018": "Animirani radar u kartici 'Uskoči i zaradi' u izvoru sada čita trajanje iz zajedničkih motion tokena i zaustavlja nativnu transform petlju kada je aplikacija u pozadini ili je uključen Reduce Motion. AI asistent koristi zajedničke tokene za disanje i treptaj. Motion ratchet 84/84 prolazi; novi APK i fizička provera kretanja nisu urađeni.",
+      "source_progress_20261018_home_recommendations": "Na prijavljenom emulatoru Početna je u 'Zadaci za tebe' prikazala dva zadatka istog naloga. Izvor sada uklanja ID-jeve iz uspešno pročitane lične liste, a pri neuspehu tog čitanja izostavlja preporuke da ne predstavi svoj posao kao tuđi. Prazan karusel se ne crta; dve glavne radnje ostaju iznad preporuka. Ciljani Jest 110/110, TypeScript i diff check prolaze; Metro emulator je prikazao Početnu bez sopstvenih kartica i bez praznog zaglavlja. Fizički telefon i release APK nisu provereni. Dokaz: docs/implementation/ui-ux-pass-20261002/HOME_OWN_TASK_PREVIEW_20261018.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [

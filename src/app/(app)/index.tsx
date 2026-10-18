@@ -12,6 +12,7 @@ import { HomePresentation } from '../../ui/home/HomePresentation';
 import { IntakeResume } from '../../ui/home/IntakeResume';
 import { writeAvailableNow } from '../../data/availableNowWrite';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
+import { homeOpportunityPreview } from '../../data/homeOpportunityPreview';
 
 /**
  * Početna: the root of the one shell (owner decision 1, 2026-09-19). This route used to be a
@@ -63,6 +64,10 @@ function Home() {
   }, [source]);
   const resource = useFocusedResource(load, KEEP_LAST_READ);
   const home = useMemo(() => resource.data ? composeHome(resource.data, resource.data.attention) : null, [resource.data]);
+  const opportunities = useMemo(() => homeOpportunityPreview(
+    resource.data?.opportunities?.kind === 'known' ? resource.data.opportunities.value : undefined,
+    resource.data?.needs,
+  ), [resource.data]);
   // R06: what the switch shows while it saves and after it saved is this screen's own until the next read lands; that read is the
   // truth again, so it takes the override away.
   const [switching, setSwitching] = useState<{ value: boolean | null; busy: boolean; failed: boolean }>({ value: null, busy: false, failed: false });
@@ -102,7 +107,7 @@ function Home() {
   const onProfile = () => navigate(() => router.navigate('/profil'));
   const profile = home?.workerProfile?.kind === 'known' ? home.workerProfile.value : null;
   return <HomePresentation header={<ScreenHeader title="Početna" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
-    opportunities={resource.data?.opportunities?.kind === 'known' ? resource.data.opportunities.value : undefined}
+    opportunities={opportunities}
     onOpenOpportunity={id => navigate(() => router.navigate({ pathname: '/prilike/[id]', params: { id } }))}
     stale={!!resource.refreshError && !!home}
     intakeResume={<IntakeResume onOpen={conversationId => navigate(() => router.navigate({ pathname: '/nova', params: { conversationId } }))} />}
