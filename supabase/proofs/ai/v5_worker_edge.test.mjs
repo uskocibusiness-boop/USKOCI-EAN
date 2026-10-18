@@ -36,7 +36,7 @@ function fixture(options={}){
   }
   assert.fail('UNEXPECTED_NETWORK_OR_CANONICAL_WRITER');
  };
- const loaded=loadWorkerRecoveryHandler({fetch,env:name=>env[name],setTimeout:options.setTimeout});
+ const loaded=loadWorkerRecoveryHandler({fetch,env:name=>env[name],setTimeout:options.setTimeout,log:options.log});
  handler=loaded.handler;
  return {calls,output,invoke:(patch={})=>handler(new Request('https://edge.invalid',{method:'POST',signal:options.signal,headers:{Authorization:'Bearer SYNTHETIC',Accept:'text/event-stream','Content-Type':'application/json',...options.headers},
   body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:'SYNTHETIC_USER_MESSAGE',...patch})}))};
@@ -96,6 +96,63 @@ for(const registered of [true,false])test(`worker actual handler keeps original 
   assert.ok(f.calls.indexOf(capture[0])>f.calls.indexOf(completions(f)[0]));
  }
  assert.ok(!f.calls.some(c=>/save_worker|ensure_path|commit_admission|publish|push/.test(c.url)));
+});
+
+function paintingFixture(shadow,options={}){
+ const service='Krečenje zidova',category=id(23);
+ const proposal={service,mode:'ON_SITE',action:'REUSE_EXISTING',categoryId:category,parentId:'',proposedPath:[],
+  reason:'The worker explicitly offers painting at the customer location.',catalogVersion:7};
+ const output={assistantMessage:'Pregledaj nacrt pre čuvanja.',safety:'ALLOW',patch:{skills:[service]},
+  ...(shadow==='missing'?{}:{classificationShadowJson:shadow==='valid'?JSON.stringify([proposal]):shadow})};
+ return fixture({output,log:options.log,
+  env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true',...options.env},
+  catalog:body=>({action:'CATALOG_CONTEXT',scope:body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE',catalogVersion:7,
+   catalogFingerprint:'a'.repeat(32),items:body.p_execution_location_mode==='REMOTE'?[]:[
+    {categoryId:id(21),parentId:null,label:'Molerski radovi',aliases:[],path:['Molerski radovi'],isLeaf:false},
+    {categoryId:id(22),parentId:id(21),label:'Krečenje',aliases:[],path:['Molerski radovi','Krečenje'],isLeaf:false},
+    {categoryId:category,parentId:id(22),label:service,aliases:[],path:['Molerski radovi','Krečenje',service],isLeaf:true},
+   ],nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'})});
+}
+
+test('known painting leaf is proposed ON_SITE through actual worker catalog schema and hint capture',async()=>{
+ const f=paintingFixture('valid'),es=await events(f);
+ assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
+ const provider=providers(f)[0].body,schema=provider.generationConfig.responseSchema;
+ assert.ok(schema.required.includes('classificationShadowJson'));
+ assert.deepEqual(schema.properties.classificationShadowJson,{type:'STRING'});
+ const capture=f.calls.find(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
+ assert.deepEqual(capture.body.p_proposals.map(p=>[p.service,p.mode,p.categoryId]),[['Krečenje zidova','ON_SITE',id(23)]]);
+ assert.ok(f.calls.indexOf(capture)>f.calls.indexOf(completions(f)[0]));
+ assert.deepEqual(completions(f)[0].body.p_output.patch.skills,['Krečenje zidova']);
+ assert.ok(!Object.hasOwn(completions(f)[0].body.p_output,'classificationShadowJson'));
+ assert.ok(!f.calls.some(c=>/rpc_save_worker|ensure_path|commit_admission|publish|push/.test(c.url)));
+});
+
+for(const [shadow,diagnostic] of [['missing','MISSING_CLASSIFICATION_SHADOW'],['[]','EMPTY_CLASSIFICATION_SHADOW']])
+test('worker '+diagnostic+' remains unresolved without catalog-mode inference or a paid retry',async()=>{
+ const logs=[],f=paintingFixture(shadow,{log:args=>logs.push(args)}),es=await events(f);
+ assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);assert.equal(completions(f).length,1);
+ assert.ok(logs.some(args=>args[0]==='WORKER_TAXONOMY_PLAN_SHADOW'&&args[1]===diagnostic));
+ assert.ok(!JSON.stringify(logs).includes('Krečenje'));
+ assert.ok(!f.calls.some(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service')));
+ assert.deepEqual(completions(f)[0].body.p_output.patch.skills,['Krečenje zidova']);
+});
+
+test('worker without active catalog protocol retains its original provider schema',async()=>{
+ const f=paintingFixture('missing',{env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'false'}});await events(f);
+ const schema=providers(f)[0].body.generationConfig.responseSchema;
+ assert.ok(!schema.required.includes('classificationShadowJson'));
+ assert.ok(!Object.hasOwn(schema.properties,'classificationShadowJson'));
+ assert.ok(!f.calls.some(c=>c.url.endsWith('/rpc_taxonomy_ai_catalog_context_service')));
+});
+
+test('stale painting proposal cannot become a current service mode despite a known exact leaf',async()=>{
+ const proposal={service:'Krečenje zidova',mode:'ON_SITE',action:'REUSE_EXISTING',categoryId:id(23),parentId:'',proposedPath:[],
+  reason:'Synthetic stale proposal from the previous catalog.',catalogVersion:6};
+ const logs=[],f=paintingFixture(JSON.stringify([proposal]),{log:args=>logs.push(args)});await events(f);
+ assert.equal(providers(f).length,1);
+ assert.ok(logs.some(args=>args[0]==='WORKER_TAXONOMY_PLAN_SHADOW'&&args[1]==='STALE_CATALOG'));
+ assert.ok(!f.calls.some(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service')));
 });
 test('completed/unknown claim replay cannot reserve or call the provider again',async()=>{
  const f=fixture({replay:true});assert.deepEqual(await(await f.invoke()).json(),turn());assert.equal(providers(f).length,0);assert.equal(f.calls.length,2);
@@ -162,7 +219,7 @@ function modeFixture(options={}) {
   classificationShadowJson:JSON.stringify(['REMOTE','ON_SITE'].map(proposal)),...options.output};
  return fixture({context,output,env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
   catalog:body=>({action:'CATALOG_CONTEXT',scope:body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE',catalogVersion:7,
-   catalogFingerprint:'a'.repeat(32),items:options.retired?[]:[{categoryId:category,parentId:null,label:service,aliases:['Modeli po meri'],path:[service],isLeaf:true}],
+   catalogFingerprint:'a'.repeat(32),items:options.retired||options.catalogModes&&!options.catalogModes.includes(body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE')?[]:[{categoryId:category,parentId:null,label:service,aliases:['Modeli po meri'],path:[service],isLeaf:true}],
    nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'})});
 }
 const capturedModes=f=>f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service')).flatMap(c=>c.body.p_proposals.map(p=>p.mode));
@@ -227,6 +284,12 @@ test('removing the offered skill cannot resurrect it from saved mode context',as
 });
 test('retired catalog identity is not revived by saved service continuity',async()=>{
  const f=modeFixture({retired:true});await events(f);assert.deepEqual(capturedModes(f),[]);
+});
+
+test('revoked REMOTE catalog scope is not revived by an empty required worker snapshot',async()=>{
+ const f=modeFixture({catalogModes:['ON_SITE'],output:{classificationShadowJson:'[]'}});await events(f);
+ assert.deepEqual(capturedModes(f),[]);assert.equal(providers(f).length,1);
+ assert.ok(providers(f)[0].body.generationConfig.responseSchema.required.includes('classificationShadowJson'));
 });
 test('a safety refusal cannot capture even a valid saved mode',async()=>{
  const f=modeFixture({output:{safety:'BLOCK',patch:{},assistantMessage:'Ne mogu da pomognem sa tim zahtevom.'}});await events(f);

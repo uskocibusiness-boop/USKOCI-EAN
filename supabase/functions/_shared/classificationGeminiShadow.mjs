@@ -1,7 +1,7 @@
 // Shared Gemini classification SHADOW projection for both AI interviews.
 // No DB writes, user-facing changes, matching or notification authority.
 // The existing worker/need typed JSON contract is preserved byte-for-byte
-// AFTER removing the optional, never-authoritative classificationShadow field.
+// AFTER removing the private, never-authoritative classificationShadow field.
 import { CLASSIFICATION_ACTIONS, reviewClassificationProposal, normalizedClassificationIdentity } from './classificationEngine.mjs';
 const UUID=/^[a-f\d]{8}-[a-f\d]{4}-[1-8][a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12}$/i;
 const modes=new Set(['ON_SITE','REMOTE','UNCONFIRMED']);
@@ -15,7 +15,9 @@ const maxShadowJsonBytes=24576;
 /** The old nested classificationShadow array made the already complex
  * interview responseSchema much larger. That experimental provider schema was
  * rejected with HTTP 400 on DEV. Keep the original typed interview contract and
- * request only one OPTIONAL STRING in the provider schema. The string contains
+ * request only one STRING in the provider schema. Worker snapshots are required
+ * when this catalog-enabled decorator is used; requester metadata stays optional.
+ * The string contains
  * JSON metadata, parsed and independently validated below after completion.
  * The raw metadata never becomes an AI fact, owner consent, skill or category.
  * The older array envelope remains accepted for offline compatibility tests.
@@ -26,16 +28,21 @@ export function withGeminiClassificationShadowSchema(baseSchema,purpose='NEED_SE
       ||Object.hasOwn(baseSchema.properties,shadowJsonField)
       ||!['NEED_SERVICE','WORKER_CAPABILITY'].includes(purpose))
     throw new Error('SHADOW_SCHEMA_INVALID');
-  return {...baseSchema,properties:{...baseSchema.properties,
+  return {...baseSchema,
+    ...(purpose==='WORKER_CAPABILITY' ? {required:[...(baseSchema.required??[]),shadowJsonField]} : {}),
+    properties:{...baseSchema.properties,
     [shadowJsonField]:{type:'STRING'}}};
 }
 
 export function geminiClassificationShadowInstruction(purpose='NEED_SERVICE') {
   return [
     purpose==='WORKER_CAPABILITY'
-      ? 'Additional OPTIONAL classificationShadowJson STRING: serialize a JSON array containing a FULL SNAPSHOT (0 to 24 service+mode proposals, at most 12 services) of what this person currently offers AFTER applying the profile patch. Only propose services in the updated explicit skills; never invent a job.'
+      ? 'Required classificationShadowJson STRING: serialize a JSON array containing a FULL SNAPSHOT (0 to 24 service+mode proposals, at most 12 services) of what this person currently offers AFTER applying the profile patch. Only propose services in the updated explicit skills; never invent a job.'
       : 'Additional OPTIONAL classificationShadowJson STRING: serialize a JSON array of 0 to 6 SEMANTIC SERVICE proposals for the CURRENT task turn; never fabricate work.',
-    'The entire classificationShadowJson field is one JSON STRING, NOT a nested JSON array property. Serialize array entries as JSON inside that string, no markdown. Use the string "[]" when nothing is clear. This field is private metadata and never user consent or catalog write authority.',
+    'The entire classificationShadowJson field is one JSON STRING, NOT a nested JSON array property. Serialize array entries as JSON inside that string, no markdown. This field is private metadata and never user consent or catalog write authority.',
+    purpose==='WORKER_CAPABILITY'
+      ? 'Always include this field. Use "[]" only when there are no currently offered services or safety is BLOCK/REVIEW. For an offered service with unresolved identity use ASK_CLARIFICATION or NEEDS_REVIEW with categoryId="", parentId="", proposedPath=[] and a concrete reason; for unresolved delivery mode use UNCONFIRMED. Missing identity or mode is a proposal with an explicit unresolved state, never a reason to omit the service. When the person explicitly offers work at the customer, propose ON_SITE for that service; when explicitly remote, propose REMOTE. Catalog modes only limit supported scopes and never establish what this worker offers.'
+      : 'Use the string "[]" when nothing is clear.',
     'Do not change assistantMessage, safety, facts, patch, dialogue or the other existing response fields. Never return the older classificationShadow array field.',
     'Each entry inside the serialized JSON array must contain exactly service, mode, action, categoryId, parentId, proposedPath, reason, catalogVersion.',
     'The action value MUST be exactly one of REUSE_EXISTING, REUSE_ALIAS, CREATE_CHILD, CREATE_NEW_BRANCH, PROPOSE_RESTRUCTURE, ASK_CLARIFICATION, NEEDS_REVIEW, REJECT_UNSUPPORTED_OR_UNSAFE. Do not use shorter words such as REUSE, EXISTING, NEW, or CREATE.',
@@ -157,7 +164,8 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
   const {[legacyShadowField]:legacyShadow,[shadowJsonField]:encoded,...output}=raw;
   const oldFormat=Object.hasOwn(raw,legacyShadowField);
   const newFormat=Object.hasOwn(raw,shadowJsonField);
-  if(!oldFormat&&!newFormat)return {output,statuses:[],reviewProposals:[]};
+  if(!oldFormat&&!newFormat)return {output,
+    statuses:purpose==='WORKER_CAPABILITY'?['MISSING_CLASSIFICATION_SHADOW']:[],reviewProposals:[]};
   // Never give ambiguous mixed envelopes any classification authority.
   if(oldFormat&&newFormat)return {output,statuses:['AMBIGUOUS_SHADOW_FORMAT'],reviewProposals:[]};
   let shadow=legacyShadow;
@@ -169,6 +177,10 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
   }
   if(!Array.isArray(shadow)||shadow.length>maxServices(purpose))
     return {output,statuses:['INVALID_BATCH'],reviewProposals:[]};
+  // Bounded telemetry distinguishes a provider omission from a rejected plan.
+  // Never infer a category or delivery mode, retry the provider or alter the turn.
+  if(shadow.length===0&&purpose==='WORKER_CAPABILITY')
+    return {output,statuses:['EMPTY_CLASSIFICATION_SHADOW'],reviewProposals:[]};
   if(raw.safety==='BLOCK'||raw.safety==='REVIEW')
     return {output,statuses:shadow.length?['SAFETY_INTERVIEW_REVIEW']:[],reviewProposals:[]};
   if(!record(snapshot)||!Array.isArray(snapshot.categories)||!Number.isSafeInteger(snapshot.catalogVersion))

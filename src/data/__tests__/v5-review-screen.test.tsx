@@ -673,7 +673,7 @@ describe('the review reads as a task', () => {
     expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/nova',params:{conversationId:CONVERSATION,aiCorrection:expect.any(String)}}); expect(mockCorrect).not.toHaveBeenCalled();
   });
 
-  it('the photographs lead the page of others and their pencil opens the step that holds them; with none the owner is offered to add them', async () => {
+  it('the photo correction opens its owned step; with none the owner is offered to add them', async () => {
     mockPrepare.mockResolvedValue(ok(review()));
     await render();
     expect(commands('Izmeni, Fotografije')).toHaveLength(0);
@@ -692,14 +692,14 @@ describe('the review reads as a task', () => {
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/fotografije-zadatka', params: { conversationId: CONVERSATION } });
   });
 
-  it('says who asks as the owner is read by the others: his name and rating on the card and on the page, and nobody when that read gave nothing', async () => {
+  it('names the requester without claiming publication, and shows no fabricated person or rating when its read is absent', async () => {
     mockPrepare.mockResolvedValue(ok(review()));
     await render();
-    expect(text()).not.toContain('Objavio'); expect(text()).not.toContain('Ocena nije dostupna');
+    expect(text()).not.toContain('Naručilac'); expect(text()).not.toContain('Objavio'); expect(text()).not.toContain('Ocena nije dostupna');
     await act(async () => tree.unmount());
     mockPerson = { profileId: 'profile-1', name: 'Miloš P.', rating: '4,7', reviewCount: 3, profile: null, photo: () => null };
     await render();
-    expect(text().split('Miloš P.').length - 1).toBe(1); expect(text()).toContain('Objavio');
+    expect(text().split('Miloš P.').length - 1).toBe(1); expect(text()).toContain('Naručilac'); expect(text()).not.toContain('Objavio');
     expect(text()).toContain('4,7 · 3 ocene');
     // Without his public profile the record is only read: there is nothing to open.
     expect(tree.root.findAll(node => node.type === ('Press' as React.ElementType) && String(node.props.accessibilityLabel ?? '').startsWith('Miloš P.,')

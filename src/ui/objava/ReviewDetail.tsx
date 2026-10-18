@@ -7,6 +7,7 @@ import { inicijali } from '../../lib/inicijali';
 import { T } from '../Text';
 import { DetailDescription, DetailRoute, routeAddsToArea } from '../product/ProductDetails';
 import { PhotoPages, PhotoViewer } from '../media/PhotoViewer';
+import { Avatar } from '../system/Avatar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { FactRow } from '../system/FactRow';
 import { layout } from '../system/layout';
@@ -15,23 +16,16 @@ import { PublicProfileSheet } from '../system/PublicProfileSheet';
 import { Section } from '../system/Section';
 import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
-import { TaskDecisionPublisher, TaskDecisionTitle, TaskDecisionValue } from '../v2/detail/TaskDecision';
+import { publisherRatingLine, publisherTrust, TaskDecisionTitle, TaskDecisionValue } from '../v2/detail/TaskDecision';
 import { placesText, taskPlace } from '../v2/TaskFace';
 import { EditPencil, PencilOverPhoto, type PartPencil } from './EditPencil';
 import { deadlineWords, type AddressFrame } from './reviewFacts';
 
 /**
- * The task as the people who open it will read it, with the owner's pencils on it (owner, 8 Oct 2026: "pregled zadatka pre objave treba da
- * bude kao detaljan pregled zadatka, a ne da bude taksativno"). It is the page of a task somebody else posted (`PublicNeedPresentation`) in
- * the same order and in the same words, made from the same parts (`TaskDecision*`, `DetailDescription`, the approximate map), over the
- * projection the review is made into (`reviewAsTask`): the photos, the name, what it pays, where, when and how many people, who asks,
- * what the work is, what it asks, where it is, until when people may apply. `review-detail-parity.test` holds the two pages to the
- * same words, so a change of the published page cannot leave this one behind.
- *
- * What is the owner's alone is added to it and nothing else: a pencil at the end of each part (the correction of exactly that fact, in
- * place, or the step that holds it), the frame of the exact address with its lock (the page of others says only where it is roughly),
- * and the way to add what the task does not say yet. The apply button, the questions and the report of a person are left out: this is not a
- * task one applies to, and the person who asks is the owner. Presentation only; the route owns every read, guard and command.
+ * The owner's review of the exact task projection: title and description first, then price, place, time and people.
+ * Shared fact renderers keep its values consistent with the public task. Optional photos, requirements and the requester follow
+ * the decision itself, without claiming that this preview has already been published.
+ * Contextual corrections remain route-owned; private address content and the frozen map never become editable by presentation alone.
  */
 
 /**
@@ -95,16 +89,17 @@ export function ReviewDetail({ need, parts, photos, map, address, more, person, 
   const stops = moves && routeAddsToArea(needGeographyRows(need), need.podrucjeTekst) ? needGeographyRows(need) : [];
   const requirements = needRequirementRows(need);
   return <View testID="review-detail" style={s.detail}>
-    {photos}
-    <View>
+    <View style={s.summary}>
       <PartRow part={parts.title}><TaskDecisionTitle onLayout={noop}>{readableTitle(need.naslov)}</TaskDecisionTitle></PartRow>
+      {need.opis ? <PartSection title="O zadatku" part={parts.description}><DetailDescription text={need.opis} /></PartSection> : null}
+    </View>
+    <View style={s.facts}>
       <PartRow part={parts.value}><TaskDecisionValue need={need} /></PartRow>
       <PartRow part={parts.place}><FactRow size="detail" art={place.remote ? 'remote' : 'pin'} value={place.text} /></PartRow>
       <PartRow part={parts.time}><FactRow size="detail" art="calendar" value={time} /></PartRow>
       {showPeople ? <PartRow part={parts.people}><FactRow size="detail" art="users" value={people.text} /></PartRow> : null}
     </View>
-    {person ? <Publisher person={person} /> : null}
-    {need.opis ? <PartSection title="O zadatku" part={parts.description}><DetailDescription text={need.opis} /></PartSection> : null}
+    {photos}
     {requirements.length ? <Section title="Važno za ovaj zadatak">
       <View>{requirements.map((row, index) => <PartRow key={`${row.label}:${index}`} part={parts.requirements[row.label] ?? NO_PART}>
         <FactRow size="detail" art={REQUIREMENT_ART[row.label] ?? 'document'} value={requirementValues(row.value)} note={row.label} />
@@ -115,6 +110,7 @@ export function ReviewDetail({ need, parts, photos, map, address, more, person, 
       <View style={s.stack}>{map}{stops.length ? <DetailRoute rows={stops} /> : null}</View>
     </PartSection> : null}
     {address}
+    {person ? <Publisher person={person} /> : null}
     <PartSection title="Prijave" part={parts.deadline}><T variant="body">{deadlineWords(need.rokZaPrijaveIso ?? null)}</T></PartSection>
   </View>;
 }
@@ -148,8 +144,8 @@ function PartSection({ title, part, children }: { title: string; part: PreviewPa
 }
 
 /**
- * "Objavio": the owner as the others read him, in the same record as on the page of others. It opens his public profile, the sheet
- * that shows him as everyone sees him, when that read was made; without it the record is only read (and draws no arrow).
+ * The requester, before or after publication. A compact row opens the already-read public profile;
+ * a missing public read leaves the identity as a fact, without a dead arrow or a fabricated rating.
  */
 function Publisher({ person }: { person: DetailPerson }) {
   const [open, setOpen] = useState(false);
@@ -157,9 +153,15 @@ function Publisher({ person }: { person: DetailPerson }) {
   useFocusEffect(useCallback(() => () => setOpen(false), []));
   const name = person.name.trim();
   if (!name) return null;
+  const trust = publisherTrust(person.rating, person.reviewCount);
   return <>
-    <TaskDecisionPublisher name={name} rating={person.rating} count={person.reviewCount} initials={inicijali(name)}
-      photo={person.photo?.(person.profileId, 56)} onPress={person.profile ? () => setOpen(true) : undefined} />
+    <Section title="Naručilac">
+      <ListRow title={name} subtitle={trust.text} last
+        leading={person.photo?.(person.profileId, 40) ?? <Avatar initials={inicijali(name)} size={40} />}
+        accessibilityLabel={[name, publisherRatingLine(person.rating, person.reviewCount)].join(', ')}
+        accessibilityHint={person.profile ? 'Otvara javni profil' : undefined}
+        onPress={person.profile ? () => setOpen(true) : undefined} />
+    </Section>
     {person.profile ? <PublicProfileSheet state={open ? { loading: false, data: person.profile } : null} onClose={() => setOpen(false)}
       onRetry={() => setOpen(false)} photo={person.photo} /> : null}
   </>;
@@ -236,6 +238,8 @@ export function AddPhotos({ pencil, title = 'Dodaj fotografije' }: { pencil?: Pa
 
 const s = StyleSheet.create({
   detail: { gap: layout.section },
+  summary: { gap: sys.space.lg },
+  facts: { gap: sys.space.xs },
   // The first line of a part stands on its pencil: 8 above a 28 picture or a 33 line, in a 48 touch.
   part: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm },
   partBody: { flex: 1, minWidth: 0, minHeight: layout.touch, paddingTop: sys.space.sm },

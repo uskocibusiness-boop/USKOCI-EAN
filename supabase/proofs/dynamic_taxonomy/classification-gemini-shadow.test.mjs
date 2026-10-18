@@ -82,7 +82,8 @@ test('I novel service belongs to owner-reviewed admission, not provider output',
 });
 test('J empty, absent, invalid and over-limit shadow never change legacy facts',()=>{
  assert.deepEqual(inspect(worker,snapshot,'WORKER_CAPABILITY').output,worker);
- assert.deepEqual(inspect(withShadow(worker,[]),snapshot,'WORKER_CAPABILITY').statuses,[]);
+ assert.deepEqual(inspect(worker,snapshot,'WORKER_CAPABILITY').statuses,['MISSING_CLASSIFICATION_SHADOW']);
+ assert.deepEqual(inspect(withShadow(worker,[]),snapshot,'WORKER_CAPABILITY').statuses,['EMPTY_CLASSIFICATION_SHADOW']);
  assert.deepEqual(inspect(withShadow(worker,'not array'),snapshot,'WORKER_CAPABILITY').statuses,['INVALID_BATCH']);
  assert.deepEqual(inspect(withShadow(need,Array(7).fill(plan('Oštrenje klizaljki',repair))),snapshot,'NEED_SERVICE').statuses,['INVALID_BATCH']);
  assert.deepEqual(inspect(withShadow(worker,[plan('Oštrenje klizaljki',repair),plan('Oštrenje klizaljki',repair)]),snapshot,'WORKER_CAPABILITY').statuses,
@@ -103,6 +104,29 @@ test('L protected model instruction does not claim consent or matching',()=>{
  assert.match(prompt,/UNCONFIRMED/);
  assert.match(prompt,/action REUSE_EXISTING/);
  assert.match(prompt,/Do not use shorter words such as REUSE/);
+});
+
+test('worker snapshot requires explicit unresolved proposals without inferring scope from catalog',()=>{
+ const prompt=instructions('WORKER_CAPABILITY');
+ assert.match(prompt,/Required classificationShadowJson STRING/);
+ assert.match(prompt,/Always include this field/);
+ assert.match(prompt,/no currently offered services or safety is BLOCK\/REVIEW/);
+ assert.match(prompt,/ASK_CLARIFICATION or NEEDS_REVIEW/);
+ assert.match(prompt,/never a reason to omit the service/);
+ assert.match(prompt,/Catalog modes only limit supported scopes/);
+ const unresolved={...plan('PRIVATE_SERVICE','','UNCONFIRMED','NEEDS_REVIEW')};
+ const result=inspect(withEncodedShadow(worker,[unresolved]),snapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(result.statuses,['NEEDS_REVIEW']);
+ assert.deepEqual(result.reviewProposals,[]);
+ for(const raw of [worker,withEncodedShadow(worker,[])]){
+  const checked=inspect(raw,snapshot,'WORKER_CAPABILITY');
+  assert.deepEqual(checked.output,worker);
+  assert.deepEqual(checked.reviewProposals,[]);
+  assert.ok(checked.statuses.every(status=>/^[A-Z_]+$/.test(status)));
+  assert.doesNotMatch(JSON.stringify(checked.statuses),/PRIVATE_SERVICE|11111111/);
+ }
+ assert.deepEqual(inspect(need,snapshot,'NEED_SERVICE').statuses,[]);
+ assert.deepEqual(inspect(withEncodedShadow(need,[]),snapshot,'NEED_SERVICE').statuses,[]);
 });
 
 test('both interview instructions spell out the identical minimal wire shape for both reuse actions',()=>{
@@ -215,7 +239,8 @@ test('worker provider requests full 24-scope post-turn snapshot; requester stays
  const base={type:'OBJECT',properties:{assistantMessage:{type:'STRING'}},required:['assistantMessage'],additionalProperties:false};
  for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE']){
   assert.deepEqual(decorate(base,purpose).properties.classificationShadowJson,{type:'STRING'});
-  assert.deepEqual(decorate(base,purpose).required,base.required);
+  assert.deepEqual(decorate(base,purpose).required,purpose==='WORKER_CAPABILITY'
+   ? [...base.required,'classificationShadowJson'] : base.required);
   assert.equal(Object.hasOwn(base.properties,'classificationShadowJson'),false);
  }
  assert.match(instructions('WORKER_CAPABILITY'),/0 to 24/);
@@ -256,13 +281,14 @@ test('worker accepts 7 distinct services but bounds forged oversized 25 proposal
  assert.deepEqual(inspect(withShadow(worker,Array(25).fill(many[0])),snapshot,'WORKER_CAPABILITY').statuses,['INVALID_BATCH']);
 });
 
-test('provider-safe envelope is exactly ONE optional string, independent of nested interview schema',()=>{
+test('provider-safe envelope is one string, required only for worker catalog snapshots',()=>{
  const base={type:'OBJECT',required:['assistantMessage','patch'],additionalProperties:false,
   properties:{assistantMessage:{type:'STRING'},patch:{type:'OBJECT',required:['skills'],
     properties:{skills:{type:'ARRAY',items:{type:'STRING'}}}}}};
  for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE']){
   const extended=decorate(base,purpose);
-  assert.deepEqual(extended.required,base.required);
+  assert.deepEqual(extended.required,purpose==='WORKER_CAPABILITY'
+   ? [...base.required,'classificationShadowJson'] : base.required);
   assert.deepEqual(extended.properties.patch,base.properties.patch);
   assert.deepEqual(Object.keys(extended.properties),['assistantMessage','patch','classificationShadowJson']);
   assert.deepEqual(extended.properties.classificationShadowJson,{type:'STRING'});

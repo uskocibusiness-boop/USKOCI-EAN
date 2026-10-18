@@ -58,7 +58,7 @@ function makePayload(baseline,purpose,toWire) {
   const shadow=withGeminiClassificationShadowSchema(baseline,purpose);
   const extended=purpose==='WORKER_CAPABILITY'?workerServiceModeSchema(shadow):shadow;
   const turn={
-    systemInstruction:{parts:[{text:'Synthetic USKOCI schema compatibility test. Respond in Serbian. Return safe short values. Set assistantMessage to OK. Keep facts empty and patch empty. For dialogue use next ACK, questionKey NONE, taskRelation CONTINUE, priceUnit UNSPECIFIED, schedulePattern UNSPECIFIED. Set optional classificationShadowJson to the string [].'}]},
+    systemInstruction:{parts:[{text:'Synthetic USKOCI schema compatibility test. Respond in Serbian. Return safe short values. Set assistantMessage to OK. Keep facts empty and patch empty. For dialogue use next ACK, questionKey NONE, taskRelation CONTINUE, priceUnit UNSPECIFIED, schedulePattern UNSPECIFIED. Set classificationShadowJson to the string [].'}]},
     contents:[{role:'user',parts:[{text:'Sintetički test: treba mi krečenje sobe.'}]}],
     generationConfig:{responseMimeType:'application/json',responseSchema:extended,maxOutputTokens:2048}
   };
@@ -72,7 +72,7 @@ function makePayload(baseline,purpose,toWire) {
     assert.deepEqual(serviceModeChangesJson,{type:'STRING'});
     assert.equal(wireSchema.required.includes('serviceModeChangesJson'),false);
   } else assert.equal(serviceModeChangesJson,undefined);
-  assert.equal(wireSchema.required.includes('classificationShadowJson'),false);
+  assert.equal(wireSchema.required.includes('classificationShadowJson'),purpose==='WORKER_CAPABILITY');
   assert.equal('classificationShadow' in wireSchema.properties,false);
   assert.equal(JSON.stringify(sent).includes('additionalProperties'),false);
   assert.equal(JSON.stringify(sent).includes('maxItems'),false);

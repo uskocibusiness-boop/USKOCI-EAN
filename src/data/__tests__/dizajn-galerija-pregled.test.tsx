@@ -69,7 +69,7 @@ describe('a review that is ready is the task as the others read it, with a penci
     expect(copy.indexOf('Ovako ga vide na mapi i u listi')).toBeLessThan(copy.indexOf('Ovako izgleda kad ga otvore'));
     // The task is drawn twice, in the same words: the card (map and list) and the page that opens from it.
     expect(count('Prenos ormara na treći sprat bez lifta')).toBe(2); expect(count('4.500 RSD')).toBe(2); expect(count('Detelinara, Novi Sad')).toBe(2);
-    expect(copy).toContain('Treba 2 osobe'); expect(copy).toContain('Objavio');
+    expect(copy).toContain('Treba 2 osobe'); expect(copy).toContain('Naručilac'); expect(copy).not.toContain('Objavio');
     // Who asks is the owner, as the others read him: on the card and on the page.
     expect(count('Miloš P.')).toBe(2); expect(copy).toContain('4,7');
     // The exact address is his alone, in its own frame, with the one sentence of privacy.
@@ -143,7 +143,7 @@ describe('the other shapes of a task', () => {
   it('a draft with no photographs offers the way to add them, and an owner nobody has read is not drawn as the one who asks', async () => {
     await open('Bez fotografija, bez lica');
     expect(labels()).toContain('Dodaj fotografije'); expect(labels()).not.toContain('Izmeni, Fotografije');
-    expect(text()).not.toContain('Objavio'); expect(text()).not.toContain('Miloš P.');
+    expect(text()).not.toContain('Naručilac'); expect(text()).not.toContain('Objavio'); expect(text()).not.toContain('Miloš P.');
   });
 
   it('long names wrap whole: nothing is cut with an ellipsis, and the page says all of them', async () => {

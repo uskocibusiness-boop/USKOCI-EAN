@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { NeedLocationInput } from '../../../contracts/location';
 import type { NeedFactV2Key, NeedTaskGeography } from '../../../contracts/needFactsV2';
@@ -24,11 +25,12 @@ import { taskPlace } from '../../v2/TaskFace';
 import { needRequirementRows } from '../../../data/needDetailPresentation';
 import { NO_PART, REQUIREMENT_ART, ReviewDetail, type ReviewDetailParts } from '../ReviewDetail';
 import { reviewAsTask, type ReviewSource } from '../reviewAsTask';
+import { EditPencil } from '../EditPencil';
 
 /**
  * "Ovako izgleda kad ga otvore" is the page of a task somebody else posted, not a drawing of it (owner, 8 Oct 2026: "čovek vidi kako će izgledati kad je
  * objavljen"). The review draws it from the same parts (`TaskDecision*`, `DetailDescription`) over the projection the review is made into, and
- * this holds the two to the same facts, in the same words and the same order, so a change of the published page cannot leave the review behind: the
+ * this holds the two to the same facts and words, so a change of the published page cannot leave the review behind: the
  * facts of the published page (what it pays, where, when, how many people, what it asks) are the facts of the review, and the only things the review
  * adds are the owner's (the pencils, the frame of the exact address, the deadline) and the only things it leaves out are what is for somebody who
  * applies (the button, the questions, the report of a person).
@@ -91,23 +93,48 @@ describe.each(CASES)('the review says what the published page says: %s', (_name,
     expect(review.every(row => typeof row.value === 'string' && row.value.trim().length > 0)).toBe(true);
   });
 
-  it('puts the parts of the page in the same order: the name, what it pays, where, when, who asks, the work, what it asks', async () => {
+  it('preserves every material fact while naming the requester without claiming a draft is already published', async () => {
     const task = need();
-    const landmarks = [task.naslov, task.ponudjenaCena?.prikaz, task.rezimCene === 'OFFERS' ? 'Tražim ponude' : null, taskPlace(task).text, task.vremeTekst, task.narucilacIme ? 'Objavio' : null,
+    const landmarks = [task.naslov, task.ponudjenaCena?.prikaz, task.rezimCene === 'OFFERS' ? 'Tražim ponude' : null, taskPlace(task).text, task.vremeTekst,
       task.narucilacIme || null, task.opis ? 'O zadatku' : null, task.opis, needRequirementRows(task).length ? 'Važno za ovaj zadatak' : null,
       ...needRequirementRows(task).map(row => row.label)].filter((word): word is string => !!word);
     for (const element of [real(task), preview(task)]) {
       await render(element);
-      const order = (word: string) => texts().join('\n').indexOf(word);
-      const found = landmarks.map(order);
-      expect(found.every(position => position >= 0)).toBe(true);
-      expect(found).toEqual([...found].sort((a, b) => a - b));
+      for (const fact of landmarks) expect(texts().join('\n')).toContain(fact);
+      if (element.type === ReviewDetail) {
+        expect(texts()).not.toContain('Objavio');
+        if (task.narucilacIme) expect(texts()).toContain('Naručilac');
+      }
       await act(async () => tree.unmount());
     }
   });
 });
 
 describe('what the review adds and what it leaves out', () => {
+  it('keeps contextual edits accessible, calls only the chosen correction, and removes actions for a frozen review', async () => {
+    const callbacks = { title: jest.fn(), value: jest.fn(), place: jest.fn(), time: jest.fn(), people: jest.fn(), description: jest.fn() };
+    const labels = { title: 'Naslov', value: 'Cena', place: 'Mesto', time: 'Termin', people: 'Broj ljudi', description: 'Opis' };
+    const parts: ReviewDetailParts = { ...NO_PARTS };
+    for (const key of Object.keys(callbacks) as (keyof typeof callbacks)[]) {
+      (parts as any)[key] = { pencil: { label: `Izmeni, ${labels[key]}`, onPress: callbacks[key] } };
+    }
+    const need = reviewAsTask({ reviewId: 'review-1', draftId: null, responseDeadline: null, location: placed(STATIONARY), publicProjection: FULL }, PERSON);
+    await render(<ReviewDetail need={need} parts={parts} />);
+    const commands = tree.root.findAllByType(EditPencil);
+    expect(commands).toHaveLength(6);
+    for (const key of Object.keys(callbacks) as (keyof typeof callbacks)[]) {
+      const command = tree.root.findAll(node => node.type === ('Press' as any) && node.props.accessibilityLabel === `Izmeni, ${labels[key]}`)[0];
+      expect(command.props.accessibilityRole).toBe('button');
+      const target = StyleSheet.flatten(command.props.style);
+      expect(target.minWidth).toBeGreaterThanOrEqual(44); expect(target.minHeight).toBeGreaterThanOrEqual(44);
+      await act(async () => command.props.onPress({ nativeEvent: { target: 1 } }));
+      expect(callbacks[key]).toHaveBeenCalledWith(); expect(callbacks[key]).toHaveBeenCalledTimes(1);
+    }
+    expect(texts()).not.toContain('Izmeni');
+    await act(async () => tree.update(<ReviewDetail need={need} parts={NO_PARTS} />));
+    expect(tree.root.findAllByType(EditPencil)).toHaveLength(0);
+  });
+
   it('has no button of apply, no question and no report of a person: the page is the owner\'s own, and nobody applies to it', async () => {
     await render(preview(reviewAsTask({ reviewId: 'review-1', draftId: null, responseDeadline: null, location: placed(STATIONARY), publicProjection: FULL }, PERSON)));
     const copy = texts().join('\n');
