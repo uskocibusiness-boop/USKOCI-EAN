@@ -32,6 +32,7 @@ jobs:
       EAS_BUILD_PROFILE: preview
       USKOCI_OTA_TARGET: preview
       USKOCI_PUSH_PROOF_BUILD: '0'
+      USKOCI_ANDROID_BUILD_TARGET: ${{ inputs.target || 'phone' }}
       EXPO_PUBLIC_SUPABASE_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
       EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW
       EXPO_PUBLIC_USE_FAKE_SOURCE: '0'
@@ -100,8 +101,6 @@ jobs:
       - name: Prebuild Android
         run: npx expo prebuild --platform android --clean
       - name: Select Android native target
-        env:
-          USKOCI_ANDROID_BUILD_TARGET: ${{ inputs.target || 'phone' }}
         run: |
           node <<'NODE'
           const fs = require('fs');
