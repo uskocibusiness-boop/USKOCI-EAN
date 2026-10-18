@@ -45,5 +45,12 @@
     "New logo artwork",
     "New server deployment",
     "iOS native build"
-  ]
+  ],
+  "finalSourceFollowup": {
+    "installedSkill": "installed-skill-closure.json",
+    "clientResidual": "client-residual-closure.md",
+    "designResidual": "design-residual-closure.md",
+    "apkWorkflow": "Removed stale old-branch automatic trigger; explicit dispatch selects current source and phone/emulator target. All functional/build gates retained.",
+    "archiveWhitespace": "Original unexecuted SQL archive retains one trailing space byte-for-byte; active source diff check passes. No global whitespace exception added."
+  }
 }

@@ -141,7 +141,14 @@ export const colorTokens = {
     label: '#2E393F',
     roadLabel: '#46525A',
   },
-  illustration: { home: {
+  illustration: {
+    /** Existing picker artwork shades. Illustration-only, not a second screen palette. */
+    pictogram: {
+      green: { front: '#079C77', edge: '#077958', light: '#6FD0AB', soft: '#E1F4EC', top: '#34C39A' },
+      orange: { front: '#F78028', edge: '#CF5B12', light: '#FFBE85', soft: '#FFF0E2', top: '#FFA24D' },
+      muted: { front: '#8A938E', edge: '#5C6860', light: '#D6DDD8', soft: '#EAEEEB', top: '#A7AFAA' },
+    },
+    home: {
     /** The two ends of the green disc's gradient. */
     leafLight: '#21A879',
     leafDeep: GREEN,

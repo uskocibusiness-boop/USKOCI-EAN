@@ -1,0 +1,16 @@
+{
+  "status": "UPDATED_LOCAL_INSTALLED_SKILL",
+  "path": "C:\\Users\\user\\.codex\\skills\\uskoci-design\\SKILL.md",
+  "beforeSha256": "eb7013e30d70c4b4d3347fe587169b1afdeb6305ef0c148c8e1b3f27b34f2f30",
+  "afterSha256": "53ca510d1f80d218584451c9d0ee5238d45febb7943efc20d7efb51c38f2ff96",
+  "archive": "docs/authority/history/USKOCI_DESIGN_SKILL_PRE_PREMIUM_20261018.txt",
+  "reason": "Installed USKOCI skill directed future agents to August donor master and old visual locks. It now discovers current checkout and uses current canon/registry.",
+  "validation": {
+    "yamlParsed": true,
+    "nameAndDescription": "PASS",
+    "unfinishedPlaceholders": false,
+    "bundledQuickValidate": "UNAVAILABLE: PyYAML missing in both Python runtimes; equivalent frontmatter parse completed with installed node yaml package."
+  },
+  "scope": "Only uskoci-design skill changed. No other installed skill, global permission or model configuration changed.",
+  "authorization": "Owner requested removal of stale USKOCI design guidance that future agents may treat as authority."
+}

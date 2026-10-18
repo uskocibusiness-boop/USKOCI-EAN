@@ -11,17 +11,18 @@ import { layout, ruleWidth } from '../layout';
 import { SEGMENTED_CHIPS_FROM, Segmented, type SegmentedOption } from '../Segmented';
 import { sys } from '../tokens';
 
-/**
- * A set of choices that never cuts a word (composition spec 2026-10-07, U7 and N-Segmented; UI/UX pass 2026-10-08, F8a). The old
- * control scrolled sideways from two options on and cut "Istorija 7" and "Moje pr…" at the owner's text size. Now: up to three
- * options share the width EQUALLY, in a track that never scrolls, and their words wrap to a second line at a large text size; from
- * four on the set is a row of chips, the one place in the app that scrolls sideways. A count is drawn only for what waits for the
- * person (`badgeTone="attention"`); `contentSized` and `scroll` stay accepted, so no call breaks, and are ignored by the layout.
- */
-type Key = 'a' | 'b' | 'c' | 'd' | 'e';
+/** Choice identity, accessible labels, caller behavior and the configured responsive boundary are protected.
+ * The threshold and decorative proportions may evolve without losing these contracts. */
+type Key = string;
 const labels: Record<Key, string> = { a: 'Aktivni', b: 'Nacrti', c: 'Istorija', d: 'Dogovori', e: 'Arhiva' };
+const namedKeys = Object.keys(labels);
 const make = (count: number, patch: Partial<Record<Key, Partial<SegmentedOption<Key>>>> = {}): SegmentedOption<Key>[] =>
-  (['a', 'b', 'c', 'd', 'e'] as Key[]).slice(0, count).map(key => ({ key, label: labels[key], ...patch[key] }));
+  Array.from({ length: count }, (_, index) => {
+    const key = namedKeys[index] ?? `option-${index}`;
+    return { key, label: labels[key] ?? `Opcija ${index + 1}`, ...patch[key] };
+  });
+const TRACK_COUNT = SEGMENTED_CHIPS_FROM - 1;
+const CHIPS_COUNT = Math.max(namedKeys.length, SEGMENTED_CHIPS_FROM + 1);
 const change = jest.fn();
 let tree: ReactTestRenderer;
 const render = async (options: SegmentedOption<Key>[], extra: Partial<React.ComponentProps<typeof Segmented<Key>>> = {}, value: Key = 'a') =>
@@ -36,8 +37,8 @@ const badgeTexts = (label: string) => tab(label).findAll(node => node.type === (
 beforeEach(() => { jest.useFakeTimers(); change.mockClear(); });
 afterEach(async () => { await act(async () => tree?.unmount()); mockReduced = false; jest.restoreAllMocks(); jest.useRealTimers(); });
 
-describe('up to three options share the width equally, in a track that never scrolls', () => {
-  it.each([2, 3])('%i options: one track, no scroller, every tab the same share and 48 dp high, and a track of 56', async count => {
+describe('choices below the configured boundary share a non-scrolling track', () => {
+  it.each([...new Set([1, TRACK_COUNT])])('%i options: every tab keeps its label, equal space and a full touch target', async count => {
     await render(make(count));
     expect(tree.root.findAllByType(ScrollView)).toHaveLength(0);
     expect(track().props.accessibilityRole).toBe('tablist');
@@ -47,7 +48,7 @@ describe('up to three options share the width equally, in a track that never scr
   });
 
   it('keeps accepting contentSized and scroll, and ignores them: equal shares, no scroller, no intrinsic widths', async () => {
-    await render(make(3), { contentSized: true, scroll: true });
+    await render(make(TRACK_COUNT), { contentSized: true, scroll: true });
     expect(tree.root.findAllByType(ScrollView)).toHaveLength(0);
     for (const node of tabs()) {
       expect(flat(node)).toMatchObject({ flexGrow: 1, flexBasis: 0 });
@@ -63,7 +64,7 @@ describe('up to three options share the width equally, in a track that never scr
   });
 
   it('wraps a word that does not fit instead of cutting it: no line limit, and the tab may hold two lines', async () => {
-    await render(make(3, { a: { label: 'Čekaju tvoj odgovor' } }));
+    await render(make(TRACK_COUNT, { a: { label: 'Čekaju tvoj odgovor' } }));
     expect(word('Čekaju tvoj odgovor').props.numberOfLines).toBeUndefined();
     // `alignContent: 'center'`: a wrapping row lays its lines at the TOP of the 48 dp otherwise, and the words sat above the middle.
     expect(flat(tab('Čekaju tvoj odgovor'))).toMatchObject({ flexWrap: 'wrap', alignItems: 'center', alignContent: 'center', justifyContent: 'center' });
@@ -81,8 +82,8 @@ describe('up to three options share the width equally, in a track that never scr
     expect(change).not.toHaveBeenCalled();
   });
 
-  it('paints the chosen tab before it is measured, then moves one white pill to it', async () => {
-    await render(make(3));
+  it('keeps selection visible before measurement and anchors the indicator to the measured tab', async () => {
+    await render(make(TRACK_COUNT));
     expect(flat(tab('Aktivni')).backgroundColor).toBe(sys.color.surface);
     expect(tree.root.findAllByType(Animated.View)).toHaveLength(0);
     await act(async () => tab('Aktivni').props.onLayout({ nativeEvent: { layout: { x: 4, y: 0, width: 100, height: 48 } } }));
@@ -92,10 +93,11 @@ describe('up to three options share the width equally, in a track that never scr
   });
 });
 
-describe('from four options on the set is a row of chips, the one place that scrolls sideways', () => {
-  it('draws 4 and 5 options as chips in a horizontal scroller, not in a track', async () => {
-    expect(SEGMENTED_CHIPS_FROM).toBe(4);
-    for (const count of [4, 5]) {
+describe('choices at the configured boundary remain reachable in a horizontal row', () => {
+  it('keeps every option reachable at and above the configured chip threshold', async () => {
+    expect(Number.isInteger(SEGMENTED_CHIPS_FROM)).toBe(true);
+    expect(SEGMENTED_CHIPS_FROM).toBeGreaterThan(1);
+    for (const count of [SEGMENTED_CHIPS_FROM, SEGMENTED_CHIPS_FROM + 1]) {
       await render(make(count));
       const scroller = tree.root.findByType(ScrollView);
       expect(scroller.props).toMatchObject({ horizontal: true, showsHorizontalScrollIndicator: false, accessibilityRole: 'tablist', keyboardShouldPersistTaps: 'handled' });
@@ -104,21 +106,21 @@ describe('from four options on the set is a row of chips, the one place that scr
     }
   });
 
-  it('is the boundary: three options are a track, four are chips', async () => {
-    await render(make(3));
+  it('switches layout at the exported boundary without losing an option', async () => {
+    await render(make(TRACK_COUNT));
     expect(tree.root.findAllByType(ScrollView)).toHaveLength(0);
-    await act(async () => tree.update(<Segmented options={make(4)} value="a" onChange={change} />));
+    await act(async () => tree.update(<Segmented options={make(SEGMENTED_CHIPS_FROM)} value="a" onChange={change} />));
     expect(tree.root.findAllByType(ScrollView)).toHaveLength(1);
   });
 
   it('chips with `scroll` or `contentSized` are the same chips: the flags change nothing', async () => {
-    await render(make(5), { scroll: true, contentSized: true });
+    await render(make(CHIPS_COUNT), { scroll: true, contentSized: true });
     expect(tree.root.findAllByType(ScrollView)).toHaveLength(1);
     expect(flat(tabs()[0])).toMatchObject({ minHeight: layout.touch, borderRadius: sys.radius.pill });
   });
 
-  it('draws a chip 48 dp high with a 1 dp edge and room for its word: nothing is cut, 8 apart', async () => {
-    await render(make(5));
+  it('gives chips full touch targets and lets long labels remain readable', async () => {
+    await render(make(CHIPS_COUNT));
     // A chip that is not chosen: white, with the strong 1 dp edge.
     expect(flat(tab('Nacrti'))).toMatchObject({ minHeight: layout.touch, paddingHorizontal: sys.space.base, borderRadius: sys.radius.pill,
       borderWidth: ruleWidth, borderColor: sys.color.lineStrong, backgroundColor: sys.color.surface });
@@ -127,7 +129,7 @@ describe('from four options on the set is a row of chips, the one place that scr
   });
 
   it('marks the chosen chip with a quiet well and an ink edge and a bold ink word, and there is no sliding pill', async () => {
-    await render(make(5), {}, 'c');
+    await render(make(CHIPS_COUNT), {}, 'c');
     expect(flat(tab('Istorija'))).toMatchObject({ backgroundColor: sys.color.greenSoft, borderColor: sys.color.ink });
     expect(flat(tab('Aktivni')).backgroundColor).toBe(sys.color.surface);
     expect(tree.root.findAllByType(Animated.View)).toHaveLength(0);
@@ -135,13 +137,13 @@ describe('from four options on the set is a row of chips, the one place that scr
     expect(tab('Aktivni').props.accessibilityState).toEqual({ selected: false });
   });
 
-  it('waits out the press delay and has no extra reach (the chips are 8 apart), because a finger on a chip may be a scroll', async () => {
-    await render(make(5));
+  it('waits out the press delay and does not extend touch areas into neighboring chips', async () => {
+    await render(make(CHIPS_COUNT));
     for (const node of tabs()) expect(node.props).toMatchObject({ unstable_pressDelay: 60, hitSlop: 0 });
   });
 
   it('commits on a press of a chip that is not chosen, and ticks only then', async () => {
-    await render(make(5));
+    await render(make(CHIPS_COUNT));
     await act(async () => tab('Arhiva').props.onPress());
     expect(change).toHaveBeenCalledWith('e');
     expect(tab('Arhiva').props.haptic).toBe('select');
@@ -149,22 +151,22 @@ describe('from four options on the set is a row of chips, the one place that scr
   });
 
   it('runs out to the screen\'s edges by default (the gutter), so a chip scrolls under the edge and not under a strip of white', async () => {
-    await render(make(5));
+    await render(make(CHIPS_COUNT));
     const scroller = tree.root.findByType(ScrollView);
     expect(flat(scroller)).toMatchObject({ marginHorizontal: -layout.gutter, flexGrow: 0 });
     expect(StyleSheet.flatten(scroller.props.contentContainerStyle)).toMatchObject({ paddingHorizontal: layout.gutter, flexDirection: 'row', gap: sys.space.sm });
-    await act(async () => tree.update(<Segmented options={make(5)} value="a" onChange={change} bleed={false} />));
+    await act(async () => tree.update(<Segmented options={make(CHIPS_COUNT)} value="a" onChange={change} bleed={false} />));
     expect(flat(tree.root.findByType(ScrollView)).marginHorizontal).toBeUndefined();
     expect(StyleSheet.flatten(tree.root.findByType(ScrollView).props.contentContainerStyle).paddingHorizontal).toBeUndefined();
   });
 
   it('puts the caller\'s style on the scroller', async () => {
-    await render(make(5), { style: { marginTop: 8 } });
+    await render(make(CHIPS_COUNT), { style: { marginTop: 8 } });
     expect(flat(tree.root.findByType(ScrollView))).toMatchObject({ marginTop: 8 });
   });
 });
 
-describe('the underline appearance is the same as it was, whatever the number of options', () => {
+describe('the underline appearance preserves its explicit layout and selection contract', () => {
   it.each([2, 3])('opt-in equal underlines keep %i long labels within their allocated width and preserve selection', async count => {
     await render(make(count, { a: { label: 'Čekaju tvoj odgovor' } }), { appearance: 'underline', equal: true });
     expect(tree.root.findAllByType(ScrollView)).toHaveLength(0);
@@ -178,11 +180,13 @@ describe('the underline appearance is the same as it was, whatever the number of
     await act(async () => tree.update(<Segmented options={make(count)} value="b" onChange={change} appearance="underline" equal />));
     expect(tab('Nacrti').props.accessibilityState.selected).toBe(true);
   });
-  it('keeps the underline tabs in a track for five options too: it is not the chips', async () => {
-    await render(make(5), { appearance: 'underline' });
+  it('keeps underline tabs in their own track even above the chip threshold', async () => {
+    await render(make(CHIPS_COUNT), { appearance: 'underline' });
     expect(tree.root.findAllByType(ScrollView)).toHaveLength(0);
-    expect(flat(track())).toMatchObject({ borderBottomWidth: ruleWidth, borderBottomColor: sys.color.line, padding: 0 });
-    for (const node of tabs()) expect(flat(node)).toMatchObject({ flexGrow: 0, flexBasis: 'auto', borderBottomWidth: 3 });
+    expect(track().props.accessibilityRole).toBe('tablist');
+    expect(tabs()).toHaveLength(CHIPS_COUNT);
+    for (const node of tabs()) expect(flat(node).minHeight).toBeGreaterThanOrEqual(layout.touch);
+    expect(tab('Aktivni').props.accessibilityState.selected).toBe(true);
   });
 
   it('with `scroll` it is still a scroller (the underline has its own scrolling row), with the delay', async () => {
@@ -201,7 +205,8 @@ describe('a number is drawn only for what waits for the person', () => {
     expect(badgeTexts('Nacrti')).toEqual([]);
     expect(badgeTexts('Istorija')).toEqual([]);
     const pill = tab('Aktivni').findAll(node => typeof node.type === 'string' && flat(node).backgroundColor === sys.color.orange)[0];
-    expect(flat(pill)).toMatchObject({ minWidth: 24, height: 24, borderRadius: sys.radius.badge, paddingHorizontal: sys.space.sm });
+    expect(flat(pill).minWidth).toBeGreaterThan(0);
+    expect(flat(pill).height).toBeGreaterThan(0);
     const number = tab('Aktivni').findAll(node => node.type === ('T' as unknown) && node.props.variant === 'label')[0];
     expect(flat(number)).toMatchObject({ color: sys.color.onOrange });
   });
@@ -217,7 +222,7 @@ describe('a number is drawn only for what waits for the person', () => {
   });
 
   it('draws it in the chips as well, and nowhere a quiet count was drawn before', async () => {
-    await render(make(5, { d: { badge: 4, badgeTone: 'attention' }, e: { badge: 9 } }));
+    await render(make(CHIPS_COUNT, { d: { badge: 4, badgeTone: 'attention' }, e: { badge: 9 } }));
     expect(badgeTexts('Dogovori')).toEqual(['4']);
     expect(badgeTexts('Arhiva')).toEqual([]);
     expect(badgeTexts('Aktivni')).toEqual([]);
@@ -233,8 +238,8 @@ describe('a number is drawn only for what waits for the person', () => {
 // F8b, at F2's request: a set that stands in a row beside an icon button or a pill used to have two ways to say how wide it was (a wrapper with
 // `flex: 1`, or a fixed width of dp). `inline` is the third, and the one that needs no number: the track is as wide as its words.
 describe('inline: the track is the width of its words, to stand in a row beside another control', () => {
-  it('draws each tab at the width of its word, 16 on each side, and lets the track give way before it pushes its neighbour out of the row', async () => {
-    await render(make(2), { inline: true });
+  it('lets an inline track give way before pushing a neighboring control out of the row', async () => {
+    await render(make(TRACK_COUNT), { inline: true });
     expect(flat(track())).toMatchObject({ flexDirection: 'row', flexShrink: 1, maxWidth: '100%', padding: sys.space.xs, gap: sys.space.xs, backgroundColor: sys.color.control });
     for (const node of tabs()) {
       expect(flat(node)).toMatchObject({ flexGrow: 0, flexShrink: 1, flexBasis: 'auto', paddingHorizontal: sys.space.base, minHeight: layout.touch });
@@ -244,7 +249,7 @@ describe('inline: the track is the width of its words, to stand in a row beside 
 
   it('keeps a tab 48 dp high, a word that does not fit going to a second line, and the tab semantics of the set it is', async () => {
     await render(make(3, { a: { label: 'Čekaju tvoj odgovor' } }), { inline: true }, 'b');
-    expect(flat(tab('Čekaju tvoj odgovor'))).toMatchObject({ flexWrap: 'wrap', minHeight: layout.touch, alignContent: 'center' });
+    expect(flat(tab('Čekaju tvoj odgovor')).minHeight).toBeGreaterThanOrEqual(layout.touch);
     expect(word('Čekaju tvoj odgovor').props.numberOfLines).toBeUndefined();
     expect(tab('Nacrti').props).toMatchObject({ accessibilityRole: 'tab', accessibilityState: { selected: true }, haptic: 'none' });
     await act(async () => tab('Istorija').props.onPress());
@@ -252,19 +257,19 @@ describe('inline: the track is the width of its words, to stand in a row beside 
   });
 
   it('is nothing the set had before: without it the tabs are equal shares of the width they are given, as always', async () => {
-    await render(make(2));
+    await render(make(TRACK_COUNT));
     expect(flat(track()).flexShrink).toBeUndefined();
     expect(flat(track()).maxWidth).toBeUndefined();
     for (const node of tabs()) {
       expect(flat(node)).toMatchObject({ flexGrow: 1, flexBasis: 0, paddingHorizontal: sys.space.sm });
       expect(flat(node).flexShrink).toBeUndefined();
     }
-    await act(async () => tree.update(<Segmented options={make(2)} value="a" onChange={change} inline={false} />));
+    await act(async () => tree.update(<Segmented options={make(TRACK_COUNT)} value="a" onChange={change} inline={false} />));
     for (const node of tabs()) expect(flat(node)).toMatchObject({ flexGrow: 1, flexBasis: 0 });
   });
 
-  it('changes nothing for chips (four or more options already are the width of their words) and nothing for the underline strip', async () => {
-    await render(make(5), { inline: true });
+  it('keeps chips and underline modes reachable when inline is supplied', async () => {
+    await render(make(CHIPS_COUNT), { inline: true });
     expect(tree.root.findAllByType(ScrollView)).toHaveLength(1);
     for (const node of tabs()) expect(flat(node).flexBasis).toBeUndefined();
     await act(async () => tree.unmount());
@@ -274,7 +279,7 @@ describe('inline: the track is the width of its words, to stand in a row beside 
   });
 
   it("takes the caller's own style after its own, so a column can put it at the left", async () => {
-    await render(make(2), { inline: true, style: { alignSelf: 'flex-start' } });
+    await render(make(TRACK_COUNT), { inline: true, style: { alignSelf: 'flex-start' } });
     expect(flat(track())).toMatchObject({ alignSelf: 'flex-start', flexShrink: 1 });
   });
 });

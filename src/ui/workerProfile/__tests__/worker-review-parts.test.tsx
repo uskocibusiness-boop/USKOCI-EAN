@@ -11,13 +11,12 @@ jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ReviewedWorkAreaMap' }));
 
-import { WORKER_PROFILE_NOTIFICATIONS_NOTE, WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE, WorkerAiCard, WorkerAiManual, WorkerAiModeConfirmation, WorkerAiNotificationsNote, WorkerAiReviewDetails } from '../WorkerAiPresentation';
+import { WORKER_PROFILE_NOTIFICATIONS_NOTE, WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE, WorkerAiCard, WorkerAiModeConfirmation, WorkerAiNotificationsNote, WorkerAiReviewDetails } from '../WorkerAiPresentation';
 import { TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY, capturedParts, toolsAndVehiclesNote, type WorkerAiPart } from '../workerProfileFacts';
 
 /**
- * T4b1 (2026-10-07), M2 and the progress of M1. The review is the profile in parts, each with "Izmeni" at its side; the
- * conversation shows what it has understood from the draft itself; the editors that "Izmeni" and "+" open send only their
- * own part. Nothing here is asked of the server: these are the presentations, with the draft handed in.
+ * The review shows signed service modes and the facts understood from the draft. Ordinary edits return to the AI
+ * conversation. These presentation tests receive a draft directly and never ask the server to change it.
  */
 const review = (patch: Partial<WorkerAiReview['profile']> = {}, availability: Partial<WorkerAiReview['profile']['availability']> = {}): WorkerAiReview => ({
   schemaVersion: 'WORKER_PROFILE_V1', reviewId: 'r', conversationId: 'c', accountId: 'a', profileId: 'p', revision: 1, activate: false,
@@ -35,7 +34,6 @@ const full = review({ skills: ['Montaža nameštaja', 'Farbanje'], tools: ['Buš
 let tree: ReactTestRenderer;
 const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' | ');
 const press = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0];
-const box = (label: string) => tree.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === label)[0];
 const groupIds = () => tree.root.findAll(node => typeof node.type === 'string' && /^worker-review-(skills|area|time|tools|identity)$/.test(String(node.props.testID)))
   .map(node => node.props.testID as string);
 afterEach(async () => { await act(async () => tree?.unmount()); });
@@ -192,73 +190,6 @@ describe('the conversation draft is not matching readiness', () => {
     expect(texts()).not.toMatch(/još treba|nije navedeno|alat|vozilo|područje/i);
     expect(press('Pregledaj profil').props.disabled).toBe(false);
     expect(capturedParts(withoutEquipment.profile).find(part => part.key === 'tools')?.done).toBe(false);
-  });
-});
-
-describe('the focused editors of "Izmeni" and "+" send only their own part', () => {
-  const profile = full.profile;
-  const submit = async () => { await act(async () => { press('Primeni na pregled profila').props.onPress(); }); };
-  const open = async (only: 'identity' | 'skills' | 'area' | 'tools') => {
-    const apply = jest.fn();
-    await act(async () => { tree = create(<WorkerAiManual profile={profile} disabled={false} apply={apply} only={only} />); });
-    return apply;
-  };
-
-  it('skills: the list editor, a word left in the box is kept, and nothing else is written', async () => {
-    const apply = await open('skills');
-    expect(texts()).toContain('Montaža nameštaja');
-    expect(tree.root.findAll(node => String(node.type) === 'TextInput').map(node => node.props.accessibilityLabel)).toEqual(['Nova stavka: Usluge koje nudiš']);
-    await act(async () => { press('Ukloni: Farbanje').props.onPress(); });
-    await act(async () => { box('Nova stavka: Usluge koje nudiš').props.onChangeText('Čišćenje'); });
-    await submit();
-    expect(apply).toHaveBeenCalledTimes(1); expect(apply.mock.calls[0][0]).toEqual({ skills: ['Montaža nameštaja', 'Čišćenje'] });
-  });
-
-  it('tools: tools and vehicles as two lists, and only those two fields', async () => {
-    const apply = await open('tools');
-    await act(async () => { box('Nova stavka: Vozila').props.onChangeText('Prikolica'); });
-    await act(async () => { press('Dodaj stavku: Vozila').props.onPress(); });
-    await submit();
-    expect(apply.mock.calls[0][0]).toEqual({ tools: ['Bušilica', 'Merdevine'], vehicles: ['Kombi', 'Prikolica'] });
-  });
-
-  it('area: country, city and radius, the radius refused outside 1-200 km before anything is written', async () => {
-    const apply = await open('area');
-    await act(async () => { box('Radijus rada u km').props.onChangeText('500'); });
-    await submit();
-    expect(apply).not.toHaveBeenCalled(); expect(texts()).toContain('Proveri državu i radijus 1–200 km.');
-    await act(async () => { box('Radijus rada u km').props.onChangeText('25'); });
-    await act(async () => { box('Grad ili mesto rada').props.onChangeText('Zemun'); });
-    await submit();
-    expect(apply.mock.calls[0][0]).toEqual({ location: { city: 'Zemun', operatingCountryCode: 'RS', radiusKm: 25 } });
-  });
-
-  it('identity: only "O meni", with the length limit of the review; the name is not written here (it is the account\'s)', async () => {
-    const apply = await open('identity');
-    expect(tree.root.findAll(node => String(node.type) === 'TextInput').map(node => node.props.accessibilityLabel)).toEqual(['O meni']);
-    await act(async () => { box('O meni').props.onChangeText('x'.repeat(4001)); });
-    await submit(); expect(apply).not.toHaveBeenCalled(); expect(texts()).toContain('O meni može imati do 4.000 znakova.');
-    await act(async () => { box('O meni').props.onChangeText('Radim brzo.'); });
-    await submit(); expect(apply.mock.calls[0][0]).toEqual({ bio: 'Radim brzo.' });
-    expect(apply.mock.calls[0][0]).not.toHaveProperty('displayName');
-  });
-
-  it('reports a word still in a list box as an unsaved change, so Back asks before dropping it', async () => {
-    const changes: boolean[] = [];
-    await act(async () => { tree = create(<WorkerAiManual profile={profile} disabled={false} apply={jest.fn()} only="skills"
-      onDraftChange={(_value, dirty) => changes.push(dirty)} />); });
-    expect(changes.at(-1)).toBe(false);
-    await act(async () => { box('Nova stavka: Usluge koje nudiš').props.onChangeText('Čišćenje'); });
-    expect(changes.at(-1)).toBe(true);
-  });
-
-  it('the whole form keeps writing the whole proposal, as before, and its primary is the one green action', async () => {
-    const apply = jest.fn();
-    await act(async () => { tree = create(<WorkerAiManual profile={profile} disabled={false} apply={apply} />); });
-    await submit();
-    // The whole proposal except the name: the profile is saved under the name of the account, which the route puts into the proposal.
-    expect(Object.keys(apply.mock.calls[0][0]).sort()).toEqual(['bio', 'location', 'skills', 'tools', 'vehicles']);
-    expect(tree.root.findAll(node => String(node.type) === 'TextInput').map(node => node.props.accessibilityLabel)).not.toContain('Ime na profilu');
   });
 });
 

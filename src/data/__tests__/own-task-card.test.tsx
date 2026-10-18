@@ -121,24 +121,21 @@ describe('the rest of the row', () => {
     const line = amount.parent!;
     expect(line.findAll(node => node.type === T_).map(node => node.props.children)).toEqual(['2.000 RSD', 'po osobi']);
     expect(style(line)).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
-    // What it pays has the picture of money, like where and when have theirs, and how many people has its own.
-    expect(tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => node.props.kind)).toEqual(['money', 'pin', 'calendar', 'users']);
   });
 
   it('says how many people only when it is more than one, and how many are agreed once any is', async () => {
     await render(<OwnTaskCard item={task({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0, pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 } })} onOpen={jest.fn()} />);
-    expect(tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => node.props.kind)).toEqual(['money', 'pin', 'calendar']);
     expect(texts().join(' ')).not.toMatch(/Treba|dogovoreno|0\/1/);
     await render(<OwnTaskCard item={task({ stanje: 'DELIMICNO_POPUNJENA', brojPrijavaZaIzbor: 0, pokrivenost: { ukupno: 3, popunjeno: 1, preostalo: 2, udeo: 1 / 3 } })} onOpen={jest.fn()} />);
     expect(texts()).toEqual(expect.arrayContaining(['Treba 3 osobe', '1 dogovoreno']));
   });
 
-  it('a task done remotely says so with the remote picture, and a long title keeps to two lines for the eye and whole for the ear', async () => {
+  it('a remote task is identified in words and its full title remains accessible', async () => {
     const long = 'Prenos starog trokrilnog ormara iz stana na petom spratu bez lifta do kombija parkiranog u dvorištu zgrade';
     await render(<OwnTaskCard item={task({ naslov: long, detalji: { rezimLokacije: 'REMOTE', geografija: { mode: 'REMOTE' }, zahtevi: undefined } })} onOpen={jest.fn()} />);
-    expect(tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => node.props.kind)).toEqual(['money', 'remote', 'calendar', 'users']);
+    expect(texts()).toContain('Na daljinu');
     const title = tree.root.findAll(node => node.type === T_ && node.props.children === long)[0];
-    expect(title.props.numberOfLines).toBe(2); expect(title.props.variant).toBe('heading');
+    expect(title.props.children).toBe(long);
     expect(presses()[0].props.accessibilityLabel).toBe(`Otvori zadatak ${long}`);
   });
 

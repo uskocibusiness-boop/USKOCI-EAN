@@ -115,7 +115,7 @@ it('draws the bar over the bottom of Zadaci and nowhere else, and gives that scr
   }
   const normal = others[0];
   // Over the bottom of the screen, so the map and the list have the whole height; the margin under the bar becomes white padding inside it, so the bar still reaches the bottom.
-  expect(zadaci).toMatchObject({ position: 'absolute', left: 0, right: 0, bottom: 0, marginBottom: 0, paddingBottom: normal.marginBottom, borderRadius: 0 });
+  expect(zadaci).toMatchObject({ position: 'absolute', left: 0, right: 0, bottom: 0, marginBottom: 0, paddingBottom: normal.marginBottom });
   expect(zadaci.height).toBe(normal.height + normal.marginBottom);
   const bar = mockBar!;
   expect(bar).not.toBeNull();

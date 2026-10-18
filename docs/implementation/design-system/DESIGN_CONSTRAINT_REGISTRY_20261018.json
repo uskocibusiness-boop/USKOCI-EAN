@@ -56996,9 +56996,12 @@
     "files": [
       "docs/current/evidence/premium-baseline-20261018/client-closure-files.json",
       "docs/current/evidence/premium-baseline-20261018/client-closure.md",
+      "docs/current/evidence/premium-baseline-20261018/client-residual-closure.md",
       "docs/current/evidence/premium-baseline-20261018/design-closure.md",
+      "docs/current/evidence/premium-baseline-20261018/design-residual-closure.md",
       "docs/current/evidence/premium-baseline-20261018/docs-closure-check.json",
       "docs/current/evidence/premium-baseline-20261018/docs-closure.json",
+      "docs/current/evidence/premium-baseline-20261018/installed-skill-closure.json",
       "docs/current/evidence/premium-baseline-20261018/live-overview-closure.json",
       "docs/current/evidence/premium-baseline-20261018/root-closure.json"
     ],

@@ -1,8 +1,6 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
-import type { WorkerAiPatch, WorkerAiProfile, WorkerAiReview, WorkerAiModeChoice } from '../../data/workerAiClientService';
-import { capabilityTerms } from '../../lib/capabilityTerms';
-import { countryCode } from '../../lib/market';
+import type { ReactNode } from 'react';
+import { StyleSheet, View } from 'react-native';
+import type { WorkerAiProfile, WorkerAiReview, WorkerAiModeChoice } from '../../data/workerAiClientService';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { FactArt, type FactArtKind, type FactArtRole } from '../system/FactArt';
@@ -10,9 +8,8 @@ import { ClockArt } from '../system/ClockArt';
 import { Glyph } from '../system/Glyph';
 import { layout } from '../system/layout';
 import { Surface } from '../system/Surface';
-import { sys, field, brandAction } from '../system/tokens';
+import { sys } from '../system/tokens';
 import { useAiDraftDisclosure } from '../aiFirst/AiConversationShell';
-import { FactListEditor } from '../aiFirst/FactValueEditors';
 import { V2Action } from '../v2/V2Action';
 import { FactChoiceEditor } from '../v2/FactChoiceEditor';
 import { cityLabel } from '../profile/cityLabel';
@@ -229,106 +226,6 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
     </ReviewGroup>
   </View>;
 }
-function Field({label,value,change,disabled,numeric=false,multiline=false}:{label:string;value:string;change:(v:string)=>void;disabled:boolean;numeric?:boolean;multiline?:boolean}){
-  return <View style={{gap:sys.space.sm}}><T variant="meta" tone="muted">{label}</T><TextInput accessibilityLabel={label} style={[s.input,multiline&&s.multiline]}
-    value={value} editable={!disabled} onChangeText={v=>{if(!disabled)change(v);}} multiline={multiline} keyboardType={numeric?'number-pad':'default'} maxLength={numeric?3:multiline?25500:160}/></View>;
-}
-/** Manual correction of the proposal; applied to the proposal, saved only through the final review. */
-export type WorkerAiManualDraft={bio:string;city:string;country:string;radius:string;skills:string;tools:string;vehicles:string};
-/** The part a focused editor corrects; the week has the calendar form of its own. */
-export type WorkerAiManualPart=Exclude<WorkerAiPart,'time'>;
-/** The patch is built field by field here; the wire type is read-only. */
-type Writable<T>={-readonly [K in keyof T]:T[K]};
-/** A list in the draft is one item per line; the canonical btrim removes ASCII spaces only. */
-const lines=(value:string)=>value.split('\n').map(x=>x.replace(/^ +| +$/g,'')).filter(Boolean);
-type ListKey='skills'|'tools'|'vehicles';
-/**
- * Manual correction of the proposal; applied to the proposal, saved only through the final review.
- *
- * Without `only` it is the whole form ("Ručno uredi podatke" behind "···"): lists are text, one item per line. With `only`
- * it is the editor of ONE part (what "Izmeni" in the review and "+" in the conversation open): lists use the app's list
- * editor (`FactListEditor`, a word left in its box is kept), and the patch carries only that part's fields, so an
- * untouched field is never written back.
- */
-export function WorkerAiManual({profile,disabled,apply,initialDraft,onDraftChange,only}:{profile:WorkerAiProfile;disabled:boolean;apply:(patch:WorkerAiPatch)=>void;
-  initialDraft?:WorkerAiManualDraft;onDraftChange?:(value:WorkerAiManualDraft,dirty:boolean)=>void;only?:WorkerAiManualPart}){
-  const initial=useRef({bio:profile.bio,city:profile.location.city,country:profile.location.operatingCountryCode??'',
-    radius:String(profile.location.radiusKm),skills:profile.skills.join('\n'),tools:profile.tools.join('\n'),vehicles:profile.vehicles.join('\n')});
-  const [values,setValues]=useState(initialDraft??initial.current),latest=useRef(values),notify=useRef(onDraftChange);notify.current=onDraftChange;
-  const alive=useRef(true),editable=useRef(!disabled);editable.current=!disabled;
-  // What was typed into a list's box and not yet added: the list editor reports it, and saving keeps it.
-  const boxes=useRef<Record<ListKey,string>>({skills:'',tools:'',vehicles:''});
-  const {bio,city,country,radius,skills,tools,vehicles}=values;
-  // A fresh revision mounts a fresh form. Report edits synchronously so Back in
-  // the same event batch cannot discard a keystroke before an effect runs.
-  const dirty=(value:WorkerAiManualDraft)=>(Object.keys(value) as (keyof WorkerAiManualDraft)[]).some(field=>value[field]!==initial.current[field])
-    ||Object.values(boxes.current).some(word=>word.trim().length>0);
-  useEffect(()=>{alive.current=true;notify.current?.(latest.current,dirty(latest.current));return()=>{alive.current=false;};},[]);
-  const change=(key:keyof typeof values,value:string)=>{
-    if(!alive.current||!editable.current)return;
-    const next={...latest.current,[key]:value};latest.current=next;setValues(next);
-    notify.current?.(next,dirty(next));
-  };
-  const changeList=(key:ListKey)=>(items:string[],word:string)=>{
-    if(!alive.current||!editable.current)return;
-    boxes.current={...boxes.current,[key]:word};change(key,items.join('\n'));
-  };
-  const [error,setError]=useState<string|null>(null);
-  const submit=()=>{
-    if(!alive.current||!editable.current)return;
-    const {bio,city,country,radius,skills,tools,vehicles}=latest.current;
-    const all=!only,patch:Writable<WorkerAiPatch>={};
-    const fail=(focused:string)=>{setError(all?'Proveri veštine, alat, vozila, državu i radijus (1–200 km). Tekst „O meni“ može imati do 4.000 znakova.':focused);};
-    // Match the canonical ASCII btrim; Unicode whitespace is part of an authored term.
-    const terms=(key:ListKey,text:string)=>{const base=lines(text),word=boxes.current[key].trim();
-      return capabilityTerms(word&&!base.includes(word)?[...base,word]:base);};
-    if(all||only==='identity'){
-      if(bio.length>4000)return fail('O meni može imati do 4.000 znakova.');
-      patch.bio=bio;
-    }
-    if(all||only==='skills'){
-      const list=terms('skills',skills);if(!list)return fail('Lista može imati do 50 stavki, do 500 znakova po stavci.');
-      patch.skills=list;
-    }
-    if(all||only==='tools'){
-      const toolList=terms('tools',tools),vehicleList=terms('vehicles',vehicles);
-      if(!toolList||!vehicleList)return fail('Lista može imati do 50 stavki, do 500 znakova po stavci.');
-      patch.tools=toolList;patch.vehicles=vehicleList;
-    }
-    if(all||only==='area'){
-      const countryValue=country.trim()?countryCode(country.trim().toUpperCase()):null;
-      if(!/^\d{1,3}$/.test(radius)||Number(radius)<1||Number(radius)>200||(country.trim()&&!countryValue))return fail('Proveri državu i radijus 1–200 km.');
-      patch.location={city,operatingCountryCode:countryValue,radiusKm:Number(radius)};
-    }
-    apply(patch);
-  };
-  const listEditor=(key:ListKey,label:string,text:string)=><View key={key} style={s.listEditor}>
-    <T variant="bodyStrong" style={s.ink}>{label}</T>
-    <FactListEditor label={label} items={lines(text)} disabled={disabled} onChange={changeList(key)}/></View>;
-  const area=<View style={s.section}>{!only?<T variant="heading" style={s.ink}>Područje rada</T>:null}
-    <Field disabled={disabled} label="Država rada (npr. RS)" value={country} change={v=>change('country',v)}/>
-    <Field disabled={disabled} label="Grad ili mesto rada" value={city} change={v=>change('city',v)}/>
-    <Field disabled={disabled} label="Radijus rada u km" value={radius} change={v=>change('radius',v)} numeric/></View>;
-  const body=!only?<>
-    <T variant="meta" tone="muted">Izmene ostaju u predlogu do završnog pregleda i čuvanja. U polja sa više stavki upiši jednu stavku po redu.</T>
-    <View style={s.section}><T variant="heading" style={s.ink}>Šta radiš</T>
-      <Field disabled={disabled} label="Usluge koje nudiš" value={skills} change={v=>change('skills',v)} multiline/>
-      <Field disabled={disabled} label="Alat i oprema" value={tools} change={v=>change('tools',v)} multiline/><Field disabled={disabled} label="Vozila" value={vehicles} change={v=>change('vehicles',v)} multiline/>
-      <Field disabled={disabled} label="O meni" value={bio} change={v=>change('bio',v)} multiline/></View>
-    {area}
-  </>:<>
-    <T variant="meta" tone="muted">Izmena ostaje u predlogu do završnog pregleda i čuvanja.</T>
-    {only==='identity'?<View style={s.section}>
-      <Field disabled={disabled} label="O meni" value={bio} change={v=>change('bio',v)} multiline/></View>:null}
-    {only==='skills'?listEditor('skills','Usluge koje nudiš',skills):null}
-    {only==='tools'?<>{listEditor('tools','Alat i oprema',tools)}{listEditor('vehicles','Vozila',vehicles)}</>:null}
-    {only==='area'?area:null}
-  </>;
-  return <>{body}
-    {error?<View style={s.notice}><T accessibilityRole="alert" variant="body" style={s.ink}>{error}</T></View>:null}
-    <V2Action label="Primeni na pregled profila" disabled={disabled} onPress={submit} style={brandAction}/>
-  </>;
-}
 export function WorkerAiActivation({activate,disabled,change}:{activate:boolean;disabled:boolean;change:(v:boolean)=>void}){
   return <View style={s.section}><T variant="bodyStrong" style={s.ink}>Posle čuvanja</T>
     <FactChoiceEditor label="Status profila posle čuvanja" value={activate?'active':'draft'} disabled={disabled}
@@ -369,13 +266,8 @@ const s=StyleSheet.create({
   service:{gap:sys.space.xs,minWidth:0},
   // Supporting context stays in the reading flow; the route owns the main save action.
   noteBox:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.md},
-  listEditor:{gap:sys.space.sm},
   reviewNotice:{padding:sys.space.base,borderRadius:sys.radius.control,backgroundColor:sys.color.warnSoft,flexDirection:'row',alignItems:'flex-start',gap:sys.space.md,marginBottom:sys.space.sm},
   section:{gap:sys.space.base,paddingVertical:sys.space.base},
   scheduleGroup:{gap:sys.space.md},
   row:{gap:sys.space.xs,minWidth:0},
-  notice:{padding:sys.space.base,borderRadius:sys.radius.control,backgroundColor:sys.color.warnSoft},
-  input:{...field},
-  multiline:{minHeight:96,textAlignVertical:'top'},
-  // A flat tint, not the orange budget (critique B19): the one orange on the review is not a switch row.
 });

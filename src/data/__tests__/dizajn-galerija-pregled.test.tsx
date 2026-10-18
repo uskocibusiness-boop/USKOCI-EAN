@@ -4,8 +4,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 /**
  * The gallery of the publish review (`/dizajn-objava`, group "Pregled pre objave"), in the states the owner sees on his phone (UI/UX pass of
- * 2026-10-08, wave "Kalendar i pregled", agent V): the review is the task as the others will read it (the real card, then the real page that
- * opens from it) with a pencil on each part and, for the owner alone, the frame of the exact address. Each scene draws the real presentation parts
+ * the review includes the task as others will read it, one ordinary AI correction action, and owner-only exact location controls. Each scene draws the real presentation parts
  * from the fixtures the route makes the same task from (`reviewAsTask`), reads and writes nothing, and a store build shows nothing at all.
  */
 let mockPackage: string | undefined = 'rs.uskoci.app.dev';
@@ -44,7 +43,6 @@ const originalDev = __DEV__;
 const testRuntime = globalThis as unknown as { __DEV__: boolean };
 const text = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' | ');
 const labels = () => tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string').map(node => String(node.props.accessibilityLabel));
-const count = (word: string) => text().split(word).length - 1;
 const GROUP = 'Pregled pre objave';
 const open = async (scene: string) => {
   await act(async () => { tree = create(<DizajnObjava />); });
@@ -74,20 +72,14 @@ it('shows nothing but its refusal in a store build', async () => {
 });
 
 describe('a ready review presents facts, one AI correction entry and explicit map/media controls', () => {
-  it('draws the real card, then the real page, each under its caption, and the owner\'s frame of the exact address at the end of the page', async () => {
+  it('shows the task facts and explains who can see the owner\'s exact address', async () => {
     await open('Spremno za objavu');
     const copy = text();
-    expect(copy).toContain('Ovako ga vide na mapi i u listi'); expect(copy).toContain('Ovako izgleda kad ga otvore');
-    expect(copy.indexOf('Ovako ga vide na mapi i u listi')).toBeLessThan(copy.indexOf('Ovako izgleda kad ga otvore'));
-    // The task is drawn twice, in the same words: the card (map and list) and the page that opens from it.
-    expect(count('Prenos ormara na treći sprat bez lifta')).toBe(2); expect(count('4.500 RSD')).toBe(2); expect(count('Detelinara, Novi Sad')).toBe(2);
+    expect(copy).toContain('Prenos ormara na treći sprat bez lifta'); expect(copy).toContain('4.500 RSD'); expect(copy).toContain('Detelinara, Novi Sad');
     expect(copy).toContain('Treba 2 osobe'); expect(copy).toContain('Naručilac'); expect(copy).not.toContain('Objavio');
-    // Who asks is the owner, as the others read him: on the card and on the page.
-    expect(count('Miloš P.')).toBe(2); expect(copy).toContain('4,7');
+    expect(copy).toContain('Miloš P.'); expect(copy).toContain('4,7');
     // The exact address is his alone, in its own frame, with the one sentence of privacy.
     expect(copy).toContain('Tačna adresa'); expect(copy).toContain('Bulevar Evrope 24, Novi Sad'); expect(copy).toContain('Vidiš samo ti. Osoba sa kojom se dogovoriš vidi je u Dogovoru.');
-    // No table of facts, no "Detalji", no list of steps.
-    for (const gone of ['Detalji', 'Privatni podaci', 'Vide svi', 'Korak']) expect(copy).not.toContain(gone);
   });
 
   it('names supported corrections and gives publication the shared primary-action role', async () => {
@@ -103,7 +95,7 @@ describe('a ready review presents facts, one AI correction entry and explicit ma
 
   it('"Tražim ponude" shows no amount anywhere, and a term nobody fixed is the word "Fleksibilno"', async () => {
     await open('Tražim ponude, bez roka');
-    expect(count('Tražim ponude')).toBe(2); expect(count('Fleksibilno')).toBe(2); expect(text()).not.toContain('4.500');
+    expect(text()).toContain('Tražim ponude'); expect(text()).toContain('Fleksibilno'); expect(text()).not.toContain('4.500');
     expect(text()).toContain('Bez posebnog roka');
   });
 });
@@ -113,7 +105,7 @@ describe('what stands in the way, and the states in which nothing can be changed
     await open('Još treba');
     const copy = text();
     expect(copy).toContain('Još treba'); expect(copy).toContain('Mesto na mapi nije potvrđeno.');
-    expect(count('Cena nije navedena')).toBe(2); expect(count('Lokacija nije navedena')).toBe(2);
+    expect(copy).toContain('Cena nije navedena'); expect(copy).toContain('Lokacija nije navedena');
     expect(copy).not.toContain('Tačna adresa'); expect(copy).not.toContain('Približno mesto');
     expect(labels()).toContain('Dodaj mesto'); expect(labels()).not.toContain('Izmeni, Mesto');
     expect(tree.root.findByProps({ accessibilityLabel: 'Objavi zadatak' }).props.disabled).toBe(true);
@@ -149,9 +141,9 @@ describe('the other shapes of a task', () => {
     expect(copy).not.toContain('Potvrđeno tačaka');
   });
 
-  it('remote work says "Na daljinu" twice, and has no map, no frame of an address', async () => {
+  it('identifies remote work and shows no location map or exact address', async () => {
     await open('Rad na daljinu');
-    expect(count('Na daljinu')).toBe(2); expect(text()).not.toContain('Tačna adresa'); expect(text()).not.toContain('Približno mesto');
+    expect(text()).toContain('Na daljinu'); expect(text()).not.toContain('Tačna adresa'); expect(text()).not.toContain('Približno mesto');
   });
 
   it('a draft with no photographs offers the way to add them, and an owner nobody has read is not drawn as the one who asks', async () => {
@@ -162,7 +154,7 @@ describe('the other shapes of a task', () => {
 
   it('long names wrap whole: nothing is cut with an ellipsis, and the page says all of them', async () => {
     await open('Dugi nazivi');
-    expect(count('Prenos klavira, dve garderobe i radnog stola')).toBe(2);
+    expect(text()).toContain('Prenos klavira, dve garderobe i radnog stola');
     expect(text()).toContain('Pokrivači i zaštitne folije za staklena vrata');
     for (const node of tree.root.findAll(node => String(node.type) === 'T' && String(node.props.children).startsWith('Prenos klavira'))) expect(node.props.numberOfLines).toBeUndefined();
   });

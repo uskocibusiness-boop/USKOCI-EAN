@@ -1,11 +1,8 @@
 # Preview V5 proof: run the entire regression suite before producing the selected native APK.
-# A workflow-file push intentionally requests a fresh proof from the current integration HEAD.
+# Dispatch once for a connected source package; select the exact branch and native target.
 name: Build latest V5 Android preview APK
 
 on:
-  push:
-    branches: [work/ultra-master-integration-20261012]
-    paths: [.github/workflows/build-latest-v5-preview-apk.yml]
   workflow_dispatch:
     inputs:
       target:

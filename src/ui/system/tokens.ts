@@ -50,6 +50,8 @@ export const sys = {
    * the back sheet greenSoft, the pin orange); these are the tones that are deliberately its own.
    */
   art: colorTokens.illustration.home,
+  /** Picker illustration shades share the pure color owner; never use them for control text. */
+  pictogram: colorTokens.illustration.pictogram,
   /** Named corner roles evolve with the canon. Small marks, controls, comparison cards and heroes
    * need different proportions. A capsule is geometric; nested corners follow their parent. */
   radius: { ...radius, check: 6 },

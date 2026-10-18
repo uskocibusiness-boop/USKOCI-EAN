@@ -2,6 +2,7 @@ import { memo, useId, type ReactNode } from 'react';
 import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { MATERIAL_SUBJECTS } from './materialSubjects';
+import { sys } from './tokens';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 /**
@@ -68,9 +69,9 @@ export const pictogramCatalog: readonly { kind: PictogramKind; label: string; gr
 ];
 
 type Tone = { front: string; edge: string; light: string; soft: string; top: string };
-const GREEN: Tone = { front: '#079C77', edge: '#077958', light: '#6FD0AB', soft: '#E1F4EC', top: '#34C39A' };
-const ORANGE: Tone = { front: '#F78028', edge: '#CF5B12', light: '#FFBE85', soft: '#FFF0E2', top: '#FFA24D' };
-const MUTED: Tone = { front: '#8A938E', edge: '#5C6860', light: '#D6DDD8', soft: '#EAEEEB', top: '#A7AFAA' };
+const GREEN: Tone = sys.pictogram.green;
+const ORANGE: Tone = sys.pictogram.orange;
+const MUTED: Tone = sys.pictogram.muted;
 const ORANGE_KINDS: readonly PictogramKind[] = ['prikolica', 'rucni-alat', 'kolica', 'kosilica', 'zastita', 'selidba', 'nosenje', 'kupovina', 'dostava', 'ljubimci', 'stariji', 'fizicki', 'osoba', 'dve-osobe', 'tim', 'pomocnik', 'ekipa'];
 
 function drawing(kind: PictogramKind, c: Tone, grad: string): ReactNode {

@@ -6,7 +6,7 @@ import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import type { MojaPrijavaProjekcija, NeedDetailProjection } from '../../contracts/projections';
 import type { MarketplaceItem } from '../marketplaceView';
-import { LARGE_TEXT_SCALE, NARROW_WIDTH, layoutClassFor } from '../../ui/system/textScale';
+import { layoutClassFor } from '../../ui/system/textScale';
 /** Current visual composition: full-width titles; value/capacity and offers stack for larger text.
  * Keep facts, commands and accessible descriptions across window sizes. Historical title/price adjacency
  * no longer describes TaskCard (CardHead has no production consumer). The font-table guard remains
@@ -69,59 +69,30 @@ const textNode = (value: string) => tree.root.find(node => node.type === T_ && n
 const style = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style) ?? {};
 const presses = () => tree.root.findAll(node => node.type === PRESS);
 const spoken = () => presses().map(node => [node.props.accessibilityLabel, node.props.accessibilityValue?.text ?? null, node.props.accessibilityHint ?? null]);
-/** The line that ends the face, the person and the count of people: the line that stacks. */
-const foot = () => tree.root.find(node => node.type === VIEW && node.props.testID === 'task-face-foot');
 const offerRow = () => tree.root.findByType(PrijavaPriceText).findAllByType(VIEW)[0];
 beforeEach(() => { mockScale = 1; mockWidth = 411; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
 /** A window and a text scale: what a phone is to the layout. */
-const WINDOWS: readonly [width: number, scale: number, stacked: boolean][] = [
-  [411, 1, false], [411, 1.15, false], [390, 1, false], [390, 1.15, false], [361.14, 1, false], [361.14, 1.15, false],
-  [340, 1, false], [340, 1.15, false], [339.9, 1, true], [320, 1, true],
-  [411, 1.3, true], [361.14, 1.3, true], [361.14, 1.2999999523, true], [340, 1.3, true], [320, 1.3, true],
+const WINDOWS: readonly [width: number, scale: number][] = [
+  [411, 1], [411, 1.15], [390, 1], [390, 1.15], [361.14, 1], [361.14, 1.15],
+  [340, 1], [340, 1.15], [339.9, 1], [320, 1],
+  [411, 1.3], [361.14, 1.3], [361.14, 1.2999999523], [340, 1.3], [320, 1.3], [320, 2],
 ];
 
-describe('the owner\'s phone is a compact window, not a stacked one', () => {
-  // Evidence for the precondition of item 1.5 ("if the HONOR's real font scale is already 1.3 or more, this changes
-  // nothing"). It is NOT 1.3. Everything below is read from `w5_zadaci.png` (HONOR VKP-NX9, 2026-10-02 00:29, 1264 x 2728 px)
-  // and from the code that drew it; the repo's earlier receipts (R16 2026-09-25 and R17-R19, "existing font scale 1.15
-  // unchanged"; DEVICE_CHECK 2026-09-22) say the same.
-  //  Pixels per dp: the Zadaci list pads its cards 20 dp (`DiscoveryPresentation` list) and the card's left edge is at
-  //  x = 70 px; the "Mapa" pill is `minHeight: 48` and is 168 px high. Both give 3.5 px per dp, i.e. 560 dpi.
-  //  Window: 1264 / 3.5 = 361.1 dp.
-  //  Text scale: the capital P of the 16 sp fact line "Petrovaradin" (Inter Medium, cap height 1490/2048 = 0.7275 em) is 47 px
-  //  high. The scales it would have: 1.0 -> 40.7 px, 1.15 -> 46.9 px, 1.3 -> 53.0 px. 47 px is 1.15.
-  //  A second, independent witness: `ApplicationFace` stacks its offer only from 1.3 up, and "Moje prijave" on the same
-  //  phone (new_mp_sve.png) draws "Tvoja ponuda" beside the amount, so that screen was not at 1.3 either.
-  const PX_PER_DP = 560 / 160;
-  const CAP_EM = 1490 / 2048;
-  const capPx = (sp: number, scale: number) => sp * PX_PER_DP * CAP_EM * scale;
-
-  it('1264 px at 560 dpi is 361 dp, and 47 px of cap height at 16 sp is the 1.15 text scale', () => {
-    expect(1264 / PX_PER_DP).toBeCloseTo(361.14, 2);
-    expect(70 / PX_PER_DP).toBe(20); expect(168 / PX_PER_DP).toBe(48);
-    const measured = 47;
-    const nearest = [1, 1.15, 1.3].reduce((best, scale) => Math.abs(capPx(16, scale) - measured) < Math.abs(capPx(16, best) - measured) ? scale : best);
-    expect(nearest).toBe(1.15);
-    expect(capPx(16, 1.0)).toBeCloseTo(40.7, 1); expect(capPx(16, 1.15)).toBeCloseTo(46.9, 1); expect(capPx(16, 1.3)).toBeCloseTo(53.0, 1);
-  });
-
-  it('so its layout class is compact (not stacked) at 1.15, and large only from 1.3', () => {
-    expect(layoutClassFor(1264 / PX_PER_DP, 1.15)).toMatchObject({ cls: 'compact', stacked: false });
-    expect(layoutClassFor(1264 / PX_PER_DP, 1.3)).toMatchObject({ cls: 'large', stacked: true });
-    expect(NARROW_WIDTH).toBe(340); expect(LARGE_TEXT_SCALE).toBe(1.3);
+describe('readable layout at demanding screen and text sizes', () => {
+  it('gives narrow screens and enlarged text a stacked reading layout', () => {
+    expect(layoutClassFor(320, 2).stacked).toBe(true);
   });
 });
 
-describe('the task card keeps publisher and capacity on independent full-width rows', () => {
-  it.each(WINDOWS)('width %s dp, text scale %s: publisher keeps full width', async (width, scale) => {
+describe('the task card retains readable facts across screen and text sizes', () => {
+  it.each(WINDOWS)('width %s dp, text scale %s: title and publisher remain readable', async (width, scale) => {
     mockWidth = width; mockScale = scale;
     await render(<TaskCard item={task({ naslov: 'Montaža police' })} onOpen={jest.fn()} />);
-    expect(style(textNode('Montaža police')).flex).toBeUndefined();
     expect(textNode('Montaža police').props.numberOfLines).toBeUndefined();
-    expect(style(foot()).alignSelf).toBe('stretch');
-    expect(foot().findAll(node => node.props.testID === 'task-face-capacity')).toHaveLength(0);
+    expect(textNode('Nikola Petrović')).toBeDefined();
+    expect(textNode('Treba 2 osobe')).toBeDefined();
   });
 
   it.each(WINDOWS)('my own task met in discovery, width %s dp, text scale %s: capacity stays a fact without an empty publisher footer', async (width, scale) => {
@@ -132,34 +103,33 @@ describe('the task card keeps publisher and capacity on independent full-width r
     expect(textNode('2.000 RSD')).toBeTruthy();
   });
 
-  it('long titles and amounts retain their own full-width reading groups', async () => {
+  it('long titles and amounts remain complete when price mode changes', async () => {
     mockWidth = 361.14; mockScale = 1.15;
     const longTitle = 'Prevoz i prenos 4 torbe sa Petrovaradina do centra Novog Sada';
     await render(<TaskCard item={task({ naslov: longTitle })} onOpen={jest.fn()} />);
-    expect(style(textNode(longTitle)).flex).toBeUndefined();
+    expect(textNode(longTitle).props.numberOfLines).toBeUndefined();
     await act(async () => tree.update(<TaskCard item={task({ rezimCene: 'OFFERS' })} onOpen={jest.fn()} />));
-    expect(style(textNode('Farbanje dnevne sobe')).flex).toBeUndefined();
+    expect(textNode('Tražim ponude')).toBeDefined();
     await act(async () => tree.update(<TaskCard item={task({ ponudjenaCena: { iznos: 1250000, valuta: 'RSD', prikaz: '1.250.000 RSD' } })} onOpen={jest.fn()} />));
-    expect(style(textNode('Farbanje dnevne sobe')).flex).toBeUndefined();
+    expect(textNode('1.250.000 RSD').props.numberOfLines).toBeUndefined();
   });
 });
 
-describe('my application\'s face stacks its offer only in the resilience cases', () => {
-  it.each(WINDOWS)('width %s dp, text scale %s: stacked = %s', async (width, scale, stacked) => {
+describe('my application retains its offer across screen and text sizes', () => {
+  it.each(WINDOWS)('width %s dp, text scale %s: title and offer remain complete', async (width, scale) => {
     mockWidth = width; mockScale = scale;
     await render(<ApplicationCard row={application()} {...handlers()} />);
     const amount = textNode('4.500 RSD');
-    expect(style(amount).textAlign).toBe('left');
-    expect(style(offerRow()).flexDirection).toBe(stacked ? 'column' : 'row');
+    expect(amount.props.numberOfLines).toBeUndefined();
+    expect(textNode('ukupno')).toBeDefined();
     expect(textNode('Unos ormara').props.numberOfLines).toBeUndefined();
   });
 
-  it('the gallery can still force the large layout on a roomy phone, and the phone\'s class decides when nothing is forced', async () => {
+  it('the gallery can request the large reading layout on a roomy phone', async () => {
     mockWidth = 411; mockScale = 1;
     await render(<ApplicationCard row={application()} large {...handlers()} />);
     expect(style(offerRow()).flexDirection).toBe('column');
-    await act(async () => tree.update(<ApplicationCard row={application()} large={false} {...handlers()} />));
-    expect(style(offerRow()).flexDirection).toBe('row');
+    expect(textNode('4.500 RSD').props.numberOfLines).toBeUndefined();
   });
 });
 

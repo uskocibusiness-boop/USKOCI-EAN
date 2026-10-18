@@ -57,6 +57,12 @@ it('lists every scene by its visible name and draws each one, with Nazad back to
     await act(async () => presses().find(node => node.props.accessibilityLabel === label)!.props.onPress());
     expect(presses().some(node => node.props.accessibilityLabel === 'Nazad na listu scena')).toBe(true);
     expect(texts()).toContain('Nazad');
+    if (label.startsWith('Područje rada:')) {
+      const inputs = tree.root.findAll(node => String(node.type) === 'TextInput').map(node => node.props.accessibilityLabel);
+      expect(inputs).not.toContain('Grad ili mesto rada');
+      expect(presses().map(node => node.props.accessibilityLabel)).not.toContain('Sačuvaj područje rada');
+      expect(tree.root.findAllByProps({ accessibilityRole: 'radiogroup', accessibilityLabel: 'Radijus rada' })).toHaveLength(0);
+    }
     await act(async () => presses().find(node => node.props.accessibilityLabel === 'Nazad na listu scena')!.props.onPress());
     expect(presses().some(node => node.props.accessibilityLabel === label)).toBe(true);
   }

@@ -40,7 +40,7 @@ jest.mock('../../ui/aiFirst/AiConversationShell', () => ({ AiConversationShell: 
 jest.mock('../../ui/workerProfile/WorkerProfilePresentation', () => ({ WorkerProfileFrame: (props: any) =>
   require('react').createElement('Frame', props, props.children, props.footer), WorkerProfileStatus: 'Status' }));
 jest.mock('../../ui/workerProfile/WorkerAiPresentation', () => ({ WorkerAiActivation: 'Activation', WorkerAiCard: 'Card', WorkerAiReviewDetails: 'Review',
-  WorkerAiNotificationsNote: 'Note', WorkerAiManual: 'Manual' }));
+  WorkerAiNotificationsNote: 'Note' }));
 jest.mock('../../ui/calendar/AvailabilityForm', () => ({ AvailabilityForm: 'Availability' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));

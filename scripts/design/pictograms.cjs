@@ -233,10 +233,5 @@ add('kapacitet', 'Kapacitet vozila', 'ljudi', 'green', [
 add('pomocnik', 'Dostupan pomoćnik', 'ljudi', 'orange', [person(14, 16.6, 1.45), badgeCheck(24.4, 8.6)]);
 add('ekipa', 'Dostupna ekipa', 'ljudi', 'orange', [person(6.8, 18, 1, '{soft}', '{light}'), person(20.8, 18, 1, '{soft}', '{light}'), person(13.8, 19.2, 1.22), badgeCheck(25, 7.6)]);
 
-const TONES = {
-  green: { front: '#079C77', edge: '#077958', light: '#6FD0AB', soft: '#E1F4EC', top: '#34C39A' },
-  orange: { front: '#F78028', edge: '#CF5B12', light: '#FFBE85', soft: '#FFF0E2', top: '#FFA24D' },
-  muted: { front: '#8A938E', edge: '#5C6860', light: '#D6DDD8', soft: '#EAEEEB', top: '#A7AFAA' },
-};
-
-module.exports = { K, TONES };
+// Reusable tone values live in src/theme/colorTokens.ts; the native generator reads them through sys.
+module.exports = { K };

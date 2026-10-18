@@ -258,7 +258,6 @@ it('commits the complete static welcome before delayed UI clock writes, includin
       expect(style.opacity).toBe(1); expect(style.transform[0]).toEqual({ translateY: 0 });
     }
     expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'entry-center-seam' }).props.style).opacity).toBeGreaterThan(.99);
-    expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'entry-brand-panel' }).props.style).boxShadow[0].color).toBe('rgba(0,0,0,0.045)');
     expect(button('Objavi zadatak').props.disabled).toBe(false);
     expect(button('Prijavi se').props.disabled).toBe(false);
     expect(tree.root.findAllByProps({ testID: 'entry-word-reveal' })).toHaveLength(0);

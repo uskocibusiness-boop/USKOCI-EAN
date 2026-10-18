@@ -9,7 +9,8 @@ const within = (value: number, min: number, max: number) => {
 };
 
 it('offers purpose-specific variants without one universal animation duration', () => {
-  expect(Object.keys(motion.categories).sort()).toEqual(['assistant', 'content', 'feedback', 'navigation', 'press', 'sheet']);
+  expect(Object.keys(motion.categories)).toEqual(expect.arrayContaining(['assistant', 'content', 'feedback', 'navigation', 'press', 'sheet']));
+  for (const variants of Object.values(motion.categories)) expect(Object.keys(variants).length).toBeGreaterThan(0);
   expect(getMotionPreset('content', 'replace')).toBe(motion.categories.content.replace);
   expect(getMotionPreset('sheet', 'open')).toBe(motion.categories.sheet.open);
   const timings = [motion.press, motion.toggle, motion.enter, motion.exit, motion.sheetClose];

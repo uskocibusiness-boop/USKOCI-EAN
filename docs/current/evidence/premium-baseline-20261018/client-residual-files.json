@@ -1,0 +1,50 @@
+[
+  {
+    "path": "src/ui/workerProfile/WorkerAiPresentation.tsx",
+    "sha256": "5c88e5bd4e5444572fadc05e3eb23e7d9c134006cd0fd0510be67bf1268df69b"
+  },
+  {
+    "path": "src/ui/workerProfile/__tests__/worker-review-parts.test.tsx",
+    "sha256": "44b5c07167b0e8ff9555569d57b1c1fc1f6066fcbe31eded56e52f8a343bb114"
+  },
+  {
+    "path": "src/ui/workerProfile/__tests__/worker-ai-review.test.tsx",
+    "sha256": "191754f781762714c649ca18815c4c6c7b53b1a73afa07f55bb1738c57ec9693"
+  },
+  {
+    "path": "src/data/__tests__/worker-conversation-parts.test.tsx",
+    "sha256": "7a02bba09d4049ef6980faf7a69a2ac2166fc72fb95f9b24edbf8c05d3e4892f"
+  },
+  {
+    "path": "src/designLab/dizajn-profil.tsx",
+    "sha256": "0aa1a19d34a92924ae4b62995adfb70130e4d0223b7403722f7f33127514e12f"
+  },
+  {
+    "path": "src/data/__tests__/profile-gallery.test.tsx",
+    "sha256": "61053c3df3b2ad896fc7c30323f5c277ca1d51348ea3a9b8aced742fa3941f04"
+  },
+  {
+    "path": "src/data/__tests__/entry-spoj-surface.test.tsx",
+    "sha256": "63515d1cd1a208adaf0133604e98ed548ac777c506d7567ca4a0cba533e08693"
+  },
+  {
+    "path": "src/data/__tests__/v5-tab-navigation.test.tsx",
+    "sha256": "627d9256f33e4e6efce1e9a8a995458b99415cbec8e8ee6dc87e785bb44cf6b4"
+  },
+  {
+    "path": "src/data/__tests__/task-card-layout-class.test.tsx",
+    "sha256": "8c0a9827484254139521de9f5a0ac6aac751586ab6bef8e7c7cd0d6bd59079cf"
+  },
+  {
+    "path": "src/data/__tests__/task-card-face.test.tsx",
+    "sha256": "b43b0cefefd555f01a542ae395a8e28052178a3f75bc27b891285d1c8bf391e8"
+  },
+  {
+    "path": "src/data/__tests__/own-task-card.test.tsx",
+    "sha256": "627112111999b447480ada8965b1fa4a4cb7ab3b78850589e974ed51bcaafc51"
+  },
+  {
+    "path": "src/data/__tests__/dizajn-galerija-pregled.test.tsx",
+    "sha256": "e8e7099475999bffa40fc56c544ffaac3fc567e127556f48b3ab651d8bca6fe6"
+  }
+]

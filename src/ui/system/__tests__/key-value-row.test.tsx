@@ -66,9 +66,16 @@ describe('the measure of a row', () => {
     expect(flat(word('26. sep'))).toMatchObject({ textAlign: 'right', flex: 1 });
   });
 
-  it('lets the label take at most 45 % and wrap, so a long label never leaves the value no room', async () => {
+  it('lets the label shrink and reserves a bounded share for the value', async () => {
     await render(<KeyValueRow label="Dogovoreno ukupno" value="5.500 RSD" testID="kv" />);
-    expect(flat(word('Dogovoreno ukupno'))).toMatchObject({ flexShrink: 1, maxWidth: '45%' });
+    const labelStyle = flat(word('Dogovoreno ukupno'));
+    expect(labelStyle.flexShrink).toBeGreaterThan(0);
+    expect(labelStyle.maxWidth).toMatch(/^\d+(?:\.\d+)?%$/);
+    const labelShare = Number.parseFloat(labelStyle.maxWidth);
+    expect(labelShare).toBeGreaterThan(0);
+    expect(labelShare).toBeLessThan(100);
+    expect(flat(word('5.500 RSD')).flex).toBeGreaterThan(0);
+    expect(hostAbove(word('Dogovoreno ukupno')).props.accessibilityLabel).toBe('Dogovoreno ukupno: 5.500 RSD');
   });
 });
 

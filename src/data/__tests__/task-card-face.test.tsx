@@ -165,19 +165,16 @@ describe('the value slot', () => {
     expect(texts()).not.toContain('ukupno'); expect(texts()).not.toContain('po osobi');
   });
 
-  it('keeps the whole title, amount and publisher at larger and ordinary text without sharing width with capacity', async () => {
+  it('keeps the whole title and amount at larger and ordinary text alongside publisher and capacity facts', async () => {
     mockScale = 1.3;
     await render(<TaskCard item={task({ ponudjenaCena: { iznos: 1250000, valuta: 'RSD', prikaz: '1.250.000 RSD' } })} onOpen={jest.fn()} />);
     expect(textNode('Farbanje dnevne sobe').props.numberOfLines).toBeUndefined();
     expect(textNode('1.250.000 RSD').props.numberOfLines).toBeUndefined();
-    const foot = () => tree.root.find(node => node.type === VIEW && node.props.testID === 'task-face-foot');
-    expect(style(foot()).alignSelf).toBe('stretch');
-    expect(foot().findAll(node => node.props.testID === 'task-face-capacity')).toHaveLength(0);
+    expect(texts()).toEqual(expect.arrayContaining(['Nikola Petrović', 'Treba 2 osobe']));
     await act(async () => tree.unmount());
     mockScale = 1;
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
-    expect(style(foot()).alignSelf).toBe('stretch');
-    expect(foot().findAll(node => node.props.testID === 'task-face-capacity')).toHaveLength(0);
+    expect(texts()).toEqual(expect.arrayContaining(['Farbanje dnevne sobe', '5.500 RSD', 'Nikola Petrović', 'Treba 2 osobe']));
   });
 
   it('says the same words to the owner of a task found in discovery as to everybody and as the page of the task does ("Tražim ponude"), never "Tražiš ponude"', async () => {

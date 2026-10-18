@@ -53,6 +53,17 @@
     "newApk": "PENDING",
     "nativeVerification": "PENDING",
     "evidence": "docs/current/evidence/premium-baseline-20261018",
-    "scope": "Current baseline, design authority and foundation; not completion of nine UI waves."
+    "scope": "Current baseline, design authority and foundation; not completion of nine UI waves.",
+    "priorAttempt": {
+      "run": 39153834280,
+      "source": "061045394e64bef282fe8f91f85be105359e704a",
+      "status": "CANCELLED_BY_AGENT",
+      "reason": "Final source review found unused WorkerAiManual and residual appearance gates. Stopped before prebuild/native build to integrate cleanup into the shipped APK.",
+      "passedBeforeCancellation": [
+        "TypeScript",
+        "Current source ownership",
+        "Preview identity"
+      ]
+    }
   }
 }

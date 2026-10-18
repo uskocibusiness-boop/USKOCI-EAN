@@ -220,12 +220,12 @@ function Photo({ stage, mode, error = null, notice = null, permission = false, r
     sheet={confirm.sheet} />;
 }
 
-/** The work-area form as the route places it: the confirmation (or, right after a save, the saved line) and the save in the sticky footer. */
+/** The current map confirmation: city, country and radius are saved facts; only the point is editable. */
 function Area({ location, busy = false, uncertain = false, reading = false, error = null, saved = false }: { location: WorkerLocation; busy?: boolean;
   uncertain?: boolean; reading?: boolean; error?: string | null; saved?: boolean }) {
-  return <WorkerLocationForm location={location} busy={busy} uncertain={uncertain} reading={reading} saved={saved} onSave={noop} error={error}
+  return <WorkerLocationForm pointOnly location={location} busy={busy} uncertain={uncertain} reading={reading} saved={saved} onSave={noop} error={error}
     onRetry={noop} countryOptions={COUNTRIES} resolver={NO_SEARCH}>
-    {({ body, footer }) => <WorkerProfileFrame title="Područje rada" backLabel="Nazad" back={toList.current} footer={footer}>{body}</WorkerProfileFrame>}
+    {({ body, footer }) => <WorkerProfileFrame title="Tačka na mapi" backLabel="Nazad" back={toList.current} footer={footer}>{body}</WorkerProfileFrame>}
   </WorkerLocationForm>;
 }
 const areaFrame = (children: ReactNode) => <WorkerProfileFrame title="Područje rada" backLabel="Nazad" back={toList.current}>{children}</WorkerProfileFrame>;

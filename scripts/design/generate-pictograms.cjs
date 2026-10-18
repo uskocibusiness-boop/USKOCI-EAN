@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 delete require.cache[require.resolve('./pictograms.cjs')];
-const { K, TONES } = require('./pictograms.cjs');
+const { K } = require('./pictograms.cjs');
 
 const tag = { circle: 'Circle', ellipse: 'Ellipse', path: 'Path', rect: 'Rect', g: 'G' };
 const NUM = /^(cx|cy|r|rx|ry|x|y|width|height|opacity|strokeWidth)$/;
@@ -19,12 +19,12 @@ function jsx(svg) {
 const kinds = Object.keys(K);
 const cases = kinds.map(id => `    case '${id}': return <>${jsx(K[id].svg.join(''))}</>;`).join('\n');
 const catalog = kinds.map(id => `  { kind: '${id}', label: '${K[id].label}', group: '${K[id].group}' },`).join('\n');
-const tone = t => `{ front: '${t.front}', edge: '${t.edge}', light: '${t.light}', soft: '${t.soft}', top: '${t.top}' }`;
 
 const out = `import { memo, useId, type ReactNode } from 'react';
 import { View } from 'react-native';
 import { Image } from 'expo-image';
 import { MATERIAL_SUBJECTS } from './materialSubjects';
+import { sys } from './tokens';
 import Svg, { Circle, Defs, Ellipse, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
 /**
@@ -46,9 +46,9 @@ ${catalog}
 ];
 
 type Tone = { front: string; edge: string; light: string; soft: string; top: string };
-const GREEN: Tone = ${tone(TONES.green)};
-const ORANGE: Tone = ${tone(TONES.orange)};
-const MUTED: Tone = ${tone(TONES.muted)};
+const GREEN: Tone = sys.pictogram.green;
+const ORANGE: Tone = sys.pictogram.orange;
+const MUTED: Tone = sys.pictogram.muted;
 const ORANGE_KINDS: readonly PictogramKind[] = [${kinds.filter(id => K[id].tone === 'orange').map(id => `'${id}'`).join(', ')}];
 
 function drawing(kind: PictogramKind, c: Tone, grad: string): ReactNode {

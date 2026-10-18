@@ -9,7 +9,7 @@ jest.mock('react-native', () => {
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 
-import { WorkerAiActivation, WorkerAiManual, WorkerAiReviewDetails } from '../WorkerAiPresentation';
+import { WorkerAiActivation, WorkerAiReviewDetails } from '../WorkerAiPresentation';
 import { sys } from '../../system/tokens';
 
 /**
@@ -123,20 +123,6 @@ it('does not invent availability for an empty calendar', async () => {
   expect(copy).not.toContain('Ponedeljak'); expect(copy).not.toContain('Slobodno za rad'); expect(copy).not.toContain('Posebni datumi');
   expect(copy).toContain('Mogu odmah: isključeno');
   expect(copy).not.toContain('Po vremenu u Srbiji');
-});
-
-it('manual personal-profile correction does not erase or write hidden legacy fields', async () => {
-  const profile = review({}, { licenses: ['LEGACY_LICENSE'], teamCapacity: 37 }).profile;
-  const apply = jest.fn();
-  await act(async () => { tree = create(<WorkerAiManual profile={profile} disabled={false} apply={apply} />); });
-  const fields = tree.root.findAllByType('TextInput' as React.ElementType);
-  expect(fields.some(node => /licenc|ljudi/i.test(node.props.accessibilityLabel))).toBe(false);
-  const submit = tree.root.findAll(node => typeof node.props.onPress === 'function' && node.props.accessibilityLabel === 'Primeni na pregled profila')[0];
-  await act(async () => { submit.props.onPress(); });
-  expect(apply).toHaveBeenCalledTimes(1);
-  expect(apply.mock.calls[0][0]).not.toHaveProperty('licenses');
-  expect(apply.mock.calls[0][0]).not.toHaveProperty('teamCapacity');
-  expect(profile.licenses).toEqual(['LEGACY_LICENSE']); expect(profile.teamCapacity).toBe(37);
 });
 
 it('shows two explicit activation choices and only reports a changed, enabled choice', async () => {
