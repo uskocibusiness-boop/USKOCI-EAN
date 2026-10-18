@@ -1,0 +1,20 @@
+{
+  "kind": "FORWARD_CANDIDATE_NOT_APPLIED",
+  "date": "2026-10-18",
+  "functions": [
+    {
+      "signature": "public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)",
+      "predecessorDefinitionMd5": "b2b80811e44f5d802e27f3cbf13dda0d",
+      "predecessorBodyMd5": "f87c131293ef743a7a0fe3ab14196160",
+      "candidateBodyMd5": "6ff6db358e4f5a3ee7f6566533ef403a",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "private.taxonomy_review_candidate_projection_v2(text,jsonb,jsonb,uuid,uuid)",
+      "predecessorDefinitionMd5": "b72276424e5abbf99145e0cdab350924",
+      "predecessorBodyMd5": "d075ffc0d885dbe754764bd09d5873d9",
+      "candidateBodyMd5": "5d1d83cb4f52da1aabc2f07a951cec2c",
+      "acl": "{postgres=X/postgres}"
+    }
+  ]
+}

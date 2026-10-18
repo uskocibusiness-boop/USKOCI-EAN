@@ -1,0 +1,68 @@
+name: Taxonomy new branch scopes disposable proof
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'supabase/candidates/taxonomy-new-branch-scopes-20261018/**'
+      - '.github/workflows/taxonomy-new-branch-scopes-pg-proof.yml'
+  push:
+    branches: [feature/unified-qa-master-20261017]
+    paths:
+      - 'supabase/candidates/taxonomy-new-branch-scopes-20261018/**'
+      - '.github/workflows/taxonomy-new-branch-scopes-pg-proof.yml'
+permissions:
+  contents: read
+jobs:
+  branch-scopes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['16','17']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: test_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: test_only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Verify bounded source changes and exact rollback
+        run: node --test supabase/candidates/taxonomy-new-branch-scopes-20261018/source.test.mjs
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Reproduce valid parent rejection and atomic dual-mode branch failure
+        run: |
+          root=supabase/candidates/taxonomy-new-branch-scopes-20261018
+          psql -X -v ON_ERROR_STOP=1 -f "$root/fixture.sql"
+          psql -X -v ON_ERROR_STOP=1 -f "$root/assert-before.sql"
+      - name: Prove six-level creation and actual worker and need binding
+        run: |
+          root=supabase/candidates/taxonomy-new-branch-scopes-20261018
+          psql -X -v ON_ERROR_STOP=1 -f "$root/candidate.sql"
+          psql -X -v ON_ERROR_STOP=1 -f "$root/assert.sql"
+          psql -X -v ON_ERROR_STOP=1 -f "$root/assert-metadata.sql"
+      - name: Prove exact rollback and reapplication
+        run: |
+          root=supabase/candidates/taxonomy-new-branch-scopes-20261018
+          psql -X -v ON_ERROR_STOP=1 -f "$root/revert.sql"
+          psql -X -v ON_ERROR_STOP=1 -f "$root/assert-before.sql"
+          psql -X -v ON_ERROR_STOP=1 -f "$root/candidate.sql"
+          psql -X -v ON_ERROR_STOP=1 -f "$root/assert.sql"
+          psql -X -v ON_ERROR_STOP=1 -f "$root/assert-metadata.sql"
