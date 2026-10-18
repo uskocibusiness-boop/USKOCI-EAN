@@ -18,7 +18,12 @@
       "slug": "uskoci-worker-interview",
       "before_version": 43,
       "after_version": 44,
-      "after_ezbr_sha256": "bb6ada7ef9169f60d3ce4365ef9d1ea6ffa279ea6fc5730dd3297dcaa33",
+      "after_ezbr_sha256": "bb6ada7ef9169f60d3ce4365ef9d1ea6ffa279ea6fc5730dd3297dcaf7dcaa33",
+      "metadata_correction_20261018": {
+        "reason": "The original receipt transcribed an incomplete bundle hash. Corrected against active version 44 metadata read at 07:59 UTC; no redeployment.",
+        "original_transcription": "bb6ada7ef9169f60d3ce4365ef9d1ea6ffa279ea6fc5730dd3297dcaa33",
+        "evidence": "docs/control/dev_snapshot.json worker_coverage_refresh_20261018 / edge version 44"
+      },
       "verify_jwt": false,
       "readback_files_equal": "6/6",
       "note": "Preserved live _shared/classificationGeminiShadow.mjs despite local drift"

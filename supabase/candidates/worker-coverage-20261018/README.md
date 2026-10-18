@@ -1,5 +1,7 @@
 # Worker coverage: two independent source packages
 
+Status 18 October 2026: **country guard APPLIED** to canonical DEV as migration `20261018075854`; exact body readback, ACL and unchanged closure digests verified. Regional core **NOT APPLIED / NOT WIRED**. CI [39109590162](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39109590162) passed on source `48eae637`. Receipt: `supabase/operations/dev-alpha/ledger/20261018075854_worker_city_country_guard.receipt.json`. The pre-existing live/certified closure mismatch remains unresolved; no recertification occurred.
+
 ## 1. Country guard for the existing matcher
 
 `country-guard.candidate.sql` changes exactly the fallback used when distance cannot be computed. An identical city label is sufficient only when both sides have the same explicit, non-null country code. Unknown country fails closed. The measured-distance branch, REMOTE bypass, taxonomy scope, service, exclusions and time are byte-identical to the captured predecessor. This does not solve two same-named places in one country, multiple work areas, routes or countrywide dispatch.

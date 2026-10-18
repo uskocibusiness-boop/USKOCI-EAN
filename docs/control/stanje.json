@@ -1,14 +1,14 @@
 {
  "meta": {
-  "osvezeno": "2026-10-18T07:05:33Z",
+  "osvezeno": "2026-10-18T08:02:30Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "97ded773",
-  "head_poruka": "docs(dev): record AI interview Edge prompt deployment",
+  "head": "48eae637",
+  "head_poruka": "feat(geo): prepare verified worker coverage foundation",
   "server": {
-   "snimljeno": "2026-10-18T06:03:43Z",
-   "migracije": 279,
-   "dev_alpha": 86,
-   "poslednja": "taxonomy_deep_ancestry_v2_20261018",
+   "snimljeno": "2026-10-18T07:59:13Z",
+   "migracije": 280,
+   "dev_alpha": 87,
+   "poslednja": "dev_alpha_worker_city_country_guard_20261018",
    "sertifikat_ok": false,
    "privatni_status": "FRESH",
    "privatni_istorijski": null,
@@ -37,13 +37,13 @@
      "slug": "uskoci-ai-interview",
      "name": "uskoci-ai-interview",
      "status": "ACTIVE",
-     "version": 88,
+     "version": 89,
      "created_at": 1788261764727,
-     "updated_at": 1792303131811,
+     "updated_at": 1792306773847,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_88/source/supabase/functions/uskoci-ai-interview/index.ts",
-     "ezbr_sha256": "9d62c4171c11ca4e099b55a4ece50e1cd370438d8a7524bd8f5c78130345bdcd"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_89/source/supabase/functions/uskoci-ai-interview/index.ts",
+     "ezbr_sha256": "e88709c006376c675b6f9d8b8fe9e8f2e147b13f733fbcce4e6a7345169bcba2"
     },
     {
      "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
@@ -102,13 +102,13 @@
      "slug": "uskoci-worker-interview",
      "name": "uskoci-worker-interview",
      "status": "ACTIVE",
-     "version": 43,
+     "version": 44,
      "created_at": 1789291116219,
-     "updated_at": 1792296705478,
+     "updated_at": 1792306788967,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_43/source/supabase/functions/uskoci-worker-interview/index.ts",
-     "ezbr_sha256": "a299fd1f56a194405aafe7ce84b5107d8f945470fda7e95a98372d31c4f26d9d"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_44/source/supabase/functions/uskoci-worker-interview/index.ts",
+     "ezbr_sha256": "bb6ada7ef9169f60d3ce4365ef9d1ea6ffa279ea6fc5730dd3297dcaf7dcaa33"
     },
     {
      "id": "1ba4db69-a390-4b55-a071-97bee74d2598",
@@ -13764,6 +13764,14 @@
  },
  "ci": [
   {
+   "id": 39109590162,
+   "ime": "Worker coverage geography (disposable PostGIS)",
+   "sha": "48eae637",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-18T07:57:22Z"
+  },
+  {
    "id": 39066722881,
    "ime": "DEV AI acceptance (authenticated)",
    "sha": "75661303",
@@ -13846,14 +13854,6 @@
   {
    "id": 39030696467,
    "ime": "Worker old-APK and signed-review read compatibility (PostgreSQL)",
-   "sha": "0c50d018",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-17T11:58:15Z"
-  },
-  {
-   "id": 39030696464,
-   "ime": "Gemini owner-turn hint capture (disposable PostgreSQL)",
    "sha": "0c50d018",
    "stanje": "completed",
    "ishod": "success",

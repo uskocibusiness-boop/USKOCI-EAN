@@ -1,0 +1,38 @@
+{
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "environment": "DEV",
+  "migration": "dev_alpha_worker_city_country_guard_20261018",
+  "migration_version": "20261018075854",
+  "observed_at": "2026-10-18T07:59:12Z",
+  "authorization": "Standing owner order recorded in AGENTS.md §3.1.10 (2026-10-07): apply proven packages; current user continuation. No reserved action included.",
+  "source_commit": "48eae637552deff8af5e3694800eb3c272f604de",
+  "candidate": "supabase/candidates/worker-coverage-20261018/country-guard.candidate.sql",
+  "revert": "supabase/candidates/worker-coverage-20261018/country-guard.revert.sql",
+  "ci": {
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39109590162",
+    "conclusion": "success",
+    "scope": "Real isolated PostGIS 16/3.5; synthetic data; baseline FAIL, patch PASS, exact revert, reapply PASS. Separate coverage geometry proof."
+  },
+  "function": "private.worker_need_fit_v1(uuid,uuid,boolean)",
+  "before_body_md5": "74de2072260579799b651aa69f84cecb",
+  "after_body_md5": "7b5d5b5b4f2f3b5d8cefc26333aa6145",
+  "readback_body_byte_equal": true,
+  "acl_before": "{postgres=X/postgres}",
+  "acl_after": "{postgres=X/postgres}",
+  "security_definer": true,
+  "settings": [
+    "search_path=pg_catalog"
+  ],
+  "closure_live_before": "88cab17911f89a7d8d800ae229db568dd2aaed106395ad8acc3207917acd72ec",
+  "closure_live_after": "88cab17911f89a7d8d800ae229db568dd2aaed106395ad8acc3207917acd72ec",
+  "closure_certified_before": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+  "closure_certified_after": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+  "preexisting_closure_mismatch": true,
+  "closure_certification_performed": false,
+  "readonly_impact": {
+    "geographic_pairs_affected": 1,
+    "full_matches_before": 1,
+    "full_matches_after": 0
+  },
+  "limits": "Only coordinate-free city country guard applied. Regional core NOT APPLIED; no live business rows edited, no AI/geocoder call, no event/push send, no APK or device proof."
+}
