@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-18T08:02:30Z",
+  "osvezeno": "2026-10-18T08:25:21Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "48eae637",
-  "head_poruka": "feat(geo): prepare verified worker coverage foundation",
+  "head": "938df57d",
+  "head_poruka": "docs(geo): record applied country guard and coverage proof [skip ci]",
   "server": {
    "snimljeno": "2026-10-18T07:59:13Z",
    "migracije": 280,
@@ -3456,6 +3456,16 @@
    "targetedCi": 38033001120,
    "pkg049": 38033001100,
    "storeReady": false
+  },
+  "current_baseline_cleanup_20261018": {
+   "status": "ENTRY DOCUMENTATION CLEANED; RUNTIME CONSOLIDATION PENDING",
+   "sourceHead": "938df57d81e98821255d361afd6b6201e996889d",
+   "report": "docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md",
+   "inventory": "docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_INVENTORY_20261018.json",
+   "preservedOriginals": "docs/authority/history/entry-cleanup-20261018/MANIFEST.json",
+   "scope": "Existing current entry, authority/design maps and scoped reading order updated. Eight original files preserved byte-exact. No runtime/test removal, APK, DEV, paid AI, push or device action.",
+   "verification": "Jest discovery: 620 files, not a passing-suite claim. Archive hashes, entry links, scope diff and existing generators verified in this documentation package.",
+   "boundary": "No phone/release acceptance changed. Source/DEV/build/device evidence remain separate. Existing eas.json and untracked SQL candidate excluded."
   }
  },
  "redovi": [

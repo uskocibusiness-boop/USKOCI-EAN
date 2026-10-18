@@ -19,8 +19,8 @@
     "note": "Objavljeni legal/retention/processor setovi: 0/0/0 (DEV read 30.09.2026). Brojevi legal/store PASS se ne upisuju bez dokaza za konkretne gate-ove."
   },
   "next": {
-    "title": "Poruke direktno u čet, mirnija navigacija i originalni AI vodič → tačan native build",
-    "note": "Source3 je instaliran na HONOR-u i emulatoru. Novi inbox reader primenjen na DEV i proverene granice pristupa; novi UI ide u sledeći paket. Posle toga stvarna Poruke → čet → Back provera, tastatura i stanje. Push single-target i matching nastavljaju se zasebno; pravi govorni AI i store ostaju otvoreni."
+    "title": "Jedan aktuelni ulaz → povezan AI/profil i uredniji ekrani → dokaz tačnog APK-a",
+    "note": "Ulazna dokumentacija i inventar sređeni 18.10.2026; source 938df57d pre čišćenja. Nema novog APK-a iz ovog paketa. Sledeće: identitet isporuke, razdvajanje dizajn laboratorije, AI → sačuvani profil i Home/Zadaci tok. Region kandidat ostaje nepriključen; matching/push i pravne/release granice ostaju zasebne. Detalji u CURRENT_BASELINE_CLEANUP_20261018.md i istim redovima registra."
   },
   "evidence": [
     {
@@ -688,6 +688,12 @@
       "run": null,
       "sha": null,
       "result": "Six existing UI test contracts aligned with accepted visual changes; independent bundled-font guard retained. Discovery159 and final card/tab115 pass; no final full-Jest green claim. See VISUAL_FINISHING_20261002.md."
+    },
+    {
+      "id": "CURRENT-BASELINE-ENTRY-CLEANUP-20261018",
+      "run": null,
+      "sha": "938df57d81e98821255d361afd6b6201e996889d",
+      "result": "DOCUMENTATION + STATIC INVENTORY ONLY. Eight originals archived with SHA-256; current entry/design direction clarified; 21 design routes, 25 static candidates, 620 discovered test files. No full test pass, new APK, DEV or device claim. docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md"
     }
   ]
 }

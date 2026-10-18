@@ -1,5 +1,7 @@
 # Persistent owner design skill selection
 
+> **Current scope, 2026-10-18:** the owner now requests a clean current app and freedom to redesign the UI/UX. This list is a historical skill-selection reference, not a requirement to reload every skill or reproduce V28/manual-profile/Entry layouts. Use available skills relevant to the actual change, under the current owner direction and repository boundaries. Missing external donor paths are declared, not treated as current workspace authority. Package examples in skills still do not authorize dependencies. The dated source below remains for provenance.
+
 Owner instruction: 2026-09-13, load all nine skills and use them throughout
 USKOČI app work. Each SKILL.md below was read in this session. This registry
 persists that preference for future sessions; it does not claim model memory

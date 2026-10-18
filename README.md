@@ -4,13 +4,14 @@ Postojeća Expo / React Native aplikacija za objavljivanje zadataka, prijave i d
 
 ## Nastavak rada
 
+- **[Počni ovde — aktuelni radni prostor, kod, dokazi i istorija](docs/current/README_USKOCI_LIVE_MASTER_PLAN.md)**
 - [Pravila i autoritet](AGENTS.md)
 - [Aktuelni operativni plan](docs/current/USKOCI_OPERATIVNI_MASTER_PLAN_LIVE.html)
 - [Jedini registar statusa](docs/control/redovi.json)
-- [Izgled, završne izmene i tačan obim dokaza](docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md)
-- [Pregled proizvoda i povezanih tokova](docs/implementation/ui-ux-pass-20261002/UIUX_PLAN_AND_STATUS_20261002.md)
+- [Aktuelni dizajnerski pravac](docs/implementation/OWNER_DESIGN_DIRECTION_20260922.md)
+- [Inventar nagomilavanja i redosled sređivanja, 18.10.2026.](docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md)
 
-Aktuelna radna grana je `work/uskoci-ui-unification-20260924`. Istorijski GitHub default nije zamena za nju.
+Na inventaru 18.10.2026. aktivan je checkout `USKOCI-EAN`, grana `feature/unified-qa-master-20261017`. Pri nastavku proveri Git; prethodna `work/uskoci-ui-unification-20260924` i istorijski GitHub default nisu nalog za promenu grane. Datirani izveštaji ostaju dokaz svog izvora, ne sadašnjeg APK-a.
 
 ## Lokalni rad
 

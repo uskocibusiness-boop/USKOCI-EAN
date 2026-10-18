@@ -180,6 +180,11 @@
             }
           }
         }
+      },
+      "source_audit_20261018_current_baseline": {
+        "status": "DOCUMENTATION + STATIC INVENTORY; RUNTIME/NATIVE UNCHANGED",
+        "note": "Dokumentacioni/source inventar: RadarIcon.tsx nije dosegnut iz aktuelnih ruta i nema produkcionog importa AnimatedRadar; raniji napredak komponente ne dokazuje radar u Home kartici. Novi APK nije napravljen. Sledeće je povezati traženi radar i proveriti fokus/pozadinu/Reduce Motion; stare i novije Home slike su različiti izvori.",
+        "report": "docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md"
       }
     },
     {
@@ -451,6 +456,11 @@
           "device_proof": "Nema novog APK/emulator/telefon/provider dokaza za Round40.",
           "status": "P5 READY-REVIEW SOURCE/CI PASS / AI PROVIDER QUALITY + CURRENT NATIVE PENDING"
         }
+      },
+      "source_audit_20261018_current_baseline": {
+        "status": "DOCUMENTATION + STATIC INVENTORY; RUNTIME/NATIVE UNCHANGED",
+        "note": "Aktuelne smernice sada vode na AI razgovor, kratak sažetak i eksplicitan pregled/objavu. Septembarski nacrt označen kao istorijski raspored; nije obaveza da se vrati puna rastuća kartica ili stari ručni put. Ovim paketom razgovor/runtime nije menjan.",
+        "report": "docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md"
       }
     },
     {
@@ -2023,7 +2033,12 @@
           "status": "DEV APPLIED / APK INSTALLED / BOUNDED NATIVE VERIFIED / FULL AI-PREFERENCES FLOW OPEN"
         }
       },
-      "source_progress_20261018_worker_coverage": "Regionalni SQL evaluator napisan i proveravan u izolovanom PostGIS-u, ali NIJE povezan sa AI/signed save niti primenjen. Profil i dalje čuva jedan grad/radijus. Potrebni su per-service coverage ugovor, razrešenje stvarnih oblasti, owner/revision save i prošireni dispatch prefilter. Dokaz: docs/implementation/v5-ai-first/WORKER_COVERAGE_IMPLEMENTATION_20261018.md"
+      "source_progress_20261018_worker_coverage": "Regionalni SQL evaluator napisan i proveravan u izolovanom PostGIS-u, ali NIJE povezan sa AI/signed save niti primenjen. Profil i dalje čuva jedan grad/radijus. Potrebni su per-service coverage ugovor, razrešenje stvarnih oblasti, owner/revision save i prošireni dispatch prefilter. Dokaz: docs/implementation/v5-ai-first/WORKER_COVERAGE_IMPLEMENTATION_20261018.md",
+      "source_audit_20261018_current_baseline": {
+        "status": "DOCUMENTATION + STATIC INVENTORY; RUNTIME/NATIVE UNCHANGED",
+        "note": "Aktuelni pravac je jedan AI ulaz za uređivanje radnih usluga i teritorije. Dopuna označava dokumentaciono sređivanje; ne dokazuje novi intervju, kanonske kategorije, region ili dispatch.",
+        "report": "docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md"
+      }
     },
     {
       "id": "B01",
@@ -2277,6 +2292,11 @@
           "device_proof": "Emulator4081: realni profil1.0/1.3, tastatura i AI-review inert gallery. Ispravka95a99/build37142990111: Back/cancel zadržava unos, discard→Profil→Radni profil briše unos i Save footer; editor potvrđuje praznu biografiju. UID10227 i hash provereni; font vraćen1.15. Telefon nije povezan.",
           "status": "DEV APPLIED / APK INSTALLED / BOUNDED NATIVE VERIFIED / FULL AI-PREFERENCES FLOW OPEN"
         }
+      },
+      "source_audit_20261018_current_baseline": {
+        "status": "DOCUMENTATION + STATIC INVENTORY; RUNTIME/NATIVE UNCHANGED",
+        "note": "Inventar WorkerProfileSaved nalazi AI edit uz stare ručne linkove za područje/raspored i ponovljene veštine. Predlog je jedan potvrđeni pregled po usluzi i režimu, sa kontekstualnim ulaskom u razgovor. Ovaj paket ne menja ekran ni sačuvani model.",
+        "report": "docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md"
       }
     },
     {
@@ -2354,7 +2374,12 @@
           "boundary": "No application source, DEV, device or acceptance-light change."
         }
       },
-      "source_progress_20261018_worker_coverage": "DEV migracija 20261018075854: fallback po nazivu grada sada zahteva istu poznatu državu. CI FAIL pre/PASS posle, tačan revert i reapply PASS; DEV readback identičan i ACL/closure nepromenjeni. Regionalni/multicenter kandidat prolazi izolovanu geometriju, NIJE aktivan. Dokaz: docs/implementation/v5-ai-first/WORKER_COVERAGE_IMPLEMENTATION_20261018.md"
+      "source_progress_20261018_worker_coverage": "DEV migracija 20261018075854: fallback po nazivu grada sada zahteva istu poznatu državu. CI FAIL pre/PASS posle, tačan revert i reapply PASS; DEV readback identičan i ACL/closure nepromenjeni. Regionalni/multicenter kandidat prolazi izolovanu geometriju, NIJE aktivan. Dokaz: docs/implementation/v5-ai-first/WORKER_COVERAGE_IMPLEMENTATION_20261018.md",
+      "source_audit_20261018_current_baseline": {
+        "status": "DOCUMENTATION + STATIC INVENTORY; RUNTIME/NATIVE UNCHANGED",
+        "note": "Nove smernice razdvajaju prebivalište, terensko područje, region/rutu i REMOTE. Country guard ostaje ranije primenjen dokaz; coverage kandidat i ceo signed-save/dispatch tok ostaju otvoreni. Dokumentaciono čišćenje ih nije aktiviralo.",
+        "report": "docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md"
+      }
     },
     {
       "id": "B03",
@@ -3029,7 +3054,12 @@
           "nativeEvidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-52720d99.json"
         }
       },
-      "source_progress_20261018_worker_coverage": "Zajednički matcher na DEV-u ispravljen samo za city fallback bez koordinata. Kandidatski prefilter još koristi 300 km od jedne tačke i mora se proširiti pre regionalnog rada. Nema novog dispatch/push/device dokaza. Dokaz: docs/implementation/v5-ai-first/WORKER_COVERAGE_IMPLEMENTATION_20261018.md"
+      "source_progress_20261018_worker_coverage": "Zajednički matcher na DEV-u ispravljen samo za city fallback bez koordinata. Kandidatski prefilter još koristi 300 km od jedne tačke i mora se proširiti pre regionalnog rada. Nema novog dispatch/push/device dokaza. Dokaz: docs/implementation/v5-ai-first/WORKER_COVERAGE_IMPLEMENTATION_20261018.md",
+      "source_audit_20261018_current_baseline": {
+        "status": "DOCUMENTATION + STATIC INVENTORY; RUNTIME/NATIVE UNCHANGED",
+        "note": "Inventar: 21 dizajn ruta u router stablu; runtime DEV gate ne dokazuje izostavljanje iz release bundle-a. Postojeći discovery i redirect-i ostaju. Predlog je jasna remote/teren kompozicija i izdvajanje laboratorije uz dokaz build-a.",
+        "report": "docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md"
+      }
     },
     {
       "id": "B05",
@@ -7097,6 +7127,11 @@
           "proposedChange": "KEEP aktivne ugovore; REMOVE samo dokazano mrtvo, bez DEV mutacije u auditu.",
           "boundary": "No application source, DEV, device or acceptance-light change."
         }
+      },
+      "source_audit_20261018_current_baseline": {
+        "status": "DOCUMENTATION + STATIC INVENTORY; RUNTIME/NATIVE UNCHANGED",
+        "note": "Inventar razlikuje aktivni kod, laboratoriju, neprimenjene kandidate i istoriju. Primenjene migracije/ledger/revert dokazi nisu obrisani. 25 nedosegnutih runtime kandidata zahteva zasebnu proveru pre uklanjanja.",
+        "report": "docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md"
       }
     }
   ],
@@ -10851,6 +10886,16 @@
       "targetedCi": 38033001120,
       "pkg049": 38033001100,
       "storeReady": false
+    },
+    "current_baseline_cleanup_20261018": {
+      "status": "ENTRY DOCUMENTATION CLEANED; RUNTIME CONSOLIDATION PENDING",
+      "sourceHead": "938df57d81e98821255d361afd6b6201e996889d",
+      "report": "docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md",
+      "inventory": "docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_INVENTORY_20261018.json",
+      "preservedOriginals": "docs/authority/history/entry-cleanup-20261018/MANIFEST.json",
+      "scope": "Existing current entry, authority/design maps and scoped reading order updated. Eight original files preserved byte-exact. No runtime/test removal, APK, DEV, paid AI, push or device action.",
+      "verification": "Jest discovery: 620 files, not a passing-suite claim. Archive hashes, entry links, scope diff and existing generators verified in this documentation package.",
+      "boundary": "No phone/release acceptance changed. Source/DEV/build/device evidence remain separate. Existing eas.json and untracked SQL candidate excluded."
     }
   }
 }

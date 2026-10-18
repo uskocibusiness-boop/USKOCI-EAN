@@ -1,62 +1,53 @@
-# Owner design direction — 2026-09-22 (current)
+# USKOČI — aktuelni dizajnerski pravac
 
-## Superseding owner direction — 2026-10-02, visual finishing
+Ažurirano 18.10.2026. Putanja ostaje ista da postojeće veze rade. Ovo je dizajnerski pravac u postojećem planu, ne drugi registar statusa.
 
-Latest explicit instruction: primary text and titles black, supporting text gray; white reading surfaces. Character comes from composed screens, selected premium 2.5D illustrations, icons and restrained accents. This supersedes the green-title preference and blanket small-flat-icon direction below. Green remains a brand/action color, not the default reading color. Use existing FactArt art selectively; navigation/close/filter glyphs stay clear. Distinct cards and open rows each need a purpose; remove redundant headings, helper copy, empty footers and competing emphasis without hiding actual facts or recovery.
+## Odluka vlasnika i obim
 
-Continue the existing app plan by reviewing complete screens and connected flows from the person's perspective. Apple craft principles and the owner's Airbnb search/map/list/filter references guide quality, adapted to USKOČI. Earlier V28/V31 and V59/V60 references are useful evidence, not authority over this instruction. Prioritize visual/native review and coherent batches; targeted checks protect changed behavior, broad regression belongs at major integration/release gates. Do not spend each visual round on expanding test infrastructure. Existing entry/mascot, business, privacy, provider and deployment boundaries remain.
+Najnoviji zahtev je da aplikacija dobije jasan sadašnji izgled i tokove, bez gomilanja starih ekrana i smernica, uz slobodu za redizajn. Prethodni SPOJ/V28/V41/V46 rasporedi, veličine pločica i tačne motion sekvence više nisu obavezna vizuelna kompozicija. Čuvamo prepoznatljiv USKOČI identitet i poreklo originalnih resursa. Ne tvrdimo da su novi logo, animacija ili ekrani već izrađeni.
 
-Implementation/evidence for the first connected discovery/card batch: `ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md`. Existing W1–W12 and `docs/control/redovi.json` remain the plan and registry.
+Jedan nalog istovremeno može da objavljuje zadatke i radi. AI razgovor je glavni način pravljenja zadatka i uređivanja radnog profila. Korisnik govori prirodno; aplikacija jasno pokazuje šta je razumela i traži potvrdu bitnih podataka. Pregled pre upisa, izbor između nejasnih mesta, mapa za potvrdu i eksplicitno slanje ostaju korisne kontrole, ne paralelni ručni upitnik.
 
-Read this before working on each screen. This records the owner's latest clarification, which grants design autonomy and supersedes the stricter message immediately before it. Work on one screen at a time, with one implementation in app code.
+Kategorije i njihovi ID-jevi ostaju u pozadini. Alati i vozila nisu obavezan intervju niti uslov matching-a prema odluci vlasnika; postojeću serversku primenu proveriti posebno. Promena prikaza sama ne dokazuje promenu dispatch-a.
 
-## Product and preserved foundation
+## Vizuelna osnova
 
-Clear, concise, easy and capable. Wolt/Airbnb quality adapted to nearby short jobs, people using one hand while moving, Serbian copy addressed as "ti", one account for OBJAVI ZADATAK / USKOČI I ZARADI.
+- Bele čitljive površine, taman osnovni tekst, siva pomoćna informacija. Zelena označava jasnu glavnu akciju/izbor; narandžasta nosi prepoznatljivost i pažnju u smislenom kontekstu.
+- Inter i postojeći sistemski tokeni su radna osnova. Jedan sistem kontrola i razmaka. Ne uvoditi još jednu paletu ili „v6“ porodicu paralelnih ekrana.
+- Jedna dominantna radnja po koraku. Činjenice imaju prednost nad ilustracijom. Kartica samo kada grupisanje pomaže razumevanju ili otvara konkretnu stavku.
+- Originalni 2.5D crteži su selektivni akcenti; strelica, zatvaranje, filter i navigacija ostaju jasni kontrolni znakovi. Nedostajuća informacija nije dekorativno popunjena izmišljenim podatkom.
+- Dizajnirati na običnoj veličini teksta; proveriti uski ekran i uvećan tekst kao otpornost, bez odsečenih komandi. Sačuvati sistemske accessibility oznake, tastaturu, safe area i dodirne površine.
 
-Preserve Inter, colors, colored FactArt illustrations and TaskCard as the foundation. V28 is a starting point, not a restriction: reference images in v5-ai-first/v28-reference/ and measurements in v5-ai-first/V31_IDENTICAL_LOOK_20260922.md. Keep what works and freely improve the rest. The owner explicitly likes the green titles; the preceding dark-title requirement is withdrawn. Research Wolt, Airbnb, Uber, Glovo, TaskRabbit and Airtasker where useful, adapting patterns to USKOČI rather than copying them.
+## Povezane porodice ekrana
 
-## Per-screen acceptance
+| Porodica | Šta treba da bude jednostavno |
+| --- | --- |
+| Ulaz i prijava | Prepoznatljiv znak, razumljiva vrednost, vidljiva prijava/registracija; uvod ne odlaže upotrebu |
+| Početna | „Objavi zadatak“ i „Uskoči i zaradi“, nastavak započetog i stvarno aktuelne stavke; bez praznih odeljaka i opštih savetodavnih kartica |
+| AI zadatak | Reci šta treba → razjasni samo nedostajuće → pregled → eksplicitna objava; kratak sažetak tokom razgovora, pun pregled na kraju |
+| AI radni profil | Šta radiš → kako/gde radiš ako je terenski → dostupnost kada je bitna → potvrda; kasnije jedan jasan ulaz „Izmeni kroz razgovor“ |
+| Sačuvani profil | Razumljiv prikaz potvrđenih usluga i pokrivenosti, bez duplih alijasa, lažnog radijusa za remote i obaveznih praznih redova opreme |
+| Zadaci | Razumljiv izbor „Na daljinu / Na terenu“, korisna lista i fizička mapa; jedan uredan prostor filtera, sačuvano stanje pri povratku |
+| Detalj i ponuda | Dovoljno stvarnih podataka za odluku, jedna jasna prijava, pregled stvarnih uslova pre slanja |
+| Dogovor i poruke | Kratak kontekst zadatka, prihvaćeni uslovi i sledeća radnja uz razgovor; privatni podaci ostaju iza odgovarajućih dozvola |
+| Profil i podešavanja | Lični identitet i radne usluge u istom nalogu; podešavanja kratko grupisana, opasne radnje jasno odvojene |
 
-1. State one sentence: the decision/action the person must make.
-2. Explore multiple solutions and select the best using design judgment. Keep a clear primary action and concise hierarchy.
-3. Implement loading, empty, error, offline and success using real state; never invent a successful command or a new server state.
-4. Show the actual screen and one sentence explaining the composition. V28 comparisons remain useful evidence, not an automatic approval gate for visual differences.
-5. Pass types/tests, build the exact source APK and verify on the phone after each screen.
-6. Claude runs tests, captures each screen and reports strengths and defects. Do not edit the same files concurrently. A prepared review record is not a completed independent review.
+Početna, Zadaci, Dogovori i Poruke su postojeća četiri glavna odredišta. Nema automatskog vraćanja tri taba iz septembarskog nacrta. Svako spajanje ili uklanjanje odredišta mora da sačuva dostupnost funkcija, push/deep link i povratak.
 
-## Screen requirements
+## Mesto i prirodni razgovor
 
-- Map and opportunity list: find a nearby job quickly; selected task card from the bottom, readily reachable search, bottom filter sheet with a real "Prikaži N zadataka" count.
-- Task detail: everything needed to decide whether to apply, without wandering. Choose the order of photos/facts/price/requirements/description/place/questions/publisher by usefulness; green titles are explicitly welcomed. Missing price must never resemble an amount.
-- Application/offer: price, people, message, review, send; clear statement of what was sent after server confirmation.
-- Applications to own task: photo, price and message list; optional comparison; one offer occupies a screen; selecting requires confirming the actual accepted terms.
-- Agreement: next action, accepted terms and messages immediately understandable. Progress or task/application links may use only authoritative server information.
-- Home: OBJAVI ZADATAK / USKOČI I ZARADI; the four existing attention reasons; upcoming Agreements.
-- New task: AI conversation plus a growing draft card, followed by review before publication.
-- Profile, notifications, settings: concise, grouped and uncluttered.
+Izrada figurice kod izvršioca uz slanje ili preuzimanje nije automatski terenski dolazak kod naručioca. Ne tražiti kućnu tačku na mapi samo zato što je spomenut grad. Dostava/preuzimanje su detalji izvršenja. Za terenski zadatak treba razjasniti stvarno mesto rada; za radnika razdvojiti prebivalište od teritorije usluge.
 
-## Navigation and motion
+„Novi Sad“, „Novi Sad i okolina“, „cela Vojvodina“, „cela Srbija“ i ruta nisu ista geometrija. AI sme da predloži tumačenje, a potvrđeni model mora da ga sačuva tako da profil, matching i obaveštenja koriste isti smisao. Dok nisu povezani potvrda, upis, čitanje i dispatch, region prikazan tekstom nije završen regionalni matching.
 
-Rounded V28 bottom bar, colored illustrations; active destination on pale green, others gray. Nested screens retain their originating destination where navigation permits; do not invent a global role switch.
+## Animacije
 
-Motion only for meaning: list arrival, bottom sheet, confirmed success checkmark, empty state, "Dogovoreno!", map movement to a selected point. Respect system reduced motion. A new package requires owner approval. The owner has specifically approved @gorhom/bottom-sheet 5.2.14 and phone testing; that is not blanket approval for other dependencies or purchases.
+Motion treba da objasni promenu ili da kratko izrazi identitet: dodir, otvaranje, slanje, potvrda. Radar pripada kartici „Uskoči i zaradi“ prema ispravci vlasnika; proveriti stvarno povezivanje u kodu pre tvrdnje da radi. Ne uvoditi beskrajno kretanje na svakoj kartici. Transform/opacity na nativnom driver-u gde odgovara, bez ponovnog aktiviranja ranijeg Reanimated problema. Petlje staju u pozadini i van aktivnog ekrana; Reduce Motion daje mirno jasno stanje. Brzina i broj animacija proveravaju se u stvarnom native prikazu.
 
-## Engineering boundaries
+## Izvršenje i dokazi
 
-For this design work, do not alter the server, validations or recovery. Do not invent counts, ratings, status, eligibility, payment or delivery evidence. Text is readable and never below 12dp. The bottom bar must visibly indicate the active destination; never all gray. Keep all existing hard repository boundaries.
+Prvo svrha i povezana putanja, zatim kompozicija, stvarna stanja (učitavanje/prazno/greška/offline/uspeh), implementacija i ciljana provera ponašanja. Nakon smislene grupe promena: build iz poznatog izvora, emulator, pregled vrha/sredine/dna, tastature i povratka. Trenutna dozvola je emulator; fizički telefon samo u posebno odobrenom prozoru. Ne praviti APK za svaku malu stilsku izmenu.
 
-## Current execution — latest owner instruction
+Stari UX nacrt ostaje trag ranijeg rešenja; razliku zabeležiti u pogođenim redovima i izveštaju. Nova sloboda redizajna već je data; rutinske odluke ne vraćati vlasniku kao novo čekanje. Posebne granice iz AGENTS za server, plaćene pozive, push, pakete, privatnost, stvarne podatke i javnu objavu ostaju.
 
-Owner approval on 2026-09-22: "odobram sve to" approves the presented functional analysis,
-disclosed D1-D10 interpretations and execution order. The analysis wait below is historical.
-First bounded package: F01-F04 client foundation; then discovery → detail → offer.
-Keep independent server proposals and proof/approval requirements separate.
-
-First complete a whole-app functional analysis and show it to the owner. For every screen record its job, existing capabilities, missing capabilities, placement (screen/sheet/section/message/notification/confirmation), and verified existing server support versus a new contract. Research official Wolt, Airbnb, Uber, TaskRabbit and Airtasker flows. New screen implementation waits for the owner's approval of that analysis. Finish verification of the already approved bottom-sheet slice only. This ordering supersedes the execution order below; design freedom and engineering boundaries remain.
-
-### Previous execution order (paused for analysis)
-
-Additional owner instruction: read v5-ai-first/UX_NACRT_20260922.md and compare every screen with it (agreement, gap, proposed difference). Present conflicts before implementing. The functional audit contains these comparisons and D1-D10; the draft itself is not silently rewritten.
-
-Finish map/list/filter sheet first. Keep the prior native surfaces as implemented history and evaluate each next screen under this clarified direction. Review evidence belongs in DESIGN_NATIVE_CONNECTED_SLICES_20260922.md and the current status index. Screenshots and device checks must be labelled by actual source/build; a browser fixture is not a real phone flow.
+Prethodna verzija ovog dokumenta sačuvana je [neizmenjena](../authority/history/entry-cleanup-20261018/docs/implementation/OWNER_DESIGN_DIRECTION_20260922.md). Ne čitati je kao naredbu da se vrati star izgled.
