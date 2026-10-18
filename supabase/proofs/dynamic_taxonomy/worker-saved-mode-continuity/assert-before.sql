@@ -7,4 +7,3 @@ SELECT proof.require((SELECT count(*)=1 FROM private.taxonomy_confirmed_worker_m
 SELECT proof.require((SELECT expires_at<clock_timestamp() FROM private.worker_ai_reviews WHERE id=proof.original()),
  'SAVED_REVIEW_IS_HISTORICALLY_EXPIRED');
 SELECT proof.expect_pending('BASELINE_DID_NOT_REPRODUCE_SAVED_MODE_LOSS');
-

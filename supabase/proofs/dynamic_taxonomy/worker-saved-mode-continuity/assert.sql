@@ -194,4 +194,3 @@ SELECT proof.require((SELECT count(*)=2 FROM private.worker_ai_saves)
  AND (SELECT count(*)=0 FROM private.work_taxonomy_gemini_turn_hints_v1),
  'REOPEN_MUST_NOT_SAVE_OR_REBIND_OR_CALL_AI');
 SELECT 'worker saved-mode continuity: all isolated assertions passed' AS result;
-

@@ -73,4 +73,3 @@ end $function$
 ;
 REVOKE ALL ON FUNCTION public.rpc_prepare_worker_ai_review_taxonomy(uuid,integer,boolean) FROM PUBLIC,anon,service_role;
 GRANT EXECUTE ON FUNCTION public.rpc_prepare_worker_ai_review_taxonomy(uuid,integer,boolean) TO authenticated;
-
