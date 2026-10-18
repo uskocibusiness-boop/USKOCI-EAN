@@ -564,10 +564,209 @@ begin
 end;
 $function$;
 
+-- Tables and all private function dependencies are present even for branches
+-- not taken by the REMOTE_ANYTIME fixture; SQL planning still resolves references.
+CREATE TABLE private.marketplace_config(key text PRIMARY KEY,value jsonb NOT NULL);
+CREATE TABLE public.profile_availability_rules(
+ profile_id uuid,weekdays integer[],start_time time,end_time time,
+ starts_on date,ends_on date,active boolean);
+CREATE TABLE public.profile_availability_windows(
+ profile_id uuid,starts_at timestamptz,ends_at timestamptz,availability_state text);
+CREATE TABLE private.worker_calendar_events(
+ worker_profile_id uuid,agreement_id uuid,starts_at timestamptz,ends_at timestamptz,state text);
+CREATE TABLE private.work_taxonomy_related_acceptances(
+ worker_account_id uuid,source_category_id uuid,target_category_id uuid,relationship_version bigint);
+CREATE TABLE private.work_taxonomy_standard_coverage(
+ parent_category_id uuid,child_category_id uuid,evidence_ref text);
+-- Public classifier data captured read-only; no account, token or conversation data.
+INSERT INTO private.marketplace_config(key,value) VALUES
+ ('work_kind:BASTA_DVORISTE','{"kind":"BASTA_DVORISTE","stems":["bast","dvorist","kosenj","travnjak","garden","lawn"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:CISCENJE','{"kind":"CISCENJE","stems":["cisc","odrzavanj","clean","usisav"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:DOSTAVA','{"kind":"DOSTAVA","stems":["dostav","kurir","delivery","courier"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:ELEKTRO','{"kind":"ELEKTRO","stems":["elektr","electr","struj","uticnic","prekidac","rasvet","sijalic"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:FIZICKI_POSLOVI','{"kind":"FIZICKI_POSLOVI","stems":["fizick","nosenj","nosac","utovar","istovar","iznosenj","unosenj","labor","labour","loading"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:MOLERSKI_RADOVI','{"kind":"MOLERSKI_RADOVI","stems":["moler","krecenj","farbanj","gletovanj","painting","painter","ofarb"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:MONTAZA_NAMESTAJA','{"kind":"MONTAZA_NAMESTAJA","stems":["montaz","namestaj","ikea","furniture","assembl","ikee","ikei","ikeu","ikeom"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:PRANJE_PEGLANJE','{"kind":"PRANJE_PEGLANJE","stems":["pegl","pranje vesa","laundry","ironing"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:SELIDBE_PREVOZ','{"kind":"SELIDBE_PREVOZ","stems":["selid","prevoz","transport","kombi","moving","removal"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:SITNE_POPRAVKE','{"kind":"SITNE_POPRAVKE","stems":["popravk","majstor","handyman","repair"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kind:VODOINSTALATER','{"kind":"VODOINSTALATER","stems":["vodoinst","vodovod","slavin","odvod","bojler","plumb"],"schema":"WORK_KIND_V1"}'::jsonb),
+ ('work_kinds_head','{"kinds":["SELIDBE_PREVOZ","FIZICKI_POSLOVI","MONTAZA_NAMESTAJA","SITNE_POPRAVKE","MOLERSKI_RADOVI","ELEKTRO","VODOINSTALATER","CISCENJE","PRANJE_PEGLANJE","BASTA_DVORISTE","DOSTAVA"],"schema":"WORK_KINDS_HEAD_V1","package":"EX-06 ex06b","previous":"PKG-031b hard-coded regular expressions, body md5 2113eb46ab7ea968b873e76d1de12377","foldVersion":"SR_LATIN_CYRILLIC_V1","classificationVersion":"WK-1"}'::jsonb);
+
+-- Captured DEV definition MD5: 09891e19cad7b45c9553f2d1773985d1
+CREATE OR REPLACE FUNCTION private.work_kinds_v5(p_values text[])
+ RETURNS text[]
+ LANGUAGE plpgsql
+ STABLE PARALLEL SAFE
+ SET search_path TO 'pg_catalog'
+AS $function$
+declare
+  closed constant text[] := array['SELIDBE_PREVOZ', 'FIZICKI_POSLOVI', 'MONTAZA_NAMESTAJA', 'SITNE_POPRAVKE', 'MOLERSKI_RADOVI', 'ELEKTRO', 'VODOINSTALATER', 'CISCENJE', 'PRANJE_PEGLANJE', 'BASTA_DVORISTE', 'DOSTAVA'];
+  fold_from constant text :=
+    chr(269)||chr(263)||chr(353)||chr(273)||chr(382)||chr(268)||chr(262)||chr(352)||
+    chr(272)||chr(381)||chr(1040)||chr(1072)||chr(1041)||chr(1073)||chr(1042)||chr(1074)||
+    chr(1043)||chr(1075)||chr(1044)||chr(1076)||chr(1026)||chr(1106)||chr(1045)||chr(1077)||
+    chr(1046)||chr(1078)||chr(1047)||chr(1079)||chr(1048)||chr(1080)||chr(1032)||chr(1112)||
+    chr(1050)||chr(1082)||chr(1051)||chr(1083)||chr(1052)||chr(1084)||chr(1053)||chr(1085)||
+    chr(1054)||chr(1086)||chr(1055)||chr(1087)||chr(1056)||chr(1088)||chr(1057)||chr(1089)||
+    chr(1058)||chr(1090)||chr(1035)||chr(1115)||chr(1059)||chr(1091)||chr(1060)||chr(1092)||
+    chr(1061)||chr(1093)||chr(1062)||chr(1094)||chr(1063)||chr(1095)||chr(1064)||chr(1096);
+  fold_to constant text := 'ccsdzccsdzaabbvvggddddeezzzziijjkkllmmnnoopprrssttccuuffhhccccss';
+  folded text[];
+begin
+  -- EX-06 ex06b (S06). The hidden kinds of work (PKG-031b): a closed set of ELEVEN kinds recognised by word stems. The NAMES of the kinds are fixed HERE (a twelfth kind is an owner decision and
+  -- needs a new body, never a data row); the STEMS are data: private.marketplace_config rows work_kind:<KIND> (a JSON array of literal lower-case substrings, at least 4 letters) and the
+  -- classification version in the row work_kinds_head. Each value is folded first: lower case, Serbian Latin diacritics and the Serbian Cyrillic alphabet to plain Latin letters (the three
+  -- Cyrillic digraph letters first), so one Latin stem serves every spelling. A kind is named when a stem occurs inside ONE value (never across two values). Text that names no kind returns
+  -- nothing, so an unknown word never matches another unknown word. A registry that is not exactly the head row and the eleven kind rows is refused loudly, never half used; an extra
+  -- row work_kind:<anything else> is ignored, so no data row can ever add a kind.
+  if p_values is null or cardinality(p_values) = 0 then return '{}'::text[]; end if;
+  if not exists(select 1 from private.marketplace_config c
+                 where c.key = 'work_kinds_head' and c.value ->> 'schema' = 'WORK_KINDS_HEAD_V1'
+                   and c.value -> 'kinds' = to_jsonb(closed) and c.value ->> 'foldVersion' = 'SR_LATIN_CYRILLIC_V1')
+     or (select count(*) from private.marketplace_config c
+          where starts_with(c.key, 'work_kind:') and substr(c.key, 11) = any(closed)
+            and c.value ->> 'schema' = 'WORK_KIND_V1' and c.value ->> 'kind' = substr(c.key, 11)
+            and jsonb_typeof(c.value -> 'stems') = 'array') <> cardinality(closed) then
+    raise exception 'WORK_KINDS_REGISTRY_INVALID' using errcode = '55000';
+  end if;
+  select coalesce(array_agg(lower(translate(replace(replace(replace(replace(replace(replace(btrim(v), chr(1033), 'lj'), chr(1113), 'lj'), chr(1034), 'nj'), chr(1114), 'nj'), chr(1039), 'dz'), chr(1119), 'dz'), fold_from, fold_to))), '{}'::text[]) into folded
+    from unnest(p_values) v where v is not null;
+  return coalesce((
+    select array_agg(distinct r.kind order by r.kind)
+      from (select substr(c.key, 11) as kind, c.value -> 'stems' as stems
+              from private.marketplace_config c
+             where starts_with(c.key, 'work_kind:') and substr(c.key, 11) = any(closed)) r
+     cross join lateral jsonb_array_elements_text(r.stems) s(stem)
+     where length(s.stem) >= 4 and exists(select 1 from unnest(folded) t where strpos(t, s.stem) > 0)
+  ), '{}'::text[]);
+end;
+$function$;
+
+-- Captured DEV definition MD5: fc3a38b1737a359bdcb90af1c4c27e71
+CREATE OR REPLACE FUNCTION private.availability_is_future(kind text, s timestamp with time zone, e timestamp with time zone, at_now timestamp with time zone)
+ RETURNS boolean
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'pg_catalog'
+AS $function$
+  select coalesce(isfinite(s) and isfinite(e) and s<e and e>at_now
+    and (s>at_now or kind in ('TOMORROW_FLEXIBLE','WEEK_FLEXIBLE')),false);
+$function$;
+
+-- Captured DEV definition MD5: 3447807140aa439a84c9c9c73e01e10e
+CREATE OR REPLACE FUNCTION private.availability_timezone_valid(value text)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE
+ SET search_path TO 'pg_catalog'
+AS $function$
+  -- ZONE-PERF (2026-10-07). The zone catalog pg_timezone_names reads every zone file of the server (1,196 zones, about 52 ms in CI and
+  -- 70-110 ms on canonical DEV per call, warm or cold) and this helper runs for every worker x task pair of the matcher, for every
+  -- relative deadline and for every availability save. The two names below are the product's own zones and are known to be in the
+  -- catalog (the candidate refuses to apply otherwise); they need no scan. Every other value is judged by exactly the expression
+  -- used before, so what is accepted and what is refused is unchanged.
+  select case
+    when value is null or length(value)>100 then false
+    when value in ('Europe/Belgrade','UTC') then true
+    else (value='UTC' or position('/' in value)>0)
+      and value not like 'posix/%' and value not like 'right/%'
+      and exists(select 1 from pg_catalog.pg_timezone_names z where z.name=value)
+  end;
+$function$;
+
+-- Captured DEV definition MD5: 38cee82310eab26151d2c782e57694ea
+CREATE OR REPLACE FUNCTION private.worker_calendar_conflict(p_worker_profile_id uuid, p_starts_at timestamp with time zone, p_ends_at timestamp with time zone, p_exclude_agreement_id uuid DEFAULT NULL::uuid)
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'pg_catalog'
+AS $function$
+  select case
+    when p_worker_profile_id is null or p_starts_at is null or p_ends_at is null then false
+    when p_starts_at >= p_ends_at then false
+    else exists (
+      select 1
+      from private.worker_calendar_events e
+      where e.worker_profile_id = p_worker_profile_id
+        and e.state = 'BLOCKING'
+        and (p_exclude_agreement_id is null or e.agreement_id <> p_exclude_agreement_id)
+        and e.starts_at < p_ends_at
+        and e.ends_at > p_starts_at
+    )
+  end;
+$function$;
+
+-- Captured DEV definition MD5: 5d30dd29fb24788be980b7a54879334f
+CREATE OR REPLACE FUNCTION private.worker_available_periods(pid uuid, s timestamp with time zone, e timestamp with time zone, tz text)
+ RETURNS tstzmultirange
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'pg_catalog'
+AS $function$
+declare result tstzmultirange; blocked tstzmultirange; first_day date; last_day date;
+begin
+  if s is null or e is null or not isfinite(s) or not isfinite(e) or s>=e
+    or not private.availability_timezone_valid(tz) then return '{}'::tstzmultirange; end if;
+  first_day:=(s at time zone tz)::date; last_day:=(e at time zone tz)::date;
+  -- Bound work for malformed/exceptionally broad search inputs, never allocate
+  -- or deny an Agreement. Manual response/selection retains its own authority.
+  if last_day-first_day>366 then return '{}'::tstzmultirange; end if;
+  with days as (select first_day+i as d from generate_series(0,last_day-first_day) i),
+  periods as (
+    select w.starts_at as a,w.ends_at as b from public.profile_availability_windows w
+      where w.profile_id=pid and w.availability_state='AVAILABLE' and w.starts_at<e and w.ends_at>s
+    union all
+    select (d+r.start_time) at time zone tz,(d+r.end_time) at time zone tz
+      from days cross join public.profile_availability_rules r
+      where r.profile_id=pid and r.active and extract(dow from d)::integer=any(r.weekdays)
+        and r.starts_on<=d and (r.ends_on is null or r.ends_on>=d)
+  ) select coalesce(range_agg(tstzrange(greatest(a,s),least(b,e),'[)')),'{}'::tstzmultirange)
+      into result from periods where a<b and a<e and b>s;
+  select coalesce(range_agg(tstzrange(greatest(a,s),least(b,e),'[)')),'{}'::tstzmultirange)
+    into blocked from (
+      select w.starts_at as a,w.ends_at as b from public.profile_availability_windows w
+        where w.profile_id=pid and w.availability_state='UNAVAILABLE' and w.starts_at<e and w.ends_at>s
+      union all
+      select c.starts_at,c.ends_at from private.worker_calendar_events c
+        where c.worker_profile_id=pid and c.state='BLOCKING' and c.starts_at<e and c.ends_at>s
+    ) b;
+  return result-blocked;
+end;
+$function$;
+
+-- Captured DEV definition MD5: d8c788ac30aaa15e3a35c21873673dcc
+CREATE OR REPLACE FUNCTION private.schedule_fit(pid uuid, s timestamp with time zone, e timestamp with time zone, tz text)
+ RETURNS boolean
+ LANGUAGE plpgsql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'pg_catalog'
+AS $function$
+declare live_now boolean; at_now timestamptz:=statement_timestamp();
+begin
+  if s is null or e is null then return true; end if;
+  if not isfinite(s) or not isfinite(e) or s>=e or not private.availability_timezone_valid(tz) then return false; end if;
+  if private.worker_calendar_conflict(pid,s,e,null) or exists(
+    select 1 from public.profile_availability_windows w where w.profile_id=pid and w.availability_state='UNAVAILABLE'
+      and w.starts_at<e and w.ends_at>s) then return false; end if;
+  select available_now into live_now from public.app_profiles where id=pid and kind='WORKER' and profile_status='ACTIVE';
+  -- Live intent means now, not an invented expiry or arbitrary lead-time. Future
+  -- exact appointments must fit the stored weekly/windows schedule even when ON.
+  if coalesce(live_now,false) and s<=at_now and at_now<e then return true; end if;
+  return private.worker_available_periods(pid,s,e,tz) @> tstzrange(s,e,'[)');
+end;
+$function$;
+
 DO $pins$
 DECLARE expected record;
 BEGIN
  FOR expected IN SELECT * FROM (VALUES
+  ('private.work_kinds_v5(text[])','09891e19cad7b45c9553f2d1773985d1'),
+  ('private.availability_is_future(text,timestamp with time zone,timestamp with time zone,timestamp with time zone)','fc3a38b1737a359bdcb90af1c4c27e71'),
+  ('private.availability_timezone_valid(text)','3447807140aa439a84c9c9c73e01e10e'),
+  ('private.schedule_fit(uuid,timestamp with time zone,timestamp with time zone,text)','d8c788ac30aaa15e3a35c21873673dcc'),
+  ('private.worker_available_periods(uuid,timestamp with time zone,timestamp with time zone,text)','5d30dd29fb24788be980b7a54879334f'),
+  ('private.worker_calendar_conflict(uuid,timestamp with time zone,timestamp with time zone,uuid)','38cee82310eab26151d2c782e57694ea'),
   ('private.account_lineage(uuid)','8fb2092aa40b93b733f5e7181c355c55'),
   ('private.account_visibility_world(uuid)','109bc82d7b7b466218fb6823493fda4e'),
   ('private.lower_arr(text[])','e5c312154cab99884d794656bb9b2550'),
@@ -585,8 +784,17 @@ BEGIN
    RAISE EXCEPTION 'STRICT_MATCHER_CAPTURE_DRIFT_%',expected.signature;
   END IF;
  END LOOP;
- RAISE NOTICE 'STRICT_MATCHER_CAPTURE_11_EXACT_FUNCTIONS_PASS';
+ RAISE NOTICE 'STRICT_MATCHER_CAPTURE_17_EXACT_FUNCTIONS_PASS';
 END $pins$;
+
+-- Compile and execute the real legacy helper that PostgreSQL plans inside the
+-- matcher's exclusions expression even when the exclusions array is empty.
+DO $legacy_dependency$
+BEGIN
+ IF private.work_kinds_v5('{}'::text[]) IS DISTINCT FROM '{}'::text[]
+ OR private.work_kinds_v5(ARRAY['3D printovanje']) IS DISTINCT FROM '{}'::text[]
+ THEN RAISE EXCEPTION 'STRICT_3D_LEGACY_CLASSIFIER_DEPENDENCY_FAILED'; END IF;
+END $legacy_dependency$;
 
 INSERT INTO private.work_taxonomy_categories(id,canonical_key,label,state,source,catalog_version)
 VALUES('d1000000-0000-4000-8000-000000000001',

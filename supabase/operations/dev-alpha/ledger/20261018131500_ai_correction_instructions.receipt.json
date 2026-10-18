@@ -1,0 +1,158 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "authority": "Owner standing PRIMENI 2026-10-18",
+  "scope": "AI instructions only; patch parsers and guards unchanged",
+  "packages": [
+    {
+      "slug": "uskoci-ai-interview",
+      "beforeVersion": 93,
+      "beforeBundle": "b1d1ded78be1eff09f7fb200e1e4397ffc3af41330d0d2d827e8011f833e3953",
+      "verifyJwt": false,
+      "files": [
+        {
+          "path": "supabase/functions/uskoci-ai-interview/index.ts",
+          "sha256": "f5333eb3c36f80499647bfbc8403ec88425191d8e1c5cdd68befbb2f34460d46",
+          "bytes": 85949,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "sha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+          "bytes": 468,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "src/contracts/needFactsV2.ts",
+          "sha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6",
+          "bytes": 7029,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/locationReply.ts",
+          "sha256": "95ae06cb6f096dec38edbb45fc024edabbfdc02f0b71431fddaa892c4b1fe36c",
+          "bytes": 7606,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+          "bytes": 5351,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "sha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5",
+          "bytes": 16466,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/taxonomyScopedShadow.mjs",
+          "sha256": "c91b7bc3bb95f6cfc370c5a589bd12aba28089261b32d773573853cc62f75e8b",
+          "bytes": 1910,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/classificationEngine.mjs",
+          "sha256": "cdedf45565f92235ac2f8c75be9f754128bfa59f3c37fec6d7b394b677d748d3",
+          "bytes": 15292,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+          "sha256": "e6736505d82c08b21ac2e088c26662cd1a413f5255a58586238eeedf1f856210",
+          "bytes": 15936,
+          "byteIdenticalReadback": true
+        }
+      ],
+      "changed": [
+        "supabase/functions/uskoci-ai-interview/index.ts"
+      ],
+      "after": {
+        "version": 94,
+        "status": "ACTIVE",
+        "bundleSha256": "12f951cc87a2974415bdabd9fd156299961adb11571434a39236092565d6cfee",
+        "verifyJwt": false,
+        "updatedAt": 1792329282145
+      }
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "beforeVersion": 48,
+      "beforeBundle": "6c352062d5799964846d4abab9dbc2dd486a7677c21771981c3ed4523193f248",
+      "verifyJwt": false,
+      "files": [
+        {
+          "path": "supabase/functions/uskoci-worker-interview/index.ts",
+          "sha256": "1d6ed5a0781f0fad7682a6f142c1e25c47fd458bde880d55733ecdbb7dc72594",
+          "bytes": 33237,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "src/contracts/aiAvailability.ts",
+          "sha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+          "bytes": 468,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/aiTestBudget.ts",
+          "sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+          "bytes": 5351,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/geminiTaskStream.ts",
+          "sha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5",
+          "bytes": 16466,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/classificationEngine.mjs",
+          "sha256": "cdedf45565f92235ac2f8c75be9f754128bfa59f3c37fec6d7b394b677d748d3",
+          "bytes": 15292,
+          "byteIdenticalReadback": true
+        },
+        {
+          "path": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+          "sha256": "e6736505d82c08b21ac2e088c26662cd1a413f5255a58586238eeedf1f856210",
+          "bytes": 15936,
+          "byteIdenticalReadback": true
+        }
+      ],
+      "changed": [
+        "supabase/functions/uskoci-worker-interview/index.ts"
+      ],
+      "after": {
+        "version": 49,
+        "status": "ACTIVE",
+        "bundleSha256": "cace4d436c8965db9f7938be46e1536a4b8a552a393af9440b30df48fc5fb278",
+        "verifyJwt": false,
+        "updatedAt": 1792329282145
+      }
+    }
+  ],
+  "proof": {
+    "offlineActualHandler": 75,
+    "newCases": 6,
+    "providerCalls": 0
+  },
+  "limits": [
+    "Instruction tests do not prove Gemini interpretation.",
+    "Deterministic dependent-fact invalidation and regional coverage remain separate."
+  ],
+  "rollback": "Exact predecessor files preserved in private correction-before-private.json",
+  "sourceCommit": "9c5b5a394248206ca4fdf479d915d01c1a4c71b5",
+  "ci": {
+    "run": 39130573962,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39130573962",
+    "conclusion": "success",
+    "edgeTypes": "PASS",
+    "classificationContract": "PASS",
+    "paidProvider": "SKIPPED"
+  },
+  "dataEffects": {
+    "migration": false,
+    "providerCalls": 0,
+    "profileSave": 0,
+    "taskPublish": 0
+  }
+}
