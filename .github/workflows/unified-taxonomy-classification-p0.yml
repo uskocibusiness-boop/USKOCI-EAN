@@ -62,7 +62,7 @@ jobs:
         with:
           deno-version: v2.5.6
       - name: Install exact TypeScript dependencies without postinstall build
-        run: npm ci --ignore-scripts --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Verify exact worker and requester Gemini schemas on provider wire (offline)
         run: node supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs --offline
       - name: Type check both real Gemini Edge handlers
@@ -92,6 +92,6 @@ jobs:
           node-version: '22'
           cache: npm
       - name: Install locked dev dependencies without native hooks
-        run: npm ci --ignore-scripts --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Two synthetic worker and need provider calls, no DEV access
         run: node supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs --provider

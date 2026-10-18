@@ -391,9 +391,9 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
           source:modesSource,values:{...(old.source===modesSource?old.values:{}),[service]:choice}
         }))}/>:null}
       {workerExplicitModeReviewEnabled()&&!data.saved&&frozen.classificationState!==undefined&&frozen.classificationState!=='READY'?<V2Action tone="neutral"
-        label="Potvrdi način rada za sve poslove"
+        label="Potvrdi način rada za sve usluge"
         disabled={!selectedModes||!enabled||!writable||expired||editor.busy||reviewNeedsRestart}
-        reason={!selectedModes?'Izaberi način rada posebno za svaki posao.':null}
+        reason={!selectedModes?'Izaberi način rada posebno za svaku uslugu.':null}
         onPress={()=>{void confirmModes();}}/>:null}
       {/* Describe notification readiness honestly: signed pending reviews grant no matching authority. */}
       {!data.saved?<WorkerAiNotificationsNote matchingReady={frozen.classificationState===undefined||frozen.classificationState==='READY'}/>:null}
@@ -434,13 +434,13 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     cardPlacement="end"
     newConversation={{ onPress: restart, disabled: !canAct() || voiceBusy }}
     closed={!!data.saved || data.status !== 'OPEN'}
-    attach={writable?{label:'Dodaj podatke',hint:'Poslovi, područje rada, vreme, alat i vozilo.',disabled:!enabled,
+    attach={writable?{label:'Dodaj podatke',hint:'Usluge, područje rada, vreme, alat i vozilo.',disabled:!enabled,
       onPress:()=>{if(current()&&panelScope.current===renderedPanel)setAdding(true);}}:undefined}
     card={compact=>hasProfileContent?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable}
       showReview={writable&&!data.saved} reviewReason={!enabled?unavailableNow:undefined} review={()=>{void review();}}/>:null}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
     welcome={hasProfileContent?'Šta želiš da dopuniš?':'Čime se baviš?'}
-    welcomeDetail={hasProfileContent?'Reci šta želiš da promeniš. Sve izmene pregledaš pre čuvanja.':'Ispričaj koje poslove radiš ili želiš da preuzimaš. Ostalo ćemo razjasniti kroz razgovor.'}
+    welcomeDetail={hasProfileContent?'Reci šta želiš da promeniš. Sve izmene pregledaš pre čuvanja.':'Ispričaj koje usluge pružaš ili želiš da pružaš. Ostalo ćemo razjasniti kroz razgovor.'}
     placeholder="Opiši šta radiš"
     value={input} onChange={value=>{if(canAct()&&enabled&&writable){draftRevision.current+=1;draftText.current=value;setInput(value);}}} canEdit={!!enabled&&!!writable&&!pending.current}
     canSend={!!enabled&&!!writable&&!!input.trim()&&!pending.current} pending={!!pending.current} busy={editor.busy} streamingText={stream}

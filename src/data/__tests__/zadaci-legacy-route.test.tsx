@@ -18,7 +18,7 @@ let mockRelations: unknown = null;
 let mockLoading = false, mockError = false;
 const mockRefresh = jest.fn(async () => {});
 const mockRelationsRefresh = jest.fn(async () => {});
-const mockRouter = { navigate: jest.fn(), replace: jest.fn() };
+const mockRouter = { navigate: jest.fn(), push: jest.fn(), replace: jest.fn() };
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => { throw new Error('Unexpected transport'); } }));
 const mockAppListeners = new Set<(state: string) => void>();
 const mockAppState = { currentState: 'active', addEventListener: (_: string, listener: (state: string) => void) => {
@@ -30,7 +30,7 @@ jest.mock('react-native', () => {
 });
 
 jest.mock('expo-router', () => ({
-  router: { navigate: (...args: unknown[]) => mockRouter.navigate(...args), replace: (...args: unknown[]) => mockRouter.replace(...args) },
+  router: { navigate: (...args: unknown[]) => mockRouter.navigate(...args), push: (...args: unknown[]) => mockRouter.push(...args), replace: (...args: unknown[]) => mockRouter.replace(...args) },
   useLocalSearchParams: () => mockParams,
   useFocusEffect: (callback: () => (() => void) | void) => {
     const React = require('react');
@@ -67,7 +67,7 @@ beforeEach(() => {
   mockFocused = true; mockParams = {};
   mockHookCall = 0; mockRows = []; mockRelations = null; mockLoading = false; mockError = false;
   mockSource.otvorenaPrilika.mockReset(); mockSource.otvorenePrilike.mockReset();
-  mockRefresh.mockClear(); mockRelationsRefresh.mockClear(); mockRouter.navigate.mockClear(); mockRouter.replace.mockClear();
+  mockRefresh.mockClear(); mockRelationsRefresh.mockClear(); mockRouter.navigate.mockClear(); mockRouter.push.mockClear(); mockRouter.replace.mockClear();
   mockWorkArea.retire.mockClear(); mockWorkArea.handled.mockClear();
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
@@ -111,7 +111,9 @@ test('one command at a time: a second destination is let through only on a fresh
   expect(mockRouter.navigate.mock.calls).toEqual([['/profil']]);
   mockFocused = false; await update(); mockFocused = true; await update();
   await act(async () => discovery().onNew());
-  expect(mockRouter.navigate.mock.calls).toEqual([['/profil'], ['/nova']]);
+  expect(mockRouter.navigate.mock.calls).toEqual([['/profil']]);
+  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/nova', params: { entryKey: expect.any(String) } });
+  expect(mockRouter.push).toHaveBeenCalledTimes(1);
 });
 
 test('a refresh reads the collection and the relations again, and only while this visit is in front', async () => {

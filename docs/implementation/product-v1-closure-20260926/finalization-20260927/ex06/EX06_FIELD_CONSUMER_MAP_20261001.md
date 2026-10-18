@@ -266,3 +266,7 @@ Text assertions on repository files, LF-normalised, no SQL executed:
 * this document exists and names every finding id with its verdict.
 
 A later change that adds a writer, a collector, a consumer or a new file touching these columns fails the test on purpose: update the map and the test together.
+
+### 18.10.2026 source-only taxonomy candidates
+
+`supabase/candidates/dynamic-taxonomy-20261011/strict-scope-live-matcher-cutover-v1.sql` and `worker-need-fit-strict-scope-v1.sql` also read `p.exclusions` and call `private.identity_admitted`. They are candidate matcher bodies, not collectors or writers, and this inventory does not claim that either is applied on DEV. The exact-file contract includes both. The worker interview contains the ordinary English word “proactively” in a prohibition against suggesting unrelated work; the field guard now matches the standalone identifier `proactive`, so prose does not masquerade as a collected preference.

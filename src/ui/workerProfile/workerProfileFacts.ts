@@ -56,7 +56,7 @@ export type WorkerAiPart = 'identity' | 'skills' | 'area' | 'time' | 'tools';
 
 /** The group titles of the review, and of the editors they open. */
 export const WORKER_PART_TITLE: Readonly<Record<WorkerAiPart, string>> = {
-  identity: 'O meni', skills: 'Poslovi koje nudiš', area: 'Područje', time: 'Kada imaš vremena', tools: 'Alat i vozilo',
+  identity: 'O meni', skills: 'Usluge koje nudiš', area: 'Područje', time: 'Kada imaš vremena', tools: 'Alat i vozilo',
 };
 
 /** What the conversation has captured so far, from the draft itself (never from how many questions were asked). */
@@ -64,7 +64,7 @@ export type CapturedPart = { key: 'skills' | 'area' | 'time' | 'tools'; label: s
 export function capturedParts(profile: WorkerAiProfile): CapturedPart[] {
   const place = profile.location, week = profile.availability;
   return [
-    { key: 'skills', label: 'Poslovi', done: profile.skills.length > 0 },
+    { key: 'skills', label: 'Usluge', done: profile.skills.length > 0 },
     // Activation needs a country and a city (rpc_complete_worker_profile), so a place is captured only when both are there.
     { key: 'area', label: 'Područje', done: !!place.operatingCountryCode && place.city.trim().length > 0 },
     { key: 'time', label: 'Vreme', done: week.availableNow || week.rules.length > 0 || week.windows.length > 0 },

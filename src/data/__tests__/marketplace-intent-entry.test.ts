@@ -14,7 +14,7 @@ const source = readFileSync(require.resolve('../../app/(app)/zadaci.tsx'), 'utf8
 test('public discovery opens a new task directly, for every account, with no mode to read, ask about or set', () => {
   expect(source).toContain("import { izvorSada, useIzvor } from '../../store/uloga';");
   expect(source).not.toContain('onSwitch');
-  expect(source).toContain("onNew={() => navigate(() => router.navigate('/nova'))}");
+  expect(source).toContain("onNew={() => navigate(() => router.push({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } }))}");
   // Navigation is still fenced by the account, its revision, the source and the foreground.
   expect(source).toContain('sesijaSada().accountRevision === accountRevision && izvorSada() === source');
   for (const retired of ['postaviUlogu', 'useUloga', 'ulogaSada', 'IntentTransition', "intent === 'narucilac'", 'ask('])

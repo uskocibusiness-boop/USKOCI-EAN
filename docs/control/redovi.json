@@ -25,6 +25,7 @@
       },
       "problem": "725 telefon: Home nastavak vraća isti sačuvani task razgovor i potvrđeno mesto; b9 restart dokaz ostaje zaseban. Širi Home poslovni tok nije ponovo prihvaćen.",
       "sledece": "Zadržati dve glavne radnje i završiti povezani tok; bez ponovnog otvaranja popravljenog R09.",
+      "source_progress_20261018": "Animirani radar u kartici 'Uskoči i zaradi' u izvoru sada čita trajanje iz zajedničkih motion tokena i zaustavlja nativnu transform petlju kada je aplikacija u pozadini ili je uključen Reduce Motion. AI asistent koristi zajedničke tokene za disanje i treptaj. Motion ratchet 84/84 prolazi; novi APK i fizička provera kretanja nisu urađeni.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -207,6 +208,7 @@
         "dokaz": "Prvo AI pitanje vidljivo, bez model/ASR poziva; stvarni razgovor otvoren. docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
       "problem": "Novi razgovor task AI source/test završen; potvrda nije trajno brisanje istorije. Raniji telefon resume ostaje dokaz, ceo aktuelni AI task tok još otvoren.",
+      "source_progress_20261018": "Kartica živog AI nacrta u izvoru više ne zadaje lokalne sirove boje i senku preko Surface panel komponente; koristi zajednički materijal bez senke. AI intake ekran prolazi ciljane testove; novi APK i stvaran pregled razgovora na uređaju nisu urađeni.",
       "sledece": "Nastaviti preostali native obuhvat: novi photo upload/uklanjanje, privatni čet dva naloga i javni odgovor na tačno pitanje.600efd10 instaliran; dokazan je samo navedeni postojeći draft/picker cancel/viewer put. docs/implementation/evidence/media-qa-finish-20261010/REPORT.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
@@ -1739,6 +1741,7 @@
         "dokaz": "59876dc6: Još nema ocena, stvarni broj 0, Istorija/Back i profilno zvono potvrđeni; šire granice otvorene. docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json"
       },
       "problem": "10.10 izvor: sačuvana kartica ima ceo opis/proširive činjenice; activation OFF ostaje kroz razgovor; suspended mutation/support granice proverene. AI-only DRAFT/manual/deep-link migracija i native dokaz još otvoreni.",
+      "source_progress_20261018": "Sačuvani radni profil sada u izvoru prikazuje alat i vozila, sa objašnjenjem njihovog uticaja. Rečnik radničkih ponuda u izvoru usklađen je na 'usluge', a testovi pregleda i razgovora su ažurirani. Ciljani Jest za profil, razgovor i Discovery 302/302, dodatna provera razgovora 121/121 i naknadni Home/intake/native profil 365/365 prošli. Nova verzija APK-a sa ovom izmenom nije izgrađena niti je sačuvani profil proveravan na emulatoru/telefonu.",
       "sledece": "Nastaviti AI-only worker: DRAFT kartica, poslovne izmene kroz isti razgovor, potvrđena približna mapa kao kandidat (bez paralelnog live save), postojeći kalendar. Potom tačan APK/create-edit-save-reopen. Dokaz: docs/implementation/evidence/worker-reading-20261010/REPORT.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
@@ -8421,6 +8424,7 @@
           "title": "Taxonomy candidate capture and explicit promotion (table-based)",
           "status": "IN PROGRESS",
           "source_progress_20261018": "CREATE_CHILD v2 review applied as migration 20261017223855. Owner explicitly authorized taxonomy applications on 2026-10-18. Root-branch v3 and deep-ancestry v2 SQL applied to canonical DEV as migrations 20261017230303 and 20261017230429; worker AI Edge v42 and need AI Edge v85 deployed with all files byte-equal on readback; prompt shortlist now ranks roots and descendants together and passed a 240-root relevance test. Transactional synthetic FAIL-before/PASS-after proofs cover root review, two-level ON_SITE worker batch and replay, one-level REMOTE need batch, two new descendants below a 40-level parent (depth 42), 40-level catalog traversal, wrong-mode/duplicate-identity rejection and exact SQL reverts; every synthetic fixture rolled back. Source client decoder/UI is prepared; a local x86_64 debug APK was built, installed on emulator-5554 and displayed the current entry screen, while signed review and Save remain unproved. Live catalog version 3, 135 categories, zero Gemini hints and unchanged closure digest. Actual Gemini conversation, category admission from the app, capability/need binding, matching, push and phone proof remain open. Existing-node reparent is outside the latest owner scope. Full Jest has 12 failing suites unrelated to taxonomy; focused taxonomy 139/139 and client review 80/80 pass. The 800-per-scope loader cap, safe handling of an existing category missing the requested mode, and pre-existing live/certified closure mismatch remain open. Evidence: supabase/operations/dev-alpha/ledger/20261018_taxonomy_root_and_depth_application.receipt.json.",
+          "source_progress_20261018_continuation": "Shared Edge source catalog loader default raised from 8 to 20 pages of 100 per mode; a 805-category pagination proof passes, and focused taxonomy proofs pass 140/140. This is SOURCE ONLY; DEV Edge still uses deployed worker v42 and need v85, so its previous 800-per-mode cap remains until a proven deploy. The 2000-per-mode limit and sequential-read latency remain bounded risks. The existing approved Reanimated 4.5.1 patch was applied to local dependencies and its guard passed; both new taxonomy CI workflows now run npm postinstall. The first complete Jest run during continuation had 5 failing/614 passing suites (14 failing/13806 passing tests); all five failing suites subsequently passed targeted reruns, while a second complete run was interrupted before completion. No paid Gemini call or live admission was made in this continuation.",
           "autonomous": false,
           "depends_on": "S06 result and corpus coverage report showing real unknown-term volume; owner approval",
           "first_owner_boundary": "SQL review package approved and applied 2026-10-18. Edge deployment, any paid provider call, DEV data mutation, device/OTA release and closure recertification retain their separate gates; first prove compatible client and capture path."

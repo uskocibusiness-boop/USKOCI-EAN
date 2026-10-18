@@ -574,13 +574,11 @@ const s = StyleSheet.create({
   photoTile: { width: 104, height: 104, aspectRatio: 1 },
   canvas: { flex: 1, backgroundColor: sys.conversation.ground },
   muted: { color: sys.color.muted }, danger: { color: sys.color.danger },
-  // The living draft is a panel above the thread (a thing that is read, in a frame, with no shadow); only its padding is its own.
+  // The living draft is a read-only panel above the thread; Surface owns its frame and material.
   card: {
     paddingVertical: sys.space.md, paddingHorizontal: sys.space.base, gap: sys.space.sm,
-    backgroundColor: '#FFFFFF', borderRadius: 18, borderWidth: 1.5, borderColor: '#E2ECE6',
-    shadowColor: '#0E2920', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 3,
   },
-  cardCompact: { paddingVertical: sys.space.sm, paddingHorizontal: sys.space.base, borderRadius: 14 },
+  cardCompact: { paddingVertical: sys.space.sm, paddingHorizontal: sys.space.base, borderRadius: sys.radius.cardCompact },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   cardHeaderBadge: { fontSize: 11, fontWeight: '700', color: sys.color.green, letterSpacing: 0.6 },
   // Final, the facts are rows of one kind, 8 apart; while the draft is made they are pictures with their words in a line that wraps by whole facts.
@@ -598,6 +596,6 @@ const s = StyleSheet.create({
   compactTitle: { ...sys.type.cardTitleCompact, color: sys.color.ink },
   titleEmpty: { color: sys.color.muted },
   // The card's own fact size (`note`), in the weight of a way forward (verify r4b ra item C: it was a raw 14/19).
-  readyText: { flexShrink: 1, fontWeight: '700', color: '#FFFFFF', fontSize: 15 },
+  readyText: { flexShrink: 1, fontWeight: '700', color: sys.color.onGreen, fontSize: 15 },
   unavailable: { flex: 1, paddingHorizontal: layout.gutter },
 });

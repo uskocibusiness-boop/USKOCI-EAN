@@ -66,12 +66,12 @@ test('first-screen interview copy and profile labels describe real offered work'
  const labels=readFileSync(new URL('../../../src/ui/workerProfile/workerProfileFacts.ts',import.meta.url),'utf8');
  const presentation=readFileSync(new URL('../../../src/ui/workerProfile/WorkerAiPresentation.tsx',import.meta.url),'utf8');
  assert.match(route,/welcome=\{hasProfileContent\?'Šta želiš da dopuniš\?':'Čime se baviš\?'\}/);
- assert.match(route,/Ispričaj koje poslove radiš ili želiš da preuzimaš/);
+ assert.match(route,/Ispričaj koje usluge pružaš ili želiš da pružaš/);
  assert.doesNotMatch(route,/svakodnevnu pomoć, poput dostave i nošenja stvari/);
- assert.match(labels,/skills: 'Poslovi koje nudiš'/);
- assert.match(labels,/key: 'skills', label: 'Poslovi'/);
- assert.match(presentation,/label="Poslovi koje nudiš"/);
- assert.match(presentation,/listEditor\('skills','Poslovi koje nudiš',skills\)/);
+ assert.match(labels,/skills: 'Usluge koje nudiš'/);
+ assert.match(labels,/key: 'skills', label: 'Usluge'/);
+ assert.match(presentation,/label="Usluge koje nudiš"/);
+ assert.match(presentation,/listEditor\('skills','Usluge koje nudiš',skills\)/);
 });
 
 test('remote-only draft profile knows the server still requires a city for activation',()=>{

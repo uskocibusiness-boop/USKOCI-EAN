@@ -270,7 +270,7 @@ export const workerAiClientService={
     if(!workerExplicitModeReviewEnabled())return Promise.resolve(failure('WORKER_MODE_CONFIRMATION_OFF','Potvrda načina rada nije dostupna u ovoj verziji.'));
     if(!uuid(conversationId)||!revision(expectedRevision)||!Array.isArray(modes)||!modes.length||modes.length>24||
       modes.some(x=>!x||typeof x.service!=='string'||!x.service.trim()||!['ON_SITE','REMOTE'].includes(x.mode)))
-      return Promise.resolve(failure('WORKER_MODE_CONFIRMATION_INVALID','Izaberi način rada za svaki posao.'));
+      return Promise.resolve(failure('WORKER_MODE_CONFIRMATION_INVALID','Izaberi način rada za svaku uslugu.'));
     return call('rpc_prepare_worker_ai_review_taxonomy_confirmed',
       {p_conversation_id:conversationId,p_expected_revision:expectedRevision,p_activate:activate,
         p_selected_modes:modes.map(x=>({service:x.service,mode:x.mode}))},

@@ -25,7 +25,9 @@ jest.mock('expo-router',()=>({get router(){return mockRouter;},useLocalSearchPar
 jest.mock('../../store/sesija',()=>({useSesija:()=>({user:{id:mockAccount},accountRevision:mockRevision}),sesijaSada:()=>({user:{id:mockAccount},accountRevision:mockRevision})}));
 jest.mock('../supabaseClient',()=>({supabaseKlijent:jest.fn()}));
 jest.mock('../../ui/profile/useAccountName',()=>({useAccountName:()=>mockAccountName}));
-jest.mock('../workerAiClientService',()=>({get workerAiClientService(){return mockApi;}}));
+jest.mock('../workerAiClientService',()=>({get workerAiClientService(){return mockApi;},
+ explicitWorkerModes:jest.requireActual('../workerAiClientService').explicitWorkerModes,
+ workerExplicitModeReviewEnabled:()=>false}));
 jest.mock('../workerAiTurnIntentJournal',()=>({get workerAiTurnIntentJournal(){return mockJournal;}}));
 jest.mock('../../features/voice/useHoldToTalk',()=>({useHoldToTalk:(options:unknown)=>mockVoiceHook(options)}));
 jest.mock('../../ui/aiFirst/VoiceComposer',()=>({VoiceComposer:'VoiceComposer'}));
@@ -206,7 +208,7 @@ it('a late departed turn and retained Back cannot update a reincarnated account'
  await act(async()=>{mockAccount=A;mockRevision++;tree.update(<Screen/>);});await act(async()=>oldBack());
  expect(mockRouter.back).toHaveBeenCalledTimes(1);expect(mockJournal.clear).not.toHaveBeenCalled();
 });
-const reviewed=()=>({...snapshot(),review:{reviewId:K,revision:0,expiresAt:new Date(Date.now()+60000).toISOString(),canAccept:true,activate:true,missingRequired:[]}});
+const reviewed=()=>({...snapshot(),review:{reviewId:K,revision:0,expiresAt:new Date(Date.now()+60000).toISOString(),canAccept:true,activate:true,missingRequired:[],profile:candidate()}});
 const enterPanel=async(panel:string)=>{
  if(panel==='review'){
   mockApi.prepare.mockResolvedValue(ok({}));mockApi.read.mockResolvedValue(ok(reviewed()));

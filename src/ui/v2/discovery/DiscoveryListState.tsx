@@ -31,7 +31,7 @@ export const LIST_STATE_WORDS = {
   pointTitle: 'Nema zadataka na ovom mestu', pointBody: 'Pomeri mapu ili prikaži sve zadatke.',
   areaTitle: 'Nema zadataka u ovoj oblasti', areaBody: 'Umanji mapu ili je pomeri da vidiš zadatke u okolini.',
   filteredTitle: 'Nema zadataka u ovom prikazu', filteredBody: 'Nijedan zadatak ne odgovara ovim uslovima.',
-  forMeTitle: 'Za sada nema odgovarajućih zadataka', forMeBody: 'Gledamo potvrđene poslove koje nudiš, područje i dostupnost. Ako si upravo podesio profil, proveri da li su tvoji poslovi sačuvani i potvrđeni.',
+  forMeTitle: 'Za sada nema zadataka za tebe', forMeBody: 'Gledamo potvrđene usluge koje nudiš, područje i dostupnost. Ako si upravo podesio profil, proveri da li su tvoje usluge sačuvane i potvrđene.',
   forMeEdit: 'Otvori radni profil',
   noneTitle: 'Još niko nije tražio pomoć', noneBody: 'Čim neko objavi zadatak, pojaviće se ovde i na mapi.',
   refresh: 'Osveži', publish: 'Objavi zadatak',

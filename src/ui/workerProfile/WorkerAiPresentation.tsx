@@ -136,8 +136,8 @@ export function WorkerAiModeConfirmation({skills,choices,disabled,onChange}:{
   disabled:boolean;onChange:(service:string,mode:WorkerAiModeChoice)=>void;
 }){
   return <Surface kind="panel" testID="worker-explicit-mode-confirmation">
-    <T variant="bodyStrong">Gde obavljaš ove poslove?</T>
-    <T variant="note" tone="muted">Izaberi za svaki posao posebno. Ovo je tvoja potvrda, ne pretpostavka asistenta.</T>
+    <T variant="bodyStrong">Gde pružaš ove usluge?</T>
+    <T variant="note" tone="muted">Izaberi za svaku uslugu posebno. Ovo je tvoja potvrda, ne pretpostavka asistenta.</T>
     {skills.map(skill=><View key={skill} style={{gap:sys.space.xs}}>
       <T variant="bodyStrong">{skill}</T>
       <FactChoiceEditor label={`Način rada za: ${skill}`}
@@ -152,7 +152,7 @@ export function WorkerAiModeConfirmation({skills,choices,disabled,onChange}:{
 /** Owner 2026-10-07: the interview ends by saying what the profile is for — ink with the bell, not grey small print. */
 // "novim i već otvorenim": publishing queues new tasks, and saving the profile re-queues the open ones (requeue_open_needs_for_worker_v5).
 export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Podaci iz tvog radnog profila koriste se za obaveštenja o novim i već otvorenim zadacima koji odgovaraju tvojim veštinama, području i vremenu.';
-export const WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE='Profil možeš da sačuvaš, ali automatska obaveštenja za nepotvrđene poslove neće stizati dok kategorija i način rada ne budu potvrđeni.';
+export const WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE='Profil možeš da sačuvaš, ali automatska obaveštenja za nepotvrđene usluge neće stizati dok kategorija i način rada ne budu potvrđeni.';
 export function WorkerAiNotificationsNote({matchingReady=true}:{matchingReady?:boolean}={}){
   return <Surface kind="note" style={s.noteBox}><FactArt kind="bell" size={24} cut="art"/>
     <T testID="worker-review-notifications-note" variant="note" style={[s.grow,s.ink]}>{matchingReady?WORKER_PROFILE_NOTIFICATIONS_NOTE:WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE}</T></Surface>;
@@ -204,7 +204,7 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
         ?<T testID="worker-classification-pending" variant="note" tone="muted">
           {review.classificationState==='SERVICE_MODE_CONFIRMATION_REQUIRED'
             ?'Za deo usluga nije potvrđeno da li ih radiš na lokaciji ili na daljinu. U razgovoru razjasni način rada za svaku uslugu. Profil možeš da sačuvaš, ali automatske ponude sačekaće potvrdu.'
-            :'Poslovi koje nudiš ostaju u profilu, ali automatsko pronalaženje odgovarajućih zadataka čeka potvrdu kategorija. U razgovoru preciziraj nejasne usluge.'}
+            :'Usluge koje nudiš ostaju u profilu, ali automatsko pronalaženje odgovarajućih zadataka čeka potvrdu kategorija. U razgovoru preciziraj nejasne usluge.'}
         </T>:null}
     </ReviewGroup>
     <ReviewGroup part="area" {...group}>
@@ -324,7 +324,7 @@ export function WorkerAiManual({profile,disabled,apply,initialDraft,onDraftChang
   const body=!only?<>
     <T variant="meta" tone="muted">Izmene ostaju u predlogu do završnog pregleda i čuvanja. U polja sa više stavki upiši jednu stavku po redu.</T>
     <View style={s.section}><T variant="heading" style={s.ink}>Šta radiš</T>
-      <Field disabled={disabled} label="Poslovi koje nudiš" value={skills} change={v=>change('skills',v)} multiline/>
+      <Field disabled={disabled} label="Usluge koje nudiš" value={skills} change={v=>change('skills',v)} multiline/>
       <Field disabled={disabled} label="Alat i oprema" value={tools} change={v=>change('tools',v)} multiline/><Field disabled={disabled} label="Vozila" value={vehicles} change={v=>change('vehicles',v)} multiline/>
       <Field disabled={disabled} label="O meni" value={bio} change={v=>change('bio',v)} multiline/></View>
     {area}
@@ -332,7 +332,7 @@ export function WorkerAiManual({profile,disabled,apply,initialDraft,onDraftChang
     <T variant="meta" tone="muted">Izmena ostaje u predlogu do završnog pregleda i čuvanja.</T>
     {only==='identity'?<View style={s.section}>
       <Field disabled={disabled} label="O meni" value={bio} change={v=>change('bio',v)} multiline/></View>:null}
-    {only==='skills'?listEditor('skills','Poslovi koje nudiš',skills):null}
+    {only==='skills'?listEditor('skills','Usluge koje nudiš',skills):null}
     {only==='tools'?<>{listEditor('tools','Alat i oprema',tools)}{listEditor('vehicles','Vozila',vehicles)}</>:null}
     {only==='area'?area:null}
   </>;

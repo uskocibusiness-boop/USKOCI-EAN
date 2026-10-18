@@ -35,7 +35,9 @@ jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalS
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: 1 }), sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: 1 }) }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: jest.fn() }));
 jest.mock('../../ui/profile/useAccountName', () => ({ useAccountName: () => mockAccountName }));
-jest.mock('../workerAiClientService', () => ({ get workerAiClientService() { return mockApi; } }));
+jest.mock('../workerAiClientService', () => ({ get workerAiClientService() { return mockApi; },
+  explicitWorkerModes: jest.requireActual('../workerAiClientService').explicitWorkerModes,
+  workerExplicitModeReviewEnabled: () => false }));
 jest.mock('../workerAiTurnIntentJournal', () => ({ get workerAiTurnIntentJournal() { return mockJournal; } }));
 jest.mock('../../features/voice/useHoldToTalk', () => ({ useHoldToTalk: () => mockVoice }));
 jest.mock('../../ui/aiFirst/VoiceComposer', () => ({ VoiceComposer: 'VoiceComposer' }));
@@ -61,7 +63,7 @@ const candidate = () => ({ displayName: 'Ana', bio: '', skills: ['Montaža'], to
 const snapshot = (revision = 0) => ({ schemaVersion: 'WORKER_PROFILE_V1', accountId: A, conversationId: C, profileId: B, status: 'OPEN', profileStatus: 'DRAFT',
   revision, candidate: candidate(), safety: 'ALLOW', stale: false, messages: [], turn: null, review: null, saved: null });
 const reviewed = (revision = 0, activate = true) => ({ ...snapshot(revision), review: { reviewId: '44444444-4444-4444-8444-444444444444', revision,
-  expiresAt: new Date(Date.now() + 60000).toISOString(), canAccept: true, activate, missingRequired: [] } });
+  expiresAt: new Date(Date.now() + 60000).toISOString(), canAccept: true, activate, missingRequired: [], profile: candidate() } });
 
 let tree: ReactTestRenderer;
 const shell = () => tree.root.findByType('Shell' as never);
@@ -91,7 +93,7 @@ describe('the conversation (M1)', () => {
     await render();
     expect(shell().props.title).toBe('Radni profil'); expect(shell().props.questionFocus).toBe(true);
     expect(shell().props.attach).toMatchObject({ label: 'Dodaj podatke', disabled: false });
-    expect(shell().props.attach.hint).toBe('Poslovi, područje rada, vreme, alat i vozilo.');
+    expect(shell().props.attach.hint).toBe('Usluge, područje rada, vreme, alat i vozilo.');
   });
 
   it('draws no "+" when the conversation cannot take anything more', async () => {
@@ -103,10 +105,10 @@ describe('the conversation (M1)', () => {
   it('the "+" lists the four parts, each opening its own editor and writing only through "Primeni"', async () => {
     await render();
     await act(async () => { shell().props.attach.onPress(); });
-    expect(menuRows().map(row => row.props.accessibilityLabel)).toEqual(['Poslovi koje nudiš', 'Područje rada', 'Kada imaš vremena', 'Alat i vozilo']);
-    await act(async () => { menuRow('Poslovi koje nudiš').props.onPress(); });
+    expect(menuRows().map(row => row.props.accessibilityLabel)).toEqual(['Usluge koje nudiš', 'Područje rada', 'Kada imaš vremena', 'Alat i vozilo']);
+    await act(async () => { menuRow('Usluge koje nudiš').props.onPress(); });
     expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
-    expect(manual().props.only).toBe('skills'); expect(frame().props.title).toBe('Poslovi koje nudiš');
+    expect(manual().props.only).toBe('skills'); expect(frame().props.title).toBe('Usluge koje nudiš');
     expect(mockApi.patch).not.toHaveBeenCalled();
   });
 
@@ -154,7 +156,7 @@ describe('the review (M2)', () => {
     await render(); await openReview();
     expect(typeof review().props.onEdit).toBe('function'); expect(review().props.editDisabled).toBe(false);
     await act(async () => { review().props.onEdit('skills'); });
-    expect(manual().props.only).toBe('skills'); expect(frame().props.title).toBe('Poslovi koje nudiš');
+    expect(manual().props.only).toBe('skills'); expect(frame().props.title).toBe('Usluge koje nudiš');
     await act(async () => { frame().props.back(); });
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0); expect(review()).toBeTruthy();
     expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.prepare).toHaveBeenCalledTimes(1);

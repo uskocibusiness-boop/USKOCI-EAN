@@ -295,6 +295,11 @@ export const sys = {
      * background and under reduced motion): the skeleton breath, the typing dots, the glow while listening.
      */
     loop: { breath: 700, typing: 520, glow: 1600 },
+    /** Illustrations on the active screen: native-driver transforms and brief eye movement. */
+    assistant: { floatHalf: 2400, winkClose: 120, winkOpen: 140, blinkClose: 95, blinkOpen: 110,
+      nextBlinkMin: 3500, nextBlinkJitter: 2800 },
+    /** The Home earning tile's sweep; pauses with the app and under Reduce Motion. */
+    radarSweep: 2600,
     /**
      * A moment, not a response: the picture of an empty state settling in once (rule R6). Long on purpose, so it is
      * never used for a control, a fact or anything the finger waits on.
@@ -390,4 +395,3 @@ export const iconButton: ViewStyle = { width: 48, height: 48, borderRadius: sys.
  * so that redrawing the icon button never changes the menu.
  */
 export const pictureWell: ViewStyle = { width: 48, height: 48, borderRadius: sys.radius.chip, backgroundColor: sys.color.iconWell, alignItems: 'center', justifyContent: 'center' };
-

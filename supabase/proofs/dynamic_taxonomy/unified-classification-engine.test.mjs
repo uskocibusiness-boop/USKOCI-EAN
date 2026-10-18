@@ -99,6 +99,23 @@ test('pagination with changing version fails before any plan authority',async()=
 test('incomplete catalog pagination must fail closed',async()=>{
   await assert.rejects(loadClassificationCatalog(async(_name,args)=>page(args.p_execution_location_mode==='STATIONARY'?'ON_SITE':'REMOTE',nodes.slice(0,1),'repeat',7),{maxPages:2}),/INVALID_CURSOR|INCOMPLETE_PAGING/);
 });
+test('default pagination reads beyond 800 categories without silently dropping deep branches',async()=>{
+  const deep=Array.from({length:805},(_,index)=>({
+    id:`${String(index+1).padStart(8,'0')}-1111-4111-8111-111111111111`,
+    label:`Usluga ${index+1}`,parentId:null,path:['Korenski nivo',`Usluga ${index+1}`],
+  }));
+  let reads=0;
+  const catalog=await loadClassificationCatalog(async(_name,args)=>{
+    reads++;
+    if(args.p_execution_location_mode==='REMOTE')return page('REMOTE',[]);
+    const start=args.p_after_key===null?0:Number(args.p_after_key);
+    const end=Math.min(start+args.p_limit,deep.length);
+    return page('ON_SITE',deep.slice(start,end),end<deep.length?String(end):null);
+  });
+  assert.equal(catalog.categories.length,805);
+  assert.equal(reads,10);
+  assert.equal(catalog.categories.at(-1).path.at(-1),'Usluga 805');
+});
 test('restructure is never silently applied',()=>{
   const p=reviewClassificationProposal(input('NEED_SERVICE'),snapshot,proposal('PROPOSE_RESTRUCTURE',{proposedPath:['Sport','Novi raspored']}));
   assert.equal(p.status,'ADMISSION_REVIEW_REQUIRED');assert.equal(p.accepted,false);

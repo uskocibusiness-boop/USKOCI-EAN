@@ -7,10 +7,10 @@ const presentation=readFileSync(new URL('../../../src/ui/v2/DiscoveryPresentatio
 const route=readFileSync(new URL('../../../src/ui/v2/discovery/DiscoveryV1Route.tsx',import.meta.url),'utf8');
 
 test('Za mene is not mistaken for a claim that no public tasks exist',()=>{
- assert.match(state,/Za sada nema odgovarajućih zadataka/);
- assert.match(state,/Gledamo potvrđene poslove koje nudiš, područje i dostupnost/);
- assert.match(state,/proveri da li su tvoji poslovi sačuvani i potvrđeni/);
- assert.doesNotMatch(state,/Za sada nema zadataka za tebe/);
+ assert.match(state,/Za sada nema zadataka za tebe/);
+ assert.match(state,/Gledamo potvrđene usluge koje nudiš, područje i dostupnost/);
+ assert.match(state,/proveri da li su tvoje usluge sačuvane i potvrđene/);
+ assert.doesNotMatch(state,/forMeTitle: 'Nema zadataka'/);
 });
 test('worker action remains optional and never replaces Show All',()=>{
  assert.match(state,/kind: 'forMe'; onShowAll: \(\) => void; onWorkProfile\?: \(\) => void/);

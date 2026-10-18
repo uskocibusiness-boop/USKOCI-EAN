@@ -37,7 +37,7 @@ function catalogError(reason) { throw new Error('CLASSIFICATION_CATALOG_' + reas
  *  STATIONARY is the existing SQL input spelling for canonical ON_SITE.
  *  Reject incomplete or changing pages instead of classifying against a partial tree.
  */
-export async function loadClassificationCatalog(rpc, { maxPages = 8, pageSize = 100 } = {}) {
+export async function loadClassificationCatalog(rpc, { maxPages = 20, pageSize = 100 } = {}) {
   if (typeof rpc !== 'function' || !Number.isInteger(maxPages) || maxPages < 1 || maxPages > 20
       || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) catalogError('INPUT_INVALID');
   const byId = new Map(), scopesById = new Map();

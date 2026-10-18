@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Easing, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, AppState, Easing, View } from 'react-native';
 import Svg, { Defs, Ellipse, LinearGradient, Path, Stop } from 'react-native-svg';
+import { useReducedMotion } from '../system/motion';
 import { sys } from '../system/tokens';
 
 export function AnimatedRadar({
@@ -15,9 +16,16 @@ export function AnimatedRadar({
   animate?: boolean;
 }) {
   const rotation = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
+  const [foreground, setForeground] = useState(AppState.currentState === 'active');
 
   useEffect(() => {
-    if (!animate || process.env.NODE_ENV === 'test') {
+    const subscription = AppState.addEventListener('change', state => setForeground(state === 'active'));
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    if (!animate || reduced || !foreground || process.env.NODE_ENV === 'test') {
       rotation.setValue(0.125);
       return;
     }
@@ -25,14 +33,14 @@ export function AnimatedRadar({
     const anim = Animated.loop(
       Animated.timing(rotation, {
         toValue: 1,
-        duration: 2600,
+        duration: sys.motion.radarSweep,
         easing: Easing.linear,
         useNativeDriver: true,
       }),
     );
     anim.start();
     return () => anim.stop();
-  }, [animate, rotation]);
+  }, [animate, reduced, foreground, rotation]);
 
   const spin = rotation.interpolate({
     inputRange: [0, 1],

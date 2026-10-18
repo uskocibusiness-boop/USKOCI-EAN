@@ -45,14 +45,14 @@ export const AiAssistantArt = memo(function AiAssistantArt({ size, animated }: A
       Animated.sequence([
         Animated.timing(floatAnim, {
           toValue: 1,
-          duration: 2400,
+          duration: sys.motion.assistant.floatHalf,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
           isInteraction: false,
         }),
         Animated.timing(floatAnim, {
           toValue: 0,
-          duration: 2400,
+          duration: sys.motion.assistant.floatHalf,
           easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
           isInteraction: false,
@@ -67,19 +67,19 @@ export const AiAssistantArt = memo(function AiAssistantArt({ size, animated }: A
 
     const scheduleNextBlink = () => {
       if (cancelled) return;
-      const delay = 3500 + Math.random() * 2800;
+      const delay = sys.motion.assistant.nextBlinkMin + Math.random() * sys.motion.assistant.nextBlinkJitter;
       timer = setTimeout(() => {
         if (cancelled || AppState.currentState !== 'active') return;
         const isWink = Math.random() < 0.3;
         if (isWink) {
           Animated.sequence([
-            Animated.timing(winkAnim, { toValue: 1, duration: 120, easing: Easing.ease, useNativeDriver: true }),
-            Animated.timing(winkAnim, { toValue: 0, duration: 140, easing: Easing.ease, useNativeDriver: true }),
+            Animated.timing(winkAnim, { toValue: 1, duration: sys.motion.assistant.winkClose, easing: Easing.ease, useNativeDriver: true }),
+            Animated.timing(winkAnim, { toValue: 0, duration: sys.motion.assistant.winkOpen, easing: Easing.ease, useNativeDriver: true }),
           ]).start(() => scheduleNextBlink());
         } else {
           Animated.sequence([
-            Animated.timing(blinkAnim, { toValue: 1, duration: 95, easing: Easing.ease, useNativeDriver: true }),
-            Animated.timing(blinkAnim, { toValue: 0, duration: 110, easing: Easing.ease, useNativeDriver: true }),
+            Animated.timing(blinkAnim, { toValue: 1, duration: sys.motion.assistant.blinkClose, easing: Easing.ease, useNativeDriver: true }),
+            Animated.timing(blinkAnim, { toValue: 0, duration: sys.motion.assistant.blinkOpen, easing: Easing.ease, useNativeDriver: true }),
           ]).start(() => scheduleNextBlink());
         }
       }, delay);

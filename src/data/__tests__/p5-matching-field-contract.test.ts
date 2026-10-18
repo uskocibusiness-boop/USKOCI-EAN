@@ -50,6 +50,9 @@ const MAP_DOC = 'docs/implementation/product-v1-closure-20260926/finalization-20
 const DE = 'supabase/migrations/20260829211632_clean_dispatch_engine.sql';
 // Current dynamic matcher replaces worker_need_fit_v1; it READS but never COLLECTS exclusions/identity.
 const DYN_MATCH = 'supabase/migrations/20261013192500_uskoci_matcher_taxonomy_inheritance.sql';
+// Source-only taxonomy matcher drafts read the same two policy fields; neither collects them.
+const DYN_DRAFTS = ['strict-scope-live-matcher-cutover-v1.sql', 'worker-need-fit-strict-scope-v1.sql']
+  .map(name => `supabase/candidates/dynamic-taxonomy-20261011/${name}`);
 const WAVE = 'supabase/migrations/20260829211956_clean_urgent_min_choice_floor.sql';
 const W2C = 'supabase/migrations/20260909110000_clean_w02_calendar_authority.sql';
 const W2I = 'supabase/migrations/20260909120000_clean_w02_calendar_interval_integrity.sql';
@@ -272,7 +275,7 @@ describe('EX-06 S05 field-to-consumer map: consumer-without-collector findings G
     // [field, pattern, the exact list of SQL files that mention it (migrations, candidates, applied-ledger SQL)]
     ['app_profiles.exclusions', /\bp\.exclusions\b|\bexclusions\s+text\[\]|'exclusions'|\bexclusions\s*=/, [
       'supabase/migrations/20260825115040_cloud_profile_foundation_1_3b.sql', // table definition
-      DE, DYN_MATCH, // matcher + prefilter readers; new dynamic matcher reads the same policy fields
+      DE, DYN_MATCH, ...DYN_DRAFTS, // matcher + source-only draft readers, never writers
       'supabase/migrations/20260913081147_clean_v5_event_bound_account_erasure.sql', // closure reset to {}
       'supabase/candidates/chat_voice_b1_revert.sql', // copy of the erasure body
       'supabase/candidates/pkg023c_public_pin_100m.sql', // copy of the erasure body (NOT applied)
@@ -306,7 +309,7 @@ describe('EX-06 S05 field-to-consumer map: consumer-without-collector findings G
       'supabase/migrations/20260829211203_clean_geo_foundation_repair.sql', DE, ...WPP01, ...WPP02_PREFS]],
     ['worker_match_preferences.buffer_minutes (X-01: no collector, no consumer)', /buffer_minutes/, [
       'supabase/migrations/20260829211203_clean_geo_foundation_repair.sql', WPP02('candidate.sql')]],
-    ['private.identity_admitted (G04-8)', /identity_admitted/, [DE, DYN_MATCH, ...MV1_ALL, // MATCH-V1 reads it in the shared rule (and pins it)
+    ['private.identity_admitted (G04-8)', /identity_admitted/, [DE, DYN_MATCH, ...DYN_DRAFTS, ...MV1_ALL, // MATCH-V1 and source-only drafts read it
       ...WPP01, WPP02('candidate.sql'), ...MCF_BODIES, ...GRP_BODIES,
       X6, // EX-06 ex06a: a header COMMENT only ("the unchanged helpers ... identity_admitted ... are not pinned"); the candidate neither reads nor changes the function, NOT applied
     ]],
@@ -326,7 +329,7 @@ describe('EX-06 S05 field-to-consumer map: consumer-without-collector findings G
     expect(lf(WI)).toContain(`[${providerList}].includes(k)`);
     expect(lf(WI)).not.toContain(`[${legacyList}].includes(k)`);
     expect(lf(OW)).toContain(`patch-array[${legacyList}]<>'{}'::jsonb`);
-    expect(lf(WI)).not.toMatch(/exclusions|minimum_?[Ff]ee|years_?[Ee]xperience|proactive|sameDayUrgent|bufferMinutes/);
+    expect(lf(WI)).not.toMatch(/exclusions|minimum_?[Ff]ee|years_?[Ee]xperience|\bproactive\b|sameDayUrgent|bufferMinutes/);
     expect(lf(OW)).not.toMatch(/exclusions|minimum_fee|years_experience|proactive|same_day_urgent|buffer_minutes/);
     expect(lf(WP)).toContain("['ime','grad','biografija','vestine','alati','vozila','licence','dostupanOdmah','radijusKm','kapacitetTima','capacityRevision','zavrsi']");
     expect(lf(WP)).toContain("{ vestine: 'skills', alati: 'tools', vozila: 'vehicles', licence: 'licenses' }");
