@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-18T10:15:50Z",
+  "osvezeno": "2026-10-18T10:45:20Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "51c82418",
-  "head_poruka": "docs: reconcile Work audit with live evidence and execution order [skip ci]",
+  "head": "b92b55d0",
+  "head_poruka": "fix(ci): share selected Android target with APK attestation",
   "server": {
    "snimljeno": "2026-10-18T07:59:13Z",
    "migracije": 280,
@@ -13798,6 +13798,22 @@
  },
  "ci": [
   {
+   "id": 39118632476,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "b92b55d0",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-18T10:17:01Z"
+  },
+  {
+   "id": 39118586835,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "07c9d9e2",
+   "stanje": "completed",
+   "ishod": "cancelled",
+   "vreme": "2026-10-18T10:16:19Z"
+  },
+  {
    "id": 39109590162,
    "ime": "Worker coverage geography (disposable PostGIS)",
    "sha": "48eae637",
@@ -13872,22 +13888,6 @@
   {
    "id": 39030696469,
    "ime": "Worker taxonomy safe-sync disposable proof",
-   "sha": "0c50d018",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-17T11:58:15Z"
-  },
-  {
-   "id": 39030696468,
-   "ime": "Unified Gemini taxonomy P0 (read-only)",
-   "sha": "0c50d018",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-17T11:58:15Z"
-  },
-  {
-   "id": 39030696467,
-   "ime": "Worker old-APK and signed-review read compatibility (PostgreSQL)",
    "sha": "0c50d018",
    "stanje": "completed",
    "ishod": "success",

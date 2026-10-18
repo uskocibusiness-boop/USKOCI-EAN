@@ -1,0 +1,146 @@
+{
+  "status": "APK_BUILT_EMULATOR_BOUNDED_OBSERVATIONS",
+  "date": "2026-10-18",
+  "apk": {
+    "status": "APK_ATTESTED_NOT_PHONE_VERIFIED",
+    "androidPackage": "rs.uskoci.preview",
+    "version": "1.0.0",
+    "versionCode": 35,
+    "runtimeVersion": "uskoci-v1-preview-r1",
+    "channel": "preview",
+    "projectId": "1e6cc490-9851-4741-9226-128612122db6",
+    "updateUrl": "https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6",
+    "updatesEnabled": true,
+    "checkOnLaunch": "ALWAYS",
+    "fallbackToCacheTimeout": 0,
+    "debuggable": false,
+    "sourceSha": "b92b55d09e257270016a780e6fc8c057f6a06015",
+    "nativeBaselineSha": "b92b55d09e257270016a780e6fc8c057f6a06015",
+    "sourceTree": "a9f83f75c0510082ab86ddbb26209813309bc803",
+    "githubRunId": "39118632476",
+    "githubRunAttempt": "1",
+    "githubRunUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39118632476",
+    "apkFile": "USKOCI-V5-PREVIEW-X86_64.apk",
+    "apkSizeBytes": 101072280,
+    "apkSha256": "37293b82b2387952c4f6ee7aa2120c4f820345f0173d3711120791ba53aa574f",
+    "architectures": [
+      "x86_64"
+    ],
+    "signingCertificateSha256": [
+      "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c"
+    ],
+    "publicBuildFlags": {
+      "EXPO_PUBLIC_AI_LOCATION_DIALOGUE": "1",
+      "EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL": "uskociapp://oporavak",
+      "EXPO_PUBLIC_CONVERSATION_INBOX": "1",
+      "EXPO_PUBLIC_EX04_CANDIDATES_PAGED": "1",
+      "EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED": "1",
+      "EXPO_PUBLIC_EX04_OWN_TASKS_PAGED": "1",
+      "EXPO_PUBLIC_P6_DISCOVERY_READER": "1",
+      "EXPO_PUBLIC_SUPABASE_URL": "https://leqcwgzvjsxugfgzdmth.supabase.co",
+      "EXPO_PUBLIC_USE_FAKE_SOURCE": "0",
+      "EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW": "true",
+      "EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES": "true",
+      "EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW": "true",
+      "EXPO_PUBLIC_VOICE_MESSAGES": "1"
+    },
+    "physicalPhone": "NOT_TESTED",
+    "otaPreview": "NOT_VERIFIED",
+    "production": "NOT_BUILT_OR_DEPLOYED"
+  },
+  "embeddedIdentity": {
+    "build": {
+      "schemaVersion": 1,
+      "version": "1.0.0",
+      "sourceCommit": "b92b55d09e257270016a780e6fc8c057f6a06015",
+      "sourceDirty": true,
+      "backendTarget": "canonical",
+      "backendRelease": {},
+      "runtimeVersion": "uskoci-v1-preview-r1",
+      "updateChannel": "preview"
+    },
+    "id": "2eaa68be-3727-4b3b-bf0a-49a7baa0234f",
+    "createdAt": null
+  },
+  "sourceDirtyScope": "true in embedded app.config and native About screen. CI prebuild logged a package.json update; the pinned Expo CLI rewrites android/ios scripts. Exact CI post-prebuild diff was not uploaded, so clean-checkout provenance is not claimed.",
+  "devReceipt": "supabase/operations/dev-alpha/ledger/20261018100710_interview_grouped_questions.receipt.json",
+  "devFinalMetadata": [
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 90,
+      "status": "ACTIVE",
+      "sha256": "85549aa37b6e9d10ab8d8f3cac714bb4c8cf69aa3a15aef64385f04307105b24",
+      "updated_at": 1792318029980
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 45,
+      "status": "ACTIVE",
+      "sha256": "52f9b43adcf61bc6f2d1517cdcca5724b79266c26457fb920d28cfe150fa4264",
+      "updated_at": 1792318018954
+    }
+  ],
+  "testResult": "docs/implementation/ui-ux-pass-20261002/TEST_RESULT_20261018.json",
+  "device": {
+    "kind": "emulator",
+    "model": "sdk_gphone64_x86_64",
+    "screenPx": [
+      1264,
+      2728
+    ]
+  },
+  "installation": "adb install -r succeeded; installed APK SHA256 equals CI artifact; signed-in account retained",
+  "observed": [
+    "Home with animated earn radar; two visibly different sweep frames",
+    "Earn card opens Tasks",
+    "Saved worker profile loads and shows active status",
+    "Edit through conversation opens compact returning introduction",
+    "About shows source b92b55d09e257270016a780e6fc8c057f6a06015 and embedded update 2eaa68be",
+    "Runtime uskoci-v1-preview-r1; preview channel; canonical backend"
+  ],
+  "limits": [
+    "No paid AI call or Save/publish",
+    "No complete matching/dispatch or push proof",
+    "No physical phone or store acceptance",
+    "Focused empty composer showed floating IME toolbar; full docked keyboard layout not accepted",
+    "Home uiautomator dump did not settle during radar motion; visual capture and navigation worked"
+  ],
+  "screens": [
+    {
+      "file": "release-home.png",
+      "sha256": "847620e64111de0b127078d9a983d08d61015e7bf9312e2092bc4cf7df648cba",
+      "location": "Private local output package; images not committed to public repository"
+    },
+    {
+      "file": "release-home-radar-2.png",
+      "sha256": "185cdf57a8bf62ef76aa07dfee1f1480a9f0ef8d4d47f87f993834c97b174182",
+      "location": "Private local output package; images not committed to public repository"
+    },
+    {
+      "file": "release-tasks.png",
+      "sha256": "c49372f46227d3d46bcc84d68c1ba46585ec20a11f280c9054bbb801f6a8dfa6",
+      "location": "Private local output package; images not committed to public repository"
+    },
+    {
+      "file": "release-worker.png",
+      "sha256": "11ae93a074ee08acbf907aaf8652bf7ae4f9e1b6922dc8bb634147bace75c80d",
+      "location": "Private local output package; images not committed to public repository"
+    },
+    {
+      "file": "release-worker-chat.png",
+      "sha256": "ad1e8b8f6ec5e4fcc184c51223b2ff307414822b471a0ef18a72d52ebad1b770",
+      "location": "Private local output package; images not committed to public repository"
+    },
+    {
+      "file": "release-identity.png",
+      "sha256": "98bf910a44a040b231de9397107510378f16dbd88abd6aedd8a1bbb5ffd55246",
+      "location": "Private local output package; images not committed to public repository"
+    },
+    {
+      "file": "release-worker-keyboard.png",
+      "sha256": "b93aedea2e0aed00db3fcab1d5c4b1bc4f4b42c0b460700306dce7e43cadc092",
+      "location": "Private local output package; images not committed to public repository"
+    }
+  ],
+  "ciLogSha256": "31a673ffc1e129bf0ed7f624b68f38bb8d35181e0551626f15214283e832ed1d"
+}

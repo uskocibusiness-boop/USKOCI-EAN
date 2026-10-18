@@ -17,10 +17,10 @@ Ovo je dokaz konkretnog paketa uz postojeći registar 62 toka, ne novi master pl
 - Build guard: reprodukovan FAIL pre povezivanja stvarnog app.config guard-a; PASS posle. Node build/asset/boundary/OTA provere 25/25.
 - Taksonomija: 141/141 offline Node provera PASS. To nisu plaćeni AI pozivi niti DEV SQL izvršavanje.
 - Ciljane provere Home/chat/profile/build: 244/244; Firebase fixture 13/13; recovery/galerija 97/97; matching consumer map 50/50. Brojevi se preklapaju sa punim Jest skupom i ne sabiraju se kao ukupan broj jedinstvenih testova.
-- TypeScript: PASS. Završni puni Jest je u toku. Prvi puni prolaz: 620 paketa, 616 PASS / 4 FAIL; 13.809 PASS / 11 FAIL / 9 SKIP od 13.829 testova, 6 snapshot-a PASS. Otkrio je izostavljen build-contract u izolovanom Firebase fixture-u, stare Home tekstove, ranije promenjen tekst obaveštenja i tri country-guard SQL čitaoca koja nisu bila u istorijskom consumer-map popisu. Ciljane ispravke ne uklanjaju poslovne provere. Prvi izlaz sačuvan je lokalno kao `jest-full.log`; završni kao `jest-final.log`.
+- TypeScript: PASS. Završni puni Jest: 620/620 paketa PASS; 13.820 PASS / 9 SKIP / 0 FAIL od 13.829 testova; 6/6 snapshot-a PASS; exit 0, 1.016,55 s. Pokrenut sa `--runInBand --silent --detectOpenHandles`; proces se završio bez prinudnog prekida. Hash izlaza je u `TEST_RESULT_20261018.json`. Prvi puni prolaz: 620 paketa, 616 PASS / 4 FAIL; 13.809 PASS / 11 FAIL / 9 SKIP od 13.829 testova, 6 snapshot-a PASS. Otkrio je izostavljen build-contract u izolovanom Firebase fixture-u, stare Home tekstove, ranije promenjen tekst obaveštenja i tri country-guard SQL čitaoca koja nisu bila u istorijskom consumer-map popisu. Ciljane ispravke ne uklanjaju poslovne provere. Prvi izlaz sačuvan je lokalno kao `jest-full.log`; završni kao `jest-final.log`.
 - Android export: uspešan; source map ima 5.834 modula, nijedan iz designLab ili app/dizajn-*; Home jeste uključen. Ovo dokazuje JS bundle, ne potpisan APK niti instalaciju.
 - Emulator: `rs.uskoci.preview`, x86_64, versionCode 35; postojeći APK SHA256 `aa305ccd80b368c8e5e0262847c3707593162728d4d9e91481933a742df38350`, sa tekućim razvojnim Metro kodom. Početna prikazuje radar i snimci pokazuju promenjen ugao. „Uskoči i zaradi“ otvara Zadaci. Ne tvrditi da je to novo izdanje APK-a.
-- Tokom Fast Refresh-a zatečen je worker ekran „Radni profil nije dostupan“. Ponovni miran prolaz kroz Profil → Radni profil → Uredi kroz razgovor uspešno učitava profil i kompaktniji uvod. Nije potvrđen uzrok ranijeg prolaznog stanja. Nije poslata poruka, menjan profil ili čuvan review. Automatski UI dump nije uvek uspevao dok se ekran kretao/osvežavao; to nije dokaz ANR-a. Novi APK i ceo save/reopen tok još nemaju dokaz.
+- Tokom Fast Refresh-a zatečen je worker ekran „Radni profil nije dostupan“. Ponovni miran prolaz kroz Profil → Radni profil → Uredi kroz razgovor uspešno učitava profil i kompaktniji uvod. Nije potvrđen uzrok ranijeg prolaznog stanja. Nije poslata poruka, menjan profil ili čuvan review. Automatski UI dump nije uvek uspevao dok se ekran kretao/osvežavao; to nije dokaz ANR-a. Novi APK je kasnije proveren u ograničenom obuhvatu ispod; ceo save/reopen tok i dalje nema dokaz.
 
 ## DEV i sledeća granica
 
@@ -31,3 +31,13 @@ Nastavlja se postojeći plan: potvrđeni worker model kroz save/read/binding i p
 ## Očuvano van ovog paketa
 
 `supabase/candidates/register_3d_print_taxonomy.sql` je zatečen tuđi/nepridružen kandidat: nije menjan, primenjen niti uključen u ovaj paket. Stari dokazi ostaju datirana istorija. Generisanje control HTML-a nije objavljivanje hosted table.
+
+## Izvor i native isporuka
+
+Izvorni paket je commit `07c9d9e2eaaab30c40774ea7cae2554996dee2e6`; CI cilj ispravljen je u `b92b55d09e257270016a780e6fc8c057f6a06015`. Novi emulator workflow run `39118632476` je SUCCESS. CI: 620/620 paketa, 13.829/13.829 testova i 6/6 snapshot-a PASS; TypeScript PASS; native build i attestor PASS. Prvi run `39118586835` je otkazan pre native build-a jer je izbor ABI morao da važi i za završni APK attestor.
+
+### Proveren novi APK
+
+`NATIVE_RESULT_20261018.json` povezuje CI receipt, source, flags, tačan APK hash, ugrađeni update, Edge receipt i hash-eve privatnih lokalnih snimaka. `adb install -r` je sačuvao nalog. Početna → Zadaci i Profil → Radni profil → Uredi kroz razgovor prošli su kao čitanje/navigacija, bez plaćenog AI slanja ili Save. Ekran O aplikaciji potvrđuje source b92b55d0 i ugrađeni update 2eaa68be, preview runtime/kanal. Nema fizičkog phone dokaza.
+
+Ograničenja: sourceDirty=true je sačuvan u dokazu. CI log beleži Expo prebuild izmenu package.json; CLI menja android/ios scripts. Tačan diff posle prebuild-a nije uploadovan, pa se ne tvrdi potpuno čist build checkout. Home UI dump nije uspeo tokom neprekidne animacije, iako slika i navigacija rade. Pri fokusu praznog inputa emulator je pokazao plivajući IME, pa običan donji keyboard layout nije prihvaćen. Plaćeni test ima samo pripremljen predlog u `AI_NATIVE_ACCEPTANCE_20261018.md`, bez novog odobrenja ili izvršavanja.

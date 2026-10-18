@@ -19,8 +19,8 @@
     "note": "Objavljeni legal/retention/processor setovi: 0/0/0 (DEV read 30.09.2026). Brojevi legal/store PASS se ne upisuju bez dokaza za konkretne gate-ove."
   },
   "next": {
-    "title": "Proveriti čišćenje/isporuku → odobreni Edge paket → potvrđeni worker model i regionalni matching",
-    "note": "Source paket 18.10: production guard, signed build flags, razvojne rute van bundle-a, nezavisan postinstall, Home radar i prazna stanja. Odobreni Edge paket primenjen: requester v90 9/9, worker v45 6/6 exact readback, bez plaćenih AI poziva. Pun Jest je u toku; regionalni model/save/candidate selection, guest AI, closure i celoviti native tokovi ostaju otvoreni. Detalji u IMPLEMENTATION_PACKAGE_20261018.md."
+    "title": "Potvrđeni worker model i regionalni matching posle proverene DEV isporuke",
+    "note": "Paket 18.10: production guard, signed build flags, razvojne rute van bundle-a, nezavisan postinstall, Home radar i prazna stanja. Edge requester v90 / worker v45 imaju exact readback. Lokalni Jest 620 paketa / 13.820 testova + 9 skip; CI 620 paketa / 13.829 testova bez skip, TypeScript PASS. APK b92b55d0 sastavljen i instaliran na emulatoru: Home → Zadaci, sačuvani profil, povratni AI uvod i ugrađeni update provereni. sourceDirty prebuild napomena ostaje u NATIVE_RESULT. Nema plaćenog AI testa ni pune Save/matching/push potvrde. Regionalni model, gost, closure i celoviti tokovi ostaju otvoreni."
   },
   "evidence": [
     {
@@ -700,6 +700,12 @@
       "run": null,
       "sha": "1b1d9d1f739cd98940f30150fb8defe5283c379a",
       "result": "Read all 18 sections and reconciled 20 findings; reproduced production DEV acceptance, read live closure/legal/candidates/scope and both Edge bundles. Documentation and existing row next actions only; no new deployment/native proof. docs/implementation/ui-ux-pass-20261002/WORK_ANALYSIS_RECONCILIATION_20261018.md"
+    },
+    {
+      "id": "IMPLEMENTATION-20261018-EMULATOR",
+      "run": 39118632476,
+      "sha": "b92b55d09e257270016a780e6fc8c057f6a06015",
+      "result": "CI tests + APK PASS; bounded emulator read/navigation and embedded identity; NOT full AI/matching/push or physical phone acceptance"
     }
   ]
 }

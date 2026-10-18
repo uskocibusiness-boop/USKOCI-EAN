@@ -189,7 +189,10 @@
       "source_execution_20261018": {
         "scope": "SOURCE + OFFLINE TEST; narrow emulator Metro evidence only",
         "note": "Povezan nativni radar u stvarnoj kartici Uskoči i zaradi, sa fokusom/vidljivošću/pozadinom/Reduce Motion. Prazan Čeka te uklonjen; greške i stvarne radnje očuvane. Emulator Metro prikazao rotaciju; to nije novi release APK.",
-        "report": "docs/implementation/ui-ux-pass-20261002/IMPLEMENTATION_PACKAGE_20261018.md"
+        "report": "docs/implementation/ui-ux-pass-20261002/IMPLEMENTATION_PACKAGE_20261018.md",
+        "test_result": "docs/implementation/ui-ux-pass-20261002/TEST_RESULT_20261018.json",
+        "native_result": "docs/implementation/ui-ux-pass-20261002/NATIVE_RESULT_20261018.json",
+        "native_scope": "Bounded emulator b92b55d0 navigation/read/embedded identity only; no paid AI, Save, push or physical phone acceptance."
       }
     },
     {
@@ -471,7 +474,10 @@
         "scope": "SOURCE + OFFLINE TEST + DEV EDGE EXACT READBACK; no real provider conversation",
         "note": "Izvorna instrukcija grupiše do tri kratka povezana pitanja i čuva delimičan odgovor. Novi Edge paket je APPLIED_DEV_EXACT_READBACK (requester v90 / worker v45); postojeći guest tok nije pretvoren u anonimni AI.",
         "report": "docs/implementation/ui-ux-pass-20261002/IMPLEMENTATION_PACKAGE_20261018.md",
-        "receipt": "supabase/operations/dev-alpha/ledger/20261018100710_interview_grouped_questions.receipt.json"
+        "receipt": "supabase/operations/dev-alpha/ledger/20261018100710_interview_grouped_questions.receipt.json",
+        "test_result": "docs/implementation/ui-ux-pass-20261002/TEST_RESULT_20261018.json",
+        "native_result": "docs/implementation/ui-ux-pass-20261002/NATIVE_RESULT_20261018.json",
+        "native_scope": "Bounded emulator b92b55d0 navigation/read/embedded identity only; no paid AI, Save, push or physical phone acceptance."
       }
     },
     {
@@ -2054,7 +2060,10 @@
         "scope": "SOURCE + OFFLINE TEST + DEV EDGE EXACT READBACK; no real provider conversation",
         "note": "Na DEV primenjena worker instrukcija do tri povezana pitanja i tačan kandidat sa helper enum-paritetom; 141 offline taxonomy provera PASS. Kompaktniji povratni uvod je source izmena. Regionalni save/read/matching i gost ostaju otvoreni. Miran emulator Metro prolaz učitava profil i kompaktniji uvod; bez AI slanja ili čuvanja.",
         "report": "docs/implementation/ui-ux-pass-20261002/IMPLEMENTATION_PACKAGE_20261018.md",
-        "receipt": "supabase/operations/dev-alpha/ledger/20261018100710_interview_grouped_questions.receipt.json"
+        "receipt": "supabase/operations/dev-alpha/ledger/20261018100710_interview_grouped_questions.receipt.json",
+        "test_result": "docs/implementation/ui-ux-pass-20261002/TEST_RESULT_20261018.json",
+        "native_result": "docs/implementation/ui-ux-pass-20261002/NATIVE_RESULT_20261018.json",
+        "native_scope": "Bounded emulator b92b55d0 navigation/read/embedded identity only; no paid AI, Save, push or physical phone acceptance."
       }
     },
     {
@@ -2318,7 +2327,10 @@
       "source_execution_20261018": {
         "scope": "SOURCE + OFFLINE TEST; narrow emulator Metro evidence only",
         "note": "Sačuvani profil ne prikazuje prazan blok opreme ni prazne redove alata/vozila; sačuvani podaci ostaju čitljivi. Ručni alternativni tokovi i potvrđene regionalne oblasti nisu zatvoreni ovom promenom.",
-        "report": "docs/implementation/ui-ux-pass-20261002/IMPLEMENTATION_PACKAGE_20261018.md"
+        "report": "docs/implementation/ui-ux-pass-20261002/IMPLEMENTATION_PACKAGE_20261018.md",
+        "test_result": "docs/implementation/ui-ux-pass-20261002/TEST_RESULT_20261018.json",
+        "native_result": "docs/implementation/ui-ux-pass-20261002/NATIVE_RESULT_20261018.json",
+        "native_scope": "Bounded emulator b92b55d0 navigation/read/embedded identity only; no paid AI, Save, push or physical phone acceptance."
       }
     },
     {
@@ -7103,7 +7115,10 @@
       "source_execution_20261018": {
         "scope": "SOURCE + OFFLINE TEST; narrow emulator Metro evidence only",
         "note": "Radar koristi native transform, isInteraction:false, prestaje van aktivne rute i vidljive kartice; postojeći background/Reduce Motion guard ostaje. Test blur/scroll/return PASS; nema novog fizičkog-phone performance dokaza.",
-        "report": "docs/implementation/ui-ux-pass-20261002/IMPLEMENTATION_PACKAGE_20261018.md"
+        "report": "docs/implementation/ui-ux-pass-20261002/IMPLEMENTATION_PACKAGE_20261018.md",
+        "test_result": "docs/implementation/ui-ux-pass-20261002/TEST_RESULT_20261018.json",
+        "native_result": "docs/implementation/ui-ux-pass-20261002/NATIVE_RESULT_20261018.json",
+        "native_scope": "Bounded emulator b92b55d0 navigation/read/embedded identity only; no paid AI, Save, push or physical phone acceptance."
       }
     },
     {
@@ -7163,7 +7178,10 @@
       "source_execution_20261018": {
         "scope": "SOURCE + OFFLINE TEST; narrow emulator Metro evidence only",
         "note": "21 razvojna scena premeštena u src/designLab, testovi čuvaju prikaze; Android export sa 5834 modula ne sadrži nijednu. Postinstall više ne parsira stari HTML: tri byte-identična resursa imaju hash manifest. Production build/OTA odbijaju nepotvrđeni production target, a DEV build/OTA proveravaju tri signed-review flags.",
-        "report": "docs/implementation/ui-ux-pass-20261002/IMPLEMENTATION_PACKAGE_20261018.md"
+        "report": "docs/implementation/ui-ux-pass-20261002/IMPLEMENTATION_PACKAGE_20261018.md",
+        "test_result": "docs/implementation/ui-ux-pass-20261002/TEST_RESULT_20261018.json",
+        "native_result": "docs/implementation/ui-ux-pass-20261002/NATIVE_RESULT_20261018.json",
+        "native_scope": "Bounded emulator b92b55d0 navigation/read/embedded identity only; no paid AI, Save, push or physical phone acceptance."
       }
     }
   ],
