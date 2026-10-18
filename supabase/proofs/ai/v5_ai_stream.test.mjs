@@ -61,6 +61,8 @@ for(const relation of ['UNCLEAR','DIFFERENT_TASK'])test(`work replacement ${rela
  assert.ok(instruction.includes('Za promenu vrste posla prvo razjasni'));
  assert.ok(instruction.includes('koji raniji termin, budžet i mesto i dalje važe'));
  assert.ok(instruction.includes('Ne šalji promenu vrste, naslova ili opisa dok to nije jasno'));
+ assert.ok(instruction.includes('najviše tri kratka, povezana pitanja'));
+ assert.ok(!instruction.includes('postavite tačno jedno kratko pitanje'));
  assert.ok(!instruction.includes('sa krečenja pređe na drugu uslugu), dialogue.taskRelation ostaje CONTINUE'));
  assert.ok(!f.calls.some(c=>/save_draft|publish|commit_admission|push/.test(c.url)));
 });

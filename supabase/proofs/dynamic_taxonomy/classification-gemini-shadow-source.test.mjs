@@ -81,7 +81,7 @@ const workerReviewUI=readFileSync(new URL('../../../src/ui/workerProfile/WorkerA
 test('worker shadow asks for COMPLETE current skills, never partial patch-only suggestions or invented delivery consent',()=>{
   for(const clause of ['compare EACH distinct entry in the resulting skills array',
     'Cover EVERY offered skill','never return only the skills newly mentioned',
-    'UNCONFIRMED rather than omitting it or guessing','ask ONE short, natural follow-up question',
+    'UNCONFIRMED rather than omitting it or guessing','within the interview limit of up to THREE related questions',
     'never owner consent']) assert.ok(sharedPrompt.includes(clause),clause);
   assert.match(sharedPrompt,/purpose==='WORKER_CAPABILITY'/);
   // The private shadow is advisory. It must never activate auto-notifications.
