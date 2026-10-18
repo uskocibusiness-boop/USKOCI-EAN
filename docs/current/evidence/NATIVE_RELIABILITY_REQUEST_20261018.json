@@ -1,15 +1,16 @@
 {
   "kind": "OWNER_AUTHORIZED_DEV_PREVIEW_CHECKPOINT",
-  "attempt": 2,
-  "previousRun": 39163340552,
-  "retryReason": "Full regression: 13837 passed, 2 native-patch workflow-guard failures. Removed isolated SQL install's incompatible flag; native guard unchanged and moved before the full run.",
+  "attempt": 3,
+  "previousRun": 39163968732,
+  "checkpointReason": "Successful previous phone build is retained. New source checkpoint includes dead-code cleanup, bounded Home application counts and cancellation/integrity of Agreement reads.",
   "project": "leqcwgzvjsxugfgzdmth",
   "workflow": ".github/workflows/build-latest-v5-preview-apk.yml",
   "sourceAuthority": "Exact triggering commit/tree recorded by the existing build workflow, not an old APK or mutable branch label",
-  "defaultTarget": "phone-arm64",
+  "defaultTarget": "emulator-x86_64",
   "appliedMigrations": ["20261018201142", "20261018201253", "20261018201517"],
   "expectedReaderBodyMd5": "7c1d9a979585deae6c2bc2c1b9d597b1",
   "devReceipt": "docs/current/evidence/DEV_RELIABILITY_APPLICATION_20261018.json",
-  "purpose": "Produce the compatible bounded-Home client after DEV source and actual-role verification",
+  "clientReceipt": "docs/current/evidence/HOME_READ_CONTINUATION_20261018.json",
+  "purpose": "Build the connected client for the current emulator QA target after local regression and read-only deployed-RPC count parity. Task and Agreement aggregates remain separate work.",
   "notClaimed": ["successful build before run completes", "installation", "phone verification", "production release"]
 }

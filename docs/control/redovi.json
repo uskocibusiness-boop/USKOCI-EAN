@@ -4,6 +4,7 @@
   "redovi": [
     {
       "id": "A01",
+      "source_progress_20261018_core_read": "SOURCE/TEST + READ-ONLY DEV: Početna koristi jednu postojeću stranicu prijava limit=1 sa tačnim zbirnim brojevima; lifetime povlači čekanje, Agreement i public-opportunity transport. 621 grupa / 13861 test PASS, tsc PASS; tri stvarna DEV naloga daju iste brojeve. Nema schema/Edge promene ni device dokaza. Zadaci i Dogovori i dalje koriste cele projekcije. docs/current/HOME_READ_CONTINUATION_20261018.md.",
       "source_progress_20261018_bounded_preview": "DEV APPLIED: ledger 285→288, final reader 20261018201517. Bounded Home preview do 3 tuđa otvorena zadatka; prva invoker regresija 42501 otkrivena, vraćena forward migracijom i popravljena bez proširivanja prava. Stvarne 3 uloge: 0/3/0; lista/exact/mapa/cursor nepromenjeni. SQL 27/27, povezani Jest 208/208, TypeScript PASS. Nema novog APK/OTA/device/phone ili release dokaza. Home core ostaje širi postojeći read. docs/current/DEV_RELIABILITY_APPLICATION_20261018.md.",
       "grupa": "Put A · Objavi zadatak",
       "naslov": "Početna: dve glavne radnje i šta čeka mene",
@@ -26,7 +27,7 @@
         "dokaz": "09.10 fizički HONOR 725be7bd: 725 telefon: Home nastavak vraća isti sačuvani task razgovor i potvrđeno mesto; b9 restart dokaz ostaje zaseban. Širi Home poslovni tok nije ponovo prihvaćen. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon."
       },
       "problem": "725 telefon: Home nastavak vraća isti sačuvani task razgovor i potvrđeno mesto; b9 restart dokaz ostaje zaseban. Širi Home poslovni tok nije ponovo prihvaćen.",
-      "sledece": "Posle primenjenog bounded preview-a proveriti odgovarajući APK i account/refresh/Back tok, izmeriti Home core i projektovati ograničeni read model bez pogrešnih brojeva. Početna privremeno ostaje sa aktuelnim zadacima; nema novog redizajna na silu. AI/location/server i vizuelni talasi ostaju otvoreni. docs/current/DEV_RELIABILITY_APPLICATION_20261018.md.",
+      "sledece": "Proveriti novi emulator APK i account/refresh/Back tok. Prijave na Početnoj već koriste ograničenu stranicu sa zbirnim brojevima; slede sažeci zadataka i Dogovora uz dokaz nacrta, prihvaćenih termina i obaveza, pa nezavisno prikazivanje osnovnih sekcija i merenje na uređaju. Aktuelna tri zadatka i postojeći izgled ostaju. docs/current/HOME_READ_CONTINUATION_20261018.md.",
       "source_progress_20261018": "Animirani radar u kartici 'Uskoči i zaradi' u izvoru sada čita trajanje iz zajedničkih motion tokena i zaustavlja nativnu transform petlju kada je aplikacija u pozadini ili je uključen Reduce Motion. AI asistent koristi zajedničke tokene za disanje i treptaj. Motion ratchet 84/84 prolazi; novi APK i fizička provera kretanja nisu urađeni.",
       "source_progress_20261018_home_recommendations": "Na prijavljenom emulatoru Početna je u 'Zadaci za tebe' prikazala dva zadatka istog naloga. Izvor sada uklanja ID-jeve iz uspešno pročitane lične liste, a pri neuspehu tog čitanja izostavlja preporuke da ne predstavi svoj posao kao tuđi. Prazan karusel se ne crta; dve glavne radnje ostaju iznad preporuka. Ciljani Jest 110/110, TypeScript i diff check prolaze; Metro emulator je prikazao Početnu bez sopstvenih kartica i bez praznog zaglavlja. Fizički telefon i release APK nisu provereni. Dokaz: docs/implementation/ui-ux-pass-20261002/HOME_OWN_TASK_PREVIEW_20261018.md.",
       "funkcionalni_audit": {
@@ -4302,6 +4303,7 @@
     },
     {
       "id": "D01",
+      "source_progress_20261018_page_integrity": "SOURCE/TEST: neispravan hasMore/kursor, duplikati ili pogrešan redosled više ne daju uspešan nepotpun spisak. Mikrosekunde očuvane; Home otkazuje naredne stranice i transport na retirement/timeout. 24 nova regresiona testa; puna regresija 621/13861 PASS. Live authenticated read tri mala naloga potvrđuje envelope/keyset oblik; bez nove DB promene ili device prihvatanja. docs/current/HOME_READ_CONTINUATION_20261018.md.",
       "grupa": "Dogovor",
       "naslov": "Lista Dogovora",
       "source_progress_20261018_quiet_state": "Prazan Aktivni/Istorija podskup dobio kompaktan prikaz kada postoje Dogovori u drugom podskupu; uvodni potpuno prazan ekran ostaje. Ciljani Jest 414/414 i Metro emulator vizuelno provereni; HONOR/release čekaju. Dokaz: docs/implementation/ui-ux-pass-20261002/HOME_AND_QUIET_STATES_20261018.md.",
@@ -7872,6 +7874,15 @@
         "ocena": "tacno",
         "napomena": "Klijent otvara izmene Dogovora; izvor src/app/obavestenja.tsx."
       }
+    },
+    "home_read_continuation_20261018": {
+      "state": "SOURCE_TEST_DEV_READ_VERIFIED",
+      "base_commit": "6cfc348a1216e5c8ff71525f96ee56262d2aff9c",
+      "report": "docs/current/HOME_READ_CONTINUATION_20261018.md",
+      "evidence": "docs/current/evidence/HOME_READ_CONTINUATION_20261018.json",
+      "result": "Početna čita jednu stranicu prijava i tačne zbirove; prekid čekanja prati ekran. Dogovori odbijaju nepotpun/neispravan nastavak i čuvaju microsecond cursor. 621 grupa / 13861 test / 3 snimka PASS, TypeScript PASS. DEV samo pročitan: tri stvarna naloga, paritet brojeva, ledger 288; nema DDL/upisa/Edge objave.",
+      "native": "Novi x86_64 emulator checkpoint preko postojećeg workflow-a; build/instalacija/device se dokazuju odvojeno.",
+      "next": "Sažeci zadataka i Dogovora, nezavisne Home core sekcije i stvarno merenje; zatim retained cleanup kandidati. Bez promene UI kompozicije ili podizanja release nivoa."
     },
     "client_cleanup_20261018": {
       "state": "SOURCE_TEST_ANDROID_EXPORT_VERIFIED",

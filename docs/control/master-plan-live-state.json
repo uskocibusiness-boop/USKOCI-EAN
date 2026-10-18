@@ -22,11 +22,17 @@
     "note": "Release nije potvrđen. Aktuelni baseline odvaja istorijski APK, lokalni kandidat, DEV readback i novu proveru. Legal/store brojači ostaju nepoznati bez odgovarajućeg dokaza; stari 30.09. zbir nije današnje stanje."
   },
   "next": {
-    "title": "Home core čitanje i dovršavanje tehničkog čišćenja klijenta",
-    "note": "SOURCE/TEST: 15 mrtvih modula i 44 stara mock-a povučena bez promene aktivnog UI/ponašanja; 619 grupa / 13824 testa PASS, Android source/asset paritet potvrđen. CLIENT_CLEANUP_20261018.md. Prethodni DEV reliability paket: ledger 288, preview do 3 zadatka i taxonomy PT409; njegov phone APK bb0ba8d / CI 39163968732 je BUILT, ne INSTALLED i ne sadrži novo čišćenje. Slede bounded Home core i oporavak nepotpunih stranica Dogovora; vizuelni/AI/location tokovi ostaju u postojećem planu. Mapa ostaje dobra osnova."
+    "title": "Sažeci zadataka i Dogovora, native provera i preostalo čišćenje",
+    "note": "SOURCE/TEST + READ-ONLY DEV: Početna uzima tačne brojeve kroz jednu stranicu prijava; čitanje prati lifetime ekrana. Dogovori odbijaju neispravan nastavak i nepotpun rezultat. 621 grupa / 13861 test PASS, tsc PASS, tri stvarna DEV naloga imaju iste zbirove. HOME_READ_CONTINUATION_20261018.md. Ledger 288 nepromenjen, nema novih DB upisa. Novi emulator APK checkpoint prati ovaj izvor i ranije čišćenje; build/install se dokazuju posebno. Slede sažeci zadataka/Dogovora i nezavisne core sekcije, zatim devet sačuvanih cleanup kandidata. Mapa i UI kompozicija ostaju."
   },
   "evidencePolicy": "Evidence su datirani zapisi rezultata na navedenom SHA/run-u, a ne aktivne instrukcije. Stare formulacije o odobrenju, freeze pravilima i STOP uslovima u njihovom result tekstu imaju samo istorijski status; aktuelni rad uređuju AGENTS.md, CURRENT_BASELINE_20261018 i PREMIUM_WHITE_CANON.",
   "evidence": [
+    {
+      "id": "HOME-READ-CONTINUATION-20261018",
+      "run": null,
+      "sha": null,
+      "result": "SOURCE + full regression 621/13861 PASS + TSC + read-only DEV 3-actor application count parity and Agreement envelope checks. No DB/Edge write, install or measured speed claim. docs/current/HOME_READ_CONTINUATION_20261018.md"
+    },
     {
       "id": "CLIENT-CLEANUP-20261018",
       "result": "SOURCE/TEST/ANDROID EXPORT: 15 nepovezanih modula, template reset i 5 test-fajlova povučeni; 44 mock-a očišćena; puna regresija 619/13824 PASS. docs/current/evidence/CLIENT_CLEANUP_20261018.json. Bez aktivne UI/server promene, bez device/release prihvatanja."

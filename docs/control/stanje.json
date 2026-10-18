@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-18T21:09:52Z",
+  "osvezeno": "2026-10-18T22:28:31Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "bb0ba8df",
-  "head_poruka": "fix(ci): preserve native patch install guard in SQL proof setup",
+  "head": "6cfc348a",
+  "head_poruka": "refactor(client): retire unreachable modules without UI changes",
   "server": {
    "snimljeno": "2026-10-18T20:15:59Z",
    "migracije": 288,
@@ -3553,7 +3553,7 @@
    },
    "telefon_dokaz": "09.10 fizički HONOR 725be7bd: 725 telefon: Home nastavak vraća isti sačuvani task razgovor i potvrđeno mesto; b9 restart dokaz ostaje zaseban. Širi Home poslovni tok nije ponovo prihvaćen. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon.",
    "problem": "725 telefon: Home nastavak vraća isti sačuvani task razgovor i potvrđeno mesto; b9 restart dokaz ostaje zaseban. Širi Home poslovni tok nije ponovo prihvaćen.",
-   "sledece": "Posle primenjenog bounded preview-a proveriti odgovarajući APK i account/refresh/Back tok, izmeriti Home core i projektovati ograničeni read model bez pogrešnih brojeva. Početna privremeno ostaje sa aktuelnim zadacima; nema novog redizajna na silu. AI/location/server i vizuelni talasi ostaju otvoreni. docs/current/DEV_RELIABILITY_APPLICATION_20261018.md.",
+   "sledece": "Proveriti novi emulator APK i account/refresh/Back tok. Prijave na Početnoj već koriste ograničenu stranicu sa zbirnim brojevima; slede sažeci zadataka i Dogovora uz dokaz nacrta, prihvaćenih termina i obaveza, pa nezavisno prikazivanje osnovnih sekcija i merenje na uređaju. Aktuelna tri zadatka i postojeći izgled ostaju. docs/current/HOME_READ_CONTINUATION_20261018.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -8599,7 +8599,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "28 test fajl(ova)"
+    "test": "29 test fajl(ova)"
    },
    "telefon_dokaz": "Naslov i tabovi Dogovori, bell, vraćena donja navigacija potvrđeni; lista prazna. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
    "problem": "RC-03 ublažen: četiri paralelne provere ocena i četiri sekunde posle čitanja strana; ukupan broj i dalje P+C. R18-E04 ima ispravku u R19 i test, a potvrda na uređaju sledi.",
@@ -8768,7 +8768,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "28 test fajl(ova)"
+    "test": "29 test fajl(ova)"
    },
    "telefon_dokaz": "52720d99 instaliran; ovaj popunjeni/glasovni scenario nije izveden. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
    "problem": "",
@@ -9382,7 +9382,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "28 test fajl(ova)"
+    "test": "29 test fajl(ova)"
    },
    "telefon_dokaz": "52720d99 instaliran; ovaj popunjeni/glasovni scenario nije izveden. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
    "problem": "",
@@ -9508,7 +9508,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "28 test fajl(ova)"
+    "test": "29 test fajl(ova)"
    },
    "telefon_dokaz": "52720d99 instaliran; ovaj popunjeni/glasovni scenario nije izveden. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
    "problem": "",
@@ -9724,7 +9724,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "28 test fajl(ova)"
+    "test": "29 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "Stari tracker je bio iza aktuelnog source-a: problem-report tok i authority/readback zaštite sada postoje. Ostaje native dokaz na tačnom kandidatu.",
@@ -9824,7 +9824,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "28 test fajl(ova)"
+    "test": "29 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: „Završio sam“ nije pritisnuto — naručilac je završio Dogovor pre toga; put izvođač-javlja-završetak ostaje neproveren na uređaju.",
    "problem": "Source više nema neobrađen završetak; otvoren je native dokaz tačnog kandidata.",
@@ -9927,7 +9927,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 1 serverskih funkcija",
-    "test": "28 test fajl(ova)"
+    "test": "29 test fajl(ova)"
    },
    "telefon_dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Potvrda završetka prošla uz pregled uslova. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: docs/implementation/functional-audit-20260922/device-20260923/dve-strane/TWO_PARTY_RECEIPT.json: 23.09. naručilac potvrdio završetak na telefonu (server COMPLETED 08:38, bez prethodnog „Završio sam“ izvođača); izvođač na emulatoru vidi „Završeno“, „Dogovor je završen“ i „Oceni saradnju“ (zavrseno-08). Automatsko završavanje viđeno na jučerašnjem stvarnom Dogovoru („Rok za potvrdu je istekao…“, 22.09 12:41) u obaveštenjima (zavrseno-12). Ekran naručioca nije snimljen.",
    "problem": "Aktuelni source već ima review, authoritative receipt i readback. Automatsko završavanje se ne simulira u klijentu.",
@@ -12195,7 +12195,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "176 test fajl(ova)"
+    "test": "177 test fajl(ova)"
    },
    "telefon_dokaz": "09.10 fizički HONOR 725be7bd: 725 install-r čuva postojeću sesiju, UID, prvo vreme instalacije i AI razgovor; hash/runtime provereni. Fresh login/logout/account-switch nisu dokazani ovim paketom. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon.",
    "problem": "725 install-r čuva postojeću sesiju, UID, prvo vreme instalacije i AI razgovor; hash/runtime provereni. Fresh login/logout/account-switch nisu dokazani ovim paketom.",

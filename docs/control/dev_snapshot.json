@@ -1,4 +1,14 @@
 {
+  "home_core_read_refresh_20261018": {
+    "scope": "Read-only verification of three application/Agreement RPC definitions, ACL/search_path, migration ledger and authenticated three-actor count/cursor parity. Other snapshot sections retain their dated observations.",
+    "receipt": "docs/current/evidence/HOME_READ_CONTINUATION_20261018.json",
+    "migrations": 288,
+    "latest": "20261018201517",
+    "businessWrites": 0,
+    "applicationCountsMatch": true,
+    "actors": 3,
+    "nativeAcceptance": false
+  },
   "rc02_refresh": {
     "scope": "2026-10-02T17:25:57Z RC02 postflight: ledger and7function pins/catalog/comments plus live/certified digest/readiness only. Other RPC/cron/Edge inventory retains prior observation timestamps in how. Current DEV workflow voice/pager flags corrected from source7912806f.",
     "receipt": "supabase/operations/dev-alpha/ledger/20261002_ex05_rc02_application.receipt.json",

@@ -86,7 +86,7 @@ export interface PrijaveCitanje {
 
 export interface DogovoriCitanje {
   /** Defaults to reading my rating state. Non-rating surfaces may skip enrichment; all rows still load. */
-  mojiDogovori(options?: { includeRatings?: boolean }): Promise<DogovorProjekcija[]>;
+  mojiDogovori(options?: { includeRatings?: boolean; signal?: AbortSignal }): Promise<DogovorProjekcija[]>;
   dogovor(id: string): Promise<DogovorProjekcija | null>;
   poruke(dogovorId: string, expectedAccountId?: string): Promise<PorukaProjekcija[]>;
 }

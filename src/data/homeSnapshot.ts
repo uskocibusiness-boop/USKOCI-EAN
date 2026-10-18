@@ -16,8 +16,8 @@ import { zonaTelefona } from '../lib/vreme';
  *
  * PKG-042 supplies server attention separately. The legacy attention composition stays as the
  * historical SQL proof oracle and test-source adapter, never a production fallback after an RPC failure.
- * The counts and the next Agreement still need complete lists: limiting their reads would lose
- * ordering and totals. Attention integration alone does not make these remaining reads bounded.
+ * Production application totals use the existing first-page aggregate. Task draft/total and
+ * next-Agreement composition still use complete lists; cutting these lists would lose facts.
  *
  * Raspored (owner, 2026-10-07): the next accepted appointment is told day first in Serbian time, from its accepted
  * instants and from nothing else (`ui/home/raspored.ts`); no new read is made for it. With no appointment ahead, active
@@ -30,7 +30,9 @@ export type HomeSection<T> = { kind: 'known'; value: T } | { kind: 'unavailable'
  * it leaves `workerProfile` out of the reads, and the profile is then unknown: no row is drawn and nothing is said about it.
  */
 export type HomeWorkProfileRead = Pick<RadnikProfilProjekcija, 'stanje' | 'dostupanOdmah'>;
-export type HomeReads = { needs: HomeSection<PotrebaProjekcija[]>; applications: HomeSection<MojaPrijavaProjekcija[]>;
+export type HomeReads = { needs: HomeSection<PotrebaProjekcija[]>;
+  /** Production reads exact aggregate counts; full arrays remain the legacy proof/gallery adapter. */
+  applications: HomeSection<MojaPrijavaProjekcija[] | ApplicationCounts>;
   agreements: HomeSection<DogovorProjekcija[]>; workerProfile?: HomeSection<HomeWorkProfileRead | null>;
   opportunities?: HomeSection<PrilikaProjekcija[]> };
 export type HomeTarget = { kind: 'NEED'; needId: string } | { kind: 'CANDIDATES'; needId: string }
@@ -102,20 +104,34 @@ export type HomeSnapshot = { attention: HomeAttention[]; attentionMore: number; 
 
 const READ_TIMEOUT_MS = 15_000;
 /** One read that fails or hangs costs its own section, never the screen, and never reads as empty. */
-export async function readHomeSection<T>(read: () => Promise<T>): Promise<HomeSection<T>> {
+export async function readHomeSection<T>(read: (signal: AbortSignal) => Promise<T>, signal?: AbortSignal): Promise<HomeSection<T>> {
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const controller = new AbortController();
+  const retire = () => controller.abort();
+  signal?.addEventListener('abort', retire, { once: true });
+  let stopped: (() => void) | undefined;
   try {
-    const value = await Promise.race([read(), new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error('HOME_READ_TIMEOUT')), READ_TIMEOUT_MS);
-    })]);
+    if (signal?.aborted) return { kind: 'unavailable' };
+    const cancelled = new Promise<never>((_, reject) => {
+      stopped = () => reject(new Error('HOME_READ_RETIRED'));
+      controller.signal.addEventListener('abort', stopped, { once: true });
+      timer = setTimeout(retire, READ_TIMEOUT_MS);
+    });
+    const value = await Promise.race([read(controller.signal), cancelled]);
+    if (controller.signal.aborted) return { kind: 'unavailable' };
     return { kind: 'known', value };
-  } catch { return { kind: 'unavailable' }; } finally { if (timer) clearTimeout(timer); }
+  } catch { return { kind: 'unavailable' }; } finally {
+    if (timer) clearTimeout(timer);
+    signal?.removeEventListener('abort', retire);
+    if (stopped) controller.signal.removeEventListener('abort', stopped);
+    controller.abort();
+  }
 }
 
 /** Independently refreshed content fails its resource read so the last successful value can stay visible.
  * Wrap null because a successful null work profile means "none", not "still unread". */
-export async function readHomeOptional<T>(read: () => Promise<T>): Promise<{ value: T }> {
-  const section = await readHomeSection(read);
+export async function readHomeOptional<T>(read: (signal: AbortSignal) => Promise<T>, signal?: AbortSignal): Promise<{ value: T }> {
+  const section = await readHomeSection(read, signal);
   if (section.kind === 'unavailable') throw new Error('HOME_OPTIONAL_READ_FAILED');
   return { value: section.value };
 }
@@ -171,7 +187,9 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
   /** The phone's own zone: it never changes a time (agreed times read in Serbian time), only whether Raspored says so in words. */
   phoneZone: string | undefined = zonaTelefona()): HomeSnapshot {
   const needs = reads.needs.kind === 'known' ? reads.needs.value : null;
-  const applications = reads.applications.kind === 'known' ? reads.applications.value : null;
+  const applicationRead = reads.applications.kind === 'known' ? reads.applications.value : null;
+  const applications = Array.isArray(applicationRead) ? applicationRead : null;
+  const applicationTotals = Array.isArray(applicationRead) ? applicationCounts(applicationRead) : applicationRead;
   const agreements = reads.agreements.kind === 'known' ? reads.agreements.value : null;
 
   // A blocked completion first, then an open problem, then a changed task under my application,
@@ -263,9 +281,9 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
     agreements: agreements ? { kind: 'known', value: { rows: activeAgreements.slice(0, HOME_AGREEMENT_LIMIT),
       more: Math.max(0, activeAgreements.length - HOME_AGREEMENT_LIMIT), ...(quietLine ? { quietLine } : {}) } } : { kind: 'unavailable' },
     mine: { tasks: needs ? { kind: 'known', value: ownedTaskCounts(needs) } : { kind: 'unavailable' },
-      applications: applications ? { kind: 'known', value: applicationCounts(applications) } : { kind: 'unavailable' } },
+      applications: applicationTotals ? { kind: 'known', value: applicationTotals } : { kind: 'unavailable' } },
     partial,
-    firstRun: !partial && !attention.length && !needs?.length && !applications?.length && !agreements?.length,
+    firstRun: !partial && !attention.length && !needs?.length && !applicationTotals?.total && !agreements?.length,
     ratingsDue: serverRatings ? serverRatings.due : ratingsKnown ? due.length : null,
     ratingDueAgreementId: serverRatings ? serverRatings.agreementId : ratingsKnown && due.length === 1 ? due[0].id : null,
   };

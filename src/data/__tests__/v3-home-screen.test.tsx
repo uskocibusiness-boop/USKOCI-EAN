@@ -9,7 +9,7 @@ const mockAppStateListeners = new Set<(state: string) => void>();
 let mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
 /** The zone the phone says it is in: Serbian time unless a test says otherwise (Jest itself runs in UTC). */
 let mockPhoneZone: string | undefined = 'Europe/Belgrade';
-const mockSource = { mojePotrebe: jest.fn(), mojePrijave: jest.fn(), mojiDogovori: jest.fn(), paznjaZaPocetnu: jest.fn() };
+const mockSource = { mojePotrebe: jest.fn(), mojePrijaveStrana: jest.fn(), mojiDogovori: jest.fn(), paznjaZaPocetnu: jest.fn() };
 const mockRouter = { navigate: jest.fn(), push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 const mockListOpenIntakes = jest.fn();
 jest.mock('../index', () => ({ aiNeedV2Izvor: { listOpenIntakes: (...args: unknown[]) => mockListOpenIntakes(...args) } }));
@@ -59,6 +59,7 @@ import { StyleSheet } from 'react-native';
 import { HomePresentation } from '../../ui/home/HomePresentation';
 import { HOW_IT_WORKS_KEY, forgetHiddenHowItWorks } from '../../ui/home/HowItWorks';
 import { composeHome, type HomeSnapshot } from '../homeSnapshot';
+import { applicationCounts } from '../myApplicationsView';
 import { takeAiCorrection } from '../aiCorrectionIntent';
 import Pocetna from '../../app/(app)/index';
 
@@ -67,6 +68,8 @@ const need = (id: string, patch: object = {}) => ({ id, revizija: 1, naslov: `Mo
   pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 }, brojPrijava: 0, ...patch });
 const application = (id: string) => ({ prijavaId: id, potrebaId: `n-${id}`, stanje: 'SUBMITTED', naslov: `Tuđ ${id}`,
   cena: { prikaz: '2.500 RSD' }, promenjenaPotreba: false, traziPaznju: false, dogovorId: null });
+const applicationPage = (rows: any[]) => ({ items: rows.slice(0, 1), counts: applicationCounts(rows), hasMore: rows.length > 1,
+  cursor: null, asOf: '2026-10-18T10:00:00Z' });
 const agreement = (id: string, mine: 'narucilac' | 'uskocer') => ({ id, naslov: `Dogovor ${id}`, stanje: 'CONFIRMED', vremeTekst: 'danas', problemOtvoren: false,
   ucesnici: [{ id: A, ime: 'Ja', uloga: mine, viSte: true }, { id: B, ime: 'Jelena', uloga: mine === 'narucilac' ? 'uskocer' : 'narucilac', viSte: false }] });
 const text = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
@@ -88,11 +91,55 @@ beforeEach(() => {
   mockStored.clear(); mockStorageDown = false; forgetHiddenHowItWorks();
   mockAppState = 'active'; mockAppStateListeners.clear();
   mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 }; mockPhoneZone = 'Europe/Belgrade';
-  mockSource.mojePotrebe.mockResolvedValue([]); mockSource.mojePrijave.mockResolvedValue([]); mockSource.mojiDogovori.mockResolvedValue([]);
+  mockSource.mojePotrebe.mockResolvedValue([]); mockSource.mojePrijaveStrana.mockResolvedValue(applicationPage([])); mockSource.mojiDogovori.mockResolvedValue([]);
   mockListOpenIntakes.mockResolvedValue({ rows: [], next: null });
   mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [], more: 0, asOf: '2026-09-22T10:00:00Z' });
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.restoreAllMocks(); });
+
+it('reads one application page and uses complete server counts rather than its single item', async () => {
+  const counts = { total: 1201, attention: 3, active: 8, finished: 1190 };
+  mockSource.mojePrijaveStrana.mockResolvedValue({ ...applicationPage([application('one')]), counts, hasMore: true });
+  await render();
+  expect(mockSource.mojePrijaveStrana.mock.calls).toEqual([[{ scope: 'ALL', limit: 1, cursor: null }]]);
+  expect(tree.root.findByType(HomePresentation).props.home.mine.applications).toEqual({ kind: 'known', value: counts });
+  expect(tree.root.findByType(HomePresentation).props.home.firstRun).toBe(false);
+});
+it('keeps missing application counts unavailable instead of counting the one returned item', async () => {
+  mockSource.mojePrijaveStrana.mockResolvedValue({ ...applicationPage([application('one')]), counts: null });
+  await render();
+  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nedostupno');
+  expect(action('Osveži pregled')).toBeDefined();
+  expect(mockSource.mojePrijaveStrana).toHaveBeenCalledTimes(1);
+});
+it.each(['blur', 'account', 'background', 'unmount'])('cancels an in-flight Agreement transport on %s', async kind => {
+  const wait = deferred<never[]>(); mockSource.mojiDogovori.mockReturnValueOnce(wait.promise);
+  await render();
+  const signal: AbortSignal = mockSource.mojiDogovori.mock.calls[0][0].signal;
+  expect(signal.aborted).toBe(false);
+  await act(async () => {
+    if (kind === 'blur') mockFocused = false;
+    if (kind === 'account') mockSession = { user: { id: B }, accountRevision: 2 };
+    if (kind === 'background') { mockAppState = 'background'; mockAppStateListeners.forEach(listener => listener('background')); }
+    if (kind === 'unmount') tree.unmount(); else tree.update(<Pocetna />);
+  });
+  expect(signal.aborted).toBe(true);
+  await act(async () => wait.resolve([]));
+});
+it('times out a stalled Agreement transport and still shows the successful account sections', async () => {
+  jest.useFakeTimers();
+  try {
+    mockSource.mojiDogovori.mockReturnValueOnce(new Promise(() => {}));
+    mockSource.mojePotrebe.mockResolvedValue([need('one')]);
+    await render();
+    const signal: AbortSignal = mockSource.mojiDogovori.mock.calls[0][0].signal;
+    await act(async () => jest.advanceTimersByTime(15_000));
+    expect(signal.aborted).toBe(true);
+    expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan');
+    expect(text()).toContain('Ne možemo da učitamo Dogovore.');
+    expect(action('Osveži pregled')).toBeDefined();
+  } finally { jest.useRealTimers(); }
+});
 
 const intake = (id = A) => ({ id, createdAt: '2026-10-09T12:00:00.123456Z' });
 it('offers the saved AI conversation separately from tasks and opens its existing ID once', async () => {
@@ -190,7 +237,7 @@ it('offers both things a person can start before any read has answered, and they
 // appointment: a Dogovor with no accepted instant has no card (an active one whose term is not confirmed is counted in one
 // quiet line instead, see below), and a Dogovor whose term the list did not even say is not counted as lacking one.
 it('shows both sides of one account and gives an undated active Dogovor no card, so no next appointment is invented', async () => {
-  mockSource.mojePotrebe.mockResolvedValue([need('orman')]); mockSource.mojePrijave.mockResolvedValue([application('polica')]);
+  mockSource.mojePotrebe.mockResolvedValue([need('orman')]); mockSource.mojePrijaveStrana.mockResolvedValue(applicationPage([application('polica')]));
   mockSource.mojiDogovori.mockResolvedValue([agreement('g-a', 'narucilac'), agreement('g-c', 'uskocer')]);
   await render();
   const copy = text();
@@ -445,7 +492,7 @@ describe('the "Sledeće" block', () => {
 });
 
 it('a row only navigates, and to the exact place: a waiting choice opens its candidates, the two doors open my lists', async () => {
-  mockSource.mojePotrebe.mockResolvedValue([need('orman', { brojPrijava: 2, brojPrijavaZaIzbor: 2 })]); mockSource.mojePrijave.mockResolvedValue([application('polica')]);
+  mockSource.mojePotrebe.mockResolvedValue([need('orman', { brojPrijava: 2, brojPrijavaZaIzbor: 2 })]); mockSource.mojePrijaveStrana.mockResolvedValue(applicationPage([application('polica')]));
   mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [{ id: 'need:orman:applications', title: '2 prijave', detail: 'Moj orman · čeka tvoj izbor',
     target: { kind: 'CANDIDATES', needId: 'orman' } }], more: 0, asOf: '2026-09-22T10:00:00Z' });
   await render();
@@ -593,7 +640,7 @@ describe('what leads Početna', () => {
 });
 
 it('"Moje aktivnosti" is no longer a destination: nothing on Početna leads there', async () => {
-  mockSource.mojePotrebe.mockResolvedValue([need('orman')]); mockSource.mojePrijave.mockResolvedValue([application('polica')]);
+  mockSource.mojePotrebe.mockResolvedValue([need('orman')]); mockSource.mojePrijaveStrana.mockResolvedValue(applicationPage([application('polica')]));
   await render();
   expect(text()).not.toContain('Moje aktivnosti'); expect(text()).not.toContain('Vidi sve');
   // Every press on the screen, each on a fresh screen (one navigation per focus is the guard's rule).
@@ -736,7 +783,7 @@ it('a section that failed says so and offers the read again; it is never drawn a
 
 it('offers one shared recovery for multiple unavailable sections and rejects duplicate retained retry taps', async () => {
   mockSource.mojiDogovori.mockRejectedValue(new Error('AGREEMENTS_FAILED'));
-  mockSource.mojePrijave.mockRejectedValue(new Error('APPLICATIONS_FAILED'));
+  mockSource.mojePrijaveStrana.mockRejectedValue(new Error('APPLICATIONS_FAILED'));
   mockSource.paznjaZaPocetnu.mockRejectedValue(new Error('ATTENTION_FAILED'));
   mockSource.mojePotrebe.mockResolvedValue([need('known')]);
   await render();
@@ -820,7 +867,7 @@ it('four failed reads are a failed screen, not an empty account, and the two doo
 });
 
 it('one failed side says it is not loaded while the other is counted', async () => {
-  mockSource.mojePrijave.mockRejectedValue(new Error('APPLICATIONS_FAILED')); mockSource.mojePotrebe.mockResolvedValue([need('orman'), need('nacrt', { stanje: 'NACRT' })]);
+  mockSource.mojePrijaveStrana.mockRejectedValue(new Error('APPLICATIONS_FAILED')); mockSource.mojePotrebe.mockResolvedValue([need('orman'), need('nacrt', { stanje: 'NACRT' })]);
   await render();
   // The one draft is offered under "Čeka te" ("Nastavi nacrt") and still counted in its list: the row is the count of what it opens.
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan · 1 nacrt');
@@ -837,18 +884,18 @@ it.each([
 ])('the two doors write %i in its Serbian form', async (count, tasks, applications, waiting) => {
   const many = <Row,>(make: (index: number) => Row) => Array.from({ length: count }, (_, index) => make(index));
   mockSource.mojePotrebe.mockResolvedValue([...many(index => need(`a${index}`)), ...many(index => need(`d${index}`, { stanje: 'NACRT' }))]);
-  mockSource.mojePrijave.mockResolvedValue(many(index => application(`p${index}`)));
+  mockSource.mojePrijaveStrana.mockResolvedValue(applicationPage(many(index => application(`p${index}`))));
   await render();
   expect(row('Moji zadaci').accessibilityLabel).toBe(tasks);
   expect(row('Moje prijave').accessibilityLabel).toBe(applications);
   // Applications that all wait for me are named by their number, never as "Nema aktivnih prijava".
-  mockSource.mojePrijave.mockResolvedValue(many(index => ({ ...application(`w${index}`), traziPaznju: true })));
+  mockSource.mojePrijaveStrana.mockResolvedValue(applicationPage(many(index => ({ ...application(`w${index}`), traziPaznju: true }))));
   await act(async () => tree.unmount()); await render();
   expect(row('Moje prijave').accessibilityLabel).toBe(waiting);
 });
 
 it('PKG-042: server attention and remaining rows stay visible without a misleading combined count when preview reads fail', async () => {
-  for (const read of [mockSource.mojePotrebe, mockSource.mojePrijave, mockSource.mojiDogovori]) read.mockRejectedValue(new Error('READ_FAILED'));
+  for (const read of [mockSource.mojePotrebe, mockSource.mojePrijaveStrana, mockSource.mojiDogovori]) read.mockRejectedValue(new Error('READ_FAILED'));
   mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [{ id: 'application:server:stale', title: 'Zadatak je izmenjen',
     detail: 'Pregledaj uslove', target: { kind: 'APPLICATION', applicationId: 'server' } }], more: 12, asOf: '2026-09-22T10:00:00Z' });
   await render();
@@ -877,7 +924,7 @@ it('PKG-042: attention failure is explicit and never replaced with conclusions f
 
 it('PKG-042: a known empty aggregate suppresses obsolete locally inferred attention', async () => {
   mockSource.mojePotrebe.mockResolvedValue([need('old', { brojPrijava: 7, brojPrijavaZaIzbor: 2 })]);
-  mockSource.mojePrijave.mockResolvedValue([{ ...application('stara'), traziPaznju: true }]);
+  mockSource.mojePrijaveStrana.mockResolvedValue(applicationPage([{ ...application('stara'), traziPaznju: true }]));
   await render();
   expect(mockSource.paznjaZaPocetnu).toHaveBeenCalledTimes(1);
   // Known empty attention stays hidden; the account lists remain available.
@@ -916,7 +963,7 @@ it('hides empty attention while preserving my lists and partial-read recovery', 
   expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
   expect(row('Moji zadaci')).toBeDefined();
   await act(async () => tree.unmount());
-  mockSource.mojePrijave.mockRejectedValue(new Error('offline'));
+  mockSource.mojePrijaveStrana.mockRejectedValue(new Error('offline'));
   await render();
   expect(text()).toContain('Deo pregleda trenutno nije učitan.');
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nedostupno');
@@ -1018,7 +1065,7 @@ describe('a brand-new account', () => {
 
   it.each([
     ['a first draft', () => mockSource.mojePotrebe.mockResolvedValue([need('nacrt', { stanje: 'NACRT' })])],
-    ['a first application', () => mockSource.mojePrijave.mockResolvedValue([application('p')])],
+    ['a first application', () => mockSource.mojePrijaveStrana.mockResolvedValue(applicationPage([application('p')]))],
     ['a first Dogovor', () => mockSource.mojiDogovori.mockResolvedValue([agreement('d', 'uskocer')])],
     ['a first thing that waits', () => mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [{ id: 'need:n:applications', title: '1 prijava', detail: 'x',
       target: { kind: 'CANDIDATES', needId: 'n' } }], more: 0, asOf: '2026-09-22T10:00:00Z' })],
@@ -1030,7 +1077,7 @@ describe('a brand-new account', () => {
   });
 
   it('never sees it while a read is missing: a failed read is not an empty account', async () => {
-    mockSource.mojePrijave.mockRejectedValue(new Error('APPLICATIONS_FAILED'));
+    mockSource.mojePrijaveStrana.mockRejectedValue(new Error('APPLICATIONS_FAILED'));
     await render();
     expect(how()).toHaveLength(0); expect(text()).not.toContain('Kako radi');
   });
@@ -1058,7 +1105,7 @@ it('keeps the same launch targets mounted as the initial overview read completes
 });
 
 it('an account with a withdrawn application says that none waits for an answer, not that it has no application history', async () => {
-  mockSource.mojePrijave.mockResolvedValue([{ ...application('stara'), stanje: 'WITHDRAWN' }]);
+  mockSource.mojePrijaveStrana.mockResolvedValue(applicationPage([{ ...application('stara'), stanje: 'WITHDRAWN' }]));
   await render();
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Nijedna ne čeka odgovor');
   expect(text()).not.toContain('Još nemaš prijavu');
@@ -1308,7 +1355,7 @@ describe('independent optional Home reads', () => {
     const work = deferred<null>(), tasks = deferred<ReturnType<typeof offered>[]>();
     worker.mockReturnValueOnce(work.promise); opportunities.mockReturnValueOnce(tasks.promise);
     mockSource.mojePotrebe.mockResolvedValue([need('owned')]);
-    mockSource.mojePrijave.mockResolvedValue([application('sent')]);
+    mockSource.mojePrijaveStrana.mockResolvedValue(applicationPage([application('sent')]));
     mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [{ id: 'answer', title: 'Pregledaj prijave', detail: 'Čeka tvoj izbor.',
       target: { kind: 'CANDIDATES', needId: 'owned' } }], more: 0, asOf: '2026-10-18T12:00:00Z' });
     await render();

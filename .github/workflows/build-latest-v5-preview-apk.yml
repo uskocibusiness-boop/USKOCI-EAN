@@ -14,7 +14,7 @@ on:
         description: 'APK target (phone: ARM64, emulator: x86_64)'
         type: choice
         required: true
-        default: phone
+        default: emulator
         options: [phone, emulator]
 
 permissions:
@@ -34,7 +34,8 @@ jobs:
       EAS_BUILD_PROFILE: preview
       USKOCI_OTA_TARGET: preview
       USKOCI_PUSH_PROOF_BUILD: '0'
-      USKOCI_ANDROID_BUILD_TARGET: ${{ inputs.target || 'phone' }}
+      # Current QA target in AGENTS.md; phone remains an explicit dispatch option.
+      USKOCI_ANDROID_BUILD_TARGET: ${{ inputs.target || 'emulator' }}
       EXPO_PUBLIC_SUPABASE_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
       EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW
       EXPO_PUBLIC_USE_FAKE_SOURCE: '0'

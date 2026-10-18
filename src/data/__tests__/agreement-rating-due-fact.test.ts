@@ -13,7 +13,7 @@ const mockRpc = jest.fn(), mockGetUser = jest.fn();
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({ rpc: mockRpc, auth: { getUser: mockGetUser } }) }));
 jest.mock('../../store/sesija', () => ({ sesijaSada: () => mockSession }));
 const item = (n: number, patch: Record<string, unknown> = {}) => ({
-  id: id(n), sortAt: `2026-09-${String(10 + Math.floor(n / 100)).padStart(2, '0')}T08:00:00.${String(999 - (n % 1000)).padStart(3, '0')}000+00:00`,
+  id: id(n), sortAt: `2026-09-20T08:00:00.${String(999999 - n).padStart(6, '0')}+00:00`,
   requesterAccountId: A, workerAccountId: B, requesterName: 'Miloš', workerName: 'Ana', title: `Posao ${n}`, status: 'COMPLETED', agreementStatus: 'COMPLETED',
   currentVersion: 2, requiredSlots: 1, executionMode: 'PHYSICAL', approximateArea: 'Liman', approximateCity: 'Novi Sad', createdAt: '2026-09-20T08:00:00Z',
   terms: { price_rsd: 4000, currency: 'RSD' }, ...patch });

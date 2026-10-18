@@ -57,18 +57,25 @@ function Home() {
     const retireRetry = () => { if (retrying.current === retry) retrying.current = null; };
     signal.addEventListener('abort', retireRetry, { once: true });
     try {
-      // Complete account lists and attention form the core overview. Optional reads never hold it up.
+      // Application totals come from one bounded page, not the whole history.
+      // Tasks and Agreements still need their complete projections for drafts/appointments.
       const [needs, applications, agreements, attention] = await Promise.all([
-        readHomeSection(() => source.mojePotrebe({ includeUrgency: false })), readHomeSection(() => source.mojePrijave()), readHomeSection(() => source.mojiDogovori()),
-        readHomeSection(() => source.paznjaZaPocetnu())]);
+        readHomeSection(() => source.mojePotrebe({ includeUrgency: false }), signal),
+        readHomeSection(async () => {
+          const page = await source.mojePrijaveStrana({ scope: 'ALL', limit: 1, cursor: null });
+          if (!page.counts) throw new Error('HOME_APPLICATION_COUNTS_UNAVAILABLE');
+          return page.counts;
+        }, signal),
+        readHomeSection(readSignal => source.mojiDogovori({ signal: readSignal }), signal),
+        readHomeSection(() => source.paznjaZaPocetnu(), signal)]);
       // Every failed read is unavailable, never an account with nothing in it.
       if ([needs, applications, agreements, attention].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
       return { needs, applications, agreements, attention };
     } finally { signal.removeEventListener('abort', retireRetry); }
   }, [source]);
   const resource = useFocusedResource(load, KEEP_LAST_READ);
-  const loadWorker = useCallback(() => readHomeOptional(() => source.mojRadnikProfil()), [source]);
-  const loadOpportunities = useCallback((signal: AbortSignal) => readHomeOptional(() => source.prilikeZaPocetnu({ signal })), [source]);
+  const loadWorker = useCallback((signal: AbortSignal) => readHomeOptional(() => source.mojRadnikProfil(), signal), [source]);
+  const loadOpportunities = useCallback((signal: AbortSignal) => readHomeOptional(readSignal => source.prilikeZaPocetnu({ signal: readSignal }), signal), [source]);
   const workerResource = useFocusedResource(loadWorker, KEEP_LAST_READ);
   const opportunitiesResource = useFocusedResource(loadOpportunities, KEEP_LAST_READ);
   const home = useMemo(() => resource.data ? composeHome({ ...resource.data,

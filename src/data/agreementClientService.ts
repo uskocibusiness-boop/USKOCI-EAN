@@ -574,11 +574,35 @@ export const agreementChangeService = {
 
 };
 
-/**
- * Canonical production client boundary for Agreement operations migrated so far.
- * Backend authority remains in canonical Agreement RPCs; this service preserves
- * the existing Izvor request, validation, mapping and error semantics exactly.
- */
+type AgreementCursor = { at: string; id: string };
+/** The page envelope must explicitly finish or advance. An invalid continuation is
+ * unavailable, never a successful partial list. Preserve PostgreSQL microseconds. */
+function agreementPage(raw: unknown, cursor: AgreementCursor | null, seen: Set<string>) {
+  const invalid = (): never => { throw new Error('AGREEMENT_LIST_INVALID_PROJECTION'); };
+  const data = record(raw);
+  if (!data || !Array.isArray(data.items) || typeof data.hasMore !== 'boolean'
+      || data.items.length > 100 || (data.hasMore && data.items.length === 0)) return invalid();
+  const items: Record<string, unknown>[] = [];
+  let previous = cursor ? { instant: calendarInstant(cursor.at)!, id: cursor.id.toLowerCase() } : null;
+  let last: AgreementCursor | null = null;
+  for (const item of data.items) {
+    const row = record(item);
+    if (!row || typeof row.id !== 'string' || !row.id.trim() || seen.has(row.id.toLowerCase())) return invalid();
+    // A single terminal page also supports the existing workspace projection.
+    // As soon as a page is traversed, every row must obey its keyset contract.
+    if (data.hasMore || cursor) {
+      const instant = calendarInstant(row.sortAt);
+      if (!uuid(row.id) || typeof row.sortAt !== 'string' || instant === null) return invalid();
+      const id = row.id.toLowerCase();
+      if (previous && (instant > previous.instant || (instant === previous.instant && id >= previous.id))) return invalid();
+      previous = { instant, id }; last = { at: row.sortAt, id: row.id };
+    }
+    seen.add(row.id.toLowerCase()); items.push(row);
+  }
+  return { items, hasMore: data.hasMore, next: last };
+}
+
+/** Canonical production client boundary; backend authority remains in Agreement RPCs. */
 export const agreementClientService: AgreementService = {
   /**
    * PKG-023a. The paged reader answers what the unpaged one could not: the start instant of the work
@@ -587,25 +611,31 @@ export const agreementClientService: AgreementService = {
    * refusal, never a silent truncation.
    */
   async mojiDogovori(options) {
+    const signal = options?.signal;
+    const checkAbort = () => { if (signal?.aborted) throw new Error('AGREEMENT_LIST_ABORTED'); };
+    checkAbort();
     const session = sesijaSada();
     const owner = { accountId: session.user?.id ?? '', accountRevision: session.accountRevision };
     const uid = await userId();
+    checkAbort();
     if (uid !== owner.accountId || !ratingReadOwnerCurrent(owner)) throw new Error('AUTH_ACCOUNT_CHANGED');
     const rows: any[] = [];
-    let cursor: { at: string; id: string } | null = null;
+    let cursor: AgreementCursor | null = null;
+    const seen = new Set<string>();
     for (let page = 0; ; page++) {
+      checkAbort();
       if (page >= 20) throw new Error('AGREEMENT_LIST_TOO_MANY_PAGES');
-      const { data, error } = await supabase.rpc('rpc_list_my_agreements_page', {
+      const request = supabase.rpc('rpc_list_my_agreements_page', {
         p_scope: 'ALL', p_limit: 100, p_before_at: cursor?.at ?? null, p_before_id: cursor?.id ?? null,
       });
+      const { data, error } = await (signal ? request.abortSignal(signal) : request);
+      checkAbort();
       if (!ratingReadOwnerCurrent(owner)) throw new Error('AUTH_ACCOUNT_CHANGED');
       if (error) throw new Error('AGREEMENT_LIST_FAILED');
-      const items = (data as { items?: unknown; hasMore?: unknown } | null)?.items;
-      if (!Array.isArray(items)) throw new Error('AGREEMENT_LIST_INVALID_PROJECTION');
-      rows.push(...items);
-      const last = items[items.length - 1] as { sortAt?: unknown; id?: unknown } | undefined;
-      if ((data as any).hasMore !== true || !last || typeof last.sortAt !== 'string' || typeof last.id !== 'string') break;
-      cursor = { at: last.sortAt, id: last.id };
+      const result = agreementPage(data, cursor, seen);
+      rows.push(...result.items);
+      if (!result.hasMore) break;
+      cursor = result.next;
     }
     const agreements = rows.map((row) => mapAgreement(row, uid));
     // Calendar and support use Agreement facts, not rating actions. An omitted read is unknown, never NOT_DUE.

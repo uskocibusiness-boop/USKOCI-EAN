@@ -51,6 +51,8 @@ Najnovije: [tehničko čišćenje klijenta](CLIENT_CLEANUP_20261018.md), 15 mrtv
 
 Svaki zaključak označi: SOURCE, TEST, DEV APPLIED, APK BUILT, EMULATOR, PHONE ili RELEASE. Datum i tačan izvor pripadaju dokazu. Stara slika može pokazati stari problem; njen naziv AFTER_FIX nije potvrda da prikazuje sadašnji kod. [Manifest isporuke](../implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.json) povezuje `buildIdentity`, hash APK-a, OTA identitet, DEV stanje i datirane slike; posebno razlikuje instalirani izvor, novi kandidat i neuspešne ranije pokušaje. Emulator dokaz ne podiže PHONE/RELEASE status.
 
+Najnoviji nastavak: [Početna i Dogovori](HOME_READ_CONTINUATION_20261018.md). Početna uzima tačne zbirove iz jedne stranice prijava; čitanja prate izlazak sa ekrana, a Dogovori odbijaju neispravan nastavak umesto delimičnog uspeha. Puna regresija 621 grupa / 13.861 test PASS; DEV read-only paritet tri naloga. Novi emulator checkpoint uključuje i prethodno čišćenje, a build/install dokaz vodi se odvojeno. Preostali zadaci su sažeci zadataka/Dogovora i nezavisne osnovne sekcije.
+
 ## Održavanje postojećeg LIVE plana
 
 `docs/control/redovi.json` ostaje jedini registar. `master-plan-live-state.json` nosi dopunski kratki prikaz; HTML je projekcija. Posle paketa dopuni postojeće redove dokazima, bez podizanja nivoa prihvatanja samo na osnovu izvora, pa pokreni:
