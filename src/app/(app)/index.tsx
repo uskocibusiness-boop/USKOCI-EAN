@@ -36,13 +36,14 @@ function Home() {
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const retrying = useRef<object | null>(null);
   const [scope, setScope] = useState<object | null>(null);
+  const [focused, setFocused] = useState(false);
   useFocusEffect(useCallback(() => {
     const owner = {}; focus.current = owner; navigating.current = false; retrying.current = null;
     // A silent refresh keeps the old snapshot without an immediate render. Publish
     // this focus token now so current actions do not wait for a network response;
     // callbacks retained from a previous focus still fail the identity check below.
-    setScope(owner);
-    return () => { if (focus.current === owner) focus.current = null; };
+    setScope(owner); setFocused(true);
+    return () => { if (focus.current === owner) { focus.current = null; setFocused(false); } };
   }, []));
   const load = useCallback(async (signal: AbortSignal): Promise<HomeReads & { attention: HomeSection<HomeAttentionPreview> }> => {
     const retry = retrying.current;
@@ -106,7 +107,7 @@ function Home() {
   // destination (2026-09-23). Every press keeps the focus, account and foreground guards above.
   const onProfile = () => navigate(() => router.navigate('/profil'));
   const profile = home?.workerProfile?.kind === 'known' ? home.workerProfile.value : null;
-  return <HomePresentation header={<ScreenHeader title="Početna" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
+  return <HomePresentation active={focused} header={<ScreenHeader title="Početna" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
     opportunities={opportunities}
     onOpenOpportunity={id => navigate(() => router.navigate({ pathname: '/prilike/[id]', params: { id } }))}
     stale={!!resource.refreshError && !!home}

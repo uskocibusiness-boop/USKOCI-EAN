@@ -25,6 +25,7 @@ function resolvePackage(packageName: string, extraEnv: Record<string, string | u
   fs.copyFileSync(path.join(root, 'app.config.js'), path.join(fixture, 'app.config.js'));
   fs.mkdirSync(path.join(fixture, 'scripts'));
   fs.copyFileSync(path.join(root, 'scripts/build-identity.cjs'), path.join(fixture, 'scripts/build-identity.cjs'));
+  fs.copyFileSync(path.join(root, 'scripts/build-contract.cjs'), path.join(fixture, 'scripts/build-contract.cjs'));
   fs.mkdirSync(path.join(fixture, 'plugins'));
   fs.copyFileSync(path.join(root, enrollmentPlugin), path.join(fixture, enrollmentPlugin));
   // Use the same Node resolver as Expo CLI; Jest's browser module conditions

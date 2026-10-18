@@ -3,6 +3,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const { validatePreview, validateFirebase } = require('../check-eas-preview.cjs');
+const { SIGNED_REVIEW_ENV } = require('../build-contract.cjs');
 const root = path.resolve(__dirname, '../..');
 const configure = require('../../app.config.js');
 const appSource = { expo: configure({ config: JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8')).expo }) };
@@ -21,6 +22,7 @@ function fixture() {
       USKOCI_OTA_TARGET: 'preview',
       EXPO_PUBLIC_SUPABASE_URL: `https://${ref}.supabase.co`,
       EXPO_PUBLIC_SUPABASE_ANON_KEY: jwt(), NODE_ENV: 'production',
+      ...SIGNED_REVIEW_ENV,
     } as NodeJS.ProcessEnv,
   };
 }
@@ -73,46 +75,18 @@ describe('actual EAS preview pre-install guard', () => {
     expect(() => validatePreview(input)).toThrow(/preview/);
   });
 
-  // Store build, owner 2026-09-23: the production profile is the Google Play app bundle rs.uskoci and keeps every other
-  // boundary; it carries no Firebase client, because the reviewed one belongs to the preview package.
-  function storeFixture() {
-    const input = fixture(); input.env.EAS_BUILD_PROFILE = 'production'; input.env.USKOCI_OTA_TARGET = 'production';
-    const before = process.env.EAS_BUILD_PROFILE; process.env.EAS_BUILD_PROFILE = 'production';
-    try { input.app = { expo: configure({ config: JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8')).expo }) }; }
-    finally { if (before === undefined) delete process.env.EAS_BUILD_PROFILE; else process.env.EAS_BUILD_PROFILE = before; }
-    return input;
-  }
-  it('admits the reviewed production store app bundle as rs.uskoci with the same public environment', () => {
-    const input = storeFixture();
-    expect(input.app.expo.android.package).toBe('rs.uskoci');
-    expect(input.app.expo.android.googleServicesFile).toBeUndefined();
-    expect(() => validatePreview(input)).not.toThrow();
+  it.each([undefined, `https://${ref}.supabase.co`, 'https://another.supabase.co'])('refuses an unconfigured production target even with an environment override', url => {
+    const input = fixture();
+    Object.assign(input.env, { EAS_BUILD_PROFILE: 'production', USKOCI_OTA_TARGET: 'production', EXPO_PUBLIC_SUPABASE_URL: url });
+    expect(() => validatePreview(input)).toThrow(/USKOCI_PRODUCTION_NOT_CONFIGURED/);
   });
-  it('refuses a store bundle under the preview package or with the preview Firebase client', () => {
-    const preview = storeFixture(); preview.app.expo.android.package = 'rs.uskoci.preview';
-    expect(() => validatePreview(preview)).toThrow(/rs\.uskoci for the store/);
-    const borrowed = storeFixture(); borrowed.app.expo.android.googleServicesFile = './config/firebase/google-services.json';
-    expect(() => validatePreview(borrowed)).toThrow(/must not carry the preview Firebase/);
+  it('keeps DEV credentials out of the store profile', () => {
+    expect(easSource.build.production.env.EXPO_PUBLIC_SUPABASE_URL).toBeUndefined();
+    expect(easSource.build.production.env.EXPO_PUBLIC_SUPABASE_ANON_KEY).toBeUndefined();
   });
-  it('the store profile carries the canonical public backend address and a publishable key in eas.json', () => {
-    const env = easSource.build.production.env;
-    expect(env.EXPO_PUBLIC_SUPABASE_URL).toBe(`https://${ref}.supabase.co`);
-    expect(env.EXPO_PUBLIC_SUPABASE_ANON_KEY).toMatch(/^sb_publishable_[A-Za-z0-9_-]+$/);
-  });
-
-  it.each(['distribution', 'environment', 'credentialsSource', 'buildType', 'autoIncrement', 'channel'])('rejects production store profile drift: %s', (field) => {
-    const input = storeFixture();
-    const production = input.eas.build.production;
-    if (field === 'buildType') production.android.buildType = 'apk';
-    else if (field === 'channel') production.channel = 'preview';
-    else if (field === 'autoIncrement') production.autoIncrement = false;
-    else production[field] = 'other';
-    expect(() => validatePreview(input)).toThrow(/production store app bundle/);
-  });
-
-  it.each([{ EXPO_PUBLIC_USE_FAKE_SOURCE: '1' }, { EXPO_PUBLIC_SUPABASE_URL: 'https://another.supabase.co' }, { EXPO_PUBLIC_SUPABASE_ANON_KEY: 'sb_secret_NEVER_LOG_THIS_KEY' }])('keeps the fake-source, backend and key checks for the store build: %j', (override) => {
-    const input = storeFixture(); Object.assign(input.env, override);
-    expect(() => validatePreview(input)).toThrow(/fake or test|confirmed canonical|must be a public/);
+  it.each(Object.keys(SIGNED_REVIEW_ENV))('refuses a preview without %s', key => {
+    const input = fixture(); delete input.env[key];
+    expect(() => validatePreview(input)).toThrow(new RegExp(key));
   });
 
   it.each([undefined, 1, 34, 35.5])('rejects a version reset below the existing build lineage', (version) => {

@@ -36,6 +36,7 @@ export function AnimatedRadar({
         duration: sys.motion.radarSweep,
         easing: Easing.linear,
         useNativeDriver: true,
+        isInteraction: false,
       }),
     );
     anim.start();
@@ -48,7 +49,8 @@ export function AnimatedRadar({
   });
 
   return (
-    <View style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
+    <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
+      style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }}>
       {/* Background static radar grid & target blip */}
       <Svg width={size} height={size} viewBox="0 0 24 24" style={{ position: 'absolute' }}>
         {/* Outer Ring */}

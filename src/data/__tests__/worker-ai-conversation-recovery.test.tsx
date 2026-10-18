@@ -312,7 +312,9 @@ it('the review says the profile drives new-task notifications for matching tasks
  await render();await enterPanel('review');
  const note=tree.root.findAll(node=>node.props?.testID==='worker-review-notifications-note');
  expect(note.length).toBeGreaterThan(0);
- expect(note[0].props.children).toBe('Podaci iz tvog radnog profila koriste se za obaveštenja o novim i već otvorenim zadacima koji odgovaraju tvojim veštinama, području i vremenu.');
+ expect(note[0].props.children).toContain('potvrđen način rada, područje i vreme');
+ expect(note[0].props.children).toContain('Ako uključiš obaveštenja');
+ expect(note[0].props.children).not.toContain('novim i već otvorenim');
  expect(note[0].props.tone).toBeUndefined();
 });
 it('a retired-field review refusal keeps a guarded restart path after same-review readback',async()=>{

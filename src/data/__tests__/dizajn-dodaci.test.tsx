@@ -33,7 +33,7 @@ jest.mock('../groupConversationService', () => fail());
 jest.mock('../supportCaseClientService', () => fail());
 jest.mock('../mediaClientService', () => fail());
 
-import DizajnDodaci from '../../app/dizajn-dodaci';
+import DizajnDodaci from '../../designLab/dizajn-dodaci';
 
 let tree: ReactTestRenderer;
 const pressHost = async (label: string) => {

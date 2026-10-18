@@ -548,13 +548,13 @@
       "slug": "uskoci-ai-interview",
       "name": "uskoci-ai-interview",
       "status": "ACTIVE",
-      "version": 89,
+      "version": 90,
       "created_at": 1788261764727,
-      "updated_at": 1792306773847,
+      "updated_at": 1792318029980,
       "verify_jwt": false,
       "import_map": false,
-      "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_89/source/supabase/functions/uskoci-ai-interview/index.ts",
-      "ezbr_sha256": "e88709c006376c675b6f9d8b8fe9e8f2e147b13f733fbcce4e6a7345169bcba2"
+      "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_90/source/supabase/functions/uskoci-ai-interview/index.ts",
+      "ezbr_sha256": "85549aa37b6e9d10ab8d8f3cac714bb4c8cf69aa3a15aef64385f04307105b24"
     },
     {
       "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
@@ -613,13 +613,13 @@
       "slug": "uskoci-worker-interview",
       "name": "uskoci-worker-interview",
       "status": "ACTIVE",
-      "version": 44,
+      "version": 45,
       "created_at": 1789291116219,
-      "updated_at": 1792306788967,
+      "updated_at": 1792318018954,
       "verify_jwt": false,
       "import_map": false,
-      "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_44/source/supabase/functions/uskoci-worker-interview/index.ts",
-      "ezbr_sha256": "bb6ada7ef9169f60d3ce4365ef9d1ea6ffa279ea6fc5730dd3297dcaf7dcaa33"
+      "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_45/source/supabase/functions/uskoci-worker-interview/index.ts",
+      "ezbr_sha256": "52f9b43adcf61bc6f2d1517cdcca5724b79266c26457fb920d28cfe150fa4264"
     },
     {
       "id": "1ba4db69-a390-4b55-a071-97bee74d2598",
@@ -987,5 +987,34 @@
     "beforeBodyMd5": "74de2072260579799b651aa69f84cecb",
     "afterBodyMd5": "7b5d5b5b4f2f3b5d8cefc26333aa6145",
     "closureMismatchPreexisting": true
+  },
+  "interview_grouped_questions_refresh_20261018": {
+    "observed_at": "2026-10-18T10:07:09.980Z",
+    "scope": "Only two Edge functions read back after authorized deployment; other SQL/certificate metadata retains its earlier timestamps.",
+    "receipt": "supabase/operations/dev-alpha/ledger/20261018100710_interview_grouped_questions.receipt.json",
+    "functions": [
+      {
+        "slug": "uskoci-ai-interview",
+        "before_version": 89,
+        "after_version": 90,
+        "before_ezbr_sha256": "e88709c006376c675b6f9d8b8fe9e8f2e147b13f733fbcce4e6a7345169bcba2",
+        "after_ezbr_sha256": "85549aa37b6e9d10ab8d8f3cac714bb4c8cf69aa3a15aef64385f04307105b24",
+        "verify_jwt": false,
+        "readback_files_equal": "9/9",
+        "active": "ACTIVE"
+      },
+      {
+        "slug": "uskoci-worker-interview",
+        "before_version": 44,
+        "after_version": 45,
+        "before_ezbr_sha256": "bb6ada7ef9169f60d3ce4365ef9d1ea6ffa279ea6fc5730dd3297dcaf7dcaa33",
+        "after_ezbr_sha256": "52f9b43adcf61bc6f2d1517cdcca5724b79266c26457fb920d28cfe150fa4264",
+        "verify_jwt": false,
+        "readback_files_equal": "6/6",
+        "active": "ACTIVE"
+      }
+    ],
+    "paid_ai_calls": 0,
+    "database_changes": 0
   }
 }

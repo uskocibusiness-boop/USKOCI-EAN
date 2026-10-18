@@ -1,0 +1,33 @@
+{
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "environment": "DEV",
+  "authorization": "Owner reply: Primeni ovaj Edge paket na DEV",
+  "scope": "Up to three related interview questions, partial-answer retention and worker classification action enum parity",
+  "limits": "No paid model calls, database mutation, certificate update or push send. File deployment/readback only.",
+  "applied_at_utc": "2026-10-18T10:07:09.980Z",
+  "functions": [
+    {
+      "slug": "uskoci-ai-interview",
+      "before_version": 89,
+      "after_version": 90,
+      "before_ezbr_sha256": "e88709c006376c675b6f9d8b8fe9e8f2e147b13f733fbcce4e6a7345169bcba2",
+      "after_ezbr_sha256": "85549aa37b6e9d10ab8d8f3cac714bb4c8cf69aa3a15aef64385f04307105b24",
+      "verify_jwt": false,
+      "readback_files_equal": "9/9",
+      "active": "ACTIVE"
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "before_version": 44,
+      "after_version": 45,
+      "before_ezbr_sha256": "bb6ada7ef9169f60d3ce4365ef9d1ea6ffa279ea6fc5730dd3297dcaf7dcaa33",
+      "after_ezbr_sha256": "52f9b43adcf61bc6f2d1517cdcca5724b79266c26457fb920d28cfe150fa4264",
+      "verify_jwt": false,
+      "readback_files_equal": "6/6",
+      "active": "ACTIVE"
+    }
+  ],
+  "candidate_manifest": "docs/implementation/v5-ai-first/INTERVIEW_RELEASE_CANDIDATE_20261018.json",
+  "source_base_commit": "51c824187",
+  "source_identity": "Exact per-file SHA256 values in candidate_manifest; implementation was in working tree at deployment."
+}

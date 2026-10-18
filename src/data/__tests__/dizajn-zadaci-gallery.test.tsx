@@ -23,7 +23,7 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/v2/DiscoveryPresentation', () => ({ DiscoveryPresentation: 'Discovery' }));
 jest.mock('../../ui/v2/TaskPublisherPortrait', () => ({ TaskPublisherPortrait: 'TaskPublisherPortrait' }));
 jest.mock('@react-native-async-storage/async-storage', () => ({ getItem: async () => null, setItem: async () => undefined }));
-import DizajnZadaci from '../../app/dizajn-zadaci';
+import DizajnZadaci from '../../designLab/dizajn-zadaci';
 import { publicPoint } from '../marketplaceView';
 import type { DiscoveryPresentationProps } from '../../ui/v2/DiscoveryPresentation';
 

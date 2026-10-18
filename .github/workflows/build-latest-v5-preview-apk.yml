@@ -1,4 +1,4 @@
-# Preview V5 proof: run the entire regression suite before producing a signed ARM64 APK.
+# Preview V5 proof: run the entire regression suite before producing the selected native APK.
 # A workflow-file push intentionally requests a fresh proof from the current integration HEAD.
 name: Build latest V5 Android preview APK
 
@@ -7,6 +7,13 @@ on:
     branches: [work/ultra-master-integration-20261012]
     paths: [.github/workflows/build-latest-v5-preview-apk.yml]
   workflow_dispatch:
+    inputs:
+      target:
+        description: 'APK target (phone: ARM64, emulator: x86_64)'
+        type: choice
+        required: true
+        default: phone
+        options: [phone, emulator]
 
 permissions:
   contents: read
@@ -36,6 +43,9 @@ jobs:
       EXPO_PUBLIC_VOICE_MESSAGES: '1'
       EXPO_PUBLIC_AI_LOCATION_DIALOGUE: '1'
       EXPO_PUBLIC_CONVERSATION_INBOX: '1'
+      EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW: 'true'
+      EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'true'
+      EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES: 'true'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -53,6 +63,7 @@ jobs:
       - name: Check exact preview identity
         run: |
           node scripts/ota-preview-guard.cjs
+          node scripts/build-contract.cjs
           node - <<'NODE'
           const fs=require('fs');
           const c=require('./app.config.js')({config:JSON.parse(fs.readFileSync('app.json','utf8')).expo});
@@ -80,12 +91,29 @@ jobs:
           EXPO_PUBLIC_EX04_CANDIDATES_PAGED: '0'
           EXPO_PUBLIC_VOICE_MESSAGES: '0'
           EXPO_PUBLIC_CONVERSATION_INBOX: '0'
-        run: npm test -- --runInBand
+          EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW: 'false'
+          EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'false'
+          EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES: 'false'
+        run: |
+          node --test scripts/__tests__/build-contract.test.cjs scripts/__tests__/entry-assets.test.cjs scripts/__tests__/design-lab-boundary.test.cjs
+          npm test -- --runInBand
       - name: Prebuild Android
         run: npx expo prebuild --platform android --clean
-      - name: Limit Android native build to phone ARM64
+      - name: Select Android native target
+        env:
+          USKOCI_ANDROID_BUILD_TARGET: ${{ inputs.target || 'phone' }}
         run: |
-          printf '\nreactNativeArchitectures=arm64-v8a\norg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8\n' >> android/gradle.properties
+          node <<'NODE'
+          const fs = require('fs');
+          const targets = {
+            phone: { abi: 'arm64-v8a', name: 'USKOCI-V5-PREVIEW-ARM64' },
+            emulator: { abi: 'x86_64', name: 'USKOCI-V5-PREVIEW-X86_64' },
+          };
+          const target = targets[process.env.USKOCI_ANDROID_BUILD_TARGET];
+          if (!target) throw Error('Unknown Android target');
+          fs.appendFileSync('android/gradle.properties', `\nreactNativeArchitectures=${target.abi}\norg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=2048m -Dfile.encoding=UTF-8\n`);
+          fs.appendFileSync(process.env.GITHUB_ENV, `USKOCI_APK_NAME=${target.name}\n`);
+          NODE
       # NDK package-manager download previously returned a corrupt ZIP.
       # Use Google's pinned r27b Linux archive and verify the published checksum.
       - name: Install verified Android NDK r27b
@@ -137,16 +165,16 @@ jobs:
         run: |
           set -euo pipefail
           test -s android/app/build/outputs/apk/release/app-release.apk
-          cp android/app/build/outputs/apk/release/app-release.apk USKOCI-V5-PREVIEW-ARM64.apk
-          sha256sum USKOCI-V5-PREVIEW-ARM64.apk > USKOCI-V5-PREVIEW-ARM64.apk.sha256
-          python3 scripts/ci/attest_ota_preview.py USKOCI-V5-PREVIEW-ARM64.apk USKOCI-V5-PREVIEW-ARM64-receipt.json
+          cp android/app/build/outputs/apk/release/app-release.apk "${USKOCI_APK_NAME}.apk"
+          sha256sum "${USKOCI_APK_NAME}.apk" > "${USKOCI_APK_NAME}.apk.sha256"
+          python3 scripts/ci/attest_ota_preview.py "${USKOCI_APK_NAME}.apk" "${USKOCI_APK_NAME}-receipt.json"
       - name: Upload APK, checksum and receipt
         uses: actions/upload-artifact@v4
         with:
-          name: USKOCI-V5-PREVIEW-ARM64
+          name: ${{ env.USKOCI_APK_NAME }}
           path: |
-            USKOCI-V5-PREVIEW-ARM64.apk
-            USKOCI-V5-PREVIEW-ARM64.apk.sha256
-            USKOCI-V5-PREVIEW-ARM64-receipt.json
+            ${{ env.USKOCI_APK_NAME }}.apk
+            ${{ env.USKOCI_APK_NAME }}.apk.sha256
+            ${{ env.USKOCI_APK_NAME }}-receipt.json
           retention-days: 14
           if-no-files-found: error

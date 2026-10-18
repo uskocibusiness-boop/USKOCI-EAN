@@ -80,7 +80,8 @@ describe('what the saved profile shows', () => {
     const copy = all();
     expect(copy).toContain('Nema sačuvanih veština.'); expect(copy).toContain('Izaberi gde želiš da radiš');
     // A list with nothing in it is "Dodaj", never a zero; with neither a name nor a kind of work the card is not drawn.
-    expect(copy.filter(text => text === 'Nije navedeno')).toHaveLength(2); expect(copy.join(' ')).not.toMatch(/\b0\b/);
+    expect(copy.filter(text => text === 'Nije navedeno')).toHaveLength(0); expect(copy.join(' ')).not.toMatch(/\b0\b/);
+    expect(tree.root.findAllByProps({ testID: 'worker-profile-kit' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ testID: 'worker-profile-card' })).toHaveLength(0); expect(copy).not.toContain('Tvoj radni profil');
     expect(copy).not.toContain('Pogledaj i uredi dostupnost'); expect(copy.join(' ')).not.toMatch(/undefined|null|NaN/);
   });

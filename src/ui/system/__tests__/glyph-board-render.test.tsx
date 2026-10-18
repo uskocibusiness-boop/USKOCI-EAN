@@ -14,7 +14,7 @@ jest.mock('expo-haptics', () => ({ selectionAsync: jest.fn(), impactAsync: jest.
 jest.mock('../../v2/TaskCard', () => ({ TaskCard: () => null }));
 jest.mock('../../InboxBell', () => ({ InboxBell: () => null }));
 
-import DizajnTabla from '../../../app/dizajn-tabla';
+import DizajnTabla from '../../../designLab/dizajn-tabla';
 import { GLYPH_NAMES, GLYPH_SIZES, GLYPH_TONES } from '../Glyph';
 
 /**

@@ -15,7 +15,7 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('../../ui/v2/DiscoveryPresentation', () => ({ DiscoveryPresentation: 'Discovery' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
-import Gallery from '../../app/dizajn-mapa';
+import Gallery from '../../designLab/dizajn-mapa';
 
 let tree: ReactTestRenderer;
 const render = async () => act(async () => { tree = create(<Gallery />); });
@@ -152,7 +152,7 @@ test('opening a row pushes only its bounded local detail; filters/camera/scroll 
 test('has a local safe exit and no direct backend/provider/media dependency or remote fixture source', async () => {
   await render(); mockRouter.canGoBack.mockReturnValue(false); await press('Izađi iz galerije');
   expect(mockRouter.replace).toHaveBeenCalledWith('/dizajn-tabla');
-  const code = readFileSync(resolve(__dirname, '../../app/dizajn-mapa.tsx'), 'utf8');
+  const code = readFileSync(resolve(__dirname, '../../designLab/dizajn-mapa.tsx'), 'utf8');
   expect(code).not.toMatch(/(?:import|require).*?(?:supabase|ClientService|AuthorizedPhoto|expo-location|fetch|https?:)/i);
   expect(code).not.toMatch(/\b(?:fetch|rpc|invoke)\s*\(/);
 });

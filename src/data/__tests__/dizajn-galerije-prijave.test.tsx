@@ -41,10 +41,10 @@ jest.mock('../applicationSelectionClientService', () => { throw new Error('a gal
 jest.mock('../applicationCommandJournal', () => { throw new Error('a gallery must not reach a data service'); });
 jest.mock('../../store/uloga', () => { throw new Error('a gallery must not read account data'); });
 
-import MojiZadaci from '../../app/dizajn-moji-zadaci';
-import Prijave from '../../app/dizajn-prijave';
-import Kandidati from '../../app/dizajn-kandidati';
-import PrijavaForma from '../../app/dizajn-prijava-forma';
+import MojiZadaci from '../../designLab/dizajn-moji-zadaci';
+import Prijave from '../../designLab/dizajn-prijave';
+import Kandidati from '../../designLab/dizajn-kandidati';
+import PrijavaForma from '../../designLab/dizajn-prijava-forma';
 
 let tree: ReactTestRenderer;
 const originalDev = __DEV__;

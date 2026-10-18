@@ -13,6 +13,7 @@ const nativeSensitive = [
   /^package(?:-lock)?\.json$/,
   /^app\.json$/,
   /^app\.config\.js$/,
+  /^scripts\/build-contract\.cjs$/,
   /^eas\.json$/,
   /^plugins\//,
   /^modules\//,

@@ -16,6 +16,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { validateStatic, assertOtaCompatible } = require('./ota-preview-guard.cjs');
 const { otaConfig } = require('../app.config.js');
+const { assertProductionTarget, assertDevBuildContract } = require('./build-contract.cjs');
 
 const DEV_HOST = 'leqcwgzvjsxugfgzdmth.supabase.co';
 const REQUIRED_EXPOSED_FLAGS = Object.freeze([
@@ -31,12 +32,14 @@ function requireState(ok, code) {
 
 function sourcePlan(root, target) {
   requireState(target === 'preview' || target === 'production', 'OTA_TARGET_UNKNOWN');
+  assertProductionTarget({ USKOCI_OTA_TARGET: target });
   const file = JSON.parse(fs.readFileSync(path.join(root, 'eas.json'), 'utf8'));
   const cfg = validateStatic(root);
   const profile = file.build?.[target];
   requireState(profile && profile.channel === target
     && profile.env?.USKOCI_OTA_TARGET === target, 'OTA_CHANNEL_PROFILE_MISMATCH');
   const expected = profile.env;
+  assertDevBuildContract(expected);
   requireState(typeof expected.EXPO_PUBLIC_SUPABASE_URL === 'string', 'OTA_BACKEND_MISSING');
   const host = new URL(expected.EXPO_PUBLIC_SUPABASE_URL).hostname;
   requireState(host.endsWith('.supabase.co'), 'OTA_BACKEND_UNRECOGNIZED');

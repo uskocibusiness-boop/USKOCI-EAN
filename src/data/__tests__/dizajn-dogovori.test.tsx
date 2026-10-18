@@ -2,7 +2,7 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 /**
- * The Dogovori gallery (`app/dizajn-dogovori`): every scene it draws comes from fixtures, reads nothing and sends nothing. The Pregled is
+ * The Dogovori gallery (`designLab/dizajn-dogovori`): every scene it draws comes from fixtures, reads nothing and sends nothing. The Pregled is
  * the real `AgreementOverview` (the component the route draws), so these scenes are what the screen composes in its main states; the
  * conversation and the list have their own suites. Here: every scene opens, and the scenes of the ideas of the UI pass (R01a, R02, R03,
  * R04, R29, CANCEL-INFO) show what they promise.
@@ -34,7 +34,7 @@ jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'Authorize
 // Importing the conversation reaches the client module; the gallery itself never calls it (every command is a no-op).
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
 
-import DizajnDogovori from '../../app/dizajn-dogovori';
+import DizajnDogovori from '../../designLab/dizajn-dogovori';
 import { SAVE_WARNING } from '../../ui/reviews/AgreementReviewPresentation';
 
 let tree: ReactTestRenderer;

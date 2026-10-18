@@ -67,8 +67,8 @@ test('if either build turns off permanent Poruke tab, source plan fails closed',
   }), /OTA_REQUIRED_FEATURE_DISABLED:EXPO_PUBLIC_P6_DISCOVERY_READER/);
 });
 
-test('publishing production OTA is barred while Store profile still points at canonical DEV database', () => {
-  assert.throws(() => sourcePlan(root, 'production'), /PRODUCTION_BACKEND_IS_DEV/);
+test('publishing production OTA is barred until a separate production target is verified', () => {
+  assert.throws(() => sourcePlan(root, 'production'), /USKOCI_PRODUCTION_NOT_CONFIGURED/);
 });
 
 test('unrecognized OTA channel, test data and missing public keys cannot pass preflight', () => {

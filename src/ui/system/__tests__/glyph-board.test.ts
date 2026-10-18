@@ -8,7 +8,7 @@ import { join } from 'path';
  * `fact-art.test.tsx` reads it; the pieces it draws are tested on their own (`tab-bar-item.test.tsx`, `glyph.test.tsx`,
  * `screen-chrome.test.tsx`).
  */
-const board = readFileSync(join(__dirname, '../../../app/dizajn-tabla.tsx'), 'utf8').replace(/\r\n/g, '\n');
+const board = readFileSync(join(__dirname, '../../../designLab/dizajn-tabla.tsx'), 'utf8').replace(/\r\n/g, '\n');
 const flat = board.replace(/\s*\n\s*\*?\s*/g, ' ');
 
 describe('the tab bar section of the board', () => {

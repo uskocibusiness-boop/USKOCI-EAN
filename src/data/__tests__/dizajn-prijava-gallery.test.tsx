@@ -24,7 +24,7 @@ jest.mock('../applicationSelectionClientService', () => { throw new Error('the g
 jest.mock('../applicationCommandJournal', () => { throw new Error('the gallery must not reach a data service'); });
 jest.mock('../supabaseClient', () => { throw new Error('the gallery must not reach a data service'); });
 
-import DizajnPrijava from '../../app/dizajn-prijava';
+import DizajnPrijava from '../../designLab/dizajn-prijava';
 import { AUTH_GALLERY_SCENES } from '../../ui/auth/AuthGallery';
 
 let tree: ReactTestRenderer;

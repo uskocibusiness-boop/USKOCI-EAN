@@ -270,3 +270,8 @@ A later change that adds a writer, a collector, a consumer or a new file touchin
 ### 18.10.2026 source-only taxonomy candidates
 
 `supabase/candidates/dynamic-taxonomy-20261011/strict-scope-live-matcher-cutover-v1.sql` and `worker-need-fit-strict-scope-v1.sql` also read `p.exclusions` and call `private.identity_admitted`. They are candidate matcher bodies, not collectors or writers, and this inventory does not claim that either is applied on DEV. The exact-file contract includes both. The worker interview contains the ordinary English word “proactively” in a prohibition against suggesting unrelated work; the field guard now matches the standalone identifier `proactive`, so prose does not masquerade as a collected preference.
+
+
+## Dodatak 18.10.2026 — country guard i popis čitalaca
+
+`supabase/candidates/worker-coverage-20261018/{country-guard.candidate.sql,country-guard.revert.sql,live-worker-need-fit.sql}` sadrže ista postojeća čitanja `p.exclusions` i `private.identity_admitted(p.account_id)`. Ne uvode prikupljanje niti upis tih polja. Country guard menja poređenje država u rezervnom poređenju gradova; dokaz primene je ledger `20261018075854_worker_city_country_guard.receipt.json`. Test popisa sada obuhvata ova tri sačuvana tela. Regionalni coverage-core kandidat time nije aktiviran.

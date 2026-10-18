@@ -11,7 +11,7 @@ jest.mock('expo-router', () => ({ router: { canGoBack: () => false, replace: jes
 jest.mock('../../ui/system/CatalogArt', () => ({ CatalogArt: 'CatalogArt' }));
 jest.mock('../../ui/system/CatalogMoment', () => ({ CatalogMoment: 'CatalogMoment' }));
 jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsScreen: 'SettingsScreen', SettingsText: 'T', SettingsAction: 'SettingsAction' }));
-import DizajnKatalog27 from '../../app/dizajn-katalog27';
+import DizajnKatalog27 from '../../designLab/dizajn-katalog27';
 let tree: ReactTestRenderer;
 afterEach(async () => { await act(async () => tree?.unmount()); });
 

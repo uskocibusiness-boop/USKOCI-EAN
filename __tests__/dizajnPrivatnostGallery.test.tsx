@@ -19,7 +19,7 @@ jest.mock('react-native', () => { const rn = jest.requireActual('react-native');
 jest.mock('../src/data/supabaseClient', () => ({ supabaseKlijent: () => { throw new Error('unexpected transport'); } }));
 jest.mock('../src/data/supportCaseClientService', () => ({ supportCaseClientService: new Proxy({}, { get: () => () => { throw new Error('unexpected support read'); } }) }));
 jest.mock('../src/data/agreementClientService', () => ({ agreementClientService: { mojiDogovori: () => { throw new Error('unexpected agreement read'); } } }));
-import Gallery from '../src/app/dizajn-privatnost';
+import Gallery from '../src/designLab/dizajn-privatnost';
 
 let tree: ReactTestRenderer;
 afterEach(async () => { await act(async () => tree?.unmount()); });

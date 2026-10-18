@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import Constants from 'expo-constants';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, type Href } from 'expo-router';
+// Historical fixture destinations are deliberately absent from product route types.
+// These scenes are mounted by tests; a future isolated lab host must supply their routes.
 import type { ConfirmedLocationPoint } from '../contracts/location';
 import type { ConfiguredLocationResolution, LocationResolverCandidate } from '../data/configuredLocationResolver';
 import { AiConversationShell } from '../ui/aiFirst/AiConversationShell';
@@ -27,7 +29,7 @@ const candidates: readonly LocationResolverCandidate[] = [
 ];
 const saved: ConfirmedLocationPoint = { slot: 'start', latitudeE6: 45254600, longitudeE6: 19850700,
   origin: { kind: 'MANUAL_PIN' }, address: 'Probna sačuvana tačka · Dunavski park', accessNotes: 'Lokalni primer napomene' };
-const leave = () => { if (router.canGoBack()) router.back(); else router.replace('/dizajn-ai'); };
+const leave = () => { if (router.canGoBack()) router.back(); else router.replace('/dizajn-ai' as Href); };
 
 export default function AiLocationGallery() {
   const params = useLocalSearchParams<{ scene?: string | string[] }>();

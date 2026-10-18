@@ -33,7 +33,7 @@ jest.mock('../../ui/location/LocationControls', () => ({ LocationScreen: 'Locati
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 jest.mock('../supabaseClient', () => ({ supabaseKonfigurisan: () => false, supabaseKlijent: () => { throw new Error('a gallery must not reach the data client'); } }));
 
-import DizajnObjava from '../../app/dizajn-objava';
+import DizajnObjava from '../../designLab/dizajn-objava';
 
 let tree: ReactTestRenderer;
 const originalDev = __DEV__;

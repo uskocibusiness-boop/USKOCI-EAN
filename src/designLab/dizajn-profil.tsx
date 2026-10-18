@@ -11,7 +11,7 @@ import type { WorkerAiReview } from '../data/workerAiClientService';
 import type { ReviewTag } from '../data/reviewsClientService';
 import type { MyWorkStats, PublicWorkTrust, ReceivedReview } from '../data/workTrustClientService';
 import { inicijali } from '../lib/inicijali';
-import { WorkerLocationForm } from './(app)/profil/lokacija';
+import { WorkerLocationForm } from '../app/(app)/profil/lokacija';
 import { DisplayNameForm, type NameSaveControl } from '../ui/profile/DisplayNameForm';
 import { GalleryLargeText } from '../ui/profile/GalleryLargeText';
 import { EDIT_PHOTO, NameSaveButton, ProfileFactRows, ProfilePhotoBlock, VisibilityNote, WorkNameNotice, type AboutView, type CityView } from '../ui/profile/ProfileEditPresentation';

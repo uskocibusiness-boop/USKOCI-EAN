@@ -49,7 +49,7 @@ const MOTION_SCOPE = [
 const COLOUR_SCOPE = [
   'src/ui/home/HomePresentation.tsx', 'src/ui/home/HomeIllustration.tsx', 'src/ui/Text.tsx',
   'src/ui/v2/TaskCard.tsx', 'src/ui/v2/ApplicationComposerPresentation.tsx', 'src/ui/reviews/AgreementReviewScreen.tsx',
-  'src/ui/reviews/AgreementReviewPresentation.tsx', 'src/app/dizajn-prijava.tsx',
+  'src/ui/reviews/AgreementReviewPresentation.tsx', 'src/designLab/dizajn-prijava.tsx',
 ];
 const EVERY_SCOPED_FILE = [...new Set([...COLOUR_SCOPE, ...TOKEN_SCOPE, ...MOTION_SCOPE])];
 

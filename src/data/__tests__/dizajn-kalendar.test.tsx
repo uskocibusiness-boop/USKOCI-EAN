@@ -33,7 +33,7 @@ jest.mock('../workerCalendarClientService', () => { throw new Error('the gallery
 jest.mock('../agreementClientService', () => { throw new Error('the gallery must not reach a data service'); });
 jest.mock('../workerAvailabilityClientService', () => { throw new Error('the gallery must not reach a data service'); });
 
-import DizajnKalendar from '../../app/dizajn-kalendar';
+import DizajnKalendar from '../../designLab/dizajn-kalendar';
 import { sys } from '../../ui/system/tokens';
 import { STATUS_CHIPS, STATUS_TONES } from '../../ui/system/StatusChip';
 

@@ -6,12 +6,12 @@ const source=readFileSync(new URL('../../functions/uskoci-worker-interview/index
 const prompt=source.slice(source.indexOf('function instruction('),source.indexOf('// Exact finish-only utterances'));
 const handler=source.slice(source.indexOf('export async function handleWorkerInterview'));
 
-test('open interview is natural Serbian and asks only one next relevant question',()=>{
+test('open interview is natural Serbian and groups up to three relevant questions',()=>{
  assert.match(prompt,/Speak concise Serbian Latin/);
  assert.match(prompt,/Speak concise Serbian Latin, addressing the person as ti, never Vi\/Vam/);
  assert.match(prompt,/approachable USKOČI coordinator/);
  assert.match(prompt,/not a scripted interviewer or salesperson/);
- assert.match(prompt,/Choose at most ONE next question/);
+ assert.match(prompt,/Ask up to THREE short, related questions/);
  assert.match(prompt,/Decide dynamically, never by a fixed checklist/);
  assert.match(prompt,/one to three short sentences/);
  assert.match(prompt,/Do not sound like a form/);

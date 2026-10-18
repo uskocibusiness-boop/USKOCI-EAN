@@ -1,5 +1,6 @@
 'use strict';
 const { buildIdentity } = require('./scripts/build-identity.cjs');
+const { assertProductionTarget } = require('./scripts/build-contract.cjs');
 
 // Expo supplies normalized app.json, including each disposable workflow's
 // package/label overrides. Never replace those with the preview identity.
@@ -12,6 +13,7 @@ const UPDATE_URL = 'https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6';
 const NEARBY_PERMISSION = 'USKOČI koristi jednu lokaciju kada pritisneš „U blizini”, da prikaže mapu zadataka oko tebe.';
 
 module.exports = ({ config }) => {
+  assertProductionTarget(process.env);
   const profile = process.env.EAS_BUILD_PROFILE;
   const otaTarget = process.env.USKOCI_OTA_TARGET;
   if (profile && otaTarget && ((profile === 'production') !== (otaTarget === 'production'))) {

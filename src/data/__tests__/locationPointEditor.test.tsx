@@ -2,7 +2,7 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { LocationPointEditor } from '../../ui/location/LocationPointEditor';
 import { createConfiguredLocationResolver, type ConfiguredLocationResolution } from '../configuredLocationResolver';
-import AiLocationGallery from '../../app/dizajn-ai-mesto';
+import AiLocationGallery from '../../designLab/dizajn-ai-mesto';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { PermissionsAndroid, Platform } from 'react-native';
@@ -910,7 +910,7 @@ describe('inert compact location gallery', () => {
     mockGalleryRouter.canGoBack.mockReturnValueOnce(false);
     await act(async () => tree.root.findByType('AiShell' as React.ElementType).props.onBack());
     expect(mockGalleryRouter.replace).toHaveBeenCalledWith('/dizajn-ai');
-    const code = readFileSync(join(__dirname, '../../app/dizajn-ai-mesto.tsx'), 'utf8');
+    const code = readFileSync(join(__dirname, '../../designLab/dizajn-ai-mesto.tsx'), 'utf8');
     expect(code).not.toMatch(/(?:import|require).*?(?:supabase|ClientService|productionLocationResolver|expo-location|https?:)/i);
     expect(code).not.toMatch(/\b(?:fetch|rpc|invoke|captureCurrentLocation)\s*\(/);
   });

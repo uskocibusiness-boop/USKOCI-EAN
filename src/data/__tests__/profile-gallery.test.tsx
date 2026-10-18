@@ -41,7 +41,7 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ResolvedPinMap' }));
 
-import Gallery from '../../app/dizajn-profil';
+import Gallery from '../../designLab/dizajn-profil';
 
 let tree: ReactTestRenderer;
 const presses = () => tree.root.findAll(node => String(node.type) === 'Press');

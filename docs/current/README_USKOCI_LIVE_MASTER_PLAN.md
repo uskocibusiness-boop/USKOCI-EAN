@@ -27,7 +27,7 @@ Jedan aktivan proizvod, jedan registar statusa i postojeći LIVE plan. Ovaj fajl
 | Početni ekran i brend | `src/ui/entry/`; istorijski donori nisu obavezna kompozicija |
 | AI zadatak / radni profil | `nova.tsx`, `radnik.tsx`, `src/ui/aiFirst/` i odgovarajuće Edge funkcije |
 | Podaci i poslovna pravila | `src/data/`, `src/features/`, `supabase/functions/`, primenjene migracije i ledger |
-| Razvojni prikazi | 21 `src/app/dizajn-*` ruta zatečena inventarom; izdvajanje iz proizvoda još nije završeno |
+| Razvojni prikazi | 21 sačuvana scena u `src/designLab/`, van Expo Router ruta; Android export proverava da ih nema u proizvodnom bundle-u |
 | Testovi | Aktuelni `jest.config.cjs`; broj i prolaznost čitati iz stvarnog izvršavanja |
 | Build | `app.config.js`, `app.json`, `eas.json`, `metro.config.cjs`, postojeći CI workflow-i |
 | DEV dokaz | `supabase/operations/dev-alpha/ledger/`, datirani `docs/control/dev_snapshot.json` |

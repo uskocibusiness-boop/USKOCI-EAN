@@ -14,7 +14,7 @@ jest.mock('expo-haptics', () => ({ selectionAsync: jest.fn(), impactAsync: jest.
 jest.mock('../../../data/supabaseClient', () => { throw new Error('The system gallery must not load a data client.'); });
 jest.mock('../../../store/uloga', () => { throw new Error('The system gallery must not read account data.'); });
 
-import Gallery from '../../../app/dizajn-sistem';
+import Gallery from '../../../designLab/dizajn-sistem';
 import { Press } from '../../Press';
 import { FlowFooter } from '../FlowFooter';
 import { KeyValueRow } from '../KeyValueRow';

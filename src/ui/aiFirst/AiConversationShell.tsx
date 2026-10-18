@@ -277,7 +277,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
       <ScrollView ref={thread} innerViewRef={threadContent} testID="ai-conversation-thread" style={s.flex}
         // Before the first word the invitation is the only thing on screen, so it sits in the space it has. As soon as
         // there is a thread, the thread starts at the top as threads do.
-        contentContainerStyle={[s.thread, p.messages.length === 0 && !p.introMessage && !p.sentMessage && !p.status && !p.context && !notes.length && s.threadEmpty]}
+        contentContainerStyle={[s.thread, p.messages.length === 0 && p.showWelcomeArt !== false && !p.introMessage && !p.sentMessage && !p.status && !p.context && !notes.length && s.threadEmpty]}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
         onScrollBeginDrag={() => { cancelContextReveal(); cancelFollow(); userScrolling.current = true; momentumAllowed.current = true; }}
         onScroll={syncReadingPosition}
@@ -331,8 +331,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
           {!keyboard && !p.introMessage && p.showWelcomeArt !== false ? <View importantForAccessibility="no-hide-descendants" style={s.presence}>
             <AiAssistantWelcome conversationKey={p.conversationKey} memory={assistantWelcome} />
           </View> : null}
-          {!p.introMessage ? <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T> : null}
-          {p.welcomeDetail ? <T variant="copy" tone="muted" style={s.welcomeCopy}>{p.welcomeDetail}</T> : null}
+          {!p.introMessage ? <T accessibilityRole="header" variant={p.showWelcomeArt === false ? 'heading' : 'title'}
+            style={p.showWelcomeArt === false ? s.returningTitle : s.welcomeTitle}>{p.welcome}</T> : null}
+          {p.welcomeDetail ? <T variant="copy" tone="muted" style={[s.welcomeCopy, p.showWelcomeArt === false && s.returningCopy]}>{p.welcomeDetail}</T> : null}
           {openings.length && p.canEdit ? <View style={s.openings}>
             <Section title="Na primer">
               {openings.map((opening, index) => <ListRow key={opening} title={opening} last={index === openings.length - 1}
@@ -514,6 +515,8 @@ const s = StyleSheet.create({
   presence: { alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 4 },
   welcomeTitle: { ...sys.type.title, fontWeight: '600', color: sys.color.ink, textAlign: 'center' },
   welcomeCopy: { lineHeight: 24, textAlign: 'center' },
+  returningTitle: { color: sys.color.ink, textAlign: 'left' },
+  returningCopy: { textAlign: 'left' },
   // Whole sentences, one under the other, from the same edge as the thread will have: rows, not boxes.
   openings: { marginTop: sys.space.md },
   draftCue: { paddingVertical: sys.space.sm },

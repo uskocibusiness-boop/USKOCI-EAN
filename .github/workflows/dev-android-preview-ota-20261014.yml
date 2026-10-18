@@ -90,6 +90,7 @@ jobs:
         run: |
           set -euo pipefail
           test "${EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW}" = 'true'
+          node scripts/build-contract.cjs
           test "${EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW}" = 'true'
           test "${EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES}" = 'true'
           test "${EXPO_PUBLIC_SUPABASE_URL}" = 'https://leqcwgzvjsxugfgzdmth.supabase.co'

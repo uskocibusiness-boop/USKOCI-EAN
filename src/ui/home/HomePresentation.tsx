@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
 import type { PrilikaProjekcija } from '../../contracts/projections';
@@ -24,30 +24,17 @@ import { plural, prijava } from '../system/plural';
 import { useLayoutClass, useTextScale } from '../system/textScale';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { HomeLaunchArt } from './HomeLaunchArt';
+import { AnimatedRadar } from '../v2/RadarIcon';
 import { ListSkeleton } from '../notifications/ListSkeleton';
 import { HowItWorks } from './HowItWorks';
 
-/** Home presents two intentions and the account's real next actions. It never infers earnings, creates another user role, or
- * makes failed reads look like empty lists. Start actions remain available before the overview has loaded.
- *
- * One rhythm (UI/UX pass, 2026-10-08, composition spec 4.1): the screen is a `Screen`, so the edge is 20 and the blocks stand 24
- * apart; every block under the doors is a `Section` or a group of `ListRow`s, the next appointment is a `Surface` record, and no
- * line separates one block from another. Nothing here draws a divider of its own.
- *
- * Order (owner, 2026-10-07; "Danas u 14", the owner's pick of 2026-10-08; the blueprint he approved on 8 Oct 2026, Z1): the two
- * doors; for a brand-new account, one quiet row "Kako radi" (three steps, hidden for good with "Sakrij"); "Sledeće" when an accepted
- * appointment lies ahead, as the one record of the screen, directly under the doors: the TIME of the next Dogovor is the largest word
- * on Početna ("Danas · 14:00–16:00", in the voice of money, 24/700) and the calendar stands small at the end of its line, with no way
- * into the whole schedule (that is reached from Dogovori only); then "Čeka te", always once the reads answered (one grey line when
- * nothing waits, and never when something does: a Dogovor without a term, a change to answer, a draft to continue, a rating), at most
- * three things and the rest as a count. With no appointment ahead the hero would vanish, so the first thing that waits takes its place
- * as the one record (the task first, then the action it needs); the Dogovori that have no day to show them on are NOT a block of their own (the
- * owner's phone, 8 Oct 2026: "Raspored — 1 Dogovor bez tačnog termina" was a weak row): the one that needs a term is asked for under
- * "Čeka te", and all of them stand in Raspored, under "Termin još nije dogovoren". Then "Moji zadaci" / "Moje prijave", each with its
- * number, and, for an active work profile, "Mogu odmah", as one group of rows directly below. A row of "Čeka te" says the task and the
- * action and nothing else: the sentence the phone or the server keeps under it ("Termin još nije dogovoren.") repeated the action, and
- * a screen reader still hears it. The doors and the header are the locked signature. */
+/** Two main actions, the next appointment, real pending work and the account's lists.
+ * Empty attention stays hidden; failures retain explicit recovery. One account owns both roles.
+ * Current owner direction: docs/implementation/OWNER_DESIGN_DIRECTION_20260922.md.
+ */
 export type HomePresentationProps = {
+  /** Only the focused live route starts decorative motion; galleries stay still. */
+  active?: boolean;
   home: HomeSnapshot | null; loading: boolean; refreshing: boolean; error: boolean;
   /**
    * The last read failed but what is on screen is the last one that worked (the route keeps it through a failed re-read): the
@@ -87,7 +74,7 @@ const DOOR_ART = 64;
 export const WAITING_LIMIT = 3;
 
 /** Equal doors: original artwork leads, then the intention and one short line. */
-function StartActions({ onPublish, onEarn }: { onPublish: () => void; onEarn: () => void }) {
+function StartActions({ onPublish, onEarn, animate }: { onPublish: () => void; onEarn: () => void; animate: boolean }) {
   const textScale = useTextScale();
   // One minimum for both doors: the picture sets it at ordinary text sizes (2 × 12 + 64 = 88 dp).
   // Larger text grows both together instead of clipping; wrapped text grows a door naturally, and no empty lines are reserved.
@@ -106,7 +93,7 @@ function StartActions({ onPublish, onEarn }: { onPublish: () => void; onEarn: ()
     <Press accessibilityRole="button" accessibilityLabel="Uskoči i zaradi" accessibilityHint="Pronađi zadatak."
       haptic="select" onPress={onEarn} scaleTo={sys.motion.scale.row} style={[s.door, materialControl.raised, { minHeight }]}>
       <View style={s.doorMain}>
-        <HomeLaunchArt kind="discover" size={DOOR_ART} />
+        <AnimatedRadar size={DOOR_ART} color={sys.color.green} sweepColor={sys.color.green} animate={animate} />
         <View style={s.doorCopy}>
           <T accessibilityRole="header" style={s.doorTitle}>Uskoči i zaradi</T>
           <T variant="copy" tone="muted">Pronađi zadatak.</T>
@@ -312,6 +299,9 @@ function ExploreTasksAction({ onEarn, opportunities, onOpenOpportunity }: {
 }
 
 export function HomePresentation(p: HomePresentationProps) {
+  const actionBounds = useRef({ y: 0, height: 0 });
+  const [actionsVisible, setActionsVisible] = useState(true);
+  const actionsVisibleRef = useRef(true);
   const home = p.home;
   const { stacked } = useLayoutClass();
   // A row that was already here when the screen opened has nothing to tell you by sliding in; only a genuinely new one moves,
@@ -328,16 +318,11 @@ export function HomePresentation(p: HomePresentationProps) {
   const raspored = next?.raspored;
   agreements.settle(next && raspored ? [next.id] : []);
   const attentionUnavailable = home?.attentionState === 'unavailable';
-  // "Ništa ne čeka tvoju odluku." is said only when the server's own attention answer is known and empty, and so is the
-  // rating count, and the Dogovori were read (a Dogovor with no term, or a change to answer, is found only there): a read that
-  // failed is named where it failed, never drawn as nothing. A brand-new account has no "Čeka te" at all (how it works stands in its place).
-  const nothingWaits = !!home && !home.firstRun && !attentionUnavailable && home.attention.length === 0 && home.attentionMore === 0
-    && prompts.length === 0 && !home.promptsMore && home.agreements.kind === 'known'
-    && home.ratingsDue === 0 && (home.attentionState === 'known' || !home.partial);
+  // Empty attention has no section; unread data keeps its explicit recovery state.
   // Ratings share the next-action section but are not part of the server attention count.
   // Show that count only when no ratings are waiting and their read is complete.
   const waitingShown = !!home && (attentionUnavailable || home.attention.length > 0 || prompts.length > 0 || home.ratingsDue === null
-    || home.ratingsDue > 0 || nothingWaits);
+    || home.ratingsDue > 0 || home.attentionMore > 0 || (home.promptsMore ?? 0) > 0);
   // Before the first answer a front door has no line; after a failed read it says so, never "0".
   const tasksDetail = home ? tasksLine(home.mine.tasks) : p.error ? 'Trenutno nedostupno' : null;
   const applicationsDetail = home ? applicationsLine(home.mine.applications) : p.error ? 'Trenutno nedostupno' : null;
@@ -362,8 +347,19 @@ export function HomePresentation(p: HomePresentationProps) {
   // disc of Android's pull at the top of the screen (the owner's phone, 8 Oct 2026).
   const pull = usePullRefresh(p.onRefresh, p.refreshing);
   return <Screen kind="root" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
+    onScroll={event => {
+      const { contentOffset, layoutMeasurement } = event.nativeEvent;
+      const { y, height } = actionBounds.current;
+      const visible = height > 0 && contentOffset.y < y + height && contentOffset.y + layoutMeasurement.height > y;
+      if (actionsVisibleRef.current !== visible) {
+        actionsVisibleRef.current = visible;
+        setActionsVisible(visible);
+      }
+    }}
     refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
-    <StartActions onPublish={p.onPublish} onEarn={p.onEarn} />
+    <View onLayout={event => { actionBounds.current = event.nativeEvent.layout; }}>
+      <StartActions onPublish={p.onPublish} onEarn={p.onEarn} animate={p.active === true && actionsVisible} />
+    </View>
     {p.loading && !home ? <HomeSkeleton /> : null}
     {recovery ? <Surface kind="note" testID="home-recovery" style={s.recovery}>
       <T accessibilityRole="alert" variant="note">{recovery === 'stale' ? 'Nema veze. Prikazano je poslednje učitano.'
@@ -383,7 +379,6 @@ export function HomePresentation(p: HomePresentationProps) {
 
     {home && waitingShown ? <Section title="Čeka te">
       {attentionUnavailable ? <Unavailable text="Ne možemo da učitamo ono što te čeka." /> : null}
-      {nothingWaits ? <ListRow leading={<FactArt kind="check" size={32} />} tone="quiet" title="Ništa ne čeka tvoju odluku." last /> : null}
       {lead ? <View style={underLead ? s.lead : undefined}>
         <Appear index={0} animate={waiting.isNew(lead.id)}><FirstWaiting row={lead} onOpen={p.onOpen} /></Appear>
       </View> : null}

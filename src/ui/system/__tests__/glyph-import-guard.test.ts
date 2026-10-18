@@ -35,10 +35,10 @@ const sourceFiles = (dir: string): string[] => readdirSync(join(repo, dir), { wi
 
 /** TODAY'S importers (30 files). It only shrinks. */
 const PHOSPHOR_IMPORTERS = new Set([
-  'src/app/dizajn-dodaci.tsx',
-  'src/app/dizajn-dogovori.tsx',
-  'src/app/dizajn-kalendar.tsx',
-  'src/app/dizajn-obavestenja.tsx',
+  'src/designLab/dizajn-dodaci.tsx',
+  'src/designLab/dizajn-dogovori.tsx',
+  'src/designLab/dizajn-kalendar.tsx',
+  'src/designLab/dizajn-obavestenja.tsx',
   'src/app/obavestenja.tsx',
   'src/ui/agreements/AgreementActionsPresentation.tsx',
   'src/ui/aiFirst/VoiceComposer.tsx',

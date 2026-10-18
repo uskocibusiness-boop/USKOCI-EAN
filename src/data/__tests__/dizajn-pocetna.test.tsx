@@ -22,7 +22,7 @@ jest.mock('../../ui/InboxBell', () => ({ InboxBell: () => { mockInbox(); throw n
 jest.mock('../supabaseClient', () => { throw new Error('The Home gallery must not load a data client.'); });
 jest.mock('../../store/uloga', () => { throw new Error('The Home gallery must not read account data.'); });
 
-import Gallery from '../../app/dizajn-pocetna';
+import Gallery from '../../designLab/dizajn-pocetna';
 import { HomePresentation } from '../../ui/home/HomePresentation';
 
 let tree: ReactTestRenderer;
@@ -57,7 +57,7 @@ it.each([
   ['upcoming', 'Danas · 14:00–16:00', 'Jelena Nikolić'],
   ['long', 'Četvrtak, 15. okt · 22:00 – petak, 16. okt 06:00', 'Aleksandra Konstantinović-Radovanović'],
   ['loose', 'Predloži termin', '2 aktivna · 1 nacrt'],
-  ['quiet', 'Ništa ne čeka tvoju odluku.', '2 aktivna · 1 nacrt'],
+  ['quiet', 'Moji zadaci', '2 aktivna · 1 nacrt'],
   ['empty', 'Još nemaš zadatak', 'Još nemaš prijavu'],
   ['unavailable', 'Ne možemo da učitamo Dogovore.', 'Ne možemo da učitamo ono što te čeka.'],
 ])('renders the real Home for %s without a gallery wrapper or live action', async (scene, first, second) => {
@@ -68,6 +68,7 @@ it.each([
   expect(tree.root.findAllByType('SafeAreaView' as React.ElementType)).toHaveLength(1);
   expect(tree.root.findAllByType('ScrollView' as React.ElementType)).toHaveLength(1);
   expect(text()).toContain(first); expect(text()).toContain(second);
+  if (scene === 'quiet') expect(text()).not.toContain('Čeka te');
   // The block ("Sledeće") exists where an appointment lies ahead (a card) and where the read failed (its own words); the others draw none and
   // no placeholder for it. An active Dogovor with no confirmed term has no block any more (the owner's phone, 8 Oct 2026): it is asked for
   // under "Čeka te". The word "Raspored" is not on Početna at all: the schedule has one door, Dogovori (the approved blueprint, Z5).
@@ -105,7 +106,7 @@ it.each([
 it.each([
   ['waits', ['Pomoć pri selidbi', 'Odgovori na predlog izmene', 'Predloži termin', 'Podesi radni profil', 'Sledeće']],
   ['rated', ['Pomoć pri selidbi', 'Oceni 2 završena Dogovora']],
-  ['worker', ['Mogu odmah', 'Uključeno', 'Ništa ne čeka tvoju odluku.']],
+  ['worker', ['Mogu odmah', 'Uključeno', 'Moji zadaci']],
   ['stale', ['Nema veze. Prikazano je poslednje učitano.', 'Pomoć pri selidbi', 'Danas · 14:00–16:00']],
   ['loading', ['Objavi zadatak', 'Moji zadaci', 'Moje prijave']],
 ])('renders the real Home for the scene %s with its own words and no live action', async (scene, words) => {

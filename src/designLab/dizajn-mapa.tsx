@@ -2,7 +2,9 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, type Href } from 'expo-router';
+// Historical fixture destinations are deliberately absent from product route types.
+// These scenes are mounted by tests; a future isolated lab host must supply their routes.
 import type { PrilikaProjekcija } from '../contracts/projections';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../data/marketplaceView';
 import { taskRelationIndex } from '../data/taskRelation';
@@ -66,7 +68,7 @@ function fixtures(count: number): GalleryTask[] {
   });
 }
 
-const leave = () => router.canGoBack() ? router.back() : router.replace('/dizajn-tabla');
+const leave = () => router.canGoBack() ? router.back() : router.replace('/dizajn-tabla' as Href);
 
 export default function DizajnMapa() {
   const params = useLocalSearchParams<{ count?: string | string[]; detail?: string | string[]; discoveryTrace?: string | string[];
@@ -140,9 +142,9 @@ function LocalGallery({ count, detail, traceEnabled, relation }: {
   const open = (item: MarketplaceItem) => {
     const index = items.findIndex(row => row.id === item.id);
     if (index >= 0) router.push({ pathname: '/dizajn-mapa', params: { count: String(count), detail: String(index),
-      ...(relation === 'none' ? {} : { relation }) } });
+      ...(relation === 'none' ? {} : { relation }) } } as unknown as Href);
   };
-  const back = () => router.canGoBack() ? router.back() : router.replace({ pathname: '/dizajn-mapa', params: { count: String(count) } });
+  const back = () => router.canGoBack() ? router.back() : router.replace({ pathname: '/dizajn-mapa', params: { count: String(count) } } as unknown as Href);
   const item = detail === null ? null : items[detail];
   return <View style={s.screen}>
     {item ? <SafeAreaView edges={['top']} style={s.grow}><ScrollView contentContainerStyle={s.detail}>

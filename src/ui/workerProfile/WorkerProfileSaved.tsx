@@ -83,15 +83,15 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
         : <ListRow leading={<ClockArt size={32} quiet />} title="Mogu odmah" value={draft.dostupanOdmah ? 'Uključeno' : 'Isključeno'} />}
       {!readOnly ? <SettingsRow label="Nedeljni raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled} onPress={() => navigate('/profil/dostupnost')} last /> : null}
     </SettingsGroup>
-    <SettingsGroup>
+    {draft.alati.length || draft.vozila.length ? <SettingsGroup>
       <View testID="worker-profile-kit" style={s.group}>
         <InfoTitle title="Oprema" info={[toolsAndVehiclesNote()]} testID="worker-kit-info" />
         <View>
-          <KitRow label="Alat" art="tool" items={draft.alati} />
-          <KitRow label="Vozila" art="vehicle" items={draft.vozila} last />
+          {draft.alati.length ? <KitRow label="Alat" art="tool" items={draft.alati} last={!draft.vozila.length} /> : null}
+          {draft.vozila.length ? <KitRow label="Vozila" art="vehicle" items={draft.vozila} last /> : null}
         </View>
       </View>
-    </SettingsGroup>
+    </SettingsGroup> : null}
   </View>;
 }
 

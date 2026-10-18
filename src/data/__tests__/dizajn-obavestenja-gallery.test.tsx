@@ -21,7 +21,7 @@ jest.mock('../pushDeviceClientService', () => ({ pushDeviceClientService: { read
 jest.mock('../pushReadinessClientService', () => ({ pushReadinessClientService: { read: (...a: unknown[]) => mockCall(...a) } }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-import Gallery from '../../app/dizajn-obavestenja';
+import Gallery from '../../designLab/dizajn-obavestenja';
 
 let tree: ReactTestRenderer;
 const presses = () => tree.root.findAllByType('Press' as React.ElementType);

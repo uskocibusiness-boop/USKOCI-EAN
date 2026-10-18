@@ -60,6 +60,9 @@ env:
   EXPO_PUBLIC_AI_LOCATION_DIALOGUE: '1'
   # MESSAGES-INBOX-01: DEV migration 20261002223407, exact RPC and ACL postflight passed.
   EXPO_PUBLIC_CONVERSATION_INBOX: '1'
+  EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW: 'true'
+  EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'true'
+  EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES: 'true'
   CI: '1'
   NODE_ENV: production
 
@@ -141,6 +144,7 @@ jobs:
             echo "Included ancestor: $required"
           done
           node scripts/ota-preview-guard.cjs
+          node scripts/build-contract.cjs
           node <<'NODE'
           const fs = require('fs');
           const config = require('./app.config.js')({ config: JSON.parse(fs.readFileSync('app.json', 'utf8')).expo });
@@ -165,6 +169,8 @@ jobs:
           unset EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL EXPO_PUBLIC_P6_DISCOVERY_READER
           unset EXPO_PUBLIC_EX04_OWN_TASKS_PAGED EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED EXPO_PUBLIC_EX04_CANDIDATES_PAGED
           unset EXPO_PUBLIC_VOICE_MESSAGES EXPO_PUBLIC_AI_LOCATION_DIALOGUE EXPO_PUBLIC_CONVERSATION_INBOX
+          unset EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES
+          node --test scripts/__tests__/build-contract.test.cjs scripts/__tests__/entry-assets.test.cjs scripts/__tests__/design-lab-boundary.test.cjs
           npx jest scripts/__tests__/eas-preview-guard.test.ts scripts/__tests__/ota-preview-guard.test.ts src/data/__tests__/build-identity.test.tsx --runInBand
           npx tsc --noEmit
           npm test -- --runInBand

@@ -1,0 +1,107 @@
+[
+  {
+    "from": "src/app/dizajn-ai-mesto.tsx",
+    "to": "src/designLab/dizajn-ai-mesto.tsx",
+    "sha256Before": "9b95208de45770cc48a584b48189fb2561d7c1ee29de98b2befbf23d2b5e168c"
+  },
+  {
+    "from": "src/app/dizajn-ai.tsx",
+    "to": "src/designLab/dizajn-ai.tsx",
+    "sha256Before": "abb2674ce620c2bd872fa0ac528430d07aca20b53559ea0643cacc1ce49e7803"
+  },
+  {
+    "from": "src/app/dizajn-dodaci.tsx",
+    "to": "src/designLab/dizajn-dodaci.tsx",
+    "sha256Before": "70eb631f418eb9b25b039f65c9504c2620dcc71f5c677c87a2feb3900f531b18"
+  },
+  {
+    "from": "src/app/dizajn-dogovori.tsx",
+    "to": "src/designLab/dizajn-dogovori.tsx",
+    "sha256Before": "fa4e9035b9b49de8292e2c5c693206fc73add080e8c3428494ca12eb7233909f"
+  },
+  {
+    "from": "src/app/dizajn-kalendar.tsx",
+    "to": "src/designLab/dizajn-kalendar.tsx",
+    "sha256Before": "824dcdb813a75e04a1a84d1ded786c0e34380523120703ae439c9c0bd5bdbe0a"
+  },
+  {
+    "from": "src/app/dizajn-kandidati.tsx",
+    "to": "src/designLab/dizajn-kandidati.tsx",
+    "sha256Before": "036a104af4421e09ca4f5da4b81a3dbf9b0a3086359a85318ec250ae0b73d429"
+  },
+  {
+    "from": "src/app/dizajn-katalog27.tsx",
+    "to": "src/designLab/dizajn-katalog27.tsx",
+    "sha256Before": "4af4a987072b29814ae8492e66135f4a3778cbbc355dc47427db270fa4d99e07"
+  },
+  {
+    "from": "src/app/dizajn-mapa.tsx",
+    "to": "src/designLab/dizajn-mapa.tsx",
+    "sha256Before": "7de5f68bb036946c09ed15a0d2075258fa66735321e1dd553a450acd4a7265e2"
+  },
+  {
+    "from": "src/app/dizajn-moji-zadaci.tsx",
+    "to": "src/designLab/dizajn-moji-zadaci.tsx",
+    "sha256Before": "9dab3f7dce964a21364f910dc73ae21ea5e3c13bcfc59bdeac7425af5d7f3f0f"
+  },
+  {
+    "from": "src/app/dizajn-obavestenja.tsx",
+    "to": "src/designLab/dizajn-obavestenja.tsx",
+    "sha256Before": "f972b71c7cde5ed7549061b3687dafa647237c2b7fe767f7d676f6b85b6cd105"
+  },
+  {
+    "from": "src/app/dizajn-objava.tsx",
+    "to": "src/designLab/dizajn-objava.tsx",
+    "sha256Before": "3a609249b946ae446b9b52fd5b9fde5d13e6de62ead4a66ca48c6748f5349ca5"
+  },
+  {
+    "from": "src/app/dizajn-pocetna.tsx",
+    "to": "src/designLab/dizajn-pocetna.tsx",
+    "sha256Before": "31867093171befd7b203b539b94beaf3962c1d1078bdb007875abf7454dea7b5"
+  },
+  {
+    "from": "src/app/dizajn-poruke.tsx",
+    "to": "src/designLab/dizajn-poruke.tsx",
+    "sha256Before": "8c3e7b885c43e5d5abe96f8fe1082fb040ba5bd4cfd41d94ed1a66eb176d2dba"
+  },
+  {
+    "from": "src/app/dizajn-prijava-forma.tsx",
+    "to": "src/designLab/dizajn-prijava-forma.tsx",
+    "sha256Before": "69f5b6c0f729bb51c978be6953688ec2835057d5f25487a8c4861c6cbf4f41a4"
+  },
+  {
+    "from": "src/app/dizajn-prijava.tsx",
+    "to": "src/designLab/dizajn-prijava.tsx",
+    "sha256Before": "88c78321e335429f08369712f7c4999b4c8cbb3800cdba6bc3ab8b2326183043"
+  },
+  {
+    "from": "src/app/dizajn-prijave.tsx",
+    "to": "src/designLab/dizajn-prijave.tsx",
+    "sha256Before": "55223c5c8ab18c2d43c52279c12e2b6ca11d7ef60f9c501fdee1d2a00b7bd876"
+  },
+  {
+    "from": "src/app/dizajn-privatnost.tsx",
+    "to": "src/designLab/dizajn-privatnost.tsx",
+    "sha256Before": "193f8cfa9d9d122da3fa3ffd46506744430d4f057b28ad749a03fac56af3d3f9"
+  },
+  {
+    "from": "src/app/dizajn-profil.tsx",
+    "to": "src/designLab/dizajn-profil.tsx",
+    "sha256Before": "a3ccc42600ee5027fe945490ac72d1f0ae1079800f302d9815845547a97c696a"
+  },
+  {
+    "from": "src/app/dizajn-sistem.tsx",
+    "to": "src/designLab/dizajn-sistem.tsx",
+    "sha256Before": "449220f5981a0282459fa22b28809ae19151b96bd0a48442277813fb82f77b7e"
+  },
+  {
+    "from": "src/app/dizajn-tabla.tsx",
+    "to": "src/designLab/dizajn-tabla.tsx",
+    "sha256Before": "f24a9aafc3d8bf6dd1bdf319a7b91e67b156b880d86dd089bde5d0dbc448dc25"
+  },
+  {
+    "from": "src/app/dizajn-zadaci.tsx",
+    "to": "src/designLab/dizajn-zadaci.tsx",
+    "sha256Before": "f4c559acfa9f1e6d62cf3b366af9ee4b66eaa5430b52f44cec7ddc5f66ff81e1"
+  }
+]

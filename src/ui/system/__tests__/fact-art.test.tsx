@@ -484,7 +484,7 @@ describe('the design board on the phone (uskociapp://dizajn-tabla)', () => {
   // The board is where the owner looks at the new system on the phone, so it must show every kind on the ladder, the two cuts
   // side by side at the sizes a card draws, the two oranges of the accent tone, and the four tones. Read from the source: the
   // screen needs a router and a task card.
-  const board = readFileSync(join(__dirname, '../../../app/dizajn-tabla.tsx'), 'utf8').replace(/\r\n/g, '\n');
+  const board = readFileSync(join(__dirname, '../../../designLab/dizajn-tabla.tsx'), 'utf8').replace(/\r\n/g, '\n');
 
   it('draws every kind from FACT_KINDS on the ladder, and the sticker beside the mark at 16, 20 and 24', () => {
     expect(board).toContain('const SYSTEM = FACT_KINDS;');

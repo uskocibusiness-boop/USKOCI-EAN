@@ -44,6 +44,7 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto' }));
 jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar' }));
 jest.mock('../../ui/home/HomeLaunchArt', () => ({ HomeLaunchArt: 'HomeLaunchArt' }));
+jest.mock('../../ui/v2/RadarIcon', () => ({ AnimatedRadar: 'AnimatedRadar' }));
 // "Slobodan sam sada" saves through the availability client, which the route loads only when the switch is touched.
 const mockAvailability = { read: jest.fn(), save: jest.fn() };
 jest.mock('../workerAvailabilityClientService', () => ({ workerAvailabilityClientService: mockAvailability }));
@@ -538,7 +539,7 @@ describe('what leads Početna', () => {
     await act(async () => tree.unmount());
     const quiet = emptyHome(); quiet.firstRun = false;
     await direct(quiet);
-    expect(text()).toContain('Ništa ne čeka tvoju odluku.'); expect(dots()).toHaveLength(0);
+    expect(text()).not.toContain('Ništa ne čeka tvoju odluku.'); expect(dots()).toHaveLength(0);
   });
 
   it('keeps the action when the task is unknown and lets a long task title grow without losing its destination', async () => {
@@ -644,7 +645,8 @@ it('draws two equal doors about 88 dp high with a 64 dp picture, and larger text
     expect(heights[0]).toBe(heights[1]);
     minHeights[String(fontScale)] = heights;
     // The picture is 64 dp at every size; a door says its intention once, with one line under it.
-    expect(tree.root.findAllByType('HomeLaunchArt' as React.ElementType).map(node => [node.props.kind, node.props.size])).toEqual([['publish', 64], ['discover', 64]]);
+    expect(tree.root.findAllByType('HomeLaunchArt' as React.ElementType).map(node => [node.props.kind, node.props.size])).toEqual([['publish', 64]]);
+    expect(tree.root.findByType('AnimatedRadar' as React.ElementType).props.size).toBe(64);
     for (const door of doors) expect(door.findAll(node => String(node.type) === 'T')).toHaveLength(2);
   }
   expect(minHeights['1']).toEqual([88, 88]); expect(minHeights['1.15']).toEqual([88, 88]);
@@ -878,8 +880,8 @@ it('PKG-042: a known empty aggregate suppresses obsolete locally inferred attent
   mockSource.mojePrijave.mockResolvedValue([{ ...application('stara'), traziPaznju: true }]);
   await render();
   expect(mockSource.paznjaZaPocetnu).toHaveBeenCalledTimes(1);
-  // Since 2026-10-07 "Čeka te" is always there once the reads answered: the known empty answer is said, once, quietly.
-  expect(text()).toContain('Čeka te'); expect(text()).toContain('Ništa ne čeka tvoju odluku.'); expect(text()).toContain('1 aktivan');
+  // Known empty attention stays hidden; the account lists remain available.
+  expect(text()).not.toContain('Čeka te'); expect(text()).not.toContain('Ništa ne čeka tvoju odluku.'); expect(text()).toContain('1 aktivan');
   expect(text()).not.toContain('čeka tvoj izbor');
   // Neither door contradicts the known empty list with a count of its own of what waits.
   expect(text()).not.toContain('čeka izbor'); expect(text()).not.toContain('čeka te');
@@ -906,32 +908,17 @@ it('a known empty account names both empty lists without invented zero statistic
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Još nemaš prijavu');
 });
 
-// Owner, 2026-10-07: "Čeka te" is always there once the reads answered. When nothing waits it is one grey row with the
-// check, never a missing section (which read as a screen that had not loaded).
-it('"Čeka te" is always there when the reads answered: nothing waiting is one quiet row, not a missing section', async () => {
-  mockSource.mojePotrebe.mockResolvedValue([need('orman')]); // an account that already works
+// Owner's 18 Oct cleanup: hide empty sections, retain failed-read recovery.
+it('hides empty attention while preserving my lists and partial-read recovery', async () => {
+  mockSource.mojePotrebe.mockResolvedValue([need('orman')]);
   await render();
-  expect(heading('Čeka te')).toHaveLength(1);
-  const quiet = tree.root.findAll(node => String(node.type) === 'T' && node.props.children === 'Ništa ne čeka tvoju odluku.');
-  expect(quiet).toHaveLength(1); expect(quiet[0].props.numberOfLines).toBeUndefined();
-  // The check is FactArt's own `check` in its quiet form (the row's tone), and the row is a statement, not a button.
-  expect(tree.root.findAllByProps({ kind: 'check', muted: true }).length).toBeGreaterThan(0);
-  expect(tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).includes('Ništa ne čeka'))).toHaveLength(0);
-  // It carries no count, no rating strip and no "I još".
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka te: 1 stavka' })).toHaveLength(0);
-  expect(text()).not.toContain('Oceni'); expect(text()).not.toContain('I još');
-});
-
-it('says "nothing waits" only from answers that are known: a missing attention answer or an unknown rating count says so instead', async () => {
-  // The rating count is unknown (the check of a finished Dogovor is unavailable): its own row, no claim of nothing.
-  mockSource.mojiDogovori.mockResolvedValue([{ ...completed('unknown'), ocenaMoguca: false, stanjeProvereOcene: 'UNAVAILABLE' }]);
-  await render();
-  expect(text()).toContain('Proveri ocene'); expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
+  expect(heading('Čeka te')).toHaveLength(0);
+  expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
+  expect(row('Moji zadaci')).toBeDefined();
   await act(async () => tree.unmount());
-  // A list that failed is named under its own door, while the server's own attention answer is known and empty.
-  mockSource.mojiDogovori.mockResolvedValue([]); mockSource.mojePrijave.mockRejectedValue(new Error('APPLICATIONS_FAILED'));
+  mockSource.mojePrijave.mockRejectedValue(new Error('offline'));
   await render();
-  expect(text()).toContain('Ništa ne čeka tvoju odluku.'); expect(text()).toContain('Deo pregleda trenutno nije učitan.');
+  expect(text()).toContain('Deo pregleda trenutno nije učitan.');
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nedostupno');
 });
 
@@ -1038,7 +1025,8 @@ describe('a brand-new account', () => {
   ])('the row is gone with %s', async (_name, arrange) => {
     arrange();
     await render();
-    expect(how()).toHaveLength(0); expect(text()).not.toContain('Kako radi'); expect(text()).toContain('Čeka te');
+    expect(how()).toHaveLength(0); expect(text()).not.toContain('Kako radi');
+    expect(text().includes('Čeka te')).toBe(_name === 'a first draft' || _name === 'a first thing that waits');
   });
 
   it('never sees it while a read is missing: a failed read is not an empty account', async () => {
@@ -1191,7 +1179,7 @@ describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and w
       termless('done', { stanje: 'COMPLETED', ocenaMoguca: false }), termless('mine', { izmenaCeka: { predlogId: 'p', mojPredlog: true } })]);
     await render();
     expect(text()).not.toContain('Predloži termin'); expect(text()).not.toContain('Odgovori na predlog');
-    expect(text()).toContain('Ništa ne čeka tvoju odluku.');
+    expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
   });
 
   it('does not say that nothing waits while the Dogovori could not be read: only they can tell whether a term is missing', async () => {
@@ -1282,4 +1270,29 @@ describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and w
     await act(async () => switchNode().props.onValueChange(false));
     expect(switchNode().props.value).toBe(true); expect(text()).toContain('Nije sačuvano. Pokušaj ponovo.');
   });
+});
+
+it('runs the Home radar only while its route and card are visible', async () => {
+  await render();
+  const radar = () => tree.root.findByType('AnimatedRadar' as any).props;
+  expect(radar().animate).toBe(true);
+  const bounds = tree.root.findAll(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function'
+    && node.findAllByType('AnimatedRadar' as any).length === 1)[0];
+  await act(async () => bounds.props.onLayout({ nativeEvent: { layout: { y: 8, height: 120 } } }));
+  const scroll = () => tree.root.findAll(node => String(node.type) === 'ScrollView' && !!node.props.onScroll)[0];
+  const event = (y: number) => ({ nativeEvent: { contentOffset: { y }, layoutMeasurement: { height: 700 } } });
+  await act(async () => scroll().props.onScroll(event(200)));
+  expect(radar().animate).toBe(false);
+  await act(async () => scroll().props.onScroll(event(0)));
+  expect(radar().animate).toBe(true);
+  mockFocused = false;
+  await act(async () => tree.update(<Pocetna />));
+  expect(radar().animate).toBe(false);
+  mockFocused = true;
+  await act(async () => tree.update(<Pocetna />));
+  expect(radar().animate).toBe(true);
+});
+it('keeps the radar static in an inert gallery with no active route', async () => {
+  await direct(emptyHome());
+  expect(tree.root.findByType('AnimatedRadar' as any).props.animate).toBe(false);
 });
