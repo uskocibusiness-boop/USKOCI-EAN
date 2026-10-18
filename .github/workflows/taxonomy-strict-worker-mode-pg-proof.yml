@@ -5,6 +5,7 @@ on:
       - 'supabase/candidates/dynamic-taxonomy-20261011/taxonomy-strict-worker-mode-v1.sql'
       - 'supabase/candidates/dynamic-taxonomy-20261011/worker-need-fit-strict-scope-v1.sql'
       - 'supabase/candidates/dynamic-taxonomy-20261011/disposable-strict-mode-*.sql'
+      - 'supabase/candidates/dynamic-taxonomy-20261011/disposable-strict-matcher-assert.sql'
       - '.github/workflows/taxonomy-strict-worker-mode-pg-proof.yml'
   workflow_dispatch:
 permissions:
@@ -50,6 +51,8 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-strict-mode-fixture.sql
       - name: Prove no implicit mode, stale revision, withdrawn skill or unsaved source match
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-strict-mode-assert.sql
+      - name: Execute captured matcher with distinct requester and revoked or unsigned negatives
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/candidates/dynamic-taxonomy-20261011/disposable-strict-matcher-assert.sql
       - name: Require actual matcher integration to stay behind disabled-by-default control
         run: |
           grep -q 'taxonomy_match_scope_control_v1' supabase/candidates/dynamic-taxonomy-20261011/worker-need-fit-strict-scope-v1.sql

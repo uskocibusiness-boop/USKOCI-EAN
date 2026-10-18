@@ -5,6 +5,7 @@ import { workerAiClientService as api, workerExplicitModeReviewEnabled, explicit
 import { workerAiTurnIntentJournal as journal, type WorkerAiTurnIntent } from '../../../data/workerAiTurnIntentJournal';
 import type { Ishod } from '../../../data/ports';
 import { uuid } from '../../../data/serverReceipt';
+import { rememberAiCorrection, takeAiCorrection, type AiCorrectionIntent } from '../../../data/aiCorrectionIntent';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../../lib/idempotencija';
 import { workerAvailabilityPatch } from '../../../lib/workerAiAvailabilityPatch';
@@ -30,12 +31,12 @@ type SubmittedDraft={value:string;revision:number};
 type Attempt={id:string;text:string|null;submittedDraft:SubmittedDraft|null};
 const unavailable=():Ishod<never>=>({ok:false,kod:'WORKER_AI_UNAVAILABLE',poruka:'Ponovo učitaj svoj radni profil.'});
 export default function WorkerConversationRoute(){
-  const session=useSesija(),params=useLocalSearchParams<{conversationId?:string|string[]}>();
+  const session=useSesija(),params=useLocalSearchParams<{conversationId?:string|string[];aiCorrection?:string|string[]}>();
   const cid=typeof params.conversationId==='string'?params.conversationId:undefined;
   return <OwnedWorkerConversation key={`${session.user?.id}:${session.accountRevision}:${cid??''}`}
-    initialId={cid} invalid={params.conversationId!==undefined&&(!cid||!uuid(cid))}/>;
+    initialId={cid} invalid={params.conversationId!==undefined&&(!cid||!uuid(cid))} correctionToken={params.aiCorrection}/>;
 }
-function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:boolean}){
+function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?:string;invalid:boolean;correctionToken?:unknown}){
   const {user,accountRevision}=useSesija(),accountId=user?.id;
   // ONE NAME (owner, 8 Oct 2026): the profile is saved under the name of the ACCOUNT, whatever the assistant proposed or the profile carried.
   const account=useAccountName(),accountName=account.state==='ready'?account.name:null;
@@ -44,6 +45,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const [foreground,setForeground]=useState(active.current),[resuming,setResuming]=useState(false);
   const abort=useRef<AbortController|null>(null),refreshRef=useRef<()=>Promise<void>>(async()=>{});
   const [panel,setPanel]=useState<Panel>('chat'),[input,setInput]=useState(''),[stream,setStream]=useState('');
+  const [correction,setCorrection]=useState<AiCorrectionIntent|null>(null);
   const panelScope=useRef<object>({}),renderedPanel=panelScope.current,panelWrite=useRef(false);
   const manualEdits=useRef({dirty:false,revision:0,sourceRevision:null as number|null,value:null as WorkerAiManualDraft|null}),manualQuestion=useRef<object|null>(null);
   // A focused editor opens one part (`part`); where it was opened from (`origin`: the conversation, or the review) is where Back and a
@@ -104,8 +106,10 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
         // Text equality cannot establish ownership: spoken turns and restored IDs own no typed
         // draft. A typed Send owns only the raw value and edit revision captured at admission.
         const submittedDraft=pending.current?.submittedDraft;
-        if(recovered.podatak.turn?.state==='SUCCEEDED'&&submittedDraft)setInput(value=>
-          draftRevision.current===submittedDraft.revision&&value===submittedDraft.value?'':value);
+        if(recovered.podatak.turn?.state==='SUCCEEDED'){
+          setCorrection(null);
+          if(submittedDraft)setInput(value=>draftRevision.current===submittedDraft.revision&&value===submittedDraft.value?'':value);
+        }
         pending.current=null;intentChanged(n=>n+1);setStream('');
       }
     }else if(pending.current){
@@ -137,6 +141,11 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   });
   const turn=data?.turn,awaiting=turn?.state==='PROCESSING'||turn?.state==='UNKNOWN_OUTCOME';
   const writable=data?.status==='OPEN'&&!data.stale&&data.safety!=='BLOCK'&&data.safety!=='REVIEW';
+  useFocusEffect(useCallback(()=>{
+    if(!accountId||!data||!writable||!foreground||!focus.current)return;
+    const next=takeAiCorrection(correctionToken,{accountId,accountRevision},'worker',data.conversationId);
+    if(next){setCorrection(next);showPanel('chat');}
+  },[correctionToken,accountId,accountRevision,data?.conversationId,writable,foreground]));
   const send=async(body:string,submittedDraft:SubmittedDraft|null=null)=>{
     if(!canAct()||!writable||awaiting||!data||!body.trim()||(pending.current&&!recovery?.retryAllowed))return;
     await editor.save(async()=>{
@@ -177,6 +186,14 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     }});
   const voiceBusy=voice.state.phase!=='IDLE';
   const enabled=canAct()&&!voiceBusy&&!awaiting&&!pending.current;
+  const correctPart=(next:WorkerAiPart)=>{
+    if(!canAct()||!enabled||!writable||!data||data.saved||!accountId)return;
+    const hint=rememberAiCorrection({accountId,accountRevision},`worker.${next}`,data.conversationId);
+    if(!hint)return;
+    const owned=takeAiCorrection(hint.token,{accountId,accountRevision},'worker',data.conversationId);
+    if(!owned)return;
+    setAdding(false);setMenu(false);setCorrection(owned);showPanel('chat');
+  };
   const canRetry=canAct()&&!voiceBusy&&!awaiting&&!!writable&&!!pending.current?.text&&recovery?.retryAllowed===true;
   const manualBackBlocked=useRef(false);
   manualBackBlocked.current=editor.busy||editor.loading||editor.uncertain||resuming;
@@ -371,10 +388,10 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     // The account got its name (in "Lični podaci") while this review still says it is missing: a fresh review puts it in.
     nameAdded=frozen.missingRequired.includes('Ime')&&!!accountName,
     expired=Date.parse(frozen.expiresAt)<=Date.now()||frozen.revision!==data.revision||nameAdded;
-    // "Izmeni" at a part opens that part's editor and comes back to a fresh review (see `patch`).
+    // A correction returns to this conversation without sending or replacing its typed draft.
     const editPart=(next:WorkerAiPart)=>{
       if(!canAct()||!enabled||!writable||data.saved||expired||reviewNeedsRestart)return;
-      if(next==='time')showPanel('availability',{from:'review'});else showPanel('manual',{part:next,from:'review'});
+      correctPart(next);
     };
     return <WorkerProfileFrame back={back} title="Tvoj radni profil" footer={data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={brandAction}/>:<>
       <V2Action label={editor.busy?'Čuvamo profil…':frozen.activate?'Sačuvaj i aktiviraj profil':'Sačuvaj profil'}
@@ -425,17 +442,17 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
   const unread=sent&&!(lastMessage?.role==='USER'&&lastMessage.body.trim()===sent.trim())?sent:null;
   const hasProfileContent = data.candidate.skills.length > 0 || data.candidate.tools.length > 0
     || data.candidate.vehicles.length > 0 || data.candidate.bio.trim().length > 0;
-  // The "+" of the composer (M1): the parts of the profile, each opening its own editor, for a person who would rather give a
-  // part directly than say it. It changes nothing by itself; "Primeni na pregled profila" in the editor does (one patch).
+  // The "+" selects a topic for the same conversation. Only an explicit message changes the proposal.
   const openPart=(next:WorkerAiPart)=>{
     if(!canAct()||!enabled||!writable)return;
-    if(next==='time')showPanel('availability');else if(next!=='identity')showPanel('manual',{part:next});
+    correctPart(next);
   };
   return <><AiConversationShell conversationKey={data.conversationId} title="Radni profil" questionFocus
+    correction={correction&&writable?{...correction,onDismiss:()=>{if(canAct()&&enabled)setCorrection(null);}}:undefined}
     cardPlacement="end"
     newConversation={{ onPress: restart, disabled: !canAct() || voiceBusy }}
     closed={!!data.saved || data.status !== 'OPEN'}
-    attach={writable?{label:'Dodaj podatke',hint:'Usluge, područje rada, vreme, alat i vozilo.',disabled:!enabled,
+    attach={writable?{label:'Šta želiš da izmeniš?',hint:'Izaberi temu i nastavi isti razgovor.',disabled:!enabled,
       onPress:()=>{if(current()&&panelScope.current===renderedPanel)setAdding(true);}}:undefined}
     card={compact=>hasProfileContent&&!data.saved?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable}
       showReview={writable&&!data.saved} reviewReason={!enabled?unavailableNow:undefined} review={()=>{void review();}}/>:null}

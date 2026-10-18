@@ -116,8 +116,8 @@ export function ReviewTodoList({ items, disabled, children }: { items: readonly 
 export function ReviewWaysOut({ onDelete, onEdit, disabled }: { onDelete?: () => void; onEdit?: () => void; disabled: boolean }) {
   if (!onDelete && !onEdit) return null;
   return <Section>
-    {onEdit ? <ListRow leading={<Glyph name="edit" size={24} />} title="Izmeni zadatak" accessibilityLabel="Izmeni zadatak" disabled={disabled} last={!onDelete}
-      onPress={onEdit} /> : null}
+    {onEdit ? <ListRow leading={<Glyph name="edit" size={24} />} title="Izmeni kroz razgovor" accessibilityLabel="Izmeni zadatak" disabled={disabled} last={!onDelete}
+      onPress={() => onEdit()} /> : null}
     {onDelete ? <ListRow leading={<Glyph name="trash" size={24} tone="danger" />} title="Obriši nacrt" accessibilityLabel="Obriši nacrt" tone="danger" disabled={disabled} last
       onPress={onDelete} /> : null}
   </Section>;

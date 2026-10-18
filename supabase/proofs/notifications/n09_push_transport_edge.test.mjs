@@ -94,7 +94,16 @@ for(const eventId of [null,42,[],{},'', '../message', 'abc', messageEvent+'x'])
   assert.ok(!h.calls.some(x=>x.url.includes('exp.host')));assert.ok(!h.envReads.includes('EXPO_ACCESS_TOKEN'));
  });
 
-for(const eventType of ['OPPORTUNITY_AVAILABLE','RESPONSE_RECEIVED','FUTURE_EVENT'])
+test('current SQL opportunity receipt sends globally without exposing its event identifier',async()=>{
+ const h=harness({begin:messageBegin({eventType:'OPPORTUNITY_AVAILABLE'}),
+  env:{EXPO_PUSH_MESSAGE_TARGET_ENABLED:'true',EXPO_PUSH_OPPORTUNITY_TARGET_ENABLED:'true'}});
+ assert.equal((await h.run()).response.status,200);
+ const sends=h.calls.filter(x=>x.url==='https://exp.host/--/api/v2/push/send');
+ assert.equal(sends.length,1);
+ assert.deepEqual(sends[0].body[0].data,{kind:'INBOX'});
+});
+
+for(const eventType of ['RESPONSE_RECEIVED','FUTURE_EVENT'])
  test(`P4 does not expose identifiers for ${eventType}`,async()=>{
   const h=harness({begin:messageBegin({eventType})});assert.equal((await h.run()).response.status,503);
   assert.ok(!h.calls.some(x=>x.url.includes('exp.host')));

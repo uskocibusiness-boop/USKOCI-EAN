@@ -86,9 +86,15 @@ describe('what the saved profile shows', () => {
   it('opens only the area, week and conversation; saved lists are facts, not hidden editors', async () => {
     const { navigate, openConversation } = await show();
     await act(async () => { press('Gde').props.onPress(); press('Nedeljni raspored').props.onPress(); });
-    expect(navigate.mock.calls).toEqual([['/profil/lokacija'], ['/profil/dostupnost']]);
+    expect(navigate).not.toHaveBeenCalled();
     expect(press('Šta radiš')).toBeUndefined(); expect(press('Alat')).toBeUndefined(); expect(press('Vozila')).toBeUndefined();
-    expect(openConversation).not.toHaveBeenCalled();
+    expect(openConversation.mock.calls).toEqual([['area'],['time']]);
+  });
+
+  it('opens the generic conversation without treating a native press event as a correction topic', async () => {
+    const { openConversation } = await show();
+    await act(async () => action('Uredi kroz razgovor').props.onPress({ nativeEvent: { target: 1 } }));
+    expect(openConversation).toHaveBeenCalledWith();
   });
 
   it('says what is missing in one plain sentence each, and invents nothing', async () => {

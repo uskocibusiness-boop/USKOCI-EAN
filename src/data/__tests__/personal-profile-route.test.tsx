@@ -198,7 +198,7 @@ describe('Lični podaci is more than the name', () => {
     await render();
     expect(detailOf('O meni')).toBe('Radim sa bratom, imamo kombi.'); expect(texts()).toContain('Radim sa bratom, imamo kombi.');
     await act(async () => { rowPress('O meni').props.onPress(); rowPress('O meni').props.onPress(); });
-    expect(mockRouter.navigate.mock.calls).toEqual([[{ pathname: '/profil/radnik', params: { uredi: 'o-meni', n: expect.stringMatching(/^\d+$/) } }]]);
+    expect(mockRouter.navigate.mock.calls).toEqual([[{ pathname: '/profil/razgovor', params: { aiCorrection: expect.any(String) } }]]);
   });
 
   it('gives every tap on "O meni" its own nonce, so the work profile opens its editor again after the person came back', async () => {
@@ -211,8 +211,8 @@ describe('Lični podaci is more than the name', () => {
       now.mockReturnValue(1_700_000_005_000);
       await act(async () => tree.unmount()); await render();
       await act(async () => { rowPress('O meni').props.onPress(); });
-      const nonces = mockRouter.navigate.mock.calls.map(call => call[0].params.n);
-      expect(nonces).toEqual(['1700000000000', '1700000005000']);
+      const nonces = mockRouter.navigate.mock.calls.map(call => call[0].params.aiCorrection);
+      expect(nonces).toEqual([expect.any(String),expect.any(String)]); expect(new Set(nonces).size).toBe(2);
     } finally { now.mockRestore(); }
   });
 
@@ -220,7 +220,7 @@ describe('Lični podaci is more than the name', () => {
     await render();
     expect(detailOf('Područje rada')).toBe('Novi Sad'); expect(texts()).not.toContain('Grad se menja u području rada.');
     await act(async () => rowPress('Područje rada').props.onPress());
-    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/lokacija']]);
+    expect(mockRouter.navigate.mock.calls).toEqual([[{pathname:'/profil/razgovor',params:{aiCorrection:expect.any(String)}}]]);
   });
 
   it('says what is public in ONE sentence, and what is private behind the "ⓘ" at its end, in the words the privacy screen uses', async () => {
@@ -239,7 +239,7 @@ describe('Lični podaci is more than the name', () => {
   it('one way onward at a time: a second row pressed while the first is opening opens nothing', async () => {
     await render();
     await act(async () => { rowPress('Područje rada').props.onPress(); rowPress('O meni').props.onPress(); rowPress('Promeni fotografiju').props.onPress(); });
-    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/lokacija']]); expect(mockRouter.push).not.toHaveBeenCalled();
+    expect(mockRouter.navigate.mock.calls).toEqual([[{pathname:'/profil/razgovor',params:{aiCorrection:expect.any(String)}}]]); expect(mockRouter.push).not.toHaveBeenCalled();
   });
 
   it('writes nothing but the name: no row, no photo and no link ever reaches the save', async () => {

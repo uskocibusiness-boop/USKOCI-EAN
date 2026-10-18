@@ -59,6 +59,21 @@ it('does not apply a second height-based keyboard adjustment over Android window
   const container = tree.root.findByType('KeyboardAvoidingView' as React.ElementType);
   expect(container.props.behavior).not.toBe('height');
 });
+it('a correction topic waits until editing is enabled, focuses once, and never changes or sends the unsent draft',async()=>{
+  const p=props(),focus=jest.fn(),dismiss=jest.fn();
+  const correction={token:'local-topic',target:'task.price' as const,title:'Cena i ponude',hint:'Napiši novi budžet.',onDismiss:dismiss};
+  await act(async()=>{tree=create(<AiConversationShell {...p} canEdit={false} correction={correction}/>,{
+    createNodeMock:element=>String(element.type)==='TextInput'?{focus}:null,
+  });});
+  expect(focus).not.toHaveBeenCalled();
+  await act(async()=>tree.update(<AiConversationShell {...p} correction={correction}/>));
+  expect(focus).toHaveBeenCalledTimes(1);
+  await act(async()=>tree.update(<AiConversationShell {...p} value="Još uvek moj unos" correction={correction}/>));
+  expect(focus).toHaveBeenCalledTimes(1);expect(p.onChange).not.toHaveBeenCalled();expect(p.onSend).not.toHaveBeenCalled();
+  expect(tree.root.findByProps({accessibilityLabel:'Poruka za asistenta'}).props.value).toBe('Još uvek moj unos');
+  await act(async()=>tree.root.findByProps({accessibilityLabel:'Zatvori temu izmene'}).props.onPress());
+  expect(dismiss).toHaveBeenCalledTimes(1);
+});
 it('keeps the saved-action footer above the gesture area even when closing precedes keyboardDidHide', async () => {
   const p = props();
   await act(async () => { tree = create(<AiConversationShell {...p} />); });

@@ -11,6 +11,7 @@ import type { LocationReplyLease, LocationReplyPrompt } from '../../ui/location/
 import { rememberIntakeReviewReturn, retireIntakeReviewReturn, type IntakeReviewReturn } from '../../data/intakeReviewReturn';
 import type { Ishod } from '../../data/ports';
 import { uuid } from '../../data/serverReceipt';
+import { takeAiCorrection, type AiCorrectionIntent } from '../../data/aiCorrectionIntent';
 import { useOwnedEditor } from '../../hooks/useOwnedEditor';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { sesijaSada, useSesija } from '../../store/sesija';
@@ -31,14 +32,14 @@ type SubmittedDraft = { value: string; revision: number };
 type PendingTurn = { id: string; body: string | null; submittedDraft: SubmittedDraft | null; locationContext?: LocationDialogueRequest['locationContext']; image?: { base64: string; mimeType: string } };
 
 export default function NovaPotrebaV2() {
-  const params = useLocalSearchParams<{ conversationId?: string | string[]; entryKey?: string | string[] }>();
+  const params = useLocalSearchParams<{ conversationId?: string | string[]; entryKey?: string | string[]; aiCorrection?: string | string[] }>();
   const { user, accountRevision } = useSesija();
   const resumeId = typeof params.conversationId === 'string' ? params.conversationId : undefined;
   const entryKey = typeof params.entryKey === 'string' ? params.entryKey : undefined;
   const invalidRoute = (params.conversationId !== undefined && (!resumeId || !uuid(resumeId)))
     || (params.entryKey !== undefined && (!entryKey || !uuid(entryKey)));
   return <OwnedIntake key={`${user?.id ?? ''}:${accountRevision}:${resumeId ?? ''}:${entryKey ?? ''}:${invalidRoute}`}
-    resumeId={resumeId} entryKey={entryKey} invalidRoute={invalidRoute} />;
+    resumeId={resumeId} entryKey={entryKey} invalidRoute={invalidRoute} correctionToken={params.aiCorrection} />;
 }
 
 /** A conversation that has not been started. It is never sent anywhere and never read back. */
@@ -46,7 +47,7 @@ const BLANK: AiNeedV2Conversation = { conversationId: '', schemaVersion: 'NEED_F
   messages: [], facts: [], safety: 'ALLOW',
   review: { conversationId: '', schemaVersion: 'NEED_FACT_V2', boundNeedId: null, canSaveDraft: false, missingRequired: [], facts: [] } };
 
-function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; entryKey?: string; invalidRoute: boolean }) {
+function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { resumeId?: string; entryKey?: string; invalidRoute: boolean; correctionToken?: unknown }) {
   const { user, accountRevision } = useSesija(), accountId = user?.id;
   const [openRequestId] = useState(noviUuidZahtevId);
   const conversation = useRef<string | null>(resumeId ?? null);
@@ -65,6 +66,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
   }, []);
 
   const [unos, setUnos] = useState('');
+  const [correction, setCorrection] = useState<AiCorrectionIntent | null>(null);
   const [retainedLocationSpeech, setRetainedLocationSpeech] = useState<string | null>(null);
   const draftText = useRef(unos); draftText.current = unos;
   const draftRevision = useRef(0);
@@ -175,8 +177,10 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
           // losing them when the receipt retires the journal. It is restored only by an explicit user action.
           if (pending.locationContext && !submittedDraft && pending.body && (terminalFailure || recovery.cancelled))
             setRetainedLocationSpeech(pending.body);
-          if (turn?.state === 'SUCCEEDED' && submittedDraft) setUnos(value =>
-            draftRevision.current === submittedDraft.revision && value === submittedDraft.value ? '' : value);
+          if (turn?.state === 'SUCCEEDED') {
+            setCorrection(null);
+            if (submittedDraft) setUnos(value => draftRevision.current === submittedDraft.revision && value === submittedDraft.value ? '' : value);
+          }
           setStreamingText('');
         }
       }
@@ -193,6 +197,11 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
   if (editor.data?.conversation) lastGood.current = editor.data.conversation;
   const stanje = editor.data?.conversation ?? lastGood.current, turn = editor.data?.turn ?? null;
   const razgovorId = stanje?.conversationId ?? null;
+  useFocusEffect(useCallback(() => {
+    if (!accountId || !razgovorId || stanje?.status !== 'OPEN') return;
+    const next = takeAiCorrection(correctionToken, { accountId, accountRevision }, 'task', razgovorId);
+    if (next) setCorrection(next);
+  }, [correctionToken, accountId, accountRevision, razgovorId, stanje?.status]));
   const radi = editor.busy, greska = editor.error;
   // A command that fails ticks once with the failure pattern (haptics rule R5); the same words showing again do not tick twice.
   const failed = useRef<string | null>(null);
@@ -491,6 +500,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute }: { resumeId?: string; 
           ? 'Asistent nije uzeo u obzir prethodnu poruku. Izmeni je i pošalji ponovo.' : null;
 
   return <><IntakePresentation conversationKey={`${accountId}:${accountRevision}:${resumeId ?? openRequestId}`}
+    correction={correction && writable ? { ...correction, onDismiss: () => { if (canAct() && !request.current) setCorrection(null); } } : undefined}
     conversationOwnerKey={`${accountId}:${accountRevision}`}
     turnRoles={turnRoles.current}
     conversation={stanje} value={unos} busy={radi} error={conversationErrorLine(greska, { hasDraft: stanje.facts.length > 0, unconfirmedSend: unconfirmedSend.current, statusCopy })}

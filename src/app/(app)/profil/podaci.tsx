@@ -15,6 +15,8 @@ import { StateView } from '../../../ui/system/StateView';
 import { DisplayNameForm, type NameSaveControl } from '../../../ui/profile/DisplayNameForm';
 import { EDIT_PHOTO, NameSaveButton, ProfileFactRows, ProfilePhotoBlock, VisibilityNote, WorkNameNotice, type AboutView, type CityView } from '../../../ui/profile/ProfileEditPresentation';
 import { writeWorkName } from '../../../ui/profile/writeWorkName';
+import { rememberAiCorrection } from '../../../data/aiCorrectionIntent';
+import { T } from '../../../ui/Text';
 
 /**
  * Lični podaci (T4a, 2026-10-07; "Izmeni profil" until the product draft the owner approved on 8 Oct 2026, P2). The pencil on the profile opens this, and it
@@ -33,6 +35,7 @@ export default function PersonalProfile() {
   return <OwnedPersonalProfile key={`${user?.id}:${accountRevision}`} />;
 }
 function OwnedPersonalProfile() {
+  const { user, accountRevision } = useSesija();
   const read = useCallback(() => requesterProfileClientService.read(), []);
   const editor = useOwnedEditor(read);
   const [dirty, setDirty] = useState(false);
@@ -53,6 +56,11 @@ function OwnedPersonalProfile() {
   const going = useRef(false);
   useFocusEffect(useCallback(() => { going.current = false; }, []));
   const go = (action: () => void) => { if (going.current) return; going.current = true; action(); };
+  const editWithAi = (part: 'identity' | 'area') => {
+    if(!user?.id || dirty || editor.busy || editor.uncertain || retryingRef.current) return;
+    const correction=rememberAiCorrection({accountId:user.id,accountRevision},`worker.${part}`);
+    if(correction)go(()=>router.navigate({pathname:'/profil/razgovor',params:{aiCorrection:correction.token}}));
+  };
   const profile = editor.data;
   // The account's name is saved; only the work profile's is written again (never the account's, which would need a new revision and request).
   const retryWorkName = async () => {
@@ -78,8 +86,9 @@ function OwnedPersonalProfile() {
         })} />
       {workNameFailed ? <WorkNameNotice retrying={retrying} onRetry={() => { void retryWorkName(); }} /> : null}
       {/* "O meni" is the work profile's text, written where the work profile is: its editor opens on that part. */}
-      <ProfileFactRows about={about} city={city} onAbout={() => go(() => router.navigate({ pathname: '/profil/radnik', params: { uredi: 'o-meni', n: String(Date.now()) } }))}
-        onCity={() => go(() => router.navigate('/profil/lokacija'))} />
+      {dirty?<T variant="note" tone="muted">Sačuvaj ime pre izmene radnog profila.</T>:null}
+      <ProfileFactRows about={about} city={city} onAbout={() => editWithAi('identity')} onCity={() => editWithAi('area')}
+        disabled={dirty||editor.busy||editor.uncertain||retrying} />
       <VisibilityNote />
     </>
       : editor.error && !editor.loading ? <StateView kind="error" title="Profil nije učitan" body={editor.error}

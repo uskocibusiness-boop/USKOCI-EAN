@@ -143,7 +143,7 @@ it('an absent pristine profile opens the guarded conversation without creating a
   mockRead.mockResolvedValue(null); await render();
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Sačuvaj profil' })).toHaveLength(0);
   click('Uredi kroz razgovor');
-  expect(mockRouter.push).toHaveBeenCalledWith('/profil/razgovor');
+  expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor');
   expect(mockWrite).not.toHaveBeenCalled();
 });
 
@@ -633,12 +633,12 @@ describe('the saved profile is read first', () => {
   });
   it('"Uredi kroz razgovor" opens the guarded conversation, and writes nothing', async () => {
     await renderReading(); click('Uredi kroz razgovor');
-    expect(mockRouter.push).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
+    expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
   });
   it('"Gde" leads to the area and "Nedeljni raspored" to the week, and neither writes anything', async () => {
     await renderReading();
-    click('Gde'); expect(mockRouter.navigate).toHaveBeenLastCalledWith('/profil/lokacija');
-    click('Nedeljni raspored'); expect(mockRouter.navigate).toHaveBeenLastCalledWith('/profil/dostupnost');
+    click('Gde'); expect(mockRouter.navigate).toHaveBeenLastCalledWith({pathname:'/profil/razgovor',params:{aiCorrection:expect.any(String)}});
+    click('Nedeljni raspored'); expect(mockRouter.navigate).toHaveBeenLastCalledWith({pathname:'/profil/razgovor',params:{aiCorrection:expect.any(String)}});
     expect(mockWrite).not.toHaveBeenCalled();
   });
   it('saved skills and equipment stay readable without opening a manual editor', async () => {
@@ -684,7 +684,7 @@ describe('the saved profile is read first', () => {
     expect(control('Nastavi kroz razgovor')).toBeTruthy();
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Proveri i aktiviraj profil' })).toHaveLength(0);
     click('Nastavi kroz razgovor');
-    expect(mockRouter.push).toHaveBeenCalledWith('/profil/razgovor');
+    expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor');
     expect(mockWrite).not.toHaveBeenCalled();
   });
 });
@@ -765,17 +765,14 @@ describe('"Mogu odmah"', () => {
 // "Lični podaci" writes the account's name, and "O meni" is the work profile's text: the row leads here, to the editor of that part (`uredi=o-meni`), once for each tap
 // (the nonce `n`), and it opens without putting the keyboard up.
 describe('"O meni" written from "Lični podaci"', () => {
-  it('opens the editor on "O meni" for a tap, once, and again only for a new tap', async () => {
-    mockParams = { uredi: 'o-meni', n: '1' }; await renderReading();
-    expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(0);
-    expect(control('Gotovo: O meni')).toBeTruthy(); expect(control('O meni').props.value).toBe('');
-    expect(mockFocusField).not.toHaveBeenCalled();
-    // Closed by the person, the same tap does not open it again, whatever renders; a new tap (a new nonce) does.
-    click('Gotovo: O meni'); await act(async () => tree.update(<Profile />));
-    expect(control('Izmeni: O meni')).toBeTruthy();
-    mockParams = { uredi: 'o-meni', n: '2' }; await act(async () => tree.update(<Profile />));
-    expect(control('Gotovo: O meni')).toBeTruthy();
-    expect(mockWrite).not.toHaveBeenCalled();
+  it('a legacy edit link opens an AI topic once per tap without exposing the manual editor', async () => {
+    mockParams={uredi:'o-meni',n:'1'};await renderReading();
+    expect(tree.root.findAllByProps({testID:'worker-profile-saved'})).toHaveLength(1);
+    expect(mockRouter.navigate).toHaveBeenCalledWith({pathname:'/profil/razgovor',params:{aiCorrection:expect.any(String)}});
+    expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
+    await act(async()=>tree.update(<Profile/>));expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
+    mockParams={uredi:'o-meni',n:'2'};await act(async()=>tree.update(<Profile/>));
+    expect(mockRouter.navigate).toHaveBeenCalledTimes(2);expect(mockWrite).not.toHaveBeenCalled();
   });
   it('opens nothing for a link without a nonce, for another part, or when there is no link at all', async () => {
     mockParams = { uredi: 'o-meni' }; await renderReading();
@@ -886,7 +883,7 @@ describe('one name for the account and the work profile', () => {
   });
   it('the first conversation entry of an empty account still writes nothing', async () => {
     mockAccountName = { state: 'ready', name: 'Milos' }; mockRead.mockResolvedValue(null); await render();
-    click('Uredi kroz razgovor'); expect(mockRouter.push).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
+    click('Uredi kroz razgovor'); expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
   });
 });
 
@@ -954,5 +951,5 @@ it('a first visit is only a calm AI entry; opening it creates no profile or manu
   expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Izmeni: O meni' })).toHaveLength(0);
   click('Uredi kroz razgovor');
-  expect(mockRouter.push).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
+  expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
 });

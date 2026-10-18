@@ -1,0 +1,54 @@
+{
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "environment": "DEV",
+  "applied_at_utc": "2026-10-18T12:47:17Z",
+  "authorization": "Owner standing application order 2026-10-18 / AGENTS 3.1",
+  "source_commit": "c015ca78edb1168692a2f4e0c06de8a5fbc00a6d",
+  "scope": "One review RPC: retain current signed service modes only for untouched revision-0 profile sessions. Existing owner/base/revision/closure boundaries remain.",
+  "migration": {
+    "version": "20261018124717",
+    "name": "worker_saved_mode_review_continuity",
+    "proof_path": "supabase/migrations/20261018123829_worker_saved_mode_review_continuity.sql",
+    "current_path": "supabase/migrations/20261018124717_worker_saved_mode_review_continuity.sql",
+    "sha256": "00c2e2b872d88beca3d0f8b56436692c791ee8db6b555530a501a229b8408446",
+    "filename_alignment": "Remote apply_migration creates its own ledger timestamp. Local filename aligned to that actual version without changing source bytes."
+  },
+  "function": {
+    "signature": "public.rpc_prepare_worker_ai_review_taxonomy(uuid,integer,boolean)",
+    "before_md5": "f0b4b83e5aba8b0a6e834f35f97a72c9",
+    "after_md5": "c0f07a6cfac8c55ac05267b09998d5d8",
+    "exact_definition_readback": true,
+    "owner": "postgres",
+    "security_definer": true,
+    "search_path": [
+      "search_path=pg_catalog"
+    ],
+    "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+    "anon_execute": false,
+    "authenticated_execute": true,
+    "service_role_execute": false
+  },
+  "proof": {
+    "ci": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39128626514",
+    "result": "SUCCESS",
+    "coverage": [
+      "Exact predecessor reproduces missing modes",
+      "Untouched signed REMOTE and both-mode continuity",
+      "Stale/changed/revoked/ambiguous negatives",
+      "Actual Save and binder then fresh review",
+      "Exact predecessor rollback and reapply"
+    ],
+    "limits": "Disposable PostgreSQL17, synthetic records and isolated closure/location/availability infrastructure. Provider, general RLS and push not covered by this SQL proof."
+  },
+  "unchanged": {
+    "source_digest": "88cab17911f89a7d8d800ae229db568dd2aaed106395ad8acc3207917acd72ec",
+    "program_digest": "90d60aa9529996103b91ca54fb4be94770d6862453fbe521f878c603d6ab3f1e",
+    "certified_digest": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "retention_ready": false,
+    "categories": 135,
+    "aliases": 3,
+    "profile_or_consent_writes_by_migration": 0
+  },
+  "rollback": "Exact predecessor SQL and ACL in supabase/proofs/dynamic_taxonomy/worker-saved-mode-continuity/before.sql; private pre/postflight readbacks retained. Fixture/assertion SQL must never run against DEV.",
+  "existing_blocker": "Certified closure digest mismatch and retention readiness=false existed before this package and remain unchanged."
+}

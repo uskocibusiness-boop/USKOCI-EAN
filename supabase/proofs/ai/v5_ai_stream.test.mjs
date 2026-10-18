@@ -12,7 +12,7 @@ function fixture(config={}){
  const calls=[];const env={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC',SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE',
    AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_PROVIDER',GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',...config.env};
  const message=config.message??'Čujem te. Pregledaj zadatak 🟢.';
- const raw=JSON.stringify(withDialogue({safety:'ALLOW',assistantMessage:message,facts:[]}));
+ const raw=JSON.stringify(withDialogue(config.output??{safety:'ALLOW',assistantMessage:message,facts:[]}));
  const providerStream=()=>{
    const fragments=config.fragments??Array.from(raw); // Real provider deltas, split at every character.
    const encoded=fragments.map((text,i)=>'data: '+JSON.stringify({candidates:[{content:{parts:[{text}]},...(i===fragments.length-1?{finishReason:config.finishReason??'STOP'}:{})}]})+'\r\n\r\n').join('');
@@ -24,10 +24,10 @@ function fixture(config={}){
    if(url.endsWith('/auth/v1/user'))return json({id:account});
    if(url.includes('/ai_conversations?'))return json([{id:conversation,account_id:account,status:'OPEN',fact_schema_version:'NEED_FACT_V2'}]);
    if(url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))return config.dispatch?.(body)??json(true);
-  if(url.endsWith('/rpc_ai_claim_need_turn_v2_service'))return json({turn:turn(config.replay?'SUCCEEDED':'PROCESSING'),claim:config.replay?null:{attemptId,leaseExpiresAt:new Date(Date.now()+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',history:[],activeFacts:[]}}});
+  if(url.endsWith('/rpc_ai_claim_need_turn_v2_service'))return json({turn:turn(config.replay?'SUCCEEDED':'PROCESSING'),claim:config.replay?null:{attemptId,leaseExpiresAt:new Date(Date.now()+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',history:[],activeFacts:config.activeFacts??[]}}});
    if(url.endsWith('/rpc_ai_test_budget_reserve_service'))return json(config.budget??{admitted:true,reservationId:id(8),replay:false,code:'AI_TEST_RESERVED'});
    if(url.startsWith('https://generativelanguage.googleapis.com/'))return config.provider?.(init)??providerStream();
-   if(url.endsWith('/rpc_ai_complete_need_turn_v2_service')){if(config.completionError)throw Error('SYNTHETIC_COMPLETION_ACK_LOST');return json(config.badReceipt?{...turn(),turnId:id(99)}:turn());}
+   if(url.endsWith('/rpc_ai_complete_need_turn_v2_service')){if(config.completionError)throw Error('SYNTHETIC_COMPLETION_ACK_LOST');return json({...turn(),...(config.badReceipt?{turnId:id(99)}:{}),receipt:{...receipt,proposedCount:body.p_proposals.length,safety:body.p_safety}});}
    if(url.endsWith('/rpc_ai_fail_need_turn_v2_service'))return json(config.failureReceipt??turn('FAILED'));
    if(url.endsWith('/rpc_ai_test_record_usage_service'))return json({recorded:true});
    if(url.endsWith('/rpc_taxonomy_ai_catalog_context_service'))return json(config.catalog(body));
@@ -35,12 +35,59 @@ function fixture(config={}){
    assert.fail('UNEXPECTED_ROUTE');
  };
  const {handler}=loadOwnedIntakeHandler({fetch,env:name=>env[name],setTimeout:config.setTimeout});
- return {calls,message,invoke:()=>handler(new Request('https://edge.invalid',{method:'POST',headers:{Authorization:'Bearer SYNTHETIC',Accept:'text/event-stream','Content-Type':'application/json',...config.headers},body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:'SYNTHETIC_USER_TEXT'})}))};
+ return {calls,message,invoke:()=>handler(new Request('https://edge.invalid',{method:'POST',headers:{Authorization:'Bearer SYNTHETIC',Accept:'text/event-stream','Content-Type':'application/json',...config.headers},body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:config.text??'SYNTHETIC_USER_TEXT'})}))};
 }
 async function events(f){const response=await f.invoke();assert.match(response.headers.get('content-type'),/text\/event-stream/);return (await response.text()).trim().split('\n\n').map(e=>JSON.parse(e.slice(6)));}
 const providers=f=>f.calls.filter(c=>c.url.startsWith('https://generativelanguage.googleapis.com/'));
 const writes=f=>f.calls.filter(c=>c.url.endsWith('/rpc_ai_complete_need_turn_v2_service'));
 const failures=f=>f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service'));
+const activeFact=(key,value,valueType='TEXT')=>({fact_key:key,fact_value:value,value_type:valueType,display_value:JSON.stringify(value),
+ fact_schema_version:'NEED_FACT_V2',status:'CONFIRMED',source:'USER_TEXT',created_at:'2026-10-18T12:00:00Z'});
+
+// These fixtures prove the instruction delivered to the real handler's provider
+// boundary and its existing ambiguity guard, not Gemini's language understanding.
+for(const relation of ['UNCLEAR','DIFFERENT_TASK'])test(`work replacement ${relation} preserves old terms and asks before applying new work`,async()=>{
+ const activeFacts=[activeFact('need.category','Krečenje'),activeFact('need.price_rsd',5000,'INTEGER'),
+  activeFact('need.schedule_kind','TOMORROW_FLEXIBLE','ENUM'),
+  activeFact('need.task_geography',{mode:'STATIONARY',start:{city:'Novi Sad'}},'OBJECT')];
+ const previous=JSON.stringify(activeFacts);
+ const f=fixture({activeFacts,text:'Umesto krečenja treba mi prevoz.',output:{safety:'ALLOW',assistantMessage:'Promenio sam posao.',
+  facts:[{key:'need.category',valueJson:'"Prevoz stvari"',displayValue:'Prevoz stvari',evidence:'prevoz',confidence:1}],
+  dialogue:{next:'CLARIFY',questionKey:'NONE',taskRelation:relation,priceUnit:'UNSPECIFIED',schedulePattern:'UNSPECIFIED'}}});
+ const es=await events(f);assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
+ const write=writes(f);assert.equal(write.length,1);assert.equal(write[0].body.p_safety,'CLARIFY');assert.deepEqual(write[0].body.p_proposals,[]);
+ assert.equal(JSON.stringify(activeFacts),previous);assert.ok(!write[0].body.p_assistant_message.includes('Promenio sam posao'));
+ const instruction=providers(f)[0].body.systemInstruction.parts[0].text;
+ assert.ok(instruction.includes('Za promenu vrste posla prvo razjasni'));
+ assert.ok(instruction.includes('koji raniji termin, budžet i mesto i dalje važe'));
+ assert.ok(instruction.includes('Ne šalji promenu vrste, naslova ili opisa dok to nije jasno'));
+ assert.ok(!instruction.includes('sa krečenja pređe na drugu uslugu), dialogue.taskRelation ostaje CONTINUE'));
+ assert.ok(!f.calls.some(c=>/save_draft|publish|commit_admission|push/.test(c.url)));
+});
+
+test('ordinary correction of the same task keeps unrelated terms and remains a proposal',async()=>{
+ const activeFacts=[activeFact('need.price_mode','MY_PRICE','ENUM'),activeFact('need.price_rsd',5000,'INTEGER'),
+  activeFact('need.schedule_kind','TOMORROW_FLEXIBLE','ENUM')];
+ const f=fixture({activeFacts,text:'Promeni samo ukupnu cenu za ceo posao na 6000 dinara.',output:{safety:'ALLOW',
+  assistantMessage:'Cena je u nacrtu 6.000 dinara.',facts:[{key:'need.price_rsd',valueJson:'6000',displayValue:'6.000 RSD',evidence:'6000 dinara',confidence:1}],
+  dialogue:{next:'ACK',questionKey:'NONE',taskRelation:'CONTINUE',priceUnit:'WHOLE_JOB',schedulePattern:'UNSPECIFIED'}}});
+ assert.equal((await events(f)).at(-1).kind,'final');assert.equal(providers(f).length,1);
+ assert.deepEqual(writes(f)[0].body.p_proposals.map(p=>[p.key,p.value]),[['need.price_rsd',6000]]);
+ assert.equal(activeFacts[2].fact_value,'TOMORROW_FLEXIBLE');
+ assert.ok(!f.calls.some(c=>/save_draft|publish|commit_admission|push/.test(c.url)));
+});
+
+test('same-draft work replacement can ask which terms remain without changing them',async()=>{
+ const activeFacts=[activeFact('need.category','Krečenje'),activeFact('need.price_rsd',5000,'INTEGER'),
+  activeFact('need.schedule_kind','TOMORROW_FLEXIBLE','ENUM')];
+ const message='Menjamo ovaj nacrt u prevoz. Da li ostaju isti termin i budžet, i koja je ruta?';
+ const f=fixture({activeFacts,text:'Menjam ovaj isti zadatak, umesto krečenja treba mi prevoz.',output:{safety:'CLARIFY',assistantMessage:message,facts:[],
+  dialogue:{next:'CLARIFY',questionKey:'NONE',taskRelation:'CONTINUE',priceUnit:'UNSPECIFIED',schedulePattern:'UNSPECIFIED'}}});
+ const es=await events(f);assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
+ assert.deepEqual(writes(f)[0].body.p_proposals,[]);assert.equal(writes(f)[0].body.p_assistant_message,message);
+ assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),message);
+ assert.ok(!f.calls.some(c=>/save_draft|publish|commit_admission|push/.test(c.url)));
+});
 
 test('confirmed Need finishes the stream and records usage even with the optional catalog disabled',async()=>{
  const output=withDialogue({safety:'ALLOW',assistantMessage:'Predlog je spreman za pregled.',facts:[]});

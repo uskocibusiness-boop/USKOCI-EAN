@@ -37,6 +37,10 @@ jest.mock('../../store/uloga', () => ({
   useIzvor: () => mockSource,
 }));
 jest.mock('../../ui/profile/useAccountName', () => ({ useAccountName: () => mockAccountName }));
+// Mode loading has its own ownership/revision suite; this route harness must not start Auth or native storage.
+jest.mock('../../hooks/useWorkerExecutionModes', () => ({
+  useWorkerExecutionModes: () => ({ view: { kind: 'confirmed', modes: ['ON_SITE'] }, refresh: jest.fn() }),
+}));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'V2Action' }));
 jest.mock('../../ui/workerProfile/WorkerProfilePresentation', () => ({
@@ -78,7 +82,7 @@ describe('PKG-005 progressive Worker onboarding', () => {
     expect(form().props.openConversation).toBeUndefined();
     expect(action('Sačuvaj kao nacrt')).toBeUndefined(); expect(action('Proveri i aktiviraj profil')).toBeUndefined();
     await act(async () => action('Nastavi kroz razgovor').props.onPress());
-    expect(mockPush).toHaveBeenCalledWith('/profil/razgovor'); expect(writeProfile).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('/profil/razgovor'); expect(writeProfile).not.toHaveBeenCalled();
   });
 
   it('saves the first canonical draft before exposing any activation attempt, then routes the missing area prerequisite', async () => {
@@ -260,18 +264,23 @@ describe('PKG-005 progressive Worker onboarding', () => {
       }
     });
 
-    it('opens the editor on "O meni" for the link of "Lični podaci", once for each nonce, and for no other link', async () => {
+    it('returns the legacy "O meni" link to the AI conversation once per nonce without opening or saving a manual editor', async () => {
       mockParams = { uredi: 'o-meni', n: '7' }; readProfile.mockResolvedValue(readyDraft({ stanje: 'ACTIVE' })); await render();
-      expect(form().props.reading).toBe(false); expect(form().props.openSection).toMatchObject({ section: 'identity', token: 1 });
-      // Rendering again with the same link opens nothing new.
+      expect(form().props.reading).toBe(true); expect(form().props.openSection).toBeNull();
+      expect(mockNavigate).toHaveBeenCalledTimes(1);
+      expect(mockNavigate).toHaveBeenLastCalledWith({ pathname: '/profil/razgovor', params: { aiCorrection: expect.any(String) } });
+      // Rendering again with the same link must not consume a second correction intent.
       await act(async () => tree!.update(<Profile />));
-      expect(form().props.openSection).toMatchObject({ section: 'identity', token: 1 });
+      expect(mockNavigate).toHaveBeenCalledTimes(1);
       mockParams = { uredi: 'o-meni', n: '8' }; await act(async () => tree!.update(<Profile />));
-      expect(form().props.openSection).toMatchObject({ section: 'identity', token: 2 });
+      expect(mockNavigate).toHaveBeenCalledTimes(2);
+      expect(form().props.reading).toBe(true); expect(writeProfile).not.toHaveBeenCalled();
       await act(async () => tree!.unmount()); tree = undefined;
       for (const params of [{ uredi: 'o-meni' }, { uredi: 'drugo', n: '1' }, {}]) {
+        mockNavigate.mockClear();
         mockParams = params; await render();
         expect([JSON.stringify(params), form().props.reading, form().props.openSection]).toEqual([JSON.stringify(params), true, null]);
+        expect(mockNavigate).not.toHaveBeenCalled();
         await act(async () => tree!.unmount()); tree = undefined;
       }
     });

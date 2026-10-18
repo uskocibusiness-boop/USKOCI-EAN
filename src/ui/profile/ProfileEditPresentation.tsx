@@ -84,10 +84,10 @@ export function ProfilePhotoBlock({ photo, ready, onOpen }: { photo: ReactNode; 
 }
 
 /** About and work area: the city is the existing work-profile area, not a separate home address. */
-export function ProfileFactRows({ about, city, onAbout, onCity }: { about: AboutView; city: CityView; onAbout: () => void; onCity: () => void }) {
+export function ProfileFactRows({ about, city, onAbout, onCity, disabled=false }: { about: AboutView; city: CityView; onAbout: () => void; onCity: () => void; disabled?:boolean }) {
   return <SettingsGroup>
-    <SettingsRow label="O meni" detail={aboutDetail(about)} onPress={onAbout} />
-    <SettingsRow label="Područje rada" value={cityDetail(city)} valuePlacement="below" onPress={onCity} last />
+    <SettingsRow label="O meni" detail={aboutDetail(about)} onPress={onAbout} disabled={disabled} />
+    <SettingsRow label="Područje rada" value={cityDetail(city)} valuePlacement="below" onPress={onCity} disabled={disabled} last />
   </SettingsGroup>;
 }
 

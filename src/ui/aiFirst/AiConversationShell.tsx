@@ -20,6 +20,7 @@ import { sys } from '../system/tokens';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import { HOLD_HINT, VoiceComposer, VoiceNotice, type VoiceInput } from './VoiceComposer';
 import { useConversationArrival } from './useConversationArrival';
+import type { AiCorrectionIntent } from '../../data/aiCorrectionIntent';
 
 export type ConversationMessage = { id: string; fromAi: boolean; body: string };
 /** A line of the conversation's own history that is not a message (a confirmed place), drawn after the message it followed. */
@@ -44,6 +45,8 @@ export type AiConversationShellProps = {
   showWelcomeArt?: boolean;
   value: string; canEdit: boolean; canSend: boolean; pending: boolean; busy: boolean;
   onChange: (value: string) => void; onSend: () => void; onBack: () => void;
+  /** Local editing context. It never becomes a message or changes the typed draft. */
+  correction?: AiCorrectionIntent & { onDismiss: () => void };
   /** A caller-owned unfinished step can temporarily hold sending without erasing the typed draft. */
   sendBlockedReason?: string;
   /** The "···" of rare actions. Left out when there is nothing to offer, so the chrome shows no dead control. */
@@ -123,6 +126,12 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const assistantWelcome = useRef<AssistantWelcomeMemory>({ key: p.conversationKey, consumed: false });
   const expanded = disclosure.key === p.conversationKey && disclosure.expanded;
   const input = useRef<TextInput>(null);
+  const focusedCorrection = useRef<string | null>(null);
+  useEffect(() => {
+    if (!p.correction || p.closed || !p.canEdit || focusedCorrection.current === p.correction.token) return;
+    focusedCorrection.current = p.correction.token;
+    input.current?.focus();
+  }, [p.correction?.token, p.canEdit, p.closed]);
   const thread = useRef<ScrollView>(null);
   // Only a deliberate reading gesture changes intent. Keyboard and content geometry must never impersonate one.
   const followLatest = useRef(true);
@@ -355,7 +364,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {/* One keyed list: a note keeps its identity when its anchor or the welcome changes, so it moves instead of remounting. */}
         {[...(welcomeShown ? [] : p.messages.flatMap((message, index) => [<Turn key={message.id} {...message}
           showSpeaker={message.fromAi && (index === 0 || !p.messages[index - 1].fromAi)}
-          emphasis={!p.questionFocus || !message.fromAi ? 'plain' : index === p.messages.length - 1 && !p.sentMessage && !p.streamingText ? 'question' : 'earlier'}
+          emphasis={!p.questionFocus || p.closed || !message.fromAi ? 'plain' : index === p.messages.length - 1 && !p.sentMessage && !p.streamingText ? 'question' : 'earlier'}
           // Frequent updates and streamed text get no decorative entrance. A turn that arrives while you are watching is
           // feedback; the thread you already had when the screen opened is not, and must not replay.
           reduced={reduced || !arrival.shouldEnter(message.id)} />,
@@ -396,6 +405,16 @@ export function AiConversationShell(p: AiConversationShellProps) {
       {p.closed && !p.footerAction ? null : <SafeAreaView edges={p.closed || !keyboard ? ['bottom'] : []} testID="ai-composer-footer" style={s.footer}>
         {p.footerAction ? <View testID="ai-footer-action">{p.footerAction}</View> : null}
         {p.closed ? null : <>
+        {p.correction ? <View testID="ai-correction-context" style={s.correction}>
+          <View style={s.correctionCopy} accessibilityLiveRegion="polite">
+            <T variant="note" style={s.latestText}>{p.correction.title}</T>
+            <T variant="note" tone="muted">{p.correction.hint}</T>
+          </View>
+          <Press accessibilityRole="button" accessibilityLabel="Zatvori temu izmene" onPress={p.correction.onDismiss}
+            disabled={!p.canEdit} accessibilityState={{ disabled: !p.canEdit }} style={s.target}>
+            <Glyph name="close" size={20} tone="muted" />
+          </Press>
+        </View> : null}
         {/* A person who cannot hold uses the same microphone in start/stop mode with explicit review. */}
         {p.voice ? <VoiceNotice {...p.voice} hint={holdHint ? HOLD_HINT : null}
           hintAction={holdHint && !p.voice.disabled && voiceIdle ? { label: 'Govori bez držanja', onPress: () => {
@@ -555,6 +574,8 @@ const s = StyleSheet.create({
   latestText: { flexShrink: 1, color: sys.color.ink, fontWeight: '600' },
   footer: { paddingHorizontal: layout.chatComposer, paddingTop: sys.space.xs, paddingBottom: sys.space.sm, gap: sys.space.sm, backgroundColor: sys.conversation.ground },
   reason: { paddingHorizontal: sys.space.sm },
+  correction: { flexDirection: 'row', alignItems: 'flex-start', paddingLeft: sys.space.sm, gap: sys.space.sm },
+  correctionCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   // One ordinary horizontal pill; only a wrapped draft or limited reading space moves tools below.
   pill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 6,
     borderRadius: sys.radius.sheet, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.conversation.surface,

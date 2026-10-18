@@ -145,6 +145,31 @@ test('personal interview filters obsolete fields without changing the owned V1 c
  assert.ok(prompt.includes('ONE person'));assert.ok(prompt.includes('no separate exclusion or urgent-notification preference field'));
 });
 
+// Synthetic provider replies exercise the actual handler boundary. Prompt
+// assertions do not prove that a live model always preserves the intended list.
+for(const change of ['add','remove'])test(`worker ${change} instruction keeps unrelated services/resources and only proposes changes`,async()=>{
+ const candidate={displayName:'Ana',bio:'',skills:['Krečenje','Gletovanje'],tools:['Valjak'],vehicles:[],
+  location:{operatingCountryCode:'RS',city:'Novi Sad',radiusKm:20},availability:{timezone:'Europe/Belgrade',availableNow:false,rules:[],windows:[]}};
+ const previous=JSON.stringify(candidate);
+ const desired=change==='add'?['Krečenje','Gletovanje','Postavljanje tapeta']:['Krečenje'];
+ const output={assistantMessage:'Proveri izmenu usluga u pregledu.',safety:'ALLOW',patch:{skills:desired}};
+ const f=fixture({output,context:{schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',profileStatus:'ACTIVE',
+  stale:false,safety:'ALLOW',candidate,messages:[{role:'USER',body:change==='add'?'Dodaj i postavljanje tapeta.':'Više ne nudim gletovanje.'}]}});
+ assert.equal((await events(f,{text:change==='add'?'Dodaj i postavljanje tapeta.':'Više ne nudim gletovanje.'})).at(-1).kind,'final');
+ assert.equal(providers(f).length,1);assert.deepEqual(completions(f)[0].body.p_output.patch,{skills:desired});
+ assert.equal(JSON.stringify(candidate),previous);assert.ok(!f.calls.some(c=>/save_worker|bind_reviewed|commit_admission|publish|push/.test(c.url)));
+ const prompt=providers(f)[0].body.systemInstruction.parts[0].text;
+ assert.ok(prompt.includes('skills, tools and vehicles are COMPLETE replacement lists, not additions'));
+ assert.ok(prompt.includes('keep every existing offered service the person has not explicitly removed'));
+ assert.ok(prompt.includes('Changing the delivery mode of one service does not change other services'));
+ assert.ok(prompt.includes('Tools and vehicles are optional information, never mandatory for review or activation'));
+ assert.ok(prompt.includes('classificationShadowJson is only a proposal'));
+ assert.ok(prompt.includes('signed profile review'));
+ assert.ok(!prompt.includes('pending a future confirmed structured capability review'));
+ assert.ok(prompt.includes("'Znam engleski' is general knowledge, NOT consent to tutoring or translating"));
+ assert.ok(prompt.includes("'Imam kombi' is equipment, NOT consent to transport or removals"));
+});
+
 for(const input of ['To je to.','Sačuvaj','Сачувај','Gotovo, to je sve!'])
  test('finish request hands off to profile review without another availability question: '+input,async()=>{
   const output={assistantMessage:'Da li su tvoje radno vreme i dostupnost tačni?',safety:'ALLOW',patch:{tools:['Izmišljeni alat']}};

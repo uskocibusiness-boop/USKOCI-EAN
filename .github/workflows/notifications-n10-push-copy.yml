@@ -4,8 +4,13 @@ on:
   push:
     branches:
       - work/uskoci-ui-unification-20260924
+      - feature/unified-qa-master-20261017
     paths:
+      - 'supabase/functions/uskoci-push-transport/index.ts'
       - 'supabase/functions/_shared/pushNotificationCopy.mjs'
+      - 'supabase/proofs/notifications/n09_push_transport_edge.test.mjs'
+      - 'supabase/proofs/notifications/n09_push_transport_runtime.mjs'
+      - 'supabase/proofs/notifications/push-live-begin-contract.test.mjs'
       - 'supabase/proofs/notifications/n10_push_copy.test.mjs'
       - 'docs/implementation/product-v1-closure-20260926/NOTIFICATION_MATRIX.md'
       - '.github/workflows/notifications-n10-push-copy.yml'
@@ -32,4 +37,4 @@ jobs:
           node --check supabase/functions/_shared/pushNotificationCopy.mjs
           node --test supabase/proofs/notifications/n10_push_copy.test.mjs
       - name: Existing push transport regressions
-        run: node --test supabase/proofs/notifications/n09_push_transport_edge.test.mjs
+        run: node --test supabase/proofs/notifications/n09_push_transport_edge.test.mjs supabase/proofs/notifications/push-live-begin-contract.test.mjs

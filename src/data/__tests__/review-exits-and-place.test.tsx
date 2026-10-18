@@ -277,9 +277,9 @@ describe('the ways out of a review that is not published yet', () => {
       mockParams.intakeReturn = handoff.token;
       await render();
       const edit = action('Izmeni zadatak').onPress;
-      await act(async () => { edit(); edit(); });
+      await act(async () => { edit({ nativeEvent: { target: 1 } }); edit({ nativeEvent: { target: 1 } }); });
       expect(mockRouter.replace).toHaveBeenCalledTimes(1);
-      expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params });
+      expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: {...params, aiCorrection:expect.any(String)} });
       expect(mockAccept).not.toHaveBeenCalled(); expect(mockDraft).not.toHaveBeenCalled(); expect(mockAbandon).not.toHaveBeenCalled();
       expect(mockCorrect).not.toHaveBeenCalled(); expect(sheets()).toHaveLength(0);
       retireIntakeReviewReturn(handoff);
@@ -288,7 +288,7 @@ describe('the ways out of a review that is not published yet', () => {
     it('opens the canonical conversation when the review was reached directly', async () => {
       await render();
       await act(async () => action('Izmeni zadatak').onPress());
-      expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
+      expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION, aiCorrection:expect.any(String) } });
     });
   });
 
@@ -463,7 +463,7 @@ describe('a private draft reviewed for its first publication', () => {
     expect(waysOut()).toEqual(['Izmeni zadatak', 'Obriši nacrt']); expect(absent('Sačuvaj nacrt')).toBe(true);
     expect(greenPresses()).toEqual(['Objavi zadatak']); expect(greenActions()).toEqual([]);
     await act(async () => action('Izmeni zadatak').onPress());
-    expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
+    expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION, aiCorrection:expect.any(String) } });
     expect(mockAbandon).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled();
   });
 
@@ -540,7 +540,7 @@ describe('a private draft reviewed for its first publication', () => {
       });
       await render();
       await act(async () => publish().onPress());
-      expect(text()).toContain('Zadatak je objavljen.'); expect(text()).not.toMatch(/zvonc|Prijave vidiš|Javićemo/);
+      expect(tree.root.findByProps({accessibilityLabel:'Prenos ormara. Zadatak je objavljen.'})).toBeDefined(); expect(text()).not.toMatch(/zvonc|Prijave vidiš|Javićemo/);
       expect(text()).not.toContain('Izmene su objavljene.');
     } finally { jest.useRealTimers(); }
   });
@@ -566,8 +566,9 @@ describe('the way out of every blocker is a visible action', () => {
     expect(publish().disabled).toBe(true); expect(row.props.disabled).toBe(false);
     expect(tree.root.findAllByProps({ label: 'Početak: datum' })).toHaveLength(0);
     await act(async () => row.props.onPress());
-    expect(tree.root.findByProps({ label: 'Početak: datum' }).props.value).toBe('2020-10-06');
-    expect(mockRouter.replace).not.toHaveBeenCalled(); expect(mockCorrect).not.toHaveBeenCalled();
+    expect(tree.root.findAllByProps({ label: 'Početak: datum' })).toHaveLength(0);
+    expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/nova',params:{conversationId:CONVERSATION,aiCorrection:expect.any(String)}});
+    expect(mockCorrect).not.toHaveBeenCalled();
   });
 
   it('names the word of each other row, and a row that goes to the conversation or to the place says so', async () => {
@@ -577,7 +578,7 @@ describe('the way out of every blocker is a visible action', () => {
     expect(words('Nedostaje: Naslov.')).toEqual(['Nedostaje: Naslov.', 'Dopuni u razgovoru']);
     expect(words('Mesto na mapi nije potvrđeno.')).toEqual(['Mesto na mapi nije potvrđeno.', 'Dodaj mesto']);
     await act(async () => rowOf('Nedostaje: Naslov.').props.onPress());
-    expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
+    expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION, aiCorrection:expect.any(String) } });
   });
 
   it('a missing amount says "Unesi iznos" and opens the amount editor', async () => {
@@ -587,7 +588,9 @@ describe('the way out of every blocker is a visible action', () => {
     const row = rowOf('Unesi iznos ili izaberi prikupljanje ponuda.');
     expect(row.findAll(node => node.type === ('T' as React.ElementType)).map(node => node.props.children).pop()).toBe('Unesi iznos');
     await act(async () => row.props.onPress());
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Iznos u dinarima' })).toHaveLength(1);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Iznos u dinarima' })).toHaveLength(0);
+    expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/nova',params:{conversationId:CONVERSATION,aiCorrection:expect.any(String)}});
+    expect(mockCorrect).not.toHaveBeenCalled();
   });
 
   it('a fact problem whose row this screen does not have goes to the conversation instead of being a row that does nothing', async () => {
@@ -598,7 +601,7 @@ describe('the way out of every blocker is a visible action', () => {
     const row = rowOf('Tačan termin mora imati početak; ako je kraj naveden, mora biti posle početka.');
     expect(row.props.accessibilityHint).toBe('Dopuni u razgovoru');
     await act(async () => row.props.onPress());
-    expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
+    expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION, aiCorrection:expect.any(String) } });
   });
 
   it('while another editor is open the rows wait grey, and the open editor is the only thing left to press', async () => {

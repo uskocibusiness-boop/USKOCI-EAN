@@ -13,7 +13,7 @@ Historical review expiration does not expire already saved consent; the original
 1. `fixture.sql` creates disposable synthetic tables, helper stubs and sample saved records; it includes `exact-dependencies.sql` via psql `\\ir`.
 2. `before.sql` restores the exact read-only DEV predecessor and its ACL.
 3. `assert-before.sql` **passes when the original regression is reproduced**. It also checks the exact predecessor MD5.
-4. Apply `supabase/migrations/20261018123829_worker_saved_mode_review_continuity.sql` with `psql -X --single-transaction -v ON_ERROR_STOP=1 -f ...`.
+4. Apply `supabase/migrations/20261018124717_worker_saved_mode_review_continuity.sql` with `psql -X --single-transaction -v ON_ERROR_STOP=1 -f ...`.
 5. `assert.sql` checks continuity, signatures, ACL and rejection cases, then calls the actual Save and actual binder and reopens another fresh review.
 6. Restore `before.sql`, repeat `assert-before.sql`, reapply the migration and repeat `assert.sql`.
 

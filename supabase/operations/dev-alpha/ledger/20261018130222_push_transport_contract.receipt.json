@@ -1,0 +1,65 @@
+{
+  "appliedAt": 1792328540912,
+  "project": "leqcwgzvjsxugfgzdmth",
+  "package": "push-transport-current-begin-contract",
+  "authority": "Owner standing PRIMENI 2026-10-18; AGENTS 3.1",
+  "before": {
+    "version": 34,
+    "bundleSha256": "30b1f81cfcb0c1481aa88a00ca69785f505569ab1f0ff91e2a0eaef9988fc69c"
+  },
+  "after": {
+    "version": 35,
+    "status": "ACTIVE",
+    "verifyJwt": false,
+    "bundleSha256": "572d122aa7c3cad86c448e4fd67475ed95fd5c91013de8abd09808a2d58cb2a3",
+    "files": [
+      {
+        "path": "supabase/functions/uskoci-push-transport/index.ts",
+        "sha256": "021db91ebf3794b130351d68f8a836dc042f6497ef989688335907a59d6fb6fc",
+        "bytes": 15220,
+        "byteIdenticalReadback": true
+      },
+      {
+        "path": "supabase/functions/_shared/pushNotificationCopy.mjs",
+        "sha256": "a66cccb7e5d8a7500f905fd5d7e7df95a90eac0afbf9e9172714f926b498a731",
+        "bytes": 2840,
+        "byteIdenticalReadback": true
+      }
+    ]
+  },
+  "proof": {
+    "before": {
+      "tests": 3,
+      "failed": 3
+    },
+    "after": {
+      "tests": 128,
+      "passed": 128
+    },
+    "type": "actual captured Edge handler, synthetic SQL/Expo IO"
+  },
+  "configuration": {
+    "transportEnabled": true,
+    "singleTargetEnabled": false,
+    "messageTargetEnabled": false,
+    "opportunityTargetPresent": false,
+    "verification": "CLI names/digests matched SHA256 of literal true/false; no secret values retrieved.",
+    "setAttempt": {
+      "success": false,
+      "reason": "CLI secret write denied by current token; existing digest already proves required true so no mutation needed."
+    }
+  },
+  "dataEffects": {
+    "manualGlobalTicks": 0,
+    "manualProviderSends": 0,
+    "unknownRetry": false,
+    "unstartedPendingBefore": 0,
+    "existingUnknownAttempts": 1
+  },
+  "limits": [
+    "Deployment and contract proof are not device delivery evidence.",
+    "Single-target and message-target flags remain false; opportunity-target absent.",
+    "Existing ordinary scheduler remains enabled."
+  ],
+  "rollback": "Exact v34 files retained privately; rollback would restore known contract defect."
+}

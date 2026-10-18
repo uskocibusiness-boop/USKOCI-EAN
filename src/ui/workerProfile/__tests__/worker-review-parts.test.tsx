@@ -46,7 +46,8 @@ describe('the review in parts (M2)', () => {
     expect(groupIds()).toEqual(['worker-review-skills', 'worker-review-area', 'worker-review-time', 'worker-review-tools', 'worker-review-identity']);
     const copy = texts();
     expect(copy).toContain('Montaža nameštaja'); expect(copy).toContain('Farbanje');
-    expect(copy).toContain('Novi Beograd · RS · do 15 km');
+    expect(copy).toContain('Novi Beograd · RS · grad profila');
+    expect(copy).not.toContain('15 km');
     expect(copy).toContain('Bušilica · Merdevine'); expect(copy).toContain('Kombi');
     expect(copy).toContain('Radim vikendom.'); expect(copy).not.toContain('Ana'); expect(copy.split(' | ')).not.toContain('Ime');
     for (const title of ['Usluge koje nudiš', 'Područje', 'Kada imaš vremena', 'Alat i vozilo', 'O meni']) expect(copy).toContain(title);
@@ -62,7 +63,8 @@ describe('the review in parts (M2)', () => {
         path:['3D izrada','Izrada 3D figurica'],catalogVersion:9,
         reason:'Verified owner-reviewed category proposal'}]};
     await act(async()=>{tree=create(<WorkerAiReviewDetails review={signed}/>);});
-    expect(texts()).toContain('Predlog za katalog: Digitalne usluge › 3D izrada › Izrada 3D figurica');
+    expect(texts()).toContain('Izrada 3D figurica');
+    expect(texts()).not.toContain('Predlog za katalog');
     expect(texts()).toContain('Novi Sad · RS · grad profila');
     expect(texts()).toContain('Zadaci na daljinu nisu ograničeni ovim gradom ni radijusom.');
     expect(texts()).not.toContain('Novi Sad · RS · do 20 km');
@@ -111,7 +113,8 @@ describe('the review in parts (M2)', () => {
     expect(alert).toHaveLength(1); expect(alert[0].children.join('')).toBe('Dopuni: Ime naloga, Veštine.');
     expect(texts()).not.toMatch(/undefined|null|NaN/);
     // The skills, the tools and vehicles, and "O meni": three parts with nothing in them, each said with the one word.
-    expect(texts().split('Nije navedeno').length - 1).toBe(3);
+    expect(texts().split('Nije navedeno').length - 1).toBe(2);
+    expect(groupIds()).not.toContain('worker-review-tools');
   });
 
   it('the constant sentence with the bell says only what the profile is used for, in ink', async () => {

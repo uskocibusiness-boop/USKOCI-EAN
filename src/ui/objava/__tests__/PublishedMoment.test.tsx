@@ -12,6 +12,7 @@ jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 import { forgetTicks } from '../../system/haptics';
 import { Pecat } from '../../system/Pecat';
+import { Screen } from '../../system/Screen';
 import { sys } from '../../system/tokens';
 import { PUBLISHED_MOMENT_MS, PublishedMoment } from '../PublishedMoment';
 
@@ -33,16 +34,37 @@ const action = () => tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak
 beforeEach(() => { jest.useFakeTimers(); forgetTicks(); mockHaptic.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); mockReduced = false; jest.useRealTimers(); jest.restoreAllMocks(); });
 
-it('says what happened, with the state word of a live task beside it and one green way on, and no sentence about where the applications will be seen', async () => {
-  await render(jest.fn());
+it('identifies the actual published task, confirms it once and offers one green way on', async () => {
+  await render(jest.fn(), { taskTitle: 'Izrada 3D figurica' });
   // The owner, 8 Oct 2026: the grey line ("Prijave stižu ovde. Javićemo ti.") explained what the green action already is.
-  expect(texts()).toEqual(['Zadatak je objavljen.', 'Objavljen', 'Otvori zadatak']);
+  expect(texts()).toEqual(['Izrada 3D figurica', 'Objavljen', 'Otvori zadatak']);
   expect(texts().join(' ')).not.toMatch(/Prijave|Javićemo|zvonc/);
   const title = tree.root.findAllByType('T' as React.ElementType)[0];
-  expect(title.props).toMatchObject({ variant: 'title', accessibilityRole: 'header', accessibilityLiveRegion: 'polite' });
+  expect(title.props).toMatchObject({ variant: 'title', accessible: false });
+  expect(tree.root.findByProps({ accessibilityLabel: 'Izrada 3D figurica. Zadatak je objavljen.' }).props)
+    .toMatchObject({ accessible: true, accessibilityRole: 'header', accessibilityLiveRegion: 'polite' });
+  expect(tree.root.findByType(Pecat).parent?.props)
+    .toMatchObject({ importantForAccessibility: 'no-hide-descendants', accessibilityElementsHidden: true });
   // One action, the primary one, green; nothing else to press.
   expect(tree.root.findAllByType('Press' as React.ElementType)).toHaveLength(1);
   expect(action().props.accessibilityRole).toBe('button');
+});
+
+it.each([undefined, null, '', '   '])('missing task title %s leaves one confirmation without a fabricated name', async taskTitle => {
+  await render(jest.fn(), { taskTitle });
+  expect(texts()).toEqual(['Objavljen', 'Otvori zadatak']);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Zadatak je objavljen.' }).props.accessibilityRole).toBe('header');
+});
+
+it('allows a long real title to wrap and the content to scroll within the existing safe area', async () => {
+  const taskTitle = '  Izrada i slanje personalizovanih 3D figurica prema dostavljenom modelu za proslavu u Novom Sadu  ';
+  await render(jest.fn(), { taskTitle });
+  const title = tree.root.findAllByType('T' as React.ElementType)[0];
+  expect(title.children).toEqual([taskTitle.trim()]);
+  expect(title.props.numberOfLines).toBeUndefined();
+  expect(tree.root.findByType(Screen).props.kind).toBe('detail');
+  expect(tree.root.findByType(Screen).props.scroll).not.toBe(false);
+  expect(tree.root.findByType('SafeAreaView' as React.ElementType).props.edges).toContain('bottom');
 });
 
 it('is seen for at least 1,2 s after the stamp has landed, and then continues by itself, once', async () => {
@@ -122,6 +144,7 @@ it('a screen reader that is turned on while the moment is shown stops the timer'
 });
 
 it('says "Izmene su objavljene." for a changed task when it is handed those words', async () => {
-  await render(jest.fn(), { title: 'Izmene su objavljene.' });
-  expect(texts()).toEqual(['Izmene su objavljene.', 'Objavljen', 'Otvori zadatak']);
+  await render(jest.fn(), { title: 'Izmene su objavljene.', taskTitle: 'Izrada 3D figurica' });
+  expect(texts()).toEqual(['Izrada 3D figurica', 'Izmene objavljene', 'Otvori zadatak']);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Izrada 3D figurica. Izmene su objavljene.' })).toBeTruthy();
 });

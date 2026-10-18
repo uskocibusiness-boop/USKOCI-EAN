@@ -48,6 +48,6 @@ Motion treba da objasni promenu ili da kratko izrazi identitet: dodir, otvaranje
 
 Prvo svrha i povezana putanja, zatim kompozicija, stvarna stanja (učitavanje/prazno/greška/offline/uspeh), implementacija i ciljana provera ponašanja. Nakon smislene grupe promena: build iz poznatog izvora, emulator, pregled vrha/sredine/dna, tastature i povratka. Trenutna dozvola je emulator; fizički telefon samo u posebno odobrenom prozoru. Ne praviti APK za svaku malu stilsku izmenu.
 
-Stari UX nacrt ostaje trag ranijeg rešenja; razliku zabeležiti u pogođenim redovima i izveštaju. Nova sloboda redizajna već je data; rutinske odluke ne vraćati vlasniku kao novo čekanje. Posebne granice iz AGENTS za server, plaćene pozive, push, pakete, privatnost, stvarne podatke i javnu objavu ostaju.
+Stari UX nacrt ostaje trag ranijeg rešenja; razliku zabeležiti u pogođenim redovima i izveštaju. Vlasnik je 18.10. dao trajno „PRIMENI” za povezano usavršavanje i primenu. Rutinske odluke, provereni serverski paketi i objedinjeni APK ne čekaju novo odobrenje. Raditi veće celine i proveravati ih zajedno, uz ranije provere konkretnih rizika za podatke i isporuku. Autentifikacija, vlasništvo, privatnost, stvarni podaci i potvrda poslovnog upisa ostaju deo proizvoda; izvršenje i ograničeni testovi prate AGENTS §3.1.
 
 Prethodna verzija ovog dokumenta sačuvana je [neizmenjena](../authority/history/entry-cleanup-20261018/docs/implementation/OWNER_DESIGN_DIRECTION_20260922.md). Ne čitati je kao naredbu da se vrati star izgled.

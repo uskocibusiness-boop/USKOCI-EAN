@@ -1,5 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
+import { rememberAiCorrection } from '../aiCorrectionIntent';
 
 /**
  * The worker-profile conversation and its review, as parts (T4b1, 2026-10-07).
@@ -13,6 +14,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 const mockAccount = '11111111-1111-4111-8111-111111111111', mockProfile = '22222222-2222-4222-8222-222222222222', mockConversation = '33333333-3333-4333-8333-333333333333';
 const A = mockAccount, B = mockProfile, C = mockConversation;
 let mockRouteId = C;
+let mockCorrection: string | undefined, mockFocused=true;
 const mockListeners = new Set<(s: string) => void>();
 const mockApi = { read: jest.fn(), open: jest.fn(), send: jest.fn(), recoverTurn: jest.fn(), cancelTurn: jest.fn(), patch: jest.fn(), prepare: jest.fn(), save: jest.fn(), abandon: jest.fn() };
 const mockJournal = { load: jest.fn(), save: jest.fn(), clear: jest.fn() };
@@ -30,8 +32,8 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
-jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ conversationId: mockRouteId }),
-  useFocusEffect: (fn: () => void) => require('react').useEffect(() => fn(), [fn]) }));
+jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ conversationId: mockRouteId,aiCorrection:mockCorrection }),
+  useFocusEffect: (fn: () => void) => require('react').useEffect(() => mockFocused?fn():undefined, [fn,mockFocused]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: 1 }), sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: 1 }) }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: jest.fn() }));
 jest.mock('../../ui/profile/useAccountName', () => ({ useAccountName: () => mockAccountName }));
@@ -82,6 +84,7 @@ const openReview = async () => {
 };
 beforeEach(() => {
   jest.clearAllMocks(); mockRouteId = C; mockRouter.canGoBack.mockReturnValue(true); mockAccountName = { state: 'ready', name: null };
+  mockCorrection=undefined;mockFocused=true;
   mockJournal.load.mockResolvedValue(null); mockJournal.save.mockResolvedValue(undefined); mockJournal.clear.mockResolvedValue(undefined);
   mockApi.read.mockResolvedValue(ok(snapshot())); mockApi.open.mockResolvedValue(ok(snapshot()));
   mockApi.recoverTurn.mockResolvedValue(ok({}));
@@ -89,11 +92,20 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('the conversation (M1)', () => {
+  it('consumes a new saved-profile topic on refocus of the same route, preserving unsent text',async()=>{
+    await render();await act(async()=>shell().props.onChange('Moj neposlati odgovor'));
+    mockFocused=false;await act(async()=>tree.update(<Screen/>));
+    mockCorrection=rememberAiCorrection({accountId:A,accountRevision:1},'worker.identity')!.token;
+    await act(async()=>tree.update(<Screen/>));
+    mockFocused=true;await act(async()=>tree.update(<Screen/>));
+    expect(shell().props.correction.target).toBe('worker.identity');expect(shell().props.value).toBe('Moj neposlati odgovor');
+    expect(shell().props.conversationKey).toBe(C);expect(mockApi.open).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+  });
   it('is titled "Radni profil", puts the latest question first, and offers the "+" for the parts', async () => {
     await render();
     expect(shell().props.title).toBe('Radni profil'); expect(shell().props.questionFocus).toBe(true);
-    expect(shell().props.attach).toMatchObject({ label: 'Dodaj podatke', disabled: false });
-    expect(shell().props.attach.hint).toBe('Usluge, područje rada, vreme, alat i vozilo.');
+    expect(shell().props.attach).toMatchObject({ label: 'Šta želiš da izmeniš?', disabled: false });
+    expect(shell().props.attach.hint).toBe('Izaberi temu i nastavi isti razgovor.');
   });
 
   it('draws no "+" when the conversation cannot take anything more', async () => {
@@ -102,33 +114,37 @@ describe('the conversation (M1)', () => {
     expect(shell().props.attach).toBeUndefined();
   });
 
-  it('the "+" lists the four parts, each opening its own editor and writing only through "Primeni"', async () => {
+  it('the "+" selects a conversation topic without modifying or sending a draft', async () => {
     await render();
+    await act(async () => shell().props.onChange('Moj nezavršen odgovor'));
     await act(async () => { shell().props.attach.onPress(); });
     expect(menuRows().map(row => row.props.accessibilityLabel)).toEqual(['Usluge koje nudiš', 'Područje rada', 'Kada imaš vremena', 'Alat i vozilo']);
     await act(async () => { menuRow('Usluge koje nudiš').props.onPress(); });
     expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
-    expect(manual().props.only).toBe('skills'); expect(frame().props.title).toBe('Usluge koje nudiš');
-    expect(mockApi.patch).not.toHaveBeenCalled();
+    expect(shell().props.correction.target).toBe('worker.skills');
+    expect(shell().props.value).toBe('Moj nezavršen odgovor');
+    expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0);
+    expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.send).not.toHaveBeenCalled();
   });
 
-  it('a part opened from the "+" applies one patch and returns to the conversation, without a review', async () => {
+  it('equipment is an optional topic and dismissing it preserves the unsent message', async () => {
     await render();
     await act(async () => { shell().props.attach.onPress(); });
     await act(async () => { menuRow('Alat i vozilo').props.onPress(); });
-    expect(manual().props.only).toBe('tools');
-    mockApi.patch.mockResolvedValue(ok(snapshot(1)));
-    await act(async () => { manual().props.apply({ tools: ['Bušilica'], vehicles: [] }); });
-    expect(mockApi.patch).toHaveBeenCalledWith(C, 0, { tools: ['Bušilica'], vehicles: [] });
+    expect(shell().props.correction.target).toBe('worker.tools');
+    await act(async () => shell().props.onChange('Imam bušilicu.'));
+    await act(async () => shell().props.correction.onDismiss());
+    expect(shell().props.correction).toBeUndefined(); expect(shell().props.value).toBe('Imam bušilicu.');
+    expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.send).not.toHaveBeenCalled();
     expect(mockApi.prepare).not.toHaveBeenCalled();
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0); expect(shell()).toBeTruthy();
   });
 
-  it('"Kada imaš vremena" opens the week, not a list', async () => {
+  it('"Kada imaš vremena" opens a topic in the same conversation', async () => {
     await render();
     await act(async () => { shell().props.attach.onPress(); });
     await act(async () => { menuRow('Kada imaš vremena').props.onPress(); });
-    expect(tree.root.findByType(CalendarScreen).props.title).toBe('Dostupnost za rad');
+    expect(shell().props.correction.target).toBe('worker.time');
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0);
   });
 
@@ -152,42 +168,42 @@ describe('the review (M2)', () => {
     expect(tree.root.findAllByType('Review' as never)).toHaveLength(0); expect(shell()).toBeTruthy();
   });
 
-  it('"Izmeni" at a part opens that part\'s editor; Back from it returns to the SAME review', async () => {
-    await render(); await openReview();
+  it('"Izmeni" returns to the same conversation and preserves its unsent draft', async () => {
+    await render(); await act(async () => shell().props.onChange('Nezavršen odgovor')); await openReview();
     expect(typeof review().props.onEdit).toBe('function'); expect(review().props.editDisabled).toBe(false);
     await act(async () => { review().props.onEdit('skills'); });
-    expect(manual().props.only).toBe('skills'); expect(frame().props.title).toBe('Usluge koje nudiš');
-    await act(async () => { frame().props.back(); });
-    expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0); expect(review()).toBeTruthy();
+    expect(shell().props.correction.target).toBe('worker.skills'); expect(shell().props.conversationKey).toBe(C);
+    expect(shell().props.value).toBe('Nezavršen odgovor');
+    expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0);
+    expect(mockApi.send).not.toHaveBeenCalled(); expect(mockApi.open).not.toHaveBeenCalled();
     expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.prepare).toHaveBeenCalledTimes(1);
   });
 
-  it('a change made from the review is followed by one fresh review of the new proposal, and lands on it', async () => {
+  it('an explicit AI correction is followed by a fresh review of its new revision', async () => {
     await render(); await openReview();
     mockApi.prepare.mockClear();
     await act(async () => { review().props.onEdit('area'); });
-    expect(manual().props.only).toBe('area'); expect(frame().props.title).toBe('Područje');
-    mockApi.patch.mockResolvedValue(ok(snapshot(1)));
+    expect(shell().props.correction.target).toBe('worker.area');
+    mockApi.send.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(snapshot(1)));
+    await act(async () => shell().props.onChange('Radim u Zemunu i okolini do 25 km.'));
+    await act(async () => shell().props.onSend());
+    expect(mockApi.send).toHaveBeenCalledWith(C,'Radim u Zemunu i okolini do 25 km.',expect.any(String),expect.any(Object));
+    expect(mockApi.patch).not.toHaveBeenCalled();
     mockApi.read.mockResolvedValue(ok(reviewed(1)));
-    await act(async () => { manual().props.apply({ location: { city: 'Zemun', operatingCountryCode: 'RS', radiusKm: 25 } }); });
-    expect(mockApi.patch).toHaveBeenCalledTimes(1);
-    expect(mockApi.patch).toHaveBeenCalledWith(C, 0, { location: { city: 'Zemun', operatingCountryCode: 'RS', radiusKm: 25 } });
+    await act(async () => shell().props.card(false).props.review());
     // The review is prepared for the NEW revision, with the activation the person had chosen, and read back before it is shown.
     expect(mockApi.prepare).toHaveBeenCalledTimes(1); expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, true);
-    expect(mockApi.patch.mock.invocationCallOrder[0]).toBeLessThan(mockApi.prepare.mock.invocationCallOrder[0]);
+    expect(mockApi.send.mock.invocationCallOrder[0]).toBeLessThan(mockApi.prepare.mock.invocationCallOrder[0]);
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0); expect(review().props.review.revision).toBe(1);
     expect(frame().props.title).toBe('Tvoj radni profil');
   });
 
-  it('the week changed from the review comes back to the review the same way', async () => {
+  it('time correction starts no calendar patch or provider request merely by selecting it', async () => {
     await render(); await openReview();
     mockApi.prepare.mockClear();
     await act(async () => { review().props.onEdit('time'); });
-    expect(tree.root.findByType(CalendarScreen).props.title).toBe('Dostupnost za rad');
-    mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.read.mockResolvedValue(ok(reviewed(1)));
-    await act(async () => { tree.root.findByType('Availability' as never).props.onSave({ ...availability(), availableNow: true }); });
-    expect(mockApi.patch).toHaveBeenCalledTimes(1); expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, true);
-    expect(review()).toBeTruthy();
+    expect(shell().props.correction.target).toBe('worker.time');
+    expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.prepare).not.toHaveBeenCalled(); expect(mockApi.send).not.toHaveBeenCalled();
   });
 
   it('keeps the activation the person chose when the profile is still a draft', async () => {
@@ -195,8 +211,11 @@ describe('the review (M2)', () => {
     await render(); await act(async () => { shell().props.card(false).props.review(); });
     mockApi.prepare.mockClear();
     await act(async () => { review().props.onEdit('identity'); });
-    mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.read.mockResolvedValue(ok(reviewed(1, false)));
-    await act(async () => { manual().props.apply({ bio: 'Radim sa bratom.' }); });
+    mockApi.send.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(snapshot(1)));
+    await act(async () => shell().props.onChange('U opisu napiši da radim sa bratom.'));
+    await act(async () => shell().props.onSend());
+    mockApi.read.mockResolvedValue(ok(reviewed(1,false)));
+    await act(async () => shell().props.card(false).props.review());
     expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, false);
   });
 
@@ -204,6 +223,8 @@ describe('the review (M2)', () => {
     await render(); await openReview();
     mockApi.prepare.mockClear();
     await act(async () => { review().props.onEdit('tools'); });
+    await act(async () => shell().props.onOptions());
+    await act(async () => menuRow('Ručno uredi podatke').props.onPress());
     mockApi.patch.mockResolvedValue({ ok: false, kod: 'UNKNOWN', poruka: 'Ishod nije potvrđen.' });
     await act(async () => { manual().props.apply({ tools: ['Bušilica'], vehicles: [] }); });
     expect(mockApi.prepare).not.toHaveBeenCalled();
@@ -279,11 +300,13 @@ describe('one name: the review is made under the account\'s name', () => {
     await open();
     mockApi.patch.mockClear(); mockApi.prepare.mockClear();
     await act(async () => { review().props.onEdit('area'); });
+    await act(async () => shell().props.onOptions());
+    await act(async () => menuRow('Ručno uredi podatke').props.onPress());
     mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.read.mockResolvedValue(ok(reviewed(1)));
     await act(async () => { manual().props.apply({ location: { city: 'Zemun', operatingCountryCode: 'RS', radiusKm: 25 } }); });
     expect(mockApi.patch).toHaveBeenCalledTimes(1);
     expect(mockApi.patch).toHaveBeenCalledWith(C, 0, { location: { city: 'Zemun', operatingCountryCode: 'RS', radiusKm: 25 }, displayName: 'Milos' });
-    expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, true);
+    expect(mockApi.prepare).not.toHaveBeenCalled();
   });
 
   it('the review of an account that has no name at all says so and leads to the one place it is written', async () => {
@@ -330,6 +353,8 @@ describe('activation choice belongs to the conversation', () => {
     await prepareFalse();
     await act(async () => shell().props.attach.onPress());
     await act(async () => menuRow('Alat i vozilo').props.onPress());
+    await act(async () => shell().props.onOptions());
+    await act(async () => menuRow('Ručno uredi podatke').props.onPress());
     mockApi.patch.mockResolvedValue(ok(snapshot(1)));
     await act(async () => manual().props.apply({ tools: ['Bušilica'], vehicles: [] }));
     await act(async () => shell().props.card(false).props.review());

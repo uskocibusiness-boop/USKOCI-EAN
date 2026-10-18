@@ -21,7 +21,7 @@ import type { WorkerDraft } from './workerProfileDraft';
 import { WorkerProfileSaved, type AvailableNowControl, type SavedProfilePart } from './WorkerProfileSaved';
 import type { WorkerExecutionModeView } from '../../hooks/useWorkerExecutionModes';
 import { NameDifference, namesDiffer } from './NameDifference';
-import { availabilityRowDetail } from './workerProfileFacts';
+import { availabilityRowDetail, type WorkerAiPart } from './workerProfileFacts';
 
 /**
  * Frame of the worker profile: back, title, keyboard-safe body, sticky footer. `/profil/razgovor` and `/profil/lokacija`
@@ -240,7 +240,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
   reading = false, accountName = null, onUseAccountName, nameWorking = false, onEditPart, face, rating, availableNow, openSection, executionModes, refreshModes }: {
   draft: WorkerDraft; change: (value: WorkerDraft) => void; disabled: boolean; status: StanjeProfila | null;
   navigate: (path: WorkerNavigation) => void; focusRequest?: WorkerProfileFocusRequest | null;
-  checks?: WorkerActivationChecks; readyToActivate?: boolean; openConversation?: () => void; profileExists?: boolean;
+  checks?: WorkerActivationChecks; readyToActivate?: boolean; openConversation?: (part?: WorkerAiPart) => void; profileExists?: boolean;
   /** Only a pristine first visit. Retained drafts and uncertain writes must keep their recovery editor. */ introOnly?: boolean;
   reading?: boolean;
   executionModes?: WorkerExecutionModeView; refreshModes?: () => void;
@@ -295,7 +295,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
       <T variant="heading" accessibilityRole="header" style={s.ink}>Ispričaj čime se baviš</T>
       <T variant="note" tone="muted">Veštine, oprema i područje rada — kroz razgovor.</T>
     </View> : <ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate} disabled={disabled} navigate={navigate} />}
-    {openConversation && !firstSetup ? <Surface kind="record" onPress={disabled ? undefined : openConversation} accessibilityLabel="Uredi profil kroz razgovor"
+    {openConversation && !firstSetup ? <Surface kind="record" onPress={disabled ? undefined : () => openConversation()} accessibilityLabel="Uredi profil kroz razgovor"
       accessibilityHint="Razgovor o zadacima, alatu, vozilima i području rada." style={s.conversationEntry}>
       <View style={[s.conversationCopy, stacked && s.conversationCopyStacked]}>
         <ConversationArt size={64} />

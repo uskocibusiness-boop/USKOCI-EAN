@@ -13,8 +13,8 @@ import { sys } from '../system/tokens';
  * "Objavljeno" (plan 2.9, owner 2026-10-07; "Papir i pečat", owner's pick of 2026-10-08): the one calm moment right after a publication the
  * server has confirmed. Until 2026-10-07 the success was replaced by the jump to the map in the same breath, so nobody ever saw it. The
  * moment is the paper with a pin and a pencil (144, the picture of a task laid on the table), which settles in once as the picture of an
- * empty state does (`Arrive`); the pill "Objavljen" then falls onto it beside the title like a stamp (`Pecat`: tilted, 140 ms, no bounce, one
- * light tick as it lands); what happened and ONE green way on. Nothing else moves and nothing else is said (the owner, 8 Oct 2026: the grey line about
+ * empty state does (`Arrive`); the confirmation then falls beside the actual task title like a stamp (`Pecat`: tilted, 140 ms, no bounce, one
+ * light tick as it lands); one confirmation and ONE green way on. The task is identified only when its actual title is supplied. Nothing else moves (the owner, 8 Oct 2026: the grey line about
  * where the applications can be seen, "Prijave vidiš ovde i u zvoncu.", explained what the green action already is). Under reduced motion the picture and the pill are there at once and the tick stays (a tick is an outcome, not movement).
  *
  * It holds `PUBLISHED_MOMENT_MS` when left alone and then continues by itself; a tap on the green action, or Android Back (the
@@ -40,14 +40,21 @@ function useScreenReaderOn(): boolean {
   return on;
 }
 
-export function PublishedMoment({ title, actionLabel = 'Otvori zadatak', onContinue }: {
+export function PublishedMoment({ title, taskTitle, actionLabel = 'Otvori zadatak', onContinue }: {
   /** What happened, as a sentence: "Zadatak je objavljen." */
   title: string;
+  /** Actual title of the confirmed task. Missing data never becomes an invented task name. */
+  taskTitle?: string | null;
   actionLabel?: string;
   /** Goes on to the task. Called at most once per tap or timer; the route's own fence decides whether it may. */
   onContinue: () => void;
 }) {
   const screenReader = useScreenReaderOn();
+  const name = taskTitle?.trim();
+  // The visible stamp is concise; the accessible announcement retains the exact
+  // outcome, including the distinction between publication and published edits.
+  const confirmation = title === 'Zadatak je objavljen.' ? 'Objavljen'
+    : title === 'Izmene su objavljene.' ? 'Izmene objavljene' : title;
   // The timer runs the newest `onContinue`, which holds the route's newest guards, never the one of the render that started it.
   const latest = useRef(onContinue); latest.current = onContinue;
   useEffect(() => {
@@ -55,14 +62,15 @@ export function PublishedMoment({ title, actionLabel = 'Otvori zadatak', onConti
     const timer = setTimeout(() => latest.current(), PUBLISHED_MOMENT_MS);
     return () => clearTimeout(timer);
   }, [screenReader]);
-  return <Screen kind="detail" scroll={false}>
+  return <Screen kind="detail" contentStyle={s.content}>
     <View style={s.center}>
       <Arrive delay={0}><FactArt kind="publish" size={144} /></Arrive>
-      <View style={s.words}>
-        <View style={s.heading}>
-          <T accessibilityRole="header" accessibilityLiveRegion="polite" variant="title" style={s.title}>{title}</T>
-          {/* The state word of a task that is now live, falling on the paper as the picture finishes settling. */}
-          <Pecat label="Objavljen" tone="green" play delay={sys.motion.arrive.duration} />
+      <View style={s.words} accessible accessibilityRole="header" accessibilityLiveRegion="polite"
+        accessibilityLabel={name ? `${name}. ${title}` : title}>
+        {name ? <T accessible={false} variant="title" style={s.title}>{name}</T> : null}
+        {/* Announce the name and confirmation once; the existing stamp keeps its motion and haptic. */}
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Pecat label={confirmation} tone="green" play delay={sys.motion.arrive.duration} />
         </View>
       </View>
       <V2Action kind="primary" label={actionLabel} onPress={onContinue} style={s.action} />
@@ -73,9 +81,9 @@ export function PublishedMoment({ title, actionLabel = 'Otvori zadatak', onConti
 const s = StyleSheet.create({
   // The paper, the words and the one way on stand in the middle of the screen, one more edge in from the screen's own (as the owner's picture
   // has it); the way on is as wide as the words allow (320) and centred, never pushed to one side.
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: layout.section, paddingHorizontal: layout.gutter },
-  words: { alignItems: 'center', gap: sys.space.sm, maxWidth: 320 },
-  heading: { alignItems: 'center', gap: sys.space.md },
+  content: { flexGrow: 1 },
+  center: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: layout.section, paddingHorizontal: layout.gutter },
+  words: { alignItems: 'center', gap: sys.space.md, maxWidth: 320, width: '100%' },
   title: { color: sys.color.ink, textAlign: 'center' },
   action: { alignSelf: 'center', maxWidth: 320, width: '100%' },
 });

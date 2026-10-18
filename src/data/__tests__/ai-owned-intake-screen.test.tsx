@@ -2,6 +2,7 @@ import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { aiTurnIntentJournal } from '../aiTurnIntentJournal';
 import { readIntakeReviewReturn } from '../intakeReviewReturn';
+import { rememberAiCorrection } from '../aiCorrectionIntent';
 jest.mock('@react-native-async-storage/async-storage', () => { const values = new Map<string, string>(); return { getItem: jest.fn(async (key: string) => values.get(key) ?? null), setItem: jest.fn(async (key: string, value: string) => { values.set(key, value); }), removeItem: jest.fn(async (key: string) => { values.delete(key); }), clear: jest.fn(async () => { values.clear(); }) }; });
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { AiNeedV2Conversation } from '../../contracts/aiNeedV2';
@@ -10,7 +11,7 @@ import type { LocationReplyLease } from '../../ui/location/ConversationPointAsk'
 import { NEED_FACT_V2_DEFINITIONS, type NeedFactV2Key } from '../../contracts/needFactsV2';
 
 let mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
-let mockParams: { conversationId?: string | string[]; entryKey?: string | string[] } = {}, mockCounter = 0;
+let mockParams: { conversationId?: string | string[]; entryKey?: string | string[]; aiCorrection?: string | string[] } = {}, mockCounter = 0;
 let mockReduced = false;
 let mockVoicePhase: VoicePhase = 'IDLE';
 let mockRealVoice = false;
@@ -946,9 +947,12 @@ it.each(['new', 'new-entry', 'resumed'] as const)('preserves unsent text through
   expect(retained.params).toEqual(originalParams);
   // A manual correction saved in the review must come back through the normal canonical read.
   mockLoad.mockResolvedValue(conversation({ facts: completeFacts('Prenos dva ormara') }));
-  mockParams = { ...retained.params }; await focus();
+  const hint=rememberAiCorrection({accountId:mockSession.user.id,accountRevision:mockSession.accountRevision},'task.price',id)!;
+  mockParams = { ...retained.params,aiCorrection:hint.token }; await focus();
   expect(readIntakeReviewReturn(first.intakeReturn, id)).toBeNull();
   expect(input().value).toBe('Dopuna koju još nisam poslao.');
+  expect(tree.root.findByProps({testID:'ai-correction-context'})).toBeDefined();
+  expect(text()).toContain('Cena i ponude');
   expect(text()).toContain('Prenos dva ormara');
   expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findAllByProps({ label: 'Pregledaj zadatak' })).toHaveLength(1);
   expect(mockSend).toHaveBeenCalledTimes(sends);

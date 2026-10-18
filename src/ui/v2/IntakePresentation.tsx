@@ -24,7 +24,7 @@ import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { CardTitle, valueSpoken } from './TaskFace';
 import { normalizeNeedLocation, pointsMissing } from '../../lib/location';
-import { AiConversationShell } from '../aiFirst/AiConversationShell';
+import { AiConversationShell, type AiConversationShellProps } from '../aiFirst/AiConversationShell';
 import type { VoiceInput } from '../aiFirst/VoiceComposer';
 import type { LocationReplyPrompt } from '../location/ConversationPointAsk';
 import { ConfirmedPlaceLine } from '../location/ConfirmedPlaceLine';
@@ -112,6 +112,7 @@ type Props = {
   conversation: AiNeedV2Conversation; value: string; busy: boolean; error: string | null;
   canSubmit: boolean; canEdit: boolean; canReview: boolean; reviewLabel: string;
   reviewDisabledReason?: string | null;
+  correction?: AiConversationShellProps['correction'];
   /** Separate route authority from the temporary speech/semantic interaction lock. */
   locationDisabled?: boolean;
   locationDialogueEnabled?: boolean;
@@ -467,6 +468,7 @@ export function IntakePresentation(props: Props) {
   }
   return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
     cardPlacement="end" closed={ended}
+    correction={props.correction}
     footerAction={footerAction}
     newConversation={props.onRestart ? { onPress: outsidePlace(props.onRestart), disabled: props.restartDisabled || editingPlace }
       : ended && props.onNewTask ? { onPress: props.onNewTask, disabled: props.newTaskDisabled } : undefined}

@@ -126,13 +126,13 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f supabase/proofs/dynamic_taxonomy/worker-saved-mode-continuity/assert-before.sql
       - name: Prove saved-mode continuity and stale, changed and revoked negatives
         run: |
-          psql -X --single-transaction -v ON_ERROR_STOP=1 -f supabase/migrations/20261018123829_worker_saved_mode_review_continuity.sql
+          psql -X --single-transaction -v ON_ERROR_STOP=1 -f supabase/migrations/20261018124717_worker_saved_mode_review_continuity.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/proofs/dynamic_taxonomy/worker-saved-mode-continuity/assert.sql
       - name: Prove rollback and reapplication
         run: |
           psql -X -v ON_ERROR_STOP=1 -f supabase/proofs/dynamic_taxonomy/worker-saved-mode-continuity/before.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/proofs/dynamic_taxonomy/worker-saved-mode-continuity/assert-before.sql
-          psql -X --single-transaction -v ON_ERROR_STOP=1 -f supabase/migrations/20261018123829_worker_saved_mode_review_continuity.sql
+          psql -X --single-transaction -v ON_ERROR_STOP=1 -f supabase/migrations/20261018124717_worker_saved_mode_review_continuity.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/proofs/dynamic_taxonomy/worker-saved-mode-continuity/assert.sql
 
   classification-contract:

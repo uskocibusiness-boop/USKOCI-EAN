@@ -8,6 +8,7 @@ import { aiTaskReviewClientService, type AiTaskReviewEnvelope, type AiTaskReview
 import { reviewFactProblem } from '../../data/reviewFactProblem';
 import { publishedTaskRoute, rememberPublication } from '../../data/publicationHandoff';
 import { readIntakeReviewReturn } from '../../data/intakeReviewReturn';
+import { rememberAiCorrection, taskCorrectionTarget, type AiCorrectionTarget } from '../../data/aiCorrectionIntent';
 import { aiNeedV2Izvor, izvor } from '../../data';
 import { choiceCorrectionText, editorCorrection, factChoiceValue, factChoices, factCorrectionValue, factEditorKind, factLabel,
   factListItems, factTimestampFields, listCorrectionText, priceAmountRowValue, timestampCorrectionText } from '../../data/aiNeedV2Ui';
@@ -341,11 +342,17 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       return { ok: true, podatak: snapshot! };
     });
   };
-  // "Izmeni zadatak" before publishing: back to the conversation this review was prepared from, which keeps the draft. It is the same way
-  // back as the arrow ("Nazad u razgovor"), with the same retained intake identity, now where the owner can see it: the pencil of the card at the
-  // top of the review (owner, 2026-10-07: "at least I do not see that function easily"). Nothing is sent; an open correction, the place or the
-  // deadline holds it like the others.
-  const editInConversation = () => { if (!busyNow.current && canAct() && !command && !edit && !locationEditor && !deadlineEditor) back(); };
+  // Review corrections return to the same conversation and unsent draft, with a visible topic hint only.
+  // Nothing is sent; an open correction, place confirmation or deadline change keeps the return guarded.
+  const editInConversation = (target: AiCorrectionTarget = 'task.details') => {
+    if (busyNow.current || !canAct() || command || edit || locationEditor || deadlineEditor || !conversationId || !accountId) return;
+    const correction = rememberAiCorrection({ accountId, accountRevision }, target, conversationId);
+    if (!correction) return;
+    const retained = readIntakeReviewReturn(intakeReturn, conversationId);
+    navigate(() => router.replace({ pathname: '/nova', params: {
+      ...(retained?.params ?? { conversationId }), aiCorrection: correction.token,
+    } }));
+  };
   // "Obriši nacrt" (owner, 2026-10-07), in the two places a draft can be:
   // - A review that has not been accepted has no task yet: its draft is the conversation it was written in, and the one command the server
   //   has for that is to leave the conversation (`rpc_ai_abandon_need_conversation_v2`, which refuses a conversation bound to a task). The
@@ -552,6 +559,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // overview by itself, on a tap and on Android Back (see `PublishedMoment`); this route's own fence decides whether it may.
   if (momentOpen && command && review) return <PublishedMoment
     title={revising ? 'Izmene su objavljene.' : 'Zadatak je objavljen.'}
+    taskTitle={need?.naslov}
     onContinue={openPublished} />;
   // The place mode replaces the whole review (one map at a time, no publish under the editor).
   if (locationEditor && review) return <SafeAreaView edges={['top', 'bottom']} style={frame.canvas}>
@@ -582,7 +590,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       ? review?.publicProjection.find(item => item.key === target && item.id) : undefined;
     const viaConversation = target === 'conversation' || (!!target && target !== 'location' && !fact);
     return { key: todo.key, text: todo.text, actionLabel: todoActionLabel(todo, viaConversation),
-      onPress: viaConversation ? back : target === 'location' ? () => { void openLocation(); } : fact ? () => startEdit(fact) : undefined };
+      onPress: viaConversation ? () => editInConversation() : target === 'location' ? () => { void openLocation(); } : fact ? () => editInConversation(taskCorrectionTarget(fact.key)) : undefined };
   });
   const identityBlock = unavailableIdentityFact ? <View style={s.identity}>
     <T variant="meta" tone="muted">{IDENTITY_VERIFICATION_UNAVAILABLE_COPY}</T>
@@ -600,15 +608,15 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const canEdit = !command && !quietEdit;
   const pencil = (label: string, onPress: () => void, word?: string): PartPencil | undefined => canEdit ? { label, onPress, ...(word ? { word } : {}) } : undefined;
   const systemNote = (item: AiTaskReviewFact | undefined) => item?.source === 'SYSTEM' ? 'Podrazumevana vrednost' : undefined;
-  /** A part that is one fact: its pencil opens that fact's editor, and an open correction of it stands in its place. */
+  /** The pencil returns to the owned intake with a local topic; it changes no facts. */
   const single = (key: NeedFactV2Key, name: string): PreviewPart => {
     const item = factOf(key);
-    return { pencil: item?.id ? pencil(`Izmeni, ${name}`, () => startEdit(item)) : undefined, editor: editingFact(item) ? editorOf() : undefined, note: systemNote(item) };
+    return { pencil: item?.id ? pencil(`Izmeni, ${name}`, () => editInConversation(taskCorrectionTarget(item.key))) : undefined, editor: editingFact(item) ? editorOf() : undefined, note: systemNote(item) };
   };
-  /** A part made of several facts (the price, the time): its pencil opens the one a person most likely means, the others are a tap away inside the editor. */
+  /** Price and time each have one conversational topic; their facts remain frozen until a new reviewed answer. */
   const grouped = (group: GroupedPart, name: string): PreviewPart => {
     const primary = partFact(group, publicFacts);
-    return { pencil: primary ? pencil(`Izmeni, ${name}`, () => startEdit(primary)) : undefined,
+    return { pencil: primary ? pencil(`Izmeni, ${name}`, () => editInConversation(group === 'value' ? 'task.price' : 'task.time')) : undefined,
       editor: edit && groupOf(edit.fact.key) === group ? editorOf() : undefined, note: systemNote(primary) };
   };
   const placeWord = opening ? 'Otvaramo…' : review?.location ? undefined : 'Dodaj';
@@ -722,14 +730,14 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
               {moreFacts.map((item, index) => {
                 const shown = displayFact(item);
                 return <ReviewFactRow key={item.key} label={factName(item.key)} value={priceAmountRowValue(priceMode, shown) ?? reviewRowValue(shown)}
-                  system={item.source === 'SYSTEM'} last={index === moreFacts.length - 1} edit={canEdit ? () => startEdit(item) : undefined}
+                  system={item.source === 'SYSTEM'} last={index === moreFacts.length - 1} edit={canEdit ? () => editInConversation(taskCorrectionTarget(item.key)) : undefined}
                   rowRef={node => { if (node) rowRefs.current.set(item.key, node); else rowRefs.current.delete(item.key); }}>
                   {editingFact(item) ? editorBody() : undefined}
                 </ReviewFactRow>;
               })}
             </ReviewMoreFacts> : undefined} />
           {/* The ways out at the end: edit in conversation, or delete draft */}
-          {!command ? <ReviewWaysOut disabled={quietEdit} onEdit={canEdit ? editInConversation : undefined} onDelete={!bound ? discardDraft : draftNeed ? deleteBoundDraft : undefined} /> : null}
+          {!command ? <ReviewWaysOut disabled={quietEdit} onEdit={canEdit ? () => editInConversation() : undefined} onDelete={!bound ? discardDraft : draftNeed ? deleteBoundDraft : undefined} /> : null}
         </>}
     </ReviewFrame>
     {confirmation.sheet}

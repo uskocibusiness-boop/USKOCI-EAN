@@ -1,3 +1,4 @@
+import { takeAiCorrection } from '../aiCorrectionIntent';
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { AiTaskPublicationCommand, AiTaskReviewEnvelope } from '../aiTaskReviewClientService';
@@ -264,7 +265,7 @@ it('shows publication only after the current owned Need revision and published s
   const held = deferred(); mockLatest.mockResolvedValue(ok({ review: review(), command: command('PUBLISHED') })); mockNeed.mockReturnValueOnce(held.promise);
   await render(); expect(text()).not.toContain('Zadatak je objavljen.');
   await act(async () => held.resolve({ id: NEED, narucilacId: OWNER, revizija: 1, stanje: 'CEKA_PRIJAVE' }));
-  expect(text()).toContain('Zadatak je objavljen.'); const retained = action('Otvori zadatak').onPress;
+  expect(text()).toMatch(/Zadatak je objavljen\.|Prenos ormara Objavljen/); const retained = action('Otvori zadatak').onPress;
   await act(async () => { retained(); retained(); });
   expect(mockRouter.replace).toHaveBeenCalledTimes(1);
   // The owner lands on the task's own overview (2026-10-07), proved by the hand-off, and not on the Zadaci map.
@@ -669,7 +670,7 @@ describe('the review reads as a task', () => {
     await act(async () => { opener.props.onPress(); });
     expect(commands('Izmeni, Veštine')).toHaveLength(1); expect(commands('Izmeni, Alat')).toHaveLength(1);
     await act(async () => rowEdit('Alat').onPress());
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Nova stavka: Alat' })).toHaveLength(1);
+    expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/nova',params:{conversationId:CONVERSATION,aiCorrection:expect.any(String)}}); expect(mockCorrect).not.toHaveBeenCalled();
   });
 
   it('the photographs lead the page of others and their pencil opens the step that holds them; with none the owner is offered to add them', async () => {
@@ -746,35 +747,14 @@ function scheduledReview(): AiTaskReviewEnvelope {
 }
 const rowEdit = (label: string) => tree.root.findByProps({ accessibilityLabel: `Izmeni, ${label}` }).props;
 const field = (label: string) => tree.root.findByProps({ label }).props;
-it('corrects a moment with the pickers, in place, and sends the resolved instant', async () => {
-  mockPrepare.mockResolvedValue(ok(scheduledReview())); mockCorrect.mockResolvedValue(ok({})); await render();
-  await act(async () => rowEdit('Termin').onPress());
-  expect(mockRouter.replace).not.toHaveBeenCalled();
-  expect(field('Početak: datum').value).toBe('2026-10-03'); expect(field('Početak: vreme').value).toBe('17:00');
-  await act(async () => field('Početak: datum').onChange('2026-10-04'));
-  await act(async () => field('Početak: vreme').onChange('09:30:00'));
-  await act(async () => action('Sačuvaj ispravku').onPress());
-  expect(mockCorrect).toHaveBeenCalledTimes(1);
-  expect(mockCorrect).toHaveBeenCalledWith('start', '2026-10-04T07:30:00.000Z', '2026-10-04 09:30');
+it.each([['Termin','task.time'],['Veštine','task.requirements']] as const)('returns %s to the same AI conversation without patching facts', async (label,target) => {
+  mockPrepare.mockResolvedValue(ok(scheduledReview())); await render();
+  await act(async () => rowEdit(label).onPress());
+  const route=mockRouter.replace.mock.calls.at(-1)![0];
+  expect(route).toEqual({pathname:'/nova',params:{conversationId:CONVERSATION,aiCorrection:expect.any(String)}});
+  expect(takeAiCorrection(route.params.aiCorrection,{accountId:OWNER,accountRevision:1},'task',CONVERSATION)?.target).toBe(target);
+  expect(mockCorrect).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled();
 });
-it('saving a moment nobody moved sends the stored instant byte for byte', async () => {
-  mockPrepare.mockResolvedValue(ok(scheduledReview())); mockCorrect.mockResolvedValue(ok({})); await render();
-  await act(async () => rowEdit('Termin').onPress());
-  await act(async () => action('Sačuvaj ispravku').onPress());
-  expect(mockCorrect).toHaveBeenCalledWith('start', '2026-10-03T15:00:00.000Z', '2026-10-03T15:00:00.000Z');
-});
-it('corrects a list item by item and keeps a word typed but not yet added', async () => {
-  mockPrepare.mockResolvedValue(ok(scheduledReview())); mockCorrect.mockResolvedValue(ok({})); await render();
-  await act(async () => rowEdit('Veštine').onPress());
-  expect(mockRouter.replace).not.toHaveBeenCalled();
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Ukloni: Montaža' }).props.onPress());
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nova stavka: Veštine' }).props.onChangeText('  Bušenje '));
-  await act(async () => action('Sačuvaj ispravku').onPress());
-  expect(mockCorrect).toHaveBeenCalledTimes(1);
-  expect(mockCorrect.mock.calls[0][0]).toBe('skills');
-  expect(mockCorrect.mock.calls[0][1]).toEqual(['Prevoz, utovar', 'Bušenje']);
-});
-
 // "Sačuvaj nacrt": the engine could always keep a reviewed task as a private draft without asking
 // for publication, and no screen let a person ask for that.
 it('saves the reviewed task as a private draft without asking for publication, then offers to publish that draft', async () => {
@@ -844,7 +824,7 @@ describe('round 6: the publish review', () => {
     expect(text()).toContain('Prvo uradi ono što piše pod „Još treba“.');
     expect(publish().disabled).toBe(true);
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Treba još malo o samom zadatku.' }).props.onPress());
-    expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
+    expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION, aiCorrection:expect.any(String) } });
   });
 
   it('lists a missing place as a row that opens the place step, and draws no separate "Izmeni u razgovoru" or "Dopuni u razgovoru" button beside it', async () => {
@@ -862,14 +842,14 @@ describe('round 6: the publish review', () => {
   it('shows a restored publication still, and springs only for a publication confirmed on this screen', async () => {
     mockLatest.mockResolvedValue(ok({ review: review(), command: command('PUBLISHED') }));
     await render();
-    expect(text()).toContain('Zadatak je objavljen.');
+    expect(text()).toMatch(/Zadatak je objavljen\.|Prenos ormara Objavljen/);
     expect(tree.root.findByType('SuccessMark' as React.ElementType).props.fresh).toBe(false);
     await act(async () => tree.unmount());
     mockLatest.mockResolvedValue(ok(null));
     mockAccept.mockImplementation(async () => { mockRead.mockResolvedValue(ok({ review: review(), command: command('PUBLISHED') })); return ok(command('PUBLISHED')); });
     await render();
     await act(async () => publish().onPress());
-    expect(text()).toContain('Zadatak je objavljen.');
+    expect(text()).toMatch(/Zadatak je objavljen\.|Prenos ormara Objavljen/);
     // The publication made on this screen is the moment "Objavljeno" ("Papir i pečat"): the stamp falls on the paper, once; there is no success mark any more.
     expect(tree.root.findAllByType('SuccessMark' as React.ElementType)).toHaveLength(0);
     expect(tree.root.findAll(node => node.props.testID === 'pecat').length).toBeGreaterThan(0);
@@ -917,141 +897,26 @@ describe('round 6: the publish review', () => {
 // The price mode, the price basis and the kind of time were corrected in a text box where the person had to type a word
 // the parser knew ("Moja cena"), and the amount in the same box. They are now pill chips and a digits-only RSD field.
 // The saved patch is what the box sent: the value, with the chosen label (or the typed digits) as its display text.
-describe('enum facts are chosen and the amount is typed as digits', () => {
+describe('AI correction of price and time preserves the reviewed facts until an explicit message', () => {
   type Fact = AiTaskReviewEnvelope['publicProjection'][number];
-  const fact = (id: string, key: Fact['key'], value: unknown, displayValue: string): Fact =>
-    ({ id, key, value, displayValue, privacyClass: 'PUBLIC', source: 'AI_INFERENCE', status: 'CONFIRMED' }) as Fact;
-  const priced = (mode: unknown, amount: unknown, extra: Fact[] = []): AiTaskReviewEnvelope => ({ ...review(), publicProjection: [
-    ...review().publicProjection, fact('mode', 'need.price_mode', mode, String(mode)), fact('price', 'need.price_rsd', amount, String(amount)), ...extra] });
-  const chip = (label: string) => tree.root.findByProps({ accessibilityRole: 'radio', accessibilityLabel: label }).props;
-  // The price and the time are one line each of the page, with one pencil; which of their facts is corrected is a tab inside the editor it opens.
-  const tab = (label: string) => tree.root.findByProps({ accessibilityRole: 'tab', accessibilityLabel: label }).props;
-  const tabs = () => tree.root.findAll(node => node.props?.accessibilityRole === 'tab' && typeof node.type === 'string').map(node => node.props.accessibilityLabel);
-  const chips = () => tree.root.findAll(node => node.props?.accessibilityRole === 'radio' && typeof node.type === 'string');
-  const amountField = () => tree.root.findByProps({ accessibilityLabel: 'Iznos u dinarima' }).props;
-  const freeText = (label: string) => tree.root.findAllByProps({ accessibilityLabel: `Nova vrednost: ${label}` });
-
-  it('changes the price mode with a chip and saves the same patch the typed word did', async () => {
-    mockPrepare.mockResolvedValue(ok(priced('MY_PRICE', 1500))); mockCorrect.mockResolvedValue(ok({})); await render();
-    // The pencil of the price opens the amount under "Moja cena"; the way the price works is the next tab of the same editor.
-    await act(async () => rowEdit('Cena').onPress());
-    expect(tabs()).toEqual(['Iznos', 'Način cene']);
-    await act(async () => tab('Način cene').onPress());
-    expect(freeText('Način cene')).toHaveLength(0);
-    expect(chips().map(node => node.props.accessibilityLabel)).toEqual(['Moja cena', 'Ponude']);
-    expect(chip('Moja cena').accessibilityState).toMatchObject({ checked: true });
-    expect(chip('Ponude').accessibilityState).toMatchObject({ checked: false });
-    await act(async () => chip('Ponude').onPress());
-    expect(chip('Ponude').accessibilityState).toMatchObject({ checked: true });
-    await act(async () => action('Sačuvaj ispravku').onPress());
-    expect(mockCorrect).toHaveBeenCalledTimes(1);
-    // Typing "Ponude" into the old box sent exactly this.
-    expect(mockCorrect).toHaveBeenCalledWith('mode', 'OFFERS', 'Ponude');
+  const fact=(id:string,key:Fact['key'],value:unknown,displayValue:string):Fact=>({id,key,value,displayValue,privacyClass:'PUBLIC',source:'AI_INFERENCE',status:'CONFIRMED'}) as Fact;
+  const priced=(mode:unknown,amount:unknown):AiTaskReviewEnvelope=>({...review(),publicProjection:[...review().publicProjection,
+    fact('mode','need.price_mode',mode,String(mode)),fact('price','need.price_rsd',amount,String(amount))]});
+  it.each(['MY_PRICE','OFFERS'] as const)('returns %s to its owned intake with only a price topic',async mode=>{
+    const original=priced(mode,1500),before=JSON.stringify(original);
+    mockPrepare.mockResolvedValue(ok(original));await render();
+    if(mode==='OFFERS'){expect(text()).not.toContain('1.500');expect(text()).toContain('Tražim ponude');}
+    await act(async()=>rowEdit('Cena').onPress());
+    const route=mockRouter.replace.mock.calls.at(-1)![0];
+    expect(route).toEqual({pathname:'/nova',params:{conversationId:CONVERSATION,aiCorrection:expect.any(String)}});
+    expect(takeAiCorrection(route.params.aiCorrection,{accountId:OWNER,accountRevision:1},'task',CONVERSATION)?.target).toBe('task.price');
+    expect(JSON.stringify(original)).toBe(before);expect(mockCorrect).not.toHaveBeenCalled();expect(mockAccept).not.toHaveBeenCalled();
   });
-
-  it('saves an untouched choice as the old seeded box did', async () => {
-    mockPrepare.mockResolvedValue(ok(priced('MY_PRICE', 1500))); mockCorrect.mockResolvedValue(ok({})); await render();
-    await act(async () => rowEdit('Cena').onPress());
-    await act(async () => tab('Način cene').onPress());
-    await act(async () => action('Sačuvaj ispravku').onPress());
-    expect(mockCorrect).toHaveBeenCalledWith('mode', 'MY_PRICE', 'Moja cena');
-  });
-
-  it.each([
-    ['Termin', 'Termin', null, fact('kind', 'need.schedule_kind', 'FLEXIBLE', 'kad stigneš'), 'Sutra', ['kind', 'TOMORROW_FLEXIBLE', 'Sutra']],
-    // The amount comes first under "Moja cena"; what it is for is the tab after it.
-    ['Osnova cene', 'Cena', 'Osnova cene', fact('basis', 'need.price_basis', 'TOTAL', 'ukupno'), 'Po osobi', ['basis', 'PER_PERSON', 'Po osobi']],
-  ] as const)('changes %s with a chip', async (label, pencil, via, extra, choice, call) => {
-    mockPrepare.mockResolvedValue(ok(priced('MY_PRICE', 1500, [extra]))); mockCorrect.mockResolvedValue(ok({})); await render();
-    await act(async () => rowEdit(pencil).onPress());
-    if (via) await act(async () => tab(via).onPress());
-    expect(freeText(label)).toHaveLength(0);
-    await act(async () => chip(choice).onPress());
-    await act(async () => action('Sačuvaj ispravku').onPress());
-    expect(mockCorrect).toHaveBeenCalledWith(...call);
-  });
-
-  it('offers the six kinds of time and no urgency', async () => {
-    mockPrepare.mockResolvedValue(ok(priced('MY_PRICE', 1500, [fact('kind', 'need.schedule_kind', 'FLEXIBLE', 'x')]))); await render();
-    await act(async () => rowEdit('Termin').onPress());
-    const labels = chips().map(node => node.props.accessibilityLabel);
-    // The nearest first, the open ones after.
-    expect(labels).toEqual(['Danas', 'Sutra', 'Ove nedelje', 'Tačan termin', 'Fleksibilno', 'Daljinski bilo kada']);
-    expect(chip('Fleksibilno').accessibilityState).toMatchObject({ checked: true });
-    expect(labels.join(' ')).not.toMatch(/hitno/i);
-  });
-
-  it('starts a retired price mode on no choice and asks for one instead of saving it', async () => {
-    mockPrepare.mockResolvedValue(ok(priced('FASTEST', null))); await render();
-    await act(async () => rowEdit('Cena').onPress());
-    expect(chips().every(node => node.props.accessibilityState.checked === false)).toBe(true);
-    await act(async () => action('Sačuvaj ispravku').onPress());
-    expect(mockCorrect).not.toHaveBeenCalled();
-    expect(text()).toContain('Izaberi jednu od ponuđenih mogućnosti.');
-  });
-
-  it('corrects the amount with digits only, grouped as Serbian writes them, and saves the typed number', async () => {
-    mockPrepare.mockResolvedValue(ok(priced('MY_PRICE', 1500))); mockCorrect.mockResolvedValue(ok({})); await render();
-    await act(async () => rowEdit('Cena').onPress());
-    expect(freeText('Iznos')).toHaveLength(0);
-    expect(amountField().value).toBe('1.500'); expect(amountField().keyboardType).toBe('number-pad');
-    expect(text()).toContain('RSD');
-    // The field hands back "1.5002" when a 2 is typed after the shown "1.500": read as the digits, regrouped.
-    await act(async () => amountField().onChangeText('1.5002'));
-    expect(amountField().value).toBe('15.002');
-    await act(async () => amountField().onChangeText('25.000'));
-    expect(amountField().value).toBe('25.000');
-    // A decimal comma is not guessed at: the number stays and the field says why.
-    await act(async () => amountField().onChangeText('25.000,5'));
-    expect(amountField().value).toBe('25.000'); expect(text()).toContain('bez zareza');
-    await act(async () => action('Sačuvaj ispravku').onPress());
-    expect(mockCorrect).toHaveBeenCalledTimes(1);
-    // Typing "25000" into the old box sent exactly this.
-    expect(mockCorrect).toHaveBeenCalledWith('price', 25000, '25000');
-  });
-
-  it('an emptied amount is empty, never a 0, and is not saved', async () => {
-    mockPrepare.mockResolvedValue(ok(priced('MY_PRICE', 1500))); await render();
-    await act(async () => rowEdit('Cena').onPress());
-    await act(async () => amountField().onChangeText(''));
-    expect(amountField().value).toBe(''); expect(amountField().placeholder).toBe('Upiši iznos');
-    await act(async () => action('Sačuvaj ispravku').onPress());
-    expect(mockCorrect).not.toHaveBeenCalled(); expect(text()).toContain('Upiši iznos u dinarima.');
-  });
-
-  it('keeps the server range refusal of the parser for an amount out of range', async () => {
-    mockPrepare.mockResolvedValue(ok(priced('MY_PRICE', 1500))); await render();
-    await act(async () => rowEdit('Cena').onPress());
-    await act(async () => amountField().onChangeText('0'));
-    await act(async () => action('Sačuvaj ispravku').onPress());
-    expect(mockCorrect).not.toHaveBeenCalled(); expect(text()).toContain('Iznos mora biti između 1 i 100.000.000 RSD.');
-  });
-
-  it('under "Ponude" shows no amount anywhere, and its editor leads to the price mode instead of saving one', async () => {
-    mockPrepare.mockResolvedValue(ok(priced('OFFERS', 1500))); await render();
-    // The clean preview says "Tražim ponude", as the published task does; an amount left from before is nowhere.
-    expect(text()).not.toContain('1.500'); expect(text().split('Tražim ponude').length - 1).toBe(1);
-    // The pencil opens the way the price works (there is no amount to change); the amount is the other tab, which only leads back to it.
-    await act(async () => rowEdit('Cena').onPress());
-    expect(chip('Ponude').accessibilityState).toMatchObject({ checked: true });
-    await act(async () => tab('Iznos').onPress());
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Iznos u dinarima' })).toHaveLength(0);
-    expect(tree.root.findAllByProps({ label: 'Sačuvaj ispravku' })).toHaveLength(0);
-    expect(text()).not.toContain('1.500'); expect(text()).toContain('Tražiš ponude, pa zadatak nema iznos');
-    await act(async () => action('Izaberi način cene').onPress());
-    expect(chip('Ponude').accessibilityState).toMatchObject({ checked: true });
-    await act(async () => chip('Moja cena').onPress());
-    expect(mockCorrect).not.toHaveBeenCalled();
-  });
-
-  it('says a missing "Moja cena" amount in words where the number would stand', async () => {
-    mockPrepare.mockResolvedValue(ok(priced('MY_PRICE', null))); await render();
-    // The clean preview says no price (never "0 RSD"), and the row of "Još treba" says what to do about it.
-    expect(text().split('Cena nije navedena').length - 1).toBe(1); expect(text()).toContain('Unesi iznos ili izaberi prikupljanje ponuda.');
-    expect(text()).not.toMatch(/\b0 RSD/);
+  it('keeps a missing amount honest instead of inventing zero',async()=>{
+    mockPrepare.mockResolvedValue(ok(priced('MY_PRICE',null)));await render();
+    expect(text()).toContain('Cena nije navedena');expect(text()).not.toMatch(/\b0 RSD/);
   });
 });
-
 // The "Objavljeno" moment (plan 2.9 and 3.3, owner 2026-10-07). A publication confirmed on this screen used to be replaced by the jump
 // to the map in the same breath, so nobody ever saw it. Now a calm moment holds for PUBLISHED_MOMENT_MS (at least 1,2 s), a tap or Android
 // Back continues at once, a screen reader is not hurried, and the owner lands on the task's OWN overview, not on the Zadaci map. Every
@@ -1079,7 +944,7 @@ describe('the Objavljeno moment', () => {
     await publishHere();
     expect(mockAccept).toHaveBeenCalledTimes(1);
     // The moment says what happened and has ONE green way on; it explains nothing (no "Prijave vidiš ovde i u zvoncu", no promise of a notification).
-    expect(text()).toContain('Zadatak je objavljen.'); expect(text()).not.toMatch(/zvonc|Prijave vidiš|Javićemo/);
+    expect(text()).toMatch(/Zadatak je objavljen\.|Prenos ormara Objavljen/); expect(text()).not.toMatch(/zvonc|Prijave vidiš|Javićemo/);
     expect(tree.root.findAllByType('SuccessMark' as React.ElementType)).toHaveLength(0);
     expect(tree.root.findAll(node => node.props.kind === 'publish' && node.props.size === 144).length).toBeGreaterThan(0);
     expect(tree.root.findAll(node => node.props.testID === 'pecat' && node.props.accessibilityLabel === 'Objavljen').length).toBeGreaterThan(0);
@@ -1091,7 +956,7 @@ describe('the Objavljeno moment', () => {
     expect(tree.root.findAll(node => node.props?.accessibilityLabel === 'Nazad u razgovor')).toHaveLength(0);
     expect(mockRouter.replace).not.toHaveBeenCalled();
     await advance(PUBLISHED_MOMENT_MS - 1);
-    expect(mockRouter.replace).not.toHaveBeenCalled(); expect(text()).toContain('Zadatak je objavljen.');
+    expect(mockRouter.replace).not.toHaveBeenCalled(); expect(text()).toMatch(/Zadatak je objavljen\.|Prenos ormara Objavljen/);
     await advance(1);
     expect(mockRouter.replace).toHaveBeenCalledTimes(1); expect(mockRouter.replace).toHaveBeenCalledWith(OVERVIEW);
     expect(mockAccept).toHaveBeenCalledTimes(1); expect(mockResume).not.toHaveBeenCalled();
@@ -1124,7 +989,7 @@ describe('the Objavljeno moment', () => {
     const spy = reader(true);
     try {
       await publishHere(); await advance(PUBLISHED_MOMENT_MS * 4);
-      expect(mockRouter.replace).not.toHaveBeenCalled(); expect(text()).toContain('Zadatak je objavljen.');
+      expect(mockRouter.replace).not.toHaveBeenCalled(); expect(text()).toMatch(/Zadatak je objavljen\.|Prenos ormara Objavljen/);
       await act(async () => action('Otvori zadatak').onPress());
       expect(mockRouter.replace).toHaveBeenCalledTimes(1); expect(mockRouter.replace).toHaveBeenCalledWith(OVERVIEW);
     } finally { spy.mockRestore(); }
@@ -1149,7 +1014,7 @@ describe('the Objavljeno moment', () => {
 
   it('confirming the changes of a task that already exists says so, with no promise of a first application, and lands on the same overview', async () => {
     await publishHere({ ...review(), draftId: NEED, draftRevision: 4 });
-    expect(text()).toContain('Izmene su objavljene.'); expect(text()).not.toMatch(/Prijave stižu ovde|Javićemo/);
+    expect(tree.root.findByProps({accessibilityLabel:'Prenos ormara. Izmene su objavljene.'})).toBeDefined(); expect(text()).not.toMatch(/Prijave stižu ovde|Javićemo/);
     await advance(PUBLISHED_MOMENT_MS);
     expect(mockRouter.replace).toHaveBeenCalledWith(OVERVIEW);
   });
@@ -1157,7 +1022,7 @@ describe('the Objavljeno moment', () => {
   it('a restored publication shows no moment and does not move by itself: it keeps its explicit "Otvori zadatak"', async () => {
     mockLatest.mockResolvedValue(published());
     await render(); await advance(PUBLISHED_MOMENT_MS * 4);
-    expect(text()).toContain('Zadatak je objavljen.');
+    expect(text()).toMatch(/Zadatak je objavljen\.|Prenos ormara Objavljen/);
     expect(tree.root.findByType('SuccessMark' as React.ElementType).props.fresh).toBe(false);
     expect(mockRouter.replace).not.toHaveBeenCalled();
     await act(async () => action('Otvori zadatak').onPress());

@@ -25,6 +25,23 @@ BEGIN
  OR private.taxonomy_scope_eligible_v1('60000000-0000-4000-8000-000000000003',v_owner)
  OR NOT private.taxonomy_scope_eligible_v1('60000000-0000-4000-8000-000000000004',v_owner)
  THEN RAISE EXCEPTION 'MODE_GUARD_EXACT_SCOPE_MISMATCH'; END IF;
+ -- Revoking only this service's signed mode must block that service immediately.
+ UPDATE private.taxonomy_confirmed_worker_modes_v1 SET active=false
+ WHERE worker_account_id=v_owner AND category_id=v_remote AND execution_scope='REMOTE';
+ IF private.taxonomy_scope_eligible_v1('60000000-0000-4000-8000-000000000001',v_owner)
+ OR NOT private.taxonomy_scope_eligible_v1('60000000-0000-4000-8000-000000000002',v_owner)
+ THEN RAISE EXCEPTION 'MODE_GUARD_IGNORED_SERVICE_MODE_REVOCATION'; END IF;
+ UPDATE private.taxonomy_confirmed_worker_modes_v1 SET active=true
+ WHERE worker_account_id=v_owner AND category_id=v_remote AND execution_scope='REMOTE';
+ -- A current snapshot is not authority if the requester has not confirmed it.
+ UPDATE private.work_taxonomy_need_snapshots
+ SET reviewed_by_requester=false,classification_state='NEEDS_CLARIFICATION'
+ WHERE need_id='60000000-0000-4000-8000-000000000001' AND need_revision=1;
+ IF private.taxonomy_scope_eligible_v1('60000000-0000-4000-8000-000000000001',v_owner)
+ THEN RAISE EXCEPTION 'MODE_GUARD_UNSIGNED_CURRENT_NEED_MATCHED'; END IF;
+ UPDATE private.work_taxonomy_need_snapshots
+ SET reviewed_by_requester=true,classification_state='CONFIRMED'
+ WHERE need_id='60000000-0000-4000-8000-000000000001' AND need_revision=1;
  -- Removing global REMOTE consent blocks only remote, not on-site.
  UPDATE private.worker_execution_mode_choices SET modes=ARRAY['ON_SITE']
  WHERE worker_account_id=v_owner;

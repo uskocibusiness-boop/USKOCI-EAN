@@ -172,17 +172,9 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
         const scopes=review.classificationState==='READY'
           ?review.reviewedServiceModes?.filter(item=>item.service===skill).map(item=>item.mode==='ON_SITE'?'Na lokaciji':'Na daljinu')??[]
           :[];
-        const newPaths=review.classificationState==='READY'
-          ?review.classificationCandidates?.flatMap(item=>item.service===skill&&item.action==='CREATE_CHILD'
-            ?[`Predlog za katalog: ${item.parentLabel} › ${item.path.join(' › ')}`]
-            :item.service===skill&&item.action==='CREATE_NEW_BRANCH'
-              ?[`Predlog za katalog: ${item.path.join(' › ')}`]
-              :[])??[]
-          :[];
         return <View key={`${index}:${skill}`} style={s.chip}>
           <T selectable variant="note" style={s.chipText}>{skill}</T>
           {scopes.length?<T variant="note" tone="muted">{scopes.join(' · ')}</T>:null}
-          {newPaths.map(path=><T key={path} variant="note" tone="muted">{path}</T>)}
         </View>;
       })}</View>:<T variant="body" tone="muted">{EMPTY}</T>}
       {review.classificationState&&review.classificationState!=='READY'
@@ -198,18 +190,17 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
     </ReviewGroup>
     <ReviewGroup part="area" {...group}>
       <Fact art="pin" quiet={!place}>{place
-        ?review.classificationState==='READY'&&!review.reviewedServiceModes?.some(item=>item.mode==='ON_SITE')
-          ?`${place} · grad profila`
-          :`${place} · do ${p.location.radiusKm} km`
+        ?review.classificationState==='READY'&&review.reviewedServiceModes?.some(item=>item.mode==='ON_SITE')
+          ?`${place} · do ${p.location.radiusKm} km`
+          :`${place} · grad profila`
         :EMPTY}</Fact>
       {review.classificationState==='READY'&&review.reviewedServiceModes?.some(item=>item.mode==='REMOTE')
         ?<T variant="note" tone="muted">Zadaci na daljinu nisu ograničeni ovim gradom ni radijusom.</T>:null}
-      {review.classificationState==='READY'&&!review.reviewedServiceModes?.some(item=>item.mode==='ON_SITE')
-        ?null:point?<ResolvedPinMap coarse disabled height={220} position={point}
+      {review.classificationState==='READY'&&review.reviewedServiceModes?.some(item=>item.mode==='ON_SITE')&&point?<ResolvedPinMap coarse disabled height={220} position={point}
         scopeKey={`worker-review:${review.accountId}:${review.profileId}:${review.reviewId}:${review.revision}`}
         onChoose={()=>{ /* Frozen review, never a location editor. */ }}/>:null}
-      {review.classificationState==='READY'&&!review.reviewedServiceModes?.some(item=>item.mode==='ON_SITE')
-        ?null:<T variant="note" tone="muted">{point?'Približan centar za terenske zadatke.':'Približnu tačku za terenske zadatke dodaješ posle čuvanja, u delu Područje rada.'}</T>}
+      {review.classificationState==='READY'&&review.reviewedServiceModes?.some(item=>item.mode==='ON_SITE')
+        ?<T variant="note" tone="muted">{point?'Približan centar za terenske zadatke.':'Približnu tačku za terenske zadatke dodaješ posle čuvanja, u delu Područje rada.'}</T>:null}
     </ReviewGroup>
     <ReviewGroup part="time" {...group}>
       <Fact art="clock">{p.availability.availableNow?'Mogu odmah, dok to ne isključiš':'Status „Mogu odmah“ je isključen'}</Fact>
@@ -226,12 +217,12 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
       </View>:null}
       <T variant="note" tone="muted">{scheduleZone(p.availability.timezone)}. Postojeći Dogovori ostaju obaveze.</T>
     </ReviewGroup>
-    <ReviewGroup part="tools" {...group}>
+    {p.tools.length||p.vehicles.length?<ReviewGroup part="tools" {...group}>
       {p.tools.length?<Fact art="tool">{list(p.tools)}</Fact>:null}
       {p.vehicles.length?<Fact art="vehicle">{list(p.vehicles)}</Fact>:null}
       {p.tools.length||p.vehicles.length?null:<T variant="body" tone="muted">{EMPTY}</T>}
       <T testID="worker-tools-note" variant="note" tone="muted">{toolsAndVehiclesNote()}</T>
-    </ReviewGroup>
+    </ReviewGroup>:null}
     <ReviewGroup part="identity" {...group}>
       {p.bio?<Row label="O meni" value={p.bio} />:<T variant="body" tone="muted">{EMPTY}</T>}
       {p.bio?<T testID="worker-matching-explanation" variant="note" tone="muted">„O meni“ vide osobe koje otvore tvoj profil.</T>:null}

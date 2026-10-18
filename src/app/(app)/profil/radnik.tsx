@@ -20,6 +20,8 @@ import { WorkerProfileFooter, WorkerProfileForm, WorkerProfileFrame, WorkerProfi
 import { workerCommand, workerDraft, workerReadbackMatches, type WorkerDraft } from '../../../ui/workerProfile/workerProfileDraft';
 import { workerProfileInfoLines } from '../../../ui/workerProfile/workerProfileFacts';
 import { writeAvailableNow } from '../../../data/availableNowWrite';
+import { rememberAiCorrection } from '../../../data/aiCorrectionIntent';
+import type { WorkerAiPart } from '../../../ui/workerProfile/workerProfileFacts';
 import type { AvailableNowControl, SavedProfilePart } from '../../../ui/workerProfile/WorkerProfileSaved';
 
 type Snapshot = { profile: RadnikProfilProjekcija | null; read: number };
@@ -253,7 +255,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     const token = params.uredi === 'o-meni' && params.n ? params.n : null;
     if (!token || openedFor.current === token || profile === null || profile.stanje === 'SUSPENDED' || !enabled || !current()) return;
     openedFor.current = token;
-    setManual(true); setOpenSection({ section: 'identity', token: ++openSectionSequence.current });
+    openConversation('identity');
   }, [params.uredi, params.n, profile, enabled]);
   const leave = useUnsavedProfileBack({ dirty: localDirty, busy: transportBusy || editor.busy, uncertain: !!pending || editor.uncertain,
     revision: draftGeneration.current, onBack: goBack });
@@ -297,12 +299,15 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     return { label: 'Proveri i aktiviraj profil', run: () => { if (account.state !== 'loading') void save(true); }, activates: true };
   })();
   // The main setup entry preserves the same ownership and pending-save guards as manual corrections.
-  const openConversation = () => {
+  const openConversation = (part?: WorkerAiPart) => {
     if (!enabled || !current() || transportRef.current || pendingRef.current || latestStatus.current === 'SUSPENDED') return;
     if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) {
       setValidation('Sačuvaj unos pre otvaranja razgovora.'); return;
     }
-    router.push('/profil/razgovor');
+    if(part && accountId){
+      const correction = rememberAiCorrection({accountId,accountRevision},`worker.${part}`);
+      if(correction)router.navigate({pathname:'/profil/razgovor',params:{aiCorrection:correction.token}});
+    }else router.navigate('/profil/razgovor');
   };
   // The answer to a save stands in the footer, above the button that was pressed (it used to sit at the top of the scroll).
   // What the profile does with its data is behind the "ⓘ" in the bar, not a block of sentences on the screen (owner's phone, 8 Oct 2026).
