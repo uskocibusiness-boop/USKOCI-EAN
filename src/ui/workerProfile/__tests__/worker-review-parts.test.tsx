@@ -133,12 +133,12 @@ describe('what the conversation has understood (the progress of M1)', () => {
   const draft = (patch: Partial<WorkerAiReview['profile']> = {}) => review({ skills: [], location: { operatingCountryCode: null, city: '', radiusKm: 20, approximatePosition: null }, ...patch },
     { rules: [], windows: [] }).profile;
 
-  it('is nothing but the draft: an empty draft is four grey bars, and nothing counts questions', async () => {
+  it('shows only the two core facts, not optional equipment or time as required steps', async () => {
     await act(async () => { tree = create(<WorkerAiProgress profile={draft()} />); });
     const bar = tree.root.findByProps({ testID: 'worker-draft-progress' });
-    expect(bar.props.accessibilityLabel).toBe('U nacrtu profila još nema ničega. Još nema: usluge, područje i vreme. Alat i vozilo su opcioni; nisu navedeni.');
-    expect(bar.props.accessibilityValue).toEqual({ min: 0, max: 4, now: 0 });
-    expect(texts()).toBe('Usluge | Područje | Vreme | Alat'); expect(texts()).not.toMatch(/od 5|Pitanje/);
+    expect(bar.props.accessibilityLabel).toBe('Za pregled još treba: usluge i područje.');
+    expect(bar.props.accessibilityValue).toEqual({ min: 0, max: 2, now: 0 });
+    expect(texts()).toBe('Usluge | Područje'); expect(texts()).not.toMatch(/Alat|Vreme|od 5|Pitanje/);
   });
 
   it('colours exactly the parts the draft holds, and a place only with a country and a city', async () => {
@@ -146,14 +146,15 @@ describe('what the conversation has understood (the progress of M1)', () => {
     await act(async () => { tree = create(<WorkerAiProgress profile={some} />); });
     const colour = (key: string) => StyleSheet.flatten(tree.root.findByProps({ testID: `worker-draft-progress-${key}` }).props.style).backgroundColor;
     expect(colour('skills')).toBe(sys.color.green); expect(colour('area')).toBe(sys.color.line);
-    expect(colour('time')).toBe(sys.color.line); expect(colour('tools')).toBe(sys.color.green);
-    expect(tree.root.findByProps({ testID: 'worker-draft-progress' }).props.accessibilityLabel).toBe('U nacrtu profila: usluge i alat. Još nema: područje i vreme.');
+    expect(tree.root.findAllByProps({ testID: 'worker-draft-progress-time' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ testID: 'worker-draft-progress-tools' })).toHaveLength(0);
+    expect(tree.root.findByProps({ testID: 'worker-draft-progress' }).props.accessibilityLabel).toBe('Za pregled još treba: područje.');
     const all = draft({ skills: ['Selidbe'], tools: ['Bušilica'], location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20, approximatePosition: null },
       availability: { timezone: 'Europe/Belgrade', availableNow: true, rules: [], windows: [] } });
     await act(async () => tree.update(<WorkerAiProgress profile={all} />));
     const bar = tree.root.findByProps({ testID: 'worker-draft-progress' });
-    expect(bar.props.accessibilityValue).toEqual({ min: 0, max: 4, now: 4 });
-    expect(bar.props.accessibilityLabel).toBe('U nacrtu profila: usluge, područje, vreme i alat.');
+    expect(bar.props.accessibilityValue).toEqual({ min: 0, max: 2, now: 2 });
+    expect(bar.props.accessibilityLabel).toBe('Usluge i područje su u nacrtu. Profil možeš da pregledaš.');
   });
 
   it('counts a week or a special date as time, and "Mogu odmah" alone too', () => {
@@ -167,8 +168,8 @@ describe('what the conversation has understood (the progress of M1)', () => {
     const withoutEquipment = review({}, { availableNow: true, rules: [], windows: [] });
     await act(async () => { tree = create(<WorkerAiProgress profile={withoutEquipment.profile} />); });
     const bar = tree.root.findByProps({ testID: 'worker-draft-progress' });
-    expect(bar.props.accessibilityLabel).toBe('U nacrtu profila: usluge, područje i vreme. Alat i vozilo su opcioni; nisu navedeni.');
-    expect(bar.props.accessibilityValue).toEqual({ min: 0, max: 4, now: 3 });
+    expect(bar.props.accessibilityLabel).toBe('Usluge i područje su u nacrtu. Profil možeš da pregledaš.');
+    expect(bar.props.accessibilityValue).toEqual({ min: 0, max: 2, now: 2 });
     expect(capturedParts(withoutEquipment.profile).find(part => part.key === 'tools')?.done).toBe(false);
   });
 });

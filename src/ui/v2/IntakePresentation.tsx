@@ -151,12 +151,11 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
 }
 
 /**
- * Three ways in (R18), as whole sentences a person might say, not names of categories. Each carries what, when, where, how many or
- * how to pay in a different mix, so the first message already has something in it. One tap puts the sentence in the field; nothing is
+ * Two short, distinct ways in: work at a place and remote making with later delivery. One tap puts the sentence in the field; nothing is
  * sent, and no assistant call is made until the person sends it.
  */
-export const TASK_OPENINGS = ['Treba mi pomoć oko selidbe u subotu, 2 osobe, Novi Sad.', 'Treba mi neko da sastavi ormar u petak popodne.',
-  'Treba mi neko da okreči sobu, tražim ponude.'] as const;
+export const TASK_OPENINGS = ['Treba mi pomoć oko selidbe u Novom Sadu.',
+  'Treba mi izrada 3D figurica, slanje na adresu.'] as const;
 
 /**
  * "Sličice slete u nacrt" (owner's pick of 2026-10-08, A): a fact the assistant has understood is a small picture (a pin, a calendar,
@@ -223,7 +222,9 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   // A question about the place has the room while it is asked: the card shows only its name then. Every fact is read once: by its own row when they are rows,
   // and in the one sentence with the name when they are a line of pictures (that line is decoration for a screen reader).
   const facts = stickers.length > 0 && !locationEditing;
-  const spoken = [editing ? 'Izmena zadatka' : null, summary.title ?? 'Zadatak u nastajanju', ...(facts && !final ? stickers.map(kind => stickerWords(kind, summary)) : [])].filter(Boolean).join(', ');
+  const spoken = [editing ? 'Izmena zadatka' : null, summary.title ?? 'Zadatak u nastajanju',
+    summary.service ? `Prepoznata usluga: ${summary.service}` : null,
+    ...(facts && !final ? stickers.map(kind => stickerWords(kind, summary)) : [])].filter(Boolean).join(', ');
   // The pictures the draft has facts for, and where each lands: a picture that is new to the conversation's memory arrives once, in its place.
   const lands = (kind: DraftSticker, index: number, child: ReactNode) => <Appear key={kind} index={index} animate={!!appear && appear.isNew(kind)} from="above">{child}</Appear>;
   return <Surface kind="panel" testID="intake-task-summary" style={[s.card, compact && s.cardCompact]}>
@@ -235,6 +236,7 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
           style={[s.compactTitle, !summary.title && s.titleEmpty]} />
       </View>
     </View>
+    {summary.service ? <T testID="intake-recognized-service" variant="note" tone="muted">{`Prepoznata usluga: ${summary.service}`}</T> : null}
     {facts ? final
       ? <View testID="intake-draft-details" style={s.details}>
         {stickers.map((kind, index) => lands(kind, index, <FactRow art={stickerArt(kind, summary)} value={stickerWords(kind, summary)} />))}
@@ -389,6 +391,7 @@ export function IntakePresentation(props: Props) {
   const readyForReview = completeProposal && open && reviewContentReady && conversation.safety !== 'BLOCK'
     && !stillNeededText && !hiddenMissing && !needsPoint && !busy && !pending && !props.error;
   const showSummary = readyForReview || (completed && completeProposal && conversation.safety !== 'BLOCK' && !busy && !pending && !props.error);
+  const understood = [summary.service, summary.zone].filter((part): part is string => !!part && !!part.trim());
   // Current facts belong in the live card and the explicit full review. Decorating
   // old replies with today's fact values repeated the summary and rewrote history.
   // The assistant's own end of a conversation about a task that already exists says "objava", which an edit is not (the owner's phone, 8 Oct 2026).
@@ -478,6 +481,8 @@ export function IntakePresentation(props: Props) {
     value={value} canEdit={props.canEdit} canSend={props.canSubmit && (!editingPlace || contextualReply)}
     sendBlockedReason={editingPlace ? 'Prvo potvrdi mesto ili zatvori mapu.' : undefined}
     messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
+    draftCue={open && !showSummary && understood.length && conversation.safety !== 'BLOCK'
+      ? <T testID="intake-understood" variant="note" tone="muted">{`Za sada: ${understood.join(' · ')}`}</T> : undefined}
     sentMessage={props.sentMessage}
     // The assistant and the one line the draft asks for (R1): the three examples under it show what to say, so no sentence explains it.
     // Static first AI bubble: shown immediately, remains above the user's first
@@ -496,8 +501,7 @@ export function IntakePresentation(props: Props) {
       onPress: outsidePlace(() => { Keyboard.dismiss(); setPanel('photos'); }), disabled: photosOff }
       : props.onPhotos ? { label: 'Fotografije zadatka', hint: 'Dodaj ili pregledaj fotografije zadatka.',
         onPress: outsidePlace(props.onPhotos), disabled: props.photosDisabled || editingPlace } : undefined}
-    // The conversation gathers facts; only the complete proposal becomes a card at its end (owner, 9 Oct).
-    // Partial and abandoned drafts remain reachable through the existing review menu, never a premature card.
+    // Only a complete proposal becomes the full card with the guarded review action.
     card={compact => !showSummary ? null : <DraftCard summary={summary}
       stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={reviewAllowed}
       onReview={outsidePlace(props.onReview)} note={note} reviewDisabledReason={props.reviewDisabledReason} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}

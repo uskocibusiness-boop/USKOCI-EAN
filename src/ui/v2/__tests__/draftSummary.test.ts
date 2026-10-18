@@ -42,3 +42,17 @@ describe('draftSummary start-only and range formatting', () => {
     expect(completeDraftProposal(facts)).toBe(true);
   });
 });
+
+it('shows the recognized service and the full public route without exposing a private address', () => {
+  const fact = (key: any, value: any, privacyClass: 'PUBLIC' | 'PRIVATE' = 'PUBLIC') =>
+    ({ key, value, privacyClass, status: 'CONFIRMED' as const });
+  const summary = publicSummary([
+    fact('need.title', 'Prevezi kutiju'), fact('need.category', 'Prevoz paketa'),
+    fact('need.task_geography', { mode: 'MULTI_STOP', start: { city: 'Novi Sad', area: 'Liman' },
+      waypoints: [{ city: 'Novi Sad', area: 'Centar' }], end: { city: 'Novi Sad', area: 'Petrovaradin' } }),
+    fact('need.exact_address', 'Liman 3, stan 12', 'PRIVATE'),
+  ]);
+  expect(summary.service).toBe('Prevoz paketa');
+  expect(summary.zone).toBe('Liman, Novi Sad → Centar, Novi Sad → Petrovaradin, Novi Sad');
+  expect(JSON.stringify(summary)).not.toContain('stan 12');
+});

@@ -40,6 +40,8 @@ export type AiConversationShellProps = {
   messages: readonly ConversationMessage[]; welcome: string; welcomeDetail: string;
   /** Fixed UI greeting, not an AI turn, not saved or sent to the provider. */
   introMessage?: string;
+  /** Returning profiles can lead with the question instead of replaying the large first-visit illustration. */
+  showWelcomeArt?: boolean;
   value: string; canEdit: boolean; canSend: boolean; pending: boolean; busy: boolean;
   onChange: (value: string) => void; onSend: () => void; onBack: () => void;
   /** A caller-owned unfinished step can temporarily hold sending without erasing the typed draft. */
@@ -49,6 +51,8 @@ export type AiConversationShellProps = {
   /** An everyday action, visible without opening the options menu. The route owns confirmation and reconciliation. */
   newConversation?: { onPress: () => void; disabled?: boolean };
   status?: ReactNode; actions?: ReactNode; children?: ReactNode;
+  /** Quiet, read-only facts understood so far; the full guarded card still waits for review readiness. */
+  draftCue?: ReactNode;
   /** Current task context, such as its location, on the conversation's open white surface. */
   context?: ReactNode;
   /** An owned inline editing visit. Reveal its top once; local height changes never follow the thread end. */
@@ -324,7 +328,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
           <Mark /><T selectable style={s.answer}>{p.introMessage}</T>
         </View> : null}
         {welcomeShown ? <View style={s.welcome}>
-          {!keyboard && !p.introMessage ? <View importantForAccessibility="no-hide-descendants" style={s.presence}>
+          {!keyboard && !p.introMessage && p.showWelcomeArt !== false ? <View importantForAccessibility="no-hide-descendants" style={s.presence}>
             <AiAssistantWelcome conversationKey={p.conversationKey} memory={assistantWelcome} />
           </View> : null}
           {!p.introMessage ? <T accessibilityRole="header" variant="title" style={s.welcomeTitle}>{p.welcome}</T> : null}
@@ -370,6 +374,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {/* Recovery belongs to scrollable content, not a second fixed footer. */}
         {p.status ? <Surface kind="note" testID="ai-recovery-in-thread" style={s.recovery}>{p.status}</Surface> : null}
         {p.actions ? <View style={s.actions}>{p.actions}</View> : null}
+        {p.draftCue ? <View testID="ai-draft-cue" style={s.draftCue}>{p.draftCue}</View> : null}
         {pinned && cardAtEnd ? <View testID="ai-end-card">{pinned}</View> : null}
         </View>
       </ScrollView>
@@ -511,6 +516,7 @@ const s = StyleSheet.create({
   welcomeCopy: { lineHeight: 24, textAlign: 'center' },
   // Whole sentences, one under the other, from the same edge as the thread will have: rows, not boxes.
   openings: { marginTop: sys.space.md },
+  draftCue: { paddingVertical: sys.space.sm },
   privacy: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', maxWidth: '100%' },
   // Long replies read on the canvas; alignment and the group label identify the speaker.
   assistant: { gap: sys.space.sm, alignSelf: 'stretch', paddingVertical: sys.space.xs },

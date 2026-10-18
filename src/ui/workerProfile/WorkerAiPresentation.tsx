@@ -22,7 +22,7 @@ import { displayedPinPosition } from '../location/ResolvedPinMap.types';
 import { civilClock, civilDay, scheduleZone, weekdays } from '../calendar/calendarPresentation';
 import { raspon } from '../../lib/vreme';
 import { plural } from '../system/plural';
-import { WORKER_PART_TITLE, capturedParts, capturedSpeech, toolsAndVehiclesNote, type WorkerAiPart } from './workerProfileFacts';
+import { WORKER_PART_TITLE, capturedParts, toolsAndVehiclesNote, type WorkerAiPart } from './workerProfileFacts';
 
 /** One word for nothing given (2026-09-24): three different empty words read as three different states. */
 const EMPTY='Nije navedeno';
@@ -81,13 +81,13 @@ function ReviewCue({disabled}:{disabled:boolean}){
   </View>;
 }
 /**
- * What the conversation has understood so far, from the draft itself: four parts, a green bar for each one the draft
- * holds. It is not "question 2 of 5": the assistant asks what is missing and has no fixed number of questions, so the
- * strip never counts them. A part with nothing in it is simply not green; tools and vehicles are optional.
+ * The two core facts needed for a useful profile. Time and equipment remain
+ * available in review, but do not look like mandatory interview steps.
  */
 export function WorkerAiProgress({profile}:{profile:WorkerAiProfile}){
-  const parts=capturedParts(profile),speech=capturedSpeech(parts);
-  // At a large text size four labels do not fit in a row: two by two.
+  const parts=capturedParts(profile).filter(part=>part.key==='skills'||part.key==='area');
+  const missing=parts.filter(part=>!part.done).map(part=>part.label.toLowerCase());
+  const speech=missing.length?`Za pregled još treba: ${missing.join(' i ')}.`:'Usluge i područje su u nacrtu. Profil možeš da pregledaš.';
   const {stacked}=useLayoutClass();
   return <View testID="worker-draft-progress" accessible accessibilityRole="progressbar" accessibilityLabel={speech}
     accessibilityValue={{min:0,max:parts.length,now:parts.filter(part=>part.done).length}} style={[s.progress,stacked&&s.progressStacked]}>

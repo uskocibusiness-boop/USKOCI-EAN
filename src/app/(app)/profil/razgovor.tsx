@@ -439,6 +439,7 @@ function OwnedWorkerConversation({initialId,invalid}:{initialId?:string;invalid:
     card={compact=>hasProfileContent?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable}
       showReview={writable&&!data.saved} reviewReason={!enabled?unavailableNow:undefined} review={()=>{void review();}}/>:null}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
+    showWelcomeArt={!hasProfileContent}
     welcome={hasProfileContent?'Šta želiš da dopuniš?':'Čime se baviš?'}
     welcomeDetail={hasProfileContent?'Reci šta želiš da promeniš. Sve izmene pregledaš pre čuvanja.':'Ispričaj koje usluge pružaš ili želiš da pružaš. Ostalo ćemo razjasniti kroz razgovor.'}
     placeholder="Opiši šta radiš"

@@ -31,7 +31,7 @@ export function fixedRange(startsAt: unknown, endsAt: unknown): string | undefin
 }
 
 /** What the card shows: public facts only, each already in the words the card draws. */
-export type Summary = { title: string | null; zone: string; schedule?: string; value: TaskValue | null; people: string | null;
+export type Summary = { title: string | null; service?: string | null; zone: string; schedule?: string; value: TaskValue | null; people: string | null;
   /** How many people, as a number: the card says how many only when it is more than one. */
   peopleCount?: number | null };
 type SummaryFact = Pick<AiNeedV2Fact, 'key' | 'value' | 'privacyClass' | 'status'>;
@@ -58,14 +58,23 @@ export function publicSummary(facts: readonly SummaryFact[]): Summary {
   // private exact address, access notes, resolved points or arbitrary displayValue.
   const value = (key: AiNeedV2Fact['key']) => facts.find(fact => fact.key === key && fact.privacyClass === 'PUBLIC' && fact.status !== 'UNKNOWN')?.value;
   const title = value('need.title'), geography = value('need.task_geography') as NeedTaskGeography | undefined;
+  const category = value('need.category');
   const mode = value('need.price_mode'), amount = value('need.price_rsd'), people = value('need.people_needed');
   const basis = value('need.price_basis');
   const schedule = value('need.schedule_kind');
   const publicPlace = geography?.start ?? geography?.serviceArea;
-  const zone = geography?.mode === 'REMOTE' ? 'Na daljinu' : [publicPlace?.city, publicPlace?.area]
-    .filter(item => typeof item === 'string' && item.trim()).join(' · ') || publicPlace?.label || '';
+  // A free-form label can contain an accidentally repeated house number. Use
+  // it only as a fallback when it has no digits; city/area remain preferred.
+  const safeLabel = (label: unknown) => typeof label === 'string' && !/\d/.test(label) ? label.trim() : '';
+  const pointName = (point: typeof publicPlace) => point && ([point.area, point.city].filter(item => typeof item === 'string' && item.trim()).join(', ') || safeLabel(point.label));
+  const route = geography?.mode === 'POINT_TO_POINT' || geography?.mode === 'MULTI_STOP';
+  const stops = route ? [geography?.start, ...(geography?.waypoints ?? []), geography?.end].map(pointName).filter(Boolean) : [];
+  const zone = geography?.mode === 'REMOTE' ? 'Na daljinu'
+    : route && stops.length > 1 ? stops.join(' → ')
+      : [publicPlace?.city, publicPlace?.area].filter(item => typeof item === 'string' && item.trim()).join(' · ') || safeLabel(publicPlace?.label);
   const money = mode === 'MY_PRICE' && typeof amount === 'number' ? novac(amount) : '';
-  return { title: typeof title === 'string' && title.trim() ? title : null, zone,
+  return { title: typeof title === 'string' && title.trim() ? title : null,
+    service: typeof category === 'string' && category.trim() && !/^[A-Z0-9_]+$/.test(category.trim()) ? category.trim() : null, zone,
     schedule: schedule === 'FIXED_WINDOW' ? fixedRange(value('need.starts_at'), value('need.ends_at'))
       : typeof schedule === 'string' ? schedules[schedule] : undefined,
     // An amount with what it buys, or "Tražim ponude" as a quiet word. A price not reached yet is no slot at all.

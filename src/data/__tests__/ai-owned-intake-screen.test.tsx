@@ -526,7 +526,7 @@ it('presents one local assistant greeting before loaded history without creating
 it('offers three whole sentences before the first word; a tap puts one in the field and opens or sends nothing', async () => {
   await render();
   const drawn = (label: string) => tree.root.findAll(node => typeof node.type === 'string' && node.props.accessibilityLabel === label);
-  expect(TASK_OPENINGS).toHaveLength(3);
+  expect(TASK_OPENINGS).toHaveLength(2);
   for (const sentence of TASK_OPENINGS) { expect(drawn(sentence)).toHaveLength(1); expect(sentence).toMatch(/^Treba mi .{25,}\.$/); }
   expect(text()).toContain('Na primer');
   await act(async () => drawn(TASK_OPENINGS[0])[0].props.onPress());
@@ -979,7 +979,7 @@ it('the card of a task being changed names its review the way the menu does and 
   expect(text()).toContain('Izmena'); expect(text()).not.toMatch(/\bNacrt\b/);
   expect(text()).toContain('Pregledaj izmene'); expect(text()).not.toContain('Pregledaj zadatak');
   expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj izmene' })).toBeDefined();
-  expect(tree.root.findByProps({ testID: 'intake-draft-head' }).props.accessibilityLabel).toBe('Izmena zadatka, Prenos ormara');
+  expect(tree.root.findByProps({ testID: 'intake-draft-head' }).props.accessibilityLabel).toBe('Izmena zadatka, Prenos ormara, Prepoznata usluga: Prevod');
 });
 
 // Safety remains visible even while the incomplete card is absent.
