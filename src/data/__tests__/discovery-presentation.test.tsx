@@ -459,6 +459,17 @@ test('the remote quick filter clears an old point and place, keeps the camera an
   expect(listSheet().props.snapPoints[2]).toBe(800 - fullTop(68));
 });
 
+test('an empty remote list names remote work instead of showing a map empty state', async () => {
+  rows = [row('local', { ...at(45.25, 19.83), podrucjeTekst: 'Novi Sad' })];
+  initial = { ...initial, where: 'remote', sheet: 'full' };
+  await render();
+  expect(cards()).toEqual([]);
+  expect(tree.root.findByType(DiscoveryListState).props.state).toMatchObject({ kind: 'filtered', remote: true });
+  expect(texts()).toContain('Nema zadataka na daljinu');
+  expect(texts()).toContain('Nijedan zadatak na daljinu ne odgovara ovim uslovima.');
+  expect(texts()).not.toContain('Nema zadataka u ovom prikazu');
+});
+
 test('the full list stands directly under the tools: the map stays on show and locks while the list is full, and keeps its camera when returning', async () => {
   mockWindow = { width: 390, height: 844, scale: 2, fontScale: 1 };
   const viewport = { center: [19.83, 45.25] as [number, number], zoom: 12, bounds: [19.8, 45.2, 19.9, 45.3] as [number, number, number, number] };

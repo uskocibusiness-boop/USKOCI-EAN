@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-18T05:27:17Z",
+  "osvezeno": "2026-10-18T05:32:08Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "995c122b",
-  "head_poruka": "fix(home): exclude own tasks from worker preview",
+  "head": "28479f80",
+  "head_poruka": "feat(ui): clarify home actions and compact inactive states",
   "server": {
    "snimljeno": "2026-10-18T04:12:15Z",
    "migracije": 279,

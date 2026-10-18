@@ -2467,6 +2467,7 @@
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Mapa i lista prilika",
       "source_progress_20261018_empty_count": "Brojač prazne liste sada kaže 0 zadataka; objašnjenje i naredna radnja ostaju u stanju liste, bez duplog naslova. Ciljani Jest 414/414 i TypeScript PASS. Veliki skup, kamera i filteri nisu menjani. Dokaz: docs/implementation/ui-ux-pass-20261002/HOME_AND_QUIET_STATES_20261018.md.",
+      "source_progress_20261018_remote_empty": "Na daljinu već otvara listu bez mape; prazno stanje sada koristi remote ikonicu i posebne reči, uz istu radnju poništavanja filtera. Discovery 229/229 i TypeScript PASS; Metro emulator vizuelno potvrđen. Veliki skup, kamera, fizički telefon i release APK čekaju. Dokaz: docs/implementation/ui-ux-pass-20261002/REMOTE_EMPTY_STATE_20261018.md.",
       "nacrt": "UX nacrt §5 korak 1",
       "stari": [
         "FUNC-3772",

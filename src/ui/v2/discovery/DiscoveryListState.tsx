@@ -18,7 +18,7 @@ export type DiscoveryListStateKind =
   | { kind: 'loading' }
   | { kind: 'error'; onRetry: () => void }
   | { kind: 'place'; point: boolean; onShowAll: () => void }
-  | { kind: 'filtered'; onClear: () => void }
+  | { kind: 'filtered'; remote?: boolean; onClear: () => void }
   | { kind: 'forMe'; onShowAll: () => void; onWorkProfile?: () => void }
   | { kind: 'none'; onRefresh: () => void; onNew?: () => void };
 
@@ -31,6 +31,7 @@ export const LIST_STATE_WORDS = {
   pointTitle: 'Nema zadataka na ovom mestu', pointBody: 'Pomeri mapu ili prikaži sve zadatke.',
   areaTitle: 'Nema zadataka u ovoj oblasti', areaBody: 'Umanji mapu ili je pomeri da vidiš zadatke u okolini.',
   filteredTitle: 'Nema zadataka u ovom prikazu', filteredBody: 'Nijedan zadatak ne odgovara ovim uslovima.',
+  remoteTitle: 'Nema zadataka na daljinu', remoteBody: 'Nijedan zadatak na daljinu ne odgovara ovim uslovima.',
   forMeTitle: 'Za sada nema zadataka za tebe', forMeBody: 'Gledamo potvrđene usluge koje nudiš, područje i dostupnost. Ako si upravo podesio profil, proveri da li su tvoje usluge sačuvane i potvrđene.',
   forMeEdit: 'Otvori radni profil',
   noneTitle: 'Još niko nije tražio pomoć', noneBody: 'Čim neko objavi zadatak, pojaviće se ovde i na mapi.',
@@ -49,7 +50,9 @@ export function DiscoveryListState({ state, clearAllLabel, compact = false }: {
     case 'error': return <StateView compact={compact} kind="error" art="tasks" title={w.error} body={w.errorBody} primary={{ label: w.retry, onPress: state.onRetry }} />;
     case 'place': return <StateView compact={compact} art="map" title={state.point ? w.pointTitle : w.areaTitle} body={state.point ? w.pointBody : w.areaBody}
       primary={{ label: w.showAll, onPress: state.onShowAll }} />;
-    case 'filtered': return <StateView compact={compact} art="map" title={w.filteredTitle} body={w.filteredBody} primary={{ label: clearAllLabel, onPress: state.onClear }} />;
+    case 'filtered': return <StateView compact={compact} art={state.remote ? 'remote' : 'map'}
+      title={state.remote ? w.remoteTitle : w.filteredTitle} body={state.remote ? w.remoteBody : w.filteredBody}
+      primary={{ label: clearAllLabel, onPress: state.onClear }} />;
     case 'forMe': return <StateView compact={compact} art="tasks" title={w.forMeTitle} body={w.forMeBody}
       primary={{ label: w.showAll, onPress: state.onShowAll }}
       quiet={state.onWorkProfile ? { label: w.forMeEdit, onPress: state.onWorkProfile } : undefined} />;

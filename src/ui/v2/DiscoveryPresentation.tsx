@@ -1274,14 +1274,14 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       // Only the map's area or its one point leaves nothing: the tasks are elsewhere on the map, one move or one tap away.
       : (pinPlace || area) && elsewhere && !offMap ? { kind: 'place', point: !!pinPlace, onShowAll: showAll }
         : forMeOn && !conditionsOn ? { kind: 'forMe', onShowAll: () => chooseScope('all'), onWorkProfile: props.onWorkProfile }
-          : conditionsOn ? { kind: 'filtered', onClear: reset }
+          : conditionsOn ? { kind: 'filtered', remote: where === 'remote', onClear: reset }
             : { kind: 'none', onRefresh: refreshList, onNew: props.onNew };
   // Keep the last confirmed empty picture during a map pan, just as the coordinator retains its rows.
   // Store facts only: callbacks always belong to this render and account; a first read still shows loading.
   const listState: DiscoveryListStateKind = !heldEmpty ? computedState
     : heldEmpty.kind === 'place' ? { ...heldEmpty, onShowAll: showAll }
       : heldEmpty.kind === 'forMe' ? { kind: 'forMe', onShowAll: () => chooseScope('all'), onWorkProfile: props.onWorkProfile }
-        : heldEmpty.kind === 'filtered' ? { kind: 'filtered', onClear: reset }
+        : heldEmpty.kind === 'filtered' ? { kind: 'filtered', remote: where === 'remote', onClear: reset }
           : { kind: 'none', onRefresh: refreshList, onNew: props.onNew };
   useLayoutEffect(() => {
     if (loading || refreshing || props.collectionStatus || offMapMore || p6?.loadingMore) return;
