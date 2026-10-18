@@ -16,8 +16,8 @@ import { FOR_ME_SWITCH_EXISTS, PEOPLE_COUNT_NOTE, SKILLS_IN_CARD, profileEffects
 import { brandAction, sys } from '../../system/tokens';
 
 /**
- * The saved work profile, read (T4b1, 2026-10-07, M3; arranged as the product draft the owner approved on 8 Oct 2026, P3): the card "Tvoj radni profil",
- * the rows "Šta radiš" and "Gde", "Kada" (the switch "Mogu odmah" and "Nedeljni raspored"), "Oprema" ("Alat", "Vozila") and the white "Uredi kroz razgovor".
+ * The saved work profile: one account identity, readable services and confirmed mode,
+ * area, availability and optional equipment. One main conversation action; section edits stay contextual.
  * It draws no state of its own; the route decides when a profile is read and what the status line says.
  *
  * Owner's phone, 8 Oct 2026: the block of sentences "Na šta utiče" is behind the "ⓘ" in the bar (`workerProfileInfoLines`), the equipment's note behind the "ⓘ" at
@@ -57,11 +57,13 @@ describe('what the saved profile shows', () => {
     expect(all().join(' ')).not.toContain('20 km'); expect(press('Gde')).toBeUndefined();
   });
 
-  it('reads the card, the two rows, "Kada", "Oprema" and the white button, without a pencil on any line', async () => {
+  it('shows the account, services and availability once, with one main AI edit action', async () => {
     await show({ rating: <RatingLineView average={4.8} count={12} /> });
     const copy = all();
-    for (const part of ['Tvoj radni profil', 'Ana Petrović', 'Selidbe · Nošenje', '4,8 · 12 ocena', 'Šta radiš', 'Selidbe', 'Nošenje', 'Gde', 'Novi Sad · 20 km',
+    for (const part of ['Ana Petrović', '4,8 · 12 ocena', 'Šta radiš', 'Selidbe', 'Nošenje', 'Gde', 'Novi Sad · 20 km',
       'Kada', 'Mogu odmah', 'Nedeljni raspored', 'Oprema', 'Alat', 'Bušilica', 'Vozila', 'Kombi']) expect(copy).toContain(part);
+    expect(copy.filter(text => text === 'Selidbe')).toHaveLength(1);
+    expect(copy).not.toContain('Tvoj radni profil'); expect(copy).not.toContain('Selidbe · Nošenje');
     expect(action('Uredi kroz razgovor')).toBeTruthy();
     // 8 Oct 2026 (owner's phone): "Mogu odmah · dostupnost" said the same thing twice; the profile of the old design said it, and so did "samo informacija" and a row of notifications.
     expect(copy).not.toContain('Mogu odmah · dostupnost'); expect(copy.join(' ')).not.toMatch(/Izmeni razgovorom|Izmeni ručno|Obaveštenja o zadacima|Na šta utiče|samo informacija/);
@@ -69,9 +71,9 @@ describe('what the saved profile shows', () => {
     expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
   });
 
-  it('names the card without a grammatical gender, and puts the ACCOUNT\'s name in it', async () => {
+  it('uses the account name as the identity heading without repeating the screen title', async () => {
     await show({ accountName: 'Milos' }, draft({ ime: 'Milos' }));
-    expect(all()).toContain('Tvoj radni profil'); expect(all().join(' ')).not.toMatch(/radnik|radnica/i);
+    expect(all()).not.toContain('Tvoj radni profil'); expect(all().join(' ')).not.toMatch(/radnik|radnica/i);
     const title = tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header')[0];
     expect(textOf(title)).toBe('Milos');
   });
@@ -116,9 +118,9 @@ describe('what the saved profile shows', () => {
     expect(copy).not.toContain('Pogledaj i uredi dostupnost'); expect(copy.join(' ')).not.toMatch(/undefined|null|NaN/);
   });
 
-  it(`draws the kinds of work as chips, up to ${SKILL_CHIPS_MAX}, and says how many more instead of a wall`, async () => {
+  it(`shows up to ${SKILL_CHIPS_MAX} services and reveals the rest without an edit or write`, async () => {
     const skills = Array.from({ length: 11 }, (_, index) => `Veština ${index + 1}`);
-    await show({}, draft({ vestine: skills }));
+    const { navigate, openConversation } = await show({}, draft({ vestine: skills }));
     const chips = tree.root.findByProps({ testID: 'worker-profile-skills' });
     const words = chips.findAll(node => String(node.type) === 'T').map(node => textOf(node));
     expect(words).toEqual(skills.slice(0, SKILL_CHIPS_MAX));
@@ -127,8 +129,8 @@ describe('what the saved profile shows', () => {
     expect(all()).toContain('Veština 11');
     await act(async () => press('Prikaži manje: Veštine').props.onPress());
     expect(all()).not.toContain('Veština 11');
-    // The card names three and the rest as a number.
-    expect(all()).toContain('Veština 1 · Veština 2 · Veština 3 +8');
+    expect(all().filter(text => text === 'Veština 1')).toHaveLength(1);
+    expect(navigate).not.toHaveBeenCalled(); expect(openConversation).not.toHaveBeenCalled();
   });
 });
 
@@ -274,9 +276,9 @@ describe('one name', () => {
     await show({ accountName: 'Milos', onUseAccountName: onUse }, draft({ ime: 'Pera peric' }));
     expect(all()).toContain('Na radnom profilu piše „Pera peric“.');
     expect(action('Koristi „Milos“').props).toMatchObject({ kind: 'secondary', disabled: false, loading: false });
-    // There is no green primary on this screen: the button of the assistant is white as well.
-    expect(action('Uredi kroz razgovor').props.style).toBeUndefined(); expect(action('Uredi kroz razgovor').props.tone).toBe('neutral');
-    expect(Object.values(tree.root.findAll(node => String(node.type) === 'Action').map(node => node.props.style)).filter(style => style === brandAction)).toHaveLength(0);
+    // Name reconciliation remains secondary to the single conversation action.
+    expect(action('Uredi kroz razgovor').props.style).toBe(brandAction);
+    expect(tree.root.findAll(node => String(node.type) === 'Action' && node.props.style === brandAction)).toHaveLength(1);
     await act(async () => { action('Koristi „Milos“').props.onPress(); }); expect(onUse).toHaveBeenCalledTimes(1);
   });
 
@@ -299,12 +301,15 @@ describe('one name', () => {
 });
 
 describe('the assistant', () => {
-  it('"Uredi kroz razgovor" is the one white button at the end, opens the conversation, and is not drawn without one', async () => {
+  it('offers one primary conversation action, refuses a disabled callback and hides it without a route', async () => {
     const { openConversation } = await show();
-    expect(action('Uredi kroz razgovor').props.tone).toBe('neutral'); expect(action('Uredi kroz razgovor').props.disabled).toBe(false);
+    expect(action('Uredi kroz razgovor').props.style).toBe(brandAction); expect(action('Uredi kroz razgovor').props.disabled).toBe(false);
     await act(async () => { action('Uredi kroz razgovor').props.onPress(); }); expect(openConversation).toHaveBeenCalledTimes(1);
-    await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled navigate={jest.fn()} openConversation={jest.fn()} />));
+    openConversation.mockClear();
+    await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled navigate={jest.fn()} openConversation={openConversation} />));
     expect(action('Uredi kroz razgovor').props.disabled).toBe(true);
+    await act(async () => action('Uredi kroz razgovor').props.onPress());
+    expect(openConversation).not.toHaveBeenCalled();
     await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled={false} navigate={jest.fn()} />));
     expect(action('Uredi kroz razgovor')).toBeUndefined();
   });
@@ -336,5 +341,5 @@ describe('saved biography and suspended state', () => {
 
 it('does not hide a saved biography when the name and skills are missing', async () => {
   await show({}, draft({ ime: '', vestine: [], biografija: 'Moj opis iskustva.' }));
-  expect(all()).toContain('Moj opis iskustva.'); expect(all()).toContain('Tvoj radni profil');
+  expect(all()).toContain('Moj opis iskustva.'); expect(all()).not.toContain('Tvoj radni profil');
 });

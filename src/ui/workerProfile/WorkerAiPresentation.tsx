@@ -136,11 +136,11 @@ export function WorkerAiModeConfirmation({skills,choices,disabled,onChange}:{
 
 /** Owner 2026-10-07: the interview ends by saying what the profile is for — ink with the bell, not grey small print. */
 // "novim i već otvorenim": publishing queues new tasks, and saving the profile re-queues the open ones (requeue_open_needs_for_worker_v5).
-export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Usluge, potvrđen način rada, područje i vreme koriste se za izbor zadataka za tebe. Ako uključiš obaveštenja, možemo da ti javimo kada se pojavi odgovarajući zadatak.';
+export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Zadatke povezujemo sa potvrđenim uslugama, načinom rada, područjem i vremenom. Obaveštenja su tvoj izbor.';
 export const WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE='Profil možeš da sačuvaš, ali automatska obaveštenja za nepotvrđene usluge neće stizati dok kategorija i način rada ne budu potvrđeni.';
 export function WorkerAiNotificationsNote({matchingReady=true}:{matchingReady?:boolean}={}){
-  return <Surface kind="note" style={s.noteBox}><FactArt kind="bell" size={24} cut="art"/>
-    <T testID="worker-review-notifications-note" variant="note" style={[s.grow,s.ink]}>{matchingReady?WORKER_PROFILE_NOTIFICATIONS_NOTE:WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE}</T></Surface>;
+  return <View style={s.noteBox}><FactArt kind="bell" size={24} cut="art"/>
+    <T testID="worker-review-notifications-note" variant="note" style={[s.grow,s.ink]}>{matchingReady?WORKER_PROFILE_NOTIFICATIONS_NOTE:WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE}</T></View>;
 }
 /** The server names the missing name "Ime"; it is the name of the ACCOUNT now (owner, 8 Oct 2026), so that is what the person is told to add. */
 const missingLabel=(label:string)=>label==='Ime'?'Ime naloga':label;
@@ -154,26 +154,27 @@ const missingLabel=(label:string)=>label==='Ime'?'Ime naloga':label;
  * it is written ("Lični podaci").
  */
 export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddName}:{review:WorkerAiReview;
-  /** Opens the editor of one part. Absent (the design gallery): the review is only read. */
+  /** Returns to the same AI conversation with this topic. Without it the review is only read. */
   onEdit?:(part:WorkerAiPart)=>void;editDisabled?:boolean;
   /** The way to "Lični podaci" when the account has no name; without it the missing name is only said. */ onAddName?:()=>void}){
   const p=review.profile;
   const point=displayedPinPosition(p.location.approximatePosition,true);
   const place=[p.location.city.trim()?cityLabel(p.location.city):null,p.location.operatingCountryCode].filter(Boolean).join(' · ');
+  const confirmedModes=review.classificationState==='READY'?review.reviewedServiceModes??[]:[];
+  const onSite=confirmedModes.some(item=>item.mode==='ON_SITE'),remote=confirmedModes.some(item=>item.mode==='REMOTE');
+  const hasSchedule=p.availability.rules.length>0||p.availability.windows.length>0;
   const group={onEdit,editDisabled};
   return <View style={s.review}>
     {review.missingRequired.length?<View style={s.reviewNotice}><FactArt kind="info" size={24} cut="art" role="waiting"/>
       <T accessibilityRole="alert" variant="body" style={[s.grow,s.ink]}>Dopuni: {review.missingRequired.map(missingLabel).join(', ')}.</T></View>:null}
     {review.missingRequired.includes('Ime')&&onAddName?<V2Action label="Dodaj ime" kind="secondary" compact onPress={onAddName} style={s.addName}/>:null}
     <ReviewGroup part="skills" {...group}>
-      {p.skills.length?<View style={s.chips}>{p.skills.map((skill,index)=>{
+      {p.skills.length?<View style={s.services}>{p.skills.map((skill,index)=>{
         // Scope shown here is part of the server-digested review, not a client
         // inference or a second approval form. Unclassified skills show no fake scope.
-        const scopes=review.classificationState==='READY'
-          ?review.reviewedServiceModes?.filter(item=>item.service===skill).map(item=>item.mode==='ON_SITE'?'Na lokaciji':'Na daljinu')??[]
-          :[];
-        return <View key={`${index}:${skill}`} style={s.chip}>
-          <T selectable variant="note" style={s.chipText}>{skill}</T>
+        const scopes=confirmedModes.filter(item=>item.service===skill).map(item=>item.mode==='ON_SITE'?'Na lokaciji':'Na daljinu');
+        return <View key={`${index}:${skill}`} testID="worker-review-service" style={s.service}>
+          <T selectable variant="body" style={s.ink}>{skill}</T>
           {scopes.length?<T variant="note" tone="muted">{scopes.join(' · ')}</T>:null}
         </View>;
       })}</View>:<T variant="body" tone="muted">{EMPTY}</T>}
@@ -190,20 +191,19 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
     </ReviewGroup>
     <ReviewGroup part="area" {...group}>
       <Fact art="pin" quiet={!place}>{place
-        ?review.classificationState==='READY'&&review.reviewedServiceModes?.some(item=>item.mode==='ON_SITE')
+        ?onSite
           ?`${place} · do ${p.location.radiusKm} km`
           :`${place} · grad profila`
         :EMPTY}</Fact>
-      {review.classificationState==='READY'&&review.reviewedServiceModes?.some(item=>item.mode==='REMOTE')
-        ?<T variant="note" tone="muted">Zadaci na daljinu nisu ograničeni ovim gradom ni radijusom.</T>:null}
-      {review.classificationState==='READY'&&review.reviewedServiceModes?.some(item=>item.mode==='ON_SITE')&&point?<ResolvedPinMap coarse disabled height={220} position={point}
+      {remote?<T variant="note" tone="muted">Rad na daljinu nije vezan za grad profila.</T>:null}
+      {onSite&&point?<ResolvedPinMap coarse disabled height={220} position={point}
         scopeKey={`worker-review:${review.accountId}:${review.profileId}:${review.reviewId}:${review.revision}`}
         onChoose={()=>{ /* Frozen review, never a location editor. */ }}/>:null}
-      {review.classificationState==='READY'&&review.reviewedServiceModes?.some(item=>item.mode==='ON_SITE')
+      {onSite
         ?<T variant="note" tone="muted">{point?'Približan centar za terenske zadatke.':'Približnu tačku za terenske zadatke dodaješ posle čuvanja, u delu Područje rada.'}</T>:null}
     </ReviewGroup>
     <ReviewGroup part="time" {...group}>
-      <Fact art="clock">{p.availability.availableNow?'Mogu odmah, dok to ne isključiš':'Status „Mogu odmah“ je isključen'}</Fact>
+      <Fact art="clock">{p.availability.availableNow?'Mogu odmah, dok to ne isključiš':'Mogu odmah: isključeno'}</Fact>
       {p.availability.rules.length?<View style={s.scheduleGroup}>
         <T variant="bodyStrong">Redovna nedelja</T>
         {p.availability.rules.map(rule=><Row key={rule.id} quiet={!rule.active}
@@ -215,7 +215,7 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
         {p.availability.windows.map(w=><Row key={w.id} label={w.state==='AVAILABLE'?'Slobodno za rad':'Zauzeto'}
           value={`${raspon(w.startsAt,w.endsAt,{zona:p.availability.timezone})}${w.label?' · '+w.label:''}`} />)}
       </View>:null}
-      <T variant="note" tone="muted">{scheduleZone(p.availability.timezone)}. Postojeći Dogovori ostaju obaveze.</T>
+      {hasSchedule?<T variant="note" tone="muted">{scheduleZone(p.availability.timezone)}. Dogovori ostaju obaveze.</T>:null}
     </ReviewGroup>
     {p.tools.length||p.vehicles.length?<ReviewGroup part="tools" {...group}>
       {p.tools.length?<Fact art="tool">{list(p.tools)}</Fact>:null}
@@ -224,8 +224,8 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
       <T testID="worker-tools-note" variant="note" tone="muted">{toolsAndVehiclesNote()}</T>
     </ReviewGroup>:null}
     <ReviewGroup part="identity" {...group}>
-      {p.bio?<Row label="O meni" value={p.bio} />:<T variant="body" tone="muted">{EMPTY}</T>}
-      {p.bio?<T testID="worker-matching-explanation" variant="note" tone="muted">„O meni“ vide osobe koje otvore tvoj profil.</T>:null}
+      <T selectable variant="body" style={p.bio?s.ink:s.muted}>{p.bio||EMPTY}</T>
+      {p.bio?<T testID="worker-matching-explanation" variant="note" tone="muted">Vidljivo na tvom profilu.</T>:null}
     </ReviewGroup>
   </View>;
 }
@@ -365,10 +365,9 @@ const s=StyleSheet.create({
   edit:{minWidth:44,minHeight:44,justifyContent:'center',alignItems:'flex-end',paddingLeft:sys.space.md},
   editText:{color:sys.color.green},
   fact:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.md},
-  chips:{flexDirection:'row',flexWrap:'wrap',gap:sys.space.sm},
-  chip:{minHeight:36,maxWidth:'100%',justifyContent:'center',paddingHorizontal:sys.space.md,paddingVertical:sys.space.xs,borderRadius:sys.radius.pill,backgroundColor:sys.color.wash},
-  chipText:{color:sys.color.ink,flexShrink:1},
-  // The constant sentence of the review: a flat tint, ink words, the bell (owner 2026-10-07).
+  services:{gap:sys.space.base},
+  service:{gap:sys.space.xs,minWidth:0},
+  // Supporting context stays in the reading flow; the route owns the main save action.
   noteBox:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.md},
   listEditor:{gap:sys.space.sm},
   reviewNotice:{padding:sys.space.base,borderRadius:sys.radius.control,backgroundColor:sys.color.warnSoft,flexDirection:'row',alignItems:'flex-start',gap:sys.space.md,marginBottom:sys.space.sm},

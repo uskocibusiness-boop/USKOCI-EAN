@@ -7,14 +7,13 @@ import { FactArt } from '../system/FactArt';
 import { ClockArt } from '../system/ClockArt';
 import { layout, ruleWidth } from '../system/layout';
 import { ListRow } from '../system/ListRow';
-import { Surface } from '../system/Surface';
-import { sys } from '../system/tokens';
+import { brandAction, sys } from '../system/tokens';
 import { InfoTitle } from '../settings/InfoTitle';
 import { SettingsGroup, SettingsRow } from '../settings/SettingsPresentation';
 import { V2Action } from '../v2/V2Action';
 import { NameDifference, namesDiffer } from './NameDifference';
 import type { WorkerDraft } from './workerProfileDraft';
-import { skillsLine, toolsAndVehiclesNote } from './workerProfileFacts';
+import { toolsAndVehiclesNote } from './workerProfileFacts';
 import type { WorkerExecutionModeView } from '../../hooks/useWorkerExecutionModes';
 import type { WorkerAiPart } from './workerProfileFacts';
 
@@ -25,7 +24,7 @@ export type SavedProfilePart = 'skills' | 'tools' | 'vehicles';
 
 /** Short equipment lists fit in their row; longer lists have a disclosure. */
 export const KIT_INLINE_MAX = 3;
-/** Number of skill chips shown before the disclosure. */
+/** Number of services shown before the disclosure. */
 export const SKILL_CHIPS_MAX = 8;
 
 /** The switch "Mogu odmah": its state, what it does when it is touched, and whether it is saving or the last save failed. The route owns the save. */
@@ -53,27 +52,26 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
   const grad = draft.grad.trim() ? cityLabel(draft.grad) : '';
   const area = grad ? (draft.radius ? `${grad} · ${draft.radius} km` : grad) : '';
   const name = accountName?.trim() || draft.ime.trim();
-  const kinds = skillsLine(draft.vestine);
   const confirmed = executionModes?.kind === 'confirmed' ? executionModes.modes : [];
   const onSite = confirmed.includes('ON_SITE'), remote = confirmed.includes('REMOTE');
   const modeLabel = onSite && remote ? 'Na lokaciji i na daljinu' : onSite ? 'Na lokaciji' : remote ? 'Na daljinu'
     : executionModes?.kind === 'loading' ? 'Učitavamo način rada…'
       : executionModes?.kind === 'unconfirmed' ? 'Još nije potvrđen' : 'Trenutno nije dostupan';
   return <View testID="worker-profile-saved" style={s.saved}>
-    {name || kinds || draft.biografija.trim() ? <Surface kind="panel" testID="worker-profile-card" style={s.card}>
-      <T variant="meta" tone="muted">Tvoj radni profil</T>
-      <View style={s.cardRow}>
-        <View style={s.face}>{face}</View>
-        <View style={s.cardCopy}>
-          {name ? <T variant="bodyStrong" accessibilityRole="header" style={s.ink}>{name}</T> : null}
-          {kinds ? <T variant="note" tone="muted">{kinds}</T> : null}
-          {rating}
+    <View style={s.identity}>
+      {name || draft.biografija.trim() ? <View testID="worker-profile-card" style={s.card}>
+        <View style={s.cardRow}>
+          <View style={s.face}>{face}</View>
+          <View style={s.cardCopy}>
+            {name ? <T variant="bodyStrong" accessibilityRole="header" style={s.ink}>{name}</T> : null}
+            {rating}
+          </View>
         </View>
-      </View>
-      {draft.biografija.trim() ? <Biography text={draft.biografija} /> : null}
-    </Surface> : null}
-    {openConversation && showConversationAction && !readOnly ? <V2Action label="Uredi kroz razgovor" tone="neutral" disabled={disabled} onPress={() => openConversation()} /> : null}
-    {status}
+        {draft.biografija.trim() ? <Biography text={draft.biografija} /> : null}
+      </View> : null}
+      {status}
+      {openConversation && showConversationAction && !readOnly ? <V2Action label="Uredi kroz razgovor" disabled={disabled} onPress={() => { if (!disabled) openConversation(); }} style={brandAction} /> : null}
+    </View>
     {onUseAccountName && namesDiffer(draft.ime, accountName)
       ? <NameDifference workName={draft.ime} accountName={accountName!} disabled={disabled || nameWorking || readOnly} working={nameWorking} onUse={onUseAccountName} /> : null}
     {/* What the worker does and where: two rows of ONE group, every picture in the same slot, every title at the same edge. */}
@@ -118,8 +116,8 @@ function SkillsRow({ skills }: { skills: readonly string[] }) {
     <View style={s.skillsCopy}>
       <T variant="bodyStrong">Šta radiš</T>
       {skills.length
-        ? <View testID="worker-profile-skills" style={s.chips}>
-          {shown.map((skill, index) => <View key={`${index}:${skill}`} style={s.chip}><T selectable variant="note" style={s.chipText}>{skill}</T></View>)}
+        ? <View testID="worker-profile-skills" style={s.services}>
+          {shown.map((skill, index) => <T key={`${index}:${skill}`} selectable variant="body" style={s.ink}>{skill}</T>)}
         </View>
         : <T variant="note" tone="muted">Nema sačuvanih veština.</T>}
       {skills.length > SKILL_CHIPS_MAX ? <Disclosure label="Veštine" expanded={expanded} onPress={() => setExpanded(value => !value)} /> : null}
@@ -154,8 +152,7 @@ function Biography({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
   const long = Array.from(text).length > 240;
   return <View style={s.group}>
-    <T variant="bodyStrong">O meni</T>
-    <T selectable variant="note" numberOfLines={long && !expanded ? 4 : undefined}>{text}</T>
+    <T selectable variant="body" numberOfLines={long && !expanded ? 4 : undefined}>{text}</T>
     {long ? <Disclosure label="O meni" expanded={expanded} onPress={() => setExpanded(value => !value)} /> : null}
   </View>;
 }
@@ -163,17 +160,15 @@ function Biography({ text }: { text: string }) {
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
   saved: { gap: sys.space.xl },
-  card: { gap: sys.space.md, padding: sys.space.base },
+  identity: { gap: sys.space.base },
+  card: { gap: sys.space.base },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   face: { alignItems: 'center', justifyContent: 'center' },
   cardCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   slot: { width: layout.slot, alignItems: 'center', justifyContent: 'center' },
-  skillsRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, paddingVertical: sys.space.md, minHeight: layout.rowMin },
+  skillsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingVertical: sys.space.md, minHeight: layout.rowMin },
   skillsCopy: { flex: 1, minWidth: 0, gap: sys.space.sm },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: sys.space.sm },
-  chip: { minHeight: 32, maxWidth: '100%', justifyContent: 'center', paddingHorizontal: sys.space.md, paddingVertical: sys.space.xs,
-    borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
-  chipText: { color: sys.color.ink, flexShrink: 1 },
+  services: { gap: sys.space.sm },
   // The title of the equipment and its rows stand 12 apart, as every `Section` does.
   group: { gap: layout.group },
   details: { marginLeft: layout.slot + sys.space.md, gap: sys.space.sm },

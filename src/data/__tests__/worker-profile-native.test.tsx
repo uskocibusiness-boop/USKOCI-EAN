@@ -577,14 +577,14 @@ describe('activation checklist', () => {
   });
 });
 
-// T4b1 (2026-10-07), M3, arranged as the product draft the owner approved on 8 Oct 2026 (P3): a finished profile is READ first, as the card others see, the rows
-// "Šta radiš" and "Gde", "Kada", "Oprema" and the white "Uredi kroz razgovor". A row that changes something opens the editor of THAT part; nothing is written by a tap.
+// A finished profile is read first. Its primary action and contextual area/week entries open AI;
+// reading a fact or opening a conversation never writes the profile.
 describe('the saved profile is read first', () => {
-  it('reads the card, the rows and the white button: no field, no pencil, no footer, and nothing written', async () => {
+  it('reads the identity and facts with one AI edit action, no manual fields or duplicate title', async () => {
     await renderReading();
     expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
     expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
-    expect(texts()).toContain('Tvoj radni profil'); expect(texts()).toContain('Ana');
+    expect(texts()).not.toContain('Tvoj radni profil'); expect(texts()).toContain('Ana');
     expect(texts()).toContain('Šta radiš'); expect(texts()).toContain('Prevoz, utovar');
     expect(texts()).toContain('Gde'); expect(texts()).toContain('Novi Sad · 20 km');
     expect(texts()).toContain('Kada'); expect(texts()).toContain('Mogu odmah'); expect(texts()).not.toContain('Mogu odmah · dostupnost'); expect(texts()).toContain('Nedeljni raspored');

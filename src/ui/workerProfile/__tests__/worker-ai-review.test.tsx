@@ -98,7 +98,8 @@ it('says who reads "O meni", without claiming verification or a score, and only 
   await act(async () => { tree = create(<WorkerAiReviewDetails review={review({}, { bio: 'Radim vikendom.' })} />); });
   const explanation = tree.root.findByProps({ testID: 'worker-matching-explanation' });
   const copy = explanation.children.filter(child => typeof child === 'string').join('');
-  expect(copy).toContain('vide osobe koje otvore tvoj profil');
+  expect(copy).toBe('Vidljivo na tvom profilu.');
+  expect(texts().split(' | ').filter(text => text === 'O meni')).toHaveLength(1);
   expect(copy).not.toMatch(/licenc|kapacitet/); expect(copy).not.toMatch(/verifikovan|%|skor/i);
   await act(async () => tree.update(<WorkerAiReviewDetails review={review()} />));
   expect(tree.root.findAllByProps({ testID: 'worker-matching-explanation' })).toHaveLength(0);
@@ -120,6 +121,8 @@ it('does not invent availability for an empty calendar', async () => {
   const copy = texts();
   expect(copy).toContain('Redovni termini nisu podešeni.');
   expect(copy).not.toContain('Ponedeljak'); expect(copy).not.toContain('Slobodno za rad'); expect(copy).not.toContain('Posebni datumi');
+  expect(copy).toContain('Mogu odmah: isključeno');
+  expect(copy).not.toContain('Po vremenu u Srbiji');
 });
 
 it('manual personal-profile correction does not erase or write hidden legacy fields', async () => {
@@ -174,7 +177,7 @@ it('P5 worker review: confirmed remote work hides an inherited map and radius', 
   await act(async () => { tree = create(<WorkerAiReviewDetails review={saved} />); });
   expect(tree.root.findAllByType('ReviewedWorkAreaMap' as React.ElementType)).toHaveLength(0);
   expect(texts()).toContain('grad profila');
-  expect(texts()).toContain('Zadaci na daljinu nisu ograničeni ovim gradom ni radijusom.');
+  expect(texts()).toContain('Rad na daljinu nije vezan za grad profila.');
   expect(texts()).not.toMatch(/20 km|Približan centar za terenske zadatke/);
 });
 it('P5 worker review: a point and city cannot establish an unconfirmed work mode', async () => {

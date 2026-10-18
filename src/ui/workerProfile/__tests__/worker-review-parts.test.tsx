@@ -41,6 +41,21 @@ const groupIds = () => tree.root.findAll(node => typeof node.type === 'string' &
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('the review in parts (M2)', () => {
+  it('keeps each service beside its own signed mode and retains the AI correction action', async () => {
+    const edit=jest.fn();
+    const signed:WorkerAiReview={...review({skills:['Montaža nameštaja','3D štampa']}),classificationState:'READY',
+      reviewedServiceModes:[{service:'Montaža nameštaja',mode:'ON_SITE'},{service:'3D štampa',mode:'REMOTE'}]};
+    await act(async()=>{tree=create(<WorkerAiReviewDetails review={signed} onEdit={edit}/>);});
+    const rows=tree.root.findAllByProps({testID:'worker-review-service'}).map(row=>row.findAll(node=>String(node.type)==='T').map(node=>node.props.children));
+    expect(rows).toEqual([['Montaža nameštaja','Na lokaciji'],['3D štampa','Na daljinu']]);
+    await act(async()=>press('Izmeni: Usluge koje nudiš').props.onPress());
+    expect(edit).toHaveBeenCalledWith('skills');
+    await act(async()=>tree.update(<WorkerAiReviewDetails review={{...signed,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',reviewedServiceModes:[]}} onEdit={edit}/>));
+    expect(tree.root.findByProps({testID:'worker-classification-pending'}).props.children).toContain('automatsko povezivanje čeka');
+    const pending=tree.root.findAllByProps({testID:'worker-review-service'}).map(row=>row.findAll(node=>String(node.type)==='T').map(node=>node.props.children));
+    expect(pending).toEqual([['Montaža nameštaja'],['3D štampa']]);
+  });
+
   it('draws skills, area, time, tools and vehicles, then "O meni" (the name is the account\'s and is no part of the review), in that order', async () => {
     await act(async () => { tree = create(<WorkerAiReviewDetails review={full} />); });
     expect(groupIds()).toEqual(['worker-review-skills', 'worker-review-area', 'worker-review-time', 'worker-review-tools', 'worker-review-identity']);
@@ -66,7 +81,7 @@ describe('the review in parts (M2)', () => {
     expect(texts()).toContain('Izrada 3D figurica');
     expect(texts()).not.toContain('Predlog za katalog');
     expect(texts()).toContain('Novi Sad · RS · grad profila');
-    expect(texts()).toContain('Zadaci na daljinu nisu ograničeni ovim gradom ni radijusom.');
+    expect(texts()).toContain('Rad na daljinu nije vezan za grad profila.');
     expect(texts()).not.toContain('Novi Sad · RS · do 20 km');
     expect(tree.root.findAll(node=>String(node.type)==='ReviewedWorkAreaMap')).toHaveLength(0);
   });
@@ -119,7 +134,7 @@ describe('the review in parts (M2)', () => {
 
   it('the constant sentence with the bell says only what the profile is used for, in ink', async () => {
     await act(async () => { tree = create(<WorkerAiNotificationsNote />); });
-    expect(WORKER_PROFILE_NOTIFICATIONS_NOTE).toBe('Usluge, potvrđen način rada, područje i vreme koriste se za izbor zadataka za tebe. Ako uključiš obaveštenja, možemo da ti javimo kada se pojavi odgovarajući zadatak.');
+    expect(WORKER_PROFILE_NOTIFICATIONS_NOTE).toBe('Zadatke povezujemo sa potvrđenim uslugama, načinom rada, područjem i vremenom. Obaveštenja su tvoj izbor.');
     const note = tree.root.findByProps({ testID: 'worker-review-notifications-note' });
     expect(note.props.children).toBe(WORKER_PROFILE_NOTIFICATIONS_NOTE); expect(note.props.tone).toBeUndefined();
     expect(note.props.variant).not.toBe('meta');
