@@ -34,13 +34,29 @@ const press = (label: string) => tree.root.findAll(node => String(node.type) ===
 const toggle = () => tree.root.findAll(node => String(node.type) === 'Switch')[0];
 const show = async (patch: Partial<React.ComponentProps<typeof WorkerProfileSaved>> = {}, value: WorkerDraft = draft()) => {
   const spies = { navigate: jest.fn(), openConversation: jest.fn() };
-  const props = { draft: value, status: <></>, disabled: false, ...spies, ...patch };
+  const props = { draft: value, status: <></>, disabled: false,
+    executionModes: { kind: 'confirmed' as const, modes: ['ON_SITE' as const] }, ...spies, ...patch };
   await act(async () => { tree = create(<WorkerProfileSaved {...props} />); });
   return spies;
 };
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('what the saved profile shows', () => {
+  it('shows confirmed remote work with the profile city, never an inherited on-site radius or location editor', async () => {
+    const spies = await show({ executionModes: { kind: 'confirmed', modes: ['REMOTE'] } },
+      draft({ vestine: ['3D štampa'], biografija: 'Izrada kod mene uz slanje.' }));
+    expect(all()).toContain('Na daljinu'); expect(all()).toContain('Grad profila'); expect(all()).toContain('Novi Sad');
+    expect(all().join(' ')).not.toMatch(/20 km|Gde/);
+    expect(press('Gde')).toBeUndefined(); expect(spies.navigate).not.toHaveBeenCalled();
+  });
+
+  it.each(['loading', 'unavailable', 'unconfirmed'] as const)('%s modes cannot infer on-site work from the city or remote work from skill text', async kind => {
+    await show({ executionModes: { kind } }, draft({ vestine: ['3D štampa'], biografija: 'Radim na daljinu.' }));
+    const mode = tree.root.findAll(node => node.props.title === 'Način rada')[0];
+    expect(mode.props.subtitle).not.toMatch(/^Na lokaciji|^Na daljinu/);
+    expect(all().join(' ')).not.toContain('20 km'); expect(press('Gde')).toBeUndefined();
+  });
+
   it('reads the card, the two rows, "Kada", "Oprema" and the white button, without a pencil on any line', async () => {
     await show({ rating: <RatingLineView average={4.8} count={12} /> });
     const copy = all();
@@ -220,7 +236,7 @@ describe('what the person brings', () => {
     const titles = (root: ReactTestInstance) => root.findAll(node => typeof node.props.title === 'string' && node.props.leading !== undefined).map(node => node.props.title);
     const kit = tree.root.findByProps({ testID: 'worker-profile-kit' });
     expect(titles(kit)).toEqual(['Alat', 'Vozila']);
-    expect(titles(tree.root)).toEqual(['Gde', 'Mogu odmah', 'Nedeljni raspored', 'Alat', 'Vozila']);
+    expect(titles(tree.root)).toEqual(['Način rada', 'Gde', 'Mogu odmah', 'Nedeljni raspored', 'Alat', 'Vozila']);
     // The explanation of the equipment is the mark at its title.
     expect(kit.findAll(node => node.props.testID === 'worker-kit-info').length).toBeGreaterThan(0);
   });

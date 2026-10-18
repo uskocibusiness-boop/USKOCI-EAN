@@ -11,6 +11,8 @@ let mockAccountId = 'account-a';
 let mockEmail: string | undefined = 'ana@example.rs';
 let mockAccountRevision = 1;
 let mockIntent: 'narucilac' | 'uskocer' = 'narucilac';
+let mockModeView: import('../../hooks/useWorkerExecutionModes').WorkerExecutionModeView = { kind: 'confirmed', modes: ['ON_SITE'] };
+jest.mock('../../hooks/useWorkerExecutionModes', () => ({ useWorkerExecutionModes: () => ({ view: mockModeView, refresh: jest.fn() }) }));
 const mockPostaviUlogu = jest.fn();
 const mockSignOut = jest.fn();
 const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
@@ -72,6 +74,7 @@ const visibleText = () => tree.root.findAll(node => String(node.type) === 'T').f
 beforeEach(() => {
   jest.clearAllMocks();
   mockAccountId = 'account-a'; mockAccountRevision = 1; mockIntent = 'narucilac'; mockEmail = 'ana@example.rs';
+  mockModeView = { kind: 'confirmed', modes: ['ON_SITE'] };
   mockResource = { data: { identity, capability: null }, loading: false, error: false, refresh: mockRefresh };
   mockHubStates = {}; mockVersion = '1.4.2';
   mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
@@ -84,6 +87,15 @@ afterEach(async () => {
 });
 
 describe('real profile hub', () => {
+  it('uses confirmed remote mode in the work summary without the inherited radius', async () => {
+    mockModeView = { kind: 'confirmed', modes: ['REMOTE'] };
+    mockResource.data = { identity, capability: { profileId: 'worker-a', ime: 'Ana', grad: 'Novi Sad', stanje: 'ACTIVE', vestine: ['3D štampa'], radijusKm: 15 } };
+    await render();
+    expect(tree.root.findByType(ProfileHub).props.capabilityDetail).toBe('Aktivan · 3D štampa · Na daljinu');
+    mockModeView = { kind: 'loading' };
+    await act(async () => { tree.update(<Profil />); });
+    expect(tree.root.findByType(ProfileHub).props.capabilityDetail).toBe('Aktivan · 3D štampa');
+  });
   // Owner decision 1 (2026-09-19): one hub for one account. `mockIntent` stays in these tables as the
   // value the retired app mode last had; the hub must be the same hub whichever it was.
   it.each(['narucilac', 'uskocer'] as const)('keeps the existing notification entry in the one hub, whatever the app last was (%s)', async intent => {

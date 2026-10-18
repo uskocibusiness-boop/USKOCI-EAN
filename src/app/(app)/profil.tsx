@@ -8,6 +8,7 @@ import { ownProfileClientService, type OwnProfileIdentity } from '../../data/own
 import { readBuildIdentity } from '../../data/buildIdentity';
 import { publicProfileClientService } from '../../data/publicProfileClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
+import { useWorkerExecutionModes } from '../../hooks/useWorkerExecutionModes';
 import { AccountReputation } from '../../ui/reviews/AccountReputation';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
 import { ProfileWorkSummary } from '../../ui/profile/ProfileWorkSummary';
@@ -43,6 +44,7 @@ export default function Profil() {
     return { identity: identity ?? capability, capability };
   }, [accountId, izvor]);
   const profile = useFocusedResource(load);
+  const executionModes = useWorkerExecutionModes(profile.data?.capability?.profileId ?? null);
   const words = hubWords(useHubStates(STATE_ROWS));
   const actionScope = useRef<ActionScope | null>(null);
   const [renderedScope, setRenderedScope] = useState<ActionScope | null>(null);
@@ -101,7 +103,7 @@ export default function Profil() {
 
   const identity = profile.data?.identity ?? null, capability: WorkCapability | null = profile.data?.capability ?? null;
   // The row says the state, the skills and the area, and nothing else: while the read runs or failed there is nothing true to say yet.
-  const capabilityDetail = !profile.data ? undefined : workProfileSummary(capability);
+  const capabilityDetail = !profile.data ? undefined : workProfileSummary(capability, executionModes.view);
   const photoReady = !!identity?.profileId && !profile.loading && !profile.error;
   const openPhoto = () => { const id = identity?.profileId; if (!id || profile.loading || profile.error) return;
     navigate(() => router.push({ pathname: '/profil/fotografija', params: { profileId: id } })); };

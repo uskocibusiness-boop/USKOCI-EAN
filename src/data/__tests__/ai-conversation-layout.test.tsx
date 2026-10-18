@@ -59,6 +59,32 @@ it('does not apply a second height-based keyboard adjustment over Android window
   const container = tree.root.findByType('KeyboardAvoidingView' as React.ElementType);
   expect(container.props.behavior).not.toBe('height');
 });
+it('keeps the saved-action footer above the gesture area even when closing precedes keyboardDidHide', async () => {
+  const p = props();
+  await act(async () => { tree = create(<AiConversationShell {...p} />); });
+  const footer = () => tree.root.findByProps({ testID: 'ai-composer-footer' });
+  expect(footer().props.edges).toEqual(['bottom']);
+  await act(async () => { mockKeyboard.keyboardDidShow(); });
+  expect(footer().props.edges).toEqual([]);
+  await act(async () => { tree.update(<AiConversationShell {...p} closed footerAction={<View testID="saved-profile-action" />} />); });
+  expect(footer().props.edges).toEqual(['bottom']);
+  expect(footer().findAllByProps({ testID: 'ai-composer' })).toHaveLength(0);
+  expect(footer().findByProps({ testID: 'saved-profile-action' })).toBeDefined();
+  await act(async () => { mockKeyboard.keyboardDidHide(); });
+  expect(footer().props.edges).toEqual(['bottom']);
+});
+it('protects a closed conversation action inside the scroll when the composer and footer are absent', async () => {
+  const p = props();
+  await act(async () => { tree = create(<AiConversationShell {...p} closed actions={<View testID="saved-in-thread" />} />); });
+  expect(tree.root.findByProps({ testID: 'ai-conversation-safe-area' }).props.edges).toEqual(['top', 'bottom']);
+  expect(tree.root.findAllByProps({ testID: 'ai-composer-footer' })).toHaveLength(0);
+  expect(tree.root.findByProps({ testID: 'ai-conversation-thread' }).findByProps({ testID: 'saved-in-thread' })).toBeDefined();
+  await act(async () => { tree.update(<AiConversationShell {...p} closed footerAction={<View />} />); });
+  expect(tree.root.findByProps({ testID: 'ai-conversation-safe-area' }).props.edges).toEqual(['top']);
+  expect(tree.root.findByProps({ testID: 'ai-composer-footer' }).props.edges).toEqual(['bottom']);
+  await act(async () => { tree.update(<AiConversationShell {...p} />); });
+  expect(tree.root.findByProps({ testID: 'ai-conversation-safe-area' }).props.edges).toEqual(['top']);
+});
 it('uses a quiet restart icon rather than a plus beside the conversation title and defers the action to its owner', async () => {
   const p = props(), restart = jest.fn(); p.newConversation = { onPress: restart };
   await act(async () => { tree = create(<AiConversationShell {...p} />); });

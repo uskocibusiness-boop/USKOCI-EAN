@@ -4,6 +4,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { RadnikProfilProjekcija } from '../../../contracts/projections';
 import type { AzurirajProfilKomanda, Ishod } from '../../../data/ports';
 import { useOwnedEditor } from '../../../hooks/useOwnedEditor';
+import { useWorkerExecutionModes } from '../../../hooks/useWorkerExecutionModes';
 import { useUnsavedProfileBack } from '../../../hooks/useUnsavedProfileBack';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { useIzvor } from '../../../store/uloga';
@@ -70,6 +71,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     } catch { return { ok: false, kod: 'PROFILE_READ_FAILED', poruka: 'Profil nije učitan. Proveri vezu pa pokušaj ponovo.' }; }
   }, [izvor, owns]);
   const editor = useOwnedEditor(read);
+  const executionModes = useWorkerExecutionModes(editor.data?.profile?.id ?? null, editor.data?.read ?? 0);
   const latestStatus = useRef(editor.data?.profile?.stanje);
   latestStatus.current = editor.data?.profile?.stanje;
   const [draft, setDraft] = useState<Draft | null>(null), draftRef = useRef<Draft | null>(null), draftGeneration = useRef(0);
@@ -330,6 +332,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
         openConversation={reading && status === 'DRAFT' ? undefined : openConversation} profileExists={profile !== null} introOnly={introOnly}
         reading={reading} onEditPart={editPart} openSection={openSection} face={face} rating={accountId ? <RatingLine accountId={accountId} /> : undefined}
         availableNow={availableNowControl}
+        executionModes={executionModes.view} refreshModes={executionModes.refresh}
         accountName={accountName} onUseAccountName={() => { void adoptAccountName(); }} nameWorking={nameWorking} /></View>}
     {leave.sheet}
   </WorkerProfileFrame>;

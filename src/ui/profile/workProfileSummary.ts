@@ -1,5 +1,6 @@
 import type { StanjeProfila } from '../../contracts/projections';
 import { cityLabel } from './cityLabel';
+import type { WorkerExecutionModeView } from '../../hooks/useWorkerExecutionModes';
 
 /** The longest stretch of one skill said in the summary line; the whole list is one tap away, in the work profile. */
 const SKILL_CLIP = 32;
@@ -24,15 +25,18 @@ const STATE_WORD: Record<StanjeProfila, string> = { ACTIVE: 'Aktivan', DRAFT: 'N
  * The long explanations that used to stand here ("Dok je nacrt, zadaci ti se ne nude.", "Bez njega ne možeš da se prijaviš na zadatak.") are
  * said where the profile is, on its own screen, and the orange dot on the row says that something waits.
  */
-export function workProfileSummary(profile: WorkProfileFacts | null): string | undefined {
+export function workProfileSummary(profile: WorkProfileFacts | null, executionModes?: WorkerExecutionModeView): string | undefined {
   if (!profile) return 'Još nije podešen';
   if (profile.stanje === null || STATE_WORD[profile.stanje] === undefined) return undefined;
   if (profile.stanje === 'SUSPENDED') return `${STATE_WORD.SUSPENDED}. Obrati se podršci.`;
   const skills = (profile.vestine ?? []).map(skill => skill.trim()).filter(Boolean);
   const city = profile.grad?.trim() ? cityLabel(profile.grad) : '';
   const radius = typeof profile.radijusKm === 'number' && Number.isFinite(profile.radijusKm) && profile.radijusKm > 0 ? `${profile.radijusKm} km` : '';
+  const modes = executionModes?.kind === 'confirmed' ? executionModes.modes : [];
+  const onSite = modes.includes('ON_SITE'), remote = modes.includes('REMOTE');
   const parts = [STATE_WORD[profile.stanje],
     skills.length ? `${clip(skills[0])}${skills.length > 1 ? ` +${skills.length - 1}` : ''}` : '',
-    city ? (radius ? `${city}, ${radius}` : city) : ''];
+    remote ? 'Na daljinu' : '',
+    onSite && city ? (radius ? `${city}, ${radius}` : city) : ''];
   return parts.filter(Boolean).join(' · ');
 }

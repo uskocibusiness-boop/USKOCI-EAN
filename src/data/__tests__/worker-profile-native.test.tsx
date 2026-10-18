@@ -7,6 +7,8 @@ let mockIntent = 'uskocer', mockFocused = true, mockPlatform = 'android';
 let mockAccountName: { state: 'loading' } | { state: 'error'; retry: () => void } | { state: 'ready'; name: string | null; profileId?: string | null } = { state: 'ready', name: 'Ana' };
 // "Lični podaci" leads here with `uredi=o-meni` and a nonce `n` (a link of the router).
 let mockParams: { uredi?: string; n?: string } = {};
+let mockModeView: import('../../hooks/useWorkerExecutionModes').WorkerExecutionModeView = { kind: 'confirmed', modes: ['ON_SITE'] };
+jest.mock('../../hooks/useWorkerExecutionModes', () => ({ useWorkerExecutionModes: () => ({ view: mockModeView, refresh: jest.fn() }) }));
 const mockListeners = new Set<(state: string) => void>();
 const mockBackHandlers = new Set<() => boolean>();
 const mockRead = jest.fn(), mockWrite = jest.fn(), mockScrollTo = jest.fn(), mockFocusField = jest.fn();
@@ -86,9 +88,18 @@ beforeEach(() => {
   jest.clearAllMocks(); mockRead.mockReset().mockResolvedValue(profile); mockWrite.mockReset().mockResolvedValue({ ok: true, podatak: null });
   mockAccount = '10000000-0000-4000-8000-000000000001'; mockRevision = 1; mockIntent = 'uskocer'; mockFocused = true; mockPlatform = 'android';
   mockAccountName = { state: 'ready', name: 'Ana' }; mockParams = {};
+  mockModeView = { kind: 'confirmed', modes: ['ON_SITE'] };
   mockRouter.canGoBack.mockReturnValue(true);
 });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
+
+it('passes owned remote mode into the saved profile instead of assuming its city is coverage', async () => {
+  mockModeView = { kind: 'confirmed', modes: ['REMOTE'] };
+  await renderReading();
+  expect(texts()).toContain('Na daljinu'); expect(texts()).toContain('Grad profila');
+  expect(texts()).not.toContain('20 km');
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Gde' })).toHaveLength(0);
+});
 
 // Since 2026-09-24 availability and the work area are summary rows that open their own editors: no switch, no dead fields.
 it.each(['android', 'ios'])('renders the actual V2 form and keyboard boundary on %s, retaining true availability and comma-containing terms', async platform => {

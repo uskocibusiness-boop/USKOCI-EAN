@@ -259,7 +259,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const drawNote = (note: ConversationNote) => <View key={`note:${note.key}`} testID="ai-thread-note">{note.node}</View>;
 
   return <DraftDisclosure.Provider value={{ expanded, toggle: () => setDisclosure({ key: p.conversationKey, expanded: !expanded }) }}>
-  <SafeAreaView edges={['top']} style={s.canvas}>
+  {/* A closed conversation can keep its next action in the scroll. Without a composer/footer,
+      the frame owns the bottom inset so that action stays above Android's gesture area. */}
+  <SafeAreaView edges={p.closed && !p.footerAction ? ['top', 'bottom'] : ['top']} testID="ai-conversation-safe-area" style={s.canvas}>
     <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScreenChrome variant="detail" tone="conversation" onBack={p.onBack} title={p.title}
         right={p.newConversation || p.onOptions ? <View style={s.headerRight}>
@@ -389,7 +391,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
       </View>
       {/* Above the keyboard the composer needs no inset of its own; without it, the gesture bar is the phone's. No tab bar
           is drawn under a conversation (`_layout`), so this is the composer's own inset on both conversations. */}
-      {p.closed && !p.footerAction ? null : <SafeAreaView edges={keyboard ? [] : ['bottom']} testID="ai-composer-footer" style={s.footer}>
+      {/* Closing removes the input before Android may emit keyboardDidHide. The saved-action footer
+          always owns its bottom inset; the open composer still gives that space to the keyboard. */}
+      {p.closed && !p.footerAction ? null : <SafeAreaView edges={p.closed || !keyboard ? ['bottom'] : []} testID="ai-composer-footer" style={s.footer}>
         {p.footerAction ? <View testID="ai-footer-action">{p.footerAction}</View> : null}
         {p.closed ? null : <>
         {/* A person who cannot hold uses the same microphone in start/stop mode with explicit review. */}

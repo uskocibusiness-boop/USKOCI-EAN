@@ -19,6 +19,7 @@ import { SettingsGroup, SettingsRow } from '../settings/SettingsPresentation';
 import { V2Action } from '../v2/V2Action';
 import type { WorkerDraft } from './workerProfileDraft';
 import { WorkerProfileSaved, type AvailableNowControl, type SavedProfilePart } from './WorkerProfileSaved';
+import type { WorkerExecutionModeView } from '../../hooks/useWorkerExecutionModes';
 import { NameDifference, namesDiffer } from './NameDifference';
 import { availabilityRowDetail } from './workerProfileFacts';
 
@@ -236,12 +237,13 @@ export type WorkerProfileFocusRequest = { target: 'skill' | 'tool' | 'vehicle'; 
  * (`onUseAccountName`, the person's own action, never automatic), which goes by itself once the two agree.
  */
 export function WorkerProfileForm({ draft, change, disabled, status, navigate, focusRequest, checks, readyToActivate = false, openConversation, profileExists = true, introOnly = false,
-  reading = false, accountName = null, onUseAccountName, nameWorking = false, onEditPart, face, rating, availableNow, openSection }: {
+  reading = false, accountName = null, onUseAccountName, nameWorking = false, onEditPart, face, rating, availableNow, openSection, executionModes, refreshModes }: {
   draft: WorkerDraft; change: (value: WorkerDraft) => void; disabled: boolean; status: StanjeProfila | null;
   navigate: (path: WorkerNavigation) => void; focusRequest?: WorkerProfileFocusRequest | null;
   checks?: WorkerActivationChecks; readyToActivate?: boolean; openConversation?: () => void; profileExists?: boolean;
   /** Only a pristine first visit. Retained drafts and uncertain writes must keep their recovery editor. */ introOnly?: boolean;
   reading?: boolean;
+  executionModes?: WorkerExecutionModeView; refreshModes?: () => void;
   /** Opens the editor of one part (a row of the read profile). */ onEditPart?: (part: SavedProfilePart) => void;
   /** The face in the card of the read profile. */ face?: ReactNode;
   /** The rating line in that card. */ rating?: ReactNode;
@@ -277,6 +279,7 @@ export function WorkerProfileForm({ draft, change, disabled, status, navigate, f
   const difference = namesDiffer(draft.ime, accountName) && onUseAccountName
     ? <NameDifference workName={draft.ime} accountName={accountName!} disabled={disabled || nameWorking} working={nameWorking} onUse={onUseAccountName} /> : null;
   if (reading) return <WorkerProfileSaved draft={draft} disabled={disabled} navigate={navigate} openConversation={openConversation}
+    executionModes={executionModes} refreshModes={refreshModes}
     readOnly={status === 'SUSPENDED'} face={face} rating={rating} availableNow={availableNow}
     accountName={accountName} onUseAccountName={onUseAccountName} nameWorking={nameWorking}
     status={<ActivationStatus status={status} readyToActivate={false} disabled={disabled} navigate={navigate} />} />;

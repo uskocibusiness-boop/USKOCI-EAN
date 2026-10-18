@@ -15,6 +15,7 @@ import { V2Action } from '../v2/V2Action';
 import { NameDifference, namesDiffer } from './NameDifference';
 import type { WorkerDraft } from './workerProfileDraft';
 import { skillsLine, toolsAndVehiclesNote } from './workerProfileFacts';
+import type { WorkerExecutionModeView } from '../../hooks/useWorkerExecutionModes';
 
 /** The places the saved profile opens: the area and the week of a worker. */
 export type SavedProfilePath = '/profil/lokacija' | '/profil/dostupnost';
@@ -35,7 +36,7 @@ export type AvailableNowControl = { value: boolean; onChange: (value: boolean) =
  * The route owns status, available-now writes and restrictions on a suspended profile.
  */
 export function WorkerProfileSaved({ draft, status, disabled, navigate, openConversation, accountName = null, onUseAccountName, nameWorking = false,
-  face, rating, availableNow, readOnly = false }: {
+  face, rating, availableNow, readOnly = false, executionModes, refreshModes }: {
   draft: WorkerDraft; status: ReactNode; disabled: boolean; navigate: (path: SavedProfilePath) => void;
   /** The assistant fills the profile in with the person: the white button at the end. Without it the button is not drawn. */ openConversation?: () => void;
   /** A suspended profile remains readable; its area and week cannot be edited. */ readOnly?: boolean;
@@ -45,11 +46,17 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
   /** The face in the card: the photo, or what stands in for it. */ face?: ReactNode;
   /** The rating in the card (a line, or nothing). */ rating?: ReactNode;
   /** The switch "Mogu odmah"; without it the row says its state and cannot be touched. */ availableNow?: AvailableNowControl;
+  executionModes?: WorkerExecutionModeView; refreshModes?: () => void;
 }) {
   const grad = draft.grad.trim() ? cityLabel(draft.grad) : '';
   const area = grad ? (draft.radius ? `${grad} · ${draft.radius} km` : grad) : '';
   const name = accountName?.trim() || draft.ime.trim();
   const kinds = skillsLine(draft.vestine);
+  const confirmed = executionModes?.kind === 'confirmed' ? executionModes.modes : [];
+  const onSite = confirmed.includes('ON_SITE'), remote = confirmed.includes('REMOTE');
+  const modeLabel = onSite && remote ? 'Na lokaciji i na daljinu' : onSite ? 'Na lokaciji' : remote ? 'Na daljinu'
+    : executionModes?.kind === 'loading' ? 'Učitavamo način rada…'
+      : executionModes?.kind === 'unconfirmed' ? 'Još nije potvrđen' : 'Trenutno nije dostupan';
   return <View testID="worker-profile-saved" style={s.saved}>
     {name || kinds || draft.biografija.trim() ? <Surface kind="panel" testID="worker-profile-card" style={s.card}>
       <T variant="meta" tone="muted">Tvoj radni profil</T>
@@ -70,9 +77,13 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
     {/* What the worker does and where: two rows of ONE group, every picture in the same slot, every title at the same edge. */}
     <SettingsGroup>
       <SkillsRow skills={draft.vestine} />
-      {readOnly ? <ListRow title="Gde" value={area || 'Nije navedeno'} leading={<FactArt kind="pin" size={32} />} />
+      <ListRow title="Način rada" subtitle={modeLabel} leading={<FactArt kind={remote && !onSite ? 'remote' : 'tasks'} size={32} />}
+        last={!onSite && !grad} />
+      {executionModes?.kind === 'unavailable' && refreshModes ? <V2Action label="Proveri način rada" tone="neutral" kind="quiet" compact onPress={refreshModes} /> : null}
+      {onSite ? readOnly ? <ListRow title="Gde" value={area || 'Nije navedeno'} leading={<FactArt kind="pin" size={32} />} />
         : <SettingsRow label="Gde" value={area || undefined} detail={area ? undefined : 'Izaberi gde želiš da radiš'} icon={<FactArt kind="pin" size={32} />}
-          disabled={disabled} onPress={() => navigate('/profil/lokacija')} last />}
+          disabled={disabled} onPress={() => navigate('/profil/lokacija')} last />
+        : grad ? <ListRow title="Grad profila" value={grad} leading={<FactArt kind="pin" size={32} />} last /> : null}
     </SettingsGroup>
     <SettingsGroup title="Kada">
       {availableNow && !readOnly
