@@ -2,6 +2,8 @@
 
 Polazni kod: `6cfc348a1216e5c8ff71525f96ee56262d2aff9c`, grana `feature/unified-qa-master-20261017`. Nastavak ranije objavljenog čišćenja, bez promene rasporeda ekrana. Dokaz: [strukturirani rezultat](evidence/HOME_READ_CONTINUATION_20261018.json).
 
+Objavljeni izvor ovog paketa: `f18ea85def1ff259e1027b30149916089a4c03de`, tree `a2fb9651a4b5518b4cbf6f6a3073bf7991f78972`; lokalni i GitHub tree jednaki. [Emulator build 39172584706](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39172584706) i application parity CI `39172584767` pokrenuti su na tom kodu u 22:31:14 UTC i pri ovom očitavanju su u toku. To još nije uspešan APK niti provera na uređaju. Ovaj naknadni zapis menja samo dokaze, ne kod koji se gradi.
+
 ## Primenjeno u izvoru
 
 - Početna dobija zbirne brojeve prijava kroz postojeći `mojePrijaveStrana(ALL, 1)` umesto cele istorije. Broj ne zavisi od jedine vraćene stavke; prethodni potpuni prikaz prijava ostaje dostupan svom ekranu. Nedostajući zbir ostaje nedostupan, bez izmišljene nule ili nepotpunog broja.
