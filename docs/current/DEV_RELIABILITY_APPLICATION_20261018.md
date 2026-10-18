@@ -38,4 +38,8 @@ Objavljeno kao `73e1915b38151c7dca23bc90a864a96912832d9f`, tačan tree `db3427bd
 
 ## Ostaje otvoreno
 
+Naknadno: Home CI ispravka je objavljena kao `7ac37293184e28addae2170422f33a2b012efe34`. [Run 39163556694](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39163556694): aktuelni `current-bounded-reader` **SUCCESS**, istorijski replay posao namerno nije deo ove grane. Prošli su migration integrity, TypeScript, 27 SQL i 208 povezanih Jest provera. [APK run 39163340552](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39163340552) ostaje zaseban izvor `73e1915`; u trenutku čitanja prolazi preflight i još izvršava punu regresiju. CI dopuna nije menjala aplikacioni TS ni SQL.
+
+Sledeći konkretan source nalaz (nije implementiran niti proglašen runtime kvarom): Home core u `src/app/(app)/index.tsx` čeka četiri čitanja. `mojePotrebe` vraća ceo `rpc_list_my_tasks`, `mojePrijave` ceo `rpc_list_my_applications`, a `mojiDogovori` obilazi do 20 stranica po 100. Postojeći attention aggregate nema sve brojeve/draft/termin činjenice potrebne da se te liste samo odseku. Dodatno, u `agreementClientService.ts` neispravan `hasMore` ili `hasMore=true` bez poslednjeg kursora prekida obilazak kao da je potpun; to zahteva novu ciljanu reprodukciju i fail-closed ispravku. Ove promene nisu krišom ubačene u već pokrenuti APK.
+
 DEV PostgREST HTTP stale konflikt, kompletan migracioni replay, reprezentativno opterećenje, APK/uređaj i dva naloga kroz ceo tok nisu dokazani. Home core lične kolekcije se još čitaju širokim putem. Vizuelni rad, AI vreme/lokacije/rute, Dogovori, grupni čet i obaveštenja ostaju otvorene povezane celine, ne rešene ovim paketom.
