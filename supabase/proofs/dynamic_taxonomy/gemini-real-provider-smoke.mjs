@@ -7,6 +7,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import assert from 'node:assert/strict';
 import { withGeminiClassificationShadowSchema } from '../../functions/_shared/classificationGeminiShadow.mjs';
+import { workerServiceModeSchema } from '../../functions/_shared/workerServiceModeContext.mjs';
 
 const workerPath='supabase/functions/uskoci-worker-interview/index.ts';
 const needPath='supabase/functions/uskoci-ai-interview/index.ts';
@@ -54,7 +55,8 @@ function wireAdapter(){
   ],'geminiRequestBody');
 }
 function makePayload(baseline,purpose,toWire) {
-  const extended=withGeminiClassificationShadowSchema(baseline,purpose);
+  const shadow=withGeminiClassificationShadowSchema(baseline,purpose);
+  const extended=purpose==='WORKER_CAPABILITY'?workerServiceModeSchema(shadow):shadow;
   const turn={
     systemInstruction:{parts:[{text:'Synthetic USKOCI schema compatibility test. Respond in Serbian. Return safe short values. Set assistantMessage to OK. Keep facts empty and patch empty. For dialogue use next ACK, questionKey NONE, taskRelation CONTINUE, priceUnit UNSPECIFIED, schedulePattern UNSPECIFIED. Set optional classificationShadowJson to the string [].'}]},
     contents:[{role:'user',parts:[{text:'Sintetički test: treba mi krečenje sobe.'}]}],
@@ -63,9 +65,13 @@ function makePayload(baseline,purpose,toWire) {
   const old=JSON.parse(toWire(JSON.stringify({...turn,generationConfig:{...turn.generationConfig,responseSchema:baseline}})));
   const sent=JSON.parse(toWire(JSON.stringify(turn)));
   const wireSchema=sent.generationConfig.responseSchema;
-  const {classificationShadowJson,...core}=wireSchema.properties;
+  const {classificationShadowJson,serviceModeChangesJson,...core}=wireSchema.properties;
   assert.deepEqual(JSON.parse(JSON.stringify(core)),JSON.parse(JSON.stringify(old.generationConfig.responseSchema.properties)));
   assert.deepEqual(classificationShadowJson,{type:'STRING'});
+  if(purpose==='WORKER_CAPABILITY') {
+    assert.deepEqual(serviceModeChangesJson,{type:'STRING'});
+    assert.equal(wireSchema.required.includes('serviceModeChangesJson'),false);
+  } else assert.equal(serviceModeChangesJson,undefined);
   assert.equal(wireSchema.required.includes('classificationShadowJson'),false);
   assert.equal('classificationShadow' in wireSchema.properties,false);
   assert.equal(JSON.stringify(sent).includes('additionalProperties'),false);

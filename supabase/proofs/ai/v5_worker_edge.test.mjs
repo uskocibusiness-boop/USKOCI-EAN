@@ -13,7 +13,9 @@ function fixture(options={}){
   calls.push({url:String(url),body:init.body?JSON.parse(init.body):null,init,abortedAtCall:init.signal?.aborted});
   if(url.endsWith('/auth/v1/user'))return json(options.auth??{id:account});
   if(url.endsWith('/rpc_claim_worker_ai_turn_service'))return json({acquired:!options.replay,turn:turn(options.replay?'SUCCEEDED':'PROCESSING')});
-  if(url.endsWith('/rpc_read_worker_ai_context_service'))return json(options.context??{schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',candidate:{skills:[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:'SYNTHETIC_USER_MESSAGE'}]});
+  if(url.endsWith('/rpc_read_worker_ai_context_service'))return json(options.context??{schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:0,
+   serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:0,savedServices:[],draftServices:[],unresolvedServices:[]},
+   candidate:{skills:[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:'SYNTHETIC_USER_MESSAGE'}]});
   if(url.endsWith('/rpc_ai_test_budget_reserve_service'))return json(options.budget??{admitted:true,reservationId:id(8),replay:false,code:'AI_TEST_RESERVED'});
   // Explicit synthetic141 dispatch authorization. This unit transport does not
   // stand in for the separate actual Auth/Postgres race proof.
@@ -44,11 +46,12 @@ const completions=f=>f.calls.filter(c=>c.url.endsWith('/rpc_complete_worker_ai_t
 const failures=f=>f.calls.filter(c=>c.url.endsWith('/rpc_fail_worker_ai_turn_service'));
 async function events(f,patch={}){const r=await f.invoke(patch);assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/text\/event-stream/);
  return (await r.text()).trim().split('\n\n').map(e=>JSON.parse(e.slice(6)));}
-test('recovery proof loader binds the current six-file worker bundle without network',async()=>{
+test('recovery proof loader binds the current seven-file worker bundle without network',async()=>{
  const loaded=loadWorkerRecoveryHandler({fetch:()=>assert.fail('NETWORK_NOT_ALLOWED'),env:()=>''});
  assert.deepEqual(Object.keys(loaded.sourceHashes).sort(),['src/contracts/aiAvailability.ts','supabase/functions/_shared/aiTestBudget.ts',
   'supabase/functions/_shared/geminiTaskStream.ts','supabase/functions/uskoci-worker-interview/index.ts',
-  'supabase/functions/_shared/classificationEngine.mjs','supabase/functions/_shared/classificationGeminiShadow.mjs'].sort());
+  'supabase/functions/_shared/classificationEngine.mjs','supabase/functions/_shared/classificationGeminiShadow.mjs',
+  'supabase/functions/_shared/workerServiceModeContext.mjs'].sort());
  assert.equal((await loaded.handler(new Request('https://edge.invalid',{method:'GET'}))).status,405);
 });
 for(const status of [402,429])for(const diagnostics of [false,true])
@@ -143,6 +146,96 @@ test('personal interview filters obsolete fields without changing the owned V1 c
  assert.ok(!Object.hasOwn(fields,'excludedWork'));assert.ok(!Object.hasOwn(fields,'urgentNotifications'));
  assert.equal(candidate.teamCapacity,37);assert.deepEqual(candidate.licenses,['PRIVATE_LEGACY_LICENSE']);
  assert.ok(prompt.includes('ONE person'));assert.ok(prompt.includes('no separate exclusion or urgent-notification preference field'));
+});
+
+function modeFixture(options={}) {
+ const service='Izrada maketa', category=id(20);
+ const proposal=mode=>({service,mode,action:'REUSE_EXISTING',categoryId:category,parentId:'',proposedPath:[],
+  reason:'Synthetic service mode proposal for the current candidate.',catalogVersion:7});
+ const context={schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:2,
+  candidate:{skills:[service],bio:'Prethodni opis',availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},
+  serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:2,
+   savedServices:[{service,categoryId:category,mode:'REMOTE'}],
+   draftServices:['REMOTE','ON_SITE'].map(mode=>({service,categoryId:category,mode})),unresolvedServices:[]},
+  messages:options.messages??[{role:'USER',body:'Dopuni samo opis profila.'}],...options.context};
+ const output={assistantMessage:'Dopunio sam opis. Pregledaj izmene pre čuvanja.',safety:'ALLOW',patch:{bio:'Dopunjen opis'},
+  classificationShadowJson:JSON.stringify(['REMOTE','ON_SITE'].map(proposal)),...options.output};
+ return fixture({context,output,env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
+  catalog:body=>({action:'CATALOG_CONTEXT',scope:body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE',catalogVersion:7,
+   catalogFingerprint:'a'.repeat(32),items:options.retired?[]:[{categoryId:category,parentId:null,label:service,aliases:['Modeli po meri'],path:[service],isLeaf:true}],
+   nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'})});
+}
+const capturedModes=f=>f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service')).flatMap(c=>c.body.p_proposals.map(p=>p.mode));
+
+test('bio-only edit preserves saved REMOTE despite a prior unconfirmed draft and both catalog modes',async()=>{
+ const f=modeFixture();await events(f);
+ assert.deepEqual(capturedModes(f),['REMOTE']);
+ assert.deepEqual(completions(f)[0].body.p_output.patch,{bio:'Dopunjen opis'});
+ assert.equal(providers(f).length,1);assert.ok(!f.calls.some(c=>/rpc_save_worker|rpc_set_worker_execution_modes/.test(c.url)));
+ const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
+ assert.ok(prompt.includes('savedServices'));assert.ok(prompt.includes('does NOT mean this person offers both'));
+ assert.ok(!Object.hasOwn(completions(f)[0].body.p_output,'serviceModeChangesJson'));
+});
+test('a server-registered alias of the same service cannot bypass saved REMOTE continuity',async()=>{
+ const service='Modeli po meri';
+ const f=modeFixture({output:{patch:{skills:[service]},classificationShadowJson:JSON.stringify(['REMOTE','ON_SITE'].map(mode=>({
+  service,mode,action:'REUSE_EXISTING',categoryId:id(20),parentId:'',proposedPath:[],reason:'Synthetic alias of the same existing offered service.',catalogVersion:7})))}});
+ await events(f);assert.deepEqual(capturedModes(f),['REMOTE']);
+ assert.deepEqual(completions(f)[0].body.p_output.patch.skills,[service]);
+});
+test('a new service with an explicit REMOTE declaration cannot capture an extra ON_SITE hint',async()=>{
+ const quote='Ovu uslugu radim samo na daljinu.';
+ const f=modeFixture({context:{serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:2,savedServices:[],draftServices:[],unresolvedServices:['Izrada maketa']}},
+  messages:[{role:'USER',body:quote}],output:{serviceModeChangesJson:JSON.stringify([{service:'Izrada maketa',modes:['REMOTE'],evidence:quote}])}});
+ await events(f);assert.deepEqual(capturedModes(f),['REMOTE']);
+});
+test('unconfirmed draft modes cannot replace an absent or revoked saved baseline',async()=>{
+ const service='Izrada maketa', categoryId=id(20);
+ const f=modeFixture({context:{serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:2,
+  savedServices:[],draftServices:['REMOTE','ON_SITE'].map(mode=>({service,categoryId,mode})),unresolvedServices:[]}},
+  output:{classificationShadowJson:JSON.stringify([{service,mode:'REMOTE',action:'REUSE_EXISTING',categoryId,
+   parentId:'',proposedPath:[],reason:'Current proposal offers only remote service.',catalogVersion:7}])}});
+ await events(f);assert.deepEqual(capturedModes(f),['REMOTE']);
+});
+test('finish copy uses the preserved baseline rather than the omitted provider snapshot',async()=>{
+ const f=modeFixture({output:{classificationShadowJson:'[]'}});await events(f,{text:'To je to.'});
+ assert.deepEqual(capturedModes(f),['REMOTE']);
+ assert.ok(!completions(f)[0].body.p_output.assistantMessage.includes('nije potvrđeno'));
+ assert.deepEqual(completions(f)[0].body.p_output.patch,{});
+});
+for(const history of [false,true])test('an explicit owned USER mode-change proposal survives for review, earlier turn='+history,async()=>{
+ const quote='Od sada makete izrađujem samo na lokaciji naručioca.';
+ const f=modeFixture({messages:[{role:'USER',body:quote},...(history?[{role:'ASSISTANT',body:'Pregledaj promenu.'},{role:'USER',body:'Dopuni opis profila.'}]:[])],
+  output:{serviceModeChangesJson:JSON.stringify([{service:'Izrada maketa',modes:['ON_SITE'],evidence:quote}])}});
+ await events(f);assert.deepEqual(capturedModes(f),['ON_SITE']);
+ assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_complete_worker_ai_turn_service')).length,1);
+});
+for(const evidence of ['Samo na lokaciji naručioca.','Izmišljena izjava koja ne postoji.'])
+test('assistant-only or invented mode evidence cannot replace saved choices: '+evidence,async()=>{
+ const f=modeFixture({messages:[{role:'ASSISTANT',body:'Samo na lokaciji naručioca.'},{role:'USER',body:'Dopuni samo opis profila.'}],
+  output:{serviceModeChangesJson:JSON.stringify([{service:'Izrada maketa',modes:['ON_SITE'],evidence}])}});
+ await events(f);assert.deepEqual(capturedModes(f),['REMOTE']);
+});
+test('an omitted classification snapshot retains a known service without another provider call',async()=>{
+ const f=modeFixture({output:{classificationShadowJson:'[]'}});await events(f);
+ assert.deepEqual(capturedModes(f),['REMOTE']);assert.equal(providers(f).length,1);
+});
+test('removing the offered skill cannot resurrect it from saved mode context',async()=>{
+ const f=modeFixture({output:{patch:{skills:[]}}});await events(f);
+ assert.deepEqual(capturedModes(f),[]);assert.deepEqual(completions(f)[0].body.p_output.patch,{skills:[]});
+});
+test('retired catalog identity is not revived by saved service continuity',async()=>{
+ const f=modeFixture({retired:true});await events(f);assert.deepEqual(capturedModes(f),[]);
+});
+test('a safety refusal cannot capture even a valid saved mode',async()=>{
+ const f=modeFixture({output:{safety:'BLOCK',patch:{},assistantMessage:'Ne mogu da pomognem sa tim zahtevom.'}});await events(f);
+ assert.deepEqual(capturedModes(f),[]);assert.equal(completions(f)[0].body.p_output.safety,'BLOCK');
+});
+for(const serviceModeContext of [undefined,{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:99,savedServices:[],draftServices:[],unresolvedServices:[]}])
+test('missing/stale authoritative mode context stops before any paid call',async()=>{
+ const f=modeFixture({context:{serviceModeContext}});const response=await f.invoke();
+ assert.equal(response.status,503);assert.equal(providers(f).length,0);assert.equal(completions(f).length,0);
+ assert.equal(f.calls.filter(c=>c.url.includes('budget_reserve')).length,0);
 });
 
 // Synthetic provider replies exercise the actual handler boundary. Prompt

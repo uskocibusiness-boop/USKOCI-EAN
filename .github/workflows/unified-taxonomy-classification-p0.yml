@@ -5,6 +5,9 @@ on:
       - 'supabase/functions/_shared/classificationEngine.mjs'
       - 'supabase/functions/_shared/classificationEngine.d.mts'
       - 'supabase/functions/_shared/classificationGeminiShadow.mjs'
+      - 'supabase/functions/_shared/workerServiceModeContext.mjs'
+      - 'supabase/functions/_shared/workerServiceModeContext.d.mts'
+      - 'supabase/proofs/ai/v5_worker_edge.test.mjs'
       - 'supabase/functions/_shared/classificationOwnerReview.mjs'
       - 'supabase/functions/_shared/classificationGeminiShadow.d.mts'
       - 'supabase/functions/_shared/classificationBatch.mjs'
@@ -37,6 +40,7 @@ on:
       - 'supabase/proofs/dynamic_taxonomy/classification-verified-alias.test.mjs'
       - 'supabase/migrations/*_worker_saved_mode_review_continuity.sql'
       - 'supabase/proofs/dynamic_taxonomy/worker-saved-mode-continuity/**'
+      - 'supabase/candidates/worker-mode-context-20261018/**'
   workflow_dispatch:
 jobs:
 
@@ -135,6 +139,48 @@ jobs:
           psql -X --single-transaction -v ON_ERROR_STOP=1 -f supabase/migrations/20261018124717_worker_saved_mode_review_continuity.sql
           psql -X -v ON_ERROR_STOP=1 -f supabase/proofs/dynamic_taxonomy/worker-saved-mode-continuity/assert.sql
 
+  worker-mode-context-postgres:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Prove saved mode context, revocation, ownership and actual Save continuity
+        run: |
+          cd supabase/candidates/worker-mode-context-20261018
+          psql -X -v ON_ERROR_STOP=1 -f fixture.sql
+          psql -X -v ON_ERROR_STOP=1 -f assert-before.sql
+          psql -X --single-transaction -v ON_ERROR_STOP=1 -f candidate.sql
+          psql -X -v ON_ERROR_STOP=1 -f assert.sql
+      - name: Prove exact rollback and reapplication
+        run: |
+          cd supabase/candidates/worker-mode-context-20261018
+          psql -X --single-transaction -v ON_ERROR_STOP=1 -f revert.sql
+          psql -X -v ON_ERROR_STOP=1 -f assert-before.sql
+          psql -X --single-transaction -v ON_ERROR_STOP=1 -f candidate.sql
+          psql -X -v ON_ERROR_STOP=1 -f assert.sql
+
   classification-contract:
     runs-on: ubuntu-latest
     permissions:
@@ -166,6 +212,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Verify exact worker and requester Gemini schemas on provider wire (offline)
         run: node supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs --offline
+      - name: Execute the actual worker handler with synthetic mode-context and provider I/O
+        run: node --test supabase/proofs/ai/v5_worker_edge.test.mjs
       - name: Type check both real Gemini Edge handlers
         run: |
           deno check supabase/functions/uskoci-worker-interview/index.ts

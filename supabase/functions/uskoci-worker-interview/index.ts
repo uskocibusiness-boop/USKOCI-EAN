@@ -14,6 +14,7 @@ import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts'
 import { GeminiCreditsUnavailableError, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { loadClassificationCatalog, catalogPromptContext } from '../_shared/classificationEngine.mjs';
 import { withGeminiClassificationShadowSchema, inspectGeminiClassificationShadow, geminiClassificationShadowInstruction, workerFinishReviewMessage } from '../_shared/classificationGeminiShadow.mjs';
+import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction, preserveWorkerServiceModes } from '../_shared/workerServiceModeContext.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info',
@@ -186,9 +187,15 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
       console.info('WORKER_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE');
     }
   }
+  let serviceModeContext: ReturnType<typeof readWorkerServiceModeContext> | null = null;
+  if (taxonomyCatalog) {
+    try { serviceModeContext=readWorkerServiceModeContext(context); }
+    catch { await fail(); return json(503,{code:'WORKER_AI_NOT_CONFIRMED'}); }
+  }
   const history=context.messages.slice(-30).map((row:any)=>({role:row.role==='ASSISTANT'?'model':'user',parts:[{text:String(row.body).slice(0,4000)}]}));
-  const body=JSON.stringify({systemInstruction:{parts:[{text:instruction(context,new Date().toISOString())}, ...(taxonomyPrompt ? [{text: taxonomyPrompt},{text:geminiClassificationShadowInstruction('WORKER_CAPABILITY')}] : [])]},contents:history,
-    generationConfig:{temperature:0.2,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,responseMimeType:'application/json',responseSchema:taxonomyCatalog ? withGeminiClassificationShadowSchema(workerProviderSchema(),'WORKER_CAPABILITY') : workerProviderSchema()}});
+  const body=JSON.stringify({systemInstruction:{parts:[{text:instruction(context,new Date().toISOString())}, ...(taxonomyPrompt ? [{text: taxonomyPrompt},{text:geminiClassificationShadowInstruction('WORKER_CAPABILITY')}] : []),
+    ...(serviceModeContext ? [{text:workerServiceModeInstruction(serviceModeContext)}] : [])]},contents:history,
+    generationConfig:{temperature:0.2,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,responseMimeType:'application/json',responseSchema:taxonomyCatalog ? workerServiceModeSchema(withGeminiClassificationShadowSchema(workerProviderSchema(),'WORKER_CAPABILITY')) : workerProviderSchema()}});
   if (new TextEncoder().encode(body).byteLength>AI_TEST_LIMITS.llmRequestBytes) { try { await fail(); } catch {} return json(413,{code:'WORKER_AI_CONTEXT_TOO_LARGE'}); }
   try {
     const reserved=await reserveAiTestBudget({supabaseUrl:url,serviceRoleKey:service,accountId:account,operationId:input.clientRequestId,kind:'LLM',signal:req.signal});
@@ -225,9 +232,15 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         if(abort.signal.aborted)throw new Error('WORKER_AI_CANCELLED');
         let output:Record<string,any>;
         let reviewHints: Record<string,any>[]=[];
+        let serviceModeChangesJson: unknown;
         try {
           const parsed = JSON.parse(raw);
-          const checked = taxonomyCatalog ? inspectGeminiClassificationShadow(parsed,taxonomyCatalog,'WORKER_CAPABILITY') : {output:parsed,statuses:[],reviewProposals:[],invalidPlanCodes:[]};
+          let classified = parsed;
+          if (serviceModeContext && object(parsed)) {
+            const {serviceModeChangesJson:changes,...remaining}=parsed;
+            serviceModeChangesJson=changes; classified=remaining;
+          }
+          const checked = taxonomyCatalog ? inspectGeminiClassificationShadow(classified,taxonomyCatalog,'WORKER_CAPABILITY') : {output:classified,statuses:[],reviewProposals:[],invalidPlanCodes:[]};
           reviewHints=checked.reviewProposals;
           if (checked.statuses.length) console.info('WORKER_TAXONOMY_PLAN_SHADOW', checked.statuses.join(','));
           if ('invalidPlanCodes' in checked && checked.invalidPlanCodes?.length)
@@ -239,8 +252,15 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           // interview turn. But never conceal that some unchanged offered
           // skills lack an explicit service scope in the current shadow.
           // Only already-validated hints count; this is UX, not consent.
-          output={...output,patch:{},assistantMessage:workerFinishReviewMessage(
-            context.candidate?.skills,reviewHints,!!taxonomyCatalog)};
+          output={...output,patch:{}};
+        }
+        if (serviceModeContext && taxonomyCatalog) {
+          const guarded=preserveWorkerServiceModes({raw:{...output,serviceModeChangesJson},hints:reviewHints,context,modeContext:serviceModeContext,catalog:taxonomyCatalog});
+          output=guarded.output; reviewHints=guarded.hints;
+          if (guarded.preserved) console.info('WORKER_TAXONOMY_MODE_CONTEXT','PRESERVED');
+        }
+        if (finishOnly(input.text) && ['ALLOW','CLARIFY'].includes(output.safety)) {
+          output={...output,assistantMessage:workerFinishReviewMessage(context.candidate?.skills,reviewHints,!!taxonomyCatalog)};
         }
         const turn=await rpc('rpc_complete_worker_ai_turn_service',{...identity,p_attempt_id:claim.turn.attemptId,p_output:output},abort.signal);
         if (!object(turn)||turn.state!=='SUCCEEDED'||turn.turnId!==claim.turn.turnId||turn.attemptId!==claim.turn.attemptId

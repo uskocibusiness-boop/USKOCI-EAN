@@ -1,0 +1,12 @@
+export type WorkerServiceMode = { service: string; mode: 'REMOTE' | 'ON_SITE'; categoryId: string };
+export type WorkerServiceModeContext = {
+  schemaVersion: 'WORKER_SERVICE_MODE_CONTEXT_V1'; revision: number;
+  savedServices: WorkerServiceMode[]; draftServices: WorkerServiceMode[]; unresolvedServices: string[];
+};
+export function readWorkerServiceModeContext(context: Record<string, any>): WorkerServiceModeContext;
+export function workerServiceModeSchema(schema: Record<string, any>): Record<string, any>;
+export function workerServiceModeInstruction(context: WorkerServiceModeContext): string;
+export function preserveWorkerServiceModes(input: {
+  raw: Record<string, any>; hints: Record<string, any>[]; context: Record<string, any>;
+  modeContext: WorkerServiceModeContext; catalog: any;
+}): { output: Record<string, any>; hints: Record<string, any>[]; preserved: boolean };

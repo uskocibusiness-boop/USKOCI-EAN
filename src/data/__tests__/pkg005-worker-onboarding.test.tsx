@@ -52,6 +52,7 @@ jest.mock('../../ui/workerProfile/WorkerProfilePresentation', () => ({
 }));
 
 import Profile from '../../app/(app)/profil/radnik';
+import { takeAiCorrection } from '../aiCorrectionIntent';
 
 const REV = 'a'.repeat(64);
 const readyDraft = (change: Record<string, unknown> = {}) => ({
@@ -76,13 +77,24 @@ beforeEach(() => {
 afterEach(async () => { if (tree) await act(async () => tree?.unmount()); tree = undefined; });
 
 describe('PKG-005 progressive Worker onboarding', () => {
-  it('a pristine DRAFT has one AI continuation and no direct activation or duplicate draft save', async () => {
+  it('a pristine DRAFT has one AI continuation and contextual AI edits without direct activation or draft save', async () => {
     readProfile.mockResolvedValue(readyDraft()); await render();
     expect(form().props.reading).toBe(true);
-    expect(form().props.openConversation).toBeUndefined();
+    expect(form().props.openConversation).toEqual(expect.any(Function));
+    expect(form().props.showConversationAction).toBe(false);
+    expect(tree!.root.findAll(node => String(node.type) === 'V2Action' && node.props.label === 'Nastavi kroz razgovor')).toHaveLength(1);
     expect(action('Sačuvaj kao nacrt')).toBeUndefined(); expect(action('Proveri i aktiviraj profil')).toBeUndefined();
     await act(async () => action('Nastavi kroz razgovor').props.onPress());
     expect(mockNavigate).toHaveBeenCalledWith('/profil/razgovor'); expect(writeProfile).not.toHaveBeenCalled();
+    mockNavigate.mockClear();
+    await act(async () => form().props.openConversation('area'));
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenLastCalledWith({ pathname: '/profil/razgovor', params: { aiCorrection: expect.any(String) } });
+    const token = mockNavigate.mock.calls[0][0].params.aiCorrection;
+    expect(takeAiCorrection(token, { accountId: mockAccountId, accountRevision: mockAccountRevision }, 'worker',
+      '30000000-0000-4000-8000-000000000001')).toMatchObject({ target: 'worker.area' });
+    expect(form().props.reading).toBe(true); expect(form().props.openSection).toBeNull();
+    expect(writeProfile).not.toHaveBeenCalled();
   });
 
   it('saves the first canonical draft before exposing any activation attempt, then routes the missing area prerequisite', async () => {
