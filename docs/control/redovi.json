@@ -1720,6 +1720,7 @@
       "id": "B00",
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Radni profil kroz razgovor sa AI",
+      "source_progress_20261018_intent_dispatch": "Izvorni pregled jasnije odvaja remote-only rad od profilnog grada i terenskog kruga, prikazuje predlog kategorije običnim rečima i uslovno opisuje obaveštenja. DEV read-only šema potvrđuje jedan grad/radijus bez regionalnog modela; povezani server paket je opisan u docs/implementation/v5-ai-first/WORKER_INTENT_TO_DISPATCH_DESIGN_20261018.md, ali nije primenjen. Ciljani UI Jest 19/19 i TypeScript PASS; nema novog APK, Gemini, matching ili push dokaza.",
       "nacrt": "UX nacrt §5 korak 0",
       "stari": [
         "FUNC-3766"

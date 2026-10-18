@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-18T06:04:11Z",
+  "osvezeno": "2026-10-18T07:05:33Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "0b3af8ca",
-  "head_poruka": "fix(discovery): tailor empty remote results to online work",
+  "head": "97ded773",
+  "head_poruka": "docs(dev): record AI interview Edge prompt deployment",
   "server": {
    "snimljeno": "2026-10-18T06:03:43Z",
    "migracije": 279,

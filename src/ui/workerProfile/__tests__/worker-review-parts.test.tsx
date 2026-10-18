@@ -53,7 +53,7 @@ describe('the review in parts (M2)', () => {
     for (const title of ['Usluge koje nudiš', 'Područje', 'Kada imaš vremena', 'Alat i vozilo', 'O meni']) expect(copy).toContain(title);
   });
 
-  it('shows the reviewed parent and full new-category path before Save', async () => {
+  it('shows the proposed catalog place and keeps remote work independent of the profile city', async () => {
     const signed:WorkerAiReview={...review({skills:['Izrada 3D figurica']}),
       classificationState:'READY',classificationCatalogVersion:9,
       classificationCatalogFingerprint:'a'.repeat(32),
@@ -63,8 +63,11 @@ describe('the review in parts (M2)', () => {
         path:['3D izrada','Izrada 3D figurica'],catalogVersion:9,
         reason:'Verified owner-reviewed category proposal'}]};
     await act(async()=>{tree=create(<WorkerAiReviewDetails review={signed}/>);});
-    expect(texts()).toContain('Nova grana:');
-    expect(texts()).toContain('Digitalne usluge → 3D izrada → Izrada 3D figurica (na daljinu)');
+    expect(texts()).toContain('Predlog za katalog: Digitalne usluge › 3D izrada › Izrada 3D figurica');
+    expect(texts()).toContain('Novi Sad · RS · grad profila');
+    expect(texts()).toContain('Zadaci na daljinu nisu ograničeni ovim gradom ni radijusom.');
+    expect(texts()).not.toContain('Novi Sad · RS · do 20 km');
+    expect(tree.root.findAll(node=>String(node.type)==='ReviewedWorkAreaMap')).toHaveLength(0);
   });
 
   it('puts "Izmeni" at the side of every part, naming it, and opens exactly that part', async () => {
@@ -114,7 +117,7 @@ describe('the review in parts (M2)', () => {
 
   it('the constant sentence with the bell says only what the profile is used for, in ink', async () => {
     await act(async () => { tree = create(<WorkerAiNotificationsNote />); });
-    expect(WORKER_PROFILE_NOTIFICATIONS_NOTE).toBe('Podaci iz tvog radnog profila koriste se za obaveštenja o novim i već otvorenim zadacima koji odgovaraju tvojim veštinama, području i vremenu.');
+    expect(WORKER_PROFILE_NOTIFICATIONS_NOTE).toBe('Usluge, potvrđen način rada, područje i vreme koriste se za izbor zadataka za tebe. Ako uključiš obaveštenja, možemo da ti javimo kada se pojavi odgovarajući zadatak.');
     const note = tree.root.findByProps({ testID: 'worker-review-notifications-note' });
     expect(note.props.children).toBe(WORKER_PROFILE_NOTIFICATIONS_NOTE); expect(note.props.tone).toBeUndefined();
     expect(note.props.variant).not.toBe('meta');
@@ -252,6 +255,6 @@ describe('explicit worker mode confirmation',()=>{
   expect(radios.every(x=>x.props.accessibilityState.checked===false)).toBe(true);
   await act(async()=>{radios[2].props.onPress();});
   expect(change).toHaveBeenCalledWith('Časovi matematike','BOTH');
-  expect(texts()).toContain('Ovo je tvoja potvrda, ne pretpostavka asistenta.');
+   expect(texts()).toContain('Potvrdi za svaku uslugu: na lokaciji, na daljinu ili oba načina.');
  });
 });

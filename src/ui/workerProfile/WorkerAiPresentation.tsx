@@ -56,7 +56,7 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
       <Glyph name={expanded?'caret-up':'caret-down'} tone="muted"/>
     </Press>
     {expanded?<View testID="worker-draft-details" style={s.previewFacts}>
-        <PreviewFact art="pin">{`${place} · do ${profile.location.radiusKm} km`}</PreviewFact>
+        <PreviewFact art="pin">{`${place} · predlog terenskog kruga do ${profile.location.radiusKm} km`}</PreviewFact>
         <PreviewFact art="clock">{availability}</PreviewFact>
         {profile.tools.length?<PreviewFact art="tool">{list(profile.tools)}</PreviewFact>:null}
         {profile.vehicles.length?<PreviewFact art="vehicle">{list(profile.vehicles)}</PreviewFact>:null}
@@ -136,8 +136,8 @@ export function WorkerAiModeConfirmation({skills,choices,disabled,onChange}:{
   disabled:boolean;onChange:(service:string,mode:WorkerAiModeChoice)=>void;
 }){
   return <Surface kind="panel" testID="worker-explicit-mode-confirmation">
-    <T variant="bodyStrong">Gde pružaš ove usluge?</T>
-    <T variant="note" tone="muted">Izaberi za svaku uslugu posebno. Ovo je tvoja potvrda, ne pretpostavka asistenta.</T>
+    <T variant="bodyStrong">Kako radiš svaku uslugu?</T>
+    <T variant="note" tone="muted">Potvrdi za svaku uslugu: na lokaciji, na daljinu ili oba načina. Od toga zavisi koje zadatke možemo da ti ponudimo.</T>
     {skills.map(skill=><View key={skill} style={{gap:sys.space.xs}}>
       <T variant="bodyStrong">{skill}</T>
       <FactChoiceEditor label={`Način rada za: ${skill}`}
@@ -151,7 +151,7 @@ export function WorkerAiModeConfirmation({skills,choices,disabled,onChange}:{
 
 /** Owner 2026-10-07: the interview ends by saying what the profile is for — ink with the bell, not grey small print. */
 // "novim i već otvorenim": publishing queues new tasks, and saving the profile re-queues the open ones (requeue_open_needs_for_worker_v5).
-export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Podaci iz tvog radnog profila koriste se za obaveštenja o novim i već otvorenim zadacima koji odgovaraju tvojim veštinama, području i vremenu.';
+export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Usluge, potvrđen način rada, područje i vreme koriste se za izbor zadataka za tebe. Ako uključiš obaveštenja, možemo da ti javimo kada se pojavi odgovarajući zadatak.';
 export const WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE='Profil možeš da sačuvaš, ali automatska obaveštenja za nepotvrđene usluge neće stizati dok kategorija i način rada ne budu potvrđeni.';
 export function WorkerAiNotificationsNote({matchingReady=true}:{matchingReady?:boolean}={}){
   return <Surface kind="note" style={s.noteBox}><FactArt kind="bell" size={24} cut="art"/>
@@ -189,9 +189,9 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
           :[];
         const newPaths=review.classificationState==='READY'
           ?review.classificationCandidates?.flatMap(item=>item.service===skill&&item.action==='CREATE_CHILD'
-            ?[`Nova grana: ${item.parentLabel} → ${item.path.join(' → ')} (${item.mode==='ON_SITE'?'na lokaciji':'na daljinu'})`]
+            ?[`Predlog za katalog: ${item.parentLabel} › ${item.path.join(' › ')}`]
             :item.service===skill&&item.action==='CREATE_NEW_BRANCH'
-              ?[`Nova glavna grana: ${item.path.join(' → ')} (${item.mode==='ON_SITE'?'na lokaciji':'na daljinu'})`]
+              ?[`Predlog za katalog: ${item.path.join(' › ')}`]
               :[])??[]
           :[];
         return <View key={`${index}:${skill}`} style={s.chip}>
@@ -203,16 +203,28 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
       {review.classificationState&&review.classificationState!=='READY'
         ?<T testID="worker-classification-pending" variant="note" tone="muted">
           {review.classificationState==='SERVICE_MODE_CONFIRMATION_REQUIRED'
-            ?'Za deo usluga nije potvrđeno da li ih radiš na lokaciji ili na daljinu. U razgovoru razjasni način rada za svaku uslugu. Profil možeš da sačuvaš, ali automatske ponude sačekaće potvrdu.'
-            :'Usluge koje nudiš ostaju u profilu, ali automatsko pronalaženje odgovarajućih zadataka čeka potvrdu kategorija. U razgovoru preciziraj nejasne usluge.'}
+            ?'Za deo usluga još nije potvrđen način rada. Izaberi ga za svaku uslugu ispod; dok ne potvrdiš, automatsko povezivanje čeka.'
+            :review.classificationState==='CATALOG_UNAVAILABLE'
+              ?'Katalog usluga trenutno nije dostupan. Profil možeš da sačuvaš, ali povezivanje zadataka čeka da katalog ponovo radi.'
+              :review.classificationState==='STALE_CATALOG'
+                ?'Katalog usluga je promenjen. Učitaj novi pregled pre potvrde kategorija.'
+                :'Usluge ostaju u profilu, ali automatsko povezivanje zadataka čeka potvrdu kategorija.'}
         </T>:null}
     </ReviewGroup>
     <ReviewGroup part="area" {...group}>
-      <Fact art="pin" quiet={!place}>{place?`${place} · do ${p.location.radiusKm} km`:EMPTY}</Fact>
-      {point?<ResolvedPinMap coarse disabled height={220} position={point}
+      <Fact art="pin" quiet={!place}>{place
+        ?review.classificationState==='READY'&&!review.reviewedServiceModes?.some(item=>item.mode==='ON_SITE')
+          ?`${place} · grad profila`
+          :`${place} · do ${p.location.radiusKm} km`
+        :EMPTY}</Fact>
+      {review.classificationState==='READY'&&review.reviewedServiceModes?.some(item=>item.mode==='REMOTE')
+        ?<T variant="note" tone="muted">Zadaci na daljinu nisu ograničeni ovim gradom ni radijusom.</T>:null}
+      {review.classificationState==='READY'&&!review.reviewedServiceModes?.some(item=>item.mode==='ON_SITE')
+        ?null:point?<ResolvedPinMap coarse disabled height={220} position={point}
         scopeKey={`worker-review:${review.accountId}:${review.profileId}:${review.reviewId}:${review.revision}`}
         onChoose={()=>{ /* Frozen review, never a location editor. */ }}/>:null}
-      <T variant="note" tone="muted">{point?'Približan centar tvog područja rada.':'Približnu tačku na mapi dodaješ posle čuvanja, u delu Područje rada.'}</T>
+      {review.classificationState==='READY'&&!review.reviewedServiceModes?.some(item=>item.mode==='ON_SITE')
+        ?null:<T variant="note" tone="muted">{point?'Približan centar za terenske zadatke.':'Približnu tačku za terenske zadatke dodaješ posle čuvanja, u delu Područje rada.'}</T>}
     </ReviewGroup>
     <ReviewGroup part="time" {...group}>
       <Fact art="clock">{p.availability.availableNow?'Mogu odmah, dok to ne isključiš':'Status „Mogu odmah“ je isključen'}</Fact>
