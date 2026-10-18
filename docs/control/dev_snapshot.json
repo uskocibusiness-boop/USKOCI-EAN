@@ -24,7 +24,16 @@
     "closureProgramDigest": "90d60aa9529996103b91ca54fb4be94770d6862453fbe521f878c603d6ab3f1e",
     "closureSchemaDigest": "cf46968b2eba30cedca7e4b1cdddc63e6e31862fa38eae64952a3acb714e3275"
   },
-  "generated_at": "2026-10-18T04:12:15Z",
+  "taxonomy_emulator_refresh_20261018": {
+    "scope": "dev_snapshot.sql rerun at 06:03:43 UTC after one guarded catalog scope repair and one emulator task; Edge list and requester v88 bundle readback checked. Historical named refresh sections retain their original observation dates.",
+    "receipt": "supabase/operations/dev-alpha/ledger/20261018_taxonomy_3d_emulator_application.receipt.json",
+    "categoryCount": 135,
+    "catalogVersion": 4,
+    "v4GeminiHintCount": 0,
+    "confirmedSigned3dNeeds": 1,
+    "requesterEdgeVersion": 88
+  },
+  "generated_at": "2026-10-18T06:03:43Z",
   "ledger_total": 279,
   "ledger_dev_alpha": 86,
   "ledger_last": "taxonomy_deep_ancestry_v2_20261018",
@@ -539,13 +548,13 @@
       "slug": "uskoci-ai-interview",
       "name": "uskoci-ai-interview",
       "status": "ACTIVE",
-      "version": 86,
+      "version": 88,
       "created_at": 1788261764727,
-      "updated_at": 1792296713017,
+      "updated_at": 1792303131811,
       "verify_jwt": false,
       "import_map": false,
-      "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_86/source/supabase/functions/uskoci-ai-interview/index.ts",
-      "ezbr_sha256": "b964077b025b668771d9bcdc60eba41f66ee44bb7ec2a69f5be36156094ec9e9"
+      "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_88/source/supabase/functions/uskoci-ai-interview/index.ts",
+      "ezbr_sha256": "9d62c4171c11ca4e099b55a4ece50e1cd370438d8a7524bd8f5c78130345bdcd"
     },
     {
       "id": "bbadc4c5-81c7-490c-8549-69aa533be329",

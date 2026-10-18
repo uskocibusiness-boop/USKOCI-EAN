@@ -1,5 +1,6 @@
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION, AI_AVAILABILITY_HEADER } from '../contracts/aiAvailability';
 import { uuid, record, sameId } from './serverReceipt';
+import { fetch as expoFetch } from 'expo/fetch';
 
 export type AiTurnStreamOptions = { onText: (delta: string) => void; signal?: AbortSignal };
 
@@ -60,9 +61,7 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   try {
     if (!current()) throw new Error('AI_STREAM_STOPPED');
-    const { fetch } = await import('expo/fetch');
-    if (!current()) throw new Error('AI_STREAM_STOPPED');
-    const response = await fetch(input.url + '/functions/v1/' + (input.endpoint ?? 'uskoci-ai-interview'), {
+    const response = await expoFetch(input.url + '/functions/v1/' + (input.endpoint ?? 'uskoci-ai-interview'), {
       method: 'POST', signal: abort.signal, redirect: 'error',
       headers: { Authorization: 'Bearer ' + input.accessToken, apikey: input.anonKey, 'Content-Type': 'application/json', Accept: 'text/event-stream', [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION },
       body: JSON.stringify({

@@ -26,6 +26,11 @@ test('need strips new fields before strict facts parser and owner-bound completi
  assert.ok(checked>0&&strict>checked&&completion>strict);
  assert.doesNotMatch(need,/rpc_taxonomy_commit_admission_service/);
 });
+test('need category is a single service label and taxonomy tree stays in shadow metadata',()=>{
+ assert.match(need,/U need\.category upišite SAMO naziv konkretne usluge/);
+ assert.match(need,/predložite ih samo u classificationShadowJson/);
+ assert.doesNotMatch(need,/možete navesti stablo u formatu Šira grupa/);
+});
 
 const captureSql=readFileSync(new URL('../../candidates/dynamic-taxonomy-20261011/gemini-turn-review-hints-v1.sql',import.meta.url),'utf8');
 test('both handlers write optional hint receipts only after immutable successful AI turn',()=>{

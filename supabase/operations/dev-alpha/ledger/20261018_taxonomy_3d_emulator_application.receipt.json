@@ -1,0 +1,45 @@
+{
+  "package": "TAXONOMY_3D_EMULATOR_PROBE",
+  "state": "CANONICAL_DEV_APPLIED_AND_EMULATOR_PROVEN_WITH_LIMITS",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "dateUtc": "2026-10-18",
+  "sourceCommitBeforeWork": "0b3af8ca48019305ea52c3ab076607018e376462",
+  "authorization": "Owner approved one emulator-only 3D task, up to six Gemini 3.8 Flash calls/$1.50 reserved, and ON_SITE scope for Digitalne usluge; earlier owner authorized taxonomy application/refinement on DEV.",
+  "catalogRepair": {
+    "candidate": "supabase/candidates/dynamic-taxonomy-20261011/repair_3d_parent_mode_20261018.sql",
+    "sha256": "3c9afe3dedb3715aa748fff8d51e0bc3b77cc452ecadb55d95e3f7a034da06f2",
+    "revert": "supabase/candidates/dynamic-taxonomy-20261011/repair_3d_parent_mode_20261018_revert.sql",
+    "revertSha256": "ccd60d9c9307598a2ff09eed47dfe7273ae98ed9f952eca62575fdddeecffcba",
+    "preflight": "Catalog v3, 135 established categories, one parent/mode integrity anomaly, ON_SITE catalog failed; guarded repair and revert dry runs each rolled back successfully.",
+    "applied": "Added ON_SITE mode to established Digitalne usluge parent; catalog 3 to 4; category and parent IDs unchanged.",
+    "postflight": "ON_SITE and REMOTE catalog pages returned CATALOG_CONTEXT; catalog v4, 135 established categories."
+  },
+  "edge": {
+    "slug": "uskoci-ai-interview",
+    "beforeVersion": 86,
+    "actionLiteralPromptVersion": 87,
+    "leafCategoryPromptVersion": 88,
+    "afterEzbrSha256": "9d62c4171c11ca4e099b55a4ece50e1cd370438d8a7524bd8f5c78130345bdcd",
+    "filesByteEqualOnReadback": "9/9",
+    "verifyJwtPreserved": false,
+    "rollback": "Read the previous v86 bundle from Supabase, compare every file, then redeploy with verify_jwt=false; this does not roll back the now-bound catalog v4 need."
+  },
+  "native": "Static expo/fetch import fixed the installed emulator debug app's Metro symlink resolution; no new dependency.",
+  "provider": {
+    "model": "gemini-3.8-flash",
+    "reservations": 5,
+    "reservedMicrousd": 1250000,
+    "settlement": "not available at read time"
+  },
+  "task": {
+    "needId": "6ee6ea3a-1ff4-4b97-a0aa-d518be34e729",
+    "status": "PUBLISHED",
+    "executionMode": "REMOTE",
+    "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+    "catalogVersion": 4,
+    "snapshot": "CONFIRMED, owner-reviewed, revision 1 after post-save BOUND receipt",
+    "ownWorkerFit": "service true; taxonomyTier EXACT; area true; timeTier 1; matches false due to OWN_NEED"
+  },
+  "proof": "Focused shadow/source 35/35; stream/client 177/177; TypeScript noEmit passed; no second-account push or new-category admission proof.",
+  "revertLimit": "The catalog repair revert now fails closed because a v4 need snapshot exists. Do not run it without a new dependency-aware rollback plan."
+}

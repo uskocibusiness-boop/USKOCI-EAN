@@ -101,6 +101,8 @@ test('L protected model instruction does not claim consent or matching',()=>{
  assert.match(prompt,/never user consent/);
  assert.match(prompt,/never write/);
  assert.match(prompt,/UNCONFIRMED/);
+ assert.match(prompt,/action REUSE_EXISTING/);
+ assert.match(prompt,/Do not use shorter words such as REUSE/);
 });
 
 test('Gemini shadow cannot smuggle skate rental or sharpening as skating lessons',()=>{

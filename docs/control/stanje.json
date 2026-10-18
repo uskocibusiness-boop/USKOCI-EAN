@@ -1,11 +1,11 @@
 {
  "meta": {
-  "osvezeno": "2026-10-18T05:32:08Z",
+  "osvezeno": "2026-10-18T06:04:11Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "28479f80",
-  "head_poruka": "feat(ui): clarify home actions and compact inactive states",
+  "head": "0b3af8ca",
+  "head_poruka": "fix(discovery): tailor empty remote results to online work",
   "server": {
-   "snimljeno": "2026-10-18T04:12:15Z",
+   "snimljeno": "2026-10-18T06:03:43Z",
    "migracije": 279,
    "dev_alpha": 86,
    "poslednja": "taxonomy_deep_ancestry_v2_20261018",
@@ -37,13 +37,13 @@
      "slug": "uskoci-ai-interview",
      "name": "uskoci-ai-interview",
      "status": "ACTIVE",
-     "version": 86,
+     "version": 88,
      "created_at": 1788261764727,
-     "updated_at": 1792296713017,
+     "updated_at": 1792303131811,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_86/source/supabase/functions/uskoci-ai-interview/index.ts",
-     "ezbr_sha256": "b964077b025b668771d9bcdc60eba41f66ee44bb7ec2a69f5be36156094ec9e9"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_88/source/supabase/functions/uskoci-ai-interview/index.ts",
+     "ezbr_sha256": "9d62c4171c11ca4e099b55a4ece50e1cd370438d8a7524bd8f5c78130345bdcd"
     },
     {
      "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
@@ -1040,6 +1040,7 @@
      "status": "IN PROGRESS",
      "source_progress_20261018": "CREATE_CHILD v2 review applied as migration 20261017223855. Owner explicitly authorized taxonomy applications on 2026-10-18. Root-branch v3 and deep-ancestry v2 SQL applied to canonical DEV as migrations 20261017230303 and 20261017230429; worker AI Edge v42 and need AI Edge v85 deployed with all files byte-equal on readback; prompt shortlist now ranks roots and descendants together and passed a 240-root relevance test. Transactional synthetic FAIL-before/PASS-after proofs cover root review, two-level ON_SITE worker batch and replay, one-level REMOTE need batch, two new descendants below a 40-level parent (depth 42), 40-level catalog traversal, wrong-mode/duplicate-identity rejection and exact SQL reverts; every synthetic fixture rolled back. Source client decoder/UI is prepared; a local x86_64 debug APK was built, installed on emulator-5554 and displayed the current entry screen, while signed review and Save remain unproved. Live catalog version 3, 135 categories, zero Gemini hints and unchanged closure digest. Actual Gemini conversation, category admission from the app, capability/need binding, matching, push and phone proof remain open. Existing-node reparent is outside the latest owner scope. Full Jest has 12 failing suites unrelated to taxonomy; focused taxonomy 139/139 and client review 80/80 pass. The 800-per-scope loader cap, safe handling of an existing category missing the requested mode, and pre-existing live/certified closure mismatch remain open. Evidence: supabase/operations/dev-alpha/ledger/20261018_taxonomy_root_and_depth_application.receipt.json.",
      "source_progress_20261018_continuation": "Shared Edge catalog loader now defaults to 20 pages of 100 per mode; a 805-category pagination proof and focused taxonomy proofs 140/140 pass. Applied to canonical DEV: worker AI v43, requester AI v86, all 6/6 and 9/9 files byte-equal on readback, JWT setting preserved, 135 established categories/version 3 and both closure digests unchanged. Receipt: supabase/operations/dev-alpha/ledger/20261018_taxonomy_catalog_loader_20_edge.receipt.json. The 2000-per-mode limit and sequential-read latency remain bounded risks. Existing approved Reanimated 4.5.1 patch was applied locally; both new taxonomy CI workflows now run npm postinstall. First complete Jest run during continuation had 5 failing/614 passing suites (14 failing/13806 passing tests); all five failing suites subsequently passed targeted reruns, while a second complete run was interrupted before completion. No paid Gemini call or live admission was made.",
+     "source_progress_20261018_emulator_3d": "Owner-approved emulator-only 3D intake used five Gemini 3.8 Flash reservations ($1.25 reserved of $1.50 cap). Static expo/fetch import repaired Metro's CLEAN junction resolution; AI correctly switched the task to REMOTE after the owner clarified shipping/pickup. DEV catalog v3 had one parent mode integrity fault; owner-approved guarded SQL added ON_SITE to Digitalne usluge, advancing v4 without changing 135 category IDs. Requester Edge v87 named legal action literals after INVALID_PLAN/ACTION; v88 corrected the contradictory prompt that put a whole taxonomy path in need.category. All 9/9 Edge files matched readback. One test task 6ee6ea3a-1ff4-4b97-a0aa-d518be34e729 was published with the existing 3D category d5e890a0-2502-4901-8803-7462b8ca6d24, REMOTE, signed snapshot CONFIRMED after post-save BOUND. Own worker fit returned service=true, EXACT, area=true, timeTier=1, matches=false due OWN_NEED. No new branch was created and positive second-account matching/push remains unproved; no HONOR phone used. Focused source/shadow 35/35, stream/client 177/177, TypeScript passed. Evidence: docs/implementation/dynamic-taxonomy-20261018/EMULATOR_AI_3D_PROBE_20261018.md and supabase/operations/dev-alpha/ledger/20261018_taxonomy_3d_emulator_application.receipt.json.",
      "autonomous": false,
      "depends_on": "S06 result and corpus coverage report showing real unknown-term volume; owner approval",
      "first_owner_boundary": "SQL review package approved and applied 2026-10-18. Edge deployment, any paid provider call, DEV data mutation, device/OTA release and closure recertification retain their separate gates; first prove compatible client and capture path."
