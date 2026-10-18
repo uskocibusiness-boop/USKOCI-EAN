@@ -24,9 +24,13 @@ function fixture(config={}){
    if(url.endsWith('/auth/v1/user'))return json({id:account});
    if(url.includes('/ai_conversations?'))return json([{id:conversation,account_id:account,status:'OPEN',fact_schema_version:'NEED_FACT_V2'}]);
    if(url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))return config.dispatch?.(body)??json(true);
-  if(url.endsWith('/rpc_ai_claim_need_turn_v2_service'))return json({turn:turn(config.replay?'SUCCEEDED':'PROCESSING'),claim:config.replay?null:{attemptId,leaseExpiresAt:new Date(Date.now()+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',history:config.history??[],activeFacts:config.activeFacts??[]}}});
+  if(url.endsWith('/rpc_ai_claim_need_turn_v2_service')||url.endsWith('/rpc_ai_claim_need_location_turn_v1_service'))return json({turn:turn(config.replay?'SUCCEEDED':'PROCESSING'),claim:config.replay?null:{attemptId,leaseExpiresAt:new Date(Date.now()+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',history:config.history??[],activeFacts:config.activeFacts??[]}}});
    if(url.endsWith('/rpc_ai_test_budget_reserve_service'))return json(config.budget??{admitted:true,reservationId:id(8),replay:false,code:'AI_TEST_RESERVED'});
-   if(url.startsWith('https://generativelanguage.googleapis.com/'))return config.provider?.(init)??providerStream();
+   if(url.startsWith('https://generativelanguage.googleapis.com/'))return config.provider?.(init)??(config.locationContext
+    ?json({candidates:[{content:{parts:[{text:raw}]},finishReason:'STOP'}]}):providerStream());
+   if(url.endsWith('/rpc_ai_complete_need_location_turn_v1_service')){const c=config.locationContext;return json({
+    turn:{...turn(),receipt:{...receipt,proposedCount:body.p_proposals.length,safety:body.p_safety}},
+    location:{version:1,promptToken:c.promptToken,reviewRevision:c.reviewRevision,slot:c.slot,proposalId:c.proposal?.id??null,action:body.p_location_action}});}
    if(url.endsWith('/rpc_ai_complete_need_turn_v2_service')){if(config.completionError)throw Error('SYNTHETIC_COMPLETION_ACK_LOST');return json({...turn(),...(config.badReceipt?{turnId:id(99)}:{}),receipt:{...receipt,proposedCount:body.p_proposals.length,safety:body.p_safety}});}
    if(url.endsWith('/rpc_ai_fail_need_turn_v2_service'))return json(config.failureReceipt??turn('FAILED'));
    if(url.endsWith('/rpc_ai_test_record_usage_service'))return json({recorded:true});
@@ -35,7 +39,7 @@ function fixture(config={}){
    assert.fail('UNEXPECTED_ROUTE');
  };
  const {handler}=loadOwnedIntakeHandler({fetch,env:name=>env[name],setTimeout:config.setTimeout});
- return {calls,message,invoke:()=>handler(new Request('https://edge.invalid',{method:'POST',headers:{Authorization:'Bearer SYNTHETIC',Accept:'text/event-stream','Content-Type':'application/json',...config.headers},body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:config.text??'SYNTHETIC_USER_TEXT'})}))};
+ return {calls,message,invoke:()=>handler(new Request('https://edge.invalid',{method:'POST',headers:{Authorization:'Bearer SYNTHETIC',Accept:config.locationContext?'application/json':'text/event-stream','Content-Type':'application/json',...config.headers},body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:config.text??'SYNTHETIC_USER_TEXT',...(config.locationContext?{mode:'locationReply',locationContext:config.locationContext}:{})})}))};
 }
 async function events(f){const response=await f.invoke();assert.match(response.headers.get('content-type'),/text\/event-stream/);return (await response.text()).trim().split('\n\n').map(e=>JSON.parse(e.slice(6)));}
 const providers=f=>f.calls.filter(c=>c.url.startsWith('https://generativelanguage.googleapis.com/'));
@@ -96,6 +100,68 @@ const rangeDialogue={next:'ACK',questionKey:'NONE',taskRelation:'CONTINUE',price
 const rangeFacts=[proposedFact('need.schedule_kind','FLEXIBLE','naredne nedelje'),
  proposedFact('need.starts_at','2026-10-19T00:00:00+02:00','naredne nedelje'),
  proposedFact('need.ends_at','2026-10-26T00:00:00+01:00','naredne nedelje')];
+const paintingFacts=()=>[
+ ...[['need.title','Krečenje stana'],['need.description','Krečenje 50 m² površine poda, bez gletovanja. Materijal imam.'],
+  ['need.category','Krečenje zidova'],['need.people_needed',1],['need.price_mode','OFFERS'],['need.task_country_code','RS'],
+  ['need.task_geography',{mode:'STATIONARY',start:{city:'Novi Sad'}}]].map(([key,value])=>activeFact(key,value,
+   typeof value==='number'?'INTEGER':typeof value==='object'?'OBJECT':'TEXT')),
+ ...rangeFacts.map(p=>activeFact(p.key,JSON.parse(p.valueJson),p.key==='need.schedule_kind'?'ENUM':'TIMESTAMPTZ')),
+];
+
+for(const next of ['ASK','ANSWER'])test(`direct date explanation ${next} survives a still-incomplete city-only place`,async()=>{
+ const activeFacts=paintingFacts(),original=JSON.stringify(activeFacts);
+ const message=next==='ASK'?'To znači od 19. do 25. oktobra, bilo koji dan. U kom delu grada je stan?'
+  :'To znači od 19. do 25. oktobra, bilo koji dan. Ostali detalji posla ostaju isti.';
+ const f=fixture({activeFacts,text:'Termin ostaje naredne nedelje, bilo koji dan, i zelim ponude. Ukratko mi reci od kog do kog datuma to znaci i zadrzi sve ostalo o poslu.',
+  output:{safety:'ALLOW',assistantMessage:message,facts:[proposedFact('need.price_mode','OFFERS','zelim ponude')],
+   dialogue:{...rangeDialogue,next,questionKey:next==='ASK'?'need.task_geography':'NONE'}}});
+ const es=await events(f),write=writes(f)[0].body;
+ assert.equal(write.p_assistant_message,message);assert.equal(write.p_safety,'ALLOW');assert.deepEqual(write.p_proposals,[]);
+ assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),message);
+ assert.equal(JSON.stringify(activeFacts),original);assert.equal(providers(f).length,1);
+ assert.ok(!f.calls.some(c=>/save_draft|publish|commit_admission|push|save_need_location/.test(c.url)));
+});
+
+test('known private address does not become a new city-only question or a public answer',async()=>{
+ const privateAddress='SYNTHETIC_PRIVATE_ADDRESS_17';
+ const f=fixture({activeFacts:[...paintingFacts(),activeFact('need.exact_address',privateAddress)],text:'Da li još treba lokacija?',
+  output:{safety:'ALLOW',assistantMessage:`Da li je mesto ${privateAddress}?`,facts:[],
+   dialogue:{...rangeDialogue,next:'ASK',questionKey:'need.task_geography'}}});
+ const es=await events(f),write=writes(f)[0].body;
+ assert.equal(write.p_assistant_message,'Hajde da proverimo predlog mesta na mapi. Pomeri pin ako treba, pa potvrdi tačku.');
+ assert.ok(!write.p_assistant_message.includes(privateAddress));assert.ok(!JSON.stringify(es).includes(privateAddress));
+ assert.deepEqual(write.p_proposals,[]);
+});
+
+test('date consistency still precedes preserving a model reply about an incomplete place',async()=>{
+ const f=fixture({activeFacts:paintingFacts(),text:'Termin je taj period, samo razjasni datume.',output:{safety:'ALLOW',
+  assistantMessage:'Datumi su spremni. U kom delu grada je stan?',
+  facts:[proposedFact('need.ends_at','2026-10-26T00:00:00+02:00','taj period')],
+  dialogue:{...rangeDialogue,next:'ASK',questionKey:'need.task_geography'}}});
+ await events(f);const write=writes(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');assert.match(write.p_assistant_message,/lokalnom vremenu u Srbiji/);
+ assert.deepEqual(write.p_proposals,[]);
+});
+
+for(const action of ['CONTINUE','CONFIRM_DISPLAYED'])test(`visible unresolved place with a date question keeps location action bounded: ${action}`,async()=>{
+ const locationContext={version:1,promptToken:id(31),reviewRevision:'a'.repeat(64),slot:'start',phase:'UNRESOLVED',
+  question:'U kom delu grada je posao?',query:'SYNTHETIC_PRIVATE_LOCATION_QUERY',proposal:null,alternatives:[]};
+ const message='Termin je od 19. do 25. oktobra, bilo koji dan. Ostali detalji posla ostaju isti.';
+ const f=fixture({locationContext,activeFacts:paintingFacts(),text:'Ukratko mi reci od kog do kog datuma je termin.',output:{
+  safety:'ALLOW',assistantMessage:message,facts:[],dialogue:{...rangeDialogue,next:'ANSWER',questionKey:'NONE'},
+  locationDecision:{action,proposalId:action==='CONTINUE'?'NONE':id(32),explicitConfirmation:action!=='CONTINUE',hasCorrection:false,hasUncertainty:false}}});
+ const response=await f.invoke();assert.equal(response.status,action==='CONTINUE'?200:502);
+ const locationWrites=f.calls.filter(c=>c.url.endsWith('/rpc_ai_complete_need_location_turn_v1_service'));
+ if(action==='CONTINUE'){
+  assert.equal(locationWrites.length,1);const write=locationWrites[0].body;
+  assert.equal(write.p_assistant_message,message);assert.equal(write.p_location_action,'CONTINUE');assert.deepEqual(write.p_proposals,[]);
+  assert.ok(!write.p_assistant_message.includes(locationContext.query));
+  assert.equal((await response.json()).location.action,'CONTINUE');
+  assert.ok(providers(f)[0].body.systemInstruction.parts.some(p=>p.text.includes('Prikazano pitanje o mestu ne zaključava temu razgovora')));
+ }else assert.equal(locationWrites.length,0);
+ assert.equal(providers(f).length,1);
+ assert.ok(!f.calls.some(c=>/save_draft|publish|commit_admission|push|save_need_location/.test(c.url)));
+});
 
 test('owned handler delivers one semantic question budget and rejects a provider-declared range without bounds while keeping task facts',async()=>{
  const f=fixture({text:'Treba mi krecenje stana od 50 kvadrata u Novom Sadu naredne nedelje. Materijal imam.',
