@@ -13,6 +13,7 @@ import { OWN_TASKS_PAGE_LIMIT } from '../ownTasksPage';
  *    value the owner approved, inside the workflow-level `env:` block, while the check runs; after it the line is gone).
  */
 const NAME = 'EXPO_PUBLIC_EX04_TEST_PAGE_LIMIT';
+const { PAGED_READ_ENV } = require('../../../scripts/build-contract.cjs');
 const ROOT = path.resolve(__dirname, '..', '..', '..');
 const read = (file: string) => fs.readFileSync(path.join(ROOT, file), 'utf8').replace(/\r\n/g, '\n');
 const exists = (file: string) => fs.existsSync(path.join(ROOT, file));
@@ -55,7 +56,10 @@ describe('the variable reaches no release profile and no file but the DEV APK wo
     }
     const eas = JSON.parse(read('eas.json')) as { build?: Record<string, { env?: Record<string, string> }> };
     for (const [profile, value] of Object.entries(eas.build ?? {})) {
-      expect(Object.keys(value.env ?? {}).filter(key => key.startsWith('EXPO_PUBLIC_EX04'))).toEqual([]);
+      // Product pagination gates are required; the tiny test-page instrument is not.
+      // The former prefix-wide ban accidentally prohibited the real bounded readers too.
+      expect(Object.keys(value.env ?? {}).filter(key => key.startsWith('EXPO_PUBLIC_EX04')).sort())
+        .toEqual(Object.keys(PAGED_READ_ENV).sort());
       expect(`${profile}: ${JSON.stringify(value).includes(NAME)}`).toBe(`${profile}: false`);
     }
   });

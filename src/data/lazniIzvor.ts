@@ -424,6 +424,15 @@ export const lazniIzvor: Izvor = {
     ];
   },
 
+  async prilikeZaPocetnu(options) {
+    if (options?.signal?.aborted) throw new Error('HOME_OPPORTUNITIES_READ_ABORTED');
+    // The only current fake fixture belongs to this requester; it is not an opportunity for them.
+    const [rows, own] = await Promise.all([this.otvorenePrilike(options), this.mojePotrebe({ includeUrgency: false })]);
+    if (options?.signal?.aborted) throw new Error('HOME_OPPORTUNITIES_READ_ABORTED');
+    const ownIds = new Set(own.map(row => row.id));
+    return rows.filter(row => !ownIds.has(row.id) && row.primaNovePrijave !== false).slice(0, 3);
+  },
+
   async otvorenaPrilika(id, options) {
     // The explicit fake source uses its existing fixture IDs (for example "ormar").
     // Its revision belongs to the same simulated task state, never to a real DEV row.

@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-18T15:45:01Z",
+  "osvezeno": "2026-10-18T19:44:03Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "60fa276d",
-  "head_poruka": "test(db): prove application expiry after lock wait without execution deadline",
+  "head": "aa61d04e",
+  "head_poruka": "docs: record verified premium baseline and emulator evidence",
   "server": {
    "snimljeno": "2026-10-18T15:41:07Z",
    "migracije": 285,
@@ -3544,7 +3544,7 @@
    },
    "telefon_dokaz": "09.10 fizički HONOR 725be7bd: 725 telefon: Home nastavak vraća isti sačuvani task razgovor i potvrđeno mesto; b9 restart dokaz ostaje zaseban. Širi Home poslovni tok nije ponovo prihvaćen. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon.",
    "problem": "725 telefon: Home nastavak vraća isti sačuvani task razgovor i potvrđeno mesto; b9 restart dokaz ostaje zaseban. Širi Home poslovni tok nije ponovo prihvaćen.",
-   "sledece": "Na istom kandidatu završiti Home: dve namere, nastavak razgovora i stvarne stavke bez praznog odeljka; sačuvati isključivanje sopstvenih zadataka iz tuđeg pregleda. Radar tek treba povezati. WORK_ANALYSIS_RECONCILIATION_20261018.md, paketi 5–6.",
+   "sledece": "Lokalni bounded Home preview dokazati na stvarnom SQL/PostgREST lancu i primeniti backend pre odgovarajućeg klijenta. Zbirni Home core read model, native merenje i vizuelni talasi 1–2 ostaju sledeći; postojeći radar/continuation imaju zasebne ranije dokaze. Nema novog APK/device prihvatanja. docs/current/LOCAL_RELIABILITY_PACKAGE_20261018.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -4181,7 +4181,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "12 test fajl(ova)"
+    "test": "13 test fajl(ova)"
    },
    "telefon_dokaz": "09.10 b9f734ef fizički HONOR: b9 fizički telefon: ručni pin potvrđen i jedan server MANUAL_PIN; sledeće pitanje tek posle potvrde lokacije. Rute/izmena/slaba mreža nisu kompletno prihvaćene. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_RESUME_PHONE_20261009.md. Raniji dokazi sačuvani u finalization.android_resume_phone_20261009.previous.telefon.",
    "problem": "Grad-only latinica/ćirilica, ručni city camera hint i Ovde gde sam GPS source/test PASS. Current fizički GPS/route potvrda još nije zatvorena.",
@@ -6348,7 +6348,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "12 test fajl(ova)"
+    "test": "13 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane.",
    "problem": "Početna kamera povezana sa postojećim owned radnim područjem. Lično mesto je zaseban ugovor; current APK nije potvrđen.",
@@ -6597,7 +6597,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "40 test fajl(ova)"
+    "test": "41 test fajl(ova)"
    },
    "telefon_dokaz": "Početni zoom, FULL bela lista, Mapa kapsula i vraćena navigacija potvrđeni na52720. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
    "problem": "Telefon068: funkcionalni GPS fix i prazno→prazno potvrđeni. Nearby framing koristi pogrešnu HALF marginu; namenski PEEK fix i kompaktno Back/lupa/filter zaglavlje pripremljeni. Novi APK nije još prihvaćen.",
@@ -7977,7 +7977,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 3 serverskih funkcija",
-    "test": "16 test fajl(ova)"
+    "test": "17 test fajl(ova)"
    },
    "telefon_dokaz": "docs/implementation/v5-ai-first/pkg047/device-20260923/: APK 35807138233 (izvor 332d285f) na VKP-NX9, 23.09. u 05:58. Otvoren tuđi zadatak („Hitno prenošenje troseda“, nalog adversarial_a iz istog test sveta), pa njegov javni profil: dugme „Prijavi ili blokiraj“ je vidljivo, uz rečenicu da je prijava privatna. Maestro provera COMPLETED. Dugme nije pritisnuto — niko nije prijavljen ni blokiran.",
    "problem": "",
@@ -12186,7 +12186,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "175 test fajl(ova)"
+    "test": "176 test fajl(ova)"
    },
    "telefon_dokaz": "09.10 fizički HONOR 725be7bd: 725 install-r čuva postojeću sesiju, UID, prvo vreme instalacije i AI razgovor; hash/runtime provereni. Fresh login/logout/account-switch nisu dokazani ovim paketom. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon.",
    "problem": "725 install-r čuva postojeću sesiju, UID, prvo vreme instalacije i AI razgovor; hash/runtime provereni. Fresh login/logout/account-switch nisu dokazani ovim paketom.",
@@ -13545,9 +13545,10 @@
   },
   {
    "id": "B24",
+   "aktuelno_20261018_local_candidate": "Ponovo nađena 3 kasnije dodata deterministička 40001 raise-a u taxonomy prepare/commit/batch servisima. Lokalni strogo pinovani kandidat menja samo njih u PT409, metadata/ACL/security ostaju isti i tačan revert je dokazan na lokalnom PG fixture-u. NIJE PRIMENJENO NA DEV; istorijsko zatvaranje od 30.09. ispod važi za tadašnje funkcije, ne za ovaj novi nalaz. Dokaz i granice: docs/current/LOCAL_RELIABILITY_PACKAGE_20261018.md.",
    "oblast": "PostgREST ponavlja deterministički konflikt verzije (SQLSTATE 40001)",
    "nalaz_16_09": "Jedna PostgREST sesija na DEV-u (pid 3480518, od 2026-09-25) ponavljala je MEDIA_VERSION_CONFLICT bez kraja: 6 010 651 zapisa samo 30.09. (jedini izvor 40001/40P01 tog dana), ~100 zapisa u sekundi, ~470 rollback-ova u sekundi; kapija ne beleži nijedan zahtev sa „avatar“ u prethodnih 85 minuta. rpc_apply_profile_avatar baca kod kad se očekivana putanja avatara ne poklapa (supabase/migrations/20260912224647_clean_v5_owned_media.sql:287).",
-   "sada": "ZATVORENO NA DEV 30.09. — OBA DELA PRIMENJENA NA VLASNIKOVO „PRIMENI“ i „primeni deo 2“ (migracije 20260930194403 i 20260930202551, ledger 212→214; receipt-i supabase/operations/dev-alpha/ledger/20260930_b24_part1_application.receipt.json i 20260930_b24_part2_application.receipt.json): svih 68 funkcija / 110 mesta sada bacaju PT409 (HTTP 409 za nekoliko ms) umesto 40001 i nijedna funkcija više ne baca 40001; ACL/owner/security/config/komentar svake isti (proveren u samoj transakciji), tekst obe migracije u ledger-u bajt-tačan, isti pet advisor nalaza, nijedna aktivna sesija. Sertifikat zatvaranja: Deo 1 ga ne pomera (86ba3751… nepromenjen); Deo 2 ga je pomerio i ponovo vezao na 707af7fc… na sva tri mesta i u erasure binding-u (ready true; 1.10. ga je Voice B1 paket zatim pomerio na 58447d77… i ponovo vezao, ledger 215, vidi D03); u istoj transakciji dokazano da sa 14 starih tela digest daje staru vrednost, dakle novu vrednost odražava samo ta izmena. OSTAJE: HTTP 409 na DEV-u još nije posmatran (traži autentifikovan zahtev koji pogodi pravi konflikt; dokazan na disposable podlozi); prava probna likvidacija naloga posle re-bind-a nije rađena (pravi nalog na deljenom DEV-u, pitati vlasnika); ista dva kandidata moraju na svaki budući produkcioni projekat pre prvog pravog korisnika; 14 repo dokaza koji tvrde 40001 i pkg023c (na čekanju) treba ažurirati. Dokaz pre primene: disposable PostgREST 14.5 (run 36752869572, izvor 160e74a8, 28 provera / 0 palih). Tačan uticaj: 68 funkcija / 110 mesta (klasifikovana svako: nijedno nije pravi serialization slučaj, 0 ostaje na 40001). Ugovor: 40001 → PT409, HTTP 409 za nekoliko ms umesto zahteva koji nikad ne vraća odgovor; poruka/argumenti/rezultat/ACL isti. Klijent: 2 servisa prihvataju oba koda (testovi prvo), 2 ostaju; Edge: nema izmene. Povratak: dva tačna revert kandidata. Redosled: preporučen je klijentski build prvo, ali je vlasnik odobrio primenu pre novog builda; instalirani APK-ovi (HONOR, emulator) nemaju prihvatanje PT409, pa za 2 toka (poruke Dogovora, podešavanja obaveštenja) pokazuju opšti tekst umesto teksta konflikta (ranije ti konflikti uopšte nisu odgovarali, dakle nije regresija). HTTP 409 na DEV-u još nije posmatran (traži autentifikovan zahtev koji pogodi pravi konflikt; dokazan na disposable podlozi). Ostaje ranije utvrđeni mehanizam: (1) disposable dokaz, run 36745783626 (PostgREST 14.5, Postgres 17.11): funkcija koja baca 40001 nikad ne vrati odgovor, a posle odlaska klijenta nastavlja da se izvršava (~14 000 izvršavanja u sekundi, pg 85 % i PostgREST 69 % CPU, još aktivno ~2 min kasnije); P0001 odgovara za 2 ms; (2) Supabase sam dokumentuje isti defekt (PostgREST 14 pogođen, 16 ispravljen; preporuka: raise exception 'PORUKA' = P0001 ili PT409). Repozitorijum baca 40001 na 134 linije u 33 primenjene migracije, a klijent mapira kod 40001 u 4 servisa (poruke agreement, akcije agreement, kalendar, podešavanja obaveštenja) koji se na PostgREST 14 ne mogu dostići jer odgovor nikad ne stiže. DEV: 30.09. 16:43:09Z pg_terminate_backend(3480518) ograničen na tu sesiju (vendorov dokumentovan postupak; moja procena u okviru opšteg DEV odobrenja, BEZ prethodnog pitanja vlasniku, što je trebalo; vlasnik je kasnije istog dana potvrdio da je ta konkretna radnja bila u redu i odredio da se ubuduće za state-changing DEV/PROD radnje prvo pita, osim pri neposrednom riziku gubitka podataka); sesija nestala, ništa nije upisano. Naknadno čitanje logova odbio je auto-mode klasifikator i nije zaobiđeno. Blokira javni izlazak (dostupnost, bezbednost), ne P6.",
+   "sada": "AKTUELNO 18.10.2026: OTVOREN novi nalaz — 3 kasnije dodata taxonomy servisa i dalje imaju deterministički 40001. Lokalni PT409 kandidat i PG fixture dokaz postoje, NIJE DEV APPLIED; potreban stvarni migration-chain/PostgREST dokaz i odobrena primena pre zatvaranja. docs/current/LOCAL_RELIABILITY_PACKAGE_20261018.md. ISTORIJSKI PRESEK OD 30.09. (tadašnji obim): ZATVORENO NA DEV 30.09. — OBA DELA PRIMENJENA NA VLASNIKOVO „PRIMENI“ i „primeni deo 2“ (migracije 20260930194403 i 20260930202551, ledger 212→214; receipt-i supabase/operations/dev-alpha/ledger/20260930_b24_part1_application.receipt.json i 20260930_b24_part2_application.receipt.json): svih 68 funkcija / 110 mesta sada bacaju PT409 (HTTP 409 za nekoliko ms) umesto 40001 i nijedna funkcija više ne baca 40001; ACL/owner/security/config/komentar svake isti (proveren u samoj transakciji), tekst obe migracije u ledger-u bajt-tačan, isti pet advisor nalaza, nijedna aktivna sesija. Sertifikat zatvaranja: Deo 1 ga ne pomera (86ba3751… nepromenjen); Deo 2 ga je pomerio i ponovo vezao na 707af7fc… na sva tri mesta i u erasure binding-u (ready true; 1.10. ga je Voice B1 paket zatim pomerio na 58447d77… i ponovo vezao, ledger 215, vidi D03); u istoj transakciji dokazano da sa 14 starih tela digest daje staru vrednost, dakle novu vrednost odražava samo ta izmena. OSTAJE: HTTP 409 na DEV-u još nije posmatran (traži autentifikovan zahtev koji pogodi pravi konflikt; dokazan na disposable podlozi); prava probna likvidacija naloga posle re-bind-a nije rađena (pravi nalog na deljenom DEV-u, pitati vlasnika); ista dva kandidata moraju na svaki budući produkcioni projekat pre prvog pravog korisnika; 14 repo dokaza koji tvrde 40001 i pkg023c (na čekanju) treba ažurirati. Dokaz pre primene: disposable PostgREST 14.5 (run 36752869572, izvor 160e74a8, 28 provera / 0 palih). Tačan uticaj: 68 funkcija / 110 mesta (klasifikovana svako: nijedno nije pravi serialization slučaj, 0 ostaje na 40001). Ugovor: 40001 → PT409, HTTP 409 za nekoliko ms umesto zahteva koji nikad ne vraća odgovor; poruka/argumenti/rezultat/ACL isti. Klijent: 2 servisa prihvataju oba koda (testovi prvo), 2 ostaju; Edge: nema izmene. Povratak: dva tačna revert kandidata. Redosled: preporučen je klijentski build prvo, ali je vlasnik odobrio primenu pre novog builda; instalirani APK-ovi (HONOR, emulator) nemaju prihvatanje PT409, pa za 2 toka (poruke Dogovora, podešavanja obaveštenja) pokazuju opšti tekst umesto teksta konflikta (ranije ti konflikti uopšte nisu odgovarali, dakle nije regresija). HTTP 409 na DEV-u još nije posmatran (traži autentifikovan zahtev koji pogodi pravi konflikt; dokazan na disposable podlozi). Ostaje ranije utvrđeni mehanizam: (1) disposable dokaz, run 36745783626 (PostgREST 14.5, Postgres 17.11): funkcija koja baca 40001 nikad ne vrati odgovor, a posle odlaska klijenta nastavlja da se izvršava (~14 000 izvršavanja u sekundi, pg 85 % i PostgREST 69 % CPU, još aktivno ~2 min kasnije); P0001 odgovara za 2 ms; (2) Supabase sam dokumentuje isti defekt (PostgREST 14 pogođen, 16 ispravljen; preporuka: raise exception 'PORUKA' = P0001 ili PT409). Repozitorijum baca 40001 na 134 linije u 33 primenjene migracije, a klijent mapira kod 40001 u 4 servisa (poruke agreement, akcije agreement, kalendar, podešavanja obaveštenja) koji se na PostgREST 14 ne mogu dostići jer odgovor nikad ne stiže. DEV: 30.09. 16:43:09Z pg_terminate_backend(3480518) ograničen na tu sesiju (vendorov dokumentovan postupak; moja procena u okviru opšteg DEV odobrenja, BEZ prethodnog pitanja vlasniku, što je trebalo; vlasnik je kasnije istog dana potvrdio da je ta konkretna radnja bila u redu i odredio da se ubuduće za state-changing DEV/PROD radnje prvo pita, osim pri neposrednom riziku gubitka podataka); sesija nestala, ništa nije upisano. Naknadno čitanje logova odbio je auto-mode klasifikator i nije zaobiđeno. Blokira javni izlazak (dostupnost, bezbednost), ne P6.",
    "dokaz": "docs/implementation/product-v1-closure-20260926/finalization-20260927/b24/B24_IMPACT.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/b24/B24_SITE_CLASSIFICATION.md; supabase/candidates/b24_nonretried_conflicts_part1.sql; supabase/candidates/b24_nonretried_conflicts_part2_certified.sql; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_74_P6_PHYSICAL_HONOR_CANDIDATE.md; supabase/operations/dev-alpha/ledger/20260930_b24_part1_application.receipt.json; supabase/operations/dev-alpha/ledger/20260930_b24_part2_application.receipt.json"
   }
  ],
@@ -13816,102 +13817,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 39139810115,
-   "ime": "Task time consistency disposable proof",
-   "sha": "60fa276d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-18T15:17:28Z"
-  },
-  {
-   "id": 39138831963,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "0175d364",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-18T15:04:33Z"
-  },
-  {
-   "id": 39137933165,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "d903f867",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-18T14:52:22Z"
-  },
-  {
-   "id": 39137825790,
-   "ime": "Unified Gemini taxonomy P0 (read-only)",
-   "sha": "35f93e7c",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-18T14:50:54Z"
-  },
-  {
-   "id": 39137097661,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "d2e6b69f",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-18T14:41:07Z"
-  },
-  {
-   "id": 39136988510,
-   "ime": "Taxonomy new branch scopes disposable proof",
-   "sha": "a3e1607e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-18T14:39:40Z"
-  },
-  {
-   "id": 39136646813,
-   "ime": "Unified Gemini taxonomy P0 (read-only)",
-   "sha": "172c0399",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-18T14:35:02Z"
-  },
-  {
-   "id": 39135356268,
-   "ime": "Task time consistency disposable proof",
-   "sha": "9f394455",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-18T14:17:57Z"
-  },
-  {
-   "id": 39134261166,
-   "ime": "Closure taxonomy extension (isolated PostgreSQL component)",
-   "sha": "c5542110",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-18T14:03:15Z"
-  },
-  {
-   "id": 39133682451,
-   "ime": "Closure taxonomy extension (isolated PostgreSQL component)",
-   "sha": "a5c0dced",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-18T13:55:29Z"
-  },
-  {
-   "id": 39133538205,
-   "ime": "Closure taxonomy extension (isolated PostgreSQL component)",
-   "sha": "f456db11",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-18T13:53:30Z"
-  },
-  {
-   "id": 39133275847,
-   "ime": "Closure taxonomy extension (isolated PostgreSQL component)",
-   "sha": "df846bbc",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-18T13:49:59Z"
-  }
- ]
+ "ci": null
 }

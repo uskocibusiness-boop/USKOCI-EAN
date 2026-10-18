@@ -3,7 +3,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const { validatePreview, validateFirebase } = require('../check-eas-preview.cjs');
-const { SIGNED_REVIEW_ENV } = require('../build-contract.cjs');
+const { REQUIRED_BUILD_ENV } = require('../build-contract.cjs');
 const root = path.resolve(__dirname, '../..');
 const configure = require('../../app.config.js');
 const appSource = { expo: configure({ config: JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8')).expo }) };
@@ -22,7 +22,7 @@ function fixture() {
       USKOCI_OTA_TARGET: 'preview',
       EXPO_PUBLIC_SUPABASE_URL: `https://${ref}.supabase.co`,
       EXPO_PUBLIC_SUPABASE_ANON_KEY: jwt(), NODE_ENV: 'production',
-      ...SIGNED_REVIEW_ENV,
+      ...REQUIRED_BUILD_ENV,
     } as NodeJS.ProcessEnv,
   };
 }
@@ -84,7 +84,7 @@ describe('actual EAS preview pre-install guard', () => {
     expect(easSource.build.production.env.EXPO_PUBLIC_SUPABASE_URL).toBeUndefined();
     expect(easSource.build.production.env.EXPO_PUBLIC_SUPABASE_ANON_KEY).toBeUndefined();
   });
-  it.each(Object.keys(SIGNED_REVIEW_ENV))('refuses a preview without %s', key => {
+  it.each(Object.keys(REQUIRED_BUILD_ENV))('refuses a preview without %s', key => {
     const input = fixture(); delete input.env[key];
     expect(() => validatePreview(input)).toThrow(new RegExp(key));
   });

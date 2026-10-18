@@ -23,7 +23,7 @@
   },
   "next": {
     "title": "Originalne ikone, globalna navigacija i Početna",
-    "note": "Premium foundation i uklanjanje pregledanih freeze pravila imaju pun CI, APK i ciljane emulator dokaze. Slede kompozicija i ikonografija talasa 1–2, zatim povezani talasi 3–9. Mapa ostaje polazna površina uz polish. Otvoreni AI/location/server ugovori ostaju eksplicitni."
+    "note": "Lokalni reliability paket: Home preview do 3, EAS/CI/OTA paritet i SQL kandidati; NIJE DEV APPLIED/APK, detalji u LOCAL_RELIABILITY_PACKAGE_20261018.md. Raniji foundation ima zasebne CI/APK/emulator dokaze. Vizuelni nastavak su kompozicija i ikonografija talasa 1–2, zatim talasi 3–9. Mapa ostaje polazna površina uz polish. Home core i AI/location/server ugovori ostaju otvoreni."
   },
   "evidencePolicy": "Evidence su datirani zapisi rezultata na navedenom SHA/run-u, a ne aktivne instrukcije. Stare formulacije o odobrenju, freeze pravilima i STOP uslovima u njihovom result tekstu imaju samo istorijski status; aktuelni rad uređuju AGENTS.md, CURRENT_BASELINE_20261018 i PREMIUM_WHITE_CANON.",
   "evidence": [

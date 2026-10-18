@@ -59,6 +59,8 @@ export interface PotrebeCitanje {
   potreba(id: string): Promise<PotrebaProjekcija | null>;
   /** W03 — javno bezbedan skup za Lista | Mapa | Kombinovano. */
   otvorenePrilike(options?: { signal?: AbortSignal }): Promise<PrilikaProjekcija[]>;
+  /** At most three public, other-owner tasks accepting applications; not a personal match or a total. */
+  prilikeZaPocetnu(options?: { signal?: AbortSignal }): Promise<PrilikaProjekcija[]>;
   /** Exact public landing; requires the separately approved P0 server contract. Errors never become an empty read. */
   otvorenaPrilika(id: string, options?: { signal?: AbortSignal }): Promise<ExactPublicOpportunityRead>;
   /** W04 — dosije jedne Prilike. */

@@ -1280,19 +1280,29 @@ it('keeps the radar static in an inert gallery with no active route', async () =
 });
 
 describe('independent optional Home reads', () => {
-  const worker = jest.fn(), opportunities = jest.fn();
+  const worker = jest.fn(), opportunities = jest.fn(), fullMarketplace = jest.fn();
   const offered = (id = B) => ({ id, naslov: `Tuđ zadatak ${id}`, vremeTekst: 'Fleksibilno', podrucjeTekst: 'Novi Sad',
     rezimCene: 'OFFERS', primaNovePrijave: true, pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 } });
   const presentation = () => tree.root.findByType(HomePresentation).props;
   beforeEach(() => {
     (mockSource as Record<string, unknown>).mojRadnikProfil = worker;
-    (mockSource as Record<string, unknown>).otvorenePrilike = opportunities;
+    (mockSource as Record<string, unknown>).prilikeZaPocetnu = opportunities;
+    (mockSource as Record<string, unknown>).otvorenePrilike = fullMarketplace;
+    fullMarketplace.mockReset().mockRejectedValue(new Error('Home must not walk discovery'));
     worker.mockReset().mockResolvedValue(null); opportunities.mockReset().mockResolvedValue([]);
   });
   afterEach(() => {
     delete (mockSource as Record<string, unknown>).mojRadnikProfil;
+    delete (mockSource as Record<string, unknown>).prilikeZaPocetnu;
     delete (mockSource as Record<string, unknown>).otvorenePrilike;
     jest.useRealTimers();
+  });
+
+  it('requests only the dedicated bounded preview, never the full marketplace', async () => {
+    await render();
+    expect(opportunities).toHaveBeenCalledTimes(1);
+    expect(opportunities).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
+    expect(fullMarketplace).not.toHaveBeenCalled();
   });
 
   it('shows complete core counts and attention while both optional reads wait, and each optional result appears independently', async () => {

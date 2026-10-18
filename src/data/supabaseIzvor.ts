@@ -266,6 +266,58 @@ export const supabaseIzvor: SupabaseIzvor = {
     return projectOpenTasks(items, assertCurrent, signal);
   },
 
+  async prilikeZaPocetnu(options) {
+    const signal = options?.signal;
+    const owner = sesijaSada(), accountId = owner.user?.id, revision = owner.accountRevision;
+    if (!accountId) throw new Error('AUTH_REQUIRED');
+    const assertCurrent = () => {
+      if (signal?.aborted) throw new Error('HOME_OPPORTUNITIES_READ_ABORTED');
+      const current = sesijaSada();
+      if (current.user?.id !== accountId || current.accountRevision !== revision) throw new Error('AUTH_ACCOUNT_CHANGED');
+    };
+    assertCurrent();
+    // One bounded preview through the same invoker/RLS public reader as discovery.
+    // Ownership and application eligibility are filtered BEFORE the server limit.
+    // An older server refuses this mode: do not fall back to walking the marketplace.
+    const request = supabase.rpc('rpc_list_open_tasks_v3', {
+      p_bbox: null, p_filters: { homePreview: true }, p_limit: 3, p_before_at: null, p_before_id: null,
+    });
+    let response;
+    try { response = await (signal && typeof request.abortSignal === 'function' ? request.abortSignal(signal) : request); }
+    catch (error) { assertCurrent(); throw error; }
+    assertCurrent();
+    const envelope = record(response);
+    if (envelope?.error) throw envelope.error;
+    const result = record(envelope?.data);
+    const invalid = () => new Error('HOME_OPPORTUNITIES_RESPONSE_INVALID');
+    if (!envelope || envelope.error !== null || !result || !Array.isArray(result.items) || result.items.length > 3
+      || typeof result.hasMore !== 'boolean' || (result.hasMore && result.items.length !== 3)
+      || calendarInstant(result.asOf) === null) throw invalid();
+    const items: Record<string, unknown>[] = [], seen = new Set<string>();
+    let previous: { instant: bigint; id: string } | null = null;
+    for (const raw of result.items) {
+      const row = record(raw), instant = calendarInstant(row?.sortAt);
+      if (!row || !uuid(row.id) || instant === null || calendarInstant(row.publishedAt) !== instant
+        || !positiveInteger(row.revision) || (row.status !== 'PUBLISHED' && row.status !== 'SELECTION')
+        || typeof row.title !== 'string' || !row.title.trim() || typeof row.urgent !== 'boolean'
+        || !positiveInteger(row.requiredSlots) || !Number.isSafeInteger(row.coveredSlots)
+        || typeof row.coveredSlots !== 'number' || row.coveredSlots < 0 || row.coveredSlots >= row.requiredSlots
+        || row.acceptsApplications !== true || !uuid(row.requesterProfileId)
+        || (row.priceMode !== 'MY_PRICE' && row.priceMode !== 'OFFERS')) throw invalid();
+      const id = row.id.toLowerCase(), pin = record(row.pin);
+      if (seen.has(id) || (previous && (instant > previous.instant || (instant === previous.instant && id >= previous.id)))
+        || (row.pin !== null && (!pin || pin.precision !== 'COARSE_1KM'
+          || typeof pin.lat !== 'number' || !Number.isFinite(pin.lat) || Math.abs(pin.lat) > 90
+          || typeof pin.lng !== 'number' || !Number.isFinite(pin.lng) || Math.abs(pin.lng) > 180))) throw invalid();
+      // Decode before optional author/urgency IO; malformed rows are not empty state.
+      publicTaskContext(openTaskRow(row));
+      seen.add(id); previous = { instant, id }; items.push({ ...row, id });
+    }
+    const projected = await projectOpenTasks(items, assertCurrent, signal);
+    assertCurrent();
+    return projected.map(item => ({ ...item, primaNovePrijave: true }));
+  },
+
   async otvorenaPrilika(id, options) {
     const signal = options?.signal;
     const owner = sesijaSada(), accountId = owner.user?.id, accountRevision = owner.accountRevision;

@@ -1,5 +1,7 @@
 # Aktuelni presek za Premium White
 
+Naknadni lokalni tehnički paket na polazištu `aa61d04e`: [ograničeni Home pregled, build paritet i SQL kandidati](LOCAL_RELIABILITY_PACKAGE_20261018.md). Nije primenjen na DEV niti ugrađen u ovde opisani APK; istorijski baseline i njegovi device dokazi ispod ostaju odvojeni.
+
 Ovaj presek je primena najnovijeg naloga vlasnika od 18.10.2026: postojeći proizvod postaje proverljivo polazište za redizajn. Ne znači da su svi ekrani već redizajnirani. Status rada ostaje u `docs/control/redovi.json`; ovaj dokument objašnjava odakle nastavljamo.
 
 ## Jedna polazna verzija

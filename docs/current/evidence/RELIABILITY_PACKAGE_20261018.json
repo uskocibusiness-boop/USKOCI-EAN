@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-18T19:46:28.220Z",
+  "sourceBase": "aa61d04e265811f2f5a6139b7c03d70611b8d793",
+  "scope": "LOCAL SOURCE AND TESTS ONLY",
+  "liveWrites": false,
+  "remotePush": false,
+  "ota": false,
+  "nativeBuild": false,
+  "nativeInstall": false,
+  "geminiCalls": 0,
+  "fullJest": {
+    "command": "npx jest --runInBand --watch=false --silent --json --outputFile=work/reliability-20261018/jest.json",
+    "exitCode": 0,
+    "success": true,
+    "suites": 624,
+    "tests": 13839,
+    "failed": 0,
+    "pending": 0,
+    "snapshots": 3,
+    "rawResultSha256": "beae9efe38b7d732720ca0a6d1d2757fd431cd43659ce8ce7faf6dc0e7f3afa2",
+    "exitWarning": "Did not exit one second after tests; process later exited naturally with code 0. No forceExit. Root cause not established."
+  },
+  "focused": {
+    "suites": 5,
+    "passed": 208,
+    "failed": 0
+  },
+  "detectOpenHandles": {
+    "suites": 4,
+    "passed": 206,
+    "failed": 0,
+    "exitCode": 0,
+    "reportedHandles": 0
+  },
+  "nodeChecks": {
+    "passed": 44,
+    "failed": 0
+  },
+  "localPostgres": {
+    "runtime": "@electric-sql/pglite@0.5.10",
+    "passed": 9,
+    "failed": 0,
+    "realPublicReaderBody": true,
+    "taxonomyBusinessOperations": false,
+    "closure": "stub",
+    "postgis": false,
+    "postgrest": false,
+    "fullMigrationReplay": false,
+    "canonicalRlsReplay": false
+  },
+  "typeScript": {
+    "exitCode": 0
+  },
+  "sourceOwnership": "PASS",
+  "controlLiveCheck": "PASS",
+  "firstFullRun": {
+    "suitesPassed": 623,
+    "suitesFailed": 1,
+    "testsPassed": 13838,
+    "testsFailed": 1,
+    "cause": "Prefix-wide test forbade product EX04 flags; fixed by admitting exactly three product flags while retaining the test-page-limit ban."
+  },
+  "sqlTargets": [
+    {
+      "signature": "rpc_list_open_tasks_v3(jsonb,jsonb,integer,timestamp with time zone,uuid)",
+      "beforeBodyMd5": "602113d52d64c775893752ff74bfc324",
+      "afterBodyMd5": "665dcf56a910bab32241c15a769b6a98",
+      "securityDefiner": false,
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}"
+    },
+    {
+      "signature": "rpc_taxonomy_commit_admission_service(uuid)",
+      "beforeBodyMd5": "0c158a005f739891a0c210a5307d27c1",
+      "afterBodyMd5": "12249b04cb01318e36cee3b07ef1cdea",
+      "securityDefiner": true,
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)",
+      "beforeBodyMd5": "6ff6db358e4f5a3ee7f6566533ef403a",
+      "afterBodyMd5": "b39c3c635708cf755d1a5ca94b387d97",
+      "securityDefiner": true,
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    },
+    {
+      "signature": "rpc_taxonomy_prepare_admission_service(uuid,uuid,text,uuid,jsonb)",
+      "beforeBodyMd5": "575d5eaaa2fa991c84b203b0639fb4b9",
+      "afterBodyMd5": "db2ddb7806fd1011b1653684f1950b01",
+      "securityDefiner": true,
+      "acl": "{postgres=X/postgres,service_role=X/postgres}"
+    }
+  ],
+  "sourceFiles": {
+    "src/data/__tests__/home-opportunities-read.test.ts": "573d962925a5d86d755c8d7ffda3a2e632d69033f5308eb6e4029196bed0fe8c",
+    "supabase/candidates/home-read-reliability-20261018/README.md": "9c6fe085013b6b579281112bcb854a87458d23bb517f2ac70324166502f72b9a",
+    "supabase/candidates/home-read-reliability-20261018/before.json": "0048d373b48bd88eb9c59ffa6f199c3bf5135ddd2ec5729e4efab8fc32b340cc",
+    "supabase/candidates/home-read-reliability-20261018/forward.sql": "09dd3b2e39c92545ffb8fc8d5df798f514799dea639cc73c56d9977fc4cb1ec2",
+    "supabase/candidates/home-read-reliability-20261018/package.cjs": "24a9094bde5980ec186e09709935beb2ad314ea7c9efc50b69f1280cc1ccb93f",
+    "supabase/candidates/home-read-reliability-20261018/revert.sql": "ed059b86475cf3e8f2217061c9dd4fa86296d2f15dd765cc561ea51312c04822",
+    "supabase/proofs/home-read-reliability-20261018/fixture.sql": "e5eb128945be9eca6ce964f685a923a69fd16915a6db423ebfeb8e160c0eac91",
+    "supabase/proofs/home-read-reliability-20261018/local-proof.cjs": "4dd678e35cb32a61f968c65873625b4ed8e11e11b5282d53b13f1e18c86c22a7",
+    "eas.json": "289acf0c9809e7ac731a330da7f5db7d37199125b5b7f0c74adbbeda1152147e",
+    "scripts/__tests__/build-contract.test.cjs": "f3f324aca33411623cd8786b0709833500f47587ec7476c87cbfead0409c1bd7",
+    "scripts/__tests__/eas-preview-guard.test.ts": "5c6199c5f3d9fefca217c6ee1b342425f45bcc052d110d52a09588dcd3083509",
+    "scripts/build-contract.cjs": "84242eee458ea1d1772a23cc52fa045fb4cfb28e9f28efa07d64cc287d1d8884",
+    "src/app/(app)/index.tsx": "a41706e1fa16ed3eeae38a44ef95f0bad016873a477bb30c7c1acf2cb2aca6cf",
+    "src/data/__tests__/ex04-test-page-limit-guard.test.ts": "00ab83d089309823894161d5f6c89b571074936b79c48273b2961d31d5ffa7e1",
+    "src/data/__tests__/v3-home-screen.test.tsx": "f7b5b283274c661f1dae3e7fca483bd7cd2ab215d49d850b186c218168e61d45",
+    "src/data/homeOpportunityPreview.ts": "381104f54beae109ed0d19345ccbb825d39fc4d67877f52883c83b09df10112e",
+    "src/data/lazniIzvor.ts": "c531850da56a5e279a9af574448d81ed312ce1fd1f4c5030ffcac7250eba07de",
+    "src/data/ports.ts": "3735bfad5d20053dcf5672498730a4924f56beb4d5ccc82a20f8cc91d683a2c7",
+    "src/data/supabaseIzvor.ts": "2fb118c9e531f861c109b9391845145dd259a0a26dd53409c3ff5b6a974bf90f"
+  },
+  "releasePrerequisite": "New mode must be proven/applied to backend before publishing corresponding client. See candidate README."
+}

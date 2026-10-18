@@ -68,7 +68,7 @@ function Home() {
   }, [source]);
   const resource = useFocusedResource(load, KEEP_LAST_READ);
   const loadWorker = useCallback(() => readHomeOptional(() => source.mojRadnikProfil()), [source]);
-  const loadOpportunities = useCallback((signal: AbortSignal) => readHomeOptional(() => source.otvorenePrilike({ signal })), [source]);
+  const loadOpportunities = useCallback((signal: AbortSignal) => readHomeOptional(() => source.prilikeZaPocetnu({ signal })), [source]);
   const workerResource = useFocusedResource(loadWorker, KEEP_LAST_READ);
   const opportunitiesResource = useFocusedResource(loadOpportunities, KEEP_LAST_READ);
   const home = useMemo(() => resource.data ? composeHome({ ...resource.data,
