@@ -7877,7 +7877,7 @@
       "report": "docs/current/CURRENT_BASELINE_20261018.md",
       "canon": "docs/implementation/design-system/PREMIUM_WHITE_CANON.md",
       "dev": "Read-only: task99, worker53, push35; 285 migrations; all 18 deployed Edge package files equal local normalized source.",
-      "scope": "Retire visual freezes; preserve functional/privacy/accessibility protections. Integrate existing local foundation and AI-only entry cleanup.",
+      "scope": "Foundation i cleanup su provereni; pojedinačni tokovi nisu automatski zatvoreni.",
       "notClaimed": [
         "all screens redesigned",
         "new icons generated",
@@ -7885,7 +7885,11 @@
         "new APK installed",
         "physical phone verification"
       ],
-      "status": "SOURCE_READY_CI_PENDING"
+      "status": "VERIFIED_BASELINE",
+      "source": "2a6e7df82172f13ca37eb7e11d36142ef08fbe9e",
+      "ci_run": 39155015938,
+      "proof": "docs/current/evidence/premium-baseline-20261018/final-verification.json",
+      "next": "Originalne ikone i povezana kompozicija Početne/navigacije; zatim devet talasa iz canona."
     }
   },
   "finalization": {

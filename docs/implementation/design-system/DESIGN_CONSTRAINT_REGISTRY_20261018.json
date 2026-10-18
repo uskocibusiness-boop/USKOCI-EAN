@@ -56992,7 +56992,7 @@
     "errors": []
   },
   "integrationClosure": {
-    "status": "SOURCE_READY_CI_PENDING",
+    "status": "VERIFIED_BASELINE",
     "files": [
       "docs/current/evidence/premium-baseline-20261018/client-closure-files.json",
       "docs/current/evidence/premium-baseline-20261018/client-closure.md",

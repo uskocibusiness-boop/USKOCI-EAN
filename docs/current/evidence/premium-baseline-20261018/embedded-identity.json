@@ -1,0 +1,13 @@
+{
+  "updateId": "b458d8a9-71f8-4e57-9235-3251eac7c248",
+  "build": {
+    "schemaVersion": 1,
+    "version": "1.0.0",
+    "sourceCommit": "2a6e7df82172f13ca37eb7e11d36142ef08fbe9e",
+    "sourceDirty": true,
+    "backendTarget": "canonical",
+    "backendRelease": {},
+    "runtimeVersion": "uskoci-v1-preview-r1",
+    "updateChannel": "preview"
+  }
+}

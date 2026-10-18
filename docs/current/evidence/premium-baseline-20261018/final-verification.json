@@ -1,0 +1,472 @@
+{
+  "completedAt": "2026-10-18T19:13:00.152568+00:00",
+  "source": "2a6e7df82172f13ca37eb7e11d36142ef08fbe9e",
+  "branch": "feature/unified-qa-master-20261017",
+  "ci": {
+    "run": 39155015938,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39155015938",
+    "status": "PASS"
+  },
+  "regression": {
+    "numPassedTests": 13806,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "numTotalTests": 13806,
+    "numPassedTestSuites": 623,
+    "numFailedTestSuites": 0,
+    "numPendingTestSuites": 0,
+    "numTotalTestSuites": 623,
+    "success": true,
+    "testFiles": 623,
+    "pending": []
+  },
+  "apk": {
+    "status": "APK_ATTESTED_NOT_PHONE_VERIFIED",
+    "androidPackage": "rs.uskoci.preview",
+    "version": "1.0.0",
+    "versionCode": 35,
+    "runtimeVersion": "uskoci-v1-preview-r1",
+    "channel": "preview",
+    "projectId": "1e6cc490-9851-4741-9226-128612122db6",
+    "updateUrl": "https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6",
+    "updatesEnabled": true,
+    "checkOnLaunch": "ALWAYS",
+    "fallbackToCacheTimeout": 0,
+    "debuggable": false,
+    "sourceSha": "2a6e7df82172f13ca37eb7e11d36142ef08fbe9e",
+    "nativeBaselineSha": "2a6e7df82172f13ca37eb7e11d36142ef08fbe9e",
+    "sourceTree": "44344a5bae475b121d49ac24551ce015ab3dc1c4",
+    "githubRunId": "39155015938",
+    "githubRunAttempt": "1",
+    "githubRunUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39155015938",
+    "apkFile": "USKOCI-V5-PREVIEW-X86_64.apk",
+    "apkSizeBytes": 100986392,
+    "apkSha256": "39cb15de1e9083d4627ac355cb0c254099c6051c402747f730ff67b80179df0d",
+    "architectures": [
+      "x86_64"
+    ],
+    "signingCertificateSha256": [
+      "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c"
+    ],
+    "publicBuildFlags": {
+      "EXPO_PUBLIC_AI_LOCATION_DIALOGUE": "1",
+      "EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL": "uskociapp://oporavak",
+      "EXPO_PUBLIC_CONVERSATION_INBOX": "1",
+      "EXPO_PUBLIC_EX04_CANDIDATES_PAGED": "1",
+      "EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED": "1",
+      "EXPO_PUBLIC_EX04_OWN_TASKS_PAGED": "1",
+      "EXPO_PUBLIC_P6_DISCOVERY_READER": "1",
+      "EXPO_PUBLIC_SUPABASE_URL": "https://leqcwgzvjsxugfgzdmth.supabase.co",
+      "EXPO_PUBLIC_USE_FAKE_SOURCE": "0",
+      "EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW": "true",
+      "EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES": "true",
+      "EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW": "true",
+      "EXPO_PUBLIC_VOICE_MESSAGES": "1"
+    },
+    "physicalPhone": "NOT_TESTED",
+    "otaPreview": "NOT_VERIFIED",
+    "production": "NOT_BUILT_OR_DEPLOYED"
+  },
+  "native": {
+    "source": "2a6e7df82172f13ca37eb7e11d36142ef08fbe9e",
+    "completedAt": "2026-10-18T19:12:59.926026+00:00",
+    "device": "emulator-5554 / USKOCI_V5_TEST",
+    "package": "rs.uskoci.preview",
+    "executedSourceVerified": true,
+    "executedIdentityEvidence": "06-identity-proof.png + XML show full source SHA and embedded update short ID b458d8a9; full update ID read from APK in embedded-identity.json; installed APK hash in native-install.json.",
+    "embeddedUpdate": "b458d8a9-71f8-4e57-9235-3251eac7c248",
+    "buildSourceDirty": {
+      "value": true,
+      "explanation": "Expo prebuild modifies only package.json android/ios scripts from expo start to expo run. Exact diff saved as CI artifact PREBUILD_SOURCE_DIFF.patch."
+    },
+    "settingsRestored": true,
+    "restoredSettings": {
+      "size": "Physical size: 1080x2424\nOverride size: 1264x2728",
+      "density": "Physical density: 420\nOverride density: 560",
+      "font": "1.15",
+      "night": "Night mode: no",
+      "animator": "1.0",
+      "transition": "1",
+      "wifi": "1",
+      "mobile": "1"
+    },
+    "screenshots": [
+      "06-identity-proof.png",
+      "10-home-390-normal.png",
+      "11-home-361-normal.png",
+      "12-home-412-normal.png",
+      "13-home-412-large.png",
+      "14-home-390-large.png",
+      "15-home-361-large.png",
+      "16-home-361-large-bottom.png",
+      "18-worker-390-normal.png",
+      "19-worker-ai-entry.png",
+      "20-worker-ai-back.png",
+      "22-worker-361-large.png",
+      "23-worker-361-large-bottom.png",
+      "24-home-night-reduced-motion.png",
+      "25-home-reduced-motion-second-frame.png",
+      "26-worker-offline.png",
+      "28-worker-network-restored.png"
+    ],
+    "captureEvidence": [
+      {
+        "at": "2026-10-18T19:04:01.947679+00:00",
+        "action": "swipe",
+        "name": "06-identity-proof",
+        "uri": null,
+        "label": null,
+        "points": [
+          "600",
+          "2100",
+          "600",
+          "1000",
+          "500"
+        ],
+        "imageSha256": "c9638c4593acd7ad62ab3d1e1a7612cf740c2dbedc2df6c985e1c7513310316b",
+        "size": "Physical size: 1080x2424\nOverride size: 1170x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.0",
+        "systemNightMode": "Night mode: no",
+        "animatorScale": "1.0",
+        "transitionScale": "1"
+      },
+      {
+        "at": "2026-10-18T19:04:23.179126+00:00",
+        "action": "route",
+        "name": "10-home-390-normal",
+        "uri": "uskociapp:///",
+        "label": null,
+        "points": null,
+        "imageSha256": "3562a70bbe1c03d681cc762c575909738a86d1abccaa498b97eb7574721f75eb",
+        "size": "Physical size: 1080x2424\nOverride size: 1170x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.0",
+        "systemNightMode": "Night mode: no",
+        "animatorScale": "1.0",
+        "transitionScale": "1"
+      },
+      {
+        "at": "2026-10-18T19:04:51.809182+00:00",
+        "action": "route",
+        "name": "11-home-361-normal",
+        "uri": "uskociapp:///",
+        "label": null,
+        "points": null,
+        "imageSha256": "d39ab3272daedf942a116b109d356b73b1928a0dc7bdd761a6ab194b9b0d42cb",
+        "size": "Physical size: 1080x2424\nOverride size: 1083x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.0",
+        "systemNightMode": "Night mode: no",
+        "animatorScale": "1.0",
+        "transitionScale": "1"
+      },
+      {
+        "at": "2026-10-18T19:05:04.318964+00:00",
+        "action": "route",
+        "name": "12-home-412-normal",
+        "uri": "uskociapp:///",
+        "label": null,
+        "points": null,
+        "imageSha256": "03f20ce4fb69a5011930f53ef2771520e95b285b0d1d805ee21bbca0d5ec4a6c",
+        "size": "Physical size: 1080x2424\nOverride size: 1236x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.0",
+        "systemNightMode": "Night mode: no",
+        "animatorScale": "1.0",
+        "transitionScale": "1"
+      },
+      {
+        "at": "2026-10-18T19:05:16.668723+00:00",
+        "action": "route",
+        "name": "13-home-412-large",
+        "uri": "uskociapp:///",
+        "label": null,
+        "points": null,
+        "imageSha256": "710f5000aa618bf45a865cc7ef1a64b7f80323771ddb0b51b39db2d7854d1a96",
+        "size": "Physical size: 1080x2424\nOverride size: 1236x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.5",
+        "systemNightMode": "Night mode: no",
+        "animatorScale": "1.0",
+        "transitionScale": "1"
+      },
+      {
+        "at": "2026-10-18T19:05:26.336503+00:00",
+        "action": "route",
+        "name": "14-home-390-large",
+        "uri": "uskociapp:///",
+        "label": null,
+        "points": null,
+        "imageSha256": "fb3585c96d1de1dc13a4ce0518aac01a973a72dbd8a3efedd62af340b11802b2",
+        "size": "Physical size: 1080x2424\nOverride size: 1170x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.5",
+        "systemNightMode": "Night mode: no",
+        "animatorScale": "1.0",
+        "transitionScale": "1"
+      },
+      {
+        "at": "2026-10-18T19:05:36.653647+00:00",
+        "action": "route",
+        "name": "15-home-361-large",
+        "uri": "uskociapp:///",
+        "label": null,
+        "points": null,
+        "imageSha256": "7c12df649f37e105aac33bf1fbdca6a8ea96f5dcff83a31f6bc7cdf558de83cb",
+        "size": "Physical size: 1080x2424\nOverride size: 1083x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.5",
+        "systemNightMode": "Night mode: no",
+        "animatorScale": "1.0",
+        "transitionScale": "1"
+      },
+      {
+        "at": "2026-10-18T19:08:06.067044+00:00",
+        "action": "swipe",
+        "name": "16-home-361-large-bottom",
+        "uri": null,
+        "label": null,
+        "points": [
+          "600",
+          "1850",
+          "600",
+          "900",
+          "450"
+        ],
+        "imageSha256": "38f182c864ac8aa5c7c168cc29d94364c4f5f58110ddc92256c6facd4ad8137d",
+        "size": "Physical size: 1080x2424\nOverride size: 1083x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.5",
+        "systemNightMode": "Night mode: no",
+        "animatorScale": "1.0",
+        "transitionScale": "1"
+      },
+      {
+        "at": "2026-10-18T19:08:55.152901+00:00",
+        "action": "route",
+        "name": "18-worker-390-normal",
+        "uri": "uskociapp://profil/radnik",
+        "label": null,
+        "points": null,
+        "imageSha256": "01f998b7c39a1664ad7629856f2304c7a6e1f861627396463df84ed48f1efc3c",
+        "size": "Physical size: 1080x2424\nOverride size: 1170x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.0",
+        "systemNightMode": "Night mode: no",
+        "animatorScale": "1.0",
+        "transitionScale": "1"
+      },
+      {
+        "at": "2026-10-18T19:09:11.312891+00:00",
+        "action": "tap",
+        "name": "19-worker-ai-entry",
+        "uri": null,
+        "label": null,
+        "points": [
+          "570",
+          "900"
+        ],
+        "imageSha256": "7fb234b42637f2cb9b0a32b245f4314dcb453681ba32e616e91e5fc1119993ca",
+        "size": "Physical size: 1080x2424\nOverride size: 1170x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.0",
+        "systemNightMode": "Night mode: no",
+        "animatorScale": "1.0",
+        "transitionScale": "1"
+      },
+      {
+        "at": "2026-10-18T19:09:20.582414+00:00",
+        "action": "key",
+        "name": "20-worker-ai-back",
+        "uri": null,
+        "label": null,
+        "points": [
+          "4"
+        ],
+        "imageSha256": "cdc4d62432dd1f23e1d91b1deac0dbd8fd6cfaadc849ee5388a80c71b7611f79",
+        "size": "Physical size: 1080x2424\nOverride size: 1170x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.0",
+        "systemNightMode": "Night mode: no",
+        "animatorScale": "1.0",
+        "transitionScale": "1"
+      },
+      {
+        "at": "2026-10-18T19:09:54.881550+00:00",
+        "action": "route",
+        "name": "22-worker-361-large",
+        "uri": "uskociapp://profil/radnik",
+        "label": null,
+        "points": null,
+        "imageSha256": "948fb5e0596e43e962eec91cbc2a813a824a362d5822e3023e565545bf66a589",
+        "size": "Physical size: 1080x2424\nOverride size: 1083x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.5",
+        "systemNightMode": "Night mode: no",
+        "animatorScale": "1.0",
+        "transitionScale": "1"
+      },
+      {
+        "at": "2026-10-18T19:09:59.146947+00:00",
+        "action": "swipe",
+        "name": "23-worker-361-large-bottom",
+        "uri": null,
+        "label": null,
+        "points": [
+          "600",
+          "2000",
+          "600",
+          "800",
+          "450"
+        ],
+        "imageSha256": "2d5f4eb8cec5b91acc183e65d9a580f2b2f7e26dc9ff4c7f05ac8aa65c6523d3",
+        "size": "Physical size: 1080x2424\nOverride size: 1083x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.5",
+        "systemNightMode": "Night mode: no",
+        "animatorScale": "1.0",
+        "transitionScale": "1"
+      },
+      {
+        "at": "2026-10-18T19:10:16.851530+00:00",
+        "action": "capture",
+        "name": "24-home-night-reduced-motion",
+        "uri": null,
+        "label": null,
+        "points": null,
+        "imageSha256": "3fbcee0d598fc593d9c8b1059d47dd4b41e3d3130fd13f9f3fea7e3c29353bab",
+        "size": "Physical size: 1080x2424\nOverride size: 1170x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.0",
+        "systemNightMode": "Night mode: yes",
+        "animatorScale": "0",
+        "transitionScale": "0"
+      },
+      {
+        "at": "2026-10-18T19:10:20.889829+00:00",
+        "action": "capture",
+        "name": "25-home-reduced-motion-second-frame",
+        "uri": null,
+        "label": null,
+        "points": null,
+        "imageSha256": "3fbcee0d598fc593d9c8b1059d47dd4b41e3d3130fd13f9f3fea7e3c29353bab",
+        "size": "Physical size: 1080x2424\nOverride size: 1170x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.0",
+        "systemNightMode": "Night mode: yes",
+        "animatorScale": "0",
+        "transitionScale": "0"
+      },
+      {
+        "at": "2026-10-18T19:10:54.720070+00:00",
+        "action": "route",
+        "name": "26-worker-offline",
+        "uri": "uskociapp://profil/radnik",
+        "label": null,
+        "points": null,
+        "imageSha256": "0cbb90c77493eef322cdee79e94e346bf917221e6fd276d0f8d29fee55e08972",
+        "size": "Physical size: 1080x2424\nOverride size: 1170x2400",
+        "density": "Physical density: 420\nOverride density: 480",
+        "fontScale": "1.0",
+        "systemNightMode": "Night mode: yes",
+        "animatorScale": "0",
+        "transitionScale": "0"
+      },
+      {
+        "at": "2026-10-18T19:11:34.870378+00:00",
+        "action": "route",
+        "name": "28-worker-network-restored",
+        "uri": "uskociapp://profil/radnik",
+        "label": null,
+        "points": null,
+        "imageSha256": "0e42167bd08aaf51e0f5643a718e45ae4899df4e22ff33def040cefcd3e8e4c5",
+        "size": "Physical size: 1080x2424\nOverride size: 1264x2728",
+        "density": "Physical density: 420\nOverride density: 560",
+        "fontScale": "1.15",
+        "systemNightMode": "Night mode: no",
+        "animatorScale": "1.0",
+        "transitionScale": "1"
+      }
+    ],
+    "checks": [
+      {
+        "check": "Home widths 361,390,412 dp; fontScale 1 and 1.5",
+        "result": "PASS for sampled layout",
+        "detail": "Main intent actions and navigation readable without overlap. Large content scroll reaches availability. 412 large image includes real loading state, not completed live-data verification."
+      },
+      {
+        "check": "Saved worker profile",
+        "result": "PASS for sampled layout",
+        "detail": "390 normal and 361 large top/bottom inspected. One ordinary Uredi kroz razgovor action; no ordinary manual fact editor visible."
+      },
+      {
+        "check": "Worker AI edit and Back",
+        "result": "PASS for existing conversation navigation",
+        "detail": "Existing painting draft and messages reopened; Android Back returned to unchanged saved 3D profile. No message sent and no profile saved. Conversation ID continuity also has automated coverage; screenshots alone do not prove ID."
+      },
+      {
+        "check": "Reduce Motion",
+        "result": "PASS for Home radar",
+        "detail": "transition_animation_scale and animator_duration_scale set to 0; two captures at least 3 seconds apart have identical app-content pixels. Other animations not exhaustively physically tested."
+      },
+      {
+        "check": "System dark preference",
+        "result": "PASS for supported light-only behavior",
+        "detail": "App remains legible light theme when system night mode is yes. This is not a claim that a dark app theme exists."
+      },
+      {
+        "check": "Offline worker profile",
+        "result": "PASS for truthful failure display",
+        "detail": "Wi-Fi and data disabled on emulator; no empty profile mutation. Error says profile not loaded, check connection, with reload action. Restored network and re-entered profile successfully. Reload button itself was not separately tested."
+      },
+      {
+        "check": "Preserved installation/session",
+        "result": "PASS",
+        "detail": "adb install -r; original UID and first-install timestamp retained. Existing Milos session, profile and draft visible."
+      }
+    ],
+    "findingsForNextWave": [
+      "At restored ~361 dp and fontScale 1.15 the worker availability row wraps Dostupnost inside the word. No data overlap, but row should stack earlier based on available content width, not only a large-font threshold. Visible in 28-worker-network-restored.png; do not claim all responsive edge cases pass.",
+      "Explain that editing resumes an existing unsaved worker draft when it differs from the active profile; observed painting draft versus saved 3D profile.",
+      "New coherent icon family, Home composition and navigation are still future UI work.",
+      "NeedLocationForm still has broader manual task-location facts; shrink only with AI/location functional parity."
+    ],
+    "environmentIncident": "Cold emulator boot after restart showed Android System UI ANR. Closed System UI dialog and allowed recovery. Initial interrupted captures excluded. Subsequent app navigation operated normally. Headless SwiftShader GPU; no device FPS claim.",
+    "limits": [
+      "Targeted native foundation check, not full nine-wave redesign or every screen/state.",
+      "Physical HONOR phone was not used; iOS and production not tested.",
+      "No new paid AI answers, task publish, profile save, push delivery or two-user end-to-end flow tested.",
+      "No all-screen contrast measurement, screen-reader journey or fontScale 2 matrix in this native pass.",
+      "Android display/font configuration change restarts the app at Home; repeated route after settling. These injected configuration resets do not prove general scroll restoration."
+    ]
+  },
+  "dev": {
+    "observedAt": "2026-10-18 18:31:29 UTC",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "status": "ACTIVE_HEALTHY",
+    "functions": [
+      {
+        "name": "uskoci-ai-interview",
+        "version": 99,
+        "status": "ACTIVE",
+        "sha256": "2973886bab3da5ccb77af7b4ff0a036f85a7d11c6ecb7cafe379df3551ce36e8"
+      },
+      {
+        "name": "uskoci-worker-interview",
+        "version": 53,
+        "status": "ACTIVE",
+        "sha256": "263ebf3e3cbef2b33694824d3b6975edeb2365839b730dea23d62c614d5931ff"
+      },
+      {
+        "name": "uskoci-push-transport",
+        "version": 35,
+        "status": "ACTIVE",
+        "sha256": "572d122aa7c3cad86c448e4fd67475ed95fd5c91013de8abd09808a2d58cb2a3"
+      }
+    ],
+    "changeFromBaseline": false,
+    "method": "Read-only metadata recheck after source cleanup; no deployments or database writes."
+  },
+  "scope": "Verified cleanup baseline and targeted native regression; nine UI redesign waves are not complete."
+}

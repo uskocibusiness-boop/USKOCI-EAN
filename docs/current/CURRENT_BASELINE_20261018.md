@@ -58,4 +58,12 @@ Otvorene funkcionalne celine iz prethodnog audita ostaju otvorene dok ne dobiju 
 
 ## Rezultat provera ovog paketa
 
-U toku. Konačni test/build/native rezultat dopisuje se tek po stvarnom završetku i vezuje za tačan izvor. Prethodni lokalni pad starog snapshot-a nije dokaz da je novi paket zelen.
+Paket izvora `2a6e7df82172f13ca37eb7e11d36142ef08fbe9e`: [CI 39155015938](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39155015938) PASS. Jest: **13806 uspešnih, 0 neuspešnih, 0 preskočenih provera**; 623 test fajlova. TypeScript, povezane Node/build provere i Android release build prolaze.
+
+Novi x86_64 preview APK je instaliran preko postojeće sesije; hash `39cb15de1e9083d4627ac355cb0c254099c6051c402747f730ff67b80179df0d`. O aplikaciji potvrđuje izvršeni izvor i embedded update. Build beleži `sourceDirty: true`: sačuvani prebuild diff sadrži samo Expo izmenu dve package.json komande za pokretanje Android/iOS aplikacije. To je poznata generisana promena, ne neidentifikovan aplikacioni kod.
+
+Ciljana native matrica i njene granice su u `evidence/premium-baseline-20261018/final-verification.json`. Provereni su Početna na 361/390/412 dp, normalan/uvećan tekst, radni profil, otvaranje postojećeg AI razgovora i Back, smanjeno kretanje i offline greška profila. Podešavanja emulatora su vraćena. Emulator je pri hladnom podizanju imao Android System UI zastoj, pa su za dokaz korišćeni tek oporavljeni prikazi. Telefon, iOS i produkciona objava nisu provereni ovim paketom.
+
+Ovo zatvara polazni cleanup paket. Novi komplet ikonica i kompletan redizajn ekrana ostaju sledeći rad. `NeedLocationForm` još ima širi ručni opseg za zadatak; njegovo sužavanje na potvrdu tačaka pripada povezanom AI/location toku. Radni profil nema obični aktivni ručni editor; sačuvani nacrti i njihova zaštita od gubitka ostaju.
+
+Sledeći UI paket preuzima dva konkretna nalaza sa uređaja: objasniti nastavak starijeg nesačuvanog nacrta koji se razlikuje od aktivnog profila; red dostupnosti složiti ranije u dve linije jer na oko 361 dp i fontu 1,15 prelama reč „Dostupnost“. To su otvoreni polish nalazi, ne razlog za vraćanje uklonjenih estetskih zabrana.
