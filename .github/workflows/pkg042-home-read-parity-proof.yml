@@ -113,8 +113,6 @@ jobs:
     if: github.ref == 'refs/heads/feature/unified-qa-master-20261017'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    env:
-      PGLITE_MODULE: ${{ runner.temp }}/home-reader-pg/node_modules/@electric-sql/pglite
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -132,7 +130,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --test scripts/ci/current-workflow-context.test.cjs
           sh supabase/migrations/check_md5.sh
           npx tsc --noEmit
-          node --test supabase/proofs/home-read-reliability-20261018/local-proof.cjs supabase/proofs/home-read-reliability-20261018/taxonomy-proof.cjs supabase/proofs/home-read-reliability-20261018/invoker-fix-proof.cjs
+          PGLITE_MODULE="$RUNNER_TEMP/home-reader-pg/node_modules/@electric-sql/pglite" node --test supabase/proofs/home-read-reliability-20261018/local-proof.cjs supabase/proofs/home-read-reliability-20261018/taxonomy-proof.cjs supabase/proofs/home-read-reliability-20261018/invoker-fix-proof.cjs
           npx jest --runInBand --runTestsByPath src/data/__tests__/home-opportunities-read.test.ts src/data/__tests__/home-opportunity-preview.test.ts src/data/__tests__/v3-home-screen.test.tsx scripts/__tests__/eas-preview-guard.test.ts src/data/__tests__/ex04-test-page-limit-guard.test.ts

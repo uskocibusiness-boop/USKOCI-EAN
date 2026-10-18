@@ -34,6 +34,8 @@ Završne dodatne provere: integritet 168 migracionih fajlova i 13 negativnih/par
 
 Marker `NATIVE_RELIABILITY_REQUEST_20261018.json` pokreće postojeći preview APK workflow pri objavi tačnog ovog paketa (ARM64 za telefon). To je zahtev za build, ne dokaz uspeha ili instalacije. Workflow ponavlja SQL/integritet i punu aplikacionu regresiju pre pakovanja; nema proizvodne objave ni automatske zamene instalacije korisnika.
 
+Objavljeno kao `73e1915b38151c7dca23bc90a864a96912832d9f`, tačan tree `db3427bdea863a219b412815649ef23f267d4b6c`. APK run `39163340552` je stvarno pokrenut; SQL/integritet i preview identitet u njemu su prošli. U trenutku ovog zapisa build nije završen. Odvojeni Home CI run `39163339322` odbijen je pre pokretanja poslova: `runner.temp` nije dozvoljen u job-level `env`. Ispravka koristi `$RUNNER_TEMP` tek u izvršnom koraku, kao već uspešan APK korak; dodatni negativni test odbija originalni mutant. Ovo je CI konfiguracioni propust, ne novi DEV pad.
+
 ## Ostaje otvoreno
 
 DEV PostgREST HTTP stale konflikt, kompletan migracioni replay, reprezentativno opterećenje, APK/uređaj i dva naloga kroz ceo tok nisu dokazani. Home core lične kolekcije se još čitaju širokim putem. Vizuelni rad, AI vreme/lokacije/rute, Dogovori, grupni čet i obaveštenja ostaju otvorene povezane celine, ne rešene ovim paketom.
