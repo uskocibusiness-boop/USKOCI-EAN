@@ -54,7 +54,9 @@ const COVERAGE_MATCH_READERS = ['country-guard.candidate.sql', 'country-guard.re
   .map(name => `supabase/candidates/worker-coverage-20261018/${name}`);
 const DYN_MATCH = 'supabase/migrations/20261013192500_uskoci_matcher_taxonomy_inheritance.sql';
 // Source-only taxonomy matcher drafts read the same two policy fields; neither collects them.
-const DYN_DRAFTS = ['strict-scope-live-matcher-cutover-v1.sql', 'worker-need-fit-strict-scope-v1.sql']
+const DYN_DRAFTS = ['strict-scope-live-matcher-cutover-v1.sql', 'worker-need-fit-strict-scope-v1.sql',
+  // Synthetic fixture captures the exact live readers; it cannot collect production user fields.
+  'disposable-strict-matcher-assert.sql']
   .map(name => `supabase/candidates/dynamic-taxonomy-20261011/${name}`);
 const WAVE = 'supabase/migrations/20260829211956_clean_urgent_min_choice_floor.sql';
 const W2C = 'supabase/migrations/20260909110000_clean_w02_calendar_authority.sql';

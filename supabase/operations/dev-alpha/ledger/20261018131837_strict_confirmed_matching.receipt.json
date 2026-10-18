@@ -1,0 +1,77 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "authority": "Owner standing PRIMENI 2026-10-18",
+  "appliedAt": "2026-10-18T13:18:37.366425+00:00",
+  "scope": "Only private.taxonomy_match_scope_control_v1.enabled singleton false→true",
+  "configurationRowsChanged": 1,
+  "preflight": {
+    "gate": false,
+    "pairs": 6,
+    "outbox": true,
+    "binding": true,
+    "matches": 0,
+    "gate_rows": 1,
+    "scope_md5": "e3007d8a8dc5fdb25d6de97457ac5594",
+    "checked_at": "2026-10-18T13:18:18.034465+00:00",
+    "push_sends": 3,
+    "matcher_md5": "838f4fd5a2511a579abbb59f012bca4a",
+    "closure_ready": false,
+    "push_attempts": 3,
+    "active_workers": 1,
+    "closure_source": "88cab17911f89a7d8d800ae229db568dd2aaed106395ad8acc3207917acd72ec",
+    "lost_if_enabled": 0,
+    "closure_certified": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "eligible_scope_pairs": 2,
+    "notification_deliveries": 14,
+    "active_workers_without_confirmed_mode": 0
+  },
+  "postflight": {
+    "gate": true,
+    "pairs": 6,
+    "outbox": true,
+    "binding": true,
+    "matches": 0,
+    "gate_rows": 1,
+    "scope_md5": "e3007d8a8dc5fdb25d6de97457ac5594",
+    "checked_at": "2026-10-18T13:18:40.414595+00:00",
+    "push_sends": 3,
+    "matcher_md5": "838f4fd5a2511a579abbb59f012bca4a",
+    "closure_ready": false,
+    "push_attempts": 3,
+    "active_workers": 1,
+    "closure_source": "88cab17911f89a7d8d800ae229db568dd2aaed106395ad8acc3207917acd72ec",
+    "lost_if_enabled": 0,
+    "closure_certified": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "eligible_scope_pairs": 2,
+    "notification_deliveries": 14,
+    "active_workers_without_confirmed_mode": 0
+  },
+  "proof": {
+    "run": 39130852929,
+    "postgres": [
+      16,
+      17
+    ],
+    "conclusion": "success",
+    "capturedFunctions": 17,
+    "source": "e995445c",
+    "positive": "Synthetic distinct requester + exact REMOTE 3D; actual captured matcher/time/world/scope functions",
+    "negative": [
+      "OWN_NEED",
+      "OTHER_WORLD",
+      "revoked mode",
+      "unsigned current snapshot",
+      "stale revision",
+      "wrong mode",
+      "expired deadline"
+    ],
+    "notProven": "Authenticated second-account publication, dispatch or device delivery"
+  },
+  "sideEffects": {
+    "notificationDeliveryDelta": 0,
+    "pushAttemptDelta": 0,
+    "pushSendDelta": 0
+  },
+  "rollback": "update private.taxonomy_match_scope_control_v1 set enabled=false where singleton=true;",
+  "closureMismatchUnchanged": true
+}

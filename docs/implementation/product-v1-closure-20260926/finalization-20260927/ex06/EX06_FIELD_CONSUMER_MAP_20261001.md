@@ -274,4 +274,6 @@ A later change that adds a writer, a collector, a consumer or a new file touchin
 
 ## Dodatak 18.10.2026 — country guard i popis čitalaca
 
+`supabase/candidates/dynamic-taxonomy-20261011/disposable-strict-matcher-assert.sql` takođe je uključen u tačan popis: sadrži sačuvane definicije stvarnog matcher-a i postojećeg identity helper-a, sa čitanjem `p.exclusions`. Izvršava se samo nad sintetičkim podacima u odbačivoj PostgreSQL bazi. Ne dodaje korisnički unos niti produkcioni writer. Njegov runtime dokaz je odvojen od istorijskih source pinova ovog dokumenta; CI `39130852929` prolazi na PostgreSQL 16 i 17.
+
 `supabase/candidates/worker-coverage-20261018/{country-guard.candidate.sql,country-guard.revert.sql,live-worker-need-fit.sql}` sadrže ista postojeća čitanja `p.exclusions` i `private.identity_admitted(p.account_id)`. Ne uvode prikupljanje niti upis tih polja. Country guard menja poređenje država u rezervnom poređenju gradova; dokaz primene je ledger `20261018075854_worker_city_country_guard.receipt.json`. Test popisa sada obuhvata ova tri sačuvana tela. Regionalni coverage-core kandidat time nije aktiviran.

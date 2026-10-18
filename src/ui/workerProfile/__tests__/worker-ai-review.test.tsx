@@ -48,8 +48,10 @@ it('uses one empty label without legacy licence/team rows', async () => {
   await act(async () => { tree = create(<WorkerAiReviewDetails review={review({}, { skills: [], location: { operatingCountryCode: null, city: '', radiusKm: 20, approximatePosition: null } })} />); });
   const copy = texts();
   expect(copy).not.toMatch(/Još nije navedeno/);
-  // Four parts have nothing in them: the skills, the area, the tools and vehicles (one word for the two lists) and "O meni" (the name is no part of the review).
-  expect(copy.split('Nije navedeno').length - 1).toBe(4);
+  // Only skills, area and "O meni" need an empty label. Optional equipment has no empty section.
+  expect(copy.split('Nije navedeno').length - 1).toBe(3);
+  expect(copy).not.toContain('Alat i vozilo');
+  expect(tree.root.findAllByProps({ testID: 'worker-tools-note' })).toHaveLength(0);
   expect(copy).not.toMatch(/Licenc|licenc|Broj ljudi|kapacitet|O tebi/);
 });
 
@@ -149,15 +151,38 @@ it('shows two explicit activation choices and only reports a changed, enabled ch
 
 jest.mock('../../location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ReviewedWorkAreaMap' }));
 it('P5 worker review: map belongs to the frozen review and is read-only, not a new live location', async () => {
-  const saved = review({}, { location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20,
-    approximatePosition: { latitude: 45.25, longitude: 19.83 } } });
+  const saved: WorkerAiReview = { ...review({}, { location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20,
+    approximatePosition: { latitude: 45.25, longitude: 19.83 } } }),
+    classificationState: 'READY', reviewedServiceModes: [{ service: 'Selidbe', mode: 'ON_SITE' }] };
   await act(async () => { tree = create(<WorkerAiReviewDetails review={saved} />); });
   const map = tree.root.findByType('ReviewedWorkAreaMap' as React.ElementType);
   expect(map.props).toMatchObject({ coarse: true, disabled: true, height: 220, position: saved.profile.location.approximatePosition });
   expect(map.props.scopeKey).toContain(saved.reviewId); expect(map.props.scopeKey).toContain(saved.accountId);
+  expect(texts()).toContain('do 20 km');
   expect(texts()).not.toContain('tačka radnog područja je sačuvana');
 });
-it('P5 worker review: missing coordinates never render a fabricated map', async () => {
-  await act(async () => { tree = create(<WorkerAiReviewDetails review={review()} />); });
+it('P5 worker review: confirmed on-site work without coordinates never renders a fabricated map', async () => {
+  const saved: WorkerAiReview = { ...review(), classificationState: 'READY', reviewedServiceModes: [{ service: 'Selidbe', mode: 'ON_SITE' }] };
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={saved} />); });
   expect(tree.root.findAllByType('ReviewedWorkAreaMap' as React.ElementType)).toHaveLength(0);
+  expect(texts()).toContain('do 20 km');
+});
+it('P5 worker review: confirmed remote work hides an inherited map and radius', async () => {
+  const saved: WorkerAiReview = { ...review({}, { skills: ['3D štampa'], location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20,
+    approximatePosition: { latitude: 45.25, longitude: 19.83 } } }),
+    classificationState: 'READY', reviewedServiceModes: [{ service: '3D štampa', mode: 'REMOTE' }] };
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={saved} />); });
+  expect(tree.root.findAllByType('ReviewedWorkAreaMap' as React.ElementType)).toHaveLength(0);
+  expect(texts()).toContain('grad profila');
+  expect(texts()).toContain('Zadaci na daljinu nisu ograničeni ovim gradom ni radijusom.');
+  expect(texts()).not.toMatch(/20 km|Približan centar za terenske zadatke/);
+});
+it('P5 worker review: a point and city cannot establish an unconfirmed work mode', async () => {
+  const saved: WorkerAiReview = { ...review({}, { location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20,
+    approximatePosition: { latitude: 45.25, longitude: 19.83 } } }),
+    classificationState: 'SERVICE_MODE_CONFIRMATION_REQUIRED', reviewedServiceModes: [] };
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={saved} />); });
+  expect(tree.root.findAllByType('ReviewedWorkAreaMap' as React.ElementType)).toHaveLength(0);
+  expect(texts()).toContain('grad profila');
+  expect(texts()).not.toMatch(/20 km|Približan centar za terenske zadatke/);
 });
