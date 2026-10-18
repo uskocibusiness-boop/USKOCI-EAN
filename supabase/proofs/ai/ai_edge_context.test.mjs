@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import vm from 'node:vm';
+import {webcrypto} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -70,15 +71,17 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
     }
     assert.fail('UNEXPECTED_SYNTHETIC_FETCH_ROUTE');
   };
-  const context=vm.createContext({Request,Response,Headers,URL,URLSearchParams,Intl,Date:FixedDate,TextEncoder,TextDecoder,ReadableStream,AbortController,setTimeout,clearTimeout,
-    fetch:fakeFetch,console:{error:(...args)=>logs.push(args)},Deno:{env:{get:name=>env[name]},serve:fn=>{handler=fn;}}});
+  const context=vm.createContext({Request,Response,Headers,URL,URLSearchParams,Intl,Date:FixedDate,TextEncoder,TextDecoder,ReadableStream,AbortController,setTimeout,clearTimeout,crypto:webcrypto,
+    fetch:fakeFetch,console:{error:(...args)=>logs.push(args),info:(...args)=>logs.push(args)},Deno:{env:{get:name=>env[name]},serve:fn=>{handler=fn;}}});
   const cache=new Map();
   function load(file){
     assert.ok([entry,registry,resolve(root,'supabase/functions/_shared/aiTestBudget.ts'),resolve(root,'supabase/functions/_shared/geminiTaskStream.ts'),
-      resolve(root,'src/contracts/aiAvailability.ts'),resolve(root,'supabase/functions/_shared/locationReply.ts')].includes(file),'test loader may evaluate only exact source entry/shared helpers');
+      resolve(root,'src/contracts/aiAvailability.ts'),resolve(root,'supabase/functions/_shared/locationReply.ts'),
+      resolve(root,'supabase/functions/_shared/taxonomyScopedShadow.mjs'),resolve(root,'supabase/functions/_shared/classificationEngine.mjs'),
+      resolve(root,'supabase/functions/_shared/classificationGeminiShadow.mjs')].includes(file),'test loader may evaluate only exact source entry/shared helpers');
     if(cache.has(file))return cache.get(file).exports;
     const source=readFileSync(file,'utf8');
-    const result=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},reportDiagnostics:true,fileName:file});
+    const result=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS},reportDiagnostics:true,fileName:file.replace(/\.mjs$/,'.ts')});
     assert.equal((result.diagnostics??[]).filter(x=>x.category===ts.DiagnosticCategory.Error).length,0);
     const module={exports:{}};cache.set(file,module);
     const evaluate=new vm.Script(`(function(require,module,exports){${result.outputText}\n})`,{filename:file}).runInContext(context);
@@ -129,11 +132,19 @@ test('Gemini NONE question sentinel completes without becoming a fact or a follo
   assert.ok(!JSON.stringify(writes[0].body).includes('NONE'));
 });
 
-for(const dialogue of [
- {...syntheticDialogue(),next:'ASK',questionKey:'NONE'},
- {...syntheticDialogue(),next:'ANSWER',questionKey:'need.people_needed'},
- {...syntheticDialogue(),questionKey:'UNKNOWN_QUESTION'},
-])test(`invalid dialogue remains rejected: ${dialogue.next}/${dialogue.questionKey}`,async()=>{
+for(const [dialogue,repair] of [
+ [{...syntheticDialogue(),next:'ASK',questionKey:'NONE'},'ASK_KEY_REPAIRED'],
+ [{...syntheticDialogue(),next:'ANSWER',questionKey:'need.people_needed'},'NON_ASK_KEY_REPAIRED'],
+])test(`non-authoritative question hint is repaired without losing a valid answer: ${dialogue.next}/${dialogue.questionKey}`,async()=>{
+  const f=fixture({providerOutput:{...providerResult,dialogue}});
+  assert.equal((await f.invoke()).status,200);const writes=materialWrites(f);assert.equal(writes.length,1);
+  assert.deepEqual(writes[0].body.p_proposals.map(p=>[p.key,p.value]),[['need.people_needed',2]]);
+  assert.equal(writes[0].body.p_assistant_message,providerResult.assistantMessage);
+  assert.ok(!Object.hasOwn(writes[0].body,'p_dialogue'));
+  assert.deepEqual(f.logs,[['NEED_AI_OUTPUT_GATE',repair]]);assertNothingRawLogged(f);
+});
+test('unknown question enum is still rejected before materialization',async()=>{
+  const dialogue={...syntheticDialogue(),questionKey:'UNKNOWN_QUESTION'};
   const f=fixture({providerOutput:{...providerResult,dialogue}});
   assert.equal((await f.invoke()).status,502);assert.equal(materialWrites(f).length,0);
 });
@@ -383,12 +394,13 @@ test('REVIEW asks the missing material question and retains the last content pro
  assert.equal(result.p_assistant_message,'Želiš da navedeš cenu ili da dobiješ ponude?');
  assert.equal(result.p_proposals[0].key,'need.category');
 });
-test('the last classification completes the real task without dropping other proposals',async()=>{
+test('the last classification retains all proposals while a city-only task still asks for its actual place',async()=>{
  const f=fixture({activeFacts:completionFacts().filter(x=>!['need.category','need.people_needed'].includes(x.fact_key)),
   providerOutput:{safety:'ALLOW',facts:[proposed('need.category','Nošenje stvari'),proposed('need.people_needed',1,'jedna osoba')],
    assistantMessage:'Spremno.',dialogue:{...syntheticDialogue(),next:'REVIEW'}}});
  await f.invoke({text:'Jedna osoba za prenošenje nekoliko kesa.'});const result=materialWrites(f)[0].body;
- assert.equal(result.p_assistant_message,'Otvori pregled zadatka. Tamo proveri podatke pre objave.');
+ assert.match(result.p_assistant_message,/U kom delu grada je posao\?/);
+ assert.ok(!result.p_assistant_message.includes('Spremno.'));
  assert.deepEqual(result.p_proposals.map(x=>x.key),['need.category','need.people_needed']);
 });
 test('finish-only can recover only missing presentation from the existing description',async()=>{
@@ -463,18 +475,19 @@ for(const interpretation of [{taskRelation:'DIFFERENT_TASK'},{taskRelation:'UNCL
   assert.ok(!written.p_assistant_message.includes('Sve sam razumeo'));assert.equal(providerCalls(f).length,1);
  });
 
-for(const dialogue of [null,{}, {...syntheticDialogue(),next:'ASK'}, {...syntheticDialogue(),hidden:'extra'},
+for(const dialogue of [null,{}, {next:'ASK',taskRelation:'CONTINUE',priceUnit:'UNSPECIFIED',schedulePattern:'UNSPECIFIED'}, {...syntheticDialogue(),hidden:'extra'},
  {...syntheticDialogue(),next:'ASK',questionKey:'need.resolved_location'}])
  test('missing or invalid dialogue plan is refused before materialization',async()=>{
   const f=fixture({providerOutput:{...providerResult,dialogue}});assert.equal((await f.invoke()).status,502);
   assert.deepEqual(materialWrites(f),[]);
  });
 
-test('changed headcount remains accepted while acknowledgment contains no repeated summary',async()=>{
+test('changed headcount preserves its natural acknowledgment instead of replacing it with a fixed template',async()=>{
+ const assistantMessage='Važi, za dve osobe.';
  const f=fixture({activeFacts:[semanticFact('need.people_needed',3)],
-  providerOutput:{...providerResult,dialogue:{...syntheticDialogue(),next:'ACK'}}});
+  providerOutput:{...providerResult,assistantMessage,dialogue:{...syntheticDialogue(),next:'ACK'}}});
  assert.equal((await f.invoke()).status,200);const written=materialWrites(f)[0].body;
- assert.equal(written.p_proposals[0].value,2);assert.equal(written.p_assistant_message,'Podaci su ažurirani u pregledu.');
+ assert.equal(written.p_proposals[0].value,2);assert.equal(written.p_assistant_message,assistantMessage);
 });
 const hostFor={gemini:'generativelanguage.googleapis.com',openai:'api.openai.com'};
 

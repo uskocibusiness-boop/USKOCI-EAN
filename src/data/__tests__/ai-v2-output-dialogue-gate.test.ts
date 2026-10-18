@@ -5,7 +5,7 @@ import * as ts from 'typescript';
 
 // Execute the real Edge parser, not a duplicated mock implementation. The
 // permitted registry and provider types are supplied as closed, test-only stubs.
-const source = readFileSync(resolve(process.cwd(), 'supabase/functions/uskoci-ai-interview/index.ts'), 'utf8');
+const source = readFileSync(resolve(process.cwd(), 'supabase/functions/uskoci-ai-interview/index.ts'), 'utf8').replace(/\r\n/g, '\n');
 const start = source.indexOf('function parseV2Output(');
 const end = source.indexOf('\n}\n\nasync function callGemini(', start);
 if (start < 0 || end < 0) throw new Error('NEED_PARSER_SOURCE_MISSING');
@@ -27,7 +27,7 @@ const scope: Record<string, unknown> = {
       'need.schedule_kind', 'need.starts_at', 'need.task_geography'],
     taskRelation: ['CONTINUE', 'DIFFERENT_TASK', 'UNCLEAR'],
     priceUnit: ['WHOLE_JOB', 'PER_DAY', 'PER_HOUR', 'UNSPECIFIED'],
-    schedulePattern: ['SINGLE', 'REPEATED', 'UNSPECIFIED'],
+    schedulePattern: ['SINGLE', 'FLEXIBLE_RANGE', 'REPEATED', 'UNSPECIFIED'],
   },
   console: { info: (...args: unknown[]) => { logs.push(args); } },
 };
@@ -41,6 +41,11 @@ const response = (next: string, questionKey: string, facts: unknown[] = []) => (
 
 beforeEach(() => { logs.length = 0; });
 describe('Gemini NEED V2 private structured output gate', () => {
+  it('accepts a bounded flexible range as private interpretation metadata', () => {
+    const input = response('ACK', 'NONE');
+    input.dialogue.schedulePattern = 'FLEXIBLE_RANGE';
+    expect(parse(input).dialogue.schedulePattern).toBe('FLEXIBLE_RANGE');
+  });
   it('normalizes ASK without question key while preserving user-visible text', () => {
     const result = parse(response('ASK', 'NONE'));
     expect(result.assistantMessage).toBe('U kom delu grada je posao?');

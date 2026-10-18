@@ -24,7 +24,7 @@ function fixture(config={}){
    if(url.endsWith('/auth/v1/user'))return json({id:account});
    if(url.includes('/ai_conversations?'))return json([{id:conversation,account_id:account,status:'OPEN',fact_schema_version:'NEED_FACT_V2'}]);
    if(url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))return config.dispatch?.(body)??json(true);
-  if(url.endsWith('/rpc_ai_claim_need_turn_v2_service'))return json({turn:turn(config.replay?'SUCCEEDED':'PROCESSING'),claim:config.replay?null:{attemptId,leaseExpiresAt:new Date(Date.now()+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',history:[],activeFacts:config.activeFacts??[]}}});
+  if(url.endsWith('/rpc_ai_claim_need_turn_v2_service'))return json({turn:turn(config.replay?'SUCCEEDED':'PROCESSING'),claim:config.replay?null:{attemptId,leaseExpiresAt:new Date(Date.now()+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',history:config.history??[],activeFacts:config.activeFacts??[]}}});
    if(url.endsWith('/rpc_ai_test_budget_reserve_service'))return json(config.budget??{admitted:true,reservationId:id(8),replay:false,code:'AI_TEST_RESERVED'});
    if(url.startsWith('https://generativelanguage.googleapis.com/'))return config.provider?.(init)??providerStream();
    if(url.endsWith('/rpc_ai_complete_need_turn_v2_service')){if(config.completionError)throw Error('SYNTHETIC_COMPLETION_ACK_LOST');return json({...turn(),...(config.badReceipt?{turnId:id(99)}:{}),receipt:{...receipt,proposedCount:body.p_proposals.length,safety:body.p_safety}});}
@@ -89,6 +89,98 @@ test('same-draft work replacement can ask which terms remain without changing th
  assert.deepEqual(writes(f)[0].body.p_proposals,[]);assert.equal(writes(f)[0].body.p_assistant_message,message);
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),message);
  assert.ok(!f.calls.some(c=>/save_draft|publish|commit_admission|push/.test(c.url)));
+});
+
+const proposedFact=(key,value,evidence)=>({key,valueJson:JSON.stringify(value),displayValue:typeof value==='string'?value:JSON.stringify(value),evidence,confidence:1});
+const rangeDialogue={next:'ACK',questionKey:'NONE',taskRelation:'CONTINUE',priceUnit:'UNSPECIFIED',schedulePattern:'FLEXIBLE_RANGE'};
+const rangeFacts=[proposedFact('need.schedule_kind','FLEXIBLE','naredne nedelje'),
+ proposedFact('need.starts_at','2026-10-19T00:00:00+02:00','naredne nedelje'),
+ proposedFact('need.ends_at','2026-10-26T00:00:00+01:00','naredne nedelje')];
+
+test('owned handler delivers one semantic question budget and rejects a provider-declared range without bounds while keeping task facts',async()=>{
+ const f=fixture({text:'Treba mi krecenje stana od 50 kvadrata u Novom Sadu naredne nedelje. Materijal imam.',
+  output:{safety:'ALLOW',assistantMessage:'Termin je fleksibilan, spremno je.',dialogue:rangeDialogue,
+   facts:[proposedFact('need.description','Krečenje stana od 50 m² u Novom Sadu naredne nedelje. Materijal obezbeđuje naručilac.','Materijal imam'),rangeFacts[0]]}});
+ const es=await events(f),write=writes(f)[0].body,provider=providers(f)[0].body;
+ assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals.map(p=>p.key),['need.description']);
+ assert.match(write.p_assistant_message,/Od kog do kog datuma/);
+ assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),write.p_assistant_message);
+ const instruction=provider.systemInstruction.parts[0].text;
+ assert.equal(instruction.split('Jedinstveno pravilo pitanja:').length-1,1);
+ assert.ok(instruction.includes('najviše TRI zasebne informacije'));
+ assert.ok(instruction.includes('jesu PET informacija, čak i u dve rečenice'));
+ assert.ok(instruction.includes('Ako je već rečeno Materijal imam, ne pitajte ko kupuje boju'));
+ assert.ok(instruction.includes('WEEK_FLEXIBLE znači samo ovu kalendarsku nedelju'));
+ assert.ok(instruction.includes('ne smeju postati FLEXIBLE bez granica'));
+ assert.ok(provider.generationConfig.responseSchema.properties.dialogue.properties.schedulePattern.enum.includes('FLEXIBLE_RANGE'));
+ // The new enum belongs only to the provider interpretation. SQL command,
+ // durable receipt and client SSE keep their existing exact public contracts.
+ assert.ok(!JSON.stringify(write).includes('FLEXIBLE_RANGE'));assert.ok(!Object.hasOwn(write,'p_dialogue'));
+ assert.ok(!JSON.stringify(es).includes('schedulePattern'));
+ assert.ok(!f.calls.some(c=>/save_draft|publish|commit_admission|push/.test(c.url)));
+});
+
+test('partial reply preserves offers while an earlier next-week range remains unresolved',async()=>{
+ const activeFacts=[activeFact('need.description','Krečenje naredne nedelje. Materijal imam.'),activeFact('need.schedule_kind','FLEXIBLE','ENUM')];
+ const original=JSON.stringify(activeFacts);
+ const f=fixture({activeFacts,history:[{role:'USER',body:'Krečenje stana u Novom Sadu naredne nedelje. Materijal imam.',sequence_no:1}],
+  text:'50m2 je povrsina poda. Bez gletovanja. Otvoren sam za ponude, dan u narednoj nedelji je fleksibilan.',
+  output:{safety:'ALLOW',assistantMessage:'U kom delu grada je stan?',dialogue:{...rangeDialogue,next:'ASK',questionKey:'need.task_geography'},
+   facts:[proposedFact('need.price_mode','OFFERS','Otvoren sam za ponude'),
+    proposedFact('need.description','Krečenje stana od 50 m² površine poda naredne nedelje, bez gletovanja. Materijal imam.','50m2 je povrsina poda. Bez gletovanja.') ]}});
+ await events(f);const write=writes(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');assert.deepEqual(write.p_proposals.map(p=>p.key),['need.price_mode','need.description']);
+ assert.match(write.p_assistant_message,/Od kog do kog datuma/);assert.equal(JSON.stringify(activeFacts),original);
+ assert.ok(JSON.stringify(providers(f)[0].body.contents).includes('naredne nedelje. Materijal imam.'));
+ assert.ok(!write.p_proposals.some(p=>p.key==='need.starts_at'||p.key==='need.ends_at'));
+});
+
+test('complete flexible next-week bounds survive actual completion including distinct DST offsets',async()=>{
+ const message='Dan je fleksibilan između 19. i 25. oktobra. U kom delu grada je posao?';
+ const f=fixture({text:'Bilo kog dana naredne nedelje, od 19. do 25. oktobra.',output:{safety:'ALLOW',assistantMessage:message,
+  dialogue:{...rangeDialogue,next:'ANSWER'},facts:rangeFacts}});
+ const es=await events(f),write=writes(f)[0].body;
+ assert.equal(write.p_safety,'ALLOW');assert.equal(write.p_assistant_message,message);
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),rangeFacts.map(p=>[p.key,JSON.parse(p.valueJson)]));
+ assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
+ assert.ok(!JSON.stringify(write).includes('FLEXIBLE_RANGE'));assert.ok(!JSON.stringify(es).includes('schedulePattern'));
+});
+
+test('complete active range survives a later price-only reply without repeating time questions',async()=>{
+ const activeFacts=rangeFacts.map(p=>activeFact(p.key,JSON.parse(p.valueJson),p.key==='need.schedule_kind'?'ENUM':'TIMESTAMPTZ'));
+ const message='U redu, možeš da primiš ponude.';
+ const f=fixture({activeFacts,text:'Otvoren sam za ponude.',output:{safety:'ALLOW',assistantMessage:message,
+  dialogue:rangeDialogue,facts:[proposedFact('need.price_mode','OFFERS','Otvoren sam za ponude')]}});
+ await events(f);const write=writes(f)[0].body;
+ assert.equal(write.p_safety,'ALLOW');assert.equal(write.p_assistant_message,message);
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.price_mode','OFFERS']]);
+});
+
+for(const [label,facts] of [
+ ['start only',[rangeFacts[0],rangeFacts[1]]],
+ ['reversed',[rangeFacts[0],rangeFacts[2],proposedFact('need.starts_at','2026-10-27T00:00:00+01:00','27. oktobra')]],
+ ['offset missing',[rangeFacts[0],proposedFact('need.starts_at','2026-10-19T00:00:00','19. oktobra'),rangeFacts[2]]],
+ ['wrong current-week kind',[{...rangeFacts[0],valueJson:'"WEEK_FLEXIBLE"'},...rangeFacts.slice(1)]],
+])test(`provider-declared flexible range ${label} cannot persist a widened schedule`,async()=>{
+ const f=fixture({text:'U ograničenom periodu koji smo pomenuli.',output:{safety:'ALLOW',assistantMessage:'Spremno.',dialogue:rangeDialogue,
+  facts:[...facts,proposedFact('need.price_mode','OFFERS','ponude')]}});
+ await events(f);const write=writes(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.price_mode','OFFERS']]);
+ assert.match(write.p_assistant_message,/Od kog do kog datuma/);
+});
+
+for(const [label,pattern,facts] of [
+ ['true anytime','UNSPECIFIED',[proposedFact('need.schedule_kind','FLEXIBLE','bilo kada')]],
+ ['earliest start only','SINGLE',[rangeFacts[0],rangeFacts[1]]],
+ ['completion deadline only','SINGLE',[proposedFact('need.schedule_kind','REMOTE_ANYTIME','na daljinu'),rangeFacts[2]]],
+])test(`${label} remains valid without inventing a second bound`,async()=>{
+ const message='Sačuvano za pregled.';
+ const f=fixture({text:'Sintetički jasan vremenski zahtev.',output:{safety:'ALLOW',assistantMessage:message,
+  dialogue:{...rangeDialogue,schedulePattern:pattern},facts}});
+ await events(f);const write=writes(f)[0].body;
+ assert.equal(write.p_safety,'ALLOW');assert.equal(write.p_assistant_message,message);
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),facts.map(p=>[p.key,JSON.parse(p.valueJson)]));
 });
 
 test('confirmed Need finishes the stream and records usage even with the optional catalog disabled',async()=>{
