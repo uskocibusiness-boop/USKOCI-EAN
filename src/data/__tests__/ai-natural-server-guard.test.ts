@@ -12,18 +12,19 @@ type Result = Turn;
 type Guard = (turn: Turn, input: string, facts: Fact[], time: { localDate: string }, contextualLocation?: boolean) => Result;
 
 // Exercise the existing server-side guard in isolation, without reimplementing its decisions.
-const source = readFileSync(resolve(process.cwd(), 'supabase/functions/uskoci-ai-interview/index.ts'), 'utf8');
+const source = readFileSync(resolve(process.cwd(), 'supabase/functions/uskoci-ai-interview/index.ts'), 'utf8').replace(/\r\n/g, '\n');
 const start = source.indexOf('function guardConversationTurn(');
 const end = source.indexOf('\n}\n\nDeno.serve(', start);
-if (start < 0 || end < 0) throw new Error('AI_GUARD_SOURCE_NOT_FOUND');
-const candidate = source.slice(start, end + 2);
+const timeStart = source.indexOf('function serbiaTimeParts(');
+const timeEnd = source.indexOf('\nfunction response(', timeStart);
+if (start < 0 || end < 0 || timeStart < 0 || timeEnd < 0) throw new Error('AI_GUARD_SOURCE_NOT_FOUND');
+const candidate = source.slice(timeStart, timeEnd) + source.slice(start, end + 2);
 const transformed = ts.transpileModule(candidate, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 let explicitFinish = false;
 const scope: Record<string, unknown> = {
   taskFinishOnly: () => explicitFinish,
   explicitPublicationOnly: () => false,
   sameFactValue: (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b),
-  serverTimeContext: (value: Date) => ({ localDate: value.toISOString().slice(0, 10) }),
   NEED_FACT_V2_DEFINITIONS: {
     'need.title': { requiredForDraft: true },
     'need.category': { requiredForDraft: true },

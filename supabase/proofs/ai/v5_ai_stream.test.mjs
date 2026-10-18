@@ -147,6 +147,65 @@ test('complete flexible next-week bounds survive actual completion including dis
  assert.ok(!JSON.stringify(write).includes('FLEXIBLE_RANGE'));assert.ok(!JSON.stringify(es).includes('schedulePattern'));
 });
 
+test('wrong autumn DST offset cannot reach the owned fact writer; unrelated partial answers survive',async()=>{
+ const f=fixture({text:'Naredne nedelje, od 19. do 25. oktobra. Otvoren sam za ponude.',
+  output:{safety:'ALLOW',assistantMessage:'Termin je spreman.',dialogue:rangeDialogue,
+   facts:[...rangeFacts.slice(0,2),proposedFact('need.ends_at','2026-10-26T00:00:00+02:00','od 19. do 25. oktobra'),
+    proposedFact('need.price_mode','OFFERS','Otvoren sam za ponude')]}});
+ const es=await events(f),write=writes(f)[0].body;
+ assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
+ assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.price_mode','OFFERS']]);
+ assert.match(write.p_assistant_message,/lokalnom vremenu u Srbiji/);
+ assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),write.p_assistant_message);
+ assert.ok(!f.calls.some(c=>/save_draft|publish|commit_admission|push/.test(c.url)));
+});
+
+for(const [label,value] of [
+ ['spring gap before offset','2026-03-29T02:30:00+01:00'],
+ ['spring gap after offset','2026-03-29T02:30:00+02:00'],
+ ['spring wrong future offset','2026-03-30T00:00:00+01:00'],
+ ['invalid calendar day','2026-02-30T09:00:00+01:00'],
+ ['missing offset','2026-10-26T09:00:00'],
+ ['missing SQL-required seconds','2026-10-26T09:00+01:00'],
+ ['another zone without literal source','2026-10-26T09:00:00+09:00'],
+])test(`new timestamp ${label} is clarified without moving the instant`,async()=>{
+ const f=fixture({text:'Tada po lokalnom vremenu.',output:{safety:'ALLOW',assistantMessage:'Sačuvano.',
+  dialogue:{...rangeDialogue,schedulePattern:'SINGLE'},facts:[proposedFact('need.schedule_kind','FIXED_WINDOW','tada'),
+   proposedFact('need.starts_at',value,'tada'),proposedFact('need.people_needed',2,'dve osobe')]}});
+ await events(f);const write=writes(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.people_needed',2]]);
+ assert.equal(providers(f).length,1);
+});
+
+for(const value of ['2026-10-25T02:30:00+02:00','2026-10-25T02:30:00+01:00',
+ '2026-03-29T03:30:00+02:00','2026-10-26T09:00:00.123456+01:00'])
+test(`valid local timestamp ${value} keeps its exact offset and precision`,async()=>{
+ const f=fixture({text:'U dogovoreno lokalno vreme.',output:{safety:'ALLOW',assistantMessage:'Predlog je spreman.',
+  dialogue:{...rangeDialogue,schedulePattern:'SINGLE'},facts:[proposedFact('need.schedule_kind','FIXED_WINDOW','termin'),
+   proposedFact('need.starts_at',value,'termin')]}});
+ await events(f);const write=writes(f)[0].body;
+ assert.equal(write.p_safety,'ALLOW');assert.equal(write.p_proposals.find(p=>p.key==='need.starts_at').value,value);
+});
+
+for(const value of ['2026-10-26T00:00:00Z','2026-10-26T00:00:00+02:00','2026-10-26T09:00:00+09:00'])
+test(`explicit user ISO instant ${value} is not silently converted to task-local time`,async()=>{
+ const f=fixture({text:`Početak je tačno ${value}.`,output:{safety:'ALLOW',assistantMessage:'Predlog je spreman.',
+  dialogue:{...rangeDialogue,schedulePattern:'SINGLE'},facts:[proposedFact('need.schedule_kind','FIXED_WINDOW',value),
+   proposedFact('need.starts_at',value,value)]}});
+ await events(f);const write=writes(f)[0].body;
+ assert.equal(write.p_safety,'ALLOW');assert.equal(write.p_proposals.find(p=>p.key==='need.starts_at').value,value);
+});
+
+test('time consistency guard never downgrades a policy REVIEW',async()=>{
+ const message='Ovaj zahtev zahteva proveru pravila.';
+ const f=fixture({text:'Sintetički zahtev.',output:{safety:'REVIEW',assistantMessage:message,
+  dialogue:rangeDialogue,facts:[...rangeFacts.slice(0,2),proposedFact('need.ends_at','2026-10-26T00:00:00+02:00','naredne nedelje')]}});
+ await events(f);const write=writes(f)[0].body;
+ assert.equal(write.p_safety,'REVIEW');assert.equal(write.p_assistant_message,message);assert.deepEqual(write.p_proposals,[]);
+});
+
 test('complete active range survives a later price-only reply without repeating time questions',async()=>{
  const activeFacts=rangeFacts.map(p=>activeFact(p.key,JSON.parse(p.valueJson),p.key==='need.schedule_kind'?'ENUM':'TIMESTAMPTZ'));
  const message='U redu, možeš da primiš ponude.';

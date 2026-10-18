@@ -87,9 +87,10 @@ type ServerTimeContext = {
   localDate: string;
   localTime: string;
   utcOffset: string;
+  nextCalendarWeek: { startsAt: string; endsAt: string } | null;
 };
 
-function serverTimeContext(now: Date): ServerTimeContext {
+function serbiaTimeParts(now: Date): Omit<ServerTimeContext, 'nextCalendarWeek'> {
   const timeZone = 'Europe/Belgrade' as const;
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone, year: 'numeric', month: '2-digit', day: '2-digit',
@@ -103,6 +104,72 @@ function serverTimeContext(now: Date): ServerTimeContext {
     localTime: `${part('hour')}:${part('minute')}:${part('second')}`,
     utcOffset: part('timeZoneName').replace(/^GMT/, '') || '+00:00',
   };
+}
+
+function serbiaMidnight(localDate: string): string | null {
+  // Resolve a calendar date with the IANA rules for that date, never today's
+  // offset. The round trip rejects a nonexistent midnight instead of shifting it.
+  const wallTime = Date.parse(`${localDate}T00:00:00Z`);
+  let instant = wallTime;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const parts = serbiaTimeParts(new Date(instant));
+    const offset = Date.parse(`${localDate}T00:00:00Z`) - Date.parse(`${localDate}T00:00:00${parts.utcOffset}`);
+    const next = wallTime - offset;
+    if (next === instant) break;
+    instant = next;
+  }
+  const resolved = serbiaTimeParts(new Date(instant));
+  return resolved.localDate === localDate && resolved.localTime === '00:00:00'
+    ? `${localDate}T00:00:00${resolved.utcOffset}` : null;
+}
+
+function serverTimeContext(now: Date): ServerTimeContext {
+  const current = serbiaTimeParts(now);
+  const localDay = new Date(`${current.localDate}T12:00:00Z`);
+  const untilMonday = (8 - localDay.getUTCDay()) % 7 || 7;
+  const dateAfter = (days: number) => new Date(localDay.getTime() + days * 86400000).toISOString().slice(0, 10);
+  const startsAt = serbiaMidnight(dateAfter(untilMonday));
+  const endsAt = serbiaMidnight(dateAfter(untilMonday + 7));
+  return { ...current, nextCalendarWeek: startsAt && endsAt ? { startsAt, endsAt } : null };
+}
+
+function validTimestamp(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(value)) return false;
+  const instant = Date.parse(value);
+  if (!Number.isFinite(instant)) return false;
+  // Date.parse accepts some invalid calendar days by normalizing into the next
+  // month. Validate the supplied civil date independently of its explicit offset.
+  const offset = value.endsWith('Z') ? '+00:00' : value.slice(-6);
+  const offsetMs = (offset[0] === '-' ? -1 : 1) * (Number(offset.slice(1, 3)) * 60 + Number(offset.slice(4))) * 60000;
+  return new Date(instant + offsetMs).toISOString().slice(0, 19) === value.slice(0, 19);
+}
+
+function guardTimestampProposals(turn: ParsedTurn, input: string, activeFacts: any[]): ParsedTurn {
+  const known = new Map(activeFacts.filter(f => f.status !== 'UNKNOWN').map(f => [f.fact_key, f.fact_value]));
+  const country = turn.proposals.find(p => p.key === 'need.task_country_code')?.value ?? known.get('need.task_country_code');
+  const invalid = turn.proposals.some(proposal => {
+    if (!['need.starts_at', 'need.ends_at'].includes(proposal.key)) return false;
+    const value = proposal.value;
+    if (!validTimestamp(value)) return true;
+    // An unchanged active fact is not reinterpreted. A user's literal ISO instant
+    // may intentionally use UTC or another offset; preserve it byte for byte.
+    if (known.get(proposal.key) === value || input.includes(value) && String(proposal.evidence ?? '').includes(value)) return false;
+    // RS is the currently admitted market. Do not assign Belgrade to a different
+    // explicitly selected country; its admission remains the database's job.
+    if (country && country !== 'RS') return false;
+    const local = serbiaTimeParts(new Date(value));
+    return `${local.localDate}T${local.localTime}` !== value.slice(0, 19)
+      || local.utcOffset !== (value.endsWith('Z') ? '+00:00' : value.slice(-6));
+  });
+  if (!invalid) return turn;
+  // An offset error never silently moves the user's instant or drops another
+  // answer. Keep a policy REVIEW intact; it cannot be downgraded by a time guard.
+  return { ...turn, safety: turn.safety === 'REVIEW' ? 'REVIEW' : 'CLARIFY',
+    proposals: turn.proposals.filter(p => !['need.schedule_kind', 'need.starts_at', 'need.ends_at'].includes(p.key)),
+    ...(turn.safety === 'REVIEW' ? {} : {
+      dialogue: turn.dialogue ? { ...turn.dialogue, next: 'CLARIFY', questionKey: '' } : undefined,
+      assistantMessage: 'Da proverim termin: misliš na navedene datume po lokalnom vremenu u Srbiji ili u drugoj vremenskoj zoni?',
+    }) };
 }
 
 function response(status: number, body: Record<string, unknown>) {
@@ -332,6 +399,8 @@ function commonInstruction(activeFacts: any[], timeContext: ServerTimeContext) {
     'Nikada ne izmišljajte cenu, vreme, lokaciju, sprat, lift, broj ljudi, vozilo, dozvolu ili drugi materijalni uslov.',
     'Licence i sertifikati nisu uslov koji ovaj proizvod proverava ili koristi za izbor osobe. Ne pitajte za njih i ne predlažite need.required_licenses. Ako korisnik traži takav uslov, jasno objasnite da aplikacija ne podržava njegovu proveru; ne prenosite ga u druge uslove, veštine, naslov ili opis kao podržan filter. Ne tvrdite da je neko kvalifikovan ili zakonski ovlašćen. Sačuvani istorijski podaci nisu dozvola da ponovo uvodite taj uslov.',
     `Serverski vremenski kontekst za trenutni unos u Srbiji: ${JSON.stringify(timeContext)}.`,
+    'nextCalendarWeek je serverski izračunata SLEDEĆA kalendarska nedelja u Srbiji: startsAt je ponedeljak u ponoć, endsAt naredni ponedeljak u ponoć (isključiva granica). Koristite te tačne granice samo kada korisnik zaista traži fleksibilno izvršenje naredne nedelje; to nije podrazumevani termin, dogovoreni sat niti potvrda. Pomaci obe granice mogu se razlikovati zbog promene računanja vremena; nikada ne kopirajte današnji utcOffset na buduće datume. Ostale datume ne zamenjujte ovim periodom.',
+    'Novi timestamp predlozi za lokalni termin u Srbiji moraju predstavljati stvarni lokalni datum i sat u Europe/Belgrade sa pomakom koji važi baš tada, uključujući promenu računanja vremena. Doslovan ISO timestamp koji korisnik izričito navede sa Z ili drugim pomakom sačuvajte tačno kao navedeni instant, uz isti doslovni timestamp u evidence. Ako je relevantna druga zona, a nije jasno kako se termin odnosi na lokalno vreme zadatka, razjasnite je; nemojte sami pomerati termin.',
     'Relativne datume poput danas, sutra i prekosutra tumačite prema ovom serverskom lokalnom datumu, a ne prema sopstvenoj memoriji ili datumu koji klijent tvrdi da je sada. Ako je relevantna druga vremenska zona ili je datum dvosmislen, tražite razjašnjenje.',
     'Ovaj vremenski kontekst je referenca za predlog, nikada potvrđen termin Zadatka. Datum i vreme jasno prikažite korisniku radi potvrde. Ne izmišljajte nedostajući čas, trajanje, kraj termina ili nejasnu lokaciju; postavite sledeće potrebno pitanje. Timestamp predlozi moraju sadržati eksplicitni vremenski pomak za taj datum.',
     'AI predlog nikada nije ljudska potvrda i nikada nije dozvola za objavu. Jasne podatke ne potvrđujemo pojedinačno: korisnik pregleda celinu i jednom bira Objavi zadatak.',
@@ -673,7 +742,8 @@ function sameFactValue(left: unknown, right: unknown): boolean {
 }
 
 function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any[], time: ServerTimeContext, contextualLocation = false): ParsedTurn {
-  if (turn.safety === 'BLOCK' || turn.safety === 'REVIEW') return turn;
+  if (turn.safety === 'BLOCK') return turn;
+  if (turn.safety === 'REVIEW') return guardTimestampProposals(turn, input, activeFacts);
   if (taskFinishOnly(input) && (!contextualLocation || turn.locationAction !== 'CONFIRM_DISPLAYED')
     || contextualLocation && explicitPublicationOnly(input)) {
     // Ending the interview supplies no new terms. Only missing presentation of an existing
@@ -712,7 +782,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     const start = turn.proposals.find(p => p.key === 'need.starts_at')?.value;
     const wrongKind = typeof kind === 'string' && kind !== 'FIXED_WINDOW' && kind !== expectedKind;
     const wrongStart = typeof start === 'string' && Number.isFinite(Date.parse(start))
-      && serverTimeContext(new Date(start)).localDate !== expectedDate;
+      && serbiaTimeParts(new Date(start)).localDate !== expectedDate;
     if (wrongKind || wrongStart) return { safety: 'CLARIFY', proposals: [],
       assistantMessage: `Da razjasnimo termin: misliš na ${expectedDate.split('-').reverse().join('.')}?` };
   }
@@ -732,7 +802,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     const conflict = proposal.key === 'need.schedule_kind'
       ? proposal.value !== 'FIXED_WINDOW' && proposal.value !== kind
       : typeof proposal.value === 'string' && Number.isFinite(Date.parse(proposal.value))
-        && serverTimeContext(new Date(proposal.value)).localDate !== date;
+        && serbiaTimeParts(new Date(proposal.value)).localDate !== date;
     if (conflict) return clarification('Koji je tačan datum početka posla?');
   }
   if (dialogue?.schedulePattern === 'FLEXIBLE_RANGE') {
@@ -757,6 +827,8 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
         assistantMessage: 'Dan može da bude fleksibilan unutar perioda. Od kog do kog datuma ti odgovara da se posao uradi?' };
     }
   }
+  const timeChecked = guardTimestampProposals(turn, input, activeFacts);
+  if (timeChecked !== turn) return timeChecked;
   const proposals = turn.proposals.filter(proposal => !activeFacts.some(fact =>
     fact.fact_key === proposal.key && fact.status !== 'UNKNOWN' && sameFactValue(fact.fact_value, proposal.value)));
   // Contextual map questions remain about the visible place. All safety, task,

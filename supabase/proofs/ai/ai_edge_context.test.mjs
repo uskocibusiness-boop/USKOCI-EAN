@@ -96,7 +96,7 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
 const providerCall=fixture=>fixture.calls.find(x=>x.url.includes('googleapis')||x.url==='https://api.openai.com/v1/responses');
 const materialWrites=f=>f.calls.filter(call=>/\/(?:rpc_ai_complete_need_turn_v2_service|rpc_ai_apply_legacy_need_turn_service|rpc_ai_apply_interview_turn(?:_v2)?_service)$/.test(new URL(call.url).pathname));
 const prompt=call=>call.body.systemInstruction?.parts[0].text??call.body.instructions;
-const timeContext=call=>JSON.parse(prompt(call).match(/Serverski vremenski kontekst za trenutni unos u Srbiji: (\{[^}]+\})\./)[1]);
+const timeContext=call=>JSON.parse(prompt(call).match(/Serverski vremenski kontekst za trenutni unos u Srbiji: (\{.+?\})\./)[1]);
 
 test('task prompt preserves proportional TOTAL applications and clarification without invented audio access',async()=>{
   const f=fixture();assert.equal((await f.invoke()).status,200);
@@ -258,8 +258,23 @@ for(const [now,date,time,offset] of [
 ])test(`actual outbound server time context at ${now}`,async()=>{
   const f=fixture({now});assert.equal((await f.invoke({nowUtc:'2099-01-01',localDate:'2099-01-01',timeZone:'Pacific/Honolulu'})).status,400);
   assert.equal(f.calls.length,0);assert.equal((await f.invoke()).status,200);
-  assert.deepEqual(timeContext(providerCall(f)),{nowUtc:now,timeZone:'Europe/Belgrade',localDate:date,localTime:time,utcOffset:offset});
+  const {nextCalendarWeek,...current}=timeContext(providerCall(f));
+  assert.deepEqual(current,{nowUtc:now,timeZone:'Europe/Belgrade',localDate:date,localTime:time,utcOffset:offset});
+  assert.ok(nextCalendarWeek?.startsAt&&nextCalendarWeek?.endsAt);
   assert.ok(!prompt(providerCall(f)).includes('2099-01-01'));
+});
+
+for(const [now,startsAt,endsAt] of [
+  ['2026-10-18T12:00:00Z','2026-10-19T00:00:00+02:00','2026-10-26T00:00:00+01:00'],
+  ['2026-03-22T12:00:00Z','2026-03-23T00:00:00+01:00','2026-03-30T00:00:00+02:00'],
+  ['2026-10-25T01:30:00Z','2026-10-26T00:00:00+01:00','2026-11-02T00:00:00+01:00'],
+  ['2026-12-31T23:30:00Z','2027-01-04T00:00:00+01:00','2027-01-11T00:00:00+01:00'],
+  ['2026-10-19T10:00:00Z','2026-10-26T00:00:00+01:00','2026-11-02T00:00:00+01:00'],
+])test(`server next calendar week uses per-date offsets and exclusive end at ${now}`,async()=>{
+  const f=fixture({now});assert.equal((await f.invoke()).status,200);
+  assert.deepEqual(timeContext(providerCall(f)).nextCalendarWeek,{startsAt,endsAt});
+  const write=materialWrites(f).find(c=>c.url.includes('/rpc_ai_complete_need_turn_v2_service'));
+  assert.ok(write);assert.ok(!JSON.stringify(write.body).includes('nextCalendarWeek'));
 });
 
 for(const provider of ['gemini'])test(`${provider} actual handler sends newest30 chronologically and persists validated proposals`,async()=>{
