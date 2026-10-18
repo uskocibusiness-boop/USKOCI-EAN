@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs'), path = require('node:path');
 const candidate = path.resolve(__dirname, '../../candidates/home-read-reliability-20261018');
-const { plan, sql, body, md5, replaceOnce } = require(path.join(candidate, 'package.cjs'));
+const { plan, sql, migrationSql, body, md5, replaceOnce } = require(path.join(candidate, 'package.cjs'));
 const targets = plan(), reader = targets.find(row => row.signature.startsWith('rpc_list_open_tasks_v3('));
 
 test('pinned candidates are reproducible, surgical and byte-for-byte reversible', () => {
@@ -22,6 +22,7 @@ test('pinned candidates are reproducible, surgical and byte-for-byte reversible'
   }
   assert.throws(() => replaceOnce('one one', 'one', 'two'), /PATCH_SITE_DRIFT/);
   assert.throws(() => replaceOnce('zero', 'one', 'two'), /PATCH_SITE_DRIFT/);
+  assert.equal(/^(begin|commit);$/mi.test(migrationSql()),false,'HOSTED_TRANSACTION_MUST_OWN_COMMIT');
 });
 
 test('disposable PostgreSQL: captured bodies, invoker/RLS read, metadata, rollback and drift refusal', async t => {
@@ -70,6 +71,9 @@ test('disposable PostgreSQL: captured bodies, invoker/RLS read, metadata, rollba
     const rowsBefore = (await db.query('select to_jsonb(n) row from public.needs n order by id')).rows;
     const ordinaryBefore = await read({},20), exactBefore = await read({ needId: uid(10) },1);
     const bboxBefore = await as('authenticated',bboxQuery);
+    await db.exec('create schema supabase_migrations; create table supabase_migrations.schema_migrations(version text primary key, statements text[] not null);');
+    const hosted = text => 'begin;\n'+text+
+      "\ninsert into supabase_migrations.schema_migrations values ('local-proof',array['proof-only']);\ncommit;";
 
     await t.test('before-image reproduces the unsupported preview and the three serialization-coded raises', async () => {
       await assert.rejects(() => read({ homePreview:true }),/INVALID_FILTER/);
@@ -82,7 +86,8 @@ test('disposable PostgreSQL: captured bodies, invoker/RLS read, metadata, rollba
 
     await t.test('strict forward applies once, preserving all pg_proc metadata other than prosrc', async () => {
       await db.exec('set check_function_bodies=off');
-      await db.exec(sql());
+      await db.exec(hosted(migrationSql()));
+      assert.equal((await db.query('select count(*)::int n from supabase_migrations.schema_migrations')).rows[0].n,1);
       await db.exec('set check_function_bodies=on');
       const changed = await metadata();
       for (let i=0; i<original.length; i++) {

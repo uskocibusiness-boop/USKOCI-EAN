@@ -1,5 +1,7 @@
 # Local reliability candidate — 18.10.2026.
 
+**SUPERSEDED: historical initial candidate, not an install entry point.** Later owner authorization allowed DEV application. The first forward exposed a real invoker column-grant regression, recovered by `20261018201253`, then fixed by `20261018201517` with `invoker-fix.cjs`. Do not apply the original `forward.sql` or `revert.sql` to current DEV. See `docs/current/DEV_RELIABILITY_APPLICATION_20261018.md` for the exact sequence and current proof. `taxonomy-proof.cjs` now executes real service bodies; `invoker-fix-proof.cjs` reproduces the missed column-grant boundary. The initial local status and limits below remain historical evidence.
+
 **NOT APPLIED. Do not publish this client before the matching SQL is applied and verified.** The owner approved a local first package only. No live migration, Edge deploy, Git push, OTA, APK build or installation was performed here.
 
 ## Exact scope

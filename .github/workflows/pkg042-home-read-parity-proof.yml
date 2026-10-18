@@ -1,10 +1,15 @@
 name: PKG-042 application reader parity proof
 on:
   push:
-    branches: [work/pre-v3-engine-integration-20260911]
+    branches: [work/pre-v3-engine-integration-20260911, feature/unified-qa-master-20261017]
     paths:
       - 'supabase/candidates/pkg042*.sql'
       - 'supabase/proofs/pkg042/**'
+      - 'supabase/candidates/home-read-reliability-20261018/**'
+      - 'supabase/proofs/home-read-reliability-20261018/**'
+      - 'supabase/migrations/*home_read_reliability_20261018.sql'
+      - 'supabase/migrations/*restore_invoker_reader_20261018.sql'
+      - 'supabase/migrations/*home_preview_invoker_fix_20261018.sql'
       - 'src/data/homeAttentionClientService.ts'
       - 'src/data/homeSnapshot.ts'
       - 'src/data/serverReceipt.ts'
@@ -22,6 +27,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   disposable-proof:
+    if: github.ref == 'refs/heads/work/pre-v3-engine-integration-20260911'
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -103,3 +109,30 @@ jobs:
           name: pkg042-home-read-parity-${{ github.sha }}
           path: /tmp/pkg042-artifacts
           if-no-files-found: error
+  current-bounded-reader:
+    if: github.ref == 'refs/heads/feature/unified-qa-master-20261017'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PGLITE_MODULE: ${{ runner.temp }}/home-reader-pg/node_modules/@electric-sql/pglite
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked application and isolated exact PostgreSQL test runtime
+        run: |
+          npm ci
+          npm install --prefix "$RUNNER_TEMP/home-reader-pg" --ignore-scripts --no-audit --no-fund --save-exact @electric-sql/pglite@0.5.10
+      - name: Verify source, types, migration provenance and actual column-grant regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          sh supabase/migrations/check_md5.sh
+          npx tsc --noEmit
+          node --test supabase/proofs/home-read-reliability-20261018/local-proof.cjs supabase/proofs/home-read-reliability-20261018/taxonomy-proof.cjs supabase/proofs/home-read-reliability-20261018/invoker-fix-proof.cjs
+          npx jest --runInBand --runTestsByPath src/data/__tests__/home-opportunities-read.test.ts src/data/__tests__/home-opportunity-preview.test.ts src/data/__tests__/v3-home-screen.test.tsx scripts/__tests__/eas-preview-guard.test.ts src/data/__tests__/ex04-test-page-limit-guard.test.ts

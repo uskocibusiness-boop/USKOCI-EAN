@@ -1,5 +1,7 @@
 # Prvi lokalni paket posle read-only audita
 
+**Istorijski lokalni presek.** Naknadno odobrenje, primena, otkrivena regresija i potvrđena forward ispravka su u [DEV izveštaju](DEV_RELIABILITY_APPLICATION_20261018.md). Tadašnji dokaz ispod nije naknadno pretvoren u DEV/phone dokaz.
+
 Polazište: `aa61d04e265811f2f5a6139b7c03d70611b8d793`, grana `feature/unified-qa-master-20261017`. Konkretno odobrenje vlasnika odnosi se na kod, lokalne SQL kandidate i testove. **Nema živih upisa u Supabase, push-a, OTA, novog APK-a niti instalacije.** Ovo nije novi glavni plan niti završeni redizajn.
 
 ## Šta je promenjeno

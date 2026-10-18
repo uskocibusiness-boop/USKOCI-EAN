@@ -33,13 +33,18 @@
     "confirmedSigned3dNeeds": 1,
     "requesterEdgeVersion": 88
   },
-  "generated_at": "2026-10-18T15:41:07Z",
-  "ledger_total": 285,
+  "generated_at": "2026-10-18T20:15:59Z",
+  "ledger_total": 288,
   "ledger_dev_alpha": 87,
-  "ledger_last": "taxonomy_new_branch_scope_continuity",
+  "ledger_last": "home_preview_invoker_fix_20261018",
   "certificate_certified": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
   "cron": [
     {
+  "reliability_refresh_20261018": {
+    "scope": "Fresh dev_snapshot.sql + Edge metadata after the Home/taxonomy application. Historical named sections and source hashes retain their original proof boundaries.",
+    "receipt": "docs/current/evidence/DEV_RELIABILITY_APPLICATION_20261018.json",
+    "migrationVersions": ["20261018201142", "20261018201253", "20261018201517"]
+  },
       "job": "uskoci_edge_workers",
       "schedule": "* * * * *",
       "active": true

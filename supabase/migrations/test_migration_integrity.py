@@ -1,10 +1,12 @@
 """Keep participant mutation guards strict for the reviewed 143/146 reads."""
 import contextlib
+import copy
 import io
+import json
 import unittest
 from pathlib import Path
 
-from check_migration_integrity import check_later_participant_contract
+from check_migration_integrity import check_later_participant_contract, check_physical_suffix
 
 
 class ParticipantContractTests(unittest.TestCase):
@@ -58,6 +60,57 @@ class ParticipantContractTests(unittest.TestCase):
 
     def test_unrelated_later_migration_is_allowed(self):
         check_later_participant_contract("20260914000000_future.sql", "select 1;")
+
+
+class PhysicalSuffixTests(unittest.TestCase):
+    def setUp(self):
+        root = Path(__file__).parent
+        self.section = json.loads((root / "MIGRATION_PROVENANCE.json").read_text())["physical_suffix_readmission_20261018"]
+        self.evidence = json.loads((root.parent.parent / self.section["evidence"]).read_text())
+        self.manifest = dict((line.split("  ")[1], line.split("  ")[0]) for line in (root / "MD5_MANIFEST.txt").read_text().splitlines())
+
+    def rejects(self, section):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            check_physical_suffix(section, self.manifest, self.evidence)
+
+    def mutate(self, classification, key, value):
+        section = copy.deepcopy(self.section)
+        item = next(row for row in section["entries"] if row["classification"] == classification)
+        item[key] = value
+        self.rejects(section)
+
+    def test_current_inventory_keeps_all_three_truth_classes(self):
+        self.assertEqual(len(check_physical_suffix(self.section, self.manifest, self.evidence)), 21)
+        self.assertEqual({row["classification"] for row in self.section["entries"]},
+                         {"APPLIED_EXACT_LEDGER_BYTES", "APPLIED_RECORDED_BYTES_DIFFER", "SOURCE_ONLY_LIVE_BINDING_UNPROVEN"})
+
+    def test_raw_checksum_and_sha_cannot_be_relabelled(self):
+        for key in ("raw_md5", "raw_sha256", "raw_bytes"):
+            with self.subTest(key=key):
+                self.mutate("APPLIED_EXACT_LEDGER_BYTES", key, "invalid")
+
+    def test_unproven_binding_cannot_claim_application(self):
+        self.mutate("SOURCE_ONLY_LIVE_BINDING_UNPROVEN", "live_applied", True)
+
+    def test_recorded_difference_cannot_claim_byte_equality(self):
+        self.mutate("APPLIED_RECORDED_BYTES_DIFFER", "classification", "APPLIED_EXACT_LEDGER_BYTES")
+
+    def test_wrong_project_live_version_or_recorded_hash_fails(self):
+        section = copy.deepcopy(self.section)
+        section["project"] = "wrong-project"
+        self.rejects(section)
+        for key in ("live_version", "live_name", "live_recorded_md5", "live_recorded_sha256"):
+            with self.subTest(key=key):
+                self.mutate("APPLIED_EXACT_LEDGER_BYTES", key, "invalid")
+
+    def test_duplicate_unsorted_or_unknown_entries_fail(self):
+        section = copy.deepcopy(self.section)
+        section["entries"].reverse()
+        self.rejects(section)
+        section = copy.deepcopy(self.section)
+        section["entries"].append(copy.deepcopy(section["entries"][-1]))
+        self.rejects(section)
+        self.mutate("APPLIED_EXACT_LEDGER_BYTES", "classification", "ASSUMED_SAFE")
 
 
 if __name__ == "__main__":

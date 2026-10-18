@@ -41,8 +41,15 @@ test('every historical entry document opens with the HISTORICAL banner that poin
   }
 });
 
-test('AGENTS.md points to the entry map as the current resume', () => {
-  assert.ok(read('AGENTS.md').includes('CURRENT_ENTRY_MAP_20260916.md'), 'AGENTS.md does not name the entry map');
+test('AGENTS.md points to the active resume and its single current owner manifest', () => {
+  const agents = read('AGENTS.md');
+  const current = JSON.parse(read('docs/current/CURRENT_BASELINE_20261018.json'));
+  assert.equal(current.activeOwners.workInstructions, 'AGENTS.md');
+  for (const entry of ['docs/current/README_USKOCI_LIVE_MASTER_PLAN.md', current.activeOwners.workStatus,
+    current.activeOwners.designCanon]) {
+    assert.ok(agents.includes(entry), `AGENTS.md does not name current owner ${entry}`);
+    assert.ok(fs.statSync(path.join(ROOT, entry)).isFile(), `Missing current owner ${entry}`);
+  }
 });
 
 test('the fake data source is reachable only through the explicit composition boundary', () => {

@@ -45,6 +45,40 @@ def check_later_participant_contract(filename: str, sql: str) -> None:
         )
 
 
+def check_physical_suffix(section: dict, manifest_map: dict, evidence: dict) -> list[str]:
+    """Admit raw files, not semantic equivalence or an invented live application."""
+    entries = section.get("entries", [])
+    names = [item["file"] for item in entries]
+    if names != sorted(set(names)):
+        fail("physical suffix names are not unique and sorted")
+    if section.get("project") != evidence.get("project"):
+        fail("physical suffix project differs from catalog evidence")
+    catalog = {item["version"]: item for item in evidence.get("liveMigrationCatalogHashes", [])}
+    for item in entries:
+        name = item["file"]
+        if item.get("raw_md5") != manifest_map.get(name):
+            fail(f"physical suffix checksum mismatch: {name}")
+        raw = (ROOT / name).read_bytes()
+        if item.get("raw_sha256") != hashlib.sha256(raw).hexdigest() or item.get("raw_bytes") != len(raw):
+            fail(f"physical suffix SHA256/size mismatch: {name}")
+        classification = item.get("classification")
+        if classification == "SOURCE_ONLY_LIVE_BINDING_UNPROVEN":
+            if item.get("live_applied") is not None or any(key.startswith("live_recorded_") for key in item):
+                fail(f"unproven source claims live application: {name}")
+            continue
+        if classification not in ("APPLIED_EXACT_LEDGER_BYTES", "APPLIED_RECORDED_BYTES_DIFFER"):
+            fail(f"unknown physical suffix classification: {name}")
+        live = catalog.get(item.get("live_version"))
+        if not live or item.get("live_applied") is not True or item.get("live_name") != live["name"]:
+            fail(f"physical suffix live binding missing: {name}")
+        if item.get("live_recorded_md5") != live["joined_md5"] or item.get("live_recorded_sha256") != live["joined_sha256"]:
+            fail(f"physical suffix recorded hash mismatch: {name}")
+        exact = item["raw_md5"] == live["joined_md5"] and item["raw_sha256"] == live["joined_sha256"]
+        if exact != (classification == "APPLIED_EXACT_LEDGER_BYTES"):
+            fail(f"physical suffix exact-byte claim is false: {name}")
+    return names
+
+
 def main() -> None:
     manifest_entries: list[tuple[str, str]] = []
     seen_names: set[str] = set()
@@ -115,9 +149,16 @@ def main() -> None:
     pending_names = [
         f"{item['version']}_{item['name']}.sql" for item in pending
     ]
-    if history_names + pending_names != disk_names:
+    suffix = metadata.get("physical_suffix_readmission_20261018")
+    suffix_names = []
+    if suffix:
+        evidence_path = (ROOT.parent.parent / suffix["evidence"]).resolve()
+        if not evidence_path.is_relative_to(ROOT.parent.parent.resolve()):
+            fail("physical suffix evidence escaped repository")
+        suffix_names = check_physical_suffix(suffix, manifest_map, json.loads(evidence_path.read_text(encoding="utf-8")))
+    if history_names + pending_names + suffix_names != disk_names:
         fail(
-            "live history plus pending forward migrations do not exactly match "
+            "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
         )
     for item, filename in zip(pending, pending_names):
@@ -209,6 +250,7 @@ def main() -> None:
         f"files={len(disk_names)} "
         f"live_snapshot={len(history_entries)} "
         f"pending={len(pending_names)} "
+        f"physical_suffix={len(suffix_names)} "
         "191500=RECORDED_STATEMENT_RECONSTRUCTION "
         "exact_byte_mirror=false "
         "participant_contract=PASS"

@@ -1,0 +1,12 @@
+{
+  "kind": "OWNER_AUTHORIZED_DEV_PREVIEW_CHECKPOINT",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "workflow": ".github/workflows/build-latest-v5-preview-apk.yml",
+  "sourceAuthority": "Exact triggering commit/tree recorded by the existing build workflow, not an old APK or mutable branch label",
+  "defaultTarget": "phone-arm64",
+  "appliedMigrations": ["20261018201142", "20261018201253", "20261018201517"],
+  "expectedReaderBodyMd5": "7c1d9a979585deae6c2bc2c1b9d597b1",
+  "devReceipt": "docs/current/evidence/DEV_RELIABILITY_APPLICATION_20261018.json",
+  "purpose": "Produce the compatible bounded-Home client after DEV source and actual-role verification",
+  "notClaimed": ["successful build before run completes", "installation", "phone verification", "production release"]
+}
