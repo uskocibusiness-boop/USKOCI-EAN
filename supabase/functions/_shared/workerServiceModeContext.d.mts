@@ -7,6 +7,10 @@ export type WorkerServiceModeContext = {
 export function readWorkerServiceModeContext(context: Record<string, any>): WorkerServiceModeContext;
 export function workerServiceModeSchema(schema: Record<string, any>): Record<string, any>;
 export function workerServiceModeInstruction(context: WorkerServiceModeContext, includeContext?: boolean): string;
+export function recoverWorkerExistingIdentity(input: {
+  raw: Record<string, any>; inspection: any; context: Record<string, any>;
+  modeContext: WorkerServiceModeContext; catalog: any;
+}): {output: Record<string, any>; recoveredCount: number};
 export function preserveWorkerServiceModes(input: {
   raw: Record<string, any>; hints: Record<string, any>[]; context: Record<string, any>;
   modeContext: WorkerServiceModeContext; catalog: any;

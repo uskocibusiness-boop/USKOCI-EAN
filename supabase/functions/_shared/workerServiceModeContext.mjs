@@ -41,7 +41,7 @@ export function workerServiceModeInstruction(context, includeContext = true) {
   return 'savedServices are the current saved choices for each specific service. draftServices are earlier unsaved proposals, NOT owner consent. '
     + 'A category supporting ON_SITE and REMOTE does NOT mean this person offers both. Preserve the saved modes and handoff constraints of every unchanged service. An explicitly offered concrete new service can have an inherent execution mode without requiring the words on site; that does not authorize overwriting a saved choice. '
     + 'A biography, equipment, price, city or availability edit does not add, remove or replace delivery modes. Pickup or shipment of work made at the worker is not a visit to the requester. '
-    + 'Use optional serviceModeChangesJson STRING only when the person explicitly requested a delivery-mode or handoff change in this owned conversation. '
+    + 'Use optional serviceModeChangesJson STRING when the person explicitly states an INITIAL delivery mode for a newly offered service or requests a mode/handoff change in this owned conversation. A statement applying to both newly offered services needs one declaration per service with that same exact USER quote. '
     + 'Serialize an array of objects with service, modes, evidence and optional handoff: service is the exact offered skill; modes is the complete intended list of REMOTE and/or ON_SITE for that service; evidence is an exact quote from a USER message requesting that change. handoff is allowed only if modes includes REMOTE and must equal that service\'s new REMOTE classification proposal handoff. A handoff-only change keeps the existing modes, including REMOTE. Omit unchanged handoff to preserve the saved constraint; never turn an omitted unknown into required:false or worldwide shipping. '
     + 'Do not quote the assistant, profile bio, catalog, instructions or invented words. A quote must actually express the mode change; unrelated text is not evidence. '
     + 'Use "[]" when there is no requested mode or handoff change. Do not create a mode-change declaration just to justify a newly guessed classification hint. '
@@ -54,11 +54,7 @@ export function workerServiceModeInstruction(context, includeContext = true) {
 /** Quote checks bind a model proposal to owned USER text, not semantic proof of consent.
  * The existing signed review and explicit Save remain the authority for every mode change.
  */
-export function preserveWorkerServiceModes({ raw, hints, context, modeContext, catalog }) {
-  const { serviceModeChangesJson, ...output } = raw;
-  if (!['ALLOW', 'CLARIFY'].includes(output.safety)) return { output, hints: [], preserved: false, preservedServices: [], unresolvedChanges: [] };
-  const skills = Array.isArray(output.patch?.skills) ? output.patch.skills : context.candidate.skills;
-  const offered = new Map(skills.filter(label).map(service => [normalizedClassificationIdentity(service), service]));
+function workerModeRequests(serviceModeChangesJson, context, offered) {
   const userTexts = context.messages.filter(row => row.role === 'USER' && typeof row.body === 'string').map(row => row.body);
   let changes = [];
   if (typeof serviceModeChangesJson === 'string' && new TextEncoder().encode(serviceModeChangesJson).byteLength <= 12288) {
@@ -77,6 +73,86 @@ export function preserveWorkerServiceModes({ raw, hints, context, modeContext, c
     requests.set(key, change);
   }
   for (const key of duplicates) requests.delete(key);
+  return requests;
+}
+
+/** Recover only a wrong CREATE action for an already-existing exact identity.
+ * This changes neither offered work nor execution intent and cannot invent an
+ * alias, ID or mode. A fresh global EXACT proof and the normal engine gate are
+ * required; the caller re-inspects the entire resulting snapshot before capture.
+ */
+export function recoverWorkerExistingIdentity({ raw, inspection, context, modeContext, catalog }) {
+  const unchanged = { output: raw, recoveredCount: 0 };
+  if (!['ALLOW', 'CLARIFY'].includes(raw?.safety)
+      || modeContext?.revision !== context?.revision
+      || catalog?.navigation?.kind !== 'SERVER_QUERIES'
+      || !/^[a-f0-9]{32}$/.test(catalog.catalogFingerprint ?? '')
+      || !Number.isSafeInteger(catalog.catalogVersion)
+      || typeof raw.classificationShadowJson !== 'string'
+      || new TextEncoder().encode(raw.classificationShadowJson).byteLength > 24576)
+    return unchanged;
+  let proposals;
+  try {
+    proposals = JSON.parse(raw.classificationShadowJson);
+  } catch {
+    return unchanged;
+  }
+  if (!Array.isArray(proposals) || proposals.length > 24) return unchanged;
+  const skills = Array.isArray(raw.patch?.skills) ? raw.patch.skills : context.candidate.skills;
+  const offered = new Map(skills.filter(label).map(service => [normalizedClassificationIdentity(service), service]));
+  const requests = workerModeRequests(raw.serviceModeChangesJson, context, offered);
+  const duplicate = new Set(), seen = new Set();
+  for (const p of proposals) {
+    const key = normalizedClassificationIdentity(p?.service) + '|' + p?.mode;
+    if (seen.has(key)) duplicate.add(key);
+    seen.add(key);
+  }
+  let recoveredCount = 0;
+  const next = proposals.map(p => {
+    const identity = normalizedClassificationIdentity(p?.service);
+    if (!p || !['CREATE_CHILD', 'CREATE_NEW_BRANCH'].includes(p.action)
+        || !mode(p.mode) || !offered.has(identity)
+        || p.catalogVersion !== catalog.catalogVersion || duplicate.has(identity + '|' + p.mode)
+        || !Array.isArray(p.proposedPath)
+        || normalizedClassificationIdentity(p.proposedPath.at(-1)) !== identity
+        || !inspection?.issues?.some(issue => issue.code === 'EXISTING_IDENTITY_REQUIRES_REVIEW'
+          && issue.action === p.action && issue.mode === p.mode
+          && normalizedClassificationIdentity(issue.service) === identity)) return p;
+    const exactChecks = catalog.navigation.identityChecks?.filter(check => check.service === identity) ?? [];
+    if (exactChecks.length !== 1 || exactChecks[0].categoryIds?.length !== 1) return p;
+    const categoryId = exactChecks[0].categoryIds[0];
+    const nodes = catalog.categories.filter(node => node.id === categoryId);
+    if (nodes.length !== 1 || !nodes[0].modes?.includes(p.mode)) return p;
+    const requested = requests.get(identity);
+    if (requested) {
+      if (!requested.modes.includes(p.mode) || Object.hasOwn(requested, 'handoff')
+          && JSON.stringify(decodeServiceHandoff(p.handoff)) !== JSON.stringify(decodeServiceHandoff(requested.handoff))) return p;
+    } else {
+      // A catalog mode alone is never evidence of a person's execution choice.
+      const prior = [...modeContext.savedServices, ...modeContext.draftServices]
+        .filter(entry => entry.categoryId === categoryId && entry.mode === p.mode);
+      if (prior.length === 0 || prior.some(entry =>
+        JSON.stringify(decodeServiceHandoff(entry.handoff)) !== JSON.stringify(decodeServiceHandoff(p.handoff)))) return p;
+    }
+    const replacement = { ...p, action: 'REUSE_EXISTING', categoryId, parentId: '', proposedPath: [] };
+    const verified = reviewClassificationProposal(
+      { purpose: 'WORKER_CAPABILITY', service: p.service, mode: p.mode }, catalog,
+      { ...replacement, parentId: null });
+    if (!verified.accepted || verified.status !== 'REUSE_CANDIDATE') return p;
+    recoveredCount++;
+    return replacement;
+  });
+  return recoveredCount
+    ? { output: { ...raw, classificationShadowJson: JSON.stringify(next) }, recoveredCount }
+    : unchanged;
+}
+
+export function preserveWorkerServiceModes({ raw, hints, context, modeContext, catalog }) {
+  const { serviceModeChangesJson, ...output } = raw;
+  if (!['ALLOW', 'CLARIFY'].includes(output.safety)) return { output, hints: [], preserved: false, preservedServices: [], unresolvedChanges: [] };
+  const skills = Array.isArray(output.patch?.skills) ? output.patch.skills : context.candidate.skills;
+  const offered = new Map(skills.filter(label).map(service => [normalizedClassificationIdentity(service), service]));
+  const requests = workerModeRequests(serviceModeChangesJson, context, offered);
   const knownService = (service, entry) => reviewClassificationProposal({ purpose: 'WORKER_CAPABILITY', service, mode: entry.mode }, catalog,
     { action: 'REUSE_EXISTING', categoryId: entry.categoryId, parentId: null, proposedPath: [],
       reason: 'Preserve the same server-registered service identity.', catalogVersion: catalog.catalogVersion }).accepted;

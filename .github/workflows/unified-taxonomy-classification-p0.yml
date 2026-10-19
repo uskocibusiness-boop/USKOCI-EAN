@@ -8,6 +8,7 @@ on:
       - 'supabase/functions/_shared/workerServiceModeContext.mjs'
       - 'supabase/functions/_shared/workerServiceModeContext.d.mts'
       - 'supabase/proofs/ai/v5_worker_edge.test.mjs'
+      - 'supabase/proofs/dynamic_taxonomy/worker-existing-identity-recovery.test.mjs'
       - 'supabase/functions/_shared/classificationOwnerReview.mjs'
       - 'supabase/functions/_shared/classificationGeminiShadow.d.mts'
       - 'supabase/functions/_shared/classificationBatch.mjs'
@@ -213,7 +214,7 @@ jobs:
       - name: Verify exact worker and requester Gemini schemas on provider wire (offline)
         run: node supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs --offline
       - name: Execute the actual worker handler with synthetic mode-context and provider I/O
-        run: node --test supabase/proofs/ai/v5_worker_edge.test.mjs
+        run: node --test supabase/proofs/ai/v5_worker_edge.test.mjs supabase/proofs/dynamic_taxonomy/worker-existing-identity-recovery.test.mjs
       - name: Type check both real Gemini Edge handlers
         run: |
           deno check supabase/functions/uskoci-worker-interview/index.ts

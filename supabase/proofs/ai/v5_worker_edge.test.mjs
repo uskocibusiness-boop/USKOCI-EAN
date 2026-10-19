@@ -137,6 +137,36 @@ test('invented availability evidence cannot authorize a calendar proposal',async
  assert.deepEqual(accepted.patch,{skills:['Montaža']}); assert.equal(accepted.safety,'CLARIFY'); assert.equal(providers(f).length,1);
 });
 
+for(const availability of [null,{ruleChanges:[],windowsUpsert:[],windowIdsRemove:[]}])
+test('owned partial weekday hours keep the precise missing-end question and unsupported-area explanation',async()=>{
+ const input='Radim molerske radove po celoj Vojvodini i u Beogradu, radnim danima posle 16. Alat ne bih posebno unosio.';
+ const reply='Regionalna pokrivenost još nije podešena. Koji grad i krug oko njega da koristimo za predloge? Do koliko sati radnim danima?';
+ const context={schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:0,
+  candidate:{skills:[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:input}]};
+ const logs=[],f=fixture({context,log:args=>logs.push(args),availabilityChange:{kind:'CLARIFY',evidence:'radnim danima posle 16'},
+  output:{assistantMessage:reply,safety:'ALLOW',patch:{skills:['Molerski radovi'],bio:'Molerski radovi.',availability}}});
+ const es=await events(f,{text:input});assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
+ const accepted=completions(f)[0].body.p_output;
+ assert.equal(accepted.assistantMessage,reply);assert.equal(accepted.safety,'CLARIFY');
+ assert.deepEqual(accepted.patch,{skills:['Molerski radovi'],bio:'Molerski radovi.'});
+ assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),reply);
+ assert.ok(!logs.some(args=>args[0]==='WORKER_AVAILABILITY_GUARD'));
+ const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
+ assert.ok(prompt.includes("For 'radnim danima posle 16', ask 'Do koliko sati radnim danima?'"));
+ assert.ok(prompt.includes('Keep this explanation distinct from any missing calendar detail'));
+});
+
+for(const mode of ['invented_quote','actual_operation'])test('availability CLARIFY cannot bypass evidence or sneak a calendar mutation: '+mode,async()=>{
+ const reply='Raspored je sada promenjen.';
+ const f=fixture({availabilityChange:{kind:'CLARIFY',evidence:mode==='invented_quote'?'PRIVATE_INVENTED':'SYNTHETIC_USER_MESSAGE'},
+  output:{assistantMessage:reply,safety:'ALLOW',patch:{bio:'Molerski radovi.',...(mode==='actual_operation'?{availability:{availableNow:true}}:{})}}});
+ const es=await events(f);assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
+ const actual=completions(f)[0].body.p_output;assert.deepEqual(actual.patch,{bio:'Molerski radovi.'});
+ assert.equal(actual.safety,'CLARIFY');assert.notEqual(actual.assistantMessage,reply);
+ assert.ok(actual.assistantMessage.includes('bez ponavljanja već navedenih dana i sati'));
+ assert.ok(!JSON.stringify(es).includes('PRIVATE_INVENTED'));
+});
+
 for (const [evidence,accepted] of [
  ['radnim danima od 15 do 19',true],
  ['RADNIM DANIMA\nOD 15 DO 19',true],
@@ -224,6 +254,36 @@ function paintingFixture(shadow,options={}){
     {categoryId:category,parentId:id(22),label:service,aliases:[],path:['Molerski radovi','Krečenje',service],isLeaf:true},
    ],nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'})});
 }
+
+test('two explicit remote services retain both hints when the model tries to recreate an exact existing presentation service',async()=>{
+ const service='Izrada prezentacija',translation='Prevođenje tekstova',parent=id(50),presentationId=id(51),translationId=id(52);
+ const user='Bavim se izradom prezentacija i prevodom tekstova. Radim od kuće, radnim danima od 18 do 21. Imam i kombi, ali ne nudim prevoz.';
+ const scopeQuote='Radim od kuće',calendarQuote='radnim danima od 18 do 21';
+ const hints=[{service,mode:'REMOTE',action:'CREATE_CHILD',categoryId:'',parentId:parent,proposedPath:[service],reason:'Explicitly offered presentation work from home.',catalogVersion:7,handoff:{required:false}},
+  {service:translation,mode:'REMOTE',action:'REUSE_EXISTING',categoryId:translationId,parentId:'',proposedPath:[],reason:'Explicitly offered text translation from home.',catalogVersion:7,handoff:{required:false}}];
+ const context={schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:0,
+  serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:0,savedServices:[],draftServices:[],unresolvedServices:[]},
+  candidate:{skills:[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:user}]};
+ const availability={ruleChanges:[{ruleId:null,weekdays:[1,2,3,4,5],value:{startTime:'18:00',endTime:'21:00',startsOn:'2026-10-20',endsOn:null,label:'Radnim danima',active:true}}]};
+ const logs=[],f=fixture({context,log:args=>logs.push(args),availabilityChange:{kind:'PATCH',evidence:calendarQuote},
+  output:{assistantMessage:'Obe usluge i radno vreme su u nacrtu.',safety:'ALLOW',patch:{skills:[service,translation],vehicles:['Kombi'],availability},
+   serviceModeChangesJson:JSON.stringify([service,translation].map(service=>({service,modes:['REMOTE'],evidence:scopeQuote,handoff:{required:false}}))),
+   classificationShadowJson:JSON.stringify(hints)},
+  env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
+  catalog:body=>({action:'CATALOG_CONTEXT',scope:body.p_execution_location_mode,catalogVersion:7,catalogFingerprint:'a'.repeat(32),
+   items:body.p_execution_location_mode==='ON_SITE'?[{categoryId:parent,parentId:null,label:'Digitalne usluge',aliases:[],path:['Digitalne usluge'],isLeaf:false}]:[
+    {categoryId:presentationId,parentId:parent,label:service,aliases:[],path:['Digitalne usluge',service],isLeaf:true},
+    {categoryId:translationId,parentId:parent,label:translation,aliases:[],path:['Digitalne usluge',translation],isLeaf:true}],
+   nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'})});
+ const es=await events(f,{text:user});assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
+ const saved=completions(f)[0].body.p_output;assert.deepEqual(saved.patch.skills,[service,translation]);assert.deepEqual(saved.patch.availability,availability);
+ const capture=f.calls.find(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
+ assert.ok(capture);assert.deepEqual(capture.body.p_proposals.map(p=>[p.service,p.mode,p.action,p.categoryId]),
+  [[service,'REMOTE','REUSE_EXISTING',presentationId],[translation,'REMOTE','REUSE_EXISTING',translationId]]);
+ assert.ok(f.calls.indexOf(capture)>f.calls.indexOf(completions(f)[0]));
+ assert.ok(logs.some(args=>args[0]==='WORKER_TAXONOMY_IDENTITY_RECOVERY'&&args[1]===1));
+ assert.ok(!f.calls.some(c=>/save_worker|ensure_path|commit_admission|publish|push/.test(c.url)));
+});
 
 test('known painting leaf is proposed ON_SITE through actual worker catalog schema and hint capture',async()=>{
  const f=paintingFixture('valid'),es=await events(f);
