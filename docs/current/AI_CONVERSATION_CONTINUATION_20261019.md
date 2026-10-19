@@ -96,3 +96,52 @@ Lokalni `node_modules` je postojeći junction ka `USKOCI-CLEAN/node_modules`. Ni
 Ovo dopunjuje postojeće talase Premium White canona. Nije tvrdnja da su navedene kompozicije već implementirane u ovom APK-u.
 
 Nastavak prati postojeći LIVE plan: prvo pouzdanost i jasnoća oba AI toka, zatim globalni sistem/Početna, Zadaci, prijave, Dogovori/čet i profil. Nema novog paralelnog glavnog plana niti tvrdnje da je ceo proizvod prihvaćen.
+
+
+
+
+## Nastavak: detaljne lokacije i vođenje razgovora (19.10, 05:44 UTC)
+
+Polazni HEAD 0dc4a853. Izvor AI paketa 97c3f86b, korekcija typed-context testa 85497a1a, klijentski prikaz odgovora a73a78f4. Jedan povezani nastavak postojećeg plana.
+
+### Stvarne probe i otkrivene greške
+
+- Task v100 je iz „prevoz stola“ predložio jednu osobu; iz „Iz centra. Sutra bilo kada.“ uz odredište Zemun/Beograd izveo je i polazište Beograd. To su semantički FAIL nalazi. Posle v101 isti niz pita iz centra kog grada; nema people činjenice pre izričitog korisničkog odgovora. Sutra/odredište ostaju.
+- Novi Sad/Spens → Gardoš/Zemun, jedna osoba, ponude: fact struktura POINT_TO_POINT ispravna. Naknadna promena samo polazišta na Petrovaradinsku tvrđavu u prvoj probi čuva odredište. Guard sada dopunjuje pojedinačne start/waypoint/end tačke i ne preskače nepotvrđenu mapu pri REVIEW odgovoru.
+- „Zašto mapa?“: v101 objašnjava proveru mesta i približan javni prikaz; to nije potvrda pune route matching pokrivenosti. Direktan odgovor je sačuvan na serveru. U APK 2df06add bio je sakriven jer se CONTINUE pogrešno držao iza all-point confirmation gate-a. a73a78f4 prikazuje CONTINUE odmah, mapu pre naknadnog odgovora bez novih činjenica, i daje eksplicitan povratak na mapu. Nema automatske potvrde.
+- Worker: online/teren za pomoć oko računara; cela Vojvodina iskreno odbijena kao nepodržan automatski region, ponuđen grad/radijus. Novi Sad/30 km; zatim samo grad Beograd uz očuvan radijus 30 i ostale podatke. Prompt v55 uklanja konfliktno nuđenje celog regiona i razlikuje administrativni grad, područje dolaska i online rad.
+- Posle „računari samo online, 3D kod mene uz slanje“ hint snapshot revizije 5 ima obe usluge REMOTE, ali signed review ostaje PENDING_CLASSIFICATION. To NIJE uspeh end-to-end povezivanja. Običan candidate ne sadrži autoritativne per-service mode činjenice; hint nije saglasnost.
+- „Novi razgovor“ radnika je na starom APK-u napustio server razgovor, ali retained route ref držao isti CID pa je ekran ostao završen bez unosa. Eksplicitni entryKey resetuje ref i komponentu; obična promena teme čuva CID i neposlat tekst.
+
+### DEV primena i preostali klasifikacioni problem
+
+Task **v101 ACTIVE**, Worker **v55 ACTIVE**, 9/9 i 7/7 fajlova jednako Git97c3f86b nakon LF normalizacije. [Edge receipt](../../supabase/operations/dev-alpha/ledger/20261019_ai_location_guidance_edge.receipt.json). Prethodni kompletni v100/v54 paketi su sačuvani za vraćanje.
+
+U običnom AI-only pregledu `rpc_prepare_worker_ai_review_taxonomy` bio je vezan `taxonomy_review_exact_projection_v1`, iako potvrđeni ručni put već koristi candidate planner. Migracija **20261019061858_worker_ai_review_candidate_projection** vodi trenutne vlasničke predloge kroz postojeći `taxonomy_review_candidate_projection_v2`, uz REUSE_ALIAS/CREATE_NEW_BRANCH u proverenom skupu akcija. Predecessor md5 c0f07a6cfac8c55ac05267b09998d5d8; readback c489c2e2ac2105e4fa0c4c3ac15a6243; obrnuta zamena tačno vraća predecessor digest. Anon execute=false, authenticated=true; owner check, postojeći 3D REMOTE i nepromenjena procena rizika prošli SQL postflight. Katalog ostao4/135 kategorija u trenutku primene. [Receipt](../../supabase/operations/dev-alpha/ledger/20261019_worker_review_candidate_application.receipt.json).
+
+Ova veza sama nije rešila primer „Pomoć oko računara“: i candidate helper vraća PENDING_CLASSIFICATION, jer `taxonomy_risk_triage_v1` traži početni normalizovani action sa serverske liste. „Pomoć“ i „instalacija“ nisu na listi. Nema alias kolizije; roditelj Digitalne usluge ima oba režima. To je potvrđen preostali ugovor AI → klasifikacija, ne razlog da se globalno isključe zaštite. Sledeći rad mora da doda konkretno, razumljivo razjašnjenje i uskladi imenovanje/politiku bez prisiljavanja korisnika da zna tehničke reči. Nije dokazana nova grana/Save/dispatch ovim testom.
+
+### Provere i računanje potrošnje
+
+258 Node testova PASS; prvobitna dva Jest paketa/94 PASS; typed map test28 PASS; naknadna tri paketa/240 PASS za prikaz i redosled. Ciljane grupe se preklapaju. TypeScript PASS. Puna regresija za a73a78f4, run39208880951, artifact12166823075: **621/621 grupa, 13.877/13.877 testova, bez preskočenih**. Prvi run39207389350 imao jedan pad (boolean umesto LocationContext u testu), očuvan kao istorija. Posredni run39208215486 otkazan posle regresije da se ne isporuči APK bez naknadno otkrivene ispravke vidljivosti odgovora.
+
+**16 sopstvenih provider poziva**, 4 USD rezervacija, **0,226792 USD MEASURED**, 0 nepoznatih ishoda; nije račun dobavljača. Izolovano po konkretnim clientRequestId, ne ukupnim aktivnostima naloga. Nema Save profila, task Publish ili push poziva koje je izvršio agent. Nacrti c4bbf412… i 4661848f… imaju bound_need_id=NULL.
+
+### Paralelno korišćenje naloga
+
+Worker dokaz završava se revizijom5. U 06:19:41 UTC pojavile su se dodatne glasovne poruke koje agent nije poslao; od 06:21:16 postoji tuđi Save istog razgovora. Pre toga source hash je potvrđivao nepromenjen sačuvani profil. Posle toga nema smisla tvrditi da je ceo nalog ostao nepromenjen. Tuđi novi nacrt nije napušten niti prepisan. Neuspešan pokušaj otvaranja pregleda revizije5 vratio je STALE kada je drugi akter već napravio reviziju7; to je zaštita od konflikta, a poruka „Profil je promenjen“ je preširoka jer može biti promenjen sam nacrt.
+
+### Native status
+
+APK a73a78f4, run 39208880951, instaliran -r; base.apk SHA256 788a96379ad3abd0c60375f07e6c20a5048a24bb1995c7fe4bdf33c25537ceca jednak artifact-u. Native rezultati: PASS: task explanation readable before map confirmation, explicit return to map, 361/390/412 dp at font 1.0/1.3; closed worker conversation resumes current draft rather than retaining abandoned ID. No claim that active draft restart or a fresh writable worker conversation was tested..
+
+[Manifest](evidence/AI_LOCATION_GUIDANCE_20261019.json) odvaja potvrđen server, CI, APK, instalaciju i fizičke provere. Stara radnička konverzacija koju je drugi akter nastavio nije restartovana radi testa. Telefon, ceo UI i release nisu prihvaćeni.
+
+### Sledeći prioriteti
+
+1. AI → klasifikacija → signed review readiness: konkretni nazivi, svi načini po usluzi, jasna prepreka u razgovoru pre Save.
+2. Preostali AI-only location editor, kraći geocoder tekst, statusi pojedinačnih tačaka; sačuvati ljudsku potvrdu i privatnost.
+3. Region/cela država/više područja i sve tačke rute kroz matching/dispatch; dve izolovane testne osobe i stvarni push.
+4. Povezani Premium White talasi; ova dopuna ne predstavlja kompletnu preradu izgleda.
+
+Vlasnik je naknadno potvrdio da sam isprobava na telefonu. Emulator je korišćen za nezavisnu native proveru; njegov aktivni razgovor nije napuštan niti menjan. Proba entryKey obuhvatila je samo već ABANDONED razgovor → nastavak aktuelnog nacrta, koji je u tom trenutku imao zaštitnu blokadu iz vlasnikove probe. Nije proglašeno da je provereno napuštanje OPEN razgovora niti nov writable nacrt.

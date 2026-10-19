@@ -1,0 +1,263 @@
+{
+  "date": "2026-10-19",
+  "scope": "AI guidance, locations, contextual map answer and explicit worker restart",
+  "native": {
+    "status": "INSTALLED",
+    "source": "a73a78f4f0e265771300244840be58cb6944b769",
+    "run": "39208880951",
+    "sha256": "788a96379ad3abd0c60375f07e6c20a5048a24bb1995c7fe4bdf33c25537ceca",
+    "installedHash": "788a96379ad3abd0c60375f07e6c20a5048a24bb1995c7fe4bdf33c25537ceca",
+    "package": "rs.uskoci.preview",
+    "architectures": [
+      "x86_64"
+    ],
+    "install": "Success; -r preserved app data; idle emulator input checked",
+    "visualResult": "PASS: task explanation readable before map confirmation, explicit return to map, 361/390/412 dp at font 1.0/1.3; closed worker conversation resumes current draft rather than retaining abandoned ID. No claim that active draft restart or a fresh writable worker conversation was tested.",
+    "phone": "NOT_TESTED",
+    "production": "NOT_DEPLOYED",
+    "artifactId": 12168060074,
+    "ota": {
+      "runtime": "uskoci-v1-preview-r1",
+      "channel": "preview",
+      "content": "embedded",
+      "displayedId": "a8e986da",
+      "displayedSource": "a73a78f4f0e265771300244840be58cb6944b769",
+      "dirtyMarker": "Expo prebuild changes android/ios package scripts only; exact patch retained in artifact"
+    },
+    "answerMatrix": {
+      "cases": [
+        {
+          "widthDp": 361,
+          "fontScale": 1.0,
+          "answerPresent": true,
+          "answerBounds": [
+            56,
+            1076,
+            1208,
+            1853
+          ],
+          "composerBounds": [
+            241,
+            2416,
+            1008,
+            2584
+          ],
+          "file": "50-answer-361-1.0.png",
+          "answerVisible": true
+        },
+        {
+          "widthDp": 361,
+          "fontScale": 1.3,
+          "answerPresent": true,
+          "answerBounds": [
+            56,
+            632,
+            1208,
+            1548
+          ],
+          "composerBounds": [
+            73,
+            2213,
+            1190,
+            2388
+          ],
+          "file": "51-answer-361-1.3.png",
+          "answerVisible": true
+        },
+        {
+          "widthDp": 390,
+          "fontScale": 1.0,
+          "answerPresent": true,
+          "answerBounds": [
+            56,
+            1167,
+            1309,
+            1853
+          ],
+          "composerBounds": [
+            241,
+            2416,
+            1109,
+            2584
+          ],
+          "file": "52-answer-390-1.0.png",
+          "answerVisible": true
+        },
+        {
+          "widthDp": 390,
+          "fontScale": 1.3,
+          "answerPresent": true,
+          "answerBounds": [
+            56,
+            729,
+            1309,
+            1548
+          ],
+          "composerBounds": [
+            73,
+            2213,
+            1291,
+            2388
+          ],
+          "file": "53-answer-390-1.3.png",
+          "answerVisible": true
+        },
+        {
+          "widthDp": 412,
+          "fontScale": 1.0,
+          "answerPresent": true,
+          "answerBounds": [
+            56,
+            1167,
+            1386,
+            1853
+          ],
+          "composerBounds": [
+            241,
+            2416,
+            1186,
+            2584
+          ],
+          "file": "54-answer-412-1.0.png",
+          "answerVisible": true
+        },
+        {
+          "widthDp": 412,
+          "fontScale": 1.3,
+          "answerPresent": true,
+          "answerBounds": [
+            56,
+            812,
+            1386,
+            1631
+          ],
+          "composerBounds": [
+            73,
+            2213,
+            1368,
+            2388
+          ],
+          "file": "55-answer-412-1.3.png",
+          "answerVisible": true
+        }
+      ],
+      "restored": {
+        "size": "1264x2728",
+        "density": 560,
+        "fontScale": 1.15
+      }
+    },
+    "workerRestart": {
+      "from": "c3437b7e-f1b1-477a-9ca3-ee534467ffbf",
+      "fromStatus": "ABANDONED",
+      "result": "RESUMED_EXISTING_CURRENT_DRAFT",
+      "scope": "Explicit entry key route transition verified. Resumed draft currently safety-blocked by owner test; no new message, abandonment or profile save performed. No active-draft restart acceptance."
+    },
+    "ownerConcurrency": "Owner confirmed testing on phone. Emulator only. Current worker conversation was preserved.",
+    "noLocationConfirmation": true,
+    "screenshots": [
+      {
+        "file": "40-task-explanation-new-apk.png",
+        "sha256": "fd6be7030a147c258058601883b89725f10f4f77f275bbb7f4a3a23f01ef9413"
+      },
+      {
+        "file": "41-map-return.png",
+        "sha256": "d5f01ccf733afe13cf16395ff897340bc2efc34973002abd3f26deaecff0e767"
+      },
+      {
+        "file": "42-worker-closed.png",
+        "sha256": "3f5594ac6651801471fe1e686fb8909dd3c42a40bcd8587dd045caa5cee1a4ad"
+      },
+      {
+        "file": "48-about-ota.png",
+        "sha256": "b6e9454c054b943b4fc165a3ee681049eba9a7a6ae851caea4b6f1884df32740"
+      },
+      {
+        "file": "57-large-font-final.png",
+        "sha256": "c4dd393e89961e6fbb9234f68b9d2e58cf1b3136e130bbb277dcd884fefe2552"
+      }
+    ]
+  },
+  "regression": {
+    "success": true,
+    "numTotalTestSuites": 621,
+    "numPassedTestSuites": 621,
+    "numFailedTestSuites": 0,
+    "numTotalTests": 13877,
+    "numPassedTests": 13877,
+    "numFailedTests": 0,
+    "numPendingTests": 0
+  },
+  "edge": {
+    "task": 101,
+    "worker": 55,
+    "source": "97c3f86b320149a6d1205676b008224b622b4370",
+    "taskFiles": 9,
+    "workerFiles": 7,
+    "normalizedReadbackDifferences": 0
+  },
+  "migration": "20261019061858_worker_ai_review_candidate_projection",
+  "paidTest": {
+    "ownCalls": 16,
+    "reservedUsd": 4,
+    "measuredUsd": 0.226792,
+    "unsettled": 0,
+    "providerInvoice": false
+  },
+  "concurrency": "At 06:19:41 UTC new voice turns appeared in the same worker conversation; at 06:21:16 the profile was saved. The owner confirmed he was testing on his phone. Agent stopped modifying that conversation; own evidence is revision 5 and earlier. Emulator remains available for independent native checks. Later account totals are not the test budget.",
+  "remaining": [
+    "Regional coverage and all-route-point matching",
+    "Worker free-text service classification vs server risk-action policy",
+    "AI-only remaining location controls",
+    "New worker restart from OPEN needs an isolated account if another actor is using the active draft",
+    "Two-account publish/match/push full flow",
+    "Full UI redesign and phone/store acceptance"
+  ],
+  "screenshots": [
+    {
+      "file": "07-task-ambiguous.png",
+      "title": "Pre: pretpostavljen grad",
+      "sha256": "d1a6a034c5751cb87efbcb2e38b759ee15de7a4d50ad9d41a79ad0fb46aaea6e"
+    },
+    {
+      "file": "29-task-after3.png",
+      "title": "Posle: dopuna nedostajućeg grada",
+      "sha256": "945bfd5952d3b355fd98aa176857d8a1cc83c4e16648889f7f822a80745e757c"
+    },
+    {
+      "file": "16-worker-area-why.png",
+      "title": "Zašto grad i radijus",
+      "sha256": "525e210730b0f138150e0bd82ad5db8463ac6adeabc03fd4b8283cd9dace0b08"
+    },
+    {
+      "file": "17-worker-city-change.png",
+      "title": "Promena samo grada",
+      "sha256": "8dba22e454cdd83c9272920b6785b67210050edc1a164765c3880f2284b42d9e"
+    },
+    {
+      "file": "34-worker-reviewed.png",
+      "title": "Otkrivena granica povezivanja",
+      "sha256": "d31e2787599a4ed121419da680fa582f38be2b234293e1c303462427c8b3bf2e"
+    },
+    {
+      "file": "32-task-explanation-scroll.png",
+      "title": "Pre: odgovor nije vidljiv",
+      "sha256": "aac45472df3a3bbd82cc599f6e484703d744d8af9323bf100e2f28ef3ce1afda"
+    },
+    {
+      "file": "40-task-explanation-new-apk.png",
+      "title": "Posle: odgovor i mapa",
+      "sha256": "fd6be7030a147c258058601883b89725f10f4f77f275bbb7f4a3a23f01ef9413"
+    },
+    {
+      "file": "57-large-font-final.png",
+      "title": "Uvećan tekst, uski ekran",
+      "sha256": "c4dd393e89961e6fbb9234f68b9d2e58cf1b3136e130bbb277dcd884fefe2552"
+    },
+    {
+      "file": "48-about-ota.png",
+      "title": "Identitet instalirane aplikacije",
+      "sha256": "b6e9454c054b943b4fc165a3ee681049eba9a7a6ae851caea4b6f1884df32740"
+    }
+  ]
+}

@@ -45,6 +45,12 @@ Usaglašeni posao: [komentar Work analize i izvršavanje plana](../implementatio
 
 ## Šta znači „trenutno“
 
+<!-- AI_LOCATION_GUIDANCE_START -->
+Naknadno 19.10 — **lokacije i vođenje razgovora**: Task101/Worker55 primenjeni, klijent a73a78f4 ima 621/13.877 testova PASS. APK a73a78f4, run 39208880951, instaliran -r; base.apk SHA256 788a96379ad3abd0c60375f07e6c20a5048a24bb1995c7fe4bdf33c25537ceca jednak artifact-u. Native rezultati: PASS: task explanation readable before map confirmation, explicit return to map, 361/390/412 dp at font 1.0/1.3; closed worker conversation resumes current draft rather than retaining abandoned ID. No claim that active draft restart or a fresh writable worker conversation was tested.. [Dokaz](evidence/AI_LOCATION_GUIDANCE_20261019.json). U 16 stvarnih poziva potvrđeno dopunjavanje grada i očuvanje radijusa; otkriven i popravljen skriven odgovor uz mapu. Nova worker usluga i dalje može ostati PENDING_CLASSIFICATION zbog risk-action politike: nije gotov matching. Drugi akter nastavio je isti worker nacrt; njegovo kasnije čuvanje nije rezultat ovog testa.
+<!-- AI_LOCATION_GUIDANCE_END -->
+
+
+
 19.10.2026: [AI razgovori, pregled i tastatura — primena i stvarne probe](AI_CONVERSATION_CONTINUATION_20261019.md). Task Edge v100, Worker v54, novi klijent `2df06add` / CI `39202330027 SUCCESS`, 621 grupa / 13.873 testa PASS. APK je instaliran na emulatoru; provereni input/send na tri širine i dva fonta, povratak u isti razgovor i stvarne AI izmene. [Manifest native dokaza](evidence/AI_CONVERSATION_NATIVE_20261019.json). Nema nove objave zadatka/Save profila/push probe, phone ili release prihvatanja. Regionalni model i preostali AI-only/kompletni UI tokovi ostaju otvoreni.
 
 Naknadni DEV paket od 18.10: [primena, otkrivena invoker regresija i proverena forward ispravka](DEV_RELIABILITY_APPLICATION_20261018.md). DEV ledger 288; Početna ima ograničeni javni preview i tri taxonomy konflikta PT409. Phone APK iz `bb0ba8d`, CI `39163968732`, sada je BUILT, ali nije ovde instaliran; nema OTA objave ili podizanja phone/release prihvatanja.

@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-19",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "sourceCommit": "30cadce7",
+  "migration": "20261019061858_worker_ai_review_candidate_projection.sql",
+  "initialCliFilename": "20261019061824_worker_ai_review_candidate_projection.sql",
+  "applied": true,
+  "scope": "AI review routes validated current owner-bound hints through existing candidate planner; no taxonomy, profile, consent or push DML",
+  "readback": [
+    {
+      "currentmd5": "c489c2e2ac2105e4fa0c4c3ac15a6243",
+      "revertedmd5": "c0f07a6cfac8c55ac05267b09998d5d8",
+      "anonexecute": false,
+      "authenticatedexecute": true,
+      "catalogversion": 4,
+      "categories": 135,
+      "ledger": [
+        {
+          "name": "worker_ai_review_candidate_projection",
+          "version": "20261019061858"
+        }
+      ]
+    }
+  ],
+  "postflight": [
+    {
+      "owner_and_existing_scope_and_risk_checks_passed": true
+    }
+  ],
+  "remaining": "Pomoć oko računara still NEEDS_CLARIFICATION under current risk-action policy; no bypass or false READY claim.",
+  "concurrency": "Worker revision 5 evidence precedes unrelated messages from 06:19:41 and Save 06:21:16. No further mutation of that conversation.",
+  "rollback": "Forward restore predecessor function from 20261018124717_worker_saved_mode_review_continuity.sql; predecessor md5 c0f07a6cfac8c55ac05267b09998d5d8. No data rollback needed."
+}

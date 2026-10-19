@@ -1080,5 +1080,19 @@
     "manifest": "docs/current/evidence/AI_CONVERSATION_NATIVE_20261019.json",
     "phone": false,
     "production": false
+  },
+  "ai_location_guidance_refresh_20261019": {
+    "scope": "Two exact Edge readbacks and worker review RPC. Other metadata remains dated. Own test window ends before unrelated concurrent account activity.",
+    "requesterEdgeVersion": 101,
+    "workerEdgeVersion": 55,
+    "edgeSource": "97c3f86b",
+    "migration": "20261019061858",
+    "migrationReceipt": "supabase/operations/dev-alpha/ledger/20261019_worker_review_candidate_application.receipt.json",
+    "edgeReceipt": "supabase/operations/dev-alpha/ledger/20261019_ai_location_guidance_edge.receipt.json",
+    "catalogVersionObservedAtMigration": 4,
+    "categoryCountObservedAtMigration": 135,
+    "profileSaveByAgent": false,
+    "taskPublishByAgent": false,
+    "fullMatchingAcceptance": false
   }
 }
