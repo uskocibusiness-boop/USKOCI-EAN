@@ -58,6 +58,8 @@ export type AiConversationShellProps = {
   draftCue?: ReactNode;
   /** Current task context, such as its location, on the conversation's open white surface. */
   context?: ReactNode;
+  /** Keep an existing map before a follow-up answer so the answer remains the latest readable item. */
+  contextBeforeMessageId?: string;
   /** An owned inline editing visit. Reveal its top once; local height changes never follow the thread end. */
   interactiveContextKey?: string;
   /** The visit was asked for explicitly (a tap on a line far up the thread): reveal it even while earlier messages are read. */
@@ -141,7 +143,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const contextHeight = useRef(0);
   const anchorConversation = useRef(p.conversationKey);
   const contextActive = useRef(false);
-  contextActive.current = !!p.context && p.interactiveContextKey !== undefined;
+  const inlineContext = !!p.context && !!p.contextBeforeMessageId && p.messages.some(message => message.id === p.contextBeforeMessageId);
+  contextActive.current = !!p.context && p.interactiveContextKey !== undefined && (!inlineContext || !!p.revealInteractiveContext);
   const contextOwner = useRef<{ key: string; conversation: string | undefined; pending: boolean; measuring: boolean } | null>(null);
   // RN exposes innerViewRef for measurement relative to the actual scroll content, not its viewport.
   const threadContent = useRef<View>(null!);
@@ -190,7 +193,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
           pending: newConversation || !!p.revealInteractiveContext || (followLatest.current && !userScrolling.current), measuring: false } : null;
     revealContext();
     return () => { contextOwner.current = null; cancelFollow(); };
-  }, [p.conversationKey, p.interactiveContextKey, !!p.context, !!p.revealInteractiveContext, cancelFollow, revealContext]);
+  }, [p.conversationKey, p.interactiveContextKey, !!p.context, inlineContext, !!p.revealInteractiveContext, cancelFollow, revealContext]);
   const cancelContextReveal = () => { if (contextOwner.current) contextOwner.current.pending = false; };
   const followAfterLayout = useCallback(() => {
     if (contextActive.current || !followLatest.current || userScrolling.current || !activity.current) return;
@@ -365,7 +368,10 @@ export function AiConversationShell(p: AiConversationShellProps) {
           </Press> : null}
         </View> : null}
         {/* One keyed list: a note keeps its identity when its anchor or the welcome changes, so it moves instead of remounting. */}
-        {[...(welcomeShown ? [] : p.messages.flatMap((message, index) => [<Turn key={message.id} {...message}
+        {[...(welcomeShown ? [] : p.messages.flatMap((message, index) => [
+          ...(inlineContext && message.id === p.contextBeforeMessageId
+            ? [<View key="interactive-context" ref={interactiveContext} collapsable={false} testID="ai-task-context" onLayout={revealContext}>{p.context}</View>] : []),
+          <Turn key={message.id} {...message}
           showSpeaker={message.fromAi && (index === 0 || !p.messages[index - 1].fromAi)}
           emphasis={!p.questionFocus || p.closed || !message.fromAi ? 'plain' : index === p.messages.length - 1 && !p.sentMessage && !p.streamingText ? 'question' : 'earlier'}
           // Frequent updates and streamed text get no decorative entrance. A turn that arrives while you are watching is
@@ -385,7 +391,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
           <View style={s.typing}><View style={s.dots}>{[0, 1, 2].map(index => <TypingDot key={index} index={index} reduced={reduced} />)}</View>
             <T variant="note" tone="muted">Stiže odgovor…</T></View>
         </View> : null}
-        {p.context ? <View ref={interactiveContext} collapsable={false} testID="ai-task-context" onLayout={revealContext}>{p.context}</View> : null}
+        {p.context && !inlineContext ? <View ref={interactiveContext} collapsable={false} testID="ai-task-context" onLayout={revealContext}>{p.context}</View> : null}
         {/* Recovery belongs to scrollable content, not a second fixed footer. */}
         {p.status ? <Surface kind="note" testID="ai-recovery-in-thread" style={s.recovery}>{p.status}</Surface> : null}
         {p.actions ? <View style={s.actions}>{p.actions}</View> : null}

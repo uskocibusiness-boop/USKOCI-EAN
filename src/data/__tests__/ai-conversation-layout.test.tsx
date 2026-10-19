@@ -322,6 +322,24 @@ describe('deliberate reading intent', () => {
     expect(native.scrollToEnd).not.toHaveBeenCalled();
     expect(tree.root.findAllByProps({ testID: 'ai-latest' })).toHaveLength(1);
   });
+  it('keeps a map explanation after the map, follows the answer and permits an explicit return to the same map', async () => {
+    const p = props(); p.conversationKey = 'explanation';
+    p.messages = [{ id: 'why', fromAi: false, body: 'Zašto mapa?' }, { id: 'answer', fromAi: true, body: 'Javna lokacija je približna.' }];
+    p.context = <View testID="place-editor" />; p.interactiveContextKey = 'place'; p.contextBeforeMessageId = 'answer';
+    const native = await mount(p);
+    await act(async () => { scroller().props.onLayout(layout(400)); scroller().props.onContentSizeChange(390, 1400); flushFrame(); });
+    expect(native.context.measureLayout).not.toHaveBeenCalled();
+    expect(native.scrollToEnd).toHaveBeenCalledWith({ animated: false });
+    const content = tree.root.findByProps({ testID: 'ai-task-context' }).parent!;
+    const items = content.children.filter(child => typeof child !== 'string');
+    expect(items.findIndex(child => child.props.testID === 'ai-task-context')).toBeLessThan(items.findIndex(child => child.props.id === 'answer'));
+    expect(tree.root.findAllByProps({ testID: 'place-editor' })).toHaveLength(1);
+    await act(async () => tree.update(<AiConversationShell {...p} revealInteractiveContext />));
+    await act(async () => { flushFrame(); });
+    await act(async () => native.measurements.at(-1)!(0, 500, 300, 600));
+    expect(native.scrollTo).toHaveBeenLastCalledWith({ y: 500, animated: false });
+    expect(p.onSend).not.toHaveBeenCalled();
+  });
   it('reveals an owned editor top once, ignores local height changes, then follows normally after it closes', async () => {
     const p = props(); p.messages = [{ id: 'a', fromAi: true, body: 'Potvrdi mesto' }];
     p.context = <View testID="place-editor" />; p.interactiveContextKey = 'place-1';

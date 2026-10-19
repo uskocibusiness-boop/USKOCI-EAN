@@ -284,7 +284,7 @@ export function IntakePresentation(props: Props) {
   // A mounted location widget can remain outside the Android viewport after
   // returning from the keyboard/long conversation. Keep a visible manual path
   // to the actual map, not another Gemini turn.
-  const [mapReveal, setMapReveal] = useState<{ placeKey: string; tick: number } | null>(null);
+  const [mapReveal, setMapReveal] = useState<{ placeKey: string; tick: number; messageId?: string } | null>(null);
   // A confirmed place reopens its editor only on an explicit tap of its line; this is the place that tap was for.
   const [savedPlaceEdit, setSavedPlaceEdit] = useState<string | null>(null);
   const askSeen = useRef(false);
@@ -413,7 +413,7 @@ export function IntakePresentation(props: Props) {
       if (placeDisabled) return;
       Keyboard.dismiss();
       setHiddenPlace(null);
-      setMapReveal(old => ({ placeKey, tick: old?.placeKey === placeKey ? old.tick + 1 : 1 }));
+      setMapReveal(old => ({ placeKey, tick: old?.placeKey === placeKey ? old.tick + 1 : 1, messageId: conversation.messages.at(-1)?.id }));
     } });
   if (hasConversation) menu.push({ key: 'refresh', label: 'Osveži razgovor', icon: 'check', disabled: props.readbackDisabled || editingPlace, onPress: outsidePlace(props.onRefresh) });
   if (props.onNewTask) menu.push({ key: 'new', label: 'Novi zadatak', icon: 'tasks', disabled: props.newTaskDisabled, onPress: props.onNewTask });
@@ -423,6 +423,10 @@ export function IntakePresentation(props: Props) {
   // The one way on from a conversation that is over, and it is on the screen (rule J15: a "···" is never the only road): the review while there is one
   // (green), otherwise a new task (quiet). The same "Novi zadatak" stays in the menu for the rare case.
   const lastReply = conversation.messages.at(-1);
+  // An explanation without new facts belongs after the already proposed map. This
+  // also works after a cold read, when ephemeral location-action receipts are gone.
+  const contextBeforeMessageId = askOpen && lastReply?.fromAi && !lastReply.proposedFactIds.length
+    && ordered.messages.some(message => message.id === lastReply.id) ? lastReply.id : undefined;
   const incompleteHandoff = open && !showSummary && reviewAllowed && !needsPoint && !busy && !pending && !props.error
     && lastReply?.fromAi && (SERVER_REVIEW_ENDINGS.has(lastReply.body)
       || lastReply.body === 'Pregled još nije dovršen. Možeš da dopuniš opis zadatka ili otvoriš pregled.');
@@ -430,7 +434,7 @@ export function IntakePresentation(props: Props) {
   const jumpToMap = () => {
     if (!canJumpToMap) return;
     Keyboard.dismiss();
-    setMapReveal(old => ({ placeKey, tick: old?.placeKey === placeKey ? old.tick + 1 : 1 }));
+    setMapReveal(old => ({ placeKey, tick: old?.placeKey === placeKey ? old.tick + 1 : 1, messageId: lastReply?.id }));
   };
   const footerAction = canJumpToMap
     ? <V2Action label="Prikaži mesto na mapi" kind="secondary" tone="neutral" onPress={jumpToMap} />
@@ -478,7 +482,8 @@ export function IntakePresentation(props: Props) {
     interactiveContextKey={askOpen && (needsPoint || editingPlace || editingSavedPlace)
       ? `${placeKey}:${mapReveal?.placeKey === placeKey ? mapReveal.tick : 0}` : undefined}
     // A tap on the line, which may sit far up the thread, opens its editor at the end: that editor is revealed.
-    revealInteractiveContext={editingSavedPlace || (askOpen && mapReveal?.placeKey === placeKey)}
+    revealInteractiveContext={editingSavedPlace || (askOpen && mapReveal?.placeKey === placeKey && mapReveal.messageId === lastReply?.id)}
+    contextBeforeMessageId={contextBeforeMessageId}
     threadNotes={notes.length ? notes : undefined}
     value={value} canEdit={props.canEdit} canSend={props.canSubmit && (!editingPlace || contextualReply)}
     sendBlockedReason={editingPlace ? 'Prvo potvrdi mesto ili zatvori mapu.' : undefined}

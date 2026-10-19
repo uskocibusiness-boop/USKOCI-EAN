@@ -82,13 +82,22 @@ it('retains ID placements across remount but clears them on account revision cha
   expect(intakeLocationMemory('test-owner:2').read(base.scope)).toBeNull();
 });
 
-it('keeps CONTINUE and CONFIRM_DISPLAYED behind the canonical all-slot gate', () => {
+it('shows a contextual explanation immediately while confirmation still waits for canonical readback', () => {
   const first = orderIntakeLocation(null, base);
   const next = orderIntakeLocation(first.state, { ...base, messages: [...base.messages, m('continue'), m('confirmed')],
     roles: { continue: 'CONTINUE', confirmed: 'CONFIRM_DISPLAYED' } });
-  expect(ids(next)).toEqual(['user']);
+  expect(ids(next)).toEqual(['user', 'continue']);
   expect(ids(orderIntakeLocation(next.state, { ...base, messages: [...base.messages, m('continue'), m('confirmed')],
-    confirmedLocation: true, pendingLocation: false }))).toEqual(['user', 'next', 'continue', 'confirmed']);
+    confirmedLocation: true, pendingLocation: false }))).toEqual(['user', 'continue', 'next', 'confirmed']);
+});
+
+it('retains the explanation after remount and cold read without treating it as a map confirmation', () => {
+  const messages = [...base.messages, m('why', false), { ...m('explanation'), body: 'Javni zadatak prikazuje približnu lokaciju.' }];
+  const shown = orderIntakeLocation(null, { ...base, messages, roles: { explanation: 'CONTINUE' } });
+  expect(ids(shown)).toContain('explanation');
+  expect(ids(orderIntakeLocation(shown.state, { ...base, messages }))).toContain('explanation');
+  expect(ids(orderIntakeLocation(null, { ...base, messages }))).toContain('explanation');
+  expect(shown.state.released).toEqual([]);
 });
 
 it('places the final spoken confirmation answer after the location even when its readback already contains every saved point', () => {
