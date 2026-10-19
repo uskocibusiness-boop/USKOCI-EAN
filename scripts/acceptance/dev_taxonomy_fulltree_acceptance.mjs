@@ -43,6 +43,9 @@ const STANDARD_CASES = Object.freeze({
     'Želim da radim nešto, ali još nisam rekao koje konkretne usluge nudim.'] },
 });
 const CASES = Object.freeze({ ...STANDARD_CASES,
+  'need-budget-correction-execution': {flow:'need',expectation:'PHYSICAL_HANDOFF',messages:[
+    'Treba mi izrada jedne male 3D figurice prema gotovom STL fajlu. Izrađuje se kod izvršioca i šalje kurirskom službom u Srbiji. Nema dolaska kod mene ni ličnog preuzimanja. Jedan izvršilac, termin potpuno fleksibilan, tražim ponude.',
+    'Menjam samo budžet: nudim ukupno 5000 dinara za ceo zadatak. Sve ostalo ostaje isto.']},
   'need-pickup-execution': {flow:'need',expectation:'PHYSICAL_HANDOFF',messages:[
     'Treba mi izrada jedne male 3D figurice prema gotovom STL fajlu. Izrađuje se kod izvršioca, bez dolaska kod mene. Samo lično preuzimanje u Novom Sadu, Srbija, ne želim slanje. Jedan izvršilac, termin potpuno fleksibilan, tražim ponude.']},
   'need-shipping-execution': {flow:'need',expectation:'PHYSICAL_HANDOFF',messages:[

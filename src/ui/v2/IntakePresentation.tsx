@@ -193,7 +193,7 @@ const stickerWords = (kind: DraftSticker, summary: Summary): string => kind === 
  * nothing moves.
  */
 export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview, onReview, note, reviewDisabledReason, reviewLabel = 'Pregledaj zadatak',
-  editing = false, hiddenMissing = false, reviewAtEnd = false, locationEditing = false, ended = false, appear }: {
+  editing = false, hiddenMissing = false, reviewAtEnd = false, locationEditing = false, ended = false, hasUnsentText = false, appear }: {
   summary: Summary; stillNeeded: string | null; open: boolean; busy: boolean; compact: boolean; canReview: boolean;
   onReview: () => void; note: string | null;
   reviewDisabledReason?: string | null;
@@ -209,6 +209,8 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   locationEditing?: boolean;
   /** The conversation is over: the card is the final summary and has no review of its own (the screen's one green action stands where the composer was). */
   ended?: boolean;
+  /** Local composer text is retained, but has not changed the server proposal. */
+  hasUnsentText?: boolean;
   /** Which pictures have already landed; a picture that is new to it lands, once. Left out, nothing moves. */
   appear?: AppearList;
 }) {
@@ -249,6 +251,7 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
       </View> : null}
     {note ? <T variant="note" tone="muted">{note}</T> : null}
     {reviewDisabledReason ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">{reviewDisabledReason}</T> : null}
+    {hasUnsentText ? <T testID="intake-review-unsent-note" variant="note" tone="muted">Neposlati tekst nije deo pregleda. Ostaje u razgovoru.</T> : null}
     {!locationEditing && next ? <T variant="note" tone="muted">{next}</T> : null}
     {readyForReview ? <V2Action label={reviewLabel} style={brandAction} disabled={!canReview} onPress={() => { if (canReview) onReview(); }} />
       : !locationEditing && !ended ? <Press testID="intake-draft-review" accessibilityRole="button" accessibilityLabel={reviewLabel}
@@ -512,7 +515,8 @@ export function IntakePresentation(props: Props) {
     card={compact => !showSummary ? null : <DraftCard summary={summary}
       stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={reviewAllowed}
       onReview={outsidePlace(props.onReview)} note={note} reviewDisabledReason={props.reviewDisabledReason} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
-      hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} locationEditing={editingPlace} ended={ended} appear={landed} />}
+      hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} locationEditing={editingPlace} ended={ended}
+      hasUnsentText={open && !!value.trim() && !busy && !pending} appear={landed} />}
     actions={(!attach && photoAssets.length) || (safetyCopy && (!showSummary || conversation.safety === 'BLOCK')) ? <>
       {!attach && photoAssets.length ? <View testID="intake-photos" style={s.photos}>
         {props.onPhotos ? <Press accessibilityRole="button" accessibilityLabel="Pregledaj fotografije zadatka"

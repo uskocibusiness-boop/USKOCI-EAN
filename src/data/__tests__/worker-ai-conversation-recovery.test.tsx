@@ -8,7 +8,7 @@ const mockListeners=new Set<(s:string)=>void>();
 const mockApi={read:jest.fn(),open:jest.fn(),send:jest.fn(),recoverTurn:jest.fn(),cancelTurn:jest.fn(),patch:jest.fn(),prepare:jest.fn(),save:jest.fn(),abandon:jest.fn()};
 const mockJournal={load:jest.fn(),save:jest.fn(),clear:jest.fn()};let mockStored:unknown=null;
 const mockRouter={back:jest.fn(),replace:jest.fn(),canGoBack:jest.fn(),setParams:jest.fn()};
-const mockVoice={controller:{cancel:jest.fn()},state:{phase:'IDLE'}};const mockVoiceHook=jest.fn((_options:unknown)=>mockVoice);
+const mockVoice={controller:{cancel:jest.fn(),getSnapshot:()=>mockVoice.state},state:{phase:'IDLE'}};const mockVoiceHook=jest.fn((_options:unknown)=>mockVoice);
 jest.mock('react-native',()=>{const native=jest.requireActual('react-native');return new Proxy(native,{get(target,key){
  if(['View','ScrollView','KeyboardAvoidingView','Switch','RefreshControl','TextInput'].includes(String(key)))return key;
  if(key==='Platform')return{OS:'android'};

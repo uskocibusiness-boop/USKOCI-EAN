@@ -98,7 +98,7 @@ for(const relation of ['UNCLEAR','DIFFERENT_TASK'])test(`work replacement ${rela
  const es=await events(f);assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
  const write=writes(f);assert.equal(write.length,1);assert.equal(write[0].body.p_safety,'CLARIFY');assert.deepEqual(write[0].body.p_proposals,[]);
  assert.equal(JSON.stringify(activeFacts),previous);assert.ok(!write[0].body.p_assistant_message.includes('Promenio sam posao'));
- const instruction=providers(f)[0].body.systemInstruction.parts[0].text;
+ const instruction=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
  assert.ok(instruction.includes('Za promenu vrste posla prvo razjasni'));
  assert.ok(instruction.includes('koji raniji termin, budžet i mesto i dalje važe'));
  assert.ok(instruction.includes('Ne šalji promenu vrste, naslova ili opisa dok to nije jasno'));
@@ -209,7 +209,7 @@ test('owned handler delivers one semantic question budget and rejects a provider
  assert.deepEqual(write.p_proposals.map(p=>p.key),['need.description']);
  assert.match(write.p_assistant_message,/Od kog do kog datuma/);
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),write.p_assistant_message);
- const instruction=provider.systemInstruction.parts[0].text;
+ const instruction=provider.systemInstruction.parts.map(p=>p.text).join('\n');
  assert.equal(instruction.split('Jedinstveno pravilo pitanja:').length-1,1);
  assert.ok(instruction.includes('najviše TRI zasebne informacije'));
  assert.ok(instruction.includes('jesu PET informacija, čak i u dve rečenice'));
@@ -343,6 +343,18 @@ for(const [label,pattern,facts] of [
  await events(f);const write=writes(f)[0].body;
  assert.equal(write.p_safety,'ALLOW');assert.equal(write.p_assistant_message,message);
  assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),facts.map(p=>[p.key,JSON.parse(p.valueJson)]));
+});
+
+test('invalid fallback Need output still settles complete provider thinking usage once',async()=>{
+ const f=fixture({provider:()=>new Response('data: '+JSON.stringify({candidates:[{
+   content:{parts:[{text:'{"safety":"ALLOW","facts":"INVALID"}'}]},finishReason:'STOP'}],
+   usageMetadata:{promptTokenCount:100,candidatesTokenCount:20,thoughtsTokenCount:5,cachedContentTokenCount:40,totalTokenCount:125}})+'\n\n',
+   {headers:{'Content-Type':'text/event-stream'}})});
+ const es=await events(f);assert.equal(es.at(-1).kind,'safe_error');assert.equal(writes(f).length,0);
+ const usage=f.calls.filter(c=>c.url.endsWith('/rpc_ai_test_record_usage_service'));
+ assert.equal(providers(f).length,1);assert.equal(usage.length,1);
+ assert.equal(usage[0].body.p_prompt_tokens,100);assert.equal(usage[0].body.p_output_tokens,25);
+ assert.equal(usage[0].body.p_total_tokens,125);assert.equal(usage[0].abortedAtCall,false);
 });
 
 test('confirmed Need finishes the stream and records usage even with the optional catalog disabled',async()=>{

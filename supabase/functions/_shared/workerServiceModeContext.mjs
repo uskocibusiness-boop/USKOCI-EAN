@@ -37,9 +37,8 @@ export function workerServiceModeSchema(schema) {
   return { ...schema, properties: { ...schema.properties, serviceModeChangesJson: { type: 'STRING' } } };
 }
 
-export function workerServiceModeInstruction(context) {
-  return 'Server-owned service mode context: ' + JSON.stringify(context) + '. '
-    + 'savedServices are the current saved choices for each specific service. draftServices are earlier unsaved proposals, NOT owner consent. '
+export function workerServiceModeInstruction(context, includeContext = true) {
+  return 'savedServices are the current saved choices for each specific service. draftServices are earlier unsaved proposals, NOT owner consent. '
     + 'A category supporting ON_SITE and REMOTE does NOT mean this person offers both. Preserve the saved modes and handoff constraints of every unchanged service. An explicitly offered concrete new service can have an inherent execution mode without requiring the words on site; that does not authorize overwriting a saved choice. '
     + 'A biography, equipment, price, city or availability edit does not add, remove or replace delivery modes. Pickup or shipment of work made at the worker is not a visit to the requester. '
     + 'Use optional serviceModeChangesJson STRING only when the person explicitly requested a delivery-mode or handoff change in this owned conversation. '
@@ -48,7 +47,8 @@ export function workerServiceModeInstruction(context) {
     + 'Use "[]" when there is no requested mode or handoff change. Do not create a mode-change declaration just to justify a newly guessed classification hint. '
     + 'An earlier explicit change in this conversation remains a draft choice on later turns; cite its original user wording when retaining it. '
     + 'Keep the normal classificationShadowJson full snapshot consistent with these choices. Unresolved services remain questions, never both modes by default. '
-    + 'All changes remain proposals for the signed profile review and explicit Save.';
+    + 'All changes remain proposals for the signed profile review and explicit Save.'
+    + (includeContext ? ' Server-owned service mode context: ' + JSON.stringify(context) + '.' : '');
 }
 
 /** Quote checks bind a model proposal to owned USER text, not semantic proof of consent.

@@ -187,27 +187,64 @@ async function reportGeminiHttpFailure(response: Response, signal: AbortSignal):
   console.error('GEMINI_STREAM_HTTP_FAILED', response.status, d.status, d.reason, d.field);
 }
 
-/** Provider-reported token usage. Counts only, never content. The provider sends this
- * on the final events; taking the last complete block avoids double counting a
- * cumulative field. A malformed block is ignored rather than allowed to fail a turn
- * that otherwise succeeded: usage is accounting, and accounting must never decide
- * whether a user's answer is delivered. */
+/** Accounted input/output totals, never content. Output includes thinking. Cached
+ * tokens are already part of input: this contract neither adds them nor discounts
+ * them. A cache price adjustment requires its own verified pricing contract. */
 export type GeminiUsage = { promptTokens: number; outputTokens: number; totalTokens: number };
+export type GeminiUsageDetails = {
+  usage: GeminiUsage | null;
+  /** Raw provider prompt count, including its cached subset. */
+  promptTokens: number | null;
+  candidateTokens: number | null; thoughtTokens: number | null;
+  toolUsePromptTokens: number | null; cachedPromptTokens: number | null;
+  totalTokens: number | null;
+};
 
 const wholeCount = (value: unknown): value is number =>
   typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= 10_000_000;
 
+/** One decoder for generateContent and SSE, including failed provider attempts.
+ * https://ai.google.dev/api/generate-content#UsageMetadata
+ * total = prompt + tool-use prompt + candidates + thoughts. Missing optional
+ * output/input counts are only zero when the reported total proves zero residual;
+ * an unexplained residual is never guessed to be thinking. Invalid accounting
+ * stays unknown and must not prevent delivery of an otherwise valid answer. */
+export function decodeGeminiUsage(raw: unknown): GeminiUsageDetails {
+  const metadata = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as Record<string, unknown> : {};
+  const count = (value: unknown): number | null => wholeCount(value) ? value : null;
+  const promptTokens = count(metadata.promptTokenCount), candidateTokens = count(metadata.candidatesTokenCount);
+  const totalTokens = count(metadata.totalTokenCount);
+  let thoughtTokens = count(metadata.thoughtsTokenCount), toolUsePromptTokens = count(metadata.toolUsePromptTokenCount);
+  const rawCached = count(metadata.cachedContentTokenCount);
+  const cachedPromptTokens = rawCached !== null && promptTokens !== null && rawCached <= promptTokens ? rawCached : null;
+  if (promptTokens !== null && candidateTokens !== null && totalTokens !== null) {
+    // Only absence permits a proven zero. Explicit null/negative/string values are malformed.
+    if (metadata.thoughtsTokenCount === undefined && (toolUsePromptTokens !== null || metadata.toolUsePromptTokenCount === undefined)
+      && totalTokens === promptTokens + candidateTokens + (toolUsePromptTokens ?? 0)) thoughtTokens = 0;
+    if (metadata.toolUsePromptTokenCount === undefined && (thoughtTokens !== null || metadata.thoughtsTokenCount === undefined)
+      && totalTokens === promptTokens + candidateTokens + (thoughtTokens ?? 0)) toolUsePromptTokens = 0;
+  }
+  let usage: GeminiUsage | null = null;
+  if (promptTokens !== null && candidateTokens !== null && totalTokens !== null
+    && thoughtTokens !== null && toolUsePromptTokens !== null
+    && totalTokens === promptTokens + toolUsePromptTokens + candidateTokens + thoughtTokens) {
+    usage = { promptTokens: promptTokens + toolUsePromptTokens, outputTokens: candidateTokens + thoughtTokens, totalTokens };
+  }
+  return {
+    usage,
+    promptTokens, candidateTokens, thoughtTokens, toolUsePromptTokens, cachedPromptTokens, totalTokens,
+  };
+}
+
 export function geminiUsage(raw: unknown): GeminiUsage | null {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
-  const usage = raw as Record<string, unknown>;
-  const promptTokens = usage.promptTokenCount, outputTokens = usage.candidatesTokenCount, totalTokens = usage.totalTokenCount;
-  if (!wholeCount(promptTokens) || !wholeCount(outputTokens) || !wholeCount(totalTokens)) return null;
-  return { promptTokens, outputTokens, totalTokens };
+  return decodeGeminiUsage(raw).usage;
 }
 
 export async function streamGeminiTask(input: {
   url: string; key: string; body: string; signal?: AbortSignal; onText: (delta: string) => void;
   onUsage?: (usage: GeminiUsage) => void;
+  /** Count-only diagnostics, including unknown fields; never interpreted as a measured zero. */
+  onUsageDetails?: (details: GeminiUsageDetails) => void;
   timeoutMs?: 30000;
 }): Promise<string> {
   const controller = new AbortController();
@@ -220,6 +257,7 @@ export async function streamGeminiTask(input: {
   input.signal?.addEventListener('abort', stop, { once: true });
   if (input.signal?.aborted) stop();
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  let lastUsage = decodeGeminiUsage(undefined), receivedCompleteBody = false;
   try {
     if (controller.signal.aborted) throw new Error('AI_STREAM_STOPPED');
     const response = await Promise.race([fetch(input.url, { method: 'POST', redirect: 'error', signal: controller.signal,
@@ -235,16 +273,15 @@ export async function streamGeminiTask(input: {
     reader = response.body.getReader();
     const decoder = new TextDecoder('utf-8', { fatal: true });
     let buffer = '', raw = '', emitted = '', total = 0, stopped = false;
-    let lastUsage: GeminiUsage | null = null;
     const event = (value: string) => {
       const lines = value.split('\n').filter(line => line.startsWith('data:')).map(line => line.slice(5).trim());
       if (!lines.length) return;
       const data = JSON.parse(lines.join('\n'));
       if (data.promptFeedback?.blockReason) throw new GeminiSafetyBlockedError(data.promptFeedback.blockReason);
       if (data.error) throw new Error('AI_STREAM_REJECTED');
-      // Counts only, and the last complete block wins because the field is cumulative.
-      const usage = geminiUsage(data.usageMetadata);
-      if (usage) lastUsage = usage;
+      // Usage blocks are cumulative, not deltas. An explicit incomplete final block
+      // supersedes older counts too: settling an earlier partial total undercharges.
+      if (Object.hasOwn(data, 'usageMetadata')) lastUsage = decodeGeminiUsage(data.usageMetadata);
       if (!Array.isArray(data.candidates) || data.candidates.length > 1) throw new Error('AI_STREAM_INVALID');
       const candidate = data.candidates[0];
       if (!candidate) return;
@@ -280,11 +317,16 @@ export async function streamGeminiTask(input: {
     }
     buffer += decoder.decode();
     if (buffer.trim()) event(buffer);
+    receivedCompleteBody = true;
     if (!stopped || typeof JSON.parse(raw).assistantMessage !== 'string' || JSON.parse(raw).assistantMessage !== emitted) throw new Error('AI_STREAM_INCOMPLETE');
-    // Reported only for a turn that actually completed, and never allowed to fail it.
-    if (lastUsage && input.onUsage) { try { input.onUsage(lastUsage); } catch { /* accounting never breaks delivery */ } }
     return raw;
   } finally {
+    // A fully received provider response can have invalid application JSON but still
+    // consume known tokens. An interrupted body must not settle an intermediate total.
+    if (receivedCompleteBody) {
+      if (input.onUsageDetails) { try { input.onUsageDetails(lastUsage); } catch { /* accounting never breaks delivery */ } }
+      if (lastUsage.usage && input.onUsage) { try { input.onUsage(lastUsage.usage); } catch { /* accounting never breaks delivery */ } }
+    }
     clearTimeout(timeout); input.signal?.removeEventListener('abort', stop); controller.abort();
     void reader?.cancel().catch(() => undefined);
   }

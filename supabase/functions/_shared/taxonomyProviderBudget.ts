@@ -39,6 +39,20 @@ export function createTaxonomyProviderBudget(input: {
       const admitted = attempts.get(event.attempt);
       if (!admitted || admitted.reservationId !== event.reservationId || admitted.settled) throw new Error('AI_TOOL_USAGE_CONFLICT');
       admitted.settled = true;
+      // Count-only observability. Never log the event itself: it also contains a
+      // reservation identity. Cached input is a subset, not a second billed count.
+      const count = (value: unknown) => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
+      try {
+        console.info('AI_PROVIDER_USAGE', {
+          attempt: count(event.attempt), phase: event.phase === 'TOOLS' || event.phase === 'FINAL' ? event.phase : 'UNKNOWN',
+          requestBytes: count(event.requestBytes), model: input.model === 'gemini-3.8-flash' ? input.model : 'UNKNOWN',
+          outcome: event.outcome === 'SUCCEEDED' || event.outcome === 'FAILED' ? event.outcome : 'UNKNOWN',
+          promptTokens: count(event.usage?.promptTokens), outputTokens: count(event.usage?.outputTokens),
+          candidateTokens: count(event.candidateTokens), thoughtTokens: count(event.thoughtTokens),
+          cachedPromptTokens: count(event.cachedPromptTokens), toolUsePromptTokens: count(event.toolUsePromptTokens),
+          usageComplete: event.attemptUsageComplete === true, cumulativeUsageComplete: event.usageComplete === true,
+        });
+      } catch { /* Observability cannot prevent usage settlement or answer delivery. */ }
       // Unknown outcomes retain the whole reservation. Missing usage is never 0.
       if (!event.usage || !event.attemptUsageComplete) return;
       const abort = new AbortController(), timer = setTimeout(() => abort.abort(), 3000);

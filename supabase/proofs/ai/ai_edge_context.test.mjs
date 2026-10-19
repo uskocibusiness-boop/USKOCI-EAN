@@ -98,8 +98,21 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
 }
 const providerCall=fixture=>fixture.calls.find(x=>x.url.includes('googleapis')||x.url==='https://api.openai.com/v1/responses');
 const materialWrites=f=>f.calls.filter(call=>/\/(?:rpc_ai_complete_need_turn_v2_service|rpc_ai_apply_legacy_need_turn_service|rpc_ai_apply_interview_turn(?:_v2)?_service)$/.test(new URL(call.url).pathname));
-const prompt=call=>call.body.systemInstruction?.parts[0].text??call.body.instructions;
+const prompt=call=>call.body.systemInstruction?.parts.map(p=>p.text).join('\n')??call.body.instructions;
 const timeContext=call=>JSON.parse(prompt(call).match(/Serverski vremenski kontekst za trenutni unos u Srbiji: (\{.+?\})\./)[1]);
+
+test('stable task rules precede fresh private context without dropping it or sharing facts',async()=>{
+ const a=fixture({now:'2026-10-19T08:00:00.000Z',activeFacts:[semanticFact('need.title','PRIVATE_FIRST_TASK')]});
+ const b=fixture({now:'2026-10-20T08:00:00.000Z',activeFacts:[semanticFact('need.title','PRIVATE_SECOND_TASK')]});
+ assert.equal((await a.invoke()).status,200);assert.equal((await b.invoke()).status,200);
+ const pa=providerCall(a).body.systemInstruction.parts,pb=providerCall(b).body.systemInstruction.parts;
+ assert.deepEqual(pa.slice(0,2),pb.slice(0,2));
+ assert.ok(!JSON.stringify(pa.slice(0,2)).includes('PRIVATE_FIRST_TASK'));
+ assert.ok(prompt(providerCall(a)).includes('PRIVATE_FIRST_TASK'));
+ assert.ok(!prompt(providerCall(a)).includes('PRIVATE_SECOND_TASK'));
+ assert.ok(prompt(providerCall(b)).includes('PRIVATE_SECOND_TASK'));
+ assert.notDeepEqual(timeContext(providerCall(a)),timeContext(providerCall(b)));
+});
 
 test('task prompt preserves proportional TOTAL applications and clarification without invented audio access',async()=>{
   const f=fixture();assert.equal((await f.invoke()).status,200);
@@ -163,7 +176,7 @@ for(const provider of ['gemini'])test(`${provider} outbound V2 schema and prompt
   const f=fixture({provider});assert.equal((await f.invoke()).status,200);
   const call=providerCall(f),schema=call.body.generationConfig?.responseFormat?.text?.schema??call.body.generationConfig?.responseSchema??call.body.text?.format?.schema;
   const allowedKeys=schema.properties.facts.items.properties.key.enum;
-  const promptRegistry=JSON.parse(prompt(call).split('Jedini podržani V2 fact registry: ')[1]);
+  const promptRegistry=JSON.parse(call.body.systemInstruction.parts[0].text.split('Jedini podržani V2 fact registry: ')[1]);
   assert.deepEqual(allowedKeys,[...f.registry.AI_PROPOSABLE_NEED_FACT_V2_KEYS].filter(key=>key!=='need.required_licenses'));
   assert.deepEqual(promptRegistry.map(fact=>fact.key),allowedKeys);
   assert.ok(allowedKeys.includes('need.task_geography'));assert.ok(allowedKeys.includes('need.task_country_code'));
@@ -454,7 +467,7 @@ test('finish-only can recover only missing presentation from the existing descri
  await f.invoke({text:'To je to.'});const result=materialWrites(f)[0].body;
  assert.deepEqual(result.p_proposals.map(x=>x.key),['need.category','need.title']);
  assert.ok(!result.p_assistant_message.includes('Objavljeno'));assert.equal(providerCalls(f).length,1);
- const instruction=providerCalls(f)[0].body.systemInstruction.parts[0].text;
+ const instruction=providerCalls(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
  assert.match(instruction,/obavezno predložite nedostajuća polja u facts u ovoj istoj poruci/);
  assert.ok(instruction.includes(JSON.stringify({existingDescription:'Prenošenje nekoliko kesa od ulaza do stana.',missingPresentation:['need.title','need.category']})));
 });
@@ -463,7 +476,7 @@ test('explicit finish completion instruction is absent outside its narrow contex
  const activeFacts=completionFacts().filter(x=>variant==='complete'||x.fact_key!=='need.category');
  if(variant==='unknown-description')activeFacts.find(x=>x.fact_key==='need.description').status='UNKNOWN';
  const f=fixture({activeFacts});await f.invoke({text:variant==='normal-turn'?'Hvala na objašnjenju.':'To je to.'});
- assert.ok(!providerCalls(f)[0].body.systemInstruction.parts[0].text.includes('obavezno predložite nedostajuća polja u facts u ovoj istoj poruci'));
+ assert.ok(!providerCalls(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n').includes('obavezno predložite nedostajuća polja u facts u ovoj istoj poruci'));
  assert.equal(providerCalls(f).length,1);
 });
 for(const variant of ['no-description','unknown-description','wrong-evidence','existing-category','different-task'])

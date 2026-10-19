@@ -13,7 +13,7 @@ const mockJournal = { load: jest.fn(), save: jest.fn(), clear: jest.fn() };
 const mockRouter = { back: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(), setParams: jest.fn(), push: jest.fn() };
 // ONE NAME (owner, 8 Oct 2026): the profile is saved under the ACCOUNT's name; the hook is mocked (the real one reads the server). No name by default.
 let mockAccountName: { state: 'loading' } | { state: 'error'; retry: () => void } | { state: 'ready'; name: string | null } = { state: 'ready', name: null };
-const mockVoice = { controller: { cancel: jest.fn() }, state: { phase: 'IDLE' } };
+const mockVoice = { controller: { cancel: jest.fn(), getSnapshot: () => mockVoice.state }, state: { phase: 'IDLE' } };
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
   if (['View', 'ScrollView', 'KeyboardAvoidingView', 'Switch', 'RefreshControl', 'TextInput'].includes(String(key))) return key;
   if (key === 'Platform') return { OS: 'android' };
@@ -75,6 +75,7 @@ const openReview = async () => {
 beforeEach(() => {
   jest.clearAllMocks(); mockRouteId = C; mockRouter.canGoBack.mockReturnValue(true); mockAccountName = { state: 'ready', name: null };
   mockCorrection=undefined;mockEntryKey=undefined;mockFocused=true;
+  mockVoice.state.phase='IDLE';
   mockJournal.load.mockResolvedValue(null); mockJournal.save.mockResolvedValue(undefined); mockJournal.clear.mockResolvedValue(undefined);
   mockApi.read.mockResolvedValue(ok(snapshot())); mockApi.open.mockResolvedValue(ok(snapshot()));
   mockApi.recoverTurn.mockResolvedValue(ok({}));
@@ -197,6 +198,25 @@ describe('the conversation (M1)', () => {
 });
 
 describe('the review (M2)', () => {
+  it.each(['PERMISSION_PENDING','PREPARING','STARTING','LISTENING','FINALIZING'])(
+    'a retained review callback cannot interrupt speech during %s',async phase=>{
+      await render();await act(async()=>shell().props.onChange('Neposlata dopuna.'));
+      const retainedReview=shell().props.card(false).props.review;
+      mockVoice.state.phase=phase;
+      await act(async()=>retainedReview());
+      expect(mockApi.prepare).not.toHaveBeenCalled();expect(mockApi.patch).not.toHaveBeenCalled();
+      expect(mockApi.send).not.toHaveBeenCalled();expect(mockVoice.controller.cancel).not.toHaveBeenCalled();
+      await act(async()=>tree.update(<Screen/>));
+      expect(shell().props.card(false).props.disabled).toBe(true);
+      expect(shell().props.value).toBe('Neposlata dopuna.');
+      mockVoice.state.phase='IDLE';await act(async()=>tree.update(<Screen/>));
+      await openReview();expect(review().props.review.revision).toBe(0);
+      expect(mockApi.prepare).toHaveBeenCalledWith(C,0,true);
+      expect(tree.root.findByProps({testID:'worker-review-unsent-note'}).props.children).toContain('Neposlati tekst nije deo ovog pregleda.');
+      await act(async()=>review().props.onEdit());
+      expect(shell().props.value).toBe('Neposlata dopuna.');expect(shell().props.conversationKey).toBe(C);
+      expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
+    });
   it('returns missing-mode review to the same AI conversation and preserves unsent text without a write', async () => {
     await render();
     await act(async () => shell().props.onChange('Radim samo na daljinu, kod sebe.'));

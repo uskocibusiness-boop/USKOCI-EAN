@@ -35,7 +35,7 @@ export async function createClassificationExplorer(rpc, options = {}) {
       !Number.isInteger(maxPageBytes) || maxPageBytes < 1024 ||
       !Number.isInteger(maxEvidenceBytes) || maxEvidenceBytes < maxPageBytes) fail('INVALID_LIMITS');
   let version = null, digest = null, receivedBytes = 0, queryCount = 0, invalid = false;
-  const nodes = new Map(), cache = new Map(), issuedCursors = new Map(), searched = new Set();
+  const nodes = new Map(), cache = new Map(), inFlight = new Map(), issuedCursors = new Map(), searched = new Set();
   const identities = new Map(), initialPages = [];
   const modelPage = answer => ({ ...answer, items: answer.items.map(({ path, pathIds, ...item }) => item) });
   const active = () => { if (signal?.aborted) fail('CANCELLED'); if (invalid) fail('INCOMPLETE'); };
@@ -69,33 +69,46 @@ export async function createClassificationExplorer(rpc, options = {}) {
     const base = { ...q }; delete base.cursor;
     const key = queryKey(base), cacheKey = queryKey(q);
     if (q.cursor != null && (typeof q.cursor !== 'string' || !issuedCursors.get(q.cursor)?.has(key))) fail('UNKNOWN_CURSOR');
-    let answer = cache.get(cacheKey);
-    if (fresh || !answer) {
-      if (++queryCount > maxQueries) { invalid = true; fail('QUERY_BUDGET'); }
-      try {
-        answer = await rpc('rpc_taxonomy_query_catalog_service', { p_query: {
-          ...q, ...(version !== null ? { catalogVersion: version, catalogFingerprint: digest } : {}),
-        } });
-        active();
-        const size = bytes(answer); receivedBytes += size;
-        if (size > maxPageBytes || receivedBytes > maxEvidenceBytes) fail('EVIDENCE_BUDGET');
-        if (!record(answer) || answer.schemaVersion !== 'TAXONOMY_CATALOG_QUERY_V1' || answer.action !== 'CATALOG_QUERY' ||
-            answer.operation !== q.operation || answer.scope !== q.scope ||
-            !Number.isSafeInteger(answer.catalogVersion) || answer.catalogVersion < 1 || !fingerprint(answer.catalogFingerprint) ||
-            !Array.isArray(answer.items) || answer.items.length > pageSize || answer.count !== answer.items.length ||
-            !['classificationAuthority','capabilityAuthority','notificationAuthority'].every(k => answer[k] === 'NONE') ||
-            !(answer.nextCursor === null || typeof answer.nextCursor === 'string' && answer.nextCursor.length > 0 && answer.nextCursor.length < 16384)) fail('INVALID_PAGE');
-        if (version !== null && (answer.catalogVersion !== version || answer.catalogFingerprint !== digest)) fail('STALE');
-        version = answer.catalogVersion; digest = answer.catalogFingerprint;
-        answer.items.forEach(validateNode);
-        if (answer.nextCursor !== null) {
-          if (answer.nextCursor === q.cursor) fail('REPEATED_CURSOR');
-          const keys = issuedCursors.get(answer.nextCursor) ?? new Map();
-          if (keys.has(key) && keys.get(key) !== cacheKey) fail('REPEATED_CURSOR');
-          keys.set(key,cacheKey); issuedCursors.set(answer.nextCursor, keys);
-        }
-        cache.set(cacheKey, answer);
-      } catch (error) { invalid = true; throw error; }
+    let answer = fresh ? undefined : cache.get(cacheKey);
+    if (!answer) {
+      // A shared request belongs to this explorer's single META-fenced snapshot.
+      // Fresh checks never join an older request: each is a new end-of-research barrier.
+      let pending = fresh ? undefined : inFlight.get(cacheKey);
+      if (!pending) {
+        if (++queryCount > maxQueries) { invalid = true; fail('QUERY_BUDGET'); }
+        pending = (async () => {
+          try {
+            const received = await rpc('rpc_taxonomy_query_catalog_service', { p_query: {
+              ...q, ...(version !== null ? { catalogVersion: version, catalogFingerprint: digest } : {}),
+            } });
+            active();
+            const size = bytes(received); receivedBytes += size;
+            if (size > maxPageBytes || receivedBytes > maxEvidenceBytes) fail('EVIDENCE_BUDGET');
+            if (!record(received) || received.schemaVersion !== 'TAXONOMY_CATALOG_QUERY_V1' || received.action !== 'CATALOG_QUERY' ||
+                received.operation !== q.operation || received.scope !== q.scope ||
+                !Number.isSafeInteger(received.catalogVersion) || received.catalogVersion < 1 || !fingerprint(received.catalogFingerprint) ||
+                !Array.isArray(received.items) || received.items.length > pageSize || received.count !== received.items.length ||
+                !['classificationAuthority','capabilityAuthority','notificationAuthority'].every(k => received[k] === 'NONE') ||
+                !(received.nextCursor === null || typeof received.nextCursor === 'string' && received.nextCursor.length > 0 && received.nextCursor.length < 16384)) fail('INVALID_PAGE');
+            if (version !== null && (received.catalogVersion !== version || received.catalogFingerprint !== digest)) fail('STALE');
+            version = received.catalogVersion; digest = received.catalogFingerprint;
+            received.items.forEach(validateNode);
+            if (received.nextCursor !== null) {
+              if (received.nextCursor === q.cursor) fail('REPEATED_CURSOR');
+              const keys = issuedCursors.get(received.nextCursor) ?? new Map();
+              if (keys.has(key) && keys.get(key) !== cacheKey) fail('REPEATED_CURSOR');
+              keys.set(key,cacheKey); issuedCursors.set(received.nextCursor, keys);
+            }
+            cache.set(cacheKey, received);
+            return received;
+          } catch (error) { invalid = true; throw error; }
+        })();
+        if (!fresh) inFlight.set(cacheKey, pending);
+      }
+      try { answer = await pending; }
+      finally { if (inFlight.get(cacheKey) === pending) inFlight.delete(cacheKey); }
+      // A peer may have invalidated the shared snapshot before this waiter resumes.
+      active();
     }
     if (q.operation === 'SEARCH' && q.scope === 'ALL' && answer.nextCursor === null && label(service ?? q.text))
       searched.add(normalizedClassificationIdentity(service ?? q.text));
@@ -120,15 +133,27 @@ export async function createClassificationExplorer(rpc, options = {}) {
     } while (cursor !== null);
     return pages;
   }
+  async function independent(jobs) {
+    const results = new Array(jobs.length); let next = 0;
+    // Bound RPC concurrency, not the number of catalog nodes or cursor pages.
+    await Promise.all(Array.from({ length: Math.min(4,jobs.length) }, async () => {
+      while (next < jobs.length) {
+        active(); const index = next++;
+        results[index] = await jobs[index]();
+      }
+    }));
+    active();
+    return results;
+  }
   await query({ operation: 'META' });
-  initialPages.push(await query({ operation: 'ROOTS' }));
   const seeds = [...new Set(seedServices.filter(label).map(s => s.trim()))].slice(0, 24);
-  // Independent seed lookups share the already-established snapshot. Batches of
-  // four avoid multiplying mobile waiting time by the number of offered jobs.
-  for (let start = 0; start < seeds.length; start += 4)
-    initialPages.push(...await Promise.all(seeds.slice(start,start+4).map(service => query({ operation: 'SEARCH', text: service, service }))));
   const seedIds = [...new Set(seedCategoryIds.filter(uuid))].slice(0, 100);
-  if (seedIds.length) initialPages.push(...await allResolved(seedIds));
+  const [roots, resolved, ...seedPages] = await independent([
+    () => query({ operation: 'ROOTS' }),
+    () => seedIds.length ? allResolved(seedIds) : [],
+    ...seeds.map(service => () => query({ operation: 'SEARCH', text: service, service })),
+  ]);
+  initialPages.push(roots, ...seedPages, ...resolved);
 
   const snapshot = () => ({ catalogVersion: version, catalogFingerprint: digest, categories: [...nodes.values()],
     navigation: { kind: 'SERVER_QUERIES', identityChecks: [...identities].map(([service, categoryIds]) => ({ service, categoryIds })),
@@ -159,11 +184,12 @@ export async function createClassificationExplorer(rpc, options = {}) {
       }
       const names = [...new Set([...services, ...proposals.map(p => p.service)].filter(label))];
       if (names.length > 48) fail('INVALID_SERVICE_BATCH');
-      for (let start = 0; start < names.length; start += 4)
-        await Promise.all(names.slice(start,start+4).map(allExact));
       const ids = [...new Set([...categoryIds, ...proposals.flatMap(p => [p.categoryId,p.parentId])].filter(uuid))];
       if (ids.length > 100) fail('INVALID_ID_BATCH');
-      if (ids.length) await allResolved(ids);
+      await independent([
+        ...(ids.length ? [() => allResolved(ids)] : []),
+        ...names.map(name => () => allExact(name)),
+      ]);
       // Recheck freshness after inference, including alias-only updates. A stale
       // result can never turn into a captured classification hint.
       await query({ operation: 'META' }, { fresh: true });

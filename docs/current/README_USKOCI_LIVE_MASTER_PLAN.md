@@ -9,6 +9,12 @@ Jedan aktivan proizvod, jedan registar statusa i postojeći LIVE plan. Ovaj fajl
 3. Za UI: [jedini aktivan Premium White canon](../implementation/design-system/PREMIUM_WHITE_CANON.md) i [forenzički registar ograničenja](../implementation/design-system/DESIGN_CONSTRAINT_REGISTRY_20261018.md). Za drugi domen: relevantan izvor iz [mape autoriteta](../authority/AUTHORITY_INDEX.md).
 4. Izvorni kod i dokaz za konkretan tok koji se menja. Stare nacrte i handoff dokumente otvaraj po potrebi, ne kao lanac obaveznog čitanja niti kao trenutno stanje.
 
+## Potvrđene odluke vlasnika — 19.10.2026.
+
+[Datirani dodatak odluka](OWNER_DECISIONS_20261019.md) konsoliduje opseg prvog izdanja i ponašanje proizvoda: Srbija/Android kontrolisana proba, prvo prijavljeni korisnik, jedan nalog za obe perspektive, AI izmene sa jednim pregledom, glasovni unos, grupni mediji i granice istorije, ponovna objava pre prvog izbora, fleksibilan termin, otkaz/zamena, recenzije posle potvrđenog završetka, portfolio kasnije, 18+ i plaćanje van aplikacije.
+
+Najnoviji nalog odobrava **prvi povezani AI paket na DEV-u i emulatoru**; ranije READ-ONLY formulacije planskog izvora ne zaustavljaju taj posao. Šira politika nije proglašena implementiranom: relevantni redovi nose `owner_decisions_20261019` sa odobrenim smerom i `proofStatus: PENDING`. Prethodni datirani dokazi ostaju zasebni. Ovo nije novi master plan, pravna potvrda ili javna objava.
+
 ## Radni prostor — zatečeno 18.10.2026.
 
 - Aktivni checkout ove sesije: `C:\Users\user\Desktop\USKOCI ZAVRSAVANJE\USKOCI-EAN`.

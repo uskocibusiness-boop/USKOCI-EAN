@@ -1,6 +1,6 @@
 import {
   GeminiCreditsUnavailableError, GeminiSafetyBlockedError,
-  geminiFailureDiagnostic, geminiRequestBody, geminiUsage,
+  geminiFailureDiagnostic, geminiRequestBody, decodeGeminiUsage,
   type GeminiUsage,
 } from './geminiTaskStream.ts';
 
@@ -38,6 +38,8 @@ export type GeminiAttemptReport = Omit<GeminiAttemptAdmission, 'signal'> & Gemin
   usageComplete: boolean;
   /** Raw breakdown; this transport's usage.outputTokens includes candidates AND thinking. */
   candidateTokens: number | null; thoughtTokens: number | null;
+  /** Cached is a subset of prompt input, not additional usage. Missing stays unknown. */
+  cachedPromptTokens: number | null; toolUsePromptTokens: number | null;
   errorCode: string | null;
 };
 export type GeminiToolConversationInput<T = string> = {
@@ -188,7 +190,8 @@ export async function generateGeminiToolConversation<T = string>(input: GeminiTo
         if (object(knownReceipt) && typeof knownReceipt.reservationId === 'string' && knownReceipt.reservationId.trim()) {
           try { await account({ ...admission, reservationId: knownReceipt.reservationId, dispatched: false,
             outcome: 'FAILED', httpStatus: null, usage: null, cumulativeUsage: { ...usage }, usageComplete,
-            attemptUsageComplete: false, candidateTokens: null, thoughtTokens: null, errorCode: 'AI_TOOL_STOPPED' }); }
+            attemptUsageComplete: false, candidateTokens: null, thoughtTokens: null,
+            cachedPromptTokens: null, toolUsePromptTokens: null, errorCode: 'AI_TOOL_STOPPED' }); }
           catch { return fail('AI_TOOL_ACCOUNTING_FAILED'); }
         }
         if (controller.signal.aborted) return fail('AI_TOOL_STOPPED');
@@ -198,6 +201,7 @@ export async function generateGeminiToolConversation<T = string>(input: GeminiTo
       if (!object(receipt) || typeof receipt.reservationId !== 'string' || !receipt.reservationId.trim()) fail('AI_TOOL_ADMISSION_FAILED');
       let dispatched = false, outcome: 'SUCCEEDED' | 'FAILED' = 'FAILED', httpStatus: number | null = null;
       let currentUsage: GeminiUsage | null = null, currentCandidates: number | null = null, currentThoughts: number | null = null, errorCode: string | null = null;
+      let currentCached: number | null = null, currentToolPrompt: number | null = null;
       let modelContent: JsonObject | undefined, calls: JsonObject[] = [], finalRaw: string | undefined, value: T | undefined;
       try {
         check(); dispatched = true; attempts++;
@@ -208,17 +212,10 @@ export async function generateGeminiToolConversation<T = string>(input: GeminiTo
         try { payload = await readBody(response); } catch (error) { if (response.ok) throw error; }
         check();
         if (object(payload)) {
-          const reported = geminiUsage(payload.usageMetadata);
-          if (object(payload.usageMetadata)) {
-            const rawThoughts = payload.usageMetadata.thoughtsTokenCount;
-            currentCandidates = reported?.outputTokens ?? null;
-            // An omitted thinking count is only provably zero if the total leaves no residual.
-            currentThoughts = count(rawThoughts) ? rawThoughts
-              : rawThoughts === undefined && reported && reported.totalTokens === reported.promptTokens + reported.outputTokens ? 0 : null;
-            if (reported && currentThoughts !== null && reported.totalTokens >= reported.promptTokens + reported.outputTokens + currentThoughts) {
-              currentUsage = { ...reported, outputTokens: reported.outputTokens + currentThoughts };
-            }
-          }
+          const reported = decodeGeminiUsage(payload.usageMetadata);
+          currentUsage = reported.usage;
+          currentCandidates = reported.candidateTokens; currentThoughts = reported.thoughtTokens;
+          currentCached = reported.cachedPromptTokens; currentToolPrompt = reported.toolUsePromptTokens;
         }
         if (!response.ok) {
           const diagnostic = geminiFailureDiagnostic(payload);
@@ -275,16 +272,15 @@ export async function generateGeminiToolConversation<T = string>(input: GeminiTo
       } finally {
         if (dispatched) {
           if (currentUsage) addUsage(usage, currentUsage);
-          if (!currentUsage || currentThoughts === null) usageComplete = false;
+          if (!currentUsage) usageComplete = false;
           // Unknown usage reserves the whole allocation, never frees it as a measured zero.
-          spentOutputTokens += currentUsage && currentThoughts !== null
-            ? Math.max(currentUsage.outputTokens, currentUsage.totalTokens - currentUsage.promptTokens)
-            : maxOutputTokens;
+          spentOutputTokens += currentUsage ? currentUsage.outputTokens : maxOutputTokens;
         }
         const report: GeminiAttemptReport = { ...admission, reservationId: receipt.reservationId, dispatched,
           outcome, httpStatus, usage: currentUsage, cumulativeUsage: { ...usage }, usageComplete,
-          attemptUsageComplete: currentUsage !== null && currentThoughts !== null,
-          candidateTokens: currentCandidates, thoughtTokens: currentThoughts, errorCode };
+          attemptUsageComplete: currentUsage !== null,
+          candidateTokens: currentCandidates, thoughtTokens: currentThoughts,
+          cachedPromptTokens: currentCached, toolUsePromptTokens: currentToolPrompt, errorCode };
         try {
           await account(report);
         } catch {

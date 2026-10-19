@@ -130,3 +130,137 @@ test('saved and proposed IDs beyond the first page are all resolved',async()=>{
   assert.ok(ids.every(id=>snapshot.categories.some(n=>n.id===id)));
   assert.equal(f.calls.filter(q=>q.operation==='RESOLVE').length,3,'verification reuses the same fenced pages');
 });
+
+const turn=()=>new Promise(resolve=>setImmediate(resolve));
+function deferred(){let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};}
+function controlled(f,shouldHold){
+  const pending=[];let active=0,peak=0;
+  const rpc=async(name,args)=>{
+    const answer=await f.rpc(name,args),q=args.p_query;
+    if(!shouldHold(q))return answer;
+    const gate=deferred(),entry={q,answer,done:false,
+      release(){if(!entry.done){entry.done=true;gate.resolve();}},
+      reject(error){if(!entry.done){entry.done=true;gate.reject(error);}}};
+    pending.push(entry);active++;peak=Math.max(peak,active);
+    try{await gate.promise;return answer;}finally{active--;}
+  };
+  return {rpc,pending,get peak(){return peak;},releaseAll(){pending.forEach(p=>p.release());}};
+}
+
+test('META fences parallel bootstrap roots, saved IDs and seeds with stable prompt order and bounded concurrency',async()=>{
+  const f=fixture(),c=controlled(f,q=>q.operation!=='META');
+  const seeds=['3D štampa','Izrada maketa','Digitalni crteži','Izrada figurica','Modelovanje'];
+  const opening=createClassificationExplorer(c.rpc,{seedServices:seeds,seedCategoryIds:[service.categoryId]});
+  await turn();
+  assert.equal(f.calls[0].operation,'META');
+  assert.deepEqual(c.pending.map(p=>p.q.operation),['ROOTS','RESOLVE','SEARCH','SEARCH']);
+  assert.ok(c.pending.every(p=>p.q.catalogVersion===7&&p.q.catalogFingerprint==='a'.repeat(32)));
+  // A completed independent seed starts the next job without waiting for ROOTS.
+  c.pending[3].release();await turn();
+  assert.equal(c.pending.at(-1).q.text,seeds[2]);
+  assert.equal(c.pending[0].done,false);
+  for(let n=0;n<4;n++){c.releaseAll();await turn();}
+  const x=await opening,pages=JSON.parse(x.prompt()).pages;
+  assert.deepEqual(pages.map(p=>p.operation),['ROOTS',...seeds.map(()=> 'SEARCH'),'RESOLVE']);
+  assert.equal(c.peak,4);
+});
+
+test('verification resolves IDs alongside paged EXACT and waits for every exact hit before fresh META',async()=>{
+  const exact=Array.from({length:65},(_,n)=>child(n+10,`Radionička usluga ${n}`,['3D štampa']));
+  const f=fixture({exact}),c=controlled(f,q=>['EXACT','RESOLVE'].includes(q.operation));
+  const x=await createClassificationExplorer(c.rpc);
+  const p=plan({service:'3D štampa',categoryId:exact.at(-1).categoryId,action:'REUSE_ALIAS'});
+  const verifying=x.verify(raw(p));await turn();
+  assert.deepEqual(c.pending.map(p=>p.q.operation),['RESOLVE','EXACT']);
+  c.pending[0].release();await turn();
+  assert.equal(f.calls.filter(q=>q.operation==='META').length,1);
+  c.pending[1].release();await turn();
+  assert.equal(c.pending.at(-1).q.cursor,'exact-32');
+  assert.equal(f.calls.filter(q=>q.operation==='META').length,1);
+  c.pending.at(-1).release();await turn();
+  assert.equal(c.pending.at(-1).q.cursor,'exact-64');
+  assert.equal(f.calls.filter(q=>q.operation==='META').length,1);
+  c.pending.at(-1).release();
+  const snapshot=await verifying;
+  assert.equal(snapshot.navigation.identityChecks[0].categoryIds.length,65);
+  assert.equal(evaluate(snapshot,p).status,'AMBIGUOUS_CANONICAL_IDENTITY');
+  assert.equal(f.calls.at(-1).operation,'META');
+});
+
+test('identical in-flight searches spend one query and one response budget but retain each service research tag',async()=>{
+  const f=fixture(),c=controlled(f,q=>q.operation==='SEARCH');
+  const x=await createClassificationExplorer(c.rpc,{maxQueries:4});
+  const before=x.evidenceBytes;
+  const a=x.execute({operation:'SEARCH',text:'3D',service:'Izrada maketa'});
+  const b=x.execute({service:'Izrada figurica',text:'3D',operation:'SEARCH'});
+  await turn();assert.equal(c.pending.length,1);assert.equal(x.queryCount,3);
+  c.releaseAll();await Promise.all([a,b]);
+  assert.equal(x.evidenceBytes-before,new TextEncoder().encode(JSON.stringify(c.pending[0].answer)).byteLength);
+  const snapshot=await x.verify({});
+  assert.ok(snapshot.navigation.searchedServices.includes('izrada maketa'));
+  assert.ok(snapshot.navigation.searchedServices.includes('izrada figurica'));
+  assert.equal(x.queryCount,4);
+});
+
+test('overlapping verifications share exact/resolve reads but never share their final fresh META',async()=>{
+  const f=fixture();let hold=false;
+  const c=controlled(f,()=>hold),x=await createClassificationExplorer(c.rpc,{maxQueries:6});hold=true;
+  const a=x.verify(raw(plan())),b=x.verify(raw(plan()));await turn();
+  assert.equal(c.pending.length,2);
+  assert.equal(f.calls.filter(q=>q.operation==='EXACT').length,1);
+  assert.equal(f.calls.filter(q=>q.operation==='RESOLVE').length,1);
+  c.releaseAll();await turn();
+  assert.equal(c.pending.filter(p=>p.q.operation==='META').length,2);
+  assert.equal(x.queryCount,6);
+  c.releaseAll();
+  for(const snapshot of await Promise.all([a,b]))assert.equal(evaluate(snapshot,plan()).accepted,true);
+});
+
+test('a stale peer invalidates verification and late valid pages cannot restore a successful snapshot',async()=>{
+  const f=fixture({transform:(a,q)=>q.operation==='RESOLVE'?{...a,catalogFingerprint:'b'.repeat(32)}:a});
+  const c=controlled(f,q=>['EXACT','RESOLVE'].includes(q.operation)),x=await createClassificationExplorer(c.rpc);
+  const rejected=assert.rejects(x.verify(raw(plan())),/STALE/);await turn();
+  c.pending.find(p=>p.q.operation==='RESOLVE').release();await rejected;
+  c.releaseAll();await turn();
+  assert.equal(f.calls.filter(q=>q.operation==='META').length,1);
+  await assert.rejects(x.verify(raw(plan())),/INCOMPLETE/);
+});
+
+test('alias-only change at final META rejects completed parallel identity evidence',async()=>{
+  const f=fixture({transform:(a,q,calls)=>q.operation==='META'&&calls.filter(c=>c.operation==='META').length>1
+    ?{...a,catalogFingerprint:'b'.repeat(32)}:a});
+  const x=await createClassificationExplorer(f.rpc);
+  await assert.rejects(x.verify(raw(plan())),/STALE/);
+  assert.ok(f.calls.some(q=>q.operation==='EXACT'));assert.ok(f.calls.some(q=>q.operation==='RESOLVE'));
+  assert.equal(f.calls.at(-1).operation,'META');
+  await assert.rejects(x.execute({operation:'SEARCH',text:'3D'}),/INCOMPLETE/);
+});
+
+test('RPC timeout stops queued research jobs and late siblings cannot authorize a retry snapshot',async()=>{
+  const f=fixture(),c=controlled(f,q=>['EXACT','RESOLVE'].includes(q.operation));
+  const x=await createClassificationExplorer(c.rpc);
+  const rejected=assert.rejects(x.verify(raw(plan()),{services:Array.from({length:8},(_,n)=>`Nova usluga ${n}`)}),/RPC_TIMEOUT/);
+  await turn();assert.equal(c.pending.length,4);const calls=f.calls.length;
+  c.pending[0].reject(new Error('RPC_TIMEOUT'));await rejected;
+  c.releaseAll();await turn();
+  assert.equal(f.calls.length,calls,'no queued job or final META starts after timeout');
+  await assert.rejects(x.verify(raw(plan())),/INCOMPLETE/);
+});
+
+test('research cancellation rejects all late parallel responses and starts no remaining work',async()=>{
+  const f=fixture(),controller=new AbortController(),c=controlled(f,q=>['EXACT','RESOLVE'].includes(q.operation));
+  const x=await createClassificationExplorer(c.rpc,{signal:controller.signal});
+  const rejected=assert.rejects(x.verify(raw(plan())),/CANCELLED/);await turn();
+  controller.abort();c.releaseAll();await rejected;await turn();
+  assert.equal(f.calls.filter(q=>q.operation==='META').length,1);
+  await assert.rejects(x.execute({operation:'SEARCH',text:'3D'}),/CANCELLED/);
+});
+
+test('conflicting same-ID nodes from parallel responses still invalidate the entire explorer',async()=>{
+  const f=fixture({transform:(a,q)=>q.operation==='RESOLVE'?{...a,items:a.items.map(n=>({...n,label:'Promenjena usluga',path:[root.label,'Promenjena usluga']}))}:a});
+  const c=controlled(f,q=>['EXACT','RESOLVE'].includes(q.operation)),x=await createClassificationExplorer(c.rpc);
+  const rejected=assert.rejects(x.verify(raw(plan())),/CONFLICTING_NODE/);await turn();
+  c.pending.find(p=>p.q.operation==='EXACT').release();await turn();
+  c.pending.find(p=>p.q.operation==='RESOLVE').release();await rejected;
+  await assert.rejects(x.verify(raw(plan())),/INCOMPLETE/);
+});

@@ -109,6 +109,8 @@ jobs:
         run: |
           node --test scripts/__tests__/build-contract.test.cjs scripts/__tests__/entry-assets.test.cjs scripts/__tests__/design-lab-boundary.test.cjs
           node --test supabase/proofs/ai/interview_auth_preflight.test.mjs supabase/proofs/ai/v5_ai_stream.test.mjs supabase/proofs/ai/v5_worker_edge.test.mjs supabase/proofs/ai/historical_intake_source.test.mjs
+          node --test supabase/proofs/ai/gemini_usage.test.mjs supabase/proofs/ai/gemini_tool_conversation.test.mjs supabase/proofs/ai/ai_edge_context.test.mjs supabase/proofs/ai/classification-full-catalog-edge.test.mjs supabase/proofs/dynamic_taxonomy/classification-explorer.test.mjs
+          node --test supabase/proofs/ai/taxonomy_provider_budget.test.mjs scripts/acceptance/dev_service_execution_acceptance.test.mjs
           node --test supabase/proofs/dynamic_taxonomy/classification-verified-alias.test.mjs
           mkdir -p artifacts/validation
           npm test -- --runInBand --json --outputFile=artifacts/validation/jest.json

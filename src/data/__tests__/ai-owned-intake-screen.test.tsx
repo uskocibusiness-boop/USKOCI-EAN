@@ -938,6 +938,7 @@ it.each(['new', 'new-entry', 'resumed'] as const)('preserves unsent text through
   if (kind === 'resumed') await render(); else await start();
   const sends = mockSend.mock.calls.length;
   await type('Dopuna koju još nisam poslao.');
+  expect(tree.root.findByProps({testID:'intake-review-unsent-note'}).props.children).toContain('Neposlati tekst nije deo pregleda.');
   expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findAllByProps({ label: 'Pregledaj zadatak' })).toHaveLength(1);
   await act(async () => tree.root.findByProps({ testID: 'intake-task-summary' }).findByProps({ label: 'Pregledaj zadatak' }).props.onPress());
   const first = mockRouter.push.mock.calls.at(-1)![0].params;
@@ -1827,3 +1828,23 @@ it('keeps the complete card and safety warning while a photo blocks review, incl
  await act(async()=>done(null));expect(card().findByProps({label:'Pregledaj zadatak'}).props.disabled).toBe(false);
  await act(async()=>card().findByProps({label:'Pregledaj zadatak'}).props.onPress());expect(mockRouter.push).toHaveBeenCalledTimes(1);
 });
+
+it.each(['PERMISSION_PENDING','PREPARING','STARTING','LISTENING','FINALIZING'] as const)(
+ 'preserves the ongoing speech and typed draft when review is pressed during %s',async phase=>{
+  mockLoad.mockResolvedValue(conversation({facts:completeFacts()}));await resume();
+  await type('Dopuna koju još nisam poslao.');
+  const review=()=>tree.root.findByProps({testID:'intake-task-summary'}).findByProps({label:'Pregledaj zadatak'}).props;
+  const retainedReview=review().onPress;
+  mockVoicePhase=phase;
+  // A native gesture can change the controller before React paints its new state.
+  await act(async()=>retainedReview());
+  expect(mockRouter.push).not.toHaveBeenCalled();expect(mockVoiceCancel).not.toHaveBeenCalled();
+  await update();expect(review().disabled).toBe(true);
+  expect(text()).toContain('Završi govor pre otvaranja pregleda.');
+  expect(input().value).toBe('Dopuna koju još nisam poslao.');
+  expect(mockSend).not.toHaveBeenCalled();
+  mockVoicePhase='IDLE';await update();expect(review().disabled).toBe(false);
+  await act(async()=>review().onPress());
+  expect(mockRouter.push).toHaveBeenCalledWith({pathname:'/pregled-zadatka',params:{conversationId:id,intakeReturn:expect.any(String)}});
+  expect(input().value).toBe('Dopuna koju još nisam poslao.');expect(mockSend).not.toHaveBeenCalled();
+ });

@@ -8,6 +8,7 @@ import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 import ts from 'typescript';
 import {historicalIntakeSource} from './historical_intake_source.mjs';
+import {isProviderUsageLog} from './provider_usage_log_contract.mjs';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
 const entry='supabase/functions/uskoci-ai-interview/index.ts',registry='src/contracts/needFactsV2.ts';
 export function loadOwnedIntakeHandler(options){
@@ -17,7 +18,7 @@ export function loadOwnedIntakeHandler(options){
  const context=vm.createContext({Request,Response,Headers,URL,URLSearchParams,Intl,TextEncoder,TextDecoder,ReadableStream,AbortController,crypto:webcrypto,
   Date:options.Date??Date,setTimeout:options.setTimeout??setTimeout,clearTimeout:options.clearTimeout??clearTimeout,
   fetch:options.fetch,console:{error:(...args)=>{if(options.log)options.log(args);else assert.ok(args.every(x=>typeof x==='number'||/^[A-Z_]+$/.test(x)));},
-   info:(...args)=>{if(options.log)options.log(args);else assert.ok(args.every(x=>typeof x==='number'||/^[A-Z_,]+$/.test(x)));}},
+   info:(...args)=>{if(options.log)options.log(args);else assert.ok(isProviderUsageLog(args)||args.every(x=>typeof x==='number'||/^[A-Z_,]+$/.test(x)));}},
   Deno:{env:{get:options.env},serve:fn=>{assert.equal(handler,undefined);handler=fn;}}});
  function evaluate(file,require){
   const bytes=historical?historical.read(file):readFileSync(resolve(root,file));sourceHashes[file]=createHash('sha256').update(bytes).digest('hex');

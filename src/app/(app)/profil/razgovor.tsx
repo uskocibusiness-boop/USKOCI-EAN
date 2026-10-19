@@ -232,7 +232,8 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
   const reviewActivation=data?.review?.activate??(activationChoice.current?.conversationId===data?.conversationId
     ?activationChoice.current?.activate:data?.profileStatus==='DRAFT')??false;
   const review=async(activate=reviewActivation)=>{
-    if(!canAct()||!enabled||!writable||!data)return;
+    // Native speech can start before React replaces a retained review callback.
+    if(!canAct()||!enabled||!writable||!data||voice.controller.getSnapshot().phase!=='IDLE')return;
     await savePanel(async()=>{
       // The review is made of the proposal as it stands, so the name goes into the proposal first (one patch, then the same prepare).
       let at={conversationId:data.conversationId,revision:data.revision};
@@ -310,6 +311,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
       {(expired||editor.uncertain||editor.error)?<V2Action tone="neutral" label="Proveri stanje" onPress={refresh} disabled={editor.busy}/>:null}
     </>}>
       {data.saved?<T accessibilityRole="alert" variant="title" style={{color:sys.color.green}}>Profil je sačuvan{data.saved.profileStatus==='ACTIVE'?' i aktivan':''}.</T>:null}
+      {!data.saved&&input.trim()?<T testID="worker-review-unsent-note" variant="note" tone="muted">Neposlati tekst nije deo ovog pregleda. Ostaje u razgovoru.</T>:null}
       <WorkerAiReviewDetails review={frozen} onEdit={data.saved?undefined:editConversation} editDisabled={!enabled||!writable||expired||reviewNeedsRestart}
         onAddName={data.saved||expired?undefined:()=>leave(()=>router.push('/profil/podaci'))}/>
       {/* Describe notification readiness honestly: signed pending reviews grant no matching authority. */}

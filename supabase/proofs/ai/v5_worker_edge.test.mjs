@@ -76,6 +76,18 @@ const completions=f=>f.calls.filter(c=>c.url.endsWith('/rpc_complete_worker_ai_t
 const failures=f=>f.calls.filter(c=>c.url.endsWith('/rpc_fail_worker_ai_turn_service'));
 async function events(f,patch={}){const r=await f.invoke(patch);assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/text\/event-stream/);
  return (await r.text()).trim().split('\n\n').map(e=>JSON.parse(e.slice(6)));}
+test('invalid fallback worker patch still settles complete provider thinking usage once',async()=>{
+ const f=fixture({provider:()=>new Response('data: '+JSON.stringify({candidates:[{
+   content:{parts:[{text:'{"safety":"ALLOW","assistantMessage":"Predlog.","patch":{"forbidden":true}}'}]},finishReason:'STOP'}],
+   usageMetadata:{promptTokenCount:100,candidatesTokenCount:20,thoughtsTokenCount:5,cachedContentTokenCount:40,totalTokenCount:125}})+'\n\n',
+   {headers:{'Content-Type':'text/event-stream'}})});
+ const es=await events(f);assert.equal(es.at(-1).kind,'safe_error');assert.equal(completions(f).length,0);
+ const usage=f.calls.filter(c=>c.url.endsWith('/rpc_ai_test_record_usage_service'));
+ assert.equal(providers(f).length,1);assert.equal(usage.length,1);
+ assert.equal(usage[0].body.p_prompt_tokens,100);assert.equal(usage[0].body.p_output_tokens,25);
+ assert.equal(usage[0].body.p_total_tokens,125);assert.equal(usage[0].abortedAtCall,false);
+});
+
 test('recovery proof loader binds the current complete worker bundle without network',async()=>{
  const loaded=loadWorkerRecoveryHandler({fetch:()=>assert.fail('NETWORK_NOT_ALLOWED'),env:()=>''});
  assert.deepEqual(Object.keys(loaded.sourceHashes).sort(),['src/contracts/aiAvailability.ts','supabase/functions/_shared/aiTestBudget.ts',
@@ -226,7 +238,7 @@ test('contextual worker clarification survives completion and stream without inv
  assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);assert.equal(completions(f).length,1);
  assert.deepEqual(completions(f)[0].body.p_output,output);
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),output.assistantMessage);
- const prompt=providers(f)[0].body.systemInstruction.parts[0].text;
+ const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
  assert.ok(prompt.includes('warm, natural and attentive'));
  assert.ok(prompt.includes('safety CLARIFY with an empty patch'));
  assert.ok(prompt.includes('You receive text only, not sound'));
@@ -258,7 +270,7 @@ test('personal interview filters obsolete fields without changing the owned V1 c
  const f=fixture({context:{schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',
   candidate,messages:[{role:'USER',body:'SYNTHETIC_USER_MESSAGE'}]}});
  const es=await events(f);assert.equal(es.at(-1).kind,'final');
- const provider=providers(f)[0].body,prompt=provider.systemInstruction.parts[0].text;
+ const provider=providers(f)[0].body,prompt=provider.systemInstruction.parts.map(p=>p.text).join('\n');
  assert.ok(!prompt.includes('PRIVATE_LEGACY_LICENSE'));assert.ok(!prompt.includes('"teamCapacity"'));
  assert.ok(prompt.includes('"tools":["Kolica"]'));assert.ok(prompt.includes('"vehicles":["Kombi"]'));
  const fields=provider.generationConfig.responseSchema.properties.patch.properties;
@@ -266,6 +278,9 @@ test('personal interview filters obsolete fields without changing the owned V1 c
  assert.ok(!Object.hasOwn(fields,'excludedWork'));assert.ok(!Object.hasOwn(fields,'urgentNotifications'));
  assert.equal(candidate.teamCapacity,37);assert.deepEqual(candidate.licenses,['PRIVATE_LEGACY_LICENSE']);
  assert.ok(prompt.includes('ONE person'));assert.ok(prompt.includes('no separate exclusion or urgent-notification preference field'));
+ assert.ok(!JSON.stringify(provider.systemInstruction.parts.slice(0,2)).includes('"tools":["Kolica"]'));
+ assert.ok(!JSON.stringify(provider.systemInstruction.parts.slice(0,2)).includes('"city":"Novi Sad"'));
+ assert.equal(provider.systemInstruction.parts.filter(p=>p.text.includes('Current owned candidate')).length,1);
 });
 
 function modeFixture(options={}) {
@@ -378,7 +393,7 @@ for(const change of ['add','remove'])test(`worker ${change} instruction keeps un
  assert.equal((await events(f,{text:change==='add'?'Dodaj i postavljanje tapeta.':'Više ne nudim gletovanje.'})).at(-1).kind,'final');
  assert.equal(providers(f).length,1);assert.deepEqual(completions(f)[0].body.p_output.patch,{skills:desired});
  assert.equal(JSON.stringify(candidate),previous);assert.ok(!f.calls.some(c=>/save_worker|bind_reviewed|commit_admission|publish|push/.test(c.url)));
- const prompt=providers(f)[0].body.systemInstruction.parts[0].text;
+ const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
  assert.ok(prompt.includes('skills, tools and vehicles are COMPLETE replacement lists, not additions'));
  assert.ok(prompt.includes('keep every existing offered service the person has not explicitly removed'));
  assert.ok(prompt.includes('Changing the delivery mode of one service does not change other services'));
