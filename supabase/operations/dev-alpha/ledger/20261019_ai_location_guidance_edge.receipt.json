@@ -1,0 +1,117 @@
+{
+  "date": "2026-10-19",
+  "source": "97c3f86b320149a6d1205676b008224b622b4370",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "scope": "Guided location dialogue, route follow-up, worker area instructions. No SQL migration or profile Save/task Publish.",
+  "tests": {
+    "node": 258,
+    "jest": 94,
+    "typescript": "PASS"
+  },
+  "functions": [
+    {
+      "name": "uskoci-ai-interview",
+      "version": 101,
+      "previousVersion": 100,
+      "verify_jwt": false,
+      "authentication": "Existing in-handler ownership auth unchanged",
+      "deployedBundleSha256": "036e348faf7460817ffeb1681e8028a5873d20ce7e35b3402978842fc235e8fe",
+      "readbackMismatches": [],
+      "files": [
+        {
+          "name": "src/contracts/aiAvailability.ts",
+          "bytes": 468,
+          "sha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409"
+        },
+        {
+          "name": "src/contracts/needFactsV2.ts",
+          "bytes": 7029,
+          "sha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6"
+        },
+        {
+          "name": "supabase/functions/_shared/aiTestBudget.ts",
+          "bytes": 5351,
+          "sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24"
+        },
+        {
+          "name": "supabase/functions/_shared/classificationEngine.mjs",
+          "bytes": 15292,
+          "sha256": "cdedf45565f92235ac2f8c75be9f754128bfa59f3c37fec6d7b394b677d748d3"
+        },
+        {
+          "name": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+          "bytes": 17298,
+          "sha256": "f0a80eb886de14f5f432da985a6745e89a2d3bc003a72bbb67637bca34db17ff"
+        },
+        {
+          "name": "supabase/functions/_shared/geminiTaskStream.ts",
+          "bytes": 16466,
+          "sha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5"
+        },
+        {
+          "name": "supabase/functions/_shared/locationReply.ts",
+          "bytes": 8572,
+          "sha256": "274f235eae36651538b284653c9d395c62fbeed2442e0a7820472ed327ee683e"
+        },
+        {
+          "name": "supabase/functions/_shared/taxonomyScopedShadow.mjs",
+          "bytes": 1910,
+          "sha256": "c91b7bc3bb95f6cfc370c5a589bd12aba28089261b32d773573853cc62f75e8b"
+        },
+        {
+          "name": "supabase/functions/uskoci-ai-interview/index.ts",
+          "bytes": 101989,
+          "sha256": "fe742d97bc983b3c91a4bf6b0b5104681fba3a329117666bdf2ab26b80f41f77"
+        }
+      ],
+      "rollbackSource": "0dc4a853461445d449d8590b72e06e5307234224"
+    },
+    {
+      "name": "uskoci-worker-interview",
+      "version": 55,
+      "previousVersion": 54,
+      "verify_jwt": false,
+      "authentication": "Existing in-handler ownership auth unchanged",
+      "deployedBundleSha256": "639a77f076885f3542dfd7bd7b7ce648cc63bd55879192947ff7a239c1abff17",
+      "readbackMismatches": [],
+      "files": [
+        {
+          "name": "src/contracts/aiAvailability.ts",
+          "bytes": 468,
+          "sha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409"
+        },
+        {
+          "name": "supabase/functions/_shared/aiTestBudget.ts",
+          "bytes": 5351,
+          "sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24"
+        },
+        {
+          "name": "supabase/functions/_shared/classificationEngine.mjs",
+          "bytes": 15292,
+          "sha256": "cdedf45565f92235ac2f8c75be9f754128bfa59f3c37fec6d7b394b677d748d3"
+        },
+        {
+          "name": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+          "bytes": 17298,
+          "sha256": "f0a80eb886de14f5f432da985a6745e89a2d3bc003a72bbb67637bca34db17ff"
+        },
+        {
+          "name": "supabase/functions/_shared/geminiTaskStream.ts",
+          "bytes": 16466,
+          "sha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5"
+        },
+        {
+          "name": "supabase/functions/_shared/workerServiceModeContext.mjs",
+          "bytes": 9016,
+          "sha256": "1fdac04aecc7f582353672de96020c47ff3e84e44d71e74554369e0e3914bc3b"
+        },
+        {
+          "name": "supabase/functions/uskoci-worker-interview/index.ts",
+          "bytes": 40495,
+          "sha256": "d6a21bbf6963f65c37a4d0af24230c2503cc20dc158388d7927cfa48b653fbd1"
+        }
+      ],
+      "rollbackSource": "0dc4a853461445d449d8590b72e06e5307234224"
+    }
+  ]
+}

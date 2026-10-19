@@ -9,7 +9,8 @@ type Dialogue = { next: 'ASK' | 'ACK' | 'REVIEW' | 'ANSWER'; questionKey: string
   priceUnit: string; schedulePattern: string };
 type Turn = { safety: string; assistantMessage: string; proposals: Proposal[]; dialogue: Dialogue };
 type Result = Turn;
-type Guard = (turn: Turn, input: string, facts: Fact[], time: { localDate: string }, contextualLocation?: boolean) => Result;
+type LocationContext = import('../../../supabase/functions/_shared/locationReply').LocationContext;
+type Guard = (turn: Turn, input: string, facts: Fact[], time: { localDate: string }, contextualLocation?: LocationContext) => Result;
 
 // Exercise the existing server-side guard in isolation, without reimplementing its decisions.
 const source = readFileSync(resolve(process.cwd(), 'supabase/functions/uskoci-ai-interview/index.ts'), 'utf8').replace(/\r\n/g, '\n');
@@ -45,7 +46,10 @@ const reply = (next: Dialogue['next'], text: string, proposals: Proposal[] = [])
   dialogue: { next, questionKey: next === 'ASK' ? 'need.people_needed' : 'NONE',
     taskRelation: 'CONTINUE', priceUnit: 'UNSPECIFIED', schedulePattern: 'UNSPECIFIED' },
 });
-const call = (turn: Turn, active = facts()) => guard(turn, 'U redu, to je sve', active, { localDate: '2026-10-12' }, false);
+const call = (turn: Turn, active = facts()) => guard(turn, 'U redu, to je sve', active, { localDate: '2026-10-12' });
+const location: LocationContext = { version: 1, promptToken: '2dce6cd8-599b-4d04-ae4e-a48b36027e60',
+  reviewRevision: 'a'.repeat(64), slot: 'start', phase: 'PROPOSAL', question: 'Da li je ovo mesto?',
+  query: 'Stara stanica, Novi Sad', proposal: { id: 'd197b144-d66c-4b37-bff7-4e6bd7ab3af9', label: 'Stara stanica' }, alternatives: [] };
 
 describe('natural server AI response without bypassing authoritative review', () => {
   beforeEach(() => { explicitFinish = false; });
@@ -91,9 +95,14 @@ describe('natural server AI response without bypassing authoritative review', ()
     expect(result.proposals).toHaveLength(0);
   });
   it('keeps a location-context answer about the current point rather than generic review', () => {
-    const msg = 'Koja ulica je u pitanju?';
-    const result = guard(reply('REVIEW', msg), 'Kod stare stanice', facts('need.task_country_code'), { localDate: '2026-10-12' }, true);
+    const msg = 'Mapa proverava da li je to pravo mesto. Javni zadatak prikazuje približnu lokaciju.';
+    const result = guard(reply('ANSWER', msg), 'Zašto mapa?', facts('need.task_country_code'), { localDate: '2026-10-12' }, location);
     expect(result.assistantMessage).toBe(msg);
+  });
+  it('does not promise review readiness while the displayed location is unconfirmed', () => {
+    const result = guard(reply('REVIEW', 'Sve je potvrđeno, objavi.'), 'Kod stare stanice', facts(), { localDate: '2026-10-12' }, location);
+    expect(result.assistantMessage).toContain('proveriš predloženo mesto na mapi');
+    expect(result.proposals).toHaveLength(0);
   });
   it('does not allow a per-hour amount to become a confirmed task price', () => {
     const turn = reply('ACK', 'Zabeležio sam 1.200 po satu.', [{ key: 'need.price_rsd', value: 1200 }]);
