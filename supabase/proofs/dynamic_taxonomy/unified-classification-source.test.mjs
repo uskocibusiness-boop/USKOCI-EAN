@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 const worker=readFileSync(new URL('../../functions/uskoci-worker-interview/index.ts',import.meta.url),'utf8');
 const need=readFileSync(new URL('../../functions/uskoci-ai-interview/index.ts',import.meta.url),'utf8');
-test('two Gemini handlers import one classification reader behind one flag',()=>{
+test('two Gemini handlers use the same read-only catalog explorer and bounded tool transport behind one flag',()=>{
   for(const source of [worker,need]){
-    assert.match(source,/classificationEngine\.mjs/);
+    assert.match(source,/classificationExplorer\.mjs/);
+    assert.match(source,/geminiToolConversation\.ts/);
     assert.match(source,/USKOCI_TAXONOMY_UNIFIED_SHADOW/);
-    assert.match(source,/loadClassificationCatalog/);
-    assert.match(source,/catalogPromptContext/);
+    assert.doesNotMatch(source,/catalogPromptContext/);
   }
 });
 test('requester AI cannot create ESTABLISHED taxonomy nodes mid-turn',()=>{

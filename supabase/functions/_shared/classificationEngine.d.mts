@@ -8,6 +8,7 @@ export type CatalogCategory = Readonly<{
 }>;
 export type CatalogSnapshot = Readonly<{
   catalogVersion: number; catalogFingerprint?: string; categories: CatalogCategory[];
+  navigation?: { kind: 'SERVER_QUERIES'; identityChecks: { service: string; categoryIds: string[] }[]; searchedServices: string[] };
 }>;
 export type RpcClient = (name: string, args: Record<string, unknown>) => Promise<unknown>;
 export declare function normalizedClassificationIdentity(label: unknown): string | null;

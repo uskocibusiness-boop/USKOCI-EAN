@@ -38,9 +38,21 @@ export function loadOwnedIntakeHandler(options){
   assert.ok(!historical&&name==='../../../src/contracts/aiAvailability.ts','UNDECLARED_STREAM_IMPORT');return availability;
  });
  const classificationReply=historical?null:evaluate('supabase/functions/_shared/classificationReply.mjs',()=>assert.fail('UNDECLARED_CLASSIFICATION_REPLY_IMPORT'));
+ const explorer=historical?null:evaluate('supabase/functions/_shared/classificationExplorer.mjs',name=>{
+  assert.equal(name,'./classificationEngine.mjs');return classification;
+ });
+ const toolConversation=historical?null:evaluate('supabase/functions/_shared/geminiToolConversation.ts',name=>{
+  assert.equal(name,'./geminiTaskStream.ts');return stream;
+ });
+ const providerBudget=historical?null:evaluate('supabase/functions/_shared/taxonomyProviderBudget.ts',name=>{
+  assert.equal(name,'./aiTestBudget.ts');return budget;
+ });
+ const researchDeadline=historical?null:evaluate('supabase/functions/_shared/researchDeadline.ts',()=>assert.fail('UNDECLARED_DEADLINE_IMPORT'));
  const imports={'../../../src/contracts/needFactsV2.ts':shared,'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,
   ...(!historical?{'../../../src/contracts/aiAvailability.ts':availability,'../_shared/locationReply.ts':location,'../_shared/taxonomyScopedShadow.mjs':taxonomy,
-   '../_shared/classificationEngine.mjs':classification,'../_shared/classificationGeminiShadow.mjs':classificationShadow,'../_shared/classificationReply.mjs':classificationReply}:{})};
+   '../_shared/classificationEngine.mjs':classification,'../_shared/classificationGeminiShadow.mjs':classificationShadow,'../_shared/classificationReply.mjs':classificationReply,
+   '../_shared/classificationExplorer.mjs':explorer,'../_shared/geminiToolConversation.ts':toolConversation,
+   '../_shared/taxonomyProviderBudget.ts':providerBudget,'../_shared/researchDeadline.ts':researchDeadline}:{})};
  evaluate(entry,name=>{assert.ok(Object.hasOwn(imports,name),'UNDECLARED_EDGE_IMPORT');return imports[name];});
  assert.equal(typeof handler,'function');return {handler,sourceHashes,sourceBinding:historical?.binding??{kind:'CURRENT_SOURCE'}};
 }

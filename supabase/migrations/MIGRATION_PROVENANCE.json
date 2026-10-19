@@ -307,9 +307,22 @@
         "raw_md5": "d42d50aed1df7874c36e2df295e2ba51",
         "raw_sha256": "69983a6b41740f4a5c09112f3dd29cc84cbbeeb9b356b5077fd4e437d179e991",
         "raw_bytes": 50934
+      },
+      {
+        "file": "20261019085714_taxonomy_query_catalog_service.sql",
+        "version": "20261019085714",
+        "name": "taxonomy_query_catalog_service",
+        "classification": "SOURCE_ONLY_LIVE_BINDING_UNPROVEN",
+        "live_applied": null,
+        "preparation_status": "PREPARED_NOT_APPLIED",
+        "note": "Explicitly prepared forward source only. No DEV application or live ledger version has been observed. The nullable live_applied field preserves the existing source-only provenance schema; it is not a claim of application. Standalone PG16/17 proof is tracked separately.",
+        "proof_manifest": "supabase/proofs/dynamic_taxonomy/catalog-query/manifest.json",
+        "raw_md5": "46cc782f7f03fe5726ee4382f8ba14ed",
+        "raw_sha256": "d163becc19aa77f76e131f0f162f0b8fa9dbedb01b023ddd18f2e366755d71e4",
+        "raw_bytes": 15050
       }
     ],
-    "last_extended_at_utc": "2026-10-19T07:50:49.776518+00:00"
+    "last_extended_at_utc": "2026-10-19T09:21:54.321853+00:00"
   },
   "generated_at_utc": "2026-09-07T14:04:10Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",

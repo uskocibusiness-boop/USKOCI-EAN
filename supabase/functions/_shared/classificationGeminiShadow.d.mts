@@ -15,7 +15,7 @@ export type ClassificationInspection = { output: unknown; statuses: string[]; in
 export declare function withGeminiClassificationShadowSchema<T extends { type: string; properties: Record<string, unknown>; required?: string[] }>(baseSchema: T, purpose?: ClassificationPurpose): T;
 export declare function geminiClassificationShadowInstruction(purpose?: ClassificationPurpose): string;
 export declare function inspectGeminiClassificationShadow(
-  raw: unknown, snapshot: CatalogSnapshot, purpose: ClassificationPurpose,
+  raw: unknown, snapshot: CatalogSnapshot | null, purpose: ClassificationPurpose,
 ): ClassificationInspection;
 
 /** Advisory only; never mutates the response, grants Save, or makes a provider call. */

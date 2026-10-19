@@ -5,6 +5,32 @@ const id=n=>`${String(n).padStart(8,'0')}-1111-4111-8111-111111111111`;
 const account=id(1),conversation=id(2),key=id(3),turnId=id(4),attemptId=id(5);
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
 const turn=(state='SUCCEEDED')=>({turnId,conversationId:conversation,clientRequestId:key,attemptId,state,retryAllowed:false,authoritative:true});
+// Keep each scenario's synthetic canonical rows while exposing the current
+// read-only query contract. No runtime catalog or provider is replaced here.
+function queryCatalog(query,catalog){
+ const rows=new Map();let metadata;
+ for(const mode of ['REMOTE','ON_SITE']){
+  const page=catalog({p_execution_location_mode:mode,p_after_key:null,p_limit:100});metadata??=page;
+  for(const row of page.items){
+   const prior=rows.get(row.categoryId);
+   rows.set(row.categoryId,{...row,modes:[...(prior?.modes??[]),mode]});
+  }
+ }
+ const all=[...rows.values()].map(row=>{
+  const pathIds=[];let current=row;
+  while(current){pathIds.unshift(current.categoryId);current=current.parentId?rows.get(current.parentId):null;}
+  return {...row,pathIds};
+ });
+ const eligible=all.filter(row=>query.scope==='ALL'||row.modes.includes(query.scope));
+ const same=(a,b)=>a.toLowerCase()===b.toLowerCase();let selected=[];
+ if(query.operation==='ROOTS')selected=eligible.filter(row=>row.parentId===null);
+ if(query.operation==='SEARCH')selected=eligible.filter(row=>[row.label,...row.aliases].some(label=>label.toLowerCase().includes(query.text.toLowerCase())));
+ if(query.operation==='EXACT')selected=eligible.filter(row=>[row.label,...row.aliases].some(label=>same(label,query.text)));
+ if(query.operation==='RESOLVE')selected=eligible.filter(row=>query.categoryIds.includes(row.categoryId));
+ return {schemaVersion:'TAXONOMY_CATALOG_QUERY_V1',action:'CATALOG_QUERY',operation:query.operation,scope:query.scope,
+  catalogVersion:metadata.catalogVersion,catalogFingerprint:metadata.catalogFingerprint,items:selected,count:selected.length,nextCursor:null,
+  classificationAuthority:'NONE',capabilityAuthority:'NONE',notificationAuthority:'NONE'};
+}
 function fixture(options={}){
  let handler;const calls=[],env={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'PUBLIC_SYNTHETIC',SUPABASE_SERVICE_ROLE_KEY:'SERVICE_SYNTHETIC',
   AI_PROVIDER:'gemini',GEMINI_MODEL:'gemini-3.8-flash',GEMINI_API_KEY:'PROVIDER_SYNTHETIC',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',...options.env};
@@ -25,12 +51,16 @@ function fixture(options={}){
   }
   if(url.endsWith('/rpc_complete_worker_ai_turn_service')){if(options.completionError)throw Error('SYNTHETIC_ACK_LOST');return json(options.receipt??turn());}
   if(url.endsWith('/rpc_taxonomy_ai_catalog_context_service'))return json(options.catalog(JSON.parse(init.body)));
+  if(url.endsWith('/rpc_taxonomy_query_catalog_service'))return json(queryCatalog(JSON.parse(init.body).p_query,options.catalog));
   if(url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'))return json({action:'HINT_CAPTURED',authority:'NONE'});
-  if(url.endsWith('/rpc_ai_test_record_usage_service'))return json({recorded:true});
+  if(url.endsWith('/rpc_ai_test_record_usage_service')){const body=JSON.parse(init.body);return json({recorded:true,authoritative:true,
+   operationId:body.p_operation_id,promptTokens:body.p_prompt_tokens,outputTokens:body.p_output_tokens,totalTokens:body.p_total_tokens});}
   if(url.endsWith('/rpc_fail_worker_ai_turn_service'))return options.fail?.(init)??json(turn('FAILED'));
   if(url.startsWith('https://generativelanguage.googleapis.com/')){
    if(options.provider) return options.provider(init);
    const raw=JSON.stringify({availabilityChange:options.availabilityChange??{kind:'NONE',evidence:''},...output}),fragments=Array.from(raw);
+   if(/:generateContent/.test(url))return json({candidates:[{content:{role:'model',parts:[{text:raw}]},finishReason:options.finishReason??'STOP'}],
+    usageMetadata:{promptTokenCount:10,candidatesTokenCount:5,thoughtsTokenCount:0,totalTokenCount:15}});
    const body=fragments.map((text,index)=>'data: '+JSON.stringify({candidates:[{content:{parts:[{text}]},...(index===fragments.length-1?{finishReason:options.finishReason??'STOP'}:{})}]})+'\n\n').join('');
    const bytes=new TextEncoder().encode(body);return new Response(new ReadableStream({start(c){for(let i=0;i<bytes.length;i+=7)c.enqueue(bytes.slice(i,i+7));c.close();}}),{headers:{'Content-Type':'text/event-stream'}});
   }
@@ -51,7 +81,9 @@ test('recovery proof loader binds the current complete worker bundle without net
  assert.deepEqual(Object.keys(loaded.sourceHashes).sort(),['src/contracts/aiAvailability.ts','supabase/functions/_shared/aiTestBudget.ts',
   'supabase/functions/_shared/geminiTaskStream.ts','supabase/functions/uskoci-worker-interview/index.ts',
   'supabase/functions/_shared/classificationEngine.mjs','supabase/functions/_shared/classificationGeminiShadow.mjs',
-  'supabase/functions/_shared/workerServiceModeContext.mjs','supabase/functions/_shared/classificationReply.mjs'].sort());
+  'supabase/functions/_shared/workerServiceModeContext.mjs','supabase/functions/_shared/classificationReply.mjs',
+  'supabase/functions/_shared/classificationExplorer.mjs','supabase/functions/_shared/geminiToolConversation.ts',
+  'supabase/functions/_shared/taxonomyProviderBudget.ts','supabase/functions/_shared/researchDeadline.ts'].sort());
  assert.equal((await loaded.handler(new Request('https://edge.invalid',{method:'GET'}))).status,405);
 });
 for(const status of [402,429])for(const diagnostics of [false,true])
@@ -173,7 +205,7 @@ test('worker without active catalog protocol retains its original provider schem
  const schema=providers(f)[0].body.generationConfig.responseSchema;
  assert.ok(!schema.required.includes('classificationShadowJson'));
  assert.ok(!Object.hasOwn(schema.properties,'classificationShadowJson'));
- assert.ok(!f.calls.some(c=>c.url.endsWith('/rpc_taxonomy_ai_catalog_context_service')));
+ assert.ok(!f.calls.some(c=>c.url.endsWith('/rpc_taxonomy_query_catalog_service')));
 });
 
 test('stale painting proposal cannot become a current service mode despite a known exact leaf',async()=>{

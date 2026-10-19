@@ -28,7 +28,11 @@ import { validLocationContext, locationProviderSchema, locationInstruction, pars
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, GeminiSafetyBlockedError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { scopedNeedPreviewArgs, scopedNeedPreviewSafeAction } from '../_shared/taxonomyScopedShadow.mjs';
-import { loadClassificationCatalog, catalogPromptContext } from '../_shared/classificationEngine.mjs';
+import type { CatalogSnapshot } from '../_shared/classificationEngine.mjs';
+import { createClassificationExplorer, taxonomyToolDeclaration, type ClassificationExplorer } from '../_shared/classificationExplorer.mjs';
+import { generateGeminiToolConversation } from '../_shared/geminiToolConversation.ts';
+import { createTaxonomyProviderBudget } from '../_shared/taxonomyProviderBudget.ts';
+import { createResearchDeadline } from '../_shared/researchDeadline.ts';
 import { withGeminiClassificationShadowSchema, inspectGeminiClassificationShadow, geminiClassificationShadowInstruction, classificationTurnFeedback } from '../_shared/classificationGeminiShadow.mjs';
 
 import { withClassificationFeedback } from '../_shared/classificationReply.mjs';
@@ -655,10 +659,12 @@ async function callGemini(
   onUsage?: (usage: GeminiUsage) => void,
   locationContext?: LocationContext,
   taxonomyPrompt = '',
-  taxonomyCatalog: Awaited<ReturnType<typeof loadClassificationCatalog>> | null = null,
-  onClassificationHints?: (hints: Record<string,any>[], feedback: any) => void,
+  taxonomyExplorer: ClassificationExplorer | null = null,
+  onClassificationHints?: (hints: Record<string,any>[], feedback: any, catalog: CatalogSnapshot | null) => void,
   imageBase64?: string,
   imageMime?: string,
+  providerBudget?: ReturnType<typeof createTaxonomyProviderBudget>,
+  researchTimeoutMs = 35000,
 ) {
   const contents = history.slice(-30).map((row) => ({
     role: row.role === 'ASSISTANT' ? 'model' : 'user',
@@ -674,9 +680,15 @@ async function callGemini(
     });
   }
   contents.push({ role: 'user', parts: userParts });
-  const parseOutput = (value: any) => {
+  const parseOutput = async (value: any) => {
+    let taxonomyCatalog: CatalogSnapshot | null = null;
+    if (taxonomyExplorer) {
+      try {
+        taxonomyCatalog = await taxonomyExplorer.verify(value, { services: activeFacts.filter((f:any) => f.fact_key === 'need.category' && typeof f.fact_value === 'string').map((f:any) => f.fact_value) });
+      } catch { console.info('NEED_TAXONOMY_RESEARCH','UNVERIFIED'); }
+    }
     // The optional plan is never an AI fact or owner-approved need revision.
-    const checked = taxonomyCatalog
+    const checked = taxonomyExplorer
       ? inspectGeminiClassificationShadow(value,taxonomyCatalog,'NEED_SERVICE')
       : {output:value,statuses:[],reviewProposals:[],invalidPlanCodes:[]};
 
@@ -688,7 +700,7 @@ async function callGemini(
     const category=proposedCategory ? proposedCategory.value : activeFacts.find((f:any)=>f.fact_key==='need.category')?.fact_value;
     const feedback=classificationTurnFeedback(checked,{purpose:'NEED_SERVICE',
       services:typeof category==='string'?[category]:[],catalogAvailable:!!taxonomyCatalog,readyForReview:turn.dialogue?.next==='REVIEW'});
-    onClassificationHints?.(checked.reviewProposals,feedback);
+    onClassificationHints?.(checked.reviewProposals,feedback,taxonomyCatalog);
     return turn;
   };
   const instruction = schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts, timeContext, taskFinishOnly(text) && !locationContext) : legacyInstruction(activeFacts, timeContext);
@@ -696,9 +708,29 @@ async function callGemini(
     systemInstruction: { parts: [{ text: instruction }, ...(locationContext ? [{ text: locationInstruction(locationContext) }] : []), ...(taxonomyPrompt ? [{text: taxonomyPrompt},{text:geminiClassificationShadowInstruction()}] : [])] },
     contents,
     generationConfig: { temperature: 0.2, maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
-      responseMimeType: 'application/json', responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? (taxonomyCatalog ? withGeminiClassificationShadowSchema(locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : legacyProviderSchema() },
+      responseMimeType: 'application/json', responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? (taxonomyExplorer ? withGeminiClassificationShadowSchema(locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : legacyProviderSchema() },
   });
   if (new TextEncoder().encode(payloadBody).byteLength > AI_TEST_LIMITS.llmRequestBytes) throw new Error('AI_CONTEXT_TOO_LARGE');
+  if (taxonomyExplorer && providerBudget) {
+    try {
+      const result = await generateGeminiToolConversation({
+        url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+        key, body: payloadBody, signal, ...providerBudget,
+        limits: { maxRequestBytes: AI_TEST_LIMITS.llmRequestBytes, timeoutMs: Math.max(1,researchTimeoutMs), accountingTimeoutMs: 3000 },
+        tools: [{ declaration: taxonomyToolDeclaration, readOnly: true, execute: async (args, context) => {
+          try { return await taxonomyExplorer.execute(args, context) as Record<string,unknown>; }
+          catch { return { action:'CATALOG_UNAVAILABLE', complete:false, classificationAuthority:'NONE',
+            message:'Catalog research could not be completed. Keep useful task facts; use NEEDS_REVIEW for unresolved classification. Never infer absence or claim a category was created.' }; }
+        } }],
+      });
+      console.info('NEED_TAXONOMY_RESEARCH', 'COMPLETED', result.attempts, result.toolCalls);
+      return await parseOutput(JSON.parse(result.raw));
+    } catch (error) {
+      if (error instanceof GeminiSafetyBlockedError)
+        return { safety:'BLOCK', assistantMessage:'Ne mogu da pomognem sa tim zahtevom.', proposals:[] };
+      throw error;
+    }
+  }
   if (onText) {
     try {
       const raw = await streamGeminiTask({
@@ -961,6 +993,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
 }
 
 Deno.serve(async (req: Request) => {
+  const requestStartedAt = Date.now();
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   if (req.method !== 'POST') return response(405, { code: 'METHOD_NOT_ALLOWED', message: 'Koristite POST.' });
   const authorization = req.headers.get('Authorization') ?? '';
@@ -1104,7 +1137,9 @@ Deno.serve(async (req: Request) => {
     let reportedUsage: GeminiUsage | null = null;
     // The catalog is also read after completion when capturing review hints.
     // Keep it in the execution scope so a persisted turn can finish its stream and accounting.
-    let taxonomyCatalog: Awaited<ReturnType<typeof loadClassificationCatalog>> | null = null;
+    let taxonomyCatalog: CatalogSnapshot | null = null;
+    let taxonomyExplorer: ClassificationExplorer | null = null;
+    let research: ReturnType<typeof createResearchDeadline> | null = null;
     try {
       if (wantsStream && (schemaVersion !== NEED_FACT_SCHEMA_V2 || provider !== 'gemini' || geminiModel !== 'gemini-3.8-flash')) {
         await retireAttempt();
@@ -1133,26 +1168,27 @@ Deno.serve(async (req: Request) => {
           return response(409, { code: 'AI_TURN_NOT_CONFIRMED', message: 'Proverite ishod poruke pre nastavka.' });
         }
       }
-      // Same catalog-reader as worker AI; no category writes or matching rights.
-      // Read-only rollout gate stays OFF until reviewed admission/snapshot flow.
+      // Current server queries are shared with the worker assistant. The model
+      // sees pages and may request any other branch; no whole-tree payload.
+      research = createResearchDeadline(signal, requestStartedAt);
       let taxonomyPrompt = '';
       if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW')) {
         try {
-          taxonomyCatalog = await loadClassificationCatalog(async (name, args) => {
-            const result = await rpc(name, args, signal, 4000);
+          taxonomyExplorer = await createClassificationExplorer(async (name, args) => {
+            const result = await rpc(name, args, research!.signal, 4000);
             if (!result.ok) throw new Error('CATALOG_RPC_UNAVAILABLE');
             return result.data;
-          });
-          taxonomyPrompt = catalogPromptContext(taxonomyCatalog);
+          }, { signal: research.signal, seedServices: activeFacts.filter((f:any) => f.fact_key === 'need.category' && typeof f.fact_value === 'string').map((f:any) => f.fact_value) });
+          taxonomyPrompt = taxonomyExplorer.prompt();
           console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'LOADED');
-        } catch {
-          taxonomyCatalog = null;
-          console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE');
-        }
+        } catch { console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE'); }
       }
-      aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, effectiveUserMessage, timeContext, signal, onText,
-        (usage) => { reportedUsage = usage; }, locationContext, taxonomyPrompt, taxonomyCatalog,
-        (hints,feedback) => { taxonomyReviewHints = hints; taxonomyFeedback = feedback; }, imageBase64, imageMime);
+      const providerBudget = taxonomyExplorer ? createTaxonomyProviderBudget({ supabaseUrl,serviceRoleKey,accountId,conversationId,
+        operationId:requestId,firstReservationId:budget.reservationId!,model:geminiModel }) : undefined;
+      aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, effectiveUserMessage, timeContext, research.signal, onText,
+        (usage) => { reportedUsage = usage; }, locationContext, taxonomyPrompt, taxonomyExplorer,
+        (hints,feedback,catalog) => { taxonomyReviewHints = hints; taxonomyFeedback = feedback; taxonomyCatalog = catalog; }, imageBase64, imageMime,
+        providerBudget, Math.min(35000,research.remainingMs()));
       aiTurn = guardConversationTurn(aiTurn, effectiveUserMessage, activeFacts, timeContext, locationContext);
       if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW'))
         aiTurn = withClassificationFeedback(aiTurn,taxonomyFeedback,{finishOnly:taskFinishOnly(effectiveUserMessage) && !locationContext,maximum:1200});
@@ -1167,9 +1203,9 @@ Deno.serve(async (req: Request) => {
       await retireAttempt();
       if (availabilityDiagnostics && providerError instanceof GeminiCreditsUnavailableError) return response(503, { code: AI_CREDITS_UNAVAILABLE });
       return response(502, { code: 'AI_PROVIDER_FAILED', message: 'AI obrada trenutno nije uspela. Proverite ishod pre nastavka.' });
-    }
+    } finally { research?.dispose(); }
     if (signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
-    if (schemaVersion === NEED_FACT_SCHEMA_V2 && !locationContext) {
+    if (schemaVersion === NEED_FACT_SCHEMA_V2 && !locationContext && !taxonomyExplorer) {
       // Shadow-mode ONLY: the existing Gemini has already proposed typed facts,
       // and the authoritative owner-bound SQL completion still owns persistence.
       // Never gate a paid AI completion on a preview RPC/network failure.

@@ -35,9 +35,21 @@ export function loadWorkerRecoveryHandler(options){
   assert.equal(name,'./classificationEngine.mjs');return classification;
  });
  const classificationReply=evaluate('supabase/functions/_shared/classificationReply.mjs',()=>assert.fail('UNDECLARED_CLASSIFICATION_REPLY_IMPORT'));
+ const explorer=evaluate('supabase/functions/_shared/classificationExplorer.mjs',name=>{
+  assert.equal(name,'./classificationEngine.mjs');return classification;
+ });
+ const toolConversation=evaluate('supabase/functions/_shared/geminiToolConversation.ts',name=>{
+  assert.equal(name,'./geminiTaskStream.ts');return stream;
+ });
+ const providerBudget=evaluate('supabase/functions/_shared/taxonomyProviderBudget.ts',name=>{
+  assert.equal(name,'./aiTestBudget.ts');return budget;
+ });
+ const researchDeadline=evaluate('supabase/functions/_shared/researchDeadline.ts',()=>assert.fail('UNDECLARED_DEADLINE_IMPORT'));
  const imports={'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,'../../../src/contracts/aiAvailability.ts':availability,
   '../_shared/classificationEngine.mjs':classification,'../_shared/classificationGeminiShadow.mjs':classificationShadow,'../_shared/classificationReply.mjs':classificationReply,
-  '../_shared/workerServiceModeContext.mjs':serviceModes};
+  '../_shared/workerServiceModeContext.mjs':serviceModes,'../_shared/classificationExplorer.mjs':explorer,
+  '../_shared/geminiToolConversation.ts':toolConversation,'../_shared/taxonomyProviderBudget.ts':providerBudget,
+  '../_shared/researchDeadline.ts':researchDeadline};
  evaluate(entry,name=>{assert.ok(Object.hasOwn(imports,name),'UNDECLARED_EDGE_IMPORT');return imports[name];});
  assert.equal(typeof handler,'function');return {handler,sourceHashes,sourceBinding:{kind:'CURRENT_SOURCE141'}};
 }

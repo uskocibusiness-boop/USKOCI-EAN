@@ -1,4 +1,6 @@
 BEGIN;
+-- Each CI psql command owns a fresh session; claims belong to this proof only.
+SELECT set_config('request.jwt.claims','{"role":"service_role"}',true);
 -- Metadata is compatible with the canonical signed-review snapshot pair.
 DO $$ DECLARE response jsonb; BEGIN
  response:=public.rpc_taxonomy_query_catalog_service('{"operation":"META"}');

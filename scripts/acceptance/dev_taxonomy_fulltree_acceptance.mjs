@@ -24,7 +24,7 @@ const RPCS = new Set(['rpc_open_worker_ai', 'rpc_read_worker_ai_taxonomy',
   'rpc_ai_open_need_conversation_owned_v2', 'rpc_ai_read_need_turn_v2',
   'rpc_prepare_ai_task_review_taxonomy', 'rpc_read_ai_task_review',
   'rpc_accept_ai_task_review', 'rpc_save_worker_ai_review']);
-const CASES = Object.freeze({
+const STANDARD_CASES = Object.freeze({
   'need-existing': { flow: 'need', expectation: 'EXACT_EXISTING_REUSE', messages: [
     'Treba mi izrada male figurice na 3D štampaču prema gotovom STL fajlu. Izrađuje se kod izvršioca i šalje mi se, ne radi se kod mene. Rad na daljinu, jedan izvršilac, fleksibilan termin, cenu dogovaramo.',
     'To je to. Otvori pregled; još ništa ne objavljuj.'] },
@@ -42,6 +42,10 @@ const CASES = Object.freeze({
   'worker-clarify': { flow: 'worker', expectation: 'CLARIFY_NOT_READY', messages: [
     'Želim da radim nešto, ali još nisam rekao koje konkretne usluge nudim.'] },
 });
+const CASES = Object.freeze({ ...STANDARD_CASES,
+  ...Object.fromEntries(['need-existing','worker-existing','need-novel'].map(name => [name+'-tools',
+    {...STANDARD_CASES[name],messages:[STANDARD_CASES[name].messages[0]]}])),
+});
 const hash = value => createHash('sha256').update(typeof value === 'string' ? value : JSON.stringify(value)).digest('hex');
 const assert = (condition, code) => { if (!condition) throw new Error(code); };
 const same = (a, b) => typeof a === 'string' && typeof b === 'string' && a.toLowerCase() === b.toLowerCase();
@@ -51,11 +55,14 @@ export function configuration(env, argv) {
   const execute = argv.includes('--execute');
   const phase = argv.find(x => x.startsWith('--phase='))?.slice(8) ?? 'conversation';
   const names = (env.USKOCI_QA_CASES ?? 'need-existing,need-novel,need-clarify,worker-existing').split(',');
-  const maxAttempts = Number(env.USKOCI_QA_MAX_ATTEMPTS ?? MAX_ATTEMPTS);
-  const accountId = env.USKOCI_QA_EXPECTED_ACCOUNT_ID ?? '';
+  const toolRun = names.some(name => name.endsWith('-tools'));
+  const maxAttempts = Number(env.USKOCI_QA_MAX_ATTEMPTS ?? (toolRun ? 3 : MAX_ATTEMPTS));
+  const accountId = (env.USKOCI_QA_EXPECTED_ACCOUNT_ID ?? '').toLowerCase();
   assert((env.USKOCI_QA_URL ?? TARGET) === TARGET, 'CANONICAL_DEV_ONLY');
   assert(['conversation', 'save-fixture'].includes(phase), 'INVALID_PHASE');
   assert(names.length > 0 && new Set(names).size === names.length && names.every(x => Object.hasOwn(CASES, x)), 'INVALID_CASES');
+  assert(!toolRun || names.every(name => name.endsWith('-tools')) && phase === 'conversation', 'TOOLS_CONVERSATION_ONLY');
+  assert(!toolRun || maxAttempts <= 3, 'MAX_3_LOGICAL_REQUESTS');
   assert(names.filter(x => CASES[x].flow === 'worker').length <= 1, 'ONE_NEW_WORKER_CONVERSATION_PER_ACCOUNT');
   assert(Number.isInteger(maxAttempts) && maxAttempts > 0 && maxAttempts <= MAX_ATTEMPTS, 'MAX_12_ATTEMPTS');
   assert(names.reduce((n, name) => n + CASES[name].messages.length, 0) <= maxAttempts || phase === 'save-fixture', 'CASE_BUDGET_EXCEEDED');
@@ -66,7 +73,23 @@ export function configuration(env, argv) {
     assert(env.USKOCI_QA_SOURCE_SHA && /^[a-f0-9]{40}$/.test(env.USKOCI_QA_SOURCE_SHA), 'EXACT_SOURCE_SHA_REQUIRED');
     if (phase === 'save-fixture') assert(env.USKOCI_QA_PREPARED_REPORT, 'PREPARED_REPORT_REQUIRED');
   }
-  return { execute, phase, names, maxAttempts, accountId, url: TARGET };
+  return { execute, phase, names, maxAttempts, accountId, url: TARGET, toolRun,
+    providerAttemptsPerRequest: toolRun ? 4 : 1 };
+}
+
+/** Correlation only: these IDs are possible attempts, not proof they were billed
+ * or even dispatched. The independent server observer reads reservations/usage. */
+export function expectedProviderOperations(accountId, conversationId, operationId, count = 4) {
+  assert([accountId,conversationId,operationId].every(value => UUID.test(value)) && Number.isInteger(count) && count >= 1 && count <= 4,
+    'PROVIDER_OPERATION_ID_INPUT');
+  return Array.from({length:count}, (_unused,index) => {
+    const attempt = index + 1;
+    if (attempt === 1) return { attempt, operationId };
+    const bytes = createHash('sha256').update(['USKOCI_TAXONOMY_PROVIDER_ROUND_V1',accountId,conversationId,operationId,String(attempt)].join('|')).digest();
+    bytes[6] = (bytes[6] & 15) | 128; bytes[8] = (bytes[8] & 63) | 128;
+    const h = bytes.subarray(0,16).toString('hex');
+    return {attempt,operationId:`${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`};
+  });
 }
 
 export function checkAttestation(a, accountId, now = Date.now()) {
@@ -129,8 +152,11 @@ where u.id='${accountId}';
 export async function run(env = process.env, argv = process.argv.slice(2)) {
   const config = configuration(env, argv);
   if (!config.execute) return { result: 'DRY_RUN_NO_IO', ...config, maxReservationMicrousd: RUN_CAP_MICROUSD,
+    maxLogicalRequests: config.maxAttempts, maxProviderAttempts: config.maxAttempts * config.providerAttemptsPerRequest,
     cases: config.names.map(name => ({ name, ...CASES[name] })),
-    note: 'No authentication, AI, database writes or Save. Seven-level branching is a deterministic proof, never forced fake live taxonomy.' };
+    note: config.toolRun
+      ? 'No authentication, AI, database writes or Save. Provider attempt IDs and reservation ceilings are possible bounds, never observed calls or actual billing.'
+      : 'No authentication, AI, database writes or Save. Seven-level branching is a deterministic proof, never forced fake live taxonomy.' };
   const attestation = checkAttestation(readJson(env.USKOCI_QA_ATTESTATION_FILE), config.accountId);
   const output = resolve(env.USKOCI_QA_OUT ?? 'artifacts/taxonomy-fulltree', randomUUID());
   mkdirSync(output, { recursive: true });
@@ -144,7 +170,9 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
   const report = { schema: 'USKOCI_TAXONOMY_QA_V1', sourceSha: env.USKOCI_QA_SOURCE_SHA,
     phase: config.phase, target: TARGET, accountId: config.accountId, startedAt: new Date().toISOString(),
     isolation: attestation, attemptCeiling: config.maxAttempts, reservationCeilingMicrousd: RUN_CAP_MICROUSD,
-    reservationPerAttemptMicrousd: RESERVATION_MICROUSD, attemptedProviderRequests: 0,
+    reservationPerAttemptMicrousd: RESERVATION_MICROUSD, attemptedProviderRequests: config.toolRun ? null : 0,
+    attemptedLogicalRequests: 0, providerAttemptsPerRequest: config.providerAttemptsPerRequest,
+    providerAttemptUpperBound: 0, providerAttemptsObserved: null,
     conservativeReservationMicrousd: 0, actualProviderBilling: 'READ_SERVER_LEDGER_SEPARATELY',
     providerAttempts: [], operations: [], cases: [], result: 'RUNNING',
     publicationAttempted: false, matchingInvoked: false, pushInvoked: false, serviceRoleUsed: false };
@@ -186,11 +214,16 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
     return result;
   }
   async function turn(flow, cid, text) {
-    assert(report.attemptedProviderRequests < config.maxAttempts && report.conservativeReservationMicrousd + RESERVATION_MICROUSD <= RUN_CAP_MICROUSD, 'RUN_BUDGET_EXHAUSTED');
+    const requestReservation = RESERVATION_MICROUSD * config.providerAttemptsPerRequest;
+    assert(report.attemptedLogicalRequests < config.maxAttempts && report.conservativeReservationMicrousd + requestReservation <= RUN_CAP_MICROUSD, 'RUN_BUDGET_EXHAUSTED');
     const attempt = { conversationId: cid, clientRequestId: randomUUID(), flow, text,
       at: new Date().toISOString(), outcome: 'ATTEMPTED_UNKNOWN_NO_RETRY' };
-    report.providerAttempts.push(attempt); report.attemptedProviderRequests++;
-    report.conservativeReservationMicrousd += RESERVATION_MICROUSD; persist(); // BEFORE network, even claim failure counts.
+    attempt.expectedProviderOperations = expectedProviderOperations(config.accountId,cid,attempt.clientRequestId,config.providerAttemptsPerRequest);
+    report.providerAttempts.push(attempt); report.attemptedLogicalRequests++;
+    if (!config.toolRun) report.attemptedProviderRequests++;
+    report.providerAttemptUpperBound += config.providerAttemptsPerRequest;
+    report.conservativeReservationMicrousd += requestReservation; persist(); // BEFORE network, even claim failure consumes the run allowance.
+    const startedAt = Date.now();
     try {
       const response = await api('/functions/v1/' + (flow === 'worker' ? 'uskoci-worker-interview' : 'uskoci-ai-interview'),
         { conversationId: cid, clientRequestId: attempt.clientRequestId, text });
@@ -208,6 +241,7 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
       assert(same(currentTurn?.conversationId, cid) && same(currentTurn?.clientRequestId, attempt.clientRequestId) && currentTurn.state === 'SUCCEEDED', 'TURN_NOT_CONFIRMED_STOP_NO_RETRY');
       attempt.outcome = 'OWNED_SUCCEEDED_READBACK'; persist(); return snapshot;
     } catch (error) { attempt.failure = error.message; persist(); throw error; }
+    finally { attempt.elapsedMs = Date.now() - startedAt; persist(); }
   }
   try {
     if (!token) {
@@ -306,6 +340,7 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
   } catch (error) { report.result = 'STOPPED_NO_AUTOMATIC_RETRY'; report.failure = scrub(error instanceof Error ? error.message : 'UNKNOWN'); }
   finally { report.finishedAt = new Date().toISOString(); persist(); token = ''; }
   return { result: report.result, reportPath, attemptedProviderRequests: report.attemptedProviderRequests,
+    attemptedLogicalRequests: report.attemptedLogicalRequests, providerAttemptUpperBound: report.providerAttemptUpperBound,
     conservativeReservationMicrousd: report.conservativeReservationMicrousd, failure: report.failure ?? null };
 }
 

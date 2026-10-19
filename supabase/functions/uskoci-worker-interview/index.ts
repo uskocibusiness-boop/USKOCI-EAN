@@ -12,7 +12,10 @@ import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION }
 // Distinct owned WORKER_PROFILE_V1 proposals. No task facts or canonical writes.
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
-import { loadClassificationCatalog, catalogPromptContext } from '../_shared/classificationEngine.mjs';
+import { createClassificationExplorer, taxonomyToolDeclaration } from '../_shared/classificationExplorer.mjs';
+import { generateGeminiToolConversation } from '../_shared/geminiToolConversation.ts';
+import { createTaxonomyProviderBudget } from '../_shared/taxonomyProviderBudget.ts';
+import { createResearchDeadline } from '../_shared/researchDeadline.ts';
 import { withGeminiClassificationShadowSchema, inspectGeminiClassificationShadow, geminiClassificationShadowInstruction, workerFinishReviewMessage, classificationTurnFeedback } from '../_shared/classificationGeminiShadow.mjs';
 import { withClassificationFeedback } from '../_shared/classificationReply.mjs';
 import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction, preserveWorkerServiceModes } from '../_shared/workerServiceModeContext.mjs';
@@ -139,6 +142,7 @@ function finishOnly(input: string): boolean {
 }
 
 export async function handleWorkerInterview(req: Request): Promise<Response> {
+  const startedAt = Date.now();
   if (req.method === 'OPTIONS') return new Response(null,{ status:204,headers:cors });
   if (req.method !== 'POST') return json(405,{code:'METHOD_NOT_ALLOWED'});
   const url = Deno.env.get('SUPABASE_URL') ?? '', anon = Deno.env.get('SUPABASE_ANON_KEY') ?? '', service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -168,7 +172,9 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   };
   const identity={p_account_id:account,p_conversation_id:input.conversationId,p_client_request_id:input.clientRequestId};
   let ownedAttempt: string | null = null, retirementStarted = false;
+  let research: ReturnType<typeof createResearchDeadline> | null = null;
   const fail=async()=>{
+    research?.dispose();
     if(!ownedAttempt||retirementStarted)return;
     retirementStarted=true;
     // SQL locks this exact turn and cannot overwrite success or clear dispatch.
@@ -197,44 +203,54 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   // Feature-gated shared canonical catalog context. This is classification
   // SHADOW ONLY: it cannot create categories or activate capabilities.
   let taxonomyPrompt = '';
-  let taxonomyCatalog: Awaited<ReturnType<typeof loadClassificationCatalog>> | null = null;
+  let taxonomyCatalog: Awaited<ReturnType<Awaited<ReturnType<typeof createClassificationExplorer>>['verify']>> | null = null;
+  let explorer: Awaited<ReturnType<typeof createClassificationExplorer>> | null = null;
+  const savedCategoryIds = Array.isArray(context.serviceModeContext?.savedServices)
+    ? context.serviceModeContext.savedServices.map((entry: any) => entry.categoryId).filter(id) : [];
+  research = createResearchDeadline(req.signal, startedAt);
   if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW')) {
     try {
-      taxonomyCatalog = await loadClassificationCatalog(rpc);
-      taxonomyPrompt = catalogPromptContext(taxonomyCatalog);
+      explorer = await createClassificationExplorer((name, args) => rpc(name, args, research!.signal, 4000), {
+        signal: research.signal, seedServices: context.candidate.skills, seedCategoryIds: savedCategoryIds,
+      });
+      taxonomyPrompt = explorer.prompt();
       console.info('WORKER_TAXONOMY_CATALOG_SHADOW', 'LOADED');
     } catch {
-      taxonomyCatalog = null;
+      explorer = null;
       console.info('WORKER_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE');
     }
   }
   let serviceModeContext: ReturnType<typeof readWorkerServiceModeContext> | null = null;
-  if (taxonomyCatalog) {
+  if (explorer) {
     try { serviceModeContext=readWorkerServiceModeContext(context); }
     catch { await fail(); return json(503,{code:'WORKER_AI_NOT_CONFIRMED'}); }
   }
   const history=context.messages.slice(-30).map((row:any)=>({role:row.role==='ASSISTANT'?'model':'user',parts:[{text:String(row.body).slice(0,4000)}]}));
   const body=JSON.stringify({systemInstruction:{parts:[{text:instruction(context,new Date().toISOString())}, ...(taxonomyPrompt ? [{text: taxonomyPrompt},{text:geminiClassificationShadowInstruction('WORKER_CAPABILITY')}] : []),
     ...(serviceModeContext ? [{text:workerServiceModeInstruction(serviceModeContext)}] : [])]},contents:history,
-    generationConfig:{temperature:0.2,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,responseMimeType:'application/json',responseSchema:taxonomyCatalog ? workerServiceModeSchema(withGeminiClassificationShadowSchema(workerProviderSchema(),'WORKER_CAPABILITY')) : workerProviderSchema()}});
+    generationConfig:{temperature:0.2,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,responseMimeType:'application/json',responseSchema:explorer ? workerServiceModeSchema(withGeminiClassificationShadowSchema(workerProviderSchema(),'WORKER_CAPABILITY')) : workerProviderSchema()}});
   if (new TextEncoder().encode(body).byteLength>AI_TEST_LIMITS.llmRequestBytes) { try { await fail(); } catch {} return json(413,{code:'WORKER_AI_CONTEXT_TOO_LARGE'}); }
+  let firstReservationId: string;
   try {
-    const reserved=await reserveAiTestBudget({supabaseUrl:url,serviceRoleKey:service,accountId:account,operationId:input.clientRequestId,kind:'LLM',signal:req.signal});
+    if (research.signal.aborted || research.remainingMs() <= 0) throw new Error('WORKER_AI_CANCELLED');
+    const reserved=await reserveAiTestBudget({supabaseUrl:url,serviceRoleKey:service,accountId:account,operationId:input.clientRequestId,kind:'LLM',signal:research.signal});
     if (!reserved.admitted || reserved.replay) { try { await fail(); } catch {} return json(503,{code:reserved.code}); }
+    if (!reserved.reservationId) throw new Error('WORKER_AI_BUDGET_UNAVAILABLE');
+    firstReservationId = reserved.reservationId;
   } catch { try { await fail(); } catch {} return json(503,{code:'WORKER_AI_BUDGET_UNAVAILABLE'}); }
   // The database commits this one dispatch before billable I/O under the same
   // account/session/key locks as cancellation. A lost ACK never grants a retry.
   try {
-    const dispatched=await rpc('rpc_dispatch_worker_ai_turn_service',{...identity,p_attempt_id:claim.turn.attemptId});
+    const dispatched=await rpc('rpc_dispatch_worker_ai_turn_service',{...identity,p_attempt_id:claim.turn.attemptId},research.signal);
     const t=object(dispatched?.turn);
     if (!object(dispatched)||!keys(dispatched,['dispatched','turn'])||typeof dispatched.dispatched!=='boolean'||!t
       ||!keys(t,['turnId','conversationId','clientRequestId','attemptId','state','retryAllowed','authoritative'])
       ||t.turnId!==claim.turn.turnId||t.attemptId!==claim.turn.attemptId||t.conversationId!==input.conversationId
       ||t.clientRequestId!==input.clientRequestId||!['PROCESSING','UNKNOWN_OUTCOME','FAILED','SUCCEEDED'].includes(t.state)
       ||t.retryAllowed!==false||t.authoritative!==true||(dispatched.dispatched&&t.state!=='PROCESSING')) throw new Error('WORKER_AI_INVALID');
-    if (!dispatched.dispatched) return json(200,t);
+    if (!dispatched.dispatched) { research.dispose(); return json(200,t); }
   } catch { await fail(); return json(409,{code:'WORKER_AI_NOT_CONFIRMED'}); }
-  const abort=new AbortController(),stop=()=>abort.abort(); req.signal.addEventListener('abort',stop,{once:true}); if(req.signal.aborted)stop();
+  const abort=new AbortController(),stop=()=>{abort.abort();research?.dispose();}; req.signal.addEventListener('abort',stop,{once:true}); if(req.signal.aborted)stop();
   const encoder=new TextEncoder(); let sequence=0;
   const stream=new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -246,10 +262,36 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
       try {
         send('accepted');
         const usage:{value:GeminiUsage|null}={value:null};
-        const raw=await streamGeminiTask({url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+        let raw: string;
+        if (explorer) {
+          const providerBudget = createTaxonomyProviderBudget({
+            supabaseUrl: url, serviceRoleKey: service, accountId: account, conversationId: input.conversationId,
+            operationId: input.clientRequestId, model, firstReservationId,
+          });
+          const remaining = research!.remainingMs();
+          if (remaining <= 0 || research!.signal.aborted) throw new Error('WORKER_AI_CANCELLED');
+          const answer = await generateGeminiToolConversation({
+            url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+            key, body, signal: research!.signal, limits: { timeoutMs: Math.min(35000, remaining), accountingTimeoutMs: 3000 },
+            tools: [{ declaration: taxonomyToolDeclaration, readOnly: true, execute: async (args, toolContext) => {
+              try { return await explorer!.execute(args, toolContext) as Record<string, unknown>; }
+              catch { return { error: 'CATALOG_UNAVAILABLE', classificationAuthority: 'NONE' }; }
+            } }], ...providerBudget,
+          });
+          raw = answer.raw;
+          try {
+            const parsed = JSON.parse(raw);
+            taxonomyCatalog = await explorer.verify(parsed, {
+              services: context.candidate.skills, categoryIds: savedCategoryIds,
+            });
+          } catch {
+            taxonomyCatalog = null;
+            console.info('WORKER_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE');
+          }
+        } else raw=await streamGeminiTask({url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
           // Provider prose remains private until shape, patch and completion are
           // accepted. Otherwise even an invalid patch could speak to the person.
-          key,body,signal:abort.signal,onText:()=>{},onUsage:value=>{usage.value=value;},timeoutMs:30000});
+          key,body,signal:research!.signal,onText:()=>{},onUsage:value=>{usage.value=value;},timeoutMs:30000});
         if(abort.signal.aborted)throw new Error('WORKER_AI_CANCELLED');
         let output:Record<string,any>;
         let reviewHints: Record<string,any>[]=[];
@@ -262,7 +304,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
             const {serviceModeChangesJson:changes,...remaining}=parsed;
             serviceModeChangesJson=changes; classified=remaining;
           }
-          const checked = taxonomyCatalog ? inspectGeminiClassificationShadow(classified,taxonomyCatalog,'WORKER_CAPABILITY') : {output:classified,statuses:[],reviewProposals:[],invalidPlanCodes:[]};
+          const checked = inspectGeminiClassificationShadow(classified,taxonomyCatalog,'WORKER_CAPABILITY');
           reviewHints=checked.reviewProposals;
           classificationInspection=checked;
           if (checked.statuses.length) console.info('WORKER_TAXONOMY_PLAN_SHADOW', checked.statuses.join(','));
@@ -292,6 +334,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
             {purpose:'WORKER_CAPABILITY',services,readyForReview:finishOnly(input.text),preservedServices,catalogAvailable:!!taxonomyCatalog});
           output=withClassificationFeedback(output as any,feedback,{finishOnly:finishOnly(input.text)});
         }
+        research!.dispose();
         const turn=await rpc('rpc_complete_worker_ai_turn_service',{...identity,p_attempt_id:claim.turn.attemptId,p_output:output},abort.signal);
         if (!object(turn)||turn.state!=='SUCCEEDED'||turn.turnId!==claim.turn.turnId||turn.attemptId!==claim.turn.attemptId
           ||turn.conversationId!==input.conversationId||turn.clientRequestId!==input.clientRequestId) throw new Error('WORKER_AI_INVALID');
@@ -320,7 +363,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
       } catch (error) { await fail(); if(!abort.signal.aborted) { try { send('safe_error',{code:
         req.headers.get(AI_DIAGNOSTICS_HEADER)===AI_DIAGNOSTICS_VERSION && error instanceof GeminiCreditsUnavailableError
           ? AI_CREDITS_UNAVAILABLE : 'AI_TURN_NOT_CONFIRMED'}); } catch {} } }
-      finally { req.signal.removeEventListener('abort',stop); if(!abort.signal.aborted) { try {controller.close();}catch{} } abort.abort(); }
+      finally { research?.dispose(); req.signal.removeEventListener('abort',stop); if(!abort.signal.aborted) { try {controller.close();}catch{} } abort.abort(); }
     }, cancel(){stop();req.signal.removeEventListener('abort',stop);}
   });
   return new Response(stream,{headers:{...cors,'Content-Type':'text/event-stream; charset=utf-8','X-Accel-Buffering':'no'}});

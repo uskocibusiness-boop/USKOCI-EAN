@@ -35,8 +35,8 @@
     },
     {
       "path": "supabase/proofs/dynamic_taxonomy/catalog-query/assert.sql",
-      "bytes": 11199,
-      "sha256": "9609241503dcb1072c53c8fc1609097e941006c5b130696673f2fb4368190092"
+      "bytes": 11351,
+      "sha256": "c6acb9aa69c719abeb71ebde509403f35201f441f162abdd3c5ea7529d36dc2f"
     },
     {
       "path": "supabase/proofs/dynamic_taxonomy/catalog-query/before-metadata.json",

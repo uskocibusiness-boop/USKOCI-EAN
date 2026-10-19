@@ -1,6 +1,8 @@
 // Shared V5 controlled-provider test budget. No retries or refunds after uncertain I/O.
 export const AI_TEST_LIMITS = Object.freeze({
-  llmRequestBytes: 131072,
+  // Per model call, not catalog capacity. Navigation avoids whole-tree prompts.
+  // Text budget doubled after adding paged tool results; output remains bounded.
+  llmRequestBytes: 262144,
   llmMaxOutputTokens: 8192,
   llmReservationMicrousd: 250000,
   speechPcmBytes: 3840000,

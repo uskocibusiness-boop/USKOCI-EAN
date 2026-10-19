@@ -8,6 +8,15 @@ const account=id(1),conversation=id(2),key=id(3),turnId=id(4),attemptId=id(5);
 const json=data=>new Response(JSON.stringify(data),{headers:{'Content-Type':'application/json'}});
 const receipt={userMessageId:id(6),assistantMessageId:id(7),proposedCount:0,safety:'ALLOW',schemaVersion:'NEED_FACT_V2',authoritative:true};
 const turn=(state='SUCCEEDED')=>({conversationId:conversation,clientRequestId:key,state,turnId,retryAllowed:false,receipt:state==='SUCCEEDED'?receipt:null});
+const oneNodeCatalog=(body,node)=>{
+ const q=body.p_query,labels=[node.label,...node.aliases],matches=q.scope!=='ON_SITE'&&q.operation!=='META'&&
+  (q.operation==='EXACT'?labels.includes(q.text):q.operation==='SEARCH'?labels.some(label=>label.includes(q.text)):
+   q.operation==='RESOLVE'?q.categoryIds.includes(node.categoryId):q.operation==='ROOTS');
+ const items=matches?[{...node,modes:['REMOTE'],pathIds:[node.categoryId]}]:[];
+ return {schemaVersion:'TAXONOMY_CATALOG_QUERY_V1',action:'CATALOG_QUERY',operation:q.operation,scope:q.scope,
+  catalogVersion:7,catalogFingerprint:'a'.repeat(32),items,count:items.length,nextCursor:null,
+  classificationAuthority:'NONE',capabilityAuthority:'NONE',notificationAuthority:'NONE'};
+};
 function fixture(config={}){
  const calls=[];const env={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC',SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE',
    AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_PROVIDER',GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',...config.env};
@@ -33,8 +42,9 @@ function fixture(config={}){
     location:{version:1,promptToken:c.promptToken,reviewRevision:c.reviewRevision,slot:c.slot,proposalId:c.proposal?.id??null,action:body.p_location_action}});}
    if(url.endsWith('/rpc_ai_complete_need_turn_v2_service')){if(config.completionError)throw Error('SYNTHETIC_COMPLETION_ACK_LOST');return json({...turn(),...(config.badReceipt?{turnId:id(99)}:{}),receipt:{...receipt,proposedCount:body.p_proposals.length,safety:body.p_safety}});}
    if(url.endsWith('/rpc_ai_fail_need_turn_v2_service'))return json(config.failureReceipt??turn('FAILED'));
-   if(url.endsWith('/rpc_ai_test_record_usage_service'))return json({recorded:true});
-   if(url.endsWith('/rpc_taxonomy_ai_catalog_context_service'))return json(config.catalog(body));
+   if(url.endsWith('/rpc_ai_test_record_usage_service'))return json({recorded:true,authoritative:true,operationId:body.p_operation_id,
+    promptTokens:body.p_prompt_tokens,outputTokens:body.p_output_tokens,totalTokens:body.p_total_tokens});
+   if(url.endsWith('/rpc_taxonomy_query_catalog_service'))return json(config.catalog(body));
    if(url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'))return config.capture?.(body)??json({action:'HINT_CAPTURED',authority:'NONE'});
    assert.fail('UNEXPECTED_ROUTE');
  };
@@ -350,12 +360,10 @@ for(const captureFails of [false,true])test(`Need catalog survives through compl
  const proposal={service,mode:'REMOTE',action:'REUSE_EXISTING',categoryId:category,parentId:'',proposedPath:[],reason:'Explicit synthetic service matches catalog identity',catalogVersion:7};
  const output=withDialogue({safety:'ALLOW',assistantMessage:'Predlog je spreman za pregled.',facts:[],classificationShadowJson:JSON.stringify([proposal])});
  const f=fixture({env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
-  catalog:body=>({action:'CATALOG_CONTEXT',scope:body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE',catalogVersion:7,
-   items:body.p_execution_location_mode==='REMOTE'?[{categoryId:category,parentId:null,label:service,path:[service],isLeaf:true}]:[],
-   nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'}),
+   catalog:body=>oneNodeCatalog(body,{categoryId:category,parentId:null,label:service,aliases:[],path:[service],isLeaf:true}),
   capture:()=>captureFails?new Response('{}',{status:503}):json({action:'HINT_CAPTURED',authority:'NONE'}),
-  provider:()=>new Response('data: '+JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify(output)}]},finishReason:'STOP'}],
-   usageMetadata:{promptTokenCount:100,candidatesTokenCount:20,totalTokenCount:120}})+'\n\n',{headers:{'Content-Type':'text/event-stream'}})});
+   provider:()=>json({candidates:[{content:{role:'model',parts:[{text:JSON.stringify(output)}]},finishReason:'STOP'}],
+    usageMetadata:{promptTokenCount:100,candidatesTokenCount:20,thoughtsTokenCount:0,totalTokenCount:120}})});
  const es=await events(f);
  assert.deepEqual(es.map(e=>e.kind),['accepted','text_delta','final']);assert.equal(providers(f).length,1);assert.equal(failures(f).length,0);
  const capture=f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
@@ -370,12 +378,8 @@ for(const registered of [true,false])test(`Need actual handler captures only ser
  const proposal={service,mode:'REMOTE',action:'REUSE_ALIAS',categoryId:category,parentId:'',proposedPath:[],reason:'Explicit synthetic task service and remote mode.',catalogVersion:7};
  const output=withDialogue({safety:'ALLOW',assistantMessage:'Proveri nacrt.',facts:[],classificationShadowJson:JSON.stringify([proposal])});
  const f=fixture({env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
-  catalog:body=>({action:'CATALOG_CONTEXT',scope:body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE',catalogVersion:7,
-   catalogFingerprint:'a'.repeat(32),items:body.p_execution_location_mode==='REMOTE'?[{
-    categoryId:category,parentId:null,label:'3D printovanje',aliases:registered?[service]:[],path:['3D printovanje'],isLeaf:true,
-   }]:[],nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'}),
-  provider:()=>new Response('data: '+JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify(output)}]},finishReason:'STOP'}]})+'\n\n',
-   {headers:{'Content-Type':'text/event-stream'}}),
+   catalog:body=>oneNodeCatalog(body,{categoryId:category,parentId:null,label:'3D printovanje',aliases:registered?[service]:[],path:['3D printovanje'],isLeaf:true}),
+   provider:()=>json({candidates:[{content:{role:'model',parts:[{text:JSON.stringify(output)}]},finishReason:'STOP'}]}),
  });
  const es=await events(f);
  assert.equal(es.at(-1).kind,'final');assert.equal(writes(f).length,1);assert.equal(providers(f).length,1);assert.equal(failures(f).length,0);

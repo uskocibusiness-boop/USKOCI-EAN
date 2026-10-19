@@ -128,6 +128,15 @@ export function reviewClassificationProposal(input, snapshot, plan) {
   if (!plain(plan.reason) || !plan.reason.trim())
     return { accepted: false, status: 'MISSING_EVIDENCE' };
   const categories = new Map(snapshot.categories.map(node => [node.id,node]));
+  // Navigated pages are intentionally partial. Only independent, global
+  // exact/registered-alias queries may establish uniqueness or absence.
+  const navigated = snapshot.navigation?.kind === 'SERVER_QUERIES';
+  const identity = normalizedClassificationIdentity(input.service);
+  const identityCheck = navigated && Array.isArray(snapshot.navigation.identityChecks)
+    ? snapshot.navigation.identityChecks.find(item => item.service === identity) : null;
+  if (navigated && ['REUSE_EXISTING','REUSE_ALIAS','CREATE_CHILD','CREATE_NEW_BRANCH'].includes(plan.action) &&
+      (!identityCheck || !Array.isArray(identityCheck.categoryIds)))
+    return { accepted: false, status: 'GLOBAL_IDENTITY_NOT_VERIFIED' };
   if (['REUSE_EXISTING','REUSE_ALIAS'].includes(plan.action)) {
     const existing = categories.get(plan.categoryId);
     if (!existing) return { accepted: false, status: 'UNKNOWN_CANONICAL_ID' };
@@ -136,7 +145,6 @@ export function reviewClassificationProposal(input, snapshot, plan) {
     // Aliases arrive only from the service-owned, fingerprinted catalog, never
     // from provider output. Keep the existing normalizer: accepting a stored
     // synonym is not permission to infer other synonyms or broader competence.
-    const identity = normalizedClassificationIdentity(input.service);
     const hasAlias = node => catalogFingerprint(snapshot.catalogFingerprint) &&
       validAliases(node.aliases) && node.aliases.some(alias => normalizedClassificationIdentity(alias) === identity);
     const verifiedAlias = hasAlias(existing);
@@ -157,12 +165,21 @@ export function reviewClassificationProposal(input, snapshot, plan) {
       return { accepted: false, status: 'AMBIGUOUS_CANONICAL_IDENTITY',
         catalogVersion: snapshot.catalogVersion, capabilityAuthority: 'NONE',
         notificationAuthority: 'NONE' };
+    if (navigated && (identityCheck.categoryIds.length !== 1 || identityCheck.categoryIds[0] !== existing.id))
+      return { accepted: false, status: 'AMBIGUOUS_CANONICAL_IDENTITY',
+        catalogVersion: snapshot.catalogVersion, capabilityAuthority: 'NONE', notificationAuthority: 'NONE' };
     return { accepted: true, status: 'REUSE_CANDIDATE',
       categoryId: existing.id, catalogVersion: snapshot.catalogVersion,
       // Worker/need confirmation is STILL required before activation or dispatch.
       requiresOwnerReview: true, capabilityAuthority: 'NONE', notificationAuthority: 'NONE' };
   }
   if (['CREATE_CHILD','CREATE_NEW_BRANCH','PROPOSE_RESTRUCTURE'].includes(plan.action)) {
+    if (navigated && ['CREATE_CHILD','CREATE_NEW_BRANCH'].includes(plan.action)) {
+      if (identityCheck.categoryIds.length)
+        return { accepted: false, status: 'EXISTING_IDENTITY_REQUIRES_REVIEW' };
+      if (!snapshot.navigation.searchedServices?.includes(identity))
+        return { accepted: false, status: 'CATALOG_RESEARCH_REQUIRED' };
+    }
     if (plan.action === 'CREATE_CHILD') {
       const parent = categories.get(plan.parentId);
       if (!parent) return { accepted: false, status: 'UNKNOWN_PARENT_ID' };
