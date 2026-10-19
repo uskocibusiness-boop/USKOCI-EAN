@@ -40,10 +40,10 @@ import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { needLocationClientService } from '../../data/locationClientService';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
 import type { NeedLocationInput, NeedLocationReview } from '../../contracts/location';
-import { normalizeNeedLocation, normalizeTaskGeography, pointsMissing } from '../../lib/location';
+import { normalizeNeedLocation, pointsMissing } from '../../lib/location';
 import { mediaAssetId } from '../../ui/media/AuthorizedPhoto';
 import { REQUIREMENT_FACT, SUPPORT_HAS_DUTY_OPERATOR, blankList, manualCheckCopy,
-  ownerAddressFrame, partFact, privateReviewMap, reviewRowValue, reviewTodos, todoActionLabel, type GroupedPart } from '../../ui/objava/reviewFacts';
+  ownerAddressFrame, partFact, privateReviewMap, reviewLocationReadiness, reviewRowValue, reviewTodos, todoActionLabel, type GroupedPart } from '../../ui/objava/reviewFacts';
 import { PublishedMoment } from '../../ui/objava/PublishedMoment';
 import { LocationMapPreview } from '../../ui/location/LocationMapPreview';
 import { PublishButton, ReviewFactRow, ReviewFrame, ReviewMoreFacts, ReviewStatus,
@@ -182,6 +182,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const busyNow = useRef(false); busyNow.current = editor.busy || editor.loading || editor.uncertain;
   const lifecycleNow = useRef(false); lifecycleNow.current = lifecycleActive;
   const snapshot = editor.data, review = snapshot?.review, command = snapshot?.command;
+  const locationReadiness = reviewLocationReadiness(review ?? { location: null });
   // Who asks, as the others read him (the name, the face, the rating of his public profile), read beside the review and never in front of it.
   // The task as the people who will read it get it: the real card and the real page are drawn from this, made of the review's public facts alone.
   const reviewer = useReviewPerson();
@@ -214,7 +215,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // retained command identity; they differ only in whether evaluation and publication follow now.
   const accept = async (andPublish: boolean) => {
     if (!canAct() || !review || !review.canAccept || unavailableIdentityFact || locationEditor || command || review.accountId !== accountId) return;
-    const accepted = pending.current ?? { review, id: noviUuidZahtevId() }; pending.current = accepted;
+    if (andPublish && !locationReadiness.ready) return;
+    const accepted = pending.current ?? { review, id: noviUuidZahtevId() };
+    if (andPublish && !reviewLocationReadiness(accepted.review).ready) return;
+    pending.current = accepted;
     // Marked only once the editor has taken the write (the export screen's rule), so a refused second press never
     // clears the first one's spinner.
     let started = false;
@@ -402,8 +406,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // What the server would refuse about the facts themselves: no amount for "Moja cena", a fixed time without
   // both ends, or one that has already begun (deep read 8.5, 5.1).
   const factProblem = review && !published && !command ? reviewFactProblem(review) : null;
-  // `canAccept` is false for exactly three server reasons (a safety block, something missing, no place on the map); each
-  // is a row of "Još treba" with its way to the fix, and the grey publish says in one line that they come first.
+  // Server canAccept permits a private draft with unresolved map points. Publication
+  // additionally needs every required point, shown once in "Još treba" with its map action.
   const todos = review && !published && !command ? reviewTodos(review, factProblem, !!unavailableIdentityFact) : [];
   const resultCopy = published ? (revising ? 'Izmene su objavljene.' : 'Zadatak je objavljen.') : command?.state === 'PUBLISHED'
     ? 'Objava je zabeležena. Ponovo učitaj zadatak da proveriš prikaz.'
@@ -423,7 +427,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // would be refused by the very question it asked.
   const screenBusy = editor.busy || editor.loading || editor.uncertain || opening;
   const disabled = screenBusy || lifecycleActive;
-  const publishBlocked = !review || disabled || !review.canAccept || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
+  const publishBlocked = !review || disabled || !review.canAccept || !locationReadiness.ready || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
   // "Loading = the write this action started": only the publish spins the publish button; while a draft or a fact saves
   // it simply waits grey.
   const publishWorking = editor.busy && publishing;
@@ -452,11 +456,9 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // writes it for the server, which reads a kind of work from it only to match; it is no part of the page here.
   const publicFacts = review?.publicProjection ?? [];
   const factOf = (key: NeedFactV2Key) => publicFacts.find(item => item.key === key);
-  const mapGeography = normalizeTaskGeography(review?.location?.geography
-    ?? factOf('need.task_geography')?.value);
+  const mapGeography = locationReadiness.geography;
   const hasPhysicalMap = !!mapGeography && mapGeography.mode !== 'REMOTE';
-  const mapPoints = pointsMissing(mapGeography, review?.location?.resolvedLocation);
-  const mapNeedsConfirmation = mapPoints.done < mapPoints.total;
+  const mapNeedsConfirmation = !locationReadiness.ready;
   /** What a fact is called to a person on this page: the label of the fact, and "Broj ljudi" where its own is only "Ljudi". */
   const factName = (key: NeedFactV2Key) => key === 'need.people_needed' ? 'Broj ljudi' : factLabel(key);
   /** What is shown at the top of the screen after a failure about the place is said where it can be read (a note, and the screen goes up to it). */

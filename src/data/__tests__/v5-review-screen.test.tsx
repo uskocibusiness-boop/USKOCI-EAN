@@ -61,9 +61,12 @@ import { sys, brandAction } from '../../ui/system/tokens';
 const ok = (podatak: unknown) => ({ ok: true, podatak });
 const unknownOutcome = () => ({ ok: false, kod: 'TASK_REVIEW_OUTCOME_UNCONFIRMED', poruka: 'Ishod objave nije potvrđen.' });
 function review(): AiTaskReviewEnvelope {
+  const sourceLocation = location('A');
+  const confirmedLocation = { ...sourceLocation, exactAddress: 'Privatna 42', resolvedLocation: { ...sourceLocation.resolvedLocation!,
+    binding: { ...sourceLocation.resolvedLocation!.binding, exactAddress: 'Privatna 42' } } };
   return { reviewId: REVIEW, accountId: OWNER, conversationId: CONVERSATION, schemaVersion: 'NEED_FACT_V2', draftId: null, draftRevision: 0,
     displayedContentDigest: 'a'.repeat(64), factsRevision: 'b'.repeat(64), sourceTurnRevision: 2, geographyRevision: 'c'.repeat(64),
-    expiresAt: '2026-10-01T00:00:00Z', responseDeadline: null, location: null, canAccept: true, safety: 'ALLOW', missingRequired: [],
+    expiresAt: '2026-10-01T00:00:00Z', responseDeadline: null, location: confirmedLocation, canAccept: true, safety: 'ALLOW', missingRequired: [],
     publicProjection: [{ id: 'title', key: 'need.title', value: 'Prenos ormara', displayValue: 'Prenos ormara',
       privacyClass: 'PUBLIC', source: 'AI_INFERENCE', status: 'NEEDS_CONFIRMATION' }],
     ownerPrivateProjection: [{ id: 'address', key: 'need.exact_address', value: 'Privatna 42', displayValue: 'Privatna 42',
@@ -299,6 +302,43 @@ it('refocuses after a lost acceptance using its retained review identity without
   await act(async () => held.resolve(unknownOutcome()));
   mockRead.mockResolvedValue(ok({ review: review(), command: command('ACCEPTED') })); await focus();
   expect(mockRead).toHaveBeenCalledWith(REVIEW); expect(mockAccept).toHaveBeenCalledTimes(1); expect(mockResume).not.toHaveBeenCalled();
+});
+
+describe('publication requires complete human map confirmation while draft save remains available', () => {
+  const routeLocation = (complete: boolean): NeedLocationInput => {
+    const geography = { mode: 'POINT_TO_POINT' as const, start: { city: 'Novi Sad' }, end: { city: 'Beograd' } };
+    return { taskCountryCode: 'RS', geography, exactAddress: null, accessNotes: null, resolvedLocation: { version: 1,
+      binding: { taskCountryCode: 'RS', geography, exactAddress: null }, points: [
+        { slot: 'start', latitudeE6: 45251234, longitudeE6: 19831234, origin: { kind: 'MANUAL_PIN' } },
+        ...(complete ? [{ slot: 'end' as const, latitudeE6: 44810000, longitudeE6: 20460000, origin: { kind: 'MANUAL_PIN' as const } }] : []),
+      ] } };
+  };
+  it.each(['STATIONARY', 'POINT_TO_POINT'] as const)('blocks publish for incomplete %s without first creating a draft', async mode => {
+    const value = mode === 'STATIONARY' ? { ...location('A'), resolvedLocation: null } : routeLocation(false);
+    const shown = locatedReview(value);
+    mockPrepare.mockResolvedValue(ok(shown)); mockDraft.mockResolvedValue(unknownOutcome());
+    await render();
+    expect(shown.canAccept).toBe(true); expect(publish().disabled).toBe(true);
+    expect(commands('Potvrdi tačke na mapi')).toHaveLength(1);
+    expect(text().split('Mesto na mapi nije potvrđeno.')).toHaveLength(2);
+    expect(action('Sačuvaj nacrt').disabled).toBe(false);
+    const retainedPublish = publish().onPress;
+    await update(); await act(async () => retainedPublish()); await act(async () => publish().onPress());
+    expect(mockAccept).not.toHaveBeenCalled(); expect(mockDraft).not.toHaveBeenCalled();
+    await act(async () => action('Sačuvaj nacrt').onPress());
+    expect(mockDraft).toHaveBeenCalledTimes(1);
+    expect(mockDraft).toHaveBeenCalledWith(expect.objectContaining({ review: shown }));
+    expect(mockAccept).not.toHaveBeenCalled();
+  });
+  it.each(['STATIONARY', 'POINT_TO_POINT', 'REMOTE'] as const)('allows the existing publication flow for ready %s', async mode => {
+    const value: NeedLocationInput = mode === 'STATIONARY' ? location('A') : mode === 'POINT_TO_POINT' ? routeLocation(true)
+      : { taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null, resolvedLocation: null };
+    mockPrepare.mockResolvedValue(ok(locatedReview(value)));
+    await render();
+    expect(publish().disabled).toBe(false); expect(commands('Potvrdi tačke na mapi')).toHaveLength(0);
+    await act(async () => publish().onPress());
+    expect(mockAccept).toHaveBeenCalledTimes(1); expect(mockDraft).not.toHaveBeenCalled();
+  });
 });
 
 it('confirms map points as a review proposal while preserving the conversation fields and canonical facts', async () => {
@@ -867,6 +907,7 @@ describe('round 6: the publish review', () => {
   });
 
   it('routes missing geography to the same AI conversation instead of opening a manual place form', async () => {
+    mockPrepare.mockResolvedValue(ok({ ...review(), location: null }));
     await render();
     const row = tree.root.findByProps({ accessibilityLabel: 'Mesto ili način rada treba dopuniti u razgovoru.' });
     expect(row.props.accessibilityHint).toBe('Dopuni u razgovoru');

@@ -232,9 +232,10 @@ describe('the place the owner confirmed is read from the confirmed point, not fr
 
 describe('the ways out of a review that is not published yet', () => {
   it('draws ONE green action with "Sačuvaj nacrt" quiet under it in the foot, the pencil of the card ("Izmeni zadatak") at the top and, last, "Obriši nacrt" as the last row of the page', async () => {
+    mockPrepare.mockResolvedValue(ok(review({}, located(STATIONARY, [MANUAL_START]))));
     await render();
     // The foot holds what is decided (publish now, or keep it for later); the rarer way out is a row at the end of everything there is to change.
-    expect(labels()).toEqual(['Sačuvaj nacrt']);
+    expect(labels()).toEqual(['Proveri tačke na mapi', 'Sačuvaj nacrt']);
     expect(action('Sačuvaj nacrt').kind).toBe('quiet');
     expect(waysOut()).toEqual(['Izmeni zadatak', 'Obriši nacrt']);
     // The only green fill on the screen is the publish: the pencils are ink and a line drawing, never green.
@@ -251,7 +252,7 @@ describe('the ways out of a review that is not published yet', () => {
   });
 
   it('the changes of a task that already exists offer the edit only: there is no draft to delete, and nothing to save as one', async () => {
-    const bound = review({ draftId: NEED, draftRevision: 4 }); mockPrepare.mockResolvedValue(ok(bound)); mockRead.mockResolvedValue(ok({ review: bound, command: null }));
+    const bound = review({ draftId: NEED, draftRevision: 4 }, located(STATIONARY, [MANUAL_START])); mockPrepare.mockResolvedValue(ok(bound)); mockRead.mockResolvedValue(ok({ review: bound, command: null }));
     await render();
     expect(waysOut()).toEqual(['Izmeni zadatak']); expect(absent('Obriši nacrt')).toBe(true); expect(absent('Sačuvaj nacrt')).toBe(true);
     expect(tree.root.findByProps({ accessibilityLabel: 'Potvrdi izmene' })).toBeDefined();
@@ -364,6 +365,7 @@ describe('the ways out of a review that is not published yet', () => {
   describe('they wait while a command runs, and ignore a press kept from before', () => {
     it('while the publish is in flight: the pencil is gone and the two others are grey, and a press kept from before does nothing', async () => {
       const held = deferred(); mockAccept.mockReturnValueOnce(held.promise);
+      mockPrepare.mockResolvedValue(ok(review({}, located(STATIONARY, [MANUAL_START]))));
       await render();
       const kept = { edit: action('Izmeni zadatak').onPress, save: action('Sačuvaj nacrt').onPress, remove: action('Obriši nacrt').onPress };
       await act(async () => { void publish().onPress(); });

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {configuration,run,MILOS,checkExistingModeExtension,checkWorkerHandoffClarification} from './dev_taxonomy_fulltree_acceptance.mjs';
+import {configuration,run,MILOS,checkExistingModeExtension,checkWorkerHandoffClarification,checkPhysicalMapConfirmation} from './dev_taxonomy_fulltree_acceptance.mjs';
 
 const env={USKOCI_QA_CASES:'need-pickup-execution,need-shipping-execution,need-digital-execution,need-impossible-execution,need-rare-execution,worker-shipping-execution,need-typewriter-shipping-execution',USKOCI_QA_MAX_ATTEMPTS:'8'};
 test('budget correction acceptance reuses the owned conversation and does not authorize another service',async()=>{
@@ -64,4 +64,49 @@ test('optional same-category mode extension remains a single dry logical request
    r=>{r.canAccept=false;},
   ]){const bad=structuredClone(good);change(bad);assert.throws(()=>checkExistingModeExtension(bad,categoryId),/MODE_EXTENSION_/);}
  }finally{globalThis.fetch=previous;}
+});
+
+const physicalReview = (mode = 'STATIONARY', canAccept = true) => {
+ const geography = mode === 'POINT_TO_POINT'
+  ? {mode,start:{city:'Novi Sad',label:'SYNTHETIC_START'},end:{city:'Novi Sad',label:'SYNTHETIC_END'}}
+  : {mode,start:{city:'Novi Sad',label:'SYNTHETIC_PLACE'}};
+ return {canAccept,classificationState:'READY',classificationCandidates:[{mode:'ON_SITE',action:'REUSE_EXISTING'}],
+  publicProjection:[{key:'need.task_geography',value:geography}],ownerPrivateProjection:[],
+  location:{taskCountryCode:'RS',geography,exactAddress:'SYNTHETIC_ADDRESS',accessNotes:null,resolvedLocation:null}};
+};
+
+test('physical conversation accepts a prepared description for DRAFT without mistaking canAccept for human pin confirmation',()=>{
+ for(const mode of ['STATIONARY','POINT_TO_POINT']) {
+  for(const canAccept of [true,false]) assert.doesNotThrow(()=>checkPhysicalMapConfirmation(physicalReview(mode,canAccept),mode));
+  const incomplete=physicalReview(mode,false);incomplete.location=null;
+  assert.doesNotThrow(()=>checkPhysicalMapConfirmation(incomplete,mode));
+ }
+});
+
+test('physical conversation rejects complete, partial or malformed resolved pins in either location or a projection',()=>{
+ const pin={slot:'start',latitudeE6:45000000,longitudeE6:19000000,origin:{kind:'MANUAL_PIN'}};
+ for(const resolvedLocation of [{version:1,points:[pin]}, {version:1,points:[]}, {}]) {
+  const review=physicalReview('POINT_TO_POINT');review.location.resolvedLocation=resolvedLocation;
+  assert.throws(()=>checkPhysicalMapConfirmation(review,'POINT_TO_POINT'),/AI_CONFIRMED_MAP_WITHOUT_HUMAN/);
+ }
+ for(const projection of ['publicProjection','ownerPrivateProjection']) {
+  const review=physicalReview();review[projection].push({key:'need.resolved_location',value:{version:1,points:[pin]}});
+  assert.throws(()=>checkPhysicalMapConfirmation(review,'STATIONARY'),/AI_CONFIRMED_MAP_WITHOUT_HUMAN/);
+ }
+});
+
+test('physical confirmation assertion preserves topology/mode and rejects incomplete acceptance envelopes',()=>{
+ for(const mutate of [
+  r=>{r.publicProjection[0].value.mode='REMOTE';},
+  r=>{r.location={...r.location,geography:{mode:'REMOTE'}};},
+  r=>{r.classificationCandidates[0].mode='REMOTE';},
+  r=>{r.location=null;},
+  r=>{delete r.location;},
+  r=>{delete r.location.resolvedLocation;},
+  r=>{delete r.ownerPrivateProjection;},
+  r=>{r.canAccept='true';},
+ ]) {
+  const review=physicalReview();mutate(review);
+  assert.throws(()=>checkPhysicalMapConfirmation(review,'STATIONARY'),/MAP_|TOPOLOGY/);
+ }
 });

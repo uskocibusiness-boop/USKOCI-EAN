@@ -208,6 +208,26 @@ export function checkExistingModeExtension(review, expectedCategoryId) {
     && JSON.stringify(plans[0].handoff.shippingCountries) === '["RS"]', 'MODE_EXTENSION_SHIPPING_SCOPE_CHANGED');
 }
 
+/** A prepared location is an AI description, not a human-confirmed pin.
+ * canAccept authorizes signed acceptance into a DRAFT; publication separately
+ * requires every owner-confirmed slot through need_publication_location_readiness.
+ * This conversation-only case must never invent any resolved point or fact. */
+export function checkPhysicalMapConfirmation(review, expectedGeography) {
+  assert(['STATIONARY','POINT_TO_POINT','MULTI_STOP','AREA_BASED'].includes(expectedGeography)
+    && typeof review?.canAccept === 'boolean' && Array.isArray(review.publicProjection)
+    && Array.isArray(review.ownerPrivateProjection) && Array.isArray(review.classificationCandidates), 'MAP_REVIEW_INVALID');
+  const geography = review.publicProjection.find(fact => fact.key === 'need.task_geography')?.value;
+  assert(geography?.mode === expectedGeography, 'AI_LOCATION_TOPOLOGY_CHANGED');
+  if (review.location === null) assert(review.canAccept === false, 'MAP_REVIEW_INVALID');
+  else {
+    assert(review.location?.geography?.mode === expectedGeography, 'AI_LOCATION_TOPOLOGY_CHANGED');
+    assert(review.location.resolvedLocation === null, 'AI_CONFIRMED_MAP_WITHOUT_HUMAN');
+  }
+  assert(![...review.publicProjection,...review.ownerPrivateProjection]
+    .some(fact => fact.key === 'need.resolved_location' && fact.value != null), 'AI_CONFIRMED_MAP_WITHOUT_HUMAN');
+  assert(!review.classificationCandidates.some(plan => plan.mode === 'REMOTE'), 'PHYSICAL_MAP_BECAME_REMOTE');
+}
+
 /** Authority is checked structurally; the question signal is only a QA aid.
  * The retained owned reply must still be inspected for a useful, honest question. */
 export function checkWorkerHandoffClarification(review, evidence) {
@@ -401,12 +421,7 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
           assert(final.classificationState === 'READY' && final.classificationCandidates.every(plan => plan.action === 'REUSE_EXISTING'), 'KNOWN_SERVICE_NOT_REUSED');
         if (c.expectation === 'IMPOSSIBLE_REMOTE_NOT_READY')
           assert(final.canAccept === false && !final.classificationCandidates.some(plan => plan.mode === 'REMOTE'), 'IMPOSSIBLE_PHYSICAL_REMOTE_ACCEPTED');
-        if (c.expectation === 'PHYSICAL_MAP_CONFIRMATION') {
-          const geography = final.publicProjection.find(fact => fact.key === 'need.task_geography')?.value;
-          assert(geography?.mode === c.expectedGeography, 'AI_LOCATION_TOPOLOGY_CHANGED');
-          assert(final.location === null && final.canAccept === false, 'AI_CONFIRMED_MAP_WITHOUT_HUMAN');
-          assert(!final.classificationCandidates.some(plan => plan.mode === 'REMOTE'), 'PHYSICAL_MAP_BECAME_REMOTE');
-        }
+        if (c.expectation === 'PHYSICAL_MAP_CONFIRMATION') checkPhysicalMapConfirmation(final, c.expectedGeography);
         if (['PHYSICAL_HANDOFF','DIGITAL_HANDOFF'].includes(c.expectation)) {
           assert(final.classificationState === 'READY' && final.canAccept === true, 'EXECUTION_REVIEW_NOT_READY');
           assert(final.classificationCandidates.every(plan => plan.mode === 'REMOTE'

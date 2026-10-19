@@ -1,9 +1,10 @@
 import type { AiNeedV2Fact } from '../../../contracts/aiNeedV2';
 import type { NeedLocationInput } from '../../../contracts/location';
+import { locationSlots } from '../../../lib/location';
 import { NEED_FACT_V2_DEFINITIONS, type NeedFactV2Key } from '../../../contracts/needFactsV2';
 import { factReviewValue } from '../../../data/aiNeedV2Ui';
 import { REVIEW_FACT_COPY } from '../../../data/reviewFactProblem';
-import { blankList, deadlineWords, groupOf, groupedFacts, ownerAddressFrame, ownerPlaceLines, partFact, privateReviewMap, publicAnchorPoint, reviewRowValue, reviewTodos,
+import { blankList, deadlineWords, groupOf, groupedFacts, ownerAddressFrame, ownerPlaceLines, partFact, privateReviewMap, publicAnchorPoint, reviewLocationReadiness, reviewRowValue, reviewTodos,
   todoActionLabel } from '../reviewFacts';
 
 const fact = (key: NeedFactV2Key, value: unknown): AiNeedV2Fact => ({ id: key, key, value, displayValue: String(value),
@@ -74,8 +75,54 @@ describe('publicAnchorPoint', () => {
   });
 });
 
+describe('publication map readiness', () => {
+  const topologies: NeedLocationInput['geography'][] = [
+    { mode: 'STATIONARY', start: { city: 'Novi Sad' } },
+    { mode: 'POINT_TO_POINT', start: { city: 'Novi Sad' }, end: { city: 'Beograd' } },
+    { mode: 'MULTI_STOP', start: { city: 'Novi Sad' }, waypoints: [{ city: 'Inđija' }], end: { city: 'Beograd' } },
+    { mode: 'MULTI_STOP', start: { city: 'Novi Sad' }, waypoints: [{ city: 'Inđija' }] },
+    { mode: 'AREA_BASED', serviceArea: { city: 'Novi Sad' } },
+    { mode: 'AREA_BASED', start: { city: 'Novi Sad' } },
+    { mode: 'AREA_BASED', start: { city: 'Novi Sad' }, serviceArea: { city: 'Beograd' } },
+  ];
+  const physical = (geography: NeedLocationInput['geography']): NeedLocationInput => ({ taskCountryCode: 'RS', geography,
+    exactAddress: null, accessNotes: null, resolvedLocation: { version: 1,
+      binding: { taskCountryCode: 'RS', geography, exactAddress: null },
+      points: locationSlots(geography).map(slot => ({ slot, latitudeE6: 45251234, longitudeE6: 19831234, origin: { kind: 'MANUAL_PIN' } })),
+    } });
+  it.each(topologies)('requires every declared slot of %j even when the server permits saving a draft', geography => {
+    const location = physical(geography), total = locationSlots(geography).length;
+    const review = { safety: 'ALLOW', canAccept: true, missingRequired: [], location };
+    expect(reviewLocationReadiness(review)).toMatchObject({ ready: true, done: total, total });
+    expect(reviewTodos(review, null)).toEqual([]);
+    for (let done = 0; done < total; done++) {
+      const incomplete = { ...review, location: { ...location, resolvedLocation: done ? { ...location.resolvedLocation!,
+        points: location.resolvedLocation!.points.slice(0, done) } : null } };
+      expect(reviewLocationReadiness(incomplete)).toMatchObject({ ready: false, done, total });
+      expect(reviewTodos(incomplete, null)).toEqual([{ key: 'location', text: 'Mesto na mapi nije potvrđeno.', target: 'location' }]);
+      expect(incomplete.canAccept).toBe(true);
+    }
+  });
+  it('rejects old or malformed point bindings instead of counting their slots as confirmed', () => {
+    const location = physical(topologies[1]);
+    expect(reviewLocationReadiness({ location: { ...location, exactAddress: 'Promenjena adresa' } })).toMatchObject({ ready: false, done: 0, total: 2 });
+    expect(reviewLocationReadiness({ location: { ...location, resolvedLocation: { ...location.resolvedLocation!,
+      points: [location.resolvedLocation!.points[0], location.resolvedLocation!.points[0]] } } })).toMatchObject({ ready: false, done: 0 });
+    expect(reviewLocationReadiness({ location: null })).toMatchObject({ ready: false, done: 0, total: 0 });
+  });
+  it('does not invent a map requirement for an explicitly remote task', () => {
+    const remote = { taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null, resolvedLocation: null };
+    expect(reviewLocationReadiness({ location: remote })).toMatchObject({ ready: true, done: 0, total: 0 });
+    const review = { safety: 'ALLOW', missingRequired: [], location: null,
+      publicProjection: [{ key: 'need.task_geography', value: { mode: 'REMOTE' }, status: 'CONFIRMED' }] };
+    expect(reviewLocationReadiness(review).ready).toBe(true); expect(reviewTodos(review, null)).toEqual([]);
+    expect(reviewLocationReadiness({ ...review, publicProjection: [{ ...review.publicProjection[0], status: 'UNKNOWN' }] }).ready).toBe(false);
+  });
+});
+
 describe('reviewTodos', () => {
-  const base = { safety: 'ALLOW', missingRequired: [] as NeedFactV2Key[], location: {} };
+  const base = { safety: 'ALLOW', missingRequired: [] as NeedFactV2Key[], location: {
+    taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null, resolvedLocation: null } };
   it('never names the category', () => {
     expect(reviewTodos({ ...base, missingRequired: ['need.category'] }, null)).toEqual([
       { key: 'missing', text: 'Treba još malo o samom zadatku.', target: 'conversation' }]);
@@ -135,7 +182,8 @@ describe('the place in the review', () => {
 
 /** The word of the way out of a "Još treba" row (owner's phone, 2026-10-07: a sentence with a faint arrow beside a grey publish was not read as a button). */
 describe('todoActionLabel', () => {
-  const base = { safety: 'ALLOW', missingRequired: [] as NeedFactV2Key[], location: {} };
+  const base = { safety: 'ALLOW', missingRequired: [] as NeedFactV2Key[], location: {
+    taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null, resolvedLocation: null } };
   it('names the fix of each row: the time, the amount, the place, or the conversation', () => {
     expect(todoActionLabel({ key: 'fact', text: REVIEW_FACT_COPY.FIXED_WINDOW_START_PASSED, target: 'need.starts_at' })).toBe('Izmeni termin');
     expect(todoActionLabel({ key: 'fact', text: REVIEW_FACT_COPY.FIXED_WINDOW_BOUNDS_REQUIRED, target: 'need.ends_at' })).toBe('Izmeni termin');

@@ -5,7 +5,7 @@ import { factLabel, factReviewValue, slotLabel } from '../../data/aiNeedV2Ui';
 import { REVIEW_FACT_COPY } from '../../data/reviewFactProblem';
 import { capabilityTerms } from '../../lib/capabilityTerms';
 import { dogovorenoVreme } from '../../lib/dogovorenoVreme';
-import { locationSlots, normalizeNeedLocation, pointsMissing } from '../../lib/location';
+import { locationSlots, normalizeNeedLocation, normalizeTaskGeography, pointsMissing } from '../../lib/location';
 import { novac } from '../../lib/novac';
 import type { LocationOverviewPoint } from '../location/LocationOverviewMap.types';
 import { normalizedPlaceText, ownerPlaces } from '../location/placeText';
@@ -91,19 +91,35 @@ export type ReviewTodo = { key: string; text: string;
   /** `conversation` goes back to the conversation, `location` opens the place, a fact key opens that row's editor. */
   target: 'conversation' | 'location' | NeedFactV2Key | null };
 
+type ReviewLocation = { location: unknown; publicProjection?: readonly { key: string; value: unknown; status?: string }[] };
+
+/** Map readiness only: a draft may be accepted before all physical slots are confirmed.
+ * Count only points whose complete country/geography/address binding passes the existing decoder.
+ * This does not grant publication authority; the server still checks the signed review and publication. */
+export function reviewLocationReadiness(review: ReviewLocation) {
+  const normalized = normalizeNeedLocation(review.location);
+  const raw = review.location && typeof review.location === 'object'
+    ? review.location as { geography?: unknown } : null;
+  const geography = normalizeTaskGeography(raw?.geography
+    ?? review.publicProjection?.find(fact => fact.key === 'need.task_geography' && fact.status !== 'UNKNOWN')?.value);
+  const remote = geography?.mode === 'REMOTE';
+  const points = pointsMissing(geography, normalized?.resolvedLocation);
+  return { geography, ...points, ready: remote || (!!normalized && points.total > 0 && points.done === points.total) };
+}
+
 /**
  * "Još treba", in order: a safety block, what is missing (never naming the category, owner decision 2026-09-21), the
  * place on the map, then what the server would refuse about the facts themselves. The unavailable identity condition is
  * its own block with its own action, not a row here.
  */
-export function reviewTodos(review: { safety: string; missingRequired: readonly NeedFactV2Key[]; location: unknown; canAccept?: boolean },
+export function reviewTodos(review: ReviewLocation & { safety: string; missingRequired: readonly NeedFactV2Key[]; canAccept?: boolean },
   factProblem: string | null, identityBlock = false): ReviewTodo[] {
   const todos: ReviewTodo[] = [];
   if (review.safety === 'BLOCK') todos.push({ key: 'safety', text: 'Zadatak ne može da se objavi ovako. Izmeni ga u razgovoru.', target: 'conversation' });
   const missing = review.missingRequired.filter(key => key !== 'need.category');
   if (missing.length) todos.push({ key: 'missing', text: `Nedostaje: ${missing.map(factLabel).join(', ')}.`, target: 'conversation' });
   else if (review.missingRequired.length) todos.push({ key: 'missing', text: 'Treba još malo o samom zadatku.', target: 'conversation' });
-  if (!review.location) todos.push({ key: 'location', text: 'Mesto na mapi nije potvrđeno.', target: 'location' });
+  if (!reviewLocationReadiness(review).ready) todos.push({ key: 'location', text: 'Mesto na mapi nije potvrđeno.', target: 'location' });
   if (factProblem) todos.push({ key: 'fact', text: factProblem, target: factProblem === REVIEW_FACT_COPY.MY_PRICE_AMOUNT_REQUIRED
     ? 'need.price_rsd' : factProblem === REVIEW_FACT_COPY.FIXED_WINDOW_BOUNDS_REQUIRED || factProblem === REVIEW_FACT_COPY.FIXED_WINDOW_START_PASSED
       ? 'need.starts_at' : null });
