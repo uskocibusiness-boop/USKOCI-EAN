@@ -206,5 +206,56 @@
     "task": 102
   },
   "subsequentTaskCopyFixVersion": 103,
-  "pushDeliveryVerified": false
+  "pushDeliveryVerified": false,
+  "readOnlyFitCheck": {
+    "scope": "Same owner, unpublished drafts; expected final refusal OWN_NEED, not two-account dispatch evidence",
+    "results": [
+      {
+        "need_id": "00d586a6-27ee-440d-9895-4c1213bcbe2a",
+        "status": "DRAFT",
+        "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+        "fit": {
+          "area": true,
+          "hard": [
+            "OWN_NEED"
+          ],
+          "matches": false,
+          "service": true,
+          "timeTier": 1,
+          "distanceKm": null,
+          "taxonomyTier": "EXACT",
+          "effectiveRadiusKm": 15
+        }
+      },
+      {
+        "need_id": "20c3b657-b059-4945-8bd5-e88d82a91355",
+        "status": "DRAFT",
+        "category_id": "ef63d6d2-7087-4d67-8a9d-b07952655d03",
+        "fit": {
+          "area": true,
+          "hard": [
+            "OWN_NEED"
+          ],
+          "matches": false,
+          "service": true,
+          "timeTier": 1,
+          "distanceKm": null,
+          "taxonomyTier": "EXACT",
+          "effectiveRadiusKm": 15
+        }
+      }
+    ]
+  },
+  "finalCatalogRead": {
+    "pages": 3,
+    "categories": 136,
+    "aliases": 3,
+    "version": 5,
+    "fingerprint": "6ceeb8d6caedef4964d1d44b379d2d60",
+    "maxExistingDepth": 3,
+    "promptUtf8Bytes": 22147,
+    "complete": true,
+    "shortlisted": false,
+    "clientElapsedMs": 455
+  }
 }

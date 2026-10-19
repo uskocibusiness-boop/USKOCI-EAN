@@ -1,6 +1,6 @@
 {
   "date": "2026-10-19",
-  "sourceCommit": "eb2f525b43ac3f1c3c076e0e9002c8661630be6f",
+  "sourceCommit": "f56c94c35c8eb0f2f28a6961fb4bf358228c241c",
   "project": "leqcwgzvjsxugfgzdmth",
   "migration": {
     "source": "20261019071732_taxonomy_natural_services_structural_paths.sql",
@@ -133,6 +133,34 @@
     ]
   },
   "liveAcceptance": "PASS_8_PROVIDER_RESPONSES_AND_3_SIGNED_SAVES",
-  "apk": "PREVIOUS_ATTEMPT_FAILED_MANIFEST_FIXED_REBUILD_PENDING",
-  "liveAcceptanceEvidence": "docs/current/evidence/AI_FULL_TREE_LIVE_20261019.json"
+  "apk": "BUILT_INSTALLED_EMULATOR_SMOKE_PASS",
+  "liveAcceptanceEvidence": "docs/current/evidence/AI_FULL_TREE_LIVE_20261019.json",
+  "fullRegression": {
+    "run": 39219527009,
+    "success": true,
+    "numTotalTestSuites": 621,
+    "numPassedTestSuites": 621,
+    "numFailedTestSuites": 0,
+    "numTotalTests": 13884,
+    "numPassedTests": 13884,
+    "numFailedTests": 0,
+    "numPendingTests": 0
+  },
+  "apkEvidence": "docs/current/evidence/AI_FULL_TREE_APK_20261019.json",
+  "finalEdgeReadback": [
+    {
+      "name": "uskoci-worker-interview",
+      "version": 56,
+      "exactContentReadback": true,
+      "files": 8,
+      "ezbr_sha256": "8e4731966e543ccf3df754cdee0a4d41755ad96d453625ef074051422652bbd8"
+    },
+    {
+      "name": "uskoci-ai-interview",
+      "version": 103,
+      "exactContentReadback": true,
+      "files": 10,
+      "ezbr_sha256": "d066499ec501f55fcd7a70ff9dbb895f4756ed982589790163bcfdae3c911ab1"
+    }
+  ]
 }

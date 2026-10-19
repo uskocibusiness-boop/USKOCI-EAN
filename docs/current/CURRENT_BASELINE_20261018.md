@@ -1,5 +1,7 @@
 # Aktuelni presek za Premium White
 
+Najnoviji provereni AI/native paket, 19.10: [celo aktuelno stablo i oba AI razgovora](AI_FULL_TREE_20261019.md), source `f56c94c3`, CI `39219527009`, 621/621 paketa i 13.884/13.884 testova. DEV worker 56/task 103 i forward migracija primenjeni; x86_64 APK napravljen, instaliran sa očuvanom sesijom i ograničeno pregledan na emulatoru. Fizički telefon nije ovim potvrđen. Datirani preseci ispod čuvaju svoje istorijske granice.
+
 Ostatak ovog dokumenta je datirani početni presek. Naknadni lokalni tehnički paket na polazištu `aa61d04e`: [ograničeni Home pregled, build paritet i SQL kandidati](LOCAL_RELIABILITY_PACKAGE_20261018.md). Potom je [reliability paket primenjen na DEV, ledger 288](DEV_RELIABILITY_APPLICATION_20261018.md), a phone APK iz `bb0ba8d`, CI `39163968732`, uspešno izgrađen (nije ovde instaliran). Najnoviji zaseban [client cleanup](CLIENT_CLEANUP_20261018.md) ima punu regresiju i Android export dokaz, bez promene aktivnog prikaza; nije u tom prethodnom APK-u. Istorijski baseline i njegovi device dokazi ispod ostaju odvojeni.
 
 Ovaj presek je primena najnovijeg naloga vlasnika od 18.10.2026: postojeći proizvod postaje proverljivo polazište za redizajn. Ne znači da su svi ekrani već redizajnirani. Status rada ostaje u `docs/control/redovi.json`; ovaj dokument objašnjava odakle nastavljamo.

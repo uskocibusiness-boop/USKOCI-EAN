@@ -45,7 +45,7 @@ Ne dokazuje nepogrešivo razumevanje svake slobodne rečenice, plaćanje, isporu
 
 ## Primena 07:44 UTC
 
-Kod `eb2f525b`; PostgreSQL16/17 CI `39217796738`: sva četiri job-a PASS, uključujući pre/post dokaz i tačan rollback/reapplication. DEV ledger verzija `20261019074443` odgovara source migraciji `20261019071732`. Sadržaj svih šest funkcija odgovara migraciji, owner/ACL/search_path očuvani. Edge: worker56, task102, sve datoteke ponovo pročitane i identične poslatom paketu. [Mašinski receipt](evidence/AI_FULL_TREE_DEV_20261019.json).
+Kod `eb2f525b`; PostgreSQL16/17 CI `39217796738`: sva četiri job-a PASS, uključujući pre/post dokaz i tačan rollback/reapplication. DEV ledger verzija `20261019074443` odgovara source migraciji `20261019071732`. Sadržaj svih šest funkcija odgovara migraciji, owner/ACL/search_path očuvani. Edge: worker 56, task102, sve datoteke ponovo pročitane i identične poslatom paketu. [Mašinski receipt](evidence/AI_FULL_TREE_DEV_20261019.json).
 
 ## Stvarni DEV dokaz 07:57 UTC
 
@@ -54,12 +54,21 @@ Osam stvarnih Gemini odgovora na izolovanom novom test-world nalogu: postojeća 
 1. Zadatak za 3D štampu koristi postojeći UUID `d5e890a0-2502-4901-8803-7462b8ca6d24`, REMOTE.
 2. Specifično autorsko 3D modelovanje i izrada taktilnih karata dobija CREATE_CHILD predlog. Kategorija `ef63d6d2-7087-4d67-8a9d-b07952655d03` nastaje tek posle eksplicitnog prihvatanja potpisanog pregleda. Nacrt zadatka se vezuje za taj UUID; ostaje DRAFT, publishedAt=null.
 3. Nejasan zahtev izaziva pitanje šta konkretno treba uraditi; nema izmišljene kategorije ni spremnosti za čuvanje.
-4. Radni AI u sledećem potezu čita katalog verzije5 i koristi upravo nastali UUID, uz očuvanu postojeću 3D štampu. Nije bio potreban redeploy da vidi novu granu.
+4. Radni AI u sledećem potezu čita katalog verzije 5 i koristi upravo nastali UUID, uz očuvanu postojeću 3D štampu. Nije bio potreban redeploy da vidi novu granu.
 5. Pre prvog čuvanja svih pet snapshot digest-a (katalog, aktivni radni profil i vezivanja, zadaci i vezivanja) ostaje isto. Posle dopune razgovora radni profil i dalje je DRAFT i nema aktivnih binding-a.
-6. Tek zaseban signed Save aktivira probni profil. Observer potvrđuje oba UUID-a, oba REMOTE, active=true i excluded=false. Binder za zadatak i radnika izričito vraća dispatchAuthority=NONE i notificationAuthority=NONE. Objava, stvarni matching i push nisu izvršeni ovom probom.
+6. Tek zaseban signed Save aktivira probni profil. Observer potvrđuje oba UUID-a, oba REMOTE, active=true i excluded=false. Binder za zadatak i radnika izričito vraća dispatchAuthority=NONE i notificationAuthority=NONE. Nijedan probni zadatak nije objavljen; nije proverena isporuka push-a. Ovo ne tvrdi da aktiviranje profila globalno isključuje postojeće zasebne dispatch mehanizme.
+7. Zasebna read-only provera stvarnog matchera nad oba DRAFT zadatka i tim istim nalogom daje service=true, area=true, taxonomyTier=EXACT, timeTier=1. Konačno matches=false i OWN_NEED je ispravna zaštita: osoba ne dobija sopstveni zadatak. To nije dokaz dispatch-a između dva različita naloga.
 
-[Read-only snapshot i binding dokazi](evidence/AI_FULL_TREE_LIVE_20261019.json). Osam rezervacija ukupno2 USD predstavlja konzervativni maksimum, ne stvarnu fakturu.
+[Read-only snapshot i binding dokazi](evidence/AI_FULL_TREE_LIVE_20261019.json). Osam rezervacija ukupno 2 USD predstavlja konzervativni maksimum, ne stvarnu fakturu.
 
-Tokom probe otkrivena je netačna AI formulacija „Pregled je otvoren“. Task instrukcija sada kaže da model ne otvara ekran već upućuje korisnika da ga otvori. Task Edge103 primenjen i svih10 datoteka tačno pročitano nazad; worker ostaje56. Ovo je naknadna copy ispravka, bez dodatnog plaćenog razgovora.
+Tokom probe otkrivena je netačna AI formulacija „Pregled je otvoren“. Task instrukcija sada kaže da model ne otvara ekran već upućuje korisnika da ga otvori. Task Edge103 primenjen i svih 10 datoteka tačno pročitano nazad; worker ostaje 56. Ovo je naknadna copy ispravka, bez dodatnog plaćenog razgovora.
 
-Prvi APK pokušaj `39218193675` stao je na nedostajuća dva zapisa u migration manifestu. Manifest i provenance dopunjeni stvarnim ledger dokazom; istorijski SQL nije prepisivan. Novi APK / puna regresija slede na tom ispravljenom preseku.
+Prvi APK pokušaj `39218193675` stao je na nedostajuća dva zapisa u migration manifestu. Manifest i provenance dopunjeni stvarnim ledger dokazom; istorijski SQL nije prepisivan.
+
+## Završni APK i uređaj
+
+CI `39219527009`, kod `f56c94c35c8eb0f2f28a6961fb4bf358228c241c`: SUCCESS. Svih 621 Jest paketa i 13.884 testova prolazi, bez padova i preskočenih. Preview x86_64 APK, versionCode 35, SHA256 `da044b1007336ff12378d0bdbb8ee13af7f9c3dc4cecb3d458420e6341122467` potvrđen je prema CI receipt-u i instaliran `adb install -r` na emulator-5554.
+
+Fizički pregled: postojeća prijava očuvana; Početna, sačuvan radni profil i About rade; About pokazuje baš f56c94c3 i ugrađeni sadržaj 48965351, runtime `uskoci-v1-preview-r1`, kanal preview. Prebuild je izmenio samo package.json android/ios komande u expo run; zato UI iskreno prikazuje zvezdicu za dirty build. Exact prebuild patch je pregledan. Back vraća u profil/Početnu, a postojeći razgovor o prevozu nastavlja se sa istim porukama i rutom, bez slanja novog odgovora.
+
+Pregled je ograničen na postojeći emulator od oko 361 dp i font 1,15. To nije puna matrica širina/fontova niti fizički native Save/Publish test dva QA naloga. Telefon nije instaliran ni testiran. [APK i smoke receipt](evidence/AI_FULL_TREE_APK_20261019.json). Završno čitanje Edge paketa ponovo potvrđuje worker 56/task 103 i svih 18 tačnih datoteka.
