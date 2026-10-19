@@ -1,5 +1,7 @@
 # USKOČI — pretraga rastućeg kataloga iz oba AI razgovora
 
+> Datirani prethodni paket. Naknadni [SERVICE_EXECUTION_20261019.md](SERVICE_EXECUTION_20261019.md) beleži Task106/Worker59, uklonjenu prepreku roditeljskih režima, živ CREATE_CHILD/EXTEND_MODE, Save, matching i novi klijent. Nalazi ispod opisuju stanje prethodne probe, ne preostalu blokadu nakon tog paketa.
+
 Datum: 19.10.2026. Kanonski DEV: `leqcwgzvjsxugfgzdmth`.
 Implementacija: `e105d3bf`; završna ispravka: `80619453`.
 Detaljan dokaz: [AI_CATALOG_TOOLS_20261019.json](evidence/AI_CATALOG_TOOLS_20261019.json).
@@ -92,4 +94,3 @@ Sledeći konkretan paket treba da definiše predlog proširenja režima postoje�
 2. Meriti razgovore sa više različitih usluga, promenama namere i velikim katalogom; optimizovati pre povećavanja rokova.
 3. Zatim povezani test dve uloge: čuvanje/objava → UUID veze → matching → stvarno obaveštenje → otvaranje tačnog ekrana.
 4. Nastaviti povezane UI/UX talase uz postojeći Premium White canon. Ovaj serverski paket nije dokaz završenog redizajna cele aplikacije.
-

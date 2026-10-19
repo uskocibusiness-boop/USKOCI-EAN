@@ -53,8 +53,14 @@ const CASES = Object.freeze({ ...STANDARD_CASES,
     'Treba mi da neko fizički okreči zidove mog stana u Novom Sadu, ali hoću da to uradi na daljinu bez dolaska. Ne želim savetovanje niti uputstva, nego stvarno okrečene zidove. Jedan izvršilac, fleksibilno, tražim ponude.']},
   'need-rare-execution': {flow:'need',expectation:'PHYSICAL_HANDOFF',messages:[
     'Treba mi restauracija stare mehaničke muzičke kutije: čišćenje, popravka opružnog mehanizma i podešavanje metalnog češlja. Šaljem predmet majstoru kurirskom službom unutar Srbije, radi kod sebe i vraća mi ga dostavom u Srbiji. Jedan izvršilac, potpuno fleksibilan termin, tražim ponude.']},
-  'worker-shipping-execution': {flow:'worker',expectation:'PHYSICAL_HANDOFF',messages:[
-    'Nudim 3D štampanje figurica prema gotovom STL fajlu. Izrađujem kod sebe u radionici i šaljem kurirskom službom samo u Srbiji. Ne dolazim kod naručioca i ne nudim lično preuzimanje. Grad profila Novi Sad, Srbija. Dostupnost po dogovoru.']},
+  // Optional live precondition: this existing service still supports ON_SITE only.
+  // After a successful signed Save adds REMOTE, a rerun should reuse it instead.
+  'need-typewriter-shipping-execution': {flow:'need',expectation:'PHYSICAL_HANDOFF',
+    expectedCategoryId:'11e218ed-e072-4609-bcee-9576aa4c2e16',expectedAction:'EXTEND_MODE',messages:[
+    'Treba mi popravka ručne mehaničke pisaće mašine: zaglavljuju se tipke, potrebno je čišćenje i podešavanje mehaničkog sklopa. Mašina nije električna i nema elektronskih delova. Šaljem je kurirskom službom u radionicu majstora unutar Srbije, tamo je popravlja i vraća mi je kurirskom službom u Srbiji. Nema dolaska kod mene ni ličnog preuzimanja. Jedan izvršilac, termin potpuno fleksibilan, tražim ponude.']},
+  'worker-shipping-execution': {flow:'worker',expectation:'PHYSICAL_HANDOFF',requiresHandoffClarification:true,messages:[
+    'Nudim 3D štampanje figurica prema gotovom STL fajlu. Izrađujem kod sebe u radionici, bez dolaska kod naručioca. Grad profila Novi Sad, Srbija. Dostupnost po dogovoru.',
+    'Šaljem izrađene figurice kurirskom službom samo u Srbiji. Ne nudim lično preuzimanje niti dolazak kod naručioca.']},
   ...Object.fromEntries(['need-existing','worker-existing','need-novel'].map(name => [name+'-tools',
     {...STANDARD_CASES[name],messages:[STANDARD_CASES[name].messages[0]]}])),
   'need-rare-tools': {flow:'need',expectation:'SEMANTIC_REVIEW_NO_FORCED_NOVELTY',messages:[
@@ -179,6 +185,34 @@ export function compareNoPreSaveChanges(before, after) {
   for (const key of ['catalogFingerprint', 'workerBindingsDigest', 'needBindingsDigest', 'workerCanonicalDigest', 'needsCanonicalDigest']) {
     assert(typeof before?.[key] === 'string' && before[key] === after?.[key], `PRESAVE_CHANGED_${key}`);
   }
+}
+
+/** Acceptance assertion only: never substitutes a category or repairs the review. */
+export function checkExistingModeExtension(review, expectedCategoryId) {
+  assert(UUID.test(expectedCategoryId) && review?.classificationState === 'READY'
+    && review.canAccept === true && review.location?.geography?.mode === 'REMOTE', 'MODE_EXTENSION_REVIEW_NOT_READY');
+  const plans = review.classificationCandidates;
+  assert(Array.isArray(plans) && plans.length === 1 && plans[0]?.action === 'EXTEND_MODE'
+    && plans[0].mode === 'REMOTE' && same(plans[0].categoryId, expectedCategoryId), 'MODE_EXTENSION_DID_NOT_PRESERVE_CATEGORY');
+  assert(plans[0].handoff?.required === true && !plans[0].handoff.localExchange
+    && JSON.stringify(plans[0].handoff.shippingCountries) === '["RS"]', 'MODE_EXTENSION_SHIPPING_SCOPE_CHANGED');
+}
+
+/** Authority is checked structurally; the question signal is only a QA aid.
+ * The retained owned reply must still be inspected for a useful, honest question. */
+export function checkWorkerHandoffClarification(review, evidence) {
+  assert(evidence?.outcome === 'OWNED_SUCCEEDED_READBACK'
+    && ['SSE_CONFIRMED','JSON_CONFIRMED','OWNED_WORKER_SNAPSHOT'].includes(evidence.assistantTextSource)
+    && typeof evidence.assistantText === 'string' && evidence.assistantText.trim(), 'WORKER_HANDOFF_REPLY_NOT_CONFIRMED');
+  assert(Array.isArray(review?.classificationCandidates)
+    && review.classificationCandidates.every(plan => plan && !Object.hasOwn(plan,'handoff')),
+    'WORKER_HANDOFF_INVENTED_BEFORE_ANSWER');
+  const questionSignal = evidence.assistantText.split('?').slice(0,-1)
+    .some(part => /predaj|preuzim|slanj|šalj|salj|dostav|kurir|предај|преузим|слањ|шаљ|достав|курир/iu.test(part));
+  return { classificationState:review.classificationState,canAccept:review.canAccept,
+    handoffSpecified:false,questionSignalDetected:questionSignal,questionMeaning:'HUMAN_REVIEW_REQUIRED',
+    assistantText:evidence.assistantText,assistantTextSource:evidence.assistantTextSource,
+    clientRequestId:evidence.clientRequestId };
 }
 
 function checkReview(review, accountId, cid) {
@@ -342,9 +376,13 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
         const cid = opened.conversationId; knownIds.add(cid); item.conversationId = cid;
         const owned = (await ownConversations()).find(row => same(row.id, cid));
         assert(owned && owned.status === 'OPEN' && owned.purpose === (c.flow === 'worker' ? 'PROFILE' : 'NEED_INTAKE'), 'NEW_CONVERSATION_OWNERSHIP_NOT_CONFIRMED');
-        for (const message of c.messages) {
+        for (const [messageIndex,message] of c.messages.entries()) {
           const snapshot = await turn(c.flow, cid, message);
           item.reviews.push(await review(c.flow, cid, snapshot.revision)); persist();
+          if (c.requiresHandoffClarification && messageIndex === 0) {
+            item.firstHandoffClarification = checkWorkerHandoffClarification(item.reviews.at(-1),report.providerAttempts.at(-1));
+            persist();
+          }
         }
         const final = item.reviews.at(-1);
         if (c.expectation === 'CLARIFY_NOT_READY')
@@ -363,11 +401,17 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
           if (name.includes('shipping-execution')) assert(final.classificationCandidates.every(plan => !plan.handoff.localExchange
             && JSON.stringify(plan.handoff.shippingCountries) === '["RS"]'), 'SHIPPING_SCOPE_CHANGED');
         }
+        if (c.expectedAction === 'EXTEND_MODE') checkExistingModeExtension(final, c.expectedCategoryId);
         if (item.reviews.length > 1) {
           const first = item.reviews[0];
           if (first.classificationState === 'READY') {
             assert(final.classificationState === 'READY', 'FINISH_LOST_CLASSIFICATION');
-            const semanticPlans = r => r.classificationCandidates.map(({ reason, ...rest }) => rest);
+            // A substantive handoff answer adds a constraint; a finish-only turn cannot change it.
+            const semanticPlans = r => r.classificationCandidates.map(({ reason, ...rest }) => {
+              if (!c.requiresHandoffClarification) return rest;
+              const { handoff, ...serviceAndMode } = rest;
+              return serviceAndMode;
+            });
             assert(hash(semanticPlans(first)) === hash(semanticPlans(final)), 'FINISH_CHANGED_CLASSIFICATION');
           }
         }

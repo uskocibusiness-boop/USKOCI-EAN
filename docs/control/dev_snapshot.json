@@ -1107,5 +1107,48 @@
     "canonicalUnchanged": true,
     "releaseAccepted": false,
     "recordedAt": "2026-10-19T09:41:21.827280+00:00"
+  },
+  "service_execution_refresh_20261019": {
+    "checkedAt": "2026-10-19T12:04:24.509Z",
+    "scope": "Two migrations,25 function readbacks,Task106/Worker59,isolated live QA and matching only; other dated inventory retained.",
+    "evidence": "docs/current/evidence/SERVICE_EXECUTION_20261019.json",
+    "migrations": [
+      {
+        "source": "20261019104047",
+        "live": "20261019111512",
+        "name": "taxonomy_parent_navigation_and_mode_admission"
+      },
+      {
+        "source": "20261019104604",
+        "live": "20261019115240",
+        "name": "service_handoff_signed_matching"
+      }
+    ],
+    "edge": [
+      {
+        "name": "uskoci-ai-interview",
+        "version": 106,
+        "files": 16,
+        "verifyJwt": false,
+        "exactReadback": true,
+        "bundleSha256": "fb412736a7fa8fd1dbb4c7a5965075ade7951f46df3619eddf777efb8c8ccabb"
+      },
+      {
+        "name": "uskoci-worker-interview",
+        "version": 59,
+        "files": 14,
+        "verifyJwt": false,
+        "exactReadback": true,
+        "bundleSha256": "e1fa89e33415ebd2fe6a3a393c785552b0f3596d41f8b86ab89e2455a9ed1ee0"
+      }
+    ],
+    "catalogCount": 137,
+    "logicalMessages": 8,
+    "providerCalls": 22,
+    "savedDrafts": 4,
+    "publishedTasks": 0,
+    "actualSettlementUSD": 0.222529,
+    "phoneVerified": false,
+    "pushDeliveryVerified": false
   }
 }

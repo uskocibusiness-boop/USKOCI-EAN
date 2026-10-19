@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-19T09:40:44Z",
+  "osvezeno": "2026-10-19T12:12:23Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "80619453",
-  "head_poruka": "fix(ai): check parent delivery modes and suppress unverified publish readiness",
+  "head": "5f422987",
+  "head_poruka": "fix(qa): align remote handoff fixtures and coordinate checked client rollout",
   "server": {
    "snimljeno": "2026-10-18T20:15:59Z",
    "migracije": 288,
@@ -232,8 +232,8 @@
   "pravilo_gotovo": "Red je GOTOV samo kad su ekran, kod, server i test zeleni I postoji dokaz sa telefona za tekuću verziju (V19 pravilo DONE_VERIFIED: stari problem ne postoji, normalan put radi, zaštite nisu oslabljene, dokazi pripadaju tačnoj verziji)."
  },
  "counts": {
-  "PROBLEM": 44,
-  "NA TELEFONU NIJE PROVERENO": 18
+  "PROBLEM": 45,
+  "NA TELEFONU NIJE PROVERENO": 17
  },
  "finalization": {
   "d15_old_test_tasks_closed_20261007": "7.10. ~16:22 UTC, na vlasnikovo „Zatvori ih“ (d15): 4 stara test zadatka „Hitno prenošenje troseda“ (30.8., bez mesta) zatvorena na DEV-u proizvodnom funkcijom rpc_cancel_need u jednoj zaštićenoj transakciji (preduslov: tačno ta 4, PUBLISHED, rev 1, bez geografije, bez Dogovora). Posle: otvoreno 7 (bilo 11), NEED_CANCELLED x4, njihove prijave EXPIRED x4, druga dva zadatka tog naloga nedirnuta, sertifikat i ledger 227 isti. Posledica: 1 PUSH isporuka CREATED (push je isključen) — povući pre uključivanja slanja. Potvrda: supabase/operations/dev-alpha/ledger/20261007_d15_old_test_tasks_closed.receipt.json.",
@@ -3752,8 +3752,8 @@
     "test": "9 test fajl(ova)"
    },
    "telefon_dokaz": "Prvo AI pitanje vidljivo, bez model/ASR poziva; stvarni razgovor otvoren. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
-   "problem": "Task 99 primenjen. Stvarni razgovor sada objašnjava 19–25. oktobar, čuva DST granice i dopunske odgovore i uklanja zastarelo ponavljanje datuma iz opisa. Reprodukovano prepisivanje odgovora nepotpunom lokacijom ispravljeno.",
-   "sledece": "Završiti potpisani predlog i atomsku primenu proširenja režima postojeće odgovarajuće grane; ne praviti delivery duplikate i ne menjati korisnikov način rada. Zatim višeuslužni razgovori i dva aktera: Save/objava, matching, stvarna push isporuka. docs/current/AI_CATALOG_TOOLS_20261019.md",
+   "problem": "Ovaj paket potvrđuje pojedinačne scenarije; višeuslužni razgovori i sve promene već sačuvanog zadatka ostaju za širi stvarni test.",
+   "sledece": "Višeuslužni razgovori i izmene već sačuvanog zadatka, jasniji prikaz predaje bez paralelnog ručnog editora.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -4511,8 +4511,8 @@
     "test": "6 test fajl(ova)"
    },
    "telefon_dokaz": "52720d99 instaliran; ovaj popunjeni/glasovni scenario nije izveden. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
-   "problem": "",
-   "sledece": "Završiti potpisani predlog i atomsku primenu proširenja režima postojeće odgovarajuće grane; ne praviti delivery duplikate i ne menjati korisnikov način rada. Zatim višeuslužni razgovori i dva aktera: Save/objava, matching, stvarna push isporuka. docs/current/AI_CATALOG_TOOLS_20261019.md",
+   "problem": "Predaja je tačna i čitljiva, ali prikazuje tehnički country code i ponovljeni prefiks; preostala olovka lokacije traži AI-only usklađivanje.",
+   "sledece": "Prirodan sažetak predaje umesto country code-a i preostale olovke; održati isti razgovor i potpisani server nacrt.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -4580,7 +4580,7 @@
      "nativeEvidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-52720d99.json"
     }
    },
-   "ukupno": "NA TELEFONU NIJE PROVERENO",
+   "ukupno": "PROBLEM",
    "veza": {
     "povrsina": "Moj zadatak / Objavi",
     "nivo": 2,
@@ -5755,8 +5755,8 @@
     "test": "7 test fajl(ova)"
    },
    "telefon_dokaz": "59876dc6: Još nema ocena, stvarni broj 0, Istorija/Back i profilno zvono potvrđeni; šire granice otvorene. docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json",
-   "problem": "Worker 53 primenjen. Poznato krečenje dobija READY ON_SITE predlog; kombi/jezik nisu dodatne usluge. Izričita promena područja uklanja staru Vojvodinu iz bio opisa. Nacrt nije sačuvan; postojeći profil ostaje 3D REMOTE.",
-   "sledece": "Završiti potpisani predlog i atomsku primenu proširenja režima postojeće odgovarajuće grane; ne praviti delivery duplikate i ne menjati korisnikov način rada. Zatim višeuslužni razgovori i dva aktera: Save/objava, matching, stvarna push isporuka. docs/current/AI_CATALOG_TOOLS_20261019.md",
+   "problem": "AI je sam pitao o predaji, ali klasifikacioni READY može prethoditi odgovoru o njoj. Višeuslužni profil i naknadne promene predaje nisu obuhvaćeni ovim živim uzorkom.",
+   "sledece": "Više usluga sa različitom predajom; jasno razlikovati klasifikacionu READY spremnost od neodgovorenih korisnih pitanja.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -6077,8 +6077,8 @@
     "test": "4 test fajl(ova)"
    },
    "telefon_dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon.",
-   "problem": "0175d364 je instaliran uz sačuvanu sesiju. Native provereni čistiji REMOTE saved profil, ON_SITE nacrt bez Save-a, AI menu/tema bez automatskog slanja, task review i terenska mapa odbijena za sačuvani REMOTE profil.",
-   "sledece": "Završiti potpisani predlog i atomsku primenu proširenja režima postojeće odgovarajuće grane; ne praviti delivery duplikate i ne menjati korisnikov način rada. Zatim višeuslužni razgovori i dva aktera: Save/objava, matching, stvarna push isporuka. docs/current/AI_CATALOG_TOOLS_20261019.md",
+   "problem": "Potpisani pregled prikazuje potvrđenu predaju, ali sačuvani javni radni profil još nema isti sažetak po usluzi. Stari profili nemaju automatsku saglasnost za slanje/preuzimanje.",
+   "sledece": "Prikazati potvrđenu predaju po usluzi na sačuvanom profilu, bez izmišljanja preferencija starih profila.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -13819,6 +13819,86 @@
  },
  "ci": [
   {
+   "id": 39247299339,
+   "ime": "DEV Android preview OTA 20261014",
+   "sha": "5f422987",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-19T11:48:23Z"
+  },
+  {
+   "id": 39244981498,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "5f422987",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-19T11:29:18Z"
+  },
+  {
+   "id": 39244025948,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "5f422987",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-19T11:21:17Z"
+  },
+  {
+   "id": 39242766132,
+   "ime": "Taxonomy new branch scopes disposable proof",
+   "sha": "78786e7e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-19T11:10:53Z"
+  },
+  {
+   "id": 39242765470,
+   "ime": "Service handoff PostgreSQL proof",
+   "sha": "78786e7e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-19T11:10:53Z"
+  },
+  {
+   "id": 39242434233,
+   "ime": "Taxonomy new branch scopes disposable proof",
+   "sha": "d280fc5d",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-19T11:08:12Z"
+  },
+  {
+   "id": 39242434190,
+   "ime": "Service handoff PostgreSQL proof",
+   "sha": "d280fc5d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-19T11:08:12Z"
+  },
+  {
+   "id": 39242132998,
+   "ime": "Taxonomy new branch scopes disposable proof",
+   "sha": "b6f2529a",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-19T11:05:45Z"
+  },
+  {
+   "id": 39242132916,
+   "ime": "Service handoff PostgreSQL proof",
+   "sha": "b6f2529a",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-19T11:05:45Z"
+  },
+  {
+   "id": 39242132837,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "b6f2529a",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-19T11:05:45Z"
+  },
+  {
    "id": 39231090225,
    "ime": "Taxonomy catalog query PostgreSQL proof",
    "sha": "80619453",
@@ -13833,86 +13913,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-10-19T09:22:58Z"
-  },
-  {
-   "id": 39228265678,
-   "ime": "Taxonomy catalog query PostgreSQL proof",
-   "sha": "51c0378e",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-19T09:12:10Z"
-  },
-  {
-   "id": 39219527009,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "f56c94c3",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-19T07:58:49Z"
-  },
-  {
-   "id": 39218193675,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "0320fe50",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-19T07:46:48Z"
-  },
-  {
-   "id": 39217796738,
-   "ime": "Taxonomy new branch scopes disposable proof",
-   "sha": "eb2f525b",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-19T07:43:13Z"
-  },
-  {
-   "id": 39208880951,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "a73a78f4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-19T06:15:36Z"
-  },
-  {
-   "id": 39208215486,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "85497a1a",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-10-19T06:08:40Z"
-  },
-  {
-   "id": 39207389350,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "97c3f86b",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-19T05:59:41Z"
-  },
-  {
-   "id": 39202330027,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "2df06add",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-19T05:00:40Z"
-  },
-  {
-   "id": 39199573841,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "0ca2b699",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-19T04:27:40Z"
-  },
-  {
-   "id": 39172584767,
-   "ime": "PKG-042 application reader parity proof",
-   "sha": "f18ea85d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-18T22:31:14Z"
   }
  ]
 }

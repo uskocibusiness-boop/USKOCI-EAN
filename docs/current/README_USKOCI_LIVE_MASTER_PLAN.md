@@ -83,4 +83,10 @@ Završni presek: DEV primenjen, osam stvarnih QA odgovora i tri zasebna signed S
 
 DEV Task105/Worker58: oba razgovora koriste verzionisanu serversku pretragu celog kataloga i grana, bez whole-tree prompt-a. SQL20261019092405, PG16/17 PASS; 746 Node +56 završni delta PASS; 621 Jest paketa,13875 PASS/9skip. Pet QA poruka/16 modelpoziva,13–19s,0,143341USD interni obračun. Prva3READY; retka restauracija ostaje NEEDS_REVIEW zbog postojećih parentmodes. Nema Save/Publish/aktivacije; kanonski otisci nepromenjeni. docs/current/AI_CATALOG_TOOLS_20261019.md
 
-Prethodni full-tree paket je datirani prethodnik. Aktivni Edge sada koristi alat za stranice i grane, ne slanje kompletnog stabla u prompt. Potpuno automatsko proširenje režima postojeće grane još nije završeno; opis i dokaz su u navedenom izveštaju.
+Prethodni full-tree paket je datirani prethodnik. Aktivni Edge sada koristi alat za stranice i grane, ne slanje kompletnog stabla u prompt. Tada otvoreno proširenje režima postojeće grane naknadno je rešeno i provereno u SERVICE_EXECUTION_20261019; stariji nalaz ostaje datirani dokaz.
+
+## 19.10 — konkretna usluga, predaja i potvrđeno povezivanje
+
+DEV Task106/Worker59, 25/25 SQL i 16/14 Edge readback. Parent režimi više ne blokiraju konkretnu uslugu; EXTEND_MODE čuva UUID. Sedam živih scenarija/osam poruka/22 model poziva,0,222529USD interni obračun; četiri DRAFT Save-a i aktivan izolovan QA radnik. Stvarna dostava RS matches=true, samo pickup uz shipping-only radnika matches=false. CREATE_CHILD i EXTEND_MODE primenjeni tek nakon Save. 621/13898 PASS; APK+preview OTA5f422987 provereni na emulatoru,361/390/412dp,font1/1.3. Bez objave zadatka ili stvarne push/phone provere. docs/current/SERVICE_EXECUTION_20261019.md
+
+[Tačan rezultat, granice i naredni posao](SERVICE_EXECUTION_20261019.md).

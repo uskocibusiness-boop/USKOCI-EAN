@@ -84,7 +84,7 @@ jobs:
         run: npm ci --include=dev
       - name: Verify rollout evidence and environment guards
         # Full client and handler regression already ran on the identical SHA above.
-        run: node --test scripts/__tests__/ota-regression-evidence.test.cjs scripts/__tests__/ota-release-preflight.test.cjs scripts/__tests__/build-contract.test.cjs
+        run: node --test scripts/__tests__/ota-regression-evidence.test.cjs scripts/__tests__/ota-release-preflight.test.cjs scripts/__tests__/build-contract.test.cjs scripts/__tests__/ota-publication-readback.test.cjs
       - name: Verify the actual EAS preview bundler environment
         shell: bash
         run: |
@@ -123,19 +123,28 @@ jobs:
         run: |
           set -euo pipefail
           npx --yes eas-cli@23.2.0 update:list --branch preview --platform android \
-            --runtime-version uskoci-v1-preview-r1 --limit 3 --json --non-interactive > /tmp/uskoci-ota-readback.json
+            --runtime-version uskoci-v1-preview-r1 --limit 3 --json --non-interactive > "$RUNNER_TEMP/uskoci-ota-list.json"
+          group="$(node - <<'NODE'
+          const fs=require('node:fs'), path=require('node:path');
+          const p=require('./scripts/ota-publication-readback.cjs');
+          const list=JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP,'uskoci-ota-list.json'),'utf8'));
+          console.log(p.selectPublicationGroup(list,p.expectedPublication(process.env.GITHUB_SHA,process.env.GITHUB_RUN_ID)));
+          NODE
+          )"
+          # The list message is decorated for display. Only the raw group view
+          # can attest source SHA and exact run message; never publish again here.
+          npx --yes eas-cli@23.2.0 update:view "$group" --json > "$RUNNER_TEMP/uskoci-ota-group.json"
+          export OTA_READBACK_GROUP="$group"
           node - <<'NODE'
-          const x=require('/tmp/uskoci-ota-readback.json');
-          const rows=x.currentPage||[];
-          const want='DEV Android preview '+process.env.GITHUB_SHA+' run '+process.env.GITHUB_RUN_ID;
-          const exact=rows.find(y=>y.branch==='preview' &&
-            y.runtimeVersion==='uskoci-v1-preview-r1' &&
-            String(y.message||'')===want && /android/i.test(String(y.platforms)) && y.isRollBackToEmbedded!==true);
-          if(!exact)throw Error('PREVIEW_OTA_READBACK_UNCONFIRMED: inspect Expo update dashboard');
-          console.log('PUBLISHED Android preview OTA:',exact.group,'commit:',process.env.GITHUB_SHA,
-            'runtime:',exact.runtimeVersion,'branch:',exact.branch);
-          require('node:fs').writeFileSync(process.env.RUNNER_TEMP+'/uskoci-ota-receipt.json',JSON.stringify({
-            sourceSha:process.env.GITHUB_SHA,group:exact.group,runtime:exact.runtimeVersion,branch:exact.branch,
+          const fs=require('node:fs'), path=require('node:path');
+          const p=require('./scripts/ota-publication-readback.cjs');
+          const view=JSON.parse(fs.readFileSync(path.join(process.env.RUNNER_TEMP,'uskoci-ota-group.json'),'utf8'));
+          const exact=p.verifyPublicationView(view,process.env.OTA_READBACK_GROUP,
+            p.expectedPublication(process.env.GITHUB_SHA,process.env.GITHUB_RUN_ID));
+          console.log('PUBLISHED Android preview OTA:',exact.group,'commit:',exact.sourceSha,
+            'runtime:',exact.runtime,'branch:',exact.branch);
+          fs.writeFileSync(path.join(process.env.RUNNER_TEMP,'uskoci-ota-receipt.json'),JSON.stringify({
+            ...exact,
             regressionRunId:process.env.OTA_REGRESSION_RUN_ID,nativeBaseline:process.env.OTA_NATIVE_BASELINE,
             installedDeviceVerified:false},null,2));
           NODE
@@ -151,4 +160,4 @@ jobs:
           retention-days: 14
       - name: Remove temporary EAS environment
         if: always()
-        run: rm -f "$RUNNER_TEMP/uskoci-preview.env"
+        run: rm -f "$RUNNER_TEMP/uskoci-preview.env" "$RUNNER_TEMP/uskoci-ota-list.json" "$RUNNER_TEMP/uskoci-ota-group.json"

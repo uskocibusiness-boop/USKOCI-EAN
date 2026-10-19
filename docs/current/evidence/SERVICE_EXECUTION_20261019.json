@@ -1,0 +1,1992 @@
+{
+  "schema": "USKOCI_SERVICE_EXECUTION_DELIVERY_V1",
+  "checkedAt": "2026-10-19T12:04:24.509Z",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "productSource": "b6f2529a0fc4b6207ea3927e20a5f7184cdde76e",
+  "clientSource": "5f422987dc0eb9517f7142440fb326ff978a9635",
+  "migrations": [
+    {
+      "source": "20261019104047",
+      "live": "20261019111512",
+      "name": "taxonomy_parent_navigation_and_mode_admission"
+    },
+    {
+      "source": "20261019104604",
+      "live": "20261019115240",
+      "name": "service_handoff_signed_matching"
+    }
+  ],
+  "edge": [
+    {
+      "name": "uskoci-ai-interview",
+      "version": 106,
+      "files": 16,
+      "verifyJwt": false,
+      "exactReadback": true,
+      "bundleSha256": "fb412736a7fa8fd1dbb4c7a5965075ade7951f46df3619eddf777efb8c8ccabb"
+    },
+    {
+      "name": "uskoci-worker-interview",
+      "version": 59,
+      "files": 14,
+      "verifyJwt": false,
+      "exactReadback": true,
+      "bundleSha256": "e1fa89e33415ebd2fe6a3a393c785552b0f3596d41f8b86ab89e2455a9ed1ee0"
+    }
+  ],
+  "regression": {
+    "runId": "39244025948",
+    "suites": 621,
+    "passed": 13898,
+    "failed": 0,
+    "pending": 0,
+    "conclusion": "success",
+    "typescript": true,
+    "sourceOwnership": true,
+    "migrationIntegrity": true
+  },
+  "postgres": [
+    {
+      "runId": "39242766132",
+      "name": "parent-mode",
+      "versions": [
+        16,
+        17
+      ],
+      "status": "success"
+    },
+    {
+      "runId": "39242765470",
+      "name": "handoff",
+      "versions": [
+        16,
+        17
+      ],
+      "status": "success"
+    }
+  ],
+  "offline": {
+    "productNodeTests": 775,
+    "finalHarnessAndRolloutTests": 81,
+    "workerActivationMockTests": 20
+  },
+  "live": {
+    "scenarios": 7,
+    "logicalMessages": 8,
+    "providerCalls": 22,
+    "reservationCeilingUSD": 8,
+    "actualSettlementUSD": 0.222529,
+    "settlementBasis": "INTERNAL_MEASURED_LEDGER_NOT_PROVIDER_INVOICE",
+    "elapsedMs": [
+      15100,
+      12317,
+      10499,
+      10459,
+      18672,
+      11148,
+      8162,
+      23447
+    ],
+    "qaAccounts": [
+      "5e99cafa-caa1-4d9e-902b-2ff4f56b77d7",
+      "f38b8a07-249c-4e19-9e57-4829189c7ffe"
+    ],
+    "retiredAiAdmissions": [
+      {
+        "account_id": "5e99cafa-caa1-4d9e-902b-2ff4f56b77d7",
+        "retired_at": "2026-10-19 12:02:57.361118+00"
+      },
+      {
+        "account_id": "f38b8a07-249c-4e19-9e57-4829189c7ffe",
+        "retired_at": "2026-10-19 12:02:57.362426+00"
+      }
+    ],
+    "publishedTasks": 0,
+    "savedDrafts": 4,
+    "activatedQaWorkers": 1,
+    "matching": [
+      {
+        "case_name": "PICKUP_NOVI_SAD_ONLY",
+        "need_id": "69c71740-c305-439f-8bc8-25cfc3c7f7d6",
+        "worker_profile_id": "f5f055d9-c6d2-45b3-9f31-75966ce3c573",
+        "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+        "revision": 1,
+        "status": "DRAFT",
+        "profile_status": "ACTIVE",
+        "execution_location_mode": "REMOTE",
+        "schedule_kind": "REMOTE_ANYTIME",
+        "has_start": false,
+        "has_end": false,
+        "never_published": true,
+        "no_application_deadline": true,
+        "verified_identity_required": false,
+        "required_skill_count": 0,
+        "strict_gate_enabled": true,
+        "same_world": true,
+        "own_need": false,
+        "signed_current_need": true,
+        "need_binding_complete": true,
+        "concrete_service_remote": true,
+        "global_remote_only": true,
+        "exact_saved_shipping_only": true,
+        "worker_binding_complete": true,
+        "scope_eligible": true,
+        "handoff_compatible": false,
+        "actual_time_tier": 1,
+        "actual_fit": {
+          "area": false,
+          "hard": [],
+          "matches": false,
+          "service": true,
+          "timeTier": 1,
+          "distanceKm": null,
+          "taxonomyTier": "EXACT",
+          "effectiveRadiusKm": 15
+        },
+        "exact_expected_task_handoff": true,
+        "handoff_expectation_met": true,
+        "whole_match_expectation_met": true,
+        "remains_unpublished_draft": true
+      },
+      {
+        "case_name": "SHIPPING_RS",
+        "need_id": "f3a4111d-48ac-487a-a9f2-75bab48daf78",
+        "worker_profile_id": "f5f055d9-c6d2-45b3-9f31-75966ce3c573",
+        "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+        "revision": 1,
+        "status": "DRAFT",
+        "profile_status": "ACTIVE",
+        "execution_location_mode": "REMOTE",
+        "schedule_kind": "REMOTE_ANYTIME",
+        "has_start": false,
+        "has_end": false,
+        "never_published": true,
+        "no_application_deadline": true,
+        "verified_identity_required": false,
+        "required_skill_count": 0,
+        "strict_gate_enabled": true,
+        "same_world": true,
+        "own_need": false,
+        "signed_current_need": true,
+        "need_binding_complete": true,
+        "concrete_service_remote": true,
+        "global_remote_only": true,
+        "exact_saved_shipping_only": true,
+        "worker_binding_complete": true,
+        "scope_eligible": true,
+        "handoff_compatible": true,
+        "actual_time_tier": 1,
+        "actual_fit": {
+          "area": true,
+          "hard": [],
+          "matches": true,
+          "service": true,
+          "timeTier": 1,
+          "distanceKm": null,
+          "taxonomyTier": "EXACT",
+          "effectiveRadiusKm": 15
+        },
+        "exact_expected_task_handoff": true,
+        "handoff_expectation_met": true,
+        "whole_match_expectation_met": true,
+        "remains_unpublished_draft": true
+      }
+    ],
+    "scopedNoDispatch": [
+      {
+        "expected_two_saved_needs": 2,
+        "unpublished_drafts": 2,
+        "published_or_nondraft": 0,
+        "schedules": 0,
+        "dispatch_rounds": 0,
+        "opportunities": 0,
+        "applications": 0,
+        "selections": 0,
+        "agreements": 0,
+        "task_events": 0,
+        "notification_deliveries": 0,
+        "push_started": 0,
+        "push_attempts": 0
+      }
+    ],
+    "binding": {
+      "schedules": 0,
+      "savedNeeds": [
+        {
+          "id": "0c5131c3-c154-409d-bbd6-5f4b7d41cb5a",
+          "bound": true,
+          "status": "DRAFT",
+          "handoff": {
+            "required": true,
+            "shippingCountries": [
+              "RS"
+            ]
+          },
+          "parentId": "5f5d367b-d4c7-44e2-b364-c79eff37bfb3",
+          "categoryId": "11e218ed-e072-4609-bcee-9576aa4c2e16",
+          "publishedAt": null,
+          "categoryLabel": "Popravka pisaćih mašina"
+        },
+        {
+          "id": "69c71740-c305-439f-8bc8-25cfc3c7f7d6",
+          "bound": true,
+          "status": "DRAFT",
+          "handoff": {
+            "required": true,
+            "localExchange": {
+              "city": "Novi Sad",
+              "countryCode": "RS"
+            }
+          },
+          "parentId": "df30eb84-47fb-41ae-90f3-3f980d8abd45",
+          "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+          "publishedAt": null,
+          "categoryLabel": "3D printovanje"
+        },
+        {
+          "id": "7ca0c796-db2e-4699-b04e-efb8000ba44d",
+          "bound": true,
+          "status": "DRAFT",
+          "handoff": {
+            "required": true,
+            "shippingCountries": [
+              "RS"
+            ]
+          },
+          "parentId": "5f5d367b-d4c7-44e2-b364-c79eff37bfb3",
+          "categoryId": "1496f3ef-89ed-4637-ad23-63409028bc4b",
+          "publishedAt": null,
+          "categoryLabel": "Restauracija mehaničke muzičke kutije"
+        },
+        {
+          "id": "f3a4111d-48ac-487a-a9f2-75bab48daf78",
+          "bound": true,
+          "status": "DRAFT",
+          "handoff": {
+            "required": true,
+            "shippingCountries": [
+              "RS"
+            ]
+          },
+          "parentId": "df30eb84-47fb-41ae-90f3-3f980d8abd45",
+          "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+          "publishedAt": null,
+          "categoryLabel": "3D printovanje"
+        }
+      ],
+      "typewriter": {
+        "id": "11e218ed-e072-4609-bcee-9576aa4c2e16",
+        "label": "Popravka pisaćih mašina",
+        "modes": [
+          "ON_SITE",
+          "REMOTE"
+        ],
+        "parentId": "5f5d367b-d4c7-44e2-b364-c79eff37bfb3",
+        "activeWorkerModeGrants": 0
+      },
+      "catalogCount": 137,
+      "pushAttempts": 0,
+      "opportunities": 0,
+      "catalogFingerprint": "9a9a78bd9bf77ca89cf3f721605b45dd"
+    },
+    "usage": {
+      "usage": [
+        {
+          "model": "gemini-3.8-flash",
+          "last_at": "2026-10-19T11:57:35.59197+00:00",
+          "first_at": "2026-10-19T11:53:49.756934+00:00",
+          "account_id": "5e99cafa-caa1-4d9e-902b-2ff4f56b77d7",
+          "total_tokens": 219019,
+          "output_tokens": 7692,
+          "prompt_tokens": 211327,
+          "provider_calls": 17
+        },
+        {
+          "model": "gemini-3.8-flash",
+          "last_at": "2026-10-19T11:53:38.634317+00:00",
+          "first_at": "2026-10-19T11:53:23.286646+00:00",
+          "account_id": "f38b8a07-249c-4e19-9e57-4829189c7ffe",
+          "total_tokens": 43225,
+          "output_tokens": 921,
+          "prompt_tokens": 42304,
+          "provider_calls": 5
+        }
+      ],
+      "settlement": [
+        {
+          "basis": "MEASURED",
+          "unsettled": 0,
+          "account_id": "5e99cafa-caa1-4d9e-902b-2ff4f56b77d7",
+          "reservations": 17,
+          "settled_microusd": 187346,
+          "reserved_microusd": 4250000
+        },
+        {
+          "basis": "MEASURED",
+          "unsettled": 0,
+          "account_id": "f38b8a07-249c-4e19-9e57-4829189c7ffe",
+          "reservations": 5,
+          "settled_microusd": 35183,
+          "reserved_microusd": 1250000
+        }
+      ]
+    },
+    "usageCorrelation": {
+      "observedProviderCalls": 22,
+      "uncorrelatedCalls": 0
+    }
+  },
+  "native": {
+    "device": "emulator-5554",
+    "androidUser": 10,
+    "originalUser0SessionPreserved": true,
+    "restoredCurrentUser": 0,
+    "restoredSize": "1264x2728",
+    "restoredDensity": 560,
+    "originalFont": 1.15,
+    "widthsDp": [
+      361,
+      390,
+      412
+    ],
+    "fontScales": [
+      1,
+      1.3
+    ],
+    "reviewHandoffAndActions": "VISUALLY_INSPECTED",
+    "back": "SAME_TASK_CONTENT",
+    "phone": "NOT_TESTED",
+    "workerReviewOnDevice": "NOT_TESTED",
+    "scope": "Task chat/review only; real Save via authenticated application RPC harness. No emulator click on Publish.",
+    "files": [
+      {
+        "file": "service-execution-20261019/review-361-font-1.0.png",
+        "sha256": "6fff21205389cb46dec1814b57ac9cc5d76a0ef8dbc7b2eedb7bbc2085c94a6c",
+        "widthDp": 361,
+        "fontScale": 1
+      },
+      {
+        "file": "service-execution-20261019/review-361-font-1.0.xml",
+        "sha256": "b0ec9b10a1dca9ac6f090486681abc83e99fdffa3152febc0758d6844d917567",
+        "widthDp": 361,
+        "fontScale": 1
+      },
+      {
+        "file": "service-execution-20261019/review-361-font-1.3.png",
+        "sha256": "91657c9e1e6451e1f4ca69c715fec7ab38e2fe0bdc8d398a3560ba3b6f93839b",
+        "widthDp": 361,
+        "fontScale": 1.3
+      },
+      {
+        "file": "service-execution-20261019/review-361-font-1.3.xml",
+        "sha256": "9fbefd77b655c641b5551dc0573e3bb0ed90b8cd4737676ccd51a4b8fd7a2818",
+        "widthDp": 361,
+        "fontScale": 1.3
+      },
+      {
+        "file": "service-execution-20261019/review-390-font-1.0.png",
+        "sha256": "52eea90c49e741155bfcc2ce92a6fe718bb7ac71f8157b894d848bf6e1d957f3",
+        "widthDp": 390,
+        "fontScale": 1
+      },
+      {
+        "file": "service-execution-20261019/review-390-font-1.0.xml",
+        "sha256": "68faf049e0139a4154ea6210b916f1d780b11bdecc81628d017bdad6f7585ed8",
+        "widthDp": 390,
+        "fontScale": 1
+      },
+      {
+        "file": "service-execution-20261019/review-390-font-1.3.png",
+        "sha256": "dd0bf42216704bb3cedea66f7a34b765689738c93f3877ad05c2ad238670c649",
+        "widthDp": 390,
+        "fontScale": 1.3
+      },
+      {
+        "file": "service-execution-20261019/review-390-font-1.3.xml",
+        "sha256": "0ff6aec57edd2a898393f7f969a18e7336a9db3554e1dac28418d91884cfecf5",
+        "widthDp": 390,
+        "fontScale": 1.3
+      },
+      {
+        "file": "service-execution-20261019/review-412-font-1.0.png",
+        "sha256": "33df2b2aec3b28c30e3333631fbf8b0a7c721d81c542a103bc22fda442c6a2bf",
+        "widthDp": 412,
+        "fontScale": 1
+      },
+      {
+        "file": "service-execution-20261019/review-412-font-1.0.xml",
+        "sha256": "49110ebd1c92df4736ec1605ff2c5fa1f7f8efdd9635b862efe26da66d49701c",
+        "widthDp": 412,
+        "fontScale": 1
+      },
+      {
+        "file": "service-execution-20261019/review-412-font-1.3.png",
+        "sha256": "d03c0e0affd2e73a50deffc0b54c4960e03303dc57bf60d65b560cc4ccce9d40",
+        "widthDp": 412,
+        "fontScale": 1.3
+      },
+      {
+        "file": "service-execution-20261019/review-412-font-1.3.xml",
+        "sha256": "ea4dea403e4b91d45b5daa3892733cb0bbafad717a2679f04714023cb7f7cf16",
+        "widthDp": 412,
+        "fontScale": 1.3
+      },
+      {
+        "file": "service-execution-20261019/ota-identity.xml",
+        "sha256": "8edc5f0c465ab54773c07923939db10dabbcdcce137708bf1576adf2b9529f0e"
+      },
+      {
+        "file": "service-execution-20261019/back-to-conversation.xml",
+        "sha256": "369f405b39ce1acc8577d0597e262989bc5ebbb1d94c24746f7cd49e3ae6c30e"
+      }
+    ]
+  },
+  "limits": [
+    "No phone or push-delivery test.",
+    "No claim all AI inputs are infallible or entire app is redesigned.",
+    "Worker first review may be READY before handoff; AI asked correctly; absent worker handoff does not match new physically constrained task.",
+    "Legacy worker shipping/pickup consent is not inferred. Confirm through AI and Save.",
+    "Saved public worker per-service handoff display pending.",
+    "UI handoff uses technical country code and repeated prefix; polish pending.",
+    "Old installed clients need latest preview update/APK; only emulator OTA identity verified.",
+    "Offline/loading/entire map/chat flows not re-tested in this scoped package."
+  ],
+  "packagedAt": "2026-10-19T12:12:17.888Z",
+  "ota": {
+    "sourceSha": "5f422987dc0eb9517f7142440fb326ff978a9635",
+    "group": "fdd77368-7658-4740-ae62-5cf125556ec1",
+    "updateId": "01a15400-a8a1-7c83-8aa8-f5a03a27b9c2",
+    "runtime": "uskoci-v1-preview-r1",
+    "branch": "preview",
+    "platform": "android",
+    "regressionRunId": "39244025948",
+    "nativeBaseline": "f56c94c35c8eb0f2f28a6961fb4bf358228c241c",
+    "installedEmulatorVerified": true,
+    "phoneVerified": false,
+    "ciReadback": "FORMATTED_LIST_PARSE_FAILURE_CORRECTED_WITH_RAW_VIEW",
+    "checkedAt": "2026-10-19T11:59:43.279Z"
+  },
+  "easEnvironment": {
+    "checkedAt": "2026-10-19T11:26:19.194Z",
+    "project": "1e6cc490-9851-4741-9226-128612122db6",
+    "environment": "preview",
+    "matchedPublicKeys": [
+      "EXPO_PUBLIC_AI_LOCATION_DIALOGUE",
+      "EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL",
+      "EXPO_PUBLIC_CONVERSATION_INBOX",
+      "EXPO_PUBLIC_EX04_CANDIDATES_PAGED",
+      "EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED",
+      "EXPO_PUBLIC_EX04_OWN_TASKS_PAGED",
+      "EXPO_PUBLIC_P6_DISCOVERY_READER",
+      "EXPO_PUBLIC_SUPABASE_ANON_KEY",
+      "EXPO_PUBLIC_SUPABASE_URL",
+      "EXPO_PUBLIC_USE_FAKE_SOURCE",
+      "EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW",
+      "EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES",
+      "EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW",
+      "EXPO_PUBLIC_VOICE_MESSAGES"
+    ],
+    "result": "PASS"
+  },
+  "apkEmulator": {
+    "status": "APK_ATTESTED_NOT_PHONE_VERIFIED",
+    "androidPackage": "rs.uskoci.preview",
+    "version": "1.0.0",
+    "versionCode": 35,
+    "runtimeVersion": "uskoci-v1-preview-r1",
+    "channel": "preview",
+    "projectId": "1e6cc490-9851-4741-9226-128612122db6",
+    "updateUrl": "https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6",
+    "updatesEnabled": true,
+    "checkOnLaunch": "ALWAYS",
+    "fallbackToCacheTimeout": 0,
+    "debuggable": false,
+    "sourceSha": "5f422987dc0eb9517f7142440fb326ff978a9635",
+    "nativeBaselineSha": "5f422987dc0eb9517f7142440fb326ff978a9635",
+    "sourceTree": "04f7fb6ee0f6d93661babb1c2bd7f17533abcb00",
+    "githubRunId": "39244025948",
+    "githubRunAttempt": "1",
+    "githubRunUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39244025948",
+    "apkFile": "USKOCI-V5-PREVIEW-X86_64.apk",
+    "apkSizeBytes": 101006760,
+    "apkSha256": "0baadd2bc32960908f45b8e059dc8911206205c9437919a6adb16030179a4c3e",
+    "architectures": [
+      "x86_64"
+    ],
+    "signingCertificateSha256": [
+      "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c"
+    ],
+    "publicBuildFlags": {
+      "EXPO_PUBLIC_AI_LOCATION_DIALOGUE": "1",
+      "EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL": "uskociapp://oporavak",
+      "EXPO_PUBLIC_CONVERSATION_INBOX": "1",
+      "EXPO_PUBLIC_EX04_CANDIDATES_PAGED": "1",
+      "EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED": "1",
+      "EXPO_PUBLIC_EX04_OWN_TASKS_PAGED": "1",
+      "EXPO_PUBLIC_P6_DISCOVERY_READER": "1",
+      "EXPO_PUBLIC_SUPABASE_URL": "https://leqcwgzvjsxugfgzdmth.supabase.co",
+      "EXPO_PUBLIC_USE_FAKE_SOURCE": "0",
+      "EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW": "true",
+      "EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES": "true",
+      "EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW": "true",
+      "EXPO_PUBLIC_VOICE_MESSAGES": "1"
+    },
+    "physicalPhone": "NOT_TESTED",
+    "otaPreview": "NOT_VERIFIED",
+    "production": "NOT_BUILT_OR_DEPLOYED"
+  },
+  "apkPhone": {
+    "status": "APK_ATTESTED_NOT_PHONE_VERIFIED",
+    "androidPackage": "rs.uskoci.preview",
+    "version": "1.0.0",
+    "versionCode": 35,
+    "runtimeVersion": "uskoci-v1-preview-r1",
+    "channel": "preview",
+    "projectId": "1e6cc490-9851-4741-9226-128612122db6",
+    "updateUrl": "https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6",
+    "updatesEnabled": true,
+    "checkOnLaunch": "ALWAYS",
+    "fallbackToCacheTimeout": 0,
+    "debuggable": false,
+    "sourceSha": "5f422987dc0eb9517f7142440fb326ff978a9635",
+    "nativeBaselineSha": "5f422987dc0eb9517f7142440fb326ff978a9635",
+    "sourceTree": "04f7fb6ee0f6d93661babb1c2bd7f17533abcb00",
+    "githubRunId": "39244981498",
+    "githubRunAttempt": "1",
+    "githubRunUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39244981498",
+    "apkFile": "USKOCI-V5-PREVIEW-ARM64.apk",
+    "apkSizeBytes": 99152676,
+    "apkSha256": "7baf223c249c78b569d54693e38ef52c30cf9b13aa5189c1c0645099cb224e90",
+    "architectures": [
+      "arm64-v8a"
+    ],
+    "signingCertificateSha256": [
+      "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c"
+    ],
+    "publicBuildFlags": {
+      "EXPO_PUBLIC_AI_LOCATION_DIALOGUE": "1",
+      "EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL": "uskociapp://oporavak",
+      "EXPO_PUBLIC_CONVERSATION_INBOX": "1",
+      "EXPO_PUBLIC_EX04_CANDIDATES_PAGED": "1",
+      "EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED": "1",
+      "EXPO_PUBLIC_EX04_OWN_TASKS_PAGED": "1",
+      "EXPO_PUBLIC_P6_DISCOVERY_READER": "1",
+      "EXPO_PUBLIC_SUPABASE_URL": "https://leqcwgzvjsxugfgzdmth.supabase.co",
+      "EXPO_PUBLIC_USE_FAKE_SOURCE": "0",
+      "EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW": "true",
+      "EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES": "true",
+      "EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW": "true",
+      "EXPO_PUBLIC_VOICE_MESSAGES": "1"
+    },
+    "physicalPhone": "NOT_TESTED",
+    "otaPreview": "NOT_VERIFIED",
+    "production": "NOT_BUILT_OR_DEPLOYED"
+  },
+  "sqlReadback": {
+    "at": "2026-10-19T11:53:04.748Z",
+    "functionCount": 25,
+    "functions": [
+      {
+        "schema": "private",
+        "name": "need_publication_fingerprint_snapshot",
+        "arguments": "p_need_id uuid",
+        "md5": "5351862ee61230f09cabe1307a1f6d90",
+        "definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "schema": "private",
+        "name": "taxonomy_ai_catalog_context_v1",
+        "arguments": "p_execution_location_mode text, p_limit integer, p_after_key text",
+        "md5": "9ac4d27c4794a70239cc976be818bf9e",
+        "definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "schema": "private",
+        "name": "taxonomy_category_path_valid_v1",
+        "arguments": "p_category_id uuid",
+        "md5": "a8278b388f4b027815f2af0ee67cb460",
+        "definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "schema": "private",
+        "name": "taxonomy_handoff_compatible_v1",
+        "arguments": "need_handoff jsonb, worker_handoff jsonb",
+        "md5": "590328ff1684c32d7d7948c122d47728",
+        "definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "schema": "private",
+        "name": "taxonomy_handoff_display_v1",
+        "arguments": "p jsonb",
+        "md5": "0ec86390e9f1682f309ca64227ab445e",
+        "definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "schema": "private",
+        "name": "taxonomy_handoff_fit_v1",
+        "arguments": "p_need_id uuid, p_worker_account_id uuid",
+        "md5": "785210ec581d007ff17e7cba25e1a6b0",
+        "definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "schema": "private",
+        "name": "taxonomy_handoff_valid_v1",
+        "arguments": "p_value jsonb",
+        "md5": "c045ee696fee6b538476b32c5ec2426d",
+        "definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "schema": "private",
+        "name": "taxonomy_preserve_review_handoff_v1",
+        "arguments": "p jsonb, account_id uuid, conversation_id uuid",
+        "md5": "4da6744c56947085f7122b69a1e45cf8",
+        "definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "schema": "private",
+        "name": "taxonomy_review_candidate_projection_v2",
+        "arguments": "p_purpose text, p_services jsonb, p_service_modes jsonb, p_owner_account_id uuid, p_conversation_id uuid",
+        "md5": "f9318f476e32a8233fbb07ccf5d22aeb",
+        "definer": false,
+        "config": [
+          "search_path=pg_catalog, private"
+        ],
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "schema": "private",
+        "name": "validate_need_v2_fact",
+        "arguments": "p_key text, p_value jsonb",
+        "md5": "a09d1b629431902b59636ff078ff282e",
+        "definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "schema": "private",
+        "name": "worker_ai_service_mode_context_v1",
+        "arguments": "p_account_id uuid, p_conversation_id uuid",
+        "md5": "58a9fc44a3caf09d14c2b13579afd882",
+        "definer": false,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "schema": "private",
+        "name": "worker_need_fit_v1",
+        "arguments": "nid uuid, pid uuid, p_first_refusal boolean",
+        "md5": "a15a603d98d7d594fd451959526aba8f",
+        "definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "schema": "public",
+        "name": "rpc_ai_open_need_edit_conversation_v2",
+        "arguments": "p_need_id uuid",
+        "md5": "4567c5e4729923c87efc717007b2cfa1",
+        "definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres,authenticated=X/postgres}"
+      },
+      {
+        "schema": "public",
+        "name": "rpc_confirm_need_edit_from_review",
+        "arguments": "p_need_id uuid, p_expected_revision integer, p_conversation_id uuid, p_client_request_id text",
+        "md5": "18896c1a6b80c7df09515aeb6851a145",
+        "definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres}"
+      },
+      {
+        "schema": "public",
+        "name": "rpc_prepare_ai_task_review_taxonomy",
+        "arguments": "p_conversation_id uuid, p_response_deadline timestamp with time zone, p_location jsonb",
+        "md5": "a0e25b32283e182da4bc2012c7194608",
+        "definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "schema": "public",
+        "name": "rpc_prepare_worker_ai_review_taxonomy",
+        "arguments": "p_conversation_id uuid, p_expected_revision integer, p_activate boolean",
+        "md5": "d5507cff01e72521959adc14ca65c6b7",
+        "definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres,authenticated=X/postgres}"
+      },
+      {
+        "schema": "public",
+        "name": "rpc_prepare_worker_ai_review_taxonomy_confirmed",
+        "arguments": "p_conversation_id uuid, p_expected_revision integer, p_activate boolean, p_selected_modes jsonb",
+        "md5": "f2a96cd428eae103ee7928c0af6f2ef4",
+        "definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres,authenticated=X/postgres}"
+      },
+      {
+        "schema": "public",
+        "name": "rpc_save_need_draft_from_review",
+        "arguments": "p_conversation_id uuid, p_requester_profile_id uuid, p_client_request_id text",
+        "md5": "39a3d39e60e8ab42f7e0269aba965280",
+        "definer": true,
+        "config": [
+          "search_path=pg_catalog"
+        ],
+        "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "schema": "public",
+        "name": "rpc_taxonomy_bind_reviewed_need_service",
+        "arguments": "p_owner_account_id uuid, p_request_key uuid, p_source_review_id uuid, p_need_id uuid, p_need_revision integer",
+        "md5": "373eb4f7686f893355b983bda31e00e5",
+        "definer": true,
+        "config": [
+          "search_path=pg_catalog, private"
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "schema": "public",
+        "name": "rpc_taxonomy_bind_reviewed_worker_service",
+        "arguments": "p_owner_account_id uuid, p_request_key uuid, p_source_review_id uuid, p_profile_id uuid",
+        "md5": "a57b0afcf132c8a71a4a874ee9bcfd2e",
+        "definer": true,
+        "config": [
+          "search_path=pg_catalog, private"
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "schema": "public",
+        "name": "rpc_taxonomy_capture_gemini_turn_hints_service",
+        "arguments": "p_account_id uuid, p_conversation_id uuid, p_client_request_id uuid, p_turn_id uuid, p_attempt_id uuid, p_purpose text, p_catalog_version bigint, p_proposals jsonb",
+        "md5": "61164e8e21e2f44db125377b9280a700",
+        "definer": true,
+        "config": [
+          "search_path=pg_catalog, private"
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "schema": "public",
+        "name": "rpc_taxonomy_commit_admission_service",
+        "arguments": "p_admission_id uuid",
+        "md5": "cfd385271eee13c94dcc40a71fff16d4",
+        "definer": true,
+        "config": [
+          "search_path=pg_catalog, private"
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "schema": "public",
+        "name": "rpc_taxonomy_commit_reviewed_batch_service",
+        "arguments": "p_owner_account_id uuid, p_request_key uuid, p_purpose text, p_source_review_id uuid, p_plans jsonb",
+        "md5": "a237d9a981bba2f6c1d1bf8b73b943f3",
+        "definer": true,
+        "config": [
+          "search_path=pg_catalog, private"
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "schema": "public",
+        "name": "rpc_taxonomy_prepare_admission_service",
+        "arguments": "p_owner_account_id uuid, p_request_key uuid, p_purpose text, p_source_review_id uuid, p_plan jsonb",
+        "md5": "8dd36fe1c3b4475a137908dfd6362b5c",
+        "definer": true,
+        "config": [
+          "search_path=pg_catalog, private"
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres}"
+      },
+      {
+        "schema": "public",
+        "name": "rpc_taxonomy_query_catalog_service",
+        "arguments": "p_query jsonb",
+        "md5": "cae7fbe893f3a9b15c4be12cd9e4a2ea",
+        "definer": false,
+        "config": [
+          "search_path=pg_catalog",
+          "statement_timeout=5s"
+        ],
+        "acl": "{postgres=X/postgres,service_role=X/postgres}"
+      }
+    ],
+    "edge": [
+      {
+        "name": "uskoci-ai-interview",
+        "version": 106,
+        "files": 16,
+        "exact": true
+      },
+      {
+        "name": "uskoci-worker-interview",
+        "version": 59,
+        "files": 14,
+        "exact": true
+      }
+    ]
+  },
+  "conversations": [
+    {
+      "sha256": "ac394dac48fb2821a10127a83a0f89c00e769b4a9e5715a2b068d475d808aa4f",
+      "accountId": "5e99cafa-caa1-4d9e-902b-2ff4f56b77d7",
+      "cases": [
+        {
+          "name": "need-pickup-execution",
+          "conversationId": "319c677b-b334-426a-9bc8-a3f01e7cbddd",
+          "finalReview": {
+            "safety": "ALLOW",
+            "draftId": null,
+            "location": {
+              "geography": {
+                "mode": "REMOTE"
+              },
+              "accessNotes": null,
+              "exactAddress": null,
+              "taskCountryCode": "RS",
+              "resolvedLocation": null
+            },
+            "reviewId": "5cb7c719-5d3d-48d0-bf83-87da23481bdf",
+            "accountId": "5e99cafa-caa1-4d9e-902b-2ff4f56b77d7",
+            "canAccept": true,
+            "expiresAt": "2026-10-19T12:09:01.445551+00:00",
+            "draftRevision": 0,
+            "factsRevision": "b498d88ac799afa69c24790c3c8036809380ea21f9accf5091c12cd71bbb9981",
+            "schemaVersion": "NEED_FACT_V2",
+            "conversationId": "319c677b-b334-426a-9bc8-a3f01e7cbddd",
+            "missingRequired": [],
+            "publicProjection": [
+              {
+                "id": "41dd6e62-7193-4baa-8f6c-9432167b1565",
+                "key": "need.category",
+                "value": "3D printovanje",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "3D printovanje",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "7468b36f-01ba-40ae-b4b1-4fc8b8d0ef52",
+                "key": "need.description",
+                "value": "Izrada jedne male 3D figurice prema gotovom STL modelu. Posao se obavlja u radionici izvršioca (na daljinu), bez dolaska kod naručioca. Gotov predmet se preuzima isključivo lično u Novom Sadu (bez slanja poštom/kurirskom službom).",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Izrada jedne male 3D figurice prema gotovom STL modelu. Posao se obavlja u radionici izvršioca (na daljinu), bez dolaska kod naručioca. Gotov predmet se preuzima isključivo lično u Novom Sadu (bez slanja poštom/kurirskom službom).",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "c2b14d5a-945a-42bc-8b84-efd6e4d3ae89",
+                "key": "need.handoff",
+                "value": {
+                  "required": true,
+                  "localExchange": {
+                    "city": "Novi Sad",
+                    "countryCode": "RS"
+                  }
+                },
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Lično preuzimanje: Novi Sad (RS)",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "57c67054-375d-4e3f-ac87-680770516d41",
+                "key": "need.people_needed",
+                "value": 1,
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "1 osoba",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "dd7ae2a1-8f05-4b92-857e-edc1e96e6d55",
+                "key": "need.price_mode",
+                "value": "OFFERS",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Tražim ponude",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "e51a0f8c-c513-43f7-abcb-3669f7bea7e5",
+                "key": "need.schedule_kind",
+                "value": "REMOTE_ANYTIME",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Potpuno fleksibilno",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "f4739196-db35-4949-acaf-684be9f3145a",
+                "key": "need.task_country_code",
+                "value": "RS",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "RS",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "ae5696b0-9822-4e94-963a-27175d39717e",
+                "key": "need.task_geography",
+                "value": {
+                  "mode": "REMOTE"
+                },
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Rad na daljinu",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "3e778517-7648-4dea-95bc-194bda763432",
+                "key": "need.title",
+                "value": "Izrada male 3D figurice po STL fajlu",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Izrada male 3D figurice po STL fajlu",
+                "privacyClass": "PUBLIC"
+              }
+            ],
+            "responseDeadline": null,
+            "geographyRevision": "d5c6b5c0967f194f7486ca6f2a6d8d4592ea827e699d147f2acde0b9614bf165",
+            "sourceTurnRevision": 1617,
+            "classificationState": "READY",
+            "reviewedServiceModes": [],
+            "displayedContentDigest": "1285ad1d7167c706e9efc980de597d6f6fd6902d34e04999c1fee364d3c34134",
+            "ownerPrivateProjection": [],
+            "classificationCandidates": [
+              {
+                "mode": "REMOTE",
+                "action": "REUSE_EXISTING",
+                "reason": "Verified existing canonical identity or registered server alias",
+                "handoff": {
+                  "required": true,
+                  "localExchange": {
+                    "city": "Novi Sad",
+                    "countryCode": "RS"
+                  }
+                },
+                "service": "3D printovanje",
+                "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+                "catalogVersion": 5
+              }
+            ],
+            "classificationCatalogVersion": 5,
+            "classificationCatalogFingerprint": "6ceeb8d6caedef4964d1d44b379d2d60"
+          }
+        },
+        {
+          "name": "need-shipping-execution",
+          "conversationId": "1bad8285-4d3e-4a0b-a0b2-2036077f4307",
+          "finalReview": {
+            "safety": "ALLOW",
+            "draftId": null,
+            "location": {
+              "geography": {
+                "mode": "REMOTE"
+              },
+              "accessNotes": null,
+              "exactAddress": null,
+              "taskCountryCode": "RS",
+              "resolvedLocation": null
+            },
+            "reviewId": "9741befe-e9c1-4dae-9dec-822dfb104871",
+            "accountId": "5e99cafa-caa1-4d9e-902b-2ff4f56b77d7",
+            "canAccept": true,
+            "expiresAt": "2026-10-19T12:09:14.019218+00:00",
+            "draftRevision": 0,
+            "factsRevision": "f1c3fce6c4c9dc7238df44d4012f71a0ed94a6dd4537b565d39b4446d6b71484",
+            "schemaVersion": "NEED_FACT_V2",
+            "conversationId": "1bad8285-4d3e-4a0b-a0b2-2036077f4307",
+            "missingRequired": [],
+            "publicProjection": [
+              {
+                "id": "8803c3c4-b558-46cb-9303-0e1676a2b22c",
+                "key": "need.category",
+                "value": "3D printovanje",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "3D printovanje",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "e093f709-2131-4d4c-8d3f-8442aee2523c",
+                "key": "need.description",
+                "value": "Izrada jedne male 3D figurice prema gotovom STL fajlu. Izrađuje se kod izvršioca i šalje kurirskom službom na adresu u Srbiji. Nema dolaska kod naručioca ni ličnog preuzimanja.",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Izrada jedne male 3D figurice prema gotovom STL fajlu. Izrađuje se kod izvršioca i šalje kurirskom službom na adresu u Srbiji. Nema dolaska kod naručioca ni ličnog preuzimanja.",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "721d66cd-d761-4f30-869e-dc1981325236",
+                "key": "need.handoff",
+                "value": {
+                  "required": true,
+                  "shippingCountries": [
+                    "RS"
+                  ]
+                },
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Slanje: RS",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "fddb76df-45fe-485f-93f6-f3d24c5ea262",
+                "key": "need.people_needed",
+                "value": 1,
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "1",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "9e728334-fab2-4b25-aab3-7b8b28c9dd65",
+                "key": "need.price_mode",
+                "value": "OFFERS",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Ponude",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "89c0f984-239e-4a7d-ac69-7c35937d2051",
+                "key": "need.schedule_kind",
+                "value": "REMOTE_ANYTIME",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Potpuno fleksibilno",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "dbbb946f-2ba7-44a8-a3f9-f0a6d20bb134",
+                "key": "need.task_country_code",
+                "value": "RS",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "RS",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "0253b3d8-4411-4181-9fad-cb57c540bc2e",
+                "key": "need.task_geography",
+                "value": {
+                  "mode": "REMOTE"
+                },
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Rad na daljinu",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "b5d87484-edf3-437f-923a-d3b66014ec72",
+                "key": "need.title",
+                "value": "Izrada 3D figurice",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Izrada 3D figurice",
+                "privacyClass": "PUBLIC"
+              }
+            ],
+            "responseDeadline": null,
+            "geographyRevision": "7691a796929479d7aac7c5aecf2a8969620060ec3e811b922089aceca2e07047",
+            "sourceTurnRevision": 1619,
+            "classificationState": "READY",
+            "reviewedServiceModes": [],
+            "displayedContentDigest": "2691ed08ae6647deb17ec9ad1a8c57b58cc657268e52ae69cfa26cdd490e60e3",
+            "ownerPrivateProjection": [],
+            "classificationCandidates": [
+              {
+                "mode": "REMOTE",
+                "action": "REUSE_EXISTING",
+                "reason": "Verified existing canonical identity or registered server alias",
+                "handoff": {
+                  "required": true,
+                  "shippingCountries": [
+                    "RS"
+                  ]
+                },
+                "service": "3D printovanje",
+                "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+                "catalogVersion": 5
+              }
+            ],
+            "classificationCatalogVersion": 5,
+            "classificationCatalogFingerprint": "6ceeb8d6caedef4964d1d44b379d2d60"
+          }
+        },
+        {
+          "name": "need-digital-execution",
+          "conversationId": "3f61fcfd-a906-4eae-ada6-2c57730b577e",
+          "finalReview": {
+            "safety": "ALLOW",
+            "draftId": null,
+            "location": {
+              "geography": {
+                "mode": "REMOTE"
+              },
+              "accessNotes": null,
+              "exactAddress": null,
+              "taskCountryCode": "RS",
+              "resolvedLocation": null
+            },
+            "reviewId": "f701ca64-c4ad-4500-b773-59999a90c2ef",
+            "accountId": "5e99cafa-caa1-4d9e-902b-2ff4f56b77d7",
+            "canAccept": true,
+            "expiresAt": "2026-10-19T12:09:24.754473+00:00",
+            "draftRevision": 0,
+            "factsRevision": "860a3c861f3740939b57bd1e1f046f73183340ef006937fb81f92520f8463880",
+            "schemaVersion": "NEED_FACT_V2",
+            "conversationId": "3f61fcfd-a906-4eae-ada6-2c57730b577e",
+            "missingRequired": [],
+            "publicProjection": [
+              {
+                "id": "f24cec74-f424-4b37-8902-703558a73f1b",
+                "key": "need.category",
+                "value": "Izrada prezentacija",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Izrada prezentacija",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "04494cc3-725c-47e2-b9c2-a9a6de5b47f3",
+                "key": "need.description",
+                "value": "Izrada digitalne prezentacije od 10 slajdova u PowerPoint formatu na osnovu dostavljenog teksta. Gotov fajl se preuzima onlajn.",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Izrada digitalne prezentacije od 10 slajdova u PowerPoint formatu na osnovu dostavljenog teksta. Gotov fajl se preuzima onlajn.",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "ea5b7257-85e6-4221-a7e5-2856b83ab28e",
+                "key": "need.handoff",
+                "value": {
+                  "required": false
+                },
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Bez fizičke predaje",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "a4e921a2-3c41-4d48-aa3c-6b584e9b5089",
+                "key": "need.people_needed",
+                "value": 1,
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "1 osoba",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "de5b0da7-8dc2-4091-8313-b2329d177116",
+                "key": "need.price_mode",
+                "value": "OFFERS",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Prikupljanje ponuda",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "e24f4d04-26d8-4dcb-ad19-595731b0ed43",
+                "key": "need.schedule_kind",
+                "value": "REMOTE_ANYTIME",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Bilo kada (na daljinu)",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "3221be64-f986-4d7a-bd91-1cc187b58d49",
+                "key": "need.task_country_code",
+                "value": "RS",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "RS",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "df001899-67d7-4025-ab6a-191cd6eb2c2d",
+                "key": "need.task_geography",
+                "value": {
+                  "mode": "REMOTE"
+                },
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Rad na daljinu",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "82abc482-81ef-43cb-9bb2-e2c7d0136a2c",
+                "key": "need.title",
+                "value": "Izrada prezentacije od 10 slajdova",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Izrada prezentacije od 10 slajdova",
+                "privacyClass": "PUBLIC"
+              }
+            ],
+            "responseDeadline": null,
+            "geographyRevision": "104c8777bd117b9bbfc49396d87e6a228464f26a007d85d46e25c0e946550b68",
+            "sourceTurnRevision": 1621,
+            "classificationState": "READY",
+            "reviewedServiceModes": [],
+            "displayedContentDigest": "87b68ac6e953d815e1927aa7103f86db582d1ff669f0e271695fbc2ce3bede80",
+            "ownerPrivateProjection": [],
+            "classificationCandidates": [
+              {
+                "mode": "REMOTE",
+                "action": "REUSE_EXISTING",
+                "reason": "Verified existing canonical identity or registered server alias",
+                "handoff": {
+                  "required": false
+                },
+                "service": "Izrada prezentacija",
+                "categoryId": "6b7ed350-6947-4f7d-991c-caf03118db5d",
+                "catalogVersion": 5
+              }
+            ],
+            "classificationCatalogVersion": 5,
+            "classificationCatalogFingerprint": "6ceeb8d6caedef4964d1d44b379d2d60"
+          }
+        },
+        {
+          "name": "need-impossible-execution",
+          "conversationId": "7fbabf99-2ad7-414b-9dd4-425ece89edcb",
+          "finalReview": {
+            "safety": "CLARIFY",
+            "draftId": null,
+            "location": null,
+            "reviewId": "6da4dd00-61da-4b0f-8668-49c820295a47",
+            "accountId": "5e99cafa-caa1-4d9e-902b-2ff4f56b77d7",
+            "canAccept": false,
+            "expiresAt": "2026-10-19T12:09:35.429831+00:00",
+            "draftRevision": 0,
+            "factsRevision": "e8ceccad9089e4ba1a9bd0a86ed7ce71d17a065a099cac74baaae84d863f19d5",
+            "schemaVersion": "NEED_FACT_V2",
+            "conversationId": "7fbabf99-2ad7-414b-9dd4-425ece89edcb",
+            "missingRequired": [
+              "need.task_geography"
+            ],
+            "publicProjection": [
+              {
+                "id": "782ecd16-21a8-4d82-9ed1-65bd56852ff3",
+                "key": "need.category",
+                "value": "Krečenje zidova",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Krečenje zidova",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "6ec0e8b9-67f0-4d44-a262-5051fc2f36b2",
+                "key": "need.description",
+                "value": "Potrebno je fizičko krečenje zidova stana u Novom Sadu. Traže se ponude majstora za rad sa fleksibilnim terminom.",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Potrebno je fizičko krečenje zidova stana u Novom Sadu. Traže se ponude majstora za rad sa fleksibilnim terminom.",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "3131edfa-5fa0-4887-bead-70121a931ae7",
+                "key": "need.people_needed",
+                "value": 1,
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "1",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "2cfaf55a-7dd6-4464-824d-6f6d325f6a34",
+                "key": "need.price_mode",
+                "value": "OFFERS",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Prikupljanje ponuda",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "fc5a87fa-4ccb-4cc5-8312-0743699f5d45",
+                "key": "need.schedule_kind",
+                "value": "FLEXIBLE",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Fleksibilno",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "b6eebad5-d88c-4bec-b5c6-9ddb97836e4d",
+                "key": "need.task_country_code",
+                "value": "RS",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Srbija",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "8076de02-414d-4ce0-a428-5c6601599503",
+                "key": "need.title",
+                "value": "Krečenje zidova stana",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Krečenje zidova stana",
+                "privacyClass": "PUBLIC"
+              }
+            ],
+            "responseDeadline": null,
+            "geographyRevision": "6cdd3ee3d4f62126ce7aeec4220dfe6e4cac5216ebc88a078b2db1fdde646f33",
+            "sourceTurnRevision": 1623,
+            "classificationState": "PENDING_CLASSIFICATION",
+            "reviewedServiceModes": [],
+            "displayedContentDigest": "8eab6e3c928a68dad81ba9e2fb24fe946305e92350ff23cf8b71492c20eedf9f",
+            "ownerPrivateProjection": [],
+            "classificationCandidates": [],
+            "classificationCatalogVersion": null,
+            "classificationCatalogFingerprint": null
+          }
+        },
+        {
+          "name": "need-rare-execution",
+          "conversationId": "a87c9c5b-cb4b-4439-b853-db6eaa16e4c4",
+          "finalReview": {
+            "safety": "ALLOW",
+            "draftId": null,
+            "location": {
+              "geography": {
+                "mode": "REMOTE"
+              },
+              "accessNotes": null,
+              "exactAddress": null,
+              "taskCountryCode": "RS",
+              "resolvedLocation": null
+            },
+            "reviewId": "84d97ee1-7cc0-45df-8cc9-1a2d81ae767f",
+            "accountId": "5e99cafa-caa1-4d9e-902b-2ff4f56b77d7",
+            "canAccept": true,
+            "expiresAt": "2026-10-19T12:09:54.463826+00:00",
+            "draftRevision": 0,
+            "factsRevision": "435f45c92704b85f95428e0a27c9e8b90cf0f054efdb7cfa55225194c65b31a3",
+            "schemaVersion": "NEED_FACT_V2",
+            "conversationId": "a87c9c5b-cb4b-4439-b853-db6eaa16e4c4",
+            "missingRequired": [],
+            "publicProjection": [
+              {
+                "id": "6d231a3b-a064-4b1d-a281-e37ef5fa03c4",
+                "key": "need.category",
+                "value": "Restauracija mehaničke muzičke kutije",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Restauracija mehaničke muzičke kutije",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "0ce5c1a0-9646-4de9-a5c5-876548ee376e",
+                "key": "need.description",
+                "value": "Potrebna restauracija stare mehaničke muzičke kutije: čišćenje, popravka opružnog mehanizma i podešavanje metalnog češlja. Predmet se majstoru šalje kurirskom službom, radi se u radionici majstora i vraća dostavom.",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Potrebna restauracija stare mehaničke muzičke kutije: čišćenje, popravka opružnog mehanizma i podešavanje metalnog češlja. Predmet se majstoru šalje kurirskom službom, radi se u radionici majstora i vraća dostavom.",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "915ac31d-62d4-433f-9092-954ae39a1ef1",
+                "key": "need.handoff",
+                "value": {
+                  "required": true,
+                  "shippingCountries": [
+                    "RS"
+                  ]
+                },
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Slanje: RS",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "be7659f3-9cce-4ada-85af-bd5de532a041",
+                "key": "need.people_needed",
+                "value": 1,
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "1",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "761e6ad8-f21d-4d38-b3ef-7caf49cdbf82",
+                "key": "need.price_mode",
+                "value": "OFFERS",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Ponude majstora",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "38568d85-a526-4f14-af54-dcd7f9786eee",
+                "key": "need.schedule_kind",
+                "value": "REMOTE_ANYTIME",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Bilo kada (na daljinu)",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "e647ce4b-8856-4bbd-90d9-b5f121fef3c7",
+                "key": "need.task_country_code",
+                "value": "RS",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "RS",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "197f5290-d3f9-4636-b91a-d3f72b846aa2",
+                "key": "need.task_geography",
+                "value": {
+                  "mode": "REMOTE"
+                },
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Rad na daljinu",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "693cd4da-c6d8-4f93-8a36-e896764d43b2",
+                "key": "need.title",
+                "value": "Restauracija mehaničke muzičke kutije",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Restauracija mehaničke muzičke kutije",
+                "privacyClass": "PUBLIC"
+              }
+            ],
+            "responseDeadline": null,
+            "geographyRevision": "a5dab942e0929a8857849c4cfedd90ec06031ae16ba7b984bad3d8b6baf17de4",
+            "sourceTurnRevision": 1625,
+            "classificationState": "READY",
+            "reviewedServiceModes": [],
+            "displayedContentDigest": "f1971bdc26ab9bbcfe19c0384df7ec02d06b27b3fa40ea0af0e794af388f299d",
+            "ownerPrivateProjection": [],
+            "classificationCandidates": [
+              {
+                "mode": "REMOTE",
+                "path": [
+                  "Restauracija mehaničke muzičke kutije"
+                ],
+                "action": "CREATE_CHILD",
+                "reason": "Restauracija i popravka stare mehaničke muzičke kutije sa opružnim mehanizmom i češljem spada pod finu mehaniku, a majstor posao obavlja u svojoj radionici uz slanje predmeta.",
+                "handoff": {
+                  "required": true,
+                  "shippingCountries": [
+                    "RS"
+                  ]
+                },
+                "service": "Restauracija mehaničke muzičke kutije",
+                "parentId": "5f5d367b-d4c7-44e2-b364-c79eff37bfb3",
+                "parentLabel": "Fina mehanika",
+                "catalogVersion": 5
+              }
+            ],
+            "classificationCatalogVersion": 5,
+            "classificationCatalogFingerprint": "6ceeb8d6caedef4964d1d44b379d2d60"
+          }
+        }
+      ],
+      "turns": [
+        {
+          "conversationId": "319c677b-b334-426a-9bc8-a3f01e7cbddd",
+          "clientRequestId": "9e691109-8d68-4d25-95d1-6d38a52aa5e8",
+          "userText": "Treba mi izrada jedne male 3D figurice prema gotovom STL fajlu. Izrađuje se kod izvršioca, bez dolaska kod mene. Samo lično preuzimanje u Novom Sadu, Srbija, ne želim slanje. Jedan izvršilac, termin potpuno fleksibilan, tražim ponude.",
+          "assistantText": "Sve je jasno zabeleženo. Zadatak se radi na daljinu (kod izvršioca), a gotova figurica se lično preuzima u Novom Sadu. Možeš otvoriti pregled zadatka i proveriti sve detalje pre objave.",
+          "outcome": "OWNED_SUCCEEDED_READBACK",
+          "elapsedMs": 15100,
+          "expectedProviderOperations": [
+            {
+              "attempt": 1,
+              "operationId": "9e691109-8d68-4d25-95d1-6d38a52aa5e8"
+            },
+            {
+              "attempt": 2,
+              "operationId": "0e9a469c-3757-801c-839b-7bb670b6fbb3"
+            },
+            {
+              "attempt": 3,
+              "operationId": "1088f76b-11c3-8b9e-b968-abbca0f3929c"
+            },
+            {
+              "attempt": 4,
+              "operationId": "cae88dea-e99c-8689-8d91-9d0766c3e0b2"
+            }
+          ]
+        },
+        {
+          "conversationId": "1bad8285-4d3e-4a0b-a0b2-2036077f4307",
+          "clientRequestId": "1fb15c3a-44ff-457d-9b56-23cc0e0127ef",
+          "userText": "Treba mi izrada jedne male 3D figurice prema gotovom STL fajlu. Izrađuje se kod izvršioca i šalje kurirskom službom na adresu u Srbiji. Nema dolaska kod mene ni ličnog preuzimanja. Jedan izvršilac, termin potpuno fleksibilan, tražim ponude.",
+          "assistantText": "Sve je jasno zabeleženo. Zadatak je spreman za pregled i objavu, pa možeš otvoriti pregled i proveriti sve detalje pre postavljanja.",
+          "outcome": "OWNED_SUCCEEDED_READBACK",
+          "elapsedMs": 12317,
+          "expectedProviderOperations": [
+            {
+              "attempt": 1,
+              "operationId": "1fb15c3a-44ff-457d-9b56-23cc0e0127ef"
+            },
+            {
+              "attempt": 2,
+              "operationId": "a4fb7d08-18e8-872c-b35b-b8902037eced"
+            },
+            {
+              "attempt": 3,
+              "operationId": "e41d2231-078c-88cd-81ab-b5c6c10a7c9b"
+            },
+            {
+              "attempt": 4,
+              "operationId": "56158118-960b-8a5d-a012-70b7ebea1ec4"
+            }
+          ]
+        },
+        {
+          "conversationId": "3f61fcfd-a906-4eae-ada6-2c57730b577e",
+          "clientRequestId": "d37ad851-cc01-4c89-8210-cc2daa5a725e",
+          "userText": "Treba mi izrada prezentacije od 10 slajdova iz teksta koji ću dostaviti. Sve je digitalno, gotov PowerPoint fajl preuzimam onlajn. Srbija, jedan izvršilac, potpuno fleksibilan termin, tražim ponude.",
+          "assistantText": "Sve je jasno zabeleženo. Zadatak je spreman, pa možeš otvoriti pregled i proveriti sve detalje pre objave.",
+          "outcome": "OWNED_SUCCEEDED_READBACK",
+          "elapsedMs": 10499,
+          "expectedProviderOperations": [
+            {
+              "attempt": 1,
+              "operationId": "d37ad851-cc01-4c89-8210-cc2daa5a725e"
+            },
+            {
+              "attempt": 2,
+              "operationId": "dc87f52d-9fd5-8f52-83cc-e144ddb83da3"
+            },
+            {
+              "attempt": 3,
+              "operationId": "90a03563-706a-8588-b82d-57cd22592bc1"
+            },
+            {
+              "attempt": 4,
+              "operationId": "abac9543-70bc-8ce1-97a9-aaee036c90c2"
+            }
+          ]
+        },
+        {
+          "conversationId": "7fbabf99-2ad7-414b-9dd4-425ece89edcb",
+          "clientRequestId": "36ea31f5-eaf0-423a-a127-1a314905cf4d",
+          "userText": "Treba mi da neko fizički okreči zidove mog stana u Novom Sadu, ali hoću da to uradi na daljinu bez dolaska. Ne želim savetovanje niti uputstva, nego stvarno okrečene zidove. Jedan izvršilac, fleksibilno, tražim ponude.",
+          "assistantText": "Fizičko krečenje zidova stana zahteva dolazak na lokaciju, pa se ne može izvesti na daljinu. Možemo li da postavimo zadatak sa dolaskom majstora u stan u Novom Sadu?",
+          "outcome": "OWNED_SUCCEEDED_READBACK",
+          "elapsedMs": 10459,
+          "expectedProviderOperations": [
+            {
+              "attempt": 1,
+              "operationId": "36ea31f5-eaf0-423a-a127-1a314905cf4d"
+            },
+            {
+              "attempt": 2,
+              "operationId": "97ede4fb-4147-8f1d-b997-ed185fa12e41"
+            },
+            {
+              "attempt": 3,
+              "operationId": "8d38c462-66ee-82e3-8f69-82d115a30e98"
+            },
+            {
+              "attempt": 4,
+              "operationId": "d04f6b4c-433d-8c6d-84af-ed3e7692beb9"
+            }
+          ]
+        },
+        {
+          "conversationId": "a87c9c5b-cb4b-4439-b853-db6eaa16e4c4",
+          "clientRequestId": "91f6b138-7e19-453a-ae75-4b0bc975ac22",
+          "userText": "Treba mi restauracija stare mehaničke muzičke kutije: čišćenje, popravka opružnog mehanizma i podešavanje metalnog češlja. Šaljem predmet majstoru kurirskom službom unutar Srbije, radi kod sebe i vraća mi ga dostavom u Srbiji. Jedan izvršilac, potpuno fleksibilan termin, tražim ponude.",
+          "assistantText": "Sve je jasno zabeleženo: restauracija mehaničke muzičke kutije na daljinu uz slanje kurirskom službom u Srbiji, fleksibilan termin i izbor majstora putem ponuda. Možeš otvoriti pregled zadatka.",
+          "outcome": "OWNED_SUCCEEDED_READBACK",
+          "elapsedMs": 18672,
+          "expectedProviderOperations": [
+            {
+              "attempt": 1,
+              "operationId": "91f6b138-7e19-453a-ae75-4b0bc975ac22"
+            },
+            {
+              "attempt": 2,
+              "operationId": "a242e918-4fae-8cfe-9fed-d606fabb8d2c"
+            },
+            {
+              "attempt": 3,
+              "operationId": "5ec0c236-b242-8ac8-b6a4-dacbaf530b6e"
+            },
+            {
+              "attempt": 4,
+              "operationId": "6100fa74-5ad3-8d62-9eec-16196f2b42fc"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sha256": "2518747c3d1c981b23a209c23dcdff9a63447f546969d2c1a78c75c137562931",
+      "accountId": "f38b8a07-249c-4e19-9e57-4829189c7ffe",
+      "cases": [
+        {
+          "name": "worker-shipping-execution",
+          "conversationId": "2ff885b2-5190-4ec0-b2e6-673753d4d460",
+          "firstHandoffClarification": {
+            "classificationState": "READY",
+            "canAccept": true,
+            "handoffSpecified": false,
+            "questionSignalDetected": true,
+            "questionMeaning": "HUMAN_REVIEW_REQUIRED",
+            "assistantText": "Zabeležio sam 3D printovanje u radionici za tvoj profil u Novom Sadu. Kako naručioci preuzimaju gotove figurice — da li ih šalješ poštom/kurirskom službom po Srbiji, nudiš lično preuzimanje u Novom Sadu, ili obe opcije?",
+            "assistantTextSource": "SSE_CONFIRMED",
+            "clientRequestId": "6f1ceefe-a0ef-4308-837e-cc009c9f870d"
+          },
+          "finalReview": {
+            "profile": {
+              "bio": "Izrada 3D figurica prema gotovom STL fajlu u sopstvenoj radionici, bez dolaska kod naručioca. Slanje kurirskom službom u Srbiji, bez ličnog preuzimanja. Dostupnost po dogovoru.",
+              "tools": [],
+              "skills": [
+                "3D printovanje"
+              ],
+              "licenses": [],
+              "location": {
+                "city": "Novi Sad",
+                "radiusKm": 15,
+                "approximatePosition": null,
+                "operatingCountryCode": "RS"
+              },
+              "vehicles": [],
+              "displayName": "USKOČI korisnik",
+              "availability": {
+                "rules": [],
+                "windows": [],
+                "timezone": "Europe/Belgrade",
+                "availableNow": false
+              },
+              "teamCapacity": 1
+            },
+            "activate": false,
+            "reviewId": "9d8256bb-ff7d-4590-84c1-e809681b7601",
+            "revision": 2,
+            "accountId": "f38b8a07-249c-4e19-9e57-4829189c7ffe",
+            "canAccept": true,
+            "expiresAt": "2026-10-19T12:08:39.383074+00:00",
+            "profileId": "f5f055d9-c6d2-45b3-9f31-75966ce3c573",
+            "schemaVersion": "WORKER_PROFILE_V1",
+            "conversationId": "2ff885b2-5190-4ec0-b2e6-673753d4d460",
+            "missingRequired": [],
+            "classificationState": "READY",
+            "reviewedServiceModes": [
+              {
+                "mode": "REMOTE",
+                "service": "3D printovanje"
+              }
+            ],
+            "displayedContentDigest": "b0a9c2f2e9328152915d5ac447a257248474c039a215e7c438c92eef3181f54a",
+            "classificationCandidates": [
+              {
+                "mode": "REMOTE",
+                "action": "REUSE_EXISTING",
+                "reason": "Verified existing canonical identity or registered server alias",
+                "handoff": {
+                  "required": true,
+                  "shippingCountries": [
+                    "RS"
+                  ]
+                },
+                "service": "3D printovanje",
+                "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+                "catalogVersion": 5
+              }
+            ],
+            "classificationCatalogVersion": 5,
+            "classificationCatalogFingerprint": "6ceeb8d6caedef4964d1d44b379d2d60"
+          }
+        }
+      ],
+      "turns": [
+        {
+          "conversationId": "2ff885b2-5190-4ec0-b2e6-673753d4d460",
+          "clientRequestId": "6f1ceefe-a0ef-4308-837e-cc009c9f870d",
+          "userText": "Nudim 3D štampanje figurica prema gotovom STL fajlu. Izrađujem kod sebe u radionici, bez dolaska kod naručioca. Grad profila Novi Sad, Srbija. Dostupnost po dogovoru.",
+          "assistantText": "Zabeležio sam 3D printovanje u radionici za tvoj profil u Novom Sadu. Kako naručioci preuzimaju gotove figurice — da li ih šalješ poštom/kurirskom službom po Srbiji, nudiš lično preuzimanje u Novom Sadu, ili obe opcije?",
+          "outcome": "OWNED_SUCCEEDED_READBACK",
+          "elapsedMs": 11148,
+          "expectedProviderOperations": [
+            {
+              "attempt": 1,
+              "operationId": "6f1ceefe-a0ef-4308-837e-cc009c9f870d"
+            },
+            {
+              "attempt": 2,
+              "operationId": "3c40e708-14cb-8450-bb83-95484524d1ed"
+            },
+            {
+              "attempt": 3,
+              "operationId": "376bae07-b27b-8d9e-9584-f71936488479"
+            },
+            {
+              "attempt": 4,
+              "operationId": "b914e1dc-63b2-843f-9139-f02314417f01"
+            }
+          ]
+        },
+        {
+          "conversationId": "2ff885b2-5190-4ec0-b2e6-673753d4d460",
+          "clientRequestId": "61c2645f-7a7a-49e3-bbc3-71292fdce37e",
+          "userText": "Šaljem izrađene figurice kurirskom službom samo u Srbiji. Ne nudim lično preuzimanje niti dolazak kod naručioca.",
+          "assistantText": "Zabeležio sam da figurice šalješ kurirskom službom na teritoriji Srbije, bez ličnog preuzimanja i dolaska kod naručioca. Profil je spreman – možeš da ga pregledaš i sačuvaš.",
+          "outcome": "OWNED_SUCCEEDED_READBACK",
+          "elapsedMs": 8162,
+          "expectedProviderOperations": [
+            {
+              "attempt": 1,
+              "operationId": "61c2645f-7a7a-49e3-bbc3-71292fdce37e"
+            },
+            {
+              "attempt": 2,
+              "operationId": "0c89c2dc-e258-8c25-b3bc-e2b5250fbdd0"
+            },
+            {
+              "attempt": 3,
+              "operationId": "88bbc373-4aaf-88a0-bce4-11cdd5bee60f"
+            },
+            {
+              "attempt": 4,
+              "operationId": "145dc312-f2ba-825b-83da-ad54a50fec35"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "sha256": "81e2d800877efd9b913a9487730591f6324858c44fdf00c4582ef90bc4e02d8d",
+      "accountId": "5e99cafa-caa1-4d9e-902b-2ff4f56b77d7",
+      "cases": [
+        {
+          "name": "need-typewriter-shipping-execution",
+          "conversationId": "6aa0a4e7-fd8b-47aa-b0fe-2c0f358096b6",
+          "finalReview": {
+            "safety": "ALLOW",
+            "draftId": null,
+            "location": {
+              "geography": {
+                "mode": "REMOTE"
+              },
+              "accessNotes": null,
+              "exactAddress": null,
+              "taskCountryCode": "RS",
+              "resolvedLocation": null
+            },
+            "reviewId": "243ccdfd-9920-44df-a5d2-b57733f2d199",
+            "accountId": "5e99cafa-caa1-4d9e-902b-2ff4f56b77d7",
+            "canAccept": true,
+            "expiresAt": "2026-10-19T12:12:36.382607+00:00",
+            "draftRevision": 0,
+            "factsRevision": "e225a1812c51db4dac82f165b93fe36c068578f2bb9c3da2100db1a55be16563",
+            "schemaVersion": "NEED_FACT_V2",
+            "conversationId": "6aa0a4e7-fd8b-47aa-b0fe-2c0f358096b6",
+            "missingRequired": [],
+            "publicProjection": [
+              {
+                "id": "c2693a1b-b54a-4625-89b4-21c1715c1eb2",
+                "key": "need.category",
+                "value": "Popravka pisaćih mašina",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Popravka pisaćih mašina",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "487988f5-6c35-4a5f-91d8-f56d4ac67ea6",
+                "key": "need.description",
+                "value": "Popravka ručne mehaničke pisaće mašine bez elektronskih delova: odglavljivanje tipki, čišćenje i podešavanje mehaničkog sklopa. Mašina se šalje kurirskom službom u radionicu majstora u Srbiji i na isti način vraća nakon popravke.",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Popravka ručne mehaničke pisaće mašine bez elektronskih delova: odglavljivanje tipki, čišćenje i podešavanje mehaničkog sklopa. Mašina se šalje kurirskom službom u radionicu majstora u Srbiji i na isti način vraća nakon popravke.",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "e41dc1d5-40ae-4db3-b1a7-2b8d2089d83c",
+                "key": "need.handoff",
+                "value": {
+                  "required": true,
+                  "shippingCountries": [
+                    "RS"
+                  ]
+                },
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Slanje: RS",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "0bb87f26-5130-4a05-b5ef-c97a1705937e",
+                "key": "need.people_needed",
+                "value": 1,
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "1 osoba",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "341ba95a-bca5-43de-8ece-9d1e2af16952",
+                "key": "need.price_mode",
+                "value": "OFFERS",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Traže se ponude",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "a5edabe2-f0e2-48af-974b-d23521385a33",
+                "key": "need.schedule_kind",
+                "value": "REMOTE_ANYTIME",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Bilo kada (rad na daljinu)",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "742e9930-ead8-461a-b9f6-6463675f0364",
+                "key": "need.task_country_code",
+                "value": "RS",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "RS",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "60ba02ed-def3-4c57-98a3-04a95a86ecf5",
+                "key": "need.task_geography",
+                "value": {
+                  "mode": "REMOTE"
+                },
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Rad na daljinu",
+                "privacyClass": "PUBLIC"
+              },
+              {
+                "id": "bf4d036b-9439-44de-9f5e-fa1b787c62ab",
+                "key": "need.title",
+                "value": "Popravka mehaničke pisaće mašine",
+                "source": "AI_INFERENCE",
+                "status": "NEEDS_CONFIRMATION",
+                "displayValue": "Popravka mehaničke pisaće mašine",
+                "privacyClass": "PUBLIC"
+              }
+            ],
+            "responseDeadline": null,
+            "geographyRevision": "2da19dd4b1df1688a807525bae40fe458c4a576ad8f0abf28a8b80be27e476be",
+            "sourceTurnRevision": 1627,
+            "classificationState": "READY",
+            "reviewedServiceModes": [],
+            "displayedContentDigest": "54f31568d9ce9832cf4523b1aa5939def2598d224b5871adc6a32283cf0e3774",
+            "ownerPrivateProjection": [],
+            "classificationCandidates": [
+              {
+                "mode": "REMOTE",
+                "action": "EXTEND_MODE",
+                "reason": "Usluga popravke mehaničke pisaće mašine se legitimno obavlja u radionici majstora na daljinu uz slanje kurirskom službom u Srbiji, bez dolaska kod naručioca.",
+                "handoff": {
+                  "required": true,
+                  "shippingCountries": [
+                    "RS"
+                  ]
+                },
+                "service": "Popravka pisaćih mašina",
+                "categoryId": "11e218ed-e072-4609-bcee-9576aa4c2e16",
+                "categoryLabel": "Popravka pisaćih mašina",
+                "catalogVersion": 6,
+                "categoryParentId": "5f5d367b-d4c7-44e2-b364-c79eff37bfb3"
+              }
+            ],
+            "classificationCatalogVersion": 6,
+            "classificationCatalogFingerprint": "710ab7019b9465e586857a5d2db340be"
+          }
+        }
+      ],
+      "turns": [
+        {
+          "conversationId": "6aa0a4e7-fd8b-47aa-b0fe-2c0f358096b6",
+          "clientRequestId": "5c94e960-7dec-41fb-b7dc-66f2e3800912",
+          "userText": "Treba mi popravka ručne mehaničke pisaće mašine: zaglavljuju se tipke, potrebno je čišćenje i podešavanje mehaničkog sklopa. Mašina nije električna i nema elektronskih delova. Šaljem je kurirskom službom u radionicu majstora unutar Srbije, tamo je popravlja i vraća mi je kurirskom službom u Srbiji. Nema dolaska kod mene ni ličnog preuzimanja. Jedan izvršilac, termin potpuno fleksibilan, tražim ponude.",
+          "assistantText": "Sve je jasno pripremljeno za popravku pisaće mašine na daljinu uz slanje kurirskom službom. Možeš da otvoriš pregled zadatka i proveriš sve detalje pre objavljivanja.",
+          "outcome": "OWNED_SUCCEEDED_READBACK",
+          "elapsedMs": 23447,
+          "expectedProviderOperations": [
+            {
+              "attempt": 1,
+              "operationId": "5c94e960-7dec-41fb-b7dc-66f2e3800912"
+            },
+            {
+              "attempt": 2,
+              "operationId": "b2c70245-d300-874a-a7ec-26f8a2129c0c"
+            },
+            {
+              "attempt": 3,
+              "operationId": "7546091f-ddbb-8949-b6ab-533ecf781bd2"
+            },
+            {
+              "attempt": 4,
+              "operationId": "b7a11676-086e-8de2-999d-0c470a5e71f1"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
