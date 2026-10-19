@@ -83,6 +83,26 @@ it('a new empty interview starts with the invitation instead of an empty profile
  expect(await correctionDisabled()).toBe(false);
  expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.prepare).not.toHaveBeenCalled();
 });
+it('identifies a resumed draft without replacing it with the active profile or sending an AI message',async()=>{
+ const oldDraft={...snapshot(),profileStatus:'ACTIVE',candidate:{...candidate(),skills:['Krečenje zidova']},
+  messages:[{id:K,role:'USER',body:'Radim i krečenje.',sequence:1}]};
+ mockApi.read.mockResolvedValue(ok(oldDraft));
+ await render();
+ const card=shell().props.card(false);
+ expect(card.props.resumed).toBe(true);
+ expect(card.props.profile.skills).toEqual(['Krečenje zidova']);
+ expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.patch).not.toHaveBeenCalled();
+ expect(mockApi.save).not.toHaveBeenCalled();expect(mockApi.abandon).not.toHaveBeenCalled();
+ act(()=>shell().props.onChange('Moja neposlata dopuna'));
+ expect(shell().props.value).toBe('Moja neposlata dopuna');
+ expect(shell().props.card(false).props.resumed).toBe(true);
+});
+it('does not label a newly opened profile conversation as an older draft',async()=>{
+ mockApi.read.mockResolvedValue(ok({...snapshot(),profileStatus:'ACTIVE'}));
+ await render();
+ expect(shell().props.card(false).props.resumed).toBe(false);
+ expect(mockApi.send).not.toHaveBeenCalled();
+});
 it('duplicate active events preserve the worker chat, typed draft and in-flight answer without another read',async()=>{
  const sending=deferred();mockApi.send.mockReturnValueOnce(sending.promise);
  await render();act(()=>shell().props.onChange('Moj nacrt'));await act(async()=>shell().props.onSend());

@@ -271,7 +271,10 @@ export function AiConversationShell(p: AiConversationShellProps) {
   {/* A closed conversation can keep its next action in the scroll. Without a composer/footer,
       the frame owns the bottom inset so that action stays above Android's gesture area. */}
   <SafeAreaView edges={p.closed && !p.footerAction ? ['top', 'bottom'] : ['top']} testID="ai-conversation-safe-area" style={s.canvas}>
-    <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    {/* Android edge-to-edge can keep the window full-height despite adjustResize.
+        Padding uses the measured overlap; a genuinely resized window contributes
+        zero overlap, so it does not subtract the keyboard height a second time. */}
+    <KeyboardAvoidingView style={s.flex} behavior="padding">
       <ScreenChrome variant="detail" tone="conversation" onBack={p.onBack} title={p.title}
         right={p.newConversation || p.onOptions ? <View style={s.headerRight}>
           {p.newConversation ? <ChromeIconButton label="Novi razgovor" hint="Počni ispočetka." glyph="refresh"

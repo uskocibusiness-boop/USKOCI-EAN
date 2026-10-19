@@ -22,8 +22,8 @@
     "note": "Release nije potvrđen. Aktuelni baseline odvaja istorijski APK, lokalni kandidat, DEV readback i novu proveru. Legal/store brojači ostaju nepoznati bez odgovarajućeg dokaza; stari 30.09. zbir nije današnje stanje."
   },
   "next": {
-    "title": "Sažeci zadataka i Dogovora, native provera i preostalo čišćenje",
-    "note": "SOURCE/TEST + READ-ONLY DEV: Početna uzima tačne brojeve kroz jednu stranicu prijava; čitanje prati lifetime ekrana. Dogovori odbijaju neispravan nastavak i nepotpun rezultat. 621 grupa / 13861 test PASS, tsc PASS, tri stvarna DEV naloga imaju iste zbirove. HOME_READ_CONTINUATION_20261018.md. Ledger 288 nepromenjen, nema novih DB upisa. Novi emulator APK checkpoint prati ovaj izvor i ranije čišćenje; build/install se dokazuju posebno. Slede sažeci zadataka/Dogovora i nezavisne core sekcije, zatim devet sačuvanih cleanup kandidata. Mapa i UI kompozicija ostaju."
+    "title": "Povezani AI razgovori, native tastatura i pregled; zatim UI talasi",
+    "note": "Najnoviji nalog vlasnika: prvo dovrsiti oba AI toka i jasno navesti nedovrsene funkcije. 19.10 kandidat i granice: docs/current/AI_CONVERSATION_CONTINUATION_20261019.md. Home sazetci i ostali poslovi ostaju otvoreni. Novi native dokaz i DEV readback se vode posebno."
   },
   "evidencePolicy": "Evidence su datirani zapisi rezultata na navedenom SHA/run-u, a ne aktivne instrukcije. Stare formulacije o odobrenju, freeze pravilima i STOP uslovima u njihovom result tekstu imaju samo istorijski status; aktuelni rad uređuju AGENTS.md, CURRENT_BASELINE_20261018 i PREMIUM_WHITE_CANON.",
   "evidence": [

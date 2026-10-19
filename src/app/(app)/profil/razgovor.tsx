@@ -48,6 +48,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
   // ONE NAME (owner, 8 Oct 2026): the profile is saved under the name of the ACCOUNT, whatever the assistant proposed or the profile carried.
   const account=useAccountName(),accountName=account.state==='ready'?account.name:null;
   const cid=useRef<string|null>(initialId??null),[openKey]=useState(noviUuidZahtevId);
+  const entryDraft=useRef<{id:string;resumed:boolean}|null>(null);
   const focus=useRef<object|null>(null),active=useRef(!AppState.currentState||AppState.currentState==='active');
   const [foreground,setForeground]=useState(active.current),[resuming,setResuming]=useState(false);
   const abort=useRef<AbortController|null>(null),refreshRef=useRef<()=>Promise<void>>(async()=>{});
@@ -120,6 +121,11 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
     }
     const result=cid.current?await api.read(cid.current):await api.open(openKey);
     if(focus.current!==scope||!owns()||!active.current)return unavailable();
+    if(result.ok&&entryDraft.current?.id!==result.podatak.conversationId){
+      const snapshot=result.podatak;
+      entryDraft.current={id:snapshot.conversationId,resumed:snapshot.status==='OPEN'&&!snapshot.saved
+        &&snapshot.messages.some(message=>message.role==='USER')};
+    }
     if(result.ok&&!cid.current){cid.current=result.podatak.conversationId;router.setParams({conversationId:cid.current});}
     return result;
   },[invalid,owns,openKey,accountId]);
@@ -190,7 +196,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
     const next=takeAiCorrection(correctionToken,{accountId,accountRevision},'worker',data.conversationId);
     if(next){setCorrection(next);showPanel('chat');}
   },[correctionToken,accountId,accountRevision,data?.conversationId,data?.saved,writable,foreground,enabled]));
-  const correctPart=(next:WorkerAiPart)=>{
+  const correctPart=(next:WorkerAiPart|'details')=>{
     if(!canAct()||!enabled||!writable||!data||data.saved||!accountId)return;
     const hint=rememberAiCorrection({accountId,accountRevision},`worker.${next}`,data.conversationId);
     if(!hint)return;
@@ -313,18 +319,17 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
     nameAdded=frozen.missingRequired.includes('Ime')&&!!accountName,
     expired=Date.parse(frozen.expiresAt)<=Date.now()||frozen.revision!==data.revision||nameAdded;
     // A correction returns to this conversation without sending or replacing its typed draft.
-    const editPart=(next:WorkerAiPart)=>{
+    const editConversation=()=>{
       if(!canAct()||!enabled||!writable||data.saved||expired||reviewNeedsRestart)return;
-      correctPart(next);
+      correctPart('details');
     };
     return <WorkerProfileFrame back={back} title="Tvoj radni profil" footer={data.saved?<V2Action label="Otvori sačuvani profil" onPress={()=>leave(()=>router.replace('/profil/radnik'))} style={brandAction}/>:<>
       <V2Action label={editor.busy?'Čuvamo profil…':frozen.activate?'Sačuvaj i aktiviraj profil':'Sačuvaj profil'}
         disabled={!enabled||!writable||reviewNeedsRestart||!frozen.canAccept||expired} onPress={()=>{void save();}} style={brandAction}/>
-      <V2Action tone="neutral" label="Nazad na razgovor" disabled={editor.busy} onPress={back}/>
       {(expired||editor.uncertain||editor.error)?<V2Action tone="neutral" label="Proveri stanje" onPress={refresh} disabled={editor.busy}/>:null}
     </>}>
       {data.saved?<T accessibilityRole="alert" variant="title" style={{color:sys.color.green}}>Profil je sačuvan{data.saved.profileStatus==='ACTIVE'?' i aktivan':''}.</T>:null}
-      <WorkerAiReviewDetails review={frozen} onEdit={data.saved?undefined:editPart} editDisabled={!enabled||!writable||expired||reviewNeedsRestart}
+      <WorkerAiReviewDetails review={frozen} onEdit={data.saved?undefined:editConversation} editDisabled={!enabled||!writable||expired||reviewNeedsRestart}
         onAddName={data.saved||expired?undefined:()=>leave(()=>router.push('/profil/podaci'))}/>
       {workerExplicitModeReviewEnabled()&&!data.saved&&frozen.classificationState!==undefined&&frozen.classificationState!=='READY'?<WorkerAiModeConfirmation
         skills={frozen.profile.skills} choices={currentModes}
@@ -379,6 +384,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
     attach={writable?{label:'Šta želiš da izmeniš?',hint:'Izaberi temu i nastavi isti razgovor.',disabled:!enabled,
       onPress:()=>{if(current()&&panelScope.current===renderedPanel)setAdding(true);}}:undefined}
     card={compact=>hasProfileContent&&!data.saved?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable}
+      resumed={entryDraft.current?.id===data.conversationId&&entryDraft.current.resumed}
       showReview={writable&&!data.saved} reviewReason={!enabled?unavailableNow:undefined} review={()=>{void review();}}/>:null}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
     showWelcomeArt={!hasProfileContent}

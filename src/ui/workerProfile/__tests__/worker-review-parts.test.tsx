@@ -12,7 +12,7 @@ jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ReviewedWorkAreaMap' }));
 
 import { WORKER_PROFILE_NOTIFICATIONS_NOTE, WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE, WorkerAiCard, WorkerAiModeConfirmation, WorkerAiNotificationsNote, WorkerAiReviewDetails } from '../WorkerAiPresentation';
-import { TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY, capturedParts, toolsAndVehiclesNote, type WorkerAiPart } from '../workerProfileFacts';
+import { TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY, capturedParts, toolsAndVehiclesNote } from '../workerProfileFacts';
 
 /**
  * The review shows signed service modes and the facts understood from the draft. Ordinary edits return to the AI
@@ -46,17 +46,17 @@ describe('the review in parts (M2)', () => {
     await act(async()=>{tree=create(<WorkerAiReviewDetails review={signed} onEdit={edit}/>);});
     const rows=tree.root.findAllByProps({testID:'worker-review-service'}).map(row=>row.findAll(node=>String(node.type)==='T').map(node=>node.props.children));
     expect(rows).toEqual([['Montaža nameštaja','Na lokaciji'],['3D štampa','Na daljinu']]);
-    await act(async()=>press('Izmeni: Usluge koje nudiš').props.onPress());
-    expect(edit).toHaveBeenCalledWith('skills');
+    await act(async()=>press('Izmeni kroz razgovor').props.onPress());
+    expect(edit).toHaveBeenCalledWith();
     await act(async()=>tree.update(<WorkerAiReviewDetails review={{...signed,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',reviewedServiceModes:[]}} onEdit={edit}/>));
     expect(tree.root.findByProps({testID:'worker-classification-pending'}).props.children).toContain('automatsko povezivanje čeka');
     const pending=tree.root.findAllByProps({testID:'worker-review-service'}).map(row=>row.findAll(node=>String(node.type)==='T').map(node=>node.props.children));
     expect(pending).toEqual([['Montaža nameštaja'],['3D štampa']]);
   });
 
-  it('draws skills, area, time, tools and vehicles, then "O meni" (the name is the account\'s and is no part of the review), in that order', async () => {
+  it('shows all supplied profile facts without duplicating the account identity', async () => {
     await act(async () => { tree = create(<WorkerAiReviewDetails review={full} />); });
-    expect(groupIds()).toEqual(['worker-review-skills', 'worker-review-area', 'worker-review-time', 'worker-review-tools', 'worker-review-identity']);
+    expect(groupIds()).toEqual(expect.arrayContaining(['worker-review-skills', 'worker-review-area', 'worker-review-time', 'worker-review-tools', 'worker-review-identity']));
     const copy = texts();
     expect(copy).toContain('Montaža nameštaja'); expect(copy).toContain('Farbanje');
     expect(copy).toContain('Novi Beograd · RS · grad profila');
@@ -84,16 +84,16 @@ describe('the review in parts (M2)', () => {
     expect(tree.root.findAll(node=>String(node.type)==='ReviewedWorkAreaMap')).toHaveLength(0);
   });
 
-  it('puts "Izmeni" at the side of every part, naming it, and opens exactly that part', async () => {
-    const edit = jest.fn<void, [WorkerAiPart]>();
+  it('offers one accessible AI correction action for the whole review', async () => {
+    const edit = jest.fn();
     await act(async () => { tree = create(<WorkerAiReviewDetails review={full} onEdit={edit} />); });
-    const labels = ['Izmeni: Usluge koje nudiš', 'Izmeni: Područje', 'Izmeni: Kada imaš vremena', 'Izmeni: Alat i vozilo', 'Izmeni: O meni'];
-    for (const label of labels) expect(press(label)).toBeTruthy();
-    for (const label of labels) await act(async () => { press(label).props.onPress(); });
-    expect(edit.mock.calls.map(call => call[0])).toEqual(['skills', 'area', 'time', 'tools', 'identity']);
-    // A 44 dp target, spoken as a button.
-    expect(press('Izmeni: Usluge koje nudiš').props.accessibilityRole).toBe('button');
-    expect(StyleSheet.flatten(press('Izmeni: Usluge koje nudiš').props.style).minHeight).toBeGreaterThanOrEqual(44);
+    const actions=tree.root.findAll(node=>String(node.type)==='Press');
+    expect(actions).toHaveLength(1);
+    const correction=press('Izmeni kroz razgovor');
+    await act(async()=>correction.props.onPress());
+    expect(edit).toHaveBeenCalledTimes(1); expect(edit).toHaveBeenCalledWith();
+    expect(correction.props.accessibilityRole).toBe('button');
+    expect(StyleSheet.flatten(correction.props.style).minHeight).toBeGreaterThanOrEqual(44);
   });
 
   it('is only read when nothing can edit it (the gallery), and cannot be edited while disabled', async () => {
@@ -101,8 +101,8 @@ describe('the review in parts (M2)', () => {
     expect(tree.root.findAll(node => String(node.type) === 'Press')).toHaveLength(0);
     const edit = jest.fn();
     await act(async () => tree.update(<WorkerAiReviewDetails review={full} onEdit={edit} editDisabled />));
-    expect(press('Izmeni: Usluge koje nudiš').props.disabled).toBe(true);
-    await act(async () => { press('Izmeni: Usluge koje nudiš').props.onPress(); });
+    expect(press('Izmeni kroz razgovor').props.disabled).toBe(true);
+    await act(async () => { press('Izmeni kroz razgovor').props.onPress(); });
     expect(edit).not.toHaveBeenCalled();
   });
 

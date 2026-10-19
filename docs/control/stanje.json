@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-18T22:28:31Z",
+  "osvezeno": "2026-10-19T04:27:08Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "6cfc348a",
-  "head_poruka": "refactor(client): retire unreachable modules without UI changes",
+  "head": "69be6fde",
+  "head_poruka": "docs: record published Home repair and emulator build source",
   "server": {
    "snimljeno": "2026-10-18T20:15:59Z",
    "migracije": 288,
@@ -13826,5 +13826,102 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": null
+ "ci": [
+  {
+   "id": 39172584767,
+   "ime": "PKG-042 application reader parity proof",
+   "sha": "f18ea85d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-18T22:31:14Z"
+  },
+  {
+   "id": 39172584706,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "f18ea85d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-18T22:31:14Z"
+  },
+  {
+   "id": 39166921143,
+   "ime": "PKG-042 application reader parity proof",
+   "sha": "6cfc348a",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-18T21:14:09Z"
+  },
+  {
+   "id": 39163968732,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "bb0ba8df",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-18T20:35:05Z"
+  },
+  {
+   "id": 39163968548,
+   "ime": "PKG-042 application reader parity proof",
+   "sha": "bb0ba8df",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-18T20:35:05Z"
+  },
+  {
+   "id": 39163556694,
+   "ime": "PKG-042 application reader parity proof",
+   "sha": "7ac37293",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-18T20:29:47Z"
+  },
+  {
+   "id": 39163340552,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "73e1915b",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-18T20:26:54Z"
+  },
+  {
+   "id": 39163339322,
+   "ime": "PKG-042 application reader parity proof",
+   "sha": "73e1915b",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-18T20:26:54Z"
+  },
+  {
+   "id": 39155015938,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "2a6e7df8",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-18T18:37:39Z"
+  },
+  {
+   "id": 39154503530,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "5f43387d",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-18T18:30:58Z"
+  },
+  {
+   "id": 39153834280,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "06104539",
+   "stanje": "completed",
+   "ishod": "cancelled",
+   "vreme": "2026-10-18T18:22:05Z"
+  },
+  {
+   "id": 39139810115,
+   "ime": "Task time consistency disposable proof",
+   "sha": "60fa276d",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-18T15:17:28Z"
+  }
+ ]
 }

@@ -90,7 +90,7 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
       onPress={() => { if (!disabled) confirmMap(); }} /> : null}
     <SettingsGroup title="Kada">
       {availableNow && !readOnly
-        ? <SettingsRow label="Dostupnost" value={availableNow.value ? 'Mogu odmah' : 'Mogu odmah: isključeno'}
+        ? <SettingsRow label="Dostupnost" value={availableNow.value ? 'Mogu odmah' : 'Mogu odmah: isključeno'} valuePlacement="below"
           icon={<ClockArt size={32} quiet={disabled} />} disabled={disabled} onPress={() => { if (!disabled) availableNow.onEdit(); }} />
         : <ListRow leading={<ClockArt size={32} quiet />} title="Mogu odmah" value={draft.dostupanOdmah ? 'Uključeno' : 'Isključeno'} />}
       {!readOnly && !availableNow ? <SettingsRow label="Nedeljni raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled}

@@ -27,9 +27,9 @@ const artRole=(kind:FactArtKind):FactArtRole => kind==='pin'||kind==='map'||kind
   :kind==='clock'||kind==='calendar'?'time':kind==='tool'||kind==='vehicle'||kind==='tasks'?'skills'
     :kind==='person'||kind==='users'?'people':'ai';
 /** Live card of the worker profile proposal beside the conversation. */
-export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=false,showReview=true,reviewReason}:{
+export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=false,showReview=true,reviewReason,resumed=false}:{
   profile:WorkerAiProfile;compact:boolean;review:()=>void;disabled:boolean;reviewInFooter?:boolean;
-  showReview?:boolean;reviewReason?:string;
+  showReview?:boolean;reviewReason?:string;resumed?:boolean;
 }){
   const { expanded, toggle } = useAiDraftDisclosure();
   const skills = profile.skills.length ? profile.skills.join(' · ') : 'Šta možeš da preuzmeš?';
@@ -53,7 +53,9 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
     </Press>
     {/* Candidate strings and the inherited profile city do not prove classification,
         service mode or matching readiness. Those belong to the guarded review. */}
-    <T testID="worker-draft-review-note" variant="note" tone="muted">Proveri usluge i način rada pre čuvanja.</T>
+    <T testID="worker-draft-review-note" variant="note" tone="muted">{resumed
+      ?'Nastavljen nacrt. Sačuvani profil ostaje isti do pregleda i čuvanja.'
+      :'Proveri usluge i način rada pre čuvanja.'}</T>
     {expanded?<View testID="worker-draft-details" style={s.previewFacts}>
         {place?<PreviewFact art="pin">{`Grad u nacrtu: ${place}`}</PreviewFact>:null}
         <PreviewFact art="clock">{availability}</PreviewFact>
@@ -90,21 +92,12 @@ function Fact({art,children,quiet=false}:{art:FactArtKind;children:string;quiet?
   return <View style={s.fact}>{art==='clock'?<ClockArt size={24}/>:<FactArt kind={art} size={24} cut="art" role={artRole(art)}/>}
     <T selectable variant="body" style={[s.grow,quiet?s.muted:s.ink]}>{children}</T></View>;
 }
-/**
- * One part of the review (M2): its title with "Izmeni" at its side, and what the conversation understood under it.
- * "Izmeni" is a 44 dp target that names the part it opens ("Izmeni: Veštine"); without `onEdit` (the design gallery) the
- * group is only read.
- */
-function ReviewGroup({part,onEdit,editDisabled=false,children}:{part:WorkerAiPart;
-  onEdit?:(part:WorkerAiPart)=>void;editDisabled?:boolean;children:ReactNode}){
+/** Facts are read together; one correction action returns to their shared conversation. */
+function ReviewGroup({part,children}:{part:WorkerAiPart;children:ReactNode}){
   const title=WORKER_PART_TITLE[part];
   return <View testID={`worker-review-${part}`} style={s.group}>
     <View style={s.groupHead}>
       <T accessibilityRole="header" variant="bodyStrong" style={[s.grow,s.ink]}>{title}</T>
-      {onEdit?<Press accessibilityRole="button" accessibilityLabel={`Izmeni: ${title}`} accessibilityState={{disabled:editDisabled}}
-        disabled={editDisabled} haptic={editDisabled?'none':'select'} onPress={()=>{if(!editDisabled)onEdit(part);}} style={s.edit}>
-        <T variant="tab" style={editDisabled?s.muted:s.editText}>Izmeni</T>
-      </Press>:null}
     </View>
     <View style={s.groupBody}>{children}</View>
   </View>;
@@ -142,17 +135,17 @@ export function WorkerAiNotificationsNote({matchingReady=true}:{matchingReady?:b
 /** The server names the missing name "Ime"; it is the name of the ACCOUNT now (owner, 8 Oct 2026), so that is what the person is told to add. */
 const missingLabel=(label:string)=>label==='Ime'?'Ime naloga':label;
 /**
- * Frozen personal-profile review (M2): what the conversation understood, in parts, each with "Izmeni" at its side. Legacy
+ * Frozen personal-profile review: what the conversation understood, with one AI correction action. Legacy
  * wire fields remain stored, but the personal-profile save no longer writes them. Nothing here is a location editor: the
- * map is the frozen approximate centre, and every correction goes through the part's own editor and a fresh review.
+ * map is the frozen approximate centre, and every correction returns to the same conversation and a fresh review.
  *
  * There is no row for the name: the profile is saved under the name of the account (owner, 8 Oct 2026: one name for everything), which the route puts into
  * the proposal before the review is made. Only when the account has no name at all does the review say so, with `onAddName` leading to the one place
  * it is written ("Lični podaci").
  */
 export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddName}:{review:WorkerAiReview;
-  /** Returns to the same AI conversation with this topic. Without it the review is only read. */
-  onEdit?:(part:WorkerAiPart)=>void;editDisabled?:boolean;
+  /** Returns to the same AI conversation without sending or changing a fact. */
+  onEdit?:()=>void;editDisabled?:boolean;
   /** The way to "Lični podaci" when the account has no name; without it the missing name is only said. */ onAddName?:()=>void}){
   const p=review.profile;
   const point=displayedPinPosition(p.location.approximatePosition,true);
@@ -160,12 +153,11 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
   const confirmedModes=review.classificationState==='READY'?review.reviewedServiceModes??[]:[];
   const onSite=confirmedModes.some(item=>item.mode==='ON_SITE'),remote=confirmedModes.some(item=>item.mode==='REMOTE');
   const hasSchedule=p.availability.rules.length>0||p.availability.windows.length>0;
-  const group={onEdit,editDisabled};
   return <View style={s.review}>
     {review.missingRequired.length?<View style={s.reviewNotice}><FactArt kind="info" size={24} cut="art" role="waiting"/>
       <T accessibilityRole="alert" variant="body" style={[s.grow,s.ink]}>Dopuni: {review.missingRequired.map(missingLabel).join(', ')}.</T></View>:null}
     {review.missingRequired.includes('Ime')&&onAddName?<V2Action label="Dodaj ime" kind="secondary" compact onPress={onAddName} style={s.addName}/>:null}
-    <ReviewGroup part="skills" {...group}>
+    <ReviewGroup part="skills">
       {p.skills.length?<View style={s.services}>{p.skills.map((skill,index)=>{
         // Scope shown here is part of the server-digested review, not a client
         // inference or a second approval form. Unclassified skills show no fake scope.
@@ -186,7 +178,7 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
                 :'Usluge ostaju u profilu, ali automatsko povezivanje zadataka čeka potvrdu kategorija.'}
         </T>:null}
     </ReviewGroup>
-    <ReviewGroup part="area" {...group}>
+    <ReviewGroup part="area">
       <Fact art="pin" quiet={!place}>{place
         ?onSite
           ?`${place} · do ${p.location.radiusKm} km`
@@ -199,7 +191,7 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
       {onSite
         ?<T variant="note" tone="muted">{point?'Približan centar za terenske zadatke.':'Posle čuvanja profila izaberi „Potvrdi tačku na mapi“ za terenske zadatke.'}</T>:null}
     </ReviewGroup>
-    <ReviewGroup part="time" {...group}>
+    <ReviewGroup part="time">
       <Fact art="clock">{p.availability.availableNow?'Mogu odmah, dok to ne isključiš':'Mogu odmah: isključeno'}</Fact>
       {p.availability.rules.length?<View style={s.scheduleGroup}>
         <T variant="bodyStrong">Redovna nedelja</T>
@@ -214,16 +206,20 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
       </View>:null}
       {hasSchedule?<T variant="note" tone="muted">{scheduleZone(p.availability.timezone)}. Dogovori ostaju obaveze.</T>:null}
     </ReviewGroup>
-    {p.tools.length||p.vehicles.length?<ReviewGroup part="tools" {...group}>
+    {p.tools.length||p.vehicles.length?<ReviewGroup part="tools">
       {p.tools.length?<Fact art="tool">{list(p.tools)}</Fact>:null}
       {p.vehicles.length?<Fact art="vehicle">{list(p.vehicles)}</Fact>:null}
       {p.tools.length||p.vehicles.length?null:<T variant="body" tone="muted">{EMPTY}</T>}
       <T testID="worker-tools-note" variant="note" tone="muted">{toolsAndVehiclesNote()}</T>
     </ReviewGroup>:null}
-    <ReviewGroup part="identity" {...group}>
+    <ReviewGroup part="identity">
       <T selectable variant="body" style={p.bio?s.ink:s.muted}>{p.bio||EMPTY}</T>
       {p.bio?<T testID="worker-matching-explanation" variant="note" tone="muted">Vidljivo na tvom profilu.</T>:null}
     </ReviewGroup>
+    {onEdit?<Press accessibilityRole="button" accessibilityLabel="Izmeni kroz razgovor" accessibilityState={{disabled:editDisabled}}
+      disabled={editDisabled} haptic={editDisabled?'none':'select'} onPress={()=>{if(!editDisabled)onEdit();}} style={s.edit}>
+      <T variant="tab" style={editDisabled?s.muted:s.editText}>Izmeni kroz razgovor</T>
+    </Press>:null}
   </View>;
 }
 export function WorkerAiActivation({activate,disabled,change}:{activate:boolean;disabled:boolean;change:(v:boolean)=>void}){
@@ -255,11 +251,11 @@ const s=StyleSheet.create({
   reviewCueDisabled:{backgroundColor:sys.conversation.iconWell},
   review:{gap:layout.section},
   addName:{alignSelf:'flex-start'},
-  // A part of the review: title and "Izmeni" on one line, the facts under it; the parts are parted by the gap between them, not by a line.
+  // Reading groups share a single correction action; sections have no field-level editors.
   group:{gap:sys.space.xs},
   groupHead:{flexDirection:'row',alignItems:'center',gap:sys.space.sm,minHeight:44},
   groupBody:{gap:sys.space.md},
-  edit:{minWidth:44,minHeight:44,justifyContent:'center',alignItems:'flex-end',paddingLeft:sys.space.md},
+  edit:{minWidth:44,minHeight:44,justifyContent:'center',alignItems:'center',paddingHorizontal:sys.space.md},
   editText:{color:sys.color.green},
   fact:{flexDirection:'row',alignItems:'flex-start',gap:sys.space.md},
   services:{gap:sys.space.base},

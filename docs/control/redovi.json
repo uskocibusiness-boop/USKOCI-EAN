@@ -502,7 +502,8 @@
           "sledece": "Primeniti imenovani Edge recovery kandidat posle odobrenja, proveriti exact readback; zatim alias/ID i nastavak AI → pregled → objava u postojećem planu. Šest plaćenih poziva iskorišćeno. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
           "source_progress_20261018": "Kartica živog AI nacrta u izvoru više ne zadaje lokalne sirove boje i senku preko Surface panel komponente; koristi zajednički materijal bez senke. AI intake ekran prolazi ciljane testove; novi APK i stvaran pregled razgovora na uređaju nisu urađeni."
         }
-      }
+      },
+      "source_progress_20261019_ai_continuation": "SOURCE/TEST: nezavisni odgovori uz razjasnjenje cene/termina, nastavljen worker nacrt, jedan AI ulaz iz pregleda i Android keyboard overlap kandidat. TSC, 209 Jest i 137 Node PASS. DEV/novi APK/native prihvatanje cekaju dokaz. docs/current/AI_CONVERSATION_CONTINUATION_20261019.md."
     },
     {
       "id": "A03",
@@ -643,7 +644,8 @@
         "source": "e444eabe42193b8e4e33889769d25a4b5b4562a1",
         "evidence": "docs/implementation/ui-ux-pass-20261002/INBOX_AND_NATIVE_20261003.md",
         "scope": "Exact phone/emulator installed; native fixture HONOR361dp/1.15 readable terms/action; emulator1.3 stacks, short pinned-area scroll remains. No provider/business acceptance. P5 CI37094720754 SUCCESS."
-      }
+      },
+      "source_progress_20261019_ai_continuation": "SOURCE/TEST: nezavisni odgovori uz razjasnjenje cene/termina, nastavljen worker nacrt, jedan AI ulaz iz pregleda i Android keyboard overlap kandidat. TSC, 209 Jest i 137 Node PASS. DEV/novi APK/native prihvatanje cekaju dokaz. docs/current/AI_CONVERSATION_CONTINUATION_20261019.md."
     },
     {
       "id": "A04",
@@ -2110,7 +2112,8 @@
           "sledece": "Usaglasiti autoritativni alias/ID sa Edge review i SQL binder-om, prikazati stvarni status potvrde u pregledu; objedinjeni APK i odobren Save → binding → reread. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md",
           "source_progress_20261018": "Sačuvani radni profil sada u izvoru prikazuje alat i vozila, sa objašnjenjem njihovog uticaja. Rečnik radničkih ponuda u izvoru usklađen je na 'usluge', a testovi pregleda i razgovora su ažurirani. Ciljani Jest za profil, razgovor i Discovery 302/302, dodatna provera razgovora 121/121 i naknadni Home/intake/native profil 365/365 prošli. Nova verzija APK-a sa ovom izmenom nije izgrađena niti je sačuvani profil proveravan na emulatoru/telefonu."
         }
-      }
+      },
+      "source_progress_20261019_ai_continuation": "SOURCE/TEST: nezavisni odgovori uz razjasnjenje cene/termina, nastavljen worker nacrt, jedan AI ulaz iz pregleda i Android keyboard overlap kandidat. TSC, 209 Jest i 137 Node PASS. DEV/novi APK/native prihvatanje cekaju dokaz. docs/current/AI_CONVERSATION_CONTINUATION_20261019.md."
     },
     {
       "id": "B01",
@@ -2398,7 +2401,8 @@
           "problem": "Worker nacrt iz stvarnog testa prepoznaje uslugu na daljinu i čuva postojeću opremu/dostupnost. Zelene trake ne dokazuju kanonsku spremnost; shadow hint ima odbijanje identiteta. Nema novog Save ili native dokaza lokalnog retry patch-a.",
           "sledece": "Jedan pregled usluge/režima sa jasnim nepotvrđenim statusom; povezati proverene aliase; proveriti create/edit/save/reopen na narednom objedinjenom kandidatu. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md"
         }
-      }
+      },
+      "source_progress_20261019_ai_continuation": "SOURCE/TEST: nezavisni odgovori uz razjasnjenje cene/termina, nastavljen worker nacrt, jedan AI ulaz iz pregleda i Android keyboard overlap kandidat. TSC, 209 Jest i 137 Node PASS. DEV/novi APK/native prihvatanje cekaju dokaz. docs/current/AI_CONVERSATION_CONTINUATION_20261019.md."
     },
     {
       "id": "B02",

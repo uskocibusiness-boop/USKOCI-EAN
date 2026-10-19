@@ -195,22 +195,22 @@ describe('the review (M2)', () => {
     expect(shell().props.correction.target).toBe('worker.time'); expect(shell().props.value).toBe('Moj neposlati odgovor');
     expect(mockApi.prepare).toHaveBeenCalledTimes(1); expect(mockApi.send).not.toHaveBeenCalled();
   });
-  it('is titled "Tvoj radni profil", with the green save and "Nazad na razgovor" under it', async () => {
+  it('is titled "Tvoj radni profil", with explicit save and one AI correction action', async () => {
     await render(); await openReview();
     expect(frame().props.title).toBe('Tvoj radni profil');
     expect(action('Sačuvaj i aktiviraj profil').props.style).toBe(brandAction);
-    expect(action('Nazad na razgovor').props.onPress).toBeInstanceOf(Function);
+    expect(review().props.onEdit).toBeInstanceOf(Function);
     expect(tree.root.findAllByProps({ label: 'Ručno uredi podatke' })).toHaveLength(0);
     expect(tree.root.findAllByType('Note' as never)).toHaveLength(1);
-    await click('Nazad na razgovor');
+    await act(async()=>review().props.onEdit());
     expect(tree.root.findAllByType('Review' as never)).toHaveLength(0); expect(shell()).toBeTruthy();
   });
 
   it('"Izmeni" returns to the same conversation and preserves its unsent draft', async () => {
     await render(); await act(async () => shell().props.onChange('Nezavršen odgovor')); await openReview();
     expect(typeof review().props.onEdit).toBe('function'); expect(review().props.editDisabled).toBe(false);
-    await act(async () => { review().props.onEdit('skills'); });
-    expect(shell().props.correction.target).toBe('worker.skills'); expect(shell().props.conversationKey).toBe(C);
+    await act(async () => { review().props.onEdit(); });
+    expect(shell().props.correction.target).toBe('worker.details'); expect(shell().props.conversationKey).toBe(C);
     expect(shell().props.value).toBe('Nezavršen odgovor');
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0);
     expect(mockApi.send).not.toHaveBeenCalled(); expect(mockApi.open).not.toHaveBeenCalled();
@@ -220,8 +220,8 @@ describe('the review (M2)', () => {
   it('an explicit AI correction is followed by a fresh review of its new revision', async () => {
     await render(); await openReview();
     mockApi.prepare.mockClear();
-    await act(async () => { review().props.onEdit('area'); });
-    expect(shell().props.correction.target).toBe('worker.area');
+    await act(async () => { review().props.onEdit(); });
+    expect(shell().props.correction.target).toBe('worker.details');
     mockApi.send.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(snapshot(1)));
     await act(async () => shell().props.onChange('Radim u Zemunu i okolini do 25 km.'));
     await act(async () => shell().props.onSend());
@@ -236,11 +236,11 @@ describe('the review (M2)', () => {
     expect(frame().props.title).toBe('Tvoj radni profil');
   });
 
-  it('time correction starts no calendar patch or provider request merely by selecting it', async () => {
+  it('opening the correction starts no calendar patch or provider request', async () => {
     await render(); await openReview();
     mockApi.prepare.mockClear();
-    await act(async () => { review().props.onEdit('time'); });
-    expect(shell().props.correction.target).toBe('worker.time');
+    await act(async () => { review().props.onEdit(); });
+    expect(shell().props.correction.target).toBe('worker.details');
     expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.prepare).not.toHaveBeenCalled(); expect(mockApi.send).not.toHaveBeenCalled();
   });
 
@@ -248,7 +248,7 @@ describe('the review (M2)', () => {
     mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(reviewed(0, false)));
     await render(); await act(async () => { shell().props.card(false).props.review(); });
     mockApi.prepare.mockClear();
-    await act(async () => { review().props.onEdit('identity'); });
+    await act(async () => { review().props.onEdit(); });
     mockApi.send.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(snapshot(1)));
     await act(async () => shell().props.onChange('U opisu napiši da radim sa bratom.'));
     await act(async () => shell().props.onSend());
@@ -262,7 +262,7 @@ describe('the review (M2)', () => {
     mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(stale));
     await render(); await act(async () => { shell().props.card(false).props.review(); });
     expect(review().props.editDisabled).toBe(true);
-    await act(async () => { review().props.onEdit('skills'); });
+    await act(async () => { review().props.onEdit(); });
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0); expect(review()).toBeTruthy();
   });
 
@@ -352,7 +352,7 @@ describe('activation choice belongs to the conversation', () => {
     await render(); await act(async () => shell().props.card(false).props.review());
     await act(async () => tree.root.findByType('Activation' as never).props.change(false));
     expect(review().props.review.activate).toBe(false);
-    await click('Nazad na razgovor'); mockApi.prepare.mockClear();
+    await act(async()=>review().props.onEdit()); mockApi.prepare.mockClear();
   };
   it('keeps an explicit draft choice on Back then review, without saving', async () => {
     await prepareFalse(); await act(async () => shell().props.card(false).props.review());

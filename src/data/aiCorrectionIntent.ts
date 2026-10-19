@@ -9,6 +9,7 @@ const WORDS = {
   'task.people': ['Broj ljudi', 'Napiši koliko osoba ti je potrebno.'],
   'task.description': ['Opis zadatka', 'Napiši šta u opisu dodaješ, menjaš ili uklanjaš.'],
   'task.requirements': ['Uslovi zadatka', 'Napiši koji uslov želiš da promeniš i kako treba da glasi.'],
+  'worker.details': ['Izmena radnog profila', 'Napiši šta želiš da promeniš. Nastavljamo isti razgovor; sačuvani profil ostaje isti do potvrde.'],
   'worker.skills': ['Usluge koje nudiš', 'Napiši koju uslugu dodaješ, menjaš ili više ne nudiš.'],
   'worker.area': ['Područje rada', 'Napiši gde želiš da radiš i da li radiš na lokaciji ili na daljinu.'],
   'worker.time': ['Kada imaš vremena', 'Napiši dane i vreme kada možeš da radiš, ili šta menjaš u dostupnosti.'],

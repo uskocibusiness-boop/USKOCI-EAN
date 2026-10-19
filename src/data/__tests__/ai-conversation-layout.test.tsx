@@ -52,11 +52,11 @@ const props = (): AiConversationShellProps => ({title:'Novi zadatak',card:jest.f
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 beforeEach(()=>{mockHeight=844;mockWidth=390;mockScale=1;mockReduced=false;});
 afterEach(async()=>{await act(async()=>tree?.unmount());});
-it('does not apply a second height-based keyboard adjustment over Android window resizing', async () => {
+it('handles an overlay keyboard on Android without a second height-based window resize', async () => {
   const p = props();
   await act(async () => { tree = create(<AiConversationShell {...p} />); });
   const container = tree.root.findByType('KeyboardAvoidingView' as React.ElementType);
-  expect(container.props.behavior).not.toBe('height');
+  expect(container.props.behavior).toBe('padding');
 });
 it('a correction topic waits until editing is enabled, focuses once, and never changes or sends the unsent draft',async()=>{
   const p=props(),focus=jest.fn(),dismiss=jest.fn();

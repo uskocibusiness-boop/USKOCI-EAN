@@ -764,13 +764,30 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
       assistantMessage: 'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.' };
   }
   const clarification = (assistantMessage: string): ParsedTurn => ({ safety: 'CLARIFY', proposals: [], assistantMessage });
-  const dialogue = turn.dialogue;
+  let dialogue = turn.dialogue;
   if (dialogue?.taskRelation === 'DIFFERENT_TASK') return clarification('Za drugi posao izaberi Novi zadatak u opcijama razgovora. Ovaj razgovor čuva prethodni zadatak.');
   if (dialogue?.taskRelation === 'UNCLEAR') return clarification('Da li menjaš ovaj zadatak ili želiš da napraviš novi?');
-  if (dialogue?.priceUnit === 'PER_DAY' || dialogue?.priceUnit === 'PER_HOUR')
-    return clarification('Koji iznos želiš za ceo posao, uz napomenu da li je ukupno ili po osobi? Dnevnica ili satnica još nije cena celog zadatka.');
-  if (dialogue?.schedulePattern === 'REPEATED')
-    return clarification('Ovaj unos podržava jedan neprekidan termin. Koji termin želiš za ovaj zadatak?');
+  const unitPrice = dialogue?.priceUnit === 'PER_DAY' || dialogue?.priceUnit === 'PER_HOUR';
+  const repeated = dialogue?.schedulePattern === 'REPEATED';
+  if (unitPrice || repeated) {
+    // An unsupported term does not erase independent answers in the same message.
+    // Withhold its dependent facts and synthesized copy: a daily rate or several
+    // shifts must not leak into a total price, one appointment or a public summary.
+    // In particular, the price for several shifts is not the price for a new single shift.
+    const withheld = new Set(['need.price_mode', 'need.price_rsd', 'need.price_basis', 'need.title', 'need.description',
+      ...(repeated ? ['need.schedule_kind', 'need.starts_at', 'need.ends_at'] : [])]);
+    const partial = { ...turn, safety: 'CLARIFY' as const,
+      proposals: turn.proposals.filter(p => !withheld.has(p.key)),
+      dialogue: { ...dialogue!, next: 'CLARIFY', questionKey: '' },
+      assistantMessage: repeated
+        ? 'Odvojene smene još ne možemo da sačuvamo kao jedan zadatak. Koji pojedinačni termin želiš da dogovoriš?'
+          + (unitPrice ? ' Koji je iznos za ceo posao u tom terminu?' : '')
+        : 'Koji iznos želiš za ceo posao, uz napomenu da li je ukupno ili po osobi? Dnevnica ili satnica još nije cena celog zadatka.' };
+    // Continue all existing validation, including relative dates and bounded
+    // flexible ranges. A pricing clarification must never bypass time guards.
+    turn = partial;
+    dialogue = partial.dialogue;
+  }
   // Deliberately narrow deterministic check. A negation, alternative, quotation
   // or several relative dates must be interpreted in context, never rewritten
   // by a naive keyword replacement. This does not prove arbitrary language true.

@@ -102,6 +102,80 @@ describe('natural server AI response without bypassing authoritative review', ()
     expect(result.safety).toBe('CLARIFY');
     expect(result.proposals).toHaveLength(0);
   });
+  it.each(['PER_HOUR', 'PER_DAY'])('retains independent answers while clarifying %s pricing', priceUnit => {
+    const people = { key: 'need.people_needed', value: 3 };
+    const place = { key: 'need.task_geography', value: { mode: 'REMOTE' } };
+    const turn = reply('REVIEW', 'Sve je spremno.', [people, place,
+      { key: 'need.price_mode', value: 'MY_PRICE' }, { key: 'need.price_rsd', value: 1200 },
+      { key: 'need.price_basis', value: 'PER_PERSON' },
+      { key: 'need.description', value: 'Tri osobe po 1200 dinara za posao.' }]);
+    turn.dialogue.priceUnit = priceUnit;
+    const result = call(turn);
+    expect(result.safety).toBe('CLARIFY');
+    expect(result.proposals).toEqual([people, place]);
+    expect(result.dialogue.next).toBe('CLARIFY');
+    expect(result.assistantMessage).toContain('ceo posao');
+  });
+  it('retains people and location without turning repeated shifts into one appointment or a total price', () => {
+    const people = { key: 'need.people_needed', value: 4 };
+    const turn = reply('REVIEW', 'Sačuvane smene.', [people,
+      { key: 'need.schedule_kind', value: 'FIXED_WINDOW' },
+      { key: 'need.starts_at', value: '2026-10-13T15:00:00+02:00' },
+      { key: 'need.ends_at', value: '2026-10-17T19:00:00+02:00' },
+      { key: 'need.price_rsd', value: 5000 },
+      { key: 'need.title', value: 'Rad svako popodne' }]);
+    turn.dialogue.schedulePattern = 'REPEATED';
+    const result = call(turn);
+    expect(result.proposals).toEqual([people]);
+    expect(result.safety).toBe('CLARIFY');
+    expect(result.dialogue.next).toBe('CLARIFY');
+    expect(result.assistantMessage.toLowerCase()).toContain('odvojene smene');
+  });
+  it('clarifies both daily price and repeated shifts while retaining an independently stated country', () => {
+    const country = { key: 'need.task_country_code', value: 'RS' };
+    const turn = reply('ACK', 'Zabeleženo.', [country, { key: 'need.price_rsd', value: 5000 },
+      { key: 'need.starts_at', value: '2026-10-13T15:00:00+02:00' }]);
+    turn.dialogue.priceUnit = 'PER_DAY'; turn.dialogue.schedulePattern = 'REPEATED';
+    const result = call(turn, facts('need.task_country_code'));
+    expect(result.proposals).toEqual([country]);
+    expect(result.assistantMessage.toLowerCase()).toContain('odvojene smene');
+    expect(result.assistantMessage).toContain('ceo posao');
+  });
+  it('still validates a separate timestamp in a partial reply about hourly pricing', () => {
+    const turn = reply('ACK', 'Zabeleženo.', [{ key: 'need.people_needed', value: 3 },
+      { key: 'need.price_rsd', value: 1200 },
+      { key: 'need.starts_at', value: '2026-10-13T15:00:00Z', evidence: 'sutra u 15' }]);
+    turn.dialogue.priceUnit = 'PER_HOUR';
+    const result = call(turn);
+    expect(result.proposals).toEqual([{ key: 'need.people_needed', value: 3 }]);
+    expect(result.safety).toBe('CLARIFY');
+  });
+  it('does not bypass relative-date consistency when clarifying a daily rate', () => {
+    const turn = reply('ACK', 'Zabeleženo.', [{ key: 'need.price_rsd', value: 1200 },
+      { key: 'need.starts_at', value: '2026-10-14T15:00:00+02:00', evidence: 'sutra' }]);
+    turn.dialogue.priceUnit = 'PER_DAY';
+    const result = guard(turn, 'Sutra, dnevnica je 1200.', facts(), { localDate: '2026-10-12' });
+    expect(result.proposals).toEqual([]);
+    expect(result.safety).toBe('CLARIFY');
+    expect(result.assistantMessage).toContain('datum');
+  });
+  it('withholds an incomplete bounded period alongside hourly price, retaining the people count', () => {
+    const people = { key: 'need.people_needed', value: 3 };
+    const turn = reply('ACK', 'Zabeleženo.', [people, { key: 'need.price_rsd', value: 1200 },
+      { key: 'need.schedule_kind', value: 'FLEXIBLE' },
+      { key: 'need.starts_at', value: '2026-10-13T15:00:00+02:00' }]);
+    turn.dialogue.priceUnit = 'PER_HOUR'; turn.dialogue.schedulePattern = 'FLEXIBLE_RANGE';
+    const result = call(turn);
+    expect(result.proposals).toEqual([people]);
+    expect(result.safety).toBe('CLARIFY');
+  });
+  it('never carries partial answers into a different task or through a policy block', () => {
+    const turn = reply('ACK', 'Novi posao.', [{ key: 'need.people_needed', value: 3 }]);
+    turn.dialogue.taskRelation = 'DIFFERENT_TASK'; turn.dialogue.priceUnit = 'PER_DAY';
+    expect(call(turn).proposals).toEqual([]);
+    const blocked = { ...turn, safety: 'BLOCK', proposals: [] };
+    expect(call(blocked)).toBe(blocked);
+  });
   it('keeps a city-only task in conversation instead of claiming review readiness', () => {
     const found = facts('need.exact_address');
     const result = call(reply('REVIEW', 'Otvori pregled zadatka. Tamo proveri podatke pre objave.'), found);
