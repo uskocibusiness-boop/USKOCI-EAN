@@ -8,6 +8,7 @@ const WORDS = {
   'task.time': ['Termin zadatka', 'Napiši novi termin ili da je vreme fleksibilno.'],
   'task.people': ['Broj ljudi', 'Napiši koliko osoba ti je potrebno.'],
   'task.description': ['Opis zadatka', 'Napiši šta u opisu dodaješ, menjaš ili uklanjaš.'],
+  'task.location': ['Mesto i način rada', 'Napiši koje mesto, tačku rute ili način rada želiš da promeniš. Ostale podatke zadržavamo u istom razgovoru.'],
   'task.requirements': ['Uslovi zadatka', 'Napiši koji uslov želiš da promeniš i kako treba da glasi.'],
   'worker.details': ['Izmena radnog profila', 'Napiši šta želiš da promeniš. Nastavljamo isti razgovor; sačuvani profil ostaje isti do potvrde.'],
   'worker.skills': ['Usluge koje nudiš', 'Napiši koju uslugu dodaješ, menjaš ili više ne nudiš.'],
@@ -53,6 +54,7 @@ export function taskCorrectionTarget(key: string): AiCorrectionTarget {
   if (key === 'need.title') return 'task.title';
   if (key === 'need.description') return 'task.description';
   if (key === 'need.people_needed') return 'task.people';
+  if (/geography|location|address|country|access_notes/.test(key)) return 'task.location';
   if (/price|budget|currency|amount/.test(key)) return 'task.price';
   if (/schedule|starts|ends|time|date/.test(key)) return 'task.time';
   return 'task.requirements';

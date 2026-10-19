@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { withGeminiClassificationShadowSchema as decorate, inspectGeminiClassificationShadow as inspect, geminiClassificationShadowInstruction as instructions } from '../../functions/_shared/classificationGeminiShadow.mjs';
+import { serviceExecutionInstruction } from '../../functions/_shared/serviceExecutionInstruction.mjs';
 
 const lesson='11111111-1111-4111-8111-111111111111';
 const rental='22222222-2222-4222-8222-222222222222';
@@ -113,7 +114,9 @@ test('worker snapshot requires explicit unresolved proposals without inferring s
  assert.match(prompt,/no currently offered services or safety is BLOCK\/REVIEW/);
  assert.match(prompt,/ASK_CLARIFICATION or NEEDS_REVIEW/);
  assert.match(prompt,/never a reason to omit the service/);
- assert.match(prompt,/Catalog modes only limit supported scopes/);
+ // Execution semantics live in the shared section sent by both real handlers;
+ // classification metadata does not need a second copy of that authority rule.
+ assert.match(serviceExecutionInstruction('WORKER_CAPABILITY'),/Catalog modes only limit supported scopes/);
  const unresolved={...plan('PRIVATE_SERVICE','','UNCONFIRMED','NEEDS_REVIEW')};
  const result=inspect(withEncodedShadow(worker,[unresolved]),snapshot,'WORKER_CAPABILITY');
  assert.deepEqual(result.statuses,['NEEDS_REVIEW']);

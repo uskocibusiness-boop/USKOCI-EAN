@@ -43,6 +43,10 @@ const STANDARD_CASES = Object.freeze({
     'Želim da radim nešto, ali još nisam rekao koje konkretne usluge nudim.'] },
 });
 const CASES = Object.freeze({ ...STANDARD_CASES,
+  'need-stationary-map-execution': {flow:'need',expectation:'PHYSICAL_MAP_CONFIRMATION',expectedGeography:'STATIONARY',messages:[
+    'Treba mi krečenje jedne prazne sobe od 12 kvadrata u Novom Sadu, Srbija, na adresi Bulevar oslobođenja 50. Potreban je dolazak majstora u stan, jedan izvršilac. Termin potpuno fleksibilan, tražim ponude. Tačku ću lično proveriti na mapi.']},
+  'need-route-map-execution': {flow:'need',expectation:'PHYSICAL_MAP_CONFIRMATION',expectedGeography:'POINT_TO_POINT',messages:[
+    'Treba mi prevoz jednog malog ormara iz Novog Sada, Bulevar oslobođenja 50, do Novog Sada, Jevrejska 10. Srbija. Polazište i odredište su dve različite tačke, nema dodatnih stanica. Potreban je jedan izvršilac sa kombijem. Termin potpuno fleksibilan, tražim ponude. Obe tačke ću lično proveriti na mapi.']},
   'need-budget-correction-execution': {flow:'need',expectation:'PHYSICAL_HANDOFF',messages:[
     'Treba mi izrada jedne male 3D figurice prema gotovom STL fajlu. Izrađuje se kod izvršioca i šalje kurirskom službom u Srbiji. Nema dolaska kod mene ni ličnog preuzimanja. Jedan izvršilac, termin potpuno fleksibilan, tražim ponude.',
     'Menjam samo budžet: nudim ukupno 5000 dinara za ceo zadatak. Sve ostalo ostaje isto.']},
@@ -64,6 +68,9 @@ const CASES = Object.freeze({ ...STANDARD_CASES,
   'worker-shipping-execution': {flow:'worker',expectation:'PHYSICAL_HANDOFF',requiresHandoffClarification:true,messages:[
     'Nudim 3D štampanje figurica prema gotovom STL fajlu. Izrađujem kod sebe u radionici, bez dolaska kod naručioca. Grad profila Novi Sad, Srbija. Dostupnost po dogovoru.',
     'Šaljem izrađene figurice kurirskom službom samo u Srbiji. Ne nudim lično preuzimanje niti dolazak kod naručioca.']},
+  'worker-handoff-correction-execution': {flow:'worker',expectation:'PHYSICAL_HANDOFF',changesHandoff:true,messages:[
+    'Za moje 3D štampanje figurica prema gotovom STL fajlu menjam samo način predaje: sada isključivo lično preuzimanje u Novom Sadu, Srbija, bez slanja. I dalje izrađujem kod sebe, ne dolazim kod naručioca. Ostalo ostaje isto.',
+    'Ipak menjam predaju: šaljem figurice kurirskom službom samo u Srbiji, bez ličnog preuzimanja. I dalje izrađujem kod sebe, bez dolaska kod naručioca. Ostalo ne menjam.']},
   ...Object.fromEntries(['need-existing','worker-existing','need-novel'].map(name => [name+'-tools',
     {...STANDARD_CASES[name],messages:[STANDARD_CASES[name].messages[0]]}])),
   'need-rare-tools': {flow:'need',expectation:'SEMANTIC_REVIEW_NO_FORCED_NOVELTY',messages:[
@@ -394,6 +401,12 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
           assert(final.classificationState === 'READY' && final.classificationCandidates.every(plan => plan.action === 'REUSE_EXISTING'), 'KNOWN_SERVICE_NOT_REUSED');
         if (c.expectation === 'IMPOSSIBLE_REMOTE_NOT_READY')
           assert(final.canAccept === false && !final.classificationCandidates.some(plan => plan.mode === 'REMOTE'), 'IMPOSSIBLE_PHYSICAL_REMOTE_ACCEPTED');
+        if (c.expectation === 'PHYSICAL_MAP_CONFIRMATION') {
+          const geography = final.publicProjection.find(fact => fact.key === 'need.task_geography')?.value;
+          assert(geography?.mode === c.expectedGeography, 'AI_LOCATION_TOPOLOGY_CHANGED');
+          assert(final.location === null && final.canAccept === false, 'AI_CONFIRMED_MAP_WITHOUT_HUMAN');
+          assert(!final.classificationCandidates.some(plan => plan.mode === 'REMOTE'), 'PHYSICAL_MAP_BECAME_REMOTE');
+        }
         if (['PHYSICAL_HANDOFF','DIGITAL_HANDOFF'].includes(c.expectation)) {
           assert(final.classificationState === 'READY' && final.canAccept === true, 'EXECUTION_REVIEW_NOT_READY');
           assert(final.classificationCandidates.every(plan => plan.mode === 'REMOTE'
@@ -401,7 +414,7 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
           if (c.flow === 'need') assert(final.location?.geography.mode === 'REMOTE', 'HANDOFF_BECAME_WORK_PIN');
           if (name === 'need-pickup-execution') assert(final.classificationCandidates.every(plan => !plan.handoff.shippingCountries
             && plan.handoff.localExchange?.countryCode === 'RS' && plan.handoff.localExchange.city === 'Novi Sad'), 'PICKUP_SCOPE_CHANGED');
-          if (name.includes('shipping-execution')) assert(final.classificationCandidates.every(plan => !plan.handoff.localExchange
+          if (name.includes('shipping-execution') || c.changesHandoff) assert(final.classificationCandidates.every(plan => !plan.handoff.localExchange
             && JSON.stringify(plan.handoff.shippingCountries) === '["RS"]'), 'SHIPPING_SCOPE_CHANGED');
         }
         if (c.expectedAction === 'EXTEND_MODE') checkExistingModeExtension(final, c.expectedCategoryId);
@@ -411,7 +424,7 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
             assert(final.classificationState === 'READY', 'FINISH_LOST_CLASSIFICATION');
             // A substantive handoff answer adds a constraint; a finish-only turn cannot change it.
             const semanticPlans = r => r.classificationCandidates.map(({ reason, ...rest }) => {
-              if (!c.requiresHandoffClarification) return rest;
+              if (!c.requiresHandoffClarification && !c.changesHandoff) return rest;
               const { handoff, ...serviceAndMode } = rest;
               return serviceAndMode;
             });

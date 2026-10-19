@@ -262,8 +262,8 @@ export default function DizajnObjava() {
     const openPlace = () => setScene(location?.geography.mode === 'REMOTE' ? 'mesto-daljina'
       : location?.geography.mode === 'POINT_TO_POINT' ? 'mesto-ruta' : 'mesto-forma');
     const parts: ReviewDetailParts = {
-      title: {}, value: {}, place: { pencil: pencil(location ? 'Izmeni, Mesto' : 'Dodaj mesto', openPlace, location ? undefined : 'Dodaj') },
-      time: {}, people: {}, description: {}, map: { pencil: pencil('Izmeni, Približno mesto', openPlace) },
+      title: {}, value: {}, place: {},
+      time: {}, people: {}, description: {}, map: {},
       // Application deadline is not an AI fact. Display a known value; do not advertise an unsupported correction.
       deadline: {},
       requirements: {},
@@ -289,13 +289,15 @@ export default function DizajnObjava() {
               : <AddPhotos pencil={photoPencil} />}
             map={need.priblizno ? <LocationMapPreview points={[{ id: 'public-area', label: 'Približno mesto', latitude: need.priblizno.lat, longitude: need.priblizno.lng }]}
               coarse height={184} scopeKey="galerija:pregled" /> : undefined}
-            address={hasAddress ? <OwnerAddress frame={frameOfAddress} part={{ pencil: pencil('Izmeni, Tačna adresa', openPlace) }}
+            address={hasAddress ? <OwnerAddress frame={frameOfAddress} part={{}}
               map={privateMap.points.length ? <LocationMapPreview points={privateMap.points} route={privateMap.route} scopeKey="galerija:pregled:privatno" height={160} /> : undefined} /> : undefined}
             more={!options.command && blank.length ? <ReviewMoreFacts labels={blank.map(item => factLabel(item.key))} open={!!options.moreOpen} disabled={false} onToggle={noop}>
               {blank.map((item, index) => <ReviewFactRow key={item.key} label={factLabel(item.key)} value="Nema navedenih stavki" system={false}
                 last={index === blank.length - 1} />)}
             </ReviewMoreFacts> : undefined} />
         </View>
+        {!remote && location && !options.command && !todos.some(todo => todo.key === 'location') ?
+          <V2Action label="Proveri tačke na mapi" kind="secondary" disabled={!idle} onPress={openPlace} /> : null}
         {options.command ? null : <ReviewWaysOut disabled={!!options.working} onEdit={idle ? () => setAiTopic('Zadatak') : undefined} onDelete={options.revising ? undefined : () => confirm.ask({
           title: `Obrisati nacrt „${need.naslov}“?`, confirmLabel: 'Obriši nacrt', tone: 'danger',
           message: 'Zadatak se neće objaviti, a razgovor o njemu više ne možeš da nastaviš.', onConfirm: noop })} />}
@@ -317,20 +319,20 @@ export default function DizajnObjava() {
   };
   const todos: TodoRow[] = [
     { key: 'missing', text: 'Nedostaje: Broj ljudi.', onPress: () => setAiTopic('Broj ljudi'), actionLabel: 'Dopuni u razgovoru' },
-    { key: 'location', text: 'Mesto na mapi nije potvrđeno.', onPress: () => setScene('mesto-forma'), actionLabel: 'Dodaj mesto' },
+    { key: 'location', text: 'Mesto na mapi nije potvrđeno.', onPress: () => setScene('mesto-forma'), actionLabel: 'Potvrdi tačke na mapi' },
     { key: 'fact', text: 'Reci iznos ili da želiš ponude.', onPress: () => setAiTopic('Cena'), actionLabel: 'Dopuni cenu u razgovoru' },
   ];
 
   /* ------------------------------------------------------------------------------------------------ the place */
   const placeStep = (value: NeedLocationReview, options: { saved?: boolean; loading?: boolean } = {}) =>
-    <LocationScreen title="Mesto zadatka" onBack={toList} loading={!!options.loading} onRetry={noop} scroll={false}>
+    <LocationScreen title="Proveri tačke na mapi" onBack={toList} loading={!!options.loading} onRetry={noop} scroll={false}>
       {options.saved ? <View style={s.savedFrame}><Surface kind="note" style={s.saved}>
         <View style={s.savedRow}><SuccessMark fresh size={32} />
           <T accessibilityRole="alert" variant="body" style={s.grow}>Mesto je sačuvano u pregledu zadatka.</T></View>
         <V2Action label="Nazad na pregled" kind="secondary" onPress={toList} />
       </Surface></View> : null}
       <NeedLocationForm layout="screen" reviewOnly={!options.saved} review={value} busy={false} uncertain={false} onSave={noop}
-        resolver={RESOLVER} countries={COUNTRIES} />
+        resolver={RESOLVER} countries={COUNTRIES} onEditInConversation={() => setAiTopic('Mesto i način rada')} />
     </LocationScreen>;
 
   /* ------------------------------------------------------------------------------------------------ the photos */

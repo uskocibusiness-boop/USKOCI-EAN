@@ -946,14 +946,14 @@ it.each(['new', 'new-entry', 'resumed'] as const)('preserves unsent text through
   await blur();
   const retained = readIntakeReviewReturn(first.intakeReturn, first.conversationId)!;
   expect(retained.params).toEqual(originalParams);
-  // A manual correction saved in the review must come back through the normal canonical read.
+  // Returning from map confirmation reads current server facts without sending the unsent text.
   mockLoad.mockResolvedValue(conversation({ facts: completeFacts('Prenos dva ormara') }));
-  const hint=rememberAiCorrection({accountId:mockSession.user.id,accountRevision:mockSession.accountRevision},'task.price',id)!;
+  const hint=rememberAiCorrection({accountId:mockSession.user.id,accountRevision:mockSession.accountRevision},'task.location',id)!;
   mockParams = { ...retained.params,aiCorrection:hint.token }; await focus();
   expect(readIntakeReviewReturn(first.intakeReturn, id)).toBeNull();
   expect(input().value).toBe('Dopuna koju još nisam poslao.');
   expect(tree.root.findByProps({testID:'ai-correction-context'})).toBeDefined();
-  expect(text()).toContain('Cena i ponude');
+  expect(text()).toContain('Mesto i način rada');
   expect(text()).toContain('Prenos dva ormara');
   expect(tree.root.findByProps({ testID: 'intake-task-summary' }).findAllByProps({ label: 'Pregledaj zadatak' })).toHaveLength(1);
   expect(mockSend).toHaveBeenCalledTimes(sends);

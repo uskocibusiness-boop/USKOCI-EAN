@@ -1,92 +1,46 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
-const mockBack = jest.fn();
-const mockReplace = jest.fn();
-const mockCanGoBack = jest.fn();
-const mockRefresh = jest.fn();
-const mockSave = jest.fn();
-let mockConversationId = '30000000-0000-4000-8000-000000000003';
-let mockEditor: Record<string, unknown> = {
-  data: null,
-  loading: false,
-  error: null,
-  saved: false,
-  busy: false,
-  uncertain: false,
-  refresh: mockRefresh,
-  save: mockSave,
-};
-
+const CONVERSATION = '30000000-0000-4000-8000-000000000003';
+let mockConversationId: string | string[] | undefined = CONVERSATION;
+const mockRead = jest.fn(), mockSave = jest.fn(), mockOwnedEditor = jest.fn(), mockResolver = jest.fn();
 jest.mock('expo-router', () => ({
-  router: {
-    back: (...args: unknown[]) => mockBack(...args),
-    replace: (...args: unknown[]) => mockReplace(...args),
-    canGoBack: () => mockCanGoBack(),
-  },
+  Redirect: 'Redirect',
   useLocalSearchParams: () => ({ conversationId: mockConversationId }),
 }));
-jest.mock('../../hooks/useOwnedEditor', () => ({ useOwnedEditor: () => mockEditor }));
-jest.mock('../locationClientService', () => ({ needLocationClientService: { read: jest.fn(), save: jest.fn() } }));
-jest.mock('../productionLocationResolver', () => ({ createProductionLocationResolver: () => ({ kind: 'mock-resolver' }) }));
-jest.mock('../../ui/location/NeedLocationForm', () => ({ NeedLocationForm: (props: unknown) => require('react').createElement('NeedLocationForm', props) }));
-jest.mock('../../ui/location/LocationControls', () => ({ LocationScreen: (props: unknown) => require('react').createElement('LocationScreen', props) }));
-jest.mock('../../ui/Text', () => ({ T: (props: unknown) => require('react').createElement('T', props) }));
-jest.mock('../../ui/v2/V2Action', () => ({ V2Action: (props: unknown) => require('react').createElement('Button', props) }));
+jest.mock('../../hooks/useOwnedEditor', () => ({ useOwnedEditor: (...args: unknown[]) => mockOwnedEditor(...args) }));
+jest.mock('../locationClientService', () => ({ needLocationClientService: {
+  read: (...args: unknown[]) => mockRead(...args), save: (...args: unknown[]) => mockSave(...args),
+} }));
+jest.mock('../productionLocationResolver', () => ({ createProductionLocationResolver: (...args: unknown[]) => mockResolver(...args) }));
 
 import MestoZadatka from '../../app/(app)/mesto-zadatka';
 
 let tree: ReactTestRenderer;
-
-beforeEach(() => {
-  jest.clearAllMocks();
-  mockConversationId = '30000000-0000-4000-8000-000000000003';
-  mockCanGoBack.mockReturnValue(false);
-  mockEditor = {
-    data: null,
-    loading: false,
-    error: null,
-    saved: false,
-    busy: false,
-    uncertain: false,
-    refresh: mockRefresh,
-    save: mockSave,
-  };
-});
+beforeEach(() => { jest.clearAllMocks(); mockConversationId = CONVERSATION; });
 afterEach(() => { act(() => tree?.unmount()); });
 
 async function render() {
   await act(async () => { tree = create(<MestoZadatka />); });
-  return tree.root.findByType('LocationScreen' as never);
+  return tree.root.findByType('Redirect' as never);
+}
+function expectNoSecondLocationWriter() {
+  expect(mockRead).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+  expect(mockOwnedEditor).not.toHaveBeenCalled(); expect(mockResolver).not.toHaveBeenCalled();
 }
 
-describe('PKG-003 location review return', () => {
-  it('returns a direct/deep entry to the current canonical complete review', async () => {
-    const screen = await render();
-    act(() => screen.props.onBack());
-    expect(mockBack).not.toHaveBeenCalled();
-    expect(mockReplace).toHaveBeenCalledWith({
-      pathname: '/pregled-zadatka',
-      params: { conversationId: mockConversationId },
-    });
+describe('PKG-003 legacy location links converge on the canonical signed review', () => {
+  it('redirects a valid old deep link with the exact conversation identity and performs no location I/O', async () => {
+    const redirect = await render();
+    expect(redirect.props.href).toEqual({ pathname: '/pregled-zadatka', params: { conversationId: CONVERSATION } });
+    expectNoSecondLocationWriter();
   });
 
-  it('preserves an existing navigation stack instead of replacing it', async () => {
-    mockCanGoBack.mockReturnValue(true);
-    const screen = await render();
-    act(() => screen.props.onBack());
-    expect(mockBack).toHaveBeenCalledTimes(1);
-    expect(mockReplace).not.toHaveBeenCalled();
-  });
-
-  it('uses the same canonical fallback after a saved location when no back stack exists', async () => {
-    mockEditor = { ...mockEditor, saved: true };
-    await render();
-    const button = tree.root.findByProps({ label: 'Nazad na pregled' });
-    act(() => button.props.onPress());
-    expect(mockReplace).toHaveBeenCalledWith({
-      pathname: '/pregled-zadatka',
-      params: { conversationId: mockConversationId },
+  it.each([undefined, '', 'invalid', [CONVERSATION], [CONVERSATION, 'other']])(
+    'sends an invalid or ambiguous conversation parameter %j to the ordinary intake without reading or saving', async value => {
+      mockConversationId = value;
+      const redirect = await render();
+      expect(redirect.props.href).toBe('/nova');
+      expectNoSecondLocationWriter();
     });
-  });
 });

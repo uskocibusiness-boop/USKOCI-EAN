@@ -40,6 +40,7 @@ import { NeedLocationForm } from '../../ui/location/NeedLocationForm';
 import { needLocationClientService } from '../../data/locationClientService';
 import { createProductionLocationResolver } from '../../data/productionLocationResolver';
 import type { NeedLocationInput, NeedLocationReview } from '../../contracts/location';
+import { normalizeNeedLocation, normalizeTaskGeography, pointsMissing } from '../../lib/location';
 import { mediaAssetId } from '../../ui/media/AuthorizedPhoto';
 import { REQUIREMENT_FACT, SUPPORT_HAS_DUTY_OPERATOR, blankList, manualCheckCopy,
   ownerAddressFrame, partFact, privateReviewMap, reviewRowValue, reviewTodos, todoActionLabel, type GroupedPart } from '../../ui/objava/reviewFacts';
@@ -141,7 +142,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     let location = locationProposal.current ?? (savedReview?.location
       ? { expectedRevision: savedReview.geographyRevision, value: savedReview.location } : null);
     if (location) {
-      // A manual location is persisted in the immutable review before final
+      // Human-confirmed points are persisted in the immutable review before final
       // acceptance. Recover it against its geographical source, independently
       // of unrelated changes (for example, a corrected title).
       const canonical = await needLocationClientService.read(conversationId);
@@ -255,6 +256,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   };
   const openLocation = async () => {
     if (!canAct() || !conversationId || !review || command || opening) return;
+    if (!mapGeography || mapGeography.mode === 'REMOTE') return;
     const request = { active: true }; locationOpening.current = request;
     setOpening(true); setOpenError(null);
     let result: Awaited<ReturnType<typeof needLocationClientService.read>>;
@@ -277,7 +279,14 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     setLocationEditor({ ...result.podatak, value: proposed?.value ?? result.podatak.value });
   };
   const proposeLocation = async (value: NeedLocationInput) => {
-    if (!canAct() || !locationEditor || !conversationId || command) return;
+    if (!canAct() || !locationEditor?.editable || !conversationId || command) return;
+    const base = normalizeNeedLocation(locationEditor.value), next = normalizeNeedLocation(value);
+    const completeness = next ? pointsMissing(next.geography, next.resolvedLocation) : null;
+    // This control confirms coordinates, never overrides what the conversation understood.
+    // Keep a callback or a future UI regression from reintroducing a second semantic editor.
+    if (!base || !next || next.geography.mode === 'REMOTE' || !completeness?.total || completeness.done !== completeness.total
+      || base.taskCountryCode !== next.taskCountryCode || base.exactAddress !== next.exactAddress
+      || base.accessNotes !== next.accessNotes || JSON.stringify(base.geography) !== JSON.stringify(next.geography)) return;
     locationProposal.current = { expectedRevision: locationEditor.revision, value };
     await editor.save(async () => {
       const result = await read();
@@ -304,8 +313,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   };
   // Review corrections return to the same conversation and unsent draft, with a visible topic hint only.
   // Nothing is sent; an open correction, place confirmation keeps the return guarded.
-  const editInConversation = (target: AiCorrectionTarget = 'task.details') => {
-    if (busyNow.current || !canAct() || command || locationEditor || !conversationId || !accountId) return;
+  const editInConversation = (target: AiCorrectionTarget = 'task.details', fromMap = false) => {
+    if (busyNow.current || !canAct() || command || (locationEditor && !fromMap) || !conversationId || !accountId) return;
     const correction = rememberAiCorrection({ accountId, accountRevision }, target, conversationId);
     if (!correction) return;
     const retained = readIntakeReviewReturn(intakeReturn, conversationId);
@@ -443,6 +452,11 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // writes it for the server, which reads a kind of work from it only to match; it is no part of the page here.
   const publicFacts = review?.publicProjection ?? [];
   const factOf = (key: NeedFactV2Key) => publicFacts.find(item => item.key === key);
+  const mapGeography = normalizeTaskGeography(review?.location?.geography
+    ?? factOf('need.task_geography')?.value);
+  const hasPhysicalMap = !!mapGeography && mapGeography.mode !== 'REMOTE';
+  const mapPoints = pointsMissing(mapGeography, review?.location?.resolvedLocation);
+  const mapNeedsConfirmation = mapPoints.done < mapPoints.total;
   /** What a fact is called to a person on this page: the label of the fact, and "Broj ljudi" where its own is only "Ljudi". */
   const factName = (key: NeedFactV2Key) => key === 'need.people_needed' ? 'Broj ljudi' : factLabel(key);
   /** What is shown at the top of the screen after a failure about the place is said where it can be read (a note, and the screen goes up to it). */
@@ -457,14 +471,15 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // The place mode replaces the whole review (one map at a time, no publish under the editor).
   if (locationEditor && review) return <SafeAreaView edges={['top', 'bottom']} style={frame.canvas}>
     <KeyboardAvoidingView style={frame.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <DetailTopBar title="Mesto zadatka" backLabel="Nazad na pregled" disabled={editor.busy} onBack={closePlace} />
+      <DetailTopBar title="Proveri tačke na mapi" backLabel="Nazad na pregled" disabled={editor.busy} onBack={closePlace} />
       {editor.error || editor.uncertain ? <View style={frame.alert}><Surface kind="note" tone="danger"><View style={frame.alertBody}>
         {editor.error ? <T accessibilityRole="alert" style={s.error}>{editor.error}</T> : null}
         <V2Action label={editor.uncertain ? OUTCOME_ACTION.check : OUTCOME_ACTION.refresh} accessibilityLabel={editor.uncertain ? CHECK_SPOKEN : 'Osveži pregled'}
           disabled={editor.busy || editor.loading} loading={editor.loading} onPress={refresh} />
       </View></Surface></View> : null}
       <NeedLocationForm layout="screen" reviewOnly review={locationEditor}
-        resolver={resolver} busy={editor.busy} uncertain={editor.uncertain} onSave={proposeLocation} />
+        resolver={resolver} busy={editor.busy || editor.loading} uncertain={editor.uncertain} onSave={proposeLocation}
+        onEditInConversation={() => editInConversation('task.location', true)} />
     </KeyboardAvoidingView>
   </SafeAreaView>;
 
@@ -480,9 +495,11 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     const target = todo.target;
     const fact = target && target !== 'conversation' && target !== 'location'
       ? review?.publicProjection.find(item => item.key === target && item.id) : undefined;
-    const viaConversation = target === 'conversation' || (!!target && target !== 'location' && !fact);
-    return { key: todo.key, text: todo.text, actionLabel: todoActionLabel(todo, viaConversation),
-      onPress: viaConversation ? () => editInConversation() : target === 'location' ? () => { void openLocation(); } : fact ? () => editInConversation(taskCorrectionTarget(fact.key)) : undefined };
+    const viaConversation = target === 'conversation' || (target === 'location' && !hasPhysicalMap) || (!!target && target !== 'location' && !fact);
+    return { key: todo.key, text: target === 'location' && !hasPhysicalMap ? 'Mesto ili način rada treba dopuniti u razgovoru.' : todo.text,
+      actionLabel: target === 'location' && hasPhysicalMap ? 'Potvrdi tačke na mapi' : todoActionLabel(todo, viaConversation),
+      onPress: viaConversation ? () => editInConversation(target === 'location' ? 'task.location' : 'task.details')
+        : target === 'location' ? () => { void openLocation(); } : fact ? () => editInConversation(taskCorrectionTarget(fact.key)) : undefined };
   });
   const identityBlock = unavailableIdentityFact ? <View style={s.identity}>
     <T variant="meta" tone="muted">{IDENTITY_VERIFICATION_UNAVAILABLE_COPY}</T>
@@ -500,10 +517,6 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const systemNote = (item: AiTaskReviewFact | undefined) => item?.source === 'SYSTEM' ? 'Podrazumevana vrednost' : undefined;
   const single = (key: NeedFactV2Key): PreviewPart => ({ note: systemNote(factOf(key)) });
   const grouped = (group: GroupedPart): PreviewPart => ({ note: systemNote(partFact(group, publicFacts)) });
-  const placeWord = opening ? 'Otvaramo…' : review?.location ? undefined : 'Dodaj';
-  const placeAt = (label: string): PartPencil | undefined => !command && !placeBusy
-    ? { label, ...(placeWord ? { word: placeWord } : {}), onPress: () => { void openLocation(); } } : undefined;
-  const placeLabel = review?.location ? 'Izmeni, Mesto' : 'Dodaj mesto';
   const photosAt: PartPencil | undefined = !command && !quietEdit ? { label: hasPhotos ? 'Izmeni, Fotografije' : 'Dodaj fotografije', ...(hasPhotos ? {} : { word: 'Dodaj' }),
     onPress: () => { if (!canAct() || !conversationId || locationEditor) return;
       navigate(() => router.push({ pathname: '/fotografije-zadatka', params: { conversationId } })); } } : undefined;
@@ -548,15 +561,14 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       </>}
   </FlowFooter>;
 
-  // The task as the people who will read it get it, and the owner's pencil on every part of it (the blueprint of 8 Oct 2026, R2). What the page
-  // of others draws is `need`; what is the owner's alone is the pencils, the frame of the exact address and the way to add what is not said yet.
+  // Public task facts stay read-only. Private map confirmation and media retain their specific controls.
   const remote = need?.detalji?.rezimLokacije === 'REMOTE';
   const frameOfAddress = review ? ownerAddressFrame(review.location, review.ownerPrivateProjection) : null;
   const hasAddress = !remote && !!frameOfAddress && !!(frameOfAddress.places.length || frameOfAddress.fullAddress || frameOfAddress.notes.length || privateMap.points.length);
   const parts: ReviewDetailParts = {
-    title: single('need.title'), value: grouped('value'), place: { pencil: placeAt(placeLabel) }, time: grouped('time'),
+    title: single('need.title'), value: grouped('value'), place: {}, time: grouped('time'),
     people: single('need.people_needed'), description: single('need.description'),
-    map: { pencil: placeAt('Izmeni, Približno mesto') },
+    map: {},
     // The current server review owns this value. AI does not yet expose an
     // application-deadline fact; the completion date is a separate concept.
     deadline: {},
@@ -603,7 +615,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
               : <AddPhotos title={hasPhotos ? 'Fotografije' : undefined} pencil={photosAt} />}
             map={need.priblizno ? <LocationMapPreview points={[{ id: 'public-area', label: 'Približno mesto', latitude: need.priblizno.lat, longitude: need.priblizno.lng }]}
               coarse height={184} scopeKey={`${accountId}:${review.reviewId}:preview`} /> : undefined}
-            address={hasAddress && frameOfAddress ? <OwnerAddress frame={frameOfAddress} part={{ pencil: placeAt('Izmeni, Tačna adresa') }}
+            address={hasAddress && frameOfAddress ? <OwnerAddress frame={frameOfAddress} part={{}}
               map={privateMap.points.length ? <LocationMapPreview points={privateMap.points} route={privateMap.route}
                 scopeKey={`${accountId}:${accountRevision}:${review.reviewId}:private-place`} height={160} /> : undefined} /> : undefined}
             more={moreFacts.length ? <ReviewMoreFacts labels={moreFacts.map(item => factName(item.key))} disabled={quietEdit}
@@ -614,6 +626,9 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
                   system={item.source === 'SYSTEM'} last={index === moreFacts.length - 1} />;
               })}
             </ReviewMoreFacts> : undefined} />
+          {hasPhysicalMap && review.location && !command && !todos.some(todo => todo.target === 'location') ? <V2Action label={opening ? 'Otvaramo mapu…'
+            : mapNeedsConfirmation ? 'Potvrdi tačke na mapi' : 'Proveri tačke na mapi'}
+            kind="secondary" disabled={placeBusy || opening} onPress={() => { void openLocation(); }} /> : null}
           {/* The ways out at the end: edit in conversation, or delete draft */}
           {!command ? <ReviewWaysOut disabled={quietEdit} onEdit={canEdit ? () => editInConversation() : undefined} onDelete={!bound ? discardDraft : draftNeed ? deleteBoundDraft : undefined} /> : null}
         </>}

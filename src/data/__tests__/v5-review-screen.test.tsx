@@ -82,6 +82,11 @@ function location(label: string): NeedLocationInput {
     resolvedLocation: { version: 1, binding: { taskCountryCode: 'RS', geography, exactAddress },
       points: [{ slot: 'start', latitudeE6: 44810000, longitudeE6: 20460000, origin: { kind: 'MANUAL_PIN' } }] } };
 }
+/** A map proposal changes coordinates only; semantic location fields belong to the AI conversation. */
+function movedPoint(value: NeedLocationInput): NeedLocationInput {
+  return { ...value, resolvedLocation: { ...value.resolvedLocation!, points: value.resolvedLocation!.points.map(point =>
+    ({ ...point, latitudeE6: point.latitudeE6 + 1000, longitudeE6: point.longitudeE6 + 1000 })) } };
+}
 function locatedReview(value: NeedLocationInput, geographyRevision = 'c'.repeat(64)): AiTaskReviewEnvelope {
   return { ...review(), location: value, geographyRevision,
     ownerPrivateProjection: [{ ...review().ownerPrivateProjection[0], value: value.exactAddress!, displayValue: value.exactAddress! }] };
@@ -97,9 +102,9 @@ function deferred<T = unknown>() { let resolve!: (value: T) => void;
 let tree: ReactTestRenderer;
 const render = async () => { await act(async () => { tree = create(<ReviewRoute />); }); };
 const update = async () => { await act(async () => tree.update(<ReviewRoute />)); };
-/** A command of the review: a button (`label`) or a pencil at the end of a part or a row (a `Press` named by its `accessibilityLabel`: "Izmeni, Mesto", "Izmeni, Naslov"). */
+/** Review actions are found by their visible button label or accessible Press name. */
 const commands = (label: string) => tree.root.findAll(node => node.props?.label === label
-  || (node.type === ('Press' as React.ElementType) && node.props?.accessibilityLabel === label));
+  || (node.type === ('Press' as React.ElementType) && (node.props?.accessibilityLabel === label || node.props?.accessibilityHint === label)));
 const action = (label: string) => { const found = commands(label); if (found.length !== 1) throw new Error(`${found.length} commands named "${label}"`); return found[0].props; };
 const publish = () => tree.root.findByProps({ accessibilityLabel: 'Objavi zadatak' }).props;
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
@@ -296,33 +301,83 @@ it('refocuses after a lost acceptance using its retained review identity without
   expect(mockRead).toHaveBeenCalledWith(REVIEW); expect(mockAccept).toHaveBeenCalledTimes(1); expect(mockResume).not.toHaveBeenCalled();
 });
 
-it('passes reviewOnly to the location editor and prepares the proposed location without saving canonical facts', async () => {
+it('confirms map points as a review proposal while preserving the conversation fields and canonical facts', async () => {
+  const resolved = { ...location('A'), accessNotes: 'Pozovi na ulazu.' };
+  const unresolved = { ...resolved, resolvedLocation: null };
+  mockPrepare.mockResolvedValue(ok(locatedReview(unresolved)));
+  mockLocationRead.mockResolvedValue(ok(canonicalLocation(unresolved)));
   await render();
   const retainedPublish = publish().onPress;
-  await act(async () => action('Dodaj mesto').onPress());
+  const mapConfirmation = action('Potvrdi tačke na mapi');
+  expect(commands('Proveri tačke na mapi')).toHaveLength(0);
+  await act(async () => mapConfirmation.onPress());
   const form = tree.root.findByType('LocationForm' as React.ElementType).props;
-  expect(form.reviewOnly).toBe(true); expect(form.review.revision).toBe('location-r1');
-  // The place is its own step: no publish is drawn under it, and one kept from before still publishes nothing.
+  expect(form.reviewOnly).toBe(true); expect(form.review.revision).toBe('c'.repeat(64));
+  expect(form.review.value).toEqual(unresolved);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' })).toHaveLength(0);
   await act(async () => retainedPublish()); expect(mockAccept).not.toHaveBeenCalled();
-  const value = { taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null, resolvedLocation: null };
-  await act(async () => form.onSave(value));
+  mockPrepare.mockResolvedValue(ok(locatedReview(resolved)));
+  await act(async () => form.onSave(resolved));
   expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null,
-    location: { expectedRevision: 'location-r1', value } });
+    location: { expectedRevision: 'c'.repeat(64), value: resolved } });
   expect(mockLocationSave).not.toHaveBeenCalled(); expect(mockCorrect).not.toHaveBeenCalled();
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
   expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(0);
+  expect(commands('Proveri tačke na mapi')).toHaveLength(1);
 });
 
+it.each(['country', 'geography', 'address', 'access', 'remote', 'unresolved'] as const)(
+  'rejects a map callback that changes %s instead of confirming the existing points', async change => {
+    const a = location('A');
+    mockPrepare.mockResolvedValue(ok(locatedReview(a)));
+    mockLocationRead.mockResolvedValue(ok(canonicalLocation(a)));
+    await render(); await act(async () => action('Proveri tačke na mapi').onPress());
+    let next = movedPoint(a);
+    if (change === 'country') next = { ...next, taskCountryCode: 'BA' };
+    if (change === 'geography') next = { ...next, geography: location('B').geography };
+    if (change === 'address') next = { ...next, exactAddress: 'Druga adresa 5' };
+    if (change === 'access') next = { ...next, accessNotes: 'Novi ulaz' };
+    if (change === 'remote') next = { ...next, geography: { mode: 'REMOTE' }, resolvedLocation: null };
+    if (change === 'unresolved') next = { ...next, resolvedLocation: null };
+    if (next.resolvedLocation) next = { ...next, resolvedLocation: { ...next.resolvedLocation,
+      binding: { taskCountryCode: next.taskCountryCode, geography: next.geography, exactAddress: next.exactAddress } } };
+    const preparations = mockPrepare.mock.calls.length;
+    await act(async () => tree.root.findByType('LocationForm' as React.ElementType).props.onSave(next));
+    expect(mockPrepare).toHaveBeenCalledTimes(preparations);
+    expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(1);
+    expect(mockLocationSave).not.toHaveBeenCalled(); expect(mockCorrect).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled();
+  });
+
+it.each([{}, { entryKey: OTHER }, { conversationId: CONVERSATION }])(
+  'returns from map confirmation to the same retained conversation identity %j without sending or saving', async params => {
+    const a = location('A');
+    const handoff = rememberIntakeReviewReturn({ accountId: OWNER, accountRevision: 1 }, CONVERSATION, params)!;
+    mockParams.intakeReturn = handoff.token;
+    mockPrepare.mockResolvedValue(ok(locatedReview(a)));
+    mockLocationRead.mockResolvedValue(ok(canonicalLocation(a)));
+    await render(); await act(async () => action('Proveri tačke na mapi').onPress());
+    const edit = tree.root.findByType('LocationForm' as React.ElementType).props.onEditInConversation;
+    await act(async () => { edit(); edit(); });
+    expect(mockRouter.replace).toHaveBeenCalledTimes(1);
+    const route = mockRouter.replace.mock.calls[0][0];
+    expect(route).toEqual({ pathname: '/nova', params: { ...params, aiCorrection: expect.any(String) } });
+    expect(takeAiCorrection(route.params.aiCorrection, { accountId: OWNER, accountRevision: 1 }, 'task', CONVERSATION)?.target).toBe('task.location');
+    expect(mockLocationSave).not.toHaveBeenCalled(); expect(mockCorrect).not.toHaveBeenCalled();
+    expect(mockAccept).not.toHaveBeenCalled(); expect(mockOpenEdit).not.toHaveBeenCalled();
+    expect(mockPrepare).toHaveBeenCalledTimes(1);
+    retireIntakeReviewReturn(handoff);
+  });
+
 it('restores a server-reviewed location B after a real remount while canonical facts still contain A', async () => {
-  const a = location('A'), b = location('B');
+  const a = location('A'), b = movedPoint(a);
   const saved = { ...locatedReview(b), reviewId: OTHER };
   mockLocationRead.mockResolvedValue(ok(canonicalLocation(a)));
   mockPrepare.mockResolvedValue(ok(locatedReview(a)));
-  await render(); await act(async () => action('Izmeni, Mesto').onPress());
+  await render(); await act(async () => action('Proveri tačke na mapi').onPress());
   mockPrepare.mockResolvedValue(ok(saved));
   await act(async () => tree.root.findByType('LocationForm' as React.ElementType).props.onSave(b));
-  expect(text()).toContain('Adresa B');
+  expect(tree.root.findAllByType('LocationMapPreview' as React.ElementType).find(node => node.props.coarse !== true)!.props.points[0]).toMatchObject({ latitude: b.resolvedLocation!.points[0].latitudeE6 / 1e6 });
+  expect(text()).toContain('Adresa A');
   expect(mockLocationSave).not.toHaveBeenCalled();
   await act(async () => tree.unmount());
   mockLatest.mockResolvedValue(ok({ review: saved, command: null }));
@@ -331,7 +386,8 @@ it('restores a server-reviewed location B after a real remount while canonical f
   await render();
   expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null,
     location: { expectedRevision: saved.geographyRevision, value: b } });
-  expect(text()).toContain('Adresa B'); expect(text()).not.toContain('Adresa A');
+  expect(text()).toContain('Adresa A');
+  expect(mockPrepare.mock.calls.at(-1)![0].location.value).toEqual(b);
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
 });
 
@@ -360,9 +416,9 @@ it('shows a geographical conflict with the current C review instead of replaying
   expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null });
   expect(text()).toContain('Mesto je promenjeno posle prethodnog pregleda.');
   expect(text()).toContain('Adresa C'); expect(text()).not.toContain('Adresa B');
-  expect(publish().disabled).toBe(false); expect(commands('Izmeni, Mesto')).toHaveLength(1);
+  expect(publish().disabled).toBe(false); expect(commands('Proveri tačke na mapi')).toHaveLength(1);
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockLocationSave).not.toHaveBeenCalled();
-  await act(async () => action('Izmeni, Mesto').onPress());
+  await act(async () => action('Proveri tačke na mapi').onPress());
   expect(tree.root.findByType('LocationForm' as React.ElementType).props.review.value).toEqual(c);
 });
 
@@ -387,12 +443,12 @@ it('never opens an old reviewed place with a newer canonical revision', async ()
   // Another session changed the location after this review was displayed.
   mockLocationRead.mockResolvedValue(ok(canonicalLocation(b, nextRevision)));
   mockPrepare.mockResolvedValue(ok(locatedReview(b, nextRevision)));
-  await act(async () => action('Izmeni, Mesto').onPress());
+  await act(async () => action('Proveri tačke na mapi').onPress());
   expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(0);
   expect(text()).toContain('Mesto se promenilo posle otvaranja pregleda.');
   expect(text()).toContain('Adresa B'); expect(text()).not.toContain('Adresa A');
   expect(mockPrepare).toHaveBeenLastCalledWith({ conversationId: CONVERSATION, responseDeadline: null });
-  await act(async () => action('Izmeni, Mesto').onPress());
+  await act(async () => action('Proveri tačke na mapi').onPress());
   expect(tree.root.findByType('LocationForm' as React.ElementType).props.review).toMatchObject({ value: b, revision: nextRevision });
   expect(mockLocationSave).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled();
 });
@@ -401,7 +457,7 @@ it('coalesces double opening and prevents accepting while the fresh location rea
   const held = deferred(), a = location('A');
   mockPrepare.mockResolvedValue(ok(locatedReview(a))); await render();
   mockLocationRead.mockReturnValueOnce(held.promise);
-  const open = action('Izmeni, Mesto').onPress, accept = publish().onPress;
+  const open = action('Proveri tačke na mapi').onPress, accept = publish().onPress;
   await act(async () => { void open(); void open(); void accept(); });
   expect(mockLocationRead).toHaveBeenCalledTimes(1); expect(mockAccept).not.toHaveBeenCalled();
   expect(publish().disabled).toBe(true);
@@ -413,10 +469,10 @@ it('a retired location read cannot release a later visit opening lock', async ()
   const old = deferred(), fresh = deferred(), a = location('A');
   mockPrepare.mockResolvedValue(ok(locatedReview(a))); await render();
   mockLocationRead.mockReturnValueOnce(old.promise);
-  await act(async () => { void action('Izmeni, Mesto').onPress(); });
+  await act(async () => { void action('Proveri tačke na mapi').onPress(); });
   await blur(); await focus();
   mockLocationRead.mockReturnValueOnce(fresh.promise);
-  await act(async () => { void action('Izmeni, Mesto').onPress(); });
+  await act(async () => { void action('Proveri tačke na mapi').onPress(); });
   await act(async () => old.resolve(ok(canonicalLocation(a))));
   expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(0);
   expect(publish().disabled).toBe(true);
@@ -425,12 +481,12 @@ it('a retired location read cannot release a later visit opening lock', async ()
 });
 
 it('recovers a retained local B proposal after an external C revision on the next explicit refresh', async () => {
-  const a = location('A'), b = location('B'), c = location('C');
+  const a = location('A'), b = movedPoint(a), c = location('C');
   const saved = locatedReview(a), newer = locatedReview(c, 'd'.repeat(64));
   mockLatest.mockResolvedValue(ok({ review: saved, command: null }));
   mockLocationRead.mockResolvedValue(ok(canonicalLocation(a)));
   mockPrepare.mockResolvedValue(ok(saved));
-  await render(); await act(async () => action('Izmeni, Mesto').onPress());
+  await render(); await act(async () => action('Proveri tačke na mapi').onPress());
   // C wins after the read but before preparing B: the first CAS failure is not
   // hidden, and the same mounted screen still holds its local B proposal.
   mockPrepare.mockResolvedValueOnce({ ok: false, kod: 'LOCATION_VERSION_CONFLICT', poruka: 'Mesto je promenjeno. Pregledaj novu lokaciju.' });
@@ -448,7 +504,7 @@ it('recovers a retained local B proposal after an external C revision on the nex
   // A form bound to A must not remain editable above the new C review.
   expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(0);
   expect(publish().disabled).toBe(false);
-  await act(async () => action('Izmeni, Mesto').onPress());
+  await act(async () => action('Proveri tačke na mapi').onPress());
   expect(tree.root.findByType('LocationForm' as React.ElementType).props.review.value).toEqual(c);
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockLocationSave).not.toHaveBeenCalled();
 });
@@ -810,16 +866,30 @@ describe('round 6: the publish review', () => {
     expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION, aiCorrection:expect.any(String) } });
   });
 
-  it('lists a missing place as a row that opens the place step, and draws no separate "Izmeni u razgovoru" or "Dopuni u razgovoru" button beside it', async () => {
+  it('routes missing geography to the same AI conversation instead of opening a manual place form', async () => {
     await render();
-    expect(text()).toContain('Mesto na mapi nije potvrđeno.');
-    // The retired buttons stay retired. The way out of this row is the row itself, which says "Dodaj mesto" under its sentence (2026-10-07), and the
-    // one labelled way back to the conversation is the pencil of the card, "Izmeni zadatak" (review-exits-and-place.test).
-    expect(tree.root.findAllByProps({ label: 'Izmeni u razgovoru' })).toHaveLength(0);
-    expect(tree.root.findAllByProps({ label: 'Dopuni u razgovoru' })).toHaveLength(0);
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Mesto na mapi nije potvrđeno.' }).props.onPress());
-    expect(mockLocationRead).toHaveBeenCalledWith(CONVERSATION);
-    expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(1);
+    const row = tree.root.findByProps({ accessibilityLabel: 'Mesto ili način rada treba dopuniti u razgovoru.' });
+    expect(row.props.accessibilityHint).toBe('Dopuni u razgovoru');
+    expect(commands('Proveri tačke na mapi')).toHaveLength(0);
+    await act(async () => row.props.onPress());
+    const route = mockRouter.replace.mock.calls.at(-1)![0];
+    expect(route).toEqual({ pathname: '/nova', params: { conversationId: CONVERSATION, aiCorrection: expect.any(String) } });
+    expect(takeAiCorrection(route.params.aiCorrection, { accountId: OWNER, accountRevision: 1 }, 'task', CONVERSATION)?.target).toBe('task.location');
+    expect(mockLocationRead).not.toHaveBeenCalled(); expect(mockCorrect).not.toHaveBeenCalled();
+    expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(0);
+  });
+
+  it('REMOTE has no map or manual location controls and keeps one AI edit action', async () => {
+    const remote: NeedLocationInput = { taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null, resolvedLocation: null };
+    mockPrepare.mockResolvedValue(ok({ ...review(), location: remote, ownerPrivateProjection: [], publicProjection: [...review().publicProjection,
+      { id: 'geography', key: 'need.task_geography', value: remote.geography, displayValue: 'Na daljinu', privacyClass: 'PUBLIC', source: 'EXPLICIT_USER_ANSWER', status: 'CONFIRMED' }] }));
+    await render();
+    expect(tree.root.findAllByType('LocationMapPreview' as React.ElementType)).toHaveLength(0);
+    expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(0);
+    for (const label of ['Proveri tačke na mapi', 'Potvrdi tačke na mapi', 'Izmeni, Mesto', 'Izmeni, Približno mesto', 'Izmeni, Tačna adresa', 'Dodaj mesto']) expect(commands(label)).toHaveLength(0);
+    expect(text()).not.toContain('Mesto na mapi nije potvrđeno.');
+    expect(commands('Izmeni zadatak')).toHaveLength(1);
+    expect(mockLocationRead).not.toHaveBeenCalled(); expect(mockLocationSave).not.toHaveBeenCalled();
   });
 
   it('shows a restored publication still, and springs only for a publication confirmed on this screen', async () => {
@@ -839,7 +909,9 @@ describe('round 6: the publish review', () => {
   });
 
   it('Android Back in the place step closes it without saving, and is released afterwards', async () => {
-    await render(); await act(async () => action('Dodaj mesto').onPress());
+    mockPrepare.mockResolvedValue(ok(locatedReview(location('A'))));
+    mockLocationRead.mockResolvedValue(ok(canonicalLocation(location('A'))));
+    await render(); await act(async () => action('Proveri tačke na mapi').onPress());
     expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(1);
     expect(mockHardwareBack.size).toBe(1);
     await act(async () => { for (const handler of [...mockHardwareBack]) expect(handler()).toBe(true); });
@@ -851,9 +923,9 @@ describe('round 6: the publish review', () => {
   it('the place step can be left after an unconfirmed outcome, and the review keeps its recovery', async () => {
     mockLocationRead.mockResolvedValue(ok(canonicalLocation(location('A'))));
     mockPrepare.mockResolvedValue(ok(locatedReview(location('A'))));
-    await render(); await act(async () => action('Izmeni, Mesto').onPress());
+    await render(); await act(async () => action('Proveri tačke na mapi').onPress());
     mockPrepare.mockResolvedValueOnce(unknownOutcome());
-    await act(async () => tree.root.findByType('LocationForm' as React.ElementType).props.onSave(location('B')));
+    await act(async () => tree.root.findByType('LocationForm' as React.ElementType).props.onSave(movedPoint(location('A'))));
     expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(1);
     await act(async () => { for (const handler of [...mockHardwareBack]) handler(); });
     expect(tree.root.findAllByType('LocationForm' as React.ElementType)).toHaveLength(0);

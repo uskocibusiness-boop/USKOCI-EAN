@@ -50,8 +50,8 @@ const open = async (scene: string) => {
   expect(row).toBeDefined();
   await act(async () => row.props.onPress());
 };
-const PENCILS = ['Izmeni zadatak', 'Izmeni, Mesto',
-  'Izmeni, Približno mesto', 'Izmeni, Tačna adresa', 'Izmeni, Fotografije'];
+const ACTIONS = ['Izmeni zadatak', 'Proveri tačke na mapi', 'Izmeni, Fotografije'];
+const RETIRED_LOCATION_EDITORS = ['Izmeni, Mesto', 'Izmeni, Približno mesto', 'Izmeni, Tačna adresa', 'Dodaj mesto'];
 const press = async (label: string) => {
   const button = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0];
   expect(button).toBeDefined();
@@ -79,13 +79,15 @@ describe('a ready review presents facts, one AI correction entry and explicit ma
     expect(copy).toContain('Treba 2 osobe'); expect(copy).toContain('Naručilac'); expect(copy).not.toContain('Objavio');
     expect(copy).toContain('Miloš P.'); expect(copy).toContain('4,7');
     // The exact address is his alone, in its own frame, with the one sentence of privacy.
-    expect(copy).toContain('Tačna adresa'); expect(copy).toContain('Bulevar Evrope 24, Novi Sad'); expect(copy).toContain('Vidiš samo ti. Osoba sa kojom se dogovoriš vidi je u Dogovoru.');
+    expect(copy).toContain('Tačna adresa'); expect(copy).toContain('Bulevar Evrope 24, Novi Sad'); expect(copy).toContain('Vidiš samo ti. Tačna lokacija se deli tek uz tvoju dozvolu u Dogovoru.');
   });
 
   it('names supported corrections and gives publication the shared primary-action role', async () => {
     await open('Spremno za objavu');
     const named = labels();
-    for (const pencil of PENCILS) expect(named).toContain(pencil);
+    for (const pencil of ACTIONS) expect(named).toContain(pencil);
+    for (const label of RETIRED_LOCATION_EDITORS) expect(named).not.toContain(label);
+    expect(named.filter(label => label === 'Proveri tačke na mapi')).toHaveLength(1);
     expect(named).toContain('Obriši nacrt'); expect(named).toContain('Objavi zadatak');
     const publish = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Objavi zadatak');
     expect(publish).toHaveLength(1);
@@ -107,21 +109,24 @@ describe('what stands in the way, and the states in which nothing can be changed
     expect(copy).toContain('Još treba'); expect(copy).toContain('Mesto na mapi nije potvrđeno.');
     expect(copy).toContain('Cena nije navedena'); expect(copy).toContain('Lokacija nije navedena');
     expect(copy).not.toContain('Tačna adresa'); expect(copy).not.toContain('Približno mesto');
-    expect(labels()).toContain('Dodaj mesto'); expect(labels()).not.toContain('Izmeni, Mesto');
+    expect(labels()).not.toContain('Proveri tačke na mapi');
+    expect(tree.root.findByProps({ accessibilityLabel: 'Mesto na mapi nije potvrđeno.' }).props.accessibilityHint).toBe('Potvrdi tačke na mapi');
+    for (const label of RETIRED_LOCATION_EDITORS) expect(labels()).not.toContain(label);
     expect(tree.root.findByProps({ accessibilityLabel: 'Objavi zadatak' }).props.disabled).toBe(true);
     expect(copy).toContain('Prvo uradi ono što piše pod „Još treba“.');
   });
 
-  it('while the publish runs no pencil is drawn and the delete row waits grey', async () => {
+  it('while publication runs semantic editors are absent and map/deletion actions are disabled', async () => {
     await open('Objavljuje se');
-    for (const pencil of PENCILS) expect(labels()).not.toContain(pencil);
+    for (const label of ['Izmeni zadatak', 'Izmeni, Fotografije', ...RETIRED_LOCATION_EDITORS]) expect(labels()).not.toContain(label);
+    expect(tree.root.findByProps({ accessibilityLabel: 'Proveri tačke na mapi' }).props.disabled).toBe(true);
     expect(tree.root.findByProps({ accessibilityLabel: 'Obriši nacrt' }).props.disabled).toBe(true);
     expect(tree.root.findByProps({ accessibilityLabel: 'Objavi zadatak' }).props.accessibilityState).toEqual({ disabled: true, busy: true });
   });
 
   it('a stored command is read only: no pencil, no row of the deletion, no "Dodaj još podataka"', async () => {
     await open('Privatan nacrt');
-    for (const pencil of PENCILS) expect(labels()).not.toContain(pencil);
+    for (const pencil of ACTIONS) expect(labels()).not.toContain(pencil);
     expect(labels()).not.toContain('Obriši nacrt'); expect(text()).not.toContain('Dodaj još podataka');
     expect(text()).toContain('Sačuvano kao privatan nacrt.');
   });
@@ -144,6 +149,9 @@ describe('the other shapes of a task', () => {
   it('identifies remote work and shows no location map or exact address', async () => {
     await open('Rad na daljinu');
     expect(text()).toContain('Na daljinu'); expect(text()).not.toContain('Tačna adresa'); expect(text()).not.toContain('Približno mesto');
+    expect(tree.root.findAllByType('MapPreview' as React.ElementType)).toHaveLength(0);
+    expect(tree.root.findAllByType('NeedLocationForm' as React.ElementType)).toHaveLength(0);
+    for (const label of [...RETIRED_LOCATION_EDITORS, 'Proveri tačke na mapi', 'Potvrdi tačke na mapi']) expect(labels()).not.toContain(label);
   });
 
   it('a draft with no photographs offers the way to add them, and an owner nobody has read is not drawn as the one who asks', async () => {
@@ -201,9 +209,12 @@ describe('fact corrections demonstrate the AI topic handoff without pretending t
 
   it('keeps map confirmation and photographs as dedicated local gallery steps', async () => {
     await open('Spremno za objavu');
-    await press('Izmeni, Mesto');
+    await press('Proveri tačke na mapi');
     expect(tree.root.findByType('NeedLocationForm' as React.ElementType).props.reviewOnly).toBe(true);
     expect(tree.root.findByType('NeedLocationForm' as React.ElementType).props.review.value.resolvedLocation).toBeDefined();
+    await act(async () => tree.root.findByType('NeedLocationForm' as React.ElementType).props.onEditInConversation());
+    expect(text()).toContain('Izmena kroz razgovor');
+    expect(mockRouter.push).not.toHaveBeenCalled();
     await act(async () => tree.unmount());
     await open('Spremno za objavu');
     await press('Izmeni, Fotografije');

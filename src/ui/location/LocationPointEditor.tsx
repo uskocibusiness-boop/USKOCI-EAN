@@ -97,6 +97,8 @@ type Props = {
   allowCityContextLookup?: boolean;
   /** The chat proposes one pin first; the full manual form retains all controls. */
   presentation?: 'form' | 'conversation';
+  /** A map-only confirmation may resolve labels, but cannot edit semantic address/access facts. */
+  allowManualDetails?: boolean;
   /** Visible selected-role summary above this editor; omit only its exact repeated text. */
   conversationSummary?: { title: string; description: string };
   onCorrectInConversation?: () => void;
@@ -112,7 +114,7 @@ export function LocationPointEditor(props: Props) {
   return <ScopedPointEditor key={JSON.stringify([props.scopeKey, props.countryCode, props.slot])} {...props} />;
 }
 function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQuery = '', resolver: injectedResolver,
-  autoLocate = false, initialQuestion, allowCityContextLookup = false, presentation = 'form', conversationSummary, onCorrectInConversation, onPromptReady, confirmAsPrimary = true, disabled, onInvalidate, onConfirm }: Props) {
+  autoLocate = false, initialQuestion, allowCityContextLookup = false, presentation = 'form', allowManualDetails = true, conversationSummary, onCorrectInConversation, onPromptReady, confirmAsPrimary = true, disabled, onInvalidate, onConfirm }: Props) {
   const conversation = presentation === 'conversation';
   const [defaultResolver] = useState(() => createConfiguredLocationResolver());
   const resolver = injectedResolver ?? defaultResolver;
@@ -161,6 +163,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
   const located = useRef(false);
   const alive = useRef(true);
   const current = useRef({ disabled, point }); current.current = { disabled, point };
+  const invalidateParent = useRef(onInvalidate); invalidateParent.current = onInvalidate;
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   useFocusEffect(useCallback(() => {
     focus.current = true; setFocused(true);
@@ -201,7 +204,9 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     hereRequest.current?.abort(); hereRequest.current = null; setHere(null);
     if (clearCandidatePin && origin.kind === 'PROVIDER_CANDIDATE') { setPosition(null); setOrigin({ kind: 'MANUAL_PIN' }); }
   };
-  const invalidate = (notifyEdit = true) => { setPending(true); setError(false); if (notifyEdit) onInvalidate(); };
+  // GPS retains its request/account/slot lease across ordinary renders. Notify the current
+  // parent callback after that lease passes, so a new pin cannot leave the parent's old point saveable.
+  const invalidate = (notifyEdit = true) => { setPending(true); setError(false); if (notifyEdit) invalidateParent.current(); };
   const lookupAddress = async (next: ResolvedPinPosition, adoptProposal: boolean) => {
     const epoch = requestEpoch.current, owner = sesijaSada();
     const ownsRequest = () => alive.current && focus.current && !current.current.disabled && epoch === requestEpoch.current
@@ -551,7 +556,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
           && (lookup.status !== 'PROPOSALS' || lookup.candidates.length === 0) ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">
           Adresa nije određena. Tačka je ostala tamo gde je izabrana.
         </T> : null}
-        {correctionOpen ? <LocationField label={`${title} — adresa za ovaj pin (opciono)`} value={address} maxLength={1000}
+        {correctionOpen && allowManualDetails ? <LocationField label={`${title} — adresa za ovaj pin (opciono)`} value={address} maxLength={1000}
           editable={!controlDisabled && focused} onChangeText={value => {
             if (ownsEdit()) { retireSearch(false, true); setAddress(value); invalidate(); }
           }} /> : null}
@@ -623,13 +628,13 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         onPress={() => setPlaceByHand(true)} />}
     {position ? <Button label={lookupMode === 'reverse' && lookup.status === 'LOADING' ? 'Tražimo adresu…' : 'Pronađi adresu za ovaj pin'}
       kind="quiet" disabled={controlDisabled || !focused || lookup.status === 'LOADING'} onPress={reverse} /> : null}
-    <LocationDetails label={`${title} — privatni detalji tačke`} shownLabel="Privatni detalji tačke" disabled={controlDisabled || !focused}
+    {allowManualDetails ? <LocationDetails label={`${title} — privatni detalji tačke`} shownLabel="Privatni detalji tačke" disabled={controlDisabled || !focused}
       summary={[address, notes].filter(value => value.trim()).join(' · ') || 'Dodaj adresu ili napomenu po potrebi'}>
     <LocationField label={`${title} — privatna adresa (opciono)`} shownLabel="Privatna adresa (opciono)" value={address} maxLength={1000} editable={!controlDisabled && focused}
       onChangeText={value => { if (ownsEdit()) { retireSearch(false, true); setAddress(value); invalidate(); } }} />
     <LocationField label={`${title} — privatne napomene za pristup (opciono)`} shownLabel="Privatne napomene za pristup (opciono)" value={notes} maxLength={2000} multiline editable={!controlDisabled && focused}
       onChangeText={value => { if (ownsEdit()) { retireSearch(false, true); setNotes(value); invalidate(); } }} />
-    </LocationDetails>
+    </LocationDetails> : null}
     {error ? <T accessibilityRole="alert" tone="danger">Proveri izabranu tačku i privatne podatke.</T> : null}
     {/* The line beside the confirm button says why it is grey while there is no point to confirm. */}
     <T variant="meta" tone={point && !pending ? 'success' : 'muted'}>

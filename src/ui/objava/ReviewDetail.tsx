@@ -194,7 +194,7 @@ export function OwnerAddress({ frame, map, part }: { frame: AddressFrame; map?: 
       {map}
       <View style={s.privacyNotice}>
         <FactArt kind="info" size={14} />
-        <T variant="meta" tone="muted">Vidiš samo ti. Osoba sa kojom se dogovoriš vidi je u Dogovoru.</T>
+        <T variant="meta" tone="muted">Vidiš samo ti. Tačna lokacija se deli tek uz tvoju dozvolu u Dogovoru.</T>
       </View>
     </View>
   </Surface>;

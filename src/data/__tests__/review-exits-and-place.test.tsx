@@ -168,7 +168,7 @@ describe('the place the owner confirmed is read from the confirmed point, not fr
     expect(priv).toContain(ADDRESS);
     // The short line is the first thing in the frame, before the long one; and the one sentence of privacy ends it.
     expect(priv.indexOf('Pavla Ivića 6, Novi Sad')).toBeLessThan(priv.indexOf(ADDRESS));
-    expect(priv).toContain('Vidiš samo ti. Osoba sa kojom se dogovoriš vidi je u Dogovoru.');
+    expect(priv).toContain('Vidiš samo ti. Tačna lokacija se deli tek uz tvoju dozvolu u Dogovoru.');
   });
 
   it('what the others read is what the published task says: the area and the city, with no street of the pin and no house number', async () => {
@@ -225,6 +225,8 @@ describe('the place the owner confirmed is read from the confirmed point, not fr
     mockPrepare.mockResolvedValue(ok(shown)); await render();
     expect(text()).not.toContain('Mesto:'); expect(text()).not.toContain('Tačka na mapi'); expect(text()).not.toContain('Tačna adresa');
     expect(text().split('Na daljinu').length - 1).toBe(1);
+    expect(tree.root.findAllByType('LocationMapPreview' as React.ElementType)).toHaveLength(0);
+    for (const label of ['Proveri tačke na mapi', 'Potvrdi tačke na mapi', 'Izmeni, Mesto', 'Izmeni, Približno mesto', 'Izmeni, Tačna adresa']) expect(absent(label)).toBe(true);
   });
 });
 
@@ -566,7 +568,7 @@ describe('the way out of every blocker is a visible action', () => {
     const words = (text: string) => rowOf(text).findAll(node => node.type === ('T' as React.ElementType)).map(node => node.props.children);
     expect(words('Zadatak ne može da se objavi ovako. Izmeni ga u razgovoru.')).toEqual(['Zadatak ne može da se objavi ovako. Izmeni ga u razgovoru.', 'Izmeni u razgovoru']);
     expect(words('Nedostaje: Naslov.')).toEqual(['Nedostaje: Naslov.', 'Dopuni u razgovoru']);
-    expect(words('Mesto na mapi nije potvrđeno.')).toEqual(['Mesto na mapi nije potvrđeno.', 'Dodaj mesto']);
+    expect(words('Mesto na mapi nije potvrđeno.')).toEqual(['Mesto na mapi nije potvrđeno.', 'Potvrdi tačke na mapi']);
     await act(async () => rowOf('Nedostaje: Naslov.').props.onPress());
     expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION, aiCorrection:expect.any(String) } });
   });
