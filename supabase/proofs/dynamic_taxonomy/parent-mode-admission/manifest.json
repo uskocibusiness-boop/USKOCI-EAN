@@ -23,7 +23,7 @@
     },
     {
       "path": "supabase/proofs/dynamic_taxonomy/parent-mode-admission/assert.sql",
-      "sha256": "6c2824a6ae7304fd5baf058f2f14fc0be3a9cbf08932eba1f7a1c1941cd6a054"
+      "sha256": "1464c00fdab901ad0598c312608b061ac91b9215ace8755de371263217572960"
     },
     {
       "path": "supabase/proofs/dynamic_taxonomy/parent-mode-admission/before.sql",
@@ -66,6 +66,9 @@
     "firstRun": "39242132998",
     "result": "FAILED_FIXTURE_AMBIGUOUS_VALUE",
     "correction": "Rename local loop value to v_handoff and qualify item.value in both JSONB loops. Migration unchanged.",
-    "retest": "PENDING"
+    "retest": "PENDING",
+    "secondRun": "39242434233",
+    "secondResult": "FAILED_FIXTURE_CANONICAL_KEY_CHECK_BEFORE_RENAME_REVALIDATION",
+    "secondCorrection": "Rename updates both label and canonical_key; original service is retained as an alias of the same UUID so the test specifically exercises signed categoryLabel witness rejection."
   }
 }

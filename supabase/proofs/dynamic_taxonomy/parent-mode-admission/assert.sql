@@ -168,7 +168,14 @@ DO $$ DECLARE p jsonb;r jsonb;scenario text; BEGIN
   UPDATE private.work_taxonomy_control SET catalog_version=11;
   IF scenario='concurrent' THEN
    INSERT INTO private.work_taxonomy_category_modes(category_id,execution_scope,source_ref) VALUES(proof.id(601),'REMOTE','OTHER_SIGNED_SAVE');
-  ELSIF scenario='rename' THEN UPDATE private.work_taxonomy_categories SET label='Promenjeno značenje' WHERE id=proof.id(601);
+  ELSIF scenario='rename' THEN
+   UPDATE private.work_taxonomy_categories
+    SET label='Promenjeno značenje',canonical_key=private.taxonomy_normalize_v1('Promenjeno značenje')
+    WHERE id=proof.id(601);
+   -- Keep the original service as a registered alias of the SAME UUID. Identity
+   -- lookup can still succeed; the signed categoryLabel witness must reject it.
+   INSERT INTO private.work_taxonomy_aliases(category_id,locale,label)
+    VALUES(proof.id(601),'sr','Restauracija muzičkih kutija');
   ELSIF scenario='reparent' THEN UPDATE private.work_taxonomy_categories SET parent_id=proof.id(701) WHERE id=proof.id(601);
   ELSIF scenario='alias_collision' THEN INSERT INTO private.work_taxonomy_aliases(category_id,locale,label) VALUES(proof.id(701),'sr','Restauracija muzičkih kutija');
   ELSIF scenario='cycle' THEN UPDATE private.work_taxonomy_categories SET parent_id=proof.id(601) WHERE id=proof.id(501);
