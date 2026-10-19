@@ -45,6 +45,8 @@ const STANDARD_CASES = Object.freeze({
 const CASES = Object.freeze({ ...STANDARD_CASES,
   ...Object.fromEntries(['need-existing','worker-existing','need-novel'].map(name => [name+'-tools',
     {...STANDARD_CASES[name],messages:[STANDARD_CASES[name].messages[0]]}])),
+  'need-rare-tools': {flow:'need',expectation:'SEMANTIC_REVIEW_NO_FORCED_NOVELTY',messages:[
+    'Treba mi restauracija stare mehaničke muzičke kutije: čišćenje, popravka opružnog mehanizma i podešavanje metalnog češlja da ponovo pravilno svira. Predmet šaljem izvršiocu, rad se obavlja kod njega i vraća mi se dostavom. Na daljinu, jedan izvršilac, fleksibilan termin, tražim ponude.']},
 });
 const hash = value => createHash('sha256').update(typeof value === 'string' ? value : JSON.stringify(value)).digest('hex');
 const assert = (condition, code) => { if (!condition) throw new Error(code); };
@@ -74,7 +76,8 @@ export function configuration(env, argv) {
     if (phase === 'save-fixture') assert(env.USKOCI_QA_PREPARED_REPORT, 'PREPARED_REPORT_REQUIRED');
   }
   return { execute, phase, names, maxAttempts, accountId, url: TARGET, toolRun,
-    providerAttemptsPerRequest: toolRun ? 4 : 1 };
+    providerAttemptsPerRequest: toolRun ? 4 : 1,
+    runReservationCapMicrousd: toolRun ? maxAttempts * 4 * RESERVATION_MICROUSD : RUN_CAP_MICROUSD };
 }
 
 /** Correlation only: these IDs are possible attempts, not proof they were billed
@@ -90,6 +93,60 @@ export function expectedProviderOperations(accountId, conversationId, operationI
     const h = bytes.subarray(0,16).toString('hex');
     return {attempt,operationId:`${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`};
   });
+}
+
+/** Only an owned successful readback authorizes recording reply text as confirmed.
+ * V2 JSON normally carries a message receipt rather than the assistant body. */
+export function confirmedAssistantEvidence(response, identity, currentTurn, messageRows = null, workerSnapshot = null) {
+  const owns = value => value && same(value.conversationId,identity.conversationId) && same(value.clientRequestId,identity.clientRequestId)
+    && same(value.turnId,currentTurn?.turnId);
+  assert(owns(currentTurn) && UUID.test(currentTurn.turnId) && currentTurn.state === 'SUCCEEDED', 'TURN_NOT_CONFIRMED_STOP_NO_RETRY');
+  const text = value => typeof value === 'string' && value.trim().length > 0 && value.length <= 1500;
+  const lines = response.raw.split(/\r?\n/).filter(line => line.startsWith('data:'));
+  const events = lines.map(line => {
+    try { return JSON.parse(line.slice(5).trim()); } catch { throw new Error('SSE_EVENT_INVALID'); }
+  });
+  let assistantText = '', assistantTextSource = 'UNAVAILABLE';
+  const responseFormat = events.length ? 'SSE' : 'JSON';
+  if (events.length) {
+    let attemptId;
+    for (const [index,event] of events.entries()) {
+      assert(owns(event) && UUID.test(event.attemptId) && (!attemptId || same(event.attemptId,attemptId)), 'SSE_IDENTITY_MISMATCH');
+      attemptId = event.attemptId;
+      assert(event.sequence === index+1 && ['accepted','text_delta','final','safe_error'].includes(event.kind), 'SSE_EVENT_INVALID');
+      if (event.kind === 'text_delta') assert(typeof event.text === 'string', 'SSE_TEXT_INVALID');
+      if (event.kind === 'final') assert(owns(event.turn) && event.turn.state === 'SUCCEEDED', 'SSE_FINAL_IDENTITY_MISMATCH');
+    }
+    assert(events[0].kind === 'accepted', 'SSE_ACCEPTANCE_MISSING');
+    if (events.at(-1).kind === 'final') {
+      assistantText = events.filter(event=>event.kind==='text_delta').map(event=>event.text).join('');
+      if (text(assistantText)) assistantTextSource = 'SSE_CONFIRMED';
+      else assistantText = '';
+    }
+  } else {
+    const value = response.value, envelope = value?.turn ?? value;
+    assert(owns(envelope), 'JSON_TURN_IDENTITY_MISMATCH');
+    if (envelope.state === 'SUCCEEDED' && text(value?.assistantMessage)) {
+      assistantText = value.assistantMessage; assistantTextSource = 'JSON_CONFIRMED';
+    }
+  }
+  if (!assistantText && messageRows !== null) {
+    const messageId=currentTurn.receipt?.assistantMessageId;
+    assert(UUID.test(messageId) && currentTurn.receipt?.authoritative === true && Array.isArray(messageRows) && messageRows.length===1,
+      'ASSISTANT_MESSAGE_RECEIPT_INVALID');
+    const row=messageRows[0];
+    assert(same(row.id,messageId) && same(row.account_id,identity.accountId) && same(row.conversation_id,identity.conversationId)
+      && row.role==='ASSISTANT' && text(row.body), 'ASSISTANT_MESSAGE_OWNER_MISMATCH');
+    assistantText=row.body; assistantTextSource='OWNED_MESSAGE_READBACK';
+  }
+  if (!assistantText && workerSnapshot) {
+    assert(same(workerSnapshot.accountId,identity.accountId) && same(workerSnapshot.conversationId,identity.conversationId)
+      && owns(workerSnapshot.turn) && workerSnapshot.turn.state==='SUCCEEDED' && Array.isArray(workerSnapshot.messages), 'WORKER_REPLY_OWNER_MISMATCH');
+    const message=workerSnapshot.messages.at(-1);
+    assert(message?.role==='ASSISTANT' && UUID.test(message.id) && text(message.body), 'WORKER_REPLY_UNAVAILABLE');
+    assistantText=message.body; assistantTextSource='OWNED_WORKER_SNAPSHOT';
+  }
+  return {assistantText,assistantTextSource,responseFormat,eventKinds:[...new Set(events.map(event=>event.kind))]};
 }
 
 export function checkAttestation(a, accountId, now = Date.now()) {
@@ -151,7 +208,7 @@ where u.id='${accountId}';
 
 export async function run(env = process.env, argv = process.argv.slice(2)) {
   const config = configuration(env, argv);
-  if (!config.execute) return { result: 'DRY_RUN_NO_IO', ...config, maxReservationMicrousd: RUN_CAP_MICROUSD,
+  if (!config.execute) return { result: 'DRY_RUN_NO_IO', ...config, maxReservationMicrousd: config.runReservationCapMicrousd,
     maxLogicalRequests: config.maxAttempts, maxProviderAttempts: config.maxAttempts * config.providerAttemptsPerRequest,
     cases: config.names.map(name => ({ name, ...CASES[name] })),
     note: config.toolRun
@@ -169,7 +226,7 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
   };
   const report = { schema: 'USKOCI_TAXONOMY_QA_V1', sourceSha: env.USKOCI_QA_SOURCE_SHA,
     phase: config.phase, target: TARGET, accountId: config.accountId, startedAt: new Date().toISOString(),
-    isolation: attestation, attemptCeiling: config.maxAttempts, reservationCeilingMicrousd: RUN_CAP_MICROUSD,
+    isolation: attestation, attemptCeiling: config.maxAttempts, reservationCeilingMicrousd: config.runReservationCapMicrousd,
     reservationPerAttemptMicrousd: RESERVATION_MICROUSD, attemptedProviderRequests: config.toolRun ? null : 0,
     attemptedLogicalRequests: 0, providerAttemptsPerRequest: config.providerAttemptsPerRequest,
     providerAttemptUpperBound: 0, providerAttemptsObserved: null,
@@ -215,7 +272,7 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
   }
   async function turn(flow, cid, text) {
     const requestReservation = RESERVATION_MICROUSD * config.providerAttemptsPerRequest;
-    assert(report.attemptedLogicalRequests < config.maxAttempts && report.conservativeReservationMicrousd + requestReservation <= RUN_CAP_MICROUSD, 'RUN_BUDGET_EXHAUSTED');
+    assert(report.attemptedLogicalRequests < config.maxAttempts && report.conservativeReservationMicrousd + requestReservation <= config.runReservationCapMicrousd, 'RUN_BUDGET_EXHAUSTED');
     const attempt = { conversationId: cid, clientRequestId: randomUUID(), flow, text,
       at: new Date().toISOString(), outcome: 'ATTEMPTED_UNKNOWN_NO_RETRY' };
     attempt.expectedProviderOperations = expectedProviderOperations(config.accountId,cid,attempt.clientRequestId,config.providerAttemptsPerRequest);
@@ -227,18 +284,21 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
     try {
       const response = await api('/functions/v1/' + (flow === 'worker' ? 'uskoci-worker-interview' : 'uskoci-ai-interview'),
         { conversationId: cid, clientRequestId: attempt.clientRequestId, text });
-      const events = response.raw.split(/\r?\n/).filter(line => line.startsWith('data:')).map(line => {
-        try { return JSON.parse(line.slice(5).trim()); } catch { return null; }
-      }).filter(Boolean);
-      assert(events.every(event => (!event.conversationId || same(event.conversationId, cid)) &&
-        (!event.clientRequestId || same(event.clientRequestId, attempt.clientRequestId))), 'SSE_IDENTITY_MISMATCH');
-      attempt.assistantText = events.filter(x => x.kind === 'text_delta').map(x => x.text ?? '').join('');
-      attempt.eventKinds = [...new Set(events.map(x => x.kind))];
       const snapshot = flow === 'worker'
         ? await rpc('rpc_read_worker_ai_taxonomy', { p_conversation_id: cid })
         : await rpc('rpc_ai_read_need_turn_v2', { p_conversation_id: cid, p_client_request_id: attempt.clientRequestId });
       const currentTurn = flow === 'worker' ? snapshot?.turn : snapshot;
       assert(same(currentTurn?.conversationId, cid) && same(currentTurn?.clientRequestId, attempt.clientRequestId) && currentTurn.state === 'SUCCEEDED', 'TURN_NOT_CONFIRMED_STOP_NO_RETRY');
+      const identity={accountId:config.accountId,conversationId:cid,clientRequestId:attempt.clientRequestId};
+      let evidence=confirmedAssistantEvidence(response,identity,currentTurn,null,flow==='worker'?snapshot:null);
+      if (!evidence.assistantText && flow==='need') {
+        const messageId=currentTurn.receipt?.assistantMessageId;
+        assert(UUID.test(messageId) && currentTurn.receipt?.authoritative === true, 'ASSISTANT_MESSAGE_RECEIPT_INVALID');
+        const rows=(await api(`/rest/v1/ai_messages?id=eq.${messageId}&account_id=eq.${config.accountId}&conversation_id=eq.${cid}&role=eq.ASSISTANT&select=id,account_id,conversation_id,role,body&limit=2`)).value;
+        evidence=confirmedAssistantEvidence(response,identity,currentTurn,rows);
+      }
+      assert(evidence.assistantText.length>0,'CONFIRMED_ASSISTANT_TEXT_UNAVAILABLE');
+      Object.assign(attempt,evidence);
       attempt.outcome = 'OWNED_SUCCEEDED_READBACK'; persist(); return snapshot;
     } catch (error) { attempt.failure = error.message; persist(); throw error; }
     finally { attempt.elapsedMs = Date.now() - startedAt; persist(); }

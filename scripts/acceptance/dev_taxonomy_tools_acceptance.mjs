@@ -6,12 +6,12 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { run as runAcceptance, configuration } from './dev_taxonomy_fulltree_acceptance.mjs';
 
-const allowed = new Set(['need-existing-tools','worker-existing-tools','need-novel-tools']);
+const allowed = new Set(['need-existing-tools','worker-existing-tools','need-novel-tools','need-rare-tools']);
 export function toolsConfiguration(env = process.env, argv = process.argv.slice(2)) {
   if (argv.some(arg => !['--execute','--phase=conversation'].includes(arg)) || env.USKOCI_QA_SAVE_CASES || env.USKOCI_QA_PREPARED_REPORT)
     throw new Error('TOOLS_CONVERSATION_ONLY_NO_SAVE');
   const names = (env.USKOCI_QA_CASES ?? 'need-existing-tools,worker-existing-tools').split(',');
-  if (names.length < 2 || names.length > 3 || names.some(name => !allowed.has(name))) throw new Error('TOOLS_CASES_REQUIRED');
+  if (names.length < 1 || names.length > 3 || names.some(name => !allowed.has(name))) throw new Error('TOOLS_CASES_REQUIRED');
   const maxAttempts = Number(env.USKOCI_QA_MAX_ATTEMPTS ?? 3);
   if (!Number.isInteger(maxAttempts) || maxAttempts < names.length || maxAttempts > 3) throw new Error('MAX_3_LOGICAL_REQUESTS');
   const scoped = {...env,USKOCI_QA_CASES:names.join(','),USKOCI_QA_MAX_ATTEMPTS:String(maxAttempts),

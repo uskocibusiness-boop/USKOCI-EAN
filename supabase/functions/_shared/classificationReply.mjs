@@ -8,7 +8,9 @@ export function withClassificationFeedback(turn, feedback, { finishOnly = false,
   const next = questions.length ? questions.join(' ') : feedback.notice;
   if (!next) return turn;
   let assistantMessage = turn.assistantMessage;
-  if (finishOnly) assistantMessage = next;
+  // A rejected REVIEW transition cannot retain the model's invitation to
+  // publish. Facts remain in the live draft; the server's actionable state wins.
+  if (finishOnly || turn.dialogue?.next === 'REVIEW') assistantMessage = next;
   // Existing substantive questions stay first. On an ordinary answer, add the
   // missing question or honest processing state without restarting the intake.
   else if (!(feedback.state === 'ASK_USER' && assistantMessage.includes('?')) &&

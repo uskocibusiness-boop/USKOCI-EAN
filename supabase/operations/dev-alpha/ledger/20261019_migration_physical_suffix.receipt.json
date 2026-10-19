@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "project": "leqcwgzvjsxugfgzdmth",
   "observedAtUtc": "2026-10-19T07:50:49.776518+00:00",
-  "scope": "Two added physical source files mapped to observed applied DEV ledger records. Existing catalog evidence is inherited with its original observation scope; no full-catalog refresh is claimed.",
+  "scope": "Applied physical source files mapped to dated read-only DEV ledger records. Existing catalog evidence retains its original observation scope; no full-catalog refresh is claimed.",
   "previousEvidence": "docs/current/evidence/DEV_RELIABILITY_APPLICATION_20261018.json",
   "newReadOnlyObservation": [
     {
@@ -20,6 +20,15 @@
       "joined_md5": "9568c4e920406bcb7b356fa77f752790",
       "joined_sha256": "91ccab5c1338a5c89ea42f26b61552d195c4f857af2faab3c9e5b0457ee2cf01",
       "joined_bytes": 50936
+    },
+    {
+      "version": "20261019092405",
+      "name": "taxonomy_query_catalog_service",
+      "statement_count": 1,
+      "joined_md5": "46cc782f7f03fe5726ee4382f8ba14ed",
+      "joined_sha256": "d163becc19aa77f76e131f0f162f0b8fa9dbedb01b023ddd18f2e366755d71e4",
+      "joined_bytes": 15050,
+      "observedAtUtc": "2026-10-19T09:25:50.014443+00:00"
     }
   ],
   "liveMigrationCatalogHashes": [
@@ -2054,6 +2063,14 @@
       "joined_md5": "9568c4e920406bcb7b356fa77f752790",
       "joined_sha256": "91ccab5c1338a5c89ea42f26b61552d195c4f857af2faab3c9e5b0457ee2cf01",
       "joined_bytes": 50936
+    },
+    {
+      "version": "20261019092405",
+      "name": "taxonomy_query_catalog_service",
+      "statement_count": 1,
+      "joined_md5": "46cc782f7f03fe5726ee4382f8ba14ed",
+      "joined_sha256": "d163becc19aa77f76e131f0f162f0b8fa9dbedb01b023ddd18f2e366755d71e4",
+      "joined_bytes": 15050
     }
   ],
   "sourceMappings": [
@@ -2084,8 +2101,27 @@
       "raw_md5": "d42d50aed1df7874c36e2df295e2ba51",
       "raw_sha256": "69983a6b41740f4a5c09112f3dd29cc84cbbeeb9b356b5077fd4e437d179e991",
       "raw_bytes": 50934
+    },
+    {
+      "file": "20261019085714_taxonomy_query_catalog_service.sql",
+      "version": "20261019085714",
+      "name": "taxonomy_query_catalog_service",
+      "classification": "APPLIED_EXACT_LEDGER_BYTES",
+      "live_applied": true,
+      "preparation_status": "APPLIED_EXACT_LEDGER_BYTES",
+      "note": "Exact source bytes observed in DEV ledger 20261019092405. Standalone PG16/17 passed. This does not assert final live AI journey or native acceptance.",
+      "proof_manifest": "supabase/proofs/dynamic_taxonomy/catalog-query/manifest.json",
+      "raw_md5": "46cc782f7f03fe5726ee4382f8ba14ed",
+      "raw_sha256": "d163becc19aa77f76e131f0f162f0b8fa9dbedb01b023ddd18f2e366755d71e4",
+      "raw_bytes": 15050,
+      "live_version": "20261019092405",
+      "live_name": "taxonomy_query_catalog_service",
+      "live_recorded_md5": "46cc782f7f03fe5726ee4382f8ba14ed",
+      "live_recorded_sha256": "d163becc19aa77f76e131f0f162f0b8fa9dbedb01b023ddd18f2e366755d71e4",
+      "applied_evidence": "supabase/proofs/dynamic_taxonomy/catalog-query/applied-dev.receipt.json"
     }
   ],
   "functionReadbackEvidence": "docs/current/evidence/AI_FULL_TREE_DEV_20261019.json",
-  "bytesCaveat": "Source 20261019071732 has 50934 bytes; recorded live version 20261019074443 has 50936. Recorded bytes differ. Function body equality is separate evidence and does not turn raw files into byte-equivalent migrations."
+  "bytesCaveat": "Source 20261019071732 has 50934 bytes; recorded live version 20261019074443 has 50936. Recorded bytes differ. Function body equality is separate evidence and does not turn raw files into byte-equivalent migrations.",
+  "extendedAtUtc": "2026-10-19T09:25:50.014443+00:00"
 }

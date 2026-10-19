@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "project": "leqcwgzvjsxugfgzdmth",
+  "observedAtUtc": "2026-10-19T09:25:50.014443+00:00",
+  "status": "APPLIED_EXACT_LEDGER_BYTES",
+  "sourceFile": "supabase/migrations/20261019085714_taxonomy_query_catalog_service.sql",
+  "ledger": {
+    "version": "20261019092405",
+    "name": "taxonomy_query_catalog_service",
+    "statement_count": 1,
+    "joined_md5": "46cc782f7f03fe5726ee4382f8ba14ed",
+    "joined_sha256": "d163becc19aa77f76e131f0f162f0b8fa9dbedb01b023ddd18f2e366755d71e4",
+    "joined_bytes": 15050
+  },
+  "function": {
+    "signature": "public.rpc_taxonomy_query_catalog_service(jsonb)",
+    "definition_md5": "0ee1acaf61b8fdc2f0ae63cf46c86399",
+    "body_md5": "8802eac005d05f406d15249d2f491f67",
+    "owner": "postgres",
+    "securityDefiner": false,
+    "volatility": "s",
+    "config": [
+      "search_path=pg_catalog",
+      "statement_timeout=5s"
+    ],
+    "anonExecute": false,
+    "authenticatedExecute": false,
+    "serviceExecute": true
+  },
+  "ci": {
+    "runId": "39229634304",
+    "sourceCommit": "e105d3bff506515cbced3d3307146c30b43e0728",
+    "postgres": [
+      16,
+      17
+    ],
+    "result": "PASS",
+    "scope": "standalone catalog query, authority, exact dependency preservation, rollback and reapplication"
+  },
+  "evidenceBoundary": "Read-only ledger bytes and function metadata reobserved. Does not claim final live AI journey or native UI acceptance; those checks are still in progress."
+}

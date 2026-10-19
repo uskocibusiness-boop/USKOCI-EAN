@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { withClassificationFeedback } from '../../functions/_shared/classificationReply.mjs';
+
+test('unverified ordinary REVIEW cannot invite publication while facts remain intact',()=>{
+  const facts=[{key:'need.category',value:'Restauracija muzičkih kutija'}];
+  const input={assistantMessage:'Sve je spremno. Otvori pregled i objavi.',safety:'ALLOW',facts,dialogue:{next:'REVIEW',questionKey:''}};
+  const next=withClassificationFeedback(input,{state:'RETRY',canOfferReview:false,questions:[],notice:'Podaci ostaju u nacrtu; povezivanje usluge još nije provereno.'});
+  assert.equal(next.assistantMessage,'Podaci ostaju u nacrtu; povezivanje usluge još nije provereno.');
+  assert.equal(next.facts,facts);assert.equal(next.dialogue.next,'ACK');
+});
 const turn={safety:'ALLOW',assistantMessage:'Izrada kod izvršioca uz dostavu može biti na daljinu.',
   proposals:[{key:'need.category',value:'3D štampa'}],dialogue:{next:'ANSWER',questionKey:''}};
 const feedback={state:'ASK_USER',canOfferReview:false,questions:['Kakav rezultat želiš?'],notice:'Još je nacrt.'};

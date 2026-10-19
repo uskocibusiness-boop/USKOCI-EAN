@@ -3,7 +3,7 @@
   "physical_suffix_readmission_20261018": {
     "observed_at_utc": "2026-10-18T20:15:41.065022+00:00",
     "project": "leqcwgzvjsxugfgzdmth",
-    "scope": "Physical SQL suffix only. Frozen historical replay remains unchanged. Current live bindings come from dated read-only catalog hash evidence; differing bytes are NOT certified equivalent or safe to replay. The 2026-10-19 supplement adds two source/ledger mappings without refreshing older observations.",
+    "scope": "Physical SQL suffix only. Frozen historical replay remains unchanged. Current live bindings come from dated read-only catalog hash evidence; differing bytes are NOT certified equivalent or safe to replay. Dated supplements add explicit source/ledger mappings without refreshing older observations.",
     "evidence": "supabase/operations/dev-alpha/ledger/20261019_migration_physical_suffix.receipt.json",
     "entries": [
       {
@@ -312,17 +312,22 @@
         "file": "20261019085714_taxonomy_query_catalog_service.sql",
         "version": "20261019085714",
         "name": "taxonomy_query_catalog_service",
-        "classification": "SOURCE_ONLY_LIVE_BINDING_UNPROVEN",
-        "live_applied": null,
-        "preparation_status": "PREPARED_NOT_APPLIED",
-        "note": "Explicitly prepared forward source only. No DEV application or live ledger version has been observed. The nullable live_applied field preserves the existing source-only provenance schema; it is not a claim of application. Standalone PG16/17 proof is tracked separately.",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "preparation_status": "APPLIED_EXACT_LEDGER_BYTES",
+        "note": "Exact source bytes observed in DEV ledger 20261019092405. Standalone PG16/17 passed. This does not assert final live AI journey or native acceptance.",
         "proof_manifest": "supabase/proofs/dynamic_taxonomy/catalog-query/manifest.json",
         "raw_md5": "46cc782f7f03fe5726ee4382f8ba14ed",
         "raw_sha256": "d163becc19aa77f76e131f0f162f0b8fa9dbedb01b023ddd18f2e366755d71e4",
-        "raw_bytes": 15050
+        "raw_bytes": 15050,
+        "live_version": "20261019092405",
+        "live_name": "taxonomy_query_catalog_service",
+        "live_recorded_md5": "46cc782f7f03fe5726ee4382f8ba14ed",
+        "live_recorded_sha256": "d163becc19aa77f76e131f0f162f0b8fa9dbedb01b023ddd18f2e366755d71e4",
+        "applied_evidence": "supabase/proofs/dynamic_taxonomy/catalog-query/applied-dev.receipt.json"
       }
     ],
-    "last_extended_at_utc": "2026-10-19T09:21:54.321853+00:00"
+    "last_extended_at_utc": "2026-10-19T09:25:50.014443+00:00"
   },
   "generated_at_utc": "2026-09-07T14:04:10Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",

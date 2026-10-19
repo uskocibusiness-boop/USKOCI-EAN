@@ -1,5 +1,5 @@
 {
-  "status": "PREPARED_SQL_EXECUTION_PENDING_CI_NOT_APPLIED",
+  "status": "APPLIED_EXACT_LEDGER_BYTES_PG16_17_PROVEN",
   "createdAt": "2026-10-19T09:05:38.485Z",
   "rpc": "public.rpc_taxonomy_query_catalog_service(jsonb)",
   "operations": [
@@ -19,14 +19,24 @@
   ],
   "files": [
     {
+      "path": ".github/workflows/taxonomy-catalog-query-pg-proof.yml",
+      "bytes": 2511,
+      "sha256": "4b2b4c0833f21894a3634b905ed4f2fbac66de88aab4d1542b092747710350f1"
+    },
+    {
       "path": "supabase/migrations/20261019085714_taxonomy_query_catalog_service.sql",
       "bytes": 15050,
       "sha256": "d163becc19aa77f76e131f0f162f0b8fa9dbedb01b023ddd18f2e366755d71e4"
     },
     {
-      "path": ".github/workflows/taxonomy-catalog-query-pg-proof.yml",
-      "bytes": 2511,
-      "sha256": "4b2b4c0833f21894a3634b905ed4f2fbac66de88aab4d1542b092747710350f1"
+      "path": "supabase/proofs/dynamic_taxonomy/catalog-query/README.md",
+      "bytes": 5550,
+      "sha256": "10bb1ab8e0e4232fa6eab9dddc54807ca3b0b267b76945a3c6a3e5498b3f7df0"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/catalog-query/applied-dev.receipt.json",
+      "bytes": 1454,
+      "sha256": "f04cfb6a980a18af56071053652c937935adb58fbd5f554293d01ed97540cac9"
     },
     {
       "path": "supabase/proofs/dynamic_taxonomy/catalog-query/assert-before.sql",
@@ -54,14 +64,20 @@
       "sha256": "0e8867e6dafd4e1657ca16fd0f93905c516ede4ef2b096bee3678d6d7f9bb605"
     },
     {
-      "path": "supabase/proofs/dynamic_taxonomy/catalog-query/README.md",
-      "bytes": 5550,
-      "sha256": "10bb1ab8e0e4232fa6eab9dddc54807ca3b0b267b76945a3c6a3e5498b3f7df0"
-    },
-    {
       "path": "supabase/proofs/dynamic_taxonomy/catalog-query/revert.sql",
       "bytes": 425,
       "sha256": "19f5fcef33ef4db4051ec4dce17ee1f8fef7054217fc59b7a5f68e3d046f1f2d"
     }
-  ]
+  ],
+  "applicationReceipt": "supabase/proofs/dynamic_taxonomy/catalog-query/applied-dev.receipt.json",
+  "ci": {
+    "runId": "39229634304",
+    "sourceCommit": "e105d3bff506515cbced3d3307146c30b43e0728",
+    "postgres": [
+      16,
+      17
+    ],
+    "result": "PASS",
+    "scope": "standalone catalog query, authority, exact dependency preservation, rollback and reapplication"
+  }
 }
