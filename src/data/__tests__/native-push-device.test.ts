@@ -37,3 +37,31 @@ it('a provider failure after the scope changed still reports the changed scope',
  let current = true; mockPermissions.mockResolvedValue({ granted: true }); mockToken.mockImplementation(async () => { current = false; throw new Error('late'); });
  await expect(nativePushDevice(false, () => current)).rejects.toThrow('PUSH_SCOPE_CHANGED');
 });
+it('only the OS dialog pauses the caller deadline, and token work resumes it first', async () => {
+ let answer!: (value: unknown) => void;
+ mockRequest.mockReturnValue(new Promise(resolve => { answer = resolve; }));
+ const waiting = jest.fn();
+ const result = nativePushDevice(true, () => true, waiting);
+ for (let i = 0; i < 8; i++) await Promise.resolve();
+ expect(waiting.mock.calls).toEqual([[true]]); expect(mockToken).not.toHaveBeenCalled();
+ answer({ granted: true, canAskAgain: true });
+ await expect(result).resolves.toMatchObject({ kind: 'READY' });
+ expect(waiting.mock.calls).toEqual([[true], [false]]);
+ expect(waiting.mock.invocationCallOrder[1]).toBeLessThan(mockToken.mock.invocationCallOrder[0]);
+});
+it('a rejected permission dialog releases the pause and never obtains a token', async () => {
+ mockRequest.mockRejectedValue(Error('native dialog unavailable')); const waiting = jest.fn();
+ await expect(nativePushDevice(true, () => true, waiting)).rejects.toThrow('native dialog unavailable');
+ expect(waiting.mock.calls).toEqual([[true], [false]]); expect(mockToken).not.toHaveBeenCalled();
+});
+it('scope revoked during the OS dialog releases the pause but cannot obtain a token', async () => {
+ let current = true; const waiting = jest.fn();
+ mockRequest.mockImplementation(async () => { current = false; return { granted: true }; });
+ await expect(nativePushDevice(true, () => current, waiting)).rejects.toThrow('PUSH_SCOPE_CHANGED');
+ expect(waiting.mock.calls).toEqual([[true], [false]]); expect(mockToken).not.toHaveBeenCalled();
+});
+it('an already granted read never enters a human-wait pause', async () => {
+ mockPermissions.mockResolvedValue({ granted: true }); const waiting = jest.fn();
+ await expect(nativePushDevice(true, () => true, waiting)).resolves.toMatchObject({ kind: 'READY' });
+ expect(waiting).not.toHaveBeenCalled(); expect(mockRequest).not.toHaveBeenCalled();
+});

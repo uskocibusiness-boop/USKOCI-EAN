@@ -508,12 +508,12 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {sendReason && voiceIdle && !p.status && !(p.pending && p.busy) ? <T testID="ai-send-reason" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
           variant="note" tone="muted" style={s.reason}>{sendReason}</T> : null}
         {p.voice ? <View style={s.inputPreferences}>
-          <Press testID="ai-input-mode" accessibilityRole="button" accessibilityLabel={voiceMode ? 'Pređi na tastaturu' : 'Pređi na govor'}
-            accessibilityHint={modeBlocked ? modeReason : hasText && voiceMode ? 'Neposlata poruka je sačuvana.' : undefined}
+          {!voiceMode ? <Press testID="ai-input-mode" accessibilityRole="button" accessibilityLabel="Pređi na govor"
+            accessibilityHint={modeBlocked ? modeReason : undefined}
             accessibilityState={{ disabled: modeBlocked }} disabled={modeBlocked} haptic="select"
-            onPress={() => chooseInput(voiceMode ? 'keyboard' : 'voice', voiceMode)} style={s.preference}>
-            <T variant="note" style={s.preferenceText}>{voiceMode ? hasText ? 'Tastatura · nacrt' : 'Tastatura' : 'Govor'}</T>
-          </Press>
+            onPress={() => chooseInput('voice')} style={s.preference}>
+            <Glyph name="mic" size={18} /><T variant="note" style={s.preferenceText}>Govor</T>
+          </Press> : null}
           <Press testID="ai-voice-review" accessibilityRole="checkbox" accessibilityLabel="Pregledaj pre slanja"
             accessibilityState={{ checked: reader || reviewFirst, disabled: modeBlocked || reader }} disabled={modeBlocked || reader}
             accessibilityHint={reader ? 'Uz čitač ekrana tekst se uvek pregleda pre slanja.' : modeBlocked ? modeReason : 'Važi za govor, sa držanjem i bez držanja.'}
@@ -521,6 +521,13 @@ export function AiConversationShell(p: AiConversationShellProps) {
             <View style={[s.reviewBox, (reader || reviewFirst) && s.reviewBoxOn]}>{reader || reviewFirst ? <Glyph name="check" size={14} tone="onGreen" /> : null}</View>
             <T variant="note" style={s.preferenceText}>Pregledaj pre slanja</T>
           </Press>
+          {voiceMode && !reader ? <Press testID="ai-voice-gesture" accessibilityRole="button"
+            accessibilityLabel={tapToTalk ? 'Koristi držanje mikrofona' : 'Govori bez držanja'}
+            accessibilityHint={modeBlocked ? modeReason : 'Menja gest. Izbor pregleda pre slanja ostaje isti.'}
+            accessibilityState={{ disabled: modeBlocked }} disabled={modeBlocked} haptic="select" style={s.gestureChoice}
+            onPress={() => { if (canSwitch()) { setTapToTalk(value => !value); setHoldHint(false); } }}>
+            <T variant="note" tone="green">{tapToTalk ? 'Koristi držanje' : 'Bez držanja'}</T>
+          </Press> : null}
         </View> : null}
         <View testID="ai-composer" onLayout={event => {
           const width = event.nativeEvent.layout.width;
@@ -533,19 +540,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
               hitSlop={0} onPress={p.attach.onPress} style={s.target}>
               <View style={s.toolCircle}><Glyph name="plus" size={24} tone={p.attach.disabled ? 'muted' : 'ink'} /></View>
             </Press>
-          </View> : null}
-          {voiceMode ? <View style={s.voicePrompt}>
-            <T variant="body" style={s.preferenceText}>{reader || tapToTalk ? 'Dodirni i govori' : 'Drži i govori'}</T>
-            {hasText ? <T testID="ai-retained-draft" variant="note" tone="muted">Neposlata poruka je sačuvana.</T>
-              : voiceIdle ? <T variant="note" tone="muted">{reader || reviewFirst ? 'Tekst pregledaš pre slanja.' : tapToTalk ? 'Dodirni ponovo da pošalješ.' : 'Pusti da pošalješ.'}</T> : null}
-            {!reader ? <Press testID="ai-voice-gesture" accessibilityRole="button"
-              accessibilityLabel={tapToTalk ? 'Koristi držanje mikrofona' : 'Govori bez držanja'}
-              accessibilityHint={modeBlocked ? modeReason : 'Menja gest. Izbor pregleda pre slanja ostaje isti.'}
-              accessibilityState={{ disabled: modeBlocked }} disabled={modeBlocked} haptic="select" style={s.gestureChoice}
-              onPress={() => { if (canSwitch()) { setTapToTalk(value => !value); setHoldHint(false); } }}>
-              <T variant="note" tone="green">{tapToTalk ? 'Koristi držanje' : 'Bez držanja'}</T>
-            </Press> : null}
-          </View> : <TextInput ref={input} accessibilityLabel="Poruka za asistenta" value={p.value} editable={p.canEdit && voiceIdle}
+          </View> : voiceMode ? <View style={s.attachmentSlot} /> : null}
+          {voiceMode ? null : <TextInput ref={input} accessibilityLabel="Poruka za asistenta" value={p.value} editable={p.canEdit && voiceIdle}
             onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
             onChangeText={text => { if (!p.canEdit || !canSwitch()) return; setHoldHint(false); p.onChange(text); }}
             placeholder={p.placeholder ?? 'Napiši poruku'} placeholderTextColor={sys.color.muted} multiline maxLength={4000}
@@ -559,7 +555,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
             }}
             // A field that cannot be edited now says so in its ink: the words in it are held, not a draft to change.
             style={[s.input, { height: inputHeight }, stackedComposer && s.inputExpanded, !p.canEdit && s.inputOff]} />}
-          <View testID="ai-composer-tools" style={[s.composerTools, !voiceMode && stackedComposer && s.toolsBelow]}>
+          <View testID="ai-composer-tools" style={[s.composerTools, voiceMode && s.voiceTools, !voiceMode && stackedComposer && s.toolsBelow]}>
             {p.voice ? <VoiceComposer {...p.voice} size={voiceMode ? 60 : 52} tapToTalk={tapToTalk} reviewFirst={reviewFirst} onTooShort={() => setHoldHint(true)} /> : null}
           {sendShown ? <Press testID="ai-send" accessibilityRole="button" accessibilityLabel={p.pending ? 'Pošalji ponovo' : 'Pošalji poruku'}
             accessibilityHint={sendReason ?? undefined} accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend}
@@ -568,7 +564,17 @@ export function AiConversationShell(p: AiConversationShellProps) {
               <Glyph name="send" size={24} on tone={p.canSend ? 'onGreen' : 'muted'} /></View>
           </Press> : null}
           </View>
+          {voiceMode ? <Press testID="ai-input-mode" accessibilityRole="button" accessibilityLabel="Pređi na tastaturu"
+            accessibilityHint={modeBlocked ? modeReason : hasText ? 'Neposlata poruka je sačuvana.' : 'Napiši poruku umesto govora.'}
+            accessibilityState={{ disabled: modeBlocked }} disabled={modeBlocked} haptic="select" style={s.target}
+            onPress={() => chooseInput('keyboard', true)}>
+            <Glyph name="keyboard" size={26} tone={modeBlocked ? 'muted' : 'ink'} />
+          </Press> : null}
         </View>
+        {voiceMode && voiceIdle ? <T testID={hasText ? 'ai-retained-draft' : 'ai-voice-instruction'} variant="note" tone="muted" style={s.voicePrompt}>
+          {hasText ? 'Neposlata poruka čeka u tastaturi.' : reader || tapToTalk ? 'Dodirni za početak i kraj govora.'
+            : reviewFirst ? 'Drži za govor, pusti za pregled.' : 'Drži za govor, pusti za slanje.'}
+        </T> : null}
         </>}
       </SafeAreaView>}
     </KeyboardAvoidingView>
@@ -690,7 +696,8 @@ const s = StyleSheet.create({
   preferenceText: { flexShrink: 1, color: sys.color.ink },
   reviewBox: { width: 20, height: 20, borderRadius: sys.radius.check, borderWidth: 1, borderColor: sys.color.muted, alignItems: 'center', justifyContent: 'center' },
   reviewBoxOn: { borderColor: sys.color.green, backgroundColor: sys.color.green },
-  voicePrompt: { flex: 1, minWidth: 0, paddingHorizontal: sys.space.sm, paddingTop: sys.space.sm },
+  voicePrompt: { textAlign: 'center', paddingHorizontal: sys.space.sm },
+  voiceTools: { flex: 1, justifyContent: 'center' },
   gestureChoice: { minHeight: sys.touch.min, justifyContent: 'center', alignSelf: 'flex-start' },
   // One ordinary horizontal pill; only a wrapped draft or limited reading space moves tools below.
   pill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 6,

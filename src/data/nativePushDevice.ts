@@ -4,9 +4,11 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import type { PushPlatform } from './pushDeviceClientService';
 export type NativePushState = { kind: 'READY'; token: string; platform: PushPlatform } | { kind: 'UNSUPPORTED' | 'UNCONFIGURED' | 'PERMISSION_REQUIRED' | 'DENIED' };
+/** Only the OS consent dialog waits for a person; channel/token work does not. */
+export type PushPermissionWait = (waiting: boolean) => void | Promise<void>;
 
 /** Called from explicit notification settings. Opening/reading never prompts. */
-export async function nativePushDevice(requestPermission: boolean, current: () => boolean): Promise<NativePushState> {
+export async function nativePushDevice(requestPermission: boolean, current: () => boolean, permissionWait?: PushPermissionWait): Promise<NativePushState> {
  const platform = Platform.OS === 'ios' ? 'IOS' : Platform.OS === 'android' ? 'ANDROID' : null;
  if (!platform || !Device.isDevice) return { kind: 'UNSUPPORTED' };
  const projectId = Constants.easConfig?.projectId ?? Constants.expoConfig?.extra?.eas?.projectId;
@@ -20,7 +22,12 @@ export async function nativePushDevice(requestPermission: boolean, current: () =
   check();
  }
  let permission = await Notifications.getPermissionsAsync(); check();
- if (!permission.granted && requestPermission && permission.canAskAgain) { permission = await Notifications.requestPermissionsAsync(); check(); }
+ if (!permission.granted && requestPermission && permission.canAskAgain) {
+  permissionWait?.(true);
+  try { permission = await Notifications.requestPermissionsAsync(); }
+  finally { await permissionWait?.(false); }
+  check();
+ }
  if (!permission.granted) return { kind: permission.canAskAgain ? 'PERMISSION_REQUIRED' : 'DENIED' };
  // A build without an initialised push provider (the preview APK keeps Firebase enrollment off; the phone logs
  // "FirebaseApp has not been initialized") rejects here. That means push is not available in this build, and it must not

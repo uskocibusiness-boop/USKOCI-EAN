@@ -117,7 +117,7 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
     onPress={explicit ? () => gesture.current ? release() : begin() : undefined}
     onResponderMove={explicit ? undefined : event => { if (gesture.current && startY.current - event.nativeEvent.pageY > 70) cancel(); }}
     style={[s.target, { width: targetSize, height: targetSize }]}>
-    <View style={[s.micCircle, { width: targetSize - 4, height: targetSize - 4 }, listening && s.micListening, waiting && s.micWaiting]}>
+    <View style={[s.micCircle, { width: targetSize - 4, height: targetSize - 4 }, targetSize === 60 && s.micPrimary, listening && s.micListening, waiting && s.micWaiting]}>
       {waiting ? reduced
         ? <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
             <HourglassMedium size={glyphSize} color={sys.color.artRole.ai.front} />
@@ -182,6 +182,7 @@ const s = StyleSheet.create({
   // The composer's controls: a 48 px target, a 44 px circle inside it.
   target: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   micCircle: { width: 44, height: 44, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
+  micPrimary: { backgroundColor: sys.color.artRole.ai.soft },
   micListening: { backgroundColor: sys.color.ink },
   micWaiting: { backgroundColor: sys.color.wash },
   notice: { gap: 4, paddingHorizontal: 8 },

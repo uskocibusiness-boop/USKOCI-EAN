@@ -4,7 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import type { AuthAccountScope } from '../../contracts/auth';
 import type { NotificationPreferences, NotificationRole, NotificationSettings } from '../../contracts/notificationPreferences';
 import { notificationPreferencesClientService } from '../../data/notificationPreferencesClientService';
-import { nativePushDevice, type NativePushState } from '../../data/nativePushDevice';
+import { nativePushDevice, type NativePushState, type PushPermissionWait } from '../../data/nativePushDevice';
 import { pushDeviceClientService, type PushDevice } from '../../data/pushDeviceClientService';
 import { pushReadinessClientService, type PushReadiness } from '../../data/pushReadinessClientService';
 import { sesijaSada, useSesija } from '../../store/sesija';
@@ -38,7 +38,8 @@ import { urgentBuilt } from '../../lib/needUrgency';
 export type Roles<V> = Record<NotificationRole, V>;
 const ROLES: readonly NotificationRole[] = ['REQUESTER', 'WORKER'];
 type Snapshot = { preferences: Roles<NotificationPreferences>; native: NativePushState; device: PushDevice | null; readiness: PushReadiness | null };
-type Scope = AuthAccountScope & { alive: boolean; busy: boolean; generation: number };
+type Scope = AuthAccountScope & { alive: boolean; busy: boolean; generation: number; foreground: boolean;
+ permissionPending?: boolean; resumePermission?: () => void; cancelPending?: () => void };
 type Draft = { owner: Scope; settings: Roles<NotificationSettings> };
 const SETTING_KEYS: (keyof NotificationSettings)[] = [
  'in_app_enabled', 'push_enabled', 'opportunities_enabled', 'responses_enabled', 'dogovor_enabled', 'execution_enabled',
@@ -112,16 +113,49 @@ export function PushPreferences({ onDirtyChange, onWritingChange }: {
  const current = (scope: Scope, generation: number) => scopeRef.current === scope && scope.alive && scope.generation === generation
   && sesijaSada().user?.id === scope.accountId && sesijaSada().accountRevision === scope.accountRevision
   && renderedOwner.current.accountId === scope.accountId && renderedOwner.current.accountRevision === scope.accountRevision;
- async function bounded<T>(task: Promise<T>, scope: Scope): Promise<T> {
+ async function bounded<T>(work: (permissionWait: PushPermissionWait) => Promise<T>, scope: Scope): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  try { return await Promise.race([task, new Promise<never>((_, reject) => { timer = setTimeout(() => { scope.generation++; reject(Error('TIMEOUT')); }, 15000); })]); }
-  finally { if (timer) clearTimeout(timer); }
+  let remaining = 15000, startedAt = Date.now(), waiting = false, settled = false, retired = false;
+  let rejectPending!: (error: Error) => void;
+  const cancelled = new Promise<never>((_, reject) => { rejectPending = reject; });
+  const stop = (code: string) => {
+   if (settled || retired) return;
+   retired = true; if (timer !== undefined) clearTimeout(timer);
+   scope.generation++; scope.resumePermission?.(); rejectPending(Error(code));
+  };
+  const cancel = () => stop('STALE');
+  const arm = () => { startedAt = Date.now(); timer = setTimeout(() => stop('TIMEOUT'), remaining); };
+  const permissionWait: PushPermissionWait = next => {
+   if (settled || retired || waiting === next) return;
+   if (next) {
+    waiting = true; scope.permissionPending = true;
+    if (timer !== undefined) clearTimeout(timer);
+    timer = undefined; remaining = Math.max(0, remaining - (Date.now() - startedAt));
+   } else {
+    const resume = () => { waiting = false; scope.permissionPending = false;
+     scope.resumePermission = undefined; if (!settled && !retired) arm(); };
+    // Android may report a temporary system Activity as background. The OS
+    // result can arrive before the foreground event: never register from there.
+    if (!scope.foreground) return new Promise<void>(resolve => {
+     scope.resumePermission = () => { resume(); resolve(); };
+    });
+    resume();
+   }
+  };
+  scope.cancelPending = cancel; arm();
+  try { return await Promise.race([work(permissionWait), cancelled]); }
+  finally {
+   settled = true; if (timer !== undefined) clearTimeout(timer);
+   scope.resumePermission?.(); scope.permissionPending = false;
+   if (scope.cancelPending === cancel) scope.cancelPending = undefined;
+  }
  }
- async function read(scope: Scope, generation: number, ask: boolean): Promise<Snapshot> {
+ async function read(scope: Scope, generation: number, ask: boolean, permissionWait?: PushPermissionWait): Promise<Snapshot> {
   const transport = readTransport();
   const [requester, worker] = await Promise.all(ROLES.map(role => notificationPreferencesClientService.read(scope.accountId, role)));
   if (!current(scope, generation)) throw Error('STALE');
-  const native = await nativePushDevice(ask, () => current(scope, generation));
+  const native = ask ? await nativePushDevice(true, () => current(scope, generation), permissionWait)
+   : await nativePushDevice(false, () => current(scope, generation));
   if (!current(scope, generation)) throw Error('STALE');
   const result = native.kind === 'READY' ? await pushDeviceClientService.read(scope, native.token) : null;
   if (!current(scope, generation) || result && !result.ok) throw Error('READ_UNAVAILABLE');
@@ -129,7 +163,7 @@ export function PushPreferences({ onDirtyChange, onWritingChange }: {
   if (!current(scope, generation)) throw Error('STALE');
   return { preferences: { REQUESTER: requester, WORKER: worker }, native, device: result?.ok ? result.podatak : null, readiness };
  }
- async function run(scope: Scope, work: (generation: number) => Promise<Snapshot>, kind: Working = null) {
+ async function run(scope: Scope, work: (generation: number, permissionWait: PushPermissionWait) => Promise<Snapshot>, kind: Working = null) {
   if (scope.busy || !current(scope, scope.generation)) return;
   // setView(null) here meant that pressing "Sačuvaj podešavanja" made nine switches, three fields
   // and five buttons vanish behind a spinner, and on any failure the wipe was permanent: the error
@@ -139,7 +173,9 @@ export function PushPreferences({ onDirtyChange, onWritingChange }: {
   // refused here must not move it onto its own button while another command runs.
   scope.busy = true; const generation = ++scope.generation; setBusy(true); setError(false); setValidation(null); setWorking(kind);
   try {
-   const snapshot = await bounded(work(generation), scope);
+   // Keep the same command lock and remaining network deadline while allowing
+   // an unhurried answer to the OS dialog. No token/RPC work is unbounded.
+   const snapshot = await bounded(permissionWait => work(generation, permissionWait), scope);
    if (current(scope, generation)) {
     setView({ owner: scope, snapshot });
     setDraft({ owner: scope, settings: { REQUESTER: cloneSettings(snapshot.preferences.REQUESTER.settings), WORKER: cloneSettings(snapshot.preferences.WORKER.settings) } });
@@ -151,20 +187,26 @@ export function PushPreferences({ onDirtyChange, onWritingChange }: {
  // What the foreground re-read below reads at the moment the app comes back; never a value captured at focus.
  const latest = useRef({ snapshot: null as Snapshot | null, busy: false, dirty: false });
  useFocusEffect(useCallback(() => {
-  const scope: Scope = { accountId, accountRevision, alive: true, busy: false, generation: 0 };
+  const scope: Scope = { accountId, accountRevision, alive: true, busy: false, generation: 0,
+   foreground: AppState.currentState !== 'background' && AppState.currentState !== 'inactive' };
   scopeRef.current = scope; setView(null); setDraft(null); setError(false); setValidation(null); setBusy(false); setWorking(null);
   if (accountId) void run(scope, generation => read(scope, generation, false));
   // Back from the phone's own settings, where the person may just have allowed notifications: read the state again, but
   // only when that read can change something shown (a denial or a missing permission) and never over unsaved changes,
   // because a read replaces the draft with what the server holds.
   const foreground = AppState.addEventListener('change', next => {
+   scope.foreground = next === 'active';
+   // A consent dialog can temporarily take foreground on either OS. Its result
+   // waits for active again; ordinary background network work is retired.
+   if (next === 'background' && !scope.permissionPending) { scope.cancelPending?.(); return; }
+   if (next === 'active') scope.resumePermission?.();
    const now = latest.current;
    // `scope.busy` as well as the rendered value: a command that started after the last render is already at work.
    if (next !== 'active' || scopeRef.current !== scope || scope.busy || !now.snapshot || now.busy || now.dirty
     || (now.snapshot.native.kind !== 'DENIED' && now.snapshot.native.kind !== 'PERMISSION_REQUIRED')) return;
    void run(scope, generation => read(scope, generation, false), 'read');
   });
-  return () => { foreground?.remove(); scope.alive = false; scope.generation++; if (scopeRef.current === scope) scopeRef.current = null; };
+  return () => { foreground?.remove(); scope.alive = false; scope.generation++; scope.cancelPending?.(); if (scopeRef.current === scope) scopeRef.current = null; };
  // eslint-disable-next-line react-hooks/exhaustive-deps
  }, [accountId, accountRevision]));
  const owner = scopeRef.current;
@@ -174,8 +216,8 @@ export function PushPreferences({ onDirtyChange, onWritingChange }: {
  function refresh() { const scope = scopeRef.current; if (scope) void run(scope, generation => read(scope, generation, false), 'read'); }
  function enable() {
   const scope = scopeRef.current; if (!scope || !snapshot || view?.owner !== scope || scope.busy || scope.generation !== renderedGeneration) return;
-  void run(scope, async generation => {
-   const fresh = await read(scope, generation, true);
+  void run(scope, async (generation, permissionWait) => {
+   const fresh = await read(scope, generation, true, permissionWait);
    if (fresh.native.kind !== 'READY' || !fresh.device) return fresh;
    const registered = await pushDeviceClientService.set(scope, fresh.native.token, fresh.native.platform, true, fresh.device.revision);
    if (!current(scope, generation) || !registered.ok) throw Error('REGISTRATION_UNCONFIRMED');

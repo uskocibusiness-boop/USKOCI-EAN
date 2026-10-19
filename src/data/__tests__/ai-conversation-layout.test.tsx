@@ -711,7 +711,12 @@ describe('one composer with independent input, gesture and review choices', () =
     await act(async () => tree.update(<AiConversationShell {...p} value="Moj nedovršeni opis" />));
     await act(async () => tree.root.findByProps({ testID: 'ai-input-mode' }).props.onPress());
     expect(tree.root.findByProps({ testID: 'ai-retained-draft' })).toBeDefined();
-    expect(text()).toContain('Tastatura · nacrt');
+    // The control may be an icon; the visible cue and spoken hint must still
+    // explain where the retained text is, independently of the composition.
+    expect(text()).toMatch(/Neposlata poruka.*tastaturi/);
+    expect(tree.root.findByProps({ testID: 'ai-input-mode' }).props).toMatchObject({
+      accessibilityLabel: 'Pređi na tastaturu', accessibilityHint: 'Neposlata poruka je sačuvana.',
+    });
     await act(async () => tree.root.findByProps({ testID: 'ai-input-mode' }).props.onPress());
     expect(tree.root.findByProps({ accessibilityLabel: 'Poruka za asistenta' }).props.value).toBe('Moj nedovršeni opis');
     expect(p.onChange).not.toHaveBeenCalled(); expect(p.onSend).not.toHaveBeenCalled(); expect(p.voice.controller.begin).not.toHaveBeenCalled();

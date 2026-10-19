@@ -150,7 +150,7 @@ describe('reading and commands', () => {
   expect(mockSet).toHaveBeenCalledTimes(1); expect(mockSave).toHaveBeenCalledTimes(2);
   expect(mockSave).toHaveBeenCalledWith(USER, 'REQUESTER', { ...settings, push_enabled: true }, 2);
   expect(mockSave).toHaveBeenCalledWith(USER, 'WORKER', { ...settings, push_enabled: true }, 5);
-  expect(mockNative).toHaveBeenCalledWith(true, expect.any(Function));
+  expect(mockNative).toHaveBeenCalledWith(true, expect.any(Function), expect.any(Function));
  });
  it('enable writes only the set that is still off', async () => {
   serve({ WORKER: { push_enabled: true } }); await mount();
@@ -202,6 +202,96 @@ describe('reading and commands', () => {
  });
 });
 
+describe('human notification permission wait', () => {
+ function pendingPermission() {
+  let answer!: (kind: 'READY' | 'DENIED') => void;
+  mockNative.mockImplementation(async (ask: boolean, current: () => boolean, waiting?: (value: boolean) => void | Promise<void>) => {
+   if (!ask) return { kind: 'PERMISSION_REQUIRED' };
+   waiting?.(true);
+   let kind: 'READY' | 'DENIED';
+   try { kind = await new Promise<'READY' | 'DENIED'>(resolve => { answer = resolve; }); }
+   finally { await waiting?.(false); }
+   if (!current()) throw Error('PUSH_SCOPE_CHANGED');
+   return kind === 'READY' ? { kind, token: 'ExpoPushToken[synthetic]', platform: 'ANDROID' } : { kind };
+  });
+  return (kind: 'READY' | 'DENIED') => answer(kind);
+ }
+ it('a long OS dialog does not time out or unlock duplicate enable; consent continues without a retry', async () => {
+  jest.useFakeTimers(); const answer = pendingPermission(); await mount();
+  const press = button('Uključi obaveštenja na telefonu').props.onPress;
+  await act(async () => { press(); await flush(); jest.advanceTimersByTime(60000); await flush(); press(); });
+  expect(button('Pokušaj ponovo')).toBeUndefined();
+  expect(button('Uključi obaveštenja na telefonu').props.disabled).toBe(true);
+  expect(mockNative.mock.calls.filter(call => call[0] === true)).toHaveLength(1);
+  expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+  await act(async () => { answer('READY'); await flush(); });
+  expect(mockSet).toHaveBeenCalledTimes(1); expect(mockSave).toHaveBeenCalledTimes(2);
+  expect(button('Pokušaj ponovo')).toBeUndefined();
+ });
+ it('network time spent before the dialog remains charged after consent and a late reply cannot register', async () => {
+  jest.useFakeTimers(); const answer = pendingPermission(); await mount();
+  let preferences!: (value: unknown) => void; mockRead.mockReturnValueOnce(new Promise(resolve => { preferences = resolve; }));
+  let device!: (value: unknown) => void; mockGet.mockReturnValueOnce(new Promise(resolve => { device = resolve; }));
+  await act(async () => { button('Uključi obaveštenja na telefonu').props.onPress(); await flush();
+   jest.advanceTimersByTime(5000); preferences(held.REQUESTER); await flush();
+   jest.advanceTimersByTime(60000); answer('READY'); await flush(); });
+  await act(async () => { jest.advanceTimersByTime(10001); await flush(); });
+  expect(button('Pokušaj ponovo')).toBeDefined();
+  await act(async () => { device({ ok: true, podatak: { revision: 0 } }); await flush(); });
+  expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+ });
+ it('denial after a long wait is shown as denial, with no device or preference write', async () => {
+  jest.useFakeTimers(); const answer = pendingPermission(); await mount();
+  await act(async () => { button('Uključi obaveštenja na telefonu').props.onPress(); await flush();
+   jest.advanceTimersByTime(60000); answer('DENIED'); await flush(); });
+  expect(screenText()).toContain('Telefon ne dozvoljava obaveštenja');
+  expect(button('Pokušaj ponovo')).toBeUndefined(); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+ });
+ it.each(['blur', 'unmount', 'scope'] as const)('late grant after %s cannot register or opt in', async kind => {
+  jest.useFakeTimers(); const answer = pendingPermission(); await mount();
+  await act(async () => { button('Uključi obaveštenja na telefonu').props.onPress(); await flush(); });
+  await act(async () => {
+   if (kind === 'blur') mockBlur?.();
+   else if (kind === 'unmount') tree.unmount();
+   else { mockAccount = { user: { id: USER }, accountRevision: 3 }; tree.update(<PushPreferences />); }
+   await flush();
+  });
+  // Let React commit the unmount before the OS returns its late answer.
+  await act(async () => { jest.advanceTimersByTime(60000); answer('READY'); await flush(); });
+  expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+ });
+ it('a system dialog may take foreground; its late grant waits for active before registering', async () => {
+  jest.useFakeTimers(); const listeners: ((state: string) => void)[] = [];
+  const spy = jest.spyOn(AppState, 'addEventListener').mockImplementation(((_type: string, handler: (state: string) => void) => {
+   listeners.push(handler); return { remove: jest.fn() }; }) as never);
+  try {
+   const answer = pendingPermission(); await mount();
+   await act(async () => { button('Uključi obaveštenja na telefonu').props.onPress(); await flush();
+    listeners.forEach(listener => listener('inactive')); jest.advanceTimersByTime(30000); await flush(); });
+   expect(button('Pokušaj ponovo')).toBeUndefined(); expect(mockSet).not.toHaveBeenCalled();
+   await act(async () => { listeners.forEach(listener => listener('background')); await flush(); answer('READY'); await flush();
+    jest.advanceTimersByTime(30000); await flush(); });
+   expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+   expect(button('Pokušaj ponovo')).toBeUndefined();
+   await act(async () => { listeners.forEach(listener => listener('active')); await flush(); });
+   expect(mockSet).toHaveBeenCalledTimes(1); expect(mockSave).toHaveBeenCalledTimes(2);
+  } finally { spy.mockRestore(); }
+ });
+ it('background after the dialog retires network work and cannot start a later registration', async () => {
+  const listeners: ((state: string) => void)[] = [];
+  const spy = jest.spyOn(AppState, 'addEventListener').mockImplementation(((_type: string, handler: (state: string) => void) => {
+   listeners.push(handler); return { remove: jest.fn() }; }) as never);
+  try {
+   const answer = pendingPermission(); await mount();
+   let device!: (value: unknown) => void; mockGet.mockReturnValueOnce(new Promise(resolve => { device = resolve; }));
+   await act(async () => { button('Uključi obaveštenja na telefonu').props.onPress(); await flush(); answer('READY'); await flush(); });
+   await act(async () => { listeners.forEach(listener => listener('background')); await flush();
+    device({ ok: true, podatak: { revision: 0 } }); await flush(); });
+   expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
+  } finally { spy.mockRestore(); }
+ });
+});
+
 describe('the facts of the phone and of sending', () => {
  it('reads actual transport evidence independently and never turns a healthy tick into device delivery', async () => {
   mockReadiness.mockResolvedValue({ ok: true, podatak: { state: 'OPERATIONAL', checkedAt: '2026-09-13T00:00:00Z' } });
@@ -216,7 +306,7 @@ describe('the facts of the phone and of sending', () => {
   expect(control('Napredno').props.accessibilityState.expanded).toBe(false);
   expect(screenText()).not.toContain('Slanje obaveštenja je radilo pri poslednjoj proveri.');
   expect(mockReadiness).toHaveBeenCalledTimes(1); expect(mockRead).toHaveBeenCalledTimes(2);
-  expect(mockNative).not.toHaveBeenCalledWith(true, expect.any(Function));
+  expect(mockNative.mock.calls.some(call => call[0] === true)).toBe(false);
   expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
  });
  it('transport failure preserves available device controls with honest missing evidence', async () => {
@@ -477,7 +567,7 @@ describe('the choices of each set', () => {
   expect(mockSave).toHaveBeenCalledTimes(1);
   // The set that publishes has no "Novi zadaci" switch, and the value it would hold is written back unchanged.
   expect(mockSave).toHaveBeenCalledWith(USER, 'REQUESTER', { ...settings, responses_enabled: false }, 2);
-  expect(mockNative).not.toHaveBeenCalledWith(true, expect.any(Function));
+  expect(mockNative.mock.calls.some(call => call[0] === true)).toBe(false);
   expect(mockSet).not.toHaveBeenCalled();
  });
  it('the three choices cover the six categories exactly once, and a choice is on, off or in the middle by its categories', () => {
@@ -606,7 +696,7 @@ describe('the phone', () => {
   expect(button('Poveži ovaj telefon').props.disabled).toBe(false);
   // Connecting is the same explicit command: it asks the phone once, registers it and writes nothing else.
   await act(async () => { button('Poveži ovaj telefon').props.onPress(); await flush(); });
-  expect(mockNative).toHaveBeenCalledWith(true, expect.any(Function)); expect(mockSet).toHaveBeenCalledTimes(1); expect(mockSave).not.toHaveBeenCalled();
+  expect(mockNative).toHaveBeenCalledWith(true, expect.any(Function), expect.any(Function)); expect(mockSet).toHaveBeenCalledTimes(1); expect(mockSave).not.toHaveBeenCalled();
  });
  it('a connected phone says the account\'s choice once, in a headline without a period', async () => {
   sending('REQUESTER', 'WORKER'); mockGet.mockResolvedValue({ ok: true, podatak: { exists: true, revision: 1, active: true, sessionBound: true } });
