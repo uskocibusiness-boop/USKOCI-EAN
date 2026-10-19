@@ -1,5 +1,4 @@
 import React from 'react';
-import { Animated } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { HoldToTalkController, VoiceSnapshot } from '../../features/voice/holdToTalk';
 import type { AgreementVoiceController } from '../../hooks/useAgreementVoice';
@@ -25,7 +24,7 @@ jest.mock('../../lib/idempotencija',()=>({noviUuidZahtevId:()=> 'GESTURE_SYNTHET
 const mockTick=jest.fn();
 // Rule R5: the held microphone is felt where listening really begins and where the finger lets go, never at touch-down.
 jest.mock('../../ui/system/haptics',()=>({tick:(...a:unknown[])=>mockTick(...a),forgetTicks:jest.fn()}));
-import { VoiceComposer, VoiceMode, VoiceNotice } from '../../ui/aiFirst/VoiceComposer';
+import { VoiceComposer, VoiceNotice } from '../../ui/aiFirst/VoiceComposer';
 import { AgreementVoiceMic } from '../../ui/media/AgreementVoiceControls';
 let tree:ReactTestRenderer;
 const idle:VoiceSnapshot={phase:'IDLE',session:null,finalText:'',interimText:'',audioLevel:null,fallbackText:'',error:null};
@@ -51,6 +50,52 @@ it('hold release finalizes once while edit/send remain the parent controller res
   await act(async()=>{mic.props.onResponderRelease();mic.props.onResponderRelease();});
   expect(c.begin).toHaveBeenCalledWith('GESTURE_SYNTHETIC','hold');expect(c.release).toHaveBeenCalledTimes(1);
   expect(keep).not.toHaveBeenCalled();
+});
+it.each([
+  { tap: false, preview: true, mode: 'accessible' },
+  { tap: true, preview: false, mode: 'hold' },
+  { tap: true, preview: true, mode: 'accessible' },
+])('keeps gesture and transcript delivery independent: $tap / $preview', async ({ tap, preview, mode }) => {
+  const c = controller(), keep = jest.fn();
+  const props = { controller: c as unknown as HoldToTalkController, disabled: false, onKeepText: keep, tapToTalk: tap, reviewFirst: preview };
+  await act(async () => { tree = create(<VoiceComposer {...props} state={idle} />); });
+  const start = tree.root.findByProps({ testID: 'voice-mic' });
+  await act(async () => tap ? start.props.onPress() : start.props.onResponderGrant({ nativeEvent: { pageY: 200 } }));
+  expect(c.begin).toHaveBeenCalledWith('GESTURE_SYNTHETIC', mode);
+  const session = { mode } as VoiceSnapshot['session'];
+  // A preference change cannot reinterpret an already running gesture or its delivery.
+  await act(async () => tree.update(<VoiceComposer {...props} tapToTalk={!tap} reviewFirst={!preview} state={{ ...idle, phase: 'LISTENING', session }} />));
+  const finish = tree.root.findByProps({ testID: 'voice-mic' });
+  expect(finish.props.accessibilityLabel).toBe(tap ? preview ? 'Zaustavi i pregledaj tekst' : 'Zaustavi i pošalji'
+    : 'Slušamo — pusti za pregled');
+  await act(async () => { if (tap) finish.props.onPress(); else finish.props.onResponderRelease(); });
+  expect(c.release).toHaveBeenCalledTimes(1); expect(keep).not.toHaveBeenCalled();
+});
+it('a screen reader always reviews even when the optional preview is off', async () => {
+  mockReader = true; const c = controller();
+  await act(async () => { tree = create(<VoiceComposer controller={c as unknown as HoldToTalkController} state={idle}
+    disabled={false} reviewFirst={false} onKeepText={jest.fn()} />); });
+  await act(async () => tree.root.findByProps({ testID: 'voice-mic' }).props.onPress());
+  expect(c.begin).toHaveBeenCalledWith('GESTURE_SYNTHETIC', 'accessible');
+});
+it('two taps before the capture-state render release the owned gesture instead of losing it to a second begin', async () => {
+  const c = controller();
+  await act(async () => { tree = create(<VoiceComposer controller={c as unknown as HoldToTalkController} state={idle}
+    disabled={false} tapToTalk onKeepText={jest.fn()} />); });
+  const mic = tree.root.findByProps({ testID: 'voice-mic' });
+  await act(async () => { mic.props.onPress(); mic.props.onPress(); });
+  expect(c.begin).toHaveBeenCalledTimes(1); expect(c.release).toHaveBeenCalledWith('GESTURE_SYNTHETIC');
+});
+it('cancelling from the notice releases the gesture preference lock for the next capture', async () => {
+  const c = controller(), props = { controller: c as unknown as HoldToTalkController, disabled: false, onKeepText: jest.fn() };
+  await act(async () => { tree = create(<VoiceComposer {...props} state={idle} tapToTalk />); });
+  await act(async () => tree.root.findByProps({ testID: 'voice-mic' }).props.onPress());
+  await act(async () => tree.update(<VoiceComposer {...props} state={{ ...idle, phase: 'LISTENING' }} tapToTalk />));
+  await act(async () => tree.update(<VoiceComposer {...props} state={idle} tapToTalk />));
+  await act(async () => tree.update(<VoiceComposer {...props} state={idle} />));
+  expect(tree.root.findByProps({ testID: 'voice-mic' }).props.onResponderGrant).toEqual(expect.any(Function));
+  await act(async () => tree.root.findByProps({ testID: 'voice-mic' }).props.onResponderGrant({ nativeEvent: { pageY: 200 } }));
+  expect(c.begin).toHaveBeenCalledTimes(2);
 });
 it('is felt where listening really begins and where the finger lets go; a hold called off is "cancel", never "gestureEnd"',async()=>{
   const c=controller();
@@ -209,193 +254,20 @@ it('the notice hands kept text back only through the screen, and shows the way t
   expect(tree.root.findAllByProps({label:'Podešavanja telefona'})).toHaveLength(1);
 });
 
-describe('voice mode', () => {
-  const session = { accountId: 'a', accountRevision: 1, conversationId: 'c', generation: 1, gestureId: 'GESTURE_SYNTHETIC', startedAt: 0 };
-  const mode = (c: ReturnType<typeof controller>, state: VoiceSnapshot, extra: Partial<React.ComponentProps<typeof VoiceMode>> = {}) =>
-    <VoiceMode voice={{ controller: c as unknown as HoldToTalkController, state, disabled: false, onKeepText: jest.fn() }}
-      prompt="Reci šta ti treba." answer={null} said={null} thinking={false} onClose={jest.fn()} {...extra} />;
-  const mic = () => tree.root.findByProps({ testID: 'voice-mode-mic' });
-  it('a tap starts listening, a second tap sends what was said through the screen, and nothing is kept locally', async () => {
-    const c = controller(), onClose = jest.fn();
-    await act(async () => { tree = create(mode(c, idle, { onClose })); });
-    expect(text()).toContain('kao tekst');
-    await act(async () => mic().props.onPress());
-    expect(c.begin).toHaveBeenCalledWith('GESTURE_SYNTHETIC', 'hold');
-    await act(async () => tree.update(mode(c, { ...idle, phase: 'LISTENING', session: { ...session, mode: 'hold' }, audioLevel: 0.4 }, { onClose })));
-    expect(mic().props.accessibilityLabel).toBe('Pošalji izgovoreno');
-    await act(async () => mic().props.onPress());
-    expect(c.release).toHaveBeenCalledWith('GESTURE_SYNTHETIC');
-    // Sent: voice mode stays open for the answer, which arrives as text.
-    await act(async () => tree.update(mode(c, { ...idle, phase: 'FINALIZING', session: { ...session, mode: 'hold' } }, { onClose })));
-    await act(async () => tree.update(mode(c, { ...idle, session: { ...session, mode: 'hold' } }, { onClose, thinking: true, said: 'Treba mi prevoz.' })));
-    expect(onClose).not.toHaveBeenCalled(); expect(c.cancel).not.toHaveBeenCalled();
-    expect(text()).toContain('Stiže odgovor…');
-  });
-  it('closing while listening throws the capture away and sends nothing', async () => {
-    const c = controller(), onClose = jest.fn();
-    await act(async () => { tree = create(mode(c, idle, { onClose })); });
-    await act(async () => mic().props.onPress());
-    await act(async () => tree.update(mode(c, { ...idle, phase: 'LISTENING', session: { ...session, mode: 'hold' } }, { onClose })));
-    await act(async () => tree.root.findByProps({ testID: 'voice-mode-close' }).props.onPress());
+describe('active voice notice recovery', () => {
+  it('cancel from the active notice sends nothing; finalizing has no cancellation action', async () => {
+    const c = controller(), props = { controller: c as unknown as HoldToTalkController, disabled: false, onKeepText: jest.fn() };
+    await act(async () => { tree = create(<VoiceNotice {...props} state={{ ...idle, phase: 'LISTENING' }} />); });
+    await act(async () => tree.root.findByProps({ label: 'Otkaži govor' }).props.onPress());
     expect(c.cancel).toHaveBeenCalledWith('gesture'); expect(c.release).not.toHaveBeenCalled();
-    expect(onClose).toHaveBeenCalledWith('closed');
+    await act(async () => tree.update(<VoiceNotice {...props} state={{ ...idle, phase: 'FINALIZING' }} />));
+    expect(tree.root.findAllByProps({ label: 'Otkaži govor' })).toHaveLength(0);
   });
-  it('closing after the second tap does not take the message back: it is already on its way through the screen', async () => {
-    const c = controller(), onClose = jest.fn(), hold = { ...session, mode: 'hold' as const };
-    await act(async () => { tree = create(mode(c, idle, { onClose })); });
-    await act(async () => mic().props.onPress());
-    await act(async () => tree.update(mode(c, { ...idle, phase: 'LISTENING', session: hold }, { onClose })));
-    await act(async () => mic().props.onPress());
-    await act(async () => tree.update(mode(c, { ...idle, phase: 'FINALIZING', session: hold }, { onClose })));
-    await act(async () => tree.root.findByProps({ testID: 'voice-mode-close' }).props.onPress());
-    expect(onClose).toHaveBeenCalledWith('closed');
-    await act(async () => tree.unmount());
-    expect(c.cancel).not.toHaveBeenCalled(); expect(c.release).toHaveBeenCalledTimes(1);
-  });
-  it('the answer stays visible beside new words; the previous transcript returns when the microphone rests', async () => {
-    const c = controller(), hold = { ...session, mode: 'hold' as const };
-    const exchange = { said: 'Treba mi prevoz.', answer: 'Odakle i dokle?' };
-    await act(async () => { tree = create(mode(c, idle, exchange)); });
-    expect(text()).toContain('Odakle i dokle?');
-    await act(async () => tree.update(mode(c, { ...idle, phase: 'LISTENING', session: hold, finalText: 'Iz Novog Sada' }, exchange)));
-    expect(text()).toContain('Iz Novog Sada'); expect(text()).toContain('Odakle i dokle?'); expect(text()).not.toContain('Treba mi prevoz.');
-    await act(async () => tree.update(mode(c, idle, exchange)));
-    expect(text()).toContain('Odakle i dokle?');
-  });
-  it('review before sending is a switch that starts nothing; with it the capture goes to the field and voice mode steps aside', async () => {
-    const c = controller(), onClose = jest.fn();
-    await act(async () => { tree = create(mode(c, idle, { onClose })); });
-    const review = tree.root.findByProps({ accessibilityLabel: 'Pregledaj tekst pre slanja' });
-    await act(async () => review.props.onPress());
-    expect(c.begin).not.toHaveBeenCalled();
-    expect(tree.root.findByProps({ accessibilityLabel: 'Pregledaj tekst pre slanja' }).props.accessibilityState.checked).toBe(true);
-    await act(async () => mic().props.onPress());
-    expect(c.begin).toHaveBeenCalledWith('GESTURE_SYNTHETIC', 'accessible');
-    const reviewed = { ...session, mode: 'accessible' as const };
-    await act(async () => tree.update(mode(c, { ...idle, phase: 'LISTENING', session: reviewed }, { onClose })));
-    expect(mic().props.accessibilityLabel).toBe('Zaustavi i pregledaj tekst');
-    await act(async () => tree.update(mode(c, { ...idle, phase: 'FINALIZING', session: reviewed }, { onClose })));
-    await act(async () => tree.update(mode(c, { ...idle, session: reviewed }, { onClose })));
-    expect(onClose).toHaveBeenCalledWith('review');
-  });
-  // Verify r4c (zaštite item 7): FINALIZING and IDLE can arrive in one render. A reviewed capture that goes from LISTENING
-  // straight to IDLE with its session kept still closes voice mode for review; a cancel (session cleared) does not.
-  it('closes for review when a reviewed capture goes from LISTENING straight to IDLE with its session kept', async () => {
-    const c = controller(), onClose = jest.fn();
-    await act(async () => { tree = create(mode(c, idle, { onClose })); });
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pregledaj tekst pre slanja' }).props.onPress());
-    await act(async () => mic().props.onPress());
-    const reviewed = { ...session, mode: 'accessible' as const };
-    await act(async () => tree.update(mode(c, { ...idle, phase: 'LISTENING', session: reviewed }, { onClose })));
-    await act(async () => tree.update(mode(c, { ...idle, session: reviewed }, { onClose })));
-    expect(onClose).toHaveBeenCalledTimes(1); expect(onClose).toHaveBeenCalledWith('review');
-  });
-  it('stays open when a reviewed capture is cancelled from LISTENING (session cleared)', async () => {
-    const c = controller(), onClose = jest.fn();
-    await act(async () => { tree = create(mode(c, idle, { onClose })); });
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Pregledaj tekst pre slanja' }).props.onPress());
-    await act(async () => mic().props.onPress());
-    await act(async () => tree.update(mode(c, { ...idle, phase: 'LISTENING', session: { ...session, mode: 'accessible' as const } }, { onClose })));
-    await act(async () => tree.update(mode(c, idle, { onClose })));
-    expect(onClose).not.toHaveBeenCalled();
-  });
-  it('a failed capture keeps voice mode open with the error and the way to the kept text', async () => {
-    const c = controller(), onClose = jest.fn();
-    await act(async () => { tree = create(mode(c, idle, { onClose })); });
-    await act(async () => tree.update(mode(c, { ...idle, phase: 'LISTENING', session: { ...session, mode: 'hold' } }, { onClose })));
-    await act(async () => tree.update(mode(c, { ...idle, session: { ...session, mode: 'hold' }, error: 'CAPTURE_FAILED', fallbackText: 'Treba mi' }, { onClose })));
-    expect(onClose).not.toHaveBeenCalled();
-    expect(text()).toContain('Govorni unos je prekinut.');
-    expect(tree.root.findAllByProps({ label: 'Uredi sačuvani tekst' })).toHaveLength(1);
-  });
-  it('while the screen cannot take a message the microphone is disabled and the line says why', async () => {
-    const c = controller();
-    await act(async () => { tree = create(<VoiceMode voice={{ controller: c as unknown as HoldToTalkController, state: idle, disabled: true, onKeepText: jest.fn() }}
-      prompt="Reci šta ti treba." answer={null} said="Treba mi prevoz." thinking onClose={jest.fn()} />); });
-    expect(mic().props).toMatchObject({ disabled: true, accessibilityState: { disabled: true } });
-    await act(async () => mic().props.onPress());
-    expect(c.begin).not.toHaveBeenCalled();
-    // Review r4 ra item 10 (was: the line under the exchange said "Stiže odgovor…" too, in a second live region). The
-    // exchange says it once; the line is not drawn while the answer is being written.
-    expect(tree.root.findAllByProps({ testID: 'voice-mode-line' })).toHaveLength(0);
-    expect(text().match(/Stiže odgovor…/g)).toHaveLength(1);
-    await act(async () => tree.update(<VoiceMode voice={{ controller: c as unknown as HoldToTalkController, state: idle, disabled: true, onKeepText: jest.fn() }}
-      prompt="Reci šta ti treba." answer={null} said="Treba mi prevoz." thinking={false} onClose={jest.fn()} />));
-    expect(tree.root.findByProps({ testID: 'voice-mode-line' }).props.children).toBe('Prethodna poruka još nije poslata. Zatvori i proveri razgovor.');
-  });
-  // Review r4 ra item 5: only a finalised reviewed capture put text in the field; a tap while the microphone was still on
-  // its way, or a cancel when the app went to the background, ends with nothing there, and voice mode stays open.
-  it.each(['PERMISSION_PENDING', 'PREPARING', 'STARTING', 'LISTENING'] as const)('a reviewed capture stopped from %s leaves voice mode open', async phase => {
-    const c = controller(), onClose = jest.fn(), reviewed = { ...session, mode: 'accessible' as const };
-    await act(async () => { tree = create(mode(c, idle, { onClose, reviewFirst: true })); });
-    await act(async () => mic().props.onPress());
-    expect(c.begin).toHaveBeenCalledWith('GESTURE_SYNTHETIC', 'accessible');
-    await act(async () => tree.update(mode(c, { ...idle, phase, session: reviewed }, { onClose, reviewFirst: true })));
-    await act(async () => tree.update(mode(c, idle, { onClose, reviewFirst: true })));
-    expect(onClose).not.toHaveBeenCalled();
-  });
-  it('opens with the review already on when asked, and says it is a checkbox', async () => {
-    const c = controller();
-    await act(async () => { tree = create(mode(c, idle, { reviewFirst: true })); });
-    const review = tree.root.findByProps({ accessibilityLabel: 'Pregledaj tekst pre slanja' });
-    // Review r4 ra item 12: drawn as a checkbox, so a screen reader hears one (it was announced as a switch).
-    expect(review.props.accessibilityRole).toBe('checkbox');
-    expect(review.props.accessibilityState.checked).toBe(true);
-    await act(async () => mic().props.onPress());
-    expect(c.begin).toHaveBeenCalledWith('GESTURE_SYNTHETIC', 'accessible');
-  });
-  it('the glow follows only a measured foreground recording and resets under reduced motion or inactive states', async () => {
-    // Advance the native timing target deterministically. No assertion depends on Animated.View's displayName.
-    const timing = jest.spyOn(Animated, 'timing').mockImplementation((value, config) => ({
-      start: jest.fn(() => { (value as Animated.Value).setValue(config.toValue as number); }),
-      stop: jest.fn(), reset: jest.fn(),
-    }));
-    const c = controller();
-    const listening = { ...idle, phase: 'LISTENING' as const, session: { ...session, mode: 'hold' as const } };
-    await act(async () => { tree = create(mode(c, { ...listening, audioLevel: 0.9 })); });
-    expect(timing).toHaveBeenLastCalledWith(expect.anything(), expect.objectContaining({ toValue: 0.9, useNativeDriver: true, isInteraction: false }));
-    const pulse = timing.mock.calls[timing.mock.calls.length - 1][0] as Animated.Value;
-    const value = () => (pulse as Animated.Value & { __getValue(): number }).__getValue();
-    expect(value()).toBeCloseTo(0.9);
-    const glow = tree.root.findByProps({ testID: 'voice-glow' });
-    expect(tree.root.findAll(node => node.props.animationType !== undefined)[0].props.animationType).toBe('fade');
-    for (const [audioLevel, expected] of [[0.25, 0.25], [2, 1], [-1, 0]] as const) {
-      await act(async () => tree.update(mode(c, { ...listening, audioLevel })));
-      expect(value()).toBe(expected);
-    }
-    for (const audioLevel of [null, Number.NaN, Number.POSITIVE_INFINITY]) {
-      timing.mockClear();
-      await act(async () => tree.update(mode(c, { ...listening, audioLevel })));
-      expect(value()).toBe(0); expect(timing).not.toHaveBeenCalled();
-    }
-    await act(async () => tree.update(mode(c, { ...listening, audioLevel: 0.9 })));
-    await act(async () => {
-      mockAppState = 'background'; mockAppStateListeners.forEach(listener => listener(mockAppState));
-    });
-    expect(value()).toBe(0);
-    await act(async () => {
-      mockAppState = 'active'; mockAppStateListeners.forEach(listener => listener(mockAppState));
-    });
-    expect(value()).toBeCloseTo(0.9);
-    timing.mockClear(); mockReduced = true;
-    await act(async () => tree.update(mode(c, { ...listening, audioLevel: 0.9 })));
-    expect(value()).toBe(0); expect(timing).not.toHaveBeenCalled();
-    expect(tree.root.findAll(node => node.props.animationType !== undefined)[0].props.animationType).toBe('none');
-    expect(tree.root.findByProps({ testID: 'voice-glow' })).toBe(glow);
-    mockReduced = false;
-    await act(async () => tree.update(mode(c, { ...listening, audioLevel: 0.9 })));
-    for (const state of [idle, { ...idle, error: 'CAPTURE_FAILED' as const }]) {
-      timing.mockClear();
-      await act(async () => tree.update(mode(c, state)));
-      expect(value()).toBe(0); expect(timing).not.toHaveBeenCalled();
-    }
-    expect(c.begin).not.toHaveBeenCalled(); expect(c.release).not.toHaveBeenCalled();
-  });
-  it('a screen reader always reviews: there is no switch to turn it off', async () => {
-    mockReader = true; const c = controller();
-    await act(async () => { tree = create(mode(c, idle)); });
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Pregledaj tekst pre slanja' })).toHaveLength(0);
-    await act(async () => mic().props.onPress());
-    expect(c.begin).toHaveBeenCalledWith('GESTURE_SYNTHETIC', 'accessible');
+  it.each([false, true])('explains tap delivery precisely (preview %s)', async preview => {
+    const c = controller(), session = { mode: preview ? 'accessible' : 'hold' } as VoiceSnapshot['session'];
+    await act(async () => { tree = create(<VoiceNotice controller={c as unknown as HoldToTalkController} disabled={false}
+      onKeepText={jest.fn()} tapToTalk state={{ ...idle, phase: 'LISTENING', session }} />); });
+    expect(text()).toContain(preview ? 'Zaustavi, pregledaj tekst' : 'Dodirni mikrofon da pošalješ');
+    expect(text()).not.toContain('Pusti da pošalješ');
   });
 });

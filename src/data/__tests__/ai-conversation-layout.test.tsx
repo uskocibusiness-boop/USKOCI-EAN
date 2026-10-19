@@ -34,7 +34,7 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => 'GESTURE_SYNTHETIC' }));
 import { AiConversationShell, type AiConversationShellProps } from '../../ui/aiFirst/AiConversationShell';
-import { HOLD_HINT, VoiceMode } from '../../ui/aiFirst/VoiceComposer';
+import { HOLD_HINT } from '../../ui/aiFirst/VoiceComposer';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
 import { DraftCard, IntakeUnavailable } from '../../ui/v2/IntakePresentation';
@@ -206,7 +206,7 @@ it.each([{height:844,scale:2},{height:420,scale:1}])('keeps one reachable review
   expect(tree.root.findByProps({accessibilityLabel:'Poruka za asistenta'}).props.editable).toBe(true);
   expect(p.onSend).not.toHaveBeenCalled();
 });
-it.each([undefined, 'end'] as const)('keeps the latest answer after the review while typing with card placement %s', async cardPlacement => {
+it.each([undefined, 'end'] as const)('keeps one review reachable while typing with card placement %s', async cardPlacement => {
   const p = props(), review = jest.fn();
   p.cardPlacement = cardPlacement;
   p.messages = [{ id: 'answer', fromAi: true, body: 'U kom gradu radiš?' }];
@@ -215,7 +215,7 @@ it.each([undefined, 'end'] as const)('keeps the latest answer after the review w
   await act(async () => { mockKeyboard.keyboardDidShow(); });
   const thread = tree.root.findByProps({ testID: 'ai-conversation-thread' });
   expect(tree.root.findAllByProps({ testID: 'ai-pinned-card' })).toHaveLength(0);
-  expect(tree.root.findAllByProps({ testID: 'ai-end-card' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'ai-end-card' })).toHaveLength(cardPlacement === 'end' ? 1 : 0);
   expect(tree.root.findAllByProps({ testID: 'review-target' })).toHaveLength(1);
   expect(thread.findByProps({ accessibilityLabel: 'USKOČI: U kom gradu radiš?' })).toBeDefined();
   await act(async () => { thread.findByProps({ testID: 'review-target' }).props.onTouchEnd(); });
@@ -293,18 +293,40 @@ describe('deliberate reading intent', () => {
   const layout = (height: number) => ({ nativeEvent: { layout: { height } } });
   const mount = async (p: AiConversationShellProps) => {
     const measurements: Array<(x: number, y: number, width: number, height: number) => void> = [];
+    const replies: Array<(x: number, y: number, width: number, height: number) => void> = [];
     const inner = {};
     const context = { measureLayout: jest.fn((_ancestor: unknown, success: (x: number, y: number, width: number, height: number) => void) => { measurements.push(success); }) };
-    const native = { scrollToEnd: jest.fn(), scrollTo: jest.fn(), measurements, context, inner };
+    const reply = { measureLayout: jest.fn((_ancestor: unknown, success: (x: number, y: number, width: number, height: number) => void) => { replies.push(success); }) };
+    const native = { scrollToEnd: jest.fn(), scrollTo: jest.fn(), measurements, context, inner, replies };
     await act(async () => { tree = create(<AiConversationShell {...p} />, {
       createNodeMock: element => {
         const node = element.props as { testID?: string; innerViewRef?: { current: unknown } };
         if (node.testID === 'ai-conversation-thread') { node.innerViewRef!.current = inner; return native; }
-        return node.testID === 'ai-task-context' ? context : null;
+        return node.testID === 'ai-task-context' ? context : node.testID === 'ai-latest-reply' ? reply : null;
       },
     }); });
     return native;
   };
+  it('reveals the latest question before a trailing card, but retires a delayed measure when history or another conversation takes ownership', async () => {
+    const p = { ...props(), conversationKey: 'one', cardPlacement: 'end' as const,
+      messages: [{ id: 'answer', fromAi: true, body: 'Koji termin ti odgovara?' }], card: () => <View testID="review-target" /> };
+    const native = await mount(p);
+    await act(async () => { scroller().props.onLayout(layout(400)); scroller().props.onContentSizeChange(361, 1200); flushFrame(); });
+    await act(async () => native.replies.at(-1)!(0, 500, 320, 100));
+    expect(native.scrollTo).toHaveBeenLastCalledWith({ y: 500, animated: false });
+    expect(native.scrollToEnd).not.toHaveBeenCalled();
+    const delayed = native.replies.at(-1)!;
+    await act(async () => { scroller().props.onScrollBeginDrag(); scroller().props.onScroll(position(100)); scroller().props.onScrollEndDrag(position(100)); });
+    native.scrollTo.mockClear();
+    await act(async () => delayed(0, 800, 320, 100));
+    expect(native.scrollTo).not.toHaveBeenCalled();
+    await act(async () => tree.root.findByProps({ testID: 'ai-latest' }).props.onPress());
+    const oldConversation = native.replies.at(-1)!;
+    await act(async () => tree.update(<AiConversationShell {...p} conversationKey="two" />));
+    native.scrollTo.mockClear();
+    await act(async () => oldConversation(0, 900, 320, 100));
+    expect(native.scrollTo).not.toHaveBeenCalled();
+  });
   it('follows the first pending turn across content and keyboard geometry, but cancels queued following on drag', async () => {
     const p = props(), native = await mount(p);
     await act(async () => { scroller().props.onLayout(layout(500)); scroller().props.onContentSizeChange(390, 700); flushFrame(); });
@@ -332,7 +354,7 @@ describe('deliberate reading intent', () => {
     expect(native.scrollToEnd).toHaveBeenCalledWith({ animated: false });
     const content = tree.root.findByProps({ testID: 'ai-task-context' }).parent!;
     const items = content.children.filter(child => typeof child !== 'string');
-    expect(items.findIndex(child => child.props.testID === 'ai-task-context')).toBeLessThan(items.findIndex(child => child.props.id === 'answer'));
+    expect(items.findIndex(child => child.props.testID === 'ai-task-context')).toBeLessThan(items.findIndex(child => child.findAllByProps({ id: 'answer' }).length > 0));
     expect(tree.root.findAllByProps({ testID: 'place-editor' })).toHaveLength(1);
     await act(async () => tree.update(<AiConversationShell {...p} revealInteractiveContext />));
     await act(async () => { flushFrame(); });
@@ -678,7 +700,83 @@ it('explains speech privacy in an in-app notice with one button, not a system al
   expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(0);
 });
 
-describe('the floating composer (owner step 6, Gemini reference)', () => {
+describe('one composer with independent input, gesture and review choices', () => {
+  it.each([1.15, 1.3])('starts with voice on 361dp at %s text scale, and preserves an unsent typed draft across explicit switches', async scale => {
+    mockWidth = 361; mockScale = scale;
+    const p = { ...props(), value: '', voice: voice() };
+    await act(async () => { tree = create(<AiConversationShell {...p} />); });
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Poruka za asistenta' })).toHaveLength(0);
+    expect(tree.root.findByProps({ testID: 'ai-voice-review' }).props.accessibilityState.checked).toBe(false);
+    await act(async () => tree.root.findByProps({ testID: 'ai-input-mode' }).props.onPress());
+    await act(async () => tree.update(<AiConversationShell {...p} value="Moj nedovršeni opis" />));
+    await act(async () => tree.root.findByProps({ testID: 'ai-input-mode' }).props.onPress());
+    expect(tree.root.findByProps({ testID: 'ai-retained-draft' })).toBeDefined();
+    expect(text()).toContain('Tastatura · nacrt');
+    await act(async () => tree.root.findByProps({ testID: 'ai-input-mode' }).props.onPress());
+    expect(tree.root.findByProps({ accessibilityLabel: 'Poruka za asistenta' }).props.value).toBe('Moj nedovršeni opis');
+    expect(p.onChange).not.toHaveBeenCalled(); expect(p.onSend).not.toHaveBeenCalled(); expect(p.voice.controller.begin).not.toHaveBeenCalled();
+  });
+  it('correction keeps voice selected and does not open a keyboard or alter the draft', async () => {
+    const focus = jest.fn(), p = { ...props(), value: '', voice: voice() };
+    await act(async () => { tree = create(<AiConversationShell {...p} correction={{ token: 'change', target: 'task.price', title: 'Cena', hint: 'Reci novi budžet.', onDismiss: jest.fn() }} />,
+      { createNodeMock: element => String(element.type) === 'TextInput' ? { focus } : null }); });
+    expect(focus).not.toHaveBeenCalled();
+    expect(tree.root.findByProps({ testID: 'ai-input-mode' }).props.accessibilityLabel).toBe('Pređi na tastaturu');
+    expect(p.onChange).not.toHaveBeenCalled(); expect(p.onSend).not.toHaveBeenCalled();
+  });
+  it.each(['PERMISSION_PENDING', 'PREPARING', 'STARTING', 'LISTENING', 'FINALIZING'] as const)('does not switch input, preview or gesture during %s, including before React receives the controller state', async phase => {
+    let snapshot = idle;
+    const c = { ...controller(), getSnapshot: () => snapshot }, p = { ...props(), value: '', voice: voice({ controller: c as never }) };
+    await act(async () => { tree = create(<AiConversationShell {...p} />); });
+    snapshot = { ...idle, phase };
+    for (const testID of ['ai-input-mode', 'ai-voice-review', 'ai-voice-gesture']) {
+      await act(async () => tree.root.findByProps({ testID }).props.onPress());
+    }
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Poruka za asistenta' })).toHaveLength(0);
+    expect(tree.root.findByProps({ testID: 'ai-voice-review' }).props.accessibilityState.checked).toBe(false);
+    expect(tree.root.findByProps({ testID: 'ai-voice-gesture' }).props.accessibilityLabel).toBe('Govori bez držanja');
+    await act(async () => tree.update(<AiConversationShell {...p} voice={voice({ controller: c as never, state: snapshot })} />));
+    for (const testID of ['ai-input-mode', 'ai-voice-review', 'ai-voice-gesture']) {
+      expect(tree.root.findByProps({ testID }).props.disabled).toBe(true);
+      expect(tree.root.findByProps({ testID }).props.accessibilityHint).toMatch(/govorni unos|Završi ili otkaži/);
+    }
+    expect(c.cancel).not.toHaveBeenCalled(); expect(c.release).not.toHaveBeenCalled(); expect(p.onSend).not.toHaveBeenCalled();
+  });
+  it.each([false, true])('a reviewed transcript reveals the whole resulting draft only after completion (batched completion %s)', async batched => {
+    const p = { ...props(), value: 'Postojeći nacrt. ', voice: voice() };
+    await act(async () => { tree = create(<AiConversationShell {...p} />); });
+    await act(async () => tree.root.findByProps({ testID: 'ai-input-mode' }).props.onPress());
+    await act(async () => tree.root.findByProps({ testID: 'ai-voice-review' }).props.onPress());
+    const session = { mode: 'accessible', gestureId: 'g' } as VoiceSnapshot['session'];
+    await act(async () => tree.update(<AiConversationShell {...p} voice={voice({ state: { ...idle, phase: 'LISTENING', session } })} />));
+    const value = 'Postojeći nacrt. Prepoznati govor.';
+    if (!batched) {
+      await act(async () => tree.update(<AiConversationShell {...p} value={value} voice={voice({ state: { ...idle, phase: 'FINALIZING', session } })} />));
+      expect(tree.root.findAllByProps({ accessibilityLabel: 'Poruka za asistenta' })).toHaveLength(0);
+    }
+    await act(async () => tree.update(<AiConversationShell {...p} value={value} voice={voice({ state: { ...idle, session } })} />));
+    expect(tree.root.findByProps({ accessibilityLabel: 'Poruka za asistenta' }).props.value).toBe(value);
+    expect(p.onChange).not.toHaveBeenCalled(); expect(p.onSend).not.toHaveBeenCalled();
+  });
+  it.each(['PERMISSION_PENDING', 'STARTING', 'LISTENING'] as const)('a cancelled preview capture from %s leaves voice selected without fabricating a draft', async phase => {
+    const p = { ...props(), value: '', voice: voice() };
+    await act(async () => { tree = create(<AiConversationShell {...p} />); });
+    await act(async () => tree.root.findByProps({ testID: 'ai-voice-review' }).props.onPress());
+    await act(async () => tree.update(<AiConversationShell {...p} voice={voice({ state: { ...idle, phase } })} />));
+    await act(async () => tree.update(<AiConversationShell {...p} />));
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Poruka za asistenta' })).toHaveLength(0);
+    expect(p.onChange).not.toHaveBeenCalled(); expect(p.onSend).not.toHaveBeenCalled();
+  });
+  it('an old completed review session cannot switch a later explicit voice choice when unrelated draft text changes', async () => {
+    const session = { mode: 'accessible', gestureId: 'old' } as VoiceSnapshot['session'];
+    const p = { ...props(), voice: voice({ state: { ...idle, session } }) };
+    await act(async () => { tree = create(<AiConversationShell {...p} />); });
+    await act(async () => tree.root.findByProps({ testID: 'ai-input-mode' }).props.onPress());
+    await act(async () => tree.update(<AiConversationShell {...p} value="Sačuvana dopuna iz povratka" />));
+    expect(tree.root.findByProps({ testID: 'ai-input-mode' }).props.accessibilityLabel).toBe('Pređi na tastaturu');
+    expect(tree.root.findByProps({ testID: 'ai-retained-draft' })).toBeDefined();
+    expect(p.onSend).not.toHaveBeenCalled(); expect(p.onChange).not.toHaveBeenCalled();
+  });
   it('empty: one held microphone and no voice-mode entry; text: the round send', async () => {
     const p = props(); p.value = ''; p.voice = voice();
     await act(async () => { tree = create(<AiConversationShell {...p} />); });
@@ -738,6 +836,7 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
     const mic = tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onResponderGrant === 'function')[0];
     await act(async () => { mic.props.onResponderGrant({ nativeEvent: { pageY: 200 } }); mic.props.onResponderRelease(); });
     expect(text()).toContain(HOLD_HINT);
+    await act(async () => tree.root.findByProps({ testID: 'ai-input-mode' }).props.onPress());
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Poruka za asistenta' }).props.onChangeText('T'));
     expect(text()).not.toContain(HOLD_HINT);
   });
@@ -751,7 +850,6 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
       const mic = tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onResponderGrant === 'function')[0];
       await act(async () => { mic.props.onResponderGrant({ nativeEvent: { pageY: 200 } }); mic.props.onResponderRelease(); });
       await act(async () => tree.root.findByProps({ label: 'Govori bez držanja' }).props.onPress());
-      expect(tree.root.findAllByType(VoiceMode)).toHaveLength(0);
       expect(tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onPress === 'function').length).toBeGreaterThan(0);
       expect(text()).not.toContain(HOLD_HINT);
       // Opening voice mode starts nothing: the one capture is the tap on the held microphone that brought the advice.
@@ -768,7 +866,6 @@ describe('the floating composer (owner step 6, Gemini reference)', () => {
     expect(text()).toContain(HOLD_HINT);
     expect(p.voice!.controller.begin).not.toHaveBeenCalled();
     await act(async () => tree.root.findByProps({ label: 'Govori bez držanja' }).props.onPress());
-    expect(tree.root.findAllByType(VoiceMode)).toHaveLength(0);
     expect(tree.root.findAll(node => node.props.testID === 'voice-mic' && typeof node.props.onPress === 'function').length).toBeGreaterThan(0);
     expect(p.onSend).not.toHaveBeenCalled(); expect(p.voice!.controller.begin).not.toHaveBeenCalled();
   });
@@ -817,7 +914,6 @@ describe('one microphone, no separate AI voice conversation', () => {
     const p = props(); p.value = ''; p.voice = voice();
     await act(async () => { tree = create(<AiConversationShell {...p} />); });
     expect(tree.root.findAllByProps({ testID: 'ai-voice-mode' })).toHaveLength(0);
-    expect(tree.root.findAllByType(VoiceMode)).toHaveLength(0);
     expect(tree.root.findAllByProps({ testID: 'voice-mic' }).length).toBeGreaterThan(0);
     expect(p.voice.controller.begin).not.toHaveBeenCalled();
     expect(p.onSend).not.toHaveBeenCalled();

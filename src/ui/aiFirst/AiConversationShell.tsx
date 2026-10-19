@@ -18,7 +18,7 @@ import { useReducedMotion } from '../system/motion';
 import { useLayoutClass, useTextScale } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { VOICE_PROCESSING_NOTICE } from '../../features/voice/useHoldToTalk';
-import { HOLD_HINT, VoiceComposer, VoiceNotice, type VoiceInput } from './VoiceComposer';
+import { HOLD_HINT, VoiceComposer, VoiceNotice, useVoiceScreenReader, type VoiceInput } from './VoiceComposer';
 import { useConversationArrival } from './useConversationArrival';
 import type { AiCorrectionIntent } from '../../data/aiCorrectionIntent';
 
@@ -74,7 +74,7 @@ export type AiConversationShellProps = {
    * finished conversation still invited "Opiši šta ti treba"). Where they stood is `footerAction`, the one thing left to do, or nothing.
    */
   closed?: boolean;
-  /** Hold-to-talk in the composer; the owner retired the separate voice-mode entry on 9 Oct. */
+  /** One controller for held/tapped speech and optional transcript review. */
   voice?: VoiceInput;
   /** The "+" at the start of the composer (the task's photos). Left out when there is nothing to attach to. */
   attach?: { label: string; hint?: string; onPress: () => void; disabled?: boolean };
@@ -117,7 +117,18 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const { stacked: stackedRows } = useLayoutClass();
   const [keyboard, setKeyboard] = useState(false);
   const [tapToTalk, setTapToTalk] = useState(false);
-  // An accessibility alternative uses this same microphone as start/stop with review, never a second conversation screen.
+  const [reviewFirst, setReviewFirst] = useState(false);
+  const reader = useVoiceScreenReader();
+  const [modeChoice, setModeChoice] = useState({ key: p.conversationKey, mode: 'auto' });
+  const selectedInputMode = !p.voice ? 'keyboard' : modeChoice.key === p.conversationKey && modeChoice.mode !== 'auto'
+    ? modeChoice.mode : p.value.trim() ? 'keyboard' : 'voice';
+  const captureInputMode = useRef({ key: p.conversationKey, mode: selectedInputMode });
+  if (!p.voice || p.voice.state.phase === 'IDLE' || captureInputMode.current.key !== p.conversationKey) {
+    captureInputMode.current = { key: p.conversationKey, mode: selectedInputMode };
+  }
+  const inputMode = captureInputMode.current.mode;
+  const voiceMode = inputMode === 'voice';
+  // The alternative gesture uses this same controller, never a second conversation screen.
   const [holdHint, setHoldHint] = useState(false);
   const [readingEarlier, setReadingEarlier] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
@@ -128,12 +139,17 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const assistantWelcome = useRef<AssistantWelcomeMemory>({ key: p.conversationKey, consumed: false });
   const expanded = disclosure.key === p.conversationKey && disclosure.expanded;
   const input = useRef<TextInput>(null);
+  const inputFocusFrame = useRef<number | null>(null);
+  useEffect(() => () => {
+    if (inputFocusFrame.current !== null) cancelAnimationFrame(inputFocusFrame.current);
+    inputFocusFrame.current = null;
+  }, [p.conversationKey]);
   const focusedCorrection = useRef<string | null>(null);
   useEffect(() => {
-    if (!p.correction || p.closed || !p.canEdit || focusedCorrection.current === p.correction.token) return;
+    if (!p.correction || p.closed || !p.canEdit || voiceMode || (p.voice && p.voice.state.phase !== 'IDLE') || focusedCorrection.current === p.correction.token) return;
     focusedCorrection.current = p.correction.token;
     input.current?.focus();
-  }, [p.correction?.token, p.canEdit, p.closed]);
+  }, [p.correction?.token, p.canEdit, p.closed, voiceMode, p.voice?.state.phase]);
   const thread = useRef<ScrollView>(null);
   // Only a deliberate reading gesture changes intent. Keyboard and content geometry must never impersonate one.
   const followLatest = useRef(true);
@@ -149,6 +165,11 @@ export function AiConversationShell(p: AiConversationShellProps) {
   // RN exposes innerViewRef for measurement relative to the actual scroll content, not its viewport.
   const threadContent = useRef<View>(null!);
   const interactiveContext = useRef<View>(null);
+  const latestReply = useRef<View>(null);
+  const replyKey = useRef<string | null>(null);
+  const lastMessage = p.messages.at(-1);
+  replyKey.current = p.cardPlacement === 'end' && lastMessage?.fromAi && !p.sentMessage && !p.streamingText && !p.pending && !p.closed
+    ? lastMessage.id : null;
   const geometry = useRef({ offset: 0, content: 0, viewport: 0 });
   const followFrame = useRef<number | null>(null);
   const hasActivity = !!(p.messages.length || p.sentMessage || p.pending || p.busy || p.streamingText);
@@ -195,16 +216,27 @@ export function AiConversationShell(p: AiConversationShellProps) {
     return () => { contextOwner.current = null; cancelFollow(); };
   }, [p.conversationKey, p.interactiveContextKey, !!p.context, inlineContext, !!p.revealInteractiveContext, cancelFollow, revealContext]);
   const cancelContextReveal = () => { if (contextOwner.current) contextOwner.current.pending = false; };
+  const scrollLatest = useCallback((animated = false) => {
+    const key = replyKey.current, node = latestReply.current, ancestor = threadContent.current;
+    if (key && node?.measureLayout && ancestor) {
+      const conversation = anchorConversation.current;
+      const current = () => anchorConversation.current === conversation && replyKey.current === key && latestReply.current === node && followLatest.current && !userScrolling.current && !contextActive.current;
+      const failed = () => { if (current()) thread.current?.scrollToEnd({ animated }); };
+      try { node.measureLayout(ancestor, (_x, y) => {
+        if (current() && Number.isFinite(y)) thread.current?.scrollTo({ y: Math.max(0, y), animated });
+      }, failed); } catch { failed(); }
+    } else thread.current?.scrollToEnd({ animated });
+  }, []);
   const followAfterLayout = useCallback(() => {
     if (contextActive.current || !followLatest.current || userScrolling.current || !activity.current) return;
     cancelFollow();
-    thread.current?.scrollToEnd({ animated: false });
+    scrollLatest();
     // Keyboard avoidance settles after the first layout; every later content/viewport event can replace this pass.
     followFrame.current = requestAnimationFrame(() => {
       followFrame.current = null;
-      if (!contextActive.current && followLatest.current && !userScrolling.current && activity.current) thread.current?.scrollToEnd({ animated: false });
+      if (!contextActive.current && followLatest.current && !userScrolling.current && activity.current) scrollLatest();
     });
-  }, [cancelFollow]);
+  }, [cancelFollow, scrollLatest]);
   const reduced = useReducedMotion();
   const notice = useConfirmSheet({ reduced });
   const arrival = useConversationArrival(p);
@@ -212,7 +244,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
   // An open keyboard or large text can leave no room for the answer below a pinned draft.
   // Keep the same review target in the transcript; its existing anchor handling preserves reading position.
   const inlineSummary = keyboard || textScale >= 1.6 || height < 500;
-  const cardAtEnd = p.cardPlacement === 'end' && !keyboard;
+  // An end card has one stable owner/location, including while the keyboard is open.
+  const cardAtEnd = p.cardPlacement === 'end';
   const pinned = p.card(compact);
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', () => { setKeyboard(true); followAfterLayout(); });
@@ -228,7 +261,26 @@ export function AiConversationShell(p: AiConversationShellProps) {
   // The advice after a tap goes as soon as the microphone does anything.
   useEffect(() => { if (phase !== 'IDLE') setHoldHint(false); }, [phase]);
   // Speech that closes (the conversation ended, or it cannot take speech any more) takes voice mode with it.
-  useEffect(() => { setTapToTalk(false); }, [p.conversationKey]);
+  useEffect(() => { setTapToTalk(false); setReviewFirst(false); }, [p.conversationKey]);
+  const previousValue = useRef({ key: p.conversationKey, value: p.value, phase, session: p.voice?.state.session });
+  const reviewedDraft = useRef<{ key: string | undefined; session: NonNullable<VoiceInput['state']['session']> } | null>(null);
+  useEffect(() => {
+    const previous = previousValue.current;
+    const session = p.voice?.state.session;
+    previousValue.current = { key: p.conversationKey, value: p.value, phase, session };
+    // A reviewed transcript is delivered through the consumer's existing onTranscript
+    // guard. Reveal its resulting draft, without a second send or automatic keyboard.
+    if (previous.key === p.conversationKey && previous.value !== p.value && p.value.trim() && session?.mode === 'accessible'
+      && (phase !== 'IDLE' || previous.phase !== 'IDLE' || previous.session !== session)) {
+      reviewedDraft.current = { key: p.conversationKey, session };
+    }
+    if (reviewedDraft.current && reviewedDraft.current.key !== p.conversationKey) reviewedDraft.current = null;
+    if (reviewedDraft.current && phase === 'IDLE') {
+      const accepted = reviewedDraft.current.session === session && !p.voice?.state.error && !p.voice?.state.fallbackText;
+      reviewedDraft.current = null;
+      if (accepted) setModeChoice({ key: p.conversationKey, mode: 'keyboard' });
+    }
+  }, [p.value, p.conversationKey, p.voice?.state.session, p.voice?.state.error, p.voice?.state.fallbackText, phase]);
   useEffect(() => {
     cancelFollow(); followLatest.current = true; userScrolling.current = false; momentumAllowed.current = false;
     historyOffset.current = 0; setReadingEarlier(false);
@@ -244,11 +296,11 @@ export function AiConversationShell(p: AiConversationShellProps) {
   };
   const latest = (animated: boolean) => {
     cancelContextReveal(); cancelFollow(); userScrolling.current = false; momentumAllowed.current = false;
-    followLatest.current = true; setReadingEarlier(false); thread.current?.scrollToEnd({ animated });
+    followLatest.current = true; setReadingEarlier(false); scrollLatest(animated);
   };
 
   const hasText = p.value.trim().length > 0;
-  const sendShown = hasText || p.pending;
+  const sendShown = p.pending || (!voiceMode && hasText);
   const textRoom = composerWidth - 32 - (p.attach ? 48 : 0) - (p.voice ? 52 : 0) - (sendShown || p.voice ? 48 : 0);
   const stackedComposer = textScale >= 1.3 || (composerWidth > 0 && textRoom < 128) || expandedDraft || p.value.includes('\n');
   // Once a narrow field wraps, keep the full-width draft until it is short again.
@@ -258,6 +310,22 @@ export function AiConversationShell(p: AiConversationShellProps) {
     if (!p.value) setInputHeight(48);
   }, [p.value]);
   const voiceIdle = phase === 'IDLE';
+  const modeBlocked = !voiceIdle;
+  const modeReason = phase === 'FINALIZING' ? 'Sačekaj da završimo govorni unos.' : 'Završi ili otkaži govor pre promene unosa.';
+  // Snapshot closes the brief responder→React-render race: a tap cannot unmount
+  // the held microphone after begin has acquired the controller but before render.
+  const canSwitch = () => voiceIdle && (!p.voice || p.voice.controller.getSnapshot().phase === 'IDLE');
+  const chooseInput = (mode: 'voice' | 'keyboard', focus = false) => {
+    if (!canSwitch()) return;
+    if (inputFocusFrame.current !== null) cancelAnimationFrame(inputFocusFrame.current);
+    inputFocusFrame.current = null;
+    setHoldHint(false); setModeChoice({ key: p.conversationKey, mode });
+    if (mode === 'voice') Keyboard.dismiss();
+    else if (focus) inputFocusFrame.current = requestAnimationFrame(() => {
+      inputFocusFrame.current = null;
+      if (canSwitch()) input.current?.focus();
+    });
+  };
   const sendReason = p.canSend || !sendShown ? null
     : p.sendBlockedReason ?? (p.pending ? p.busy ? 'Poruka se šalje.' : 'Prethodna poruka još nije poslata. Proveri razgovor.'
       : !voiceIdle ? 'Završi govor pa pošalji.' : p.busy ? 'Sačekaj da stigne odgovor.' : 'Poruku sada ne možeš da pošalješ.');
@@ -358,7 +426,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
                 // The arrow says "this goes into the field", not "this opens a screen": the row draws no caret of its own.
                 arrow={false} trailing={stackedRows ? undefined : <Glyph name="arrow-up-right" tone="muted" />}
                 accessibilityLabel={opening} accessibilityHint="Upisuje ovo u poruku da možeš da dopuniš."
-                onPress={() => { p.onChange(opening + ' '); requestAnimationFrame(() => input.current?.focus()); }} />)}
+                onPress={() => { if (!canSwitch()) return; p.onChange(opening + ' '); chooseInput('keyboard', true); }} />)}
             </Section>
           </View> : null}
           {/* The speech disclosure is reachable before the first word, and from voice mode at any time. */}
@@ -371,12 +439,14 @@ export function AiConversationShell(p: AiConversationShellProps) {
         {[...(welcomeShown ? [] : p.messages.flatMap((message, index) => [
           ...(inlineContext && message.id === p.contextBeforeMessageId
             ? [<View key="interactive-context" ref={interactiveContext} collapsable={false} testID="ai-task-context" onLayout={revealContext}>{p.context}</View>] : []),
-          <Turn key={message.id} {...message}
+          <View key={message.id} ref={replyKey.current === message.id ? latestReply : undefined}
+            collapsable={false} testID={replyKey.current === message.id ? 'ai-latest-reply' : undefined} onLayout={replyKey.current === message.id ? followAfterLayout : undefined}>
+          <Turn {...message}
           showSpeaker={message.fromAi && (index === 0 || !p.messages[index - 1].fromAi)}
           emphasis={!p.questionFocus || p.closed || !message.fromAi ? 'plain' : index === p.messages.length - 1 && !p.sentMessage && !p.streamingText ? 'question' : 'earlier'}
           // Frequent updates and streamed text get no decorative entrance. A turn that arrives while you are watching is
           // feedback; the thread you already had when the screen opened is not, and must not replay.
-          reduced={reduced || !arrival.shouldEnter(message.id)} />,
+          reduced={reduced || !arrival.shouldEnter(message.id)} /></View>,
           ...notes.filter(note => note.afterMessageId === message.id).map(drawNote)])),
           ...notes.filter(note => note.afterMessageId === null || !anchored.has(note.afterMessageId)).map(drawNote)]}
         {/* Until the server read brings it back, what was said is still what was said: present, readable, and visibly
@@ -425,29 +495,59 @@ export function AiConversationShell(p: AiConversationShellProps) {
           </Press>
         </View> : null}
         {/* A person who cannot hold uses the same microphone in start/stop mode with explicit review. */}
-        {p.voice ? <VoiceNotice {...p.voice} hint={holdHint ? HOLD_HINT : null}
+        {p.voice ? <VoiceNotice {...p.voice} onKeepText={text => {
+          const kept = p.voice!.onKeepText(text);
+          if (kept) chooseInput('keyboard');
+          return kept;
+        }} tapToTalk={tapToTalk} hint={holdHint ? reviewFirst ? 'Drži mikrofon dok govoriš, pa pusti za pregled.' : HOLD_HINT : null}
           hintAction={holdHint && !p.voice.disabled && voiceIdle ? { label: 'Govori bez držanja', onPress: () => {
-            Keyboard.dismiss(); setHoldHint(false); setTapToTalk(true); } } : undefined} /> : null}
+            if (!canSwitch()) return; Keyboard.dismiss(); setHoldHint(false); setTapToTalk(true); } } : undefined} /> : null}
         {/* When the thread's own recovery note already explains the wait, the line here would say it twice; the send
             button still says it to a screen reader. The same holds while the message is being sent: the thread shows the
             answer arriving, so no line is docked above the composer for it. */}
         {sendReason && voiceIdle && !p.status && !(p.pending && p.busy) ? <T testID="ai-send-reason" accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
           variant="note" tone="muted" style={s.reason}>{sendReason}</T> : null}
+        {p.voice ? <View style={s.inputPreferences}>
+          <Press testID="ai-input-mode" accessibilityRole="button" accessibilityLabel={voiceMode ? 'Pređi na tastaturu' : 'Pređi na govor'}
+            accessibilityHint={modeBlocked ? modeReason : hasText && voiceMode ? 'Neposlata poruka je sačuvana.' : undefined}
+            accessibilityState={{ disabled: modeBlocked }} disabled={modeBlocked} haptic="select"
+            onPress={() => chooseInput(voiceMode ? 'keyboard' : 'voice', voiceMode)} style={s.preference}>
+            <T variant="note" style={s.preferenceText}>{voiceMode ? hasText ? 'Tastatura · nacrt' : 'Tastatura' : 'Govor'}</T>
+          </Press>
+          <Press testID="ai-voice-review" accessibilityRole="checkbox" accessibilityLabel="Pregledaj pre slanja"
+            accessibilityState={{ checked: reader || reviewFirst, disabled: modeBlocked || reader }} disabled={modeBlocked || reader}
+            accessibilityHint={reader ? 'Uz čitač ekrana tekst se uvek pregleda pre slanja.' : modeBlocked ? modeReason : 'Važi za govor, sa držanjem i bez držanja.'}
+            onPress={() => { if (canSwitch() && !reader) setReviewFirst(value => !value); }} haptic="select" style={s.preference}>
+            <View style={[s.reviewBox, (reader || reviewFirst) && s.reviewBoxOn]}>{reader || reviewFirst ? <Glyph name="check" size={14} tone="onGreen" /> : null}</View>
+            <T variant="note" style={s.preferenceText}>Pregledaj pre slanja</T>
+          </Press>
+        </View> : null}
         <View testID="ai-composer" onLayout={event => {
           const width = event.nativeEvent.layout.width;
           if (Number.isFinite(width) && width > 0) setComposerWidth(previous => previous === width ? previous : width);
         }}
-          style={[s.pill, stackedComposer && s.pillExpanded, inputFocused && s.pillFocused]}>
-          {p.attach ? <View style={[s.attachmentSlot, stackedComposer && s.attachmentBelow]}>
+          style={[s.pill, !voiceMode && stackedComposer && s.pillExpanded, inputFocused && s.pillFocused]}>
+          {p.attach ? <View style={[s.attachmentSlot, !voiceMode && stackedComposer && s.attachmentBelow]}>
             <Press accessibilityRole="button" accessibilityLabel={p.attach.label} accessibilityHint={p.attach.hint}
               accessibilityState={{ disabled: !!p.attach.disabled }} disabled={p.attach.disabled} haptic={p.attach.disabled ? 'none' : 'select'}
               hitSlop={0} onPress={p.attach.onPress} style={s.target}>
               <View style={s.toolCircle}><Glyph name="plus" size={24} tone={p.attach.disabled ? 'muted' : 'ink'} /></View>
             </Press>
           </View> : null}
-          <TextInput ref={input} accessibilityLabel="Poruka za asistenta" value={p.value} editable={p.canEdit}
+          {voiceMode ? <View style={s.voicePrompt}>
+            <T variant="body" style={s.preferenceText}>{reader || tapToTalk ? 'Dodirni i govori' : 'Drži i govori'}</T>
+            {hasText ? <T testID="ai-retained-draft" variant="note" tone="muted">Neposlata poruka je sačuvana.</T>
+              : voiceIdle ? <T variant="note" tone="muted">{reader || reviewFirst ? 'Tekst pregledaš pre slanja.' : tapToTalk ? 'Dodirni ponovo da pošalješ.' : 'Pusti da pošalješ.'}</T> : null}
+            {!reader ? <Press testID="ai-voice-gesture" accessibilityRole="button"
+              accessibilityLabel={tapToTalk ? 'Koristi držanje mikrofona' : 'Govori bez držanja'}
+              accessibilityHint={modeBlocked ? modeReason : 'Menja gest. Izbor pregleda pre slanja ostaje isti.'}
+              accessibilityState={{ disabled: modeBlocked }} disabled={modeBlocked} haptic="select" style={s.gestureChoice}
+              onPress={() => { if (canSwitch()) { setTapToTalk(value => !value); setHoldHint(false); } }}>
+              <T variant="note" tone="green">{tapToTalk ? 'Koristi držanje' : 'Bez držanja'}</T>
+            </Press> : null}
+          </View> : <TextInput ref={input} accessibilityLabel="Poruka za asistenta" value={p.value} editable={p.canEdit && voiceIdle}
             onFocus={() => setInputFocused(true)} onBlur={() => setInputFocused(false)}
-            onChangeText={text => { setHoldHint(false); p.onChange(text); }}
+            onChangeText={text => { if (!p.canEdit || !canSwitch()) return; setHoldHint(false); p.onChange(text); }}
             placeholder={p.placeholder ?? 'Napiši poruku'} placeholderTextColor={sys.color.muted} multiline maxLength={4000}
             onContentSizeChange={event => {
               const measured = Math.ceil(event.nativeEvent.contentSize.height);
@@ -458,9 +558,9 @@ export function AiConversationShell(p: AiConversationShellProps) {
               if (!stackedComposer && p.value.length > 8 && measured > oneLine + 8) setExpandedDraft(true);
             }}
             // A field that cannot be edited now says so in its ink: the words in it are held, not a draft to change.
-            style={[s.input, { height: inputHeight }, stackedComposer && s.inputExpanded, !p.canEdit && s.inputOff]} />
-          <View testID="ai-composer-tools" style={[s.composerTools, stackedComposer && s.toolsBelow]}>
-            {p.voice ? <VoiceComposer {...p.voice} size={52} tapToTalk={tapToTalk} onTooShort={() => setHoldHint(true)} /> : null}
+            style={[s.input, { height: inputHeight }, stackedComposer && s.inputExpanded, !p.canEdit && s.inputOff]} />}
+          <View testID="ai-composer-tools" style={[s.composerTools, !voiceMode && stackedComposer && s.toolsBelow]}>
+            {p.voice ? <VoiceComposer {...p.voice} size={voiceMode ? 60 : 52} tapToTalk={tapToTalk} reviewFirst={reviewFirst} onTooShort={() => setHoldHint(true)} /> : null}
           {sendShown ? <Press testID="ai-send" accessibilityRole="button" accessibilityLabel={p.pending ? 'Pošalji ponovo' : 'Pošalji poruku'}
             accessibilityHint={sendReason ?? undefined} accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend}
             onPress={() => { if (!p.canSend) return; latest(false); p.onSend(); }} haptic={p.canSend ? 'light' : 'none'} hitSlop={0} style={s.target}>
@@ -585,6 +685,13 @@ const s = StyleSheet.create({
   reason: { paddingHorizontal: sys.space.sm },
   correction: { flexDirection: 'row', alignItems: 'flex-start', paddingLeft: sys.space.sm, gap: sys.space.sm },
   correctionCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  inputPreferences: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', columnGap: sys.space.sm },
+  preference: { minHeight: sys.touch.min, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.sm, flexShrink: 1 },
+  preferenceText: { flexShrink: 1, color: sys.color.ink },
+  reviewBox: { width: 20, height: 20, borderRadius: sys.radius.check, borderWidth: 1, borderColor: sys.color.muted, alignItems: 'center', justifyContent: 'center' },
+  reviewBoxOn: { borderColor: sys.color.green, backgroundColor: sys.color.green },
+  voicePrompt: { flex: 1, minWidth: 0, paddingHorizontal: sys.space.sm, paddingTop: sys.space.sm },
+  gestureChoice: { minHeight: sys.touch.min, justifyContent: 'center', alignSelf: 'flex-start' },
   // One ordinary horizontal pill; only a wrapped draft or limited reading space moves tools below.
   pill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 6,
     borderRadius: sys.radius.sheet, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.conversation.surface,

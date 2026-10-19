@@ -1,0 +1,533 @@
+{
+  "schema": "USKOCI_AI_SPEED_V1",
+  "date": "2026-10-19",
+  "sourceSha": "7423c476daccf4c62c4684e0a0db7c786e3c8ab8",
+  "branch": "feature/unified-qa-master-20261017",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "status": "DEV_APPLIED_LIVE_SCOPED_PASS_APK_BUILT_PHONE_BOUNDED_SMOKE",
+  "implementation": {
+    "kind": "CONSERVATIVE_DIRECT_REPLY_WITH_FRESH_CATALOG_VERIFICATION",
+    "scope": "Skip an extra model research round only when current guarded facts and freshly verified classification agree. Otherwise use the existing bounded read-only tool path; preserve billing, safety, intent, revisions and explicit Save.",
+    "durableBackgroundClassification": false,
+    "promptCompression": false,
+    "ddlMigration": false,
+    "nativeUiChanged": false
+  },
+  "deployment": {
+    "sourceSha": "7423c476daccf4c62c4684e0a0db7c786e3c8ab8",
+    "projectRef": "leqcwgzvjsxugfgzdmth",
+    "functions": [
+      {
+        "name": "uskoci-ai-interview",
+        "version": 113,
+        "verify_jwt": false,
+        "files": 19,
+        "exact": true,
+        "ezbr": "f135d62a9294cd5b7059b476a49d493fa6bf29f80fd424997a931619b5fc6ceb"
+      },
+      {
+        "name": "uskoci-worker-interview",
+        "version": 68,
+        "verify_jwt": false,
+        "files": 17,
+        "exact": true,
+        "ezbr": "15d1513412f6f9451bd12bd093fc1327e248fb77d0a00e5530ded820ee99fb6c"
+      }
+    ],
+    "metadata": [
+      {
+        "id": "e0e3181b-e87b-4b8f-9c90-abfc30ddf938",
+        "slug": "uskoci-ai-interview",
+        "name": "uskoci-ai-interview",
+        "status": "ACTIVE",
+        "version": 113,
+        "created_at": 1788261764727,
+        "updated_at": 1792442798899,
+        "verify_jwt": false,
+        "import_map": false,
+        "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_113/source/supabase/functions/uskoci-ai-interview/index.ts",
+        "ezbr_sha256": "f135d62a9294cd5b7059b476a49d493fa6bf29f80fd424997a931619b5fc6ceb"
+      },
+      {
+        "id": "dc1d633c-416a-4a10-bac7-ecc9a4c4a92a",
+        "slug": "uskoci-worker-interview",
+        "name": "uskoci-worker-interview",
+        "status": "ACTIVE",
+        "version": 68,
+        "created_at": 1789291116219,
+        "updated_at": 1792442800736,
+        "verify_jwt": false,
+        "import_map": false,
+        "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_68/source/supabase/functions/uskoci-worker-interview/index.ts",
+        "ezbr_sha256": "15d1513412f6f9451bd12bd093fc1327e248fb77d0a00e5530ded820ee99fb6c"
+      }
+    ],
+    "filesMatched": 36,
+    "readback": "ALL_FILES_EXACT",
+    "rollbackArtifacts": [
+      "work/ai-speed-20261019/rollback/uskoci-ai-interview.json",
+      "work/ai-speed-20261019/rollback/uskoci-worker-interview.json"
+    ]
+  },
+  "live": {
+    "accountId": "93ffa9c0-efe3-410e-8ddf-e56253bfccd8",
+    "workerProfileId": "3c3fe637-968a-4217-aeb0-7088cc269337",
+    "isolationLineage": "DEV_ACCEPTANCE_QA",
+    "discoveryTestWorld": true,
+    "startedAt": "2026-10-19T20:50:30.649Z",
+    "finishedAt": "2026-10-19T20:51:07.287Z",
+    "qaRetiredAt": "2026-10-19T20:52:13.543203+00:00",
+    "logicalRequests": 4,
+    "turns": [
+      {
+        "case": "Zadatak: prvi unos 3D figurice",
+        "flow": "need",
+        "conversationId": "d36b629e-da33-4d18-b5c0-317c7e6447c5",
+        "clientRequestId": "9b29e5b8-0160-4321-a99f-a4a121d5fdee",
+        "elapsedMs": 14315,
+        "outcome": "OWNED_SUCCEEDED_READBACK",
+        "providerOperations": 3,
+        "toolCalls": 2,
+        "settledMicrousd": 29371,
+        "phaseTotalsMs": {
+          "NEED_CATALOG_START": 201,
+          "ADMISSION": 191,
+          "PROVIDER": 11555,
+          "ACCOUNTING": 314,
+          "CATALOG_TOOLS": 185,
+          "NEED_CATALOG_VERIFY": 164,
+          "NEED_COMPLETE": 187,
+          "NEED_HINT_CAPTURE": 101
+        },
+        "classificationState": "READY",
+        "responseFormat": "JSON",
+        "assistantTextSource": "OWNED_MESSAGE_READBACK"
+      },
+      {
+        "case": "Zadatak: samo budžet 5.000 RSD",
+        "flow": "need",
+        "conversationId": "d36b629e-da33-4d18-b5c0-317c7e6447c5",
+        "clientRequestId": "03ecf5ad-5dd0-40f7-b3d3-cdd079ca6dda",
+        "elapsedMs": 5687,
+        "outcome": "OWNED_SUCCEEDED_READBACK",
+        "providerOperations": 1,
+        "toolCalls": 0,
+        "settledMicrousd": 9940,
+        "phaseTotalsMs": {
+          "NEED_CATALOG_START": 174,
+          "ADMISSION": 0,
+          "PROVIDER": 4355,
+          "ACCOUNTING": 75,
+          "NEED_CATALOG_VERIFY": 162,
+          "NEED_COMPLETE": 82,
+          "NEED_HINT_CAPTURE": 62
+        },
+        "classificationState": "READY",
+        "responseFormat": "JSON",
+        "assistantTextSource": "OWNED_MESSAGE_READBACK"
+      },
+      {
+        "case": "Radni profil: 3D štampa i radni dani",
+        "flow": "worker",
+        "conversationId": "fcd5b1d3-9dd2-404e-8be9-15aec3c50f66",
+        "clientRequestId": "512738ca-a69b-4133-9ca6-b85692e538ee",
+        "elapsedMs": 9571,
+        "outcome": "OWNED_SUCCEEDED_READBACK",
+        "providerOperations": 2,
+        "toolCalls": 1,
+        "settledMicrousd": 13774,
+        "phaseTotalsMs": {
+          "WORKER_CATALOG_START": 147,
+          "ADMISSION": 76,
+          "PROVIDER": 7471,
+          "ACCOUNTING": 167,
+          "CATALOG_TOOLS": 91,
+          "WORKER_CATALOG_VERIFY": 159,
+          "WORKER_COMPLETE": 82,
+          "WORKER_HINT_CAPTURE": 71
+        },
+        "classificationState": "READY",
+        "responseFormat": "SSE",
+        "assistantTextSource": "SSE_CONFIRMED"
+      },
+      {
+        "case": "Radni profil: samo ponedeljak 18–20",
+        "flow": "worker",
+        "conversationId": "fcd5b1d3-9dd2-404e-8be9-15aec3c50f66",
+        "clientRequestId": "43432993-84f1-47ac-923a-584f11e1a484",
+        "elapsedMs": 5164,
+        "outcome": "OWNED_SUCCEEDED_READBACK",
+        "providerOperations": 1,
+        "toolCalls": 0,
+        "settledMicrousd": 7263,
+        "phaseTotalsMs": {
+          "WORKER_CATALOG_START": 140,
+          "ADMISSION": 0,
+          "PROVIDER": 4096,
+          "ACCOUNTING": 68,
+          "WORKER_CATALOG_VERIFY": 150,
+          "WORKER_COMPLETE": 88,
+          "WORKER_HINT_CAPTURE": 57
+        },
+        "classificationState": "READY",
+        "responseFormat": "SSE",
+        "assistantTextSource": "SSE_CONFIRMED"
+      }
+    ],
+    "assertions": {
+      "allFourReviewsReady": true,
+      "allFourCanAccept": true,
+      "sameCategoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+      "executionMode": "REMOTE",
+      "handoff": {
+        "required": true,
+        "shippingCountries": [
+          "RS"
+        ]
+      },
+      "needChangedFactKeys": [
+        "need.price_mode",
+        "need.price_rsd"
+      ],
+      "needPriceRsd": 5000,
+      "workerBeforeHoursByDay": {
+        "1": [
+          "15:00:00",
+          "19:00:00"
+        ],
+        "2": [
+          "15:00:00",
+          "19:00:00"
+        ],
+        "3": [
+          "15:00:00",
+          "19:00:00"
+        ],
+        "4": [
+          "15:00:00",
+          "19:00:00"
+        ],
+        "5": [
+          "15:00:00",
+          "19:00:00"
+        ]
+      },
+      "workerAfterHoursByDay": {
+        "1": [
+          "18:00:00",
+          "20:00:00"
+        ],
+        "2": [
+          "15:00:00",
+          "19:00:00"
+        ],
+        "3": [
+          "15:00:00",
+          "19:00:00"
+        ],
+        "4": [
+          "15:00:00",
+          "19:00:00"
+        ],
+        "5": [
+          "15:00:00",
+          "19:00:00"
+        ]
+      },
+      "workerWeekendAdded": false,
+      "workerInventedResources": false
+    },
+    "boundaries": {
+      "canonicalSave": false,
+      "taskPublication": false,
+      "workerActivation": false,
+      "matching": false,
+      "push": false,
+      "ownerAccountTouched": false
+    },
+    "measurementBoundary": "elapsedMs is harness Edge POST through authoritative owned readback, not phone rendering latency; four messages from one isolated account are not a population benchmark."
+  },
+  "noPreSaveChanges": {
+    "status": "PASS",
+    "beforeAt": "2026-10-19T20:50:16.665056+00:00",
+    "afterAt": "2026-10-19T20:51:19.038128+00:00",
+    "before": {
+      "catalogFingerprint": "9a9a78bd9bf77ca89cf3f721605b45dd",
+      "needBindingsDigest": "d751713988987e9331980363e24189ce",
+      "needsCanonicalDigest": "d751713988987e9331980363e24189ce",
+      "workerBindingsDigest": "d751713988987e9331980363e24189ce",
+      "workerCanonicalDigest": "b612d6de24da859c47df948fbf44875b"
+    },
+    "after": {
+      "catalogFingerprint": "9a9a78bd9bf77ca89cf3f721605b45dd",
+      "needBindingsDigest": "d751713988987e9331980363e24189ce",
+      "needsCanonicalDigest": "d751713988987e9331980363e24189ce",
+      "workerBindingsDigest": "d751713988987e9331980363e24189ce",
+      "workerCanonicalDigest": "b612d6de24da859c47df948fbf44875b"
+    },
+    "allFiveEqual": true,
+    "needsAfter": 0,
+    "needBindingsAfter": 0,
+    "workerBindingsAfter": 0,
+    "workerStatusAfter": "DRAFT"
+  },
+  "accounting": {
+    "unsettled": 0,
+    "operations": [
+      {
+        "at": "2026-10-19T20:50:32.92246+00:00",
+        "basis": "MEASURED",
+        "operationId": "9b29e5b8-0160-4321-a99f-a4a121d5fdee",
+        "settledMicrousd": 8343
+      },
+      {
+        "at": "2026-10-19T20:50:35.295743+00:00",
+        "basis": "MEASURED",
+        "operationId": "a97a068f-11e8-8cc4-a531-5a2e0a4dec8f",
+        "settledMicrousd": 8462
+      },
+      {
+        "at": "2026-10-19T20:50:37.240238+00:00",
+        "basis": "MEASURED",
+        "operationId": "eeec36a6-8516-83bb-8b64-61951dfbe9f9",
+        "settledMicrousd": 12566
+      },
+      {
+        "at": "2026-10-19T20:50:46.837538+00:00",
+        "basis": "MEASURED",
+        "operationId": "03ecf5ad-5dd0-40f7-b3d3-cdd079ca6dda",
+        "settledMicrousd": 9940
+      },
+      {
+        "at": "2026-10-19T20:50:53.48584+00:00",
+        "basis": "MEASURED",
+        "operationId": "512738ca-a69b-4133-9ca6-b85692e538ee",
+        "settledMicrousd": 5658
+      },
+      {
+        "at": "2026-10-19T20:50:56.017274+00:00",
+        "basis": "MEASURED",
+        "operationId": "49044cc7-967b-848f-8709-ee1b5442dc1f",
+        "settledMicrousd": 8116
+      },
+      {
+        "at": "2026-10-19T20:51:02.525451+00:00",
+        "basis": "MEASURED",
+        "operationId": "43432993-84f1-47ac-923a-584f11e1a484",
+        "settledMicrousd": 7263
+      }
+    ],
+    "qaRetiredAt": "2026-10-19T20:52:13.543203+00:00",
+    "settledMicrousd": 60348,
+    "providerOperations": 7,
+    "basis": "INTERNAL_USAGE_MEASURED",
+    "supplierInvoiceVerified": false,
+    "actualUsd": 0.060348,
+    "reservationCeilingUsd": 4,
+    "reservationIsActualCharge": false,
+    "note": "Internal settled usage is not a supplier invoice. The harness ceiling of 16 provider attempts / $4 was not the consumed total."
+  },
+  "ci": {
+    "workflow": "build-latest-v5-preview-apk.yml",
+    "runId": 39322097750,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39322097750",
+    "sourceSha": "7423c476daccf4c62c4684e0a0db7c786e3c8ab8",
+    "regression": {
+      "status": "PASS",
+      "suites": 621,
+      "testsPassed": 13968,
+      "testsFailed": 0,
+      "testsSkipped": 0,
+      "startedAt": "2026-10-19T20:47:44.419Z",
+      "finishedAt": "2026-10-19T20:51:42.891Z"
+    },
+    "apkBuild": "BUILT",
+    "earlierRun": {
+      "runId": 39320399499,
+      "sourceSha": "0f237092",
+      "status": "FAILED_TEST_LOADER",
+      "cause": "Custom VM test loader did not resolve the newly imported aiPhaseTiming module; actual module mapping and dependent loaders were corrected, usage/security assertions retained.",
+      "historyRetained": true
+    },
+    "status": "SUCCESS",
+    "apkReceipt": "work/ai-speed-20261019/apk/USKOCI-V5-PREVIEW-ARM64-receipt.json"
+  },
+  "device": {
+    "status": "INSTALLED_AND_BOUNDED_PHYSICAL_SMOKE",
+    "phone": "BOUNDED_SMOKE_PASS",
+    "emulator": "NOT_RUN_FOR_THIS_PACKAGE",
+    "observedAt": "2026-10-19T21:13:54.616Z",
+    "model": "HONOR VKP_NX9",
+    "android": 16,
+    "widthDp": 361.14,
+    "fontScale": 1.15,
+    "installedSourceSha": "7423c476daccf4c62c4684e0a0db7c786e3c8ab8",
+    "apkSha256": "1faca5bbed6de82b363d3b68e26acb9646f7fcea1b3c6ea1d166a38e90098439",
+    "apkSizeBytes": 99140124,
+    "version": "1.0.0",
+    "versionCode": 35,
+    "androidPackage": "rs.uskoci.preview",
+    "installMode": "adb install -r",
+    "sessionPreserved": true,
+    "otaIdentity": {
+      "embeddedUpdateIdPrefix": "809fd049",
+      "runtimeVersion": "uskoci-v1-preview-r1",
+      "channel": "preview"
+    },
+    "proof": "work/ai-speed-20261019/phone-verification.json",
+    "observedScreens": [
+      "Home",
+      "Tasks map",
+      "Agreements empty state",
+      "Messages",
+      "About build identity"
+    ],
+    "nativeActivityLaunchMs": 1053,
+    "sourceTreeNote": "About reports working copy modifications: CI prebuild changes only package.json android/ios scripts and emits source receipt; exact diff preserved in APK artifacts.",
+    "limitations": [
+      "No user AI message, Save or Publish performed on phone",
+      "No actual push/group media/end-to-end proof",
+      "Only device width361dp/font1.15 observed in this smoke",
+      "New composer/live card source is separate unbuilt candidate"
+    ],
+    "screenshots": [
+      {
+        "path": "work/ai-speed-20261019/phone-home7423.png",
+        "sha256": "bbedba75ad68667810154cc97d1d60a965ec5e99b4f0438e539208cf25235b3c"
+      },
+      {
+        "path": "work/ai-speed-20261019/phone-tasks7423.png",
+        "sha256": "69ff90a70442a21b29e5ef19fdd78fa9bb896c3a775ddc1c33a9c4a826fb5274"
+      },
+      {
+        "path": "work/ai-speed-20261019/phone-agreements7423.png",
+        "sha256": "e214973360b57db7a3ef3f4e2b479e6d19805a6d214c37812aadac7db3459acd"
+      },
+      {
+        "path": "work/ai-speed-20261019/phone-messages7423.png",
+        "sha256": "57d39f14506b7d8d0d4bf885919eb9a07b9e3c334154c2aeb4627e043a834bb7"
+      },
+      {
+        "path": "work/ai-speed-20261019/phone-build-proof.png",
+        "sha256": "e7674cb59d9e5ad00e5914435e4bbe5ff94ff5224e5c385dcb2e1c9acd3251ad"
+      },
+      {
+        "path": "work/ai-speed-20261019/phone-build-proof.xml",
+        "sha256": "41652dbd3754ccaf8a8abb6fd6ce5cdded5e5a199f74e7c22b9917e8beacf610"
+      }
+    ],
+    "note": "This later phone evidence supplements the immutable CI receipt, which still correctly records NOT_PHONE_VERIFIED at artifact creation. No phone AI message, Save, Publish, push or end-to-end acceptance is inferred."
+  },
+  "open": [
+    "Durable revision-bound background classification and recovery",
+    "Shorter situation-aware context without losing facts",
+    "One connected review and broader task/profile correction coverage",
+    "Regional coverage and end-to-end matching",
+    "Group chat, conscious sharing and push delivery",
+    "Nine Premium White UI waves and release gates"
+  ],
+  "artifacts": [
+    {
+      "path": "work/ai-speed-20261019/live/312cff7e-8ac0-4ea5-bbef-2b30c652f267/report.json",
+      "sha256": "0fc2298d3b07f2030eb572d91d02512252a76756eb64e49cec8cbc0b01e2cee0"
+    },
+    {
+      "path": "work/ai-speed-20261019/qa-before.json",
+      "sha256": "76f21655d0efc7f179d7349d189858ff687dfb870890b5ede224cedba73e9549"
+    },
+    {
+      "path": "work/ai-speed-20261019/qa-after.json",
+      "sha256": "7e0940eff339a3727f62fdb46ac2670cf477096d16f2a5be15767246db1da010"
+    },
+    {
+      "path": "work/ai-speed-20261019/phase-logs.json",
+      "sha256": "49d4f28887cb9e24e749dd8be53d345d64f1e74690288779526dafd603c49e2e"
+    },
+    {
+      "path": "work/ai-speed-20261019/accounting.json",
+      "sha256": "03e059d1dc7668d2440d97024c424694dacf6238facd8056d38b63f8851da0a7"
+    },
+    {
+      "path": "work/ai-speed-20261019/deployment.json",
+      "sha256": "8d0c75de1fa29091db24b7bf3e98b878508c838f35f979c2f07f937fdf5cbc59"
+    },
+    {
+      "path": "work/ai-speed-20261019/deployment-metadata.json",
+      "sha256": "718265a87002e919d66d7a6ca68c9e546b1504d2b904609fdbf213266a0bbbe5"
+    },
+    {
+      "path": "work/ai-speed-20261019/ci/jest.json",
+      "sha256": "6931cee38efc57ad1bc8d830653225ae049610857f314031a2750fa5e20b35c9"
+    },
+    {
+      "path": "work/ai-speed-20261019/rollback/uskoci-ai-interview.json",
+      "sha256": "8572dd20277a762fda96f0e9a63e41d5c7476fa778cfb1e43fb499143900a48c"
+    },
+    {
+      "path": "work/ai-speed-20261019/rollback/uskoci-worker-interview.json",
+      "sha256": "58b3e1ba93f308120f864f5d3b5d63fe2a88a026aabd225f9588c9d60da5a9d5"
+    },
+    {
+      "path": "work/ai-speed-20261019/phone-verification.json",
+      "sha256": "76cd50135e1c2e6e8fd44a22a2cffe09a9a84d77b9a8184975f6227af2ff58fd"
+    },
+    {
+      "path": "work/ai-speed-20261019/apk/USKOCI-V5-PREVIEW-ARM64-receipt.json",
+      "sha256": "38a29c326d663aaebff074de9b6a980e4370ed52b6ab93288213747672f95713"
+    },
+    {
+      "path": "work/ai-speed-20261019/apk/PREBUILD_SOURCE_DIFF.patch",
+      "sha256": "cb97e32b3b15778a0e1d150df74349b1d650d16b04e7e9424d9ac9fd0d8f90f0"
+    },
+    {
+      "path": "work/ai-speed-20261019/apk/PREBUILD_SOURCE_STATUS.txt",
+      "sha256": "2601db3c996c447f455a6359f153639c42a57006e256439d3e71b9905e1af064"
+    },
+    {
+      "path": "work/ai-speed-20261019/apk/USKOCI-V5-PREVIEW-ARM64.apk",
+      "sha256": "1faca5bbed6de82b363d3b68e26acb9646f7fcea1b3c6ea1d166a38e90098439"
+    },
+    {
+      "path": "work/ai-speed-20261019/phone-after.apk",
+      "sha256": "1faca5bbed6de82b363d3b68e26acb9646f7fcea1b3c6ea1d166a38e90098439"
+    },
+    {
+      "path": "work/ai-speed-20261019/phone-home7423.png",
+      "sha256": "bbedba75ad68667810154cc97d1d60a965ec5e99b4f0438e539208cf25235b3c"
+    },
+    {
+      "path": "work/ai-speed-20261019/phone-tasks7423.png",
+      "sha256": "69ff90a70442a21b29e5ef19fdd78fa9bb896c3a775ddc1c33a9c4a826fb5274"
+    },
+    {
+      "path": "work/ai-speed-20261019/phone-agreements7423.png",
+      "sha256": "e214973360b57db7a3ef3f4e2b479e6d19805a6d214c37812aadac7db3459acd"
+    },
+    {
+      "path": "work/ai-speed-20261019/phone-messages7423.png",
+      "sha256": "57d39f14506b7d8d0d4bf885919eb9a07b9e3c334154c2aeb4627e043a834bb7"
+    },
+    {
+      "path": "work/ai-speed-20261019/phone-build-proof.png",
+      "sha256": "e7674cb59d9e5ad00e5914435e4bbe5ff94ff5224e5c385dcb2e1c9acd3251ad"
+    },
+    {
+      "path": "work/ai-speed-20261019/phone-build-proof.xml",
+      "sha256": "41652dbd3754ccaf8a8abb6fd6ce5cdded5e5a199f74e7c22b9917e8beacf610"
+    }
+  ],
+  "nextUiCandidate": {
+    "status": "SOURCE_VERIFIED",
+    "sourceSha": null,
+    "scope": "AI composer and live draft card",
+    "build": "PENDING",
+    "native": "PENDING",
+    "checks": {
+      "composerTestsPassed": 139,
+      "liveCardProofsPassed": 269,
+      "typeScript": "PASS",
+      "basis": "Integrator confirmed focused checks and root TypeScript; not a new full-regression or device result."
+    },
+    "installedIn7423": false
+  }
+}

@@ -9,7 +9,7 @@ jest.mock('react-native', () => {
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 
-import { WorkerAiActivation, WorkerAiReviewDetails } from '../WorkerAiPresentation';
+import { WorkerAiActivation, WorkerAiCard, WorkerAiReviewDetails } from '../WorkerAiPresentation';
 import { sys } from '../../system/tokens';
 
 /**
@@ -30,6 +30,30 @@ const review = (patch: Partial<WorkerAiReview['profile']['availability']> = {}, 
 let tree: ReactTestRenderer;
 const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' | ');
 afterEach(async () => { await act(async () => tree?.unmount()); });
+
+it('shows known draft services and profile city immediately without inferring travel, delivery or a radius',async()=>{
+  const profile=review({}, {skills:['3D štampa'],bio:'Radim na daljinu i šaljem svuda.'}).profile;
+  const openReview=jest.fn();
+  await act(async()=>{tree=create(<WorkerAiCard profile={profile} compact={false} review={openReview} disabled={false}/>);});
+  expect(texts()).toContain('Razumeo sam');expect(texts()).toContain('3D štampa');expect(texts()).toContain('Grad profila: Novi Sad');
+  expect(texts()).toContain('Način rada i predaju proveravamo u pregledu.');
+  expect(texts()).not.toMatch(/20 km|Slanje:|Bez dolaska|šaljem svuda/);
+  expect(tree.root.findAllByProps({testID:'worker-understood-mode'})).toHaveLength(0);
+  expect(openReview).not.toHaveBeenCalled();
+});
+it('displays reviewed modes and handoff beside only their own service, while retaining draft status',async()=>{
+  const prepared:WorkerAiReview={...review({}, {skills:['3D štampa','Selidbe']}),classificationState:'READY',
+    reviewedServiceModes:[{service:'3D štampa',mode:'REMOTE'},{service:'Selidbe',mode:'ON_SITE'}],
+    classificationCandidates:[{action:'REUSE_EXISTING',service:'3D štampa',mode:'REMOTE',categoryId:'private-id',catalogVersion:1,reason:'Confirmed',
+      handoff:{required:true,shippingCountries:['RS']}}]};
+  await act(async()=>{tree=create(<WorkerAiCard profile={prepared.profile} compact={false} review={jest.fn()} disabled={false} verifiedReview={prepared}/>);});
+  expect(texts()).toContain('Bez dolaska kod naručioca');expect(texts()).toContain('Kod naručioca');expect(texts()).toContain('Slanje: RS');
+  expect(texts()).toContain('do 20 km');expect(texts()).toContain('Nacrt još nije sačuvan');expect(texts()).not.toContain('private-id');
+  const handoff=tree.root.findByProps({testID:'worker-understood-handoff'});
+  expect(handoff.parent?.findAllByType('T' as React.ElementType).map(node=>node.props.children)).toContain('3D štampa');
+  await act(async()=>tree.update(<WorkerAiCard profile={prepared.profile} compact={false} review={jest.fn()} disabled pending verifiedReview={null}/>));
+  expect(texts()).toContain('Čekamo odgovor');expect(texts()).not.toMatch(/Slanje:|20 km|Bez dolaska/);
+});
 
 it('writes a rule start as a day, a window without seconds, and no zone line for Serbian time', async () => {
   await act(async () => { tree = create(<WorkerAiReviewDetails review={review()} />); });

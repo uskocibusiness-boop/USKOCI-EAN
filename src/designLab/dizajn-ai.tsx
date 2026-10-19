@@ -9,7 +9,7 @@ import { HoldToTalkController, type VoiceSnapshot } from '../features/voice/hold
 import type { WorkerAiProfile } from '../data/workerAiClientService';
 import { DraftCard, IntakePresentation, IntakeUnavailable, type Summary } from '../ui/v2/IntakePresentation';
 import { AiConversationShell } from '../ui/aiFirst/AiConversationShell';
-import { VoiceMode, type VoiceInput } from '../ui/aiFirst/VoiceComposer';
+import type { VoiceInput } from '../ui/aiFirst/VoiceComposer';
 import { WorkerAiCard } from '../ui/workerProfile/WorkerAiPresentation';
 import { ScreenChrome } from '../ui/system/ScreenChrome';
 import { UNCERTAIN_ABOUT } from '../ui/system/outcomeCopy';
@@ -22,7 +22,7 @@ import { sys } from '../ui/system/tokens';
 
 /**
  * The AI conversation gallery (owner step 6, 2026-09-24): the real presentation of `/nova` and `/profil/razgovor` — the
- * shell, the live draft card, the floating composer, the voice notice and voice mode — in their main states, for the
+ * shell, the live draft card and the same voice/text composer — in their main states, for the
  * emulator photographs. Reached only by its address (uskociapp://dizajn-ai) in the internal build; the store package shows
  * nothing. Every state is fixture props: nothing here reads or writes data, no conversation is opened, and the
  * microphone is an inert controller that never starts (it has no scope and no speech adapter). No fixture carries a map
@@ -163,18 +163,15 @@ export default function DizajnAi() {
         statusCopy: 'Razgovor je završen. Sačuvani zadatak možeš otvoriti iz pregleda.', onNewTask: noop })}</LayoutClassOverride.Provider> },
     { key: 'block', title: 'Zaustavljen zahtev (bezbednost)', render: () => intake({ conversation: conversation({ safety: 'BLOCK', messages: THREAD.slice(0, 1) }),
       canEdit: false, voice: undefined, showAbandon: true }) },
-    { key: 'voice-idle', title: 'Glasovni režim · početak', render: () => <VoiceMode voice={voice()} prompt="Reci šta ti treba." answer={null} said={null}
-      thinking={false} onClose={back} /> },
-    { key: 'voice-listen', title: 'Glasovni režim · sluša', render: () => <VoiceMode voice={voice(snapshot({ phase: 'LISTENING', session: HOLD, audioLevel: 0.7,
-      finalText: 'Treba mi pomoć oko selidbe', interimText: 'sutra posle podne' }))} prompt="Reci šta ti treba." answer="Razumem — orman i kutije, treći sprat bez lifta. Kada bi to trebalo da se uradi?"
-      said={null} thinking={false} onClose={back} /> },
-    { key: 'voice-thinking', title: 'Glasovni režim · stiže odgovor', render: () => <VoiceMode voice={voice(snapshot(), true)} prompt="Reci šta ti treba."
-      answer={null} said="Sutra posle podne, dvojica su dovoljna." thinking onClose={back} /> },
-    { key: 'voice-answer', title: 'Glasovni režim · odgovor', render: () => <VoiceMode voice={voice()} prompt="Reci šta ti treba."
-      answer="Beležim: sutra posle podne, dve osobe. Da li imaš cenu na umu, ili da tražiš ponude?" said="Sutra posle podne, dvojica su dovoljna."
-      thinking={false} onClose={back} /> },
-    { key: 'voice-error', title: 'Glasovni režim · greška', render: () => <VoiceMode voice={voice(snapshot({ error: 'CAPTURE_FAILED', fallbackText: 'Treba mi' }))}
-      prompt="Reci šta ti treba." answer={null} said={null} thinking={false} onClose={back} /> },
+    { key: 'voice-idle', title: 'Glasovni unos · početak', render: () => intake({}) },
+    { key: 'voice-listen', title: 'Glasovni unos · sluša', render: () => intake({ conversation: conversation({ messages: THREAD.slice(0, 2) }),
+      voice: voice(snapshot({ phase: 'LISTENING', session: HOLD, audioLevel: 0.7,
+        finalText: 'Treba mi pomoć oko selidbe', interimText: 'sutra posle podne' })) }) },
+    { key: 'voice-thinking', title: 'Glasovni unos · stiže odgovor', render: () => intake({ conversation: conversation({ messages: THREAD.slice(0, 3) }),
+      voice: voice(snapshot(), true), busy: true, pending: true, canEdit: false }) },
+    { key: 'voice-answer', title: 'Glasovni unos · odgovor', render: () => intake({ conversation: conversation({ messages: THREAD }) }) },
+    { key: 'voice-error', title: 'Glasovni unos · greška', render: () => intake({
+      voice: voice(snapshot({ error: 'CAPTURE_FAILED', fallbackText: 'Treba mi' })) }) },
     { key: 'worker', title: 'Radni profil kroz razgovor', render: () => <AiConversationShell title="Tvoj radni profil" welcome="Šta umeš da radiš?"
       welcomeDetail="Reci šta umeš i kakvu opremu imaš. Svoj profil pregledaš pre čuvanja." placeholder="Opiši šta radiš"
       card={compact => <WorkerAiCard profile={PROFILE} compact={compact} disabled={false} review={noop} />}

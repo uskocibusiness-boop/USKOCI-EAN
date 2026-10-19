@@ -28,9 +28,12 @@ const artRole=(kind:FactArtKind):FactArtRole => kind==='pin'||kind==='map'||kind
   :kind==='clock'||kind==='calendar'?'time':kind==='tool'||kind==='vehicle'||kind==='tasks'?'skills'
     :kind==='person'||kind==='users'?'people':'ai';
 /** Live card of the worker profile proposal beside the conversation. */
-export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=false,showReview=true,reviewReason,resumed=false}:{
+export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=false,showReview=true,reviewReason,resumed=false,
+  verifiedReview=null,pending=false}:{
   profile:WorkerAiProfile;compact:boolean;review:()=>void;disabled:boolean;reviewInFooter?:boolean;
   showReview?:boolean;reviewReason?:string;resumed?:boolean;
+  /** The route passes only an owned, current, unexpired review. Candidate prose is never scope evidence. */
+  verifiedReview?:WorkerAiReview|null;pending?:boolean;
 }){
   const { expanded, toggle } = useAiDraftDisclosure();
   const skills = profile.skills.length ? profile.skills.join(' · ') : 'Šta možeš da preuzmeš?';
@@ -38,6 +41,9 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
     ?`${cityLabel(profile.location.city)}${profile.location.operatingCountryCode ? ` · ${profile.location.operatingCountryCode}` : ''}`:null;
   const availability = profile.availability.availableNow ? 'Mogu odmah' : 'Mogu odmah: isključeno';
   const schedule = `${plural(profile.availability.rules.length, 'redovan termin', 'redovna termina', 'redovnih termina')} · ${plural(profile.availability.windows.length, 'poseban termin', 'posebna termina', 'posebnih termina')}`;
+  const modes=verifiedReview?.classificationState==='READY'?verifiedReview.reviewedServiceModes??[]:[];
+  const shownSkills=expanded?profile.skills:profile.skills.slice(0,2);
+  const onSite=modes.some(item=>item.mode==='ON_SITE');
   return <Surface kind="panel" testID="worker-draft-summary"
     style={[s.card,compact&&s.cardCompact]}>
     <Press testID="worker-draft-disclosure" accessibilityRole="button"
@@ -47,19 +53,34 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
       onPress={toggle} haptic="select" style={s.previewHead}>
       <FactArt kind="tool" size={32} cut="art" />
       <View style={[s.grow,s.previewSummary]}>
-        <T variant="note" tone="muted">Nacrt radnog profila</T>
-        <T variant="cardTitleCompact" numberOfLines={expanded?undefined:2} style={s.skillHeading}>{skills}</T>
+        <T variant="bodyStrong">Razumeo sam</T>
+        <T variant="note" tone="muted">Nacrt radnog profila · {expanded?'Sakrij detalje':'Detalji'}</T>
       </View>
       <Glyph name={expanded?'caret-up':'caret-down'} tone="muted"/>
     </Press>
-    {/* Candidate strings and the inherited profile city do not prove classification,
-        service mode or matching readiness. Those belong to the guarded review. */}
-    <T testID="worker-draft-review-note" variant="note" tone="muted">{resumed
-      ?'Nastavljen nacrt. Sačuvani profil ostaje isti do pregleda i čuvanja.'
-      :'Proveri usluge i način rada pre čuvanja.'}</T>
+    <View testID="worker-understood-services" style={s.previewFacts}>
+      {shownSkills.map(service=>{
+        const scopes=modes.filter(item=>item.service===service).map(item=>item.mode==='ON_SITE'?'Kod naručioca':'Bez dolaska kod naručioca');
+        const handoff=scopes.length&&verifiedReview?.classificationState==='READY'
+          ?serviceHandoffText(verifiedReview.classificationCandidates?.find(item=>item.service===service&&item.mode==='REMOTE')?.handoff):null;
+        return <View key={service} style={s.service}>
+          <T variant="bodyStrong">{service}</T>
+          {scopes.length?<T testID="worker-understood-mode" variant="note" tone="muted">{scopes.join(' · ')}</T>:null}
+          {handoff?<T testID="worker-understood-handoff" variant="note" tone="muted">{handoff}</T>:null}
+        </View>;
+      })}
+      {!profile.skills.length?<T variant="note" tone="muted">Usluge još razjašnjavamo.</T>:null}
+      {!expanded&&profile.skills.length>shownSkills.length?<T variant="note" tone="muted">{`Još ${profile.skills.length-shownSkills.length} u detaljima`}</T>:null}
+      {place?<PreviewFact art="pin">{onSite?`${place} · do ${profile.location.radiusKm} km`:`Grad profila: ${place}`}</PreviewFact>:null}
+      {profile.availability.availableNow?<PreviewFact art="clock">{availability}</PreviewFact>:null}
+      {!modes.length&&profile.skills.length?<T testID="worker-understood-pending" variant="note" tone="muted">Način rada i predaju proveravamo u pregledu.</T>:null}
+    </View>
+    <T testID="worker-draft-review-note" variant="note" tone="muted">{pending
+      ?'Prethodno zabeleženo. Čekamo odgovor na poslednju poruku.'
+      :resumed?'Nastavljen nacrt. Sačuvani profil ostaje isti do pregleda i čuvanja.'
+        :'Nacrt još nije sačuvan kao radni profil.'}</T>
     {expanded?<View testID="worker-draft-details" style={s.previewFacts}>
-        {place?<PreviewFact art="pin">{`Grad u nacrtu: ${place}`}</PreviewFact>:null}
-        <PreviewFact art="clock">{availability}</PreviewFact>
+        {!profile.availability.availableNow?<PreviewFact art="clock">{availability}</PreviewFact>:null}
         {profile.tools.length?<PreviewFact art="tool">{list(profile.tools)}</PreviewFact>:null}
         {profile.vehicles.length?<PreviewFact art="vehicle">{list(profile.vehicles)}</PreviewFact>:null}
         {profile.availability.rules.length||profile.availability.windows.length?<PreviewFact art="calendar">{schedule}</PreviewFact>:null}

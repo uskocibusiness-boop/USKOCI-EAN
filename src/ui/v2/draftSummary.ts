@@ -4,6 +4,7 @@ import { calendarInstant } from '../../lib/calendarTime';
 import { raspon, vreme } from '../../lib/vreme';
 import { DOGOVORENA_ZONA, napomenaZone } from '../../lib/dogovorenoVreme';
 import { novac } from '../../lib/novac';
+import { needScheduleText } from '../../data/needDetailPresentation';
 import { osoba } from '../system/plural';
 import type { TaskValue } from './TaskFace';
 
@@ -28,6 +29,18 @@ export function fixedRange(startsAt: unknown, endsAt: unknown): string | undefin
   // term is, and named so only on a phone set to another zone. Display only; never inferred or saved as the task's timezone.
   const text = raspon(new Date(Number(start / 1000n)), new Date(Number(end / 1000n)), { zona: DOGOVORENA_ZONA });
   return text ? text + napomenaZone() : undefined;
+}
+
+/** Flexible means a choice within any recorded bounds, not permission to ignore those bounds. */
+function flexibleRange(startsAt: unknown, endsAt: unknown): string | undefined {
+  if (startsAt == null && endsAt == null) return schedules.FLEXIBLE;
+  const start = calendarInstant(startsAt), end = calendarInstant(endsAt);
+  if ((startsAt != null && (typeof startsAt !== 'string' || start === null))
+    || (endsAt != null && (typeof endsAt !== 'string' || end === null))
+    || (start !== null && end !== null && end <= start)) return undefined;
+  // Share the review's display, including an exclusive midnight end and date-specific DST offsets.
+  return needScheduleText({ kind: 'FLEXIBLE', startsAt: startsAt as string | null ?? null,
+    endsAt: endsAt as string | null ?? null }, DOGOVORENA_ZONA).replace('Fleksibilno · Od ', 'Fleksibilno · od ');
 }
 
 /** What the card shows: public facts only, each already in the words the card draws. */
@@ -74,8 +87,10 @@ export function publicSummary(facts: readonly SummaryFact[]): Summary {
       : [publicPlace?.city, publicPlace?.area].filter(item => typeof item === 'string' && item.trim()).join(' · ') || safeLabel(publicPlace?.label);
   const money = mode === 'MY_PRICE' && typeof amount === 'number' ? novac(amount) : '';
   return { title: typeof title === 'string' && title.trim() ? title : null,
-    service: typeof category === 'string' && category.trim() && !/^[A-Z0-9_]+$/.test(category.trim()) ? category.trim() : null, zone,
+    service: typeof category === 'string' && category.trim() && !/^[A-Z0-9_]+$/.test(category.trim())
+      && !/^[a-f\d]{8}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{4}-[a-f\d]{12}$/i.test(category.trim()) ? category.trim() : null, zone,
     schedule: schedule === 'FIXED_WINDOW' ? fixedRange(value('need.starts_at'), value('need.ends_at'))
+      : schedule === 'FLEXIBLE' ? flexibleRange(value('need.starts_at'), value('need.ends_at'))
       : typeof schedule === 'string' ? schedules[schedule] : undefined,
     // An amount with what it buys, or "Tražim ponude" as a quiet word. A price not reached yet is no slot at all.
     value: mode === 'OFFERS' ? { kind: 'offers' }

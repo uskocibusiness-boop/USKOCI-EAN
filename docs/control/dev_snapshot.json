@@ -558,13 +558,15 @@
       "slug": "uskoci-ai-interview",
       "name": "uskoci-ai-interview",
       "status": "ACTIVE",
-      "version": 105,
+      "version": 113,
       "created_at": 1788261764727,
-      "updated_at": 1792402490094,
+      "updated_at": 1792442798899,
       "verify_jwt": false,
       "import_map": false,
-      "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_105/source/supabase/functions/uskoci-ai-interview/index.ts",
-      "ezbr_sha256": "d4950cbbf4a35910cc932ff7bb5a614a7cbc87acbce7cfe56f3a9c9a4c48dbf0"
+      "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_113/source/supabase/functions/uskoci-ai-interview/index.ts",
+      "ezbr_sha256": "f135d62a9294cd5b7059b476a49d493fa6bf29f80fd424997a931619b5fc6ceb",
+      "readback_source": "docs/current/evidence/AI_SPEED_20261019.json",
+      "readback_scope": "Current ACTIVE metadata and 19/17 exact source files verified. Previous inventory preserved in ai_speed_refresh_20261019.previousEdgeInventory."
     },
     {
       "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
@@ -623,13 +625,15 @@
       "slug": "uskoci-worker-interview",
       "name": "uskoci-worker-interview",
       "status": "ACTIVE",
-      "version": 58,
+      "version": 68,
       "created_at": 1789291116219,
-      "updated_at": 1792402493804,
+      "updated_at": 1792442800736,
       "verify_jwt": false,
       "import_map": false,
-      "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_58/source/supabase/functions/uskoci-worker-interview/index.ts",
-      "ezbr_sha256": "faf984cf896dece1983a26eade4bee2cb731e52086abe8c35c86193f85bc4b69"
+      "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_68/source/supabase/functions/uskoci-worker-interview/index.ts",
+      "ezbr_sha256": "15d1513412f6f9451bd12bd093fc1327e248fb77d0a00e5530ded820ee99fb6c",
+      "readback_source": "docs/current/evidence/AI_SPEED_20261019.json",
+      "readback_scope": "Current ACTIVE metadata and 19/17 exact source files verified. Previous inventory preserved in ai_speed_refresh_20261019.previousEdgeInventory."
     },
     {
       "id": "1ba4db69-a390-4b55-a071-97bee74d2598",
@@ -1669,5 +1673,54 @@
     "receipt": "supabase/operations/dev-alpha/ledger/20261019_ai_warmth_timing_edge.receipt.json",
     "newApk": false,
     "newNativeAcceptance": false
+  },
+  "ai_speed_refresh_20261019": {
+    "scope": "Only Task113/Worker68 exact readback and isolated four-turn pre-Save proof. Other RPC, DDL, cron and global inventory timestamps remain historical; no migration in this package.",
+    "sourceSha": "7423c476daccf4c62c4684e0a0db7c786e3c8ab8",
+    "taskVersion": 113,
+    "workerVersion": 68,
+    "filesMatched": 36,
+    "canonicalUnchanged": true,
+    "evidence": "docs/current/evidence/AI_SPEED_20261019.json",
+    "report": "docs/current/AI_SPEED_20261019.md",
+    "providerOperations": 7,
+    "settledMicrousd": 60348,
+    "unsettled": 0,
+    "qaRetiredAt": "2026-10-19T20:52:13.543203+00:00",
+    "ciRun": 39322097750,
+    "regression": "621 suites / 13968 PASS / 0 FAIL / 0 SKIP",
+    "apkBuild": "BUILT",
+    "device": "BOUNDED_PHYSICAL_SMOKE_PASS_FULL_AI_FLOW_PENDING",
+    "previousEdgeInventory": [
+      {
+        "id": "e0e3181b-e87b-4b8f-9c90-abfc30ddf938",
+        "slug": "uskoci-ai-interview",
+        "name": "uskoci-ai-interview",
+        "status": "ACTIVE",
+        "version": 105,
+        "created_at": 1788261764727,
+        "updated_at": 1792402490094,
+        "verify_jwt": false,
+        "import_map": false,
+        "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_105/source/supabase/functions/uskoci-ai-interview/index.ts",
+        "ezbr_sha256": "d4950cbbf4a35910cc932ff7bb5a614a7cbc87acbce7cfe56f3a9c9a4c48dbf0"
+      },
+      {
+        "id": "dc1d633c-416a-4a10-bac7-ecc9a4c4a92a",
+        "slug": "uskoci-worker-interview",
+        "name": "uskoci-worker-interview",
+        "status": "ACTIVE",
+        "version": 58,
+        "created_at": 1789291116219,
+        "updated_at": 1792402493804,
+        "verify_jwt": false,
+        "import_map": false,
+        "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_58/source/supabase/functions/uskoci-worker-interview/index.ts",
+        "ezbr_sha256": "faf984cf896dece1983a26eade4bee2cb731e52086abe8c35c86193f85bc4b69"
+      }
+    ],
+    "phoneEvidence": "work/ai-speed-20261019/phone-verification.json",
+    "installedApkSha256": "1faca5bbed6de82b363d3b68e26acb9646f7fcea1b3c6ea1d166a38e90098439",
+    "sessionPreserved": true
   }
 }

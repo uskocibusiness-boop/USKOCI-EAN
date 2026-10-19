@@ -22,11 +22,17 @@
     "note": "Release nije potvrđen. Aktuelni baseline odvaja istorijski APK, lokalni kandidat, DEV readback i novu proveru. Legal/store brojači ostaju nepoznati bez odgovarajućeg dokaza; stari 30.09. zbir nije današnje stanje."
   },
   "next": {
-    "title": "Ubrzati razgovor i odvojiti klasifikaciju uz očuvanje jednog nacrta",
-    "note": "Phase merenja potvrđuju da dominiraju modeli i dodatni krugovi, ne samo čitanje baze. Slede revision-bound pozadinski katalog i kraći situacioni kontekst, zatim objedinjeni pregled/region/matching/grupni chat/push i povezani UI talasi. Postojeći registar ostaje autoritet."
+    "title": "Pozadinska klasifikacija i kraći kontekst; potom povezani tokovi",
+    "note": "7423c476 je primenjen: oba nastavka u probi koriste po jedan modelski poziv bez dodatnog alata, uz sveže serverske provere. Prvi unos ostaje 9,6–14,3 s. APK 7423c476 je izgrađen i ima ograničeni HONOR smoke uz očuvanu sesiju, bez AI poruke/Save/Publish/push probe. Sledeći composer/live-card kandidat SOURCE_VERIFIED (139/269 ciljane provere i TypeScript PASS) tek čeka commit/build/native dokaz. Slede trajni posao vezan za reviziju, oporavak i kraći situacioni kontekst; zatim jedan pregled, obuhvat, matching, grupni chat, push i devet UI talasa. Ceo proizvod nije proglašen završenim."
   },
   "evidencePolicy": "Evidence su datirani zapisi rezultata na navedenom SHA/run-u, a ne aktivne instrukcije. Stare formulacije o odobrenju, freeze pravilima i STOP uslovima u njihovom result tekstu imaju samo istorijski status; aktuelni rad uređuju AGENTS.md, CURRENT_BASELINE_20261018 i PREMIUM_WHITE_CANON.",
   "evidence": [
+    {
+      "id": "AI-SPEED-20261019",
+      "sha": "7423c476daccf4c62c4684e0a0db7c786e3c8ab8",
+      "run": 39322097750,
+      "result": "DEV Task 113 / Worker 68, 36/36 exact. Četiri QA poruke / 7 modelskih operacija / 0,060348 USD interni MEASURED obračun, 0 neobračunatih. Vremena 14,315 / 5,687 / 9,571 / 5,164 s; oba nastavka po 1 model poziv / 0 alata. Četiri READY pregleda, isti 3D UUID, REMOTE/dostava RS i izmena samo ponedeljka; pet kanonskih otisaka nepromenjeno. CI: 621 paket / 13.968 PASS / 0 FAIL / 0 SKIP. CI SUCCESS, APK BUILT; HONOR bounded smoke i isti instalirani SHA256, source 7423c476/embedded 809fd049, sesija očuvana. Puni AI tok na telefonu nije potvrđen. Bez Save/Publish/aktivacije/matching-a/push-a. Pozadinska klasifikacija, kompresija konteksta i UI ostaju OPEN. docs/current/AI_SPEED_20261019.md"
+    },
     {
       "id": "AI-WARMTH-TIMING-20261019",
       "sha": "7d584c2758e69d1d41375d7597be1b215b8e1373",

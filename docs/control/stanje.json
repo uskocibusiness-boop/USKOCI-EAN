@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-19T18:23:43Z",
+  "osvezeno": "2026-10-19T21:16:09Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "7f202518",
-  "head_poruka": "fix(location): deduplicate search seeds and diagnose invalid provider results",
+  "head": "7423c476",
+  "head_poruka": "perf(ai): reuse fresh catalog evidence before extra model rounds",
   "server": {
    "snimljeno": "2026-10-18T20:15:59Z",
    "migracije": 288,
@@ -37,13 +37,15 @@
      "slug": "uskoci-ai-interview",
      "name": "uskoci-ai-interview",
      "status": "ACTIVE",
-     "version": 105,
+     "version": 113,
      "created_at": 1788261764727,
-     "updated_at": 1792402490094,
+     "updated_at": 1792442798899,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_105/source/supabase/functions/uskoci-ai-interview/index.ts",
-     "ezbr_sha256": "d4950cbbf4a35910cc932ff7bb5a614a7cbc87acbce7cfe56f3a9c9a4c48dbf0"
+     "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_113/source/supabase/functions/uskoci-ai-interview/index.ts",
+     "ezbr_sha256": "f135d62a9294cd5b7059b476a49d493fa6bf29f80fd424997a931619b5fc6ceb",
+     "readback_source": "docs/current/evidence/AI_SPEED_20261019.json",
+     "readback_scope": "Current ACTIVE metadata and 19/17 exact source files verified. Previous inventory preserved in ai_speed_refresh_20261019.previousEdgeInventory."
     },
     {
      "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
@@ -102,13 +104,15 @@
      "slug": "uskoci-worker-interview",
      "name": "uskoci-worker-interview",
      "status": "ACTIVE",
-     "version": 58,
+     "version": 68,
      "created_at": 1789291116219,
-     "updated_at": 1792402493804,
+     "updated_at": 1792442800736,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_58/source/supabase/functions/uskoci-worker-interview/index.ts",
-     "ezbr_sha256": "faf984cf896dece1983a26eade4bee2cb731e52086abe8c35c86193f85bc4b69"
+     "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_68/source/supabase/functions/uskoci-worker-interview/index.ts",
+     "ezbr_sha256": "15d1513412f6f9451bd12bd093fc1327e248fb77d0a00e5530ded820ee99fb6c",
+     "readback_source": "docs/current/evidence/AI_SPEED_20261019.json",
+     "readback_scope": "Current ACTIVE metadata and 19/17 exact source files verified. Previous inventory preserved in ai_speed_refresh_20261019.previousEdgeInventory."
     },
     {
      "id": "1ba4db69-a390-4b55-a071-97bee74d2598",
@@ -3753,7 +3757,7 @@
    },
    "telefon_dokaz": "Prvo AI pitanje vidljivo, bez model/ASR poziva; stvarni razgovor otvoren. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
    "problem": "Ovaj paket potvrđuje pojedinačne scenarije; višeuslužni razgovori i sve promene već sačuvanog zadatka ostaju za širi stvarni test.",
-   "sledece": "AI brzina, statusna dopuna konačne klasifikacije i višeuslužni/regionalni razgovori. Native Back/neposlati tekst potvrđeni na checkpoint-u; nema potpune potvrde svih AI scenarija. Dokaz ovog paketa: docs/current/AI_MAP_PACKAGE_20261019.md; poslovne odluke: docs/current/OWNER_DECISIONS_20261019.md.",
+   "sledece": "Composer/live-card kandidat SOURCE_VERIFIED, build i ciljana native provera predstoje; trajna pozadinska klasifikacija vezana za reviziju i kraći situacioni kontekst. Zatim jedan pregled, širi task edit i višeuslužni/regionalni scenariji. Bounded dokaz: docs/current/AI_SPEED_20261019.md; ceo tok nije zatvoren.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -3770,12 +3774,12 @@
     "flow": "Razgovor sa AI: kaži šta treba",
     "ux": "Dok se činjenice skupljaju ostaje sažet proširiv nacrt. Kada je conversation reviewable bez vidljivog/skrivenog/map gap-a, činjenice za odluku su otvorene i postoji jedna primarna akcija Pregledaj zadatak/izmene.",
     "ui": "Isti TaskFace jezik; diskretan zeleni ready status/ivica. Nije published TaskCard/Peek i nema duplog CTA-a.",
-    "backend": "Postojeći AI ugovori; Edge60 primenjen i6fajlova byte-equal. Server revizije/ownership ostaju.",
+    "backend": "19.10.2026: Task Edge 113 / Worker 68, izvor 7423c476, 36/36 fajlova exact. Svež katalog i efektivne činjenice proveravaju direktan odgovor; eksplicitni Save i postojeća ownership/revision pravila ostaju. Bez DDL u ovom paketu.",
     "state_sync": "Review ostaje poseban intakeReturn tok; neposlat tekst preživljava review/Back, privatni podaci ne ulaze u live card, objava i dalje ima poseban explicit command/readback.",
-    "performance": "Nije mereno na uređaju.",
-    "test": "Round40 run36420684845: TypeScript PASS; 4 suites/130 focused PASS; full Jest 345 suites/7.265 tests PASS.",
-    "device_proof": "09.10 emulatorb9/Edge59: stvarni AI→pregled→izričita objava; PUBLISHED/revision1. B52 pregled/back. Edge60 finish-only i aktuelni edit nisu real-provider/native potvrđeni.",
-    "status": "REAL_AI_PUBLICATION_PROVEN / EDGE60_APPLIED / EDIT_RESUME_FINAL_NATIVE_OPEN",
+    "performance": "Harness: prvi task unos 14,315 s / 3 model poziva / 2 alata; budžet 5,687 s / 1 model poziv / 0 alata. Nije telefonsko merenje niti garantovano vreme. Pozadinska klasifikacija i kompresija konteksta OPEN.",
+    "test": "CI 39322097750 na 7423c476: 621/621 paket, 13.968 PASS / 0 FAIL / 0 SKIP. Četiri živa tekstualna pregleda READY; pet kanonskih otisaka nepromenjeno. Nema poslovnog Save-a, matching-a ili push-a u ovoj probi.",
+    "device_proof": "7423c476 / CI 39322097750: APK izgrađen, install -r i isti instalirani SHA256 potvrđeni; HONOR 361 dp/font 1,15, Početna, Zadaci/mapa, prazni Dogovori, Poruke i About. Nema AI poruke, Save/Publish-a ili push probe na telefonu; A02/B00/B01 kompletni native tokovi ostaju PENDING. docs/current/AI_SPEED_20261019.md",
+    "status": "DEV_DIRECT_REUSE_APPLIED / LIVE_SCOPED_PASS / PHONE_BOUNDED_SMOKE / WHOLE_FLOW_OPEN",
     "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_TASK_LOCATION_SOURCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_LOCATION_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_INLINE_LOCATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/AI_LOCATION_COMPACT_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_29_AI_LOCATION_AND_CATALOG.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_40_P5_READY_TASK_AND_MATCHING_TRUTH.md",
     "device": "Round23 APK36339245682/f526a736: javne probne tačke, ponovni izbor posle pomeranja, Prikaži sve i Android Back PASS. Nije realni AI ili privatni grant. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json",
     "round40": {
@@ -3966,6 +3970,30 @@
      "snapshot": "docs/control/dev_snapshot.json#ai_map_package_20261019",
      "phoneAcceptance": false,
      "wholeFlowAcceptance": false
+    },
+    "history_before_ai_speed_20261019": {
+     "backend": "Postojeći AI ugovori; Edge60 primenjen i6fajlova byte-equal. Server revizije/ownership ostaju.",
+     "performance": "Nije mereno na uređaju.",
+     "test": "Round40 run36420684845: TypeScript PASS; 4 suites/130 focused PASS; full Jest 345 suites/7.265 tests PASS.",
+     "device_proof": "09.10 emulatorb9/Edge59: stvarni AI→pregled→izričita objava; PUBLISHED/revision1. B52 pregled/back. Edge60 finish-only i aktuelni edit nisu real-provider/native potvrđeni.",
+     "status": "REAL_AI_PUBLICATION_PROVEN / EDGE60_APPLIED / EDIT_RESUME_FINAL_NATIVE_OPEN"
+    },
+    "ai_speed_20261019": {
+     "sourceSha": "7423c476daccf4c62c4684e0a0db7c786e3c8ab8",
+     "report": "docs/current/AI_SPEED_20261019.md",
+     "evidence": "docs/current/evidence/AI_SPEED_20261019.json",
+     "device": "BOUNDED_PHYSICAL_SMOKE_PASS_FULL_AI_FLOW_PENDING",
+     "wholeFlowComplete": false,
+     "phoneEvidence": "work/ai-speed-20261019/phone-verification.json",
+     "nextUiCandidate": {
+      "status": "SOURCE_VERIFIED",
+      "sourceSha": null,
+      "build": "PENDING",
+      "native": "PENDING",
+      "composerTestsPassed": 139,
+      "liveCardProofsPassed": 269,
+      "typeScript": "PASS"
+     }
     }
    },
    "ukupno": "PROBLEM",
@@ -5812,7 +5840,7 @@
    },
    "telefon_dokaz": "59876dc6: Još nema ocena, stvarni broj 0, Istorija/Back i profilno zvono potvrđeni; šire granice otvorene. docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json",
    "problem": "Dve tekstualne korekcije predaje potvrđene bez čuvanja kanonskog profila. Višeuslužni profil, regioni, čuvanje/aktivacija i dosledna statusna poruka ostaju otvoreni.",
-   "sledece": "Više usluga, regionalni obuhvat, aktivacija/čuvanje profila i dispatch u povezanom toku. Ovaj paket dokazuje ograničene tekstualne promene predaje bez kanonskog Save-a profila. Dokaz ovog paketa: docs/current/AI_MAP_PACKAGE_20261019.md; poslovne odluke: docs/current/OWNER_DECISIONS_20261019.md.",
+   "sledece": "Composer/live-card kandidat SOURCE_VERIFIED, build i ciljana native provera predstoje; pozadinska klasifikacija i kraći kontekst. Zatim više usluga, stvarni regionalni obuhvat i povezan Save/aktivacija→matching→obaveštenje. Ovaj paket potvrđuje nacrt i ponedeljak, bez kanonskog Save-a: docs/current/AI_SPEED_20261019.md.",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -5828,12 +5856,12 @@
     "flow": "Lični radni profil kroz AI razgovor",
     "ux": "Jedna osoba: šta ume i želi da radi, alat/vozila, oblast/dostupnost; bez licence i stalnog broja ljudi. Broj ljudi pripada konkretnoj ponudi.",
     "ui": "Primarni razgovor sa originalnom 2.5D ilustracijom; sažetak i zasebno otvaranje svake ručne izmene. Bela površina, neutralna dubina, otvorene sekcije.",
-    "backend": "WPP01 DEV20261003180006, osam tela funkcija,15 disposable dokaza; worker Edge18/task Edge52 byte-exact minimal paketi. Kolone/istorija/API kompatibilnost ostaju; oba closure digest-a nepromenjena.",
+    "backend": "19.10.2026: Task Edge 113 / Worker 68, izvor 7423c476, 36/36 fajlova exact. Svež katalog i efektivne činjenice proveravaju direktan odgovor; eksplicitni Save i postojeća ownership/revision pravila ostaju. Bez DDL u ovom paketu.",
     "state_sync": "Nepoznato čuvanje ostaje zaključano do readback-a. Pregled koji menja penzionisana polja se odbija pre upisa. Native otkrio zadržan odbačeni unos;95a99f06 vraća initial i penzioniše callback pre izlaska.",
-    "performance": "Nije ponovo mereno.",
-    "test": "CI37145120004/511a3588: TypeScript,194 focused cases,428 full suites/9377 cases/6 snapshots PASS. SQL37142045047:15 bounded checks PASS. Earlier failed source-pin/gallery/a11y checks are retained in the report.",
-    "device_proof": "evidence/native-f64b6bb4/worker-ai.json: stvarni provider i ACTIVE profile readback. Nije dokaz geometrijskog radijusa, voice ili profile→matching→phone push.",
-    "status": "REAL_AI_CREATE_SAVE_PROVEN / ACTIVE_PROFILE_AI_EDIT_AND_MATCHING_OPEN",
+    "performance": "Harness: prvi worker unos 9,571 s / 2 model poziva / 1 alat; ponedeljak 5,164 s / 1 model poziv / 0 alata. Nije merenje UI-ja ili sačuvanog profila. Pozadinska klasifikacija i kompresija konteksta OPEN.",
+    "test": "CI 39322097750 na 7423c476: 621/621 paket, 13.968 PASS / 0 FAIL / 0 SKIP. Četiri živa tekstualna pregleda READY; pet kanonskih otisaka nepromenjeno. Nema poslovnog Save-a, matching-a ili push-a u ovoj probi.",
+    "device_proof": "7423c476 / CI 39322097750: APK izgrađen, install -r i isti instalirani SHA256 potvrđeni; HONOR 361 dp/font 1,15, Početna, Zadaci/mapa, prazni Dogovori, Poruke i About. Nema AI poruke, Save/Publish-a ili push probe na telefonu; A02/B00/B01 kompletni native tokovi ostaju PENDING. docs/current/AI_SPEED_20261019.md",
+    "status": "DEV_DIRECT_REUSE_APPLIED / LIVE_SCOPED_PASS / PHONE_BOUNDED_SMOKE / WHOLE_FLOW_OPEN",
     "evidence": "docs/implementation/ui-ux-pass-20261002/WORKER_PERSONAL_PROFILE_20261003.md; supabase/operations/dev-alpha/ledger/20261003_wpp01_application.receipt.json",
     "device": "Aktuelni emulator95a99/build37142990111, UID10227 i SHA256 potvrđeni; discard/reentry provereno, font1.15. Stariji dokazi su u before_personal_profile_20261003. Telefon ostaje raniji build.",
     "round39": {
@@ -6076,6 +6104,30 @@
      "snapshot": "docs/control/dev_snapshot.json#ai_map_package_20261019",
      "phoneAcceptance": false,
      "wholeFlowAcceptance": false
+    },
+    "history_before_ai_speed_20261019": {
+     "backend": "WPP01 DEV20261003180006, osam tela funkcija,15 disposable dokaza; worker Edge18/task Edge52 byte-exact minimal paketi. Kolone/istorija/API kompatibilnost ostaju; oba closure digest-a nepromenjena.",
+     "performance": "Nije ponovo mereno.",
+     "test": "CI37145120004/511a3588: TypeScript,194 focused cases,428 full suites/9377 cases/6 snapshots PASS. SQL37142045047:15 bounded checks PASS. Earlier failed source-pin/gallery/a11y checks are retained in the report.",
+     "device_proof": "evidence/native-f64b6bb4/worker-ai.json: stvarni provider i ACTIVE profile readback. Nije dokaz geometrijskog radijusa, voice ili profile→matching→phone push.",
+     "status": "REAL_AI_CREATE_SAVE_PROVEN / ACTIVE_PROFILE_AI_EDIT_AND_MATCHING_OPEN"
+    },
+    "ai_speed_20261019": {
+     "sourceSha": "7423c476daccf4c62c4684e0a0db7c786e3c8ab8",
+     "report": "docs/current/AI_SPEED_20261019.md",
+     "evidence": "docs/current/evidence/AI_SPEED_20261019.json",
+     "device": "BOUNDED_PHYSICAL_SMOKE_PASS_FULL_AI_FLOW_PENDING",
+     "wholeFlowComplete": false,
+     "phoneEvidence": "work/ai-speed-20261019/phone-verification.json",
+     "nextUiCandidate": {
+      "status": "SOURCE_VERIFIED",
+      "sourceSha": null,
+      "build": "PENDING",
+      "native": "PENDING",
+      "composerTestsPassed": 139,
+      "liveCardProofsPassed": 269,
+      "typeScript": "PASS"
+     }
     }
    },
    "ukupno": "PROBLEM",
@@ -6165,12 +6217,12 @@
     "flow": "Radni profil i ciljane ručne ispravke",
     "ux": "Jedna osoba: šta ume i želi da radi, alat/vozila, oblast/dostupnost; bez licence i stalnog broja ljudi. Broj ljudi pripada konkretnoj ponudi.",
     "ui": "Primarni razgovor sa originalnom 2.5D ilustracijom; sažetak i zasebno otvaranje svake ručne izmene. Bela površina, neutralna dubina, otvorene sekcije.",
-    "backend": "WPP01 DEV20261003180006, osam tela funkcija,15 disposable dokaza; worker Edge18/task Edge52 byte-exact minimal paketi. Kolone/istorija/API kompatibilnost ostaju; oba closure digest-a nepromenjena.",
+    "backend": "19.10.2026: Task Edge 113 / Worker 68, izvor 7423c476, 36/36 fajlova exact. Svež katalog i efektivne činjenice proveravaju direktan odgovor; eksplicitni Save i postojeća ownership/revision pravila ostaju. Bez DDL u ovom paketu.",
     "state_sync": "Nepoznato čuvanje ostaje zaključano do readback-a. Pregled koji menja penzionisana polja se odbija pre upisa. Native otkrio zadržan odbačeni unos;95a99f06 vraća initial i penzioniše callback pre izlaska.",
-    "performance": "Nije ponovo mereno Round18: opcione oznake hitnosti dele rok4s; nepoznato ostaje nepoznato. Ukupan javni skup još nije serverski ograničen po prikazu.",
-    "test": "CI37145120004/511a3588: TypeScript,194 focused cases,428 full suites/9377 cases/6 snapshots PASS. SQL37142045047:15 bounded checks PASS. Earlier failed source-pin/gallery/a11y checks are retained in the report.",
-    "device_proof": "evidence/native-f64b6bb4/worker-ai.json: stvarni provider i ACTIVE profile readback. Nije dokaz geometrijskog radijusa, voice ili profile→matching→phone push.",
-    "status": "REAL_AI_CREATE_SAVE_PROVEN / ACTIVE_PROFILE_AI_EDIT_AND_MATCHING_OPEN",
+    "performance": "Harness: prvi worker unos 9,571 s / 2 model poziva / 1 alat; ponedeljak 5,164 s / 1 model poziv / 0 alata. Nije merenje UI-ja ili sačuvanog profila. Pozadinska klasifikacija i kompresija konteksta OPEN.",
+    "test": "CI 39322097750 na 7423c476: 621/621 paket, 13.968 PASS / 0 FAIL / 0 SKIP. Četiri živa tekstualna pregleda READY; pet kanonskih otisaka nepromenjeno. Nema poslovnog Save-a, matching-a ili push-a u ovoj probi.",
+    "device_proof": "7423c476 / CI 39322097750: APK izgrađen, install -r i isti instalirani SHA256 potvrđeni; HONOR 361 dp/font 1,15, Početna, Zadaci/mapa, prazni Dogovori, Poruke i About. Nema AI poruke, Save/Publish-a ili push probe na telefonu; A02/B00/B01 kompletni native tokovi ostaju PENDING. docs/current/AI_SPEED_20261019.md",
+    "status": "DEV_DIRECT_REUSE_APPLIED / LIVE_SCOPED_PASS / PHONE_BOUNDED_SMOKE / WHOLE_FLOW_OPEN",
     "evidence": "docs/implementation/ui-ux-pass-20261002/WORKER_PERSONAL_PROFILE_20261003.md; supabase/operations/dev-alpha/ledger/20261003_wpp01_application.receipt.json",
     "device": "Aktuelni emulator95a99/build37142990111, UID10227 i SHA256 potvrđeni; discard/reentry provereno, font1.15. Stariji dokazi su u before_personal_profile_20261003. Telefon ostaje raniji build.",
     "visual_composition_20261003": {
@@ -6370,6 +6422,30 @@
      "snapshot": "docs/control/dev_snapshot.json#ai_map_package_20261019",
      "phoneAcceptance": false,
      "wholeFlowAcceptance": false
+    },
+    "history_before_ai_speed_20261019": {
+     "backend": "WPP01 DEV20261003180006, osam tela funkcija,15 disposable dokaza; worker Edge18/task Edge52 byte-exact minimal paketi. Kolone/istorija/API kompatibilnost ostaju; oba closure digest-a nepromenjena.",
+     "performance": "Nije ponovo mereno Round18: opcione oznake hitnosti dele rok4s; nepoznato ostaje nepoznato. Ukupan javni skup još nije serverski ograničen po prikazu.",
+     "test": "CI37145120004/511a3588: TypeScript,194 focused cases,428 full suites/9377 cases/6 snapshots PASS. SQL37142045047:15 bounded checks PASS. Earlier failed source-pin/gallery/a11y checks are retained in the report.",
+     "device_proof": "evidence/native-f64b6bb4/worker-ai.json: stvarni provider i ACTIVE profile readback. Nije dokaz geometrijskog radijusa, voice ili profile→matching→phone push.",
+     "status": "REAL_AI_CREATE_SAVE_PROVEN / ACTIVE_PROFILE_AI_EDIT_AND_MATCHING_OPEN"
+    },
+    "ai_speed_20261019": {
+     "sourceSha": "7423c476daccf4c62c4684e0a0db7c786e3c8ab8",
+     "report": "docs/current/AI_SPEED_20261019.md",
+     "evidence": "docs/current/evidence/AI_SPEED_20261019.json",
+     "device": "BOUNDED_PHYSICAL_SMOKE_PASS_FULL_AI_FLOW_PENDING",
+     "wholeFlowComplete": false,
+     "phoneEvidence": "work/ai-speed-20261019/phone-verification.json",
+     "nextUiCandidate": {
+      "status": "SOURCE_VERIFIED",
+      "sourceSha": null,
+      "build": "PENDING",
+      "native": "PENDING",
+      "composerTestsPassed": 139,
+      "liveCardProofsPassed": 269,
+      "typeScript": "PASS"
+     }
     }
    },
    "ukupno": "PROBLEM",
@@ -13931,6 +14007,22 @@
  },
  "ci": [
   {
+   "id": 39322097750,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "7423c476",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-19T20:46:20Z"
+  },
+  {
+   "id": 39320399499,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "0f237092",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-19T20:34:13Z"
+  },
+  {
    "id": 39298019592,
    "ime": "Build latest V5 Android preview APK",
    "sha": "7f202518",
@@ -14009,22 +14101,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-10-19T11:10:53Z"
-  },
-  {
-   "id": 39242434233,
-   "ime": "Taxonomy new branch scopes disposable proof",
-   "sha": "d280fc5d",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-19T11:08:12Z"
-  },
-  {
-   "id": 39242434190,
-   "ime": "Service handoff PostgreSQL proof",
-   "sha": "d280fc5d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-19T11:08:12Z"
   }
  ]
 }

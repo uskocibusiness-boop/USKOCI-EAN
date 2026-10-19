@@ -12,7 +12,7 @@ import { NEED_FACT_V2_DEFINITIONS, type NeedFactV2Key } from '../../contracts/ne
 
 let mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
 let mockParams: { conversationId?: string | string[]; entryKey?: string | string[]; aiCorrection?: string | string[] } = {}, mockCounter = 0;
-let mockReduced = false;
+let mockReduced = false, mockHeight=844, mockFontScale=1;
 let mockVoicePhase: VoicePhase = 'IDLE';
 let mockRealVoice = false;
 let mockAppState = 'active';
@@ -50,6 +50,7 @@ jest.mock('../../features/voice/useHoldToTalk', () => ({ useHoldToTalk: (options
 // The voice module has three parts since 2026-09-24 (the composer's microphone, its notice line and voice mode); the
 // harness stands each in as a host element. Their own behaviour is in voice-composer-controls.test.tsx.
 jest.mock('../../ui/aiFirst/VoiceComposer', () => ({ VoiceComposer: 'VoiceComposer', VoiceNotice: 'VoiceNotice', VoiceMode: 'VoiceMode', VoiceTranscript: 'VoiceTranscript',
+  useVoiceScreenReader: () => false,
   HOLD_HINT: 'Drži mikrofon dok govoriš, pa pusti da pošalješ.' }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
   if (key === 'AppState') return { currentState: mockAppState, addEventListener: (_name: string, listener: (state: string) => void) => {
@@ -59,7 +60,7 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
   // One setting, read the way the shell reads it now (useSystemReducedMotion: the startup snapshot, then the live OS value).
   // On a phone both come from the same switch; the harness makes them agree the same way.
   if (key === 'AccessibilityInfo') return { isReduceMotionEnabled: async () => mockReduced, addEventListener: () => ({ remove: () => undefined }) };
-  if (key === 'useWindowDimensions') return () => ({ width: 390, height: 844, scale: 1, fontScale: 1 });
+  if (key === 'useWindowDimensions') return () => ({ width: 361, height: mockHeight, scale: 1, fontScale: mockFontScale });
   return ['View', 'ScrollView', 'ActivityIndicator', 'KeyboardAvoidingView', 'TextInput', 'Modal'].includes(String(key)) ? key : Reflect.get(target, key);
 } }); });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
@@ -166,7 +167,44 @@ it.each([
   const keys = Object.keys(patch);
   const facts = [...completeFacts().filter(f => !keys.includes(f.key)), ...Object.entries(patch).map(([key, value]) => publicFact(key as NeedFactV2Key, value))];
   mockLoad.mockResolvedValue(conversation({ facts })); await resume();
-  expect(tree.root.findAllByProps({ testID: 'ai-end-card' }).length > 0).toBe(visible);
+  // A partial understanding is useful already; readiness still gates the complete proposal/action.
+  expect(tree.root.findAllByProps({ testID: 'intake-task-summary' }).length > 0).toBe(visible);
+});
+it('shows the first known public terms before title or map readiness, without turning them into review authority', async () => {
+  const facts=[publicFact('need.price_mode','MY_PRICE'),publicFact('need.price_rsd',6000),publicFact('need.price_basis','TOTAL'),
+    publicFact('need.people_needed',2),publicFact('need.schedule_kind','FLEXIBLE'),
+    publicFact('need.starts_at','2026-10-19T00:00:00+02:00'),publicFact('need.ends_at','2026-10-26T00:00:00+01:00'),
+    publicFact('need.task_geography',{mode:'STATIONARY',start:{city:'Novi Sad'}}),
+    {...publicFact('need.exact_address','Privatna 42, stan 7'),privacyClass:'PRIVATE' as const},
+    {...publicFact('need.title','Nepotvrđen naslov'),status:'UNKNOWN' as const}];
+  mockLoad.mockResolvedValue(conversation({facts}));await resume();
+  const card=tree.root.findByProps({testID:'intake-understood'});
+  const words=card.findAll(node=>node.type===('T' as React.ElementType)).flatMap(node=>node.children.filter(child=>typeof child==='string')).join(' ');
+  expect(words).toContain('Razumeo sam');expect(words).toMatch(/6[.\s]000 RSD ukupno/);
+  expect(words).toContain('2 osobe');expect(words).toContain('Novi Sad');expect(words).toContain('19. okt');expect(words).toContain('25. okt');expect(words).not.toContain('26. okt');
+  expect(words).toContain('Mesto još treba da potvrdiš na mapi.');expect(words).toContain('Zadatak još nije objavljen.');
+  expect(words).not.toMatch(/Privatna|stan 7|Nepotvrđen naslov|bbbbbbbb/);
+  expect(card.findAllByProps({accessibilityRole:'button'})).toHaveLength(0);noSummary();
+  expect(mockSend).not.toHaveBeenCalled();expect(mockAbandon).not.toHaveBeenCalled();
+});
+it('does not invent budget or people from an assistant sentence, and does not show a card for unknown-only facts', async()=>{
+  mockLoad.mockResolvedValue(conversation({facts:[{...publicFact('need.price_rsd',9000),status:'UNKNOWN'}],
+    messages:[{id:'assistant',fromAi:true,body:'Budžet je 9000 RSD, dvoje ljudi.',safety:'ALLOW',proposedFactIds:[]}]}));
+  await resume();expect(tree.root.findAllByProps({testID:'intake-understood'})).toHaveLength(0);noSummary();
+});
+it('keeps a compact draft readable and expands extra known facts locally without sending or preparing a review',async()=>{
+  mockHeight=720;mockFontScale=1.3;
+  mockLoad.mockResolvedValue(conversation({facts:[publicFact('need.price_mode','OFFERS'),publicFact('need.schedule_kind','TOMORROW_FLEXIBLE'),
+    publicFact('need.task_geography',{mode:'STATIONARY',start:{city:'Novi Sad'}}),publicFact('need.people_needed',3)]}));
+  await resume();
+  const card=()=>tree.root.findByProps({testID:'intake-understood'});
+  const labels=()=>card().findAll(node=>node.props.accessibilityRole==='text').map(node=>node.props.accessibilityLabel);
+  expect(labels()).toHaveLength(2);expect(labels()).toContain('Tražim ponude');
+  const expand=card().findByProps({accessibilityLabel:'Prikaži sve poznate podatke nacrta'});
+  await act(async()=>expand.props.onPress());
+  expect(labels()).toHaveLength(4);expect(labels()).toContain('Sutra');expect(labels()).toContain('Treba 3 osobe');
+  expect(card().findByProps({accessibilityLabel:'Sakrij dodatne podatke nacrta'}).props.accessibilityState.expanded).toBe(true);
+  expect(mockSend).not.toHaveBeenCalled();noSummary();
 });
 it.each([{ city: 'Novi Sad' }, { label: 'Novi Sad' }])('keeps private data out of a complete local summary: %j', async start => {
   const geography = { mode: 'STATIONARY', start }, address = 'Privatna 42';
@@ -205,7 +243,7 @@ const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementT
 // draft keeps it open. A test that types chooses it first, exactly as a person does.
 const openKeyboard = async () => {
   if (tree.root.findAllByProps({ accessibilityLabel: 'Poruka za asistenta' }).length) return;
-  const keyboard = tree.root.findByProps({ accessibilityLabel: 'Piši umesto da govoriš' }).props;
+  const keyboard = tree.root.findByProps({ accessibilityLabel: 'Pređi na tastaturu' }).props;
   await act(async () => keyboard.onPress());
 };
 const type = async (value = 'Treba preneti ormar sutra.') => { await openKeyboard(); await act(async () => input().onChangeText(value)); };
@@ -235,7 +273,7 @@ beforeEach(async () => {
   await AsyncStorage.clear();
   jest.clearAllMocks(); for (const mock of [mockOpen, mockLoad, mockSend, mockTurn, mockAbandon, mockRecover, mockCancel]) mock.mockReset();
   mockSession = { user: { id: 'aaaaaaaa-1111-4111-8111-111111111111' }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockParams = {}; mockCounter = 0;
-  mockReduced = false;
+  mockReduced = false;mockHeight=844;mockFontScale=1;
   mockVoicePhase = 'IDLE';
   mockRealVoice = false; mockAppState = 'active'; mockAppListeners.clear();
   mockLocationDialogueEnabled = false; mockLocationResolve.mockReset().mockResolvedValue(unknown());
@@ -1464,6 +1502,7 @@ it('new task entry retires a journal ONLY after owned server proves its conversa
   expect(await aiTurnIntentJournal.load(orphan.accountId)).toBeNull();
   expect(mockLoad).not.toHaveBeenCalled();
   expect(mockOpen).not.toHaveBeenCalled();
+  await openKeyboard();
   expect(input().editable).toBe(true);
   await type('Treba mi krečenje sobe, 25 kvadrata, Užice.');
   await act(async () => submit().onPress());
@@ -1497,7 +1536,9 @@ it('restores only the opaque pending IDs after remount before any open or provid
   expect(String(await AsyncStorage.getItem('uskoci.ai.turn.intent.v1.' + mockSession.user.id))).not.toContain('Private typed message');
   await act(async () => tree.unmount()); mockOpen.mockClear();
   await render(); expect(mockOpen).not.toHaveBeenCalled(); expect(mockRecover).toHaveBeenLastCalledWith(id, requestId);
-  expect(mockSend).toHaveBeenCalledTimes(1); expect(input().value).toBe(''); expect(input().editable).toBe(false);
+  expect(mockSend).toHaveBeenCalledTimes(1);
+  expect(tree.root.findByType(AiConversationShell).props).toMatchObject({value:'',canEdit:false,canSend:false});
+  await openKeyboard();expect(input().value).toBe('');expect(input().editable).toBe(false);
   expect(button('Otkaži slanje poruke')).toBeDefined();
 });
 it('restored absent intent is never auto retried and clears only after exact cancellation readback', async () => {
@@ -1521,7 +1562,9 @@ it('an older server returning unresolved dispatch cannot authorize journal retir
   mockCancel.mockResolvedValue(dispatched); mockRecover.mockResolvedValue(dispatched);
   await act(async () => button('Otkaži slanje poruke').onPress());
   expect(await aiTurnIntentJournal.load(mockSession.user.id)).toEqual(intent);
-  expect(input().editable).toBe(false); expect(tree.root.findAllByProps({ label: 'Otkaži slanje poruke' })).toHaveLength(0);
+  expect(tree.root.findByType(AiConversationShell).props).toMatchObject({canEdit:false,canSend:false});
+  await openKeyboard();expect(input().editable).toBe(false);
+  expect(tree.root.findAllByProps({ label: 'Otkaži slanje poruke' })).toHaveLength(0);
   expect(mockSend).not.toHaveBeenCalled();
 });
 it('canonical success after restart restores conversation and retires the UUID without another send', async () => {

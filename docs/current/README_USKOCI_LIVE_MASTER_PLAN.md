@@ -62,6 +62,12 @@ Izvor `82991de1`: [izveštaj](AI_FIRST_PACKAGE_20261019.md) i [dokaz](evidence/A
 
 [Izveštaj](AI_WARMTH_TIMING_20261019.md) i [dokaz](evidence/AI_WARMTH_TIMING_20261019.json): izvor **7d584c27**, DEV **Task112/Worker67**, 34/34 fajla potvrđena. Jedan topao glas, očuvanje nezavisnih odgovora, eksplicitne kalendarske operacije i tačan kanonski naziv/UUID. Završni radnički početak i izmena samo ponedeljka imaju READY pregled i ispravne sate. Ukupno 14 QA poruka/25 modelskih poziva/$0.189180 interne procene, bez kanonske izmene pre Save-a. **Brzina 5.5–12.9s ostaje otvorena**; merenja ukazuju na modelske krugove. Ovaj paket nema novi APK ili novu native/push potvrdu.
 
+## Manje nepotrebnih AI krugova — 19.10.2026.
+
+Aktuelni paket [AI_SPEED_20261019.md](AI_SPEED_20261019.md), izvor **7423c476**, primenjen je na DEV kao **Task113 / Worker68**; svih **36 fajlova** tačno odgovara paketu. Četiri izolovane QA poruke koriste sedam modelskih poziva; budžetska i kalendarska ispravka svaka prolazi sa **jednim pozivom i bez dodatnog kataloškog alata**. Vremena su 14,315 / 5,687 / 9,571 / 5,164 s, interni obračun 0,060348 USD, 0 neobračunatih operacija. Sva četiri pregleda READY; pet kanonskih otisaka pre Save-a nepromenjeno. Nema nove objave, aktivacije, matching-a ili push-a.
+
+CI **39322097750 SUCCESS: 621 paketa / 13.968 PASS / 0 FAIL / 0 SKIP**. APK **BUILT**, instaliran uz očuvanu sesiju na HONOR-u; ograničeni smoke Početne/Mape/Zadataka/Dogovora/Poruka i About identiteta potvrđen. SHA256 instaliranog APK-a odgovara artefaktu, izvor **7423c476**, embedded **809fd049**, runtime preview. Nema AI poruke, Save/Publish-a ili push dokaza na telefonu. Sledeći composer/live-card kandidat je **SOURCE_VERIFIED** (139 + 269 ciljane provere, TypeScript PASS), ali još nema commit SHA/build/native potvrdu i nije u ovom APK-u. Ovo je konzervativna upotreba svežih klasifikacionih dokaza, a ne trajna pozadinska klasifikacija ili završen UX. Slede pozadinski rad vezan za reviziju i kraći situacioni kontekst, zatim jedan pregled/obuhvat/matching/grupni chat/push i devet UI talasa. [Strukturirani dokaz](evidence/AI_SPEED_20261019.json).
+
 ## Šta znači „trenutno“
 
 <!-- AI_LOCATION_GUIDANCE_START -->

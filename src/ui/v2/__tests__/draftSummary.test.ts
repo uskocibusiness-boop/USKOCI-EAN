@@ -43,6 +43,29 @@ describe('draftSummary start-only and range formatting', () => {
   });
 });
 
+describe('flexible draft bounds',()=>{
+  const summarize=(start:unknown,end:unknown)=>publicSummary([
+    {key:'need.schedule_kind',value:'FLEXIBLE',privacyClass:'PUBLIC',status:'CONFIRMED'},
+    {key:'need.starts_at',value:start,privacyClass:'PUBLIC',status:'CONFIRMED'},
+    {key:'need.ends_at',value:end,privacyClass:'PUBLIC',status:'CONFIRMED'},
+  ]).schedule;
+  it('shows the whole flexible period with its exclusive midnight end and DST change',()=>{
+    const value=summarize('2026-10-19T00:00:00+02:00','2026-10-26T00:00:00+01:00');
+    expect(value).toContain('Fleksibilno');expect(value).toContain('19. okt');expect(value).toContain('25. okt');
+    expect(value).not.toContain('26. okt');expect(value).toContain('UTC+02:00');expect(value).toContain('UTC+01:00');
+    expect(value).not.toContain('Bilo kada');
+  });
+  it('preserves start-only and deadline-only without inventing the missing boundary',()=>{
+    expect(summarize('2099-10-15T10:00:00+02:00',null)).toMatch(/Fleksibilno · od .*10:00/);
+    expect(summarize(null,'2099-10-15T12:00:00+02:00')).toMatch(/Rok do .*12:00/);
+    expect(summarize(null,null)).toBe('Fleksibilno');
+  });
+  it('does not replace malformed or reversed bounds with an unrestricted schedule',()=>{
+    expect(summarize('invalid',null)).toBeUndefined();expect(summarize(null,'invalid')).toBeUndefined();
+    expect(summarize('2099-10-15T12:00:00+02:00','2099-10-15T10:00:00+02:00')).toBeUndefined();
+  });
+});
+
 it('shows the recognized service and the full public route without exposing a private address', () => {
   const fact = (key: any, value: any, privacyClass: 'PUBLIC' | 'PRIVATE' = 'PUBLIC') =>
     ({ key, value, privacyClass, status: 'CONFIRMED' as const });
@@ -55,4 +78,9 @@ it('shows the recognized service and the full public route without exposing a pr
   expect(summary.service).toBe('Prevoz paketa');
   expect(summary.zone).toBe('Liman, Novi Sad → Centar, Novi Sad → Petrovaradin, Novi Sad');
   expect(JSON.stringify(summary)).not.toContain('stan 12');
+});
+it('does not display a taxonomy UUID or legacy machine category as a service name',()=>{
+  for(const category of ['12345678-abcd-4123-8123-123456789abc','MONTIRANJE_NAMESTAJA']) {
+    expect(publicSummary([{key:'need.category',value:category,privacyClass:'PUBLIC',status:'CONFIRMED'}]).service).toBeNull();
+  }
 });

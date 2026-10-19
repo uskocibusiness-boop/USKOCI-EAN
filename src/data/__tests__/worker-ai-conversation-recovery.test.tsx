@@ -103,6 +103,27 @@ it('does not label a newly opened profile conversation as an older draft',async(
  expect(shell().props.card(false).props.resumed).toBe(false);
  expect(mockApi.send).not.toHaveBeenCalled();
 });
+it.each(['current','older revision','foreign owner','foreign conversation','foreign profile','expired','stale'])(
+ 'live understanding accepts only the current owned review: %s',async condition=>{
+  const data=snapshot();
+  const prepared={schemaVersion:'WORKER_PROFILE_V1',reviewId:K,conversationId:C,accountId:A,profileId:B,
+    revision:data.revision,profile:data.candidate,activate:true,missingRequired:[],canAccept:true,
+    expiresAt:new Date(Date.now()+60_000).toISOString(),displayedContentDigest:'a'.repeat(64),classificationState:'READY',
+    reviewedServiceModes:[{service:'Montaža',mode:'ON_SITE'}],classificationCandidates:[]};
+  if(condition==='older revision')prepared.revision-=1;
+  if(condition==='foreign owner')prepared.accountId=B;
+  if(condition==='foreign conversation')prepared.conversationId=B;
+  if(condition==='foreign profile')prepared.profileId=A;
+  if(condition==='expired')prepared.expiresAt='2000-01-01T00:00:00Z';
+  mockApi.read.mockResolvedValue(ok({...data,stale:condition==='stale',review:prepared}));await render();
+  expect(shell().props.card(false).props.verifiedReview).toEqual(condition==='current'?prepared:null);
+  expect(mockApi.prepare).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
+ });
+it('shows a known city before a service exists without starting classification or a review',async()=>{
+ mockApi.read.mockResolvedValue(ok({...snapshot(),candidate:{...candidate(),skills:[],location:{...candidate().location,city:'Novi Sad'}}}));
+ await render();expect(shell().props.card(false).props.profile.location.city).toBe('Novi Sad');
+ expect(shell().props.card(false).props.verifiedReview).toBeNull();expect(mockApi.prepare).not.toHaveBeenCalled();
+});
 it('duplicate active events preserve the worker chat, typed draft and in-flight answer without another read',async()=>{
  const sending=deferred();mockApi.send.mockReturnValueOnce(sending.promise);
  await render();act(()=>shell().props.onChange('Moj nacrt'));await act(async()=>shell().props.onSend());

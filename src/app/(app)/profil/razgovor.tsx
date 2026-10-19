@@ -342,7 +342,13 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
   const sent=pending.current?.text??null,lastMessage=data.messages[data.messages.length-1];
   const unread=sent&&!(lastMessage?.role==='USER'&&lastMessage.body.trim()===sent.trim())?sent:null;
   const hasProfileContent = data.candidate.skills.length > 0 || data.candidate.tools.length > 0
-    || data.candidate.vehicles.length > 0 || data.candidate.bio.trim().length > 0;
+    || data.candidate.vehicles.length > 0 || data.candidate.bio.trim().length > 0
+    || data.candidate.location.city.trim().length > 0 || data.candidate.availability.availableNow
+    || data.candidate.availability.rules.length > 0 || data.candidate.availability.windows.length > 0;
+  // A past review must not lend its service modes or delivery scope to a newer draft.
+  const currentReview=!data.stale&&!reviewNeedsRestart&&data.review?.accountId===data.accountId
+    &&data.review.conversationId===data.conversationId&&data.review.profileId===data.profileId
+    &&data.review.revision===data.revision&&Date.parse(data.review.expiresAt)>Date.now()?data.review:null;
   // The "+" selects a topic for the same conversation. Only an explicit message changes the proposal.
   const openPart=(next:WorkerAiPart)=>{
     if(!canAct()||!enabled||!writable)return;
@@ -356,6 +362,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
     attach={writable?{label:'Šta želiš da izmeniš?',hint:'Izaberi temu i nastavi isti razgovor.',disabled:!enabled,
       onPress:()=>{if(current()&&panelScope.current===renderedPanel)setAdding(true);}}:undefined}
     card={compact=>hasProfileContent&&!data.saved?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable}
+      verifiedReview={currentReview} pending={!!pending.current||editor.busy||awaiting}
       resumed={entryDraft.current?.id===data.conversationId&&entryDraft.current.resumed}
       showReview={writable&&!data.saved} reviewReason={!enabled?unavailableNow:undefined} review={()=>{void review();}}/>:null}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
