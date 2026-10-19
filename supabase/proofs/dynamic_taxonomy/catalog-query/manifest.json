@@ -1,0 +1,67 @@
+{
+  "status": "PREPARED_SQL_EXECUTION_PENDING_CI_NOT_APPLIED",
+  "createdAt": "2026-10-19T09:05:38.485Z",
+  "rpc": "public.rpc_taxonomy_query_catalog_service(jsonb)",
+  "operations": [
+    "META",
+    "EXACT",
+    "SEARCH",
+    "ROOTS",
+    "CHILDREN",
+    "SIBLINGS",
+    "ANCESTORS",
+    "RESOLVE"
+  ],
+  "localChecks": [
+    "YAML parse",
+    "SQL include existence",
+    "scoped diff-check"
+  ],
+  "files": [
+    {
+      "path": "supabase/migrations/20261019085714_taxonomy_query_catalog_service.sql",
+      "bytes": 15050,
+      "sha256": "d163becc19aa77f76e131f0f162f0b8fa9dbedb01b023ddd18f2e366755d71e4"
+    },
+    {
+      "path": ".github/workflows/taxonomy-catalog-query-pg-proof.yml",
+      "bytes": 2511,
+      "sha256": "4b2b4c0833f21894a3634b905ed4f2fbac66de88aab4d1542b092747710350f1"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/catalog-query/assert-before.sql",
+      "bytes": 524,
+      "sha256": "cdfc3325ec610cc779534551f14cda2017319c75372b9eed6921904784293bde"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/catalog-query/assert.sql",
+      "bytes": 11199,
+      "sha256": "9609241503dcb1072c53c8fc1609097e941006c5b130696673f2fb4368190092"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/catalog-query/before-metadata.json",
+      "bytes": 825,
+      "sha256": "ce45772d8b4c98d2bda139e4557dfb0af293f95af28dd9293e71a9189b7e4e7c"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/catalog-query/current-dependencies.sql",
+      "bytes": 5636,
+      "sha256": "1d2a541ff5dae417d8b371ff93cc1b3e1eba9fa13928d44d0863da744d7cb34e"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/catalog-query/fixture.sql",
+      "bytes": 3314,
+      "sha256": "0e8867e6dafd4e1657ca16fd0f93905c516ede4ef2b096bee3678d6d7f9bb605"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/catalog-query/README.md",
+      "bytes": 5550,
+      "sha256": "10bb1ab8e0e4232fa6eab9dddc54807ca3b0b267b76945a3c6a3e5498b3f7df0"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/catalog-query/revert.sql",
+      "bytes": 425,
+      "sha256": "19f5fcef33ef4db4051ec4dce17ee1f8fef7054217fc59b7a5f68e3d046f1f2d"
+    }
+  ]
+}

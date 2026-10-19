@@ -1,0 +1,63 @@
+name: Taxonomy catalog query PostgreSQL proof
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20261019085714_taxonomy_query_catalog_service.sql'
+      - 'supabase/proofs/dynamic_taxonomy/catalog-query/**'
+      - '.github/workflows/taxonomy-catalog-query-pg-proof.yml'
+  push:
+    branches: [feature/unified-qa-master-20261017]
+    paths:
+      - 'supabase/migrations/20261019085714_taxonomy_query_catalog_service.sql'
+      - 'supabase/proofs/dynamic_taxonomy/catalog-query/**'
+      - '.github/workflows/taxonomy-catalog-query-pg-proof.yml'
+permissions:
+  contents: read
+jobs:
+  catalog-query:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['16','17']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: test_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: test_only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Verify captured dependencies and original absence
+        run: |
+          root=supabase/proofs/dynamic_taxonomy/catalog-query
+          psql -X -v ON_ERROR_STOP=1 -f "$root/fixture.sql"
+          psql -X -v ON_ERROR_STOP=1 -f "$root/assert-before.sql"
+      - name: Prove pages, full exact identity, deep ancestry and service-only read authority
+        run: |
+          root=supabase/proofs/dynamic_taxonomy/catalog-query
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261019085714_taxonomy_query_catalog_service.sql
+          psql -X -v ON_ERROR_STOP=1 -f "$root/assert.sql"
+      - name: Prove bounded rollback and reapplication
+        run: |
+          root=supabase/proofs/dynamic_taxonomy/catalog-query
+          psql -X -v ON_ERROR_STOP=1 -f "$root/revert.sql"
+          psql -X -v ON_ERROR_STOP=1 -f "$root/assert-before.sql"
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261019085714_taxonomy_query_catalog_service.sql
+          psql -X -v ON_ERROR_STOP=1 -f "$root/assert.sql"
