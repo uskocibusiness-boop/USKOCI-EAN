@@ -28,19 +28,23 @@ type SubmittedDraft={value:string;revision:number};
 type Attempt={id:string;text:string|null;submittedDraft:SubmittedDraft|null};
 const unavailable=():Ishod<never>=>({ok:false,kod:'WORKER_AI_UNAVAILABLE',poruka:'Ponovo učitaj svoj radni profil.'});
 export default function WorkerConversationRoute(){
-  const session=useSesija(),params=useLocalSearchParams<{conversationId?:string|string[];aiCorrection?:string|string[]}>();
+  const session=useSesija(),params=useLocalSearchParams<{conversationId?:string|string[];aiCorrection?:string|string[];entryKey?:string|string[]}>();
   const cid=typeof params.conversationId==='string'?params.conversationId:undefined;
+  const entryKey=typeof params.entryKey==='string'&&uuid(params.entryKey)?params.entryKey:undefined;
   const owner=`${session.user?.id}:${session.accountRevision}`;
   // A topic-only navigation can replace search params on a retained route. Keep
   // its owned conversation, including an unsent draft; an explicit new ID or
   // account generation still starts a separate boundary.
-  const retained=useRef({owner,id:cid});
-  if(retained.current.owner!==owner)retained.current={owner,id:cid};
+  const retained=useRef({owner,id:cid,entryKey});
+  // Explicit restart must clear the retained ID on the same mounted tab. Merely
+  // removing conversationId is also used by topic navigation, so it cannot reset.
+  if(retained.current.owner!==owner||(entryKey!==undefined&&entryKey!==retained.current.entryKey))retained.current={owner,id:cid,entryKey};
   else if(cid!==undefined)retained.current.id=cid;
   const conversationId=cid??retained.current.id;
   const invalid=(params.conversationId!==undefined&&cid===undefined)
+    ||(params.entryKey!==undefined&&entryKey===undefined)
     ||(conversationId!==undefined&&!uuid(conversationId));
-  return <OwnedWorkerConversation key={`${owner}:${conversationId??''}`}
+  return <OwnedWorkerConversation key={`${owner}:${retained.current.entryKey??''}:${conversationId??''}`}
     initialId={conversationId} invalid={invalid} correctionToken={params.aiCorrection}/>;
 }
 function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?:string;invalid:boolean;correctionToken?:unknown}){
@@ -301,7 +305,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
           }
           const confirmed=await read();if(!current())return unavailable();
           if(confirmed.ok&&(confirmed.podatak.status==='ABANDONED'||confirmed.podatak.status==='COMPLETED')&&!pending.current)
-            router.replace('/profil/razgovor');return confirmed;});
+            router.replace({pathname:'/profil/razgovor',params:{entryKey:noviUuidZahtevId()}});return confirmed;});
       }});
   };
   const statusCopy=data?.saved?'Profil je sačuvan.':data?.status!=='OPEN'?'Ovaj razgovor je završen.':data.stale?'Sačuvani profil je promenjen. Novi razgovor će početi od tih podataka.':

@@ -42,6 +42,29 @@ function fixture(config={}){
  return {calls,message,invoke:()=>handler(new Request('https://edge.invalid',{method:'POST',headers:{Authorization:'Bearer SYNTHETIC',Accept:config.locationContext?'application/json':'text/event-stream','Content-Type':'application/json',...config.headers},body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:config.text??'SYNTHETIC_USER_TEXT',...(config.locationContext?{mode:'locationReply',locationContext:config.locationContext}:{})})}))};
 }
 async function events(f){const response=await f.invoke();assert.match(response.headers.get('content-type'),/text\/event-stream/);return (await response.text()).trim().split('\n\n').map(e=>JSON.parse(e.slice(6)));}
+for(const phase of ['PROPOSAL','UNRESOLVED'])test('review cannot skip the current '+phase+' map decision',async()=>{
+ const locationContext={version:1,promptToken:id(31),reviewRevision:'a'.repeat(64),slot:'start',phase,
+  question:'Da li je ovo polazište?',query:'PRIVATNO_MESTO',proposal:phase==='PROPOSAL'?{id:id(32),label:'PRIVATNA_ADRESA'}:null,alternatives:[]};
+ const f=fixture({locationContext,output:{safety:'ALLOW',assistantMessage:'Sve je spremno, objavi.',facts:[],
+  dialogue:{next:'REVIEW',questionKey:'NONE',taskRelation:'CONTINUE',priceUnit:'UNSPECIFIED',schedulePattern:'UNSPECIFIED'},
+  locationDecision:{action:'CONTINUE',proposalId:'NONE',explicitConfirmation:false,hasCorrection:false,hasUncertainty:false}}});
+ const r=await f.invoke();assert.equal(r.status,200);
+ const write=f.calls.find(x=>x.url.endsWith('/rpc_ai_complete_need_location_turn_v1_service')).body;
+ assert.match(write.p_assistant_message,phase==='PROPOSAL'?/proveriš predloženo mesto na mapi/:/U kom je gradu/);
+ assert.ok(!write.p_assistant_message.includes('PRIVAT'));assert.deepEqual(write.p_proposals,[]);assert.equal(write.p_location_action,'CONTINUE');
+});
+test('switching to remote does not demand confirmation of the obsolete physical map',async()=>{
+ const locationContext={version:1,promptToken:id(31),reviewRevision:'a'.repeat(64),slot:'start',phase:'PROPOSAL',
+  question:'Da li je ovo mesto?',query:'Prethodno mesto',proposal:{id:id(32),label:'Prethodno mesto'},alternatives:[]};
+ const message='Predlog je sada na daljinu. Pogledaj ažurirani pregled.';
+ const f=fixture({locationContext,output:{safety:'ALLOW',assistantMessage:message,
+  facts:[{key:'need.task_geography',valueJson:'{"mode":"REMOTE"}',displayValue:'Na daljinu',evidence:'Može na daljinu',confidence:1}],
+  dialogue:{next:'REVIEW',questionKey:'NONE',taskRelation:'CONTINUE',priceUnit:'UNSPECIFIED',schedulePattern:'UNSPECIFIED'},
+  locationDecision:{action:'CORRECT',proposalId:'NONE',explicitConfirmation:false,hasCorrection:true,hasUncertainty:false}}});
+ const r=await f.invoke();assert.equal(r.status,200);
+ const write=f.calls.find(x=>x.url.endsWith('/rpc_ai_complete_need_location_turn_v1_service')).body;
+ assert.equal(write.p_assistant_message,message);assert.equal(write.p_proposals[0].value.mode,'REMOTE');
+});
 const providers=f=>f.calls.filter(c=>c.url.startsWith('https://generativelanguage.googleapis.com/'));
 const writes=f=>f.calls.filter(c=>c.url.endsWith('/rpc_ai_complete_need_turn_v2_service'));
 const failures=f=>f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service'));

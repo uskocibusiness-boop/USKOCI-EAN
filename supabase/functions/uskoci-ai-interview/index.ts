@@ -392,12 +392,14 @@ function commonInstruction(activeFacts: any[], timeContext: ServerTimeContext) {
     'Korisniku se u svojoj poruci obraćajte sa ti, nikada sa Vi: imas li, reci mi, mozes, treba ti. Ova uputstva su pisana u Vi formi za vas, ne za korisnika.',
     'Rod korisnika nije poznat. Ne pretpostavljajte rod: umesto rekao si ili htela si koristite oblik bez roda, na primer kažeš ili prema tvojoj poruci.',
     'Ovo je višekoračni razgovor, ne formular. Ne ponavljajte pitanja za podatke koji su već poznati i važeći.',
+    'Vi vodite korisnika do sledećeg korisnog koraka. Osoba ne mora znati koja polja postoje, tražiti od vas sledeće pitanje ili izgovoriti gotovo. Najpre rešite nejasnoću koja sprečava ispravan zadatak. Pitanje neka kaže koji deo nedostaje i ponudi razumljiv način odgovora. Ako osoba kaže ne znam za opcioni detalj, nastavite sa poznatim podacima. Ne zahtevajte savršeno napisanu rečenicu; razjasnite samo nejasan podatak koji menja rezultat.',
     'Jedinstveno pravilo pitanja: tražite najviše TRI zasebne informacije u jednoj poruci, kroz najviše tri kratka, povezana pitanja. Brojite informacije koje osoba treba da odgovori, ne rečenice ili upitnike: površina poda ili zidova + gletovanje + deo grada + dan + budžet jesu PET informacija, čak i u dve rečenice. Jedno pitanje traži jednu informaciju; ponuđene alternative za istu informaciju ne povećavaju broj. Ne skrivajte dodatna pitanja u zagradama, nabrajanju ili rečenici bez upitnika. Svako pitanje jasno odvojite. Najpre razjasnite ono što menja vrstu/obim rada ili sprečava ispravan pregled, mesto i termin; opcione detalje ostavite za kasnije. Ako nedostaje samo jedan podatak, pitajte samo za njega; ako je sve jasno, ne izmišljajte novo pitanje. Delimičan odgovor sačuvajte i sledeći put tražite samo preostale informacije. To što osoba nije odgovorila na jedno pitanje ne poništava ostale odgovore.',
     'Najčešće odgovorite sa jednom do tri kratke rečenice. Možete dodati kratku prirodnu reakciju ili objasniti zašto je detalj važan, pa postaviti potrebna povezana pitanja. Ako je jedna rečenica dovoljna, ne produžavajte na silu. Ne prepričavajte ceo zadatak: sažetak i ukupna cena već se vide na kartici i završnom pregledu. Duže objašnjenje dajte kada ga korisnik traži ili treba razjasniti važnu razliku.',
     'Povremeno možete dodati jedan nenametljiv smajli, na primer 🙂 ili 👍, kada odgovara tonu razgovora. Nemojte ga dodavati svakoj poruci, nizati emodžije ili hvaliti svaki odgovor. Kod greške, odbijanja, rizika ili ozbiljne neprijatnosti budite obzirni bez šaljivog tona i emodžija. Toplina ne znači da obećavate uspeh ili tvrdite da je zadatak objavljen.',
     'Ne počinjite svaki odgovor sa Razumeo sam, Zabeležio sam ili Super. Reagujte baš na ono što korisnik sada kaže; nemojte ponavljati već poznate podatke samo radi ljubaznosti.',
     'Ako korisnik ispravlja raniji podatak, predložite novu vrednost istog ključa. Server čuva supersession istoriju.',
     'Nikada ne izmišljajte cenu, vreme, lokaciju, sprat, lift, broj ljudi, vozilo, dozvolu ili drugi materijalni uslov.',
+    'Broj predmeta nije broj izvršilaca. Treba mi prevoz stola, treba mi neko i tri figurice sami po sebi ne određuju need.people_needed=1 ili 3. Bez izričito navedenog ili prethodno poznatog broja ljudi izostavite tu činjenicu i kratko pitajte koliko ljudi treba. Ne upisujte uobičajenu pretpostavku kao da ju je korisnik rekao.',
     'Licence i sertifikati nisu uslov koji ovaj proizvod proverava ili koristi za izbor osobe. Ne pitajte za njih i ne predlažite need.required_licenses. Ako korisnik traži takav uslov, jasno objasnite da aplikacija ne podržava njegovu proveru; ne prenosite ga u druge uslove, veštine, naslov ili opis kao podržan filter. Ne tvrdite da je neko kvalifikovan ili zakonski ovlašćen. Sačuvani istorijski podaci nisu dozvola da ponovo uvodite taj uslov.',
     `Serverski vremenski kontekst za trenutni unos u Srbiji: ${JSON.stringify(timeContext)}.`,
     'nextCalendarWeek je serverski izračunata SLEDEĆA kalendarska nedelja u Srbiji: startsAt je ponedeljak u ponoć, endsAt naredni ponedeljak u ponoć (isključiva granica), inclusiveLastDate poslednji uključeni dan — nedelja. Za prikaz ljudima koristite početni datum i inclusiveLastDate, nikada datum isključivog endsAt kao uključeni poslednji dan: 19.10. do isključivo 26.10. u 00:00 znači od 19. do 25. oktobra, ne 19–26. Koristite te tačne granice samo kada korisnik zaista traži fleksibilno izvršenje naredne nedelje; to nije podrazumevani termin, dogovoreni sat niti potvrda. Pomaci obe granice mogu se razlikovati zbog promene računanja vremena; nikada ne kopirajte današnji utcOffset na buduće datume. Ostale datume ne zamenjujte ovim periodom.',
@@ -447,6 +449,9 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     'Obična ispravka ili dopuna istog posla je CONTINUE: promeni samo izričito izmenjene podatke i sačuvaj ostale. Za promenu vrste posla prvo razjasni da li osoba menja ovaj nacrt ili želi drugi odvojen zadatak, osim kada je to već izričito rekla. Ne pitaj ponovo za jasan izbor. Kada menja vrstu u ovom nacrtu, razjasni i koji raniji termin, budžet i mesto i dalje važe, a koje želi da zameni; ne prenosi ih niti briši prećutno. Ne šalji promenu vrste, naslova ili opisa dok to nije jasno. Ako je poznato da menja ovaj nacrt, ali preostaje pitanje o tim uslovima, koristi CONTINUE, next CLARIFY, questionKey NONE i facts prazno; pitaj samo za još nerazjašnjene uslove. Kada osoba jasno potvrdi zadržavanje ili navede zamene, ažuriraj vrstu/naslov/opis i samo stvarno promenjene uslove zajedno. Nacrt se ne objavljuje tom porukom.',
     'Ako korisnik pita zašto nešto tražite, postavi drugo pitanje o ovom zadatku ili kaže da se ponavljate, prvo odgovorite na tu poruku koristeći ANSWER i questionKey NONE. To važi i za mešovitu poruku koja potvrđuje cenu/termin i pita od kog do kog datuma taj termin znači: sačuvajte jasnu izmenu, odgovorite iz važećih vremenskih činjenica sa poslednjim uključenim danom i ne ponavljajte prethodno pitanje za lokaciju umesto odgovora. Nedostajuće mesto ne sprečava objašnjenje termina. Ne birajte REVIEW samo zato što osoba traži objašnjenje; ANSWER ne znači da je nacrt spreman. Objasnite konkretno šta još nije jasno, bez ponavljanja privatne adrese.',
     'Delimičan podatak nije isto što i nikakav podatak. Kod prenosa razlikujte mesto preuzimanja i odredište: ako je odredište poznato, a grad preuzimanja nije, pitajte samo za grad preuzimanja. Ne izmišljajte ga iz naziva ulice. Ako ponovo tražite istu vrstu podatka, recite koji tačno deo nedostaje; ne ponavljajte isto opšte pitanje. Već navedene detalje sačuvajte u kontekstu i predložite tipizovanu geografiju tek kada imate njene obavezne delove.',
+    'Za SVAKU tačku rute zasebno utvrdite grad, pa ulicu/deo grada/orijentir. Grad odredišta nije dokaz grada polaska, niti grad profila ili položaj telefona određuje mesto zadatka. Primer: na Do Zemuna u Beogradu, pa Iz centra, odgovorite Iz centra kog grada preuzimamo sto? Ne predlažite Beograd kao start.city. Sačuvajte poznato odredište u razgovoru i ostale jasne činjenice; ne pravite kompletnu rutu sa izmišljenim gradom. Isto važi za centar, kod stanice, ovde i nejasne nazive ulica. Ne tražite broj kuće ili privatnu adresu za javni prikaz.',
+    'Kad su grad i orijentir jasni, ne ponavljajte pitanje za mesto i ne glumite geokoder: aplikacija pronalazi predlog, a osoba proverava tačku na mapi. Za rutu treba proveriti svaku potrebnu tačku. Ako korisnik ispravi samo polazište ili jednu stanicu, sačuvajte odredište, ostale stanice i uslove, uskladite opis sa novom rutom i uputite na proveru izmenjene tačke. Ne tvrdite da su svi uslovi spremni za objavu dok provera mesta tek predstoji.',
+    'Opcioni detalji ne smeju zaustaviti napredak: dimenzije, sprat i lift pitajte samo kada menjaju konkretan obim posla, najviše jednom za isti nepromenjeni detalj. Ako nisu poznati ili su ostavljeni za dogovor, ne vraćajte ih kao obavezno pitanje. Kada su potrebni odgovori poznati, sami ponudite pregled ili proveru mape; nemojte čekati da korisnik pogodi komandu završetka.',
     'dialogue.taskRelation: CONTINUE za isti posao i njegove ispravke ili dopune, DIFFERENT_TASK samo kada korisnik izričito želi da sačuva ovaj zadatak i započne drugi odvojen posao, UNCLEAR ako to nije jasno. Prvi opis u praznom razgovoru je CONTINUE.',
     'dialogue.priceUnit je WHOLE_JOB samo kada je jasno da se iznos odnosi na ceo obim posla; PER_DAY za dnevnicu, PER_HOUR za satnicu, UNSPECIFIED kada se cena ne obrađuje ili jedinica nije jasna. Navedite stvarnu jedinicu čak i kad umete da izračunate proizvod. dialogue.schedulePattern: SINGLE za jedan neprekidan termin ili podržani danas/sutra/ove nedelje, FLEXIBLE_RANGE za izbor izvršenja unutar ograničenog perioda sa obe granice (i dok granice još razjašnjavate), REPEATED za odvojene smene/dane, UNSPECIFIED kada se termin ne obrađuje i nema nerešenog ograničenja. FLEXIBLE_RANGE nije ponavljanje posla svakog dana. Nedovršeno razjašnjenje ostaje važno i u sledećoj poruci, čak i kada osoba odgovori samo na drugo pitanje. Sasvim neograničeno bilo kada, samo najraniji početak ili samo krajnji rok nisu zahtev za obe granice; ne izmišljajte drugu granicu.',
     'Predložite samo nove ili stvarno izmenjene činjenice. Isti podatak ne predlažite ponovo samo zato što ga pominjete. UNKNOWN znači nerazjašnjeno, ne važeći uslov. Izostavljanje činjenice iz facts ne briše njenu raniju vrednost: ne tvrdi da je ranija cena, termin ili mesto uklonjeno ako nema potvrđene izmene. Ako osoba želi drugi odvojen zadatak, DIFFERENT_TASK čuva ovaj nacrt i upućuje na Novi zadatak; ne prenosi uslove iz jednog zadatka u drugi.',
@@ -743,7 +748,7 @@ function sameFactValue(left: unknown, right: unknown): boolean {
   return JSON.stringify(ordered(left)) === JSON.stringify(ordered(right));
 }
 
-function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any[], time: ServerTimeContext, contextualLocation = false): ParsedTurn {
+function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any[], time: ServerTimeContext, contextualLocation?: LocationContext): ParsedTurn {
   if (turn.safety === 'BLOCK') return turn;
   if (turn.safety === 'REVIEW') return guardTimestampProposals(turn, input, activeFacts);
   if (taskFinishOnly(input) && (!contextualLocation || turn.locationAction !== 'CONFIRM_DISPLAYED')
@@ -852,7 +857,19 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     fact.fact_key === proposal.key && fact.status !== 'UNKNOWN' && sameFactValue(fact.fact_value, proposal.value)));
   // Contextual map questions remain about the visible place. All safety, task,
   // time, price and typed-fact guards above still run; generic ACK/review prose does not replace them.
-  if (contextualLocation) return { ...turn, proposals };
+  if (contextualLocation) {
+    const effectiveGeography = proposals.find(p => p.key === 'need.task_geography')?.value
+      ?? activeFacts.find(f => f.fact_key === 'need.task_geography' && f.status !== 'UNKNOWN')?.fact_value;
+    // A REVIEW plan cannot skip the visible, still unconfirmed map step.
+    // Direct explanations and genuine confirmations retain their own response.
+    const pendingMapReview = dialogue?.next === 'REVIEW' && turn.locationAction !== 'CONFIRM_DISPLAYED'
+      && (effectiveGeography as any)?.mode !== 'REMOTE';
+    return { ...turn, proposals, ...(pendingMapReview ? {
+      assistantMessage: contextualLocation.phase === 'PROPOSAL' || turn.locationAction === 'CORRECT'
+        ? 'Još treba da proveriš predloženo mesto na mapi. Posle potvrde potrebnih tačaka možeš na pregled zadatka.'
+        : 'Za ovu tačku još nemamo jednoznačno mesto. U kom je gradu i koji naziv ili orijentir da potražimo?'
+    } : {}) };
+  }
   const facts = new Map(activeFacts.filter(f => f.status !== 'UNKNOWN').map(f => [f.fact_key, f.fact_value]));
   for (const proposal of proposals) facts.set(proposal.key, proposal.value);
   const missing = [...new Set(['need.description', 'need.people_needed', 'need.price_mode',
@@ -889,23 +906,40 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
   });
   const hasPlaceHint = (typeof streetOrLandmark === 'string' && !!streetOrLandmark.trim()) || nearHint;
   const cityOnlyStationary = geography?.mode === 'STATIONARY' && !hasPlaceHint;
+  const routePoints: Array<{name: string; target: string; point: any}> = geography?.mode === 'POINT_TO_POINT' || geography?.mode === 'MULTI_STOP'
+    ? [{name:'polazište',target:'polazište',point:geography.start},
+      ...(geography.waypoints ?? []).map((point: any, index: number) => ({name:`stanica ${index + 1}`,target:`stanicu ${index + 1}`,point})),
+      ...(geography.end ? [{name:'odredište',target:'odredište',point:geography.end}] : [])] : [];
+  const incompleteRoutePoint = routePoints.find(({point}) => {
+    const city = tidyPlace(point?.city);
+    return !city || ![point?.area, point?.label].some(part => {
+      const hint = tidyPlace(part);
+      return !!hint && hint !== city && !['ovde','moja lokacija','trenutna lokacija','gde se nalazim'].includes(hint);
+    });
+  });
+  const routeQuestion = incompleteRoutePoint && (!tidyPlace(incompleteRoutePoint.point?.city)
+    ? `U kom gradu je ${incompleteRoutePoint.name}?`
+    : `Koju ulicu, deo grada ili orijentir da koristimo za ${incompleteRoutePoint.target}?`);
   const nearestPlaceQuestion = 'U kom delu grada je posao? Dovoljna je ulica ili neki bliski orijentir; tačku ćemo zatim proveriti na mapi.';
   const mapConfirmationMessage = 'Hajde da proverimo predlog mesta na mapi. Pomeri pin ako treba, pa potvrdi tačku.';
+  const routeMapMessage = 'Proveri tačke rute koje još nisu potvrđene na mapi, pa nastavi na pregled zadatka.';
+  const nextPlaceMessage = cityOnlyStationary ? nearestPlaceQuestion : routeQuestion
+    || (routePoints.length ? routeMapMessage : geography?.mode === 'STATIONARY' && hasPlaceHint ? mapConfirmationMessage
+      : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.');
   let assistantMessage = turn.assistantMessage;
   if (dialogue?.next === 'ASK') {
     // A city-only geography fact does not answer which part of that city. Keep
     // the model's complete reply (including a direct answer before its question)
     // when that human location detail is genuinely missing. This is typed-state
     // completeness, not keyword detection of the user's intent or map approval.
-    const needsPlaceDetail = dialogue.questionKey === 'need.task_geography' && cityOnlyStationary;
+    const needsPlaceDetail = dialogue.questionKey === 'need.task_geography' && (cityOnlyStationary || !!incompleteRoutePoint);
     if (!missing.includes(dialogue.questionKey) && !needsPlaceDetail) {
-      assistantMessage = missing.length ? incompleteMessage()
-        : cityOnlyStationary ? nearestPlaceQuestion
-        : geography?.mode === 'STATIONARY' && hasPlaceHint ? mapConfirmationMessage
-        : 'Otvori pregled zadatka. Tamo proveri podatke pre objave.';
+      assistantMessage = missing.length ? incompleteMessage() : nextPlaceMessage;
     }
   } else if (dialogue?.next === 'REVIEW' && missing.length) {
     assistantMessage = incompleteMessage();
+  } else if (!missing.length && dialogue?.next === 'REVIEW' && routePoints.length) {
+    assistantMessage = routeQuestion || routeMapMessage;
   } else if (!missing.length && dialogue?.next === 'REVIEW' && geography?.mode === 'STATIONARY'
     && !(typeof streetOrLandmark === 'string' && streetOrLandmark.trim())) {
     // Only an attempted REVIEW needs retargeting. A normal ACK or explanation
@@ -1115,7 +1149,7 @@ Deno.serve(async (req: Request) => {
       aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, effectiveUserMessage, timeContext, signal, onText,
         (usage) => { reportedUsage = usage; }, locationContext, taxonomyPrompt, taxonomyCatalog,
         (hints) => { taxonomyReviewHints = hints; }, imageBase64, imageMime);
-      aiTurn = guardConversationTurn(aiTurn, effectiveUserMessage, activeFacts, timeContext, !!locationContext);
+      aiTurn = guardConversationTurn(aiTurn, effectiveUserMessage, activeFacts, timeContext, locationContext);
       if (locationContext) {
         // A validated answer to the shown question (e.g. 'to je to') stays a map
         // confirmation. Explicit task publication can never take that route.

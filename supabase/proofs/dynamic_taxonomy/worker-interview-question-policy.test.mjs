@@ -64,14 +64,13 @@ test('finish stays optional, must not fake Save or allow unauthorized matching',
 test('first-screen interview copy and profile labels describe real offered work',()=>{
  const route=readFileSync(new URL('../../../src/app/(app)/profil/razgovor.tsx',import.meta.url),'utf8');
  const labels=readFileSync(new URL('../../../src/ui/workerProfile/workerProfileFacts.ts',import.meta.url),'utf8');
- const presentation=readFileSync(new URL('../../../src/ui/workerProfile/WorkerAiPresentation.tsx',import.meta.url),'utf8');
  assert.match(route,/welcome=\{hasProfileContent\?'Šta želiš da dopuniš\?':'Čime se baviš\?'\}/);
  assert.match(route,/Ispričaj koje usluge pružaš ili želiš da pružaš/);
  assert.doesNotMatch(route,/svakodnevnu pomoć, poput dostave i nošenja stvari/);
  assert.match(labels,/skills: 'Usluge koje nudiš'/);
  assert.match(labels,/key: 'skills', label: 'Usluge'/);
- assert.match(presentation,/label="Usluge koje nudiš"/);
- assert.match(presentation,/listEditor\('skills','Usluge koje nudiš',skills\)/);
+ // The retired per-field manual editor no longer owns these labels. Rendered
+ // review/correction behavior is covered by worker-ai-review and conversation-parts.
 });
 
 test('remote-only draft profile knows the server still requires a city for activation',()=>{

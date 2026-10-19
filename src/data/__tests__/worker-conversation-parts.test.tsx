@@ -6,7 +6,7 @@ import { rememberAiCorrection } from '../aiCorrectionIntent';
 const mockAccount = '11111111-1111-4111-8111-111111111111', mockProfile = '22222222-2222-4222-8222-222222222222', mockConversation = '33333333-3333-4333-8333-333333333333';
 const A = mockAccount, B = mockProfile, C = mockConversation;
 let mockRouteId: string | undefined = C;
-let mockCorrection: string | undefined, mockFocused=true;
+let mockCorrection: string | undefined, mockEntryKey: string | undefined, mockFocused=true;
 const mockListeners = new Set<(s: string) => void>();
 const mockApi = { read: jest.fn(), open: jest.fn(), send: jest.fn(), recoverTurn: jest.fn(), cancelTurn: jest.fn(), patch: jest.fn(), prepare: jest.fn(), save: jest.fn(), abandon: jest.fn() };
 const mockJournal = { load: jest.fn(), save: jest.fn(), clear: jest.fn() };
@@ -24,7 +24,7 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
-jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ conversationId: mockRouteId,aiCorrection:mockCorrection }),
+jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ conversationId: mockRouteId,aiCorrection:mockCorrection,entryKey:mockEntryKey }),
   useFocusEffect: (fn: () => void) => require('react').useEffect(() => mockFocused?fn():undefined, [fn,mockFocused]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: 1 }), sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: 1 }) }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: jest.fn() }));
@@ -74,7 +74,7 @@ const openReview = async () => {
 };
 beforeEach(() => {
   jest.clearAllMocks(); mockRouteId = C; mockRouter.canGoBack.mockReturnValue(true); mockAccountName = { state: 'ready', name: null };
-  mockCorrection=undefined;mockFocused=true;
+  mockCorrection=undefined;mockEntryKey=undefined;mockFocused=true;
   mockJournal.load.mockResolvedValue(null); mockJournal.save.mockResolvedValue(undefined); mockJournal.clear.mockResolvedValue(undefined);
   mockApi.read.mockResolvedValue(ok(snapshot())); mockApi.open.mockResolvedValue(ok(snapshot()));
   mockApi.recoverTurn.mockResolvedValue(ok({}));
@@ -82,6 +82,21 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('the conversation (M1)', () => {
+  it('an explicit new entry replaces the abandoned retained conversation, then preserves its own draft on a topic visit', async () => {
+    await render(); await act(async()=>shell().props.onChange('Stari neposlati odgovor'));
+    const nextId='99999999-9999-4999-8999-999999999999';
+    mockApi.open.mockResolvedValue(ok({...snapshot(),conversationId:nextId}));
+    mockApi.read.mockResolvedValue(ok({...snapshot(),conversationId:nextId}));
+    mockRouteId=undefined;mockEntryKey='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    await act(async()=>tree.update(<Screen/>));
+    expect(mockApi.open).toHaveBeenCalledTimes(1);
+    expect(shell().props.conversationKey).toBe(nextId);expect(shell().props.value).toBe('');
+    await act(async()=>shell().props.onChange('Novi neposlati odgovor'));
+    mockEntryKey=undefined;
+    await act(async()=>tree.update(<Screen/>));
+    expect(mockApi.open).toHaveBeenCalledTimes(1);expect(shell().props.value).toBe('Novi neposlati odgovor');
+    expect(shell().props.conversationKey).toBe(nextId);expect(mockApi.send).not.toHaveBeenCalled();
+  });
   it('a topic-only visit cannot admit an invalid conversation ID retained from the previous route params', async () => {
     mockRouteId='not-a-uuid'; await render();
     expect(mockApi.read).not.toHaveBeenCalled(); expect(mockApi.open).not.toHaveBeenCalled();

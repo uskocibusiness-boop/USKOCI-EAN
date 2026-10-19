@@ -397,6 +397,28 @@ const completionFacts=()=>[
  semanticFact('need.task_geography',{mode:'STATIONARY',start:{city:'Beograd'}}),
 ];
 const proposed=(key,value,evidence='Prenošenje nekoliko kesa')=>({key,valueJson:JSON.stringify(value),displayValue:String(value),evidence,confidence:0.95});
+const routeFacts=geography=>completionFacts().map(f=>f.fact_key==='need.task_geography'?semanticFact(f.fact_key,geography):f);
+for(const [geography,question] of [
+ [{mode:'POINT_TO_POINT',start:{area:'Centar'},end:{city:'Beograd',area:'Zemun'}},'U kom gradu je polazište?'],
+ [{mode:'POINT_TO_POINT',start:{city:'Novi Sad',area:'Spens'},end:{city:'Beograd'}},'Koju ulicu, deo grada ili orijentir da koristimo za odredište?'],
+ [{mode:'MULTI_STOP',start:{city:'Novi Sad',area:'Spens'},waypoints:[{area:'Stanica'}],end:{city:'Beograd',area:'Zemun'}},'U kom gradu je stanica 1?'],
+])test('route review asks for the incomplete point without inventing geography: '+question,async()=>{
+ const f=fixture({activeFacts:routeFacts(geography),providerOutput:{safety:'ALLOW',facts:[],assistantMessage:'Sve je spremno za objavu.',dialogue:{...syntheticDialogue(),next:'REVIEW'}}});
+ assert.equal((await f.invoke()).status,200);
+ const write=materialWrites(f)[0].body;assert.equal(write.p_assistant_message,question);assert.deepEqual(write.p_proposals,[]);
+});
+test('a known route still permits a contextual question about its missing destination detail',async()=>{
+ const message='U kom delu Beograda je istovar?';
+ const f=fixture({activeFacts:routeFacts({mode:'POINT_TO_POINT',start:{city:'Novi Sad',area:'Spens'},end:{city:'Beograd'}}),
+  providerOutput:{safety:'ALLOW',facts:[],assistantMessage:message,dialogue:{...syntheticDialogue(),next:'ASK',questionKey:'need.task_geography'}}});
+ await f.invoke();assert.equal(materialWrites(f)[0].body.p_assistant_message,message);
+});
+test('a complete spoken route leads to checking map points, not an unverified publish claim',async()=>{
+ const f=fixture({activeFacts:routeFacts({mode:'POINT_TO_POINT',start:{city:'Novi Sad',area:'Spens'},end:{city:'Beograd',area:'Gardoš'}}),
+  providerOutput:{safety:'ALLOW',facts:[],assistantMessage:'Sve je spremno za objavu.',dialogue:{...syntheticDialogue(),next:'REVIEW'}}});
+ await f.invoke();assert.match(materialWrites(f)[0].body.p_assistant_message,/tačke rute koje još nisu potvrđene na mapi/);
+ assert.deepEqual(materialWrites(f)[0].body.p_proposals,[]);
+});
 for(const absent of ['need.title','need.category'])test('REVIEW cannot conceal missing internal completion: '+absent,async()=>{
  const f=fixture({activeFacts:completionFacts().filter(x=>x.fact_key!==absent),providerOutput:{safety:'ALLOW',facts:[],
   assistantMessage:'Sve je spremno.',dialogue:{...syntheticDialogue(),next:'REVIEW'}}});

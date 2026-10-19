@@ -249,7 +249,7 @@ it('a retired-field review refusal keeps a guarded restart path after same-revie
  await answer('confirm-sheet-cancel');expect(mockApi.abandon).not.toHaveBeenCalled();
  mockApi.abandon.mockImplementation(async()=>{mockApi.read.mockResolvedValue(ok({...reviewed(),status:'ABANDONED'}));return ok({...reviewed(),status:'ABANDONED'});});
  await click('Novi razgovor');await answer('confirm-sheet-confirm');
- expect(mockApi.abandon).toHaveBeenCalledWith(C);expect(mockRouter.replace).toHaveBeenCalledWith('/profil/razgovor');
+ expect(mockApi.abandon).toHaveBeenCalledWith(C);expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/profil/razgovor',params:{entryKey:expect.stringMatching(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i)}});
  expect(mockApi.patch).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
 });
 it('Back from review retires retained Save callbacks before chat or route departure',async()=>{
@@ -416,12 +416,12 @@ it('explicit abandon clears dispatched journal only after exact canonical parent
  expect(tree.root.findByType(ConfirmSheet).props).toMatchObject({title:'Pokrenuti nov razgovor?',cancelLabel:'Nastavi ovaj razgovor',confirmLabel:'Novi razgovor'});
  await answer('confirm-sheet-cancel');expect(sheets()).toHaveLength(0);expect(mockApi.abandon).not.toHaveBeenCalled();
  await click('Novi razgovor');await answer('confirm-sheet-confirm');expect(mockApi.abandon).toHaveBeenCalledTimes(1);expect(mockApi.abandon).toHaveBeenCalledWith(C);expect(mockJournal.clear).toHaveBeenCalledWith(intent());
- expect(mockRouter.replace).toHaveBeenCalledWith('/profil/razgovor');expect(mockApi.send).not.toHaveBeenCalled();
+ expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/profil/razgovor',params:{entryKey:expect.stringMatching(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i)}});expect(mockApi.send).not.toHaveBeenCalled();
 });
 it.each(['COMPLETED','ABANDONED'])('starts a fresh route from a confirmed %s conversation without abandoning or sending again',async status=>{
  mockApi.read.mockResolvedValue(ok({...snapshot(),status}));
  await render();await click('Novi razgovor');await answer('confirm-sheet-confirm');
- expect(mockApi.read).toHaveBeenCalledTimes(2);expect(mockRouter.replace).toHaveBeenCalledWith('/profil/razgovor');
+ expect(mockApi.read).toHaveBeenCalledTimes(2);expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/profil/razgovor',params:{entryKey:expect.stringMatching(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i)}});
  expect(mockApi.abandon).not.toHaveBeenCalled();expect(mockApi.open).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
  expect(mockJournal.clear).not.toHaveBeenCalled();
 });
@@ -456,7 +456,7 @@ it('keeps the new-conversation question open with a busy confirm while the old o
  expect(tree.root.findByType(ConfirmSheet).findByProps({testID:'confirm-sheet-confirm'}).props.accessibilityState).toEqual({disabled:true,busy:true});
  mockApi.read.mockResolvedValue(ok({...snapshot(),status:'ABANDONED'}));
  await act(async()=>settle(ok({...snapshot(),status:'ABANDONED'})));
- expect(sheets()).toHaveLength(0);expect(mockRouter.replace).toHaveBeenCalledWith('/profil/razgovor');
+ expect(sheets()).toHaveLength(0);expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/profil/razgovor',params:{entryKey:expect.stringMatching(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i)}});
 });
 
 it.each([{safety:'BLOCK'},{safety:'REVIEW'},{stale:true},{status:'ABANDONED'},{status:'COMPLETED'}])('revokes microphone scope whenever its visible composer becomes unavailable: %p',async state=>{
