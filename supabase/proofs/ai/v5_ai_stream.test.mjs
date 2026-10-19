@@ -216,6 +216,11 @@ test('owned handler delivers one semantic question budget and rejects a provider
  assert.ok(instruction.includes('Ako je već rečeno Materijal imam, ne pitajte ko kupuje boju'));
  assert.ok(instruction.includes('WEEK_FLEXIBLE znači samo ovu kalendarsku nedelju'));
  assert.ok(instruction.includes('ne smeju postati FLEXIBLE bez granica'));
+ // This checks the real outbound prompt, not natural-language model accuracy.
+ assert.ok(instruction.includes('Svaka predložena izmena je u NACRTU, i kada uređujemo postojeći zadatak'));
+ assert.ok(instruction.includes('U nacrtu je sada taj budžet; ostalo ostaje nepromenjeno'));
+ assert.ok(instruction.includes('Nakon objave drugi mogu da pošalju ponude; ne obećavaj odziv'));
+ assert.ok(instruction.includes('AI predlog ili poruka objavi nisu ljudska potvrda niti objava'));
  assert.ok(provider.generationConfig.responseSchema.properties.dialogue.properties.schedulePattern.enum.includes('FLEXIBLE_RANGE'));
  // The new enum belongs only to the provider interpretation. SQL command,
  // durable receipt and client SSE keep their existing exact public contracts.

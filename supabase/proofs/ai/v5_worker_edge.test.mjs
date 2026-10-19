@@ -280,6 +280,13 @@ test('contextual worker clarification survives completion and stream without inv
  assert.ok(prompt.includes('niti izmišljaj lično iskustvo'));
  assert.ok(prompt.includes('safety CLARIFY with an empty patch'));
  assert.ok(prompt.includes('You receive text only, not sound'));
+ // Actual provider instructions distinguish any proposed edit (even ACTIVE)
+ // from public profile persistence; this is not a claim about model compliance.
+ assert.ok(prompt.includes('Every proposed change is in the NACRT, including edits to an already ACTIVE profile'));
+ assert.ok(prompt.includes('Dodato je u nacrt profila'));
+ assert.ok(prompt.includes('ostalo ostaje nepromenjeno'));
+ assert.ok(prompt.includes('Only explicit Sačuvaj profil in the review applies the changes'));
+ assert.ok(prompt.includes('Never describe proposed changes as saved to the profile, activated or already used for matching/notifications'));
  assert.ok(!prompt.includes('Prefer the question alone'));
 });
 for(const env of [{USKOCI_GEMINI_PAID_TEST_ENABLED:''},{AI_PROVIDER:'openai'},{GEMINI_MODEL:'another-model'}])test('unapproved config remains closed before reservation/provider',async()=>{
