@@ -203,6 +203,25 @@ export function compareNoPreSaveChanges(before, after) {
   }
 }
 
+/** Observes both signed drafts; never repairs a missing or over-broad calendar. */
+export function checkWarmWorkerCalendar(reviews) {
+  assert(Array.isArray(reviews) && reviews.length === 2, 'WORKER_CALENDAR_REVIEWS_MISSING');
+  for (const [index,review] of reviews.entries()) {
+    assert(review.classificationState === 'READY', 'WORKER_KNOWN_SERVICE_NOT_READY_ON_FIRST_TURN');
+    const profile=review.profile, av=profile?.availability;
+    assert(av?.timezone === 'Europe/Belgrade' && av.windows?.length === 0, 'WORKER_CALENDAR_CONTEXT_CHANGED');
+    assert(profile.tools?.length === 0 && profile.vehicles?.length === 0, 'WORKER_INVENTED_RESOURCES');
+    const slots=[];
+    for (const rule of av.rules ?? []) {
+      assert(rule.active === true && rule.endsOn === null, 'WORKER_CALENDAR_RULE_NOT_ACTIVE');
+      for (const day of rule.weekdays) slots.push(`${day}:${rule.startTime.slice(0,5)}-${rule.endTime.slice(0,5)}`);
+    }
+    const expected=[1,2,3,4,5].map(day=>`${day}:${index===1 && day===1?'18:00-20:00':'15:00-19:00'}`);
+    assert(JSON.stringify(slots.sort()) === JSON.stringify(expected), 'WORKER_CALENDAR_INITIAL_OR_SCOPED_EDIT_WRONG');
+  }
+  return {initialHoursPreserved:true,mondayOnlyChanged:true,resourcesNotInvented:true};
+}
+
 /** Acceptance assertion only: never substitutes a category or repairs the review. */
 export function checkExistingModeExtension(review, expectedCategoryId) {
   assert(UUID.test(expectedCategoryId) && review?.classificationState === 'READY'
@@ -421,6 +440,7 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
           }
         }
         const final = item.reviews.at(-1);
+        if (name === 'worker-warmth-execution') item.calendarProof=checkWarmWorkerCalendar(item.reviews);
         if (c.expectation === 'CLARIFY_NOT_READY')
           assert(final.classificationState !== 'READY' && final.classificationCandidates.length === 0, 'VAGUE_INTENT_FALSE_READY');
         if (c.expectation === 'EXACT_EXISTING_REUSE')

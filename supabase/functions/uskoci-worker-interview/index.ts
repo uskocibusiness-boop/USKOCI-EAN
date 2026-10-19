@@ -70,19 +70,24 @@ async function boundedJson(url: string, init: RequestInit, maximum: number, time
 
 export function workerProviderSchema() {
   const string = { type: 'STRING' }, integer = { type: 'INTEGER' }, boolean = { type: 'BOOLEAN' };
-  const array = (items: unknown) => ({ type: 'ARRAY', items });
+  const array = (items: unknown, description?: string) => ({ type: 'ARRAY', items, ...(description ? {description} : {}) });
   const obj = (properties: Record<string, unknown>, required: string[] = []) => ({ type: 'OBJECT', properties, ...(required.length ? { required } : {}) });
   const nullableString = { type: 'STRING', nullable: true };
   const rule = obj({ startTime: string, endTime: string, startsOn: string, endsOn: nullableString, label: string, active: boolean },
     ['startTime','endTime','startsOn','endsOn','label','active']);
   return obj({ assistantMessage: string, safety: { type: 'STRING', enum: ['ALLOW','CLARIFY','REVIEW','BLOCK'] },
     availabilityChange: obj({ kind: { type: 'STRING', enum: ['NONE','PATCH','CLARIFY'] }, evidence: string }, ['kind','evidence']),
-    patch: obj({ displayName: string, bio: string, skills: array(string), tools: array(string), vehicles: array(string),
+    patch: obj({ displayName: string, bio: string, skills: array(string),
+      tools: array(string,'Explicitly stated equipment only. Offering a trade does not establish equipment ownership. Omit when unchanged or not volunteered.'),
+      vehicles: array(string,'Explicitly stated vehicles only. Never add negative placeholders such as no vehicle, courier shipment or work from home. Omit when unchanged or not volunteered.'),
       location: obj({ operatingCountryCode: string, city: string, radiusKm: integer }),
-      availability: obj({ timezone: string, availableNow: boolean,
-        ruleChanges: array(obj({ ruleId: nullableString, weekdays: array(integer), value: { ...rule, nullable: true } }, ['ruleId','weekdays','value'])),
+      availability: {...obj({ timezone: string, availableNow: boolean,
+        ruleChanges: array(obj({ ruleId: nullableString, weekdays: array(integer), value: { ...rule, nullable: true } }, ['ruleId','weekdays','value']),
+          'Actual weekly calendar operations, including INITIAL hours. Required when the user states working days and hours: never acknowledge without this operation. New ruleId=null; editing uses the existing ruleId and only the changed weekdays. Sunday=0, weekdays=1..5, Saturday=6.'),
         windowsUpsert: array(obj({ id: nullableString, startsAt: string, endsAt: string, state: { type: 'STRING', enum: ['AVAILABLE','UNAVAILABLE'] }, label: string },
-          ['id','startsAt','endsAt','state','label'])), windowIdsRemove: array(string) }) }) }, ['assistantMessage','safety','patch','availabilityChange']);
+          ['id','startsAt','endsAt','state','label'])), windowIdsRemove: array(string) }), nullable:true,
+        description:'Return null only when no availability change is requested. For availabilityChange.kind PATCH, return the actual calendar operations here; an intent or prose statement alone cannot update the draft.'}
+      }, ['availability']) }, ['assistantMessage','safety','patch','availabilityChange']);
 }
 
 // A conversational acknowledgement is not a calendar operation. This provider-only
@@ -95,10 +100,19 @@ function guardAvailabilityChange(output: Record<string,any>, intent: unknown, co
   const av=object(output.patch.availability), prior=context.candidate.availability;
   const hasOperation=!!av && (['ruleChanges','windowsUpsert','windowIdsRemove'].some(k=>Array.isArray(av[k])&&av[k].length>0)
     || ['timezone','availableNow'].some(k=>Object.hasOwn(av,k)&&av[k]!==prior?.[k]));
-  const supportedEvidence=plan.evidence.trim().length>0 && context.messages.some((m:any)=>m.role==='USER'
-    && typeof m.body==='string' && m.body.includes(plan.evidence));
+  // A quote may differ only in formatting, never in words, negation or hours.
+  const normalizeQuote=(value:string)=>value.normalize('NFKC').replace(/\s+/gu,' ').trim().toLowerCase();
+  const evidence=normalizeQuote(plan.evidence);
+  const supportedEvidence=evidence.length>0 && context.messages.some((m:any)=>m.role==='USER'
+    && typeof m.body==='string' && normalizeQuote(m.body).includes(evidence));
   if (plan.kind==='NONE' && !hasOperation) return output;
   if (plan.kind==='PATCH' && supportedEvidence && hasOperation) return output;
+  const reason=plan.kind!=='PATCH'?'INTENT_MISMATCH':!hasOperation?'OPERATION_MISSING':'EVIDENCE_MISMATCH';
+  try {
+    console.info('WORKER_AVAILABILITY_GUARD',reason);
+    console.info('WORKER_AVAILABILITY_SHAPE',!!av,Array.isArray(av?.ruleChanges)?av.ruleChanges.length:-1,
+      Array.isArray(av?.windowsUpsert)?av.windowsUpsert.length:-1,Array.isArray(av?.windowIdsRemove)?av.windowIdsRemove.length:-1);
+  } catch { /* diagnostics cannot fail the turn */ }
   const {availability: _availability,...independent}=output.patch;
   return {...output,safety:'CLARIFY',patch:independent,
     assistantMessage:'Samo još da razjasnimo dostupnost: koje dane i sate želiš da promeniš? Ostale jasne izmene zadržavamo u nacrtu.'};
@@ -136,8 +150,8 @@ Working-area questions are about where this person accepts ON_SITE work, not a t
 Current routing limit: the structured on-site area is ONE city/approximate centre with a radius from 1 to 200 km. A statement such as 'cela Vojvodina', 'cela Srbija' or two distant cities remains in the conversation as the person's stated wish, but must NOT be presented as active dispatch coverage or silently squeezed into a 200 km circle. Say briefly that regional coverage is not yet configured, then ask for one city and radius that should be used now for on-site suggestions. Remote services remain independent of this radius. Never claim a province, country or multiple areas have been saved for matching merely because they appear in bio. Do not automatically add an unsupported routing wish as an unconditional public biography claim.
 Reconcile the public biography with explicit corrections: when the person replaces a service, mode or working area, inspect the existing bio for a claim that this change makes obsolete. In the SAME patch, update only that affected claim using the person's stated facts, preserving unrelated introduction and limitations. For example, if bio says work throughout Vojvodina and the person now explicitly says only Novi Sad and up to 30 km, do not leave the old province-wide claim in bio. If the person merely chooses a temporary matching radius while still accepting work elsewhere, do not infer that broader real-world availability was withdrawn; ask only if the distinction matters. Do not rewrite a personal introduction simply because location changes. Omit unchanged fields means omit facts that remain true, not retain a contradiction created by the current change.
 The interview has an end: if the person says to je to, gotovo, sačuvaj, or asks to finish, do not open optional questions about tools, availability or the calendar. If the person has already supplied all routing-relevant facts, proactively suggest a single profile review without making them issue a magic finish phrase. Direct them to the profile review, which shows any required missing information and owns explicit saving. Do not say saved, activated, verified or all complete. A finish command without new facts requires an empty patch. Resource lists and calendar detail are not mandatory activation questions. Never ask whether unchanged working hours or availableNow are still correct.
-skills, tools and vehicles are COMPLETE replacement lists, not additions. When adding a service, keep every existing offered service the person has not explicitly removed; return the complete desired skills list. When removing or correcting a service, change only what the person explicitly named and preserve the others. Merely not mentioning an existing service is not a withdrawal. Apply the same rule independently to tools and vehicles; omit an unchanged list rather than send an empty list. Never infer an offered job from equipment, knowledge or a newly added related service. Tools and vehicles are optional information, never mandatory for review or activation and never a condition for receiving matching tasks. Record them when volunteered or genuinely useful to the stated work; do not open an equipment checklist or delay a ready review because they are absent. Country must be explicitly known; no assumption from language. Location has only country/city/radius. Biography is plain text, no contact data invented.
-Availability intent is a required provider-only check: availabilityChange is {kind: NONE|PATCH|CLARIFY, evidence: string}. Use NONE and empty evidence only when this turn requests no availability change. Use PATCH for a stated change, with an exact quote from the owned USER history and a real patch.availability operation. Use CLARIFY for an ambiguous availability request. The prose and this intent are NOT a change by themselves. Before returning, verify that every availability change acknowledged in assistantMessage has the matching ruleChanges/windowsUpsert/windowIdsRemove/timezone/availableNow operation. Never say changed or ready if the requested operation is absent. Describe an unsaved draft, never a saved profile.
+skills, tools and vehicles are COMPLETE replacement lists, not additions. When adding a service, keep every existing offered service the person has not explicitly removed; return the complete desired skills list. When removing or correcting a service, change only what the person explicitly named and preserve the others. Merely not mentioning an existing service is not a withdrawal. Apply the same rule independently to tools and vehicles; omit an unchanged list rather than send an empty list. Never infer an offered job from equipment, knowledge or a newly added related service. Tools and vehicles are optional information, never mandatory for review or activation and never a condition for receiving matching tasks. Record equipment only when explicitly volunteered, never inferred from the trade (offering 3D printing does not explicitly state printer ownership). Do not add negative placeholder items such as Nema vozila or Ne koristim alat; absence is not a resource. Ask about equipment only when genuinely useful to the stated work; do not open an equipment checklist or delay a ready review because they are absent. Country must be explicitly known; no assumption from language. Location has only country/city/radius. Biography is plain text, no contact data invented.
+Availability intent is a required provider-only check: availabilityChange is {kind: NONE|PATCH|CLARIFY, evidence: string}. Use NONE and empty evidence only when this turn requests no availability change. Use PATCH both for INITIAL stated working hours and for later changes, with a short verbatim quote copied from the owned USER history and a real patch.availability operation. Initial hours are a change from an empty calendar, never NONE. For Radnim danima od 15 do 19, vikendom ne radim with an empty calendar, add one null-ruleId AVAILABLE weekly rule targeting [1,2,3,4,5], 15:00–19:00; do not add weekend hours or ask again for the days/hours already supplied. Use CLARIFY for an ambiguous availability request. The prose and this intent are NOT a change by themselves. Before returning, verify that every availability change acknowledged in assistantMessage has the matching ruleChanges/windowsUpsert/windowIdsRemove/timezone/availableNow operation. Never say changed or ready if the requested operation is absent. Describe an unsaved draft, never a saved profile.
 For example, current rule weekdays [1,3] is 16:00-20:00. The user changes only Monday to 18:00-20:00 and leaves Wednesday unchanged. Emit PATCH and ONE ruleChanges entry using that exact current rule id, weekdays [1], and value startTime 18:00, endTime 20:00 with the existing startsOn/endsOn/active. Use a label that describes the targeted day. Do not omit the operation because most of the previous rule is unchanged. Do not replace both days or add another Monday interval with a null ruleId. The server retains Wednesday 16:00-20:00. Apply every clear independent correction from a mixed message, even if another part repeats already known facts.
 Availability is the existing calendar, not agreement occupancy. Preserve all untouched rules, weekdays and exceptions. ruleChanges: {ruleId: existing rule UUID or null to add, weekdays: targeted day numbers Sunday=0..Saturday=6, value: {startTime,endTime,startsOn,endsOn,label,active} or null to remove only those weekdays}. Server splits the existing rule and keeps every other weekday. For changing a weekend rule from an all-week rule, target only 0 and/or 6. Multiple daily intervals stay distinct. Use exact existing IDs only; never fabricate UUIDs. Additions use null IDs. windowsUpsert changes/adds dated exceptions with UTC/offset startsAt/endsAt,state AVAILABLE/UNAVAILABLE,label; windowIdsRemove deletes only explicitly requested existing IDs. Never replace the entire calendar. Keep timezone unchanged unless the owner specifies it. Ask about ambiguous dates/times rather than guess. availableNow persists until explicitly changed; never invent expiry. An exception does not change availableNow automatically.
 No other fields, account IDs, task facts, publication actions or hidden tool commands are allowed.`;
@@ -313,6 +327,12 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         let classificationInspection: any = null;
         try {
           const {availabilityChange,...parsed} = JSON.parse(raw);
+          // Provider must explicitly decide about the calendar. Null means no
+          // change, not clearing it; the existing database patch stays sparse.
+          if (object(parsed.patch)?.availability === null) {
+            const {availability: _unchanged,...rest}=parsed.patch;
+            parsed.patch=rest;
+          }
           let classified = parsed;
           if (serviceModeContext && object(parsed)) {
             const {serviceModeChangesJson:changes,...remaining}=parsed;

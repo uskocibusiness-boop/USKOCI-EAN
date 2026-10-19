@@ -49,6 +49,20 @@ test('E no AI claim can independently validate a new unregistered alias',()=>{
  const out=inspect(withShadow(worker,[plan('Individualni časovi klizanja',lesson,'ON_SITE','REUSE_ALIAS')]),snapshot,'WORKER_CAPABILITY');
  assert.deepEqual(out.statuses,['ALIAS_EVIDENCE_REQUIRED']);
 });
+
+test('canonical label mislabeled as an alias reuses only its exact current unique identity',()=>{
+ const p=plan('Časovi umetničkog klizanja',lesson,'ON_SITE','REUSE_ALIAS');
+ for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE']) {
+  const good=inspect(withEncodedShadow(worker,[p]),snapshot,purpose);
+  assert.deepEqual(good.statuses,['REUSE_CANDIDATE']);
+  assert.equal(good.reviewProposals[0].action,'REUSE_EXISTING');
+  for(const [proposal,catalog] of [
+   [{...p,categoryId:rental},snapshot], [{...p,mode:'REMOTE'},snapshot], [{...p,catalogVersion:8},snapshot],
+   [p,{...snapshot,categories:[...snapshot.categories,{id:'44444444-4444-4444-8444-444444444444',label:p.service,modes:['ON_SITE']}]}],
+   [p,{...snapshot,navigation:{kind:'SERVER_QUERIES',identityChecks:[]}}],
+  ]) assert.deepEqual(inspect(withEncodedShadow(worker,[proposal]),catalog,purpose).reviewProposals,[]);
+ }
+});
 test('F similar language is not enough to fuse three separate existing identities',()=>{
  const out=inspect(withShadow(worker,[
   plan('Časovi umetničkog klizanja',lesson),
@@ -224,9 +238,9 @@ test('validated hints survive stripping only as non-authoritative review proposa
   assert.equal(Object.hasOwn(result.output,'reviewProposals'),false);
  }
 });
-test('unsafe, aliased, stale and ambiguous model hints can never become review candidates',()=>{
+test('unsafe, unregistered alias, stale and ambiguous model hints cannot become review candidates',()=>{
  const rejected=[
-  plan('Oštrenje klizaljki',repair,'ON_SITE','REUSE_ALIAS'),
+  plan('Brušenje klizaljki',repair,'ON_SITE','REUSE_ALIAS'),
   {...plan('Časovi umetničkog klizanja',lesson),catalogVersion:8},
   plan('Iznajmljivanje klizaljki',lesson),
   plan('Časovi umetničkog klizanja',lesson,'REMOTE'),

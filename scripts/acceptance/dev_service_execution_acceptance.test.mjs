@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {configuration,run,MILOS,checkExistingModeExtension,checkWorkerHandoffClarification,checkPhysicalMapConfirmation} from './dev_taxonomy_fulltree_acceptance.mjs';
+import {configuration,run,MILOS,checkExistingModeExtension,checkWorkerHandoffClarification,checkPhysicalMapConfirmation,checkWarmWorkerCalendar} from './dev_taxonomy_fulltree_acceptance.mjs';
 
 const env={USKOCI_QA_CASES:'need-pickup-execution,need-shipping-execution,need-digital-execution,need-impossible-execution,need-rare-execution,worker-shipping-execution,need-typewriter-shipping-execution',USKOCI_QA_MAX_ATTEMPTS:'8'};
 test('budget correction acceptance reuses the owned conversation and does not authorize another service',async()=>{
@@ -110,3 +110,11 @@ test('physical confirmation assertion preserves topology/mode and rejects incomp
   assert.throws(()=>checkPhysicalMapConfirmation(review,'STATIONARY'),/MAP_|TOPOLOGY/);
  }
 });
+
+ test('warm worker probe rejects a missing calendar, broad Monday edit and invented resources',()=>{
+ const rule=(days,start,end)=>({weekdays:days,startTime:start,endTime:end,active:true,endsOn:null});
+ const review=rules=>({classificationState:'READY',profile:{tools:[],vehicles:[],availability:{timezone:'Europe/Belgrade',windows:[],rules}}});
+ const good=[review([rule([1,2,3,4,5],'15:00','19:00')]),review([rule([1],'18:00','20:00'),rule([2,3,4,5],'15:00','19:00')])];
+ assert.doesNotThrow(()=>checkWarmWorkerCalendar(good));
+ for(const mutate of [r=>r[0].profile.availability.rules=[],r=>r[1].profile.availability.rules=[rule([1,2,3,4,5],'18:00','20:00')],r=>r[0].profile.vehicles=['Nema vozila']]) {const bad=structuredClone(good);mutate(bad);assert.throws(()=>checkWarmWorkerCalendar(bad),/WORKER_/);}
+ });

@@ -135,10 +135,45 @@ test('invented availability evidence cannot authorize a calendar proposal',async
  const accepted=completions(f)[0].body.p_output;
  assert.deepEqual(accepted.patch,{skills:['Montaža']}); assert.equal(accepted.safety,'CLARIFY'); assert.equal(providers(f).length,1);
 });
+
+for (const [evidence,accepted] of [
+ ['radnim danima od 15 do 19',true],
+ ['RADNIM DANIMA\nOD 15 DO 19',true],
+ ['Radnim danima od 18 do 20',false],
+ ['Ne radim radnim danima od 15 do 19',false],
+]) test('initial calendar quote tolerates formatting but not changed facts: '+evidence,async()=>{
+ const availability={ruleChanges:[{ruleId:null,weekdays:[1,2,3,4,5],value:{startTime:'15:00',endTime:'19:00',startsOn:'2026-10-19',endsOn:null,label:'Radni dani',active:true}}]};
+ const output={assistantMessage:'Radno vreme je u nacrtu.',safety:'ALLOW',patch:{availability,bio:'3D štampa.'}};
+ const logs=[],f=fixture({output,availabilityChange:{kind:'PATCH',evidence},log:args=>logs.push(args),
+  context:{schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:0,
+   candidate:{skills:[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},
+   messages:[{role:'USER',body:'Radnim danima\u00a0 od 15 do 19, vikendom ne radim.'}]}});
+ await events(f); const actual=completions(f)[0].body.p_output;
+ assert.equal(Object.hasOwn(actual.patch,'availability'),accepted);
+ assert.equal(actual.patch.bio,'3D štampa.'); assert.equal(providers(f).length,1);
+ if(!accepted) assert.ok(logs.some(args=>JSON.stringify(args)==='["WORKER_AVAILABILITY_GUARD","EVIDENCE_MISMATCH"]'));
+ assert.ok(!JSON.stringify(logs).includes(evidence));
+});
 test('a malformed availability intent cannot reach the writer or the user as success',async()=>{
  const f=fixture({availabilityChange:{kind:'PATCH'}}),es=await events(f);
  assert.equal(es.at(-1).kind,'safe_error'); assert.equal(completions(f).length,0);
  assert.equal(providers(f).length,1);
+});
+
+test('provider explicitly decides about availability while null never clears the calendar',async()=>{
+ const output={assistantMessage:'Opis je u nacrtu.',safety:'ALLOW',patch:{bio:'Montaža.',availability:null}};
+ const f=fixture({output});await events(f);
+ const schema=providers(f)[0].body.generationConfig.responseSchema;
+ assert.ok(schema.properties.patch.required.includes('availability'));
+ assert.equal(schema.properties.patch.properties.availability.nullable,true);
+ assert.deepEqual(completions(f)[0].body.p_output.patch,{bio:'Montaža.'});
+});
+
+test('explicit null cannot fulfill a requested calendar change',async()=>{
+ const output={assistantMessage:'Termin je promenjen.',safety:'ALLOW',patch:{bio:'Montaža.',availability:null}};
+ const f=fixture({output,availabilityChange:{kind:'PATCH',evidence:'SYNTHETIC_USER_MESSAGE'}});await events(f);
+ assert.equal(completions(f)[0].body.p_output.safety,'CLARIFY');
+ assert.deepEqual(completions(f)[0].body.p_output.patch,{bio:'Montaža.'});
 });
 test('distinct owned profile streams real Unicode text, reserves approved budget and completes candidate only',async()=>{
  const f=fixture(),es=await events(f);assert.equal(es[0].kind,'accepted');assert.equal(es.at(-1).kind,'final');assert.deepEqual(es.at(-1).turn,turn());
