@@ -183,6 +183,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const lifecycleNow = useRef(false); lifecycleNow.current = lifecycleActive;
   const snapshot = editor.data, review = snapshot?.review, command = snapshot?.command;
   const locationReadiness = reviewLocationReadiness(review ?? { location: null });
+  const resumableCommand = !!command && command.authoritative === true && (command.state === 'ACCEPTED'
+    || (command.state === 'EVALUATED' && command.evaluation?.kind === 'DECISION' && command.evaluation.decision.outcome === 'ALLOW'));
+  const commandMapIncomplete = resumableCommand && !locationReadiness.ready;
+  const commandHasMap = !!locationReadiness.geography && locationReadiness.geography.mode !== 'REMOTE';
   // Who asks, as the others read him (the name, the face, the rating of his public profile), read beside the review and never in front of it.
   // The task as the people who will read it get it: the real card and the real page are drawn from this, made of the review's public facts alone.
   const reviewer = useReviewPerson();
@@ -239,7 +243,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     return next;
   }
   const resume = async () => {
-    if (!canAct() || !command || !review || unavailableIdentityFact) return;
+    if (!canAct() || !command || !review || unavailableIdentityFact || !resumableCommand || !locationReadiness.ready) return;
     await editor.save(async () => {
       const result = await aiTaskReviewClientService.resume(command);
       if (!current()) return changed();
@@ -306,12 +310,20 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     // any later claim for this immutable unsupported review. Unknown stays read-only.
     const unavailableEditExit = !!unavailableIdentityFact && command.authoritative === true
       && (command.state === 'EVALUATED' || command.state === 'ACCEPTED');
-    if (!supportedEditExit && !unavailableEditExit) return;
+    if (!supportedEditExit && !unavailableEditExit && !commandMapIncomplete) return;
     await editor.save(async () => {
       const result = await aiNeedV2Izvor.openEditConversation(command.needId);
       if (!current()) return changed();
       if (!result.ok) return result;
-      navigate(() => router.replace({ pathname: '/nova', params: { conversationId: result.podatak.conversationId } }));
+      const nextConversationId = result.podatak.conversationId;
+      if (commandMapIncomplete) {
+        // Acceptance closed the original conversation. The owned edit service binds a
+        // new review to this same saved Need; no new task or AI turn is created here.
+        const correction = !commandHasMap && accountId ? rememberAiCorrection({ accountId, accountRevision }, 'task.location', nextConversationId) : null;
+        navigate(() => router.replace({ pathname: commandHasMap ? '/pregled-zadatka' : '/nova', params: {
+          conversationId: nextConversationId, ...(correction ? { aiCorrection: correction.token } : {}),
+        } }));
+      } else navigate(() => router.replace({ pathname: '/nova', params: { conversationId: nextConversationId } }));
       return { ok: true, podatak: snapshot! };
     });
   };
@@ -411,6 +423,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const todos = review && !published && !command ? reviewTodos(review, factProblem, !!unavailableIdentityFact) : [];
   const resultCopy = published ? (revising ? 'Izmene su objavljene.' : 'Zadatak je objavljen.') : command?.state === 'PUBLISHED'
     ? 'Objava je zabeležena. Ponovo učitaj zadatak da proveriš prikaz.'
+    : commandMapIncomplete ? 'Nacrt je sačuvan. Dopuni i potvrdi mesto pre objave.'
     : outcome === 'CLARIFY' ? 'Zadatku je potrebna dopuna. Ispravi ga u razgovoru i pregledaj novu verziju.'
     // Deep read 8.7: support has no operator yet (7.31), so a review request waits; saying so is the honest part, and (owner decision
     // d07, 2026-10-07) the only way offered is "Izmeni zadatak": no request to support stands beside this sentence while nobody is on duty.
@@ -529,9 +542,9 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const moreFacts = command ? [] : publicFacts.filter(item => !!item.id && MORE_LISTS.includes(item.key) && blankList(item));
   // Which green action a stored command offers: its resume, or the way back to the conversation. With neither, the check is the one way forward
   // and wears the green itself.
-  const resumeShown = !!command && !unavailableIdentityFact && (command.state === 'ACCEPTED' || (command.state === 'EVALUATED' && outcome === 'ALLOW'));
+  const resumeShown = resumableCommand && locationReadiness.ready && !unavailableIdentityFact;
   const editShown = !!command && ((command.state === 'EVALUATED' && (evaluation?.kind === 'NOT_READY' || (!!outcome && outcome !== 'ALLOW')))
-    || (!!unavailableIdentityFact && command.authoritative === true && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')));
+    || (!!unavailableIdentityFact && command.authoritative === true && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')) || commandMapIncomplete);
   // The table's three words (`system/outcomeCopy`): what is not known is looked at ("Proveri", one button), what may be old is read again
   // ("Osveži"). A screen reader still hears what is read.
   const check = (label: string, primary = false, spoken?: string) => <V2Action label={label} accessibilityLabel={spoken} style={primary ? brandAction : undefined}
@@ -551,8 +564,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
         {/* Only one of the two green actions is ever drawn, and the editor's write in flight is that one's own. */}
         {resumeShown ? <V2Action label={command.state === 'ACCEPTED' ? 'Objavi ovaj nacrt' : 'Nastavi objavu'} style={brandAction} disabled={disabled}
           loading={editor.busy} onPress={resume} /> : null}
-        {editShown ? <V2Action label="Izmeni zadatak" style={brandAction} disabled={disabled} loading={editor.busy} onPress={revisePublishedDraft} /> : null}
-        {command.state === 'ACCEPTED' ? <V2Action label="Otvori moje zadatke" kind="quiet" disabled={disabled}
+        {editShown ? <V2Action label={commandMapIncomplete ? (commandHasMap ? 'Potvrdi mesto nacrta' : 'Dopuni mesto kroz razgovor') : 'Izmeni zadatak'} style={brandAction} disabled={disabled} loading={editor.busy} onPress={revisePublishedDraft} /> : null}
+        {command.state === 'ACCEPTED' && !editor.uncertain && !editor.error ? <V2Action label="Otvori moje zadatke" kind="quiet" disabled={disabled}
           onPress={() => { if (canAct()) navigate(() => router.replace('/potrebe')); }} /> : check(OUTCOME_ACTION.check, !resumeShown && !editShown, CHECK_SPOKEN)}
       </> : <>
         <PublishButton label={acceptLabel} blocked={publishBlocked} working={publishWorking} reason={caption} onPress={publish} />

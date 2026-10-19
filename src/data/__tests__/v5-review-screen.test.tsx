@@ -227,6 +227,105 @@ it.each(['ACCEPTED', 'EVALUATING', 'UNKNOWN_OUTCOME'] as const)('restores %s on 
   }
 });
 
+describe('map confirmation after draft acceptance', () => {
+  const incomplete = (): AiTaskReviewEnvelope => locatedReview({ ...location('A'), resolvedLocation: null });
+  const readyCommand = (state: 'ACCEPTED' | 'EVALUATED'): AiTaskPublicationCommand => state === 'ACCEPTED' ? command(state)
+    : { ...command(state), evaluation: { kind: 'DECISION', decision: { outcome: 'ALLOW' } } } as AiTaskPublicationCommand;
+  const editReceipt = () => ok({ conversationId: OTHER, needId: NEED, revision: 1, needStatus: 'DRAFT', authoritative: true });
+
+  it.each(['ACCEPTED', 'EVALUATED'] as const)('opens a map review bound to the same saved Need after %s, without evaluating or publishing', async state => {
+    mockLatest.mockResolvedValue(ok({ review: incomplete(), command: readyCommand(state) }));
+    mockOpenEdit.mockResolvedValue(editReceipt()); await render();
+    for (const label of ['Objavi ovaj nacrt', 'Nastavi objavu']) expect(commands(label)).toHaveLength(0);
+    expect(mockOpenEdit).not.toHaveBeenCalled();
+    const retained = action('Potvrdi mesto nacrta').onPress;
+    await act(async () => { void retained(); void retained(); });
+    expect(mockOpenEdit.mock.calls).toEqual([[NEED]]);
+    expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: OTHER } });
+    expect(mockAccept).not.toHaveBeenCalled(); expect(mockDraft).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
+  });
+
+  it('keeps Save draft available, then offers map completion instead of publication', async () => {
+    const shown = incomplete(); mockPrepare.mockResolvedValue(ok(shown));
+    mockDraft.mockImplementation(async () => { mockRead.mockResolvedValue(ok({ review: shown, command: command() })); return ok(command()); });
+    await render();
+    expect(publish().disabled).toBe(true); expect(action('Sačuvaj nacrt').disabled).toBeFalsy();
+    await act(async () => action('Sačuvaj nacrt').onPress());
+    expect(mockDraft).toHaveBeenCalledTimes(1); expect(commands('Potvrdi mesto nacrta')).toHaveLength(1);
+    expect(commands('Objavi ovaj nacrt')).toHaveLength(0); expect(mockResume).not.toHaveBeenCalled();
+  });
+
+  it.each(['ACCEPTED', 'EVALUATED'] as const)('preserves explicit %s resume with complete physical points or REMOTE geography', async state => {
+    for (const shown of [review(), locatedReview({ taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null, resolvedLocation: null })]) {
+      mockLatest.mockResolvedValue(ok({ review: shown, command: readyCommand(state) })); await render();
+      expect(commands('Potvrdi mesto nacrta')).toHaveLength(0);
+      await act(async () => action(state === 'ACCEPTED' ? 'Objavi ovaj nacrt' : 'Nastavi objavu').onPress());
+      expect(mockResume).toHaveBeenLastCalledWith(readyCommand(state));
+      await act(async () => tree.unmount());
+    }
+    expect(mockResume).toHaveBeenCalledTimes(2); expect(mockOpenEdit).not.toHaveBeenCalled();
+  });
+
+  it('rejects a retained resume after readback replaces ready points with an incomplete review', async () => {
+    mockLatest.mockResolvedValue(ok({ review: review(), command: command() })); await render();
+    const retained = action('Objavi ovaj nacrt').onPress;
+    await blur(); mockLatest.mockResolvedValue(ok({ review: incomplete(), command: command() })); await focus();
+    await act(async () => retained());
+    expect(mockResume).not.toHaveBeenCalled(); expect(commands('Potvrdi mesto nacrta')).toHaveLength(1);
+  });
+
+  it.each(['blur-focus', 'account-change'] as const)('fences a retained map-reopen and its late result across %s', async boundary => {
+    const held = deferred(); mockLatest.mockResolvedValue(ok({ review: incomplete(), command: command() }));
+    mockOpenEdit.mockReturnValue(held.promise); await render();
+    const retained = action('Potvrdi mesto nacrta').onPress;
+    await act(async () => { void retained(); });
+    if (boundary === 'blur-focus') { await blur(); await focus(); }
+    else { mockSession = { user: { id: OTHER }, accountRevision: 2 }; await update(); }
+    await act(async () => { void retained(); held.resolve(editReceipt()); });
+    expect(mockOpenEdit).toHaveBeenCalledTimes(1); expect(mockRouter.replace).not.toHaveBeenCalled();
+    expect(mockResume).not.toHaveBeenCalled();
+  });
+
+  it('routes missing geography to a location topic in the newly bound conversation, without sending a message', async () => {
+    mockLatest.mockResolvedValue(ok({ review: { ...review(), location: null }, command: command() }));
+    mockOpenEdit.mockResolvedValue(editReceipt()); await render();
+    expect(commands('Potvrdi mesto nacrta')).toHaveLength(0);
+    await act(async () => action('Dopuni mesto kroz razgovor').onPress());
+    const route = mockRouter.replace.mock.calls.at(-1)![0];
+    expect(route).toEqual({ pathname: '/nova', params: { conversationId: OTHER, aiCorrection: expect.any(String) } });
+    expect(takeAiCorrection(route.params.aiCorrection, { accountId: OWNER, accountRevision: 1 }, 'task', OTHER)?.target).toBe('task.location');
+    expect(mockOpenEdit.mock.calls).toEqual([[NEED]]); expect(mockCorrect).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
+  });
+
+  it.each(['EVALUATING', 'UNKNOWN_OUTCOME', 'PUBLISHED'] as const)('does not block readback of %s even if its old review lacks confirmed map points', async state => {
+    mockLatest.mockResolvedValue(ok({ review: incomplete(), command: command(state) }));
+    if (state === 'PUBLISHED') mockNeed.mockResolvedValue(null);
+    await render();
+    for (const label of ['Potvrdi mesto nacrta', 'Dopuni mesto kroz razgovor', 'Objavi ovaj nacrt', 'Nastavi objavu']) expect(commands(label)).toHaveLength(0);
+    mockLatest.mockResolvedValue(ok({ review: incomplete(), command: command('PUBLISHED') }));
+    mockNeed.mockResolvedValue({ id: NEED, narucilacId: OWNER, revizija: 1, stanje: 'OBJAVLJENA' });
+    await act(async () => action('Proveri').onPress());
+    expect(mockLatest).toHaveBeenCalledTimes(2); expect(mockLatest).toHaveBeenLastCalledWith(CONVERSATION);
+    expect(text()).toMatch(/Zadatak je objavljen\.|Prenos ormara Objavljen/);
+    expect(mockOpenEdit).not.toHaveBeenCalled(); expect(mockAccept).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
+  });
+
+  it('keeps an unknown reopen result frozen and offers readback without automatically retrying the write', async () => {
+    mockLatest.mockResolvedValue(ok({ review: incomplete(), command: command() }));
+    mockOpenEdit.mockResolvedValue(unknownOutcome()); await render();
+    const retained = action('Potvrdi mesto nacrta').onPress;
+    await act(async () => retained());
+    expect(action('Potvrdi mesto nacrta').disabled).toBe(true);
+    expect(action('Proveri').disabled).toBe(false);
+    await act(async () => retained()); expect(mockOpenEdit).toHaveBeenCalledTimes(1);
+    mockLatest.mockResolvedValue(ok({ review: incomplete(), command: command() }));
+    await act(async () => action('Proveri').onPress());
+    expect(mockLatest).toHaveBeenCalledTimes(2); expect(mockLatest).toHaveBeenLastCalledWith(CONVERSATION);
+    expect(mockOpenEdit).toHaveBeenCalledTimes(1);
+    expect(mockRouter.replace).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
+  });
+});
+
 it('opens the existing saved draft explicitly after a terminal NOT_READY without retrying evaluation or publication', async () => {
   const stored = notReadyCommand();
   mockLatest.mockResolvedValue(ok({ review: review(), command: stored }));
