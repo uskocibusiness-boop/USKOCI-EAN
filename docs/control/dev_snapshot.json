@@ -558,15 +558,15 @@
       "slug": "uskoci-ai-interview",
       "name": "uskoci-ai-interview",
       "status": "ACTIVE",
-      "version": 113,
+      "version": 115,
       "created_at": 1788261764727,
-      "updated_at": 1792442798899,
+      "updated_at": 1792445896407,
       "verify_jwt": false,
       "import_map": false,
-      "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_113/source/supabase/functions/uskoci-ai-interview/index.ts",
-      "ezbr_sha256": "f135d62a9294cd5b7059b476a49d493fa6bf29f80fd424997a931619b5fc6ceb",
-      "readback_source": "docs/current/evidence/AI_SPEED_20261019.json",
-      "readback_scope": "Current ACTIVE metadata and 19/17 exact source files verified. Previous inventory preserved in ai_speed_refresh_20261019.previousEdgeInventory."
+      "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_115/source/supabase/functions/uskoci-ai-interview/index.ts",
+      "ezbr_sha256": "39c52690357df3ba9dc6575ae4d5ecbef0f92ec59b55844d21d5a0d168ea2263",
+      "readback_source": "docs/current/evidence/AI_SPEED_20261019.json#currentPackage.proseDefect.followup",
+      "readback_scope": "Task 115/Worker 70 ACTIVE metadata and 19/17 exact files; previous inventory retained."
     },
     {
       "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
@@ -625,15 +625,15 @@
       "slug": "uskoci-worker-interview",
       "name": "uskoci-worker-interview",
       "status": "ACTIVE",
-      "version": 68,
+      "version": 71,
       "created_at": 1789291116219,
-      "updated_at": 1792442800736,
+      "updated_at": 1792449193740,
       "verify_jwt": false,
       "import_map": false,
-      "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_68/source/supabase/functions/uskoci-worker-interview/index.ts",
-      "ezbr_sha256": "15d1513412f6f9451bd12bd093fc1327e248fb77d0a00e5530ded820ee99fb6c",
-      "readback_source": "docs/current/evidence/AI_SPEED_20261019.json",
-      "readback_scope": "Current ACTIVE metadata and 19/17 exact source files verified. Previous inventory preserved in ai_speed_refresh_20261019.previousEdgeInventory."
+      "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_71/source/supabase/functions/uskoci-worker-interview/index.ts",
+      "ezbr_sha256": "28adc347193b1018d2c06f041ff0d47f89b222e96715cf6db217cd756d8b5b1f",
+      "readback_source": "docs/current/evidence/AI_SPEED_20261019.json#latestCheckpoint.workerFollowup",
+      "readback_scope": "Worker71 ACTIVE metadata and17exact source files; prior worker inventory retained in worker_followup_refresh_20261020."
     },
     {
       "id": "1ba4db69-a390-4b55-a071-97bee74d2598",
@@ -1722,5 +1722,237 @@
     "phoneEvidence": "work/ai-speed-20261019/phone-verification.json",
     "installedApkSha256": "1faca5bbed6de82b363d3b68e26acb9646f7fcea1b3c6ea1d166a38e90098439",
     "sessionPreserved": true
+  },
+  "ai_context_refresh_20261019": {
+    "sourceSha": "ee7ae76ee5d60355ce4c079c2bb5beaf41ef3fb5",
+    "checkedAt": "2026-10-19T21:32:55.046Z",
+    "taskVersion": 114,
+    "workerVersion": 69,
+    "filesMatched": 36,
+    "readback": "ALL_FILES_EXACT",
+    "scope": "Only AI Edge refreshed. Other inventory timestamps and prior QA/device proofs remain dated.",
+    "evidence": "docs/current/evidence/AI_SPEED_20261019.json#currentPackage",
+    "live": "FACTS_PASS_PROSE_FOLLOWUP_TWO_TURNS_PASS",
+    "providerOperations": 7,
+    "settledMicrousd": 59342,
+    "unsettled": 0,
+    "canonicalUnchanged": true,
+    "ciRun": 39328153595,
+    "apk": "BUILT",
+    "native": "BOUNDED_PHONE_COMPOSER_PASS",
+    "previousEdgeInventory": [
+      {
+        "id": "e0e3181b-e87b-4b8f-9c90-abfc30ddf938",
+        "slug": "uskoci-ai-interview",
+        "name": "uskoci-ai-interview",
+        "status": "ACTIVE",
+        "version": 113,
+        "created_at": 1788261764727,
+        "updated_at": 1792442798899,
+        "verify_jwt": false,
+        "import_map": false,
+        "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_113/source/supabase/functions/uskoci-ai-interview/index.ts",
+        "ezbr_sha256": "f135d62a9294cd5b7059b476a49d493fa6bf29f80fd424997a931619b5fc6ceb",
+        "readback_source": "docs/current/evidence/AI_SPEED_20261019.json",
+        "readback_scope": "Current ACTIVE metadata and  19/17 exact source files verified. Previous inventory preserved in ai_speed_refresh_20261019.previousEdgeInventory."
+      },
+      {
+        "id": "dc1d633c-416a-4a10-bac7-ecc9a4c4a92a",
+        "slug": "uskoci-worker-interview",
+        "name": "uskoci-worker-interview",
+        "status": "ACTIVE",
+        "version": 68,
+        "created_at": 1789291116219,
+        "updated_at": 1792442800736,
+        "verify_jwt": false,
+        "import_map": false,
+        "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_68/source/supabase/functions/uskoci-worker-interview/index.ts",
+        "ezbr_sha256": "15d1513412f6f9451bd12bd093fc1327e248fb77d0a00e5530ded820ee99fb6c",
+        "readback_source": "docs/current/evidence/AI_SPEED_20261019.json",
+        "readback_scope": "Current ACTIVE metadata and  19/17 exact source files verified. Previous inventory preserved in ai_speed_refresh_20261019.previousEdgeInventory."
+      }
+    ],
+    "regression": "621/13993PASS/ 0 FAIL/ 0 SKIP",
+    "phoneEvidence": "work/ai-context-20261019/phone-verification.json"
+  },
+  "ai_draft_wording_refresh_20261019": {
+    "sourceSha": "84751846e35156a9f5a7c0918d52b31c35eadeb2",
+    "taskVersion": 115,
+    "workerVersion": 70,
+    "filesMatched": 36,
+    "readback": "ALL_FILES_EXACT",
+    "live": "TWO_REAL_TURNS_WORDING_SCOPED_PASS",
+    "canonicalUnchanged": true,
+    "providerOperations": 2,
+    "settledMicrousd": 15746,
+    "unsettled": 0,
+    "evidence": "docs/current/evidence/AI_SPEED_20261019.json#currentPackage.proseDefect.followup",
+    "scope": "Only Edge wording followup; no new client or canonical Save. Previous inventory retained.",
+    "previousEdgeInventory": [
+      {
+        "id": "e0e3181b-e87b-4b8f-9c90-abfc30ddf938",
+        "slug": "uskoci-ai-interview",
+        "name": "uskoci-ai-interview",
+        "status": "ACTIVE",
+        "version": 114,
+        "created_at": 1788261764727,
+        "updated_at": 1792445489533,
+        "verify_jwt": false,
+        "import_map": false,
+        "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_114/source/supabase/functions/uskoci-ai-interview/index.ts",
+        "ezbr_sha256": "16421dde7e016128ae3c7712c5d1942751d94597b820422df6af96f3659c4164",
+        "readback_source": "docs/current/evidence/AI_SPEED_20261019.json#currentPackage",
+        "readback_scope": "Task 114/Worker 69 ACTIVE metadata and 19/17 exact files. Prior inventory saved inai_context_refresh_20261019."
+      },
+      {
+        "id": "dc1d633c-416a-4a10-bac7-ecc9a4c4a92a",
+        "slug": "uskoci-worker-interview",
+        "name": "uskoci-worker-interview",
+        "status": "ACTIVE",
+        "version": 69,
+        "created_at": 1789291116219,
+        "updated_at": 1792445499254,
+        "verify_jwt": false,
+        "import_map": false,
+        "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_69/source/supabase/functions/uskoci-worker-interview/index.ts",
+        "ezbr_sha256": "3323e27ba7842e90a5909e01fd77bea48e4a3a646c47d104cb0b6734cc250d6f",
+        "readback_source": "docs/current/evidence/AI_SPEED_20261019.json#currentPackage",
+        "readback_scope": "Task 114/Worker 69 ACTIVE metadata and 19/17 exact files. Prior inventory saved inai_context_refresh_20261019."
+      }
+    ],
+    "pushPreflight": {
+      "status": "DEVICE_REGISTERED_TRANSPORT_TEST_BLOCKED_BY_CLI_PRIVILEGE",
+      "flagReadbackAt": "2026-10-19T21:48:55.8339324Z",
+      "flags": {
+        "EXPO_PUSH_SINGLE_TARGET_ENABLED": "false",
+        "EXPO_PUSH_MESSAGE_TARGET_ENABLED": "false",
+        "EXPO_PUSH_TRANSPORT_ENABLED": "true"
+      },
+      "sendInvoked": false,
+      "fixtureSaved": false,
+      "fixturePublished": false
+    }
+  },
+  "worker_followup_refresh_20261020": {
+    "sourceSha": "16cfdddf5d26bc73b8e6103673cb3f848be6f0a3",
+    "checkedAt": "2026-10-19T22:33:27.128Z",
+    "workerVersion": 71,
+    "filesMatched": 17,
+    "readback": "ALL_FILES_EXACT",
+    "evidence": "docs/current/evidence/AI_SPEED_20261019.json#latestCheckpoint.workerFollowup",
+    "scope": "Only Worker refreshed; Task115 and unrelated inventory retain dated evidence.",
+    "previousWorkerInventory": {
+      "id": "dc1d633c-416a-4a10-bac7-ecc9a4c4a92a",
+      "slug": "uskoci-worker-interview",
+      "name": "uskoci-worker-interview",
+      "status": "ACTIVE",
+      "version": 70,
+      "created_at": 1789291116219,
+      "updated_at": 1792445904683,
+      "verify_jwt": false,
+      "import_map": false,
+      "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_70/source/supabase/functions/uskoci-worker-interview/index.ts",
+      "ezbr_sha256": "05673da95a27d9f0c3c39ea1d1bda489d4711e7318e175ab13665720c269c72f",
+      "readback_source": "docs/current/evidence/AI_SPEED_20261019.json#currentPackage.proseDefect.followup",
+      "readback_scope": "Task 115/Worker 70 ACTIVE metadata and 19/17 exact files; previous inventory retained."
+    },
+    "actualProviderCalls": 6,
+    "settledMicrousd": 41868,
+    "unsettled": 0,
+    "canonicalUnchanged": true,
+    "regionsSupported": false,
+    "live": "TWO_TARGETED_WORKER_SCENARIOS_PASS_NO_ACTIVATION",
+    "ciRun": 39335921967,
+    "currentApk": "PENDING",
+    "currentEmulator": "PENDING"
+  },
+  "premium_client_refresh_20261020": {
+    "status": "APK_BUILT_BOUNDED_EMULATOR_REVIEW_OPEN_P1",
+    "sourceSha": "a18f31af8fdf768db2e9d02acee8f77f238e606d",
+    "ciRun": 39335921967,
+    "regression": {
+      "suites": 621,
+      "passed": 14014,
+      "failed": 0,
+      "skipped": 0
+    },
+    "apk": {
+      "sha256": "e9d497bfeafacba4860651286daaba83c419f6591a12d804aff84f5a3acd2494",
+      "architecture": "x86_64"
+    },
+    "native": "BOUNDED_VISUAL_AND_IN_APP_NAVIGATION_PROVEN_EXTERNAL_REPEAT_LINK_P1_OPEN",
+    "embeddedUpdateId": "0f9f0c7d",
+    "evidence": "docs/current/evidence/AI_SPEED_20261019.json#latestCheckpoint",
+    "wholeProductAccepted": false,
+    "checkedAt": "2026-10-19T23:06:23.104Z",
+    "matrix": {
+      "widthsDp": [
+        361,
+        390,
+        412
+      ],
+      "actual361Dp": 361.14285714285717,
+      "fontScales": [
+        1,
+        1.3
+      ],
+      "home": "VISUALLY_REVIEWED_ALL_SIX",
+      "detail": "VISUALLY_REVIEWED_ALL_SIX; 412/1.3 via normal in-app navigation, external repeat link anomaly retained",
+      "map": "HEADER_AND_LOADING_COMPOSITION_REVIEWED; loaded tiles additionally inspected at361/1 and412/1.3; not a throughput or all-pin test",
+      "search": "361/1 keyboard and explicit close inspected",
+      "filters": "361/1.15 settled layout and closing inspected",
+      "notification": "New QA event shown; tapping row opens correct task applications on emulator"
+    },
+    "findings": [
+      {
+        "status": "OPEN",
+        "severity": "P1",
+        "issue": "Repeated external owner-detail link after emulator width/font changes twice showed an empty native scene at412dp/font1.3, no ReactFatal; normal home→applications→task-title works",
+        "evidence": [
+          "screens/detail-blank-412-130.xml",
+          "screens/detail-ready-412-130.png",
+          "screens/detail-route-412-130.png",
+          "screens/detail-scrolled-412-130.png"
+        ],
+        "cause": "Unconfirmed; retained hidden tab with shift transition is candidate"
+      }
+    ],
+    "nativeProof": "work/premium-emulator-20261020/native-verification.json",
+    "restored": {
+      "size": "1264x2728",
+      "density": 560,
+      "fontScale": 1.15
+    }
+  },
+  "push_application_refresh_20261020": {
+    "status": "APPLICATION_CREATED_PUSH_TICKET_PENDING_PHONE_RECEIPT_UNVERIFIED",
+    "checkedAt": "2026-10-19T22:56:20.572117+00:00",
+    "eventId": "09abaf85-cd59-482d-9045-87dc035fe50d",
+    "responseId": "209efef9-65e6-46de-a4a1-122dfc4eafd8",
+    "deliveryId": "901e68d7-8d4c-4d91-8ca6-c9c21e399631",
+    "attemptId": "c8294a56-0d5b-4a4e-a107-bf51ed275cd3",
+    "attemptState": "TICKET_PENDING",
+    "sendCount": 1,
+    "ticketReceivedAt": "2026-10-19T22:56:01.917442+00:00",
+    "phoneReceiptConfirmed": false,
+    "providerReceiptConfirmed": false,
+    "flagsChanged": false,
+    "earlierPublicationHold": {
+      "operationId": "41322c4e-ae00-4d84-b59a-c4e64e1eee42",
+      "reservedMicrousd": 250000,
+      "status": "OPEN_UNSETTLED_NOT_REFUNDED_NOT_MEASURED",
+      "settledAt": null,
+      "notIncludedInFixtureCost": true
+    },
+    "fixtureCostUsd": 0.031413,
+    "fixtureUnsettled": 0,
+    "evidence": "docs/current/evidence/AI_SPEED_20261019.json#latestCheckpoint.push",
+    "scope": "Scoped real application; broader queue and notification types are not established by this proof.",
+    "schedulerStatus": "PROVEN_AUTOMATIC_MINUTE_PUMP",
+    "registeredDeviceAttempts": 3,
+    "allSendCountsOne": true,
+    "schedulerCheckedAt": "2026-10-19T22:59:34.133418Z",
+    "schedulerEvidence": "work/push-application-20261020/scheduler-diagnosis-evidence.json",
+    "inAppTargetOnEmulator": "ONE_REAL_QA_EVENT_TARGET_PASS"
   }
 }

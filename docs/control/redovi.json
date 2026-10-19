@@ -230,9 +230,9 @@
         "stanje": "DELIMIČNO",
         "dokaz": "Prvo AI pitanje vidljivo, bez model/ASR poziva; stvarni razgovor otvoren. docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
-      "problem": "Ovaj paket potvrđuje pojedinačne scenarije; višeuslužni razgovori i sve promene već sačuvanog zadatka ostaju za širi stvarni test.",
+      "problem": "Fizički/REMOTE konflikt pravilno traži razjašnjenje, ali nezavisna površina/grad nisu svi u typed kartici. Novi UI i kompletne izmene/objava čekaju aktuelnu native probu.",
       "source_progress_20261018": "APK 0175d364 izgrađen i instaliran uz očuvanu sesiju. Na novom APK-u provereni pregled REMOTE zadatka sa dostavom, Naručilac, završne akcije i povratak sa izmene cene u isti razgovor uz očuvan neposlati tekst. Task Edge 99 ima zasebnu stvarnu probu direktnog odgovora i tačnih DST granica. Nova objava nije izvršena tokom završnog UI prolaza.",
-      "sledece": "Composer/live-card kandidat SOURCE_VERIFIED, build i ciljana native provera predstoje; trajna pozadinska klasifikacija vezana za reviziju i kraći situacioni kontekst. Zatim jedan pregled, širi task edit i višeuslužni/regionalni scenariji. Bounded dokaz: docs/current/AI_SPEED_20261019.md; ceo tok nije zatvoren.",
+      "sledece": "Prvo otkloniti ponovljeni spoljašnji link/prikaz vlasničkog detalja (A08 P1) i proveriti isti prelaz. Zatim dopuniti nezavisne strukturirane task činjenice pri razjašnjenju, regionalni obuhvat i trajni revizijom vezan posao. Matching, grupni chat i fizički push prikaz ostaju zasebni dokazi.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -257,12 +257,12 @@
         "flow": "Razgovor sa AI: kaži šta treba",
         "ux": "Dok se činjenice skupljaju ostaje sažet proširiv nacrt. Kada je conversation reviewable bez vidljivog/skrivenog/map gap-a, činjenice za odluku su otvorene i postoji jedna primarna akcija Pregledaj zadatak/izmene.",
         "ui": "Isti TaskFace jezik; diskretan zeleni ready status/ivica. Nije published TaskCard/Peek i nema duplog CTA-a.",
-        "backend": "19.10.2026: Task Edge 113 / Worker 68, izvor 7423c476, 36/36 fajlova exact. Svež katalog i efektivne činjenice proveravaju direktan odgovor; eksplicitni Save i postojeća ownership/revision pravila ostaju. Bez DDL u ovom paketu.",
+        "backend": "20.10: Task 115 ostaje potvrđeni izvor 84751846; Worker 71 / 16cfdddf ACTIVE, 17/17 fajlova jednako. Dva stvarna worker scenarija potvrđuju ciljano razjašnjenje i dva postojeća REMOTE ID-ja; obuhvat više regiona nije implementiran. Vlasništvo, revizija, svežina i eksplicitni Save ostaju zaštićeni.",
         "state_sync": "Review ostaje poseban intakeReturn tok; neposlat tekst preživljava review/Back, privatni podaci ne ulaze u live card, objava i dalje ima poseban explicit command/readback.",
-        "performance": "Harness: prvi task unos 14,315 s / 3 model poziva / 2 alata; budžet 5,687 s / 1 model poziv / 0 alata. Nije telefonsko merenje niti garantovano vreme. Pozadinska klasifikacija i kompresija konteksta OPEN.",
-        "test": "CI 39322097750 na 7423c476: 621/621 paket, 13.968 PASS / 0 FAIL / 0 SKIP. Četiri živa tekstualna pregleda READY; pet kanonskih otisaka nepromenjeno. Nema poslovnog Save-a, matching-a ili push-a u ovoj probi.",
-        "device_proof": "7423c476 / CI 39322097750: APK izgrađen, install -r i isti instalirani SHA256 potvrđeni; HONOR 361 dp/font 1,15, Početna, Zadaci/mapa, prazni Dogovori, Poruke i About. Nema AI poruke, Save/Publish-a ili push probe na telefonu; A02/B00/B01 kompletni native tokovi ostaju PENDING. docs/current/AI_SPEED_20261019.md",
-        "status": "DEV_DIRECT_REUSE_APPLIED / LIVE_SCOPED_PASS / PHONE_BOUNDED_SMOKE / WHOLE_FLOW_OPEN",
+        "performance": "ee7a harness: 15,492/5,207/9,751/5,165s; oba nastavka 1 model / 0 alata. Prvi task nije brži; nema tvrdnje ukupnog ubrzanja. Nije telefonsko merenje. Trajna pozadinska klasifikacija OPEN.",
+        "test": "a18f31af / CI 39335921967: 621 paket / 14.014 testova PASS, 0 FAIL, 0 SKIP. APK BUILT; ograničeni native dokaz, otvoren P1 spoljašnjeg linka. Nije puno uređajsko prihvatanje. Prethodni 772c: 613 paketa PASS, 8 FAIL; 14.000 testova PASS, 14 FAIL. Ispravke: 204 ciljane provere PASS. Worker 71: dva stvarna scenarija, pet istih kanonskih otisaka, bez Save/Publish u tom zasebnom testu.",
+        "device_proof": "a18f31af na emulatoru: sesija i About potvrđeni; Početna/detalj vizuelno svih 6 širina/font kombinacija. Pretraga/filteri, delovi mape i in-app Nova prijava → Prijave imaju ograničen dokaz. Spoljašnji ponovljeni owner-detail link ima P1 otvoren (A08). Ovo ne dokazuje novi AI create/edit/Save, voice ili pun matching/push tok na tom APK-u. Raniji ee7a telefon ostaje datiran; sada samo emulator. work/premium-emulator-20261020/native-verification.json",
+        "status": "APK_BUILT_BOUNDED_EMULATOR_REVIEW_OPEN_P1 / WHOLE_FLOW_OPEN",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P5_TASK_LOCATION_SOURCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CONNECTED_RECOVERY.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_07_CHECKS.json + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_09_LOCATION_REVIEW.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_INLINE_LOCATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_10_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/AI_LOCATION_COMPACT_SOURCE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_29_AI_LOCATION_AND_CATALOG.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/BRANCH_AND_FIRST_ENTRY_AUDIT_20260928.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_40_P5_READY_TASK_AND_MATCHING_TRUTH.md",
         "device": "Round23 APK36339245682/f526a736: javne probne tačke, ponovni izbor posle pomeranja, Prikaži sve i Android Back PASS. Nije realni AI ili privatni grant. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_23_NATIVE_RECEIPT.json",
         "round40": {
@@ -469,13 +469,57 @@
           "wholeFlowComplete": false,
           "phoneEvidence": "work/ai-speed-20261019/phone-verification.json",
           "nextUiCandidate": {
-            "status": "SOURCE_VERIFIED",
-            "sourceSha": null,
-            "build": "PENDING",
-            "native": "PENDING",
+            "status": "COMMITTED_IN_CURRENT_PACKAGE",
+            "sourceSha": "86b5f2f607616edd1c33c8dd3e1fb60b5fca77d8",
+            "build": "BUILT",
+            "native": "BOUNDED_COMPOSER_PHONE_PASS_LIVE_CARD_UNVERIFIED",
             "composerTestsPassed": 139,
             "liveCardProofsPassed": 269,
-            "typeScript": "PASS"
+            "typeScript": "PASS",
+            "integrationSourceSha": "ee7ae76ee5d60355ce4c079c2bb5beaf41ef3fb5"
+          },
+          "currentPackage": {
+            "sourceSha": "ee7ae76ee5d60355ce4c079c2bb5beaf41ef3fb5",
+            "uiSourceSha": "86b5f2f607616edd1c33c8dd3e1fb60b5fca77d8",
+            "taskVersion": 114,
+            "workerVersion": 69,
+            "filesMatched": 36,
+            "live": "FACTS_PASS_PROSE_FOLLOWUP_TWO_TURNS_PASS",
+            "buildRun": 39328153595,
+            "build": "BUILT",
+            "native": "BOUNDED_COMPOSER_PHONE_PASS",
+            "wholeFlowComplete": false,
+            "wordingFollowup": {
+              "sourceSha": "84751846e35156a9f5a7c0918d52b31c35eadeb2",
+              "taskVersion": 115,
+              "workerVersion": 70,
+              "filesMatched": 36,
+              "live": "TWO_TURNS_SCOPED_PASS",
+              "actualUsd": 0.015746,
+              "canonicalUnchanged": true
+            },
+            "regression": "621/13993PASS/ 0 FAIL/ 0 SKIP",
+            "pushPreflight": "DEVICE_REGISTERED_TRANSPORT_TEST_BLOCKED_BY_CLI_PRIVILEGE_NO_SEND"
+          },
+          "latestCheckpoint": {
+            "sourceSha": "a18f31af8fdf768db2e9d02acee8f77f238e606d",
+            "visualSourceSha": "772c7eeb5a43ffd403a64fb20091822de5bfd881",
+            "workerSourceSha": "16cfdddf5d26bc73b8e6103673cb3f848be6f0a3",
+            "workerVersion": 71,
+            "ciRun": 39335921967,
+            "build": "BUILT",
+            "native": "BOUNDED_VISUAL_AND_IN_APP_NAVIGATION_PROVEN_EXTERNAL_REPEAT_LINK_P1_OPEN",
+            "wholeFlowComplete": false,
+            "evidence": "docs/current/evidence/AI_SPEED_20261019.json#latestCheckpoint",
+            "fullRegression": {
+              "status": "PASS",
+              "suites": 621,
+              "tests": 14014,
+              "failed": 0,
+              "skipped": 0
+            },
+            "apkSha256": "e9d497bfeafacba4860651286daaba83c419f6591a12d804aff84f5a3acd2494",
+            "nativeProof": "work/premium-emulator-20261020/native-verification.json"
           }
         }
       },
@@ -560,8 +604,10 @@
       },
       "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md",
       "source_progress_20261019_map_package": "DEV APPLIED / APK BUILT / SCOPED EMULATOR: Usklađene instrukcije oba AI toka; semantička promena mesta vraća korisnika u isti razgovor bez automatskog slanja neposlatog teksta. Živi test obuhvata i fizičku lokaciju i rutu; nacrt nije isto što i objava. Izvor 7f202518, CI 39298019592: 621 paket / 13.968 testova PASS, instalirani APK hash i About/OTA potvrđeni. Osam tekstualnih AI odgovora/15 poziva/$0.135679 interna procena, 5.7–25.3s; pre Save-a kanonski otisci isti. Jedan eksplicitan native DRAFT Save; nema Publish/matching/push. AI brzina, statusna dopuna konačne klasifikacije i višeuslužni/regionalni razgovori. Native Back/neposlati tekst potvrđeni na checkpoint-u; nema potpune potvrde svih AI scenarija. docs/current/AI_MAP_PACKAGE_20261019.md",
-      "source_progress_20261019_warmth": "DEV APPLIED / LIVE SCOPED: Task112/Worker67, izvor7d584c27. Zajednički topao glas; delimične task činjenice; eksplicitne kalendarske operacije; kanonski naziv+UUID normalizuju pogrešno označen REUSE_ALIAS bez novih sinonima. Završni worker početak i ponedeljak READY, tačni sati, bez izmišljene opreme. 14 QA poruka/25 modelskih poziva/$0.189180 interna procena; kanonski otisci pre Save nepromenjeni. Brzina 5.5–12.9s, pozadinski katalog još nije uveden. Nema novog APK/native/push dokaza. docs/current/AI_WARMTH_TIMING_20261019.md Lokalni Jest621/621,13959PASS/9SKIP/0FAIL; završni Node i TypeScript PASS.",
-      "source_progress_20261019_speed": "DEV APPLIED / LIVE SCOPED: 7423c476, Task 113 / Worker 68, 36/36 fajlova exact. Četiri QA poruke / sedam modelskih poziva / 0,060348 USD interni obračun / 0 neobračunatih operacija. Oba nastavka imaju po 1 modelski poziv i 0 poziva alata; isti 3D UUID, REMOTE/dostava RS, budžet i samo ponedeljak očuvani. Pet kanonskih otisaka pre Save-a nepromenjeno. CI 39322097750: 621 paket / 13.968 PASS / 0 FAIL / 0 SKIP. APK BUILT i fizički bounded smoke PASS na HONOR-u (Početna, Zadaci/mapa, prazni Dogovori, Poruke, About; sesija očuvana); puni AI tok na telefonu ostaje PENDING; bez objave, aktivacije, matching-a ili push dokaza. Trajna pozadinska klasifikacija i prompt kompresija nisu uvedene. docs/current/AI_SPEED_20261019.md"
+      "source_progress_20261019_warmth": "DEV APPLIED / LIVE SCOPED: Task112/Worker67, izvor7d584c27. Zajednički topao glas; delimične task činjenice; eksplicitne kalendarske operacije; kanonski naziv+UUID normalizuju pogrešno označen REUSE_ALIAS bez novih sinonima. Završni worker početak i ponedeljak READY, tačni sati, bez izmišljene opreme. 14 QA poruka/25 modelskih poziva/$0.189180 interna procena; kanonski otisci pre Save nepromenjeni. Brzina 5.5–12.9s, pozadinski katalog još nije uveden. Nema novog APK/native/push dokaza. docs/current/AI_WARMTH_TIMING_20261019.md Lokalni Jest621/621,13959PASS/9SKIP/ 0 FAIL; završni Node i TypeScript PASS.",
+      "source_progress_20261019_speed": "DEV APPLIED / LIVE SCOPED: 7423c476, Task 113 / Worker 68, 36/36 fajlova exact. Četiri QA poruke / sedam modelskih poziva / 0,060348 USD interni obračun / 0 neobračunatih operacija. Oba nastavka imaju po 1 modelski poziv i 0 poziva alata; isti 3D UUID, REMOTE/dostava RS, budžet i samo ponedeljak očuvani. Pet kanonskih otisaka pre Save-a nepromenjeno. CI 39322097750: 621 paket / 13.968 PASS / 0 FAIL / 0 SKIP. APK BUILT i fizički bounded smoke PASS na HONOR-u (Početna, Zadaci/mapa, prazni Dogovori, Poruke, About; sesija očuvana); puni AI tok na telefonu ostaje PENDING; bez objave, aktivacije, matching-a ili push dokaza. Trajna pozadinska klasifikacija i prompt kompresija nisu uvedene. docs/current/AI_SPEED_20261019.md",
+      "source_progress_20261019_context": "ee7ae76e kontekst + UI 86b5; DEV114/69.4 READY/5 jednakih otisaka;7 poziva/0,059342USD, bez ukupnog ubrzanja. Proza naknadno ispravljena84751846 DEV115/70,36/36 exact;2 stvarna nastavka7,108/5,836s,2 READY/5 jednakih otisaka,2 poziva/ 0,015746 USD. ee7a CI621/13993PASS; novi native PENDING. Telefon registracija potvrđena, stvarna push isporuka UNTESTED. docs/current/AI_SPEED_20261019.md Push preflight: API privilege denied, flag readback unchanged; no SEND/fixture Save/Publish. Završni datirani checkpoint ee7a: CI SUCCESS/APKBUILT i bounded phone composer PASS; noviji kandidat ima odvojeni source_progress_20261020_checkpoint.",
+      "source_progress_20261020_checkpoint": "a18f31af / CI 39335921967 SUCCESS: 621 paket / 14.014 testova PASS, 0 FAIL, 0 SKIP. Tačan x86_64 APK instaliran je na emulator; sesija očuvana. Početna i detalj vizuelno pregledani na 361/390/412 dp × font 1,0/1,3. P1 OTVOREN: ponovljeni spoljašnji link ka vlasničkom detalju posle promene širine/fonta dva puta je dao prazan prikaz na 412 dp/1,3; normalan ulaz radi. Mapa ima ograničeni pregled zaglavlja/učitavanja, uz učitane pločice na 361/1 i 412/1,3; filteri, pretraga i in-app Nova prijava → pravi ekran Prijava provereni u navedenom opsegu. To nije celo native/end-to-end prihvatanje. DEV Task 115 / Worker 71; regioni i delimične strukturirane činjenice zadatka ostaju otvoreni."
     },
     {
       "id": "A03",
@@ -1229,8 +1275,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Objavljen pa zatvoren zadatak prikazan sa istorijskim brojem prijava. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: 2026-09-23: novi raspored detalja mog zadatka viđen na telefonu (build 165ab4fa, docs/implementation/design-system/g3-task-detail/G3_RECEIPT.json), samo čitanje. Ranije: docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
       },
-      "problem": "",
-      "sledece": "Odluka 19.10, dokaz celog opsega PENDING: Povezati dozvoljene vlasničke radnje sa istorijskom FIRST-selection granicom; predlog zamene čuva staru objavu do potvrđene transakcije. Šira politika zamene još nije implementirana ovim zapisom. docs/current/OWNER_DECISIONS_20261019.md.",
+      "problem": "P1 OTVOREN, a18f31af / 20.10: dva ponovljena spoljašnja linka ka vlasničkom detalju nakon promene emulator širine/fonta dala su prazan native prikaz na 412 dp/font 1,3. Nije zabeležen ReactFatal. Normalna putanja Početna → Prijave → naslov zadatka radi. Uzrok nije potvrđen; zadržani skriveni tab/shift prelaz je samo hipoteza. work/premium-emulator-20261020/native-verification.json.",
+      "sledece": "Prvo reprodukovati i otkloniti P1 ponovljenog spoljašnjeg ulaza bez gubitka navigacionog/Back stanja, pa proveriti normalan i spoljašnji ulaz na istom APK-u i širini/fontu. Odluka 19.10, dokaz celog opsega PENDING: Povezati dozvoljene vlasničke radnje sa istorijskom FIRST-selection granicom; predlog zamene čuva staru objavu do potvrđene transakcije. Šira politika zamene još nije implementirana ovim zapisom. docs/current/OWNER_DECISIONS_20261019.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1252,8 +1298,8 @@
         "state_sync": "Ponovni izbor mesta ili svih tačaka ponovo centrira mapu. Početni prikaz ne označava proizvoljno prvu tačku.",
         "performance": "Fit stvarnih tačaka; jednak osvežen skup ne resetuje ručno pomeranje. Bez izmišljene putanje i bez novih periodičnih upita.",
         "test": "34 ciljana testa; stariji APK potvrđuje 3 tačke/izbor/Back i reprodukuje problem ponovnog izbora. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_CLIENT_CHECKS.json",
-        "device_proof": "Nema novog APK-a ili native/telefon prihvatanja za Round07–11; raniji dokazi ostaju istorijski.",
-        "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
+        "device_proof": "a18f31af emulator: detalj vizuelno pregledan svih 6 kombinacija 361/390/412 dp × font 1/1,3 preko normalnog ulaza. Ponovljeni spoljašnji link dva puta blank412/1,3 ostaje P1; nema novog telefon prihvatanja. work/premium-emulator-20261020/native-verification.json",
+        "status": "BOUNDED_EMULATOR_DETAIL_VISUAL_PROOF / EXTERNAL_REPEAT_LINK_P1_OPEN / WHOLE_FLOW_OPEN",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_02_P0.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_LOCATION_EXPERIENCE.md + docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_08_CHECKS.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_MAP_AND_PHOTO_RECOVERY.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_11_CHECKS.json",
         "device": "Nova ispravka čeka objedinjeni APK. Prethodni build i opseg: docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_NATIVE_BEFORE.json",
         "source_finishing_20261002": "Own task leads with state/applications; filled/no-further-selection next action opens the honestly named personal Agreements list. SOURCE ONLY / no new tests or native acceptance. docs/implementation/ui-ux-pass-20261002/VISUAL_FINISHING_20261002.md",
@@ -1290,6 +1336,27 @@
           "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
           "proposedChange": "Status sažeti; manje instrukcijskih pasusa, publishedAt samo iz servera.",
           "boundary": "No application source, DEV, device or acceptance-light change."
+        },
+        "premium_native_20261020": {
+          "sourceSha": "a18f31af8fdf768db2e9d02acee8f77f238e606d",
+          "status": "BOUNDED_VISUAL_PROOF_P1_OPEN",
+          "proof": "work/premium-emulator-20261020/native-verification.json",
+          "findings": [
+            {
+              "status": "OPEN",
+              "severity": "P1",
+              "issue": "Repeated external owner-detail link after emulator width/font changes twice showed an empty native scene at412dp/font1.3, no ReactFatal; normal home→applications→task-title works",
+              "evidence": [
+                "screens/detail-blank-412-130.xml",
+                "screens/detail-ready-412-130.png",
+                "screens/detail-route-412-130.png",
+                "screens/detail-scrolled-412-130.png"
+              ],
+              "cause": "Unconfirmed; retained hidden tab with shift transition is candidate"
+            }
+          ],
+          "normalPath": "Home → applications → task title works",
+          "wholeFlowAccepted": false
         }
       },
       "owner_decisions_20261019": {
@@ -1966,9 +2033,9 @@
         "stanje": "DELIMIČNO",
         "dokaz": "59876dc6: Još nema ocena, stvarni broj 0, Istorija/Back i profilno zvono potvrđeni; šire granice otvorene. docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json"
       },
-      "problem": "Dve tekstualne korekcije predaje potvrđene bez čuvanja kanonskog profila. Višeuslužni profil, regioni, čuvanje/aktivacija i dosledna statusna poruka ostaju otvoreni.",
+      "problem": "Worker71 potvrđuje ciljano razjašnjenje i dve postojeće REMOTE usluge; regioni i više odvojenih oblasti ostaju nepodržani. Novi native tok, Save/aktivacija i matching ostaju odvojeni dokazi.",
       "source_progress_20261018": "APK 0175d364 izgrađen i instaliran. Provereni sačuvani 3D REMOTE profil, odbijanje terenske mape za REMOTE, AI meni i povratak iz ON_SITE nacrta u isti razgovor. Novi ON_SITE nacrt nije sačuvan; pet postojećih Save zapisa i potvrđeni REMOTE ostaju. Native UI prolaz nije poslao nov AI zahtev. Potpuni AI-only profil i regionalna podrška ostaju otvoreni.",
-      "sledece": "Composer/live-card kandidat SOURCE_VERIFIED, build i ciljana native provera predstoje; pozadinska klasifikacija i kraći kontekst. Zatim više usluga, stvarni regionalni obuhvat i povezan Save/aktivacija→matching→obaveštenje. Ovaj paket potvrđuje nacrt i ponedeljak, bez kanonskog Save-a: docs/current/AI_SPEED_20261019.md.",
+      "sledece": "Prvo otkloniti ponovljeni spoljašnji link/prikaz vlasničkog detalja (A08 P1) i proveriti isti prelaz. Zatim dopuniti nezavisne strukturirane task činjenice pri razjašnjenju, regionalni obuhvat i trajni revizijom vezan posao. Matching, grupni chat i fizički push prikaz ostaju zasebni dokazi.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1984,12 +2051,12 @@
         "flow": "Lični radni profil kroz AI razgovor",
         "ux": "Jedna osoba: šta ume i želi da radi, alat/vozila, oblast/dostupnost; bez licence i stalnog broja ljudi. Broj ljudi pripada konkretnoj ponudi.",
         "ui": "Primarni razgovor sa originalnom 2.5D ilustracijom; sažetak i zasebno otvaranje svake ručne izmene. Bela površina, neutralna dubina, otvorene sekcije.",
-        "backend": "19.10.2026: Task Edge 113 / Worker 68, izvor 7423c476, 36/36 fajlova exact. Svež katalog i efektivne činjenice proveravaju direktan odgovor; eksplicitni Save i postojeća ownership/revision pravila ostaju. Bez DDL u ovom paketu.",
+        "backend": "20.10: Task 115 ostaje potvrđeni izvor 84751846; Worker 71 / 16cfdddf ACTIVE, 17/17 fajlova jednako. Dva stvarna worker scenarija potvrđuju ciljano razjašnjenje i dva postojeća REMOTE ID-ja; obuhvat više regiona nije implementiran. Vlasništvo, revizija, svežina i eksplicitni Save ostaju zaštićeni.",
         "state_sync": "Nepoznato čuvanje ostaje zaključano do readback-a. Pregled koji menja penzionisana polja se odbija pre upisa. Native otkrio zadržan odbačeni unos;95a99f06 vraća initial i penzioniše callback pre izlaska.",
-        "performance": "Harness: prvi worker unos 9,571 s / 2 model poziva / 1 alat; ponedeljak 5,164 s / 1 model poziv / 0 alata. Nije merenje UI-ja ili sačuvanog profila. Pozadinska klasifikacija i kompresija konteksta OPEN.",
-        "test": "CI 39322097750 na 7423c476: 621/621 paket, 13.968 PASS / 0 FAIL / 0 SKIP. Četiri živa tekstualna pregleda READY; pet kanonskih otisaka nepromenjeno. Nema poslovnog Save-a, matching-a ili push-a u ovoj probi.",
-        "device_proof": "7423c476 / CI 39322097750: APK izgrađen, install -r i isti instalirani SHA256 potvrđeni; HONOR 361 dp/font 1,15, Početna, Zadaci/mapa, prazni Dogovori, Poruke i About. Nema AI poruke, Save/Publish-a ili push probe na telefonu; A02/B00/B01 kompletni native tokovi ostaju PENDING. docs/current/AI_SPEED_20261019.md",
-        "status": "DEV_DIRECT_REUSE_APPLIED / LIVE_SCOPED_PASS / PHONE_BOUNDED_SMOKE / WHOLE_FLOW_OPEN",
+        "performance": "ee7a harness: 15,492/5,207/9,751/5,165s; oba nastavka 1 model / 0 alata. Prvi task nije brži; nema tvrdnje ukupnog ubrzanja. Nije telefonsko merenje. Trajna pozadinska klasifikacija OPEN.",
+        "test": "a18f31af / CI 39335921967: 621 paket / 14.014 testova PASS, 0 FAIL, 0 SKIP. APK BUILT; ograničeni native dokaz, otvoren P1 spoljašnjeg linka. Nije puno uređajsko prihvatanje. Prethodni 772c: 613 paketa PASS, 8 FAIL; 14.000 testova PASS, 14 FAIL. Ispravke: 204 ciljane provere PASS. Worker 71: dva stvarna scenarija, pet istih kanonskih otisaka, bez Save/Publish u tom zasebnom testu.",
+        "device_proof": "a18f31af na emulatoru: sesija i About potvrđeni; Početna/detalj vizuelno svih 6 širina/font kombinacija. Pretraga/filteri, delovi mape i in-app Nova prijava → Prijave imaju ograničen dokaz. Spoljašnji ponovljeni owner-detail link ima P1 otvoren (A08). Ovo ne dokazuje novi AI create/edit/Save, voice ili pun matching/push tok na tom APK-u. Raniji ee7a telefon ostaje datiran; sada samo emulator. work/premium-emulator-20261020/native-verification.json",
+        "status": "APK_BUILT_BOUNDED_EMULATOR_REVIEW_OPEN_P1 / WHOLE_FLOW_OPEN",
         "evidence": "docs/implementation/ui-ux-pass-20261002/WORKER_PERSONAL_PROFILE_20261003.md; supabase/operations/dev-alpha/ledger/20261003_wpp01_application.receipt.json",
         "device": "Aktuelni emulator95a99/build37142990111, UID10227 i SHA256 potvrđeni; discard/reentry provereno, font1.15. Stariji dokazi su u before_personal_profile_20261003. Telefon ostaje raniji build.",
         "round39": {
@@ -2248,13 +2315,57 @@
           "wholeFlowComplete": false,
           "phoneEvidence": "work/ai-speed-20261019/phone-verification.json",
           "nextUiCandidate": {
-            "status": "SOURCE_VERIFIED",
-            "sourceSha": null,
-            "build": "PENDING",
-            "native": "PENDING",
+            "status": "COMMITTED_IN_CURRENT_PACKAGE",
+            "sourceSha": "86b5f2f607616edd1c33c8dd3e1fb60b5fca77d8",
+            "build": "BUILT",
+            "native": "BOUNDED_COMPOSER_PHONE_PASS_LIVE_CARD_UNVERIFIED",
             "composerTestsPassed": 139,
             "liveCardProofsPassed": 269,
-            "typeScript": "PASS"
+            "typeScript": "PASS",
+            "integrationSourceSha": "ee7ae76ee5d60355ce4c079c2bb5beaf41ef3fb5"
+          },
+          "currentPackage": {
+            "sourceSha": "ee7ae76ee5d60355ce4c079c2bb5beaf41ef3fb5",
+            "uiSourceSha": "86b5f2f607616edd1c33c8dd3e1fb60b5fca77d8",
+            "taskVersion": 114,
+            "workerVersion": 69,
+            "filesMatched": 36,
+            "live": "FACTS_PASS_PROSE_FOLLOWUP_TWO_TURNS_PASS",
+            "buildRun": 39328153595,
+            "build": "BUILT",
+            "native": "BOUNDED_COMPOSER_PHONE_PASS",
+            "wholeFlowComplete": false,
+            "wordingFollowup": {
+              "sourceSha": "84751846e35156a9f5a7c0918d52b31c35eadeb2",
+              "taskVersion": 115,
+              "workerVersion": 70,
+              "filesMatched": 36,
+              "live": "TWO_TURNS_SCOPED_PASS",
+              "actualUsd": 0.015746,
+              "canonicalUnchanged": true
+            },
+            "regression": "621/13993PASS/ 0 FAIL/ 0 SKIP",
+            "pushPreflight": "DEVICE_REGISTERED_TRANSPORT_TEST_BLOCKED_BY_CLI_PRIVILEGE_NO_SEND"
+          },
+          "latestCheckpoint": {
+            "sourceSha": "a18f31af8fdf768db2e9d02acee8f77f238e606d",
+            "visualSourceSha": "772c7eeb5a43ffd403a64fb20091822de5bfd881",
+            "workerSourceSha": "16cfdddf5d26bc73b8e6103673cb3f848be6f0a3",
+            "workerVersion": 71,
+            "ciRun": 39335921967,
+            "build": "BUILT",
+            "native": "BOUNDED_VISUAL_AND_IN_APP_NAVIGATION_PROVEN_EXTERNAL_REPEAT_LINK_P1_OPEN",
+            "wholeFlowComplete": false,
+            "evidence": "docs/current/evidence/AI_SPEED_20261019.json#latestCheckpoint",
+            "fullRegression": {
+              "status": "PASS",
+              "suites": 621,
+              "tests": 14014,
+              "failed": 0,
+              "skipped": 0
+            },
+            "apkSha256": "e9d497bfeafacba4860651286daaba83c419f6591a12d804aff84f5a3acd2494",
+            "nativeProof": "work/premium-emulator-20261020/native-verification.json"
           }
         }
       },
@@ -2334,8 +2445,10 @@
       },
       "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md",
       "source_progress_20261019_map_package": "DEV APPLIED / APK BUILT / SCOPED EMULATOR: Worker Edge v61 dobio je usklađene zajedničke instrukcije za uslugu, režim i predaju. Ograničeni živi razgovori ne menjaju kanonski profil pre eksplicitnog Save-a. Izvor 7f202518, CI 39298019592: 621 paket / 13.968 testova PASS, instalirani APK hash i About/OTA potvrđeni. Osam tekstualnih AI odgovora/15 poziva/$0.135679 interna procena, 5.7–25.3s; pre Save-a kanonski otisci isti. Jedan eksplicitan native DRAFT Save; nema Publish/matching/push. Više usluga, regionalni obuhvat, aktivacija/čuvanje profila i dispatch u povezanom toku. Ovaj paket dokazuje ograničene tekstualne promene predaje bez kanonskog Save-a profila. docs/current/AI_MAP_PACKAGE_20261019.md",
-      "source_progress_20261019_warmth": "DEV APPLIED / LIVE SCOPED: Task112/Worker67, izvor7d584c27. Zajednički topao glas; delimične task činjenice; eksplicitne kalendarske operacije; kanonski naziv+UUID normalizuju pogrešno označen REUSE_ALIAS bez novih sinonima. Završni worker početak i ponedeljak READY, tačni sati, bez izmišljene opreme. 14 QA poruka/25 modelskih poziva/$0.189180 interna procena; kanonski otisci pre Save nepromenjeni. Brzina 5.5–12.9s, pozadinski katalog još nije uveden. Nema novog APK/native/push dokaza. docs/current/AI_WARMTH_TIMING_20261019.md Lokalni Jest621/621,13959PASS/9SKIP/0FAIL; završni Node i TypeScript PASS.",
-      "source_progress_20261019_speed": "DEV APPLIED / LIVE SCOPED: 7423c476, Task 113 / Worker 68, 36/36 fajlova exact. Četiri QA poruke / sedam modelskih poziva / 0,060348 USD interni obračun / 0 neobračunatih operacija. Oba nastavka imaju po 1 modelski poziv i 0 poziva alata; isti 3D UUID, REMOTE/dostava RS, budžet i samo ponedeljak očuvani. Pet kanonskih otisaka pre Save-a nepromenjeno. CI 39322097750: 621 paket / 13.968 PASS / 0 FAIL / 0 SKIP. APK BUILT i fizički bounded smoke PASS na HONOR-u (Početna, Zadaci/mapa, prazni Dogovori, Poruke, About; sesija očuvana); puni AI tok na telefonu ostaje PENDING; bez objave, aktivacije, matching-a ili push dokaza. Trajna pozadinska klasifikacija i prompt kompresija nisu uvedene. docs/current/AI_SPEED_20261019.md"
+      "source_progress_20261019_warmth": "DEV APPLIED / LIVE SCOPED: Task112/Worker67, izvor7d584c27. Zajednički topao glas; delimične task činjenice; eksplicitne kalendarske operacije; kanonski naziv+UUID normalizuju pogrešno označen REUSE_ALIAS bez novih sinonima. Završni worker početak i ponedeljak READY, tačni sati, bez izmišljene opreme. 14 QA poruka/25 modelskih poziva/$0.189180 interna procena; kanonski otisci pre Save nepromenjeni. Brzina 5.5–12.9s, pozadinski katalog još nije uveden. Nema novog APK/native/push dokaza. docs/current/AI_WARMTH_TIMING_20261019.md Lokalni Jest621/621,13959PASS/9SKIP/ 0 FAIL; završni Node i TypeScript PASS.",
+      "source_progress_20261019_speed": "DEV APPLIED / LIVE SCOPED: 7423c476, Task 113 / Worker 68, 36/36 fajlova exact. Četiri QA poruke / sedam modelskih poziva / 0,060348 USD interni obračun / 0 neobračunatih operacija. Oba nastavka imaju po 1 modelski poziv i 0 poziva alata; isti 3D UUID, REMOTE/dostava RS, budžet i samo ponedeljak očuvani. Pet kanonskih otisaka pre Save-a nepromenjeno. CI 39322097750: 621 paket / 13.968 PASS / 0 FAIL / 0 SKIP. APK BUILT i fizički bounded smoke PASS na HONOR-u (Početna, Zadaci/mapa, prazni Dogovori, Poruke, About; sesija očuvana); puni AI tok na telefonu ostaje PENDING; bez objave, aktivacije, matching-a ili push dokaza. Trajna pozadinska klasifikacija i prompt kompresija nisu uvedene. docs/current/AI_SPEED_20261019.md",
+      "source_progress_20261019_context": "ee7ae76e kontekst + UI 86b5; DEV114/69.4 READY/5 jednakih otisaka;7 poziva/0,059342USD, bez ukupnog ubrzanja. Proza naknadno ispravljena84751846 DEV115/70,36/36 exact;2 stvarna nastavka7,108/5,836s,2 READY/5 jednakih otisaka,2 poziva/ 0,015746 USD. ee7a CI621/13993PASS; novi native PENDING. Telefon registracija potvrđena, stvarna push isporuka UNTESTED. docs/current/AI_SPEED_20261019.md Push preflight: API privilege denied, flag readback unchanged; no SEND/fixture Save/Publish. Završni datirani checkpoint ee7a: CI SUCCESS/APKBUILT i bounded phone composer PASS; noviji kandidat ima odvojeni source_progress_20261020_checkpoint.",
+      "source_progress_20261020_checkpoint": "a18f31af / CI 39335921967 SUCCESS: 621 paket / 14.014 testova PASS, 0 FAIL, 0 SKIP. Tačan x86_64 APK instaliran je na emulator; sesija očuvana. Početna i detalj vizuelno pregledani na 361/390/412 dp × font 1,0/1,3. P1 OTVOREN: ponovljeni spoljašnji link ka vlasničkom detalju posle promene širine/fonta dva puta je dao prazan prikaz na 412 dp/1,3; normalan ulaz radi. Mapa ima ograničeni pregled zaglavlja/učitavanja, uz učitane pločice na 361/1 i 412/1,3; filteri, pretraga i in-app Nova prijava → pravi ekran Prijava provereni u navedenom opsegu. To nije celo native/end-to-end prihvatanje. DEV Task 115 / Worker 71; regioni i delimične strukturirane činjenice zadatka ostaju otvoreni."
     },
     {
       "id": "B01",
@@ -2364,7 +2477,7 @@
         "dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon."
       },
       "problem": "Potpisani pregled prikazuje potvrđenu predaju, ali sačuvani javni radni profil još nema isti sažetak po usluzi. Stari profili nemaju automatsku saglasnost za slanje/preuzimanje.",
-      "sledece": "Odluka 19.10, dokaz celog opsega PENDING: Proveriti saved-mode/predaju po usluzi, isti AI ulaz i povratak; ne izmišljati preferencije starih profila niti vraćati ručne semantičke formulare. docs/current/OWNER_DECISIONS_20261019.md.",
+      "sledece": "Prvo otkloniti ponovljeni spoljašnji link/prikaz vlasničkog detalja (A08 P1) i proveriti isti prelaz. Zatim dopuniti nezavisne strukturirane task činjenice pri razjašnjenju, regionalni obuhvat i trajni revizijom vezan posao. Matching, grupni chat i fizički push prikaz ostaju zasebni dokazi.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2389,12 +2502,12 @@
         "flow": "Radni profil i ciljane ručne ispravke",
         "ux": "Jedna osoba: šta ume i želi da radi, alat/vozila, oblast/dostupnost; bez licence i stalnog broja ljudi. Broj ljudi pripada konkretnoj ponudi.",
         "ui": "Primarni razgovor sa originalnom 2.5D ilustracijom; sažetak i zasebno otvaranje svake ručne izmene. Bela površina, neutralna dubina, otvorene sekcije.",
-        "backend": "19.10.2026: Task Edge 113 / Worker 68, izvor 7423c476, 36/36 fajlova exact. Svež katalog i efektivne činjenice proveravaju direktan odgovor; eksplicitni Save i postojeća ownership/revision pravila ostaju. Bez DDL u ovom paketu.",
+        "backend": "20.10: Task 115 ostaje potvrđeni izvor 84751846; Worker 71 / 16cfdddf ACTIVE, 17/17 fajlova jednako. Dva stvarna worker scenarija potvrđuju ciljano razjašnjenje i dva postojeća REMOTE ID-ja; obuhvat više regiona nije implementiran. Vlasništvo, revizija, svežina i eksplicitni Save ostaju zaštićeni.",
         "state_sync": "Nepoznato čuvanje ostaje zaključano do readback-a. Pregled koji menja penzionisana polja se odbija pre upisa. Native otkrio zadržan odbačeni unos;95a99f06 vraća initial i penzioniše callback pre izlaska.",
-        "performance": "Harness: prvi worker unos 9,571 s / 2 model poziva / 1 alat; ponedeljak 5,164 s / 1 model poziv / 0 alata. Nije merenje UI-ja ili sačuvanog profila. Pozadinska klasifikacija i kompresija konteksta OPEN.",
-        "test": "CI 39322097750 na 7423c476: 621/621 paket, 13.968 PASS / 0 FAIL / 0 SKIP. Četiri živa tekstualna pregleda READY; pet kanonskih otisaka nepromenjeno. Nema poslovnog Save-a, matching-a ili push-a u ovoj probi.",
-        "device_proof": "7423c476 / CI 39322097750: APK izgrađen, install -r i isti instalirani SHA256 potvrđeni; HONOR 361 dp/font 1,15, Početna, Zadaci/mapa, prazni Dogovori, Poruke i About. Nema AI poruke, Save/Publish-a ili push probe na telefonu; A02/B00/B01 kompletni native tokovi ostaju PENDING. docs/current/AI_SPEED_20261019.md",
-        "status": "DEV_DIRECT_REUSE_APPLIED / LIVE_SCOPED_PASS / PHONE_BOUNDED_SMOKE / WHOLE_FLOW_OPEN",
+        "performance": "ee7a harness: 15,492/5,207/9,751/5,165s; oba nastavka 1 model / 0 alata. Prvi task nije brži; nema tvrdnje ukupnog ubrzanja. Nije telefonsko merenje. Trajna pozadinska klasifikacija OPEN.",
+        "test": "a18f31af / CI 39335921967: 621 paket / 14.014 testova PASS, 0 FAIL, 0 SKIP. APK BUILT; ograničeni native dokaz, otvoren P1 spoljašnjeg linka. Nije puno uređajsko prihvatanje. Prethodni 772c: 613 paketa PASS, 8 FAIL; 14.000 testova PASS, 14 FAIL. Ispravke: 204 ciljane provere PASS. Worker 71: dva stvarna scenarija, pet istih kanonskih otisaka, bez Save/Publish u tom zasebnom testu.",
+        "device_proof": "a18f31af na emulatoru: sesija i About potvrđeni; Početna/detalj vizuelno svih 6 širina/font kombinacija. Pretraga/filteri, delovi mape i in-app Nova prijava → Prijave imaju ograničen dokaz. Spoljašnji ponovljeni owner-detail link ima P1 otvoren (A08). Ovo ne dokazuje novi AI create/edit/Save, voice ili pun matching/push tok na tom APK-u. Raniji ee7a telefon ostaje datiran; sada samo emulator. work/premium-emulator-20261020/native-verification.json",
+        "status": "APK_BUILT_BOUNDED_EMULATOR_REVIEW_OPEN_P1 / WHOLE_FLOW_OPEN",
         "evidence": "docs/implementation/ui-ux-pass-20261002/WORKER_PERSONAL_PROFILE_20261003.md; supabase/operations/dev-alpha/ledger/20261003_wpp01_application.receipt.json",
         "device": "Aktuelni emulator95a99/build37142990111, UID10227 i SHA256 potvrđeni; discard/reentry provereno, font1.15. Stariji dokazi su u before_personal_profile_20261003. Telefon ostaje raniji build.",
         "visual_composition_20261003": {
@@ -2610,13 +2723,57 @@
           "wholeFlowComplete": false,
           "phoneEvidence": "work/ai-speed-20261019/phone-verification.json",
           "nextUiCandidate": {
-            "status": "SOURCE_VERIFIED",
-            "sourceSha": null,
-            "build": "PENDING",
-            "native": "PENDING",
+            "status": "COMMITTED_IN_CURRENT_PACKAGE",
+            "sourceSha": "86b5f2f607616edd1c33c8dd3e1fb60b5fca77d8",
+            "build": "BUILT",
+            "native": "BOUNDED_COMPOSER_PHONE_PASS_LIVE_CARD_UNVERIFIED",
             "composerTestsPassed": 139,
             "liveCardProofsPassed": 269,
-            "typeScript": "PASS"
+            "typeScript": "PASS",
+            "integrationSourceSha": "ee7ae76ee5d60355ce4c079c2bb5beaf41ef3fb5"
+          },
+          "currentPackage": {
+            "sourceSha": "ee7ae76ee5d60355ce4c079c2bb5beaf41ef3fb5",
+            "uiSourceSha": "86b5f2f607616edd1c33c8dd3e1fb60b5fca77d8",
+            "taskVersion": 114,
+            "workerVersion": 69,
+            "filesMatched": 36,
+            "live": "FACTS_PASS_PROSE_FOLLOWUP_TWO_TURNS_PASS",
+            "buildRun": 39328153595,
+            "build": "BUILT",
+            "native": "BOUNDED_COMPOSER_PHONE_PASS",
+            "wholeFlowComplete": false,
+            "wordingFollowup": {
+              "sourceSha": "84751846e35156a9f5a7c0918d52b31c35eadeb2",
+              "taskVersion": 115,
+              "workerVersion": 70,
+              "filesMatched": 36,
+              "live": "TWO_TURNS_SCOPED_PASS",
+              "actualUsd": 0.015746,
+              "canonicalUnchanged": true
+            },
+            "regression": "621/13993PASS/ 0 FAIL/ 0 SKIP",
+            "pushPreflight": "DEVICE_REGISTERED_TRANSPORT_TEST_BLOCKED_BY_CLI_PRIVILEGE_NO_SEND"
+          },
+          "latestCheckpoint": {
+            "sourceSha": "a18f31af8fdf768db2e9d02acee8f77f238e606d",
+            "visualSourceSha": "772c7eeb5a43ffd403a64fb20091822de5bfd881",
+            "workerSourceSha": "16cfdddf5d26bc73b8e6103673cb3f848be6f0a3",
+            "workerVersion": 71,
+            "ciRun": 39335921967,
+            "build": "BUILT",
+            "native": "BOUNDED_VISUAL_AND_IN_APP_NAVIGATION_PROVEN_EXTERNAL_REPEAT_LINK_P1_OPEN",
+            "wholeFlowComplete": false,
+            "evidence": "docs/current/evidence/AI_SPEED_20261019.json#latestCheckpoint",
+            "fullRegression": {
+              "status": "PASS",
+              "suites": 621,
+              "tests": 14014,
+              "failed": 0,
+              "skipped": 0
+            },
+            "apkSha256": "e9d497bfeafacba4860651286daaba83c419f6591a12d804aff84f5a3acd2494",
+            "nativeProof": "work/premium-emulator-20261020/native-verification.json"
           }
         }
       },
@@ -2675,8 +2832,10 @@
       },
       "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md",
       "source_progress_20261019_map_package": "DEV APPLIED / APK BUILT / SCOPED EMULATOR: Sačuvani profil i njegova potvrđena podešavanja ostaju iza eksplicitnog Save-a. Ovaj paket menja AI instrukcije, ali ne isporučuje novi završni javni prikaz profila niti automatsku predaju za stare profile. Izvor 7f202518, CI 39298019592: 621 paket / 13.968 testova PASS, instalirani APK hash i About/OTA potvrđeni. Osam tekstualnih AI odgovora/15 poziva/$0.135679 interna procena, 5.7–25.3s; pre Save-a kanonski otisci isti. Jedan eksplicitan native DRAFT Save; nema Publish/matching/push. Sažetak režima/predaje po usluzi u sačuvanom i javnom profilu; nema novog profile UI native dokaza u ovom paketu. docs/current/AI_MAP_PACKAGE_20261019.md",
-      "source_progress_20261019_warmth": "DEV APPLIED / LIVE SCOPED: Task112/Worker67, izvor7d584c27. Zajednički topao glas; delimične task činjenice; eksplicitne kalendarske operacije; kanonski naziv+UUID normalizuju pogrešno označen REUSE_ALIAS bez novih sinonima. Završni worker početak i ponedeljak READY, tačni sati, bez izmišljene opreme. 14 QA poruka/25 modelskih poziva/$0.189180 interna procena; kanonski otisci pre Save nepromenjeni. Brzina 5.5–12.9s, pozadinski katalog još nije uveden. Nema novog APK/native/push dokaza. docs/current/AI_WARMTH_TIMING_20261019.md Lokalni Jest621/621,13959PASS/9SKIP/0FAIL; završni Node i TypeScript PASS.",
-      "source_progress_20261019_speed": "DEV APPLIED / LIVE SCOPED: 7423c476, Task 113 / Worker 68, 36/36 fajlova exact. Četiri QA poruke / sedam modelskih poziva / 0,060348 USD interni obračun / 0 neobračunatih operacija. Oba nastavka imaju po 1 modelski poziv i 0 poziva alata; isti 3D UUID, REMOTE/dostava RS, budžet i samo ponedeljak očuvani. Pet kanonskih otisaka pre Save-a nepromenjeno. CI 39322097750: 621 paket / 13.968 PASS / 0 FAIL / 0 SKIP. APK BUILT i fizički bounded smoke PASS na HONOR-u (Početna, Zadaci/mapa, prazni Dogovori, Poruke, About; sesija očuvana); puni AI tok na telefonu ostaje PENDING; bez objave, aktivacije, matching-a ili push dokaza. Trajna pozadinska klasifikacija i prompt kompresija nisu uvedene. docs/current/AI_SPEED_20261019.md"
+      "source_progress_20261019_warmth": "DEV APPLIED / LIVE SCOPED: Task112/Worker67, izvor7d584c27. Zajednički topao glas; delimične task činjenice; eksplicitne kalendarske operacije; kanonski naziv+UUID normalizuju pogrešno označen REUSE_ALIAS bez novih sinonima. Završni worker početak i ponedeljak READY, tačni sati, bez izmišljene opreme. 14 QA poruka/25 modelskih poziva/$0.189180 interna procena; kanonski otisci pre Save nepromenjeni. Brzina 5.5–12.9s, pozadinski katalog još nije uveden. Nema novog APK/native/push dokaza. docs/current/AI_WARMTH_TIMING_20261019.md Lokalni Jest621/621,13959PASS/9SKIP/ 0 FAIL; završni Node i TypeScript PASS.",
+      "source_progress_20261019_speed": "DEV APPLIED / LIVE SCOPED: 7423c476, Task 113 / Worker 68, 36/36 fajlova exact. Četiri QA poruke / sedam modelskih poziva / 0,060348 USD interni obračun / 0 neobračunatih operacija. Oba nastavka imaju po 1 modelski poziv i 0 poziva alata; isti 3D UUID, REMOTE/dostava RS, budžet i samo ponedeljak očuvani. Pet kanonskih otisaka pre Save-a nepromenjeno. CI 39322097750: 621 paket / 13.968 PASS / 0 FAIL / 0 SKIP. APK BUILT i fizički bounded smoke PASS na HONOR-u (Početna, Zadaci/mapa, prazni Dogovori, Poruke, About; sesija očuvana); puni AI tok na telefonu ostaje PENDING; bez objave, aktivacije, matching-a ili push dokaza. Trajna pozadinska klasifikacija i prompt kompresija nisu uvedene. docs/current/AI_SPEED_20261019.md",
+      "source_progress_20261019_context": "ee7ae76e kontekst + UI 86b5; DEV114/69.4 READY/5 jednakih otisaka;7 poziva/0,059342USD, bez ukupnog ubrzanja. Proza naknadno ispravljena84751846 DEV115/70,36/36 exact;2 stvarna nastavka7,108/5,836s,2 READY/5 jednakih otisaka,2 poziva/ 0,015746 USD. ee7a CI621/13993PASS; novi native PENDING. Telefon registracija potvrđena, stvarna push isporuka UNTESTED. docs/current/AI_SPEED_20261019.md Push preflight: API privilege denied, flag readback unchanged; no SEND/fixture Save/Publish. Završni datirani checkpoint ee7a: CI SUCCESS/APKBUILT i bounded phone composer PASS; noviji kandidat ima odvojeni source_progress_20261020_checkpoint.",
+      "source_progress_20261020_checkpoint": "a18f31af / CI 39335921967 SUCCESS: 621 paket / 14.014 testova PASS, 0 FAIL, 0 SKIP. Tačan x86_64 APK instaliran je na emulator; sesija očuvana. Početna i detalj vizuelno pregledani na 361/390/412 dp × font 1,0/1,3. P1 OTVOREN: ponovljeni spoljašnji link ka vlasničkom detalju posle promene širine/fonta dva puta je dao prazan prikaz na 412 dp/1,3; normalan ulaz radi. Mapa ima ograničeni pregled zaglavlja/učitavanja, uz učitane pločice na 361/1 i 412/1,3; filteri, pretraga i in-app Nova prijava → pravi ekran Prijava provereni u navedenom opsegu. To nije celo native/end-to-end prihvatanje. DEV Task 115 / Worker 71; regioni i delimične strukturirane činjenice zadatka ostaju otvoreni."
     },
     {
       "id": "B02",
@@ -5809,7 +5968,7 @@
         "stanje": "DELIMIČNO",
         "dokaz": "Novo zvono vidi se na telefonu; ova provera nije nova push dostava. docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
-      "problem": "Postojeći in-app/exact-target klijent ostaje. Strogi matching ON ne pravi nove evente; u ovom paketu nema novog stvarnog cross-account opportunity/in-app/push događaja.",
+      "problem": "20.10: jedan stvaran QA RESPONSE_RECEIVED događaj i njegov in-app cilj provereni na emulatoru. Opportunity, grupe, voice/media, offline/reconnect i OS push tap nisu obuhvaćeni ovom probom.",
       "sledece": "Odluka 19.10, dokaz celog opsega PENDING: Dodati/proveriti zatvaranje stare prijave, novi izbor, usaglašen termin, otkaz i zamenu; bivši član nema nova grupna obaveštenja. Cilj ostaje autorizovan, deduplikovan i pošteno imenovan. docs/current/OWNER_DECISIONS_20261019.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
@@ -5840,8 +5999,8 @@
         "state_sync": "Inbox događaj→tačan B3 message window; ACK samo kroz postojeće merene prikazane poruke. Outbox/foto/workspace ostaju isti.",
         "performance": "Postojeće straničenje sačuvano.",
         "test": "Round38 / run36400916665: current P4 client suites (Inbox, message ingress, registry, preferences, readiness, runtime, settings) PASS; full Jest 342/7.214 PASS; TypeScript PASS.",
-        "device_proof": "Nema nove provere ove verzije; raniji dokazi ostaju istorijski.",
-        "status": "P4 CLIENT SOURCE/CI PASS / EXACT TRANSPORT OFF / CURRENT PROVIDER+DEVICE PROOF PENDING",
+        "device_proof": "a18f31af emulator: nova stvarna QA prijava vidljiva u obaveštenjima, klik otvara pravi ekran Prijave odgovarajućeg zadatka. To nije OS push banner/tap niti potvrda svih vrsta. work/premium-emulator-20261020/native-verification.json",
+        "status": "ONE_REAL_QA_IN_APP_EVENT_AND_EMULATOR_TARGET_PROVEN / OTHER_EVENTS_OPEN",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/P4_EXACT_MESSAGE_CLIENT_20260927.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_28_LIVE_CHAT_AND_PHONE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_38_P4_PUSH_SOURCE_AND_EXTERNAL_GATE_20260928.md",
         "round27": "HISTORICAL Round27; kasnija bounded primena i stvarna MESSAGE isporuka: finalization.push_phone_real_message_20261009. Direktni push event→ovlašćeni resolver→tačna poruka: klijent implementiran/proveren; transport nije primenjen i nema novog native/provider dokaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_27_PUSH_CONNECTION.md",
         "device": "Telefon preview35: run36345891205/b589994e instaliran sa -r, potpis i hash potvrđeni, nalog sačuvan; profil, postojeće pročitano obaveštenje→tačna prepiska→Nazad prošli. Novi B3c klijent nije u ovom APK-u. Emulator04b66de6: licence/isti ograničeni tok prošli. Bez novog provider slanja.",
@@ -5904,6 +6063,15 @@
           "edgeDeployed": false,
           "edgeCandidate": "docs/implementation/evidence/visual-rounds-20261010/ai-edge-candidate-59876dc6.json",
           "storeReady": false
+        },
+        "previous_status_before_20261020": "P4 CLIENT SOURCE/CI PASS / EXACT TRANSPORT OFF / CURRENT PROVIDER+DEVICE PROOF PENDING",
+        "premium_native_20261020": {
+          "sourceSha": "a18f31af8fdf768db2e9d02acee8f77f238e606d",
+          "eventId": "09abaf85-cd59-482d-9045-87dc035fe50d",
+          "responseId": "209efef9-65e6-46de-a4a1-122dfc4eafd8",
+          "status": "ONE_IN_APP_ROW_TARGET_PASS",
+          "proof": "work/premium-emulator-20261020/native-verification.json",
+          "osPushTapProven": false
         }
       },
       "alias_delivery_20261018": {
@@ -6110,8 +6278,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "Raniji stvarni Android dokaz 26.09. ostaje važeći u svom obimu: run 36254577674, jedan događaj/dostava/pokušaj; vlasnik je video obaveštenje i dodirom otvorio Inbox. Drugi, raniji stvarni događaj za poruku otvorio je odgovarajući Dogovor. Nov klijentski prikaz A1 dok je aplikacija otvorena još nije potvrđen na fizičkom telefonu; istorijski dokaz nije dokaz ove nove verzije."
       },
-      "problem": "Push v35 je objavljen, 2/2 fajla byte-identična. Reprodukovan v34 begin-receipt mismatch popravljen (3 fail-before / 128 pass-after). Global transport=true; single/message=false; opportunity flag absent. Nema novog provider send-a ili device acceptance; jedan UNKNOWN ostaje bez retry-a.",
-      "sledece": "Odluka 19.10, dokaz celog opsega PENDING: Proveriti celu delivery putanju i deduplikaciju događaja, preference i cutoff publike. Expo receipt nije dokaz da je osoba videla push; emulator ostaje odvojen od fizičkog push dokaza. docs/current/OWNER_DECISIONS_20261019.md.",
+      "problem": "Automatska operativna pumpa je dokazana za stvarnu QA prijavu. Preostaju provider receipt i vlasnikov potvrđeni prikaz/tap; ručni HTTP403 nije uzrok niti neuspeh automatskih slanja. Nema tvrdnje o svim tipovima ili kapacitetu.",
+      "sledece": "Pročitati dospeli receipt istog pokušaja i odvojeno sačekati vlasnikov prikaz/tap, bez novog SEND-a. Zatim proveriti ostale vrste i recovery kroz zasebne ovlašćene scenarije.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -6129,12 +6297,12 @@
         "flow": "Slanje obaveštenja na telefon",
         "ux": "Mapirano; detaljan krug sledi",
         "ui": "Postojeći prikaz; odobrenje po paketu",
-        "backend": "Current09Oct: SQL/Edge24 applied,ledger236/roster108; all flags OFF. Canonical handler now equals applied index. No new provider send.",
+        "backend": "19.10 22:59 UTC readback: push Edge35; automatski cron posao2 uskoci_edge_workers → edge_worker_tick_v5 → net.http_post potvrđen. Tri HTTP200/TICK_COMPLETED, tri TICKET_PENDING/sendCount1 za isti QA RESPONSE_RECEIVED događaj. Flagovi nisu promenjeni; raniji all-OFF navodi su istorijski.",
         "state_sync": "Bounded MESSAGE transport exact-event putanja; jedno pravilno otvaranje potvrđeno vlasnikom. Generička INBOX i ostale vrste nisu fizički potvrđene.",
         "performance": "Grupisanje dolaznih hintova i ograničena memorija ID-eva; bez stalnog polling-a.",
         "test": "Round38 / run36400916665: current P4 client suites (Inbox, message ingress, registry, preferences, readiness, runtime, settings) PASS; full Jest 342/7.214 PASS; TypeScript PASS.",
-        "device_proof": "09.10 jedna prirodna privatna tekstualna poruka: jedanSEND,PROVIDER_ACCEPTED; vlasnik potvrdio prijem i pravi razgovor. Owner-reported,bezADB/runtimeattestacije. evidence/push-real-message-20261009/receipt.json; ne grupa/voice/photo/OPPORTUNITY/sve vrste.",
-        "status": "ONE_PRIVATE_TEXT_MESSAGE_PROVIDER_AND_OWNER_PHONE_PROOF / FLAGS_OFF / OTHER_EVENTS_FINAL_APK_OPEN",
+        "device_proof": "Nema novog fizičkog prikaza/tap dokaza. Aktuelni HONOR ticket potvrđen je na serveru, kao i još dva registrovana uređaja; TICKET_PENDING nije potvrda prikaza. In-app cilj je zasebno potvrđen samo na emulatoru (P01).",
+        "status": "AUTOMATIC_CRON_EDGE_PUSH_TICKETS_PROVEN / PROVIDER_RECEIPT_AND_PHYSICAL_DISPLAY_PENDING",
         "evidence": "docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHAT_B3_APPLICATION.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_14_CHECKS.json; supabase/operations/dev-alpha/ledger/20260927_chat_b3_application.receipt.json; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_21_EXACT_PUSH_TARGET.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_28_LIVE_CHAT_AND_PHONE.md; docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_38_P4_PUSH_SOURCE_AND_EXTERNAL_GATE_20260928.md",
         "round27": "HISTORICAL Round27; kasnija bounded primena i stvarna MESSAGE isporuka: finalization.push_phone_real_message_20261009. Direktni push event→ovlašćeni resolver→tačna poruka: klijent implementiran/proveren; transport nije primenjen i nema novog native/provider dokaza. docs/implementation/product-v1-closure-20260926/finalization-20260927/ROUND_27_PUSH_CONNECTION.md",
         "device": "Telefon preview35: run36345891205/b589994e instaliran sa -r, potpis i hash potvrđeni, nalog sačuvan; profil, postojeće pročitano obaveštenje→tačna prepiska→Nazad prošli. Novi B3c klijent nije u ovom APK-u. Emulator04b66de6: licence/isti ograničeni tok prošli. Bez novog provider slanja.",
@@ -6236,6 +6404,20 @@
           "report": "docs/implementation/ui-ux-pass-20261002/STATUS_I_KRITERIJUMI_ZAVRSETKA_20261009.md",
           "source": "ce23eb06befd0260b71e0c334e5557da5df7639d",
           "phoneAcceptanceUpgraded": false
+        },
+        "previous_status_before_20261020": "ONE_PRIVATE_TEXT_MESSAGE_PROVIDER_AND_OWNER_PHONE_PROOF / FLAGS_OFF / OTHER_EVENTS_FINAL_APK_OPEN",
+        "push_application_20261020": {
+          "status": "APPLICATION_CREATED_PUSH_TICKET_PENDING_PHONE_RECEIPT_UNVERIFIED",
+          "checkedAt": "2026-10-19T22:59:34.133418Z",
+          "eventId": "09abaf85-cd59-482d-9045-87dc035fe50d",
+          "deliveryId": "901e68d7-8d4c-4d91-8ca6-c9c21e399631",
+          "scheduler": "PROVEN_AUTOMATIC_MINUTE_PUMP",
+          "devices": 3,
+          "sendCountPerDevice": 1,
+          "flagsChanged": false,
+          "providerReceipt": false,
+          "physicalDisplay": false,
+          "evidence": "docs/current/evidence/AI_SPEED_20261019.json#latestCheckpoint.push"
         }
       },
       "history_before_status_audit_20261009": {
@@ -8373,6 +8555,17 @@
       "summary": "DEV Task105/Worker58: oba razgovora koriste verzionisanu serversku pretragu celog kataloga i grana, bez whole-tree prompt-a. SQL20261019092405, PG16/17 PASS; 746 Node +56 završni delta PASS; 621 Jest paketa,13875 PASS/9skip. Pet QA poruka/16 modelpoziva,13–19s,0,143341USD interni obračun. Prva3READY; retka restauracija ostaje NEEDS_REVIEW zbog postojećih parentmodes. Nema Save/Publish/aktivacije; kanonski otisci nepromenjeni. docs/current/AI_CATALOG_TOOLS_20261019.md",
       "release_acceptance": false,
       "new_device_acceptance": false
+    },
+    "ai_client_checkpoint_20261020": {
+      "status": "APK_BUILT_BOUNDED_EMULATOR_REVIEW_OPEN_P1",
+      "report": "docs/current/AI_SPEED_20261019.md",
+      "summary": "a18f31af / CI 39335921967 SUCCESS: 621 paket / 14.014 testova PASS, 0 FAIL, 0 SKIP. Tačan x86_64 APK instaliran je na emulator; sesija očuvana. Početna i detalj vizuelno pregledani na 361/390/412 dp × font 1,0/1,3. P1 OTVOREN: ponovljeni spoljašnji link ka vlasničkom detalju posle promene širine/fonta dva puta je dao prazan prikaz na 412 dp/1,3; normalan ulaz radi. Mapa ima ograničeni pregled zaglavlja/učitavanja, uz učitane pločice na 361/1 i 412/1,3; filteri, pretraga i in-app Nova prijava → pravi ekran Prijava provereni u navedenom opsegu. To nije celo native/end-to-end prihvatanje. DEV Task 115 / Worker 71; regioni i delimične strukturirane činjenice zadatka ostaju otvoreni.",
+      "release_acceptance": false,
+      "new_device_acceptance": false,
+      "nativeProof": "work/premium-emulator-20261020/native-verification.json",
+      "openRiskRows": [
+        "A08"
+      ]
     }
   },
   "finalization": {
@@ -10657,7 +10850,7 @@
       "canonicalSourceSync": {
         "state": "CANONICAL_SOURCE_EQUALS_APPLIED_EDGE24 / NO_DEPLOY",
         "evidence": "docs/implementation/ui-ux-pass-20261002/evidence/push-source-sync-20261009/receipt.json",
-        "checks": "121PASS/0FAIL: N09 global handler, N10 copy, same10 single-target cases against both frozen and canonical handlers.",
+        "checks": "121PASS/ 0 FAIL: N09 global handler, N10 copy, same10 single-target cases against both frozen and canonical handlers.",
         "scope": "Exact already-applied Edge24 source integration; no new server behavior or send. Frozen promotion unchanged; historical generator guarded before writes."
       },
       "freshMessageProof": {

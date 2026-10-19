@@ -22,11 +22,23 @@
     "note": "Release nije potvrđen. Aktuelni baseline odvaja istorijski APK, lokalni kandidat, DEV readback i novu proveru. Legal/store brojači ostaju nepoznati bez odgovarajućeg dokaza; stari 30.09. zbir nije današnje stanje."
   },
   "next": {
-    "title": "Pozadinska klasifikacija i kraći kontekst; potom povezani tokovi",
-    "note": "7423c476 je primenjen: oba nastavka u probi koriste po jedan modelski poziv bez dodatnog alata, uz sveže serverske provere. Prvi unos ostaje 9,6–14,3 s. APK 7423c476 je izgrađen i ima ograničeni HONOR smoke uz očuvanu sesiju, bez AI poruke/Save/Publish/push probe. Sledeći composer/live-card kandidat SOURCE_VERIFIED (139/269 ciljane provere i TypeScript PASS) tek čeka commit/build/native dokaz. Slede trajni posao vezan za reviziju, oporavak i kraći situacioni kontekst; zatim jedan pregled, obuhvat, matching, grupni chat, push i devet UI talasa. Ceo proizvod nije proglašen završenim."
+    "title": "Otkloniti P1 ponovljenog spoljašnjeg ulaza i nastaviti povezane tokove",
+    "note": "a18f31af / CI 39335921967 SUCCESS: 621 paket / 14.014 testova PASS, 0 FAIL, 0 SKIP. Tačan x86_64 APK instaliran je na emulator; sesija očuvana. Početna i detalj vizuelno pregledani na 361/390/412 dp × font 1,0/1,3. P1 OTVOREN: ponovljeni spoljašnji link ka vlasničkom detalju posle promene širine/fonta dva puta je dao prazan prikaz na 412 dp/1,3; normalan ulaz radi. Mapa ima ograničeni pregled zaglavlja/učitavanja, uz učitane pločice na 361/1 i 412/1,3; filteri, pretraga i in-app Nova prijava → pravi ekran Prijava provereni u navedenom opsegu. To nije celo native/end-to-end prihvatanje. DEV Task 115 / Worker 71; regioni i delimične strukturirane činjenice zadatka ostaju otvoreni. Stvarna QA aktivacija i prijava su potvrđene; automatski cron/Edge transport dao je tri TICKET_PENDING pokušaja, po jedno slanje po registrovanom uređaju. Provider receipt i fizički prikaz/tap još čekaju. Četiri AI poziva fixture-a: 0,031413 USD, 0 neobračunatih u tom fixture-u; ranija evaluator rezervacija 0,25 USD ostaje OPEN."
   },
   "evidencePolicy": "Evidence su datirani zapisi rezultata na navedenom SHA/run-u, a ne aktivne instrukcije. Stare formulacije o odobrenju, freeze pravilima i STOP uslovima u njihovom result tekstu imaju samo istorijski status; aktuelni rad uređuju AGENTS.md, CURRENT_BASELINE_20261018 i PREMIUM_WHITE_CANON.",
   "evidence": [
+    {
+      "id": "AI-CLIENT-WORKER-20261020",
+      "sha": "a18f31af8fdf768db2e9d02acee8f77f238e606d",
+      "run": 39335921967,
+      "result": "a18f31af / CI 39335921967 SUCCESS: 621 paket / 14.014 testova PASS, 0 FAIL, 0 SKIP. Tačan x86_64 APK instaliran je na emulator; sesija očuvana. Početna i detalj vizuelno pregledani na 361/390/412 dp × font 1,0/1,3. P1 OTVOREN: ponovljeni spoljašnji link ka vlasničkom detalju posle promene širine/fonta dva puta je dao prazan prikaz na 412 dp/1,3; normalan ulaz radi. Mapa ima ograničeni pregled zaglavlja/učitavanja, uz učitane pločice na 361/1 i 412/1,3; filteri, pretraga i in-app Nova prijava → pravi ekran Prijava provereni u navedenom opsegu. To nije celo native/end-to-end prihvatanje. DEV Task 115 / Worker 71; regioni i delimične strukturirane činjenice zadatka ostaju otvoreni. Stvarna QA aktivacija i prijava su potvrđene; automatski cron/Edge transport dao je tri TICKET_PENDING pokušaja, po jedno slanje po registrovanom uređaju. Provider receipt i fizički prikaz/tap još čekaju. Četiri AI poziva fixture-a: 0,031413 USD, 0 neobračunatih u tom fixture-u; ranija evaluator rezervacija 0,25 USD ostaje OPEN. docs/current/AI_SPEED_20261019.md"
+    },
+    {
+      "id": "AI-CONTEXT-UI-20261019",
+      "sha": "ee7ae76ee5d60355ce4c079c2bb5beaf41ef3fb5",
+      "run": 39328153595,
+      "result": "Kontekst ee7ae76e DEV114/69,36/36 exact;4 READY/5 istih otisaka;7 poziva/0,059342USD, bez ukupnog ubrzanja. Naknadna proza 84751846 DEV115/70,36/36 exact;139 handler+ 1 prompt i2 stvarna nastavka PASS,7,108/5,836s,2 READY/5 istih otisaka,0,015746USD. ee7a CI 39328153595:621/13993PASS; novi native PENDING. HONOR registracija nije dokaz push isporuke. docs/current/AI_SPEED_20261019.md Push registration confirmed; transport test blocked by CLI privilege, flags unchanged, no SEND/fixture Save/Publish. Naknadni datirani dokaz: ee7a CI SUCCESS/APKBUILT; bounded phone composer/keyboard/unsent PASS. Novi client i Worker71 imaju odvojen checkpoint20.10."
+    },
     {
       "id": "AI-SPEED-20261019",
       "sha": "7423c476daccf4c62c4684e0a0db7c786e3c8ab8",
@@ -37,7 +49,7 @@
       "id": "AI-WARMTH-TIMING-20261019",
       "sha": "7d584c2758e69d1d41375d7597be1b215b8e1373",
       "run": null,
-      "result": "DEV Task112/Worker67; 34/34 fajla potvrđena. Topliji razgovori, ispravno prvo radno vreme i scoped ponedeljak, tačan kanonski ID; 14 QA poruka/25 poziva/$0.189180 interna procena. Brzina još otvorena; nema novog APK/native/push dokaza. docs/current/AI_WARMTH_TIMING_20261019.md Lokalni Jest621/621,13959PASS/9SKIP/0FAIL; završni Node i TypeScript PASS."
+      "result": "DEV Task112/Worker67; 34/34 fajla potvrđena. Topliji razgovori, ispravno prvo radno vreme i scoped ponedeljak, tačan kanonski ID; 14 QA poruka/25 poziva/$0.189180 interna procena. Brzina još otvorena; nema novog APK/native/push dokaza. docs/current/AI_WARMTH_TIMING_20261019.md Lokalni Jest621/621,13959PASS/9SKIP/ 0 FAIL; završni Node i TypeScript PASS."
     },
     {
       "id": "SERVICE-EXECUTION-20261019",

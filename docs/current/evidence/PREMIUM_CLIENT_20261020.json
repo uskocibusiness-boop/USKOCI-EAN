@@ -60,9 +60,42 @@
       "tests": 74,
       "result": "PASS"
     },
-    "fullRegression": "PENDING_CI",
-    "apk": "PENDING_BUILD",
-    "nativeScreens": "PENDING_EMULATOR"
+    "fullRegression": {
+      "suites": 621,
+      "tests": 14014,
+      "failed": 0,
+      "skipped": 0
+    },
+    "apk": {
+      "sha256": "e9d497bfeafacba4860651286daaba83c419f6591a12d804aff84f5a3acd2494",
+      "abi": "x86_64",
+      "installedDevice": "emulator-5554",
+      "install": "adb install -r; Success",
+      "sessionPreserved": true,
+      "aboutSource": "a18f31af8fdf768db2e9d02acee8f77f238e606d",
+      "ota": "embedded 0f9f0c7d",
+      "runtime": "uskoci-v1-preview-r1",
+      "channel": "preview",
+      "dirtyMarker": "CI Expo prebuild changes only package.json android/ios scripts; recorded diff"
+    },
+    "nativeScreens": {
+      "widthsDp": [
+        361,
+        390,
+        412
+      ],
+      "actual361Dp": 361.14285714285717,
+      "fontScales": [
+        1,
+        1.3
+      ],
+      "home": "VISUALLY_REVIEWED_ALL_SIX",
+      "detail": "VISUALLY_REVIEWED_ALL_SIX; 412/1.3 via normal in-app navigation, external repeat link anomaly retained",
+      "map": "HEADER_AND_LOADING_COMPOSITION_REVIEWED; loaded tiles additionally inspected at361/1 and412/1.3; not a throughput or all-pin test",
+      "search": "361/1 keyboard and explicit close inspected",
+      "filters": "361/1.15 settled layout and closing inspected",
+      "notification": "New QA event shown; tapping row opens correct task applications on emulator"
+    }
   },
   "retained": [
     "Ownership, privacy, explicit save/publish",
@@ -76,5 +109,28 @@
     "Price typography may use a named size suited to context",
     "Tab identity/state/lifecycle instead of duplicate icon layers and fixed green-on-white rendering",
     "Calendar color/day test uses a stable clock without removing assertions"
-  ]
+  ],
+  "nativeFindings": [
+    {
+      "status": "OPEN",
+      "severity": "P1",
+      "issue": "Repeated external owner-detail link after emulator width/font changes twice showed an empty native scene at412dp/font1.3, no ReactFatal; normal home→applications→task-title works",
+      "evidence": [
+        "screens/detail-blank-412-130.xml",
+        "screens/detail-ready-412-130.png",
+        "screens/detail-route-412-130.png",
+        "screens/detail-scrolled-412-130.png"
+      ],
+      "cause": "Unconfirmed; retained hidden tab with shift transition is candidate"
+    }
+  ],
+  "limits": [
+    "Phone installation of this new APK",
+    "Physical push banner or tapping OS notification",
+    "Whole two-account task-to-completion journey",
+    "Every offline/error/media state",
+    "Frame-rate/performance benchmark",
+    "New dark-mode support"
+  ],
+  "checkedAt": "2026-10-19T23:06:23.104Z"
 }
