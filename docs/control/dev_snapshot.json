@@ -1658,5 +1658,16 @@
     "phoneVerified": false,
     "releaseAccepted": false,
     "wholeApplicationAccepted": false
+  },
+  "ai_warmth_timing_refresh_20261019": {
+    "scope": "Edge-only readback after live warm conversation/calendar/identity probes. Existing unrelated inventory remains dated; no DDL or policy migration.",
+    "sourceSha": "7d584c2758e69d1d41375d7597be1b215b8e1373",
+    "taskVersion": 112,
+    "workerVersion": 67,
+    "filesMatched": 34,
+    "canonicalUnchanged": true,
+    "receipt": "supabase/operations/dev-alpha/ledger/20261019_ai_warmth_timing_edge.receipt.json",
+    "newApk": false,
+    "newNativeAcceptance": false
   }
 }

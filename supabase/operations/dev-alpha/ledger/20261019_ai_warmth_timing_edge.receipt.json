@@ -1,0 +1,35 @@
+{
+  "schema": "EDGE_APPLICATION_RECEIPT_V1",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "sourceSha": "7d584c2758e69d1d41375d7597be1b215b8e1373",
+  "deployment": [
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 112,
+      "files": 18,
+      "ezbr_sha256": "27da7c29bd307765cf181ff9f3981aaeff021cf0b2a9551310e969004f42ff5b",
+      "allFilesMatch": true
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 67,
+      "files": 16,
+      "ezbr_sha256": "8406f08b27e1a55ce3be2e350b36c7a682b4ae4204a36b150929b08cb9f4ba9a",
+      "allFilesMatch": true
+    }
+  ],
+  "evidence": "docs/current/evidence/AI_WARMTH_TIMING_20261019.json",
+  "canonicalUnchanged": true,
+  "qa": {
+    "logicalMessages": 14,
+    "modelCalls": 25,
+    "estimatedUsd": 0.18918,
+    "admissionRetiredAt": "2026-10-19T20:22:29.718634Z"
+  },
+  "rollback": {
+    "taskVersion": 108,
+    "workerVersion": 61,
+    "sourceSha": "0d5443de",
+    "savedPredecessorBundles": "work/ai-warmth-20261019/task-before.json and worker-before.json in the local Codex task"
+  }
+}

@@ -58,6 +58,10 @@ Izvor `82991de1`: [izveštaj](AI_FIRST_PACKAGE_20261019.md) i [dokaz](evidence/A
 
 [Izveštaj](AI_MAP_PACKAGE_20261019.md) i [dokaz](evidence/AI_MAP_PACKAGE_20261019.json): runtime **7f202518**, DEV **Task108/Worker61/LocationSearch24**. AI semantičke izmene, namenski map pin, razdvojeno čuvanje nacrta/objava, oporavak istog Need-a i očišćen početni upit adrese. CI **39298019592 SUCCESS: 621 / 13.968 PASS**. APK instaliran bez brisanja sesije, hash i About/embedded OTA potvrđeni. Native pregled/mapa na 361/390/412 dp × font 1.0/1.3, ruta, Back/neposlati tekst i offline retry potvrđeni na checkpoint-u 24736a79; završna automatska pretraga dodatno potvrđena na 7f202518. Osam AI odgovora/15 poziva/$0.135679 interna procena; **5.7–25.3s — brzina još otvorena**. Jedan eksplicitan DRAFT Save; nema Publish, aktivacije, matching ili push probe. Ovo ne zatvara celu aplikaciju ili javno izdanje.
 
+## Topliji AI i precizniji nacrt — 19.10.2026.
+
+[Izveštaj](AI_WARMTH_TIMING_20261019.md) i [dokaz](evidence/AI_WARMTH_TIMING_20261019.json): izvor **7d584c27**, DEV **Task112/Worker67**, 34/34 fajla potvrđena. Jedan topao glas, očuvanje nezavisnih odgovora, eksplicitne kalendarske operacije i tačan kanonski naziv/UUID. Završni radnički početak i izmena samo ponedeljka imaju READY pregled i ispravne sate. Ukupno 14 QA poruka/25 modelskih poziva/$0.189180 interne procene, bez kanonske izmene pre Save-a. **Brzina 5.5–12.9s ostaje otvorena**; merenja ukazuju na modelske krugove. Ovaj paket nema novi APK ili novu native/push potvrdu.
+
 ## Šta znači „trenutno“
 
 <!-- AI_LOCATION_GUIDANCE_START -->

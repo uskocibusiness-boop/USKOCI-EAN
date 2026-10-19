@@ -1,0 +1,1211 @@
+{
+  "schema": "USKOCI_AI_WARMTH_TIMING_V1",
+  "sourceSha": "7d584c2758e69d1d41375d7597be1b215b8e1373",
+  "initialCheckpoint": "8064b34b",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "deployment": [
+    {
+      "slug": "uskoci-ai-interview",
+      "version": 112,
+      "files": 18,
+      "ezbr_sha256": "27da7c29bd307765cf181ff9f3981aaeff021cf0b2a9551310e969004f42ff5b",
+      "allFilesMatch": true
+    },
+    {
+      "slug": "uskoci-worker-interview",
+      "version": 67,
+      "files": 16,
+      "ezbr_sha256": "8406f08b27e1a55ce3be2e350b36c7a682b4ae4204a36b150929b08cb9f4ba9a",
+      "allFilesMatch": true
+    }
+  ],
+  "billing": {
+    "model_calls": 25,
+    "prompt_tokens": 211530,
+    "output_tokens": 8140,
+    "estimated_microusd": "189180",
+    "unsettled_calls": 0,
+    "first_call": "2026-10-19 20:03:27.477603+00",
+    "last_call": "2026-10-19 20:21:15.986876+00"
+  },
+  "phaseMeasurements": [
+    {
+      "name": "initial",
+      "executions": [
+        {
+          "phasesMs": {
+            "NEED_CATALOG_START": 186,
+            "ADMISSION": 87,
+            "PROVIDER": 9900,
+            "ACCOUNTING": 186,
+            "CATALOG_TOOLS": 83,
+            "NEED_CATALOG_VERIFY": 208,
+            "NEED_COMPLETE": 152,
+            "NEED_HINT_CAPTURE": 121
+          },
+          "modelCalls": 2,
+          "promptTokens": 21881,
+          "outputTokens": 1142,
+          "guardCodes": []
+        },
+        {
+          "phasesMs": {
+            "NEED_CATALOG_START": 220,
+            "ADMISSION": 0,
+            "PROVIDER": 3966,
+            "ACCOUNTING": 97,
+            "NEED_CATALOG_VERIFY": 199,
+            "NEED_COMPLETE": 120,
+            "NEED_HINT_CAPTURE": 118
+          },
+          "modelCalls": 1,
+          "promptTokens": 11368,
+          "outputTokens": 413,
+          "guardCodes": []
+        },
+        {
+          "phasesMs": {
+            "WORKER_CATALOG_START": 140,
+            "ADMISSION": 81,
+            "PROVIDER": 6829,
+            "ACCOUNTING": 312,
+            "CATALOG_TOOLS": 78,
+            "WORKER_CATALOG_VERIFY": 233,
+            "WORKER_COMPLETE": 109
+          },
+          "modelCalls": 2,
+          "promptTokens": 14453,
+          "outputTokens": 505,
+          "guardCodes": []
+        },
+        {
+          "phasesMs": {
+            "WORKER_CATALOG_START": 192,
+            "ADMISSION": 75,
+            "PROVIDER": 7921,
+            "CATALOG_TOOLS": 0,
+            "ACCOUNTING": 233,
+            "WORKER_CATALOG_VERIFY": 320,
+            "WORKER_COMPLETE": 142,
+            "WORKER_HINT_CAPTURE": 97
+          },
+          "modelCalls": 2,
+          "promptTokens": 14954,
+          "outputTokens": 681,
+          "guardCodes": []
+        }
+      ]
+    },
+    {
+      "name": "retest",
+      "executions": [
+        {
+          "phasesMs": {
+            "NEED_CATALOG_START": 874,
+            "ADMISSION": 81,
+            "PROVIDER": 9853,
+            "ACCOUNTING": 167,
+            "CATALOG_TOOLS": 114,
+            "NEED_CATALOG_VERIFY": 188,
+            "NEED_COMPLETE": 140,
+            "NEED_HINT_CAPTURE": 87
+          },
+          "modelCalls": 2,
+          "promptTokens": 22126,
+          "outputTokens": 1119,
+          "guardCodes": []
+        },
+        {
+          "phasesMs": {
+            "NEED_CATALOG_START": 240,
+            "ADMISSION": 0,
+            "PROVIDER": 4880,
+            "ACCOUNTING": 66,
+            "NEED_CATALOG_VERIFY": 163,
+            "NEED_COMPLETE": 98,
+            "NEED_HINT_CAPTURE": 71
+          },
+          "modelCalls": 1,
+          "promptTokens": 11502,
+          "outputTokens": 418,
+          "guardCodes": []
+        },
+        {
+          "phasesMs": {
+            "WORKER_CATALOG_START": 156,
+            "ADMISSION": 73,
+            "PROVIDER": 5630,
+            "ACCOUNTING": 157,
+            "CATALOG_TOOLS": 78,
+            "WORKER_CATALOG_VERIFY": 71,
+            "WORKER_COMPLETE": 106
+          },
+          "modelCalls": 2,
+          "promptTokens": 14985,
+          "outputTokens": 281,
+          "guardCodes": [
+            "WORKER_AVAILABILITY_GUARD OPERATION_MISSING"
+          ]
+        },
+        {
+          "phasesMs": {
+            "WORKER_CATALOG_START": 218,
+            "ADMISSION": 71,
+            "PROVIDER": 5977,
+            "ACCOUNTING": 198,
+            "CATALOG_TOOLS": 1,
+            "WORKER_CATALOG_VERIFY": 155,
+            "WORKER_COMPLETE": 85,
+            "WORKER_HINT_CAPTURE": 103
+          },
+          "modelCalls": 2,
+          "promptTokens": 15759,
+          "outputTokens": 430,
+          "guardCodes": [
+            "WORKER_AVAILABILITY_GUARD OPERATION_MISSING"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "calendar_schema",
+      "executions": [
+        {
+          "phasesMs": {
+            "WORKER_CATALOG_START": 246,
+            "ADMISSION": 90,
+            "PROVIDER": 6697,
+            "ACCOUNTING": 294,
+            "CATALOG_TOOLS": 88,
+            "WORKER_CATALOG_VERIFY": 252,
+            "WORKER_COMPLETE": 144
+          },
+          "modelCalls": 2,
+          "promptTokens": 14985,
+          "outputTokens": 481,
+          "guardCodes": [
+            "WORKER_AVAILABILITY_GUARD OPERATION_MISSING"
+          ]
+        },
+        {
+          "phasesMs": {
+            "WORKER_CATALOG_START": 231,
+            "ADMISSION": 0,
+            "PROVIDER": 4590,
+            "ACCOUNTING": 75,
+            "WORKER_CATALOG_VERIFY": 201,
+            "WORKER_COMPLETE": 121
+          },
+          "modelCalls": 1,
+          "promptTokens": 7723,
+          "outputTokens": 419,
+          "guardCodes": [
+            "WORKER_AVAILABILITY_GUARD OPERATION_MISSING"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "calendar_contract",
+      "executions": [
+        {
+          "phasesMs": {
+            "WORKER_CATALOG_START": 186,
+            "ADMISSION": 61,
+            "PROVIDER": 8343,
+            "ACCOUNTING": 324,
+            "CATALOG_TOOLS": 87,
+            "WORKER_CATALOG_VERIFY": 409,
+            "WORKER_COMPLETE": 127
+          },
+          "modelCalls": 2,
+          "promptTokens": 14985,
+          "outputTokens": 678,
+          "guardCodes": [
+            "WORKER_TAXONOMY_PLAN_SHADOW ALIAS_EVIDENCE_REQUIRED"
+          ]
+        },
+        {
+          "phasesMs": {
+            "WORKER_CATALOG_START": 200,
+            "ADMISSION": 58,
+            "PROVIDER": 6056,
+            "CATALOG_TOOLS": 0,
+            "ACCOUNTING": 175,
+            "WORKER_CATALOG_VERIFY": 196,
+            "WORKER_COMPLETE": 103,
+            "WORKER_HINT_CAPTURE": 76
+          },
+          "modelCalls": 2,
+          "promptTokens": 15767,
+          "outputTokens": 457,
+          "guardCodes": [
+            "WORKER_TAXONOMY_PLAN_SHADOW REUSE_CANDIDATE"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "final",
+      "executions": [
+        {
+          "phasesMs": {
+            "WORKER_CATALOG_START": 224,
+            "ADMISSION": 74,
+            "PROVIDER": 8711,
+            "ACCOUNTING": 253,
+            "CATALOG_TOOLS": 87,
+            "WORKER_CATALOG_VERIFY": 176,
+            "WORKER_COMPLETE": 89,
+            "WORKER_HINT_CAPTURE": 109
+          },
+          "modelCalls": 2,
+          "promptTokens": 14985,
+          "outputTokens": 634,
+          "guardCodes": [
+            "WORKER_TAXONOMY_PLAN_SHADOW REUSE_CANDIDATE"
+          ]
+        },
+        {
+          "phasesMs": {
+            "WORKER_CATALOG_START": 200,
+            "ADMISSION": 87,
+            "PROVIDER": 6097,
+            "CATALOG_TOOLS": 0,
+            "ACCOUNTING": 175,
+            "WORKER_CATALOG_VERIFY": 208,
+            "WORKER_COMPLETE": 124,
+            "WORKER_HINT_CAPTURE": 70
+          },
+          "modelCalls": 2,
+          "promptTokens": 16057,
+          "outputTokens": 482,
+          "guardCodes": [
+            "WORKER_TAXONOMY_PLAN_SHADOW REUSE_CANDIDATE"
+          ]
+        }
+      ]
+    }
+  ],
+  "canonicalBefore": {
+    "needs": [],
+    "schema": "USKOCI_QA_READ_ONLY_V1",
+    "lineage": "DEV_ACCEPTANCE_QA",
+    "snapshot": {
+      "catalogFingerprint": "9a9a78bd9bf77ca89cf3f721605b45dd",
+      "needBindingsDigest": "d751713988987e9331980363e24189ce",
+      "needsCanonicalDigest": "d751713988987e9331980363e24189ce",
+      "workerBindingsDigest": "d751713988987e9331980363e24189ce",
+      "workerCanonicalDigest": "57f5081ced050a41b7e704774aa5f4a4"
+    },
+    "accountId": "90ff3ea8-286d-496f-9cdc-94ece1482662",
+    "checkedAt": "2026-10-19T20:12:18.13562+00:00",
+    "aiAdmitted": true,
+    "projectRef": "leqcwgzvjsxugfgzdmth",
+    "needBindings": [],
+    "workerStatus": "DRAFT",
+    "emailConfirmed": true,
+    "workerBindings": [],
+    "workerProfileId": "9620a4d9-fa54-4574-bbc0-1b7f830fee54",
+    "discoveryTestWorld": true
+  },
+  "canonicalAfter": {
+    "needs": [],
+    "schema": "USKOCI_QA_READ_ONLY_V1",
+    "lineage": "DEV_ACCEPTANCE_QA",
+    "snapshot": {
+      "catalogFingerprint": "9a9a78bd9bf77ca89cf3f721605b45dd",
+      "needBindingsDigest": "d751713988987e9331980363e24189ce",
+      "needsCanonicalDigest": "d751713988987e9331980363e24189ce",
+      "workerBindingsDigest": "d751713988987e9331980363e24189ce",
+      "workerCanonicalDigest": "57f5081ced050a41b7e704774aa5f4a4"
+    },
+    "accountId": "90ff3ea8-286d-496f-9cdc-94ece1482662",
+    "checkedAt": "2026-10-19T20:21:55.106906+00:00",
+    "aiAdmitted": true,
+    "projectRef": "leqcwgzvjsxugfgzdmth",
+    "needBindings": [],
+    "workerStatus": "DRAFT",
+    "emailConfirmed": true,
+    "workerBindings": [],
+    "workerProfileId": "9620a4d9-fa54-4574-bbc0-1b7f830fee54",
+    "discoveryTestWorld": true
+  },
+  "qaRetiredAt": "2026-10-19T20:22:29.718634Z",
+  "canonicalUnchanged": true,
+  "tests": {
+    "initialFocusedNode": {
+      "passed": 318,
+      "failed": 0
+    },
+    "finalWorkerNode": {
+      "passed": 75,
+      "failed": 0
+    },
+    "finalCatalogNode": {
+      "passed": 93,
+      "failed": 0
+    },
+    "finalAcceptanceHarness": {
+      "passed": 9,
+      "failed": 0
+    },
+    "typescript": "PASS",
+    "fullJest": {
+      "success": true,
+      "passedSuites": 621,
+      "failedSuites": 0,
+      "passedTests": 13959,
+      "failedTests": 0,
+      "skippedTests": 9,
+      "totalTests": 13968,
+      "passedSnapshots": 3,
+      "durationSeconds": 1773.902,
+      "sourceNote": "Started on 8064b34b; the native client did not change during this run. Subsequent Edge deltas have the separately listed final Node tests and TypeScript checks.",
+      "resultSha256": "4e0407bb23bf047e92fdd0ebcf293b1aa16b9187459279a0f778c7f445e3a94b"
+    },
+    "countNote": "Focused suites overlap; do not add these counts as unique tests."
+  },
+  "native": {
+    "newApkBuilt": false,
+    "newEmulatorAcceptance": false,
+    "clientChanged": false,
+    "reason": "Edge-only package; existing installed client consumes these server endpoints. Prior native evidence remains separately dated."
+  },
+  "limits": [
+    "Background classification queue not implemented",
+    "Latency remains 5.5–12.9s in this bounded sample; no demonstrated speedup",
+    "No task publication, active profile save, matching or push delivery in this probe",
+    "Warmth tested with synthetic QA text only; voice/native UX not retested",
+    "No perfection claim or full-app release acceptance"
+  ],
+  "live": [
+    {
+      "name": "initial",
+      "taskVersion": 110,
+      "workerVersion": 63,
+      "startedAt": "2026-10-19T20:03:22.740Z",
+      "finishedAt": "2026-10-19T20:04:01.647Z",
+      "result": "CONVERSATIONS_RECORDED_AWAITING_READ_ONLY_PRESAVE_PROOF",
+      "failure": null,
+      "logicalMessages": 4,
+      "turns": [
+        {
+          "flow": "need",
+          "userText": "Hej 🙂 Prvi put tražim ovako nešto: treba mi mala 3D figurica po gotovom STL fajlu. Nemam pojma koliko to košta, neka mi ljudi pošalju ponude. Jedna osoba, nije mi hitno, potpuno fleksibilno. Izrada kod majstora i slanje kurirskom službom u Srbiji, bez dolaska kod mene i bez ličnog preuzimanja.",
+          "assistantText": "Sve zvuči jasno! Da li imaš neke posebne zahteve oko materijala, boje ili okvirnih dimenzija figurice, ili to prepuštaš dogovoru sa majstorom kroz ponude?",
+          "elapsedMs": 12436,
+          "outcome": "OWNED_SUCCEEDED_READBACK"
+        },
+        {
+          "flow": "need",
+          "userText": "E ipak menjam samo budžet, ukupno 5000 dinara. Sve ostalo ostaje kako sam rekao.",
+          "assistantText": "Važi, postavili smo budžet na 5.000 RSD za ceo posao. 🙂 Sve ostalo je zabeleženo, pa možeš da otvoriš pregled i objaviš zadatak.",
+          "elapsedMs": 5551,
+          "outcome": "OWNED_SUCCEEDED_READBACK"
+        },
+        {
+          "flow": "worker",
+          "userText": "Hej 🙂 Nudim 3D štampu figurica po gotovim STL fajlovima, radim kod sebe i šaljem kurirskom službom samo po Srbiji. Ne dolazim kod naručioca i nema ličnog preuzimanja. Novi Sad, Srbija. Radnim danima mogu od 15 do 19, vikendom ne radim. Ostale postojeće usluge ne menjam.",
+          "assistantText": "Samo još da razjasnimo dostupnost: koje dane i sate želiš da promeniš? Ostale jasne izmene zadržavamo u nacrtu.\n\nPodaci ostaju u nacrtu, ali povezivanje vrste usluge još nije provereno. Nije potrebno da ponavljaš već date podatke.",
+          "elapsedMs": 9258,
+          "outcome": "OWNED_SUCCEEDED_READBACK"
+        },
+        {
+          "flow": "worker",
+          "userText": "Samo ponedeljkom ipak mogu od 18 do 20, ostalim radnim danima ostaje isto.",
+          "assistantText": "Ponedeljak je podešen na 18:00–20:00, dok su ostali radni dani ostali 15:00–19:00. Možeš da pregledaš profil i sačuvaš ga kada budeš spreman. 🙂",
+          "elapsedMs": 9704,
+          "outcome": "OWNED_SUCCEEDED_READBACK"
+        }
+      ],
+      "cases": [
+        {
+          "name": "need-warmth-execution",
+          "calendarProof": null,
+          "reviews": [
+            {
+              "classificationState": "READY",
+              "canAccept": true,
+              "profile": null,
+              "classificationCandidates": [
+                {
+                  "mode": "REMOTE",
+                  "action": "REUSE_EXISTING",
+                  "reason": "Verified existing canonical identity or registered server alias",
+                  "handoff": {
+                    "required": true,
+                    "shippingCountries": [
+                      "RS"
+                    ]
+                  },
+                  "service": "3D printovanje",
+                  "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+                  "catalogVersion": 7
+                }
+              ]
+            },
+            {
+              "classificationState": "READY",
+              "canAccept": true,
+              "profile": null,
+              "classificationCandidates": [
+                {
+                  "mode": "REMOTE",
+                  "action": "REUSE_EXISTING",
+                  "reason": "Verified existing canonical identity or registered server alias",
+                  "handoff": {
+                    "required": true,
+                    "shippingCountries": [
+                      "RS"
+                    ]
+                  },
+                  "service": "3D printovanje",
+                  "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+                  "catalogVersion": 7
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "worker-warmth-execution",
+          "calendarProof": null,
+          "reviews": [
+            {
+              "classificationState": "REVIEW_REQUIRED",
+              "canAccept": true,
+              "profile": {
+                "bio": "",
+                "tools": [
+                  "3D štampač"
+                ],
+                "skills": [
+                  "3D printovanje"
+                ],
+                "licenses": [],
+                "location": {
+                  "city": "Novi Sad",
+                  "radiusKm": 15,
+                  "approximatePosition": null,
+                  "operatingCountryCode": "RS"
+                },
+                "vehicles": [
+                  "Nema vozila za usluge posla (rad od kuće / kurirsko slanje)"
+                ],
+                "displayName": "USKOČI korisnik",
+                "availability": {
+                  "rules": [],
+                  "windows": [],
+                  "timezone": "Europe/Belgrade",
+                  "availableNow": false
+                },
+                "teamCapacity": 1
+              },
+              "classificationCandidates": []
+            },
+            {
+              "classificationState": "READY",
+              "canAccept": true,
+              "profile": {
+                "bio": "3D štampa figurica po gotovim STL fajlovima. Rad od kuće i slanje kurirskom službom po Srbiji (bez ličnog preuzimanja).",
+                "tools": [
+                  "3D štampač"
+                ],
+                "skills": [
+                  "3D printovanje"
+                ],
+                "licenses": [],
+                "location": {
+                  "city": "Novi Sad",
+                  "radiusKm": 15,
+                  "approximatePosition": null,
+                  "operatingCountryCode": "RS"
+                },
+                "vehicles": [
+                  "Nema vozila za usluge posla (rad od kuće / kurirsko slanje)"
+                ],
+                "displayName": "USKOČI korisnik",
+                "availability": {
+                  "rules": [
+                    {
+                      "id": "4acdda84-a6eb-40a9-9557-6ba65ee1952f",
+                      "label": "Ponedeljak",
+                      "active": true,
+                      "endsOn": null,
+                      "endTime": "20:00:00",
+                      "startsOn": "2026-10-19",
+                      "weekdays": [
+                        1
+                      ],
+                      "startTime": "18:00:00"
+                    },
+                    {
+                      "id": "f33fec47-156b-41cd-bbdd-b9c4861c7e10",
+                      "label": "Radni dani",
+                      "active": true,
+                      "endsOn": null,
+                      "endTime": "19:00:00",
+                      "startsOn": "2026-10-19",
+                      "weekdays": [
+                        2,
+                        3,
+                        4,
+                        5
+                      ],
+                      "startTime": "15:00:00"
+                    }
+                  ],
+                  "windows": [],
+                  "timezone": "Europe/Belgrade",
+                  "availableNow": false
+                },
+                "teamCapacity": 1
+              },
+              "classificationCandidates": [
+                {
+                  "mode": "REMOTE",
+                  "action": "REUSE_EXISTING",
+                  "reason": "Verified existing canonical identity or registered server alias",
+                  "handoff": {
+                    "required": true,
+                    "shippingCountries": [
+                      "RS"
+                    ]
+                  },
+                  "service": "3D printovanje",
+                  "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+                  "catalogVersion": 7
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "calendar-instructions",
+      "taskVersion": 111,
+      "workerVersion": 64,
+      "startedAt": "2026-10-19T20:12:33.343Z",
+      "finishedAt": "2026-10-19T20:13:09.015Z",
+      "result": "STOPPED_NO_AUTOMATIC_RETRY",
+      "failure": "WORKER_INVENTED_RESOURCES",
+      "logicalMessages": 4,
+      "turns": [
+        {
+          "flow": "need",
+          "userText": "Hej 🙂 Prvi put tražim ovako nešto: treba mi mala 3D figurica po gotovom STL fajlu. Nemam pojma koliko to košta, neka mi ljudi pošalju ponude. Jedna osoba, nije mi hitno, potpuno fleksibilno. Izrada kod majstora i slanje kurirskom službom u Srbiji, bez dolaska kod mene i bez ličnog preuzimanja.",
+          "assistantText": "Sve bitne stavke su tu: 3D štampa figurice iz tvog STL fajla, slanje kurirskom službom po Srbiji, fleksibilan rok i prikupljanje ponuda. Možeš da otvoriš pregled i objaviš zadatak kada proveriš detalje. 🙂",
+          "elapsedMs": 12856,
+          "outcome": "OWNED_SUCCEEDED_READBACK"
+        },
+        {
+          "flow": "need",
+          "userText": "E ipak menjam samo budžet, ukupno 5000 dinara. Sve ostalo ostaje kako sam rekao.",
+          "assistantText": "Važi, budžet je postavljen na 5.000 RSD ukupno, a sve ostalo ostaje isto. Možeš da otvoriš pregled i objaviš zadatak. 🙂",
+          "elapsedMs": 6271,
+          "outcome": "OWNED_SUCCEEDED_READBACK"
+        },
+        {
+          "flow": "worker",
+          "userText": "Hej 🙂 Nudim 3D štampu figurica po gotovim STL fajlovima, radim kod sebe i šaljem kurirskom službom samo po Srbiji. Ne dolazim kod naručioca i nema ličnog preuzimanja. Novi Sad, Srbija. Radnim danima mogu od 15 do 19, vikendom ne radim. Ostale postojeće usluge ne menjam.",
+          "assistantText": "Samo još da razjasnimo dostupnost: koje dane i sate želiš da promeniš? Ostale jasne izmene zadržavamo u nacrtu.\n\nPodaci ostaju u nacrtu, ali povezivanje vrste usluge još nije provereno. Nije potrebno da ponavljaš već date podatke.",
+          "elapsedMs": 7655,
+          "outcome": "OWNED_SUCCEEDED_READBACK"
+        },
+        {
+          "flow": "worker",
+          "userText": "Samo ponedeljkom ipak mogu od 18 do 20, ostalim radnim danima ostaje isto.",
+          "assistantText": "Samo još da razjasnimo dostupnost: koje dane i sate želiš da promeniš? Ostale jasne izmene zadržavamo u nacrtu.",
+          "elapsedMs": 7542,
+          "outcome": "OWNED_SUCCEEDED_READBACK"
+        }
+      ],
+      "cases": [
+        {
+          "name": "need-warmth-execution",
+          "calendarProof": null,
+          "reviews": [
+            {
+              "classificationState": "READY",
+              "canAccept": true,
+              "profile": null,
+              "classificationCandidates": [
+                {
+                  "mode": "REMOTE",
+                  "action": "REUSE_EXISTING",
+                  "reason": "Verified existing canonical identity or registered server alias",
+                  "handoff": {
+                    "required": true,
+                    "shippingCountries": [
+                      "RS"
+                    ]
+                  },
+                  "service": "3D printovanje",
+                  "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+                  "catalogVersion": 7
+                }
+              ]
+            },
+            {
+              "classificationState": "READY",
+              "canAccept": true,
+              "profile": null,
+              "classificationCandidates": [
+                {
+                  "mode": "REMOTE",
+                  "action": "REUSE_EXISTING",
+                  "reason": "Verified existing canonical identity or registered server alias",
+                  "handoff": {
+                    "required": true,
+                    "shippingCountries": [
+                      "RS"
+                    ]
+                  },
+                  "service": "3D printovanje",
+                  "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+                  "catalogVersion": 7
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "worker-warmth-execution",
+          "calendarProof": null,
+          "reviews": [
+            {
+              "classificationState": "REVIEW_REQUIRED",
+              "canAccept": true,
+              "profile": {
+                "bio": "3D štampa figurica po gotovim STL fajlovima. Radim kod sebe i šaljem kurirskom službom po Srbiji (bez terenskog rada i bez ličnog preuzimanja).",
+                "tools": [
+                  "3D štampač"
+                ],
+                "skills": [
+                  "3D printovanje"
+                ],
+                "licenses": [],
+                "location": {
+                  "city": "",
+                  "radiusKm": 15,
+                  "approximatePosition": null,
+                  "operatingCountryCode": null
+                },
+                "vehicles": [
+                  "Nema vozila / Ne koristim vozilo za posao"
+                ],
+                "displayName": "USKOČI korisnik",
+                "availability": {
+                  "rules": [],
+                  "windows": [],
+                  "timezone": "Europe/Belgrade",
+                  "availableNow": false
+                },
+                "teamCapacity": 1
+              },
+              "classificationCandidates": []
+            },
+            {
+              "classificationState": "READY",
+              "canAccept": true,
+              "profile": {
+                "bio": "3D štampa figurica po gotovim STL fajlovima. Radim kod sebe i šaljem kurirskom službom po Srbiji (bez terenskog rada i bez ličnog preuzimanja).",
+                "tools": [
+                  "3D štampač"
+                ],
+                "skills": [
+                  "3D printovanje"
+                ],
+                "licenses": [],
+                "location": {
+                  "city": "Novi Sad",
+                  "radiusKm": 15,
+                  "approximatePosition": null,
+                  "operatingCountryCode": "RS"
+                },
+                "vehicles": [],
+                "displayName": "USKOČI korisnik",
+                "availability": {
+                  "rules": [],
+                  "windows": [],
+                  "timezone": "Europe/Belgrade",
+                  "availableNow": false
+                },
+                "teamCapacity": 1
+              },
+              "classificationCandidates": [
+                {
+                  "mode": "REMOTE",
+                  "action": "REUSE_EXISTING",
+                  "reason": "Verified existing canonical identity or registered server alias",
+                  "handoff": {
+                    "required": true,
+                    "shippingCountries": [
+                      "RS"
+                    ]
+                  },
+                  "service": "3D printovanje",
+                  "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+                  "catalogVersion": 7
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "schema-descriptions",
+      "taskVersion": 111,
+      "workerVersion": 65,
+      "startedAt": "2026-10-19T20:15:39.832Z",
+      "finishedAt": "2026-10-19T20:15:56.252Z",
+      "result": "STOPPED_NO_AUTOMATIC_RETRY",
+      "failure": "WORKER_CALENDAR_INITIAL_OR_SCOPED_EDIT_WRONG",
+      "logicalMessages": 2,
+      "turns": [
+        {
+          "flow": "worker",
+          "userText": "Hej 🙂 Nudim 3D štampu figurica po gotovim STL fajlovima, radim kod sebe i šaljem kurirskom službom samo po Srbiji. Ne dolazim kod naručioca i nema ličnog preuzimanja. Novi Sad, Srbija. Radnim danima mogu od 15 do 19, vikendom ne radim. Ostale postojeće usluge ne menjam.",
+          "assistantText": "Samo još da razjasnimo dostupnost: koje dane i sate želiš da promeniš? Ostale jasne izmene zadržavamo u nacrtu.\n\nPodaci ostaju u nacrtu, ali povezivanje vrste usluge još nije provereno. Nije potrebno da ponavljaš već date podatke.",
+          "elapsedMs": 9182,
+          "outcome": "OWNED_SUCCEEDED_READBACK"
+        },
+        {
+          "flow": "worker",
+          "userText": "Samo ponedeljkom ipak mogu od 18 do 20, ostalim radnim danima ostaje isto.",
+          "assistantText": "Samo još da razjasnimo dostupnost: koje dane i sate želiš da promeniš? Ostale jasne izmene zadržavamo u nacrtu.",
+          "elapsedMs": 6296,
+          "outcome": "OWNED_SUCCEEDED_READBACK"
+        }
+      ],
+      "cases": [
+        {
+          "name": "worker-warmth-execution",
+          "calendarProof": null,
+          "reviews": [
+            {
+              "classificationState": "REVIEW_REQUIRED",
+              "canAccept": true,
+              "profile": {
+                "bio": "3D štampa figurica po gotovim STL fajlovima. Izrada u sopstvenom prostoru uz slanje kurirskom službom na teritoriji Srbije (bez terenskog rada i bez ličnog preuzimanja).",
+                "tools": [],
+                "skills": [
+                  "3D printovanje"
+                ],
+                "licenses": [],
+                "location": {
+                  "city": "",
+                  "radiusKm": 15,
+                  "approximatePosition": null,
+                  "operatingCountryCode": null
+                },
+                "vehicles": [],
+                "displayName": "USKOČI korisnik",
+                "availability": {
+                  "rules": [],
+                  "windows": [],
+                  "timezone": "Europe/Belgrade",
+                  "availableNow": false
+                },
+                "teamCapacity": 1
+              },
+              "classificationCandidates": []
+            },
+            {
+              "classificationState": "READY",
+              "canAccept": true,
+              "profile": {
+                "bio": "3D štampa figurica po gotovim STL fajlovima. Izrada u sopstvenom prostoru uz slanje kurirskom službom na teritoriji Srbije (bez terenskog rada i bez ličnog preuzimanja).",
+                "tools": [],
+                "skills": [
+                  "3D printovanje"
+                ],
+                "licenses": [],
+                "location": {
+                  "city": "Novi Sad",
+                  "radiusKm": 15,
+                  "approximatePosition": null,
+                  "operatingCountryCode": "RS"
+                },
+                "vehicles": [],
+                "displayName": "USKOČI korisnik",
+                "availability": {
+                  "rules": [],
+                  "windows": [],
+                  "timezone": "Europe/Belgrade",
+                  "availableNow": false
+                },
+                "teamCapacity": 1
+              },
+              "classificationCandidates": [
+                {
+                  "mode": "REMOTE",
+                  "action": "REUSE_EXISTING",
+                  "reason": "Verified existing canonical identity or registered server alias",
+                  "handoff": {
+                    "required": true,
+                    "shippingCountries": [
+                      "RS"
+                    ]
+                  },
+                  "service": "3D printovanje",
+                  "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+                  "catalogVersion": 7
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "required-calendar",
+      "taskVersion": 111,
+      "workerVersion": 66,
+      "startedAt": "2026-10-19T20:17:44.080Z",
+      "finishedAt": "2026-10-19T20:18:04.243Z",
+      "result": "CONVERSATIONS_RECORDED_AWAITING_READ_ONLY_PRESAVE_PROOF",
+      "failure": null,
+      "logicalMessages": 2,
+      "turns": [
+        {
+          "flow": "worker",
+          "userText": "Hej 🙂 Nudim 3D štampu figurica po gotovim STL fajlovima, radim kod sebe i šaljem kurirskom službom samo po Srbiji. Ne dolazim kod naručioca i nema ličnog preuzimanja. Novi Sad, Srbija. Radnim danima mogu od 15 do 19, vikendom ne radim. Ostale postojeće usluge ne menjam.",
+          "assistantText": "Dodao sam 3D štampu u tvoje usluge, sa radom na daljinu i slanjem poštom unutar Srbije, kao i radno vreme od 15 do 19 h radnim danima. 🙂 Sve važne stavke su spremne, pa možeš da baciš pogled na pregled profila.\n\nPodaci ostaju u nacrtu, ali povezivanje vrste usluge još nije provereno. Nije potrebno da ponavljaš već date podatke.",
+          "elapsedMs": 10941,
+          "outcome": "OWNED_SUCCEEDED_READBACK"
+        },
+        {
+          "flow": "worker",
+          "userText": "Samo ponedeljkom ipak mogu od 18 do 20, ostalim radnim danima ostaje isto.",
+          "assistantText": "Pomerio sam termin za ponedeljak na 18 do 20 h, dok za ostale radne dane ostaje od 15 do 19 h. 🙂 Možeš da pogledaš pregled profila.",
+          "elapsedMs": 8243,
+          "outcome": "OWNED_SUCCEEDED_READBACK"
+        }
+      ],
+      "cases": [
+        {
+          "name": "worker-warmth-execution",
+          "calendarProof": {
+            "initialHoursPreserved": true,
+            "mondayOnlyChanged": true,
+            "resourcesNotInvented": true
+          },
+          "reviews": [
+            {
+              "classificationState": "REVIEW_REQUIRED",
+              "canAccept": true,
+              "profile": {
+                "bio": "3D štampa figurica po gotovim STL fajlovima. Izrada kod sebe i slanje kurirskom službom po Srbiji (bez ličnog preuzimanja i dolaska na adresu).",
+                "tools": [],
+                "skills": [
+                  "3D printovanje"
+                ],
+                "licenses": [],
+                "location": {
+                  "city": "Novi Sad",
+                  "radiusKm": 15,
+                  "approximatePosition": null,
+                  "operatingCountryCode": "RS"
+                },
+                "vehicles": [],
+                "displayName": "USKOČI korisnik",
+                "availability": {
+                  "rules": [
+                    {
+                      "id": "653db3c4-05db-49f1-88aa-5a75a178ff99",
+                      "label": "Radni dani",
+                      "active": true,
+                      "endsOn": null,
+                      "endTime": "19:00:00",
+                      "startsOn": "2026-10-19",
+                      "weekdays": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                      ],
+                      "startTime": "15:00:00"
+                    }
+                  ],
+                  "windows": [],
+                  "timezone": "Europe/Belgrade",
+                  "availableNow": false
+                },
+                "teamCapacity": 1
+              },
+              "classificationCandidates": []
+            },
+            {
+              "classificationState": "READY",
+              "canAccept": true,
+              "profile": {
+                "bio": "3D štampa figurica po gotovim STL fajlovima. Izrada kod sebe i slanje kurirskom službom po Srbiji (bez ličnog preuzimanja i dolaska na adresu).",
+                "tools": [],
+                "skills": [
+                  "3D printovanje"
+                ],
+                "licenses": [],
+                "location": {
+                  "city": "Novi Sad",
+                  "radiusKm": 15,
+                  "approximatePosition": null,
+                  "operatingCountryCode": "RS"
+                },
+                "vehicles": [],
+                "displayName": "USKOČI korisnik",
+                "availability": {
+                  "rules": [
+                    {
+                      "id": "653db3c4-05db-49f1-88aa-5a75a178ff99",
+                      "label": "Radni dani",
+                      "active": true,
+                      "endsOn": null,
+                      "endTime": "19:00:00",
+                      "startsOn": "2026-10-19",
+                      "weekdays": [
+                        2,
+                        3,
+                        4,
+                        5
+                      ],
+                      "startTime": "15:00:00"
+                    },
+                    {
+                      "id": "f6e15e0a-b505-4545-9db9-fa02f90195f9",
+                      "label": "Ponedeljak",
+                      "active": true,
+                      "endsOn": null,
+                      "endTime": "20:00:00",
+                      "startsOn": "2026-10-19",
+                      "weekdays": [
+                        1
+                      ],
+                      "startTime": "18:00:00"
+                    }
+                  ],
+                  "windows": [],
+                  "timezone": "Europe/Belgrade",
+                  "availableNow": false
+                },
+                "teamCapacity": 1
+              },
+              "classificationCandidates": [
+                {
+                  "mode": "REMOTE",
+                  "action": "REUSE_EXISTING",
+                  "reason": "Verified existing canonical identity or registered server alias",
+                  "handoff": {
+                    "required": true,
+                    "shippingCountries": [
+                      "RS"
+                    ]
+                  },
+                  "service": "3D printovanje",
+                  "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+                  "catalogVersion": 7
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "final",
+      "taskVersion": 112,
+      "workerVersion": 67,
+      "startedAt": "2026-10-19T20:20:56.934Z",
+      "finishedAt": "2026-10-19T20:21:16.624Z",
+      "result": "CONVERSATIONS_RECORDED_AWAITING_READ_ONLY_PRESAVE_PROOF",
+      "failure": null,
+      "logicalMessages": 2,
+      "turns": [
+        {
+          "flow": "worker",
+          "userText": "Hej 🙂 Nudim 3D štampu figurica po gotovim STL fajlovima, radim kod sebe i šaljem kurirskom službom samo po Srbiji. Ne dolazim kod naručioca i nema ličnog preuzimanja. Novi Sad, Srbija. Radnim danima mogu od 15 do 19, vikendom ne radim. Ostale postojeće usluge ne menjam.",
+          "assistantText": "Dodao sam 3D printovanje figurica na daljinu, uz slanje kurirskom službom po Srbiji, kao i tvoje radno vreme radnim danima od 15 do 19 h. Možeš da pregledaš profil i sačuvaš ga kada budeš spreman. 🙂",
+          "elapsedMs": 11083,
+          "outcome": "OWNED_SUCCEEDED_READBACK"
+        },
+        {
+          "flow": "worker",
+          "userText": "Samo ponedeljkom ipak mogu od 18 do 20, ostalim radnim danima ostaje isto.",
+          "assistantText": "Pomerio sam ponedeljak na termin od 18 do 20 h, dok za ostale radne dane ostaje od 15 do 19 h. Možeš da baciš pogled na profil i sačuvaš izmene kad god poželiš. 🙂",
+          "elapsedMs": 7637,
+          "outcome": "OWNED_SUCCEEDED_READBACK"
+        }
+      ],
+      "cases": [
+        {
+          "name": "worker-warmth-execution",
+          "calendarProof": {
+            "initialHoursPreserved": true,
+            "mondayOnlyChanged": true,
+            "resourcesNotInvented": true
+          },
+          "reviews": [
+            {
+              "classificationState": "READY",
+              "canAccept": true,
+              "profile": {
+                "bio": "3D štampa figurica po gotovim STL fajlovima. Rad od kuće i slanje kurirskom službom po Srbiji (bez terenskog rada i bez ličnog preuzimanja).",
+                "tools": [],
+                "skills": [
+                  "3D printovanje"
+                ],
+                "licenses": [],
+                "location": {
+                  "city": "Novi Sad",
+                  "radiusKm": 15,
+                  "approximatePosition": null,
+                  "operatingCountryCode": "RS"
+                },
+                "vehicles": [],
+                "displayName": "USKOČI korisnik",
+                "availability": {
+                  "rules": [
+                    {
+                      "id": "84ae6aaa-8b39-43ce-8675-72ec4c6107c3",
+                      "label": "Radni dani popodne",
+                      "active": true,
+                      "endsOn": null,
+                      "endTime": "19:00:00",
+                      "startsOn": "2026-10-19",
+                      "weekdays": [
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                      ],
+                      "startTime": "15:00:00"
+                    }
+                  ],
+                  "windows": [],
+                  "timezone": "Europe/Belgrade",
+                  "availableNow": false
+                },
+                "teamCapacity": 1
+              },
+              "classificationCandidates": [
+                {
+                  "mode": "REMOTE",
+                  "action": "REUSE_EXISTING",
+                  "reason": "Verified existing canonical identity or registered server alias",
+                  "handoff": {
+                    "required": true,
+                    "shippingCountries": [
+                      "RS"
+                    ]
+                  },
+                  "service": "3D printovanje",
+                  "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+                  "catalogVersion": 7
+                }
+              ]
+            },
+            {
+              "classificationState": "READY",
+              "canAccept": true,
+              "profile": {
+                "bio": "3D štampa figurica po gotovim STL fajlovima. Rad od kuće i slanje kurirskom službom po Srbiji (bez terenskog rada i bez ličnog preuzimanja).",
+                "tools": [],
+                "skills": [
+                  "3D printovanje"
+                ],
+                "licenses": [],
+                "location": {
+                  "city": "Novi Sad",
+                  "radiusKm": 15,
+                  "approximatePosition": null,
+                  "operatingCountryCode": "RS"
+                },
+                "vehicles": [],
+                "displayName": "USKOČI korisnik",
+                "availability": {
+                  "rules": [
+                    {
+                      "id": "84ae6aaa-8b39-43ce-8675-72ec4c6107c3",
+                      "label": "Radni dani popodne",
+                      "active": true,
+                      "endsOn": null,
+                      "endTime": "19:00:00",
+                      "startsOn": "2026-10-19",
+                      "weekdays": [
+                        2,
+                        3,
+                        4,
+                        5
+                      ],
+                      "startTime": "15:00:00"
+                    },
+                    {
+                      "id": "b644d14a-d101-43ed-8ae3-c163d16b69e8",
+                      "label": "Ponedeljak",
+                      "active": true,
+                      "endsOn": null,
+                      "endTime": "20:00:00",
+                      "startsOn": "2026-10-19",
+                      "weekdays": [
+                        1
+                      ],
+                      "startTime": "18:00:00"
+                    }
+                  ],
+                  "windows": [],
+                  "timezone": "Europe/Belgrade",
+                  "availableNow": false
+                },
+                "teamCapacity": 1
+              },
+              "classificationCandidates": [
+                {
+                  "mode": "REMOTE",
+                  "action": "REUSE_EXISTING",
+                  "reason": "Verified existing canonical identity or registered server alias",
+                  "handoff": {
+                    "required": true,
+                    "shippingCountries": [
+                      "RS"
+                    ]
+                  },
+                  "service": "3D printovanje",
+                  "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+                  "catalogVersion": 7
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "liveLogicalMessages": 14,
+  "sourceFiles": [
+    {
+      "file": "supabase/functions/uskoci-ai-interview/index.ts",
+      "sha256": "c53b32b62b4f087d3645d4644d7982a282a0201a55faa490ddd5437f3c79a726"
+    },
+    {
+      "file": "supabase/functions/uskoci-worker-interview/index.ts",
+      "sha256": "72e01cd8d9f0b09865c9a4660145ab2ee87fdbbf10d83b01857f9a17a664a6b0"
+    },
+    {
+      "file": "supabase/functions/_shared/interviewVoiceInstruction.mjs",
+      "sha256": "266c4b3b21b068e68cec60c77414bb5fb10bcc013305f6a2ff7313b8a47adad9"
+    },
+    {
+      "file": "supabase/functions/_shared/aiPhaseTiming.mjs",
+      "sha256": "c1e5e9a8c6054150e6d6204f448c2af5cb288c191a59a82d23b9785459fb3b14"
+    },
+    {
+      "file": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+      "sha256": "65001469889a7f3bc9fcb08cbfff3b182384876a5d7996d7e768b9b21fc03414"
+    }
+  ]
+}
