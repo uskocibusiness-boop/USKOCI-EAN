@@ -206,10 +206,10 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const notice = useConfirmSheet({ reduced });
   const arrival = useConversationArrival(p);
   const compact = keyboard || height < 760 || textScale >= 1.3 || p.pending;
-  // On a narrow display with very large text the summary can consume half the usable screen.
-  // Keep the same review target in the scroll, rather than reserving that space above every message.
-  const inlineSummary = textScale >= 1.6 || height < 500;
-  const cardAtEnd = p.cardPlacement === 'end';
+  // An open keyboard or large text can leave no room for the answer below a pinned draft.
+  // Keep the same review target in the transcript; its existing anchor handling preserves reading position.
+  const inlineSummary = keyboard || textScale >= 1.6 || height < 500;
+  const cardAtEnd = p.cardPlacement === 'end' && !keyboard;
   const pinned = p.card(compact);
   useEffect(() => {
     const show = Keyboard.addListener('keyboardDidShow', () => { setKeyboard(true); followAfterLayout(); });

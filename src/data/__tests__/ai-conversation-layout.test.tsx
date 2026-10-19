@@ -206,6 +206,25 @@ it.each([{height:844,scale:2},{height:420,scale:1}])('keeps one reachable review
   expect(tree.root.findByProps({accessibilityLabel:'Poruka za asistenta'}).props.editable).toBe(true);
   expect(p.onSend).not.toHaveBeenCalled();
 });
+it.each([undefined, 'end'] as const)('keeps the latest answer after the review while typing with card placement %s', async cardPlacement => {
+  const p = props(), review = jest.fn();
+  p.cardPlacement = cardPlacement;
+  p.messages = [{ id: 'answer', fromAi: true, body: 'U kom gradu radiš?' }];
+  p.card = () => <View testID="review-target" onTouchEnd={review} />;
+  await act(async () => { tree = create(<AiConversationShell {...p} />); });
+  await act(async () => { mockKeyboard.keyboardDidShow(); });
+  const thread = tree.root.findByProps({ testID: 'ai-conversation-thread' });
+  expect(tree.root.findAllByProps({ testID: 'ai-pinned-card' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'ai-end-card' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'review-target' })).toHaveLength(1);
+  expect(thread.findByProps({ accessibilityLabel: 'USKOČI: U kom gradu radiš?' })).toBeDefined();
+  await act(async () => { thread.findByProps({ testID: 'review-target' }).props.onTouchEnd(); });
+  expect(review).toHaveBeenCalledTimes(1);
+  await act(async () => { mockKeyboard.keyboardDidHide(); });
+  expect(tree.root.findAllByProps({ testID: 'review-target' })).toHaveLength(1);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Poruka za asistenta' }).props.value).toBe(p.value);
+  expect(p.onChange).not.toHaveBeenCalled(); expect(p.onSend).not.toHaveBeenCalled();
+});
 it('does not offer openings once the conversation has started, or while it cannot be edited',async()=>{
   const p=props();p.openings=['Treba mi prevoz'];p.messages=[{id:'m1',fromAi:false,body:'Treba mi krečenje'}];
   await act(async()=>{tree=create(<AiConversationShell {...p}/>);});
