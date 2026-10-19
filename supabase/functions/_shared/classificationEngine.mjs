@@ -40,18 +40,24 @@ function catalogError(reason) { throw new Error('CLASSIFICATION_CATALOG_' + reas
  *  STATIONARY is the existing SQL input spelling for canonical ON_SITE.
  *  Reject incomplete or changing pages instead of classifying against a partial tree.
  */
-export async function loadClassificationCatalog(rpc, { maxPages = 20, pageSize = 100 } = {}) {
-  if (typeof rpc !== 'function' || !Number.isInteger(maxPages) || maxPages < 1 || maxPages > 20
+export async function loadClassificationCatalog(rpc, { pageSize = 100, maxBytes = 4194304, timeoutMs = 15000 } = {}) {
+  if (typeof rpc !== 'function' || !Number.isInteger(maxBytes) || maxBytes < 1024
+      || !Number.isInteger(timeoutMs) || timeoutMs < 1
       || !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) catalogError('INPUT_INVALID');
   const byId = new Map(), scopesById = new Map();
+  const deadline = Date.now() + timeoutMs;
+  let receivedBytes = 0;
   let version = null, fingerprint;
   for (const [scope, legacyMode] of [['ON_SITE','STATIONARY'], ['REMOTE','REMOTE']]) {
     let cursor = null, completed = false;
     const seenCursors = new Set();
-    for (let page = 0; page < maxPages; page++) {
+    while (!completed) {
+      if (Date.now() >= deadline) catalogError('READ_TIMEOUT');
       const answer = await rpc('rpc_taxonomy_ai_catalog_context_service', {
         p_execution_location_mode: legacyMode, p_limit: pageSize, p_after_key: cursor,
       });
+      receivedBytes += new TextEncoder().encode(JSON.stringify(answer)).byteLength;
+      if (receivedBytes > maxBytes) catalogError('READ_TOO_LARGE');
       if (!isRecord(answer) || answer.action !== 'CATALOG_CONTEXT' ||
           !Array.isArray(answer.items) || !Number.isSafeInteger(answer.catalogVersion) ||
           answer.catalogVersion < 1 || answer.scope !== scope ||
@@ -94,7 +100,6 @@ export async function loadClassificationCatalog(rpc, { maxPages = 20, pageSize =
       seenCursors.add(answer.nextAfter);
       cursor = answer.nextAfter;
     }
-    if (!completed) catalogError('INCOMPLETE_PAGING');
   }
   if (version === null) catalogError('MISSING_VERSION');
   return Object.freeze({ catalogVersion: version,
@@ -165,7 +170,7 @@ export function reviewClassificationProposal(input, snapshot, plan) {
         return { accepted: false, status: 'PARENT_MODE_NOT_SUPPORTED' };
     }
     if (!Array.isArray(plan.proposedPath) || !plan.proposedPath.length ||
-        plan.proposedPath.length > 6 || !plan.proposedPath.every(safeLabel))
+        new TextEncoder().encode(JSON.stringify(plan.proposedPath)).byteLength > 12000 || !plan.proposedPath.every(safeLabel))
       return { accepted: false, status: 'INVALID_PATH' };
     if (plan.action !== 'PROPOSE_RESTRUCTURE' &&
         normalizedClassificationIdentity(plan.proposedPath.at(-1)) !==
@@ -182,69 +187,43 @@ export function reviewClassificationProposal(input, snapshot, plan) {
     notificationAuthority: 'NONE' };
 }
 
-/** Small, identity-only AI context. Model receives catalog IDs + paths but
- * cannot grant itself write privileges. Explicitly disallow mode inference.
+/** Complete current catalog, never a relevance shortlist. Parent links preserve
+ * every branch without repeating the entire ancestry on each row. Resource
+ * exhaustion is an explicit read failure, never evidence a service is absent.
+ * Fresh catalog loading and the signed review both fence concurrent changes.
  */
-/** Prompt selection is NOT an authority or a complete catalog search.
- *  Catalog membership is still checked on the full server snapshot. When the
- *  catalog grows, shortlist relevant branches instead of failing past 220 rows.
- *  Absent from shortlist NEVER means the category is absent from the database.
- */
-/** @param {any} snapshot
- *  @param {{ maxItems?: number; services?: string[] }} [options]
- */
-export function catalogPromptContext(snapshot,{maxItems=220,services=[]}={}) {
-  if (!isRecord(snapshot)||!Array.isArray(snapshot.categories)||
-      !Number.isSafeInteger(snapshot.catalogVersion)||snapshot.catalogVersion<1||
-      !Number.isInteger(maxItems)||maxItems<25||maxItems>220||
-      !Array.isArray(services)||services.length>20||
-      services.some(x=>typeof x!=='string'||x.length>2000))
-    catalogError('PROMPT_LIMIT');
-  const all=snapshot.categories;
-  const byId=new Map(all.map(x=>[x.id,x]));
-  const tokens=x=>(String(x??'').normalize('NFKC').toLowerCase().replace(/[\u0400-\u04ff]/g,ch=>serbianCyrillic[ch]??ch).match(/[\p{L}\p{N}]+/gu)??[])
-    // Keep short technical terms such as 3D and AI2; ordinary two-letter
-    // words add noise to the shortlist and remain excluded.
-    .filter(t=>t.length>=3||(t.length>=2&&/[\p{L}]/u.test(t)&&/[\p{N}]/u.test(t)));
-  const query=services.flatMap(tokens);
-  const wanted=new Set(query);
-  // Roots are candidates too. Reserving space for every root would make a
-  // growing catalog unusable and crowd relevant descendants out of the prompt.
-  // The full server snapshot remains authoritative after this shortlist.
-  const ranked=all.map(node=>{
-    const own=tokens([node.label,...(catalogFingerprint(snapshot.catalogFingerprint) && validAliases(node.aliases) ? node.aliases : [])].join(' '));
-    const ancestry=tokens((node.path??[]).join(' '));
-    const hit=own.filter(t=>wanted.has(t)).length;
-    const wide=ancestry.filter(t=>wanted.has(t)).length;
-    return {node,score:hit*10+wide*2+(!query.length&&node.parentId==null?1:0)};
-  }).sort((a,b)=>b.score-a.score||
-    a.node.label.localeCompare(b.node.label,'sr')||
-    a.node.id.localeCompare(b.node.id));
-  const selected=new Map();
-  for(const {node} of ranked){
-    const lineage=[];let current=node;const visited=new Set();
-    while(current&&!selected.has(current.id)&&!visited.has(current.id)){
-      visited.add(current.id);lineage.push(current);
-      current=current.parentId?byId.get(current.parentId):null;
+export function catalogPromptContext(snapshot) {
+  if (!isRecord(snapshot) || !Array.isArray(snapshot.categories) ||
+      !Number.isSafeInteger(snapshot.catalogVersion) || snapshot.catalogVersion < 1)
+    catalogError('PROMPT_INVALID');
+  const all = snapshot.categories;
+  const byId = new Map(all.map(node => [node.id, node]));
+  if (byId.size !== all.length) catalogError('DUPLICATE_ID');
+  const finished = new Set();
+  for (const node of all) {
+    let current = node;
+    const chain = new Set();
+    while (current && !finished.has(current.id)) {
+      if (chain.has(current.id)) catalogError('CYCLIC_ANCESTRY');
+      chain.add(current.id);
+      if (current.parentId == null) break;
+      current = byId.get(current.parentId);
+      if (!current) catalogError('INCOMPLETE_ANCESTRY');
     }
-    // Skip incomplete/unresolvable ancestry, rather than showing a fake tree.
-    if((current===undefined&&lineage.at(-1)?.parentId)||
-       (current&&visited.has(current.id)&&!selected.has(current.id)))continue;
-    if(selected.size+lineage.length>maxItems)continue;
-    for(const item of lineage.reverse())selected.set(item.id,item);
-    if(selected.size>=maxItems)break;
+    for (const id of chain) finished.add(id);
   }
-  const shortlist=all.length<=maxItems?all:Array.from(selected.values());
   return JSON.stringify({
-    catalogVersion:snapshot.catalogVersion,
-    classificationAuthority:'NONE',
-    shortlisted:all.length>shortlist.length,
-    totalCategories:all.length,
-    instructions:'These categories are a partial relevance shortlist, NOT the entire catalog. An unseen category may already exist. Never assume absence implies novelty or invent IDs. Listed aliases are registered aliases for that exact category, not authority to invent a new alias. Keep the actual offered service wording; do not replace it with a broader canonical label. Use NEEDS_REVIEW for uncertain identity; propose but never commit any new branch. Parent category is not evidence of worker competence. Mode must be separately confirmed.',
-    categories:shortlist.map(x=>({
-      id:x.id,parentId:x.parentId,label:x.label,path:x.path,modes:x.modes,
-      ...(catalogFingerprint(snapshot.catalogFingerprint) && validAliases(x.aliases)
-        ? { aliases:x.aliases.slice(0,12), ...(x.aliases.length>12 ? { aliasesShortlisted:true } : {}) } : {}),
+    catalogVersion: snapshot.catalogVersion,
+    catalogFingerprint: snapshot.catalogFingerprint ?? null,
+    classificationAuthority: 'NONE',
+    shortlisted: false,
+    totalCategories: all.length,
+    complete: true,
+    instructions: 'This is the COMPLETE current eligible catalog across ON_SITE and REMOTE, not a shortlist. All nodes and registered aliases are included. Follow parentId links upward to roots and downward through children; compare all branches before proposing novelty. Select the narrowest existing service with exactly the same work, object and scope. Related, broader or narrower work is NOT equivalent. Never invent IDs. A missing exact phrase is not proof of a missing service: understand the meaning and clarify ambiguous work. For a clearly equivalent natural description, use the precise canonical service name in the reviewed skills/task category while preserving the person\'s actual scope in bio/description. Do not add services they never offered. New branches must be meaningful and non-duplicative; propose the necessary path, never create or activate it during chat. Mode and owner Save remain separate confirmations.',
+    categories: all.map(node => ({
+      id: node.id, parentId: node.parentId, label: node.label, modes: node.modes,
+      ...(catalogFingerprint(snapshot.catalogFingerprint) && validAliases(node.aliases)
+        ? { aliases: node.aliases } : {}),
     })),
   });
 }

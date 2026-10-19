@@ -63,12 +63,12 @@ test('novel services: no AI-only auto-creation and no invented parent',()=>{
   const plan=reviewClassificationProposal(input('NEED_SERVICE'),snapshot,proposal('CREATE_NEW_BRANCH',{parentId:null,proposedPath:['Nova legitimna oblast','Časovi umetničkog klizanja']}));
   assert.equal(plan.accepted,false);assert.equal(plan.status,'ADMISSION_REVIEW_REQUIRED');
 });
-test('new path must end in the service and contain at most six new nodes',()=>{
+test('new path must end in the service and may contain more than six new nodes',()=>{
   const base={...input('NEED_SERVICE'),service:'Izrada figurica'};
   assert.equal(reviewClassificationProposal(base,snapshot,proposal('CREATE_NEW_BRANCH',
     {parentId:null,proposedPath:['Nove usluge','Drugi zadatak']})).status,'SERVICE_LEAF_MISMATCH');
   assert.equal(reviewClassificationProposal(base,snapshot,proposal('CREATE_NEW_BRANCH',
-    {parentId:null,proposedPath:['Jedan','Dva','Tri','Četiri','Pet','Šest','Izrada figurica']})).status,'INVALID_PATH');
+    {parentId:null,proposedPath:['Jedan','Dva','Tri','Četiri','Pet','Šest','Izrada figurica']})).status,'ADMISSION_REVIEW_REQUIRED');
 });
 test('new child cannot inherit a parent from the wrong execution mode',()=>{
   const answer=reviewClassificationProposal(input('NEED_SERVICE','REMOTE'),snapshot,
@@ -85,7 +85,40 @@ test('no final category may be a forged UUID',()=>{
 test('catalog context is server-only, identity and path, without addresses or owner data',async()=>{
   const result=await loadClassificationCatalog(rpc); const prompt=catalogPromptContext(result);
   assert.match(prompt,/classificationAuthority/);assert.match(prompt,/Časovi umetničkog klizanja/);
-  assert.doesNotMatch(prompt,/address|accountId|lat|lng|email/);
+  const data=JSON.parse(prompt);
+  for(const node of data.categories) assert.deepEqual(Object.keys(node).sort(),['id','label','modes','parentId']);
+});
+
+test('catalog reads beyond the old twenty-page boundary and preserves every alias',async()=>{
+  const aliases=Array.from({length:18},(_,i)=>'Registrovani naziv '+i);
+  const categories=Array.from({length:2105},(_,i)=>({
+    id:`${String(i+1).padStart(8,'0')}-1111-4111-8111-111111111111`,
+    label:'Poseban posao '+i,parentId:null,path:['Poseban posao '+i],aliases,
+  }));
+  const catalog=await loadClassificationCatalog(async(_name,args)=>{
+    const offset=Number(args.p_after_key??0);
+    const end=Math.min(offset+args.p_limit,categories.length);
+    const part=args.p_execution_location_mode==='REMOTE'?[]:categories.slice(offset,end);
+    return {...page(args.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE',[],null),
+      catalogFingerprint:'a'.repeat(32),items:part.map(n=>({...row(n),aliases:n.aliases})),
+      nextAfter:part.length&&end<categories.length?String(end):null};
+  });
+  const prompt=JSON.parse(catalogPromptContext(catalog));
+  assert.equal(prompt.complete,true);assert.equal(prompt.shortlisted,false);
+  assert.equal(prompt.categories.length,2105);
+  assert.deepEqual(prompt.categories.at(-1).aliases,aliases);
+});
+
+test('resource exhaustion cannot return a truncated catalog as complete',async()=>{
+  await assert.rejects(loadClassificationCatalog(async()=>page('ON_SITE',
+    Array.from({length:20},()=>nodes[0])),{maxBytes:1024}),/READ_TOO_LARGE/);
+});
+
+test('orphaned or cyclic parents cannot be presented as a complete tree',()=>{
+  assert.throws(()=>catalogPromptContext({catalogVersion:7,categories:[
+    {...nodes[0],parentId:rental}]}),/INCOMPLETE_ANCESTRY/);
+  assert.throws(()=>catalogPromptContext({catalogVersion:7,categories:[
+    {...nodes[0],parentId:rental},{...nodes[1],parentId:lesson}]}),/CYCLIC_ANCESTRY/);
 });
 test('pagination with changing version fails before any plan authority',async()=>{
   await assert.rejects(loadClassificationCatalog(async(_name,args)=>{
@@ -97,7 +130,7 @@ test('pagination with changing version fails before any plan authority',async()=
   }),/STALE_VERSION/);
 });
 test('incomplete catalog pagination must fail closed',async()=>{
-  await assert.rejects(loadClassificationCatalog(async(_name,args)=>page(args.p_execution_location_mode==='STATIONARY'?'ON_SITE':'REMOTE',nodes.slice(0,1),'repeat',7),{maxPages:2}),/INVALID_CURSOR|INCOMPLETE_PAGING/);
+  await assert.rejects(loadClassificationCatalog(async(_name,args)=>page(args.p_execution_location_mode==='STATIONARY'?'ON_SITE':'REMOTE',nodes.slice(0,1),'repeat',7)),/INVALID_CURSOR|INCOMPLETE_PAGING/);
 });
 test('default pagination reads beyond 800 categories without silently dropping deep branches',async()=>{
   const deep=Array.from({length:805},(_,index)=>({
@@ -137,7 +170,7 @@ test('unverified synonyms and broad parent words never confer canonical identity
   }
 });
 
-test('catalog growth beyond 220 chooses bounded relevant services without fabricating absence',()=>{
+test('catalog growth beyond 220 exposes every service without word-overlap filtering',()=>{
   const parent='77777777-7777-4777-8777-777777777777';
   const services=Array.from({length:340},(_,i)=>{
     const label=i===337?'Izrada unikatnih rukavica':'Usluga iz oblasti '+String(i).padStart(3,'0');
@@ -150,20 +183,18 @@ test('catalog growth beyond 220 chooses bounded relevant services without fabric
     {id:parent,label:'Ručni rad',parentId:null,path:['Ručni rad'],modes:['ON_SITE']},
     ...services,
   ]};
-  const prompt=JSON.parse(catalogPromptContext(big,{
-    maxItems:30,services:['Желим израду уникатних рукавица, по мери.'],
-  }));
-  assert.equal(prompt.shortlisted,true);
+  const prompt=JSON.parse(catalogPromptContext(big));
+  assert.equal(prompt.shortlisted,false);
   assert.equal(prompt.totalCategories,341);
   assert.equal(prompt.catalogVersion,91);
   assert.equal(prompt.classificationAuthority,'NONE');
-  assert.ok(prompt.categories.length<=30);
+  assert.equal(prompt.categories.length,341);
   assert.ok(prompt.categories.some(x=>x.label==='Izrada unikatnih rukavica'));
   assert.ok(prompt.categories.some(x=>x.id===parent));
-  assert.match(prompt.instructions,/partial relevance shortlist/);
+  assert.match(prompt.instructions,/COMPLETE current eligible catalog/);
   assert.doesNotMatch(JSON.stringify(prompt),/po meri\./);
 });
-test('many top-level branches do not block a relevant deep service',()=>{
+test('all top-level branches and the deep service remain visible together',()=>{
   const rootId='77777777-7777-4777-8777-777777777777';
   const childId='88888888-8888-4888-8888-888888888888';
   const roots=Array.from({length:240},(_,i)=>({
@@ -176,17 +207,15 @@ test('many top-level branches do not block a relevant deep service',()=>{
     {id:childId,label:'Izrada 3D figurica',parentId:rootId,
       path:['Digitalna izrada','Izrada 3D figurica'],modes:['REMOTE']},
   ]};
-  const prompt=JSON.parse(catalogPromptContext(catalog,{
-    maxItems:25,services:['Izrada 3D figurica'],
-  }));
-  assert.equal(prompt.shortlisted,true);
+  const prompt=JSON.parse(catalogPromptContext(catalog));
+  assert.equal(prompt.shortlisted,false);
   assert.equal(prompt.totalCategories,242);
-  assert.ok(prompt.categories.length<=25);
+  assert.equal(prompt.categories.length,242);
   assert.ok(prompt.categories.some(x=>x.id===rootId));
   assert.ok(prompt.categories.some(x=>x.id===childId));
-  assert.match(prompt.instructions,/partial relevance shortlist/);
+  assert.match(prompt.instructions,/COMPLETE current eligible catalog/);
 });
-test('shortlist preserves the technical 3D token when choosing a parent branch',()=>{
+test('full catalog keeps a technical service even when the description has no shared token',()=>{
   const root='77777777-7777-4777-8777-777777777777';
   const threeD='88888888-8888-4888-8888-888888888888';
   const many={catalogVersion:8,categories:[
@@ -199,8 +228,7 @@ test('shortlist preserves the technical 3D token when choosing a parent branch',
     {id:threeD,label:'3D modelovanje',parentId:root,
       path:['Digitalne usluge','3D modelovanje'],modes:['REMOTE']},
   ]};
-  const prompt=JSON.parse(catalogPromptContext(many,{maxItems:25,
-    services:['Izrada 3D figurica po narudžbini']}));
+  const prompt=JSON.parse(catalogPromptContext(many));
   assert.ok(prompt.categories.some(x=>x.id===threeD));
 });
 test('existing branches deeper than 32 levels remain eligible for AI context',async()=>{
@@ -215,11 +243,10 @@ test('existing branches deeper than 32 levels remain eligible for AI context',as
     page(args.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE',
       args.p_execution_location_mode==='REMOTE'?deep:[]));
   assert.equal(loaded.categories.length,40);
-  const prompt=JSON.parse(catalogPromptContext(loaded,{maxItems:50,
-    services:['Izrada posebnih figurica']}));
+  const prompt=JSON.parse(catalogPromptContext(loaded));
   assert.ok(prompt.categories.some(x=>x.id===deep[39].id));
 });
-test('catalog shortlist never falsely identifies an unshown category as absent',()=>{
+test('full catalog has no unshown category or truncated aliases',()=>{
   const parent='77777777-7777-4777-8777-777777777777';
   const many={catalogVersion:5,categories:[
     {id:parent,label:'Radionica',parentId:null,path:['Radionica'],modes:['ON_SITE']},
@@ -228,14 +255,14 @@ test('catalog shortlist never falsely identifies an unshown category as absent',
       label:'Usluga '+i,parentId:parent,path:['Radionica','Usluga '+i],modes:['ON_SITE'],
     })),
   ]};
-  const result=JSON.parse(catalogPromptContext(many,{maxItems:25,services:['Sasvim nova usluga']}));
-  assert.ok(result.categories.length<=25);
-  assert.equal(result.shortlisted,true);
-  assert.match(result.instructions,/Never assume absence implies novelty/);
+  const result=JSON.parse(catalogPromptContext(many));
+  assert.equal(result.categories.length,251);
+  assert.equal(result.shortlisted,false);
+  assert.match(result.instructions,/missing exact phrase is not proof/);
   assert.ok(result.categories.every(item=>many.categories.some(x=>x.id===item.id)));
 });
 
-test('the two existing AI contexts may both shortlist without enabling category writes',()=>{
+test('both AI contexts receive every node without enabling category writes',()=>{
  const big={catalogVersion:15,categories:[
    {id:'11111111-1111-4111-8111-111111111111',
     label:'Ručni rad',parentId:null,path:['Ručni rad'],modes:['ON_SITE']},
@@ -248,9 +275,9 @@ test('the two existing AI contexts may both shortlist without enabling category 
    })),
  ]};
  for (const hint of ['Израда плетених рукавица','Izrada pletenih rukavica']) {
-   const prompt=JSON.parse(catalogPromptContext(big,{maxItems:96,services:[hint]}));
+   const prompt=JSON.parse(catalogPromptContext(big));
    assert.equal(prompt.classificationAuthority,'NONE');
-   assert.ok(prompt.categories.length<=96);
+   assert.equal(prompt.categories.length,301);
    assert.ok(prompt.categories.some(x=>x.label==='Izrada pletenih rukavica'));
  }
 });

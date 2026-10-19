@@ -132,6 +132,8 @@ it('accepts a signed new child only when its visible path ends in the reviewed s
    catalogVersion:3,reason:'Owner-reviewed new service under the established parent'};
  expect(decodeWorkerAiReview({...base,classificationCandidates:[child]},OWNER,CONVERSATION))
    .toMatchObject({classificationCandidates:[child]});
+ const deep={...child,path:[...Array.from({length:9},(_,i)=>'Grana '+i),'Prenos']};
+ expect(decodeWorkerAiReview({...base,classificationCandidates:[deep]},OWNER,CONVERSATION)?.classificationCandidates).toMatchObject([deep]);
  expect(decodeWorkerAiReview({...base,classificationCandidates:[{...child,path:['Druga usluga']}]},OWNER,CONVERSATION)).toBeNull();
  expect(decodeWorkerAiReview({...base,classificationCandidates:[{...child,parentId:'bad'}]},OWNER,CONVERSATION)).toBeNull();
 });

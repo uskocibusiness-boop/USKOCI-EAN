@@ -1,0 +1,68 @@
+[
+  {
+    "schema": "private",
+    "proname": "taxonomy_review_candidate_projection_v2",
+    "signature": "private.taxonomy_review_candidate_projection_v2(text,jsonb,jsonb,uuid,uuid)",
+    "definition_md5": "2163c8fe213d39b32a91288e05a132ac",
+    "owner": "postgres",
+    "proconfig": [
+      "search_path=pg_catalog, private"
+    ],
+    "acl": "{postgres=X/postgres}"
+  },
+  {
+    "schema": "private",
+    "proname": "taxonomy_risk_triage_v1",
+    "signature": "private.taxonomy_risk_triage_v1(text)",
+    "definition_md5": "6b76117e9858060a737b4513ab067ad2",
+    "owner": "postgres",
+    "proconfig": [
+      "search_path=pg_catalog, private"
+    ],
+    "acl": "{postgres=X/postgres,service_role=X/postgres}"
+  },
+  {
+    "schema": "public",
+    "proname": "rpc_taxonomy_capture_gemini_turn_hints_service",
+    "signature": "rpc_taxonomy_capture_gemini_turn_hints_service(uuid,uuid,uuid,uuid,uuid,text,bigint,jsonb)",
+    "definition_md5": "449ba27744b6846d487c9b98b55ecec7",
+    "owner": "postgres",
+    "proconfig": [
+      "search_path=pg_catalog, private"
+    ],
+    "acl": "{postgres=X/postgres,service_role=X/postgres}"
+  },
+  {
+    "schema": "public",
+    "proname": "rpc_taxonomy_commit_admission_service",
+    "signature": "rpc_taxonomy_commit_admission_service(uuid)",
+    "definition_md5": "c1832a2b478e357df5ce121a8f568be4",
+    "owner": "postgres",
+    "proconfig": [
+      "search_path=pg_catalog, private"
+    ],
+    "acl": "{postgres=X/postgres,service_role=X/postgres}"
+  },
+  {
+    "schema": "public",
+    "proname": "rpc_taxonomy_commit_reviewed_batch_service",
+    "signature": "rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)",
+    "definition_md5": "d9dda740436d5bdda74b36dc57529905",
+    "owner": "postgres",
+    "proconfig": [
+      "search_path=pg_catalog, private"
+    ],
+    "acl": "{postgres=X/postgres,service_role=X/postgres}"
+  },
+  {
+    "schema": "public",
+    "proname": "rpc_taxonomy_prepare_admission_service",
+    "signature": "rpc_taxonomy_prepare_admission_service(uuid,uuid,text,uuid,jsonb)",
+    "definition_md5": "fb0d3fc8d2a50b29559441929327a886",
+    "owner": "postgres",
+    "proconfig": [
+      "search_path=pg_catalog, private"
+    ],
+    "acl": "{postgres=X/postgres,service_role=X/postgres}"
+  }
+]

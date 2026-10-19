@@ -254,6 +254,8 @@ it('accepts a reviewed new child and rejects a different leaf or parent',()=>{
    classificationState:'READY',classificationCandidates:[child],classificationCatalogVersion:9,
    classificationCatalogFingerprint:'f'.repeat(32),reviewedServiceModes:[]};
  expect(decodeAiTaskReview(signed,OWNER)?.classificationCandidates).toMatchObject([child]);
+ const deep={...child,path:[...Array.from({length:9},(_,i)=>'Grana '+i),'Izrada 3D figurica']};
+ expect(decodeAiTaskReview({...signed,classificationCandidates:[deep]},OWNER)?.classificationCandidates).toMatchObject([deep]);
  expect(decodeAiTaskReview({...signed,classificationCandidates:[{...child,path:['Druga usluga']}]},OWNER)).toBeNull();
  expect(decodeAiTaskReview({...signed,classificationCandidates:[{...child,parentId:'bad'}]},OWNER)).toBeNull();
 });

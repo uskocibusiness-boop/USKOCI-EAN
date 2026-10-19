@@ -44,15 +44,17 @@ test('synthetic proposals preserve typed people, vehicle, route, OFFERS and fixe
 });
 
 test('the native fixture passes the actual strict Edge provider parser and preserves typed values', async () => {
-  const proposals=proposedFacts('a1b2c3d4','2026-10-12T07:00:00Z','2026-10-12T09:00:00Z');
+  // Serbia-local instants: the real decoder also verifies timezone consistency.
+  const proposals=proposedFacts('a1b2c3d4','2026-10-12T09:00:00+02:00','2026-10-12T11:00:00+02:00');
   const [accountId,conversationId,clientRequestId,turnId,attemptId,userMessageId,assistantMessageId]=[1,2,3,4,5,6,7]
     .map(n=>`${String(n).repeat(8)}-1111-4111-8111-111111111111`);
   const json=value=>new Response(JSON.stringify(value),{headers:{'Content-Type':'application/json'}});
   for(const oldInvalidEnvelope of [false,true]) {
-    let completed=null,failed=0,dispatched=0,providerCalls=0,reserved=0;
+    let completed=null,failed=0,dispatched=0,providerCalls=0,reserved=0; const logs=[];
     const turn=state=>({conversationId,clientRequestId,turnId,state,retryAllowed:state==='FAILED',receipt:state==='SUCCEEDED'
       ? {userMessageId,assistantMessageId,proposedCount:proposals.length,safety:'ALLOW',schemaVersion:'NEED_FACT_V2',authoritative:true}:null});
-    const runtime=loadOwnedIntakeHandler({env:name=>({SUPABASE_URL:'http://127.0.0.1:54321',SUPABASE_ANON_KEY:'synthetic-anon',
+    class FixtureDate extends Date { constructor(...args) { super(...(args.length ? args : ['2026-10-10T07:00:00Z'])); } static now() { return Date.parse('2026-10-10T07:00:00Z'); } }
+    const runtime=loadOwnedIntakeHandler({Date:FixtureDate,log:args=>logs.push(args),env:name=>({SUPABASE_URL:'http://127.0.0.1:54321',SUPABASE_ANON_KEY:'synthetic-anon',
       SUPABASE_SERVICE_ROLE_KEY:'synthetic-service',AI_PROVIDER:'gemini',GEMINI_API_KEY:'synthetic-provider',
       GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true'})[name],
       fetch:async(input,init={})=>{
@@ -68,7 +70,7 @@ test('the native fixture passes the actual strict Edge provider parser and prese
         if(url.pathname==='/auth/v1/user')return json({id:accountId});
         if(url.pathname==='/rest/v1/ai_conversations')return json([{id:conversationId,account_id:accountId,fact_schema_version:'NEED_FACT_V2',status:'OPEN'}]);
         if(url.pathname.endsWith('/rpc_ai_claim_need_turn_v2_service'))return json({turn:turn('PROCESSING'),claim:{attemptId,
-          leaseExpiresAt:new Date(Date.now()+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',history:[],activeFacts:[]}}});
+          leaseExpiresAt:'2026-10-10T07:01:30Z',context:{schemaVersion:'NEED_FACT_V2',history:[],activeFacts:[]}}});
         if(url.pathname.endsWith('/rpc_ai_test_budget_reserve_service')){
           assert.deepEqual(JSON.parse(init.body),{p_account_id:accountId,p_operation_id:clientRequestId,p_kind:'LLM',p_max_cost_microusd:250000});
           assert.equal(dispatched,0);assert.equal(providerCalls,0);reserved++;
@@ -92,7 +94,7 @@ test('the native fixture passes the actual strict Edge provider parser and prese
     // A malformed result after dispatch now attempts same-attempt metadata settlement.
     // The disposable PKG-039 SQL proof establishes non-replay and success preservation.
     if(oldInvalidEnvelope){assert.equal(response.status,502);assert.equal(completed,null);assert.equal(failed,1);}
-    else {assert.equal(response.status,200);assert.equal((await response.json()).state,'SUCCEEDED');assert.deepEqual(completed.p_proposals,proposals);assert.equal(failed,0);}
+    else {assert.equal(response.status,200,JSON.stringify({logs,completed}));assert.equal((await response.json()).state,'SUCCEEDED');assert.deepEqual(completed.p_proposals,proposals);assert.equal(failed,0);}
   }
 });
 

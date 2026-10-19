@@ -53,8 +53,8 @@ for(const state of ['SUCCEEDED','PROCESSING','FAILED'])test(`durable ${state} cl
  assert.equal(response.status,{SUCCEEDED:200,PROCESSING:202,FAILED:409}[state]);assert.deepEqual(await response.json(),turn(state));
  assert.equal(providers(f).length,0);assert.equal(completes(f).length,0);assert.ok(!f.envReads.includes('OPENAI_API_KEY'));
 });
-for(const auth of [()=>json({id:account},401),()=>json({id:'not-an-id'}),()=>{throw new Error('PRIVATE_TOKEN');}])test('unverified Auth never reaches service secret or claim',async()=>{
- const f=fixture({auth});const response=await f.invoke();assert.equal(response.status,401);assert.equal(f.calls.length,1);
+for(const [auth,status] of [[()=>json({id:account},401),401],[()=>json({id:'not-an-id'}),503],[()=>{throw new Error('PRIVATE_TOKEN');},503]])test('unverified Auth never reaches service secret or claim',async()=>{
+ const f=fixture({auth});const response=await f.invoke();assert.equal(response.status,status);assert.equal(f.calls.length,1);
  assert.ok(!f.envReads.includes('SUPABASE_SERVICE_ROLE_KEY'));assert.ok(!JSON.stringify(await response.json()).includes('PRIVATE_TOKEN'));
 });
 test('Auth user/account mismatch cannot borrow an owned-query result',async()=>{

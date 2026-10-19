@@ -225,12 +225,12 @@ const enterReview=async()=>{
 };
 const reviewBack=()=>tree.root.findByType('Frame' as any).props.back;
 
-it('the review ties matching to confirmed profile data and keeps notifications optional',async()=>{
+it('a legacy review does not claim confirmed matching when classification authority is absent',async()=>{
  await render();await enterReview();
  const note=tree.root.findAll(node=>node.props?.testID==='worker-review-notifications-note');
  expect(note.length).toBeGreaterThan(0);
- expect(note[0].props.children).toContain('potvrđenim uslugama, načinom rada, područjem i vremenom');
- expect(note[0].props.children).toContain('Obaveštenja su tvoj izbor');
+ expect(note[0].props.children).toContain('neće stizati dok kategorija i način rada ne budu potvrđeni');
+ expect(note[0].props.children).not.toContain('Zadatke povezujemo sa potvrđenim uslugama');
  expect(note[0].props.children).not.toContain('novim i već otvorenim');
  expect(note[0].props.tone).toBeUndefined();
 });

@@ -14,11 +14,11 @@ export declare function normalizedClassificationIdentity(label: unknown): string
 export declare const CLASSIFICATION_ACTIONS: readonly string[];
 export declare function loadClassificationCatalog(
   rpc: RpcClient,
-  options?: { maxPages?: number; pageSize?: number },
+  options?: { pageSize?: number; maxBytes?: number; timeoutMs?: number },
 ): Promise<CatalogSnapshot>;
 export declare function reviewClassificationProposal(
   input: { purpose: ClassificationPurpose; service: string; mode?: ClassificationScope | null },
   snapshot: CatalogSnapshot,
   plan: { action: string; catalogVersion: number; reason: string; categoryId?: string; parentId?: string | null; proposedPath?: string[] },
 ): { accepted: boolean; status: string; categoryId?: string; catalogVersion?: number; requiresOwnerReview?: boolean; capabilityAuthority?: string; notificationAuthority?: string };
-export declare function catalogPromptContext(snapshot: CatalogSnapshot, options?: { maxItems?: number; services?: string[] }): string;
+export declare function catalogPromptContext(snapshot: CatalogSnapshot): string;

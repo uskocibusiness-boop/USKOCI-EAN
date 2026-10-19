@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import type { WorkerAiProfile, WorkerAiReview, WorkerAiModeChoice } from '../../data/workerAiClientService';
+import type { WorkerAiProfile, WorkerAiReview } from '../../data/workerAiClientService';
 import { T } from '../Text';
 import { Press } from '../Press';
 import { FactArt, type FactArtKind, type FactArtRole } from '../system/FactArt';
@@ -103,32 +103,11 @@ function ReviewGroup({part,children}:{part:WorkerAiPart;children:ReactNode}){
   </View>;
 }
 
-/** Explicit choices are a NEW signed review, never an automatic classification.
- * No selection is pre-filled for pending skills. Each service is independent.
- */
-export function WorkerAiModeConfirmation({skills,choices,disabled,onChange}:{
-  skills:readonly string[];choices:Readonly<Record<string,WorkerAiModeChoice|undefined>>;
-  disabled:boolean;onChange:(service:string,mode:WorkerAiModeChoice)=>void;
-}){
-  return <Surface kind="panel" testID="worker-explicit-mode-confirmation">
-    <T variant="bodyStrong">Kako radiš svaku uslugu?</T>
-    <T variant="note" tone="muted">Potvrdi za svaku uslugu: na lokaciji, na daljinu ili oba načina. Od toga zavisi koje zadatke možemo da ti ponudimo.</T>
-    {skills.map(skill=><View key={skill} style={{gap:sys.space.xs}}>
-      <T variant="bodyStrong">{skill}</T>
-      <FactChoiceEditor label={`Način rada za: ${skill}`}
-        options={[{value:'ON_SITE',label:'Na lokaciji'},{value:'REMOTE',label:'Na daljinu'},{value:'BOTH',label:'Oba načina'}]}
-        value={choices[skill]??null} disabled={disabled}
-        onChange={value=>onChange(skill,value as WorkerAiModeChoice)}/>
-    </View>)}
-    <T variant="note" tone="muted">Ako kategorija još nije potvrđena, profil može da se sačuva, ali automatsko povezivanje će sačekati. Nijedna opcija neće uključiti obaveštenja sama od sebe.</T>
-  </Surface>;
-}
-
 /** Owner 2026-10-07: the interview ends by saying what the profile is for — ink with the bell, not grey small print. */
 // "novim i već otvorenim": publishing queues new tasks, and saving the profile re-queues the open ones (requeue_open_needs_for_worker_v5).
 export const WORKER_PROFILE_NOTIFICATIONS_NOTE='Zadatke povezujemo sa potvrđenim uslugama, načinom rada, područjem i vremenom. Obaveštenja su tvoj izbor.';
 export const WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE='Profil možeš da sačuvaš, ali automatska obaveštenja za nepotvrđene usluge neće stizati dok kategorija i način rada ne budu potvrđeni.';
-export function WorkerAiNotificationsNote({matchingReady=true}:{matchingReady?:boolean}={}){
+export function WorkerAiNotificationsNote({matchingReady=false}:{matchingReady?:boolean}={}){
   return <View style={s.noteBox}><FactArt kind="bell" size={24} cut="art"/>
     <T testID="worker-review-notifications-note" variant="note" style={[s.grow,s.ink]}>{matchingReady?WORKER_PROFILE_NOTIFICATIONS_NOTE:WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE}</T></View>;
 }
@@ -170,9 +149,9 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
       {review.classificationState&&review.classificationState!=='READY'
         ?<T testID="worker-classification-pending" variant="note" tone="muted">
           {review.classificationState==='SERVICE_MODE_CONFIRMATION_REQUIRED'
-            ?'Za deo usluga još nije potvrđen način rada. Izaberi ga za svaku uslugu ispod; dok ne potvrdiš, automatsko povezivanje čeka.'
+            ?'U istom razgovoru reci koje usluge radiš na lokaciji, na daljinu ili na oba načina. Automatsko povezivanje čeka potvrdu načina rada.'
             :review.classificationState==='CATALOG_UNAVAILABLE'
-              ?'Katalog usluga trenutno nije dostupan. Profil možeš da sačuvaš, ali povezivanje zadataka čeka da katalog ponovo radi.'
+              ?'Katalog usluga trenutno nije dostupan. Pokušaj ponovo da učitaš pregled; automatsko povezivanje do tada čeka.'
               :review.classificationState==='STALE_CATALOG'
                 ?'Katalog usluga je promenjen. Učitaj novi pregled pre potvrde kategorija.'
                 :'Usluge ostaju u profilu, ali automatsko povezivanje zadataka čeka potvrdu kategorija.'}

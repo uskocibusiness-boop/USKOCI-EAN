@@ -54,7 +54,7 @@ export function workerServiceModeInstruction(context) {
  */
 export function preserveWorkerServiceModes({ raw, hints, context, modeContext, catalog }) {
   const { serviceModeChangesJson, ...output } = raw;
-  if (!['ALLOW', 'CLARIFY'].includes(output.safety)) return { output, hints: [], preserved: false };
+  if (!['ALLOW', 'CLARIFY'].includes(output.safety)) return { output, hints: [], preserved: false, preservedServices: [] };
   const skills = Array.isArray(output.patch?.skills) ? output.patch.skills : context.candidate.skills;
   const offered = new Map(skills.filter(label).map(service => [normalizedClassificationIdentity(service), service]));
   const userTexts = context.messages.filter(row => row.role === 'USER' && typeof row.body === 'string').map(row => row.body);
@@ -91,7 +91,7 @@ export function preserveWorkerServiceModes({ raw, hints, context, modeContext, c
     }
   }
   let preserved = false;
-  const result = [];
+  const result = [], preservedServices = [];
   for (const [key] of offered) {
     if (baseline.has(key)) continue;
     const proposed = hints.filter(hint => normalizedClassificationIdentity(hint.service) === key);
@@ -113,8 +113,14 @@ export function preserveWorkerServiceModes({ raw, hints, context, modeContext, c
     // Revalidate retained identities against this catalog too. A withdrawn category must not be revived by continuity.
     const valid = retained.every(entry => reviewClassificationProposal({ purpose: 'WORKER_CAPABILITY', service, mode: entry.mode }, catalog,
       { action: entry.action, categoryId: entry.categoryId, parentId: null, proposedPath: [], reason: entry.reason, catalogVersion: entry.catalogVersion }).accepted);
-    if (valid) result.push(...retained);
+    if (valid) {
+      result.push(...retained);
+      // Feedback may dismiss an obsolete provider issue only with this actual
+      // saved-context provenance, after fresh identity/mode validation. An
+      // unsatisfied explicit mode-change request must remain unresolved.
+      if (!requested) preservedServices.push(service);
+    }
     preserved ||= !valid || proposed.length !== retained.length || proposed.some(hint => !retained.some(entry => entry.mode === hint.mode && entry.categoryId === hint.categoryId));
   }
-  return { output, hints: result, preserved };
+  return { output, hints: result, preserved, preservedServices };
 }

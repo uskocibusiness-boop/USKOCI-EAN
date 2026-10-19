@@ -29,7 +29,9 @@ import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts'
 import { GeminiCreditsUnavailableError, GeminiSafetyBlockedError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { scopedNeedPreviewArgs, scopedNeedPreviewSafeAction } from '../_shared/taxonomyScopedShadow.mjs';
 import { loadClassificationCatalog, catalogPromptContext } from '../_shared/classificationEngine.mjs';
-import { withGeminiClassificationShadowSchema, inspectGeminiClassificationShadow, geminiClassificationShadowInstruction } from '../_shared/classificationGeminiShadow.mjs';
+import { withGeminiClassificationShadowSchema, inspectGeminiClassificationShadow, geminiClassificationShadowInstruction, classificationTurnFeedback } from '../_shared/classificationGeminiShadow.mjs';
+
+import { withClassificationFeedback } from '../_shared/classificationReply.mjs';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -654,7 +656,7 @@ async function callGemini(
   locationContext?: LocationContext,
   taxonomyPrompt = '',
   taxonomyCatalog: Awaited<ReturnType<typeof loadClassificationCatalog>> | null = null,
-  onClassificationHints?: (hints: Record<string,any>[]) => void,
+  onClassificationHints?: (hints: Record<string,any>[], feedback: any) => void,
   imageBase64?: string,
   imageMime?: string,
 ) {
@@ -674,21 +676,27 @@ async function callGemini(
   contents.push({ role: 'user', parts: userParts });
   const parseOutput = (value: any) => {
     // The optional plan is never an AI fact or owner-approved need revision.
-    const checked = taxonomyCatalog && !locationContext
+    const checked = taxonomyCatalog
       ? inspectGeminiClassificationShadow(value,taxonomyCatalog,'NEED_SERVICE')
       : {output:value,statuses:[],reviewProposals:[],invalidPlanCodes:[]};
-    if (checked.reviewProposals.length) onClassificationHints?.(checked.reviewProposals);
+
     if (checked.statuses.length) console.info('NEED_TAXONOMY_PLAN_SHADOW',checked.statuses.join(','));
     if ('invalidPlanCodes' in checked && checked.invalidPlanCodes?.length)
       console.info('NEED_TAXONOMY_INVALID_PLAN_CLASS',checked.invalidPlanCodes.join(','));
-    return locationContext ? parseLocationOutput(checked.output,locationContext,parseV2Output) : parseV2Output(checked.output);
+    const turn=locationContext ? parseLocationOutput(checked.output,locationContext,parseV2Output) : parseV2Output(checked.output);
+    const proposedCategory=turn.proposals.find((p:any)=>p.key==='need.category');
+    const category=proposedCategory ? proposedCategory.value : activeFacts.find((f:any)=>f.fact_key==='need.category')?.fact_value;
+    const feedback=classificationTurnFeedback(checked,{purpose:'NEED_SERVICE',
+      services:typeof category==='string'?[category]:[],catalogAvailable:!!taxonomyCatalog,readyForReview:turn.dialogue?.next==='REVIEW'});
+    onClassificationHints?.(checked.reviewProposals,feedback);
+    return turn;
   };
   const instruction = schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts, timeContext, taskFinishOnly(text) && !locationContext) : legacyInstruction(activeFacts, timeContext);
   const payloadBody = JSON.stringify({
     systemInstruction: { parts: [{ text: instruction }, ...(locationContext ? [{ text: locationInstruction(locationContext) }] : []), ...(taxonomyPrompt ? [{text: taxonomyPrompt},{text:geminiClassificationShadowInstruction()}] : [])] },
     contents,
     generationConfig: { temperature: 0.2, maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
-      responseMimeType: 'application/json', responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? (locationContext ? locationProviderSchema(v2ProviderSchema()) : taxonomyCatalog ? withGeminiClassificationShadowSchema(v2ProviderSchema()) : v2ProviderSchema()) : legacyProviderSchema() },
+      responseMimeType: 'application/json', responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? (taxonomyCatalog ? withGeminiClassificationShadowSchema(locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : legacyProviderSchema() },
   });
   if (new TextEncoder().encode(payloadBody).byteLength > AI_TEST_LIMITS.llmRequestBytes) throw new Error('AI_CONTEXT_TOO_LARGE');
   if (onText) {
@@ -1089,6 +1097,7 @@ Deno.serve(async (req: Request) => {
     const timeContext = serverTimeContext(new Date());
     const execute = async (onText?: (delta: string) => void, signal: AbortSignal = req.signal) => {
     let aiTurn: ParsedTurn;
+    let taxonomyFeedback: any = null;
     let taxonomyReviewHints: Record<string,any>[]=[];
     // Counts the provider reports for this call. Recorded only after the turn is
     // confirmed, so accounting can never decide whether an answer is delivered.
@@ -1134,22 +1143,19 @@ Deno.serve(async (req: Request) => {
             if (!result.ok) throw new Error('CATALOG_RPC_UNAVAILABLE');
             return result.data;
           });
-          taxonomyPrompt = catalogPromptContext(taxonomyCatalog, { maxItems:96,
-            services: [
-              effectiveUserMessage.slice(0,2000),
-              ...activeFacts.filter((fact:any)=>fact?.fact_key==='need.category')
-                .map((fact:any)=>String(fact.fact_value??'').slice(0,2000)).slice(0,4),
-            ],
-          });
+          taxonomyPrompt = catalogPromptContext(taxonomyCatalog);
           console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'LOADED');
         } catch {
+          taxonomyCatalog = null;
           console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE');
         }
       }
       aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, effectiveUserMessage, timeContext, signal, onText,
         (usage) => { reportedUsage = usage; }, locationContext, taxonomyPrompt, taxonomyCatalog,
-        (hints) => { taxonomyReviewHints = hints; }, imageBase64, imageMime);
+        (hints,feedback) => { taxonomyReviewHints = hints; taxonomyFeedback = feedback; }, imageBase64, imageMime);
       aiTurn = guardConversationTurn(aiTurn, effectiveUserMessage, activeFacts, timeContext, locationContext);
+      if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW'))
+        aiTurn = withClassificationFeedback(aiTurn,taxonomyFeedback,{finishOnly:taskFinishOnly(effectiveUserMessage) && !locationContext,maximum:1200});
       if (locationContext) {
         // A validated answer to the shown question (e.g. 'to je to') stays a map
         // confirmation. Explicit task publication can never take that route.

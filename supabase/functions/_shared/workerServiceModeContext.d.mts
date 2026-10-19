@@ -9,4 +9,4 @@ export function workerServiceModeInstruction(context: WorkerServiceModeContext):
 export function preserveWorkerServiceModes(input: {
   raw: Record<string, any>; hints: Record<string, any>[]; context: Record<string, any>;
   modeContext: WorkerServiceModeContext; catalog: any;
-}): { output: Record<string, any>; hints: Record<string, any>[]; preserved: boolean };
+}): { output: Record<string, any>; hints: Record<string, any>[]; preserved: boolean; preservedServices: string[] };

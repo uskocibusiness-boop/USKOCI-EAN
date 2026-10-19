@@ -11,7 +11,7 @@ jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ReviewedWorkAreaMap' }));
 
-import { WORKER_PROFILE_NOTIFICATIONS_NOTE, WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE, WorkerAiCard, WorkerAiModeConfirmation, WorkerAiNotificationsNote, WorkerAiReviewDetails } from '../WorkerAiPresentation';
+import { WORKER_PROFILE_NOTIFICATIONS_NOTE, WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE, WorkerAiCard, WorkerAiNotificationsNote, WorkerAiReviewDetails } from '../WorkerAiPresentation';
 import { TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY, capturedParts, toolsAndVehiclesNote } from '../workerProfileFacts';
 
 /**
@@ -49,7 +49,7 @@ describe('the review in parts (M2)', () => {
     await act(async()=>press('Izmeni kroz razgovor').props.onPress());
     expect(edit).toHaveBeenCalledWith();
     await act(async()=>tree.update(<WorkerAiReviewDetails review={{...signed,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',reviewedServiceModes:[]}} onEdit={edit}/>));
-    expect(tree.root.findByProps({testID:'worker-classification-pending'}).props.children).toContain('automatsko povezivanje čeka');
+    expect(tree.root.findByProps({testID:'worker-classification-pending'}).props.children).toMatch(/automatsko povezivanje čeka/i);
     const pending=tree.root.findAllByProps({testID:'worker-review-service'}).map(row=>row.findAll(node=>String(node.type)==='T').map(node=>node.props.children));
     expect(pending).toEqual([['Montaža nameštaja'],['3D štampa']]);
   });
@@ -131,7 +131,7 @@ describe('the review in parts (M2)', () => {
   });
 
   it('the constant sentence with the bell says only what the profile is used for, in ink', async () => {
-    await act(async () => { tree = create(<WorkerAiNotificationsNote />); });
+    await act(async () => { tree = create(<WorkerAiNotificationsNote matchingReady />); });
     expect(WORKER_PROFILE_NOTIFICATIONS_NOTE).toBe('Zadatke povezujemo sa potvrđenim uslugama, načinom rada, područjem i vremenom. Obaveštenja su tvoj izbor.');
     const note = tree.root.findByProps({ testID: 'worker-review-notifications-note' });
     expect(note.props.children).toBe(WORKER_PROFILE_NOTIFICATIONS_NOTE); expect(note.props.tone).toBeUndefined();
@@ -139,7 +139,7 @@ describe('the review in parts (M2)', () => {
   });
 
   it('does not promise matching notifications when signed worker classification is pending', async () => {
-    await act(async () => { tree = create(<WorkerAiNotificationsNote matchingReady={false} />); });
+    await act(async () => { tree = create(<WorkerAiNotificationsNote />); });
     const note = tree.root.findByProps({ testID: 'worker-review-notifications-note' });
     expect(note.props.children).toBe(WORKER_PROFILE_PENDING_NOTIFICATIONS_NOTE);
     expect(note.props.children).toMatch(/neće stizati dok kategorija i način rada/);
@@ -193,17 +193,22 @@ describe('the conversation draft is not matching readiness', () => {
   });
 });
 
-describe('explicit worker mode confirmation',()=>{
- it('does not preselect a delivery mode or grant any notification authority',async()=>{
-  const change=jest.fn();
-  await act(async()=>{tree=create(<WorkerAiModeConfirmation skills={['Časovi matematike','Sklapanje nameštaja']}
-   choices={{}} disabled={false} onChange={change}/>);});
-  expect(tree.root.findByProps({testID:'worker-explicit-mode-confirmation'})).toBeTruthy();
-  const radios=tree.root.findAll(x=>String(x.type)==='Press'&&x.props.accessibilityRole==='radio');
-  expect(radios).toHaveLength(6);
-  expect(radios.every(x=>x.props.accessibilityState.checked===false)).toBe(true);
-  await act(async()=>{radios[2].props.onPress();});
-  expect(change).toHaveBeenCalledWith('Časovi matematike','BOTH');
-   expect(texts()).toContain('Potvrdi za svaku uslugu: na lokaciji, na daljinu ili oba načina.');
+describe('classification recovery uses the existing conversation',()=>{
+ it('explains missing service modes and offers one AI correction without manual options',async()=>{
+  const edit=jest.fn();
+  await act(async()=>{tree=create(<WorkerAiReviewDetails review={{...review(),classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED'}} onEdit={edit}/>);});
+  expect(tree.root.findByProps({testID:'worker-classification-pending'}).props.children).toContain('U istom razgovoru reci');
+  expect(tree.root.findAllByProps({accessibilityRole:'radio'})).toHaveLength(0);
+  expect(texts()).not.toContain('Izaberi ga za svaku uslugu');
+  await act(async()=>press('Izmeni kroz razgovor').props.onPress());
+  expect(edit).toHaveBeenCalledTimes(1);
+ });
+ it.each(['CATALOG_UNAVAILABLE','STALE_CATALOG'] as const)('%s explains catalog recovery without asking for modes',async classificationState=>{
+  await act(async()=>{tree=create(<WorkerAiReviewDetails review={{...review(),classificationState}}/>);});
+  const note=tree.root.findByProps({testID:'worker-classification-pending'}).props.children;
+  expect(note).toMatch(/Katalog usluga/);
+  expect(note).toMatch(/pregled/);
+  expect(note).not.toMatch(/Izaberi|koje usluge radiš|Potvrdi za svaku/);
+  expect(tree.root.findAllByProps({accessibilityRole:'radio'})).toHaveLength(0);
  });
 });

@@ -72,3 +72,7 @@ node scripts/control/osvezi-master-plan.mjs --html docs/current/USKOCI_OPERATIVN
 ```
 
 Ne kopiraj ponovo example state preko postojećeg stanja. Generisanje ne objavljuje hosted tablu i ne menja Supabase. Browser dugme „Učitaj redovi.json“ menja samo trenutni prikaz. Za detalje i konzervativnu klasifikaciju koristi [control README](../control/README.md).
+
+## 19.10 — oba AI toka i celo stablo
+
+Povezan paket bez limita 96 i šest novih nivoa, prirodni nazivi, pitanje umesto slepe klasifikacije, očuvani potvrđeni načini rada i pregled profila bez dodatnog ručnog formulara: [AI_FULL_TREE_20261019.md](AI_FULL_TREE_20261019.md). Tačan dokaz primene i APK-a čitati tamo; izvor i offline uspeh nisu sami po sebi DEV ili device dokaz.

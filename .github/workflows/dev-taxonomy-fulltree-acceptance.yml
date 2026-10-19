@@ -1,0 +1,71 @@
+name: DEV taxonomy full-tree acceptance (isolated)
+
+on:
+  workflow_dispatch:
+    inputs:
+      execute:
+        description: Execute isolated AI conversations; false is a no-network dry run
+        type: boolean
+        default: false
+      cases:
+        description: Comma-separated cases; at most one worker case per account
+        type: string
+        default: need-existing,need-novel,need-clarify,worker-existing
+      max_attempts:
+        description: Provider POST attempts, including failed/unknown claims (maximum 12 / $3 reserved)
+        type: string
+        default: '7'
+      attestation_json:
+        description: Fresh READ ONLY QA isolation observation; no credentials or personal data
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dev-taxonomy-fulltree-isolated
+  cancel-in-progress: false
+
+jobs:
+  isolated-conversations:
+    runs-on: ubuntu-latest
+    environment: dev-alpha-acceptance
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Write non-secret observer input
+        env:
+          ATTESTATION_JSON: ${{ inputs.attestation_json }}
+        run: |
+          mkdir -p artifacts/taxonomy-fulltree
+          node --input-type=module -e 'import {writeFileSync} from "node:fs"; writeFileSync("artifacts/taxonomy-fulltree/observer-input.json",process.env.ATTESTATION_JSON||"{}");'
+      - name: Dry plan or isolated conversations (no Save or publication)
+        env:
+          USKOCI_QA_ACCESS_TOKEN: ${{ secrets.USKOCI_QA_ACCESS_TOKEN }}
+          DEV_ACCEPTANCE_EMAIL: ${{ vars.DEV_ACCEPTANCE_EMAIL || secrets.DEV_ACCEPTANCE_EMAIL }}
+          DEV_ACCEPTANCE_PASSWORD: ${{ secrets.DEV_ACCEPTANCE_PASSWORD }}
+          USKOCI_QA_EXPECTED_ACCOUNT_ID: ${{ vars.USKOCI_QA_EXPECTED_ACCOUNT_ID }}
+          USKOCI_QA_CASES: ${{ inputs.cases }}
+          USKOCI_QA_MAX_ATTEMPTS: ${{ inputs.max_attempts }}
+          USKOCI_QA_SOURCE_SHA: ${{ github.sha }}
+          USKOCI_QA_ATTESTATION_FILE: artifacts/taxonomy-fulltree/observer-input.json
+          USKOCI_QA_OUT: artifacts/taxonomy-fulltree
+          EXECUTE: ${{ inputs.execute }}
+        run: |
+          if [ "$EXECUTE" = true ]; then
+            node scripts/acceptance/dev_taxonomy_fulltree_acceptance.mjs --execute
+          else
+            node scripts/acceptance/dev_taxonomy_fulltree_acceptance.mjs
+          fi
+      - name: Keep sanitized receipts and read-only observer query
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: TAXONOMY-FULLTREE-${{ github.run_id }}
+          path: artifacts/taxonomy-fulltree/
+          if-no-files-found: warn
+          retention-days: 14

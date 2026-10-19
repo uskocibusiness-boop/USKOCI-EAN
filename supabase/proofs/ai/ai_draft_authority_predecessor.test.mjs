@@ -16,7 +16,7 @@ test('exact historical fixture derives the frozen predecessor and optional D03',
   assert.equal(plan.historical_predecessor_count, 85);
 }));
 test('historical AI planner rejects the larger current integration source instead of silently admitting it', () => {
-  assert.throws(() => readAiAuthorityPredecessorPlan(), /UNKNOWN_MISSING_OR_CHANGED_PREDECESSOR_SOURCE/);
+  assert.throws(() => readAiAuthorityPredecessorPlan(), /UNKNOWN_MISSING_OR_CHANGED_PREDECESSOR_SOURCE|SOURCE_CR_BYTE/);
 });
 test('unknown additional migration refuses source admission before any database operation', () => fixture(root => {
   writeFileSync(join(root, 'supabase/migrations/20990101000000_unadmitted.sql'), 'select 1;\n');

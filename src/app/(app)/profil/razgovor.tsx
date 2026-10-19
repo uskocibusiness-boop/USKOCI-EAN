@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { workerAiClientService as api, workerExplicitModeReviewEnabled, explicitWorkerModes, type WorkerAiModeChoice, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
+import { workerAiClientService as api, type WorkerAiPatch, type WorkerAiSnapshot, type WorkerAiTurnRecovery } from '../../../data/workerAiClientService';
 import { workerAiTurnIntentJournal as journal, type WorkerAiTurnIntent } from '../../../data/workerAiTurnIntentJournal';
 import type { Ishod } from '../../../data/ports';
 import { uuid } from '../../../data/serverReceipt';
@@ -17,7 +17,7 @@ import { useAccountName } from '../../../ui/profile/useAccountName';
 import { ActionSheet } from '../../../ui/system/ActionSheet';
 import { brandAction, sys } from '../../../ui/system/tokens';
 import { WorkerProfileFrame, WorkerProfileStatus } from '../../../ui/workerProfile/WorkerProfilePresentation';
-import { WorkerAiActivation, WorkerAiCard, WorkerAiModeConfirmation, WorkerAiNotificationsNote, WorkerAiReviewDetails } from '../../../ui/workerProfile/WorkerAiPresentation';
+import { WorkerAiActivation, WorkerAiCard, WorkerAiNotificationsNote, WorkerAiReviewDetails } from '../../../ui/workerProfile/WorkerAiPresentation';
 import { WORKER_PART_TITLE, type WorkerAiPart } from '../../../ui/workerProfile/workerProfileFacts';
 import { T } from '../../../ui/Text';
 import { V2Action } from '../../../ui/v2/V2Action';
@@ -69,9 +69,6 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
   const [recovery,setRecovery]=useState<WorkerAiTurnRecovery|null>(null),[,intentChanged]=useState(0);
   const pending=useRef<Attempt|null>(null),saveKey=useRef<{reviewId:string;key:string}|null>(null);
   const [rejectedReviewId,setRejectedReviewId]=useState<string|null>(null);
-  // Key selections to the exact worker candidate, not the changing review ID.
-  // Never infer choices or persist them across a changed service list/revision.
-  const [modeDraft,setModeDraft]=useState<{source:string;values:Record<string,WorkerAiModeChoice>}>({source:'',values:{}});
   // A prepared review is authoritative. Retain its activation choice when a
   // later conversation turn retires the review; returning to review must not
   // silently turn a deliberate "keep draft" back into activation.
@@ -248,24 +245,6 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
       const next=await read();if(next.ok&&current())showPanel('review');return next;
     });
   };
-  const confirmModes=async()=>{
-    if(!workerExplicitModeReviewEnabled()||!canAct()||!enabled||!writable||
-       reviewNeedsRestart||!data||!data.review||data.saved||editor.busy)return;
-    const review=data.review;
-    const source=`${data.conversationId}:${data.revision}:${JSON.stringify(data.candidate.skills)}`;
-    if(modeDraft.source!==source)return;
-    const selected=explicitWorkerModes(review.profile.skills,modeDraft.values);
-    if(!selected)return;
-    await savePanel(async()=>{
-      const prepared=await api.prepareConfirmed(data.conversationId,data.revision,review.activate,selected);
-      if(!current())return unavailable();
-      if(!prepared.ok)return prepared;
-      saveKey.current=null; // A newly signed review always gets a distinct Save request.
-      const refreshed=await read();
-      if(refreshed.ok&&current())showPanel('review');
-      return refreshed;
-    });
-  };
   const save=async()=>{
     const reviewed=data?.review;if(!canAct()||!enabled||!writable||reviewNeedsRestart||!data||!reviewed||!reviewed.canAccept||reviewed.revision!==data.revision||Date.parse(reviewed.expiresAt)<=Date.now())return;
     if(saveKey.current?.reviewId!==reviewed.reviewId)saveKey.current={reviewId:reviewed.reviewId,key:noviUuidZahtevId()};
@@ -316,9 +295,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
     error={leaving?null:editor.error} retry={refresh}/>{!leaving&&foreground&&!resuming?confirmSheet.sheet:null}</WorkerProfileFrame>;
   const busyPanelCopy=editor.busy?<T accessibilityRole="alert" variant="meta" tone="muted">Sačekaj potvrdu pre povratka u razgovor.</T>:null;
   if(panel==='review'&&data.review){const frozen=data.review,
-    modesSource=`${data.conversationId}:${data.revision}:${JSON.stringify(data.candidate.skills)}`,
-    currentModes=modeDraft.source===modesSource?modeDraft.values:{},
-    selectedModes=explicitWorkerModes(frozen.profile.skills,currentModes),
+    catalogNeedsRefresh=frozen.classificationState==='CATALOG_UNAVAILABLE'||frozen.classificationState==='STALE_CATALOG',
     // The account got its name (in "Lični podaci") while this review still says it is missing: a fresh review puts it in.
     nameAdded=frozen.missingRequired.includes('Ime')&&!!accountName,
     expired=Date.parse(frozen.expiresAt)<=Date.now()||frozen.revision!==data.revision||nameAdded;
@@ -335,24 +312,13 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken}:{initialId?
       {data.saved?<T accessibilityRole="alert" variant="title" style={{color:sys.color.green}}>Profil je sačuvan{data.saved.profileStatus==='ACTIVE'?' i aktivan':''}.</T>:null}
       <WorkerAiReviewDetails review={frozen} onEdit={data.saved?undefined:editConversation} editDisabled={!enabled||!writable||expired||reviewNeedsRestart}
         onAddName={data.saved||expired?undefined:()=>leave(()=>router.push('/profil/podaci'))}/>
-      {workerExplicitModeReviewEnabled()&&!data.saved&&frozen.classificationState!==undefined&&frozen.classificationState!=='READY'?<WorkerAiModeConfirmation
-        skills={frozen.profile.skills} choices={currentModes}
-        disabled={!enabled||!writable||expired||reviewNeedsRestart||editor.busy}
-        onChange={(service,choice)=>setModeDraft(old=>({
-          source:modesSource,values:{...(old.source===modesSource?old.values:{}),[service]:choice}
-        }))}/>:null}
-      {workerExplicitModeReviewEnabled()&&!data.saved&&frozen.classificationState!==undefined&&frozen.classificationState!=='READY'?<V2Action tone="neutral"
-        label="Potvrdi način rada za sve usluge"
-        disabled={!selectedModes||!enabled||!writable||expired||editor.busy||reviewNeedsRestart}
-        reason={!selectedModes?'Izaberi način rada posebno za svaku uslugu.':null}
-        onPress={()=>{void confirmModes();}}/>:null}
       {/* Describe notification readiness honestly: signed pending reviews grant no matching authority. */}
-      {!data.saved?<WorkerAiNotificationsNote matchingReady={frozen.classificationState===undefined||frozen.classificationState==='READY'}/>:null}
+      {!data.saved?<WorkerAiNotificationsNote matchingReady={frozen.classificationState==='READY'}/>:null}
       {busyPanelCopy}
       {/* The save button below is grey for one of these reasons; the details above name a missing field themselves. */}
       {!data.saved&&(expired||!writable)?<T variant="meta" tone="muted">{expired?'Ovaj pregled više ne važi. Učitaj novi pregled pre čuvanja.':statusCopy??'Ovaj predlog trenutno ne može da se sačuva.'}</T>:null}
       {data.profileStatus==='DRAFT'&&!data.saved?<WorkerAiActivation activate={frozen.activate} disabled={!enabled} change={value=>{void review(value);}}/>:null}
-      {expired&&!data.saved?<V2Action tone="neutral" label="Učitaj novi pregled" disabled={!enabled} onPress={()=>{void review(frozen.activate);}}/>:null}
+      {(expired||catalogNeedsRefresh)&&!data.saved?<V2Action tone="neutral" label="Učitaj novi pregled" disabled={!enabled||reviewNeedsRestart} onPress={()=>{void review(frozen.activate);}}/>:null}
       {editor.error?<T accessibilityRole="alert" tone="danger">{editor.error}</T>:null}
       {reviewNeedsRestart?<>
         <T variant="note" tone="muted">{editor.uncertain?'Proveri stanje, pa otvori nov razgovor.':'Ovaj predlog više ne može da se sačuva. Novi razgovor kreće od tvog sačuvanog profila.'}</T>

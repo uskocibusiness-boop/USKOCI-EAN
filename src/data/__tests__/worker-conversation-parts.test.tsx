@@ -197,6 +197,45 @@ describe('the conversation (M1)', () => {
 });
 
 describe('the review (M2)', () => {
+  it('returns missing-mode review to the same AI conversation and preserves unsent text without a write', async () => {
+    await render();
+    await act(async () => shell().props.onChange('Radim samo na daljinu, kod sebe.'));
+    const pending = reviewed();
+    mockApi.prepare.mockResolvedValue(ok({}));
+    mockApi.read.mockResolvedValue(ok({...pending,review:{...pending.review,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED'}}));
+    await act(async () => shell().props.card(false).props.review());
+    expect(tree.root.findAllByProps({label:'Potvrdi način rada za sve usluge'})).toHaveLength(0);
+    expect(tree.root.findAllByProps({testID:'worker-explicit-mode-confirmation'})).toHaveLength(0);
+    expect(tree.root.findByType('Note' as never).props.matchingReady).toBe(false);
+    await act(async () => review().props.onEdit());
+    expect(shell().props.conversationKey).toBe(C);
+    expect(shell().props.value).toBe('Radim samo na daljinu, kod sebe.');
+    expect(shell().props.correction.target).toBe('worker.details');
+    expect(mockApi.send).not.toHaveBeenCalled(); expect(mockApi.patch).not.toHaveBeenCalled();
+    expect(mockApi.save).not.toHaveBeenCalled(); expect(mockApi.open).not.toHaveBeenCalled();
+  });
+  it.each(['CATALOG_UNAVAILABLE','STALE_CATALOG'] as const)('%s can refresh the signed review without a mode form or AI call', async classificationState => {
+    await render();
+    const stale=reviewed(0,false);
+    mockApi.prepare.mockResolvedValue(ok({}));
+    mockApi.read.mockResolvedValue(ok({...stale,review:{...stale.review,classificationState}}));
+    await act(async () => shell().props.card(false).props.review());
+    mockApi.prepare.mockClear();
+    expect(tree.root.findAllByProps({label:'Potvrdi način rada za sve usluge'})).toHaveLength(0);
+    expect(action('Učitaj novi pregled').props.disabled).toBe(false);
+    await click('Učitaj novi pregled');
+    expect(mockApi.prepare).toHaveBeenCalledWith(C,0,false);
+    expect(mockApi.send).not.toHaveBeenCalled(); expect(mockApi.save).not.toHaveBeenCalled();
+    expect(mockApi.patch).not.toHaveBeenCalled();
+  });
+  it.each([undefined,'READY'] as const)('only explicit READY enables the matching note (%s)', async classificationState => {
+    await render();
+    const current=reviewed();
+    mockApi.prepare.mockResolvedValue(ok({}));
+    mockApi.read.mockResolvedValue(ok({...current,review:{...current.review,classificationState}}));
+    await act(async () => shell().props.card(false).props.review());
+    expect(tree.root.findByType('Note' as never).props.matchingReady).toBe(classificationState==='READY');
+  });
   it('defers an external topic during signed preparation and keeps the unsent text when it completes', async () => {
     let finish!: (value: unknown) => void;
     await render(); await act(async () => shell().props.onChange('Moj neposlati odgovor'));

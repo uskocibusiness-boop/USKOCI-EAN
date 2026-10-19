@@ -1,0 +1,57 @@
+{
+  "status": "PREPARED_NOT_EXECUTED_OR_DEPLOYED",
+  "createdAt": "2026-10-19T07:39:38.575Z",
+  "workflow": ".github/workflows/taxonomy-new-branch-scopes-pg-proof.yml",
+  "job": "natural-service-branching",
+  "postgres": [
+    "16",
+    "17"
+  ],
+  "localChecks": [
+    "YAML parsed",
+    "all SQL include paths exist",
+    "git diff --check"
+  ],
+  "files": [
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/branching-natural-depth/assert-before.sql",
+      "sha256": "00f4c2ed5bbe7c3fd5121efa1487b30ca0b59e340a98436f6df5a4708d8601a4"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/branching-natural-depth/assert.sql",
+      "sha256": "522f89318492804532172c03871df8c399d07005160e26a99e6f011b19c388f1"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/branching-natural-depth/before-metadata.json",
+      "sha256": "5eec257c21c91b4ce03c9d5f4fa749ba150d6f150ed5c83b78794ae7ef3fbf22"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/branching-natural-depth/before.sql",
+      "sha256": "8b10ae336f5932291731d2691ada2adfbe1912ccccadb5952c4bb19d66b56a6c"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/branching-natural-depth/current-dependencies.sql",
+      "sha256": "9b8ac35ea23edbe6824449664e89cc82ce71628e37aefc68d173a02faf370250"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/branching-natural-depth/fixture.sql",
+      "sha256": "36fbbd5d4f112f665022115d983a0b19dc4d182a7282bbbb6dab14ea12355369"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/branching-natural-depth/README.md",
+      "sha256": "e001e058b0f1d02314ca2391ffa52a937cbab3dbc23aed1989fec40730c8b201"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/branching-natural-depth/revert.sql",
+      "sha256": "ad512fb96a9d31115c343ae5f894b761e56bb7c9f3e3633e0caab0d46913c0b8"
+    },
+    {
+      "path": "supabase/migrations/20261019071732_taxonomy_natural_services_structural_paths.sql",
+      "sha256": "69983a6b41740f4a5c09112f3dd29cc84cbbeeb9b356b5077fd4e437d179e991"
+    },
+    {
+      "path": ".github/workflows/taxonomy-new-branch-scopes-pg-proof.yml",
+      "sha256": "e9dbb9b77d575d1ce1bec0cd0a71caddb752adda2bade656d8b2dfed509d169a"
+    }
+  ]
+}

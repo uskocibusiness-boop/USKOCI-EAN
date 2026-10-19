@@ -157,12 +157,12 @@ function decodeClassification(v:Record<string,unknown>,profile:WorkerAiProfile):
       &&uuid(c.categoryId);
     const child=c.action==='CREATE_CHILD'&&exact(c,['action','service','mode','parentId','parentLabel','path','catalogVersion','reason'])
       &&uuid(c.parentId)&&text(c.parentLabel,120)&&c.parentLabel.trim().length>=3
-      &&Array.isArray(c.path)&&c.path.length>=1&&c.path.length<=6
+      &&Array.isArray(c.path)&&c.path.length>=1&&JSON.stringify(c.path).length<=12000
       &&c.path.every(x=>text(x,120)&&x.trim().length>=3)
       &&c.path[c.path.length-1]===c.service;
     const root=c.action==='CREATE_NEW_BRANCH'&&exact(c,['action','service','mode','parentId','parentLabel','path','catalogVersion','reason'])
       &&c.parentId===null&&c.parentLabel===null
-      &&Array.isArray(c.path)&&c.path.length>=1&&c.path.length<=6
+      &&Array.isArray(c.path)&&c.path.length>=1&&JSON.stringify(c.path).length<=12000
       &&c.path.every(x=>text(x,120)&&x.trim().length>=3)
       &&c.path[c.path.length-1]===c.service;
     if(!reuse&&!child&&!root)return null;

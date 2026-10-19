@@ -73,11 +73,9 @@ export function assistantPrefix(input: string): string {
 // The callers already declare the provider's own schema subset, with its UPPERCASE type
 // names, so the adapter forwards types unchanged instead of rewriting them.
 
-/** `responseSchema` takes the provider's own schema subset, which has no
- * `additionalProperties`. Sending it makes the request fail as a whole, and dropping it
- * loosens nothing: each caller's decoder still refuses any key it did not ask for. Every
- * other declared constraint, including enum, nullable, maxItems, minimum and maximum, is
- * part of that subset and is forwarded unchanged. */
+/** The live provider wire omits object-key and array-length bounds. The caller's
+ * strict local decoder remains authoritative for unknown keys and item limits;
+ * enum, nullable and numeric bounds are forwarded unchanged. */
 const wireUnsupportedKeywords = new Set(['additionalProperties', 'maxItems', 'minItems']);
 
 function providerSchema(value: unknown): unknown {

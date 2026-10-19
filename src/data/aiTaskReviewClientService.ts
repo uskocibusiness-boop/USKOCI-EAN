@@ -152,12 +152,12 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
       const child=!!candidate&&candidate.action==='CREATE_CHILD'&&only(candidate,
         ['action','service','mode','parentId','parentLabel','path','catalogVersion','reason'])
         &&uuid(candidate.parentId)&&text(candidate.parentLabel,120)
-        &&Array.isArray(candidate.path)&&candidate.path.length>=1&&candidate.path.length<=6
+        &&Array.isArray(candidate.path)&&candidate.path.length>=1&&JSON.stringify(candidate.path).length<=12000
         &&candidate.path.every(x=>text(x,120))&&candidate.path[candidate.path.length-1]===candidate.service;
       const root=!!candidate&&candidate.action==='CREATE_NEW_BRANCH'&&only(candidate,
         ['action','service','mode','parentId','parentLabel','path','catalogVersion','reason'])
         &&candidate.parentId===null&&candidate.parentLabel===null
-        &&Array.isArray(candidate.path)&&candidate.path.length>=1&&candidate.path.length<=6
+        &&Array.isArray(candidate.path)&&candidate.path.length>=1&&JSON.stringify(candidate.path).length<=12000
         &&candidate.path.every(x=>text(x,120))&&candidate.path[candidate.path.length-1]===candidate.service;
       if (items.length !== 1 || !candidate || (!reuse&&!child&&!root) ||
         !text(candidate.service,120) || candidate.service !== category?.value ||

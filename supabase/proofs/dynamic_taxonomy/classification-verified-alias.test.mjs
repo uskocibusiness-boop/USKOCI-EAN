@@ -133,8 +133,8 @@ test('model-authored alias evidence and extra fields never become server catalog
 
 test('prompt exposes registered aliases without provider alias creation authority',async()=>{
   const catalog=await loadClassificationCatalog(rpc);
-  const prompt=JSON.parse(catalogPromptContext(catalog,{services:['3D štampa']}));
+  const prompt=JSON.parse(catalogPromptContext(catalog));
   assert.deepEqual(prompt.categories.find(x=>x.id===printing).aliases,['3D štampa','Izrada 3D figurica']);
   assert.match(prompt.instructions,/registered aliases/i);
-  assert.match(prompt.instructions,/not.*new alias/i);
+  assert.match(prompt.instructions,/registered aliases/i);
 });

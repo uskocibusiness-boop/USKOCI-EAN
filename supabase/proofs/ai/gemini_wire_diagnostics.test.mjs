@@ -39,7 +39,7 @@ test('wire conversion preserves all constraints, contents and token cap; normali
   for(const old of ['temperature','topP','topK'])assert.ok(!(old in parsed.generationConfig));
 });
 
-test('only additionalProperties is dropped; every other constraint and type survives',()=>{
+test('wire omits provider-incompatible object and array bounds; local decoding remains authoritative',()=>{
   const {api}=load();
   const schema={type:'OBJECT',additionalProperties:false,required:['facts'],properties:{
     facts:{type:'ARRAY',maxItems:12,minItems:1,items:{type:'OBJECT',additionalProperties:false,
@@ -49,7 +49,7 @@ test('only additionalProperties is dropped; every other constraint and type surv
     generationConfig:{temperature:0.2,maxOutputTokens:8192,responseMimeType:'application/json',responseSchema:schema}});
   const out=JSON.parse(api.geminiRequestBody(input)).generationConfig.responseSchema;
   assert.deepEqual(out,{type:'OBJECT',required:['facts'],properties:{
-    facts:{type:'ARRAY',maxItems:12,minItems:1,items:{type:'OBJECT',
+    facts:{type:'ARRAY',items:{type:'OBJECT',
       properties:{key:{type:'STRING',enum:['a','b']},score:{type:'NUMBER',minimum:0,maximum:1},note:{type:'STRING',nullable:true}},
       required:['key','score']}}}});
 });
