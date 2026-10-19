@@ -30,7 +30,7 @@ function fixture(options={}){
   if(url.endsWith('/rpc_fail_worker_ai_turn_service'))return options.fail?.(init)??json(turn('FAILED'));
   if(url.startsWith('https://generativelanguage.googleapis.com/')){
    if(options.provider) return options.provider(init);
-   const raw=JSON.stringify(output),fragments=Array.from(raw);
+   const raw=JSON.stringify({availabilityChange:options.availabilityChange??{kind:'NONE',evidence:''},...output}),fragments=Array.from(raw);
    const body=fragments.map((text,index)=>'data: '+JSON.stringify({candidates:[{content:{parts:[{text}]},...(index===fragments.length-1?{finishReason:options.finishReason??'STOP'}:{})}]})+'\n\n').join('');
    const bytes=new TextEncoder().encode(body);return new Response(new ReadableStream({start(c){for(let i=0;i<bytes.length;i+=7)c.enqueue(bytes.slice(i,i+7));c.close();}}),{headers:{'Content-Type':'text/event-stream'}});
   }
@@ -65,6 +65,36 @@ for(const status of [402,429])for(const diagnostics of [false,true])
   const reserves=f.calls.filter(c=>c.url.endsWith('/rpc_ai_test_budget_reserve_service'));
   assert.equal(reserves.length,1);assert.equal(reserves[0].body.p_max_cost_microusd,250000);
  });
+for(const availability of [undefined,{}, {ruleChanges:[]}, {timezone:'Europe/Belgrade'}])
+test('an acknowledged availability edit without a calendar operation cannot report success: '+JSON.stringify(availability),async()=>{
+ const output={assistantMessage:'Ponedeljak sam promenio na 18 do 20.',safety:'ALLOW',patch:{bio:'Bavim se montažom.',...(availability?{availability}:{})}};
+ const f=fixture({output,availabilityChange:{kind:'PATCH',evidence:'SYNTHETIC_USER_MESSAGE'}}), es=await events(f);
+ assert.equal(es.at(-1).kind,'final'); assert.equal(providers(f).length,1);
+ const accepted=completions(f)[0].body.p_output;
+ assert.deepEqual(accepted.patch,{bio:'Bavim se montažom.'});
+ assert.equal(accepted.safety,'CLARIFY'); assert.match(accepted.assistantMessage,/Dostupnost još nije promenjena/);
+ assert.ok(!JSON.stringify(es).includes(output.assistantMessage));
+ assert.ok(!Object.hasOwn(accepted,'availabilityChange'));
+});
+test('changing one weekday reaches the writer as a scoped operation, keeping the other weekdays server-owned',async()=>{
+ const availability={ruleChanges:[{ruleId:id(30),weekdays:[1],value:{startTime:'18:00',endTime:'20:00',startsOn:'2026-10-19',endsOn:null,label:'Ponedeljak',active:true}}]};
+ const output={assistantMessage:'Predlog za ponedeljak je u nacrtu.',safety:'ALLOW',patch:{availability}};
+ const f=fixture({output,availabilityChange:{kind:'PATCH',evidence:'SYNTHETIC_USER_MESSAGE'}}),es=await events(f);
+ assert.equal(es.at(-1).kind,'final'); assert.deepEqual(completions(f)[0].body.p_output,output);
+ const schema=providers(f)[0].body.generationConfig.responseSchema;
+ assert.ok(schema.required.includes('availabilityChange')); assert.equal(providers(f).length,1);
+});
+test('invented availability evidence cannot authorize a calendar proposal',async()=>{
+ const output={assistantMessage:'Dostupan si odmah.',safety:'ALLOW',patch:{availability:{availableNow:true},skills:['Montaža']}};
+ const f=fixture({output,availabilityChange:{kind:'PATCH',evidence:'INVENTED_USER_STATEMENT'}});await events(f);
+ const accepted=completions(f)[0].body.p_output;
+ assert.deepEqual(accepted.patch,{skills:['Montaža']}); assert.equal(accepted.safety,'CLARIFY'); assert.equal(providers(f).length,1);
+});
+test('a malformed availability intent cannot reach the writer or the user as success',async()=>{
+ const f=fixture({availabilityChange:{kind:'PATCH'}}),es=await events(f);
+ assert.equal(es.at(-1).kind,'safe_error'); assert.equal(completions(f).length,0);
+ assert.equal(providers(f).length,1);
+});
 test('distinct owned profile streams real Unicode text, reserves approved budget and completes candidate only',async()=>{
  const f=fixture(),es=await events(f);assert.equal(es[0].kind,'accepted');assert.equal(es.at(-1).kind,'final');assert.deepEqual(es.at(-1).turn,turn());
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),f.output.assistantMessage);
