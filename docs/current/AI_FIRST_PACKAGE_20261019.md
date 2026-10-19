@@ -64,3 +64,6 @@ Radni profil u novom QA nacrtu pokazuje da potvrda kategorija još nedostaje; ne
 3. Dva naloga od objave do prijave, Dogovora, poruke, push isporuke i otvaranja pravog ekrana.
 4. Povezani vizuelni talasi i ostali odobreni tokovi: Dogovori, grupne fotografije/glas, privatna komunikacija vlasnika sa izabranim članom, otkazi, zamena i recenzije.
 5. Kontrolisana Android proba pre javne objave. Emulator dokaz nije dokaz fizičkog telefona ili spremnosti za produkciju.
+
+## Naknadna provera 19.10.2026.
+GitHub run 39277078099 je naknadno pročitan kao completed / success. Raniji in_progress zapis iznad opisuje trenutak preuzimanja artifakata; završni status je sada potvrđen. Uklanjanje ručne države/načina rada i potvrda mape nastavljeni su u [drugom datiranom paketu](AI_MAP_PACKAGE_20261019.md), čiji se native status vodi posebno.

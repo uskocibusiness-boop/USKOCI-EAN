@@ -232,7 +232,7 @@
       },
       "problem": "Ovaj paket potvrđuje pojedinačne scenarije; višeuslužni razgovori i sve promene već sačuvanog zadatka ostaju za širi stvarni test.",
       "source_progress_20261018": "APK 0175d364 izgrađen i instaliran uz očuvanu sesiju. Na novom APK-u provereni pregled REMOTE zadatka sa dostavom, Naručilac, završne akcije i povratak sa izmene cene u isti razgovor uz očuvan neposlati tekst. Task Edge 99 ima zasebnu stvarnu probu direktnog odgovora i tačnih DST granica. Nova objava nije izvršena tokom završnog UI prolaza.",
-      "sledece": "Odluka 19.10, dokaz celog opsega PENDING: Prvi odobreni AI paket: povezano proveriti delimične odgovore, ispravke, vreme/trošak, isti cid i neposlati tekst kroz pregled/Back; dokaze primene i emulatora vezati za tačan paket. docs/current/OWNER_DECISIONS_20261019.md.",
+      "sledece": "AI brzina, statusna dopuna konačne klasifikacije i višeuslužni/regionalni razgovori. Native Back/neposlati tekst potvrđeni na checkpoint-u; nema potpune potvrde svih AI scenarija. Dokaz ovog paketa: docs/current/AI_MAP_PACKAGE_20261019.md; poslovne odluke: docs/current/OWNER_DECISIONS_20261019.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -439,6 +439,20 @@
           "edgeDeployed": false,
           "edgeCandidate": "docs/implementation/evidence/visual-rounds-20261010/ai-edge-candidate-59876dc6.json",
           "storeReady": false
+        },
+        "ai_map_package_20261019": {
+          "sourceSha": "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3",
+          "packageStatus": "DEV_APPLIED_APK_BUILT_SCOPED_EMULATOR_VERIFIED",
+          "serverStatus": "DEV_APPLIED_LF_CONTENT_VERIFIED",
+          "nativeStatus": "SCOPED_EMULATOR_VERIFIED",
+          "buildRun": 39298019592,
+          "scope": "Usklađene instrukcije oba AI toka; semantička promena mesta vraća korisnika u isti razgovor bez automatskog slanja neposlatog teksta. Živi test obuhvata i fizičku lokaciju i rutu; nacrt nije isto što i objava.",
+          "remaining": "AI brzina, statusna dopuna konačne klasifikacije i višeuslužni/regionalni razgovori. Native Back/neposlati tekst potvrđeni na checkpoint-u; nema potpune potvrde svih AI scenarija.",
+          "report": "docs/current/AI_MAP_PACKAGE_20261019.md",
+          "evidence": "docs/current/evidence/AI_MAP_PACKAGE_20261019.json",
+          "snapshot": "docs/control/dev_snapshot.json#ai_map_package_20261019",
+          "phoneAcceptance": false,
+          "wholeFlowAcceptance": false
         }
       },
       "native_6d4_checkpoint_20261003": {
@@ -520,7 +534,8 @@
         "proofStatus": "PENDING",
         "decision": "Prijavljeni tok ima isti AI razgovor/nacrt, jednu živu karticu i jedan pregled sa eksplicitnom objavom."
       },
-      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md",
+      "source_progress_20261019_map_package": "DEV APPLIED / APK BUILT / SCOPED EMULATOR: Usklađene instrukcije oba AI toka; semantička promena mesta vraća korisnika u isti razgovor bez automatskog slanja neposlatog teksta. Živi test obuhvata i fizičku lokaciju i rutu; nacrt nije isto što i objava. Izvor 7f202518, CI 39298019592: 621 paket / 13.968 testova PASS, instalirani APK hash i About/OTA potvrđeni. Osam tekstualnih AI odgovora/15 poziva/$0.135679 interna procena, 5.7–25.3s; pre Save-a kanonski otisci isti. Jedan eksplicitan native DRAFT Save; nema Publish/matching/push. AI brzina, statusna dopuna konačne klasifikacije i višeuslužni/regionalni razgovori. Native Back/neposlati tekst potvrđeni na checkpoint-u; nema potpune potvrde svih AI scenarija. docs/current/AI_MAP_PACKAGE_20261019.md"
     },
     {
       "id": "A03",
@@ -655,6 +670,20 @@
           "source": "52720d9950694d09259a919f371e751b013df489",
           "ciRun": 38030187236,
           "nativeEvidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-52720d99.json"
+        },
+        "ai_map_package_20261019": {
+          "sourceSha": "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3",
+          "packageStatus": "DEV_APPLIED_APK_BUILT_SCOPED_EMULATOR_VERIFIED",
+          "serverStatus": "DEV_APPLIED_LF_CONTENT_VERIFIED",
+          "nativeStatus": "NO_NEW_FLOW_SPECIFIC_NATIVE_PROOF",
+          "buildRun": 39298019592,
+          "scope": "Očuvane postojeće zaštite govornog unosa, busy stanja i neposlatog teksta pri pregledu/povratku. Osam novih živih poruka u ovom paketu bilo je tekstualno; to nije nova potvrda mikrofona ili ASR-a.",
+          "remaining": "Sve žive AI poruke ovog paketa bile su tekstualne. Nova native proba mikrofona, ASR-a i snimanja u pozadini ostaje zasebna.",
+          "report": "docs/current/AI_MAP_PACKAGE_20261019.md",
+          "evidence": "docs/current/evidence/AI_MAP_PACKAGE_20261019.json",
+          "snapshot": "docs/control/dev_snapshot.json#ai_map_package_20261019",
+          "phoneAcceptance": false,
+          "wholeFlowAcceptance": false
         }
       },
       "native_e444_compact_summary_20261003": {
@@ -670,7 +699,8 @@
         "proofStatus": "PENDING",
         "decision": "U oba AI-ja hold/release šalje poruku; Pregledaj pre slanja je opciono, a Save/objava ostaju eksplicitni."
       },
-      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md",
+      "source_progress_20261019_map_package": "DEV APPLIED / APK BUILT / SCOPED EMULATOR: Očuvane postojeće zaštite govornog unosa, busy stanja i neposlatog teksta pri pregledu/povratku. Osam novih živih poruka u ovom paketu bilo je tekstualno; to nije nova potvrda mikrofona ili ASR-a. Izvor 7f202518, CI 39298019592: 621 paket / 13.968 testova PASS, instalirani APK hash i About/OTA potvrđeni. Osam tekstualnih AI odgovora/15 poziva/$0.135679 interna procena, 5.7–25.3s; pre Save-a kanonski otisci isti. Jedan eksplicitan native DRAFT Save; nema Publish/matching/push. Sve žive AI poruke ovog paketa bile su tekstualne. Nova native proba mikrofona, ASR-a i snimanja u pozadini ostaje zasebna. docs/current/AI_MAP_PACKAGE_20261019.md"
     },
     {
       "id": "A04",
@@ -695,8 +725,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "09.10 b9f734ef fizički HONOR: b9 fizički telefon: ručni pin potvrđen i jedan server MANUAL_PIN; sledeće pitanje tek posle potvrde lokacije. Rute/izmena/slaba mreža nisu kompletno prihvaćene. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_RESUME_PHONE_20261009.md. Raniji dokazi sačuvani u finalization.android_resume_phone_20261009.previous.telefon."
       },
-      "problem": "Grad-only latinica/ćirilica, ručni city camera hint i Ovde gde sam GPS source/test PASS. Current fizički GPS/route potvrda još nije zatvorena.",
-      "sledece": "Odluka 19.10, dokaz celog opsega PENDING: Proveriti tačku/rutu i Back uz istu reviziju; grad nije potvrđen pin, a izrada kod izvršioca sa predajom ne traži lažnu lokaciju dolaska. Regionalni ugovor ostaje povezana otvorena celina. docs/current/OWNER_DECISIONS_20261019.md.",
+      "problem": "Potvrda tačke/rute i native oporavak sačuvanog nacrta dokazani. Ostaju GPS signal na uređaju, regionalno područje i kompletna ruta u matching-u.",
+      "sledece": "Poboljšati sažetu adresu i vidljivost potvrde; regionalna pokrivenost i sve route tačke u matching-u nisu završene. GPS race je automatizovan dokaz, ne proba realnog signala. Dokaz ovog paketa: docs/current/AI_MAP_PACKAGE_20261019.md; poslovne odluke: docs/current/OWNER_DECISIONS_20261019.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -827,6 +857,20 @@
             37985186356
           ],
           "followupTests": 451
+        },
+        "ai_map_package_20261019": {
+          "sourceSha": "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3",
+          "packageStatus": "DEV_APPLIED_APK_BUILT_SCOPED_EMULATOR_VERIFIED",
+          "serverStatus": "DEV_APPLIED_LF_CONTENT_VERIFIED",
+          "nativeStatus": "SCOPED_EMULATOR_VERIFIED",
+          "buildRun": 39298019592,
+          "scope": "Jedna potvrda fizičkih tačaka; REMOTE bez mape, semantičke izmene kroz AI. Tačka/ruta, pending/odbacivanje i širine/fontovi provereni na 24736a79; automatski očišćen upit dodatno na 7f202518.",
+          "remaining": "Poboljšati sažetu adresu i vidljivost potvrde; regionalna pokrivenost i sve route tačke u matching-u nisu završene. GPS race je automatizovan dokaz, ne proba realnog signala.",
+          "report": "docs/current/AI_MAP_PACKAGE_20261019.md",
+          "evidence": "docs/current/evidence/AI_MAP_PACKAGE_20261019.json",
+          "snapshot": "docs/control/dev_snapshot.json#ai_map_package_20261019",
+          "phoneAcceptance": false,
+          "wholeFlowAcceptance": false
         }
       },
       "owner_decisions_20261019": {
@@ -835,7 +879,8 @@
         "proofStatus": "PENDING",
         "decision": "Geografska potvrda je namenski korak u istom AI nacrtu, bez paralelnog semantičkog formulara."
       },
-      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md",
+      "source_progress_20261019_map_package": "DEV APPLIED / APK BUILT / SCOPED EMULATOR: Jedna potvrda fizičkih tačaka; REMOTE bez mape, semantičke izmene kroz AI. Tačka/ruta, pending/odbacivanje i širine/fontovi provereni na 24736a79; automatski očišćen upit dodatno na 7f202518. Izvor 7f202518, CI 39298019592: 621 paket / 13.968 testova PASS, instalirani APK hash i About/OTA potvrđeni. Osam tekstualnih AI odgovora/15 poziva/$0.135679 interna procena, 5.7–25.3s; pre Save-a kanonski otisci isti. Jedan eksplicitan native DRAFT Save; nema Publish/matching/push. Poboljšati sažetu adresu i vidljivost potvrde; regionalna pokrivenost i sve route tačke u matching-u nisu završene. GPS race je automatizovan dokaz, ne proba realnog signala. docs/current/AI_MAP_PACKAGE_20261019.md"
     },
     {
       "id": "A05",
@@ -966,8 +1011,8 @@
         "stanje": "DELIMIČNO",
         "dokaz": "52720d99 instaliran; ovaj popunjeni/glasovni scenario nije izveden. docs/implementation/evidence/visual-rounds-20261010/REPORT.md"
       },
-      "problem": "Predaja je tačna i čitljiva, ali prikazuje tehnički country code i ponovljeni prefiks; preostala olovka lokacije traži AI-only usklađivanje.",
-      "sledece": "Odluka 19.10, dokaz celog opsega PENDING: Proveriti potpisani pregled i eksplicitnu potvrdu, povratak u isti razgovor, jasno značenje predaje i neposlatog teksta; mediji i geografska potvrda zadržavaju namensku kontrolu. docs/current/OWNER_DECISIONS_20261019.md.",
+      "problem": "Paralelne ručne semantičke kontrole povučene iz pregleda. Oporavak istog nacrta i spremnost za objavu dokazani; stvarna objava/push i polish predaje/rute ostaju otvoreni.",
+      "sledece": "Stvarna objava nakon potvrde mape i ceo put do drugog naloga/push-a ostaju otvoreni. Kanonski zadatak je ostao DRAFT; potvrda iz edit pregleda nije objavljena. Dokaz ovog paketa: docs/current/AI_MAP_PACKAGE_20261019.md; poslovne odluke: docs/current/OWNER_DECISIONS_20261019.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -1033,6 +1078,20 @@
           "source": "52720d9950694d09259a919f371e751b013df489",
           "ciRun": 38030187236,
           "nativeEvidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-52720d99.json"
+        },
+        "ai_map_package_20261019": {
+          "sourceSha": "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3",
+          "packageStatus": "DEV_APPLIED_APK_BUILT_SCOPED_EMULATOR_VERIFIED",
+          "serverStatus": "DEV_APPLIED_LF_CONTENT_VERIFIED",
+          "nativeStatus": "SCOPED_EMULATOR_VERIFIED",
+          "buildRun": 39298019592,
+          "scope": "Objavi blokirano bez potvrđenih tačaka; SaveDraft dozvoljen. Native oporavak istog Need-a kroz novi edit razgovor i potvrdu mape; bez nove objave ili promene kanonskih tačaka.",
+          "remaining": "Stvarna objava nakon potvrde mape i ceo put do drugog naloga/push-a ostaju otvoreni. Kanonski zadatak je ostao DRAFT; potvrda iz edit pregleda nije objavljena.",
+          "report": "docs/current/AI_MAP_PACKAGE_20261019.md",
+          "evidence": "docs/current/evidence/AI_MAP_PACKAGE_20261019.json",
+          "snapshot": "docs/control/dev_snapshot.json#ai_map_package_20261019",
+          "phoneAcceptance": false,
+          "wholeFlowAcceptance": false
         }
       },
       "source_progress_20261019_full_tree": "DEV APPLIED + EMULATOR SMOKE: oba AI čitaju celo sveže stablo bez shortlist96/depth6; prirodni nazivi i signed Save granica. Osam stvarnih QA odgovora, tri zasebna Save-a, ista postojeća/nova UUID vezivanja; profil bez ručnog mode formulara. PG16/17 PASS,672 Node,134 ciljanih UI,621 paketa/13884 testova PASS. APK f56c94c3, CI39219527009, instaliran bez brisanja sesije; About potvrđuje ugrađeni sadržaj, postojeći nacrt nastavlja isti sadržaj. Nema phone/two-account-push/full-native-Save dokaza i status celog toka ostaje zaseban. docs/current/AI_FULL_TREE_20261019.md.",
@@ -1044,7 +1103,8 @@
         "proofStatus": "PENDING",
         "decision": "Jedan završni pregled i jedna Izmeni kroz razgovor; nema per-fact olovaka ili običnog ručnog editora."
       },
-      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md",
+      "source_progress_20261019_map_package": "DEV APPLIED / APK BUILT / SCOPED EMULATOR: Objavi blokirano bez potvrđenih tačaka; SaveDraft dozvoljen. Native oporavak istog Need-a kroz novi edit razgovor i potvrdu mape; bez nove objave ili promene kanonskih tačaka. Izvor 7f202518, CI 39298019592: 621 paket / 13.968 testova PASS, instalirani APK hash i About/OTA potvrđeni. Osam tekstualnih AI odgovora/15 poziva/$0.135679 interna procena, 5.7–25.3s; pre Save-a kanonski otisci isti. Jedan eksplicitan native DRAFT Save; nema Publish/matching/push. Stvarna objava nakon potvrde mape i ceo put do drugog naloga/push-a ostaju otvoreni. Kanonski zadatak je ostao DRAFT; potvrda iz edit pregleda nije objavljena. docs/current/AI_MAP_PACKAGE_20261019.md"
     },
     {
       "id": "A07",
@@ -1880,9 +1940,9 @@
         "stanje": "DELIMIČNO",
         "dokaz": "59876dc6: Još nema ocena, stvarni broj 0, Istorija/Back i profilno zvono potvrđeni; šire granice otvorene. docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json"
       },
-      "problem": "AI je sam pitao o predaji, ali klasifikacioni READY može prethoditi odgovoru o njoj. Višeuslužni profil i naknadne promene predaje nisu obuhvaćeni ovim živim uzorkom.",
+      "problem": "Dve tekstualne korekcije predaje potvrđene bez čuvanja kanonskog profila. Višeuslužni profil, regioni, čuvanje/aktivacija i dosledna statusna poruka ostaju otvoreni.",
       "source_progress_20261018": "APK 0175d364 izgrađen i instaliran. Provereni sačuvani 3D REMOTE profil, odbijanje terenske mape za REMOTE, AI meni i povratak iz ON_SITE nacrta u isti razgovor. Novi ON_SITE nacrt nije sačuvan; pet postojećih Save zapisa i potvrđeni REMOTE ostaju. Native UI prolaz nije poslao nov AI zahtev. Potpuni AI-only profil i regionalna podrška ostaju otvoreni.",
-      "sledece": "Odluka 19.10, dokaz celog opsega PENDING: Prvi odobreni AI paket: proveriti prirodan razgovor, više usluga i predaju, očuvanje potvrđenog konteksta, delimične odgovore, govor/pregled i signed Save/readback. Novi paket ima zaseban DEV/emulator dokaz. docs/current/OWNER_DECISIONS_20261019.md.",
+      "sledece": "Više usluga, regionalni obuhvat, aktivacija/čuvanje profila i dispatch u povezanom toku. Ovaj paket dokazuje ograničene tekstualne promene predaje bez kanonskog Save-a profila. Dokaz ovog paketa: docs/current/AI_MAP_PACKAGE_20261019.md; poslovne odluke: docs/current/OWNER_DECISIONS_20261019.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -2132,6 +2192,20 @@
           "edgeDeployed": false,
           "edgeCandidate": "docs/implementation/evidence/visual-rounds-20261010/ai-edge-candidate-59876dc6.json",
           "storeReady": false
+        },
+        "ai_map_package_20261019": {
+          "sourceSha": "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3",
+          "packageStatus": "DEV_APPLIED_APK_BUILT_SCOPED_EMULATOR_VERIFIED",
+          "serverStatus": "DEV_APPLIED_LF_CONTENT_VERIFIED",
+          "nativeStatus": "NO_NEW_FLOW_SPECIFIC_NATIVE_PROOF",
+          "buildRun": 39298019592,
+          "scope": "Worker Edge v61 dobio je usklađene zajedničke instrukcije za uslugu, režim i predaju. Ograničeni živi razgovori ne menjaju kanonski profil pre eksplicitnog Save-a.",
+          "remaining": "Više usluga, regionalni obuhvat, aktivacija/čuvanje profila i dispatch u povezanom toku. Ovaj paket dokazuje ograničene tekstualne promene predaje bez kanonskog Save-a profila.",
+          "report": "docs/current/AI_MAP_PACKAGE_20261019.md",
+          "evidence": "docs/current/evidence/AI_MAP_PACKAGE_20261019.json",
+          "snapshot": "docs/control/dev_snapshot.json#ai_map_package_20261019",
+          "phoneAcceptance": false,
+          "wholeFlowAcceptance": false
         }
       },
       "native_6d4_checkpoint_20261003": {
@@ -2208,7 +2282,8 @@
         "proofStatus": "PENDING",
         "decision": "Radni profil se menja kroz isti AI razgovor, jedan pregled i izričit Save; nepotvrđen nacrt nije matching autoritet."
       },
-      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md",
+      "source_progress_20261019_map_package": "DEV APPLIED / APK BUILT / SCOPED EMULATOR: Worker Edge v61 dobio je usklađene zajedničke instrukcije za uslugu, režim i predaju. Ograničeni živi razgovori ne menjaju kanonski profil pre eksplicitnog Save-a. Izvor 7f202518, CI 39298019592: 621 paket / 13.968 testova PASS, instalirani APK hash i About/OTA potvrđeni. Osam tekstualnih AI odgovora/15 poziva/$0.135679 interna procena, 5.7–25.3s; pre Save-a kanonski otisci isti. Jedan eksplicitan native DRAFT Save; nema Publish/matching/push. Više usluga, regionalni obuhvat, aktivacija/čuvanje profila i dispatch u povezanom toku. Ovaj paket dokazuje ograničene tekstualne promene predaje bez kanonskog Save-a profila. docs/current/AI_MAP_PACKAGE_20261019.md"
     },
     {
       "id": "B01",
@@ -2453,6 +2528,20 @@
             "stanje": "DELIMIČNO",
             "dokaz": "docs/implementation/design-system/g0-phone-c89b7223/G0_RECEIPT.json: APK c89b7223 / run 35905197821, hash i atestacije se poklapaju, adb install -r na vlasnikovom HONOR telefonu. Ekran otvoren i pogledan samo za čitanje, bez donje trake, bez pada. Radnje na ekranu nisu isprobane."
           }
+        },
+        "ai_map_package_20261019": {
+          "sourceSha": "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3",
+          "packageStatus": "DEV_APPLIED_APK_BUILT_SCOPED_EMULATOR_VERIFIED",
+          "serverStatus": "DEV_APPLIED_LF_CONTENT_VERIFIED",
+          "nativeStatus": "NO_NEW_FLOW_SPECIFIC_NATIVE_PROOF",
+          "buildRun": 39298019592,
+          "scope": "Sačuvani profil i njegova potvrđena podešavanja ostaju iza eksplicitnog Save-a. Ovaj paket menja AI instrukcije, ali ne isporučuje novi završni javni prikaz profila niti automatsku predaju za stare profile.",
+          "remaining": "Sažetak režima/predaje po usluzi u sačuvanom i javnom profilu; nema novog profile UI native dokaza u ovom paketu.",
+          "report": "docs/current/AI_MAP_PACKAGE_20261019.md",
+          "evidence": "docs/current/evidence/AI_MAP_PACKAGE_20261019.json",
+          "snapshot": "docs/control/dev_snapshot.json#ai_map_package_20261019",
+          "phoneAcceptance": false,
+          "wholeFlowAcceptance": false
         }
       },
       "history_before_status_audit_20261009": {
@@ -2508,7 +2597,8 @@
         "proofStatus": "PENDING",
         "decision": "Jedan identitet sa AI izmenama rada; map potvrda ostaje namenski korak, a portfolio nije deo prvog izdanja."
       },
-      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md",
+      "source_progress_20261019_map_package": "DEV APPLIED / APK BUILT / SCOPED EMULATOR: Sačuvani profil i njegova potvrđena podešavanja ostaju iza eksplicitnog Save-a. Ovaj paket menja AI instrukcije, ali ne isporučuje novi završni javni prikaz profila niti automatsku predaju za stare profile. Izvor 7f202518, CI 39298019592: 621 paket / 13.968 testova PASS, instalirani APK hash i About/OTA potvrđeni. Osam tekstualnih AI odgovora/15 poziva/$0.135679 interna procena, 5.7–25.3s; pre Save-a kanonski otisci isti. Jedan eksplicitan native DRAFT Save; nema Publish/matching/push. Sažetak režima/predaje po usluzi u sačuvanom i javnom profilu; nema novog profile UI native dokaza u ovom paketu. docs/current/AI_MAP_PACKAGE_20261019.md"
     },
     {
       "id": "B02",
@@ -7365,7 +7455,7 @@
         "dokaz": "09.10 fizički HONOR 725be7bd: 725 odloženi/stale/error/paging testovi PASS; native filter i map/list stanja očuvani. ce23 povremeni warm VIEW About ostaje bez dokazanog uzroka/popravke. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon."
       },
       "problem": "Recovery/Auth klasifikacija, continuity i bio-only očuvanje režima primenjeni; poslednji stvarni Save i svež razgovor bez AI poziva potvrđeni. Širi offline/cancel/unknown/restart tokovi nisu u celini provereni na novom APK-u.",
-      "sledece": "Odluka 19.10, dokaz celog opsega PENDING: Prvi AI paket proveriti na DEV/emulatoru; za naredne celine dodati konkurentne/retry/unknown testove transakcione zamene, članstva, termina i otkaza, sa tačnim receipt-om. docs/current/OWNER_DECISIONS_20261019.md.",
+      "sledece": "Šira offline/cancel/unknown matrica, slaba mreža tokom upisa, pozadina i dupli dodir. Ograničeni offline read/retry i Back su potvrđeni. Dokaz ovog paketa: docs/current/AI_MAP_PACKAGE_20261019.md; poslovne odluke: docs/current/OWNER_DECISIONS_20261019.md.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
         "matrica": [
@@ -7476,6 +7566,20 @@
           "focusedTests": 366,
           "focusedSuites": 8,
           "typecheckExit": 0
+        },
+        "ai_map_package_20261019": {
+          "sourceSha": "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3",
+          "packageStatus": "DEV_APPLIED_APK_BUILT_SCOPED_EMULATOR_VERIFIED",
+          "serverStatus": "DEV_APPLIED_LF_CONTENT_VERIFIED",
+          "nativeStatus": "SCOPED_EMULATOR_VERIFIED",
+          "buildRun": 39298019592,
+          "scope": "Ciljane zaštite pokrivaju account/revision fence, busy/Back, kasne map/GPS odgovore, neposlati tekst i oporavak ACCEPTED nacrta bez ponavljanja starog Save-a. Novi edit cid je autoritativno vezan za isti Need.",
+          "remaining": "Šira offline/cancel/unknown matrica, slaba mreža tokom upisa, pozadina i dupli dodir. Ograničeni offline read/retry i Back su potvrđeni.",
+          "report": "docs/current/AI_MAP_PACKAGE_20261019.md",
+          "evidence": "docs/current/evidence/AI_MAP_PACKAGE_20261019.json",
+          "snapshot": "docs/control/dev_snapshot.json#ai_map_package_20261019",
+          "phoneAcceptance": false,
+          "wholeFlowAcceptance": false
         }
       },
       "source_execution_20261018": {
@@ -7513,7 +7617,8 @@
         "proofStatus": "PENDING",
         "decision": "Isti nacrt i vlasništvo opstaju kroz prekide; nova politika ne sme duplirati objavu, Save, poruku, zamenu ili push."
       },
-      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md",
+      "source_progress_20261019_map_package": "DEV APPLIED / APK BUILT / SCOPED EMULATOR: Ciljane zaštite pokrivaju account/revision fence, busy/Back, kasne map/GPS odgovore, neposlati tekst i oporavak ACCEPTED nacrta bez ponavljanja starog Save-a. Novi edit cid je autoritativno vezan za isti Need. Izvor 7f202518, CI 39298019592: 621 paket / 13.968 testova PASS, instalirani APK hash i About/OTA potvrđeni. Osam tekstualnih AI odgovora/15 poziva/$0.135679 interna procena, 5.7–25.3s; pre Save-a kanonski otisci isti. Jedan eksplicitan native DRAFT Save; nema Publish/matching/push. Šira offline/cancel/unknown matrica, slaba mreža tokom upisa, pozadina i dupli dodir. Ograničeni offline read/retry i Back su potvrđeni. docs/current/AI_MAP_PACKAGE_20261019.md"
     },
     {
       "id": "S04",
@@ -7527,7 +7632,7 @@
       "servisi": [],
       "server": [],
       "telefon": null,
-      "problem": "DEV task 99/worker 53/push 35 exact. Strict matching ON. Deadline i novi taxonomy branch continuity SQL primenjeni posle PG 16/17. F01 komponentni dokaz prolazi, puna closure politika i izvršenje ostaju otvoreni.",
+      "problem": "DEV Task108/Worker61/LocationSearch24 sadržaj potvrđen. Ovaj paket nema SQL migraciju; F01 closure/politika, serversko čišćenje i cela release provera ostaju otvoreni.",
       "sledece": "Završiti F01 potpunim Auth/Storage dokazom i stvarnom politikom, sa tačnim readback-om i zasebnom sertifikacijom.",
       "funkcionalni_audit": {
         "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
@@ -7562,6 +7667,20 @@
           "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
           "proposedChange": "KEEP aktivne ugovore; REMOVE samo dokazano mrtvo, bez DEV mutacije u auditu.",
           "boundary": "No application source, DEV, device or acceptance-light change."
+        },
+        "ai_map_package_20261019": {
+          "sourceSha": "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3",
+          "packageStatus": "DEV_APPLIED_APK_BUILT_SCOPED_EMULATOR_VERIFIED",
+          "serverStatus": "DEV_APPLIED_LF_CONTENT_VERIFIED",
+          "nativeStatus": "SCOPED_EMULATOR_VERIFIED",
+          "buildRun": 39298019592,
+          "scope": "Task108/Worker61/LocationSearch24 pročitani sa DEV-a i sadržaj upoređen sa izvorom. Bez SQL migracije; dijagnostika geokodera ne loguje privatni sadržaj.",
+          "remaining": "Preostalo serversko čišćenje, F01 politika/sertifikacija i široka release provera; ovaj paket nema SQL migraciju.",
+          "report": "docs/current/AI_MAP_PACKAGE_20261019.md",
+          "evidence": "docs/current/evidence/AI_MAP_PACKAGE_20261019.json",
+          "snapshot": "docs/control/dev_snapshot.json#ai_map_package_20261019",
+          "phoneAcceptance": false,
+          "wholeFlowAcceptance": false
         }
       },
       "source_audit_20261018_current_baseline": {
@@ -7598,7 +7717,8 @@
           "sledece": "Zadržati aktivne ugovore; ciljano uklanjanje legacy potrošača samo uz kompatibilnost. Naredni preview CI mora izvršiti nov Node Edge skup; trenutni recovery kandidat još nije deployed. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md"
         }
       },
-      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md",
+      "source_progress_20261019_map_package": "DEV APPLIED / APK BUILT / SCOPED EMULATOR: Task108/Worker61/LocationSearch24 pročitani sa DEV-a i sadržaj upoređen sa izvorom. Bez SQL migracije; dijagnostika geokodera ne loguje privatni sadržaj. Izvor 7f202518, CI 39298019592: 621 paket / 13.968 testova PASS, instalirani APK hash i About/OTA potvrđeni. Osam tekstualnih AI odgovora/15 poziva/$0.135679 interna procena, 5.7–25.3s; pre Save-a kanonski otisci isti. Jedan eksplicitan native DRAFT Save; nema Publish/matching/push. Preostalo serversko čišćenje, F01 politika/sertifikacija i široka release provera; ovaj paket nema SQL migraciju. docs/current/AI_MAP_PACKAGE_20261019.md"
     }
   ],
   "blokade": [

@@ -53,6 +53,11 @@ Usaglašeni posao: [komentar Work analize i izvršavanje plana](../implementatio
 
 Izvor `82991de1`: [izveštaj](AI_FIRST_PACKAGE_20261019.md) i [dokaz](evidence/AI_FIRST_PACKAGE_20261019.json). DEV Task107/Worker60, 6 stvarnih odgovora, eksplicitno čuvanje DRAFT zadatka i profila, 621/13908 CI testova PASS. APK 6430f2fb je instaliran i izvor/ugrađeno ažuriranje potvrđeni na emulatoru; task 361/390/412 dp × font 1,0/1,3, worker 361 dp / 1,3 i Back/neposlati tekst provereni. Brzina 6–15 s i preostali ručni izbor države/načina rada ostaju otvoreni. Ovo ne zatvara ceo AI/region/matching/push tok.
 
+
+## AI i potvrda mape — drugi paket, 19.10.2026.
+
+[Izveštaj](AI_MAP_PACKAGE_20261019.md) i [dokaz](evidence/AI_MAP_PACKAGE_20261019.json): runtime **7f202518**, DEV **Task108/Worker61/LocationSearch24**. AI semantičke izmene, namenski map pin, razdvojeno čuvanje nacrta/objava, oporavak istog Need-a i očišćen početni upit adrese. CI **39298019592 SUCCESS: 621 / 13.968 PASS**. APK instaliran bez brisanja sesije, hash i About/embedded OTA potvrđeni. Native pregled/mapa na 361/390/412 dp × font 1.0/1.3, ruta, Back/neposlati tekst i offline retry potvrđeni na checkpoint-u 24736a79; završna automatska pretraga dodatno potvrđena na 7f202518. Osam AI odgovora/15 poziva/$0.135679 interna procena; **5.7–25.3s — brzina još otvorena**. Jedan eksplicitan DRAFT Save; nema Publish, aktivacije, matching ili push probe. Ovo ne zatvara celu aplikaciju ili javno izdanje.
+
 ## Šta znači „trenutno“
 
 <!-- AI_LOCATION_GUIDANCE_START -->

@@ -1164,5 +1164,499 @@
     "taskPublished": false,
     "workerActivated": false,
     "proof": "docs/current/evidence/AI_FIRST_PACKAGE_20261019.json"
+  },
+  "ai_map_package_20261019": {
+    "scope": "Drugi AI/map paket: potvrđene Edge verzije i sadržaj nakon LF normalizacije, ograničeni živi tekstualni razgovori, read-only kanonska granica i izvor klijentskog oporavka. Ostale sekcije zadržavaju svoje datirane opservacije; ovo nije novi puni DEV snapshot.",
+    "packageStatus": "DEV_APPLIED_APK_BUILT_SCOPED_EMULATOR_VERIFIED",
+    "nativeStatus": "SCOPED_EMULATOR_VERIFIED",
+    "sourceSha": "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3",
+    "implementationCommits": [
+      "7ab681fbd26dd7ed6d77afe0c586335111cf7c73",
+      "4f198604050cccddeec990770f3c6167cc558214",
+      "24736a79c9cf0188357e1c5378121c01ce0ab0dc",
+      "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3"
+    ],
+    "report": "docs/current/AI_MAP_PACKAGE_20261019.md",
+    "proof": "docs/current/evidence/AI_MAP_PACKAGE_20261019.json",
+    "edge": [
+      {
+        "name": "uskoci-ai-interview",
+        "version": 108,
+        "status": "DEV_APPLIED",
+        "readbackComparison": "LF_NORMALIZED_CONTENT",
+        "matchingContent": true
+      },
+      {
+        "name": "uskoci-worker-interview",
+        "version": 61,
+        "status": "DEV_APPLIED",
+        "readbackComparison": "LF_NORMALIZED_CONTENT",
+        "matchingContent": true
+      },
+      {
+        "name": "uskoci-location-search",
+        "version": 24,
+        "status": "DEV_APPLIED",
+        "readbackComparison": "LF_NORMALIZED_CONTENT",
+        "matchingContent": true,
+        "verifyJwt": true
+      }
+    ],
+    "newMigrations": 0,
+    "liveTextQa": {
+      "logicalMessages": 8,
+      "providerCalls": 15,
+      "ledgerEstimateUSD": 0.135679,
+      "providerInvoiceVerified": false,
+      "elapsedSeconds": {
+        "minimum": 5.7,
+        "maximum": 25.3
+      },
+      "canonicalDigestsCompared": 5,
+      "canonicalDigestsUnchangedBeforeExplicitSave": true,
+      "observationBoundary": "BEFORE_EXPLICIT_SAVE",
+      "publicationAttempted": false,
+      "matchingInvoked": false,
+      "pushInvoked": false,
+      "originalStoppedReportPreserved": true,
+      "harnessCorrection": "Prvobitna physical-map provera pogrešno je tražila location=null i canAccept=false. canAccept dozvoljava čuvanje nacrta; potvrđene fizičke tačke su obavezne za objavu. Stationary rezultat ponovo je ocenjen offline, bez ponavljanja AI poziva; ruta je proverena jednom dodatnom porukom."
+    },
+    "verification": {
+      "previousFullCI": {
+        "sourceSha": "4f198604050cccddeec990770f3c6167cc558214",
+        "status": "PASS",
+        "suitesPassed": 621,
+        "testsPassed": 13946,
+        "coversFinalRecoveryCommit": false
+      },
+      "finalBuild": {
+        "runId": 39298019592,
+        "sourceSha": "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3",
+        "status": "SUCCESS",
+        "regressionStatus": "PASS",
+        "installed": true,
+        "nativeAcceptance": "SCOPED_EMULATOR_VERIFIED",
+        "suitesPassed": 621,
+        "testsPassed": 13968,
+        "failed": 0,
+        "skipped": 0,
+        "apkSha256": "624a1fd6e6e00f627d3f791c00b050e79923a87e68d32c585af83ad4fb4f57aa",
+        "installedHashMatches": true,
+        "ota": {
+          "kind": "embedded",
+          "idPrefix": "48ddc4d2",
+          "runtime": "uskoci-v1-preview-r1",
+          "channel": "preview",
+          "coldRestartVerified": true
+        }
+      },
+      "publicationContract": "Read-only potvrđeno: postojeći server odbija objavu nepotpune fizičke lokacije; novi klijent razdvaja dozvoljeni Save Draft od objave i oporavka prihvaćenog nacrta.",
+      "savedDraftClassification": {
+        "method": "READ_ONLY_EXACT_PROJECTION_OF_CURRENT_DRAFTS",
+        "draftsChecked": 8,
+        "ready": 8,
+        "sameExistingCategoryId": 8,
+        "prepareReviewExecuted": false,
+        "saveExecuted": false,
+        "boundary": "Read-only osam postojećih klasifikacija; zaseban native SaveDraft i oporavak istog Need-a dokumentovani u native. Nema Publish."
+      },
+      "checkpoint247": {
+        "sourceSha": "24736a79c9cf0188357e1c5378121c01ce0ab0dc",
+        "runId": 39291376956,
+        "build": "SUCCESS",
+        "suites": 621,
+        "passed": 13959,
+        "failed": 0,
+        "skipped": 0,
+        "apkSha256": "c1032aedaa809ec8cd6f2e57edef451a4c163c19ba602951261a1146b0d83977",
+        "installedHashMatches": true,
+        "ota": "811ec9f7",
+        "native": "map and same-draft recovery, route 2/2, REMOTE, Back/unsent verified; separate seed fix pending final APK"
+      },
+      "native": {
+        "status": "SCOPED_EMULATOR_VERIFIED",
+        "device": "emulator-5554",
+        "androidQaUser": 10,
+        "phone": "NOT_TESTED",
+        "checkpointSource": "24736a79c9cf0188357e1c5378121c01ce0ab0dc",
+        "reviewAndMapWidthsDp": [
+          361,
+          390,
+          412
+        ],
+        "fontScales": [
+          1,
+          1.3
+        ],
+        "mapRoundtrip": true,
+        "savedDraftSameNeedRecovery": true,
+        "routeRequiredSlots": "1/2 blocked; 2/2 ready",
+        "remoteNoMap": true,
+        "unsentTextPreserved": true,
+        "pendingPinBlocksApply": true,
+        "discardRestoresConfirmedPoint": true,
+        "offlineRetryRestoresSameReview": true,
+        "sourceOfTheseChecks": "24736a79c9cf0188357e1c5378121c01ce0ab0dc",
+        "canonicalAfterNativeSave": [
+          {
+            "id": "0c5131c3-c154-409d-bbd6-5f4b7d41cb5a",
+            "status": "DRAFT",
+            "revision": 1,
+            "category_id": "11e218ed-e072-4609-bcee-9576aa4c2e16",
+            "published_at": null,
+            "confirmed_points": 0,
+            "dispatch_rounds": 0,
+            "opportunities": 0,
+            "need_events": 0,
+            "notifications": 0
+          },
+          {
+            "id": "5bfc90fb-2dee-4090-a5eb-bd20a9dfbc2e",
+            "status": "DRAFT",
+            "revision": 1,
+            "category_id": "1434222c-f43a-460f-9b8a-abc567fbb378",
+            "published_at": null,
+            "confirmed_points": 0,
+            "dispatch_rounds": 0,
+            "opportunities": 0,
+            "need_events": 0,
+            "notifications": 0
+          },
+          {
+            "id": "69c71740-c305-439f-8bc8-25cfc3c7f7d6",
+            "status": "DRAFT",
+            "revision": 1,
+            "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+            "published_at": null,
+            "confirmed_points": 0,
+            "dispatch_rounds": 0,
+            "opportunities": 0,
+            "need_events": 0,
+            "notifications": 0
+          },
+          {
+            "id": "7ca0c796-db2e-4699-b04e-efb8000ba44d",
+            "status": "DRAFT",
+            "revision": 1,
+            "category_id": "1496f3ef-89ed-4637-ad23-63409028bc4b",
+            "published_at": null,
+            "confirmed_points": 0,
+            "dispatch_rounds": 0,
+            "opportunities": 0,
+            "need_events": 0,
+            "notifications": 0
+          },
+          {
+            "id": "866d7829-c963-480d-b11c-5463c58a1a2c",
+            "status": "DRAFT",
+            "revision": 1,
+            "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+            "published_at": null,
+            "confirmed_points": 0,
+            "dispatch_rounds": 0,
+            "opportunities": 0,
+            "need_events": 0,
+            "notifications": 0
+          },
+          {
+            "id": "f3a4111d-48ac-487a-a9f2-75bab48daf78",
+            "status": "DRAFT",
+            "revision": 1,
+            "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+            "published_at": null,
+            "confirmed_points": 0,
+            "dispatch_rounds": 0,
+            "opportunities": 0,
+            "need_events": 0,
+            "notifications": 0
+          }
+        ],
+        "publicationAttempted": false,
+        "finalAutomaticSeed": "VERIFIED_NATIVE_AUTOMATIC_NO_MANUAL_QUERY",
+        "gpsSignalNativeTested": false,
+        "talkBackTested": false,
+        "darkThemeSupported": false,
+        "performanceMeasured": false,
+        "finalSource": "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3",
+        "final": {
+          "sourceSha": "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3",
+          "runId": 39298019592,
+          "buildStatus": "SUCCESS",
+          "apkSha256": "624a1fd6e6e00f627d3f791c00b050e79923a87e68d32c585af83ad4fb4f57aa",
+          "installedHashMatches": true,
+          "receipt": {
+            "status": "APK_ATTESTED_NOT_PHONE_VERIFIED",
+            "androidPackage": "rs.uskoci.preview",
+            "version": "1.0.0",
+            "versionCode": 35,
+            "runtimeVersion": "uskoci-v1-preview-r1",
+            "channel": "preview",
+            "projectId": "1e6cc490-9851-4741-9226-128612122db6",
+            "updateUrl": "https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6",
+            "updatesEnabled": true,
+            "checkOnLaunch": "ALWAYS",
+            "fallbackToCacheTimeout": 0,
+            "debuggable": false,
+            "sourceSha": "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3",
+            "nativeBaselineSha": "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3",
+            "sourceTree": "74dd4bb76c17cb5893316a9b49695486ba060b88",
+            "githubRunId": "39298019592",
+            "githubRunAttempt": "1",
+            "githubRunUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39298019592",
+            "apkFile": "USKOCI-V5-PREVIEW-X86_64.apk",
+            "apkSizeBytes": 100994204,
+            "apkSha256": "624a1fd6e6e00f627d3f791c00b050e79923a87e68d32c585af83ad4fb4f57aa",
+            "architectures": [
+              "x86_64"
+            ],
+            "signingCertificateSha256": [
+              "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c"
+            ],
+            "publicBuildFlags": {
+              "EXPO_PUBLIC_AI_LOCATION_DIALOGUE": "1",
+              "EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL": "uskociapp://oporavak",
+              "EXPO_PUBLIC_CONVERSATION_INBOX": "1",
+              "EXPO_PUBLIC_EX04_CANDIDATES_PAGED": "1",
+              "EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED": "1",
+              "EXPO_PUBLIC_EX04_OWN_TASKS_PAGED": "1",
+              "EXPO_PUBLIC_P6_DISCOVERY_READER": "1",
+              "EXPO_PUBLIC_SUPABASE_URL": "https://leqcwgzvjsxugfgzdmth.supabase.co",
+              "EXPO_PUBLIC_USE_FAKE_SOURCE": "0",
+              "EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW": "true",
+              "EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES": "true",
+              "EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW": "true",
+              "EXPO_PUBLIC_VOICE_MESSAGES": "1"
+            },
+            "physicalPhone": "NOT_TESTED",
+            "otaPreview": "NOT_VERIFIED",
+            "production": "NOT_BUILT_OR_DEPLOYED"
+          },
+          "aboutSourceMatches": true,
+          "ota": {
+            "kind": "embedded",
+            "idPrefix": "48ddc4d2",
+            "runtime": "uskoci-v1-preview-r1",
+            "channel": "preview",
+            "coldRestartVerified": true
+          },
+          "automaticAddressProposalVerified": true,
+          "manualQueryEntered": false,
+          "confirmedPointsInReview": 1,
+          "reviewPublicationButtonEnabled": true,
+          "publicationAttempted": false,
+          "remoteNoMap": true,
+          "editConversations": [
+            {
+              "id": "1bd3a33f-1760-4a29-bd32-23e732bc2941",
+              "purpose": "NEED_INTAKE",
+              "status": "OPEN",
+              "bound_need_id": "5bfc90fb-2dee-4090-a5eb-bd20a9dfbc2e",
+              "created_at": "2026-10-19 18:15:22.271994+00"
+            },
+            {
+              "id": "d2cb85a5-5403-45c1-bb41-80a4465d53c5",
+              "purpose": "NEED_INTAKE",
+              "status": "OPEN",
+              "bound_need_id": "5bfc90fb-2dee-4090-a5eb-bd20a9dfbc2e",
+              "created_at": "2026-10-19 17:36:08.361576+00"
+            },
+            {
+              "id": "2c1dfc8b-a3cc-498f-8e48-6e0dd96a7d63",
+              "purpose": "NEED_INTAKE",
+              "status": "COMPLETED",
+              "bound_need_id": "5bfc90fb-2dee-4090-a5eb-bd20a9dfbc2e",
+              "created_at": "2026-10-19 16:43:38.046534+00"
+            }
+          ],
+          "canonicalAfterFinalCheck": [
+            {
+              "id": "0c5131c3-c154-409d-bbd6-5f4b7d41cb5a",
+              "status": "DRAFT",
+              "revision": 1,
+              "category_id": "11e218ed-e072-4609-bcee-9576aa4c2e16",
+              "published_at": null,
+              "confirmed_points": 0,
+              "dispatch_rounds": 0,
+              "opportunities": 0,
+              "need_events": 0,
+              "notifications": 0
+            },
+            {
+              "id": "5bfc90fb-2dee-4090-a5eb-bd20a9dfbc2e",
+              "status": "DRAFT",
+              "revision": 1,
+              "category_id": "1434222c-f43a-460f-9b8a-abc567fbb378",
+              "published_at": null,
+              "confirmed_points": 0,
+              "dispatch_rounds": 0,
+              "opportunities": 0,
+              "need_events": 0,
+              "notifications": 0
+            },
+            {
+              "id": "69c71740-c305-439f-8bc8-25cfc3c7f7d6",
+              "status": "DRAFT",
+              "revision": 1,
+              "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+              "published_at": null,
+              "confirmed_points": 0,
+              "dispatch_rounds": 0,
+              "opportunities": 0,
+              "need_events": 0,
+              "notifications": 0
+            },
+            {
+              "id": "7ca0c796-db2e-4699-b04e-efb8000ba44d",
+              "status": "DRAFT",
+              "revision": 1,
+              "category_id": "1496f3ef-89ed-4637-ad23-63409028bc4b",
+              "published_at": null,
+              "confirmed_points": 0,
+              "dispatch_rounds": 0,
+              "opportunities": 0,
+              "need_events": 0,
+              "notifications": 0
+            },
+            {
+              "id": "866d7829-c963-480d-b11c-5463c58a1a2c",
+              "status": "DRAFT",
+              "revision": 1,
+              "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+              "published_at": null,
+              "confirmed_points": 0,
+              "dispatch_rounds": 0,
+              "opportunities": 0,
+              "need_events": 0,
+              "notifications": 0
+            },
+            {
+              "id": "f3a4111d-48ac-487a-a9f2-75bab48daf78",
+              "status": "DRAFT",
+              "revision": 1,
+              "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+              "published_at": null,
+              "confirmed_points": 0,
+              "dispatch_rounds": 0,
+              "opportunities": 0,
+              "need_events": 0,
+              "notifications": 0
+            }
+          ],
+          "originalEmulatorSettingsRestored": true,
+          "originalSessionHomeVerified": true,
+          "originalUser": 0,
+          "isolatedQaUser": 10,
+          "phoneTouched": false,
+          "settings": {
+            "size": "1264x2728",
+            "density": 560,
+            "fontUser0": 1.15,
+            "fontUser10": 1,
+            "wifi": 1,
+            "data": 1
+          },
+          "verifiedAt": "2026-10-19T18:20:26.373Z",
+          "screens": [
+            "final-build-identity",
+            "final-review-map-required",
+            "final-map-auto-address",
+            "final-map-confirmed",
+            "final-review-ready",
+            "final-remote-review"
+          ],
+          "originalSessionVerification": "VISUAL_SCREENSHOT_RESTORED_HOME",
+          "originalSessionHierarchy": "UI dump did not refresh on animated Home; old launcher XML excluded",
+          "originalUserRuntime": {
+            "sourceSha": "7f202518e85b8ac0e9a7ee18b93cbb6b12024ea3",
+            "ota": "48ddc4d2",
+            "verified": true
+          }
+        },
+        "canonicalAfterFinalCheck": [
+          {
+            "id": "0c5131c3-c154-409d-bbd6-5f4b7d41cb5a",
+            "status": "DRAFT",
+            "revision": 1,
+            "category_id": "11e218ed-e072-4609-bcee-9576aa4c2e16",
+            "published_at": null,
+            "confirmed_points": 0,
+            "dispatch_rounds": 0,
+            "opportunities": 0,
+            "need_events": 0,
+            "notifications": 0
+          },
+          {
+            "id": "5bfc90fb-2dee-4090-a5eb-bd20a9dfbc2e",
+            "status": "DRAFT",
+            "revision": 1,
+            "category_id": "1434222c-f43a-460f-9b8a-abc567fbb378",
+            "published_at": null,
+            "confirmed_points": 0,
+            "dispatch_rounds": 0,
+            "opportunities": 0,
+            "need_events": 0,
+            "notifications": 0
+          },
+          {
+            "id": "69c71740-c305-439f-8bc8-25cfc3c7f7d6",
+            "status": "DRAFT",
+            "revision": 1,
+            "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+            "published_at": null,
+            "confirmed_points": 0,
+            "dispatch_rounds": 0,
+            "opportunities": 0,
+            "need_events": 0,
+            "notifications": 0
+          },
+          {
+            "id": "7ca0c796-db2e-4699-b04e-efb8000ba44d",
+            "status": "DRAFT",
+            "revision": 1,
+            "category_id": "1496f3ef-89ed-4637-ad23-63409028bc4b",
+            "published_at": null,
+            "confirmed_points": 0,
+            "dispatch_rounds": 0,
+            "opportunities": 0,
+            "need_events": 0,
+            "notifications": 0
+          },
+          {
+            "id": "866d7829-c963-480d-b11c-5463c58a1a2c",
+            "status": "DRAFT",
+            "revision": 1,
+            "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+            "published_at": null,
+            "confirmed_points": 0,
+            "dispatch_rounds": 0,
+            "opportunities": 0,
+            "need_events": 0,
+            "notifications": 0
+          },
+          {
+            "id": "f3a4111d-48ac-487a-a9f2-75bab48daf78",
+            "status": "DRAFT",
+            "revision": 1,
+            "category_id": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+            "published_at": null,
+            "confirmed_points": 0,
+            "dispatch_rounds": 0,
+            "opportunities": 0,
+            "need_events": 0,
+            "notifications": 0
+          }
+        ]
+      }
+    },
+    "remaining": [
+      "Merljivo ubrzanje oba AI toka i dosledna statusna dopuna",
+      "Regionalna pokrivenost i sve tačke rute u matching-u",
+      "Dva naloga: objava do stvarnog push-a i Dogovora",
+      "Grupni mediji i politika otkaza",
+      "Povezani vizuelni talasi"
+    ],
+    "phoneVerified": false,
+    "releaseAccepted": false,
+    "wholeApplicationAccepted": false
   }
 }

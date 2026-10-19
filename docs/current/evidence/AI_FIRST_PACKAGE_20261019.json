@@ -297,5 +297,11 @@
     "taskVersion": 107,
     "workerVersion": 60,
     "unchangedBundleHashes": true
+  },
+  "workflowResolution20261019": {
+    "runId": 39277078099,
+    "status": "completed",
+    "conclusion": "success",
+    "note": "Read after original artifact capture; original dated status retained."
   }
 }
