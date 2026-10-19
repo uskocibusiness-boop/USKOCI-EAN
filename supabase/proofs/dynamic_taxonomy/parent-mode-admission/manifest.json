@@ -23,7 +23,7 @@
     },
     {
       "path": "supabase/proofs/dynamic_taxonomy/parent-mode-admission/assert.sql",
-      "sha256": "743440c1da5be753a04c45a3e718708f0de407cf5e088d3636ca85aa33241900"
+      "sha256": "6c2824a6ae7304fd5baf058f2f14fc0be3a9cbf08932eba1f7a1c1941cd6a054"
     },
     {
       "path": "supabase/proofs/dynamic_taxonomy/parent-mode-admission/before.sql",
@@ -61,5 +61,11 @@
       "path": ".github/workflows/taxonomy-new-branch-scopes-pg-proof.yml",
       "sha256": "17f9dd4eb4f5e2c4e229c0450787e1be1579d823c053a350af55a98c39b367d9"
     }
-  ]
+  ],
+  "execution": {
+    "firstRun": "39242132998",
+    "result": "FAILED_FIXTURE_AMBIGUOUS_VALUE",
+    "correction": "Rename local loop value to v_handoff and qualify item.value in both JSONB loops. Migration unchanged.",
+    "retest": "PENDING"
+  }
 }

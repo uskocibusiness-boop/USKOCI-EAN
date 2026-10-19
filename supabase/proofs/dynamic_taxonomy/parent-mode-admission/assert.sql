@@ -3,12 +3,12 @@ BEGIN;
 SELECT proof.require(NOT has_function_privilege('anon','private.taxonomy_handoff_valid_v1(jsonb)','EXECUTE')
  AND NOT has_function_privilege('authenticated','private.taxonomy_handoff_valid_v1(jsonb)','EXECUTE')
  AND NOT has_function_privilege('service_role','private.taxonomy_handoff_valid_v1(jsonb)','EXECUTE'),'HANDOFF_HELPER_PRIVATE');
-DO $$ DECLARE value jsonb; BEGIN
- FOR value IN SELECT value FROM jsonb_array_elements('[{"required":false},{"required":true,"shippingCountries":["RS","BA"]},{"required":true,"localExchange":{"countryCode":"RS","city":"Novi Sad"}},{"required":true,"shippingCountries":["RS"],"localExchange":{"countryCode":"RS","city":"Novi Sad"}}]'::jsonb) LOOP
-  PERFORM proof.require(private.taxonomy_handoff_valid_v1(value),'VALID_HANDOFF');
+DO $$ DECLARE v_handoff jsonb; BEGIN
+ FOR v_handoff IN SELECT item.value FROM jsonb_array_elements('[{"required":false},{"required":true,"shippingCountries":["RS","BA"]},{"required":true,"localExchange":{"countryCode":"RS","city":"Novi Sad"}},{"required":true,"shippingCountries":["RS"],"localExchange":{"countryCode":"RS","city":"Novi Sad"}}]'::jsonb) item(value) LOOP
+  PERFORM proof.require(private.taxonomy_handoff_valid_v1(v_handoff),'VALID_HANDOFF');
  END LOOP;
- FOR value IN SELECT value FROM jsonb_array_elements('[null,[],{},{"required":null},{"required":false,"shippingCountries":["RS"]},{"required":true},{"required":true,"shippingCountries":[]},{"required":true,"shippingCountries":["RS","RS"]},{"required":true,"shippingCountries":["rs"]},{"required":true,"shippingCountries":[42]},{"required":true,"localExchange":null},{"required":true,"localExchange":{"countryCode":"RS","city":" Novi Sad"}},{"required":true,"localExchange":{"countryCode":"RS","city":"Ulica 23"}},{"required":true,"localExchange":{"countryCode":"RS","city":"Novi Sad","address":"hidden"}},{"required":true,"shippingCountries":["RS"],"extra":true}]'::jsonb) LOOP
-  PERFORM proof.require(NOT private.taxonomy_handoff_valid_v1(value),'MALFORMED_HANDOFF_REFUSED');
+ FOR v_handoff IN SELECT item.value FROM jsonb_array_elements('[null,[],{},{"required":null},{"required":false,"shippingCountries":["RS"]},{"required":true},{"required":true,"shippingCountries":[]},{"required":true,"shippingCountries":["RS","RS"]},{"required":true,"shippingCountries":["rs"]},{"required":true,"shippingCountries":[42]},{"required":true,"localExchange":null},{"required":true,"localExchange":{"countryCode":"RS","city":" Novi Sad"}},{"required":true,"localExchange":{"countryCode":"RS","city":"Ulica 23"}},{"required":true,"localExchange":{"countryCode":"RS","city":"Novi Sad","address":"hidden"}},{"required":true,"shippingCountries":["RS"],"extra":true}]'::jsonb) item(value) LOOP
+  PERFORM proof.require(NOT private.taxonomy_handoff_valid_v1(v_handoff),'MALFORMED_HANDOFF_REFUSED');
  END LOOP;
 END $$;
 

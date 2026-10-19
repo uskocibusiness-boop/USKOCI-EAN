@@ -1,5 +1,9 @@
 \set ON_ERROR_STOP on
 BEGIN;
+-- Each workflow psql invocation is a new connection; restore the fixture session.
+SELECT set_config('test.auth_uid',proof.id(1)::text,false);
+SELECT set_config('request.jwt.claims','{"role":"service_role"}',false);
+SELECT proof.require(auth.uid()=proof.id(1) AND auth.jwt()->>'role'='service_role','FIXTURE_AUTH_SESSION_PRESENT');
 -- Function identity/configuration remain stable; the table migration is additive.
 SELECT proof.require(NOT EXISTS(SELECT 1 FROM proof.handoff_function_before b JOIN pg_proc p ON p.oid=b.signature::regprocedure
  WHERE p.proowner<>b.proowner OR p.proconfig IS DISTINCT FROM b.proconfig OR p.prosecdef<>b.prosecdef OR p.provolatile<>b.provolatile),'REPLACEMENT_EXECUTION_PROPERTIES_PRESERVED');

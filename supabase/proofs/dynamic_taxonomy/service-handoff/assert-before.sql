@@ -1,4 +1,8 @@
 \set ON_ERROR_STOP on
+-- Each workflow psql invocation is a new connection; restore the fixture session.
+SELECT set_config('test.auth_uid',proof.id(1)::text,false);
+SELECT set_config('request.jwt.claims','{"role":"service_role"}',false);
+SELECT proof.require(auth.uid()=proof.id(1) AND auth.jwt()->>'role'='service_role','FIXTURE_AUTH_SESSION_PRESENT');
 -- Called after parent-mode migration, before the handoff migration.
 SELECT proof.require(to_regprocedure('private.taxonomy_handoff_compatible_v1(jsonb,jsonb)') IS NULL,'HANDOFF_MIGRATION_NOT_ALREADY_APPLIED');
 CREATE TABLE proof.handoff_function_before AS SELECT oid::regprocedure::text signature,proowner,proconfig,prosecdef,provolatile
