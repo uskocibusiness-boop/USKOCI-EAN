@@ -88,7 +88,8 @@ test('rejected direct candidate stays private and research preserves all model p
     order.push('fetch'); requests.push(JSON.parse(init.body)); return response(queue.shift());
   });
   const { input, reports, admissions, reads } = args({ parseFinal: JSON.parse,
-    directFirst: { accept: async () => { order.push('verify'); return false; } },
+    body:body({systemInstruction:{role:'system',parts:[{text:'FULL_RESEARCH_RULES'}]}}),
+    directFirst: { systemParts:[{text:'CURRENT_SEED_RULES'}], accept: async () => { order.push('verify'); return false; } },
   });
   const settle = input.onAttempt;
   input.onAttempt = async report => { await settle(report); order.push(`settled:${report.attempt}`); };
@@ -98,12 +99,47 @@ test('rejected direct candidate stays private and research preserves all model p
   assert.deepEqual(order.slice(0, 4), ['fetch', 'settled:1', 'verify', 'fetch']);
   assert.deepEqual(admissions.map(x => x.attempt), [1, 2, 3]);
   assert.deepEqual(reports.map(x => x.reservationId), ['reservation_1', 'reservation_2', 'reservation_3']);
+  assert.equal(requests[0].systemInstruction.role,'system');
+  assert.deepEqual(requests[0].systemInstruction.parts[0],{text:'CURRENT_SEED_RULES'});
+  assert.ok(!JSON.stringify(requests[0].systemInstruction).includes('FULL_RESEARCH_RULES'));
+  for(const request of requests.slice(1))assert.deepEqual(request.systemInstruction.parts,[{text:'FULL_RESEARCH_RULES'}]);
+  for(const request of requests)assert.deepEqual(request.generationConfig.responseSchema,requests[0].generationConfig.responseSchema);
+  for(let index=0;index<requests.length;index++){
+    assert.equal(admissions[index].requestBytes,Buffer.byteLength(JSON.stringify(requests[index])));
+    assert.equal(reports[index].requestBytes,admissions[index].requestBytes);
+  }
   assert.deepEqual(requests[1].contents[1], content(initial));
   assert.equal(requests[1].contents[2].role, 'user');
   assert.match(requests[1].contents[2].parts[0].text, /unverified.*not been applied or shown/);
   assert.equal(requests[1].tools[0].functionDeclarations[0].name, 'search_catalog');
   assert.deepEqual(requests[2].contents[3], content([call('research')]));
   assert.deepEqual(plain(result.usage), { promptTokens: 120, outputTokens: 45, totalTokens: 165 });
+});
+
+test('first phase text parts reject malformed or oversized context before provider admission',async()=>{
+  const {api}=load(async()=>assert.fail('provider must not be called'));
+  for(const systemParts of [null,[],[{}],[{text:''}],[{text:7}],[{text:'ok',inlineData:{data:'untrusted'}}]]){
+    const {input,admissions}=args({directFirst:{systemParts,accept:async()=>true}});
+    await assert.rejects(api.generateGeminiToolConversation(input),/AI_TOOL_INVALID_CONFIG/);
+    assert.equal(admissions.length,0);
+  }
+  const {input,admissions}=args({limits:{maxRequestBytes:1000},
+    directFirst:{systemParts:[{text:'ž'.repeat(1000)}],accept:async()=>true}});
+  await assert.rejects(api.generateGeminiToolConversation(input),/AI_TOOL_REQUEST_TOO_LARGE/);
+  assert.equal(admissions.length,0);
+});
+
+test('final-only continuation restores research rules and the retained schema after direct rejection',async()=>{
+  const requests=[];
+  const {api}=load(async(_url,init)=>{requests.push(JSON.parse(init.body));return response(final());});
+  const {input,reports}=args({body:body({systemInstruction:{parts:[{text:'RESEARCH'}]}}),limits:{maxToolRounds:1},
+    directFirst:{systemParts:[{text:'DIRECT'}],accept:async()=>false}});
+  await api.generateGeminiToolConversation(input);
+  assert.equal(requests.length,2);assert.equal(reports.length,2);
+  assert.deepEqual(requests[1].systemInstruction.parts[0],{text:'RESEARCH'});
+  assert.match(requests[1].systemInstruction.parts.at(-1).text,/research for this turn is closed/);
+  assert.equal(requests[1].tools,undefined);
+  assert.deepEqual(requests[1].generationConfig.responseSchema,requests[0].generationConfig.responseSchema);
 });
 
 test('direct rejection never increases the call ceiling and the last slot is always final-only', async () => {

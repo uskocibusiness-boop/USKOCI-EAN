@@ -252,12 +252,16 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   }
   const history=context.messages.slice(-30).map((row:any)=>({role:row.role==='ASSISTANT'?'model':'user',parts:[{text:String(row.body).slice(0,4000)}]}));
   // Keep a stable instruction prefix; current owned data always follows it.
-  const body=JSON.stringify({systemInstruction:{parts:[{text:instruction()}, {text:serviceExecutionInstruction('WORKER_CAPABILITY')},
-    ...(taxonomyPrompt ? [{text:geminiClassificationShadowInstruction('WORKER_CAPABILITY')}] : []),
-    ...(serviceModeContext ? [{text:workerServiceModeInstruction(serviceModeContext,false)}] : []),
-    {text:workerRuntimeContext(context,new Date().toISOString())},
-    ...(taxonomyPrompt ? [{text:taxonomyPrompt}] : []),
-    ...(serviceModeContext ? [{text:'Server-owned service mode context: '+JSON.stringify(serviceModeContext)}] : [])]},contents:history,
+  const stableParts=[{text:instruction()}, {text:serviceExecutionInstruction('WORKER_CAPABILITY')}];
+  const modeParts=serviceModeContext ? [{text:workerServiceModeInstruction(serviceModeContext,false)}] : [];
+  const runtimePart={text:workerRuntimeContext(context,new Date().toISOString())};
+  const modeContextParts=serviceModeContext ? [{text:'Server-owned service mode context: '+JSON.stringify(serviceModeContext)}] : [];
+  const systemParts=(phase:'direct'|'research')=>[...stableParts,
+    ...(taxonomyPrompt ? [{text:geminiClassificationShadowInstruction('WORKER_CAPABILITY',phase)}] : []),
+    ...modeParts,runtimePart,
+    ...(taxonomyPrompt ? [{text:phase==='direct'&&explorer ? explorer.prompt('direct') : taxonomyPrompt}] : []),
+    ...modeContextParts];
+  const body=JSON.stringify({systemInstruction:{parts:systemParts('research')},contents:history,
     generationConfig:{temperature:0.2,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,responseMimeType:'application/json',responseSchema:explorer ? workerServiceModeSchema(withGeminiClassificationShadowSchema(workerProviderSchema(),'WORKER_CAPABILITY')) : workerProviderSchema()}});
   if (new TextEncoder().encode(body).byteLength>AI_TEST_LIMITS.llmRequestBytes) { try { await fail(); } catch {} return json(413,{code:'WORKER_AI_CONTEXT_TOO_LARGE'}); }
   let firstReservationId: string;
@@ -360,7 +364,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
             url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
             key, body, signal: research!.signal, limits: { timeoutMs: Math.min(35000, remaining), accountingTimeoutMs: 3000 },
             ...(devTaxonomyFlagP1('USKOCI_TAXONOMY_DIRECT_REPLY') && explorer.canTryDirectReply() ? {
-              directFirst: { accept: async (candidateRaw: string) => {
+              directFirst: { systemParts: systemParts('direct'), accept: async (candidateRaw: string) => {
                 await verifyReply(candidateRaw);
                 const prepared = analyzeOutput(candidateRaw);
                 // Preserve the normal unresolved answer on catalog failure;

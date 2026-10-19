@@ -49,7 +49,7 @@ jest.mock('../../features/voice/useHoldToTalk', () => ({ useHoldToTalk: (options
     state: { phase: mockVoicePhase } }; } }));
 // The voice module has three parts since 2026-09-24 (the composer's microphone, its notice line and voice mode); the
 // harness stands each in as a host element. Their own behaviour is in voice-composer-controls.test.tsx.
-jest.mock('../../ui/aiFirst/VoiceComposer', () => ({ VoiceComposer: 'VoiceComposer', VoiceNotice: 'VoiceNotice', VoiceMode: 'VoiceMode', VoiceTranscript: 'VoiceTranscript',
+jest.mock('../../ui/aiFirst/VoiceComposer', () => ({ VoiceComposer: 'VoiceComposer', VoiceNotice: 'VoiceNotice',
   useVoiceScreenReader: () => false,
   HOLD_HINT: 'Drži mikrofon dok govoriš, pa pusti da pošalješ.' }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {

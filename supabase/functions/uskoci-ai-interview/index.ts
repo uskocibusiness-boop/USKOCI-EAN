@@ -753,13 +753,18 @@ async function callGemini(
   // Stable rules precede private per-turn data. This permits provider prefix
   // caching without sharing application context or trusting stale catalog data.
   const instruction = schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts, timeContext, false, false) : legacyInstruction(activeFacts, timeContext);
+  const stableParts = [{ text: instruction }, { text: serviceExecutionInstruction('NEED_SERVICE') }];
+  const runtimeParts = [
+    ...(schemaVersion === NEED_FACT_SCHEMA_V2 ? [{text:needRuntimeContext(activeFacts,timeContext)},
+      {text:needFinishContext(activeFacts,taskFinishOnly(text) && !locationContext)}].filter(part=>part.text) : []),
+    ...(locationContext ? [{ text: locationInstruction(locationContext) }] : []),
+  ];
+  const systemParts = (phase: 'direct' | 'research') => [...stableParts,
+    ...(taxonomyPrompt ? [{text:geminiClassificationShadowInstruction('NEED_SERVICE',phase)}] : []),
+    ...runtimeParts,
+    ...(taxonomyPrompt ? [{text:phase === 'direct' && taxonomyExplorer ? taxonomyExplorer.prompt('direct') : taxonomyPrompt}] : [])];
   const payloadBody = JSON.stringify({
-    systemInstruction: { parts: [{ text: instruction }, { text: serviceExecutionInstruction('NEED_SERVICE') },
-      ...(taxonomyPrompt ? [{text:geminiClassificationShadowInstruction()}] : []),
-      ...(schemaVersion === NEED_FACT_SCHEMA_V2 ? [{text:needRuntimeContext(activeFacts,timeContext)},
-        {text:needFinishContext(activeFacts,taskFinishOnly(text) && !locationContext)}].filter(part=>part.text) : []),
-      ...(locationContext ? [{ text: locationInstruction(locationContext) }] : []),
-      ...(taxonomyPrompt ? [{text: taxonomyPrompt}] : [])] },
+    systemInstruction: { parts: systemParts('research') },
     contents,
     generationConfig: { temperature: 0.2, maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
       responseMimeType: 'application/json', responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? (taxonomyExplorer ? withGeminiClassificationShadowSchema(locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : legacyProviderSchema() },
@@ -772,7 +777,7 @@ async function callGemini(
         key, body: payloadBody, signal, ...providerBudget,
         limits: { maxRequestBytes: AI_TEST_LIMITS.llmRequestBytes, timeoutMs: Math.max(1,researchTimeoutMs), accountingTimeoutMs: 3000 },
         ...(devTaxonomyFlagP1('USKOCI_TAXONOMY_DIRECT_REPLY') && taxonomyExplorer.canTryDirectReply() ? {
-          directFirst: { accept: async (raw: string) => {
+          directFirst: { systemParts: systemParts('direct'), accept: async (raw: string) => {
             const turn = await parseOutput(JSON.parse(raw));
             if (directAccepted) directResult = { raw, turn };
             return directAccepted;

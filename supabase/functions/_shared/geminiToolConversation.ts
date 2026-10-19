@@ -53,7 +53,11 @@ export type GeminiToolConversationInput<T = string> = {
   /** Try current supplied evidence without a tool round first. The caller verifies the
    * complete effective domain state; false permits research within this SAME budget.
    * Runs after accounting and under the turn deadline. Exceptions never trigger retry. */
-  directFirst?: { accept: (raw: string) => Promise<boolean> };
+  directFirst?: {
+    accept: (raw: string) => Promise<boolean>;
+    /** Server-owned first-phase instructions only; history, schema and budgets stay shared. */
+    systemParts?: readonly { text: string }[];
+  };
   /** Durably reserve before EVERY attempt. Use deterministic operation ids so an admission
    * whose acknowledgement is lost at cancellation can be recovered without another charge. */
   beforeAttempt: (attempt: GeminiAttemptAdmission) => Promise<GeminiAttemptReceipt>;
@@ -104,6 +108,12 @@ export async function generateGeminiToolConversation<T = string>(input: GeminiTo
   }
   if (input.directFirst !== undefined && (!object(input.directFirst)
     || typeof input.directFirst.accept !== 'function' || input.mode === 'SEPARATE' || toolMap.size === 0)) fail('AI_TOOL_INVALID_CONFIG');
+  const firstParts = input.directFirst?.systemParts;
+  if (firstParts !== undefined && (!Array.isArray(firstParts) || !firstParts.length
+    || firstParts.some(part => !object(part) || Object.keys(part).length !== 1
+      || typeof part.text !== 'string' || !part.text.trim()))) fail('AI_TOOL_INVALID_CONFIG');
+  // Snapshot caller-owned data before any await; a later mutation cannot alter a request.
+  const directSystemParts = firstParts?.map(part => ({ text: part.text }));
   let base: JsonObject;
   try { base = JSON.parse(geminiRequestBody(input.body)); } catch { return fail('AI_TOOL_INVALID_CONFIG'); }
   if (!Array.isArray(base.contents) || !base.contents.length || !object(base.generationConfig)
@@ -181,7 +191,7 @@ export async function generateGeminiToolConversation<T = string>(input: GeminiTo
       } else if (directAttempt) {
         const system = object(base.systemInstruction) ? base.systemInstruction : {};
         request.systemInstruction = { ...system, parts: [
-          ...(Array.isArray(system.parts) ? system.parts : []),
+          ...(directSystemParts ?? (Array.isArray(system.parts) ? system.parts : [])),
           { text: 'First try to return the complete required JSON using the supplied CURRENT server evidence. '
             + 'No tools are offered in this first attempt. Keep useful user facts and partial answers; '
             + 'mark unresolved classification as NEEDS_REVIEW or ask for missing user information. '

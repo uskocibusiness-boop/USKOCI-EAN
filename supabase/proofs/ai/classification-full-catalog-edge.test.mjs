@@ -121,6 +121,9 @@ const provider=f=>f.calls.filter(c=>c.url.startsWith('https://generativelanguage
 const complete=f=>f.calls.find(c=>/\/rpc_(?:complete_worker_ai_turn|ai_complete_need_(?:location_turn_v1|turn_v2))_service$/.test(c.url));
 const capture=f=>f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
 const writtenMessage=f=>complete(f).body.p_output?.assistantMessage??complete(f).body.p_assistant_message;
+const catalogContext=body=>body.systemInstruction.parts.flatMap(part=>{
+  try{const value=JSON.parse(part.text);return value.complete===false&&Array.isArray(value.categories)?[value]:[];}catch{return [];}
+})[0];
 
 const pickupOnly={required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}};
 const handoffFact=value=>({...activeFact('need.handoff',value),value_type:'OBJECT'});
@@ -133,6 +136,11 @@ for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE'])test(purpose+' accepts
   await f.invoke();
   assert.equal(provider(f).length,1);
   assert.equal(provider(f)[0].body.tools,undefined);
+  const direct=provider(f)[0].body,context=catalogContext(direct);
+  assert.deepEqual(context.categories,[{categoryId,label:service,aliases:items.at(-1).aliases,modes:['REMOTE']}]);
+  assert.equal(context.complete,false);assert.equal(context.classificationAuthority,'NONE');
+  assert.ok(direct.systemInstruction.parts.some(part=>part.text.includes('direct reply phase')));
+  assert.ok(!direct.systemInstruction.parts.some(part=>part.text.includes('Before CREATE_CHILD read')));
   assert.equal(capture(f).length,1);
   assert.deepEqual(capture(f)[0].body.p_proposals[0].handoff,pickupOnly);
   const queries=f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_query_catalog_service'));
@@ -152,6 +160,26 @@ for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE'])test(purpose+' changes
   assert.equal(provider(f).length,3);
   assert.equal(provider(f)[0].body.tools,undefined);
   assert.ok(provider(f)[1].body.tools);
+  const bodies=provider(f).map(call=>call.body),direct=bodies[0],research=bodies[1];
+  const researchContext=catalogContext(research),directContext=catalogContext(direct);
+  assert.ok(researchContext.categories.some(row=>row.categoryId===root.categoryId));
+  assert.ok(!directContext.categories.some(row=>row.categoryId===root.categoryId));
+  assert.equal(researchContext.categories.filter(row=>row.categoryId===categoryId).length,1,'SEARCH and saved RESOLVE share a single node');
+  assert.equal(JSON.stringify(researchContext.categories.find(row=>row.categoryId===categoryId)),
+    JSON.stringify((({path,pathIds,...row})=>row)(items.at(-1))),'actual provider keeps exact node data');
+  assert.ok(research.systemInstruction.parts.some(part=>part.text.includes('Before CREATE_CHILD read')));
+  assert.ok(!research.systemInstruction.parts.some(part=>part.text.includes('direct reply phase')));
+  for(const body of bodies.slice(1)){
+    assert.deepEqual(body.systemInstruction.parts.slice(0,2),direct.systemInstruction.parts.slice(0,2),'warm domain/execution rules remain identical');
+    assert.deepEqual(body.generationConfig.responseSchema,direct.generationConfig.responseSchema);
+    assert.deepEqual(body.contents.slice(0,direct.contents.length),direct.contents,'owned conversation is not truncated by phase switching');
+  }
+  const commonPrivate=direct.systemInstruction.parts.filter(part=>
+    part.text.includes('Current owned candidate')||part.text.startsWith('Server-owned service mode context:')||part.text.includes('SERVER_RUNTIME_CONTEXT'));
+  for(const part of commonPrivate)assert.ok(research.systemInstruction.parts.some(other=>other.text===part.text));
+  assert.ok(Buffer.byteLength(JSON.stringify(direct.systemInstruction))<Buffer.byteLength(JSON.stringify(research.systemInstruction)));
+  assert.equal(f.calls.filter(call=>call.url.endsWith('/rpc_ai_test_budget_reserve_service')).length,3);
+  assert.equal(f.calls.filter(call=>call.url.endsWith('/rpc_ai_test_record_usage_service')).length,3);
   const queries=f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_query_catalog_service'));
   assert.equal(queries.filter(c=>c.body.p_query.operation==='META').length,3,
     'bootstrap + direct verification + final verification, even with byte-identical final JSON');

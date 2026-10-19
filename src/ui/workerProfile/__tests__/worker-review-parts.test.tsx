@@ -158,7 +158,9 @@ describe('the conversation draft is not matching readiness', () => {
     const openReview = jest.fn();
     await act(async () => { tree = create(<WorkerAiCard profile={profile} compact={false} disabled={false} review={openReview} />); });
     expect(texts()).toContain('Nacrt radnog profila');
-    expect(texts()).toContain('Proveri usluge i način rada pre čuvanja.');
+    expect(tree.root.findByProps({ testID: 'worker-draft-review-note' }).props.children).toMatch(/nacrt.*nije sačuvan/i);
+    expect(tree.root.findAllByProps({ testID: 'worker-understood-mode' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ testID: 'worker-understood-handoff' })).toHaveLength(0);
     expect(texts()).not.toMatch(/sprem|potvrđen|aktivan|obaveštenja|od 2|od 5/i);
     expect(tree.root.findAllByProps({ accessibilityRole: 'progressbar' })).toHaveLength(0);
     expect(tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pregledaj profil')).toHaveLength(1);
@@ -172,7 +174,9 @@ describe('the conversation draft is not matching readiness', () => {
       location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20, approximatePosition: null } });
     await act(async () => { tree = create(<WorkerAiCard profile={profile} compact={false} disabled={false} review={jest.fn()} />); });
     await act(async () => { tree.root.findByProps({ testID: 'worker-draft-disclosure' }).props.onPress(); });
-    expect(texts()).toContain('Grad u nacrtu: Novi Sad · RS');
+    expect(texts()).toContain('Grad profila: Novi Sad · RS');
+    expect(tree.root.findAllByProps({ testID: 'worker-understood-mode' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ testID: 'worker-understood-handoff' })).toHaveLength(0);
     expect(texts()).not.toMatch(/20 km|terenski krug|područje je potvrđeno/i);
     expect(tree.root.findAllByProps({ accessibilityRole: 'progressbar' })).toHaveLength(0);
   });

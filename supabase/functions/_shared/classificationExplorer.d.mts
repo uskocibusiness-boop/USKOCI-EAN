@@ -6,7 +6,7 @@ export type ClassificationExplorer = {
   readonly catalogVersion: number; readonly catalogFingerprint: string;
   readonly queryCount: number; readonly evidenceBytes: number;
   canTryDirectReply(): boolean;
-  prompt(): string;
+  prompt(phase?: 'direct' | 'research'): string;
   execute(args: Record<string, unknown>, context?: { signal?: AbortSignal }): Promise<unknown>;
   verify(raw: unknown, options?: { services?: string[]; categoryIds?: string[] }): Promise<CatalogSnapshot>;
 };

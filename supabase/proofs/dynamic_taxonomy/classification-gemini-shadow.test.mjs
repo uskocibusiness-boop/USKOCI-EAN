@@ -146,15 +146,31 @@ test('worker snapshot requires explicit unresolved proposals without inferring s
  assert.deepEqual(inspect(withEncodedShadow(need,[]),snapshot,'NEED_SERVICE').statuses,['EMPTY_CLASSIFICATION_SHADOW']);
 });
 
-test('both interview instructions spell out the identical minimal wire shape for both reuse actions',()=>{
- for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE']){
-  const instruction=instructions(purpose);
+test('both phases and interviews retain the exact wire and authority contract',()=>{
+ for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE'])for(const phase of ['direct','research']){
+  const instruction=instructions(purpose,phase);
   assert.match(instruction,/For BOTH REUSE_EXISTING and REUSE_ALIAS:/);
   assert.match(instruction,/categoryId must be the exact non-empty UUID/);
   assert.match(instruction,/parentId must be the empty string ""/);
   assert.match(instruction,/proposedPath must be the empty array \[\]/);
   assert.match(instruction,/Do not copy the catalog parentId or path into a reuse entry/);
+  assert.match(instruction,/FULL SNAPSHOT/);
+  assert.match(instruction,/24576 UTF-8 bytes/);
+  assert.match(instruction,/10 to 1000 characters/);
+  assert.match(instruction,/ONLY optional ninth field is handoff, only for REMOTE/);
+  assert.match(instruction,/never user consent/);
+  assert.match(instruction,/Unsafe, regulated, ambiguous and possible duplicates are review-only/);
+  if(phase==='direct'){
+    assert.match(instruction,/do not invent CREATE\/EXTEND plans/);
+    assert.match(instruction,/ASK_CLARIFICATION is for a real question/);
+    assert.doesNotMatch(instruction,/Before CREATE_CHILD read/);
+  }else{
+    assert.match(instruction,/complete an ALL-scope SEARCH/);
+    assert.match(instruction,/There is no fixed number of new levels/);
+  }
  }
+ assert.equal(instructions(),instructions('NEED_SERVICE','research'),'old callers retain research instructions');
+ assert.throws(()=>instructions('NEED_SERVICE','unknown'),/SHADOW_PHASE_INVALID/);
 });
 
 test('action field diagnostics reject malformed plans without rewriting them or logging private values',()=>{

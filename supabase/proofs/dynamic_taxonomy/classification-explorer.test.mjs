@@ -62,9 +62,36 @@ test('direct eligibility cannot replace fresh global identity validation',async(
   assert.throws(()=>x.canTryDirectReply(),/INCOMPLETE/);
 });
 
+test('phase prompts retain exact node data once and keep the original cursor query usable',async()=>{
+  const unrelated=child(3,'Druga konkretna usluga',['Drugi naziv']);
+  const f=fixture({searchItems:[service,unrelated],searchMore:true});
+  const x=await createClassificationExplorer(f.rpc,{seedServices:['3D štampa'],seedCategoryIds:[service.categoryId]});
+  const research=JSON.parse(x.prompt()),direct=JSON.parse(x.prompt('direct'));
+  const visible=row=>{const {path,pathIds,...rest}=row;return rest;};
+  assert.deepEqual(research.categories,[root,service,unrelated].map(visible));
+  assert.equal(research.categories.filter(row=>row.categoryId===service.categoryId).length,1);
+  const expectedPages=[[root],[service,unrelated],[service]];
+  research.pages.forEach((page,index)=>{
+    assert.equal(page.count,expectedPages[index].length);
+    assert.equal(JSON.stringify(page.categoryIds.map(id=>research.categories.find(row=>row.categoryId===id))),
+      JSON.stringify(expectedPages[index].map(visible)),'exact model-visible row bytes survive deduplication');
+  });
+  assert.deepEqual(direct.categories,[{categoryId:service.categoryId,label:service.label,aliases:service.aliases,modes:service.modes}]);
+  for(const prompt of [direct,research]){
+    assert.equal(prompt.catalogVersion,7);assert.equal(prompt.catalogFingerprint,'a'.repeat(32));
+    assert.equal(prompt.complete,false);assert.equal(prompt.classificationAuthority,'NONE');
+  }
+  const search=research.pages.find(page=>page.query.operation==='SEARCH');
+  assert.equal(search.query.service,'3D štampa');assert.equal(search.nextCursor,'search-next');
+  await x.execute({...search.query,cursor:search.nextCursor});
+  assert.equal(f.calls.at(-1).text,'3D štampa');assert.equal(f.calls.at(-1).cursor,'search-next');
+  assert.ok(Buffer.byteLength(x.prompt('direct'))<Buffer.byteLength(x.prompt()));
+  assert.throws(()=>x.prompt('unknown'),/INVALID_PHASE/);
+});
+
 test('bootstrap is explicit partial context and exact identity is verified outside model pages',async()=>{
   const f=fixture(),x=await createClassificationExplorer(f.rpc);
-  const prompt=JSON.parse(x.prompt());assert.equal(prompt.complete,false);assert.equal(prompt.pages[0].items.length,1);
+  const prompt=JSON.parse(x.prompt());assert.equal(prompt.complete,false);assert.equal(prompt.pages[0].categoryIds.length,1);
   assert.ok(!x.prompt().includes(service.categoryId));
   const snapshot=await x.verify(raw(plan()));
   assert.equal(evaluate(snapshot,plan()).accepted,true);
@@ -149,7 +176,7 @@ test('saved and proposed IDs beyond the first page are all resolved',async()=>{
   const exact=Array.from({length:65},(_,n)=>child(n+10,`Posebna usluga ${n}`));
   const ids=exact.map(n=>n.categoryId);
   const f=fixture({exact}),x=await createClassificationExplorer(f.rpc,{seedCategoryIds:ids});
-  assert.equal(JSON.parse(x.prompt()).pages.filter(p=>p.operation==='RESOLVE').length,3);
+  assert.equal(JSON.parse(x.prompt()).pages.filter(p=>p.query.operation==='RESOLVE').length,3);
   const snapshot=await x.verify({}, {categoryIds:ids});
   assert.ok(ids.every(id=>snapshot.categories.some(n=>n.id===id)));
   assert.equal(f.calls.filter(q=>q.operation==='RESOLVE').length,3,'verification reuses the same fenced pages');
@@ -185,7 +212,7 @@ test('META fences parallel bootstrap roots, saved IDs and seeds with stable prom
   assert.equal(c.pending[0].done,false);
   for(let n=0;n<4;n++){c.releaseAll();await turn();}
   const x=await opening,pages=JSON.parse(x.prompt()).pages;
-  assert.deepEqual(pages.map(p=>p.operation),['ROOTS',...seeds.map(()=> 'SEARCH'),'RESOLVE']);
+  assert.deepEqual(pages.map(p=>p.query.operation),['ROOTS',...seeds.map(()=> 'SEARCH'),'RESOLVE']);
   assert.equal(c.peak,4);
 });
 

@@ -153,7 +153,9 @@ export async function createClassificationExplorer(rpc, options = {}) {
     () => seedIds.length ? allResolved(seedIds) : [],
     ...seeds.map(service => () => query({ operation: 'SEARCH', text: service, service })),
   ]);
-  initialPages.push(roots, ...seedPages, ...resolved);
+  initialPages.push({ query: { operation: 'ROOTS', scope: 'ALL' }, page: roots },
+    ...seedPages.map((page,index) => ({ query: { operation: 'SEARCH', scope: 'ALL', text: seeds[index], service: seeds[index] }, page })),
+    ...resolved.map(page => ({ query: { operation: 'RESOLVE', scope: 'ALL', categoryIds: seedIds }, page })));
 
   const snapshot = () => ({ catalogVersion: version, catalogFingerprint: digest, categories: [...nodes.values()],
     navigation: { kind: 'SERVER_QUERIES', identityChecks: [...identities].map(([service, categoryIds]) => ({ service, categoryIds })),
@@ -174,11 +176,22 @@ export async function createClassificationExplorer(rpc, options = {}) {
           .some(value => normalizedClassificationIdentity(value) === identity)).length === 1;
       });
     },
-    prompt() {
+    prompt(phase = 'research') {
+      active();
+      if (!['direct','research'].includes(phase)) fail('INVALID_PHASE');
+      const initialNodes = new Map(initialPages.flatMap(({page}) => page.items.map(row => [row.categoryId,row])));
+      if (phase === 'direct') {
+        const keys = new Set(seeds.map(normalizedClassificationIdentity));
+        return JSON.stringify({ catalogVersion: version, catalogFingerprint: digest, complete: false,
+          classificationAuthority: 'NONE', categories: [...initialNodes.values()]
+            .filter(row => [row.label,...row.aliases].some(value => keys.has(normalizedClassificationIdentity(value))))
+            .map(({categoryId,label,aliases,modes}) => ({categoryId,label,aliases,modes})) });
+      }
       return JSON.stringify({ catalogVersion: version, catalogFingerprint: digest, complete: false,
         catalogAccess: 'WHOLE_CURRENT_CATALOG_VIA_READ_ONLY_TOOLS', classificationAuthority: 'NONE',
-        instructions: 'These are initial pages only, NOT a complete catalog and NOT a closed shortlist. When the CURRENT server-supplied pages already contain the exact same concrete service and supported mode, reuse that verified entry without a redundant tool call. A budget or calendar correction alone does not require repeating an unchanged service search. Never reuse a remembered ID absent from current evidence; server freshness and identity checks still apply. Use taxonomy_catalog to search globally and inspect any branch at any depth. Every real ID and registered alias comes from the server. Read nextCursor as more results, never absence. SEARCH scope ALL with service set to the exact proposed service name before proposing CREATE_CHILD or CREATE_NEW_BRANCH; follow pages until that search is complete. Search alternate wording and inspect plausible parent/sibling branches when meanings may overlap. A missing phrase is not proof of a missing service. Reuse an existing ID only for exactly the same offered work. Keep scope/delivery distinct. Ask the person about the actual work when ambiguous, never ask them to choose a taxonomy ID. Never claim creation, activation, Save or publication. If research is incomplete use NEEDS_REVIEW and keep the useful user facts. The final classification snapshot must reflect every current offered service, not just the new message.',
-        pages: initialPages.map(modelPage) });
+        categories: [...initialNodes.values()].map(({path,pathIds,...row}) => row),
+        pages: initialPages.map(({query,page}) => ({ query, count: page.count, nextCursor: page.nextCursor,
+          categoryIds: page.items.map(row => row.categoryId) })) });
     },
     async execute(args, context = {}) {
       if (context.signal?.aborted) fail('CANCELLED');
