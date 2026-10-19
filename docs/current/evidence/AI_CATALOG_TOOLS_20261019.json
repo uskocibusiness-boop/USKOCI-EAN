@@ -1,0 +1,231 @@
+{
+  "date": "2026-10-19",
+  "status": "DEV_APPLIED_TOOL_LOOKUP_LIVE_PROVEN_WITH_PARENT_MODE_REVIEW_CASE_OPEN",
+  "runtimeSource": "806194530149d5ec1c0b35c8c36cb18a0ed49ce6",
+  "initialSource": "e105d3bff506515cbced3d3307146c30b43e0728",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "edges": [
+    {
+      "name": "uskoci-ai-interview",
+      "version": 105,
+      "files": 14,
+      "exactContent": true,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    },
+    {
+      "name": "uskoci-worker-interview",
+      "version": 58,
+      "files": 12,
+      "exactContent": true,
+      "status": "ACTIVE",
+      "verify_jwt": false
+    }
+  ],
+  "migration": {
+    "schemaVersion": 1,
+    "project": "leqcwgzvjsxugfgzdmth",
+    "observedAtUtc": "2026-10-19T09:25:50.014443+00:00",
+    "status": "APPLIED_EXACT_LEDGER_BYTES",
+    "sourceFile": "supabase/migrations/20261019085714_taxonomy_query_catalog_service.sql",
+    "ledger": {
+      "version": "20261019092405",
+      "name": "taxonomy_query_catalog_service",
+      "statement_count": 1,
+      "joined_md5": "46cc782f7f03fe5726ee4382f8ba14ed",
+      "joined_sha256": "d163becc19aa77f76e131f0f162f0b8fa9dbedb01b023ddd18f2e366755d71e4",
+      "joined_bytes": 15050
+    },
+    "function": {
+      "signature": "public.rpc_taxonomy_query_catalog_service(jsonb)",
+      "definition_md5": "0ee1acaf61b8fdc2f0ae63cf46c86399",
+      "body_md5": "8802eac005d05f406d15249d2f491f67",
+      "owner": "postgres",
+      "securityDefiner": false,
+      "volatility": "s",
+      "config": [
+        "search_path=pg_catalog",
+        "statement_timeout=5s"
+      ],
+      "anonExecute": false,
+      "authenticatedExecute": false,
+      "serviceExecute": true
+    },
+    "ci": {
+      "runId": "39229634304",
+      "sourceCommit": "e105d3bff506515cbced3d3307146c30b43e0728",
+      "postgres": [
+        16,
+        17
+      ],
+      "result": "PASS",
+      "scope": "standalone catalog query, authority, exact dependency preservation, rollback and reapplication"
+    },
+    "evidenceBoundary": "Read-only ledger bytes and function metadata reobserved. Does not claim final live AI journey or native UI acceptance; those checks are still in progress."
+  },
+  "tests": {
+    "nodeBeforeFinalPromptDelta": {
+      "passed": 746,
+      "failed": 0
+    },
+    "finalDeltaTargeted": {
+      "passed": 56,
+      "failed": 0
+    },
+    "typescript": "PASS",
+    "jest": {
+      "suitesPassed": 621,
+      "passed": 13875,
+      "skipped": 9,
+      "total": 13884,
+      "snapshotsPassed": 3,
+      "exitCode": 0,
+      "note": "Full run started at e105d3bf; final server-only prompt/reply delta separately covered by 56 Node checks. Jest emitted late-exit warning then exited 0."
+    }
+  },
+  "live": {
+    "cases": [
+      {
+        "case": "need-existing-tools",
+        "source": "e105d3bff506515cbced3d3307146c30b43e0728",
+        "conversationId": "5cb447e8-7a87-417f-8cb4-0bdc44d8a795",
+        "elapsedMs": 13141,
+        "outcome": "OWNED_SUCCEEDED_READBACK",
+        "classificationState": "READY",
+        "classificationCandidates": [
+          {
+            "mode": "REMOTE",
+            "action": "REUSE_EXISTING",
+            "reason": "Verified existing canonical identity or registered server alias",
+            "service": "3D printovanje",
+            "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+            "catalogVersion": 5
+          }
+        ],
+        "providerCalls": 2,
+        "measuredMicrousd": 19575,
+        "assistantText": "Sve je jasno zabeleženo. Pošto se figurica izrađuje kod izvršioca i šalje poštom, zadatak je postavljen na rad na daljinu uz dogovor oko cene i fleksibilan termin. Možeš otvoriti pregled zadatka.",
+        "reportSha256": "73bbb0c21ce9ef54823000767936fa3f21a20397784ee847f53ec2a07b9d2bcb"
+      },
+      {
+        "case": "worker-existing-tools",
+        "source": "e105d3bff506515cbced3d3307146c30b43e0728",
+        "conversationId": "3042e172-2deb-4818-8704-bcaafc863bc2",
+        "elapsedMs": 18726,
+        "outcome": "OWNED_SUCCEEDED_READBACK",
+        "classificationState": "READY",
+        "classificationCandidates": [
+          {
+            "mode": "REMOTE",
+            "action": "REUSE_EXISTING",
+            "reason": "Verified existing canonical identity or registered server alias",
+            "service": "3D printovanje",
+            "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+            "catalogVersion": 5
+          }
+        ],
+        "providerCalls": 3,
+        "measuredMicrousd": 17552,
+        "assistantText": "Zabeležio sam izradu 3D figurica prema STL fajlovima kao rad na daljinu (slanje gotovih predmeta), sa lokacijom Novi Sad, Srbija. Sve ključne informacije su unete, pa možeš pogledati pregled profila i sačuvati ga.",
+        "reportSha256": "73bbb0c21ce9ef54823000767936fa3f21a20397784ee847f53ec2a07b9d2bcb"
+      },
+      {
+        "case": "need-novel-tools",
+        "source": "e105d3bff506515cbced3d3307146c30b43e0728",
+        "conversationId": "16d8e47e-e391-4c67-8188-5c507549f374",
+        "elapsedMs": 17034,
+        "outcome": "OWNED_SUCCEEDED_READBACK",
+        "classificationState": "READY",
+        "classificationCandidates": [
+          {
+            "mode": "REMOTE",
+            "action": "REUSE_EXISTING",
+            "reason": "Verified existing canonical identity or registered server alias",
+            "service": "3D modelovanje i izrada taktilnih karata",
+            "categoryId": "ef63d6d2-7087-4d67-8a9d-b07952655d03",
+            "catalogVersion": 5
+          }
+        ],
+        "providerCalls": 4,
+        "measuredMicrousd": 37933,
+        "assistantText": "Sve je jasno zabeleženo. Zadatak se radi na daljinu, uz autorsko prilagođavanje zvezdanog neba dodiru i dodavanje Brajevog pisma, nakon čega se gotova karta šalje. Sve detalje možeš proveriti na pregledu zadatka.",
+        "reportSha256": "73bbb0c21ce9ef54823000767936fa3f21a20397784ee847f53ec2a07b9d2bcb"
+      },
+      {
+        "case": "need-rare-tools",
+        "source": "e105d3bff506515cbced3d3307146c30b43e0728",
+        "conversationId": "02c71be3-8b85-4700-93ba-edff20c405f4",
+        "elapsedMs": 18677,
+        "outcome": "OWNED_SUCCEEDED_READBACK",
+        "classificationState": "PENDING_CLASSIFICATION",
+        "classificationCandidates": [],
+        "providerCalls": 4,
+        "measuredMicrousd": 40098,
+        "assistantText": "Sve je jasno pripremljeno za restauraciju muzičke kutije na daljinu uz slanje dostavom. Možeš otvoriti pregled zadatka i objaviti ga.\n\nPodaci ostaju u nacrtu, ali povezivanje vrste usluge još nije provereno. Nije potrebno da ponavljaš već date podatke.",
+        "reportSha256": "9a01f2845665f1dac7c2712b4c76629e57b6fddd8a9cd41bd38a29093589158f"
+      },
+      {
+        "case": "need-rare-tools",
+        "source": "806194530149d5ec1c0b35c8c36cb18a0ed49ce6",
+        "conversationId": "5cee36f4-f753-42c7-b1ae-87c767f1513b",
+        "elapsedMs": 18598,
+        "outcome": "OWNED_SUCCEEDED_READBACK",
+        "classificationState": "PENDING_CLASSIFICATION",
+        "classificationCandidates": [],
+        "providerCalls": 3,
+        "measuredMicrousd": 28183,
+        "assistantText": "Podaci ostaju u nacrtu. Povezivanje vrste usluge još čeka proveru.",
+        "reportSha256": "1cc70cea1b5e9c7184814978d12d1c5abe56bc6c745eb1c72b16cc29c6808577"
+      }
+    ],
+    "providerCalls": 16,
+    "measuredMicrousd": 143341,
+    "reservationCeilingMicrousd": 5000000,
+    "costMeaning": "Internal measured token-cost ledger, not external invoice; every attempt settled, no unknown holds.",
+    "before": {
+      "catalogFingerprint": "6ceeb8d6caedef4964d1d44b379d2d60",
+      "needBindingsDigest": "d751713988987e9331980363e24189ce",
+      "needsCanonicalDigest": "d751713988987e9331980363e24189ce",
+      "workerBindingsDigest": "d751713988987e9331980363e24189ce",
+      "workerCanonicalDigest": "2d7488e96e85e1396e887403506a7436"
+    },
+    "after": {
+      "catalogFingerprint": "6ceeb8d6caedef4964d1d44b379d2d60",
+      "needBindingsDigest": "d751713988987e9331980363e24189ce",
+      "needsCanonicalDigest": "d751713988987e9331980363e24189ce",
+      "workerBindingsDigest": "d751713988987e9331980363e24189ce",
+      "workerCanonicalDigest": "2d7488e96e85e1396e887403506a7436"
+    },
+    "canonicalUnchanged": true,
+    "saveCalls": 0,
+    "publishCalls": 0,
+    "workerActivationCalls": 0,
+    "matchingCallsByHarness": 0,
+    "pushCallsByHarness": 0,
+    "ownerAccountTouched": false
+  },
+  "limits": {
+    "modelRequestBytes": 262144,
+    "pageSize": 32,
+    "maximumPageSizeRpc": 100,
+    "catalogQueriesPerTurn": 128,
+    "toolRounds": 3,
+    "modelAttemptsPerTurn": 4,
+    "toolCallsTotal": 24,
+    "toolCallsPerRound": 12,
+    "evidenceBytes": 2097152,
+    "researchDeadlineMs": 42000,
+    "accountingTimeoutMs": 3000,
+    "clientDeadlineMs": 55000,
+    "maxOutputTokensPerAttempt": 8192,
+    "catalogNodeCountCap": null,
+    "fixedDepthCap": null
+  },
+  "open": [
+    "Existing appropriate parent with incompatible delivery mode still requires reviewed catalog-mode extension; no automatic change of existing modes was added.",
+    "Five turns are not a large-scale latency or semantic accuracy guarantee. SQL SEARCH is lexical; Gemini must explore wording and structure.",
+    "No new Save or publish in this package; prior signed-Save proofs remain separately dated.",
+    "No new client APK/device/phone/push proof; current client source remains f56c94c3.",
+    "Historical source147 replay proof is still a frozen historical boundary; new SQL proven in dedicated PG16/17 workflow."
+  ]
+}

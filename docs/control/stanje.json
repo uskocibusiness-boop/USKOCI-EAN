@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-19T06:46:46Z",
+  "osvezeno": "2026-10-19T09:40:44Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "30cadce7",
-  "head_poruka": "fix(worker): connect AI review to owned taxonomy candidate planner",
+  "head": "80619453",
+  "head_poruka": "fix(ai): check parent delivery modes and suppress unverified publish readiness",
   "server": {
    "snimljeno": "2026-10-18T20:15:59Z",
    "migracije": 288,
@@ -37,13 +37,13 @@
      "slug": "uskoci-ai-interview",
      "name": "uskoci-ai-interview",
      "status": "ACTIVE",
-     "version": 99,
+     "version": 105,
      "created_at": 1788261764727,
-     "updated_at": 1792336182517,
+     "updated_at": 1792402490094,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_99/source/supabase/functions/uskoci-ai-interview/index.ts",
-     "ezbr_sha256": "2973886bab3da5ccb77af7b4ff0a036f85a7d11c6ecb7cafe379df3551ce36e8"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_105/source/supabase/functions/uskoci-ai-interview/index.ts",
+     "ezbr_sha256": "d4950cbbf4a35910cc932ff7bb5a614a7cbc87acbce7cfe56f3a9c9a4c48dbf0"
     },
     {
      "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
@@ -102,13 +102,13 @@
      "slug": "uskoci-worker-interview",
      "name": "uskoci-worker-interview",
      "status": "ACTIVE",
-     "version": 53,
+     "version": 58,
      "created_at": 1789291116219,
-     "updated_at": 1792335148903,
+     "updated_at": 1792402493804,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_53/source/supabase/functions/uskoci-worker-interview/index.ts",
-     "ezbr_sha256": "263ebf3e3cbef2b33694824d3b6975edeb2365839b730dea23d62c614d5931ff"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_58/source/supabase/functions/uskoci-worker-interview/index.ts",
+     "ezbr_sha256": "faf984cf896dece1983a26eade4bee2cb731e52086abe8c35c86193f85bc4b69"
     },
     {
      "id": "1ba4db69-a390-4b55-a071-97bee74d2598",
@@ -3753,7 +3753,7 @@
    },
    "telefon_dokaz": "Prvo AI pitanje vidljivo, bez model/ASR poziva; stvarni razgovor otvoren. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
    "problem": "Task 99 primenjen. Stvarni razgovor sada objašnjava 19–25. oktobar, čuva DST granice i dopunske odgovore i uklanja zastarelo ponavljanje datuma iz opisa. Reprodukovano prepisivanje odgovora nepotpunom lokacijom ispravljeno.",
-   "sledece": "Nastaviti eksplicitni KEEP/SET/REMOVE ugovor zavisnih podataka, ponovljene termine i regionalnu geografiju kroz pregled i čuvanje.",
+   "sledece": "Završiti potpisani predlog i atomsku primenu proširenja režima postojeće odgovarajuće grane; ne praviti delivery duplikate i ne menjati korisnikov način rada. Zatim višeuslužni razgovori i dva aktera: Save/objava, matching, stvarna push isporuka. docs/current/AI_CATALOG_TOOLS_20261019.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -4512,7 +4512,7 @@
    },
    "telefon_dokaz": "52720d99 instaliran; ovaj popunjeni/glasovni scenario nije izveden. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
    "problem": "",
-   "sledece": "Nastaviti preostali native obuhvat: novi photo upload/uklanjanje, privatni čet dva naloga i javni odgovor na tačno pitanje.600efd10 instaliran; dokazan je samo navedeni postojeći draft/picker cancel/viewer put. docs/implementation/evidence/media-qa-finish-20261010/REPORT.md.",
+   "sledece": "Završiti potpisani predlog i atomsku primenu proširenja režima postojeće odgovarajuće grane; ne praviti delivery duplikate i ne menjati korisnikov način rada. Zatim višeuslužni razgovori i dva aktera: Save/objava, matching, stvarna push isporuka. docs/current/AI_CATALOG_TOOLS_20261019.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -5756,7 +5756,7 @@
    },
    "telefon_dokaz": "59876dc6: Još nema ocena, stvarni broj 0, Istorija/Back i profilno zvono potvrđeni; šire granice otvorene. docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json",
    "problem": "Worker 53 primenjen. Poznato krečenje dobija READY ON_SITE predlog; kombi/jezik nisu dodatne usluge. Izričita promena područja uklanja staru Vojvodinu iz bio opisa. Nacrt nije sačuvan; postojeći profil ostaje 3D REMOTE.",
-   "sledece": "Povezati verzionisanu teritoriju po usluzi kroz AI, pregled, Save i oba nivoa kandidata; ne pretvarati bio tekst u geometriju.",
+   "sledece": "Završiti potpisani predlog i atomsku primenu proširenja režima postojeće odgovarajuće grane; ne praviti delivery duplikate i ne menjati korisnikov način rada. Zatim višeuslužni razgovori i dva aktera: Save/objava, matching, stvarna push isporuka. docs/current/AI_CATALOG_TOOLS_20261019.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -6078,7 +6078,7 @@
    },
    "telefon_dokaz": "Novi vizuelni paket 10.10 čeka tačan APK i native proveru; raniji dokazi sačuvani u finalization.visual_rounds_20261010.previousTelefon.",
    "problem": "0175d364 je instaliran uz sačuvanu sesiju. Native provereni čistiji REMOTE saved profil, ON_SITE nacrt bez Save-a, AI menu/tema bez automatskog slanja, task review i terenska mapa odbijena za sačuvani REMOTE profil.",
-   "sledece": "Nastaviti povezani Home/Discovery/Dogovori dizajn i pozitivnu ON_SITE map potvrdu kada profil zaista ima taj sačuvan režim; regionalna pokrivenost ostaje zaseban ugovor.",
+   "sledece": "Završiti potpisani predlog i atomsku primenu proširenja režima postojeće odgovarajuće grane; ne praviti delivery duplikate i ne menjati korisnikov način rada. Zatim višeuslužni razgovori i dva aktera: Save/objava, matching, stvarna push isporuka. docs/current/AI_CATALOG_TOOLS_20261019.md",
    "funkcionalni_audit": {
     "izvor": "docs/implementation/functional-audit-20260922/REPORT.md",
     "matrica": [
@@ -13819,6 +13819,54 @@
  },
  "ci": [
   {
+   "id": 39231090225,
+   "ime": "Taxonomy catalog query PostgreSQL proof",
+   "sha": "80619453",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-19T09:34:31Z"
+  },
+  {
+   "id": 39229634304,
+   "ime": "Taxonomy catalog query PostgreSQL proof",
+   "sha": "e105d3bf",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-19T09:22:58Z"
+  },
+  {
+   "id": 39228265678,
+   "ime": "Taxonomy catalog query PostgreSQL proof",
+   "sha": "51c0378e",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-19T09:12:10Z"
+  },
+  {
+   "id": 39219527009,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "f56c94c3",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-19T07:58:49Z"
+  },
+  {
+   "id": 39218193675,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "0320fe50",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-19T07:46:48Z"
+  },
+  {
+   "id": 39217796738,
+   "ime": "Taxonomy new branch scopes disposable proof",
+   "sha": "eb2f525b",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-19T07:43:13Z"
+  },
+  {
    "id": 39208880951,
    "ime": "Build latest V5 Android preview APK",
    "sha": "a73a78f4",
@@ -13865,54 +13913,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-10-18T22:31:14Z"
-  },
-  {
-   "id": 39172584706,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "f18ea85d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-18T22:31:14Z"
-  },
-  {
-   "id": 39166921143,
-   "ime": "PKG-042 application reader parity proof",
-   "sha": "6cfc348a",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-18T21:14:09Z"
-  },
-  {
-   "id": 39163968732,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "bb0ba8df",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-18T20:35:05Z"
-  },
-  {
-   "id": 39163968548,
-   "ime": "PKG-042 application reader parity proof",
-   "sha": "bb0ba8df",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-18T20:35:05Z"
-  },
-  {
-   "id": 39163556694,
-   "ime": "PKG-042 application reader parity proof",
-   "sha": "7ac37293",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-18T20:29:47Z"
-  },
-  {
-   "id": 39163340552,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "73e1915b",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-18T20:26:54Z"
   }
  ]
 }

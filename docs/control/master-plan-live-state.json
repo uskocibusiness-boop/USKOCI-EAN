@@ -22,11 +22,17 @@
     "note": "Release nije potvrđen. Aktuelni baseline odvaja istorijski APK, lokalni kandidat, DEV readback i novu proveru. Legal/store brojači ostaju nepoznati bez odgovarajućeg dokaza; stari 30.09. zbir nije današnje stanje."
   },
   "next": {
-    "title": "AI usluge i readiness, područja i povezani UI talasi",
-    "note": "Nakon 16 lokacijskih proba: otkloniti nesklad prirodnog naziva usluge i serverske risk-action politike, dati konkretno AI potpitanje umesto lažne spremnosti. Nastaviti AI-only lokaciju, region/rute i dva naloga sa push. APK a73a78f4, run 39208880951, instaliran -r; base.apk SHA256 788a96379ad3abd0c60375f07e6c20a5048a24bb1995c7fe4bdf33c25537ceca jednak artifact-u. Native rezultati: PASS: task explanation readable before map confirmation, explicit return to map, 361/390/412 dp at font 1.0/1.3; closed worker conversation resumes current draft rather than retaining abandoned ID. No claim that active draft restart or a fresh writable worker conversation was tested.."
+    "title": "Režimi postojećih grana, zatim dva korisnika i stvarni push",
+    "note": "Završiti potpisani predlog i atomsku primenu proširenja režima postojeće odgovarajuće grane; ne praviti delivery duplikate i ne menjati korisnikov način rada. Zatim višeuslužni razgovori i dva aktera: Save/objava, matching, stvarna push isporuka. docs/current/AI_CATALOG_TOOLS_20261019.md"
   },
   "evidencePolicy": "Evidence su datirani zapisi rezultata na navedenom SHA/run-u, a ne aktivne instrukcije. Stare formulacije o odobrenju, freeze pravilima i STOP uslovima u njihovom result tekstu imaju samo istorijski status; aktuelni rad uređuju AGENTS.md, CURRENT_BASELINE_20261018 i PREMIUM_WHITE_CANON.",
   "evidence": [
+    {
+      "id": "AI-CATALOG-TOOLS-20261019",
+      "sha": "806194530149d5ec1c0b35c8c36cb18a0ed49ce6",
+      "run": 39231090225,
+      "result": "DEV Task105/Worker58: oba razgovora koriste verzionisanu serversku pretragu celog kataloga i grana, bez whole-tree prompt-a. SQL20261019092405, PG16/17 PASS; 746 Node +56 završni delta PASS; 621 Jest paketa,13875 PASS/9skip. Pet QA poruka/16 modelpoziva,13–19s,0,143341USD interni obračun. Prva3READY; retka restauracija ostaje NEEDS_REVIEW zbog postojećih parentmodes. Nema Save/Publish/aktivacije; kanonski otisci nepromenjeni. docs/current/AI_CATALOG_TOOLS_20261019.md"
+    },
     {
       "id": "AI-LOCATION-GUIDANCE-20261019",
       "sha": "a73a78f4f0e265771300244840be58cb6944b769",

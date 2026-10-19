@@ -78,3 +78,9 @@ Ne kopiraj ponovo example state preko postojećeg stanja. Generisanje ne objavlj
 Povezan paket bez limita 96 i šest novih nivoa, prirodni nazivi, pitanje umesto slepe klasifikacije, očuvani potvrđeni načini rada i pregled profila bez dodatnog ručnog formulara: [AI_FULL_TREE_20261019.md](AI_FULL_TREE_20261019.md). Tačan dokaz primene i APK-a čitati tamo; izvor i offline uspeh nisu sami po sebi DEV ili device dokaz.
 
 Završni presek: DEV primenjen, osam stvarnih QA odgovora i tri zasebna signed Save-a sa potvrđenim UUID vezivanjem; 621 paketa / 13.884 testa PASS. APK source f56c94c3, CI 39219527009 SUCCESS, instaliran na emulatoru bez brisanja sesije i ograničeno pregledan. Nema phone ili push-delivery tvrdnje; ceo poslovni tok se ne označava GOTOV na osnovu ovog paketa.
+
+## 19.10 — navodiva pretraga kataloga tokom razgovora
+
+DEV Task105/Worker58: oba razgovora koriste verzionisanu serversku pretragu celog kataloga i grana, bez whole-tree prompt-a. SQL20261019092405, PG16/17 PASS; 746 Node +56 završni delta PASS; 621 Jest paketa,13875 PASS/9skip. Pet QA poruka/16 modelpoziva,13–19s,0,143341USD interni obračun. Prva3READY; retka restauracija ostaje NEEDS_REVIEW zbog postojećih parentmodes. Nema Save/Publish/aktivacije; kanonski otisci nepromenjeni. docs/current/AI_CATALOG_TOOLS_20261019.md
+
+Prethodni full-tree paket je datirani prethodnik. Aktivni Edge sada koristi alat za stranice i grane, ne slanje kompletnog stabla u prompt. Potpuno automatsko proširenje režima postojeće grane još nije završeno; opis i dokaz su u navedenom izveštaju.
