@@ -61,9 +61,50 @@ async function assertRejected(f, status, code, request) {
   assert.equal(response.status, status);
   assert.deepEqual(await response.json(), { code });
   assert.equal(response.headers.get('cache-control'), 'no-store');
-  assert.deepEqual(f.logs, []);
+  assertSafeDiagnostics(f);
   assert.equal(f.timers.size, 0);
   return response;
+}
+const diagnosticStages = new Set(['REQUEST', 'CONFIG', 'AUTH_FETCH', 'AUTH_BODY', 'MARKETS_FETCH', 'MARKETS_BODY',
+  'PROVIDER_CONFIG', 'RATE_LIMIT', 'PROVIDER_FETCH', 'PROVIDER_BODY', 'PROVIDER_NORMALIZE']);
+const diagnosticReasons = new Set(['INVALID_QUERY', 'AUTH_REQUIRED', 'CONFIG_UNAVAILABLE', 'COUNTRY_NOT_AVAILABLE',
+  'PROVIDER_ACTIVATION_BLOCKED', 'RATE_LIMITED', 'NETWORK_ERROR', 'REDIRECT_BLOCKED', 'HTTP_ERROR',
+  'BODY_LIMIT', 'BODY_UNAVAILABLE', 'BODY_CANCELLED', 'BODY_READ_FAILED', 'INVALID_JSON',
+  'MARKET_ROWS_INVALID', 'PROVIDER_404_UNRECOGNIZED', 'NORMALIZED_ROWS_INVALID', 'DEADLINE_EXCEEDED', 'CANCELLED']);
+const normalizationReasons = new Set(['ARRAY_SHAPE', 'ROW_LIMIT', 'ROW_SHAPE', 'COUNTRY_MISMATCH',
+  'LABEL_INVALID', 'COORDINATE_INVALID', 'ID_INVALID', 'DUPLICATE_ID']);
+const coordinateReasons = new Set(['JSON_NUMBER', 'MISSING_OR_TYPE', 'LENGTH', 'EMPTY', 'WHITESPACE_DECIMAL',
+  'SCIENTIFIC', 'LEADING_PLUS', 'LEADING_ZERO', 'MALFORMED', 'NON_FINITE', 'OUT_OF_RANGE']);
+function assertSafeDiagnostics(f) {
+  for (const args of f.logs) {
+    assert.equal(args.length, 1);
+    assert.equal(typeof args[0], 'string');
+    const event = JSON.parse(args[0]);
+    assert.deepEqual(Object.keys(event).sort(), event.reason === 'NORMALIZED_ROWS_INVALID'
+      ? event.normalizationReason === 'COORDINATE_INVALID'
+        ? ['coordinateReason', 'event', 'normalizationReason', 'reason', 'stage', 'upstreamStatus']
+        : ['event', 'normalizationReason', 'reason', 'stage', 'upstreamStatus']
+      : ['event', 'reason', 'stage', 'upstreamStatus']);
+    assert.equal(event.event, 'LOCATION_SEARCH_FAILURE');
+    assert.ok(diagnosticStages.has(event.stage));
+    assert.ok(diagnosticReasons.has(event.reason));
+    if (event.reason === 'NORMALIZED_ROWS_INVALID') assert.ok(normalizationReasons.has(event.normalizationReason));
+    if (event.normalizationReason === 'COORDINATE_INVALID') assert.ok(coordinateReasons.has(event.coordinateReason));
+    assert.ok(event.upstreamStatus === null || Number.isInteger(event.upstreamStatus) && event.upstreamStatus >= 100 && event.upstreamStatus <= 599);
+    assert.ok(args[0].length < 260, 'diagnostics stay bounded');
+  }
+  const serialized = JSON.stringify(f.logs);
+  for (const forbidden of ['SYNTHETIC_', 'PRIVATE_', userId, 'https://', 'countrycodes', '44.123456', '20.654321']) {
+    assert.ok(!serialized.includes(forbidden), `private data leaked to diagnostic: ${forbidden}`);
+  }
+}
+function assertDiagnostic(f, stage, reason, upstreamStatus, normalizationReason, coordinateReason) {
+  assertSafeDiagnostics(f);
+  assert.equal(f.logs.length, 1);
+  assert.deepEqual(JSON.parse(f.logs[0][0]), { event: 'LOCATION_SEARCH_FAILURE', stage, reason, upstreamStatus,
+    ...(normalizationReason ? { normalizationReason } : {}),
+    ...(coordinateReason ? { coordinateReason } : {}),
+  });
 }
 const providerCalls = f => f.calls.filter(call => call.kind === 'provider');
 async function reached(f, kind) {
@@ -248,7 +289,7 @@ test('authenticated-user burst and minute limits do not depend on session-token 
   await assertRejected(f, 429, 'RATE_LIMITED', { headers: { Authorization: 'Bearer DIFFERENT_TOKEN_SAME_USER', 'Content-Type': 'application/json' } });
   assert.equal(providerCalls(f).length, 10);
   f.advance(60_000); assert.equal((await f.invoke()).status, 200);
-  assert.equal(providerCalls(f).length, 11); assert.deepEqual(f.logs, []);
+  assert.equal(providerCalls(f).length, 11); assertSafeDiagnostics(f);
 });
 
 test('one in-flight request per user is released after completion without blocking another user', async () => {
@@ -269,7 +310,7 @@ test('one in-flight request per user is released after completion without blocki
   const next = f.invoke();
   for (let i = 0; i < 100 && providerCalls(f).length < 3; i++) await Promise.resolve();
   release(json([])); assert.equal((await next).status, 200);
-  assert.deepEqual(f.logs, []); assert.equal(f.timers.size, 0);
+  assertDiagnostic(f, 'RATE_LIMIT', 'RATE_LIMITED', null); assert.equal(f.timers.size, 0);
 });
 
 test('authenticated rate cache is bounded and expires inactive user entries', async () => {
@@ -278,7 +319,7 @@ test('authenticated rate cache is bounded and expires inactive user entries', as
   for (let i = 0; i < 1024; i++) assert.equal((await f.invoke()).status, 200);
   await assertRejected(f, 429, 'RATE_LIMITED'); assert.equal(providerCalls(f).length, 1024);
   f.advance(60_000); assert.equal((await f.invoke()).status, 200);
-  assert.equal(providerCalls(f).length, 1025); assert.deepEqual(f.logs, []);
+  assert.equal(providerCalls(f).length, 1025); assertDiagnostic(f, 'RATE_LIMIT', 'RATE_LIMITED', null);
 });
 
 test('declared and streamed body byte limits reject without trusting Content-Length', async () => {
@@ -300,7 +341,9 @@ test('one bounded deadline covers Auth, market and provider transports even if f
     const result = await pending; assert.equal(result.status, 504); assert.deepEqual(await result.json(), { code: 'UNAVAILABLE' });
     const callCount = f.calls.length; release(json(kind === 'auth' ? { id: userId, role: 'authenticated' } : kind === 'markets' ? [defaultMarket] : [defaultPlace]));
     for (let i = 0; i < 10; i++) await Promise.resolve();
-    assert.equal(f.calls.length, callCount); assert.deepEqual(f.logs, []); assert.equal(f.timers.size, 0);
+    assert.equal(f.calls.length, callCount);
+    assertDiagnostic(f, `${kind.toUpperCase()}_FETCH`, 'DEADLINE_EXCEEDED', null);
+    assert.equal(f.timers.size, 0);
   }
 });
 
@@ -310,10 +353,92 @@ test('deadline interrupts response body streaming, and caller cancellation cance
   const pending = f.invoke(); await reached(f, 'provider');
   for (let i = 0; i < 10; i++) await Promise.resolve();
   f.expire(); assert.equal((await pending).status, 504); assert.equal(bodyCancelled, true);
+  assertDiagnostic(f, 'PROVIDER_BODY', 'DEADLINE_EXCEEDED', 200);
   const controller = new AbortController(), g = fixture({ provider: () => new Promise(() => {}) });
   const cancelled = g.invoke({ signal: controller.signal }); await reached(g, 'provider'); controller.abort();
   const result = await cancelled; assert.equal(result.status, 499); assert.deepEqual(await result.json(), { code: 'CANCELLED' });
-  assert.equal(providerCalls(g)[0].signal.aborted, true); assert.deepEqual(g.logs, []); assert.equal(g.timers.size, 0);
+  assert.equal(providerCalls(g)[0].signal.aborted, true);
+  assertDiagnostic(g, 'PROVIDER_FETCH', 'CANCELLED', null); assert.equal(g.timers.size, 0);
+});
+
+test('failure diagnostics distinguish provider failures without logging query, body, identity, URL or thrown message', async () => {
+  const cases = [
+    [() => json({ error: 'PRIVATE_UNKNOWN_ERROR' }, 404), 'PROVIDER_BODY', 'PROVIDER_404_UNRECOGNIZED', 404],
+    [() => json({ error: 'PRIVATE_PROVIDER_BODY' }, 403), 'PROVIDER_FETCH', 'HTTP_ERROR', 403],
+    [() => json({ error: 'PRIVATE_PROVIDER_BODY' }, 500), 'PROVIDER_FETCH', 'HTTP_ERROR', 500],
+    [() => new Response('PRIVATE_PROVIDER_BODY SYNTHETIC_PROVIDER_SECRET'), 'PROVIDER_BODY', 'INVALID_JSON', 200],
+    [() => new Response('PRIVATE_PROVIDER_BODY', { headers: { 'Content-Length': '131073' } }), 'PROVIDER_BODY', 'BODY_LIMIT', 200],
+    [() => json([{ ...defaultPlace, lat: 'NaN' }]), 'PROVIDER_NORMALIZE', 'NORMALIZED_ROWS_INVALID', 200, 'COORDINATE_INVALID', 'NON_FINITE'],
+    [call => { throw new Error(`PRIVATE_PROVIDER_BODY ${call.url} ${userId}`); }, 'PROVIDER_FETCH', 'NETWORK_ERROR', null],
+    [() => { const result = json([defaultPlace]); Object.defineProperty(result, 'redirected', { value: true }); return result; }, 'PROVIDER_FETCH', 'REDIRECT_BLOCKED', null],
+  ];
+  for (const [provider, stage, reason, upstreamStatus, normalizationReason, coordinateReason] of cases) {
+    const f = fixture({ provider });
+    await assertRejected(f, 502, 'UNAVAILABLE');
+    assert.equal(providerCalls(f).length, 1, 'diagnostics never retry a request');
+    assertDiagnostic(f, stage, reason, upstreamStatus, normalizationReason, coordinateReason);
+  }
+  const rate = fixture({ provider: () => json({ error: 'PRIVATE_RATE_BODY' }, 429) });
+  await assertRejected(rate, 429, 'RATE_LIMITED');
+  assertDiagnostic(rate, 'PROVIDER_FETCH', 'RATE_LIMITED', 429);
+});
+
+test('pre-provider failures have their own stage and never masquerade as provider HTTP responses', async () => {
+  for (const [options, status, code, stage, reason] of [
+    [{ env: { SUPABASE_ANON_KEY: undefined } }, 503, 'SERVER_CONFIG_ERROR', 'CONFIG', 'CONFIG_UNAVAILABLE'],
+    [{ auth: () => json({ error: 'PRIVATE_AUTH_BODY' }, 401) }, 401, 'AUTH_REQUIRED', 'AUTH_FETCH', 'AUTH_REQUIRED'],
+    [{ auth: () => new Response('PRIVATE_AUTH_BODY') }, 502, 'UNAVAILABLE', 'AUTH_BODY', 'INVALID_JSON'],
+    [{ markets: () => { throw new Error('PRIVATE_RPC_BODY'); } }, 502, 'UNAVAILABLE', 'MARKETS_FETCH', 'NETWORK_ERROR'],
+    [{ marketRows: [{ ...defaultMarket, extra: 'PRIVATE_RPC_BODY' }] }, 502, 'UNAVAILABLE', 'MARKETS_BODY', 'MARKET_ROWS_INVALID'],
+    [{ env: { LOCATIONIQ_ACCESS_TOKEN: undefined } }, 503, 'PROVIDER_ACTIVATION_BLOCKED', 'PROVIDER_CONFIG', 'PROVIDER_ACTIVATION_BLOCKED'],
+  ]) {
+    const f = fixture(options); await assertRejected(f, status, code);
+    assert.equal(providerCalls(f).length, 0);
+    assertDiagnostic(f, stage, reason, null);
+  }
+});
+
+test('successful match and documented no-match produce no failure diagnostics', async () => {
+  for (const provider of [() => json([defaultPlace]), () => json([]), () => json({ error: 'Unable to geocode' }, 404)]) {
+    const f = fixture({ provider }); assert.equal((await f.invoke()).status, 200); assert.deepEqual(f.logs, []);
+  }
+});
+
+test('each rejected result shape reports only its fixed normalization reason, preserving whole-response rejection', async () => {
+  for (const [places, normalizationReason] of [
+    [{ candidates: [defaultPlace] }, 'ARRAY_SHAPE'],
+    [Array.from({ length: 11 }, (_, i) => ({ ...defaultPlace, place_id: i + 1 })), 'ROW_LIMIT'],
+    [[defaultPlace, null], 'ROW_SHAPE'],
+    [[defaultPlace, { ...defaultPlace, place_id: 2, address: { country_code: 'gb' } }], 'COUNTRY_MISMATCH'],
+    [[defaultPlace, { ...defaultPlace, place_id: 2, display_name: 'PRIVATE_INVALID_LABEL\n' }], 'LABEL_INVALID'],
+    [[defaultPlace, { ...defaultPlace, place_id: 2, lon: 'PRIVATE_INVALID_COORDINATE' }], 'COORDINATE_INVALID'],
+    [[defaultPlace, { ...defaultPlace, place_id: 'PRIVATE_INVALID_ID' }], 'ID_INVALID'],
+    [[defaultPlace, { ...defaultPlace }], 'DUPLICATE_ID'],
+  ]) {
+    const f = fixture({ places });
+    await assertRejected(f, 502, 'UNAVAILABLE');
+    assert.equal(providerCalls(f).length, 1);
+    assertDiagnostic(f, 'PROVIDER_NORMALIZE', 'NORMALIZED_ROWS_INVALID', 200, normalizationReason,
+      normalizationReason === 'COORDINATE_INVALID' ? 'MALFORMED' : undefined);
+  }
+});
+
+test('coordinate diagnostics distinguish representations without admitting any previously rejected coordinate', async () => {
+  for (const [lat, coordinateReason] of [
+    [44.123456, 'JSON_NUMBER'], [null, 'MISSING_OR_TYPE'], [true, 'MISSING_OR_TYPE'],
+    ['1'.repeat(41), 'LENGTH'], ['', 'EMPTY'], [' 44.123456 ', 'WHITESPACE_DECIMAL'],
+    ['4.4e1', 'SCIENTIFIC'], ['+44.123456', 'LEADING_PLUS'], ['044.123456', 'LEADING_ZERO'],
+    ['PRIVATE_INVALID_COORDINATE', 'MALFORMED'], ['0x10', 'MALFORMED'], ['NaN', 'NON_FINITE'],
+    ['1e999', 'NON_FINITE'], [91, 'OUT_OF_RANGE'], ['91', 'OUT_OF_RANGE'], ['9.1e1', 'OUT_OF_RANGE'],
+  ]) {
+    const f = fixture({ places: [{ ...defaultPlace, lat }] });
+    await assertRejected(f, 502, 'UNAVAILABLE');
+    assertDiagnostic(f, 'PROVIDER_NORMALIZE', 'NORMALIZED_ROWS_INVALID', 200, 'COORDINATE_INVALID', coordinateReason);
+    assert.equal(providerCalls(f).length, 1);
+  }
+  const lon = fixture({ places: [{ ...defaultPlace, lon: 181 }] });
+  await assertRejected(lon, 502, 'UNAVAILABLE');
+  assertDiagnostic(lon, 'PROVIDER_NORMALIZE', 'NORMALIZED_ROWS_INVALID', 200, 'COORDINATE_INVALID', 'OUT_OF_RANGE');
 });
 
 

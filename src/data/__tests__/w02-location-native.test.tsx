@@ -101,6 +101,44 @@ async function selectSlot(slot: string) {
 }
 
 describe('human map confirmation of immutable AI task geography', () => {
+  it.each([
+    { exact: 'Bulevar oslobođenja 50', label: 'Bulevar oslobođenja', city: 'Novi Sad', expected: 'Bulevar oslobođenja 50, Novi Sad' },
+    { exact: 'Булевар ослобођења 50', label: 'Bulevar oslobođenja', city: 'Нови Сад', expected: 'Булевар ослобођења 50, Нови Сад' },
+    { exact: 'Bulevar oslobodenja 50', label: 'Булевар ослобођења', city: 'Novi Sad', expected: 'Bulevar oslobodenja 50, Novi Sad' },
+    { exact: 'Булевар ослобођења 50, Нови Сад', label: 'Bulevar oslobođenja', city: 'Novi Sad', expected: 'Булевар ослобођења 50, Нови Сад' },
+    { exact: '50', label: 'Bulevar oslobođenja', city: 'Novi Sad', expected: '50, Bulevar oslobođenja, Novi Sad' },
+    { exact: 'Dunavska 15', label: 'Dunav', area: 'Liman', city: 'Novi Sad', expected: 'Dunavska 15, Dunav, Liman, Novi Sad' },
+    { exact: 'Petra Pavla 15', label: 'Pavla Petra', city: 'Novi Sad', expected: 'Petra Pavla 15, Pavla Petra, Novi Sad' },
+    { exact: 'Bulevar oslobođenja 50, Beograd', label: 'Bulevar oslobođenja', city: 'Novi Sad', expected: 'Bulevar oslobođenja 50, Beograd, Novi Sad' },
+  ])('seeds the resolver with nonredundant context, preserving the reviewed address: $exact / $label', async item => {
+    const base = review(), resolver = configured();
+    const loaded = { ...base, value: { ...base.value, exactAddress: item.exact,
+      geography: { mode: 'STATIONARY' as const, start: { label: item.label, city: item.city, ...(item.area ? { area: item.area } : {}) } } } };
+    const before = JSON.stringify(loaded);
+    await renderNeed({ review: loaded, resolver });
+    expect(resolver.search).toHaveBeenCalledTimes(1);
+    expect(resolver.search).toHaveBeenCalledWith(expect.objectContaining({ text: item.expected, countryCode: 'RS' }));
+    expect(JSON.stringify(loaded)).toBe(before); expect(props.onSave).not.toHaveBeenCalled();
+    await move(); await press('Potvrdi tačku: Mesto rada'); await save();
+    expect(props.onSave).toHaveBeenCalledWith(expect.objectContaining({ geography: loaded.value.geography, exactAddress: item.exact,
+      resolvedLocation: expect.objectContaining({ binding: { taskCountryCode: 'RS', geography: loaded.value.geography, exactAddress: item.exact } }) }));
+  });
+
+  it('uses each route stop’s own deduplicated context without copying the private address to another stop', async () => {
+    const base = review(), resolver = configured();
+    const geography = { mode: 'MULTI_STOP' as const,
+      start: { label: 'Булевар ослобођења, Нови Сад', area: 'Bulevar oslobođenja', city: 'Novi Sad' },
+      waypoints: [{ label: 'Trg slobode', area: 'Trg slobode', city: 'Novi Sad' }],
+      end: { label: 'Bulevar oslobođenja', city: 'Beograd' } };
+    await renderNeed({ review: { ...base, value: { ...base.value, exactAddress: 'Bulevar oslobođenja 50, Novi Sad', geography } }, resolver });
+    expect(resolver.search).toHaveBeenLastCalledWith(expect.objectContaining({ text: 'Булевар ослобођења, Нови Сад' }));
+    await selectSlot('waypoints/0');
+    expect(resolver.search).toHaveBeenLastCalledWith(expect.objectContaining({ text: 'Trg slobode, Novi Sad' }));
+    await selectSlot('end');
+    expect(resolver.search).toHaveBeenLastCalledWith(expect.objectContaining({ text: 'Bulevar oslobođenja, Beograd' }));
+    expect(resolver.search).toHaveBeenCalledTimes(3); expect(props.onSave).not.toHaveBeenCalled();
+  });
+
   it('shows AI facts read-only and preserves them byte-for-byte when applying a confirmed point', async () => {
     const loaded = review();
     await renderNeed({ review: loaded, reviewOnly: true, onEditInConversation: jest.fn() });

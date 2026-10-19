@@ -11,6 +11,7 @@ import { T } from '../Text';
 import { LocationChoice, LocationDetails } from './LocationControls';
 import { countryName, selectableCountry, useCountryOptions, type CountryOptions } from './CountryField';
 import { LocationPointEditor } from './LocationPointEditor';
+import { normalizedPlaceText } from './placeText';
 import type { createConfiguredLocationResolver } from '../../data/configuredLocationResolver';
 
 type FormProps = {
@@ -23,6 +24,21 @@ type FormProps = {
   /** Availability supplied by an existing read or the inert design gallery. Never an editable country list. */
   countries?: CountryOptions;
 };
+
+/** Search text only: keep the precise address first and append genuinely new place context. */
+function searchSeed(parts: readonly (string | null | undefined)[]): string {
+  const result: string[] = [];
+  for (const part of parts) {
+    for (const piece of (part ?? '').split(',').map(value => value.trim()).filter(Boolean)) {
+      const normalized = normalizedPlaceText(piece);
+      // Compare whole, consecutive words across Serbian scripts/diacritics. A street
+      // substring or the same words in another order are not the same place context.
+      if (normalized && result.some(existing => ` ${normalizedPlaceText(existing)} `.includes(` ${normalized} `))) continue;
+      result.push(piece);
+    }
+  }
+  return result.join(', ');
+}
 
 /** Every visit/revision owns its local points. Returning A→B→A cannot revive callbacks from the first A. */
 export function NeedLocationForm(props: FormProps) {
@@ -86,8 +102,9 @@ function PointConfirmation({ review, busy, uncertain, onSave, resolver, onEditIn
     // Only confirmed points change. Semantic facts and their binding remain exactly the reviewed values.
     onSave({ ...review.value, taskCountryCode: base.taskCountryCode, geography: review.value.geography!, resolvedLocation: checked.resolvedLocation });
   };
-  const seed = [base?.geography.mode === 'STATIONARY' ? base.exactAddress : null, selected ? placeText(descriptionFor(selected)) : '']
-    .filter(Boolean).join(', ');
+  const selectedPlace = selected ? descriptionFor(selected) : undefined;
+  const seed = searchSeed([base?.geography.mode === 'STATIONARY' ? base.exactAddress : null,
+    selectedPlace?.label, selectedPlace?.area, selectedPlace?.city]);
   const cityOnly = !!selected && !base?.exactAddress && !descriptionFor(selected)?.area && !descriptionFor(selected)?.label;
   const body = <>
     <T variant="heading" accessibilityRole="header">Proveri mesto iz razgovora</T>
