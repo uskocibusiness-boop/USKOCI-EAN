@@ -1,0 +1,62 @@
+name: Service handoff PostgreSQL proof
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'supabase/migrations/20261019104047_taxonomy_parent_navigation_and_mode_admission.sql'
+      - 'supabase/migrations/20261019104604_service_handoff_signed_matching.sql'
+      - 'supabase/proofs/dynamic_taxonomy/parent-mode-admission/**'
+      - 'supabase/proofs/dynamic_taxonomy/service-handoff/**'
+      - '.github/workflows/service-handoff-pg-proof.yml'
+  push:
+    branches: [feature/unified-qa-master-20261017]
+    paths:
+      - 'supabase/migrations/20261019104047_taxonomy_parent_navigation_and_mode_admission.sql'
+      - 'supabase/migrations/20261019104604_service_handoff_signed_matching.sql'
+      - 'supabase/proofs/dynamic_taxonomy/parent-mode-admission/**'
+      - 'supabase/proofs/dynamic_taxonomy/service-handoff/**'
+      - '.github/workflows/service-handoff-pg-proof.yml'
+permissions:
+  contents: read
+jobs:
+  service-handoff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['16', '17']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: disposable_fixture_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGHOST: localhost
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: disposable_fixture_only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Load actual predecessors and prove legacy fingerprint and cached review
+        run: |
+          set -euo pipefail
+          proof_dir=supabase/proofs/dynamic_taxonomy/service-handoff
+          psql -X -v ON_ERROR_STOP=1 -f "$proof_dir/fixture.sql"
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261019104047_taxonomy_parent_navigation_and_mode_admission.sql
+          psql -X -v ON_ERROR_STOP=1 -f "$proof_dir/assert-before.sql"
+      - name: Apply exact handoff migration and execute behavior proofs
+        run: |
+          set -euo pipefail
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261019104604_service_handoff_signed_matching.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/proofs/dynamic_taxonomy/service-handoff/assert.sql

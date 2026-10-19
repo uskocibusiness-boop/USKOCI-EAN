@@ -1,5 +1,6 @@
 import type { AiNeedSafety, AiNeedV2FactSource, AiNeedV2FactStatus } from '../contracts/aiNeedV2';
 import type { NeedLocationInput } from '../contracts/location';
+import { decodeServiceHandoff, type ServiceHandoff } from '../contracts/serviceHandoff';
 import { isNeedFactV2Key, MAX_NEED_FACT_V2_PAYLOAD, NEED_FACT_V2_DEFINITIONS, type NeedFactV2Key } from '../contracts/needFactsV2';
 import type { PublicationEvaluation, PublishNeedReceipt } from '../contracts/publication';
 import { normalizeNeedLocation, normalizeTaskGeography, locationRevision } from '../lib/location';
@@ -19,12 +20,14 @@ export type AiTaskReviewFact = Readonly<{
   id: string | null; key: NeedFactV2Key; value: unknown; displayValue: string;
   privacyClass: 'PUBLIC' | 'PRIVATE'; source: AiNeedV2FactSource; status: AiNeedV2FactStatus;
 }>;
-export type SignedNeedClassification = Readonly<
+export type SignedNeedClassification = Readonly<{handoff?:ServiceHandoff} & (
   {action:'REUSE_EXISTING';service:string;mode:'ON_SITE'|'REMOTE';categoryId:string;catalogVersion:number;reason:string}|
+  {action:'EXTEND_MODE';service:string;mode:'ON_SITE'|'REMOTE';categoryId:string;categoryLabel:string;categoryParentId:string|null;
+    catalogVersion:number;reason:string}|
   {action:'CREATE_CHILD';service:string;mode:'ON_SITE'|'REMOTE';parentId:string;parentLabel:string;
     path:string[];catalogVersion:number;reason:string}|
   {action:'CREATE_NEW_BRANCH';service:string;mode:'ON_SITE'|'REMOTE';parentId:null;parentLabel:null;
-    path:string[];catalogVersion:number;reason:string}>;
+    path:string[];catalogVersion:number;reason:string})>;
 /** Owner-only server snapshot. Never persist or send these projections to public analytics. */
 export type AiTaskReviewEnvelope = Readonly<{
   reviewId: string; accountId: string; conversationId: string; schemaVersion: 'NEED_FACT_V2'; draftId: string | null; draftRevision: number;
@@ -95,6 +98,7 @@ function validValue(key: NeedFactV2Key, value: unknown): boolean {
   if (type === 'TIMESTAMPTZ') return timestamp(value);
   if (key === 'need.task_country_code') return typeof value === 'string' && countryCode(value) === value;
   if (key === 'need.task_geography') return normalizeTaskGeography(value) !== null;
+  if (key === 'need.handoff') return decodeServiceHandoff(value) !== null;
   if (key === 'need.resolved_location') { const v = record(value); return !!v && !!normalizeNeedLocation({ ...record(v.binding), accessNotes: null, resolvedLocation: value })?.resolvedLocation; }
   if (key === 'need.price_mode') return ['FASTEST', 'MY_PRICE', 'OFFERS'].includes(String(value));
   if (key === 'need.price_basis') return ['TOTAL', 'PER_PERSON'].includes(String(value));
@@ -127,11 +131,12 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
     || !timestamp(r.expiresAt) || (r.responseDeadline !== null && !timestamp(r.responseDeadline))
     || typeof r.canAccept !== 'boolean' || !['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(String(r.safety))
     || !Array.isArray(r.publicProjection) || !Array.isArray(r.ownerPrivateProjection) || r.publicProjection.length + r.ownerPrivateProjection.length > MAX_NEED_FACT_V2_PAYLOAD
-    || !Array.isArray(r.missingRequired) || r.missingRequired.length > MAX_NEED_FACT_V2_PAYLOAD || !r.missingRequired.every(k => typeof k === 'string' && isNeedFactV2Key(k) && NEED_FACT_V2_DEFINITIONS[k].requiredForDraft)) return null;
+    || !Array.isArray(r.missingRequired) || r.missingRequired.length > MAX_NEED_FACT_V2_PAYLOAD || !r.missingRequired.every(k => typeof k === 'string' && isNeedFactV2Key(k) && (NEED_FACT_V2_DEFINITIONS[k].requiredForDraft || k === 'need.handoff'))) return null;
   const publicProjection = r.publicProjection.map(x => fact(x, 'PUBLIC')), ownerPrivateProjection = r.ownerPrivateProjection.map(x => fact(x, 'PRIVATE'));
   const all = [...publicProjection, ...ownerPrivateProjection];
   if (all.some(x => !x) || new Set(all.map(x => x?.key)).size !== all.length || new Set(r.missingRequired).size !== r.missingRequired.length) return null;
   const location = r.location === null ? null : normalizeNeedLocation(r.location);
+  if (r.missingRequired.includes('need.handoff') && location?.geography.mode !== 'REMOTE') return null;
   if ((r.location !== null && !location) || (r.canAccept && (r.safety === 'BLOCK' || !location || r.missingRequired.length > 0))) return null;
   let signedClassification: Pick<AiTaskReviewEnvelope,'classificationState'|'classificationCandidates'|
     'classificationCatalogVersion'|'classificationCatalogFingerprint'|'reviewedServiceModes'> = {};
@@ -147,19 +152,30 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
       const category = publicProjection.find(f => f?.key === 'need.category');
       const mode = location?.geography.mode === 'REMOTE' ? 'REMOTE' :
         ['STATIONARY','POINT_TO_POINT','MULTI_STOP','AREA_BASED'].includes(String(location?.geography.mode)) ? 'ON_SITE' : null;
+      const hasHandoff=!!candidate&&Object.hasOwn(candidate,'handoff');
+      if(hasHandoff&&(candidate?.mode!=='REMOTE'||!decodeServiceHandoff(candidate.handoff)))return null;
+      // A bound handoff must be the same public fact the owner is reviewing.
+      // Hidden classification metadata cannot silently add a pickup restriction.
+      const visibleHandoff=publicProjection.find(f=>f?.key==='need.handoff'&&f.status!=='UNKNOWN');
+      if(hasHandoff&&JSON.stringify(decodeServiceHandoff(candidate!.handoff))!==JSON.stringify(decodeServiceHandoff(visibleHandoff?.value)))return null;
+      const candidateKeys=(keys:string[])=>hasHandoff?[...keys,'handoff']:keys;
       const reuse=!!candidate&&candidate.action==='REUSE_EXISTING'&&only(candidate,
-        ['action','service','mode','categoryId','catalogVersion','reason'])&&uuid(candidate.categoryId);
+        candidateKeys(['action','service','mode','categoryId','catalogVersion','reason']))&&uuid(candidate.categoryId);
+      const extend=!!candidate&&candidate.action==='EXTEND_MODE'&&only(candidate,
+        candidateKeys(['action','service','mode','categoryId','categoryLabel','categoryParentId','catalogVersion','reason']))
+        &&uuid(candidate.categoryId)&&text(candidate.categoryLabel,120)
+        &&(candidate.categoryParentId===null||uuid(candidate.categoryParentId));
       const child=!!candidate&&candidate.action==='CREATE_CHILD'&&only(candidate,
-        ['action','service','mode','parentId','parentLabel','path','catalogVersion','reason'])
+        candidateKeys(['action','service','mode','parentId','parentLabel','path','catalogVersion','reason']))
         &&uuid(candidate.parentId)&&text(candidate.parentLabel,120)
         &&Array.isArray(candidate.path)&&candidate.path.length>=1&&JSON.stringify(candidate.path).length<=12000
         &&candidate.path.every(x=>text(x,120))&&candidate.path[candidate.path.length-1]===candidate.service;
       const root=!!candidate&&candidate.action==='CREATE_NEW_BRANCH'&&only(candidate,
-        ['action','service','mode','parentId','parentLabel','path','catalogVersion','reason'])
+        candidateKeys(['action','service','mode','parentId','parentLabel','path','catalogVersion','reason']))
         &&candidate.parentId===null&&candidate.parentLabel===null
         &&Array.isArray(candidate.path)&&candidate.path.length>=1&&JSON.stringify(candidate.path).length<=12000
         &&candidate.path.every(x=>text(x,120))&&candidate.path[candidate.path.length-1]===candidate.service;
-      if (items.length !== 1 || !candidate || (!reuse&&!child&&!root) ||
+      if (items.length !== 1 || !candidate || (!reuse&&!extend&&!child&&!root) ||
         !text(candidate.service,120) || candidate.service !== category?.value ||
         candidate.mode !== mode || !text(candidate.reason,1000) ||
         typeof candidate.catalogVersion !== 'number' || !Number.isSafeInteger(candidate.catalogVersion) ||

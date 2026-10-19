@@ -1,5 +1,6 @@
 import type { NeedLocationInput } from '../../contracts/location';
 import type { NeedFactV2Key } from '../../contracts/needFactsV2';
+import { serviceHandoffText } from '../../contracts/serviceHandoff';
 import type { JavniProfilProjekcija, NeedScheduleProjection, PrilikaProjekcija } from '../../contracts/projections';
 import { needScheduleText } from '../../data/needDetailPresentation';
 import { calendarInstant } from '../../lib/calendarTime';
@@ -70,6 +71,8 @@ export function reviewAsTask(review: ReviewSource, person: PreviewPerson | null 
 
   const skills = terms('need.required_skills'), tools = terms('need.required_tools'), vehicles = terms('need.required_vehicles');
   const description = text('need.description');
+  const handoff = serviceHandoffText(fact('need.handoff'));
+  const conditions = [...terms('need.critical_conditions'), ...(handoff ? [`Predaja: ${handoff}`] : [])];
 
   return {
     id: review.draftId ?? review.reviewId,
@@ -81,7 +84,7 @@ export function reviewAsTask(review: ReviewSource, person: PreviewPerson | null 
     detalji: {
       kategorija: text('need.category') ?? '', geografija: geography, rezimLokacije: geography?.mode ?? null,
       zahtevi: { vestine: skills, alati: tools, vozila: vehicles, dozvole: terms('need.required_licenses'),
-        bitniUslovi: has('need.critical_conditions') ? terms('need.critical_conditions') : null,
+        bitniUslovi: conditions.length || has('need.critical_conditions') ? [...new Set(conditions)] : null,
         iskustvoGodina: wholeNumber(fact('need.minimum_experience_years'), 0), potvrdjenIdentitet: fact('need.verified_identity_required') === true },
     },
     podrucjeTekst: remote ? 'Na daljinu' : podrucjeTekst(area, city),

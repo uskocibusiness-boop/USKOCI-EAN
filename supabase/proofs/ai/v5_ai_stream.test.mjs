@@ -63,17 +63,21 @@ for(const phase of ['PROPOSAL','UNRESOLVED'])test('review cannot skip the curren
  assert.match(write.p_assistant_message,phase==='PROPOSAL'?/proveriš predloženo mesto na mapi/:/U kom je gradu/);
  assert.ok(!write.p_assistant_message.includes('PRIVAT'));assert.deepEqual(write.p_proposals,[]);assert.equal(write.p_location_action,'CONTINUE');
 });
-test('switching to remote does not demand confirmation of the obsolete physical map',async()=>{
+for(const knownHandoff of [false,true])test('switching to remote ignores the obsolete map and checks handoff, known='+knownHandoff,async()=>{
  const locationContext={version:1,promptToken:id(31),reviewRevision:'a'.repeat(64),slot:'start',phase:'PROPOSAL',
   question:'Da li je ovo mesto?',query:'Prethodno mesto',proposal:{id:id(32),label:'Prethodno mesto'},alternatives:[]};
  const message='Predlog je sada na daljinu. Pogledaj ažurirani pregled.';
  const f=fixture({locationContext,output:{safety:'ALLOW',assistantMessage:message,
-  facts:[{key:'need.task_geography',valueJson:'{"mode":"REMOTE"}',displayValue:'Na daljinu',evidence:'Može na daljinu',confidence:1}],
+  facts:[{key:'need.task_geography',valueJson:'{"mode":"REMOTE"}',displayValue:'Na daljinu',evidence:'Može na daljinu',confidence:1},
+    ...(knownHandoff?[{key:'need.handoff',valueJson:'{"required":false}',displayValue:'Bez fizičke predaje',evidence:'Samo digitalni fajl',confidence:1}]:[])],
   dialogue:{next:'REVIEW',questionKey:'NONE',taskRelation:'CONTINUE',priceUnit:'UNSPECIFIED',schedulePattern:'UNSPECIFIED'},
   locationDecision:{action:'CORRECT',proposalId:'NONE',explicitConfirmation:false,hasCorrection:true,hasUncertainty:false}}});
  const r=await f.invoke();assert.equal(r.status,200);
  const write=f.calls.find(x=>x.url.endsWith('/rpc_ai_complete_need_location_turn_v1_service')).body;
- assert.equal(write.p_assistant_message,message);assert.equal(write.p_proposals[0].value.mode,'REMOTE');
+ if(knownHandoff)assert.equal(write.p_assistant_message,message);
+ else assert.match(write.p_assistant_message,/Kako preuzimaš rezultat/);
+ assert.doesNotMatch(write.p_assistant_message,/mesto na mapi|polazište/);
+ assert.equal(write.p_proposals[0].value.mode,'REMOTE');
 });
 const providers=f=>f.calls.filter(c=>c.url.startsWith('https://generativelanguage.googleapis.com/'));
 const writes=f=>f.calls.filter(c=>c.url.endsWith('/rpc_ai_complete_need_turn_v2_service'));

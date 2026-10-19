@@ -24,5 +24,10 @@ module.exports = {
   preset: 'jest-expo',
   setupFiles: [...expoPreset.setupFiles, require.resolve('react-native-gesture-handler/jestSetup.js'), require.resolve('./jest.urgent-env.cjs')],
   testMatch: ['**/__tests__/**/*.test.ts?(x)'],
+  // One pure ESM contract is shared by the mobile client and Edge runtime.
+  transform: {
+    ...expoPreset.transform,
+    '^.+serviceHandoff\\.mjs$': expoPreset.transform['\\.[jt]sx?$'],
+  },
   transformIgnorePatterns,
 };

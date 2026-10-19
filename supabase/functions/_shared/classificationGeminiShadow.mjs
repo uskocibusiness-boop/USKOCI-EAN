@@ -4,6 +4,7 @@
 // The existing worker/need typed JSON contract is preserved byte-for-byte
 // AFTER removing the private, never-authoritative classificationShadow field.
 import { CLASSIFICATION_ACTIONS, reviewClassificationProposal, normalizedClassificationIdentity } from './classificationEngine.mjs';
+import { decodeServiceHandoff } from './serviceHandoff.mjs';
 const UUID=/^[a-f\d]{8}-[a-f\d]{4}-[1-8][a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12}$/i;
 const modes=new Set(['ON_SITE','REMOTE','UNCONFIRMED']);
 const record=x=>x!==null&&typeof x==='object'&&!Array.isArray(x);
@@ -42,20 +43,20 @@ export function geminiClassificationShadowInstruction(purpose='NEED_SERVICE') {
       : 'Required classificationShadowJson STRING: serialize a JSON array containing a FULL SNAPSHOT of 0 to 6 SEMANTIC SERVICE proposals for the CURRENT task AFTER applying this turn, including services established in earlier turns; never fabricate work.',
     'The entire classificationShadowJson field is one JSON STRING, NOT a nested JSON array property. Serialize array entries as JSON inside that string, no markdown. This field is private metadata and never user consent or catalog write authority.',
     purpose==='WORKER_CAPABILITY'
-      ? 'Always include this field. Use "[]" only when there are no currently offered services or safety is BLOCK/REVIEW. For an offered service with unresolved identity use ASK_CLARIFICATION or NEEDS_REVIEW with categoryId="", parentId="", proposedPath=[] and a concrete reason; for unresolved delivery mode use UNCONFIRMED. Missing identity or mode is a proposal with an explicit unresolved state, never a reason to omit the service. When the person explicitly offers work at the customer, propose ON_SITE for that service; when explicitly remote, propose REMOTE. Catalog modes only limit supported scopes and never establish what this worker offers.'
+      ? 'Always include this field. Use "[]" only when there are no currently offered services or safety is BLOCK/REVIEW. For an offered service with unresolved identity use ASK_CLARIFICATION or NEEDS_REVIEW with categoryId="", parentId="", proposedPath=[] and a concrete reason; for unresolved delivery mode use UNCONFIRMED. Missing identity or mode is a proposal with an explicit unresolved state, never a reason to omit the service. When explicitly offered concrete work inherently requires a customer visit, propose ON_SITE without a redundant question; when that work clearly takes place online or at the provider without a visit, propose REMOTE. Resolve only new or genuinely unresolved services this way; preserve saved choices on unrelated edits. Catalog modes only limit supported scopes and never establish what this worker offers.'
       : 'Always include this field. Use "[]" only when no task service is known yet or safety is BLOCK/REVIEW. For a known service with unresolved identity use ASK_CLARIFICATION or NEEDS_REVIEW with categoryId="", parentId="", proposedPath=[] and a concrete reason; for unresolved delivery mode use UNCONFIRMED. Missing identity or mode is an explicit unresolved proposal, never a reason to drop a known service.',
     'Keep the existing typed contracts for assistantMessage, safety, facts, patch, dialogue and the other response fields. Naming proposals must be consistent with those normal typed fields; metadata must not inject new fact keys or change unrelated user details. Never return the older classificationShadow array field.',
-    'Each entry inside the serialized JSON array must contain exactly service, mode, action, categoryId, parentId, proposedPath, reason, catalogVersion.',
-    'The action value MUST be exactly one of REUSE_EXISTING, REUSE_ALIAS, CREATE_CHILD, CREATE_NEW_BRANCH, PROPOSE_RESTRUCTURE, ASK_CLARIFICATION, NEEDS_REVIEW, REJECT_UNSUPPORTED_OR_UNSAFE. Do not use shorter words such as REUSE, EXISTING, NEW, or CREATE.',
+    'Each entry inside the serialized JSON array must contain service, mode, action, categoryId, parentId, proposedPath, reason, catalogVersion; the ONLY optional ninth field is handoff, allowed only for REMOTE. Omit unknown handoff. Use exactly {required:false} for no physical exchange, or {required:true,shippingCountries:["RS"]} and/or localExchange:{countryCode:"RS",city:"Novi Sad"} for expressly supported physical handoff. Never infer shipping everywhere from REMOTE. At least one option is required for physical exchange, countries are unique uppercase two-letter codes, and city is a city name without an address. Keep the exact value identical to the typed task need.handoff or the corresponding worker service choice. Handoff is a constraint, not another mode or an offered courier service.',
+    'The action value MUST be exactly one of REUSE_EXISTING, REUSE_ALIAS, EXTEND_MODE, CREATE_CHILD, CREATE_NEW_BRANCH, PROPOSE_RESTRUCTURE, ASK_CLARIFICATION, NEEDS_REVIEW, REJECT_UNSUPPORTED_OR_UNSAFE. Do not use shorter words such as REUSE, EXISTING, NEW, or CREATE.',
     'Use catalogVersion from provided server context. If an existing category covers the service, use action REUSE_EXISTING, its exact real categoryId, parentId="", proposedPath=[].',
-    'Before CREATE_CHILD, read the proposed parent and verify that its modes contain the actual service mode. ON_SITE-only parents cannot receive REMOTE children, even for a related craft. Do not change shipping/provider-workshop work into ON_SITE to fit the tree. Inspect appropriate ancestors and other relevant branches. When no semantically appropriate parent supports the mode and the service is genuinely absent, propose CREATE_NEW_BRANCH with a meaningful domain root and the necessary path, keeping parentId="". A new root must describe a real missing service family, never merely duplicate an existing root with a delivery suffix to evade its modes. Existing parent modes are server facts; chat cannot extend them. If the appropriate existing structure needs a mode change, use NEEDS_REVIEW with that concrete reason. Never present an unverified plan as ready to publish or fully linked.',
+    'Before CREATE_CHILD, read the proposed parent and verify its semantic place in the tree. An organizational ancestor does not have to support every execution mode of its children: the concrete service own modes are authoritative. Use ALL-scope navigation to find a semantically correct parent even when its own modes differ. Do not change shipping/provider-workshop work into ON_SITE to fit the tree. Inspect appropriate ancestors and other relevant branches. When the SAME concrete existing service legitimately supports the requested execution but the catalog lacks that mode, use EXTEND_MODE with its exact existing categoryId, parentId="", proposedPath=[] and a concrete reason explaining the actual work and why no incompatible visit is required. Never create a duplicate service merely to evade modes, and never propose impossible remote physical work or substitute advice. EXTEND_MODE is only a request for independent server admission and signed owner review, never an immediate catalog change. If actual feasibility or identity is unclear, clarify it. A genuinely absent service may use CREATE_NEW_BRANCH with a meaningful missing domain root, never a duplicate root with a delivery suffix. Existing parent modes remain server facts; chat cannot extend them. Never present an unverified plan as ready to publish or fully linked.',
     'For BOTH REUSE_EXISTING and REUSE_ALIAS: categoryId must be the exact non-empty UUID of that existing category; parentId must be the empty string ""; proposedPath must be the empty array []. Do not copy the catalog parentId or path into a reuse entry. Do not use null, omit these fields, or add alias/evidence fields. The service field must match the concrete service in the resulting skills or need.category.',
     'Use the fresh server catalog context, parent relationships and registered aliases. When catalogAccess provides navigation tools, initial pages are NOT the full catalog: search globally, open relevant branches, follow nextCursor and read additional pages as needed. Before proposing a new service, complete an ALL-scope SEARCH with service set to that exact proposed label; inspect plausible equivalents and parent branches. If the person describes EXACTLY an existing concrete service in natural language, use its precise canonical label consistently in the resulting skills or need.category and classification proposal; preserve their authored scope and details in bio/description. This is a user-reviewable naming proposal, not a new global alias or evidence of broader competence. A related, broader, narrower or different service is NOT the same service: clarify the actual distinction or propose a fitting new branch instead of choosing a convenient broad ID. Incomplete research is NEEDS_REVIEW, never evidence that a category is absent.',
-    'For a missing service: CREATE_CHILD with a real parentId from the supplied catalog in the confirmed mode, or CREATE_NEW_BRANCH with parentId="" only when no suitable parent exists. proposedPath contains one or more NEW labels, ordered from the parent toward the service; its final label must be exactly the service text. There is no fixed number of new levels: include useful intermediate labels only, without duplicates or arbitrary padding. The entire serialized metadata must fit within 24576 UTF-8 bytes; never truncate a path or silently omit a service to fit. categoryId="" for either creation action. Give a concrete reason of 10 to 1000 characters; never write or claim a category was created.',
+    'For a missing service: CREATE_CHILD with a real semantically appropriate parentId from the supplied catalog and the confirmed mode of the NEW service, or CREATE_NEW_BRANCH with parentId="" only when no suitable parent exists. proposedPath contains one or more NEW labels, ordered from the parent toward the service; its final label must be exactly the service text. There is no fixed number of new levels: include useful intermediate labels only, without duplicates or arbitrary padding. The entire serialized metadata must fit within 24576 UTF-8 bytes; never truncate a path or silently omit a service to fit. categoryId="" for either creation action. Give a concrete reason of 10 to 1000 characters; never write or claim a category was created.',
     'Never equate lessons, equipment rental and equipment repair merely because they mention skating.',
     'REUSE_ALIAS is only a suggested semantic candidate; no alias is verified by a model claim. Only aliases listed by the server for that exact category may be reused. An unregistered synonym cannot carry a random existing categoryId: use the exact concrete canonical naming rule above only when meanings are identical; otherwise ask the necessary distinction or propose the actual new service. Never replace a service with a broader category label.',
     purpose==='WORKER_CAPABILITY'
-      ? 'Mode ON_SITE/REMOTE only when the worker explicitly offers that mode for that service; otherwise UNCONFIRMED. Separate every service; catalog membership or a profession does not infer mode. The owner must confirm offered modes in the signed review.'
+      ? 'Mode ON_SITE/REMOTE only when explicit or inherent to the concrete work this person explicitly offers; otherwise UNCONFIRMED. An inherently on-site service does not require the worker to repeat the words on site. Separate every service; catalog membership, a broad profession or equipment does not infer mode. Preserve saved per-service modes and handoff on unrelated edits; inherent inference is for new or genuinely unresolved services, never permission to overwrite a saved choice. The owner must confirm offered modes in the signed review.'
       : 'Mode ON_SITE/REMOTE only if explicit or inherent to the actual task; otherwise UNCONFIRMED. Fabrication at the provider with shipping or pickup does not imply work at the customer. Separate every service; mode remains part of the owner-reviewed task.',
     purpose==='WORKER_CAPABILITY'
       ? 'After applying the profile patch, compare EACH distinct entry in the resulting skills array with classificationShadowJson. Cover EVERY offered skill with at least one proposal (ON_SITE, REMOTE, or UNCONFIRMED), even if it was added in an earlier turn; never return only the skills newly mentioned by the user. If both modes are explicitly confirmed, represent both modes separately. On a finish/acknowledgement turn with unchanged skills, KEEP a FULL SNAPSHOT of those same skills. When delivery mode for any service is unclear ask a short, natural follow-up within the interview limit of up to THREE related questions; ask only about unresolved services and mark each such service UNCONFIRMED rather than omitting it or guessing; do not guess mode, create a fake skill or infer consent from city. When more than 12 services are offered, clarify/organize the list before classification instead of silently dropping services. Shadow is a suggestion, never owner consent.'
@@ -102,7 +103,7 @@ export function workerFinishReviewMessage(skills,reviewProposals,catalogAvailabl
 }
 
 function validItem(p,snapshot) {
-  if(!record(p)||Object.keys(p).length!==8 ||
+  if(!record(p)||Object.keys(p).length!==(Object.hasOwn(p,'handoff')?9:8) ||
     !['service','mode','action','categoryId','parentId','proposedPath','reason','catalogVersion'].every(k=>Object.hasOwn(p,k))
     ||!sane(p.service,3,120)||!modes.has(p.mode)||!CLASSIFICATION_ACTIONS.includes(p.action)
     ||typeof p.categoryId!=='string'||(p.categoryId!==''&&!UUID.test(p.categoryId))
@@ -111,7 +112,8 @@ function validItem(p,snapshot) {
       !p.proposedPath.every(x=>sane(x,3,120))
     ||!sane(p.reason,10,1000)||!Number.isSafeInteger(p.catalogVersion)
     )return false;
-  if(['REUSE_EXISTING','REUSE_ALIAS'].includes(p.action))
+  if(Object.hasOwn(p,'handoff')&&(p.mode!=='REMOTE'||!decodeServiceHandoff(p.handoff)))return false;
+  if(['REUSE_EXISTING','REUSE_ALIAS','EXTEND_MODE'].includes(p.action))
     return !!p.categoryId&&p.parentId===''&&p.proposedPath.length===0;
   if(p.action==='CREATE_CHILD')return !!p.parentId&&p.categoryId===''&&p.proposedPath.length>0;
   if(p.action==='CREATE_NEW_BRANCH')return p.categoryId===''&&p.parentId===''&&p.proposedPath.length>0;
@@ -121,11 +123,12 @@ function validItem(p,snapshot) {
 // Diagnostic classes only. Never log model-authored service text, paths or IDs.
 function invalidPlanCode(p) {
   if(!record(p))return 'TYPE';
-  if(Object.keys(p).length!==8||
+  if(Object.keys(p).length!==(Object.hasOwn(p,'handoff')?9:8)||
      !['service','mode','action','categoryId','parentId','proposedPath','reason','catalogVersion'].every(k=>Object.hasOwn(p,k)))
     return 'FIELDS';
   if(!sane(p.service,3,120))return 'SERVICE';
   if(!modes.has(p.mode))return 'MODE';
+  if(Object.hasOwn(p,'handoff')&&(p.mode!=='REMOTE'||!decodeServiceHandoff(p.handoff)))return 'HANDOFF';
   if(!CLASSIFICATION_ACTIONS.includes(p.action))return 'ACTION';
   if(typeof p.categoryId!=='string'||(p.categoryId!==''&&!UUID.test(p.categoryId))||
      typeof p.parentId!=='string'||(p.parentId!==''&&!UUID.test(p.parentId)))return 'ID';
@@ -135,7 +138,7 @@ function invalidPlanCode(p) {
   if(!Number.isSafeInteger(p.catalogVersion))return 'VERSION';
   // Fixed reason enums expose which wire constraint failed, never the model's
   // service, UUID, reason or path. The strict validator above stays unchanged.
-  if(['REUSE_EXISTING','REUSE_ALIAS'].includes(p.action)){
+  if(['REUSE_EXISTING','REUSE_ALIAS','EXTEND_MODE'].includes(p.action)){
     if(!p.categoryId)return 'REUSE_CATEGORY_REQUIRED';
     if(p.parentId!=='')return 'REUSE_PARENT_MUST_BE_EMPTY';
     if(p.proposedPath.length!==0)return 'REUSE_PATH_MUST_BE_EMPTY';
@@ -257,7 +260,7 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
     if (p.mode !== 'UNCONFIRMED' &&
         (checked.status === 'REUSE_CANDIDATE' && ['REUSE_EXISTING','REUSE_ALIAS'].includes(p.action) ||
          checked.status === 'ADMISSION_REVIEW_REQUIRED' &&
-           ['CREATE_CHILD','CREATE_NEW_BRANCH'].includes(p.action))) {
+           ['CREATE_CHILD','CREATE_NEW_BRANCH','EXTEND_MODE'].includes(p.action))) {
       reviewProposals.push({
         // SQL captures the existing REUSE_EXISTING wire action. Verification
         // comes from the catalog gate above; the original service stays intact
@@ -265,6 +268,7 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
         service:p.service,mode:p.mode,action:checked.status==='REUSE_CANDIDATE'?'REUSE_EXISTING':p.action,categoryId:p.categoryId,
         parentId:p.parentId,proposedPath:p.proposedPath.slice(),
         reason:p.reason,catalogVersion:p.catalogVersion,
+        ...(Object.hasOwn(p,'handoff')?{handoff:decodeServiceHandoff(p.handoff)}:{}),
       });
     }
   }

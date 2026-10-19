@@ -70,11 +70,42 @@ test('new path must end in the service and may contain more than six new nodes',
   assert.equal(reviewClassificationProposal(base,snapshot,proposal('CREATE_NEW_BRANCH',
     {parentId:null,proposedPath:['Jedan','Dva','Tri','Četiri','Pet','Šest','Izrada figurica']})).status,'ADMISSION_REVIEW_REQUIRED');
 });
-test('new child cannot inherit a parent from the wrong execution mode',()=>{
-  const answer=reviewClassificationProposal(input('NEED_SERVICE','REMOTE'),snapshot,
-    proposal('CREATE_CHILD',{parentId:lesson,proposedPath:['Onlajn časovi klizanja']}));
+test('parent organizes a new service without conferring or blocking its execution mode',()=>{
+  const before=JSON.stringify(snapshot);
+  const answer=reviewClassificationProposal({...input('NEED_SERVICE','REMOTE'),service:'Popravka poslate muzičke kutije'},snapshot,
+    proposal('CREATE_CHILD',{parentId:repair,proposedPath:['Popravka poslate muzičke kutije']}));
   assert.equal(answer.accepted,false);
-  assert.equal(answer.status,'PARENT_MODE_NOT_SUPPORTED');
+  assert.equal(answer.status,'ADMISSION_REVIEW_REQUIRED');
+  assert.equal(JSON.stringify(snapshot),before);
+  assert.equal(reviewClassificationProposal({...input('NEED_SERVICE','REMOTE'),service:nodes[2].label},snapshot,
+    proposal('REUSE_EXISTING',{categoryId:repair})).status,'MODE_NOT_SUPPORTED');
+});
+
+test('extending an exact service mode is only a signed admission candidate with the same ID',()=>{
+  for (const purpose of ['WORKER_CAPABILITY','NEED_SERVICE']) {
+    const before=JSON.stringify(snapshot);
+    const answer=reviewClassificationProposal({...input(purpose,'REMOTE'),service:nodes[2].label},snapshot,
+      proposal('EXTEND_MODE',{categoryId:repair,reason:'The customer sends the removable skates to the provider for sharpening and return shipment.'}));
+    assert.equal(answer.accepted,false);
+    assert.equal(answer.status,'ADMISSION_REVIEW_REQUIRED');
+    assert.equal(answer.categoryId,repair);
+    assert.equal(answer.notificationAuthority,'NONE');
+    assert.equal(JSON.stringify(snapshot),before);
+  }
+});
+
+test('extension cannot bypass identity, current catalog, or mode confirmation',()=>{
+  assert.equal(reviewClassificationProposal(input('NEED_SERVICE','REMOTE'),snapshot,
+    proposal('EXTEND_MODE',{categoryId:repair})).status,'SEMANTIC_IDENTITY_REVIEW_REQUIRED');
+  assert.equal(reviewClassificationProposal(input('NEED_SERVICE'),snapshot,
+    proposal('EXTEND_MODE')).status,'MODE_ALREADY_SUPPORTED');
+  assert.equal(reviewClassificationProposal({...input('NEED_SERVICE'),mode:null},snapshot,
+    proposal('EXTEND_MODE')).status,'MODE_CONFIRMATION_REQUIRED');
+  assert.equal(reviewClassificationProposal(input('NEED_SERVICE','REMOTE'),snapshot,
+    proposal('EXTEND_MODE',{catalogVersion:6})).status,'STALE_CATALOG');
+  const navigated={...snapshot,navigation:{kind:'SERVER_QUERIES',identityChecks:[],searchedServices:[]}};
+  assert.equal(reviewClassificationProposal(input('NEED_SERVICE','REMOTE'),navigated,
+    proposal('EXTEND_MODE')).status,'GLOBAL_IDENTITY_NOT_VERIFIED');
 });
 test('catalog version must be fresh',()=>{
   assert.equal(reviewClassificationProposal(input('NEED_SERVICE'),snapshot,proposal('REUSE_EXISTING',{catalogVersion:6})).status,'STALE_CATALOG');

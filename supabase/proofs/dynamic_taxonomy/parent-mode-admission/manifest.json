@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_NOT_EXECUTED_NOT_APPLIED",
+  "sourceHead": "80d7a3e0",
+  "workflow": ".github/workflows/taxonomy-new-branch-scopes-pg-proof.yml",
+  "job": "parent-mode-admission",
+  "postgres": [
+    "16",
+    "17"
+  ],
+  "localChecks": [
+    "YAML parsed",
+    "recursive SQL include paths resolve",
+    "exact binder change scope",
+    "git diff --check",
+    "migration integrity on immutable historical Git bytes + current candidates: PASS173 sources",
+    "migration integrity unit tests: 13 PASS"
+  ],
+  "files": [
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/parent-mode-admission/assert-before.sql",
+      "sha256": "f3d88e360befceb81b4c93421294ccaa3b5f2a453235acc4c2562ec28642b28c"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/parent-mode-admission/assert.sql",
+      "sha256": "743440c1da5be753a04c45a3e718708f0de407cf5e088d3636ca85aa33241900"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/parent-mode-admission/before.sql",
+      "sha256": "c6f2bfe5bb624996e2b48793d1b7758891c7c54d1f31df0f0c37f929e8f870d7"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/parent-mode-admission/current-dependencies.sql",
+      "sha256": "38aeca2926d2f0e596fd36a761374f781aab0bbf1fdddfb72f740f14cc4ebfc4"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/parent-mode-admission/expected-after.json",
+      "sha256": "89736f601e25ca349c5a36356429729c3ca80722a34d4289e3423c1fbaced8ea"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/parent-mode-admission/fixture.sql",
+      "sha256": "db3a55ffa21415fe70365528230130aa2e232b17720e249addf14995ce0ea460"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/parent-mode-admission/predecessor.json",
+      "sha256": "5b331814564bb206b71db2b4948cfda2a2a1795562829b6ff164f10c6342bf24"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/parent-mode-admission/README.md",
+      "sha256": "f39dcb2e366948d7439837054495babfc55b7296ab4948642d9a02d1578554f3"
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/parent-mode-admission/revert.sql",
+      "sha256": "0ec3e336f51d366b0d1fc6b7e0936c44f3b5e54415a557f25be725e3dd7a4fc2"
+    },
+    {
+      "path": "supabase/migrations/20261019104047_taxonomy_parent_navigation_and_mode_admission.sql",
+      "sha256": "1d871cf4d4ce520aecba68783086f672f81fda21f9717c828466811189d38274"
+    },
+    {
+      "path": ".github/workflows/taxonomy-new-branch-scopes-pg-proof.yml",
+      "sha256": "17f9dd4eb4f5e2c4e229c0450787e1be1579d823c053a350af55a98c39b367d9"
+    }
+  ]
+}

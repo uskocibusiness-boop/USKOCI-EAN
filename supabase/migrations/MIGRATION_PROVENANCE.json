@@ -325,6 +325,32 @@
         "live_recorded_md5": "46cc782f7f03fe5726ee4382f8ba14ed",
         "live_recorded_sha256": "d163becc19aa77f76e131f0f162f0b8fa9dbedb01b023ddd18f2e366755d71e4",
         "applied_evidence": "supabase/proofs/dynamic_taxonomy/catalog-query/applied-dev.receipt.json"
+      },
+      {
+        "file": "20261019104047_taxonomy_parent_navigation_and_mode_admission.sql",
+        "version": "20261019104047",
+        "name": "taxonomy_parent_navigation_and_mode_admission",
+        "classification": "SOURCE_ONLY_LIVE_BINDING_UNPROVEN",
+        "live_applied": null,
+        "preparation_status": "PREPARED_NOT_APPLIED",
+        "note": "New explicit forward candidate; physical inventory only. No DEV application or standalone PostgreSQL success is claimed by this registration. Historical replay and source147 admission remain unchanged.",
+        "proof_manifest": "supabase/proofs/dynamic_taxonomy/parent-mode-admission/manifest.json",
+        "raw_md5": "31dc1f79c2d49e3bed21c03d200f5027",
+        "raw_sha256": "1d871cf4d4ce520aecba68783086f672f81fda21f9717c828466811189d38274",
+        "raw_bytes": 94571
+      },
+      {
+        "file": "20261019104604_service_handoff_signed_matching.sql",
+        "version": "20261019104604",
+        "name": "service_handoff_signed_matching",
+        "classification": "SOURCE_ONLY_LIVE_BINDING_UNPROVEN",
+        "live_applied": null,
+        "preparation_status": "PREPARED_NOT_APPLIED",
+        "note": "New explicit forward candidate; physical inventory only. No DEV application or standalone PostgreSQL success is claimed by this registration. Historical replay and source147 admission remain unchanged.",
+        "proof_manifest": "supabase/proofs/dynamic_taxonomy/service-handoff/manifest.json",
+        "raw_md5": "91c63e9fee55dd66dfa120673c721bc1",
+        "raw_sha256": "e2c40877d39d9546bd0cdd6584c7bd07db63e7546e8e92612e34e75a78f0c1b8",
+        "raw_bytes": 114967
       }
     ],
     "last_extended_at_utc": "2026-10-19T09:25:50.014443+00:00"

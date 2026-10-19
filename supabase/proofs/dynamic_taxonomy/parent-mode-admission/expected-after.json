@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "PARENT_MODE_EXPECTED_AFTER_V1",
+  "status": "SOURCE_DERIVED_AWAITING_POSTGRES_READBACK",
+  "functions": [
+    {
+      "name": "private.taxonomy_ai_catalog_context_v1",
+      "definition_md5": "da3f2469ac6b6d470447f8acbc8a3ff1"
+    },
+    {
+      "name": "private.taxonomy_review_candidate_projection_v2",
+      "definition_md5": "e318d1e43e4a045f09be19138016ccd8"
+    },
+    {
+      "name": "public.rpc_taxonomy_bind_reviewed_need_service",
+      "definition_md5": "515757d5bc0b7da95da964cdc41eaf01"
+    },
+    {
+      "name": "public.rpc_taxonomy_bind_reviewed_worker_service",
+      "definition_md5": "97b6570cea584b5b56bcc31f77606f6e"
+    },
+    {
+      "name": "public.rpc_taxonomy_capture_gemini_turn_hints_service",
+      "definition_md5": "8d222f9a04dc4e7b477363b718499f73"
+    },
+    {
+      "name": "public.rpc_taxonomy_commit_admission_service",
+      "definition_md5": "c98f18816a441f8455f912a848942450"
+    },
+    {
+      "name": "public.rpc_taxonomy_commit_reviewed_batch_service",
+      "definition_md5": "b2c4e3d19cd08ed50cfae32a8ed386a0"
+    },
+    {
+      "name": "public.rpc_taxonomy_prepare_admission_service",
+      "definition_md5": "2fb6d9bb44eb67d568f44cba390a959e"
+    },
+    {
+      "name": "public.rpc_taxonomy_query_catalog_service",
+      "definition_md5": "b0de0dc1c8128bd8835ef7150745a7a0"
+    }
+  ]
+}

@@ -43,6 +43,18 @@ const STANDARD_CASES = Object.freeze({
     'Želim da radim nešto, ali još nisam rekao koje konkretne usluge nudim.'] },
 });
 const CASES = Object.freeze({ ...STANDARD_CASES,
+  'need-pickup-execution': {flow:'need',expectation:'PHYSICAL_HANDOFF',messages:[
+    'Treba mi izrada jedne male 3D figurice prema gotovom STL fajlu. Izrađuje se kod izvršioca, bez dolaska kod mene. Samo lično preuzimanje u Novom Sadu, Srbija, ne želim slanje. Jedan izvršilac, termin potpuno fleksibilan, tražim ponude.']},
+  'need-shipping-execution': {flow:'need',expectation:'PHYSICAL_HANDOFF',messages:[
+    'Treba mi izrada jedne male 3D figurice prema gotovom STL fajlu. Izrađuje se kod izvršioca i šalje kurirskom službom na adresu u Srbiji. Nema dolaska kod mene ni ličnog preuzimanja. Jedan izvršilac, termin potpuno fleksibilan, tražim ponude.']},
+  'need-digital-execution': {flow:'need',expectation:'DIGITAL_HANDOFF',messages:[
+    'Treba mi izrada prezentacije od 10 slajdova iz teksta koji ću dostaviti. Sve je digitalno, gotov PowerPoint fajl preuzimam onlajn. Srbija, jedan izvršilac, potpuno fleksibilan termin, tražim ponude.']},
+  'need-impossible-execution': {flow:'need',expectation:'IMPOSSIBLE_REMOTE_NOT_READY',messages:[
+    'Treba mi da neko fizički okreči zidove mog stana u Novom Sadu, ali hoću da to uradi na daljinu bez dolaska. Ne želim savetovanje niti uputstva, nego stvarno okrečene zidove. Jedan izvršilac, fleksibilno, tražim ponude.']},
+  'need-rare-execution': {flow:'need',expectation:'PHYSICAL_HANDOFF',messages:[
+    'Treba mi restauracija stare mehaničke muzičke kutije: čišćenje, popravka opružnog mehanizma i podešavanje metalnog češlja. Šaljem predmet majstoru kurirskom službom unutar Srbije, radi kod sebe i vraća mi ga dostavom u Srbiji. Jedan izvršilac, potpuno fleksibilan termin, tražim ponude.']},
+  'worker-shipping-execution': {flow:'worker',expectation:'PHYSICAL_HANDOFF',messages:[
+    'Nudim 3D štampanje figurica prema gotovom STL fajlu. Izrađujem kod sebe u radionici i šaljem kurirskom službom samo u Srbiji. Ne dolazim kod naručioca i ne nudim lično preuzimanje. Grad profila Novi Sad, Srbija. Dostupnost po dogovoru.']},
   ...Object.fromEntries(['need-existing','worker-existing','need-novel'].map(name => [name+'-tools',
     {...STANDARD_CASES[name],messages:[STANDARD_CASES[name].messages[0]]}])),
   'need-rare-tools': {flow:'need',expectation:'SEMANTIC_REVIEW_NO_FORCED_NOVELTY',messages:[
@@ -58,6 +70,7 @@ export function configuration(env, argv) {
   const phase = argv.find(x => x.startsWith('--phase='))?.slice(8) ?? 'conversation';
   const names = (env.USKOCI_QA_CASES ?? 'need-existing,need-novel,need-clarify,worker-existing').split(',');
   const toolRun = names.some(name => name.endsWith('-tools'));
+  const executionRun = names.some(name => name.endsWith('-execution'));
   const maxAttempts = Number(env.USKOCI_QA_MAX_ATTEMPTS ?? (toolRun ? 3 : MAX_ATTEMPTS));
   const accountId = (env.USKOCI_QA_EXPECTED_ACCOUNT_ID ?? '').toLowerCase();
   assert((env.USKOCI_QA_URL ?? TARGET) === TARGET, 'CANONICAL_DEV_ONLY');
@@ -65,6 +78,7 @@ export function configuration(env, argv) {
   assert(names.length > 0 && new Set(names).size === names.length && names.every(x => Object.hasOwn(CASES, x)), 'INVALID_CASES');
   assert(!toolRun || names.every(name => name.endsWith('-tools')) && phase === 'conversation', 'TOOLS_CONVERSATION_ONLY');
   assert(!toolRun || maxAttempts <= 3, 'MAX_3_LOGICAL_REQUESTS');
+  assert(!executionRun || names.every(name => name.endsWith('-execution')) && maxAttempts <= 8, 'EXECUTION_MAX_8_LOGICAL_REQUESTS');
   assert(names.filter(x => CASES[x].flow === 'worker').length <= 1, 'ONE_NEW_WORKER_CONVERSATION_PER_ACCOUNT');
   assert(Number.isInteger(maxAttempts) && maxAttempts > 0 && maxAttempts <= MAX_ATTEMPTS, 'MAX_12_ATTEMPTS');
   assert(names.reduce((n, name) => n + CASES[name].messages.length, 0) <= maxAttempts || phase === 'save-fixture', 'CASE_BUDGET_EXCEEDED');
@@ -75,9 +89,9 @@ export function configuration(env, argv) {
     assert(env.USKOCI_QA_SOURCE_SHA && /^[a-f0-9]{40}$/.test(env.USKOCI_QA_SOURCE_SHA), 'EXACT_SOURCE_SHA_REQUIRED');
     if (phase === 'save-fixture') assert(env.USKOCI_QA_PREPARED_REPORT, 'PREPARED_REPORT_REQUIRED');
   }
-  return { execute, phase, names, maxAttempts, accountId, url: TARGET, toolRun,
-    providerAttemptsPerRequest: toolRun ? 4 : 1,
-    runReservationCapMicrousd: toolRun ? maxAttempts * 4 * RESERVATION_MICROUSD : RUN_CAP_MICROUSD };
+  return { execute, phase, names, maxAttempts, accountId, url: TARGET, toolRun, executionRun,
+    providerAttemptsPerRequest: toolRun || executionRun ? 4 : 1,
+    runReservationCapMicrousd: toolRun || executionRun ? maxAttempts * 4 * RESERVATION_MICROUSD : RUN_CAP_MICROUSD };
 }
 
 /** Correlation only: these IDs are possible attempts, not proof they were billed
@@ -227,7 +241,7 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
   const report = { schema: 'USKOCI_TAXONOMY_QA_V1', sourceSha: env.USKOCI_QA_SOURCE_SHA,
     phase: config.phase, target: TARGET, accountId: config.accountId, startedAt: new Date().toISOString(),
     isolation: attestation, attemptCeiling: config.maxAttempts, reservationCeilingMicrousd: config.runReservationCapMicrousd,
-    reservationPerAttemptMicrousd: RESERVATION_MICROUSD, attemptedProviderRequests: config.toolRun ? null : 0,
+    reservationPerAttemptMicrousd: RESERVATION_MICROUSD, attemptedProviderRequests: config.providerAttemptsPerRequest > 1 ? null : 0,
     attemptedLogicalRequests: 0, providerAttemptsPerRequest: config.providerAttemptsPerRequest,
     providerAttemptUpperBound: 0, providerAttemptsObserved: null,
     conservativeReservationMicrousd: 0, actualProviderBilling: 'READ_SERVER_LEDGER_SEPARATELY',
@@ -277,7 +291,7 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
       at: new Date().toISOString(), outcome: 'ATTEMPTED_UNKNOWN_NO_RETRY' };
     attempt.expectedProviderOperations = expectedProviderOperations(config.accountId,cid,attempt.clientRequestId,config.providerAttemptsPerRequest);
     report.providerAttempts.push(attempt); report.attemptedLogicalRequests++;
-    if (!config.toolRun) report.attemptedProviderRequests++;
+    if (config.providerAttemptsPerRequest === 1) report.attemptedProviderRequests++;
     report.providerAttemptUpperBound += config.providerAttemptsPerRequest;
     report.conservativeReservationMicrousd += requestReservation; persist(); // BEFORE network, even claim failure consumes the run allowance.
     const startedAt = Date.now();
@@ -337,6 +351,18 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
           assert(final.classificationState !== 'READY' && final.classificationCandidates.length === 0, 'VAGUE_INTENT_FALSE_READY');
         if (c.expectation === 'EXACT_EXISTING_REUSE')
           assert(final.classificationState === 'READY' && final.classificationCandidates.every(plan => plan.action === 'REUSE_EXISTING'), 'KNOWN_SERVICE_NOT_REUSED');
+        if (c.expectation === 'IMPOSSIBLE_REMOTE_NOT_READY')
+          assert(final.canAccept === false && !final.classificationCandidates.some(plan => plan.mode === 'REMOTE'), 'IMPOSSIBLE_PHYSICAL_REMOTE_ACCEPTED');
+        if (['PHYSICAL_HANDOFF','DIGITAL_HANDOFF'].includes(c.expectation)) {
+          assert(final.classificationState === 'READY' && final.canAccept === true, 'EXECUTION_REVIEW_NOT_READY');
+          assert(final.classificationCandidates.every(plan => plan.mode === 'REMOTE'
+            && plan.handoff?.required === (c.expectation === 'PHYSICAL_HANDOFF')), 'EXECUTION_HANDOFF_MISSING_OR_WRONG');
+          if (c.flow === 'need') assert(final.location?.geography.mode === 'REMOTE', 'HANDOFF_BECAME_WORK_PIN');
+          if (name === 'need-pickup-execution') assert(final.classificationCandidates.every(plan => !plan.handoff.shippingCountries
+            && plan.handoff.localExchange?.countryCode === 'RS' && plan.handoff.localExchange.city === 'Novi Sad'), 'PICKUP_SCOPE_CHANGED');
+          if (name.includes('shipping-execution')) assert(final.classificationCandidates.every(plan => !plan.handoff.localExchange
+            && JSON.stringify(plan.handoff.shippingCountries) === '["RS"]'), 'SHIPPING_SCOPE_CHANGED');
+        }
         if (item.reviews.length > 1) {
           const first = item.reviews[0];
           if (first.classificationState === 'READY') {

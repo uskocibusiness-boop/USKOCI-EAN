@@ -1,5 +1,6 @@
 import { capabilityTerms } from '../lib/capabilityTerms';
 import { countryCode } from '../lib/market';
+import { serviceHandoffText } from '../contracts/serviceHandoff';
 import { calendarInstant } from '../lib/calendarTime';
 import { locationSlots, normalizeNeedLocation, normalizeTaskGeography } from '../lib/location';
 import { civilInstant, displayDate, zonedParts } from '../ui/calendar/calendarPresentation';
@@ -187,6 +188,7 @@ function geographyReview(geography: NeedTaskGeography): string {
  * Caller controls private-row disclosure; this formatter does not grant access. */
 export function factReviewValue(fact: AiNeedV2Fact): string {
   const value = fact.value;
+  if (fact.key === 'need.handoff') return serviceHandoffText(value) ?? 'Predaja još nije razjašnjena';
   if (fact.key === 'need.task_geography') {
     const geography = normalizeTaskGeography(value);
     return geography ? geographyReview(geography) : 'Lokacija nije dostupna';

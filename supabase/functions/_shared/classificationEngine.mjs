@@ -3,7 +3,7 @@
 // It NEVER writes categories, worker capabilities, need snapshots or relations.
 // Admission/commit is deliberately a separate, owner-reviewed transactional phase.
 export const CLASSIFICATION_ACTIONS = Object.freeze([
-  'REUSE_EXISTING', 'REUSE_ALIAS', 'CREATE_CHILD', 'CREATE_NEW_BRANCH',
+  'REUSE_EXISTING', 'REUSE_ALIAS', 'EXTEND_MODE', 'CREATE_CHILD', 'CREATE_NEW_BRANCH',
   'PROPOSE_RESTRUCTURE', 'ASK_CLARIFICATION', 'NEEDS_REVIEW',
   'REJECT_UNSUPPORTED_OR_UNSAFE',
 ]);
@@ -134,13 +134,17 @@ export function reviewClassificationProposal(input, snapshot, plan) {
   const identity = normalizedClassificationIdentity(input.service);
   const identityCheck = navigated && Array.isArray(snapshot.navigation.identityChecks)
     ? snapshot.navigation.identityChecks.find(item => item.service === identity) : null;
-  if (navigated && ['REUSE_EXISTING','REUSE_ALIAS','CREATE_CHILD','CREATE_NEW_BRANCH'].includes(plan.action) &&
+  if (navigated && ['REUSE_EXISTING','REUSE_ALIAS','EXTEND_MODE','CREATE_CHILD','CREATE_NEW_BRANCH'].includes(plan.action) &&
       (!identityCheck || !Array.isArray(identityCheck.categoryIds)))
     return { accepted: false, status: 'GLOBAL_IDENTITY_NOT_VERIFIED' };
-  if (['REUSE_EXISTING','REUSE_ALIAS'].includes(plan.action)) {
+  if (['REUSE_EXISTING','REUSE_ALIAS','EXTEND_MODE'].includes(plan.action)) {
     const existing = categories.get(plan.categoryId);
     if (!existing) return { accepted: false, status: 'UNKNOWN_CANONICAL_ID' };
-    if (input.mode && (!Array.isArray(existing.modes) || !existing.modes.includes(input.mode)))
+    const extending = plan.action === 'EXTEND_MODE';
+    if (extending && !input.mode) return { accepted: false, status: 'MODE_CONFIRMATION_REQUIRED' };
+    if (extending && existing.modes?.includes(input.mode))
+      return { accepted: false, status: 'MODE_ALREADY_SUPPORTED' };
+    if (!extending && input.mode && (!Array.isArray(existing.modes) || !existing.modes.includes(input.mode)))
       return { accepted: false, status: 'MODE_NOT_SUPPORTED' };
     // Aliases arrive only from the service-owned, fingerprinted catalog, never
     // from provider output. Keep the existing normalizer: accepting a stored
@@ -159,7 +163,7 @@ export function reviewClassificationProposal(input, snapshot, plan) {
     // A stored alias collision cannot be resolved by the model choosing an ID.
     // The SQL owner-review projection independently repeats this identity check.
     const identities = snapshot.categories.filter(node =>
-      (!input.mode || node.modes?.includes(input.mode)) &&
+      (extending || !input.mode || node.modes?.includes(input.mode)) &&
       (normalizedClassificationIdentity(node.label) === identity || hasAlias(node)));
     if (new Set(identities.map(node => node.id)).size !== 1)
       return { accepted: false, status: 'AMBIGUOUS_CANONICAL_IDENTITY',
@@ -168,6 +172,12 @@ export function reviewClassificationProposal(input, snapshot, plan) {
     if (navigated && (identityCheck.categoryIds.length !== 1 || identityCheck.categoryIds[0] !== existing.id))
       return { accepted: false, status: 'AMBIGUOUS_CANONICAL_IDENTITY',
         catalogVersion: snapshot.catalogVersion, capabilityAuthority: 'NONE', notificationAuthority: 'NONE' };
+    // Exact identity is necessary, not evidence that a new execution mode is
+    // physically feasible. Preserve the proposal for the existing signed
+    // admission; neither this read nor a user's preference changes the catalog.
+    if (extending) return { accepted: false, status: 'ADMISSION_REVIEW_REQUIRED',
+      categoryId: existing.id, catalogVersion: snapshot.catalogVersion,
+      requiresOwnerReview: true, capabilityAuthority: 'NONE', notificationAuthority: 'NONE' };
     return { accepted: true, status: 'REUSE_CANDIDATE',
       categoryId: existing.id, catalogVersion: snapshot.catalogVersion,
       // Worker/need confirmation is STILL required before activation or dispatch.
@@ -183,8 +193,8 @@ export function reviewClassificationProposal(input, snapshot, plan) {
     if (plan.action === 'CREATE_CHILD') {
       const parent = categories.get(plan.parentId);
       if (!parent) return { accepted: false, status: 'UNKNOWN_PARENT_ID' };
-      if (input.mode && (!Array.isArray(parent.modes) || !parent.modes.includes(input.mode)))
-        return { accepted: false, status: 'PARENT_MODE_NOT_SUPPORTED' };
+      // Parent links organize meanings. Only the actual service has execution
+      // modes; a new child does not inherit or extend its parent's capabilities.
     }
     if (!Array.isArray(plan.proposedPath) || !plan.proposedPath.length ||
         new TextEncoder().encode(JSON.stringify(plan.proposedPath)).byteLength > 12000 || !plan.proposedPath.every(safeLabel))

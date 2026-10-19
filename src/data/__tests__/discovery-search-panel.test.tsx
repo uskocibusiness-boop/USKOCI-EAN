@@ -245,7 +245,9 @@ describe('the SEARCH is a whole screen with a word, a place and what was searche
     expect(radio(/^Svi zadaci/)[0].props.accessibilityState).toEqual({ checked: false });
     // nothing else is offered: not a city, not a group of them, and a line says why
     expect(offered().map(label => label.replace(/, \d+ zadat.*$/, ''))).toEqual(['Svi zadaci', 'Na daljinu']);
-    expect(texts()).toContain('Zadaci na daljinu nemaju mesto. Izaberi „Svi zadaci“ da biraš grad.');
+    expect(texts()).toContain('Bez dolaska kod naručioca');
+    expect(texts()).toContain('Uslove slanja ili preuzimanja pogledaj u zadatku.');
+    expect(texts()).not.toContain('Zadaci na daljinu nemaju mesto');
     expect(texts()).not.toContain('Popularni gradovi'); expect(texts()).not.toContain('Još nema zadataka');
     await choose(/^Svi zadaci/);
     expect(lastDraft()).toMatchObject({ where: 'any', place: null });

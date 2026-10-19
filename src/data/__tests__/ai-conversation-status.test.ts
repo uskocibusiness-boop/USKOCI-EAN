@@ -42,6 +42,15 @@ beforeEach(() => {
 afterEach(() => jest.useRealTimers());
 
 describe('whole owned conversation projection', () => {
+  it('reads explicit handoff as a public optional typed fact without creating a work location', async () => {
+    const value = { required: true, localExchange: { countryCode: 'RS', city: 'Novi Sad' } };
+    mockRpc.mockResolvedValue(ok(review([fact('need.handoff', value)])));
+    const result = await client.loadConversation(C);
+    expect(result?.facts).toEqual([expect.objectContaining({key:'need.handoff',value,privacyClass:'PUBLIC',requiredForDraft:false,valueType:'OBJECT'})]);
+    expect(result?.facts.some(item=>item.key==='need.task_geography')).toBe(false);
+    mockRpc.mockResolvedValue(ok(review([fact('need.handoff', {...value, exactAddress:'PRIVATE 42'})])));
+    await expect(client.loadConversation(C)).rejects.toThrow();
+  });
   it.each(['OPEN', 'COMPLETED', 'ABANDONED'])('preserves actual stored %s and its bound review', async status => {
     mockHeader.mockResolvedValue(ok(header(status))); mockRpc.mockResolvedValue(ok(review([], status)));
     const result = await client.loadConversation(C);

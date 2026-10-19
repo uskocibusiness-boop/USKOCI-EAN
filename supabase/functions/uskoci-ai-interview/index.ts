@@ -32,6 +32,8 @@ import type { CatalogSnapshot } from '../_shared/classificationEngine.mjs';
 import { createClassificationExplorer, taxonomyToolDeclaration, type ClassificationExplorer } from '../_shared/classificationExplorer.mjs';
 import { generateGeminiToolConversation } from '../_shared/geminiToolConversation.ts';
 import { createTaxonomyProviderBudget } from '../_shared/taxonomyProviderBudget.ts';
+import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruction.mjs';
+import { decodeServiceHandoff } from '../_shared/serviceHandoff.mjs';
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
 import { withGeminiClassificationShadowSchema, inspectGeminiClassificationShadow, geminiClassificationShadowInstruction, classificationTurnFeedback } from '../_shared/classificationGeminiShadow.mjs';
 
@@ -81,7 +83,7 @@ type ParsedTurn = {
 const DIALOGUE_VALUES = {
   next: ['ASK', 'CLARIFY', 'REVIEW', 'ACK', 'ANSWER'],
   questionKey: ['', 'need.description', 'need.people_needed', 'need.price_mode', 'need.price_rsd', 'need.price_basis',
-    'need.schedule_kind', 'need.starts_at', 'need.ends_at', 'need.task_country_code', 'need.task_geography'],
+    'need.schedule_kind', 'need.starts_at', 'need.ends_at', 'need.task_country_code', 'need.task_geography', 'need.handoff'],
   taskRelation: ['CONTINUE', 'DIFFERENT_TASK', 'UNCLEAR'],
   priceUnit: ['WHOLE_JOB', 'PER_DAY', 'PER_HOUR', 'UNSPECIFIED'],
   schedulePattern: ['SINGLE', 'FLEXIBLE_RANGE', 'REPEATED', 'UNSPECIFIED'],
@@ -467,9 +469,9 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     'TOTAL dozvoljava prijavu i za deo traženih ljudi. Iznos prijave je round(ukupna cena zadatka × broj ljudi u prijavi / ukupno traženih ljudi), zaokružen jednom na najbliži ceo dinar. Za 9000 RSD i 3 osobe, jedna osoba dobija 3000 RSD; za 10000 RSD i 3 osobe, jedna dobija 3333, a dve 6667 RSD. Ne množite prethodno zaokruženu cenu za jednu osobu. need.price_rsd ostaje ukupna cena zadatka, ne iznos delimične prijave; ne menjajte sačuvane uslove Dogovora. PER_PERSON ostaje cena za ceo zadatak po osobi. Ovo objasnite samo kada je korisniku potrebno; ne pretvarajte objašnjenje u dodatno pitanje ili razlog za promenu osnove cene.',
     'Cena se odnosi na ceo obim posla, ukupno ili po osobi. Dnevnica ili satnica nije automatski cena za ceo zadatak. Kada korisnik navede cenu po danu/satu, prvo razjasnite obim i iznos za ceo posao; ne upisujte dnevnicu kao konačnu cenu. Odvojene dnevne smene ne predstavljajte kao neprekidan FIXED_WINDOW. Ne izmišljajte broj dana, trajanje ni ukupan iznos. Kada objašnjavate cenu po osobi, koristite tačan proizvod cene za ceo posao i broja ljudi; ne ponavljajte taj obračun u svakom odgovoru.',
     'need.schedule_kind može biti samo FIXED_WINDOW, FLEXIBLE, REMOTE_ANYTIME, TODAY_FLEXIBLE, TOMORROW_FLEXIBLE ili WEEK_FLEXIBLE. FIXED_WINDOW zahteva potvrđen starts_at. ends_at je opcion i popunjava se samo ako je korisnik zaista rekao završetak. Ako korisnik kaže sutra u 7, need.schedule_kind=FIXED_WINDOW i need.starts_at=sutra u 07:00 po server-vremenu; nikada TOMORROW_FLEXIBLE samo zato što je rekao sutra. TOMORROW_FLEXIBLE važi kada je naveden samo dan bez tačnog sata. Ne izmišljaj kraj ili trajanje. Kada su oba vremena navedena, kraj mora biti posle početka.',
-    'USKOČI ima DVE glavne grane zadataka: NA LOKACIJI ili NA DALJINU. To nije vrsta posla nego režim izvršenja. Ako korisnik izričito kaže da se zadatak obavlja onlajn/na daljinu, predloži need.task_geography.mode=REMOTE bez polazišta, odredišta i fizičkog pina. Ako mora da se dođe ili vozi, odaberi odgovarajući fizički režim. Ako isto zanimanje može i onlajn i na lokaciji, ne zaključuj režim samo iz need.category, nego pitaj šta korisnik želi. Kada korisnik potvrdi režim, ne prebacuj ga neprimetno u drugu granu. Vrsta usluge može imati više nivoa kategorije/potkategorije, bez zatvorenog spiska od 11, ali interni naziv need.category ostaje predlog korisniku i ne daje pravo na matching, objavu ili obaveštenje.',
+    'USKOČI ima DVE glavne grane zadataka: NA LOKACIJI ili NA DALJINU. To nije vrsta posla nego režim izvršenja. Ako se stvarni posao može obaviti bez dolaska izvođača i korisnik to traži, predloži need.task_geography.mode=REMOTE bez polazišta, odredišta i fizičkog pina. Ako je zahtev za daljinom u sukobu sa nužnim fizičkim dolaskom, razjasni sukob bez zamene posla savetovanjem. Ako mora da se dođe ili vozi, odaberi odgovarajući fizički režim. Ako isto zanimanje može i onlajn i na lokaciji, ne zaključuj režim samo iz need.category, nego pitaj šta korisnik želi. Kada korisnik potvrdi režim, ne prebacuj ga neprimetno u drugu granu. Vrsta usluge može imati više nivoa kategorije/potkategorije, bez zatvorenog spiska od 11, ali interni naziv need.category ostaje predlog korisniku i ne daje pravo na matching, objavu ili obaveštenje.',
     'need.task_geography.mode može biti STATIONARY, POINT_TO_POINT, MULTI_STOP, AREA_BASED ili REMOTE. Objekat sme imati samo mode/start/end/waypoints/serviceArea; lokacijske tačke samo label/city/area. REMOTE nema fizičke tačke. AREA_BASED koristi start ili serviceArea. Kada korisnik navede ulicu ili prepoznatljivo mesto za tačku rute, sačuvajte privacy-safe naziv ulice/POI bez kućnog broja u label ili area baš te start/end/waypoint tačke, uz poznati city, da mapa može da uokviri pravi kraj. Tačnu adresu sa kućnim brojem stavljajte isključivo u need.exact_address.',
-    'Razdvoji MESTO IZVRŠENJA od kasnije PREDAJE REZULTATA. Ako izvođač izrađuje predmet kod sebe ili uslugu obavlja onlajn, a gotov rezultat šalje naručiocu ili se preuzima u gradu, način izvršenja je REMOTE: grad isporuke/preuzimanja nije start, end, serviceArea niti pin rada. U need.description sačuvaj izričito pomenut način predaje običnim rečima, bez izmišljanja adrese. Ako način rada nije jasan, pitaj jedno kratko pitanje gde se stvarni rad odvija; ne pitaj za deo grada ili mapu samo zato što je naveden grad isporuke. Za zadatak koji se stvarno obavlja kod naručioca ili na ruti, koristi fizički režim i traži odgovarajuće mesto ili tačke rute.',
+    'Razdvoji MESTO IZVRŠENJA od kasnije PREDAJE REZULTATA. Ako izvođač izrađuje predmet kod sebe ili uslugu obavlja onlajn, a gotov rezultat šalje naručiocu ili se preuzima u gradu, način izvršenja je REMOTE: grad isporuke/preuzimanja nije start, end, serviceArea niti pin rada. Izričito pomenutu predaju sačuvaj u need.handoff kao strukturisano ograničenje; opis može objasniti stvarni obim, ali nije routing pravilo. Bez izmišljanja adrese ili područja slanja. Ako način rada nije jasan, pitaj jedno kratko pitanje gde se stvarni rad odvija; ne pitaj za deo grada ili mapu samo zato što je naveden grad isporuke. Za zadatak koji se stvarno obavlja kod naručioca ili na ruti, koristi fizički režim i traži odgovarajuće mesto ili tačke rute.',
     'Tačna privatna adresa/access notes nikada se ne prebacuju u javnu geography ili opis. Jedan need.exact_address nije dozvola da se privatna adresa pripiše polazištu druge route tačke; tačne route pinove korisnik potvrđuje na mapi.',
     'U ovoj test verziji identitet je samostalno naveden; provera dokumenta, selfija ili spoljnim KYC servisom nije dostupna. Ne predlažite need.verified_identity_required niti tvrdite da je bilo čiji identitet proveren. Ako korisnik traži provereni identitet, u odgovoru jasno objasnite da ta provera nije dostupna i da može nastaviti običnim Zadatkom. Nedostupni zahtev ne prenosite u naslov, opis, veštine ili bitne uslove kao da je ispunjen ili podržan. Postojeći takav uslov vlasnik uklanja izričitom ručnom ispravkom u pregledu.',
     `Jedini podržani V2 fact registry: ${JSON.stringify(registry)}`,
@@ -582,6 +584,7 @@ function valueMatchesContract(key: string, value: unknown): boolean {
   if (key === 'need.exact_address') return (value as string).trim().length <= 1000;
   if (key === 'need.access_notes') return (value as string).trim().length <= 2000;
   if (key === 'need.task_geography') return geographyValid(value);
+  if (key === 'need.handoff') return decodeServiceHandoff(value) !== null;
   return true;
 }
 
@@ -696,6 +699,25 @@ async function callGemini(
     if ('invalidPlanCodes' in checked && checked.invalidPlanCodes?.length)
       console.info('NEED_TAXONOMY_INVALID_PLAN_CLASS',checked.invalidPlanCodes.join(','));
     const turn=locationContext ? parseLocationOutput(checked.output,locationContext,parseV2Output) : parseV2Output(checked.output);
+    const effectiveFact=(key:string)=>turn.proposals.find((p:any)=>p.key===key)?.value
+      ?? activeFacts.find((f:any)=>f.fact_key===key&&f.status!=='UNKNOWN')?.fact_value;
+    const geography=effectiveFact('need.task_geography');
+    const handoff=decodeServiceHandoff(effectiveFact('need.handoff'));
+    // The typed owner fact, not a second metadata claim, is the task source.
+    // Preserve useful facts when a provider hint conflicts; withhold that hint.
+    // A stale REMOTE handoff fact is irrelevant after a physical-mode change.
+    checked.reviewProposals=checked.reviewProposals.flatMap((hint:any)=>{
+      const {handoff:proposedHandoff,...rest}=hint;
+      if(hint.mode!=='REMOTE'||geography&&geography.mode!=='REMOTE')return [rest];
+      if(Object.hasOwn(hint,'handoff')&&(!handoff||
+          JSON.stringify(decodeServiceHandoff(proposedHandoff))!==JSON.stringify(handoff))){
+        const issue={service:hint.service,mode:hint.mode,action:hint.action,code:'HANDOFF_SOURCE_MISMATCH',
+          resolution:'RETRY',question:null};
+        checked.issues=[...('issues' in checked?checked.issues:[]),issue];
+        return [];
+      }
+      return [{...rest,...(handoff?{handoff}:{})}];
+    });
     const proposedCategory=turn.proposals.find((p:any)=>p.key==='need.category');
     const category=proposedCategory ? proposedCategory.value : activeFacts.find((f:any)=>f.fact_key==='need.category')?.fact_value;
     const feedback=classificationTurnFeedback(checked,{purpose:'NEED_SERVICE',
@@ -705,7 +727,7 @@ async function callGemini(
   };
   const instruction = schemaVersion === NEED_FACT_SCHEMA_V2 ? v2Instruction(activeFacts, timeContext, taskFinishOnly(text) && !locationContext) : legacyInstruction(activeFacts, timeContext);
   const payloadBody = JSON.stringify({
-    systemInstruction: { parts: [{ text: instruction }, ...(locationContext ? [{ text: locationInstruction(locationContext) }] : []), ...(taxonomyPrompt ? [{text: taxonomyPrompt},{text:geminiClassificationShadowInstruction()}] : [])] },
+    systemInstruction: { parts: [{ text: instruction }, { text: serviceExecutionInstruction('NEED_SERVICE') }, ...(locationContext ? [{ text: locationInstruction(locationContext) }] : []), ...(taxonomyPrompt ? [{text: taxonomyPrompt},{text:geminiClassificationShadowInstruction()}] : [])] },
     contents,
     generationConfig: { temperature: 0.2, maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
       responseMimeType: 'application/json', responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? (taxonomyExplorer ? withGeminiClassificationShadowSchema(locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : legacyProviderSchema() },
@@ -900,6 +922,10 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
   if (contextualLocation) {
     const effectiveGeography = proposals.find(p => p.key === 'need.task_geography')?.value
       ?? activeFacts.find(f => f.fact_key === 'need.task_geography' && f.status !== 'UNKNOWN')?.fact_value;
+    const effectiveHandoff = proposals.find(p => p.key === 'need.handoff')?.value
+      ?? activeFacts.find(f => f.fact_key === 'need.handoff' && f.status !== 'UNKNOWN')?.fact_value;
+    if(dialogue?.next==='REVIEW'&&(effectiveGeography as any)?.mode==='REMOTE'&&!decodeServiceHandoff(effectiveHandoff))
+      return {...turn,proposals,assistantMessage:'Kako preuzimaš rezultat — digitalno, slanjem u koju državu ili lično u kom gradu?'};
     // A REVIEW plan cannot skip the visible, still unconfirmed map step.
     // Direct explanations and genuine confirmations retain their own response.
     const pendingMapReview = dialogue?.next === 'REVIEW' && turn.locationAction !== 'CONFIRM_DISPLAYED'
@@ -916,14 +942,16 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     ...(facts.get('need.price_mode') === 'MY_PRICE' ? ['need.price_rsd', ...(Number(facts.get('need.people_needed')) > 1 ? ['need.price_basis'] : [])] : []),
     'need.schedule_kind', ...(facts.get('need.schedule_kind') === 'FIXED_WINDOW' ? ['need.starts_at'] : []),
     'need.task_country_code', 'need.task_geography',
+    ...((facts.get('need.task_geography') as any)?.mode==='REMOTE'&&!decodeServiceHandoff(facts.get('need.handoff'))?['need.handoff']:[]),
     ...Object.entries(NEED_FACT_V2_DEFINITIONS).filter(([, definition]) => definition.requiredForDraft).map(([key]) => key)])]
-    .filter(key => !facts.has(key));
+    .filter(key => !facts.has(key) || key==='need.handoff'&&!decodeServiceHandoff(facts.get(key)));
   const questions: Record<string, string> = {
     'need.description': 'Šta treba da se uradi?', 'need.people_needed': 'Koliko ljudi ti treba?',
     'need.price_mode': 'Želiš da navedeš cenu ili da dobiješ ponude?', 'need.price_rsd': 'Koju cenu nudiš za ceo posao?',
     'need.price_basis': 'Da li je navedena cena ukupno za ceo posao ili po osobi?', 'need.schedule_kind': 'Kada treba da se uradi?',
     'need.starts_at': 'Kog datuma i u koliko sati posao počinje?', 'need.ends_at': 'Kada se posao završava?',
     'need.task_country_code': 'U kojoj državi je zadatak?', 'need.task_geography': 'Gde treba da se uradi?',
+    'need.handoff': 'Kako preuzimaš rezultat — digitalno, slanjem u koju državu ili lično u kom gradu?',
   };
   const incompleteMessage = () => {
     const key = missing.find(key => questions[key]);

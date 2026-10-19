@@ -37,7 +37,7 @@ function fixture(purpose,options={}){
   const skills=options.noServices?[]:[service];
   const context={schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:2,
     candidate:{skills,bio:'Stari opis',availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},
-    serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:2,savedServices:options.saved?[{service,categoryId,mode:'REMOTE'}]:[],
+    serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:2,savedServices:options.saved?[{service,categoryId,mode:'REMOTE',...(options.savedHandoff?{handoff:options.savedHandoff}:{})}]:[],
       draftServices:[],unresolvedServices:options.saved?[]:skills},messages:[{role:'USER',body:options.text??'Dopuni samo opis profila.'}]};
   const output=worker
     ? {safety:'ALLOW',assistantMessage:'Opis je u nacrtu.',patch:{bio:'Dopunjen opis'},availabilityChange:{kind:'NONE',evidence:''},...options.output}
@@ -120,6 +120,79 @@ const provider=f=>f.calls.filter(c=>c.url.startsWith('https://generativelanguage
 const complete=f=>f.calls.find(c=>/\/rpc_(?:complete_worker_ai_turn|ai_complete_need_(?:location_turn_v1|turn_v2))_service$/.test(c.url));
 const capture=f=>f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
 const writtenMessage=f=>complete(f).body.p_output?.assistantMessage??complete(f).body.p_assistant_message;
+
+const pickupOnly={required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}};
+const handoffFact=value=>({...activeFact('need.handoff',value),value_type:'OBJECT'});
+const remoteFact={...activeFact('need.task_geography',{mode:'REMOTE'}),value_type:'OBJECT'};
+
+for(const handoff of [undefined,{required:false},pickupOnly])test('remote ready transition requires a typed handoff without inferring it: '+JSON.stringify(handoff),async()=>{
+  const facts=[['need.title','Izrada'],['need.description','Izrada prema priloženom crtežu.'],['need.category',service],
+    ['need.people_needed',1],['need.price_mode','OFFERS'],['need.schedule_kind','REMOTE_ANYTIME'],['need.task_country_code','RS']]
+    .map(([key,value])=>activeFact(key,value));
+  const f=fixture('NEED_SERVICE',{activeFacts:[...facts,remoteFact,...(handoff===undefined?[]:[handoffFact(handoff)])],
+    output:{assistantMessage:'Otvori pregled zadatka.',dialogue:dialogue('REVIEW')}});
+  await f.invoke();assert.deepEqual(complete(f).body.p_proposals,[],'the guard cannot invent no physical exchange');
+  if(handoff===undefined)assert.match(writtenMessage(f),/Kako preuzimaš rezultat/);
+  else {assert.doesNotMatch(writtenMessage(f),/Kako preuzimaš rezultat/);assert.match(writtenMessage(f),/pregled/);}
+});
+
+test('worker handoff-only change preserves the current mode and reaches capture with owned evidence',async()=>{
+  const text='Od sada ove figure šaljem i u Nemačku.';
+  const shipping={required:true,shippingCountries:['RS','DE']};
+  const f=fixture('WORKER_CAPABILITY',{saved:true,savedHandoff:pickupOnly,text,output:{
+    classificationShadowJson:JSON.stringify([proposal({handoff:shipping})]),
+    serviceModeChangesJson:JSON.stringify([{service,modes:['REMOTE'],handoff:shipping,evidence:text}])}});
+  await f.invoke();assert.equal(capture(f).length,1);assert.equal(provider(f).length,1);
+  assert.deepEqual(capture(f)[0].body.p_proposals[0].handoff,shipping);assert.equal(capture(f)[0].body.p_proposals[0].mode,'REMOTE');
+  assert.ok(!f.calls.some(c=>/save_worker|set_worker_execution_modes/.test(c.url)));
+});
+
+test('unfulfilled worker handoff correction cannot present a ready review despite valid service identity',async()=>{
+  const text='Od sada ove figure šaljem i u Nemačku.';
+  const f=fixture('WORKER_CAPABILITY',{saved:true,savedHandoff:pickupOnly,text,output:{assistantMessage:'Otvori pregled profila.',
+    classificationShadowJson:JSON.stringify([proposal({handoff:pickupOnly})]),
+    serviceModeChangesJson:JSON.stringify([{service,modes:['REMOTE'],handoff:{required:true,shippingCountries:['RS','DE']},evidence:text}])}});
+  await f.invoke();assert.deepEqual(capture(f)[0].body.p_proposals[0].handoff,pickupOnly);
+  assert.match(writtenMessage(f),/nije provereno|čeka proveru/);assert.equal(provider(f).length,1);
+});
+
+for(const currentTurn of [false,true])test('task remote handoff comes from the exact typed fact, currentTurn='+currentTurn,async()=>{
+  const facts=currentTurn?[{key:'need.handoff',valueJson:JSON.stringify(pickupOnly),displayValue:'Lično preuzimanje: Novi Sad (RS)',
+    evidence:'Samo lično preuzimanje u Novom Sadu.',confidence:1}]:[];
+  const f=fixture('NEED_SERVICE',{activeFacts:[activeFact('need.category',service),remoteFact,...(currentTurn?[]:[handoffFact(pickupOnly)])],
+    text:'Samo lično preuzimanje u Novom Sadu.',output:{facts}});
+  await f.invoke();assert.equal(provider(f).length,1);assert.equal(capture(f).length,1);
+  assert.deepEqual(capture(f)[0].body.p_proposals[0].handoff,pickupOnly,'missing duplicate metadata inherits only the owned typed fact');
+  assert.equal(complete(f).body.p_proposals.length,currentTurn?1:0);
+  if(currentTurn)assert.deepEqual(complete(f).body.p_proposals[0].value,pickupOnly);
+  const instructions=provider(f)[0].body.systemInstruction.parts.map(part=>part.text).join(' ');
+  assert.match(instructions,/only ON_SITE and REMOTE/);assert.match(instructions,/REMOTE alone never means shipping everywhere/);
+});
+
+test('task conflicting metadata cannot widen a pickup-only fact and never discards ordinary useful facts',async()=>{
+  const f=fixture('NEED_SERVICE',{activeFacts:[activeFact('need.category',service),remoteFact,handoffFact(pickupOnly)],
+    output:{facts:[{key:'need.description',valueJson:JSON.stringify('Tri drvene figure.'),displayValue:'Tri drvene figure.',evidence:'Tri figure',confidence:1}],
+      classificationShadowJson:JSON.stringify([proposal({handoff:{required:false}})])}});
+  await f.invoke();assert.equal(capture(f).length,0);assert.equal(provider(f).length,1);
+  assert.equal(complete(f).body.p_proposals[0].value,'Tri drvene figure.');
+  assert.match(writtenMessage(f),/nije provereno|čeka proveru/);
+});
+
+test('task unknown physical handoff is not replaced with provider metadata alone',async()=>{
+  const f=fixture('NEED_SERVICE',{activeFacts:[activeFact('need.category',service),remoteFact],
+    output:{classificationShadowJson:JSON.stringify([proposal({handoff:pickupOnly})])}});
+  await f.invoke();assert.equal(capture(f).length,0);assert.deepEqual(complete(f).body.p_proposals,[]);
+});
+
+test('changing task to onsite ignores a previous remote handoff without erasing it or blocking valid classification',async()=>{
+  const geo={mode:'STATIONARY',start:{city:'Novi Sad',label:'Centar'}};
+  const f=fixture('NEED_SERVICE',{onSite:true,activeFacts:[activeFact('need.category',service),remoteFact,handoffFact(pickupOnly)],
+    text:'Potrebno je doći i montirati figure u centru Novog Sada.',output:{facts:[{key:'need.task_geography',valueJson:JSON.stringify(geo),
+      displayValue:'Novi Sad, centar',evidence:'Montirati u centru Novog Sada.',confidence:1}],
+      classificationShadowJson:JSON.stringify([proposal({mode:'ON_SITE'})])}});
+  await f.invoke();assert.equal(capture(f).length,1);assert.equal(Object.hasOwn(capture(f)[0].body.p_proposals[0],'handoff'),false);
+  assert.deepEqual(complete(f).body.p_proposals.map(fact=>fact.key),['need.task_geography']);
+});
 
 for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE'])test(purpose+' retrieves the last of 131 nodes through a read-only tool and captures only verified final hints',async()=>{
   const output=purpose==='WORKER_CAPABILITY'?{patch:{skills:[service]}}:{facts:[{key:'need.category',valueJson:JSON.stringify(service),displayValue:service,evidence:service,confidence:1}]};

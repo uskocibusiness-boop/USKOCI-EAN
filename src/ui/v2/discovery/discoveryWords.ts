@@ -38,8 +38,8 @@ export const offMapWords = (count: number) => plural(count, 'nije na mapi', 'nis
  */
 export const SEARCH_WORDS = { what: 'Grad ili zadatak', whatPlaceholder: 'Grad ili naziv zadatka', where: 'Gde', recent: 'Skorašnje pretrage',
   searchTitle: 'Pretraga', filtersTitle: 'Filteri', all: 'Svi zadaci', remote: 'Na daljinu',
-  /** While the work done remotely is chosen there are no places to choose: it has none, and the way to a city is "Svi zadaci". */
-  remoteNote: 'Zadaci na daljinu nemaju mesto. Izaberi „Svi zadaci“ da biraš grad.' } as const;
+  /** City search locates the work itself; the separate handoff can still name a city. */
+  remoteNote: 'Bez dolaska kod naručioca: onlajn ili rad kod izvršioca. Uslove slanja ili preuzimanja pogledaj u zadatku.' } as const;
 export const FILTER_GROUP = { when: 'Kada', where: 'Gde', amount: 'Iznos' } as const;
 /** Where the list is narrowed to one public point (a place's "Prikaži sve u listi"). */
 export const PIN_PLACE = 'Na ovom mestu';

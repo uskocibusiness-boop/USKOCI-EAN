@@ -16,6 +16,15 @@ const priceModeFact: AiNeedV2Fact = {
   evidence: 'ponude',
 };
 
+it('formats handoff from typed facts, leaves unknown unknown and offers no manual form', () => {
+  const handoff: AiNeedV2Fact={...priceModeFact,key:'need.handoff',valueType:'OBJECT',requiredForDraft:false,
+    value:{required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}},displayValue:'FAKE DELIVERY ANYWHERE'};
+  expect(factReviewValue(handoff)).toBe('Lično preuzimanje: Novi Sad (RS)');
+  expect(factReviewValue({...handoff,value:{required:false}})).toBe('Bez fizičke predaje');
+  expect(factReviewValue({...handoff,value:undefined})).toBe('Predaja još nije razjašnjena');
+  expect(factEditorKind(handoff)).toBe('none');
+});
+
 describe('Need V2 price-mode retirement', () => {
   it('accepts only current MY_PRICE/OFFERS aliases', () => {
     expect(correctionFromText(priceModeFact, 'moja cena')).toEqual({

@@ -110,6 +110,18 @@ const signedWorkerReview=()=>({
   reviewedServiceModes:[{service:'Prenos',mode:'ON_SITE' as const}],
   classificationCatalogVersion:3,classificationCatalogFingerprint:'c'.repeat(32),
 });
+it('preserves signed per-service handoff and exact category witness without widening the worker modes',()=>{
+ const handoff={required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}};
+ const base=signedWorkerReview();
+ const candidate={...base.classificationCandidates[0],action:'EXTEND_MODE',mode:'REMOTE',categoryLabel:'Prenos',categoryParentId:null,handoff};
+ const signed={...base,reviewedServiceModes:[{service:'Prenos',mode:'REMOTE'}],classificationCandidates:[candidate]};
+ expect(decodeWorkerAiReview(signed,OWNER,CONVERSATION)).toMatchObject({reviewedServiceModes:signed.reviewedServiceModes,classificationCandidates:[candidate]});
+ for(const patch of [{categoryLabel:undefined},{categoryParentId:'bad'},{handoff:{required:true}},{handoff:{...handoff,exactAddress:'PRIVATE 42'}}])
+   expect(decodeWorkerAiReview({...signed,classificationCandidates:[{...candidate,...patch}]},OWNER,CONVERSATION)).toBeNull();
+ expect(decodeWorkerAiReview({...signed,reviewedServiceModes:[{service:'Prenos',mode:'ON_SITE'}],
+   classificationCandidates:[{...candidate,mode:'ON_SITE'}]},OWNER,CONVERSATION)).toBeNull();
+ expect(mockRpc).not.toHaveBeenCalled();
+});
 it('accepts signed ON_SITE scope for the actual visible worker skill and preserves one Save',async()=>{
  const signed=signedWorkerReview();
  expect(decodeWorkerAiReview(signed,OWNER,CONVERSATION)).toEqual(signed);

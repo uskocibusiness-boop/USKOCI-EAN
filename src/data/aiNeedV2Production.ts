@@ -5,6 +5,7 @@ import type {
   AiNeedTurnReceipt, AiNeedTurnStatus, AiNeedTurnRecovery, AiNeedV2Conversation, AiNeedV2Fact, AiNeedV2Review,
 } from '../contracts/aiNeedV2';
 import { MAX_NEED_FACT_V2_PAYLOAD, NEED_FACT_SCHEMA_V2, NEED_FACT_V2_DEFINITIONS, isNeedFactV2Key } from '../contracts/needFactsV2';
+import { decodeServiceHandoff } from '../contracts/serviceHandoff';
 import type { Ishod } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 import { listOpenIntakes } from './aiOpenIntakes';
@@ -237,6 +238,7 @@ function validFactValue(key: AiNeedV2Fact['key'], value: unknown): boolean {
   }
   if (key === 'need.task_country_code') return typeof value === 'string' && countryCode(value) === value;
   if (key === 'need.task_geography') return normalizeTaskGeography(value) !== null;
+  if (key === 'need.handoff') return decodeServiceHandoff(value) !== null;
   if (key === 'need.resolved_location') {
     const resolved = record(value);
     return !!resolved && !!normalizeNeedLocation({ ...record(resolved.binding), accessNotes: null, resolvedLocation: value })?.resolvedLocation;

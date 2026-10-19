@@ -1,4 +1,5 @@
-export type WorkerServiceMode = { service: string; mode: 'REMOTE' | 'ON_SITE'; categoryId: string };
+import type { ServiceHandoff } from './serviceHandoff.mjs';
+export type WorkerServiceMode = { service: string; mode: 'REMOTE' | 'ON_SITE'; categoryId: string; handoff?: ServiceHandoff };
 export type WorkerServiceModeContext = {
   schemaVersion: 'WORKER_SERVICE_MODE_CONTEXT_V1'; revision: number;
   savedServices: WorkerServiceMode[]; draftServices: WorkerServiceMode[]; unresolvedServices: string[];
@@ -9,4 +10,4 @@ export function workerServiceModeInstruction(context: WorkerServiceModeContext):
 export function preserveWorkerServiceModes(input: {
   raw: Record<string, any>; hints: Record<string, any>[]; context: Record<string, any>;
   modeContext: WorkerServiceModeContext; catalog: any;
-}): { output: Record<string, any>; hints: Record<string, any>[]; preserved: boolean; preservedServices: string[] };
+}): { output: Record<string, any>; hints: Record<string, any>[]; preserved: boolean; preservedServices: string[]; unresolvedChanges: string[] };

@@ -1,4 +1,5 @@
 import { isNeedFactV2Key, MAX_NEED_FACT_V2_PAYLOAD, NEED_FACT_V2_DEFINITIONS } from '../contracts/needFactsV2';
+import { decodeServiceHandoff } from '../contracts/serviceHandoff';
 import { positiveInteger, record, timestamp } from './serverReceipt';
 import { supportKinds, type SupportDetail, type SupportInbox, type SupportMode, type SupportSnapshot } from './supportCaseTypes';
 import { decodeSupportReference, supportEnvelope, supportKeys as keys, supportSequence as sequence, supportUuid as uuid } from './supportCaseWire';
@@ -36,6 +37,7 @@ function publicFacts(value: unknown) {
     if (kind === 'INTEGER') return typeof v === 'number' && Number.isSafeInteger(v) && v >= (f.key === 'need.minimum_experience_years' ? 0 : 1)
       && v <= (f.key === 'need.price_rsd' ? 100_000_000 : f.key === 'need.people_needed' ? 50 : 60);
     if (kind === 'TIMESTAMPTZ') return timestamp(v);
+    if (f.key === 'need.handoff') return decodeServiceHandoff(v) !== null;
     if (f.key === 'need.price_mode') return member(v, ['FASTEST', 'MY_PRICE', 'OFFERS']);
     if (f.key === 'need.schedule_kind') return member(v, ['FIXED_WINDOW', 'FLEXIBLE', 'REMOTE_ANYTIME', 'TODAY_FLEXIBLE', 'TOMORROW_FLEXIBLE', 'WEEK_FLEXIBLE']);
     if (kind !== 'OBJECT') return str(v, 6000);

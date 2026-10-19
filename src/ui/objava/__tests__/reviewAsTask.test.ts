@@ -13,6 +13,16 @@ type Fact = ReviewSource['publicProjection'][number];
 const fact = (key: NeedFactV2Key, value: unknown, extra: Partial<Fact> = {}): Fact => ({ key, value, privacyClass: 'PUBLIC', status: 'CONFIRMED', ...extra });
 const review = (facts: Fact[], patch: Partial<ReviewSource> = {}): ReviewSource => ({ reviewId: 'review-1', draftId: null, responseDeadline: null, location: null,
   publicProjection: facts, ...patch });
+
+it('shows the exact handoff condition in the public review without inventing a work pin or shipping', () => {
+  const handoff={required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}};
+  const task=reviewAsTask(review([fact('need.task_geography',{mode:'REMOTE'}),fact('need.handoff',handoff)]));
+  expect(task.detalji?.zahtevi.bitniUslovi).toEqual(['Predaja: Lično preuzimanje: Novi Sad (RS)']);
+  expect(task.priblizno).toBeNull();expect(task.detalji?.geografija).toEqual({mode:'REMOTE'});
+  expect(JSON.stringify(task)).not.toContain('Slanje');
+  expect(reviewAsTask(review([fact('need.handoff',handoff,{status:'UNKNOWN'})])).detalji?.zahtevi.bitniUslovi).toBeNull();
+  expect(reviewAsTask(review([fact('need.handoff',handoff,{privacyClass:'PRIVATE'})])).detalji?.zahtevi.bitniUslovi).toBeNull();
+});
 const STATIONARY: NeedTaskGeography = { mode: 'STATIONARY', start: { city: 'Novi Sad', area: 'Detelinara', label: 'Lenke Dunđerski' } };
 const placed = (geography: NeedTaskGeography, points: { slot: 'start' | 'end' | 'serviceArea'; latitudeE6: number; longitudeE6: number }[],
   exactAddress: string | null = 'Bulevar Evrope 24, stan 7'): NeedLocationInput => ({ taskCountryCode: 'RS', geography, exactAddress, accessNotes: 'Interfon 7',

@@ -1,4 +1,5 @@
 import type { CatalogSnapshot, ClassificationPurpose } from './classificationEngine.mjs';
+import type { ServiceHandoff } from './serviceHandoff.mjs';
 export type ClassificationIssue = {
   service: string | null;
   mode: 'ON_SITE' | 'REMOTE' | 'UNCONFIRMED' | null;
@@ -8,9 +9,10 @@ export type ClassificationIssue = {
   question: string | null;
 };
 export type ClassificationInspection = { output: unknown; statuses: string[]; invalidPlanCodes: string[]; issues: ClassificationIssue[]; reviewProposals: Array<{
-  service: string; mode: 'ON_SITE' | 'REMOTE'; action: 'REUSE_EXISTING' | 'CREATE_CHILD' | 'CREATE_NEW_BRANCH';
+  service: string; mode: 'ON_SITE' | 'REMOTE'; action: 'REUSE_EXISTING' | 'CREATE_CHILD' | 'CREATE_NEW_BRANCH' | 'EXTEND_MODE';
   categoryId: string; parentId: string; proposedPath: string[];
   reason: string; catalogVersion: number;
+  handoff?: ServiceHandoff;
 }> };
 export declare function withGeminiClassificationShadowSchema<T extends { type: string; properties: Record<string, unknown>; required?: string[] }>(baseSchema: T, purpose?: ClassificationPurpose): T;
 export declare function geminiClassificationShadowInstruction(purpose?: ClassificationPurpose): string;

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { serviceHandoffText } from '../../contracts/serviceHandoff';
 import { StyleSheet, View } from 'react-native';
 import type { WorkerAiProfile, WorkerAiReview } from '../../data/workerAiClientService';
 import { T } from '../Text';
@@ -141,9 +142,12 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
         // Scope shown here is part of the server-digested review, not a client
         // inference or a second approval form. Unclassified skills show no fake scope.
         const scopes=confirmedModes.filter(item=>item.service===skill).map(item=>item.mode==='ON_SITE'?'Na lokaciji':'Na daljinu');
+        const handoff=review.classificationState==='READY'
+          ?serviceHandoffText(review.classificationCandidates?.find(item=>item.service===skill&&item.mode==='REMOTE')?.handoff):null;
         return <View key={`${index}:${skill}`} testID="worker-review-service" style={s.service}>
           <T selectable variant="body" style={s.ink}>{skill}</T>
           {scopes.length?<T variant="note" tone="muted">{scopes.join(' · ')}</T>:null}
+          {handoff?<T testID="worker-review-handoff" variant="note" tone="muted">Predaja: {handoff}</T>:null}
         </View>;
       })}</View>:<T variant="body" tone="muted">{EMPTY}</T>}
       {review.classificationState&&review.classificationState!=='READY'
@@ -163,7 +167,7 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
           ?`${place} · do ${p.location.radiusKm} km`
           :`${place} · grad profila`
         :EMPTY}</Fact>
-      {remote?<T variant="note" tone="muted">Rad na daljinu nije vezan za grad profila.</T>:null}
+      {remote?<T variant="note" tone="muted">Posao radiš bez dolaska kod naručioca: onlajn ili kod sebe.</T>:null}
       {onSite&&point?<ResolvedPinMap coarse disabled height={220} position={point}
         scopeKey={`worker-review:${review.accountId}:${review.profileId}:${review.reviewId}:${review.revision}`}
         onChoose={()=>{ /* Frozen review, never a location editor. */ }}/>:null}

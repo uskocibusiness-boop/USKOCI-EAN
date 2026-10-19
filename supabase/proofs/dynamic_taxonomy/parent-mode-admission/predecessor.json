@@ -1,0 +1,178 @@
+{
+  "schemaVersion": "PARENT_MODE_PREDECESSOR_V1",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "sourceHead": "80d7a3e0",
+  "capture": "READ_ONLY_LIVE_DEFINITIONS",
+  "functions": [
+    {
+      "signature": "private.taxonomy_admission_fingerprint_v1()",
+      "namespace": "private",
+      "name": "taxonomy_admission_fingerprint_v1",
+      "definition_md5": "4d0ef4615b244b3a8468f54d04ccf855",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "security_definer": false,
+      "volatility": "s"
+    },
+    {
+      "signature": "private.taxonomy_ai_catalog_context_v1(text,integer,text)",
+      "namespace": "private",
+      "name": "taxonomy_ai_catalog_context_v1",
+      "definition_md5": "0c418436bd08f75c3179c80b34a2ad23",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "security_definer": false,
+      "volatility": "s"
+    },
+    {
+      "signature": "private.taxonomy_review_candidate_projection_v2(text,jsonb,jsonb,uuid,uuid)",
+      "namespace": "private",
+      "name": "taxonomy_review_candidate_projection_v2",
+      "definition_md5": "925edfe39e5d384ef136b5e8b8df8502",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "security_definer": false,
+      "volatility": "s"
+    },
+    {
+      "signature": "private.taxonomy_review_exact_projection_v1(text,jsonb,jsonb)",
+      "namespace": "private",
+      "name": "taxonomy_review_exact_projection_v1",
+      "definition_md5": "a461fef793d82272e73ecdaeab7f4121",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "security_definer": false,
+      "volatility": "s"
+    },
+    {
+      "signature": "private.taxonomy_risk_triage_v1(text)",
+      "namespace": "private",
+      "name": "taxonomy_risk_triage_v1",
+      "definition_md5": "d219247f7b98a5f1d69f70a6affc6082",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "security_definer": false,
+      "volatility": "s"
+    },
+    {
+      "signature": "private.taxonomy_scope_eligible_v1(uuid,uuid)",
+      "namespace": "private",
+      "name": "taxonomy_scope_eligible_v1",
+      "definition_md5": "e3007d8a8dc5fdb25d6de97457ac5594",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres}",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "security_definer": false,
+      "volatility": "s"
+    },
+    {
+      "signature": "rpc_taxonomy_bind_reviewed_need_service(uuid,uuid,uuid,uuid,integer)",
+      "namespace": "public",
+      "name": "rpc_taxonomy_bind_reviewed_need_service",
+      "definition_md5": "5b736e015fc6556cf70aa955b18cc7ba",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "security_definer": true,
+      "volatility": "v"
+    },
+    {
+      "signature": "rpc_taxonomy_bind_reviewed_worker_service(uuid,uuid,uuid,uuid)",
+      "namespace": "public",
+      "name": "rpc_taxonomy_bind_reviewed_worker_service",
+      "definition_md5": "c71b295abe45c81036bc95679a38b00c",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "security_definer": true,
+      "volatility": "v"
+    },
+    {
+      "signature": "rpc_taxonomy_capture_gemini_turn_hints_service(uuid,uuid,uuid,uuid,uuid,text,bigint,jsonb)",
+      "namespace": "public",
+      "name": "rpc_taxonomy_capture_gemini_turn_hints_service",
+      "definition_md5": "1a4e333d1e46132f6368d9b1e9b55c12",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "security_definer": true,
+      "volatility": "v"
+    },
+    {
+      "signature": "rpc_taxonomy_commit_admission_service(uuid)",
+      "namespace": "public",
+      "name": "rpc_taxonomy_commit_admission_service",
+      "definition_md5": "09fba33ef3e4842c9e796eb9de45e1eb",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "security_definer": true,
+      "volatility": "v"
+    },
+    {
+      "signature": "rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)",
+      "namespace": "public",
+      "name": "rpc_taxonomy_commit_reviewed_batch_service",
+      "definition_md5": "567166002402129c9e092a0618bcc9f0",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "security_definer": true,
+      "volatility": "v"
+    },
+    {
+      "signature": "rpc_taxonomy_prepare_admission_service(uuid,uuid,text,uuid,jsonb)",
+      "namespace": "public",
+      "name": "rpc_taxonomy_prepare_admission_service",
+      "definition_md5": "c2b2bc625f174bdcf7ad77558c540108",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "security_definer": true,
+      "volatility": "v"
+    },
+    {
+      "signature": "rpc_taxonomy_query_catalog_service(jsonb)",
+      "namespace": "public",
+      "name": "rpc_taxonomy_query_catalog_service",
+      "definition_md5": "0ee1acaf61b8fdc2f0ae63cf46c86399",
+      "owner": "postgres",
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "config": [
+        "search_path=pg_catalog",
+        "statement_timeout=5s"
+      ],
+      "security_definer": false,
+      "volatility": "s"
+    }
+  ]
+}

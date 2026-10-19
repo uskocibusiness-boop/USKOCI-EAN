@@ -15,6 +15,7 @@ import { GeminiCreditsUnavailableError, streamGeminiTask, type GeminiUsage } fro
 import { createClassificationExplorer, taxonomyToolDeclaration } from '../_shared/classificationExplorer.mjs';
 import { generateGeminiToolConversation } from '../_shared/geminiToolConversation.ts';
 import { createTaxonomyProviderBudget } from '../_shared/taxonomyProviderBudget.ts';
+import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruction.mjs';
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
 import { withGeminiClassificationShadowSchema, inspectGeminiClassificationShadow, geminiClassificationShadowInstruction, workerFinishReviewMessage, classificationTurnFeedback } from '../_shared/classificationGeminiShadow.mjs';
 import { withClassificationFeedback } from '../_shared/classificationReply.mjs';
@@ -226,7 +227,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     catch { await fail(); return json(503,{code:'WORKER_AI_NOT_CONFIRMED'}); }
   }
   const history=context.messages.slice(-30).map((row:any)=>({role:row.role==='ASSISTANT'?'model':'user',parts:[{text:String(row.body).slice(0,4000)}]}));
-  const body=JSON.stringify({systemInstruction:{parts:[{text:instruction(context,new Date().toISOString())}, ...(taxonomyPrompt ? [{text: taxonomyPrompt},{text:geminiClassificationShadowInstruction('WORKER_CAPABILITY')}] : []),
+  const body=JSON.stringify({systemInstruction:{parts:[{text:instruction(context,new Date().toISOString())}, {text:serviceExecutionInstruction('WORKER_CAPABILITY')}, ...(taxonomyPrompt ? [{text: taxonomyPrompt},{text:geminiClassificationShadowInstruction('WORKER_CAPABILITY')}] : []),
     ...(serviceModeContext ? [{text:workerServiceModeInstruction(serviceModeContext)}] : [])]},contents:history,
     generationConfig:{temperature:0.2,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,responseMimeType:'application/json',responseSchema:explorer ? workerServiceModeSchema(withGeminiClassificationShadowSchema(workerProviderSchema(),'WORKER_CAPABILITY')) : workerProviderSchema()}});
   if (new TextEncoder().encode(body).byteLength>AI_TEST_LIMITS.llmRequestBytes) { try { await fail(); } catch {} return json(413,{code:'WORKER_AI_CONTEXT_TOO_LARGE'}); }
@@ -323,6 +324,9 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         if (serviceModeContext && taxonomyCatalog) {
           const guarded=preserveWorkerServiceModes({raw:{...output,serviceModeChangesJson},hints:reviewHints,context,modeContext:serviceModeContext,catalog:taxonomyCatalog});
           output=guarded.output; reviewHints=guarded.hints; preservedServices=guarded.preservedServices;
+          if(guarded.unresolvedChanges.length)classificationInspection={...classificationInspection,
+            issues:[...(classificationInspection?.issues??[]),...guarded.unresolvedChanges.map(service=>({
+              service,mode:null,action:null,code:'REQUESTED_SCOPE_CHANGE_UNRESOLVED',resolution:'RETRY',question:null}))]};
           if (guarded.preserved) console.info('WORKER_TAXONOMY_MODE_CONTEXT','PRESERVED');
         }
         if (finishOnly(input.text) && ['ALLOW','CLARIFY'].includes(output.safety)) {

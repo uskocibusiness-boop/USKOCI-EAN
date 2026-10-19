@@ -31,7 +31,10 @@ export function loadOwnedIntakeHandler(options){
  const location=historical?null:evaluate('supabase/functions/_shared/locationReply.ts',()=>assert.fail('UNDECLARED_LOCATION_IMPORT'));
  const taxonomy=historical?null:evaluate('supabase/functions/_shared/taxonomyScopedShadow.mjs',()=>assert.fail('UNDECLARED_TAXONOMY_IMPORT'));
  const classification=historical?null:evaluate('supabase/functions/_shared/classificationEngine.mjs',()=>assert.fail('UNDECLARED_CLASSIFICATION_IMPORT'));
+ const handoff=historical?null:evaluate('supabase/functions/_shared/serviceHandoff.mjs',()=>assert.fail('UNDECLARED_HANDOFF_IMPORT'));
+ const execution=historical?null:evaluate('supabase/functions/_shared/serviceExecutionInstruction.mjs',()=>assert.fail('UNDECLARED_EXECUTION_IMPORT'));
  const classificationShadow=historical?null:evaluate('supabase/functions/_shared/classificationGeminiShadow.mjs',name=>{
+  if(name==='./serviceHandoff.mjs')return handoff;
   assert.equal(name,'./classificationEngine.mjs');return classification;
  });
  const stream=evaluate('supabase/functions/_shared/geminiTaskStream.ts',name=>{
@@ -52,7 +55,8 @@ export function loadOwnedIntakeHandler(options){
   ...(!historical?{'../../../src/contracts/aiAvailability.ts':availability,'../_shared/locationReply.ts':location,'../_shared/taxonomyScopedShadow.mjs':taxonomy,
    '../_shared/classificationEngine.mjs':classification,'../_shared/classificationGeminiShadow.mjs':classificationShadow,'../_shared/classificationReply.mjs':classificationReply,
    '../_shared/classificationExplorer.mjs':explorer,'../_shared/geminiToolConversation.ts':toolConversation,
-   '../_shared/taxonomyProviderBudget.ts':providerBudget,'../_shared/researchDeadline.ts':researchDeadline}:{})};
+   '../_shared/taxonomyProviderBudget.ts':providerBudget,'../_shared/researchDeadline.ts':researchDeadline,
+   '../_shared/serviceHandoff.mjs':handoff,'../_shared/serviceExecutionInstruction.mjs':execution}:{})};
  evaluate(entry,name=>{assert.ok(Object.hasOwn(imports,name),'UNDECLARED_EDGE_IMPORT');return imports[name];});
  assert.equal(typeof handler,'function');return {handler,sourceHashes,sourceBinding:historical?.binding??{kind:'CURRENT_SOURCE'}};
 }

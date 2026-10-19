@@ -37,6 +37,9 @@ export const NEED_FACT_V2_DEFINITIONS = {
   'need.verified_identity_required': { valueType: 'BOOLEAN', privacyClass: 'PUBLIC', requiredForDraft: false, manualOnly: true, label: 'Uslov provere identiteta' },
   'need.task_country_code': { valueType: 'TEXT', privacyClass: 'PUBLIC', requiredForDraft: true, label: 'Država' },
   'need.task_geography': { valueType: 'OBJECT', privacyClass: 'PUBLIC', requiredForDraft: true, label: 'Lokacija' },
+  // Transfer of a physical result is separate from where the work takes place.
+  // Only coarse countries/city belong here; never an address or a work-map pin.
+  'need.handoff': { valueType: 'OBJECT', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Predaja' },
   'need.critical_conditions': { valueType: 'TEXT_ARRAY', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Bitni uslovi' },
   'need.public_photo_paths': { valueType: 'TEXT_ARRAY', privacyClass: 'PUBLIC', requiredForDraft: false, manualOnly: true, label: 'Fotografije' },
   'need.exact_address': { valueType: 'TEXT', privacyClass: 'PRIVATE', requiredForDraft: false, label: 'Tačna adresa' },
@@ -110,7 +113,7 @@ export type ResolvedLocationValue = Readonly<{
   points: readonly ConfirmedLocationPoint[];
 }>;
 
-export type NeedFactV2Value = string | number | boolean | string[] | NeedTaskGeography | ResolvedLocationValue;
+export type NeedFactV2Value = string | number | boolean | string[] | NeedTaskGeography | ResolvedLocationValue | import('./serviceHandoff').ServiceHandoff;
 
 export function isNeedFactV2Key(value: string): value is NeedFactV2Key {
   return Object.prototype.hasOwnProperty.call(NEED_FACT_V2_DEFINITIONS, value);

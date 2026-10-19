@@ -35,12 +35,14 @@ function fact(overrides: Partial<AiNeedV2Fact> = {}): AiNeedV2Fact {
 }
 
 describe('RU-2 typed R02 → R07 contract', () => {
-  it('keeps 23 canonical facts with resolved geography, owned photos and unavailable identity outside the 20 AI proposals', () => {
-    // 22 → 23 with need.price_basis (pkg025d). The count is the point of this guard: the Edge
+  it('includes explicit handoff without exposing map, photos or identity to AI writes', () => {
+    // The count is the point of this guard: the Edge
     // function derives the model's allowed key enum from AI_PROPOSABLE_NEED_FACT_V2_KEYS, so a key
     // added here silently widens what the AI may write the moment the function is redeployed.
-    expect(NEED_FACT_V2_KEYS).toHaveLength(23);
-    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toHaveLength(20);
+    expect(NEED_FACT_V2_KEYS).toHaveLength(24);
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toHaveLength(21);
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toContain('need.handoff');
+    expect(NEED_FACT_V2_DEFINITIONS['need.handoff']).toEqual({ valueType: 'OBJECT', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Predaja' });
     expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toContain('need.price_basis');
     expect(NEED_FACT_V2_DEFINITIONS['need.price_basis'])
       .toMatchObject({ valueType: 'ENUM', privacyClass: 'PUBLIC', requiredForDraft: false });

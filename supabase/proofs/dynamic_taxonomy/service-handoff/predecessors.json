@@ -1,0 +1,67 @@
+{
+  "capturedAtDate": "2026-10-19",
+  "source": "DEV function readback saved in projectless work/execution-mode-20261019; only definitions, no records or secrets",
+  "order": "Load captured definitions before 20261019104047, then handoff migration; parent-mode changes two binder bodies.",
+  "functions": [
+    {
+      "file": "validate_need_v2_fact.sql",
+      "captureSha256": "3b2cdba4f4e75d4863d688fe7433f5d04155776d2e5ba4ffd9378cb7262e5b47",
+      "prosrcMd5": "82dd8fced91eca6d9a6c8d4897343b8a"
+    },
+    {
+      "file": "rpc_save_need_draft_from_review.sql",
+      "captureSha256": "057feb40e9cacd4230200cf8dff60e3f5fdb93ad8b10043d2fe667f342491e88",
+      "prosrcMd5": "559c9d81ee97caec2ccd9ec19b3e95ca"
+    },
+    {
+      "file": "rpc_confirm_need_edit_from_review.sql",
+      "captureSha256": "32287073f7b48c6f7b48b79029316f51488cd254d58c0cbf1c0b5c984fd4d550",
+      "prosrcMd5": "8a94e2b748485f0850e477369c3de3d2"
+    },
+    {
+      "file": "rpc_ai_open_need_edit_conversation_v2.sql",
+      "captureSha256": "d6488fd0def5099fcffd96d191bfb29eeed9b78cb6383476b4e6a8cd14cf6c38",
+      "prosrcMd5": "11387360bc195b32551b6382781fb583"
+    },
+    {
+      "file": "rpc_prepare_ai_task_review_taxonomy.sql",
+      "captureSha256": "c12e81e4d25ea99e5adcfac82c7838635b1936196f37e4b81ca43d31bf23f6e8",
+      "prosrcMd5": "0ed438232944de8a982b1436bcf3f4f2"
+    },
+    {
+      "file": "rpc_taxonomy_bind_reviewed_worker_service.sql",
+      "captureSha256": "6f139351f590b81108b0e21fb4e70e51be7370835a6751dd82352603aaab3215",
+      "prosrcMd5": "f9fa8d5a998e932c8fb46ce9645c8629"
+    },
+    {
+      "file": "rpc_taxonomy_bind_reviewed_need_service.sql",
+      "captureSha256": "e78b2f47ff9d8191ba4a75997beeafd6a14dd14f1aea50879095924811783e3e",
+      "prosrcMd5": "ea1680e8af12c16e870efd5b028a436e"
+    },
+    {
+      "file": "worker_ai_service_mode_context_v1.sql",
+      "captureSha256": "2e013b024b624bf4f23bb8a640550d55a05a0ae5d78f3ddeac20e660b398b3f9",
+      "prosrcMd5": "415d86f9350ba80aa3f8e9d47c883463"
+    },
+    {
+      "file": "rpc_prepare_worker_ai_review_taxonomy.sql",
+      "captureSha256": "e1f617809be98b731f6076612de12a7bacc79f59cdc88df68439058cde196a86",
+      "prosrcMd5": "8bbe7ec7ae37a884d6c135bc38317313"
+    },
+    {
+      "file": "rpc_prepare_worker_ai_review_taxonomy_confirmed.sql",
+      "captureSha256": "f5c21cae5338d2b561a5311d0748ac1e0186c0b6c41a3bdcc11871bc40f01c08",
+      "prosrcMd5": "44107537739cf41609d811f52e48fdce"
+    },
+    {
+      "file": "worker_need_fit_v1.sql",
+      "captureSha256": "9ed626abd142ddfccaa7cc02d19031dad4df809e45b461f4cf379993be84250a",
+      "prosrcMd5": "7b5d5b5b4f2f3b5d8cefc26333aa6145"
+    },
+    {
+      "file": "need_publication_fingerprint_snapshot.sql",
+      "captureSha256": "8a531f361f639a0d7b06a9100a86308d72987fe646d5205eef9f082fbc9a3ded",
+      "prosrcMd5": "c6dab63a70732d0cb1fcc657baaa2490"
+    }
+  ]
+}

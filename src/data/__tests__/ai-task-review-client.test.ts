@@ -16,6 +16,16 @@ const review = (): AiTaskReviewEnvelope => ({
   missingRequired: [], canAccept: true, safety: 'ALLOW',
 });
 const accepted = (): AiTaskPublicationCommand => ({ reviewId: REVIEW, clientRequestId: KEY, needId: NEED, needRevision: 1, state: 'ACCEPTED', evaluation: null, published: null, authoritative: true });
+it('shows the conditional remote handoff question without treating it as a universal requirement', () => {
+  const pending = {...review(), canAccept:false, missingRequired:['need.handoff'],
+    classificationState:'PENDING_CLASSIFICATION',classificationCandidates:[],reviewedServiceModes:[],
+    classificationCatalogVersion:null,classificationCatalogFingerprint:null};
+  expect(decodeAiTaskReview(pending,OWNER)?.missingRequired).toEqual(['need.handoff']);
+  expect(decodeAiTaskReview({...pending,canAccept:true},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...pending,location:null},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...pending,missingRequired:['need.tools']},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...pending,classificationCatalogVersion:9,classificationCatalogFingerprint:'a'.repeat(32)},OWNER)).toBeNull();
+});
 const evaluated = (outcome: 'ALLOW' | 'CLARIFY' | 'REVIEW' | 'BLOCK' = 'ALLOW'): AiTaskPublicationCommand => ({ ...accepted(), state: 'EVALUATED', evaluation: { kind: 'DECISION', decision: {
   decisionId: '66666666-6666-4666-8666-666666666666', decisionSequence: 1, needId: NEED, needRevision: 1,
   canonicalFingerprint: 'd'.repeat(64), policyBundleId: '77777777-7777-4777-8777-777777777777', policyVersion: 1, jurisdiction: 'RS',
@@ -242,6 +252,25 @@ it('Gate A signed canonical Need category and mode decode without a second accep
   // Pre-rollout old review remains readable and Save still passes its original digest.
   expect(decodeAiTaskReview(base,OWNER)).toEqual(base);
   expect(decodeAiTaskReview({...signed,classificationCatalogFingerprint:undefined},OWNER)).toBeNull();
+});
+
+it('keeps the signed task handoff and mode extension witness; malformed or on-site candidate handoff is rejected', () => {
+  const handoff={required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}};
+  const candidate={action:'EXTEND_MODE',service:'Popravka muzičke kutije',mode:'REMOTE',categoryId:NEED,
+    categoryLabel:'Popravka muzičke kutije',categoryParentId:null,catalogVersion:9,reason:'Popravka se obavlja kod izvršioca',handoff};
+  const signed={...review(),publicProjection:[
+    {id:null,key:'need.category',value:candidate.service,displayValue:candidate.service,privacyClass:'PUBLIC',source:'EXPLICIT_USER_ANSWER',status:'CONFIRMED'},
+    {id:null,key:'need.handoff',value:handoff,displayValue:'Predaja',privacyClass:'PUBLIC',source:'EXPLICIT_USER_ANSWER',status:'CONFIRMED'}],
+    classificationState:'READY',classificationCandidates:[candidate],classificationCatalogVersion:9,
+    classificationCatalogFingerprint:'f'.repeat(32),reviewedServiceModes:[]};
+  expect(decodeAiTaskReview(signed,OWNER)).toMatchObject({classificationCandidates:[candidate],publicProjection:signed.publicProjection});
+  for(const patch of [{categoryLabel:undefined},{categoryParentId:'bad'},{handoff:{...handoff,exactAddress:'PRIVATE 42'}},{mode:'ON_SITE'}])
+    expect(decodeAiTaskReview({...signed,classificationCandidates:[{...candidate,...patch}]},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...signed,publicProjection:[signed.publicProjection[0],
+    {...signed.publicProjection[1],value:{required:true}}]},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...signed,publicProjection:[signed.publicProjection[0]]},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...signed,publicProjection:[signed.publicProjection[0],
+    {...signed.publicProjection[1],value:{required:true,shippingCountries:['RS']}}]},OWNER)).toBeNull();
 });
 it('accepts a reviewed new child and rejects a different leaf or parent',()=>{
  const base=review();

@@ -5,6 +5,8 @@ on:
     paths:
       - 'supabase/candidates/taxonomy-new-branch-scopes-20261018/**'
       - 'supabase/proofs/dynamic_taxonomy/branching-natural-depth/**'
+      - 'supabase/proofs/dynamic_taxonomy/parent-mode-admission/**'
+      - 'supabase/migrations/20261019104047_taxonomy_parent_navigation_and_mode_admission.sql'
       - 'supabase/migrations/20261019071732_taxonomy_natural_services_structural_paths.sql'
       - '.github/workflows/taxonomy-new-branch-scopes-pg-proof.yml'
   push:
@@ -12,6 +14,8 @@ on:
     paths:
       - 'supabase/candidates/taxonomy-new-branch-scopes-20261018/**'
       - 'supabase/proofs/dynamic_taxonomy/branching-natural-depth/**'
+      - 'supabase/proofs/dynamic_taxonomy/parent-mode-admission/**'
+      - 'supabase/migrations/20261019104047_taxonomy_parent_navigation_and_mode_admission.sql'
       - 'supabase/migrations/20261019071732_taxonomy_natural_services_structural_paths.sql'
       - '.github/workflows/taxonomy-new-branch-scopes-pg-proof.yml'
 permissions:
@@ -116,4 +120,59 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f "$root/revert.sql"
           psql -X -v ON_ERROR_STOP=1 -f "$root/assert-before.sql"
           psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261019071732_taxonomy_natural_services_structural_paths.sql
+          psql -X -v ON_ERROR_STOP=1 -f "$root/assert.sql"
+
+  parent-mode-admission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['16','17']
+    services:
+      postgres:
+        image: postgres:${{ matrix.postgres }}
+        env:
+          POSTGRES_DB: postgres
+          POSTGRES_PASSWORD: test_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      PGHOST: localhost
+      PGUSER: postgres
+      PGPASSWORD: test_only
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Verify frozen proof source hashes
+        run: |
+          python3 - <<'PY'
+          import hashlib,json,pathlib
+          manifest=json.loads(pathlib.Path('supabase/proofs/dynamic_taxonomy/parent-mode-admission/manifest.json').read_text())
+          for item in manifest['files']:
+              assert hashlib.sha256(pathlib.Path(item['path']).read_bytes()).hexdigest()==item['sha256'], item['path']
+          print('Exact proof files verified:',len(manifest['files']))
+          PY
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y postgresql-client
+      - name: Reproduce parent-mode blocker and unsupported mode extension
+        run: |
+          root=supabase/proofs/dynamic_taxonomy/parent-mode-admission
+          psql -X -v ON_ERROR_STOP=1 -f "$root/fixture.sql"
+          psql -X -v ON_ERROR_STOP=1 -f "$root/assert-before.sql"
+      - name: Prove direct mode admission, signed handoff and strict binding
+        run: |
+          root=supabase/proofs/dynamic_taxonomy/parent-mode-admission
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261019104047_taxonomy_parent_navigation_and_mode_admission.sql
+          psql -X -v ON_ERROR_STOP=1 -f "$root/assert.sql"
+      - name: Prove exact rollback and reapplication
+        run: |
+          root=supabase/proofs/dynamic_taxonomy/parent-mode-admission
+          psql -X -v ON_ERROR_STOP=1 -f "$root/revert.sql"
+          psql -X -v ON_ERROR_STOP=1 -f "$root/assert-before.sql"
+          psql -X -v ON_ERROR_STOP=1 -f supabase/migrations/20261019104047_taxonomy_parent_navigation_and_mode_admission.sql
           psql -X -v ON_ERROR_STOP=1 -f "$root/assert.sql"

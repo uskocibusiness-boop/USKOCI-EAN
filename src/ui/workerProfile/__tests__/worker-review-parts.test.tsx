@@ -79,7 +79,7 @@ describe('the review in parts (M2)', () => {
     expect(texts()).toContain('Izrada 3D figurica');
     expect(texts()).not.toContain('Predlog za katalog');
     expect(texts()).toContain('Novi Sad · RS · grad profila');
-    expect(texts()).toContain('Rad na daljinu nije vezan za grad profila.');
+    expect(texts()).toContain('Posao radiš bez dolaska kod naručioca: onlajn ili kod sebe.');
     expect(texts()).not.toContain('Novi Sad · RS · do 20 km');
     expect(tree.root.findAll(node=>String(node.type)==='ReviewedWorkAreaMap')).toHaveLength(0);
   });

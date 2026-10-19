@@ -83,6 +83,7 @@ test('recovery proof loader binds the current complete worker bundle without net
   'supabase/functions/_shared/classificationEngine.mjs','supabase/functions/_shared/classificationGeminiShadow.mjs',
   'supabase/functions/_shared/workerServiceModeContext.mjs','supabase/functions/_shared/classificationReply.mjs',
   'supabase/functions/_shared/classificationExplorer.mjs','supabase/functions/_shared/geminiToolConversation.ts',
+  'supabase/functions/_shared/serviceHandoff.mjs','supabase/functions/_shared/serviceExecutionInstruction.mjs',
   'supabase/functions/_shared/taxonomyProviderBudget.ts','supabase/functions/_shared/researchDeadline.ts'].sort());
  assert.equal((await loaded.handler(new Request('https://edge.invalid',{method:'GET'}))).status,405);
 });

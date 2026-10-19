@@ -28,10 +28,14 @@ export function loadWorkerRecoveryHandler(options){
   assert.equal(name,'../../../src/contracts/aiAvailability.ts','UNDECLARED_STREAM_IMPORT');return availability;
  });
  const classification=evaluate('supabase/functions/_shared/classificationEngine.mjs',()=>assert.fail('UNDECLARED_CLASSIFICATION_IMPORT'));
+ const handoff=evaluate('supabase/functions/_shared/serviceHandoff.mjs',()=>assert.fail('UNDECLARED_HANDOFF_IMPORT'));
+ const execution=evaluate('supabase/functions/_shared/serviceExecutionInstruction.mjs',()=>assert.fail('UNDECLARED_EXECUTION_IMPORT'));
   const classificationShadow=evaluate('supabase/functions/_shared/classificationGeminiShadow.mjs',name=>{
+  if(name==='./serviceHandoff.mjs')return handoff;
   assert.equal(name,'./classificationEngine.mjs');return classification;
   });
  const serviceModes=evaluate('supabase/functions/_shared/workerServiceModeContext.mjs',name=>{
+  if(name==='./serviceHandoff.mjs')return handoff;
   assert.equal(name,'./classificationEngine.mjs');return classification;
  });
  const classificationReply=evaluate('supabase/functions/_shared/classificationReply.mjs',()=>assert.fail('UNDECLARED_CLASSIFICATION_REPLY_IMPORT'));
@@ -49,7 +53,7 @@ export function loadWorkerRecoveryHandler(options){
   '../_shared/classificationEngine.mjs':classification,'../_shared/classificationGeminiShadow.mjs':classificationShadow,'../_shared/classificationReply.mjs':classificationReply,
   '../_shared/workerServiceModeContext.mjs':serviceModes,'../_shared/classificationExplorer.mjs':explorer,
   '../_shared/geminiToolConversation.ts':toolConversation,'../_shared/taxonomyProviderBudget.ts':providerBudget,
-  '../_shared/researchDeadline.ts':researchDeadline};
+  '../_shared/researchDeadline.ts':researchDeadline,'../_shared/serviceHandoff.mjs':handoff,'../_shared/serviceExecutionInstruction.mjs':execution};
  evaluate(entry,name=>{assert.ok(Object.hasOwn(imports,name),'UNDECLARED_EDGE_IMPORT');return imports[name];});
  assert.equal(typeof handler,'function');return {handler,sourceHashes,sourceBinding:{kind:'CURRENT_SOURCE141'}};
 }

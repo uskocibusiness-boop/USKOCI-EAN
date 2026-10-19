@@ -163,8 +163,22 @@ it('P5 worker review: confirmed remote work hides an inherited map and radius', 
   await act(async () => { tree = create(<WorkerAiReviewDetails review={saved} />); });
   expect(tree.root.findAllByType('ReviewedWorkAreaMap' as React.ElementType)).toHaveLength(0);
   expect(texts()).toContain('grad profila');
-  expect(texts()).toContain('Rad na daljinu nije vezan za grad profila.');
+  expect(texts()).toContain('Posao radiš bez dolaska kod naručioca: onlajn ili kod sebe.');
   expect(texts()).not.toMatch(/20 km|Približan centar za terenske zadatke/);
+});
+it('shows physical handoff beside the signed remote service without making its city a work-map point', async () => {
+  const service='Popravka muzičke kutije';
+  const saved:WorkerAiReview={...review({}, {skills:[service]}),classificationState:'READY',
+    reviewedServiceModes:[{service,mode:'REMOTE'}],classificationCandidates:[{action:'EXTEND_MODE',service,mode:'REMOTE',
+      categoryId:'category',categoryLabel:service,categoryParentId:null,catalogVersion:1,reason:'Kod izvršioca',
+      handoff:{required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}}}]};
+  await act(async()=>{tree=create(<WorkerAiReviewDetails review={saved}/>);});
+  expect(texts()).toContain('Lično preuzimanje: Novi Sad (RS)');
+  expect(texts()).not.toContain('Slanje:');
+  expect(tree.root.findAllByType('ReviewedWorkAreaMap' as React.ElementType)).toHaveLength(0);
+  await act(async()=>tree.update(<WorkerAiReviewDetails review={{...saved,classificationState:'PENDING_CLASSIFICATION',
+    classificationCandidates:[],reviewedServiceModes:[]}}/>));
+  expect(tree.root.findAllByProps({testID:'worker-review-handoff'})).toHaveLength(0);
 });
 it('P5 worker review: a point and city cannot establish an unconfirmed work mode', async () => {
   const saved: WorkerAiReview = { ...review({}, { location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20,
