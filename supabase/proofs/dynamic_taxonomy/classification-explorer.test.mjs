@@ -38,6 +38,30 @@ function fixture(options={}) {
   return {rpc,calls,change(){version++;digest='b'.repeat(32);},aliasChange(){digest='b'.repeat(32);}};
 }
 
+test('direct reply eligibility requires every existing service in current server evidence',async()=>{
+  assert.equal((await createClassificationExplorer(fixture().rpc)).canTryDirectReply(),false);
+  for (const seed of [service.label,service.aliases[0]]) {
+    const x=await createClassificationExplorer(fixture().rpc,{seedServices:[seed]});
+    assert.equal(x.canTryDirectReply(),true);
+  }
+  const missing=await createClassificationExplorer(fixture().rpc,{seedServices:[service.label,'Druga nepoznata usluga']});
+  assert.equal(missing.canTryDirectReply(),false);
+  const duplicate=child(3,'Druga konkretna usluga',[service.label]);
+  const ambiguous=await createClassificationExplorer(fixture({searchItems:[service,duplicate]}).rpc,{seedServices:[service.label]});
+  assert.equal(ambiguous.canTryDirectReply(),false);
+});
+
+test('direct eligibility cannot replace fresh global identity validation',async()=>{
+  const duplicate=child(3,'Druga konkretna usluga',[service.label]);
+  const f=fixture({searchItems:[service],exact:[service,duplicate]});
+  const x=await createClassificationExplorer(f.rpc,{seedServices:[service.label]});
+  assert.equal(x.canTryDirectReply(),true);
+  assert.equal(evaluate(await x.verify(raw(plan())),plan()).accepted,false);
+  f.change();
+  await assert.rejects(x.verify(raw(plan())),/STALE/);
+  assert.throws(()=>x.canTryDirectReply(),/INCOMPLETE/);
+});
+
 test('bootstrap is explicit partial context and exact identity is verified outside model pages',async()=>{
   const f=fixture(),x=await createClassificationExplorer(f.rpc);
   const prompt=JSON.parse(x.prompt());assert.equal(prompt.complete,false);assert.equal(prompt.pages[0].items.length,1);

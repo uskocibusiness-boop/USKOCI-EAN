@@ -93,6 +93,7 @@ test('recovery proof loader binds the current complete worker bundle without net
  assert.deepEqual(Object.keys(loaded.sourceHashes).sort(),['supabase/functions/_shared/interviewVoiceInstruction.mjs','supabase/functions/_shared/aiPhaseTiming.mjs','src/contracts/aiAvailability.ts','supabase/functions/_shared/aiTestBudget.ts',
   'supabase/functions/_shared/geminiTaskStream.ts','supabase/functions/uskoci-worker-interview/index.ts',
   'supabase/functions/_shared/classificationEngine.mjs','supabase/functions/_shared/classificationGeminiShadow.mjs',
+  'supabase/functions/_shared/classificationDirectReply.mjs',
   'supabase/functions/_shared/workerServiceModeContext.mjs','supabase/functions/_shared/classificationReply.mjs',
   'supabase/functions/_shared/classificationExplorer.mjs','supabase/functions/_shared/geminiToolConversation.ts',
   'supabase/functions/_shared/serviceHandoff.mjs','supabase/functions/_shared/serviceExecutionInstruction.mjs',

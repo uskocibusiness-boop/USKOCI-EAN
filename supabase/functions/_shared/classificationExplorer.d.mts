@@ -5,6 +5,7 @@ export declare const taxonomyToolDeclaration: {
 export type ClassificationExplorer = {
   readonly catalogVersion: number; readonly catalogFingerprint: string;
   readonly queryCount: number; readonly evidenceBytes: number;
+  canTryDirectReply(): boolean;
   prompt(): string;
   execute(args: Record<string, unknown>, context?: { signal?: AbortSignal }): Promise<unknown>;
   verify(raw: unknown, options?: { services?: string[]; categoryIds?: string[] }): Promise<CatalogSnapshot>;

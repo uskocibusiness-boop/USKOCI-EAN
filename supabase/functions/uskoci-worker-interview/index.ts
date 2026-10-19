@@ -1,3 +1,5 @@
+import { canAcceptDirectClassification } from '../_shared/classificationDirectReply.mjs';
+import { normalizedClassificationIdentity } from '../_shared/classificationEngine.mjs';
 import { measureAiPhase } from '../_shared/aiPhaseTiming.mjs';
 // DEV-phase-1 only. Explicit false is an immediate kill switch; other projects
 // stay default-OFF. Do NOT copy this DEV override into production release.
@@ -288,39 +290,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           turnId:claim.turn.turnId,attemptId:claim.turn.attemptId,sequence:++sequence,kind,...extra})+'\n\n'));
       };
       const usage:{value:GeminiUsage|null}={value:null};
-      try {
-        send('accepted');
-        let raw: string;
-        if (explorer) {
-          const providerBudget = createTaxonomyProviderBudget({
-            supabaseUrl: url, serviceRoleKey: service, accountId: account, conversationId: input.conversationId,
-            operationId: input.clientRequestId, model, firstReservationId,
-          });
-          const remaining = research!.remainingMs();
-          if (remaining <= 0 || research!.signal.aborted) throw new Error('WORKER_AI_CANCELLED');
-          const answer = await generateGeminiToolConversation({
-            url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
-            key, body, signal: research!.signal, limits: { timeoutMs: Math.min(35000, remaining), accountingTimeoutMs: 3000 },
-            tools: [{ declaration: taxonomyToolDeclaration, readOnly: true, execute: async (args, toolContext) => {
-              try { return await explorer!.execute(args, toolContext) as Record<string, unknown>; }
-              catch { return { error: 'CATALOG_UNAVAILABLE', classificationAuthority: 'NONE' }; }
-            } }], ...providerBudget,
-          });
-          raw = answer.raw;
-          try {
-            const parsed = JSON.parse(raw);
-            taxonomyCatalog = await measureAiPhase('WORKER_CATALOG_VERIFY', () => explorer.verify(parsed, {
-              services: context.candidate.skills, categoryIds: savedCategoryIds,
-            }));
-          } catch {
-            taxonomyCatalog = null;
-            console.info('WORKER_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE');
-          }
-        } else raw=await streamGeminiTask({url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-          // Provider prose remains private until shape, patch and completion are
-          // accepted. Otherwise even an invalid patch could speak to the person.
-          key,body,signal:research!.signal,onText:()=>{},onUsage:value=>{usage.value=value;},timeoutMs:30000});
-        if(abort.signal.aborted)throw new Error('WORKER_AI_CANCELLED');
+      const analyzeOutput = (raw: string) => {
         let output:Record<string,any>;
         let reviewHints: Record<string,any>[]=[];
         let serviceModeChangesJson: unknown;
@@ -345,7 +315,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           if ('invalidPlanCodes' in checked && checked.invalidPlanCodes?.length)
             console.info('WORKER_TAXONOMY_INVALID_PLAN_CLASS',checked.invalidPlanCodes.join(','));
           output=guardAvailabilityChange(parseWorkerOutput(checked.output),availabilityChange,context);
-        } catch { await fail(); throw new Error('WORKER_AI_INVALID'); }
+        } catch { throw new Error('WORKER_AI_INVALID'); }
         if (finishOnly(input.text) && ['ALLOW','CLARIFY'].includes(output.safety)) {
           // An explicit finish is ALWAYS respected; no extra mandatory AI
           // interview turn. But never conceal that some unchanged offered
@@ -362,6 +332,80 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
               service,mode:null,action:null,code:'REQUESTED_SCOPE_CHANGE_UNRESOLVED',resolution:'RETRY',question:null}))]};
           if (guarded.preserved) console.info('WORKER_TAXONOMY_MODE_CONTEXT','PRESERVED');
         }
+        return {output,reviewHints,classificationInspection,preservedServices,serviceModeChangesJson};
+      };
+
+      try {
+        send('accepted');
+        let raw: string;
+        let acceptedDirectRaw: string | null = null;
+        const verifyReply = async (candidateRaw: string) => {
+          try {
+            taxonomyCatalog = await measureAiPhase('WORKER_CATALOG_VERIFY', () => explorer!.verify(JSON.parse(candidateRaw), {
+              services: context.candidate.skills, categoryIds: savedCategoryIds,
+            }));
+          } catch {
+            taxonomyCatalog = null;
+            console.info('WORKER_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE');
+          }
+        };
+        if (explorer) {
+          const providerBudget = createTaxonomyProviderBudget({
+            supabaseUrl: url, serviceRoleKey: service, accountId: account, conversationId: input.conversationId,
+            operationId: input.clientRequestId, model, firstReservationId,
+          });
+          const remaining = research!.remainingMs();
+          if (remaining <= 0 || research!.signal.aborted) throw new Error('WORKER_AI_CANCELLED');
+          const answer = await generateGeminiToolConversation({
+            url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+            key, body, signal: research!.signal, limits: { timeoutMs: Math.min(35000, remaining), accountingTimeoutMs: 3000 },
+            ...(devTaxonomyFlagP1('USKOCI_TAXONOMY_DIRECT_REPLY') && explorer.canTryDirectReply() ? {
+              directFirst: { accept: async (candidateRaw: string) => {
+                await verifyReply(candidateRaw);
+                const prepared = analyzeOutput(candidateRaw);
+                // Preserve the normal unresolved answer on catalog failure;
+                // an unavailable/stale read is not a new provider admission.
+                if (!taxonomyCatalog || ['BLOCK','REVIEW'].includes(prepared.output.safety)) {
+                  acceptedDirectRaw = candidateRaw; return true;
+                }
+                const services = prepared.output.patch.skills ?? context.candidate.skills;
+                const before = context.candidate.skills.map(normalizedClassificationIdentity).sort();
+                const after = services.map(normalizedClassificationIdentity).sort();
+                if (JSON.stringify(before) !== JSON.stringify(after)) return false;
+                // Compare new hints with the existing choices, including
+                // unsaved draft choices. No old hint is copied or authorized.
+                const expectedServiceModes = services.map((service: string) => {
+                  const same = (entry: any) => normalizedClassificationIdentity(entry.service) === normalizedClassificationIdentity(service);
+                  const saved = serviceModeContext!.savedServices.filter(same);
+                  const entries = saved.length ? saved : serviceModeContext!.draftServices.filter(same);
+                  const remote = entries.find(entry => entry.mode === 'REMOTE');
+                  return { service, modes: entries.map(entry => entry.mode),
+                    ...(remote?.handoff ? { handoff: remote.handoff } : {}) };
+                }).filter((entry: any) => entry.modes.length);
+                const accepted = canAcceptDirectClassification({
+                  inspection: { ...prepared.classificationInspection, reviewProposals: prepared.reviewHints },
+                  purpose: 'WORKER_CAPABILITY', safety: prepared.output.safety,
+                  services, expectedServiceModes,
+                });
+                if (accepted) acceptedDirectRaw = candidateRaw;
+                return accepted;
+              } },
+            } : {}),
+            tools: [{ declaration: taxonomyToolDeclaration, readOnly: true, execute: async (args, toolContext) => {
+              try { return await explorer!.execute(args, toolContext) as Record<string, unknown>; }
+              catch { return { error: 'CATALOG_UNAVAILABLE', classificationAuthority: 'NONE' }; }
+            } }], ...providerBudget,
+          });
+          raw = answer.raw;
+          console.info('WORKER_TAXONOMY_RESEARCH', 'COMPLETED', answer.attempts, answer.toolCalls);
+          if (acceptedDirectRaw !== raw) await verifyReply(raw);
+        } else raw=await streamGeminiTask({url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+          // Provider prose remains private until shape, patch and completion are
+          // accepted. Otherwise even an invalid patch could speak to the person.
+          key,body,signal:research!.signal,onText:()=>{},onUsage:value=>{usage.value=value;},timeoutMs:30000});
+        if(abort.signal.aborted)throw new Error('WORKER_AI_CANCELLED');
+        const {output: preparedOutput,reviewHints,classificationInspection,preservedServices} = analyzeOutput(raw);
+        let output = preparedOutput;
         if (finishOnly(input.text) && ['ALLOW','CLARIFY'].includes(output.safety)) {
           output={...output,assistantMessage:workerFinishReviewMessage(context.candidate?.skills,reviewHints,!!taxonomyCatalog)};
         }

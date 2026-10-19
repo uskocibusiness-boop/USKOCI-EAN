@@ -33,6 +33,10 @@ export function loadOwnedIntakeHandler(options){
  const taxonomy=historical?null:evaluate('supabase/functions/_shared/taxonomyScopedShadow.mjs',()=>assert.fail('UNDECLARED_TAXONOMY_IMPORT'));
  const classification=historical?null:evaluate('supabase/functions/_shared/classificationEngine.mjs',()=>assert.fail('UNDECLARED_CLASSIFICATION_IMPORT'));
  const handoff=historical?null:evaluate('supabase/functions/_shared/serviceHandoff.mjs',()=>assert.fail('UNDECLARED_HANDOFF_IMPORT'));
+ const directReply=historical?null:evaluate('supabase/functions/_shared/classificationDirectReply.mjs',name=>{
+  if(name==='./serviceHandoff.mjs')return handoff;
+  assert.equal(name,'./classificationEngine.mjs');return classification;
+ });
  const execution=historical?null:evaluate('supabase/functions/_shared/serviceExecutionInstruction.mjs',()=>assert.fail('UNDECLARED_EXECUTION_IMPORT'));
  const classificationShadow=historical?null:evaluate('supabase/functions/_shared/classificationGeminiShadow.mjs',name=>{
   if(name==='./serviceHandoff.mjs')return handoff;
@@ -58,6 +62,7 @@ export function loadOwnedIntakeHandler(options){
  const imports={'../../../src/contracts/needFactsV2.ts':shared,'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,
   ...(!historical?{'../../../src/contracts/aiAvailability.ts':availability,'../_shared/locationReply.ts':location,'../_shared/taxonomyScopedShadow.mjs':taxonomy,
    '../_shared/classificationEngine.mjs':classification,'../_shared/classificationGeminiShadow.mjs':classificationShadow,'../_shared/classificationReply.mjs':classificationReply,
+   '../_shared/classificationDirectReply.mjs':directReply,
    '../_shared/classificationExplorer.mjs':explorer,'../_shared/geminiToolConversation.ts':toolConversation,
    '../_shared/taxonomyProviderBudget.ts':providerBudget,'../_shared/researchDeadline.ts':researchDeadline,
    '../_shared/interviewVoiceInstruction.mjs':voice,'../_shared/aiPhaseTiming.mjs':timing,'../_shared/serviceHandoff.mjs':handoff,'../_shared/serviceExecutionInstruction.mjs':execution}:{})};

@@ -163,6 +163,17 @@ export async function createClassificationExplorer(rpc, options = {}) {
     get catalogFingerprint() { return digest; },
     get queryCount() { return queryCount; },
     get evidenceBytes() { return receivedBytes; },
+    canTryDirectReply() {
+      // Eligibility only, never a binding or proof of global uniqueness. A
+      // fresh verify() still checks every identity and catalog version after
+      // inference. New/unknown services start with the full navigation tools.
+      active();
+      return seeds.length > 0 && seeds.every(service => {
+        const identity = normalizedClassificationIdentity(service);
+        return [...nodes.values()].filter(node => [node.label, ...node.aliases]
+          .some(value => normalizedClassificationIdentity(value) === identity)).length === 1;
+      });
+    },
     prompt() {
       return JSON.stringify({ catalogVersion: version, catalogFingerprint: digest, complete: false,
         catalogAccess: 'WHOLE_CURRENT_CATALOG_VIA_READ_ONLY_TOOLS', classificationAuthority: 'NONE',

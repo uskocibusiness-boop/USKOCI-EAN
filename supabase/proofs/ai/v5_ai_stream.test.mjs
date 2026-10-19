@@ -372,10 +372,12 @@ test('confirmed Need finishes the stream and records usage even with the optiona
 });
 
 for(const captureFails of [false,true])test(`Need catalog survives through completion; optional hint capture failure=${captureFails} cannot lose final or usage`,async()=>{
- const category=id(20),service='Izrada maketa';
- const proposal={service,mode:'REMOTE',action:'REUSE_EXISTING',categoryId:category,parentId:'',proposedPath:[],reason:'Explicit synthetic service matches catalog identity',catalogVersion:7};
+ const category=id(20),service='Izrada digitalnih maketa',handoff={required:false};
+ const proposal={service,mode:'REMOTE',action:'REUSE_EXISTING',categoryId:category,parentId:'',proposedPath:[],reason:'Explicit synthetic service matches catalog identity',catalogVersion:7,handoff};
  const output=withDialogue({safety:'ALLOW',assistantMessage:'Predlog je spreman za pregled.',facts:[],classificationShadowJson:JSON.stringify([proposal])});
  const f=fixture({env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
+   activeFacts:[activeFact('need.category',service),activeFact('need.task_geography',{mode:'REMOTE'},'OBJECT'),activeFact('need.handoff',handoff,'OBJECT')],
+   text:'Nastavljamo isti zadatak izrade digitalnih maketa. Predaje se samo digitalni fajl.',
    catalog:body=>oneNodeCatalog(body,{categoryId:category,parentId:null,label:service,aliases:[],path:[service],isLeaf:true}),
   capture:()=>captureFails?new Response('{}',{status:503}):json({action:'HINT_CAPTURED',authority:'NONE'}),
    provider:()=>json({candidates:[{content:{role:'model',parts:[{text:JSON.stringify(output)}]},finishReason:'STOP'}],
@@ -390,10 +392,12 @@ for(const captureFails of [false,true])test(`Need catalog survives through compl
 });
 
 for(const registered of [true,false])test(`Need actual handler captures only server-registered alias=${registered} after owned completion`,async()=>{
- const category=id(20),service='3D štampa';
- const proposal={service,mode:'REMOTE',action:'REUSE_ALIAS',categoryId:category,parentId:'',proposedPath:[],reason:'Explicit synthetic task service and remote mode.',catalogVersion:7};
+ const category=id(20),service='3D štampa',handoff={required:true,shippingCountries:['RS']};
+ const proposal={service,mode:'REMOTE',action:'REUSE_ALIAS',categoryId:category,parentId:'',proposedPath:[],reason:'Explicit synthetic task service and remote mode.',catalogVersion:7,handoff};
  const output=withDialogue({safety:'ALLOW',assistantMessage:'Proveri nacrt.',facts:[],classificationShadowJson:JSON.stringify([proposal])});
  const f=fixture({env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
+   activeFacts:[activeFact('need.category',service),activeFact('need.task_geography',{mode:'REMOTE'},'OBJECT'),activeFact('need.handoff',handoff,'OBJECT')],
+   text:'Nastavljamo isti zadatak 3D štampe kod izvršioca i slanje kurirskom službom u Srbiji.',
    catalog:body=>oneNodeCatalog(body,{categoryId:category,parentId:null,label:'3D printovanje',aliases:registered?[service]:[],path:['3D printovanje'],isLeaf:true}),
    provider:()=>json({candidates:[{content:{role:'model',parts:[{text:JSON.stringify(output)}]},finishReason:'STOP'}]}),
  });

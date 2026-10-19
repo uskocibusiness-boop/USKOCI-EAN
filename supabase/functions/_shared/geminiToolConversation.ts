@@ -50,6 +50,10 @@ export type GeminiToolConversationInput<T = string> = {
   /** Combined mode avoids a paid 'done' round. Split mode is explicit, never a retry fallback. */
   mode?: 'COMBINED' | 'SEPARATE';
   parseFinal?: (raw: string) => T;
+  /** Try current supplied evidence without a tool round first. The caller verifies the
+   * complete effective domain state; false permits research within this SAME budget.
+   * Runs after accounting and under the turn deadline. Exceptions never trigger retry. */
+  directFirst?: { accept: (raw: string) => Promise<boolean> };
   /** Durably reserve before EVERY attempt. Use deterministic operation ids so an admission
    * whose acknowledgement is lost at cancellation can be recovered without another charge. */
   beforeAttempt: (attempt: GeminiAttemptAdmission) => Promise<GeminiAttemptReceipt>;
@@ -98,6 +102,8 @@ export async function generateGeminiToolConversation<T = string>(input: GeminiTo
       || !/^[a-zA-Z_][a-zA-Z0-9_.:-]{0,63}$/.test(name) || toolMap.has(name)) fail('AI_TOOL_INVALID_CONFIG');
     toolMap.set(name, tool);
   }
+  if (input.directFirst !== undefined && (!object(input.directFirst)
+    || typeof input.directFirst.accept !== 'function' || input.mode === 'SEPARATE' || toolMap.size === 0)) fail('AI_TOOL_INVALID_CONFIG');
   let base: JsonObject;
   try { base = JSON.parse(geminiRequestBody(input.body)); } catch { return fail('AI_TOOL_INVALID_CONFIG'); }
   if (!Array.isArray(base.contents) || !base.contents.length || !object(base.generationConfig)
@@ -157,7 +163,10 @@ export async function generateGeminiToolConversation<T = string>(input: GeminiTo
     // Each tool round requires a provider attempt; the last attempt is always final-only.
     while (attempts <= limits.maxToolRounds) {
       check();
-      const withTools = !forceFinal && rounds < limits.maxToolRounds && toolCalls < limits.maxToolCalls;
+      const directAttempt = input.directFirst !== undefined && attempts === 0;
+      // The direct attempt consumes one of the original slots, not an extra paid call.
+      const withTools = !directAttempt && !forceFinal && attempts < limits.maxToolRounds
+        && rounds < limits.maxToolRounds && toolCalls < limits.maxToolCalls;
       const phase = withTools ? 'TOOLS' as const : 'FINAL' as const;
       const maxOutputTokens = Math.min(perCallCap, limits.maxTurnOutputTokens - spentOutputTokens);
       if (maxOutputTokens <= 0) fail('AI_TOOL_TOKEN_BUDGET');
@@ -169,6 +178,16 @@ export async function generateGeminiToolConversation<T = string>(input: GeminiTo
       if (withTools) {
         request.tools = [{ functionDeclarations: [...toolMap.values()].map(tool => tool.declaration) }];
         request.toolConfig = { functionCallingConfig: { mode: input.mode === 'SEPARATE' ? 'AUTO' : 'VALIDATED' } };
+      } else if (directAttempt) {
+        const system = object(base.systemInstruction) ? base.systemInstruction : {};
+        request.systemInstruction = { ...system, parts: [
+          ...(Array.isArray(system.parts) ? system.parts : []),
+          { text: 'First try to return the complete required JSON using the supplied CURRENT server evidence. '
+            + 'No tools are offered in this first attempt. Keep useful user facts and partial answers; '
+            + 'mark unresolved classification as NEEDS_REVIEW or ask for missing user information. '
+            + 'Never invent category IDs, modes, consent, completed research or successful writes. '
+            + 'The server will verify the result and may provide catalog tools if research is still needed.' },
+        ] };
       } else if (toolMap.size > 0) {
         const system = object(base.systemInstruction) ? base.systemInstruction : {};
         request.systemInstruction = { ...system, parts: [
@@ -294,6 +313,29 @@ export async function generateGeminiToolConversation<T = string>(input: GeminiTo
         }
       }
       if (spentOutputTokens > limits.maxTurnOutputTokens) fail('AI_TOOL_TOKEN_BUDGET');
+      if (finalRaw !== undefined && directAttempt) {
+        check();
+        let accepted: boolean;
+        try {
+          accepted = await wait(Promise.resolve().then(() => input.directFirst!.accept(finalRaw!)));
+          check();
+          if (typeof accepted !== 'boolean') fail('AI_TOOL_DIRECT_CHECK_FAILED');
+        } catch {
+          return fail(controller.signal.aborted ? 'AI_TOOL_STOPPED' : 'AI_TOOL_DIRECT_CHECK_FAILED');
+        }
+        if (!accepted) {
+          // Even though JSON was valid, it is not deliverable yet. In particular,
+          // a failed accounting acknowledgement must never purchase this follow-up.
+          if (!accountingComplete) fail('AI_TOOL_ACCOUNTING_FAILED');
+          if (attempts > limits.maxToolRounds) fail('AI_TOOL_TURN_BUDGET');
+          contents.push(modelContent, { role: 'user', parts: [{ text:
+            'The preceding candidate is unverified and has not been applied or shown to the person. '
+            + 'Use the available catalog tools to resolve the remaining classification against CURRENT evidence. '
+            + 'Return the COMPLETE required JSON for the original user turn, preserving its useful facts, '
+            + 'corrections and partial answers. Do not treat the candidate as user consent or invent missing results.' }] });
+          continue;
+        }
+      }
       if (finalRaw !== undefined) return { value: value as T, raw: finalRaw, usage: { ...usage }, usageComplete, accountingComplete, attempts, toolCalls };
       if (calls.length) {
         // The model's calls in ONE response are independent. Validate the whole batch above,

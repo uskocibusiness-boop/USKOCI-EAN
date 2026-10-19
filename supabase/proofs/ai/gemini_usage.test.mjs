@@ -8,10 +8,10 @@ import ts from 'typescript';
 const plain = value => JSON.parse(JSON.stringify(value));
 function load(fetch = () => assert.fail('UNEXPECTED_NETWORK')) {
   const context = vm.createContext({ fetch, Response, Request, Headers, TextEncoder, TextDecoder,
-    ReadableStream, AbortController, setTimeout, clearTimeout, console: { error() {} } });
+    ReadableStream, AbortController, setTimeout, clearTimeout, console: { error() {}, info() {} } });
   const evaluate = (path, imports = {}) => {
     const result = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
-      fileName: path, reportDiagnostics: true,
+      fileName: path.replace(/\.mjs$/, '.ts'), reportDiagnostics: true,
       compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
     });
     assert.equal(result.diagnostics.filter(d => d.category === ts.DiagnosticCategory.Error).length, 0);
@@ -20,7 +20,8 @@ function load(fetch = () => assert.fail('UNEXPECTED_NETWORK')) {
   };
   const availability = evaluate('../../../src/contracts/aiAvailability.ts');
   const stream = evaluate('../../functions/_shared/geminiTaskStream.ts', { '../../../src/contracts/aiAvailability.ts': availability });
-  const tools = evaluate('../../functions/_shared/geminiToolConversation.ts', { './geminiTaskStream.ts': stream });
+  const timing = evaluate('../../functions/_shared/aiPhaseTiming.mjs');
+  const tools = evaluate('../../functions/_shared/geminiToolConversation.ts', { './geminiTaskStream.ts': stream, './aiPhaseTiming.mjs': timing });
   return { ...stream, ...tools };
 }
 const metadata = (overrides = {}) => ({ promptTokenCount: 100, candidatesTokenCount: 20,

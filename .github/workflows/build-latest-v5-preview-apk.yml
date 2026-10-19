@@ -113,6 +113,7 @@ jobs:
           node --test supabase/proofs/ai/taxonomy_provider_budget.test.mjs scripts/acceptance/dev_service_execution_acceptance.test.mjs
           node --test supabase/proofs/ai/ai_phase_timing.test.mjs
           node --test supabase/proofs/dynamic_taxonomy/classification-verified-alias.test.mjs
+          node --test supabase/proofs/dynamic_taxonomy/classification-direct-reply.test.mjs
           mkdir -p artifacts/validation
           npm test -- --runInBand --json --outputFile=artifacts/validation/jest.json
       - name: Upload regression evidence

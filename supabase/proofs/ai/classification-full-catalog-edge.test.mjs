@@ -29,11 +29,12 @@ function fixture(purpose,options={}){
     path:[root.label,'Druga vrsta usluge'],pathIds:[root.categoryId,id(3000)]});
   const env={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC',SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE',
     AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_PROVIDER',GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',
-    USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'};
+    USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true',
+    USKOCI_TAXONOMY_DIRECT_REPLY: options.directFirst ? 'true' : 'false'};
   const receipt={userMessageId:id(6),assistantMessageId:id(7),proposedCount:0,safety:'ALLOW',schemaVersion:'NEED_FACT_V2',authoritative:true};
-  const turn=(state='SUCCEEDED',proposedCount=0)=>worker
+  const turn=(state='SUCCEEDED',proposedCount=0,safety='ALLOW')=>worker
     ? {turnId,conversationId:conversation,clientRequestId:request,attemptId,state,retryAllowed:false,authoritative:true}
-    : {turnId,conversationId:conversation,clientRequestId:request,state,retryAllowed:false,receipt:state==='SUCCEEDED'?{...receipt,proposedCount}:null};
+    : {turnId,conversationId:conversation,clientRequestId:request,state,retryAllowed:false,receipt:state==='SUCCEEDED'?{...receipt,proposedCount,safety}:null};
   const skills=options.noServices?[]:[service];
   const context={schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:2,
     candidate:{skills,bio:'Stari opis',availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},
@@ -85,14 +86,14 @@ function fixture(purpose,options={}){
     if(url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))return json(true);
     if(url.startsWith('https://generativelanguage.googleapis.com/')){
       providerCalls++;
-      const toolCall=options.toolLookup&&providerCalls===1;
+      const toolCall=options.toolLookup&&providerCalls===(options.directFirst?2:1);
       const parts=toolCall?[{functionCall:{id:'synthetic-tool-1',name:'taxonomy_catalog',args:{operation:'SEARCH',text:service,service,scope:'ALL'}},thoughtSignature:'synthetic-thought'}]:[{text:JSON.stringify(output)}];
       const data={candidates:[{content:{role:'model',parts},finishReason:'STOP'}],
         usageMetadata:{promptTokenCount:100,candidatesTokenCount:20,thoughtsTokenCount:0,totalTokenCount:120}};
       return /:generateContent/.test(url)?json(data):new Response('data: '+JSON.stringify(data)+'\n\n',{headers:{'Content-Type':'text/event-stream'}});
     }
     if(url.endsWith('/rpc_complete_worker_ai_turn_service'))return json(turn());
-    if(url.endsWith('/rpc_ai_complete_need_turn_v2_service'))return json(turn('SUCCEEDED',body.p_proposals.length));
+    if(url.endsWith('/rpc_ai_complete_need_turn_v2_service'))return json(turn('SUCCEEDED',body.p_proposals.length,body.p_safety));
     if(url.endsWith('/rpc_ai_complete_need_location_turn_v1_service'))return json({turn:turn(),location:{version:1,
       promptToken:locationContext.promptToken,reviewRevision:locationContext.reviewRevision,slot:'start',proposalId:locationContext.proposal.id,action:body.p_location_action}});
     if(url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'))return json({action:'HINT_CAPTURED',authority:'NONE'});
@@ -124,6 +125,63 @@ const writtenMessage=f=>complete(f).body.p_output?.assistantMessage??complete(f)
 const pickupOnly={required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}};
 const handoffFact=value=>({...activeFact('need.handoff',value),value_type:'OBJECT'});
 const remoteFact={...activeFact('need.task_geography',{mode:'REMOTE'}),value_type:'OBJECT'};
+
+for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE'])test(purpose+' accepts current exact service in one direct call without catalog tool overhead',async()=>{
+  const f=fixture(purpose,{directFirst:true,saved:true,savedHandoff:pickupOnly,
+    activeFacts:[activeFact('need.category',service),remoteFact,handoffFact(pickupOnly)],
+    output:{classificationShadowJson:JSON.stringify([proposal({handoff:pickupOnly})])}});
+  await f.invoke();
+  assert.equal(provider(f).length,1);
+  assert.equal(provider(f)[0].body.tools,undefined);
+  assert.equal(capture(f).length,1);
+  assert.deepEqual(capture(f)[0].body.p_proposals[0].handoff,pickupOnly);
+  const queries=f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_query_catalog_service'));
+  assert.ok(queries.some(c=>c.body.p_query.operation==='EXACT'),'global identity still checked');
+  assert.equal(queries.at(-1).body.p_query.operation,'META','freshness barrier still runs');
+  assert.ok(!f.calls.some(c=>/save_worker|publish|push|commit_admission/.test(c.url)));
+});
+
+for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE'])test(purpose+' changes delivery through tools and revalidates identical fallback final',async()=>{
+  const shipping={required:true,shippingCountries:['RS']};
+  const text='Od sada ove figure šaljem u Srbiji.';
+  const f=fixture(purpose,{directFirst:true,toolLookup:true,saved:true,savedHandoff:pickupOnly,text,
+    activeFacts:[activeFact('need.category',service),remoteFact,handoffFact(pickupOnly)],
+    output:{classificationShadowJson:JSON.stringify([proposal({handoff:shipping})]),
+      ...(purpose==='WORKER_CAPABILITY'?{serviceModeChangesJson:JSON.stringify([{service,modes:['REMOTE'],handoff:shipping,evidence:text}])}:{})}});
+  await f.invoke();
+  assert.equal(provider(f).length,3);
+  assert.equal(provider(f)[0].body.tools,undefined);
+  assert.ok(provider(f)[1].body.tools);
+  const queries=f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_query_catalog_service'));
+  assert.equal(queries.filter(c=>c.body.p_query.operation==='META').length,3,
+    'bootstrap + direct verification + final verification, even with byte-identical final JSON');
+  assert.ok(f.calls.indexOf(queries.at(-1))>f.calls.indexOf(provider(f).at(-1)));
+  assert.equal(capture(f).length,purpose==='WORKER_CAPABILITY'?1:0,
+    'task metadata cannot override the typed handoff fact');
+});
+
+for(const purpose of ['WORKER_CAPABILITY','NEED_SERVICE'])test(purpose+' catalog staleness preserves the useful turn without another paid call',async()=>{
+  const f=fixture(purpose,{directFirst:true,verificationStale:true,saved:true,savedHandoff:pickupOnly,
+    activeFacts:[activeFact('need.category',service),remoteFact,handoffFact(pickupOnly)],
+    output:{classificationShadowJson:JSON.stringify([proposal({handoff:pickupOnly})])}});
+  await f.invoke();
+  assert.equal(provider(f).length,1);assert.equal(capture(f).length,0);
+  assert.ok(complete(f));assert.match(writtenMessage(f),/nije provereno|čeka proveru/);
+});
+
+for(const [text,relation] of [['To je to.','CONTINUE'],['Sačuvaj ovaj posao, želim drugi odvojen zadatak.','DIFFERENT_TASK'],
+  ['Možda drugi posao, nisam odlučio.','UNCLEAR']])test('rejected task intent cannot capture the discarded service: '+relation,async()=>{
+  const other=items[1];
+  const f=fixture('NEED_SERVICE',{directFirst:true,text,
+    activeFacts:[activeFact('need.category',service),remoteFact,handoffFact(pickupOnly)],
+    output:{facts:[{key:'need.category',valueJson:JSON.stringify(other.label),displayValue:other.label,evidence:text,confidence:1}],
+      dialogue:{...dialogue(),taskRelation:relation},
+      classificationShadowJson:JSON.stringify([proposal({service:other.label,categoryId:other.categoryId,handoff:pickupOnly})])}});
+  await f.invoke();
+  assert.deepEqual(complete(f).body.p_proposals,[]);
+  assert.equal(capture(f).length,0,'valid UUID for discarded task cannot attach to the retained source');
+  if(relation!=='CONTINUE')assert.equal(provider(f).length,1,'intent clarification needs no further research');
+});
 
 for(const handoff of [undefined,{required:false},pickupOnly])test('remote ready transition requires a typed handoff without inferring it: '+JSON.stringify(handoff),async()=>{
   const facts=[['need.title','Izrada'],['need.description','Izrada prema priloženom crtežu.'],['need.category',service],

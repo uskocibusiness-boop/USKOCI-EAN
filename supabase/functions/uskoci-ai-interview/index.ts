@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { measureAiPhase } from '../_shared/aiPhaseTiming.mjs';
+import { canAcceptDirectClassification } from '../_shared/classificationDirectReply.mjs';
 // DEV-phase-1 only. Explicit false is an immediate kill switch; other projects
 // stay default-OFF. Do NOT copy this DEV override into production release.
 const devTaxonomyFlagP1=(name:string):boolean=>{
@@ -30,7 +31,7 @@ import { interviewVoiceInstruction } from '../_shared/interviewVoiceInstruction.
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, GeminiSafetyBlockedError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { scopedNeedPreviewArgs, scopedNeedPreviewSafeAction } from '../_shared/taxonomyScopedShadow.mjs';
-import type { CatalogSnapshot } from '../_shared/classificationEngine.mjs';
+import { normalizedClassificationIdentity, type CatalogSnapshot } from '../_shared/classificationEngine.mjs';
 import { createClassificationExplorer, taxonomyToolDeclaration, type ClassificationExplorer } from '../_shared/classificationExplorer.mjs';
 import { generateGeminiToolConversation } from '../_shared/geminiToolConversation.ts';
 import { createTaxonomyProviderBudget } from '../_shared/taxonomyProviderBudget.ts';
@@ -689,6 +690,8 @@ async function callGemini(
     });
   }
   contents.push({ role: 'user', parts: userParts });
+  let directAccepted = false;
+  let directResult: { raw: string; turn: ParsedTurn } | null = null;
   const parseOutput = async (value: any) => {
     let taxonomyCatalog: CatalogSnapshot | null = null;
     if (taxonomyExplorer) {
@@ -704,15 +707,25 @@ async function callGemini(
     if (checked.statuses.length) console.info('NEED_TAXONOMY_PLAN_SHADOW',checked.statuses.join(','));
     if ('invalidPlanCodes' in checked && checked.invalidPlanCodes?.length)
       console.info('NEED_TAXONOMY_INVALID_PLAN_CLASS',checked.invalidPlanCodes.join(','));
-    const turn=locationContext ? parseLocationOutput(checked.output,locationContext,parseV2Output) : parseV2Output(checked.output);
+    // Apply intent/finish/time guards once, before classification derives the
+    // effective task. Rejected facts must not leave a captured service hint.
+    const parsedTurn=locationContext ? parseLocationOutput(checked.output,locationContext,parseV2Output) : parseV2Output(checked.output);
+    const turn=guardConversationTurn(parsedTurn,text,activeFacts,timeContext,locationContext);
     const effectiveFact=(key:string)=>turn.proposals.find((p:any)=>p.key===key)?.value
       ?? activeFacts.find((f:any)=>f.fact_key===key&&f.status!=='UNKNOWN')?.fact_value;
     const geography=effectiveFact('need.task_geography');
+    const category=effectiveFact('need.category');
     const handoff=decodeServiceHandoff(effectiveFact('need.handoff'));
     // The typed owner fact, not a second metadata claim, is the task source.
     // Preserve useful facts when a provider hint conflicts; withhold that hint.
     // A stale REMOTE handoff fact is irrelevant after a physical-mode change.
     checked.reviewProposals=checked.reviewProposals.flatMap((hint:any)=>{
+      if (normalizedClassificationIdentity(hint.service) !== normalizedClassificationIdentity(category) ||
+          geography && hint.mode !== (geography.mode === 'REMOTE' ? 'REMOTE' : 'ON_SITE')) {
+        checked.issues=[...('issues' in checked?checked.issues:[]),{service:hint.service,mode:hint.mode,
+          action:hint.action,code:'TASK_SOURCE_MISMATCH',resolution:'RETRY',question:null}];
+        return [];
+      }
       const {handoff:proposedHandoff,...rest}=hint;
       if(hint.mode!=='REMOTE'||geography&&geography.mode!=='REMOTE')return [rest];
       if(Object.hasOwn(hint,'handoff')&&(!handoff||
@@ -724,10 +737,16 @@ async function callGemini(
       }
       return [{...rest,...(handoff?{handoff}:{})}];
     });
-    const proposedCategory=turn.proposals.find((p:any)=>p.key==='need.category');
-    const category=proposedCategory ? proposedCategory.value : activeFacts.find((f:any)=>f.fact_key==='need.category')?.fact_value;
     const feedback=classificationTurnFeedback(checked,{purpose:'NEED_SERVICE',
       services:typeof category==='string'?[category]:[],catalogAvailable:!!taxonomyCatalog,readyForReview:turn.dialogue?.next==='REVIEW'});
+    // A catalog failure keeps the useful typed answer unresolved. It must not
+    // spend another model call trying to repair unavailable/stale evidence.
+    directAccepted = !taxonomyCatalog || ['DIFFERENT_TASK','UNCLEAR'].includes(parsedTurn.dialogue?.taskRelation ?? '') || canAcceptDirectClassification({
+      inspection: checked, purpose: 'NEED_SERVICE', safety: turn.safety,
+      services: typeof category === 'string' ? [category] : [],
+      taskMode: geography?.mode === 'REMOTE' ? 'REMOTE' : geography ? 'ON_SITE' : null,
+      taskHandoff: handoff,
+    });
     onClassificationHints?.(checked.reviewProposals,feedback,taxonomyCatalog);
     return turn;
   };
@@ -752,6 +771,13 @@ async function callGemini(
         url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
         key, body: payloadBody, signal, ...providerBudget,
         limits: { maxRequestBytes: AI_TEST_LIMITS.llmRequestBytes, timeoutMs: Math.max(1,researchTimeoutMs), accountingTimeoutMs: 3000 },
+        ...(devTaxonomyFlagP1('USKOCI_TAXONOMY_DIRECT_REPLY') && taxonomyExplorer.canTryDirectReply() ? {
+          directFirst: { accept: async (raw: string) => {
+            const turn = await parseOutput(JSON.parse(raw));
+            if (directAccepted) directResult = { raw, turn };
+            return directAccepted;
+          } },
+        } : {}),
         tools: [{ declaration: taxonomyToolDeclaration, readOnly: true, execute: async (args, context) => {
           try { return await taxonomyExplorer.execute(args, context) as Record<string,unknown>; }
           catch { return { action:'CATALOG_UNAVAILABLE', complete:false, classificationAuthority:'NONE',
@@ -759,7 +785,7 @@ async function callGemini(
         } }],
       });
       console.info('NEED_TAXONOMY_RESEARCH', 'COMPLETED', result.attempts, result.toolCalls);
-      return await parseOutput(JSON.parse(result.raw));
+      return directResult?.raw === result.raw ? directResult.turn : await parseOutput(JSON.parse(result.raw));
     } catch (error) {
       if (error instanceof GeminiSafetyBlockedError)
         return { safety:'BLOCK', assistantMessage:'Ne mogu da pomognem sa tim zahtevom.', proposals:[] };
@@ -1239,7 +1265,6 @@ Deno.serve(async (req: Request) => {
         (usage) => { reportedUsage = usage; }, locationContext, taxonomyPrompt, taxonomyExplorer,
         (hints,feedback,catalog) => { taxonomyReviewHints = hints; taxonomyFeedback = feedback; taxonomyCatalog = catalog; }, imageBase64, imageMime,
         providerBudget, Math.min(35000,research.remainingMs()));
-      aiTurn = guardConversationTurn(aiTurn, effectiveUserMessage, activeFacts, timeContext, locationContext);
       if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW'))
         aiTurn = withClassificationFeedback(aiTurn,taxonomyFeedback,{finishOnly:taskFinishOnly(effectiveUserMessage) && !locationContext,maximum:1200});
       if (locationContext) {

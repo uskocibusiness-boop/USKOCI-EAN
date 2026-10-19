@@ -29,7 +29,7 @@ Za konkretan test sam odredi razuman konačan broj poziva, očekivane upise i tr
 
 Biraj provere prema stvarnom riziku. Povezane promene proveri zajedno; punu regresiju i native build radi na smislenom preseku. Zastarele, duplirane i provere koje samo zaključavaju stari raspored koda ili stil mogu se uskladiti ili ukloniti kada ponašanje pokriva bolji dokaz. Reprodukovanu funkcionalnu grešku otkloni, ne prikrivaj njen test.
 
-Aktuelni uređaj za rad je emulator. Sačuvaj postojeću sesiju i nacrte pri instalaciji (`adb install -r`). Zabeleži izvor APK-a, hash, OTA identitet i stvarno prikazani ekran. Emulator i fizički telefon imaju odvojene rezultate.
+Vlasnik je 19.10.2026. ponovo izričito odobrio i povezani HONOR telefon kao testni uređaj, instalaciju i proveru tokova. Emulator ostaje dostupan. Sačuvaj postojeću sesiju i nacrte pri instalaciji (`adb install -r`); za probne upise koristi izolovane QA naloge i ne preuzimaj korisnikov aktivni razgovor. Zabeleži izvor APK-a, hash, OTA identitet i stvarno prikazani ekran. Emulator i fizički telefon imaju odvojene rezultate.
 
 ### 3.3 Tim, integracija i istorija
 
