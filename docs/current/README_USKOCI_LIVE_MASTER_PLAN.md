@@ -49,6 +49,10 @@ Aktuelni APK workflow je **Build latest V5 Android preview APK** (`build-latest-
 
 Usaglašeni posao: [komentar Work analize i izvršavanje plana](../implementation/ui-ux-pass-20261002/WORK_ANALYSIS_RECONCILIATION_20261018.md). Odeljci 1–9 čuvaju početni pregled; odeljak 10 i [datirani izveštaj isporuke](../implementation/ui-ux-pass-20261002/AI_ALIAS_DELIVERY_20261018.md) navode naknadno primenjene celine i preostali posao. Isti rezultati ulaze u postojeće redove registra.
 
+## Prvi povezani AI paket — 19.10.2026.
+
+Izvor `82991de1`: [izveštaj](AI_FIRST_PACKAGE_20261019.md) i [dokaz](evidence/AI_FIRST_PACKAGE_20261019.json). DEV Task107/Worker60, 6 stvarnih odgovora, eksplicitno čuvanje DRAFT zadatka i profila, 621/13908 CI testova PASS. APK 6430f2fb je instaliran i izvor/ugrađeno ažuriranje potvrđeni na emulatoru; task 361/390/412 dp × font 1,0/1,3, worker 361 dp / 1,3 i Back/neposlati tekst provereni. Brzina 6–15 s i preostali ručni izbor države/načina rada ostaju otvoreni. Ovo ne zatvara ceo AI/region/matching/push tok.
+
 ## Šta znači „trenutno“
 
 <!-- AI_LOCATION_GUIDANCE_START -->

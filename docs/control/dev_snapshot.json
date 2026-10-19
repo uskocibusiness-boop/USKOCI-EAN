@@ -1150,5 +1150,19 @@
     "actualSettlementUSD": 0.222529,
     "phoneVerified": false,
     "pushDeliveryVerified": false
+  },
+  "ai_first_package_20261019": {
+    "scope": "Edge-only package plus isolated six-turn QA and explicit DRAFT saves; other snapshot sections retain their own dated observations.",
+    "sourceSha": "82991de11676f2ea084e627b7c4d5b1c3b110605",
+    "taskEdgeVersion": 107,
+    "workerEdgeVersion": 60,
+    "matchingFiles": 30,
+    "newMigrations": 0,
+    "liveLogicalTurns": 6,
+    "providerCalls": 12,
+    "ledgerEstimateUSD": 0.109074,
+    "taskPublished": false,
+    "workerActivated": false,
+    "proof": "docs/current/evidence/AI_FIRST_PACKAGE_20261019.json"
   }
 }

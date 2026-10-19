@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-19T15:17:36Z",
+  "osvezeno": "2026-10-19T15:58:48Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "f50413d9",
-  "head_poruka": "test(ai): prove signed execution modes handoff and coordinated preview delivery",
+  "head": "82991de1",
+  "head_poruka": "fix(ai): preserve review input and streamline verified catalog conversations",
   "server": {
    "snimljeno": "2026-10-18T20:15:59Z",
    "migracije": 288,
@@ -13819,6 +13819,14 @@
  },
  "ci": [
   {
+   "id": 39277078099,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "82991de1",
+   "stanje": "in_progress",
+   "ishod": "",
+   "vreme": "2026-10-19T15:20:44Z"
+  },
+  {
    "id": 39247299339,
    "ime": "DEV Android preview OTA 20261014",
    "sha": "5f422987",
@@ -13905,14 +13913,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-10-19T09:34:31Z"
-  },
-  {
-   "id": 39229634304,
-   "ime": "Taxonomy catalog query PostgreSQL proof",
-   "sha": "e105d3bf",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-19T09:22:58Z"
   }
  ]
 }

@@ -1,0 +1,301 @@
+{
+  "sourceSha": "82991de11676f2ea084e627b7c4d5b1c3b110605",
+  "devProject": "leqcwgzvjsxugfgzdmth",
+  "deployment": [
+    {
+      "name": "uskoci-ai-interview",
+      "version": 107,
+      "files": 16,
+      "readbackFiles": 16,
+      "exact": true,
+      "mismatch": [],
+      "verify_jwt": false,
+      "ezbr_sha256": "7623a8749083d26c653f107d4281ce048d35f1619ada65000ad06e8749c44129"
+    },
+    {
+      "name": "uskoci-worker-interview",
+      "version": 60,
+      "files": 14,
+      "readbackFiles": 14,
+      "exact": true,
+      "mismatch": [],
+      "verify_jwt": false,
+      "ezbr_sha256": "a8e163cabf769401d4338695be42fa1f6e5884f81312949b0ae71b0e5bb40a19"
+    }
+  ],
+  "localTests": {
+    "suites": 621,
+    "passed": 13899,
+    "skippedWindowsBash": 9,
+    "failed": 0,
+    "node": 358,
+    "typescript": "PASS",
+    "focusedClientTests": 273
+  },
+  "live": {
+    "logicalTurns": 6,
+    "providerCalls": 12,
+    "promptTokens": 124833,
+    "outputTokens": 4119,
+    "estimatedLedgerUSD": 0.109074,
+    "providerInvoiceVerified": false,
+    "timings": [
+      {
+        "flow": "need",
+        "elapsedMs": 14995,
+        "outcome": "OWNED_SUCCEEDED_READBACK",
+        "assistant": "Otvori pregled zadatka. Tamo proveri podatke pre objave."
+      },
+      {
+        "flow": "need",
+        "elapsedMs": 6096,
+        "outcome": "OWNED_SUCCEEDED_READBACK",
+        "assistant": "Izmenio sam budžet na 5.000 RSD za ceo zadatak. Možeš da otvoriš pregled zadatka i proveriš sve pre objave."
+      },
+      {
+        "flow": "need",
+        "elapsedMs": 13164,
+        "outcome": "OWNED_SUCCEEDED_READBACK",
+        "assistant": "Sve je jasno zabeleženo za izradu prezentacije na daljinu. Možeš da otvoriš pregled zadatka i proveriš unete podatke pre objave."
+      },
+      {
+        "flow": "need",
+        "elapsedMs": 10466,
+        "outcome": "OWNED_SUCCEEDED_READBACK",
+        "assistant": "Fizičko krečenje zidova stana nažalost zahteva dolazak na lokaciju, pa se ne može izvesti na daljinu bez dolaska majstora. Možemo li da postavimo zadatak sa dolaskom u Novom Sadu?"
+      },
+      {
+        "flow": "worker",
+        "elapsedMs": 11982,
+        "outcome": "OWNED_SUCCEEDED_READBACK",
+        "assistant": "Zabeležio sam 3D printovanje figurica na daljinu (izrada u tvojoj radionici u Novom Sadu). Kako planiraš primopredaju gotovih figurica — slanjem poštom/kurirskom službom, ličnim preuzimanjem u Novom Sadu ili na oba načina?"
+      },
+      {
+        "flow": "worker",
+        "elapsedMs": 9770,
+        "outcome": "OWNED_SUCCEEDED_READBACK",
+        "assistant": "Zabeležio sam slanje izrađenih figurica kurirskom službom na teritoriji Srbije, bez ličnog preuzimanja i terenskog rada. Sve važne informacije za tvoju uslugu su unete, pa možeš da pregledaš profil i sačuvaš ga kada budeš spreman."
+      }
+    ],
+    "catalogAndCanonicalUnchangedBeforeSave": true,
+    "savedTask": "866d7829-c963-480d-b11c-5463c58a1a2c",
+    "savedTaskStatus": "DRAFT",
+    "savedCategory": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+    "savedWorkerStatus": "DRAFT",
+    "publicationAttempted": false,
+    "activationAttempted": false,
+    "matchingInvoked": false,
+    "pushInvoked": false,
+    "qaAiAdmissionRetiredAt": "2026-10-19T15:27:52.601653Z",
+    "postSaveBinding": "BOUND_NEED_REVISION",
+    "postSaveBindingNoDispatchAuthority": true,
+    "postSaveBindingNoNotificationAuthority": true,
+    "nativeQaNewWorkerDraftCreated": true,
+    "newSpeechProviderSessions": 0,
+    "finalNativeObserver": {
+      "aiAdmitted": false,
+      "workerStatus": "DRAFT",
+      "publishedNeeds": 0,
+      "canonicalUnchangedAfterNative": true
+    }
+  },
+  "ci": {
+    "runId": 39277078099,
+    "status": "REGRESSION_PASSED_APK_ARTIFACT_VERIFIED",
+    "tests": {
+      "suites": 621,
+      "passed": 13908,
+      "failed": 0,
+      "skipped": 0
+    },
+    "workflowStatusLastObserved": "in_progress",
+    "artifactReceipt": {
+      "status": "APK_ATTESTED_NOT_PHONE_VERIFIED",
+      "androidPackage": "rs.uskoci.preview",
+      "version": "1.0.0",
+      "versionCode": 35,
+      "runtimeVersion": "uskoci-v1-preview-r1",
+      "channel": "preview",
+      "projectId": "1e6cc490-9851-4741-9226-128612122db6",
+      "updateUrl": "https://u.expo.dev/1e6cc490-9851-4741-9226-128612122db6",
+      "updatesEnabled": true,
+      "checkOnLaunch": "ALWAYS",
+      "fallbackToCacheTimeout": 0,
+      "debuggable": false,
+      "sourceSha": "82991de11676f2ea084e627b7c4d5b1c3b110605",
+      "nativeBaselineSha": "82991de11676f2ea084e627b7c4d5b1c3b110605",
+      "sourceTree": "1faa345b7cfac9ed8731cb7d37ba00aa81b7d33e",
+      "githubRunId": "39277078099",
+      "githubRunAttempt": "1",
+      "githubRunUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39277078099",
+      "apkFile": "USKOCI-V5-PREVIEW-X86_64.apk",
+      "apkSizeBytes": 101007084,
+      "apkSha256": "6430f2fb76440f7f5319096f07178d1426f2ab7cccb9f4f846157ffca25fafa0",
+      "architectures": [
+        "x86_64"
+      ],
+      "signingCertificateSha256": [
+        "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c"
+      ],
+      "publicBuildFlags": {
+        "EXPO_PUBLIC_AI_LOCATION_DIALOGUE": "1",
+        "EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL": "uskociapp://oporavak",
+        "EXPO_PUBLIC_CONVERSATION_INBOX": "1",
+        "EXPO_PUBLIC_EX04_CANDIDATES_PAGED": "1",
+        "EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED": "1",
+        "EXPO_PUBLIC_EX04_OWN_TASKS_PAGED": "1",
+        "EXPO_PUBLIC_P6_DISCOVERY_READER": "1",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://leqcwgzvjsxugfgzdmth.supabase.co",
+        "EXPO_PUBLIC_USE_FAKE_SOURCE": "0",
+        "EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW": "true",
+        "EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES": "true",
+        "EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW": "true",
+        "EXPO_PUBLIC_VOICE_MESSAGES": "1"
+      },
+      "physicalPhone": "NOT_TESTED",
+      "otaPreview": "NOT_VERIFIED",
+      "production": "NOT_BUILT_OR_DEPLOYED"
+    }
+  },
+  "emulator": {
+    "status": "INSTALLED_AND_SCOPED_FLOWS_VERIFIED",
+    "sourceSha": "82991de11676f2ea084e627b7c4d5b1c3b110605",
+    "apkSha256": "6430f2fb76440f7f5319096f07178d1426f2ab7cccb9f4f846157ffca25fafa0",
+    "installedSha256": "6430f2fb76440f7f5319096f07178d1426f2ab7cccb9f4f846157ffca25fafa0",
+    "package": "rs.uskoci.preview",
+    "architecture": "x86_64",
+    "install": "adb install -r; existing app data preserved",
+    "embeddedUpdatePrefix": "80f4aa06",
+    "runtime": "uskoci-v1-preview-r1",
+    "channel": "preview",
+    "sourceDirtyExplanation": "Expo prebuild changed only package.json android/ios launch scripts; exact diff inspected.",
+    "taskMatrix": [
+      {
+        "flow": "task",
+        "widthDp": 361,
+        "fontScale": 1,
+        "unsentNote": true,
+        "review": true,
+        "screenshots": [
+          "task-361-font-1-conversation.png",
+          "task-361-font-1-review.png"
+        ]
+      },
+      {
+        "flow": "task",
+        "widthDp": 390,
+        "fontScale": 1,
+        "unsentNote": true,
+        "review": true,
+        "screenshots": [
+          "task-390-font-1-conversation.png",
+          "task-390-font-1-review.png"
+        ]
+      },
+      {
+        "flow": "task",
+        "widthDp": 412,
+        "fontScale": 1,
+        "unsentNote": true,
+        "review": true,
+        "screenshots": [
+          "task-412-font-1-conversation.png",
+          "task-412-font-1-review.png"
+        ]
+      },
+      {
+        "flow": "task",
+        "widthDp": 361,
+        "fontScale": 1.3,
+        "unsentNote": true,
+        "review": true,
+        "screenshots": [
+          "task-361-font-1.3-conversation.png",
+          "task-361-font-1.3-review.png"
+        ]
+      },
+      {
+        "flow": "task",
+        "widthDp": 390,
+        "fontScale": 1.3,
+        "unsentNote": true,
+        "review": true,
+        "screenshots": [
+          "task-390-font-1.3-conversation.png",
+          "task-390-font-1.3-review.png"
+        ]
+      },
+      {
+        "flow": "task",
+        "widthDp": 412,
+        "fontScale": 1.3,
+        "unsentNote": true,
+        "review": true,
+        "screenshots": [
+          "task-412-font-1.3-conversation.png",
+          "task-412-font-1.3-review.png"
+        ]
+      }
+    ],
+    "worker": {
+      "widthDp": 361,
+      "fontScale": 1.3,
+      "savedConversationReadback": true,
+      "newConversationFromSavedDraft": true,
+      "reviewUnsentNote": true,
+      "backPreservesUnsent": true,
+      "manualSemanticEditorSeen": false
+    },
+    "screenshots": [
+      "01-build-identity.png",
+      "03-task-unsent.png",
+      "04-task-review.png",
+      "05-task-return-unsent.png",
+      "06-location-action.png",
+      "07-worker-saved-conversation.png",
+      "11-worker-unsent-conversation.png",
+      "12-worker-review-361-1.3.png",
+      "13-worker-review-bottom.png",
+      "14-worker-return-unsent.png",
+      "task-361-font-1-conversation.png",
+      "task-361-font-1-review.png",
+      "task-361-font-1.3-conversation.png",
+      "task-361-font-1.3-review.png",
+      "task-390-font-1-conversation.png",
+      "task-390-font-1-review.png",
+      "task-390-font-1.3-conversation.png",
+      "task-390-font-1.3-review.png",
+      "task-412-font-1-conversation.png",
+      "task-412-font-1-review.png",
+      "task-412-font-1.3-conversation.png",
+      "task-412-font-1.3-review.png"
+    ],
+    "voiceGuard": "Automated phase/race regression verified; no new paid live speech session in this physical pass.",
+    "restored": {
+      "androidUser": 0,
+      "widthPixels": 1264,
+      "heightPixels": 2728,
+      "density": 560,
+      "fontUser0": 1.15,
+      "fontUser10": 1
+    },
+    "knownRemaining": [
+      "Task review Mesto still opens manual country/execution-mode form; must be narrowed to map confirmation and AI correction.",
+      "Worker fresh draft without confirmed active modes correctly shows pending classification; activation/matching not tested."
+    ],
+    "phone": "NOT_TESTED",
+    "release": "NOT_DEPLOYED"
+  },
+  "limits": [
+    "6.1–15.0s real latency: instantaneous response target not met.",
+    "No measured cache hits; static-prefix change is eligibility, not a discount promise.",
+    "No full publish→matching→push→agreement verification in this package.",
+    "No physical-phone or release acceptance.",
+    "Task review Mesto still opens manual country/execution-mode form; must be narrowed to map confirmation and AI correction."
+  ],
+  "finalDevReadback": {
+    "taskVersion": 107,
+    "workerVersion": 60,
+    "unchangedBundleHashes": true
+  }
+}

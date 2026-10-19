@@ -519,7 +519,8 @@
         "decisionStatus": "APPROVED_DIRECTION",
         "proofStatus": "PENDING",
         "decision": "Prijavljeni tok ima isti AI razgovor/nacrt, jednu živu karticu i jedan pregled sa eksplicitnom objavom."
-      }
+      },
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
     },
     {
       "id": "A03",
@@ -668,7 +669,8 @@
         "decisionStatus": "APPROVED_DIRECTION",
         "proofStatus": "PENDING",
         "decision": "U oba AI-ja hold/release šalje poruku; Pregledaj pre slanja je opciono, a Save/objava ostaju eksplicitni."
-      }
+      },
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
     },
     {
       "id": "A04",
@@ -832,7 +834,8 @@
         "decisionStatus": "APPROVED_DIRECTION",
         "proofStatus": "PENDING",
         "decision": "Geografska potvrda je namenski korak u istom AI nacrtu, bez paralelnog semantičkog formulara."
-      }
+      },
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
     },
     {
       "id": "A05",
@@ -1040,7 +1043,8 @@
         "decisionStatus": "APPROVED_DIRECTION",
         "proofStatus": "PENDING",
         "decision": "Jedan završni pregled i jedna Izmeni kroz razgovor; nema per-fact olovaka ili običnog ručnog editora."
-      }
+      },
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
     },
     {
       "id": "A07",
@@ -2203,7 +2207,8 @@
         "decisionStatus": "APPROVED_DIRECTION",
         "proofStatus": "PENDING",
         "decision": "Radni profil se menja kroz isti AI razgovor, jedan pregled i izričit Save; nepotvrđen nacrt nije matching autoritet."
-      }
+      },
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
     },
     {
       "id": "B01",
@@ -2502,7 +2507,8 @@
         "decisionStatus": "APPROVED_DIRECTION",
         "proofStatus": "PENDING",
         "decision": "Jedan identitet sa AI izmenama rada; map potvrda ostaje namenski korak, a portfolio nije deo prvog izdanja."
-      }
+      },
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
     },
     {
       "id": "B02",
@@ -7506,7 +7512,8 @@
         "decisionStatus": "APPROVED_DIRECTION",
         "proofStatus": "PENDING",
         "decision": "Isti nacrt i vlasništvo opstaju kroz prekide; nova politika ne sme duplirati objavu, Save, poruku, zamenu ili push."
-      }
+      },
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
     },
     {
       "id": "S04",
@@ -7590,7 +7597,8 @@
           "problem": "Preview flags, proizvodna granica i izdvajanje razvojnih ruta dokazani prethodnim paketom. Stari serverski potrošači ostaju zaseban cleanup. Sadašnji Node handler testovi otkrili scope/Auth kvar koji puni Jest nije izvršavao; dodati u preview CI.",
           "sledece": "Zadržati aktivne ugovore; ciljano uklanjanje legacy potrošača samo uz kompatibilnost. Naredni preview CI mora izvršiti nov Node Edge skup; trenutni recovery kandidat još nije deployed. docs/implementation/ui-ux-pass-20261002/AI_NATIVE_RESULT_20261018.md"
         }
-      }
+      },
+      "source_progress_20261019_first_package": "DEV APPLIED + TEST + APK + SCOPED EMULATOR: 82991de1, Task107/Worker60; 358 Node proofs, 621/13908 CI tests PASS. Voice/review race and unsent-text explanation; bounded concurrent catalog queries; context layout and measured usage settlement. Six live replies 6.1–15.0s, 12 model calls, ledger estimate $0.109074. Pre-Save catalog/canonical state unchanged; explicit DRAFT task+worker Save confirmed; task category binding confirmed. APK 6430f2fb installed -r, executed source82991de1 embedded80f4aa06 verified. Task361/390/412 dp x font1.0/1.3, worker361/font1.3, unsent/Back verified; 22 screenshots. Remaining: manual country/mode editor under task Mesto, latency6–15s. No Publish/worker activation/matching/push/phone/release acceptance. docs/current/AI_FIRST_PACKAGE_20261019.md"
     }
   ],
   "blokade": [
