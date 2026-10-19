@@ -102,7 +102,28 @@ function checkReview(review, accountId, cid) {
 /** This SQL is evidence collection only. It cannot grant authority or execute Save. */
 export function observerSql(accountId) {
   assert(UUID.test(accountId) && !same(accountId, MILOS), 'OBSERVER_ACCOUNT_DENIED');
-  return `-- READ ONLY; output contains no email, token, messages or address.\nselect jsonb_build_object(\n 'schema','USKOCI_QA_READ_ONLY_V1','projectRef','leqcwgzvjsxugfgzdmth',\n 'checkedAt',clock_timestamp(),'accountId',u.id,'emailConfirmed',u.email_confirmed_at is not null,\n 'lineage',l.lineage,'discoveryTestWorld',u.id=any(rls_private.p6_discovery_test_world_accounts()),\n 'aiAdmitted',exists(select 1 from private.ai_test_accounts_v5 t where t.account_id=u.id and t.retired_at is null),\n 'workerProfileId',w.id,'workerStatus',w.profile_status,\n 'snapshot',jsonb_build_object(\n  'catalogFingerprint',private.taxonomy_admission_fingerprint_v1(),\n  'workerBindingsDigest',md5(coalesce((select jsonb_agg(to_jsonb(b) order by b.source_review_id)::text from private.work_taxonomy_worker_bindings_v1 b where b.owner_account_id=u.id),'[]')),\n  'needBindingsDigest',md5(coalesce((select jsonb_agg(to_jsonb(b) order by b.source_review_id)::text from private.work_taxonomy_need_bindings_v1 b where b.owner_account_id=u.id),'[]')),\n  'workerCanonicalDigest',md5(coalesce(to_jsonb(w)::text,'null')),\n  'needsCanonicalDigest',md5(coalesce((select jsonb_agg(to_jsonb(n) order by n.id)::text from public.needs n where n.requester_account_id=u.id),'[]'))),\n 'workerBindings',coalesce((select jsonb_agg(jsonb_build_object('reviewId',b.source_review_id,'profileId',b.profile_id,'result',b.result) order by b.source_review_id) from private.work_taxonomy_worker_bindings_v1 b where b.owner_account_id=u.id),'[]'),\n 'needBindings',coalesce((select jsonb_agg(jsonb_build_object('reviewId',b.source_review_id,'needId',b.need_id,'categoryId',b.category_id,'result',b.result) order by b.source_review_id) from private.work_taxonomy_need_bindings_v1 b where b.owner_account_id=u.id),'[]')\n) as observation\nfrom auth.users u\njoin private.account_lineage_v5 l on l.account_id=u.id\nleft join public.app_profiles w on w.account_id=u.id and w.kind='WORKER'\nwhere u.id='${accountId}';\n`;
+  return `-- READ ONLY; output contains no email, token, messages or address.
+select jsonb_build_object(
+ 'schema','USKOCI_QA_READ_ONLY_V1','projectRef','leqcwgzvjsxugfgzdmth',
+ 'checkedAt',clock_timestamp(),'accountId',u.id,'emailConfirmed',u.email_confirmed_at is not null,
+ 'lineage',l.lineage,'discoveryTestWorld',u.id=any(rls_private.p6_discovery_test_world_accounts()),
+ 'aiAdmitted',exists(select 1 from private.ai_test_accounts_v5 t where t.account_id=u.id and t.retired_at is null),
+ 'workerProfileId',w.id,'workerStatus',w.profile_status,
+ 'snapshot',jsonb_build_object(
+  'catalogFingerprint',private.taxonomy_admission_fingerprint_v1(),
+  'workerBindingsDigest',md5(coalesce((select jsonb_agg(to_jsonb(b) order by b.source_review_id)::text from private.work_taxonomy_worker_bindings_v1 b where b.owner_account_id=u.id),'[]')),
+  'needBindingsDigest',md5(coalesce((select jsonb_agg(to_jsonb(b) order by b.source_review_id)::text from private.work_taxonomy_need_bindings_v1 b where b.owner_account_id=u.id),'[]')),
+  'workerCanonicalDigest',md5(coalesce(to_jsonb(w)::text,'null')),
+  'needsCanonicalDigest',md5(coalesce((select jsonb_agg(to_jsonb(n) order by n.id)::text from public.needs n where n.requester_account_id=u.id),'[]'))),
+ 'workerBindings',coalesce((select jsonb_agg(jsonb_build_object('reviewId',b.source_review_id,'profileId',b.profile_id,'result',b.result) order by b.source_review_id) from private.work_taxonomy_worker_bindings_v1 b where b.owner_account_id=u.id),'[]'),
+ 'needBindings',coalesce((select jsonb_agg(jsonb_build_object('reviewId',b.source_review_id,'needId',b.need_id,'categoryId',b.category_id,'result',b.result) order by b.source_review_id) from private.work_taxonomy_need_bindings_v1 b where b.owner_account_id=u.id),'[]'),
+ 'needs',coalesce((select jsonb_agg(jsonb_build_object('id',n.id,'status',n.status,'revision',n.revision,'publishedAt',n.published_at) order by n.id) from public.needs n where n.requester_account_id=u.id),'[]')
+) as observation
+from auth.users u
+join private.account_lineage_v5 l on l.account_id=u.id
+left join public.app_profiles w on w.account_id=u.id and w.kind='WORKER'
+where u.id='${accountId}';
+`;
 }
 
 export async function run(env = process.env, argv = process.argv.slice(2)) {
@@ -267,10 +288,16 @@ export async function run(env = process.env, argv = process.argv.slice(2)) {
           assert(item.receipt?.saved === true && item.receipt.profileStatus === 'DRAFT', 'WORKER_MUST_REMAIN_DRAFT');
           item.bindingExpectation = 'DRAFT_WORKER_HAS_NO_ACTIVE_BINDING_AUTHORITY';
         } else {
-          assert(item.receipt?.state === 'ACCEPTED' && item.receipt.published === null && UUID.test(item.receipt.needId), 'NEED_MUST_ONLY_BE_ACCEPTED_DRAFT');
-          const rows = (await api(`/rest/v1/needs?id=eq.${item.receipt.needId}&select=id,requester_account_id,status,revision`)).value;
-          assert(Array.isArray(rows) && rows.length === 1 && same(rows[0].requester_account_id, config.accountId) && rows[0].status === 'DRAFT', 'AUTHORITATIVE_DRAFT_READBACK_REQUIRED');
-          item.readback = rows[0]; item.bindingExpectation = 'READ_PRIVATE_UUID_BINDING_WITH_OBSERVER';
+          assert(item.receipt?.state === 'ACCEPTED' && item.receipt.authoritative === true
+            && same(item.receipt.reviewId, frozen.reviewId) && same(item.receipt.clientRequestId, original.saveRequestId)
+            && item.receipt.published === null && UUID.test(item.receipt.needId), 'OWNED_ACCEPT_RECEIPT_REQUIRED');
+          // needs is deliberately not a client table reader. The immutable owner
+          // command proves acceptance; a separate observer proves DRAFT + UUID binding.
+          // A client SELECT refusal after a successful accept must not hide that receipt
+          // or tempt the runner to submit a second Save.
+          item.readback = { required: true, source: 'READ_ONLY_OBSERVER', expectedStatus: 'DRAFT',
+            expectedPublishedAt: null, needId: item.receipt.needId, verified: false };
+          item.bindingExpectation = 'READ_PRIVATE_UUID_BINDING_WITH_OBSERVER';
         }
         item.result = 'SAVE_RECEIPT_CONFIRMED'; persist();
       }

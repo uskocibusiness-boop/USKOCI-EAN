@@ -80,7 +80,9 @@ class PhysicalSuffixTests(unittest.TestCase):
         self.rejects(section)
 
     def test_current_inventory_keeps_all_three_truth_classes(self):
-        self.assertEqual(len(check_physical_suffix(self.section, self.manifest, self.evidence)), 21)
+        verified = check_physical_suffix(self.section, self.manifest, self.evidence)
+        self.assertTrue(verified)
+        self.assertEqual(set(verified), {row["file"] for row in self.section["entries"]})
         self.assertEqual({row["classification"] for row in self.section["entries"]},
                          {"APPLIED_EXACT_LEDGER_BYTES", "APPLIED_RECORDED_BYTES_DIFFER", "SOURCE_ONLY_LIVE_BINDING_UNPROVEN"})
 

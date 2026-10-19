@@ -107,7 +107,7 @@
     },
     {
       "name": "uskoci-ai-interview",
-      "version": 102,
+      "version": 103,
       "files": [
         "supabase/functions/uskoci-ai-interview/index.ts",
         "src/contracts/aiAvailability.ts",
@@ -120,7 +120,8 @@
         "supabase/functions/_shared/classificationGeminiShadow.mjs",
         "supabase/functions/_shared/classificationReply.mjs"
       ],
-      "exactContentReadback": true
+      "exactContentReadback": true,
+      "subsequentCopyFix": "Model may guide user to review, never claim it already opened a screen."
     }
   ],
   "sqlCi": {
@@ -131,6 +132,7 @@
       17
     ]
   },
-  "liveAcceptance": "RUNNING",
-  "apk": "NOT_YET_BUILT"
+  "liveAcceptance": "PASS_8_PROVIDER_RESPONSES_AND_3_SIGNED_SAVES",
+  "apk": "PREVIOUS_ATTEMPT_FAILED_MANIFEST_FIXED_REBUILD_PENDING",
+  "liveAcceptanceEvidence": "docs/current/evidence/AI_FULL_TREE_LIVE_20261019.json"
 }

@@ -3,8 +3,8 @@
   "physical_suffix_readmission_20261018": {
     "observed_at_utc": "2026-10-18T20:15:41.065022+00:00",
     "project": "leqcwgzvjsxugfgzdmth",
-    "scope": "Previously unregistered physical SQL suffix only. Frozen historical replay remains unchanged. Current live bindings come from read-only catalog hashes; differing bytes are NOT certified equivalent or safe to replay.",
-    "evidence": "docs/current/evidence/DEV_RELIABILITY_APPLICATION_20261018.json",
+    "scope": "Physical SQL suffix only. Frozen historical replay remains unchanged. Current live bindings come from dated read-only catalog hash evidence; differing bytes are NOT certified equivalent or safe to replay. The 2026-10-19 supplement adds two source/ledger mappings without refreshing older observations.",
+    "evidence": "supabase/operations/dev-alpha/ledger/20261019_migration_physical_suffix.receipt.json",
     "entries": [
       {
         "file": "20261013192000_uskoci_dynamic_taxonomy_ai_branching.sql",
@@ -279,8 +279,37 @@
         "raw_md5": "3e49278487be01ff8acf144f3bf58106",
         "raw_sha256": "dfde627f8d5e11d60bde8f1a2e693fac1e67a3a7c0083bebfaa4863ffaf19c81",
         "raw_bytes": 14664
+      },
+      {
+        "file": "20261019061858_worker_ai_review_candidate_projection.sql",
+        "version": "20261019061858",
+        "name": "worker_ai_review_candidate_projection",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261019061858",
+        "live_name": "worker_ai_review_candidate_projection",
+        "live_recorded_md5": "bdcb48a86b2ca304d14d9efa6930fa0a",
+        "live_recorded_sha256": "dd0d441e7eebd881585fb728713ebc7303bb7fccea1015fffd270af9bde26bad",
+        "raw_md5": "bdcb48a86b2ca304d14d9efa6930fa0a",
+        "raw_sha256": "dd0d441e7eebd881585fb728713ebc7303bb7fccea1015fffd270af9bde26bad",
+        "raw_bytes": 1744
+      },
+      {
+        "file": "20261019071732_taxonomy_natural_services_structural_paths.sql",
+        "version": "20261019071732",
+        "name": "taxonomy_natural_services_structural_paths",
+        "classification": "APPLIED_RECORDED_BYTES_DIFFER",
+        "live_applied": true,
+        "live_version": "20261019074443",
+        "live_name": "taxonomy_natural_services_structural_paths",
+        "live_recorded_md5": "9568c4e920406bcb7b356fa77f752790",
+        "live_recorded_sha256": "91ccab5c1338a5c89ea42f26b61552d195c4f857af2faab3c9e5b0457ee2cf01",
+        "raw_md5": "d42d50aed1df7874c36e2df295e2ba51",
+        "raw_sha256": "69983a6b41740f4a5c09112f3dd29cc84cbbeeb9b356b5077fd4e437d179e991",
+        "raw_bytes": 50934
       }
-    ]
+    ],
+    "last_extended_at_utc": "2026-10-19T07:50:49.776518+00:00"
   },
   "generated_at_utc": "2026-09-07T14:04:10Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",

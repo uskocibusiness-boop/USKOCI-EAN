@@ -1,0 +1,210 @@
+{
+  "date": "2026-10-19",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "accountLineage": "ISOLATED_DEV_ACCEPTANCE_QA",
+  "providerRequests": 8,
+  "scope": "No Milos messages modified. Two accepted needs remain DRAFT. Worker activated by separate signed Save.",
+  "beforeConversation": {
+    "schema": "USKOCI_QA_READ_ONLY_V1",
+    "lineage": "DEV_ACCEPTANCE_QA",
+    "snapshot": {
+      "catalogFingerprint": "9e7b3b3d05c6b636067ee37dea9e8980",
+      "needBindingsDigest": "d751713988987e9331980363e24189ce",
+      "needsCanonicalDigest": "d751713988987e9331980363e24189ce",
+      "workerBindingsDigest": "d751713988987e9331980363e24189ce",
+      "workerCanonicalDigest": "57e3482e3ef053a20626a0a3c958cb3f"
+    },
+    "accountId": "0bed012b-6a52-4ae9-a836-ceb6944d6088",
+    "checkedAt": "2026-10-19T07:45:15.795608+00:00",
+    "aiAdmitted": true,
+    "projectRef": "leqcwgzvjsxugfgzdmth",
+    "needBindings": [],
+    "workerStatus": "DRAFT",
+    "emailConfirmed": true,
+    "workerBindings": [],
+    "workerProfileId": "f3e1a51f-5890-4d8d-a735-d91eeeffe1a1",
+    "discoveryTestWorld": true
+  },
+  "afterSevenConversationTurns": {
+    "schema": "USKOCI_QA_READ_ONLY_V1",
+    "lineage": "DEV_ACCEPTANCE_QA",
+    "snapshot": {
+      "catalogFingerprint": "9e7b3b3d05c6b636067ee37dea9e8980",
+      "needBindingsDigest": "d751713988987e9331980363e24189ce",
+      "needsCanonicalDigest": "d751713988987e9331980363e24189ce",
+      "workerBindingsDigest": "d751713988987e9331980363e24189ce",
+      "workerCanonicalDigest": "57e3482e3ef053a20626a0a3c958cb3f"
+    },
+    "accountId": "0bed012b-6a52-4ae9-a836-ceb6944d6088",
+    "checkedAt": "2026-10-19T07:47:36.40262+00:00",
+    "aiAdmitted": true,
+    "projectRef": "leqcwgzvjsxugfgzdmth",
+    "needBindings": [],
+    "workerStatus": "DRAFT",
+    "emailConfirmed": true,
+    "workerBindings": [],
+    "workerProfileId": "f3e1a51f-5890-4d8d-a735-d91eeeffe1a1",
+    "discoveryTestWorld": true
+  },
+  "beforeWorkerSave": {
+    "schema": "USKOCI_QA_READ_ONLY_V1",
+    "lineage": "DEV_ACCEPTANCE_QA",
+    "snapshot": {
+      "catalogFingerprint": "6ceeb8d6caedef4964d1d44b379d2d60",
+      "needBindingsDigest": "0a061d76f5272c9312e4f57c5e1cc9bb",
+      "needsCanonicalDigest": "dcbe073d11d10af4476c623be71cee63",
+      "workerBindingsDigest": "d751713988987e9331980363e24189ce",
+      "workerCanonicalDigest": "57e3482e3ef053a20626a0a3c958cb3f"
+    },
+    "accountId": "0bed012b-6a52-4ae9-a836-ceb6944d6088",
+    "checkedAt": "2026-10-19T07:55:53.985248+00:00",
+    "aiAdmitted": true,
+    "projectRef": "leqcwgzvjsxugfgzdmth",
+    "needBindings": [
+      {
+        "needId": "20c3b657-b059-4945-8bd5-e88d82a91355",
+        "result": {
+          "needId": "20c3b657-b059-4945-8bd5-e88d82a91355",
+          "status": "BOUND_NEED_REVISION",
+          "categoryId": "ef63d6d2-7087-4d67-8a9d-b07952655d03",
+          "needRevision": 1,
+          "catalogVersion": 5,
+          "dispatchAuthority": "NONE",
+          "notificationAuthority": "NONE"
+        },
+        "reviewId": "68799053-dac9-4380-b11f-265ca9990572",
+        "categoryId": "ef63d6d2-7087-4d67-8a9d-b07952655d03"
+      },
+      {
+        "needId": "00d586a6-27ee-440d-9895-4c1213bcbe2a",
+        "result": {
+          "needId": "00d586a6-27ee-440d-9895-4c1213bcbe2a",
+          "status": "BOUND_NEED_REVISION",
+          "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+          "needRevision": 1,
+          "catalogVersion": 4,
+          "dispatchAuthority": "NONE",
+          "notificationAuthority": "NONE"
+        },
+        "reviewId": "854d9275-ab45-47dc-9ae0-9c42978ef8cd",
+        "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24"
+      }
+    ],
+    "workerStatus": "DRAFT",
+    "emailConfirmed": true,
+    "workerBindings": [],
+    "workerProfileId": "f3e1a51f-5890-4d8d-a735-d91eeeffe1a1",
+    "discoveryTestWorld": true
+  },
+  "afterSaves": {
+    "needs": [
+      {
+        "id": "00d586a6-27ee-440d-9895-4c1213bcbe2a",
+        "status": "DRAFT",
+        "revision": 1,
+        "publishedAt": null
+      },
+      {
+        "id": "20c3b657-b059-4945-8bd5-e88d82a91355",
+        "status": "DRAFT",
+        "revision": 1,
+        "publishedAt": null
+      }
+    ],
+    "schema": "USKOCI_QA_READ_ONLY_V1",
+    "lineage": "DEV_ACCEPTANCE_QA",
+    "snapshot": {
+      "catalogFingerprint": "6ceeb8d6caedef4964d1d44b379d2d60",
+      "needBindingsDigest": "0a061d76f5272c9312e4f57c5e1cc9bb",
+      "needsCanonicalDigest": "dcbe073d11d10af4476c623be71cee63",
+      "workerBindingsDigest": "845605a66a9085ef412bb36630980e6a",
+      "workerCanonicalDigest": "d7e4b782a91e7d0022610e4afb4daf23"
+    },
+    "accountId": "0bed012b-6a52-4ae9-a836-ceb6944d6088",
+    "checkedAt": "2026-10-19T07:57:07.726945+00:00",
+    "aiAdmitted": true,
+    "projectRef": "leqcwgzvjsxugfgzdmth",
+    "needBindings": [
+      {
+        "needId": "20c3b657-b059-4945-8bd5-e88d82a91355",
+        "result": {
+          "needId": "20c3b657-b059-4945-8bd5-e88d82a91355",
+          "status": "BOUND_NEED_REVISION",
+          "categoryId": "ef63d6d2-7087-4d67-8a9d-b07952655d03",
+          "needRevision": 1,
+          "catalogVersion": 5,
+          "dispatchAuthority": "NONE",
+          "notificationAuthority": "NONE"
+        },
+        "reviewId": "68799053-dac9-4380-b11f-265ca9990572",
+        "categoryId": "ef63d6d2-7087-4d67-8a9d-b07952655d03"
+      },
+      {
+        "needId": "00d586a6-27ee-440d-9895-4c1213bcbe2a",
+        "result": {
+          "needId": "00d586a6-27ee-440d-9895-4c1213bcbe2a",
+          "status": "BOUND_NEED_REVISION",
+          "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+          "needRevision": 1,
+          "catalogVersion": 4,
+          "dispatchAuthority": "NONE",
+          "notificationAuthority": "NONE"
+        },
+        "reviewId": "854d9275-ab45-47dc-9ae0-9c42978ef8cd",
+        "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24"
+      }
+    ],
+    "workerStatus": "ACTIVE",
+    "emailConfirmed": true,
+    "workerBindings": [
+      {
+        "result": {
+          "status": "BOUND_WORKER_SERVICES",
+          "catalogVersion": 5,
+          "workerProfileId": "f3e1a51f-5890-4d8d-a735-d91eeeffe1a1",
+          "serviceModeCount": 2,
+          "dispatchAuthority": "NONE",
+          "notificationAuthority": "NONE",
+          "relatedOfferAuthority": "NONE"
+        },
+        "reviewId": "af5eb60d-3a7f-4cb4-9655-5e86fdce1eb0",
+        "profileId": "f3e1a51f-5890-4d8d-a735-d91eeeffe1a1"
+      }
+    ],
+    "workerProfileId": "f3e1a51f-5890-4d8d-a735-d91eeeffe1a1",
+    "discoveryTestWorld": true
+  },
+  "confirmedModes": {
+    "modes": [
+      {
+        "scope": "REMOTE",
+        "active": true,
+        "excluded": false,
+        "reviewId": "af5eb60d-3a7f-4cb4-9655-5e86fdce1eb0",
+        "categoryId": "d5e890a0-2502-4901-8803-7462b8ca6d24"
+      },
+      {
+        "scope": "REMOTE",
+        "active": true,
+        "excluded": false,
+        "reviewId": "af5eb60d-3a7f-4cb4-9655-5e86fdce1eb0",
+        "categoryId": "ef63d6d2-7087-4d67-8a9d-b07952655d03"
+      }
+    ],
+    "reservations": {
+      "count": 8,
+      "reservedMicroUSD": 2000000
+    }
+  },
+  "conversationSnapshotsUnchanged": true,
+  "existingServiceId": "d5e890a0-2502-4901-8803-7462b8ca6d24",
+  "newServiceId": "ef63d6d2-7087-4d67-8a9d-b07952655d03",
+  "newService": "3D modelovanje i izrada taktilnih karata",
+  "freshWorkerReviewCatalogVersion": 5,
+  "liveEdgeVersions": {
+    "worker": 56,
+    "task": 102
+  },
+  "subsequentTaskCopyFixVersion": 103,
+  "pushDeliveryVerified": false
+}
