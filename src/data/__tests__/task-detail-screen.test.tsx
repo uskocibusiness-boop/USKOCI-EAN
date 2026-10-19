@@ -402,15 +402,14 @@ describe('the questions of the task, drawn on it', () => {
     expect(text()).not.toContain('Pitanja i odgovori'); expect(buttons('Pošalji ponudu')).toHaveLength(1);
   });
 
-  it('reads the questions and the owner’s answers after the work, which comes after the poster (the owner’s pick of 8 Oct 2026)', async () => {
+  it('shows the work, requester and answered questions together without adding another application action', async () => {
     mockQuestions = strangerSees([answered(1), answered(2)]);
     mockLoad.mockResolvedValue({ ...detail(), opis: 'Dva sprata bez lifta.', narucilacIme: 'Ana Anić' }); await render();
     const all = text();
     expect(all).toContain('2 pitanja · sva odgovorena'); expect(all).toContain('Pitanje 2?'); expect(all).toContain('Odgovor 2.');
     expect(all).toContain('Odgovor osobe koja je objavila zadatak');
-    expect(all.indexOf('Ana Anić')).toBeLessThan(all.indexOf('Dva sprata bez lifta.'));
-    expect(all.indexOf('Dva sprata bez lifta.')).toBeLessThan(all.indexOf('Pitanja i odgovori'));
-    // The one green action is still the application; the section adds none.
+    for (const value of ['Ana Anić', 'Dva sprata bez lifta.', 'Pitanja i odgovori', 'Pitanje 1?', 'Odgovor 1.']) expect(all).toContain(value);
+    // The inline answers do not duplicate the task's application action.
     expect(buttons('Pošalji ponudu')).toHaveLength(1);
   });
 

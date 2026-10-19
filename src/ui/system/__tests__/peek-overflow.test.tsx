@@ -60,7 +60,9 @@ test.each([1, 2])('the pin body can scroll within its existing cap while close s
   // The pin card is the list card's face (`TaskRecordBody`): the whole title, the amount, where, when and who, each said once in the scrollable.
   const said = (value: string) => scroll.findAll(node => String(node.type) === 'T' && node.props.children === value);
   expect(said(pin.naslov)).toHaveLength(1); expect(said(pin.naslov)[0].props.numberOfLines).toBeUndefined();
-  expect(said('25.000 RSD')).toHaveLength(1); expect(said('25.000 RSD')[0].props.variant).toBe('priceRow');
+  expect(said('Budžet')).toHaveLength(1);
+  expect(said('25.000 RSD')).toHaveLength(1); expect(said('25.000 RSD')[0].props.variant).toBe('priceSmall');
+  expect(said('25.000 RSD')[0].props.numberOfLines).toBeUndefined();
   expect(said(pin.podrucjeTekst)).toHaveLength(1); expect(said(pin.vremeTekst)).toHaveLength(1);
   expect(said('Nikola Petrović')).toHaveLength(1);
   // Feed an overflow measurement: the map clears the visible cap, while all facts remain in the registered scrollable.

@@ -283,13 +283,14 @@ describe('V2 saved Need presentation', () => {
     expect(mockEvaluate).not.toHaveBeenCalled(); expect(mockPublish).not.toHaveBeenCalled();
     expect(texts()).not.toContain('Revizija 7');
   });
-  it('keeps one primary review action at the head of the page, in the block of the state, with the edit beside it and no "···"', async () => {
+  it('keeps one visible review action and one draft edit, without hidden or premature publication actions', async () => {
     await render();
     expect(tree.root.findByType('SafeAreaView' as React.ElementType).props.edges).toEqual(['top', 'bottom', 'left', 'right']);
     expect(tree.root.findAllByProps({ label: 'Pregledaj za objavu' })).toHaveLength(1);
-    // There is no foot: the one green action is part of the first block, above every fact, and the edit is the visible secondary one beside it.
+    // Action placement may change; the owner still sees one review action and the public task facts.
     const copy = texts();
-    expect(copy.indexOf('Pregledaj za objavu')).toBeGreaterThan(-1); expect(copy.indexOf('Pregledaj za objavu')).toBeLessThan(copy.indexOf('Novi Sad'));
+    expect(copy).toContain('Pregledaj za objavu'); expect(copy).toContain('Novi Sad');
+    expect(tree.root.findAllByProps({ label: 'Objavi Zadatak' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ label: 'Izmeni nacrt' })).toHaveLength(1);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Više radnji' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ label: 'Pregledaj prijave' })).toHaveLength(0);

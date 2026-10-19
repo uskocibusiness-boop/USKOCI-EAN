@@ -55,8 +55,8 @@ it('is the tag, then the small row, then the sentence, the receipt as rows, and 
   await sendWhileOpen();
   expect(text()).toBe('Tvoja prijava | Poslata | 4.500 RSD | ukupno | Prijava je poslata. | Ako te izaberu, odmah nastaje Dogovor. | Zadatak | Unos ormara | Ljudi | 2 osobe | Termin | '
     + '26. sep · 10:00–12:00 (po vremenu u Srbiji) | Poruka | Dolazimo nas dvojica sa trakama i kombijem. | Otvori moje prijave | Nazad na zadatak');
-  // The tag is the picture of an offer at 96, and the small row has it again at 28, beside the chip of the state.
-  expect(tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => `${node.props.kind}:${node.props.size}`)).toEqual(['offers:96', 'offers:28']);
+  // The application has its own subject; the receipt does not borrow the price/offers illustration.
+  expect(tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => `${node.props.kind}:${node.props.size}`)).toEqual(['applications:96', 'applications:28']);
   expect(tree.root.findAll(node => node.props.testID === 'flow-footer')).toHaveLength(0);
   expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Poslata, 4.500 RSD ukupno').length).toBeGreaterThan(0);
   // The tag is decoration: the small row says the state and the amount once.

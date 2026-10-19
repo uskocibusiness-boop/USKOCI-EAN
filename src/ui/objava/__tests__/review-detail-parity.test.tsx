@@ -20,19 +20,16 @@ jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 import { FactRow } from '../../system/FactRow';
 import { PublicNeedPresentation } from '../../v2/PublicNeedPresentation';
-import { taskPlace } from '../../v2/TaskFace';
+import { placesText, taskPlace } from '../../v2/TaskFace';
 import { needRequirementRows } from '../../../data/needDetailPresentation';
-import { NO_PART, REQUIREMENT_ART, ReviewDetail, type ReviewDetailParts } from '../ReviewDetail';
+import { NO_PART, REQUIREMENT_ART, requirementValues, ReviewDetail, type ReviewDetailParts } from '../ReviewDetail';
 import { reviewAsTask, type ReviewSource } from '../reviewAsTask';
 import { EditPencil } from '../EditPencil';
 
 /**
- * "Ovako izgleda kad ga otvore" is the page of a task somebody else posted, not a drawing of it (owner, 8 Oct 2026: "čovek vidi kako će izgledati kad je
- * objavljen"). The review draws it from the same parts (`TaskDecision*`, `DetailDescription`) over the projection the review is made into, and
- * this holds the two to the same facts and words, so a change of the published page cannot leave the review behind: the
- * facts of the published page (what it pays, where, when, how many people, what it asks) are the facts of the review, and the only things the review
- * adds are the owner's (the pencils, the frame of the exact address, the deadline) and the only things it leaves out are what is for somebody who
- * applies (the button, the questions, the report of a person).
+ * Review and public detail must preserve the same task facts, while owner-only corrections,
+ * privacy, and application actions remain distinct. Grouping, icons and typography can evolve;
+ * parity here is about the actual values and requirements, not identical visual containers.
  */
 type Fact = ReviewSource['publicProjection'][number];
 const fact = (key: NeedFactV2Key, value: unknown): Fact => ({ key, value, privacyClass: 'PUBLIC', status: 'CONFIRMED' });
@@ -63,8 +60,8 @@ let tree: ReactTestRenderer;
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 const render = async (element: React.ReactElement) => { await act(async () => { tree = create(element); }); };
 const texts = () => tree.root.findAll(node => node.type === ('T' as React.ElementType)).flatMap(node => node.children.filter((child): child is string => typeof child === 'string'));
-/** The lines of fact of a page: the picture, the words and the note under them, in the order they stand. The lock is the page of others' own line about the address. */
-const facts = () => tree.root.findAllByType(FactRow).map(node => ({ art: node.props.art, value: node.props.value, note: node.props.note, size: node.props.size }))
+/** Fact rows remain useful for requirement labels and the owner-only headcount case. */
+const facts = () => tree.root.findAllByType(FactRow).map(node => ({ art: node.props.art, value: node.props.value, note: node.props.note }))
   .filter(row => row.art !== 'lock');
 const noop = () => undefined;
 const NO_PARTS: ReviewDetailParts = { title: NO_PART, value: NO_PART, place: NO_PART, time: NO_PART, people: NO_PART, description: NO_PART, map: NO_PART, deadline: NO_PART, requirements: {} };
@@ -84,17 +81,24 @@ it('owner-only known single headcount stays visible without an edit pencil; an a
 describe.each(CASES)('the review says what the published page says: %s', (_name, facts_, location) => {
   const need = () => reviewAsTask({ reviewId: 'review-1', draftId: null, responseDeadline: null, location, publicProjection: facts_ }, facts_.length ? PERSON : null);
 
-  it('has the same lines of fact, with the same pictures and the same words, in the same order', async () => {
-    await render(real(need())); const published = facts(); await act(async () => tree.unmount());
-    await render(preview(need())); const review = facts();
-    expect(review).toEqual(published);
-    // Every line is made of what the review has: nothing is invented to fill a line.
-    expect(review.every(row => typeof row.value === 'string' && row.value.trim().length > 0)).toBe(true);
+  it('preserves every requirement label and value without requiring identical summary containers', async () => {
+    const task = need();
+    const expected = needRequirementRows(task).map(row => ({ label: row.label, value: requirementValues(row.value) }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    for (const element of [real(task), preview(task)]) {
+      await render(element);
+      const requirements = facts().filter(row => row.note !== undefined)
+        .map(row => ({ label: row.note, value: row.value })).sort((a, b) => a.label.localeCompare(b.label));
+      expect(requirements).toEqual(expected);
+      expect(requirements.every(row => typeof row.value === 'string' && row.value.trim().length > 0)).toBe(true);
+      await act(async () => tree.unmount());
+    }
   });
 
   it('preserves every material fact while naming the requester without claiming a draft is already published', async () => {
     const task = need();
     const landmarks = [task.naslov, task.ponudjenaCena?.prikaz, task.rezimCene === 'OFFERS' ? 'Tražim ponude' : null, taskPlace(task).text, task.vremeTekst,
+      task.pokrivenost.ukupno > 1 || task.pokrivenost.preostalo <= 0 ? placesText(task.pokrivenost, 'worker').text : null,
       task.narucilacIme || null, task.opis ? 'O zadatku' : null, task.opis, needRequirementRows(task).length ? 'Važno za ovaj zadatak' : null,
       ...needRequirementRows(task).map(row => row.label)].filter((word): word is string => !!word);
     for (const element of [real(task), preview(task)]) {

@@ -50,7 +50,7 @@ describe('as a screen: the state view with the one button that finds out', () =>
     await render(<OutcomeUncertain about="application" title="Ne znamo da li je prijava stigla Marku" copy="Neće se poslati dvaput."
       onCheck={() => undefined} />);
     expect(texts()).toEqual(['Ne znamo da li je prijava stigla Marku', 'Neće se poslati dvaput.', 'Proveri']);
-    expect(tree.root.findByType(StateView).props.art).toBe('send');
+    expect(tree.root.findByType(StateView).props.art).toBe('applications');
   });
 
   it('shows the one quiet way out when it is given one, and never a second way to send the same thing', async () => {

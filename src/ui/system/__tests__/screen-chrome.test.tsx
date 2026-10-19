@@ -4,6 +4,8 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 
 let mockReduced = false;
 jest.mock('../motion', () => ({ useReducedMotion: () => mockReduced }));
+// Artwork internals have their own registry proof; chrome owns subject, touch and unread semantics.
+jest.mock('../FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('expo-haptics', () => ({ selectionAsync: jest.fn(), impactAsync: jest.fn(), notificationAsync: jest.fn(),
   ImpactFeedbackStyle: {}, NotificationFeedbackType: {} }));
 jest.mock('react-native-safe-area-context', () => require('react-native-safe-area-context/jest/mock').default);
@@ -20,6 +22,7 @@ jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
 import { ArrowLeft, CalendarBlank, MagnifyingGlass, SlidersHorizontal, User, X } from 'phosphor-react-native';
 import { Glyph, GLYPH_NAMES } from '../Glyph';
+import { FactArt } from '../FactArt';
 import { layout } from '../layout';
 import { chrome, ChromeIconButton, SCROLL_TITLE_MAX_SCALE, ScreenChrome, useChromeTitleOnScroll } from '../ScreenChrome';
 import { HeaderIconButton, ScreenHeader } from '../ScreenHeader';
@@ -195,15 +198,18 @@ describe('the one chrome icon button', () => {
     const label = bellLabel(0);
     expectTouchable(label);
     expect(circle(label)).toBeUndefined();
-    expect(tree.root.findByType(Glyph).props).toMatchObject({ name: 'notifications', size: chrome.icon });
+    expect(tree.root.findByType(FactArt).props).toMatchObject({ kind: 'bell', size: 32, cut: 'art' });
+    expect(hosts(node => node.props.testID === 'inbox-bell-drawing')[0].props).toMatchObject({
+      accessible: false, accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants',
+    });
     expect(hosts(node => flat(node).backgroundColor === sys.color.orange)).toHaveLength(0);
     await act(async () => tree.unmount());
     mockUnread = 3;
     await render(<InboxBell />);
     const spoken = bellLabel(3);
-    // The glyph does not invent an unread state; only the real count adds the badge.
+    // The illustration does not invent an unread state; only the real count adds the badge.
     expect(circle(spoken)).toBeUndefined();
-    expect(tree.root.findByType(Glyph).props).toMatchObject({ name: 'notifications', size: chrome.icon });
+    expect(tree.root.findByType(FactArt).props).toMatchObject({ kind: 'bell', size: 32, cut: 'art' });
     expect(hosts(node => flat(node).backgroundColor === sys.color.orange)).toHaveLength(1);
     expect(tree.root.findAllByType(Text).map(node => node.props.children)).toContain(3);
     mockUnread = undefined;
