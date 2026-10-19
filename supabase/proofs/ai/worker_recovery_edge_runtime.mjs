@@ -43,7 +43,10 @@ export function loadWorkerRecoveryHandler(options){
  const explorer=evaluate('supabase/functions/_shared/classificationExplorer.mjs',name=>{
   assert.equal(name,'./classificationEngine.mjs');return classification;
  });
+ const voice=evaluate('supabase/functions/_shared/interviewVoiceInstruction.mjs',()=>assert.fail('UNDECLARED_SHARED_IMPORT'));
+ const timing=evaluate('supabase/functions/_shared/aiPhaseTiming.mjs',()=>assert.fail('UNDECLARED_SHARED_IMPORT'));
  const toolConversation=evaluate('supabase/functions/_shared/geminiToolConversation.ts',name=>{
+  if(name==='./aiPhaseTiming.mjs')return timing;
   assert.equal(name,'./geminiTaskStream.ts');return stream;
  });
  const providerBudget=evaluate('supabase/functions/_shared/taxonomyProviderBudget.ts',name=>{
@@ -54,7 +57,7 @@ export function loadWorkerRecoveryHandler(options){
   '../_shared/classificationEngine.mjs':classification,'../_shared/classificationGeminiShadow.mjs':classificationShadow,'../_shared/classificationReply.mjs':classificationReply,
   '../_shared/workerServiceModeContext.mjs':serviceModes,'../_shared/classificationExplorer.mjs':explorer,
   '../_shared/geminiToolConversation.ts':toolConversation,'../_shared/taxonomyProviderBudget.ts':providerBudget,
-  '../_shared/researchDeadline.ts':researchDeadline,'../_shared/serviceHandoff.mjs':handoff,'../_shared/serviceExecutionInstruction.mjs':execution};
+  '../_shared/researchDeadline.ts':researchDeadline,'../_shared/interviewVoiceInstruction.mjs':voice,'../_shared/aiPhaseTiming.mjs':timing,'../_shared/serviceHandoff.mjs':handoff,'../_shared/serviceExecutionInstruction.mjs':execution};
  evaluate(entry,name=>{assert.ok(Object.hasOwn(imports,name),'UNDECLARED_EDGE_IMPORT');return imports[name];});
  assert.equal(typeof handler,'function');return {handler,sourceHashes,sourceBinding:{kind:'CURRENT_SOURCE141'}};
 }

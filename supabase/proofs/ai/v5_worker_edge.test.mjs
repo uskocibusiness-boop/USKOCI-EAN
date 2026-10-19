@@ -90,7 +90,7 @@ test('invalid fallback worker patch still settles complete provider thinking usa
 
 test('recovery proof loader binds the current complete worker bundle without network',async()=>{
  const loaded=loadWorkerRecoveryHandler({fetch:()=>assert.fail('NETWORK_NOT_ALLOWED'),env:()=>''});
- assert.deepEqual(Object.keys(loaded.sourceHashes).sort(),['src/contracts/aiAvailability.ts','supabase/functions/_shared/aiTestBudget.ts',
+ assert.deepEqual(Object.keys(loaded.sourceHashes).sort(),['supabase/functions/_shared/interviewVoiceInstruction.mjs','supabase/functions/_shared/aiPhaseTiming.mjs','src/contracts/aiAvailability.ts','supabase/functions/_shared/aiTestBudget.ts',
   'supabase/functions/_shared/geminiTaskStream.ts','supabase/functions/uskoci-worker-interview/index.ts',
   'supabase/functions/_shared/classificationEngine.mjs','supabase/functions/_shared/classificationGeminiShadow.mjs',
   'supabase/functions/_shared/workerServiceModeContext.mjs','supabase/functions/_shared/classificationReply.mjs',
@@ -117,7 +117,7 @@ test('an acknowledged availability edit without a calendar operation cannot repo
  assert.equal(es.at(-1).kind,'final'); assert.equal(providers(f).length,1);
  const accepted=completions(f)[0].body.p_output;
  assert.deepEqual(accepted.patch,{bio:'Bavim se montažom.'});
- assert.equal(accepted.safety,'CLARIFY'); assert.match(accepted.assistantMessage,/Dostupnost još nije promenjena/);
+ assert.equal(accepted.safety,'CLARIFY'); assert.match(accepted.assistantMessage,/razjasnimo dostupnost/);
  assert.ok(!JSON.stringify(es).includes(output.assistantMessage));
  assert.ok(!Object.hasOwn(accepted,'availabilityChange'));
 });
@@ -239,7 +239,9 @@ test('contextual worker clarification survives completion and stream without inv
  assert.deepEqual(completions(f)[0].body.p_output,output);
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),output.assistantMessage);
  const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
- assert.ok(prompt.includes('warm, natural and attentive'));
+ assert.ok(prompt.includes('USKOČI glas:'));
+ assert.ok(prompt.includes('Povremeno može jedan nenametljiv smajli'));
+ assert.ok(prompt.includes('niti izmišljaj lično iskustvo'));
  assert.ok(prompt.includes('safety CLARIFY with an empty patch'));
  assert.ok(prompt.includes('You receive text only, not sound'));
  assert.ok(!prompt.includes('Prefer the question alone'));

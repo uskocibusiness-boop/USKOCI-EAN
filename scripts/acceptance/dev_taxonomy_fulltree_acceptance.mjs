@@ -43,6 +43,12 @@ const STANDARD_CASES = Object.freeze({
     'Želim da radim nešto, ali još nisam rekao koje konkretne usluge nudim.'] },
 });
 const CASES = Object.freeze({ ...STANDARD_CASES,
+  'need-warmth-execution': {flow:'need',expectation:'PHYSICAL_HANDOFF',messages:[
+    'Hej 🙂 Prvi put tražim ovako nešto: treba mi mala 3D figurica po gotovom STL fajlu. Nemam pojma koliko to košta, neka mi ljudi pošalju ponude. Jedna osoba, nije mi hitno, potpuno fleksibilno. Izrada kod majstora i slanje kurirskom službom u Srbiji, bez dolaska kod mene i bez ličnog preuzimanja.',
+    'E ipak menjam samo budžet, ukupno 5000 dinara. Sve ostalo ostaje kako sam rekao.']},
+  'worker-warmth-execution': {flow:'worker',expectation:'PHYSICAL_HANDOFF',messages:[
+    'Hej 🙂 Nudim 3D štampu figurica po gotovim STL fajlovima, radim kod sebe i šaljem kurirskom službom samo po Srbiji. Ne dolazim kod naručioca i nema ličnog preuzimanja. Novi Sad, Srbija. Radnim danima mogu od 15 do 19, vikendom ne radim. Ostale postojeće usluge ne menjam.',
+    'Samo ponedeljkom ipak mogu od 18 do 20, ostalim radnim danima ostaje isto.']},
   'need-stationary-map-execution': {flow:'need',expectation:'PHYSICAL_MAP_CONFIRMATION',expectedGeography:'STATIONARY',messages:[
     'Treba mi krečenje jedne prazne sobe od 12 kvadrata u Novom Sadu, Srbija, na adresi Bulevar oslobođenja 50. Potreban je dolazak majstora u stan, jedan izvršilac. Termin potpuno fleksibilan, tražim ponude. Tačku ću lično proveriti na mapi.']},
   'need-route-map-execution': {flow:'need',expectation:'PHYSICAL_MAP_CONFIRMATION',expectedGeography:'POINT_TO_POINT',messages:[

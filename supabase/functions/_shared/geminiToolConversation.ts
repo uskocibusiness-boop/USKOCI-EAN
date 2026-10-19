@@ -1,3 +1,4 @@
+import { measureAiPhase } from './aiPhaseTiming.mjs';
 import {
   GeminiCreditsUnavailableError, GeminiSafetyBlockedError,
   geminiFailureDiagnostic, geminiRequestBody, decodeGeminiUsage,
@@ -183,7 +184,7 @@ export async function generateGeminiToolConversation<T = string>(input: GeminiTo
       const admission: GeminiAttemptAdmission = { attempt: attempts + 1, phase, requestBytes, maxOutputTokens, signal: controller.signal };
       let knownReceipt: GeminiAttemptReceipt | undefined;
       try {
-        await wait(input.beforeAttempt(admission).then(value => { knownReceipt = value; }));
+        await measureAiPhase('ADMISSION', () => wait(input.beforeAttempt(admission).then(value => { knownReceipt = value; })));
       } catch {
         // If the receipt is already known, cancellation must not leave a known undispatched
         // hold behind. An unresolved/lost acknowledgement remains the caller's durable recovery.
@@ -205,11 +206,14 @@ export async function generateGeminiToolConversation<T = string>(input: GeminiTo
       let modelContent: JsonObject | undefined, calls: JsonObject[] = [], finalRaw: string | undefined, value: T | undefined;
       try {
         check(); dispatched = true; attempts++;
-        const response = await wait(fetch(input.url, { method: 'POST', redirect: 'error', signal: controller.signal,
-          headers: { 'x-goog-api-key': input.key, 'Content-Type': 'application/json', Accept: 'application/json' }, body }));
-        httpStatus = response.status;
-        let payload: unknown;
-        try { payload = await readBody(response); } catch (error) { if (response.ok) throw error; }
+        const { response, payload } = await measureAiPhase('PROVIDER', async () => {
+          const response = await wait(fetch(input.url, { method: 'POST', redirect: 'error', signal: controller.signal,
+            headers: { 'x-goog-api-key': input.key, 'Content-Type': 'application/json', Accept: 'application/json' }, body }));
+          httpStatus = response.status;
+          let payload: unknown;
+          try { payload = await readBody(response); } catch (error) { if (response.ok) throw error; }
+          return { response, payload };
+        });
         check();
         if (object(payload)) {
           const reported = decodeGeminiUsage(payload.usageMetadata);
@@ -282,7 +286,7 @@ export async function generateGeminiToolConversation<T = string>(input: GeminiTo
           candidateTokens: currentCandidates, thoughtTokens: currentThoughts,
           cachedPromptTokens: currentCached, toolUsePromptTokens: currentToolPrompt, errorCode };
         try {
-          await account(report);
+          await measureAiPhase('ACCOUNTING', () => account(report));
         } catch {
           accountingComplete = false;
           // A valid final answer is deliverable, but accounting failure never admits another call.
@@ -300,7 +304,7 @@ export async function generateGeminiToolConversation<T = string>(input: GeminiTo
         toolCalls += calls.length;
         let results: JsonObject[];
         try {
-          results = await wait(Promise.all(calls.map(async (call): Promise<JsonObject> => {
+          results = await measureAiPhase('CATALOG_TOOLS', () => wait(Promise.all(calls.map(async (call): Promise<JsonObject> => {
             check();
             const tool = toolMap.get(call.name as string)!;
             let result: JsonObject;
@@ -311,7 +315,7 @@ export async function generateGeminiToolConversation<T = string>(input: GeminiTo
             if (!object(result) || !encoded) fail('AI_TOOL_INVALID_RESULT');
             if (bytes(encoded) > limits.maxToolResultBytes) fail('AI_TOOL_RESULT_TOO_LARGE');
             return { functionResponse: { name: call.name, ...(call.id === undefined ? {} : { id: call.id }), response: JSON.parse(encoded) } };
-          })));
+          }))));
         } catch (error) {
           const code = controller.signal.aborted ? 'AI_TOOL_STOPPED' : safeError(error);
           stop(); // Cancel sibling reads after the first failure; no subsequent paid request.

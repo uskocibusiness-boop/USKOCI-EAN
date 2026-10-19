@@ -75,7 +75,7 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
     fetch:fakeFetch,console:{error:(...args)=>logs.push(args),info:(...args)=>logs.push(args)},Deno:{env:{get:name=>env[name]},serve:fn=>{handler=fn;}}});
   const cache=new Map();
   function load(file){
-    assert.ok([entry,registry,resolve(root,'supabase/functions/_shared/aiTestBudget.ts'),resolve(root,'supabase/functions/_shared/geminiTaskStream.ts'),
+    assert.ok([entry,registry,resolve(root,'supabase/functions/_shared/interviewVoiceInstruction.mjs'),resolve(root,'supabase/functions/_shared/aiPhaseTiming.mjs'),resolve(root,'supabase/functions/_shared/aiTestBudget.ts'),resolve(root,'supabase/functions/_shared/geminiTaskStream.ts'),
       resolve(root,'supabase/functions/_shared/geminiToolConversation.ts'),resolve(root,'supabase/functions/_shared/taxonomyProviderBudget.ts'),
       resolve(root,'supabase/functions/_shared/researchDeadline.ts'),resolve(root,'supabase/functions/_shared/classificationExplorer.mjs'),
       resolve(root,'supabase/functions/_shared/serviceHandoff.mjs'),resolve(root,'supabase/functions/_shared/serviceExecutionInstruction.mjs'),
@@ -157,7 +157,7 @@ for(const [dialogue,repair] of [
   assert.deepEqual(writes[0].body.p_proposals.map(p=>[p.key,p.value]),[['need.people_needed',2]]);
   assert.equal(writes[0].body.p_assistant_message,providerResult.assistantMessage);
   assert.ok(!Object.hasOwn(writes[0].body,'p_dialogue'));
-  assert.deepEqual(f.logs,[['NEED_AI_OUTPUT_GATE',repair]]);assertNothingRawLogged(f);
+  assert.deepEqual(withoutTiming(f.logs),[['NEED_AI_OUTPUT_GATE',repair]]);assertNothingRawLogged(f);
 });
 test('unknown question enum is still rejected before materialization',async()=>{
   const dialogue={...syntheticDialogue(),questionKey:'UNKNOWN_QUESTION'};
@@ -221,7 +221,7 @@ for(const schema of ['NEED_FACT_V2','LEGACY_TEXT_V1']){
     assert.ok(fetchedKeys.includes('naslov'));assert.ok(fetchedKeys.includes('need.people_needed'));
     assert.ok(fetchedKeys.includes('need.exact_address'));assert.ok(!fetchedKeys.includes('need.resolved_location'));
     assert.ok(!fetchedKeys.includes('unknown.private_fact'));
-    assert.equal(providerCalls(f).length,0);assert.deepEqual(materialWrites(f),[]);assert.deepEqual(f.logs,[]);
+    assert.equal(providerCalls(f).length,0);assert.deepEqual(materialWrites(f),[]);assert.deepEqual(withoutTiming(f.logs),[]);
   });
 }
 
@@ -257,7 +257,7 @@ for(const safety of ['ALLOW','BLOCK']){
     const response=await f.invoke();assert.equal(response.status,502);
     assert.equal((await response.json()).code,'AI_PROVIDER_FAILED');assert.equal(providerCalls(f).length,1);
     assert.deepEqual(materialWrites(f),[],'no valid subset or empty BLOCK turn may be persisted; claim/failure metadata is not a materializer');
-    assert.deepEqual(f.logs,[['AI_PROVIDER_FAILED','AI_MANUAL_ONLY_FACT_REJECTED']]);assertNothingRawLogged(f);
+    assert.deepEqual(withoutTiming(f.logs),[['AI_PROVIDER_FAILED','AI_MANUAL_ONLY_FACT_REJECTED']]);assertNothingRawLogged(f);
   });
 }
 
@@ -313,7 +313,7 @@ for(const provider of ['gemini'])test(`${provider} actual handler sends newest30
   assert.equal(persist.headers.authorization,'Bearer SYNTHETIC_SERVICE_KEY');assert.equal(persist.body.p_account_id,owner);
   assert.equal(persist.body.p_conversation_id,conversation);assert.equal(persist.body.p_user_message,userText);
   assert.deepEqual(persist.body.p_proposals,[{key:'need.people_needed',value:2,displayValue:'2 osobe',evidence:userText,confidence:0.9}]);
-  assert.deepEqual(f.logs,[]);assert.ok(!JSON.stringify(body).includes('SYNTHETIC_'));
+  assert.deepEqual(withoutTiming(f.logs),[]);assert.ok(!JSON.stringify(body).includes('SYNTHETIC_'));
 });
 
 test('short history stays chronological without invented prior turns',async()=>{
@@ -330,7 +330,7 @@ test('legacy history stays readable without synthesizing a V2 key or licensing i
 for(const failure of ['network','http','json','output'])test(`provider ${failure} failure logs fixed categories only and performs no writer call`,async()=>{
   const f=fixture({failure}),response=await f.invoke();assert.equal(response.status,502);
   assert.equal((await response.json()).code,'AI_PROVIDER_FAILED');
-  assert.deepEqual(f.logs,providerFailureLogs(failure));assert.deepEqual(materialWrites(f),[]);
+  assert.deepEqual(withoutTiming(f.logs),providerFailureLogs(failure));assert.deepEqual(materialWrites(f),[]);
   assertNothingRawLogged(f);
 });
 // The earlier check looked for the whole of 'PRIVATE_PROVIDER_OUTPUT' and so missed the ten characters of it
@@ -339,7 +339,7 @@ for(const failure of ['network','http','json','output'])test(`provider ${failure
 for(const failure of ['code-shaped','runtime'])test(`a ${failure} provider failure is logged as a class, never as the text that was thrown`,async()=>{
   const f=fixture({failure}),response=await f.invoke();assert.equal(response.status,502);
   assert.equal((await response.json()).code,'AI_PROVIDER_FAILED');
-  assert.deepEqual(f.logs,providerFailureLogs(failure));assert.deepEqual(materialWrites(f),[]);assertNothingRawLogged(f);
+  assert.deepEqual(withoutTiming(f.logs),providerFailureLogs(failure));assert.deepEqual(materialWrites(f),[]);assertNothingRawLogged(f);
 });
 
 const providerCalls=f=>f.calls.filter(call=>[
@@ -394,6 +394,31 @@ test('PKG041 fixed start must agree with its literal relative-day evidence in Se
   {key:'need.starts_at',valueJson:'"2026-09-21T08:00:00+02:00"',displayValue:'21.09. u 8h',evidence:'sutra',confidence:1}]}});
  await f.invoke({text:'Treba mi radnik sutra od 8.'});assert.equal(materialWrites(f)[0].body.p_safety,'CLARIFY');
 });
+
+test('a contradictory date preserves independent answers and withholds synthesized stale dates',async()=>{
+ const fact=(key,value,evidence)=>({key,valueJson:JSON.stringify(value),displayValue:String(value),evidence,confidence:1});
+ const f=fixture({now:'2026-09-20T22:59:00Z',providerOutput:{safety:'ALLOW',assistantMessage:'Sve je spremno.',facts:[
+  fact('need.schedule_kind','TODAY_FLEXIBLE','sutra'),
+  fact('need.title','Pomoć danas','pomoć'),fact('need.description','Potrebna je pomoć danas.','pomoć'),
+  fact('need.price_mode','MY_PRICE','5000'),fact('need.price_rsd',5000,'5000'),
+  fact('need.people_needed',3,'troje ljudi')]}});
+ assert.equal((await f.invoke({text:'Treba mi pomoć sutra, troje ljudi, ukupno 5000 dinara.'})).status,200);
+ const accepted=materialWrites(f)[0].body;
+ assert.equal(accepted.p_safety,'CLARIFY');
+ assert.deepEqual(accepted.p_proposals.map(p=>[p.key,p.value]),[
+  ['need.price_mode','MY_PRICE'],['need.price_rsd',5000],['need.people_needed',3]]);
+ assert.match(accepted.p_assistant_message,/datum/);
+ assert.equal(providerCalls(f).length,1,'clarification must not add a paid repair loop');
+});
+
+test('task prompt carries the shared warm voice and keeps correction in the same conversation',async()=>{
+ const f=fixture();await f.invoke();const instructions=prompt(providerCall(f));
+ assert.match(instructions,/USKOČI glas:/);
+ assert.match(instructions,/Povremeno može jedan nenametljiv smajli/);
+ assert.match(instructions,/niti izmišljaj lično iskustvo/);
+ assert.match(instructions,/Izmeni kroz razgovor, ne ručni editor/);
+ assert.doesNotMatch(instructions,/ručnom ispravkom u pregledu/);
+});
 test('PKG041 negation with correct evidence is preserved, not converted to the first mentioned day',async()=>{
  const f=fixture({now:'2026-09-20T22:59:00Z',providerOutput:{safety:'ALLOW',assistantMessage:'Termin je unet.',facts:[
   {key:'need.schedule_kind',valueJson:'"TODAY_FLEXIBLE"',displayValue:'Danas',evidence:'danas',confidence:1}]}});
@@ -447,7 +472,7 @@ test('REVIEW asks the missing material question and retains the last content pro
   providerOutput:{safety:'ALLOW',facts:[proposed('need.category','Nošenje stvari')],assistantMessage:'Spremno.',
    dialogue:{...syntheticDialogue(),next:'REVIEW'}}});
  await f.invoke();const result=materialWrites(f)[0].body;
- assert.equal(result.p_assistant_message,'Želiš da navedeš cenu ili da dobiješ ponude?');
+ assert.equal(result.p_assistant_message,'Imaš li planiran budžet ili želiš da dobiješ ponude?');
  assert.equal(result.p_proposals[0].key,'need.category');
 });
 test('the last classification retains all proposals while a city-only task still asks for its actual place',async()=>{
@@ -495,7 +520,7 @@ test('a question about known headcount is replaced by one genuinely missing topi
   providerOutput:{safety:'ALLOW',assistantMessage:'Koliko ljudi, kada, gde i koja cena?',facts:[],
    dialogue:{...syntheticDialogue(),next:'ASK',questionKey:'need.people_needed'}}});
  assert.equal((await f.invoke()).status,200);
- assert.equal(materialWrites(f)[0].body.p_assistant_message,'Želiš da navedeš cenu ili da dobiješ ponude?');
+ assert.equal(materialWrites(f)[0].body.p_assistant_message,'Imaš li planiran budžet ili želiš da dobiješ ponude?');
 });
 
 for(const [questionKey,message] of [
@@ -571,7 +596,7 @@ for(const selected of ['openai','gemini'])test(`explicit ${selected} cannot bypa
     'p_account_id','p_assistant_message','p_attempt_id','p_client_request_id','p_conversation_id','p_proposals','p_safety','p_user_message',
   ]);
   assert.equal(persist.body.p_proposals[0].key,'need.people_needed');assert.equal(persist.body.p_proposals[0].value,2);
-  assert.deepEqual(f.logs,[]);assert.ok(!JSON.stringify(body).includes('SYNTHETIC_'));
+  assert.deepEqual(withoutTiming(f.logs),[]);assert.ok(!JSON.stringify(body).includes('SYNTHETIC_'));
 });
 
 test('absent selector has no implicit OpenAI primary and rejects client provider fields',async()=>{
@@ -592,7 +617,7 @@ for(const invalid of ['','OPENAI',' openai','anthropic','gemini,openai'])test(`i
   const response=await f.invoke();assert.equal(response.status,503);
   assert.equal((await response.json()).code,'AI_PROVIDER_NOT_CONFIGURED');
   assert.deepEqual(providerCalls(f),[]);assert.deepEqual(materialWrites(f),[]);
-  assert.deepEqual(f.logs,[]);
+  assert.deepEqual(withoutTiming(f.logs),[]);
 });
 
 for(const selected of ['openai','gemini'])for(const suffix of ['API_KEY','MODEL'])for(const missing of [undefined,'']){
@@ -600,7 +625,7 @@ for(const selected of ['openai','gemini'])for(const suffix of ['API_KEY','MODEL'
     const f=fixture();f.env.AI_PROVIDER=selected;f.env[`${selected.toUpperCase()}_${suffix}`]=missing;
     const response=await f.invoke();assert.equal(response.status,503);
     assert.equal((await response.json()).code,'AI_PROVIDER_NOT_CONFIGURED');assert.deepEqual(providerCalls(f),[]);
-    assert.deepEqual(materialWrites(f),[]);assert.deepEqual(f.logs,[]);
+    assert.deepEqual(materialWrites(f),[]);assert.deepEqual(withoutTiming(f.logs),[]);
   });
 }
 
@@ -608,7 +633,7 @@ test('absent selector with neither complete pair retains the known pre-provider 
   const f=fixture();delete f.env.AI_PROVIDER;delete f.env.GEMINI_MODEL;delete f.env.OPENAI_MODEL;
   const response=await f.invoke();assert.equal(response.status,503);
   assert.equal((await response.json()).code,'AI_PROVIDER_NOT_CONFIGURED');assert.deepEqual(providerCalls(f),[]);
-  assert.deepEqual(materialWrites(f),[]);assert.deepEqual(f.logs,[]);
+  assert.deepEqual(materialWrites(f),[]);assert.deepEqual(withoutTiming(f.logs),[]);
 });
 
 for(const selected of ['gemini'])for(const failure of ['network','http','json','output']){
@@ -618,6 +643,16 @@ for(const selected of ['gemini'])for(const failure of ['network','http','json','
     const calls=providerCalls(f);assert.equal(calls.length,1);assert.equal(new URL(calls[0].url).hostname,hostFor[selected]);
     assert.deepEqual(materialWrites(f),[]);
     const httpCategory=selected==='openai'?'OPENAI_RESPONSES_FAILED':'GEMINI_GENERATE_FAILED';
-    assert.deepEqual(f.logs,providerFailureLogs(failure,httpCategory));assertNothingRawLogged(f);
+    assert.deepEqual(withoutTiming(f.logs),providerFailureLogs(failure,httpCategory));assertNothingRawLogged(f);
   });
+}
+
+function withoutTiming(logs) {
+  for (const item of logs.filter(row=>row[0]==='AI_PHASE_MS')) {
+    assert.equal(item.length,4);
+    assert.match(item[1],/^[A-Z_]+$/);
+    assert.ok(Number.isFinite(item[2])&&item[2]>=0);
+    assert.ok(['SUCCEEDED','FAILED'].includes(item[3]));
+  }
+  return logs.filter(row=>row[0]!=='AI_PHASE_MS');
 }

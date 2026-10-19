@@ -9,10 +9,10 @@ const plain = value => JSON.parse(JSON.stringify(value));
 function load(fetch) {
   const logs = [];
   const context = vm.createContext({ fetch, Response, Request, Headers, TextEncoder, TextDecoder,
-    ReadableStream, AbortController, setTimeout, clearTimeout, console: { error: (...args) => logs.push(args) } });
+    ReadableStream, AbortController, setTimeout, clearTimeout, console: { error: (...args) => logs.push(args), info: (...args) => logs.push(args) } });
   const evaluate = (path, imports = {}) => {
     const output = ts.transpileModule(readFileSync(new URL(path, import.meta.url), 'utf8'), {
-      fileName: path, reportDiagnostics: true, compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
+      fileName: path.replace(/\.mjs$/,'.ts'), reportDiagnostics: true, compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
     });
     assert.equal(output.diagnostics.filter(d => d.category === ts.DiagnosticCategory.Error).length, 0);
     const require = name => { assert.ok(Object.hasOwn(imports, name), name); return imports[name]; };
@@ -20,7 +20,7 @@ function load(fetch) {
   };
   const availability = evaluate('../../../src/contracts/aiAvailability.ts');
   const stream = evaluate('../../functions/_shared/geminiTaskStream.ts', { '../../../src/contracts/aiAvailability.ts': availability });
-  return { api: evaluate('../../functions/_shared/geminiToolConversation.ts', { './geminiTaskStream.ts': stream }), logs };
+  return { api: evaluate('../../functions/_shared/geminiToolConversation.ts', { './geminiTaskStream.ts': stream, './aiPhaseTiming.mjs': evaluate('../../functions/_shared/aiPhaseTiming.mjs') }), logs };
 }
 const usage = (prompt = 40, candidates = 10, thoughts = 5) => ({ promptTokenCount: prompt,
   candidatesTokenCount: candidates, thoughtsTokenCount: thoughts, totalTokenCount: prompt + candidates + thoughts });
@@ -211,7 +211,7 @@ for (const status of [400, 402, 429, 500]) test(`HTTP ${status} accounts usage, 
   const { input, reports } = args();
   await assert.rejects(() => api.generateGeminiToolConversation(input), status === 402 ? /AI_CREDITS_UNAVAILABLE/ : /AI_TOOL_UNAVAILABLE/);
   assert.equal(attempts, 1); assert.equal(reports.length, 1); assert.equal(reports[0].usage.outputTokens, 15);
-  assert.deepEqual(logs, [['GEMINI_TOOLS_HTTP_FAILED', status, 'INVALID_ARGUMENT', 'UNKNOWN', 'UNKNOWN']]);
+  assert.deepEqual(withoutTiming(logs), [['GEMINI_TOOLS_HTTP_FAILED', status, 'INVALID_ARGUMENT', 'UNKNOWN', 'UNKNOWN']]);
   assert.ok(!JSON.stringify(reports).includes('PRIVATE'));
 });
 
@@ -415,3 +415,13 @@ test('non-readonly tools and unstructured bodies fail before any paid admission'
     assert.equal(admissions.length, 0);
   }
 });
+
+function withoutTiming(logs) {
+  for (const item of logs.filter(row=>row[0]==='AI_PHASE_MS')) {
+    assert.equal(item.length,4);
+    assert.match(item[1],/^[A-Z_]+$/);
+    assert.ok(Number.isFinite(item[2])&&item[2]>=0);
+    assert.ok(['SUCCEEDED','FAILED'].includes(item[3]));
+  }
+  return logs.filter(row=>row[0]!=='AI_PHASE_MS');
+}

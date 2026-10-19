@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { measureAiPhase } from '../_shared/aiPhaseTiming.mjs';
 // DEV-phase-1 only. Explicit false is an immediate kill switch; other projects
 // stay default-OFF. Do NOT copy this DEV override into production release.
 const devTaxonomyFlagP1=(name:string):boolean=>{
@@ -25,6 +26,7 @@ import {
 
 import { validLocationContext, locationProviderSchema, locationInstruction, parseLocationOutput, validLocationEnvelope, type LocationContext, type LocationAction } from '../_shared/locationReply.ts';
 
+import { interviewVoiceInstruction } from '../_shared/interviewVoiceInstruction.mjs';
 import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts';
 import { GeminiCreditsUnavailableError, GeminiSafetyBlockedError, geminiRequestBody, geminiUsage, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { scopedNeedPreviewArgs, scopedNeedPreviewSafeAction } from '../_shared/taxonomyScopedShadow.mjs';
@@ -403,13 +405,12 @@ function needRuntimeContext(activeFacts: any[], timeContext: ServerTimeContext) 
 
 function commonInstruction() {
   return [
+    interviewVoiceInstruction(),
     "Odgovarajte prirodno na srpskom latinicom, jasno, toplo i opušteno, bez naredbodavnog/birokratskog tona. Korisniku se obraćajte sa ti, nikada Vi/Vam; Vi forma ovih uputstava nije ton odgovora.",
     'Rod korisnika nije poznat. Ne pretpostavljajte rod: umesto rekao si ili htela si koristite oblik bez roda, na primer kažeš ili prema tvojoj poruci.',
     'Ovo je višekoračni razgovor, ne formular. Ne ponavljajte pitanja za podatke koji su već poznati i važeći.',
     'Vi vodite korisnika do sledećeg korisnog koraka. Osoba ne mora znati koja polja postoje, tražiti od vas sledeće pitanje ili izgovoriti gotovo. Najpre rešite nejasnoću koja sprečava ispravan zadatak. Pitanje neka kaže koji deo nedostaje i ponudi razumljiv način odgovora. Ako osoba kaže ne znam za opcioni detalj, nastavite sa poznatim podacima. Ne zahtevajte savršeno napisanu rečenicu; razjasnite samo nejasan podatak koji menja rezultat.',
     'Jedinstveno pravilo pitanja: tražite najviše TRI zasebne informacije u jednoj poruci, kroz najviše tri kratka, povezana pitanja. Brojite informacije koje osoba treba da odgovori, ne rečenice ili upitnike: površina poda ili zidova + gletovanje + deo grada + dan + budžet jesu PET informacija, čak i u dve rečenice. Jedno pitanje traži jednu informaciju; ponuđene alternative za istu informaciju ne povećavaju broj. Ne skrivajte dodatna pitanja u zagradama, nabrajanju ili rečenici bez upitnika. Svako pitanje jasno odvojite. Najpre razjasnite ono što menja vrstu/obim rada ili sprečava ispravan pregled, mesto i termin; opcione detalje ostavite za kasnije. Ako nedostaje samo jedan podatak, pitajte samo za njega; ako je sve jasno, ne izmišljajte novo pitanje. Delimičan odgovor sačuvajte i sledeći put tražite samo preostale informacije. To što osoba nije odgovorila na jedno pitanje ne poništava ostale odgovore.',
-    "Najčešće odgovorite sa jednom do tri kratke rečenice: kratka relevantna reakcija/objašnjenje, pa potrebna pitanja. Ne prepričavajte zadatak i cenu koje kartica/pregled već prikazuju. Duže objašnjenje dajte na zahtev ili za važnu razliku. Ne počinjite rutinski sa Razumeo sam, Zabeležio sam ili Super.",
-    "Povremeno je prikladan jedan 🙂 ili 👍, ne u svakoj poruci ili niz emodžija. Bez šaljivog tona kod greške, odbijanja, rizika ili ozbiljne neprijatnosti. Toplina nije obećanje uspeha.",
     'Ako korisnik ispravlja raniji podatak, predložite novu vrednost istog ključa. Server čuva supersession istoriju.',
     'Nikada ne izmišljajte cenu, vreme, lokaciju, sprat, lift, broj ljudi, vozilo, dozvolu ili drugi materijalni uslov.',
     'Broj predmeta nije broj izvršilaca. Treba mi prevoz stola, treba mi neko i tri figurice sami po sebi ne određuju need.people_needed=1 ili 3. Bez izričito navedenog ili prethodno poznatog broja ljudi izostavite tu činjenicu i kratko pitajte koliko ljudi treba. Ne upisujte uobičajenu pretpostavku kao da ju je korisnik rekao.',
@@ -471,7 +472,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     'need.task_geography.mode može biti STATIONARY, POINT_TO_POINT, MULTI_STOP, AREA_BASED ili REMOTE. Objekat sme imati samo mode/start/end/waypoints/serviceArea; lokacijske tačke samo label/city/area. REMOTE nema fizičke tačke. AREA_BASED koristi start ili serviceArea. Kada korisnik navede ulicu ili prepoznatljivo mesto za tačku rute, sačuvajte privacy-safe naziv ulice/POI bez kućnog broja u label ili area baš te start/end/waypoint tačke, uz poznati city, da mapa može da uokviri pravi kraj. Tačnu adresu sa kućnim brojem stavljajte isključivo u need.exact_address.',
     "Za fizički zadatak kod naručioca ili na ruti tražite odgovarajuća mesta/tačke. Kod izrade kod izvršioca grad isporuke/preuzimanja pripada need.handoff, nikada start/end/serviceArea ili pinu rada. Ne pitajte za deo grada/mapu zbog grada predaje. Shared execution/handoff pravila određuju ostalo; opis objašnjava obim, ne routing.",
     'Tačna privatna adresa/access notes nikada se ne prebacuju u javnu geography ili opis. Jedan need.exact_address nije dozvola da se privatna adresa pripiše polazištu druge route tačke; tačne route pinove korisnik potvrđuje na mapi.',
-    'U ovoj test verziji identitet je samostalno naveden; provera dokumenta, selfija ili spoljnim KYC servisom nije dostupna. Ne predlažite need.verified_identity_required niti tvrdite da je bilo čiji identitet proveren. Ako korisnik traži provereni identitet, u odgovoru jasno objasnite da ta provera nije dostupna i da može nastaviti običnim Zadatkom. Nedostupni zahtev ne prenosite u naslov, opis, veštine ili bitne uslove kao da je ispunjen ili podržan. Postojeći takav uslov vlasnik uklanja izričitom ručnom ispravkom u pregledu.',
+    'U ovoj test verziji identitet je samostalno naveden; provera dokumenta, selfija ili spoljnim KYC servisom nije dostupna. Ne predlažite need.verified_identity_required niti tvrdite da je bilo čiji identitet proveren. Ako korisnik traži provereni identitet, u odgovoru jasno objasnite da ta provera nije dostupna i da može nastaviti običnim Zadatkom. Nedostupni zahtev ne prenosite u naslov, opis, veštine ili bitne uslove kao da je ispunjen ili podržan. Postojeći takav uslov uklonite iz nacrta samo kada vlasnik to izričito zatraži kroz isti AI razgovor; na pregledu postoji Izmeni kroz razgovor, ne ručni editor.',
     `Jedini podržani V2 fact registry: ${JSON.stringify(registry)}`,
     ...(includeRuntime ? [needRuntimeContext(activeFacts, timeContext), needFinishContext(activeFacts, finishPresentation)] : []),
   ].join(' ');
@@ -692,7 +693,7 @@ async function callGemini(
     let taxonomyCatalog: CatalogSnapshot | null = null;
     if (taxonomyExplorer) {
       try {
-        taxonomyCatalog = await taxonomyExplorer.verify(value, { services: activeFacts.filter((f:any) => f.fact_key === 'need.category' && typeof f.fact_value === 'string').map((f:any) => f.fact_value) });
+        taxonomyCatalog = await measureAiPhase('NEED_CATALOG_VERIFY', () => taxonomyExplorer.verify(value, { services: activeFacts.filter((f:any) => f.fact_key === 'need.category' && typeof f.fact_value === 'string').map((f:any) => f.fact_value) }));
       } catch { console.info('NEED_TAXONOMY_RESEARCH','UNVERIFIED'); }
     }
     // The optional plan is never an AI fact or owner-approved need revision.
@@ -843,6 +844,15 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
       assistantMessage: 'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.' };
   }
   const clarification = (assistantMessage: string): ParsedTurn => ({ safety: 'CLARIFY', proposals: [], assistantMessage });
+  // A contradictory date does not erase independent budget/people/place answers.
+  // Synthesized title/description may repeat that invalid date, so withhold them too.
+  const clarifySchedule = (assistantMessage: string): ParsedTurn => ({
+    ...turn, safety: 'CLARIFY',
+    proposals: turn.proposals.filter(p => !['need.schedule_kind', 'need.starts_at', 'need.ends_at',
+      'need.title', 'need.description'].includes(p.key)),
+    dialogue: turn.dialogue ? { ...turn.dialogue, next: 'CLARIFY', questionKey: '' } : undefined,
+    assistantMessage,
+  });
   let dialogue = turn.dialogue;
   if (dialogue?.taskRelation === 'DIFFERENT_TASK') return clarification('Za drugi posao izaberi Novi zadatak u opcijama razgovora. Ovaj razgovor čuva prethodni zadatak.');
   if (dialogue?.taskRelation === 'UNCLEAR') return clarification('Da li menjaš ovaj zadatak ili želiš da napraviš novi?');
@@ -881,8 +891,8 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     const wrongKind = typeof kind === 'string' && kind !== 'FIXED_WINDOW' && kind !== expectedKind;
     const wrongStart = typeof start === 'string' && Number.isFinite(Date.parse(start))
       && serbiaTimeParts(new Date(start)).localDate !== expectedDate;
-    if (wrongKind || wrongStart) return { safety: 'CLARIFY', proposals: [],
-      assistantMessage: `Da razjasnimo termin: misliš na ${expectedDate.split('-').reverse().join('.')}?` };
+    if (wrongKind || wrongStart) return clarifySchedule(
+      `Da razjasnimo termin: misliš na ${expectedDate.split('-').reverse().join('.')}?`);
   }
   // Validate an explicit source/value contradiction even inside a full sentence.
   // This is evidence consistency, not interpretation of negation or alternatives:
@@ -901,7 +911,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
       ? proposal.value !== 'FIXED_WINDOW' && proposal.value !== kind
       : typeof proposal.value === 'string' && Number.isFinite(Date.parse(proposal.value))
         && serbiaTimeParts(new Date(proposal.value)).localDate !== date;
-    if (conflict) return clarification('Koji je tačan datum početka posla?');
+    if (conflict) return clarifySchedule('Koji je tačan datum početka posla?');
   }
   if (dialogue?.schedulePattern === 'FLEXIBLE_RANGE') {
     // Provider-owned interpretation of a bounded *choice* of dates must not
@@ -959,8 +969,8 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     .filter(key => !facts.has(key) || key==='need.handoff'&&!decodeServiceHandoff(facts.get(key)));
   const questions: Record<string, string> = {
     'need.description': 'Šta treba da se uradi?', 'need.people_needed': 'Koliko ljudi ti treba?',
-    'need.price_mode': 'Želiš da navedeš cenu ili da dobiješ ponude?', 'need.price_rsd': 'Koju cenu nudiš za ceo posao?',
-    'need.price_basis': 'Da li je navedena cena ukupno za ceo posao ili po osobi?', 'need.schedule_kind': 'Kada treba da se uradi?',
+    'need.price_mode': 'Imaš li planiran budžet ili želiš da dobiješ ponude?', 'need.price_rsd': 'Koliki je budžet za ceo posao?',
+    'need.price_basis': 'Da li je taj budžet ukupan za ceo posao ili po osobi?', 'need.schedule_kind': 'Kada treba da se uradi?',
     'need.starts_at': 'Kog datuma i u koliko sati posao počinje?', 'need.ends_at': 'Kada se posao završava?',
     'need.task_country_code': 'U kojoj državi je zadatak?', 'need.task_geography': 'Gde treba da se uradi?',
     'need.handoff': 'Kako preuzimaš rezultat — digitalno, slanjem u koju državu ili lično u kom gradu?',
@@ -1214,11 +1224,11 @@ Deno.serve(async (req: Request) => {
       let taxonomyPrompt = '';
       if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW')) {
         try {
-          taxonomyExplorer = await createClassificationExplorer(async (name, args) => {
+          taxonomyExplorer = await measureAiPhase('NEED_CATALOG_START', () => createClassificationExplorer(async (name, args) => {
             const result = await rpc(name, args, research!.signal, 4000);
             if (!result.ok) throw new Error('CATALOG_RPC_UNAVAILABLE');
             return result.data;
-          }, { signal: research.signal, seedServices: activeFacts.filter((f:any) => f.fact_key === 'need.category' && typeof f.fact_value === 'string').map((f:any) => f.fact_value) });
+          }, { signal: research.signal, seedServices: activeFacts.filter((f:any) => f.fact_key === 'need.category' && typeof f.fact_value === 'string').map((f:any) => f.fact_value) }));
           taxonomyPrompt = taxonomyExplorer.prompt();
           console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'LOADED');
         } catch { console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE'); }
@@ -1278,9 +1288,9 @@ Deno.serve(async (req: Request) => {
       if (signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
     }
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
-      const result = await rpc(locationContext ? 'rpc_ai_complete_need_location_turn_v1_service' : 'rpc_ai_complete_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId,
+      const result = await measureAiPhase('NEED_COMPLETE', () => rpc(locationContext ? 'rpc_ai_complete_need_location_turn_v1_service' : 'rpc_ai_complete_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId,
         p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: aiTurn.proposals,
-        ...(locationContext ? { p_location_context: locationContext, p_location_action: aiTurn.locationAction } : {}) }, signal);
+        ...(locationContext ? { p_location_context: locationContext, p_location_action: aiTurn.locationAction } : {}) }, signal));
       const completed = locationContext ? result.data?.turn : result.data;
       if (!result.ok || !validTurn(completed, conversationId, requestId) || completed.turnId !== claimedTurnId
         || locationContext && !validLocationEnvelope(result.data, locationContext, turn => validTurn(turn, conversationId, requestId)))
@@ -1293,12 +1303,12 @@ Deno.serve(async (req: Request) => {
       if (completed.state === 'SUCCEEDED' && taxonomyCatalog && taxonomyReviewHints.length &&
           devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
         try {
-          const capture=await rpc('rpc_taxonomy_capture_gemini_turn_hints_service',{
+          const capture=await measureAiPhase('NEED_HINT_CAPTURE', () => rpc('rpc_taxonomy_capture_gemini_turn_hints_service',{
             p_account_id:accountId,p_conversation_id:conversationId,
             p_client_request_id:requestId,p_turn_id:claimedTurnId,p_attempt_id:attemptId,
             p_purpose:'NEED_SERVICE',p_catalog_version:taxonomyCatalog.catalogVersion,
             p_proposals:taxonomyReviewHints,
-          },signal,2500);
+          },signal,2500));
           if (!capture.ok || capture.data?.action!=='HINT_CAPTURED' ||
               capture.data?.authority!=='NONE') {
             console.info('NEED_TAXONOMY_HINT_CAPTURE','UNAVAILABLE');
