@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, useWindowDimensions } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -45,6 +45,7 @@ const PUSH_TRANSITION = { animation: 'shift' as const,
 //
 // Početna has its own house so the clipboard no longer sat next to a tab called Zadaci; Zadaci keeps the map it had.
 const PRIMARY = { index: 'home', zadaci: 'map', dogovori: 'agreements', poruke: 'chat' } as const;
+const PRIMARY_LABEL = { index: 'Početna', zadaci: 'Zadaci', dogovori: 'Dogovori', poruke: 'Poruke' } as const;
 // At enlarged text, longer Serbian names earn more width instead of breaking in the middle of a word.
 const LABEL_SPACE = { index: 7.5, zadaci: 6.25, dogovori: 8.5, poruke: 6.5 } as const;
 type Primary = keyof typeof PRIMARY;
@@ -167,13 +168,14 @@ export default function TabLayout() {
   // The bar as every tab draws it, and what Zadaci does to it (the owner's phone of 8 Oct 2026): on that one tab it lies over the bottom of the
   // screen and slides away while the list rests at its top line or a pin's card stands at the bottom (`ui/v2/discovery/zadaciBar`). The value that
   // moves it, and the bar's whole height, go to that screen through the context; nothing else of the navigator is changed.
-  const barBase = useMemo(() => ({ ...tabBarSurface, height: tabBarHeight(labelHeight, TAB_BAR_PADDING), marginHorizontal: 0, marginTop: 0,
+  const barBase = useMemo(() => ({ ...tabBarSurface, height: tabBarHeight(labelHeight, TAB_BAR_PADDING), marginHorizontal: 12, marginTop: 0,
     marginBottom: Math.max(12, insets.bottom) }), [labelHeight, insets.bottom]);
   const awayValue = useRef(new Animated.Value(0)).current;
   const [zadaciVisible, setZadaciVisible] = useState(false);
   const zadaciBar = useMemo(() => ({ hidden: awayValue, height: barBase.height + barBase.marginBottom, setVisible: setZadaciVisible }), [awayValue, barBase.height, barBase.marginBottom]);
   // Static inner geometry; a separate, stable host owns Discovery's translation and settled native visibility.
-  const zadaciStyle = useMemo(() => zadaciBarStyle(barBase, zadaciBar), [barBase, zadaciBar]);
+  const zadaciStyle = useMemo(() => ({ ...zadaciBarStyle(barBase, zadaciBar), height: barBase.height,
+    bottom: barBase.marginBottom, paddingBottom: TAB_BAR_PADDING }), [barBase, zadaciBar]);
   // Where the bar's top edge is, measured from the window's bottom: the one "Poruka" (the short outcome bar) floats above it
   // on every screen of this navigator, so it never covers the bar and, where the bar is hidden, clears a flow's own footer.
   const barClearance = tabBarHeight(labelHeight, TAB_BAR_PADDING) + Math.max(12, insets.bottom);
@@ -198,31 +200,33 @@ export default function TabLayout() {
     // which is what a tab bar is for; only pushes move.
     screenOptions={({ route, navigation }) => {
       const selected = sectionOf(navigation.getState()) === route.name;
-      return { headerShown: false, animation: 'none', sceneStyle: { backgroundColor: sys.color.ground },
-      tabBarActiveTintColor: sys.color.green, tabBarInactiveTintColor: sys.color.muted, tabBarAllowFontScaling: true,
-      tabBarLabelPosition: 'below-icon',
-      tabBarLabel: ({ children }) => <TabLabel key={measureKey} selected={selected}
+      const renderLabel = ({ children }: { children: ReactNode }) => <TabLabel key={measureKey} selected={selected}
         onTextLayout={({ nativeEvent }) => rememberLabelHeight(route.name,
-          Math.max(0, ...nativeEvent.lines.map(line => line.y + line.height)))}>{children}</TabLabel>,
-      // The navigator draws this icon twice, one over the other, and fades between the two by FOCUS; the chosen tab here is the
-      // SECTION (a screen opened from Zadaci keeps Zadaci chosen), so both copies say the same and both keep their own animation state.
-      tabBarIcon: () => isPrimary(route.name) ? <TabGlyph kind={PRIMARY[route.name]} selected={selected} /> : null,
+          Math.max(0, ...nativeEvent.lines.map(line => line.y + line.height)))}>{children}</TabLabel>;
+      return { headerShown: false, animation: 'none', sceneStyle: { backgroundColor: sys.color.ground },
+      tabBarActiveTintColor: sys.navigation.foreground, tabBarInactiveTintColor: sys.navigation.muted, tabBarAllowFontScaling: true,
+      tabBarLabelPosition: 'below-icon',
+      tabBarLabel: renderLabel,
+      // The button draws one art instance and measured label. Skip the navigator's two focus-icon layers;
+      // selection follows the originating SECTION even when a hidden detail has focus.
+      tabBarIcon: () => null,
       // The capsule is the button's own, always-mounted child. Navigation stays silent (owner U10), including cancelled
       // touches and taps on the current tab. The button does not scale: a plain Pressable saves one Reanimated view per tab (B22).
       tabBarButton: ({ children, style, onPress, onLongPress, testID, 'aria-label': label }) =>
-        <Press accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected }}
+        <Press accessibilityRole="tab" accessibilityLabel={label ?? (isPrimary(route.name) ? PRIMARY_LABEL[route.name] : undefined)} accessibilityState={{ selected }}
           onPress={onPress} onLongPress={onLongPress} testID={testID} haptic="none" scaleTo={1} hitSlop={0}
           style={[style, { paddingHorizontal: roomyLabels ? 0 : TAB_ITEM_PADDING, paddingTop: TAB_ITEM_TOP, paddingBottom: TAB_ITEM_BOTTOM,
-            borderRadius: TAB_CAPSULE }]}>
+            borderRadius: TAB_CAPSULE, flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }]}>
           <TabCapsule selected={selected} radius={TAB_CAPSULE} />
-          {children}
+          {isPrimary(route.name) && <TabGlyph kind={PRIMARY[route.name]} selected={selected} />}
+          {isPrimary(route.name) ? renderLabel({ children: PRIMARY_LABEL[route.name] }) : children}
         </Press>,
       tabBarItemStyle: { borderRadius: TAB_CAPSULE, overflow: 'hidden',
         flex: roomyLabels && isPrimary(route.name) ? LABEL_SPACE[route.name] : 1 },
       // The height follows the icon and the actual label height (`tabBarHeight`); no font shrinking or truncation.
       tabBarStyle: route.name === 'zadaci' ? zadaciStyle : barBase }; }}>
-    <Tabs.Screen name="index" options={{ title: 'Početna', tabBarAccessibilityLabel: 'Početna' }} />
-    <Tabs.Screen name="zadaci" options={{ title: 'Zadaci', tabBarAccessibilityLabel: 'Zadaci' }} />
+    <Tabs.Screen name="index" options={{ title: PRIMARY_LABEL.index, tabBarAccessibilityLabel: PRIMARY_LABEL.index }} />
+    <Tabs.Screen name="zadaci" options={{ title: PRIMARY_LABEL.zadaci, tabBarAccessibilityLabel: PRIMARY_LABEL.zadaci }} />
     <Tabs.Screen name="potrebe" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="nova" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="moje-prijave" options={{ href: null, ...FULL }} />
@@ -231,8 +235,8 @@ export default function TabLayout() {
     {/* Redirects to Zadaci: they never move and never show the bar for the frame before they hand over. */}
     <Tabs.Screen name="prilike" options={{ href: null, ...REDIRECT }} />
     <Tabs.Screen name="mapa" options={{ href: null, ...REDIRECT }} />
-    <Tabs.Screen name="dogovori" options={{ title: 'Dogovori', tabBarAccessibilityLabel: 'Dogovori' }} />
-    <Tabs.Screen name="poruke" options={{ title: 'Poruke', tabBarAccessibilityLabel: 'Poruke', ...(conversationInboxBuilt() ? {} : { href: null, ...FULL }) }} />
+    <Tabs.Screen name="dogovori" options={{ title: PRIMARY_LABEL.dogovori, tabBarAccessibilityLabel: PRIMARY_LABEL.dogovori }} />
+    <Tabs.Screen name="poruke" options={{ title: PRIMARY_LABEL.poruke, tabBarAccessibilityLabel: PRIMARY_LABEL.poruke, ...(conversationInboxBuilt() ? {} : { href: null, ...FULL }) }} />
     <Tabs.Screen name="profil" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/radnik" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/razgovor" options={{ href: null, ...FULL }} />

@@ -20,7 +20,7 @@ jest.mock('phosphor-react-native', () => ({ House: 'Icon', Handshake: 'Icon' }))
 import Tabs from '../../app/(app)/_layout';
 import { Press } from '../../ui/Press';
 import { StyleSheet } from 'react-native';
-import { TAB_CAPSULE, TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TabCapsule, TabGlyph, TabLabel } from '../../ui/system/TabBarItem';
+import { TAB_BAR_PADDING, TAB_CAPSULE, TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TabCapsule, TabGlyph, TabLabel } from '../../ui/system/TabBarItem';
 let tree: ReactTestRenderer;
 const routes = ['index', 'zadaci', 'dogovori', 'profil', 'profil/obavestenja', 'moje-aktivnosti', 'prilike', 'mapa', 'prilike/[id]', 'oceni-dogovor']
   .map(name => ({ name, key: name }));
@@ -32,6 +32,9 @@ function optionsFor(name: string, history: string[]) {
 }
 function tabButton(name: string, history: string[]) {
   return optionsFor(name, history).tabBarButton({ children: name, 'aria-selected': name === history[history.length - 1] });
+}
+function iconOf(button: React.ReactElement<{ children: React.ReactNode }>) {
+  return React.Children.toArray(button.props.children).find(child => React.isValidElement(child) && child.type === TabGlyph) as React.ReactElement<{ selected: boolean; kind: string }>;
 }
 beforeEach(() => { mockWindow = { width: 390, height: 844, scale: 1, fontScale: 1 }; });
 afterEach(async () => { await act(async () => tree?.unmount()); });
@@ -113,9 +116,9 @@ it('draws the bar over the bottom of Zadaci and nowhere else, and gives that scr
     expect(other.marginBottom).toBe(24); // the system's inset (the window's 24), as it always was
   }
   const normal = others[0];
-  // Over the bottom of the screen, so the map and the list have the whole height; the margin under the bar becomes white padding inside it, so the bar still reaches the bottom.
-  expect(zadaci).toMatchObject({ position: 'absolute', left: 0, right: 0, bottom: 0, marginBottom: 0, paddingBottom: normal.marginBottom });
-  expect(zadaci.height).toBe(normal.height + normal.marginBottom);
+  // The dock floats above the same safe inset on the map. Its stable moving host still owns the full clearance.
+  expect(zadaci).toMatchObject({ position: 'absolute', left: 0, right: 0, bottom: normal.marginBottom, marginBottom: 0, paddingBottom: TAB_BAR_PADDING });
+  expect(zadaci.height).toBe(normal.height);
   const bar = mockBar!;
   expect(bar).not.toBeNull();
   expect(bar.height).toBe(normal.height + normal.marginBottom);
@@ -180,10 +183,9 @@ it.each(['index', 'zadaci', 'dogovori'])('profile settings preserve the originat
   const history = [origin, 'profil', 'profil/obavestenja'];
   const selected = ['index', 'zadaci', 'dogovori'].filter(name => tabButton(name, history).props.accessibilityState.selected);
   expect(selected).toEqual([origin]);
-  // UI/UX pass, wave 2, item 2.1 (ON PURPOSE): the icon used to be a FactArt whose `muted` prop said "not chosen"; it is now a
-  // TabGlyph that cross-fades quiet and brand marks, and it says `selected`.
-  expect(optionsFor(origin, history).tabBarIcon({ focused: false }).props.selected).toBe(true);
-  expect(optionsFor(origin, history).tabBarIcon({ focused: false }).type).toBe(TabGlyph);
+  // The single button-owned art follows the same section, independent from navigator focus.
+  expect(iconOf(tabButton(origin, history)).props.selected).toBe(true);
+  expect(optionsFor(origin, history).tabBarIcon({ focused: false })).toBeNull();
 });
 
 it('returning through history updates the section and never hijacks the actual tab action', async () => {
@@ -214,7 +216,7 @@ it('the publishing, review and location flows still hide the tabs', async () => 
 // Početna got its own house (2026-09-23): the clipboard sat next to a tab called Zadaci. Zadaci keeps the map.
 it('draws Početna as a house, Zadaci as the map and Dogovori as agreements', async () => {
   await act(async () => { tree = create(<Tabs />); });
-  const kinds = ['index', 'zadaci', 'dogovori'].map(name => optionsFor(name, [name]).tabBarIcon({ focused: true }).props.kind);
+  const kinds = ['index', 'zadaci', 'dogovori'].map(name => iconOf(tabButton(name, [name])).props.kind);
   expect(kinds).toEqual(['home', 'map', 'agreements']);
 });
 
@@ -233,8 +235,8 @@ it('gives enlarged full labels room without shrinking them or dropping their ico
   mockWindow = { ...mockWindow, width: 320, fontScale: 2 };
   await act(async () => tree.update(<Tabs />));
   const home = optionsFor('index', ['index']), tasks = optionsFor('zadaci', ['index']), agreements = optionsFor('dogovori', ['index']);
-  expect(home.tabBarStyle.marginHorizontal).toBe(0);
-  expect(ordinary.tabBarStyle.marginHorizontal).toBe(0);
+  expect(home.tabBarStyle.marginHorizontal).toBe(12);
+  expect(ordinary.tabBarStyle.marginHorizontal).toBe(12);
   expect(agreements.tabBarItemStyle.flex).toBeGreaterThan(home.tabBarItemStyle.flex);
   expect(home.tabBarItemStyle.flex).toBeGreaterThan(tasks.tabBarItemStyle.flex);
   expect(StyleSheet.flatten(home.tabBarButton({ children: 'Početna' }).props.style).paddingHorizontal).toBe(0);
@@ -244,7 +246,7 @@ it('gives enlarged full labels room without shrinking them or dropping their ico
     expect(label.props.numberOfLines).toBeUndefined();
     expect(label.props.adjustsFontSizeToFit).toBeUndefined();
     expect(options.tabBarAllowFontScaling).toBe(true);
-    expect(options.tabBarIcon({ focused: true })).not.toBeNull();
+    expect(iconOf(options.tabBarButton({ children: title }))).toBeDefined();
   }
   expect(tabButton('index', ['index']).props.accessibilityState.selected).toBe(true);
 });

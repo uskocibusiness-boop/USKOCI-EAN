@@ -16,7 +16,7 @@ import { MATERIAL_SUBJECTS } from './materialSubjects';
  */
 export const FACT_KINDS = ['home', 'pin', 'calendar', 'clock', 'users', 'person', 'money', 'remote', 'map', 'tasks', 'agreements',
   'offers', 'chat', 'bell', 'phone', 'star', 'check', 'info', 'shield', 'lock', 'eye', 'document', 'download', 'photo', 'support',
-  'vehicle', 'tool', 'alert', 'publish', 'send'] as const;
+  'vehicle', 'tool', 'alert', 'publish', 'send', 'applications'] as const;
 export type FactArtKind = (typeof FACT_KINDS)[number];
 
 /** Explicit state treatment takes precedence over subject color. */
@@ -60,6 +60,7 @@ const ART_ROLE: Partial<Record<FactArtKind, FactArtRole>> = {
   home: 'location', pin: 'location', map: 'location', remote: 'location',
   calendar: 'time', clock: 'time', users: 'people', person: 'people',
   chat: 'people', support: 'people', tool: 'skills', vehicle: 'skills', tasks: 'location',
+  applications: 'application',
 };
 
 /**
@@ -96,7 +97,8 @@ export const FACT_MEANING: Record<FactArtKind, string> = {
   tool: 'a tool or equipment a task needs',
   alert: 'a warning: something needs you or went wrong',
   publish: 'publishing a new task',
-  send: 'sending an application',
+  send: 'sending a message or request',
+  applications: 'an application to help with a task',
 };
 
 /** The only kinds that may draw a tick: they say "confirmed". The test finds a tick by its shape, so this list cannot drift. */
@@ -175,6 +177,7 @@ function mark(kind: FactArtKind, m: string): ReactNode {
     case 'publish': return <><Rect x={3.6} y={2.8} width={20.4} height={25.2} rx={4.2} fill={m} />{stroke('M8.4 9.6h10.8M8.4 15h6', 2.6, WHITE)}
       <Circle cx={23.2} cy={23} r={6.6} fill={m} stroke={WHITE} strokeWidth={MARK_MIN_STROKE} />{stroke('M23.2 19.6v6.8M19.8 23h6.8', 2.6, WHITE)}</>;
     // A paper plane flying up and to the right, with the fold in white.
+    case 'applications':
     case 'send': return <>{rounded('M4 14.6 28 4 18.6 28 14 18.4Z', m, MARK_MIN_STROKE)}{stroke('M14.2 18.2 23.2 9.2', MARK_MIN_STROKE, WHITE)}</>;
   }
 }
@@ -281,6 +284,7 @@ function art(kind: FactArtKind, c: Tone): ReactNode {
       {line('M8.4 9.4h10.8M8.4 14.6h6.4', '#7B887E', 1.7)}<Circle cx={23.2} cy={24.3} r={6.6} fill={c.edge} /><Circle cx={23.2} cy={23} r={6.6} fill={c.front} />
       {line('M23.2 19.7v6.6M19.9 23h6.6', WHITE, 2.2)}{shine('M19.4 19.2a4.4 4.4 0 0 1 2.6-1.2')}</>;
     // A paper plane flying up and to the right, lifted 1.5 units off its edge, with the fold in white: an application sent.
+    case 'applications':
     case 'send': return <>{shadow}{rounded('M4 16 28 5.4 18.6 29.4 14 19.8Z', c.edge, 2.4)}{rounded('M4 14.6 28 4 18.6 28 14 18.4Z', c.front, 2.4)}
       {line('M14.2 18.2 23.2 9.2', WHITE, 2)}</>;
   }

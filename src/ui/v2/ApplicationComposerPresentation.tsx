@@ -228,10 +228,10 @@ function SentReceipt({ fresh, price, title, people, time, timeNote, message, err
     transform: [{ translateY: leaving.interpolate({ inputRange: [0, 1], outputRange: [0, -sys.space.sm] }) }] };
   return <>
     <View style={s.table}>
-      <Animated.View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[s.tag, tag]}><FactArt kind="offers" size={96} /></Animated.View>
+      <Animated.View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={[s.tag, tag]}><FactArt kind="applications" size={96} /></Animated.View>
       <MomentRise still={still} delay={TAG_GONE - sys.motion.press} style={s.sentPlace}>
         <View accessible accessibilityLabel={price ? `Poslata, ${price} ukupno` : 'Poslata'} style={s.sentRow}>
-          <FactArt kind="offers" size={28} />
+          <FactArt kind="applications" size={28} />
           <StatusChip status="application.sent" />
           {price ? <><T variant="priceRow" style={s.sentPrice}>{price}</T><T variant="note" tone="muted">ukupno</T></> : null}
         </View>

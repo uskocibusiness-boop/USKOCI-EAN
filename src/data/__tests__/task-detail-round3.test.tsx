@@ -19,6 +19,7 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import { applyClosedReason, PublicNeedPresentation } from '../../ui/v2/PublicNeedPresentation';
 import { NeedPresentation } from '../../ui/v2/NeedPresentation';
+import { LARGE_LAYOUT, LayoutClassOverride } from '../../ui/system/textScale';
 
 /**
  * Task detail, pass 3 (owner step 5b, 2026-09-24): the task's name comes into the bar when its large title has scrolled
@@ -91,20 +92,16 @@ describe('a stranger\'s task', () => {
     expect(StyleSheet.flatten(barTitle().props.style).opacity).toBe(1); expect(shown()).toBe(true);
   });
 
-  it('reads genuine photos, compact terms, then who posted it, then the work and the questions about it, and the place', async () => {
+  it('identifies the task before its media and retains the work, publisher, questions and public map', async () => {
     await render(<Stranger photos={<T>FOTOGRAFIJE</T>} map={<T>MAPA</T>} qa={<T>PITANJA</T>}
       publicPhoto={(_id, size) => <T>{`FOTO ${size}`}</T>} />);
     const all = texts();
     const at = (value: string) => all.findIndex(text => text.includes(value));
-    // Owner, 2026-10-07: what was asked about the work, and what its owner answered, is read right after the work.
-    // Owner, 8 Oct 2026 (the pick "Objavio kao kartica poverenja"): who posted it stands right under what, where and when.
-    // The page reads: name, what it pays, where, when, how many (in words, and only when it is more than one), who posted it, what the work is, what it asks,
-    // the questions, where it is.
-    const order = ['Selidba stana', 'FOTOGRAFIJE', '9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', 'Traži 2 osobe',
-      'Ana Anić', 'Dva sprata bez lifta.', 'Kombi', 'PITANJA', 'Mesto', 'MAPA'].map(at);
-    // The bar's hidden copy of the name comes first in the tree; the order is read from the large title on.
-    expect(order.every(index => index >= 0)).toBe(true);
-    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    for (const value of ['9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', 'Traži 2 osobe', 'Ana Anić',
+      'Dva sprata bez lifta.', 'Kombi', 'PITANJA', 'MAPA']) expect(at(value)).toBeGreaterThanOrEqual(0);
+    expect(all.lastIndexOf('Selidba stana')).toBeLessThan(at('FOTOGRAFIJE'));
+    expect(at('9.000 RSD')).toBeLessThan(at('FOTOGRAFIJE'));
+    expect(all.filter(value => value === 'FOTOGRAFIJE')).toHaveLength(1);
     // R13 gives the real publisher a readable portrait without changing the role or rating facts.
     expect(all).toContain('FOTO 56'); expect(all).toContain('4,8');
     // No rating is invented when the server has none.
@@ -115,6 +112,63 @@ describe('a stranger\'s task', () => {
     expect(texts()).toContain('4,7 · 3 ocene');
     await act(async () => tree.update(<Stranger need={{ ...task, narucilacOcena: null, narucilacBrojOcena: 0 }} />));
     expect(texts()).toContain('Još nema ocena');
+  });
+
+  it('keeps remote work separate from place and retains complete terms at enlarged text', async () => {
+    const title = 'Izrada veoma detaljne 3D makete prema dostavljenom projektu';
+    const remote = { ...task, naslov: title, podrucjeTekst: 'Novi Sad', vremeTekst: 'Na daljinu, fleksibilno',
+      schedule: { kind: 'REMOTE_ANYTIME', startsAt: null, endsAt: null },
+      pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 },
+      detalji: { rezimLokacije: 'REMOTE', geografija: { mode: 'REMOTE' } } } as PrilikaProjekcija;
+    await render(<LayoutClassOverride.Provider value={LARGE_LAYOUT}>
+      <Stranger need={remote} map={<T>NE SME DA BUDE MAPA</T>} />
+    </LayoutClassOverride.Provider>);
+    expect(texts().filter(value => value === 'Na daljinu')).toHaveLength(1);
+    expect(texts()).toContain('Fleksibilno');
+    expect(texts()).toContain('Traži 1 osobu');
+    expect(joined()).not.toMatch(/Novi Sad|NE SME DA BUDE MAPA/);
+    expect(heroTitle().props.children).toBe(title);
+    expect(heroTitle().props.numberOfLines).toBeUndefined();
+    expect(heroTitle().props.allowFontScaling).not.toBe(false);
+    const place = tree.root.findAll(node => node.type === ('View' as React.ElementType)
+      && node.props.accessibilityLabel === 'Način rada: Na daljinu')[0];
+    const time = tree.root.findAll(node => node.type === ('View' as React.ElementType)
+      && node.props.accessibilityLabel === 'Termin: Fleksibilno')[0];
+    const groupOf = (node: ReactTestInstance) => {
+      let parent = node.parent;
+      while (parent && parent.type !== ('View' as React.ElementType)) parent = parent.parent;
+      return parent;
+    };
+    const group = groupOf(place);
+    expect(group === groupOf(time)).toBe(true);
+    expect(StyleSheet.flatten(group!.props.style).flexDirection).toBe('column');
+    for (const fact of [place, time]) {
+      for (const copy of fact.findAllByType('T' as React.ElementType)) expect(copy.props.numberOfLines).toBeUndefined();
+    }
+    await act(async () => tree.update(<Stranger need={{ ...remote, taskTimezone: 'Europe/Belgrade',
+      schedule: { kind: 'REMOTE_ANYTIME', startsAt: '2026-10-19T00:00:00+02:00', endsAt: '2026-10-26T00:00:00+01:00' } }} />));
+    expect(joined().match(/Na daljinu/g)).toHaveLength(1);
+    expect(joined()).toContain('19. okt');
+    expect(joined()).toContain('25. okt');
+  });
+
+  it('hides stale photos and question reads while preserving retained facts and retry', async () => {
+    const retry = jest.fn();
+    await render(<Stranger stale error retry={retry} photos={<T>STARE FOTOGRAFIJE</T>} qa={<T>STARA PITANJA</T>} />);
+    expect(joined()).toContain('Vidiš starije podatke');
+    expect(texts()).toContain('9.000 RSD');
+    expect(joined()).not.toMatch(/STARE FOTOGRAFIJE|STARA PITANJA/);
+    expect(byLabel('Pošalji prijavu')).toBeUndefined();
+    await act(async () => byLabel('Pokušaj ponovo')!.props.onPress());
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it('explains that selection alone does not disclose a private address', async () => {
+    await render(<Stranger map={<T>PRIBLIŽNO PODRUČJE</T>} />);
+    await act(async () => byLabel('Objašnjenje: Ko vidi adresu')!.props.onPress());
+    expect(joined()).toContain('ne tačna adresa');
+    expect(joined()).toContain('naručilac bira kome deli');
+    expect(joined()).toContain('Izbor prijave sam po sebi ne otkriva adresu');
   });
 
   // What it pays is the FIRST FACT of the page, a row with its picture like where and when, and nothing explains it (the owner, 8 Oct 2026: no "Ukupan iznos

@@ -31,7 +31,9 @@ Kod je numerički izvor: `src/ui/system/tokens.ts`, `layout.ts`, `textScale.ts` 
 
 **Sadržaj:** originalne dvobojne 2.5D ilustracije u zelenoj i toploj narandžastoj, uz neutralne i semantičke detalje. Dubina dolazi iz jasnih velikih oblika, diskretne senke i doslednog svetla. Ne iz tačnog starog broja SVG čvorova. Na malim veličinama koristi se čitljiv pojednostavljen rez istog značenja.
 
-**Kontrole:** strelica, zatvaranje, filter, pretraga, slanje i navigacija pripadaju doslednoj jasnoj porodici kontrolnih glyph-ova. Dodirni prostor je veći od samog crteža. Akcija ima razumljivo dostupno ime; dekoracija se ne čita dva puta.
+**Kontrole:** strelica, zatvaranje, filter, pretraga i slanje pripadaju doslednoj jasnoj porodici kontrolnih glyph-ova. Glavna navigacija i obaveštenja mogu koristiti originalne 2.5D predmete kada uz njih ostaju naziv, stvarno stanje i jasna radnja. Dodirni prostor je veći od samog crteža. Akcija ima razumljivo dostupno ime; dekoracija se ne čita dva puta.
+
+**Dopuna vlasnika 20.10.2026:** tamno šumsko-zeleno sidro donje navigacije dozvoljeno je uz belo platno sadržaja. Sve njegove boje dolaze iz `sys.navigation`; nazivi ostaju čitljivi i rastu sa sistemskim fontom. Jedan crtež po odredištu, jasan izbor i bez ponovnog animiranja pri refresh-u. Plavi avion predstavlja prijavu; cenovna etiketa ostaje budžet/traženje ponuda. Boja i materijal smeju pratiti značenje, bez zaključavanja svake ikonice u istu geometriju ili boju.
 
 **Stanje:** potvrda, upozorenje i greška imaju tekst i oblik, uz boju. Kalendar, daljinski rad, lokacija ili alat ne nose kvačicu koja bi izmišljala saglasnost ili verifikaciju. Generička ilustracija alata nije dokaz da ih korisnik poseduje.
 

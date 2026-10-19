@@ -81,7 +81,10 @@ export function useTaskRecord(item: MarketplaceItem, relation?: TaskCardRelation
   const place = taskPlace(item);
   const from = useDistanceFrom();
   const distance = distanceOf(from, item);
-  const schedule = item.schedule ? needScheduleText(item.schedule, item.taskTimezone) : item.vremeTekst;
+  // The place row already states remote work. Keep the full temporal meaning here,
+  // including earliest start/deadline; never strip arbitrary user text.
+  const schedule = item.schedule ? needScheduleText(place.remote && item.schedule.kind === 'REMOTE_ANYTIME'
+    ? { ...item.schedule, kind: 'FLEXIBLE' } : item.schedule, item.taskTimezone) : item.vremeTekst;
   const requirement = taskRequirement(item);
   const publisher = !ownerView && 'narucilacIme' in item && typeof item.narucilacIme === 'string' ? item.narucilacIme.trim() : '';
   const person = publisher && 'narucilacIme' in item ? { name: publisher, rating: item.narucilacOcena, count: item.narucilacBrojOcena } : null;
@@ -112,7 +115,8 @@ function ValueRow({ model }: { model: TaskRecordModel }) {
   return <View style={s.valueRow}>
     <View style={s.valueArt}><FactArt kind="money" size={FACT_ROW_ART} /></View>
     <View style={s.valueCopy}>
-      <T variant="priceRow" style={s.amount}>{value.amount}</T>
+      <T variant="meta" tone="muted">Budžet</T>
+      <T variant="priceSmall" style={s.amount}>{value.amount}</T>
       {value.basis ? <T variant="note" tone="muted">{value.basis}</T> : null}
     </View>
   </View>;
@@ -150,7 +154,7 @@ export function TaskRecordBody({ model, portrait, clearOfClose = false }: {
   const first = clearOfClose ? s.clearOfClose : undefined;
   return <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.body}>
     {head ? <View style={first}><CardStatus status={model.head} urgency={model.urgency} now={model.urgencyNow} /></View> : null}
-    <View style={head ? undefined : first}><T variant="heading" style={s.title}>{model.title}</T></View>
+    <View style={head ? undefined : first}><T variant="cardTitle" style={s.title}>{model.title}</T></View>
     <View style={s.facts}>
       {/* Only the short ownership mark shares this row; application states follow the complete value. */}
       <View testID="task-face-value" style={[s.valueLine, stackedValue && s.valueLineStacked]}>

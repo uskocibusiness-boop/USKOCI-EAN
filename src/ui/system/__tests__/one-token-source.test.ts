@@ -193,6 +193,11 @@ it('keeps one system facade and readable text on the filled brand material', () 
   const ratio = (a: string, b: string) => (Math.max(luminance(a), luminance(b)) + .05) / (Math.min(luminance(a), luminance(b)) + .05);
   expect(ratio(sys.color.onGreen, sys.color.green)).toBeGreaterThanOrEqual(4.5);
   expect(ratio(sys.color.onDark, sys.color.green)).toBeGreaterThanOrEqual(4.5);
+  for (const surface of [sys.navigation.background, sys.navigation.selected]) {
+    expect(ratio(sys.navigation.foreground, surface)).toBeGreaterThanOrEqual(4.5);
+    expect(ratio(sys.navigation.muted, surface)).toBeGreaterThanOrEqual(4.5);
+    expect(ratio(sys.navigation.indicator, surface)).toBeGreaterThanOrEqual(3);
+  }
 });
 
 // ---------------------------------------------------------------------------------------------------------------------

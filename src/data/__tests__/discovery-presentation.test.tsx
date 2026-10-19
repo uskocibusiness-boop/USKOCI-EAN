@@ -1468,7 +1468,7 @@ test('one screen: the map under the tools and the list as its sheet; no Lista/Ma
   expect(cards()).toEqual(['a', 'bb', 'ccc']);
   // The magnifier opens search; an active query stays readable separately and can be cleared without changing other filters.
   expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
-  expect(texts(press('Pretraži zadatke'))).toBe('');
+  expect(texts(press('Pretraži zadatke'))).toBe('Pretraži');
   expect(pressable('Aktivna pretraga')).toHaveLength(0);
   expect(pressable('Prikaži sve zadatke')).toHaveLength(0);
   expect(tree.root.findAllByType('TextInput' as React.ElementType)).toHaveLength(0);

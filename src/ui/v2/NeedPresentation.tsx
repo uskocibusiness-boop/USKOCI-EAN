@@ -8,7 +8,6 @@ import { DetailDescription, DetailRoute, routeAddsToArea, ProductHeader, useDeta
 import type { SheetAction } from '../system/ActionSheet';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { Glyph } from '../system/Glyph';
-import { FactRow } from '../system/FactRow';
 import { layout } from '../system/layout';
 import { ListRow } from '../system/ListRow';
 import { OUTCOME_ACTION } from '../system/outcomeCopy';
@@ -24,7 +23,8 @@ import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 import { osoba, prijava as prijave } from '../system/plural';
-import { OFFERS_INFO, TaskDecisionRequirements, TaskDecisionTitle, TaskDecisionValue, TaskPlacePrivacy } from './detail/TaskDecision';
+import { TaskDecisionRequirements, TaskDecisionTitle, TaskPlacePrivacy } from './detail/TaskDecision';
+import { TaskDetailSummary } from './detail/TaskDetailSummary';
 import { TaskStateBlock, type StateAction } from './detail/TaskStateBlock';
 import { NO_APPLICATIONS_HELP_LABEL, ownTaskOverview, type NoApplicationsHelp, type NoApplicationsHelpAction, type OverviewSearch } from './ownTaskOverview';
 
@@ -91,20 +91,10 @@ function applicationsDetail(need: PotrebaProjekcija): { text: string; attention:
 }
 
 /**
- * The owner's own Task, recomposed from zero (owner, 2026-09-23), given one voice (owner, 2026-10-07: "vidno i lako razumljivo"), set on the
- * one grid (composition spec 2026-10-07, T3 and 4.6) and, since the owner's phone of 8 Oct 2026, cleared of everything that explained: the
- * page of the task somebody else sees (`PublicNeedPresentation`) and this one are the same page from two sides, so they have the same frame
- * (`Screen kind="detail"`, the edge 20, parts 24 apart and never parted by a line) and the same facts in the same words.
- *
- * The owner comes here to see whether the task is live and what is theirs to do, so the screen reads: ONE state (the chip every list of
- * tasks wears), the name, then ONE block of state (`TaskStateBlock`): "Još nema prijava", or the faces of those who applied and how many,
- * with the one green action when something is the owner's to do (the edit stands in the bar of the page, in sight). Under it the facts - what it
- * pays, where, when and, only when it is more than one, how many people - then what happened to a command they sent (only while there is
- * something to say), the two ways in (the applications, the Dogovori), real photos, the same compact work description a stranger sees,
- * requirements, the questions people asked and the place, with its one line of privacy, and, quietly, when it was published once the read says so.
- * Every action stands on the screen (rule J15): the edit in the bar, and at the end of the page what ends or removes something, the red ones last: cancelling the task, deleting a draft,
- * closing the search for the rest. There is no foot and no "···": the one green action is at the head of the page where the state is, and
- * nothing is rare enough to hide. Only existing controller callbacks act.
+ * The same task identity and terms as the public detail, with owner-only application counts,
+ * recovery and management. One primary action follows the actual state; ordinary editing stays
+ * one AI entry in the header. Destructive lifecycle actions remain visible below the work.
+ * All state, authority and commands still belong to the route/controller.
  */
 export function NeedPresentation(props: NeedPresentationProps) {
   const { need, loading, error, busy, remainingClosed } = props;
@@ -181,7 +171,7 @@ export function NeedPresentation(props: NeedPresentationProps) {
             {overview?.chip ? <StatusChip status={overview.chip.status} detail={overview.chip.detail} /> : null}
             {need.urgency ? <NeedUrgencyBadge urgency={need.urgency} /> : null}
           </View> : null}
-          <TaskDecisionTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
+          <TaskDecisionTitle prominent onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
         </View>
         {loading || error ? <Surface kind="note"><View accessibilityLiveRegion="polite" style={s.notice}>
           <T variant="note" tone="muted">{loading ? 'Osvežavamo podatke…' : 'Vidiš starije podatke.'}</T>
@@ -198,17 +188,12 @@ export function NeedPresentation(props: NeedPresentationProps) {
         {/* What happened to a cancel or a delete the owner sent is said where they read first: the check, the command running, its
             uncertain, confirmed or refused outcome. It draws nothing while there is nothing to say. */}
         {props.lifecycleActions}
-        {/* The block of state: what the task has now and the one green thing the owner does about it. The edit is in the bar. */}
+        <TaskDetailSummary need={need} audience="owner" place={remote ? 'Na daljinu' : need.podrucjeTekst} remote={remote}
+          people={`Treba ${osoba(need.pokrivenost.ukupno)}`}
+          peopleNote={!draft && need.pokrivenost.popunjeno > 0 ? `${need.pokrivenost.popunjeno} dogovoreno` : undefined} />
+        {/* Current applications and the next action share one block; they do not turn the task's budget into an agreed amount. */}
         <TaskStateBlock testID="own-task-state" notice={overview?.notice} line={overview?.line} applicants={overview?.applicants} faces={props.applicantFaces}
           note={overview?.note} primary={green} busy={busy} />
-        <View style={s.facts}>
-          <TaskDecisionValue need={need} offersInfo={OFFERS_INFO.owner} />
-          <FactRow size="detail" art={remote ? 'remote' : 'pin'} value={remote ? 'Na daljinu' : need.podrucjeTekst} />
-          <FactRow size="detail" art="calendar" value={need.vremeTekst} />
-          {/* How many people only when it is more than one, in words: "0/1" said nothing (the owner's phone, 8 Oct 2026). */}
-          {need.pokrivenost.ukupno > 1 ? <FactRow size="detail" art="users" value={`Treba ${osoba(need.pokrivenost.ukupno)}`}
-            note={!draft && need.pokrivenost.popunjeno > 0 ? `${need.pokrivenost.popunjeno} dogovoreno` : undefined} /> : null}
-        </View>
         {/* A published task nobody has applied to for a day: the real ways to change it, each one row of one section (R16). Never a
             sentence about how many people would have applied, only what is true of this task. */}
         {help ? <Section title={help.sentence.replace(/\.$/, '')}>
@@ -219,14 +204,14 @@ export function NeedPresentation(props: NeedPresentationProps) {
         {/* Quiet ways in that the green action does not already offer. The applications row is not drawn for an empty list (it led
             nowhere), nor beside a green button that opens the same list. */}
         {overview && (overview.rows.applications || overview.rows.agreements) ? <Section>
-          {overview.rows.applications && counted ? <ListRow leading={<FactArt kind="offers" size={32} role="people" />} title="Prijave" subtitle={counted.text}
+          {overview.rows.applications && counted ? <ListRow leading={<FactArt kind="applications" size={32} />} title="Prijave" subtitle={counted.text}
             accessibilityLabel={`Otvori prijave. ${counted.text}`} disabled={busy || !usable} last={!overview.rows.agreements} onPress={props.onCandidates}
             trailing={counted.attention ? <View style={s.countPill}><T variant="label" style={s.countText}>{String(selectable)}</T></View> : undefined} /> : null}
           {overview.rows.agreements ? <ListRow leading={<FactArt kind="agreements" size={32} role="confirmed" />} title="Moji Dogovori"
             accessibilityLabel="Moji Dogovori" disabled={busy || !usable} last onPress={props.onAgreements!} /> : null}
         </Section> : null}
-        {props.photos}
         {need.opis ? <Section title="O zadatku"><DetailDescription text={need.opis} /></Section> : null}
+        {props.photos}
         <TaskDecisionRequirements rows={requirements} />
         {/* The questions people asked about this task and what the owner answered, where the work itself is read, in the
             same place a stranger finds them (owner, 2026-10-07). The route builds the section: it owns the reads. */}
@@ -257,15 +242,13 @@ const s = StyleSheet.create({
   ink: { color: sys.color.ink },
   center: { textAlign: 'center' },
   state: { gap: sys.space.base },
-  // The state and the name are 8 apart; the title is a direct child of the measured block, so the bar's handoff counts its real padding.
-  hero: { gap: sys.space.sm },
-  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, flexWrap: 'wrap' },
+  // The title remains a direct child of this measured block; multi-line and enlarged titles keep the correct chrome handoff.
+  hero: { gap: sys.space.md, paddingVertical: sys.space.sm },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: sys.space.md, flexWrap: 'wrap' },
   notice: { gap: sys.space.xs, alignItems: 'flex-start' },
   // A quiet action inside a note starts where the note's text starts (no padding of its own); the width keeps the 48 dp target and the label stays at the start of it.
   noticeAction: { alignSelf: 'flex-start', paddingHorizontal: 0, minWidth: layout.touch, justifyContent: 'flex-start' },
   warnTitle: { color: sys.color.warn },
-  // What it pays, where, when and how many: the facts stand 12 apart, the group has no frame.
-  facts: { gap: layout.group },
   place: { gap: layout.group },
   countPill: { minWidth: sys.space.xl, height: sys.space.xl, borderRadius: sys.radius.pill, paddingHorizontal: sys.space.sm, backgroundColor: sys.color.orange,
     alignItems: 'center', justifyContent: 'center' },

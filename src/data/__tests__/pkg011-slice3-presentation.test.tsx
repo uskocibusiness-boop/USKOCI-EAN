@@ -174,7 +174,7 @@ test('the public Task leads with its title and four facts, offers the requester 
   expect(copy).not.toContain('Traži ponude'); expect(copy).not.toContain('Prijave su otvorene');
   expect(copy).toContain('Selidba stana'); expect(copy).toContain('9.000 RSD'); expect(copy).toContain('Traži 2 osobe'); expect(copy).not.toMatch(/0\/2|popunjeno/);
   // The facts are rows with one spoken sentence each (`FactRow`), in the order the page reads: what it pays, where, when, how many (in words, only because it is more than one).
-  for (const fact of ['Budžet 9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', 'Traži 2 osobe']) {
+  for (const fact of ['Budžet 9.000 RSD', 'Mesto: Beograd, Vračar', 'Termin: Sutra ujutru', 'Traži 2 osobe']) {
     expect(tree.root.findAll(node => node.props.accessibilityLabel === fact)).not.toHaveLength(0);
   }
   expect(copy).toContain('Dva sprata bez lifta.'); expect(copy).toContain('Ana'); expect(copy).toContain('4,8');

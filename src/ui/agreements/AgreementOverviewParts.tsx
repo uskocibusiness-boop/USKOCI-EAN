@@ -89,7 +89,7 @@ export function AgreementLinks({ task, application, history }: {
   if (task) rows.push(last => <ListRow key="task" leading={<FactArt kind="tasks" size={32} />} title="Otvori zadatak" last={last}
     accessibilityLabel={`Otvori zadatak: ${task.title}. ${task.place}`} accessibilityHint="Otvara detalje zadatka iz kog je nastao ovaj Dogovor."
     disabled={task.disabled} onPress={task.onPress} />);
-  if (application) rows.push(last => <ListRow key="application" leading={<FactArt kind="offers" size={32} />} title="Tvoja prijava" last={last}
+  if (application) rows.push(last => <ListRow key="application" leading={<FactArt kind="applications" size={32} />} title="Tvoja prijava" last={last}
     accessibilityLabel="Tvoja prijava" disabled={application.disabled} onPress={application.onPress} />);
   if (events) rows.push(() => <AgreementHistory key="history" events={events} />);
   if (!rows.length) return null;

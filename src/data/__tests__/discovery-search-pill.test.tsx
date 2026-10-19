@@ -31,12 +31,12 @@ const sized = (node: ReactTestInstance) => { let at: ReactTestInstance | null = 
 beforeEach(() => { jest.clearAllMocks(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
-test('the compact search icon opens search while its active context stays readable and spoken in full', async () => {
+test('the labelled search action opens search while its active context stays readable and spoken in full', async () => {
   await render();
   const summary = button('Pretraži zadatke');
   expect(summary.props.accessibilityValue.text).toBe(props().where);
   expect(summary.props.accessibilityHint).toBe(SEARCH_HINT);
-  expect(summary.findAllByType('T' as React.ElementType)).toHaveLength(0);
+  expect(summary.findByType('T' as React.ElementType).props.children).toBe('Pretraži');
   const context = button('Aktivna pretraga');
   expect(context.props.accessibilityValue.text).toBe(props().where);
   const words = context.findAllByType('T' as React.ElementType);
@@ -48,12 +48,14 @@ test('the compact search icon opens search while its active context stays readab
   expect(filters).not.toHaveBeenCalled(); // the pill never opens the filters
 });
 
-test('without an active search there is only a magnifier, no empty search field or extra context row', async () => {
+test('without an active search the labelled search action has no empty input or extra context row', async () => {
   await render({ where: null, onClearWhere: undefined });
   const summary = button('Pretraži zadatke');
   expect(summary.props.accessibilityValue).toBeUndefined();
   const words = summary.findAllByType('T' as React.ElementType);
-  expect(words).toHaveLength(0);
+  expect(words).toHaveLength(1);
+  expect(words[0].props.children).toBe('Pretraži');
+  expect(words[0].props.numberOfLines).toBeUndefined();
   expect(tree.root.findAllByProps({ testID: 'discovery-search-context' })).toHaveLength(0);
   // the two things a search is, the one thing the pill opens (the approved plan, U1)
   expect(SEARCH_PLACEHOLDER).toBe('Grad ili zadatak');

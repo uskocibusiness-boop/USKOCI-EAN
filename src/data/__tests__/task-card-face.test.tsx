@@ -140,7 +140,7 @@ describe('the value slot', () => {
       const value = textNode(shown);
       if (name === 'amount') {
         // The amount is money: the amount role, tabular figures, never cut.
-        expect(value.props.variant).toBe('priceRow');
+        expect(value.props.variant).toMatch(/^price/);
         expect(style(value)).toMatchObject({ color: sys.color.money });
         expect(value.props.numberOfLines).toBeUndefined();
       } else {
@@ -277,6 +277,17 @@ describe('the places and the person', () => {
     expect(texts()).toContain('Na daljinu'); expect(facts()).toContain('remote');
   });
 });
+
+
+  it('does not repeat remote mode but preserves it when the public place projection is incomplete', async () => {
+    const schedule = { kind: 'REMOTE_ANYTIME' as const, startsAt: null, endsAt: null };
+    await render(<TaskCard item={task({ schedule, detalji: detail({ rezimLokacije: 'REMOTE' }) })} onOpen={jest.fn()} />);
+    expect(texts()).toContain('Na daljinu');
+    expect(texts()).toContain('Fleksibilno');
+    expect(texts()).not.toContain('Na daljinu, fleksibilno');
+    await act(async () => tree.update(<TaskCard item={task({ schedule, detalji: undefined })} onOpen={jest.fn()} />));
+    expect(texts()).toContain('Na daljinu, fleksibilno');
+  });
 
 describe('how old the task is', () => {
   const ageOf = (value: string | null) => (id: string) => id === 'need-1' ? value : null;

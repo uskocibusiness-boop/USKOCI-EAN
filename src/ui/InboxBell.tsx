@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
-import { Glyph } from './system/Glyph';
+import { FactArt } from './system/FactArt';
 import { useInbox } from '../hooks/useInbox';
 import { useReducedMotion } from './system/motion';
 import { Press } from './Press';
@@ -55,7 +55,7 @@ export function InboxBell() {
     onPress={() => router.push('/obavestenja')} haptic="select" hitSlop={0} style={s.control}>
     <Animated.View testID="inbox-bell-drawing" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
       style={{ transform: [{ rotate }] }}>
-      <Glyph name="notifications" size={24} />
+      <FactArt kind="bell" size={32} cut="art" />
     </Animated.View>
     {count != null && count > 0 && <View style={s.badge}>
       <T variant="label" maxFontSizeMultiplier={1} style={s.badgeText}>{count > 99 ? '99+' : count}</T>

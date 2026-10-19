@@ -1,0 +1,80 @@
+{
+  "schema": "USKOCI_PREMIUM_CLIENT_CHECKPOINT_V1",
+  "createdAt": "2026-10-19T22:25:24.783Z",
+  "parentSource": "c86d42d33cd784c0f1ba4fd3e3d3dd07fb541a66",
+  "scope": [
+    "Dark navigation with one illustration per destination and measured scalable labels",
+    "Task detail shared terms and prominent full title",
+    "Labelled map search preserving filters/Back/sheet measurement",
+    "Applications paper plane separated from budget tag; updated notification bell and home",
+    "Remote mode is not repeated in typed schedule when already confirmed",
+    "Deterministic calendar test clock"
+  ],
+  "artwork": [
+    {
+      "file": "assets/illustrations/uskoci-home-v1.png",
+      "bytes": 1183954,
+      "width": 1254,
+      "height": 1254,
+      "colorType": 6,
+      "sha256": "7ac32e928372abf8094b8a27610ee626e7262e419a16351260bb2f14bc283207",
+      "source": "Original imagegen artwork created for USKOCI 2026-10-20; inspected before use",
+      "usage": "Bundled decorative art; labels and authoritative state supply meaning"
+    },
+    {
+      "file": "assets/illustrations/uskoci-applications-v1.png",
+      "bytes": 1013245,
+      "width": 1254,
+      "height": 1254,
+      "colorType": 6,
+      "sha256": "ea7deff64dcae05604b2a4a76793f49617c5ecaa5314f376a463fa85a3077fd6",
+      "source": "Original imagegen artwork created for USKOCI 2026-10-20; inspected before use",
+      "usage": "Bundled decorative art; labels and authoritative state supply meaning"
+    },
+    {
+      "file": "assets/illustrations/uskoci-notification-bell-v2.png",
+      "bytes": 1024477,
+      "width": 1254,
+      "height": 1254,
+      "colorType": 6,
+      "sha256": "8db77b860a5954f40d46abda73987822159b0ccae0db0cbf4543735d9acd013e",
+      "source": "Original imagegen artwork created for USKOCI 2026-10-20; inspected before use",
+      "usage": "Bundled decorative art; labels and authoritative state supply meaning"
+    }
+  ],
+  "verification": {
+    "typescript": "PASS",
+    "detailTargeted": {
+      "tests": 78,
+      "result": "PASS"
+    },
+    "navigationAndMapLifecycle": {
+      "tests": 58,
+      "result": "PASS"
+    },
+    "discoveryTokenCardMaterialBatch": {
+      "tests": 336,
+      "result": "PASS"
+    },
+    "calendar": {
+      "tests": 74,
+      "result": "PASS"
+    },
+    "fullRegression": "PENDING_CI",
+    "apk": "PENDING_BUILD",
+    "nativeScreens": "PENDING_EMULATOR"
+  },
+  "retained": [
+    "Ownership, privacy, explicit save/publish",
+    "Known/unknown data and truthful budget terms",
+    "Back and map sheet state",
+    "Reduced Motion, safe area and large font"
+  ],
+  "changedAssertions": [
+    "Search action may show a visible label; callbacks and active-query state remain tested",
+    "Shared paper-plane silhouette for applications/send is allowed; unrelated meanings stay distinct",
+    "Price typography may use a named size suited to context",
+    "Tab identity/state/lifecycle instead of duplicate icon layers and fixed green-on-white rendering",
+    "Calendar color/day test uses a stable clock without removing assertions"
+  ]
+}

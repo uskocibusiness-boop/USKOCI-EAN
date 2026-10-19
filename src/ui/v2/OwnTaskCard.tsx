@@ -59,7 +59,8 @@ function OwnTaskCardBase({ item, onOpen, onApplications, disabled = false, secti
   const urgent = displaysUrgent(item.urgency, urgencyNow);
   const value = taskValue(item);
   const place = taskPlace(item);
-  const schedule = item.schedule ? needScheduleText(item.schedule, item.taskTimezone) : item.vremeTekst;
+  const schedule = item.schedule ? needScheduleText(place.remote && item.schedule.kind === 'REMOTE_ANYTIME'
+    ? { ...item.schedule, kind: 'FLEXIBLE' } : item.schedule, item.taskTimezone) : item.vremeTekst;
   const foot = standing.toApplications && onApplications ? standing.next : null;
   const sentence = foot ? null : standing.next;
   const chipWords = chip ? `${STATUS_CHIPS[chip.status].word}${chip.detail ? `, ${chip.detail}` : ''}` : null;

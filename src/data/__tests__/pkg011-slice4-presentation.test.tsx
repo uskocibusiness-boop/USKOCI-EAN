@@ -88,8 +88,8 @@ test('a published Task leads with its state, title and the applications to choos
   // The state is on top, the name under it, the block of state under the name (the bar's hidden copy of the name comes first in the tree).
   expect(copy.indexOf('Bira se · 3')).toBeLessThan(copy.lastIndexOf('Prenos ormara'));
   expect(copy.lastIndexOf('Prenos ormara')).toBeLessThan(copy.indexOf('3 prijave'));
-  // The block is the owner's decision; the retained work facts follow.
-  expect(copy.indexOf('3 prijave')).toBeLessThan(copy.indexOf('4.000 RSD'));
+  // The task budget remains distinct from application and agreement terms.
+  expect(copy.match(/4\.000 RSD/g)).toHaveLength(1);
   expect(copy).not.toMatch(/Ukupno za ceo zadatak|Po osobi/);
 });
 test('V41 facts: the place, Termin as day and hours, Potrebno, and the price with what it covers', async () => {
@@ -100,10 +100,9 @@ test('V41 facts: the place, Termin as day and hours, Potrebno, and the price wit
   const spoken = tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string').map(node => node.props.accessibilityLabel);
   // The saved sentence is shown whole as the value of Termin; nothing is reworded, and it is heard whole.
   expect(texts()).toContain('20. sep 2026 · 18:00 – 19:00 (po vremenu u Srbiji)');
-  // The facts are the system's `FactRow`: a screen reader hears each as its own sentence (the fact, then its note), the same on this page
-  // as on the page of the task somebody else sees; the picture is decoration. What the old page prefixed ("Termin: ", "Lokacija: ") is said by the value.
-  expect(spoken).toContain('20. sep 2026 · 18:00 – 19:00 (po vremenu u Srbiji)');
-  expect(spoken).toContain('Novi Sad, Liman');
+  // Each grouped fact has one complete spoken label; no date or location is shortened by its layout.
+  expect(spoken).toContain('Termin: 20. sep 2026 · 18:00 – 19:00 (po vremenu u Srbiji)');
+  expect(spoken).toContain('Mesto: Novi Sad, Liman');
   expect(spoken).toContain('Treba 2 osobe');
   // The sum is the first fact, with its picture, and what it covers goes quietly beside it, in the words the rest of the app uses.
   expect(texts()).toContain('3.000 RSD po osobi · ukupno 6.000 RSD');

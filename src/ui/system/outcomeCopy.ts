@@ -88,9 +88,9 @@ export type UncertainSubject = 'generic' | 'application' | 'withdrawal' | 'selec
 
 export const UNCERTAIN_ABOUT: Readonly<Record<UncertainSubject, { readonly title: string; readonly art: FactArtKind }>> = {
   generic: { title: OUTCOME.uncertain.title, art: 'info' },
-  application: { title: 'Ne znamo da li je prijava stigla', art: 'send' },
-  withdrawal: { title: 'Ne znamo da li je prijava povučena', art: 'send' },
-  selection: { title: 'Ne znamo da li je prijava izabrana', art: 'offers' },
+  application: { title: 'Ne znamo da li je prijava stigla', art: 'applications' },
+  withdrawal: { title: 'Ne znamo da li je prijava povučena', art: 'applications' },
+  selection: { title: 'Ne znamo da li je prijava izabrana', art: 'applications' },
   publication: { title: 'Ne znamo da li je zadatak objavljen', art: 'publish' },
   taskCancel: { title: 'Ne znamo da li je zadatak otkazan', art: 'tasks' },
   agreementCancel: { title: 'Ne znamo da li je Dogovor otkazan', art: 'agreements' },

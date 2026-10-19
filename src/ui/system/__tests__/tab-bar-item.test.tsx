@@ -4,28 +4,27 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 
 let mockReduced = false;
 jest.mock('../motion', () => ({ useReducedMotion: () => mockReduced }));
-// The registry is tested separately; the tab must request the right outline and tone.
-jest.mock('../Glyph', () => ({ Glyph: 'Glyph' }));
+// The artwork registry is tested separately; navigation keeps one original illustration.
+jest.mock('../FactArt', () => ({ FactArt: 'FactArt' }));
 
 import { Press } from '../../Press';
 import { TAB_BAR_PADDING, TAB_ICON, TAB_INDICATOR, TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TAB_LABEL_GAP, TAB_POP, TabBarPreview, TabCapsule, TabGlyph, TabLabel, tabBarHeight, tabBarSurface } from '../TabBarItem';
 import { sys } from '../tokens';
 
-/** Existing selection, motion and accessibility coverage, reconciled to the quiet four-tab chrome.
- * Both tones retain the same mark silhouette. Native-driver and reduced-motion behavior are unchanged. */
+/** Selection is a well and readable label, independent of the original artwork.
+ * Native-driver and reduced-motion lifecycle remain covered. */
 let tree: ReactTestRenderer;
 beforeEach(() => { mockReduced = false; });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.restoreAllMocks(); });
 const render = async (element: React.ReactElement) => { await act(async () => { tree = create(element); }); };
 const flat = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style) ?? {};
 const byId = (testID: string) => tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === testID)[0];
-const pictures = () => tree.root.findAll(node => node.type === ('Glyph' as unknown));
-const layer = (cut: 'mark' | 'art') => tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === `tab-glyph-${cut}`)[0];
+const pictures = () => tree.root.findAll(node => node.type === ('FactArt' as unknown));
 const easeOut = Easing.bezier(...sys.motion.easeOut);
 
 describe('the numbers the bar is built from', () => {
   it('uses compact drawings and spacing while retaining a visible selection marker', () => {
-    expect(TAB_ICON).toBe(sys.icon.size.chrome);
+    expect(TAB_ICON).toBe(sys.icon.size.navigation);
     for (const value of [TAB_ICON, TAB_INDICATOR.width, TAB_INDICATOR.height]) expect(value).toBeGreaterThan(0);
     for (const value of [TAB_LABEL_GAP, TAB_ITEM_PADDING]) expect(value).toBeGreaterThanOrEqual(0);
     expect(TAB_POP).toBeGreaterThanOrEqual(1);
@@ -67,10 +66,11 @@ describe('the capsule of the chosen tab', () => {
     expect(flat(byId('tab-capsule')).opacity).toBe(1);
   });
 
-  it('carries a compact green marker on its top edge, which fades with it', async () => {
+  it('carries the contrasting orange marker and selected well, which fade together', async () => {
     await render(<TabCapsule selected radius={20} />);
     const pill = flat(byId('tab-indicator'));
-    expect(pill).toMatchObject({ width: TAB_INDICATOR.width, height: TAB_INDICATOR.height, backgroundColor: sys.color.green, position: 'absolute', top: 0, alignSelf: 'center' });
+    expect(pill).toMatchObject({ width: TAB_INDICATOR.width, height: TAB_INDICATOR.height, backgroundColor: sys.navigation.indicator, position: 'absolute', top: 0, alignSelf: 'center' });
+    expect(flat(byId('tab-capsule')).backgroundColor).toBe(sys.navigation.selected);
     expect(pill.borderRadius).toBeGreaterThanOrEqual(TAB_INDICATOR.height / 2);
     // It lives inside the capsule, so its opacity is the capsule's.
     expect(byId('tab-capsule').findAll(node => node.props.testID === 'tab-indicator').length).toBeGreaterThan(0);
@@ -104,30 +104,20 @@ describe('the capsule of the chosen tab', () => {
 });
 
 describe('the icon of a tab', () => {
-  it('keeps the tab meaning in both its unselected and selected variants', async () => {
+  it('keeps one original illustration readable at rest and after selection', async () => {
     await render(<TabGlyph kind="home" selected={false} />);
-    expect(pictures().map(node => node.props)).toEqual(expect.arrayContaining([
-      expect.objectContaining({ name: 'home', size: TAB_ICON, tone: 'muted' }),
-      expect.objectContaining({ name: 'home', size: TAB_ICON, tone: 'green' }),
-    ]));
-    expect(pictures()).toHaveLength(2);
+    expect(pictures()).toHaveLength(1);
+    const picture = pictures()[0];
+    expect(picture.props).toMatchObject({ kind: 'home', size: TAB_ICON, cut: 'art' });
+    expect(picture.props.muted).toBeUndefined();
+    expect(picture.props.tone).toBeUndefined();
+    expect(flat(byId('tab-glyph')).opacity).toBeUndefined();
+    await act(async () => tree.update(<TabGlyph kind="home" selected />));
+    expect(pictures()).toEqual([picture]);
+    expect(flat(byId('tab-glyph')).opacity).toBeUndefined();
   });
 
-  it('shows the quiet mark at rest and brand mark when chosen, and keeps both mounted', async () => {
-    await render(<TabGlyph kind="map" selected={false} />);
-    expect([flat(layer('mark')).opacity, flat(layer('art')).opacity]).toEqual([1, 0]);
-    // The same two layers stay mounted when the tab is chosen (that is what lets them cross-fade).
-    const [mark, art] = [layer('mark'), layer('art')];
-    await act(async () => tree.update(<TabGlyph kind="map" selected />));
-    expect([layer('mark'), layer('art')]).toEqual([mark, art]);
-    expect(pictures()).toHaveLength(2);
-    // Drawn chosen from the start: the brand layer only (legacy art testID retained).
-    await act(async () => tree.unmount());
-    await render(<TabGlyph kind="map" selected />);
-    expect([flat(layer('mark')).opacity, flat(layer('art')).opacity]).toEqual([0, 1]);
-  });
-
-  it('cross-fades over the toggle token on the native driver and pops once, 1.0 to 1.04 to 1, only on a selection', async () => {
+  it('pops once, 1.0 to 1.04 to 1, on the native driver only on selection', async () => {
     const timing = jest.spyOn(Animated, 'timing');
     const sequence = jest.spyOn(Animated, 'sequence');
     await render(<TabGlyph kind="agreements" selected={false} />);
@@ -135,8 +125,7 @@ describe('the icon of a tab', () => {
     expect(sequence).not.toHaveBeenCalled();
     await act(async () => tree.update(<TabGlyph kind="agreements" selected />));
     const calls = timing.mock.calls.map(([, config]) => config as { toValue: number; duration: number; useNativeDriver: boolean; easing: unknown });
-    // The cross-fade over the toggle token, then the two legs of the pop: up to 1.04 over the press token, back to 1 over the toggle.
-    expect(calls.map(call => [call.toValue, call.duration])).toEqual([[1, sys.motion.toggle], [TAB_POP, sys.motion.press], [1, sys.motion.toggle]]);
+    expect(calls.map(call => [call.toValue, call.duration])).toEqual([[TAB_POP, sys.motion.press], [1, sys.motion.toggle]]);
     expect(sequence).toHaveBeenCalledTimes(1);
     expect(calls.every(call => call.useNativeDriver === true && typeof call.easing === 'function')).toBe(true);
     // The pop never goes under 1 and never overshoots the 4 %.
@@ -153,7 +142,7 @@ describe('the icon of a tab', () => {
     await act(async () => tree.update(<TabGlyph kind="home" selected={false} />));
     expect(sequence).not.toHaveBeenCalled();
     expect(timing.mock.calls.some(([, config]) => (config as { toValue: number }).toValue === TAB_POP)).toBe(false);
-    expect(timing).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ toValue: 0, duration: sys.motion.toggle }));
+    expect(timing).not.toHaveBeenCalled();
   });
 
   it('under reduced motion swaps at once: nothing is animated', async () => {
@@ -164,7 +153,7 @@ describe('the icon of a tab', () => {
     await act(async () => tree.update(<TabGlyph kind="home" selected />));
     expect(timing).not.toHaveBeenCalled();
     expect(sequence).not.toHaveBeenCalled();
-    expect([flat(layer('mark')).opacity, flat(layer('art')).opacity]).toEqual([0, 1]);
+    expect(pictures()).toHaveLength(1);
     expect(StyleSheet.flatten(byId('tab-glyph').props.style).transform).toEqual([{ scale: 1 }]);
   });
 });
@@ -173,10 +162,10 @@ describe('the label of a tab', () => {
   it('uses the scalable navLabel role independently of content segments', async () => {
     await render(<TabLabel selected={false}>Zadaci</TabLabel>);
     const text = () => tree.root.findAllByType(Text)[0];
-    expect(flat(text())).toMatchObject({ fontSize: sys.type.navLabel.fontSize, lineHeight: sys.type.navLabel.lineHeight, color: sys.color.muted, textAlign: 'center', marginTop: TAB_LABEL_GAP });
+    expect(flat(text())).toMatchObject({ fontSize: sys.type.navLabel.fontSize, lineHeight: sys.type.navLabel.lineHeight, color: sys.navigation.muted, textAlign: 'center', marginTop: TAB_LABEL_GAP });
     // Persistent navigation uses the medium Inter face; content segments keep their own role.
     await act(async () => tree.update(<TabLabel selected>Zadaci</TabLabel>));
-    expect(flat(text()).color).toBe(sys.color.green);
+    expect(flat(text()).color).toBe(sys.navigation.foreground);
     // It is never shrunk or cut: the person's text size decides.
     expect(text().props.numberOfLines).toBeUndefined();
     expect(text().props.adjustsFontSizeToFit).toBeUndefined();
@@ -204,7 +193,7 @@ describe('the preview the design board draws', () => {
       expect(tab.props).toMatchObject({ accessibilityRole: 'tab', haptic: 'none', scaleTo: 1, hitSlop: 0 });
       expect(tab.props.hapticOn).toBeUndefined();
     }
-    expect(tabBarSurface).toMatchObject({ backgroundColor: sys.color.surface, borderColor: sys.color.line, padding: TAB_BAR_PADDING });
+    expect(tabBarSurface).toMatchObject({ backgroundColor: sys.navigation.background, borderColor: sys.navigation.line, padding: TAB_BAR_PADDING });
   });
 
   it('moves the choice, the capsule and the icon together when a tab is tapped, and says so at once to a screen reader', async () => {
@@ -240,14 +229,16 @@ describe('selection animation lifecycle', () => {
     const pop = { start: jest.fn(), stop: jest.fn(), reset: jest.fn() };
     jest.spyOn(Animated, 'timing').mockReturnValue(fade);
     jest.spyOn(Animated, 'sequence').mockReturnValue(pop);
-    await render(<TabGlyph kind="home" selected={false} />);
-    await act(async () => tree.update(<TabGlyph kind="home" selected />));
+    const content = (selected: boolean) => <><TabCapsule selected={selected} radius={20} /><TabGlyph kind="home" selected={selected} /></>;
+    await render(content(false));
+    await act(async () => tree.update(content(true)));
     expect(pop.start).toHaveBeenCalledTimes(1);
     mockReduced = true;
-    await act(async () => tree.update(<TabGlyph kind="home" selected />));
+    await act(async () => tree.update(content(true)));
     expect(fade.stop).toHaveBeenCalled();
     expect(pop.stop).toHaveBeenCalledTimes(1);
-    expect([flat(layer('mark')).opacity, flat(layer('art')).opacity]).toEqual([0, 1]);
+    expect(flat(byId('tab-capsule')).opacity).toBe(1);
+    expect(pictures()).toHaveLength(1);
     expect(flat(byId('tab-glyph')).transform).toEqual([{ scale: 1 }]);
   });
 });

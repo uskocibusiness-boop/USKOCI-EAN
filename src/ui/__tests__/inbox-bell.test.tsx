@@ -1,6 +1,7 @@
 import React from 'react';
 import { Animated, StyleSheet } from 'react-native';
-import { Glyph } from '../system/Glyph';
+import { FactArt } from '../system/FactArt';
+jest.mock('../system/FactArt', () => ({ FactArt: 'FactArt' }));
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 // The bell on the three root screens (step 11a, 2026-09-24): its count sits in a fixed 20 px capsule, so the digits
@@ -36,7 +37,7 @@ it('draws the count with digits that keep their size and line up', async () => {
   const control = tree.root.findByType('Press' as React.ElementType);
   expect(StyleSheet.flatten(control.props.style)).toMatchObject({ width: 48, height: 48 });
   expect(control.props.hitSlop).toBe(0);
-  expect(tree.root.findByType(Glyph).props).toMatchObject({ name: 'notifications', size: 24 });
+  expect(tree.root.findByType(FactArt).props).toMatchObject({ kind: 'bell', size: 32, cut: 'art' });
   expect(tree.root.findByProps({ testID: 'inbox-bell-drawing' }).props).toMatchObject({ accessible: false, accessibilityElementsHidden: true });
   await act(async () => control.props.onPress());
   expect(jest.requireMock('expo-router').router.push).toHaveBeenCalledWith('/obavestenja');

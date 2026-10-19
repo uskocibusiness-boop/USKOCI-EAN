@@ -23,9 +23,10 @@ import { T } from '../Text';
 import { V2Action } from './V2Action';
 import type { TaskFitContext } from './detail/taskFit';
 import { useUrgencyClock } from './NeedUrgencyBadge';
-import { CardStatus } from './TaskFace';
-import { OFFERS_INFO, TaskDecisionFacts, TaskDecisionPublisher, TaskDecisionRequirements, TaskDecisionTitle, TaskDecisionValue, TaskPlacePrivacy,
+import { CardStatus, placesText, taskPlace } from './TaskFace';
+import { TaskDecisionPublisher, TaskDecisionRequirements, TaskDecisionTitle, TaskPlacePrivacy,
   applyActionLabel } from './detail/TaskDecision';
+import { TaskDetailSummary } from './detail/TaskDetailSummary';
 
 /**
  * Why a person cannot apply to a task they could otherwise apply to, in one short line, from the facts the screen
@@ -48,16 +49,10 @@ const relationStatus = (relation: TaskRelation): { text: string; quiet: boolean 
 export type { TaskFitContext };
 
 /**
- * A task somebody else posted, as a page read top to bottom (composition spec 2026-10-07, T3): its state when it has one, its name, then what it
- * pays, where, when and (only when it is more than one) how many people, as facts of one kind with their pictures, then what the work is, what it
- * asks, what was asked about it, who posted it and where it is, parted by space and never by a line. The same facts in the same words as its card in
- * the list and on the map.
- * The name comes into the bar once the large title has scrolled away. Sharing it is rare and waits behind the bar's "···"; reporting or blocking the
- * person who posted it is not hidden there but stands at the end of the page, in red (rule J15, the owner's "jedva se nađu", 8 Oct 2026). The one
- * action, chosen by what I am to this task, stays at the foot alone (no amount and no time beside it: both are above, in the page), with the reason
- * above it only when it cannot be pressed and the page does not say it already. When I can apply it is "Pošalji prijavu" for a task with a fixed
- * price and "Pošalji ponudu" for one with none (owner, 8 Oct 2026); either opens the form of the application, it sends nothing.
- * Presentation only; the route owns reads, deadline and guards.
+ * Public work brief: task identity, grouped terms, description and real media, followed by the
+ * publisher, questions and approximate place. The measured title transfers to the chrome on scroll.
+ * The account's relation determines one footer action. Applying opens the existing application flow;
+ * the presentation never sends an application or grants access. The route owns reads and guards.
  */
 export function PublicNeedPresentation({ need, loading, error, missing, stale, busy, canApply, canRetry, relation, back, retry, apply, onOwnTask, onOwnApplication, photos, qa, map,
   onRequesterProfile, requesterProfile = null, onCloseRequesterProfile, publicPhoto, safety, deadlinePassed = false, onOtherTasks, onShare, fit, reliabilityPercent }: {
@@ -142,26 +137,24 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
         {error && canRetry ? <V2Action label="Pokušaj ponovo" kind="quiet" onPress={retry} disabled={busy} style={s.refresh} /> : null}
       </Surface> : null}
       {need ? <>
-        {ready && !stale ? photos : null}
         <View style={s.hero} onLayout={scrollTitle.onHeroLayout}>
-          {status || urgent ? <CardStatus status={status} urgency={need.urgency} now={urgencyNow} /> : null}
-          <TaskDecisionTitle onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
-          <View style={s.facts}>
-            <TaskDecisionValue need={need} offersInfo={OFFERS_INFO.worker} />
-            <TaskDecisionFacts need={need} />
-            {ready && fit?.overlapTitle ? <FactRow size="detail" art="alert" value={`Preklapa se sa tvojim Dogovorom ${fit.overlapTitle}`} /> : null}
-            {ready && typeof fit?.distanceKm === 'number' && fit.distanceKm >= 0 ? <FactRow size="detail" art="map"
-              value={`Oko ${Math.max(1, Math.round(fit.distanceKm))} km od tvog područja rada`} /> : null}
-          </View>
+          {status || urgent ? <View style={s.status}><CardStatus status={status} urgency={need.urgency} now={urgencyNow} /></View> : null}
+          <TaskDecisionTitle prominent onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
         </View>
-        {/* Who asks stands right under what, where and when (the owner's pick of 8 Oct 2026, "Objavio kao kartica poverenja"): the one record of the page.
-            A missing rating stays explicitly missing. */}
+        <TaskDetailSummary need={need} audience="worker" place={taskPlace(need).text} remote={remote}
+          people={placesText(need.pokrivenost, 'worker').text} />
+        {ready && (fit?.overlapTitle || typeof fit?.distanceKm === 'number' && fit.distanceKm >= 0) ? <View style={s.fit}>
+          {fit?.overlapTitle ? <FactRow size="detail" art="alert" value={`Preklapa se sa tvojim Dogovorom ${fit.overlapTitle}`} /> : null}
+          {typeof fit?.distanceKm === 'number' && fit.distanceKm >= 0 ? <FactRow size="detail" art="map"
+            value={`Oko ${Math.max(1, Math.round(fit.distanceKm))} km od tvog područja rada`} /> : null}
+        </View> : null}
+        {need.opis ? <Section title="O zadatku"><DetailDescription text={need.opis} /></Section> : null}
+        {ready && !stale ? photos : null}
+        <TaskDecisionRequirements rows={needRequirementRows(need)} />
         <TaskDecisionPublisher name={need.narucilacIme || 'Ime trenutno nije dostupno'} rating={need.narucilacOcena} count={need.narucilacBrojOcena}
           reliabilityPercent={reliabilityPercent} initials={inicijali(need.narucilacIme)} photo={publicPhoto?.(need.narucilacProfilId, 56)} onPress={onRequesterProfile} disabled={busy}
           // The profile sheet announces its own reporting errors; avoid announcing the same error behind it.
           error={safety?.error && !requesterProfile ? safety.error : null} />
-        {need.opis ? <Section title="O zadatku"><DetailDescription text={need.opis} /></Section> : null}
-        <TaskDecisionRequirements rows={needRequirementRows(need)} />
         {/* What was asked about the work, and what its owner answered, is read with the work (owner, 2026-10-07: it was a
             link at the very end, and nobody who read the task saw it). The route builds the section: it owns the reads. */}
         {ready && !stale && qa ? qa : null}
@@ -189,9 +182,9 @@ const s = StyleSheet.create({
   state: { gap: sys.space.md },
   center: { textAlign: 'center' },
   // The title stays a direct child of this measured scroll block, so its handoff to the bar includes the real padding.
-  // State, name and amount are 8 apart; the facts are 16 under the amount.
-  hero: { gap: sys.space.sm },
-  facts: { gap: sys.space.md, paddingTop: sys.space.sm },
+  hero: { gap: sys.space.md, paddingVertical: sys.space.sm },
+  status: { alignItems: 'center' },
+  fit: { gap: sys.space.md },
   place: { gap: sys.space.md },
   refresh: { alignSelf: 'flex-start' },
 });

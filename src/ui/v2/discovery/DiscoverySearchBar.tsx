@@ -64,11 +64,11 @@ export function DiscoverySearchBar({ where, onBack, onSearch, onMore, onClearWhe
         <Surface kind="float" style={s.searchSurface}>
           <View style={s.controls}>
             {onBack ? <ChromeIconButton label="Nazad" glyph="back" quiet onPress={onBack} /> : null}
-            <T variant="bodyStrong" numberOfLines={1} style={s.title}>Zadaci</T>
             <Press accessibilityRole="button" accessibilityLabel="Pretraži zadatke" accessibilityValue={where ? { text: where } : undefined}
               accessibilityHint={SEARCH_HINT} haptic="select" scaleTo={sys.motion.scale.row} onPress={onSearch}
               hitSlop={0} style={s.searchButton}>
               <Glyph name="search" size={20} tone="ink" strong />
+              <T variant="bodyStrong" style={s.searchLabel}>Pretraži</T>
             </Press>
             {filters ? <FiltersButton count={filters.count} onPress={filters.onPress} /> : null}
             {onMore ? <ChromeIconButton label="Još mogućnosti" hint="Objava zadatka, profil i obaveštenja." glyph="more" quiet onPress={onMore} /> : null}
@@ -157,8 +157,9 @@ const s = StyleSheet.create({
   row: { paddingHorizontal: sys.space.base },
   searchSurface: { minWidth: 0, borderRadius: sys.radius.card },
   controls: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: sys.space.xs, minHeight: 56 },
-  title: { flex: 1, minWidth: 0, paddingHorizontal: sys.space.xs },
-  searchButton: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
+  searchButton: { flex: 1, minWidth: 48, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm,
+    paddingHorizontal: sys.space.sm, paddingVertical: sys.space.sm, borderRadius: sys.radius.control },
+  searchLabel: { flexShrink: 1, color: sys.color.ink },
   context: { flexDirection: 'row', alignItems: 'center', paddingLeft: sys.space.base, paddingRight: sys.space.xs },
   contextText: { flex: 1, minWidth: 0, minHeight: 48, justifyContent: 'center', paddingRight: sys.space.sm },
   where: { lineHeight: 20, color: sys.color.ink },

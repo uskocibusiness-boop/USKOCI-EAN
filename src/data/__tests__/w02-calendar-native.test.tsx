@@ -23,6 +23,12 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('react-native-reanimated', () => ({ ...jest.requireActual('../../../__mocks__/react-native-reanimated'), useReducedMotion: () => true }));
 // Reduced motion is read from the one store (ui/system/motion) since 2026-09-24, no longer from Reanimated.
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
+// Fix only the planner's implicit clock; keep its real Serbian-zone date logic.
+// Otherwise the fixture's 20th/21st becomes today and its empty-day assertion changes at midnight.
+jest.mock('../../ui/calendar/serbianDays', () => {
+  const actual = jest.requireActual('../../ui/calendar/serbianDays');
+  return { ...actual, serbianToday: (now: Date = new Date('2026-10-19T10:00:00Z')) => actual.serbianToday(now) };
+});
 jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true, replace: jest.fn(), navigate: jest.fn() } }));
 let mockIntent = 'uskocer';
 // Raspored reads the work profile the way Početna does (the source of the app's own reads), for one thing: whether the shade of the days is for an active profile.

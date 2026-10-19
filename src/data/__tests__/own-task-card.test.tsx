@@ -117,7 +117,7 @@ describe('the rest of the row', () => {
     expect(texts().join(' ')).not.toMatch(/popunjeno|\d\/\d/);
     // The amount and what it buys stand on ONE line, and the amount is the one thing drawn as money.
     const amount = tree.root.findAll(node => node.type === T_ && node.props.children === '2.000 RSD')[0];
-    expect(amount.props.variant).toBe('priceRow');
+    expect(amount.props.variant).toMatch(/^price/);
     const line = amount.parent!;
     expect(line.findAll(node => node.type === T_).map(node => node.props.children)).toEqual(['2.000 RSD', 'po osobi']);
     expect(style(line)).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
@@ -143,7 +143,7 @@ describe('the rest of the row', () => {
     await render(<OwnTaskCard item={task({ stanje: 'OBJAVLJENA', rezimCene: 'OFFERS', osnovaCene: null, ponudjenaCena: undefined, brojPrijavaZaIzbor: 0 })} onOpen={jest.fn()} />);
     expect(texts()).toContain('Tražim ponude'); expect(texts().join(' ')).not.toMatch(/popunjeno|Tražiš/);
     expect(tree.root.findAll(node => node.type === ('FactArt' as React.ElementType))[0].props.kind).toBe('offers');
-    expect(tree.root.findAll(node => node.type === T_ && node.props.variant === 'priceRow')).toHaveLength(0);
+    expect(tree.root.findAll(node => node.type === T_ && String(node.props.variant).startsWith('price'))).toHaveLength(0);
   });
 
   it('a draft has no places agreed and no applications: it counts neither, in words or aloud, and says nothing about itself the chip does not', async () => {

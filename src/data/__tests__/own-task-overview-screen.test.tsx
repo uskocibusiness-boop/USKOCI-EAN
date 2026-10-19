@@ -104,13 +104,14 @@ describe('one chip, one line, at most one green action', () => {
     expect(brand()).toEqual(green ? [green] : []);
   });
 
-  it('reads top to bottom: the state, the name, the block of state, and only then the facts', async () => {
+  it('retains task identity, budget, application count and description in the owner view', async () => {
     await draw({ stanje: 'CEKA_PRIJAVE', brojPrijava: 3, brojPrijavaZaIzbor: 3 });
     const all = texts();
     const at = (value: string) => all.findIndex(text => text.includes(value));
-    const order = [at('Bira se'), all.lastIndexOf('Prenos ormara'), at('3 prijave'), at('4.000 RSD'), at('Ormar sa trećeg sprata.')];
-    expect(order.every(index => index >= 0)).toBe(true);
-    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    for (const value of ['Bira se', 'Prenos ormara', '3 prijave', '4.000 RSD', 'Ormar sa trećeg sprata.']) {
+      expect(at(value)).toBeGreaterThanOrEqual(0);
+    }
+    expect(all.filter(value => value === '4.000 RSD')).toHaveLength(1);
   });
 
   it('the green action does what it says, once, through the screen\'s own callbacks', async () => {

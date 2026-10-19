@@ -27,8 +27,9 @@ export const sys = {
   color: colorTokens.color,
   /** Semantic pairs are content roles, not inferred business status. Always show a label or icon too. */
   status: colorTokens.status,
+  navigation: colorTokens.navigation,
   /** Optical defaults for controls. Other positive sizes may serve a verified composition. */
-  icon: { size: { inline: 16, row: 20, chrome: 24, emphasis: 32 } },
+  icon: { size: { inline: 16, row: 20, chrome: 24, emphasis: 32, navigation: 32 } },
   /** Surface density depends on content and role; a task preview is not a form or a chat message. */
   surface: {
     padding: { compact: space.md, comfortable: space.base, spacious: space.xl },

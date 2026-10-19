@@ -88,6 +88,7 @@ export const colorTokens = {
       // Owner, 8 Oct 2026 (picking board): the blue drawings became emerald, one family with the others; this is the recoloured pin.
       location: artTone('#0F8C61'),
       ai: artTone('#3979C4'),
+      application: artTone('#2473C8', '#185294'),
       skills: artTone('#168579'),
       people: artTone('#D76B5C'),
       time: artTone('#DBAC35', '#8D6B12'),
@@ -104,6 +105,11 @@ export const colorTokens = {
     warning: { foreground: '#8A5100', background: '#FFF4DF' },
     danger: { foreground: DANGER, background: '#FCEEEB' },
     violet: { foreground: '#654898', background: '#F3EFFA' },
+  },
+  /** Persistent navigation is a dark anchor beneath the white reading canvas. */
+  navigation: {
+    background: '#142820', foreground: WHITE, muted: '#C9D4CE',
+    selected: '#264C3D', indicator: ORANGE, line: '#385347',
   },
   conversation: {
     ground: '#FFFFFF',
