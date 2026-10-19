@@ -1,0 +1,77 @@
+{
+  "date": "2026-10-19",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "source": "0ca2b6991e156f99bf6fcb4d14f0be8cfd5717a8",
+  "scope": "Task interview package; no SQL schema changes. Subsequent worker v54 has its own receipt.",
+  "function": "uskoci-ai-interview",
+  "previousVersion": 99,
+  "version": 100,
+  "verify_jwt": false,
+  "authentication": "Existing in-handler authenticated ownership checks preserved",
+  "deployedBundleSha256": "937de63660a0a455aec548faf534a447dc2532c9c40b40faebea2d2c4decf9f4",
+  "readbackMismatches": [],
+  "files": [
+    {
+      "name": "src/contracts/aiAvailability.ts",
+      "sha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+      "bytes": 468
+    },
+    {
+      "name": "src/contracts/needFactsV2.ts",
+      "sha256": "737eb2fef7b46d2363727029638b1b0ee891b47ccaaf6e20f6601cc8969563f6",
+      "bytes": 7029
+    },
+    {
+      "name": "supabase/functions/_shared/aiTestBudget.ts",
+      "sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+      "bytes": 5351
+    },
+    {
+      "name": "supabase/functions/_shared/classificationEngine.mjs",
+      "sha256": "cdedf45565f92235ac2f8c75be9f754128bfa59f3c37fec6d7b394b677d748d3",
+      "bytes": 15292
+    },
+    {
+      "name": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+      "sha256": "f0a80eb886de14f5f432da985a6745e89a2d3bc003a72bbb67637bca34db17ff",
+      "bytes": 17298
+    },
+    {
+      "name": "supabase/functions/_shared/geminiTaskStream.ts",
+      "sha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5",
+      "bytes": 16466
+    },
+    {
+      "name": "supabase/functions/_shared/locationReply.ts",
+      "sha256": "f4661eb796660e69d0663c498ae5f0977be0835bdd516147ab80e57ad7a02dc6",
+      "bytes": 8091
+    },
+    {
+      "name": "supabase/functions/_shared/taxonomyScopedShadow.mjs",
+      "sha256": "c91b7bc3bb95f6cfc370c5a589bd12aba28089261b32d773573853cc62f75e8b",
+      "bytes": 1910
+    },
+    {
+      "name": "supabase/functions/uskoci-ai-interview/index.ts",
+      "sha256": "f65b0c9595d7cae981d4e1dff87180bde3281d8ad3d2712ad50d14ad05a819e5",
+      "bytes": 97469
+    }
+  ],
+  "tests": {
+    "typescript": "PASS",
+    "jest": {
+      "suites": 6,
+      "tests": 209
+    },
+    "nodeEdge": {
+      "tests": 137
+    }
+  },
+  "apk": {
+    "run": 39199573841,
+    "status": "SUCCESS_INSTALLED_BOUNDED_EMULATOR_PROOF",
+    "artifact": 12163987451,
+    "sha256": "e5667497170cb7c9838af653b6e5b22d09db877efd475b6ecfc675cf5fecd800"
+  },
+  "rollback": "Previous nine-file v99 bundle saved before replacement in session work/ai-product-20261019/task-edge-before.json; prior Git task source at 69be6fde."
+}

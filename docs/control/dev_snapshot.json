@@ -50,11 +50,6 @@
   "certificate_certified": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
   "cron": [
     {
-  "reliability_refresh_20261018": {
-    "scope": "Fresh dev_snapshot.sql + Edge metadata after the Home/taxonomy application. Historical named sections and source hashes retain their original proof boundaries.",
-    "receipt": "docs/current/evidence/DEV_RELIABILITY_APPLICATION_20261018.json",
-    "migrationVersions": ["20261018201142", "20261018201253", "20261018201517"]
-  },
       "job": "uskoci_edge_workers",
       "schedule": "* * * * *",
       "active": true
@@ -1051,5 +1046,39 @@
       "20261018151000_ai_direct_answer_continuity"
     ],
     "preexistingClosureMismatch": true
+  },
+  "ai_partial_answers_refresh_20261019": {
+    "scope": "Task Edge only: all nine files re-read and equal to committed source; no SQL schema writes; other dated snapshot observations unchanged.",
+    "source": "0ca2b6991e156f99bf6fcb4d14f0be8cfd5717a8",
+    "requesterEdgeVersion": 100,
+    "receipt": "supabase/operations/dev-alpha/ledger/20261019_ai_partial_answers_edge.receipt.json",
+    "nativeAcceptance": "BOUNDED_AI_UI_EMULATOR_ONLY; see dated report, not whole product acceptance"
+  },
+  "reliability_refresh_20261018": {
+    "scope": "Fresh dev_snapshot.sql + Edge metadata after the Home/taxonomy application. Historical named sections and source hashes retain their original proof boundaries.",
+    "receipt": "docs/current/evidence/DEV_RELIABILITY_APPLICATION_20261018.json",
+    "migrationVersions": [
+      "20261018201142",
+      "20261018201253",
+      "20261018201517"
+    ]
+  },
+  "worker_availability_refresh_20261019": {
+    "source": "11dc5e2fef291dde906cfb321ba68ac55bc49fba",
+    "version": 54,
+    "scope": "All 7 files read back equal; no SQL migration. Two successful calendar-correction turns after a retained v53 failed case.",
+    "receipt": "supabase/operations/dev-alpha/ledger/20261019_worker_availability_edge.receipt.json",
+    "profileSaved": false,
+    "taskPublished": false,
+    "pushTested": false
+  },
+  "ai_native_refresh_20261019": {
+    "source": "2df06add28d63ca7e4ddf7b07ba4eb025cd47160",
+    "run": 39202330027,
+    "apkSha256": "6a6e479a5b71f58575fb6bc08cfb02626f18b1282344b18e11dd7a57094d62d5",
+    "scope": "BOUNDED_AI_EMULATOR_PROOF",
+    "manifest": "docs/current/evidence/AI_CONVERSATION_NATIVE_20261019.json",
+    "phone": false,
+    "production": false
   }
 }

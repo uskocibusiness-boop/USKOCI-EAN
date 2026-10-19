@@ -111,11 +111,11 @@
 <script id="live-state" type="application/json">
 {
  "schemaVersion": 1,
- "generatedAt": "2026-10-19T04:27:08.825Z",
+ "generatedAt": "2026-10-19T05:33:21.576Z",
  "source": {
   "repo": "uskocibusiness-boop/USKOCI-EAN",
   "branch": "feature/unified-qa-master-20261017",
-  "head": "69be6fdecc6b2e0d427c79a0233320f3ca0fb2df",
+  "head": "11dc5e2fef291dde906cfb321ba68ac55bc49fba",
   "dirty": true,
   "redoviPath": "docs/control/redovi.json"
  },
@@ -136,10 +136,16 @@
   "note": "Release nije potvrđen. Aktuelni baseline odvaja istorijski APK, lokalni kandidat, DEV readback i novu proveru. Legal/store brojači ostaju nepoznati bez odgovarajućeg dokaza; stari 30.09. zbir nije današnje stanje."
  },
  "next": {
-  "title": "Povezani AI razgovori, native tastatura i pregled; zatim UI talasi",
-  "note": "Najnoviji nalog vlasnika: prvo dovrsiti oba AI toka i jasno navesti nedovrsene funkcije. 19.10 kandidat i granice: docs/current/AI_CONVERSATION_CONTINUATION_20261019.md. Home sazetci i ostali poslovi ostaju otvoreni. Novi native dokaz i DEV readback se vode posebno."
+  "title": "Preostali AI ugovori, područja i povezani UI talasi",
+  "note": "19.10 isporučeni Task100/Worker54 i klijent 2df06add. Ograničeni native AI dokaz; cela aplikacija/release nisu prihvaćeni. Nastaviti AI-only map/area tok i stvarni save/readback, region/rute i dve uloge sa push, zatim povezani Premium White talasi. Detalji: docs/current/AI_CONVERSATION_CONTINUATION_20261019.md."
  },
  "evidence": [
+  {
+   "id": "AI-CONVERSATION-NATIVE-20261019",
+   "sha": "2df06add28d63ca7e4ddf7b07ba4eb025cd47160",
+   "run": 39202330027,
+   "result": "DEV + APK + BOUNDED EMULATOR: Task v100 (9/9 files), Worker v54 (7/7 files). Partial-answer preservation, one AI review action, resumed draft, keyboard and latest-answer correction. Client 2df06add CI 39202330027 SUCCESS: 621/13873 PASS; worker 11dc5e2f Node 155/155. 10 actual provider calls: two calendar retests pass after retained v53 failure. No profile Save/task Publish/push; saved source hash unchanged. Keyboard 361/390/412 dp x font 1.0/1.3, same conversation/unsent text verified. Region/complex task schedule/location AI-only migration/two-account matching-push/full UI remain open. docs/current/AI_CONVERSATION_CONTINUATION_20261019.md."
+  },
   {
    "id": "HOME-READ-CONTINUATION-20261018",
    "run": null,

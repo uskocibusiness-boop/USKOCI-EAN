@@ -1,0 +1,56 @@
+{
+  "date": "2026-10-19",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "source": "11dc5e2fef291dde906cfb321ba68ac55bc49fba",
+  "scope": "Worker provider schema, intent/patch consistency guard and targeted weekday instructions. No SQL migration, no profile save.",
+  "function": "uskoci-worker-interview",
+  "previousVersion": 53,
+  "version": 54,
+  "verify_jwt": false,
+  "authentication": "Existing in-handler authenticated ownership checks preserved",
+  "deployedBundleSha256": "e2a6da007506d933d1fa8078e4834ec38c95e74df5b43463c4978b247f0d3a13",
+  "readbackMismatches": [],
+  "files": [
+    {
+      "name": "src/contracts/aiAvailability.ts",
+      "sha256": "8652494b72bce2956543d5dadd5c459d0196cc47317ab3be7a63aa82b9d2e409",
+      "bytes": 468
+    },
+    {
+      "name": "supabase/functions/_shared/aiTestBudget.ts",
+      "sha256": "2ef0c3a1a22225df1e3659de51a81eb6738391a4357d0121b033d155d1503d24",
+      "bytes": 5351
+    },
+    {
+      "name": "supabase/functions/_shared/classificationEngine.mjs",
+      "sha256": "cdedf45565f92235ac2f8c75be9f754128bfa59f3c37fec6d7b394b677d748d3",
+      "bytes": 15292
+    },
+    {
+      "name": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+      "sha256": "f0a80eb886de14f5f432da985a6745e89a2d3bc003a72bbb67637bca34db17ff",
+      "bytes": 17298
+    },
+    {
+      "name": "supabase/functions/_shared/geminiTaskStream.ts",
+      "sha256": "b4e0987d5a86a1131f9b6dc76d01f8bd65aee05fcdc6a05cb012350746e7c1d5",
+      "bytes": 16466
+    },
+    {
+      "name": "supabase/functions/_shared/workerServiceModeContext.mjs",
+      "sha256": "1fdac04aecc7f582353672de96020c47ff3e84e44d71e74554369e0e3914bc3b",
+      "bytes": 9016
+    },
+    {
+      "name": "supabase/functions/uskoci-worker-interview/index.ts",
+      "sha256": "f9793a28bb17917b44dc52d7acc7936c257776b89e2afcb11973d1de3ffe626d",
+      "bytes": 38659
+    }
+  ],
+  "tests": {
+    "nodeEdge": 155,
+    "workerHandler": 68
+  },
+  "rollback": "Previous complete seven-file v53 bundle in session work/ai-product-20261019/worker-edge-before.json; identical previous Git worker source at 2df06add.",
+  "limitation": "Provider intent consistency is an additional guard, not proof that every natural-language request was understood. Real candidate/review comparison remains necessary."
+}

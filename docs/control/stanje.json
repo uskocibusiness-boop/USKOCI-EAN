@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-19T04:27:08Z",
+  "osvezeno": "2026-10-19T05:33:36Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "69be6fde",
-  "head_poruka": "docs: record published Home repair and emulator build source",
+  "head": "11dc5e2f",
+  "head_poruka": "fix(ai): require calendar operations for acknowledged availability changes",
   "server": {
    "snimljeno": "2026-10-18T20:15:59Z",
    "migracije": 288,
@@ -14,15 +14,6 @@
    "privatni_istorijski": null,
    "cron": [
     {
-     "reliability_refresh_20261018": {
-      "scope": "Fresh dev_snapshot.sql + Edge metadata after the Home/taxonomy application. Historical named sections and source hashes retain their original proof boundaries.",
-      "receipt": "docs/current/evidence/DEV_RELIABILITY_APPLICATION_20261018.json",
-      "migrationVersions": [
-       "20261018201142",
-       "20261018201253",
-       "20261018201517"
-      ]
-     },
      "job": "uskoci_edge_workers",
      "schedule": "* * * * *",
      "active": true
@@ -13828,6 +13819,22 @@
  },
  "ci": [
   {
+   "id": 39202330027,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "2df06add",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-19T05:00:40Z"
+  },
+  {
+   "id": 39199573841,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "0ca2b699",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-19T04:27:40Z"
+  },
+  {
    "id": 39172584767,
    "ime": "PKG-042 application reader parity proof",
    "sha": "f18ea85d",
@@ -13906,22 +13913,6 @@
    "stanje": "completed",
    "ishod": "failure",
    "vreme": "2026-10-18T18:30:58Z"
-  },
-  {
-   "id": 39153834280,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "06104539",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-10-18T18:22:05Z"
-  },
-  {
-   "id": 39139810115,
-   "ime": "Task time consistency disposable proof",
-   "sha": "60fa276d",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-18T15:17:28Z"
   }
  ]
 }

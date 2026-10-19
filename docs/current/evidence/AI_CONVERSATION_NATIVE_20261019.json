@@ -1,0 +1,239 @@
+{
+  "date": "2026-10-19",
+  "scope": "AI conversations: keyboard/composer, latest-answer visibility, same-conversation review, unsent text, candidate vs saved profile. Not complete app or phone acceptance.",
+  "native": {
+    "source": "2df06add28d63ca7e4ddf7b07ba4eb025cd47160",
+    "run": "39202330027",
+    "sha256": "6a6e479a5b71f58575fb6bc08cfb02626f18b1282344b18e11dd7a57094d62d5",
+    "installedHash": "6a6e479a5b71f58575fb6bc08cfb02626f18b1282344b18e11dd7a57094d62d5",
+    "package": "rs.uskoci.preview",
+    "architectures": [
+      "x86_64"
+    ],
+    "install": "Success; -r kept app data",
+    "artifactId": 12164757466,
+    "otaObserved": "runtime uskoci-v1-preview-r1, kanal preview, ugrađeni sadržaj 3c570fe9; ekran O aplikaciji prikazuje 2df06add (dirty)",
+    "identityEvidence": "90f-version-details.png + XML; installed base.apk hash matches original CI artifact",
+    "buildDirtyEvidence": "PREBUILD_SOURCE_DIFF.patch contains only package.json android/ios scripts changed by Expo prebuild from expo start to expo run",
+    "navigationObservation": "Warm About deep-link stayed on worker conversation in one probe; About opened through profile navigation. Cold task deep-link restored expected task conversation. Warm routing needs separate validation.",
+    "emulatorRestored": "1264x2728, density 560, font_scale 1.15, airplane_mode_on 0",
+    "phone": "NOT_TESTED",
+    "production": "NOT_DEPLOYED"
+  },
+  "matrix": [
+    {
+      "widthDp": 361,
+      "fontScale": 1.0,
+      "ime": [
+        0,
+        1667,
+        1264,
+        2728
+      ],
+      "controls": {
+        "Poruka za asistenta": [
+          73,
+          1243,
+          1190,
+          1411
+        ],
+        "Pošalji poruku": [
+          1023,
+          1440,
+          1191,
+          1608
+        ]
+      },
+      "screenshot": "80-keyboard-361-100.png",
+      "composerAboveKeyboard": true,
+      "screenshotSha256": "bc51ccd3bf874bed0d97b7d47c1d25ba0716c38d442dfb4e54cb2e5602fed160"
+    },
+    {
+      "widthDp": 361,
+      "fontScale": 1.3,
+      "ime": [
+        0,
+        1363,
+        1264,
+        2728
+      ],
+      "controls": {
+        "Poruka za asistenta": [
+          73,
+          939,
+          1190,
+          1107
+        ],
+        "Pošalji poruku": [
+          1023,
+          1136,
+          1191,
+          1304
+        ]
+      },
+      "screenshot": "81-keyboard-361-130.png",
+      "composerAboveKeyboard": true,
+      "screenshotSha256": "56f134022e2a118b2706b266dd9cb91415b315565ce689a7cf888ea44b3665a4"
+    },
+    {
+      "widthDp": 390,
+      "fontScale": 1.0,
+      "ime": [
+        0,
+        1667,
+        1365,
+        2728
+      ],
+      "controls": {
+        "Poruka za asistenta": [
+          73,
+          1243,
+          1291,
+          1411
+        ],
+        "Pošalji poruku": [
+          1124,
+          1440,
+          1292,
+          1608
+        ]
+      },
+      "screenshot": "82-keyboard-390-100.png",
+      "composerAboveKeyboard": true,
+      "screenshotSha256": "5cad8c4bb3af7780b3c89df2f9de18ae0fdb92a33cc1ee1dc669cbb18c8f3219"
+    },
+    {
+      "widthDp": 390,
+      "fontScale": 1.3,
+      "ime": [
+        0,
+        1363,
+        1365,
+        2728
+      ],
+      "controls": {
+        "Poruka za asistenta": [
+          73,
+          939,
+          1291,
+          1107
+        ],
+        "Pošalji poruku": [
+          1124,
+          1136,
+          1292,
+          1304
+        ]
+      },
+      "screenshot": "83-keyboard-390-130.png",
+      "composerAboveKeyboard": true,
+      "screenshotSha256": "d4d9da5132d9a0699eb722dc93ba680bfbedc095a36291e14223e5a3cf2e7a75"
+    },
+    {
+      "widthDp": 412,
+      "fontScale": 1.0,
+      "ime": [
+        0,
+        1552,
+        1442,
+        2728
+      ],
+      "controls": {
+        "Poruka za asistenta": [
+          73,
+          1128,
+          1368,
+          1296
+        ],
+        "Pošalji poruku": [
+          1201,
+          1325,
+          1369,
+          1493
+        ]
+      },
+      "screenshot": "84-keyboard-412-100.png",
+      "composerAboveKeyboard": true,
+      "screenshotSha256": "6e6bf335d3a87c9c4f33216e213b5736e84297116a66de676f173b54012db416"
+    },
+    {
+      "widthDp": 412,
+      "fontScale": 1.3,
+      "ime": [
+        0,
+        1248,
+        1442,
+        2728
+      ],
+      "controls": {
+        "Poruka za asistenta": [
+          73,
+          824,
+          1368,
+          992
+        ],
+        "Pošalji poruku": [
+          1201,
+          1021,
+          1369,
+          1189
+        ]
+      },
+      "screenshot": "85-keyboard-412-130.png",
+      "composerAboveKeyboard": true,
+      "screenshotSha256": "a6005dc050181cce7d821ca540ce0bfffda80dc9b11ca9a817b1c6b104dffb51"
+    }
+  ],
+  "clientRegression": {
+    "sha": "2df06add28d63ca7e4ddf7b07ba4eb025cd47160",
+    "run": 39202330027,
+    "suites": 621,
+    "tests": 13873,
+    "failed": 0,
+    "skipped": 0
+  },
+  "edge": {
+    "task": {
+      "source": "0ca2b6991e156f99bf6fcb4d14f0be8cfd5717a8",
+      "version": 100,
+      "filesEqual": 9
+    },
+    "worker": {
+      "source": "11dc5e2fef291dde906cfb321ba68ac55bc49fba",
+      "version": 54,
+      "filesEqual": 7
+    },
+    "nodeTests": 155
+  },
+  "liveProbe": {
+    "providerCalls": 10,
+    "reservedUsd": 2.5,
+    "measuredUsd": 0.133212,
+    "savedProfileSourceHashUnchanged": true,
+    "profileSaves": 0,
+    "taskBoundNeedId": null,
+    "pushSent": false,
+    "workerRevision": 12,
+    "calendar": [
+      {
+        "days": [
+          1
+        ],
+        "start": "19:00",
+        "end": "20:00"
+      },
+      {
+        "days": [
+          3
+        ],
+        "start": "16:00",
+        "end": "20:00"
+      }
+    ],
+    "retainedFailure": "Worker v53 acknowledged a Monday change without changing the candidate. v54 retest passed twice.",
+    "limits": "Provider intent guard checks consistency/presence, not universal semantic correctness."
+  },
+  "artifacts": "Session outputs/USKOCI_ISPORUKA_AI_20261019.html and outputs/uskoci-ai-20261019/; originals under work/ai-product-20261019.",
+  "phone": "NOT_TESTED",
+  "production": "NOT_DEPLOYED"
+}
