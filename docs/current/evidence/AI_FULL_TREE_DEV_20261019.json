@@ -1,0 +1,136 @@
+{
+  "date": "2026-10-19",
+  "sourceCommit": "eb2f525b43ac3f1c3c076e0e9002c8661630be6f",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "migration": {
+    "source": "20261019071732_taxonomy_natural_services_structural_paths.sql",
+    "liveVersion": "20261019074443",
+    "applied": true,
+    "functions": [
+      {
+        "name": "rpc_taxonomy_capture_gemini_turn_hints_service",
+        "bodyMatches": true
+      },
+      {
+        "name": "rpc_taxonomy_commit_admission_service",
+        "bodyMatches": true
+      },
+      {
+        "name": "rpc_taxonomy_commit_reviewed_batch_service",
+        "bodyMatches": true
+      },
+      {
+        "name": "rpc_taxonomy_prepare_admission_service",
+        "bodyMatches": true
+      },
+      {
+        "name": "taxonomy_review_candidate_projection_v2",
+        "bodyMatches": true
+      },
+      {
+        "name": "taxonomy_risk_triage_v1",
+        "bodyMatches": true
+      }
+    ],
+    "metadata": [
+      {
+        "name": "rpc_taxonomy_capture_gemini_turn_hints_service",
+        "md5": "1a4e333d1e46132f6368d9b1e9b55c12",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "search_path": [
+          "search_path=pg_catalog, private"
+        ]
+      },
+      {
+        "name": "rpc_taxonomy_commit_admission_service",
+        "md5": "09fba33ef3e4842c9e796eb9de45e1eb",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "search_path": [
+          "search_path=pg_catalog, private"
+        ]
+      },
+      {
+        "name": "rpc_taxonomy_commit_reviewed_batch_service",
+        "md5": "567166002402129c9e092a0618bcc9f0",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "search_path": [
+          "search_path=pg_catalog, private"
+        ]
+      },
+      {
+        "name": "rpc_taxonomy_prepare_admission_service",
+        "md5": "c2b2bc625f174bdcf7ad77558c540108",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "search_path": [
+          "search_path=pg_catalog, private"
+        ]
+      },
+      {
+        "name": "taxonomy_review_candidate_projection_v2",
+        "md5": "925edfe39e5d384ef136b5e8b8df8502",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres}",
+        "search_path": [
+          "search_path=pg_catalog, private"
+        ]
+      },
+      {
+        "name": "taxonomy_risk_triage_v1",
+        "md5": "d219247f7b98a5f1d69f70a6affc6082",
+        "owner": "postgres",
+        "acl": "{postgres=X/postgres,service_role=X/postgres}",
+        "search_path": [
+          "search_path=pg_catalog, private"
+        ]
+      }
+    ]
+  },
+  "edge": [
+    {
+      "name": "uskoci-worker-interview",
+      "version": 56,
+      "files": [
+        "supabase/functions/uskoci-worker-interview/index.ts",
+        "src/contracts/aiAvailability.ts",
+        "supabase/functions/_shared/aiTestBudget.ts",
+        "supabase/functions/_shared/geminiTaskStream.ts",
+        "supabase/functions/_shared/classificationEngine.mjs",
+        "supabase/functions/_shared/classificationGeminiShadow.mjs",
+        "supabase/functions/_shared/workerServiceModeContext.mjs",
+        "supabase/functions/_shared/classificationReply.mjs"
+      ],
+      "exactContentReadback": true
+    },
+    {
+      "name": "uskoci-ai-interview",
+      "version": 102,
+      "files": [
+        "supabase/functions/uskoci-ai-interview/index.ts",
+        "src/contracts/aiAvailability.ts",
+        "src/contracts/needFactsV2.ts",
+        "supabase/functions/_shared/locationReply.ts",
+        "supabase/functions/_shared/aiTestBudget.ts",
+        "supabase/functions/_shared/geminiTaskStream.ts",
+        "supabase/functions/_shared/taxonomyScopedShadow.mjs",
+        "supabase/functions/_shared/classificationEngine.mjs",
+        "supabase/functions/_shared/classificationGeminiShadow.mjs",
+        "supabase/functions/_shared/classificationReply.mjs"
+      ],
+      "exactContentReadback": true
+    }
+  ],
+  "sqlCi": {
+    "run": 39217796738,
+    "result": "success",
+    "postgres": [
+      16,
+      17
+    ]
+  },
+  "liveAcceptance": "RUNNING",
+  "apk": "NOT_YET_BUILT"
+}

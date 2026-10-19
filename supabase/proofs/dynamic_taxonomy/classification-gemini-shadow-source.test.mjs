@@ -89,6 +89,8 @@ test('worker shadow asks for COMPLETE current skills, never partial patch-only s
 });
 test('unfinished worker modes show an actionable reason instead of promising automatic matching',()=>{
   assert.match(workerReviewUI,/review\.classificationState==='SERVICE_MODE_CONFIRMATION_REQUIRED'/);
-  assert.match(workerReviewUI,/dok ne potvrdiš, automatsko povezivanje čeka/);
-  assert.match(workerReviewUI,/Usluge ostaju u profilu, ali automatsko povezivanje zadataka čeka potvrdu kategorija/);
+  // Interaction and user copy are covered by worker-review-parts / worker-conversation-parts.
+  // This source boundary only protects honest default authority, not historical wording.
+  assert.match(workerReviewUI,/WorkerAiNotificationsNote\(\{matchingReady=false\}/);
+  assert.doesNotMatch(workerReviewUI,/export function WorkerAiModeConfirmation/);
 });

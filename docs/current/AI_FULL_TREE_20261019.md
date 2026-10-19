@@ -42,3 +42,7 @@ Status ovog odeljka dopunjava se tek stvarnim rezultatima. Napisano, offline pro
 ## Šta ovaj paket ne dokazuje sam po sebi
 
 Ne dokazuje nepogrešivo razumevanje svake slobodne rečenice, plaćanje, isporuku push-a na telefonu, ceo UI redizajn niti završetak marketplace-a. Novi naziv koji pripada postojećoj usluzi ne mora postati nova kategorija da bi test uspeo. Aktivno vezivanje radničkih sposobnosti zahteva odgovarajuću potvrdu aktivnog profila; čuvanje DRAFT profila nije isti dokaz.
+
+## Primena 07:44 UTC
+
+Kod `eb2f525b`; PostgreSQL16/17 CI `39217796738`: sva četiri job-a PASS, uključujući pre/post dokaz i tačan rollback/reapplication. DEV ledger verzija `20261019074443` odgovara source migraciji `20261019071732`. Sadržaj svih šest funkcija odgovara migraciji, owner/ACL/search_path očuvani. Edge: worker56, task102, sve datoteke ponovo pročitane i identične poslatom paketu. [Mašinski receipt](evidence/AI_FULL_TREE_DEV_20261019.json). Stvarni QA razgovori su u toku; to još nije rezultat čuvanja ili APK-a.
