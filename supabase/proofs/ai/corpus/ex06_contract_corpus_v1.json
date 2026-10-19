@@ -564,7 +564,7 @@
       "planRefs": ["P125-05", "P126-03", "RB-remote_onsite", "RB-free_text"],
       "matcherConsumerClasses": ["SOFT", "SCORE"],
       "turns": [
-        { "role": "USER", "text": "Treba mi neko da mi skenirani dokument od deset strana prepiše u Word, sve se radi na računaru od kuće. Rok je petak. Plaćam 2000 dinara, jedna osoba." }
+        { "role": "USER", "text": "Treba mi neko da mi skenirani dokument od deset strana prepiše u Word, sve se radi na računaru od kuće. Rok je petak. Plaćam 2000 dinara, jedna osoba. Rezultat mi pošalji digitalno." }
       ],
       "expected": {
         "turn": { "safetyAnyOf": ["ALLOW"], "nextAnyOf": ["REVIEW","ACK"], "questionKeyAnyOf": [], "taskRelation": "CONTINUE", "priceUnit": "WHOLE_JOB", "schedulePattern": "UNSPECIFIED", "guard": "NONE" },
@@ -578,7 +578,8 @@
           "need.schedule_kind": "REMOTE_ANYTIME",
           "need.people_needed": 1,
           "need.task_country_code": "RS",
-          "need.task_geography": { "mode": "REMOTE" }
+          "need.task_geography": { "mode": "REMOTE" },
+          "need.handoff": { "required": false }
         },
         "softFacts": ["need.title", "need.description", "need.category", "need.required_skills"],
         "unknownFacts": ["need.starts_at", "need.ends_at", "need.exact_address", "need.access_notes", "need.price_basis"],
@@ -1707,7 +1708,7 @@
       "planRefs": ["P126-03", "RB-remote_onsite"],
       "matcherConsumerClasses": ["SOFT", "SCORE"],
       "turns": [
-        { "role": "USER", "text": "Radi se na daljinu: treba mi neko da prevede ugovor sa srpskog na engleski, oko šest strana. Rok nije važan, radi kad ti odgovara. Ja sam inače iz Niša, ali to nije bitno za posao. Plaćam 7000 dinara, jedna osoba." }
+        { "role": "USER", "text": "Radi se na daljinu: treba mi neko da prevede ugovor sa srpskog na engleski, oko šest strana. Rok nije važan, radi kad ti odgovara. Ja sam inače iz Niša, ali to nije bitno za posao. Plaćam 7000 dinara, jedna osoba. Rezultat mi pošalji digitalno." }
       ],
       "expected": {
         "turn": { "safetyAnyOf": ["ALLOW"], "nextAnyOf": ["REVIEW","ACK"], "questionKeyAnyOf": [], "taskRelation": "CONTINUE", "priceUnit": "WHOLE_JOB", "schedulePattern": "UNSPECIFIED", "guard": "NONE" },
@@ -1721,7 +1722,8 @@
           "need.schedule_kind": "REMOTE_ANYTIME",
           "need.people_needed": 1,
           "need.task_country_code": "RS",
-          "need.task_geography": { "mode": "REMOTE" }
+          "need.task_geography": { "mode": "REMOTE" },
+          "need.handoff": { "required": false }
         },
         "softFacts": ["need.title", "need.description", "need.category", "need.required_skills"],
         "unknownFacts": ["need.starts_at", "need.ends_at", "need.exact_address", "need.access_notes"],

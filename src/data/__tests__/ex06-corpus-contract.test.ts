@@ -6,6 +6,7 @@
 // matcher: no provider, database or network is touched, and the corpus carries no pass rate.
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { decodeServiceHandoff } from '../../contracts/serviceHandoff';
 
 type Obj = Record<string, any>;
 
@@ -48,9 +49,9 @@ function loadSources(): Sources {
     dialogue[key] = match ? quoted(match[1]) : [];
   }
   const askStart = taskEdge.indexOf('const missing = [');
-  // Stop at the actual missing-list filter: `].filter(` no longer follows the Set wrapper.
-  // The old delimiter leaked the later questions dictionary into askOrder, including optional ends_at.
-  const askEnd = taskEdge.indexOf('.filter(key => !facts.has(key))', askStart);
+  // The conditional handoff guard extends the filter. Bound this read to the
+  // next declaration, so question copy cannot leak optional ends_at into askOrder.
+  const askEnd = taskEdge.indexOf('const questions:', askStart);
   if (askStart < 0 || askEnd < 0) throw new Error('ASK_ORDER_SOURCE_NOT_FOUND');
   const askText = taskEdge.slice(askStart, askEnd);
   const matcher = ['supabase/migrations/20260829211632_clean_dispatch_engine.sql',
@@ -168,8 +169,11 @@ function reviewOf(facts: Obj, publication: Obj | undefined, src: Sources) {
   const required = [...src.registry.entries()].filter(([, definition]) => definition.requiredForDraft).map(([key]) => key);
   const missingRequired = required.filter((key) => !(key in facts));
   if (facts['need.price_mode'] === 'MY_PRICE' && !('need.price_rsd' in facts)) missingRequired.push('need.price_rsd');
+  const remote = facts['need.task_geography']?.mode === 'REMOTE';
+  if (remote && !decodeServiceHandoff(facts['need.handoff'])) missingRequired.push('need.handoff');
   const people = Number(facts['need.people_needed']);
   const askableMissing = src.askOrder.filter((key) => {
+    if (key === 'need.handoff') return remote && !decodeServiceHandoff(facts[key]);
     if (key in facts) return false;
     if (key === 'need.price_rsd') return facts['need.price_mode'] === 'MY_PRICE';
     if (key === 'need.price_basis') return facts['need.price_mode'] === 'MY_PRICE' && people > 1;
@@ -219,7 +223,9 @@ function validateFact(id: string, key: string, value: unknown, src: Sources, err
   } else if (definition.valueType === 'BOOLEAN') {
     if (typeof value !== 'boolean') fail('(BOOLEAN) must be a boolean');
   } else if (definition.valueType === 'OBJECT') {
-    if (key !== 'need.task_geography' || !geographyValid(value, src.geographyModes)) fail('(OBJECT) is not a valid task geography');
+    if (key === 'need.handoff') {
+      if (!decodeServiceHandoff(value)) fail('(OBJECT) is not a valid service handoff');
+    } else if (key !== 'need.task_geography' || !geographyValid(value, src.geographyModes)) fail('(OBJECT) is not a valid task geography');
   }
 }
 
@@ -551,8 +557,9 @@ describe('EX-06 S02 synthetic contract corpus', () => {
 
     it('pins the asking order used by the review derivation to the Edge guard', () => {
       expect(sources.askOrder).toEqual(['need.description', 'need.people_needed', 'need.price_mode', 'need.price_rsd', 'need.price_basis', 'need.schedule_kind',
-        'need.starts_at', 'need.task_country_code', 'need.task_geography']);
+        'need.starts_at', 'need.task_country_code', 'need.task_geography', 'need.handoff']);
       expect(sources.registry.get('need.ends_at')?.requiredForDraft).toBe(false);
+      expect(sources.registry.get('need.handoff')?.requiredForDraft).toBe(false);
     });
 
     it('pins compatible worker fields and current personal-profile proposals to their respective sources', () => {
@@ -581,6 +588,14 @@ describe('EX-06 S02 synthetic contract corpus', () => {
   describe('the corpus', () => {
     it('is a valid synthetic contract corpus with no errors', () => {
       expect(validateCorpus(corpus, sources)).toEqual([]);
+    });
+
+    it('does not call a REMOTE case ready when its explicit handoff is removed', () => {
+      const altered = clone();
+      delete altered.cases.find((entry: Obj) => entry.id === 'T-008').expected.facts['need.handoff'];
+      expect(validateCorpus(altered, sources)).toEqual(expect.arrayContaining([
+        expect.stringContaining('T-008: expected.review differs from the derivation'),
+      ]));
     });
 
     it('declares itself synthetic, unrun and score-free', () => {

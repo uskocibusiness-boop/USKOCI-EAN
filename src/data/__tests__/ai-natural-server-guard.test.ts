@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { runInNewContext } from 'node:vm';
 import * as ts from 'typescript';
+import { decodeServiceHandoff } from '../../contracts/serviceHandoff';
 
 type Proposal = { key: string; value: unknown; evidence?: string };
 type Fact = { fact_key: string; fact_value: unknown; status: string };
@@ -23,6 +24,7 @@ const candidate = source.slice(timeStart, timeEnd) + source.slice(start, end + 2
 const transformed = ts.transpileModule(candidate, { compilerOptions: { target: ts.ScriptTarget.ES2022 } }).outputText;
 let explicitFinish = false;
 const scope: Record<string, unknown> = {
+  decodeServiceHandoff,
   taskFinishOnly: () => explicitFinish,
   explicitPublicationOnly: () => false,
   sameFactValue: (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b),
@@ -225,11 +227,28 @@ describe('natural server AI response without bypassing authoritative review', ()
     const spoken = call({ ...result, assistantMessage: 'Mogu to da objasnim.', dialogue: {...result.dialogue, next:'ANSWER'} }, facts('need.exact_address'));
     expect(spoken.assistantMessage).toBe('Mogu to da objasnim.');
   });
-  it('does not require a private street for REMOTE tasks', () => {
+  it.each([
+    { required: false },
+    { required: true, shippingCountries: ['RS'] },
+    { required: true, localExchange: { countryCode: 'RS', city: 'Novi Sad' } },
+  ])('does not require a private street for REMOTE with explicit handoff %j', handoff => {
     const remote = facts('need.exact_address').map(row => row.fact_key === 'need.task_geography'
       ? { ...row, fact_value: { mode: 'REMOTE' } } : row);
-    expect(call(reply('REVIEW', 'Pogledaj nacrt.'), remote).assistantMessage).toBe('Pogledaj nacrt.');
+    remote.push({ fact_key: 'need.handoff', fact_value: handoff, status: 'CONFIRMED' });
+    const result = call(reply('REVIEW', 'Pogledaj nacrt.'), remote);
+    expect(result.assistantMessage).toBe('Pogledaj nacrt.');
+    expect(result.proposals).toEqual([]);
   });
+  it.each([undefined, {}, { required: true }, { required: false }])(
+    'asks about handoff for REMOTE when absent, invalid or UNKNOWN (%j)', handoff => {
+      const remote = facts('need.exact_address').map(row => row.fact_key === 'need.task_geography'
+        ? { ...row, fact_value: { mode: 'REMOTE' } } : row);
+      if (handoff !== undefined) remote.push({ fact_key: 'need.handoff', fact_value: handoff,
+        status: handoff.required === false ? 'UNKNOWN' : 'CONFIRMED' });
+      const result = call(reply('REVIEW', 'Sve je spremno.'), remote);
+      expect(result.assistantMessage).toContain('Kako preuzimaš rezultat');
+      expect(result.proposals).toEqual([]);
+    });
   it('keeps the BLOCK safety result intact', () => {
     const blocked = reply('REVIEW', 'Ne mogu da pomognem sa tim zahtevom.');
     blocked.safety = 'BLOCK';

@@ -410,7 +410,9 @@ describe('EX-06 S05 field-to-consumer map: consumer-without-collector findings G
     const asked = between(lf(TI), 'const missing =', 'const questions:');
     expect(asked).toMatch(/need\.description[\s\S]*need\.people_needed[\s\S]*need\.price_mode[\s\S]*need\.schedule_kind[\s\S]*need\.task_country_code[\s\S]*need\.task_geography/);
     expect(asked).toContain('definition.requiredForDraft');
-    expect(asked).toContain('.filter(key => !facts.has(key))');
+    expect(asked).toMatch(/\.filter\(key => !facts\.has\(key\)/);
+    expect(asked).toMatch(/mode\s*===\s*'REMOTE'[\s\S]*decodeServiceHandoff\(facts\.get\('need\.handoff'\)\)/);
+    expect(NEED_FACT_V2_DEFINITIONS['need.handoff'].requiredForDraft).toBe(false);
     for (const key of ['need.required_skills', 'need.required_tools', 'need.required_vehicles', 'need.required_licenses', 'need.minimum_experience_years'] as const)
       expect(NEED_FACT_V2_DEFINITIONS[key].requiredForDraft).toBe(false);
     expect(asked).not.toMatch(/required_skills|required_tools|required_vehicles|required_licenses|minimum_experience/);

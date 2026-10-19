@@ -1,14 +1,22 @@
-# Owner-requested DEV Android preview OTA for unified TaskCard integration on Home carousel, 15 October 2026 22:56.
-# Self-path trigger ONLY: worker AI interview, signed-work Za mene empty guidance and Android DEV preview OTA gates.
-name: DEV Android preview OTA 20261014
+# Current DEV client rollout. The historical filename retains the existing workflow identity.
+# Publish only after the exact-source APK regression succeeds; no source push publishes an OTA.
+name: DEV Android preview OTA
 on:
-  push:
-    branches: [feature/unified-gemini-classification-p0-20261014]
-    paths: [.github/workflows/dev-android-preview-ota-20261014.yml]
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: 'Exact 40-character source SHA on feature/unified-qa-master-20261017'
+        required: true
+        type: string
+      regression_run_id:
+        description: 'Successful Build latest V5 Android preview APK run for the same source SHA'
+        required: true
+        type: string
 permissions:
   contents: read
+  actions: read
 concurrency:
-  group: uskoci-preview-ota-owner-20261014
+  group: uskoci-preview-ota-current
   cancel-in-progress: false
 jobs:
   publish-android-preview:
@@ -19,6 +27,9 @@ jobs:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       EAS_BUILD_PROFILE: preview
       USKOCI_OTA_TARGET: preview
+      OTA_EXPECTED_SOURCE: ${{ inputs.source_sha }}
+      OTA_REGRESSION_RUN_ID: ${{ inputs.regression_run_id }}
+      OTA_NATIVE_BASELINE: f56c94c35c8eb0f2f28a6961fb4bf358228c241c
       EXPO_PUBLIC_SUPABASE_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
       EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW
       EXPO_PUBLIC_USE_FAKE_SOURCE: '0'
@@ -33,24 +44,32 @@ jobs:
       # Only this DEV preview client opts into existing versioned, signed review RPCs.
       EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW: 'true'
       EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'true'
-      # DEV preview ONLY: owner chooses ON_SITE/REMOTE/BOTH per pending service.
+      # DEV preview: signed per-service execution and handoff consent.
       EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES: 'true'
     steps:
       - name: Checkout exact owner-requested feature branch
         uses: actions/checkout@v4
         with:
           persist-credentials: false
+          fetch-depth: 0
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
+      - name: Require successful regression for this exact source
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/ota-regression-evidence.cjs
       - name: Verify Expo access and immutable preview runtime
         shell: bash
         run: |
           set -euo pipefail
           test -n "${EXPO_TOKEN:-}" || { echo "::error::EXPO_TOKEN is missing. Update NOT published."; exit 1; }
-          node scripts/ota-preview-guard.cjs
+          test "$(git rev-parse HEAD)" = "$OTA_EXPECTED_SOURCE"
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          git merge-base --is-ancestor "$OTA_NATIVE_BASELINE" HEAD
+          node scripts/ota-release-preflight.cjs --target preview --baseline "$OTA_NATIVE_BASELINE"
           node - <<'NODE'
           const cfg = require('./app.config.js')({config: require('./app.json').expo});
           if (cfg.android.package !== 'rs.uskoci.preview' ||
@@ -63,28 +82,25 @@ jobs:
           NODE
       - name: Install locked JS dependencies
         run: npm ci --include=dev
-      - name: Verify TypeScript before publication
-        run: npx tsc --noEmit
-      - name: Verify explicit map-jump after landmark, owned intake and Home navigation
-        run: npx jest src/data/__tests__/ai-owned-intake-screen.test.tsx src/data/__tests__/ai-natural-server-guard.test.ts src/data/__tests__/v3-home-screen.test.tsx src/data/__tests__/intake-location-order.test.ts --runInBand --silent
-      - name: Verify legacy review compatibility and explicit signed opt-in routing
-        # The old-app fixtures intentionally expect V1 RPCs. Each opt-in test
-        # separately flips its own flag to true and asserts the new route.
-        env:
-          EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW: 'false'
-          EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'false'
-        run: npx jest src/data/__tests__/ai-task-review-client.test.ts src/data/__tests__/worker-ai-client.test.ts --runInBand --silent
-      - name: Verify worker per-service selection UI and transport before preview OTA
-        # Legacy cases require OFF. Explicit-mode cases set BOTH signed flags
-        # to true inside their test, so this still proves the new route.
-        env:
-          EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW: 'false'
-          EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW: 'false'
-        run: npx jest src/ui/workerProfile/__tests__/worker-review-parts.test.tsx src/data/__tests__/worker-ai-client.test.ts --runInBand --silent
-      - name: Verify signed reviews, precise service consent and natural worker-interview safety
-        # The coverage proof prevents partial Gemini proposals from being
-        # presented as already-confirmed worker service or notification consent.
-        run: node --test supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs supabase/proofs/dynamic_taxonomy/classification-gemini-shadow-source.test.mjs supabase/proofs/dynamic_taxonomy/worker-finish-mode-completeness.test.mjs supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs supabase/proofs/dynamic_taxonomy/discovery-for-me-confirmed-work-source.test.mjs
+      - name: Verify rollout evidence and environment guards
+        # Full client and handler regression already ran on the identical SHA above.
+        run: node --test scripts/__tests__/ota-regression-evidence.test.cjs scripts/__tests__/ota-release-preflight.test.cjs scripts/__tests__/build-contract.test.cjs
+      - name: Verify the actual EAS preview bundler environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          # EAS Update SDK55+ uses server environment values, not eas.json build env.
+          # Keep the downloaded environment outside source/artifacts and never print it.
+          npx --yes eas-cli@23.2.0 env:pull --environment preview \
+            --path "$RUNNER_TEMP/uskoci-preview.env" --non-interactive
+          node - <<'NODE'
+          const fs=require('node:fs'), path=require('node:path'), {parseEnv}=require('node:util');
+          const p=require('./scripts/ota-release-preflight.cjs');
+          const env=parseEnv(fs.readFileSync(path.join(process.env.RUNNER_TEMP,'uskoci-preview.env'),'utf8'));
+          // USKOCI_OTA_TARGET is supplied by this workflow, not bundled into application JS.
+          p.verifyBundleEnvironment(p.sourcePlan(process.cwd(),'preview'),{...env,USKOCI_OTA_TARGET:'preview'});
+          console.log('All required EAS preview public values match the checked client contract.');
+          NODE
       - name: Verify preview has explicit DEV-only signed review feature gates
         shell: bash
         run: |
@@ -94,11 +110,12 @@ jobs:
           test "${EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW}" = 'true'
           test "${EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES}" = 'true'
           test "${EXPO_PUBLIC_SUPABASE_URL}" = 'https://leqcwgzvjsxugfgzdmth.supabase.co'
-      - name: Publish latest feature-branch client to Android preview ONLY
+      - name: Publish checked source to Android preview ONLY
         shell: bash
         run: |
           set -euo pipefail
-          msg="OWNER DEV Android preview 20261014 ${GITHUB_SHA:0:12}"
+          test -z "$(git status --porcelain --untracked-files=normal)"
+          msg="DEV Android preview ${GITHUB_SHA} run ${GITHUB_RUN_ID}"
           npx --yes eas-cli@23.2.0 update --branch preview --platform android \
             --environment preview --clear-cache --message "$msg" --non-interactive
       - name: Read back published preview update
@@ -110,11 +127,28 @@ jobs:
           node - <<'NODE'
           const x=require('/tmp/uskoci-ota-readback.json');
           const rows=x.currentPage||[];
-          const want='OWNER DEV Android preview 20261014 '+process.env.GITHUB_SHA.slice(0,12);
+          const want='DEV Android preview '+process.env.GITHUB_SHA+' run '+process.env.GITHUB_RUN_ID;
           const exact=rows.find(y=>y.branch==='preview' &&
             y.runtimeVersion==='uskoci-v1-preview-r1' &&
-            String(y.message||'').includes(want) && y.isRollBackToEmbedded!==true);
+            String(y.message||'')===want && /android/i.test(String(y.platforms)) && y.isRollBackToEmbedded!==true);
           if(!exact)throw Error('PREVIEW_OTA_READBACK_UNCONFIRMED: inspect Expo update dashboard');
           console.log('PUBLISHED Android preview OTA:',exact.group,'commit:',process.env.GITHUB_SHA,
             'runtime:',exact.runtimeVersion,'branch:',exact.branch);
+          require('node:fs').writeFileSync(process.env.RUNNER_TEMP+'/uskoci-ota-receipt.json',JSON.stringify({
+            sourceSha:process.env.GITHUB_SHA,group:exact.group,runtime:exact.runtimeVersion,branch:exact.branch,
+            regressionRunId:process.env.OTA_REGRESSION_RUN_ID,nativeBaseline:process.env.OTA_NATIVE_BASELINE,
+            installedDeviceVerified:false},null,2));
           NODE
+      - name: Preserve publication evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: USKOCI-DEV-OTA-RECEIPT
+          path: |
+            ${{ runner.temp }}/uskoci-ota-regression.json
+            ${{ runner.temp }}/uskoci-ota-receipt.json
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Remove temporary EAS environment
+        if: always()
+        run: rm -f "$RUNNER_TEMP/uskoci-preview.env"
