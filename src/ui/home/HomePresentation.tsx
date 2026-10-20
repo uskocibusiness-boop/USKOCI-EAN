@@ -30,7 +30,7 @@ import { HowItWorks } from './HowItWorks';
 
 /** Two main actions, the next appointment, real pending work and the account's lists.
  * Empty attention stays hidden; failures retain explicit recovery. One account owns both roles.
- * Current owner direction: docs/implementation/OWNER_DESIGN_DIRECTION_20260922.md.
+ * Current design authority: docs/implementation/design-system/PREMIUM_WHITE_CANON.md.
  */
 export type HomePresentationProps = {
   /** Only the focused live route starts decorative motion; galleries stay still. */

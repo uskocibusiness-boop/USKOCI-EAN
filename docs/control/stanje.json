@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-20T04:18:36Z",
+  "osvezeno": "2026-10-20T05:03:31Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "db44965e",
-  "head_poruka": "fix(ai): retain known task details during clarification",
+  "head": "47cbd0e2",
+  "head_poruka": "test(ai): preserve description contract after prompt consolidation",
   "server": {
    "snimljeno": "2026-10-18T20:15:59Z",
    "migracije": 288,
@@ -3720,6 +3720,13 @@
      "evidence": "docs/current/evidence/AI_SPEED_20261019.json",
      "report": "docs/current/AI_SPEED_20261019.md",
      "wholeFlowAcceptance": false
+    },
+    "light_navigation_20261020": {
+     "status": "BOUNDED_EMULATOR_VERIFIED",
+     "sourceSha": "47cbd0e2c3985e172de91470cdc091784283f607",
+     "githubRunId": "39370415630",
+     "evidence": "docs/current/evidence/LIGHT_NAVIGATION_20261020.json",
+     "boundary": "NAVIGATION_VISUAL_AND_TAB_SMOKE_ONLY; existing A08 P1 and whole-flow acceptance remain open"
     }
    },
    "ukupno": "PROBLEM",
@@ -5028,6 +5035,13 @@
      "evidence": "docs/current/evidence/AI_SPEED_20261019.json",
      "report": "docs/current/AI_SPEED_20261019.md",
      "wholeFlowAcceptance": false
+    },
+    "light_navigation_20261020": {
+     "status": "BOUNDED_EMULATOR_VERIFIED",
+     "sourceSha": "47cbd0e2c3985e172de91470cdc091784283f607",
+     "githubRunId": "39370415630",
+     "evidence": "docs/current/evidence/LIGHT_NAVIGATION_20261020.json",
+     "boundary": "NAVIGATION_VISUAL_AND_TAB_SMOKE_ONLY; existing A08 P1 and whole-flow acceptance remain open"
     }
    },
    "ukupno": "PROBLEM",
@@ -14371,6 +14385,22 @@
  },
  "ci": [
   {
+   "id": 39370415630,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "47cbd0e2",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-20T04:35:51Z"
+  },
+  {
+   "id": 39369801419,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "be53b4ff",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-20T04:28:58Z"
+  },
+  {
    "id": 39335921967,
    "ime": "Build latest V5 Android preview APK",
    "sha": "a18f31af",
@@ -14449,22 +14479,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-10-19T17:07:04Z"
-  },
-  {
-   "id": 39289078927,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "4f198604",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-10-19T16:51:27Z"
-  },
-  {
-   "id": 39287567426,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "7ab681fb",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-10-19T16:41:43Z"
   }
  ]
 }

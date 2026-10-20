@@ -200,6 +200,13 @@
           "evidence": "docs/current/evidence/AI_SPEED_20261019.json",
           "report": "docs/current/AI_SPEED_20261019.md",
           "wholeFlowAcceptance": false
+        },
+        "light_navigation_20261020": {
+          "status": "BOUNDED_EMULATOR_VERIFIED",
+          "sourceSha": "47cbd0e2c3985e172de91470cdc091784283f607",
+          "githubRunId": "39370415630",
+          "evidence": "docs/current/evidence/LIGHT_NAVIGATION_20261020.json",
+          "boundary": "NAVIGATION_VISUAL_AND_TAB_SMOKE_ONLY; existing A08 P1 and whole-flow acceptance remain open"
         }
       },
       "source_audit_20261018_current_baseline": {
@@ -220,7 +227,8 @@
         "decisionStatus": "APPROVED_DIRECTION",
         "proofStatus": "PENDING",
         "decision": "Jedan nalog koristi obe perspektive bez trajnog odvajanja uloga."
-      }
+      },
+      "source_progress_20261020_light_navigation": "20.10: svetla centralna navigacija i mirni Glyph simboli, runtime be53b4ff, APK 47cbd0e2, CI 39370415630 SUCCESS, 622/14016 PASS. Instaliran -r na emulator bez brisanja sesije; Početna 361/390/412 dp × font1/1.3 vizuelno pregledana; sva četiri taba otvorena stvarnim dodirom. Nema nove phone/DEV primene ili prihvatanja celog poslovnog toka. docs/current/evidence/LIGHT_NAVIGATION_20261020.json."
     },
     {
       "id": "A02",
@@ -1410,6 +1418,13 @@
           "evidence": "docs/current/evidence/AI_SPEED_20261019.json",
           "report": "docs/current/AI_SPEED_20261019.md",
           "wholeFlowAcceptance": false
+        },
+        "light_navigation_20261020": {
+          "status": "BOUNDED_EMULATOR_VERIFIED",
+          "sourceSha": "47cbd0e2c3985e172de91470cdc091784283f607",
+          "githubRunId": "39370415630",
+          "evidence": "docs/current/evidence/LIGHT_NAVIGATION_20261020.json",
+          "boundary": "NAVIGATION_VISUAL_AND_TAB_SMOKE_ONLY; existing A08 P1 and whole-flow acceptance remain open"
         }
       },
       "owner_decisions_20261019": {
@@ -1417,7 +1432,8 @@
         "decisionStatus": "APPROVED_DIRECTION",
         "proofStatus": "PENDING",
         "decision": "Pre prvog izbora razlikovati izmenu bez prijava od Izmeni i ponovo objavi kada prijava postoji."
-      }
+      },
+      "source_progress_20261020_light_navigation": "20.10: svetla centralna navigacija i mirni Glyph simboli, runtime be53b4ff, APK 47cbd0e2, CI 39370415630 SUCCESS, 622/14016 PASS. Instaliran -r na emulator bez brisanja sesije; Početna 361/390/412 dp × font1/1.3 vizuelno pregledana; sva četiri taba otvorena stvarnim dodirom. Nema nove phone/DEV primene ili prihvatanja celog poslovnog toka. docs/current/evidence/LIGHT_NAVIGATION_20261020.json."
     },
     {
       "id": "A09",

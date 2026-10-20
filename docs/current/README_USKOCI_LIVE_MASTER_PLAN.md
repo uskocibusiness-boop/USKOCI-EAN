@@ -78,6 +78,12 @@ DEV **Task 116 / Worker 71**, task izvor **db44965e**, **19/19 exact**: jedna **
 
 **Zasebna push proba:** izolovani QA profil je aktiviran normalnim AI/potpisanim Save-om, zatim je podneta stvarna prijava na postojeći ovlašćeni zadatak. Automatski cron/Edge transport je potvrđen. HONOR sada ima **PROVIDER_ACCEPTED / sendCount 1**, receipt **19.10. u 23:12:01 UTC**; vlasnik potvrđuje prijem i **OS tap → Obaveštenja**. To je očekivani kind:INBOX; do Prijava ostaje klik na odgovarajući red, zasebno potvrđen na emulatoru. Druga dva uređaja ostaju RECEIPT_PENDING, po jedno slanje. HONOR ticket je nastao pre kasnijeg odbijenog ručnog poziva. Flagovi nisu menjani. Četiri poziva fixture-a koštaju 0,031413 USD interno, bez neobračunatih u tom fixture-u; ranija evaluator rezervacija 0,25 USD ostaje OPEN. [Tačne granice i istorija](AI_SPEED_20261019.md), [strukturirani dokaz](evidence/AI_SPEED_20261019.json). Postojeći generisani prikazi prate ovaj datirani presek i otvorene granice; nisu novi master plan.
 
+## Svetla navigacija — 20.10.2026.
+
+20.10: svetla centralna navigacija i mirni Glyph simboli, runtime be53b4ff, APK 47cbd0e2, CI 39370415630 SUCCESS, 622/14016 PASS. Instaliran -r na emulator bez brisanja sesije; Početna 361/390/412 dp × font1/1.3 vizuelno pregledana; sva četiri taba otvorena stvarnim dodirom. Nema nove phone/DEV primene ili prihvatanja celog poslovnog toka. docs/current/evidence/LIGHT_NAVIGATION_20261020.json.
+
+Prvi CI pokušaj `39369801419` stao je na pet ponovljenih provera stare doslovne rečenice Task prompta. Nova zasebna semantička provera čuva pravilo opisa; svi postojeći kalendarski/DST behavioral dokazi ostaju. Povezani Node paket 247/247 PASS; završni CI je proverio ceo aktuelni izvor. [Kompozicija ekrana i redosled](UI_DIRECTION_REVIEW_20261020.md).
+
 ## Šta znači „trenutno“
 
 <!-- AI_LOCATION_GUIDANCE_START -->

@@ -180,3 +180,31 @@ Ne čekamo da ceo backend bude savršen da bi izgled napredovao. Za svaki poveza
 - Prikaz i kompletan tok imaju odvojeno označen dokaz.
 
 **Nema poštenog procenta završenosti na osnovu broja testova.** Imamo ozbiljnu funkcionalnu osnovu, delimično ujednačen UI i nekoliko jasno određenih većih celina koje još treba završiti. Cilj sledećih paketa je da te celine zatvaramo kao stvaran korisnički put.
+
+## 6. Dodatni fizički pregled — šta konkretno treba unaprediti
+
+Pregledani su i Dogovori, Poruke i Profil na instaliranom `a18f31af`, 361 dp/font 1,15, 20.10.2026. u 06:36–06:37 po lokalnom vremenu. Ovo su datirani snimci pre svetle navigacije, sa postojećim Milos nalogom; nisu makete niti dokaz svih stanja.
+
+| Ekran | Viđeno | Ocena i konkretna dorada |
+|---|---|---|
+| Dogovori | Naslov, Aktivni/Istorija, kalendar, dodatni red Sve/Tražim pomoć/Uskačem; prazan aktivni skup i veliko „Pogledaj istoriju“ | Čitljivo i funkcionalno, ali dve velike zone filtriranja prethode praznom sadržaju. Sačuvati dostupnost filtera, smanjiti njihovu vizuelnu težinu. Prazno stanje treba da objasni nastanak Dogovora; istorija je primarna samo kada korisnik zaista ima koristan nastavak tamo. |
+| Poruke | Brend logo u vrhu, Aktivni/Završeni, prazna lista; naziv odredišta vidi se u donjoj navigaciji | Ujednačiti zaglavlje sa ostalim glavnim odredištima: jasan naslov „Poruke“. Sačuvati razliku aktivno/završeno, a za prvi razgovor kratko objasniti da se razgovor vezuje za Dogovor. Ne nuditi izmišljen chat ili lažan nepročitani broj. |
+| Profil | Veliki avatar, ime, grad, „Još nema ocena“, „1 završen“, javni pregled i radni profil; odmah zatim podaci naloga | Osnova je pregledna. Identitet i reputaciju povezati u jednu kompaktniju celinu, a podaci naloga ostaju niže/uz podešavanja. „1 završen“ traži jasnu imenicu i značenje uloge. Sažetak „Na daljinu · Novi Sad, 30 km“ treba razdvojiti prema uslugama/načinu rada kako ne bi izgledalo da REMOTE zavisi od radijusa. Potrebno je proveriti projekciju pre izmene teksta. |
+
+Početna, mapa i detalj ranije su pregledani iz galerije stvarnog `a18f31af` APK-a. Mapa je kandidat za **zadržavanje uz doradu**, a ne promenu biblioteke. Glavna zajednička slabost je raspodela prostora i prioriteta: previše velikih kontrola i dekoracije ima približno istu težinu. Svetla navigacija uklanja jedan takav izvor težine; ostali ekrani imaju naredne zasebne pakete.
+
+## 7. Gde se sledeći paket stvarno implementira
+
+Ovo su aktuelne porodice komponenti, ne nalog da se pravi paralelni UI:
+
+| Celina | Polazni izvor | Šta sačuvati pri rekompoziciji |
+|---|---|---|
+| Globalne kontrole | `src/ui/system/Glyph.tsx`, `TabBarItem.tsx`, `ScreenHeader.tsx`, `tokens.ts`, `src/theme/colorTokens.ts` | Jedan registar simbola/tokena, dostupna imena, dovoljno velika površina i semantika selekcije |
+| Početna | `src/ui/home/HomePresentation.tsx`, `src/data/homeSnapshot.ts` | Odvojeni error/retry za profil i prilike, server-owned brojevi i pravi ciljevi |
+| Mapa / lista | `src/ui/v2/DiscoveryPresentation.tsx`, `DiscoveryMap.tsx`, `discovery/` | Postojeći map renderer i sheet, filter/kontekst, privatnost približnih lokacija |
+| Moji zadaci | `src/ui/v2/MarketplacePresentation.tsx`, `OwnTaskCard.tsx` | Brojevi iz servera kada je lista straničena; ne prikazivati učitani deo kao ukupno |
+| Dogovor | `src/ui/v2/AgreementPresentation.tsx`, `src/ui/agreements/` | Posebni statusi završetka/otkaza, sačuvani iznos/termin, coarse lokacija i dozvoljeni učesnici |
+| Poruke | `src/ui/messages/ConversationInboxPresentation.tsx`, `src/ui/AgreementChat.tsx`, `src/ui/groups/` | Posebni grupni i privatni primaoci, istorija, oporavak slanja, dozvola za medije |
+| Profil | `src/ui/profile/ProfileHubPresentation.tsx`, povezani javni prikaz i reviews | Jedan identitet, tačna reputacija, razlika privatnih podataka i javnih usluga |
+
+U Home komentaru je pronađen još jedan zastareo pokazivač „Current owner direction“ ka dokumentu od 22.09. Preusmeren je na aktuelni canon. To je ispravka autoriteta u komentaru, bez promene poslovnog ponašanja.

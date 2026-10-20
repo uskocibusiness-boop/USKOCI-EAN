@@ -1,0 +1,95 @@
+{
+  "schema": "USKOCI_LIGHT_NAVIGATION_CHECKPOINT_V1",
+  "date": "2026-10-20",
+  "status": "BOUNDED_EMULATOR_VERIFIED",
+  "scope": "Light navigation, familiar central Glyph controls, six Home layouts and four destination taps. Whole product and release remain open.",
+  "sourceSha": "47cbd0e2c3985e172de91470cdc091784283f607",
+  "uiCommit": "be53b4ff981b2762ef3164dc3983f2b385da8f7b",
+  "branch": "feature/unified-qa-master-20261017",
+  "githubRunId": "39370415630",
+  "githubRunUrl": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39370415630",
+  "ci": {
+    "status": "SUCCESS",
+    "suites": 622,
+    "tests": 14016,
+    "failed": 0,
+    "skipped": 0,
+    "typeScript": "PASS",
+    "currentBaseline": "PASS",
+    "localTargetedJest": "7 suites / 125 PASS",
+    "localNodeProof": "247 PASS",
+    "priorFailedRun": "39369801419: five copies of an obsolete exact prompt sentence assertion. Replaced by one semantic instruction contract; all calendar and DST assertions retained."
+  },
+  "apk": {
+    "package": "rs.uskoci.preview",
+    "architecture": "x86_64",
+    "sha256": "d37a6b39a208cb456156405145b74bed102c494a3fe0e90ac06f78f9a934ce70",
+    "installedBaseSha256": "d37a6b39a208cb456156405145b74bed102c494a3fe0e90ac06f78f9a934ce70",
+    "signingCertificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+    "device": "emulator-5554",
+    "install": "adb install -r / Success",
+    "sessionPreserved": true,
+    "aboutSource": "47cbd0e2c3985e172de91470cdc091784283f607",
+    "ota": "embedded / 107e585c",
+    "runtime": "uskoci-v1-preview-r1",
+    "channel": "preview",
+    "prebuildDiff": "Only package.json android/ios run scripts changed by Expo prebuild, recorded in artifact. About dirty marker is explained by this CI diff."
+  },
+  "native": {
+    "homeWidthsDp": [
+      361,
+      390,
+      412
+    ],
+    "actualWidthsDp": [
+      361.14285714285717,
+      390,
+      412
+    ],
+    "fontScales": [
+      1,
+      1.3
+    ],
+    "homeReview": "All six actual screenshots visually inspected. Navigation labels and selection fit; large text is retained without truncation.",
+    "taps": [
+      "Messages -> Zadaci: actual bottom-tab tap opens existing full-screen map with loaded tiles",
+      "Map Back -> Messages: previous destination restored",
+      "Messages -> Dogovori: actual tab tap, selected state and screenshot confirmed",
+      "Dogovori -> Poruke: actual tab tap, selected state and screenshot confirmed",
+      "Poruke -> Pocetna: actual tab tap and Home screenshot confirmed"
+    ],
+    "mapBoundary": "Existing full-screen map hides the bottom bar and offers Back. This behavior is unchanged; keep/recompose relationship is a subsequent UX decision.",
+    "systemAppearance": "Current app.json is light-only; no dark-mode support claim.",
+    "reduceMotion": "Preserved in existing native-driver logic and automated tests; no new physical motion benchmark.",
+    "configurationRestoration": "OPEN: initial legacy redirect after About/config changes stayed on About; first font1.3 capture also showed About. Repeated direct root intent after settling showed Home. Attempts retained, excluded from accepted layout matrix. Cause unconfirmed; not represented as repaired.",
+    "automation": "UIAutomator sometimes could not reach idle on Home; its six-layout acceptance is screenshot inspection, not XML assertion. Map/Agreement/Messages accessibility trees and tab interactions were read separately.",
+    "restored": {
+      "size": "1264x2728",
+      "density": 560,
+      "fontScale": 1.15
+    }
+  },
+  "screenshots": [
+    "home-361-100.png",
+    "home-390-100.png",
+    "home-412-100.png",
+    "home-361-130.png",
+    "home-390-130.png",
+    "home-412-130.png",
+    "map-361-100.png",
+    "agreements-361-100.png",
+    "messages-361-100.png",
+    "home-tab-return-361-100.png",
+    "about.png"
+  ],
+  "unresolved": [
+    "Existing A08 P1 repeated external detail blank screen: no runtime fix or whole-navigation acceptance.",
+    "Configuration restoration / repeated external landing needs separate investigation.",
+    "AI latency/cost, regional matching, group media and membership, full multi-account workflow and release requirements remain open."
+  ],
+  "serverMutation": false,
+  "aiProviderCalls": 0,
+  "phoneInteraction": false,
+  "phoneInstallation": false,
+  "publicRelease": false
+}
