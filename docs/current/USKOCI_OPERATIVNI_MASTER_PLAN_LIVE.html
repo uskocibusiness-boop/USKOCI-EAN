@@ -111,11 +111,11 @@
 <script id="live-state" type="application/json">
 {
  "schemaVersion": 1,
- "generatedAt": "2026-10-19T23:09:20.169Z",
+ "generatedAt": "2026-10-20T04:18:40.749Z",
  "source": {
   "repo": "uskocibusiness-boop/USKOCI-EAN",
   "branch": "feature/unified-qa-master-20261017",
-  "head": "a18f31af8fdf768db2e9d02acee8f77f238e606d",
+  "head": "db44965e3ec52c08992a7f8a19f965e32a080130",
   "dirty": true,
   "redoviPath": "docs/control/redovi.json"
  },
@@ -136,10 +136,16 @@
   "note": "Release nije potvrđen. Aktuelni baseline odvaja istorijski APK, lokalni kandidat, DEV readback i novu proveru. Legal/store brojači ostaju nepoznati bez odgovarajućeg dokaza; stari 30.09. zbir nije današnje stanje."
  },
  "next": {
-  "title": "Otkloniti P1 ponovljenog spoljašnjeg ulaza i nastaviti povezane tokove",
-  "note": "a18f31af / CI 39335921967 SUCCESS: 621 paket / 14.014 testova PASS, 0 FAIL, 0 SKIP. Tačan x86_64 APK instaliran je na emulator; sesija očuvana. Početna i detalj vizuelno pregledani na 361/390/412 dp × font 1,0/1,3. P1 OTVOREN: ponovljeni spoljašnji link ka vlasničkom detalju posle promene širine/fonta dva puta je dao prazan prikaz na 412 dp/1,3; normalan ulaz radi. Mapa ima ograničeni pregled zaglavlja/učitavanja, uz učitane pločice na 361/1 i 412/1,3; filteri, pretraga i in-app Nova prijava → pravi ekran Prijava provereni u navedenom opsegu. To nije celo native/end-to-end prihvatanje. DEV Task 115 / Worker 71; regioni i delimične strukturirane činjenice zadatka ostaju otvoreni. Stvarna QA aktivacija i prijava su potvrđene; automatski cron/Edge transport dao je tri TICKET_PENDING pokušaja, po jedno slanje po registrovanom uređaju. Provider receipt i fizički prikaz/tap još čekaju. Četiri AI poziva fixture-a: 0,031413 USD, 0 neobračunatih u tom fixture-u; ranija evaluator rezervacija 0,25 USD ostaje OPEN."
+  "title": "Nastaviti povezane AI i poslovne tokove; navigacioni P1 ostaje otvoren",
+  "note": "Task 116 primenjen, 19/19 fajlova exact, izvor db44965e; Worker 71 nepromenjen. Dve postojeće prompt rečenice preciziraju jasne činjenice pri CLARIFY, bez novog merge/Save ugovora. 106 offline PASS. Jedna živa poruka za krečenje: 10,710 s, opis čuva 30 m² površine poda, Novi Sad i obezbeđen materijal; 2 osobe i 9.000 RSD TOTAL su strukturirani. CLARIFY/canAccept=false, bez izmišljene geografije, termina ili Save/Publish-a. Ovo je ograničen pozitivan scenario, ne univerzalna garancija ekstrakcije ili ubrzanja. Instalirani klijent ostaje a18f31af / CI 39335921967, 621 paket / 14.014 PASS. Današnjih šest warm/cold/config kontrolnih primera nije ponovilo prethodni prazan detalj: prvi screenshot je Home loading posle 4 s, ostali potvrđuju vidljiv detalj; cold observer je istekao pre kasnijeg potvrđenog prikaza. A08 P1 ostaje OPEN, uzrok nije dokazan, nema runtime workaround-a. Dva nova real-router testa su u db44965e; tri povezane suite/23 PASS nisu novi APK niti native popravka. Jedna stvarna QA prijava: automatska pumpa → HONOR PROVIDER_ACCEPTED, receipt 19.10.23:12:01.490647 UTC, sendCount1; vlasnik potvrđuje prijem i OS tap otvara app inbox. OWNER_CONFIRMED_APP_INBOX_OPENED odgovara RESPONSE_RECEIVED kind:INBOX; do Prijava ostaje jedan klik, zasebno potvrđen na emulatoru. Druga dva uređaja ostaju TICKET_PENDING/RECEIPT_PENDING sa po jednim slanjem. Nema novog SEND-a ili promene flagova, niti potvrde svih vrsta obaveštenja. Završni observer potvrđuje pet jednakih kanonskih otisaka. Jedna poruka / dva stvarna provider poziva / 10,710s / 20.685µUSD =0,020685USD internog MEASURED obračuna /0neobračunatih. QA admission povučen20.10.04:12:07.606270UTC, naknadno aiAdmitted=false. Bez Save/Publish/aktivacije/push-a."
  },
  "evidence": [
+  {
+   "id": "TASK116-PUSH-RECEIPT-NATIVE-RECHECK-20261020",
+   "sha": "db44965e3ec52c08992a7f8a19f965e32a080130",
+   "run": null,
+   "result": "Task 116 primenjen, 19/19 fajlova exact, izvor db44965e; Worker 71 nepromenjen. Dve postojeće prompt rečenice preciziraju jasne činjenice pri CLARIFY, bez novog merge/Save ugovora. 106 offline PASS. Jedna živa poruka za krečenje: 10,710 s, opis čuva 30 m² površine poda, Novi Sad i obezbeđen materijal; 2 osobe i 9.000 RSD TOTAL su strukturirani. CLARIFY/canAccept=false, bez izmišljene geografije, termina ili Save/Publish-a. Ovo je ograničen pozitivan scenario, ne univerzalna garancija ekstrakcije ili ubrzanja. Instalirani klijent ostaje a18f31af / CI 39335921967, 621 paket / 14.014 PASS. Današnjih šest warm/cold/config kontrolnih primera nije ponovilo prethodni prazan detalj: prvi screenshot je Home loading posle 4 s, ostali potvrđuju vidljiv detalj; cold observer je istekao pre kasnijeg potvrđenog prikaza. A08 P1 ostaje OPEN, uzrok nije dokazan, nema runtime workaround-a. Dva nova real-router testa su u db44965e; tri povezane suite/23 PASS nisu novi APK niti native popravka. Jedna stvarna QA prijava: automatska pumpa → HONOR PROVIDER_ACCEPTED, receipt 19.10.23:12:01.490647 UTC, sendCount1; vlasnik potvrđuje prijem i OS tap otvara app inbox. OWNER_CONFIRMED_APP_INBOX_OPENED odgovara RESPONSE_RECEIVED kind:INBOX; do Prijava ostaje jedan klik, zasebno potvrđen na emulatoru. Druga dva uređaja ostaju TICKET_PENDING/RECEIPT_PENDING sa po jednim slanjem. Nema novog SEND-a ili promene flagova, niti potvrde svih vrsta obaveštenja. docs/current/AI_SPEED_20261019.md Završni observer potvrđuje pet jednakih kanonskih otisaka. Jedna poruka / dva stvarna provider poziva / 10,710s / 20.685µUSD =0,020685USD internog MEASURED obračuna /0neobračunatih. QA admission povučen20.10.04:12:07.606270UTC, naknadno aiAdmitted=false. Bez Save/Publish/aktivacije/push-a."
+  },
   {
    "id": "AI-CLIENT-WORKER-20261020",
    "sha": "a18f31af8fdf768db2e9d02acee8f77f238e606d",
@@ -910,29 +916,29 @@
  "flowTotal": 62,
  "counts": {
   "done": 0,
-  "native": 59,
+  "native": 52,
   "blocked": 0,
-  "open": 3
+  "open": 10
  },
  "flows": {
   "A01": {
    "title": "Početna: dve glavne radnje i šta čeka mene",
-   "status": "KOD I CILJANE PROVERE PROŠLI / NOVI HOME NATIVE ČEKA",
+   "status": "HOME_SIX_VISUAL_COMBINATIONS_PROVEN / BUSINESS_FLOW_OPEN",
    "priorities": [
     "P0",
     "P2",
     "P6"
    ],
-   "state": "native"
+   "state": "open"
   },
   "A02": {
    "title": "Razgovor sa AI: kaži šta treba",
-   "status": "APK_BUILT_BOUNDED_EMULATOR_REVIEW_OPEN_P1 / WHOLE_FLOW_OPEN",
+   "status": "TASK116_SCOPED_CLARIFY_LIVE_PASS / BROADER_AI_FLOW_OPEN",
    "priorities": [
     "P0",
     "P5"
    ],
-   "state": "native"
+   "state": "open"
   },
   "A03": {
    "title": "Glas u razgovoru",
@@ -979,7 +985,7 @@
   },
   "A08": {
    "title": "Moj zadatak (detalj)",
-   "status": "BOUNDED_EMULATOR_DETAIL_VISUAL_PROOF / EXTERNAL_REPEAT_LINK_P1_OPEN / WHOLE_FLOW_OPEN",
+   "status": "BOUNDED_NATIVE_CONTROLS_AND_ROUTER_TESTS / EXTERNAL_REPEAT_LINK_P1_OPEN",
    "priorities": [
     "P0",
     "P2"
@@ -1054,20 +1060,20 @@
   },
   "B00": {
    "title": "Radni profil kroz razgovor sa AI",
-   "status": "APK_BUILT_BOUNDED_EMULATOR_REVIEW_OPEN_P1 / WHOLE_FLOW_OPEN",
+   "status": "WORKER71_SCOPED_AI_AND_SIGNED_ACTIVATION_PROVEN / REGIONS_AND_WHOLE_FLOW_OPEN",
    "priorities": [
     "P5"
    ],
-   "state": "native"
+   "state": "open"
   },
   "B01": {
    "title": "Lični radni profil — pregled i izmene",
-   "status": "APK_BUILT_BOUNDED_EMULATOR_REVIEW_OPEN_P1 / WHOLE_FLOW_OPEN",
+   "status": "AI_REVIEW_AND_SIGNED_SAVE_PROVEN / SAVED_HANDOFF_DISPLAY_OPEN",
    "priorities": [
     "P5",
     "P7"
    ],
-   "state": "native"
+   "state": "open"
   },
   "B02": {
    "title": "Područje rada",
@@ -1080,12 +1086,12 @@
   },
   "B03": {
    "title": "Dostupnost",
-   "status": "KOD I CILJANE PROVERE PROŠLI / NOVA UREĐAJSKA PROVERA ČEKA",
+   "status": "AI_ONLY_AVAILABILITY_AND_EXACT_SIGNED_SCHEDULE_PROVEN / BROADER_MATCHING_OPEN",
    "priorities": [
     "P5",
     "P7"
    ],
-   "state": "native"
+   "state": "open"
   },
   "B04": {
    "title": "Mapa i lista prilika",
@@ -1283,12 +1289,12 @@
   },
   "P01": {
    "title": "Obaveštenja u aplikaciji (zvonce)",
-   "status": "ONE_REAL_QA_IN_APP_EVENT_AND_EMULATOR_TARGET_PROVEN / OTHER_EVENTS_OPEN",
+   "status": "ONE_REAL_IN_APP_TARGET_AND_OWNER_OS_INBOX_OPENED / OTHER_EVENTS_OPEN",
    "priorities": [
     "P4",
     "P6"
    ],
-   "state": "native"
+   "state": "open"
   },
   "P02": {
    "title": "Podešavanja obaveštenja",
@@ -1310,12 +1316,12 @@
   },
   "P04": {
    "title": "Slanje obaveštenja na telefon",
-   "status": "AUTOMATIC_CRON_EDGE_PUSH_TICKETS_PROVEN / PROVIDER_RECEIPT_AND_PHYSICAL_DISPLAY_PENDING",
+   "status": "ONE_APPLICATION_PROVIDER_ACCEPTED_OWNER_RECEIVED_AND_APP_INBOX_OPENED / OTHER_PUSH_OPEN",
    "priorities": [
     "P4",
     "P5"
    ],
-   "state": "native"
+   "state": "open"
   },
   "P05": {
    "title": "Podsetnik pred termin",
@@ -1452,9 +1458,9 @@
   "P0": {
    "total": 11,
    "done": 0,
-   "native": 11,
+   "native": 9,
    "blocked": 0,
-   "open": 0
+   "open": 2
   },
   "P1": {
    "total": 5,
@@ -1466,9 +1472,9 @@
   "P2": {
    "total": 27,
    "done": 0,
-   "native": 26,
+   "native": 25,
    "blocked": 0,
-   "open": 1
+   "open": 2
   },
   "P3": {
    "total": 4,
@@ -1480,30 +1486,30 @@
   "P4": {
    "total": 8,
    "done": 0,
-   "native": 7,
+   "native": 5,
    "blocked": 0,
-   "open": 1
+   "open": 3
   },
   "P5": {
    "total": 11,
    "done": 0,
-   "native": 11,
+   "native": 6,
    "blocked": 0,
-   "open": 0
+   "open": 5
   },
   "P6": {
    "total": 12,
    "done": 0,
-   "native": 12,
+   "native": 10,
    "blocked": 0,
-   "open": 0
+   "open": 2
   },
   "P7": {
    "total": 20,
    "done": 0,
-   "native": 19,
+   "native": 17,
    "blocked": 0,
-   "open": 1
+   "open": 3
   }
  }
 }

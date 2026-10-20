@@ -558,15 +558,15 @@
       "slug": "uskoci-ai-interview",
       "name": "uskoci-ai-interview",
       "status": "ACTIVE",
-      "version": 115,
+      "version": 116,
       "created_at": 1788261764727,
-      "updated_at": 1792445896407,
+      "updated_at": 1792469228032,
       "verify_jwt": false,
       "import_map": false,
-      "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_115/source/supabase/functions/uskoci-ai-interview/index.ts",
-      "ezbr_sha256": "39c52690357df3ba9dc6575ae4d5ecbef0f92ec59b55844d21d5a0d168ea2263",
-      "readback_source": "docs/current/evidence/AI_SPEED_20261019.json#currentPackage.proseDefect.followup",
-      "readback_scope": "Task 115/Worker 70 ACTIVE metadata and 19/17 exact files; previous inventory retained."
+      "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_116/source/supabase/functions/uskoci-ai-interview/index.ts",
+      "ezbr_sha256": "87cbb011d08097fc23a23e040547b047ccdd8542c9966b2506589c11d824a959",
+      "readback_source": "docs/current/evidence/AI_SPEED_20261019.json#latestCheckpoint.taskFollowup",
+      "readback_scope": "Task116 ACTIVE metadata and19exact files; previous115 inventory retained in task_clarify_refresh_20261020."
     },
     {
       "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
@@ -1863,8 +1863,8 @@
     "regionsSupported": false,
     "live": "TWO_TARGETED_WORKER_SCENARIOS_PASS_NO_ACTIVATION",
     "ciRun": 39335921967,
-    "currentApk": "PENDING",
-    "currentEmulator": "PENDING"
+    "currentApk": "a18f31af_BUILT_INSTALLED",
+    "currentEmulator": "BOUNDED_VISUAL_PROOF_NOT_NEW_WORKER_FLOW_ACCEPTANCE"
   },
   "premium_client_refresh_20261020": {
     "status": "APK_BUILT_BOUNDED_EMULATOR_REVIEW_OPEN_P1",
@@ -1922,20 +1922,62 @@
       "size": "1264x2728",
       "density": 560,
       "fontScale": 1.15
+    },
+    "recheck": {
+      "checkedAt": "2026-10-20T04:08:04.807Z",
+      "cases": [
+        {
+          "case": "after configuration change, first home→detail",
+          "result": "HOME_LOADING_AT_4S",
+          "file": "screens/warm-detail-412-130.png"
+        },
+        {
+          "case": "repeat same detail",
+          "result": "DETAIL_VISIBLE",
+          "file": "screens/repeat-detail-412-130.png"
+        },
+        {
+          "case": "warm home→detail",
+          "result": "DETAIL_VISIBLE",
+          "file": "screens/warm-detail.png"
+        },
+        {
+          "case": "map→detail",
+          "result": "DETAIL_VISIBLE",
+          "file": "screens/detail-after-map.png"
+        },
+        {
+          "case": "force-stop then external detail",
+          "result": "DETAIL_VISIBLE_AFTER_START; command observer timed out, later screenshot confirms target",
+          "file": "screens/cold-detail-412-130.png"
+        },
+        {
+          "case": "detail config 361/font1→412/font1.3, repeated external",
+          "result": "DETAIL_VISIBLE",
+          "file": "screens/config-repeat-detail.png"
+        }
+      ],
+      "p1": "OPEN; prior blank scene not reproduced today, cause not proven, no runtime workaround",
+      "routerChecks": {
+        "suites": 3,
+        "passed": 23
+      },
+      "runtimePatch": false,
+      "proof": "work/continuation-20261020/native-recheck.json"
     }
   },
   "push_application_refresh_20261020": {
-    "status": "APPLICATION_CREATED_PUSH_TICKET_PENDING_PHONE_RECEIPT_UNVERIFIED",
-    "checkedAt": "2026-10-19T22:56:20.572117+00:00",
+    "status": "ONE_APPLICATION_HONOR_PROVIDER_ACCEPTED_OWNER_RECEIVED_AND_APP_INBOX_OPENED",
+    "checkedAt": "2026-10-20T03:58:53.749568+00:00",
     "eventId": "09abaf85-cd59-482d-9045-87dc035fe50d",
     "responseId": "209efef9-65e6-46de-a4a1-122dfc4eafd8",
     "deliveryId": "901e68d7-8d4c-4d91-8ca6-c9c21e399631",
     "attemptId": "c8294a56-0d5b-4a4e-a107-bf51ed275cd3",
-    "attemptState": "TICKET_PENDING",
+    "attemptState": "PROVIDER_ACCEPTED",
     "sendCount": 1,
     "ticketReceivedAt": "2026-10-19T22:56:01.917442+00:00",
-    "phoneReceiptConfirmed": false,
-    "providerReceiptConfirmed": false,
+    "phoneReceiptConfirmed": true,
+    "providerReceiptConfirmed": true,
     "flagsChanged": false,
     "earlierPublicationHold": {
       "operationId": "41322c4e-ae00-4d84-b59a-c4e64e1eee42",
@@ -1953,6 +1995,43 @@
     "allSendCountsOne": true,
     "schedulerCheckedAt": "2026-10-19T22:59:34.133418Z",
     "schedulerEvidence": "work/push-application-20261020/scheduler-diagnosis-evidence.json",
-    "inAppTargetOnEmulator": "ONE_REAL_QA_EVENT_TARGET_PASS"
+    "inAppTargetOnEmulator": "ONE_REAL_QA_EVENT_TARGET_PASS",
+    "receiptCheckedAt": "2026-10-19T23:12:01.490647+00:00",
+    "systemNotificationTap": "OWNER_CONFIRMED_APP_INBOX_OPENED",
+    "directApplicationTargetFromOsTap": false,
+    "remainingReceiptPendingDevices": 2,
+    "receiptProof": "work/continuation-20261020/push-receipts.json"
+  },
+  "task_clarify_refresh_20261020": {
+    "sourceSha": "db44965e3ec52c08992a7f8a19f965e32a080130",
+    "checkedAt": "2026-10-20T04:07:17.821Z",
+    "taskVersion": 116,
+    "filesMatched": 19,
+    "readback": "ALL_FILES_EXACT",
+    "previousTaskInventory": {
+      "id": "e0e3181b-e87b-4b8f-9c90-abfc30ddf938",
+      "slug": "uskoci-ai-interview",
+      "name": "uskoci-ai-interview",
+      "status": "ACTIVE",
+      "version": 115,
+      "created_at": 1788261764727,
+      "updated_at": 1792445896407,
+      "verify_jwt": false,
+      "import_map": false,
+      "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_115/source/supabase/functions/uskoci-ai-interview/index.ts",
+      "ezbr_sha256": "39c52690357df3ba9dc6575ae4d5ecbef0f92ec59b55844d21d5a0d168ea2263",
+      "readback_source": "docs/current/evidence/AI_SPEED_20261019.json#currentPackage.proseDefect.followup",
+      "readback_scope": "Task 115/Worker 70 ACTIVE metadata and 19/17 exact files; previous inventory retained."
+    },
+    "evidence": "docs/current/evidence/AI_SPEED_20261019.json#latestCheckpoint.taskFollowup",
+    "scope": "Task only refreshed; Worker71 and other dated inventory unchanged. No new APK or client-runtime behavior.",
+    "live": "ONE_SCENARIO_SEMANTIC_PASS_WITH_SCOPED_OBSERVER_AND_CLOSURE",
+    "elapsedMs": 10710,
+    "offlinePassed": 106,
+    "actualProviderCalls": 2,
+    "settledMicrousd": 20685,
+    "unsettled": 0,
+    "canonicalUnchanged": true,
+    "admissionRetiredAt": "2026-10-20T04:12:07.606270Z"
   }
 }
