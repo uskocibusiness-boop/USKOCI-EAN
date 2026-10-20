@@ -24,6 +24,8 @@ export type ScreenProps = {
   contentStyle?: StyleProp<ViewStyle>;
   /** For `useChromeTitleOnScroll`: the bar says the name once the large title has scrolled away. */
   onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+  /** Actual scroll viewport, for visibility-driven decoration without guessed header/inset heights. */
+  onViewportLayout?: ScrollViewProps['onLayout'];
   /** A `RefreshControl` for pull to refresh. */
   refreshControl?: ScrollViewProps['refreshControl'];
 };
@@ -47,11 +49,11 @@ const EDGES: Record<ScreenKind, readonly Edge[]> = {
  * `FlowFooter`. With a foot the keyboard raises it (a `flow` does this by default, see `keyboardAvoiding`); the safe area
  * below is the screen's own, so the foot needs no `edge` of its own.
  */
-export function Screen({ kind, header, footer, scroll = true, keyboardAvoiding, children, testID, contentStyle, onScroll, refreshControl }: ScreenProps) {
+export function Screen({ kind, header, footer, scroll = true, keyboardAvoiding, children, testID, contentStyle, onScroll, onViewportLayout, refreshControl }: ScreenProps) {
   const lifted = keyboardAvoiding ?? kind === 'flow';
   const content = [s.content, footer ? s.contentAboveFoot : s.contentToEnd, contentStyle];
   const body = scroll
-    ? <ScrollView style={s.fill} contentContainerStyle={content} keyboardShouldPersistTaps="handled" onScroll={onScroll}
+    ? <ScrollView style={s.fill} contentContainerStyle={content} keyboardShouldPersistTaps="handled" onScroll={onScroll} onLayout={onViewportLayout}
       scrollEventThrottle={onScroll ? 16 : undefined} refreshControl={refreshControl}>{children}</ScrollView>
     : <View style={[s.fill, ...content]}>{children}</View>;
   const stage = <>

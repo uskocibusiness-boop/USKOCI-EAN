@@ -1304,11 +1304,17 @@ it('retires a captured availability entry after focus or account changes', async
 it('runs the Home radar only while its route and card are visible', async () => {
   await render();
   const radar = () => tree.root.findByType('AnimatedRadar' as any).props;
-  expect(radar().animate).toBe(true);
+  expect(radar().animate).toBe(false); // no guessed viewport before layout
   const bounds = tree.root.findAll(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function'
     && node.findAllByType('AnimatedRadar' as any).length === 1)[0];
   await act(async () => bounds.props.onLayout({ nativeEvent: { layout: { y: 8, height: 120 } } }));
   const scroll = () => tree.root.findAll(node => String(node.type) === 'ScrollView' && !!node.props.onScroll)[0];
+  await act(async () => scroll().props.onLayout({ nativeEvent: { layout: { height: 700 } } }));
+  expect(radar().animate).toBe(true);
+  // Late arrival of real obligations can push the launch card below the viewport without a scroll.
+  await act(async () => bounds.props.onLayout({ nativeEvent: { layout: { y: 900, height: 120 } } }));
+  expect(radar().animate).toBe(false);
+  await act(async () => bounds.props.onLayout({ nativeEvent: { layout: { y: 8, height: 120 } } }));
   const event = (y: number) => ({ nativeEvent: { contentOffset: { y }, layoutMeasurement: { height: 700 } } });
   await act(async () => scroll().props.onScroll(event(200)));
   expect(radar().animate).toBe(false);

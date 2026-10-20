@@ -306,8 +306,17 @@ function ExploreTasksAction({ onEarn, opportunities, onOpenOpportunity }: {
 
 export function HomePresentation(p: HomePresentationProps) {
   const actionBounds = useRef({ y: 0, height: 0 });
-  const [actionsVisible, setActionsVisible] = useState(true);
-  const actionsVisibleRef = useRef(true);
+  const viewport = useRef({ y: 0, height: 0 });
+  const [actionsVisible, setActionsVisible] = useState(false);
+  const actionsVisibleRef = useRef(false);
+  const updateActionVisibility = () => {
+    const card = actionBounds.current, window = viewport.current;
+    const visible = card.height > 0 && window.height > 0 && window.y < card.y + card.height && window.y + window.height > card.y;
+    if (actionsVisibleRef.current !== visible) {
+      actionsVisibleRef.current = visible;
+      setActionsVisible(visible);
+    }
+  };
   const home = p.home;
   const { stacked } = useLayoutClass();
   // A row that was already here when the screen opened has nothing to tell you by sliding in; only a genuinely new one moves,
@@ -353,14 +362,11 @@ export function HomePresentation(p: HomePresentationProps) {
   // disc of Android's pull at the top of the screen (the owner's phone, 8 Oct 2026).
   const pull = usePullRefresh(p.onRefresh, p.refreshing);
   return <Screen kind="root" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
+    onViewportLayout={event => { viewport.current.height = event.nativeEvent.layout.height; updateActionVisibility(); }}
     onScroll={event => {
       const { contentOffset, layoutMeasurement } = event.nativeEvent;
-      const { y, height } = actionBounds.current;
-      const visible = height > 0 && contentOffset.y < y + height && contentOffset.y + layoutMeasurement.height > y;
-      if (actionsVisibleRef.current !== visible) {
-        actionsVisibleRef.current = visible;
-        setActionsVisible(visible);
-      }
+      viewport.current = { y: contentOffset.y, height: layoutMeasurement.height };
+      updateActionVisibility();
     }}
     refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
     {p.loading && !home ? <HomeSkeleton /> : null}
@@ -396,7 +402,7 @@ export function HomePresentation(p: HomePresentationProps) {
     {/* A Dogovori read that failed says so here, never as an empty schedule; with no appointment ahead there is no block and no placeholder. */}
     {home?.agreements.kind === 'unavailable' ? <Section title="Sledeće"><Unavailable text="Ne možemo da učitamo Dogovore." /></Section> : null}
 
-    <View onLayout={event => { actionBounds.current = event.nativeEvent.layout; }}>
+    <View onLayout={event => { actionBounds.current = event.nativeEvent.layout; updateActionVisibility(); }}>
       <StartActions onPublish={p.onPublish} onEarn={p.onEarn} animate={p.active === true && actionsVisible} />
     </View>
     {p.intakeResume}
