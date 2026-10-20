@@ -196,8 +196,10 @@ it('keeps one system facade and readable text on the filled brand material', () 
   for (const surface of [sys.navigation.background, sys.navigation.selected]) {
     expect(ratio(sys.navigation.foreground, surface)).toBeGreaterThanOrEqual(4.5);
     expect(ratio(sys.navigation.muted, surface)).toBeGreaterThanOrEqual(4.5);
-    expect(ratio(sys.navigation.indicator, surface)).toBeGreaterThanOrEqual(3);
   }
+  // Navigation symbols and labels share semantic colours, including when icon geometry changes.
+  expect(sys.navigation.foreground).toBe(sys.color.green);
+  expect(sys.navigation.muted).toBe(sys.color.muted);
 });
 
 // ---------------------------------------------------------------------------------------------------------------------

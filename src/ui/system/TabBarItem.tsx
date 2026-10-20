@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, StyleSheet, View, type TextProps, type ViewStyle } from 'react-native';
 import { Press } from '../Press';
 import { T } from '../Text';
-import { FactArt } from './FactArt';
+import { Glyph, type GlyphName } from './Glyph';
 import { useReducedMotion } from './motion';
 import { useTextScale } from './textScale';
 import { sys } from './tokens';
@@ -17,13 +17,15 @@ export const TAB_LABEL_GAP = 3;
 export const TAB_ITEM_PADDING = 3;
 export const TAB_ITEM_TOP = 7;
 export const TAB_ITEM_BOTTOM = 5;
-export const TAB_INDICATOR = { width: 18, height: 2 } as const;
 export const TAB_POP = 1.04;
 export const TAB_BAR_PADDING = 4;
 export const TAB_CAPSULE = sys.radius.hero - TAB_BAR_PADDING;
 type TabKind = 'home' | 'map' | 'agreements' | 'chat';
+const TAB_SYMBOL: Record<TabKind, GlyphName> = {
+  home: 'home', map: 'map', agreements: 'agreements', chat: 'messages',
+};
 
-/** A forest dock; the navigator owns its external margin and safe-area clearance. */
+/** A quiet white bar; the navigator owns its external margin and safe-area clearance. */
 export const tabBarSurface = {
   backgroundColor: sys.navigation.background,
   borderColor: sys.navigation.line, borderWidth: 1, borderTopWidth: 1,
@@ -32,7 +34,7 @@ export const tabBarSurface = {
 } satisfies ViewStyle;
 
 /**
- * The button owns one art instance, its label and padding. Include both surface edges
+ * The button owns one symbol, its label and padding. Include both surface edges
  * and measured text, rather than relying on the navigator's duplicate icon hosts.
  * Labels remain scalable/untruncated, and their actual second line grows the bar.
  */
@@ -67,13 +69,11 @@ function useSelection(selected: boolean): Animated.Value {
  */
 export function TabCapsule({ selected, radius }: { selected: boolean; radius: number }) {
   const shown = useSelection(selected);
-  return <Animated.View testID="tab-capsule" pointerEvents="none" style={[s.capsule, { borderRadius: radius, opacity: shown }]}>
-    <View testID="tab-indicator" style={s.indicator} />
-  </Animated.View>;
+  return <Animated.View testID="tab-capsule" pointerEvents="none" style={[s.capsule, { borderRadius: radius, opacity: shown }]} />;
 }
 
 /**
- * Original artwork stays readable in both states; selection belongs to the well and label.
+ * Familiar control symbols stay readable in both states. Fill, well, label and accessible state identify selection.
  * A small selection response runs only on a rising selection, never on initial display or deselection.
  */
 export function TabGlyph({ kind, selected }: { kind: TabKind; selected: boolean }) {
@@ -92,13 +92,14 @@ export function TabGlyph({ kind, selected }: { kind: TabKind; selected: boolean 
     run.start();
     return () => run.stop();
   }, [selected, reduced, pop]);
-  return <Animated.View testID="tab-glyph" style={[s.glyph, { transform: [{ scale: pop }] }]}>
-    <FactArt kind={kind} size={TAB_ICON} cut="art" />
+  return <Animated.View testID="tab-glyph" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
+    style={[s.glyph, { transform: [{ scale: pop }] }]}>
+    <Glyph name={TAB_SYMBOL[kind]} size={TAB_ICON} tone={selected ? 'green' : 'muted'} on={selected} />
   </Animated.View>;
 }
 
 /**
- * The name under the picture uses a contrast-safe dock pair. Never shrunk and never cut; the person's
+ * The name under the symbol uses a contrast-safe navigation pair. Never shrunk and never cut; the person's
  * text size decides, and `onTextLayout` hands the measured lines on so the bar's height can follow.
  */
 export function TabLabel({ children, selected, onTextLayout }: { children: ReactNode; selected: boolean; onTextLayout?: TextProps['onTextLayout'] }) {
@@ -115,7 +116,7 @@ const PREVIEW: readonly { kind: TabKind; title: string }[] = [
  * The bar drawn by hand from the same parts, for the design board on the phone (`uskociapp://dizajn-tabla`, internal build): four
  * tabs that can be tapped, so the owner can feel the capsule, the pill and the pop and compare them with the
  * build already on his phone. It holds no navigation and no data. The real bar's layout is the navigator's; this one mirrors it
- * (the original art, tab padding and corner), and the height is the same `tabBarHeight`.
+ * (the control glyphs, tab padding and corner), and the height is the same `tabBarHeight`.
  */
 export function TabBarPreview() {
   const [chosen, setChosen] = useState(0);
@@ -133,9 +134,6 @@ export function TabBarPreview() {
 
 const s = StyleSheet.create({
   capsule: { ...StyleSheet.absoluteFill, backgroundColor: sys.navigation.selected },
-  // On the capsule's top edge, centred; a full pill, so its ends are round.
-  indicator: { position: 'absolute', top: 0, alignSelf: 'center', width: TAB_INDICATOR.width, height: TAB_INDICATOR.height,
-    borderRadius: sys.radius.pill, backgroundColor: sys.navigation.indicator },
   glyph: { width: TAB_ICON, height: TAB_ICON },
   label: { textAlign: 'center', marginTop: TAB_LABEL_GAP },
   preview: { flexDirection: 'row' },

@@ -38,10 +38,9 @@ const PUSH_TRANSITION = { animation: 'shift' as const,
   transitionSpec: { animation: 'timing' as const,
     config: { duration: sys.motion.push, easing: Easing.bezier(...sys.motion.easeOut) } } };
 
-// The bar's own parts (the always-mounted selection marker, consistent mark icons that cross-fade
-// and respond once, the `tab` label, the height that follows them) live in `ui/system/TabBarItem`, and the motion
-// is React Native Animated on the native driver, never Reanimated (UI/UX pass, wave 2, item 2.1). The scene change between the
-// root tabs is still the navigator's `animation: 'none'` below.
+// The bar's selection well, familiar control symbols, scalable labels and measured height live in
+// `ui/system/TabBarItem`. Selection uses native-driver opacity/scale with Reduce Motion and cleanup.
+// Root destinations switch immediately; navigation technology is not a visual restriction.
 //
 // Početna has its own house so the clipboard no longer sat next to a tab called Zadaci; Zadaci keeps the map it had.
 const PRIMARY = { index: 'home', zadaci: 'map', dogovori: 'agreements', poruke: 'chat' } as const;
@@ -207,7 +206,7 @@ export default function TabLayout() {
       tabBarActiveTintColor: sys.navigation.foreground, tabBarInactiveTintColor: sys.navigation.muted, tabBarAllowFontScaling: true,
       tabBarLabelPosition: 'below-icon',
       tabBarLabel: renderLabel,
-      // The button draws one art instance and measured label. Skip the navigator's two focus-icon layers;
+      // The button draws one control symbol and measured label. Skip the navigator's two focus-icon layers;
       // selection follows the originating SECTION even when a hidden detail has focus.
       tabBarIcon: () => null,
       // The capsule is the button's own, always-mounted child. Navigation stays silent (owner U10), including cancelled

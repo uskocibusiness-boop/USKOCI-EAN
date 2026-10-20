@@ -14,8 +14,8 @@ jest.mock('expo-linking', () => ({ ...jest.requireActual('expo-linking'), create
   resolveScheme: () => 'uskoci', addEventListener: () => ({ remove() {} }) }));
 jest.mock('expo-haptics', () => ({ selectionAsync: jest.fn(), impactAsync: jest.fn(), notificationAsync: jest.fn(),
   ImpactFeedbackStyle: {}, NotificationFeedbackType: {} }));
-// The registry is tested separately; this suite follows the actual mounted art count and meaning.
-jest.mock('../FactArt', () => ({ FactArt: 'FactArt' }));
+// The registry is tested separately; this suite follows the actual mounted symbol count and meaning.
+jest.mock('../Glyph', () => ({ Glyph: 'Glyph' }));
 
 import * as Haptics from 'expo-haptics';
 import { readdirSync, statSync } from 'node:fs';
@@ -59,7 +59,7 @@ describe('the three tabs as the navigator draws them', () => {
       expect([...labels, 'Poruke'].map(label => tab(label)?.props.accessibilityLabel)).toEqual([...labels, 'Poruke']);
       expect(hosts('tab-glyph')).toHaveLength(4);
       expect(tab('Poruke')!.props.accessibilityState.selected).toBe(true);
-      expect(tree.root.findAll(node => node.type === ('FactArt' as unknown)).map(node => node.props.kind)).toEqual(['home', 'map', 'agreements', 'chat']);
+      expect(tree.root.findAll(node => node.type === ('Glyph' as unknown)).map(node => node.props.name)).toEqual(['home', 'map', 'agreements', 'messages']);
     } finally {
       if (prior === undefined) delete process.env.EXPO_PUBLIC_CONVERSATION_INBOX;
       else process.env.EXPO_PUBLIC_CONVERSATION_INBOX = prior;
@@ -94,16 +94,16 @@ describe('the three tabs as the navigator draws them', () => {
     expect(tab('Početna')!.props.accessibilityState).toEqual({ selected: true });
   });
 
-  it('uses one original 2.5D subject per destination with no muted override', async () => {
+  it('uses one familiar symbol per destination, with selection represented in shape and tone', async () => {
     await opened('/');
-    const pictures = tree.root.findAll(node => node.type === ('FactArt' as unknown));
+    const pictures = tree.root.findAll(node => node.type === ('Glyph' as unknown));
     expect(pictures).toHaveLength(3);
     for (const picture of pictures) {
-      expect(picture.props).toMatchObject({ size: TAB_ICON, cut: 'art' });
-      expect(picture.props.muted).toBeUndefined();
-      expect(picture.props.tone).toBeUndefined();
+      expect(picture.props.size).toBe(TAB_ICON);
     }
-    expect(pictures.map(node => node.props.kind)).toEqual(['home', 'map', 'agreements']);
+    expect(pictures.map(node => node.props.name)).toEqual(['home', 'map', 'agreements']);
+    expect(pictures.map(node => node.props.on)).toEqual([true, false, false]);
+    expect(pictures.map(node => node.props.tone)).toEqual(['green', 'muted', 'muted']);
   });
 });
 

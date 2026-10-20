@@ -4,11 +4,11 @@ import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'rea
 
 let mockReduced = false;
 jest.mock('../motion', () => ({ useReducedMotion: () => mockReduced }));
-// The artwork registry is tested separately; navigation keeps one original illustration.
-jest.mock('../FactArt', () => ({ FactArt: 'FactArt' }));
+// The central glyph registry is tested separately; navigation owns one semantic symbol.
+jest.mock('../Glyph', () => ({ Glyph: 'Glyph' }));
 
 import { Press } from '../../Press';
-import { TAB_BAR_PADDING, TAB_ICON, TAB_INDICATOR, TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TAB_LABEL_GAP, TAB_POP, TabBarPreview, TabCapsule, TabGlyph, TabLabel, tabBarHeight, tabBarSurface } from '../TabBarItem';
+import { TAB_BAR_PADDING, TAB_ICON, TAB_ITEM_BOTTOM, TAB_ITEM_PADDING, TAB_ITEM_TOP, TAB_LABEL_GAP, TAB_POP, TabBarPreview, TabCapsule, TabGlyph, TabLabel, tabBarHeight, tabBarSurface } from '../TabBarItem';
 import { sys } from '../tokens';
 
 /** Selection is a well and readable label, independent of the original artwork.
@@ -19,20 +19,20 @@ afterEach(async () => { await act(async () => tree?.unmount()); jest.restoreAllM
 const render = async (element: React.ReactElement) => { await act(async () => { tree = create(element); }); };
 const flat = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style) ?? {};
 const byId = (testID: string) => tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === testID)[0];
-const pictures = () => tree.root.findAll(node => node.type === ('FactArt' as unknown));
+const pictures = () => tree.root.findAll(node => node.type === ('Glyph' as unknown));
 const easeOut = Easing.bezier(...sys.motion.easeOut);
 
 describe('the numbers the bar is built from', () => {
-  it('uses compact drawings and spacing while retaining a visible selection marker', () => {
+  it('uses compact symbols and spacing while retaining accessible touch geometry', () => {
     expect(TAB_ICON).toBe(sys.icon.size.navigation);
-    for (const value of [TAB_ICON, TAB_INDICATOR.width, TAB_INDICATOR.height]) expect(value).toBeGreaterThan(0);
+    expect(TAB_ICON).toBeGreaterThan(0);
     for (const value of [TAB_LABEL_GAP, TAB_ITEM_PADDING]) expect(value).toBeGreaterThanOrEqual(0);
     expect(TAB_POP).toBeGreaterThanOrEqual(1);
     expect(TAB_POP).toBeLessThan(1.2);
   });
 
-  it('leaves room above the drawing for the marker and below the scalable label', () => {
-    expect(TAB_ITEM_TOP - TAB_INDICATOR.height).toBeGreaterThanOrEqual(3);
+  it('leaves room around the symbol and scalable label', () => {
+    expect(TAB_ITEM_TOP).toBeGreaterThanOrEqual(3);
     expect(TAB_ITEM_BOTTOM).toBeGreaterThanOrEqual(3);
   });
 
@@ -66,14 +66,10 @@ describe('the capsule of the chosen tab', () => {
     expect(flat(byId('tab-capsule')).opacity).toBe(1);
   });
 
-  it('carries the contrasting orange marker and selected well, which fade together', async () => {
+  it('uses a shared selected surface without taking touch or accessibility focus', async () => {
     await render(<TabCapsule selected radius={20} />);
-    const pill = flat(byId('tab-indicator'));
-    expect(pill).toMatchObject({ width: TAB_INDICATOR.width, height: TAB_INDICATOR.height, backgroundColor: sys.navigation.indicator, position: 'absolute', top: 0, alignSelf: 'center' });
     expect(flat(byId('tab-capsule')).backgroundColor).toBe(sys.navigation.selected);
-    expect(pill.borderRadius).toBeGreaterThanOrEqual(TAB_INDICATOR.height / 2);
-    // It lives inside the capsule, so its opacity is the capsule's.
-    expect(byId('tab-capsule').findAll(node => node.props.testID === 'tab-indicator').length).toBeGreaterThan(0);
+    expect(byId('tab-capsule').props.pointerEvents).toBe('none');
   });
 
   it('fades over the toggle token on the native driver with an ease-out, only when the selection changes', async () => {
@@ -104,16 +100,16 @@ describe('the capsule of the chosen tab', () => {
 });
 
 describe('the icon of a tab', () => {
-  it('keeps one original illustration readable at rest and after selection', async () => {
+  it('keeps the same semantic symbol and exposes selection without duplicate spoken content', async () => {
     await render(<TabGlyph kind="home" selected={false} />);
     expect(pictures()).toHaveLength(1);
     const picture = pictures()[0];
-    expect(picture.props).toMatchObject({ kind: 'home', size: TAB_ICON, cut: 'art' });
-    expect(picture.props.muted).toBeUndefined();
-    expect(picture.props.tone).toBeUndefined();
+    expect(picture.props).toMatchObject({ name: 'home', size: TAB_ICON, tone: 'muted', on: false });
+    expect(byId('tab-glyph').props).toMatchObject({ accessible: false, accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' });
     expect(flat(byId('tab-glyph')).opacity).toBeUndefined();
     await act(async () => tree.update(<TabGlyph kind="home" selected />));
     expect(pictures()).toEqual([picture]);
+    expect(picture.props).toMatchObject({ name: 'home', tone: 'green', on: true });
     expect(flat(byId('tab-glyph')).opacity).toBeUndefined();
   });
 

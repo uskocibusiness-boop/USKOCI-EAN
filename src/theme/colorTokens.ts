@@ -106,10 +106,10 @@ export const colorTokens = {
     danger: { foreground: DANGER, background: '#FCEEEB' },
     violet: { foreground: '#654898', background: '#F3EFFA' },
   },
-  /** Persistent navigation is a dark anchor beneath the white reading canvas. */
+  /** Quiet navigation chrome; stronger colour belongs to the selected destination and useful actions. */
   navigation: {
-    background: '#142820', foreground: WHITE, muted: '#C9D4CE',
-    selected: '#264C3D', indicator: ORANGE, line: '#385347',
+    background: WHITE, foreground: GREEN, muted: MUTED,
+    selected: '#E8F4ED', line: LINE,
   },
   conversation: {
     ground: '#FFFFFF',
