@@ -4,6 +4,23 @@ Datum: 18.10.2026. Baseline: `eaa38a04e20be24bba71840660493b634180ee72`. Aktivan
 
 ## Granica ovog nalaza
 
+### Fizičke zamene u povezanom UI paketu — 20.10.2026.
+
+Ovaj dodatak se odnosi na runtime/test diff prvog paketa iz odobrenog `UI_DIRECTION_REVIEW_20261020.md`. Raniji inventar ispod ostaje datiran, a isporuku potvrđuje zaseban CI/APK dokaz.
+
+| Povučeno ograničenje | Konkretno mesto | Razlog i zamena |
+| --- | --- | --- |
+| Početne akcije tačno 88 dp, ilustracija tačno 64 dp | `HomePresentation`, `HomeLaunchArt`, odgovarajući assertion u `v3-home-screen.test` | Kompaktne tonirane namere; veliki tekst prelazi u pune redove. Ostaju oba odredišta, minimum dodira, prirodan rast i neodsečen tekst. Stvarne obaveze prethode opštim prečicama. |
+| Navigacija obavezno skrivena na PEEK i uz pin | `DiscoveryPresentation`, uklonjen `zadaciBarRevealTop`, odgovarajuće grupe `discovery-presentation` i `zadaci-bar` | Četiri odredišta stalno dostupna pri pregledanju. Novi testovi čuvaju rezervisan prostor, povratak, bez dodatnih animacija pri pomeranju sheet-a i lifecycle. Ostali testovi native visibility/cancel ostaju. |
+| Samo jedna grupa filtera otvorena | `DiscoverySearchPanel`, `discovery-search-panel`, helper u `discovery-presentation` | Sve tri kratke grupe odmah vidljive; samo kalendar ima disclosure. Sačuvani nacrt, reset, Back, nepromenjeni rezultati pre potvrde, serverski broj i retry. |
+| Odvojene plutajuće kutije za svaku grupu | Uklonjen nekorišćen `SearchSheet.separated` prop i stilovi | Jedna čitljiva bela površina; modal, safe area, keyboard, scroll i sticky potvrda ostaju. |
+| Kapsule sa tačno zadatom raised/inset senkom | Relevantni assertions u `discovery-presentation` | Tiša kapsula unutar punog dodira. Proveravaju se izbor, tekst, check i accessibility state, a ne dekorativna senka. |
+| Zaseban veliki red aktivne pretrage / kontrola tačno 56 dp | `DiscoverySearchBar`, `discovery-search-pill` | Kontekst unutar postojeće search kontrole; puna vrednost ostaje izgovorena, zasebno clear i filter dugme. Provera minimalne dodirne površine umesto tačne dekorativne veličine. |
+| Zvono mora biti konkretna 32 dp ilustracija | `InboxBell`, jedan assertion `inbox-bell` | Centralni funkcionalni glyph. Sačuvani broj, nepoznato stanje, identitet naloga, otvaranje inbox-a, Reduce Motion i prekid animacije. |
+| Svaka činjenica kartice velika ilustracija; centriran naslov detalja | `TaskRecordBody`, `TaskDecision`, `TaskDetailSummary`, oba detail ekrana | Budžet, naslov i osoba vode; pomoćne činjenice koriste centralne simbole. Sačuvani svi podaci, full spoken summary, privatnost, owner/worker statusi i akcije. |
+
+Nijedan mešoviti testni fajl nije obrisan. Novi simboli su u istom `Glyph` registru; paleta, Surface i motion nemaju paralelne vlasnike. Native prihvatanje se ne izvodi iz ove tabele.
+
 - **101 test fajlova / 1313 statičkih grupa** je inventarisano. `it.each` je jedna deklarisana grupa; ovo nije broj izvršenih testova.
 - **171 grupa** ima konkretno pregledanu klasifikaciju. Preostalih **1142** su jasno označeni **MEHANICKI_PREDLOG** za pregled pri promeni pogođene porodice. Nije ručno pregledan svaki assertion u svim grupama.
 - Pročitano je 17 dokumenata kao celina; 1860 pasusa/pravila je mehanički izdvojeno sa lokacijom i predlogom klasifikacije u pregledanoj porodici. Nije svaka tabelarna ćelija posebno ručno verifikovana. 45 istorijskih ekran-zapisa i 179 authority izvora imaju zasebnu klasifikaciju.

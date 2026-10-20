@@ -57,6 +57,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true
 } }));
 import { StyleSheet } from 'react-native';
 import { HomePresentation } from '../../ui/home/HomePresentation';
+import { sys } from '../../ui/system/tokens';
 import { HOW_IT_WORKS_KEY, forgetHiddenHowItWorks } from '../../ui/home/HowItWorks';
 import { composeHome, type HomeSnapshot } from '../homeSnapshot';
 import { applicationCounts } from '../myApplicationsView';
@@ -555,6 +556,9 @@ describe('what leads Početna', () => {
     expect(largest()).toEqual(['Danas · 14:00–16:00']);
     expect(row('2 prijave').accessibilityLabel).toBe('2 prijave. Pomoć pri selidbi. Čeka tvoj izbor.');
     expect(dots()).toHaveLength(2);
+    const copy = text();
+    expect(copy.indexOf('Danas · 14:00–16:00')).toBeLessThan(copy.indexOf('Objavi zadatak'));
+    expect(copy.indexOf('Pomoć pri selidbi')).toBeLessThan(copy.indexOf('Objavi zadatak'));
   });
 
   it('with no appointment ahead the first thing that waits is the one record: its task first, the action and reason below, the others rows', async () => {
@@ -680,24 +684,21 @@ it.each([[390, 1], [390, 1.2], [390, 1.2999999523], [320, 1], [320, 2]])(
   },
 );
 
-// Owner, 2026-10-07: the two doors are smaller, about 88 dp (the 64 dp picture between 12 dp of air), each with its
-// intention and ONE line under it, still two equal big doors. Larger text grows both together instead of clipping them.
-it('draws two equal doors about 88 dp high with a 64 dp picture, and larger text grows both together', async () => {
-  const minHeights: Record<string, number[]> = {};
+// Compact intentions may recompose. Preserve full touch targets, untruncated text and equal access.
+it('keeps both intentions touchable and moves to full-width rows for large text', async () => {
   for (const fontScale of [1, 1.15, 1.2999999523, 2]) {
     mockWindow = { width: 390, height: 844, scale: 3, fontScale };
     await act(async () => tree?.unmount()); await render();
     const doors = ['Objavi zadatak', 'Uskoči i zaradi'].map(label => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0]);
     const heights = doors.map(door => StyleSheet.flatten(door.props.style).minHeight as number);
     expect(heights[0]).toBe(heights[1]);
-    minHeights[String(fontScale)] = heights;
-    // The picture is 64 dp at every size; a door says its intention once, with one line under it.
-    expect(tree.root.findAllByType('HomeLaunchArt' as React.ElementType).map(node => [node.props.kind, node.props.size])).toEqual([['publish', 64]]);
-    expect(tree.root.findByType('AnimatedRadar' as React.ElementType).props.size).toBe(64);
+    expect(heights.every(height => height >= sys.touch.min)).toBe(true);
+    expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'home-intentions' }).props.style).flexDirection)
+      .toBe(fontScale >= 1.299 ? 'column' : 'row');
+    expect(tree.root.findAllByType('HomeLaunchArt' as React.ElementType).map(node => node.props.kind)).toEqual(['publish']);
+    expect(tree.root.findByType('AnimatedRadar' as React.ElementType).props.size).toBeGreaterThan(0);
     for (const door of doors) expect(door.findAll(node => String(node.type) === 'T')).toHaveLength(2);
   }
-  expect(minHeights['1']).toEqual([88, 88]); expect(minHeights['1.15']).toEqual([88, 88]);
-  expect(minHeights['1.2999999523'][0]).toBeGreaterThan(88); expect(minHeights['2'][0]).toBeGreaterThan(minHeights['1.2999999523'][0]);
 });
 
 it('says the doors in "zadatak" and never "posao", in the hints too', async () => {

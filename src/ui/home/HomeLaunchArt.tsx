@@ -9,7 +9,7 @@ const ART = {
 };
 
 /** Reserved dimensions keep decoding from moving nearby text; quiet decoration needs no motion. */
-function HomeLaunchArtBase({ kind, compact = false, size: requestedSize }: { kind: keyof typeof ART; compact?: boolean; size?: 64 | 96 }) {
+function HomeLaunchArtBase({ kind, compact = false, size: requestedSize }: { kind: keyof typeof ART; compact?: boolean; size?: 48 | 64 | 96 }) {
   const size = requestedSize ?? (compact ? 52 : 90);
   return <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden
     style={{ width: size, height: size, flexShrink: 0 }}>

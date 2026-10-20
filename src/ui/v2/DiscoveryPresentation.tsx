@@ -37,7 +37,7 @@ import { useCoverValue, useRidingStyle } from './discovery/mapControls';
 import { handleHint, listViewport, nextSheetIndex, snapHeights } from './discovery/sheetSnaps';
 import { TaskAgeContext, taskAgeOf, type PublishedAt } from './discovery/taskAge';
 import { useNearbyMap } from './discovery/useNearbyMap';
-import { useZadaciBar, useZadaciBarMotion, zadaciBarRevealTop } from './discovery/zadaciBar';
+import { useZadaciBar, useZadaciBarMotion } from './discovery/zadaciBar';
 import { DiscoverySearchPanel, type DiscoveryV1SearchPanelSeam, type PanelMode, type SearchDraft, type SearchReadiness } from './discovery/DiscoverySearchPanel';
 import { useRecentSearches } from './discovery/recentSearches';
 import { DistanceFromContext } from './discovery/taskDistance';
@@ -353,7 +353,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // and the one value that moves it); with none (a gallery, a test) nothing is reserved and nothing moves. What stands at the very bottom clears
   // the system's own inset.
   const bar = useZadaciBar(), barHeight = bar?.height ?? 0, bottomInset = useBottomInset();
-  const cardBottom = Math.max(CARD_BOTTOM, bottomInset);
+  const navigationInset = Math.max(barHeight, bottomInset);
+  const cardBottom = barHeight > 0 ? barHeight + CARD_BOTTOM : Math.max(CARD_BOTTOM, bottomInset);
   const relations = props.relations;
   const pending = !!props.relationsPending;
   // Every change goes through the route's latest guarded `onView`, and two changes in one turn (a chip that also closes a
@@ -713,10 +714,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const [kick, setKick] = useState(0);
   // A hand on the list ends the nudging: a later nudge would move the sheet under the scroll (Gorhom locks the list while the sheet moves).
   const interacted = useRef(false);
-  // The list's top line as it stands with no card over it, and the system's inset under it (the sheet reaches the bottom of the screen, and the
-  // bottom navigation is away while it rests here). With a card it steps out of sight (HIDDEN) and only that one line changes.
+  // Navigation remains available at every map/list height. Reserve its measured height
+  // at PEEK and below previews, just as the list already reserves it at FULL.
   const collapsedLead = tallHeader ? Math.min(headerLeadHeight, mapClearSheet - 2) : peek;
-  const collapsedSnap = tallHeader ? Math.min(collapsedLead + bottomInset, Math.max(3, mapClearSheet - 2)) : collapsedLead + bottomInset;
+  const collapsedSnap = tallHeader ? Math.min(collapsedLead + navigationInset, Math.max(3, mapClearSheet - 2)) : collapsedLead + navigationInset;
   const snapPoints = useMemo(() => snapHeights({ bodyHeight, fullTop: listTop, halfTop: fullSheetTop(toolsBottom, LIST_GAP),
     collapsed: collapsedSnap, hidden: HIDDEN, cardShown, margin: GAP, bar: barHeight }),
     [bodyHeight, listTop, toolsBottom, collapsedSnap, cardShown, barHeight]);
@@ -827,34 +828,12 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     }, ms));
     return () => { timers.forEach(clearTimeout); setKick(0); };
   }, [kickable, nativeMountKey, trace]);
-  // A requested detent is not a physical height. Gorhom can return an interrupted spring to the
-  // original detent without either callback; an announced HALF must never strand the bar over PEEK.
-  const barOwner = useMemo(() => ({ visit: coverageOwner, mount: nativeMountKey }), [coverageOwner, nativeMountKey]);
-  const currentBarOwner = useRef(barOwner); currentBarOwner.current = barOwner;
-  const [barPlacement, setBarPlacement] = useState<{ owner: typeof barOwner; shown: boolean } | null>(null);
-  const receiveBarPlacement = useCallback((shown: boolean) => {
-    if (!focused || !barOwner.visit.active || currentBarOwner.current !== barOwner) return;
-    setBarPlacement(previous => previous?.owner === barOwner && previous.shown === shown ? previous : { owner: barOwner, shown });
-  }, [barOwner, focused]);
-  const barHalfTop = zadaciBarRevealTop(bodyHeight, Number(snapPoints[SNAP.peek]), Number(snapPoints[SNAP.half]));
-  const barVisitSequence = coverageOwner.sequence;
-  const hasBar = !!bar;
-  useAnimatedReaction(() => ({ shown: bodyHeight > 0 && position.value <= barHalfTop, visit: barVisitSequence, mount: nativeMountKey }),
-    (next, previous) => {
-      if (hasBar && (next.shown !== previous?.shown || next.visit !== previous?.visit || next.mount !== previous?.mount))
-        runOnJS(receiveBarPlacement)(next.shown);
-    }, [position, bodyHeight, barHalfTop, barVisitSequence, nativeMountKey, hasBar, receiveBarPlacement]);
   useLayoutEffect(() => {
     if (!props.trace || !bar) return;
     const listener = bar.hidden.addListener(({ value }) => trace('bar-value', value));
     return () => bar.hidden.removeListener(listener);
   }, [props.trace, trace, bar]);
-  useZadaciBarMotion({ bar, shown: barPlacement?.owner === barOwner && barPlacement.shown && !cardShown, active: focused, reduced });
-  useEffect(() => {
-    if (!props.trace) return;
-    trace('bar', focused, hasBar, barOwner.visit.active, barPlacement?.owner === barOwner, !!barPlacement?.shown, cardShown,
-      bodyHeight, barHalfTop, position.value);
-  }, [props.trace, trace, focused, hasBar, barOwner, barPlacement, cardShown, bodyHeight, barHalfTop, position]);
+  useZadaciBarMotion({ bar, shown: true, active: focused, reduced });
   const onSheetAnimate = useCallback((_fromIndex: number, _toIndex: number) => {
     if (!currentSheet()) return;
     nativeSpringMoving.current = true; // A same-index geometry spring can also be interrupted.
@@ -1462,7 +1441,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         </CellLayoutContext.Provider>
         </DiscoveryScrollReadiness>
       </DiscoveryListSheet>
-      <DiscoverySearchBar where={searchedWords} onBack={props.onBack}
+      <DiscoverySearchBar where={searchedWords} onBack={bar ? undefined : props.onBack}
         onSearch={() => openPanel('search')} onMore={() => { Keyboard.dismiss(); setMore(true); }}
         onClearWhere={searchedWords ? clearSearch : undefined}
         filters={{ count: conditionCount, onPress: () => openPanel('filters') }}

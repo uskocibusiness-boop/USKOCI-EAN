@@ -47,6 +47,8 @@ Jedna osoba može i da objavljuje zadatke i da radi. Nema dva odvojena profila z
 
 Četiri poznata glavna odredišta su **Početna, Zadaci, Dogovori i Poruke**. Profil i obaveštenja su jasni ulazi iz zajedničkog zaglavlja. „Moji zadaci“, „Moje prijave“, nacrti i kalendar ostaju dostupni iz svog smislenog konteksta. Ovo je organizacija funkcija; ne zaključava tačan oblik donje navigacije, broj piksela ili njen broj kopija ikone.
 
+Odobreni povezani paket 20.10. čuva glavna odredišta dostupnim tokom običnog pregleda mape, liste i pin kartice. Njihova izmerena visina rezerviše prostor ispod sadržaja; list/pin ne prekrivaju navigaciju. Puni razgovor, detalj i modal zadržavaju sopstveni fokus i Back. Istorijsko pravilo sakrivanja navigacije na PEEK nije više aktivan estetski zahtev.
+
 Povratak vraća filtere, položaj liste i mapu gde je korisnik bio. Deep link i obaveštenje otvaraju autorizovani objekat istog naloga. Zatvoren, obrisan ili nedostupan cilj pokazuje pošteno stanje i put nazad. Nikakva dizajnerska promena ne daje pravo na prijavu na sopstveni zadatak ili na tuđe privatne podatke.
 
 ## 5. Ulaz, prijava i Početna

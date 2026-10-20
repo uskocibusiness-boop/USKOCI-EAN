@@ -238,9 +238,7 @@ const capsuleLabels = () => capsules()[0].findAll(node => String(node.type) === 
 const filters = (label = 'Filteri') => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0];
 const tapFilters = async (label = 'Filteri') => act(async () => filters(label).props.onPress());
 const openFilterSection = async (id: 'when' | 'where' | 'amount') => {
-  await act(async () => tree.root.findByProps({ testID: `filters-${id}-toggle` }).props.onPress());
-  expect(tree.root.findByProps({ testID: `filters-${id}-toggle` }).props.accessibilityState.expanded).toBe(true);
-  expect(tree.root.findAll(node => String(node.type) === 'Press' && /^filters-.*-toggle$/.test(node.props.testID ?? '') && node.props.accessibilityState?.expanded)).toHaveLength(1);
+  expect(tree.root.findByProps({ testID: `filters-${id}-body` })).toBeDefined();
 };
 /** The pill and its row of capsules are measured as one stack, from the top of the map: the notice below them is not part of it. */
 const pillBottom = async (height: number) => act(async () => tree.root.findByProps({ testID: 'discovery-search-stack' }).props.onLayout(
@@ -1468,14 +1466,14 @@ test('one screen: the map under the tools and the list as its sheet; no Lista/Ma
   expect(cards()).toEqual(['a', 'bb', 'ccc']);
   // The magnifier opens search; an active query stays readable separately and can be cleared without changing other filters.
   expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
-  expect(texts(press('Pretraži zadatke'))).toBe('Pretraži');
+  expect(texts(press('Pretraži zadatke'))).toBe('Pretraži zadatke');
   expect(pressable('Aktivna pretraga')).toHaveLength(0);
   expect(pressable('Prikaži sve zadatke')).toHaveLength(0);
   expect(tree.root.findAllByType('TextInput' as React.ElementType)).toHaveLength(0);
   await search('bb');
   expect(snapshot.query).toBe('bb'); expect(cards()).toEqual(['bb']); expect(panel()).toHaveLength(0);
   expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: '„bb“' });
-  expect(texts(press('Aktivna pretraga'))).toBe('„bb“');
+  expect(tree.root.findByProps({ testID: 'discovery-search-context' }).props.children).toBe('„bb“');
   await tap('Prikaži sve zadatke'); expect(snapshot.query).toBe(''); expect(cards()).toEqual(['a', 'bb', 'ccc']);
   expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
 });
@@ -2572,7 +2570,7 @@ test('at large text the search stays one line with separate tools and the pin pr
   initial = { ...initial, place: 'Beograd' };
   mockWindow = { width: 320, height: 640, scale: 2, fontScale: 1 }; await render();
   await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
-  const lines = () => press('Aktivna pretraga').findAllByType('T' as React.ElementType).map(node => node.props.numberOfLines);
+  const lines = () => press('Pretraži zadatke').findAllByProps({ testID: 'discovery-search-context' }).map(node => node.props.numberOfLines);
   expect(lines()).toEqual([1]);
   await act(async () => map().props.onSelect('bb'));
   expect(peek()!.props.maxDynamicContentSize).toBe(640 * 0.5);
@@ -2589,19 +2587,15 @@ test('at large text the search stays one line with separate tools and the pin pr
   expect(peek()!.props.maxDynamicContentSize).toBe(640 * 0.75);
 });
 
-// Material controls: the shared search surface owns its edge; the capsules use the approved raised/recessed treatment, over the map at every height of the list.
-// Selection stays explicit through the recessed well, the stronger edge, ink words, the accessibility state and the tick.
-test('the capsules lift off the map at every height of the list; selection stays visible in more than colour', async () => {
+// Appearance may evolve; selection still has words, a check, accessibility state and a full touch target.
+test('quick filters stay touchable at every list height and selection is conveyed beyond colour', async () => {
   await render();
   expect(StyleSheet.flatten(press('Pretraži zadatke').props.style).borderWidth).toBeUndefined();
   const free = StyleSheet.flatten(quick('Sa iznosom').props.style);
-  expect(free).toMatchObject({ backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line });
-  expect(free.boxShadow ?? free.elevation).toEqual(materialControl.raised.boxShadow ?? materialControl.raised.elevation);
   expect(quick('Sa iznosom').props.accessibilityState.selected).toBe(false);
   expect(free.minHeight).toBeGreaterThanOrEqual(48);
   await act(async () => quick('Sa iznosom').props.onPress());
   const chosen = quick('Sa iznosom'), style = StyleSheet.flatten(chosen.props.style);
-  expect(style).toMatchObject({ backgroundColor: sys.color.greenSoft, borderWidth: 1, borderColor: sys.color.lineStrong, ...materialControl.inset });
   expect(chosen.props.accessibilityState.selected).toBe(true);
   expect(style.minHeight).toBeGreaterThanOrEqual(48);
   expect(chosen.findByType('Check' as React.ElementType).props.color).toBe(sys.color.ink);
@@ -2612,8 +2606,8 @@ test('the capsules lift off the map at every height of the list; selection stays
     expect([sheet, capsules().length]).toEqual([sheet, 1]);
     expect(listSheet().findAll(node => node.props.testID === 'discovery-chips')).toHaveLength(0);
     expect(StyleSheet.flatten(capsules()[0].props.style).opacity).toBeUndefined();
-    const lifted = StyleSheet.flatten(quick('Sa iznosom').props.style);
-    expect(lifted).toMatchObject({ backgroundColor: sys.color.greenSoft, ...materialControl.inset });
+    expect(quick('Sa iznosom').props.accessibilityState.selected).toBe(true);
+    expect(StyleSheet.flatten(quick('Sa iznosom').props.style).minHeight).toBeGreaterThanOrEqual(sys.touch.min);
   }
   // The pill's own × (it takes the search away) is a full 48 to a finger.
   await act(async () => tree.unmount()); initial = { ...initial, sheet: 'half', query: 'Pomoć' }; await render();
@@ -3255,7 +3249,7 @@ describe('Zadaci composition: three heights, capsules over the map, furniture ab
 // The bottom navigation (the owner's phone of 8 Oct 2026: "dok je lista dole, donja navigacija se ne vidi; pojavi se kad se lista digne na pola ili skroz"). The layout owns the bar and the
 // one value that moves it (0: on show, 1: away) and says how tall the bar is; the screen drives the value from the list and keeps clear what the bar lies over. Without a layout (a gallery)
 // there is no bar, and nothing is reserved and nothing moves.
-describe('the bottom navigation follows the list: away at the top line or behind a card, back at half and at full', () => {
+describe('persistent navigation stays reachable during map/list browsing', () => {
   const BAR = 72;
   const makeBar = () => ({ hidden: new Animated.Value(0.5), height: BAR });
   const hiddenNow = () => (barValue!.hidden as unknown as { __getValue: () => number }).__getValue();
@@ -3265,50 +3259,51 @@ describe('the bottom navigation follows the list: away at the top line or behind
     listSheet().props.animatedPosition.value = 800 - Number(listSheet().props.snapPoints[index]);
     await deliverUi();
   };
-  test('the bar starts hidden until the native sheet reaches half or full', async () => {
-    for (const [sheet, index, hidden] of [['peek', 0, 1], ['half', 1, 0], ['full', 2, 0]] as const) {
+  test('the bar is visible immediately at every detent, including before native settlement', async () => {
+    for (const [sheet, index, hidden] of [['peek', 0, 0], ['half', 1, 0], ['full', 2, 0]] as const) {
       barValue = makeBar(); initial = { ...initial, sheet }; await render(); await layOutBody(800);
-      expect(hiddenNow()).toBe(1); // offscreen initial native position is not proof of the requested height
+      expect(hiddenNow()).toBe(0);
       await physicallyAt(index);
       expect([sheet, hiddenNow()]).toEqual([sheet, hidden]);
       await act(async () => tree.unmount());
     }
   });
-  test('an interrupted peek-to-half spring returns the bar without an invented finish callback', async () => {
+  test('an interrupted sheet spring never hides navigation or adds another animation', async () => {
     barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
     await physicallyAt(0);
     await act(async () => listSheet().props.onAnimate?.(0, 1));
-    expect(hiddenNow()).toBe(1); // intent cannot uncover the bar
+    expect(hiddenNow()).toBe(0);
     await physicallyAt(1); expect(hiddenNow()).toBe(0);
-    expect(slides().at(-1)).toMatchObject({ toValue: 0, duration: sys.motion.enter, useNativeDriver: true });
+    expect(slides()).toEqual([]);
     await physicallyAt(0); // Gorhom suppresses onChange and onAnimate at the original index
-    expect(listSheet().props.index).toBe(0); expect(hiddenNow()).toBe(1);
-    expect(slides().at(-1)).toMatchObject({ toValue: 1, duration: sys.motion.exit, useNativeDriver: true });
+    expect(listSheet().props.index).toBe(0); expect(hiddenNow()).toBe(0);
+    expect(slides()).toEqual([]);
   });
   test('count commands and settlement callbacks do not override actual height', async () => {
     barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
     await physicallyAt(0); await act(async () => countLine().props.onPress());
-    expect(listSheet().props.index).toBe(1); expect(hiddenNow()).toBe(1);
+    expect(listSheet().props.index).toBe(1); expect(hiddenNow()).toBe(0);
     await physicallyAt(1); expect(hiddenNow()).toBe(0);
     await act(async () => countLine().props.onPress()); await physicallyAt(2);
     expect(hiddenNow()).toBe(0);
     await act(async () => countLine().props.onPress());
     expect(hiddenNow()).toBe(0); // native is still full
-    await physicallyAt(0); expect(hiddenNow()).toBe(1);
+    await physicallyAt(0); expect(hiddenNow()).toBe(0);
     const count = slides().length;
     await act(async () => listSheet().props.onChange(0)); expect(slides()).toHaveLength(count);
   });
-  test('reduced motion follows measured height without a slide', async () => {
+  test('reduced motion keeps navigation available without a slide', async () => {
     mockReduced = true; barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
     await physicallyAt(1); expect(hiddenNow()).toBe(0);
-    await physicallyAt(0); expect(hiddenNow()).toBe(1); expect(slides()).toEqual([]);
+    await physicallyAt(0); expect(hiddenNow()).toBe(0); expect(slides()).toEqual([]);
   });
-  test('a pin card keeps navigation hidden even over a physically raised list', async () => {
+  test('a pin preview reserves navigation space and keeps all destinations available', async () => {
     barValue = makeBar(); initial = { ...initial, sheet: 'half' }; await render(); await layOutBody(800);
     await physicallyAt(1); expect(hiddenNow()).toBe(0);
     await act(async () => map().props.onSelect('bb'));
-    await physicallyAt(1); expect(hiddenNow()).toBe(1);
-    await physicallyAt(0); await tap('Zatvori pregled zadatka'); expect(hiddenNow()).toBe(1);
+    await physicallyAt(1); expect(hiddenNow()).toBe(0);
+    expect(tree.root.findByType(DiscoveryPeek).props.bottomInset).toBeGreaterThanOrEqual(BAR);
+    await physicallyAt(0); await tap('Zatvori pregled zadatka'); expect(hiddenNow()).toBe(0);
     await act(async () => countLine().props.onPress()); await physicallyAt(1); expect(hiddenNow()).toBe(0);
   });
   test.each(['blur', 'scope'] as const)('queued physical bar updates cannot escape their %s owner', async kind => {
@@ -3318,7 +3313,7 @@ describe('the bottom navigation follows the list: away at the top line or behind
     const queued = mockRnDeliveries.splice(0);
     if (kind === 'blur') mockFocused = false; else scopeKey = 'b:2';
     await update(); await act(async () => queued.forEach(deliver => deliver()));
-    expect(hiddenNow()).toBe(1);
+    expect(hiddenNow()).toBe(0);
     if (kind === 'blur') { mockFocused = true; await update(); }
     await physicallyAt(1); expect(hiddenNow()).toBe(0);
   });

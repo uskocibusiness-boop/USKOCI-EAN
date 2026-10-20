@@ -244,7 +244,7 @@ const s = StyleSheet.create({
   state: { gap: sys.space.base },
   // The title remains a direct child of this measured block; multi-line and enlarged titles keep the correct chrome handoff.
   hero: { gap: sys.space.md, paddingVertical: sys.space.sm },
-  badgeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: sys.space.md, flexWrap: 'wrap' },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, flexWrap: 'wrap' },
   notice: { gap: sys.space.xs, alignItems: 'flex-start' },
   // A quiet action inside a note starts where the note's text starts (no padding of its own); the width keeps the 48 dp target and the label stays at the start of it.
   noticeAction: { alignSelf: 'flex-start', paddingHorizontal: 0, minWidth: layout.touch, justifyContent: 'flex-start' },

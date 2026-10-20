@@ -164,7 +164,7 @@ const RING = 2;
 
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
-  prominentTitle: { textAlign: 'center' },
+  prominentTitle: { textAlign: 'left' },
   summaryArt: { width: 44, height: 44 },
   summaryValue: { flex: 1, minWidth: 0, gap: sys.space.xs },
   // The amount's row has `FactRow`'s own geometry: the 28 picture, 12, the copy with its first line centred on the picture.

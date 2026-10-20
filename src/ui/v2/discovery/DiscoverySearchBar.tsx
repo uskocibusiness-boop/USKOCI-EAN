@@ -13,11 +13,10 @@ import { capsuleCollapse, chromeJoin } from './discoveryChrome';
 /** The bar's distance from the top of the map. */
 export const BAR_TOP = sys.space.md;
 /** Filter touch and its count stay together inside the toolbar. */
-const FILTERS_SIZE = 56;
+const FILTERS_SIZE = 48;
 
-/** Compact map controls: Back, search, filters and the existing secondary menu share one white surface.
- * A real active query/place is shown in its own clearable row; there is no permanently empty search field.
- * Both rows stay above the scrolling capsules and are included in the compact FULL measurement.
+/** Compact map controls and the active query share one measured surface.
+ * The query is a subtitle of search, with a separate accessible clear control.
  * Notices remain outside that measurement so permission/error feedback never moves the sheet stops.
  */
 export function DiscoverySearchBar({ where, onBack, onSearch, onMore, onClearWhere, filters, onLayout, onSearchLayout, motion, chips, below }: {
@@ -68,21 +67,18 @@ export function DiscoverySearchBar({ where, onBack, onSearch, onMore, onClearWhe
               accessibilityHint={SEARCH_HINT} haptic="select" scaleTo={sys.motion.scale.row} onPress={onSearch}
               hitSlop={0} style={s.searchButton}>
               <Glyph name="search" size={20} tone="ink" strong />
-              <T variant="bodyStrong" style={s.searchLabel}>Pretraži</T>
+              <View style={s.searchCopy}>
+                <T variant="bodyStrong" style={s.searchLabel}>Pretraži zadatke</T>
+                {where ? <T testID="discovery-search-context" variant="meta" tone="muted" numberOfLines={1}>{where}</T> : null}
+              </View>
             </Press>
+            {where && onClearWhere ? <Press testID="clear-where" accessibilityRole="button" accessibilityLabel="Prikaži sve zadatke"
+              haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={onClearWhere} style={s.clear}>
+              <Glyph name="close" size={16} tone="muted" />
+            </Press> : null}
             {filters ? <FiltersButton count={filters.count} onPress={filters.onPress} /> : null}
             {onMore ? <ChromeIconButton label="Još mogućnosti" hint="Objava zadatka, profil i obaveštenja." glyph="more" quiet onPress={onMore} /> : null}
           </View>
-          {where ? <View testID="discovery-search-context" style={s.context}>
-            <Press accessibilityRole="button" accessibilityLabel="Aktivna pretraga" accessibilityValue={{ text: where }} accessibilityHint={SEARCH_HINT}
-              haptic="select" onPress={onSearch} hitSlop={0} style={s.contextText}>
-              <T variant="meta" numberOfLines={1} style={s.where}>{where}</T>
-            </Press>
-            {onClearWhere ? <Press testID="clear-where" accessibilityRole="button" accessibilityLabel="Prikaži sve zadatke"
-              haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={onClearWhere} style={s.clear}>
-              <Glyph name="close" size={16} tone="ink" />
-            </Press> : null}
-          </View> : null}
         </Surface>
       </View>
       <View testID="discovery-chips-clip" collapsable={false} style={s.chipsClip}
@@ -160,9 +156,7 @@ const s = StyleSheet.create({
   searchButton: { flex: 1, minWidth: 48, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm,
     paddingHorizontal: sys.space.sm, paddingVertical: sys.space.sm, borderRadius: sys.radius.control },
   searchLabel: { flexShrink: 1, color: sys.color.ink },
-  context: { flexDirection: 'row', alignItems: 'center', paddingLeft: sys.space.base, paddingRight: sys.space.xs },
-  contextText: { flex: 1, minWidth: 0, minHeight: 48, justifyContent: 'center', paddingRight: sys.space.sm },
-  where: { lineHeight: 20, color: sys.color.ink },
+  searchCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   clear: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
   // The touch fills this control; its count sits at the upper right.
   filtersSurface: { width: FILTERS_SIZE, height: FILTERS_SIZE, borderRadius: sys.radius.pill, flexShrink: 0 },

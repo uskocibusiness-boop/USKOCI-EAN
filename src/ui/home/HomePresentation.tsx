@@ -19,9 +19,9 @@ import { layout } from '../system/layout';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { TaskCard } from '../v2/TaskCard';
-import { materialControl, sys } from '../system/tokens';
+import { sys } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
-import { useLayoutClass, useTextScale } from '../system/textScale';
+import { useLayoutClass } from '../system/textScale';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { HomeLaunchArt } from './HomeLaunchArt';
 import { AnimatedRadar } from '../v2/RadarIcon';
@@ -84,35 +84,32 @@ function OptionalReadState({ kind, state }: { kind: 'worker' | 'opportunities'; 
   </View>;
 }
 
-/** The picture of a front door. 64 dp sets both doors' height (owner, 2026-10-07: smaller doors, about 88 dp). */
-const DOOR_ART = 64;
+/** Illustrations identify the two intentions; text and touch area grow independently. */
+const DOOR_ART = 48;
 /** How many things "Čeka te" draws (the blueprint of 8 Oct 2026, T3): a list that is longer is counted, not scrolled. */
 export const WAITING_LIMIT = 3;
 
-/** Equal doors: original artwork leads, then the intention and one short line. */
+/** Equal intentions, without a persistent account role. Large text uses full-width rows. */
 function StartActions({ onPublish, onEarn, animate }: { onPublish: () => void; onEarn: () => void; animate: boolean }) {
-  const textScale = useTextScale();
-  // One minimum for both doors: the picture sets it at ordinary text sizes (2 × 12 + 64 = 88 dp).
-  // Larger text grows both together instead of clipping; wrapped text grows a door naturally, and no empty lines are reserved.
-  const minHeight = Math.ceil(2 * sys.space.md + Math.max(DOOR_ART, 27 * textScale + sys.space.xs + 22 * textScale));
-  return <View style={s.actions}>
+  const { stacked } = useLayoutClass();
+  return <View testID="home-intentions" style={[s.actions, stacked && s.actionsStacked]}>
     <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" accessibilityHint="Opiši šta ti treba."
-      haptic="select" onPress={onPublish} scaleTo={sys.motion.scale.row} style={[s.door, materialControl.raised, { minHeight }]}>
-      <View style={s.doorMain}>
+      haptic="select" onPress={onPublish} scaleTo={sys.motion.scale.row} style={[s.door, s.publishDoor, stacked && s.doorStacked]}>
+      <View style={[s.doorMain, stacked && s.doorMainStacked]}>
         <HomeLaunchArt kind="publish" size={DOOR_ART} />
         <View style={s.doorCopy}>
-          <T accessibilityRole="header" style={s.doorTitle}>Objavi zadatak</T>
-          <T variant="copy" tone="muted">Opiši šta ti treba.</T>
+          <T variant="heading" style={s.doorTitle}>Objavi zadatak</T>
+          <T variant="note" tone="muted">Opiši šta ti treba.</T>
         </View>
       </View>
     </Press>
     <Press accessibilityRole="button" accessibilityLabel="Uskoči i zaradi" accessibilityHint="Pronađi zadatak."
-      haptic="select" onPress={onEarn} scaleTo={sys.motion.scale.row} style={[s.door, materialControl.raised, { minHeight }]}>
-      <View style={s.doorMain}>
+      haptic="select" onPress={onEarn} scaleTo={sys.motion.scale.row} style={[s.door, s.earnDoor, stacked && s.doorStacked]}>
+      <View style={[s.doorMain, stacked && s.doorMainStacked]}>
         <AnimatedRadar size={DOOR_ART} color={sys.color.green} sweepColor={sys.color.green} animate={animate} />
         <View style={s.doorCopy}>
-          <T accessibilityRole="header" style={s.doorTitle}>Uskoči i zaradi</T>
-          <T variant="copy" tone="muted">Pronađi zadatak.</T>
+          <T variant="heading" style={s.doorTitle}>Uskoči i zaradi</T>
+          <T variant="note" tone="muted">Pronađi zadatak.</T>
         </View>
       </View>
     </Press>
@@ -366,26 +363,16 @@ export function HomePresentation(p: HomePresentationProps) {
       }
     }}
     refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
-    <View onLayout={event => { actionBounds.current = event.nativeEvent.layout; }}>
-      <StartActions onPublish={p.onPublish} onEarn={p.onEarn} animate={p.active === true && actionsVisible} />
-    </View>
     {p.loading && !home ? <HomeSkeleton /> : null}
     {recovery ? <Surface kind="note" testID="home-recovery" style={s.recovery}>
       <T accessibilityRole="alert" variant="note">{recovery === 'stale' ? 'Nema veze. Prikazano je poslednje učitano.'
         : recovery === 'partial' ? 'Deo pregleda trenutno nije učitan.' : 'Pregled nije učitan. Proveri vezu i pokušaj ponovo.'}</T>
       <V2Action label="Osveži pregled" kind="secondary" compact loading={p.refreshing} disabled={p.loading || p.refreshing} onPress={p.onRefresh} />
     </Surface> : null}
-    {/* "Sledeće", the hero: only an accepted appointment that is not over is "next", and its TIME is the largest word on the screen,
-        directly under the doors. It has no command of its own beyond the card; Raspored is reached from Dogovori. */}
+    {/* Accepted appointments and pending decisions lead. No inferred urgency or invented schedule. */}
     {next && raspored ? <Section title="Sledeće">
       <Appear index={0} animate={agreements.isNew(next.id)}><RasporedCard row={next} raspored={raspored} photo={p.photo} onOpen={p.onOpen} /></Appear>
     </Section> : null}
-
-    {p.intakeResume}
-    <OptionalReadState kind="opportunities" state={p.opportunitiesRead} />
-    <ExploreTasksAction onEarn={p.onEarn} opportunities={p.opportunities} onOpenOpportunity={p.onOpenOpportunity} />
-    {/* "Kako radi" (N4): one quiet row for a brand-new account, with a "Sakrij" that hides it for good (HowItWorks). */}
-    {home?.firstRun ? <HowItWorks stacked={stacked} /> : null}
 
     {home && waitingShown ? <Section title="Čeka te">
       {attentionUnavailable ? <Unavailable text="Ne možemo da učitamo ono što te čeka." /> : null}
@@ -409,6 +396,11 @@ export function HomePresentation(p: HomePresentationProps) {
     {/* A Dogovori read that failed says so here, never as an empty schedule; with no appointment ahead there is no block and no placeholder. */}
     {home?.agreements.kind === 'unavailable' ? <Section title="Sledeće"><Unavailable text="Ne možemo da učitamo Dogovore." /></Section> : null}
 
+    <View onLayout={event => { actionBounds.current = event.nativeEvent.layout; }}>
+      <StartActions onPublish={p.onPublish} onEarn={p.onEarn} animate={p.active === true && actionsVisible} />
+    </View>
+    {p.intakeResume}
+
     {/* My lists stand in one group of rows directly under what is above, with the one section gap and no heading or line of their own. */}
     <View>
       <MineRow art="tasks" title="Moji zadaci" detail={tasksDetail} onPress={p.onMyTasks} />
@@ -419,6 +411,9 @@ export function HomePresentation(p: HomePresentationProps) {
       {setupProfile ? <ListRow leading={<FactArt kind="users" size={32} />} title="Podesi radni profil" subtitle="Dobijaš zadatke koji ti odgovaraju."
         onPress={() => p.onOpen({ kind: 'WORKER_PROFILE' })} last accessibilityLabel="Podesi radni profil. Dobijaš zadatke koji ti odgovaraju." /> : null}
     </View>
+    <OptionalReadState kind="opportunities" state={p.opportunitiesRead} />
+    <ExploreTasksAction onEarn={p.onEarn} opportunities={p.opportunities} onOpenOpportunity={p.onOpenOpportunity} />
+    {home?.firstRun ? <HowItWorks stacked={stacked} /> : null}
   </Screen>;
 }
 
@@ -430,15 +425,16 @@ function oceniDogovore(count: number): string {
 }
 
 const s = StyleSheet.create({
-  // Two doors 12 apart, the one gap between cards (`layout.group`); the 8 above them is the screen's own.
-  actions: { gap: layout.group },
-  // Two equal doors about 88 dp high (owner, 2026-10-07): the 64 dp picture between 12 dp of air above and below.
-  door: { paddingVertical: sys.space.md, paddingHorizontal: sys.space.base, borderRadius: sys.radius.card,
-    backgroundColor: sys.color.wash, justifyContent: 'center', borderWidth: 1, borderColor: sys.color.surface },
-  doorMain: { flexDirection: 'row', alignItems: 'center', gap: sys.space.base },
-  doorCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
-  // The one title that is not on the type scale: the door's own (the composition spec allows 22 here and nowhere else).
-  doorTitle: { fontSize: 22, lineHeight: 27, fontWeight: '600', letterSpacing: -0.5, color: sys.color.ink },
+  actions: { flexDirection: 'row', alignItems: 'stretch', gap: layout.group },
+  actionsStacked: { flexDirection: 'column' },
+  door: { flex: 1, minWidth: 0, minHeight: sys.touch.min, padding: sys.space.base, borderRadius: sys.radius.card },
+  doorStacked: { flex: 0 },
+  publishDoor: { backgroundColor: sys.color.orangeSoft },
+  earnDoor: { backgroundColor: sys.color.greenSoft },
+  doorMain: { alignItems: 'flex-start', gap: sys.space.md },
+  doorMainStacked: { flexDirection: 'row', alignItems: 'center' },
+  doorCopy: { flexShrink: 1, minWidth: 0, gap: sys.space.xs },
+  doorTitle: { color: sys.color.ink },
   // Something waits here: the orange dot on the corner of its picture. The white ring keeps it apart from the drawing.
   attentionDot: { position: 'absolute', top: 0, right: 0, width: sys.space.sm, height: sys.space.sm, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.orange, borderWidth: 1, borderColor: sys.color.surface },
@@ -456,9 +452,9 @@ const s = StyleSheet.create({
   copy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   more: { paddingTop: sys.space.sm },
   recovery: { gap: sys.space.sm, alignItems: 'flex-start' },
-  carouselSection: { marginTop: 4, marginBottom: 12, gap: 10 },
+  carouselSection: { gap: sys.space.sm },
   carouselHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, gap: sys.space.md },
-  carouselTitle: { fontSize: 19, fontWeight: '700', color: sys.color.ink, letterSpacing: -0.3 },
+  carouselTitle: { color: sys.color.ink },
   seeAllButton: { minHeight: 48, justifyContent: 'center', paddingHorizontal: sys.space.sm },
   carouselList: { paddingVertical: sys.space.sm, paddingHorizontal: 2, gap: sys.space.md },
   carouselCard: {

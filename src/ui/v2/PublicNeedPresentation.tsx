@@ -183,7 +183,7 @@ const s = StyleSheet.create({
   center: { textAlign: 'center' },
   // The title stays a direct child of this measured scroll block, so its handoff to the bar includes the real padding.
   hero: { gap: sys.space.md, paddingVertical: sys.space.sm },
-  status: { alignItems: 'center' },
+  status: { alignItems: 'flex-start' },
   fit: { gap: sys.space.md },
   place: { gap: sys.space.md },
   refresh: { alignSelf: 'flex-start' },

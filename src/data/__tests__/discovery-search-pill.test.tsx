@@ -27,7 +27,7 @@ const render = async (extra: Partial<React.ComponentProps<typeof DiscoverySearch
   tree = create(<DiscoverySearchBar {...props()} {...extra} />);
 });
 const button = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
-const sized = (node: ReactTestInstance) => { let at: ReactTestInstance | null = node; while (at) { const style = StyleSheet.flatten(at.props.style); if (style?.width === 56) return style; at = at.parent; } return null; };
+const sized = (node: ReactTestInstance) => { let at: ReactTestInstance | null = node; while (at) { const style = StyleSheet.flatten(at.props.style); if (style?.width && style?.height) return style; at = at.parent; } return null; };
 beforeEach(() => { jest.clearAllMocks(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
@@ -36,10 +36,8 @@ test('the labelled search action opens search while its active context stays rea
   const summary = button('Pretraži zadatke');
   expect(summary.props.accessibilityValue.text).toBe(props().where);
   expect(summary.props.accessibilityHint).toBe(SEARCH_HINT);
-  expect(summary.findByType('T' as React.ElementType).props.children).toBe('Pretraži');
-  const context = button('Aktivna pretraga');
-  expect(context.props.accessibilityValue.text).toBe(props().where);
-  const words = context.findAllByType('T' as React.ElementType);
+  expect(summary.findAllByType('T' as React.ElementType)[0].props.children).toBe('Pretraži zadatke');
+  const words = summary.findAllByProps({ testID: 'discovery-search-context' });
   expect(words.map(text => text.props.numberOfLines)).toEqual([1]);
   expect(words.flatMap(text => text.children.filter(child => typeof child === 'string')).join('')).toBe(props().where);
   expect(words.every(text => text.props.allowFontScaling !== false && !text.props.adjustsFontSizeToFit)).toBe(true);
@@ -54,7 +52,7 @@ test('without an active search the labelled search action has no empty input or 
   expect(summary.props.accessibilityValue).toBeUndefined();
   const words = summary.findAllByType('T' as React.ElementType);
   expect(words).toHaveLength(1);
-  expect(words[0].props.children).toBe('Pretraži');
+  expect(words[0].props.children).toBe('Pretraži zadatke');
   expect(words[0].props.numberOfLines).toBeUndefined();
   expect(tree.root.findAllByProps({ testID: 'discovery-search-context' })).toHaveLength(0);
   // the two things a search is, the one thing the pill opens (the approved plan, U1)
@@ -67,7 +65,7 @@ test('Back is independent from clearing or opening search, including while a que
   await act(async () => button('Nazad').props.onPress());
   expect(back).toHaveBeenCalledTimes(1);
   expect(clear).not.toHaveBeenCalled(); expect(search).not.toHaveBeenCalled(); expect(filters).not.toHaveBeenCalled();
-  expect(button('Aktivna pretraga').props.accessibilityValue.text).toBe(props().where);
+  expect(button('Pretraži zadatke').props.accessibilityValue.text).toBe(props().where);
 });
 
 test('the pill opens the search and says so: a word and a place, never the filters', async () => {
@@ -83,7 +81,8 @@ test('the filters are a separate round button beside the pill: as high as it, wi
   expect(FILTERS_HINT).toBe('Otvara filtere: kada, gde i iznos.');
   // the search is the pill: what the button says it opens is the filters, never the words and the place
   expect(FILTERS_HINT).not.toMatch(/pretra/i);
-  expect(sized(open)).toMatchObject({ width: 56, height: 56, borderRadius: sys.radius.pill });
+  expect(sized(open).width).toBeGreaterThanOrEqual(sys.touch.min);
+  expect(sized(open).height).toBeGreaterThanOrEqual(sys.touch.min);
   // it stands in the pill's own row, after the pill, and is not a part of the pill's press
   const row = tree.root.findByProps({ testID: 'discovery-search-row' });
   expect(row.findAllByProps({ testID: 'filters-button' })).toHaveLength(1);

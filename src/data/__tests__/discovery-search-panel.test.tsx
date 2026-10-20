@@ -498,14 +498,14 @@ describe('the server preview (P6) of the search', () => {
 
 describe('the FILTERS are a sheet with the days, how the work is done and the amount', () => {
   const group = (id: string) => byId(id);
-  const open = async (id: string) => { const toggle = byId(`${id}-toggle`); if (!toggle.props.accessibilityState.expanded) await act(async () => toggle.props.onPress()); };
+  const open = async (id: string) => { expect(byId(`${id}-body`)).toBeDefined(); };
 
   test('it rises from the bottom over a backdrop, with Kada, Gde and Iznos in that order, and nothing of the search', async () => {
     mode = 'filters'; await render();
     expect(sheetHeight()).toBe(1227); expect(sheetCorner()).toBe(sys.radius.sheet); // 92 %: separate sections leave room for the date grid
     expect(byId('search-backdrop')).toBeDefined();
     expect(byId('search-sheet').props).toMatchObject({ accessibilityViewIsModal: true, accessibilityLabel: 'Filteri' });
-    expect(StyleSheet.flatten(byId('search-sheet').props.style)).toMatchObject({ backgroundColor: 'transparent', boxShadow: [], elevation: 0 });
+    expect(StyleSheet.flatten(byId('search-sheet').props.style).backgroundColor).toBe(sys.color.surface);
     expect(byLabel('Zatvori filtere')).toHaveLength(1); expect(byLabel('Zatvori pretragu')).toHaveLength(0);
     const order = tree.root.findAll(node => String(node.type) === 'View' && /^filters-(when|where|amount)$/.test(node.props.testID ?? '')).map(node => node.props.testID);
     expect(order).toEqual(['filters-when', 'filters-where', 'filters-amount']);
@@ -536,8 +536,8 @@ describe('the FILTERS are a sheet with the days, how the work is done and the am
     expect(radio('Ovaj vikend')[0].props.accessibilityState).toEqual({ checked: true });
     expect(show().props.label).toBe('Prikaži 4 zadatka');
     await open('filters-amount');
-    expect(byId('filters-when-body')).toBeUndefined();
-    expect(byId('filters-when-toggle').props.accessibilityValue.text).toContain('vikend');
+    expect(byId('filters-when-body')).toBeDefined();
+    expect(radio('Ovaj vikend')[0].props.accessibilityState.checked).toBe(true);
     await choose('Tražim ponude', group('filters-amount'));
     expect(show().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
     await choose('Sa iznosom', group('filters-amount'));

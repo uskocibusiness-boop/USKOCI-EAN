@@ -3,10 +3,9 @@ import { Animated, Easing, Platform, type ViewStyle } from 'react-native';
 import { sys } from '../../system/tokens';
 
 /**
- * The bottom navigation on Zadaci (the owner's phone of 8 Oct 2026): "dok je lista dole, donja navigacija se ne vidi; pojavi se kad se
- * lista digne na pola ili skroz". On this one screen the navigator's bar is drawn over the bottom of the screen instead of under it, and
- * slides away (a translation, never a change of size) while the list rests at its top line or a pin's card stands at the bottom; it comes
- * back with the half and the full stop. On every other screen the bar is where it always was.
+ * The navigator owns one bar and its measured height. Discovery keeps it visible
+ * during map/list browsing and reserves its space below previews and list content.
+ * Focused routes can hide navigation without resizing the inner tab controls.
  *
  * The layout (`app/(app)/_layout`) owns the bar, so it owns the one value that moves it (`hidden`: 0 the bar is on show, 1 it is away) and
  * says how tall it is (`height`, its own height and the margin under it, which is the system inset or 12). It hands both to the screen
@@ -32,11 +31,6 @@ export function zadaciBarStyle(base: TabBarBase, bar: ZadaciBar): Animated.WithA
   return { ...base, position: 'absolute', left: 0, right: 0, bottom: 0, marginBottom: 0, height: bar.height, paddingBottom: margin };
 }
 
-/** HALF tolerance must never include PEEK, even when large text leaves only one pixel between stops. */
-export function zadaciBarRevealTop(bodyHeight: number, peekHeight: number, halfHeight: number): number {
-  return Math.min(bodyHeight - halfHeight + 1, bodyHeight - peekHeight - 0.5);
-}
-
 /** The bar's slide: entering is longer than leaving and decelerates (rule R2), on the native driver (only a translation moves). */
 function slide(hidden: Animated.Value, shown: boolean): Animated.CompositeAnimation {
   return Animated.timing(hidden, { toValue: shown ? 0 : 1, duration: shown ? sys.motion.enter : sys.motion.exit,
@@ -44,9 +38,8 @@ function slide(hidden: Animated.Value, shown: boolean): Animated.CompositeAnimat
 }
 
 /**
- * Drives the bar from the list. `shown` is whether the bar belongs on screen (the list is at half or full and no card stands at the
- * bottom); `active` whether this screen is the one in front. The first answer of a visit (and a return to the screen) puts the bar in place
- * at once, so a screen that opens with its list low never shows the bar for a frame; later answers slide it, or put it in place at once
+ * `shown` is whether the bar belongs on screen; `active` whether this screen is in front.
+ * The first answer of a visit puts it in place at once; later answers slide it, or put it in place at once
  * under reduced motion. The navigator also receives settled visibility, so a native animated-props reattachment cannot leave an
  * invisible-state bar intercepting touches over the sheet. Interrupted animations cannot publish an obsolete completion.
  */

@@ -8,12 +8,12 @@ import { displaysUrgent } from '../../../lib/needUrgency';
 import { T } from '../../Text';
 import { Avatar } from '../../system/Avatar';
 import { FactArt } from '../../system/FactArt';
-import { FACT_ROW_ART, FactRow } from '../../system/FactRow';
+import { Glyph, type GlyphName } from '../../system/Glyph';
 import { layout } from '../../system/layout';
 import { useLayoutClass } from '../../system/textScale';
 import { sys } from '../../system/tokens';
 import { useUrgencyClock } from '../NeedUrgencyBadge';
-import { CardStatus, CardStatusLine, REQUIREMENT_ART, VALUE_WORDS, capacityWords, personSpoken, ratingWords, taskPlace, taskRequirement, taskSpoken, taskStatus, taskValue,
+import { CardStatus, CardStatusLine, VALUE_WORDS, capacityWords, personSpoken, ratingWords, taskPlace, taskRequirement, taskSpoken, taskStatus, taskValue,
   type TaskCardRelation, type TaskRequirement, type TaskValue } from '../TaskFace';
 import { useTaskAge } from './taskAge';
 import { distanceOf, useDistanceFrom } from './taskDistance';
@@ -104,21 +104,27 @@ function spokenWithOffers(spoken: string, value: TaskValue, word: string): strin
   return value.kind === 'offers' ? spoken.replace('Tražim ponude', word) : spoken;
 }
 
-/**
- * What the task pays, as the first fact of the face: the money picture on the left like the picture of every other fact, the sum in the
- * amount's type and what it buys beside it. No word says what it is (the picture and the figure do). A task with no sum is the same row
- * with the price tag and words about money, drawn as every fact's words (`FactRow`) and never in the amount's type.
- */
+/** Budget is prominent and separate from the quieter facts. It never claims payment. */
 function ValueRow({ model }: { model: TaskRecordModel }) {
   const { value } = model;
-  if (value.kind !== 'amount') return <FactRow art="offers" value={value.kind === 'offers' ? model.offersWord : VALUE_WORDS.unpriced} />;
+  if (value.kind !== 'amount') return <View style={s.offerRow}>
+    <FactArt kind="offers" size={24} />
+    <T variant="bodyStrong">{value.kind === 'offers' ? model.offersWord : VALUE_WORDS.unpriced}</T>
+  </View>;
   return <View style={s.valueRow}>
-    <View style={s.valueArt}><FactArt kind="money" size={FACT_ROW_ART} /></View>
+    <T variant="meta" tone="muted">Budžet</T>
     <View style={s.valueCopy}>
-      <T variant="meta" tone="muted">Budžet</T>
       <T variant="priceSmall" style={s.amount}>{value.amount}</T>
       {value.basis ? <T variant="note" tone="muted">{value.basis}</T> : null}
     </View>
+  </View>;
+}
+
+/** Quiet supporting symbols leave the task, budget and person as the visual anchors. */
+function RecordFact({ icon, value, testID }: { icon: GlyphName; value: string; testID?: string }) {
+  return <View testID={testID} style={s.fact}>
+    <Glyph name={icon} size={20} tone="muted" />
+    <T variant="note" tone="muted" style={s.factCopy}>{value}</T>
   </View>;
 }
 
@@ -155,7 +161,6 @@ export function TaskRecordBody({ model, portrait, clearOfClose = false }: {
   return <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.body}>
     {head ? <View style={first}><CardStatus status={model.head} urgency={model.urgency} now={model.urgencyNow} /></View> : null}
     <View style={head ? undefined : first}><T variant="cardTitle" style={s.title}>{model.title}</T></View>
-    <View style={s.facts}>
       {/* Only the short ownership mark shares this row; application states follow the complete value. */}
       <View testID="task-face-value" style={[s.valueLine, stackedValue && s.valueLineStacked]}>
         <View style={s.valueMain}><ValueRow model={model} /></View>
@@ -163,10 +168,11 @@ export function TaskRecordBody({ model, portrait, clearOfClose = false }: {
           <CardStatusLine text={model.mark.text} tone={model.mark.quiet ? 'muted' : 'green'} />
         </View> : null}
       </View>
-      <FactRow art={model.place.remote ? 'remote' : 'pin'} value={model.distance ? `${model.place.text} · ${model.distance}` : model.place.text} />
-      <FactRow art="calendar" value={model.schedule} />
-      {model.requirement ? <FactRow art={REQUIREMENT_ART[model.requirement.kind]} value={model.requirement.text} /> : null}
-      {model.capacity ? <FactRow testID="task-face-capacity" art="users" value={model.capacity.text} /> : null}
+    <View style={s.facts}>
+      <RecordFact icon={model.place.remote ? 'remote' : 'location'} value={model.distance ? `${model.place.text} · ${model.distance}` : model.place.text} />
+      <RecordFact icon="calendar" value={model.schedule} />
+      {model.requirement ? <RecordFact icon={model.requirement.kind === 'condition' ? 'info' : model.requirement.kind} value={model.requirement.text} /> : null}
+      {model.capacity ? <RecordFact testID="task-face-capacity" icon="people" value={model.capacity.text} /> : null}
     </View>
     {/* The 361 dp / 1.15 native review showed capacity squeezing the name and rating into a narrow column.
         Capacity is now a fact; the publisher always has the full remaining width, with no name truncation. */}
@@ -179,24 +185,24 @@ export function TaskRecordBody({ model, portrait, clearOfClose = false }: {
 const s = StyleSheet.create({
   // Between the parts of a face: 12. Inside a part: 4.
   body: { gap: sys.space.md },
-  facts: { gap: sys.space.xs },
+  facts: { gap: sys.space.sm },
+  fact: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm },
+  factCopy: { flex: 1, minWidth: 0 },
   // The ownership mark can share the value row; longer relation states have a separate line.
   valueLine: { flexDirection: 'row', alignItems: 'flex-start', columnGap: sys.space.md },
   valueLineStacked: { flexDirection: 'column', alignItems: 'stretch', rowGap: sys.space.xs },
   valueMain: { flex: 1, minWidth: 0 },
-  mark: { flexShrink: 1, maxWidth: '46%', minHeight: FACT_ROW_ART, justifyContent: 'center' },
+  mark: { flexShrink: 1, maxWidth: '46%', minHeight: sys.touch.min, justifyContent: 'center' },
   markStacked: { maxWidth: '100%', minHeight: 0, alignSelf: 'flex-start' },
   title: { color: sys.color.ink },
   // The first row keeps one chrome control (the pin card's close) clear on the right, and is as high as it.
   // The close is 48 tall and stands 8 in from the card's edge, the face 16: so the first row is as high as what is left of it, 40.
   clearOfClose: { marginRight: layout.touch, minHeight: layout.touch - sys.space.sm },
-  // The amount's row has `FactRow`'s own geometry: the 28 picture, 12, the copy with its first line centred on the picture.
-  valueRow: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, minHeight: FACT_ROW_ART },
-  valueArt: { width: FACT_ROW_ART, height: FACT_ROW_ART },
-  valueCopy: { flex: 1, minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm,
-    paddingTop: Math.max(0, (FACT_ROW_ART - (sys.type.priceRow.lineHeight ?? FACT_ROW_ART)) / 2) },
-  amount: { color: sys.color.money, flexShrink: 0 },
-  foot: { alignSelf: 'stretch' },
+  valueRow: { gap: sys.space.xs },
+  offerRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  valueCopy: { minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', columnGap: sys.space.sm },
+  amount: { color: sys.color.money, flexShrink: 1 },
+  foot: { alignSelf: 'stretch', paddingTop: sys.space.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line },
   person: { minWidth: 0, flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   face: { width: 40, height: 40, borderRadius: sys.radius.pill, overflow: 'hidden', flexShrink: 0 },
   personText: { flex: 1, minWidth: 0 },

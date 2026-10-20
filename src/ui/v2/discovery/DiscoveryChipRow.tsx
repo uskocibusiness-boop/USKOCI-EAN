@@ -1,8 +1,8 @@
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Press } from '../../Press';
 import { T } from '../../Text';
 import { Glyph } from '../../system/Glyph';
-import { materialControl, sys } from '../../system/tokens';
+import { sys } from '../../system/tokens';
 
 /**
  * A capsule that is one existing choice, toggled at once, without opening anything. `removable` is for one that is on and has a ✕ of its
@@ -45,27 +45,28 @@ export function DiscoveryChipRow({ forMeAvailable = false, scope = 'all', onScop
   </ScrollView>;
 }
 
-/** One capsule: raised off the map, and recessed with a tick (or its own ✕) while it is on. */
+/** A quiet capsule inside a full touch target; selection has both color and a mark. */
 function Capsule({ label, selected, removable = false, hint, testID, onPress }: {
   label: string; selected: boolean; removable?: boolean; hint?: string; testID?: string; onPress: () => void;
 }) {
   return <Press testID={testID} accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint} accessibilityState={{ selected }}
     haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={onPress}
-    style={[s.chip, materialControl.raised, selected && s.chipOn]}>
+    style={s.touch}>
+    <View style={[s.chip, selected && s.chipOn]}>
     {selected && !removable ? <Glyph name="check" size={16} tone="ink" /> : null}
     <T variant="meta" style={[s.chipText, selected && s.chipTextOn]} numberOfLines={1}>{label}</T>
     {selected && removable ? <Glyph name="close" size={16} tone="ink" /> : null}
+    </View>
   </Press>;
 }
 
 const s = StyleSheet.create({
   rail: { flexGrow: 0, alignSelf: 'stretch' },
-  // The room the row asks of its parent: one row of 48 high capsules with the air a lift needs above and below.
-  chips: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base, paddingTop: 2, paddingBottom: sys.space.sm },
-  // Each capsule stays readable over map tiles; the one that is on has both a mark and a recessed well.
-  chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 48, paddingHorizontal: sys.space.md, borderRadius: sys.radius.pill,
+  chips: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base },
+  touch: { minHeight: sys.touch.min, minWidth: sys.touch.min, justifyContent: 'center' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 36, paddingVertical: sys.space.sm, paddingHorizontal: sys.space.md, borderRadius: sys.radius.pill,
     borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
-  chipOn: { backgroundColor: sys.color.greenSoft, borderColor: sys.color.lineStrong, ...materialControl.inset },
+  chipOn: { backgroundColor: sys.color.greenSoft, borderColor: sys.color.green },
   chipText: { fontWeight: '500', color: sys.color.ink },
   chipTextOn: { fontWeight: '600' },
 });
