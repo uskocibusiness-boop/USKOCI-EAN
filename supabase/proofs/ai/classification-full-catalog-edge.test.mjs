@@ -326,6 +326,50 @@ test('an actual ambiguous worker service preserves useful prose and remains unca
   await f.invoke();assert.equal(writtenMessage(f),message);assert.equal(capture(f).length,0);assert.equal(provider(f).length,1);
 });
 
+for(const catalogFailure of [false,true])test('task mode clarification preserves independent typed details without a mode or binding, catalogFailure='+catalogFailure,async()=>{
+  const privateAddress='PRIVATE_SYNTHETIC_ADDRESS 17, stan 5';
+  const text=`Treba mi krečenje stana od 60 kvadrata u Nišu, adresa ${privateAddress}, ali hoću da majstor to uradi na daljinu. Budžet je 8000 dinara, jedna osoba.`;
+  const message='Krečenje stana zahteva dolazak. Da li želiš dolazak majstora za ovaj posao?';
+  const details=[
+    ['need.category','Krečenje zidova','krečenje'],
+    ['need.description','Krečenje stana od 60 kvadrata u Nišu.','Sinteza potvrđenih činjenica i razgovora'],
+    ['need.task_country_code','RS','u Nišu'],
+    ['need.price_mode','MY_PRICE','Budžet je 8000 dinara'],
+    ['need.price_rsd',8000,'8000 dinara'],
+    ['need.people_needed',1,'jedna osoba'],
+    ['need.exact_address',privateAddress,privateAddress],
+  ];
+  const f=fixture('NEED_SERVICE',{noServices:true,catalogFailure,text,output:{
+    safety:'CLARIFY',assistantMessage:message,dialogue:dialogue('CLARIFY'),
+    facts:details.map(([key,value,evidence])=>({key,valueJson:JSON.stringify(value),displayValue:String(value),evidence,confidence:1})),
+    ...(catalogFailure?{}:{classificationShadowJson:JSON.stringify([proposal({service:'Krečenje zidova',mode:'UNCONFIRMED',action:'ASK_CLARIFICATION',categoryId:''})])}),
+  }});
+  await f.invoke();
+  const write=complete(f).body;
+  assert.equal(write.p_safety,'CLARIFY');
+  assert.deepEqual(write.p_proposals.map(({key,value})=>[key,value]),details.map(([key,value])=>[key,value]));
+  assert.ok(writtenMessage(f).startsWith(message),'the real execution question stays before catalog feedback');
+  assert.ok(!writtenMessage(f).includes(privateAddress),'private fact is not rendered in assistant prose');
+  const description=write.p_proposals.find(p=>p.key==='need.description').value;
+  assert.ok(!description.includes(privateAddress)&&!description.includes('daljinu'),'neutral public draft text does not decide mode or carry the private address');
+  assert.equal(capture(f).length,0,'unconfirmed execution cannot authorize a mode or category hint');
+  assert.equal(provider(f).length,1,'partial answers do not trigger a repair inference');
+  assert.ok(!write.p_proposals.some(p=>['need.task_geography','need.handoff'].includes(p.key)));
+  assert.ok(!f.calls.some(c=>/save_draft|publish|commit_admission|ensure_path|push/.test(c.url)));
+});
+
+test('task mode clarification never manufactures neutral details missing from the provider output',async()=>{
+  const f=fixture('NEED_SERVICE',{noServices:true,text:'Treba mi krečenje stana od 60 kvadrata u Nišu, na daljinu.',output:{
+    safety:'CLARIFY',assistantMessage:'Krečenje zahteva dolazak. Da li želiš da majstor dođe?',dialogue:dialogue('CLARIFY'),
+    facts:[{key:'need.category',valueJson:'"Krečenje zidova"',displayValue:'Krečenje zidova',evidence:'krečenje',confidence:1}],
+    classificationShadowJson:JSON.stringify([proposal({service:'Krečenje zidova',mode:'UNCONFIRMED',action:'ASK_CLARIFICATION',categoryId:''})]),
+  }});
+  await f.invoke();
+  assert.deepEqual(complete(f).body.p_proposals.map(p=>p.key),['need.category']);
+  assert.equal(capture(f).length,0);
+  assert.equal(provider(f).length,1);
+});
+
 for(const text of ['To je to.','To su delovi za ukras.'])test('task classification ambiguity stays a question through the actual finish guard: '+text,async()=>{
   const message='Razumem namenu. Da li treba izrada predmeta ili samo model za štampu?';
   const f=fixture('NEED_SERVICE',{text,output:{assistantMessage:message,
