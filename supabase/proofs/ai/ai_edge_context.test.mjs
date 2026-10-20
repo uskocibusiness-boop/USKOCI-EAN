@@ -292,9 +292,18 @@ for(const [now,startsAt,endsAt,inclusiveLastDate] of [
   assert.deepEqual(timeContext(providerCall(f)).nextCalendarWeek,{startsAt,endsAt,inclusiveLastDate});
   assert.ok(prompt(providerCall(f)).includes('inclusiveLastDate poslednji uključeni dan'));
   assert.ok(prompt(providerCall(f)).includes('od 19. do 25. oktobra, ne 19–26'));
-  assert.ok(prompt(providerCall(f)).includes('Ne duplirajte promenljivu cenu i datume u need.description'));
   const write=materialWrites(f).find(c=>c.url.includes('/rpc_ai_complete_need_turn_v2_service'));
   assert.ok(write);assert.ok(!JSON.stringify(write.body).includes('nextCalendarWeek'));
+});
+
+test('description guidance avoids duplicate price/date prose without clearing structured facts',async()=>{
+  const f=fixture();assert.equal((await f.invoke()).status,200);
+  const instruction=prompt(providerCall(f));
+  // Guard the meaning of the instruction, independently of the calendar fixtures
+  // and its previous formal wording. Runtime fact preservation is tested below.
+  assert.match(instruction,/Ne ponavljajte cenu i datume[^.]*strukturirana polja/);
+  assert.match(instruction,/uklonite staro ponavljanje iz opisa[^.]*očuvane ostale detalje/);
+  assert.match(instruction,/ne povlači niti menja vremenska\/cenovna polja/);
 });
 
 for(const provider of ['gemini'])test(`${provider} actual handler sends newest30 chronologically and persists validated proposals`,async()=>{

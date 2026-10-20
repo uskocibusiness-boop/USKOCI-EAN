@@ -25,6 +25,8 @@ Najnoviji nalog odobrava **prvi povezani AI paket na DEV-u i emulatoru**; ranije
 
 ## Jedan aktivan dizajn
 
+**Dopuna vlasnika, 20.10.2026:** svetla donja navigacija i mirnije standardne kontrolne ikonice zamenjuju prethodnu tamnozelenu navigaciju. [Pregled kompozicije i sledećih povezanih paketa](UI_DIRECTION_REVIEW_20261020.md) razrađuje postojeći canon i devet talasa; nije drugi design autoritet. Izvor promene je `be53b4ff`; testovi, APK i emulator imaju odvojene dokaze.
+
 Premium White je odobrena foundation smernica, sa devet povezanih talasa iz §15 canona. Istorijski R1–R8/V28/V31, stare motion zabrane, identični pikseli i ručni formulari nisu drugi aktivni ugovor. Fizički history banner označava povučeni vizuelni autoritet; funkcionalni ugovori i datirani dokazi se čitaju u svom domenu. [Registar ograničenja](../implementation/design-system/DESIGN_CONSTRAINT_REGISTRY_20261018.md) razdvaja mehaničkog kandidata, pregledan nalaz i stvarnu fizičku izmenu. Broj klasifikovanih redova nije broj zatvorenih problema.
 
 ## Gde je šta
