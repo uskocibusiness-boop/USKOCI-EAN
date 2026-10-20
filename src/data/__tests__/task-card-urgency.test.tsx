@@ -16,6 +16,7 @@ jest.mock('react-native', () => {
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
+jest.mock('../../ui/system/Glyph', () => ({ Glyph: 'Glyph' }));
 jest.mock('phosphor-react-native', () => ({ Lightning: 'Lightning' }));
 import { TaskCard } from '../../ui/v2/TaskCard';
 import { NeedUrgencyBadge } from '../../ui/v2/NeedUrgencyBadge';

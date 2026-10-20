@@ -36,6 +36,7 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar' }));
+jest.mock('../../ui/system/Glyph', () => ({ Glyph: 'Glyph' }));
 jest.mock('phosphor-react-native', () => ({ CaretRight: 'CaretRight', CaretDown: 'CaretDown', Lightning: 'Lightning' }));
 import { TaskCard } from '../../ui/v2/TaskCard';
 import { ApplicationCard } from '../../ui/v2/ApplicationFace';

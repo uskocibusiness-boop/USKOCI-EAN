@@ -11,7 +11,7 @@ jest.mock('react-native', () => {
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import { DiscoveryChipRow, FOR_ME, type QuickChip } from '../../ui/v2/discovery/DiscoveryChipRow';
-import { materialControl, sys } from '../../ui/system/tokens';
+import { sys } from '../../ui/system/tokens';
 
 /**
  * The one row of capsules over the map, under the search pill and the round filters button (UX plan 2.13 and section P; the owner's phone of 7 and 8 Oct 2026;
@@ -66,9 +66,9 @@ test('with the switch on, "Za mene" is ONE capsule before the others: a tap turn
   expect(scope).toHaveBeenLastCalledWith('forMe');
   await act(async () => tree.update(<DiscoveryChipRow forMeAvailable scope="forMe" onScope={scope} chips={chips()} />));
   expect(button('Za mene').props.accessibilityState).toEqual({ selected: true });
-  // on, it has a tick and a recessed well, like every capsule that is on
+  // Selection is communicated by a mark and spoken state, independently of decoration.
   expect(button('Za mene').findAll(node => String(node.type) === 'Check')).toHaveLength(1);
-  expect(StyleSheet.flatten(button('Za mene').props.style).boxShadow ?? StyleSheet.flatten(button('Za mene').props.style).elevation).toBeDefined();
+  expect(StyleSheet.flatten(button('Za mene').props.style).minHeight).toBeGreaterThanOrEqual(sys.touch.min);
   scope.mockClear();
   await act(async () => button('Za mene').props.onPress());
   expect(scope).toHaveBeenLastCalledWith('all'); // the capsule that is on takes itself away
@@ -98,16 +98,16 @@ test('a capsule that is on and has its own ✕ ("Nisu na mapi") shows the ✕ in
   expect(leave).toHaveBeenCalledTimes(1);
 });
 
-test('every capsule lifts off the map tiles (white, raised) and is at least 48 high, whether it is on or not', async () => {
+test('every capsule keeps a full touch target and a visible selected state independent of shadows', async () => {
   await render({ forMeAvailable: true, scope: 'forMe' });
   for (const label of ['Na daljinu', 'Za mene', 'Danas', 'Ovaj vikend', 'Sa iznosom']) {
     const style = StyleSheet.flatten(button(label).props.style);
-    expect([label, style.minHeight]).toEqual([label, 48]);
-    expect(style.borderRadius).toBe(sys.radius.pill);
+    expect(style.minHeight).toBeGreaterThanOrEqual(sys.touch.min);
+    expect(style.minWidth).toBeGreaterThanOrEqual(sys.touch.min);
+    expect(button(label).props.accessibilityRole).toBe('button');
   }
-  const resting = StyleSheet.flatten(button('Sa iznosom').props.style);
-  expect(resting).toMatchObject({ backgroundColor: sys.color.surface });
-  expect(resting.boxShadow ?? resting.elevation).toEqual(materialControl.raised.boxShadow ?? materialControl.raised.elevation);
+  expect(button('Za mene').props.accessibilityState.selected).toBe(true);
+  expect(button('Sa iznosom').props.accessibilityState.selected).toBe(false);
 });
 
 test('the row scrolls sideways and never takes a tap away from a capsule (a keyboard over it does not swallow it)', async () => {

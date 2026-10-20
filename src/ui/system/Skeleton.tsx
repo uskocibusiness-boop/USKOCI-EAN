@@ -163,43 +163,38 @@ function RecordPlaceholder({ lines, foot }: { lines: number; foot: boolean }) {
   </Surface>;
 }
 
-/**
- * The amount of a task before it arrives (`TaskRecordBody`'s amount row): a fact whose picture stands where the money's does, and whose first line is the sum in
- * its own line box (16/21, centred on the picture as `FactRow` centres its line) with a short bar after it for what it buys.
- */
+/** TaskRecordBody's budget: label above the value and its basis. */
 function AmountPlaceholder() {
   const px = useScaled();
-  return <View style={[s.factBox, { minHeight: FACT_ART }]}>
-    <SkeletonBlock width={FACT_ART} height={FACT_ART} radius={sys.radius.pill} />
-    <View style={[s.taskAmount, { paddingTop: Math.max(0, (FACT_ART - PRICE_LINE) / 2) }]}>
-      <TextBar width={96} line={px(PRICE_LINE)} height={px(14)} />
-      <TextBar width={44} line={px(PRICE_LINE)} height={px(12)} />
+  return <View testID="task-skeleton-budget" style={s.recLead}>
+    <TextBar width={48} line={px(sys.type.meta.lineHeight)} height={px(10)} />
+    <View style={s.taskAmount}>
+      <TextBar width={96} line={px(sys.type.priceSmall.lineHeight ?? sys.type.heading.lineHeight)} height={px(18)} />
+      <TextBar width={44} line={px(sys.type.note.lineHeight)} height={px(12)} />
     </View>
   </View>;
 }
 
-/**
- * A task's card before it arrives, with the face the card has (`TaskRecordBody`: 12 between its parts, 4 between the facts): the title; the amount as the first
- * fact and `lines` more; and the foot, the person's picture with its two lines (the name and the rating, both of the `note` line) and the count of people at the
- * end of that line. The measure is the sum of the same tokens the face is built from, and `skeleton.test.tsx` lays the real card beside it.
- */
+/** Current task composition: title, budget, quiet facts, then the separated person. */
 function TaskPlaceholder({ lines }: { lines: number }) {
   const px = useScaled();
   const note = px(sys.type.note.lineHeight);
   return <Surface kind="record">
     <View style={s.recBody}>
-      <TextBar width="78%" line={px(sys.type.heading.lineHeight)} height={px(18)} />
-      <View style={s.recFacts}>
-        <AmountPlaceholder />
-        {Array.from({ length: lines }, (_, index) => <FactPlaceholder key={index} lines={1} index={index} />)}
+      <TextBar width="78%" line={px(sys.type.cardTitle.lineHeight ?? sys.type.heading.lineHeight)} height={px(18)} />
+      <AmountPlaceholder />
+      <View style={s.taskFacts}>
+        {Array.from({ length: lines }, (_, index) => <View key={index} testID="task-skeleton-fact" style={s.taskFact}>
+          <SkeletonBlock width={sys.icon.size.row} height={sys.icon.size.row} radius={sys.radius.chip} />
+          <View style={s.listCopy}><TextBar width={factWidth(index)} line={note} height={px(12)} /></View>
+        </View>)}
       </View>
-      <View style={s.recFoot}>
+      <View style={[s.recFoot, s.taskFoot]}>
         <SkeletonBlock width={layout.slot} height={layout.slot} radius={sys.radius.pill} />
         <View style={s.listCopy}>
           <TextBar width="48%" line={note} height={px(12)} />
           <TextBar width="32%" line={note} height={px(12)} />
         </View>
-        <TextBar width={40} line={note} height={px(12)} />
       </View>
     </View>
   </Surface>;
@@ -343,5 +338,8 @@ const s = StyleSheet.create({
   recFacts: { gap: sys.space.xs },
   // The amount's row of a task's card (`TaskRecordBody`'s valueCopy): the sum and what it buys on one line, 8 apart.
   taskAmount: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', columnGap: sys.space.sm },
+  taskFacts: { gap: sys.space.sm },
+  taskFact: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm },
+  taskFoot: { paddingTop: sys.space.md, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.line },
   recFoot: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
 });

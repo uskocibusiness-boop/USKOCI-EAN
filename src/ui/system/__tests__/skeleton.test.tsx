@@ -216,16 +216,16 @@ describe('a record is the card of a task', () => {
       detalji: { kategorija: 'Krečenje', geografija: null, rezimLokacije: 'STATIONARY', zahtevi: { vestine: [], alati: [], vozila: [], dozvole: [], bitniUslovi: null,
         iskustvoGodina: null, potvrdjenIdentitet: false } } } as unknown as MarketplaceItem;
 
-    it('draws three facts (the amount first, then two), the person\'s 40 picture, and the count of people at the end of the person\'s line', async () => {
+    it('reserves a separate budget, two supporting facts and the publisher without inventing loaded content', async () => {
       await render(<SkeletonCard variant="task" />);
-      expect(size(hosts().filter(node => flat(node).width === FACT_ROW_ART && flat(node).height === FACT_ROW_ART))).toBe(3);
+      expect(hosts().filter(node => node.props.testID === 'task-skeleton-fact')).toHaveLength(2);
       expect(size(hosts().filter(node => flat(node).width === layout.slot && flat(node).height === layout.slot && flat(node).borderRadius === sys.radius.pill))).toBe(1);
-      // The amount's row is the first of the facts, with the sum's bar and a shorter one for what it buys.
-      const amount = hosts().find(node => flat(node).flexDirection === 'row' && flat(node).minHeight === FACT_ROW_ART)!;
+      // The budget's block reserves a label, an amount and its basis.
+      const amount = hosts().find(node => node.props.testID === 'task-skeleton-budget')!;
       const bars = amount.findAll(node => host(node) && flat(node).backgroundColor === sys.color.skeleton
         && typeof flat(node).width === 'number' && flat(node).width > FACT_ROW_ART && flat(node).height < flat(node).width);
-      expect(bars).toHaveLength(2);
-      const [sum, buys] = bars.map(node => flat(node).width);
+      expect(bars).toHaveLength(3);
+      const [, sum, buys] = bars.map(node => flat(node).width);
       expect(sum).toBeGreaterThan(buys);
       expect(buys).toBeGreaterThan(0);
       expect(sum).toBeLessThanOrEqual(180);
@@ -251,11 +251,11 @@ describe('a record is the card of a task', () => {
       expect(real).toBeLessThanOrEqual(440);
     });
 
-    it('takes `rows` more facts after the amount, and stands 12 from the next card', async () => {
+    it('reserves the requested number of supporting facts for each card', async () => {
       await render(<Skeleton variant="task" count={2} rows={3} />);
       expect(size(drawn(first()))).toBe(2);
       expect(flat(first()).gap).toBe(layout.group);
-      expect(size(hosts().filter(node => flat(node).width === FACT_ROW_ART && flat(node).height === FACT_ROW_ART))).toBe(8);
+      expect(hosts().filter(node => node.props.testID === 'task-skeleton-fact')).toHaveLength(6);
     });
 
     it('grows with the text size as the real card does: the lines are taller, a fact is the taller of its picture and its line, the person the taller of 40 and its two lines', async () => {

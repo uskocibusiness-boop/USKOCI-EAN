@@ -25,6 +25,7 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar' }));
+jest.mock('../../ui/system/Glyph', () => ({ Glyph: 'Glyph' }));
 // The card asks the one layout class (`useLayoutClass`), from the same window this suite stands in for the phone.
 jest.mock('../../ui/system/textScale', () => { const actual = jest.requireActual('../../ui/system/textScale');
   return { ...actual, useTextScale: () => mockScale, useLayoutClass: () => actual.layoutClassFor(mockWidth, mockScale) }; });
@@ -58,7 +59,9 @@ const texts = () => tree.root.findAll(node => node.type === T_).flatMap(node => 
 const textNode = (value: string) => tree.root.find(node => node.type === T_ && node.props.children === value);
 const style = (node: ReactTestInstance) => StyleSheet.flatten(node.props.style) ?? {};
 const presses = () => tree.root.findAll(node => node.type === PRESS);
-const facts = () => tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => node.props.kind);
+// Assert the fact's meaning across quiet glyphs and illustrative content.
+const facts = () => tree.root.findAll(node => node.type === ('FactArt' as React.ElementType) || node.type === ('Glyph' as React.ElementType))
+  .map(node => node.props.kind ?? ({ location: 'pin', people: 'users' }[node.props.name as string] ?? node.props.name));
 beforeEach(() => { mockScale = 1; mockReduced = false; mockWidth = 411; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
@@ -144,8 +147,8 @@ describe('the value slot', () => {
         expect(style(value)).toMatchObject({ color: sys.color.money });
         expect(value.props.numberOfLines).toBeUndefined();
       } else {
-        // A word about money is a note in the fact's type, never the amount's role or colour: it cannot be read as a sum.
-        expect(value.props.variant).toBe('note');
+        // Offers and unknown amounts use text roles; they never masquerade as a numeric amount.
+        expect(value.props.variant).not.toMatch(/^price/);
         expect(style(value)).not.toMatchObject({ color: sys.color.money });
         // And it stands beside the price tag, never beside the money.
         expect(facts()[0]).toBe('offers');

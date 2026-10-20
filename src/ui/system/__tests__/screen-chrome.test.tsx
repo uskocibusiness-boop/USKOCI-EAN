@@ -22,7 +22,6 @@ jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
 import { ArrowLeft, CalendarBlank, MagnifyingGlass, SlidersHorizontal, User, X } from 'phosphor-react-native';
 import { Glyph, GLYPH_NAMES } from '../Glyph';
-import { FactArt } from '../FactArt';
 import { layout } from '../layout';
 import { chrome, ChromeIconButton, SCROLL_TITLE_MAX_SCALE, ScreenChrome, useChromeTitleOnScroll } from '../ScreenChrome';
 import { HeaderIconButton, ScreenHeader } from '../ScreenHeader';
@@ -198,7 +197,7 @@ describe('the one chrome icon button', () => {
     const label = bellLabel(0);
     expectTouchable(label);
     expect(circle(label)).toBeUndefined();
-    expect(tree.root.findByType(FactArt).props).toMatchObject({ kind: 'bell', size: 32, cut: 'art' });
+    expect(tree.root.findByType(Glyph).props).toMatchObject({ name: 'notifications', size: sys.icon.size.navigation });
     expect(hosts(node => node.props.testID === 'inbox-bell-drawing')[0].props).toMatchObject({
       accessible: false, accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants',
     });
@@ -209,7 +208,7 @@ describe('the one chrome icon button', () => {
     const spoken = bellLabel(3);
     // The illustration does not invent an unread state; only the real count adds the badge.
     expect(circle(spoken)).toBeUndefined();
-    expect(tree.root.findByType(FactArt).props).toMatchObject({ kind: 'bell', size: 32, cut: 'art' });
+    expect(tree.root.findByType(Glyph).props).toMatchObject({ name: 'notifications', size: sys.icon.size.navigation });
     expect(hosts(node => flat(node).backgroundColor === sys.color.orange)).toHaveLength(1);
     expect(tree.root.findAllByType(Text).map(node => node.props.children)).toContain(3);
     mockUnread = undefined;
