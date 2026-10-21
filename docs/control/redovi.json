@@ -1,4 +1,13 @@
 {
+  "latest_cancelled_candidate_20261021": {
+  "report": "docs/current/CANCELLED_CANDIDATE_DEV_20261021.md",
+  "proof": "DEV APPLIED 20261021085952; origin rollback real cancellation from synthetic 3/3 to 2/3; owner/worker CLOSED; ACL unchanged; zero fixture accounts; 324/324 Jest and TSC PASS.",
+  "remaining": [
+    "real_replacement_selection",
+    "signed_http_two_account_flow",
+    "native_visual_acceptance"
+  ]
+},
   "opis": "USKOČI kontrolna tabla — ručni deo. Automatski deo (ekran, kod, server, test) računa scripts/control/osvezi.mjs. Telefon je zelen samo uz stvarni dokaz sa telefona za tačnu verziju.",
   "latest_group_sync_20261021": {
     "report": "docs/current/MVP_FLOW_AUDIT_20261021.md",

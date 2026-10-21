@@ -29,7 +29,7 @@ const luminance = (hex: string) => { const [r, g, b] = [1, 3, 5].map(at => parse
 const contrast = (a: string, b: string) => { const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
 
 const TASKS: StatusKey[] = ['task.draft', 'task.published', 'task.choosing', 'task.agreed', 'task.now', 'task.completed', 'task.cancelled', 'task.expired'];
-const APPLICATIONS: StatusKey[] = ['application.sent', 'application.seen', 'application.selected', 'application.notSelected', 'application.withdrawn'];
+const APPLICATIONS: StatusKey[] = ['application.sent', 'application.seen', 'application.selected', 'application.notSelected', 'application.withdrawn', 'application.closed'];
 
 describe('the table of states', () => {
   it('has exactly the plan\'s task and application states, each with its one word', () => {
@@ -37,7 +37,7 @@ describe('the table of states', () => {
     // "U toku" is the owner's word for the agreed time having arrived (decision d01, 2026-10-07), not "Termin je sada".
     expect(TASKS.map(key => STATUS_CHIPS[key].word)).toEqual(['Nacrt', 'Objavljen', 'Bira se', 'Dogovoren', 'U toku', 'Završen', 'Otkazan', 'Istekao']);
     expect(STATUS_KEYS.map(key => STATUS_CHIPS[key].word)).not.toContain('Termin je sada');
-    expect(APPLICATIONS.map(key => STATUS_CHIPS[key].word)).toEqual(['Poslata', 'Viđena', 'Izabrana', 'Nije izabrana', 'Povučena']);
+    expect(APPLICATIONS.map(key => STATUS_CHIPS[key].word)).toEqual(['Poslata', 'Viđena', 'Izabrana', 'Nije izabrana', 'Povučena', 'Zatvorena']);
   });
 
   it('never gives two states of one object the same word, and every word is a real word', () => {

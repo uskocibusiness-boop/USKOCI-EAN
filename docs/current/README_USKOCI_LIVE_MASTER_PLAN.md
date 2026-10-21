@@ -2,6 +2,8 @@
 
 Jedan aktivan proizvod, jedan registar statusa i postojeći LIVE plan. Ovaj fajl je ulaz u rad, ne novi plan ili potvrda da je aplikacija završena.
 
+**Najnovije — CCP02:** [DEV dokaz otkazivanja](CANCELLED_CANDIDATE_DEV_20261021.md): migracija primenjena, 3/3 → 2/3 rollback proba sa stvarnim cancellation RPC-em, oba ugla CLOSED, 324/324 Jest i TypeScript PASS. Stvarni izbor zamene i telefon nisu potvrđeni. Ovaj nalaz zamenjuje ranije navode ispod da parity migracija nije primenjena.
+
 **Aktuelni nastavak — grupne poruke:** [MVP audit](MVP_FLOW_AUDIT_20261021.md) sadrži implementirani foreground incremental sync, offline/recovery stanje, 161 ciljanu proveru i mapu preostalog rada za svih 11 Master scenarija. Nema novog APK/HONOR dokaza; prethodni serverski gate-ovi ostaju otvoreni.
 
 **AI/server audit 21.10.2026:** [svež presek DEV-a, trijaža dostavljenog izveštaja i granice primene](AI_SERVER_AUDIT_TRIAGE_20261021.md). Izvorni worker cross-mode guard ima ciljanu regresiju; SQL je rollback-only kandidat, a Task AI, zatvaranje naloga i valuta imaju odvojene nezatvorene gate-ove. Čitati aktuelni Git/DEV readback pre bilo kakve tvrdnje o primeni.

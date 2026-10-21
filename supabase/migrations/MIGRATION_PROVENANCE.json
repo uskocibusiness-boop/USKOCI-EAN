@@ -4,7 +4,7 @@
     "observed_at_utc": "2026-10-18T20:15:41.065022+00:00",
     "project": "leqcwgzvjsxugfgzdmth",
     "scope": "Physical SQL suffix only. Frozen historical replay remains unchanged. Current live bindings come from dated read-only catalog hash evidence; differing bytes are NOT certified equivalent or safe to replay. Dated supplements add explicit source/ledger mappings without refreshing older observations.",
-    "evidence": "supabase/operations/dev-alpha/ledger/20261019_migration_physical_suffix.receipt.json",
+    "evidence": "supabase/operations/dev-alpha/ledger/20261021_ccp02_physical_suffix.receipt.json",
     "entries": [
       {
         "file": "20261013192000_uskoci_dynamic_taxonomy_ai_branching.sql",
@@ -387,9 +387,24 @@
         "raw_md5": "4086aa621f3bf682d10f031738357376",
         "raw_sha256": "ec6e3cb8d137b48dddafceb7f518732b07f72943681c71de06a508d7df81f67b",
         "raw_bytes": 6198
+      },
+      {
+        "file": "20261021085952_cancelled_candidate_history_parity.sql",
+        "version": "20261021085952",
+        "name": "cancelled_candidate_history_parity",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261021085952",
+        "live_name": "cancelled_candidate_history_parity",
+        "raw_md5": "2a8494444e37af24a73546c1c4e564d0",
+        "raw_sha256": "d9e4205cae1fd7c91f5e78e8deb23103d0c3daf274ccc6132c1378d622ccb232",
+        "raw_bytes": 10740,
+        "live_recorded_md5": "2a8494444e37af24a73546c1c4e564d0",
+        "live_recorded_sha256": "d9e4205cae1fd7c91f5e78e8deb23103d0c3daf274ccc6132c1378d622ccb232",
+        "note": "CCP02 DEV applied; exact helper readback, owner/worker cancellation rollback proof; full replacement HTTP/native flow remains open."
       }
     ],
-    "last_extended_at_utc": "2026-10-19T09:25:50.014443+00:00"
+    "last_extended_at_utc": "2026-10-21T09:00:23Z"
   },
   "generated_at_utc": "2026-09-07T14:04:10Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",

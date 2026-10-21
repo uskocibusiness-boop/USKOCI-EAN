@@ -29,7 +29,7 @@ export type StatusTone = 'neutral' | 'green' | 'attention' | 'grey';
 /** Every state the chip can say. A dotted name, so a task's "cancelled" and a Dogovor's are never the same key. */
 export type StatusKey =
   | 'task.draft' | 'task.published' | 'task.choosing' | 'task.agreed' | 'task.now' | 'task.completed' | 'task.cancelled' | 'task.expired'
-  | 'application.sent' | 'application.seen' | 'application.selected' | 'application.notSelected' | 'application.withdrawn';
+  | 'application.sent' | 'application.seen' | 'application.selected' | 'application.notSelected' | 'application.withdrawn' | 'application.closed';
 
 export type StatusSpec = { word: string; shape: StatusShape; tone: StatusTone };
 
@@ -51,6 +51,7 @@ export const STATUS_CHIPS: Readonly<Record<StatusKey, StatusSpec>> = {
   'application.seen': { word: 'Viđena', shape: 'dot', tone: 'neutral' },
   'application.selected': { word: 'Izabrana', shape: 'check', tone: 'green' },
   'application.notSelected': { word: 'Nije izabrana', shape: 'dash', tone: 'grey' },
+  'application.closed': { word: 'Zatvorena', shape: 'dash', tone: 'grey' },
   'application.withdrawn': { word: 'Povučena', shape: 'dash', tone: 'grey' },
 };
 

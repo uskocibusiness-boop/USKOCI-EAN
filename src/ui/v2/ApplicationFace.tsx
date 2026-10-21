@@ -31,9 +31,9 @@ import { PrijavaCard, prijavaSpoken, type PrijavaModel, type PrijavaPrice, type 
  * gives under the finger as ONE object (`usePressLift`, the row rung), and nothing moves under reduced motion.
  *
  * Two of the read's states say more than the five words do, and the card says it in a line beside the chip rather than in a sixth word:
- * STALE_REVIEW_REQUIRED is still the application that was SENT, but the task changed under it ("Zadatak je izmenjen"); CLOSED merges an
- * application that was not chosen, one that expired and one whose task closed (private.my_application_state), so it is "Nije izabrana"
- * and the line says what is true of all three, "Zadatak više ne prima prijave", never a reason the read does not know.
+ * STALE_REVIEW_REQUIRED is still the application that was SENT, but the task changed under it ("Zadatak je izmenjen").
+ * CLOSED also includes a previously selected, now cancelled Agreement. It says "Zatvorena" without claiming
+ * the person was never chosen or that the task stopped looking for a replacement.
  */
 
 /* ------------------------------------------------------------------------------------------------ what it says */
@@ -47,13 +47,13 @@ const STATUS: Record<StanjeMojePrijave, PrijavaStatus> = {
   STALE_REVIEW_REQUIRED: 'application.sent',
   SELECTED: 'application.selected',
   WITHDRAWN: 'application.withdrawn',
-  CLOSED: 'application.notSelected',
+  CLOSED: 'application.closed',
 };
 /** The state of an application as the chip says it: its key and its word. */
 export const applicationStatus = (state: StanjeMojePrijave): { key: StatusKey; text: string } => ({ key: STATUS[state], text: STATUS_CHIPS[STATUS[state]].word });
 const REASON: Partial<Record<StanjeMojePrijave, NonNullable<PrijavaModel['reason']>>> = {
   STALE_REVIEW_REQUIRED: { text: 'Zadatak je izmenjen.', tone: 'warn' },
-  CLOSED: { text: 'Zadatak više ne prima prijave.', tone: 'muted' },
+  CLOSED: { text: 'Prijava više nije u izboru.', tone: 'muted' },
 };
 
 /**

@@ -52,7 +52,7 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 describe('the state: the app\'s one chip, in the owner\'s five words', () => {
   const chips = () => tree.root.findAll(node => node.type === ('View' as React.ElementType) && node.props.testID === 'status-chip');
   const WORDS: [StanjeMojePrijave, string][] = [['SUBMITTED', 'Poslata'], ['VIEWED', 'Viđena'], ['SHORTLISTED', 'Viđena'],
-    ['SELECTED', 'Izabrana'], ['STALE_REVIEW_REQUIRED', 'Poslata'], ['WITHDRAWN', 'Povučena'], ['CLOSED', 'Nije izabrana']];
+    ['SELECTED', 'Izabrana'], ['STALE_REVIEW_REQUIRED', 'Poslata'], ['WITHDRAWN', 'Povučena'], ['CLOSED', 'Zatvorena']];
   it.each(WORDS)('%s says "%s" first, as a chip, and the raised card retains a neutral edge', async (state, word) => {
     await render(<ApplicationCard row={inState(state)} {...handlers()} />);
     expect(texts()[0]).toBe(word);
@@ -71,12 +71,12 @@ describe('the state: the app\'s one chip, in the owner\'s five words', () => {
       expect(STATUS_CHIPS[key].word).toBe(text);
       expect(workerPrijava(inState(state)).status).toBe(key);
     }
-    expect(new Set(every.map(state => applicationStatus(state).text))).toEqual(new Set(['Poslata', 'Viđena', 'Izabrana', 'Nije izabrana', 'Povučena']));
+    expect(new Set(every.map(state => applicationStatus(state).text))).toEqual(new Set(['Poslata', 'Viđena', 'Izabrana', 'Zatvorena', 'Povučena']));
   });
 
-  it('never says "Odbijena" or "Zatvorena": CLOSED merges not chosen, expired and a closed task, and is "Nije izabrana"', () => {
-    expect(applicationStatus('CLOSED').text).toBe('Nije izabrana');
-    for (const [state] of WORDS) expect(applicationStatus(state).text).not.toMatch(/Odbijena|Zatvorena|Zadatak/);
+  it('uses a neutral closed state, including a previously selected cancelled Agreement', () => {
+    expect(applicationStatus('CLOSED').text).toBe('Zatvorena');
+    for (const [state] of WORDS) expect(applicationStatus(state).text).not.toMatch(/Odbijena|Zadatak/);
   });
 
   it('a changed task is still the application that was sent: the chip says "Poslata" and one line under it says the task changed; a closed one says what is true of all its causes', async () => {
@@ -84,8 +84,8 @@ describe('the state: the app\'s one chip, in the owner\'s five words', () => {
     expect(texts().slice(0, 2)).toEqual(['Poslata', 'Zadatak je izmenjen.']);
     expect(style(textNode('Zadatak je izmenjen.')).color).toBe(sys.color.warn);
     await render(<ApplicationCard row={inState('CLOSED')} {...handlers()} />);
-    expect(texts().slice(0, 2)).toEqual(['Nije izabrana', 'Zadatak više ne prima prijave.']);
-    expect(style(textNode('Zadatak više ne prima prijave.')).color).toBe(sys.color.muted);
+    expect(texts().slice(0, 2)).toEqual(['Zatvorena', 'Prijava više nije u izboru.']);
+    expect(style(textNode('Prijava više nije u izboru.')).color).toBe(sys.color.muted);
     // An open, chosen or withdrawn one needs no line: the chip is all there is to say.
     for (const state of ['SUBMITTED', 'VIEWED', 'SELECTED', 'WITHDRAWN'] as const) {
       await render(<ApplicationCard row={inState(state)} {...handlers()} />);
@@ -189,7 +189,7 @@ describe('the facts, in one fixed order', () => {
     // state allows one, is the last thing on the card.
     expect(texts()).toEqual(['Poslata', 'Unos ormara', '20. sep · 10:00–11:00', '4.500 RSD', 'ukupno', '·', '2 osobe', '„Donosim trake.“', 'Povuci prijavu']);
     await render(<ApplicationCard row={inState('CLOSED')} {...handlers()} />);
-    expect(texts()).toEqual(['Nije izabrana', 'Zadatak više ne prima prijave.', 'Unos ormara', '20. sep · 10:00–11:00', '4.500 RSD', 'ukupno', '·', '2 osobe', '„Donosim trake.“']);
+    expect(texts()).toEqual(['Zatvorena', 'Prijava više nije u izboru.', 'Unos ormara', '20. sep · 10:00–11:00', '4.500 RSD', 'ukupno', '·', '2 osobe', '„Donosim trake.“']);
   });
 
   it('says the amount as the money figure it is (ink, tabular, its currency kept), and "ukupno" beside it as a quiet word, on one line', async () => {
@@ -231,11 +231,11 @@ describe('the facts, in one fixed order', () => {
 
   // The people are a count of what the application offered, in every state: nobody "comes" for one that is over, and the read carries no
   // Dogovor state for a chosen one (verify r4b item A), so the card never promises that anyone is coming.
-  it.each([['SUBMITTED', 'Poslata'], ['WITHDRAWN', 'Povučena'], ['CLOSED', 'Nije izabrana'], ['SELECTED', 'Izabrana']] as const)('%s says how many people it offered, never that they are coming', async (state, word) => {
+  it.each([['SUBMITTED', 'Poslata'], ['WITHDRAWN', 'Povučena'], ['CLOSED', 'Zatvorena'], ['SELECTED', 'Izabrana']] as const)('%s says how many people it offered, never that they are coming', async (state, word) => {
     await render(<ApplicationCard row={inState(state)} {...handlers()} />);
     expect(texts()).toContain('2 osobe');
     expect(texts().some(text => /^Dolaz/i.test(text))).toBe(false);
-    const reason = state === 'CLOSED' ? ', Zadatak više ne prima prijave' : '';
+    const reason = state === 'CLOSED' ? ', Prijava više nije u izboru' : '';
     expect(presses()[0].props.accessibilityValue.text).toBe(`${word}${reason}, 20. sep · 10:00–11:00, ponuda 4.500 RSD ukupno, 2 osobe, tvoja poruka: Donosim trake.`);
   });
 

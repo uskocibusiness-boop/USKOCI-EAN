@@ -121,7 +121,7 @@ describe('the candidate row', () => {
   it('draws the state chip only when it says something: not "Poslata" (every application of the list was sent), always "Viđena", "Izabrana", "Nije izabrana" and "Povučena"', async () => {
     // [state, the chip a sent application wears (none), the chip once the server confirmed the view]
     const WORDS: [KandidatProjekcija['stanje'], string | null, string][] = [['SELECTABLE', null, 'Viđena'], ['STALE', null, 'Viđena'], ['OVERFILL', null, 'Viđena'],
-      ['SELECTED', 'Izabrana', 'Izabrana'], ['WITHDRAWN', 'Povučena', 'Povučena'], ['CLOSED', 'Nije izabrana', 'Nije izabrana'], ['FULL', 'Nije izabrana', 'Nije izabrana']];
+      ['SELECTED', 'Izabrana', 'Izabrana'], ['WITHDRAWN', 'Povučena', 'Povučena'], ['CLOSED', 'Zatvorena', 'Zatvorena'], ['FULL', 'Nije izabrana', 'Nije izabrana']];
     const chipWord = (row: ReactTestInstance) => row.findAll(node => node.type === ('View' as unknown as React.ElementType) && node.props.testID === 'status-chip')
       .map(node => node.props.accessibilityLabel);
     for (const [stanje, word, seen] of WORDS) {
@@ -137,7 +137,7 @@ describe('the candidate row', () => {
       expect(row.props.accessibilityValue.text.startsWith(`${seen}.`)).toBe(true);
       await act(async () => tree.unmount());
     }
-    expect(new Set(WORDS.flatMap(([, word, seen]) => [word, seen]))).toEqual(new Set([null, 'Viđena', 'Izabrana', 'Nije izabrana', 'Povučena']));
+    expect(new Set(WORDS.flatMap(([, word, seen]) => [word, seen]))).toEqual(new Set([null, 'Viđena', 'Izabrana', 'Nije izabrana', 'Povučena', 'Zatvorena']));
     expect([candidateChip({ stanje: 'SELECTABLE' }), candidateChip({ stanje: 'SELECTABLE' }, true)]).toEqual(['application.sent', 'application.seen']);
   });
 
@@ -496,7 +496,7 @@ describe('the offer sheet', () => {
     await act(async () => tree.update(offer({ candidate: k({ stanje: 'WITHDRAWN', mozeIzabrati: false }) })));
     expect(chips()).toEqual(['Povučena']);
     await act(async () => tree.update(offer({ candidate: k({ stanje: 'CLOSED', mozeIzabrati: false }) })));
-    expect(chips()).toEqual(['Nije izabrana']); expect(texts()).toContain('Prijava više nije u izboru.');
+    expect(chips()).toEqual(['Zatvorena']); expect(texts()).toContain('Prijava više nije u izboru.');
     await act(async () => tree.update(offer({ candidate: k({ stanje: 'SELECTED', mozeIzabrati: false }) })));
     expect(chips()).toEqual(['Izabrana']);
     // The Dogovor is made: the sheet gives way to the moment "Dogovoreno!" (the next tests), and the old line is not said any more.

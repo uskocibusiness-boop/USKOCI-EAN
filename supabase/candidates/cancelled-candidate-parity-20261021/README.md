@@ -1,3 +1,7 @@
+# CCP02 — DEV applied supplement
+
+The newer origin.rollback.sql ran on DEV with triggers enabled and transaction rollback. The exact parity migration 20261021085952 is applied. See docs/current/CANCELLED_CANDIDATE_DEV_20261021.md for evidence and limits. It proves real cancellation from a synthetic 3/3 fixture to 2/3, not real replacement selection or native E2E. The original CCP01 clone-only runner and historical limitations below remain unchanged; do not run that runner against DEV.
+
 # CCP01 — canceled Agreement candidate parity
 
 This is a **source-only, unexecuted database regression** for [forward.sql](forward.sql). It is deliberately outside `supabase/migrations`; neither DEV nor production has received this candidate through this package.

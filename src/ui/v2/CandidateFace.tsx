@@ -113,13 +113,14 @@ export function candidateTime(k: Pick<KandidatProjekcija, 'predlozeniPocetak' | 
 /**
  * The state of an application as the chip says it (the owner's five words, 2026-10-07). The candidate read merges SUBMITTED, VIEWED
  * and SHORTLISTED into one SELECTABLE and carries no viewed flag, so "Viđena" is only said when the screen knows the server confirmed
- * the view (`viewed`). An application that cannot be chosen because the task is full or closed was not chosen: "Nije izabrana".
+ * the view (`viewed`). CLOSED may follow an actual selection and cancellation, so it says "Zatvorena".
  */
 export function candidateChip(k: Pick<KandidatProjekcija, 'stanje'>, viewed = false): PrijavaStatus {
   switch (k.stanje) {
     case 'SELECTED': return 'application.selected';
     case 'WITHDRAWN': return 'application.withdrawn';
-    case 'CLOSED': case 'FULL': return 'application.notSelected';
+    case 'CLOSED': return 'application.closed';
+    case 'FULL': return 'application.notSelected';
     // Open, whether it can be chosen right now (SELECTABLE) or waits on something (STALE, OVERFILL): it was sent, and perhaps seen.
     default: return viewed ? 'application.seen' : 'application.sent';
   }
