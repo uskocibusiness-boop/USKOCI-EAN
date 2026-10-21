@@ -1,4 +1,17 @@
 {
+  "latest_published_replacement_20261021": {
+    "status": "DEV_APPLIED_AUTH_SQL_ROLLBACK_CLIENT_TESTED",
+    "evidence": "docs/current/PUBLISHED_TASK_REPLACEMENT_20261021.md",
+    "tests": 197,
+    "migrations": 181,
+    "apk": false,
+    "open": [
+      "signed HTTP/provider/taxonomy",
+      "concurrent transactions",
+      "HONOR",
+      "remaining MVP audit"
+    ]
+  },
   "latest_published_edit_guard_20261021": {
   "report": "docs/current/PUBLISHED_TASK_EDIT_GUARD_20261021.md",
   "proof": "PED01 DEV 20261021095622; three edit entry points block new public edits before mutation; original rows unchanged in SQL rollback. Draft edit/replay, foreign owner denial, 184 Jest, TSC and 179 migration integrity PASS. No APK.",

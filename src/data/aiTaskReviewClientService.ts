@@ -30,6 +30,10 @@ export type SignedNeedClassification = Readonly<{handoff?:ServiceHandoff} & (
   {action:'CREATE_NEW_BRANCH';service:string;mode:'ON_SITE'|'REMOTE';parentId:null;parentLabel:null;
     path:string[];catalogVersion:number;reason:string})>;
 /** Owner-only server snapshot. Never persist or send these projections to public analytics. */
+export type AiTaskReplacement = Readonly<{
+  version: 'TASK_REPLACEMENT_V1'; sourceNeedId: string; sourceRevision: number; sourceFingerprint: string;
+  targetNeedId: string; targetBaseRevision: number;
+}>;
 export type AiTaskReviewEnvelope = Readonly<{
   reviewId: string; accountId: string; conversationId: string; schemaVersion: 'NEED_FACT_V2'; draftId: string | null; draftRevision: number;
   displayedContentDigest: string; factsRevision: string; sourceTurnRevision: number; geographyRevision: string;
@@ -42,6 +46,8 @@ export type AiTaskReviewEnvelope = Readonly<{
   classificationCatalogVersion?: number | null;
   classificationCatalogFingerprint?: string | null;
   reviewedServiceModes?: readonly [];
+  /** Server-owned ancestry included in the immutable displayed-content digest. */
+  replacement?: AiTaskReplacement;
 }>;
 export type AiTaskPublicationCommand = Readonly<{
   reviewId: string; clientRequestId: string; needId: string; needRevision: number;
@@ -55,6 +61,7 @@ export type AiTaskReviewPrepare = Readonly<{
 }>;
 
 const COPY: Readonly<Record<string, string>> = {
+  REPLACEMENT_SOURCE_STALE: 'Postojeći zadatak je u međuvremenu promenjen. Otvori ga i proveri stanje pre novih izmena.',
   PUBLISHED_TASK_EDIT_NOT_READY: 'Objavljivanje izmena trenutno nije dostupno. Postojeća objava nije promenjena; izmene ostaju u razgovoru.',
   IDENTITY_VERIFICATION_UNAVAILABLE: 'Provera identiteta nije dostupna. U pregledu ukloni taj uslov da nastaviš običnim zadatkom.',
   AUTH_REQUIRED: 'Prijavi se da nastaviš.', AUTH_ACCOUNT_CHANGED: 'Nalog je promenjen. Ponovo otvori zadatak.',
@@ -126,7 +133,9 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
   const classificationKeys = ['classificationState','classificationCandidates','classificationCatalogVersion',
     'classificationCatalogFingerprint','reviewedServiceModes'];
   const hasClassification = !!r && Object.hasOwn(r,'classificationState');
-  if (!r || !(only(r,baseKeys) || only(r,[...baseKeys,...classificationKeys]))
+  const hasReplacement = !!r && Object.hasOwn(r, 'replacement');
+  const expectedKeys = [...baseKeys, ...(hasClassification ? classificationKeys : []), ...(hasReplacement ? ['replacement'] : [])];
+  if (!r || !only(r, expectedKeys)
     || !uuid(r.reviewId) || !sameId(r.accountId, accountId) || !uuid(r.conversationId) || r.schemaVersion !== 'NEED_FACT_V2'
     || (r.draftId === null ? r.draftRevision !== 0 : !uuid(r.draftId) || !positiveInteger(r.draftRevision))
     || !hash(r.displayedContentDigest) || !hash(r.factsRevision) || !locationRevision(r.geographyRevision)
@@ -135,6 +144,18 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
     || typeof r.canAccept !== 'boolean' || !['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(String(r.safety))
     || !Array.isArray(r.publicProjection) || !Array.isArray(r.ownerPrivateProjection) || r.publicProjection.length + r.ownerPrivateProjection.length > MAX_NEED_FACT_V2_PAYLOAD
     || !Array.isArray(r.missingRequired) || r.missingRequired.length > MAX_NEED_FACT_V2_PAYLOAD || !r.missingRequired.every(k => typeof k === 'string' && isNeedFactV2Key(k) && (NEED_FACT_V2_DEFINITIONS[k].requiredForDraft || k === 'need.handoff' || k === 'need.response_deadline'))) return null;
+  let replacement: AiTaskReplacement | undefined;
+  if (hasReplacement) {
+    const value = record(r.replacement);
+    if (!value || !only(value, ['version', 'sourceNeedId', 'sourceRevision', 'sourceFingerprint', 'targetNeedId', 'targetBaseRevision'])
+      || value.version !== 'TASK_REPLACEMENT_V1' || !uuid(value.sourceNeedId) || !positiveInteger(value.sourceRevision)
+      || !hash(value.sourceFingerprint) || !uuid(value.targetNeedId) || sameId(value.sourceNeedId, value.targetNeedId)
+      || typeof value.targetBaseRevision !== 'number' || !Number.isSafeInteger(value.targetBaseRevision) || value.targetBaseRevision < 0
+      || (value.targetBaseRevision === 0
+        ? !sameId(r.draftId, value.sourceNeedId) || r.draftRevision !== value.sourceRevision
+        : !sameId(r.draftId, value.targetNeedId) || r.draftRevision !== value.targetBaseRevision)) return null;
+    replacement = value as AiTaskReplacement;
+  }
   const publicProjection = r.publicProjection.map(x => fact(x, 'PUBLIC')), ownerPrivateProjection = r.ownerPrivateProjection.map(x => fact(x, 'PRIVATE'));
   const all = [...publicProjection, ...ownerPrivateProjection];
   if (all.some(x => !x) || new Set(all.map(x => x?.key)).size !== all.length || new Set(r.missingRequired).size !== r.missingRequired.length) return null;
@@ -208,7 +229,7 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
     geographyRevision: r.geographyRevision, expiresAt: r.expiresAt, responseDeadline: r.responseDeadline as string | null,
     publicProjection: publicProjection as AiTaskReviewFact[], ownerPrivateProjection: ownerPrivateProjection as AiTaskReviewFact[],
     location, missingRequired: r.missingRequired as NeedFactV2Key[], canAccept: r.canAccept, safety: r.safety as AiNeedSafety,
-    ...signedClassification };
+    ...signedClassification, ...(replacement ? { replacement } : {}) };
 }
 function decodeAiTaskPublicationCommand(raw: unknown, reviewId?: string): AiTaskPublicationCommand | null {
   const c = record(raw);
@@ -233,7 +254,11 @@ function decodeRead(raw: unknown, accountId: string, reviewId?: string): AiTaskR
 }
 function decodeCommandForReview(raw: unknown, review: AiTaskReviewEnvelope): AiTaskPublicationCommand | null {
   const command = decodeAiTaskPublicationCommand(raw, review.reviewId);
-  if (!command || command.needRevision !== review.draftRevision + 1 || (review.draftId && !sameId(command.needId, review.draftId))) return null;
+  if (!command) return null;
+  if (review.replacement) {
+    if (!sameId(command.needId, review.replacement.targetNeedId)
+      || command.needRevision !== review.replacement.targetBaseRevision + 1) return null;
+  } else if (command.needRevision !== review.draftRevision + 1 || (review.draftId && !sameId(command.needId, review.draftId))) return null;
   if (command.published && (review.responseDeadline === null ? command.published.responseDeadline !== null
     : calendarInstant(command.published.responseDeadline) !== calendarInstant(review.responseDeadline))) return null;
   return command;

@@ -1,3 +1,5 @@
+**PED02, 21.10:** [bezbedna zamena objave](PUBLISHED_TASK_REPLACEMENT_20261021.md) primenjena na DEV; 197 Jest, TSC, 181 migration integrity i authenticated SQL rollback PASS. Signed/provider/native ostaju otvoreni. Bez APK-a.
+
 # USKOČI — počni ovde
 
 **Najnovije — PED01:** [zaštita postojeće objave](PUBLISHED_TASK_EDIT_GUARD_20261021.md). DEV odbija opasnu novu izmenu pre mutacije. Klijent prikazuje nedostupnost i retry čitanja; privatni nacrti i istorijski oporavak ostaju. 184/184 Jest, TSC i integritet migracija PASS. Bezbedna zamena objave i dalje OTVORENA; bez APK-a.

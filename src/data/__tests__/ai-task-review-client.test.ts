@@ -65,6 +65,81 @@ it('reports the published-edit gate without evaluating, retrying or claiming a s
   expect(mockInvoke).not.toHaveBeenCalled();
 });
 
+const replacementReview = (base = 0): AiTaskReviewEnvelope => ({ ...review(), draftId: base ? NEED : OTHER,
+  draftRevision: base || 4, replacement: { version: 'TASK_REPLACEMENT_V1', sourceNeedId: OTHER,
+    sourceRevision: 4, sourceFingerprint: 'e'.repeat(64), targetNeedId: NEED, targetBaseRevision: base } });
+
+it.each([0, 2])('accepts only the reserved replacement target at base revision %i', async base => {
+  const shown = replacementReview(base), receipt = { ...accepted(), needRevision: base + 1 };
+  mockRpc.mockResolvedValueOnce(answer(receipt));
+  await expect(service.acceptAsDraft({ review: shown, clientRequestId: KEY })).resolves.toEqual({ ok: true, podatak: receipt });
+  expect(mockInvoke).not.toHaveBeenCalled();
+  expect(mockRpc.mock.calls[0][1]).toEqual({ p_review_id: REVIEW, p_displayed_content_digest: shown.displayedContentDigest, p_client_request_id: KEY });
+});
+
+it('evaluates and publishes the replacement candidate after authoritative readback', async () => {
+  const shown = replacementReview(), implementation = mockRpc.getMockImplementation()!;
+  mockRpc.mockImplementation(async (name: string, ...args: unknown[]) => name === 'rpc_read_ai_task_review'
+    ? answer({ review: shown, command: stored }) : implementation(name, ...args));
+  await expect(service.acceptAndPublish({ review: shown, clientRequestId: KEY }))
+    .resolves.toEqual({ ok: true, podatak: published() });
+  expect(mockInvoke.mock.calls[0][1].body).toEqual({ needId: NEED, expectedRevision: 1, acceptedReviewId: REVIEW });
+  expect(mockRpc.mock.calls.map(x => x[0])).toEqual(['rpc_accept_ai_task_review', 'rpc_read_ai_task_review',
+    'rpc_read_ai_task_review', 'rpc_publish_accepted_ai_task_review']);
+});
+
+it.each([
+  { needId: OTHER, needRevision: 5 }, // old in-place edit must never pass as a replacement
+  { needId: CONVERSATION, needRevision: 1 }, // arbitrary different target
+  { needId: NEED, needRevision: 5 }, // original revision + 1 is not the candidate revision
+])('rejects a mismatched replacement receipt %j without evaluation', async invalidCommand => {
+  mockRpc.mockResolvedValueOnce(answer({ ...accepted(), ...invalidCommand }));
+  await expect(service.acceptAndPublish({ review: replacementReview(), clientRequestId: KEY }))
+    .resolves.toMatchObject({ ok: false, kod: 'TASK_REVIEW_INVALID_RESPONSE' });
+  expect(mockInvoke).not.toHaveBeenCalled();
+});
+
+it('requires complete immutable replacement ancestry and preserves strict legacy ID checks', async () => {
+  const shown = replacementReview();
+  expect(decodeAiTaskReview(shown, OWNER)?.replacement).toEqual(shown.replacement);
+  for (const mutation of [
+    { replacement: null }, { replacement: { ...shown.replacement, extra: true } },
+    { replacement: { ...shown.replacement, sourceNeedId: NEED } },
+    { replacement: { ...shown.replacement, sourceFingerprint: 'bad' } },
+    { replacement: { ...shown.replacement, targetBaseRevision: -1 } },
+    { replacement: { ...shown.replacement, targetBaseRevision: 1.5 } },
+    { replacement: { ...shown.replacement, sourceRevision: 3 } },
+    { draftId: NEED }, { draftRevision: 3 },
+  ]) expect(decodeAiTaskReview({ ...shown, ...mutation }, OWNER)).toBeNull();
+  expect(decodeAiTaskReview({ ...replacementReview(2), draftRevision: 1 }, OWNER)).toBeNull();
+  const { replacement: _replacement, ...legacy } = shown;
+  mockRpc.mockResolvedValueOnce(answer(accepted()));
+  await expect(service.acceptAsDraft({ review: legacy, clientRequestId: KEY }))
+    .resolves.toMatchObject({ ok: false, kod: 'TASK_REVIEW_INVALID_RESPONSE' });
+});
+
+it('recovers replacement acceptance after a lost ACK without recreating the candidate', async () => {
+  const shown = replacementReview();
+  mockRpc.mockImplementation(async (name: string) => {
+    if (name === 'rpc_accept_ai_task_review') { stored = accepted(); throw new Error('LOST_ACK'); }
+    if (name === 'rpc_read_latest_ai_task_review') return answer({ review: shown, command: stored });
+    throw new Error('UNEXPECTED_RPC');
+  });
+  await expect(service.acceptAsDraft({ review: shown, clientRequestId: KEY }))
+    .resolves.toMatchObject({ ok: false, kod: 'TASK_REVIEW_OUTCOME_UNCONFIRMED' });
+  await expect(service.readLatest(CONVERSATION)).resolves.toEqual({ ok: true, podatak: { review: shown, command: accepted() } });
+  expect(mockRpc.mock.calls.filter(x => x[0] === 'rpc_accept_ai_task_review')).toHaveLength(1);
+  expect(mockInvoke).not.toHaveBeenCalled();
+});
+
+it('explains a changed source without publishing or retrying', async () => {
+  mockRpc.mockResolvedValueOnce({ data: null, error: { code: 'P0001', message: 'REPLACEMENT_SOURCE_STALE' } });
+  await expect(service.acceptAndPublish({ review: replacementReview(), clientRequestId: KEY }))
+    .resolves.toMatchObject({ ok: false, kod: 'REPLACEMENT_SOURCE_STALE', poruka: expect.stringContaining('u međuvremenu promenjen') });
+  expect(mockInvoke).not.toHaveBeenCalled();
+  expect(mockRpc).toHaveBeenCalledTimes(1);
+});
+
 it('opt-in review derives the deadline from facts through the separate signed prepare RPC', async () => {
   process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1 = 'true';
   mockRpc.mockResolvedValueOnce(answer(review()));

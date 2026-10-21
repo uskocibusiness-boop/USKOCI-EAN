@@ -4,7 +4,7 @@
     "observed_at_utc": "2026-10-18T20:15:41.065022+00:00",
     "project": "leqcwgzvjsxugfgzdmth",
     "scope": "Physical SQL suffix only. Frozen historical replay remains unchanged. Current live bindings come from dated read-only catalog hash evidence; differing bytes are NOT certified equivalent or safe to replay. Dated supplements add explicit source/ledger mappings without refreshing older observations.",
-    "evidence": "supabase/operations/dev-alpha/ledger/20261021_ped01_physical_suffix.receipt.json",
+    "evidence": "supabase/operations/dev-alpha/ledger/20261021_ped02_physical_suffix.receipt.json",
     "entries": [
       {
         "file": "20261013192000_uskoci_dynamic_taxonomy_ai_branching.sql",
@@ -432,9 +432,39 @@
         "live_recorded_md5": "9c966b02ab23996b97dfc09d14b9212d",
         "live_recorded_sha256": "eba0a3c804bcd42e614c20dd02690309617341a94e02fb92da7ceaf939d3c339",
         "note": "PED01 containment only; new published edits blocked, full replacement OPEN. SQL rollback and client tests; no signed/native proof."
+      },
+      {
+        "file": "20261021101159_staged_task_replacement.sql",
+        "version": "20261021101159",
+        "name": "staged_task_replacement",
+        "classification": "APPLIED_RECORDED_BYTES_DIFFER",
+        "live_applied": true,
+        "live_version": "20261021101159",
+        "live_name": "staged_task_replacement",
+        "raw_md5": "c576986866b1a445f4de4faf1c5e3d05",
+        "raw_sha256": "1a75b59baf6492702b70294f4321067f9f0c6c3113a5203697ac1788410e90d0",
+        "raw_bytes": 64139,
+        "live_recorded_md5": "b19d53912ca59518bd7d1f67bf121c39",
+        "live_recorded_sha256": "bcf3477b4b87c6b2fa29e0e88d312439771e67ed1dfb3ec9d041cf46b9acde9d",
+        "note": "PED02 staged replacement + no-op guard. DEV authenticated SQL rollback proof; signed HTTP/provider/native not proven. Local file is LF; exact applied CRLF SQL retained in candidate applied-ledger.json. Only CRLF-to-LF and final newline normalization verified."
+      },
+      {
+        "file": "20261021101527_staged_task_replacement_noop_guard.sql",
+        "version": "20261021101527",
+        "name": "staged_task_replacement_noop_guard",
+        "classification": "APPLIED_RECORDED_BYTES_DIFFER",
+        "live_applied": true,
+        "live_version": "20261021101527",
+        "live_name": "staged_task_replacement_noop_guard",
+        "raw_md5": "7ffaf05995010fff84ec59ebe25d8585",
+        "raw_sha256": "c1be3d0119cc08693ae1f31bdc69886a52acae17f84cbb3a5e7af71507ffa14d",
+        "raw_bytes": 12611,
+        "live_recorded_md5": "07a1b49197d41e63a7c5a3f2e28d378b",
+        "live_recorded_sha256": "5d1219b9716521a4b3596469539537cad37136bb64b26286a945647899579d5a",
+        "note": "PED02 staged replacement + no-op guard. DEV authenticated SQL rollback proof; signed HTTP/provider/native not proven. Local file is LF; exact applied CRLF SQL retained in candidate applied-ledger.json. Only CRLF-to-LF and final newline normalization verified."
       }
     ],
-    "last_extended_at_utc": "2026-10-21T10:01:46.343557+00:00"
+    "last_extended_at_utc": "2026-10-21T10:20:08.111730+00:00"
   },
   "generated_at_utc": "2026-09-07T14:04:10Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",

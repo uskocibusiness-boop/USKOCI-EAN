@@ -201,12 +201,13 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // `draftId` is the task this conversation is bound to. It is set exactly when the person came here from a task that exists: a private
   // draft opened from "Nacrti" (`draftNeed`: its FIRST publication, and it can be deleted) or a published task being changed (an edit).
   const bound = !!review?.draftId, draftNeed = snapshot?.draftNeed ?? null;
-  const firstPublication = bound && !!snapshot?.firstPublication;
+  const replacement = review?.replacement;
+  const firstPublication = bound && !!snapshot?.firstPublication && !replacement;
   const revising = bound && !firstPublication;
-  // PED01 containment: a public task must not become DRAFT while its new
-  // publication is unproven. A failed owned draft read also fails closed.
-  // Historic accepted commands still recover through their durable receipt.
-  const publishedEditUnavailable = revising && !command;
+  // Only the immutable server replacement contract permits a new public edit.
+  // Legacy public reviews remain contained; historical commands still recover.
+  const publishedEditUnavailable = revising && !replacement && !command;
+  const replacementNotice = 'Provera izmena ne povlači postojeću objavu. Kada nova objava uspe, prethodna objava i njene prijave se zatvaraju. Prijave se ne prenose na nove uslove.';
   const view = useMemo(() => ({}), [snapshot, locationEditor, intakeReturn]), currentView = useRef(view); currentView.current = view;
   const renderedFocus = focus.current;
   const current = () => renderedFocus !== null && focus.current === renderedFocus && currentView.current === view
@@ -420,8 +421,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => openPublishedNow.current());
     return () => subscription.remove();
   }, [momentOpen]));
-  // Published edits are temporarily unavailable pending the staged replacement
-  // contract. Private draft editing and historic accepted-command recovery remain.
+  // The signed replacement retains edit language even after reopening its private candidate.
   const acceptLabel = revising ? 'Potvrdi izmene' : 'Objavi zadatak';
   // What the server would refuse about the facts themselves: no amount for "Moja cena", a fixed time without
   // both ends, or one that has already begun (deep read 8.5, 5.1).
@@ -437,10 +437,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     // d07, 2026-10-07) the only way offered is "Izmeni zadatak": no request to support stands beside this sentence while nobody is on duty.
     : outcome === 'REVIEW' ? manualCheckCopy()
     : outcome === 'BLOCK' ? 'Zadatak nije odobren za objavu. Pregledaj pravila i izmeni opis zadatka.'
-    : evaluation?.kind === 'NOT_READY' ? 'Provera objave trenutno nije spremna. Tvoj zadatak je sačuvan kao privatan nacrt.'
+    : evaluation?.kind === 'NOT_READY' ? replacement ? 'Provera izmena trenutno nije spremna. Nova verzija je sačuvana kao privatan nacrt.' : 'Provera objave trenutno nije spremna. Tvoj zadatak je sačuvan kao privatan nacrt.'
     // ACCEPTED is exactly "the private draft exists and nothing after it has been confirmed", whether
     // the person asked for a draft or a publish stopped here.
-    : command?.state === 'ACCEPTED' ? 'Sačuvano kao privatan nacrt. Zadatak nije objavljen.'
+    : command?.state === 'ACCEPTED' ? replacement ? 'Izmene su sačuvane kao privatan nacrt. Nova verzija još nije objavljena.' : 'Sačuvano kao privatan nacrt. Zadatak nije objavljen.'
     // What the app does not know, in the table's words; the one button under it ("Proveri") is the way to find out, and while it is not known
     // there is no second publish beside it.
     : command ? `${UNCERTAIN_ABOUT.publication.title}.` : null;
@@ -577,7 +577,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
           onPress={() => { if (canAct()) navigate(() => router.replace('/potrebe')); }} /> : check(OUTCOME_ACTION.check, !resumeShown && !editShown, CHECK_SPOKEN)}
       </> : <>
         {revising ? <T variant="note" tone="muted" testID="task-edit-publication-consequence">
-            Objavljivanje izmena trenutno nije dostupno. Ovaj pregled neće promeniti postojeću objavu. Izmene ostaju u razgovoru.
+            {replacement ? replacementNotice : 'Objavljivanje izmena trenutno nije dostupno. Ovaj pregled neće promeniti postojeću objavu. Izmene ostaju u razgovoru.'}
         </T> : null}
         <PublishButton label={acceptLabel} blocked={publishBlocked} working={publishWorking} reason={caption} onPress={publish} />
         {/* While a write has no outcome yet, or has been refused, the one thing to do is to read what is true now. */}
@@ -613,6 +613,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
           {resultCopy ? <ReviewStatus published={!!published} fresh={!!published && publishedHere.current} text={resultCopy}
             action={command?.state === 'ACCEPTED' ? <V2Action label={OUTCOME_ACTION.refresh} accessibilityLabel="Osveži pregled" kind="quiet" style={frame.noteAction}
               disabled={editor.busy || editor.loading} loading={editor.loading} onPress={refresh} /> : undefined} /> : null}
+          {replacement && command && command.state !== 'PUBLISHED' ? <Surface kind="note"><T variant="note" tone="muted" testID="task-edit-publication-consequence">{replacementNotice}</T></Surface> : null}
           {SUPPORT_HAS_DUTY_OPERATOR && command?.state === 'EVALUATED' && outcome === 'REVIEW' ? <SupportContextEntry
             reference={{ kind: 'TASK_REVIEW', id: review.reviewId, revision: null }} label="Obrati se podršci"
             disabled={disabled} canAct={canAct} navigate={navigate} /> : null}

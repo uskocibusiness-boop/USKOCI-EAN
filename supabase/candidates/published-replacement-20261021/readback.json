@@ -1,0 +1,110 @@
+{
+  "observedAtUtc": "2026-10-21T10:20:08.111730+00:00",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "ledger": [
+    {
+      "version": "20261021101159",
+      "name": "staged_task_replacement",
+      "statement_count": 1,
+      "raw_md5": "b19d53912ca59518bd7d1f67bf121c39",
+      "raw_sha256": "bcf3477b4b87c6b2fa29e0e88d312439771e67ed1dfb3ec9d041cf46b9acde9d",
+      "raw_bytes": 64142
+    },
+    {
+      "version": "20261021101527",
+      "name": "staged_task_replacement_noop_guard",
+      "statement_count": 1,
+      "raw_md5": "07a1b49197d41e63a7c5a3f2e28d378b",
+      "raw_sha256": "5d1219b9716521a4b3596469539537cad37136bb64b26286a945647899579d5a",
+      "raw_bytes": 12614
+    }
+  ],
+  "functions": [
+    {
+      "schema": "private",
+      "name": "assert_task_replacement_source",
+      "definition_md5": "f305e5e4e428fcdb2190b83550b5770c",
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "private",
+      "name": "cancel_replaced_task",
+      "definition_md5": "1d270e93c1334344d3130ce684cf5953",
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "private",
+      "name": "finalize_task_replacement",
+      "definition_md5": "090cd78801987713a15a1def68d72a6a",
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "private",
+      "name": "stage_task_replacement",
+      "definition_md5": "eccfe2e9becf7a560f2400167544fd8c",
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "private",
+      "name": "task_replacement_material",
+      "definition_md5": "7d2c9e6cff94985a731d6d17696caad5",
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "private",
+      "name": "task_replacement_origin",
+      "definition_md5": "e186e0bb72a3eabe5d3967ebafa4103b",
+      "anon_execute": false,
+      "authenticated_execute": false
+    },
+    {
+      "schema": "public",
+      "name": "rpc_accept_ai_task_review",
+      "definition_md5": "dac836da7312493d1049571d646dd269",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "public",
+      "name": "rpc_prepare_ai_task_review",
+      "definition_md5": "21285792f75e11eb5ad59a54230fb567",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "public",
+      "name": "rpc_prepare_ai_task_review_taxonomy",
+      "definition_md5": "f0e1f9c6c3c81bfabde87ad911512b76",
+      "anon_execute": false,
+      "authenticated_execute": true
+    },
+    {
+      "schema": "public",
+      "name": "rpc_publish_need_canonical",
+      "definition_md5": "e49706bdd2653f54ef3d80497f6e3a73",
+      "anon_execute": false,
+      "authenticated_execute": true
+    }
+  ],
+  "proof": [
+    {
+      "result": {
+        "proof": "PED02_AUTH_REVERTED",
+        "passed": true,
+        "fixtureAccountsRemaining": 0
+      }
+    }
+  ],
+  "limits": [
+    "SQL role proof, not signed HTTP",
+    "Synthetic source fixtures and evaluator decision; no provider called",
+    "No taxonomy binder E2E",
+    "No simultaneous transaction test",
+    "No APK or HONOR"
+  ]
+}

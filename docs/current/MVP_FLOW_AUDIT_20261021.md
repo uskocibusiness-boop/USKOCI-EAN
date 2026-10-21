@@ -17,7 +17,7 @@ Ovaj presek razlikuje povezani ekran, lokalni test, aktivan DEV ugovor i potvrđ
 
 | Prioritet | Nalaz i dokaz | Potrebna potvrda/izmena |
 | --- | --- | --- |
-| P0 — zaštita primenjena, funkcija otvorena | PED01 na DEV-u blokira novu izmenu PUBLISHED/SELECTION pre upisa; original ostaje nepromenjen. Klijent pokazuje nedostupnost i retry čitanja. [Dokaz](PUBLISHED_TASK_EDIT_GUARD_20261021.md). | Implementirati odvojen nacrt i atomsku zamenu sa trajnim poreklom, zaštitom izbora i oporavkom; signed/native proba. Blokiranje nije završena funkcija izmene. |
+| P0 — DEV SQL potvrđen, E2E otvoren | PED02: zaseban nacrt, atomska zamena, poreklo/retry i zabrana posle izbora; no-op ne zatvara original ni prijave. [Dokaz](PUBLISHED_TASK_REPLACEMENT_20261021.md). | Signed HTTP/provider/taxonomy, paralelne transakcije i native proba; SQL nije kompletan APK dokaz. |
 | P0 | Promena uslova Dogovora je vezana za pojedinačni agreement ID. `src/app/dogovor/[id].tsx:461-463,583-599`; `src/data/agreementClientService.ts:391-399`; grupni ekran pokazuje privatne Dogovore. | Za zajedničke uslove više izvršilaca definisati učesnike, potrebne saglasnosti, konflikt i odustajanje, pa server/test i oba ugla. |
 | P0 | Vremenski konflikt drugih prijava nema potvrđen status zamrzavanja u postojećim klijentskim enumima. `src/data/candidateClientService.ts:18-24`; `src/data/myApplicationsClientService.ts:17-18`. | Server vlasnik stanja, povratak posle izlaska iz Dogovora i dvonaložna proba pre novog UI natpisa. |
 | P0 — delimično rešeno | CCP02 je primenjen na DEV-u: otkazani istorijski Dogovor više ne označava kandidata kao SELECTED. Origin rollback proba sa tri izvršioca potvrđuje stvarni otkaz 3/3 → 2/3, oba owner reader-a, worker CLOSED i odbijanje tuđeg pristupa. [Dokaz](CANCELLED_CANDIDATE_DEV_20261021.md). | Stvarni izbor zamene preko rpc_select_response, signed HTTP i Android tok ostaju otvoreni. Sintetički početni izbor nije dokaz kompletnog lifecycle-a. |
@@ -50,7 +50,7 @@ Ovo je mapa nastavka uz prethodni audit i postojeće rute, ne nova tvrdnja o izv
 | FLOW | Postojeći ulaz / izvor | Preostali dokaz ili prepreka |
 | --- | --- | --- |
 | 01 Novi korisnik | `src/app/auth.tsx`, `(app)/index.tsx` | Sveža registracija, dozvole, povratak i prvi zadatak na tekućem buildu. |
-| 02 AI objava | `(app)/nova.tsx`, `pitanja-zadatka.tsx`, `pregled-zadatka.tsx` | Potpisana objava i neuspešan ishod; bezbedna nova-ID zamena postojeće objave; valuta/handoff. |
+| 02 AI objava | `(app)/nova.tsx`, `pitanja-zadatka.tsx`, `pregled-zadatka.tsx` | PED02 nova-ID zamena potvrđena DEV SQL probom; signed HTTP/Gemini/taxonomy i native ostaju otvoreni; valuta/handoff E2E. |
 | 03 Izvršilac | `(app)/prilike/[id]/prijava.tsx`, `moje-prijave.tsx` | Dva naloga: prijava → izbor → Dogovor; preklop vremena i povlačenje. |
 | 04 Objavljivač | `(app)/potrebe/[id]/kandidati.tsx` | Potpisana selekcija, popunjenost i obe perspektive na uređaju. |
 | 05 Više ljudi | kandidati + `dogovor/[id].tsx` | DEV parity migracija primenjena; SQL role proba 3/3 → 2/3 PASS. Stvarni izbor zamene, HTTP i uređaj ostaju otvoreni. |

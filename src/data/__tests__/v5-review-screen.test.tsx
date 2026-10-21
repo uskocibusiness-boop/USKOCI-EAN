@@ -225,6 +225,45 @@ it('keeps unsafe published edits unavailable and retains the conversation', asyn
   /* the eyebrow "Ti odlučuješ šta objavljuješ" is no longer drawn (owner, 2026-09-23) */ 
 });
 
+const replacementReview = (base = 0): AiTaskReviewEnvelope => ({ ...review(), draftId: base ? NEED : OTHER,
+  draftRevision: base || 4, replacement: { version: 'TASK_REPLACEMENT_V1', sourceNeedId: OTHER,
+    sourceRevision: 4, sourceFingerprint: 'e'.repeat(64), targetNeedId: NEED, targetBaseRevision: base } });
+
+it.each([0, 2])('keeps signed replacement at base %i in edit mode, including a reopened private candidate', async base => {
+  const shown = replacementReview(base);
+  mockPrepare.mockResolvedValue(ok(shown));
+  mockNeed.mockResolvedValue({ id: shown.draftId, narucilacId: OWNER, revizija: shown.draftRevision,
+    stanje: base ? 'NACRT' : 'OBJAVLJENA' });
+  await render();
+  expect(text()).toContain('Pregled izmena');
+  expect(text()).toContain('Provera izmena ne povlači postojeću objavu.');
+  expect(text()).toContain('Prijave se ne prenose na nove uslove.');
+  expect(text()).not.toContain('Objavljivanje izmena trenutno nije dostupno.');
+  expect(commands('Objavi zadatak')).toHaveLength(0);
+  const confirm = tree.root.findByProps({ accessibilityLabel: 'Potvrdi izmene' }).props;
+  expect(confirm.disabled).toBe(false);
+  await act(async () => confirm.onPress());
+  expect(mockAccept).toHaveBeenCalledWith({ review: shown, clientRequestId: expect.any(String) });
+  expect(mockDraft).not.toHaveBeenCalled();
+});
+
+it.each(['ACCEPTED', 'EVALUATED'] as const)('retains replacement consequences on recovered %s command', async state => {
+  const shown = replacementReview(), saved = state === 'ACCEPTED' ? command() : notReadyCommand();
+  mockLatest.mockResolvedValue(ok({ review: shown, command: saved }));
+  await render();
+  expect(text()).toContain('Pregled izmena');
+  expect(text()).toContain('Provera izmena ne povlači postojeću objavu.');
+  expect(text()).toContain('Prijave se ne prenose na nove uslove.');
+  expect(text()).not.toContain('Zadatak nije objavljen.');
+  expect(mockAccept).not.toHaveBeenCalled();
+  expect(mockResume).not.toHaveBeenCalled();
+  if (state === 'EVALUATED') {
+    mockOpenEdit.mockResolvedValue(ok({ conversationId: CONVERSATION, needId: NEED, revision: 1, status: 'DRAFT', authoritative: true }));
+    await act(async () => action('Izmeni zadatak').onPress());
+    expect(mockOpenEdit).toHaveBeenCalledWith(NEED);
+  }
+});
+
 it.each(['missing', 'network'] as const)('retries an unconfirmed bound-task read (%s) and permits a confirmed private draft', async kind => {
   const bound = { ...review(), draftId: NEED, draftRevision: 4 };
   mockPrepare.mockResolvedValue(ok(bound));

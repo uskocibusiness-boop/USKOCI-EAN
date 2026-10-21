@@ -1,3 +1,5 @@
+**Kasnija dopuna PED02:** [staged replacement](PUBLISHED_TASK_REPLACEMENT_20261021.md) zamenjuje privremenu blokadu za novi nepromenljivi replacement ugovor. Ovaj PED01 dokument je istorijski dokaz containment-a.
+
 # PED01 — zaštita postojeće objave (21.10.2026)
 
 ## Status
