@@ -351,6 +351,18 @@
         "raw_md5": "91c63e9fee55dd66dfa120673c721bc1",
         "raw_sha256": "e2c40877d39d9546bd0cdd6584c7bd07db63e7546e8e92612e34e75a78f0c1b8",
         "raw_bytes": 114967
+      },
+      {
+        "file": "20261021120000_ai_history_h1_metadata.sql",
+        "version": "20261021120000",
+        "name": "ai_history_h1_metadata",
+        "classification": "SOURCE_ONLY_LIVE_BINDING_UNPROVEN",
+        "live_applied": null,
+        "preparation_status": "PREPARED_NOT_APPLIED",
+        "note": "H1 owner-scoped metadata source only. No DEV/prod application or PostgreSQL runtime proof is claimed; H2 transcript, hide and delete remain absent.",
+        "raw_md5": "af1eb7c4a6a339c0ab0f99f68fe34173",
+        "raw_sha256": "b43d849f71de81e386189f974a4eca88f3ec35bc3e1c25bc5e3c415d5c80e7a0",
+        "raw_bytes": 6085
       }
     ],
     "last_extended_at_utc": "2026-10-19T09:25:50.014443+00:00"

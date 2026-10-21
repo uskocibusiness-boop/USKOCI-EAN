@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState, type ReactNode } from 'react';
 import { FlatList, Platform, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { DogovorProjekcija } from '../../contracts/projections';
+import type { NeedSearchState } from '../../contracts/needSearchRecovery';
 import type { AgreementCancellations } from '../../data/agreementCancellationClientService';
 import { Press } from '../Press';
 import { useAppear } from '../system/Appear';
@@ -31,6 +32,9 @@ type Props = {
   section: AgreementCollectionSection; confirmationOnly: boolean;
   onSection: (value: AgreementCollectionSection) => void; onConfirmationOnly: (value: boolean) => void;
   onRefresh: () => void; onOpen: (agreement: DogovorProjekcija) => void;
+  /** Optional owner-only task-wide read; missing values make no coverage claim. */
+  ownerCapacities?: ReadonlyMap<string, NeedSearchState> | null;
+  onOpenOwnerTask?: (taskId: string, witness: DogovorProjekcija) => void;
   /**
    * Opens the rating of a finished Dogovor straight from its card (round-1 critique A2). The route owns the guard and
    * the navigation. Without it the card still says the rating waits, as words inside the card's own press.
@@ -129,12 +133,16 @@ export function AgreementCollectionPresentation(props: Props) {
   const rateItem = useCallback((item: DogovorProjekcija) => rateRef.current?.(item), []);
   const rates = !!onRate;
   const cancellations = props.cancellations;
+  const ownerCapacities = props.ownerCapacities;
+  const ownerTaskRef = useRef(props.onOpenOwnerTask); ownerTaskRef.current = props.onOpenOwnerTask;
+  const openOwnerTask = useCallback((taskId: string, witness: DogovorProjekcija) => ownerTaskRef.current?.(taskId, witness), []);
   const renderItem = useCallback(({ item: row, index }: ListRenderItemInfo<ListRow>) => row.kind === 'group'
     ? <GroupHeader title={row.title} first={index === 0} />
     : <AgreementTaskRow group={row.task} index={index} now={now} animate={appearRef.current.isNew(row.id)} onOpen={openItem}
       expanded={expandedKey === row.task.key} onExpand={expand} cancellations={cancellations}
+      ownerCapacities={ownerCapacities} onOpenOwnerTask={props.onOpenOwnerTask ? openOwnerTask : undefined}
       prioritize={section === 'history' ? historyFilter : filtering ? 'confirmation' : 'all'}
-      onRate={rates ? rateItem : undefined} />, [openItem, rateItem, rates, now, cancellations, expandedKey, expand, section, historyFilter, filtering]);
+      onRate={rates ? rateItem : undefined} />, [openItem, rateItem, rates, now, cancellations, ownerCapacities, props.onOpenOwnerTask, openOwnerTask, expandedKey, expand, section, historyFilter, filtering]);
   // A set that is empty while the other one is not leads to the one that has Dogovori, with the filter off, so the
   // way forward never lands on another empty view (review r3 item 7).
   const target: AgreementCollectionSection = (section === 'active' && !filtering) || !activeCount ? 'history' : 'active';
@@ -168,25 +176,22 @@ export function AgreementCollectionPresentation(props: Props) {
             body={section === 'history' ? 'Ovde će biti završeni i otkazani Dogovori.' : 'Dogovor nastaje kad izabereš prijavu ili te izaberu.'}
             primary={first} quiet={second} />}
   </View>;
-  // Aktivni: the one filter. Istorija: "Sve · Završeni · Otkazani". A chip is a choice of what is shown, not a command.
-  const chips = section === 'active' ? (waiting || confirmationOnly ? <Press accessibilityRole="checkbox" accessibilityLabel="Čeka tvoju potvrdu"
+  // Keep controls backed by a settled read. An initial read or a failed read must not offer filters over stale rows.
+  const chips = section === 'active' ? (settledRead && (waiting || confirmationOnly) ? <Press accessibilityRole="checkbox" accessibilityLabel="Čeka tvoju potvrdu"
     accessibilityState={{ checked: confirmationOnly }} onPress={() => props.onConfirmationOnly(!confirmationOnly)} haptic="select"
     style={[s.chip, confirmationOnly && s.chipOn]}>
     {confirmationOnly ? <Glyph name="check" size={16} tone="green" /> : null}
     <T variant="meta" style={[s.chipText, confirmationOnly && s.chipTextOn]}>Čeka tvoju potvrdu</T>
-  </Press> : null) : settledRead && historyCount ? <View accessibilityRole="radiogroup" accessibilityLabel="Stanje završenih Dogovora" style={s.chipRow}>
+  </Press> : null) : settledRead && historyCount ? <View accessibilityRole="radiogroup" accessibilityLabel="Ishod Dogovora" style={s.outcomeRow}>
     {HISTORY_FILTERS.map(option => {
       const on = historyFilter === option.key;
-      return <Press key={option.key} accessibilityRole="radio" accessibilityLabel={option.label} accessibilityState={{ checked: on }}
-        onPress={() => setHistoryFilter(option.key)} haptic="select" style={[s.chip, on && s.chipOn]}>
-        {on ? <Glyph name="check" size={16} tone="green" /> : null}
-        <T variant="meta" style={[s.chipText, on && s.chipTextOn]}>{option.label}</T>
+      return <Press key={option.key} accessibilityRole="radio" accessibilityLabel={option.key === 'all' ? 'Svi ishodi' : option.label}
+        accessibilityState={{ checked: on }} onPress={() => setHistoryFilter(option.key)} haptic="select"
+        style={[s.outcomeChoice, on && s.outcomeChoiceOn]}>
+        <T variant="meta" style={[s.outcomeText, on && s.outcomeTextOn]}>{option.label}</T>
       </Press>;
     })}
   </View> : null;
-  // Istorija holds the strip of its chips while they are on their way (the read) and while it has history to filter, so the list does
-  // not slide down when the read settles.
-  const holdsStrip = section === 'history' && !error && (loading || historyCount > 0);
   return <SafeAreaView edges={['top']} style={s.screen}>
     {/* The root bar is the same on all three tabs: profile · mark · bell (round-1 critique A12). */}
     {props.header ?? <ScreenHeader title="Dogovori" showTitle onProfile={props.onProfile} />}
@@ -197,10 +202,14 @@ export function AgreementCollectionPresentation(props: Props) {
         <View style={s.tabs}><Segmented appearance="underline" equal options={SECTIONS} value={section} onChange={props.onSection} /></View>
         <ChromeIconButton glyph="calendar" label="Raspored" onPress={props.onCalendar} />
       </View>
-      {hasBothRoles || roleFilter !== 'all' ? <View style={s.toolbar}>
+      {settledRead && (hasBothRoles || roleFilter !== 'all') ? <View style={s.filterRow}>
+        <View style={s.filterNameSlot}><T variant="meta" tone="muted" style={s.filterName}>Uloga</T></View>
         <AgreementRoleRail value={roleFilter} onChange={value => { setRoleFilter(value); props.onConfirmationOnly(false); }} />
       </View> : null}
-      {chips || holdsStrip ? <View style={s.toolbar}>{chips}</View> : null}
+      {chips ? <View style={s.filterRow}>
+        {section === 'history' ? <View style={s.filterNameSlot}><T variant="meta" tone="muted" style={s.filterName}>Ishod</T></View> : null}
+        {chips}
+      </View> : null}
       {section === 'history' && settledRead && attention > 0 ? <Press accessibilityRole="button"
         accessibilityLabel={waitingTitle(attention)} accessibilityHint="Otvara Dogovore, prvo one koji čekaju tvoju radnju."
         onPress={() => { props.onSection('active'); props.onConfirmationOnly(false); }} style={s.attentionLink}>
@@ -220,9 +229,15 @@ const s = StyleSheet.create({
   controls: { paddingHorizontal: layout.gutter, paddingTop: sys.space.xs },
   tabRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   tabs: { flex: 1, minWidth: 0 },
-  // Istorija keeps this strip's height whether its chips are drawn yet or not, so the list does not slide down when the read settles.
-  toolbar: { flexDirection: 'row', alignItems: 'center', minHeight: layout.touch, paddingTop: sys.space.xs },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: sys.space.sm },
+  // Keep the label beside the first line when large text wraps the outcome choices on a narrow screen.
+  filterRow: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm, minHeight: layout.touch, paddingTop: sys.space.xs },
+  filterNameSlot: { minHeight: layout.touch, justifyContent: 'center', flexShrink: 0 },
+  filterName: { fontWeight: '600' },
+  outcomeRow: { flex: 1, minWidth: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: sys.space.xs },
+  outcomeChoice: { minHeight: layout.touch, paddingHorizontal: sys.space.xs, justifyContent: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  outcomeChoiceOn: { borderBottomColor: sys.color.green },
+  outcomeText: { color: sys.color.muted, fontWeight: '600' },
+  outcomeTextOn: { color: sys.color.green },
   chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: layout.touch, paddingHorizontal: sys.space.base, borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   chipOn: { borderColor: sys.color.green, backgroundColor: sys.color.surface },
   chipText: { color: sys.color.ink, fontWeight: '600' }, chipTextOn: { color: sys.color.green },

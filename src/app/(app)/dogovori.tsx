@@ -4,11 +4,14 @@ import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { AppState } from 'react-native';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import type { DogovorProjekcija } from '../../contracts/projections';
+import type { NeedSearchState } from '../../contracts/needSearchRecovery';
 import { agreementCancellationService, type AgreementCancellations } from '../../data/agreementCancellationClientService';
+import { needSearchRecoveryClientService } from '../../data/needSearchRecoveryClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
 import { filterAgreementRole, groupAgreementTasks, isActiveAgreementTask, type HistoryFilter, type AgreementRoleFilter } from '../../ui/agreements/agreementListModel';
+import { ownerCapacityNeedIds, sameOwnerTaskId } from '../../ui/agreements/ownerTaskCapacity';
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../../ui/v2/AgreementCollectionPresentation';
 
 export default function Dogovori() {
@@ -105,6 +108,36 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
     navigate(() => router.navigate({ pathname: '/oceni-dogovor', params: { agreementId: agreement.id, from: 'dogovori' } }));
   };
   const onProfile = () => navigate(() => router.navigate('/profil'));
+  // Optional task-wide read. Each result is owner-only and belongs to this exact
+  // settled Agreement list, account incarnation, focus and foreground visit.
+  // Four reads at a time, at most twelve tasks; a slow task never blocks the list.
+  const capacityIds = useMemo(() => ownerCapacityNeedIds(resource.data ?? []), [resource.data]);
+  const capacityKey = capacityIds.join('|');
+  const [capacities, setCapacities] = useState<{ key: string; value: ReadonlyMap<string, NeedSearchState>;
+    scope: object | null; generation: number; data: typeof resource.data } | null>(null);
+  useEffect(() => {
+    if (!current() || resource.loading || resource.refreshing || resource.error || !capacityIds.length || !user?.id) return;
+    let live = true;
+    const value = new Map<string, NeedSearchState>();
+    void (async () => {
+      for (let from = 0; from < capacityIds.length; from += 4) {
+        const ids = capacityIds.slice(from, from + 4);
+        const results = await Promise.all(ids.map(needId => needSearchRecoveryClientService.read(needId,
+          { accountId: user.id, accountRevision }).catch(() => null)));
+        if (!live || !current()) return;
+        results.forEach((result, index) => { if (result?.ok) value.set(ids[index], result.podatak); });
+        setCapacities({ key: capacityKey, value: new Map(value), scope,
+          generation: renderedReadGeneration, data: resource.data });
+      }
+    })();
+    return () => { live = false; };
+  }, [capacityKey, capacityIds, user?.id, accountRevision, scope, renderedReadGeneration,
+    resource.data, resource.loading, resource.refreshing, resource.error]); // eslint-disable-line react-hooks/exhaustive-deps
+  const openOwnerTask = (taskId: string, witness: DogovorProjekcija) => {
+    if (!shown(witness) || !sameOwnerTaskId(witness.izvor?.zadatakId, taskId)
+      || !witness.ucesnici?.some(person => person.viSte && person.uloga === 'narucilac')) return;
+    navigate(() => router.navigate({ pathname: '/potrebe/[id]/pregled', params: { id: taskId } }));
+  };
   // One bounded read for cancelled collaborations in this section, including siblings of an active task.
   // A failed or stale read leaves the authoritative status visible without inventing a reason.
   const cancelledIds = useMemo(() => groupAgreementTasks(filterAgreementRole(resource.data ?? [], roleFilter))
@@ -122,6 +155,8 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
     return () => { live = false; };
   }, [cancelledKey, user?.id, accountRevision, scope, renderedReadGeneration, resource.data, resource.loading, resource.refreshing, resource.error]); // eslint-disable-line react-hooks/exhaustive-deps
   return <AgreementCollectionPresentation header={<ScreenHeader title="Dogovori" showTitle onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
+    ownerCapacities={!resource.loading && !resource.refreshing && !resource.error && current() && capacities?.key === capacityKey
+      && capacities.scope === scope && capacities.generation === renderedReadGeneration && capacities.data === resource.data ? capacities.value : null}
     cancellations={!resource.loading && !resource.refreshing && !resource.error && current() && cancellations?.key === cancelledKey && cancellations.scope === scope
       && cancellations.generation === renderedReadGeneration && cancellations.data === resource.data ? cancellations.value : null}
     section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter} roleFilter={roleFilter}
@@ -130,7 +165,7 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
     onConfirmationOnly={value => { if (current()) onConfirmationOnly(value); }}
     onHistoryFilter={value => { if (current()) onHistoryFilter(value); }}
     onRoleFilter={value => { if (current()) { onRoleFilter(value); onConfirmationOnly(false); } }}
-    onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open} onRate={rate}
+    onRefresh={() => { if (current()) void resource.refresh(true); }} onOpen={open} onRate={rate} onOpenOwnerTask={openOwnerTask}
     onCalendar={() => navigate(() => router.navigate('/raspored'))}
     onProfile={onProfile}
     onHome={() => navigate(() => router.navigate('/'))}

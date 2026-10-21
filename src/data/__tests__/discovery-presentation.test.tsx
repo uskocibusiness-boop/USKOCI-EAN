@@ -1841,6 +1841,12 @@ test('pin and discovery list keep the truthful task face without redundant surro
   const words = texts(peek()!);
   expect(words).toContain('Selidba klavira u Zemunu'); expect(words).toContain('Zemun, Beograd'); expect(words).toContain('26. sep · 10:00–12:00');
   expect(words).toContain('2.000 RSD'); expect(words).toContain('ukupno'); expect(words).toContain('Mila');
+  expect(words).toContain('ZADATAK NA MAPI'); expect(words).toContain('Objavljivač'); expect(words).toContain('4,8 (12)');
+  expect(words.indexOf('Selidba klavira u Zemunu')).toBeLessThan(words.indexOf('Mila'));
+  expect(words.indexOf('Mila')).toBeLessThan(words.indexOf('Zemun, Beograd'));
+  const previewArt = card.findAll(node => ['map', 'money', 'star'].includes(String(node.props.kind)))
+    .map(node => node.props.kind);
+  expect(previewArt).toEqual(expect.arrayContaining(['map', 'money', 'star']));
   // Who is needed is said in words and only where it is more than one (the owner, 8 Oct 2026: no "0/1"): the person who can come is told how many places are left.
   expect(words).toContain('Još 2 od 3 mesta'); expect(words).not.toContain('1/3');
   // The card draws no word for what the amount is (the owner, 8 Oct 2026); a screen reader is told it is the budget.
@@ -2582,6 +2588,7 @@ test('a time choice says under the list how many tasks it leaves out because the
 
 // At narrow widths the search context is its own line, preserving separate accessible tools.
 test('at large text the search stays one line with separate tools and the pin preview may use more room', async () => {
+  rows = [row('bb', { narucilacIme: 'Mila', narucilacOcena: '4,8', narucilacBrojOcena: 12 })];
   initial = { ...initial, place: 'Beograd' };
   mockWindow = { width: 320, height: 640, scale: 2, fontScale: 1 }; await render();
   await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
@@ -2600,6 +2607,13 @@ test('at large text the search stays one line with separate tools and the pin pr
   expect(capsuleLabels()).not.toContain('Filteri');
   await act(async () => map().props.onSelect('bb'));
   expect(peek()!.props.maxDynamicContentSize).toBe(640 * 0.75);
+  const card = press('Otvori zadatak: Pomoć bb');
+  const cardWords = texts(card);
+  expect(cardWords.indexOf('Pomoć bb')).toBeLessThan(cardWords.indexOf('Mila'));
+  expect(cardWords.indexOf('Mila')).toBeLessThan(cardWords.indexOf('Beograd'));
+  const head = card.findByProps({ testID: 'task-face-map-head' });
+  expect(StyleSheet.flatten(head.props.style)).toMatchObject({ marginRight: sys.touch.min, minHeight: sys.touch.min - sys.space.sm });
+  expect(StyleSheet.flatten(press('Zatvori pregled zadatka').props.style)).toMatchObject({ width: sys.touch.min, height: sys.touch.min });
 });
 
 // Appearance may evolve; selection still has words, a check, accessibility state and a full touch target.
@@ -3394,22 +3408,25 @@ describe('Zadaci composition: three heights, capsules over the map, furniture ab
     expect(Number(listSheet().props.snapPoints[0])).toBeGreaterThan(HIDDEN);
   });
 
-  test('the whole card is one tap that opens the task, the same facts in the same order as the list card', async () => {
+  test('the whole card is one tap with the list facts, bringing publisher and rating into the first scan', async () => {
     rows = six().map(item => ({ ...item, narucilacIme: 'Marija', narucilacOcena: '4,8', narucilacBrojOcena: 12 }) as MarketplaceItem);
     await render(); await layOutBody(800);
     await act(async () => map().props.onSelect('t1'));
     const pin = press('Otvori zadatak: Pomoć t1');
     expect(pin.props.accessibilityRole).toBe('button');
-    // Reading order of the face: title, then what it pays and the places, then where, then when, then who. The list card is the same order.
+    // The map preview leads with the publisher; the list keeps supporting facts before its footer.
     const order = (root: ReactTestInstance) => root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')) as string[];
     const onPin = order(pin), onList = order(listSheet().findAll(node => String(node.type) === 'Press' && CARD_LABEL.test(node.props.accessibilityLabel ?? '') && cardTitle(node) === 'Pomoć t1')[0]);
     const at_ = (words: string[], needle: string) => words.findIndex(word => word.includes(needle));
     for (const words of [onPin, onList]) {
       expect(at_(words, 'Pomoć t1')).toBeLessThan(at_(words, 'RSD'));
-      expect(at_(words, 'RSD')).toBeLessThan(at_(words, 'Beograd'));
       expect(at_(words, 'Beograd')).toBeLessThan(at_(words, 'Po dogovoru'));
-      expect(at_(words, 'Po dogovoru')).toBeLessThan(at_(words, 'Marija'));
+      expect(at_(words, '4,8 (12)')).toBeGreaterThan(at_(words, 'Marija'));
     }
+    expect(at_(onPin, 'RSD')).toBeLessThan(at_(onPin, 'Marija'));
+    expect(at_(onPin, 'Marija')).toBeLessThan(at_(onPin, 'Beograd'));
+    expect(at_(onList, 'RSD')).toBeLessThan(at_(onList, 'Beograd'));
+    expect(at_(onList, 'Po dogovoru')).toBeLessThan(at_(onList, 'Marija'));
     await act(async () => pin.props.onPress());
     expect(open).toHaveBeenCalledTimes(1); expect(open.mock.calls[0][0].id).toBe('t1');
   });

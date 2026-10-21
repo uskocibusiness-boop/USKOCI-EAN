@@ -239,6 +239,7 @@
     },
     {
       "id": "A02",
+      "source_progress_20261021_native": "DEV task AI 117 sprečava tiho pretvaranje izričite EUR sume u RSD; ne obezbeđuje pun viševalutni ugovor. H1 owner AI history metadata SQL i klijentski dekoder su source-only, nisu na DEV-u niti su istorijski ekran i brisanje spremni. Otvoren bound edit sme da se nastavi; read-only H1 projekcija je ispravljena pre primene. Dokaz: docs/current/AI_CONVERSATION_HISTORY_CONTRACT_20261021.md i lokalni Jest/SQL source proof. Nema novog HONOR/APK dokaza.",
       "grupa": "Put A · Objavi zadatak",
       "naslov": "Razgovor sa AI: kaži šta treba",
       "source_progress_20261021_named_conversation": "Lokalni klijent: imenovan Novi razgovor u niti umesto tri tačke/osvežavanja u zaglavlju; naslov otvorenog nacrta samo iz potvrđenog need.title. Uklanjanje aktivne stavke zahteva potvrdu i readback; nije trajni delete istorije. Fokusirani AI skup 333/333 PASS, TSC PASS. Native 320dp i ceo tok objave nisu potvrđeni. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
@@ -2113,6 +2114,7 @@
     },
     {
       "id": "B00",
+      "source_progress_20261021_native": "Radni AI V1 ima samo jedan grad/radijus; Vojvodina, cela Srbija i više gradova nisu aktivna pokrivenost. Area V2 i uklanjanje novih predloga alata/vozila ostaju izolovani kandidati van Edge runtime-a; signed Save još upisuje istorijsku opremu. Dokaz: docs/current/WORKER_AI_AREA_MVP_GAP_20261021.md i docs/candidates/worker-equipment-mvp/README.md. Bez DEV/HONOR objave.",
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Radni profil kroz razgovor sa AI",
       "source_progress_20261021_safe_exit": "Lokalni klijent: Novi razgovor je imenovana radnja u niti; Napusti razgovor ima potvrdu, abandon i readback istog razgovora. Profil se otvara tek na potvrđen ABANDONED; OPEN/neuspešno čitanje čuva neposlati tekst. Fokusirani 333/333 PASS, TSC PASS; server nema list/archive/delete istorije, native raspored i ceo intervju otvoreni. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
@@ -2576,6 +2578,7 @@
     },
     {
       "id": "B01",
+      "source_progress_20261021_native": "Obični sačuvani profil ne ističe alat/vozilo, ali završni potpisani pregled mora ostati veran podacima koje postojeći Save može da upiše. Kvalitet prikaza na novom HONOR buildu nije potvrđen; Area V2 i oprema zahtevaju serverski ugovor. Dokaz: docs/current/WORKER_AI_AREA_MVP_GAP_20261021.md.",
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Lični radni profil — pregled i izmene",
       "nacrt": "UX nacrt §5 korak 0",
@@ -3203,6 +3206,7 @@
     },
     {
       "id": "B04",
+      "source_progress_20261021_native": "Izabrani pin u lokalnom klijentu dobio je map/novac ilustraciju, jasniji naslov, objavljivača i ocenu u prvom pregledu; filteri i tri položaja panela ostaju. P6 pin read model ne nosi cenu, pa mala oznaka ne izmišlja iznos. MapLibre prirodni fling treba izmeriti na HONOR-u; izvorni ciljano testovi i TypeScript prolaze, bez novog APK-a. Dokaz: src/ui/v2/discovery/TaskRecordBody.tsx i DiscoveryPeek.tsx.",
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Mapa i lista prilika",
       "source_progress_20261021_place_guard": "Lokalni klijent: Filteri su jedina primarna gornja komanda; LocationIQ mesto se primenjuje na kameru i P6 oblast. Kadar koji ne sadrži izabranu tačku ne sme da sačuva njen naziv nad tuđim rezultatima (discovery-presentation 238/238 PASS). Donja navigacija pri punoj listi ima source/test dokaz 42/42, ali HONOR dodir, native kamera/gest i ceo povratak iz detalja nisu potvrđeni. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
@@ -4971,6 +4975,7 @@
     },
     {
       "id": "D01",
+      "source_progress_20261021_native": "Lokalni Dogovori koriste owner-only rpc_get_need_search_state za potvrđen broj 1/2, 2/3 itd. (najviše 12 zadataka, četiri paralelna read-a). Broj istorijskih saradnji je posebno označen ukupno; radnik ne dobija owner count. Loading/greška/zastareli odgovor uklanjaju broj i vode vlasnika na zadatak sa svežom proverom. Ciljana 3 Jest paketa/83 PASS, TypeScript PASS; DEV katalog potvrđuje RPC, ali 3/3→2/3→3/3 nije dvonaložno/HONOR potvrđeno. Dokaz: src/ui/agreements/ownerTaskCapacity.ts i docs/current/DOGOVOR_TASK_CAPACITY_GAP_20261021.md.",
       "source_progress_20261021_connected_ui": "SOURCE/TEST: Lista Dogovora prikazuje sopstvenu ulogu i cenu pojedinacne saradnje; Sve uloge je jasan filter. Zajednicki ciljani prolaz 16 suite-ova/758 PASS, TSC i diff check PASS. Nema HONOR prihvatanja. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "source_progress_20261018_page_integrity": "SOURCE/TEST: neispravan hasMore/kursor, duplikati ili pogrešan redosled više ne daju uspešan nepotpun spisak. Mikrosekunde očuvane; Home otkazuje naredne stranice i transport na retirement/timeout. 24 nova regresiona testa; puna regresija 621/13861 PASS. Live authenticated read tri mala naloga potvrđuje envelope/keyset oblik; bez nove DB promene ili device prihvatanja. docs/current/HOME_READ_CONTINUATION_20261018.md.",
       "grupa": "Dogovor",

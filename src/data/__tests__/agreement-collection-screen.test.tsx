@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
-const mockRead = jest.fn(), mockNavigate = jest.fn(), mockCancellations = jest.fn();
+const mockRead = jest.fn(), mockNavigate = jest.fn(), mockCancellations = jest.fn(), mockCapacityRead = jest.fn();
 let mockSession = { user: { id: 'account-a' }, accountRevision: 1 }, mockIntent = 'narucilac', mockFocused = true;
 let mockParams: { odeljak?: string } = {};
 const mockSource = { mojiDogovori: () => mockRead() };
@@ -17,6 +17,7 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource, izvorSada: () => mockSource, useUloga: () => mockIntent, ulogaSada: () => mockIntent }));
 jest.mock('../agreementCancellationClientService', () => ({ agreementCancellationService: { read: (...args: unknown[]) => mockCancellations(...args) } }));
+jest.mock('../needSearchRecoveryClientService', () => ({ needSearchRecoveryClientService: { read: (...args: unknown[]) => mockCapacityRead(...args) } }));
 jest.mock('../../ui/v2/AgreementCollectionPresentation', () => ({ AgreementCollectionPresentation: 'Agreements' }));
 // This route suite isolates the whole presentation; its injected header/photo are separate UI leaves.
 jest.mock('../../ui/system/ScreenHeader', () => ({ ScreenHeader: 'ScreenHeader' }));
@@ -33,6 +34,7 @@ beforeEach(() => {
   mockParams = {};
   mockRead.mockReset().mockImplementation(async () => [{ id: 'owned', verzija: 1 }]); mockNavigate.mockReset();
   mockCancellations.mockReset().mockResolvedValue({ ok: true, podatak: new Map() });
+  mockCapacityRead.mockReset().mockResolvedValue({ ok: false, kod: 'UNAVAILABLE', poruka: 'x' });
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 
@@ -297,4 +299,58 @@ test('same cancellation IDs never retain an old reason across new reads, failure
   mockCancellations.mockResolvedValueOnce({ ok: true, podatak: new Map([['cancelled', { reasonState: 'REMOVED', reason: null }]]) });
   await act(async () => props().onRefresh());
   expect(props().cancellations.get('cancelled')).toEqual({ reasonState: 'REMOVED', reason: null });
+});
+
+const NEED = '20000000-0000-4000-8000-000000000001';
+const ownerRows = (cancelled = false) => ['a', 'b', 'c'].map((id, index) => ({ id, verzija: 1,
+  stanje: cancelled && index === 2 ? 'CANCELLED' : 'CONFIRMED', izvor: { zadatakId: NEED, prijavaId: null },
+  ucesnici: [{ viSte: true, uloga: 'narucilac' }, { viSte: false, uloga: 'uskocer' }] }));
+const capacity = (coveredSlots: number) => ({ schemaVersion: 1, authoritative: true, needId: NEED, revision: 7,
+  serverAsOf: '2026-10-21T10:00:00Z', status: coveredSlots === 3 ? 'ACTIVE' : 'SELECTION', requiredSlots: 3,
+  coveredSlots, missingSlots: 3 - coveredSlots, searchAuthority: 'CLOSED', closedAt: '2026-10-21T09:00:00Z',
+  searchTimeAdmitted: true, canReopen: coveredSlots === 2, reason: coveredSlots === 2 ? 'CAN_REOPEN' : 'NO_MISSING_CAPACITY',
+  nextAction: coveredSlots === 2 ? 'REOPEN_SEARCH' : 'OPEN_AGREEMENTS', agreementCount: 3,
+  activeAgreementCount: coveredSlots, awaitingConfirmationCount: 0, openProblemCount: 0 });
+
+test('owner task read changes 3/3 to 2/3 after cancellation and opens the existing owner task', async () => {
+  mockRead.mockResolvedValueOnce(ownerRows()).mockResolvedValueOnce(ownerRows(true));
+  mockCapacityRead.mockResolvedValueOnce({ ok: true, podatak: capacity(3) })
+    .mockResolvedValueOnce({ ok: true, podatak: capacity(2) });
+  await render();
+  expect(props().ownerCapacities.get(NEED).coveredSlots).toBe(3);
+  const before = props();
+  await act(async () => props().onRefresh());
+  expect(props().ownerCapacities.get(NEED).coveredSlots).toBe(2);
+  expect(mockCapacityRead).toHaveBeenCalledTimes(2);
+  expect(mockCapacityRead).toHaveBeenCalledWith(NEED, { accountId: 'account-a', accountRevision: 1 });
+  await act(async () => before.onOpenOwnerTask(NEED, before.items[0]));
+  expect(mockNavigate).not.toHaveBeenCalled();
+  await act(async () => props().onOpenOwnerTask(NEED, props().items[0]));
+  expect(mockNavigate).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/pregled', params: { id: NEED } });
+});
+
+test('refresh hides old capacity while the new Agreement read is unresolved', async () => {
+  mockRead.mockResolvedValueOnce(ownerRows());
+  mockCapacityRead.mockResolvedValueOnce({ ok: true, podatak: capacity(3) });
+  await render(); expect(props().ownerCapacities.get(NEED).coveredSlots).toBe(3);
+  const pending = deferred(); mockRead.mockReturnValueOnce(pending.promise);
+  await act(async () => props().onRefresh());
+  expect(props().ownerCapacities).toBeNull();
+  await act(async () => pending.resolve(ownerRows(true)));
+  expect(props().ownerCapacities?.size).toBe(0);
+});
+
+test('worker linkage, failed enrichment and a late answer after account change disclose no owner count', async () => {
+  mockRead.mockResolvedValueOnce(ownerRows().map(row => ({ ...row, ucesnici: [{ viSte: true, uloga: 'uskocer' }] })));
+  await render(); expect(mockCapacityRead).not.toHaveBeenCalled(); expect(props().ownerCapacities).toBeNull();
+  const worker = props(); await act(async () => worker.onOpenOwnerTask(NEED, worker.items[0]));
+  expect(mockNavigate).not.toHaveBeenCalled();
+  mockRead.mockResolvedValueOnce(ownerRows()); await act(async () => props().onRefresh());
+  expect(mockCapacityRead).toHaveBeenCalledTimes(1); expect(props().ownerCapacities?.size).toBe(0);
+  const late = { resolve: (_value: unknown) => {} } as { resolve: (value: unknown) => void };
+  mockCapacityRead.mockReturnValueOnce(new Promise(done => { late.resolve = done; }));
+  mockRead.mockResolvedValueOnce(ownerRows(true)); await act(async () => props().onRefresh());
+  mockSession = { user: { id: 'account-b' }, accountRevision: 2 }; await update();
+  await act(async () => late.resolve({ ok: true, podatak: capacity(2) }));
+  expect(props().ownerCapacities).toBeNull();
 });

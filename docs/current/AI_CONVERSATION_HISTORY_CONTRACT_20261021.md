@@ -1,7 +1,11 @@
 # USKOČI · Istorija AI razgovora i brisanje — provereni ugovor
 
-**21.10.2026 · lokalna forenzička provera; bez izmene DEV/prod, migracija, Edge funkcija i APK-a.**
+**21.10.2026 · lokalna forenzička provera; bez primene migracija, izmene DEV/prod, Edge funkcija i APK-a.**
 Ovaj dokument nastavlja raniji izolovani predlog za radni AI (`C:/Users/user/Documents/Codex/2026-10-17/u-i-u-radni-direktorijum-projekta/work/worker-ai-history-contract-20261020/proposal.md`), ali zaključci ispod ponovo su provereni u aktuelnom izvornom kodu i read-only DEV katalogu. Nazivi predloženih RPC-ova u ovom dokumentu nisu postojeći API.
+
+**Dopuna izvornog koda, 21.10.2026.** Pripremljena je **source-only, neprimenjena** H1 migracija `20261021120000_ai_history_h1_metadata.sql` sa jednim vlasničkim RPC-om `rpc_list_owned_ai_history_v1` za odvojene `NEED_INTAKE` i `PROFILE` metapodatke i strogim klijentskim dekoderom. Ovaj RPC još nije potvrđen na DEV/prod serveru; ranija read-only kataloška provera ispod ne dokazuje njegovo prisustvo. U H1 odgovoru `canRead=false`, jer kompletan H2 pager poruka i istorijski read-only ekran nisu implementirani. Nema istorijskog UI-ja, skrivanja, trajnog brisanja, push-a ili APK-a. Radni naslov ostaje generički: trenutni profil u inicijalnom kandidatu ne dokazuje koje su usluge predložene baš u toj sesiji. `ABANDONED` i dalje označava napuštanje, ne brisanje. Pre primene migracije obavezna je nova read-only provera stvarnog server kataloga.
+
+Nezavisna provera H1 je zatim ispravila dve projekcije pre primene: otvorena izmena već povezanog zadatka ostaje `canContinue=true` i ponovo prolazi postojeće provere u `/nova`; za napušten razgovor `closedAt` koristi zabeležen trenutak napuštanja kada `completed_at` nije popunjen. DEV katalog je ponovo očitan 21.10.2026: `rpc_list_owned_ai_history_v1` još ne postoji.
 
 ## Odluka za proizvod
 
@@ -39,6 +43,7 @@ Zbog tačaka 2–3, u ovom paketu **nema izmene source UI-ja**: jedan polovičan
 | Stanje | Red u listi | Otvaranje | Dozvoljena radnja |
 | --- | --- | --- | --- |
 | Task `OPEN`, bez povezanog zadatka | „Započeti” + potvrđen naslov ili fallback | Isti `conversationId` u postojećem editoru, posle recovery-ja | „Nastavi” i posebno potvrđeno „Ukloni iz započetih”; drugo znači ABANDONED. |
+| Task `OPEN`, povezana izmena zadatka | „Izmena zadatka” + naslov povezanog zadatka | Isti `conversationId` u postojećem editoru, uz ponovnu proveru zadatka/revizije | „Nastavi izmenu”; ne nuditi napuštanje slobodnog nacrta za bound edit. |
 | Task `COMPLETED`, `bound_need_id` postoji | „Razgovor je završen”; objavu/nacrt imenovati tek po potvrđenom statusu povezanog zadatka | Istorijski read-only razgovor; povezani zadatak posebna akcija | Pregled povezanog zadatka; eventualno „Ukloni iz liste” tek uz H3. |
 | Task `ABANDONED` | „Razgovor je napušten” | Istorijski read-only razgovor | Eventualno „Ukloni iz liste” tek uz H3. |
 | Worker `OPEN` | „Nacrt radnog profila” | Isti CID u aktivnoj ruti uz journal reconciliation | Nastavi, pregledaj, sačuvaj ili napusti prema postojećim guard-ovima. |

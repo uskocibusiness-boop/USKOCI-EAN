@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import type { DogovorProjekcija } from '../../contracts/projections';
+import type { NeedSearchState } from '../../contracts/needSearchRecovery';
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native'), React = require('react');
   return new Proxy(native, { get(target, key) {
@@ -69,17 +70,17 @@ test('active and history preserve both actual participant roles; attention means
   // Nothing in history waits for a confirmation, so the filter is offered on Aktivni only.
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka tvoju potvrdu' })).toHaveLength(0);
 });
-// Plan 2.6: Istorija has its own chips, "Sve · Završeni · Otkazani", and a cancelled Dogovor wears the one "Otkazan" chip.
-test('Istorija offers Sve, Završeni and Otkazani, narrows the list by them and says when a chip holds nothing', async () => {
+// Istorija has an outcome filter; a cancelled Dogovor still wears its own "Otkazan" state chip.
+test('Istorija offers all, completed and cancelled outcomes, narrows the list and recovers from a filter with no results', async () => {
   rows = [agreement('done', 'COMPLETED'), agreement('off', 'CANCELLED'), agreement('done-2', 'COMPLETED'), agreement('live', 'CONFIRMED')];
   await render();
   // Aktivni has no history chips, and Istorija has no confirmation filter.
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Stanje završenih Dogovora' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Ishod Dogovora' })).toHaveLength(0);
   await tap('Istorija');
-  const chips = () => tree.root.findByProps({ accessibilityLabel: 'Stanje završenih Dogovora' }).findAllByProps({ accessibilityRole: 'radio' }).map(node => [node.props.accessibilityLabel, node.props.accessibilityState.checked]);
-  expect(chips()).toEqual([['Sve', true], ['Završeni', false], ['Otkazani', false]]);
+  const chips = () => tree.root.findByProps({ accessibilityLabel: 'Ishod Dogovora' }).findAllByProps({ accessibilityRole: 'radio' }).map(node => [node.props.accessibilityLabel, node.props.accessibilityState.checked]);
+  expect(chips()).toEqual([['Svi ishodi', true], ['Završeni', false], ['Otkazani', false]]);
   expect(titles()).toEqual(['done', 'off', 'done-2'].map(id => `Otvori Dogovor Posao ${id}`));
-  await tap('Završeni'); expect(chips()).toEqual([['Sve', false], ['Završeni', true], ['Otkazani', false]]);
+  await tap('Završeni'); expect(chips()).toEqual([['Svi ishodi', false], ['Završeni', true], ['Otkazani', false]]);
   expect(titles()).toEqual(['Otvori Dogovor Posao done', 'Otvori Dogovor Posao done-2']);
   await tap('Otkazani'); expect(titles()).toEqual(['Otvori Dogovor Posao off']);
   expect(cardTexts('Posao off')).toContain('Otkazan');
@@ -148,11 +149,14 @@ test('leads with the person\'s face beside the work title (two lines at most) an
 });
 test.each(['loading', 'error'])('%s hides stale private rows and error retry uses actual callback', async state => {
   loading = state === 'loading'; error = state === 'error'; await render(); expect(titles()).toEqual([]);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Tvoja uloga u Dogovorima' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka tvoju potvrdu' })).toHaveLength(0);
   if (error) { await act(async () => tree.root.findByProps({ label: 'Pokušaj ponovo' }).props.onPress()); expect(refresh).toHaveBeenCalledTimes(1); }
 });
 test('empty history still offers a real task route, with no invented review or unread controls', async () => {
   rows = []; await render(); expect(texts()).toContain('Još nemaš Dogovor');
   await tap('Istorija'); expect(texts()).toContain('Istorija je prazna');
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Ishod Dogovora' })).toHaveLength(0);
   // History explains what it will contain; the active first encounter retains its task actions.
   expect(texts()).toContain('Ovde će biti završeni i otkazani Dogovori.');
   expect(tree.root.findAll(node => typeof node.type !== 'string' && node.props.kind === 'agreements' && node.props.size === 144)).toHaveLength(1);
@@ -584,6 +588,64 @@ test('a single actual role needs no account-like role switch; mixed roles retain
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Tvoja uloga u Dogovorima' })).toHaveLength(0);
 });
 
+test('mixed roles and history outcomes have distinct visible and spoken meaning while both filters work together', async () => {
+  rows = [agreement('request', 'CONFIRMED'), agreement('help', 'COMPLETED', false), agreement('cancelled-help', 'CANCELLED', false)];
+  await render();
+  expect(texts()).toContain('Uloga');
+  await tap('Uskačem');
+  await tap('Istorija');
+  expect(texts()).toContain('Ishod');
+  expect(tree.root.findByProps({ accessibilityLabel: 'Tvoja uloga u Dogovorima' }).findByProps({ accessibilityLabel: 'Uskačem' }).props.accessibilityState.checked).toBe(true);
+  const outcome = tree.root.findByProps({ accessibilityLabel: 'Ishod Dogovora' }).findByProps({ accessibilityLabel: 'Svi ishodi' });
+  expect(outcome.props.accessibilityState.checked).toBe(true);
+  // A text choice under Ishod is visually subordinate to the outlined role rail while retaining the full touch target.
+  expect(StyleSheet.flatten(outcome.props.style)).toMatchObject({ minHeight: 48, borderBottomWidth: 2 });
+  expect(StyleSheet.flatten(outcome.props.style).borderRadius).toBeUndefined();
+  expect(titles()).toEqual(['Otvori Dogovor Posao help', 'Otvori Dogovor Posao cancelled-help']);
+  await tap('Otkazani');
+  expect(titles()).toEqual(['Otvori Dogovor Posao cancelled-help']);
+  await tap('Svi ishodi');
+  expect(titles()).toEqual(['Otvori Dogovor Posao help', 'Otvori Dogovor Posao cancelled-help']);
+  await tap('Sve uloge');
+  expect(tree.root.findByProps({ accessibilityLabel: 'Tvoja uloga u Dogovorima' }).findByProps({ accessibilityLabel: 'Sve uloge' }).props.accessibilityState.checked).toBe(true);
+});
+
+test('history shows no stale outcome controls during first read or failed read, then restores the selected filter', async () => {
+  rows = [agreement('done', 'COMPLETED'), agreement('off', 'CANCELLED'), agreement('help', 'CONFIRMED', false)];
+  loading = true;
+  await render(); await tap('Istorija');
+  expect(texts()).toContain('Učitavamo Dogovore…');
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Ishod Dogovora' })).toHaveLength(0);
+  loading = false;
+  await act(async () => tree.update(<Screen />));
+  await tap('Otkazani');
+  expect(titles()).toEqual(['Otvori Dogovor Posao off']);
+  error = true;
+  await act(async () => tree.update(<Screen />));
+  expect(texts()).toContain('Ne možemo da učitamo Dogovore');
+  expect(titles()).toEqual([]);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Ishod Dogovora' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Tvoja uloga u Dogovorima' })).toHaveLength(0);
+  error = false;
+  await act(async () => tree.update(<Screen />));
+  expect(tree.root.findByProps({ accessibilityLabel: 'Ishod Dogovora' }).findByProps({ accessibilityLabel: 'Otkazani' }).props.accessibilityState.checked).toBe(true);
+  expect(titles()).toEqual(['Otvori Dogovor Posao off']);
+});
+
+test('a warm history refresh keeps confirmed cards and filter controls in place', async () => {
+  rows = [agreement('done', 'COMPLETED'), agreement('off', 'CANCELLED')];
+  const History = ({ refreshing }: { refreshing: boolean }) => <AgreementCollectionPresentation
+    items={rows} loading={false} refreshing={refreshing} error={false} section="history" confirmationOnly={false}
+    onSection={() => {}} onConfirmationOnly={() => {}} onOpen={open} onRefresh={refresh} onHome={tasks}
+    onCalendar={() => {}} onProfile={() => {}} />;
+  await act(async () => { tree = create(<History refreshing={false} />); });
+  await tap('Otkazani');
+  await act(async () => tree.update(<History refreshing />));
+  expect(titles()).toEqual(['Otvori Dogovor Posao off']);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Ishod Dogovora' }).findByProps({ accessibilityLabel: 'Otkazani' }).props.accessibilityState.checked).toBe(true);
+  expect(texts()).not.toContain('Učitavamo Dogovore…');
+});
+
 test('role filters use my actual participant role and persist across active/history without hiding the reset', async () => {
  rows = [agreement('request', 'CONFIRMED'), agreement('help', 'CONFIRMED', false), agreement('old-help', 'COMPLETED', false)];
  await render();await tap('Uskačem');expect(titles()).toEqual(['Otvori Dogovor Posao help']);
@@ -608,6 +670,59 @@ test('one shared heading keeps individual prices, statuses and original click ta
   await tap('Istorija'); expect(texts()).toContain('Saradnje su uz aktivne zadatke');
   await act(async () => tree.root.findByProps({ label: 'Pogledaj aktivne Dogovore' }).props.onPress());
   expect(titles()).toHaveLength(3);
+});
+
+test('owner group shows task-wide 2/3 only from the matching authoritative read and routes to its task', async () => {
+  const needId = '20000000-0000-4000-8000-000000000001';
+  rows = [collaboration('Ana', 'CONFIRMED'), collaboration('Milan', 'CONFIRMED'), collaboration('Iva', 'CANCELLED')]
+    .map(item => ({ ...item, izvor: { ...item.izvor, zadatakId: needId } }));
+  const state: NeedSearchState = { schemaVersion: 1, authoritative: true, serverAsOf: '2026-10-21T10:00:00Z',
+    needId, revision: 7, status: 'SELECTION', requiredSlots: 3, coveredSlots: 2, missingSlots: 1,
+    searchAuthority: 'CLOSED', closedAt: '2026-10-21T09:00:00Z', searchTimeAdmitted: true,
+    canReopen: true, reason: 'CAN_REOPEN', nextAction: 'REOPEN_SEARCH', agreementCount: 3,
+    activeAgreementCount: 2, awaitingConfirmationCount: 0, openProblemCount: 0 };
+  const openTask = jest.fn();
+  let mounted = false;
+  const draw = async (capacities: ReadonlyMap<string, NeedSearchState> | null) => act(async () => {
+    const element = <AgreementCollectionPresentation items={rows} loading={false} error={false} now={NOW}
+      section="active" confirmationOnly={false} onSection={() => {}} onConfirmationOnly={() => {}}
+      onOpen={open} onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}}
+      ownerCapacities={capacities} onOpenOwnerTask={openTask} />;
+    if (mounted) tree.update(element); else { tree = create(element); mounted = true; }
+  });
+  await draw(null);
+  expect(texts()).toMatch(/3 saradnje\s+ukupno/);
+  expect(texts()).not.toContain('Potvrđeno 2/3');
+  expect(texts()).toContain('Proveri popunjenost zadatka');
+  await draw(new Map([[needId, state]]));
+  expect(texts()).toContain('Potvrđeno 2/3');
+  expect(texts()).toContain('Možeš ponovo da tražiš ljude u zadatku.');
+  await tap('Otvori zadatak: Selidba');
+  expect(openTask).toHaveBeenCalledWith(needId, rows[0]);
+  await draw(new Map([[needId, { ...state, needId: '20000000-0000-4000-8000-000000000099' }]]));
+  expect(texts()).not.toContain('Potvrđeno 2/3');
+});
+
+test('single owner collaboration can show 1/2, while the worker cannot see owner capacity or its task action', async () => {
+  const needId = '20000000-0000-4000-8000-000000000002';
+  const state: NeedSearchState = { schemaVersion: 1, authoritative: true, serverAsOf: '2026-10-21T10:00:00Z',
+    needId, revision: 2, status: 'SELECTION', requiredSlots: 2, coveredSlots: 1, missingSlots: 1,
+    searchAuthority: 'OPEN', closedAt: null, searchTimeAdmitted: true, canReopen: false,
+    reason: 'SEARCH_ALREADY_OPEN', nextAction: 'SEARCH_IN_PROGRESS', agreementCount: 1,
+    activeAgreementCount: 1, awaitingConfirmationCount: 0, openProblemCount: 0 };
+  let mounted = false;
+  const draw = async (requester: boolean) => act(async () => {
+    const item = agreement('Ana', 'CONFIRMED', requester);
+    rows = [{ ...item, izvor: { zadatakId: needId, prijavaId: null } }];
+    const element = <AgreementCollectionPresentation items={rows} loading={false} error={false} now={NOW}
+      section="active" confirmationOnly={false} onSection={() => {}} onConfirmationOnly={() => {}}
+      onOpen={open} onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}}
+      ownerCapacities={new Map([[needId, state]])} onOpenOwnerTask={() => {}} />;
+    if (mounted) tree.update(element); else { tree = create(element); mounted = true; }
+  });
+  await draw(true); expect(texts()).toContain('Potvrđeno 1/2');
+  await draw(false); expect(texts()).not.toContain('Potvrđeno 1/2');
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Otvori zadatak: Posao Ana' })).toHaveLength(0);
 });
 test('the completed history match is shown before three cancelled siblings, expansion retains all', async () => {
   rows = ['Ana', 'Milan', 'Iva'].map(id => collaboration(id, 'CANCELLED')).concat(collaboration('Petar', 'COMPLETED'));

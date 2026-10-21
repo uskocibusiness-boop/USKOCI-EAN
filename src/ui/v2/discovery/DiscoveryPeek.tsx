@@ -37,9 +37,8 @@ function PriceWords({ item }: { item: MarketplaceItem }) {
 
 /**
  * One chosen task on the map (Discovery V47, the Airbnb pattern in USKOČI's look). The whole card is one press that opens
- * the task ("Otvori zadatak: …"), and its round × top right closes it. It is the list card's face, bare (it is the card, never
- * a card inside one) and in the same order: HITNO or "Prijava poslata" when they apply, the full title, what it pays (a row with the
- * money picture, no word for it), where, when, and who posted it with the honest rating and how long ago, and how many people. The first row clears the close
+ * the task ("Otvori zadatak: …"), and its round × top right closes it. It shares the list card's facts, but the map illustration,
+ * full title, price and truthful publisher/rating lead the preview before its supporting place and time. The first row clears the close
  * control. No photo: a task's photos are shown only inside the task (owner, 2026-09-24), and nothing is invented.
  */
 function PinTask({ item, relation, onOpen, onLayout }: {
@@ -49,7 +48,7 @@ function PinTask({ item, relation, onOpen, onLayout }: {
   return <View style={s.pin} onLayout={onLayout}>
     <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${model.title}`} accessibilityValue={{ text: model.spoken }}
       haptic="select" scaleTo={sys.motion.scale.row} onPress={onOpen} style={s.pinBody}>
-      <TaskRecordBody model={model} portrait={<TaskPublisherPortrait item={item} size={40} />} clearOfClose />
+      <TaskRecordBody model={model} portrait={<TaskPublisherPortrait item={item} size={40} />} clearOfClose mapPreview />
     </Press>
   </View>;
 }

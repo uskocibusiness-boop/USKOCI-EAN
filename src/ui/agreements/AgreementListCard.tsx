@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { readableTitle } from '../../data/needDetailPresentation';
 import type { DogovorProjekcija } from '../../contracts/projections';
+import type { NeedSearchState } from '../../contracts/needSearchRecovery';
 import { cancellationOf, type AgreementCancellation, type AgreementCancellations } from '../../data/agreementCancellationClientService';
 import { BEZ_IZNOSA } from '../../lib/novac';
 import { Press } from '../Press';
@@ -20,6 +21,7 @@ import { sys } from '../system/tokens';
 import { agreementPeople, agreementRole, agreementTerm } from '../v2/AgreementPresentation';
 import { WaitingDot } from '../v2/TaskFace';
 import { agreementAttention, agreementChip, agreementWhen, awaitsMyConfirmation, cancellationDetailsOf, cancellationLine, groupActiveAgreements, isActiveAgreement, type AgreementAttention, type AgreementTaskGroup, type HistoryFilter } from './agreementListModel';
+import { ownerTaskCapacity, ownerTaskId, type OwnerTaskCapacityView } from './ownerTaskCapacity';
 import { AgreementStatusChip, agreementChipWord } from './AgreementStatusChip';
 
 /** Recognize the person before opening their agreement; photos and fallback share the same footprint. */
@@ -76,8 +78,9 @@ function AcceptedTime({ when, place, zone }: { when: string; place: string; zone
  * The frame gives under the finger as one object, as a task card does, and holds still under reduced motion.
  */
 
-function AgreementCard({ item, now, cancellation, onOpen, onRate }: {
-  item: DogovorProjekcija; now: number; cancellation?: AgreementCancellation | null; onOpen: () => void; onRate?: () => void;
+function AgreementCard({ item, now, cancellation, capacity, onOpen, onRate, onOpenOwnerTask }: {
+  item: DogovorProjekcija; now: number; cancellation?: AgreementCancellation | null;
+  capacity?: OwnerTaskCapacityView | null; onOpen: () => void; onRate?: () => void; onOpenOwnerTask?: () => void;
 }) {
   // The card gives under the finger as ONE object, on the `row` rung of the press ladder (M-07: the one lift of every record).
   const { style: lift, give, settle } = usePressLift();
@@ -123,6 +126,8 @@ function AgreementCard({ item, now, cancellation, onOpen, onRate }: {
               <T variant="note" tone="muted">{[role ? `${name} · ${role}` : name, people].filter(Boolean).join(' · ')}</T>
             </View>
           </View>
+          {capacity?.count ? <T testID="owner-task-capacity" variant="note" style={s.capacity}>{capacity.count}</T> : null}
+          {capacity?.next ? <T variant="note" tone="muted">{capacity.next}</T> : null}
           {/* Accepted facts keep the full row width: the time is the adapter's or the accepted instant's, never shortened or parsed from text. */}
           <AcceptedTime when={when} place={place} zone={term.zone} />
           <View style={s.stateRow}>
@@ -138,6 +143,13 @@ function AgreementCard({ item, now, cancellation, onOpen, onRate }: {
         </View>
         {footInside ? <View style={s.foot}><AttentionFoot attention={footInside} /></View> : null}
       </Press>
+      {capacity && onOpenOwnerTask ? <Press accessibilityRole="button"
+        accessibilityLabel={capacity.count ? `Otvori zadatak: ${title}` : `Proveri popunjenost zadatka: ${title}`}
+        accessibilityHint="Otvara vlasnikov zadatak i proverava trenutno stanje i dozvoljene radnje."
+        onPress={onOpenOwnerTask} haptic="select" style={s.taskFoot}>
+        <T variant="note" tone="green">{capacity.count ? 'Otvori zadatak' : 'Proveri popunjenost zadatka'}</T>
+        <Glyph name="arrow-right" size={20} tone="green" />
+      </Press> : null}
       {/* No hit slop: the rule is the border between the two targets, and a touch just above it opens the Dogovor. */}
       {rateAside ? <Press accessibilityRole="button" accessibilityLabel={`${rateAside.title}, ${title}`} accessibilityHint="Otvara ocenu saradnje."
         onPress={onRate} onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1} hitSlop={0} style={s.foot}>
@@ -153,25 +165,33 @@ function AgreementCard({ item, now, cancellation, onOpen, onRate }: {
  * are made here, from the list's stable callbacks. `now` is the minute the groups were taken at, as a number, so a parent render
  * inside the same minute does not draw a card again.
  */
-export const AgreementRow = memo(function AgreementRow({ item, index, now, animate, cancellation, onOpen, onRate }: {
-  item: DogovorProjekcija; index: number; now: number; animate: boolean; cancellation?: AgreementCancellation | null; onOpen: (item: DogovorProjekcija) => void;
-  onRate?: (item: DogovorProjekcija) => void;
+export const AgreementRow = memo(function AgreementRow({ item, index, now, animate, cancellation, capacity, onOpen, onRate, onOpenOwnerTask }: {
+  item: DogovorProjekcija; index: number; now: number; animate: boolean; cancellation?: AgreementCancellation | null;
+  capacity?: OwnerTaskCapacityView | null; onOpen: (item: DogovorProjekcija) => void;
+  onRate?: (item: DogovorProjekcija) => void; onOpenOwnerTask?: (taskId: string, witness: DogovorProjekcija) => void;
 }) {
   const open = useCallback(() => onOpen(item), [onOpen, item]);
   const rate = useCallback(() => onRate?.(item), [onRate, item]);
-  return <Appear index={index} animate={animate}><AgreementCard item={item} now={now} cancellation={cancellation} onOpen={open} onRate={onRate ? rate : undefined} /></Appear>;
+  const openTask = useCallback(() => { if (capacity) onOpenOwnerTask?.(capacity.taskId, item); }, [capacity, onOpenOwnerTask, item]);
+  return <Appear index={index} animate={animate}><AgreementCard item={item} now={now} cancellation={cancellation} capacity={capacity}
+    onOpen={open} onRate={onRate ? rate : undefined} onOpenOwnerTask={onOpenOwnerTask && capacity ? openTask : undefined} /></Appear>;
 });
 
 /** One task record. Each collaboration keeps its own accepted terms and destination; there is no invented group price/status. */
-export const AgreementTaskRow = memo(function AgreementTaskRow({ group, index, now, animate, expanded, onExpand, cancellations, onOpen, onRate, prioritize = 'all' }: {
+export const AgreementTaskRow = memo(function AgreementTaskRow({ group, index, now, animate, expanded, onExpand, cancellations, ownerCapacities, onOpenOwnerTask, onOpen, onRate, prioritize = 'all' }: {
   group: AgreementTaskGroup; index: number; now: number; animate: boolean; expanded: boolean;
   prioritize?: HistoryFilter | 'confirmation';
   onExpand: (key: string | null, witness: DogovorProjekcija) => void;
+  ownerCapacities?: ReadonlyMap<string, NeedSearchState> | null;
+  onOpenOwnerTask?: (taskId: string, witness: DogovorProjekcija) => void;
   cancellations?: AgreementCancellations | null; onOpen: (item: DogovorProjekcija) => void; onRate?: (item: DogovorProjekcija) => void;
 }) {
   const first = group.items[0];
+  const taskId = ownerTaskId(group);
+  const capacity = taskId ? ownerTaskCapacity(group, ownerCapacities?.get(taskId)) : null;
   if (group.items.length === 1) return <AgreementRow item={first} index={index} now={now} animate={animate}
-    cancellation={cancellationOf(cancellations, first.id)} onOpen={onOpen} onRate={onRate} />;
+    cancellation={cancellationOf(cancellations, first.id)} capacity={capacity}
+    onOpenOwnerTask={onOpenOwnerTask} onOpen={onOpen} onRate={onRate} />;
   const at = new Date(now), title = readableTitle(first.naslov);
   const byUrgency = [...groupActiveAgreements(group.items.filter(isActiveAgreement), at).flatMap(section => section.items), ...group.items.filter(item => !isActiveAgreement(item))];
   // The reason this task matched the current filter is visible without expanding it.
@@ -184,8 +204,17 @@ export const AgreementTaskRow = memo(function AgreementTaskRow({ group, index, n
   return <Appear index={index} animate={animate}><Surface kind="record">
     <View style={s.taskHead}>
       <T variant="heading">{title}</T>
-      <T variant="note" tone="muted">{role} · {plural(group.items.length, 'saradnja', 'saradnje', 'saradnji')}</T>
+      <T variant="note" tone="muted">{role} · {plural(group.items.length, 'saradnja', 'saradnje', 'saradnji')} ukupno</T>
+      {capacity?.count ? <T testID="owner-task-capacity" variant="note" style={s.capacity}>{capacity.count}</T> : null}
+      {capacity?.next ? <T variant="note" tone="muted">{capacity.next}</T> : null}
       {waiting ? <T variant="note" style={s.footTitle}>{plural(waiting, 'obaveza čeka', 'obaveze čekaju', 'obaveza čeka')} tebe</T> : null}
+      {capacity && onOpenOwnerTask ? <Press accessibilityRole="button"
+        accessibilityLabel={capacity.count ? `Otvori zadatak: ${title}` : `Proveri popunjenost zadatka: ${title}`}
+        accessibilityHint="Otvara vlasnikov zadatak i proverava trenutno stanje i dozvoljene radnje."
+        onPress={() => onOpenOwnerTask(capacity.taskId, first)} haptic="select" style={s.taskLink}>
+        <T variant="note" tone="green">{capacity.count ? 'Otvori zadatak' : 'Proveri popunjenost zadatka'}</T>
+        <Glyph name="arrow-right" size={20} tone="green" />
+      </Press> : null}
     </View>
     {shown.map(item => <AgreementCollaborator key={item.id} item={item} taskTitle={title} now={at}
       cancellation={cancellationOf(cancellations, item.id)} onOpen={onOpen} onRate={onRate} />)}
@@ -240,6 +269,10 @@ function AgreementCollaborator({ item, taskTitle, now, cancellation, onOpen, onR
 
 const s = StyleSheet.create({
   taskHead: { gap: sys.space.xs, paddingBottom: sys.space.md },
+  capacity: { color: sys.color.green, fontWeight: '700' },
+  taskLink: { minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  taskFoot: { minHeight: layout.touch, marginTop: sys.space.sm, borderTopWidth: ruleWidth, borderTopColor: sys.color.line,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.sm },
   collaborator: { paddingVertical: sys.space.base, gap: sys.space.sm },
   more: { minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
   body: { borderRadius: 0 },
