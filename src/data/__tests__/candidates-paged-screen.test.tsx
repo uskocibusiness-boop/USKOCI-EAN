@@ -6,7 +6,7 @@ let reads: Read[] = [];
 const mockSource = { potreba: mockNeed, prijaveZaPotrebu: mockWhole, oznaciPrijavuVidjenom: mockViewed, izaberiPrijavu: mockSelect, javniProfil: jest.fn(),
   prijaveZaPotrebuStrana: (_id: string, request: any) => new Promise<any>((resolve, reject) => { reads.push({ request, resolve, reject }); }) };
 const mockRouter = { navigate: jest.fn(), push: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: () => true };
-let mockFocused = true, mockState = 'active';
+let mockFocused = true, mockState = 'active', mockFocusId: string | undefined;
 let mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 };
 const mockListeners = new Set<(state: string) => void>();
 const NEED_ID = '10000000-0000-4000-8000-000000000001';
@@ -18,7 +18,7 @@ jest.mock('react-native', () => {
     return ['View', 'ScrollView', 'ActivityIndicator', 'TextInput', 'KeyboardAvoidingView'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
 });
-jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => ({ id: NEED_ID }),
+jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => ({ id: NEED_ID, prijavaId: mockFocusId }),
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockAccount, sesijaSada: () => mockAccount }));
@@ -54,7 +54,7 @@ const render = async () => act(async () => { tree = create(<Screen />); });
 const answer = async (index: number, value: any) => act(async () => { reads[index].resolve(value); });
 const fail = async (index: number) => act(async () => { reads[index].reject(new Error('CANDIDATE_PAGE_UNAVAILABLE')); });
 const background = async (state: string) => act(async () => { mockState = state; mockListeners.forEach(listener => listener(state)); });
-beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); jest.clearAllMocks(); reads = []; mockFocused = true; mockState = 'active';
+beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); jest.clearAllMocks(); reads = []; mockFocused = true; mockState = 'active'; mockFocusId = undefined;
   mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 }; mockListeners.clear();
   mockNeed.mockImplementation(async () => need()); mockViewed.mockResolvedValue({ ok: true, podatak: null }); });
 // A read that was never answered would keep its 15 s bound timer alive: answer what is left, then unmount.
@@ -68,6 +68,46 @@ test('focus reads the task and the first page once, never the whole list, and ha
   expect(unavailable()).toBeUndefined(); expect(ids()).toEqual(['a', 'b']);
   expect(props().paging).toMatchObject({ total: 120, hasMore: true, loadingMore: false, moreError: false });
   expect(reads).toHaveLength(1);
+});
+
+test('a verified response link seeks later pages and opens only the matching owned offer', async () => {
+  const earlier = '10000000-0000-4000-8000-000000000010';
+  const exact = '10000000-0000-4000-8000-000000000020';
+  mockFocusId = exact;
+  await render();
+  await answer(0, page([earlier], true, 2));
+  expect(reads).toHaveLength(2);
+  expect(selection()).toBeUndefined();
+  await answer(1, page([exact], false));
+  expect(selection().props.candidate.prijavaId).toBe(exact);
+  expect(mockViewed).toHaveBeenCalledWith(exact);
+  expect(mockViewed).not.toHaveBeenCalledWith(earlier);
+});
+test('a failed page pauses exact focus with a visible retry path; manual load can still find it', async () => {
+  const earlier = '10000000-0000-4000-8000-000000000010';
+  const exact = '10000000-0000-4000-8000-000000000020';
+  mockFocusId = exact;
+  await render(); await answer(0, page([earlier], true, 2));
+  await fail(1);
+  expect(selection()).toBeUndefined();
+  expect(props().targetNotice).toMatch(/učitaj još prijava/);
+  await act(async () => props().paging.onLoadMore());
+  await answer(2, page([exact], false));
+  expect(selection().props.candidate.prijavaId).toBe(exact);
+});
+test('automatic exact focus stops at its page bound and tells the owner how to continue', async () => {
+  const idAt = (value: number) => `10000000-0000-4000-8000-${String(value).padStart(12, '0')}`;
+  const exact = idAt(99);
+  mockFocusId = exact;
+  await render();
+  for (let index = 0; index < 50; index++) await answer(index, page([idAt(index + 1)], true, index === 0 ? 100 : null));
+  expect(reads).toHaveLength(50);
+  expect(props().targetNotice).toMatch(/učitaj još prijava/);
+  expect(props().paging.hasMore).toBe(true);
+  expect(selection()).toBeUndefined();
+  await act(async () => props().paging.onLoadMore());
+  await answer(50, page([exact], false));
+  expect(selection().props.candidate.prijavaId).toBe(exact);
 });
 
 test('the next page is read from the last application of the page before and appended; a failed one keeps the list and the same call retries it', async () => {

@@ -6,6 +6,7 @@ const WORDS = {
   'task.title': ['Naslov zadatka', 'Napiši kakav naslov želiš.'],
   'task.price': ['Cena i ponude', 'Napiši novi budžet ili da želiš ponude. Navedi na šta se iznos odnosi.'],
   'task.time': ['Termin zadatka', 'Napiši novi termin ili da je vreme fleksibilno.'],
+  'task.deadline': ['Rok za prijave', 'Napiši do kog datuma i sata se ljudi mogu prijaviti, ili izričito reci da nema posebnog roka. Termin rada ostaje odvojen.'],
   'task.people': ['Broj ljudi', 'Napiši koliko osoba ti je potrebno.'],
   'task.description': ['Opis zadatka', 'Napiši šta u opisu dodaješ, menjaš ili uklanjaš.'],
   'task.location': ['Mesto i način rada', 'Napiši koje mesto, tačku rute ili način rada želiš da promeniš. Ostale podatke zadržavamo u istom razgovoru.'],
@@ -51,6 +52,7 @@ export function takeAiCorrection(token: unknown, owner: ReceiptAccount, kind: 't
 }
 
 export function taskCorrectionTarget(key: string): AiCorrectionTarget {
+  if (key === 'need.response_deadline') return 'task.deadline';
   if (key === 'need.title') return 'task.title';
   if (key === 'need.description') return 'task.description';
   if (key === 'need.people_needed') return 'task.people';

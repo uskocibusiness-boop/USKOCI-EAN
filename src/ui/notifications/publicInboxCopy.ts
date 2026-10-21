@@ -80,6 +80,10 @@ export function isPublicInboxNotification(notification: Notification): boolean {
    ['HITNO — nova prilika','Pojavila se nova prilika koja može da ti odgovara.'],
    ['Novi zadatak za tebe','Pojavio se novi zadatak koji može da ti odgovara.'],
   ] as const).some(([title,body]) => content.title === title && content.body === body)) return false;
+ if (target?.kind === 'APPLICATION_EVENT'
+  && !(target.eventType === 'RESPONSE_RECEIVED'
+   ? content.title === 'Nova prijava' && content.body === 'Stigla je nova prijava na tvoj zadatak.'
+   : content.title === 'Prijava je izmenjena' && content.body === 'Jedna prijava na tvoj zadatak je ažurirana.')) return false;
  if (['subtitle', 'categoryIdentifier', 'summaryArgument', 'launchImageName', 'targetContentIdentifier', 'threadIdentifier']
   .some(key => value[key] != null && value[key] !== '')) return false;
  if (value.attachments != null && (!Array.isArray(value.attachments) || value.attachments.length !== 0)) return false;

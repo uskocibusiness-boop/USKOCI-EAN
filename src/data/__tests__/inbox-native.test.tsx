@@ -13,7 +13,7 @@ import { NotificationLoading } from '../../ui/notifications/NotificationLoading'
 const mockRouter={push:jest.fn(),back:jest.fn(),replace:jest.fn(),canGoBack:jest.fn(()=>true)};
 const mockRole=jest.fn(), mockModel={canNavigate:jest.fn(()=>true),open:jest.fn(),readAll:jest.fn(),refresh:jest.fn(),more:jest.fn()};
 // UI-only push landing seam: the separate ingress tests retain Auth, event, and session responsibility.
-const mockIngress={onTarget:null as null | ((target:{kind:string;needId?:string;agreementId?:string;messageId?:string})=>void)};
+const mockIngress={onTarget:null as null | ((target:{kind:string;needId?:string;responseId?:string;eventType?:string;agreementId?:string;messageId?:string})=>void)};
 let mockIntent='narucilac';
 const at='2026-09-10T12:00:00Z';
 const item={id:'event',eventType:'RESPONSE_SELECTED',title:'Vaša Prijava je izabrana',body:'Otvori Dogovor.',readAt:null,occurredAt:at,role:'WORKER',family:'responses'};
@@ -291,6 +291,13 @@ test('Nova prijava opens the authorized task candidate list after the Inbox row 
   expect(mockModel.open).toHaveBeenCalledWith(application);
   expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/potrebe/[id]/kandidati',params:{id:'actual-need'}}]]);
   expect(mockRouter.replace).not.toHaveBeenCalled();
+});
+test('verified Nova prijava opens its exact candidate while preserving the owned Need',async()=>{
+  const application={...item,eventType:'RESPONSE_RECEIVED',role:'REQUESTER',title:'Nova prijava',body:'Stigla je nova prijava na tvoj zadatak.'};
+  mockModel.open.mockResolvedValue({kind:'CANDIDATE',id:'actual-need',responseId:'exact-response',role:'REQUESTER'});
+  mockState.page.items=[application];mockState.page.unreadCount=1;await render();
+  await act(async()=>unreadRow(application.title,application.body).props.onPress());
+  expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/potrebe/[id]/kandidati',params:{id:'actual-need',prijavaId:'exact-response'}}]]);
 });
 // Owner decision 1 (2026-09-19): a notification opens the thing it is about. It used to stop at a sheet
 // that asked to switch the whole app into "the other intent" first, and one confirm did both.
@@ -572,6 +579,15 @@ test('a message push still opens its exact Agreement message rather than a gener
  }));
  expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{
   id:'44444444-4444-4444-8444-444444444444',tab:'poruke',messageId:'55555555-5555-4555-8555-555555555555'}});
+});
+test('a server-confirmed application push opens the exact candidate on its owned task',async()=>{
+ await render();
+ const needId='33333333-3333-4333-8333-333333333333';
+ const responseId='66666666-6666-4666-8666-666666666666';
+ await act(async()=>mockIngress.onTarget!({kind:'APPLICATION',needId,responseId,eventType:'RESPONSE_RECEIVED'}));
+ expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/potrebe/[id]/kandidati',params:{id:needId,prijavaId:responseId}});
+ expect(mockRouter.push).not.toHaveBeenCalled();
+ expect(mockModel.open).not.toHaveBeenCalled();
 });
 test('retired Inbox and denied navigation never accept a delayed push landing',async()=>{
  await render();const late=mockIngress.onTarget!;

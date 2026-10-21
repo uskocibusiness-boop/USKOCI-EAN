@@ -353,16 +353,40 @@
         "raw_bytes": 114967
       },
       {
-        "file": "20261021120000_ai_history_h1_metadata.sql",
-        "version": "20261021120000",
+        "file": "20261021014544_ai_history_h1_metadata.sql",
+        "version": "20261021014544",
         "name": "ai_history_h1_metadata",
         "classification": "SOURCE_ONLY_LIVE_BINDING_UNPROVEN",
         "live_applied": null,
         "preparation_status": "PREPARED_NOT_APPLIED",
-        "note": "H1 owner-scoped metadata source only. No DEV/prod application or PostgreSQL runtime proof is claimed; H2 transcript, hide and delete remain absent.",
+        "note": "Canonical H1 source admitted. Applied to DEV as 20261021014544_ai_history_h1_metadata with catalog ACL and owner/foreign runtime readback; production unchanged. H1 alone advertises canRead=false.",
         "raw_md5": "af1eb7c4a6a339c0ab0f99f68fe34173",
         "raw_sha256": "b43d849f71de81e386189f974a4eca88f3ec35bc3e1c25bc5e3c415d5c80e7a0",
         "raw_bytes": 6085
+      },
+      {
+        "file": "20261021014557_ai_history_h2_messages.sql",
+        "version": "20261021014557",
+        "name": "ai_history_h2_messages",
+        "classification": "SOURCE_ONLY_LIVE_BINDING_UNPROVEN",
+        "live_applied": null,
+        "preparation_status": "PREPARED_NOT_APPLIED",
+        "note": "Canonical H2 source admitted. Applied to DEV as 20261021014557_ai_history_h2_messages with catalog ACL and owner/foreign/open/cursor runtime readback; production unchanged. Text only; hide and delete absent.",
+        "raw_md5": "967dd260ad65e06a4b3d366c542c5841",
+        "raw_sha256": "8dc3e773ae8675ea60109416d990ac6f81d071a11b0888a6ff1b2eab8139ac02",
+        "raw_bytes": 4723
+      },
+      {
+        "file": "20261021014849_ai_history_h2_read_capability.sql",
+        "version": "20261021014849",
+        "name": "ai_history_h2_read_capability",
+        "classification": "SOURCE_ONLY_LIVE_BINDING_UNPROVEN",
+        "live_applied": null,
+        "preparation_status": "PREPARED_NOT_APPLIED",
+        "note": "Forward-only H1 capability change after H2. Applied to DEV as 20261021014849_ai_history_h2_read_capability; catalog ACL and owner/foreign closed-row runtime readback passed. Production and native APK unverified. No hide or delete.",
+        "raw_md5": "4086aa621f3bf682d10f031738357376",
+        "raw_sha256": "ec6e3cb8d137b48dddafceb7f518732b07f72943681c71de06a508d7df81f67b",
+        "raw_bytes": 6198
       }
     ],
     "last_extended_at_utc": "2026-10-19T09:25:50.014443+00:00"

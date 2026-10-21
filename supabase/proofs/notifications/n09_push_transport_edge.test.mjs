@@ -103,11 +103,53 @@ test('current SQL opportunity receipt sends globally without exposing its event 
  assert.deepEqual(sends[0].body[0].data,{kind:'INBOX'});
 });
 
-for(const eventType of ['RESPONSE_RECEIVED','FUTURE_EVENT'])
+for(const eventType of ['FUTURE_EVENT'])
  test(`P4 does not expose identifiers for ${eventType}`,async()=>{
   const h=harness({begin:messageBegin({eventType})});assert.equal((await h.run()).response.status,503);
   assert.ok(!h.calls.some(x=>x.url.includes('exp.host')));
  });
+
+for(const [eventType,title,body] of [
+ ['RESPONSE_RECEIVED','Nova prijava','Stigla je nova prijava na tvoj zadatak.'],
+ ['RESPONSE_UPDATED','Prijava je izmenjena','Jedna prijava na tvoj zadatak je ažurirana.'],
+]) {
+ test(`${eventType} exact metadata is a flag-gated opaque event only`,async()=>{
+  const begin=messageBegin({eventType});
+  const h=harness({begin,env:{EXPO_PUSH_APPLICATION_TARGET_ENABLED:'true'}});
+  const result=await h.run();
+  assert.equal(result.response.status,200);
+  const send=h.calls.find(x=>x.url.endsWith('/push/send'));
+  assert.deepEqual(send.body[0].data,{kind:'INBOX',eventType,eventId:messageEvent.toLowerCase()});
+  assert.equal(send.body[0].title,title);assert.equal(send.body[0].body,body);
+  assert.equal(completion(h).p_result,'TICKET');
+  assert.ok(!JSON.stringify(result.body).includes(messageEvent));
+ });
+ for(const flag of [undefined,'false','TRUE','1'])
+  test(`${eventType} remains generic while application target flag is ${flag}`,async()=>{
+   const h=harness({begin:messageBegin({eventType}),env:{EXPO_PUSH_APPLICATION_TARGET_ENABLED:flag}});
+   const result=await h.run();assert.equal(result.response.status,200);
+   assert.deepEqual(h.calls.find(x=>x.url.endsWith('/push/send')).body[0].data,{kind:'INBOX'});
+   assert.equal(h.calls.filter(x=>x.url.endsWith('/push/send')).length,1);
+   assert.equal(completion(h).p_result,'TICKET');
+  });
+ test(`${eventType} with no eventId remains a generic send under the flag`,async()=>{
+  const {eventId,...begin}=messageBegin({eventType});
+  const h=harness({begin,env:{EXPO_PUSH_APPLICATION_TARGET_ENABLED:'true'}});
+  assert.equal((await h.run()).response.status,200);
+  assert.deepEqual(h.calls.find(x=>x.url.endsWith('/push/send')).body[0].data,{kind:'INBOX'});
+ });
+ test(`${eventType} event identity cannot loosen the leased attempt`,async()=>{
+  const h=harness({begin:messageBegin({eventType}),expires:new Date(Date.now()+120000).toISOString(),
+   env:{EXPO_PUSH_APPLICATION_TARGET_ENABLED:'true'}});
+  assert.equal((await h.run()).response.status,503);
+  assert.ok(!h.calls.some(x=>x.url.includes('exp.host')));
+ });
+ test(`${eventType} receipt rejects a private Need ID before provider`,async()=>{
+  const h=harness({begin:messageBegin({eventType,needId:id}),env:{EXPO_PUSH_APPLICATION_TARGET_ENABLED:'true'}});
+  assert.equal((await h.run()).response.status,503);
+  assert.ok(!h.calls.some(x=>x.url.includes('exp.host')));
+ });
+}
 
 for(const extra of [{messageId:id},{agreementId:id},{accountId:id},{url:'/dogovor/private'},
  {title:'PRIVATE'},{body:'PRIVATE'},{payload:{message_id:id}}])

@@ -34,7 +34,7 @@ function queryCatalog(query,catalog){
 function fixture(options={}){
  let handler;const calls=[],env={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'PUBLIC_SYNTHETIC',SUPABASE_SERVICE_ROLE_KEY:'SERVICE_SYNTHETIC',
   AI_PROVIDER:'gemini',GEMINI_MODEL:'gemini-3.8-flash',GEMINI_API_KEY:'PROVIDER_SYNTHETIC',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',...options.env};
- const output=options.output??{assistantMessage:'Profil je spreman za zajednički pregled 🟢.',safety:'ALLOW',patch:{skills:['Prenos stvari'],tools:['Kolica']}};
+ const output=options.output??{assistantMessage:'Profil je spreman za zajednički pregled 🟢.',safety:'ALLOW',patch:{skills:['Prenos stvari']}};
  const fetch=async(url,init={})=>{
   calls.push({url:String(url),body:init.body?JSON.parse(init.body):null,init,abortedAtCall:init.signal?.aborted});
   if(url.endsWith('/auth/v1/user'))return json(options.auth??{id:account});
@@ -97,7 +97,8 @@ test('recovery proof loader binds the current complete worker bundle without net
   'supabase/functions/_shared/workerServiceModeContext.mjs','supabase/functions/_shared/classificationReply.mjs',
   'supabase/functions/_shared/classificationExplorer.mjs','supabase/functions/_shared/geminiToolConversation.ts',
   'supabase/functions/_shared/serviceHandoff.mjs','supabase/functions/_shared/serviceExecutionInstruction.mjs',
-  'supabase/functions/_shared/taxonomyProviderBudget.ts','supabase/functions/_shared/researchDeadline.ts'].sort());
+  'supabase/functions/_shared/taxonomyProviderBudget.ts','supabase/functions/_shared/researchDeadline.ts',
+  'supabase/functions/_shared/workerAreaAdmission.mjs'].sort());
  assert.equal((await loaded.handler(new Request('https://edge.invalid',{method:'GET'}))).status,405);
 });
 for(const status of [402,429])for(const diagnostics of [false,true])
@@ -147,9 +148,10 @@ test('owned partial weekday hours keep the precise missing-end question and unsu
   output:{assistantMessage:reply,safety:'ALLOW',patch:{skills:['Molerski radovi'],bio:'Molerski radovi.',availability}}});
  const es=await events(f,{text:input});assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
  const accepted=completions(f)[0].body.p_output;
- assert.equal(accepted.assistantMessage,reply);assert.equal(accepted.safety,'CLARIFY');
+ assert.match(accepted.assistantMessage,/širu oblast/);assert.match(accepted.assistantMessage,/Do koliko sati radnim danima\?/);
+ assert.equal(accepted.safety,'CLARIFY');
  assert.deepEqual(accepted.patch,{skills:['Molerski radovi'],bio:'Molerski radovi.'});
- assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),reply);
+ assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),accepted.assistantMessage);
  assert.ok(!logs.some(args=>args[0]==='WORKER_AVAILABILITY_GUARD'));
  const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
  assert.ok(prompt.includes("For 'radnim danima posle 16', ask 'Do koliko sati radnim danima?'"));
@@ -198,6 +200,171 @@ test('provider explicitly decides about availability while null never clears the
  assert.ok(schema.properties.patch.required.includes('availability'));
  assert.equal(schema.properties.patch.properties.availability.nullable,true);
  assert.deepEqual(completions(f)[0].body.p_output.patch,{bio:'Montaža.'});
+});
+for (const utterance of ['Radim širom Srbije','Novi Sad do 30 km i Beograd do 30 km','Radim od Vranja do Subotice'])
+test('broad on-site wish cannot become one V1 area or an unsupported public bio: '+utterance,async()=>{
+ const output={assistantMessage:'Cela oblast je sačuvana.',safety:'ALLOW',patch:{
+  location:{operatingCountryCode:'RS',city:'Beograd',radiusKm:200},bio:'Radim širom Srbije.',skills:['Molerski radovi']}};
+ const f=fixture({output}),es=await events(f,{text:utterance});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(es.at(-1).kind,'final');
+ assert.equal(committed.safety,'CLARIFY');
+ assert.deepEqual(committed.patch,{skills:['Molerski radovi']});
+ assert.ok(!committed.assistantMessage.includes('sačuvana'));
+ assert.equal(providers(f).length,1);
+});
+test('a stated 30 km cannot be replaced by a provider 200 km radius',async()=>{
+ const f=fixture({output:{assistantMessage:'Novi Sad do 200 km je u nacrtu.',safety:'ALLOW',patch:{
+  location:{operatingCountryCode:'RS',city:'Novi Sad',radiusKm:200},skills:['Moler']} }});
+ await events(f,{text:'Novi Sad do 30 km'});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.safety,'CLARIFY');
+ assert.deepEqual(committed.patch,{skills:['Moler']});
+ assert.match(committed.assistantMessage,/udaljenost nije ista/);
+});
+test('Novi Sad and surroundings asks for distance without losing an independent skill',async()=>{
+ const f=fixture({output:{assistantMessage:'Novi Sad i okolina su u nacrtu.',safety:'ALLOW',patch:{
+  location:{operatingCountryCode:'RS',city:'Novi Sad',radiusKm:20},skills:['Moler']} }});
+ await events(f,{text:'Novi Sad i okolina'});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.safety,'CLARIFY');
+ assert.deepEqual(committed.patch,{skills:['Moler']});
+ assert.match(committed.assistantMessage,/Do koliko kilometara/);
+});
+test('online-only correction never creates an on-site travel radius',async()=>{
+ const f=fixture({output:{assistantMessage:'Koliko kilometara dolaziš?',safety:'ALLOW',patch:{
+  location:{operatingCountryCode:'RS',city:'Novi Sad',radiusKm:30},skills:['Onlajn časovi']} }});
+ await events(f,{text:'Radim samo online u Novom Sadu i okolini'});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.patch.location,undefined);
+ assert.deepEqual(committed.patch.skills,['Onlajn časovi']);
+ assert.doesNotMatch(committed.assistantMessage,/koliko kilometara/i);
+});
+const savedAreaContext={schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,
+ status:'OPEN',stale:false,safety:'ALLOW',revision:0,candidate:{skills:['Moler'],
+  location:{operatingCountryCode:'RS',city:'Niš',radiusKm:20,approximatePosition:null},
+  availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[]};
+test('remote-only city phrase cannot change an existing Niš area',async()=>{
+ const f=fixture({context:savedAreaContext,output:{assistantMessage:'Novi Sad je sada područje rada.',safety:'ALLOW',
+  patch:{location:{city:'Novi Sad',radiusKm:30},skills:['Onlajn časovi']}}});
+ await events(f,{text:'Radim samo online u Novom Sadu'});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.patch.location,undefined);
+ assert.deepEqual(committed.patch.skills,['Onlajn časovi']);
+ assert.doesNotMatch(committed.assistantMessage,/sada područje rada/);
+});
+test('new named surroundings with no provider location cannot inherit Niš silently',async()=>{
+ const f=fixture({context:savedAreaContext,output:{assistantMessage:'Okolina Beograda je u nacrtu.',safety:'ALLOW',
+  patch:{skills:['Moler']}}});
+ await events(f,{text:'Radim u okolini Beograda'});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.safety,'CLARIFY');
+ assert.deepEqual(committed.patch,{skills:['Moler']});
+ assert.match(committed.assistantMessage,/Do koliko kilometara/);
+});
+test('remote country clause preserves a separate explicit Novi Sad on-site patch',async()=>{
+ const f=fixture({context:savedAreaContext,output:{assistantMessage:'Obe usluge su u nacrtu.',safety:'ALLOW',patch:{
+  location:{operatingCountryCode:'RS',city:'Novi Sad',radiusKm:30},skills:['Prevod','Molerski radovi']}}});
+ await events(f,{text:'Prevod samo online u celoj Srbiji, a moler u Novom Sadu do 30 km'});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.patch.location?.city,'Novi Sad');
+ assert.equal(committed.patch.location?.radiusKm,30);
+});
+for(const utterance of ['Radim širom cele Srbije','Na području cele Srbije','Radim na relaciji Novi Sad–Beograd'])
+test('unrepresentable on-site wording cannot become one V1 circle: '+utterance,async()=>{
+ const f=fixture({context:savedAreaContext,output:{assistantMessage:'Područje je u nacrtu.',safety:'ALLOW',patch:{
+  location:{operatingCountryCode:'RS',city:'Beograd',radiusKm:200},skills:['Moler']}}});
+ await events(f,{text:utterance});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.safety,'CLARIFY');
+ assert.equal(committed.patch.location,undefined);
+ assert.deepEqual(committed.patch.skills,['Moler']);
+});
+test('comma-linked biography keeps independent experience after wide-area claim is removed',async()=>{
+ const f=fixture({context:savedAreaContext,output:{assistantMessage:'Opis je u nacrtu.',safety:'ALLOW',patch:{
+  bio:'Moler sam deset godina, radim u celoj Srbiji.',skills:['Moler']}}});
+ await events(f,{text:'Moler sam deset godina, radim u celoj Srbiji'});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.patch.bio,'Moler sam deset godina.');
+ assert.deepEqual(committed.patch.skills,['Moler']);
+});
+test('two personal names do not block a separate explicit Novi Sad area',async()=>{
+ const f=fixture({context:savedAreaContext,output:{assistantMessage:'Novi Sad do 30 km je u nacrtu.',safety:'ALLOW',patch:{
+  location:{city:'Novi Sad',radiusKm:30},skills:['Krečenje']}}});
+ await events(f,{text:'Zovem se Ana i Marina, krečim Novi Sad do 30 km'});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.patch.location?.city,'Novi Sad');
+ assert.equal(committed.patch.location?.radiusKm,30);
+});
+test('explicit correction from 30 to 50 km admits only the corrected radius',async()=>{
+ const f=fixture({context:savedAreaContext,output:{assistantMessage:'U nacrtu je sada 50 km.',safety:'ALLOW',patch:{
+  location:{radiusKm:50},skills:['Moler']}}});
+ await events(f,{text:'Nije 30 km, nego 50 km'});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.patch.location?.radiusKm,50);
+ assert.equal(committed.safety,'ALLOW');
+});
+test('explicit Novi Sad and 30 km cannot commit provider Beograd at 30 km',async()=>{
+ const f=fixture({context:savedAreaContext,output:{assistantMessage:'Beograd do 30 km je u nacrtu.',safety:'ALLOW',patch:{
+  location:{city:'Beograd',radiusKm:30},skills:['Moler']}}});
+ await events(f,{text:'Novi Sad do 30 km'});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.safety,'CLARIFY');
+ assert.deepEqual(committed.patch,{skills:['Moler']});
+ assert.doesNotMatch(committed.assistantMessage,/Beograd do 30 km je u nacrtu/);
+});
+test('new Beograd surroundings reject echoed old Niš and its 20 km radius',async()=>{
+ const f=fixture({context:savedAreaContext,output:{assistantMessage:'Niš i okolina su u nacrtu.',safety:'ALLOW',patch:{
+  location:{city:'Niš',radiusKm:20},skills:['Moler']}}});
+ await events(f,{text:'Radim u okolini Beograda'});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.safety,'CLARIFY');
+ assert.deepEqual(committed.patch,{skills:['Moler']});
+ assert.match(committed.assistantMessage,/Do koliko kilometara/);
+});
+for(const utterance of ['Radim po Srbiji','Radim u Srbiji','Srbija','po celom Balkanu'])
+test('additional broad request rejects one V1 city radius: '+utterance,async()=>{
+ const f=fixture({context:savedAreaContext,output:{assistantMessage:'Beograd do 200 km je u nacrtu.',safety:'ALLOW',patch:{
+  location:{city:'Beograd',radiusKm:200},skills:['Moler']}}});
+ await events(f,{text:utterance});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.safety,'CLARIFY');
+ assert.deepEqual(committed.patch,{skills:['Moler']});
+ assert.doesNotMatch(committed.assistantMessage,/Beograd do 200 km je u nacrtu/);
+});
+test('remote-only service plus a separate home city cannot mutate Niš area',async()=>{
+ const f=fixture({context:savedAreaContext,output:{assistantMessage:'Novi Sad je novo područje rada.',safety:'ALLOW',patch:{
+  location:{city:'Novi Sad',radiusKm:30},skills:['Prevod']}}});
+ await events(f,{text:'Samo online. Živim u Novom Sadu.'});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.patch.location,undefined);
+ assert.deepEqual(committed.patch.skills,['Prevod']);
+ assert.doesNotMatch(committed.assistantMessage,/novo područje rada/);
+});
+test('unitless correction never commits the rejected old 30 km',async()=>{
+ const f=fixture({context:savedAreaContext,output:{assistantMessage:'Ostaje 30 km.',safety:'ALLOW',patch:{
+  location:{radiusKm:30},skills:['Moler']}}});
+ await events(f,{text:'Nije 30 nego 50'});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.safety,'CLARIFY');
+ assert.deepEqual(committed.patch,{skills:['Moler']});
+ assert.doesNotMatch(committed.assistantMessage,/Ostaje 30 km/);
+});
+test('comma-linked remote service preserves separate on-site Novi Sad and radius',async()=>{
+ const f=fixture({context:savedAreaContext,output:{assistantMessage:'Novi Sad je u nacrtu.',safety:'ALLOW',patch:{
+  location:{city:'Novi Sad',radiusKm:30},skills:['Prevod','Moler']}}});
+ await events(f,{text:'Prevod samo online u celoj Srbiji, moler u Novom Sadu do 30 km'});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.patch.location?.city,'Novi Sad');
+ assert.equal(committed.patch.location?.radiusKm,30);
+});
+test('colleague names do not cause a false multi-city rejection',async()=>{
+ const f=fixture({context:savedAreaContext,output:{assistantMessage:'Novi Sad je u nacrtu.',safety:'ALLOW',patch:{
+  location:{city:'Novi Sad',radiusKm:30},skills:['Moler']}}});
+ await events(f,{text:'Ana i Marina rade sa mnom, Novi Sad do 30 km'});
+ const committed=completions(f)[0].body.p_output;
+ assert.equal(committed.patch.location?.city,'Novi Sad');
+ assert.equal(committed.patch.location?.radiusKm,30);
 });
 
 test('explicit null cannot fulfill a requested calendar change',async()=>{
@@ -277,6 +444,7 @@ test('two explicit remote services retain both hints when the model tries to rec
    nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'})});
  const es=await events(f,{text:user});assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
  const saved=completions(f)[0].body.p_output;assert.deepEqual(saved.patch.skills,[service,translation]);assert.deepEqual(saved.patch.availability,availability);
+ assert.equal(Object.hasOwn(saved.patch,'vehicles'),false,'volunteered equipment cannot update the owned candidate');
  const capture=f.calls.find(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
  assert.ok(capture);assert.deepEqual(capture.body.p_proposals.map(p=>[p.service,p.mode,p.action,p.categoryId]),
   [[service,'REMOTE','REUSE_EXISTING',presentationId],[translation,'REMOTE','REUSE_EXISTING',translationId]]);
@@ -377,7 +545,7 @@ test('personal interview filters obsolete fields without changing the owned V1 c
  const es=await events(f);assert.equal(es.at(-1).kind,'final');
  const provider=providers(f)[0].body,prompt=provider.systemInstruction.parts.map(p=>p.text).join('\n');
  assert.ok(!prompt.includes('PRIVATE_LEGACY_LICENSE'));assert.ok(!prompt.includes('"teamCapacity"'));
- assert.ok(prompt.includes('"tools":["Kolica"]'));assert.ok(prompt.includes('"vehicles":["Kombi"]'));
+ assert.ok(!prompt.includes('"tools":["Kolica"]'));assert.ok(!prompt.includes('"vehicles":["Kombi"]'));
  const fields=provider.generationConfig.responseSchema.properties.patch.properties;
  assert.ok(!Object.hasOwn(fields,'licenses'));assert.ok(!Object.hasOwn(fields,'teamCapacity'));
  assert.ok(!Object.hasOwn(fields,'excludedWork'));assert.ok(!Object.hasOwn(fields,'urgentNotifications'));
@@ -499,10 +667,12 @@ for(const change of ['add','remove'])test(`worker ${change} instruction keeps un
  assert.equal(providers(f).length,1);assert.deepEqual(completions(f)[0].body.p_output.patch,{skills:desired});
  assert.equal(JSON.stringify(candidate),previous);assert.ok(!f.calls.some(c=>/save_worker|bind_reviewed|commit_admission|publish|push/.test(c.url)));
  const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
- assert.ok(prompt.includes('skills, tools and vehicles are COMPLETE replacement lists, not additions'));
+ assert.ok(prompt.includes('The skills array is a COMPLETE replacement list, not additions'));
  assert.ok(prompt.includes('keep every existing offered service the person has not explicitly removed'));
  assert.ok(prompt.includes('Changing the delivery mode of one service does not change other services'));
- assert.ok(prompt.includes('Tools and vehicles are optional information, never mandatory for review or activation'));
+ assert.ok(prompt.includes('Do not ask about tools or vehicles'));
+ assert.ok(prompt.includes('do not ask about them, propose patch.tools or patch.vehicles, clear them'));
+ assert.ok(prompt.includes('Existing values remain visible in the signed profile review'));
  assert.ok(prompt.includes('classificationShadowJson is only a proposal'));
  assert.ok(prompt.includes('signed profile review'));
  assert.ok(!prompt.includes('pending a future confirmed structured capability review'));
@@ -524,12 +694,94 @@ for(const input of ['To je to.','Sačuvaj','Сачувај','Gotovo, to je sve!'
  });
 
 test('finish handling does not swallow a correction or override a safety refusal',async()=>{
- for(const input of ['Nemoj još da sačuvaš.','Sačuvaj, ali dodaj da imam kolica.']){
-  const f=fixture(),es=await events(f,{text:input});assert.equal(es.at(-1).kind,'final');
-  assert.deepEqual(completions(f)[0].body.p_output,f.output);
- }
+ const plain=fixture(),es=await events(plain,{text:'Nemoj još da sačuvaš.'});assert.equal(es.at(-1).kind,'final');
+ assert.deepEqual(completions(plain)[0].body.p_output,plain.output);
+ const equipment=fixture(),equipmentEvents=await events(equipment,{text:'Sačuvaj, ali dodaj da imam kolica.'});
+ assert.equal(equipmentEvents.at(-1).kind,'final');
+ assert.deepEqual(completions(equipment)[0].body.p_output.patch,equipment.output.patch);
+ assert.match(completions(equipment)[0].body.p_output.assistantMessage,/Alat i vozila ne menjam kroz ovaj razgovor/);
  const f=fixture({output:{assistantMessage:'Ne mogu da pomognem sa tim zahtevom.',safety:'BLOCK',patch:{}}});
  await events(f,{text:'Sačuvaj'});assert.equal(completions(f)[0].body.p_output.safety,'BLOCK');
+});
+
+test('new worker equipment edits are dropped without hiding historical signed-review values',async()=>{
+ const candidate={displayName:'Ana',bio:'Postojeći opis.',skills:['Krečenje'],tools:['Valjak'],vehicles:['Kombi'],
+  location:{operatingCountryCode:'RS',city:'Novi Sad',radiusKm:20},availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}};
+ const before=JSON.stringify(candidate);
+ const output={assistantMessage:'Dodao sam novu bušilicu i uklonio kombi.',safety:'ALLOW',
+  patch:{bio:'Imam novu bušilicu.',skills:['Krečenje','Gletovanje'],tools:['Nova bušilica'],vehicles:[]}};
+ const f=fixture({output,context:{schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',
+  stale:false,safety:'ALLOW',candidate,messages:[{role:'USER',body:'Dodaj gletovanje i novu bušilicu.'}]}});
+ const es=await events(f,{text:'Dodaj gletovanje i novu bušilicu.'});
+ assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);assert.equal(completions(f).length,1);
+ const accepted=completions(f)[0].body.p_output;
+ assert.deepEqual(accepted.patch,{skills:['Krečenje','Gletovanje']});
+ assert.equal(accepted.safety,'ALLOW');
+ assert.match(accepted.assistantMessage,/Alat i vozila ne menjam kroz ovaj razgovor/);
+ assert.ok(!JSON.stringify(es).includes('Dodao sam novu bušilicu'));
+ assert.equal(JSON.stringify(candidate),before,'historical candidate data is not cleared or mutated');
+ const prompt=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
+ assert.ok(!prompt.includes('"tools":["Valjak"]'));assert.ok(!prompt.includes('"vehicles":["Kombi"]'));
+ assert.ok(prompt.includes('Existing values remain visible in the signed profile review'));
+ assert.ok(!f.calls.some(c=>/rpc_save_worker_ai_review/.test(c.url)));
+});
+
+test('bio-only vehicle claim is quarantined at the exact worker completion and stream boundary',async()=>{
+ const output={assistantMessage:'Dodao sam novi kombi u nacrt profila.',safety:'ALLOW',patch:{bio:'Imam novi kombi.'}};
+ const f=fixture({output}),es=await events(f,{text:'Imam novi kombi.'});
+ assert.equal(es.at(-1).kind,'final');assert.equal(completions(f).length,1);
+ const accepted=completions(f)[0].body.p_output;
+ assert.deepEqual(accepted.patch,{});assert.equal(accepted.safety,'ALLOW');
+ assert.match(accepted.assistantMessage,/Alat i vozila ne menjam kroz ovaj razgovor/);
+ assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),accepted.assistantMessage);
+ assert.ok(!JSON.stringify(es).includes('Dodao sam novi kombi'));
+ assert.ok(!f.calls.some(c=>/rpc_save_worker_ai_review/.test(c.url)));
+});
+
+for(const input of ['Imam novi kombi.','Имам нови комби.'])
+test('equipment-only user turn cannot receive a false acknowledgement without any patch: '+input,async()=>{
+ const output={assistantMessage:'Novi kombi je dodat u nacrt.',safety:'ALLOW',patch:{}};
+ const f=fixture({output}),es=await events(f,{text:input});
+ const accepted=completions(f)[0].body.p_output;
+ assert.deepEqual(accepted.patch,{});
+ assert.match(accepted.assistantMessage,/Alat i vozila ne menjam kroz ovaj razgovor/);
+ assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),accepted.assistantMessage);
+ assert.ok(!JSON.stringify(es).includes(output.assistantMessage));
+});
+
+test('mixed equipment turn preserves independent service, area and calendar operations',async()=>{
+ const input='Dodaj gletovanje. Radim u Novom Sadu do 30 km. Radnim danima od 9 do 17. Imam novi kombi.';
+ const availability={ruleChanges:[{ruleId:null,weekdays:[1,2,3,4,5],value:{startTime:'09:00',endTime:'17:00',startsOn:'2026-10-21',endsOn:null,label:'Radni dani',active:true}}]};
+ const independent={skills:['Gletovanje'],location:{operatingCountryCode:'RS',city:'Novi Sad',radiusKm:30},availability};
+ const output={assistantMessage:'Gletovanje, područje, termini i novi kombi su u nacrtu.',safety:'ALLOW',
+  patch:{...independent,bio:'Imam novi kombi.'}};
+ const f=fixture({output,availabilityChange:{kind:'PATCH',evidence:'Radnim danima od 9 do 17'},
+  context:{schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:0,
+   candidate:{skills:[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:input}]}});
+ const es=await events(f,{text:input});assert.equal(es.at(-1).kind,'final');
+ const accepted=completions(f)[0].body.p_output;
+ assert.deepEqual(accepted.patch,independent);assert.equal(accepted.safety,'ALLOW');
+ assert.match(accepted.assistantMessage,/Alat i vozila ne menjam kroz ovaj razgovor/);
+ assert.ok(!JSON.stringify(es).includes('novi kombi su u nacrtu'));
+});
+
+test('offered vehicle repair remains a legitimate service and biography',async()=>{
+ const output={assistantMessage:'Popravka vozila je u nacrtu.',safety:'ALLOW',
+  patch:{skills:['Popravka vozila'],bio:'Popravljam vozila.'}};
+ const f=fixture({output}),es=await events(f,{text:'Popravljam vozila.'});
+ assert.equal(es.at(-1).kind,'final');
+ assert.deepEqual(completions(f)[0].body.p_output,output);
+ assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),output.assistantMessage);
+});
+
+for(const safety of ['REVIEW','BLOCK'])test(`${safety} does not admit equipment or biography from a rejected equipment turn`,async()=>{
+ const output={assistantMessage:safety==='REVIEW'?'Potreban je pregled.':'Ne mogu da pomognem sa tim zahtevom.',safety,
+  patch:{bio:'Imam novi kombi.',tools:['Bušilica'],vehicles:['Kombi']}};
+ const f=fixture({output}),es=await events(f);
+ assert.equal(es.at(-1).kind,'final');
+ const accepted=completions(f)[0].body.p_output;
+ assert.equal(accepted.safety,safety);assert.equal(accepted.assistantMessage,output.assistantMessage);
+ assert.deepEqual(accepted.patch,{});
 });
 test('truncated provider response settles failure without a second call or candidate completion',async()=>{
  const f=fixture({finishReason:'MAX_TOKENS'}),es=await events(f);assert.equal(es.at(-1).kind,'safe_error');assert.equal(completions(f).length,0);assert.equal(failures(f).length,1);

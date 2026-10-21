@@ -23,6 +23,7 @@ export function AccountSettings({ email, busy, logoutError, version, words, open
       {row('Pristup nalogu', 'shield', '/profil/lozinka', 'Promena lozinke')}
     </AccountGroup>
     <AccountGroup title="Tvoje iskustvo">
+      {row('AI razgovori', 'messages', '/ai-istorija', 'Zadaci i radni profil')}
       {row('Obaveštenja', 'notifications', '/profil/obavestenja', 'Telefon, prijave i zadaci')}
       {row('Privatnost i podaci', 'shield', '/profil/privatnost', 'Vidljivost, podaci i blokirane osobe')}
     </AccountGroup>

@@ -25,6 +25,7 @@ const transformed = ts.transpileModule(candidate, { compilerOptions: { target: t
 let explicitFinish = false;
 const scope: Record<string, unknown> = {
   decodeServiceHandoff,
+  applicationDeadlineEnabled: () => false,
   taskFinishOnly: () => explicitFinish,
   explicitPublicationOnly: () => false,
   sameFactValue: (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b),

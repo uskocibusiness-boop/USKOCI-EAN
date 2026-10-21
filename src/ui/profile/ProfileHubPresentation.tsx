@@ -25,7 +25,7 @@ const BADGE = 24;
 
 /** Every place the hub opens. The route turns a choice into navigation behind its own single-flight guard. */
 export type ProfileHubPath = '/profil/radnik' | '/profil/podaci' | '/profil/obavestenja' | '/profil/privatnost' | '/profil/blokirani'
-  | '/profil/podesavanja' | '/potrebe' | '/moje-prijave' | '/raspored' | '/profil/izvoz' | '/profil/pravna' | '/podrska' | '/profil/o-aplikaciji' | '/profil/lozinka' | '/profil/prijava-greske';
+  | '/profil/podesavanja' | '/potrebe' | '/moje-prijave' | '/raspored' | '/profil/izvoz' | '/profil/pravna' | '/podrska' | '/profil/o-aplikaciji' | '/profil/lozinka' | '/profil/prijava-greske' | '/ai-istorija';
 
 /** Who the person is, as the route read it: still reading, not readable, or read. */
 export type ProfileHubIdentity =

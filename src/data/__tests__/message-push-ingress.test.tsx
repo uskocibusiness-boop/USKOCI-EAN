@@ -5,13 +5,14 @@ import { messagePushIntent } from '../../store/messagePushIntent';
 import { pendingRoute } from '../../store/pendingRoute';
 import { publicPushTarget } from '../../ui/notifications/pushTarget';
 
-const mockResolve = jest.fn(), mockOpportunityResolve = jest.fn(), mockTarget = jest.fn();
+const mockResolve = jest.fn(), mockOpportunityResolve = jest.fn(), mockApplicationResolve = jest.fn(), mockTarget = jest.fn();
 let mockFocused = true, mockApp = 'active';
 const mockAppListeners = new Set<(state: string) => void>();
 const owner = { accountId: '11111111-1111-4111-8111-111111111111', accountRevision: 1, sessionEpoch: 1 };
 let mockSession = { user: { id: owner.accountId }, accountRevision: 1, sessionEpoch: 1 };
 jest.mock('../../data/activityMessageTargetService', () => ({ activityMessageTargetService: { resolve: (...args: unknown[]) => mockResolve(...args) } }));
 jest.mock('../../data/activityOpportunityTargetService', () => ({ activityOpportunityTargetService: { resolve: (...args: unknown[]) => mockOpportunityResolve(...args) } }));
+jest.mock('../../data/activityApplicationPushTargetService', () => ({ activityApplicationPushTargetService: { resolve: (...args: unknown[]) => mockApplicationResolve(...args) } }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('expo-router', () => ({ useFocusEffect: (callback: () => void) => require('react').useEffect(() => mockFocused ? callback() : undefined, [callback, mockFocused]) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); const app = { get currentState() { return mockApp; }, addEventListener: (_: string, listener: (state: string) => void) => {
@@ -34,8 +35,12 @@ it('legacy and exact contracts admit only their fixed fields', () => {
   expect(publicPushTarget({ kind: 'INBOX' })).toEqual({ kind: 'INBOX' });
   expect(publicPushTarget({ kind: 'INBOX', eventType: 'MESSAGE_RECEIVED', eventId: event })).toEqual({ kind: 'MESSAGE_EVENT', eventId: event });
   for (const value of [null, [], { kind: 'INBOX', eventId: event }, { kind: 'INBOX', eventType: 'OTHER', eventId: event },
-    { kind: 'INBOX', eventType: 'RESPONSE_RECEIVED', eventId: event },
+    { kind: 'INBOX', eventType: 'RESPONSE_RECEIVED', eventId: 'private' },
     { kind: 'INBOX', eventType: 'MESSAGE_RECEIVED', eventId: 'private' }, { kind: 'INBOX', eventType: 'MESSAGE_RECEIVED', eventId: event, url: '/private' }]) expect(publicPushTarget(value)).toBeNull();
+});
+it.each(['RESPONSE_RECEIVED', 'RESPONSE_UPDATED'] as const)('accepts only an opaque %s event hint', eventType => {
+  expect(publicPushTarget({ kind: 'INBOX', eventType, eventId: event })).toEqual({ kind: 'APPLICATION_EVENT', eventType, eventId: event });
+  expect(publicPushTarget({ kind: 'INBOX', eventType, eventId: event, needId: next })).toBeNull();
 });
 it('resolves an owned event without needing an Inbox page; no read ACK is sent', async () => {
   receive(); await mount();
@@ -102,4 +107,32 @@ it('a rejected opportunity never guesses a need id and never falls back to messa
  messagePushIntent.rememberOpportunity(event,owner,null); await mount();
  expect(ui.phase).toBe('unavailable'); expect(mockTarget).not.toHaveBeenCalled();
  expect(mockResolve).not.toHaveBeenCalled();
+});
+it.each(['RESPONSE_RECEIVED', 'RESPONSE_UPDATED'] as const)('%s uses the owned application resolver after a cold tap', async eventType => {
+  const needId = '66666666-6666-4666-8666-666666666666';
+  const responseId = '77777777-7777-4777-8777-777777777777';
+  const application = { kind: 'APPLICATION', eventId: event, eventType, needId, responseId, role: 'REQUESTER' };
+  mockApplicationResolve.mockResolvedValue({ ok: true, podatak: application });
+  messagePushIntent.rememberApplication(event, eventType, owner, pendingRoute.remember('/obavestenja'));
+  await mount();
+  expect(mockResolve).not.toHaveBeenCalled(); expect(mockOpportunityResolve).not.toHaveBeenCalled();
+  expect(mockApplicationResolve).toHaveBeenCalledWith(event, eventType, { signal: expect.any(AbortSignal) }, { accountId: owner.accountId, accountRevision: 1 });
+  expect(mockTarget).toHaveBeenCalledWith(application);
+  expect(messagePushIntent.snapshot()).toBeNull();
+  expect(pendingRoute.takeDecision(owner)).toEqual({ kind: 'DELIVERED' });
+});
+it('a missing application stays in Inbox with no guessed response or ACK', async () => {
+  mockApplicationResolve.mockResolvedValue({ ok: true, podatak: { kind: 'UNAVAILABLE' } });
+  messagePushIntent.rememberApplication(event, 'RESPONSE_RECEIVED', owner, null);
+  await mount();
+  expect(ui.phase).toBe('unavailable'); expect(mockTarget).not.toHaveBeenCalled();
+  expect(mockResolve).not.toHaveBeenCalled();
+});
+it('an application read cannot navigate after account revision changes', async () => {
+  const wait = deferred(); mockApplicationResolve.mockReturnValue(wait.promise);
+  messagePushIntent.rememberApplication(event, 'RESPONSE_RECEIVED', owner, null); await mount();
+  mockSession = { ...mockSession, accountRevision: 2 }; await rerender();
+  expect((mockApplicationResolve.mock.calls[0][2].signal as AbortSignal).aborted).toBe(true);
+  await act(async () => wait.resolve({ ok: true, podatak: { kind: 'APPLICATION', needId: next, responseId: next } }));
+  expect(mockTarget).not.toHaveBeenCalled();
 });

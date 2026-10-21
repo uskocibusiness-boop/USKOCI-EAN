@@ -1,4 +1,14 @@
-# Worker AI oprema — lokalni kandidat, nije aktivan
+# Worker AI oprema — lokalni kandidat, nije na DEV-u
+
+## Lokalni izvor 21.10.2026. (noviji presek)
+
+Aktivni **lokalni izvor**, `supabase/functions/uskoci-worker-interview/index.ts`, sada upućuje Gemini da ne pita za alat/vozila i da ne predlaže `patch.tools`/`patch.vehicles`. Postojeće liste opreme ne šalje modelu kao deo kandidata za razgovor; one i dalje ostaju u serverovom vlasničkom kandidatu. Neposredno pre `rpc_complete_worker_ai_turn_service` uklanja ta dva strukturirana ključa ako ih model ipak vrati. U tom slučaju odbacuje i `patch.bio`, jer može da sadrži istu novu tvrdnju o opremi, i menja odgovor u jasnu poruku da oprema nije izmenjena. Nezavisne strukturirane izmene, kao što su usluga i podržano radno područje, ostaju u zakrpi. `REVIEW`/`BLOCK` zadržavaju svoj safety status i odbijaju opremnu zakrpu. Ovo je **source-only**: worker Edge nije objavljen na DEV, a stvarni Gemini i telefon nisu provereni za ovu izmenu.
+
+`node --test supabase/proofs/ai/v5_worker_edge.test.mjs` → **108/108 PASS** zajedno sa aktuelnom lokalnom zaštitom V1 područja. `worker-ai-review.test.tsx` → **20/20 PASS**, uključujući istorijski alat/vozilo u potpisanom pregledu. `npx tsc --noEmit --pretty false` → exit 0. Test potvrđuje granicu sintetičkog Edge izlaza prema completion RPC-u i lokalni prikaz; ne potvrđuje stvarni potpisani Save ili krajnji prikaz na uređaju.
+
+**Otvorena ugovorna granica:** Kada model ne vrati strukturirani ključ opreme, slobodni `patch.bio` ili `assistantMessage` i dalje mogu pomenuti novu opremu. Ovaj uski guard to ne može pouzdano prepoznati bez lažnih pogodaka i gubitka nezavisnog opisa. Postojeće `tools`/`vehicles` ostaju u vlasničkom kandidatu i vidljive su u potpisanom pregledu (`WorkerAiPresentation.tsx`); `rpc_save_worker_ai_review` ih i dalje upisuje iz celog kandidata (`20260912220506_clean_v5_owned_worker_profile.sql`, redovi 418–426). Za potpuno izbacivanje iz MVP profila potreban je poseban forward Save ugovor, usaglašena klient projekcija i DB/HONOR dokaz. Ne sakrivati potpisane istorijske vrednosti dok Save može ponovo da ih upiše.
+
+`proposal.patch` ispod je stariji, izdvojeni eksperiment. Njegova tekstualna obrada pitanja i biografije nije preuzeta u lokalni izvor. Raniji opis i rezultati ispod odnose se isključivo na taj eksperiment, ne na sadašnji DEV.
 
 **21.10.2026.** Predlog u [`proposal.patch`](proposal.patch) je napravljen i sintetički proveren, pa izdvojen iz aktivne Edge funkcije. `supabase/functions/uskoci-worker-interview/index.ts` i njegov važeći `v5_worker_edge.test.mjs` vraćeni su na početni HEAD. Nema DEV/prod objave, migracije ni promene signed review-a. Ovaj kandidat ne menja područje rada, kalendar, usluge/način izvršenja ili AI safety status. Zakrpa ima nula redova konteksta: njena provera i eventualna primena zahtevaju `git apply --unidiff-zero`.
 

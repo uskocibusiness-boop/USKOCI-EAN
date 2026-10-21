@@ -12,7 +12,8 @@ export type InboxState = {
 // Request ownership lives outside rendering. A blurred screen, replaced role or
 // signed-out account cannot publish an old response or navigate the new session.
 export function createInboxModel(port: InboxPort, role: InboxRole | null, isCurrent: () => boolean,
-  resolveMessage?: (eventId: string, signal: AbortSignal) => Promise<InboxTarget>) {
+  resolveMessage?: (eventId: string, signal: AbortSignal) => Promise<InboxTarget>,
+  resolveApplication?: (eventId: string, needId: string, signal: AbortSignal) => Promise<InboxTarget>) {
   let state: InboxState = {page:null,loading:false,paging:false,acting:null,error:null,unavailable:false};
   let active = false;
   let epoch = 0;
@@ -56,7 +57,8 @@ export function createInboxModel(port: InboxPort, role: InboxRole | null, isCurr
       && row.role === item.role && row.occurredAt === item.occurredAt)) return null;
     const token = ++epoch;
     set({acting:item.id,error:null,unavailable:false});
-    const controller = item.eventType === 'MESSAGE_RECEIVED' ? new AbortController() : null;
+    const controller = item.eventType === 'MESSAGE_RECEIVED' || item.eventType === 'RESPONSE_RECEIVED' || item.eventType === 'RESPONSE_UPDATED'
+      ? new AbortController() : null;
     if (controller) messageRead = controller;
     try {
       // Opening a message notification is only an attempt to reach its conversation.
@@ -72,12 +74,20 @@ export function createInboxModel(port: InboxPort, role: InboxRole | null, isCurr
       }
       // P4 resolves this recipient's event to its canonical message. Never downgrade a
       // failed/absent resolver to the legacy Agreement-only target or a newest-row guess.
-      if (controller && !resolveMessage) throw new Error('INBOX_MESSAGE_TARGET_UNCONFIRMED');
-      const target = controller ? await resolveMessage!(item.id, controller.signal) : await port.resolve(item.id);
+      if (item.eventType === 'MESSAGE_RECEIVED' && !resolveMessage) throw new Error('INBOX_MESSAGE_TARGET_UNCONFIRMED');
+      let target = item.eventType === 'MESSAGE_RECEIVED' ? await resolveMessage!(item.id, controller!.signal) : await port.resolve(item.id);
       if (!valid(token)) return null;
-      if (controller && target.kind !== 'UNAVAILABLE' && (target.kind !== 'AGREEMENT_MESSAGE'
+      if (item.eventType === 'MESSAGE_RECEIVED' && target.kind !== 'UNAVAILABLE' && (target.kind !== 'AGREEMENT_MESSAGE'
         || target.eventId.toLowerCase() !== item.id.toLowerCase() || target.role !== item.role)) {
         throw new Error('INBOX_MESSAGE_TARGET_INVALID');
+      }
+      if (controller && resolveApplication && item.role === 'REQUESTER' && target.kind === 'CANDIDATES' && target.role === 'REQUESTER') {
+        const needId = target.id;
+        target = await resolveApplication(item.id, needId, controller.signal);
+        if (!valid(token)) return null;
+        if (!(target.kind === 'CANDIDATES' && target.id === needId && target.role === 'REQUESTER')
+          && !(target.kind === 'CANDIDATE' && target.id === needId && target.role === 'REQUESTER'))
+          throw new Error('INBOX_APPLICATION_TARGET_INVALID');
       }
       set({acting:null,unavailable:target.kind==='UNAVAILABLE'});
       return target;

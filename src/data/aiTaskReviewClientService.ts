@@ -14,6 +14,7 @@ import { REVIEW_FACT_COPY, reviewStartPassed } from './reviewFactProblem';
 export { reviewFactProblem } from './reviewFactProblem';
 import type { LocationSlot } from '../contracts/needFactsV2';
 import { failure, positiveInteger, readOwnedResult, record, sameId, timestamp, uuid, type ReceiptAccount } from './serverReceipt';
+import { applicationDeadlineIso, decodeTaskApplicationDeadlineFact } from '../contracts/taskApplicationDeadline';
 import { supabaseKlijent } from './supabaseClient';
 
 export type AiTaskReviewFact = Readonly<{
@@ -91,6 +92,7 @@ const scope = (): ReceiptAccount | null => { const s = sesijaSada(); return s.us
 const current = (s: ReceiptAccount) => { const now = sesijaSada(); return now.user?.id === s.accountId && now.accountRevision === s.accountRevision; };
 const invalid = <T>(): Promise<Ishod<T>> => Promise.resolve(failure('TASK_REVIEW_INPUT_INVALID', COPY.TASK_REVIEW_INPUT_INVALID));
 function validValue(key: NeedFactV2Key, value: unknown): boolean {
+  if (key === 'need.response_deadline') return decodeTaskApplicationDeadlineFact(value) !== null;
   const type = NEED_FACT_V2_DEFINITIONS[key].valueType;
   if (type === 'TEXT_ARRAY') return Array.isArray(value) && value.length <= 100 && value.every(x => text(x, 1000));
   if (type === 'BOOLEAN') return typeof value === 'boolean';
@@ -131,10 +133,17 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
     || !timestamp(r.expiresAt) || (r.responseDeadline !== null && !timestamp(r.responseDeadline))
     || typeof r.canAccept !== 'boolean' || !['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(String(r.safety))
     || !Array.isArray(r.publicProjection) || !Array.isArray(r.ownerPrivateProjection) || r.publicProjection.length + r.ownerPrivateProjection.length > MAX_NEED_FACT_V2_PAYLOAD
-    || !Array.isArray(r.missingRequired) || r.missingRequired.length > MAX_NEED_FACT_V2_PAYLOAD || !r.missingRequired.every(k => typeof k === 'string' && isNeedFactV2Key(k) && (NEED_FACT_V2_DEFINITIONS[k].requiredForDraft || k === 'need.handoff'))) return null;
+    || !Array.isArray(r.missingRequired) || r.missingRequired.length > MAX_NEED_FACT_V2_PAYLOAD || !r.missingRequired.every(k => typeof k === 'string' && isNeedFactV2Key(k) && (NEED_FACT_V2_DEFINITIONS[k].requiredForDraft || k === 'need.handoff' || k === 'need.response_deadline'))) return null;
   const publicProjection = r.publicProjection.map(x => fact(x, 'PUBLIC')), ownerPrivateProjection = r.ownerPrivateProjection.map(x => fact(x, 'PRIVATE'));
   const all = [...publicProjection, ...ownerPrivateProjection];
   if (all.some(x => !x) || new Set(all.map(x => x?.key)).size !== all.length || new Set(r.missingRequired).size !== r.missingRequired.length) return null;
+  const deadlineFact = publicProjection.find(x => x?.key === 'need.response_deadline' && x.status !== 'UNKNOWN');
+  if (deadlineFact) {
+    const decision = decodeTaskApplicationDeadlineFact(deadlineFact.value);
+    if (!decision || (applicationDeadlineIso(decision) === null ? r.responseDeadline !== null
+      : Date.parse(applicationDeadlineIso(decision)!) !== Date.parse(String(r.responseDeadline)))) return null;
+  }
+  if (r.missingRequired.includes('need.response_deadline') && (deadlineFact || r.responseDeadline !== null)) return null;
   const location = r.location === null ? null : normalizeNeedLocation(r.location);
   if (r.missingRequired.includes('need.handoff') && location?.geography.mode !== 'REMOTE') return null;
   if ((r.location !== null && !location) || (r.canAccept && (r.safety === 'BLOCK' || !location || r.missingRequired.length > 0))) return null;
@@ -306,13 +315,21 @@ async function acceptFor(s: ReceiptAccount, command: Readonly<{ review: AiTaskRe
 // DEV-only opt-in to signed requester classification. Old APKs and builds
 // remain on the unmodified V2 review RPC unless explicitly configured.
 const signedNeedReviewEnabled=()=>process.env.EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW==='true';
+const deadlineFactEnabled=()=>process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1==='true';
 export const aiTaskReviewClientService = {
   prepare(request: AiTaskReviewPrepare): Promise<Ishod<AiTaskReviewEnvelope>> {
     const s = scope(); if (!s) return Promise.resolve(failure('AUTH_REQUIRED', COPY.AUTH_REQUIRED));
     if (!uuid(request?.conversationId) || (request.responseDeadline !== null && !timestamp(request.responseDeadline))) return invalid();
     const location = request.location ? normalizeNeedLocation(request.location.value) : null;
     if (request.location && (!location || !locationRevision(request.location.expectedRevision))) return invalid();
-    return rpc(s, signedNeedReviewEnabled()?'rpc_prepare_ai_task_review_taxonomy':'rpc_prepare_ai_task_review', { p_conversation_id: request.conversationId, p_response_deadline: request.responseDeadline,
+    const deadlineMode = deadlineFactEnabled();
+    const prepareRpc = deadlineMode
+      ? signedNeedReviewEnabled() ? 'rpc_prepare_ai_task_review_deadline_taxonomy' : 'rpc_prepare_ai_task_review_deadline'
+      : signedNeedReviewEnabled() ? 'rpc_prepare_ai_task_review_taxonomy' : 'rpc_prepare_ai_task_review';
+    // The candidate RPC derives the deadline from the locked conversation. The
+    // old argument stays only on the old RPC for older deployed servers.
+    return rpc(s, prepareRpc, { p_conversation_id: request.conversationId,
+      ...(!deadlineMode ? { p_response_deadline: request.responseDeadline } : {}),
       p_location: request.location ? { expectedRevision: request.location.expectedRevision, value: location } : null }, raw => {
       const review = decodeAiTaskReview(raw, s.accountId); return review && sameId(review.conversationId, request.conversationId) ? review : null;
     }, true);

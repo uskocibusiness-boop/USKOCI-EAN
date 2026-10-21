@@ -34,6 +34,7 @@ const evaluated = (outcome: 'ALLOW' | 'CLARIFY' | 'REVIEW' | 'BLOCK' = 'ALLOW'):
 const published = (): AiTaskPublicationCommand => ({ ...evaluated(), state: 'PUBLISHED', published: { needId: NEED, status: 'PUBLISHED', publishedAt: '2026-09-12T12:00:01Z', responseDeadline: null, idempotentReplay: false } });
 let stored: AiTaskPublicationCommand | null;
 beforeEach(() => {
+  delete process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1;
   mockSession = { user: { id: OWNER }, accountRevision: 1 }; stored = null;
   mockRpc.mockReset(); mockInvoke.mockReset(); mockGetSession.mockReset();
   mockGetSession.mockResolvedValue({ data: { session: { user: { id: OWNER }, access_token: 'SYNTHETIC_TOKEN' } }, error: null });
@@ -46,11 +47,25 @@ beforeEach(() => {
   });
   mockInvoke.mockImplementation(async () => { stored = evaluated(); return answer(stored.evaluation); });
 });
+afterEach(() => {
+  delete process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1;
+});
 
 it('opening review does not accept facts, save a draft, evaluate or publish', async () => {
   await expect(service.prepare({ conversationId: CONVERSATION, responseDeadline: null })).resolves.toEqual({ ok: true, podatak: review() });
   expect(mockRpc).toHaveBeenCalledTimes(1); expect(mockRpc).toHaveBeenCalledWith('rpc_prepare_ai_task_review', { p_conversation_id: CONVERSATION, p_response_deadline: null, p_location: null });
   expect(stored).toBeNull(); expect(mockInvoke).not.toHaveBeenCalled();
+});
+
+it('opt-in review derives the deadline from facts through the separate signed prepare RPC', async () => {
+  process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1 = 'true';
+  mockRpc.mockResolvedValueOnce(answer(review()));
+  await expect(service.prepare({ conversationId: CONVERSATION, responseDeadline: null })).resolves.toEqual({ ok: true, podatak: review() });
+  expect(mockRpc).toHaveBeenCalledWith('rpc_prepare_ai_task_review_deadline', {
+    p_conversation_id: CONVERSATION, p_location: null,
+  });
+  expect(mockRpc.mock.calls[0][1]).not.toHaveProperty('p_response_deadline');
+  expect(mockInvoke).not.toHaveBeenCalled();
 });
 
 it('one explicit click accepts exact server digest then publishes only after durable ALLOW readback', async () => {

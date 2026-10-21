@@ -6,7 +6,9 @@ let mockFocused=true, mockAppState='active';
 const mockListeners=new Set<(state:string)=>void>();
 const mockPort={list:jest.fn(),read:jest.fn(),readAll:jest.fn(),resolve:jest.fn()};
 const mockMessageTarget=jest.fn();
+const mockApplicationTarget=jest.fn();
 jest.mock('../activityMessageTargetService',()=>({activityMessageTargetService:{resolve:(...args:unknown[])=>mockMessageTarget(...args)}}));
+jest.mock('../activityApplicationTargetService',()=>({activityApplicationTargetService:{resolve:(...args:unknown[])=>mockApplicationTarget(...args)}}));
 jest.mock('react-native',()=>{const native=jest.requireActual('react-native');const app={get currentState(){return mockAppState;},addEventListener:(_event:string,listener:(state:string)=>void)=>{
   mockListeners.add(listener);return {remove:()=>mockListeners.delete(listener)};
 }};return new Proxy(native,{get:(target,key)=>key==='AppState'?app:Reflect.get(target,key)});});
@@ -43,6 +45,26 @@ test('P4 exact resolution carries the captured account incarnation and aborts on
   await act(async()=>target.resolve({ok:true,podatak:{kind:'AGREEMENT_MESSAGE',agreementId:'agreement',
     messageId:'exact',eventId:row.id,role:row.role}}));
   expect(await pending).toBeNull();expect(mockPort.read).not.toHaveBeenCalled();expect(mockPort.resolve).not.toHaveBeenCalled();
+});
+test('an owned application event can refine its already authorized Need into the exact offer',async()=>{
+  const application={...row,eventType:'RESPONSE_RECEIVED',role:'REQUESTER'};
+  mockPort.list.mockResolvedValue({...page,items:[application]});
+  mockPort.resolve.mockResolvedValue({kind:'CANDIDATES',id:'need',role:'REQUESTER'});
+  mockApplicationTarget.mockResolvedValue({ok:true,podatak:{responseId:'response'}});
+  await act(async()=>{tree=create(<Probe/>);});let result:any;
+  await act(async()=>{result=await current().model.open(application);});
+  expect(result).toEqual({kind:'CANDIDATE',id:'need',responseId:'response',role:'REQUESTER'});
+  expect(mockApplicationTarget).toHaveBeenCalledWith(application.id,'need',expect.any(AbortSignal),
+    {accountId:'account-a',accountRevision:1});
+});
+test('an unavailable owned-event read retains the authorized task list without guessing an offer',async()=>{
+  const application={...row,eventType:'RESPONSE_RECEIVED',role:'REQUESTER'};
+  mockPort.list.mockResolvedValue({...page,items:[application]});
+  mockPort.resolve.mockResolvedValue({kind:'CANDIDATES',id:'need',role:'REQUESTER'});
+  mockApplicationTarget.mockResolvedValue({ok:false,kod:'ACTIVITY_APPLICATION_TARGET_UNCONFIRMED'});
+  await act(async()=>{tree=create(<Probe/>);});let result:any;
+  await act(async()=>{result=await current().model.open(application);});
+  expect(result).toEqual({kind:'CANDIDATES',id:'need',role:'REQUESTER'});
 });
 test.each(['resolved','unavailable','refused'] as const)('P4 %s preserves its distinction at the real hook boundary',async mode=>{
   const message={...row,eventType:'MESSAGE_RECEIVED'};mockPort.list.mockResolvedValue({...page,items:[message]});

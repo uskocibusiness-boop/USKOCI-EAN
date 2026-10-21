@@ -80,6 +80,13 @@ it('uses one empty label without legacy licence/team rows', async () => {
   expect(copy).not.toMatch(/Licenc|licenc|Broj ljudi|kapacitet|O tebi/);
 });
 
+it('keeps historical equipment visible in the signed review while Save still writes it', async () => {
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={review({}, {tools:['Valjak'],vehicles:['Kombi']})} />); });
+  const copy = texts();
+  expect(copy).toContain('Valjak');expect(copy).toContain('Kombi');
+  expect(tree.root.findAllByProps({testID:'worker-tools-note'})).toHaveLength(1);
+});
+
 // ONE NAME (owner, 8 Oct 2026): the profile is saved under the name of the ACCOUNT, so the review has no row for the name, and "O meni" is the only part
 // of the identity group. Only an account with no name at all is told so, with the way to the one place it is written.
 it('has no row for the name, whatever the proposal carries', async () => {

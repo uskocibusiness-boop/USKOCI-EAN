@@ -1839,6 +1839,8 @@ test('pin and discovery list keep the truthful task face without redundant surro
   await act(async () => map().props.onSelect('bb'));
   const card = press('Otvori zadatak: Selidba klavira u Zemunu');
   const words = texts(peek()!);
+  const mapTitle = card.findAllByType('T' as React.ElementType).find(node => node.props.variant === 'cardTitle');
+  expect(StyleSheet.flatten(mapTitle?.props.style).textAlign).toBe('center');
   expect(words).toContain('Selidba klavira u Zemunu'); expect(words).toContain('Zemun, Beograd'); expect(words).toContain('26. sep · 10:00–12:00');
   expect(words).toContain('2.000 RSD'); expect(words).toContain('ukupno'); expect(words).toContain('Mila');
   expect(words).toContain('ZADATAK NA MAPI'); expect(words).toContain('Objavljivač'); expect(words).toContain('4,8 (12)');
@@ -3492,6 +3494,42 @@ describe('navigation stays reachable during map/list browsing and withdraws for 
     expect(listSheet().props.snapPoints[0]).toBe(HIDDEN);
     await physicallyAt(0); await tap('Zatvori pregled zadatka'); expect(hiddenNow()).toBe(0);
     await act(async () => countLine().props.onPress()); await physicallyAt(1); expect(hiddenNow()).toBe(0);
+  });
+  test('a selected task hides the date and quick-filter row while Filteri keeps the criteria reachable', async () => {
+    rows = [row('a', { schedule: { kind: 'FLEXIBLE', startsAt: null, endsAt: null } })];
+    barValue = makeBar(); await render(); await layOutBody(800);
+    expect(capsuleLabels()).toContain('Danas');
+    const before = { when: snapshot.when, where: snapshot.where, price: snapshot.price };
+    await act(async () => map().props.onSelect('a'));
+    expect(peek()).toBeDefined(); expect(hiddenNow()).toBe(1);
+    expect(capsules()).toHaveLength(0);
+    expect(tree.root.findAllByProps({ testID: 'discovery-chips-clip' })).toHaveLength(0);
+    expect(press('Filteri')).toBeDefined();
+    expect({ when: snapshot.when, where: snapshot.where, price: snapshot.price }).toEqual(before);
+    await tapFilters();
+    expect(panel()).toHaveLength(1);
+    await act(async () => tree.root.findByType(DiscoverySearchPanel).props.onClose());
+    expect(capsules()).toHaveLength(0);
+    await tap('Zatvori pregled zadatka');
+    expect(hiddenNow()).toBe(0); expect(capsuleLabels()).toContain('Danas');
+    expect({ when: snapshot.when, where: snapshot.where, price: snapshot.price }).toEqual(before);
+  });
+  test('the P6 selected task uses the same focused map chrome and restores chips after its peek clears', async () => {
+    rows = [row('t1', { schedule: { kind: 'FLEXIBLE', startsAt: null, endsAt: null } })];
+    barValue = makeBar();
+    p6Seam = { ...p6Seam_(), availability: { hasKnownWorkMode: true, hasKnownSchedule: true, priceModes: ['MY_PRICE'] },
+      map: { ...p6Seam_().map, markers: [serverTask] } };
+    await render(); await layOutBody(800);
+    expect(capsuleLabels()).toContain('Danas');
+    p6Seam = { ...p6Seam, map: { ...p6Seam.map, selectedKey: serverTask.key },
+      peek: { key: serverTask.key, item: rows[0], place: [] } };
+    await update();
+    expect(peek()).toBeDefined(); expect(peek()!.props.bottomInset).toBe(sys.space.md);
+    expect(hiddenNow()).toBe(1); expect(capsules()).toHaveLength(0); expect(press('Filteri')).toBeDefined();
+    expect(snapshot.when).toBe('any');
+    p6Seam = { ...p6Seam, map: { ...p6Seam.map, selectedKey: null }, peek: null };
+    await update();
+    expect(peek()).toBeUndefined(); expect(hiddenNow()).toBe(0); expect(capsuleLabels()).toContain('Danas');
   });
   test.each(['blur', 'scope'] as const)('queued physical bar updates cannot escape their %s owner', async kind => {
     barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);

@@ -5,6 +5,7 @@ import type {
   AiNeedTurnReceipt, AiNeedTurnStatus, AiNeedTurnRecovery, AiNeedV2Conversation, AiNeedV2Fact, AiNeedV2Review,
 } from '../contracts/aiNeedV2';
 import { MAX_NEED_FACT_V2_PAYLOAD, NEED_FACT_SCHEMA_V2, NEED_FACT_V2_DEFINITIONS, isNeedFactV2Key } from '../contracts/needFactsV2';
+import { decodeTaskApplicationDeadlineFact } from '../contracts/taskApplicationDeadline';
 import { decodeServiceHandoff } from '../contracts/serviceHandoff';
 import type { Ishod } from './ports';
 import { supabaseKlijent } from './supabaseClient';
@@ -229,6 +230,7 @@ async function failedTurnEnvelope(error: unknown, conversationId: string, client
 }
 
 function validFactValue(key: AiNeedV2Fact['key'], value: unknown): boolean {
+  if (key === 'need.response_deadline') return decodeTaskApplicationDeadlineFact(value) !== null;
   const type = NEED_FACT_V2_DEFINITIONS[key].valueType;
   if (type === 'TEXT_ARRAY') return capabilityTerms(value) !== null;
   if (type === 'BOOLEAN') return typeof value === 'boolean';

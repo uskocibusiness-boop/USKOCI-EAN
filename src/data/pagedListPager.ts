@@ -31,6 +31,8 @@ export type PagedListState<Item, Scope, Counts> = {
   /** The first page failed and nothing is on screen. */
   error: boolean;
   hasMore: boolean; loadingMore: boolean; moreError: boolean;
+  /** Automatic completion stopped at maxPages; manual Load more can continue. */
+  pageBoundReached: boolean;
 };
 export type PagedListOptions<Item, Scope, Cursor, Counts> = {
   readPage: (request: PagedListRequest<Scope, Cursor>) => Promise<PagedListPage<Item, Cursor, Counts>>;
@@ -68,10 +70,11 @@ export function createPagedListPager<Item, Scope extends string, Cursor, Counts>
   }
   function build(): PagedListState<Item, Scope, Counts> {
     const set = scope ? sets.get(scope) : undefined;
-    if (!scope) return { scope, items: EMPTY, counts, loading: false, refreshing: false, error: false, hasMore: false, loadingMore: false, moreError: false };
-    if (!set) return { scope, items: EMPTY, counts, loading: true, refreshing: false, error: false, hasMore: false, loadingMore: false, moreError: false };
+    if (!scope) return { scope, items: EMPTY, counts, loading: false, refreshing: false, error: false, hasMore: false, loadingMore: false, moreError: false, pageBoundReached: false };
+    if (!set) return { scope, items: EMPTY, counts, loading: true, refreshing: false, error: false, hasMore: false, loadingMore: false, moreError: false, pageBoundReached: false };
     return { scope, items: set.items, counts, loading: !set.loaded && !set.firstError, refreshing: set.loaded && set.firstFlight,
-      error: !set.loaded && set.firstError, hasMore: set.loaded && set.hasMore, loadingMore: set.moreFlight, moreError: set.moreError };
+      error: !set.loaded && set.firstError, hasMore: set.loaded && set.hasMore, loadingMore: set.moreFlight, moreError: set.moreError,
+      pageBoundReached: set.loaded && set.hasMore && set.pages >= maxPages };
   }
   function show() { state = build(); listeners.forEach(listener => listener()); }
   function merge(set: SetState<Item, Cursor>, incoming: readonly Item[]) {

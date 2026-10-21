@@ -56,6 +56,15 @@ it('Nova prijava has only generic Inbox metadata, so its tap cannot guess a cand
  expect(messagePushIntent.snapshot()).toBeNull();
  expect(mockPush).not.toHaveBeenCalled();
 });
+it.each(['RESPONSE_RECEIVED', 'RESPONSE_UPDATED'] as const)('exact %s cold tap holds only an owned event and opens Inbox', async eventType => {
+ const eventId = '33333333-3333-4333-8333-333333333333';
+ mockCold.mockResolvedValue(response(`application-${eventType}`, { kind: 'INBOX', eventType, eventId }));
+ await mount();
+ expect(mockNavigate.mock.calls).toEqual([['/obavestenja']]);
+ expect(messagePushIntent.snapshot()).toEqual(expect.objectContaining({ eventId, eventType, accountId: mockState.user!.id,
+  accountRevision: 1, sessionEpoch: 1, coldRoute: expect.any(Number) }));
+ expect(mockPush).not.toHaveBeenCalled();
+});
 it('exact message metadata creates an owned memory intent and still navigates only to the fixed Inbox', async () => {
  const eventId = '33333333-3333-4333-8333-333333333333';
  mockCold.mockResolvedValue(response('exact', { kind: 'INBOX', eventType: 'MESSAGE_RECEIVED', eventId })); await mount();
@@ -302,4 +311,13 @@ it('opportunity metadata presents only with public opportunity text', async () =
  expect(await present(notification({data,title:'Novi zadatak za tebe',body:'Pojavila se nova prilika koja može da ti odgovara.'}))).toEqual(visible);
  expect(await present(notification({data,title:'Nova poruka u Dogovoru',body:'Imaš novu poruku.'}))).toEqual(hidden);
  expect(await present(notification({data:{...data,needId:'private'},title:'Novi zadatak za tebe',body:'Pojavila se nova prilika koja može da ti odgovara.'}))).toEqual(hidden);
+});
+it.each([
+ ['RESPONSE_RECEIVED', 'Nova prijava', 'Stigla je nova prijava na tvoj zadatak.'],
+ ['RESPONSE_UPDATED', 'Prijava je izmenjena', 'Jedna prijava na tvoj zadatak je ažurirana.'],
+] as const)('%s metadata presents only with its fixed public copy', async (eventType, title, body) => {
+ await mount(); const data = { kind: 'INBOX', eventType, eventId: '33333333-3333-4333-8333-333333333333' };
+ expect(await present(notification({ data, title, body }))).toEqual(visible);
+ expect(await present(notification({ data, title: 'Nova poruka u Dogovoru', body: 'Imaš novu poruku.' }))).toEqual(hidden);
+ expect(await present(notification({ data: { ...data, responseId: 'private' }, title, body }))).toEqual(hidden);
 });

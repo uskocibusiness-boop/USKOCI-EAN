@@ -585,9 +585,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     title: single('need.title'), value: grouped('value'), place: {}, time: grouped('time'),
     people: single('need.people_needed'), description: single('need.description'),
     map: {},
-    // The current server review owns this value. AI does not yet expose an
-    // application-deadline fact; the completion date is a separate concept.
-    deadline: {},
+    deadline: process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1 === 'true' && !command && !quietEdit
+      ? { pencil: { label: 'Izmeni, Rok za prijave', onPress: () => editInConversation('task.deadline') } } : {},
     requirements: need ? Object.fromEntries(needRequirementRows(need).flatMap(row => REQUIREMENT_FACT[row.label]
       ? [[row.label, single(REQUIREMENT_FACT[row.label])] as const] : [])) : {},
   };
@@ -628,6 +627,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
             </T></Surface>)}
           {/* The task detail as it is published: Airbnb-style clean preview with zero redundant intermediate cards. */}
           <ReviewDetail need={need} parts={parts} person={reviewer} knownPeopleCount={knownPeopleCount}
+            deadlineDecision={process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1 === 'true'
+              ? (review.publicProjection.find(item => item.key === 'need.response_deadline' && item.status !== 'UNKNOWN')?.value as { kind?: string } | undefined)?.kind === 'AT' ? 'AT'
+                : (review.publicProjection.find(item => item.key === 'need.response_deadline' && item.status !== 'UNKNOWN')?.value as { kind?: string } | undefined)?.kind === 'NONE' ? 'NONE' : 'UNSPECIFIED'
+              : undefined}
             photos={photoAssets.length ? <ReviewGallery key={photoAssets.join(':')} assetIds={photoAssets} pencil={photosAt} />
               : <AddPhotos title={hasPhotos ? 'Fotografije' : undefined} pencil={photosAt} />}
             map={need.priblizno ? <LocationMapPreview points={[{ id: 'public-area', label: 'Približno mesto', latitude: need.priblizno.lat, longitude: need.priblizno.lng }]}

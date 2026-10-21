@@ -178,7 +178,7 @@ export type CandidatesPaging = { total: number | null; hasMore: boolean; loading
  * one line that says how many there are and how they are ordered, and the cards. No line stands between them: the space is the only
  * divider. The order is changed in a sheet of three choices (the arrival, the price, the rating), not in a menu that opens in the list.
  */
-export function CandidateListPresentation({ need, candidates, open, back, refresh, openTask, sort: chosenSort, onSort, comparison, onComparison, photo, textScale: forcedScale, paging, viewed }: {
+export function CandidateListPresentation({ need, candidates, open, back, refresh, openTask, sort: chosenSort, onSort, comparison, onComparison, photo, textScale: forcedScale, paging, viewed, targetNotice }: {
   need: PotrebaProjekcija; candidates: KandidatProjekcija[]; open: (candidate: KandidatProjekcija) => void; back: () => void; refresh: () => void;
   /** Present only when the list is read a page at a time (EX-04 S4); `candidates` are then the ones loaded so far. */
   paging?: CandidatesPaging;
@@ -187,6 +187,8 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
    * candidate read carries no viewed flag, so nothing else can say it; an id that is not here is "Poslata", which is still true.
    */
   viewed?: ReadonlySet<string>;
+  /** A verified event can outlive the particular offer; the owner still sees their task's other applications. */
+  targetNotice?: string;
   /** The row at the top opens the Task these offers answer. */
   openTask?: () => void;
   /** The order the route keeps, so it survives opening an offer and coming back. Held here when absent. */
@@ -251,6 +253,7 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
         contentContainerStyle={s.content} ItemSeparatorComponent={CandidateSeparator} columnWrapperStyle={columns > 1 ? s.columnRow : undefined}
         ListHeaderComponent={<View style={s.listHeader}>
           <TaskBrief need={need} open={openTask} />
+          {targetNotice ? <Surface kind="note" tone="warn"><T accessibilityRole="alert" variant="body">{targetNotice}</T></Surface> : null}
           {candidates.length ? <View style={s.toolbar}>
             <T variant="note" tone="muted" style={s.counts}>{counts}</T>
             {candidates.length > 1 && known ? <Press accessibilityRole="button" accessibilityLabel={`Redosled prijava: ${SORT_LABEL[sort]}`}

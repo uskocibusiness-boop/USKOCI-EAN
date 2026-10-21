@@ -1,5 +1,7 @@
 # Push „Nova prijava” — stvarni cilj i nedostajući ugovor
 
+**Noviji DEV presek:** Edge parser v36 je primenjen i pročitan nazad uz `EXPO_PUSH_APPLICATION_TARGET_ENABLED` isključen. SQL resolver, novi APK i precizan OS tap još nisu primenjeni ni potvrđeni. [Tačan dokaz](PUSH_APPLICATION_EDGE_V36_20261021.md). Tekst ispod opisuje stariji izvorni i telefonski presek.
+
 Datum provere lokalnog izvora: 21.10.2026. Ovo je analiza koda i ranijeg QA dokaza, bez nove DEV/prod ili telefonske probe.
 
 ## Šta sada radi

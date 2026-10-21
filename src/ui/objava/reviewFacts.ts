@@ -228,8 +228,9 @@ export function blankList(fact: Readonly<{ key: NeedFactV2Key; value: unknown }>
  * phone in another zone). No deadline is "Bez posebnog roka" and no more: the part is named "Prijave", and what it means that there is none (the
  * search goes on until the task is filled or its owner stops it) is a sentence the screen does not need (rule J5, one sentence of explanation).
  */
-export function deadlineWords(responseDeadline: string | null): string {
-  return responseDeadline ? `Prijave do ${dogovorenoVreme(responseDeadline)}` : 'Bez posebnog roka';
+export function deadlineWords(responseDeadline: string | null, decision?: 'UNSPECIFIED' | 'NONE' | 'AT'): string {
+  return decision === 'UNSPECIFIED' ? 'Rok za prijave još nije određen'
+    : responseDeadline ? `Prijave do ${dogovorenoVreme(responseDeadline)}` : 'Bez posebnog roka';
 }
 
 /**

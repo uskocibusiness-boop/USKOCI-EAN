@@ -39,6 +39,7 @@ export default function Obavestenja() {
     if (focus.current === null || navigating.current || !model.canNavigate()) return;
     navigating.current = true;
     if (target.kind === 'OPPORTUNITY') router.replace({pathname:'/prilike/[id]',params:{id:target.needId}});
+    else if (target.kind === 'APPLICATION') router.replace({pathname:'/potrebe/[id]/kandidati',params:{id:target.needId,prijavaId:target.responseId}});
     else router.replace({pathname:'/dogovor/[id]',params:{id:target.agreementId,tab:'poruke',messageId:target.messageId}});
   });
   useFocusEffect(useCallback(() => {
@@ -75,6 +76,7 @@ export default function Obavestenja() {
       case 'AGREEMENT_MESSAGE': router.push({pathname:'/dogovor/[id]',params:{id:target.id,tab:'poruke',messageId:target.messageId}}); break;
       case 'AGREEMENT': router.push(agreementTarget(target.id)); break;
       case 'APPLICATIONS': router.push({pathname:'/moje-prijave',params:{prijavaId:target.id}}); break;
+      case 'CANDIDATE': router.push({pathname:'/potrebe/[id]/kandidati',params:{id:target.id,prijavaId:target.responseId}}); break;
       case 'CANDIDATES': router.push({pathname:'/potrebe/[id]/kandidati',params:{id:target.id}}); break;
       case 'OWN_NEED': router.push(needTarget(target.id,true)); break;
       case 'OPPORTUNITY': router.push(needTarget(target.id,false)); break;

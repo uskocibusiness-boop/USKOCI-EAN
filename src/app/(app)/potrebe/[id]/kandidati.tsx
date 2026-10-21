@@ -14,6 +14,7 @@ import { useFocusedResource } from '../../../../hooks/useFocusedResource';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { inicijali } from '../../../../lib/inicijali';
 import { noviZahtevId } from '../../../../lib/idempotencija';
+import { uuid } from '../../../../data/serverReceipt';
 import { sesijaSada, useSesija } from '../../../../store/sesija';
 import { useIzvor } from '../../../../store/uloga';
 import { CandidateListPresentation, CandidateSelectionPresentation, SelectionUnavailable, type CandidatesPaging, type CandidateSort } from '../../../../ui/v2/ApplicationSelectionPresentation';
@@ -31,10 +32,11 @@ const STALE_REVIEW_MESSAGE = 'Zadatak se upravo promenio. Učitaj prijave ponovo
  * EX-04 S4 (A11): the same applications a page at a time, in the whole-list order. The screen's editor keeps owning the read of the task, the revision check, the offer sheet and the
  * choice; the pager owns the rows, the server's total and the next page. `complete` asks for the whole set (the order by price and the comparison are only right over every application).
  */
-function usePagedCandidates(source: Izvor, taskId: string | undefined, complete: boolean) {
+function usePagedCandidates(source: Izvor, taskId: string | undefined, complete: boolean, focusId: string | null) {
   const readPage = useCallback((request: CandidatesPageRequest) => taskId ? source.prijaveZaPotrebuStrana(taskId, { limit: request.limit, cursor: request.cursor })
     : Promise.reject(new Error('CANDIDATE_PAGE_NEED_REQUIRED')), [source, taskId]);
-  const { state, pager } = useCandidatesPager(readPage, complete);
+  const until = useCallback((items: readonly KandidatProjekcija[]) => !!focusId && items.some(row => row.prijavaId.toLowerCase() === focusId), [focusId]);
+  const { state, pager } = useCandidatesPager(readPage, complete || !!focusId, focusId && !complete ? until : undefined);
   return { pager, state, rows: state.items as KandidatProjekcija[],
     paging: { total: state.counts?.total ?? null, hasMore: state.hasMore, loadingMore: state.loadingMore, moreError: state.moreError,
       onLoadMore: () => { void pager.loadMore(); } } satisfies CandidatesPaging };
@@ -56,18 +58,20 @@ function useOwnIdentity(wanted: boolean, accountId: string | undefined) {
   return !resource.loading && !resource.error && resource.data?.accountId === accountId ? resource.data : null;
 }
 type PagedCandidates = ReturnType<typeof usePagedCandidates>;
-const useNoPagedCandidates = (_source: Izvor, _taskId: string | undefined, _complete: boolean): PagedCandidates | null => null;
+const useNoPagedCandidates = (_source: Izvor, _taskId: string | undefined, _complete: boolean, _focusId: string | null): PagedCandidates | null => null;
 // One reader per build: a compile-time flag, so the order of hooks never changes while the app runs.
-const usePagedCandidateRows: (source: Izvor, taskId: string | undefined, complete: boolean) => PagedCandidates | null =
+const usePagedCandidateRows: (source: Izvor, taskId: string | undefined, complete: boolean, focusId: string | null) => PagedCandidates | null =
   candidatesPagedBuilt() ? usePagedCandidates : useNoPagedCandidates;
 export default function Kandidati() {
-  const params = useLocalSearchParams<{ id?: string }>();
+  const params = useLocalSearchParams<{ id?: string; prijavaId?: string }>();
   const id = typeof params.id === 'string' ? params.id : undefined;
+  const focusId = typeof params.prijavaId === 'string' && uuid(params.prijavaId) ? params.prijavaId.toLowerCase() : null;
   const izvor = useIzvor(), router = useRouter();
   const { user, accountRevision } = useSesija();
   const session = useMemo(() => ({ pending: null as Pending | null, viewed: new Map<string, Viewed>(), navigated: false,
     active: AppState.currentState !== 'background' && AppState.currentState !== 'inactive', focused: false,
-    focusToken: 0, readRevision: 0, reading: false, compare: false, hardReload: false }), [id, izvor, user?.id, accountRevision]);
+    focusToken: 0, readRevision: 0, reading: false, compare: false, hardReload: false,
+    targetHandled: false, targetMissing: false, targetIncomplete: false }), [id, focusId, izvor, user?.id, accountRevision]);
   const [, render] = useState(0), [resume, setResume] = useState(0);
   const currentAccount = useCallback(() => !!user?.id && sesijaSada().user?.id === user.id &&
     sesijaSada().accountRevision === accountRevision, [user?.id, accountRevision]);
@@ -78,7 +82,7 @@ export default function Kandidati() {
   const [sorted, setSorted] = useState<{ scope: string; sort: CandidateSort } | null>(null);
   const sort = sorted?.scope === sortScope ? sorted.sort : 'ARRIVAL';
   // Paged builds only. The order by price and the comparison are only right over every application: while either is on, the rest of the set is read, a page at a time and up to a bound.
-  const paged = usePagedCandidateRows(izvor, id, sort !== 'ARRIVAL' || session.compare);
+  const paged = usePagedCandidateRows(izvor, id, sort !== 'ARRIVAL' || session.compare, focusId);
   const pager = paged?.pager;
   // A person's photo by their verified public profile id; without one (or while it cannot be read) the one Avatar with the
   // letters the candidate read already carries. One function for the life of the screen, so the memoised rows keep.
@@ -139,7 +143,10 @@ export default function Kandidati() {
   const own = useOwnIdentity(!!candidate, user?.id);
   const focusToken = session.focusToken, readRevision = session.readRevision;
   const current = () => session.focused && session.active && session.focusToken === focusToken && session.readRevision === readRevision && currentAccount();
-  const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) { session.hardReload = true; void editor.refresh(); } };
+  const refresh = () => { if (current() && !session.reading && !session.pending?.inFlight) {
+    if (session.targetMissing) { session.targetMissing = false; session.targetIncomplete = false; session.targetHandled = false; }
+    session.hardReload = true; void editor.refresh();
+  } };
   const back = () => {
     if (!current()) return;
     // An offer still open on screen closes first. One left behind by a fresh read (the band's "Osveži prijave" brings new
@@ -189,6 +196,27 @@ export default function Kandidati() {
       if (current() && session.viewed.get(k.prijavaId) === attempt) render(value => value + 1);
     })();
   };
+  // A notification passes an opaque response ID only after its owned event and Need
+  // were read. The route never trusts that parameter as an offer: this screen opens
+  // it only after the normal owner-scoped candidate read and revision check.
+  useEffect(() => {
+    if (!focusId || session.targetHandled || !data || !current() || session.reading || editor.busy || editor.loading || session.pending) return;
+    const exact = shownRows.find(row => row.prijavaId.toLowerCase() === focusId);
+    if (exact) {
+      session.targetHandled = true;
+      session.targetIncomplete = false;
+      if (exact.stanje === 'WITHDRAWN') { session.targetMissing = true; render(value => value + 1); }
+      else openOffer(exact);
+    } else if (!paged?.state.hasMore && !paged?.state.loadingMore) {
+      session.targetHandled = true; session.targetMissing = true; session.targetIncomplete = false; render(value => value + 1);
+    } else if ((paged?.state.moreError || paged?.state.pageBoundReached) && !paged.state.loadingMore && !session.targetMissing) {
+      // Automatic search stopped, while manual Load more or refresh can still find it.
+      session.targetMissing = true; session.targetIncomplete = true; render(value => value + 1);
+    }
+    // Each render owns its current focus/read/account fence; the session marker
+    // prevents opening the same offer again after the viewed receipt comes back.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, data, shownRows, paged?.state.hasMore, paged?.state.loadingMore, paged?.state.moreError, paged?.state.pageBoundReached, session.focused, session.active, session.reading]);
   // The row at the top of the list opens the Task itself, whichever screen the list was opened from.
   const openTask = () => {
     if (!current() || session.navigated || !id) return;
@@ -212,6 +240,9 @@ export default function Kandidati() {
       message={mixed ? STALE_REVIEW_MESSAGE : editor.error ?? 'Prijave nisu dostupne.'} retry={refresh} back={back} />;
   // Step 7 (2026-09-24): the list stays under an opened offer, which is a sheet over it; closing the sheet is `back`.
   const list = <CandidateListPresentation need={data.need} candidates={shownRows} back={back} refresh={refresh} paging={paged?.paging}
+    targetNotice={session.targetMissing ? session.targetIncomplete
+      ? 'Nismo pronašli ovu prijavu u učitanom delu. Osveži listu ili učitaj još prijava.'
+      : 'Ova prijava više nije dostupna. Pogledaj ostale prijave ili osveži listu.' : undefined}
     open={openOffer} openTask={openTask} sort={sort}
     onSort={sort => { if (current()) setSorted({ scope: sortScope, sort }); }}
     comparison={session.compare} onComparison={compare => { if (current()) { session.compare = compare; render(value => value + 1); } }} photo={photo} viewed={viewed} />;

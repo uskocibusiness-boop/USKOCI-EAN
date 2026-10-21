@@ -3,11 +3,12 @@ import { AppState } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { activityMessageTargetService, type ActivityMessageTarget } from '../data/activityMessageTargetService';
 import { activityOpportunityTargetService, type ActivityOpportunityTarget } from '../data/activityOpportunityTargetService';
+import { activityApplicationPushTargetService, type ActivityApplicationPushTarget } from '../data/activityApplicationPushTargetService';
 import { messagePushIntent, ownsMessagePush } from '../store/messagePushIntent';
 import { pendingRoute } from '../store/pendingRoute';
 import { sesijaSada, useSesija } from '../store/sesija';
 
-type Target = Extract<ActivityMessageTarget, { kind: 'AGREEMENT_MESSAGE' }> | Extract<ActivityOpportunityTarget, { kind: 'OPPORTUNITY' }>;
+type Target = Extract<ActivityMessageTarget, { kind: 'AGREEMENT_MESSAGE' }> | Extract<ActivityOpportunityTarget, { kind: 'OPPORTUNITY' }> | Extract<ActivityApplicationPushTarget, { kind: 'APPLICATION' }>;
 type Phase = 'loading' | 'error' | 'unavailable';
 
 /** A tapped event is resolved by the visible Inbox, never an asynchronous global
@@ -45,8 +46,11 @@ export function useMessagePushIngress(onTarget: (target: Target) => void) {
     const start = () => {
       if (started || !current()) return;
       started = true; setStatus({ serial: intent.serial, phase: 'loading' });
-      void (intent.eventType === 'OPPORTUNITY_AVAILABLE' ? activityOpportunityTargetService : activityMessageTargetService)
-        .resolve(intent.eventId, { signal: controller.signal }, { accountId, accountRevision })
+      const result = intent.eventType === 'RESPONSE_RECEIVED' || intent.eventType === 'RESPONSE_UPDATED'
+        ? activityApplicationPushTargetService.resolve(intent.eventId, intent.eventType, { signal: controller.signal }, { accountId, accountRevision })
+        : (intent.eventType === 'OPPORTUNITY_AVAILABLE' ? activityOpportunityTargetService : activityMessageTargetService)
+          .resolve(intent.eventId, { signal: controller.signal }, { accountId, accountRevision });
+      void result
         .then(result => {
           if (!current()) return;
           if (!result.ok) { setStatus({ serial: intent.serial, phase: 'error' }); return; }

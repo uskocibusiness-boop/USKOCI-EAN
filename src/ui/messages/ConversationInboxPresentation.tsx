@@ -45,9 +45,9 @@ export type ConversationInboxPresentationProps = {
   /** The existing Dogovori screen includes Agreements without messages. Optional real route callback only. */
   onAgreements?: () => void;
   /**
-   * R17: the Dogovori that are over (ids), read by the route from the Dogovori the app already reads. When every row says whether its Dogovor
-   * is closed (`closed` on the row, or a PRIVATE Dogovor in or out of this set), the list can be told in two sets, "Aktivni" and "Istorija". With
-   * `null` (not read yet, or the read failed) and no `closed` on the rows there is one list and no control: nothing is guessed.
+   * R17: the Dogovori that are over (ids), read by the route from the Dogovori the app already reads. An explicit `closed` on a row takes
+   * precedence. Only rows with a known status are separated into "Aktivni" and "Istorija"; unknown rows remain visible in both views.
+   * With `null` (not read yet, or the read failed) and no `closed` on the rows there is one list and no control: nothing is guessed.
    */
   closedAgreements?: ReadonlySet<string> | null;
   bottomInset?: number; zona?: string; sada?: Date;
@@ -108,9 +108,12 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
 }: ConversationInboxPresentationProps) {
   const [set, setSet] = useState<ConversationSet>('active');
   const rows = useMemo(() => conversationInboxRows(items ?? EMPTY_ITEMS, { zona, sada, closedAgreements }), [items, zona, sada, closedAgreements]);
-  // One list, or two when every row says whether its Dogovor is closed. The conversations themselves are never reordered.
-  const closedKnown = rows.length > 0 && rows.every(row => row.closed !== undefined);
-  const shown = useMemo(() => closedKnown ? rows.filter(row => (row.closed === true) === (set === 'closed')) : rows, [rows, closedKnown, set]);
+  // Separate only witnessed states. An unknown group (or any other unknown row) stays reachable in both views,
+  // without being called active or finished. Filtering preserves the reader's order.
+  const hasKnownStatus = rows.some(row => row.closed !== undefined);
+  const hasUnknownStatus = rows.some(row => row.closed === undefined);
+  const shown = useMemo(() => hasKnownStatus ? rows.filter(row => row.closed === undefined || (row.closed === true) === (set === 'closed')) : rows,
+    [rows, hasKnownStatus, set]);
   const reading = loading || refreshing;
   const readDisabled = disabled || reading || paging;
   const openDisabled = disabled || openingDisabled || openingKey !== null;
@@ -133,19 +136,20 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
       : 'Pokušaj ponovo da proveriš ima li novih razgovora.'}</T>
     <V2Action label="Osveži razgovore" kind="quiet" compact onPress={onRefresh} disabled={readDisabled} loading={reading} />
   </Surface> : null;
-  const control = closedKnown ? <Segmented value={set} onChange={setSet} options={SETS} /> : null;
+  const control = hasKnownStatus ? <Segmented value={set} onChange={setSet} options={SETS} /> : null;
   const listHeader = <View style={s.heading}>
     {!titleInHeader ? <T variant="pageTitle" accessibilityRole="header">Poruke</T> : null}
     <T variant="note" tone="muted">Razgovori o tvojim zadacima</T>
     {control}
+    {hasKnownStatus && hasUnknownStatus ? <T variant="note" tone="muted">Razgovori bez potvrđenog statusa prikazani su u oba pregleda.</T> : null}
     {notice}
   </View>;
 
   const incomplete = hasMore || pageError || paging;
-  const emptyTitle = incomplete ? closedKnown ? set === 'closed' ? 'Nema istorije među učitanim razgovorima' : 'Nema aktivnih među učitanim razgovorima'
+  const emptyTitle = incomplete ? hasKnownStatus ? set === 'closed' ? 'Nema istorije među učitanim razgovorima' : 'Nema aktivnih među učitanim razgovorima'
     : 'Razgovori još nisu učitani do kraja'
-    : !closedKnown ? 'Još nema razgovora' : set === 'closed' ? 'Istorija razgovora je prazna' : 'Nema aktivnih razgovora';
-  const emptyBody = incomplete ? 'Učitaj starije razgovore da nastaviš pregled.' : !closedKnown ? 'Razgovor započinješ iz Dogovora.'
+    : !hasKnownStatus ? 'Još nema razgovora' : set === 'closed' ? 'Istorija razgovora je prazna' : 'Nema aktivnih razgovora';
+  const emptyBody = incomplete ? 'Učitaj starije razgovore da nastaviš pregled.' : !hasKnownStatus ? 'Razgovor započinješ iz Dogovora.'
     : set === 'closed' ? 'Ovde su razgovori završenih i otkazanih Dogovora.' : 'Ranije razgovore vidiš u „Istoriji“.';
   const empty = items === null
     ? error && !reading
@@ -160,7 +164,7 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
       </View>
     : error ? null
       // Nobody has talked yet: the first encounter, the two panels at the size of a door; the quieter sets keep their 96.
-      : <StateView kind="empty" hero={!closedKnown} compact={closedKnown} art="chat" title={emptyTitle} body={emptyBody}
+      : <StateView kind="empty" hero={!hasKnownStatus} compact={hasKnownStatus} art="chat" title={emptyTitle} body={emptyBody}
           primary={onAgreements && emptyTitle === 'Još nema razgovora' ? { label: 'Otvori Dogovore', onPress: onAgreements, disabled: openDisabled } : undefined} />;
   const footer = items !== null && (hasMore || pageError || paging) ? <View style={s.footer}>
     {pageError ? <T variant="note" accessibilityRole="alert">Stariji razgovori nisu učitani. Pokušaj ponovo da nastaviš.</T> : null}

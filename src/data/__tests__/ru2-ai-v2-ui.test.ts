@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { runInNewContext } from 'node:vm';
 import type { AiNeedV2Fact } from '../../contracts/aiNeedV2';
 import {
   NEED_FACT_V2_DEFINITIONS,
@@ -36,11 +37,36 @@ function fact(overrides: Partial<AiNeedV2Fact> = {}): AiNeedV2Fact {
 
 describe('RU-2 typed R02 → R07 contract', () => {
   it('includes explicit handoff without exposing map, photos or identity to AI writes', () => {
-    // The count is the point of this guard: the Edge
-    // function derives the model's allowed key enum from AI_PROPOSABLE_NEED_FACT_V2_KEYS, so a key
-    // added here silently widens what the AI may write the moment the function is redeployed.
-    expect(NEED_FACT_V2_KEYS).toHaveLength(24);
-    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toHaveLength(21);
+    // The static registry includes the source-only deadline candidate. Edge
+    // must still expose the original proposal/question enums with the flag OFF.
+    expect(NEED_FACT_V2_KEYS).toHaveLength(25);
+    expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toHaveLength(22);
+    expect(NEED_FACT_V2_DEFINITIONS['need.response_deadline']).toMatchObject({
+      valueType: 'OBJECT', privacyClass: 'PUBLIC', requiredForDraft: false,
+    });
+    const edge = readFileSync(join(__dirname, '../../../supabase/functions/uskoci-ai-interview/index.ts'), 'utf8');
+    const keyStart = edge.indexOf('const applicationDeadlineEnabled =');
+    const keyEnd = edge.indexOf('const interviewFactKeySet', keyStart);
+    const dialogueStart = edge.indexOf('const DIALOGUE_VALUES =');
+    const dialogueEnd = edge.indexOf('\n};', dialogueStart) + 3;
+    expect(Math.min(keyStart, keyEnd, dialogueStart, dialogueEnd)).toBeGreaterThan(0);
+    const declarations = edge.slice(keyStart, keyEnd).replace('export const INTERVIEW_NEED_FACT_V2_KEYS', 'const INTERVIEW_NEED_FACT_V2_KEYS')
+      + edge.slice(dialogueStart, dialogueEnd);
+    const edgeKeys = (enabled: boolean) => {
+      const scope: Record<string, unknown> = {
+        Deno: { env: { get: (name: string) => name === 'USKOCI_TASK_AI_APPLICATION_DEADLINE_V1' && enabled ? 'true' : undefined } },
+        AI_PROPOSABLE_NEED_FACT_V2_KEYS,
+      };
+      runInNewContext(`${declarations}\nglobalThis.__result = { proposals: INTERVIEW_NEED_FACT_V2_KEYS, questions: DIALOGUE_VALUES.questionKey };`, scope);
+      return JSON.parse(JSON.stringify(scope.__result)) as { proposals: string[]; questions: string[] };
+    };
+    const off = edgeKeys(false), on = edgeKeys(true);
+    expect(off.proposals).toEqual(AI_PROPOSABLE_NEED_FACT_V2_KEYS.filter(key =>
+      key !== 'need.required_licenses' && key !== 'need.response_deadline'));
+    expect(off.proposals).toHaveLength(20);
+    expect(off.questions).not.toContain('need.response_deadline');
+    expect(on.proposals).toContain('need.response_deadline');
+    expect(on.questions).toContain('need.response_deadline');
     expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toContain('need.handoff');
     expect(NEED_FACT_V2_DEFINITIONS['need.handoff']).toEqual({ valueType: 'OBJECT', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Predaja' });
     expect(AI_PROPOSABLE_NEED_FACT_V2_KEYS).toContain('need.price_basis');

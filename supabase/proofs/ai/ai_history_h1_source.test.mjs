@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const migration = readFileSync('supabase/migrations/20261021120000_ai_history_h1_metadata.sql', 'utf8');
+const migration = readFileSync('supabase/migrations/20261021014544_ai_history_h1_metadata.sql', 'utf8');
 const body = migration.match(/create function public\.rpc_list_owned_ai_history_v1\([\s\S]*?as \$f\$([\s\S]*?)\$f\$/i)?.[1];
 const executableBody = body?.replace(/--[^\n]*/g, '');
 

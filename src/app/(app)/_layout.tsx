@@ -238,6 +238,8 @@ export default function TabLayout() {
     <Tabs.Screen name="poruke" options={{ title: PRIMARY_LABEL.poruke, tabBarAccessibilityLabel: PRIMARY_LABEL.poruke, ...(conversationInboxBuilt() ? {} : { href: null, ...FULL }) }} />
     <Tabs.Screen name="profil" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/podesavanja" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="ai-istorija/index" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="ai-istorija/[conversationId]" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/radnik" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/razgovor" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/podaci" options={{ href: null, ...FULL }} />

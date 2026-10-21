@@ -2,6 +2,8 @@
 
 Jedan aktivan proizvod, jedan registar statusa i postojeći LIVE plan. Ovaj fajl je ulaz u rad, ne novi plan ili potvrda da je aplikacija završena.
 
+**Kasniji izvorni/DEV audit 21.10.2026:** [MVP tokovi i otvoreni ugovori](MVP_FLOW_AUDIT_20261021.md), [worker AI v72](WORKER_AI_EDGE_V72_20261021.md), [AI istorija H1/H2](AI_HISTORY_DEV_RECEIPT_20261021.md), [push v36 i gate](PUSH_APPLICATION_EDGE_V36_20261021.md), [mapa i cena pina](MAP_GESTURE_PRICE_DECISION_20261021.md), [RSD/EUR granica](TASK_CURRENCY_MVP_GATE_20261021.md). Task AI DEV v118 je ACTIVE, `verify_jwt=false`, a no-auth POST vraća 401; rok prijava je i dalje OFF bez SQL kandidata. Završni lokalni prolaz: 635/635 Jest paketa, 14.335 PASS i 9 SKIP, TypeScript i integritet migracija PASS. Ovi dokazi su noviji od dole navedenog fizičkog preseka; nijedan ne predstavlja novi HONOR prolaz ili završen APK.
+
 ## Redosled čitanja
 
 1. Najnovija poruka vlasnika i [AGENTS.md](../../AGENTS.md): pravila, poslovne granice i dozvole.

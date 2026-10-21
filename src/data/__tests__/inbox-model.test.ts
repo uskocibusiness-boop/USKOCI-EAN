@@ -13,6 +13,29 @@ function setup() {
   return {port,model,logout:()=>{current=false;}};
 }
 describe('Inbox lifecycle and command ownership',()=>{
+  it('keeps the verified application read within the row visit and owner Need',async()=>{
+    const {port}=setup(), application={...row(),eventType:'RESPONSE_RECEIVED',role:'REQUESTER' as const};
+    port.list.mockResolvedValue(page([application]));
+    port.resolve.mockResolvedValue({kind:'CANDIDATES',id:'need-1',role:'REQUESTER'});
+    const exact={kind:'CANDIDATE',id:'need-1',responseId:'response-1',role:'REQUESTER'};
+    const resolveApplication=jest.fn().mockResolvedValue(exact);
+    const model=createInboxModel(port,null,()=>true,undefined,resolveApplication);
+    model.start();await flush();
+    expect(await model.open(application)).toEqual(exact);
+    expect(resolveApplication).toHaveBeenCalledWith(application.id,'need-1',expect.any(AbortSignal));
+    expect(port.read).toHaveBeenCalledWith(application.id);
+  });
+  it('never opens a late application target after the Inbox visit ends',async()=>{
+    const {port}=setup(), application={...row(),eventType:'RESPONSE_RECEIVED',role:'REQUESTER' as const};
+    port.list.mockResolvedValue(page([application]));
+    port.resolve.mockResolvedValue({kind:'CANDIDATES',id:'need-1',role:'REQUESTER'});
+    const pending=deferred<any>(), resolveApplication=jest.fn().mockReturnValue(pending.promise);
+    const model=createInboxModel(port,null,()=>true,undefined,resolveApplication);
+    model.start();await flush();const opened=model.open(application);await flush();
+    model.stop();expect(resolveApplication.mock.calls[0][2].aborted).toBe(true);
+    pending.resolve({kind:'CANDIDATE',id:'need-1',responseId:'response-1',role:'REQUESTER'});
+    expect(await opened).toBeNull();
+  });
   it('uses the exact message target and never reads the event or falls back to an Agreement guess',async()=>{
     const {port}=setup(), message={...row(),eventType:'MESSAGE_RECEIVED'};
     port.list.mockResolvedValue(page([message]));

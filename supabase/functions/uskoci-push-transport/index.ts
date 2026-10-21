@@ -122,10 +122,10 @@ Deno.serve(async req => {
     const begin = await rpc('rpc_begin_push_send', { p_attempt_id: claim.attemptId, p_lease_id: claim.leaseId });
     if (row(begin) && only(begin, ['kind']) && begin.kind === 'SUPPRESSED') return 'SUPPRESSED';
     const beginKeys = ['kind', 'attemptId', 'leaseId', 'leaseExpiresAt', 'expoPushToken', 'priority', 'eventType'];
-    // Compatibility bridge: legacy receipts have no eventId. Only the two
+    // Compatibility bridge: legacy receipts have no eventId. These four
     // server-authorized event kinds may add one opaque identity; no Need ID/body.
     if (!row(begin) || !(only(begin, beginKeys) || (only(begin, [...beginKeys, 'eventId'])
-      && ['MESSAGE_RECEIVED', 'OPPORTUNITY_AVAILABLE'].includes(String(begin.eventType)) && uuid(begin.eventId))) || begin.kind !== 'SEND'
+      && ['MESSAGE_RECEIVED', 'OPPORTUNITY_AVAILABLE', 'RESPONSE_RECEIVED', 'RESPONSE_UPDATED'].includes(String(begin.eventType)) && uuid(begin.eventId))) || begin.kind !== 'SEND'
      || begin.attemptId !== claim.attemptId || begin.leaseId !== claim.leaseId || begin.leaseExpiresAt !== claim.leaseExpiresAt || !live(begin.leaseExpiresAt)
      || typeof begin.expoPushToken !== 'string' || begin.expoPushToken.length > 256 || !/^(ExpoPushToken|ExponentPushToken)\[[A-Za-z0-9_-]+\]$/.test(begin.expoPushToken)
      || !['NORMAL', 'HIGH'].includes(String(begin.priority))
@@ -139,7 +139,9 @@ Deno.serve(async req => {
     // A global push tick never carries an opportunity event even if the flag is on.
     const exactOpportunity = targeted && Deno.env.get('EXPO_PUSH_OPPORTUNITY_TARGET_ENABLED') === 'true'
       && begin.eventType === 'OPPORTUNITY_AVAILABLE' && uuid(begin.eventId);
-    const data = exactMessage || exactOpportunity
+    const exactApplication = Deno.env.get('EXPO_PUSH_APPLICATION_TARGET_ENABLED') === 'true'
+      && ['RESPONSE_RECEIVED', 'RESPONSE_UPDATED'].includes(String(begin.eventType)) && uuid(begin.eventId);
+    const data = exactMessage || exactOpportunity || exactApplication
       ? { kind: 'INBOX', eventType: begin.eventType, eventId: (begin.eventId as string).toLowerCase() }
       : { kind: 'INBOX' };
     body = [{ to: begin.expoPushToken, title: copy.title, body: copy.body,

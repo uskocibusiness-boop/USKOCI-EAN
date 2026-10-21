@@ -168,7 +168,7 @@ export function TaskRecordBody({ model, portrait, clearOfClose = false, mapPrevi
       <T variant="meta" style={s.mapEyebrow}>ZADATAK NA MAPI</T>
     </View> : null}
     {head ? <View style={first}><CardStatus status={model.head} urgency={model.urgency} now={model.urgencyNow} /></View> : null}
-    <View style={head ? undefined : first}><T variant="cardTitle" style={s.title}>{model.title}</T></View>
+    <View style={head ? undefined : first}><T variant="cardTitle" style={[s.title, mapPreview && s.mapTitle]}>{model.title}</T></View>
       {/* Only the short ownership mark shares this row; application states follow the complete value. */}
       <View testID="task-face-value" style={[s.valueLine, stackedValue && s.valueLineStacked]}>
         <View style={s.valueMain}><ValueRow model={model} mapPreview={mapPreview} /></View>
@@ -209,6 +209,7 @@ const s = StyleSheet.create({
   mark: { flexShrink: 1, maxWidth: '46%', minHeight: sys.touch.min, justifyContent: 'center' },
   markStacked: { maxWidth: '100%', minHeight: 0, alignSelf: 'flex-start' },
   title: { color: sys.color.ink },
+  mapTitle: { textAlign: 'center' },
   // The first row keeps one chrome control (the pin card's close) clear on the right, and is as high as it.
   // The close is 48 tall and stands 8 in from the card's edge, the face 16: so the first row is as high as what is left of it, 40.
   clearOfClose: { marginRight: layout.touch, minHeight: layout.touch - sys.space.sm },

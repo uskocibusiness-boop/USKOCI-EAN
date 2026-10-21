@@ -28,7 +28,7 @@ export function DiscoverySearchBar({ where, onBack, onClearWhere, filters, onLay
   onLayout: (bottom: number) => void;
   onSearchLayout?: (bottom: number) => void;
   motion?: { sheetTop: SharedValue<number>; offset: SharedValue<number>; compactTop: number; capsules: number; hidden: boolean };
-  /** The row of capsules under Filteri. It is part of the measured edge. */
+  /** The row of capsules under Filteri. Omitted while a selected pin's card owns the map; otherwise part of the measured edge. */
   chips?: ReactNode;
   /** Floats over the map under the capsules: a notice. Not part of the measured edge. */
   below?: ReactNode;
@@ -77,11 +77,11 @@ export function DiscoverySearchBar({ where, onBack, onClearWhere, filters, onLay
           </View>
         </Surface>
       </View>
-      <View testID="discovery-chips-clip" collapsable={false} style={s.chipsClip}
+      {chips ? <View testID="discovery-chips-clip" collapsable={false} style={s.chipsClip}
         pointerEvents={motion?.hidden ? 'none' : 'box-none'} accessibilityElementsHidden={!!motion?.hidden}
         importantForAccessibility={motion?.hidden ? 'no-hide-descendants' : 'auto'}>
         <Animated.View testID="discovery-collapsing-chips" style={capsules}>{chips}</Animated.View>
-      </View>
+      </View> : null}
     </View>
     {below}
   </View></>;

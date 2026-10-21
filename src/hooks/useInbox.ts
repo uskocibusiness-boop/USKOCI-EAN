@@ -5,6 +5,7 @@ import type { InboxRole } from '../contracts/inbox';
 import { createInboxModel } from '../data/inboxModel';
 import { inboxClientService } from '../data/inboxClientService';
 import { activityMessageTargetService } from '../data/activityMessageTargetService';
+import { activityApplicationTargetService } from '../data/activityApplicationTargetService';
 import { sesijaSada, useSesija } from '../store/sesija';
 
 export function useInbox(role: InboxRole | null) {
@@ -20,6 +21,13 @@ export function useInbox(role: InboxRole | null) {
       return target.kind === 'UNAVAILABLE' ? {kind:'UNAVAILABLE'} : {
         kind:'AGREEMENT_MESSAGE',id:target.agreementId,messageId:target.messageId,eventId:target.eventId,role:target.role,
       };
+    }, async (eventId, needId, signal) => {
+      if (!accountId) return { kind: 'CANDIDATES', id: needId, role: 'REQUESTER' };
+      const result = await activityApplicationTargetService.resolve(eventId, needId, signal, { accountId, accountRevision });
+      // The legacy authorized Need remains a safe landing when direct owned-event
+      // SELECT is unavailable; never guess which of several applications arrived.
+      return result.ok ? { kind: 'CANDIDATE', id: needId, responseId: result.podatak.responseId, role: 'REQUESTER' }
+        : { kind: 'CANDIDATES', id: needId, role: 'REQUESTER' };
     }),[accountId,accountRevision,role]);
   const state = useSyncExternalStore(model.subscribe,model.snapshot,model.snapshot);
   useFocusEffect(useCallback(() => {

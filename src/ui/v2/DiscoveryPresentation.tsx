@@ -1024,8 +1024,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       onPress: () => toggle({ price: view.price === 'MY_PRICE' ? 'all' : 'MY_PRICE' }) }] : []),
   ];
 
-  // The one row of capsules under Filteri stays over the map at every list height. "Za mene" is shown only when the route says
-  // the server supports it. Quick capsules and the full panel write the same filter state; the list stops under this measured row.
+  // The one row of capsules under Filteri stays over ordinary map/list browsing. A chosen pin gives the map to its task card;
+  // its date/quick-filter row steps away until the card closes. The full Filteri entry and the selected criteria remain available.
   const chipRow = <DiscoveryChipRow forMeAvailable={props.forMeAvailable} scope={scope} onScope={chooseScope} chips={chips} />;
 
   // The list's scroll offset: remembered in the route's view a moment after the list stops, found again when the list
@@ -1571,7 +1571,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         onLayout={bottom => { setToolsBottom(current => current === bottom ? current : bottom); setToolsMeasured(true); }}
         onSearchLayout={bottom => setSearchBottom(current => current === bottom ? current : bottom)}
         motion={{ sheetTop: position, offset: chromeOffset, compactTop: listTop, capsules: capsuleSpace, hidden: chipsHidden }}
-        chips={chipRow}
+        chips={cardShown ? undefined : chipRow}
         below={<>
           {canLocate && nearby.message ? <NearbyNotice message={nearby.message} onSettings={nearby.settings} /> : null}
           {props.forMeRefused ? <ForMeNotice message={FOR_ME_REFUSED} entry={WORK_PROFILE_ENTRY} onEntry={props.onWorkProfile}

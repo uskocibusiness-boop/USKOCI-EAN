@@ -26,6 +26,8 @@ export const NEED_FACT_V2_DEFINITIONS = {
   'need.schedule_kind': { valueType: 'ENUM', privacyClass: 'PUBLIC', requiredForDraft: true, label: 'Termin' },
   'need.starts_at': { valueType: 'TIMESTAMPTZ', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Početak' },
   'need.ends_at': { valueType: 'TIMESTAMPTZ', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Kraj' },
+  // Explicit NONE clears an earlier application deadline. Missing means the owner has not decided.
+  'need.response_deadline': { valueType: 'OBJECT', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Rok za prijave' },
   'need.people_needed': { valueType: 'INTEGER', privacyClass: 'PUBLIC', requiredForDraft: true, label: 'Ljudi' },
   'need.required_skills': { valueType: 'TEXT_ARRAY', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Veštine' },
   'need.required_tools': { valueType: 'TEXT_ARRAY', privacyClass: 'PUBLIC', requiredForDraft: false, label: 'Alat' },

@@ -65,7 +65,7 @@ export function requirementValues(value: string): string {
 
 const noop = () => undefined;
 
-export function ReviewDetail({ need, parts, photos, map, address, more, person, knownPeopleCount }: {
+export function ReviewDetail({ need, parts, photos, map, address, more, person, knownPeopleCount, deadlineDecision }: {
   need: PrilikaProjekcija; parts: ReviewDetailParts;
   /** The photos, which lead the page of others: the gallery of the draft's photos, or the owner's way to add them. */
   photos?: ReactNode;
@@ -78,6 +78,7 @@ export function ReviewDetail({ need, parts, photos, map, address, more, person, 
   person?: DetailPerson | null;
   /** An actual owner fact, including one person. Never infer this from the public fallback. */
   knownPeopleCount?: number;
+  deadlineDecision?: 'UNSPECIFIED' | 'NONE' | 'AT';
 }) {
   const place = taskPlace(need);
   const time = need.schedule ? needScheduleText(need.schedule, need.taskTimezone) : need.vremeTekst;
@@ -111,7 +112,7 @@ export function ReviewDetail({ need, parts, photos, map, address, more, person, 
     </PartSection> : null}
     {address}
     {person ? <Publisher person={person} /> : null}
-    <PartSection title="Prijave" part={parts.deadline}><T variant="body">{deadlineWords(need.rokZaPrijaveIso ?? null)}</T></PartSection>
+    <PartSection title="Prijave" part={parts.deadline}><T variant="body">{deadlineWords(need.rokZaPrijaveIso ?? null, deadlineDecision)}</T></PartSection>
   </View>;
 }
 

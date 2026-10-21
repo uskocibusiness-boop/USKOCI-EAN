@@ -6,7 +6,7 @@ const mockSource = { prilika: mockTask, potreba: mockNeed, mojRadnikProfil: mock
   izaberiPrijavu: mockSelect, prijaveZaPotrebu: mockCandidates, mojePrijave: mockApplications, javniProfil: mockPublic, oznaciPrijavuVidjenom: mockViewed };
 const mockLinkQuery = jest.fn();
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn(), navigate: jest.fn(), canGoBack: jest.fn(() => true) };
-let mockId: string | undefined = '10000000-0000-4000-8000-000000000001', mockFocused = true;
+let mockId: string | undefined = '10000000-0000-4000-8000-000000000001', mockFocusId: string | undefined, mockFocused = true;
 let mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 };
 let mockState = 'active';
 const mockListeners = new Set<(state: string) => void>();
@@ -29,7 +29,7 @@ jest.mock('react-native', () => {
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 // Reduced motion is read from the one store (ui/system/motion) since 2026-09-24, no longer from Reanimated.
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
-jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => ({ id: mockId }),
+jest.mock('expo-router', () => ({ useRouter: () => mockRouter, useLocalSearchParams: () => ({ id: mockId, prijavaId: mockFocusId }),
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../store/uloga', () => ({ useIzvor: () => mockSource}));
 // Your own identity, read by the same service the header's avatar uses (the faces of "Dogovoreno!").
@@ -76,7 +76,7 @@ const update = async () => { await act(async () => { tree!.update(React.createEl
 const background = async (state: string) => { await act(async () => { mockState = state; mockListeners.forEach(listener => listener(state)); }); };
 const deferred = () => { let resolve!: (value: any) => void; const promise = new Promise<any>(r => { resolve = r; }); return { promise, resolve }; };
 beforeEach(() => {
-  jest.clearAllMocks(); mockFocused = true; mockState = 'active'; mockId = '10000000-0000-4000-8000-000000000001';
+  jest.clearAllMocks(); mockFocused = true; mockState = 'active'; mockId = '10000000-0000-4000-8000-000000000001'; mockFocusId = undefined;
   mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 }; mockRouter.canGoBack.mockReturnValue(true);
   mockNeed.mockResolvedValue(need()); mockTask.mockResolvedValue({ ...need(), primaNovePrijave: true, rokZaPrijaveIso: null });
   mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'ACTIVE' });
@@ -89,6 +89,40 @@ beforeEach(() => {
   mockStorage.clear(); applicationComposerDraftMemory.clearAll();
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; });
+it('owned response link opens only the matching candidate after the task and candidate read', async () => {
+  mockFocusId = k().prijavaId;
+  mockCandidates.mockResolvedValue([{ ...k(), prijavaId: '10000000-0000-4000-8000-000000000005', ime: 'Druga' }, k()]);
+  await render(Candidates);
+  expect(mockNeed).toHaveBeenCalledWith(mockId);
+  expect(mockCandidates).toHaveBeenCalledWith(mockId);
+  expect(text()).toContain('Milan');
+  expect(tree!.root.findAllByType('Modal' as React.ElementType)).not.toHaveLength(0);
+  expect(mockViewed).toHaveBeenCalledWith(k().prijavaId);
+  expect(mockViewed).not.toHaveBeenCalledWith('10000000-0000-4000-8000-000000000005');
+});
+it('withdrawn or absent response link stays on the owner list with an unavailable explanation', async () => {
+  mockFocusId = k().prijavaId;
+  mockCandidates.mockResolvedValue([{ ...k(), stanje: 'WITHDRAWN', mozeIzabrati: false }]);
+  await render(Candidates);
+  expect(text()).toContain('Ova prijava više nije dostupna.');
+  expect(mockViewed).not.toHaveBeenCalled();
+  await act(async () => tree?.unmount()); tree = undefined;
+  mockCandidates.mockResolvedValue([]);
+  await render(Candidates);
+  expect(text()).toContain('Ova prijava više nije dostupna.');
+  expect(mockViewed).not.toHaveBeenCalled();
+});
+it('refresh retries an unavailable focused response against a fresh owner candidate read', async () => {
+  mockFocusId = k().prijavaId;
+  mockCandidates.mockResolvedValueOnce([]).mockResolvedValueOnce([k()]);
+  await render(Candidates);
+  expect(text()).toContain('Ova prijava više nije dostupna.');
+  const list = tree!.root.findAllByType('FlatList' as React.ElementType)[0];
+  await act(async () => list.props.onRefresh());
+  expect(mockCandidates).toHaveBeenCalledTimes(2);
+  expect(mockViewed).toHaveBeenCalledWith(k().prijavaId);
+  expect(text()).not.toContain('Ova prijava više nije dostupna.');
+});
 async function reviewOffer() {
   if (!press('Pošalji ovu prijavu')) await tap('Pregledaj prijavu');
   expect(press('Pošalji ovu prijavu')).toBeDefined();

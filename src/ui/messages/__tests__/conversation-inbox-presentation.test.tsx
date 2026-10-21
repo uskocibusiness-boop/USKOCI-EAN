@@ -295,14 +295,17 @@ describe('Aktivni and Istorija (R17)', () => {
   const tab = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'tab' && node.props.accessibilityLabel === label)[0];
   const names = () => rows().map(node => texts(node).split(' | ').find(value => value.includes('Privatno · '))?.split('Privatno · ')[1]);
 
-  it('has one list and no control until every row says whether its Dogovor is closed: nothing is called active or finished on a guess', async () => {
+  it('has one list until at least one status is known, then leaves unknown rows in both views', async () => {
     await draw(props(rowsOf));
     expect(names()).toEqual(['Jovana', 'Teodora', 'Ivana']); expect(tab('Aktivni')).toBeUndefined();
     await act(async () => tree.update(<ConversationInboxPresentation {...props(rowsOf, { closedAgreements: null })} />));
     expect(tab('Aktivni')).toBeUndefined();
-    // One row that says and the others that do not is still not every row.
     await act(async () => tree.update(<ConversationInboxPresentation {...props([{ ...rowsOf[0], closed: false }, rowsOf[1]])} />));
-    expect(tab('Aktivni')).toBeUndefined(); expect(rows()).toHaveLength(2);
+    expect(tab('Aktivni')).toBeDefined(); expect(names()).toEqual(['Jovana', 'Teodora']);
+    expect(texts()).toContain('Razgovori bez potvrđenog statusa prikazani su u oba pregleda.');
+    await act(async () => tab('Istorija').props.onPress());
+    expect(names()).toEqual(['Teodora']);
+    expect(rows()[0].props.accessibilityLabel).not.toMatch(/zatvoren|završen/);
   });
 
   it('tells the two sets by the Dogovori that are over: "Aktivni" first, the order of the server kept inside each', async () => {
@@ -339,18 +342,38 @@ describe('Aktivni and Istorija (R17)', () => {
     expect(conversationInboxRows([{ ...shared, closed: true }], { closedAgreements: new Set() })[0].closed).toBe(true);
   });
 
-  it('keeps a group with unknown lifecycle visible beside known private history without calling the group completed', async () => {
-    const privateRow = row({ id: A, at: '2026-10-07T11:00:00Z' });
+  it('switches known private rows while an unknown group remains visible and openable in both views', async () => {
+    const active = row({ id: A, at: '2026-10-07T11:00:00Z', name: 'Jovana' });
     const shared = group({ id: B, at: '2026-10-07T10:00:00Z' });
-    const p = props([privateRow, shared], { closedAgreements: new Set([privateRow.routeAgreementId, shared.routeAgreementId]) });
+    const finished = row({ id: C, at: '2026-10-05T10:00:00Z', name: 'Ivana' });
+    const p = props([active, shared, finished], { closedAgreements: new Set([shared.routeAgreementId, finished.routeAgreementId]) });
     await draw(p);
-    expect(tab('Aktivni')).toBeUndefined();
+    expect(tab('Aktivni')).toBeDefined();
     expect(rows()).toHaveLength(2);
-    expect(rows()[0].props.accessibilityLabel).toContain('Dogovor je zatvoren');
-    expect(texts(rows()[0])).toContain('Samo za čitanje · Privatno · Jovana');
+    expect(rows()[0].props.accessibilityLabel).toContain('Privatno · Jovana');
     expect(rows()[1].props.accessibilityLabel).not.toContain('zatvoren');
     await act(async () => rows()[1].props.onPress());
     expect(p.onOpen).toHaveBeenCalledWith(shared);
+    await act(async () => tab('Istorija').props.onPress());
+    expect(rows()).toHaveLength(2);
+    expect(rows()[0].props.accessibilityLabel).toContain('Grupa');
+    expect(rows()[0].props.accessibilityLabel).not.toMatch(/zatvoren|završen|Samo za čitanje/);
+    expect(rows()[1].props.accessibilityLabel).toContain('Dogovor je zatvoren');
+    expect(texts(rows()[1])).toContain('Samo za čitanje · Privatno · Ivana');
+    await act(async () => rows()[0].props.onPress());
+    expect(p.onOpen).toHaveBeenLastCalledWith(shared);
+    expect(p.onOpen).toHaveBeenCalledTimes(2);
+    expect(texts()).toContain('Razgovori bez potvrđenog statusa prikazani su u oba pregleda.');
+  });
+
+  it('places an explicitly classified group in only its witnessed view', async () => {
+    const shared = group({ id: B, at: '2026-10-07T10:00:00Z', closed: true });
+    await draw(props([row({ id: A, at: '2026-10-07T11:00:00Z', closed: false }), shared]));
+    expect(rows()).toHaveLength(1);
+    expect(texts()).not.toContain('Razgovori bez potvrđenog statusa prikazani su u oba pregleda.');
+    await act(async () => tab('Istorija').props.onPress());
+    expect(rows()).toHaveLength(1);
+    expect(rows()[0].props.accessibilityLabel).toContain('Razgovor je završen');
   });
 });
 

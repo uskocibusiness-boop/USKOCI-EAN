@@ -24,6 +24,7 @@ import {
   isAiProposableNeedFactV2Key,
   isNeedFactV2Key,
 } from '../../../src/contracts/needFactsV2.ts';
+import { decodeTaskApplicationDeadlineFact } from '../../../src/contracts/taskApplicationDeadline.ts';
 
 import { validLocationContext, locationProviderSchema, locationInstruction, parseLocationOutput, validLocationEnvelope, type LocationContext, type LocationAction } from '../_shared/locationReply.ts';
 
@@ -55,7 +56,11 @@ const LEGACY_FACT_KEYS = [
 const legacyFactKeySet = new Set<string>(LEGACY_FACT_KEYS);
 // Retired requirements stay readable in historical NEED_FACT_V2 documents, but
 // a new interview may only propose conditions the current product enforces.
-export const INTERVIEW_NEED_FACT_V2_KEYS = AI_PROPOSABLE_NEED_FACT_V2_KEYS.filter(key => key !== 'need.required_licenses');
+// Keep the old deployed writer compatible until the candidate registry/review RPC
+// is admitted. A source build alone must not send an unknown fact to DEV.
+const applicationDeadlineEnabled = () => Deno.env.get('USKOCI_TASK_AI_APPLICATION_DEADLINE_V1') === 'true';
+export const INTERVIEW_NEED_FACT_V2_KEYS = AI_PROPOSABLE_NEED_FACT_V2_KEYS.filter(key => key !== 'need.required_licenses')
+  .filter(key => key !== 'need.response_deadline' || applicationDeadlineEnabled());
 const interviewFactKeySet = new Set<string>(INTERVIEW_NEED_FACT_V2_KEYS);
 // Manual form witnesses remain in the full registry, but are neither AI input
 // nor AI proposals. Keep legacy context during the existing schema transition.
@@ -86,7 +91,9 @@ type ParsedTurn = {
 const DIALOGUE_VALUES = {
   next: ['ASK', 'CLARIFY', 'REVIEW', 'ACK', 'ANSWER'],
   questionKey: ['', 'need.description', 'need.people_needed', 'need.price_mode', 'need.price_rsd', 'need.price_basis',
-    'need.schedule_kind', 'need.starts_at', 'need.ends_at', 'need.task_country_code', 'need.task_geography', 'need.handoff'],
+    'need.schedule_kind', 'need.starts_at', 'need.ends_at',
+    ...(applicationDeadlineEnabled() ? ['need.response_deadline'] : []),
+    'need.task_country_code', 'need.task_geography', 'need.handoff'],
   taskRelation: ['CONTINUE', 'DIFFERENT_TASK', 'UNCLEAR'],
   priceUnit: ['WHOLE_JOB', 'PER_DAY', 'PER_HOUR', 'UNSPECIFIED'],
   schedulePattern: ['SINGLE', 'FLEXIBLE_RANGE', 'REPEATED', 'UNSPECIFIED'],
@@ -156,8 +163,36 @@ function validTimestamp(value: unknown): value is string {
   return new Date(instant + offsetMs).toISOString().slice(0, 19) === value.slice(0, 19);
 }
 
-function guardTimestampProposals(turn: ParsedTurn, input: string, activeFacts: any[]): ParsedTurn {
+function guardTimestampProposals(turn: ParsedTurn, input: string, activeFacts: any[], time: ServerTimeContext, pendingDeadlineQuestion = false): ParsedTurn {
   const known = new Map(activeFacts.filter(f => f.status !== 'UNKNOWN').map(f => [f.fact_key, f.fact_value]));
+  const deadlineProposal = turn.proposals.find(p => p.key === 'need.response_deadline');
+  if (deadlineProposal) {
+    const decision = decodeTaskApplicationDeadlineFact(deadlineProposal.value);
+    const evidence = typeof deadlineProposal.evidence === 'string' ? deadlineProposal.evidence.trim() : '';
+    const anchored = evidence.length >= 3 && input.toLocaleLowerCase('sr').includes(evidence.toLocaleLowerCase('sr'));
+    const explicitClear = /(?:bez\s+(?:posebnog\s+)?roka|nema\s+roka|(?:ukloni|obriši|obrisi|poništi|ponisti)\s+(?:taj\s+)?rok|prijave\s+(?:ostaju|neka\s+ostanu)\s+otvorene)/iu.test(evidence);
+    const applicationIntent = /prijav|ponud|javlj|jave|odgovor|konkuri/iu.test(input);
+    const hold = /(?:ne\s+menjaj|ne\s+diraj|ostavi\s+(?:isti|stari)|nemoj\s+da\s+menjaš)[^.!?]{0,32}rok/iu.test(input);
+    const instant = decision?.kind === 'AT' ? Date.parse(decision.at) : NaN;
+    const unchanged = decision && JSON.stringify(known.get('need.response_deadline')) === JSON.stringify(decision);
+    const literal = decision?.kind === 'AT' && input.includes(decision.at) && evidence.includes(decision.at);
+    const local = decision?.kind === 'AT' && Number.isFinite(instant) ? serbiaTimeParts(new Date(instant)) : null;
+    const offset = decision?.kind === 'AT' ? decision.at.endsWith('Z') ? '+00:00' : decision.at.slice(-6) : '';
+    const localMismatch = decision?.kind === 'AT' && !unchanged && !literal && local &&
+      (`${local.localDate}T${local.localTime}` !== decision.at.slice(0, 19) || local.utcOffset !== offset);
+    const relativeDays = /\bprekosutra\b/iu.test(evidence) ? 2 : /\bsutra\b/iu.test(evidence) ? 1 : /\bdanas\b/iu.test(evidence) ? 0 : null;
+    const expectedRelativeDate = relativeDays === null ? null
+      : new Date(Date.parse(`${time.localDate}T12:00:00Z`) + relativeDays * 86400000).toISOString().slice(0, 10);
+    const relativeMismatch = decision?.kind === 'AT' && !unchanged && !literal && expectedRelativeDate !== null
+      && local?.localDate !== expectedRelativeDate;
+    const expired = decision?.kind === 'AT' && instant <= Date.parse(time.nowUtc);
+    if (!decision || !anchored || hold || decision.kind === 'NONE' && !explicitClear || decision.kind === 'AT' && !applicationIntent && !pendingDeadlineQuestion || expired || localMismatch || relativeMismatch) {
+      return { ...turn, safety: turn.safety === 'REVIEW' ? 'REVIEW' : 'CLARIFY',
+        proposals: turn.proposals.filter(p => p.key !== 'need.response_deadline'),
+        dialogue: turn.safety === 'REVIEW' ? turn.dialogue : turn.dialogue ? { ...turn.dialogue, next: 'CLARIFY', questionKey: '' } : undefined,
+        assistantMessage: 'Rok za prijave nisam promenio. Da proverim: do kog datuma i sata po vremenu u Srbiji, ili želiš izričito bez posebnog roka?' };
+    }
+  }
   const country = turn.proposals.find(p => p.key === 'need.task_country_code')?.value ?? known.get('need.task_country_code');
   const invalid = turn.proposals.some(proposal => {
     if (!['need.starts_at', 'need.ends_at'].includes(proposal.key)) return false;
@@ -418,6 +453,7 @@ function commonInstruction() {
     'Licence i sertifikati nisu uslov koji ovaj proizvod proverava ili koristi za izbor osobe. Ne pitajte za njih i ne predlažite need.required_licenses. Ako korisnik traži takav uslov, jasno objasnite da aplikacija ne podržava njegovu proveru; ne prenosite ga u druge uslove, veštine, naslov ili opis kao podržan filter. Ne tvrdite da je neko kvalifikovan ili zakonski ovlašćen. Sačuvani istorijski podaci nisu dozvola da ponovo uvodite taj uslov.',
     'nextCalendarWeek je serverski izračunata SLEDEĆA kalendarska nedelja u Srbiji: startsAt je ponedeljak u ponoć, endsAt naredni ponedeljak u ponoć (isključiva granica), inclusiveLastDate poslednji uključeni dan — nedelja. Za prikaz ljudima koristite početni datum i inclusiveLastDate, nikada datum isključivog endsAt kao uključeni poslednji dan: 19.10. do isključivo 26.10. u 00:00 znači od 19. do 25. oktobra, ne 19–26. Koristite te tačne granice samo kada korisnik zaista traži fleksibilno izvršenje naredne nedelje; to nije podrazumevani termin, dogovoreni sat niti potvrda. Pomaci obe granice mogu se razlikovati zbog promene računanja vremena; nikada ne kopirajte današnji utcOffset na buduće datume. Ostale datume ne zamenjujte ovim periodom.',
     'Novi timestamp predlozi za lokalni termin u Srbiji moraju predstavljati stvarni lokalni datum i sat u Europe/Belgrade sa pomakom koji važi baš tada, uključujući promenu računanja vremena. Doslovan ISO timestamp koji korisnik izričito navede sa Z ili drugim pomakom sačuvajte tačno kao navedeni instant, uz isti doslovni timestamp u evidence. Ako je relevantna druga zona, a nije jasno kako se termin odnosi na lokalno vreme zadatka, razjasnite je; nemojte sami pomerati termin.',
+    ...(applicationDeadlineEnabled() ? ['Rok za PRIJAVE je odvojen od need.starts_at i need.ends_at, koji govore kada se posao radi. Samo kada osoba izričito navede rok za prijave, predloži need.response_deadline kao {"kind":"AT","at":"ISO-8601 sa pomakom za taj datum"}. Ako izričito kaže da prijave nemaju poseban rok ili da ukloni raniji rok, predloži {"kind":"NONE"}. Nedostatak podatka nije isto što i NONE: ne izmišljaj odluku da nema roka. Rok sa datumom bez sata ili nejasnom zonom razjasni pre predloga. Evidence mora biti doslovan deo korisnikove tekuće poruke. Nikada ne prepisuj izvršenje u rok za prijave niti ga briši prećutno.'] : []),
     'Relativne datume poput danas, sutra i prekosutra tumačite prema ovom serverskom lokalnom datumu, a ne prema sopstvenoj memoriji ili datumu koji klijent tvrdi da je sada. Ako je relevantna druga vremenska zona ili je datum dvosmislen, tražite razjašnjenje.',
     'Ovaj vremenski kontekst je referenca za predlog, nikada potvrđen termin Zadatka. Datum i vreme jasno prikažite korisniku radi potvrde. Ne izmišljajte nedostajući čas, trajanje, kraj termina ili nejasnu lokaciju; postavite sledeće potrebno pitanje. Timestamp predlozi moraju sadržati eksplicitni vremenski pomak za taj datum.',
     'Svaka predložena izmena je u NACRTU, i kada uređujemo postojeći zadatak. Potvrdi kratko, na primer: U nacrtu je sada taj budžet; ostalo ostaje nepromenjeno. Ne predstavljaj nacrt kao postavljen/objavljen posao niti govori da ponude već stižu ili da su ljudi obavešteni. Kada objašnjavaš sledeći korak, reci: Nakon objave drugi mogu da pošalju ponude; ne obećavaj odziv. Jasne podatke ne potvrđujte pojedinačno: korisnik pregleda celinu i bira Objavi zadatak. AI predlog ili poruka objavi nisu ljudska potvrda niti objava.',
@@ -593,6 +629,7 @@ function valueMatchesContract(key: string, value: unknown): boolean {
   if (key === 'need.access_notes') return (value as string).trim().length <= 2000;
   if (key === 'need.task_geography') return geographyValid(value);
   if (key === 'need.handoff') return decodeServiceHandoff(value) !== null;
+  if (key === 'need.response_deadline') return decodeTaskApplicationDeadlineFact(value) !== null;
   return true;
 }
 
@@ -711,7 +748,12 @@ async function callGemini(
     // Apply intent/finish/time guards once, before classification derives the
     // effective task. Rejected facts must not leave a captured service hint.
     const parsedTurn=locationContext ? parseLocationOutput(checked.output,locationContext,parseV2Output) : parseV2Output(checked.output);
-    const turn=guardConversationTurn(parsedTurn,text,activeFacts,timeContext,locationContext);
+    const previousMessage = history[history.length - 1];
+    const pendingDeadlineQuestion = applicationDeadlineEnabled() && previousMessage?.role === 'ASSISTANT'
+      && typeof previousMessage.body === 'string' && previousMessage.body.includes('?')
+      && /prijav/iu.test(previousMessage.body)
+      && /(?:do kada|do kog|kad|datum|sat|rok)/iu.test(previousMessage.body);
+    const turn=guardConversationTurn(parsedTurn,text,activeFacts,timeContext,locationContext,pendingDeadlineQuestion);
     const effectiveFact=(key:string)=>turn.proposals.find((p:any)=>p.key===key)?.value
       ?? activeFacts.find((f:any)=>f.fact_key===key&&f.status!=='UNKNOWN')?.fact_value;
     const geography=effectiveFact('need.task_geography');
@@ -855,7 +897,7 @@ function sameFactValue(left: unknown, right: unknown): boolean {
   return JSON.stringify(ordered(left)) === JSON.stringify(ordered(right));
 }
 
-function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any[], time: ServerTimeContext, contextualLocation?: LocationContext): ParsedTurn {
+function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any[], time: ServerTimeContext, contextualLocation?: LocationContext, pendingDeadlineQuestion = false): ParsedTurn {
   if (turn.safety === 'BLOCK') return turn;
   // The monetary contract stores whole RSD only. A model that returns the
   // numeral from "100 EUR" as need.price_rsd would silently change its meaning.
@@ -902,7 +944,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
       assistantMessage: explicitOffers
         ? 'Ovaj zahtev treba dodatno proveriti. Izabrao si ponude; iznos u evrima nisam upisao kao cenu u dinarima.'
         : 'Ovaj zahtev treba dodatno proveriti. Iznos u evrima nisam upisao kao cenu u dinarima. Ako nastavimo, reci koji iznos u RSD želiš ili izaberi ponude.' } : turn;
-    return guardTimestampProposals(filtered, input, activeFacts);
+    return guardTimestampProposals(filtered, input, activeFacts, time, pendingDeadlineQuestion);
   }
   if (taskFinishOnly(input) && (!contextualLocation || turn.locationAction !== 'CONFIRM_DISPLAYED')
     || contextualLocation && explicitPublicationOnly(input)) {
@@ -1025,7 +1067,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
         assistantMessage: 'Dan može da bude fleksibilan unutar perioda. Od kog do kog datuma ti odgovara da se posao uradi?' };
     }
   }
-  const timeChecked = guardTimestampProposals(turn, input, activeFacts);
+  const timeChecked = guardTimestampProposals(turn, input, activeFacts, time, pendingDeadlineQuestion);
   if (timeChecked !== turn) return timeChecked;
   const proposals = turn.proposals.filter(proposal => !activeFacts.some(fact =>
     fact.fact_key === proposal.key && fact.status !== 'UNKNOWN' && sameFactValue(fact.fact_value, proposal.value)));
@@ -1113,7 +1155,9 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
     // when that human location detail is genuinely missing. This is typed-state
     // completeness, not keyword detection of the user's intent or map approval.
     const needsPlaceDetail = dialogue.questionKey === 'need.task_geography' && (cityOnlyStationary || !!incompleteRoutePoint);
-    if (!missing.includes(dialogue.questionKey) && !needsPlaceDetail) {
+    const clarifyingApplicationDeadline = applicationDeadlineEnabled() && dialogue.questionKey === 'need.response_deadline'
+      && !facts.has('need.response_deadline') && (pendingDeadlineQuestion || /prijav|konkuri|javlj/iu.test(input));
+    if (!missing.includes(dialogue.questionKey) && !needsPlaceDetail && !clarifyingApplicationDeadline) {
       assistantMessage = missing.length ? incompleteMessage() : nextPlaceMessage;
     }
   } else if (dialogue?.next === 'REVIEW' && missing.length) {

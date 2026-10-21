@@ -86,6 +86,14 @@ test('confirmed task title is accepted, but worker profile text cannot masquerad
   expect(decodeAiHistoryPage(worker, OWNER, 'PROFILE')).toBeNull();
 });
 
+test('closed rows can admit H2 text reading, while an OPEN row never advertises it', () => {
+  const closed = { ...row(3, 'COMPLETED'), canRead: true };
+  const abandoned = { ...row(2, 'ABANDONED'), canRead: true };
+  expect(decodeAiHistoryPage(page('NEED_INTAKE', [closed, abandoned]), OWNER, 'NEED_INTAKE')?.rows)
+    .toMatchObject([{ canRead: true, status: 'COMPLETED' }, { canRead: true, status: 'ABANDONED' }]);
+  expect(decodeAiHistoryPage(page('NEED_INTAKE', [{ ...row(3), canRead: true }]), OWNER, 'NEED_INTAKE')).toBeNull();
+});
+
 test('account revision change, offline read and closed-account refusal stay distinct from an empty page', async () => {
   mockRpc.mockImplementationOnce(async () => {
     mockSession = { user: { id: OWNER }, accountRevision: 5 };

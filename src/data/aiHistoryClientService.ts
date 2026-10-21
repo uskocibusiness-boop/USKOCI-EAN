@@ -6,11 +6,11 @@ import { failure, readReceipt, record, sameId, timestamp, uuid } from './serverR
 export type AiHistoryPurpose = 'NEED_INTAKE' | 'PROFILE';
 export type AiHistoryStatus = 'OPEN' | 'COMPLETED' | 'ABANDONED';
 export type AiHistoryCursor = Readonly<{ createdAt: string; conversationId: string }>;
-/** H1 has no complete paged transcript view; canRead remains false until H2. */
+/** H2 enables a closed row to open the owner-only text transcript. */
 export type AiHistoryRow = Readonly<AiHistoryCursor & {
   closedAt: string | null; status: AiHistoryStatus; title: string;
   titleSource: 'GENERIC' | 'CONFIRMED_NEED_TITLE' | 'LINKED_TASK_TITLE'; hasSavedProfile: boolean;
-  visibility: 'VISIBLE'; canContinue: boolean; canRead: false;
+  visibility: 'VISIBLE'; canContinue: boolean; canRead: boolean;
 }>;
 export type AiHistoryPage = Readonly<{
   schemaVersion: 'AI_HISTORY_V1'; accountId: string; purpose: AiHistoryPurpose;
@@ -71,12 +71,13 @@ export function decodeAiHistoryPage(raw: unknown, accountId: string, purpose: Ai
       || value.visibility !== 'VISIBLE' || typeof value.canContinue !== 'boolean'
       || (value.status !== 'OPEN' && value.canContinue)
       || (purpose === 'PROFILE' && value.status === 'OPEN' && !value.canContinue)
-      || value.canRead !== false) return null;
+      || typeof value.canRead !== 'boolean'
+      || (value.status === 'OPEN' && value.canRead)) return null;
     seen.add(cursor.conversationId.toLowerCase());
     rows.push({ ...cursor, closedAt: value.closedAt as string | null, status: value.status,
       title: value.title as string, titleSource: value.titleSource,
       hasSavedProfile: value.hasSavedProfile, visibility: 'VISIBLE',
-      canContinue: value.canContinue, canRead: false });
+      canContinue: value.canContinue, canRead: value.canRead });
     previous = cursor;
   }
   const nextCursor = page.nextCursor === null ? null : decodeAiHistoryCursor(page.nextCursor);
@@ -86,7 +87,7 @@ export function decodeAiHistoryPage(raw: unknown, accountId: string, purpose: Ai
     observedAt: page.observedAt, rows, nextCursor, authoritative: true };
 }
 
-/** H1 only: list metadata. A closed conversation still needs H2 before a complete read-only transcript screen. */
+/** Metadata list; closed rows can advertise the H2 text view after server capability readback. */
 export function listAiHistory(purpose: AiHistoryPurpose, before: AiHistoryCursor | null = null,
   limit = AI_HISTORY_PAGE_SIZE): Promise<Ishod<AiHistoryPage>> {
   const session = sesijaSada(), accountId = session.user?.id;

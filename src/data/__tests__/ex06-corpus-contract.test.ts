@@ -6,6 +6,7 @@
 // matcher: no provider, database or network is touched, and the corpus carries no pass rate.
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { runInNewContext } from 'node:vm';
 import { decodeServiceHandoff } from '../../contracts/serviceHandoff';
 
 type Obj = Record<string, any>;
@@ -42,12 +43,15 @@ function loadSources(): Sources {
   }
   const taskEdge = readFrom(sourceRoot, 'supabase/functions/uskoci-ai-interview/index.ts');
   const dialogueStart = taskEdge.indexOf('const DIALOGUE_VALUES = {');
-  const dialogueText = taskEdge.slice(dialogueStart, taskEdge.indexOf('};', dialogueStart));
-  const dialogue: Record<string, string[]> = {};
-  for (const key of ['next', 'questionKey', 'taskRelation', 'priceUnit', 'schedulePattern']) {
-    const match = new RegExp(`${key}:\\s*\\[([^\\]]*)\\]`).exec(dialogueText);
-    dialogue[key] = match ? quoted(match[1]) : [];
-  }
+  const dialogueEnd = taskEdge.indexOf('\n};', dialogueStart);
+  if (dialogueStart < 0 || dialogueEnd < 0) throw new Error('DIALOGUE_VALUES_SOURCE_NOT_FOUND');
+  // Evaluate only the small declaration with the feature flag OFF. A regex
+  // stopped at the first nested `]` and lost later baseline question keys.
+  const deadlineFlag = taskEdge.match(/^const applicationDeadlineEnabled = [^\n]+;$/m)?.[0] ?? '';
+  const dialogueScope: Record<string, unknown> = { Deno: { env: { get: () => undefined } } };
+  runInNewContext(`${deadlineFlag}\n${taskEdge.slice(dialogueStart, dialogueEnd + 3)}\nglobalThis.__dialogue = DIALOGUE_VALUES;`,
+    dialogueScope, { timeout: 1000 });
+  const dialogue = JSON.parse(JSON.stringify(dialogueScope.__dialogue)) as Record<string, string[]>;
   const askStart = taskEdge.indexOf('const missing = [');
   // The conditional handoff guard extends the filter. Bound this read to the
   // next declaration, so question copy cannot leak optional ends_at into askOrder.
@@ -551,6 +555,7 @@ describe('EX-06 S02 synthetic contract corpus', () => {
       expect(sources.scheduleKinds).toHaveLength(6);
       expect(sources.geographyModes).toHaveLength(5);
       expect(sources.dialogue.next).toEqual(['ASK', 'CLARIFY', 'REVIEW', 'ACK', 'ANSWER']);
+      expect(sources.dialogue.questionKey).not.toContain('need.response_deadline');
       expect(sources.dialogue.priceUnit).toContain('PER_DAY');
       expect(sources.dialogue.schedulePattern).toContain('REPEATED');
     });
