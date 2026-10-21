@@ -21,7 +21,7 @@ const providerResult={safety:'ALLOW',assistantMessage:'Pregledajte predloženi b
   {key:'need.people_needed',valueJson:'2',displayValue:'2 osobe',evidence:userText,confidence:0.9},
 ]};
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
-function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,historyCount=50,schema='NEED_FACT_V2',activeFacts=[],providerOutput}={}){
+function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,historyCount=50,historyRows,schema='NEED_FACT_V2',activeFacts=[],providerOutput}={}){
   const calls=[],logs=[],env={AI_PROVIDER:provider,SUPABASE_URL:'https://database.test.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC_KEY',
     SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE_KEY',GEMINI_API_KEY:provider==='gemini'?'SYNTHETIC_GEMINI_KEY':'',
     GEMINI_MODEL:provider==='gemini'?'gemini-3.8-flash':'',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',
@@ -35,7 +35,7 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
     if(url.includes('/rest/v1/ai_conversations?'))return json([{id:conversation,account_id:owner,fact_schema_version:schema,status:'OPEN'}]);
     if(url.endsWith('/rpc_ai_claim_need_turn_v2_service'))return json({turn:turn('PROCESSING'),claim:{attemptId,
       leaseExpiresAt:new Date(Date.parse(now)+90000).toISOString(),context:{schemaVersion:'NEED_FACT_V2',
-      history:Array.from({length:historyCount},(_,i)=>({sequence_no:i+1,role:i%2?'ASSISTANT':'USER',body:`SYNTHETIC_HISTORY_${i+1}`})).slice(-40),
+      history:historyRows??Array.from({length:historyCount},(_,i)=>({sequence_no:i+1,role:i%2?'ASSISTANT':'USER',body:`SYNTHETIC_HISTORY_${i+1}`})).slice(-40),
       activeFacts}}});
     // Explicit synthetic authorization of migration 132's pre-provider CAS.
     // The actual SQL proof exercises the real lock and cancellation authority.
@@ -444,6 +444,271 @@ test('task Edge keeps an explicit euro budget out of the RSD writer and asks for
  assert.match(prompt(providerCall(f)),/ne preračunavajte po pretpostavljenom kursu/);
  assert.equal(providerCalls(f).length,1);
 });
+const priceFact=(key,value,evidence)=>({key,valueJson:JSON.stringify(value),displayValue:String(value),evidence,confidence:1});
+const priorBarePrice=[
+ {sequence_no:1,role:'ASSISTANT',body:'Koliki je budžet za ceo posao?'},
+ {sequence_no:2,role:'USER',body:'100'},
+ {sequence_no:3,role:'ASSISTANT',body:'Koji iznos u RSD želiš da postaviš?'},
+];
+test('a bare 100 is not silently written as 100 RSD before currency is known',async()=>{
+ const f=fixture({historyRows:[priorBarePrice[0]],providerOutput:{safety:'ALLOW',assistantMessage:'Sačuvao sam 100 RSD.',facts:[
+  priceFact('need.price_mode','MY_PRICE','100'),priceFact('need.price_rsd',100,'100'),
+  priceFact('need.people_needed',2,'dve osobe')]}});
+ assert.equal((await f.invoke({text:'100'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.people_needed',2]]);
+ assert.match(write.p_assistant_message,/valuta nije potvrđena/i);
+ assert.match(write.p_assistant_message,/iznos u RSD/);
+ assert.doesNotMatch(write.p_assistant_message,/sačuvao sam 100 RSD/i);
+});
+test('a bare answer to the budget question cannot be acknowledged as RSD without a fact proposal',async()=>{
+ const f=fixture({historyRows:[priorBarePrice[0]],providerOutput:{safety:'ALLOW',assistantMessage:'Sačuvao sam 100 RSD.',facts:[],
+  dialogue:{...syntheticDialogue(),next:'ACK'}}});
+ assert.equal((await f.invoke({text:'100'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');assert.deepEqual(write.p_proposals,[]);
+ assert.match(write.p_assistant_message,/valuta nije potvrđena/i);
+});
+test('a bare headcount answer is kept when price is mentioned before a different final question',async()=>{
+ const f=fixture({historyRows:[{sequence_no:1,role:'ASSISTANT',body:'Cenu ćemo razjasniti kasnije. Koliko ljudi ti treba?'}],
+  providerOutput:{safety:'ALLOW',assistantMessage:'Važi, treba ti dvoje ljudi.',facts:[
+   priceFact('need.people_needed',2,'2')],dialogue:{...syntheticDialogue(),next:'ACK'}}});
+ assert.equal((await f.invoke({text:'2'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'ALLOW');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.people_needed',2]]);
+ assert.equal(write.p_assistant_message,'Važi, treba ti dvoje ljudi.');
+});
+test('an erroneous price proposal for 2 radnika is dropped without asking for RSD',async()=>{
+ const f=fixture({historyRows:[{sequence_no:1,role:'ASSISTANT',body:'Cenu ćemo razjasniti kasnije. Koliko ljudi ti treba?'}],
+  providerOutput:{safety:'ALLOW',assistantMessage:'Treba ti 2 radnika, cena je 2 RSD.',facts:[
+   priceFact('need.people_needed',2,'2 radnika'),priceFact('need.price_mode','MY_PRICE','2 radnika'),
+   priceFact('need.price_rsd',2,'2 radnika')],dialogue:{...syntheticDialogue(),next:'ACK'}}});
+ assert.equal((await f.invoke({text:'Treba mi 2 radnika'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'ALLOW');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.people_needed',2]]);
+ assert.equal(write.p_assistant_message,'Razumem koliko ljudi ti treba.');
+ assert.doesNotMatch(write.p_assistant_message,/RSD|budžet|cena/i);
+});
+test('u evrima after a bare amount cannot create an RSD price even when the model cites the prior number',async()=>{
+ const f=fixture({historyRows:priorBarePrice,providerOutput:{safety:'ALLOW',assistantMessage:'Sačuvao sam 100 RSD.',facts:[
+  priceFact('need.price_mode','MY_PRICE','100'),priceFact('need.price_rsd',100,'100'),
+  priceFact('need.people_needed',2,'dve osobe')]}});
+ assert.equal((await f.invoke({text:'u evrima'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.people_needed',2]]);
+ assert.match(write.p_assistant_message,/iznos u evrima/i);
+ assert.match(write.p_assistant_message,/RSD/);
+});
+test('u evrima corrects a false model ACK and warns when an older RSD fact may remain',async()=>{
+ const f=fixture({historyRows:priorBarePrice,activeFacts:[semanticFact('need.price_mode','MY_PRICE'),semanticFact('need.price_rsd',100)],
+  providerOutput:{safety:'ALLOW',assistantMessage:'Da, cena je 100 RSD.',facts:[],
+   dialogue:{...syntheticDialogue(),next:'ACK'}}});
+ assert.equal((await f.invoke({text:'u evrima'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals,[]);
+ assert.match(write.p_assistant_message,/Ranije prikazan iznos u RSD može ostati u nacrtu/);
+ assert.match(write.p_assistant_message,/nemoj potvrditi objavu/);
+});
+for(const euroInput of ['100 EUR','€100'])test(`explicit ${euroInput} does not become a dinar price`,async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Cena je 100 RSD.',facts:[
+  priceFact('need.price_mode','MY_PRICE',euroInput),priceFact('need.price_rsd',100,euroInput)]}});
+ assert.equal((await f.invoke({text:euroInput})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');assert.deepEqual(write.p_proposals,[]);
+ assert.match(write.p_assistant_message,/iznos u evrima/i);
+});
+test('explicit 100 EUR cannot receive a false RSD ACK without a price proposal',async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Da, cena je 100 RSD.',facts:[],
+  dialogue:{...syntheticDialogue(),next:'ACK'}}});
+ assert.equal((await f.invoke({text:'100 EUR'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');assert.deepEqual(write.p_proposals,[]);
+ assert.match(write.p_assistant_message,/iznos u evrima/i);
+ assert.doesNotMatch(write.p_assistant_message,/cena je 100 RSD/i);
+});
+for(const priceInput of ['Cena 100','Цена 100'])test(`unqualified ${priceInput} cannot receive a false RSD ACK without a price fact`,async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Da, cena je 100 RSD.',facts:[],
+  dialogue:{...syntheticDialogue(),next:'ACK'}}});
+ assert.equal((await f.invoke({text:priceInput})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');assert.deepEqual(write.p_proposals,[]);
+ assert.match(write.p_assistant_message,/RSD/);
+ assert.doesNotMatch(write.p_assistant_message,/Da, cena je 100 RSD/);
+});
+for(const euroInput of ['100 u evrima','100 у еврима','ipak u evrima'])test(`${euroInput} cannot receive a false RSD ACK without a price fact`,async()=>{
+ const f=fixture({historyRows:priorBarePrice,providerOutput:{safety:'ALLOW',assistantMessage:'Da, cena je 100 RSD.',facts:[],
+  dialogue:{...syntheticDialogue(),next:'ACK'}}});
+ assert.equal((await f.invoke({text:euroInput})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');assert.deepEqual(write.p_proposals,[]);
+ assert.match(write.p_assistant_message,/RSD/);
+ assert.doesNotMatch(write.p_assistant_message,/Da, cena je 100 RSD/);
+});
+test('RSD for materials does not authorize an unqualified labor price or its per-person basis',async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Cena rada je 500 RSD po osobi.',facts:[
+  priceFact('need.price_mode','MY_PRICE','budžet za rad 500'),
+  priceFact('need.price_rsd',500,'budžet za rad 500'),
+  priceFact('need.price_basis','PER_PERSON','po osobi')]}});
+ assert.equal((await f.invoke({text:'Materijal je 100 RSD, budžet za rad 500 po osobi.'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals,[]);
+ assert.doesNotMatch(write.p_assistant_message,/Cena rada je 500 RSD/);
+});
+test('an unresolved bare amount does not survive in a public description',async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Cena je 100 RSD.',facts:[
+  priceFact('need.price_mode','MY_PRICE','cena je 100'),
+  priceFact('need.price_rsd',100,'cena je 100'),
+  priceFact('need.description','Krečenje stana za 100','Krečenje stana, cena je 100')]}});
+ assert.equal((await f.invoke({text:'Krečenje stana, cena je 100.'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals.filter(p=>['need.price_mode','need.price_rsd','need.price_basis'].includes(p.key)),[]);
+ assert.ok(write.p_proposals.every(p=>p.key!=='need.description'||!/100/.test(p.value)));
+});
+test('EUR material cost is not mistaken for the task price when only headcount is proposed',async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Razumem, potrebne su dve osobe.',facts:[
+  priceFact('need.people_needed',2,'2 osobe')],dialogue:{...syntheticDialogue(),next:'ACK'}}});
+ assert.equal((await f.invoke({text:'Materijal me košta 100 EUR; za rad mi trebaju 2 osobe.'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'ALLOW');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.people_needed',2]]);
+ assert.equal(write.p_assistant_message,'Razumem, potrebne su dve osobe.');
+});
+test('a terse explicit OFFERS choice survives an erroneous EUR price proposal',async()=>{
+ const f=fixture({historyRows:[...priorBarePrice,{sequence_no:4,role:'ASSISTANT',body:'Koji iznos u RSD želiš ili hoćeš ponude?'}],
+  providerOutput:{safety:'ALLOW',assistantMessage:'Tražiš ponude, cena je 100 RSD.',facts:[
+   priceFact('need.price_mode','OFFERS','Ponude'),priceFact('need.price_rsd',100,'100 EUR')]}});
+ assert.equal((await f.invoke({text:'Ponude, ne 100 EUR.'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'ALLOW');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.price_mode','OFFERS']]);
+ assert.match(write.p_assistant_message,/ponude/i);
+ assert.doesNotMatch(write.p_assistant_message,/cena je 100 RSD/i);
+});
+test('the same numeral in material RSD does not authorize an unqualified labor price',async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Cena rada je 500 RSD.',facts:[
+  priceFact('need.price_mode','MY_PRICE','cena rada 500'),priceFact('need.price_rsd',500,'cena rada 500')]}});
+ assert.equal((await f.invoke({text:'Materijal 500 RSD; cena rada 500.'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals,[]);
+ assert.doesNotMatch(write.p_assistant_message,/Cena rada je 500 RSD/);
+});
+test('a labor price in EUR cannot receive an RSD ACK because materials are in RSD',async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Da, cena je 500 RSD.',facts:[],
+  dialogue:{...syntheticDialogue(),next:'ACK'}}});
+ assert.equal((await f.invoke({text:'Cena rada 500 EUR; materijal 100 RSD.'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');assert.deepEqual(write.p_proposals,[]);
+ assert.match(write.p_assistant_message,/RSD/);
+ assert.doesNotMatch(write.p_assistant_message,/Da, cena je 500 RSD/);
+});
+test('a later EUR labor price is not hidden by an earlier EUR material clause',async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Da, cena je 500 RSD.',facts:[],
+  dialogue:{...syntheticDialogue(),next:'ACK'}}});
+ assert.equal((await f.invoke({text:'Materijal 100 EUR; cena rada 500 EUR.'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');assert.deepEqual(write.p_proposals,[]);
+ assert.match(write.p_assistant_message,/RSD/);
+ assert.doesNotMatch(write.p_assistant_message,/Da, cena je 500 RSD/);
+});
+test('an explicit RSD labor price survives the same numeral in an unrelated EUR material cost',async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Cena rada je 100 RSD.',facts:[
+  priceFact('need.price_mode','MY_PRICE','cena rada 100 RSD'),
+  priceFact('need.price_rsd',100,'cena rada 100 RSD')]}});
+ assert.equal((await f.invoke({text:'Materijal 100 EUR; cena rada 100 RSD.'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'ALLOW');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[
+  ['need.price_mode','MY_PRICE'],['need.price_rsd',100]]);
+ assert.equal(write.p_assistant_message,'Cena rada je 100 RSD.');
+});
+test('a clean 20 m2 job description survives rejection of an EUR budget',async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Cena je 100 RSD.',facts:[
+  priceFact('need.description','Krečenje zida od 20 m2','Krečenje zida od 20 m2'),
+  priceFact('need.price_mode','MY_PRICE','budžet 100 EUR'),
+  priceFact('need.price_rsd',100,'budžet 100 EUR')]}});
+ assert.equal((await f.invoke({text:'Krečenje zida od 20 m2, budžet 100 EUR.'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[
+  ['need.description','Krečenje zida od 20 m2']]);
+ assert.doesNotMatch(write.p_assistant_message,/Cena je 100 RSD/);
+});
+test('a later EUR correction overrides an earlier RSD price for the same work',async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Cena rada je 500 RSD.',facts:[
+  priceFact('need.price_mode','MY_PRICE','Cena rada 500 RSD'),
+  priceFact('need.price_rsd',500,'Cena rada 500 RSD'),
+  priceFact('need.price_basis','PER_PERSON','Cena rada 500 RSD')]}});
+ assert.equal((await f.invoke({text:'Cena rada 500 RSD; ipak 500 EUR.'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals.filter(p=>['need.price_mode','need.price_rsd','need.price_basis'].includes(p.key)),[]);
+ assert.doesNotMatch(write.p_assistant_message,/Cena rada je 500 RSD/);
+});
+test('an RSD travel cost cannot authorize the same unqualified labor price',async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Cena rada je 500 RSD.',facts:[
+  priceFact('need.price_mode','MY_PRICE','cena rada 500'),
+  priceFact('need.price_rsd',500,'cena rada 500'),
+  priceFact('need.price_basis','PER_PERSON','cena rada 500')]}});
+ assert.equal((await f.invoke({text:'Prevoz me košta 500 RSD; cena rada 500.'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals.filter(p=>['need.price_mode','need.price_rsd','need.price_basis'].includes(p.key)),[]);
+ assert.doesNotMatch(write.p_assistant_message,/Cena rada je 500 RSD/);
+});
+test('a Cyrillic price phrase can be corrected by a short Cyrillic euro follow-up',async()=>{
+ const f=fixture({historyRows:[
+  {sequence_no:1,role:'ASSISTANT',body:'Колики је буџет?'},
+  {sequence_no:2,role:'USER',body:'Цена 100'},
+  {sequence_no:3,role:'ASSISTANT',body:'Који износ у RSD желиш да поставиш?'},
+ ],providerOutput:{safety:'ALLOW',assistantMessage:'Da, cena je 100 RSD.',facts:[],
+  dialogue:{...syntheticDialogue(),next:'ACK'}}});
+ assert.equal((await f.invoke({text:'у еврима'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');assert.deepEqual(write.p_proposals,[]);
+ assert.match(write.p_assistant_message,/RSD/);
+ assert.doesNotMatch(write.p_assistant_message,/Da, cena je 100 RSD/);
+});
+test('a false bare price ACK for two workers is removed with the spurious price fact',async()=>{
+ const f=fixture({historyRows:[{sequence_no:1,role:'ASSISTANT',body:'Koliko ljudi ti treba?'}],
+  providerOutput:{safety:'ALLOW',assistantMessage:'Cena je 2.',facts:[
+   priceFact('need.people_needed',2,'2 radnika'),
+   priceFact('need.price_mode','MY_PRICE','2 radnika'),
+   priceFact('need.price_rsd',2,'2 radnika')],dialogue:{...syntheticDialogue(),next:'ACK'}}});
+ assert.equal((await f.invoke({text:'2 radnika'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'ALLOW');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.people_needed',2]]);
+ assert.doesNotMatch(write.p_assistant_message,/Cena je 2/i);
+});
+test('later explicit RSD amount replaces the unresolved euro amount',async()=>{
+ const f=fixture({historyRows:[...priorBarePrice,{sequence_no:4,role:'USER',body:'u evrima'},
+  {sequence_no:5,role:'ASSISTANT',body:'Koji iznos u RSD želiš da postaviš?'}],
+  providerOutput:{safety:'ALLOW',assistantMessage:'Postavio sam 5000 RSD.',facts:[
+   priceFact('need.price_mode','MY_PRICE','5000 RSD'),priceFact('need.price_rsd',5000,'5000 RSD')]}});
+ assert.equal((await f.invoke({text:'5000 RSD'})).status,200);
+ assert.deepEqual(materialWrites(f)[0].body.p_proposals.map(p=>[p.key,p.value]),[
+  ['need.price_mode','MY_PRICE'],['need.price_rsd',5000]]);
+});
+test('a later explicit offer choice cannot carry a model-invented RSD price',async()=>{
+ const f=fixture({historyRows:[...priorBarePrice,{sequence_no:4,role:'USER',body:'u evrima'},
+  {sequence_no:5,role:'ASSISTANT',body:'Koji iznos u RSD želiš da postaviš?'}],
+  providerOutput:{safety:'ALLOW',assistantMessage:'Tražiš ponude, cena 100 RSD.',facts:[
+   priceFact('need.price_mode','OFFERS','Želim ponude'),priceFact('need.price_rsd',100,'100')]}});
+ assert.equal((await f.invoke({text:'Želim ponude'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.price_mode','OFFERS']]);
+ assert.match(write.p_assistant_message,/tražiš ponude/);
+ assert.doesNotMatch(write.p_assistant_message,/100 RSD/);
+});
+test.todo('P0: a prior active RSD fact needs an atomic writer/review invalidation when corrected to EUR; this Edge guard cannot retract it');
 test('PKG041 negation with correct evidence is preserved, not converted to the first mentioned day',async()=>{
  const f=fixture({now:'2026-09-20T22:59:00Z',providerOutput:{safety:'ALLOW',assistantMessage:'Termin je unet.',facts:[
   {key:'need.schedule_kind',valueJson:'"TODAY_FLEXIBLE"',displayValue:'Danas',evidence:'danas',confidence:1}]}});

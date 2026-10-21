@@ -501,7 +501,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     'Predložite samo nove ili stvarno izmenjene činjenice. Isti podatak ne predlažite ponovo samo zato što ga pominjete. UNKNOWN znači nerazjašnjeno, ne važeći uslov. Izostavljanje činjenice iz facts ne briše njenu raniju vrednost: ne tvrdi da je ranija cena, termin ili mesto uklonjeno ako nema potvrđene izmene. Ako osoba želi drugi odvojen zadatak, DIFFERENT_TASK čuva ovaj nacrt i upućuje na Novi zadatak; ne prenosi uslove iz jednog zadatka u drugi.',
     'valueJson je JSON tekst stvarne tipizovane vrednosti: tekst/enum/timestamp kao JSON string sa navodnicima, integer kao broj, boolean true/false, niz kao JSON niz stringova, geography kao JSON objekat.',
     'need.price_mode može biti samo MY_PRICE ili OFFERS. Ako je MY_PRICE, need.price_rsd mora biti poznat pre spremnosti za nacrt.',
-    'Sačuvani iznos need.price_rsd je isključivo u dinarima (RSD). Razumite kada osoba izričito navede evre/EUR/€, ali taj broj ne upisujte kao dinare i ne preračunavajte po pretpostavljenom kursu. Kratko recite da je trenutna cena u aplikaciji u dinarima i pitajte koji iznos u RSD želi da postavi; ostale jasne odgovore sačuvajte. Ako osoba umesto toga želi ponude, izaberite OFFERS. Bez nove potvrde ne tvrdite da je evro iznos sačuvan kao cena.',
+    'Sačuvani iznos need.price_rsd je isključivo u dinarima (RSD). Broj bez valute nije potvrda da su dinari; pitajte koji iznos u RSD osoba želi da postavi. Razumite kada osoba izričito navede evre/EUR/€, uključujući kratku naknadnu ispravku „u evrima“ posle broja, ali taj broj ne upisujte kao dinare i ne preračunavajte po pretpostavljenom kursu. Kratko recite da je trenutna cena u aplikaciji u dinarima i pitajte koji iznos u RSD želi da postavi; ostale jasne odgovore sačuvajte. Ako osoba umesto toga želi ponude, izaberite OFFERS. Bez nove potvrde ne tvrdite da je evro iznos sačuvan kao cena.',
     'need.price_basis može biti samo TOTAL ili PER_PERSON i postavlja se isključivo uz need.price_mode MY_PRICE. Kada zadatak traži više od jedne osobe i korisnik je naveo svoju cenu, jednom kratko pitajte da li je taj iznos ukupno za ceo zadatak ili po osobi, i postavite činjenicu tek iz odgovora; nemojte pretpostavljati. Za jednu osobu ovu činjenicu ne pominjite i ne postavljajte.',
     'TOTAL dozvoljava prijavu i za deo traženih ljudi. Iznos prijave je round(ukupna cena zadatka × broj ljudi u prijavi / ukupno traženih ljudi), zaokružen jednom na najbliži ceo dinar. Za 9000 RSD i 3 osobe, jedna osoba dobija 3000 RSD; za 10000 RSD i 3 osobe, jedna dobija 3333, a dve 6667 RSD. Ne množite prethodno zaokruženu cenu za jednu osobu. need.price_rsd ostaje ukupna cena zadatka, ne iznos delimične prijave; ne menjajte sačuvane uslove Dogovora. PER_PERSON ostaje cena za ceo zadatak po osobi. Ovo objasnite samo kada je korisniku potrebno; ne pretvarajte objašnjenje u dodatno pitanje ili razlog za promenu osnove cene.',
     'Cena se odnosi na ceo obim posla, ukupno ili po osobi. Dnevnica ili satnica nije automatski cena za ceo zadatak. Kada korisnik navede cenu po danu/satu, prvo razjasnite obim i iznos za ceo posao; ne upisujte dnevnicu kao konačnu cenu. Odvojene dnevne smene ne predstavljajte kao neprekidan FIXED_WINDOW. Ne izmišljajte broj dana, trajanje ni ukupan iznos. Kada objašnjavate cenu po osobi, koristite tačan proizvod cene za ceo posao i broja ljudi; ne ponavljajte taj obračun u svakom odgovoru.',
@@ -753,7 +753,7 @@ async function callGemini(
       && typeof previousMessage.body === 'string' && previousMessage.body.includes('?')
       && /prijav/iu.test(previousMessage.body)
       && /(?:do kada|do kog|kad|datum|sat|rok)/iu.test(previousMessage.body);
-    const turn=guardConversationTurn(parsedTurn,text,activeFacts,timeContext,locationContext,pendingDeadlineQuestion);
+    const turn=guardConversationTurn(parsedTurn,text,history,activeFacts,timeContext,locationContext,pendingDeadlineQuestion);
     const effectiveFact=(key:string)=>turn.proposals.find((p:any)=>p.key===key)?.value
       ?? activeFacts.find((f:any)=>f.fact_key===key&&f.status!=='UNKNOWN')?.fact_value;
     const geography=effectiveFact('need.task_geography');
@@ -897,53 +897,116 @@ function sameFactValue(left: unknown, right: unknown): boolean {
   return JSON.stringify(ordered(left)) === JSON.stringify(ordered(right));
 }
 
-function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any[], time: ServerTimeContext, contextualLocation?: LocationContext, pendingDeadlineQuestion = false): ParsedTurn {
+function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], activeFacts: any[], time: ServerTimeContext, contextualLocation?: LocationContext, pendingDeadlineQuestion = false): ParsedTurn {
   if (turn.safety === 'BLOCK') return turn;
   // The monetary contract stores whole RSD only. A model that returns the
   // numeral from "100 EUR" as need.price_rsd would silently change its meaning.
-  // Use only explicit amount + currency evidence here: prose about Europe or
-  // a prior conversation is not a deterministic currency conversion signal.
+  // A bare amount is ambiguous, and a short currency-only correction can refer
+  // to the immediately preceding bare-number user turn. Neither is RSD consent.
   const hasAmountIn = (text: string, unit: string) => new RegExp(
-    `(?:^|[^\\p{L}\\p{N}])(?:\\d[\\d\\s.,]*\\s*${unit}|${unit}\\s*\\d[\\d\\s.,]*)(?=$|[^\\p{L}])`, 'iu').test(text);
+    `(?:^|[^\\p{L}\\p{N}])(?:\\d[\\d\\s.,]*\\s*(?:(?:u|na|у|на)\\s+)?${unit}|${unit}\\s*\\d[\\d\\s.,]*)(?=$|[^\\p{L}])`, 'iu').test(text);
   const euroUnit = '(?:€|eur|evr(?:o|a|i|ima)?|euro|eura|евр(?:о|а|и|има)?|еур(?:о|а)?)';
   const dinarUnit = '(?:rsd|din(?:ar(?:a|i|e|ima)?)?|дин(?:ар(?:а|и|е|има)?)?)';
-  const inputEuro = hasAmountIn(input, euroUnit);
-  const inputDinar = hasAmountIn(input, dinarUnit);
+  const priceWords = /bud(?:ž|z)et|cen(?:a|u|e|om)|iznos|naknad|naplat|za ceo posao|po osobi|буџет|цен[ауеом]|износ|накнад|наплат/iu;
+  const expenseWords = /materijal|материјал|prevoz|превоз|goriv\p{L}*|горив\p{L}*|oprem\p{L}*|опрем\p{L}*/iu;
+  // Work with the clause about the task price. A currency next to material
+  // costs cannot authorize the same numeral in a later labor-price clause.
+  const priceClauses = input.split(/[;,!?\n]/u).map(clause => {
+    if (/^\s*\d+\s*(?:radnik\p{L}*|ljud\p{L}*|osob\p{L}*|радник\p{L}*|људ\p{L}*|особ\p{L}*)/iu.test(clause)) return '';
+    const expenseAt = clause.search(expenseWords);
+    if (expenseAt >= 0) {
+      const laterPrice = clause.slice(expenseAt + 1).search(priceWords);
+      return laterPrice >= 0 ? clause.slice(expenseAt + 1 + laterPrice) : '';
+    }
+    return priceWords.test(clause) || hasAmountIn(clause, euroUnit) || hasAmountIn(clause, dinarUnit)
+      || /^\s*\d/u.test(clause) ? clause : '';
+  }).filter(Boolean);
+  const previousUser = [...history].reverse().find(row => row?.role === 'USER');
+  const previousAssistant = [...history].reverse().find(row => row?.role === 'ASSISTANT');
+  const previousBareAmount = typeof previousUser?.body === 'string'
+    && /^\s*(?:(?:budžet|budzet|cena|iznos|буџет|цена|износ)(?: je| је)?|ukupno|укупно)?\s*\d[\d\s.,]*(?:\s*(?:ukupno|za ceo posao|po osobi|укупно|за цео посао|по особи))?[.!?\s]*$/iu.test(previousUser.body);
+  const currentBareAmount = /^\s*\d[\d\s.,]*[.!?\s]*$/u.test(input);
+  const lastQuestion = typeof previousAssistant?.body === 'string'
+    ? previousAssistant.body.match(/[^.!?]*\?/gu)?.at(-1) ?? '' : '';
+  const previousAskedPrice = /bud(?:ž|z)et|cen(?:a|u|e)|iznos|буџет|цен[ауе]|износ/iu.test(lastQuestion)
+    && !/koliko\s+(?:ljudi|osoba)|колико\s+(?:људи|особа)|kog datuma|ког датума/iu.test(lastQuestion);
+  const activeRsdPrice = activeFacts.some(fact => fact.fact_key === 'need.price_rsd' && fact.status !== 'UNKNOWN');
+  const euroOnlyReply = new RegExp(
+    `^\\s*(?:(?:ipak|zapravo|mislio sam|mislim|to je|iznos je|cena je|u|na|ипак|заправо|мислио сам|мислим|то је|износ је|цена је|у|на)\\s+)*(?:${euroUnit})[\\s.!?]*$`, 'iu').test(input);
   const priceProposal = turn.proposals.find(proposal => proposal.key === 'need.price_rsd');
+  const euroFollowup = euroOnlyReply && (previousBareAmount || activeRsdPrice || !!priceProposal);
   const priceEvidence = typeof priceProposal?.evidence === 'string' ? priceProposal.evidence : '';
-  const euroPriceProposed = !!priceProposal && (hasAmountIn(priceEvidence, euroUnit)
-    || inputEuro && (!inputDinar || !hasAmountIn(priceEvidence, dinarUnit)));
+  // Currency must be attached to the proposed amount, not merely appear
+  // elsewhere in the message (e.g. material 100 RSD; labour budget 500).
+  const proposedAmount = Number(priceProposal?.value);
+  const proposedAmountToken = Number.isSafeInteger(proposedAmount) && proposedAmount > 0
+    ? String(proposedAmount).split('').join('[\\s.,]*') : null;
+  // The latest task-price clause wins. A later EUR correction must invalidate
+  // an earlier RSD amount even when the same numeral appears in both clauses.
+  const priceClause = priceClauses.at(-1) ?? '';
+  const amountHasUnit = (text: string, unit: string) => !!proposedAmountToken && new RegExp(
+    `(?:^|[^\\p{L}\\p{N}])(?:${unit}\\s*${proposedAmountToken}|${proposedAmountToken}\\s*(?:(?:u|na|у|на)\\s+)?${unit})(?=$|[^\\p{L}\\p{N}])`, 'iu').test(text);
+  const proposedRsdExplicit = !!priceProposal && amountHasUnit(priceClause, dinarUnit);
+  const proposedEuroExplicit = !!priceProposal && amountHasUnit(priceClause, euroUnit);
+  const euroPriceProposed = !!priceProposal && (proposedEuroExplicit || hasAmountIn(priceClause, euroUnit)
+    || hasAmountIn(priceEvidence, euroUnit) && !proposedRsdExplicit || euroFollowup);
+  const numericPriceProposalWithoutCurrency = !!priceProposal && !proposedEuroExplicit && !proposedRsdExplicit
+    && /(?:^|[^\p{L}\p{N}])\d[\d\s.,]*(?=$|[^\p{L}])/u.test(input);
+  const explicitPriceWords = priceWords.test(priceClause);
+  const barePriceProposed = numericPriceProposalWithoutCurrency
+    && (explicitPriceWords || currentBareAmount && previousAskedPrice);
+  const spuriousNumericPriceProposal = numericPriceProposalWithoutCurrency && !barePriceProposed;
   // A bad amount proposal must not erase a separate, explicit choice to
   // collect offers. Require the user's words and the mode fact's evidence.
   const offersSaid = (value: string) => /ponud|понуд/iu.test(value);
   const offerChoice = /(?:želim|zelim|hoću|hocu|tražim|trazim|izaberi|odaberi|prihvatam|желим|хоћу|тражим|изабери|одабери|прихватам)[^,.!?;]{0,24}(?:ponud|понуд)/giu;
-  const explicitOffers = [...input.matchAll(offerChoice)].some(match =>
+  const explicitOffers = (/^\s*(?:ponud[aeu]?|понуд[аеу]?)\s*(?=[,;.!?]|$)/iu.test(input)
+    || [...input.matchAll(offerChoice)].some(match =>
     !/(?:^|[^\p{L}])(?:ne|не|ni|ни)\s*$/iu.test(input.slice(Math.max(0, (match.index ?? 0) - 12), match.index ?? 0)))
     && turn.proposals.some(proposal => proposal.key === 'need.price_mode'
-    && proposal.value === 'OFFERS' && offersSaid(String(proposal.evidence ?? '')));
+    && proposal.value === 'OFFERS' && offersSaid(String(proposal.evidence ?? ''))));
+  const barePriceWithoutFact = !priceProposal
+    && (currentBareAmount && previousAskedPrice
+      || priceClauses.some(clause => priceWords.test(clause) && /\d/u.test(clause)
+        && !hasAmountIn(clause, dinarUnit) && !hasAmountIn(clause, euroUnit)));
   // A model can acknowledge a requested price change without proposing a
-  // replacement fact. Catch an explicit price request on ACK as well, or the
-  // previously confirmed RSD amount would silently remain in the draft.
-  const explicitPriceIntent = /(?:cen(?:a|u|e|om)|bud(?:ž|z)et|iznos|naknad|naplat|цена|цену|цене|буџет|износ|накнад|наплат)/iu.test(input);
-  const unsupportedEuroWithoutPriceFact = !priceProposal && inputEuro && !inputDinar
-    && (turn.dialogue?.next === 'REVIEW' || explicitPriceIntent)
+  // replacement fact. An explicit EUR amount or bare-price correction still
+  // needs clarification even when the model only returns ACK.
+  const unsupportedEuroWithoutPriceFact = !priceProposal
+    && (priceClauses.some(clause => hasAmountIn(clause, euroUnit)) || euroFollowup)
     && !explicitOffers;
+  const unsupportedPrice = euroPriceProposed || unsupportedEuroWithoutPriceFact || barePriceProposed
+    || barePriceWithoutFact || explicitOffers && !!priceProposal;
+  const priceMessage = activeRsdPrice && !explicitOffers
+    ? `Razumem ${barePriceProposed || barePriceWithoutFact ? 'iznos, ali valuta nije potvrđena' : 'da je iznos bio u evrima'}. Ranije prikazan iznos u RSD može ostati u nacrtu; nemoj potvrditi objavu dok ne kažeš koji iznos u RSD želiš ili izabereš ponude.`
+    : barePriceProposed || barePriceWithoutFact
+      ? 'Razumem iznos, ali valuta nije potvrđena. Cena zadatka se trenutno čuva u dinarima. Koji iznos u RSD želiš da postaviš? Možeš i da tražiš ponude.'
+      : 'Razumem iznos u evrima. U zadatku se cena trenutno čuva u dinarima, pa neću sam da preračunavam. Koji iznos u RSD želiš da postaviš? Možeš i da tražiš ponude.';
+  const offerMessage = euroPriceProposed || unsupportedEuroWithoutPriceFact
+    ? 'Razumem, tražiš ponude. Iznos u evrima nisam upisao kao cenu u dinarima.'
+    : 'Razumem, tražiš ponude. Nejasan iznos nisam upisao kao cenu u dinarima.';
+  const suspectAmountToken = proposedAmountToken ?? priceClauses.join(' ').match(/\d[\d.,]*/u)?.[0]
+    ?.replace(/[^\d]/gu, '').split('').join('[\\s.,]*');
+  const containsSuspectAmount = (text: string) => !!suspectAmountToken && new RegExp(
+    `(?:^|[^\\p{L}\\p{N}])${suspectAmountToken}(?=$|[^\\p{L}\\p{N}])`, 'iu').test(text);
   const withoutUnsupportedPrice = (proposals: ParsedTurn['proposals']) => proposals.filter(proposal => {
     if (proposal.key === 'need.price_mode') return explicitOffers && proposal.value === 'OFFERS';
     if (['need.price_rsd', 'need.price_basis'].includes(proposal.key)) return false;
     // A clean title and job description are independent answers and need not
     // be lost just because the same turn also contained an unsupported price.
     if (['need.title', 'need.description'].includes(proposal.key) && typeof proposal.value === 'string')
-      return !hasAmountIn(proposal.value, euroUnit) && !hasAmountIn(proposal.value, dinarUnit);
+      return !hasAmountIn(proposal.value, euroUnit) && !hasAmountIn(proposal.value, dinarUnit)
+        && !(unsupportedPrice && containsSuspectAmount(proposal.value));
     return true;
   });
   if (turn.safety === 'REVIEW') {
     // Keep a policy-review decision intact while preventing a mismatched price
     // from reaching its writer. This branch intentionally does not downgrade it.
-    const filtered = euroPriceProposed || unsupportedEuroWithoutPriceFact ? { ...turn, proposals: withoutUnsupportedPrice(turn.proposals),
-      assistantMessage: explicitOffers
-        ? 'Ovaj zahtev treba dodatno proveriti. Izabrao si ponude; iznos u evrima nisam upisao kao cenu u dinarima.'
-        : 'Ovaj zahtev treba dodatno proveriti. Iznos u evrima nisam upisao kao cenu u dinarima. Ako nastavimo, reci koji iznos u RSD želiš ili izaberi ponude.' } : turn;
+    const filtered = unsupportedPrice || spuriousNumericPriceProposal ? { ...turn, proposals: withoutUnsupportedPrice(turn.proposals),
+      assistantMessage: spuriousNumericPriceProposal
+        ? 'Ovaj zahtev treba dodatno proveriti. Predlog cene nije potkrepljen tvojom porukom.'
+        : explicitOffers ? `Ovaj zahtev treba dodatno proveriti. ${offerMessage}`
+          : `Ovaj zahtev treba dodatno proveriti. ${priceMessage}` } : turn;
     return guardTimestampProposals(filtered, input, activeFacts, time, pendingDeadlineQuestion);
   }
   if (taskFinishOnly(input) && (!contextualLocation || turn.locationAction !== 'CONFIRM_DISPLAYED')
@@ -976,16 +1039,29 @@ function guardConversationTurn(turn: ParsedTurn, input: string, activeFacts: any
   let dialogue = turn.dialogue;
   if (dialogue?.taskRelation === 'DIFFERENT_TASK') return clarification('Za drugi posao izaberi Novi zadatak u opcijama razgovora. Ovaj razgovor čuva prethodni zadatak.');
   if (dialogue?.taskRelation === 'UNCLEAR') return clarification('Da li menjaš ovaj zadatak ili želiš da napraviš novi?');
-  if (euroPriceProposed || unsupportedEuroWithoutPriceFact) {
+  if (unsupportedPrice) {
     // Keep independently understood job/people/place/time; do not persist a
     // public copy that carries the unsupported amount. A genuinely chosen
     // OFFERS mode is independent of that amount and needs no RSD question.
     turn = explicitOffers
       ? { ...turn, proposals: withoutUnsupportedPrice(turn.proposals),
-          assistantMessage: 'Razumem, tražiš ponude. Iznos u evrima nisam upisao kao cenu u dinarima.' }
+          assistantMessage: offerMessage }
       : { ...turn, safety: 'CLARIFY', proposals: withoutUnsupportedPrice(turn.proposals),
           dialogue: dialogue ? { ...dialogue, next: 'CLARIFY', questionKey: '' } : undefined,
-          assistantMessage: 'Razumem iznos u evrima. U zadatku se cena trenutno čuva u dinarima, pa neću sam da preračunavam. Koji iznos u RSD želiš da postaviš? Možeš i da tražiš ponude.' };
+          assistantMessage: priceMessage };
+    dialogue = turn.dialogue;
+  } else if (spuriousNumericPriceProposal) {
+    // A headcount such as "2 radnika" must not become a price or trigger a
+    // currency question merely because the model proposed need.price_rsd.
+    const headcount = /(?:^|[^\p{L}\p{N}])\d+\s*(?:radnik\p{L}*|ljud\p{L}*|osob\p{L}*|радник\p{L}*|људ\p{L}*|особ\p{L}*)/iu.test(input);
+    const falsePriceClaim = hasAmountIn(turn.assistantMessage, dinarUnit)
+      || hasAmountIn(turn.assistantMessage, euroUnit)
+      || /cen(?:a|u|e)\s+(?:je\s+)?\d|цен[ауе]\s+(?:је\s+)?\d/iu.test(turn.assistantMessage);
+    turn = { ...turn, safety: headcount ? turn.safety : 'CLARIFY',
+      proposals: withoutUnsupportedPrice(turn.proposals),
+      assistantMessage: falsePriceClaim
+        ? headcount ? 'Razumem koliko ljudi ti treba.' : 'Na šta se odnosi broj koji si naveo?'
+        : turn.assistantMessage };
     dialogue = turn.dialogue;
   }
   const unitPrice = dialogue?.priceUnit === 'PER_DAY' || dialogue?.priceUnit === 'PER_HOUR';

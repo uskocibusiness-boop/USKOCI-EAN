@@ -1,6 +1,8 @@
-# Objavljeni zadatak: priprema izmene i atomarna promocija — tehnički kandidat
+# Objavljeni zadatak: istorijski tehnički kandidat za isti ID
 
-**Status 21.10.2026: dizajn ugovora, nije implementirano ni na DEV-u.** Ovaj dokument ne menja postojeći SQL, UI ni dozvole. Postojeći tok eksplicitno upozorava korisnika da se zadatak privremeno povlači. Nije bezbedno zvati ga atomarnom izmenom.
+**Status 21.10.2026: NE PRIMENJIVATI kao ciljni ugovor.** Ovaj nacrt nije implementiran ni na DEV-u. Dokaz trenutnog ponašanja niže ostaje koristan, ali predlog pod „Potreban ugovor” zadržava isti `needs.id` i stare prijave. To je u suprotnosti sa [vlasnikovom odlukom od 19.10.](../../current/OWNER_DECISIONS_20261019.md): pre prvog izbora, kada postoje prijave, „Izmeni i ponovo objavi” potvrđivanjem stvara **novi ID povezan sa starim**, zatvara staru objavu i aktivne prijave, ne prenosi prijave/cene i obaveštava stare kandidate; stara objava ostaje aktivna dok zamena nije potvrđena. Nakon prvog izbora ovaj tok je trajno zatvoren. Nijedan SQL iz ovog kandidata ne sme se primeniti kao rešenje bez novog usklađenog ugovora i izolovane probe.
+
+Postojeći tok eksplicitno upozorava korisnika da se zadatak privremeno povlači. Nije bezbedno zvati ga atomarnom izmenom. Posebna zamenska finalizacija ne može se napraviti prostim pozivom `rpc_cancel_need`, jer on označava otkaz na zahtev objavljivača i šalje pogrešnu vrstu događaja. Evaluator i potpisani publisher danas zahtevaju stvarni DRAFT ID/reviziju, a mediji se čitaju sa postojećeg `needs.id`; privatni staging traži sopstveni potpisani kontekst i integraciju sa pravilima brisanja podataka. Ove uslove prvo treba dokazati u zasebnom kandidatu.
 
 ## Dokaz trenutnog ponašanja
 

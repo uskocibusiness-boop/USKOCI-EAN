@@ -248,6 +248,7 @@
     },
     {
       "id": "A02",
+      "source_progress_20261021_currency_correction": "Task AI Edge source-only kandidat veže RSD/EUR uz konkretan iznos i klauzu, razume naknadno 'u evrima', ne pretvara gol broj u RSD i čuva nezavisne činjenice. Nezavisne VM regresije + oba AI/Edge testa: 252 PASS, 0 FAIL, 1 TODO; TSC PASS. Stari aktivni RSD fact i prihvaćen DRAFT nisu atomski invalidirani; server contract CUR01 nije migracija ni DEV deploy. Nema Gemini/signed/APK potvrde. docs/candidates/task-currency-followup-20261021/README.md.",
       "source_progress_20261021_followup": "Izvorni AI međuekran sada imenuje Novi zadatak ili Razgovor o zadatku tokom učitavanja/greške. Aktuelni chat nema tri tačke u vrhu; postojeće imenovane komande u niti ostaju. Hide/delete istorije nije aktivan serverski ugovor. Fokusirani AI testovi 260/260 PASS, TSC PASS; APK/HONOR pregled nije izvršen.",
       "source_progress_20261021_native": "DEV task AI 117 sprečava tiho pretvaranje izričite EUR sume u RSD; ne obezbeđuje pun viševalutni ugovor. H1 owner AI history metadata SQL i klijentski dekoder su source-only, nisu na DEV-u niti su istorijski ekran i brisanje spremni. Otvoren bound edit sme da se nastavi; read-only H1 projekcija je ispravljena pre primene. Dokaz: docs/current/AI_CONVERSATION_HISTORY_CONTRACT_20261021.md i lokalni Jest/SQL source proof. Nema novog HONOR/APK dokaza.",
       "grupa": "Put A · Objavi zadatak",
@@ -1318,6 +1319,7 @@
     },
     {
       "id": "A08",
+      "source_progress_20261021_edit_authority": "Read-only audit: aktivni potpisani edit vraća isti objavljeni need u DRAFT pre evaluator odluke, odmah zastareva prijave i zaustavlja dispatch. OWNER_DECISIONS_20261019.md za pre-first-selection zamenu sa postojećim prijavama zahteva nov ID povezan sa starim i zatvaranje starog tek pri potvrđenoj objavi. Kandidat task-edit-atomic-20261021 za isti ID označen NE PRIMENJIVATI; privatni staging, zamenska procena/finalizer, receipt i signed DEV dokaz nisu implementirani. Nema APK/HONOR provere.",
       "grupa": "Put A · Objavi zadatak",
       "naslov": "Moj zadatak (detalj)",
       "nacrt": "UX nacrt §4 korak 5",
