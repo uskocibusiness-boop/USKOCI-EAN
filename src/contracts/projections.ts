@@ -149,6 +149,7 @@ export type PrilikaProjekcija = {
 export type StanjeProfila = 'DRAFT' | 'ACTIVE' | 'SUSPENDED';
 
 export type RadnikProfilProjekcija = {
+  workAreas?:import('./workerAreas').WorkerArea[];
   id: string;
   ime: string;
   grad: string;

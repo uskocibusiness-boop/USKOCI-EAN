@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { workerAreasLabel } from '../../contracts/workerAreas';
 import { StyleSheet, View } from 'react-native';
 import { T } from '../Text';
 import { Press } from '../Press';
@@ -48,7 +49,7 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
   /** A separate, explicit confirmation of the saved area's approximate point. */ confirmMap?: () => void;
 }) {
   const grad = draft.grad.trim() ? cityLabel(draft.grad) : '';
-  const area = grad ? (draft.radius ? `${grad} · do ${draft.radius} km` : grad) : '';
+  const area = draft.workAreas?.length ? workerAreasLabel(draft.workAreas) : grad ? (draft.radius ? `${grad} · do ${draft.radius} km` : grad) : '';
   const name = accountName?.trim() || draft.ime.trim();
   const confirmed = executionModes?.kind === 'confirmed' ? executionModes.modes : [];
   const onSite = confirmed.includes('ON_SITE'), remote = confirmed.includes('REMOTE');
@@ -80,13 +81,13 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
         <ListRow title="Način rada" subtitle={modeLabel} leading={<FactArt kind={remote && !onSite ? 'remote' : 'tasks'} size={32} />}
           last={!onSite && !grad} />
         {executionModes?.kind === 'unavailable' && refreshModes ? <V2Action label="Proveri način rada" tone="neutral" kind="quiet" compact onPress={refreshModes} /> : null}
-        {onSite ? readOnly ? <ListRow title="Područje dolaska" value={area || 'Nije navedeno'} leading={<FactArt kind="pin" size={32} />} />
+        {onSite || draft.workAreas?.length ? readOnly ? <ListRow title="Područje dolaska" value={area || 'Nije navedeno'} leading={<FactArt kind="pin" size={32} />} />
           : <SettingsRow label="Područje dolaska" value={area || undefined} detail={area ? undefined : 'Reci gde dolaziš na zadatak'} icon={<FactArt kind="pin" size={32} />}
             disabled={disabled} onPress={() => openConversation ? openConversation('area') : navigate('/profil/lokacija')} last />
           : grad ? <ListRow title="Grad profila" value={grad} leading={<FactArt kind="pin" size={32} />} last /> : null}
       </SettingsGroup>
     </View>
-    {onSite && !readOnly && confirmMap ? <V2Action label="Potvrdi tačku na mapi" tone="neutral" kind="quiet" compact disabled={disabled}
+    {onSite && !draft.workAreas?.length && !readOnly && confirmMap ? <V2Action label="Potvrdi tačku na mapi" tone="neutral" kind="quiet" compact disabled={disabled}
       onPress={() => { if (!disabled) confirmMap(); }} /> : null}
     <View testID="worker-profile-time-card" style={s.sectionCard}><SettingsGroup title="Kada">
         {availableNow && !readOnly

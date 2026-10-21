@@ -17,7 +17,7 @@ import { useAccountName } from '../../../ui/profile/useAccountName';
 import { ActionSheet } from '../../../ui/system/ActionSheet';
 import { brandAction, sys } from '../../../ui/system/tokens';
 import { WorkerProfileFrame, WorkerProfileStatus } from '../../../ui/workerProfile/WorkerProfilePresentation';
-import { WorkerAiActivation, WorkerAiCard, WorkerAiNotificationsNote, WorkerAiReviewDetails } from '../../../ui/workerProfile/WorkerAiPresentation';
+import { WorkerAiActivation, WorkerAiNotificationsNote, WorkerAiReviewDetails } from '../../../ui/workerProfile/WorkerAiPresentation';
 import { WORKER_PART_TITLE, type WorkerAiPart } from '../../../ui/workerProfile/workerProfileFacts';
 import { T } from '../../../ui/Text';
 import { V2Action } from '../../../ui/v2/V2Action';
@@ -55,7 +55,6 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   // ONE NAME (owner, 8 Oct 2026): the profile is saved under the name of the ACCOUNT, whatever the assistant proposed or the profile carried.
   const account=useAccountName(),accountName=account.state==='ready'?account.name:null;
   const cid=useRef<string|null>(initialId??null),[openKey]=useState(noviUuidZahtevId);
-  const entryDraft=useRef<{id:string;resumed:boolean}|null>(null);
   const activationEntryRead=useRef<string|null>(null),reviewedActivationRequest=useRef<string|null>(null);
   const focus=useRef<object|null>(null),active=useRef(!AppState.currentState||AppState.currentState==='active');
   const [foreground,setForeground]=useState(active.current),[resuming,setResuming]=useState(false);
@@ -142,11 +141,6 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
         }
       }
       if(result.ok)activationEntryRead.current=activationRequest;
-    }
-    if(result.ok&&entryDraft.current?.id!==result.podatak.conversationId){
-      const snapshot=result.podatak;
-      entryDraft.current={id:snapshot.conversationId,resumed:snapshot.status==='OPEN'&&!snapshot.saved
-        &&snapshot.messages.some(message=>message.role==='USER')};
     }
     if(result.ok&&!cid.current){cid.current=result.podatak.conversationId;router.setParams({conversationId:cid.current});}
     return result;
@@ -427,11 +421,15 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     closed={!!data.saved || data.status !== 'OPEN'}
     attach={writable?{label:'Šta želiš da izmeniš?',hint:'Izaberi temu i nastavi isti razgovor.',disabled:!enabled,
       onPress:()=>{if(current()&&panelScope.current===renderedPanel)setAdding(true);}}:undefined}
-    card={compact=>hasProfileContent&&!data.saved?<WorkerAiCard profile={data.candidate} compact={compact} disabled={!enabled||!writable}
-      verifiedReview={currentReview} pending={!!pending.current||editor.busy||awaiting}
-      resumed={entryDraft.current?.id===data.conversationId&&entryDraft.current.resumed}
-      showReview={writable&&!data.saved} reviewReason={!enabled?unavailableNow:undefined}
-      review={()=>{void review(activationRequest&&reviewedActivationRequest.current!==activationRequest?true:reviewActivation);}}/>:null}
+    // Review is a separate full screen, never a second profile card inside the chat.
+    // The V1 snapshot has no interview-complete signal: meaningful content grants only
+    // a quiet review affordance. Only an owned, current server review can promote it.
+    card={()=>null}
+    footerAction={hasProfileContent&&writable&&!data.saved?<V2Action label="Pregledaj radni profil"
+      kind={currentReview?.canAccept?'primary':'secondary'} tone={currentReview?.canAccept?undefined:'neutral'}
+      style={currentReview?.canAccept?brandAction:undefined} disabled={!enabled}
+      reason={!enabled?unavailableNow:undefined}
+      onPress={()=>{void review(activationRequest&&reviewedActivationRequest.current!==activationRequest?true:reviewActivation);}}/>:undefined}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
     showWelcomeArt={!hasProfileContent}
     welcome={hasProfileContent?'Ćao! Šta želiš da dopuniš? 😊':'Ćao! Čime se baviš? 😊'}

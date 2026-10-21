@@ -1,16 +1,17 @@
 import { groupConversationService, parseGroupJournal, groupBody, groupBodyHash, normalizeGroupBody,
  type GroupContext, type GroupJournal, type GroupMessage, type GroupReceipt } from '../../data/groupConversationService';
+import { uuid } from '../../data/serverReceipt';
 import type { ReceiptAccount } from '../../data/serverReceipt';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 export type GroupState={phase:'LOADING'|'READY'|'SENDING'|'UNKNOWN'|'CONFIRMED'|'ERROR';context:GroupContext|null;messages:GroupMessage[];
- before:string|null;olderPageUnavailable:boolean;journal:GroupJournal|null;receipt:GroupReceipt|null;canRetry:boolean;message:string|null;syncUnavailable?:boolean};
+ before:string|null;olderPageUnavailable:boolean;journal:GroupJournal|null;receipt:GroupReceipt|null;canRetry:boolean;message:string|null;syncUnavailable?:boolean;targetMessageId?:string};
 export const initialGroupState:GroupState={phase:'LOADING',context:null,messages:[],before:null,olderPageUnavailable:false,journal:null,receipt:null,canRetry:false,message:null};
 export class GroupConversationController{
  private state:GroupState={...initialGroupState};private busy=false;private disposed=false;private journalLoaded=false;private inMemoryBody:string|null=null;private listeners=new Set<()=>void>();
  private operationRevision=0;private marking=false;private visible:{groupId:string;ids:string[]}|null=null;
- private syncing=false;private syncHasMore=false;
+ private syncing=false;private syncHasMore=false;private targetPending=true;
  readonly key:string;
- constructor(private deps:{agreementId:string;account:ReceiptAccount;current:()=>boolean;storage:{getItem(k:string):Promise<string|null>;setItem(k:string,v:string):Promise<unknown>;removeItem(k:string):Promise<unknown>};
+ constructor(private deps:{agreementId:string;initialTarget?:{groupId:string;messageId:string;sequence:string};account:ReceiptAccount;current:()=>boolean;storage:{getItem(k:string):Promise<string|null>;setItem(k:string,v:string):Promise<unknown>;removeItem(k:string):Promise<unknown>};
  service?:typeof groupConversationService;uuid?:()=>string}){this.key=`uskoci:group-message:v5:${deps.account.accountId}:${deps.agreementId}`;}
  private get service(){return this.deps.service??groupConversationService;}
  private current=()=>!this.disposed&&this.deps.current();snapshot=()=>this.state;
@@ -49,7 +50,12 @@ export class GroupConversationController{
  }
  private async page(before?:string){const context=this.state.context,group=context?.group;if(!group){this.update({phase:'READY'});return;}
   let result:Awaited<ReturnType<typeof groupConversationService.messages>>;
-  try{result=await this.service.messages(group.groupId,this.deps.account,before?{before}:{});}
+  const target=!before&&this.targetPending?this.deps.initialTarget:undefined;
+  if(target&&(!uuid(target.messageId)||!uuid(target.groupId)||target.groupId!==group.groupId
+    ||!/^[1-9][0-9]{0,15}$/.test(target.sequence)||Number(target.sequence)>9007199254740990)){
+    this.update({phase:'ERROR',messages:[],message:'Izabrana poruka nije dostupna. Osveži razgovor.'});return;
+  }
+  try{result=await this.service.messages(group.groupId,this.deps.account,before?{before}:target?{after:String(Number(target.sequence)-1)}:{});}
   catch{this.visible=null;this.update({phase:'ERROR',context:null,messages:[],before:null,olderPageUnavailable:false,message:'Razgovor nije učitan. Pokušaj ponovo.'});return;}
   if(!this.current())return;
   if(!result.ok){
@@ -59,12 +65,17 @@ export class GroupConversationController{
    this.update({phase:'ERROR',canRetry:false,olderPageUnavailable:retain,...(retain?{}:{context:null,messages:[],before:null}),
     message:retain?'Starije poruke nisu učitane. Prikazane poruke ostaju dostupne.':result.poruka});return;
   }
+  if(target&&(result.podatak.messages[0]?.messageId!==target.messageId||result.podatak.messages[0]?.sequence!==target.sequence)){
+   this.update({phase:'ERROR',messages:[],message:'Izabrana poruka nije dostupna. Osveži razgovor.'});return;
+  }
+  this.targetPending=false;
   const merged=before?[...result.podatak.messages,...this.state.messages]:result.podatak.messages;
   // De-duplicate a boundary without inventing messages from the command receipt.
   const ids=new Set<string>(),messages=merged.filter(m=>!ids.has(m.messageId)&&!!ids.add(m.messageId));
-  this.update({phase:'READY',messages,before:result.podatak.nextBeforeSequence,olderPageUnavailable:false,message:null});
+  this.update({phase:'READY',messages,...(target?{targetMessageId:target.messageId}:{}),before:result.podatak.nextBeforeSequence,olderPageUnavailable:false,message:null});
  }
  refresh=()=>!this.journalLoaded?this.load():this.run(async()=>{
+  this.targetPending=false;this.update({targetMessageId:undefined});
   this.update({phase:'LOADING',canRetry:false,olderPageUnavailable:false,message:null,syncUnavailable:false});if(!await this.context())return;
   if(this.state.journal)await this.recover();else await this.page();
  });

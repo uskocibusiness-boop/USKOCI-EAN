@@ -1,0 +1,92 @@
+-- TEST ONLY. All provisional digest changes and all synthetic data are reverted.
+-- Does not certify the current source, delete Auth identities or call Storage.
+-- Parent must run with apply_migration because the nested test replaces a function.
+BEGIN;
+SET LOCAL search_path=pg_catalog;
+SET LOCAL lock_timeout='5s';
+SET LOCAL statement_timeout='120s';
+DO $test$
+DECLARE prior text; prior_erasure text; ready_definition text; ready_body text; live text; structural boolean;
+ owner_id uuid:=extensions.gen_random_uuid(); sid uuid:=extensions.gen_random_uuid(); cid uuid:=extensions.gen_random_uuid();
+ pid uuid; nid uuid; category_id uuid; prep jsonb; review jsonb; started jsonb; action jsonb; result jsonb;
+ generation_id uuid; action_id uuid; attempt_id uuid; loops integer:=0; request_key uuid:=extensions.gen_random_uuid();
+BEGIN
+ SELECT sha256 INTO STRICT prior FROM private.closure_source_v5 WHERE singleton;
+ SELECT sha256 INTO STRICT prior_erasure FROM private.closure_erasure_source_v5 WHERE singleton;
+ IF prior<>prior_erasure THEN RAISE EXCEPTION 'F01_EXEC_CERTIFICATES_DISAGREE';END IF;
+ IF EXISTS(SELECT 1 FROM private.closure_executions_v5 WHERE state='EXECUTING') THEN RAISE EXCEPTION 'F01_EXEC_REAL_CLOSURE_ACTIVE';END IF;
+ ready_definition:=pg_get_functiondef('private.retention_ai_source_ready()'::regprocedure);
+ SELECT regexp_replace(prosrc,';[[:space:]]*$','') INTO ready_body FROM pg_proc WHERE oid='private.retention_ai_source_ready()'::regprocedure;
+ IF length(ready_definition)-length(replace(ready_definition,prior,''))<>length(prior) THEN RAISE EXCEPTION 'F01_EXEC_BINDING_SHAPE';END IF;
+ EXECUTE replace(ready_body,'private.closure_source_digest_v5()='||quote_literal(prior),'true') INTO structural;
+ IF structural IS DISTINCT FROM true THEN RAISE EXCEPTION 'F01_EXEC_STRUCTURAL_GATE_FAILED';END IF;
+ BEGIN
+  -- Temporary within this rollback subtransaction only, to exercise the real
+  -- executor against current source. This is NOT persistent source admission.
+  live:=private.closure_source_digest_v5();
+  UPDATE private.closure_source_v5 SET sha256=live WHERE singleton;
+  UPDATE private.closure_erasure_source_v5 SET sha256=live WHERE singleton;
+  EXECUTE replace(ready_definition,prior,live);
+  IF NOT private.retention_ai_source_ready() OR private.closure_erasure_binding_v5() IS NULL THEN RAISE EXCEPTION 'F01_EXEC_TEST_BINDING_FAILED';END IF;
+  INSERT INTO auth.users(id,aud,role,email,created_at,updated_at) VALUES(owner_id,'authenticated','authenticated','closure-executor-'||owner_id||'@proof.invalid',now(),now());
+  INSERT INTO auth.sessions(id,user_id,created_at,updated_at,aal) VALUES(sid,owner_id,now(),now(),'aal1');
+  SELECT id INTO STRICT pid FROM public.app_profiles WHERE account_id=owner_id AND kind='REQUESTER';
+  UPDATE public.app_profiles SET bio='F01_EXEC_PROFILE_CANARY',tools=ARRAY['F01_HISTORICAL_TOOL'],vehicles=ARRAY['F01_HISTORICAL_VEHICLE'] WHERE account_id=owner_id AND kind='WORKER';
+  INSERT INTO public.needs(requester_account_id,requester_profile_id,status,title,description,category,mode,required_slots,schedule_kind,execution_location_mode)
+   VALUES(owner_id,pid,'DRAFT','F01_EXEC_NEED_CANARY','F01_EXEC_DESCRIPTION_CANARY','Test','OFFERS',1,'FLEXIBLE','REMOTE') RETURNING id INTO nid;
+  INSERT INTO public.need_requirement_details(need_id,critical_conditions,handoff) VALUES(nid,ARRAY['F01_EXEC_CONDITION'],'{"required":true,"shippingCountries":["RS"]}');
+  INSERT INTO public.ai_conversations(id,account_id,purpose,status,fact_schema_version) VALUES(cid,owner_id,'PROFILE','OPEN','LEGACY_TEXT_V1');
+  SELECT m.category_id INTO STRICT category_id FROM private.work_taxonomy_category_modes m WHERE m.execution_scope='REMOTE' LIMIT 1;
+  INSERT INTO private.work_taxonomy_worker_capabilities(worker_account_id,category_id,confirmed_at,origin) VALUES(owner_id,category_id,now(),'WORKER_CONFIRMED');
+  INSERT INTO private.taxonomy_confirmed_worker_modes_v1(worker_account_id,category_id,execution_scope,source_review_id,source_request_key,handoff)
+   VALUES(owner_id,category_id,'REMOTE',extensions.gen_random_uuid(),extensions.gen_random_uuid(),'{"required":true,"shippingCountries":["RS"]}');
+  INSERT INTO private.work_taxonomy_gemini_turn_hints_v1(purpose,account_id,conversation_id,client_request_id,turn_id,attempt_id,source_fingerprint,catalog_version,proposals,payload_digest)
+   VALUES('WORKER_CAPABILITY',owner_id,cid,extensions.gen_random_uuid(),extensions.gen_random_uuid(),extensions.gen_random_uuid(),repeat('a',64),1,'[{"service":"F01_EXEC_HINT_CANARY"}]',repeat('b',64));
+  PERFORM set_config('request.jwt.claim.sub',owner_id::text,true);
+  PERFORM set_config('request.jwt.claim.role','authenticated',true);
+  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',owner_id,'role','authenticated','session_id',sid)::text,true);
+  EXECUTE 'SET LOCAL ROLE authenticated';
+  prep:=public.rpc_prepare_account_closure(owner_id,0,extensions.gen_random_uuid());
+  review:=public.rpc_review_account_closure_execution(owner_id);
+  IF review->>'ready'<>'true' THEN RAISE EXCEPTION 'F01_EXEC_REVIEW_NOT_READY:%',review;END IF;
+  started:=public.rpc_start_account_closure_execution(owner_id,(review->>'requestId')::uuid,(review->>'revision')::integer,request_key,review->>'policySha256');
+  generation_id:=(started->>'generation')::uuid;
+  IF public.rpc_start_account_closure_execution(owner_id,(review->>'requestId')::uuid,(review->>'revision')::integer,request_key,review->>'policySha256')->>'idempotentReplay'<>'true' THEN RAISE EXCEPTION 'F01_EXEC_REPLAY_FAILED';END IF;
+  EXECUTE 'RESET ROLE';
+  PERFORM set_config('request.jwt.claim.role','service_role',true);
+  PERFORM set_config('request.jwt.claims','{"role":"service_role"}',true);
+  EXECUTE 'SET LOCAL ROLE service_role';
+  action:=public.rpc_claim_account_closure_action_service(owner_id,generation_id);
+  IF action->>'accountId' IS DISTINCT FROM owner_id::text OR action->>'generation' IS DISTINCT FROM generation_id::text THEN RAISE EXCEPTION 'F01_EXEC_FOREIGN_ACTION';END IF;
+  IF action->>'kind'<>'RELATIONAL_REDACT' THEN RAISE EXCEPTION 'F01_EXEC_UNEXPECTED_FIRST_ACTION:%',action;END IF;
+  action_id:=(action->>'actionId')::uuid;attempt_id:=(action->>'attemptId')::uuid;
+  result:=public.rpc_dispatch_account_closure_action_service(owner_id,generation_id,action_id,attempt_id);
+  LOOP
+   result:=public.rpc_redact_account_closure_step_service(owner_id,generation_id,action_id,attempt_id);loops:=loops+1;
+   EXIT WHEN result->>'state'='VERIFIED';
+   IF loops>200 THEN RAISE EXCEPTION 'F01_EXEC_DID_NOT_FINISH:%',result;END IF;
+  END LOOP;
+  action:=public.rpc_claim_account_closure_action_service(owner_id,generation_id);
+  IF action->>'accountId' IS DISTINCT FROM owner_id::text OR action->>'generation' IS DISTINCT FROM generation_id::text THEN RAISE EXCEPTION 'F01_EXEC_FOREIGN_AUTH_ACTION';END IF;
+  IF action->>'kind'<>'AUTH_IDENTITY_ERASE' THEN RAISE EXCEPTION 'F01_EXEC_AUTH_NOT_REACHED:%',action;END IF;
+  action_id:=(action->>'actionId')::uuid;attempt_id:=(action->>'attemptId')::uuid;
+  result:=public.rpc_dispatch_account_closure_action_service(owner_id,generation_id,action_id,attempt_id);
+  -- External Auth has deliberately not happened. Never fake its completion.
+  BEGIN
+   PERFORM public.rpc_complete_account_closure_action_service(owner_id,generation_id,action_id,attempt_id,'AUTH_IDENTITY_ERASED_SUBJECT_RETAINED');
+   RAISE EXCEPTION 'F01_EXEC_ACCEPTED_FAKE_AUTH';
+  EXCEPTION WHEN SQLSTATE '55000' THEN IF SQLERRM<>'CLOSURE_AUTH_NOT_CLOSED' THEN RAISE;END IF;END;
+  EXECUTE 'RESET ROLE';
+  IF EXISTS(SELECT 1 FROM private.closure_redaction_steps_v5 WHERE generation=generation_id AND state<>'VERIFIED') THEN RAISE EXCEPTION 'F01_EXEC_PENDING_STEPS';END IF;
+  IF EXISTS(SELECT 1 FROM private.closure_redaction_certificate_v5 WHERE account_id=owner_id) THEN RAISE EXCEPTION 'F01_EXEC_CERTIFICATE_LEAK';END IF;
+  IF EXISTS(SELECT 1 FROM private.work_taxonomy_gemini_turn_hints_v1 WHERE account_id=owner_id)
+   OR EXISTS(SELECT 1 FROM private.taxonomy_confirmed_worker_modes_v1 WHERE worker_account_id=owner_id)
+   OR EXISTS(SELECT 1 FROM public.need_requirement_details WHERE need_id=nid)
+   OR EXISTS(SELECT 1 FROM public.app_profiles WHERE account_id=owner_id AND (bio LIKE '%CANARY%' OR tools&&ARRAY['F01_HISTORICAL_TOOL'] OR vehicles&&ARRAY['F01_HISTORICAL_VEHICLE'])) THEN RAISE EXCEPTION 'F01_EXEC_CONTENT_REMAINS';END IF;
+  RAISE SQLSTATE 'ZF003';
+ EXCEPTION WHEN SQLSTATE 'ZF003' THEN NULL;END;
+ IF (SELECT sha256 FROM private.closure_source_v5 WHERE singleton)<>prior OR (SELECT sha256 FROM private.closure_erasure_source_v5 WHERE singleton)<>prior_erasure
+ OR pg_get_functiondef('private.retention_ai_source_ready()'::regprocedure)<>ready_definition
+ OR EXISTS(SELECT 1 FROM auth.users WHERE id=owner_id) OR EXISTS(SELECT 1 FROM private.closure_executions_v5 WHERE account_id=owner_id) THEN RAISE EXCEPTION 'F01_EXEC_ROLLBACK_FAILED';END IF;
+END $test$;
+COMMIT;

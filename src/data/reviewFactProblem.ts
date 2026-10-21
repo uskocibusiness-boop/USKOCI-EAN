@@ -16,9 +16,9 @@ type ReviewFacts = Readonly<{
   location?: Readonly<{ geography?: unknown }> | null;
 }>;
 
-/** Older review RPCs can say canAccept=true for REMOTE without a typed handoff,
- * although the draft writer refuses that same envelope. Keep it readable, but
- * show the owner the missing answer before the Save/Publish tap. */
+/** Defence for historical immutable reviews: current DEV prepares also include
+ * the typed REMOTE handoff in missingRequired. Keep older reviews readable and
+ * show the missing answer before Save/Publish, without changing their digest. */
 export function reviewMissingRemoteHandoff(review: ReviewFacts): boolean {
   const active = (key: NeedFactV2Key) => review.publicProjection.find(f => f.key === key && f.status !== 'UNKNOWN')?.value;
   const geography = normalizeTaskGeography(review.location?.geography ?? active('need.task_geography'));

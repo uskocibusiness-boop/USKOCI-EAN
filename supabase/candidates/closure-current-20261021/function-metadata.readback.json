@@ -1,0 +1,314 @@
+[
+  {
+    "signature": "private.closure_account_restricted(uuid)",
+    "definitionMd5": "9ce14bacf456210147ba14235d7ba8de",
+    "definer": true,
+    "strict": false,
+    "volatility": "s",
+    "language": "sql"
+  },
+  {
+    "signature": "private.taxonomy_handoff_fit_v1(uuid,uuid)",
+    "definitionMd5": "2e6db47c1548ef7c19da33e8926ae0b0",
+    "definer": false,
+    "strict": false,
+    "volatility": "s",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "rpc_taxonomy_reconcile_reviewed_outbox_service(integer)",
+    "definitionMd5": "4a0e5a1edf6605e7cf19b6bdaca22686",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "rpc_taxonomy_bind_reviewed_worker_service(uuid,uuid,uuid,uuid)",
+    "definitionMd5": "cc01588f051161d4fbcba0e66d6757e6",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.closure_assert_open(uuid,uuid)",
+    "definitionMd5": "1d0e22224d546c4756f216acfe103246",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "rpc_taxonomy_approve_admission(uuid,text,text)",
+    "definitionMd5": "9ef43b0556e166516ba4b9aca82d4aea",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.data_export_worker_candidate_v5(jsonb)",
+    "definitionMd5": "13805d515dff783e9be2083a4884f4cb",
+    "definer": false,
+    "strict": false,
+    "volatility": "i",
+    "language": "sql"
+  },
+  {
+    "signature": "private.data_export_policy_binding()",
+    "definitionMd5": "61662e493b9d7a61dd4ca0b46c154884",
+    "definer": true,
+    "strict": false,
+    "volatility": "s",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.closure_redaction_scope_v5(text)",
+    "definitionMd5": "cd08f2a2a3b229d9ce6582badf8d6447",
+    "definer": true,
+    "strict": false,
+    "volatility": "i",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.closure_source_digest_v5()",
+    "definitionMd5": "7310cc528b67a7b89f42194923c9cb4c",
+    "definer": true,
+    "strict": false,
+    "volatility": "s",
+    "language": "sql"
+  },
+  {
+    "signature": "rpc_taxonomy_capture_gemini_turn_hints_service(uuid,uuid,uuid,uuid,uuid,text,bigint,jsonb)",
+    "definitionMd5": "8d222f9a04dc4e7b477363b718499f73",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.taxonomy_reconcile_pending_reviews_v1(integer)",
+    "definitionMd5": "516bba8bec7c5c33b4b6669e29b53d24",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.taxonomy_signed_binding_requeue_v1()",
+    "definitionMd5": "ce3044e3291ae866b15a4d2dfa0396fc",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.data_export_array_v5(jsonb,text)",
+    "definitionMd5": "16c6860955c4fe258cd8d4bbc605309e",
+    "definer": false,
+    "strict": false,
+    "volatility": "i",
+    "language": "sql"
+  },
+  {
+    "signature": "private.data_export_dataset_catalog()",
+    "definitionMd5": "b3f25e7742903f7695f4add24b0895ea",
+    "definer": true,
+    "strict": false,
+    "volatility": "i",
+    "language": "sql"
+  },
+  {
+    "signature": "rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)",
+    "definitionMd5": "b2c4e3d19cd08ed50cfae32a8ed386a0",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "rpc_taxonomy_assign_worker_categories_service(uuid,uuid[])",
+    "definitionMd5": "c8f8c38ad4c0064c42dab16128c4116a",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.closure_redaction_relations_v5()",
+    "definitionMd5": "29ebcdc7d60ffc2e73a6b03662e6a43c",
+    "definer": true,
+    "strict": false,
+    "volatility": "i",
+    "language": "sql"
+  },
+  {
+    "signature": "private.closure_redaction_allowed_v5(oid,text,jsonb,jsonb)",
+    "definitionMd5": "00b797ba302f69e368c4a62e9fab234c",
+    "definer": true,
+    "strict": false,
+    "volatility": "s",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.taxonomy_pending_saved_event_v1()",
+    "definitionMd5": "d8069f5367fe5c731c1eea192f7370a3",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.taxonomy_handoff_display_v1(jsonb)",
+    "definitionMd5": "e115bc9d944d5a026010aabd3de1702b",
+    "definer": false,
+    "strict": false,
+    "volatility": "i",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "rpc_taxonomy_bind_reviewed_need_service(uuid,uuid,uuid,uuid,integer)",
+    "definitionMd5": "c8a3529f6f5ce8f43d77bcef515e1032",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.closure_account_key(uuid)",
+    "definitionMd5": "29116ea6e982cecd3242354a20faa3fd",
+    "definer": false,
+    "strict": true,
+    "volatility": "i",
+    "language": "sql"
+  },
+  {
+    "signature": "private.data_export_projection_sha_v5()",
+    "definitionMd5": "6f4888b39644e91e12e1aae4abe01f8d",
+    "definer": true,
+    "strict": false,
+    "volatility": "s",
+    "language": "sql"
+  },
+  {
+    "signature": "rpc_set_worker_execution_modes(uuid,text[])",
+    "definitionMd5": "fee2987aa72fe52841f719f45b93970e",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.taxonomy_handoff_compatible_v1(jsonb,jsonb)",
+    "definitionMd5": "1f11ef269f089e45c4ebf6bee946f147",
+    "definer": false,
+    "strict": false,
+    "volatility": "i",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "rpc_taxonomy_claim_reviewed_batches_service(integer)",
+    "definitionMd5": "8c6c10ab0d559bb05fe31f1245f12681",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.data_export_scalar_v5(jsonb,text)",
+    "definitionMd5": "fc403d3329abb0925b14cad98fb52f14",
+    "definer": false,
+    "strict": false,
+    "volatility": "i",
+    "language": "sql"
+  },
+  {
+    "signature": "private.taxonomy_preserve_review_handoff_v1(jsonb,uuid,uuid)",
+    "definitionMd5": "475c5bd17a959166dc38e7bee1d6e193",
+    "definer": false,
+    "strict": false,
+    "volatility": "s",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.sync_worker_skills_to_taxonomy_capabilities(uuid,text[])",
+    "definitionMd5": "979a32ddd7d53d5c0677f9853f3cc267",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "rpc_taxonomy_prepare_admission_service(uuid,uuid,text,uuid,jsonb)",
+    "definitionMd5": "2fb6d9bb44eb67d568f44cba390a959e",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.closure_redaction_patch_v5(text,jsonb,uuid,uuid)",
+    "definitionMd5": "39dc0a87f455dd14f5a1f3d075718503",
+    "definer": true,
+    "strict": false,
+    "volatility": "s",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.taxonomy_handoff_valid_v1(jsonb)",
+    "definitionMd5": "de8d37190d70e0534bfc123d7b247b1f",
+    "definer": false,
+    "strict": false,
+    "volatility": "i",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "rpc_taxonomy_bind_ready_reviews_service(integer)",
+    "definitionMd5": "481d0701391d586561abe5bd4864a873",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.closure_erasure_program_digest_v5()",
+    "definitionMd5": "54d32b4e48c0574a14d5e773811ff7c0",
+    "definer": true,
+    "strict": false,
+    "volatility": "s",
+    "language": "sql"
+  },
+  {
+    "signature": "private.data_export_snapshot(uuid,uuid,jsonb,timestamp with time zone)",
+    "definitionMd5": "a5ec4f035a2f0e37f21eda1bafd819a0",
+    "definer": true,
+    "strict": false,
+    "volatility": "s",
+    "language": "sql"
+  },
+  {
+    "signature": "rpc_taxonomy_finalize_reviewed_batch_service(uuid,uuid,text)",
+    "definitionMd5": "504b21380c60db1c3a96a9aa684e4ff5",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "private.closure_guard_owned_write()",
+    "definitionMd5": "331b1d322cee8e46a0b155524932861b",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  },
+  {
+    "signature": "rpc_taxonomy_commit_admission_service(uuid)",
+    "definitionMd5": "c98f18816a441f8455f912a848942450",
+    "definer": true,
+    "strict": false,
+    "volatility": "v",
+    "language": "plpgsql"
+  }
+]

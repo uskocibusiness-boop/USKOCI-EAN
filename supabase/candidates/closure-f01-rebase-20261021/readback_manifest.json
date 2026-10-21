@@ -1,0 +1,3264 @@
+{
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "capturedAt": "2026-10-21T06:22:34.874292Z",
+  "sourceDigest": "e064bf5bd995c9b846495f9f808c2910ba56d21f5fcb56b84ad98514d569bb79",
+  "programDigest": "90d60aa9529996103b91ca54fb4be94770d6862453fbe521f878c603d6ab3f1e",
+  "sourceCertificate": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+  "erasureCertificate": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+  "executingClosureCount": 0,
+  "functions": [
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "2dde6ad2462255b188e4f03ffe88edcd",
+      "language": "sql",
+      "signature": "private.closure_account_key(uuid)",
+      "volatility": "i",
+      "definitionMd5": "29116ea6e982cecd3242354a20faa3fd",
+      "securityDefiner": false
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "f4999250c315e0253374d4611291c7ad",
+      "language": "sql",
+      "signature": "private.closure_account_restricted(uuid)",
+      "volatility": "s",
+      "definitionMd5": "9ce14bacf456210147ba14235d7ba8de",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "dc9bc4c718593850da4fdb49e612dbd2",
+      "language": "plpgsql",
+      "signature": "private.closure_assert_open(uuid, uuid)",
+      "volatility": "v",
+      "definitionMd5": "1d0e22224d546c4756f216acfe103246",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "0c668ff62c925ab67d9bbf0baabb21e7",
+      "language": "sql",
+      "signature": "private.closure_erasure_program_digest_v5()",
+      "volatility": "s",
+      "definitionMd5": "54d32b4e48c0574a14d5e773811ff7c0",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "f13117fd601dcb82de423b78f25acb4f",
+      "language": "plpgsql",
+      "signature": "private.closure_guard_owned_write()",
+      "volatility": "v",
+      "definitionMd5": "331b1d322cee8e46a0b155524932861b",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "7fabcc71502e065e638364fc3d58b761",
+      "language": "plpgsql",
+      "signature": "private.closure_redaction_allowed_v5(oid, text, jsonb, jsonb)",
+      "volatility": "s",
+      "definitionMd5": "00b797ba302f69e368c4a62e9fab234c",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "3891fe77d38af04e06cfe4c9e4abb96f",
+      "language": "plpgsql",
+      "signature": "private.closure_redaction_patch_v5(text, jsonb, uuid, uuid)",
+      "volatility": "s",
+      "definitionMd5": "39dc0a87f455dd14f5a1f3d075718503",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "ba362b6d0045d06e6207fc0a8f0592d4",
+      "language": "sql",
+      "signature": "private.closure_redaction_relations_v5()",
+      "volatility": "i",
+      "definitionMd5": "29ebcdc7d60ffc2e73a6b03662e6a43c",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "aec26bb057ec0022245a5d8641a47585",
+      "language": "plpgsql",
+      "signature": "private.closure_redaction_scope_v5(text)",
+      "volatility": "i",
+      "definitionMd5": "cd08f2a2a3b229d9ce6582badf8d6447",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "4b46c00cb90c58a3830312fec874e6f1",
+      "language": "sql",
+      "signature": "private.closure_source_digest_v5()",
+      "volatility": "s",
+      "definitionMd5": "7310cc528b67a7b89f42194923c9cb4c",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "00933c589c16905b09318c080a2150f6",
+      "language": "sql",
+      "signature": "private.data_export_array_v5(jsonb, text)",
+      "volatility": "i",
+      "definitionMd5": "16c6860955c4fe258cd8d4bbc605309e",
+      "securityDefiner": false
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "b19598a0ad6547de9609da121f5d4a3e",
+      "language": "sql",
+      "signature": "private.data_export_dataset_catalog()",
+      "volatility": "i",
+      "definitionMd5": "b3f25e7742903f7695f4add24b0895ea",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "3695d063e7c8fa9f835b5e8cc34b5926",
+      "language": "plpgsql",
+      "signature": "private.data_export_policy_binding()",
+      "volatility": "s",
+      "definitionMd5": "61662e493b9d7a61dd4ca0b46c154884",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "f628ae258c3bae4a1d0fed0cde3dac53",
+      "language": "sql",
+      "signature": "private.data_export_projection_sha_v5()",
+      "volatility": "s",
+      "definitionMd5": "6f4888b39644e91e12e1aae4abe01f8d",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "e02fe0db0a56b90b74a29c2b81a38357",
+      "language": "sql",
+      "signature": "private.data_export_scalar_v5(jsonb, text)",
+      "volatility": "i",
+      "definitionMd5": "fc403d3329abb0925b14cad98fb52f14",
+      "securityDefiner": false
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "a50e4f7203df2a65cff264ee2471c13c",
+      "language": "sql",
+      "signature": "private.data_export_snapshot(uuid, uuid, jsonb, timestamp with time zone)",
+      "volatility": "s",
+      "definitionMd5": "a5ec4f035a2f0e37f21eda1bafd819a0",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "aa9c5f1b7ab4711cda7cb16905de55a4",
+      "language": "sql",
+      "signature": "private.data_export_worker_candidate_v5(jsonb)",
+      "volatility": "i",
+      "definitionMd5": "13805d515dff783e9be2083a4884f4cb",
+      "securityDefiner": false
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "3c016624fc1fd96f6fb24a6de6c97f04",
+      "language": "plpgsql",
+      "signature": "private.sync_worker_skills_to_taxonomy_capabilities(uuid, text[])",
+      "volatility": "v",
+      "definitionMd5": "979a32ddd7d53d5c0677f9853f3cc267",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "f6a266fa6552838bb63dcb0a87f849b2",
+      "language": "plpgsql",
+      "signature": "private.taxonomy_pending_saved_event_v1()",
+      "volatility": "v",
+      "definitionMd5": "d8069f5367fe5c731c1eea192f7370a3",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "24fbee4c5310bc35fb7728e1781d7373",
+      "language": "plpgsql",
+      "signature": "private.taxonomy_reconcile_pending_reviews_v1(integer)",
+      "volatility": "v",
+      "definitionMd5": "516bba8bec7c5c33b4b6669e29b53d24",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "f540b18ff827bd6c5e4d277ad873bcea",
+      "language": "plpgsql",
+      "signature": "private.taxonomy_signed_binding_requeue_v1()",
+      "volatility": "v",
+      "definitionMd5": "ce3044e3291ae866b15a4d2dfa0396fc",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog"
+      ],
+      "bodyMd5": "2088cf56bfb3ad9e3490ffa89822951b",
+      "language": "plpgsql",
+      "signature": "public.rpc_set_worker_execution_modes(uuid, text[])",
+      "volatility": "v",
+      "definitionMd5": "fee2987aa72fe52841f719f45b93970e",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "fc4b4c7a011483aa2d7f8254bb1e0eec",
+      "language": "plpgsql",
+      "signature": "public.rpc_taxonomy_approve_admission(uuid, text, text)",
+      "volatility": "v",
+      "definitionMd5": "9ef43b0556e166516ba4b9aca82d4aea",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "57238a27137d8a05e7268eeab5a931ea",
+      "language": "plpgsql",
+      "signature": "public.rpc_taxonomy_assign_worker_categories_service(uuid, uuid[])",
+      "volatility": "v",
+      "definitionMd5": "c8f8c38ad4c0064c42dab16128c4116a",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "27d6c56afed7e20a5b9a8f86ac7259d5",
+      "language": "plpgsql",
+      "signature": "public.rpc_taxonomy_bind_ready_reviews_service(integer)",
+      "volatility": "v",
+      "definitionMd5": "481d0701391d586561abe5bd4864a873",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "373eb4f7686f893355b983bda31e00e5",
+      "language": "plpgsql",
+      "signature": "public.rpc_taxonomy_bind_reviewed_need_service(uuid, uuid, uuid, uuid, integer)",
+      "volatility": "v",
+      "definitionMd5": "c8a3529f6f5ce8f43d77bcef515e1032",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "a57b0afcf132c8a71a4a874ee9bcfd2e",
+      "language": "plpgsql",
+      "signature": "public.rpc_taxonomy_bind_reviewed_worker_service(uuid, uuid, uuid, uuid)",
+      "volatility": "v",
+      "definitionMd5": "cc01588f051161d4fbcba0e66d6757e6",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "61164e8e21e2f44db125377b9280a700",
+      "language": "plpgsql",
+      "signature": "public.rpc_taxonomy_capture_gemini_turn_hints_service(uuid, uuid, uuid, uuid, uuid, text, bigint, jsonb)",
+      "volatility": "v",
+      "definitionMd5": "8d222f9a04dc4e7b477363b718499f73",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "06008d086d05bdd7ce728c3c2370ce5a",
+      "language": "plpgsql",
+      "signature": "public.rpc_taxonomy_claim_reviewed_batches_service(integer)",
+      "volatility": "v",
+      "definitionMd5": "8c6c10ab0d559bb05fe31f1245f12681",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "cfd385271eee13c94dcc40a71fff16d4",
+      "language": "plpgsql",
+      "signature": "public.rpc_taxonomy_commit_admission_service(uuid)",
+      "volatility": "v",
+      "definitionMd5": "c98f18816a441f8455f912a848942450",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "a237d9a981bba2f6c1d1bf8b73b943f3",
+      "language": "plpgsql",
+      "signature": "public.rpc_taxonomy_commit_reviewed_batch_service(uuid, uuid, text, uuid, jsonb)",
+      "volatility": "v",
+      "definitionMd5": "b2c4e3d19cd08ed50cfae32a8ed386a0",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "dd83122f212937dc503d7a6c4ef5ce5d",
+      "language": "plpgsql",
+      "signature": "public.rpc_taxonomy_finalize_reviewed_batch_service(uuid, uuid, text)",
+      "volatility": "v",
+      "definitionMd5": "504b21380c60db1c3a96a9aa684e4ff5",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "8dd36fe1c3b4475a137908dfd6362b5c",
+      "language": "plpgsql",
+      "signature": "public.rpc_taxonomy_prepare_admission_service(uuid, uuid, text, uuid, jsonb)",
+      "volatility": "v",
+      "definitionMd5": "2fb6d9bb44eb67d568f44cba390a959e",
+      "securityDefiner": true
+    },
+    {
+      "acl": "{postgres=X/postgres,service_role=X/postgres}",
+      "found": true,
+      "owner": "postgres",
+      "config": [
+        "search_path=pg_catalog, private"
+      ],
+      "bodyMd5": "0d2a92163412f1fc3a67801bde4c07f9",
+      "language": "plpgsql",
+      "signature": "public.rpc_taxonomy_reconcile_reviewed_outbox_service(integer)",
+      "volatility": "v",
+      "definitionMd5": "4a0e5a1edf6605e7cf19b6bdaca22686",
+      "securityDefiner": true
+    }
+  ],
+  "tables": [
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.dev_phase1_20261014_dispatch_snapshot",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "need_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "need_revision",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "round_no",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "urgency",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "batch_size",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "target_responses",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "candidate_limit_used",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "budget_source",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "status",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "stop_reason",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "deadline_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": []
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.dev_phase1_20261014_needs_snapshot",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "requester_account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "requester_profile_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "status",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "title",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "description",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "category",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "approximate_city",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "approximate_area",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "approximate_lat",
+            "type": "numeric(6,2)",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "approximate_lng",
+            "type": "numeric(7,2)",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "schedule_kind",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "starts_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "ends_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "required_slots",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "mode",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "requester_price_rsd",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "required_skills",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "required_tools",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "required_vehicles",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "verified_identity_required",
+            "type": "boolean",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "urgent",
+            "type": "boolean",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "public_photo_paths",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "revision",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "published_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "response_deadline",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "urgent_activated_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "urgent_expires_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "urgent_policy_version",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "minimum_experience_years",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "execution_location_mode",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "approx_geog",
+            "type": "extensions.geography(Point,4326)",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "required_licenses",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "remaining_search_closed_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "remaining_search_closed_by_account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "remaining_search_close_reason",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "task_country_code",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "task_timezone",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "price_basis",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "category_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": []
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.dev_phase1_20261014_opportunity_snapshot",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "worker_account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "worker_profile_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "need_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "need_revision",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "dispatch_round_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "match_score",
+            "type": "numeric(6,2)",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "score_components",
+            "type": "jsonb",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "reason_codes",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "status",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "expires_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "seen_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "responded_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": []
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.dev_phase1_20261014_worker_capabilities_snapshot",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "worker_account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "category_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "confirmed_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "allow_related_offers",
+            "type": "boolean",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "excluded",
+            "type": "boolean",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "origin",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": []
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.dev_test101_owner_profile_backup_20261014",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "kind",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "display_name",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "city",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "headline",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "bio",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "avatar_path",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "account_type",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "profile_status",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "years_experience",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "portfolio",
+            "type": "jsonb",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "skills",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "radius_km",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "available_now",
+            "type": "boolean",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "team_capacity",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "tools",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "licenses",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "vehicles",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "exclusions",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "minimum_fee_rsd",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "rating_requester",
+            "type": "numeric(3,2)",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "rating_worker",
+            "type": "numeric(3,2)",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "available_now_expires_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "operating_country_code",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": []
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.dev_test101_owner_worker_profile_backup",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "kind",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "display_name",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "city",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "headline",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "bio",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "avatar_path",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "account_type",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "profile_status",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "years_experience",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "portfolio",
+            "type": "jsonb",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "skills",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "radius_km",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "available_now",
+            "type": "boolean",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "team_capacity",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "tools",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "licenses",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "vehicles",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "exclusions",
+            "type": "text[]",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "minimum_fee_rsd",
+            "type": "integer",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "rating_requester",
+            "type": "numeric(3,2)",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "rating_worker",
+            "type": "numeric(3,2)",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "available_now_expires_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "operating_country_code",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": []
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": false,
+      "kind": "r",
+      "name": "private.dev_worker_profile_reset_snapshots_v1",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "backup_id",
+            "type": "uuid",
+            "default": "extensions.gen_random_uuid()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "profile_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "backed_up_at",
+            "type": "timestamp with time zone",
+            "default": "clock_timestamp()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "purpose",
+            "type": "text",
+            "default": "'DEV_WORKER_AI_RETEST'::text",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "payload",
+            "type": "jsonb",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": [
+          {
+            "name": "dev_worker_profile_reset_snapshots_v1_pkey",
+            "type": "p",
+            "definition": "PRIMARY KEY (backup_id)"
+          }
+        ]
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.taxonomy_confirmed_worker_modes_v1",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "worker_account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "category_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "execution_scope",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "source_review_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "source_request_key",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "confirmed_at",
+            "type": "timestamp with time zone",
+            "default": "statement_timestamp()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "active",
+            "type": "boolean",
+            "default": "true",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "handoff",
+            "type": "jsonb",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": [
+          {
+            "name": "taxonomy_confirmed_worker_mod_worker_account_id_category_i_fkey",
+            "type": "f",
+            "definition": "FOREIGN KEY (worker_account_id, category_id) REFERENCES private.work_taxonomy_worker_capabilities(worker_account_id, category_id) ON DELETE RESTRICT"
+          },
+          {
+            "name": "taxonomy_confirmed_worker_mode_category_id_execution_scope_fkey",
+            "type": "f",
+            "definition": "FOREIGN KEY (category_id, execution_scope) REFERENCES private.work_taxonomy_category_modes(category_id, execution_scope) ON DELETE RESTRICT"
+          },
+          {
+            "name": "taxonomy_confirmed_worker_modes_v1_execution_scope_check",
+            "type": "c",
+            "definition": "CHECK ((execution_scope = ANY (ARRAY['REMOTE'::text, 'ON_SITE'::text])))"
+          },
+          {
+            "name": "taxonomy_confirmed_worker_modes_v1_pkey",
+            "type": "p",
+            "definition": "PRIMARY KEY (worker_account_id, category_id, execution_scope)"
+          },
+          {
+            "name": "worker_handoff_valid",
+            "type": "c",
+            "definition": "CHECK (((handoff IS NULL) OR ((execution_scope = 'REMOTE'::text) AND private.taxonomy_handoff_valid_v1(handoff))))"
+          }
+        ]
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": false,
+      "kind": "r",
+      "name": "private.work_taxonomy_admissions_v1",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "request_key",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "owner_account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "purpose",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "source_review_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "source_review_digest",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "plan",
+            "type": "jsonb",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "plan_digest",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "catalog_version",
+            "type": "bigint",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "catalog_fingerprint",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "status",
+            "type": "text",
+            "default": "'PENDING'::text",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "approved_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "committed_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "result",
+            "type": "jsonb",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "expires_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "default": "statement_timestamp()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": [
+          {
+            "name": "work_taxonomy_admissions_v1_catalog_fingerprint_check",
+            "type": "c",
+            "definition": "CHECK ((char_length(catalog_fingerprint) = 32))"
+          },
+          {
+            "name": "work_taxonomy_admissions_v1_catalog_version_check",
+            "type": "c",
+            "definition": "CHECK ((catalog_version > 0))"
+          },
+          {
+            "name": "work_taxonomy_admissions_v1_check",
+            "type": "c",
+            "definition": "CHECK ((((status = 'PENDING'::text) AND (approved_at IS NULL) AND (committed_at IS NULL) AND (result IS NULL)) OR ((status = 'APPROVED'::text) AND (approved_at IS NOT NULL) AND (committed_at IS NULL) AND (result IS NULL)) OR ((status = 'COMMITTED'::text) AND (approved_at IS NOT NULL) AND (committed_at IS NOT NULL) AND (result IS NOT NULL))))"
+          },
+          {
+            "name": "work_taxonomy_admissions_v1_owner_account_id_request_key_key",
+            "type": "u",
+            "definition": "UNIQUE (owner_account_id, request_key)"
+          },
+          {
+            "name": "work_taxonomy_admissions_v1_pkey",
+            "type": "p",
+            "definition": "PRIMARY KEY (id)"
+          },
+          {
+            "name": "work_taxonomy_admissions_v1_plan_check",
+            "type": "c",
+            "definition": "CHECK ((jsonb_typeof(plan) = 'object'::text))"
+          },
+          {
+            "name": "work_taxonomy_admissions_v1_plan_digest_check",
+            "type": "c",
+            "definition": "CHECK ((char_length(plan_digest) = 64))"
+          },
+          {
+            "name": "work_taxonomy_admissions_v1_purpose_check",
+            "type": "c",
+            "definition": "CHECK ((purpose = ANY (ARRAY['WORKER_CAPABILITY'::text, 'NEED_SERVICE'::text])))"
+          },
+          {
+            "name": "work_taxonomy_admissions_v1_source_review_digest_check",
+            "type": "c",
+            "definition": "CHECK ((char_length(source_review_digest) = 64))"
+          },
+          {
+            "name": "work_taxonomy_admissions_v1_status_check",
+            "type": "c",
+            "definition": "CHECK ((status = ANY (ARRAY['PENDING'::text, 'APPROVED'::text, 'COMMITTED'::text])))"
+          }
+        ]
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.work_taxonomy_gemini_turn_hints_v1",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "extensions.gen_random_uuid()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "purpose",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "conversation_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "client_request_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "turn_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "attempt_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "source_fingerprint",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "catalog_version",
+            "type": "bigint",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "proposals",
+            "type": "jsonb",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "payload_digest",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "default": "statement_timestamp()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": [
+          {
+            "name": "work_taxonomy_gemini_turn_hints__purpose_account_id_turn_id_key",
+            "type": "u",
+            "definition": "UNIQUE (purpose, account_id, turn_id)"
+          },
+          {
+            "name": "work_taxonomy_gemini_turn_hints_v1_catalog_version_check",
+            "type": "c",
+            "definition": "CHECK ((catalog_version > 0))"
+          },
+          {
+            "name": "work_taxonomy_gemini_turn_hints_v1_payload_digest_check",
+            "type": "c",
+            "definition": "CHECK ((payload_digest ~ '^[a-f0-9]{64}$'::text))"
+          },
+          {
+            "name": "work_taxonomy_gemini_turn_hints_v1_pkey",
+            "type": "p",
+            "definition": "PRIMARY KEY (id)"
+          },
+          {
+            "name": "work_taxonomy_gemini_turn_hints_v1_proposals_check",
+            "type": "c",
+            "definition": "CHECK (((jsonb_typeof(proposals) = 'array'::text) AND ((jsonb_array_length(proposals) >= 1) AND (jsonb_array_length(proposals) <= 24))))"
+          },
+          {
+            "name": "work_taxonomy_gemini_turn_hints_v1_purpose_check",
+            "type": "c",
+            "definition": "CHECK ((purpose = ANY (ARRAY['WORKER_CAPABILITY'::text, 'NEED_SERVICE'::text])))"
+          },
+          {
+            "name": "work_taxonomy_gemini_turn_hints_v1_source_fingerprint_check",
+            "type": "c",
+            "definition": "CHECK ((source_fingerprint ~ '^[a-f0-9]{64}$'::text))"
+          }
+        ]
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.work_taxonomy_need_bindings_v1",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "owner_account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "request_key",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "source_review_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "need_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "need_revision",
+            "type": "integer",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "category_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "catalog_version",
+            "type": "bigint",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "result",
+            "type": "jsonb",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "bound_at",
+            "type": "timestamp with time zone",
+            "default": "statement_timestamp()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [
+          "CREATE TRIGGER taxonomy_signed_need_bound_requeue_v1 AFTER INSERT ON private.work_taxonomy_need_bindings_v1 FOR EACH ROW EXECUTE FUNCTION private.taxonomy_signed_binding_requeue_v1()"
+        ],
+        "constraints": [
+          {
+            "name": "work_taxonomy_need_bindings_v1_catalog_version_check",
+            "type": "c",
+            "definition": "CHECK ((catalog_version > 0))"
+          },
+          {
+            "name": "work_taxonomy_need_bindings_v1_need_id_need_revision_key",
+            "type": "u",
+            "definition": "UNIQUE (need_id, need_revision)"
+          },
+          {
+            "name": "work_taxonomy_need_bindings_v1_need_revision_check",
+            "type": "c",
+            "definition": "CHECK ((need_revision > 0))"
+          },
+          {
+            "name": "work_taxonomy_need_bindings_v1_pkey",
+            "type": "p",
+            "definition": "PRIMARY KEY (owner_account_id, request_key)"
+          }
+        ]
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.work_taxonomy_need_skills",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "need_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "need_revision",
+            "type": "integer",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "category_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": [
+          {
+            "name": "work_taxonomy_need_skills_category_id_fkey",
+            "type": "f",
+            "definition": "FOREIGN KEY (category_id) REFERENCES private.work_taxonomy_categories(id)"
+          },
+          {
+            "name": "work_taxonomy_need_skills_need_id_need_revision_fkey",
+            "type": "f",
+            "definition": "FOREIGN KEY (need_id, need_revision) REFERENCES private.work_taxonomy_need_snapshots(need_id, need_revision) ON DELETE RESTRICT"
+          },
+          {
+            "name": "work_taxonomy_need_skills_pkey",
+            "type": "p",
+            "definition": "PRIMARY KEY (need_id, need_revision, category_id)"
+          }
+        ]
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.work_taxonomy_need_snapshots",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "need_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "need_revision",
+            "type": "integer",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "category_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "catalog_version",
+            "type": "bigint",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "reviewed_by_requester",
+            "type": "boolean",
+            "default": "false",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "source",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "classification_state",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "original_category",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "default": "now()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": [
+          {
+            "name": "work_taxonomy_need_snapshots_catalog_version_check",
+            "type": "c",
+            "definition": "CHECK ((catalog_version > 0))"
+          },
+          {
+            "name": "work_taxonomy_need_snapshots_category_id_fkey",
+            "type": "f",
+            "definition": "FOREIGN KEY (category_id) REFERENCES private.work_taxonomy_categories(id)"
+          },
+          {
+            "name": "work_taxonomy_need_snapshots_check",
+            "type": "c",
+            "definition": "CHECK (((classification_state <> 'CONFIRMED'::text) OR ((category_id IS NOT NULL) AND reviewed_by_requester)))"
+          },
+          {
+            "name": "work_taxonomy_need_snapshots_classification_state_check",
+            "type": "c",
+            "definition": "CHECK ((classification_state = ANY (ARRAY['CONFIRMED'::text, 'NEEDS_CLARIFICATION'::text, 'SAFETY_REVIEW'::text])))"
+          },
+          {
+            "name": "work_taxonomy_need_snapshots_need_id_fkey",
+            "type": "f",
+            "definition": "FOREIGN KEY (need_id) REFERENCES public.needs(id) ON DELETE RESTRICT"
+          },
+          {
+            "name": "work_taxonomy_need_snapshots_need_revision_check",
+            "type": "c",
+            "definition": "CHECK ((need_revision > 0))"
+          },
+          {
+            "name": "work_taxonomy_need_snapshots_pkey",
+            "type": "p",
+            "definition": "PRIMARY KEY (need_id, need_revision)"
+          },
+          {
+            "name": "work_taxonomy_need_snapshots_source_check",
+            "type": "c",
+            "definition": "CHECK ((source = ANY (ARRAY['AI_PROPOSED'::text, 'REQUESTER_CORRECTED'::text, 'SYSTEM_MIGRATED'::text, 'OWNER_REVIEWED_BATCH'::text])))"
+          }
+        ]
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.work_taxonomy_pending_reviews_v1",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "owner_account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "request_key",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "source_review_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "purpose",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "classification_state",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "resolution_state",
+            "type": "text",
+            "default": "'OPEN'::text",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "saved_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "default": "statement_timestamp()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": [
+          {
+            "name": "work_taxonomy_pending_reviews__owner_account_id_request_key_key",
+            "type": "u",
+            "definition": "UNIQUE (owner_account_id, request_key)"
+          },
+          {
+            "name": "work_taxonomy_pending_reviews_v1_classification_state_check",
+            "type": "c",
+            "definition": "CHECK ((classification_state = ANY (ARRAY['PENDING_CLASSIFICATION'::text, 'SERVICE_MODE_CONFIRMATION_REQUIRED'::text, 'REVIEW_REQUIRED'::text, 'CATALOG_UNAVAILABLE'::text, 'STALE_CATALOG'::text])))"
+          },
+          {
+            "name": "work_taxonomy_pending_reviews_v1_pkey",
+            "type": "p",
+            "definition": "PRIMARY KEY (id)"
+          },
+          {
+            "name": "work_taxonomy_pending_reviews_v1_purpose_check",
+            "type": "c",
+            "definition": "CHECK ((purpose = ANY (ARRAY['WORKER_CAPABILITY'::text, 'NEED_SERVICE'::text])))"
+          },
+          {
+            "name": "work_taxonomy_pending_reviews_v1_resolution_state_check",
+            "type": "c",
+            "definition": "CHECK ((resolution_state = ANY (ARRAY['OPEN'::text, 'RESOLVED'::text, 'SUPERSEDED'::text])))"
+          }
+        ]
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.work_taxonomy_related_acceptances",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "worker_account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "source_category_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "target_category_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "explicitly_confirmed_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "relationship_version",
+            "type": "bigint",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": [
+          {
+            "name": "work_taxonomy_related_accepta_worker_account_id_source_cat_fkey",
+            "type": "f",
+            "definition": "FOREIGN KEY (worker_account_id, source_category_id) REFERENCES private.work_taxonomy_worker_capabilities(worker_account_id, category_id)"
+          },
+          {
+            "name": "work_taxonomy_related_acceptances_check",
+            "type": "c",
+            "definition": "CHECK ((source_category_id <> target_category_id))"
+          },
+          {
+            "name": "work_taxonomy_related_acceptances_pkey",
+            "type": "p",
+            "definition": "PRIMARY KEY (worker_account_id, source_category_id, target_category_id)"
+          },
+          {
+            "name": "work_taxonomy_related_acceptances_relationship_version_check",
+            "type": "c",
+            "definition": "CHECK ((relationship_version > 0))"
+          },
+          {
+            "name": "work_taxonomy_related_acceptances_target_category_id_fkey",
+            "type": "f",
+            "definition": "FOREIGN KEY (target_category_id) REFERENCES private.work_taxonomy_categories(id)"
+          }
+        ]
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": false,
+      "kind": "r",
+      "name": "private.work_taxonomy_review_batches_v1",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "owner_account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "request_key",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "purpose",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "source_review_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "review_digest",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "plans_digest",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "plans",
+            "type": "jsonb",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "catalog_version",
+            "type": "bigint",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "result",
+            "type": "jsonb",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "committed_at",
+            "type": "timestamp with time zone",
+            "default": "statement_timestamp()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": [
+          {
+            "name": "work_taxonomy_review_batches_v1_pkey",
+            "type": "p",
+            "definition": "PRIMARY KEY (id)"
+          },
+          {
+            "name": "work_taxonomy_review_batches_v1_plans_check",
+            "type": "c",
+            "definition": "CHECK ((jsonb_typeof(plans) = 'array'::text))"
+          },
+          {
+            "name": "work_taxonomy_review_batches_v1_plans_digest_check",
+            "type": "c",
+            "definition": "CHECK ((plans_digest ~ '^[0-9a-f]{64}$'::text))"
+          },
+          {
+            "name": "work_taxonomy_review_batches_v1_purpose_check",
+            "type": "c",
+            "definition": "CHECK ((purpose = ANY (ARRAY['WORKER_CAPABILITY'::text, 'NEED_SERVICE'::text])))"
+          },
+          {
+            "name": "work_taxonomy_review_batches_v1_review_digest_check",
+            "type": "c",
+            "definition": "CHECK ((review_digest ~ '^[0-9a-f]{64}$'::text))"
+          },
+          {
+            "name": "work_taxonomy_review_batches_v_owner_account_id_request_key_key",
+            "type": "u",
+            "definition": "UNIQUE (owner_account_id, request_key)"
+          }
+        ]
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": false,
+      "kind": "r",
+      "name": "private.work_taxonomy_review_outbox_v1",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "id",
+            "type": "uuid",
+            "default": "gen_random_uuid()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "owner_account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "request_key",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "source_review_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "purpose",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "plans",
+            "type": "jsonb",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "state",
+            "type": "text",
+            "default": "'PENDING'::text",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "attempts",
+            "type": "integer",
+            "default": "0",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "lease_token",
+            "type": "uuid",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "lease_until",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "retry_after",
+            "type": "timestamp with time zone",
+            "default": "statement_timestamp()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "error_code",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "result",
+            "type": "jsonb",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "created_at",
+            "type": "timestamp with time zone",
+            "default": "statement_timestamp()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp with time zone",
+            "default": "statement_timestamp()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "binding_state",
+            "type": "text",
+            "default": "'PENDING'::text",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "binding_attempts",
+            "type": "integer",
+            "default": "0",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "binding_retry_after",
+            "type": "timestamp with time zone",
+            "default": "statement_timestamp()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "binding_error_code",
+            "type": "text",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "binding_result",
+            "type": "jsonb",
+            "default": null,
+            "notNull": false,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": [
+          {
+            "name": "work_taxonomy_binding_state_v1_check",
+            "type": "c",
+            "definition": "CHECK ((binding_state = ANY (ARRAY['PENDING'::text, 'RETRY'::text, 'BOUND'::text, 'REVIEW_REQUIRED'::text])))"
+          },
+          {
+            "name": "work_taxonomy_review_outbox_v1_attempts_check",
+            "type": "c",
+            "definition": "CHECK ((attempts >= 0))"
+          },
+          {
+            "name": "work_taxonomy_review_outbox_v1_check",
+            "type": "c",
+            "definition": "CHECK ((((state = 'CLAIMED'::text) AND (lease_token IS NOT NULL) AND (lease_until IS NOT NULL)) OR ((state <> 'CLAIMED'::text) AND (lease_token IS NULL) AND (lease_until IS NULL))))"
+          },
+          {
+            "name": "work_taxonomy_review_outbox_v1_owner_account_id_request_key_key",
+            "type": "u",
+            "definition": "UNIQUE (owner_account_id, request_key)"
+          },
+          {
+            "name": "work_taxonomy_review_outbox_v1_pkey",
+            "type": "p",
+            "definition": "PRIMARY KEY (id)"
+          },
+          {
+            "name": "work_taxonomy_review_outbox_v1_plans_check",
+            "type": "c",
+            "definition": "CHECK ((jsonb_typeof(plans) = 'array'::text))"
+          },
+          {
+            "name": "work_taxonomy_review_outbox_v1_purpose_check",
+            "type": "c",
+            "definition": "CHECK ((purpose = ANY (ARRAY['WORKER_CAPABILITY'::text, 'NEED_SERVICE'::text])))"
+          },
+          {
+            "name": "work_taxonomy_review_outbox_v1_state_check",
+            "type": "c",
+            "definition": "CHECK ((state = ANY (ARRAY['PENDING'::text, 'CLAIMED'::text, 'RETRY'::text, 'COMMITTED'::text, 'REVIEW_REQUIRED'::text])))"
+          }
+        ]
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.work_taxonomy_worker_bindings_v1",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "owner_account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "request_key",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "source_review_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "profile_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "catalog_version",
+            "type": "bigint",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "result",
+            "type": "jsonb",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "bound_at",
+            "type": "timestamp with time zone",
+            "default": "statement_timestamp()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [
+          "CREATE TRIGGER taxonomy_signed_worker_bound_requeue_v1 AFTER INSERT ON private.work_taxonomy_worker_bindings_v1 FOR EACH ROW EXECUTE FUNCTION private.taxonomy_signed_binding_requeue_v1()"
+        ],
+        "constraints": [
+          {
+            "name": "work_taxonomy_worker_bindings_v1_catalog_version_check",
+            "type": "c",
+            "definition": "CHECK ((catalog_version > 0))"
+          },
+          {
+            "name": "work_taxonomy_worker_bindings_v1_pkey",
+            "type": "p",
+            "definition": "PRIMARY KEY (owner_account_id, request_key)"
+          },
+          {
+            "name": "work_taxonomy_worker_bindings_v1_source_review_id_key",
+            "type": "u",
+            "definition": "UNIQUE (source_review_id)"
+          }
+        ]
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres,service_role=r/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.work_taxonomy_worker_capabilities",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "worker_account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "category_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "confirmed_at",
+            "type": "timestamp with time zone",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "allow_related_offers",
+            "type": "boolean",
+            "default": "false",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "excluded",
+            "type": "boolean",
+            "default": "false",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "origin",
+            "type": "text",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp with time zone",
+            "default": "now()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": [
+          {
+            "name": "work_taxonomy_worker_capabilities_category_id_fkey",
+            "type": "f",
+            "definition": "FOREIGN KEY (category_id) REFERENCES private.work_taxonomy_categories(id)"
+          },
+          {
+            "name": "work_taxonomy_worker_capabilities_origin_check",
+            "type": "c",
+            "definition": "CHECK ((origin = ANY (ARRAY['WORKER_CONFIRMED'::text, 'WORKER_CORRECTED'::text])))"
+          },
+          {
+            "name": "work_taxonomy_worker_capabilities_pkey",
+            "type": "p",
+            "definition": "PRIMARY KEY (worker_account_id, category_id)"
+          }
+        ]
+      },
+      "forceRls": false,
+      "policies": []
+    },
+    {
+      "acl": "{postgres=arwdDxtm/postgres}",
+      "rls": true,
+      "kind": "r",
+      "name": "private.worker_execution_mode_choices",
+      "found": true,
+      "owner": "postgres",
+      "shape": {
+        "columns": [
+          {
+            "name": "worker_profile_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "worker_account_id",
+            "type": "uuid",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "modes",
+            "type": "text[]",
+            "default": null,
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "consent_source",
+            "type": "text",
+            "default": "'EXPLICIT_PROFILE_REVIEW'::text",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "confirmed_at",
+            "type": "timestamp with time zone",
+            "default": "statement_timestamp()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          },
+          {
+            "name": "updated_at",
+            "type": "timestamp with time zone",
+            "default": "statement_timestamp()",
+            "notNull": true,
+            "identity": "",
+            "generated": ""
+          }
+        ],
+        "triggers": [],
+        "constraints": [
+          {
+            "name": "valid_worker_execution_modes",
+            "type": "c",
+            "definition": "CHECK (((modes = ARRAY['ON_SITE'::text]) OR (modes = ARRAY['REMOTE'::text]) OR (modes = ARRAY['ON_SITE'::text, 'REMOTE'::text])))"
+          },
+          {
+            "name": "worker_execution_mode_choices_consent_source_check",
+            "type": "c",
+            "definition": "CHECK ((consent_source = 'EXPLICIT_PROFILE_REVIEW'::text))"
+          },
+          {
+            "name": "worker_execution_mode_choices_pkey",
+            "type": "p",
+            "definition": "PRIMARY KEY (worker_profile_id)"
+          },
+          {
+            "name": "worker_execution_mode_choices_worker_account_id_fkey",
+            "type": "f",
+            "definition": "FOREIGN KEY (worker_account_id) REFERENCES public.app_accounts(id) ON DELETE CASCADE"
+          },
+          {
+            "name": "worker_execution_mode_choices_worker_profile_id_fkey",
+            "type": "f",
+            "definition": "FOREIGN KEY (worker_profile_id) REFERENCES public.app_profiles(id) ON DELETE CASCADE"
+          }
+        ]
+      },
+      "forceRls": false,
+      "policies": []
+    }
+  ]
+}

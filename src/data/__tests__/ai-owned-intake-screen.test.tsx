@@ -166,10 +166,10 @@ it.each([
   const keys = Object.keys(patch);
   const facts = [...completeFacts().filter(f => !keys.includes(f.key)), ...Object.entries(patch).map(([key, value]) => publicFact(key as NeedFactV2Key, value))];
   mockLoad.mockResolvedValue(conversation({ facts })); await resume();
-  // A partial understanding is useful already; readiness still gates the complete proposal/action.
+  // Partial facts stay in the conversation; readiness gates the complete proposal/action.
   expect(tree.root.findAllByProps({ testID: 'intake-task-summary' }).length > 0).toBe(visible);
 });
-it('shows the first known public terms before title or map readiness, without turning them into review authority', async () => {
+it('keeps partial public facts out of the clean chat until final readiness', async () => {
   const facts=[publicFact('need.price_mode','MY_PRICE'),publicFact('need.price_rsd',6000),publicFact('need.price_basis','TOTAL'),
     publicFact('need.people_needed',2),publicFact('need.schedule_kind','FLEXIBLE'),
     publicFact('need.starts_at','2026-10-19T00:00:00+02:00'),publicFact('need.ends_at','2026-10-26T00:00:00+01:00'),
@@ -177,13 +177,7 @@ it('shows the first known public terms before title or map readiness, without tu
     {...publicFact('need.exact_address','Privatna 42, stan 7'),privacyClass:'PRIVATE' as const},
     {...publicFact('need.title','Nepotvrđen naslov'),status:'UNKNOWN' as const}];
   mockLoad.mockResolvedValue(conversation({facts}));await resume();
-  const card=tree.root.findByProps({testID:'intake-understood'});
-  const words=card.findAll(node=>node.type===('T' as React.ElementType)).flatMap(node=>node.children.filter(child=>typeof child==='string')).join(' ');
-  expect(words).toContain('Razumeo sam');expect(words).toMatch(/6[.\s]000 RSD ukupno/);
-  expect(words).toContain('2 osobe');expect(words).toContain('Novi Sad');expect(words).toContain('19. okt');expect(words).toContain('25. okt');expect(words).not.toContain('26. okt');
-  expect(words).toContain('Mesto još treba da potvrdiš na mapi.');expect(words).toContain('nacrt nije objavljen');
-  expect(words).not.toMatch(/Privatna|stan 7|Nepotvrđen naslov|bbbbbbbb/);
-  expect(card.findAllByProps({accessibilityRole:'button'})).toHaveLength(0);noSummary();
+  expect(tree.root.findAllByProps({testID:'intake-understood'})).toHaveLength(0);noSummary();
   expect(mockSend).not.toHaveBeenCalled();expect(mockAbandon).not.toHaveBeenCalled();
 });
 it('does not invent budget or people from an assistant sentence, and does not show a card for unknown-only facts', async()=>{
@@ -191,18 +185,12 @@ it('does not invent budget or people from an assistant sentence, and does not sh
     messages:[{id:'assistant',fromAi:true,body:'Budžet je 9000 RSD, dvoje ljudi.',safety:'ALLOW',proposedFactIds:[]}]}));
   await resume();expect(tree.root.findAllByProps({testID:'intake-understood'})).toHaveLength(0);noSummary();
 });
-it('keeps a compact draft readable and expands extra known facts locally without sending or preparing a review',async()=>{
+it('keeps a compact interview free of partial summary cards without sending or preparing a review',async()=>{
   mockHeight=720;mockFontScale=1.3;
   mockLoad.mockResolvedValue(conversation({facts:[publicFact('need.price_mode','OFFERS'),publicFact('need.schedule_kind','TOMORROW_FLEXIBLE'),
     publicFact('need.task_geography',{mode:'STATIONARY',start:{city:'Novi Sad'}}),publicFact('need.people_needed',3)]}));
   await resume();
-  const card=()=>tree.root.findByProps({testID:'intake-understood'});
-  const labels=()=>card().findAll(node=>node.props.accessibilityRole==='text').map(node=>node.props.accessibilityLabel);
-  expect(labels()).toHaveLength(2);expect(labels()).toContain('Tražim ponude');
-  const expand=card().findByProps({accessibilityLabel:'Prikaži sve poznate podatke nacrta'});
-  await act(async()=>expand.props.onPress());
-  expect(labels()).toHaveLength(4);expect(labels()).toContain('Sutra');expect(labels()).toContain('Treba 3 osobe');
-  expect(card().findByProps({accessibilityLabel:'Sakrij dodatne podatke nacrta'}).props.accessibilityState.expanded).toBe(true);
+  expect(tree.root.findAllByProps({testID:'intake-understood'})).toHaveLength(0);
   expect(mockSend).not.toHaveBeenCalled();noSummary();
 });
 it.each([{ city: 'Novi Sad' }, { label: 'Novi Sad' }])('keeps private data out of a complete local summary: %j', async start => {
@@ -982,16 +970,14 @@ it('keeps partial proposals out of the conversation card while facts are gathere
 
 // Review r4 ra item 4: while only the hidden category is missing, the card names nothing as missing and does not call
 // the draft ready either; the separate review remains available for incomplete facts.
-it('offers an explicit incomplete review after a handoff without a premature final card', async () => {
+it('does not infer a final review handoff from assistant prose when structured facts are incomplete', async () => {
   const data = conversation({ facts: completeFacts().filter(f => f.key !== 'need.category'), messages: [
     { id: other, body: 'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.', fromAi: true, safety: null, proposedFactIds: [] },
   ] });
   data.review.missingRequired = ['need.category']; mockLoad.mockResolvedValue(data); await resume();
   noSummary(); expect(text()).not.toContain('Kategorija');
-  const action = tree.root.findByProps({ testID: 'ai-footer-action' }).findByProps({ label: 'Pregledaj i dopuni zadatak' });
-  await act(async () => action.props.onPress());
-  expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/pregled-zadatka', params: { conversationId: id, intakeReturn: expect.any(String) } });
-  expect(mockSend).not.toHaveBeenCalled();
+  expect(tree.root.findAllByProps({ label: 'Pregledaj i dopuni zadatak' })).toHaveLength(0);
+  expect(mockRouter.push).not.toHaveBeenCalled();expect(mockSend).not.toHaveBeenCalled();
 });
 
 it('never names a category and does not call the draft ready while only the category is missing', async () => {

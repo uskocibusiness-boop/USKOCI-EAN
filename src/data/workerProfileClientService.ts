@@ -47,6 +47,9 @@ export const workerProfileClientService: WorkerProfileClientService = {
     }
     // Geography and availability have their own revision-bound canonical RPCs.
     // Reject old callers explicitly; never silently drop or rewrite their input.
+    if (input.alati !== undefined || input.vozila !== undefined) {
+      return failure('WORKER_EQUIPMENT_RETIRED', 'Alat i vozila se više ne uređuju u radnom profilu.');
+    }
     if (input.grad !== undefined || input.radijusKm !== undefined) {
       return failure('PROFILE_LOCATION_REQUIRES_REVIEW', 'Mesto i radijus menjaju se u podešavanju područja rada.');
     }

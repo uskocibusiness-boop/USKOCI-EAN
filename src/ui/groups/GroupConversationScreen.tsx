@@ -10,7 +10,7 @@ import { GroupConversationPresentation } from './GroupConversationPresentation';
 import { privateConversationChoices } from './ConversationChannels';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { SupportContextEntry } from '../support/SupportContextEntry';
-export function GroupConversationScreen({agreementId,fromInbox=false}:{agreementId:string;fromInbox?:boolean}){
+export function GroupConversationScreen({agreementId,fromInbox=false,initialTarget}:{agreementId:string;fromInbox?:boolean;initialTarget?:{groupId:string;messageId:string;sequence:string}}){
  const {user,accountRevision}=useSesija(),accountId=user?.id??'';
  const [state,setState]=useState(initialGroupState),[epoch,setEpoch]=useState(0),[generation,setGeneration]=useState(0),[draft,setDraft]=useState(''),[showPeople,setShowPeople]=useState(false);
  const owner=useRef<object|null>(null),engine=useRef<GroupConversationController|null>(null),input=useRef('');
@@ -20,7 +20,7 @@ export function GroupConversationScreen({agreementId,fromInbox=false}:{agreement
   const scope={};owner.current=scope;setGeneration(x=>x+1);setState(initialGroupState);input.current='';setDraft('');setShowPeople(false);
   const current=()=>owner.current===scope&&!['background','inactive'].includes(AppState.currentState)&&sesijaSada().user?.id===accountId
    &&sesijaSada().accountRevision===accountRevision;
-  const controller=new GroupConversationController({agreementId,account:{accountId,accountRevision},current,storage:AsyncStorage});engine.current=controller;
+  const controller=new GroupConversationController({agreementId,initialTarget,account:{accountId,accountRevision},current,storage:AsyncStorage});engine.current=controller;
   controller.subscribe(()=>{if(current()){
    const next=controller.snapshot();setState(next);
    if(next.journal||next.phase==='CONFIRMED')heldDraft.current=null;
@@ -36,7 +36,7 @@ export function GroupConversationScreen({agreementId,fromInbox=false}:{agreement
   const syncTimer=setInterval(()=>{if(current())void controller.syncLatest();},8000);
   const listener=AppState.addEventListener('change',next=>{if(next!=='active'){controller.dispose();owner.current=null;input.current='';setDraft('');setState(initialGroupState);}else setEpoch(x=>x+1);});
   return()=>{clearInterval(syncTimer);listener.remove();controller.dispose();if(owner.current===scope)owner.current=null;if(engine.current===controller)engine.current=null;input.current='';setDraft('');setShowPeople(false);setState(initialGroupState);};
- },[agreementId,accountId,accountRevision,epoch]));
+ },[agreementId,accountId,accountRevision,epoch,initialTarget?.groupId,initialTarget?.messageId,initialTarget?.sequence]));
  const renderedOwner=owner.current,controller=engine.current;
  const current=()=>renderedOwner!==null&&owner.current===renderedOwner&&engine.current===controller&&controller?.snapshot()===state
   &&!['background','inactive'].includes(AppState.currentState)&&sesijaSada().user?.id===accountId&&sesijaSada().accountRevision===accountRevision;

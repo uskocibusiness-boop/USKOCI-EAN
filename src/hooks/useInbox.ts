@@ -18,7 +18,8 @@ export function useInbox(role: InboxRole | null) {
       const result = await activityMessageTargetService.resolve(eventId,{signal},{accountId,accountRevision});
       if (!result.ok) throw new Error(result.kod);
       const target = result.podatak;
-      return target.kind === 'UNAVAILABLE' ? {kind:'UNAVAILABLE'} : {
+      return target.kind === 'UNAVAILABLE' ? {kind:'UNAVAILABLE'} : target.kind === 'GROUP_MESSAGE'
+        ? {kind:'GROUP_MESSAGE',id:target.agreementId,groupId:target.groupId,messageId:target.messageId,sequence:target.sequence,eventId:target.eventId,role:target.role} : {
         kind:'AGREEMENT_MESSAGE',id:target.agreementId,messageId:target.messageId,eventId:target.eventId,role:target.role,
       };
     }, async (eventId, needId, signal) => {

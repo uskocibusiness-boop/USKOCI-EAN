@@ -8,7 +8,7 @@ import { messagePushIntent, ownsMessagePush } from '../store/messagePushIntent';
 import { pendingRoute } from '../store/pendingRoute';
 import { sesijaSada, useSesija } from '../store/sesija';
 
-type Target = Extract<ActivityMessageTarget, { kind: 'AGREEMENT_MESSAGE' }> | Extract<ActivityOpportunityTarget, { kind: 'OPPORTUNITY' }> | Extract<ActivityApplicationPushTarget, { kind: 'APPLICATION' }>;
+type Target = Extract<ActivityMessageTarget, { kind: 'AGREEMENT_MESSAGE' | 'GROUP_MESSAGE' }> | Extract<ActivityOpportunityTarget, { kind: 'OPPORTUNITY' }> | Extract<ActivityApplicationPushTarget, { kind: 'APPLICATION' }>;
 type Phase = 'loading' | 'error' | 'unavailable';
 
 /** A tapped event is resolved by the visible Inbox, never an asynchronous global

@@ -90,19 +90,18 @@ it('identifies a resumed draft without replacing it with the active profile or s
   messages:[{id:K,role:'USER',body:'Radim i krečenje.',sequence:1}]};
  mockApi.read.mockResolvedValue(ok(oldDraft));
  await render();
- const card=shell().props.card(false);
- expect(card.props.resumed).toBe(true);
- expect(card.props.profile.skills).toEqual(['Krečenje zidova']);
+ expect(shell().props.card(false)).toBeNull();
+ expect(shell().props.messages).toEqual([{id:K,fromAi:false,body:'Radim i krečenje.'}]);
  expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.patch).not.toHaveBeenCalled();
  expect(mockApi.save).not.toHaveBeenCalled();expect(mockApi.abandon).not.toHaveBeenCalled();
  act(()=>shell().props.onChange('Moja neposlata dopuna'));
  expect(shell().props.value).toBe('Moja neposlata dopuna');
- expect(shell().props.card(false).props.resumed).toBe(true);
+ expect(shell().props.card(false)).toBeNull();
 });
 it('does not label a newly opened profile conversation as an older draft',async()=>{
  mockApi.read.mockResolvedValue(ok({...snapshot(),profileStatus:'ACTIVE'}));
  await render();
- expect(shell().props.card(false).props.resumed).toBe(false);
+ expect(shell().props.card(false)).toBeNull();
  expect(mockApi.send).not.toHaveBeenCalled();
 });
 it('keeps a same-account last-good worker interview visible but read-only after a proved offline refresh',async()=>{
@@ -133,7 +132,7 @@ it('allows only one manual conversation read while the previous check is loading
  expect(action('Proveri razgovor').props.disabled).toBe(false);
 });
 it.each(['current','older revision','foreign owner','foreign conversation','foreign profile','expired','stale'])(
- 'live understanding accepts only the current owned review: %s',async condition=>{
+ 'only a current owned review promotes the review action: %s',async condition=>{
   const data=snapshot();
   const prepared={schemaVersion:'WORKER_PROFILE_V1',reviewId:K,conversationId:C,accountId:A,profileId:B,
     revision:data.revision,profile:data.candidate,activate:true,missingRequired:[],canAccept:true,
@@ -145,13 +144,15 @@ it.each(['current','older revision','foreign owner','foreign conversation','fore
   if(condition==='foreign profile')prepared.profileId=A;
   if(condition==='expired')prepared.expiresAt='2000-01-01T00:00:00Z';
   mockApi.read.mockResolvedValue(ok({...data,stale:condition==='stale',review:prepared}));await render();
-  expect(shell().props.card(false).props.verifiedReview).toEqual(condition==='current'?prepared:null);
+  expect(shell().props.card(false)).toBeNull();
+  if(condition==='stale')expect(shell().props.footerAction).toBeUndefined();
+  else expect(shell().props.footerAction.props.kind).toBe(condition==='current'?'primary':'secondary');
   expect(mockApi.prepare).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
  });
-it('shows a known city before a service exists without starting classification or a review',async()=>{
+it('keeps partial city data out of the chat and never starts classification or a review automatically',async()=>{
  mockApi.read.mockResolvedValue(ok({...snapshot(),candidate:{...candidate(),skills:[],location:{...candidate().location,city:'Novi Sad'}}}));
- await render();expect(shell().props.card(false).props.profile.location.city).toBe('Novi Sad');
- expect(shell().props.card(false).props.verifiedReview).toBeNull();expect(mockApi.prepare).not.toHaveBeenCalled();
+ await render();expect(shell().props.card(false)).toBeNull();
+ expect(shell().props.footerAction.props.kind).toBe('secondary');expect(mockApi.prepare).not.toHaveBeenCalled();
 });
 it('duplicate active events preserve the worker chat, typed draft and in-flight answer without another read',async()=>{
  const sending=deferred();mockApi.send.mockReturnValueOnce(sending.promise);
@@ -271,7 +272,7 @@ it('a late departed turn and retained Back cannot update a reincarnated account'
 const reviewed=()=>({...snapshot(),review:{reviewId:K,revision:0,expiresAt:new Date(Date.now()+60000).toISOString(),canAccept:true,activate:true,missingRequired:[],profile:candidate()}});
 const enterReview=async()=>{
  mockApi.prepare.mockResolvedValue(ok({}));mockApi.read.mockResolvedValue(ok(reviewed()));
- await act(async()=>shell().props.card(false).props.review());
+ await act(async()=>shell().props.footerAction.props.onPress());
 };
 const reviewBack=()=>tree.root.findByType('Frame' as any).props.back;
 
@@ -643,19 +644,25 @@ it('late dispatched exit after account reincarnation cannot clear the old journa
  expect(mockJournal.clear).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
 });
 
-it('P5 worker review: one reachable card action prepares the existing review, never saves or activates implicitly', async () => {
+it('clean worker chat exposes a quiet review action without saving or claiming completion', async () => {
   mockApi.prepare.mockResolvedValue({ ok: false, kod: 'UNAVAILABLE', poruka: 'Proveri stanje.' });
-  await render(); const card = shell().props.card(false);
-  expect(card.props.showReview).toBe(true); expect(card.props.disabled).toBe(false); expect(typeof card.props.review).toBe('function');
-  expect(card.props.reviewInFooter).toBeUndefined(); expect(shell().props.footerAction).toBeUndefined();
+  await render(); const reviewAction = shell().props.footerAction;
+  expect(shell().props.card(false)).toBeNull();
+  expect(reviewAction.props.label).toBe('Pregledaj radni profil');
+  expect(reviewAction.props.kind).toBe('secondary'); expect(reviewAction.props.disabled).toBe(false);
   expect(mockApi.prepare).not.toHaveBeenCalled(); expect(mockApi.save).not.toHaveBeenCalled();
-  await act(async () => card.props.review());
+  await act(async () => reviewAction.props.onPress());
   expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, false); expect(mockApi.save).not.toHaveBeenCalled();
 });
-it('P5 worker review: no empty-profile call to action and no review during an unresolved turn', async () => {
+it('clean worker chat has no empty-profile call to action and no review during an unresolved turn', async () => {
   mockApi.read.mockResolvedValue(ok({ ...snapshot(), candidate: { ...candidate(), skills: [] } }));
   await render(); expect(shell().props.card(false)).toBeNull(); expect(shell().props.footerAction).toBeUndefined(); await act(async () => tree.unmount());
   mockApi.read.mockResolvedValue(ok(snapshot(turn()))); await render();
-  const card = shell().props.card(false); expect(card.props.showReview).toBe(true); expect(card.props.disabled).toBe(true); expect(card.props.reviewReason).toBeTruthy();
-  await act(async () => card.props.review()); expect(mockApi.prepare).not.toHaveBeenCalled();
+  const reviewAction = shell().props.footerAction; expect(reviewAction.props.disabled).toBe(true); expect(reviewAction.props.reason).toBeTruthy();
+  await act(async () => reviewAction.props.onPress()); expect(mockApi.prepare).not.toHaveBeenCalled();
+});
+it('assistant completion wording never promotes a partial worker profile or sends an automatic review',async()=>{
+  mockApi.read.mockResolvedValue(ok({...snapshot(),messages:[{id:K,role:'ASSISTANT',body:'Sve je gotovo. Profil je spreman!',sequence:1}]}));
+  await render();expect(shell().props.card(false)).toBeNull();
+  expect(shell().props.footerAction.props.kind).toBe('secondary');expect(mockApi.prepare).not.toHaveBeenCalled();
 });

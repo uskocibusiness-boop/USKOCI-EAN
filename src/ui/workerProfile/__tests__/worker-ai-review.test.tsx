@@ -81,7 +81,7 @@ it('uses one empty label without legacy licence/team rows', async () => {
   expect(copy).not.toMatch(/Licenc|licenc|Broj ljudi|kapacitet|O tebi/);
 });
 
-it('keeps historical equipment visible in the signed review while Save still writes it', async () => {
+it('keeps historical equipment visible only for a legacy review without the new server policy', async () => {
   await act(async () => { tree = create(<WorkerAiReviewDetails review={review({}, {tools:['Valjak'],vehicles:['Kombi']})} />); });
   const copy = texts();
   expect(copy).toContain('Valjak');expect(copy).toContain('Kombi');
@@ -89,6 +89,11 @@ it('keeps historical equipment visible in the signed review while Save still wri
 });
 
 // ONE NAME (owner, 8 Oct 2026): the profile is saved under the name of the ACCOUNT, so the review has no row for the name, and "O meni" is the only part
+it('omits preserved historical equipment under the signed no-write policy', async () => {
+  await act(async () => { tree = create(<WorkerAiReviewDetails review={{...review({}, {tools:['Valjak'],vehicles:['Kombi']}),equipmentPolicy:'PRESERVE_LEGACY_NO_WRITE_V1'}} />); });
+  expect(texts()).not.toContain('Valjak');expect(texts()).not.toContain('Kombi');
+  expect(tree.root.findAllByProps({testID:'worker-tools-note'})).toHaveLength(0);
+});
 // of the identity group. Only an account with no name at all is told so, with the way to the one place it is written.
 it('has no row for the name, whatever the proposal carries', async () => {
   await act(async () => { tree = create(<WorkerAiReviewDetails review={review({}, { displayName: 'Pera peric' })} />); });

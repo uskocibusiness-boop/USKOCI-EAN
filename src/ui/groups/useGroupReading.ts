@@ -3,7 +3,7 @@ import { AppState, type FlatList, type NativeScrollEvent, type NativeSyntheticEv
 import type { GroupMessage } from '../../data/groupConversationService';
 
 type Input = {
-  messages: GroupMessage[]; ready: boolean; covered: boolean; minimumViewTime?: number;
+  initialTargetId?: string; messages: GroupMessage[]; ready: boolean; covered: boolean; minimumViewTime?: number;
   onVisible: (info: { viewableItems: ViewToken<GroupMessage>[] }) => void;
 };
 const atBottom = (event: NativeScrollEvent) => event.contentOffset.y + event.layoutMeasurement.height >= event.contentSize.height - 80;
@@ -11,13 +11,14 @@ export const GROUP_READING_POSITION = { minIndexForVisible: 0 };
 
 /** Owned by one mounted account/group/list generation. Never marks a page read or retains server data. */
 export function useGroupReading(input: Input) {
-  const list = useRef<FlatList<GroupMessage>>(null), alive = useRef(true), following = useRef(true), dragging = useRef(false);
+  const list = useRef<FlatList<GroupMessage>>(null), alive = useRef(true), following = useRef(!input.initialTargetId), dragging = useRef(false);
   const frame = useRef<number | null>(null), serial = useRef(0), visibilityEpoch = useRef(0);
   const geometry = useRef({ height: 0, content: 0, offset: 0, revision: 0 });
   const ackTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const observed = useRef<{ info: { viewableItems: ViewToken<GroupMessage>[] }; page: GroupMessage[]; geometry: number } | null>(null);
   const anchor = useRef<string | null>(null), previous = useRef<GroupMessage[]>([]);
-  const [showLatest, setShowLatest] = useState(false), [readingLost, setReadingLost] = useState(false);
+  const targetPositioned=useRef(false),headerHeight=useRef<number|null>(null);
+  const [showLatest, setShowLatest] = useState(!!input.initialTargetId), [readingLost, setReadingLost] = useState(false);
   const [epoch, setEpoch] = useState(0);
   const now = useRef(input); now.current = input;
   const blocked = useRef(input.covered);
@@ -47,6 +48,13 @@ export function useGroupReading(input: Input) {
   const measuredEnd = () => list.current?.scrollToOffset({
     offset: Math.max(0, geometry.current.content - geometry.current.height), animated: false,
   });
+  const placeTarget = () => {
+    if(targetPositioned.current||!now.current.initialTargetId||!now.current.ready||blocked.current||!foreground()
+      ||now.current.messages[0]?.messageId!==now.current.initialTargetId||headerHeight.current===null
+      ||geometry.current.height<=0||geometry.current.content<=0)return;
+    targetPositioned.current=true;following.current=false;setShowLatest(true);cancel();
+    list.current?.scrollToOffset({offset:headerHeight.current,animated:false});
+  };
   const follow = () => {
     cancel();
     if (!mayFollow()) return;
@@ -81,6 +89,9 @@ export function useGroupReading(input: Input) {
       }
     }
     previous.current = next;
+    if(input.initialTargetId&&!targetPositioned.current&&next[0]?.messageId===input.initialTargetId){
+      following.current=false;setShowLatest(true);cancel();placeTarget();
+    }
     follow();
   }, [input.messages, input.ready]);
   // Native minimumViewTime is ZERO: FlatList's stable wrapper forwards an old native timer to the newest
@@ -124,13 +135,14 @@ export function useGroupReading(input: Input) {
     observe(event); dragging.current = false;
   };
   return { list, showLatest, readingLost, onVisible, chooseLatest, readOlder, cover,
+    onHeaderLayout:(height:number)=>{headerHeight.current=height;placeTarget();},
     onLayout: (height: number) => {
       if (geometry.current.height !== height) { geometry.current.height = height; geometry.current.revision++; cancelAck(); }
-      follow();
+      placeTarget();follow();
     },
     onContentSizeChange: (_width: number, height: number) => {
       if (geometry.current.content !== height) { geometry.current.content = height; geometry.current.revision++; cancelAck(); }
-      follow();
+      placeTarget();follow();
     },
     onAccessibilityAction: (direction: 'scrollBackward' | 'scrollForward') => {
       if (!alive.current || !foreground() || blocked.current) return;

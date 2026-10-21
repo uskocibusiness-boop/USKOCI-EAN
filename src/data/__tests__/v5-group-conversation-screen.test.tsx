@@ -206,7 +206,7 @@ it('marks the reader in the people panel and anchors the thread to the composer,
  const style=()=>StyleSheet.flatten(tree!.root.findByType('List' as never).props.contentContainerStyle);
  expect(style()).toMatchObject({flexGrow:1,justifyContent:'flex-end'});
  mockService.messages.mockResolvedValue(ok({messages:[],nextBeforeSequence:null,nextAfterSequence:null}));await tap('Osveži poruke');
- expect(style().justifyContent).toBe('center');expect(text()).toContain('Vidiš poruke od svog ulaska u grupu. Napiši prvu.');expect(action('Osveži poruke')).toBeDefined();
+ expect(style().justifyContent).toBe('center');expect(text()).toContain('Dogovorite zajedničke detalje ovde. Napiši prvu poruku.');expect(action('Osveži poruke')).toBeDefined();
 });
 it('has one send action, latches concurrent retained callbacks and persists no plaintext',async()=>{
  await render();await change('Prvobitna poruka');const gate=deferred<void>();mockStorage.setItem.mockReturnValue(gate.promise);const old=send('Pošalji poruku grupi').onPress;

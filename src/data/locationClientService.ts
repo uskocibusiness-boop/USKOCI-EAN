@@ -17,6 +17,7 @@ const COPY: Readonly<Record<string, string>> = {
   LOCATION_BINDING_CHANGED: 'Mesto je promenjeno. Ponovo označi i potvrdi tačke na mapi.',
   WORKER_PROFILE_REQUIRED: 'Najpre sačuvaj svoj radni profil.',
   WORKER_PROFILE_RESTRICTED: 'Lokacija ovog profila trenutno ne može da se menja.',
+  WORKER_AREA_REQUIRES_CONVERSATION: 'Područje rada sada menjaš u razgovoru za radni profil.',
 };
 const INVALID = 'LOCATION_INVALID_RESPONSE';
 function review(raw: unknown, accountId: string | undefined, conversationId: string): NeedLocationReview | null {

@@ -1,4 +1,5 @@
 import { AI_CREDITS_UNAVAILABLE, AI_CREDITS_UNAVAILABLE_COPY } from '../contracts/aiAvailability';
+import { decodeWorkerAreas, type WorkerArea } from '../contracts/workerAreas';
 import { decodeServiceHandoff } from '../contracts/serviceHandoff';
 import type { WorkerLocation } from '../contracts/location';
 import type { WorkerAvailabilityInput, AvailabilityRule, AvailabilityWindow } from '../contracts/workerAvailability';
@@ -15,6 +16,7 @@ import { requestAiTurnStream, type AiTurnStreamOptions } from './aiNeedTurnStrea
 export type WorkerAiProfile = Readonly<{
   displayName: string; bio: string; skills: string[]; tools: string[]; vehicles: string[]; licenses: string[];
   teamCapacity: number; location: Omit<WorkerLocation,'profileId'|'accountId'|'revision'>; availability: WorkerAvailabilityInput;
+  workAreas?:WorkerArea[];
 }>;
 export type WorkerAiPatch = Partial<Pick<WorkerAiProfile,'displayName'|'bio'|'skills'|'tools'|'vehicles'|'licenses'|'teamCapacity'>> & {
   location?: Partial<WorkerAiProfile['location']>;
@@ -61,7 +63,7 @@ export type WorkerAiReviewClassification = Readonly<{
 }>;
 export type WorkerAiReview = Readonly<{ schemaVersion:'WORKER_PROFILE_V1'; reviewId:string; conversationId:string; accountId:string;
   profileId:string; revision:number; profile:WorkerAiProfile; activate:boolean; missingRequired:string[]; canAccept:boolean;
-  expiresAt:string; displayedContentDigest:string }> & Partial<WorkerAiReviewClassification>;
+  expiresAt:string; displayedContentDigest:string; equipmentPolicy?:'PRESERVE_LEGACY_NO_WRITE_V1'; workAreaPolicy?:'SIGNED_WORK_AREAS_V1' }> & Partial<WorkerAiReviewClassification>;
 export type WorkerAiSaved = Readonly<{ reviewId:string; conversationId:string; accountId:string; profileId:string;
   profileStatus:'DRAFT'|'ACTIVE'; saved:true; authoritative:true }>;
 export type WorkerAiSnapshot = Readonly<{ schemaVersion:'WORKER_PROFILE_V1'; conversationId:string; accountId:string; profileId:string;
@@ -75,7 +77,10 @@ const text=(v:unknown,max:number):v is string=>typeof v==='string'&&v.length<=ma
 const digest=(v:unknown):v is string=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 export function decodeWorkerAiProfile(raw:unknown):WorkerAiProfile|null {
   const v=record(raw),loc=record(v?.location);
-  if(!v||!exact(v,['displayName','bio','skills','tools','vehicles','licenses','teamCapacity','location','availability'])
+  const hasAreas=!!v&&Object.hasOwn(v,'workAreas');
+  const fields=['displayName','bio','skills','tools','vehicles','licenses','teamCapacity','location','availability'];
+  const workAreas=hasAreas?decodeWorkerAreas(v!.workAreas):undefined;
+  if(!v||!exact(v,hasAreas?[...fields,'workAreas']:fields)||(hasAreas&&!workAreas)
     ||!text(v.displayName,160)||!text(v.bio,4000)||!revision(v.teamCapacity)||v.teamCapacity<1||v.teamCapacity>50
     ||!loc||!exact(loc,['operatingCountryCode','city','radiusKm','approximatePosition'])||!text(loc.city,160)
     ||!revision(loc.radiusKm)||loc.radiusKm<1||loc.radiusKm>200) return null;
@@ -92,7 +97,7 @@ export function decodeWorkerAiProfile(raw:unknown):WorkerAiProfile|null {
   const skills=capabilityTerms(v.skills),tools=capabilityTerms(v.tools),vehicles=capabilityTerms(v.vehicles),licenses=capabilityTerms(v.licenses);
   const availability=normalizeWorkerAvailability(v.availability);
   if(!skills||!tools||!vehicles||!licenses||!availability)return null;
-  return {displayName:v.displayName,bio:v.bio,skills,tools,vehicles,licenses,teamCapacity:v.teamCapacity,
+  return {displayName:v.displayName,bio:v.bio,skills,tools,vehicles,licenses,teamCapacity:v.teamCapacity,...(hasAreas?{workAreas:workAreas!}:{}),
     location:{operatingCountryCode:country,city:loc.city,radiusKm:loc.radiusKm,approximatePosition},availability};
 }
 function decodeWorkerAiTurn(raw:unknown,cid:string,key?:string):WorkerAiTurn|null {
@@ -196,7 +201,12 @@ export function decodeWorkerAiReview(raw:unknown,account:string,cid:string):Work
   const v=record(raw),profile=decodeWorkerAiProfile(v?.profile);
   const legacy=['schemaVersion','reviewId','conversationId','accountId','profileId','revision','profile','activate','missingRequired','canAccept','expiresAt','displayedContentDigest'];
   const extra=!!v&&classKeys.some(key=>Object.hasOwn(v,key));
-  if(!v||!exact(v,extra?[...legacy,...classKeys]:legacy)
+  const equipment=!!v&&Object.hasOwn(v,'equipmentPolicy');
+  const areas=!!v&&Object.hasOwn(v,'workAreaPolicy');
+  const keys=[...(extra?[...legacy,...classKeys]:legacy),...(areas?['workAreaPolicy']:[])];
+  if(!v||!exact(v,equipment?[...keys,'equipmentPolicy']:keys)
+    ||(equipment&&v.equipmentPolicy!=='PRESERVE_LEGACY_NO_WRITE_V1')
+    ||(areas&&v.workAreaPolicy!=='SIGNED_WORK_AREAS_V1')
     ||v.schemaVersion!=='WORKER_PROFILE_V1'||!uuid(v.reviewId)||!sameId(v.conversationId,cid)||!sameId(v.accountId,account)||!uuid(v.profileId)
     ||!revision(v.revision)||!profile||typeof v.activate!=='boolean'||typeof v.canAccept!=='boolean'||!Array.isArray(v.missingRequired)
     ||v.missingRequired.length>4||v.missingRequired.some(x=>!['Ime','Mesto rada','Veštine','Država i mesto rada'].includes(x))
@@ -205,7 +215,7 @@ export function decodeWorkerAiReview(raw:unknown,account:string,cid:string):Work
   if(extra&&!classification)return null;
   return {schemaVersion:'WORKER_PROFILE_V1',reviewId:v.reviewId,conversationId:v.conversationId,accountId:v.accountId,profileId:v.profileId,
     revision:v.revision,profile,activate:v.activate,missingRequired:[...v.missingRequired],canAccept:v.canAccept,expiresAt:v.expiresAt,displayedContentDigest:v.displayedContentDigest,
-    ...classification};
+    ...classification,...(equipment?{equipmentPolicy:'PRESERVE_LEGACY_NO_WRITE_V1' as const}:{}),...(areas?{workAreaPolicy:'SIGNED_WORK_AREAS_V1' as const}:{})};
 }
 function decodeWorkerAiSaved(raw:unknown,review:WorkerAiReview):WorkerAiSaved|null {
   const v=record(raw);
@@ -242,6 +252,9 @@ const ERRORS:Readonly<Record<string,string>>={
   WORKER_AI_NOT_EDITABLE:'Ovaj razgovor se ne može menjati. Otvori sačuvani profil.',
   WORKER_PROFILE_RESTRICTED:'Profil trenutno ne može da se menja.',WORKER_AI_TURN_PENDING:'Prethodna poruka još nema potvrđen ishod. Proveri stanje.',
   WORKER_AI_PATCH_INVALID:'Proveri unos profila, radnog područja i dostupnosti.',WORKER_AI_REQUEST_CONFLICT:'Ovaj zahtev je već vezan za drugi unos. Proveri sačuvano stanje.',
+  WORKER_EQUIPMENT_RETIRED:'Alat i vozila se više ne uređuju u radnom profilu. Nastavi sa uslugama, područjem rada i dostupnošću.',
+  WORKER_AREA_INVALID:'Područje rada još nije razjašnjeno. Nastavi razgovor sa gradovima i dometom koji ti odgovaraju.',
+  WORKER_AREA_REQUIRES_CONVERSATION:'Područje rada promeni kroz razgovor i potvrdi u pregledu profila.',
   WORKER_AI_RATE_LIMITED:'Poslato je previše poruka zaredom. Sačekaj kratko i proveri razgovor.',
 };
 const scope=():ReceiptAccount|undefined=>{const s=sesijaSada();return s.user?{accountId:s.user.id,accountRevision:s.accountRevision}:undefined;};

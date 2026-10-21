@@ -2,10 +2,10 @@ import type { RadnikProfilProjekcija } from '../../contracts/projections';
 import type { AzurirajProfilKomanda } from '../../data/ports';
 import { capabilityTerms } from '../../lib/capabilityTerms';
 
-export type WorkerDraft = { ime: string; grad: string; biografija: string; vestine: string[]; alati: string[];
+export type WorkerDraft = { workAreas?:import('../../contracts/workerAreas').WorkerArea[]; ime: string; grad: string; biografija: string; vestine: string[]; alati: string[];
   vozila: string[]; licence: string[]; capacity: string; capacityRevision: string | null; radius: string; dostupanOdmah: boolean; newSkill: string; newTool: string; newVehicle: string; newLicense: string };
 export function workerDraft(profile: RadnikProfilProjekcija | null): WorkerDraft {
-  return profile ? { ime: profile.ime, grad: profile.grad, biografija: profile.biografija, vestine: [...profile.vestine],
+  return profile ? { ...(profile.workAreas?{workAreas:profile.workAreas}:{}),ime: profile.ime, grad: profile.grad, biografija: profile.biografija, vestine: [...profile.vestine],
     alati: [...profile.alati], vozila: [...profile.vozila], licence: [...profile.licence], radius: String(profile.radijusKm), dostupanOdmah: profile.dostupanOdmah,
     capacity: profile.kapacitetTima === undefined ? '' : String(profile.kapacitetTima), capacityRevision: profile.capacityRevision ?? null,
     newSkill: '', newTool: '', newVehicle: '', newLicense: '' }
@@ -45,7 +45,7 @@ export function workerCommand(draft: WorkerDraft, initial: WorkerDraft, activate
   // The name is not typed in the work profile any more, so what is missing is said where it is done: the name in "Lični podaci", the skill here, the place in the area.
   if (activate && values.ime.length < 2) return { error: 'Za aktivaciju dodaj ime u „Lični podaci“.' };
   if (activate && !values.vestine.length) return { error: 'Za aktivaciju dodaj bar jednu veštinu.' };
-  if (activate && values.grad.length < 2) return { error: 'Za aktivaciju potvrdi mesto u području rada.' };
+  if (activate && values.grad.length < 2 && !initial.workAreas?.length) return { error: 'Za aktivaciju potvrdi područje rada u razgovoru.' };
   const before = { ...initial, radijusKm: Number(initial.radius) };
   const command: AzurirajProfilKomanda = { zavrsi: activate };
   // Only changed fields are written. A location edit elsewhere cannot be

@@ -45,10 +45,15 @@ beforeEach(() => {
 });
 afterEach(() => jest.useRealTimers());
 
-it.each(['vestine', 'alati', 'vozila', 'licence'] as const)('rejects empty %s items before a profile mutation', async field => {
+it.each(['vestine', 'licence'] as const)('rejects empty %s items before a profile mutation', async field => {
   const result = await workerProfileClientService.azurirajRadnikProfil({ [field]: [''] });
   expect(result).toMatchObject({ ok: false, kod: 'PROFILE_CAPABILITY_INPUT_INVALID' });
   expect(mockTrace.some(row => Array.isArray(row) && ['insert','update'].includes(row[0]))).toBe(false);
+});
+it.each(['alati', 'vozila'] as const)('rejects retired %s writes before any request', async field => {
+  const result = await workerProfileClientService.azurirajRadnikProfil({ [field]: ['Legacy value'] });
+  expect(result).toMatchObject({ok:false,kod:'WORKER_EQUIPMENT_RETIRED'});
+  expect(mockTrace).toHaveLength(0);expect(mockAuth).not.toHaveBeenCalled();
 });
 it('never continues a stale read into a write or activation after A→B→A', async () => {
   const waiting = deferred(); mockRead.mockReturnValueOnce(waiting.promise);

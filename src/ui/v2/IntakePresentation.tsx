@@ -24,7 +24,7 @@ import { T } from '../Text';
 import { V2Action } from './V2Action';
 import { CardTitle, valueSpoken } from './TaskFace';
 import { normalizeNeedLocation, pointsMissing } from '../../lib/location';
-import { AiConversationShell, useAiDraftDisclosure, type AiConversationShellProps } from '../aiFirst/AiConversationShell';
+import { AiConversationShell, type AiConversationShellProps } from '../aiFirst/AiConversationShell';
 import type { VoiceInput } from '../aiFirst/VoiceComposer';
 import type { LocationReplyPrompt } from '../location/ConversationPointAsk';
 import { ConfirmedPlaceLine } from '../location/ConfirmedPlaceLine';
@@ -188,41 +188,9 @@ const stickerArt = (kind: DraftSticker, summary: Summary): FactArtKind => kind =
 const stickerWords = (kind: DraftSticker, summary: Summary): string => kind === 'zone' ? summary.zone : kind === 'schedule' ? summary.schedule ?? ''
   : kind === 'people' ? `Treba ${osoba(peopleMany(summary) ?? 0)}` : summary.value ? valueSpoken(summary.value) : '';
 
-/** A read-only view of the public facts already received, not a ready/published task. */
-function TaskUnderstanding({ summary, pending, needsPoint, stillNeeded, editing, compact }: {
-  summary: Summary; pending: boolean; needsPoint: boolean; stillNeeded: string | null; editing: boolean; compact: boolean;
-}) {
-  const { expanded, toggle } = useAiDraftDisclosure();
-  const rows: { art: FactArtKind; value: string }[] = [
-    ...(summary.value ? [{ art: summary.value.kind === 'amount' ? 'money' as const : 'offers' as const,
-      value: valueSpoken(summary.value) }] : []),
-    ...(summary.zone ? [{ art: summary.zone === 'Na daljinu' ? 'remote' as const : 'pin' as const, value: summary.zone }] : []),
-    ...(summary.schedule ? [{ art: 'calendar' as const, value: summary.schedule }] : []),
-    ...(summary.peopleCount && summary.peopleCount > 0 ? [{ art: 'users' as const, value: `Treba ${osoba(summary.peopleCount)}` }] : []),
-  ];
-  const disclosed=compact&&rows.length>2;
-  const visibleRows=disclosed&&!expanded?rows.slice(0,2):rows;
-  return <Surface kind="panel" testID="intake-understood" style={[s.card, s.cardCompact]}>
-    <T variant="note" tone="muted">{editing ? 'Razumeo sam · izmene nisu primenjene' : 'Razumeo sam · nacrt nije objavljen'}</T>
-    {summary.title || summary.service ? <T variant="bodyStrong">{summary.title ?? summary.service}</T> : null}
-    {summary.service && summary.title && summary.service !== summary.title
-      ? <T variant="note" tone="muted">{summary.service}</T> : null}
-    {visibleRows.length ? <View style={s.details}>{visibleRows.map((row, index) => <FactRow key={index} art={row.art} value={row.value} />)}</View> : null}
-    {disclosed?<Press accessibilityRole="button" accessibilityLabel={expanded?'Sakrij dodatne podatke nacrta':'Prikaži sve poznate podatke nacrta'}
-      accessibilityState={{expanded}} onPress={toggle} haptic="select" style={s.understoodDisclosure}>
-      <T variant="note" tone="muted">{expanded?'Manje detalja':`Još ${rows.length-visibleRows.length} podatka · detalji`}</T>
-      <Glyph name={expanded?'caret-up':'caret-down'} tone="muted"/>
-    </Press>:null}
-    <T testID="intake-understood-status" variant="note" tone="muted">{pending
-      ? 'Prethodno zabeleženo. Čekamo odgovor na poslednju poruku.'
-      : needsPoint ? 'Mesto još treba da potvrdiš na mapi.'
-        : stillNeeded ? `Još treba: ${stillNeeded}` : 'Nastavljamo proveru detalja pre pregleda.'}</T>
-  </Surface>;
-}
-
 /**
  * The full proposal remains distinct from publication and carries the guarded review action.
- * Partial facts use TaskUnderstanding; this card also supports existing read-only gallery scenes.
+ * The interview keeps partial facts in its conversation; this card also supports read-only gallery scenes.
  * `appear` belongs to the conversation, so refreshes or moving the card cannot replay arrivals.
  */
 export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview, onReview, note, reviewDisabledReason, reviewLabel = 'Pregledaj zadatak',
@@ -428,9 +396,7 @@ export function IntakePresentation(props: Props) {
   const readyForReview = completeProposal && open && reviewContentReady && conversation.safety !== 'BLOCK'
     && !stillNeededText && !hiddenMissing && !needsPoint && !busy && !pending && !props.error;
   const showSummary = readyForReview || (completed && completeProposal && conversation.safety !== 'BLOCK' && !busy && !pending && !props.error);
-  const hasUnderstoodFacts = !!(summary.title || summary.service || summary.zone || summary.value || summary.schedule || summary.peopleCount);
-  const showUnderstanding = open && !showSummary && hasUnderstoodFacts && conversation.safety !== 'BLOCK';
-  // Current facts belong in the live card and the explicit full review. Decorating
+  // Current facts belong in the final card and the explicit full review. Decorating
   // old replies with today's fact values repeated the summary and rewrote history.
   // The assistant's own end of a conversation about a task that already exists says "objava", which an edit is not (the owner's phone, 8 Oct 2026).
   // The words are the server's fixed ones (`uskoci-ai-interview`, the answer of its REVIEW step), and they are said as what they mean here; the stored message is not touched.
@@ -464,9 +430,6 @@ export function IntakePresentation(props: Props) {
   // also works after a cold read, when ephemeral location-action receipts are gone.
   const contextBeforeMessageId = askOpen && lastReply?.fromAi && !lastReply.proposedFactIds.length
     && ordered.messages.some(message => message.id === lastReply.id) ? lastReply.id : undefined;
-  const incompleteHandoff = open && !showSummary && reviewAllowed && !needsPoint && !busy && !pending && !props.error
-    && lastReply?.fromAi && (SERVER_REVIEW_ENDINGS.has(lastReply.body)
-      || lastReply.body === 'Pregled još nije dovršen. Možeš da dopuniš opis zadatka ili otvoriš pregled.');
   const canJumpToMap = askOpen && needsPoint && !placeDisabled;
   const jumpToMap = () => {
     if (!canJumpToMap) return;
@@ -475,8 +438,6 @@ export function IntakePresentation(props: Props) {
   };
   const footerAction = canJumpToMap
     ? <V2Action label="Prikaži mesto na mapi" kind="secondary" tone="neutral" onPress={jumpToMap} />
-    : incompleteHandoff
-    ? <V2Action label="Pregledaj i dopuni zadatak" kind="secondary" tone="neutral" onPress={outsidePlace(props.onReview)} />
     : completed && props.canReview
     ? <V2Action label={props.reviewLabel} style={brandAction} disabled={!reviewAllowed} onPress={outsidePlace(props.onReview)} />
     : ended && props.onNewTask
@@ -510,7 +471,7 @@ export function IntakePresentation(props: Props) {
   const conversationTitle = conversation.review.boundNeedId ? summary.title ? `Izmena · ${summary.title}` : 'Izmena zadatka'
     : summary.title ?? 'Novi zadatak';
   return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversationTitle}
-    cardPlacement={showSummary ? 'end' : 'beforeLatestReply'} initialInputMode="keyboard" closed={ended}
+    cardPlacement="end" initialInputMode="keyboard" closed={ended}
     correction={props.correction}
     footerAction={footerAction}
     newConversation={props.onRestart ? { onPress: outsidePlace(props.onRestart), disabled: props.restartDisabled || editingPlace }
@@ -542,9 +503,9 @@ export function IntakePresentation(props: Props) {
       onPress: outsidePlace(() => { Keyboard.dismiss(); setPanel('photos'); }), disabled: photosOff }
       : props.onPhotos ? { label: 'Fotografije zadatka', hint: 'Dodaj ili pregledaj fotografije zadatka.',
         onPress: outsidePlace(props.onPhotos), disabled: props.photosDisabled || editingPlace } : undefined}
-    // Known facts appear immediately; only the full proposal carries the guarded review action.
-    card={compact => !showSummary ? showUnderstanding ? <TaskUnderstanding summary={summary} pending={busy || pending} compact={compact}
-      needsPoint={needsPoint} stillNeeded={stillNeededText} editing={!!conversation.review.boundNeedId} /> : null : <DraftCard summary={summary}
+    // A clean interview shows one card only when structured facts are ready for review.
+    // Assistant wording never grants readiness; photos and pin confirmation remain their own contextual lines.
+    card={compact => !showSummary ? null : <DraftCard summary={summary}
       stillNeeded={stillNeededText} open={open} busy={busy} compact={compact} canReview={reviewAllowed}
       onReview={outsidePlace(props.onReview)} note={note} reviewDisabledReason={props.reviewDisabledReason} reviewLabel={props.reviewLabel} editing={!!conversation.review.boundNeedId}
       hiddenMissing={hiddenMissing} reviewAtEnd={readyForReview} locationEditing={editingPlace} ended={ended}
@@ -628,7 +589,6 @@ const s = StyleSheet.create({
     paddingVertical: sys.space.md, paddingHorizontal: sys.space.base, gap: sys.space.sm,
   },
   cardCompact: { paddingVertical: sys.space.sm, paddingHorizontal: sys.space.base, borderRadius: sys.radius.cardCompact },
-  understoodDisclosure: { minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   cardHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   cardHeaderBadge: { fontSize: 11, fontWeight: '700', color: sys.color.green, letterSpacing: 0.6 },
   // Final, the facts are rows of one kind, 8 apart; while the draft is made they are pictures with their words in a line that wraps by whole facts.

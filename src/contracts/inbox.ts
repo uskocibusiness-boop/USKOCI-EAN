@@ -10,6 +10,8 @@ export type InboxPage = { items: InboxItem[]; hasMore: boolean; unreadCount: num
 export type InboxTarget = { kind: 'UNAVAILABLE' } | {
   kind: 'AGREEMENT_MESSAGE'; id: string; messageId: string; eventId: string; role: InboxRole;
 } | {
+  kind: 'GROUP_MESSAGE'; id: string; groupId: string; messageId: string; sequence: string; eventId: string; role: InboxRole;
+} | {
   kind: 'CANDIDATE'; id: string; responseId: string; role: 'REQUESTER';
 } | {
   kind: 'AGREEMENT' | 'APPLICATIONS' | 'CANDIDATES' | 'OWN_NEED' | 'OPPORTUNITY';

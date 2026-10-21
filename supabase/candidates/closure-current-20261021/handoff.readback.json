@@ -1,0 +1,72 @@
+[
+  {
+    "namespace": "private",
+    "name": "taxonomy_handoff_fit_v1",
+    "signature": "private.taxonomy_handoff_fit_v1(uuid, uuid)",
+    "definition": "CREATE OR REPLACE FUNCTION private.taxonomy_handoff_fit_v1(p_need_id uuid, p_worker_account_id uuid)\n RETURNS boolean\n LANGUAGE plpgsql\n STABLE\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE need_value jsonb;worker_value jsonb;category uuid;mode text;\nBEGIN\n SELECT n.category_id,n.execution_location_mode,d.handoff INTO category,mode,need_value\n FROM public.needs n LEFT JOIN public.need_requirement_details d ON d.need_id=n.id WHERE n.id=p_need_id;\n IF NOT FOUND THEN RETURN false; END IF;\n IF mode<>'REMOTE' OR need_value IS NULL THEN RETURN true; END IF;\n SELECT m.handoff INTO worker_value FROM private.taxonomy_confirmed_worker_modes_v1 m\n JOIN private.worker_ai_saves saved ON saved.account_id=m.worker_account_id\n   AND saved.review_id=m.source_review_id AND saved.client_request_id=m.source_request_key\n WHERE m.worker_account_id=p_worker_account_id AND m.category_id=category\n   AND m.execution_scope='REMOTE' AND m.active;\n RETURN private.taxonomy_handoff_compatible_v1(need_value,worker_value);\nEND $function$\n",
+    "bodyMd5": "785210ec581d007ff17e7cba25e1a6b0",
+    "owner": "postgres",
+    "acl": "{postgres=X/postgres,service_role=X/postgres}",
+    "config": [
+      "search_path=pg_catalog"
+    ],
+    "definer": false,
+    "language": "plpgsql"
+  },
+  {
+    "namespace": "private",
+    "name": "taxonomy_handoff_display_v1",
+    "signature": "private.taxonomy_handoff_display_v1(jsonb)",
+    "definition": "CREATE OR REPLACE FUNCTION private.taxonomy_handoff_display_v1(p jsonb)\n RETURNS text\n LANGUAGE plpgsql\n IMMUTABLE\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE parts text[]:='{}';countries text;\nBEGIN\n IF p IS NULL OR NOT private.taxonomy_handoff_valid_v1(p) THEN RETURN NULL; END IF;\n IF p->'required'='false'::jsonb THEN RETURN 'Bez fizičke predaje'; END IF;\n IF p ? 'shippingCountries' THEN\n  SELECT string_agg(value,', ' ORDER BY ord) INTO countries\n    FROM jsonb_array_elements_text(p->'shippingCountries') WITH ORDINALITY t(value,ord);\n  parts:=array_append(parts,'Slanje: '||countries);\n END IF;\n IF p ? 'localExchange' THEN parts:=array_append(parts,\n   'Lično preuzimanje: '||(p#>>'{localExchange,city}')||' ('||(p#>>'{localExchange,countryCode}')||')'); END IF;\n RETURN array_to_string(parts,' ili ');\nEND $function$\n",
+    "bodyMd5": "0ec86390e9f1682f309ca64227ab445e",
+    "owner": "postgres",
+    "acl": "{postgres=X/postgres,service_role=X/postgres}",
+    "config": [
+      "search_path=pg_catalog"
+    ],
+    "definer": false,
+    "language": "plpgsql"
+  },
+  {
+    "namespace": "private",
+    "name": "taxonomy_handoff_compatible_v1",
+    "signature": "private.taxonomy_handoff_compatible_v1(jsonb, jsonb)",
+    "definition": "CREATE OR REPLACE FUNCTION private.taxonomy_handoff_compatible_v1(need_handoff jsonb, worker_handoff jsonb)\n RETURNS boolean\n LANGUAGE plpgsql\n IMMUTABLE\n SET search_path TO 'pg_catalog'\nAS $function$\nBEGIN\n -- Historical missing data stays unknown; it is never rewritten as shipment\n -- consent. Existing unqualified tasks keep their prior compatibility policy.\n IF need_handoff IS NULL THEN RETURN true; END IF;\n IF NOT private.taxonomy_handoff_valid_v1(need_handoff) THEN RETURN false; END IF;\n IF need_handoff->'required'='false'::jsonb THEN\n   RETURN worker_handoff IS NULL OR (private.taxonomy_handoff_valid_v1(worker_handoff)\n     AND worker_handoff->'required'='false'::jsonb);\n END IF;\n IF worker_handoff IS NULL OR NOT private.taxonomy_handoff_valid_v1(worker_handoff)\n    OR worker_handoff->'required'<>'true'::jsonb THEN RETURN false; END IF;\n RETURN EXISTS(SELECT 1 FROM jsonb_array_elements_text(coalesce(need_handoff->'shippingCountries','[]'::jsonb)) n(country)\n   JOIN jsonb_array_elements_text(coalesce(worker_handoff->'shippingCountries','[]'::jsonb)) w(country) USING(country))\n   OR (need_handoff ? 'localExchange' AND worker_handoff ? 'localExchange'\n     AND need_handoff#>>'{localExchange,countryCode}'=worker_handoff#>>'{localExchange,countryCode}'\n     AND private.taxonomy_normalize_v1(need_handoff#>>'{localExchange,city}')=\n         private.taxonomy_normalize_v1(worker_handoff#>>'{localExchange,city}'));\nEND $function$\n",
+    "bodyMd5": "590328ff1684c32d7d7948c122d47728",
+    "owner": "postgres",
+    "acl": "{postgres=X/postgres,service_role=X/postgres}",
+    "config": [
+      "search_path=pg_catalog"
+    ],
+    "definer": false,
+    "language": "plpgsql"
+  },
+  {
+    "namespace": "private",
+    "name": "taxonomy_preserve_review_handoff_v1",
+    "signature": "private.taxonomy_preserve_review_handoff_v1(jsonb, uuid, uuid)",
+    "definition": "CREATE OR REPLACE FUNCTION private.taxonomy_preserve_review_handoff_v1(p jsonb, account_id uuid, conversation_id uuid)\n RETURNS jsonb\n LANGUAGE plpgsql\n STABLE\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE context jsonb;plans jsonb:='[]';plan jsonb;saved jsonb;\nBEGIN\n IF p->>'status' IS DISTINCT FROM 'READY' THEN RETURN p; END IF;\n context:=private.worker_ai_service_mode_context_v1(account_id,conversation_id);\n FOR plan IN SELECT value FROM jsonb_array_elements(p->'classificationCandidates') LOOP\n  IF plan->>'mode'='REMOTE' AND NOT(plan ? 'handoff') THEN\n   SELECT value INTO saved FROM jsonb_array_elements(context->'savedServices')\n    WHERE value->>'categoryId'=plan->>'categoryId' AND value->>'mode'=plan->>'mode';\n   IF saved ? 'handoff' THEN plan:=plan||jsonb_build_object('handoff',saved->'handoff'); END IF;\n  END IF;\n  plans:=plans||jsonb_build_array(plan);\n END LOOP;\n RETURN p||jsonb_build_object('classificationCandidates',plans);\nEND $function$\n",
+    "bodyMd5": "4da6744c56947085f7122b69a1e45cf8",
+    "owner": "postgres",
+    "acl": "{postgres=X/postgres,service_role=X/postgres}",
+    "config": [
+      "search_path=pg_catalog"
+    ],
+    "definer": false,
+    "language": "plpgsql"
+  },
+  {
+    "namespace": "private",
+    "name": "taxonomy_handoff_valid_v1",
+    "signature": "private.taxonomy_handoff_valid_v1(jsonb)",
+    "definition": "CREATE OR REPLACE FUNCTION private.taxonomy_handoff_valid_v1(p_value jsonb)\n RETURNS boolean\n LANGUAGE plpgsql\n IMMUTABLE\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE v_city text;\nBEGIN\n IF jsonb_typeof(p_value) IS DISTINCT FROM 'object'\n    OR octet_length(p_value::text)>2048\n    OR jsonb_typeof(p_value->'required') IS DISTINCT FROM 'boolean'\n    OR p_value-array['required','shippingCountries','localExchange']<>'{}'::jsonb\n THEN RETURN false; END IF;\n IF p_value->'required'='false'::jsonb THEN RETURN p_value='{\"required\":false}'::jsonb; END IF;\n IF NOT(p_value?'shippingCountries' OR p_value?'localExchange') THEN RETURN false; END IF;\n IF p_value?'shippingCountries' THEN\n   IF jsonb_typeof(p_value->'shippingCountries') IS DISTINCT FROM 'array' THEN RETURN false; END IF;\n   IF jsonb_array_length(p_value->'shippingCountries') NOT BETWEEN 1 AND 32\n     OR EXISTS(SELECT 1 FROM jsonb_array_elements(p_value->'shippingCountries') x(value)\n       WHERE jsonb_typeof(x.value) IS DISTINCT FROM 'string' OR x.value#>>'{}' !~ '^[A-Z]{2}$')\n     OR (SELECT count(DISTINCT x.value) FROM jsonb_array_elements(p_value->'shippingCountries') x(value))\n         <>jsonb_array_length(p_value->'shippingCountries')\n   THEN RETURN false; END IF;\n END IF;\n IF p_value?'localExchange' THEN\n   IF jsonb_typeof(p_value->'localExchange') IS DISTINCT FROM 'object'\n     OR NOT((p_value->'localExchange')?&array['countryCode','city'])\n     OR (p_value->'localExchange')-array['countryCode','city']<>'{}'::jsonb\n     OR jsonb_typeof(p_value#>'{localExchange,countryCode}') IS DISTINCT FROM 'string'\n     OR p_value#>>'{localExchange,countryCode}' !~ '^[A-Z]{2}$'\n     OR jsonb_typeof(p_value#>'{localExchange,city}') IS DISTINCT FROM 'string'\n   THEN RETURN false; END IF;\n   v_city:=p_value#>>'{localExchange,city}';\n   IF v_city IS DISTINCT FROM btrim(v_city,\n      U&'\\0009\\000A\\000B\\000C\\000D\\0020\\00A0\\1680\\2000\\2001\\2002\\2003\\2004\\2005\\2006\\2007\\2008\\2009\\200A\\2028\\2029\\202F\\205F\\3000\\FEFF')\n      OR char_length(v_city) NOT BETWEEN 3 AND 120\n      OR v_city ~ ('['||chr(1)||'-'||chr(31)||chr(127)||'-'||chr(159)||'<>0-9]')\n   THEN RETURN false; END IF;\n END IF;\n RETURN true;\nEND $function$\n",
+    "bodyMd5": "c045ee696fee6b538476b32c5ec2426d",
+    "owner": "postgres",
+    "acl": "{postgres=X/postgres}",
+    "config": [
+      "search_path=pg_catalog"
+    ],
+    "definer": false,
+    "language": "plpgsql"
+  }
+]

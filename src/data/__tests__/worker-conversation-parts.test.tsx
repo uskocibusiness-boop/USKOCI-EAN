@@ -70,7 +70,7 @@ const render = async () => { await act(async () => { tree = create(<Screen />); 
 const click = async (label: string) => { await act(async () => { action(label).props.onPress(); }); };
 const openReview = async () => {
   mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(reviewed()));
-  await act(async () => { shell().props.card(false).props.review(); });
+  await act(async () => { shell().props.footerAction.props.onPress(); });
 };
 beforeEach(() => {
   jest.clearAllMocks(); mockRouteId = C; mockRouter.canGoBack.mockReturnValue(true); mockAccountName = { state: 'ready', name: null };
@@ -228,13 +228,13 @@ describe('the review (M2)', () => {
   it.each(['PERMISSION_PENDING','PREPARING','STARTING','LISTENING','FINALIZING'])(
     'a retained review callback cannot interrupt speech during %s',async phase=>{
       await render();await act(async()=>shell().props.onChange('Neposlata dopuna.'));
-      const retainedReview=shell().props.card(false).props.review;
+      const retainedReview=shell().props.footerAction.props.onPress;
       mockVoice.state.phase=phase;
       await act(async()=>retainedReview());
       expect(mockApi.prepare).not.toHaveBeenCalled();expect(mockApi.patch).not.toHaveBeenCalled();
       expect(mockApi.send).not.toHaveBeenCalled();expect(mockVoice.controller.cancel).not.toHaveBeenCalled();
       await act(async()=>tree.update(<Screen/>));
-      expect(shell().props.card(false).props.disabled).toBe(true);
+      expect(shell().props.footerAction.props.disabled).toBe(true);
       expect(shell().props.value).toBe('Neposlata dopuna.');
       mockVoice.state.phase='IDLE';await act(async()=>tree.update(<Screen/>));
       await openReview();expect(review().props.review.revision).toBe(0);
@@ -250,7 +250,7 @@ describe('the review (M2)', () => {
     const pending = reviewed();
     mockApi.prepare.mockResolvedValue(ok({}));
     mockApi.read.mockResolvedValue(ok({...pending,review:{...pending.review,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED'}}));
-    await act(async () => shell().props.card(false).props.review());
+    await act(async () => shell().props.footerAction.props.onPress());
     expect(tree.root.findAllByProps({label:'Potvrdi način rada za sve usluge'})).toHaveLength(0);
     expect(tree.root.findAllByProps({testID:'worker-explicit-mode-confirmation'})).toHaveLength(0);
     expect(tree.root.findByType('Note' as never).props.matchingReady).toBe(false);
@@ -266,7 +266,7 @@ describe('the review (M2)', () => {
     const stale=reviewed(0,false);
     mockApi.prepare.mockResolvedValue(ok({}));
     mockApi.read.mockResolvedValue(ok({...stale,review:{...stale.review,classificationState}}));
-    await act(async () => shell().props.card(false).props.review());
+    await act(async () => shell().props.footerAction.props.onPress());
     mockApi.prepare.mockClear();
     expect(tree.root.findAllByProps({label:'Potvrdi način rada za sve usluge'})).toHaveLength(0);
     expect(action('Učitaj novi pregled').props.disabled).toBe(false);
@@ -280,14 +280,14 @@ describe('the review (M2)', () => {
     const current=reviewed();
     mockApi.prepare.mockResolvedValue(ok({}));
     mockApi.read.mockResolvedValue(ok({...current,review:{...current.review,classificationState}}));
-    await act(async () => shell().props.card(false).props.review());
+    await act(async () => shell().props.footerAction.props.onPress());
     expect(tree.root.findByType('Note' as never).props.matchingReady).toBe(classificationState==='READY');
   });
   it('defers an external topic during signed preparation and keeps the unsent text when it completes', async () => {
     let finish!: (value: unknown) => void;
     await render(); await act(async () => shell().props.onChange('Moj neposlati odgovor'));
     mockApi.prepare.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-    await act(async () => { void shell().props.card(false).props.review(); });
+    await act(async () => { void shell().props.footerAction.props.onPress(); });
     mockCorrection = rememberAiCorrection({ accountId: A, accountRevision: 1 }, 'worker.time')!.token;
     await act(async () => tree.update(<Screen />));
     expect(tree.root.findAllByType('Shell' as never)[0]?.props.correction).toBeFalsy();
@@ -329,7 +329,7 @@ describe('the review (M2)', () => {
     expect(mockApi.send).toHaveBeenCalledWith(C,'Radim u Zemunu i okolini do 25 km.',expect.any(String),expect.any(Object));
     expect(mockApi.patch).not.toHaveBeenCalled();
     mockApi.read.mockResolvedValue(ok(reviewed(1)));
-    await act(async () => shell().props.card(false).props.review());
+    await act(async () => shell().props.footerAction.props.onPress());
     // The review is prepared for the NEW revision, with the activation the person had chosen, and read back before it is shown.
     expect(mockApi.prepare).toHaveBeenCalledTimes(1); expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, true);
     expect(mockApi.send.mock.invocationCallOrder[0]).toBeLessThan(mockApi.prepare.mock.invocationCallOrder[0]);
@@ -347,21 +347,21 @@ describe('the review (M2)', () => {
 
   it('keeps the activation the person chose when the profile is still a draft', async () => {
     mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(reviewed(0, false)));
-    await render(); await act(async () => { shell().props.card(false).props.review(); });
+    await render(); await act(async () => { shell().props.footerAction.props.onPress(); });
     mockApi.prepare.mockClear();
     await act(async () => { review().props.onEdit(); });
     mockApi.send.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(snapshot(1)));
     await act(async () => shell().props.onChange('U opisu napiši da radim sa bratom.'));
     await act(async () => shell().props.onSend());
     mockApi.read.mockResolvedValue(ok(reviewed(1,false)));
-    await act(async () => shell().props.card(false).props.review());
+    await act(async () => shell().props.footerAction.props.onPress());
     expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, false);
   });
 
   it('a review that has expired cannot be edited: it is read again first', async () => {
     const stale = { ...reviewed(), review: { ...reviewed().review, expiresAt: new Date(Date.now() - 1000).toISOString() } };
     mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(stale));
-    await render(); await act(async () => { shell().props.card(false).props.review(); });
+    await render(); await act(async () => { shell().props.footerAction.props.onPress(); });
     expect(review().props.editDisabled).toBe(true);
     await act(async () => { review().props.onEdit(); });
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0); expect(review()).toBeTruthy();
@@ -385,7 +385,7 @@ describe('one name: the review is made under the account\'s name', () => {
   // The conversation is read as it stands (revision 0, the assistant's name "Ana"); what is read after the review is made is `after`.
   const open = async (after: unknown = reviewed()) => {
     await render(); mockApi.read.mockResolvedValue(ok(after));
-    await act(async () => { shell().props.card(false).props.review(); });
+    await act(async () => { shell().props.footerAction.props.onPress(); });
   };
 
   it('patches the account\'s name into a proposal that carries another, then makes the same review for the revision that patch made', async () => {
@@ -423,7 +423,7 @@ describe('one name: the review is made under the account\'s name', () => {
   it('the review of an account that has no name at all says so and leads to the one place it is written', async () => {
     const lacking = { ...reviewed(), review: { ...reviewed().review, missingRequired: ['Ime'], canAccept: false } };
     mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(lacking));
-    await render(); await act(async () => { shell().props.card(false).props.review(); });
+    await render(); await act(async () => { shell().props.footerAction.props.onPress(); });
     expect(review().props.onAddName).toBeInstanceOf(Function);
     await act(async () => { review().props.onAddName(); });
     expect(mockRouter.push).toHaveBeenCalledWith('/profil/podaci'); expect(mockApi.patch).not.toHaveBeenCalled();
@@ -432,7 +432,7 @@ describe('one name: the review is made under the account\'s name', () => {
   it('once the account has a name, the review that still lacks it is no longer valid: a fresh one puts the name in', async () => {
     const lacking = { ...reviewed(), review: { ...reviewed().review, missingRequired: ['Ime'], canAccept: false } };
     mockApi.prepare.mockResolvedValue(ok({})); mockApi.read.mockResolvedValue(ok(lacking));
-    await render(); await act(async () => { shell().props.card(false).props.review(); });
+    await render(); await act(async () => { shell().props.footerAction.props.onPress(); });
     expect(review().props.editDisabled).toBe(false);
     mockAccountName = { state: 'ready', name: 'Milos' };   // added meanwhile, in "Lični podaci"
     await act(async () => tree.update(<Screen />));
@@ -450,13 +450,13 @@ describe('activation choice belongs to the conversation', () => {
     mockApi.prepare.mockImplementation(async (_cid, revision, activate) => {
       mockApi.read.mockResolvedValue(ok(reviewed(revision, activate))); return ok({});
     });
-    await render(); await act(async () => shell().props.card(false).props.review());
+    await render(); await act(async () => shell().props.footerAction.props.onPress());
     await act(async () => tree.root.findByType('Activation' as never).props.change(false));
     expect(review().props.review.activate).toBe(false);
     await act(async()=>review().props.onEdit()); mockApi.prepare.mockClear();
   };
   it('keeps an explicit draft choice on Back then review, without saving', async () => {
-    await prepareFalse(); await act(async () => shell().props.card(false).props.review());
+    await prepareFalse(); await act(async () => shell().props.footerAction.props.onPress());
     expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, false);
     expect(action('Sačuvaj profil')).toBeTruthy(); expect(mockApi.save).not.toHaveBeenCalled();
   });
@@ -466,7 +466,7 @@ describe('activation choice belongs to the conversation', () => {
     await act(async () => shell().props.onChange('Dodaj da radim vikendom.'));
     await act(async () => shell().props.onSend());
     expect(mockApi.send).toHaveBeenCalledTimes(1);
-    await act(async () => shell().props.card(false).props.review());
+    await act(async () => shell().props.footerAction.props.onPress());
     expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, false); expect(mockApi.save).not.toHaveBeenCalled();
   });
   it('a different conversation starts with saving only, regardless of a previous activation choice', async () => {
@@ -475,14 +475,14 @@ describe('activation choice belongs to the conversation', () => {
     mockApi.read.mockResolvedValue(ok({ ...snapshot(), conversationId: other }));
     mockApi.prepare.mockResolvedValue(ok({})); mockRouteId = other;
     await act(async () => tree.update(<Screen />));
-    await act(async () => shell().props.card(false).props.review());
+    await act(async () => shell().props.footerAction.props.onPress());
     expect(mockApi.prepare).toHaveBeenCalledWith(other, 0, false);
   });
   it('new draft review defaults to saving without activation and never saves while preparing', async () => {
     mockApi.prepare.mockImplementation(async (_cid, revision, activate) => {
       mockApi.read.mockResolvedValue(ok(reviewed(revision, activate))); return ok({});
     });
-    await render(); await act(async()=>shell().props.card(false).props.review());
+    await render(); await act(async()=>shell().props.footerAction.props.onPress());
     expect(mockApi.prepare).toHaveBeenCalledWith(C,0,false);
     expect(action('Sačuvaj profil')).toBeTruthy(); expect(mockApi.save).not.toHaveBeenCalled();
   });
@@ -495,11 +495,11 @@ describe('activation choice belongs to the conversation', () => {
     mockApi.prepare.mockImplementation(async (_cid, revision, activate) => {
       mockApi.read.mockResolvedValue(ok(reviewed(revision, activate))); return ok({});
     });
-    await act(async()=>shell().props.card(false).props.review());
+    await act(async()=>shell().props.footerAction.props.onPress());
     expect(mockApi.prepare).toHaveBeenCalledWith(C,0,true); expect(mockApi.save).not.toHaveBeenCalled();
     await act(async()=>tree.root.findByType('Activation' as never).props.change(false));
     await act(async()=>review().props.onEdit());
-    await act(async()=>shell().props.card(false).props.review());
+    await act(async()=>shell().props.footerAction.props.onPress());
     expect(mockApi.prepare).toHaveBeenLastCalledWith(C,0,false);
   });
   it('opens a completed profile for activation once and reconciles its Save instead of opening again', async () => {
@@ -513,7 +513,7 @@ describe('activation choice belongs to the conversation', () => {
     mockApi.prepare.mockResolvedValue(ok({}));
     const prepared={...reviewed(),conversationId:next};
     mockApi.read.mockResolvedValue(ok(prepared));
-    await act(async()=>shell().props.card(false).props.review());
+    await act(async()=>shell().props.footerAction.props.onPress());
     mockApi.save.mockResolvedValue(ok({}));
     mockApi.read.mockResolvedValue(ok({...prepared,status:'COMPLETED',saved:{reviewId:prepared.review.reviewId,profileStatus:'ACTIVE'}}));
     await click('Sačuvaj i aktiviraj profil');

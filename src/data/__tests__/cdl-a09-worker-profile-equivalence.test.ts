@@ -62,9 +62,9 @@ describe('CDL-A09 — canonical Worker profile mutation contract', () => {
     expect(result.trace).toEqual([['auth.getUser']]);
   });
   it('preserves the existing-profile patch and activation and binds update to owner and kind', async () => {
-    const result=await run({ime:'Miloš',biografija:'Pouzdan.',vestine:['selidbe'],alati:['bušilica'],vozila:['automobil'],zavrsi:true},{});
+    const result=await run({ime:'Miloš',biografija:'Pouzdan.',vestine:['selidbe'],zavrsi:true},{});
     expect(result.value).toEqual({ok:true,podatak:null});
-    expect(result.trace).toContainEqual(['update',{display_name:'Miloš',bio:'Pouzdan.',skills:['selidbe'],tools:['bušilica'],vehicles:['automobil']}]);
+    expect(result.trace).toContainEqual(['update',{display_name:'Miloš',bio:'Pouzdan.',skills:['selidbe']}]);
     expect(result.trace).toContainEqual(['update.eq','account_id',A]); expect(result.trace).toContainEqual(['update.eq','kind','WORKER']);
     expect(result.trace).toContainEqual(['rpc','rpc_complete_worker_profile',{p_profile_id:P}]);
   });

@@ -77,7 +77,7 @@ export function createInboxModel(port: InboxPort, role: InboxRole | null, isCurr
       if (item.eventType === 'MESSAGE_RECEIVED' && !resolveMessage) throw new Error('INBOX_MESSAGE_TARGET_UNCONFIRMED');
       let target = item.eventType === 'MESSAGE_RECEIVED' ? await resolveMessage!(item.id, controller!.signal) : await port.resolve(item.id);
       if (!valid(token)) return null;
-      if (item.eventType === 'MESSAGE_RECEIVED' && target.kind !== 'UNAVAILABLE' && (target.kind !== 'AGREEMENT_MESSAGE'
+      if (item.eventType === 'MESSAGE_RECEIVED' && target.kind !== 'UNAVAILABLE' && ((target.kind !== 'AGREEMENT_MESSAGE' && target.kind !== 'GROUP_MESSAGE')
         || target.eventId.toLowerCase() !== item.id.toLowerCase() || target.role !== item.role)) {
         throw new Error('INBOX_MESSAGE_TARGET_INVALID');
       }

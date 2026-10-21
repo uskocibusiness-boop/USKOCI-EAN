@@ -6,6 +6,7 @@ import { supabaseKlijent } from './supabaseClient';
 type TargetEnvelope = Readonly<{ schema: 'ACTIVITY_MESSAGE_TARGET_V1'; accountId: string; authoritative: true }>;
 export type ActivityMessageTarget = TargetEnvelope & (
   | Readonly<{ kind: 'AGREEMENT_MESSAGE'; eventId: string; agreementId: string; messageId: string; role: 'REQUESTER' | 'WORKER' }>
+  | Readonly<{ kind: 'GROUP_MESSAGE'; eventId: string; agreementId: string; groupId: string; messageId: string; sequence: string; role: 'REQUESTER' | 'WORKER' }>
   | Readonly<{ kind: 'UNAVAILABLE' }>
 );
 export type ActivityMessageTargetOptions = Readonly<{ signal?: AbortSignal }>;
@@ -28,6 +29,14 @@ export function decodeActivityMessageTarget(raw: unknown, accountId: string, eve
   const envelope: TargetEnvelope = { schema: 'ACTIVITY_MESSAGE_TARGET_V1', accountId: accountId.toLowerCase(), authoritative: true };
   if (value.kind === 'UNAVAILABLE') return exact(value, ['schema', 'accountId', 'kind', 'authoritative'])
     ? { ...envelope, kind: 'UNAVAILABLE' } : null;
+  if (value.kind === 'GROUP_MESSAGE') {
+    if (!exact(value, ['schema','accountId','kind','eventId','agreementId','groupId','messageId','sequence','role','authoritative'])
+      || !uuid(value.eventId) || !sameId(value.eventId,eventId) || !uuid(value.agreementId) || !uuid(value.groupId) || !uuid(value.messageId)
+      || typeof value.sequence !== 'string' || !/^[1-9][0-9]{0,15}$/.test(value.sequence) || Number(value.sequence)>9007199254740990
+      || (value.role !== 'REQUESTER' && value.role !== 'WORKER')) return null;
+    return {...envelope,kind:'GROUP_MESSAGE',eventId:eventId.toLowerCase(),agreementId:value.agreementId.toLowerCase(),
+      groupId:value.groupId.toLowerCase(),messageId:value.messageId.toLowerCase(),sequence:value.sequence,role:value.role};
+  }
   if (value.kind !== 'AGREEMENT_MESSAGE' || !exact(value, ['schema', 'accountId', 'kind', 'eventId', 'agreementId', 'messageId', 'role', 'authoritative'])
     || !uuid(value.eventId) || !sameId(value.eventId, eventId) || !uuid(value.agreementId) || !uuid(value.messageId)
     || (value.role !== 'REQUESTER' && value.role !== 'WORKER')) return null;

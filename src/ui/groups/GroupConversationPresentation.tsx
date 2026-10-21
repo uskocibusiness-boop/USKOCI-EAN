@@ -77,7 +77,7 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
   const me = state.context?.accountId;
   // The pull spinner answers a pull only; a read of its own does not raise it (the owner's "dot", 8 Oct 2026).
   const [privatePicker, setPrivatePicker] = useState(false);
-  const reading = useGroupReading({ messages: state.messages, ready, covered: p.showPeople || privatePicker, onVisible: p.onVisible,
+  const reading = useGroupReading({ messages: state.messages, ready, initialTargetId: state.targetMessageId, covered: p.showPeople || privatePicker, onVisible: p.onVisible,
     minimumViewTime: p.viewability.minimumViewTime });
   const nativeViewability = useMemo(() => ({ ...p.viewability, minimumViewTime: 0 }), [p.viewability]);
   // Refresh explicitly reads the latest page; older() alone retains the loaded history.
@@ -125,7 +125,7 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
         </View> : null}
       </View>}
   </ProductSheet> : null;
-  const header =<View style={[s.stack, s.gutter]}>
+  const header =<View style={[s.stack, s.gutter]} onLayout={event=>reading.onHeaderLayout(event.nativeEvent.layout.height)}>
     {first ? <QuietReadState art="chat" title="Učitavamo razgovor…" body="Proveravamo učesnike i poruke za ovaj zadatak." /> : null}
     {state.phase === 'ERROR' && !olderUnavailable ? <StateView kind="error" art="chat" title="Razgovor nije učitan" body={state.message ?? undefined}
       primary={{ label: 'Pokušaj ponovo', onPress: refresh }} /> : null}
@@ -153,9 +153,9 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
     {state.message && state.phase !== 'UNKNOWN' && state.phase !== 'CONFIRMED' && (state.phase !== 'ERROR' || olderUnavailable) ? <T variant="copy" accessibilityRole={state.phase === 'ERROR' ? 'alert' : undefined}
       accessibilityLiveRegion="polite">{state.message}</T> : null}
     {state.before ? <V2Action label={olderUnavailable ? 'Ponovo učitaj starije poruke' : 'Starije poruke'} kind="quiet" disabled={!ready && !olderUnavailable} onPress={older} /> : null}
-    {/* A member admitted later reads the group from their admission on, so an empty thread is honest about what it shows. */}
+    {/* Visibility comes from immutable per-message server grants. */}
     {ready && group && state.messages.length === 0 ? <StateView kind="empty" art="chat" title="Još nema poruka"
-      body={group.canSend ? 'Vidiš poruke od svog ulaska u grupu. Napiši prvu.' : 'Vidiš poruke od svog ulaska u grupu.'} /> : null}
+      body={group.canSend ? 'Dogovorite zajedničke detalje ovde. Napiši prvu poruku.' : 'Ovde još nema poruka koje možeš da pročitaš.'} /> : null}
     {/* New messages also arrive through foreground incremental reads; a screen reader cannot easily pull: as in
         Poruke the refresh is also a quiet action at the head of the thread, centred, under the empty state's words when
         there is none, and never on a finished conversation, where nothing new can arrive. */}

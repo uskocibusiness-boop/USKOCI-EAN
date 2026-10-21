@@ -24,6 +24,14 @@ it('distinguishes proved no-response reads from an explicit server refusal',asyn
 it('single profile review does not invoke canonical save or per-field confirmation',async()=>{
  await expect(service.prepare(CONVERSATION,2,true)).resolves.toEqual({ok:true,podatak:review()});expect(mockRpc.mock.calls.map(x=>x[0])).toEqual(['rpc_prepare_worker_ai_review']);
 });
+it('accepts only the exact signed equipment preservation policy while retaining legacy reviews',()=>{
+ const old=review();
+ expect(decodeWorkerAiReview(old,OWNER,CONVERSATION)).toEqual(old);
+ const updated={...old,equipmentPolicy:'PRESERVE_LEGACY_NO_WRITE_V1'};
+ expect(decodeWorkerAiReview(updated,OWNER,CONVERSATION)).toEqual(updated);
+ expect(decodeWorkerAiReview({...old,equipmentPolicy:'CLEAR'},OWNER,CONVERSATION)).toBeNull();
+ expect(decodeWorkerAiReview({...updated,otherEquipmentPolicy:true},OWNER,CONVERSATION)).toBeNull();
+});
 it('allows a slow worker response within55 seconds and retains the same request identity',async()=>{
  jest.useFakeTimers();
  const priorUrl=process.env.EXPO_PUBLIC_SUPABASE_URL,priorKey=process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;

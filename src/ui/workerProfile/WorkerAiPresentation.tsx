@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { workerAreasLabel } from '../../contracts/workerAreas';
 import { serviceHandoffText } from '../../contracts/serviceHandoff';
 import { StyleSheet, View } from 'react-native';
 import type { WorkerAiProfile, WorkerAiReview } from '../../data/workerAiClientService';
@@ -182,7 +183,12 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
         </T>:null}
     </ReviewGroup>
     <ReviewGroup part="area">
-      <Fact art="pin" quiet={!place}>{place
+      {p.workAreas?.length?<>
+        <Fact art="pin">{workerAreasLabel(p.workAreas)}</Fact>
+        <T testID="worker-area-scope-note" variant="note" tone="muted">{p.workAreas.some(a=>a.kind==='RADIUS')
+          ?'Domet se računa od centra navedenog mesta. Kućna adresa nije potrebna.'
+          :'Područje dolaska za poslove na lokaciji. Poslovi na daljinu se proveravaju zasebno.'}</T>
+      </>:<><Fact art="pin" quiet={!place}>{place
         ?onSite
           ?`${place} · do ${p.location.radiusKm} km${point?'':' (za okolna mesta potvrdi centar)'}`
           :`${place} · grad profila`
@@ -193,6 +199,7 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
         onChoose={()=>{ /* Frozen review, never a location editor. */ }}/>:null}
       {onSite
         ?<T variant="note" tone="muted">{point?'Približan centar za terenske zadatke.':'Terenski zadaci van istog grada traže potvrđen približan centar; sada nije podešen.'}</T>:null}
+      </>}
     </ReviewGroup>
     <ReviewGroup part="time">
       <Fact art="clock">{p.availability.availableNow?'Mogu odmah, dok to ne isključiš':'Mogu odmah: isključeno'}</Fact>
@@ -209,7 +216,7 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
       </View>:null}
       {hasSchedule?<T variant="note" tone="muted">{scheduleZone(p.availability.timezone)}. Dogovori ostaju obaveze.</T>:null}
     </ReviewGroup>
-    {p.tools.length||p.vehicles.length?<ReviewGroup part="tools">
+    {review.equipmentPolicy!=='PRESERVE_LEGACY_NO_WRITE_V1'&&(p.tools.length||p.vehicles.length)?<ReviewGroup part="tools">
       {p.tools.length?<Fact art="tool">{list(p.tools)}</Fact>:null}
       {p.vehicles.length?<Fact art="vehicle">{list(p.vehicles)}</Fact>:null}
       <T testID="worker-tools-note" variant="note" tone="muted">{toolsAndVehiclesNote()}</T>
