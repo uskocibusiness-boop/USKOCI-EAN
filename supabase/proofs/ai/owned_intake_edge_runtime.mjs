@@ -28,6 +28,7 @@ export function loadOwnedIntakeHandler(options){
  }
  const shared=evaluate(registry,()=>assert.fail('UNDECLARED_REGISTRY_IMPORT'));
  const budget=evaluate('supabase/functions/_shared/aiTestBudget.ts',()=>assert.fail('UNDECLARED_BUDGET_IMPORT'));
+ const taskDeadline=historical?null:evaluate('src/contracts/taskApplicationDeadline.ts',()=>assert.fail('UNDECLARED_TASK_DEADLINE_IMPORT'));
  const availability=historical?null:evaluate('src/contracts/aiAvailability.ts',()=>assert.fail('UNDECLARED_AVAILABILITY_IMPORT'));
  const location=historical?null:evaluate('supabase/functions/_shared/locationReply.ts',()=>assert.fail('UNDECLARED_LOCATION_IMPORT'));
  const taxonomy=historical?null:evaluate('supabase/functions/_shared/taxonomyScopedShadow.mjs',()=>assert.fail('UNDECLARED_TAXONOMY_IMPORT'));
@@ -60,7 +61,7 @@ export function loadOwnedIntakeHandler(options){
  });
  const researchDeadline=historical?null:evaluate('supabase/functions/_shared/researchDeadline.ts',()=>assert.fail('UNDECLARED_DEADLINE_IMPORT'));
  const imports={'../../../src/contracts/needFactsV2.ts':shared,'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,
-  ...(!historical?{'../../../src/contracts/aiAvailability.ts':availability,'../_shared/locationReply.ts':location,'../_shared/taxonomyScopedShadow.mjs':taxonomy,
+  ...(!historical?{'../../../src/contracts/taskApplicationDeadline.ts':taskDeadline,'../../../src/contracts/aiAvailability.ts':availability,'../_shared/locationReply.ts':location,'../_shared/taxonomyScopedShadow.mjs':taxonomy,
    '../_shared/classificationEngine.mjs':classification,'../_shared/classificationGeminiShadow.mjs':classificationShadow,'../_shared/classificationReply.mjs':classificationReply,
    '../_shared/classificationDirectReply.mjs':directReply,
    '../_shared/classificationExplorer.mjs':explorer,'../_shared/geminiToolConversation.ts':toolConversation,

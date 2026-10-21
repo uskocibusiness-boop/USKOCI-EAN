@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { withGeminiClassificationShadowSchema as decorate, inspectGeminiClassificationShadow as inspect, geminiClassificationShadowInstruction as instructions } from '../../functions/_shared/classificationGeminiShadow.mjs';
+import { withGeminiClassificationShadowSchema as decorate, inspectGeminiClassificationShadow as inspect, geminiClassificationShadowInstruction as instructions, classificationTurnFeedback as feedback } from '../../functions/_shared/classificationGeminiShadow.mjs';
 import { serviceExecutionInstruction } from '../../functions/_shared/serviceExecutionInstruction.mjs';
 
 const lesson='11111111-1111-4111-8111-111111111111';
@@ -280,6 +280,9 @@ test('worker provider requests full 24-scope post-turn snapshot; requester stays
  assert.match(instructions('WORKER_CAPABILITY'),/FULL SNAPSHOT/);
  assert.match(instructions('WORKER_CAPABILITY'),/finish\/acknowledgement/);
  assert.match(instructions('WORKER_CAPABILITY'),/do not guess mode/);
+ assert.match(instructions('WORKER_CAPABILITY'),/SAME concrete service must resolve one canonical leaf/);
+ assert.match(instructions('WORKER_CAPABILITY'),/REUSE\/EXTEND entries use the same categoryId/);
+ assert.match(instructions('WORKER_CAPABILITY'),/new-service entries use the same parentId and proposedPath/);
  assert.match(instructions('NEED_SERVICE'),/CURRENT task AFTER applying this turn/);
 });
 test('worker can offer ONE exact service in both scopes, without fake second skill',()=>{
@@ -292,6 +295,55 @@ test('worker can offer ONE exact service in both scopes, without fake second ski
  assert.deepEqual(result.reviewProposals.map(x=>x.mode),['ON_SITE','REMOTE']);
  const requester=inspect(withShadow(need,modes),dualSnapshot,'NEED_SERVICE');
  assert.deepEqual(requester.statuses,['REUSE_CANDIDATE','DUPLICATE_SERVICE']);
+});
+test('worker rejects conflicting cross-mode canonical IDs as one unresolved service in either order',()=>{
+ const service='Časovi umetničkog klizanja';
+ const conflictingCatalog={catalogVersion:9,categories:[
+  {...snapshot.categories[0],modes:['ON_SITE']},
+  {id:rental,label:service,modes:['REMOTE']},
+  snapshot.categories[2],
+ ]};
+ const onsite=plan(service,lesson,'ON_SITE');
+ const remote=plan('Часови уметничког клизања',rental,'REMOTE');
+ for(const pair of [[onsite,remote],[remote,onsite]]){
+  const raw=withEncodedShadow(worker,[...pair,plan('Oštrenje klizaljki',repair)]);
+  const result=inspect(raw,conflictingCatalog,'WORKER_CAPABILITY');
+  assert.deepEqual(result.output,worker);
+  assert.deepEqual(result.statuses,['CROSS_MODE_IDENTITY_CONFLICT','CROSS_MODE_IDENTITY_CONFLICT','REUSE_CANDIDATE']);
+  assert.deepEqual(result.reviewProposals,[plan('Oštrenje klizaljki',repair)]);
+  assert.deepEqual(result.issues.map(issue=>issue.code),['CROSS_MODE_IDENTITY_CONFLICT','CROSS_MODE_IDENTITY_CONFLICT']);
+  const turn=feedback(result,{purpose:'WORKER_CAPABILITY',services:[service,'Oštrenje klizaljki'],readyForReview:true});
+  assert.equal(turn.state,'RETRY');
+  assert.equal(turn.canOfferReview,false);
+  assert.deepEqual(turn.questions,[]);
+ }
+});
+test('worker new-service modes agree on parent and normalized path before any hint survives',()=>{
+ const service='Izrada posebnih figurica';
+ const onsite={...plan(service,'','ON_SITE','CREATE_CHILD'),parentId:lesson,proposedPath:['Precizna izrada',service]};
+ const remote={...onsite,mode:'REMOTE',proposedPath:['Прецизна израда','Израда посебних фигурица']};
+ for(const pair of [[onsite,{...remote,parentId:rental}],
+                    [onsite,{...remote,proposedPath:[service]}],
+                    [{...onsite,action:'CREATE_NEW_BRANCH',parentId:''},remote]]){
+  const result=inspect(withEncodedShadow(worker,pair),snapshot,'WORKER_CAPABILITY');
+  assert.deepEqual(result.statuses,['CROSS_MODE_IDENTITY_CONFLICT','CROSS_MODE_IDENTITY_CONFLICT']);
+  assert.deepEqual(result.reviewProposals,[]);
+ }
+ const matching=inspect(withEncodedShadow(worker,[onsite,remote]),snapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(matching.statuses,['ADMISSION_REVIEW_REQUIRED','ADMISSION_REVIEW_REQUIRED']);
+ assert.deepEqual(matching.reviewProposals,[onsite,remote]);
+});
+test('worker may reuse and extend the same canonical ID across modes, but not mix reuse with creation',()=>{
+ const service='Oštrenje klizaljki';
+ const onsite=plan(service,repair,'ON_SITE');
+ const remote={...plan(service,repair,'REMOTE','EXTEND_MODE'),handoff:{required:false}};
+ const allowed=inspect(withEncodedShadow(worker,[onsite,remote]),snapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(allowed.statuses,['REUSE_CANDIDATE','ADMISSION_REVIEW_REQUIRED']);
+ assert.deepEqual(allowed.reviewProposals,[onsite,remote]);
+ const created={...plan(service,'','REMOTE','CREATE_CHILD'),parentId:lesson,proposedPath:[service]};
+ const mixed=inspect(withEncodedShadow(worker,[onsite,created]),snapshot,'WORKER_CAPABILITY');
+ assert.deepEqual(mixed.statuses,['CROSS_MODE_IDENTITY_CONFLICT','CROSS_MODE_IDENTITY_CONFLICT']);
+ assert.deepEqual(mixed.reviewProposals,[]);
 });
 test('worker rejects duplicate same mode across Serbian scripts and contradictory unknown',()=>{
  const dualSnapshot={catalogVersion:9,categories:[{...snapshot.categories[0],modes:['ON_SITE','REMOTE']}]};

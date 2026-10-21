@@ -194,6 +194,15 @@ export function preserveWorkerServiceModes({ raw, hints, context, modeContext, c
       else unresolvedChanges.push(offered.get(key)); }
   }
   for (const [key, previous] of baseline) {
+    // Saved modes for one concrete service must share one canonical leaf.
+    // Neither a model hint nor per-mode catalog validation may choose which
+    // divergent saved ID to keep. Leave the saved context untouched and make
+    // this service unresolved while preserving unrelated services below.
+    if (new Set(previous.map(entry => entry.categoryId.toLowerCase())).size !== 1) {
+      unresolvedChanges.push(offered.get(key));
+      preserved = true;
+      continue;
+    }
     const proposed = hints.filter(hint => normalizedClassificationIdentity(hint.service) === key);
     const requested = requests.get(key);
     const changed = applyRequest(proposed, requested, previous);

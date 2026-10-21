@@ -127,6 +127,36 @@ test('a handoff correction for one service preserves the other saved service and
   assert.deepEqual(result.hints.find(entry=>entry.service===other).handoff,local);
 });
 
+test('divergent saved IDs for one dual-mode service cannot re-enter hints while another saved service survives',()=>{
+  const remoteId='22222222-2222-4222-8222-222222222222';
+  const otherId='33333333-3333-4333-8333-333333333333';
+  const other='Prevod teksta';
+  const current={...catalog,categories:[
+    {id:categoryId,label:service,modes:['ON_SITE']},
+    {id:remoteId,label:service,modes:['REMOTE']},
+    {id:otherId,label:other,modes:['REMOTE']},
+  ]};
+  const context=workerContext();
+  context.candidate.skills=[service,other];
+  context.serviceModeContext.savedServices=[
+    {service,mode:'ON_SITE',categoryId},
+    {service,mode:'REMOTE',categoryId:remoteId,handoff:local},
+    {service:other,mode:'REMOTE',categoryId:otherId,handoff:local},
+  ];
+  context.serviceModeContext.draftServices=[];
+  const original=structuredClone(context.serviceModeContext.savedServices);
+  for(const hints of [[],[hint({mode:'ON_SITE'}),hint({categoryId:remoteId,handoff:local}),
+    hint({service:other,categoryId:otherId,handoff:local})]]){
+    const result=preserveWorkerServiceModes({context,modeContext:readWorkerServiceModeContext(context),catalog:current,
+      hints,raw:{safety:'ALLOW',patch:{bio:'Dopunjen opis.'}}});
+    assert.deepEqual(result.hints.map(entry=>[entry.service,entry.mode,entry.categoryId]),[[other,'REMOTE',otherId]]);
+    assert.deepEqual(result.unresolvedChanges,[service]);
+    assert.deepEqual(result.preservedServices,[other]);
+    assert.equal(result.preserved,true);
+  }
+  assert.deepEqual(context.serviceModeContext.savedServices,original,'the authoritative saved modes are not changed here');
+});
+
 test('mode-only correction preserves physical handoff; mismatched or unowned handoff evidence cannot widen it',()=>{
   const evidence='Od sada radim samo na daljinu.';
   const context=workerContext(local,evidence);

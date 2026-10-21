@@ -570,7 +570,7 @@ function modeFixture(options={}) {
   classificationShadowJson:JSON.stringify(['REMOTE','ON_SITE'].map(proposal)),...options.output};
  return fixture({context,output,env:{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',USKOCI_TAXONOMY_SHADOW_CAPTURE:'true'},
   catalog:body=>({action:'CATALOG_CONTEXT',scope:body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE',catalogVersion:7,
-   catalogFingerprint:'a'.repeat(32),items:options.retired||options.catalogModes&&!options.catalogModes.includes(body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE')?[]:[{categoryId:category,parentId:null,label:service,aliases:['Modeli po meri'],path:[service],isLeaf:true}],
+   catalogFingerprint:'a'.repeat(32),items:options.catalogItems?.(body)??(options.retired||options.catalogModes&&!options.catalogModes.includes(body.p_execution_location_mode==='REMOTE'?'REMOTE':'ON_SITE')?[]:[{categoryId:category,parentId:null,label:service,aliases:['Modeli po meri'],path:[service],isLeaf:true}]),
    nextAfter:null,classificationAuthority:'NONE',notificationAuthority:'NONE'})});
 }
 const capturedModes=f=>f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service')).flatMap(c=>c.body.p_proposals.map(p=>p.mode));
@@ -584,6 +584,27 @@ test('bio-only edit preserves saved REMOTE despite a prior unconfirmed draft and
  assert.ok(prompt.includes('savedServices'));assert.ok(prompt.includes('does NOT mean this person offers both'));
  assert.ok(!Object.hasOwn(completions(f)[0].body.p_output,'serviceModeChangesJson'));
  assert.ok(!Object.hasOwn(completions(f)[0].body.p_output,'classificationShadowJson'));
+});
+test('conflicting dual-mode saved IDs and fresh hints never reach handler capture; unrelated saved service survives',async()=>{
+ const service='Izrada maketa',other='Prevod teksta';
+ const onsiteId=id(20),remoteId=id(21),otherId=id(22);
+ const row=(categoryId,label)=>({categoryId,parentId:null,label,aliases:[],path:[label],isLeaf:true});
+ const hint=(label,mode,categoryId)=>({service:label,mode,action:'REUSE_EXISTING',categoryId,
+  parentId:'',proposedPath:[],reason:'Synthetic saved service identity for an unrelated profile edit.',catalogVersion:7});
+ const savedServices=[{service,mode:'ON_SITE',categoryId:onsiteId},{service,mode:'REMOTE',categoryId:remoteId},
+  {service:other,mode:'REMOTE',categoryId:otherId}];
+ const f=modeFixture({context:{candidate:{skills:[service,other],bio:'Prethodni opis',availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},
+  serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:2,savedServices,draftServices:[],unresolvedServices:[]}},
+  output:{classificationShadowJson:JSON.stringify([hint(service,'ON_SITE',onsiteId),hint(service,'REMOTE',remoteId),hint(other,'REMOTE',otherId)])},
+  catalogItems:body=>body.p_execution_location_mode==='REMOTE'?[row(remoteId,service),row(otherId,other)]:[row(onsiteId,service)]});
+ await events(f);
+ const captures=f.calls.filter(c=>c.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
+ assert.equal(captures.length,1);
+ assert.deepEqual(captures[0].body.p_proposals.map(p=>[p.service,p.mode,p.categoryId]),[[other,'REMOTE',otherId]]);
+ assert.deepEqual(savedServices.map(p=>[p.service,p.mode,p.categoryId]),[
+  [service,'ON_SITE',onsiteId],[service,'REMOTE',remoteId],[other,'REMOTE',otherId]],'a chat turn does not rewrite saved modes');
+ assert.deepEqual(completions(f)[0].body.p_output.patch,{bio:'Dopunjen opis'});
+ assert.match(completions(f)[0].body.p_output.assistantMessage,/povezivanje vrste usluge još nije provereno/);
 });
 test('a server-registered alias of the same service cannot bypass saved REMOTE continuity',async()=>{
  const service='Modeli po meri';

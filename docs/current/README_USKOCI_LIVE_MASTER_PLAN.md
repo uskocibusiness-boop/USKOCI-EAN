@@ -2,6 +2,8 @@
 
 Jedan aktivan proizvod, jedan registar statusa i postojeći LIVE plan. Ovaj fajl je ulaz u rad, ne novi plan ili potvrda da je aplikacija završena.
 
+**AI/server audit 21.10.2026:** [svež presek DEV-a, trijaža dostavljenog izveštaja i granice primene](AI_SERVER_AUDIT_TRIAGE_20261021.md). Izvorni worker cross-mode guard ima ciljanu regresiju; SQL je rollback-only kandidat, a Task AI, zatvaranje naloga i valuta imaju odvojene nezatvorene gate-ove. Čitati aktuelni Git/DEV readback pre bilo kakve tvrdnje o primeni.
+
 **Nastavak 21.10.2026, međustanja:** izvor sada čuva poslednje čitane Dogovore uz upozorenje posle neuspešnog osvežavanja, bez zastarelih tvrdnji „Čeka tebe”; mapa čisti potvrđeno mesto pri prelasku na remote i Android Back spušta HALF/FULL listu u PEEK. Prijava i registracija imaju zasebne naslove, a signup ostaje dostupan u mešovitoj konfiguraciji servera. AI task/worker međuekrani imenuju razgovor tokom čitanja i greške; istorijsko hide/delete nije dodato bez serverskog ugovora. Dokazi za redove A02, B00, B04, B05, D01, N01 i N02 su u [istom registru](../control/redovi.json). Izvorni test, aktuelni APK i HONOR dokaz se vode zasebno; nema novog APK-a u ovom dodatku.
 
 **Kasnija dopuna istog izvornog kruga:** grupni čet pokazuje učitavanje pre prve strane i napredak osvežavanja/slanja uz kompozer; AI radni pregled uslovljava radijus potvrđenim centrom. V1 sačuvani profil i Area V2 ugovor ostaju otvoreni. Puni lokalni Jest 635/635 paketa, 14.350 PASS/9 SKIP, TSC PASS; grupni čet 40/40 i worker pregled 37/37 zasebno nakon izmena. Nema novog APK-a ili HONOR prolaza.

@@ -57,7 +57,7 @@ export function geminiClassificationShadowInstruction(purpose='NEED_SERVICE',pha
     'Never equate lessons, equipment rental and equipment repair merely because they mention skating.',
     'REUSE_ALIAS requires an alias listed by the server for that exact category; a model claim verifies nothing. An unregistered synonym cannot carry a random categoryId: use canonical naming only for identical meaning; otherwise clarify the distinction or propose the actual new service.',
     purpose==='WORKER_CAPABILITY'
-      ? 'After applying the patch, compare EACH distinct entry in the resulting skills array: Cover EVERY offered skill; never return only the skills newly mentioned. Represent ON_SITE/REMOTE separately only when confirmed, otherwise UNCONFIRMED rather than omitting it or guessing; do not guess mode. A finish/acknowledgement keeps the FULL SNAPSHOT. Ask only about unresolved services within the interview limit of up to THREE related questions; do not invent skills or consent from city. More than 12 services needs clarification/organization, never silent dropping.'
+      ? 'After applying the patch, compare EACH distinct entry in the resulting skills array: Cover EVERY offered skill; never return only the skills newly mentioned. Represent ON_SITE/REMOTE separately only when confirmed, otherwise UNCONFIRMED rather than omitting it or guessing; do not guess mode. ON_SITE and REMOTE entries for the SAME concrete service must resolve one canonical leaf: REUSE/EXTEND entries use the same categoryId, and new-service entries use the same parentId and proposedPath; mode and handoff may differ. A finish/acknowledgement keeps the FULL SNAPSHOT. Ask only about unresolved services within the interview limit of up to THREE related questions; do not invent skills or consent from city. More than 12 services needs clarification/organization, never silent dropping.'
       : 'Acknowledgement/finish/map replies KEEP the FULL SNAPSHOT: location, date and price replies do not erase classification. A real task change classifies the updated service, not its predecessor. Clarify unresolved identity/delivery within the interview limit of THREE semantic questions; never invent work to fill metadata.',
     'This private metadata and its capture are proposals for signed review and explicit Save, never user consent, never owner consent or capability proof; never write to the catalog. Never claim a category was created or an unverified plan is fully linked/ready to publish. Unsafe, regulated, ambiguous and possible duplicates are review-only.',
   ].join(' ');
@@ -159,6 +159,34 @@ function invalidPlanCode(p) {
   return 'ACTION_FIELDS';
 }
 
+function crossModeTarget(p) {
+  if(['REUSE_EXISTING','REUSE_ALIAS','EXTEND_MODE'].includes(p.action))
+    return JSON.stringify(['EXISTING',p.categoryId.toLowerCase()]);
+  if(['CREATE_CHILD','CREATE_NEW_BRANCH'].includes(p.action))
+    return JSON.stringify(['NEW',p.parentId.toLowerCase(),
+      ...p.proposedPath.map(normalizedClassificationIdentity)]);
+  return null;
+}
+
+// Compare both worker modes before retaining either hint. Independent per-mode
+// review can accept two different IDs (or two new paths) for the same service.
+function conflictingWorkerIdentities(shadow,snapshot) {
+  const byService=new Map();
+  for(const p of shadow){
+    if(!validItem(p,snapshot)||!['ON_SITE','REMOTE'].includes(p.mode))continue;
+    const target=crossModeTarget(p);
+    if(!target)continue;
+    const service=normalizedClassificationIdentity(p.service);
+    if(!service)continue;
+    if(!byService.has(service))byService.set(service,{modes:new Set(),targets:new Set()});
+    const group=byService.get(service);
+    group.modes.add(p.mode);
+    group.targets.add(target);
+  }
+  return new Set([...byService].filter(([,group])=>group.modes.size===2&&group.targets.size>1)
+    .map(([service])=>service));
+}
+
 // Issues are private, owner-facing context, NOT telemetry: labels may identify
 // work. Log only statuses/invalidPlanCodes. Never expose provider reasons/IDs.
 function classificationIssue(code,p,purpose) {
@@ -225,6 +253,8 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
     return empty(['INVALID_CATALOG']);
   const seen=new Set(), statuses=[], reviewProposals=[], invalidPlanCodes=[],issues=[];
   const workerModes=new Map();
+  const crossModeConflicts=purpose==='WORKER_CAPABILITY'
+    ? conflictingWorkerIdentities(shadow,snapshot):new Set();
   for(const p of shadow){
     if(!validItem(p,snapshot)){
       statuses.push('INVALID_PLAN');invalidPlanCodes.push(invalidPlanCode(p));
@@ -242,6 +272,10 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
     }
     seen.add(identity);
     if(purpose==='WORKER_CAPABILITY'){oldModes.add(p.mode);workerModes.set(signature,oldModes);}
+    if(crossModeConflicts.has(signature)){
+      statuses.push('CROSS_MODE_IDENTITY_CONFLICT');
+      issues.push(classificationIssue('CROSS_MODE_IDENTITY_CONFLICT',p,purpose));continue;
+    }
     // Some provider outputs label a canonical name as REUSE_ALIAS after
     // translating the user's wording. An exact current label+ID needs no new
     // alias. Normalize that wire action only; all identity/freshness/mode and
