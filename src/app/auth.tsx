@@ -341,6 +341,7 @@ export default function AuthScreen() {
   const failureAction = failureNext === 'HAVE_ACCOUNT' ? { note: 'Možda već imaš nalog.', label: authCopy.signIn, onPress: () => { switchWay('LOGIN'); } }
     : failureNext === 'RESEND' ? { label: 'Pošalji ponovo potvrdu', onPress: () => { void ponoviPotvrduEmaila(); } } : null;
   const signupClosed = rezim === 'SIGNUP' && !methods.emailSignup;
+  const emailAvailable = rezim === 'SIGNUP' ? methods.emailSignup : methods.emailPassword;
   const toSignIn = <PrimaryButton title={authCopy.backToSignIn} onPress={nazadNaEmail} busy={radi} />;
 
   // What the step shows and the one green command that stands in the foot of the sheet. Every step has exactly one.
@@ -355,7 +356,7 @@ export default function AuthScreen() {
       </>;
       footer = toSignIn;
     } else {
-      content = <AuthFormStep way={rezim} onWay={switchWay} emailOpen={methods.emailPassword} signUpOpen={methods.emailSignup}
+      content = <AuthFormStep way={rezim} onWay={switchWay} emailOpen={emailAvailable} signUpOpen={methods.emailSignup}
         phoneOpen={methods.phoneOtp} intent={selectedIntent} onIntentChange={next => { void izaberiNameru(next, undefined, true); }}
         values={{ ime, prezime, grad, email, lozinka }} onValue={onValue}
         onCityBlur={() => { const tidy = tidyCity(grad); if (tidy !== grad) commands.changeForm(() => setGrad(tidy)); }}
@@ -366,10 +367,11 @@ export default function AuthScreen() {
         onForgot={() => commands.changeForm(() => { setSignupReturn(null); setFaza('RECOVERY'); setLozinka(''); clearFeedback(); })}
         onPhone={() => commands.changeForm(() => { setSignupReturn(null); setFaza('PHONE'); clearFeedback(); })}
         onSubmit={() => void emailAkcija()} inputRefs={inputRefs} />;
-      // The server has email sign-in switched off: the green command is there, grey, and the line above it says why (the system foot's reason).
-      footer = methods.emailPassword ? <AuthFormFooter way={rezim} busy={radi} onSubmit={() => void emailAkcija()} />
+      // Each mode follows its own availability flag: sign-up stays usable even if password sign-in is closed.
+      // An unavailable sign-in command remains visible with a reason above it.
+      footer = emailAvailable ? <AuthFormFooter way={rezim} busy={radi} onSubmit={() => void emailAkcija()} />
         : <PrimaryButton title={authCopy.signIn} onPress={() => undefined} disabled />;
-      footerReason = methods.emailPassword ? undefined : EMAIL_OFF;
+      footerReason = emailAvailable ? undefined : EMAIL_OFF;
     }
   } else if (faza === 'PHONE' || faza === 'OTP') {
     if (!methods.phoneOtp) {

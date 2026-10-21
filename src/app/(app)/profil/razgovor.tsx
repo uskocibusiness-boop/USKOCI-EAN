@@ -349,7 +349,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       recovery?.cancelled&&recovery.providerDispatched?'Odgovor je zaustavljen. Poruka je ipak poslata jer je asistent već počeo da je obrađuje; profil je ostao isti.':null;
   const lastGoodUnverified=!!data&&!editor.loaded&&!editor.loading;
   const lastGoodCopy='Prikazan je poslednji učitan razgovor. Slanje i čuvanje su pauzirani dok ne proverimo stanje.';
-  if(leaving||!data||!foreground||resuming)return <WorkerProfileFrame back={back}><WorkerProfileStatus loading={leaving||editor.loading||!foreground||resuming}
+  if(leaving||!data||!foreground||resuming)return <WorkerProfileFrame back={back} title="Moj radni profil" tone="conversation"><WorkerProfileStatus context="conversation" loading={leaving||editor.loading||!foreground||resuming}
     error={leaving?null:editor.error} retry={refresh}/>{!leaving&&foreground&&!resuming?confirmSheet.sheet:null}</WorkerProfileFrame>;
   const reviewBusyLabel=reviewActivity==='preparing'?'Pripremamo pregled…':reviewActivity==='saving'?'Čuvamo profil…':'Proveravamo stanje…';
   const busyPanelCopy=editor.busy?<T testID="worker-review-progress" accessibilityRole="alert" variant="meta" tone="muted">

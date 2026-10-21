@@ -477,7 +477,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
       cancelLabel: 'Nastavi razgovor', confirmLabel: 'Napusti razgovor', tone: 'danger', onConfirm: submit });
   };
 
-  if (!stanje) return <IntakeUnavailable loading={editor.loading}
+  if (!stanje) return <IntakeUnavailable loading={editor.loading} title={resumeId ? 'Razgovor o zadatku' : 'Novi zadatak'}
     error={greska ?? 'Proveri vezu i pokušaj ponovo.'} retry={invalidRoute || recoveryConversation ? undefined : osvezi} back={back}
     recover={recoveryConversation ? () => navigate(() => router.replace({ pathname: '/nova', params: { conversationId: recoveryConversation } })) : undefined} />;
 

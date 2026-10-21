@@ -11,6 +11,8 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import { WorkerProfileFooter, WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus } from '../../ui/workerProfile/WorkerProfilePresentation';
 import { QuietReadState } from '../../ui/v2/QuietReadState';
 import { SkeletonList } from '../../ui/system/Skeleton';
+import { ScreenChrome } from '../../ui/system/ScreenChrome';
+import { sys } from '../../ui/system/tokens';
 
 let tree: ReactTestRenderer;
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
@@ -56,6 +58,25 @@ test('status block: loading is spoken, an error keeps the one reload action', as
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<WorkerProfileFrame back={() => {}}><WorkerProfileStatus loading={false} error="Profil nije učitan." retry={retry} /></WorkerProfileFrame>); });
   expect(texts()).toContain('Profil nije učitan.'); await act(async () => byLabel('Ponovo učitaj profil').props.onPress()); expect(retry).toHaveBeenCalledTimes(1);
+});
+test('AI conversation loading and read errors name the conversation under its own header', async () => {
+  const retry = jest.fn();
+  await act(async () => { tree = create(<WorkerProfileFrame back={() => {}} title="Moj radni profil" tone="conversation">
+    <WorkerProfileStatus context="conversation" loading retry={retry} />
+  </WorkerProfileFrame>); });
+  expect(texts()).toContain('Moj radni profil');
+  expect(texts()).toContain('Otvaramo razgovor');
+  expect(texts()).not.toContain('Učitavamo radni profil…');
+  expect(tree.root.findByType(ScreenChrome).props).toMatchObject({ tone: 'conversation', title: 'Moj radni profil' });
+  expect(require('react-native').StyleSheet.flatten(tree.root.findByType('SafeAreaView' as React.ElementType).props.style).backgroundColor)
+    .toBe(sys.conversation.ground);
+  await act(async () => tree.update(<WorkerProfileFrame back={() => {}} title="Moj radni profil" tone="conversation">
+    <WorkerProfileStatus context="conversation" loading={false} error="Mreža nije dostupna." retry={retry} />
+  </WorkerProfileFrame>));
+  expect(texts()).toContain('Razgovor nije dostupan');
+  expect(texts()).toContain('Mreža nije dostupna.');
+  await act(async () => byLabel('Ponovo učitaj razgovor').props.onPress());
+  expect(retry).toHaveBeenCalledTimes(1);
 });
 // Review of step 9 (2026-09-24): on a 320 × 640 phone the sticky footer rose with the keyboard and left under 100 dp for the
 // field being typed. It steps aside while the keyboard is up, stays mounted (a button keeps its state), and comes back.

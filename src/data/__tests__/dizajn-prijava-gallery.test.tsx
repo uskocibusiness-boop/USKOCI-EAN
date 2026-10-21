@@ -97,7 +97,7 @@ describe('the group "Ulaz i prijava na nalog"', () => {
 
   it('exposes named authentication fields, recovery actions and truthful inline errors', async () => {
     await open('Ulaz: prijava');
-    expect(inputs()).toEqual(['Email', 'Lozinka']); expect(text()).toContain('Prijavi se ili napravi nalog'); expect(text()).toContain('Zaboravljena lozinka?');
+    expect(inputs()).toEqual(['Email', 'Lozinka']); expect(text()).toContain('Nastavi tamo gde si stao.'); expect(text()).toContain('Zaboravljena lozinka?');
     await exit();
     await pressHost('Galerija: Ulaz: registracija');
     expect(inputs()).toEqual(['Ime', 'Prezime', 'Grad', 'Email', 'Lozinka']); expect(text()).toContain('Tražiš pomoć'); expect(text()).toContain('Najmanje 6 znakova.');

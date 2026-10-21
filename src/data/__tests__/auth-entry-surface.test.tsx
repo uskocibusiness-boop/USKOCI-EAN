@@ -95,8 +95,6 @@ const signUpFields = ['Ime', 'Prezime', 'Grad', 'Email', 'Lozinka'];
 const signUpValues: [string, string][] = [['Ime', 'Ana'], ['Prezime', 'Petrović'], ['Grad', 'Novi Sad'],
   ['Email', 'ana@example.test'], ['Lozinka', 'password']];
 const LEGAL = 'Uslovi korišćenja i Politika privatnosti još nisu objavljeni.';
-/** The one title of the first step: "Zdravo." said nothing, and it was the same for signing in and for making an account. */
-const TITLE = 'Prijavi se ili napravi nalog';
 function deferred<T>() {
   let resolve!: (value: T) => void; let reject!: (error: Error) => void;
   const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
@@ -131,7 +129,7 @@ it('keeps email functional and shows no way in that does not work', async () => 
   }
   expect(text()).not.toContain('Drugi načini prijave');
   expect(text()).not.toContain('Trenutno nije dostupno');
-  expect(text()).toContain('Za sada se ulazi email adresom i lozinkom.');
+  expect(text()).toContain('Nastavi tamo gde si stao.');
   for (const fake of ['Sačuvali smo', 'istu Priliku', 'ili nastavi preko']) expect(text()).not.toContain(fake);
   expect(Object.values(mockAuth).every(command => command.mock.calls.length === 0)).toBe(true);
 });
@@ -146,30 +144,28 @@ it('connects the V4.9 welcome signup action to the existing real signup sheet wi
   expect(mockPrepare).not.toHaveBeenCalled();
 });
 
-it('is ONE calm screen for both ways in: one greeting, the switch under it, the real fields, the explicit primary command', async () => {
+it('names the selected way in one calm heading, with the same form, fields and primary command', async () => {
   await render();
   const heading = (value: string) => host('Text').find(node => node.props.accessibilityRole === 'header' && textOf(node) === value)!;
-  // The same title in the same size in both ways ("Zdravo." said nothing); the old second title ("Napravi nalog", "Registracija") is gone.
-  expect(StyleSheet.flatten(heading(TITLE).props.style).fontSize).toBe(type.pageTitle.fontSize);
-  // (The word "Prijava" is the switch's own label; no bar title repeats it above the greeting.)
+  expect(StyleSheet.flatten(heading('Prijavi se').props.style).fontSize).toBe(type.pageTitle.fontSize);
+  expect(text()).toContain('Nastavi tamo gde si stao.');
   expect(host('Text').some(node => textOf(node) === 'Registracija')).toBe(false);
   expect(host('Text').filter(node => textOf(node) === 'Prijava')).toHaveLength(1);
   await pressTab('Napravi nalog');
-  expect(StyleSheet.flatten(heading(TITLE).props.style).fontSize).toBe(type.pageTitle.fontSize);
-  expect(host('Text').filter(node => node.props.accessibilityRole === 'header').map(node => textOf(node))).toEqual([TITLE]);
+  expect(StyleSheet.flatten(heading('Napravi nalog').props.style).fontSize).toBe(type.pageTitle.fontSize);
+  expect(host('Text').filter(node => node.props.accessibilityRole === 'header').map(node => textOf(node))).toEqual(['Napravi nalog']);
   expect(host('TextInput').map(node => node.props.accessibilityLabel)).toEqual(signUpFields);
-  expect(text()).toContain('Jedan nalog. Možeš i da tražiš pomoć i da uskočiš drugima.');
+  expect(text()).toContain('Jedan nalog za sve: objavi zadatak ili uskoči.');
   expect(text()).not.toContain('Potvrdi lozinku'); expect(text()).not.toContain('Ponovi lozinku');
-  // "Za sada se ulazi ..." stands where the other ways in would, on signing in; on making an account it would be a second note.
-  expect(text()).not.toContain('Za sada se ulazi email adresom i lozinkom.');
+  expect(text()).not.toContain('Nastavi tamo gde si stao.');
   expect(button('Napravi nalog')).toBeDefined();
   expect(text()).not.toContain('Korak 1 od 3');
   expect(mockAuth.signUp).not.toHaveBeenCalled();
   await pressTab('Prijava');
-  expect(StyleSheet.flatten(heading(TITLE).props.style).fontSize).toBe(type.pageTitle.fontSize);
+  expect(StyleSheet.flatten(heading('Prijavi se').props.style).fontSize).toBe(type.pageTitle.fontSize);
   expect(host('TextInput').map(node => node.props.accessibilityLabel)).toEqual(['Email', 'Lozinka']);
-  expect(text()).not.toContain('Jedan nalog.');
-  expect(text()).toContain('Za sada se ulazi email adresom i lozinkom.');
+  expect(text()).not.toContain('Jedan nalog za sve');
+  expect(text()).toContain('Nastavi tamo gde si stao.');
 });
 
 // PKG-031 / deep read 8.2: no tick that recorded nothing. While the documents are not published the screen says so, once,
@@ -306,7 +302,7 @@ describe('the form never waits for the check of the available ways in', () => {
     await press('Pokušaj ponovo');
     expect(mockRead).toHaveBeenCalledTimes(2);
     expect(text()).not.toContain(QUIET); expect(input('Email').props.value).toBe('ana@example.test');
-    expect(text()).toContain('Za sada se ulazi email adresom i lozinkom.');
+    expect(text()).toContain('Nastavi tamo gde si stao.');
   });
 
   it('keeps the form and what was typed when the app comes back to the front and the check is made again', async () => {
@@ -338,6 +334,21 @@ it('does not offer signup when disabled, while existing email login remains avai
   expect(text()).toContain('Otvaranje novih naloga trenutno nije dostupno.');
   // With one way in there is nothing to choose between, so the title names that way.
   expect(host('Text').filter(node => node.props.accessibilityRole === 'header').map(node => textOf(node))).toEqual(['Prijavi se']);
+});
+
+it('keeps registration usable when email sign-in is closed but signup is open', async () => {
+  mockRead.mockResolvedValue({ ...emailOnly, emailPassword: false, emailSignup: true });
+  await render();
+  expect(host('TextInput')).toHaveLength(0);
+  expect(text()).toContain('Možeš da napraviš nalog.');
+  expect(button('Prijavi se').props.accessibilityState).toMatchObject({ disabled: true });
+  await pressTab('Napravi nalog');
+  expect(host('TextInput').map(node => node.props.accessibilityLabel)).toEqual(signUpFields);
+  expect(button('Napravi nalog').props.accessibilityState).toMatchObject({ disabled: false });
+  for (const [label, value] of signUpValues) await fill(label, value);
+  await press('Napravi nalog');
+  expect(mockAuth.signUp).toHaveBeenCalledTimes(1);
+  expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
 });
 
 it('gives an explicit route back if signup is disabled while the signup form is open', async () => {

@@ -66,6 +66,19 @@ test('refresh rejects a retained card even when the same Agreement ID returns at
   expect(mockNavigate).not.toHaveBeenCalled(); await act(async () => props().onOpen(props().items[0]));
   expect(mockNavigate).toHaveBeenCalledTimes(1);
 });
+test('failed pull keeps the last owned list, marks it stale, and a retry replaces it', async () => {
+  await render();
+  const previous = props().items;
+  mockRead.mockRejectedValueOnce(new Error('offline'));
+  await act(async () => { props().onRefresh(); });
+  expect(props()).toMatchObject({ items: previous, loading: false, refreshing: false, error: false, refreshError: true });
+  expect(props().ownerCapacities).toBeNull();
+  expect(props().cancellations).toBeNull();
+  mockRead.mockResolvedValueOnce([{ id: 'fresh-owned', verzija: 2 }]);
+  await act(async () => { props().onRefresh(); });
+  expect(props()).toMatchObject({ items: [{ id: 'fresh-owned', verzija: 2 }], error: false });
+  expect(props().refreshError).toBeFalsy();
+});
 test('refresh and retained card press in the same React batch cannot navigate', async () => {
   await render(); const old = props();
   await act(async () => { old.onRefresh(); old.onOpen(old.items[0]); });

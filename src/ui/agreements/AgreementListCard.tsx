@@ -78,9 +78,9 @@ function AcceptedTime({ when, place, zone }: { when: string; place: string; zone
  * The frame gives under the finger as one object, as a task card does, and holds still under reduced motion.
  */
 
-function AgreementCard({ item, now, cancellation, capacity, onOpen, onRate, onOpenOwnerTask }: {
+function AgreementCard({ item, now, stale = false, cancellation, capacity, onOpen, onRate, onOpenOwnerTask }: {
   item: DogovorProjekcija; now: number; cancellation?: AgreementCancellation | null;
-  capacity?: OwnerTaskCapacityView | null; onOpen: () => void; onRate?: () => void; onOpenOwnerTask?: () => void;
+  stale?: boolean; capacity?: OwnerTaskCapacityView | null; onOpen: () => void; onRate?: () => void; onOpenOwnerTask?: () => void;
 }) {
   // The card gives under the finger as ONE object, on the `row` rung of the press ladder (M-07: the one lift of every record).
   const { style: lift, give, settle } = usePressLift();
@@ -88,7 +88,8 @@ function AgreementCard({ item, now, cancellation, capacity, onOpen, onRate, onOp
   const other = item.ucesnici.find(person => !person.viSte);
   const ownRole = item.ucesnici.find(person => person.viSte)?.uloga;
   const roleLabel = ownRole === 'narucilac' ? 'Ti objavljuješ' : ownRole === 'uskocer' ? 'Ti uskačeš' : null;
-  const attention = agreementAttention(item);
+  // A retained list is a last-known snapshot. Its urgent action needs a fresh read.
+  const attention = stale ? null : agreementAttention(item);
   const title = readableTitle(item.naslov);
   const role = agreementRole(other);
   const name = other?.ime?.trim() || 'Druga strana';
@@ -165,21 +166,22 @@ function AgreementCard({ item, now, cancellation, capacity, onOpen, onRate, onOp
  * are made here, from the list's stable callbacks. `now` is the minute the groups were taken at, as a number, so a parent render
  * inside the same minute does not draw a card again.
  */
-export const AgreementRow = memo(function AgreementRow({ item, index, now, animate, cancellation, capacity, onOpen, onRate, onOpenOwnerTask }: {
+export const AgreementRow = memo(function AgreementRow({ item, index, now, animate, stale = false, cancellation, capacity, onOpen, onRate, onOpenOwnerTask }: {
   item: DogovorProjekcija; index: number; now: number; animate: boolean; cancellation?: AgreementCancellation | null;
-  capacity?: OwnerTaskCapacityView | null; onOpen: (item: DogovorProjekcija) => void;
+  stale?: boolean; capacity?: OwnerTaskCapacityView | null; onOpen: (item: DogovorProjekcija) => void;
   onRate?: (item: DogovorProjekcija) => void; onOpenOwnerTask?: (taskId: string, witness: DogovorProjekcija) => void;
 }) {
   const open = useCallback(() => onOpen(item), [onOpen, item]);
   const rate = useCallback(() => onRate?.(item), [onRate, item]);
   const openTask = useCallback(() => { if (capacity) onOpenOwnerTask?.(capacity.taskId, item); }, [capacity, onOpenOwnerTask, item]);
-  return <Appear index={index} animate={animate}><AgreementCard item={item} now={now} cancellation={cancellation} capacity={capacity}
+  return <Appear index={index} animate={animate}><AgreementCard item={item} now={now} stale={stale} cancellation={cancellation} capacity={capacity}
     onOpen={open} onRate={onRate ? rate : undefined} onOpenOwnerTask={onOpenOwnerTask && capacity ? openTask : undefined} /></Appear>;
 });
 
 /** One task record. Each collaboration keeps its own accepted terms and destination; there is no invented group price/status. */
-export const AgreementTaskRow = memo(function AgreementTaskRow({ group, index, now, animate, expanded, onExpand, cancellations, ownerCapacities, onOpenOwnerTask, onOpen, onRate, prioritize = 'all' }: {
+export const AgreementTaskRow = memo(function AgreementTaskRow({ group, index, now, animate, stale = false, expanded, onExpand, cancellations, ownerCapacities, onOpenOwnerTask, onOpen, onRate, prioritize = 'all' }: {
   group: AgreementTaskGroup; index: number; now: number; animate: boolean; expanded: boolean;
+  stale?: boolean;
   prioritize?: HistoryFilter | 'confirmation';
   onExpand: (key: string | null, witness: DogovorProjekcija) => void;
   ownerCapacities?: ReadonlyMap<string, NeedSearchState> | null;
@@ -189,7 +191,7 @@ export const AgreementTaskRow = memo(function AgreementTaskRow({ group, index, n
   const first = group.items[0];
   const taskId = ownerTaskId(group);
   const capacity = taskId ? ownerTaskCapacity(group, ownerCapacities?.get(taskId)) : null;
-  if (group.items.length === 1) return <AgreementRow item={first} index={index} now={now} animate={animate}
+  if (group.items.length === 1) return <AgreementRow item={first} index={index} now={now} animate={animate} stale={stale}
     cancellation={cancellationOf(cancellations, first.id)} capacity={capacity}
     onOpenOwnerTask={onOpenOwnerTask} onOpen={onOpen} onRate={onRate} />;
   const at = new Date(now), title = readableTitle(first.naslov);
@@ -199,7 +201,7 @@ export const AgreementTaskRow = memo(function AgreementTaskRow({ group, index, n
     : prioritize === 'completed' ? item.stanje === 'COMPLETED' : prioritize === 'cancelled' ? item.stanje === 'CANCELLED' : true;
   const ordered = prioritize === 'all' ? byUrgency : [...byUrgency.filter(matches), ...byUrgency.filter(item => !matches(item))];
   const shown = expanded ? ordered : ordered.slice(0, 3);
-  const waiting = group.items.filter(item => agreementAttention(item)).length;
+  const waiting = stale ? 0 : group.items.filter(item => agreementAttention(item)).length;
   const role = first.ucesnici.find(person => person.viSte)?.uloga === 'narucilac' ? 'Tražiš pomoć' : 'Uskačeš';
   return <Appear index={index} animate={animate}><Surface kind="record">
     <View style={s.taskHead}>
@@ -216,7 +218,7 @@ export const AgreementTaskRow = memo(function AgreementTaskRow({ group, index, n
         <Glyph name="arrow-right" size={20} tone="green" />
       </Press> : null}
     </View>
-    {shown.map(item => <AgreementCollaborator key={item.id} item={item} taskTitle={title} now={at}
+    {shown.map(item => <AgreementCollaborator key={item.id} item={item} taskTitle={title} now={at} stale={stale}
       cancellation={cancellationOf(cancellations, item.id)} onOpen={onOpen} onRate={onRate} />)}
     {ordered.length > 3 ? <Press accessibilityRole="button" accessibilityLabel={`${expanded ? 'Sažmi' : 'Prikaži sve'} saradnje za ${title}`}
       accessibilityState={{ expanded }} onPress={() => onExpand(expanded ? null : group.key, first)} haptic="select" style={s.more}>
@@ -226,12 +228,13 @@ export const AgreementTaskRow = memo(function AgreementTaskRow({ group, index, n
   </Surface></Appear>;
 });
 
-function AgreementCollaborator({ item, taskTitle, now, cancellation, onOpen, onRate }: {
+function AgreementCollaborator({ item, taskTitle, now, stale = false, cancellation, onOpen, onRate }: {
   item: DogovorProjekcija; taskTitle: string; now: Date; cancellation?: AgreementCancellation | null;
+  stale?: boolean;
   onOpen: (item: DogovorProjekcija) => void; onRate?: (item: DogovorProjekcija) => void;
 }) {
   const other = item.ucesnici.find(person => !person.viSte), name = other?.ime?.trim() || 'Druga strana';
-  const chip = agreementChip(item, now), attention = agreementAttention(item), term = agreementTerm(item);
+  const chip = agreementChip(item, now), attention = stale ? null : agreementAttention(item), term = agreementTerm(item);
   const when = agreementWhen(item, now) ?? term.line;
   const amount = item.cena.prikaz || BEZ_IZNOSA, people = agreementPeople(item);
   const place = item.rezim === 'DALJINSKI' ? 'Na daljinu' : item.putanjaTekst || 'Mesto nije navedeno';

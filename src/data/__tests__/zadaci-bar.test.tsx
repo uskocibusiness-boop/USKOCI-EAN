@@ -5,8 +5,8 @@ import { ZadaciBarContext, useZadaciBar, useZadaciBarMotion, zadaciBarStyle, typ
 import { sys } from '../../ui/system/tokens';
 
 /**
- * The bottom navigation on Zadaci (the owner's phone of 8 Oct 2026: "dok je lista dole, donja navigacija se ne vidi; pojavi se kad se lista digne na pola ili skroz").
- * The layout owns the bar and the one value that moves it (0: on show, 1: away); the screen drives that value from its list. What is pinned here is the arithmetic of the
+ * The bottom navigation on Zadaci stays available at all three list stops and withdraws for a selected pin.
+ * The layout owns the bar and the one value that moves it (0: on show, 1: away); the screen drives that value from the preview. What is pinned here is the arithmetic of the
  * bar's style and the rules of the motion: the first answer puts the bar in place at once, later ones slide it on the native driver, a reduced-motion person sees it simply there
  * or gone, and a screen that is not in front or has no layout around it moves nothing.
  */

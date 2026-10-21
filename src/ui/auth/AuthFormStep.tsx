@@ -58,8 +58,8 @@ export type AuthFormStepProps = {
 };
 
 /**
- * The first step of the sign-in sheet: both ways in on one screen (N2). One title, the switch under it, the fields with their
- * label above and their error under them, the one sentence that is not a field's, and what else is offered. The one green
+ * The first step of the sign-in sheet: both ways in on one screen (N2). The selected way names the title, with one short
+ * explanation below it; the switch, fields with labels and inline errors, and the available other ways follow. The one green
  * command ("Prijavi se" or "Napravi nalog") is NOT here: it stands in the foot of the sheet, which is where the keyboard
  * leaves it in reach.
  *
@@ -75,12 +75,11 @@ export function AuthFormStep(p: AuthFormStepProps) {
     value: p.values[name], onChangeText: (value: string) => p.onValue(name, value), editable, error: p.errors[name] ?? null, inputRef: ref(name),
   });
   return <>
-    {/* With only one way in there is nothing to choose between, so the title says that way. */}
-    <AuthIntro title={p.signUpOpen ? authCopy.formTitle : authCopy.signIn} />
+    <AuthIntro title={signingUp ? authCopy.signUp : authCopy.signIn}
+      copy={signingUp ? authCopy.oneAccount : authCopy.resume} />
     {p.signUpOpen || p.intent ? <View style={s.group}>
       {p.signUpOpen ? <Segmented options={WAYS} value={p.way} onChange={p.onWay} /> : null}
       {p.intent ? <AuthIntentLine intent={p.intent} disabled={p.busy} onChange={p.onIntentChange} /> : null}
-      {signingUp ? <T variant="note" tone="muted">{authCopy.oneAccount}</T> : null}
     </View> : null}
     {p.notice ? <RevealWhenShown key={p.notice} testID="auth-notice"><AuthNote tone="ok">{p.notice}</AuthNote></RevealWhenShown> : null}
     {p.signupReturn ? <View style={s.group} accessibilityLiveRegion="polite" testID="signup-return">
@@ -125,7 +124,7 @@ export function AuthFormStep(p: AuthFormStepProps) {
         <View accessible={false} importantForAccessibility="no-hide-descendants"><FactArt kind="phone" size={24} /></View>
         <T variant="bodyStrong">Telefon</T>
       </Press>
-    </View> : p.emailOpen && p.way === 'LOGIN' && p.check === 'done' ? <T variant="note" tone="muted">Za sada se ulazi email adresom i lozinkom.</T>
+    </View> : !p.emailOpen && p.way === 'LOGIN' && p.signUpOpen ? <T variant="note" tone="muted">Možeš da napraviš nalog.</T>
       // No way in is open: the foot says why the command is grey, and here is what to do about it.
       : !p.emailOpen ? <T variant="note" tone="muted">Pokušaj ponovo malo kasnije.</T> : null}
   </>;

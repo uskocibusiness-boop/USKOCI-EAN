@@ -14,6 +14,7 @@ import { ScreenHeader } from '../system/ScreenHeader';
 import { Segmented } from '../system/Segmented';
 import { zadataka } from '../system/plural';
 import { StateView } from '../system/StateView';
+import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { AgreementRoleRail } from '../agreements/AgreementRoleRail';
@@ -28,7 +29,7 @@ import {
 /** Aktivni and Istorija (round-1 critique A11): "Svi" repeated both, and the count line repeated the tabs' own counts. */
 export type AgreementCollectionSection = 'active' | 'history';
 type Props = {
-  items: readonly DogovorProjekcija[]; loading: boolean; refreshing?: boolean; error: boolean;
+  items: readonly DogovorProjekcija[]; loading: boolean; refreshing?: boolean; refreshError?: boolean; error: boolean;
   section: AgreementCollectionSection; confirmationOnly: boolean;
   onSection: (value: AgreementCollectionSection) => void; onConfirmationOnly: (value: boolean) => void;
   onRefresh: () => void; onOpen: (agreement: DogovorProjekcija) => void;
@@ -73,9 +74,11 @@ const CLIP_OFFSCREEN = Platform.OS === 'android';
 const minuteOf = (now?: Date) => Math.floor((now ?? new Date()).getTime() / 60_000) * 60_000;
 /** Count the tasks shown in this group, not the separate people collaborating on each task. */
 const waitingTitle = (count: number) => `Čeka tebe · ${zadataka(count)}`;
+const unverifiedTitle = (count: number) => `Za proveru · ${zadataka(count)}`;
 /** D01 shares the accepted Agreement projection in both account roles. Presentation only. */
 export function AgreementCollectionPresentation(props: Props) {
   const { items, section, confirmationOnly, loading, error, onOpen, onRate } = props;
+  const stale = !!props.refreshError && !loading && !error;
   // The pull spinner answers a pull only; a read of its own (a focus, a tab) does not raise it (the owner's "dot", 8 Oct 2026).
   const pull = usePullRefresh(props.onRefresh, !!(props.refreshing ?? loading));
   // "Čeka tvoju potvrdu" narrows the active Dogovori only: nothing in history waits for a confirmation.
@@ -110,11 +113,13 @@ export function AgreementCollectionPresentation(props: Props) {
     if (section === 'history') return historyItems.filter(task => filterHistory(task.items, historyFilter).length > 0)
       .map(task => ({ id: task.key, kind: 'item' as const, task }));
     const pool = filtering ? activeItems.filter(task => task.items.some(awaitsMyConfirmation)) : activeItems;
-    return groupActiveAgreementTasks(pool, new Date(now)).flatMap(group => [{ id: `group:${group.key}`, kind: 'group' as const, title: group.key === 'waiting' ? waitingTitle(group.items.length) : group.title },
+    return groupActiveAgreementTasks(pool, new Date(now)).flatMap(group => [{ id: `group:${group.key}`, kind: 'group' as const,
+      title: group.key === 'waiting' ? stale ? unverifiedTitle(group.items.length) : waitingTitle(group.items.length) : group.title },
       ...group.items.map(task => ({ id: task.key, kind: 'item' as const, task }))]);
-  }, [section, filtering, activeItems, historyItems, historyFilter, now]);
+  }, [section, filtering, activeItems, historyItems, historyFilter, now, stale]);
   const waiting = useMemo(() => roleItems.filter(awaitsMyConfirmation).length, [roleItems]);
   const settledRead = !loading && !error;
+  const freshRead = settledRead && !stale;
   // The count belongs to "Čeka tebe". In history a direct link keeps outstanding actions discoverable.
   const attention = useMemo(() => activeItems.filter(task => task.items.some(item => agreementAttention(item) !== null)).length, [activeItems]);
   const activeCount = activeItems.length, historyCount = historyItems.length;
@@ -138,11 +143,11 @@ export function AgreementCollectionPresentation(props: Props) {
   const openOwnerTask = useCallback((taskId: string, witness: DogovorProjekcija) => ownerTaskRef.current?.(taskId, witness), []);
   const renderItem = useCallback(({ item: row, index }: ListRenderItemInfo<ListRow>) => row.kind === 'group'
     ? <GroupHeader title={row.title} first={index === 0} />
-    : <AgreementTaskRow group={row.task} index={index} now={now} animate={appearRef.current.isNew(row.id)} onOpen={openItem}
+    : <AgreementTaskRow group={row.task} index={index} now={now} animate={appearRef.current.isNew(row.id)} stale={stale} onOpen={openItem}
       expanded={expandedKey === row.task.key} onExpand={expand} cancellations={cancellations}
       ownerCapacities={ownerCapacities} onOpenOwnerTask={props.onOpenOwnerTask ? openOwnerTask : undefined}
       prioritize={section === 'history' ? historyFilter : filtering ? 'confirmation' : 'all'}
-      onRate={rates ? rateItem : undefined} />, [openItem, rateItem, rates, now, cancellations, ownerCapacities, props.onOpenOwnerTask, openOwnerTask, expandedKey, expand, section, historyFilter, filtering]);
+      onRate={rates ? rateItem : undefined} />, [openItem, rateItem, rates, now, cancellations, ownerCapacities, props.onOpenOwnerTask, openOwnerTask, expandedKey, expand, section, historyFilter, filtering, stale]);
   // A set that is empty while the other one is not leads to the one that has Dogovori, with the filter off, so the
   // way forward never lands on another empty view (review r3 item 7).
   const target: AgreementCollectionSection = (section === 'active' && !filtering) || !activeCount ? 'history' : 'active';
@@ -177,7 +182,10 @@ export function AgreementCollectionPresentation(props: Props) {
             primary={first} quiet={second} />}
   </View>;
   // Keep controls backed by a settled read. An initial read or a failed read must not offer filters over stale rows.
-  const chips = section === 'active' ? (settledRead && (waiting || confirmationOnly) ? <Press accessibilityRole="checkbox" accessibilityLabel="Čeka tvoju potvrdu"
+  const chips = section === 'active' ? stale && confirmationOnly ? <Press accessibilityRole="button" accessibilityLabel="Prikaži sve aktivne"
+    onPress={() => props.onConfirmationOnly(false)} haptic="select" style={s.chip}>
+    <T variant="meta" style={s.chipText}>Prikaži sve aktivne</T>
+  </Press> : (freshRead && (waiting || confirmationOnly) ? <Press accessibilityRole="checkbox" accessibilityLabel="Čeka tvoju potvrdu"
     accessibilityState={{ checked: confirmationOnly }} onPress={() => props.onConfirmationOnly(!confirmationOnly)} haptic="select"
     style={[s.chip, confirmationOnly && s.chipOn]}>
     {confirmationOnly ? <Glyph name="check" size={16} tone="green" /> : null}
@@ -210,12 +218,22 @@ export function AgreementCollectionPresentation(props: Props) {
         {section === 'history' ? <View style={s.filterNameSlot}><T variant="meta" tone="muted" style={s.filterName}>Ishod</T></View> : null}
         {chips}
       </View> : null}
-      {section === 'history' && settledRead && attention > 0 ? <Press accessibilityRole="button"
+      {section === 'history' && freshRead && attention > 0 ? <Press accessibilityRole="button"
         accessibilityLabel={waitingTitle(attention)} accessibilityHint="Otvara Dogovore, prvo one koji čekaju tvoju radnju."
         onPress={() => { props.onSection('active'); props.onConfirmationOnly(false); }} style={s.attentionLink}>
         <T variant="meta" style={s.attentionText}>{waitingTitle(attention)}</T><Glyph name="caret-right" size={20} />
       </Press> : null}
     </View>
+    {props.refreshError && !loading && !error ? <View style={s.refreshNotice} accessibilityLiveRegion="polite">
+      <Surface kind="note" tone="warn">
+        <T variant="note">Nismo uspeli da osvežimo Dogovore. Prikazano je poslednje učitano stanje.</T>
+        <Press accessibilityRole="button" accessibilityLabel="Ponovo osveži Dogovore"
+          onPress={props.onRefresh} haptic="select" style={s.refreshAction}>
+          <Glyph name="refresh" size={20} tone="green" />
+          <T variant="note" tone="green">Pokušaj ponovo</T>
+        </Press>
+      </Surface>
+    </View> : null}
     <FlatList<ListRow> data={loading || error ? [] : rows} keyExtractor={keyOf} refreshing={pull.refreshing}
       onRefresh={pull.onRefresh} showsVerticalScrollIndicator={false} contentContainerStyle={s.list} ListEmptyComponent={empty}
       // Six of these cards are more than one phone screen; a modest window fills a fast scroll quickly.
@@ -227,6 +245,8 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: sys.color.ground },
   // Local rhythm keeps all controls visible while bringing the first task closer; touch targets retain their full height.
   controls: { paddingHorizontal: layout.gutter, paddingTop: sys.space.xs },
+  refreshNotice: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm },
+  refreshAction: { minHeight: layout.touch, alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
   tabRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   tabs: { flex: 1, minWidth: 0 },
   // Keep the label beside the first line when large text wraps the outcome choices on a narrow screen.

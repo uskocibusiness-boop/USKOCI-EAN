@@ -19,6 +19,7 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../../ui/v2/AgreementCollectionPresentation';
 import { Segmented } from '../../ui/system/Segmented';
 import { AgreementPeople, AgreementPersonBar } from '../../ui/v2/AgreementPresentation';
+import type { AgreementRoleFilter } from '../../ui/agreements/agreementListModel';
 const agreement = (id: string, state: DogovorProjekcija['stanje'], requester = true): DogovorProjekcija => ({
   id, verzija: 3, naslov: `Posao ${id}`, stanje: state, cena: { iznos: 2500, valuta: 'RSD', prikaz: '2.500 RSD' },
   vremeTekst: '11. septembar · 10:00:00.000001–10:00:00.000009', putanjaTekst: 'Novi Sad',
@@ -48,6 +49,54 @@ beforeEach(() => {
   open.mockClear(); refresh.mockClear(); tasks.mockClear();
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
+test('a failed refresh keeps the last Dogovor cards and offers an explicit retry', async () => {
+  rows = [agreement('confirmed', 'CONFIRMED')];
+  await act(async () => { tree = create(<AgreementCollectionPresentation items={rows} loading={false} error={false} refreshError
+    section="active" confirmationOnly={false} onSection={() => {}} onConfirmationOnly={() => {}}
+    onOpen={open} onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}} now={NOW} />); });
+  expect(titles()).toContain('Otvori Dogovor Posao confirmed');
+  expect(texts()).toContain('Prikazano je poslednje učitano stanje.');
+  await tap('Ponovo osveži Dogovore');
+  expect(refresh).toHaveBeenCalledTimes(1);
+});
+test('stale Dogovori keep filter exits without claiming a current action count', async () => {
+  rows = [agreement('owner-wait', 'AWAITING_REQUESTER'), agreement('worker-wait', 'AWAITING_REQUESTER', false), agreement('done', 'COMPLETED')];
+  const Stale = () => {
+    const [confirmation, setConfirmation] = useState(true);
+    const [role, setRole] = useState<AgreementRoleFilter>('narucilac');
+    return <AgreementCollectionPresentation items={rows} loading={false} error={false} refreshError now={NOW}
+      section="active" confirmationOnly={confirmation} onSection={() => {}} onConfirmationOnly={setConfirmation}
+      roleFilter={role} onRoleFilter={setRole}
+      onOpen={open} onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}} />;
+  };
+  await act(async () => { tree = create(<Stale />); });
+  expect(texts()).toContain('Za proveru · 1 zadatak');
+  expect(texts()).not.toContain('Potvrdi završetak');
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka tvoju potvrdu' })).toHaveLength(0);
+  await tap('Prikaži sve aktivne');
+  expect(titles()).toContain('Otvori Dogovor Posao owner-wait');
+  await tap('Sve uloge');
+  expect(titles()).toContain('Otvori Dogovor Posao worker-wait');
+  await act(async () => tree.unmount());
+  await act(async () => { tree = create(<AgreementCollectionPresentation items={rows} loading={false} error={false} refreshError now={NOW}
+    section="history" confirmationOnly={false} onSection={() => {}} onConfirmationOnly={() => {}}
+    onOpen={open} onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}} />); });
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka tebe · 1 zadatak' })).toHaveLength(0);
+  expect(titles()).toContain('Otvori Dogovor Posao done');
+});
+test('stale grouped task keeps collaborators reachable without an unverified urgent foot', async () => {
+  const first = agreement('first', 'AWAITING_REQUESTER');
+  const second = agreement('second', 'AWAITING_REQUESTER');
+  first.izvor = second.izvor = { zadatakId: 'same-task', prijavaId: null };
+  rows = [first, second];
+  await act(async () => { tree = create(<AgreementCollectionPresentation items={rows} loading={false} error={false} refreshError now={NOW}
+    section="active" confirmationOnly={false} onSection={() => {}} onConfirmationOnly={() => {}}
+    onOpen={open} onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}} />); });
+  expect(texts()).toContain('Za proveru · 1 zadatak');
+  expect(texts()).not.toContain('obaveze čekaju tebe');
+  expect(texts()).not.toContain('Potvrdi završetak');
+  expect(titles()).toHaveLength(2);
+});
 test('active and history preserve both actual participant roles; attention means my requester confirmation', async () => {
   await render(); expect(titles()).toHaveLength(3); // One list holds both sides of one account, and each row says which side from its own participants.
   // A number is drawn only for what needs the person: one Dogovor waits for my confirmation, and Istorija says no count at all.

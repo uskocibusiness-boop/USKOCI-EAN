@@ -2493,6 +2493,32 @@ test('Android Back with the whole list up over the map lowers it to its top line
   } finally { spy.mockRestore(); }
 });
 
+test('Android Back lowers the half list before tab navigation and releases its handler at peek or on blur', async () => {
+  const listeners = new Set<() => boolean>();
+  const spy = jest.spyOn(BackHandler, 'addEventListener').mockImplementation(((_event: string, handler: () => boolean) => {
+    listeners.add(handler); return { remove: () => { listeners.delete(handler); } };
+  }) as never);
+  try {
+    rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4)));
+    await render();
+    expect(listSheet().props.index).toBe(0);
+    expect(listeners.size).toBe(0);
+    await dragSheet(1);
+    expect(listSheet().props.index).toBe(1);
+    expect(listeners.size).toBe(1);
+    let consumed = false;
+    await act(async () => { consumed = [...listeners][0](); });
+    expect(consumed).toBe(true);
+    expect(listSheet().props.index).toBe(0);
+    expect(snapshot.sheet).toBe('peek');
+    expect(listeners.size).toBe(0);
+    await dragSheet(1);
+    expect(listeners.size).toBe(1);
+    mockFocused = false; await update();
+    expect(listeners.size).toBe(0);
+  } finally { spy.mockRestore(); }
+});
+
 // Review of V47, item 12: a restore still waiting for the rows must not pull the list away from the person, and a scroll
 // not yet written when a task is opened must not be lost (the route takes no changes once the task is in front).
 test('a waiting restore is dropped when the list is taken hold of or refreshed; opening a task writes the scroll first', async () => {
@@ -3436,7 +3462,7 @@ describe('Zadaci composition: three heights, capsules over the map, furniture ab
   });
 });
 
-// The bottom navigation (the owner's phone of 8 Oct 2026: "dok je lista dole, donja navigacija se ne vidi; pojavi se kad se lista digne na pola ili skroz"). The layout owns the bar and the
+// Bottom navigation stays available at all three list stops and withdraws for a selected pin. The layout owns the bar and the
 // one value that moves it (0: on show, 1: away) and says how tall the bar is; the screen drives the value from the list and keeps clear what the bar lies over. Without a layout (a gallery)
 // there is no bar, and nothing is reserved and nothing moves.
 describe('navigation stays reachable during map/list browsing and withdraws for a selected pin', () => {
@@ -3567,7 +3593,7 @@ describe('navigation stays reachable during map/list browsing and withdraws for 
   });
 });
 
-// The screen reaches the bottom of the window (the bottom navigation is drawn over it, and away while the list rests low), so what stands at the bottom clears the system's own inset itself.
+// The screen reaches the bottom of the window (the bottom navigation is drawn over it and withdraws for a selected pin), so what stands at the bottom clears the system's own inset itself.
 describe('the bottom of the window: the system\'s own inset is cleared by what stands there', () => {
   test('the lowest stop of the list and the pin\'s card stand above the gesture bar', async () => {
     insetBottom = 24; await render(); await layOutBody(800);

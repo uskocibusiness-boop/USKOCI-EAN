@@ -265,6 +265,8 @@ it('opens the owned conversation calmly and keeps Back and recovery distinct',as
   expect(text()).toContain('Otvaramo razgovor');
   expect(text()).toContain('Pripremamo razgovor i proveravamo stanje nacrta.');
   expect(tree.root.findAllByType(QuietReadState)).toHaveLength(1);
+  expect(tree.root.findByType(ScreenChrome).props.title).toBe('Novi zadatak');
+  expect(tree.root.findByType(ScreenChrome).props.right).toBeUndefined();
   expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
   expect(tree.root.findAllByType('ActivityIndicator'as React.ElementType)).toHaveLength(0);
   expect(tree.root.findAllByProps({label:'Otvori prethodni razgovor'})).toHaveLength(0);
@@ -277,6 +279,8 @@ it('opens the owned conversation calmly and keeps Back and recovery distinct',as
   await act(async()=>tree.root.findByProps({label:'Otvori prethodni razgovor'}).props.onPress());
   expect(recover).toHaveBeenCalledTimes(1);
   expect(retry).not.toHaveBeenCalled();
+  await act(async()=>tree.update(<IntakeUnavailable loading error="" back={back} title="Razgovor o zadatku"/>));
+  expect(tree.root.findByType(ScreenChrome).props.title).toBe('Razgovor o zadatku');
 });
 it('hides the pinned area entirely when there is nothing yet to pin',async()=>{
   const p=props();p.card=jest.fn(()=>null);

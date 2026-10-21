@@ -143,7 +143,7 @@ export const HIDDEN = 1;
 const CARD_BOTTOM = sys.space.md;
 /**
  * The window's bottom inset (the gesture bar or the navigation keys), read from the provider's context: the screen reaches the bottom of the window
- * (the bottom navigation is drawn over it, and away while the list rests low), so what stands at the bottom clears that inset itself. A test double
+ * (the bottom navigation is drawn over it and withdraws for a selected pin), so what stands at the bottom clears that inset itself. A test double
  * that leaves the context out reads 0, as the search panel's frame does.
  */
 const InsetsContext = (SafeArea as { SafeAreaInsetsContext?: Context<{ bottom: number } | null> }).SafeAreaInsetsContext;
@@ -375,7 +375,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const traceState = useRef({ scrolled: false, index: -1 });
   const nearby = useNearbyMap(props.scopeKey, focused);
   const { width: windowWidth, height: windowHeight, fontScale } = useWindowDimensions();
-  // The bottom navigation lies OVER the bottom of this screen from half height up and is away below that: the layout owns it (its height
+  // The bottom navigation lies OVER this screen at all three list stops: the layout owns it (its height
   // and the one value that moves it); with none (a gallery, a test) nothing is reserved and nothing moves. What stands at the very bottom clears
   // the system's own inset.
   const bar = useZadaciBar(), barHeight = bar?.height ?? 0, bottomInset = useBottomInset();
@@ -913,12 +913,12 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const nearbyFitBottom = collapsedSnap + GAP + footerRow;
   // The card at the bottom may take what the map leaves between the tools above it and the row of furniture over it (the pin stays above the card).
   const previewMaxHeight = bodyHeight ? Math.max(48, bodyHeight - toolsBottom - footerRow - cardBottom - 3 * GAP - HIDDEN) : undefined;
-  // Android Back with the whole list up over the map lowers it to its top line, as the card and the panel close on Back.
+  // Android Back lowers either raised list stop to its top line; the map stays in context.
   useEffect(() => {
-    if (!focused || !expanded || !mapShown || cardShown || panel !== null) return;
+    if (!focused || sheetIndex === SNAP.peek || !mapShown || cardShown || panel !== null) return;
     const back = BackHandler.addEventListener('hardwareBackPress', () => { userIntent?.(); setSheetIndex(SNAP.peek); return true; });
     return () => back.remove();
-  }, [focused, expanded, mapShown, cardShown, panel, userIntent]);
+  }, [focused, sheetIndex, mapShown, cardShown, panel, userIntent, setSheetIndex]);
 
   // The panel's draft applies all at once; a newly chosen place brings its pins into view (the camera's own move, never an area).
   const openPanel = (mode: PanelMode) => { userIntent?.(); Keyboard.dismiss(); setPanel(mode); };
@@ -1063,8 +1063,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   }
   const currentList = useCallback(() => currentSheet() && currentExtent.current === extent, [currentSheet, extent]);
   // What the list leaves under its last card: room for the bottom navigation, which lies over the lower part
-  // of the sheet from half height up. It does not depend on whether the navigation is on show at the moment (a list that is read at its top line is
-  // not looked at), so the rows' own geometry never changes with it.
+  // of the sheet at every list stop. It does not depend on whether a pin preview hides navigation, so the rows' geometry stays stable.
   const endPadding = sys.space.xxl + barHeight;
   const minimumListContent = listWindow > 0 ? listWindow + capsuleSpace : 0;
   const listPadding = useMemo(() => ({ paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: endPadding, flexGrow: 1,

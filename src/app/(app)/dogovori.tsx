@@ -81,7 +81,9 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
       })]);
     } finally { if (timer) clearTimeout(timer); }
   }, [source]);
-  const resource = useFocusedResource(load);
+  // A pull keeps the last owned snapshot visible if the re-read fails. The
+  // presentation marks it as old; each opened detail performs its own read.
+  const resource = useFocusedResource(load, { retainOnRefresh: true });
   const renderedReadGeneration = readGeneration.current;
   const latest = useRef(resource); latest.current = resource;
   const current = () => foreground.active && foreground.generation === foregroundGeneration && renderedReadGeneration === readGeneration.current
@@ -94,7 +96,7 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
   // A card is acted on only while it is a row of the list on screen: a retained card from an older read is refused.
   const shown = (agreement: DogovorProjekcija) => {
     const value = latest.current;
-    return !value.loading && !value.error && value.data === resource.data && !!value.data?.includes(agreement);
+    return !value.loading && !value.refreshing && !value.error && value.data === resource.data && !!value.data?.includes(agreement);
   };
   const open = (agreement: DogovorProjekcija) => {
     if (!shown(agreement)) return;
@@ -116,7 +118,7 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
   const [capacities, setCapacities] = useState<{ key: string; value: ReadonlyMap<string, NeedSearchState>;
     scope: object | null; generation: number; data: typeof resource.data } | null>(null);
   useEffect(() => {
-    if (!current() || resource.loading || resource.refreshing || resource.error || !capacityIds.length || !user?.id) return;
+    if (!current() || resource.loading || resource.refreshing || resource.error || resource.refreshError || !capacityIds.length || !user?.id) return;
     let live = true;
     const value = new Map<string, NeedSearchState>();
     void (async () => {
@@ -132,7 +134,7 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
     })();
     return () => { live = false; };
   }, [capacityKey, capacityIds, user?.id, accountRevision, scope, renderedReadGeneration,
-    resource.data, resource.loading, resource.refreshing, resource.error]); // eslint-disable-line react-hooks/exhaustive-deps
+    resource.data, resource.loading, resource.refreshing, resource.error, resource.refreshError]); // eslint-disable-line react-hooks/exhaustive-deps
   const openOwnerTask = (taskId: string, witness: DogovorProjekcija) => {
     if (!shown(witness) || !sameOwnerTaskId(witness.izvor?.zadatakId, taskId)
       || !witness.ucesnici?.some(person => person.viSte && person.uloga === 'narucilac')) return;
@@ -147,17 +149,17 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
   const [cancellations, setCancellations] = useState<{ key: string; value: AgreementCancellations; scope: object | null;
     generation: number; data: typeof resource.data } | null>(null);
   useEffect(() => {
-    if (!current() || resource.loading || resource.refreshing || resource.error || !cancelledIds.length || !user?.id) return;
+    if (!current() || resource.loading || resource.refreshing || resource.error || resource.refreshError || !cancelledIds.length || !user?.id) return;
     let live = true;
     void agreementCancellationService.read(cancelledIds, { accountId: user.id, accountRevision })
       .then(result => { if (live && current() && result.ok) setCancellations({ key: cancelledKey, value: result.podatak,
         scope, generation: renderedReadGeneration, data: resource.data }); }).catch(() => undefined);
     return () => { live = false; };
-  }, [cancelledKey, user?.id, accountRevision, scope, renderedReadGeneration, resource.data, resource.loading, resource.refreshing, resource.error]); // eslint-disable-line react-hooks/exhaustive-deps
-  return <AgreementCollectionPresentation header={<ScreenHeader title="Dogovori" showTitle onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
-    ownerCapacities={!resource.loading && !resource.refreshing && !resource.error && current() && capacities?.key === capacityKey
+  }, [cancelledKey, user?.id, accountRevision, scope, renderedReadGeneration, resource.data, resource.loading, resource.refreshing, resource.error, resource.refreshError]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <AgreementCollectionPresentation header={<ScreenHeader title="Dogovori" showTitle onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} items={resource.data ?? []} loading={resource.loading} refreshing={resource.refreshing} refreshError={resource.refreshError} error={!!resource.error}
+    ownerCapacities={!resource.loading && !resource.refreshing && !resource.error && !resource.refreshError && current() && capacities?.key === capacityKey
       && capacities.scope === scope && capacities.generation === renderedReadGeneration && capacities.data === resource.data ? capacities.value : null}
-    cancellations={!resource.loading && !resource.refreshing && !resource.error && current() && cancellations?.key === cancelledKey && cancellations.scope === scope
+    cancellations={!resource.loading && !resource.refreshing && !resource.error && !resource.refreshError && current() && cancellations?.key === cancelledKey && cancellations.scope === scope
       && cancellations.generation === renderedReadGeneration && cancellations.data === resource.data ? cancellations.value : null}
     section={section} confirmationOnly={confirmationOnly} historyFilter={historyFilter} roleFilter={roleFilter}
     expandedTaskKey={expandedTaskKey} onExpandedTask={(key, witness) => { if (current() && shown(witness)) onExpandedTask(key); }}

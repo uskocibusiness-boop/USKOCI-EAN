@@ -117,6 +117,9 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   // Choosing a place consumes only this visit's new input. An already applied task query remains intentional.
   const [committedQuery, setCommittedQuery] = useState(view.query);
   const [locationQuery, setLocationQuery] = useState(appliedMapPlace?.label ?? '');
+  // A typed label is not a confirmed map target, even if it happens to equal the
+  // label saved before this visit. Only a fresh resolver choice can confirm an edit.
+  const [locationEdited, setLocationEdited] = useState(false);
   const [placeLookup, setPlaceLookup] = useState<{ status: 'idle' | 'loading' | 'error' | 'blocked' | 'empty' | 'ready';
     candidates?: readonly { label: string; position: CoarsePosition }[] }>({ status: 'idle' });
   const [selectedCenter, setSelectedCenter] = useState<ConfirmedMapPlace | null>(null);
@@ -247,7 +250,8 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
         ...(current.minBudgetRsd !== undefined ? { minBudgetRsd: null } : {}) }));
       setRangeStart(null);
       setMinText('');
-      locationEpoch.current++; resolver.cancel(); setLocationQuery(''); setSelectedCenter(null); setPlaceLookup({ status: 'idle' });
+      locationEpoch.current++; resolver.cancel(); setLocationQuery(''); setLocationEdited(false);
+      setSelectedCenter(null); setPlaceLookup({ status: 'idle' });
     }
   };
   const lookUpPlace = async () => {
@@ -273,7 +277,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   // back to the number of rows already loaded.
   const centering = mode === 'filters' && !!selectedCenter && draft.where !== 'remote';
   const unconfirmedPlace = mode === 'filters' && draft.where !== 'remote' && !!locationQuery.trim()
-    && locationQuery.trim() !== (selectedCenter?.label ?? appliedMapPlace?.label ?? '');
+    && !selectedCenter && (locationEdited || locationQuery.trim() !== (appliedMapPlace?.label ?? ''));
   const show = minPriceInvalid ? { label: 'Proveri najmanju cenu', disabled: true }
     : unconfirmedPlace ? { label: 'Izaberi potvrđeno mesto', disabled: true }
     : centering ? { label: 'Prikaži oblast na mapi', disabled: false }
@@ -395,7 +399,8 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
         <T variant="note" tone="muted">Unesi mesto, izaberi potvrđeni predlog, pa primeni. Mapa će se pomeriti na približno područje.</T>
         <TextInput testID="filters-place-input" accessibilityLabel="Grad ili mesto" value={locationQuery} placeholder="Grad ili mesto"
           autoCapitalize="words" autoCorrect={false} returnKeyType="search" onSubmitEditing={() => { void lookUpPlace(); }}
-          onChangeText={text => { locationEpoch.current++; resolver.cancel(); setLocationQuery(text); setSelectedCenter(null); setPlaceLookup({ status: 'idle' }); }}
+          onChangeText={text => { locationEpoch.current++; resolver.cancel(); setLocationQuery(text); setLocationEdited(true);
+            setSelectedCenter(null); setPlaceLookup({ status: 'idle' }); }}
           style={s.locationInput} />
         <V2Action label={placeLookup.status === 'loading' ? 'Tražimo mesto…' : 'Pronađi mesto'} kind="secondary"
           disabled={!locationQuery.trim() || placeLookup.status === 'loading'} onPress={() => { void lookUpPlace(); }} />
@@ -404,15 +409,21 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
         {placeLookup.status === 'empty' ? <T variant="note" accessibilityLiveRegion="polite">Nema predloga za uneto mesto.</T> : null}
         {placeLookup.candidates?.map((candidate, index) => <V2Action key={`${candidate.label}:${index}`}
           label={`${selectedCenter === candidate ? 'Izabrano' : 'Izaberi'}: ${candidate.label}`} kind="quiet"
-          onPress={() => { setSelectedCenter(candidate); setLocationQuery(candidate.label); edit(ANYWHERE); }} />)}
+          onPress={() => { setSelectedCenter(candidate); setLocationQuery(candidate.label); setLocationEdited(false); edit(ANYWHERE); }} />)}
         {selectedCenter ? <T variant="note" accessibilityLiveRegion="polite">{selectedCenter.label} je spremno. Mapa se pomera tek kada primeniš filtere.</T> : null}
         {placeLookup.status === 'ready' ? <T variant="meta" accessibilityRole="link"
           onPress={() => { void Linking.openURL('https://locationiq.com/attribution').catch(() => {}); }}>Pretraga: LocationIQ · izvori podataka</T> : null}
       </>) : null}
       {workModes ? section('where', 'Način rada', <>
         <Choice compact label="Način rada" options={WORK_MODE_OPTIONS} value={draft.where} onChange={where => {
-          edit({ where }); if (where === 'remote') { setSelectedCenter(null); locationEpoch.current++; resolver.cancel(); }
+          edit({ where }); if (where === 'remote') {
+            // Remote work is independent of the map. If the person returns to
+            // onsite in this draft, a cleared field must not claim the old place.
+            setSelectedCenter(null); setLocationQuery(''); setLocationEdited(true);
+            setPlaceLookup({ status: 'idle' }); locationEpoch.current++; resolver.cancel();
+          }
         }} />
+        {draft.where === 'remote' ? <T variant="note" tone="muted">Zadaci na daljinu nemaju mesto na mapi.</T> : null}
       </>) : null}
       {section('amount', 'Cena', <>
         <Choice compact label="Cena" options={PRICE_OPTIONS} value={draft.price} onChange={price => {

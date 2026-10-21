@@ -5,8 +5,8 @@
  * The test `auth-copy-one-name.test.ts` keeps the three old names out of every file of the sign-in screens.
  */
 export const authCopy = {
-  /** What the first step of the sheet is for. It says both ways, because the switch under it chooses between them. */
-  formTitle: 'Prijavi se ili napravi nalog',
+  /** The first step names the selected way; the switch directly below can change it. */
+  resume: 'Nastavi tamo gde si stao.',
   recoveryName: 'Oporavak lozinke',
   forgot: 'Zaboravljena lozinka?',
   signIn: 'Prijavi se',
@@ -18,7 +18,7 @@ export const authCopy = {
   retry: 'Pokušaj ponovo',
   /** The one sentence for a failure nobody can say more about. It names the next step. */
   failed: 'Nešto nije uspelo. Pokušaj ponovo.',
-  oneAccount: 'Jedan nalog. Možeš i da tražiš pomoć i da uskočiš drugima.',
+  oneAccount: 'Jedan nalog za sve: objavi zadatak ili uskoči.',
   /** Said instead of a tick that recorded nothing (owner rule PKG-031), while the legal documents are not published. */
   legal: 'Uslovi korišćenja i Politika privatnosti još nisu objavljeni.',
 } as const;

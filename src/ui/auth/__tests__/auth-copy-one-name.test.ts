@@ -26,9 +26,10 @@ describe('the sign-in screens say each thing one way', () => {
     expect(OLD_NAMES.filter(name => code.includes(name))).toEqual([]);
   });
 
-  it('"Zdravo." is not the title of anything, and the first step says what it is for', () => {
+  it('"Zdravo." is not the title of anything, and each way names its action', () => {
     for (const path of FILES) expect(codeOf(path)).not.toMatch(/['"`]Zdravo\.['"`]/);
-    expect(authCopy.formTitle).toBe('Prijavi se ili napravi nalog');
+    expect(authCopy.signIn).toBe('Prijavi se');
+    expect(authCopy.signUp).toBe('Napravi nalog');
   });
 
   it('password recovery has one name, in the title of its step and in the bar of the link\'s own screen', () => {

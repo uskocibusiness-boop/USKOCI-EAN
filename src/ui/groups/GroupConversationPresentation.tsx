@@ -65,7 +65,9 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
   const { state } = p, group = state.context?.group ?? null, ready = state.phase === 'READY';
   const retry = state.phase === 'UNKNOWN' && state.canRetry;
   const olderUnavailable = state.phase === 'ERROR' && state.olderPageUnavailable && !!group && state.messages.length > 0;
-  const first = state.phase === 'LOADING' && !state.messages.length && !group;
+  const first = state.phase === 'LOADING' && !state.messages.length;
+  const progress = (state.phase === 'LOADING' && state.messages.length > 0)
+    || state.phase === 'SENDING' || state.phase === 'UNKNOWN' || state.phase === 'CONFIRMED';
   // As in Poruke: a thread is anchored to the composer, a state (the first read, an error, nothing to show) to the middle.
   const centred = first || (state.phase === 'ERROR' && !olderUnavailable) || (ready && (!group || state.messages.length === 0));
   const me = state.context?.accountId;
@@ -135,7 +137,7 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
       {!group.terminal && !group.canSend ? <T variant="meta" tone="muted">Dostupna istorija razgovora</T> : null}
     </> : ready ? <StateView kind="empty" art="users" title="Grupni razgovor još nije otvoren"
       body="Grupni razgovor se otvara kad su za ovaj zadatak izabrane najmanje dve osobe. Tvoj privatni Dogovor je i dalje dostupan." /> : null}
-    {state.message && (state.phase !== 'ERROR' || olderUnavailable) ? <T variant="copy" accessibilityRole={state.phase === 'ERROR' ? 'alert' : undefined}
+    {state.message && state.phase !== 'UNKNOWN' && state.phase !== 'CONFIRMED' && (state.phase !== 'ERROR' || olderUnavailable) ? <T variant="copy" accessibilityRole={state.phase === 'ERROR' ? 'alert' : undefined}
       accessibilityLiveRegion="polite">{state.message}</T> : null}
     {state.before ? <V2Action label={olderUnavailable ? 'Ponovo učitaj starije poruke' : 'Starije poruke'} kind="quiet" disabled={!ready && !olderUnavailable} onPress={older} /> : null}
     {/* A member admitted later reads the group from their admission on, so an empty thread is honest about what it shows. */}
@@ -194,11 +196,15 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
             {p.support && chosen === item.messageId ? <View style={[s.support, item.mine ? s.supportMine : s.supportTheirs]}>{p.support(item)}</View> : null}
           </Appear>;
         }}
-        ListFooterComponent={<View style={[s.stack, s.gutter]}>
-          {state.phase === 'SENDING' ? <T variant="meta" tone="muted" accessibilityLiveRegion="polite">Čekamo potvrdu slanja…</T> : null}
+        />
+      {/* Keep read and send recovery next to the composer even when the reader is scrolled into older history. */}
+      {progress ? <View testID="group-conversation-progress" style={[s.stack, s.gutter]} accessibilityLiveRegion="polite">
+          {state.phase === 'LOADING' ? <T variant="meta" tone="muted">Učitavamo poruke…</T> : null}
+          {state.phase === 'SENDING' ? <T variant="meta" tone="muted">Čekamo potvrdu slanja…</T> : null}
+          {(state.phase === 'UNKNOWN' || state.phase === 'CONFIRMED') && state.message ? <T variant="note" tone="muted">{state.message}</T> : null}
           {state.phase === 'UNKNOWN' ? <V2Action label="Proveri da li je poruka stigla" style={brandAction} onPress={refresh} /> : null}
           {state.phase === 'CONFIRMED' ? <V2Action label="Nastavi razgovor" style={brandAction} onPress={p.onAcknowledge} /> : null}
-        </View>} />
+        </View> : null}
       {reading.showLatest ? <View style={[s.gutter, s.latest]}>
         {reading.readingLost ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Razgovor je osvežen. Prethodno mesto nije u prikazanom delu.</T> : null}
         <V2Action label="Najnovije poruke" kind="quiet" tone="neutral" compact onPress={reading.chooseLatest} />

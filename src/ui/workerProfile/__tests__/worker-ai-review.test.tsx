@@ -49,6 +49,7 @@ it('displays reviewed modes and handoff beside only their own service, while ret
   await act(async()=>{tree=create(<WorkerAiCard profile={prepared.profile} compact={false} review={jest.fn()} disabled={false} verifiedReview={prepared}/>);});
   expect(texts()).toContain('Bez dolaska kod naručioca');expect(texts()).toContain('Kod naručioca');expect(texts()).toContain('Slanje: RS');
   expect(texts()).toContain('do 20 km');expect(texts()).toContain('Nacrt · nije sačuvan');expect(texts()).not.toContain('private-id');
+  expect(texts()).toContain('za okolna mesta potvrdi centar');
   expect(tree.root.findAllByProps({testID:'worker-draft-review-note'})).toHaveLength(0);
   const handoff=tree.root.findByProps({testID:'worker-understood-handoff'});
   expect(handoff.parent?.findAllByType('T' as React.ElementType).map(node=>node.props.children)).toContain('3D štampa');
@@ -180,6 +181,7 @@ it('P5 worker review: map belongs to the frozen review and is read-only, not a n
   expect(map.props).toMatchObject({ coarse: true, disabled: true, height: 220, position: saved.profile.location.approximatePosition });
   expect(map.props.scopeKey).toContain(saved.reviewId); expect(map.props.scopeKey).toContain(saved.accountId);
   expect(texts()).toContain('do 20 km');
+  expect(texts()).not.toContain('za okolna mesta potvrdi centar');
   expect(texts()).not.toContain('tačka radnog područja je sačuvana');
 });
 it('P5 worker review: confirmed on-site work without coordinates never renders a fabricated map', async () => {
@@ -187,6 +189,7 @@ it('P5 worker review: confirmed on-site work without coordinates never renders a
   await act(async () => { tree = create(<WorkerAiReviewDetails review={saved} />); });
   expect(tree.root.findAllByType('ReviewedWorkAreaMap' as React.ElementType)).toHaveLength(0);
   expect(texts()).toContain('do 20 km');
+  expect(texts()).toContain('za okolna mesta potvrdi centar');
 });
 it('P5 worker review: confirmed remote work hides an inherited map and radius', async () => {
   const saved: WorkerAiReview = { ...review({}, { skills: ['3D štampa'], location: { operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 20,

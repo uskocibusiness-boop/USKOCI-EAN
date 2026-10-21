@@ -143,12 +143,12 @@ type Props = {
 // The live card's public summary is the shared pure one (src/ui/v2/draftSummary.ts), also used by the publish review.
 export type { Summary } from './draftSummary';
 
-export function IntakeUnavailable({ loading, error, retry, back, recover }: {
-  loading: boolean; error: string; retry?: () => void; back: () => void; recover?: () => void;
+export function IntakeUnavailable({ loading, error, retry, back, recover, title = 'Novi zadatak' }: {
+  loading: boolean; error: string; retry?: () => void; back: () => void; recover?: () => void; title?: string;
 }) {
   const primary = recover ? { label: 'Otvori prethodni razgovor', onPress: recover } : retry ? { label: 'Pokušaj ponovo', onPress: retry } : undefined;
   return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}>
-    <ScreenChrome variant="detail" tone="conversation" onBack={back} />
+    <ScreenChrome variant="detail" tone="conversation" onBack={back} title={title} />
     <View style={s.unavailable}>
       {loading ? <QuietReadState art="chat" title="Otvaramo razgovor" body="Pripremamo razgovor i proveravamo stanje nacrta." />
         : <StateView kind="error" art="chat" title="Razgovor nije dostupan" body={error} primary={primary} />}

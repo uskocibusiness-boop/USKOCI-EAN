@@ -71,6 +71,27 @@ it('shows a calm first read until authorized group context and messages arrive',
  expect(tree!.root.findAllByType('TextInput' as never)).toHaveLength(1);
  expect(mockService.send).not.toHaveBeenCalled();
 });
+it('keeps loading visible after roster authorization and during a manual refresh, then offers retry after an offline read',async()=>{
+ const firstPage=deferred<unknown>();mockService.messages.mockReturnValueOnce(firstPage.promise);await render();
+ expect(text()).toContain('Zajednički Zadatak');
+ expect(text()).toContain('Učitavamo razgovor…');
+ expect(tree!.root.findAllByType('TextInput' as never)).toHaveLength(0);
+ await act(async()=>firstPage.resolve(ok({messages:[message],nextBeforeSequence:null,nextAfterSequence:null})));
+ expect(text()).toContain(message.body);
+ const refreshPage=deferred<unknown>();mockService.messages.mockReturnValueOnce(refreshPage.promise);
+ await act(async()=>action('Osveži poruke').onPress());
+ expect(text()).toContain(message.body);
+ expect(text()).toContain('Učitavamo poruke…');
+ expect(tree!.root.findByType('List' as never).findAllByProps({testID:'group-conversation-progress'})).toHaveLength(0);
+ expect(tree!.root.findAllByType('TextInput' as never)).toHaveLength(0);
+ await act(async()=>refreshPage.resolve({ok:false,kod:'GROUP_PAGE_TRANSPORT_UNAVAILABLE',poruka:'Veza je prekinuta.'}));
+ expect(text()).toContain('Razgovor nije učitan');
+ expect(text()).not.toContain(message.body);
+ await tap('Pokušaj ponovo');
+ expect(text()).toContain(message.body);
+ expect(tree!.root.findAllByType('TextInput' as never)).toHaveLength(1);
+ expect(mockService.send).not.toHaveBeenCalled();
+});
 it('renders actual common message, member names/avatars and keeps individual management absent for peers',async()=>{
  await render();expect(text()).toContain(message.body);expect(text()).toContain('Cenu, lične uslove i probleme dogovori privatno.');expect(text()).toContain('Ove poruke vide svi učesnici zadatka.');await tap('Učesnici razgovora');expect(text()).toContain('Bojana');
  expect(tree!.root.findByProps({testID:'group-task-anchor'}).props.onPress).toBeUndefined();
@@ -150,6 +171,17 @@ it('has one send action, latches concurrent retained callbacks and persists no p
  await act(async()=>{old();old();});expect(mockStorage.setItem).toHaveBeenCalledTimes(1);expect(mockService.send).not.toHaveBeenCalled();
  await act(async()=>gate.resolve());expect(mockService.send).toHaveBeenCalledTimes(1);expect(mockStorage.setItem.mock.calls[0][1]).not.toContain('Prvobitna poruka');
  expect(action('Proveri da li je poruka stigla')).toBeDefined();expect(send('Pošalji poruku grupi')).toBeUndefined();
+});
+it('keeps an uncertain send explanation beside its check action without sending a second command',async()=>{
+ await render();await change('Prvobitna poruka');
+ await act(async()=>send('Pošalji poruku grupi').onPress());
+ const progress=tree!.root.findByProps({testID:'group-conversation-progress'});
+ expect(progress.findAllByType('T' as never).map(node=>node.children.join(''))).toContain('Ishod nije potvrđen.');
+ expect(tree!.root.findByType('List' as never).findAllByProps({testID:'group-conversation-progress'})).toHaveLength(0);
+ await tap('Proveri da li je poruka stigla');
+ expect(text()).toContain('Ne znamo da li je poruka stigla.');
+ expect(send('Ponovi slanje iste poruke')).toBeDefined();
+ expect(mockService.send).toHaveBeenCalledTimes(1);
 });
 it('restart reads original key and requires exact re-entry before same-key retry',async()=>{
  mockStorage.getItem.mockResolvedValue(JSON.stringify(journal));await render();expect(mockService.send).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();

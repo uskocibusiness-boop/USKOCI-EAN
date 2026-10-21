@@ -619,6 +619,22 @@ describe('the FILTERS are a sheet with the days, how the work is done and the am
     expect(lastDraft()).toMatchObject({ where: 'remote', area: null, place: null, pinPlace: null, query: 'Pomoć', price: 'MY_PRICE', places: 2 });
   });
 
+  test('remote then onsite does not show an old confirmed map place that is no longer in the draft', async () => {
+    mode = 'filters'; view = { ...view, where: 'onsite', area: [19.8, 45.2, 19.9, 45.3] };
+    appliedMapPlace = { label: 'Novi Sad, Srbija', position: { latitude: 45.25, longitude: 19.84 } };
+    await render();
+    expect(byId('filters-place-input').props.value).toBe('Novi Sad, Srbija');
+    await choose('Na daljinu', group('filters-where'));
+    expect(byId('filters-place-input')).toBeUndefined();
+    expect(texts(group('filters-where'))).toContain('Zadaci na daljinu nemaju mesto na mapi.');
+    await choose('Na lokaciji', group('filters-where'));
+    expect(byId('filters-place-input').props.value).toBe('');
+    await act(async () => show().props.onPress());
+    expect(apply).toHaveBeenCalledWith(expect.objectContaining({ where: 'onsite', area: null, place: null, pinPlace: null }),
+      { clearMapPlace: true });
+    expect(centerPlace).not.toHaveBeenCalled();
+  });
+
   test('"Očisti" empties the filters and counts again, and leaves the search; × leaves the list exactly as it was', async () => {
     view = { ...view, price: 'OFFERS', when: 'weekend', place: 'Vračar, Beograd', query: 'pomoć' }; mode = 'filters'; await render();
     expect(show().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
@@ -747,6 +763,24 @@ describe('the FILTERS are a sheet with the days, how the work is done and the am
     await act(async () => show().props.onPress());
     expect(apply).toHaveBeenCalledWith(expect.objectContaining({ place: null, area: null, pinPlace: null }), { clearMapPlace: true });
     expect(centerPlace).not.toHaveBeenCalled();
+  });
+
+  test('retyping the old place label still requires a fresh LocationIQ choice', async () => {
+    mode = 'filters'; view = { ...view, area: [19.8, 45.2, 19.9, 45.3] };
+    appliedMapPlace = { label: 'Novi Sad, Srbija', position: { latitude: 45.25, longitude: 19.84 } };
+    placeResolver = { search: jest.fn().mockResolvedValue({ status: 'PROPOSALS', requiresConfirmation: true, candidates: [{
+      label: 'Novi Sad, Srbija', countryCode: 'RS', position: { latitude: 45.25123, longitude: 19.83678 },
+      origin: { kind: 'PROVIDER_CANDIDATE', providerHint: 'locationiq', candidateHint: 'novi-sad' },
+    }] }), cancel: jest.fn() } as never;
+    await render();
+    await act(async () => byId('filters-place-input').props.onChangeText('Beograd'));
+    await act(async () => byId('filters-place-input').props.onChangeText('Novi Sad, Srbija'));
+    expect(show().props).toMatchObject({ label: 'Izaberi potvrđeno mesto', disabled: true });
+    await act(async () => actionNamed('Pronađi mesto').props.onPress());
+    await act(async () => actionNamed('Izaberi: Novi Sad, Srbija').props.onPress());
+    expect(show().props).toMatchObject({ label: 'Prikaži oblast na mapi', disabled: false });
+    await act(async () => show().props.onPress());
+    expect(centerPlace).toHaveBeenCalledWith({ label: 'Novi Sad, Srbija', position: { latitude: 45.25, longitude: 19.84 } });
   });
 
   test('P6 previews the cleared map area before the user can apply it', async () => {

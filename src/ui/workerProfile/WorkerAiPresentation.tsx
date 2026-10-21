@@ -71,7 +71,9 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
       })}
       {!profile.skills.length?<T variant="note" tone="muted">Usluge još razjašnjavamo.</T>:null}
       {!expanded&&profile.skills.length>shownSkills.length?<T variant="note" tone="muted">{`Još ${profile.skills.length-shownSkills.length} u detaljima`}</T>:null}
-      {place?<PreviewFact art="pin">{onSite?`${place} · do ${profile.location.radiusKm} km`:`Grad profila: ${place}`}</PreviewFact>:null}
+      {place?<PreviewFact art="pin">{onSite
+        ?`${place} · do ${profile.location.radiusKm} km${displayedPinPosition(profile.location.approximatePosition,true)?'':' (za okolna mesta potvrdi centar)'}`
+        :`Grad profila: ${place}`}</PreviewFact>:null}
       {profile.availability.availableNow?<PreviewFact art="clock">{availability}</PreviewFact>:null}
       {!modes.length&&profile.skills.length?<T testID="worker-understood-pending" variant="note" tone="muted">Način rada i predaju proveravamo u pregledu.</T>:null}
     </View>
@@ -182,7 +184,7 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
     <ReviewGroup part="area">
       <Fact art="pin" quiet={!place}>{place
         ?onSite
-          ?`${place} · do ${p.location.radiusKm} km`
+          ?`${place} · do ${p.location.radiusKm} km${point?'':' (za okolna mesta potvrdi centar)'}`
           :`${place} · grad profila`
         :EMPTY}</Fact>
       {remote?<T variant="note" tone="muted">Posao radiš bez dolaska kod naručioca: onlajn ili kod sebe.</T>:null}

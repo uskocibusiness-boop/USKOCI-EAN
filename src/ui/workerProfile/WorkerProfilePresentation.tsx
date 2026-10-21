@@ -32,16 +32,17 @@ import { type WorkerAiPart } from './workerProfileFacts';
  * sentence there, and hiding the whole footer made the tap look dead. Any other footer (the area confirmation, the AI
  * review) steps aside whole, because nothing in it answers a tap made while typing.
  */
-export function WorkerProfileFrame({ back, children, footer, title = 'Radni profil', backLabel = 'Nazad', scrollRef, onScroll, onScrollBeginDrag, right }: {
+export function WorkerProfileFrame({ back, children, footer, title = 'Radni profil', backLabel = 'Nazad', scrollRef, onScroll, onScrollBeginDrag, right, tone }: {
   back: () => void; children: ReactNode; footer?: ReactNode; title?: string; backLabel?: string;
   scrollRef?: RefObject<ScrollView | null>; onScroll?: ScrollViewProps['onScroll']; onScrollBeginDrag?: ScrollViewProps['onScrollBeginDrag'];
   /** At most one control in the bar's right place: the "ⓘ" with what the profile does with its data (`HeaderInfo`). */ right?: ReactNode;
+  /** Match the live AI conversation while its owned read is in progress. */ tone?: 'conversation';
 }) {
   const typing = useKeyboardShown();
   const keepsStatus = isValidElement(footer) && footer.type === WorkerProfileFooter;
   const aside = typing && !keepsStatus;
-  return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <DetailTopBar backLabel={backLabel} title={title} onBack={back} right={right} />
+  return <SafeAreaView edges={['top', 'bottom']} style={[s.screen, tone === 'conversation' && s.conversationScreen]}>
+    <DetailTopBar backLabel={backLabel} title={title} onBack={back} right={right} tone={tone} />
     <KeyboardAvoidingView style={s.grow} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {/* The iOS number pad has no return key and iOS has no Back: dragging the body closes the keyboard (review 5b). */}
       <ScrollView ref={scrollRef} onScroll={onScroll} onScrollBeginDrag={onScrollBeginDrag} scrollEventThrottle={onScroll ? 16 : undefined}
@@ -74,7 +75,13 @@ function useKeyboardShown() {
 }
 
 /** Reading the profile, or why it could not be read. No draft is built from defaults. */
-export function WorkerProfileStatus({ loading, error, retry }: { loading: boolean; error?: string | null; retry: () => void }) {
+export function WorkerProfileStatus({ loading, error, retry, context = 'profile' }: {
+  loading: boolean; error?: string | null; retry: () => void; context?: 'profile' | 'conversation';
+}) {
+  if (context === 'conversation') return loading
+    ? <QuietReadState art="chat" title="Otvaramo razgovor" body="Pripremamo razgovor i proveravamo stanje nacrta." />
+    : <StateView kind="error" art="chat" title="Razgovor nije dostupan" body={error ?? undefined}
+      primary={{ label: 'Ponovo učitaj razgovor', onPress: retry }} />;
   if (loading) return <QuietReadState art="person" title="Učitavamo radni profil…" body="Proveravamo sačuvane veštine i dostupnost." />;
   return <StateView kind="error" title="Radni profil nije dostupan" body={error ?? undefined}
     primary={{ label: 'Ponovo učitaj profil', onPress: retry }} />;
@@ -187,7 +194,7 @@ export function WorkerProfileForm({ draft, disabled, status, navigate, openConve
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: sys.color.ground }, grow: { flex: 1, minWidth: 0 },
+  screen: { flex: 1, backgroundColor: sys.color.ground }, conversationScreen: { backgroundColor: sys.conversation.ground }, grow: { flex: 1, minWidth: 0 },
   ink: { color: sys.color.ink }, danger: { color: sys.color.danger },
   start: { alignSelf: 'flex-start' },
   content: { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm, gap: layout.section, paddingBottom: layout.zone },

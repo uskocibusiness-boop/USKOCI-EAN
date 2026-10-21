@@ -5,6 +5,10 @@
     "proof": "Izvor, lokalni test i aktivni DEV su odvojeni; ponovljeni Jest je izlistao 635/635 paketa, 14341 PASS/9 SKIP (otvoren async handle posle rezimea), TypeScript PASS; task AI DEV v119 i worker AI DEV v73 ACTIVE, readback helpera i no-auth 401; nema potpisanog live AI razgovora, novog HONOR ili APK dokaza.",
     "open_gates": ["task_edit_atomic", "cancelled_candidate_parity", "worker_area_v2", "worker_equipment_signed_save", "multi_worker_terms", "application_time_conflict", "exact_application_push", "account_closure_and_ai_history_erasure", "native_visual_acceptance"]
   },
+  "latest_native_followup_20261021": {
+    "proof": "Zajednički izvorni krug: mapa/filter mesto i Back, auth, AI međuekrani, Dogovori stale stanje, grupni čet i AI radna oblast. Puni Jest je izlistao 635/635 suite PASS, 14350 PASS/9 SKIP, TSC PASS; poslednja dva ciljano proverena podsistema (grupni čet 40/40, worker AI pregled 37/37) imaju zasebne provere posle njihovih izmena. Nema APK/HONOR prohoda za ovaj izvor.",
+    "open_gates": ["task_edit_atomic", "cancelled_candidate_parity_disposable_db", "worker_area_v2_signed_contract", "multi_worker_terms", "account_closure_and_ai_history_erasure", "native_visual_acceptance"]
+  },
   "pravilo_gotovo": "Red je GOTOV samo kad su ekran, kod, server i test zeleni I postoji dokaz sa telefona za tekuću verziju (V19 pravilo DONE_VERIFIED: stari problem ne postoji, normalan put radi, zaštite nisu oslabljene, dokazi pripadaju tačnoj verziji).",
   "redovi": [
     {
@@ -244,6 +248,7 @@
     },
     {
       "id": "A02",
+      "source_progress_20261021_followup": "Izvorni AI međuekran sada imenuje Novi zadatak ili Razgovor o zadatku tokom učitavanja/greške. Aktuelni chat nema tri tačke u vrhu; postojeće imenovane komande u niti ostaju. Hide/delete istorije nije aktivan serverski ugovor. Fokusirani AI testovi 260/260 PASS, TSC PASS; APK/HONOR pregled nije izvršen.",
       "source_progress_20261021_native": "DEV task AI 117 sprečava tiho pretvaranje izričite EUR sume u RSD; ne obezbeđuje pun viševalutni ugovor. H1 owner AI history metadata SQL i klijentski dekoder su source-only, nisu na DEV-u niti su istorijski ekran i brisanje spremni. Otvoren bound edit sme da se nastavi; read-only H1 projekcija je ispravljena pre primene. Dokaz: docs/current/AI_CONVERSATION_HISTORY_CONTRACT_20261021.md i lokalni Jest/SQL source proof. Nema novog HONOR/APK dokaza.",
       "grupa": "Put A · Objavi zadatak",
       "naslov": "Razgovor sa AI: kaži šta treba",
@@ -2119,6 +2124,8 @@
     },
     {
       "id": "B00",
+      "source_progress_20261021_followup": "Radni AI tokom učitavanja/greške pokazuje naslov Moj radni profil na istoj razgovornoj površini i jasno Ponovo učitaj razgovor. Postojeće korekcije, pregled, Save i aktivacija nisu zamenjeni. AI ciljani testovi 260/260 PASS, TSC PASS; Area V2 i stvarni uređaj ostaju otvoreni.",
+      "source_progress_20261021_area_truth": "V1 bez grube potvrđene tačke za centar u AI kartici i potpisanom pregledu uz do X km kaže da za okolna mesta treba potvrditi centar. 37/37 ciljano PASS; sačuvani profil nema status tačke u owner read-u i još može sugerisati puni radijus. Area V2 i country/region/multicity nisu aktivni. docs/candidates/worker-area-v2-sql/INTEGRATION_GATE_20261021.md.",
       "source_progress_20261021_native": "Radni AI V1 ima samo jedan grad/radijus; Vojvodina, cela Srbija i više gradova nisu aktivna pokrivenost. Area V2 i uklanjanje novih predloga alata/vozila ostaju izolovani kandidati van Edge runtime-a; signed Save još upisuje istorijsku opremu. Dokaz: docs/current/WORKER_AI_AREA_MVP_GAP_20261021.md i docs/candidates/worker-equipment-mvp/README.md. Bez DEV/HONOR objave.",
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Radni profil kroz razgovor sa AI",
@@ -3211,6 +3218,7 @@
     },
     {
       "id": "B04",
+      "source_progress_20261021_back_followup": "Android Back na podignutoj HALF ili FULL listi sada spušta panel na PEEK pre napuštanja taba. Izvor drži donju navigaciju dostupnom u sva tri položaja i top Filteri bez stalne pretrage/tri tačke; prirodni MapLibre gestovi nisu menjani. Četiri ciljane suite/273 testa PASS, TSC PASS; stariji instalirani APK nije dokaz aktuelnog izvora.",
       "source_progress_20261021_native": "Izabrani pin u lokalnom klijentu dobio je map/novac ilustraciju, jasniji naslov, objavljivača i ocenu u prvom pregledu; filteri i tri položaja panela ostaju. P6 pin read model ne nosi cenu, pa mala oznaka ne izmišlja iznos. MapLibre prirodni fling treba izmeriti na HONOR-u; izvorni ciljano testovi i TypeScript prolaze, bez novog APK-a. Dokaz: src/ui/v2/discovery/TaskRecordBody.tsx i DiscoveryPeek.tsx.",
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Mapa i lista prilika",
@@ -3791,6 +3799,7 @@
     },
     {
       "id": "B05",
+      "source_progress_20261021_place_followup": "Filter remote čisti prethodno potvrđeno mesto; povratak onsite ne vraća prividno potvrđen naziv. Ručno promenjen ili ponovo otkucan isti naziv zahteva novu potvrdu LocationIQ predloga. Dva nova testa, 87/87 ciljanih PASS; potpisan DEV i HONOR nisu probani.",
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Pretraga i filteri",
       "source_progress_20261021_modes": "Lokalni centrirani filter: potvrđeno mesto, Na lokaciji/Na daljinu/Oba, Fiksna cena/Ponude/Oba, vreme. Minimum fiksne cene je iza isključenog build flag-a; lokalni SQL kandidat ima 5 statičkih provera, ali nema izolovani PostgreSQL izvršni dokaz niti DEV primenu. RN-web 320/390dp nije native proba. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
@@ -4980,6 +4989,7 @@
     },
     {
       "id": "D01",
+      "source_progress_20261021_refresh_followup": "Neuspešan pull ostavlja poslednje čitane kartice uz upozorenje i retry, ali uklanja nepotvrđene dodatne kapacitete/otkazivanja i urgentne tvrdnje Čeka tebe. Uloga/filter exit i odlazak u detalj za svež read ostaju. Tri ciljane suite/117 testova PASS, TSC PASS; nema novog telefonskog dokaza.",
       "source_progress_20261021_native": "Lokalni Dogovori koriste owner-only rpc_get_need_search_state za potvrđen broj 1/2, 2/3 itd. (najviše 12 zadataka, četiri paralelna read-a). Broj istorijskih saradnji je posebno označen ukupno; radnik ne dobija owner count. Loading/greška/zastareli odgovor uklanjaju broj i vode vlasnika na zadatak sa svežom proverom. Ciljana 3 Jest paketa/83 PASS, TypeScript PASS; DEV katalog potvrđuje RPC, ali 3/3→2/3→3/3 nije dvonaložno/HONOR potvrđeno. Dokaz: src/ui/agreements/ownerTaskCapacity.ts i docs/current/DOGOVOR_TASK_CAPACITY_GAP_20261021.md.",
       "source_progress_20261021_connected_ui": "SOURCE/TEST: Lista Dogovora prikazuje sopstvenu ulogu i cenu pojedinacne saradnje; Sve uloge je jasan filter. Zajednicki ciljani prolaz 16 suite-ova/758 PASS, TSC i diff check PASS. Nema HONOR prihvatanja. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "source_progress_20261018_page_integrity": "SOURCE/TEST: neispravan hasMore/kursor, duplikati ili pogrešan redosled više ne daju uspešan nepotpun spisak. Mikrosekunde očuvane; Home otkazuje naredne stranice i transport na retirement/timeout. 24 nova regresiona testa; puna regresija 621/13861 PASS. Live authenticated read tri mala naloga potvrđuje envelope/keyset oblik; bez nove DB promene ili device prihvatanja. docs/current/HOME_READ_CONTINUATION_20261018.md.",
@@ -5532,6 +5542,7 @@
     },
     {
       "id": "D05",
+      "source_progress_20261021_loading_followup": "Grupni čet drži vidljivo učitavanje dok stigne prva stranica poruka i pri kasnijem osvežavanju; objašnjenje nepoznatog ishoda slanja i provera su pored kompozera i kada se čita starija istorija. Dva nova ciljna testa, 40/40 PASS, TSC PASS. Tekstualni server ugovor nije proširen na nove grupne medije; bez APK/HONOR provere.",
       "source_progress_20261021_connected_ui": "SOURCE/TEST: Grupni razgovor sidri stvarni naslov zadatka i kanonsko vreme poruka, bez izmisljene zajednicke cene, adrese ili grupnog medija. Zajednicki ciljani prolaz 16 suite-ova/758 PASS, TSC PASS. Inbox lifecycle i native vise naloga nisu potvrdeni. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "grupa": "Dogovor",
       "naslov": "Grupni razgovor (više ljudi)",
@@ -6767,6 +6778,7 @@
     },
     {
       "id": "N01",
+      "source_progress_20261021_followup": "Native ulaz sada jasno kaže Prijavi se i Nastavi tamo gde si stao. Kada email sign-in nije dostupan, a signup jeste, prijava ostaje disabled uz uputstvo za registraciju. Pet ciljanih auth suite/173 testa PASS, TSC PASS; bez nove instalacije ili signed naloga.",
       "grupa": "Nalog, bezbednost i podaci",
       "naslov": "Prijava",
       "nacrt": "UX nacrt §3",
@@ -6855,6 +6867,7 @@
     },
     {
       "id": "N02",
+      "source_progress_20261021_followup": "Registracija ima zaseban naslov Napravi nalog i sažet opis jednog naloga za obe uloge. signup polja/CTA zavise od emailSignup, ne od emailPassword; mešovita konfiguracija može da podnese signup i ne poziva sign-in. Pet ciljanih auth suite/173 testa PASS; stvarno kreiranje naloga i HONOR pregled čekaju.",
       "grupa": "Nalog, bezbednost i podaci",
       "naslov": "Registracija i potvrda emaila",
       "nacrt": "UX nacrt §3",

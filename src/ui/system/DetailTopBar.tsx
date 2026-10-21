@@ -9,8 +9,8 @@ import { ScreenChrome } from './ScreenChrome';
  * rule (2026-09-23): a person who opened a task knows they opened a task; the screen does not explain where they are.
  * A caller with real information to add puts it in the content, not the bar.
  */
-export function DetailTopBar({ title, onBack, backLabel = 'Nazad', disabled = false, right }: {
-  title: string; onBack: () => void; backLabel?: string; disabled?: boolean; right?: ReactNode;
+export function DetailTopBar({ title, onBack, backLabel = 'Nazad', disabled = false, right, tone }: {
+  title: string; onBack: () => void; backLabel?: string; disabled?: boolean; right?: ReactNode; tone?: 'conversation';
 }) {
-  return <ScreenChrome variant="detail" title={title} onBack={onBack} backLabel={backLabel} disabled={disabled} right={right} />;
+  return <ScreenChrome variant="detail" title={title} onBack={onBack} backLabel={backLabel} disabled={disabled} right={right} tone={tone} />;
 }
