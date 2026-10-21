@@ -45,7 +45,9 @@ function Write-Utf8([string]$Path, [string]$Text) {
 }
 function Invoke-Api([string]$Uri, [string]$Method, [hashtable]$Headers, [string]$Body) {
   try {
-    $response = Invoke-WebRequest -Uri $Uri -Method $Method -Headers $Headers -ContentType 'application/json' -Body $Body -UseBasicParsing -MaximumRedirection 0 -TimeoutSec 30
+    $request = @{ Uri = $Uri; Method = $Method; Headers = $Headers; UseBasicParsing = $true; MaximumRedirection = 0; TimeoutSec = 30 }
+    if ($Method -notin @('Get', 'Head')) { $request.ContentType = 'application/json'; $request.Body = $Body }
+    $response = Invoke-WebRequest @request
     return @{ status = [int]$response.StatusCode; content = $response.Content }
   } catch [Net.WebException] {
     $webResponse = $_.Exception.Response
@@ -67,14 +69,24 @@ try {
   $serviceKey = (($keysJson | ConvertFrom-Json) | Where-Object { $_.name -eq 'service_role' } | Select-Object -First 1).api_key
   if ([string]::IsNullOrWhiteSpace($serviceKey)) { throw 'No service_role key returned by the CLI.' }
 
-  # 2. A strong random password from an unambiguous alphabet.
+  # 2. Confirm the dedicated account before changing any Auth record.
+  $existing = Invoke-Api "$url/auth/v1/admin/users/$qaAccount" 'Get' @{ apikey = $serviceKey; Authorization = "Bearer $serviceKey" } $null
+  $receipt.preflightStatus = $existing.status
+  if ($existing.status -ne 200) { throw "Auth admin could not read the QA account (HTTP $($existing.status))." }
+  $existingUser = $existing.content | ConvertFrom-Json
+  if ($existingUser.id -ne $qaAccount -or $existingUser.email -ne $qaEmail) {
+    throw 'Auth admin QA account ID/email do not match the dedicated acceptance identity.'
+  }
+  $receipt.qaIdentityMatched = $true
+
+  # 3. A strong random password from an unambiguous alphabet.
   $alphabet = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789-_'
   $bytes = New-Object byte[] 48
   $rng = New-Object Security.Cryptography.RNGCryptoServiceProvider
   try { $rng.GetBytes($bytes) } finally { $rng.Dispose() }
   $password = -join ($bytes | ForEach-Object { $alphabet[$_ % $alphabet.Length] })
 
-  # 3. Canonical Auth admin mechanism: GoTrue sets and hashes the password itself.
+  # 4. Canonical Auth admin mechanism: GoTrue sets and hashes the password itself.
   $admin = Invoke-Api "$url/auth/v1/admin/users/$qaAccount" 'Put' @{ apikey = $serviceKey; Authorization = "Bearer $serviceKey" } (@{ password = $password } | ConvertTo-Json -Compress)
   $receipt.adminStatus = $admin.status
   if ($admin.status -ne 200) { throw "Auth admin rejected the password update with HTTP $($admin.status)." }
@@ -82,7 +94,7 @@ try {
   if ($updated.id -ne $qaAccount -or $updated.email -ne $qaEmail) { throw 'Auth admin answered for a different account.' }
   $receipt.emailConfirmed = [bool]$updated.email_confirmed_at
 
-  # 4. Prove it through the ordinary user flow, the same grant the app performs.
+  # 5. Prove it through the ordinary user flow, the same grant the app performs.
   $login = Invoke-Api "$url/auth/v1/token?grant_type=password" 'Post' @{ apikey = $publishable } (@{ email = $qaEmail; password = $password } | ConvertTo-Json -Compress)
   $receipt.loginStatus = $login.status
   if ($login.status -ne 200) { throw "Password grant failed with HTTP $($login.status)." }
@@ -90,7 +102,7 @@ try {
   if ($session.user.id -ne $qaAccount -or -not $session.access_token) { throw 'Password grant returned an unexpected session.' }
   $receipt.verifiedRealUserSession = $true
 
-  # 5. DPAPI store, decryptable only by this Windows user on this machine.
+  # 6. DPAPI store, decryptable only by this Windows user on this machine.
   $secure = ConvertTo-SecureString -String $password -AsPlainText -Force
   $credential = New-Object Management.Automation.PSCredential($qaEmail, $secure)
   $credential | Export-Clixml -LiteralPath (Join-Path $store 'qa-credential.clixml')
