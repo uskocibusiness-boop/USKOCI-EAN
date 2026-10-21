@@ -1,5 +1,10 @@
 {
   "opis": "USKOČI kontrolna tabla — ručni deo. Automatski deo (ekran, kod, server, test) računa scripts/control/osvezi.mjs. Telefon je zelen samo uz stvarni dokaz sa telefona za tačnu verziju.",
+  "latest_group_sync_20261021": {
+    "report": "docs/current/MVP_FLOW_AUDIT_20261021.md",
+    "proof": "SOURCE/TEST: foreground incremental group read na 8 s; očuvani draft/history/cursor; offline objašnjenje i send/read-mark zabrana do obnove; late-read/command/refresh/dispose zaštite. Četiri Jest paketa 161/161 PASS, TSC PASS. Figma readback 21 stranica i odvojeni Dogovor/grupa čvorovi. ADB samo emulator. Nema novog APK-a, DEV write-a niti HONOR/runtime prihvatanja svih 11 tokova.",
+    "open_gates": ["task_edit_atomic_new_id", "cancelled_candidate_parity", "worker_area_v2_signed_contract", "multi_worker_terms", "exact_application_push", "account_closure_and_ai_history_erasure", "native_visual_acceptance"]
+  },
   "latest_source_dev_audit_20261021": {
     "report": "docs/current/MVP_FLOW_AUDIT_20261021.md",
     "proof": "Izvor, lokalni test i aktivni DEV su odvojeni; ponovljeni Jest je izlistao 635/635 paketa, 14341 PASS/9 SKIP (otvoren async handle posle rezimea), TypeScript PASS; task AI DEV v119 i worker AI DEV v73 ACTIVE, readback helpera i no-auth 401; nema potpisanog live AI razgovora, novog HONOR ili APK dokaza.",

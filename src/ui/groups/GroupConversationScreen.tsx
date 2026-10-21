@@ -32,8 +32,10 @@ export function GroupConversationScreen({agreementId,fromInbox=false}:{agreement
     input.current=held.text;setDraft(held.text);
    }
   }});void controller.load();
+  // Focus-scoped reads: no background traffic and no automatic write retries.
+  const syncTimer=setInterval(()=>{if(current())void controller.syncLatest();},8000);
   const listener=AppState.addEventListener('change',next=>{if(next!=='active'){controller.dispose();owner.current=null;input.current='';setDraft('');setState(initialGroupState);}else setEpoch(x=>x+1);});
-  return()=>{listener.remove();controller.dispose();if(owner.current===scope)owner.current=null;if(engine.current===controller)engine.current=null;input.current='';setDraft('');setShowPeople(false);setState(initialGroupState);};
+  return()=>{clearInterval(syncTimer);listener.remove();controller.dispose();if(owner.current===scope)owner.current=null;if(engine.current===controller)engine.current=null;input.current='';setDraft('');setShowPeople(false);setState(initialGroupState);};
  },[agreementId,accountId,accountRevision,epoch]));
  const renderedOwner=owner.current,controller=engine.current;
  const current=()=>renderedOwner!==null&&owner.current===renderedOwner&&engine.current===controller&&controller?.snapshot()===state

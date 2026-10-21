@@ -156,7 +156,7 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
     {/* A member admitted later reads the group from their admission on, so an empty thread is honest about what it shows. */}
     {ready && group && state.messages.length === 0 ? <StateView kind="empty" art="chat" title="Još nema poruka"
       body={group.canSend ? 'Vidiš poruke od svog ulaska u grupu. Napiši prvu.' : 'Vidiš poruke od svog ulaska u grupu.'} /> : null}
-    {/* New messages come on focus, after my own send or by pulling down, and a screen reader cannot easily pull: as in
+    {/* New messages also arrive through foreground incremental reads; a screen reader cannot easily pull: as in
         Poruke the refresh is also a quiet action at the head of the thread, centred, under the empty state's words when
         there is none, and never on a finished conversation, where nothing new can arrive. */}
     {ready && group && !group.terminal ? <V2Action label="Osveži poruke" kind="quiet" tone="neutral" compact style={s.centred} onPress={refresh} /> : null}
@@ -211,6 +211,10 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
         }}
         />
       {/* Keep read and send recovery next to the composer even when the reader is scrolled into older history. */}
+      {state.syncUnavailable ? <View testID="group-sync-unavailable" style={[s.stack,s.gutter]} accessibilityLiveRegion="polite">
+        <T variant="note" tone="muted">Nove poruke trenutno ne stižu. Prikazane poruke i tvoj tekst su sačuvani na ovom ekranu. Pokušavamo ponovo.</T>
+        <V2Action label="Proveri nove poruke" kind="quiet" compact onPress={p.onRefresh} />
+      </View> : null}
       {progress ? <View testID="group-conversation-progress" style={[s.stack, s.gutter]} accessibilityLiveRegion="polite">
           {state.phase === 'LOADING' ? <T variant="meta" tone="muted">Učitavamo poruke…</T> : null}
           {state.phase === 'SENDING' ? <T variant="meta" tone="muted">Čekamo potvrdu slanja…</T> : null}
@@ -224,7 +228,7 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
       </View> : null}
       {composer ? <PillComposer value={p.draft} onChange={p.onDraft} label={retry ? 'Upiši istu poruku' : 'Poruka grupi'}
         placeholder={retry ? 'Prvobitna poruka…' : 'Napiši poruku grupi…'} sendLabel={retry ? 'Ponovi slanje iste poruke' : 'Pošalji poruku grupi'}
-        canSend={p.draftSendable} reason={length === 0 ? 'Upiši poruku pre slanja.' : length > LIMIT ? 'Poruka je duža od 2.000 znakova.' : null}
+        canSend={p.draftSendable && !state.syncUnavailable} reason={state.syncUnavailable ? 'Sačekaj da se veza obnovi.' : length === 0 ? 'Upiši poruku pre slanja.' : length > LIMIT ? 'Poruka je duža od 2.000 znakova.' : null}
         onSend={p.onSend} maxLength={4000}
         above={<>
           {retry ? <PillNote>Prvobitna poruka</PillNote> : null}

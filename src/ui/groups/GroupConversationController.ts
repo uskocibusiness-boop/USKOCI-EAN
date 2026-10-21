@@ -3,11 +3,12 @@ import { groupConversationService, parseGroupJournal, groupBody, groupBodyHash, 
 import type { ReceiptAccount } from '../../data/serverReceipt';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 export type GroupState={phase:'LOADING'|'READY'|'SENDING'|'UNKNOWN'|'CONFIRMED'|'ERROR';context:GroupContext|null;messages:GroupMessage[];
- before:string|null;olderPageUnavailable:boolean;journal:GroupJournal|null;receipt:GroupReceipt|null;canRetry:boolean;message:string|null};
+ before:string|null;olderPageUnavailable:boolean;journal:GroupJournal|null;receipt:GroupReceipt|null;canRetry:boolean;message:string|null;syncUnavailable?:boolean};
 export const initialGroupState:GroupState={phase:'LOADING',context:null,messages:[],before:null,olderPageUnavailable:false,journal:null,receipt:null,canRetry:false,message:null};
 export class GroupConversationController{
  private state:GroupState={...initialGroupState};private busy=false;private disposed=false;private journalLoaded=false;private inMemoryBody:string|null=null;private listeners=new Set<()=>void>();
  private operationRevision=0;private marking=false;private visible:{groupId:string;ids:string[]}|null=null;
+ private syncing=false;private syncHasMore=false;
  readonly key:string;
  constructor(private deps:{agreementId:string;account:ReceiptAccount;current:()=>boolean;storage:{getItem(k:string):Promise<string|null>;setItem(k:string,v:string):Promise<unknown>;removeItem(k:string):Promise<unknown>};
  service?:typeof groupConversationService;uuid?:()=>string}){this.key=`uskoci:group-message:v5:${deps.account.accountId}:${deps.agreementId}`;}
@@ -64,9 +65,49 @@ export class GroupConversationController{
   this.update({phase:'READY',messages,before:result.podatak.nextBeforeSequence,olderPageUnavailable:false,message:null});
  }
  refresh=()=>!this.journalLoaded?this.load():this.run(async()=>{
-  this.update({phase:'LOADING',canRetry:false,olderPageUnavailable:false,message:null});if(!await this.context())return;
+  this.update({phase:'LOADING',canRetry:false,olderPageUnavailable:false,message:null,syncUnavailable:false});if(!await this.context())return;
   if(this.state.journal)await this.recover();else await this.page();
  });
+ /** A foreground read never owns the command lock, resets the draft, or replaces older history.
+  * Any intervening user action/read ACK wins over this response. At most one bounded page per tick. */
+ syncLatest=async()=>{
+  const start=this.state,g=start.context?.group,revision=this.operationRevision;
+  if(this.syncing||this.busy||this.marking||!this.current()||start.phase!=='READY'||start.journal||!g||(g.terminal&&!this.syncHasMore))return;
+  this.syncing=true;
+  const unchanged=()=>this.current()&&!this.busy&&this.operationRevision===revision&&this.state===start;
+  try{
+   const context=await this.service.context(this.deps.agreementId,this.deps.account);
+   if(!unchanged())return;
+   if(!context.ok){
+    if(context.kod==='GROUP_CONTEXT_TRANSPORT_UNAVAILABLE')this.update({syncUnavailable:true});
+    else this.update({phase:'ERROR',context:null,messages:[],before:null,message:context.poruka,syncUnavailable:false});
+    return;
+   }
+   const fresh=context.podatak.group;
+   if(!fresh||fresh.groupId!==g.groupId){
+    this.update({phase:'ERROR',context:null,messages:[],before:null,message:'Razgovor više nije dostupan. Ponovo otvori Dogovor.',syncUnavailable:false});return;
+   }
+   const after=start.messages.at(-1)?.sequence??'0';
+   const result=await this.service.messages(g.groupId,this.deps.account,{after});
+   if(!unchanged())return;
+   if(!result.ok){
+    if(result.kod==='GROUP_PAGE_TRANSPORT_UNAVAILABLE')this.update({syncUnavailable:true});
+    else this.update({phase:'ERROR',context:null,messages:[],before:null,message:result.poruka,syncUnavailable:false});
+    return;
+   }
+   // Keep the explicitly paged management tail; refresh() remains the full reload action.
+   if(g.role==='REQUESTER'&&fresh.role==='REQUESTER'&&g.management&&g.management.length>50&&fresh.management&&fresh.managementNextId){
+    const boundary=fresh.managementNextId.toLowerCase(),seen=new Set(fresh.management.map(row=>row.agreementId.toLowerCase()));
+    fresh.management=[...fresh.management,...g.management.filter(row=>row.agreementId.toLowerCase()>boundary&&!seen.has(row.agreementId.toLowerCase()))];
+    fresh.managementNextId=g.managementNextId;
+   }
+   const seen=new Set(start.messages.map(row=>row.messageId));
+   const added=result.podatak.messages.filter(row=>!seen.has(row.messageId)&&Number(row.sequence)>Number(after));
+   this.syncHasMore=added.length===50;
+   this.update({context:context.podatak,messages:added.length?[...start.messages,...added]:start.messages,syncUnavailable:false});
+  }catch{if(unchanged())this.update({phase:'ERROR',context:null,messages:[],before:null,message:'Razgovor nije učitan. Pokušaj ponovo.',syncUnavailable:false});}
+  finally{this.syncing=false;}
+ };
  older=()=>this.run(async()=>{if((this.state.phase==='READY'||(this.state.phase==='ERROR'&&this.state.olderPageUnavailable))&&this.state.before){
   const before=this.state.before;this.update({phase:'LOADING',olderPageUnavailable:false,message:null});await this.page(before);}});
  managementNext=()=>this.run(async()=>{const g=this.state.context?.group;if(this.state.phase!=='READY'||g?.role!=='REQUESTER'||!g.managementNextId)return;
@@ -86,7 +127,7 @@ export class GroupConversationController{
   await this.resumeConfirmed();
  }
  send=(input:string)=>this.run(async()=>{
-  const body=normalizeGroupBody(input),g=this.state.context?.group;if(this.state.phase!=='READY'||this.state.journal||!g?.canSend||!groupBody(body))return;
+  const body=normalizeGroupBody(input),g=this.state.context?.group;if(this.state.phase!=='READY'||this.state.syncUnavailable||this.state.journal||!g?.canSend||!groupBody(body))return;
   const journal:GroupJournal={version:1,groupId:g.groupId,clientRequestId:(this.deps.uuid??noviUuidZahtevId)(),bodySha256:groupBodyHash(body)};
   this.update({phase:'SENDING',message:null,canRetry:false});
   // Persist four opaque identity/hash fields before dispatch. No group text is
@@ -123,7 +164,7 @@ export class GroupConversationController{
   this.visible={groupId:g.groupId,ids:unique};await this.flushVisible();
  };
  private async flushVisible(){
-  if(this.marking||this.busy||!this.current()||this.state.phase!=='READY')return;
+  if(this.marking||this.busy||!this.current()||this.state.phase!=='READY'||this.state.syncUnavailable)return;
   this.marking=true;
   try{
    while(this.visible&&this.current()&&!this.busy&&this.state.phase==='READY'){
@@ -138,6 +179,6 @@ export class GroupConversationController{
     if(result.ok&&unchanged())await this.context(unchanged,true);
    }
   }catch{/* Best effort only; an unconfirmed read never changes message or command state. */}
-  finally{this.marking=false;if(this.visible)void this.flushVisible();}
+  finally{this.marking=false;if(this.visible&&!this.state.syncUnavailable)void this.flushVisible();}
  }
 }

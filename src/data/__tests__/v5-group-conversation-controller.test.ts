@@ -14,6 +14,61 @@ function fixture(raw:string|null=null){let current=true;const storage={getItem:j
  const uuid=jest.fn(()=>K),controller=new GroupConversationController({agreementId:ID,account:{accountId:A,accountRevision:1},current:()=>current,storage,service:service as never,uuid});
  return{controller,storage,service,uuid,setCurrent:(v:boolean)=>{current=v;}};
 }
+it('foreground sync appends new rows without replacing loaded history or its older cursor',async()=>{
+ const f=fixture();f.service.messages.mockResolvedValueOnce(ok({messages:[message()],nextBeforeSequence:'1',nextAfterSequence:'1'}));await f.controller.load();
+ f.service.messages.mockResolvedValueOnce(ok({messages:[{...message('2'),messageId:K}],nextBeforeSequence:'2',nextAfterSequence:'2'}));
+ await f.controller.syncLatest();
+ expect(f.service.messages).toHaveBeenLastCalledWith(G,{accountId:A,accountRevision:1},{after:'1'});
+ expect(f.controller.snapshot()).toMatchObject({phase:'READY',before:'1',syncUnavailable:false});
+ expect(f.controller.snapshot().messages.map(m=>m.sequence)).toEqual(['1','2']);
+ expect(f.service.send).not.toHaveBeenCalled();expect(f.service.markRead).not.toHaveBeenCalled();
+});
+it('a slow foreground read never blocks a send or overwrites its unknown outcome',async()=>{
+ const f=fixture();await f.controller.load();const gate=deferred<any>();f.service.messages.mockReturnValueOnce(gate.promise);
+ const pending=f.controller.syncLatest();await Promise.resolve();await Promise.resolve();
+ await f.controller.send('Privatna zajednička poruka');expect(f.service.send).toHaveBeenCalledTimes(1);
+ const snapshot=f.controller.snapshot();gate.resolve(ok({messages:[{...message('2'),messageId:K}]}));await pending;
+ expect(f.controller.snapshot()).toBe(snapshot);expect(snapshot.phase).toBe('UNKNOWN');
+});
+it('known transport interruption preserves history and resumes on the next foreground read',async()=>{
+ const f=fixture();await f.controller.load();const rows=f.controller.snapshot().messages;
+ f.service.context.mockResolvedValueOnce({ok:false,kod:'GROUP_CONTEXT_TRANSPORT_UNAVAILABLE',poruka:'Prekid'});
+ await f.controller.syncLatest();expect(f.controller.snapshot()).toMatchObject({phase:'READY',syncUnavailable:true});expect(f.controller.snapshot().messages).toBe(rows);
+ await f.controller.send('Privatna zajednička poruka');await f.controller.markVisible([M]);
+ expect(f.service.send).not.toHaveBeenCalled();expect(f.service.markRead).not.toHaveBeenCalled();
+ f.service.messages.mockResolvedValueOnce(ok({messages:[],nextBeforeSequence:null,nextAfterSequence:null}));
+ await f.controller.syncLatest();expect(f.controller.snapshot().syncUnavailable).toBe(false);expect(f.controller.snapshot().messages).toBe(rows);
+});
+it('a denied foreground read removes inaccessible messages rather than treating it as offline',async()=>{
+ const f=fixture();await f.controller.load();f.service.messages.mockResolvedValueOnce(unknown);await f.controller.syncLatest();
+ expect(f.controller.snapshot()).toMatchObject({phase:'ERROR',context:null,messages:[],syncUnavailable:false});
+});
+it('foreground sync cannot land after disposal or run twice concurrently',async()=>{
+ const f=fixture();await f.controller.load();const gate=deferred<any>();f.service.context.mockReturnValueOnce(gate.promise);
+ const pending=f.controller.syncLatest();await f.controller.syncLatest();expect(f.service.context).toHaveBeenCalledTimes(2);
+ f.controller.dispose();gate.resolve(ok(context()));await pending;expect(f.controller.snapshot().messages).toEqual([]);expect(f.service.messages).toHaveBeenCalledTimes(1);
+});
+it('foreground sync keeps the expanded requester management list',async()=>{
+ const f=await expandedManagement(51);
+ f.service.context.mockResolvedValueOnce(ok(managed(f.rows.slice(0,50),f.rows[49].agreementId)));
+ f.service.messages.mockResolvedValueOnce(ok({messages:[],nextBeforeSequence:null,nextAfterSequence:null}));await f.controller.syncLatest();
+ expect(f.controller.snapshot().context!.group!.management).toHaveLength(51);
+});
+it('drains a final full page after the group closes, then stops polling',async()=>{
+ const f=fixture();await f.controller.load();
+ f.service.context.mockResolvedValue(ok({...context(),group:{...context().group,terminal:true,canSend:false}}));
+ const rows=Array.from({length:50},(_,i)=>({...message(String(i+2)),messageId:`60000000-0000-4000-8000-${String(i+2).padStart(12,'0')}`}));
+ f.service.messages.mockResolvedValueOnce(ok({messages:rows}));await f.controller.syncLatest();
+ f.service.messages.mockResolvedValueOnce(ok({messages:[{...message('52'),messageId:K}]}));await f.controller.syncLatest();
+ expect(f.controller.snapshot().messages).toHaveLength(52);
+ const count=f.service.messages.mock.calls.length;await f.controller.syncLatest();expect(f.service.messages).toHaveBeenCalledTimes(count);
+});
+it('an explicit refresh wins over a late incremental response',async()=>{
+ const f=fixture();await f.controller.load();const gate=deferred<any>();f.service.messages.mockReturnValueOnce(gate.promise);
+ const pending=f.controller.syncLatest();await Promise.resolve();await Promise.resolve();
+ await f.controller.refresh();const snapshot=f.controller.snapshot();
+ gate.resolve(ok({messages:[{...message('2'),messageId:K}]}));await pending;expect(f.controller.snapshot()).toBe(snapshot);
+});
 const management=(n:number):GroupManagement=>({agreementId:`60000000-0000-4000-8000-${String(n).padStart(12,'0')}`,
  accountId:K,status:'CONFIRMED',executionState:'CONFIRMED',problemOpened:false});
 const managed=(rows:GroupManagement[],next:string|null):GroupContext=>({...context(),group:{...context().group,

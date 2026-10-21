@@ -85,11 +85,11 @@ it('binds receipt identity and mark count to immutable command arguments across 
 });
 
 
-it('classifies only an opted-in message-page SDK status-zero failure; context and writes stay generic',async()=>{
+it('classifies opted-in read SDK status-zero failures; writes stay generic',async()=>{
  const noResponse={data:null,error:{message:'TypeError: private transport details',code:''},status:0,statusText:''};
  mockRpc.mockResolvedValue(noResponse);
  expect(await service.messages(G,account)).toMatchObject({ok:false,kod:'GROUP_PAGE_TRANSPORT_UNAVAILABLE'});
- expect(await service.context(ID,account)).toMatchObject({ok:false,kod:'GROUP_UNCONFIRMED'});
+ expect(await service.context(ID,account)).toMatchObject({ok:false,kod:'GROUP_CONTEXT_TRANSPORT_UNAVAILABLE'});
  expect(await service.send(j,'Zajednička poruka',account)).toMatchObject({ok:false,kod:'GROUP_UNCONFIRMED'});
  expect(JSON.stringify(await service.messages(G,account))).not.toContain('private transport details');
 });
@@ -101,6 +101,7 @@ it.each([
  [{data:null,error:null,status:200},'GROUP_RECEIPT_INVALID'],
 ])('never classifies a denial, unmapped response or invalid receipt as page transport failure %#',async(response,kod)=>{
  mockRpc.mockResolvedValue(response);expect(await service.messages(G,account)).toMatchObject({ok:false,kod});
+ expect(await service.context(ID,account)).toMatchObject({ok:false,kod});
 });
 it('uses only its own bounded read timeout and lets an account change take precedence',async()=>{
  jest.useFakeTimers();
@@ -109,7 +110,7 @@ it('uses only its own bounded read timeout and lets an account change take prece
   const pageRead=service.messages(G,account);jest.advanceTimersByTime(15_000);
   expect(await pageRead).toMatchObject({ok:false,kod:'GROUP_PAGE_TRANSPORT_UNAVAILABLE'});
   const contextRead=service.context(ID,account);jest.advanceTimersByTime(15_000);
-  expect(await contextRead).toMatchObject({ok:false,kod:'GROUP_UNCONFIRMED'});
+  expect(await contextRead).toMatchObject({ok:false,kod:'GROUP_CONTEXT_TRANSPORT_UNAVAILABLE'});
   const stale=service.messages(G,account);mockOwner.accountRevision++;jest.advanceTimersByTime(15_000);
   expect(await stale).toMatchObject({ok:false,kod:'AUTH_ACCOUNT_CHANGED'});
  }finally{jest.useRealTimers();}

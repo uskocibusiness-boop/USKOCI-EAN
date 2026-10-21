@@ -56,6 +56,33 @@ beforeEach(()=>{jest.clearAllMocks();for(const group of [mockStorage,mockService
  mockService.recover.mockResolvedValue(ok({found:false,receipt:null}));mockService.send.mockResolvedValue(unknown);mockService.markRead.mockResolvedValue(ok({markedCount:1}));
 });
 afterEach(async()=>{await act(async()=>tree?.unmount());tree=undefined;expect(mockListeners.size).toBe(0);mockListeners.clear();});
+it('receives a new foreground message without losing the draft and stops reads on blur',async()=>{
+ jest.useFakeTimers();
+ try{
+  await render();await change('Stižem za deset minuta.');
+  mockService.messages.mockResolvedValueOnce(ok({messages:[{...message,messageId:KEY,sequence:'2',body:'Čekamo kod ulaza.'}],nextBeforeSequence:null,nextAfterSequence:'2'}));
+  await act(async()=>jest.advanceTimersByTime(8000));
+  expect(text()).toContain('Čekamo kod ulaza.');
+  expect(tree!.root.findByType('TextInput' as never).props.value).toBe('Stižem za deset minuta.');
+  expect(mockService.send).not.toHaveBeenCalled();
+  await act(async()=>{mockFocused=false;tree!.update(page());});const reads=mockService.context.mock.calls.length;
+  await act(async()=>jest.advanceTimersByTime(24000));expect(mockService.context).toHaveBeenCalledTimes(reads);
+ }finally{await act(async()=>tree?.unmount());tree=undefined;jest.useRealTimers();}
+});
+it('keeps the composer during a sync outage but disables sending until recovery',async()=>{
+ jest.useFakeTimers();
+ try{
+  await render();await change('Moj odgovor');
+  mockService.context.mockResolvedValueOnce({ok:false,kod:'GROUP_CONTEXT_TRANSPORT_UNAVAILABLE',poruka:'Prekid'});
+  await act(async()=>jest.advanceTimersByTime(8000));
+  expect(text()).toContain('Nove poruke trenutno ne stižu');
+  expect(tree!.root.findByType('TextInput' as never).props.value).toBe('Moj odgovor');
+  expect(send('Pošalji poruku grupi').disabled).toBe(true);
+  mockService.messages.mockResolvedValueOnce(ok({messages:[],nextBeforeSequence:null,nextAfterSequence:null}));
+  await act(async()=>jest.advanceTimersByTime(8000));
+  expect(text()).not.toContain('Nove poruke trenutno ne stižu');expect(send('Pošalji poruku grupi').disabled).toBe(false);
+ }finally{await act(async()=>tree?.unmount());tree=undefined;jest.useRealTimers();}
+});
 it('shows a calm first read until authorized group context and messages arrive',async()=>{
  const gate=deferred<unknown>();mockService.context.mockReturnValueOnce(gate.promise);await render();
  expect(tree!.root.findAllByType(QuietReadState)).toHaveLength(1);

@@ -25,4 +25,34 @@ Ovaj presek razlikuje povezani ekran, lokalni test, aktivan DEV ugovor i potvrđ
 
 ## Pre kandidata APK-a
 
+### Naknadni paket: grupni razgovor, 21.10.2026.
+
+`GroupConversationController.syncLatest` sada čita novu stranu poruka u fokusiranom, aktivnom ekranu na osam sekundi. Koristi postojeće owner-scoped context/messages RPC-eve, posle poslednje potvrđene sequence; ne zahteva novu server funkciju. Dopunjava istoriju i čuva stariji cursor, mesto čitanja i neslati tekst. Spor read ne zaključava slanje i ne sme da pregazi noviji command/refresh/read ACK. Izlazak, pozadina i promena naloga odbacuju kasni rezultat. Završena grupa prestaje da se proverava nakon preuzimanja završnih strana.
+
+Dokazani lokalni timeout/SDK status-zero prikazuje objašnjenje uz kompozer i privremeno onemogućava slanje/read marking; tekst ostaje u memoriji ekrana. Sledeće uspešno čitanje vraća rad. Server odbijanje ili neispravan odgovor uklanjaju nedostupan sadržaj. Nema automatskog ponavljanja upisa, izmišljenih poruka, „online” ili „pročitano” oznaka.
+
+Provere: četiri Jest paketa (`v5-group-conversation-controller`, `v5-group-conversation-screen`, `v5-group-conversation-service`, `group-reading`): **161/161 PASS**. `npx tsc --noEmit`: PASS. `git diff --check`: PASS. Ovo je lokalni SOURCE/TEST dokaz; nema novog APK-a, potpisane dvonaložne probe ili HONOR potvrde za ovu izmenu. Inbound push događaj i grupni mediji ostaju otvoreni; polling nije Realtime niti push.
+
+Figma readback: isti dokument `nZwxDeRClrrecngX09bimy`, 21 stranica uključujući tri review stranice. Na review stranici `223:897` postoje vlasnički Dogovor `227:1844`, izvršiočev `227:1879`, Inbox `227:1910`, tekstualna grupa `227:1927` i vlasnička grupa `228:1690`. Ovo potvrđuje postojeće čvorove, ne sve prototype veze ili vizuelnu prihvatljivost APK-a. ADB u ovom paketu vidi samo `emulator-5554`.
+
+### Jedanaest Master scenarija — šta ostaje do prihvatanja
+
+Ovo je mapa nastavka uz prethodni audit i postojeće rute, ne nova tvrdnja o izvršenih jedanaest scenarija.
+
+| FLOW | Postojeći ulaz / izvor | Preostali dokaz ili prepreka |
+| --- | --- | --- |
+| 01 Novi korisnik | `src/app/auth.tsx`, `(app)/index.tsx` | Sveža registracija, dozvole, povratak i prvi zadatak na tekućem buildu. |
+| 02 AI objava | `(app)/nova.tsx`, `pitanja-zadatka.tsx`, `pregled-zadatka.tsx` | Potpisana objava i neuspešan ishod; bezbedna nova-ID zamena postojeće objave; valuta/handoff. |
+| 03 Izvršilac | `(app)/prilike/[id]/prijava.tsx`, `moje-prijave.tsx` | Dva naloga: prijava → izbor → Dogovor; preklop vremena i povlačenje. |
+| 04 Objavljivač | `(app)/potrebe/[id]/kandidati.tsx` | Potpisana selekcija, popunjenost i obe perspektive na uređaju. |
+| 05 Više ljudi | kandidati + `dogovor/[id].tsx` | Otkazivanje 3/3 → 2/3 → stvarni izbor zamene; candidate parity SQL još nije primenjen. |
+| 06 Komunikacija | `GroupConversationScreen`, privatni tab Dogovora | Novi foreground sync lokalno potvrđen; dvonaložni runtime, privatni mediji/glas, grupni inbound događaj ostaju za probu/implementaciju. |
+| 07 Izmena Dogovora | `dogovor/[id]/izmene.tsx` | Bilateralni tok proveriti; zajednički uslovi više ljudi zahtevaju poseban server ugovor. |
+| 08 Završetak | `dogovor/[id].tsx`, `(app)/oceni-dogovor.tsx` | Dvostrana potvrda, neslaganje, ocena i istorija na tačnoj verziji. |
+| 09 Radni profil | `(app)/profil/razgovor.tsx`, `radnik.tsx` | Signed Save/aktivacija, cross-mode identitet i Area V2; izvorni kandidat nije aktivan matcher. |
+| 10 Mapa | `(app)/mapa.tsx`, `zadaci.tsx` | Filteri, remote odvajanje, pin/kartica/Back i zadržavanje kamere na finalnom buildu. |
+| 11 Rubni slučajevi | funkcionalne prezentacije/controller-i | Novi grupni offline/recovery provereni lokalno; celokupni presek grešaka, Auth povratka, prekida mreže i stale podataka nije kompletno izvršen. |
+
+Redosled završavanja: prvo otvoreni serverski ugovori koji menjaju istinitost akcija, zatim povezivanje njihovih prikaza i međustanja, zajednička regresija, novi APK, potpisane probe obe uloge i vizuelni pregled na uređaju. Otvoreni closure/AI history erasure i push target ostaju release stavke iz gornje tabele. Nijedan FLOW ovim paketom nije proglašen potpuno runtime potvrđenim.
+
 Za svaki red dokazati: (1) autoritativni read/write ugovor, (2) dve perspektive i dozvoljene prelaze, (3) grešku/nepotvrđen ishod/Back, (4) lokalni test, (5) DEV signed probu, (6) HONOR vizuelni i dodirni prolaz. Posebno proći `3/3 → 2/3 → zamena`, povučenu prijavu, preklop vremena, obradu i oporavak AI-ja, grupni čet, push cilj i brisanje. Figma prototip i izvorni testovi nisu zamena za ta izvršavanja.

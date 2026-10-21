@@ -34,7 +34,7 @@ export const groupConversationService={
  context(agreementId:string,account:ReceiptAccount,managementAfterId:string|null=null){
   account={...account};
   if(!uuid(agreementId)||(managementAfterId!==null&&!uuid(managementAfterId)))return Promise.resolve(failure('GROUP_NOT_AVAILABLE','Razgovor nije dostupan.'));
-  return readReceipt<GroupContext>({...options,account,rpc:'rpc_read_group_context_v5',args:{p_expected_user_id:account.accountId,p_agreement_id:agreementId,p_management_after_id:managementAfterId},decode:raw=>{
+  return readReceipt<GroupContext>({...options,readTransportUnavailable:'GROUP_CONTEXT_TRANSPORT_UNAVAILABLE',account,rpc:'rpc_read_group_context_v5',args:{p_expected_user_id:account.accountId,p_agreement_id:agreementId,p_management_after_id:managementAfterId},decode:raw=>{
    const r=record(raw);if(!envelope(r,account)||!r||!keys(r,['accountId','agreementId','needId','available','group','authoritative'])||!sameId(r.agreementId,agreementId)||!uuid(r.needId)||typeof r.available!=='boolean')return null;
    if(!r.available)return r.group===null?r as GroupContext:null;
    const g=record(r.group);if(!g||!keys(g,['groupId','title','canSend','terminal','role','members','management','managementNextId','unreadCount'])||!uuid(g.groupId)
