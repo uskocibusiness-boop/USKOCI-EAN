@@ -163,13 +163,19 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     if (locationConflict) setLocationEditor(null);
     pending.current = null;
     // Bound to a task: is it a private draft? A draft opened from "Nacrti" is reviewed for its FIRST publication, so the screen says so
-    // and may delete it; anything else bound (or a read that fails) is an edit of a task that exists, and nothing is deleted from here.
+    // and may delete it; other confirmed bound states are edits. An unconfirmed read is retried before presenting actions.
     let draftNeed: PotrebaProjekcija | null = null;
     if (prepared.podatak.draftId) {
       try {
         const need = await izvor.potreba(prepared.podatak.draftId);
+        if (!current()) return changed();
+        if (!need || need.id !== prepared.podatak.draftId) return { ok: false, kod: 'BOUND_TASK_READ_UNCONFIRMED',
+          poruka: 'Nismo uspeli da proverimo trenutno stanje zadatka. Učitaj pregled ponovo.' };
         draftNeed = need && need.id === prepared.podatak.draftId && need.stanje === 'NACRT' ? need : null;
-      } catch { draftNeed = null; }
+      } catch {
+        return current() ? { ok: false, kod: 'BOUND_TASK_READ_UNCONFIRMED',
+          poruka: 'Nismo uspeli da proverimo trenutno stanje zadatka. Učitaj pregled ponovo.' } : changed();
+      }
       if (!current()) return changed();
     }
     firstPublicationOf.current = draftNeed ? draftNeed.id : null;
@@ -197,6 +203,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const bound = !!review?.draftId, draftNeed = snapshot?.draftNeed ?? null;
   const firstPublication = bound && !!snapshot?.firstPublication;
   const revising = bound && !firstPublication;
+  // PED01 containment: a public task must not become DRAFT while its new
+  // publication is unproven. A failed owned draft read also fails closed.
+  // Historic accepted commands still recover through their durable receipt.
+  const publishedEditUnavailable = revising && !command;
   const view = useMemo(() => ({}), [snapshot, locationEditor, intakeReturn]), currentView = useRef(view); currentView.current = view;
   const renderedFocus = focus.current;
   const current = () => renderedFocus !== null && focus.current === renderedFocus && currentView.current === view
@@ -220,7 +230,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // "Objavi" and "Sačuvaj nacrt" are the same acceptance of the same displayed review, under one
   // retained command identity; they differ only in whether evaluation and publication follow now.
   const accept = async (andPublish: boolean) => {
-    if (!canAct() || !review || !review.canAccept || draftWriteProblem || unavailableIdentityFact || locationEditor || command || review.accountId !== accountId) return;
+    if (!canAct() || !review || !review.canAccept || publishedEditUnavailable || draftWriteProblem || unavailableIdentityFact || locationEditor || command || review.accountId !== accountId) return;
     if (andPublish && !locationReadiness.ready) return;
     const accepted = pending.current ?? { review, id: noviUuidZahtevId() };
     if (andPublish && !reviewLocationReadiness(accepted.review).ready) return;
@@ -410,9 +420,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => openPublishedNow.current());
     return () => subscription.remove();
   }, [momentOpen]));
-  // Accepting an edit stores the same task as DRAFT before evaluation/publication.
-  // Tell the owner before acceptance: a failed publication leaves that private draft.
-  // This is not the prototype's proposed atomic replacement with a new task ID.
+  // Published edits are temporarily unavailable pending the staged replacement
+  // contract. Private draft editing and historic accepted-command recovery remain.
   const acceptLabel = revising ? 'Potvrdi izmene' : 'Objavi zadatak';
   // What the server would refuse about the facts themselves: no amount for "Moja cena", a fixed time without
   // both ends, or one that has already begun (deep read 8.5, 5.1).
@@ -439,7 +448,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // would be refused by the very question it asked.
   const screenBusy = editor.busy || editor.loading || editor.uncertain || opening;
   const disabled = screenBusy || lifecycleActive;
-  const publishBlocked = !review || disabled || !review.canAccept || !locationReadiness.ready || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
+  const publishBlocked = !review || disabled || publishedEditUnavailable || !review.canAccept || !locationReadiness.ready || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
   // "Loading = the write this action started": only the publish spins the publish button; while a draft or a fact saves
   // it simply waits grey.
   const publishWorking = editor.busy && publishing;
@@ -568,7 +577,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
           onPress={() => { if (canAct()) navigate(() => router.replace('/potrebe')); }} /> : check(OUTCOME_ACTION.check, !resumeShown && !editShown, CHECK_SPOKEN)}
       </> : <>
         {revising ? <T variant="note" tone="muted" testID="task-edit-publication-consequence">
-          Potvrdom se zadatak privremeno povlači iz pretrage dok proveravamo izmene. Ako objava ne uspe, izmene ostaju sačuvane kao privatan nacrt.
+            Objavljivanje izmena trenutno nije dostupno. Ovaj pregled neće promeniti postojeću objavu. Izmene ostaju u razgovoru.
         </T> : null}
         <PublishButton label={acceptLabel} blocked={publishBlocked} working={publishWorking} reason={caption} onPress={publish} />
         {/* While a write has no outcome yet, or has been refused, the one thing to do is to read what is true now. */}

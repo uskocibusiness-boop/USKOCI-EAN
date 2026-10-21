@@ -1,0 +1,106 @@
+{
+  "ledger": {
+    "version": "20261021095622",
+    "name": "published_task_edit_containment",
+    "joined_md5": "9c966b02ab23996b97dfc09d14b9212d",
+    "joined_sha256": "eba0a3c804bcd42e614c20dd02690309617341a94e02fb92da7ceaf939d3c339",
+    "joined_bytes": 2633
+  },
+  "postimage": [
+    {
+      "signature": "rpc_confirm_need_edit(uuid,integer,text,jsonb)",
+      "hash": "c6101267a5c77081f4fb24113031fae8",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "anon": false,
+      "authenticated": true
+    },
+    {
+      "signature": "rpc_confirm_need_edit_from_review(uuid,integer,uuid,text)",
+      "hash": "ac3f68f434eaf171e9a6e544b79a5c5b",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "anon": false,
+      "authenticated": false
+    },
+    {
+      "signature": "rpc_accept_ai_task_review(uuid,text,uuid)",
+      "hash": "bf5fb86318e9a05d2d00087650b72c47",
+      "prosecdef": true,
+      "proconfig": [
+        "search_path=pg_catalog"
+      ],
+      "anon": false,
+      "authenticated": true
+    }
+  ],
+  "proof": [
+    {
+      "result": {
+        "proof": "PED01",
+        "fixture": "synthetic tasks/reviews; actual opener/edit RPCs; SQL rollback, not signed HTTP or Gemini",
+        "publicStates": [
+          "PUBLISHED",
+          "SELECTION"
+        ],
+        "blockedEntryPoints": 3,
+        "draftEditAndReplay": true,
+        "foreignOwnerRejected": true,
+        "originalRowsUnchanged": true
+      }
+    }
+  ],
+  "advisors": [
+    {
+      "name": "rls_enabled_no_policy",
+      "level": "INFO",
+      "count": 123,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+    },
+    {
+      "name": "function_search_path_mutable",
+      "level": "WARN",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable"
+    },
+    {
+      "name": "extension_in_public",
+      "level": "WARN",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0014_extension_in_public"
+    },
+    {
+      "name": "anon_security_definer_function_executable",
+      "level": "WARN",
+      "count": 2,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable"
+    },
+    {
+      "name": "authenticated_security_definer_function_executable",
+      "level": "WARN",
+      "count": 194,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0029_authenticated_security_definer_function_executable"
+    },
+    {
+      "name": "auth_leaked_password_protection",
+      "level": "WARN",
+      "count": 1,
+      "remediation": "https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection"
+    }
+  ],
+  "tests": {
+    "jest": 184,
+    "suites": 3,
+    "typescript": "PASS"
+  },
+  "limits": [
+    "SQL rollback fixture, not signed HTTP/Gemini/native",
+    "Full safe published replacement OPEN",
+    "No APK"
+  ],
+  "remainingFixtureAccounts": 0
+}

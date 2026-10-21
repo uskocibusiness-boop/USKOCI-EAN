@@ -1,5 +1,7 @@
 # USKOČI — počni ovde
 
+**Najnovije — PED01:** [zaštita postojeće objave](PUBLISHED_TASK_EDIT_GUARD_20261021.md). DEV odbija opasnu novu izmenu pre mutacije. Klijent prikazuje nedostupnost i retry čitanja; privatni nacrti i istorijski oporavak ostaju. 184/184 Jest, TSC i integritet migracija PASS. Bezbedna zamena objave i dalje OTVORENA; bez APK-a.
+
 **Najnovije — CAL01:** [zauzet termin, obe uloge](APPLICATION_CALENDAR_CONFLICT_20261021.md). DEV aditivni read primenjen; klijent objašnjava preklapanje i čuva prijavu. SQL cancel/release/reselect, četiri reader-a, start-only i ACL PASS; 180/180 Jest, TSC i integritet migracija PASS. Bez novog APK/native dokaza.
 
 **Najnovije — CCP03:** [stvarni izbor zamene na DEV-u](REPLACEMENT_FLOW_DEV_20261021.md). Rollback proba 3/3 → 2/3 → 3/3, ponavljanje bez duplikata, oba ugla i izolacija bivšeg izvršioca PASS. Nema novih server izmena ili APK-a; signed HTTP, konkurencija i telefon ostaju otvoreni.

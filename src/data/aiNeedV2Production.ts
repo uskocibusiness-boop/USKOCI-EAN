@@ -19,6 +19,7 @@ import { failure as fail, positiveInteger, readOwnedResult, readReceipt, record,
   type ReceiptAccount } from './serverReceipt';
 
 const NEED_EDIT_COPY: Record<string, string> = {
+  PUBLISHED_TASK_EDIT_NOT_READY: 'Objavljivanje izmena trenutno nije dostupno. Postojeća objava nije promenjena; izmene ostaju u razgovoru.',
   NEED_EDIT_LOCKED_AFTER_FIRST_DOGOVOR:
     'Zadatak više ne može da se menja jer je već sklopljen Dogovor. Promene idu kroz izmenu Dogovora.',
   NEED_NOT_EDITABLE_PUBLIC_STATE: 'Ovaj zadatak trenutno nije u stanju u kom može da se menja.',

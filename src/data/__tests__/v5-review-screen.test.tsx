@@ -5,6 +5,11 @@ import type { AiTaskPublicationCommand, AiTaskReviewEnvelope } from '../aiTaskRe
 import type { NeedLocationInput } from '../../contracts/location';
 import { rememberIntakeReviewReturn, retireIntakeReviewReturn } from '../intakeReviewReturn';
 import { PUBLISHED_MOMENT_MS } from '../../ui/objava/PublishedMoment';
+import { StateView } from '../../ui/system/StateView';
+
+// Draft deletion is covered by its lifecycle suite; this suite exercises the
+// owned review read/retry/accept boundary, including existing private drafts.
+jest.mock('../../ui/needs/NeedLifecycleActions', () => ({ NeedLifecycleActions: () => null }));
 
 const OWNER = '11111111-1111-4111-8111-111111111111', OTHER = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const CONVERSATION = '22222222-2222-4222-8222-222222222222', REVIEW = '33333333-3333-4333-8333-333333333333';
@@ -194,18 +199,22 @@ it('prepares the displayed public and private review with one publish action and
   expect(mockAlert).not.toHaveBeenCalled();
 });
 
-it('says it is confirming changes when the review belongs to a task that already exists', async () => {
-  // The existing server returns the same task to DRAFT before publishing its changes.
+it('keeps unsafe published edits unavailable and retains the conversation', async () => {
   const bound = { ...review(), draftId: NEED, draftRevision: 4 };
   mockRead.mockResolvedValue(ok({ review: bound, command: null })); mockPrepare.mockResolvedValue(ok(bound));
   await render();
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Objavi zadatak' })).toHaveLength(0);
-  expect(tree.root.findByProps({ accessibilityLabel: 'Potvrdi izmene' }).props.disabled).toBe(false);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Potvrdi izmene' }).props.disabled).toBe(true);
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Potvrdi izmene' }).props.onPress());
   // The eyebrow that said "Izmena postojećeg zadatka" is no longer drawn (owner, 2026-09-23); the title below already says it is a review of changes.
   expect(text()).toContain('Pregled izmena');
-  expect(text()).toContain('Potvrdom se zadatak privremeno povlači iz pretrage');
-  expect(text()).toContain('Ako objava ne uspe, izmene ostaju sačuvane kao privatan nacrt.');
+  expect(text()).toContain('Objavljivanje izmena trenutno nije dostupno.');
+  expect(text()).toContain('Izmene ostaju u razgovoru.');
+  expect(text()).not.toContain('privremeno povlači iz pretrage');
   expect(mockAccept).not.toHaveBeenCalled();
+  expect(mockDraft).not.toHaveBeenCalled();
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad u razgovor' }).props.onPress());
+  expect(mockRouter.replace).toHaveBeenCalledWith({ pathname: '/nova', params: { conversationId: CONVERSATION } });
 
   // A task being published for the first time still reads as a first publication.
   await act(async () => tree.unmount());
@@ -216,18 +225,29 @@ it('says it is confirming changes when the review belongs to a task that already
   /* the eyebrow "Ti odlučuješ šta objavljuješ" is no longer drawn (owner, 2026-09-23) */ 
 });
 
-it('shows the saved private draft when an accepted edit cannot be published, without claiming the old publication survived', async () => {
+it.each(['missing', 'network'] as const)('retries an unconfirmed bound-task read (%s) and permits a confirmed private draft', async kind => {
+  const bound = { ...review(), draftId: NEED, draftRevision: 4 };
+  mockPrepare.mockResolvedValue(ok(bound));
+  if (kind === 'network') mockNeed.mockRejectedValueOnce(new Error('network'));
+  else mockNeed.mockResolvedValueOnce(null);
+  await render();
+  expect(text()).toContain('Nismo uspeli da proverimo trenutno stanje zadatka.');
+  expect(mockAccept).not.toHaveBeenCalled();
+  expect(commands('Potvrdi izmene')).toHaveLength(0);
+  mockNeed.mockResolvedValue({ id: NEED, narucilacId: OWNER, revizija: 4, stanje: 'NACRT' });
+  const retry = tree.root.findByType(StateView).props.primary;
+  await act(async () => retry.onPress());
+  expect(publish().disabled).toBe(false);
+  await act(async () => publish().onPress());
+  expect(mockAccept).toHaveBeenCalledTimes(1);
+});
+
+it('still recovers a historically accepted edit without claiming its old publication survived', async () => {
   const bound = { ...review(), draftId: NEED, draftRevision: 4 };
   const stopped = { ...notReadyCommand(), needRevision: 5 };
-  mockPrepare.mockResolvedValue(ok(bound));
-  mockAccept.mockImplementation(async () => {
-    mockRead.mockResolvedValue(ok({ review: bound, command: stopped }));
-    return ok(stopped);
-  });
+  mockLatest.mockResolvedValue(ok({ review: bound, command: stopped }));
   await render();
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Potvrdi izmene' }).props.onPress());
-  expect(mockAccept).toHaveBeenCalledTimes(1);
-  expect(mockAccept.mock.calls[0][0].review.draftId).toBe(NEED);
+  expect(mockAccept).not.toHaveBeenCalled();
   expect(text()).toContain('Tvoj zadatak je sačuvan kao privatan nacrt.');
   expect(text()).not.toContain('Izmene su objavljene.');
   expect(commands('Otvori zadatak')).toHaveLength(0);
@@ -1296,8 +1316,19 @@ describe('the Objavljeno moment', () => {
     expect(mockAccept).toHaveBeenCalledTimes(1);
   });
 
-  it('confirming the changes of a task that already exists says so, with no promise of a first application, and lands on the same overview', async () => {
-    await publishHere({ ...review(), draftId: NEED, draftRevision: 4 });
+  it('resuming a historically accepted edit still shows its publication and lands on the same overview', async () => {
+    const shown = { ...review(), draftId: NEED, draftRevision: 4 };
+    const saved = { ...command('ACCEPTED'), needRevision: 5 };
+    const done = { ...command('PUBLISHED'), needRevision: 5 };
+    mockLatest.mockResolvedValue(ok({ review: shown, command: saved }));
+    mockResume.mockImplementation(async () => {
+      mockLatest.mockResolvedValue(ok({ review: shown, command: done }));
+      mockNeed.mockResolvedValue({ id: NEED, narucilacId: OWNER, revizija: 5, stanje: 'OBJAVLJENA' });
+      return ok(done);
+    });
+    await render();
+    await act(async () => action('Objavi ovaj nacrt').onPress());
+    expect(mockAccept).not.toHaveBeenCalled();
     expect(tree.root.findByProps({accessibilityLabel:'Prenos ormara. Izmene su objavljene.'})).toBeDefined(); expect(text()).not.toMatch(/Prijave stižu ovde|Javićemo/);
     await advance(PUBLISHED_MOMENT_MS);
     expect(mockRouter.replace).toHaveBeenCalledWith(OVERVIEW);

@@ -55,6 +55,7 @@ export type AiTaskReviewPrepare = Readonly<{
 }>;
 
 const COPY: Readonly<Record<string, string>> = {
+  PUBLISHED_TASK_EDIT_NOT_READY: 'Objavljivanje izmena trenutno nije dostupno. Postojeća objava nije promenjena; izmene ostaju u razgovoru.',
   IDENTITY_VERIFICATION_UNAVAILABLE: 'Provera identiteta nije dostupna. U pregledu ukloni taj uslov da nastaviš običnim zadatkom.',
   AUTH_REQUIRED: 'Prijavi se da nastaviš.', AUTH_ACCOUNT_CHANGED: 'Nalog je promenjen. Ponovo otvori zadatak.',
   TASK_REVIEW_NOT_FOUND: 'Pregled nije pronađen. Ponovo otvori zadatak.',

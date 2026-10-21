@@ -57,6 +57,14 @@ it('opening review does not accept facts, save a draft, evaluate or publish', as
   expect(stored).toBeNull(); expect(mockInvoke).not.toHaveBeenCalled();
 });
 
+it('reports the published-edit gate without evaluating, retrying or claiming a saved draft', async () => {
+  mockRpc.mockResolvedValueOnce({ data: null, error: { code: 'P0001', message: 'PUBLISHED_TASK_EDIT_NOT_READY' } });
+  await expect(service.acceptAndPublish({ review: { ...review(), draftId: NEED, draftRevision: 4 }, clientRequestId: KEY }))
+    .resolves.toMatchObject({ ok: false, kod: 'PUBLISHED_TASK_EDIT_NOT_READY', poruka: expect.stringContaining('Postojeća objava nije promenjena') });
+  expect(mockRpc).toHaveBeenCalledTimes(1);
+  expect(mockInvoke).not.toHaveBeenCalled();
+});
+
 it('opt-in review derives the deadline from facts through the separate signed prepare RPC', async () => {
   process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1 = 'true';
   mockRpc.mockResolvedValueOnce(answer(review()));

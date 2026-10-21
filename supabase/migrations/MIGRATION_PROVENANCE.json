@@ -4,7 +4,7 @@
     "observed_at_utc": "2026-10-18T20:15:41.065022+00:00",
     "project": "leqcwgzvjsxugfgzdmth",
     "scope": "Physical SQL suffix only. Frozen historical replay remains unchanged. Current live bindings come from dated read-only catalog hash evidence; differing bytes are NOT certified equivalent or safe to replay. Dated supplements add explicit source/ledger mappings without refreshing older observations.",
-    "evidence": "supabase/operations/dev-alpha/ledger/20261021_cal01_physical_suffix.receipt.json",
+    "evidence": "supabase/operations/dev-alpha/ledger/20261021_ped01_physical_suffix.receipt.json",
     "entries": [
       {
         "file": "20261013192000_uskoci_dynamic_taxonomy_ai_branching.sql",
@@ -417,9 +417,24 @@
         "live_recorded_md5": "6ce2a71faaa0d0b983d8a44d5600b88d",
         "live_recorded_sha256": "b9ad5a756b5eb51bfc612e4bb6d4a787ad142c14acbd6f032a193af4785bc7b7",
         "note": "CAL01 additive calendar explanation; authenticated SQL rollback proof, no signed HTTP/native acceptance."
+      },
+      {
+        "file": "20261021095622_published_task_edit_containment.sql",
+        "version": "20261021095622",
+        "name": "published_task_edit_containment",
+        "classification": "APPLIED_EXACT_LEDGER_BYTES",
+        "live_applied": true,
+        "live_version": "20261021095622",
+        "live_name": "published_task_edit_containment",
+        "raw_md5": "9c966b02ab23996b97dfc09d14b9212d",
+        "raw_sha256": "eba0a3c804bcd42e614c20dd02690309617341a94e02fb92da7ceaf939d3c339",
+        "raw_bytes": 2633,
+        "live_recorded_md5": "9c966b02ab23996b97dfc09d14b9212d",
+        "live_recorded_sha256": "eba0a3c804bcd42e614c20dd02690309617341a94e02fb92da7ceaf939d3c339",
+        "note": "PED01 containment only; new published edits blocked, full replacement OPEN. SQL rollback and client tests; no signed/native proof."
       }
     ],
-    "last_extended_at_utc": "2026-10-21T09:40:00Z"
+    "last_extended_at_utc": "2026-10-21T10:01:46.343557+00:00"
   },
   "generated_at_utc": "2026-09-07T14:04:10Z",
   "canonical_repository": "Uskoci1/USKOCI-CLEAN",
