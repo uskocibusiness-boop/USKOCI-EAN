@@ -237,7 +237,8 @@ function CandidateMark({ text, tone }: { text: string; tone: CandidateMarkTone }
  * list's comparative mark for this application ("Najniža cena"), given only when the list is whole; a reason the server gives for
  * an application that cannot be chosen takes its place. Large text and a narrow window stack the total under the person.
  */
-export const CandidateCard = memo(function CandidateCard({ candidate: k, timezone, fallbackTime, viewed = false, onOpen, photo, large, narrow = false, measure = null }: {
+export const CandidateCard = memo(function CandidateCard({ candidate: k, timezone, fallbackTime, viewed = false, onOpen, photo, large, narrow = false, measure = null, disabled = false }: {
+  disabled?: boolean;
   candidate: KandidatProjekcija; timezone?: string | null;
   /** The task's own term: what applies when the person proposed none. */ fallbackTime: string;
   /** The server confirmed that this application was seen (see `candidateChip`). */ viewed?: boolean;
@@ -257,7 +258,7 @@ export const CandidateCard = memo(function CandidateCard({ candidate: k, timezon
   const choosable = k.stanje === 'SELECTABLE' && k.mozeIzabrati;
   return <Animated.View style={lift.style}>
     <Surface kind="record" style={[recordFlush, k.stanje === 'SELECTED' && s.chosen]}>
-      <Press accessibilityRole="button" accessibilityLabel={`Pogledaj prijavu: ${k.ime}`}
+      <Press disabled={disabled} accessibilityState={{ disabled }} accessibilityRole="button" accessibilityLabel={`Pogledaj prijavu: ${k.ime}`}
         accessibilityValue={{ text: candidateSpoken(k, fallbackTime, timezone, viewed, mark && !reason ? mark.text : null) }} accessibilityHint="Otvara celu prijavu."
         haptic="select" scaleTo={1} onPressIn={lift.give} onPressOut={lift.settle} onPress={onOpen} style={recordBody}>
         {chip === 'application.sent' ? null : <PrijavaState status={chip} reason={null} silent />}
@@ -280,7 +281,7 @@ export const CandidateCard = memo(function CandidateCard({ candidate: k, timezon
           {message ? <T variant="note" tone="muted" numberOfLines={2}>{`„${message}“`}</T> : null}
         </View> : null}
       </Press>
-      {choosable ? <RecordFoot label="Izaberi" tone="green" accessibilityLabel={`Izaberi: ${k.ime}`} accessibilityHint="Otvara prijavu, gde izbor potvrđuješ."
+      {choosable ? <RecordFoot disabled={disabled} label="Izaberi" tone="green" accessibilityLabel={`Izaberi: ${k.ime}`} accessibilityHint="Otvara prijavu, gde izbor potvrđuješ."
         onPress={onOpen} onPressIn={lift.give} onPressOut={lift.settle} /> : null}
     </Surface>
   </Animated.View>;
@@ -305,7 +306,8 @@ const TRUST_LINE = sys.type.note.lineHeight!, COMPARE_IDENTITY_GAP = sys.space.s
  * cell is a small grey label over its value, and the cells are told apart by the space between them, not by lines. `aligned` holds
  * the head to one height when two columns stand side by side.
  */
-export const CandidateCompareCard = memo(function CandidateCompareCard({ candidate: k, timezone, fallbackTime, viewed = false, onOpen, photo, aligned }: {
+export const CandidateCompareCard = memo(function CandidateCompareCard({ candidate: k, timezone, fallbackTime, viewed = false, onOpen, photo, aligned, disabled = false }: {
+  disabled?: boolean;
   candidate: KandidatProjekcija; timezone?: string | null; fallbackTime: string; viewed?: boolean; onOpen: () => void; photo?: ReactNode; aligned: boolean;
 }) {
   const reason = candidateStatus(k), value = candidateValue(k), message = k.napomena?.trim() ?? '', has = candidateHas(k);
@@ -313,7 +315,7 @@ export const CandidateCompareCard = memo(function CandidateCompareCard({ candida
   const lift = usePressLift();
   return <Animated.View style={[s.column, lift.style]}>
     <Surface kind="record" style={[recordFlush, s.column, k.stanje === 'SELECTED' && s.chosen]}>
-      <Press accessibilityRole="button" accessibilityLabel={`Otvori prijavu: ${k.ime}`}
+      <Press disabled={disabled} accessibilityState={{ disabled }} accessibilityRole="button" accessibilityLabel={`Otvori prijavu: ${k.ime}`}
         accessibilityValue={{ text: candidateSpoken(k, fallbackTime, timezone, viewed) }} accessibilityHint="Otvara celu prijavu."
         haptic="select" scaleTo={1} onPressIn={lift.give} onPressOut={lift.settle} onPress={onOpen} style={[recordBody, s.columnBody]}>
         <View style={[s.compareHead, aligned && { minHeight: compareIdentityHeight(scale) }]}>

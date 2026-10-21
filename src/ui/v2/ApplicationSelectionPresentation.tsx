@@ -70,7 +70,8 @@ const CandidateSeparator = () => <View style={s.separator} />;
  * and primitives so a re-render of the screen touches only the rows whose offer changed; the
  * closure over `candidate` is made here, from the list's one stable `open`.
  */
-const CandidateItem = memo(function CandidateItem({ candidate, need, index, animate, compare, columnWidth, large, narrow, open, photo, viewed, measure }: {
+const CandidateItem = memo(function CandidateItem({ candidate, need, index, animate, compare, columnWidth, large, narrow, open, photo, viewed, measure, disabled }: {
+  disabled: boolean;
   candidate: KandidatProjekcija; need: PotrebaProjekcija; index: number; animate: boolean; compare: boolean;
   /** The width of one of two comparison columns; null in one column. A lone last application keeps it instead of the whole row. */
   columnWidth: number | null; large: boolean; narrow: boolean; open: (candidate: KandidatProjekcija) => void; photo?: CandidatePhoto;
@@ -84,9 +85,9 @@ const CandidateItem = memo(function CandidateItem({ candidate, need, index, anim
   // An application is somebody else's: a new one arrives from above (owner's pick "Ponude preko stola", rule B1).
   return <Appear index={index} animate={animate} from="above" style={columnWidth ? { width: columnWidth } : undefined}>
     {compare ? <CandidateCompareCard candidate={candidate} timezone={need.taskTimezone} fallbackTime={need.vremeTekst} viewed={viewed} onOpen={openThis}
-      photo={face} aligned={columnWidth !== null} />
+      photo={face} aligned={columnWidth !== null} disabled={disabled} />
       : <CandidateCard candidate={candidate} timezone={need.taskTimezone} fallbackTime={need.vremeTekst} viewed={viewed} onOpen={openThis}
-        photo={face} large={large} narrow={narrow} measure={measure} />}
+        photo={face} large={large} narrow={narrow} measure={measure} disabled={disabled} />}
   </Appear>;
 });
 
@@ -178,7 +179,8 @@ export type CandidatesPaging = { total: number | null; hasMore: boolean; loading
  * one line that says how many there are and how they are ordered, and the cards. No line stands between them: the space is the only
  * divider. The order is changed in a sheet of three choices (the arrival, the price, the rating), not in a menu that opens in the list.
  */
-export function CandidateListPresentation({ need, candidates, open, back, refresh, openTask, sort: chosenSort, onSort, comparison, onComparison, photo, textScale: forcedScale, paging, viewed, targetNotice }: {
+export function CandidateListPresentation({ need, candidates, open, back, refresh, openTask, sort: chosenSort, onSort, comparison, onComparison, photo, textScale: forcedScale, paging, viewed, targetNotice, refreshing = false }: {
+  refreshing?: boolean;
   need: PotrebaProjekcija; candidates: KandidatProjekcija[]; open: (candidate: KandidatProjekcija) => void; back: () => void; refresh: () => void;
   /** Present only when the list is read a page at a time (EX-04 S4); `candidates` are then the ones loaded so far. */
   paging?: CandidatesPaging;
@@ -206,7 +208,7 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   const [ownSort, setOwnSort] = useState<CandidateSort>('ARRIVAL');
   const [sorting, setSorting] = useState(false);
   // Reading the applications again is a pull on the list, not a button under it: the screen shows its own loading state while it reads.
-  const pull = usePullRefresh(refresh, false);
+  const pull = usePullRefresh(refresh, refreshing);
   // Read a page at a time, the number of applications is the server's, and how many of them can still be chosen is only known once every one is loaded.
   const known = !paging || !paging.hasMore;
   // The lowest price and the best rating are orders of the WHOLE list: the server sorts only by arrival, so while a page is still to come the list is
@@ -237,8 +239,8 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   const measures = useMemo(() => candidateMeasures(candidates, known), [candidates, known]);
   const renderItem = useCallback(({ item: k, index }: ListRenderItemInfo<KandidatProjekcija>) =>
     <CandidateItem candidate={k} need={need} index={index} animate={appearRef.current.isNew(candidateKey(k))} compare={compare} columnWidth={columnWidth}
-      large={large} narrow={narrow} open={openCandidate} photo={photo} viewed={viewed?.has(candidateKey(k)) ?? false} measure={measures.get(candidateKey(k)) ?? null} />,
-  [need, compare, columnWidth, large, narrow, openCandidate, photo, viewed, measures]);
+      large={large} narrow={narrow} open={openCandidate} photo={photo} viewed={viewed?.has(candidateKey(k)) ?? false} measure={measures.get(candidateKey(k)) ?? null} disabled={refreshing} />,
+  [need, compare, columnWidth, large, narrow, openCandidate, photo, viewed, measures, refreshing]);
   // Ordering only rearranges the row objects already read; a memoised row redraws only if its place changed.
   const rows = useMemo(() => sortCandidates(candidates, sort), [candidates, sort]);
   const choose = (value: CandidateSort) => { setSorting(false); if (onSort) onSort(value); else setOwnSort(value); };
@@ -253,6 +255,7 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
         contentContainerStyle={s.content} ItemSeparatorComponent={CandidateSeparator} columnWrapperStyle={columns > 1 ? s.columnRow : undefined}
         ListHeaderComponent={<View style={s.listHeader}>
           <TaskBrief need={need} open={openTask} />
+          {refreshing ? <T accessibilityLiveRegion="polite" variant="note" tone="muted">Osvežavamo prijave… Izbor je dostupan kada proverimo trenutna stanja.</T> : null}
           {targetNotice ? <Surface kind="note" tone="warn"><T accessibilityRole="alert" variant="body">{targetNotice}</T></Surface> : null}
           {candidates.length ? <View style={s.toolbar}>
             <T variant="note" tone="muted" style={s.counts}>{counts}</T>
@@ -270,9 +273,9 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
         // The empty list is an object and one sentence: no promise of what will happen, and no button (the list is read again by pulling it).
         ListEmptyComponent={<StateView kind="empty" art="applications" title="Još nema prijava" />}
         renderItem={renderItem}
-        onEndReached={paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6}
+        onEndReached={!refreshing && paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6}
         ListFooterComponent={candidates.length ? <View style={s.listFooter}>
-          {paging && (paging.hasMore || paging.loadingMore || paging.moreError) ? <View style={s.pagingFoot}>
+          {!refreshing && paging && (paging.hasMore || paging.loadingMore || paging.moreError) ? <View style={s.pagingFoot}>
             {paging.moreError ? <>
               <T variant="note" tone="muted">Ne možemo da učitamo ostale prijave.</T>
               <V2Action label="Pokušaj ponovo" kind="quiet" onPress={paging.onLoadMore} />

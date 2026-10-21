@@ -1,4 +1,9 @@
 {
+  "latest_application_refresh_20261021": {
+    "report": "docs/current/APPLICATION_REFRESH_STATES_20261021.md",
+    "proof": "SOURCE/TEST: owner coherent retained task/page snapshot and worker retained application rows during refresh; disabled commands and pagination; first read/error/account change remain distinct. 226/226 Jest and TSC PASS.",
+    "remaining": ["native_visual_acceptance", "signed_replacement_flow", "all_eleven_mvp_scenarios"]
+  },
   "latest_cancelled_candidate_20261021": {
   "report": "docs/current/CANCELLED_CANDIDATE_DEV_20261021.md",
   "proof": "DEV APPLIED 20261021085952; origin rollback real cancellation from synthetic 3/3 to 2/3; owner/worker CLOSED; ACL unchanged; zero fixture accounts; 324/324 Jest and TSC PASS.",

@@ -335,9 +335,10 @@ export default function MojePrijave() {
   const editedRow = session.expanded ? shownRows.find(p => p.prijavaId === session.expanded) : null;
   const draftStale = !!session.draft && (!editedRow || session.draftFor !== identity(editedRow));
   // Paged: nothing of another set is shown under this tab's title, a refresh keeps what is on screen, and a destination that is not in the shown set is never called missing.
-  const reading = !session.focused || !session.active || (paged ? !paged.settled || paged.state.loading || (editor.loading && shownRows.length === 0) : editor.loading);
+  const reading = !session.focused || !session.active || (paged ? !paged.settled || paged.state.loading || (editor.loading && shownRows.length === 0) : editor.loading && shownRows.length === 0);
   const wholeSetKnown = !paged || (paged.settled && session.tab === 'all' && !paged.state.loading && !paged.state.hasMore && !paged.state.loadingMore);
   return <><MyApplicationsPresentation rows={visible ? shownRows as MojaPrijavaProjekcija[] : []} loading={reading} paging={paged?.paging}
+    refreshing={!reading && (editor.loading || !!paged?.state.refreshing)}
     unavailable={!data || (!!paged && paged.settled && paged.state.error)} message={session.message ?? editor.error} notice={data?.notice ?? null}
     tab={session.tab} onTab={tab => { if (current() && tab !== session.tab) discardIfDirty(() => { clearReview(); session.tab = tab; render(v => v + 1); }); }}
     focusId={visible ? focusId : null} freshId={visible ? freshId : null} requestedId={visible && wholeSetKnown ? named : null}

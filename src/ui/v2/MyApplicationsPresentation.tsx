@@ -30,6 +30,7 @@ export type ApplicationsTab = 'all' | ApplicationSection;
 export type ApplicationsPaging = { counts: ApplicationCounts | null; hasMore: boolean; loadingMore: boolean; moreError: boolean; onLoadMore: () => void };
 export type OfferEdit = { price: string; people: string; note: string; start: string | null; end: string | null; pricing: ApplicationEditPricing };
 type Props = {
+  refreshing?: boolean;
   rows: MojaPrijavaProjekcija[]; loading: boolean; unavailable: boolean; message: string | null; notice: string | null;
   tab: ApplicationsTab; onTab: (tab: ApplicationsTab) => void; expanded: string | null; draft: OfferEdit | null; draftStale?: boolean;
   busy: boolean; editingLoading: boolean; pending: boolean; pendingAction?: 'withdraw' | 'update' | 'keep' | null;
@@ -119,8 +120,8 @@ export function MyApplicationsPresentation(props: Props) {
     return out;
   }, []);
   // The spinner of the pull is for a pull: a read the screen makes by itself (a tab switched, a focus) must not raise it (the owner's phone, 8 Oct 2026).
-  const pull = usePullRefresh(props.onRefresh, props.loading);
-  const disabled = props.busy || props.pending || props.editingLoading;
+  const pull = usePullRefresh(props.onRefresh, props.loading || !!props.refreshing);
+  const disabled = props.busy || props.pending || props.editingLoading || !!props.refreshing;
   // The route's handlers are fresh closures every render and are handed to the cards as such, on
   // purpose: each carries the guards of the render that made it, and a handle captured before an
   // account change is refused by them. The card's text is what stays memoised (ApplicationSummary).
@@ -224,15 +225,16 @@ export function MyApplicationsPresentation(props: Props) {
         removeClippedSubviews={false} initialNumToRender={6} maxToRenderPerBatch={6} windowSize={7}
         keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false} contentContainerStyle={s.list}
         refreshing={pull.refreshing} onRefresh={pull.onRefresh} ListEmptyComponent={empty} ItemSeparatorComponent={Separator}
-        onEndReached={paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6}
-        ListFooterComponent={paging && !props.loading && !props.unavailable && visible.length > 0 && (paging.hasMore || paging.loadingMore || paging.moreError) ? <View style={s.foot}>
+        onEndReached={!props.refreshing && paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6}
+        ListFooterComponent={paging && !props.refreshing && !props.loading && !props.unavailable && visible.length > 0 && (paging.hasMore || paging.loadingMore || paging.moreError) ? <View style={s.foot}>
           {paging.moreError ? <>
             <T variant="note" tone="muted">Ne možemo da učitamo ostale prijave.</T>
             <V2Action label="Pokušaj ponovo" kind="quiet" onPress={paging.onLoadMore} />
           </> : paging.loadingMore ? <T variant="note" tone="muted">Učitavamo još prijava…</T>
             : <V2Action label="Prikaži još" kind="quiet" onPress={paging.onLoadMore} />}
         </View> : null}
-        ListHeaderComponent={showsFeedback || showsCount ? <View style={s.head}>
+        ListHeaderComponent={showsFeedback || showsCount || props.refreshing ? <View style={s.head}>
+          {props.refreshing ? <T accessibilityLiveRegion="polite" variant="note" tone="muted">Osvežavamo tvoje prijave… Sačekaj proveru pre izmene ili povlačenja.</T> : null}
           {showsFeedback ? <View style={s.feedback}>
             {missingNamed ? <Surface kind="note"><T variant="body" accessibilityRole="alert">Ova prijava trenutno nije dostupna</T>
               <V2Action label="Osveži prijave" onPress={props.onRefresh} disabled={props.busy} /></Surface> : null}

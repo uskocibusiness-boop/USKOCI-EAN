@@ -59,6 +59,19 @@ const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(no
 beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); candidates = [row('a'), row('b'), row('c', { stanje: 'STALE', mozeIzabrati: false })]; paging = makePaging(); sort = undefined; loadMore.mockClear(); refresh.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 
+test('refresh keeps cards visible, disables their actions and suspends pagination until it settles', async () => {
+  await render();
+  await act(async () => tree.update(<CandidateListPresentation need={need} candidates={candidates} open={jest.fn()} back={jest.fn()} refresh={refresh} paging={paging} refreshing />));
+  const cards = tree.root.findAllByType('Card' as React.ElementType);
+  expect(cards).toHaveLength(3); expect(cards.every(card => card.props.disabled)).toBe(true);
+  expect(texts()).toContain('Osvežavamo prijave… Izbor je dostupan kada proverimo trenutna stanja.');
+  expect(list().props.onEndReached).toBeUndefined(); expect(actions()).not.toContain('Prikaži još');
+  expect(list().props.refreshing).toBe(false); // A background read does not pretend to be a pull gesture.
+  await rerender();
+  expect(tree.root.findAllByType('Card' as React.ElementType).every(card => !card.props.disabled)).toBe(true);
+  expect(list().props.onEndReached).toBe(loadMore);
+});
+
 test('without paging the list is the whole list: its own count with "za izbor", no button at its foot and no request for another page', async () => {
   paging = undefined; await render();
   expect(texts()).toContain(`${prijava(3)} · 2 za izbor`);

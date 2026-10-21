@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { ProfilePhoto } from '../../../../ui/media/ContextPhotos';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
@@ -235,18 +235,24 @@ export default function Kandidati() {
   // Paged: a later page may have been read after the task changed under the first one. Applications of two revisions are never shown together: the same refusal the whole list makes,
   // unless a choice is already being decided (its sheet is what matters then).
   const mixed = !!paged && !!data && !pending && paged.rows.some(k => k.potrebaRevizija !== data.need.revizija);
-  if (!session.focused || !session.active || editor.loading || !data || mixed)
+  // Keep one coherent, same-account snapshot while the independent task/page reads settle.
+  // A newer page must not appear beside an older task's capacity or revision.
+  const retained = useRef<{ session: typeof session; rows: typeof shownRows; paging: CandidatesPaging | undefined } | null>(null);
+  if (!editor.loading && data && !mixed) retained.current = { session, rows: shownRows, paging: paged?.paging };
+  const snapshot = editor.loading && retained.current?.session === session ? retained.current : null;
+  if (!session.focused || !session.active || !data || (mixed && !editor.loading))
     return <SelectionUnavailable loading={!session.focused || !session.active || editor.loading}
       message={mixed ? STALE_REVIEW_MESSAGE : editor.error ?? 'Prijave nisu dostupne.'} retry={refresh} back={back} />;
   // Step 7 (2026-09-24): the list stays under an opened offer, which is a sheet over it; closing the sheet is `back`.
-  const list = <CandidateListPresentation need={data.need} candidates={shownRows} back={back} refresh={refresh} paging={paged?.paging}
+  const list = <CandidateListPresentation need={data.need} candidates={snapshot?.rows ?? shownRows} back={back} refresh={refresh} paging={snapshot ? snapshot.paging : paged?.paging}
+    refreshing={editor.loading}
     targetNotice={session.targetMissing ? session.targetIncomplete
       ? 'Nismo pronašli ovu prijavu u učitanom delu. Osveži listu ili učitaj još prijava.'
       : 'Ova prijava više nije dostupna. Pogledaj ostale prijave ili osveži listu.' : undefined}
     open={openOffer} openTask={openTask} sort={sort}
     onSort={sort => { if (current()) setSorted({ scope: sortScope, sort }); }}
     comparison={session.compare} onComparison={compare => { if (current()) { session.compare = compare; render(value => value + 1); } }} photo={photo} viewed={viewed} />;
-  if (!candidate) return list;
+  if (!candidate || editor.loading) return list;
   const rejection = pending?.result && !pending.result.ok && Object.prototype.hasOwnProperty.call(applicationSelectionErrors, pending.result.kod);
   return <>{list}<CandidateSelectionPresentation need={pending?.need ?? data.need} candidate={candidate} back={back}
     photo={photo(candidate, 56)} safety={safety} viewed={viewed.has(candidate.prijavaId)}

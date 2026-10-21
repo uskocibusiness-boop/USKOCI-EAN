@@ -58,6 +58,18 @@ beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); ro
   loadMore.mockClear(); onTab.mockClear(); onExplore.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 
+test('refresh keeps worker cards visible and disables withdrawal until current states arrive', async () => {
+  await render();
+  await act(async () => tree.update(<MyApplicationsPresentation {...props()} refreshing />));
+  expect(texts()).toContain('Unos one'); expect(texts()).toContain('Unos two');
+  expect(texts()).toContain('Osvežavamo tvoje prijave… Sačekaj proveru pre izmene ili povlačenja.');
+  const withdrawals = tree.root.findAllByType('Press' as React.ElementType).filter(node => node.props.accessibilityLabel?.startsWith('Povuci prijavu'));
+  expect(withdrawals.length).toBeGreaterThan(0); expect(withdrawals.every(node => node.props.disabled)).toBe(true);
+  expect(list().props.onEndReached).toBeUndefined(); expect(actions()).not.toContain('Prikaži još');
+  await rerender();
+  expect(list().props.onEndReached).toBe(loadMore);
+});
+
 test('the count beside each tab is the server\'s, never the number loaded; unknown counts say nothing', async () => {
   await render();
   expect(tabs()).toEqual(['Čekaju odgovor', 'Čeka te', 'Istorija', 'Sve']);

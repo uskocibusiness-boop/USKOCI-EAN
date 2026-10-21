@@ -63,6 +63,19 @@ const presentation = () => tree!.root.findByType(MyApplicationsPresentation);
 const render = async () => { await act(async () => { tree = create(<Screen />); }); };
 const update = async () => { await act(async () => tree!.update(<Screen />)); };
 const deferred = () => { let resolve!: (value: any) => void; const promise = new Promise<any>(r => { resolve = r; }); return { resolve, promise }; };
+
+it('keeps current applications readable during refresh while withdrawal waits for the fresh read', async () => {
+  await render();
+  const later = deferred(); mockRead.mockReturnValueOnce(later.promise);
+  await act(async () => presentation().props.onRefresh());
+  expect(presentation().props.loading).toBe(false); expect(presentation().props.refreshing).toBe(true);
+  expect(presentation().props.rows).toHaveLength(1);
+  await act(async () => presentation().props.onWithdraw(presentation().props.rows[0]));
+  expect(sheets()).toHaveLength(0); expect(mockWithdraw).not.toHaveBeenCalled();
+  await act(async () => later.resolve([row({ stanje: 'CLOSED', mozePovuci: false })]));
+  expect(presentation().props.refreshing).toBe(false);
+  expect(presentation().props.rows[0].stanje).toBe('CLOSED');
+});
 // The withdrawal question was Alert.alert and is an in-app ConfirmSheet now. `confirm()` is the sheet's confirm button, so a
 // test presses what a person presses; `retained()` is the screen's own answer as the sheet holds it (the same closure the
 // Alert used to get), for the tests that fire an answer after the screen has retired its question.

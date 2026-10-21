@@ -25,6 +25,10 @@ Ovaj presek razlikuje povezani ekran, lokalni test, aktivan DEV ugovor i potvrđ
 
 ## Pre kandidata APK-a
 
+### Prijave obe uloge — osvežavanje bez uklanjanja liste
+
+[Paket međustanja](APPLICATION_REFRESH_STATES_20261021.md) čuva usklađene owner redove/kapacitet tokom refresh-a i worker prijave tokom provere. Komande su privremeno onemogućene; prvi read, promena skupa, odbijanje i retry ostaju odvojeni. 226/226 Jest i TypeScript PASS. Ovo je izvorni/test dokaz za deo FLOW03/04/11, bez novog APK-a, Figma vizuelnog prihvatanja ili native E2E.
+
 ### Naknadni paket: grupni razgovor, 21.10.2026.
 
 `GroupConversationController.syncLatest` sada čita novu stranu poruka u fokusiranom, aktivnom ekranu na osam sekundi. Koristi postojeće owner-scoped context/messages RPC-eve, posle poslednje potvrđene sequence; ne zahteva novu server funkciju. Dopunjava istoriju i čuva stariji cursor, mesto čitanja i neslati tekst. Spor read ne zaključava slanje i ne sme da pregazi noviji command/refresh/read ACK. Izlazak, pozadina i promena naloga odbacuju kasni rezultat. Završena grupa prestaje da se proverava nakon preuzimanja završnih strana.

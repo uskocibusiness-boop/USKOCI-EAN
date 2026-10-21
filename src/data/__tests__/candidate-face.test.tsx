@@ -64,6 +64,13 @@ const flat = (style: unknown) => Object.assign({}, ...[style].flat(4).filter(Boo
 const stars = (root: ReactTestInstance) => root.findAll(node => node.type === ('FactArt' as unknown as React.ElementType) && node.props.kind === 'star');
 
 describe('the candidate row', () => {
+  it('marks both candidate targets disabled while current state is being checked', async () => {
+    await render(<CandidateListPresentation need={need} candidates={[k()]} open={noop} back={noop} refresh={noop} refreshing />);
+    expect(pressNamed('Pogledaj prijavu: Milan Petrović').props.disabled).toBe(true);
+    expect(pressNamed('Izaberi: Milan Petrović').props.disabled).toBe(true);
+    await act(async () => tree.update(<CandidateListPresentation need={need} candidates={[k()]} open={noop} back={noop} refresh={noop} refreshing comparison />));
+    expect(pressNamed('Otvori prijavu: Milan Petrović').props.disabled).toBe(true);
+  });
   it('leads with the person and the total in one row, then the term, the people, what the person has and the message, in one press', async () => {
     const opened: string[] = [];
     await act(async () => { tree = create(<CandidateListPresentation need={need} candidates={[k()]} open={candidate => opened.push(candidate.prijavaId)}

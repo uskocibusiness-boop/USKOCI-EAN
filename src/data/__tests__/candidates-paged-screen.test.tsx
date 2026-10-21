@@ -199,8 +199,33 @@ test('"Osveži prijave" reads the task and the first page again from the top; th
   expect(ids()).toEqual(['a', 'b', 'c']);
   await act(async () => props().refresh());
   expect(mockNeed).toHaveBeenCalledTimes(2); expect(reads[2].request).toEqual({ limit: 50, cursor: null });
+  expect(ids()).toEqual(['a', 'b', 'c']); expect(props().refreshing).toBe(true);
+  await act(async () => props().open(props().candidates[0]));
+  expect(selection()).toBeUndefined(); expect(mockViewed).not.toHaveBeenCalled();
   await answer(2, page(['a', 'b', 'z'], true, 121));
+  expect(props().refreshing).toBe(false);
   expect(ids()).toEqual(['a', 'b', 'z']); expect(props().paging).toMatchObject({ total: 121, hasMore: true });
+});
+
+test('a new page waits for the matching task read; old rows and capacity stay together during refresh', async () => {
+  await render(); await answer(0, page(['a'], false, 1));
+  let finish!: (value: any) => void;
+  mockNeed.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  await act(async () => props().refresh());
+  await answer(1, page(['b'], false, 1, { potrebaRevizija: REVISION + 1 }));
+  expect(ids()).toEqual(['a']); expect(props().need.revizija).toBe(REVISION);
+  expect(props().refreshing).toBe(true);
+  await act(async () => finish(need(REVISION + 1)));
+  expect(ids()).toEqual(['b']); expect(props().need.revizija).toBe(REVISION + 1);
+  expect(props().refreshing).toBe(false);
+});
+
+test('a rejected refresh removes old actionable rows and offers a fresh retry', async () => {
+  await render(); await answer(0, page(['a'], false, 1));
+  await act(async () => props().refresh()); await fail(1);
+  expect(list()).toBeUndefined(); expect(unavailable().props.loading).toBe(false);
+  await act(async () => unavailable().props.retry()); await answer(2, page(['b'], false, 1));
+  expect(ids()).toEqual(['b']);
 });
 
 test('the app leaving the foreground forgets the rows (the recents photograph), and coming back reads the task and the first page again', async () => {

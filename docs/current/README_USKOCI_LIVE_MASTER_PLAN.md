@@ -1,5 +1,7 @@
 # USKOČI — počni ovde
 
+**Najnovije — prijave iz oba ugla:** [osvežavanje i međustanja](APPLICATION_REFRESH_STATES_20261021.md). Liste ostaju vidljive tokom provere, komande čekaju svež read, owner task/page se ne mešaju između revizija. 226/226 ciljanih testova i TypeScript PASS. Bez novog APK-a ili tvrdnje o završenom native toku.
+
 Jedan aktivan proizvod, jedan registar statusa i postojeći LIVE plan. Ovaj fajl je ulaz u rad, ne novi plan ili potvrda da je aplikacija završena.
 
 **Najnovije — CCP02:** [DEV dokaz otkazivanja](CANCELLED_CANDIDATE_DEV_20261021.md): migracija primenjena, 3/3 → 2/3 rollback proba sa stvarnim cancellation RPC-em, oba ugla CLOSED, 324/324 Jest i TypeScript PASS. Stvarni izbor zamene i telefon nisu potvrđeni. Ovaj nalaz zamenjuje ranije navode ispod da parity migracija nije primenjena.
