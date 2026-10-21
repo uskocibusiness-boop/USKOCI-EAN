@@ -19,7 +19,7 @@ const view={...initialMarketplaceView(),mode:'map' as const,viewport:{center:[19
  bounds:[19.7,45.1,20,45.4] as [number,number,number,number]}};
 const screen=(peek:any=null):DiscoveryV1ScreenSnapshot=>({active:true,view,wireItems:[wire],items:[task],
  mapMarkers:[{kind:'TASK',key:'task:'+ID,point:{lat:45.25,lng:19.83},taskId:ID,taskCount:1}],mapWholeBounds:[19.7,45.1,20,45.4],
- places:[],peek,counts:{kind:'exact_live',observedAt:AT,mapped:1000,listed:840,inArea:700,withoutPoint:140,undated:12},
+  places:[],peek,exactTaskId:null,verifiedPlaceKey:null,counts:{kind:'exact_live',observedAt:AT,mapped:1000,listed:840,inArea:700,withoutPoint:140,undated:12},
  availability:{hasKnownWorkMode:true,hasKnownSchedule:true,priceModes:['OFFERS']},mapCounts:{kind:'exact_live',observedAt:AT,mapped:1000,withoutPoint:140},
  placeCounts:null,pageHasMore:true,memberHasMore:false,placeHasMore:false});
 const overlay=(loading=false):DiscoveryV1OverlaySnapshot=>({active:true,generation:2,sliceKey:[ID,1,PROFILE,'0'].join(':'),loading,
@@ -44,8 +44,20 @@ it('PLACE peek stays a bounded place preview and never becomes a fabricated map 
  const placeTask={...task,id:'44444444-4444-4444-8444-444444444444'};
  const model=discoveryV1PresentationBridgeModel(screen({kind:'PLACE',point:{lat:45.26,lng:19.84},items:[task,placeTask],totalCount:4000}),overlay(),null,false,actions);
  expect(model.p6Seam.peek).toMatchObject({key:'place:45.26:19.84',item:null,place:[{id:ID},{id:placeTask.id}],placeTotalCount:4000});
+ expect(model.p6Seam.peek).toMatchObject({priceUnverified:true});
+ const verified=discoveryV1PresentationBridgeModel({...screen({kind:'PLACE',point:{lat:45.26,lng:19.84},items:[task,placeTask],totalCount:4000}),
+  verifiedPlaceKey:'45.26,19.84'},overlay(),null,false,actions);
+ expect(verified.p6Seam.peek).toMatchObject({priceUnverified:false});
  expect(model.p6Seam.counts?.listed).toBe(840); // Main PAGE total is a different scope.
  expect((model.p6Seam.map.markers[0] as any).naslov).toBeUndefined();
+});
+
+it('hands a selected TASK price source to the map only after the exact read succeeded for that item',()=>{
+  const pending=screen({kind:'TASK',item:task});
+  expect(discoveryV1PresentationBridgeModel(pending,overlay(),'task:'+ID,false,actions).p6Seam.map.selectedTask).toBeNull();
+  expect(discoveryV1PresentationBridgeModel({...pending,exactTaskId:ID},overlay(),'task:'+ID,false,actions).p6Seam.map.selectedTask)
+    .toMatchObject({key:'task:'+ID,item:{id:ID}});
+  expect(discoveryV1PresentationBridgeModel({...pending,exactTaskId:'other'},overlay(),'task:'+ID,false,actions).p6Seam.map.selectedTask).toBeNull();
 });
 
 it('loading or failed optional metadata never removes the server PAGE row',()=>{

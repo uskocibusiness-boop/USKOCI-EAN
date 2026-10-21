@@ -19,7 +19,7 @@ it('binds the four native assets and vector adapter to the exact owner V4.9 byte
   expect(sha(workerNoteXml)).toBe(provenance.assets[3].sha256);
   expect(requesterNoteXml + workerNoteXml).not.toMatch(/<script|<image|href=|<foreignObject/i);
 });
-it('names both original portraits by their actual embedded format without re-encoding', () => {
+it('keeps the historical portraits by their actual embedded format without treating them as the current entry', () => {
   const requester = provenance.assets[0]; const worker = provenance.assets[1];
   expect(requester.mime).toBe('image/webp'); expect(requester.sha256).toMatch(/^[0-9a-f]{64}$/);
   expect(worker.mime).toBe('image/jpeg'); expect(worker.sha256).toMatch(/^[0-9a-f]{64}$/);
@@ -30,9 +30,10 @@ it('names both original portraits by their actual embedded format without re-enc
   expect(jpeg.subarray(0, 3).toString('hex')).toBe('ffd8ff');
   expect(jpeg.subarray(-2).toString('hex')).toBe('ffd9');
   const entry = readFileSync(join(root, 'src/ui/entry/EntryWelcome.tsx'), 'utf8');
-  expect(entry).toContain("require('../../../assets/brand/entry-v49/requester.webp')");
-  expect(entry).toContain("require('../../../assets/brand/entry-v49/worker.jpg')");
-  expect(entry).not.toContain('entry-v49/worker.png');
+  expect(entry).not.toContain('entry-v49/');
+  for (const name of ['logo', 'publish', 'discover']) {
+    expect(entry).toContain(`require('../../../assets/brand/premium-entry/${name}.png')`);
+  }
 });
 // Historical Chrome coordinates remain fixtures, not a layout authority.
 it.each([0, 300, 1400, 3000, 4400, 6000])('entry artwork has bounded finite state at %i ms',time=>{

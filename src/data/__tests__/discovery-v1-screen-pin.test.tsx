@@ -67,6 +67,23 @@ test('a touched task bucket shows its halo before the read answers, and keeps it
   await act(async () => { tree.unmount(); });
 });
 
+test('a pending new PLACE masks the retained PLACE price proof while its members read', async () => {
+  const read = deferred<any>();
+  const oldPlace = { kind: 'PLACE', point: { lat: 45.25, lng: 19.83 }, items: [{ id: 'old', rezimCene: 'MY_PRICE', ponudjenaCena: { iznos: 5000, valuta: 'RSD', prikaz: '5.000 RSD' } }], totalCount: 1 };
+  mockCoordinator.peekNow = () => oldPlace;
+  mockCoordinator.snapshot = () => ({ screen: { active: true, view: { id: 'view' }, items: [], mapMarkers: [], peek: oldPlace,
+    exactTaskId: null, verifiedPlaceKey: '45.25,19.83' }, view: { id: 'view' }, overlay: null, search: null,
+    selectedMarkerKey: 'place:45.25:19.83', loadingMore: false });
+  mockCoordinator.selectMarker = jest.fn(() => read.promise);
+  const tree = await render();
+  expect(mockBridge.props.snapshot.verifiedPlaceKey).toBe('45.25,19.83');
+  await touch(marker('PLACE', 'place:45.26:19.84'));
+  expect(mockBridge.props.selectedMarkerKey).toBe('place:45.26:19.84');
+  expect(mockBridge.props.snapshot.peek).toBe(oldPlace);
+  expect(mockBridge.props.snapshot.verifiedPlaceKey).toBeNull();
+  await act(async () => { tree.unmount(); });
+});
+
 test('a read that does not apply takes the halo away again, and a cluster is navigation only', async () => {
   const read = deferred<any>();
   mockCoordinator.selectMarker = jest.fn(() => read.promise);

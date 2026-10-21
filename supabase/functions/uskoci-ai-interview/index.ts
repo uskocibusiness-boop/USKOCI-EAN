@@ -982,10 +982,10 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const unsupportedPrice = euroPriceProposed || unsupportedEuroWithoutPriceFact || barePriceProposed
     || barePriceWithoutFact || explicitOffers && !!priceProposal;
   const priceMessage = activeRsdPrice && !explicitOffers
-    ? `Razumem ${barePriceProposed || barePriceWithoutFact ? 'iznos, ali valuta nije potvrđena' : 'da je iznos bio u evrima'}. Ranije prikazan iznos u RSD može ostati u nacrtu; nemoj potvrditi objavu dok ne kažeš koji iznos u RSD želiš ili izabereš ponude.`
+    ? `Razumem ${barePriceProposed || barePriceWithoutFact ? 'iznos, ali valuta nije potvrđena' : 'da je iznos bio u evrima'}. Taj iznos nisam upisao kao novu cenu u dinarima. Ranije prikazan iznos u RSD može ostati u nacrtu; nemoj potvrditi objavu dok ne kažeš koji iznos u RSD želiš ili izabereš ponude.`
     : barePriceProposed || barePriceWithoutFact
-      ? 'Razumem iznos, ali valuta nije potvrđena. Cena zadatka se trenutno čuva u dinarima. Koji iznos u RSD želiš da postaviš? Možeš i da tražiš ponude.'
-      : 'Razumem iznos u evrima. U zadatku se cena trenutno čuva u dinarima, pa neću sam da preračunavam. Koji iznos u RSD želiš da postaviš? Možeš i da tražiš ponude.';
+      ? 'Razumem iznos, ali valuta nije potvrđena. Taj iznos nisam upisao kao cenu. Cena zadatka se trenutno čuva u dinarima. Koji iznos u RSD želiš da postaviš? Možeš i da tražiš ponude.'
+      : 'Razumem iznos u evrima. Taj iznos nisam upisao kao cenu u dinarima i neću sam da preračunavam. Koji iznos u RSD želiš da postaviš? Možeš i da tražiš ponude.';
   const offerMessage = euroPriceProposed || unsupportedEuroWithoutPriceFact
     ? 'Razumem, tražiš ponude. Iznos u evrima nisam upisao kao cenu u dinarima.'
     : 'Razumem, tražiš ponude. Nejasan iznos nisam upisao kao cenu u dinarima.';

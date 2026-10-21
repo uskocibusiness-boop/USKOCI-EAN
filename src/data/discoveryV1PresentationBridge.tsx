@@ -4,7 +4,7 @@ import type { SearchDraft } from '../ui/v2/discovery/DiscoverySearchPanel';
 import type { DiscoveryV1ScreenSnapshot } from './discoveryV1ScreenSession';
 import { discoveryV1ApplyOverlays, type DiscoveryV1OverlaySnapshot } from './discoveryV1OverlayOwner';
 import type { DiscoveryV1MapMarker } from './discoveryV1MarketplaceAdapter';
-import type { MarketplaceView, PublicBounds } from './marketplaceView';
+import { pointKey, type MarketplaceView, type PublicBounds } from './marketplaceView';
 import type { DiscoveryV1SearchSnapshot } from './discoveryV1SearchOwner';
 import type { DiscoveryV1Item } from './discoveryV1Contract';
 
@@ -54,10 +54,14 @@ export function discoveryV1PresentationBridgeModel(snapshot: DiscoveryV1ScreenSn
   if (!snapshot.active || !snapshot.view) throw new Error('DISCOVERY_V1_PRESENTATION_INACTIVE');
   const items = discoveryV1ApplyOverlays(snapshot.wireItems, overlay);
   const peek = snapshot.peek?.kind === 'TASK'
-    ? { key: 'task:' + snapshot.peek.item.id, item: snapshot.peek.item, place: [] as const }
+    ? { key: 'task:' + snapshot.peek.item.id, item: snapshot.peek.item, place: [] as const,
+      priceUnverified: snapshot.exactTaskId !== snapshot.peek.item.id }
     : snapshot.peek?.kind === 'PLACE'
-      ? { key: 'place:' + snapshot.peek.point.lat + ':' + snapshot.peek.point.lng, item: null, place: snapshot.peek.items, placeTotalCount: snapshot.peek.totalCount }
+      ? { key: 'place:' + snapshot.peek.point.lat + ':' + snapshot.peek.point.lng, item: null, place: snapshot.peek.items,
+        placeTotalCount: snapshot.peek.totalCount, priceUnverified: snapshot.verifiedPlaceKey !== pointKey(snapshot.peek.point) }
       : null;
+  const selectedTask = snapshot.peek?.kind === 'TASK' && snapshot.exactTaskId === snapshot.peek.item.id
+    ? { key: 'task:' + snapshot.peek.item.id, item: snapshot.peek.item } : null;
   return {
     items,
     relations: overlay.relations ?? undefined,
@@ -65,7 +69,7 @@ export function discoveryV1PresentationBridgeModel(snapshot: DiscoveryV1ScreenSn
     relationsError: overlay.errors.relations,
     view: snapshot.view,
     p6Seam: {
-      map: { markers: snapshot.mapMarkers, selectedKey: selectedMarkerKey, wholeBounds: snapshot.mapWholeBounds,
+      map: { markers: snapshot.mapMarkers, selectedKey: selectedMarkerKey, selectedTask, wholeBounds: snapshot.mapWholeBounds,
         onSelect: actions.onSelectMarker, ...(actions.onViewportSettled ? { onViewportSettled: actions.onViewportSettled } : {}) },
       peek,
       counts: snapshot.counts,

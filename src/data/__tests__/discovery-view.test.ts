@@ -240,6 +240,11 @@ describe('what a pin says', () => {
     // Another currency is never relabelled as a bare number either.
     expect(pinLabel(item('c', { ponudjenaCena: { iznos: 1200000, valuta: 'EUR', prikaz: '1.200.000 EUR' } })).text).toBe('1.200.000 EUR');
   });
+  it('adds a known total or per-person basis to a legacy pin without guessing a missing basis', () => {
+    expect(pinLabel(item('a', { osnovaCene: 'TOTAL' })).text).toBe('6.000 RSD ukupno');
+    expect(pinLabel(item('a', { osnovaCene: 'PER_PERSON' })).spoken).toBe('6.000 RSD po osobi');
+    expect(pinLabel(item('a', { osnovaCene: null })).text).toBe('6.000 RSD');
+  });
   it('a task that asks for offers says so quietly and never wears the money tone, even with a stale amount on it', () => {
     const offers = pinLabel(item('o', { rezimCene: 'OFFERS' }));
     expect(offers).toEqual({ text: 'Ponude', tone: 'offer', spoken: 'Tražim ponude' });

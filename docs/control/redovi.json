@@ -9,6 +9,10 @@
     "proof": "Zajednički izvorni krug: mapa/filter mesto i Back, auth, AI međuekrani, Dogovori stale stanje, grupni čet i AI radna oblast. Puni Jest je izlistao 635/635 suite PASS, 14350 PASS/9 SKIP, TSC PASS; poslednja dva ciljano proverena podsistema (grupni čet 40/40, worker AI pregled 37/37) imaju zasebne provere posle njihovih izmena. Nema APK/HONOR prohoda za ovaj izvor.",
     "open_gates": ["task_edit_atomic", "cancelled_candidate_parity_disposable_db", "worker_area_v2_signed_contract", "multi_worker_terms", "account_closure_and_ai_history_erasure", "native_visual_acceptance"]
   },
+  "latest_selected_map_price_20261021": {
+    "proof": "SOURCE/TEST: izabrani TASK pin sme da prikaže RSD cenu samo iz tačnog javnog čitanja istog ID-ja i pina; novi PAGE/MAP poništava staru potvrdu i ponovo proverava izabrani zadatak. PLACE pregled skriva zastarele uslove do novog POINT_MEMBERS izbora. Welcome iz odobrenog Figma čvora 2:138, potvrda odjave i učesnikov ulaz u vlastiti Dogovor su izvorne izmene. Ponovljeni puni Jest: 636/636 suite PASS, 14.350 PASS, 9 SKIP, 0 FAIL; TypeScript PASS; Expo Android export PASS bez APK-a. Nema HONOR, potpisanog DEV ni potvrde svih Master tokova.",
+    "open_gates": ["task_currency_atomic_invalidation", "task_edit_atomic_new_id", "cancelled_candidate_parity_disposable_db", "worker_area_v2_signed_contract", "multi_worker_terms", "account_closure_and_ai_history_erasure", "native_visual_acceptance"]
+  },
   "pravilo_gotovo": "Red je GOTOV samo kad su ekran, kod, server i test zeleni I postoji dokaz sa telefona za tekuću verziju (V19 pravilo DONE_VERIFIED: stari problem ne postoji, normalan put radi, zaštite nisu oslabljene, dokazi pripadaju tačnoj verziji).",
   "redovi": [
     {
@@ -248,7 +252,7 @@
     },
     {
       "id": "A02",
-      "source_progress_20261021_currency_correction": "Task AI Edge source-only kandidat veže RSD/EUR uz konkretan iznos i klauzu, razume naknadno 'u evrima', ne pretvara gol broj u RSD i čuva nezavisne činjenice. Nezavisne VM regresije + oba AI/Edge testa: 252 PASS, 0 FAIL, 1 TODO; TSC PASS. Stari aktivni RSD fact i prihvaćen DRAFT nisu atomski invalidirani; server contract CUR01 nije migracija ni DEV deploy. Nema Gemini/signed/APK potvrde. docs/candidates/task-currency-followup-20261021/README.md.",
+      "source_progress_20261021_currency_correction": "Task AI Edge source-only kandidat veže RSD/EUR uz konkretan iznos i klauzu, razume naknadno 'u evrima', ne pretvara gol broj u RSD i čuva nezavisne činjenice; dodatno čuva 5.000 RSD i cenu prevoza kao samog zadatka. Nezavisne VM regresije + oba AI/Edge testa: 254 PASS, 0 FAIL, 1 TODO; TSC PASS. Stari aktivni RSD fact i prihvaćen DRAFT nisu atomski invalidirani; server contract CUR01 nije migracija ni DEV deploy. Nema Gemini/signed/APK potvrde. docs/candidates/task-currency-followup-20261021/README.md.",
       "source_progress_20261021_followup": "Izvorni AI međuekran sada imenuje Novi zadatak ili Razgovor o zadatku tokom učitavanja/greške. Aktuelni chat nema tri tačke u vrhu; postojeće imenovane komande u niti ostaju. Hide/delete istorije nije aktivan serverski ugovor. Fokusirani AI testovi 260/260 PASS, TSC PASS; APK/HONOR pregled nije izvršen.",
       "source_progress_20261021_native": "DEV task AI 117 sprečava tiho pretvaranje izričite EUR sume u RSD; ne obezbeđuje pun viševalutni ugovor. H1 owner AI history metadata SQL i klijentski dekoder su source-only, nisu na DEV-u niti su istorijski ekran i brisanje spremni. Otvoren bound edit sme da se nastavi; read-only H1 projekcija je ispravljena pre primene. Dokaz: docs/current/AI_CONVERSATION_HISTORY_CONTRACT_20261021.md i lokalni Jest/SQL source proof. Nema novog HONOR/APK dokaza.",
       "grupa": "Put A · Objavi zadatak",
@@ -1319,7 +1323,7 @@
     },
     {
       "id": "A08",
-      "source_progress_20261021_edit_authority": "Read-only audit: aktivni potpisani edit vraća isti objavljeni need u DRAFT pre evaluator odluke, odmah zastareva prijave i zaustavlja dispatch. OWNER_DECISIONS_20261019.md za pre-first-selection zamenu sa postojećim prijavama zahteva nov ID povezan sa starim i zatvaranje starog tek pri potvrđenoj objavi. Kandidat task-edit-atomic-20261021 za isti ID označen NE PRIMENJIVATI; privatni staging, zamenska procena/finalizer, receipt i signed DEV dokaz nisu implementirani. Nema APK/HONOR provere.",
+      "source_progress_20261021_edit_authority": "Read-only audit: aktivni potpisani edit vraća isti objavljeni need u DRAFT pre evaluator odluke, odmah zastareva prijave i zaustavlja dispatch. OWNER_DECISIONS_20261019.md zahteva nov ID povezan sa starim i zatvaranje starog tek pri potvrđenoj objavi. Stari kandidat za isti ID je NE PRIMENJIVATI. Novi SOURCE-ONLY ugovor NEW_ID_REPLACEMENT_CONTRACT.md pokriva privatni stage, rezervisani ID, atomsku procenu/finalizer, rok bez tick-a, submit retry readback, ACL i trke; nezavisni pregled je ispravio dve rupe. RPC, migracija, DEV i signed/native dokaz nisu implementirani.",
       "grupa": "Put A · Objavi zadatak",
       "naslov": "Moj zadatak (detalj)",
       "nacrt": "UX nacrt §4 korak 5",
@@ -3221,7 +3225,7 @@
     {
       "id": "B04",
       "source_progress_20261021_back_followup": "Android Back na podignutoj HALF ili FULL listi sada spušta panel na PEEK pre napuštanja taba. Izvor drži donju navigaciju dostupnom u sva tri položaja i top Filteri bez stalne pretrage/tri tačke; prirodni MapLibre gestovi nisu menjani. Četiri ciljane suite/273 testa PASS, TSC PASS; stariji instalirani APK nije dokaz aktuelnog izvora.",
-      "source_progress_20261021_native": "Izabrani pin u lokalnom klijentu dobio je map/novac ilustraciju, jasniji naslov, objavljivača i ocenu u prvom pregledu; filteri i tri položaja panela ostaju. P6 pin read model ne nosi cenu, pa mala oznaka ne izmišlja iznos. MapLibre prirodni fling treba izmeriti na HONOR-u; izvorni ciljano testovi i TypeScript prolaze, bez novog APK-a. Dokaz: src/ui/v2/discovery/TaskRecordBody.tsx i DiscoveryPeek.tsx.",
+      "source_progress_20261021_native": "Izabrani TASK pin dobija tačan RSD iznos i osnovu samo posle odgovarajućeg EXACT_PUBLIC čitanja za isti ID i javnu tačku; običan P6 MAP bucket i dalje ne nosi cenu. Pri prihvaćenom PAGE/MAP osvežavanju TASK kartica skriva stare cenovne uslove i ponovo čita exact, uključujući prelaz fiksna cena/ponude i povratak iz detalja. PLACE kartica skriva stare uslove dok korisnik ponovo ne izabere pin i stigne POINT_MEMBERS. Pokrivene su pending/selekcione trke, vidljivi i accessibility tekst; nezavisan source review bez preostalog P0/P1 u tom opsegu. Native MapLibre i HONOR nisu provereni, nema novog APK-a. Dokaz: src/data/discoveryV1ScreenSession.ts, discoveryV1PresentationBridge.tsx, src/ui/v2/discovery/DiscoveryPeek.tsx.",
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Mapa i lista prilika",
       "source_progress_20261021_place_guard": "Lokalni klijent: Filteri su jedina primarna gornja komanda; LocationIQ mesto se primenjuje na kameru i P6 oblast. Kadar koji ne sadrži izabranu tačku ne sme da sačuva njen naziv nad tuđim rezultatima (discovery-presentation 238/238 PASS). Donja navigacija pri punoj listi ima source/test dokaz 42/42, ali HONOR dodir, native kamera/gest i ceo povratak iz detalja nisu potvrđeni. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
@@ -5135,6 +5139,7 @@
     },
     {
       "id": "D02",
+      "source_progress_20261021_group_terms": "SOURCE-ONLY ugovor docs/candidates/group-terms-consent-20261021/CONTRACT.md ograničava zajedničku promenu na potpun termin unutar svima ranije prihvaćenog fleksibilnog okvira; svi pogođeni računi moraju potvrditi pre atomskog upisa pojedinačnih Dogovora. Nema grupnog terms RPC-a, dokazivog snapshot-a svakog okvira ni signed/DEV/native probe. Bilateralni Dogovor i grupa za poruke nisu grupna saglasnost.",
       "source_progress_20261021_connected_ui": "SOURCE/TEST: Detalj Dogovora istice ulogu i prihvaceni obuhvat ove bilateralne saradnje, bez tvrdnje da je ceo zadatak popunjen ili ponovo otvoren. Zajednicki ciljani prolaz 16 suite-ova/758 PASS, TSC PASS. Native i oba aktera cekaju. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "grupa": "Dogovor",
       "naslov": "Dogovor: pregled, uslovi, sledeći korak",

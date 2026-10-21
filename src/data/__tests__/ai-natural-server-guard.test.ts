@@ -12,6 +12,7 @@ type Turn = { safety: string; assistantMessage: string; proposals: Proposal[]; d
 type Result = Turn;
 type LocationContext = import('../../../supabase/functions/_shared/locationReply').LocationContext;
 type Guard = (turn: Turn, input: string, facts: Fact[], time: { localDate: string }, contextualLocation?: LocationContext) => Result;
+type SourceGuard = (turn: Turn, input: string, history: unknown[], facts: Fact[], time: { localDate: string }, contextualLocation?: LocationContext) => Result;
 
 // Exercise the existing server-side guard in isolation, without reimplementing its decisions.
 const source = readFileSync(resolve(process.cwd(), 'supabase/functions/uskoci-ai-interview/index.ts'), 'utf8').replace(/\r\n/g, '\n');
@@ -35,7 +36,9 @@ const scope: Record<string, unknown> = {
   },
 };
 runInNewContext(transformed + '\n;globalThis.__guard = guardConversationTurn;', scope);
-const guard = scope.__guard as Guard;
+const sourceGuard = scope.__guard as SourceGuard;
+const guard: Guard = (turn, input, activeFacts, time, contextualLocation) =>
+  sourceGuard(turn, input, [], activeFacts, time, contextualLocation);
 const current = [
   ['need.title', 'Prenos ormara'], ['need.category', 'Selidba'], ['need.description', 'Preneti ormar do kombija'],
   ['need.people_needed', 2], ['need.price_mode', 'OFFERS'], ['need.schedule_kind', 'FLEXIBLE'],
@@ -127,11 +130,20 @@ describe('natural server AI response without bypassing authoritative review', ()
       expect(result.assistantMessage).toContain('RSD');
       expect(result.assistantMessage).toContain('ponude');
     });
-  it('does not turn a mixed euro/dinar correction into RSD without evidence for the selected amount', () => {
+  it('keeps an explicit dinar correction when the proposal evidence quotes only its amount', () => {
     const turn = reply('ACK', 'Promenio sam cenu.', [{ key: 'need.price_rsd', value: 15000, evidence: '15000' }]);
     const result = guard(turn, 'Ne 100 EUR, nego 15000 dinara.', facts(), { localDate: '2026-10-12' });
+    expect(result.safety).toBe('ALLOW');
+    expect(result.proposals).toEqual(turn.proposals);
+  });
+  it('withholds a later euro amount even when the earlier clause explicitly named dinars', () => {
+    const turn = reply('ACK', 'Promenio sam cenu na 100 RSD.', [
+      { key: 'need.price_rsd', value: 100, evidence: '100' }]);
+    const result = guard(turn, 'Ne 15000 dinara, nego 100 EUR.', facts(), { localDate: '2026-10-12' });
     expect(result.safety).toBe('CLARIFY');
     expect(result.proposals).toEqual([]);
+    expect(result.assistantMessage).toContain('nisam upisao');
+    expect(result.assistantMessage).not.toContain('100 RSD');
   });
   it('keeps a clean task title and scope from the same message as an unsupported euro budget', () => {
     const title = { key: 'need.title', value: 'Prenos stola' };
@@ -208,7 +220,9 @@ describe('natural server AI response without bypassing authoritative review', ()
     const result = guard(turn, 'Не стављај 100 евра, желим понуде.', facts(), { localDate: '2026-10-12' });
     expect(result.safety).toBe('REVIEW');
     expect(result.proposals).toEqual([offers]);
-    expect(result.assistantMessage).toContain('Izabrao si ponude');
+    expect(result.assistantMessage).toContain('tražiš ponude');
+    expect(result.assistantMessage).toContain('nisam upisao');
+    expect(result.assistantMessage).not.toContain('sačuvana');
   });
   it('does not accept a hallucinated offer choice when only a euro price was requested', () => {
     const turn = reply('ACK', 'Tražićemo ponude.', [

@@ -1,4 +1,4 @@
-import { discoveryV1ServerMarkerSpecs } from '../discoveryV1ServerMarkerPresentation';
+import { discoveryV1SelectedTaskPrice, discoveryV1ServerMarkerSpecs } from '../discoveryV1ServerMarkerPresentation';
 
 const markers:any[]=[
  {kind:'TASK',key:'task:a',point:{lat:45.25,lng:19.83},taskId:'11111111-1111-4111-8111-111111111111',taskCount:1},
@@ -50,5 +50,26 @@ it('gives every bucket its capsule sprite, its count and a unique stacking order
   ['999+','p6-pin-count-4'],['999+','p6-pin-count-4']]);
  const north={...markers[0],key:'task:n',point:{lat:45.4,lng:19.8},taskId:'22222222-2222-4222-8222-222222222222'};
  const order=discoveryV1ServerMarkerSpecs([markers[0],north] as any,null).map(spec=>spec.order);
- expect(order).toEqual([1,0]);
+  expect(order).toEqual([1,0]);
+});
+
+it('permits a selected exact TASK price only for the same key, ID and public point with known RSD basis',()=>{
+  const id='11111111-1111-4111-8111-111111111111',key='task:'+id;
+  const marker:any={kind:'TASK',key,taskId:id,taskCount:1,point:{lat:45.25,lng:19.83}};
+  const item:any={id,detalji:{rezimLokacije:'STATIONARY'},priblizno:{lat:45.25,lng:19.83},rezimCene:'MY_PRICE',
+    osnovaCene:'TOTAL',ponudjenaCena:{iznos:5000,valuta:'RSD',prikaz:'5.000 RSD'}};
+  const selected={key,item};
+  expect(discoveryV1SelectedTaskPrice(marker,key,selected)).toBe('5.000 RSD ukupno');
+  expect(discoveryV1SelectedTaskPrice(marker,key,{key,item:{...item,osnovaCene:'PER_PERSON'}})).toBe('5.000 RSD po osobi');
+  expect(discoveryV1SelectedTaskPrice(marker,null,selected)).toBeNull();
+  expect(discoveryV1SelectedTaskPrice(marker,key,{...selected,key:'task:old'})).toBeNull();
+  expect(discoveryV1SelectedTaskPrice(marker,key,{key,item:{...item,id:'other'}})).toBeNull();
+  expect(discoveryV1SelectedTaskPrice({...marker,key:'task:wrong'},'task:wrong',{key:'task:wrong',item})).toBeNull();
+  expect(discoveryV1SelectedTaskPrice({...marker,kind:'PLACE',taskCount:2},key,selected)).toBeNull();
+  expect(discoveryV1SelectedTaskPrice({...marker,kind:'CLUSTER',taskCount:2},key,selected)).toBeNull();
+  for(const stale of [{...item,rezimCene:'OFFERS'}, {...item,osnovaCene:null},
+    {...item,detalji:{rezimLokacije:'REMOTE'}}, {...item,priblizno:{lat:45.26,lng:19.83}},
+    {...item,ponudjenaCena:{...item.ponudjenaCena,valuta:'EUR'}},
+    {...item,ponudjenaCena:{...item.ponudjenaCena,prikaz:'6.000 RSD'}}])
+    expect(discoveryV1SelectedTaskPrice(marker,key,{key,item:stale})).toBeNull();
 });

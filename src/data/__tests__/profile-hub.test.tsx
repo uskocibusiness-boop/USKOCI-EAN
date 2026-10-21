@@ -73,6 +73,7 @@ async function renderSettings() { await act(async () => { tree = create(<Podesav
 const press = (label: string) => tree.root.findByProps({ accessibilityLabel: label }).props.onPress();
 const logoutRow = () => tree.root.findAll(node => String(node.type) === 'Press' && ['Odjavi se', 'Sačekaj…'].includes(node.props.accessibilityLabel))[0];
 const logout = () => logoutRow().props.onPress();
+const confirmLogout = () => tree.root.findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress();
 /** The pin beside the place under the name (16 px); the rows draw theirs at 32. */
 const placePins = () => tree.root.findAll(node => node.props?.kind === 'pin' && node.props?.size === 16);
 const visibleText = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
@@ -332,13 +333,27 @@ describe('real profile hub', () => {
     expect(mockRouter.replace).not.toHaveBeenCalled();
   });
 
+  it('shows a centred logout dialog whose quiet choice leaves this session signed in', async () => {
+    await renderSettings();
+    await act(async () => logout());
+    expect(tree.root.findAllByProps({ testID: 'confirm-dialog' })).toHaveLength(1);
+    const stay = tree.root.findByProps({ testID: 'confirm-sheet-cancel' });
+    expect(stay.props.accessibilityLabel).toBe('Ostani prijavljen');
+    await act(async () => stay.props.onPress());
+    expect(tree.root.findAllByProps({ testID: 'confirm-dialog' })).toHaveLength(0);
+    expect(mockSignOut).not.toHaveBeenCalled();
+  });
+
   it('makes a failed local logout retryable without exposing the transport error', async () => {
     mockSignOut.mockRejectedValueOnce(new Error('secret transport detail'));
     await renderSettings();
     await act(async () => logout());
+    expect(mockSignOut).not.toHaveBeenCalled();
+    await act(async () => confirmLogout());
     expect(visibleText()).toContain('Odjava nije uspela. Pokušaj ponovo.');
     expect(visibleText()).not.toContain('secret transport detail');
     await act(async () => logout());
+    await act(async () => confirmLogout());
     expect(mockSignOut).toHaveBeenCalledTimes(2);
     expect(visibleText()).not.toContain('Odjava nije uspela');
   });
@@ -349,6 +364,8 @@ describe('real profile hub', () => {
     await renderSettings();
     const onPress = logoutRow().props.onPress;
     await act(async () => { onPress(); onPress(); });
+    expect(mockSignOut).not.toHaveBeenCalled();
+    await act(async () => confirmLogout());
     expect(mockSignOut.mock.calls).toEqual([[{ accountId: 'account-a', accountRevision: 1 }]]);
     mockAccountId = 'account-b';
     mockAccountRevision = 2;
@@ -525,12 +542,14 @@ describe('real profile hub', () => {
     mockSignOut.mockImplementationOnce(() => new Promise((_, fail) => { reject = fail; }));
     await renderSettings();
     await act(async () => logout());
+    await act(async () => confirmLogout());
     mockAccountId = 'account-b'; mockAccountRevision = 2;
     mockAccountId = 'account-a'; mockAccountRevision = 3;
     await act(async () => reject(new Error('old logout failure')));
     expect(visibleText()).not.toContain('Odjava nije uspela');
     await act(async () => tree.update(<Podesavanja />));
     await act(async () => logout());
+    await act(async () => confirmLogout());
     expect(mockSignOut.mock.calls.at(-1)).toEqual([{ accountId: 'account-a', accountRevision: 3 }]);
   });
 });
@@ -656,6 +675,7 @@ describe('the profile identity and destination cards', () => {
     await renderSettings();
     expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'alert')).toHaveLength(0);
     await act(async () => logout());
+    await act(async () => confirmLogout());
     const alert = tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'alert')[0];
     expect(alert.props.tone).toBe('danger');
     expect(alert.children).toEqual(['Odjava nije uspela. Pokušaj ponovo.']);

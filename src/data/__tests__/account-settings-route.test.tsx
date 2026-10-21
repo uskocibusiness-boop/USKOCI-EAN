@@ -5,6 +5,7 @@ let mockSession = { user: { id: 'account-a', email: 'ana@example.rs' }, accountR
 let mockFocused = true;
 const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 const mockSignOut = jest.fn();
+const mockConfirmAsk = jest.fn(), mockConfirmClose = jest.fn();
 jest.mock('expo-router', () => ({
   get router() { return mockRouter; },
   useFocusEffect: (effect: () => void) => require('react').useEffect(
@@ -15,10 +16,15 @@ jest.mock('../authClientService', () => ({ authClientService: { signOutLocal: (.
 jest.mock('../buildIdentity', () => ({ readBuildIdentity: () => ({ version: '1.0.0' }) }));
 jest.mock('../../ui/profile/useHubStates', () => ({ useHubStates: () => ({}) }));
 jest.mock('../../ui/settings/AccountSettingsPresentation', () => ({ AccountSettings: 'AccountSettings' }));
+jest.mock('../../ui/system/ConfirmSheet', () => ({ useConfirmSheet: () => ({ ask: mockConfirmAsk, close: mockConfirmClose, sheet: null, open: false }) }));
 import Settings from '../../app/(app)/profil/podesavanja';
 
 let tree: ReactTestRenderer;
 const props = () => tree.root.findByType('AccountSettings' as React.ElementType).props;
+const question = () => mockConfirmAsk.mock.lastCall?.[0] as {
+  title: string; message: string; confirmLabel: string; cancelLabel: string; tone: string;
+  onCancel: () => void; onConfirm: () => Promise<void> | undefined;
+};
 const render = async () => { await act(async () => { tree = create(<Settings />); }); };
 const update = async () => { await act(async () => tree.update(<Settings />)); };
 function deferred() {
@@ -54,10 +60,30 @@ test.each([true, false])('Back uses the previous context or profile when canGoBa
   expect(mockSignOut).not.toHaveBeenCalled();
 });
 
+test('logout requires the centred decision: cancel preserves the session and confirm starts one scoped logout', async () => {
+  await render();
+  await act(async () => { props().onLogout(); props().onLogout(); });
+  expect(mockConfirmAsk).toHaveBeenCalledTimes(1);
+  expect(mockSignOut).not.toHaveBeenCalled();
+  expect(question()).toMatchObject({ title: 'Odjaviti se?', confirmLabel: 'Odjavi se', cancelLabel: 'Ostani prijavljen', tone: 'danger' });
+  expect(question().message).toContain('neposlate poruke');
+  expect(question().message).toContain('lokalni glasovni snimci');
+  await act(async () => question().onCancel());
+  expect(mockSignOut).not.toHaveBeenCalled();
+  await act(async () => props().onLogout());
+  expect(mockConfirmAsk).toHaveBeenCalledTimes(2);
+  await act(async () => { await question().onConfirm(); });
+  expect(mockSignOut).toHaveBeenCalledTimes(1);
+  expect(mockSignOut).toHaveBeenCalledWith({ accountId: 'account-a', accountRevision: 1 });
+});
+
 test('logout failure retains the account, announces a safe error and permits a deliberate retry', async () => {
   const pending = deferred(); mockSignOut.mockReturnValueOnce(pending.promise);
   await render(); const old = props().onLogout;
   await act(async () => { old(); old(); });
+  expect(mockConfirmAsk).toHaveBeenCalledTimes(1);
+  expect(mockSignOut).not.toHaveBeenCalled();
+  await act(async () => { void question().onConfirm(); });
   expect(mockSignOut).toHaveBeenCalledTimes(1);
   expect(mockSignOut).toHaveBeenCalledWith({ accountId: 'account-a', accountRevision: 1 });
   expect(props().busy).toBe(true);
@@ -65,6 +91,8 @@ test('logout failure retains the account, announces a safe error and permits a d
   expect(props()).toMatchObject({ busy: false, logoutError: true });
   expect(props().email).toBe('ana@example.rs');
   await act(async () => props().onLogout());
+  expect(mockConfirmAsk).toHaveBeenCalledTimes(2);
+  await act(async () => { await question().onConfirm(); });
   expect(mockSignOut).toHaveBeenCalledTimes(2);
   expect(props()).toMatchObject({ busy: false, logoutError: false });
 });
@@ -73,6 +101,8 @@ test.each(['blur', 'account', 'same-account-new-session'])('old callbacks and la
   const pending = deferred(); mockSignOut.mockReturnValueOnce(pending.promise);
   await render(); const old = props();
   await act(async () => old.onLogout());
+  const staleQuestion = question();
+  await act(async () => { void staleQuestion.onConfirm(); });
   if (change === 'blur') mockFocused = false;
   else mockSession = {
     user: { id: change === 'account' ? 'account-b' : 'account-a', email: 'new@example.rs' },
@@ -80,9 +110,23 @@ test.each(['blur', 'account', 'same-account-new-session'])('old callbacks and la
   };
   await update();
   await act(async () => { old.open('/profil/podaci'); old.onBack(); old.onLogout(); });
+  expect(mockConfirmAsk).toHaveBeenCalledTimes(1);
   await act(async () => pending.reject(new Error('late failure')));
   expect(mockSignOut).toHaveBeenCalledTimes(1);
   expect(mockRouter.navigate).not.toHaveBeenCalled();
   expect(mockRouter.back).not.toHaveBeenCalled();
   expect(props().logoutError).toBe(false);
+});
+
+test('a pending confirmation cannot sign out another account or a new session of the same account', async () => {
+  await render(); await act(async () => props().onLogout());
+  const staleQuestion = question();
+  mockSession = { user: { id: 'account-a', email: 'ana@example.rs' }, accountRevision: 2 };
+  await update();
+  await act(async () => { await staleQuestion.onConfirm(); });
+  expect(mockSignOut).not.toHaveBeenCalled();
+  expect(mockConfirmClose).toHaveBeenCalled();
+  await act(async () => props().onLogout());
+  await act(async () => { await question().onConfirm(); });
+  expect(mockSignOut).toHaveBeenCalledWith({ accountId: 'account-a', accountRevision: 2 });
 });

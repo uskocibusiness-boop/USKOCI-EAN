@@ -29,7 +29,8 @@ const CLOSE_INSET = sys.space.sm;
 export const PIN_CARD_LARGE_SHARE = 0.75;
 
 /** A task's price as words beside its name in a place's rows: money in the money colour, anything else never so. */
-function PriceWords({ item }: { item: MarketplaceItem }) {
+function PriceWords({ item, unverified }: { item: MarketplaceItem; unverified?: boolean }) {
+  if (unverified) return <T variant="note" tone="muted" style={s.word}>Uslovi nisu potvrđeni</T>;
   const label = pinLabel(item);
   return label.tone === 'money' ? <T variant="priceRow" style={s.money}>{label.spoken}</T>
     : <T variant="note" tone="muted" style={s.word}>{label.tone === 'offer' ? OFFERS_WORD.worker : 'Cena nije navedena'}</T>;
@@ -41,10 +42,10 @@ function PriceWords({ item }: { item: MarketplaceItem }) {
  * full title, price and truthful publisher/rating lead the preview before its supporting place and time. The first row clears the close
  * control. No photo: a task's photos are shown only inside the task (owner, 2026-09-24), and nothing is invented.
  */
-function PinTask({ item, relation, onOpen, onLayout }: {
-  item: MarketplaceItem; relation?: TaskCardRelation; onOpen: () => void; onLayout: (event: LayoutChangeEvent) => void;
+function PinTask({ item, relation, priceUnverified, onOpen, onLayout }: {
+  item: MarketplaceItem; relation?: TaskCardRelation; priceUnverified?: boolean; onOpen: () => void; onLayout: (event: LayoutChangeEvent) => void;
 }) {
-  const model = useTaskRecord(item, relation);
+  const model = useTaskRecord(item, relation, undefined, priceUnverified ? { kind: 'unverified' } : undefined);
   return <View style={s.pin} onLayout={onLayout}>
     <Press accessibilityRole="button" accessibilityLabel={`Otvori zadatak: ${model.title}`} accessibilityValue={{ text: model.spoken }}
       haptic="select" scaleTo={sys.motion.scale.row} onPress={onOpen} style={s.pinBody}>
@@ -63,12 +64,14 @@ function PinTask({ item, relation, onOpen, onLayout }: {
  * to a screen reader (the map stays where the focus was, so nothing else would tell it that a card came up). At large
  * text it may take more of the window than other cards rather than be cut off.
  */
-export function DiscoveryPeek({ selectionKey, item, place, placeTotalCount, relation, active, bottomInset, reduced, maxHeight, onOpen, onShowPlace, onClose, onHeight }: {
+export function DiscoveryPeek({ selectionKey, item, place, placeTotalCount, priceUnverified, relation, active, bottomInset, reduced, maxHeight, onOpen, onShowPlace, onClose, onHeight }: {
   selectionKey?: string;
   /** The chosen task, or null when a place with several tasks is chosen. */ item: MarketplaceItem | null;
   /** The tasks on the chosen place, in the list's order. */ place: readonly MarketplaceItem[];
   /** Exact POINT_MEMBERS total, independent of its bounded preview. Legacy supplies the complete place array. */
   placeTotalCount?: number;
+  /** The former exact amount is hidden until a fresh exact read confirms the retained TASK. */
+  priceUnverified?: boolean;
   relation: (item: MarketplaceItem) => TaskCardRelation | undefined;
   active: boolean; bottomInset: number; reduced: boolean;
   /** Available map space below search and attribution; the existing scroll keeps a taller preview reachable. */
@@ -107,7 +110,7 @@ export function DiscoveryPeek({ selectionKey, item, place, placeTotalCount, rela
     handle={false} maxShare={share} onClose={onClose} scrollable
     overlay={dismiss => <View style={s.close}><ChromeIconButton label={item ? 'Zatvori pregled zadatka' : 'Zatvori pregled zadataka'}
       glyph="close" onPress={dismiss} /></View>}>
-    {() => item ? <PinTask item={item} relation={relation(item)} onOpen={() => onOpen(item)} onLayout={measureCard} />
+    {() => item ? <PinTask item={item} relation={relation(item)} priceUnverified={priceUnverified} onOpen={() => onOpen(item)} onLayout={measureCard} />
       : <View style={s.stack} onLayout={measureRows}>
         <View style={[s.head, s.clearOfClose]}>
           <T variant="heading" accessibilityRole="header" style={s.title}>{`${zadataka(totalCount)} na ovom mestu`}</T>
@@ -119,7 +122,7 @@ export function DiscoveryPeek({ selectionKey, item, place, placeTotalCount, rela
             {taskStatus(task, relation(task)) ? <T variant="note" tone="muted">{taskStatus(task, relation(task))!.text}</T> : null}
             <T variant="note" tone="muted" numberOfLines={1}>{task.schedule ? needScheduleText(task.schedule, task.taskTimezone) : task.vremeTekst}</T>
           </View>
-          <PriceWords item={task} />
+          <PriceWords item={task} unverified={priceUnverified} />
           <Glyph name="caret-right" size={20} tone="muted" />
         </Press>)}
         {totalCount > PLACE_ROWS ? <V2Action label="Prikaži sve u listi" kind="quiet" onPress={onShowPlace} /> : null}

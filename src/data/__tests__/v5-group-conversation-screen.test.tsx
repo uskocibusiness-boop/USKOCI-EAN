@@ -82,6 +82,7 @@ it('keeps loading visible after roster authorization and during a manual refresh
  await act(async()=>action('Osveži poruke').onPress());
  expect(text()).toContain(message.body);
  expect(text()).toContain('Učitavamo poruke…');
+ expect(tree!.root.findByProps({testID:'group-task-anchor'}).props.onPress).toBeUndefined();
  expect(tree!.root.findByType('List' as never).findAllByProps({testID:'group-conversation-progress'})).toHaveLength(0);
  expect(tree!.root.findAllByType('TextInput' as never)).toHaveLength(0);
  await act(async()=>refreshPage.resolve({ok:false,kod:'GROUP_PAGE_TRANSPORT_UNAVAILABLE',poruka:'Veza je prekinuta.'}));
@@ -94,14 +95,28 @@ it('keeps loading visible after roster authorization and during a manual refresh
 });
 it('renders actual common message, member names/avatars and keeps individual management absent for peers',async()=>{
  await render();expect(text()).toContain(message.body);expect(text()).toContain('Cenu, lične uslove i probleme dogovori privatno.');expect(text()).toContain('Ove poruke vide svi učesnici zadatka.');await tap('Učesnici razgovora');expect(text()).toContain('Bojana');
- expect(tree!.root.findByProps({testID:'group-task-anchor'}).props.onPress).toBeUndefined();
+ expect(action('Otvori svoj Dogovor: Zajednički Zadatak').accessibilityHint).toContain('pojedinačne uslove');
  expect(text()).toContain('Zajednički Zadatak');
  const avatars=tree!.root.findAllByType('Avatar' as never);expect(avatars).toHaveLength(2);expect(avatars.every(node=>node.props.profileId===B)).toBe(true);expect(text()).not.toContain('Tvoji pojedinačni Dogovori');expect(mockService.send).not.toHaveBeenCalled();expect(mockService.markRead).not.toHaveBeenCalled();
 });
+it('opens only the participant’s own Dogovor from the task card, with no group mutation',async()=>{
+ await render();await tap('Otvori svoj Dogovor: Zajednički Zadatak');
+ expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});
+ expect(mockService.send).not.toHaveBeenCalled();
+});
 it('shows only requester management and routes to the exact canonical individual Agreement',async()=>{
  // Round 6: the block is the requester's own, so the finish waits on "tvoju" confirmation (it said the impersonal "Čeka potvrdu završetka").
- mockService.context.mockResolvedValue(ok(context('REQUESTER')));await render();await tap('Učesnici razgovora');expect(text()).toContain('samo ti');expect(text()).toContain('Bojana · Čeka tvoju potvrdu završetka');
+ mockService.context.mockResolvedValue(ok(context('REQUESTER')));await render();
+ expect(tree!.root.findByProps({testID:'group-task-anchor'}).props.onPress).toBeUndefined();
+ expect(text()).not.toContain('Tvoj Dogovor ›');
+ await tap('Učesnici razgovora');expect(text()).toContain('samo ti');expect(text()).toContain('Bojana · Čeka tvoju potvrdu završetka');
  await tap('Otvori pojedinačni Dogovor');expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]',params:{id:ID}});
+});
+it.each(['blur','background','ABA'])('rejects a retained task-card link after %s',async kind=>{
+ await render();const open=action('Otvori svoj Dogovor: Zajednički Zadatak').onPress;
+ await act(async()=>{if(kind==='blur')mockFocused=false;else if(kind==='ABA')mockSession={user:{id:A},accountRevision:3};
+ else{mockForeground='background';[...mockListeners].forEach(fn=>fn('background'));}tree!.update(page());});
+ await act(async()=>open());expect(mockPush).not.toHaveBeenCalled();
 });
 it('offers a participant only the requester privately, never another participant', async()=>{
  await render();
@@ -172,11 +187,46 @@ it('has one send action, latches concurrent retained callbacks and persists no p
  await act(async()=>gate.resolve());expect(mockService.send).toHaveBeenCalledTimes(1);expect(mockStorage.setItem.mock.calls[0][1]).not.toContain('Prvobitna poruka');
  expect(action('Proveri da li je poruka stigla')).toBeDefined();expect(send('Pošalji poruku grupi')).toBeUndefined();
 });
+it('keeps the participant task card stable but disabled through send and recovery states',async()=>{
+ await render();
+ const card=()=>tree!.root.findByProps({testID:'group-task-anchor'});
+ const cardType=card().type,content=()=>card().findAllByType('T' as never).map(node=>node.children.join(''));
+ const readyContent=content();
+ const retainedOpen=card().props.onPress;
+ const waiting=()=>{
+  expect(card().type).toBe(cardType);
+  expect(content()).toEqual(readyContent);
+  expect(card().props.accessibilityLabel).toBe('Otvori svoj Dogovor: Zajednički Zadatak');
+  expect(card().props.accessibilityState).toEqual({disabled:true});
+  expect(card().props.disabled).toBe(true);
+  expect(card().props.onPress).toBeUndefined();
+ };
+ await change('Prvobitna poruka');
+ const storageGate=deferred<void>();mockStorage.setItem.mockReturnValueOnce(storageGate.promise);
+ await act(async()=>send('Pošalji poruku grupi').onPress());waiting(); // SENDING
+ await act(async()=>retainedOpen());expect(mockPush).not.toHaveBeenCalled();
+ await act(async()=>storageGate.resolve());waiting(); // UNKNOWN
+ const refreshGate=deferred<unknown>();mockService.context.mockReturnValueOnce(refreshGate.promise);
+ await tap('Proveri da li je poruka stigla');waiting(); // LOADING with the same context
+ await act(async()=>refreshGate.resolve(ok(context())));waiting(); // UNKNOWN with retry allowed
+ mockService.send.mockResolvedValueOnce(ok({...journal,messageId:KEY}));
+ mockStorage.removeItem.mockRejectedValueOnce(new Error('storage unavailable'));
+ await act(async()=>send('Ponovi slanje iste poruke').onPress());waiting(); // CONFIRMED, cleanup pending
+ const resumeGate=deferred<unknown>();mockService.context.mockReturnValueOnce(resumeGate.promise);
+ await tap('Nastavi razgovor');waiting(); // LOADING after cleanup
+ await act(async()=>resumeGate.resolve(ok(context())));
+ expect(card().type).toBe(cardType);expect(content()).toEqual(readyContent);
+ expect(card().props.accessibilityState).toEqual({disabled:false});
+ expect(card().props.onPress).toEqual(expect.any(Function));
+ expect(mockPush).not.toHaveBeenCalled();
+});
 it('keeps an uncertain send explanation beside its check action without sending a second command',async()=>{
  await render();await change('Prvobitna poruka');
  await act(async()=>send('Pošalji poruku grupi').onPress());
  const progress=tree!.root.findByProps({testID:'group-conversation-progress'});
  expect(progress.findAllByType('T' as never).map(node=>node.children.join(''))).toContain('Ishod nije potvrđen.');
+ expect(tree!.root.findByProps({testID:'group-task-anchor'}).props.onPress).toBeUndefined();
+ expect(text()).toContain('Tvoj Dogovor ›');
  expect(tree!.root.findByType('List' as never).findAllByProps({testID:'group-conversation-progress'})).toHaveLength(0);
  await tap('Proveri da li je poruka stigla');
  expect(text()).toContain('Ne znamo da li je poruka stigla.');

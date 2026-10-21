@@ -67,7 +67,8 @@ export const OFFERS_WORD = { worker: 'Tražim ponude', owner: 'Tražim ponude' }
 const MARK_WORDS: Readonly<Record<string, string>> = { 'Tvoj zadatak': 'Tvoj', 'Tvoj status nije potvrđen': 'Status nije potvrđen' };
 
 /** What a face shows and says, from the task and what this account is to it. */
-export function useTaskRecord(item: MarketplaceItem, relation?: TaskCardRelation, sectionSays?: StanjePotrebe): TaskRecordModel {
+export function useTaskRecord(item: MarketplaceItem, relation?: TaskCardRelation, sectionSays?: StanjePotrebe,
+  valueOverride?: TaskValue): TaskRecordModel {
   const ownerView = isOwnedNeed(item) || relation === 'OWNED';
   const title = readableTitle(item.naslov);
   const status = taskStatus(item, relation, sectionSays);
@@ -77,7 +78,7 @@ export function useTaskRecord(item: MarketplaceItem, relation?: TaskCardRelation
   // HITNO counts only until the server's expiry, on the one clock the badge is given: an expired HITNO on a task with no state drew an empty first row.
   const urgencyNow = useUrgencyClock([item.urgency]);
   const urgent = displaysUrgent(item.urgency, urgencyNow);
-  const value = taskValue(item);
+  const value = valueOverride ?? taskValue(item);
   const place = taskPlace(item);
   const from = useDistanceFrom();
   const distance = distanceOf(from, item);
@@ -108,8 +109,8 @@ function spokenWithOffers(spoken: string, value: TaskValue, word: string): strin
 function ValueRow({ model, mapPreview = false }: { model: TaskRecordModel; mapPreview?: boolean }) {
   const { value } = model;
   if (value.kind !== 'amount') return <View style={s.offerRow}>
-    <FactArt kind="offers" size={24} cut={mapPreview ? 'art' : 'auto'} />
-    <T variant="bodyStrong">{value.kind === 'offers' ? model.offersWord : VALUE_WORDS.unpriced}</T>
+    {value.kind === 'offers' ? <FactArt kind="offers" size={24} cut={mapPreview ? 'art' : 'auto'} /> : null}
+    <T variant="bodyStrong">{value.kind === 'offers' ? model.offersWord : VALUE_WORDS[value.kind]}</T>
   </View>;
   const budget = <View style={[s.valueRow, mapPreview && s.previewBudget]}>
     <T variant="meta" tone="muted">Budžet</T>

@@ -729,6 +729,36 @@ test('the server buckets are one GeoJSON source with their own layers, and the l
   expect(annotations()).toHaveLength(0);
 });
 
+test('only an exact selected TASK read adds a qualified price below the unchanged chosen capsule', async () => {
+  const taskId = '00000000-0000-4000-8000-000000000001';
+  const task = { ...layerMarkers[1], key: `task:${taskId}` };
+  const item = row(taskId, 44.9, 20.6, { osnovaCene: 'TOTAL', detalji: { rezimLokacije: 'STATIONARY' } });
+  const seam = (selectedTask: unknown) => ({ markers: [layerMarkers[0], task, layerMarkers[2]], selectedKey: task.key,
+    selectedTask, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect: jest.fn() });
+  extra = { p6Server: seam({ key: task.key, item }) };
+  await render(); await measureFrame(800); await ready();
+  const features = sourceData().features;
+  expect(features.filter((feature: { properties: { selectedPrice?: string } }) => feature.properties.selectedPrice))
+    .toEqual([expect.objectContaining({ properties: expect.objectContaining({ key: task.key, chosenImage: 'p6-pin-task-chosen',
+      selectedPrice: '6.000 RSD ukupno' }) })]);
+  expect(layerIds()).toEqual(['p6-pins', 'p6-chosen', 'p6-selected-price']);
+  const price = tree.root.findByProps({ id: 'p6-selected-price' });
+  expect(price.props.layout).toMatchObject({ 'text-field': ['get', 'selectedPrice'], 'text-anchor': 'top' });
+  expect(price.props.filter).toEqual(['==', ['get', 'key'], task.key]);
+  for (const [group, values] of [['layout_symbol', price.props.layout], ['paint_symbol', price.props.paint]] as const) {
+    for (const [name, value] of Object.entries(values as Record<string, unknown>)) {
+      const spec = (latest as unknown as Record<string, Record<string, StylePropertySpecification>>)[group][name];
+      expect(spec).toBeDefined();
+      const literal = Array.isArray(value) && typeof value[0] !== 'string';
+      const parsed = expression.createPropertyExpression(literal ? ['literal', value] : value, name, spec);
+      if (parsed.result !== 'success') throw new Error(`${name}: ${parsed.value.map(error => error.message).join('; ')}`);
+    }
+  }
+  extra = { p6Server: seam({ key: task.key, item: { ...item, id: 'stale-id' } }) }; await update();
+  expect(sourceData().features.every((feature: { properties: { selectedPrice?: string } }) => !feature.properties.selectedPrice)).toBe(true);
+  expect(layerIds()).toEqual(['p6-pins', 'p6-chosen']);
+});
+
 // AGENTS §3.6.7: a white capsule, the chosen one 6 % larger with the orange halo and label, drawn above the rest in a stable order, all in
 // native layers (no view annotations). Every expression is checked by the installed style parser, as the Android bridge reads it.
 test('the P6 pins are white capsules in one ordered layer, and the chosen capsule is 6 % larger on its own top layer', async () => {

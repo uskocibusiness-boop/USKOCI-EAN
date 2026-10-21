@@ -22,6 +22,8 @@ const map=(bounds=[19,44,21,46] as [number,number,number,number]):any=>({version
   {kind:'CLUSTER',key:'cluster:1',point:{lat:45.3,lng:19.9},taskCount:5,distinctPointCount:3,memberBounds:[19.8,45.2,20,45.4]}],
  counts:{kind:'exact_live',observedAt:AT,mapped:8,withoutPoint:0}});
 const exact=(id=ID1):any=>({version:'DISCOVERY_V1',mode:'EXACT_PUBLIC',asOf:AT,items:[item(id)],hasMore:false,nextCursor:null});
+const priced=(amount:number,revision=1):any=>({...item(),revision,priceMode:'MY_PRICE',requesterPriceRsd:amount,priceBasis:'TOTAL'});
+const pricedExact=(amount:number,revision=1):any=>({...exact(),items:[priced(amount,revision)]});
 const places=(more=false):any=>({version:'DISCOVERY_V1',mode:'PLACES',asOf:AT,filterKey:A,anchor:anchor(),
  items:[{key:'novi sad, liman',text:'Novi Sad, Liman',count:2}],hasMore:more,nextCursor:more?{count:2,text:'Novi Sad, Liman',key:'novi sad, liman'}:null,
  counts:{kind:'exact_live',observedAt:AT,everywhere:8,inArea:null}});
@@ -153,6 +155,60 @@ it('refreshMap does not read again for a region that is where the map was last r
  const refreshing=s.refreshMap([19.7,45.2,20,45.4]);expect(x.pending).toHaveLength(reads+1);
  x.pending[reads].resolve(map([19.7,45.2,20,45.4]));expect((await refreshing).kind).toBe('applied');
 });
+it('a retained TASK bucket loses its old exact price proof after a fresh MAP, while noop and re-tap behave correctly',async()=>{
+ const {x,s}=await openLoaded();
+ const marker=s.snapshot().mapMarkers[0],picked=s.selectMarker(marker);
+ x.pending[2].resolve(pricedExact(5000));await picked;
+ const card=s.snapshot().peek,viewBefore=s.snapshot().view;
+ expect(s.snapshot().exactTaskId).toBe(ID1);
+ expect((await s.refreshMap([19,44,21,46])).kind).toBe('noop');
+ expect(s.snapshot().exactTaskId).toBe(ID1);
+ const refreshing=s.refreshMap([19.5,44.5,20.5,45.5]);
+ x.pending[3].resolve(map([19.5,44.5,20.5,45.5]));expect((await refreshing).kind).toBe('applied');
+ expect(s.snapshot().exactTaskId).toBeNull();expect(s.snapshot().peek).toBe(card);
+ expect(s.chosenKey()).toBe(marker.key);expect(s.snapshot().view).toEqual(viewBefore);
+ const again=s.selectMarker(s.snapshot().mapMarkers[0]);
+ x.pending[4].resolve(pricedExact(6000,2));await again;
+ expect(s.snapshot().exactTaskId).toBe(ID1);
+ expect(s.snapshot().peek).toMatchObject({kind:'TASK',item:{id:ID1,revision:2,ponudjenaCena:{iznos:6000}}});
+});
+it('failed background exact validation leaves the retained card without price proof',async()=>{
+ const {x,s}=await openLoaded();
+ const picked=s.selectMarker(s.snapshot().mapMarkers[0]);x.pending[2].resolve(pricedExact(5000));await picked;
+ const refreshing=s.refreshMap([19.5,44.5,20.5,45.5]);x.pending[3].resolve(map([19.5,44.5,20.5,45.5]));await refreshing;
+ const card=s.snapshot().peek,checking=s.refreshSelectedExact();
+ expect(x.pending[4].request).toEqual({mode:'EXACT_PUBLIC',needId:ID1});
+ x.pending[4].resolve({bad:'shape'});expect((await checking).kind).toBe('failed');
+ expect(s.snapshot().exactTaskId).toBeNull();expect(s.snapshot().peek).toBe(card);expect(s.chosenKey()).toBe('task:'+ID1);
+});
+it('a stale MAP completion cannot erase a newer exact tap, and an exact answer started before accepted MAP cannot reauthorize price',async()=>{
+ const {x,s}=await openLoaded();
+ const old=s.refreshMap([19.5,44.5,20.5,45.5]);
+ const fresh=s.refreshMap([19.6,44.6,20.6,45.6]);
+ expect(x.pending[2].signal.aborted).toBe(true);
+ x.pending[3].resolve(map([19.6,44.6,20.6,45.6]));expect((await fresh).kind).toBe('applied');
+ const picked=s.selectMarker(s.snapshot().mapMarkers[0]);x.pending[4].resolve(pricedExact(6000,2));await picked;
+ expect(s.snapshot().exactTaskId).toBe(ID1);
+ x.pending[2].resolve({bad:'old'});expect((await old).kind).toBe('stale');expect(s.snapshot().exactTaskId).toBe(ID1);
+ const pending=s.selectMarker(s.snapshot().mapMarkers[0]);
+ const refreshing=s.refreshMap([19.7,44.7,20.7,45.7]);
+ x.pending[6].resolve(map([19.7,44.7,20.7,45.7]));expect((await refreshing).kind).toBe('applied');
+ x.pending[5].resolve(pricedExact(5000));expect((await pending).kind).toBe('TASK');
+ expect(s.snapshot().exactTaskId).toBeNull();expect(s.snapshot().peek).toMatchObject({kind:'TASK',item:{id:ID1}});
+});
+it('an older successful MAP or PAGE continuation cannot erase exact proof from a newer tap',async()=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(view());
+ x.pending[0].resolve(page([ID1],true));await wait(x,1);x.pending[1].resolve(map());await opening;
+ const oldMap=s.refreshMap([19.5,44.5,20.5,45.5]);
+ const picked=s.selectMarker(s.snapshot().mapMarkers[0]);x.pending[3].resolve(pricedExact(6000,2));await picked;
+ expect(s.snapshot().exactTaskId).toBe(ID1);
+ x.pending[2].resolve(map([19.5,44.5,20.5,45.5]));expect((await oldMap).kind).toBe('applied');
+ expect(s.snapshot().exactTaskId).toBe(ID1);
+ const oldPage=s.nextPage();
+ const again=s.selectMarker(s.snapshot().mapMarkers[0]);x.pending[5].resolve(pricedExact(7000,3));await again;
+ x.pending[4].resolve(page([ID2]));expect((await oldPage).kind).toBe('applied');
+ expect(s.snapshot().exactTaskId).toBe(ID1);
+});
 it('a newer own settle fences an older refresh, and a refresh before any view is a noop',async()=>{
  const x=h(),s=createDiscoveryV1ScreenSession(x.transport);
  expect((await s.refreshMap([19,44,21,46])).kind).toBe('noop');expect(x.pending).toHaveLength(0);
@@ -173,10 +229,12 @@ const openLoaded=async(ids=[ID1])=>{
 it('EX-03: a TASK marker whose row is already loaded shows its card before any answer, and the exact read still goes out',async()=>{
  const {x,s}=await openLoaded();
  const selected=s.selectMarker(s.snapshot().mapMarkers[0]);
- expect(s.snapshot().peek).toMatchObject({kind:'TASK',item:{id:ID1,revision:1}});          // no answer yet
- expect(x.pending[2].request).toEqual({mode:'EXACT_PUBLIC',needId:ID1});
- x.pending[2].resolve(exact());expect(await selected).toEqual({kind:'TASK',applied:true});
- expect(s.snapshot().peek).toMatchObject({kind:'TASK',item:{id:ID1}});
+  expect(s.snapshot().peek).toMatchObject({kind:'TASK',item:{id:ID1,revision:1}});          // no answer yet
+  expect(s.snapshot().exactTaskId).toBeNull();
+  expect(x.pending[2].request).toEqual({mode:'EXACT_PUBLIC',needId:ID1});
+  x.pending[2].resolve(exact());expect(await selected).toEqual({kind:'TASK',applied:true});
+  expect(s.snapshot().peek).toMatchObject({kind:'TASK',item:{id:ID1}});
+  expect(s.snapshot().exactTaskId).toBe(ID1);
 });
 it('EX-03: an exact answer with the same item leaves the known card untouched; a newer revision replaces it',async()=>{
  const {x,s}=await openLoaded();
@@ -192,8 +250,9 @@ it('EX-03: a failed exact read keeps the known card and does not fail the select
  const {x,s}=await openLoaded();
  const selected=s.selectMarker(s.snapshot().mapMarkers[0]);
  x.pending[2].resolve({bad:'shape'});                                                        // the decoder refuses it: a failed read
- expect(await selected).toEqual({kind:'TASK',applied:true});
- expect(s.snapshot().peek).toMatchObject({kind:'TASK',item:{id:ID1}});
+  expect(await selected).toEqual({kind:'TASK',applied:true});
+  expect(s.snapshot().peek).toMatchObject({kind:'TASK',item:{id:ID1}});
+  expect(s.snapshot().exactTaskId).toBeNull();
  const y=await openLoaded([ID2]);
  const unknown=y.s.selectMarker(y.s.snapshot().mapMarkers[0]);
  y.x.pending[2].resolve({bad:'shape'});await expect(unknown).rejects.toThrow();
@@ -257,6 +316,28 @@ it('a fresh POINT_MEMBERS count replaces a stale map total even when the preview
  x.pending[2].resolve(membersWithTotal([ID1,ID2],4,true));await selected;
  expect(s.snapshot().peek).not.toBe(known);
  expect(s.snapshot().peek).toMatchObject({kind:'PLACE',totalCount:4,items:[{id:ID1},{id:ID2}]});
+});
+it('a retained PLACE loses member price proof after MAP and regains it only from a new POINT_MEMBERS read',async()=>{
+ const {x,s}=await openPlace();
+ const marker=s.snapshot().mapMarkers[0],picked=s.selectMarker(marker);
+ x.pending[2].resolve({...membersWithTotal([ID1,ID2],2),items:[priced(5000),item(ID2)]});await picked;
+ expect(s.snapshot().verifiedPlaceKey).toBe('45.25,19.83');
+ const card=s.snapshot().peek,refreshing=s.refreshMap([19.5,44.5,20.5,45.5]);
+ x.pending[3].resolve({...map([19.5,44.5,20.5,45.5]),buckets:[placeBucket(2)]});await refreshing;
+ expect(s.snapshot().verifiedPlaceKey).toBeNull();expect(s.snapshot().peek).toBe(card);expect(s.chosenKey()).toBe(marker.key);
+ const again=s.selectMarker(s.snapshot().mapMarkers[0]);
+ x.pending[4].resolve({...membersWithTotal([ID1,ID2],2),items:[priced(6000,2),item(ID2)]});await again;
+ expect(s.snapshot().verifiedPlaceKey).toBe('45.25,19.83');
+ expect(s.snapshot().peek).toMatchObject({kind:'PLACE',items:[{revision:2,ponudjenaCena:{iznos:6000}},{id:ID2}]});
+});
+it('POINT_MEMBERS started before an accepted MAP cannot restore stale PLACE price proof',async()=>{
+ const {x,s}=await openPlace();
+ const chosen=s.selectMarker(s.snapshot().mapMarkers[0]);
+ const refreshing=s.refreshMap([19.5,44.5,20.5,45.5]);
+ x.pending[3].resolve({...map([19.5,44.5,20.5,45.5]),buckets:[placeBucket(2)]});await refreshing;
+ x.pending[2].resolve({...membersWithTotal([ID1,ID2],2),items:[priced(5000),item(ID2)]});await chosen;
+ expect(s.snapshot().peek).toMatchObject({kind:'PLACE',items:[{ponudjenaCena:{iznos:5000}},{id:ID2}]});
+ expect(s.snapshot().verifiedPlaceKey).toBeNull();
 });
 it('a late PLACE count cannot overwrite a more recent PLACE selection',async()=>{
  const {x,s}=await openPlace([ID1],4000);
@@ -325,16 +406,37 @@ it('EX-03: a newer touch fences the known place card of an older one, and its la
 // chosen (with its card) while its bucket is still on the map; a choice whose bucket left the map is let go.
 it('a settled pan reads the seen band for the list and the frame for the map, and keeps a chosen task whose bucket stays',async()=>{
  const {x,s}=await openLoaded();
- const picked=s.selectMarker(s.snapshot().mapMarkers[0]);x.pending[2].resolve(exact());await picked;
- const card=s.snapshot().peek;expect(s.chosenKey()).toBe('task:'+ID1);
+ const picked=s.selectMarker(s.snapshot().mapMarkers[0]);x.pending[2].resolve(pricedExact(5000));await picked;
+ const card=s.snapshot().peek;expect(s.chosenKey()).toBe('task:'+ID1);expect(s.snapshot().exactTaskId).toBe(ID1);
  const moved=s.settleMap([19.6,44.6,20.4,45.4],[19.5,44.5,20.5,45.5]);
  expect(x.pending[3].request).toEqual(expect.objectContaining({mode:'PAGE',scope:{kind:'AREA',bounds:[19.6,44.6,20.4,45.4]}}));
  expect(x.pending[4].request).toEqual(expect.objectContaining({mode:'MAP',bounds:[19.5,44.5,20.5,45.5]}));
  expect(s.snapshot().peek).toBe(card);                                              // the card stays while the move is read
- x.pending[3].resolve(page([ID2]));x.pending[4].resolve(map([19.5,44.5,20.5,45.5]));
+ x.pending[3].resolve({...page(),items:[priced(6000,2)]});x.pending[4].resolve(map([19.5,44.5,20.5,45.5]));
  expect((await moved).kind).toBe('applied');
- expect(s.snapshot().peek).toBe(card);expect(s.chosenKey()).toBe('task:'+ID1);
+ expect(s.snapshot().peek).toBe(card);expect(s.chosenKey()).toBe('task:'+ID1);expect(s.snapshot().exactTaskId).toBeNull();
+ expect(s.snapshot().items).toMatchObject([{id:ID1,revision:2,ponudjenaCena:{iznos:6000}}]);
+ expect(s.snapshot().peek).toMatchObject({kind:'TASK',item:{id:ID1,revision:1,ponudjenaCena:{iznos:5000}}});
  expect(s.snapshot().view).toMatchObject({area:[19.6,44.6,20.4,45.4],pinPlace:null});
+});
+it('a settled MAP that removes the selected priced TASK clears its card, choice and price proof',async()=>{
+ const {x,s}=await openLoaded();
+ const picked=s.selectMarker(s.snapshot().mapMarkers[0]);x.pending[2].resolve(pricedExact(5000));await picked;
+ expect(s.snapshot().exactTaskId).toBe(ID1);
+ const moved=s.settleMap([19.6,44.6,20.4,45.4]);
+ x.pending[3].resolve(page([ID2]));x.pending[4].resolve({...map([19.6,44.6,20.4,45.4]),buckets:[]});
+ expect((await moved).kind).toBe('applied');
+ expect(s.snapshot().peek).toBeNull();expect(s.chosenKey()).toBeNull();expect(s.snapshot().exactTaskId).toBeNull();
+});
+it('an older settle with no bucket cannot discard a newer exact TASK tap',async()=>{
+ const {x,s}=await openLoaded();
+ const marker=s.snapshot().mapMarkers[0],moved=s.settleMap([19.6,44.6,20.4,45.4]);
+ const picked=s.selectMarker(marker);x.pending[4].resolve(pricedExact(6000,2));await picked;
+ expect(s.chosenKey()).toBe(marker.key);expect(s.snapshot().exactTaskId).toBe(ID1);
+ x.pending[2].resolve(page([ID2]));x.pending[3].resolve({...map([19.6,44.6,20.4,45.4]),buckets:[]});
+ expect((await moved).kind).toBe('applied');
+ expect(s.chosenKey()).toBe(marker.key);expect(s.snapshot().exactTaskId).toBe(ID1);
+ expect(s.snapshot().peek).toMatchObject({kind:'TASK',item:{id:ID1,revision:2}});
 });
 it('a settled pan whose map no longer has the chosen bucket lets it go, and its late exact answer changes nothing',async()=>{
  const {x,s}=await openLoaded([ID2]);

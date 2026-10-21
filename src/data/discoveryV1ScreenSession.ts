@@ -25,6 +25,10 @@ export type DiscoveryV1ScreenSnapshot = {
   mapWholeBounds: PublicBounds | null;
   places: DiscoveryV1PlaceRow[];
   peek: DiscoveryV1Peek | null;
+  /** Only a successful EXACT_PUBLIC read for the current TASK choice can authorize its map price. */
+  exactTaskId: string | null;
+  /** Only a successful POINT_MEMBERS read for this selected place can authorize its row price words. */
+  verifiedPlaceKey: string | null;
   counts: DiscoveryV1Counts | null;
   availability: DiscoveryV1Availability | null;
   mapCounts: DiscoveryV1MapCounts | null;
@@ -76,7 +80,8 @@ function bounds(value: readonly number[]): PublicBounds {
  */
 export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransport, isCurrent: () => boolean = () => true) {
   const owner=createDiscoveryV1Owner(transport,isCurrent);
-  let view:MarketplaceView|null=null, peek:DiscoveryV1Peek|null=null, selectionSequence=0;
+  let view:MarketplaceView|null=null, peek:DiscoveryV1Peek|null=null, exactTaskId:string|null=null, verifiedPlaceKey:string|null=null, selectionSequence=0, priceGeneration=0;
+  let pendingTaskSelection:number|null=null;
   /** The task or place bucket the person chose last, while that choice stands (a read for it may still be on its way). */
   let chosen:DiscoveryV1MapMarker|null=null;
   // EX-03 (client work per settle): the owner replaces its page, map and places objects only when an answer lands, so what a snapshot hands out
@@ -108,6 +113,8 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
       mapWholeBounds:state.map?.wholeBounds ? [...state.map.wholeBounds] as PublicBounds : null,
       places:state.places?placesOf(state.places):[],
       peek,
+      exactTaskId,
+      verifiedPlaceKey,
       counts:state.page?.counts ?? null,availability:state.page?.availability ?? null,mapCounts:state.map?.counts ?? null,
       placeCounts:state.places?.counts ?? null,pageHasMore:state.page?.hasMore ?? false,
       memberHasMore:state.members?.hasMore ?? false,placeHasMore:state.places?.hasMore ?? false,
@@ -115,12 +122,15 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
   };
   /** The choice is let go: its card, its reads and the view's selection. */
   const letGo=()=>{
-    selectionSequence++;peek=null;chosen=null;owner.clearSelectionReads();
+    selectionSequence++;peek=null;exactTaskId=null;verifiedPlaceKey=null;chosen=null;owner.clearSelectionReads();
     if(view) view={...view,selectedId:null,selectedPlace:null};
   };
+  /** PAGE and MAP carry no exact price revision. Any accepted read retires the earlier price proof, without closing the card. */
+  const freshPublicRead=()=>{priceGeneration++;exactTaskId=null;verifiedPlaceKey=null;};
+  const freshPublicReadFor=(selection:number)=>{if(selection===selectionSequence) freshPublicRead();};
 
   async function open(next:MarketplaceView,pageLimit=50){
-    view=cloneView(next);peek=null;chosen=null;selectionSequence++;
+    view=cloneView(next);peek=null;exactTaskId=null;verifiedPlaceKey=null;chosen=null;selectionSequence++;
     owner.clearSelectionReads();
     const plan=discoveryV1ViewPlan(view);
     owner.begin(plan.filter,plan.pageScope,pageLimit);
@@ -146,14 +156,16 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
    */
   async function settleMap(listBounds:PublicBounds,mapBounds:PublicBounds=listBounds){
     if(!view) return {kind:'noop' as const,snapshot:snapshot()};
+    const selection=selectionSequence;
     const area=bounds(listBounds),frame=bounds(mapBounds);
     view={...view,area:[...area] as PublicBounds,pinPlace:null};
     owner.setScope({kind:'AREA',bounds:[...area] as PublicBounds});
-    const pagePromise=owner.firstPage(),mapPromise=owner.loadMap(frame);
+    const pagePromise=owner.firstPage().then(result=>{if(result.kind==='applied') freshPublicReadFor(selection);return result;});
+    const mapPromise=owner.loadMap(frame).then(result=>{if(result.kind==='applied') freshPublicReadFor(selection);return result;});
     const [page,map]=await Promise.all([pagePromise,mapPromise]);
     if(page.kind==='stale'||map.kind==='stale') return {kind:'stale' as const,snapshot:snapshot()};
     const kept=chosen;
-    if(kept&&!(map.kind==='applied'&&map.value.buckets.some(bucket=>bucket.key===kept.key))) letGo();
+    if(selection===selectionSequence&&kept&&!(map.kind==='applied'&&map.value.buckets.some(bucket=>bucket.key===kept.key))) letGo();
     return {kind:'applied' as const,snapshot:snapshot()};
   }
 
@@ -163,10 +175,12 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
    */
   async function refreshMap(nextBounds:PublicBounds){
     if(!view) return {kind:'noop' as const,snapshot:snapshot()};
+    const selection=selectionSequence;
     const wire=wireBounds(bounds(nextBounds));
     const covered=owner.snapshot().map?.coverageBounds;
     if(covered&&nearBounds(covered,wire)) return {kind:'noop' as const,snapshot:snapshot()};
     const result=await owner.loadMap(wire);
+    if(result.kind==='applied') freshPublicReadFor(selection);
     return {kind:result.kind,snapshot:snapshot()};
   }
 
@@ -174,7 +188,7 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
     if(!view) return {kind:'noop' as const,snapshot:snapshot()};
     const key=pointKey(point);
     if(!key) throw new Error('DISCOVERY_V1_SCREEN_POINT');
-    view={...view,pinPlace:key,selectedId:null,selectedPlace:null};peek=null;chosen=null;selectionSequence++;owner.clearSelectionReads();
+    view={...view,pinPlace:key,selectedId:null,selectedPlace:null};peek=null;exactTaskId=null;verifiedPlaceKey=null;chosen=null;selectionSequence++;owner.clearSelectionReads();
     owner.setScope({kind:'POINT_LIST',point:{...point}});
     const result=await owner.firstPage();
     return {kind:result.kind,snapshot:snapshot()};
@@ -182,19 +196,21 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
 
   async function showAll(){
     if(!view) return {kind:'noop' as const,snapshot:snapshot()};
-    view={...view,area:null,pinPlace:null,selectedId:null,selectedPlace:null};peek=null;chosen=null;selectionSequence++;owner.clearSelectionReads();
+    view={...view,area:null,pinPlace:null,selectedId:null,selectedPlace:null};peek=null;exactTaskId=null;verifiedPlaceKey=null;chosen=null;selectionSequence++;owner.clearSelectionReads();
     owner.setScope({kind:'ALL'});
     const result=await owner.firstPage();
     return {kind:result.kind,snapshot:snapshot()};
   }
 
   async function selectMarker(marker:DiscoveryV1MapMarker):Promise<DiscoveryV1SelectionResult>{
-    const selection=++selectionSequence;owner.clearSelectionReads();
+    const selection=++selectionSequence, priceReadGeneration=priceGeneration;
+    pendingTaskSelection=marker.kind==='TASK'?selection:null;exactTaskId=null;verifiedPlaceKey=null;owner.clearSelectionReads();
     if(marker.kind==='CLUSTER'){peek=null;chosen=null;return {kind:'CLUSTER',bounds:[...marker.memberBounds] as PublicBounds};}
     chosen=marker;
     // The choice did not stand (nothing to show for it): it is no longer the chosen bucket.
     const failed=()=>{if(selection===selectionSequence)chosen=null;};
     if(marker.kind==='TASK'){
+      try{
       // EX-03: PAGE and EXACT_PUBLIC return the same public item, so a row the list already holds IS the card's data. It is exposed at once (this runs before the first await,
       // so the caller can publish it in the same turn as the touch) and the exact read, which still goes out, only confirms or refreshes it: the card is replaced only when the
       // answer differs, a failed read keeps the known card, an answer without the task takes it away. A task that is not loaded waits for the exact read as before, and the card
@@ -213,7 +229,9 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
       const item=result.value.items[0];
       if(!item){peek=null;failed();return {kind:'TASK',applied:false};}
       if(!loaded||JSON.stringify(item)!==JSON.stringify(loaded)) peek={kind:'TASK',item:discoveryV1Opportunities([item])[0]};
+      if(priceReadGeneration===priceGeneration) exactTaskId=item.id;
       return {kind:'TASK',applied:true};
+      }finally{if(pendingTaskSelection===selection)pendingTaskSelection=null;}
     }
     // EX-03 (PLACE): the same idea for a point several tasks share. When every task of the place is already in the loaded list (the bucket's count equals the rows the list holds at that
     // point, so the set cannot be larger) the card is exposed at once; the members read, which still goes out and feeds the place's own paging, only confirms or refreshes it. A place
@@ -234,10 +252,28 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
     // POINT_MEMBERS counts the entire filtered place; its bounded rows are only a preview. The live count may change even when those rows do not.
     if(!known||result.value.counts.listed!==marker.taskCount||JSON.stringify(result.value.items)!==JSON.stringify(known))
       peek={kind:'PLACE',point:{...marker.point},items:discoveryV1Opportunities(result.value.items),totalCount:result.value.counts.listed};
+    if(priceReadGeneration===priceGeneration) verifiedPlaceKey=key;
     return {kind:'PLACE',applied:true};
   }
 
-  async function nextPage(){const result=await owner.nextPage();return {kind:result.kind,snapshot:snapshot()};}
+  /** Recheck retained TASK terms after a newer PAGE/MAP. It never delays those reads or takes ownership from a newer tap. */
+  async function refreshSelectedExact(){
+    const marker=chosen,shown=peek;
+    if(marker?.kind!=='TASK'||shown?.kind!=='TASK'||shown.item.id!==marker.taskId
+      ||exactTaskId!==null||pendingTaskSelection===selectionSequence) return {kind:'noop' as const};
+    const selection=selectionSequence,generation=priceGeneration;
+    let result;
+    try{result=await owner.readExact(marker.taskId);}
+    catch{return {kind:'failed' as const};}
+    if(selection!==selectionSequence||generation!==priceGeneration||!isCurrent()||result.kind==='stale') return {kind:'stale' as const};
+    if(result.kind!=='applied') return {kind:'failed' as const};
+    const item=result.value.items[0];
+    if(!item){letGo();return {kind:'applied' as const};}
+    peek={kind:'TASK',item:discoveryV1Opportunities([item])[0]};exactTaskId=item.id;
+    return {kind:'applied' as const};
+  }
+
+  async function nextPage(){const selection=selectionSequence,result=await owner.nextPage();if(result.kind==='applied') freshPublicReadFor(selection);return {kind:result.kind,snapshot:snapshot()};}
   async function nextMembers(){
     const selection=selectionSequence,result=await owner.nextMembers();
     if(selection!==selectionSequence||!isCurrent()) return {kind:'stale' as const,snapshot:snapshot()};
@@ -249,12 +285,12 @@ export function createDiscoveryV1ScreenSession(transport: DiscoveryV1OwnerTransp
     const result=await owner.firstPlaces(prefix,facetArea?bounds(facetArea):null,limit);return {kind:result.kind,snapshot:snapshot()};
   }
   async function nextPlaces(){const result=await owner.nextPlaces();return {kind:result.kind,snapshot:snapshot()};}
-  const clearPeek=()=>{selectionSequence++;peek=null;chosen=null;owner.clearSelectionReads();};
+  const clearPeek=()=>{selectionSequence++;peek=null;exactTaskId=null;verifiedPlaceKey=null;chosen=null;owner.clearSelectionReads();};
   const peekNow=()=>peek;
   /** The key of the bucket whose choice stands (its read may still be on its way), or null. */
   const chosenKey=()=>chosen?.key ?? null;
-  const suspend=()=>{selectionSequence++;owner.suspend();};
-  const retire=()=>{selectionSequence++;peek=null;chosen=null;view=null;owner.retire();pageMade=null;mapMade=null;placesMade=null;};
+  const suspend=()=>{selectionSequence++;exactTaskId=null;verifiedPlaceKey=null;owner.suspend();};
+  const retire=()=>{selectionSequence++;peek=null;exactTaskId=null;verifiedPlaceKey=null;chosen=null;view=null;owner.retire();pageMade=null;mapMade=null;placesMade=null;};
 
-  return {open,settleMap,refreshMap,showPoint,showAll,selectMarker,nextPage,nextMembers,queryPlaces,nextPlaces,clearPeek,peekNow,chosenKey,suspend,retire,snapshot};
+  return {open,settleMap,refreshMap,showPoint,showAll,selectMarker,refreshSelectedExact,nextPage,nextMembers,queryPlaces,nextPlaces,clearPeek,peekNow,chosenKey,suspend,retire,snapshot};
 }

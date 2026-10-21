@@ -77,7 +77,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     if(fresh)selectedMarkerKey=null;
   };
   const screenSnapshot=():DiscoveryV1ScreenSnapshot=>{
-    const value=held?{...held,peek:screen.peekNow()}:screen.snapshot();
+    const live=screen.snapshot(),value=held?{...held,peek:live.peek,exactTaskId:live.exactTaskId,verifiedPlaceKey:live.verifiedPlaceKey}:live;
     return routeView?{...value,view:cloneView(routeView)}:value;
   };
   const snapshot=():DiscoveryV1RouteSnapshot=>({active,generation,view:routeView?cloneView(routeView):null,screen:screenSnapshot(),
@@ -110,6 +110,15 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     if(!current(g)||result.kind==='stale')return;
     if((result.kind==='TASK'||result.kind==='PLACE')&&result.applied)selectedMarkerKey=marker.key;
     else if(routeView){routeView={...routeView,selectedId:null,selectedPlace:null};selectedMarkerKey=null;}
+  };
+  /** A retained priced card is checked after MAP/PAGE has already landed and been published. */
+  const refreshSelectedExactInBackground=(g:number,chosen:number)=>{
+    if(!current(g)||chosen!==selections)return;
+    void screen.refreshSelectedExact().then(result=>{
+      if(!current(g)||result.kind!=='applied')return;
+      if(screen.chosenKey()===null){selectedMarkerKey=null;if(routeView)routeView={...routeView,selectedId:null,selectedPlace:null};}
+      binding.onOptionalState();
+    }).catch(()=>{});
   };
 
   async function open(next:MarketplaceView,pageLimit=50){
@@ -164,7 +173,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
    */
   async function settleMap(bounds:PublicBounds,frame:PublicBounds=bounds){
     if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
-    const g=generation;
+    const g=generation,chosen=selections;
     let result;
     try{result=await whileReplacing(()=>screen.settleMap(bounds,frame));}
     catch(error){
@@ -178,13 +187,14 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
       // the read was out, is the selection's own business.
       if(screen.chosenKey()===null){selectedMarkerKey=null;routeView={...routeView,selectedId:null,selectedPlace:null};}
       refreshOverlayInBackground(g);
+      refreshSelectedExactInBackground(g,chosen);
     }
     return {kind:result.kind,snapshot:snapshot()};
   }
 
   async function refreshMap(bounds:PublicBounds){
     if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
-    const g=generation;
+    const g=generation,chosen=selections;
     let result;
     try{result=await screen.refreshMap(bounds);}
     catch(error){
@@ -192,6 +202,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
       return restore({...routeView});
     }
     if(!current(g)||result.kind==='stale')return {kind:'stale' as const,snapshot:snapshot()};
+    if(result.kind==='applied')refreshSelectedExactInBackground(g,chosen);
     return {kind:result.kind,snapshot:snapshot()};
   }
 
@@ -241,6 +252,8 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
         routeView={...routeView,selectedId:null,selectedPlace:pointKey(marker.point),sheet:'peek'};
       else throw new Error('DISCOVERY_V1_ROUTE_SELECTION_KIND_DRIFT');
       selectedMarkerKey=marker.key;
+      // A MAP accepted during this first exact read invalidated its price proof. Recheck only after the tap owns the route key.
+      refreshSelectedExactInBackground(g,selections);
     }else{
       if(routeView)routeView={...routeView,selectedId:null,selectedPlace:null};
       selectedMarkerKey=null;
@@ -270,7 +283,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
 
   async function nextPage(){
     if(!driven()||loadingMore||reading>0)return {kind:'noop' as const,snapshot:snapshot()};
-    let g=generation;loadingMore=true;
+    let g=generation;const chosen=selections;loadingMore=true;
     try{
       let result;
       try{result=await screen.nextPage();}
@@ -286,6 +299,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
       if(result.kind==='applied'){
         if(routeView)routeView={...routeView,pages:(routeView.pages??1)+1};
         refreshOverlayInBackground(g);
+        refreshSelectedExactInBackground(g,chosen);
       }
       return {kind:result.kind,snapshot:snapshot()};
     }finally{if(current(g))loadingMore=false;}
@@ -323,6 +337,8 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
     if(!active)return false;
     // The profiles it already holds are kept (the warm window is minutes): what is asked again is the account's own relations and urgencies, and the profiles it does not know.
     binding=next;attached=true;refreshOverlayInBackground(generation,{reuseProfiles:true});
+    // Suspend retires exact price proof; a warm card rechecks without delaying the saved map, list or gestures.
+    refreshSelectedExactInBackground(generation,selections);
     return true;
   };
   /** A detached coordinator whose picture can be shown again without a read: whole, and of the same search intent as the view the next screen would open (sheet, offset, camera and selection are not intent). */

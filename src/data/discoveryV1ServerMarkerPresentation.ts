@@ -1,5 +1,23 @@
 import type { DiscoveryV1MapMarker } from './discoveryV1MarketplaceAdapter';
+import { pointKey, publicPoint, type MarketplaceItem } from './marketplaceView';
+import { novac } from '../lib/novac';
 import { zadataka } from '../ui/system/plural';
+
+/** The selected card is a separate, successful EXACT_PUBLIC read, never a MAP bucket fact. */
+export type DiscoveryV1ExactSelectedTask = { key: string; item: MarketplaceItem };
+
+export function discoveryV1SelectedTaskPrice(marker: DiscoveryV1MapMarker, selectedKey: string | null,
+  selectedTask: DiscoveryV1ExactSelectedTask | null | undefined): string | null {
+  if (marker.kind !== 'TASK' || marker.key !== selectedKey || marker.key !== `task:${marker.taskId}`
+    || selectedTask?.key !== marker.key || selectedTask.item.id !== marker.taskId) return null;
+  const item = selectedTask.item, point = publicPoint(item);
+  if (!point || pointKey(point) !== pointKey(marker.point) || item.rezimCene !== 'MY_PRICE') return null;
+  const price = item.ponudjenaCena, amount = price?.iznos;
+  if (!price || price.valuta !== 'RSD' || typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount < 1 || amount > 2_147_483_647
+    || price.prikaz !== novac(amount)) return null;
+  const basis = item.osnovaCene === 'TOTAL' ? 'ukupno' : item.osnovaCene === 'PER_PERSON' ? 'po osobi' : null;
+  return basis ? `${price.prikaz} ${basis}` : null;
+}
 
 /** The sprite of a capsule: the mark alone for one task, the mark and room for 1 to 4 characters of count for several. */
 export type DiscoveryV1PinImage = 'p6-pin-task' | 'p6-pin-count-1' | 'p6-pin-count-2' | 'p6-pin-count-3' | 'p6-pin-count-4';

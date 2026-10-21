@@ -8,6 +8,7 @@ import { serbianToday } from '../calendar/serbianDays';
 import { TextBubble } from '../messages/MessageBubbles';
 import { MessageMark } from '../messages/MessageMark';
 import { MARK_WORDS, buildThread, messageSpoken, type ThreadMessage } from '../messages/threadModel';
+import { Press } from '../Press';
 import { T } from '../Text';
 import { Appear, useAppear } from '../system/Appear';
 import { Avatar } from '../system/Avatar';
@@ -63,6 +64,9 @@ export function GroupConversationPresentation(p: GroupConversationPresentationPr
 }
 function ScopedGroupConversation(p: GroupConversationPresentationProps) {
   const { state } = p, group = state.context?.group ?? null, ready = state.phase === 'READY';
+  // A participant has exactly one authorized bilateral Dogovor in this context. The requester can have several;
+  // their exact destinations remain in the private management list instead of making this task card ambiguous.
+  const ownAgreementId = group?.role === 'PARTICIPANT' ? state.context?.agreementId : null;
   const retry = state.phase === 'UNKNOWN' && state.canRetry;
   const olderUnavailable = state.phase === 'ERROR' && state.olderPageUnavailable && !!group && state.messages.length > 0;
   const first = state.phase === 'LOADING' && !state.messages.length;
@@ -126,10 +130,19 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
     {state.phase === 'ERROR' && !olderUnavailable ? <StateView kind="error" art="chat" title="Razgovor nije učitan" body={state.message ?? undefined}
       primary={{ label: 'Pokušaj ponovo', onPress: refresh }} /> : null}
     {group ? <>
-      <View testID="group-task-anchor" style={s.taskAnchor}>
+      {ownAgreementId ? <Press testID="group-task-anchor" accessibilityRole="button"
+        accessibilityLabel={`Otvori svoj Dogovor: ${group.title}`}
+        accessibilityHint="Otvara tvoje pojedinačne uslove uz ovaj zadatak."
+        accessibilityState={{ disabled: !ready }} disabled={!ready}
+        haptic="select" scaleTo={sys.motion.scale.row} hitSlop={0} style={s.taskAnchor}
+        onPress={ready ? () => p.onOpenAgreement(ownAgreementId) : undefined}>
+        <T variant="meta" tone="muted">Zadatak</T>
+        <View style={s.taskRow}><T variant="bodyStrong" style={s.taskTitle}>{group.title}</T>
+          <T variant="meta" tone={ready ? 'green' : 'muted'}>Tvoj Dogovor ›</T></View>
+      </Press> : <View testID="group-task-anchor" style={s.taskAnchor}>
         <T variant="meta" tone="muted">Zadatak</T>
         <T variant="bodyStrong" style={s.taskTitle}>{group.title}</T>
-      </View>
+      </View>}
       <T variant="note" tone="muted">{p.onPrivate
         ? 'Cenu, lične uslove i probleme dogovori privatno.'
         : 'Poruke vide svi učesnici. Cenu, lične uslove i probleme dogovori privatno.'}</T>
@@ -239,7 +252,8 @@ const s = StyleSheet.create({
   member: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 48 },
   taskAnchor: { backgroundColor: sys.color.wash, borderRadius: sys.radius.cardCompact, paddingHorizontal: sys.space.base,
     paddingVertical: sys.space.md, gap: sys.space.xs },
-  taskTitle: { color: sys.color.ink },
+  taskRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  taskTitle: { color: sys.color.ink, flex: 1 },
   parted: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.cardLine, paddingTop: sys.space.md },
   managed: { gap: sys.space.xs },
   // The bubbles are the Dogovor conversation's (../messages/bubbleShape): one shape, runs with one tail. A day or a pause is a quiet word.

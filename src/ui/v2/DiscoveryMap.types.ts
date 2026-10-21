@@ -3,11 +3,13 @@ import type { SharedValue } from 'react-native-reanimated';
 import type { MarketplaceItem, PublicViewport, PublicBounds } from '../../data/marketplaceView';
 import type { TaskRelationIndex } from '../../data/taskRelation';
 import type { DiscoveryV1MapMarker } from '../../data/discoveryV1MarketplaceAdapter';
+import type { DiscoveryV1ExactSelectedTask } from '../../data/discoveryV1ServerMarkerPresentation';
 /** Ephemeral camera instruction, never a public pin, task location, search filter, or stored location. */
 export type NearbyCameraTarget = { key: number; center: [longitude: number, latitude: number] };
 export type DiscoveryV1ServerMapSeam = {
   markers: readonly DiscoveryV1MapMarker[];
   selectedKey: string | null;
+  selectedTask?: DiscoveryV1ExactSelectedTask | null;
   wholeBounds: PublicBounds | null;
   onSelect: (marker: DiscoveryV1MapMarker) => void;
   /** The camera settled after a move that is not the person's own; the markers should cover this region. */

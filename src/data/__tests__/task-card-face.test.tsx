@@ -150,8 +150,10 @@ describe('the value slot', () => {
         // Offers and unknown amounts use text roles; they never masquerade as a numeric amount.
         expect(value.props.variant).not.toMatch(/^price/);
         expect(style(value)).not.toMatchObject({ color: sys.color.money });
-        // And it stands beside the price tag, never beside the money.
-        expect(facts()[0]).toBe('offers');
+        // Only an offer carries the offer art; an unknown price must not imply an offer.
+        const valueArt = tree.root.findByProps({ testID: 'task-face-value' })
+          .findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => node.props.kind);
+        expect(valueArt).toEqual(name === 'offers' ? ['offers'] : []);
       }
       // "Tražim ponude" means offers even when an old amount is still stored beside it.
       if (name === 'offers') expect(texts()).not.toContain('9.000 RSD');

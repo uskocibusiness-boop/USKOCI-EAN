@@ -29,7 +29,6 @@ const PHOSPHOR_IMPORTERS = new Set([
   'src/app/obavestenja.tsx',
   'src/ui/agreements/AgreementActionsPresentation.tsx',
   'src/ui/aiFirst/VoiceComposer.tsx',
-  'src/ui/entry/EntryWelcome.tsx', // Entry illustration adapter; not a frozen layout.
   'src/ui/groups/GroupConversationPresentation.tsx',
   'src/ui/product/ProductDetails.tsx',
   'src/ui/system/Disclosure.tsx',

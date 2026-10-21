@@ -36,7 +36,8 @@ export function AccountSettings({ email, busy, logoutError, version, words, open
     </AccountGroup>
     <View style={s.exit}>
       {logoutError ? <T tone="danger" accessibilityRole="alert" style={s.detail}>Odjava nije uspela. Pokušaj ponovo.</T> : null}
-      <Press accessibilityRole="button" accessibilityLabel={busy ? 'Sačekaj…' : 'Odjavi se'} accessibilityState={{ disabled: busy, busy }}
+      <Press accessibilityRole="button" accessibilityLabel={busy ? 'Sačekaj…' : 'Odjavi se'} accessibilityHint="Otvara potvrdu odjave."
+        accessibilityState={{ disabled: busy, busy }}
         disabled={busy} onPress={onLogout} haptic="select" style={s.logout}>
         <Glyph name="logout" size={20} tone={busy ? 'muted' : 'ink'} />
         <T style={s.title} tone={busy ? 'muted' : 'ink'}>{busy ? 'Sačekaj…' : 'Odjavi se'}</T>

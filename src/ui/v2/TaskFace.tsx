@@ -25,11 +25,12 @@ import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 /* ------------------------------------------------------------------------------------------------ what it says */
 
-/** What stands in the value slot. It is always one of the three: a card never leaves the corner empty (A8). */
+/** What stands in the value slot. A retained map card can temporarily await a fresh exact price. */
 export type TaskValue =
   | { kind: 'amount'; amount: string; basis: 'ukupno' | 'po osobi' | null }
   | { kind: 'offers' }
-  | { kind: 'unpriced' };
+  | { kind: 'unpriced' }
+  | { kind: 'unverified' };
 
 export function taskValue(item: Pick<MarketplaceItem, 'rezimCene' | 'ponudjenaCena' | 'osnovaCene'>): TaskValue {
   if (item.rezimCene === 'OFFERS') return { kind: 'offers' };
@@ -40,7 +41,7 @@ export function taskValue(item: Pick<MarketplaceItem, 'rezimCene' | 'ponudjenaCe
 }
 
 /** The words of a value slot without an amount. They are labels, never drawn as money. */
-export const VALUE_WORDS = { offers: 'Tražim ponude', unpriced: 'Cena nije navedena' } as const;
+export const VALUE_WORDS = { offers: 'Tražim ponude', unpriced: 'Cena nije navedena', unverified: 'Cena nije potvrđena' } as const;
 
 /** The value slot as it is heard: the amount with what it buys, or the word. */
 export const valueSpoken = (value: TaskValue) => value.kind === 'amount'

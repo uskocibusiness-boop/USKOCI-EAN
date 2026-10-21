@@ -1,6 +1,6 @@
 # Task AI: valuta posle prethodnog broja — lokalni kandidat
 
-**21.10.2026.** Ovaj kandidat menja samo Edge obradu AI razgovora i sintetički Node dokaz. Nije objavljen na DEV, nije push-ovan i nije potvrđen živim Gemini razgovorom.
+**21.10.2026.** Ovaj kandidat menja samo Edge obradu AI razgovora i sintetički Node dokaz. Poslat je na razvojnu GitHub granu (`1b6e01b5`, dopuna `09d26fa9`), ali nije objavljen na DEV niti potvrđen živim Gemini razgovorom.
 
 ## Provereno u izvoru
 
@@ -21,4 +21,4 @@ Već upisana `need.price_rsd=100` može ostati aktivna kada korisnik naknadno ka
 
 ## Lokalni dokaz
 
-`node --test supabase/proofs/ai/ai_edge_context.test.mjs supabase/proofs/ai/v5_worker_edge.test.mjs` pokriva goli broj, `u evrima`, `100 EUR`, `€100`, pogrešan `ACK`, kasniji RSD, ponude, drugi iznos u istoj poruci, trošak materijala/prevoza/goriva, kasniju EUR ispravku, javni opis sa brojem i negativne primere broja ljudi. Posle nezavisnog VM pregleda i dopuna: **252 PASS, 0 FAIL, 1 TODO**. Test za atomsko povlačenje starog RSD podatka ostaje `TODO/P0`; Node test je mock transport, ne serverski ni Gemini runtime dokaz. `npx tsc --noEmit --pretty false` je provera izvora. Server koraci su opisani u [atomskom ugovoru](ATOMIC_SERVER_CONTRACT.md), bez tvrdnje da su primenjeni.
+`node --test supabase/proofs/ai/ai_edge_context.test.mjs supabase/proofs/ai/v5_worker_edge.test.mjs` pokriva goli broj, `u evrima`, `100 EUR`, `€100`, pogrešan `ACK`, kasniji RSD, ponude, drugi iznos u istoj poruci, trošak materijala/prevoza/goriva, kasniju EUR ispravku, javni opis sa brojem, srpski zapis `5.000 RSD`, cenu prevoza kao zadatka i negativne primere broja ljudi. Posle nezavisnog VM pregleda i dopuna: **254 PASS, 0 FAIL, 1 TODO**. Test za atomsko povlačenje starog RSD podatka ostaje `TODO/P0`; Node test je mock transport, ne serverski ni Gemini runtime dokaz. `npx tsc --noEmit --pretty false` je provera izvora. Server koraci su opisani u [atomskom ugovoru](ATOMIC_SERVER_CONTRACT.md), bez tvrdnje da su primenjeni.

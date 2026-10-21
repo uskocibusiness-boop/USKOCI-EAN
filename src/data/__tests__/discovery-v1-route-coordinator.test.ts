@@ -8,6 +8,7 @@ import { createDiscoveryV1RouteCoordinator, discoveryV1RouteIntentKey, DISCOVERY
 import { initialMarketplaceView, type MarketplaceView } from '../marketplaceView';
 import { taskRelationIndex } from '../taskRelation';
 import { discoveryV1PresentationBridgeModel, type DiscoveryV1PresentationActions } from '../discoveryV1PresentationBridge';
+import { discoveryV1SelectedTaskPrice } from '../discoveryV1ServerMarkerPresentation';
 import type { DiscoveryV1OwnerRequest } from '../discoveryV1Owner';
 
 const AT='2026-09-29T05:00:00.000000Z',EX='2026-09-29T05:30:00.000000Z',A='a'.repeat(32);
@@ -29,6 +30,7 @@ const places=():any=>({version:'DISCOVERY_V1',mode:'PLACES',asOf:AT,filterKey:A,
  items:[{key:'novi sad, liman',text:'Novi Sad, Liman',count:8}],hasMore:false,nextCursor:null,
  counts:{kind:'exact_live',observedAt:AT,everywhere:12,inArea:7}});
 const exact=():any=>({version:'DISCOVERY_V1',mode:'EXACT_PUBLIC',asOf:AT,items:[item()],hasMore:false,nextCursor:null});
+const pricedExact=(amount:number,revision=1):any=>({...exact(),items:[{...item(),revision,priceMode:'MY_PRICE',requesterPriceRsd:amount,priceBasis:'TOTAL'}]});
 const view=(patch:Partial<MarketplaceView>={}):MarketplaceView=>({...initialMarketplaceView(),mode:'map',
  viewport:{center:[20,45],zoom:10,bounds:[19,44,21,46]},...patch});
 const deferred=<T,>()=>{let resolve!:(value:T)=>void;const promise=new Promise<T>(done=>{resolve=done});return{promise,resolve};};
@@ -341,14 +343,108 @@ it('refreshMap reads only the MAP over the region now on screen and keeps the ro
  await route.selectMarker(route.snapshot().screen.mapMarkers[0]);
  const before=route.snapshot(),calls=h.calls.length;
  const result=await route.refreshMap([19.7,45.2,20,45.4]);
- expect(result.kind).toBe('applied');expect(h.calls.slice(calls).map(x=>x.mode)).toEqual(['MAP']);
+ expect(result.kind).toBe('applied');expect(h.calls.slice(calls).map(x=>x.mode)).toEqual(['MAP','EXACT_PUBLIC']);
  expect((h.calls[calls] as any).bounds).toEqual([19.7,45.2,20,45.4]);
  const after=route.snapshot();
  expect(after.view).toEqual(before.view);expect(after.screen.items).toEqual(before.screen.items);
  expect(after.screen.peek).toEqual(before.screen.peek);expect(after.selectedMarkerKey).toBe(before.selectedMarkerKey);
  expect(after.generation).toBe(before.generation);
  // Where the map was already read, nothing is read again.
- const again=await route.refreshMap([19.7,45.2,20,45.4]);expect(again.kind).toBe('noop');expect(h.calls).toHaveLength(calls+1);
+ const again=await route.refreshMap([19.7,45.2,20,45.4]);expect(again.kind).toBe('noop');expect(h.calls).toHaveLength(calls+2);
+});
+
+it('publishes a fresh MAP promptly, hides the retained card amount, then restores it from guarded background EXACT',async()=>{
+ const h=harness(),second=deferred<any>(),optional=jest.fn(),reads:DiscoveryV1OwnerRequest[]=[];
+ const transport=jest.fn((request:DiscoveryV1OwnerRequest,signal:AbortSignal)=>{
+  reads.push(request);
+  if(request.mode==='EXACT_PUBLIC')return reads.filter(read=>read.mode==='EXACT_PUBLIC').length===1
+    ? Promise.resolve(pricedExact(5000)) : second.promise;
+  return h.transport(request);
+ });
+ const route=createDiscoveryV1RouteCoordinator(transport,h.overlay,()=>true,optional);
+ await route.open(view());const marker=route.snapshot().screen.mapMarkers[0];await route.selectMarker(marker);
+ expect(route.snapshot().screen.peek).toMatchObject({kind:'TASK',item:{ponudjenaCena:{iznos:5000}}});
+ const result=await route.refreshMap([19.7,45.2,20,45.4]);
+ expect(result.kind).toBe('applied');expect(reads.map(read=>read.mode)).toEqual(['PAGE','MAP','EXACT_PUBLIC','MAP','EXACT_PUBLIC']);
+ expect(route.snapshot().screen.exactTaskId).toBeNull();
+ expect(route.snapshot().screen.peek).toMatchObject({kind:'TASK',item:{ponudjenaCena:{iznos:5000}}});
+ const before=route.snapshot(),presented=discoveryV1PresentationBridgeModel(before.screen,before.overlay,before.selectedMarkerKey,false,{} as DiscoveryV1PresentationActions);
+ expect(presented.p6Seam.peek).toMatchObject({priceUnverified:true});expect(presented.p6Seam.map.selectedTask).toBeNull();
+ second.resolve(pricedExact(6000,2));for(let n=0;n<20;n++)await Promise.resolve();
+ expect(optional).toHaveBeenCalled();expect(route.snapshot().screen.exactTaskId).toBe(ID);
+ expect(route.snapshot().screen.peek).toMatchObject({kind:'TASK',item:{revision:2,ponudjenaCena:{iznos:6000}}});
+ const after=route.snapshot(),fresh=discoveryV1PresentationBridgeModel(after.screen,after.overlay,after.selectedMarkerKey,false,{} as DiscoveryV1PresentationActions);
+ expect(fresh.p6Seam.peek).toMatchObject({priceUnverified:false});
+});
+it('a background EXACT cannot overwrite a newer TASK tap',async()=>{
+ const h=harness(),old=deferred<any>();let exactReads=0;
+ const route=createDiscoveryV1RouteCoordinator((request,signal)=>request.mode==='EXACT_PUBLIC'
+  ? (++exactReads===1?Promise.resolve(pricedExact(5000)):exactReads===2?old.promise:Promise.resolve(pricedExact(7000,3)))
+  : h.transport(request),h.overlay);
+ await route.open(view());const marker=route.snapshot().screen.mapMarkers[0];await route.selectMarker(marker);
+ expect((await route.refreshMap([19.7,45.2,20,45.4])).kind).toBe('applied');expect(exactReads).toBe(2);
+ await route.selectMarker(marker);expect(route.snapshot().screen.peek).toMatchObject({kind:'TASK',item:{revision:3,ponudjenaCena:{iznos:7000}}});
+ old.resolve(pricedExact(6000,2));for(let n=0;n<20;n++)await Promise.resolve();
+ expect(route.snapshot().screen.peek).toMatchObject({kind:'TASK',item:{revision:3,ponudjenaCena:{iznos:7000}}});
+ expect(route.snapshot().screen.exactTaskId).toBe(ID);
+});
+it.each([true,false])('MAP before the first EXACT keeps TASK selected and rechecks its price (loaded row: %s)',async loaded=>{
+ const h=harness(),first=deferred<any>(),second=deferred<any>();let exactReads=0;
+ const transport=(request:DiscoveryV1OwnerRequest):Promise<any>=>{
+  if(request.mode==='EXACT_PUBLIC')return ++exactReads===1?first.promise:second.promise;
+  if(request.mode==='PAGE')return Promise.resolve({...page(),items:loaded?[{...item(),priceMode:'MY_PRICE',requesterPriceRsd:5000,priceBasis:'TOTAL'}]:[]});
+  return h.transport(request);
+ };
+ const route=createDiscoveryV1RouteCoordinator(transport,h.overlay);
+ await route.open(view());const marker=route.snapshot().screen.mapMarkers[0];
+ const choosing=route.selectMarker(marker);
+ expect(exactReads).toBe(1);
+ expect((await route.refreshMap([19.7,45.2,20,45.4])).kind).toBe('applied');
+ expect(exactReads).toBe(1); // the MAP must not abort the tap's first exact read
+ first.resolve(pricedExact(5000));expect((await choosing).kind).toBe('TASK');
+ expect(route.snapshot().selectedMarkerKey).toBe(marker.key);
+ expect(route.snapshot().screen.exactTaskId).toBeNull();expect(exactReads).toBe(2);
+ second.resolve(pricedExact(6000,2));for(let n=0;n<20;n++)await Promise.resolve();
+ expect(route.snapshot().selectedMarkerKey).toBe(marker.key);
+ expect(route.snapshot().screen.exactTaskId).toBe(ID);
+ expect(route.snapshot().screen.peek).toMatchObject({kind:'TASK',item:{revision:2,ponudjenaCena:{iznos:6000}}});
+});
+it('warm attach revalidates the retained priced TASK after suspend cleared its exact proof',async()=>{
+ const h=harness(),again=deferred<any>(),optional=jest.fn();let exactReads=0;
+ const transport=(request:DiscoveryV1OwnerRequest):Promise<any>=>request.mode==='EXACT_PUBLIC'
+  ? (++exactReads===1?Promise.resolve(pricedExact(5000)):again.promise) : h.transport(request);
+ const route=createDiscoveryV1RouteCoordinator(transport,h.overlay);
+ await route.open(view());const marker=route.snapshot().screen.mapMarkers[0];await route.selectMarker(marker);
+ expect(route.snapshot().screen.exactTaskId).toBe(ID);
+ expect(route.detach()).toBe(true);expect(route.warm(view())).toBe(true);
+ expect(route.snapshot().screen.exactTaskId).toBeNull();expect(route.snapshot().selectedMarkerKey).toBe(marker.key);
+ expect(route.attach({isCurrent:()=>true,onOptionalState:optional})).toBe(true);
+ expect(exactReads).toBe(2);
+ const held=route.snapshot(),model=discoveryV1PresentationBridgeModel(held.screen,held.overlay,held.selectedMarkerKey,false,{} as DiscoveryV1PresentationActions);
+ expect(model.p6Seam.peek).toMatchObject({priceUnverified:true});
+ again.resolve(pricedExact(6000,2));for(let n=0;n<20;n++)await Promise.resolve();
+ expect(optional).toHaveBeenCalled();expect(route.snapshot().screen.exactTaskId).toBe(ID);
+ expect(route.snapshot().screen.peek).toMatchObject({kind:'TASK',item:{revision:2,ponudjenaCena:{iznos:6000}}});
+});
+it.each(['OFFERS→MY_PRICE','MY_PRICE→OFFERS'])('rechecks retained TASK pricing mode %s after MAP refresh',async transition=>{
+ const h=harness(),next=deferred<any>();let exactReads=0;
+ const first=transition==='OFFERS→MY_PRICE'?exact():pricedExact(5000);
+ const updated=transition==='OFFERS→MY_PRICE'?pricedExact(6000,2):{...exact(),items:[{...item(),revision:2}]};
+ const transport=(request:DiscoveryV1OwnerRequest):Promise<any>=>request.mode==='EXACT_PUBLIC'
+  ? (++exactReads===1?Promise.resolve(first):next.promise) : h.transport(request);
+ const route=createDiscoveryV1RouteCoordinator(transport,h.overlay);
+ await route.open(view());const marker=route.snapshot().screen.mapMarkers[0];await route.selectMarker(marker);
+ expect(route.snapshot().screen.exactTaskId).toBe(ID);
+ expect((await route.refreshMap([19.7,45.2,20,45.4])).kind).toBe('applied');expect(exactReads).toBe(2);
+ const pending=route.snapshot(),hidden=discoveryV1PresentationBridgeModel(pending.screen,pending.overlay,pending.selectedMarkerKey,false,{} as DiscoveryV1PresentationActions);
+ expect(hidden.p6Seam.peek).toMatchObject({priceUnverified:true});expect(hidden.p6Seam.map.selectedTask).toBeNull();
+ next.resolve(updated);for(let n=0;n<20;n++)await Promise.resolve();
+ const fresh=route.snapshot(),shown=discoveryV1PresentationBridgeModel(fresh.screen,fresh.overlay,fresh.selectedMarkerKey,false,{} as DiscoveryV1PresentationActions);
+ expect(fresh.screen.exactTaskId).toBe(ID);expect(shown.p6Seam.peek).toMatchObject({priceUnverified:false});
+ expect(fresh.screen.peek).toMatchObject({kind:'TASK',item:{revision:2,rezimCene:transition==='OFFERS→MY_PRICE'?'MY_PRICE':'OFFERS'}});
+ const selected=shown.p6Seam.map.selectedTask;
+ expect(selected).not.toBeNull();
+ expect(discoveryV1SelectedTaskPrice(marker as any,marker.key,selected)).toBe(transition==='OFFERS→MY_PRICE'?'6.000 RSD ukupno':null);
 });
 
 it('refreshMap before any view and after retire reads nothing',async()=>{
@@ -627,7 +723,7 @@ it('EX-03: the selection, its card and the view the screen left with are there w
  const back=route.snapshot();
  expect(back.selectedMarkerKey).toBe(marker.key);expect(back.screen.peek).toMatchObject({kind:'TASK'});
  expect(back.view).toMatchObject({selectedId:ID,sheet:'full',listOffset:333});
- expect(h.calls.map(x=>x.mode)).toEqual(['PAGE','MAP','EXACT_PUBLIC']);            // the return read nothing
+ expect(h.calls.map(x=>x.mode)).toEqual(['PAGE','MAP','EXACT_PUBLIC','EXACT_PUBLIC']); // warm return rechecks selected terms only
 });
 
 it('EX-03: attach rebinds both callbacks, a detached coordinator is never current, and a search preview does not outlive the visit',async()=>{

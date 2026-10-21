@@ -355,7 +355,7 @@ test('a cluster tap reads nothing itself, a task reads its exact row, a place re
   expect(bridge().props.selectedMarkerKey).toBe(place.key);
 });
 
-test('a settled region that is not the person\'s own reads the map alone and keeps the list, the peek and the error state as they are', async () => {
+test('a settled region that is not the person\'s own refreshes the map and verifies the selected task without replacing the list', async () => {
   await act(async () => { tree = create(<DiscoveryV1Route />); });
   await flush();
   const task = { kind: 'TASK', key: 'task:' + rowId(0), point: { lat: 45.25, lng: 19.83 }, taskId: rowId(0) };
@@ -365,8 +365,10 @@ test('a settled region that is not the person\'s own reads the map alone and kee
   mockTransportCalls.length = 0;
   await act(async () => { bridge().props.actions.onViewportSettled(NATIVE_BOUNDS); });
   await flush();
-  expect(modes()).toEqual(['MAP']);
+  // MAP cannot confirm a retained card's price; its selected task gets one exact recheck.
+  expect(modes()).toEqual(['MAP', 'EXACT_PUBLIC']);
   expect((mockTransportCalls[0] as any).bounds).toEqual(CANONICAL_BOUNDS);
+  expect((mockTransportCalls[1] as any).needId).toBe(rowId(0));
   expect(bridge().props.snapshot.items).toEqual(listBefore);
   expect(bridge().props.snapshot.peek).toEqual(peekBefore);
   expect(bridge().props.selectedMarkerKey).toBe(task.key);
@@ -418,7 +420,7 @@ test('a change of view is handed back at once, so the next change is built on it
   expect(bridge().props.snapshot.view).toMatchObject({ place: 'Liman, Novi Sad', sheet: 'peek' });
 });
 
-// EX-03 warm return (owner approval 2026-09-30): a return inside the warm window shows the picture the screen left, at once, and reads neither the list nor the map again.
+// EX-03 warm return (owner approval 2026-09-30): a return inside the warm window shows the picture the screen left, at once, and reads neither the list nor the map again. A selected task rechecks its exact price in the background.
 test('EX-03: a quick return shows the same picture at once and reads neither the list nor the map again', async () => {
   await act(async () => { tree = create(<DiscoveryV1Route />); });
   await flush();
@@ -441,7 +443,7 @@ test('EX-03: a quick return shows the same picture at once and reads neither the
   expect(traced()).toEqual(['[USKOCI_P6_TRACE] ["restored","100/1"]', expect.stringMatching(/^\[USKOCI_P6_TRACE\] \["warm","\d{1,3}\/100"\]$/)]);
 });
 
-test('EX-03: the pin selected when the screen left is still selected, with its card, and nothing is read for it on the way back', async () => {
+test('EX-03: the pin selected when the screen left keeps its card while its exact price is rechecked on return', async () => {
   await act(async () => { tree = create(<DiscoveryV1Route />); });
   await flush();
   const marker = bridge().props.snapshot.mapMarkers[0];
@@ -453,7 +455,8 @@ test('EX-03: the pin selected when the screen left is still selected, with its c
   expect(bridge().props.snapshot.peek).toMatchObject({ kind: 'TASK', item: { id: rowId(0) } });
   expect(bridge().props.selectedMarkerKey).toBe(marker.key);
   expect(bridge().props.snapshot.view).toMatchObject({ selectedId: rowId(0), sheet: 'peek' });
-  expect(modes()).toEqual([]);
+  expect(modes()).toEqual(['EXACT_PUBLIC']);
+  expect((mockTransportCalls[0] as any).needId).toBe(rowId(0));
 });
 
 test('EX-03: a read that is replacing the list when the screen leaves is not kept, the return reads like a first visit and shows no error', async () => {

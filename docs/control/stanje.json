@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-21T06:00:51Z",
+  "osvezeno": "2026-10-21T07:41:08Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "3a0d33eb",
-  "head_poruka": "Polish map, auth, AI and agreement recovery states",
+  "head": "09d26fa9",
+  "head_poruka": "Guard Serbian task price clauses and align map price basis",
   "server": {
    "snimljeno": "2026-10-18T20:15:59Z",
    "migracije": 288,
@@ -7055,7 +7055,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 2 serverskih funkcija",
-    "test": "41 test fajl(ova)"
+    "test": "42 test fajl(ova)"
    },
    "telefon_dokaz": "Početni zoom, FULL bela lista, Mapa kapsula i vraćena navigacija potvrđeni na52720. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
    "problem": "Telefon068: funkcionalni GPS fix i prazno→prazno potvrđeni. Nearby framing koristi pogrešnu HALF marginu; namenski PEEK fix i kompaktno Back/lupa/filter zaglavlje pripremljeni. Novi APK nije još prihvaćen.",
@@ -7653,7 +7653,7 @@
    "note": {
     "server": "Treba nova serverska funkcija: udaljenost i sortiranje",
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "33 test fajl(ova)"
+    "test": "34 test fajl(ova)"
    },
    "telefon_dokaz": "2b1e5e5d: vidljiva tastatura odmah 3/3, stvarna pretraga, Back/input i filteri potvrđeni; brojčani minimum još otvoren. docs/implementation/evidence/visual-rounds-20261010/native-installed-2b1e5e5d.json",
    "problem": "Brojčani minimum iznosa još nije uveden kroz PAGE/MAP/PLACES; njegovu ukupnu/po-osobi osnovu treba jasno prikazati. Nearby/FULL/header popravke imaju ograničeni dokaz za 52720d99 dokaz, tastatura pretrage u 2b1e5e5d ima 3/3 stvarna otvaranja na HONOR-u. To nije puna geolokacijska/release potvrda.",

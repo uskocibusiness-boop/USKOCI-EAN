@@ -60,7 +60,8 @@ export type DiscoveryV1PresentationSeam = {
   /** Server MAP geometry; legacy client GeoJSON clustering is bypassed only while this quarantined seam is supplied. */
   map: Omit<DiscoveryV1ServerMapSeam, 'onClear'>;
   /** Exact TASK or bounded POINT_MEMBERS rows already owned by the P6 screen session. */
-  peek: { key: string; item: MarketplaceItem | null; place: readonly MarketplaceItem[]; placeTotalCount?: number } | null;
+  peek: { key: string; item: MarketplaceItem | null; place: readonly MarketplaceItem[]; placeTotalCount?: number;
+    priceUnverified?: boolean } | null;
   /** Exact live PAGE counts; loaded rows may be only the first bounded pages. */
   counts: DiscoveryV1Counts | null;
   /**
@@ -1584,6 +1585,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       </View> : null}
       {cardShown ? <DiscoveryPeek selectionKey={props.p6Seam?.peek?.key ?? (chosen ? `task:${chosen.id}` : `place:${place!.key}`)}
         item={chosen} place={placeTasks} placeTotalCount={props.p6Seam?.peek?.placeTotalCount} relation={relation} active={focused} bottomInset={cardBottom} reduced={reduced}
+        priceUnverified={props.p6Seam?.peek?.priceUnverified}
         maxHeight={previewMaxHeight}
         onOpen={openItem} onShowPlace={showPlace} onClose={clearSelection}
         onHeight={next => setCardHeight(current => current === next ? current : next)} /> : null}

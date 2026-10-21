@@ -1,13 +1,15 @@
 import { memo, useEffect, useMemo } from 'react';
 import { GeoJSONSource, Layer } from '@maplibre/maplibre-react-native';
 import type { DiscoveryV1MapMarker } from '../../../data/discoveryV1MarketplaceAdapter';
-import { discoveryV1ServerMarkerSpecs } from '../../../data/discoveryV1ServerMarkerPresentation';
+import { discoveryV1SelectedTaskPrice, discoveryV1ServerMarkerSpecs,
+  type DiscoveryV1ExactSelectedTask } from '../../../data/discoveryV1ServerMarkerPresentation';
 import { traceDiscoveryV1 } from '../../../data/discoveryV1Trace';
 import { sys } from '../../system/tokens';
 
 export type DiscoveryV1ServerMarkerLayerProps = {
   markers: readonly DiscoveryV1MapMarker[];
   selectedKey: string | null;
+  selectedTask?: DiscoveryV1ExactSelectedTask | null;
   onSelect: (marker: DiscoveryV1MapMarker) => void;
 };
 
@@ -47,19 +49,25 @@ const COUNT_OFFSET: [number, number] = [15 / COUNT_SIZE, 0];
  * carries no price), a place or an area adds its count. Each capsule is one symbol, its count drawn with it, and `order` stacks them (areas,
  * then places, then single tasks; north under south), so where capsules overlap one is drawn whole over the other. The chosen bucket leaves
  * that layer for its own layer on top: the same capsule 6 % larger, with the orange edge and halo and its count in orange.
+ * Only a selected TASK with an ID-matched EXACT_PUBLIC answer gains a separate price line below that capsule.
  */
 export const DiscoveryV1ServerMarkerLayer = memo(function DiscoveryV1ServerMarkerLayer(props: DiscoveryV1ServerMarkerLayerProps) {
   // Validates the bound and the keys (a duplicate or an oversized set is refused, never truncated). Selection plays no part in the data.
   const specs = useMemo(() => discoveryV1ServerMarkerSpecs(props.markers, null), [props.markers]);
   const byKey = useMemo(() => new Map(props.markers.map(marker => [marker.key, marker] as const)), [props.markers]);
+  const chosen = props.selectedKey ?? '';
+  const selectedPrice = useMemo(() => {
+    const marker = byKey.get(chosen);
+    return marker ? discoveryV1SelectedTaskPrice(marker, props.selectedKey, props.selectedTask) : null;
+  }, [byKey, chosen, props.selectedKey, props.selectedTask]);
   const data = useMemo(() => JSON.stringify({ type: 'FeatureCollection', features: specs.map(spec => ({
     type: 'Feature', geometry: { type: 'Point', coordinates: [spec.point.lng, spec.point.lat] },
     properties: { key: spec.marker.key, kind: spec.marker.kind, count: spec.marker.taskCount, label: spec.pin.count,
-      image: spec.pin.image, chosenImage: spec.pin.chosenImage, order: spec.order },
-  })) }), [specs]);
+      image: spec.pin.image, chosenImage: spec.pin.chosenImage, order: spec.order,
+      ...(selectedPrice && spec.marker.key === chosen ? { selectedPrice } : {}) },
+  })) }), [specs, chosen, selectedPrice]);
   // DEV package only: how many buckets are on the native map.
   useEffect(() => { traceDiscoveryV1('markers', `${Math.min(specs.length, 9999)}/1`); }, [specs.length]);
-  const chosen = props.selectedKey ?? '';
   return <GeoJSONSource id={SERVER_MARKER_SOURCE_ID} data={data} hitbox={{ top: 24, right: 24, bottom: 24, left: 24 }}
     onPress={event => {
       event.stopPropagation();
@@ -80,5 +88,10 @@ export const DiscoveryV1ServerMarkerLayer = memo(function DiscoveryV1ServerMarke
         'text-field': ['get', 'label'], 'text-font': ['literal', ['Noto Sans Regular']], 'text-size': COUNT_SIZE * PIN_CHOSEN_SCALE, 'text-offset': COUNT_OFFSET,
         'text-allow-overlap': true, 'text-ignore-placement': true }}
       paint={{ 'text-color': sys.color.orangeInk, 'text-halo-color': sys.color.orangeInk, 'text-halo-width': 0.4 }} />
+    {selectedPrice ? <Layer id="p6-selected-price" type="symbol" filter={['==', ['get', 'key'], chosen]}
+      layout={{ 'text-field': ['get', 'selectedPrice'], 'text-font': ['literal', ['Noto Sans Regular']], 'text-size': 14,
+        'text-anchor': 'top', 'text-offset': [0, 2.5], 'text-max-width': 18, 'text-justify': 'center',
+        'text-allow-overlap': true, 'text-ignore-placement': true }}
+      paint={{ 'text-color': sys.color.orangeInk, 'text-halo-color': sys.color.surface, 'text-halo-width': 2.5 }} /> : null}
   </GeoJSONSource>;
 });

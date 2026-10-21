@@ -584,7 +584,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
       </GeoJSONSource> : null}
       {/* The server buckets are native layers, not view annotations: a bitmap of a React view needs its child laid out inside MapLibre's
           offscreen container, and none was ever drawn on the emulator (queued annotations lost their size, later ones snapshot blank). */}
-      {serverMap ? <DiscoveryV1ServerMarkerLayer markers={serverMap.markers} selectedKey={serverMap.selectedKey}
+      {serverMap ? <DiscoveryV1ServerMarkerLayer markers={serverMap.markers} selectedKey={serverMap.selectedKey} selectedTask={serverMap.selectedTask}
         onSelect={marker => {
           if (!owns() || load.current !== 'ready') return;
           pillTap.current = Date.now(); manualMapIntent();

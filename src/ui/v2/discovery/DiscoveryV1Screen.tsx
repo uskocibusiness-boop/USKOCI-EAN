@@ -281,7 +281,9 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     </View></SafeAreaView>;
   }
 
-  return <DiscoveryV1PresentationBridge snapshot={askedView.current ? { ...state.screen, view: askedView.current } : state.screen} overlay={state.overlay} search={state.search}
+  return <DiscoveryV1PresentationBridge snapshot={pendingKey
+      ? { ...state.screen, view: askedView.current ?? state.screen.view, exactTaskId: null, verifiedPlaceKey: null }
+      : askedView.current ? { ...state.screen, view: askedView.current } : state.screen} overlay={state.overlay} search={state.search}
     selectedMarkerKey={pendingKey ?? state.selectedMarkerKey} loadingMore={state.loadingMore}
     actions={{ onSelectMarker: selectMarker, onViewportSettled, onArea, onClearPeek, onShowPlace, onShowAll, onNextPage, onSearchDraft, onNextSearchPlaces, onVisibleRange }}
     canRetainMap={props.canRetainMap}
