@@ -1,12 +1,12 @@
 # AI/server audit 21.10.2026 — aktuelni presek i granica primene
 
-Ovaj zapis proverava dostavljeni `USKOCI_AI_SERVER_AUDIT_20261021.md` prema novijem izvoru i živom DEV-u. Audit je čitao commit `3a0d33eb`; sadašnji `feature/unified-qa-master-20261017` je `30ada333`. Ne tretirati staru oznaku HEAD-a kao aktivni Edge paket.
+Ovaj zapis proverava dostavljeni `USKOCI_AI_SERVER_AUDIT_20261021.md` prema novijem izvoru i živom DEV-u. Audit je čitao commit `3a0d33eb`; na početku ove provere grana `feature/unified-qa-master-20261017` bila je na `30ada333`. Provereni izvorni Worker paket potom je stigao do `220352fdc9ba578c78ad2dd9d533cd15d6ee4f4b`. Ne tretirati staru oznaku HEAD-a kao aktivni Edge paket.
 
 ## Izvori istine
 
 | Sloj | Potvrđeno | Granica dokaza |
 | --- | --- | --- |
-| GitHub | `origin/feature/unified-qa-master-20261017` i lokalni HEAD su isti `30ada333`; nema neobjavljenih praćenih izmena na početku ovog kruga. | Nema CI run-a za taj SHA; lokalne provere iz prethodnog kruga nisu GitHub CI. |
+| GitHub | Na početku kruga lokalni i remote HEAD bili su isti `30ada333`. Izvorni Worker paket i naknadna ispravka tipova poslati su do `220352fdc9ba578c78ad2dd9d533cd15d6ee4f4b`; [source CI 39568791426](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39568791426) je uspešan baš za taj SHA. | Source CI nije potpisani DEV razgovor, Save, DB assertions niti dokaz APK-a. |
 | DEV AI | Radni AI je ACTIVE v73, 18/18 fajlova jednako početnom HEAD-u `30ada333`. Task AI je ACTIVE v119, 19/20 fajlova jednako tom izvoru, ali `index.ts` se materijalno razlikuje. | Novi izvorni worker guard menja dva zajednička fajla posle ovog poređenja; nije deo v73. Poređenje paketa nije potpisani razgovor/Save. Ne objavljivati novi Task paket kao običan sync. |
 | DEV SQL | Poslednja migracija `20261021014849`; taxonomy review projection telo MD5 `f9318f476e32a8233fbb07ccf5d22aeb`. `retention_ai_source_ready()=false`, `closure_erasure_binding_v5()=null`. | SQL readback nije izvršena migracija niti E2E brisanje. |
 | Lokalni F01 | `supabase/candidates/closure-f01-rebase-20261021/` sadrži nepotpun readback, `certified:false`; nema izvršivog forward kandidata. | Repo je javan, pa se pune žive definicije ne dodaju automatski u Git. |
@@ -36,6 +36,6 @@ Ovaj dokument je trijaža dostavljenog audita i aktivnih granica. Status pojedin
 
 ## GitHub provera posle izvornog commita
 
-Paket je poslat na `feature/unified-qa-master-20261017` kao `0239ad9bb42da5ac390928b6ad9a888c80dcbeb5`; remote SHA je ponovo očitan i jednak. Postojeći W03 source workflow, run `39567510614`, stao je na istorijskom `SOURCE_PROVENANCE_INVENTORY_MISMATCH`: njegov zaključani izvorni popis očekuje stariji skup migracija, dok aktuelni checkout sadrži kasnije taxonomy i AI history migracije. To nije PASS ovog paketa i ne opravdava promenu istorijske evidencije. Lokalni `check_migration_integrity.py` i `tsc --noEmit` zasebno prolaze.
+Paket je poslat na `feature/unified-qa-master-20261017` kao `0239ad9bb42da5ac390928b6ad9a888c80dcbeb5`; dodati source CI kao `7d663c387fea3ab7a3e62497b01850ca43e505f5` i Deno tipna ispravka kao `220352fdc9ba578c78ad2dd9d533cd15d6ee4f4b`. Remote SHA je ponovo očitan i jednak poslednjem izvornom commitu. Postojeći W03 source workflow, run `39567510614`, stao je na istorijskom `SOURCE_PROVENANCE_INVENTORY_MISMATCH`: njegov zaključani izvorni popis očekuje stariji skup migracija, dok aktuelni checkout sadrži kasnije taxonomy i AI history migracije. To nije PASS ovog paketa i ne opravdava promenu istorijske evidencije.
 
-Za sadašnji worker izvor dodat je [.github/workflows/worker-ai-cross-mode-source.yml](../../.github/workflows/worker-ai-cross-mode-source.yml): Node/TypeScript/Deno izvorna provera bez APK-a, DEV upisa ili zamene istorijskog W03 dokaza. Njegov stvarni CI rezultat čitati iz GitHub Actions run-a na tačnom commitu.
+Za sadašnji worker izvor dodat je [.github/workflows/worker-ai-cross-mode-source.yml](../../.github/workflows/worker-ai-cross-mode-source.yml): Node/TypeScript/Deno izvorna provera bez APK-a, DEV upisa ili zamene istorijskog W03 dokaza. Prvi run `39567940295` je našao šest tipnih grešaka u Worker handler-u; minimalna tipna ispravka je prošla [ponovljeni run 39568791426](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/39568791426), uključujući Deno check, TypeScript, migracije i osam povezanih testnih datoteka. Provera pripada commitu `220352fd`; ne prenosi se automatski na kasnije izmene izvora.
