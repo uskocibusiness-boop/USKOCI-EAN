@@ -33,3 +33,9 @@ Ovaj zapis proverava dostavljeni `USKOCI_AI_SERVER_AUDIT_20261021.md` prema novi
 4. Posle stvarne primene čitati tačan Edge paket, SQL telo/ACL i rezultat signed QA scenarija. APK/telefon su zaseban dokaz.
 
 Ovaj dokument je trijaža dostavljenog audita i aktivnih granica. Status pojedinačnih izvršenja dodati posle provera; ne koristiti broj lokalnih testova kao procenat gotovosti proizvoda.
+
+## GitHub provera posle izvornog commita
+
+Paket je poslat na `feature/unified-qa-master-20261017` kao `0239ad9bb42da5ac390928b6ad9a888c80dcbeb5`; remote SHA je ponovo očitan i jednak. Postojeći W03 source workflow, run `39567510614`, stao je na istorijskom `SOURCE_PROVENANCE_INVENTORY_MISMATCH`: njegov zaključani izvorni popis očekuje stariji skup migracija, dok aktuelni checkout sadrži kasnije taxonomy i AI history migracije. To nije PASS ovog paketa i ne opravdava promenu istorijske evidencije. Lokalni `check_migration_integrity.py` i `tsc --noEmit` zasebno prolaze.
+
+Za sadašnji worker izvor dodat je [.github/workflows/worker-ai-cross-mode-source.yml](../../.github/workflows/worker-ai-cross-mode-source.yml): Node/TypeScript/Deno izvorna provera bez APK-a, DEV upisa ili zamene istorijskog W03 dokaza. Njegov stvarni CI rezultat čitati iz GitHub Actions run-a na tačnom commitu.
