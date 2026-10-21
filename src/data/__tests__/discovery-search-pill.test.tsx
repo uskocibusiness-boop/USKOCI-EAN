@@ -79,7 +79,7 @@ test('Filteri is the wide primary top action and opens the filter draft', async 
   await render();
   const open = button('Filteri');
   expect(open.props).toMatchObject({ testID: 'filters-button', accessibilityRole: 'button', accessibilityHint: FILTERS_HINT, accessibilityState: { selected: false } });
-  expect(FILTERS_HINT).toBe('Otvara filtere: kada, gde i iznos.');
+  expect(FILTERS_HINT).toBe('Otvara filtere za mesto, način rada, cenu i termin.');
   // the search is the pill: what the button says it opens is the filters, never the words and the place
   expect(FILTERS_HINT).not.toMatch(/pretra/i);
   expect(StyleSheet.flatten(open.props.style).minHeight).toBeGreaterThanOrEqual(sys.touch.min);

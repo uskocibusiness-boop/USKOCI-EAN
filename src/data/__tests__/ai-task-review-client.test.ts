@@ -217,7 +217,9 @@ it('bound acceptance response cannot change the reviewed Need identity or revisi
 // Deep read 8.5: what the server would refuse about the facts, said before the tap.
 describe('reviewFactProblem', () => {
   const fact = (key: string, value: unknown) => ({ id: null, key, value, displayValue: String(value), privacyClass: 'PUBLIC', source: 'EXPLICIT_USER_ANSWER', status: 'CONFIRMED' });
-  const withFacts = (...facts: ReturnType<typeof fact>[]) => ({ ...review(), publicProjection: facts }) as AiTaskReviewEnvelope;
+  const withFacts = (...facts: ReturnType<typeof fact>[]) => ({ ...review(), publicProjection: [
+    fact('need.handoff', { required: false }), ...facts,
+  ] }) as AiTaskReviewEnvelope;
   const NOW = Date.parse('2026-09-21T12:00:00Z');
   it('names missing price, optional end, invalid given end and passed start', () => {
     expect(reviewFactProblem(withFacts(fact('need.price_mode', 'MY_PRICE')), NOW)).toBe('Unesi iznos ili izaberi prikupljanje ponuda.');

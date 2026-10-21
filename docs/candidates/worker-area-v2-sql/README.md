@@ -2,6 +2,8 @@
 
 **Status 21.10.2026:** izvorni kandidat, ne migracija. Nije primenjen na DEV niti povezan s aktivnim worker AI, Save, matcherom ili APK-om. Služi da se ograniči i proveri sledeća serverska izmena. Ne koristiti kao dokaz da „cela Srbija” sada daje zadatke.
 
+Integracioni redosled za potpisani Save, uklanjanje opreme, izvoz, zatvaranje naloga i prihvatne probe: [INTEGRATION_GATE_20261021.md](INTEGRATION_GATE_20261021.md).
+
 ## Šta je napravljeno
 
 - [00_country_rs_core.sql](00_country_rs_core.sql) definiše strogo jednu oblast `COUNTRY/RS/ON_SITE`, privatnu shadow tabelu sa RLS i bez direktnih grantova, guard vlasništva profila, owner-scoped read i čistu proveru oblika budućeg kandidata. Provera oblika sama ne dokazuje potpisan pregled. Matcher helper vraća `NULL` za V1 profil ili remote zadatak; sa V2 redom prihvata samo `STATIONARY + task_country_code=RS`, a nepoznatu državu i rute odbija.

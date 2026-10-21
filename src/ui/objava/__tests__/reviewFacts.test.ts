@@ -133,6 +133,12 @@ describe('reviewTodos', () => {
     expect(reviewTodos({ safety: 'BLOCK', missingRequired: [], location: null }, REVIEW_FACT_COPY.MY_PRICE_AMOUNT_REQUIRED).map(todo => todo.target))
       .toEqual(['conversation', 'location', 'need.price_rsd']);
     expect(reviewTodos(base, REVIEW_FACT_COPY.FIXED_WINDOW_START_PASSED)[0].target).toBe('need.starts_at');
+    expect(reviewTodos(base, REVIEW_FACT_COPY.HANDOFF_REQUIRED)[0]).toEqual({
+      key: 'fact', text: REVIEW_FACT_COPY.HANDOFF_REQUIRED, target: 'conversation',
+    });
+    expect(reviewTodos({ ...base, missingRequired: ['need.handoff'] }, REVIEW_FACT_COPY.HANDOFF_REQUIRED)).toEqual([
+      { key: 'fact', text: REVIEW_FACT_COPY.HANDOFF_REQUIRED, target: 'conversation' },
+    ]);
     expect(reviewTodos(base, null)).toEqual([]);
   });
   it('gives a refusal no row names its own row back to the conversation, unless the identity block explains it', () => {

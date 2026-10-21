@@ -2,8 +2,8 @@
   "opis": "USKOČI kontrolna tabla — ručni deo. Automatski deo (ekran, kod, server, test) računa scripts/control/osvezi.mjs. Telefon je zelen samo uz stvarni dokaz sa telefona za tačnu verziju.",
   "latest_source_dev_audit_20261021": {
     "report": "docs/current/MVP_FLOW_AUDIT_20261021.md",
-    "proof": "Izvor, lokalni test i aktivni DEV su odvojeni; 635/635 Jest paketa, 14335 PASS/9 SKIP, TypeScript i migration integrity PASS; task AI DEV v118 ACTIVE/no-auth 401; nema novog HONOR ili APK dokaza.",
-    "open_gates": ["worker_area_v2", "worker_equipment_signed_save", "multi_worker_terms", "application_time_conflict", "exact_application_push", "account_closure_and_ai_history_erasure", "native_visual_acceptance"]
+    "proof": "Izvor, lokalni test i aktivni DEV su odvojeni; ponovljeni Jest je izlistao 635/635 paketa, 14341 PASS/9 SKIP (otvoren async handle posle rezimea), TypeScript PASS; task AI DEV v119 i worker AI DEV v73 ACTIVE, readback helpera i no-auth 401; nema potpisanog live AI razgovora, novog HONOR ili APK dokaza.",
+    "open_gates": ["task_edit_atomic", "cancelled_candidate_parity", "worker_area_v2", "worker_equipment_signed_save", "multi_worker_terms", "application_time_conflict", "exact_application_push", "account_closure_and_ai_history_erasure", "native_visual_acceptance"]
   },
   "pravilo_gotovo": "Red je GOTOV samo kad su ekran, kod, server i test zeleni I postoji dokaz sa telefona za tekuću verziju (V19 pravilo DONE_VERIFIED: stari problem ne postoji, normalan put radi, zaštite nisu oslabljene, dokazi pripadaju tačnoj verziji).",
   "redovi": [

@@ -58,14 +58,8 @@ const cards = () => tree.root.findAll(node => String(node.type) === 'Press' && /
 /** A card's label is the command, its title and then everything it shows: the title is what a guard test reads. */
 const titleOf = (node: ReactTestInstance) => String(node.props.accessibilityLabel).replace(/\. .*$/, '');
 const maps = () => tree.root.findAllByType('DiscoveryMap' as React.ElementType);
-// Search opens from the filters dialog; its one green action says how many tasks it will show.
+// The filters' one green action says how many tasks the selected conditions will show.
 const showAction = () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat|^Nema zadataka za ove uslove$/.test(node.props.label))!;
-// The words that find tasks are typed in the field of the search, which fills the screen (the approved plan, U4).
-const search = async (words: string) => {
-  await openFilters(); await click('Pretraži zadatke');
-  await act(async () => press('Grad ili zadatak').props.onChangeText(words));
-  await act(async () => showAction().props.onPress());
-};
 // The one primary action is the element whose own surface is the brand surface (last style wins, as in React Native).
 const surfaceOf = (style: unknown): unknown => Array.isArray(style) ? style.map(surfaceOf).filter(value => value !== undefined).pop()
   : style && typeof style === 'object' ? (style as { backgroundColor?: unknown }).backgroundColor : undefined;
@@ -88,13 +82,16 @@ test('Discovery leads with named filters and no repeated wordmark or app-mode he
   expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.accessibilityRole === 'header' && node.children.includes('Zadaci'))).toBe(false);
 });
 
-// The map offers filters immediately, with an explicit named step into search and no text field at arrival.
-test('filters and their search entry are available without opening the keyboard on arrival', async () => {
+// The ordinary map visit has one filter entry and no text-search or keyboard detour.
+test('filters are available without opening the keyboard or ordinary text search on arrival', async () => {
   await render();
   expect(filtersButton().props.accessibilityRole).toBe('button');
   expect(tree.root.findAllByType('TextInput' as React.ElementType)).toHaveLength(0);
   await openFilters();
-  expect(tree.root.findAllByType('Action' as React.ElementType).some(node => node.props.label === 'Pretraži zadatke')).toBe(true);
+  expect(tree.root.findAllByType('Action' as React.ElementType).some(node => node.props.label === 'Pretraži zadatke')).toBe(false);
+  expect(tree.root.findByProps({ testID: 'filters-amount' })).toBeTruthy();
+  expect(tree.root.findByProps({ testID: 'filters-when' })).toBeTruthy();
+  expect(showAction().props.label).toBe('Prikaži 2 zadatka');
 });
 
 // From marketplace-presentation and pkg011-slice1: a read in flight or a failed read never leaves an old card or the old
@@ -109,11 +106,14 @@ test.each(['loading', 'error'])('%s removes stale cards and the map; retry is bo
   }
 });
 
-// Under reduced motion the filters and then search open at once; neither asks for the phone's location.
-test('reduced motion opens search from filters at once; Nearby waits for its own tap', async () => {
-  mockReduced = true; await render();
+// An existing query can still be edited from filters. Reduced motion uses an immediate transition;
+// neither the filter nor that explicit edit asks for the phone's location.
+test('reduced motion edits an active query from filters at once; Nearby waits for its own tap', async () => {
+  mockReduced = true; initial.query = 'Pomoć'; await render();
   await act(async () => tree.root.findByProps({ testID: 'discovery-body' }).props.onLayout({ nativeEvent: { layout: { height: 800 } } }));
-  await openFilters(); await click('Pretraži zadatke'); // the search fills the screen: the field, then Gde
+  await openFilters();
+  expect(tree.root.findByProps({ testID: 'filters-active-query' })).toBeTruthy();
+  await click('Izmeni aktivnu pretragu'); // the search fills the screen: the field, then Gde
   const modal = tree.root.findByType('Modal' as React.ElementType);
   expect(modal.props.animationType).toBe('none');
   expect(modal.findAllByType(BottomSheet)).toHaveLength(0);
@@ -156,9 +156,8 @@ test('"Poništi filtere" clears search, price and area but keeps the map and whe
 // From marketplace-presentation (verifier r3b vc, fix 1): clearing the search takes the search away and nothing else.
 // The searched words are said by the pill, and its × (the way back to every task) removes them: the price stays, and so does the map's area, which the list still follows.
 test('removing the searched words keeps the price and the area', async () => {
-  Object.assign(initial, { price: 'MY_PRICE', area: [19, 45, 20, 46] });
+  Object.assign(initial, { query: 'Pomoć', price: 'MY_PRICE', area: [19, 45, 20, 46] });
   await render();
-  await search('Pomoć');
   expect(snapshot).toMatchObject({ query: 'Pomoć', price: 'MY_PRICE', area: [19, 45, 20, 46] });
   expect(filtersButton().props.accessibilityValue).toEqual({ text: '„Pomoć“' });
   await tap('Ukloni pretragu ili mesto');

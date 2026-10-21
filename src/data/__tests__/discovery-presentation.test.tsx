@@ -243,7 +243,9 @@ const filters = (label = 'Filteri') => tree.root.findAll(node => String(node.typ
 const tapFilters = async (_label = 'Filteri') => act(async () => press('Filteri').props.onPress());
 const openSearch = async () => {
   await tapFilters();
-  await act(async () => action('Pretraži zadatke').props.onPress());
+  // The old text-search contract is still readable for a persisted query. Exercise
+  // its existing callback here; an ordinary map visit does not expose this control.
+  await act(async () => tree.root.findByType(DiscoverySearchPanel).props.onOpenSearch());
 };
 const openFilterSection = async (id: 'when' | 'where' | 'amount') => {
   expect(tree.root.findByProps({ testID: `filters-${id}-body` })).toBeDefined();

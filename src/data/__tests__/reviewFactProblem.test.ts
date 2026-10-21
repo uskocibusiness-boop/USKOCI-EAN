@@ -1,4 +1,4 @@
-import { REVIEW_FACT_COPY, reviewFactProblem, reviewStartPassed } from '../reviewFactProblem';
+import { REVIEW_FACT_COPY, reviewDraftWriteProblem, reviewFactProblem, reviewMissingRemoteHandoff, reviewStartPassed } from '../reviewFactProblem';
 
 describe('reviewFactProblem start-only and validation rules', () => {
   const futureStart = '2099-10-15T10:00:00.000000+02:00';
@@ -78,5 +78,28 @@ describe('reviewFactProblem start-only and validation rules', () => {
       ],
     };
     expect(reviewFactProblem(review)).toBeNull();
+  });
+
+  it('blocks an older REMOTE review before Save when the signed draft writer would require handoff', () => {
+    const remote = {
+      location: { geography: { mode: 'REMOTE' } },
+      publicProjection: [{ key: 'need.handoff' as const, value: { required: false }, status: 'UNKNOWN' }],
+    };
+    expect(reviewMissingRemoteHandoff(remote)).toBe(true);
+    expect(reviewFactProblem(remote)).toBe(REVIEW_FACT_COPY.HANDOFF_REQUIRED);
+    expect(reviewFactProblem({ ...remote, publicProjection: [{ key: 'need.handoff' as const, value: { required: false }, status: 'CONFIRMED' }] })).toBeNull();
+    expect(reviewFactProblem({ location: { geography: { mode: 'STATIONARY' } }, publicProjection: [] })).toBeNull();
+  });
+
+  it('keeps server-invalid amount and bounds out of Save while allowing a valid past term as a draft', () => {
+    expect(reviewDraftWriteProblem({ publicProjection: [{ key: 'need.price_mode', value: 'MY_PRICE' }] }))
+      .toBe(REVIEW_FACT_COPY.MY_PRICE_AMOUNT_REQUIRED);
+    expect(reviewDraftWriteProblem({ publicProjection: [
+      { key: 'need.schedule_kind', value: 'FIXED_WINDOW' }, { key: 'need.starts_at', value: '2026-10-21T12:00:00Z' },
+      { key: 'need.ends_at', value: '2026-10-21T11:00:00Z' },
+    ] })).toBe(REVIEW_FACT_COPY.FIXED_WINDOW_BOUNDS_REQUIRED);
+    expect(reviewDraftWriteProblem({ publicProjection: [
+      { key: 'need.schedule_kind', value: 'FIXED_WINDOW' }, { key: 'need.starts_at', value: '2020-10-21T12:00:00Z' },
+    ] })).toBeNull();
   });
 });

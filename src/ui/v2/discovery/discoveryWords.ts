@@ -26,8 +26,8 @@ export const SEARCH_PLACEHOLDER = 'Grad ili zadatak';
 export const SEARCH_HINT = 'Otvara pretragu po reči i mestu.';
 /** The filters button says its name always, and how many are on when any is: "Filteri", "Filteri, 2 aktivna". */
 export const filtersSpoken = (count: number) => count > 0 ? `Filteri, ${plural(count, 'aktivan', 'aktivna', 'aktivnih')}` : 'Filteri';
-/** What the filters button does, for a screen reader: it opens the filters and nothing of the search (the search is the pill beside it). */
-export const FILTERS_HINT = 'Otvara filtere: kada, gde i iznos.';
+/** The only primary map control names the actual groups in its dialog for a screen reader. */
+export const FILTERS_HINT = 'Otvara filtere za mesto, način rada, cenu i termin.';
 /** The tasks that are not on the map (work done remotely, or a task placed nowhere): the capsule that is on, and its ✕ is the way back. */
 export const OFF_MAP_CHIP = 'Nisu na mapi';
 /** How many are not on the map, as the row under the list's count says it: "1 nije na mapi", "3 nisu na mapi". Never a count that was not read. */

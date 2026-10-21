@@ -470,11 +470,40 @@ describe('publication requires complete human map confirmation while draft save 
   it.each(['STATIONARY', 'POINT_TO_POINT', 'REMOTE'] as const)('allows the existing publication flow for ready %s', async mode => {
     const value: NeedLocationInput = mode === 'STATIONARY' ? location('A') : mode === 'POINT_TO_POINT' ? routeLocation(true)
       : { taskCountryCode: 'RS', geography: { mode: 'REMOTE' }, exactAddress: null, accessNotes: null, resolvedLocation: null };
-    mockPrepare.mockResolvedValue(ok(locatedReview(value)));
+    const base = locatedReview(value);
+    const shown: AiTaskReviewEnvelope = mode === 'REMOTE' ? { ...base, publicProjection: [
+      ...base.publicProjection, { id: 'handoff', key: 'need.handoff', value: { required: false },
+        displayValue: 'Samo onlajn', privacyClass: 'PUBLIC', source: 'EXPLICIT_USER_ANSWER', status: 'CONFIRMED' },
+    ] } : base;
+    mockPrepare.mockResolvedValue(ok(shown));
     await render();
     expect(publish().disabled).toBe(false); expect(commands('Potvrdi tačke na mapi')).toHaveLength(0);
     await act(async () => publish().onPress());
     expect(mockAccept).toHaveBeenCalledTimes(1); expect(mockDraft).not.toHaveBeenCalled();
+  });
+  it('keeps a legacy REMOTE review readable but sends missing handoff to the conversation before Save', async () => {
+    const value: NeedLocationInput = { taskCountryCode: 'RS', geography: { mode: 'REMOTE' },
+      exactAddress: null, accessNotes: null, resolvedLocation: null };
+    mockPrepare.mockResolvedValue(ok(locatedReview(value)));
+    await render();
+    expect(publish().disabled).toBe(true);
+    expect(text()).toContain('Reci kako se rezultat predaje');
+    expect(commands('Sačuvaj nacrt')).toHaveLength(0);
+    await act(async () => publish().onPress());
+    expect(mockAccept).not.toHaveBeenCalled();
+    expect(mockDraft).not.toHaveBeenCalled();
+  });
+  it('does not offer Save when the signed writer would refuse an amount-less fixed price', async () => {
+    const base = review();
+    mockPrepare.mockResolvedValue(ok({ ...base, publicProjection: [
+      ...base.publicProjection, { id: 'price-mode', key: 'need.price_mode', value: 'MY_PRICE',
+        displayValue: 'Moja cena', privacyClass: 'PUBLIC', source: 'EXPLICIT_USER_ANSWER', status: 'CONFIRMED' },
+    ] }));
+    await render();
+    expect(publish().disabled).toBe(true);
+    expect(commands('Sačuvaj nacrt')).toHaveLength(0);
+    expect(text()).toContain('Unesi iznos ili izaberi prikupljanje ponuda.');
+    expect(mockDraft).not.toHaveBeenCalled();
   });
 });
 

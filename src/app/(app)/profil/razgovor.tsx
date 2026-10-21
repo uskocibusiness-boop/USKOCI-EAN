@@ -403,8 +403,10 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   // "not yet read back" only until the thread's last message is that very sentence.
   const sent=pending.current?.text??null,lastMessage=data.messages[data.messages.length-1];
   const unread=sent&&!(lastMessage?.role==='USER'&&lastMessage.body.trim()===sent.trim())?sent:null;
-  const hasProfileContent = data.candidate.skills.length > 0 || data.candidate.tools.length > 0
-    || data.candidate.vehicles.length > 0 || data.candidate.bio.trim().length > 0
+  // Legacy equipment alone is not a configured MVP work profile. The V1 wire
+  // still carries it for signed-review compatibility, but the conversation
+  // introduces the service, area and availability that actually route tasks.
+  const hasProfileContent = data.candidate.skills.length > 0 || data.candidate.bio.trim().length > 0
     || data.candidate.location.city.trim().length > 0 || data.candidate.availability.availableNow
     || data.candidate.availability.rules.length > 0 || data.candidate.availability.windows.length > 0;
   // A past review must not lend its service modes or delivery scope to a newer draft.

@@ -5,7 +5,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SupportContextEntry } from '../../ui/support/SupportContextEntry';
 import { aiTaskReviewClientService, type AiTaskReviewEnvelope, type AiTaskReviewFact,
   type AiTaskPublicationCommand } from '../../data/aiTaskReviewClientService';
-import { reviewFactProblem } from '../../data/reviewFactProblem';
+import { reviewDraftWriteProblem, reviewFactProblem } from '../../data/reviewFactProblem';
 import { publishedTaskRoute, rememberPublication } from '../../data/publicationHandoff';
 import { readIntakeReviewReturn } from '../../data/intakeReviewReturn';
 import { rememberAiCorrection, taskCorrectionTarget, type AiCorrectionTarget } from '../../data/aiCorrectionIntent';
@@ -213,13 +213,14 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   });
   const refresh = () => { if (current() && !editor.busy && !editor.loading && !navigating.current) void editor.refresh(); };
   const unavailableIdentityFact = review?.publicProjection.find(fact => fact.key === 'need.verified_identity_required' && fact.value === true);
+  const draftWriteProblem = review && reviewDraftWriteProblem(review);
   // How the price works, read as the preview reads it: under "Ponude" the amount row and its editor show no amount.
   const priceModeFact = review?.publicProjection.find(fact => fact.key === 'need.price_mode' && fact.status !== 'UNKNOWN');
   const priceMode = priceModeFact?.value;
   // "Objavi" and "Sačuvaj nacrt" are the same acceptance of the same displayed review, under one
   // retained command identity; they differ only in whether evaluation and publication follow now.
   const accept = async (andPublish: boolean) => {
-    if (!canAct() || !review || !review.canAccept || unavailableIdentityFact || locationEditor || command || review.accountId !== accountId) return;
+    if (!canAct() || !review || !review.canAccept || draftWriteProblem || unavailableIdentityFact || locationEditor || command || review.accountId !== accountId) return;
     if (andPublish && !locationReadiness.ready) return;
     const accepted = pending.current ?? { review, id: noviUuidZahtevId() };
     if (andPublish && !reviewLocationReadiness(accepted.review).ready) return;
@@ -572,7 +573,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
         <PublishButton label={acceptLabel} blocked={publishBlocked} working={publishWorking} reason={caption} onPress={publish} />
         {/* While a write has no outcome yet, or has been refused, the one thing to do is to read what is true now. */}
         {editor.uncertain ? check(OUTCOME_ACTION.check, false, CHECK_SPOKEN) : editor.error ? check(OUTCOME_ACTION.refresh, false, 'Osveži pregled')
-          : !bound && review.canAccept && !unavailableIdentityFact
+          : !bound && review.canAccept && !draftWriteProblem && !unavailableIdentityFact
             ? <V2Action label="Sačuvaj nacrt" kind="quiet" disabled={quietEdit} onPress={() => { void accept(false); }} /> : null}
       </>}
   </FlowFooter>;

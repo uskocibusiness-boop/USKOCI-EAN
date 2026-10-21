@@ -112,10 +112,10 @@ describe('the candidate row', () => {
     const row = pressNamed('Pogledaj prijavu: Milan Petrović');
     expect(texts(row)).toMatch(/Može: 20\. sep( 2026)? · 10:00–11:00/);
     // A sent application wears no chip; the reason the server gives is the card's one mark, a dot and the words in the warn colour.
-    expect(texts(row)).not.toContain('Poslata'); expect(texts(row)).toContain('Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.');
-    const status = row.findAll(node => node.props.children === 'Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.')[0];
+    expect(texts(row)).not.toContain('Poslata'); expect(texts(row)).toContain('Prijava trenutno nije dostupna za izbor.');
+    const status = row.findAll(node => node.props.children === 'Prijava trenutno nije dostupna za izbor.')[0];
     expect(flat(status.props.style).color).toBe(sys.color.warn);
-    expect(row.props.accessibilityValue.text).toContain('Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.');
+    expect(row.props.accessibilityValue.text).toContain('Prijava trenutno nije dostupna za izbor.');
   });
 
   it('draws the state chip only when it says something: not "Poslata" (every application of the list was sent), always "Viđena", "Izabrana", "Nije izabrana" and "Povučena"', async () => {
@@ -212,9 +212,9 @@ describe('the candidate row', () => {
     expect(candidateStatus({ stanje: 'SELECTABLE' })).toBeNull();
     expect(candidateStatus({ stanje: 'SELECTED' })).toBeNull();
     expect(candidateStatus({ stanje: 'WITHDRAWN' })).toBeNull();
-    expect(candidateStatus({ stanje: 'STALE' })).toEqual({ text: 'Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.', tone: 'warn' });
+    expect(candidateStatus({ stanje: 'STALE' })).toEqual({ text: 'Prijava trenutno nije dostupna za izbor.', tone: 'warn' });
     expect(candidateStatus({ stanje: 'OVERFILL' })).toEqual({ text: 'Više ljudi nego što je preostalo', tone: 'warn' });
-    expect(candidateStatus({ stanje: 'CLOSED' })).toEqual({ text: 'Zadatak je zatvoren', tone: 'muted' });
+    expect(candidateStatus({ stanje: 'CLOSED' })).toEqual({ text: 'Prijava više nije u izboru.', tone: 'muted' });
     expect(candidateStatus({ stanje: 'FULL' })).toEqual({ text: 'Sva mesta su popunjena', tone: 'muted' });
   });
 
@@ -496,7 +496,7 @@ describe('the offer sheet', () => {
     await act(async () => tree.update(offer({ candidate: k({ stanje: 'WITHDRAWN', mozeIzabrati: false }) })));
     expect(chips()).toEqual(['Povučena']);
     await act(async () => tree.update(offer({ candidate: k({ stanje: 'CLOSED', mozeIzabrati: false }) })));
-    expect(chips()).toEqual(['Nije izabrana']); expect(texts()).toContain('Zadatak je zatvoren');
+    expect(chips()).toEqual(['Nije izabrana']); expect(texts()).toContain('Prijava više nije u izboru.');
     await act(async () => tree.update(offer({ candidate: k({ stanje: 'SELECTED', mozeIzabrati: false }) })));
     expect(chips()).toEqual(['Izabrana']);
     // The Dogovor is made: the sheet gives way to the moment "Dogovoreno!" (the next tests), and the old line is not said any more.

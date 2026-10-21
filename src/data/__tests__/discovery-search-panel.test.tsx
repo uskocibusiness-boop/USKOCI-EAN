@@ -514,13 +514,25 @@ describe('the FILTERS are a sheet with the days, how the work is done and the am
   const open = async (id: string) => { expect(byId(`${id}-body`)).toBeDefined(); };
 
   test('opening search from filters mounts its full-screen modal instead of keeping dialog measurements', async () => {
+    view = { ...view, query: 'selidba' };
     mode = 'filters'; openSearch = () => { mode = 'search'; tree.update(panelOf()); };
     await render();
     await act(async () => byId('search-root').props.onLayout({ nativeEvent: { layout: { height: 1000 } } }));
     expect(sheetHeight()).toBe(920);
-    await act(async () => actionNamed('Pretraži zadatke').props.onPress());
+    expect(texts(byId('filters-active-query'))).toMatch(/Aktivna pretraga:.*„selidba“/);
+    await act(async () => actionNamed('Izmeni aktivnu pretragu').props.onPress());
     expect(whatField()).toBeDefined();
     expect(sheetHeight()).toBe(mockWindow.height);
+  });
+
+  test('a regular map visit offers location and filters without another text-search entry', async () => {
+    mode = 'filters'; openSearch = jest.fn(); await render();
+    expect(byId('filters-place-input')).toBeDefined();
+    expect(group('filters-where')).toBeDefined();
+    expect(group('filters-amount')).toBeDefined();
+    expect(byId('filters-active-query')).toBeUndefined();
+    expect(actionNamed('Izmeni aktivnu pretragu')).toBeUndefined();
+    expect(actionNamed('Pretraži zadatke')).toBeUndefined();
   });
 
   test('it opens with location, work mode, price and then time, and nothing of the search', async () => {

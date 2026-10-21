@@ -80,7 +80,7 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
       resolve(root,'supabase/functions/_shared/researchDeadline.ts'),resolve(root,'supabase/functions/_shared/classificationExplorer.mjs'),
       resolve(root,'supabase/functions/_shared/serviceHandoff.mjs'),resolve(root,'supabase/functions/_shared/serviceExecutionInstruction.mjs'),
       resolve(root,'supabase/functions/_shared/classificationDirectReply.mjs'),
-      resolve(root,'src/contracts/aiAvailability.ts'),resolve(root,'supabase/functions/_shared/locationReply.ts'),
+      resolve(root,'src/contracts/aiAvailability.ts'),resolve(root,'src/contracts/taskApplicationDeadline.ts'),resolve(root,'supabase/functions/_shared/locationReply.ts'),
       resolve(root,'supabase/functions/_shared/taxonomyScopedShadow.mjs'),resolve(root,'supabase/functions/_shared/classificationEngine.mjs'),
       resolve(root,'supabase/functions/_shared/classificationGeminiShadow.mjs'),resolve(root,'supabase/functions/_shared/classificationReply.mjs')].includes(file),'test loader may evaluate only exact source entry/shared helpers');
     if(cache.has(file))return cache.get(file).exports;
@@ -178,7 +178,9 @@ for(const provider of ['gemini'])test(`${provider} outbound V2 schema and prompt
   const call=providerCall(f),schema=call.body.generationConfig?.responseFormat?.text?.schema??call.body.generationConfig?.responseSchema??call.body.text?.format?.schema;
   const allowedKeys=schema.properties.facts.items.properties.key.enum;
   const promptRegistry=JSON.parse(call.body.systemInstruction.parts[0].text.split('Jedini podržani V2 fact registry: ')[1]);
-  assert.deepEqual(allowedKeys,[...f.registry.AI_PROPOSABLE_NEED_FACT_V2_KEYS].filter(key=>key!=='need.required_licenses'));
+  // This fixture keeps the optional application-deadline feature OFF.
+  assert.deepEqual(allowedKeys,[...f.registry.AI_PROPOSABLE_NEED_FACT_V2_KEYS]
+    .filter(key=>key!=='need.required_licenses'&&key!=='need.response_deadline'));
   assert.deepEqual(promptRegistry.map(fact=>fact.key),allowedKeys);
   assert.ok(allowedKeys.includes('need.task_geography'));assert.ok(allowedKeys.includes('need.task_country_code'));
   assert.ok(allowedKeys.includes('need.exact_address'));assert.ok(!allowedKeys.includes('need.resolved_location'));

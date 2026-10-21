@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-20T23:04:00Z",
+  "osvezeno": "2026-10-21T05:04:04Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "70bc79f2",
-  "head_poruka": "fix(ui): align task loading geometry and preserve semantic regression coverage",
+  "head": "324cebe4",
+  "head_poruka": "Advance USKOCI AI history, worker guards, push routing and map flow",
   "server": {
    "snimljeno": "2026-10-18T20:15:59Z",
    "migracije": 288,
@@ -3794,7 +3794,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 6 serverskih funkcija",
-    "test": "9 test fajl(ova)"
+    "test": "11 test fajl(ova)"
    },
    "telefon_dokaz": "Prvo AI pitanje vidljivo, bez model/ASR poziva; stvarni razgovor otvoren. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
    "problem": "Task115 imao je nepotpun typed rezultat pri CLARIFY; originalni raw provider nije sačuvan. 106 offline provera ne pokazuje odbacivanje dostavljenih činjenica u CLARIFY. Task116 jedna živa proba čuva jasne podatke i traži samo razjašnjenje konflikta, bez izmišljene geografije. Širi correction/publish/ASR tok i brzina ostaju otvoreni.",
@@ -4674,13 +4674,14 @@
     "nacrt": "zeleno",
     "ekran": "zeleno",
     "kod": "zeleno",
-    "server": "zeleno",
+    "server": "crveno",
     "test": "zeleno",
     "telefon": "zuto"
    },
    "note": {
+    "server": "Aplikacija poziva, a na serveru nema: rpc_prepare_ai_task_review_deadline_taxonomy, rpc_prepare_ai_task_review_deadline",
     "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
-    "test": "6 test fajl(ova)"
+    "test": "7 test fajl(ova)"
    },
    "telefon_dokaz": "52720d99 instaliran; ovaj popunjeni/glasovni scenario nije izveden. docs/implementation/evidence/visual-rounds-20261010/REPORT.md",
    "problem": "Paralelne ručne semantičke kontrole povučene iz pregleda. Oporavak istog nacrta i spremnost za objavu dokazani; stvarna objava/push i polish predaje/rute ostaju otvoreni.",
@@ -4823,13 +4824,14 @@
     "nacrt": "zeleno",
     "ekran": "zeleno",
     "kod": "zeleno",
-    "server": "zeleno",
+    "server": "crveno",
     "test": "zeleno",
     "telefon": "zuto"
    },
    "note": {
+    "server": "Aplikacija poziva, a na serveru nema: rpc_prepare_ai_task_review_deadline_taxonomy, rpc_prepare_ai_task_review_deadline",
     "kod": "Ekran stiže do koda; poziva 4 serverskih funkcija",
-    "test": "9 test fajl(ova)"
+    "test": "10 test fajl(ova)"
    },
    "telefon_dokaz": "R18 74f514d7, telefon 36183495466, emulator 36183499333: Objava prošla; drugi nalog vidi zadatak. docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md Ranije: 23.09. 07:13: pregled pre objave i objava prošli sa telefona (uskocibusiness); server ima zadatak be549970… kao PUBLISHED, revizija 1, FIXED_WINDOW 24.09. 12–19h po Beogradu.",
    "problem": "P0 klijentski lanac objava→potvrđen Need ID/revizija→exact public read→Discovery focus je već implementiran i objedinjenim source dokazom potvrđen; nema nove source rupe. Novi native dokaz objava→izabrani pin/Peek ili truthful list group i dalje nedostaje. P6 obična kolekcija ostaje serverski neograničena.",
@@ -12737,7 +12739,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "177 test fajl(ova)"
+    "test": "179 test fajl(ova)"
    },
    "telefon_dokaz": "09.10 fizički HONOR 725be7bd: 725 install-r čuva postojeću sesiju, UID, prvo vreme instalacije i AI razgovor; hash/runtime provereni. Fresh login/logout/account-switch nisu dokazani ovim paketom. Dokaz: docs/implementation/ui-ux-pass-20261002/ANDROID_DISCOVERY_PENDING_20261009.md. Raniji dokazi sačuvani u finalization.android_discovery_pending_20261009.previous.telefon.",
    "problem": "725 install-r čuva postojeću sesiju, UID, prvo vreme instalacije i AI razgovor; hash/runtime provereni. Fresh login/logout/account-switch nisu dokazani ovim paketom.",
@@ -13264,7 +13266,11 @@
    "preko_edge": false
   }
  ],
- "aplikacija_zove_a_server_nema": [],
+ "aplikacija_zove_a_server_nema": [
+  "rpc_prepare_ai_task_review_deadline",
+  "rpc_prepare_ai_task_review_deadline_taxonomy",
+  "rpc_resolve_activity_application_v1"
+ ],
  "nepovezani_pozivi_a_server_nema": [],
  "tokovi": {
   "stavke": [
@@ -13974,7 +13980,11 @@
   "vise_ne_fali": [
    "rpc_cancel_media_upload"
   ],
-  "novo_slomljeno": [],
+  "novo_slomljeno": [
+   "rpc_prepare_ai_task_review_deadline",
+   "rpc_prepare_ai_task_review_deadline_taxonomy",
+   "rpc_resolve_activity_application_v1"
+  ],
   "putevi_obavestenja": "svi nađeni u kodu"
  },
  "blokade": [
@@ -14415,6 +14425,22 @@
  },
  "ci": [
   {
+   "id": 39534878543,
+   "ime": "N10 notification push-copy proof",
+   "sha": "324cebe4",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-21T02:46:30Z"
+  },
+  {
+   "id": 39520703997,
+   "ime": "PKG-042 application reader parity proof",
+   "sha": "b05efb0e",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-21T00:20:19Z"
+  },
+  {
    "id": 39380225968,
    "ime": "Build latest V5 Android preview APK",
    "sha": "70bc79f2",
@@ -14493,22 +14519,6 @@
    "stanje": "completed",
    "ishod": "failure",
    "vreme": "2026-10-19T22:08:25Z"
-  },
-  {
-   "id": 39332370115,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "c86d42d3",
-   "stanje": "completed",
-   "ishod": "cancelled",
-   "vreme": "2026-10-19T22:04:53Z"
-  },
-  {
-   "id": 39328153595,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "ee7ae76e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-19T21:31:25Z"
   }
  ]
 }

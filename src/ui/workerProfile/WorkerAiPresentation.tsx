@@ -134,7 +134,7 @@ export function WorkerAiNotificationsNote({matchingReady=false}:{matchingReady?:
 const missingLabel=(label:string)=>label==='Ime'?'Ime naloga':label;
 /**
  * Frozen personal-profile review: what the conversation understood, with one AI correction action. Legacy
- * wire fields remain stored, but the personal-profile save no longer writes them. Nothing here is a location editor: the
+ * equipment remains visible here while the V1 signed Save still writes it. Nothing here is a location editor: the
  * map is the frozen approximate centre, and every correction returns to the same conversation and a fresh review.
  *
  * There is no row for the name: the profile is saved under the name of the account (owner, 8 Oct 2026: one name for everything), which the route puts into

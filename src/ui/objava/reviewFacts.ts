@@ -116,13 +116,15 @@ export function reviewTodos(review: ReviewLocation & { safety: string; missingRe
   factProblem: string | null, identityBlock = false): ReviewTodo[] {
   const todos: ReviewTodo[] = [];
   if (review.safety === 'BLOCK') todos.push({ key: 'safety', text: 'Zadatak ne može da se objavi ovako. Izmeni ga u razgovoru.', target: 'conversation' });
-  const missing = review.missingRequired.filter(key => key !== 'need.category');
+  // A REMOTE handoff already has a plain-language remedy below; do not say the same missing fact twice.
+  const missing = review.missingRequired.filter(key => key !== 'need.category'
+    && !(factProblem === REVIEW_FACT_COPY.HANDOFF_REQUIRED && key === 'need.handoff'));
   if (missing.length) todos.push({ key: 'missing', text: `Nedostaje: ${missing.map(factLabel).join(', ')}.`, target: 'conversation' });
-  else if (review.missingRequired.length) todos.push({ key: 'missing', text: 'Treba još malo o samom zadatku.', target: 'conversation' });
+  else if (review.missingRequired.includes('need.category')) todos.push({ key: 'missing', text: 'Treba još malo o samom zadatku.', target: 'conversation' });
   if (!reviewLocationReadiness(review).ready) todos.push({ key: 'location', text: 'Mesto na mapi nije potvrđeno.', target: 'location' });
   if (factProblem) todos.push({ key: 'fact', text: factProblem, target: factProblem === REVIEW_FACT_COPY.MY_PRICE_AMOUNT_REQUIRED
     ? 'need.price_rsd' : factProblem === REVIEW_FACT_COPY.FIXED_WINDOW_BOUNDS_REQUIRED || factProblem === REVIEW_FACT_COPY.FIXED_WINDOW_START_PASSED
-      ? 'need.starts_at' : null });
+      ? 'need.starts_at' : factProblem === REVIEW_FACT_COPY.HANDOFF_REQUIRED ? 'conversation' : null });
   // A refusal the rows above do not name still says where it is fixed, so a grey publish never stands without a reason.
   if (review.canAccept === false && !todos.length && !identityBlock)
     todos.push({ key: 'other', text: 'Zadatku je potrebna dopuna u razgovoru.', target: 'conversation' });

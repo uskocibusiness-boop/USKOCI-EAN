@@ -127,15 +127,19 @@ export function candidateChip(k: Pick<KandidatProjekcija, 'stanje'>, viewed = fa
 
 /** Why an application that the chip alone does not explain is not simply open. The chip is the state; this is only the reason. */
 export const CANDIDATE_REASON: Partial<Record<KandidatProjekcija['stanje'], string>> = {
-  STALE: 'Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.', OVERFILL: 'Više ljudi nego što je preostalo',
-  CLOSED: 'Zadatak je zatvoren', FULL: 'Sva mesta su popunjena',
-  TIME_CONFLICT_FROZEN: 'Majstor je zauzet u ovom terminu drugim poslom.',
+  // The server also maps calendar and readiness failures to STALE. It does not
+  // expose which cause won, so the card cannot claim the task was edited.
+  STALE: 'Prijava trenutno nije dostupna za izbor.', OVERFILL: 'Više ljudi nego što je preostalo',
+  // CLOSED also covers a cancelled agreement whose task may be open for a
+  // replacement. The projection does not carry a cause to justify a claim
+  // that the whole task has closed.
+  CLOSED: 'Prijava više nije u izboru.', FULL: 'Sva mesta su popunjena',
 };
 export type CandidateTone = 'warn' | 'muted';
 /** The reason line, only when it says something: an application that can simply be chosen, and one that was chosen or withdrawn, need none. */
 export function candidateStatus(k: Pick<KandidatProjekcija, 'stanje'>): { text: string; tone: CandidateTone } | null {
   const text = CANDIDATE_REASON[k.stanje];
-  return text ? { text, tone: k.stanje === 'STALE' || k.stanje === 'OVERFILL' || k.stanje === 'TIME_CONFLICT_FROZEN' ? 'warn' : 'muted' } : null;
+  return text ? { text, tone: k.stanje === 'STALE' || k.stanje === 'OVERFILL' ? 'warn' : 'muted' } : null;
 }
 
 /**

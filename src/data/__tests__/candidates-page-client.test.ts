@@ -66,6 +66,7 @@ it.each<[string, CandidatesPageRequest, (page: any) => void]>([
   ['a candidate without a keyset value', first, (p: any) => { delete p.items[1].sortAt; }],
   ['a candidate with a malformed identity', first, (p: any) => { p.items[1].responseId = '../bad'; }],
   ['a candidate the whole list would refuse (state)', first, (p: any) => { p.items[1].state = 'WEIRD'; }],
+  ['a reserved conflict state without an active server contract', first, (p: any) => { p.items[1].state = 'TIME_CONFLICT_FROZEN'; p.items[1].canSelect = false; }],
   ['a candidate the whole list would refuse (price)', first, (p: any) => { p.items[1].priceRsd = 0; }],
   ['a candidate the whole list would refuse (hash)', first, (p: any) => { p.items[1].contentHash = 'abc'; }],
   ['a candidate out of the server\'s order (time)', first, (p: any) => { p.items.reverse(); }],

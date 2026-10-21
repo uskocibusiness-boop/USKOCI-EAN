@@ -1,4 +1,11 @@
 {
+  "rpc_catalog_refresh_20261021": {
+    "scope": "Read-only public RPC name and authenticated EXECUTE catalog only. Other snapshot sections retain their dated observations.",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "rpcCount": 287,
+    "addedSincePreviousCatalog": ["rpc_list_owned_ai_history_messages_v1", "rpc_list_owned_ai_history_v1", "rpc_taxonomy_query_catalog_service"],
+    "missingFeatureGatedCalls": ["rpc_prepare_ai_task_review_deadline", "rpc_prepare_ai_task_review_deadline_taxonomy", "rpc_resolve_activity_application_v1"]
+  },
   "home_core_read_refresh_20261018": {
     "scope": "Read-only verification of three application/Agreement RPC definitions, ACL/search_path, migration ledger and authenticated three-actor count/cursor parity. Other snapshot sections retain their dated observations.",
     "receipt": "docs/current/evidence/HOME_READ_CONTINUATION_20261018.json",
@@ -207,6 +214,8 @@
     "rpc_list_need_candidates",
     "rpc_list_need_candidates_page",
     "rpc_list_open_tasks_v3",
+    "rpc_list_owned_ai_history_messages_v1",
+    "rpc_list_owned_ai_history_v1",
     "rpc_list_received_reviews_v1",
     "rpc_list_review_comments_v1",
     "rpc_mark_activity_event_read",
@@ -345,6 +354,7 @@
     "rpc_taxonomy_ensure_path_service",
     "rpc_taxonomy_finalize_reviewed_batch_service",
     "rpc_taxonomy_prepare_admission_service",
+    "rpc_taxonomy_query_catalog_service",
     "rpc_taxonomy_reconcile_reviewed_outbox_service",
     "rpc_taxonomy_worker_scoped_preview_service",
     "rpc_tick_auto_completion",
@@ -439,6 +449,8 @@
     "rpc_list_need_candidates",
     "rpc_list_need_candidates_page",
     "rpc_list_open_tasks_v3",
+    "rpc_list_owned_ai_history_messages_v1",
+    "rpc_list_owned_ai_history_v1",
     "rpc_list_received_reviews_v1",
     "rpc_list_review_comments_v1",
     "rpc_mark_activity_event_read",

@@ -139,7 +139,7 @@ describe('Kandidati', () => {
     ['greska', ['Prijave trenutno nije moguće učitati']],
     ['ponuda', ['Izaberi osobu', 'Poruka', 'Pogledaj profil']],
     ['ponuda-veliki', ['Izaberi osobu', 'Poruka']],
-    ['ne-moze', ['Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.']],
+    ['ne-moze', ['Prijava trenutno nije dostupna za izbor.']],
     ['ishod', ['Proveri da li je izabrano']],
     ['ponovi', ['Pošalji izbor ponovo']],
     ['sklopljen', ['Dogovoreno!', 'Ti i Milan Petrović', 'Unos ormara na treći sprat', '4.500 RSD ukupno', 'Otvori Dogovor']],

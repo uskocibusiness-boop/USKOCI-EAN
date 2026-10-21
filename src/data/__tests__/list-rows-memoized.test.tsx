@@ -70,9 +70,9 @@ describe.each([
   const task = (id: string): MarketplaceItem => ({ id, naslov: `Pomoć ${id}`, podrucjeTekst: 'Novi Sad', vremeTekst: 'Po dogovoru', uslovi: ['Alat'], statusTekst: 'Otvoren',
     rezimCene: 'MY_PRICE', ponudjenaCena: { prikaz: '2.000 RSD' }, pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, priblizno: { lat: 45.25, lng: 19.83 },
     ...(discovery ? {} : { revizija: 1, opis: '', stanje: 'OBJAVLJENA', brojPrijava: 0, brojPrijavaZaIzbor: 0 }) } as MarketplaceItem);
-  let rows: MarketplaceItem[]; const open = jest.fn(); let snapshot: MarketplaceView;
+  let rows: MarketplaceItem[]; const open = jest.fn(); let snapshot: MarketplaceView; let discoveryQuery = '';
   function Screen({ pass }: { pass: number }) {
-    const [view, setView] = useState(discovery ? () => ({ ...initialMarketplaceView(), mode: 'map' as const }) : initialMarketplaceView); snapshot = view;
+    const [view, setView] = useState(discovery ? () => ({ ...initialMarketplaceView(), mode: 'map' as const, query: discoveryQuery }) : initialMarketplaceView); snapshot = view;
     // Fresh closures every render, exactly as the route hands them down.
     return discovery
       ? <DiscoveryPresentation items={rows} loading={false} error={false} scopeKey="a:1" view={view} onView={setView} refreshing={pass > 1}
@@ -80,17 +80,19 @@ describe.each([
       : <MarketplacePresentation items={rows} loading={false} error={false} view={view} onView={setView} refreshing={pass > 1}
         onOpen={item => open(item)} onRefresh={() => {}} onProfile={() => {}} onNew={() => {}} />;
   }
-  beforeEach(() => { rows = [task('one'), task('two'), task('three')]; open.mockClear(); });
+  beforeEach(() => { rows = [task('one'), task('two'), task('three')]; discoveryQuery = ''; open.mockClear(); });
 
   test('rows are drawn once and stay drawn: typing in the search, a parent render and a fresh onOpen closure touch none of them', async () => {
+    if (discovery) discoveryQuery = 'Pomoć'; // Only an applied query exposes the map's explicit edit affordance.
     await act(async () => { tree = create(<Screen pass={0} />); });
     expect(drawn(prefix)).toBe(3);
     await act(async () => tree.update(<Screen pass={1} />));
-    // Moji zadaci keeps its search in the Filteri sheet. Zadaci opens its search panel from Filteri; the words are a draft in both,
-    // and the list takes them when the one action applies them.
+    // Moji zadaci keeps its search in Filteri. On the map only an active query can be edited from Filteri;
+    // ordinary map visits expose the location, work mode, price and date filters without text search.
     if (discovery) {
-      await act(async () => field('Filteri').props.onPress());
-      await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Pretraži zadatke')!.props.onPress());
+      await act(async () => tree.root.findByProps({ testID: 'filters-button' }).props.onPress());
+      await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === 'Izmeni aktivnu pretragu')!.props.onPress());
+      await act(async () => field('Grad ili zadatak').props.onChangeText('Pomoć t'));
       await act(async () => field('Grad ili zadatak').props.onChangeText('Pomoć'));
       await act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat/.test(node.props.label))!.props.onPress());
     } else {

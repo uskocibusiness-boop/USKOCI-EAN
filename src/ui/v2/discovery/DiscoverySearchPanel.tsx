@@ -449,8 +449,11 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
         </View> : null}
         {counted && undated ? <T variant="note" tone="muted">{undatedWords(undated)}</T> : null}
       </>)}
-      {onOpenSearch ? <V2Action label="Pretraži zadatke" kind="quiet"
-        onPress={() => { Keyboard.dismiss(); onOpenSearch(); }} /> : null}
+      {onOpenSearch && view.query.trim() ? <View testID="filters-active-query" style={s.activeQuery}>
+        <T variant="note" tone="muted">Aktivna pretraga: {quoted(view.query)}</T>
+        <V2Action label="Izmeni aktivnu pretragu" kind="quiet"
+          onPress={() => { Keyboard.dismiss(); onOpenSearch(); }} />
+      </View> : null}
     </ScrollView>
   </SearchSheet>;
 }
@@ -469,6 +472,7 @@ function FilterSection({ id, title, children }: {
 
 const s = StyleSheet.create({
   grow: { flex: 1, minWidth: 0 },
+  activeQuery: { gap: sys.space.xs },
   ink: { color: sys.color.ink },
   scroll: { flex: 1 },
   // The groups stand 20 from the edge like every screen; a group is its name and its choices, parted from the next by air, not by a line or a card.

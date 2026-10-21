@@ -532,12 +532,12 @@ it('shows a legitimate STALE offer beside a current offer and permits choosing o
   expect(text()).toContain('2 prijave · 1 za izbor'); expect(text()).toContain('0/3 izabrano');
   // The card that cannot be chosen says why on its own bottom line, and the list says once what that means.
   const stale = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pogledaj prijavu: Ranija ponuda')[0];
-  expect(stale.findAll(node => String(node.type) === 'T' && node.props.children === 'Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.')).toHaveLength(1);
-  expect(stale.props.accessibilityValue.text).toContain('Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.');
+  expect(stale.findAll(node => String(node.type) === 'T' && node.props.children === 'Prijava trenutno nije dostupna za izbor.')).toHaveLength(1);
+  expect(stale.props.accessibilityValue.text).toContain('Prijava trenutno nije dostupna za izbor.');
   // The card says why it cannot be chosen once, on its own line; the list does not say it a second time in a sentence of its own (the owner, 8 Oct 2026).
   expect(text()).not.toContain('Prijavu koja sada nije za izbor možeš da pročitaš, ali ne i da izabereš.');
   expect(press('Pogledaj prijavu: Ranija ponuda')).toBeDefined(); expect(press('Pogledaj prijavu: Milan')).toBeDefined();
-  await tap('Pogledaj prijavu: Ranija ponuda'); expect(text()).toContain('Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.');
+  await tap('Pogledaj prijavu: Ranija ponuda'); expect(text()).toContain('Prijava trenutno nije dostupna za izbor.');
   expect(press('Izaberi osobu')).toBeUndefined(); expect(confirmChoice()).toBeUndefined();
   expect(text()).not.toContain('Dogovor je sklopljen.'); expect(tree!.root.findAll(node => node.type === SuccessMark)).toHaveLength(0);
   expect(press('Otvori Dogovor')).toBeUndefined();
