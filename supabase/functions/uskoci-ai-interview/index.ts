@@ -911,8 +911,12 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const expenseWords = /materijal|материјал|prevoz|превоз|goriv\p{L}*|горив\p{L}*|oprem\p{L}*|опрем\p{L}*/iu;
   // Work with the clause about the task price. A currency next to material
   // costs cannot authorize the same numeral in a later labor-price clause.
-  const priceClauses = input.split(/[;,!?\n]/u).map(clause => {
+  const priceClauses = input.split(/[;,!?\n]|\.(?!\d)/u).map(clause => {
     if (/^\s*\d+\s*(?:radnik\p{L}*|ljud\p{L}*|osob\p{L}*|радник\p{L}*|људ\p{L}*|особ\p{L}*)/iu.test(clause)) return '';
+    // "Prevoz za 500 RSD" is a task price; "prevoz me košta 500 RSD"
+    // describes an expense. Do not discard the former as incidental cost.
+    if (/(?:^|\s)(?:prevoz|превоз)\s+za\s+\d|(?:^|\s)(?:prevoz|превоз)\s+за\s+\d/iu.test(clause)
+      && !/košta|kosta|кошта|trošak|trosak|трошак/iu.test(clause)) return clause;
     const expenseAt = clause.search(expenseWords);
     if (expenseAt >= 0) {
       const laterPrice = clause.slice(expenseAt + 1).search(priceWords);

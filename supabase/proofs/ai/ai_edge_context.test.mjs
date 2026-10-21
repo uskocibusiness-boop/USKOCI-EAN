@@ -697,6 +697,22 @@ test('later explicit RSD amount replaces the unresolved euro amount',async()=>{
  assert.deepEqual(materialWrites(f)[0].body.p_proposals.map(p=>[p.key,p.value]),[
   ['need.price_mode','MY_PRICE'],['need.price_rsd',5000]]);
 });
+test('Serbian thousands separator stays attached to an explicit RSD amount',async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Cena je 5.000 RSD.',facts:[
+  priceFact('need.price_mode','MY_PRICE','5.000 RSD'),priceFact('need.price_rsd',5000,'5.000 RSD')]}});
+ assert.equal((await f.invoke({text:'Cena je 5.000 RSD.'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'ALLOW');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.price_mode','MY_PRICE'],['need.price_rsd',5000]]);
+});
+test('a transport task price is not confused with the cost of transport',async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Cena prevoza je 500 RSD.',facts:[
+  priceFact('need.price_mode','MY_PRICE','prevoz za 500 RSD'),priceFact('need.price_rsd',500,'prevoz za 500 RSD')]}});
+ assert.equal((await f.invoke({text:'Treba mi prevoz za 500 RSD.'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'ALLOW');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.price_mode','MY_PRICE'],['need.price_rsd',500]]);
+});
 test('a later explicit offer choice cannot carry a model-invented RSD price',async()=>{
  const f=fixture({historyRows:[...priorBarePrice,{sequence_no:4,role:'USER',body:'u evrima'},
   {sequence_no:5,role:'ASSISTANT',body:'Koji iznos u RSD želiš da postaviš?'}],
