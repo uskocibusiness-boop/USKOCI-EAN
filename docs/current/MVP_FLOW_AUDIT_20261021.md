@@ -11,6 +11,8 @@ Ovaj presek razlikuje povezani ekran, lokalni test, aktivan DEV ugovor i potvrđ
 
 ## Otvorene korisničke putanje
 
+**CAL01 dopuna:** [preklapanje termina](APPLICATION_CALENDAR_CONFLICT_20261021.md) potvrđeno SQL rollback-om: izbor blokira preklop, otkaz oslobađa termin, druga prijava ponovo može da se izabere. Oba ugla sada dobijaju read-only razlog i klijentsko objašnjenje. Prijava ostaje aktivna/sačuvana, bez novog FROZEN statusa. Donji raniji nalaz o odsutnoj potvrdi dopunjen je ovim dokazom; concurrent, signed HTTP i native ostaju otvoreni.
+
 **CCP03 dopuna:** [izbor zamene](REPLACEMENT_FLOW_DEV_20261021.md) sada je potvrđen stvarnim rpc_select_response pozivom u DEV rollback transakciji: 3/3 → 2/3 → 3/3, replay bez duplikata, owner/worker workspace i izolacija bivšeg izvršioca. Raniji navod ispod da stvarni izbor zamene nije testiran zamenjen je ovim dokazom. Signed HTTP, konkurencija i Android ostaju otvoreni.
 
 | Prioritet | Nalaz i dokaz | Potrebna potvrda/izmena |

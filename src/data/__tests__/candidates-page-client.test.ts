@@ -21,6 +21,13 @@ const document = (n: number, over: Record<string, unknown> = {}) => ({
   sortAt: `2026-09-2${n}T10:00:00.000${n}00+00:00`, ...over });
 const payload = (docs: any[], over: Record<string, unknown> = {}) => ({ items: docs, hasMore: false, counts: { total: docs.length }, asOf: AS_OF, ...over });
 const first: CandidatesPageRequest = { limit: CANDIDATES_PAGE_LIMIT, cursor: null };
+it('preserves the server calendar reason and refuses selection even for a contradictory selectable flag', async () => {
+  mockRpc.mockResolvedValue({ data: payload([document(1, { calendarConflict: true })]), error: null });
+  const page = await candidateClientService.prijaveZaPotrebuStrana(NEED, first);
+  expect(page.items[0]).toMatchObject({ terminZauzet: true, mozeIzabrati: false });
+  mockRpc.mockResolvedValue({ data: payload([document(1, { calendarConflict: 'false' })]), error: null });
+  await expect(candidateClientService.prijaveZaPotrebuStrana(NEED, first)).rejects.toThrow();
+});
 beforeEach(() => { mockRpc.mockReset(); mockAccount = { user: { id: ACCOUNT }, accountRevision: 1 }; });
 
 it('asks for the first page by task and limit, and for the next one from the last candidate of the page before', async () => {

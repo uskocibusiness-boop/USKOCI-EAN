@@ -25,6 +25,14 @@ const ordered = () => [document(1, { state: 'SELECTED', attentionRequired: true,
   document(4, { state: 'WITHDRAWN', canWithdraw: false, sortAt: '2026-09-26T10:00:00+00:00' })];
 const payload = (items: any[], over: Record<string, unknown> = {}) => ({ items, hasMore: false, counts: { ...COUNTS }, asOf: AS_OF, ...over });
 const first = { scope: 'ALL' as const, limit: 30, cursor: null };
+it('maps the calendar reason without archiving or withdrawing the application and rejects malformed flags', async () => {
+  const items = ordered(); items[1] = document(2, { ...items[1], calendarConflict: true });
+  mockRpc.mockResolvedValue({ data: payload(items), error: null });
+  const page = await applicationClientService.mojePrijaveStrana(first);
+  expect(page.items[1]).toMatchObject({ terminZauzet: true, stanje: 'SUBMITTED', mozePovuci: true });
+  mockRpc.mockResolvedValue({ data: payload([document(1, { calendarConflict: 'true' })], { counts: { total: 1, attention: 0, active: 1, finished: 0 } }), error: null });
+  await expect(applicationClientService.mojePrijaveStrana(first)).rejects.toThrow();
+});
 beforeEach(() => { mockRpc.mockReset(); mockAccount = { user: { id: ACCOUNT }, accountRevision: 1 }; });
 
 it('asks for the first page by scope and limit, and for the next one from the last application of the page before, with its rank', async () => {

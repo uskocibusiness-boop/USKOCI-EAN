@@ -1,4 +1,9 @@
 {
+  "latest_calendar_20261021": {
+    "report": "docs/current/APPLICATION_CALENDAR_CONFLICT_20261021.md",
+    "proof": "DEV 20261021093741 applied; four reader calendar flags, overlap denial, cancellation release/reselection, start-only guard and ACL SQL rollback PASS. Client explanations, 180 Jest, TSC and migration integrity PASS.",
+    "remaining": ["concurrent_selection", "signed_http", "native_acceptance"]
+  },
   "latest_replacement_20261021": {
     "report": "docs/current/REPLACEMENT_FLOW_DEV_20261021.md",
     "proof": "DEV rollback CCP03: real cancel and select 3/3 -> 2/3 -> 3/3; replay without duplicate; owner/worker workspace; former worker isolated; zero fixture accounts.",

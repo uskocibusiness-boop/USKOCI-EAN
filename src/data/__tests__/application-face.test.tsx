@@ -39,6 +39,16 @@ const inState = (stanje: StanjeMojePrijave, patch: Partial<MojaPrijavaProjekcija
 
 let tree: ReactTestRenderer;
 const handlers = () => ({ onTask: jest.fn(), onAgreement: jest.fn(), onWithdraw: jest.fn(), onReview: jest.fn() });
+it('keeps an overlapping application saved, explains it accessibly and clears the reason on refresh', async () => {
+  const blocked = row({ terminZauzet: true });
+  await render(<ApplicationCard row={blocked} {...handlers()} />);
+  expect(texts().join(' ')).toContain('Termin zauzet · imaš drugi Dogovor u ovo vreme. Prijava ostaje sačuvana.');
+  expect(applicationSpoken(blocked)).toContain('Termin zauzet');
+  expect(applicationFoot(blocked)).toBe('withdraw');
+  await act(async () => tree.update(<ApplicationCard row={row({ terminZauzet: false })} {...handlers()} />));
+  expect(texts().join(' ')).not.toContain('Termin zauzet');
+  expect(workerPrijava(inState('SELECTED', { terminZauzet: true })).reason).toBeNull();
+});
 const render = async (element: React.ReactElement) => act(async () => { tree = create(element); });
 const texts = () => tree.root.findAll(node => node.type === ('T' as React.ElementType)).flatMap(node => node.children.filter((child): child is string => typeof child === 'string'));
 const textNode = (value: string) => tree.root.find(node => node.type === ('T' as React.ElementType) && node.props.children === value);

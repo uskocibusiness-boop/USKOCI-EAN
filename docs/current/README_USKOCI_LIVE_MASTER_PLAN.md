@@ -1,5 +1,7 @@
 # USKOČI — počni ovde
 
+**Najnovije — CAL01:** [zauzet termin, obe uloge](APPLICATION_CALENDAR_CONFLICT_20261021.md). DEV aditivni read primenjen; klijent objašnjava preklapanje i čuva prijavu. SQL cancel/release/reselect, četiri reader-a, start-only i ACL PASS; 180/180 Jest, TSC i integritet migracija PASS. Bez novog APK/native dokaza.
+
 **Najnovije — CCP03:** [stvarni izbor zamene na DEV-u](REPLACEMENT_FLOW_DEV_20261021.md). Rollback proba 3/3 → 2/3 → 3/3, ponavljanje bez duplikata, oba ugla i izolacija bivšeg izvršioca PASS. Nema novih server izmena ili APK-a; signed HTTP, konkurencija i telefon ostaju otvoreni.
 
 **Najnovije — prijave iz oba ugla:** [osvežavanje i međustanja](APPLICATION_REFRESH_STATES_20261021.md). Liste ostaju vidljive tokom provere, komande čekaju svež read, owner task/page se ne mešaju između revizija. 226/226 ciljanih testova i TypeScript PASS. Bez novog APK-a ili tvrdnje o završenom native toku.

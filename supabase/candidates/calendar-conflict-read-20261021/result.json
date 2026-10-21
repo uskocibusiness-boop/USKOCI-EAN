@@ -1,0 +1,173 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "migration": "20261021093741",
+  "checks": {
+    "fourReadContracts": true,
+    "privateHelperNotCallable": true,
+    "wrongOwnerRejected": true,
+    "startOnlyReadAndWriterReject": true,
+    "workerReasonClearsAfterCancel": true
+  },
+  "result": [
+    {
+      "proof": {
+        "result": "PASS",
+        "transaction": "ROLLBACK",
+        "blockedOwner": {
+          "state": "STALE",
+          "version": 1,
+          "priceRsd": 1000,
+          "canSelect": false,
+          "scopeNote": "",
+          "responseId": "c434e002-c520-4bc0-9bd0-27aedaa51c2f",
+          "contentHash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "coveredSlots": 1,
+          "needRevision": 1,
+          "proposedEndAt": "2026-10-28T11:00:00+00:00",
+          "publicProfile": {
+            "city": "Novi Sad",
+            "role": "WORKER",
+            "trust": {
+              "reviewCount": 0,
+              "ratingAverage": null,
+              "completedCount": 0,
+              "ratingAvailable": false,
+              "identityVerified": false,
+              "reviewsAvailable": true,
+              "identityVerificationAvailable": false
+            },
+            "profileId": "39db1574-5258-45c7-bfb4-03161acf9020",
+            "avatarPath": null,
+            "displayName": "Calendar Worker",
+            "publicSummary": {
+              "bio": null,
+              "headline": null
+            }
+          },
+          "remainingSlots": 1,
+          "proposedStartAt": "2026-10-28T09:00:00+00:00",
+          "workerProfileId": "39db1574-5258-45c7-bfb4-03161acf9020",
+          "calendarConflict": true,
+          "applicationEvidence": {
+            "tools": null,
+            "schema": "LEGACY_UNPROVEN",
+            "skills": null,
+            "licenses": null,
+            "vehicles": null,
+            "teamCapacity": null
+          },
+          "responseNeedRevision": 1
+        },
+        "overlapRejected": true,
+        "blockedWorkerPage": {
+          "asOf": "2026-10-21T09:39:01.930149+00:00",
+          "items": [
+            {
+              "id": "88369d58-dfe4-4d81-8e60-511edbe3b142",
+              "state": "SUBMITTED",
+              "title": "CAL01 task 3",
+              "endsAt": null,
+              "needId": "b37b4709-3591-41a7-bdec-3699d30a66c7",
+              "sortAt": "2026-10-21T09:39:01.930149+00:00",
+              "version": 1,
+              "priceRsd": 1000,
+              "startsAt": null,
+              "priceMode": "OFFERS",
+              "scopeNote": "",
+              "priceBasis": null,
+              "agreementId": null,
+              "canWithdraw": true,
+              "description": "Calendar rollback proof",
+              "submittedAt": "2026-10-21T09:39:01.930149+00:00",
+              "coveredSlots": 1,
+              "needRevision": 1,
+              "scheduleKind": "FLEXIBLE",
+              "taskTimezone": null,
+              "applicationId": "88369d58-dfe4-4d81-8e60-511edbe3b142",
+              "requiredSlots": 1,
+              "approximateArea": null,
+              "approximateCity": "Novi Sad",
+              "calendarConflict": false,
+              "attentionRequired": false,
+              "requiresStaleReview": false,
+              "executionLocationMode": "STATIONARY",
+              "submittedNeedRevision": 1
+            },
+            {
+              "id": "c434e002-c520-4bc0-9bd0-27aedaa51c2f",
+              "state": "SUBMITTED",
+              "title": "CAL01 task 2",
+              "endsAt": null,
+              "needId": "bef35059-06d9-4edf-b38b-40cf5d71d973",
+              "sortAt": "2026-10-21T09:39:01.930149+00:00",
+              "version": 1,
+              "priceRsd": 1000,
+              "startsAt": null,
+              "priceMode": "OFFERS",
+              "scopeNote": "",
+              "priceBasis": null,
+              "agreementId": null,
+              "canWithdraw": true,
+              "description": "Calendar rollback proof",
+              "submittedAt": "2026-10-21T09:39:01.930149+00:00",
+              "coveredSlots": 1,
+              "needRevision": 1,
+              "scheduleKind": "FLEXIBLE",
+              "taskTimezone": null,
+              "applicationId": "c434e002-c520-4bc0-9bd0-27aedaa51c2f",
+              "requiredSlots": 1,
+              "approximateArea": null,
+              "approximateCity": "Novi Sad",
+              "calendarConflict": true,
+              "attentionRequired": false,
+              "requiresStaleReview": false,
+              "executionLocationMode": "STATIONARY",
+              "submittedNeedRevision": 1
+            },
+            {
+              "id": "f3e30be7-ffb9-4c36-88b9-258f9ab97601",
+              "state": "SUBMITTED",
+              "title": "CAL01 task 4",
+              "endsAt": null,
+              "needId": "52c66918-7f63-455f-88ab-e7587a410d36",
+              "sortAt": "2026-10-21T09:39:01.930149+00:00",
+              "version": 1,
+              "priceRsd": 1000,
+              "startsAt": "2026-10-28T10:00:00+00:00",
+              "priceMode": "OFFERS",
+              "scopeNote": "",
+              "priceBasis": null,
+              "agreementId": null,
+              "canWithdraw": true,
+              "description": "Calendar rollback proof",
+              "submittedAt": "2026-10-21T09:39:01.930149+00:00",
+              "coveredSlots": 1,
+              "needRevision": 1,
+              "scheduleKind": "FIXED_WINDOW",
+              "taskTimezone": null,
+              "applicationId": "f3e30be7-ffb9-4c36-88b9-258f9ab97601",
+              "requiredSlots": 1,
+              "approximateArea": null,
+              "approximateCity": "Novi Sad",
+              "calendarConflict": true,
+              "attentionRequired": false,
+              "requiresStaleReview": false,
+              "executionLocationMode": "STATIONARY",
+              "submittedNeedRevision": 1
+            }
+          ],
+          "counts": {
+            "total": 4,
+            "active": 3,
+            "finished": 0,
+            "attention": 1
+          },
+          "hasMore": false
+        },
+        "adjacentAllowedByReader": true,
+        "restoredAfterCancellation": true,
+        "retrySameKeyAfterRejectedCommand": true
+      }
+    }
+  ]
+}

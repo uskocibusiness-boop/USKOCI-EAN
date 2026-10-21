@@ -138,7 +138,10 @@ export const CANDIDATE_REASON: Partial<Record<KandidatProjekcija['stanje'], stri
 };
 export type CandidateTone = 'warn' | 'muted';
 /** The reason line, only when it says something: an application that can simply be chosen, and one that was chosen or withdrawn, need none. */
-export function candidateStatus(k: Pick<KandidatProjekcija, 'stanje'>): { text: string; tone: CandidateTone } | null {
+export function candidateStatus(k: Pick<KandidatProjekcija, 'stanje' | 'terminZauzet'>): { text: string; tone: CandidateTone } | null {
+  if (k.terminZauzet && (k.stanje === 'STALE' || k.stanje === 'SELECTABLE')) return {
+    text: 'Termin zauzet · preklapa se sa drugim Dogovorom.', tone: 'warn',
+  };
   const text = CANDIDATE_REASON[k.stanje];
   return text ? { text, tone: k.stanje === 'STALE' || k.stanje === 'OVERFILL' ? 'warn' : 'muted' } : null;
 }

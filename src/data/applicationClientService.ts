@@ -78,6 +78,7 @@ function mapApplication(raw: any, options: { facts: 'optional' | 'required' } = 
     throw new Error('MY_APPLICATIONS_INVALID_PROJECTION');
   }
   const facts = readTaskFacts(raw, options.facts === 'required');
+  if (raw.calendarConflict !== undefined && typeof raw.calendarConflict !== 'boolean') throw new Error('MY_APPLICATIONS_CALENDAR_INVALID');
 
   return {
     prijavaId: String(raw.applicationId),
@@ -86,6 +87,7 @@ function mapApplication(raw: any, options: { facts: 'optional' | 'required' } = 
     prijavaRevizija: submittedNeedRevision,
     prijavaVerzija: version,
     stanje: state,
+    ...(raw.calendarConflict !== undefined ? { terminZauzet: raw.calendarConflict } : {}),
     naslov: String(raw?.title ?? 'Zadatak'),
     opis: String(raw?.description ?? ''),
     cena: {

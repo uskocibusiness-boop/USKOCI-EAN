@@ -235,6 +235,8 @@ export type KandidatProjekcija = {
   prevozTekst: string;
   napomena: string;
   stanje: StanjePrijave;
+  /** Server-confirmed overlap; no identity/details of the other agreement. */
+  terminZauzet?: boolean;
   mozeIzabrati: boolean;
   dokazPrijave: DokazPrijave;
   /**
@@ -276,6 +278,7 @@ export type MojaPrijavaProjekcija = {
   prijavaRevizija: number;
   prijavaVerzija: number;
   stanje: StanjeMojePrijave;
+  terminZauzet?: boolean;
   naslov: string;
   opis: string;
   cena: Novac;

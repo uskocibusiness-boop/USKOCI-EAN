@@ -76,7 +76,9 @@ export function applicationValue(row: Pick<MojaPrijavaProjekcija, 'cena'>): Appl
  */
 export function workerPrijava(row: MojaPrijavaProjekcija, fresh = false): PrijavaModel {
   const note = row.napomena?.trim();
-  return { status: STATUS[row.stanje], reason: REASON[row.stanje] ?? null, who: { kind: 'task', title: readableTitle(row.naslov) },
+  const calendarReason: PrijavaModel['reason'] = row.terminZauzet && ['SUBMITTED', 'VIEWED', 'SHORTLISTED'].includes(row.stanje)
+    ? { text: 'Termin zauzet · imaš drugi Dogovor u ovo vreme. Prijava ostaje sačuvana.', tone: 'warn' } : null;
+  return { status: STATUS[row.stanje], reason: calendarReason ?? REASON[row.stanje] ?? null, who: { kind: 'task', title: readableTitle(row.naslov) },
     term: row.vremeTekst, price: applicationValue(row), people: osoba(row.pokrivaMesta), message: note ? `„${note}“` : null,
     quiet: row.stanje === 'WITHDRAWN' || row.stanje === 'CLOSED', ...(fresh ? { detail: 'upravo' } : {}) };
 }

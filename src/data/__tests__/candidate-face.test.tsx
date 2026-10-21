@@ -54,6 +54,13 @@ let tree: ReactTestRenderer;
 const render = async (element: React.ReactElement) => { await act(async () => { tree = create(element); }); };
 afterEach(async () => { await act(async () => tree?.unmount()); mockWidth = 390; mockFontScale = 1; });
 const noop = () => {};
+it('explains a confirmed calendar overlap and clears it after the next read', async () => {
+  const row = k({ stanje: 'STALE', mozeIzabrati: false, terminZauzet: true });
+  await render(<CandidateListPresentation need={need} candidates={[row]} open={noop} back={noop} refresh={noop} />);
+  expect(texts()).toContain('Termin zauzet · preklapa se sa drugim Dogovorom.');
+  expect(candidateStatus(k({ terminZauzet: false }))).toBeNull();
+  expect(candidateStatus(k({ stanje: 'CLOSED', terminZauzet: true }))?.text).toBe('Prijava više nije u izboru.');
+});
 const list = (candidates: KandidatProjekcija[]) => <CandidateListPresentation need={need} candidates={candidates} open={noop} back={noop} refresh={noop} />;
 const texts = (root: ReactTestInstance = tree.root) => root.findAll(node => node.type === ('T' as unknown as React.ElementType))
   .flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
