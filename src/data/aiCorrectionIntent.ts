@@ -10,6 +10,7 @@ const WORDS = {
   'task.people': ['Broj ljudi', 'Napiši koliko osoba ti je potrebno.'],
   'task.description': ['Opis zadatka', 'Napiši šta u opisu dodaješ, menjaš ili uklanjaš.'],
   'task.location': ['Mesto i način rada', 'Napiši koje mesto, tačku rute ili način rada želiš da promeniš. Ostale podatke zadržavamo u istom razgovoru.'],
+  'task.handoff': ['Način predaje', 'Napiši kako se preuzima rezultat: samo onlajn, lično preuzimanje ili slanje.'],
   'task.requirements': ['Uslovi zadatka', 'Napiši koji uslov želiš da promeniš i kako treba da glasi.'],
   'worker.details': ['Izmena radnog profila', 'Napiši šta želiš da promeniš. Nastavljamo isti razgovor; sačuvani profil ostaje isti do potvrde.'],
   'worker.skills': ['Usluge koje nudiš', 'Napiši koju uslugu dodaješ, menjaš ili više ne nudiš.'],
@@ -52,6 +53,7 @@ export function takeAiCorrection(token: unknown, owner: ReceiptAccount, kind: 't
 }
 
 export function taskCorrectionTarget(key: string): AiCorrectionTarget {
+  if (key === 'need.handoff') return 'task.handoff';
   if (key === 'need.response_deadline') return 'task.deadline';
   if (key === 'need.title') return 'task.title';
   if (key === 'need.description') return 'task.description';

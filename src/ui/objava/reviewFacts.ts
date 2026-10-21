@@ -138,6 +138,7 @@ export function reviewTodos(review: ReviewLocation & { safety: string; missingRe
  * fix is made in the conversation: a safety block, what is missing, or a fact this screen has no row to edit.
  */
 export function todoActionLabel(todo: ReviewTodo, viaConversation = todo.target === 'conversation'): string | undefined {
+  if (todo.text === REVIEW_FACT_COPY.HANDOFF_REQUIRED) return 'Izaberi predaju';
   if (viaConversation) return todo.key === 'safety' ? 'Izmeni u razgovoru' : 'Dopuni u razgovoru';
   if (todo.target === 'location') return 'Dodaj mesto';
   if (todo.target === 'need.starts_at' || todo.target === 'need.ends_at') return 'Izmeni termin';

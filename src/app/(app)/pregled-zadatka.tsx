@@ -5,7 +5,7 @@ import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { SupportContextEntry } from '../../ui/support/SupportContextEntry';
 import { aiTaskReviewClientService, type AiTaskReviewEnvelope, type AiTaskReviewFact,
   type AiTaskPublicationCommand } from '../../data/aiTaskReviewClientService';
-import { reviewDraftWriteProblem, reviewFactProblem } from '../../data/reviewFactProblem';
+import { REVIEW_FACT_COPY, reviewDraftWriteProblem, reviewFactProblem } from '../../data/reviewFactProblem';
 import { publishedTaskRoute, rememberPublication } from '../../data/publicationHandoff';
 import { readIntakeReviewReturn } from '../../data/intakeReviewReturn';
 import { rememberAiCorrection, taskCorrectionTarget, type AiCorrectionTarget } from '../../data/aiCorrectionIntent';
@@ -521,7 +521,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     const viaConversation = target === 'conversation' || (target === 'location' && !hasPhysicalMap) || (!!target && target !== 'location' && !fact);
     return { key: todo.key, text: target === 'location' && !hasPhysicalMap ? 'Mesto ili način rada treba dopuniti u razgovoru.' : todo.text,
       actionLabel: target === 'location' && hasPhysicalMap ? 'Potvrdi tačke na mapi' : todoActionLabel(todo, viaConversation),
-      onPress: viaConversation ? () => editInConversation(target === 'location' ? 'task.location' : 'task.details')
+      onPress: viaConversation ? () => editInConversation(target === 'location' ? 'task.location' : todo.text === REVIEW_FACT_COPY.HANDOFF_REQUIRED ? 'task.handoff' : 'task.details')
         : target === 'location' ? () => { void openLocation(); } : fact ? () => editInConversation(taskCorrectionTarget(fact.key)) : undefined };
   });
   const identityBlock = unavailableIdentityFact ? <View style={s.identity}>
