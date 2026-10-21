@@ -18,6 +18,16 @@ let mockReducedMotion = false;
 // choose this viewport explicitly and exercise the large-text composition separately below.
 let mockWindow = { width: 390, height: 844, fontScale: 1, scale: 3 };
 const mockSource = { dogovor: mockRead, poruke: mockMessages, oznaciZavrsetak: jest.fn(), potvrdiZavrsetak: jest.fn(), podeliTelefon: jest.fn(), opoziviTelefon: jest.fn(), oznaciPorukeProcitanim: mockMessagesRead };
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn(async () => null),
+  setItem: jest.fn(async () => null),
+  removeItem: jest.fn(async () => null),
+  default: {
+    getItem: jest.fn(async () => null),
+    setItem: jest.fn(async () => null),
+    removeItem: jest.fn(async () => null),
+  },
+}));
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
