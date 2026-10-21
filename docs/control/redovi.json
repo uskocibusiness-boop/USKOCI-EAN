@@ -1,4 +1,9 @@
 {
+  "latest_replacement_20261021": {
+    "report": "docs/current/REPLACEMENT_FLOW_DEV_20261021.md",
+    "proof": "DEV rollback CCP03: real cancel and select 3/3 -> 2/3 -> 3/3; replay without duplicate; owner/worker workspace; former worker isolated; zero fixture accounts.",
+    "remaining": ["signed_http", "concurrent_selection", "calendar_overlap", "native_acceptance"]
+  },
   "latest_application_refresh_20261021": {
     "report": "docs/current/APPLICATION_REFRESH_STATES_20261021.md",
     "proof": "SOURCE/TEST: owner coherent retained task/page snapshot and worker retained application rows during refresh; disabled commands and pagination; first read/error/account change remain distinct. 226/226 Jest and TSC PASS.",

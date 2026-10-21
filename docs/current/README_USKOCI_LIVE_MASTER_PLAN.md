@@ -1,5 +1,7 @@
 # USKOČI — počni ovde
 
+**Najnovije — CCP03:** [stvarni izbor zamene na DEV-u](REPLACEMENT_FLOW_DEV_20261021.md). Rollback proba 3/3 → 2/3 → 3/3, ponavljanje bez duplikata, oba ugla i izolacija bivšeg izvršioca PASS. Nema novih server izmena ili APK-a; signed HTTP, konkurencija i telefon ostaju otvoreni.
+
 **Najnovije — prijave iz oba ugla:** [osvežavanje i međustanja](APPLICATION_REFRESH_STATES_20261021.md). Liste ostaju vidljive tokom provere, komande čekaju svež read, owner task/page se ne mešaju između revizija. 226/226 ciljanih testova i TypeScript PASS. Bez novog APK-a ili tvrdnje o završenom native toku.
 
 Jedan aktivan proizvod, jedan registar statusa i postojeći LIVE plan. Ovaj fajl je ulaz u rad, ne novi plan ili potvrda da je aplikacija završena.

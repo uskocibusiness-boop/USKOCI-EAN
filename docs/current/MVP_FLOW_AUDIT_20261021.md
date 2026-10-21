@@ -11,6 +11,8 @@ Ovaj presek razlikuje povezani ekran, lokalni test, aktivan DEV ugovor i potvrđ
 
 ## Otvorene korisničke putanje
 
+**CCP03 dopuna:** [izbor zamene](REPLACEMENT_FLOW_DEV_20261021.md) sada je potvrđen stvarnim rpc_select_response pozivom u DEV rollback transakciji: 3/3 → 2/3 → 3/3, replay bez duplikata, owner/worker workspace i izolacija bivšeg izvršioca. Raniji navod ispod da stvarni izbor zamene nije testiran zamenjen je ovim dokazom. Signed HTTP, konkurencija i Android ostaju otvoreni.
+
 | Prioritet | Nalaz i dokaz | Potrebna potvrda/izmena |
 | --- | --- | --- |
 | P0 | Ispravka objavljenog zadatka vraća **isti** zadatak u `DRAFT` pre ponovne procene; neuspešna objava ostavlja ga van pretrage. `src/app/(app)/pregled-zadatka.tsx:412-414,570`. | Osmisliti i testirati bezbedno ponovno objavljivanje koje čuva aktivan zadatak do potvrde novog stanja; ne obećavati atomarnost sadašnjeg toka. |
