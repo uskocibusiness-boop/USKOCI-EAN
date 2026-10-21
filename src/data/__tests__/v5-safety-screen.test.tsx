@@ -26,6 +26,7 @@ jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsScreen: 'Sc
 import { SafetyScreen } from '../../ui/safety/SafetyScreen';
 import { poruka } from '../../ui/system/Poruka';
 import { SuccessMark } from '../../ui/system/SuccessMark';
+import { SkeletonList } from '../../ui/system/Skeleton';
 let tree: ReactTestRenderer;
 const page = () => <SafetyScreen {...mockContext} />;
 const render = async () => { await act(async () => { tree = create(page()); }); };
@@ -226,11 +227,12 @@ it('checks account again after pending local persistence before network I/O', as
   await render(); await fill(); await act(async () => action('Pošalji privatnu prijavu').onPress());
   mockSession = { user: { id: B }, accountRevision: 2 }; await act(async () => resolve()); expect(mockSafety.report).not.toHaveBeenCalled();
 });
-// UI/UX pass 2026-10-07: the first read of the block is a skeleton; a read the screen does again keeps the state and the action on screen.
-it('the first read of the block is a skeleton of what will stand there, and a read again keeps the state with the action grey and its reason', async () => {
+// The first read names the pending check; a later read keeps the confirmed state and action on screen.
+it('the first read of the block is a quiet line, and a read again keeps the state with the action grey and its reason', async () => {
   let first!: (value: unknown) => void; mockSafety.readBlock.mockReturnValueOnce(new Promise(resolve => { first = resolve; }));
   await render();
   expect(copy()).toContain('Proveravamo blokiranje…'); expect(tree.root.findAllByProps({ label: 'Blokiraj osobu' })).toHaveLength(0);
+  expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
   await act(async () => first({ ok: true, podatak: { accountId: A, targetAccountId: B, blocked: false, revision: 0, authoritative: true } }));
   expect(action('Blokiraj osobu')).toMatchObject({ disabled: false, reason: null }); expect(copy()).not.toContain('Proveravamo blokiranje…');
   let again!: (value: unknown) => void; mockSafety.readBlock.mockReturnValueOnce(new Promise(resolve => { again = resolve; }));

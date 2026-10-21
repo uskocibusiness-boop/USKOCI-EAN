@@ -178,6 +178,8 @@ describe('Gde se radi, Slobodna mesta, Cena', () => {
     expect(discoveryConditions(view({ when: 'today', where: 'remote', places: 3, price: 'OFFERS' }))).toBe(4);
     expect(discoveryConditions(view({ dates: { from: '2026-09-25', to: '2026-09-26' }, when: 'any' }))).toBe(1);
     expect(discoveryConditions(view({ place: 'Novi Sad', query: 'selidba', area: [19, 45, 20, 46] }))).toBe(0);
+    expect(discoveryConditions(view({ price: 'all', minBudgetRsd: 3000 }))).toBe(1);
+    expect(discoveryConditions(view({ price: 'MY_PRICE', minBudgetRsd: 3000 }))).toBe(1);
   });
   it('defaults change nothing: a view written before the filters existed filters exactly as the new defaults do', () => {
     const rows = [item('a', window('2020-01-01T00:00:00Z')), item('b', { pokrivenost: { ukupno: 1, popunjeno: 1, preostalo: 0, udeo: 1 } }), item('c', { detalji: null as never })];

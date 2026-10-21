@@ -52,6 +52,25 @@ const ACTIONS = ['Izmeni uslove', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi
 const everything = { openTask: noop, openChange: noop, openProblem: noop, openCancel: noop, openSafety: noop };
 
 describe('the order of the overview', () => {
+  it('names the current role and only this accepted collaboration’s coverage for both perspectives', async () => {
+    const coverage = { ukupno: 3, popunjeno: 2, preostalo: 1, udeo: 2 / 3 };
+    await draw(props({ agreement: agreement({ pokrivenost: coverage }) }));
+    expect(texts()).toContain('Ti objavljuješ');
+    expect(tree.root.findByProps({ testID: 'agreement-individual-coverage' }).props.children)
+      .toBe('Obuhvat ovog Dogovora: 2 od 3 traženih mesta');
+    expect(texts()).not.toContain('Prijave su otvorene');
+    expect(labels()).not.toContain('Pogledaj prijave');
+    await act(async () => tree.unmount());
+    const worker = agreement({ pokrivenost: coverage, ucesnici: agreement().ucesnici.map(person => ({
+      ...person, viSte: !person.viSte,
+    })) });
+    await draw(props({ agreement: worker }));
+    expect(texts()).toContain('Ti uskačeš');
+    expect(tree.root.findByProps({ testID: 'agreement-individual-coverage' }).props.children)
+      .toBe('Obuhvat ovog Dogovora: 2 od 3 traženih mesta');
+    expect(texts()).toContain('5.500 RSD');
+    expect(texts()).not.toContain('Cene drugih saradnji');
+  });
   it('is the work\'s name, where the Dogovor stands, its terms, and the contact - parted by space, with no title of its own for the rows that lead elsewhere or for the actions', async () => {
     await draw(props({}, everything));
     expect(headers()).toEqual(['Prenos ormana do kombija', 'Dogovoreno', 'Uslovi', 'Kontakt i mesto']);
@@ -67,6 +86,50 @@ describe('the order of the overview', () => {
     expect(at('Dogovoreno')).toBeLessThan(at('Termin još nije dogovoren'));
     expect(at('Termin još nije dogovoren')).toBeLessThan(at('Problem je prijavljen'));
     expect(at('Šta dalje')).toBeLessThan(at('Uslovi'));
+  });
+});
+
+describe('the completed and rated overview', () => {
+  const endStep = (ownRating: 'GIVEN' | 'DUE' | 'UNKNOWN' | 'CLOSED' | 'NOT_APPLICABLE', waits = false) =>
+    agreementNextStep({ state: 'COMPLETED', party: true, worker: false, change: { waits, mine: false }, ownRating, problemOpen: false, deadline: '' });
+
+  it('says the known outcome once while keeping accepted terms, history, extra information and supplied actions', async () => {
+    const openTask = jest.fn(), openApplication = jest.fn(), openSafety = jest.fn();
+    await draw(props({ agreement: agreement({ stanje: 'COMPLETED', hronologija: [{ vremeTekst: 'danas', tekst: 'Završetak je potvrđen' }] }),
+      step: endStep('GIVEN'), steps: { state: 'COMPLETED', ownRating: 'GIVEN' },
+      info: { title: 'Sačuvani podaci', lines: ['Uslovi ostaju dostupni.'] }, headExtra: <T2>Dodatna informacija</T2>,
+    }, { openTask, openApplication, openSafety }));
+    expect(headers()).toContain('Završen · ocena sačuvana');
+    expect(texts()).not.toContain('Hvala na saradnji');
+    expect(tree.root.findAllByProps({ testID: 'agreement-steps' })).toHaveLength(0);
+    expect(headers()).toContain('Uslovi');
+    expect(texts()).toContain('Liman, Novi Sad');
+    expect(texts()).toContain('Dodatna informacija');
+    expect(labels()).toContain('Objašnjenje: Sačuvani podaci');
+    const press = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0];
+    await act(async () => {
+      press('Otvori zadatak: Prenos ormana do kombija. Liman, Novi Sad').props.onPress();
+      press('Tvoja prijava').props.onPress();
+      press('Prijavi ili blokiraj osobu').props.onPress();
+      press('Tok Dogovora').props.onPress();
+    });
+    expect(openTask).toHaveBeenCalledTimes(1); expect(openApplication).toHaveBeenCalledTimes(1); expect(openSafety).toHaveBeenCalledTimes(1);
+    expect(texts()).toContain('Završetak je potvrđen');
+  });
+
+  it.each(['DUE', 'UNKNOWN', 'CLOSED', 'NOT_APPLICABLE'] as const)('does not claim a saved rating when its state is %s', async ownRating => {
+    await draw(props({ agreement: agreement({ stanje: 'COMPLETED' }), step: endStep(ownRating), steps: { state: 'COMPLETED', ownRating } }));
+    expect(texts()).not.toContain('ocena sačuvana');
+    expect(tree.root.findAllByProps({ testID: 'agreement-steps' })).toHaveLength(1);
+    expect(headers()).toContain('Dogovor je završen');
+  });
+
+  it('does not replace a pending-change heading or its content with the compact outcome', async () => {
+    await draw(props({ agreement: agreement({ stanje: 'COMPLETED' }), step: endStep('GIVEN', true),
+      steps: { state: 'COMPLETED', ownRating: 'GIVEN' }, headExtra: <T2>Proveri predlog</T2> }));
+    expect(headers()).toContain('Predlog izmene čeka tvoj odgovor');
+    expect(texts()).toContain('Proveri predlog');
+    expect(texts()).not.toContain('ocena sačuvana');
   });
 });
 

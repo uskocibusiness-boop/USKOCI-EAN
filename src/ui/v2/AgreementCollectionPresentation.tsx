@@ -17,6 +17,7 @@ import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { AgreementRoleRail } from '../agreements/AgreementRoleRail';
 import { AgreementTaskRow } from '../agreements/AgreementListCard';
+import { QuietReadState } from './QuietReadState';
 import { GroupHeader } from '../agreements/GroupHeader';
 import {
   agreementAttention, awaitsMyConfirmation, filterHistory, groupActiveAgreementTasks, HISTORY_FILTERS, type HistoryFilter,
@@ -83,6 +84,12 @@ export function AgreementCollectionPresentation(props: Props) {
   const roleFilter = props.roleFilter ?? ownRoleFilter;
   const setRoleFilter = props.onRoleFilter ?? setOwnRoleFilter;
   const roleItems = useMemo(() => filterAgreementRole(items, roleFilter), [items, roleFilter]);
+  // This is a filter over actual collaborations, not a second account/persona switch.
+  // Keep an active filter available even when its last result disappears, so it can be cleared.
+  const hasBothRoles = useMemo(() => new Set(items.flatMap(item => {
+    const role = item.ucesnici.find(person => person.viSte)?.uloga;
+    return role ? [role] : [];
+  })).size > 1, [items]);
   const now = minuteOf(props.now);
   const tasks = useMemo(() => groupAgreementTasks(roleItems), [roleItems]);
   const activeItems = useMemo(() => tasks.filter(isActiveAgreementTask), [tasks]);
@@ -108,11 +115,11 @@ export function AgreementCollectionPresentation(props: Props) {
   const attention = useMemo(() => activeItems.filter(task => task.items.some(item => agreementAttention(item) !== null)).length, [activeItems]);
   const activeCount = activeItems.length, historyCount = historyItems.length;
   const appear = useAppear();
-  // The skeleton was on screen before these rows: they are news, so the first few arrive once (M-02). A warm return (rows already there,
-  // no skeleton) and a change of set or filter stay still.
-  const sawSkeleton = useRef(false);
-  if (loading) sawSkeleton.current = true;
-  appear.settle(rows.filter(row => row.kind === 'item').map(keyOf), JSON.stringify([section, filtering, historyFilter, roleFilter]), { afterLoading: sawSkeleton.current });
+  // The waiting state was on screen before these rows: they are news, so the first few arrive once (M-02). A warm return
+  // with rows already there and a change of set or filter stay still.
+  const sawLoading = useRef(false);
+  if (loading) sawLoading.current = true;
+  appear.settle(rows.filter(row => row.kind === 'item').map(keyOf), JSON.stringify([section, filtering, historyFilter, roleFilter]), { afterLoading: sawLoading.current });
   // `useAppear` returns a new object each render over the same two refs, and the route's `onOpen`
   // is a fresh closure each render; both are read through refs so `renderItem` keeps its identity.
   const appearRef = useRef(appear); appearRef.current = appear;
@@ -142,12 +149,12 @@ export function AgreementCollectionPresentation(props: Props) {
   const historyInActive = section === 'history' && activeItems.some(task => task.items.some(item => item.stanje === 'COMPLETED' || item.stanje === 'CANCELLED'));
   const historyEmptyTitle = historyFilter === 'completed' ? 'Nema završenih Dogovora'
     : historyFilter === 'cancelled' ? 'Nema otkazanih Dogovora' : 'Istorija je prazna';
-  // The one state view: reading, not read, nothing in this set, nothing yet - each in the same look. Nothing yet leads to the two
+  // Reading, a failed read, nothing in this set and nothing yet remain distinct. Nothing yet leads to the two
   // ways a Dogovor begins (look at the tasks; publish one) when the route can take the person there, and otherwise to Početna.
   const first = props.onTasks ? { label: 'Pogledaj zadatke', onPress: props.onTasks } : { label: 'Idi na Početnu', onPress: props.onHome };
   const second = props.onTasks ? props.onPublish ? { label: 'Objavi zadatak', onPress: props.onPublish } : { label: 'Idi na Početnu', onPress: props.onHome } : undefined;
   const empty = <View style={s.empty}>
-    {loading ? <StateView kind="loading" title="Učitavamo Dogovore…" skeleton={{ count: 3, rows: 2 }} />
+    {loading ? <QuietReadState art="users" title="Učitavamo Dogovore…" body="Proveravamo aktivne saradnje i istoriju." />
       : error ? <StateView kind="error" art="agreements" title="Ne možemo da učitamo Dogovore" body="Proveri internet vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
         : emptyRole ? <StateView compact art="agreements" title="Nema Dogovora u ovoj ulozi" primary={{ label: 'Prikaži sve uloge', onPress: clearRole }} />
@@ -190,7 +197,7 @@ export function AgreementCollectionPresentation(props: Props) {
         <View style={s.tabs}><Segmented appearance="underline" equal options={SECTIONS} value={section} onChange={props.onSection} /></View>
         <ChromeIconButton glyph="calendar" label="Raspored" onPress={props.onCalendar} />
       </View>
-      {items.length > 0 || loading || roleFilter !== 'all' ? <View style={s.toolbar}>
+      {hasBothRoles || roleFilter !== 'all' ? <View style={s.toolbar}>
         <AgreementRoleRail value={roleFilter} onChange={value => { setRoleFilter(value); props.onConfirmationOnly(false); }} />
       </View> : null}
       {chips || holdsStrip ? <View style={s.toolbar}>{chips}</View> : null}

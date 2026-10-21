@@ -21,6 +21,8 @@ jest.mock('../../Press', () => ({ Press: 'Press', PRESS_DELAY: 60 }));
 jest.mock('../../system/motion', () => ({ useReducedMotion: () => true }));
 
 import { ArchiveScreen, type ArchiveSource } from '../ArchiveScreen';
+import { SkeletonList } from '../../system/Skeleton';
+import { QuietReadState } from '../../v2/QuietReadState';
 import { NO_POSAO, agreementOf, applicationOf, needOf } from './fixtures';
 
 let tree: ReactTestRenderer;
@@ -135,12 +137,24 @@ describe('an archive with nothing in it, one still loading, and one that failed'
   it('shows a loading list, never an empty archive, while a read is still going', async () => {
     await draw({ agreements: ready([]), needs: { state: 'loading' }, applications: ready([]) });
     expect(text()).toContain('Učitavamo arhivu…'); expect(text()).not.toContain('Arhiva je prazna.');
+    expect(tree.root.findAllByType(QuietReadState)).toHaveLength(1);
+    expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
+    expect(button('Nazad')).toBeDefined();
     await act(async () => tab('Otkazani').props.onPress());
     expect(text()).toContain('Učitavamo arhivu…'); expect(text()).not.toContain('Nema otkazanih.');
   });
   it('draws what has come while another read is still going', async () => {
     await draw({ needs: { state: 'loading' } });
     expect(rows()).toEqual(['Otvori Dogovor Krečenje stana', 'Otvori Dogovor Selidba ormara', 'Otvori prijavu Košenje trave', 'Otvori prijavu Pomoć oko računara']);
+    expect(tree.root.findAllByType(QuietReadState)).toHaveLength(0);
+  });
+  it('keeps retry available when one source fails while another is still loading', async () => {
+    const handlers = await draw({ agreements: { state: 'error' }, needs: { state: 'loading' }, applications: ready([]) });
+    expect(text()).toContain('Učitavamo arhivu…');
+    expect(text()).toContain('Dogovori nisu učitani.');
+    expect(text()).not.toContain('Arhiva je prazna.');
+    await act(async () => button('Pokušaj ponovo').props.onPress());
+    expect(handlers.onRetry).toHaveBeenCalledTimes(1);
   });
   it('says the archive could not be read when every read failed, and offers to read it again', async () => {
     const handlers = await draw({ agreements: { state: 'error' }, needs: { state: 'error' }, applications: { state: 'error' } });

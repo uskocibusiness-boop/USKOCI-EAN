@@ -13,7 +13,7 @@ export const PEEK_MAX_SHARE = 0.5;
 
 /**
  * A card that peeks up over a screen without taking it over: no backdrop, no dimming, no modal focus trap, detached
- * above the tab bar, 16 dp in from both edges. Made for the pin card on the map, where the map must stay live around it.
+ * above the caller's bottom inset, 16 dp in from both edges. Made for the pin card on the map, where the map must stay live around it.
  * A drag down or Android Back closes it (Back closes the card before it leaves the screen); the screen underneath keeps
  * its own touches. Render it as the last child of a full-screen container. `handle={false}` leaves the grab bar out
  * for a card that carries its own close button (Discovery V47); a drag down still closes it.
@@ -34,7 +34,7 @@ export function PeekSheet({ label, active, onClose, children, bottomInset = sys.
   scrollable?: boolean;
   /** Fixed controls above scrolling content. Only the controls take touches; the rest of the card stays interactive. */
   overlay?: (dismiss: () => void) => ReactNode;
-  /** The gap to the bottom of the screen it floats over. The tab bar sits outside the screen, so 12 clears it. */
+  /** The gap to the bottom of the screen it floats over; the caller must clear its safe area or visible controls. */
   bottomInset?: number;
   reduced?: boolean;
   /** The grab bar above the content; a card with its own × leaves it out. */

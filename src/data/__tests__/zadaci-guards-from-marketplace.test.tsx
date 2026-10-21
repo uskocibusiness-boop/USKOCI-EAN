@@ -51,16 +51,18 @@ const render = async () => act(async () => { tree = create(<Screen />); });
 const press = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
 const tap = async (label: string) => act(async () => press(label).props.onPress());
 const click = async (label: string) => act(async () => tree.root.findAllByType('Action' as React.ElementType).find(node => node.props.label === label)!.props.onPress());
+const filtersButton = () => tree.root.findByProps({ testID: 'filters-button' });
+const openFilters = async () => act(async () => filtersButton().props.onPress());
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const cards = () => tree.root.findAll(node => String(node.type) === 'Press' && /^Otvori zadatak [^:]/.test(node.props.accessibilityLabel ?? ''));
 /** A card's label is the command, its title and then everything it shows: the title is what a guard test reads. */
 const titleOf = (node: ReactTestInstance) => String(node.props.accessibilityLabel).replace(/\. .*$/, '');
 const maps = () => tree.root.findAllByType('DiscoveryMap' as React.ElementType);
-// Discovery V47: the search is a panel over the map; its one green action says how many tasks it will show.
+// Search opens from the filters dialog; its one green action says how many tasks it will show.
 const showAction = () => tree.root.findAllByType('Action' as React.ElementType).find(node => /^Prikaži \d+ zadat|^Nema zadataka za ove uslove$/.test(node.props.label))!;
 // The words that find tasks are typed in the field of the search, which fills the screen (the approved plan, U4).
 const search = async (words: string) => {
-  await tap('Pretraži zadatke');
+  await openFilters(); await click('Pretraži zadatke');
   await act(async () => press('Grad ili zadatak').props.onChangeText(words));
   await act(async () => showAction().props.onPress());
 };
@@ -76,22 +78,23 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.re
 
 // From pkg011-slice1: the title is a header, it is the tab's own name and never an app mode. V41 (2026-09-23): the tab
 // header draws the mark, and the name reaches a screen reader as the header's label.
-test('Discovery leads with task search and no repeated wordmark or app-mode heading', async () => {
+test('Discovery leads with named filters and no repeated wordmark or app-mode heading', async () => {
   await render();
   expect(tree.root.findAll(node => node.props.accessibilityRole === 'header' && node.props.accessibilityLabel === 'USKOČI, Zadaci')).toHaveLength(0);
-  expect(press('Pretraži zadatke').props.accessibilityRole).toBe('button');
+  expect(filtersButton().props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: 'Filteri' });
   expect(texts()).not.toContain('Uskoči i zaradi'); expect(texts()).not.toMatch(/Ja mogu|Meni treba/);
   expect(tree.root.findAll(node => String(node.props.accessibilityLabel).includes('Pronađi zadatak'))).toHaveLength(0);
   expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.accessibilityRole === 'header' && node.children.includes('Mapa'))).toBe(false);
   expect(tree.root.findAllByType('T' as React.ElementType).some(node => node.props.accessibilityRole === 'header' && node.children.includes('Zadaci'))).toBe(false);
 });
 
-// From marketplace-presentation: search is there at once, without the keyboard jumping up over the map on arrival.
-// Discovery V47: it is the pill over the map, one tap away, and there is no text field on the screen to take the keyboard.
-test('search is available immediately without opening the keyboard', async () => {
+// The map offers filters immediately, with an explicit named step into search and no text field at arrival.
+test('filters and their search entry are available without opening the keyboard on arrival', async () => {
   await render();
-  expect(press('Pretraži zadatke').props.accessibilityRole).toBe('button');
+  expect(filtersButton().props.accessibilityRole).toBe('button');
   expect(tree.root.findAllByType('TextInput' as React.ElementType)).toHaveLength(0);
+  await openFilters();
+  expect(tree.root.findAllByType('Action' as React.ElementType).some(node => node.props.label === 'Pretraži zadatke')).toBe(true);
 });
 
 // From marketplace-presentation and pkg011-slice1: a read in flight or a failed read never leaves an old card or the old
@@ -106,12 +109,11 @@ test.each(['loading', 'error'])('%s removes stale cards and the map; retry is bo
   }
 });
 
-// From marketplace-presentation: under reduced motion the search appears at once (Discovery V47: the panel that replaced
-// the filter sheet). Nearby is now bound, but rendering or searching must not start native location.
-test('reduced motion opens search at once; Nearby waits for its own tap and no distance/geocoder is invented', async () => {
+// Under reduced motion the filters and then search open at once; neither asks for the phone's location.
+test('reduced motion opens search from filters at once; Nearby waits for its own tap', async () => {
   mockReduced = true; await render();
   await act(async () => tree.root.findByProps({ testID: 'discovery-body' }).props.onLayout({ nativeEvent: { layout: { height: 800 } } }));
-  await tap('Pretraži zadatke'); // the search fills the screen: the field, then Gde
+  await openFilters(); await click('Pretraži zadatke'); // the search fills the screen: the field, then Gde
   const modal = tree.root.findByType('Modal' as React.ElementType);
   expect(modal.props.animationType).toBe('none');
   expect(modal.findAllByType(BottomSheet)).toHaveLength(0);
@@ -130,7 +132,7 @@ test('reduced motion opens search at once; Nearby waits for its own tap and no d
 test('the filters offer the amount as radios and their apply action is the only brand action', async () => {
   await render(); await tap('Filteri');
   // All filter groups are immediately available; no extra disclosure is required.
-  const radio = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === 'Tražim ponude');
+  const radio = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === 'Ponude');
   expect(radio).toHaveLength(1);
   const brand = tree.root.findAllByType('Action' as React.ElementType).filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor);
   expect(brand.map(node => node.props.label)).toEqual(['Prikaži 2 zadatka']);
@@ -158,11 +160,11 @@ test('removing the searched words keeps the price and the area', async () => {
   await render();
   await search('Pomoć');
   expect(snapshot).toMatchObject({ query: 'Pomoć', price: 'MY_PRICE', area: [19, 45, 20, 46] });
-  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: '„Pomoć“' });
-  await tap('Prikaži sve zadatke');
+  expect(filtersButton().props.accessibilityValue).toEqual({ text: '„Pomoć“' });
+  await tap('Ukloni pretragu ili mesto');
   expect(snapshot).toMatchObject({ query: '', price: 'MY_PRICE', area: [19, 45, 20, 46] });
   // Panning no longer grows the search header; the separate area command keeps the same reset semantics.
-  expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+  expect(filtersButton().props.accessibilityValue).toBeUndefined();
   expect(press('Prikaži sve zadatke').props.testID).toBe('clear-map-area');
   await tap('Prikaži sve zadatke');
   expect(snapshot).toMatchObject({ query: '', price: 'MY_PRICE', area: null });
@@ -191,6 +193,6 @@ test('with a search and a map area on, "Prikaži N zadataka" counts the list sho
   await render();
   expect(cards().map(titleOf)).toEqual(['Otvori zadatak Pomoć one', 'Otvori zadatak Pomoć pet', 'Otvori zadatak Pomoć two']);
   // The list is lowered here (most tasks are on the map), so the row of chips stands over the map as well as in the sheet's header: the first one is the one in reach.
-  await act(async () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Filteri')[0].props.onPress());
+  await openFilters();
   expect(showAction().props.label).toBe('Prikaži 3 zadatka');
 });

@@ -16,6 +16,7 @@ import { sys } from '../system/tokens';
 import { usePressLift } from '../system/usePressLift';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { V2Action } from '../v2/V2Action';
+import { QuietReadState } from '../v2/QuietReadState';
 import { ARCHIVE_FILTERS, DRAFTS_NOT_KEPT, EMPTY_ARCHIVE, REASON_NOT_KEPT, archiveEntries, archiveGroups, hasUnkeptReason,
   type ArchiveEntry, type ArchiveFilter, type ArchiveGroup } from './archive';
 import { PlannerChip, statusSpoken } from './PlannerChip';
@@ -72,7 +73,10 @@ export function ArchiveScreen({ agreements, needs, applications, refreshing, onB
   if (everythingFailed) empty = <StateView kind="error" art="document" title="Arhiva nije učitana." body="Proveri vezu pa probaj ponovo."
     primary={{ label: 'Pokušaj ponovo', onPress: onRetry }} />;
   // Never say the archive is empty before every read it is made of has answered.
-  else if (loading) empty = <StateView kind="loading" title="Učitavamo arhivu…" skeleton={{ count: 3, rows: 2 }} />;
+  else if (loading) empty = <>
+    <QuietReadState art="document" title="Učitavamo arhivu…" body="Proveravamo završene Dogovore, zadatke i prijave." />
+    {notes}
+  </>;
   else if (failed.length) empty = notes;
   else if (filter === 'all') empty = <StateView kind="empty" art="document" title="Arhiva je prazna." body={EMPTY_ARCHIVE.all} />;
   else empty = <View style={s.none}>

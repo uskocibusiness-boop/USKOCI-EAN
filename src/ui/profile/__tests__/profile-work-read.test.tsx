@@ -87,7 +87,7 @@ it('keeps valid reliability available while the requester is slow or fails, with
   const pending = deferred<unknown>(); mockPublic.mockReturnValue(pending.promise);
   mockMyStats.mockResolvedValue(ok(stats({ agreementsCompleted: 9, agreementsMade: 10, reliabilityPercent: 90, reliabilityState: 'AVAILABLE' })));
   await draw(REQUESTER);
-  expect(text()).toEqual(['90 %', 'dolazi kako je dogovoreno']);
+  expect(text()).toEqual(['Proveravamo završene Dogovore…', '90 %', 'dolazi kako je dogovoreno']);
   await act(async () => pending.resolve(null));
   expect(text()).toEqual(['Broj završenih trenutno nije dostupan.', 'Osveži', '90 %', 'dolazi kako je dogovoreno']);
   mockPublic.mockResolvedValue(publicCount());
@@ -112,7 +112,7 @@ it.each(['account', 'revision', 'profile'] as const)('rejects the late old worke
   const newProfile = change === 'profile' ? REQUESTER : WORKER;
   await act(async () => tree.update(<ProfileWorkSummary requesterProfileId={null} workerProfileId={newProfile} />));
   await act(async () => old.resolve(ok(stats({ agreementsCompleted: 99, agreementsMade: 100, cancelledByMe: 1, reliabilityState: 'AVAILABLE', reliabilityPercent: 99 }))));
-  expect(text()).toEqual([]);
+  expect(text()).toEqual(['Proveravamo završene Dogovore…']);
   await act(async () => current.resolve(ok(stats({ profileId: newProfile, agreementsCompleted: 2, agreementsMade: 2 }))));
   expect(text()).toEqual(['2', 'završena']); expect(mockMyStats).toHaveBeenCalledTimes(2);
 });

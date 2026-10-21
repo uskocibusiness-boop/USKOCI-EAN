@@ -56,6 +56,14 @@ describe('card: a fact inside a record', () => {
 });
 
 describe('detail: a fact on a detail screen', () => {
+  it('reads a labeled fact and its note together without truncating or hiding the meaning', async () => {
+    await render(<FactRow art="calendar" size="detail" label="Predloženi termin"
+      value="Subota · 10:00–13:00" note="Po vremenu u Srbiji" testID="fact" />);
+    expect(row().props.accessibilityLabel).toBe('Predloženi termin: Subota · 10:00–13:00, Po vremenu u Srbiji');
+    expect(word('Subota · 10:00–13:00')).toBeDefined();
+    for (const node of texts()) expect(node.props.numberOfLines).toBeUndefined();
+  });
+
   it('is the `body` type (16/24) in ink; the note under it is `note`, grey', async () => {
     await render(<FactRow art="clock" size="detail" value="Sutra · 09:00–11:00" note="Po vremenu u Srbiji" testID="fact" />);
     expect(flat(word('Sutra · 09:00–11:00'))).toMatchObject({ fontSize: sys.type.body.fontSize, lineHeight: sys.type.body.lineHeight, color: sys.color.ink });

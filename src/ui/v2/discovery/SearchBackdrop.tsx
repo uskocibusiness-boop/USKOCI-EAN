@@ -1,5 +1,6 @@
 import { useEffect, useState, type RefObject } from 'react';
-import { AccessibilityInfo, Animated, AppState, PixelRatio, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, AppState, PixelRatio, Platform, Pressable, StyleSheet, View } from 'react-native';
+import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { sys } from '../../system/tokens';
 
@@ -66,11 +67,12 @@ export function useReducedTransparency(): boolean {
  * opacity), and the layer asks for off-screen compositing so that the blur fades with it instead of arriving at full strength.
  */
 export function SearchBackdrop({ kind, blurTarget, fade, onPress }: {
-  kind: BackdropKind; blurTarget?: RefObject<View | null>; fade: Animated.Value; onPress: () => void;
+  kind: BackdropKind; blurTarget?: RefObject<View | null>; fade: SharedValue<number>; onPress: () => void;
 }) {
+  const motion = useAnimatedStyle(() => ({ opacity: fade.value }));
   return <>
     <Animated.View testID="search-backdrop" pointerEvents="none" accessible={false} importantForAccessibility="no-hide-descendants"
-      accessibilityElementsHidden needsOffscreenAlphaCompositing style={[StyleSheet.absoluteFill, { opacity: fade }]}>
+      accessibilityElementsHidden needsOffscreenAlphaCompositing style={[StyleSheet.absoluteFill, motion]}>
       {kind === 'blur' ? <BlurView testID="search-blur-backdrop" pointerEvents="none" style={StyleSheet.absoluteFill}
         intensity={BLUR_INTENSITY} tint="light" blurMethod="dimezisBlurViewSdk31Plus" blurReductionFactor={blurReductionFor(PixelRatio.get())}
         blurTarget={blurTarget} /> : null}

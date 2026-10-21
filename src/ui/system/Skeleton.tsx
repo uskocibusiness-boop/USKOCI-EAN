@@ -58,7 +58,7 @@ function SkeletonLine({ width, line, height }: { width: DimensionValue; line: nu
  * - `person`: the rating screen (AgreementReviewPresentation, eligible): the 56 px face beside the name and role, the question, five
  *   star blanks and the tag pills under a hairline; no frame.
  */
-export type SkeletonVariant = 'plain' | 'task' | 'preview' | 'face' | 'thread' | 'facts' | 'person' | 'row' | 'record' | 'fact';
+export type SkeletonVariant = 'plain' | 'task' | 'taskDetail' | 'preview' | 'face' | 'thread' | 'facts' | 'person' | 'row' | 'record' | 'fact';
 
 /** What a placeholder tells assistive technology: nothing to read here, the sentence under it says it all. */
 const hidden = { importantForAccessibility: 'no-hide-descendants', accessibilityElementsHidden: true } as const;
@@ -200,6 +200,33 @@ function TaskPlaceholder({ lines }: { lines: number }) {
   </Surface>;
 }
 
+/** The detail's title, capacity, amount and labeled facts, at the system text scale.
+ * No fake content or actions; the screen owns the single loading announcement. */
+function TaskDetailPlaceholder() {
+  const px = useScaled();
+  return <View {...hidden} style={s.taskDetail}>
+    <View style={s.detailTitle}>
+      <TextBar width="88%" line={px(sys.type.display.lineHeight ?? 38)} height={px(27)} />
+      <TextBar width="56%" line={px(sys.type.display.lineHeight ?? 38)} height={px(27)} />
+    </View>
+    <TextBar width="42%" line={px(24)} height={px(16)} />
+    <Surface kind="panel" variant="tinted" tone="brand" density="comfortable" style={s.detailTitle}>
+      <TextBar width="30%" line={px(20)} height={px(12)} />
+      <TextBar width="68%" line={px(sys.type.priceHero.lineHeight ?? 38)} height={px(27)} />
+      <TextBar width="38%" line={px(20)} height={px(12)} />
+    </Surface>
+    <Surface kind="panel" variant="tinted" tone="wash" density="comfortable" style={s.detailFacts}>
+      {[0, 1].map(index => <View key={index} style={s.factRow}>
+        <SkeletonBlock width={FACT_ART} height={FACT_ART} />
+        <View style={s.grow}>
+          <TextBar width="30%" line={px(20)} height={px(12)} />
+          <TextBar width={index ? '75%' : '90%'} line={px(24)} height={px(16)} />
+        </View>
+      </View>)}
+    </Surface>
+  </View>;
+}
+
 export function SkeletonCard({ rows, variant = 'plain', face = false, switches = false, foot = false, last = true, index = 0 }: {
   rows?: number; variant?: SkeletonVariant;
   /** `row`: the slot holds a person's face (56). */ face?: boolean;
@@ -210,6 +237,7 @@ export function SkeletonCard({ rows, variant = 'plain', face = false, switches =
 }) {
   if (variant === 'row') return <RowPlaceholder lines={Math.min(3, Math.max(1, rows ?? 2))} face={face} switches={switches} last={last} index={index} />;
   if (variant === 'task') return <TaskPlaceholder lines={rows ?? 2} />;
+  if (variant === 'taskDetail') return <TaskDetailPlaceholder />;
   if (variant === 'record') return <RecordPlaceholder lines={rows ?? 2} foot={foot} />;
   if (variant === 'fact') return <FactPlaceholder lines={Math.min(2, Math.max(1, rows ?? 1))} index={index} />;
   const lines = rows ?? 2;
@@ -296,6 +324,9 @@ export function Skeleton(props: SkeletonListProps) {
 }
 
 const s = StyleSheet.create({
+  taskDetail: { gap: sys.space.base },
+  detailTitle: { gap: sys.space.xs },
+  detailFacts: { gap: sys.space.lg },
   // The plain card: the card frame, its lines 10 apart, and a quiet foot under a hairline.
   plain: { ...cardCompact, gap: 10 },
   plainFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6, paddingTop: 14, borderTopWidth: 1, borderTopColor: sys.color.line },

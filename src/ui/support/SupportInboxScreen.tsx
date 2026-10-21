@@ -27,7 +27,7 @@ const NEW_UNAVAILABLE = 'Novi zahtev trenutno nije dostupan ovom nalogu.';
  * new request (the footer: grey with its reason when it cannot be used, never missing without a word); and, apart, the two
  * places for blocking and data rights. Authorised staff get the same list with a switch between their two inboxes.
  *
- * A refresh the person asked for (a pull of the screen, no standing word "Osveži") keeps the list and the footer on screen (the skeleton is
+ * A refresh the person asked for (a pull of the screen, no standing word "Osveži") keeps the list and the footer on screen (the quiet read state is
  * for the first read and for a page that is being fetched, never a wipe of what was just read). With no requests the list says so in one
  * line, "Nema tvojih zahteva." (owner's phone, 8 Oct 2026: "Još nema primljenih zahteva" spoke of what support received, and these are the
  * person's own), and the green "Novi zahtev" under it is the way forward. The sentence about who reads a request is on the screen that
@@ -40,7 +40,7 @@ export function SupportInboxView({ model, mode, onMode }: {
   const [cursors, setCursors] = useState<(string | null)[]>([null]);
   useEffect(() => { setCursors([null]); }, [model.incarnation]);
   // The last full read of THIS visit (a new focus, account or incarnation is a new visit and starts empty): a re-read
-  // the person asked for draws it again instead of the skeleton. It is read-only here; every command still needs a READY state.
+  // the person asked for draws it again instead of the first-read state. It is read-only here; every command still needs a READY state.
   const settled = useRef<{ incarnation: unknown; state: SupportState } | null>(null);
   // A new visit, a backgrounded app or another account drops it at once: a private list is never kept in memory past the
   // controller that read it (the controller wipes its own state on dispose, and this memory goes with it).

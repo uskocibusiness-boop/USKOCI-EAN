@@ -24,6 +24,7 @@ import { withInter } from '../interFont';
 import { ChoiceRow } from './offer/ChoiceRow';
 import { OwnTaskCard } from './OwnTaskCard';
 import { ownTaskPhases } from './ownTaskPhases';
+import { QuietReadState } from './QuietReadState';
 import { V2Action } from './V2Action';
 
 /**
@@ -219,9 +220,9 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
     }
   }, [openItem, hasApplications, openApplications]);
 
-  // The one state view (2026-09-24): reading, not read, nothing in this view, nothing yet — each in the same look.
+  // Reading, a failed read, an empty filtered view and a first empty list remain distinct.
   const empty = <View style={s.empty}>
-    {reading ? <StateView kind="loading" title="Učitavamo zadatke…" skeleton={{ variant: 'plain' }} />
+    {reading ? <QuietReadState art="tasks" title="Učitavamo zadatke…" body="Proveravamo tvoje objave, nacrte i istoriju." />
       : error ? <StateView kind="error" art="tasks" title="Ne možemo da učitamo zadatke" body="Proveri internet vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
         : paging?.moreError ? <StateView kind="error" art="tasks" title="Nismo učitali sve rezultate" body="Preostali zadaci trenutno nisu dostupni."

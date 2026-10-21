@@ -64,6 +64,22 @@ function Stranger(props: Partial<React.ComponentProps<typeof PublicNeedPresentat
 }
 
 describe('a stranger\'s task', () => {
+  it.each([[0, 2], [1, 2], [2, 2], [2, 3], [3, 3]])('shows %s/%s chosen people independently from application count', async (popunjeno, ukupno) => {
+    await render(<Stranger need={{ ...task, pokrivenost: { ukupno, popunjeno, preostalo: ukupno - popunjeno, udeo: popunjeno / ukupno } }} />);
+    expect(texts()).toContain(`${popunjeno}/${ukupno} izabrano`);
+    expect(tree.root.findAll(node => node.type === ('View' as React.ElementType)
+      && String(node.props.accessibilityLabel).startsWith(`Izabrani izvršioci: ${popunjeno} od ${ukupno}`))).toHaveLength(1);
+    expect(texts()).not.toContain(`${popunjeno}/${ukupno} prijava`);
+  });
+
+  it('does not offer a new application just because a closed task has a vacant place', async () => {
+    await render(<Stranger canApply={false} need={{ ...task, primaNovePrijave: false,
+      pokrivenost: { ukupno: 3, popunjeno: 2, preostalo: 1, udeo: 2 / 3 } }} />);
+    expect(texts()).toContain('2/3 izabrano');
+    expect(byLabel('Pošalji prijavu')).toBeUndefined();
+    expect(joined()).toContain('Nove prijave trenutno nisu dostupne');
+  });
+
   it('brings the task\'s name into the bar only once the large title has scrolled past its own measured end', async () => {
     await render(<Stranger />);
     expect(scroller().props.scrollEventThrottle).toBe(16);
@@ -97,7 +113,7 @@ describe('a stranger\'s task', () => {
       publicPhoto={(_id, size) => <T>{`FOTO ${size}`}</T>} />);
     const all = texts();
     const at = (value: string) => all.findIndex(text => text.includes(value));
-    for (const value of ['9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', 'Traži 2 osobe', 'Ana Anić',
+    for (const value of ['9.000 RSD', 'Beograd, Vračar', 'Sutra ujutru', '0/2 izabrano', 'Ana Anić',
       'Dva sprata bez lifta.', 'Kombi', 'PITANJA', 'MAPA']) expect(at(value)).toBeGreaterThanOrEqual(0);
     expect(all.lastIndexOf('Selidba stana')).toBeLessThan(at('FOTOGRAFIJE'));
     expect(at('9.000 RSD')).toBeLessThan(at('FOTOGRAFIJE'));
@@ -125,7 +141,7 @@ describe('a stranger\'s task', () => {
     </LayoutClassOverride.Provider>);
     expect(texts().filter(value => value === 'Na daljinu')).toHaveLength(1);
     expect(texts()).toContain('Fleksibilno');
-    expect(texts()).toContain('Traži 1 osobu');
+    expect(texts()).toContain('0/1 izabrano');
     expect(joined()).not.toMatch(/Novi Sad|NE SME DA BUDE MAPA/);
     expect(heroTitle().props.children).toBe(title);
     expect(heroTitle().props.numberOfLines).toBeUndefined();
@@ -174,9 +190,9 @@ describe('a stranger\'s task', () => {
   // What it pays is the FIRST FACT of the page, a row with its picture like where and when, and nothing explains it (the owner, 8 Oct 2026: no "Ukupan iznos
   // predlažeš u prijavi."): the sum with what it buys, or the price tag's words; a word about money is never drawn in the sum's type.
   it.each<{ name: string; patch: Partial<PrilikaProjekcija>; value: string; note: string | null; amount: boolean; label: string }>([
-    { name: 'whole-task price', patch: { osnovaCene: 'TOTAL' }, value: '9.000 RSD', note: 'ukupno', amount: true, label: 'Budžet 9.000 RSD ukupno' },
+    { name: 'whole-task price', patch: { osnovaCene: 'TOTAL' }, value: '9.000 RSD', note: 'ukupno', amount: true, label: 'Budžet: 9.000 RSD, ukupno' },
     { name: 'per-person price', patch: { osnovaCene: 'PER_PERSON' }, value: '9.000 RSD', note: 'po osobi · ukupno 18.000 RSD', amount: true,
-      label: 'Budžet 9.000 RSD po osobi · ukupno 18.000 RSD' },
+      label: 'Budžet: 9.000 RSD, po osobi · ukupno 18.000 RSD' },
     { name: 'offers', patch: { rezimCene: 'OFFERS', osnovaCene: 'PER_PERSON', ponudjenaCena: undefined }, value: 'Tražim ponude', note: null, amount: false, label: 'Tražim ponude' },
     { name: 'missing price', patch: { osnovaCene: 'TOTAL', ponudjenaCena: undefined }, value: 'Cena nije navedena', note: null, amount: false, label: 'Cena nije navedena' },
   ])('keeps $name truthful and complete in the promoted terms', async ({ patch, value, note, amount, label }) => {
@@ -192,7 +208,7 @@ describe('a stranger\'s task', () => {
     expect(copy).not.toContain('Ukupno za ceo zadatak'); expect(joined()).not.toMatch(/Ukupan iznos predlažeš|Svako u prijavi/);
     const terms = tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.children === value)[0];
     // The sum is money in its own type and colour; the words are a fact like the others, in the body type.
-    if (amount) expect(StyleSheet.flatten(terms.props.style).color).toBe(sys.color.money);
+    if (amount) { expect(terms.props.variant).toBe('priceHero'); expect(terms.props.numberOfLines).toBeUndefined(); }
     else { expect(terms.props.variant).toBe('body'); expect(terms.props.variant).not.toMatch(/price/); }
   });
 

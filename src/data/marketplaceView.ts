@@ -22,6 +22,10 @@ export const PLACES_MAX = 10;
 export type DiscoverySnap = 'peek' | 'half' | 'full';
 export type MarketplaceView = { query: string; section: 'active' | 'drafts' | 'history' | 'all'; attention: boolean;
   price: 'all' | 'MY_PRICE' | 'OFFERS'; mode: 'list' | 'map'; area: PublicBounds | null; viewport: PublicViewport | null; selectedId: string | null;
+  /** P6 only: minimal stated fixed price, not a derived total or guaranteed income. With all, OFFERS remain eligible.
+   * Null/absent means no minimum; OFFERS-only has no threshold.
+   * Expose only after server capability verification; legacy loaded-page filtering does not implement this field. */
+  minBudgetRsd?: number | null;
   /** Zadaci filters (2026-09-24). Absent means 'any': a view written before them filters exactly as it did. */
   when?: WhenFilter; where?: WhereFilter; places?: PlacesFilter;
   /**
@@ -329,7 +333,7 @@ export const sameBounds = (a: PublicBounds | null | undefined, b: PublicBounds |
 /** How many of the conditions (Kada, Kako se radi, Koliko vas dolazi, Cena) are on: the count on "Uslovi pretrage". */
 export function discoveryConditions(view: MarketplaceView): number {
   return Number((view.when ?? 'any') !== 'any' || !!dateRange(view.dates)) + Number((view.where ?? 'any') !== 'any')
-    + Number(atLeast(view.places) > 1) + Number(view.price !== 'all');
+    + Number(atLeast(view.places) > 1) + Number(view.price !== 'all' || view.minBudgetRsd != null);
 }
 /** Whether the Zadaci conditions (price and the time, work-mode and places choices) differ from "everything". */
 export function discoveryFiltered(view: MarketplaceView): boolean {

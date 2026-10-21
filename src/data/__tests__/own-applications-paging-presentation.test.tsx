@@ -60,38 +60,50 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.re
 
 test('the count beside each tab is the server\'s, never the number loaded; unknown counts say nothing', async () => {
   await render();
-  expect(tabs()).toEqual(['Sve', 'Čeka te', 'Aktivne', 'Završene']);
+  expect(tabs()).toEqual(['Čekaju odgovor', 'Čeka te', 'Istorija', 'Sve']);
   expect(press('Sve').props.accessibilityValue).toEqual({ text: '40 prijava' }); expect(press('Čeka te').props.accessibilityValue).toEqual({ text: '4 prijave' });
-  expect(press('Aktivne').props.accessibilityValue).toEqual({ text: '12 prijava' }); expect(press('Završene').props.accessibilityValue).toEqual({ text: '24 prijave' });
+  expect(press('Čekaju odgovor').props.accessibilityValue).toEqual({ text: '12 prijava' }); expect(press('Istorija').props.accessibilityValue).toEqual({ text: '24 prijave' });
   paging = makePaging({ counts: null }); await rerender();
-  for (const label of ['Sve', 'Čeka te', 'Aktivne', 'Završene']) expect(press(label).props.accessibilityValue).toEqual({ text: '' });
+  for (const label of ['Čekaju odgovor', 'Čeka te', 'Istorija', 'Sve']) expect(press(label).props.accessibilityValue).toEqual({ text: '' });
   paging = makePaging({ counts: { total: 3, attention: 0, active: 3, finished: 0 } }); await rerender();
-  expect(press('Čeka te').props.accessibilityValue).toEqual({ text: '' }); expect(press('Aktivne').props.accessibilityValue).toEqual({ text: '3 prijave' });
+  expect(press('Čeka te').props.accessibilityValue).toEqual({ text: '' }); expect(press('Čekaju odgovor').props.accessibilityValue).toEqual({ text: '3 prijave' });
 });
 
 test('a tab whose set is empty is not "no applications at all": the tabs stay and the empty set says what it is', async () => {
   rows = []; tab = 'attention'; await render();
-  expect(tabs()).toEqual(['Sve', 'Čeka te', 'Aktivne', 'Završene']);
+  expect(tabs()).toEqual(['Čekaju odgovor', 'Čeka te', 'Istorija', 'Sve']);
   expect(texts()).toContain('Ništa te ne čeka'); expect(texts()).not.toContain('Još nemaš prijavu');
   action('Prikaži sve prijave').props.onPress(); expect(onTab).toHaveBeenCalledWith('all');
-  tab = 'finished'; await rerender(); expect(texts()).toContain('Nema završenih prijava');
+  tab = 'finished'; await rerender(); expect(texts()).toContain('Istorija prijava je prazna');
+});
+
+test('ordinary landing offers the attention set when no offer awaits an answer; settled rows remain in history', async () => {
+  rows = []; tab = 'active'; paging = makePaging({ counts: { total: 3, active: 0, attention: 1, finished: 2 }, hasMore: false });
+  await render();
+  expect(texts()).toContain('Nema prijava koje čekaju odgovor');
+  expect(actions()).toContain('Pogledaj šta te čeka');
+  action('Pogledaj šta te čeka').props.onPress(); expect(onTab).toHaveBeenCalledWith('attention');
+  tab = 'attention'; rows = [row('chosen', { stanje: 'SELECTED', traziPaznju: true, dogovorId: 'agreement', mozePovuci: false })];
+  await rerender(); expect(texts()).toContain('Unos chosen'); expect(texts()).not.toContain('Unos closed');
+  tab = 'finished'; rows = [row('closed', { stanje: 'CLOSED', mozePovuci: false }), row('withdrawn', { stanje: 'WITHDRAWN', mozePovuci: false })];
+  await rerender(); expect(texts()).toContain('Unos closed'); expect(texts()).toContain('Unos withdrawn'); expect(texts()).not.toContain('Unos chosen');
 });
 
 test('with no application at all there are no tabs, only the first-run state; a complete set is parted into groups, not tabs', async () => {
   rows = []; paging = makePaging({ counts: { total: 0, attention: 0, active: 0, finished: 0 }, hasMore: false }); await render();
   expect(tabs()).toEqual([]); expect(texts()).toContain('Još nemaš prijavu'); action('Pronađi zadatak').props.onPress(); expect(onExplore).toHaveBeenCalledTimes(1);
-  rows = [row('one')]; paging = makePaging({ counts: null, hasMore: false }); await rerender(); expect(tabs()).toEqual(['Sve', 'Čeka te', 'Aktivne', 'Završene']); expect(heads()).toEqual([]);
+  rows = [row('one')]; paging = makePaging({ counts: null, hasMore: false }); await rerender(); expect(tabs()).toEqual(['Čekaju odgovor', 'Čeka te', 'Istorija', 'Sve']); expect(heads()).toEqual([]);
 });
 
 // The approved draft U8: groups need EVERY application of the set. A page still to come is parted by the server's own sets (the chips), never by what happens to be loaded;
 // a complete set is parted into the three groups; and a set other than "Sve" keeps the chips, so the way back to "Sve" is there.
 test('groups are drawn only for a complete set: a page still to come keeps the server\'s chips, a shown set other than Sve keeps its way back', async () => {
   await render();
-  expect(heads()).toEqual([]); expect(tabs()).toEqual(['Sve', 'Čeka te', 'Aktivne', 'Završene']); expect(texts()).toContain('40 prijava');
+  expect(heads()).toEqual([]); expect(tabs()).toEqual(['Čekaju odgovor', 'Čeka te', 'Istorija', 'Sve']); expect(texts()).toContain('40 prijava');
   paging = makePaging({ hasMore: false }); await rerender();
-  expect(tabs()).toEqual(['Sve', 'Čeka te', 'Aktivne', 'Završene']); expect(heads()).toEqual([]); expect(texts()).toContain('40 prijava');
+  expect(tabs()).toEqual(['Čekaju odgovor', 'Čeka te', 'Istorija', 'Sve']); expect(heads()).toEqual([]); expect(texts()).toContain('40 prijava');
   tab = 'finished'; await rerender();
-  expect(tabs()).toEqual(['Sve', 'Čeka te', 'Aktivne', 'Završene']);
+  expect(tabs()).toEqual(['Čekaju odgovor', 'Čeka te', 'Istorija', 'Sve']);
 });
 
 test('the tab rail stays mounted through a page read, preserving its native scroll position; a failed read offers retry', async () => {
@@ -99,7 +111,7 @@ test('the tab rail stays mounted through a page read, preserving its native scro
   const rail = tree.root.findByProps({ accessibilityRole: 'tablist' });
   tab = 'finished'; loading = true; rows = []; await rerender();
   expect(tree.root.findByProps({ accessibilityRole: 'tablist' })).toBe(rail);
-  expect(press('Završene').props.accessibilityState).toEqual({ selected: true });
+  expect(press('Istorija').props.accessibilityState).toEqual({ selected: true });
   expect(texts()).toContain('Učitavamo tvoje prijave…');
   expect(texts()).not.toContain('Unos one');
   loading = false; rows = [row('closed', { stanje: 'WITHDRAWN', mozePovuci: false })]; await rerender();
@@ -135,6 +147,6 @@ test('the foot is drawn only under applications that are shown: not while readin
 test('without the paging prop the list is the whole list: its groups count themselves and it has no foot', async () => {
   paging = undefined; rows = [row('waiting', { stanje: 'SELECTED', traziPaznju: true, mozePovuci: false, dogovorId: 'agreement' }), row('open'), row('closed', { stanje: 'WITHDRAWN', mozePovuci: false })];
   await render();
-  expect(tabs()).toEqual([]); expect(heads()).toEqual(['Čeka odgovor · 1', 'Izabrana · 1', 'Završene · 1']);
+  expect(tabs()).toEqual(['Čekaju odgovor', 'Čeka te', 'Istorija', 'Sve']); expect(heads()).toEqual(['Čeka odgovor · 1', 'Izabrana · 1', 'Istorija · 1']);
   expect(actions()).not.toContain('Prikaži još'); expect(list().props.onEndReached).toBeUndefined();
 });

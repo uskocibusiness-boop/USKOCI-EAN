@@ -55,8 +55,7 @@ function ConversationInbox() {
       hasMore={!!state.page?.nextCursor} openingDisabled={state.stale} onOpen={onOpen} closedAgreements={closedAgreements}
       onRefresh={() => { if (active()) void model.refresh(); }} onLoadMore={() => { if (active()) void model.more(); }}
       onAgreements={() => navigate(() => router.push('/dogovori'))}
-      // The root bar like Početna's and Dogovori's: the mark, the bell and the face. The tab bar says where you are, so no name is drawn
-      // (a screen reader still hears "USKOČI, Poruke"); the list begins under it.
-      titleInHeader header={<ScreenHeader title="Poruke" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} />
+      // The visible section title is owned by this fixed header, not repeated in the scrolling list.
+      titleInHeader header={<ScreenHeader title="Poruke" showTitle onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} />
   </SafeAreaView>;
 }

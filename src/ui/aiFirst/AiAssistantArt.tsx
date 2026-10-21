@@ -8,10 +8,10 @@ const SOURCE = require('../../../assets/ai/uskoci-assistant.png');
 
 /** Existing USKOČI robot identity, shared by task and work-profile interviews.
  * Static art identifies the assistant; it never signals capture, speech or a completed action. It stands at 24 beside what it says in the
- * thread, at 88 where a screen needs it smaller, and at 128 before the first word ("Asistent i sto", owner's pick of 2026-10-08): the one
- * character of the app and the only picture of 48 or more on that screen. */
+ * thread, at 44 in compact context, and at 88 or 128 for an opening. The same
+ * character identifies the assistant without implying a server result. */
 export type AiAssistantArtProps = {
-  size: 24 | 88 | 128;
+  size: 24 | 44 | 88 | 128;
   animated?: boolean;
 };
 
@@ -207,5 +207,5 @@ export function AiAssistantWelcome({ conversationKey, memory }: {
     run.start();
     return () => { subscription.remove(); settle(); };
   }, [conversationKey, memory, opacity, reduced]);
-  return <Animated.View style={{ opacity }}><AiAssistantArt size={128} /></Animated.View>;
+  return <Animated.View style={{ opacity }}><AiAssistantArt size={88} /></Animated.View>;
 }

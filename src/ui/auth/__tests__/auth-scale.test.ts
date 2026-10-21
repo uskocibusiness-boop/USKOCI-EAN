@@ -37,7 +37,8 @@ const spacingOffScale = (source: string): string[] => [...codeOf(source).matchAl
 const LITERALS: readonly [string, RegExp][] = [
   ['a type size of its own (use a T variant or sys.type)', /\bfontSize\s*:\s*\d/],
   ['a line height of its own', /\blineHeight\s*:\s*\d/],
-  ['a corner of its own (use sys.radius)', /\bborderRadius\s*:\s*\d/],
+  // Fullscreen auth removes the dialog corner; zero is not an additional radius.
+  ['a corner of its own (use sys.radius)', /\bborderRadius\s*:\s*(?!0\b)\d/],
   ['a pale control (a disabled control is the system\'s grey well with muted words, never transparent)', /\bopacity\s*:\s*(?:0?\.\d|0\b)/],
   ['a raw colour', /#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})(?![0-9a-z_])/i],
   ['a hairline of its own (the rule is 1 dp: ruleWidth)', /\bhairlineWidth\b/],

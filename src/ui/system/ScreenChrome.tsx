@@ -49,7 +49,7 @@ type ChromeIconButtonProps = ChromeArt & {
   disabled?: boolean; onPress: () => void;
   /** A deliberate raised command, such as editing the profile; ordinary navigation remains quiet. */
   raised?: boolean;
-  /** Ink for navigation; green is available for a meaningful selected/action state. */ tone?: 'ink' | 'green';
+  /** Ink for navigation, green for a meaningful state, danger for an explicit destructive entry. */ tone?: 'ink' | 'green' | 'danger';
   /** No circle: the glyph alone in the same 48 px touch area. */ quiet?: boolean;
   /**
    * A word beside the glyph, for a command nobody can guess from a drawing (Filteri, Raspored). It is the NAME OF THE CONTROL, never a line
@@ -84,7 +84,7 @@ type ChromeIconButtonProps = ChromeArt & {
 export function ChromeIconButton(props: ChromeIconButtonProps) {
   const { label, hint, active, disabled = false, onPress, tone = 'ink', quiet = false, caption, glyphStyle, children } = props;
   const haptic = props.haptic ?? (props.glyph !== undefined && SILENT_GLYPHS.has(props.glyph) ? 'none' : 'select');
-  const glyphTone = disabled ? 'muted' : active || tone === 'green' ? 'green' : 'ink';
+  const glyphTone = disabled ? 'muted' : active ? 'green' : tone;
   const size = caption ? chrome.captionIcon : chrome.icon;
   const drawing = props.glyph !== undefined
     ? <Glyph name={props.glyph} size={size} tone={glyphTone} on={active} />

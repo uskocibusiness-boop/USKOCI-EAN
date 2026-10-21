@@ -57,10 +57,10 @@ beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); je
 // A read that was never answered would keep its 15 s bound timer alive: answer what is left, then unmount.
 afterEach(async () => { await act(async () => { reads.forEach(read => read.resolve(page([], false, null))); }); if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 
-test('focus reads the first page of Sve once, never the whole list, and hands the presentation the applications, the server counts and the paging', async () => {
+test('ordinary focus reads the current answer-waiting set first, never the whole list, and hands over server counts', async () => {
   await render();
-  expect(reads).toHaveLength(1); expect(reads[0].request).toEqual({ scope: 'ALL', limit: 30, cursor: null }); expect(mockWhole).not.toHaveBeenCalled();
-  expect(props()).toMatchObject({ loading: true, tab: 'all' }); expect(ids()).toEqual([]);   // loading wins over the (not yet known) availability, as in the whole-list screen
+  expect(reads).toHaveLength(1); expect(reads[0].request).toEqual({ scope: 'ACTIVE', limit: 30, cursor: null }); expect(mockWhole).not.toHaveBeenCalled();
+  expect(props()).toMatchObject({ loading: true, tab: 'active' }); expect(ids()).toEqual([]);   // loading wins over the (not yet known) availability, as in the whole-list screen
   await answer(0, page(['a', 'b'], true, COUNTS));
   expect(props()).toMatchObject({ loading: false, unavailable: false }); expect(ids()).toEqual(['a', 'b']);
   expect(props().paging).toMatchObject({ counts: COUNTS, hasMore: true, loadingMore: false, moreError: false });
@@ -68,9 +68,9 @@ test('focus reads the first page of Sve once, never the whole list, and hands th
 });
 
 test('the next page is read from the last application with its rank and appended; a failed one keeps the list and the same call retries it', async () => {
-  await render(); await answer(0, page(['a'], true, COUNTS, 0));
+  await render(); await answer(0, page(['a'], true, COUNTS, 1));
   await act(async () => props().paging.onLoadMore());
-  expect(reads[1].request).toEqual({ scope: 'ALL', limit: 30, cursor: { at: 't-a', id: 'a', rank: 0 } }); expect(props().paging.loadingMore).toBe(true);
+  expect(reads[1].request).toEqual({ scope: 'ACTIVE', limit: 30, cursor: { at: 't-a', id: 'a', rank: 1 } }); expect(props().paging.loadingMore).toBe(true);
   await fail(1);
   expect(props().paging).toMatchObject({ moreError: true, loadingMore: false }); expect(ids()).toEqual(['a']); expect(props().unavailable).toBe(false);
   await act(async () => props().paging.onLoadMore()); await answer(2, page(['b'], false));
@@ -83,17 +83,17 @@ test('a tab is a set of its own: it reads that set, shows nothing of another set
   expect(reads[1].request).toEqual({ scope: 'ATTENTION', limit: 30, cursor: null }); expect(props()).toMatchObject({ tab: 'attention', loading: true }); expect(ids()).toEqual([]);
   await answer(1, page(['a'], false, COUNTS, 0));
   expect(props()).toMatchObject({ loading: false }); expect(ids()).toEqual(['a']);
-  await act(async () => props().onTab('all'));
-  expect(props()).toMatchObject({ tab: 'all', loading: false }); expect(ids()).toEqual(['a', 'b', 'c']);   // what the tab held, at once
-  expect(reads[2].request.scope).toBe('ALL');   // and a quiet re-read
-  await act(async () => props().onTab('finished')); await act(async () => props().onTab('active'));
-  expect(reads.map(read => read.request.scope)).toEqual(['ALL', 'ATTENTION', 'ALL', 'HISTORY', 'ACTIVE']);
+  await act(async () => props().onTab('active'));
+  expect(props()).toMatchObject({ tab: 'active', loading: false }); expect(ids()).toEqual(['a', 'b', 'c']);   // what the tab held, at once
+  expect(reads[2].request.scope).toBe('ACTIVE');   // and a quiet re-read
+  await act(async () => props().onTab('finished')); await act(async () => props().onTab('all'));
+  expect(reads.map(read => read.request.scope)).toEqual(['ACTIVE', 'ATTENTION', 'ACTIVE', 'HISTORY', 'ALL']);
 });
 
 test('a pull to refresh reads the first page again from the top while what is on screen stays', async () => {
   await render(); await answer(0, page(['a'], true, COUNTS));
   await act(async () => props().onRefresh());
-  expect(reads[1].request).toEqual({ scope: 'ALL', limit: 30, cursor: null }); expect(props()).toMatchObject({ loading: false }); expect(ids()).toEqual(['a']);
+  expect(reads[1].request).toEqual({ scope: 'ACTIVE', limit: 30, cursor: null }); expect(props()).toMatchObject({ loading: false }); expect(ids()).toEqual(['a']);
   await answer(1, page(['a', 'z'], false, COUNTS)); expect(ids()).toEqual(['a', 'z']);
 });
 
@@ -101,13 +101,13 @@ test('a first page that fails is an unavailable screen with a retry that reads a
   await render(); await fail(0);
   expect(props()).toMatchObject({ unavailable: true }); expect(ids()).toEqual([]);
   await act(async () => props().onRefresh());
-  expect(reads).toHaveLength(2); expect(reads[1].request).toEqual({ scope: 'ALL', limit: 30, cursor: null });
+  expect(reads).toHaveLength(2); expect(reads[1].request).toEqual({ scope: 'ACTIVE', limit: 30, cursor: null });
   await answer(1, page(['a'], false, COUNTS)); expect(props()).toMatchObject({ unavailable: false, loading: false }); expect(ids()).toEqual(['a']);
 });
 
 test('an application named by a notification: the rest of the set is read until it is met, it is focused once, and until then it is never called missing', async () => {
   mockParams = { prijavaId: 'target' };
-  await render(); await answer(0, page(['a', 'b'], true, COUNTS));
+  await render(); expect(reads[0].request.scope).toBe('ALL'); await answer(0, page(['a', 'b'], true, COUNTS));
   expect(props().requestedId).toBeNull(); expect(props().focusId).toBeNull();
   expect(reads).toHaveLength(2); expect(reads[1].request.cursor).toEqual({ at: 't-b', id: 'b', rank: 1 });   // read without being asked
   await answer(1, page(['target', 'c'], true));
@@ -132,7 +132,7 @@ test('a notification takes the screen to Sve even when another tab was on', asyn
 
 test('a command refreshes the shown set and drops the sets that are not shown: another tab is read as new, never shown stale', async () => {
   await render(); await answer(0, page(['a', 'b'], false, COUNTS));
-  await act(async () => props().onTab('active')); await answer(1, page(['a', 'b'], false, COUNTS));
+  await act(async () => props().onTab('finished')); await answer(1, page(['closed'], false, COUNTS, 2, { stanje: 'WITHDRAWN', mozePovuci: false }));
   await act(async () => props().onTab('all')); await answer(2, page(['a', 'b'], false, COUNTS));
   const target = props().rows[0];
   await act(async () => props().onWithdraw(target));

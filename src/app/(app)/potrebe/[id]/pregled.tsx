@@ -244,7 +244,7 @@ function OwnedNeed({ id }: { id: string }) {
   const otvoriIzmenu = () => {
     if (!canAct() || !potreba) return;
     if (potreba.stanje === 'NACRT') { void openOwnedReview('/nova'); return; }
-    ask('Izmena zadatka', 'Izmene prvo pregledaš pa objaviš. Posle objave se postojeće prijave ponovo proveravaju.',
+    ask('Izmena zadatka', 'Izmene prvo pripremi u razgovoru. Zadatak ostaje objavljen dok ih ne potvrdiš u završnom pregledu.',
       'Izmeni zadatak', 'default', async () => openOwnedReview('/nova'));
   };
   const effectiveRecoveryView = recoveryView;

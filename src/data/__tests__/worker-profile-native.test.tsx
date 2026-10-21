@@ -93,7 +93,7 @@ it('passes owned remote mode into the saved profile instead of assuming its city
   await renderReading();
   expect(texts()).toContain('Na daljinu'); expect(texts()).toContain('Grad profila');
   expect(texts()).not.toContain('20 km');
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Gde' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Područje dolaska' })).toHaveLength(0);
 });
 
 it('an absent pristine profile opens the guarded conversation without creating an empty profile', async () => {
@@ -147,9 +147,9 @@ describe('the saved profile is read first', () => {
     expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
     expect(texts()).not.toContain('Tvoj radni profil'); expect(texts()).toContain('Ana');
     expect(texts()).toContain('Šta radiš'); expect(texts()).toContain('Prevoz, utovar');
-    expect(texts()).toContain('Gde'); expect(texts()).toContain('Novi Sad · 20 km');
+    expect(texts()).toContain('Područje dolaska'); expect(texts()).toContain('Novi Sad · do 20 km');
     expect(texts()).toContain('Kada'); expect(texts()).toContain('Mogu odmah'); expect(texts()).not.toContain('Mogu odmah · dostupnost'); expect(texts()).toContain('Dostupnost');
-    expect(texts()).toContain('Oprema'); expect(texts()).toContain('Alat'); expect(texts()).toContain('Bušilica'); expect(texts()).toContain('Vozila'); expect(texts()).toContain('Kombi');
+    expect(texts()).not.toMatch(/Oprema|Bušilica|Kombi/);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Izmeni: O meni' })).toHaveLength(0);
     // The two buttons of the older reading ("Izmeni razgovorom" and "Izmeni ručno") are gone, and so is the notifications row: the rows lead to the part they change.
     for (const gone of ['Izmeni razgovorom', 'Izmeni ručno', 'Obaveštenja o zadacima', 'Područje rada']) expect([gone, tree.root.findAllByProps({ accessibilityLabel: gone }).length]).toEqual([gone, 0]);
@@ -180,26 +180,26 @@ describe('the saved profile is read first', () => {
       'Javni profil: ime, „O meni“ i grad vide osobe koje otvore tvoj profil.',
       'Zadaci · Za mene: lista po tvom području i vremenu.']);
   });
-  it('shows saved equipment as compact read-only rows', async () => {
+  it('keeps optional saved equipment out of the MVP profile reading', async () => {
     await renderReading();
-    expect(tree.root.findAllByProps({ testID: 'worker-kit-info' }).length).toBeGreaterThan(0);
-    expect(texts()).toContain('Oprema');
+    expect(tree.root.findAllByProps({ testID: 'worker-kit-info' })).toHaveLength(0);
+    expect(texts()).not.toMatch(/Oprema|Bušilica|Kombi/);
   });
 
   it('"Uredi kroz razgovor" opens the guarded conversation, and writes nothing', async () => {
     await renderReading(); click('Uredi kroz razgovor');
     expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
   });
-  it('"Gde" leads to the area and "Nedeljni raspored" to the week, and neither writes anything', async () => {
+  it('"Područje dolaska" leads to the area and "Nedeljni raspored" to the week, and neither writes anything', async () => {
     await renderReading();
-    click('Gde'); expect(mockRouter.navigate).toHaveBeenLastCalledWith({pathname:'/profil/razgovor',params:{aiCorrection:expect.any(String)}});
+    click('Područje dolaska'); expect(mockRouter.navigate).toHaveBeenLastCalledWith({pathname:'/profil/razgovor',params:{aiCorrection:expect.any(String)}});
     click('Dostupnost'); expect(mockRouter.navigate).toHaveBeenLastCalledWith({pathname:'/profil/razgovor',params:{aiCorrection:expect.any(String)}});
     expect(mockWrite).not.toHaveBeenCalled();
   });
-  it.each([['Gde', 'worker.area'], ['Nedeljni raspored', 'worker.time']] as const)(
+  it.each([['Područje dolaska', 'worker.area'], ['Nedeljni raspored', 'worker.time']] as const)(
     'a saved draft opens %s in the same AI journey and keeps only its main footer action', async (label, target) => {
       mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await renderReading();
-      expect(control('Nastavi kroz razgovor')).toBeTruthy();
+      expect(control('Pregled za aktivaciju')).toBeTruthy();
       expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(1);
       expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi kroz razgovor' })).toHaveLength(0);
       click(label);
@@ -225,7 +225,7 @@ describe('the saved profile is read first', () => {
     mockAccountName = { state: 'ready', name: 'Milos' }; mockRead.mockResolvedValue({ ...profile, ime: 'Pera peric' }); await renderReading();
     click('Koristi „Milos“'); await settle();
     // While the name is being written the rows are locked.
-    expect(control('Uredi kroz razgovor').props.disabled).toBe(true); expect(control('Gde').props.disabled).toBe(true);
+    expect(control('Uredi kroz razgovor').props.disabled).toBe(true); expect(control('Područje dolaska').props.disabled).toBe(true);
     act(() => tree.root.findByType(WorkerProfileForm).props.onEditPart('skills'));
     expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
     mockRead.mockResolvedValue({ ...profile, ime: 'Milos' });
@@ -246,10 +246,10 @@ describe('the saved profile is read first', () => {
     await act(async () => tree.unmount());
     mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await renderReading();
     expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
-    expect(control('Nastavi kroz razgovor')).toBeTruthy();
+    expect(control('Pregled za aktivaciju')).toBeTruthy();
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Proveri i aktiviraj profil' })).toHaveLength(0);
-    click('Nastavi kroz razgovor');
-    expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor');
+    click('Pregled za aktivaciju');
+    expect(mockRouter.navigate).toHaveBeenCalledWith({pathname:'/profil/razgovor',params:{activationRequest:expect.any(String)}});
     expect(mockWrite).not.toHaveBeenCalled();
   });
 });

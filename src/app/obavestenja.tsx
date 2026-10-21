@@ -18,7 +18,7 @@ import { T } from '../ui/Text';
 import { V2Action } from '../ui/v2/V2Action';
 
 /**
- * The inbox. The list is drawn by `InboxList` (day groups, rows on a hairline, a dot for unread); this route owns what
+ * The inbox. The list is drawn by `InboxList` (day groups, white cards, a dot for unread); this route owns what
  * a row does: the model resolves it, and the landing below goes exactly where the event points. Message events are
  * acknowledged only by the measured conversation, never by this navigation. The
  * route literals stay in this file: the control table (scripts/control/osvezi.mjs) checks them here.

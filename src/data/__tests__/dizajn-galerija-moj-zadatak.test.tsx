@@ -79,9 +79,11 @@ describe('the owner\'s own task: one block of state, the facts, and every action
     expect(labels()).toContain('Objašnjenje: Tražim ponude');
   });
 
-  it('a task for several people says how many in words, and the people already agreed after it, never as "1/3"', async () => {
+  it('a task for several people distinguishes selected capacity from applications', async () => {
     await open(MINE, 'Treba troje, jedan dogovoren');
-    expect(text()).toContain('Treba 3 osobe'); expect(text()).toContain('1 dogovoreno'); expect(text()).not.toMatch(/\d\/\d/);
+    expect(text()).toContain('1/3 izabrano');
+    expect(labels()).toContain('Izabrani izvršioci: 1 od 3');
+    expect(text()).not.toContain('1/3 prijava');
   });
 
   it('a closed search says so in one line and offers nothing more to choose', async () => {

@@ -21,11 +21,13 @@ jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useFocusE
 const refocus = () => { for (const entry of mockFocused) { if (typeof entry.cleanup === 'function') entry.cleanup(); entry.cleanup = entry.effect(); } };
 jest.mock('../../ui/settings/SettingsPresentation', () => ({ SettingsText: 'T', SettingsScreen: 'Screen', SettingsGroup: 'Group', SettingsRow: 'Row',
   SettingsAction: 'Action', SettingsPersonRow: 'PersonRow' }));
-// The empty, loading and error states are the shared StateView, whose words are the same `T` host here.
+// Empty and error use the shared StateView; the first read uses QuietReadState, whose words are the same `T` host here.
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import Route from '../../app/(app)/profil/blokirani';
 import { poruka } from '../../ui/system/Poruka';
+import { SkeletonList } from '../../ui/system/Skeleton';
+import { QuietReadState } from '../../ui/v2/QuietReadState';
 
 const ok = (items: { targetAccountId: string; displayName: string | null; revision?: number }[], nextCursor: string | null = null) =>
   ({ ok: true, podatak: { accountId: A, authoritative: true, items: items.map(item => ({ revision: 1, ...item, accountId: A, blocked: true })), nextCursor } });
@@ -41,6 +43,20 @@ const confirmButton = () => tree.root.findAll(node => node.props.testID === 'con
 const askUnblock = async (name: string) => act(async () => person(name).props.action.onPress());
 beforeEach(() => { jest.clearAllMocks(); mockRouter.canGoBack.mockReturnValue(true); mockList.mockResolvedValue(ok([])); });
 afterEach(async () => { await act(async () => tree?.unmount()); poruka.hide(); });
+
+it('waits for the first blocked-list read without inventing people or an empty result', async () => {
+  let finish!: (value: unknown) => void;
+  mockList.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+  await render();
+  expect(text()).toContain('Učitavamo blokirane osobe');
+  expect(tree.root.findAllByType(QuietReadState)).toHaveLength(1);
+  expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
+  expect(people()).toHaveLength(0);
+  expect(text()).not.toContain('Nema blokiranih osoba.');
+  await act(async () => finish(ok([{ targetAccountId: B, displayName: 'Marko' }])));
+  expect(people()).toHaveLength(1);
+  expect(tree.root.findAllByType(QuietReadState)).toHaveLength(0);
+});
 
 it('with nobody blocked, says it once and how a block happens; there is no button, the screen is read again by pulling it', async () => {
   await render();

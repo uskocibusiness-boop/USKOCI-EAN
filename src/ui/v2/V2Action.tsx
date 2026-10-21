@@ -1,5 +1,5 @@
 import { cloneElement, isValidElement, useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Animated, Easing, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, Easing, StyleSheet, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { Check } from 'phosphor-react-native';
 import { Press } from '../Press';
 import { T } from '../Text';
@@ -34,12 +34,14 @@ export const ACTION_MIN_HEIGHT = 48;
  * changes later is announced.
  * Every action is at least 48 px high; the primary 54, as `brandAction`.
  */
-export function V2Action({ label, accessibilityLabel, onPress, disabled = false, kind = 'secondary', tone = 'brand', icon, style, compact = false,
+export function V2Action({ label, accessibilityLabel, onPress, disabled = false, kind = 'secondary', tone = 'brand', icon, style, labelStyle, compact = false,
   loading = false, success = false, error, reason }: {
   label: string; onPress: () => void; disabled?: boolean;
   /** Row context for assistive technology without repeating the task title on the visible action. */
   accessibilityLabel?: string;
   kind?: 'primary' | 'secondary' | 'quiet' | 'destructive'; icon?: ReactNode; style?: StyleProp<ViewStyle>;
+  /** Reviewed typography for a specific composition; the action still scales with system text. */
+  labelStyle?: StyleProp<TextStyle>;
   /** Purpose of the command; accent primaries use dark ink on orange, accent links use readable orange ink. */
   tone?: 'brand' | 'neutral' | 'accent';
   /** Smaller type for a secondary control that must not compete with the content. The
@@ -79,7 +81,7 @@ export function V2Action({ label, accessibilityLabel, onPress, disabled = false,
       backgroundColor: kind === 'primary' ? (tone === 'accent' ? sys.color.orange : sys.color.green) : kind === 'secondary' ? sys.color.surface : 'transparent',
       borderWidth: kind === 'secondary' ? 1 : 0, borderColor: sys.color.lineStrong }, inner,
       resting && filled ? s.restingFilled : null, error ? s.errorEdge : null]}>
-    {lead}<T variant={compact ? 'meta' : 'action'} style={{ flexShrink: 1, textAlign: 'center', color }}>{label}</T>
+    {lead}<T variant={compact ? 'meta' : 'action'} style={[labelStyle, { flexShrink: 1, textAlign: 'center', color }]}>{label}</T>
   </Press>;
   if (!wrapped) return button;
   return <View testID="action-column" style={[s.column, outer]}>

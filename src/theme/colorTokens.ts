@@ -49,7 +49,8 @@ export const colorTokens = {
     violetSoft: '#F3EFFA',
     /** Owner 2026-10-02: prices are ink; color and depth belong to artwork and meaningful actions. */
     money: '#17221D',
-    skeleton: '#EEEEEE',
+    /** Waiting shapes sit in the same softly tinted family as cards and controls. */
+    skeleton: '#E6ECE7',
     scrim: '#00000066',
     /** The dim behind a centred dialog (plan 2.20: 0.35; a bottom sheet's own backdrop is 0.3 and lives in the sheet engine). */
     dim: '#00000059',

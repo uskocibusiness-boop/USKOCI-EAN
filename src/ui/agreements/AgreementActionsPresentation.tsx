@@ -18,6 +18,7 @@ import { StateView } from '../system/StateView';
 import { SuccessMark } from '../system/SuccessMark';
 import { brandAction, CHIP_CHOSEN_INSET, chipChosen, field, fieldBox, inset, sys } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
+import { QuietReadState } from '../v2/QuietReadState';
 import type { AgreementActionsState } from './AgreementActionsController';
 import type { AgreementActionCommand } from './agreementActionsModel';
 
@@ -135,7 +136,7 @@ export function AgreementActionsPresentation(p: AgreementActionsPresentationProp
       right={p.phase === 'READY' || p.phase === 'ERROR' || p.phase === 'LOADING'
         ? <ChromeIconButton label="Osveži uslove Dogovora" icon={ArrowClockwise} disabled={busy} onPress={p.onRefresh} /> : undefined} />;
     if (p.phase === 'LOADING' && !snapshot) {
-      body = <StateView kind="loading" title="Učitavamo važeće uslove…" skeleton={{ count: 1, rows: 3, variant: 'facts' }} />;
+      body = <QuietReadState art="document" title="Učitavamo važeće uslove…" body="Proveravamo trenutno stanje Dogovora." />;
     } else if (p.phase === 'ERROR' && !snapshot) {
       body = <StateView kind="error" art="document" title="Dogovor nije učitan" body={p.error ?? undefined}
         primary={{ label: 'Ponovo učitaj Dogovor', onPress: p.onRefresh }} />;
@@ -316,6 +317,7 @@ function Review({ review, proposed, base, snapshot }: { review: AgreementActionC
           <Fact art="calendar" label="Važeći termin" value={cancelContext?.terms ? schedule(cancelContext.terms) : 'Termin nije dostupan'} />
         </View>
         <T variant="copy">Dogovor se završava otkazivanjem. Deljeni kontakt i precizna lokacija se opozivaju. Radnja sama ne određuje krivicu ili dug.</T>
+        <T variant="meta" tone="muted">Razlog koji navedeš druga strana dobija kao poruku o otkazivanju.</T>
       </>
       : <>
         <Terms terms={proposed} base={base} />

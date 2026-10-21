@@ -35,8 +35,8 @@ const SunkBackground = ({ style }: BottomSheetBackgroundProps) => <View pointerE
  * count, which is also the handle: a tap goes to the next height, a drag moves it) is there to take hold of, except while a
  * pin's card covers it: then the screen lowers the lowest height to a sliver behind the card and the sheet is `sunk`: its
  * background is not drawn (no hairline, no shadow peeking out under the card) and nothing in it reaches a screen reader. It reaches
- * the bottom of the screen at every height; the bottom navigation is away while it rests at its top line and lies over its lower part
- * from half height up (the screen pads the list's end for it).
+ * the bottom of the screen at every height; the bottom navigation remains available over map and list, while a selected
+ * pin's preview takes the bottom edge and temporarily hides it. The screen pads the end of the list for its measured height.
  *
  * Below the top line stands the list: the filters are not here, they are the capsules over the map. It moves on ONE critically damped
  * spring that cannot overshoot (`SHEET_SPRING`: clamped), and a drag past its first or last stop does not stretch it

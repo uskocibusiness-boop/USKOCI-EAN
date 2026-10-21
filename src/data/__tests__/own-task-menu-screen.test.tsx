@@ -123,7 +123,7 @@ it('a draft: the edit opens the conversation directly, delete asks with its own 
   // A draft offers ONLY the deletion (plan 2.3): it was never published, so "Otkaži zadatak" beside "Obriši nacrt" asked a person to choose
   // between ending the same unpublished thing two ways. The deletion is the last row and drawn in the danger colour.
   expect(row('Izmeni nacrt')).toHaveLength(1); expect(row('Obriši nacrt')).toHaveLength(1); expect(row('Otkaži zadatak')).toHaveLength(0);
-  expect(row('Obriši nacrt')[0].findAllByType('T' as React.ElementType)[0].props.tone).toBe('danger');
+  expect(row('Obriši nacrt')[0].findAll(node => node.props.name === 'trash')[0].props.tone).toBe('danger');
   await press('Obriši nacrt');
   expect(sheets()[0].props).toMatchObject({ title: 'Obriši nacrt?', confirmLabel: 'Obriši nacrt', tone: 'danger' });
   await inSheet('confirm-sheet-cancel');

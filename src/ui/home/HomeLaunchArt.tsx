@@ -4,8 +4,8 @@ import { Image } from 'expo-image';
 
 // Original bundled illustrations, never a user photograph or an actual map.
 const ART = {
-  publish: require('../../../assets/illustrations/uskoci-task-launch-v2.png'),
-  discover: require('../../../assets/illustrations/uskoci-discover-v3.png'),
+  publish: require('../../../assets/illustrations/natural-v1/publish.webp'),
+  discover: require('../../../assets/illustrations/natural-v1/workbag.webp'),
 };
 
 /** Reserved dimensions keep decoding from moving nearby text; quiet decoration needs no motion. */

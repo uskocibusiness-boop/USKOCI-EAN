@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import type { MyBlockedAccounts } from '../../data/safetyClientService';
 import { inicijali } from '../../lib/inicijali';
 import { StateView } from '../system/StateView';
+import { QuietReadState } from '../v2/QuietReadState';
 import { SettingsText as T, SettingsGroup, SettingsPersonRow, SettingsAction } from './SettingsPresentation';
 
 export type BlockedAccount = MyBlockedAccounts['items'][number];
@@ -42,7 +43,7 @@ export function BlockedAccountsList({ data, loading, busy, error, uncertain, cur
     </View> : null}
     {!data ? error
       ? <StateView kind="error" title="Lista nije učitana" body={error} primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: reading }} />
-      : <StateView kind="loading" title="Učitavamo blokirane osobe…" skeleton={{ count: 3, rows: 1, variant: 'plain' }} /> : null}
+      : <QuietReadState title="Učitavamo blokirane osobe" body="Proveravamo tvoju listu pre prikaza." art="lock" /> : null}
     {/* Nobody blocked is the good case. It says how a block happens, since nothing on this screen can start one, and it has no button:
         the screen is read again by pulling it, and a "Proveri ponovo" that only looked again was the one action of an empty screen. */}
     {firstWithMore ? <StateView kind="empty" art="shield" title="Na ovoj stranici nema više osoba." /> : null}

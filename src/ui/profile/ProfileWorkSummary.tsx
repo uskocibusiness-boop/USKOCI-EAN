@@ -22,7 +22,7 @@ export function FinishedAgreements({ view, onOpen, onRefresh }: {
   /** Opens the finished Dogovori. Absent: the figure is only a figure. */ onOpen?: () => void;
   onRefresh: () => void;
 }) {
-  if (view.kind === 'loading') return <FigureCellPlaceholder label="Učitavanje završenih Dogovora" />;
+  if (view.kind === 'loading') return <FigureCellPlaceholder label="Proveravamo završene Dogovore…" />;
   if (view.facts.length === 0) return null;
   if (view.facts.some(fact => fact.count === null)) {
     return <FigureCellError message="Broj završenih trenutno nije dostupan." retryLabel="Osveži pregled završenih Dogovora" onRetry={onRefresh} />;

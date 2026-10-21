@@ -60,7 +60,7 @@ export const WORKER_PART_TITLE: Readonly<Record<WorkerAiPart, string>> = {
 };
 
 /** What the conversation has captured so far, from the draft itself (never from how many questions were asked). */
-export type CapturedPart = { key: 'skills' | 'area' | 'time' | 'tools'; label: string; done: boolean };
+export type CapturedPart = { key: 'skills' | 'area' | 'time'; label: string; done: boolean };
 export function capturedParts(profile: WorkerAiProfile): CapturedPart[] {
   const place = profile.location, week = profile.availability;
   return [
@@ -68,7 +68,6 @@ export function capturedParts(profile: WorkerAiProfile): CapturedPart[] {
     // Activation needs a country and a city (rpc_complete_worker_profile), so a place is captured only when both are there.
     { key: 'area', label: 'Područje', done: !!place.operatingCountryCode && place.city.trim().length > 0 },
     { key: 'time', label: 'Vreme', done: week.availableNow || week.rules.length > 0 || week.windows.length > 0 },
-    { key: 'tools', label: 'Alat', done: profile.tools.length > 0 || profile.vehicles.length > 0 },
   ];
 }
 
@@ -78,10 +77,9 @@ const said = (labels: readonly string[]) => labels.length < 2 ? labels[0] ?? ''
 /** The one spoken sentence of the progress strip: what the draft holds and what it does not. */
 export function capturedSpeech(parts: readonly CapturedPart[]): string {
   const have = parts.filter(part => part.done).map(part => part.label.toLowerCase());
-  const missing = parts.filter(part => !part.done && part.key !== 'tools').map(part => part.label.toLowerCase());
+  const missing = parts.filter(part => !part.done).map(part => part.label.toLowerCase());
   return [have.length ? `U nacrtu profila: ${said(have)}.` : 'U nacrtu profila još nema ničega.',
-    missing.length ? `Još nema: ${said(missing)}.` : null,
-    parts.some(part => part.key === 'tools' && !part.done) ? 'Alat i vozilo su opcioni; nisu navedeni.' : null].filter(Boolean).join(' ');
+    missing.length ? `Još nema: ${said(missing)}.` : null].filter(Boolean).join(' ');
 }
 
 /** The sentence under "Alat i vozilo": what the two lists really do. */

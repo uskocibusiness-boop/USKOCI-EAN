@@ -5,6 +5,7 @@ import { Press } from '../Press';
 import { SettingsScreen } from '../settings/SettingsPresentation';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
+import { QuietReadState } from '../v2/QuietReadState';
 import { Avatar } from '../system/Avatar';
 import { FactArt } from '../system/FactArt';
 import { layout, ruleWidth } from '../system/layout';
@@ -63,7 +64,7 @@ export function StarsRow({ rating }: { rating: number }) {
 
 export function ReceivedRatings({ view, comments }: { view: ReceivedView; comments?: ReactNode }) {
   return <View style={s.body}>
-    {view.kind === 'loading' ? <View accessibilityRole="progressbar" accessibilityLabel="Učitavamo ocene" style={s.bar} />
+    {view.kind === 'loading' ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Učitavamo prosek ocena…</T>
       : view.kind === 'error' ? <StateView kind="error" title="Ocene trenutno nisu dostupne" body="Proveri vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: view.onRetry }} />
         : view.kind === 'none' ? <StateView kind="empty" art="star" title="Još nema ocena" body="Ocene stižu posle završenih Dogovora." />
@@ -79,7 +80,8 @@ export function ReceivedRatings({ view, comments }: { view: ReceivedView; commen
 }
 
 export function GivenRatings({ view }: { view: GivenView }) {
-  if (view.kind === 'loading') return <StateView kind="loading" title="Učitavamo ocene…" skeleton={{ count: 3, rows: 2, variant: 'plain' }} />;
+  if (view.kind === 'loading') return <QuietReadState art="star" title="Učitavamo date ocene…"
+    body="Proveravamo ocene koje si ostavio." />;
   if (view.kind === 'error') return <StateView kind="error" title="Date ocene nisu učitane" body="Proveri vezu i pokušaj ponovo."
     primary={{ label: 'Pokušaj ponovo', onPress: view.onRetry }} />;
   const empty = view.rows.length === 0;
@@ -123,7 +125,6 @@ const s = StyleSheet.create({
   hidden: { display: 'none' },
   body: { gap: sys.space.base },
   ink: { color: sys.color.ink },
-  bar: { width: 160, height: 16, borderRadius: sys.radius.control, backgroundColor: sys.color.skeleton, marginVertical: sys.space.xs },
   summary: { gap: sys.space.xs },
   average: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: layout.touch },
   stars: { flexDirection: 'row', gap: sys.space.xs },

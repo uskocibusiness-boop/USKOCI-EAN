@@ -70,7 +70,7 @@ it('renders actual group message runs, sender identities and a participant priva
   await act(async () => { tree = create(<DizajnDodaci />); });
   await pressHost('Grupa · razgovor');
   expect(text()).toContain('Dobro jutro! Kombi dolazi u 9, ulaz je iz dvorišta.');
-  for (const [id, name, initials] of [['poruka-1', 'Marko Jovanović', 'MJ'], ['poruka-3', 'Stefan Ilić', 'SI'], ['poruka-4', 'Jovana Petrović', 'JP']]) {
+  for (const [id, name, initials] of [['poruka-1', 'Marko Jovanović', 'MJ'], ['poruka-3', 'Stefan Ilić', 'SI'], ['poruka-4', 'Ti', 'JP']]) {
     const sender = tree.root.findByProps({ testID: `group-message-sender-${id}` });
     expect(sender.findAllByType('T' as React.ElementType).flatMap(node => node.children).join(' ')).toContain(name);
     expect(sender.findAllByType('T' as React.ElementType).flatMap(node => node.children)).toContain(initials);

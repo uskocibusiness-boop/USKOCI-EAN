@@ -8,6 +8,7 @@ import { OUTCOME_ACTION } from '../system/outcomeCopy';
 import { layout } from '../system/layout';
 import { useReducedMotion } from '../system/motion';
 import { StateView } from '../system/StateView';
+import { QuietReadState } from '../v2/QuietReadState';
 import { Surface } from '../system/Surface';
 import { sys, field } from '../system/tokens';
 import { ProductSheet } from '../product/ProductSheet';
@@ -115,7 +116,7 @@ export function LocationScreen({ title, onBack, loading, error, onRetry, uncerta
   /** False when the child is a whole step that scrolls on its own and keeps its save in a footer (`layout="screen"`). */
   scroll?: boolean;
 }) {
-  // Loading is the app's one state view. A failure stays beside the form: under it in a scrolling screen (where the save
+  // A failure stays beside the form: under it in a scrolling screen (where the save
   // is), above it in a step that keeps its save in a footer.
   const failure = error ? <Surface kind="note" tone="danger" style={locationStyles.section}>
     <T accessibilityRole="alert" tone="danger">{error}</T>
@@ -125,7 +126,8 @@ export function LocationScreen({ title, onBack, loading, error, onRetry, uncerta
     <DetailTopBar title={title} onBack={onBack} />
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       {loading ? <ScrollView contentContainerStyle={locationStyles.content}>
-        <StateView kind="loading" title="Učitavamo sačuvanu lokaciju…" skeleton={{ count: 1, rows: 4 }} />
+        <QuietReadState art="map" title="Učitavamo sačuvanu lokaciju…"
+          body="Proveravamo tačke pre nego što prikažemo mapu za potvrdu." />
       </ScrollView> : scroll ? <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={locationStyles.content}>{children}{failure}</ScrollView>
         : <View style={{ flex: 1 }}>{failure ? <View style={locationStyles.failure}>{failure}</View> : null}{children}</View>}
     </KeyboardAvoidingView>

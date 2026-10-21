@@ -1,0 +1,30 @@
+{
+  "kind": "READ_ONLY_SERVER_METADATA",
+  "projectRef": "leqcwgzvjsxugfgzdmth",
+  "checkedAtUtc": "2026-10-20T23:15:06.773773+00:00",
+  "scope": [
+    "pg_proc names matching list, history, archive, delete, hide or purge and ai, worker, need, conversation or intake",
+    "to_regclass existence for private.worker_ai_sessions and public.ai_conversations",
+    "retention policy count and private.retention_ai_source_ready()",
+    "to_regprocedure existence for current open, read and abandon RPCs"
+  ],
+  "readUserRows": false,
+  "workerSessionExists": true,
+  "aiConversationsExists": true,
+  "workerOpenExists": true,
+  "workerReadExists": true,
+  "workerAbandonExists": true,
+  "taskAbandonExists": true,
+  "activeRetentionPolicySets": 0,
+  "aiRetentionSourceReady": false,
+  "broadNameMatches": [
+    "public.rpc_delete_draft_need",
+    "public.rpc_list_my_conversations_v1",
+    "public.rpc_list_my_needs_page",
+    "public.rpc_list_need_candidates",
+    "public.rpc_list_need_candidates_page"
+  ],
+  "aiTaskOrWorkerHistoryRpcFound": false,
+  "aiTaskOrWorkerConversationHideDeleteRpcFound": false,
+  "interpretation": "Names and function existence only. rpc_list_my_conversations_v1 is the agreement/group messaging inbox client contract; rpc_delete_draft_need is a narrow unpublished task deletion. Recheck DEV before a migration."
+}

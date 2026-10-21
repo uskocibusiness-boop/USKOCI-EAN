@@ -40,7 +40,7 @@ export function useBreath(): Animated.Value | Animated.AnimatedInterpolation<num
   useEffect(() => {
     if (reduced) { value.setValue(1); return; }
     const loop = Animated.loop(Animated.sequence([
-      Animated.timing(value, { toValue: 0.55, duration: sys.motion.loop.breath, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      Animated.timing(value, { toValue: 0.78, duration: sys.motion.loop.breath, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
       Animated.timing(value, { toValue: 1, duration: sys.motion.loop.breath, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
     ]));
     loop.start();

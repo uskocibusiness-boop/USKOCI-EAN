@@ -31,7 +31,7 @@ export const awaitsMyConfirmation = (item: DogovorProjekcija) => item.stanje ===
 
 export type AgreementRoleFilter = 'all' | 'narucilac' | 'uskocer';
 export const AGREEMENT_ROLE_FILTERS = [
-  { key: 'all', label: 'Sve', spoken: 'Sve uloge' },
+  { key: 'all', label: 'Sve uloge', spoken: 'Sve uloge' },
   { key: 'narucilac', label: 'Tražim pomoć', spoken: 'Tražim pomoć' },
   { key: 'uskocer', label: 'Uskačem', spoken: 'Uskačem' },
 ] as const;

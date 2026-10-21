@@ -102,7 +102,7 @@ describe('the three tabs as the navigator draws them', () => {
       expect(picture.props.size).toBe(TAB_ICON);
     }
     expect(pictures.map(node => node.props.name)).toEqual(['home', 'map', 'agreements']);
-    expect(pictures.map(node => node.props.on)).toEqual([true, false, false]);
+    expect(pictures.map(node => node.props.strong)).toEqual([true, false, false]);
     expect(pictures.map(node => node.props.tone)).toEqual(['green', 'muted', 'muted']);
   });
 });

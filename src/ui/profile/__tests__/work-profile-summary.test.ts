@@ -7,30 +7,30 @@ const onSiteSummary = (profile: Parameters<typeof workProfileSummary>[0]) => wor
  */
 describe('what the work profile says about itself in one line', () => {
   it('is the state, the first skill with how many more, and the city with its radius', () => {
-    expect(onSiteSummary({ stanje: 'ACTIVE', vestine: ['Moleraj'], grad: 'Novi Sad', radijusKm: 100 })).toBe('Aktivan · Moleraj · Novi Sad, 100 km');
+    expect(onSiteSummary({ stanje: 'ACTIVE', vestine: ['Moleraj'], grad: 'Novi Sad', radijusKm: 100 })).toBe('Aktivan · Moleraj · Dolazak: Novi Sad, do 100 km');
     expect(onSiteSummary({ stanje: 'ACTIVE', vestine: ['Moleraj', 'Keramika', 'Parket'], grad: 'Novi Sad', radijusKm: 100 }))
-      .toBe('Aktivan · Moleraj +2 · Novi Sad, 100 km');
-    expect(onSiteSummary({ stanje: 'DRAFT', vestine: ['Selidbe', 'Nošenje'], grad: 'Beograd', radijusKm: 20 })).toBe('Nacrt · Selidbe +1 · Beograd, 20 km');
+      .toBe('Aktivan · Moleraj +2 · Dolazak: Novi Sad, do 100 km');
+    expect(onSiteSummary({ stanje: 'DRAFT', vestine: ['Selidbe', 'Nošenje'], grad: 'Beograd', radijusKm: 20 })).toBe('Nacrt · Selidbe +1 · Dolazak: Beograd, do 20 km');
   });
 
   it('writes the city as a city is written, without changing what is stored', () => {
-    expect(onSiteSummary({ stanje: 'ACTIVE', vestine: ['Moleraj'], grad: 'Novi sad', radijusKm: 100 })).toBe('Aktivan · Moleraj · Novi Sad, 100 km');
-    expect(onSiteSummary({ stanje: 'ACTIVE', grad: 'NOVI SAD' })).toBe('Aktivan · Novi Sad');
+    expect(onSiteSummary({ stanje: 'ACTIVE', vestine: ['Moleraj'], grad: 'Novi sad', radijusKm: 100 })).toBe('Aktivan · Moleraj · Dolazak: Novi Sad, do 100 km');
+    expect(onSiteSummary({ stanje: 'ACTIVE', grad: 'NOVI SAD' })).toBe('Aktivan · Dolazak: Novi Sad');
   });
 
   it('says only what exists: no skills, no city, no radius are left out, never filled in', () => {
     expect(onSiteSummary({ stanje: 'DRAFT' })).toBe('Nacrt');
     expect(onSiteSummary({ stanje: 'DRAFT', vestine: [], grad: '   ', radijusKm: 20 })).toBe('Nacrt');
-    expect(onSiteSummary({ stanje: 'ACTIVE', vestine: ['  ', 'Moleraj'], grad: 'Kula' })).toBe('Aktivan · Moleraj · Kula');
-    expect(onSiteSummary({ stanje: 'ACTIVE', vestine: ['Moleraj'], grad: 'Kula', radijusKm: 0 })).toBe('Aktivan · Moleraj · Kula');
-    expect(onSiteSummary({ stanje: 'ACTIVE', vestine: ['Moleraj'], grad: 'Kula', radijusKm: Number.NaN })).toBe('Aktivan · Moleraj · Kula');
+    expect(onSiteSummary({ stanje: 'ACTIVE', vestine: ['  ', 'Moleraj'], grad: 'Kula' })).toBe('Aktivan · Moleraj · Dolazak: Kula');
+    expect(onSiteSummary({ stanje: 'ACTIVE', vestine: ['Moleraj'], grad: 'Kula', radijusKm: 0 })).toBe('Aktivan · Moleraj · Dolazak: Kula');
+    expect(onSiteSummary({ stanje: 'ACTIVE', vestine: ['Moleraj'], grad: 'Kula', radijusKm: Number.NaN })).toBe('Aktivan · Moleraj · Dolazak: Kula');
   });
 
   it('clips one very long skill, and keeps the others in the work profile where the whole list is', () => {
     const long = 'Montaža i demontaža nameštaja po meri sa dostavom i ugradnjom';
     const line = onSiteSummary({ stanje: 'ACTIVE', vestine: [long, 'Selidbe'], grad: 'Novi Sad', radijusKm: 50 })!;
     expect(line.startsWith('Aktivan · Montaža i demontaža nameštaja po…')).toBe(true);
-    expect(line.endsWith('+1 · Novi Sad, 50 km')).toBe(true);
+    expect(line.endsWith('+1 · Dolazak: Novi Sad, do 50 km')).toBe(true);
   });
 
   it('says that no profile is not set up, what to do for a suspended one, and nothing for a state it does not know', () => {
@@ -52,7 +52,7 @@ describe('what the work profile says about itself in one line', () => {
 it('uses confirmed mode only, without deriving remote or on-site work from skills/city', () => {
   const profile = { stanje: 'ACTIVE' as const, vestine: ['3D štampa'], grad: 'Novi Sad', radijusKm: 15 };
   expect(workProfileSummary(profile, { kind: 'confirmed', modes: ['REMOTE'] })).toBe('Aktivan · 3D štampa · Na daljinu');
-  expect(workProfileSummary(profile, { kind: 'confirmed', modes: ['ON_SITE', 'REMOTE'] })).toBe('Aktivan · 3D štampa · Na daljinu · Novi Sad, 15 km');
+  expect(workProfileSummary(profile, { kind: 'confirmed', modes: ['ON_SITE', 'REMOTE'] })).toBe('Aktivan · 3D štampa · Na daljinu · Dolazak: Novi Sad, do 15 km');
   for (const kind of ['loading', 'unavailable', 'unconfirmed'] as const) {
     expect(workProfileSummary(profile, { kind })).toBe('Aktivan · 3D štampa');
   }

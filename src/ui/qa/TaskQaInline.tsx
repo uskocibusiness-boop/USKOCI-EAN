@@ -5,8 +5,8 @@ import { T } from '../Text';
 import { Press } from '../Press';
 import { V2Action } from '../v2/V2Action';
 import { Glyph } from '../system/Glyph';
+import { FactArt } from '../system/FactArt';
 import { ruleWidth } from '../system/layout';
-import { SkeletonList } from '../system/Skeleton';
 import { sys } from '../system/tokens';
 import { qaCountLine, waitingWords, type QaInlineItem, type QaInlineReady, type TaskQaInlineState } from './taskQaInlineModel';
 
@@ -49,7 +49,7 @@ export function TaskQaInline({ state, onRetry, onAsk, onAnswer, onOpenAll, disab
       {state.phase === 'ready' && state.waiting > 0 ? <WaitingChip label={waitingWords(state.waiting)} testID="task-qa-waiting" /> : null}
     </View>
     {state.phase === 'loading' ? <View style={s.loading} accessibilityLiveRegion="polite">
-      <SkeletonList count={1} rows={2} variant="thread" />
+      <FactArt kind="chat" size={24} />
       <T variant="meta" tone="muted">Učitavamo pitanja…</T>
     </View>
       : state.phase === 'error' ? <View style={s.trouble}>
@@ -127,7 +127,7 @@ const s = StyleSheet.create({
   section: { gap: sys.space.md },
   head: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: sys.space.md, rowGap: sys.space.xs },
   title: { color: sys.color.ink },
-  loading: { gap: sys.space.sm },
+  loading: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingVertical: sys.space.sm },
   trouble: { gap: sys.space.xs, alignItems: 'flex-start' },
   // A question is a bare item on the page, parted from the next by a line of 1 dp (`rule`): the thread is one list, not a stack of cards.
   item: { gap: sys.space.sm, paddingVertical: sys.space.md },

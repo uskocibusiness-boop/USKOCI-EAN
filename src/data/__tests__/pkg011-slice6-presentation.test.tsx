@@ -14,6 +14,7 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import { SettingsAction, SettingsFooter, SettingsGroup, SettingsInfo, SettingsIntro, SettingsPanel, SettingsPersonRow, SettingsRow, SettingsScreen,
   SettingsSwitchRow, SettingsText } from '../../ui/settings/SettingsPresentation';
 import { Glyph } from '../../ui/system/Glyph';
+import { NoticeSwitchRow } from '../../ui/notifications/NoticeSwitchRow';
 
 let tree: ReactTestRenderer;
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
@@ -58,8 +59,10 @@ test('a switch row is one focus stop spoken as a switch, the drawn switch green 
   await act(async () => on.props.onPress()); expect(change).toHaveBeenCalledWith(false);
   const drawn = on.findByProps({ importantForAccessibility: 'no-hide-descendants' });
   expect(drawn.props.accessibilityElementsHidden).toBe(true);
+  expect(drawn.props.pointerEvents).toBe('none');
   const toggle = drawn.findByProps({ value: true });
   expect(toggle.props).toMatchObject({ trackColor: { false: sys.color.lineStrong, true: sys.color.green }, thumbColor: sys.color.surface });
+  expect(toggle.props.onValueChange).toBeUndefined();
   const off = byLabel('Hitno može');
   expect(off.props.accessibilityState).toEqual({ checked: false, disabled: true });
   expect(off.props.accessibilityHint).toBe('Samo hitno. Prvo sačuvaj.');
@@ -67,6 +70,17 @@ test('a switch row is one focus stop spoken as a switch, the drawn switch green 
   // The group name is the system's section title (UI/UX pass 2026-10-08: `Section`, the `heading` type, a header), not a tracked capital label.
   const title = tree.root.findAllByType('T' as React.ElementType).find(node => node.children.includes('Tihi sati'))!;
   expect(title.props.accessibilityRole).toBe('header'); expect(title.props.variant).toBe('heading');
+});
+test('a notification switch uses only the whole row as its touch target', async () => {
+  const change = jest.fn();
+  await act(async () => { tree = create(<NoticeSwitchRow label="Prijave i poruke" spoken="Prijave i poruke, kad objavljuješ" value onChange={change} />); });
+  const row = byLabel('Prijave i poruke, kad objavljuješ');
+  const drawn = row.findByProps({ importantForAccessibility: 'no-hide-descendants' });
+  expect(drawn.props.pointerEvents).toBe('none');
+  expect(drawn.findByProps({ value: true }).props.onValueChange).toBeUndefined();
+  await act(async () => row.props.onPress());
+  expect(change).toHaveBeenCalledTimes(1);
+  expect(change).toHaveBeenCalledWith(false);
 });
 test('a person row has two focus stops side by side: the person, and the action', async () => {
   const open = jest.fn(), unblock = jest.fn();

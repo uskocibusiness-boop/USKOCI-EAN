@@ -164,9 +164,9 @@ export default function TabLayout() {
   const PUSHED = reducedMotion ? { animation: 'none' as const } : PUSH_TRANSITION;
   const FULL = { ...PUSHED, tabBarStyle: { display: 'none' as const } };
   const REDIRECT = { ...FULL, animation: 'none' as const };
-  // The bar as every tab draws it, and what Zadaci does to it (the owner's phone of 8 Oct 2026): on that one tab it lies over the bottom of the
-  // screen and slides away while the list rests at its top line or a pin's card stands at the bottom (`ui/v2/discovery/zadaciBar`). The value that
-  // moves it, and the bar's whole height, go to that screen through the context; nothing else of the navigator is changed.
+  // Discovery keeps the bar above ordinary map/list browsing, including FULL lists, and clears it for a selected pin
+  // so the preview can sit by the safe bottom edge. Its measured height keeps ordinary cards and list ends unobscured.
+  // The same motion host handles hiding and restoring the bar without changing the selected map/list state.
   const barBase = useMemo(() => ({ ...tabBarSurface, height: tabBarHeight(labelHeight, TAB_BAR_PADDING), marginHorizontal: 12, marginTop: 0,
     marginBottom: Math.max(12, insets.bottom) }), [labelHeight, insets.bottom]);
   const awayValue = useRef(new Animated.Value(0)).current;
@@ -187,7 +187,7 @@ export default function TabLayout() {
         ? publicationLanding(withoutLeft(original.getStateForAction(state, { ...action, type: 'JUMP_TO' }, options), state.routes[state.index]), state.routes[state.index])
         : original.getStateForAction(state, action, options)),
       getStateForRouteFocus: (state, key) => withoutRetired(original.getStateForRouteFocus(state, key)) })}
-    // The bottom bar is for the three ROOT screens only (owner's master directive, 2026-09-23): a detail, a flow, a
+    // The bottom bar is for the four ROOT screens only (owner's master directive, 2026-09-23): a detail, a flow, a
     // conversation and a setting are "in this job", not in the main menu, so they hide it (FULL). `profil/razgovor` was
     // the last exception until its composer had a keyboard-aware inset of its own; the AI conversation shell gives it one
     // now (round 4 review ra), so it hides the bar like every other conversation. (`prilike`, the root-like copy of Mapa
@@ -195,7 +195,7 @@ export default function TabLayout() {
     // Around thirty screens are registered here with `href: null` — the whole profile family, the
     // review, the location and photo steps, support. With `animation: 'none'` not one of them had a
     // push transition: they replaced each other instantly, which is why moving through the app felt
-    // like redrawing rather than going somewhere. Switching between the three tabs stays instant,
+    // like redrawing rather than going somewhere. Switching between the four tabs stays instant,
     // which is what a tab bar is for; only pushes move.
     screenOptions={({ route, navigation }) => {
       const selected = sectionOf(navigation.getState()) === route.name;
@@ -237,6 +237,7 @@ export default function TabLayout() {
     <Tabs.Screen name="dogovori" options={{ title: PRIMARY_LABEL.dogovori, tabBarAccessibilityLabel: PRIMARY_LABEL.dogovori }} />
     <Tabs.Screen name="poruke" options={{ title: PRIMARY_LABEL.poruke, tabBarAccessibilityLabel: PRIMARY_LABEL.poruke, ...(conversationInboxBuilt() ? {} : { href: null, ...FULL }) }} />
     <Tabs.Screen name="profil" options={{ href: null, ...FULL }} />
+    <Tabs.Screen name="profil/podesavanja" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/radnik" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/razgovor" options={{ href: null, ...FULL }} />
     <Tabs.Screen name="profil/podaci" options={{ href: null, ...FULL }} />

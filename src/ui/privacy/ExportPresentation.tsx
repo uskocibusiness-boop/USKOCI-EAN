@@ -5,10 +5,10 @@ import { vreme } from '../../lib/vreme';
 import { SettingsGroup, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
 import { Glyph } from '../system/Glyph';
 import { ListRow } from '../system/ListRow';
-import { SkeletonList } from '../system/Skeleton';
 import { StateView } from '../system/StateView';
 import { STATUS_TONES, StatusMark, type StatusShape, type StatusTone } from '../system/StatusChip';
 import { sys } from '../system/tokens';
+import { QuietReadState } from '../v2/QuietReadState';
 import { InlineNote, QuietLine } from './InlineNote';
 
 export const exportPreparationCopy: Record<NonNullable<DataExportPreparation['code']>, string> = {
@@ -169,8 +169,8 @@ export function ExportScreenView({ onBack, loading, failure, status, preparation
   return <SettingsScreen title="Izvoz podataka" onBack={onBack} footer={primary ? <>{noticeLine}{primary}</> : null}
     refresh={{ onRefresh: () => { if (!busy && !loading && !refreshDisabled) onRefresh(); }, busy: loading }}>
     {notice && !primary ? noticeLine : null}
-    {/* The skeleton is for the first read. A re-read keeps the steps on screen: the word at the end of the title shows it works. */}
-    {loading && !status ? <View accessible accessibilityLabel="Učitavanje stanja izvoza"><SkeletonList count={1} rows={3} /></View>
+    {/* The first read has no result yet. A re-read keeps the steps on screen while the pull shows it works. */}
+    {loading && !status ? <QuietReadState title="Učitavamo stanje izvoza" body="Proveravamo zahtev i dostupnost kopije pre prikaza." art="download" />
       // The sentences of a failure end in "Osveži stanje.", so the one retry says the same words.
       : failure ? <StateView kind="error" art="download" title={failure.title} body={failure.body}
         primary={{ label: 'Osveži stanje', onPress: onRefresh, disabled: refreshDisabled }} />

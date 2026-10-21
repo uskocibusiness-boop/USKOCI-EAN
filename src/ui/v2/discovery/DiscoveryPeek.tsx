@@ -56,7 +56,8 @@ function PinTask({ item, relation, onOpen, onLayout }: {
 
 /**
  * The card of a chosen pin (Zadaci, 2026-09-24; Discovery V47): ONE floating card, 16 dp in from both edges, just above
- * the tab bar, over the list sheet's top line (which steps out of sight behind it while it shows). A single task is
+ * the Android safe bottom edge, over the list sheet's top line (which steps out of sight behind it while it shows). The
+ * tab bar withdraws while this focused map preview is open. A single task is
  * `PinTask`; several tasks on one point say how many and list them as rows, each opening its own task ("Pogledaj
  * zadatak"), up to three, with the whole set offered in the list. ×, a swipe down and Android Back close it; under reduced
  * motion it appears without moving. Every opening goes through the screen's own guarded `onOpen`. Its opening is said

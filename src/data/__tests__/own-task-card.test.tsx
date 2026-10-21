@@ -67,7 +67,7 @@ describe('the state and the one next step', () => {
   it('the chip is not a stop of its own: the body is heard once, as one sentence that starts with the state', async () => {
     await render(<OwnTaskCard item={task()} onOpen={jest.fn()} onApplications={jest.fn()} />);
     expect(hiddenFromReaders(chips()[0])).toBe(true);
-    expect(presses()[0].props.accessibilityValue.text).toBe('Bira se, 3, Budžet 2.000 RSD po osobi, Grbavica, Novi Sad, 25. sep · 10:00, Treba 2 osobe');
+    expect(presses()[0].props.accessibilityValue.text).toBe('Bira se, 3, Budžet 2.000 RSD po osobi, Grbavica, Novi Sad, 25. sep · 10:00, Izabrani izvršioci: 0 od 2');
   });
 
   it('without a way to the applications the line is still said, as plain text in the body', async () => {
@@ -113,8 +113,7 @@ describe('the state and the one next step', () => {
 describe('the rest of the row', () => {
   it('keeps the facts of the task as rows of one kind: what it pays, where, when and how many people, each with its picture', async () => {
     await render(<OwnTaskCard item={task({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0 })} onOpen={jest.fn()} />);
-    expect(texts()).toEqual(expect.arrayContaining(['Montaža dve police', '2.000 RSD', 'po osobi', 'Grbavica, Novi Sad', '25. sep · 10:00', 'Treba 2 osobe']));
-    expect(texts().join(' ')).not.toMatch(/popunjeno|\d\/\d/);
+    expect(texts()).toEqual(expect.arrayContaining(['Montaža dve police', '2.000 RSD', 'po osobi', 'Grbavica, Novi Sad', '25. sep · 10:00', '0/2 izabrano']));
     // The amount and what it buys stand on ONE line, and the amount is the one thing drawn as money.
     const amount = tree.root.findAll(node => node.type === T_ && node.props.children === '2.000 RSD')[0];
     expect(amount.props.variant).toMatch(/^price/);
@@ -123,11 +122,26 @@ describe('the rest of the row', () => {
     expect(style(line)).toMatchObject({ flexDirection: 'row', flexWrap: 'wrap' });
   });
 
-  it('says how many people only when it is more than one, and how many are agreed once any is', async () => {
+  it('distinguishes chosen workers from applications, including zero and single-person capacity', async () => {
     await render(<OwnTaskCard item={task({ stanje: 'OBJAVLJENA', brojPrijavaZaIzbor: 0, pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 } })} onOpen={jest.fn()} />);
-    expect(texts().join(' ')).not.toMatch(/Treba|dogovoreno|0\/1/);
+    expect(texts()).toContain('0/1 izabrano');
     await render(<OwnTaskCard item={task({ stanje: 'DELIMICNO_POPUNJENA', brojPrijavaZaIzbor: 0, pokrivenost: { ukupno: 3, popunjeno: 1, preostalo: 2, udeo: 1 / 3 } })} onOpen={jest.fn()} />);
-    expect(texts()).toEqual(expect.arrayContaining(['Treba 3 osobe', '1 dogovoreno']));
+    expect(texts()).toContain('1/3 izabrano');
+  });
+
+  it.each([[0, 2], [1, 2], [2, 2], [2, 3], [3, 3]])('shows %s/%s independently of eight applications', async (chosen, total) => {
+    await render(<OwnTaskCard item={task({ brojPrijava: 8, brojPrijavaZaIzbor: 8,
+      pokrivenost: { ukupno: total, popunjeno: chosen, preostalo: total - chosen, udeo: chosen / total } })}
+      onOpen={jest.fn()} onApplications={jest.fn()} />);
+    expect(texts()).toContain(`${chosen}/${total} izabrano`);
+    expect(texts()).toContain('8 prijava');
+    expect(presses()[0].props.accessibilityValue.text).toContain(`Izabrani izvršioci: ${chosen} od ${total}`);
+  });
+
+  it('does not invent zero capacity from an invalid projection', async () => {
+    await render(<OwnTaskCard item={task({ pokrivenost: { ukupno: 2, popunjeno: undefined } })} onOpen={jest.fn()} />);
+    expect(texts()).toContain('Popunjenost nije dostupna');
+    expect(texts()).not.toContain('0/2 izabrano');
   });
 
   it('a remote task is identified in words and its full title remains accessible', async () => {

@@ -14,6 +14,8 @@ jest.mock('../../v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../system/DetailTopBar', () => ({ DetailTopBar: 'DetailTopBar' }));
 jest.mock('../../system/SuccessMark', () => ({ SuccessMark: 'SuccessMark' }));
 import { AgreementReviewPresentation, SAVE_WARNING, type ReviewView } from '../AgreementReviewPresentation';
+import { QuietReadState } from '../../v2/QuietReadState';
+import { SkeletonList } from '../../system/Skeleton';
 import type { ReviewCommentFieldView } from '../ReviewCommentField';
 import { REVIEW_COMMENT_NOTICE } from '../ReviewCommentField';
 
@@ -43,6 +45,12 @@ const inOrder = () => {
 };
 
 describe('the layout around the keyboard', () => {
+  it('first rating read has one calm state with no placeholder person', async () => {
+    await draw({ kind: 'loading' });
+    expect(tree.root.findAllByType(QuietReadState)).toHaveLength(1);
+    expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
+    expect(inOrder()).toContain('Učitavamo ocenu…');
+  });
   it('without a comment on screen there is no avoiding view: the layout of before (the frame lets a tap through while a field has the keyboard, as every frame does)', async () => {
     await draw(eligible());
     expect(tree.root.findAllByType(KeyboardAvoidingView)).toHaveLength(0);

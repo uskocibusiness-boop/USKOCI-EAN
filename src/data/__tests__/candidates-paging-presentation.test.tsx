@@ -28,7 +28,10 @@ jest.mock('../../ui/product/ProductDetails', () => ({ ProductHeader: 'Header' })
 jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
 jest.mock('../../ui/system/StateView', () => ({ StateView: 'StateView' }));
 jest.mock('../../ui/v2/CandidateFace', () => ({ CandidateCard: 'Card', CandidateCompareCard: 'CompareCard', CandidatePerson: 'Person',
-  UNPRICED: '—', candidateChip: () => 'application.sent', candidateStatus: () => '', candidateTime: () => '', candidateValue: () => '' }));
+  UNPRICED: '—', candidateChip: () => 'application.sent', candidateStatus: () => '', candidateTime: () => '',
+  candidateValue: (candidate: any) => candidate.cena?.iznos > 0 && /\d/.test(candidate.cena?.prikaz ?? '')
+    ? { kind: 'amount', amount: candidate.cena.prikaz, basis: 'ukupno' }
+    : { kind: 'unpriced' } }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: jest.fn() }));
 import { CandidateListPresentation, type CandidateSort, type CandidatesPaging } from '../../ui/v2/ApplicationSelectionPresentation';
 import { prijava } from '../../ui/system/plural';

@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { inicijali } from '../../lib/inicijali';
 import { ProfilePhoto } from '../media/ContextPhotos';
 import { Avatar } from '../system/Avatar';
+import { FactArt } from '../system/FactArt';
 import { ListRow } from '../system/ListRow';
 import { Section } from '../system/Section';
 import { sys } from '../system/tokens';
@@ -23,8 +24,17 @@ function StandaloneEntry(props: Props) {
 }
 function GroupEntry({ agreementId, model, onPrivate }: Props & { model: GroupContextModel }) {
   const context = model.context, group = context?.group;
-  if (!context || !group) return model.error ? <V2Action label="Ponovo učitaj učesnike" kind="quiet" onPress={model.refresh} />
-    : context?.available === false ? <T variant="meta" tone="muted">Grupni razgovor se otvara kad su za ovaj zadatak izabrane najmanje dve osobe.</T> : null;
+  if (!context || !group) return model.error ? <Section title="Učesnici zadatka">
+    <T variant="note" tone="muted" accessibilityLiveRegion="polite">Učesnici trenutno nisu učitani.</T>
+    <V2Action label="Ponovo učitaj učesnike" kind="quiet" onPress={model.refresh} />
+  </Section> : context?.available === false
+    ? <T variant="meta" tone="muted">Grupni razgovor se otvara kad su za ovaj zadatak izabrane najmanje dve osobe.</T>
+    : <Section title="Učesnici zadatka">
+      <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingVertical: sys.space.sm }}>
+        <FactArt kind="users" size={32} />
+        <T variant="note" tone="muted">Učitavamo učesnike…</T>
+      </View>
+    </Section>;
   const choices = privateConversationChoices(context);
   const members = new Map(group.members.map(member => [member.accountId, member]));
   const targets = new Map((group.management ?? []).map(item => [item.agreementId, item.accountId]));

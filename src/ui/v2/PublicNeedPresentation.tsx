@@ -15,15 +15,15 @@ import { ListRow } from '../system/ListRow';
 import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '../system/PublicProfileSheet';
 import { Screen } from '../system/Screen';
 import { Section } from '../system/Section';
-import { SkeletonCard } from '../system/Skeleton';
 import { StateView } from '../system/StateView';
 import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
+import { QuietReadState } from './QuietReadState';
 import type { TaskFitContext } from './detail/taskFit';
 import { useUrgencyClock } from './NeedUrgencyBadge';
-import { CardStatus, placesText, taskPlace } from './TaskFace';
+import { CardStatus, taskPlace } from './TaskFace';
 import { TaskDecisionPublisher, TaskDecisionRequirements, TaskDecisionTitle, TaskPlacePrivacy,
   applyActionLabel } from './detail/TaskDecision';
 import { TaskDetailSummary } from './detail/TaskDetailSummary';
@@ -122,10 +122,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
   return <>
     <Screen kind="detail" header={<ProductHeader back={back} disabled={busy} title={need ? readableTitle(need.naslov) : undefined} titleVisible={scrollTitle.titleVisible}
       right={menu.button} />} footer={foot} onScroll={scrollTitle.onScroll}>
-      {!need && loading ? <View style={s.state} accessibilityLiveRegion="polite">
-        <View accessibilityLabel="Učitavamo zadatak"><SkeletonCard rows={3} /></View>
-        <T variant="meta" tone="muted" style={s.center}>Učitavamo zadatak…</T>
-      </View> : null}
+      {!need && loading ? <QuietReadState art="tasks" title="Učitavamo zadatak…" body="Proveravamo najnovije uslove i dostupnost prijave." /> : null}
       {!need && !loading && error ? <StateView kind="error" art="tasks" title="Ne možemo da učitamo zadatak" body="Proveri internet vezu i pokušaj ponovo."
         primary={canRetry ? { label: 'Pokušaj ponovo', onPress: retry, disabled: busy } : undefined} /> : null}
       {/* A task that is not there says so and leads back to the other tasks; a read that may only have failed can be tried again. */}
@@ -141,8 +138,7 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
           {status || urgent ? <View style={s.status}><CardStatus status={status} urgency={need.urgency} now={urgencyNow} /></View> : null}
           <TaskDecisionTitle prominent onLayout={scrollTitle.onTitleLayout}>{readableTitle(need.naslov)}</TaskDecisionTitle>
         </View>
-        <TaskDetailSummary need={need} audience="worker" place={taskPlace(need).text} remote={remote}
-          people={placesText(need.pokrivenost, 'worker').text} />
+        <TaskDetailSummary need={need} audience="worker" place={taskPlace(need).text} remote={remote} />
         {ready && (fit?.overlapTitle || typeof fit?.distanceKm === 'number' && fit.distanceKm >= 0) ? <View style={s.fit}>
           {fit?.overlapTitle ? <FactRow size="detail" art="alert" value={`Preklapa se sa tvojim Dogovorom ${fit.overlapTitle}`} /> : null}
           {typeof fit?.distanceKm === 'number' && fit.distanceKm >= 0 ? <FactRow size="detail" art="map"
@@ -180,7 +176,6 @@ export function PublicNeedPresentation({ need, loading, error, missing, stale, b
 
 const s = StyleSheet.create({
   state: { gap: sys.space.md },
-  center: { textAlign: 'center' },
   // The title stays a direct child of this measured scroll block, so its handoff to the bar includes the real padding.
   hero: { gap: sys.space.md, paddingVertical: sys.space.sm },
   status: { alignItems: 'flex-start' },

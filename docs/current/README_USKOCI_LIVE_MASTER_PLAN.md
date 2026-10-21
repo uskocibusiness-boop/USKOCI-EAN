@@ -29,6 +29,8 @@ Najnoviji nalog odobrava **prvi povezani AI paket na DEV-u i emulatoru**; ranije
 
 **Pet referenci i prošireni blueprint, 20.10.2026:** isti dokument sada sadrži analizu vlasnikovih Airbnb slika, detaljnu kompoziciju glavnih i pomoćnih ekrana, kartice prema ulozi, AI/map potvrde, matricu podataka, media/privacy granice, ikonografiju, motion i redosled povezanih paketa (§8–20). Ovo je konkretan predlog celog USKOČI proizvoda, ne tvrdnja da je redizajn implementiran. Naredni vizuelni skup: Početna → Zadaci/filteri → detalj iste objave za obe perspektive; AI brzina i otvoreni serverski ugovori ostaju u postojećem registru.
 
+**Celovit nacrt pre većeg kruga, dopuna vlasnika 20.10:** §21 istog blueprinta sada definiše **65 korisničkih površina i stanja u osam celina**: vrh, redosled sadržaja, donje komande, primarnu radnju, polja, Back i zavisnosti. Sva **53 TSX fajla u `src/app`** povezana su sa nacrtom, tehničkom navigacijom, starim adapterom ili zasebnim operatorom. To nije 65 novih ruta niti dokaz završenog MVP-a. Zahtev vlasnika je veći povezani krug kroz obe uloge, pa zajedničko prihvatanje; kratke provere kritičnog upisa ne odlažu se do javnog izdanja. Nema novog paralelnog statusnog plana.
+
 Premium White je odobrena foundation smernica, sa devet povezanih talasa iz §15 canona. Istorijski R1–R8/V28/V31, stare motion zabrane, identični pikseli i ručni formulari nisu drugi aktivni ugovor. Fizički history banner označava povučeni vizuelni autoritet; funkcionalni ugovori i datirani dokazi se čitaju u svom domenu. [Registar ograničenja](../implementation/design-system/DESIGN_CONSTRAINT_REGISTRY_20261018.md) razdvaja mehaničkog kandidata, pregledan nalaz i stvarnu fizičku izmenu. Broj klasifikovanih redova nije broj zatvorenih problema.
 
 ## Gde je šta
@@ -86,6 +88,12 @@ DEV **Task 116 / Worker 71**, task izvor **db44965e**, **19/19 exact**: jedna **
 
 Prvi CI pokušaj `39369801419` stao je na pet ponovljenih provera stare doslovne rečenice Task prompta. Nova zasebna semantička provera čuva pravilo opisa; svi postojeći kalendarski/DST behavioral dokazi ostaju. Povezani Node paket 247/247 PASS; završni CI je proverio ceo aktuelni izvor. [Kompozicija ekrana i redosled](UI_DIRECTION_REVIEW_20261020.md).
 
+## Povezana Početna, pretraga i detalj — 20.10.2026.
+
+20.10: Početna → Zadaci/mapa/lista/filteri → detalj, source/APK 70bc79f2, CI 39380225968 SUCCESS, 622/14019 PASS. Installed hash i embedded OTA potvrđeni; ograničen emulator pregled i Home 361/390/412 × font1/1.3. Povezan nacrt svih 65 površina; ostali MVP tokovi ostaju otvoreni. docs/current/evidence/CONNECTED_UI_20261020.json.
+
+Aktuelan nacrt §21 dokumenta UI_DIRECTION_REVIEW_20261020.md povezuje postojeće rute, pomoćne prikaze, obe perspektive, komande, Back, privatnost i serverske zavisnosti. Prvi neuspešan CI je razjašnjen: usklađeni su mock-ovi centralnih simbola i konkretne zastarele estetske provere; stvarna razlika visine task skeleton-a popravljena je u proizvodu uz zadržan test pomeranja. Novi runtime ne uključuje preostale nacrtane ekrane. Nijedna šira stavka registra ovim nije proglašena završenom.
+
 ## Šta znači „trenutno“
 
 <!-- AI_LOCATION_GUIDANCE_START -->
@@ -133,3 +141,18 @@ Prethodni full-tree paket je datirani prethodnik. Aktivni Edge sada koristi alat
 DEV Task106/Worker59, 25/25 SQL i 16/14 Edge readback. Parent režimi više ne blokiraju konkretnu uslugu; EXTEND_MODE čuva UUID. Sedam živih scenarija/osam poruka/22 model poziva,0,222529USD interni obračun; četiri DRAFT Save-a i aktivan izolovan QA radnik. Stvarna dostava RS matches=true, samo pickup uz shipping-only radnika matches=false. CREATE_CHILD i EXTEND_MODE primenjeni tek nakon Save. 621/13898 PASS; APK+preview OTA5f422987 provereni na emulatoru,361/390/412dp,font1/1.3. Bez objave zadatka ili stvarne push/phone provere. docs/current/SERVICE_EXECUTION_20261019.md
 
 [Tačan rezultat, granice i naredni posao](SERVICE_EXECUTION_20261019.md).
+
+## Native UI paket 1 — 20.10.2026.
+
+[Izveštaj](NATIVE_UI_PACKAGE_1_20261020.md) i [dokaz](evidence/NATIVE_UI_PACKAGE_1_20261020.json): lokalni kandidat iznad `70bc79f2`, bez Git push-a/OTA objave. Zajednički MoneySummary, označeni FactRow, TaskCapacity, detalj obe perspektive, forma/pregled prijave i kandidati. **11 grupa / 272 testa i tsc PASS**. Lokalni x86_64 APK i ograničen stvarni emulator prolaz; probni prikazi sa offline podacima su zasebno označeni. Nema novog slanja/izbora; otvaranje postojeće QA prijave označilo ju je kao Viđena. HONOR, dva naloga i ceo tok do Dogovora ostaju neprovereni. Sledeći native paket: mapa/pretraga/filteri i odvajanje zadataka na daljinu uz očuvanje postojeće mehanike.
+
+
+## Celovita native integracija — najnovija odluka 20.10.2026.
+
+[Plan i ciljani presek](NATIVE_FULL_INTEGRATION_20261020.md), [dokaz](evidence/NATIVE_FULL_INTEGRATION_20261020.json). Mapa zadržava postojeće ponašanje; ostali aplikacioni modali se centriraju. Nova prirodno obojena 2.5D ikonografija, bez radara, uz postojeći robot. Prenos svih potrebnih Figma oblasti i stanja u jednom povezanom krugu; bez instalacije međupaketa. Izvorne provere tokom rada, objedinjeni kandidat pa build/instalacija i stvarni tokovi. Izvorna implementacija je u toku: centrirani modali, nova porodica 20 ilustracija, Početna bez radara, zasebna podešavanja/profil, fizički/remote discovery i odvojeni pregled aktivacije radnog profila. Poslednji objedinjeni rezultati 623 grupa / 14015 PASS / 0 FAIL / 9 preskočenih, kroz regresiju i ciljane popravke. Izvorni popis 65 površina je preciziran; svi Master native scenariji i preostali server ugovori ostaju otvoreni. Nema novog builda ili instalacije.
+
+### Lokalni nastavak 21.10.
+
+Mapa ima jedan ulaz Filteri; potvrđeno LocationIQ mesto, način rada, tip cene i datum su u centriranom panelu. Tuđ kadar ne sme da sačuva pogrešnu oznaku mesta. Imenovane AI radnje, mirna učitavanja i zaštita nesnimljenih izmena prijave preneti su u lokalni klijent. Minimum fiksne cene je i dalje isključen iza build flag-a i neprimenjenog SQL kandidata. [Tačan izvor, provere i otvoreni ugovori](NATIVE_FULL_INTEGRATION_20261020.md). Završni objedinjeni Jest bez Firebase suite-a: 627/627 suite-ova, 14.151 PASS, 9 SKIP; Firebase odvojeno 13/13 PASS; TSC i diff check exit 0. Nema novog APK-a, HONOR prohoda, primene DEV-a ni zatvaranja svih Master scenarija.
+
+Povezani prikazi Dogovora, Poruka i Obaveštenja i redosled filtera dodatno su doterani u lokalnom izvoru. Novi zajednički **ciljani** prolaz posle tih izmena: 16 suite-ova, 758/758 PASS, TSC i diff check PASS; prethodni puni prolaz im vremenski prethodi. Detalji i ograničenja su u [nastavku preseka](NATIVE_FULL_INTEGRATION_20261020.md). LIVE registar je osvežen bez podizanja statusa: 62 toka, 0 gotovo, 52 čekaju native uređaj, 10 otvoreno.

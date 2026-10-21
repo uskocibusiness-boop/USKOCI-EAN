@@ -72,6 +72,8 @@ export type NeedDetailProjection = {
 
 export type PotrebaProjekcija = {
   id: string;
+  /** Owner read's update instant; Home uses it only to keep a recent draft in "Čeka te". Older readers may omit it. */
+  azurirano?: string;
   urgency?: NeedUrgencyProjection;
   /** Tačna revizija. Izbor mora da se veže za nju. */
   revizija: number;

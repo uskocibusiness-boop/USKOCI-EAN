@@ -5,7 +5,7 @@ import { createDiscoveryV1SearchOwner } from './discoveryV1SearchOwner';
 import type { DiscoveryV1OwnerTransport } from './discoveryV1Owner';
 import { pointKey, type MarketplaceView, type PublicBounds } from './marketplaceView';
 
-export type DiscoveryV1SearchDraft = Pick<MarketplaceView,'query'|'place'|'area'|'pinPlace'|'when'|'dates'|'where'|'places'|'price'>;
+export type DiscoveryV1SearchDraft = Pick<MarketplaceView,'query'|'place'|'area'|'pinPlace'|'when'|'dates'|'where'|'places'|'price'|'minBudgetRsd'>;
 export type DiscoveryV1RouteSnapshot = {
   active: boolean;
   generation: number;
@@ -29,11 +29,13 @@ export const DISCOVERY_V1_OVERLAY_LEAD=25,DISCOVERY_V1_OVERLAY_STEP=25,DISCOVERY
 
 const cloneBounds=(value:PublicBounds|null)=>value?[...value] as PublicBounds:null;
 const cloneView=(view:MarketplaceView):MarketplaceView=>({...view,area:cloneBounds(view.area),dates:view.dates?{...view.dates}:null,
+  // Offers-only has no numeric threshold. The all mode keeps it and includes offers alongside qualifying fixed prices.
+  ...(view.price==='OFFERS'&&view.minBudgetRsd!=null?{minBudgetRsd:null}:{}),
   viewport:view.viewport?{...view.viewport,center:[...view.viewport.center] as [number,number],
     bounds:[...view.viewport.bounds] as PublicBounds}:null});
 
 export function discoveryV1RouteIntentKey(view:MarketplaceView):string{
-  const plan=discoveryV1ViewPlan(view);
+  const plan=discoveryV1ViewPlan(cloneView(view));
   return JSON.stringify([plan.filter,plan.pageScope]);
 }
 
@@ -291,7 +293,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
 
   async function previewSearch(draft:DiscoveryV1SearchDraft,mapArea:PublicBounds|null,limit=10){
     if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
-    const next={...routeView,...draft} as MarketplaceView;
+    const next=cloneView({...routeView,...draft,minBudgetRsd:draft.minBudgetRsd??null});
     const result=await search.preview(next,mapArea,limit);
     return {kind:result.kind,snapshot:snapshot()};
   }
@@ -299,7 +301,7 @@ export function createDiscoveryV1RouteCoordinator(transport:DiscoveryV1OwnerTran
 
   async function applySearch(draft:DiscoveryV1SearchDraft){
     if(!routeView)return {kind:'noop' as const,snapshot:snapshot()};
-    return open({...routeView,...draft,selectedId:null,selectedPlace:null,listOffset:0});
+    return open({...routeView,...draft,minBudgetRsd:draft.minBudgetRsd??null,selectedId:null,selectedPlace:null,listOffset:0});
   }
 
   // EX-03 (owner approval 2026-09-30): the screen that drives this coordinator may leave and come back within a short while. What it showed is worth keeping only if it is WHOLE: nothing is

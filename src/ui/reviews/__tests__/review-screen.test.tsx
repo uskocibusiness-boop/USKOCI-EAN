@@ -176,7 +176,7 @@ it('reputation distinguishes no reviews from unavailable state and never invents
 it('reputation reads as a still shape, then the star, the figure and the count under it',async()=>{
  let finish!:(value:unknown)=>void;mockReputation.mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));
  await act(async()=>{tree=create(<AccountReputation accountId={A}/>);});
- expect(tree.root.findByProps({accessibilityLabel:'Učitavanje reputacije'}).props.accessibilityRole).toBe('progressbar');
+ expect(tree.root.findByProps({accessibilityLabel:'Proveravamo ocene…'}).props.accessibilityRole).toBe('text');
  expect(tree.root.findAll(node=>String(node.type)==='ActivityIndicator')).toHaveLength(0);
  await act(async()=>finish({ok:true,podatak:{accountId:A,reviewCount:12,averageRating:4.8,state:'RATED',authoritative:true}}));
  expect(texts()).toContain('4,8');expect(texts()).toContain('12 ocena');expect(tree.root.findAll(node=>node.props?.kind==='star').length).toBeGreaterThan(0);

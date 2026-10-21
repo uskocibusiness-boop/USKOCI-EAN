@@ -13,7 +13,8 @@ import { PublicProfileSheet, type PublicProfileState, type SafetyEntry } from '.
 import { ProductHeader } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
 import { Glyph } from '../system/Glyph';
-import { KeyValueRow } from '../system/KeyValueRow';
+import { FactRow } from '../system/FactRow';
+import { MoneySummary } from '../system/MoneySummary';
 import { layout } from '../system/layout';
 import { ListRow } from '../system/ListRow';
 import { osoba, osobuAkuz, prijava } from '../system/plural';
@@ -31,6 +32,8 @@ import { ChoiceRow } from './offer/ChoiceRow';
 import { PrijavaState } from './PrijavaCard';
 import { V2Action } from './V2Action';
 import { splitFirstSentence } from './ApplicationComposerPresentation';
+import { QuietReadState } from './QuietReadState';
+import { TaskCapacity } from './detail/TaskCapacity';
 
 /**
  * The worker's application composer lives in its own module since round 6 (unit `prijava`, 2026-09-24). It is re-exported
@@ -39,14 +42,14 @@ import { splitFirstSentence } from './ApplicationComposerPresentation';
 export { ApplicationComposerPresentation as ApplicationSelectionPresentation, type ApplicationDraft } from './ApplicationComposerPresentation';
 
 /**
- * While the read runs, the shape of what is coming stands in for it — cards, not a spinner — so nothing jumps when the rows
+ * While the read runs, a quiet non-result holds the list's place, so it never invents people or offers before rows
  * arrive; a read that failed says so the one way every screen does (`StateView`): its first sentence as the title, the
  * rest under it, and the retry as the green action.
  */
 export function SelectionUnavailable({ loading, message, retry, back }: { loading: boolean; message: string; retry?: () => void; back: () => void }) {
   const [title, body] = splitFirstSentence(message);
   return <Screen kind="detail" header={<ProductHeader backLabel="Nazad na zadatak" title="Prijave" back={back} />}>
-    {loading ? <StateView kind="loading" title="Učitavamo prijave…" skeleton={{ count: 3, rows: 2 }} />
+    {loading ? <QuietReadState art="applications" title="Učitavamo prijave…" body="Proveravamo ko se prijavio i koliko mesta je još dostupno." />
       : <StateView kind="error" title={title} body={body ?? undefined} primary={retry ? { label: 'Pokušaj ponovo', onPress: retry } : undefined} />}
   </Screen>;
 }
@@ -136,21 +139,25 @@ export function sortCandidates(candidates: readonly KandidatProjekcija[], sort: 
   // The server's order is the list exactly as read: the same array, so the default draws what it always drew.
   if (sort === 'ARRIVAL') return candidates;
   const indexed = candidates.map((k, at) => ({ k, at }));
-  if (sort === 'PRICE') return indexed.sort((a, b) => a.k.cena.iznos - b.k.cena.iznos || a.at - b.at).map(({ k }) => k);
+  if (sort === 'PRICE') return indexed.map(entry => ({ ...entry, price: candidateValue(entry.k) })).sort((a, b) =>
+    a.price.kind === 'amount' && b.price.kind === 'amount' ? a.k.cena.iznos - b.k.cena.iznos || a.at - b.at
+      : a.price.kind === 'amount' ? -1 : b.price.kind === 'amount' ? 1 : a.at - b.at).map(({ k }) => k);
   // The best rating first; the same rating, the one that stands on more ratings; the same again, the earlier application. No rating, last.
   return indexed.map(entry => ({ ...entry, figure: candidateRatingFigure(entry.k) })).sort((a, b) => a.figure && b.figure
     ? b.figure.rating - a.figure.rating || b.figure.count - a.figure.count || a.at - b.at : a.figure ? -1 : b.figure ? 1 : a.at - b.at).map(({ k }) => k);
 }
 
 /**
- * The Task these offers answer, as one row that opens it: its title and, only when it says something, how many places are still free ("Još 1 od 2 mesta",
- * "Sva mesta su popunjena"). One free place of one is every task there is, and "1 od 1" said nothing (the owner's phone, 8 Oct 2026).
+ * Task context stays above the applications. Capacity counts selected people;
+ * the separate list toolbar counts applications, including offers for several people.
  */
 function TaskBrief({ need, open }: { need: PotrebaProjekcija; open?: () => void }) {
-  const title = readableTitle(need.naslov), { preostalo, ukupno } = need.pokrivenost;
-  const places = preostalo <= 0 ? 'Sva mesta su popunjena' : ukupno > 1 ? `Još ${preostalo} od ${ukupno} mesta` : undefined;
-  return open ? <ListRow title={title} subtitle={places} last accessibilityLabel={`Otvori zadatak: ${title}`} accessibilityHint={places} onPress={open} />
-    : <ListRow title={title} subtitle={places} last accessibilityLabel={places ? `${title}. ${places}` : title} />;
+  const title = readableTitle(need.naslov);
+  return <View style={s.taskBrief}>
+    {open ? <ListRow title={title} last accessibilityLabel={`Otvori zadatak: ${title}`} onPress={open} />
+      : <T variant="heading" accessibilityRole="header">{title}</T>}
+    <TaskCapacity capacity={need.pokrivenost} />
+  </View>;
 }
 
 /**
@@ -258,7 +265,7 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
           </View> : null}
         </View>}
         // The empty list is an object and one sentence: no promise of what will happen, and no button (the list is read again by pulling it).
-        ListEmptyComponent={<StateView kind="empty" art="offers" title="Još nema prijava" />}
+        ListEmptyComponent={<StateView kind="empty" art="applications" title="Još nema prijava" />}
         renderItem={renderItem}
         onEndReached={paging && paging.hasMore && !paging.loadingMore && !paging.moreError ? paging.onLoadMore : undefined} onEndReachedThreshold={0.6}
         ListFooterComponent={candidates.length ? <View style={s.listFooter}>
@@ -416,6 +423,11 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
     backdropHint={pending ? 'Vraća na zadatak.' : 'Zatvara prijavu i vraća na prijave.'} dismissible={!busy} onClose={back}
     footer={primary || quiet ? () => <>{primary}{quiet}</> : undefined}>
     {() => <View style={s.offerContent}>
+      <View style={s.notes}>
+        <T variant="note" tone="muted">Prijava za zadatak</T>
+        <T variant="heading" accessibilityRole="header">{readableTitle(need.naslov)}</T>
+        <TaskCapacity capacity={need.pokrivenost} />
+      </View>
       <CandidatePerson candidate={candidate} photo={photo} onPress={() => { void openProfile(); }} disabled={busy} />
       {/* The same state as the card, always: the chip (the sheet is where a person decides, so it says where the application stands),
           the reason beside it when it is not simply open, and the one thing to do when it cannot be chosen now. */}
@@ -423,11 +435,14 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
         <PrijavaState status={candidateChip(candidate, viewed)} reason={!reason ? null : { text: reason.text, tone: reason.tone }} />
         {blocked ? <V2Action label="Osveži prijave" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noteAction} /> : null}
       </View>
-      <Section title="Ponuda">
-        <KeyValueRow label={`Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}`} value={priceWords} emphasis={value.kind === 'amount' ? 'price' : undefined} />
-        <KeyValueRow label={time ? 'Predloženi termin' : 'Termin zadatka'} value={term} last={!has} />
-        {has ? <KeyValueRow label="Ima" value={has.text.replace(/^Ima: /, '')} last /> : null}
-      </Section>
+      {value.kind === 'amount'
+        ? <MoneySummary label="Ukupna ponuda" amount={priceWords} basis={`Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}`} />
+        : <FactRow art="money" size="detail" label="Ukupna ponuda" value={priceWords} />}
+      <Surface kind="panel" variant="tinted" tone="wash" density="comfortable" style={s.offerFacts}>
+        <FactRow art="users" size="detail" label="Dolazi" value={osoba(candidate.pokrivaMesta)} />
+        <FactRow art="calendar" size="detail" label={time ? 'Predloženi termin' : 'Termin zadatka'} value={term} />
+        {has ? <FactRow art={has.art} size="detail" label="Ima" value={has.text.replace(/^Ima: /, '')} /> : null}
+      </Surface>
       {message ? <Section title="Poruka"><T selectable variant="body">{candidate.napomena}</T></Section> : null}
       {/* No "Sposobnosti" here (owner decision 2026-09-24): the applicant's self-declared skills are not shown to the task
           owner as labels; the vehicle and the tools they have are (owner, 2026-10-07), and what the applicant wants to say is in the
@@ -457,8 +472,10 @@ const s = StyleSheet.create({
   columnRow: { gap: sys.space.md },
   listFooter: { gap: sys.space.xs, paddingTop: sys.space.md },
   pagingFoot: { alignItems: 'center', gap: sys.space.sm, paddingBottom: sys.space.xs },
-  // The offer sheet stays one white reading surface; the sections are 24 apart and nothing else divides them.
+  // Keep identity, total, facts and the full message distinct within the existing sheet.
   offerContent: { gap: layout.section },
+  offerFacts: { gap: sys.space.lg },
+  taskBrief: { gap: sys.space.sm },
   state: { gap: sys.space.sm },
   noteAction: { alignSelf: 'flex-start', paddingHorizontal: 0 },
 });

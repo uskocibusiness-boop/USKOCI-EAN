@@ -84,8 +84,8 @@ afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.us
 test('a thousand tasks: the count is the server\'s exact one with the thousands set apart, and the list says it is read newest first', async () => {
   await render(); await body();
   expect(words(countLine())).toEqual(['1.248 zadataka', 'Najnovije prvo']);
-  // Spoken with its context, and the order as its value.
-  expect(countLine().props.accessibilityLabel).toBe('1.248 zadataka · 48 zadataka bez tačke na mapi');
+  // A continuing P6 ALL page cannot prove the separate pinless total; do not announce its stale section count.
+  expect(countLine().props.accessibilityLabel).toBe('1.248 zadataka');
   expect(countLine().props.accessibilityValue).toEqual({ text: 'Najnovije prvo' });
 });
 

@@ -13,6 +13,7 @@ import { ScreenChrome } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
 import { sys } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
+import { QuietReadState } from '../v2/QuietReadState';
 import type { ClosureIntent } from './closureIntent';
 
 export const closureDuration = (n: number) => n % 86400 === 0 ? plural(n / 86400, 'dan', 'dana', 'dana')
@@ -99,7 +100,7 @@ export function ClosureView({ model, commands }: { model: ClosureModel; commands
         primary={{ label: 'Pokušaj ponovo', onPress: commands.onRefresh, disabled: busy }} />
     </ClosureFrame>;
     return <ClosureFrame onClose={commands.onClose}>
-      <StateView kind="loading" title="Proveravamo stanje…" skeleton={{ count: 2, rows: 2 }} />
+      <QuietReadState art="lock" title="Proveravamo stanje…" body="Čitamo ograničenja i sačuvani zahtev za zatvaranje." />
     </ClosureFrame>;
   }
 

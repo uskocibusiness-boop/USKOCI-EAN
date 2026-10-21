@@ -404,7 +404,7 @@ export default function AuthScreen() {
     <View style={styles.fill} importantForAccessibility={faza === 'RESTRICTED' ? 'no-hide-descendants' : 'auto'}
       accessibilityElementsHidden={faza === 'RESTRICTED'}>
     {/* The sheet keeps one height while both ways are (or are about to be) offered, so switching between them never moves its edge. */}
-    <AuthSheet visible={otvoren} expanded={faza === 'EMAIL' || rezim === 'SIGNUP'}
+    <AuthSheet visible={otvoren} expanded={faza === 'EMAIL' && !signupClosed}
       backdrop={entrySeen ? <EntryWelcome
       onRequester={selection => izaberiNameru('REQUESTER', selection)} onWorker={selection => izaberiNameru('WORKER', selection)}
       onSignIn={() => otvori('LOGIN')} onSignUp={() => otvori('SIGNUP')} busy={radi || otvoren} error={otvoren ? null : greska} /> : null}>

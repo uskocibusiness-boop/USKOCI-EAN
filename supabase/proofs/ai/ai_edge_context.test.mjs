@@ -429,6 +429,19 @@ test('task prompt carries the shared warm voice and keeps correction in the same
  assert.match(instructions,/Izmeni kroz razgovor, ne ručni editor/);
  assert.doesNotMatch(instructions,/ručnom ispravkom u pregledu/);
 });
+test('task Edge keeps an explicit euro budget out of the RSD writer and asks for a chosen dinar amount',async()=>{
+ const fact=(key,value,evidence)=>({key,valueJson:JSON.stringify(value),displayValue:String(value),evidence,confidence:1});
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Sačuvao sam 100 RSD.',facts:[
+  fact('need.people_needed',2,'dve osobe'),fact('need.price_mode','MY_PRICE','100 evra'),
+  fact('need.price_rsd',100,'100 evra'),fact('need.description','Pomoć za 100 evra','pomoć')]}});
+ assert.equal((await f.invoke({text:'Treba mi pomoć, dve osobe, 100 evra za ceo posao.'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.people_needed',2]]);
+ assert.match(write.p_assistant_message,/RSD/);
+ assert.match(prompt(providerCall(f)),/ne preračunavajte po pretpostavljenom kursu/);
+ assert.equal(providerCalls(f).length,1);
+});
 test('PKG041 negation with correct evidence is preserved, not converted to the first mentioned day',async()=>{
  const f=fixture({now:'2026-09-20T22:59:00Z',providerOutput:{safety:'ALLOW',assistantMessage:'Termin je unet.',facts:[
   {key:'need.schedule_kind',valueJson:'"TODAY_FLEXIBLE"',displayValue:'Danas',evidence:'danas',confidence:1}]}});

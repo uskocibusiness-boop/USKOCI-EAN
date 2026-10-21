@@ -49,6 +49,7 @@ jest.mock('../supabaseClient', () => {
 });
 
 import { needClientService } from '../needClientService';
+import { composeHome } from '../homeSnapshot';
 import { osoba } from '../../ui/system/plural';
 import { needGeographyRows, needRequirementRows, needScheduleText, needPriceBasisNote, needPriceText, readableTitle } from '../needDetailPresentation';
 
@@ -98,6 +99,26 @@ const rawNeed = {
 
 describe('CDL-A03 — canonical Need read contract', () => {
   beforeEach(reset);
+
+  it('passes the owner update instant to Home so an old draft does not take the next-action place', async () => {
+    const now = Date.parse('2026-10-21T12:00:00Z');
+    const homeFor = async (updatedAt: string | undefined) => {
+      mocks.mockOrder.mockResolvedValue({ error: null, data: [{ ...rawNeed, status: 'DRAFT',
+        title: 'Nacrt zadatka', ...(updatedAt === undefined ? {} : { updated_at: updatedAt }) }] });
+      const needs = await needClientService.mojePotrebe({ includeUrgency: false });
+      return { needs, home: composeHome({ needs: { kind: 'known', value: needs },
+        applications: { kind: 'known', value: [] }, agreements: { kind: 'known', value: [] } }, undefined, now) };
+    };
+    const old = await homeFor('2026-10-01T12:00:00Z');
+    expect(old.needs[0].azurirano).toBe('2026-10-01T12:00:00Z');
+    expect(old.home.prompts).toBeUndefined();
+    const recent = await homeFor('2026-10-20T12:00:00Z');
+    expect(recent.home.prompts?.[0]).toMatchObject({ title: 'Nastavi nacrt', target: { kind: 'NEED', needId: 'need-1' } });
+    // A historical receipt without a validated instant is unknown, never guessed to be old.
+    const unknown = await homeFor('not a timestamp');
+    expect(unknown.needs[0].azurirano).toBeUndefined();
+    expect(unknown.home.prompts?.[0].title).toBe('Nastavi nacrt');
+  });
 
   it('PKG-045: reads selectable count in the explicit document and preserves the historical total', async () => {
     mocks.mockOrder.mockResolvedValue({ error: null, data: [{ ...rawNeed, selectable_application_count: 0 }] });

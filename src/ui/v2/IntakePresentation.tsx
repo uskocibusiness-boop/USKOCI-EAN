@@ -32,6 +32,7 @@ import { confirmedPlaceEntries, slotNeedsCloserPlace } from '../location/placeTe
 import type { ConfirmedLocationPoint, LocationSlot } from '../../contracts/location';
 import { completeDraftProposal, publicSummary, type Summary } from './draftSummary';
 import { intakeLocationMemory, orderIntakeLocation, type IntakeTurnRole } from './intakeLocationOrder';
+import { QuietReadState } from './QuietReadState';
 import type { PhotoSource } from '../../features/media/nativePhotoPicker';
 import { useConfirmSheet } from '../system/ConfirmSheet';
 import { PhotoAttachSheet } from '../media/PhotoAttachSheet';
@@ -119,8 +120,12 @@ type Props = {
   retainedLocationSpeech?: { text: string; canRestore: boolean; onRestore: () => void };
   onLocationPromptReady?: (prompt: LocationReplyPrompt | null) => void;
   pending: boolean; statusCopy: string | null; showReadback: boolean; readbackDisabled: boolean;
+  /** Title selected from the owned request state, never inferred from assistant prose. */
+  statusTitle?: string;
   /** The sentence that was sent and is waiting for its answer. */
   sentMessage?: string | null;
+  /** Progress for a non-AI command; the shared shell must not show typing dots for it. */
+  busyLabel?: string;
   showAbandon: boolean; abandonDisabled: boolean; abandonLabel: string;
   onBack: () => void; onChange: (value: string) => void; onSend: () => void;
   onReview: () => void; onRefresh: () => void; onAbandon: () => void;
@@ -145,7 +150,7 @@ export function IntakeUnavailable({ loading, error, retry, back, recover }: {
   return <SafeAreaView edges={['top', 'bottom']} style={s.canvas}>
     <ScreenChrome variant="detail" tone="conversation" onBack={back} />
     <View style={s.unavailable}>
-      {loading ? <StateView kind="loading" title="Otvaramo razgovor" skeleton={{ variant: 'thread', count: 3 }} />
+      {loading ? <QuietReadState art="chat" title="Otvaramo razgovor" body="Pripremamo razgovor i proveravamo stanje nacrta." />
         : <StateView kind="error" art="chat" title="Razgovor nije dostupan" body={error} primary={primary} />}
     </View>
   </SafeAreaView>;
@@ -198,7 +203,7 @@ function TaskUnderstanding({ summary, pending, needsPoint, stillNeeded, editing,
   const disclosed=compact&&rows.length>2;
   const visibleRows=disclosed&&!expanded?rows.slice(0,2):rows;
   return <Surface kind="panel" testID="intake-understood" style={[s.card, s.cardCompact]}>
-    <T variant="note" tone="muted">Razumeo sam · nacrt</T>
+    <T variant="note" tone="muted">{editing ? 'Razumeo sam · izmene nisu primenjene' : 'Razumeo sam · nacrt nije objavljen'}</T>
     {summary.title || summary.service ? <T variant="bodyStrong">{summary.title ?? summary.service}</T> : null}
     {summary.service && summary.title && summary.service !== summary.title
       ? <T variant="note" tone="muted">{summary.service}</T> : null}
@@ -212,7 +217,6 @@ function TaskUnderstanding({ summary, pending, needsPoint, stillNeeded, editing,
       ? 'Prethodno zabeleženo. Čekamo odgovor na poslednju poruku.'
       : needsPoint ? 'Mesto još treba da potvrdiš na mapi.'
         : stillNeeded ? `Još treba: ${stillNeeded}` : 'Nastavljamo proveru detalja pre pregleda.'}</T>
-    <T variant="note" tone="muted">{editing ? 'Izmene još nisu primenjene.' : 'Zadatak još nije objavljen.'}</T>
   </Surface>;
 }
 
@@ -226,7 +230,7 @@ export function DraftCard({ summary, stillNeeded, open, busy, compact, canReview
   summary: Summary; stillNeeded: string | null; open: boolean; busy: boolean; compact: boolean; canReview: boolean;
   onReview: () => void; note: string | null;
   reviewDisabledReason?: string | null;
-  /** The review's own name, the one the "···" menu uses ("Pregledaj izmene" while a published task is being changed). */
+  /** The review's own name, also used by conversation tools ("Pregledaj izmene" for an existing task). */
   reviewLabel?: string;
   /** The conversation changes a task that already exists: the card says it to a screen reader, never over the name. */
   editing?: boolean;
@@ -431,7 +435,7 @@ export function IntakePresentation(props: Props) {
   // The assistant's own end of a conversation about a task that already exists says "objava", which an edit is not (the owner's phone, 8 Oct 2026).
   // The words are the server's fixed ones (`uskoci-ai-interview`, the answer of its REVIEW step), and they are said as what they mean here; the stored message is not touched.
   const messages = conversation.review.boundNeedId ? ordered.messages.map(message => message.fromAi ? { ...message, body: editEnding(message.body) } : message) : ordered.messages;
-  // The "···" of this conversation. Each row runs once the menu has gone, so a navigation or the next sheet never starts
+  // Named conversation tools. Each row runs once the menu has gone, so a navigation or the next sheet never starts
   // underneath it. Photos are the composer's "+", not a row here. Before the first word there is no conversation to act
   // on, so there is no menu either.
   const menu: SheetAction[] = [];
@@ -503,8 +507,10 @@ export function IntakePresentation(props: Props) {
       node: <TaskPhotoLine photos={attach} items={group.items} total={photoItems.length} latest={index === groups.length - 1} ask={photoConfirm.ask}
         disabled={photosOff} onGallery={() => props.onPhotoSource?.('LIBRARY')} /> }));
   }
-  return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversation.review.boundNeedId ? 'Izmena zadatka' : 'Novi zadatak'}
-    cardPlacement="end" closed={ended}
+  const conversationTitle = conversation.review.boundNeedId ? summary.title ? `Izmena · ${summary.title}` : 'Izmena zadatka'
+    : summary.title ?? 'Novi zadatak';
+  return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversationTitle}
+    cardPlacement={showSummary ? 'end' : 'beforeLatestReply'} initialInputMode="keyboard" closed={ended}
     correction={props.correction}
     footerAction={footerAction}
     newConversation={props.onRestart ? { onPress: outsidePlace(props.onRestart), disabled: props.restartDisabled || editingPlace }
@@ -520,14 +526,11 @@ export function IntakePresentation(props: Props) {
     threadNotes={notes.length ? notes : undefined}
     value={value} canEdit={props.canEdit} canSend={props.canSubmit && (!editingPlace || contextualReply)}
     sendBlockedReason={editingPlace ? 'Prvo potvrdi mesto ili zatvori mapu.' : undefined}
-    messages={messages} pending={pending} busy={busy} streamingText={props.streamingText}
+    messages={messages} pending={pending} busy={busy} busyLabel={props.busyLabel} streamingText={props.streamingText}
     sentMessage={props.sentMessage}
-    // The assistant and the one line the draft asks for (R1): the three examples under it show what to say, so no sentence explains it.
-    // Static first AI bubble: shown immediately, remains above the user's first
-    // message, never written into history or charged as a Gemini request.
-    introMessage="Ćao! 👋 Šta ti danas treba da se uradi?"
-    welcome="Reci šta ti treba."
-    welcomeDetail=""
+    // A local welcome disappears once the real thread begins. It is never an AI turn.
+    welcome="Ćao! Reci mi šta ti treba. 😊"
+    welcomeDetail="Napiši ili ispričaj svojim rečima. Zajedno ćemo razjasniti detalje."
     openings={TASK_OPENINGS}
     placeholder="Opiši šta ti treba"
     onBack={() => { if (editingPlaceNow.current && closePlace.current) closePlace.current(); else props.onBack(); }}
@@ -584,6 +587,7 @@ export function IntakePresentation(props: Props) {
     // A fragment is truthy even when every branch inside it is null, which drew an empty
     // panel in the thread. The slot is filled only when there is something to act on.
     status={!props.error && !statusCopy && !props.onCancelPending && !props.showReadback && !props.retainedLocationSpeech ? undefined : <>
+      {props.statusTitle ? <T accessibilityRole="header" variant="bodyStrong">{props.statusTitle}</T> : null}
       {props.retainedLocationSpeech ? <View style={{ gap: sys.space.sm }}>
         <T variant="note" tone="muted">Glasovna poruka je sačuvana. Možeš je ponovo poslati.</T>
         <T variant="note" selectable>{props.retainedLocationSpeech.text}</T>
@@ -593,6 +597,7 @@ export function IntakePresentation(props: Props) {
       </View> : null}
       {props.error ? <T accessibilityRole="alert" variant="note" style={s.danger}>{props.error}</T> : null}
       {statusCopy ? <T accessibilityLiveRegion="polite" variant="note" style={s.muted}>{statusCopy}</T> : null}
+      {props.pending && props.showReadback ? <T variant="note" tone="muted">Provera ne šalje novu poruku.</T> : null}
       {/* What can be done, most likely first: read what happened ("Proveri", the app's one word for it), and only then the rarer way out, with
           what it costs written right above it. */}
       {props.showReadback ? <V2Action tone="neutral" label={OUTCOME_ACTION.check} accessibilityLabel={`${OUTCOME_ACTION.check} da li je poruka poslata`}

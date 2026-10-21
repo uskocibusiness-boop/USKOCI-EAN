@@ -10,7 +10,7 @@ import { readNeedUrgencies } from './needUrgencyClientService';
 import { novac } from '../lib/novac';
 import { decodeOwnTasksPage } from './ownTasksPage';
 import { endingOfStatus, type WithEnding } from './needEnding';
-import { readOwnedResult } from './serverReceipt';
+import { readOwnedResult, timestamp } from './serverReceipt';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -98,6 +98,9 @@ function mapNeed(raw: any): WithEnding<PotrebaProjekcija> {
 
   return {
     id: raw.id,
+    // rpc_read_task already includes updated_at for the owner. Keep it typed and
+    // validated so Home can avoid promoting an old draft over current actions.
+    ...(timestamp(raw.updated_at) ? { azurirano: raw.updated_at } : {}),
     revizija: Number(raw.revision),
     naslov: raw.title ?? '',
     opis: raw.description ?? '',

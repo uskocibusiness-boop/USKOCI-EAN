@@ -1,4 +1,8 @@
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { T } from '../../Text';
 import { StateView } from '../../system/StateView';
+import { sys } from '../../system/tokens';
+import { QuietReadState } from '../QuietReadState';
 
 /**
  * What the list of Zadaci says when it has no cards to show, in one place (composition spec 2026-10-07, T7): reading, not read, nothing here,
@@ -6,7 +10,7 @@ import { StateView } from '../../system/StateView';
  * words, no "server". The map and the list always show every published task (owner, 2026-10-07), so an empty list is never about the
  * person's profile in ordinary map/list mode; the explicit 'Za mene' filter ALSO depends on confirmed offered work and matching eligibility.
  *
- * - `loading`   the first read is on its way: the placeholders have the shape of the cards that are coming.
+ * - `loading`   the first read is on its way: say what is being checked without drawing task-shaped placeholders.
  * - `error`     the read did not come back: one way on, to try again.
  * - `place`     the map's own area or one point leaves nothing, and the tasks are elsewhere on the map: one move, or one tap, away.
  * - `filtered`  the conditions leave nothing: take them away.
@@ -46,7 +50,10 @@ export function DiscoveryListState({ state, clearAllLabel, compact = false }: {
 }) {
   const w = LIST_STATE_WORDS;
   switch (state.kind) {
-    case 'loading': return <StateView kind="loading" title={w.loading} skeleton={{ variant: 'task' }} />;
+    case 'loading': return compact ? <View testID="discovery-list-reading" accessibilityLiveRegion="polite" style={s.compactRead}>
+      <ActivityIndicator size="small" color={sys.color.green} accessible={false} />
+      <T variant="note" tone="muted" style={s.readText}>{w.loading}</T>
+    </View> : <QuietReadState art="tasks" title={w.loading} body="Proveravamo zadatke u ovom prikazu." />;
     case 'error': return <StateView compact={compact} kind="error" art="tasks" title={w.error} body={w.errorBody} primary={{ label: w.retry, onPress: state.onRetry }} />;
     case 'place': return <StateView compact={compact} art="map" title={state.point ? w.pointTitle : w.areaTitle} body={state.point ? w.pointBody : w.areaBody}
       primary={{ label: w.showAll, onPress: state.onShowAll }} />;
@@ -60,3 +67,8 @@ export function DiscoveryListState({ state, clearAllLabel, compact = false }: {
       quiet={state.onNew ? { label: w.publish, onPress: state.onNew } : undefined} />;
   }
 }
+
+const s = StyleSheet.create({
+  compactRead: { minHeight: 88, paddingVertical: sys.space.base, alignItems: 'center', justifyContent: 'center', gap: sys.space.sm },
+  readText: { textAlign: 'center' },
+});

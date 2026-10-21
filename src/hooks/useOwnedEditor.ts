@@ -113,7 +113,8 @@ export function useOwnedEditor<T>(read: () => Promise<Ishod<T>>) {
     }
   }
   const visible = owner.current?.identity === identity && owner.current.current();
-  return { data: visible ? data : null, loading: accountId ? !visible || loading : false,
+  return { data: visible ? data : null, loaded: !!visible && !!owner.current?.loaded,
+    loading: accountId ? !visible || loading : false,
     busy: visible && busy, error: visible || !accountId ? error : null,
     uncertain: visible && uncertain, saved: visible && saved, refresh, save };
 }

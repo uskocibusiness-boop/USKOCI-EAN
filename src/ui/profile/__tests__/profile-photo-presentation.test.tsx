@@ -53,11 +53,24 @@ describe('the circle', () => {
   it('draws the same circle of letters while the profile is read, and a person when there are no letters', async () => {
     await draw({ kind: 'loading' }, 'pick', { initials: 'MŠ', canAct: false });
     expect(words()).toContain('MŠ');
+    expect(words()).toContain('Učitavamo fotografiju…');
+    for (const label of ['Izaberi iz galerije', 'Fotografiši', 'Ukloni fotografiju profila'])
+      expect(tree.root.findAll(node => node.props.accessibilityLabel === label)).toHaveLength(0);
     await act(async () => tree.update(<ProfilePhotoEditor onBack={noop} stage={{ kind: 'loading' }} notice={null} error={null} permissionDenied={false} mode="pick"
       retryable={false} running={null} canAct={false} waiting={false} hasPhoto={false} onLibrary={noop} onCamera={noop} onRemove={noop} onApply={noop}
       onDiscard={noop} onRetry={noop} onCheck={noop} initials={null} />));
     expect(words()).not.toContain('MŠ');
     expect(tree.root.findAll(node => node.props.kind === 'person').length).toBeGreaterThan(0);
+  });
+
+  it('shows photo choices after the first read resolves, without requiring another screen', async () => {
+    await draw({ kind: 'loading' }, 'pick', { canAct: false, hasPhoto: false });
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Izaberi iz galerije')).toHaveLength(0);
+    await act(async () => tree.update(<ProfilePhotoEditor onBack={noop} stage={{ kind: 'none' }} notice={null} error={null}
+      permissionDenied={false} mode="pick" retryable={false} running={null} canAct waiting={false} hasPhoto={false}
+      onLibrary={noop} onCamera={noop} onRemove={noop} onApply={noop} onDiscard={noop} onRetry={noop} onCheck={noop} />));
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Izaberi iz galerije').length).toBeGreaterThan(0);
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Fotografiši').length).toBeGreaterThan(0);
   });
 
   it('draws no letters for a picture that cannot be read: that is a failure, not a person without a photo', async () => {

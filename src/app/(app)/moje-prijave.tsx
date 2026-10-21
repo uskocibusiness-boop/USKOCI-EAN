@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState } from 'react-native';
+import { AppState, BackHandler } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import type { MojaPrijavaProjekcija } from '../../contracts/projections';
 import type { Ishod, Izvor, PovuciPrijavuKomanda } from '../../data/ports';
@@ -52,6 +52,8 @@ function pricedOffer(draft: OfferEdit): OfferEdit {
     ? String(fixedApplicationPrice(draft.pricing, /^\d+$/.test(people) ? Number(people) : NaN) ?? '') : draft.price;
   return { ...draft, people, price };
 }
+const changedOffer = (draft: OfferEdit | null, original: OfferEdit | null) => !!draft && !!original &&
+  (draft.price !== original.price || draft.people !== original.people || draft.note !== original.note);
 const errors: Readonly<Record<string, string>> = { ...applicationSelectionErrors,
   FORBIDDEN: 'Ova prijava nije dostupna na ovom nalogu.', RESPONSE_NOT_OWNED: 'Ova prijava nije dostupna na ovom nalogu.',
   RESPONSE_NOT_WITHDRAWABLE: 'Prijavu trenutno ne možeš da povučeš. Osveži listu da vidiš trenutno stanje.',
@@ -91,20 +93,26 @@ export default function MojePrijave() {
   // this visit ("Poslata · upravo"). A notification names an application without it, and then nothing is marked.
   const justSent = params.nova === '1';
   const landing = useRef<string | null>(null);
+  const askedLanding = useRef<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [freshId, setFreshId] = useState<string | null>(null);
   // Paged builds only: a named application is not necessarily on the first page, so while it has not been met the rest of the set is read.
   const [landingActive, setLandingActive] = useState(false);
   const { user, accountRevision } = useSesija();
   const session = useMemo(() => ({ focused: false, active: AppState.currentState !== 'background' && AppState.currentState !== 'inactive',
-    token: 0, readRevision: 0, reading: false, editRevision: 0, editingLoading: false, tab: 'all' as ApplicationsTab, hardReload: false,
-    expanded: null as string | null, draft: null as OfferEdit | null, pending: null as Pending | null, message: null as string | null }),
+    token: 0, readRevision: 0, reading: false, editRevision: 0, editingLoading: false, tab: (named ? 'all' : 'active') as ApplicationsTab, hardReload: false,
+    expanded: null as string | null, draft: null as OfferEdit | null, original: null as OfferEdit | null,
+    draftFor: null as string | null, pending: null as Pending | null, message: null as string | null }),
   [izvor, user?.id, accountRevision]);
   const [, render] = useState(0), [resume, setResume] = useState(0);
   // A destination named by a notification takes precedence over a retained filter: the one set that holds every application is "Sve".
   useEffect(() => {
-    landing.current = named; setFocusId(null); setFreshId(null);
-    if (ownApplicationsPagedBuilt() && named) { session.tab = 'all'; setLandingActive(true); render(v => v + 1); } else setLandingActive(false);
+    landing.current = named; askedLanding.current = null; setFocusId(null); setFreshId(null);
+    // A named destination waits for the person's decision while another offer has unsaved edits.
+    // In a paged build, changing the set now would hide that editor before the question appears.
+    if (ownApplicationsPagedBuilt() && named && !(session.expanded !== named && changedOffer(session.draft, session.original))) {
+      session.tab = 'all'; setLandingActive(true); render(v => v + 1);
+    } else setLandingActive(false);
   }, [named]);
   const confirmation = useConfirmSheet(), retireConfirmation = confirmation.close;
   const paged = usePagedApplicationRows(izvor, session.tab, landingActive ? named : null);
@@ -113,23 +121,30 @@ export default function MojePrijave() {
     sesijaSada().accountRevision === accountRevision, [user?.id, accountRevision]);
   // Every retirement below also makes an open withdrawal question stale (its answer checks `editRevision`), so the
   // question leaves the screen with it instead of waiting there as a button that no longer does anything.
-  const clearReview = useCallback(() => { session.expanded = null; session.draft = null; session.editRevision++; session.editingLoading = false; session.message = null;
-    retireConfirmation(); }, [session, retireConfirmation]);
+  const clearEdit = useCallback(() => { session.draft = null; session.original = null; session.draftFor = null;
+    session.editRevision++; session.message = null; }, [session]);
+  const clearReview = useCallback(() => { session.expanded = null; clearEdit(); session.editingLoading = false;
+    retireConfirmation(); }, [session, clearEdit, retireConfirmation]);
+  // A focus/read transition retires old callbacks and open questions, but keeps a loaded edit on this account.
+  // Its current row and revision are checked again before the edit can be sent.
+  const retireReview = useCallback(() => { if (!session.draft) { session.expanded = null; session.original = null; session.draftFor = null; }
+    session.editRevision++; session.editingLoading = false; session.message = null; retireConfirmation();
+  }, [session, retireConfirmation]);
   useFocusEffect(useCallback(() => {
-    session.focused = true; session.token++; clearReview(); render(v => v + 1);
-    return () => { session.focused = false; session.token++; session.readRevision++; session.reading = false; clearReview(); setFreshId(null); };
-  }, [session, clearReview]));
+    session.focused = true; session.token++; retireReview(); render(v => v + 1);
+    return () => { session.focused = false; session.token++; session.readRevision++; session.reading = false; retireReview(); setFreshId(null); };
+  }, [session, retireReview]));
   useEffect(() => {
     const subscription = AppState.addEventListener('change', state => {
       const active = state === 'active';
       if (session.active === active) return;
-      session.active = active; session.token++; session.readRevision++; session.reading = false; clearReview();
+      session.active = active; session.token++; session.readRevision++; session.reading = false; retireReview();
       if (active) setResume(v => v + 1); else render(v => v + 1);
     });
     return () => subscription.remove();
-  }, [session, clearReview]);
+  }, [session, retireReview]);
   const read = useCallback(async (): Promise<Ishod<Loaded>> => {
-    const generation = ++session.readRevision, token = session.token; session.reading = true; clearReview();
+    const generation = ++session.readRevision, token = session.token; session.reading = true; retireReview();
     const owned = () => session.focused && session.active && token === session.token && generation === session.readRevision && accountCurrent();
     const pending = session.pending && !session.pending.inFlight ? session.pending : null;
     if (pending) pending.reconciled = false;
@@ -150,7 +165,7 @@ export default function MojePrijave() {
           // What happened is said once, in the app's one bar, and only after the readback confirmed it (a tick belongs to an outcome).
           // Neither command has an undo, so the bar carries no "Vrati".
           poruka.show({ text: withdrawal(pending) ? 'Prijava je povučena.' : 'Prijava je ažurirana prema izmenjenom zadatku.', confirmed: true });
-          session.pending = null;
+          session.pending = null; clearReview();
         } else if (pending.result === 'receipt') notice = 'Radnja je uspela, ali je prijava u međuvremenu promenjena. Pregledaj je ponovo.';
       }
       return { ok: true, podatak: { rows, notice } };
@@ -158,22 +173,47 @@ export default function MojePrijave() {
     } catch { return { ok: false, kod: 'READ_FAILED', poruka: 'Pokušaj ponovo za trenutak.' }; }
     finally { if (generation === session.readRevision) session.reading = false; }
   // Resume retires the hook's old owner and reads before showing actions.
-  }, [session, izvor, accountCurrent, clearReview, resume, pager]);
+  }, [session, izvor, accountCurrent, retireReview, clearReview, resume, pager]);
   const editor = useOwnedEditor(read), data = editor.data;
   // The applications on screen: the whole list's rows, or (paged) what the pager holds for the tab asked for.
   const shownRows = paged ? paged.rows : data?.rows ?? NO_ROWS;
-  // Every read closes any open review, so the named row is opened after one arrives, and only once:
-  // closing it afterwards is the person's decision and is not undone on the next refresh.
+  // A named row opens once its owned read arrives. An already edited offer stays visible
+  // until the person chooses whether to open a different named application.
   useEffect(() => {
     const id = landing.current;
     if (!id || editor.loading || !session.focused || !session.active || !accountCurrent()) return;
+    if (session.expanded !== id && changedOffer(session.draft, session.original)) {
+      if (askedLanding.current === id) return;
+      askedLanding.current = id;
+      const review = session.editRevision;
+      confirmation.ask({ title: 'Otvoriti drugu prijavu?',
+        message: 'Nesačuvane izmene ove prijave biće odbačene pre otvaranja tražene prijave.',
+        cancelLabel: 'Nastavi uređivanje', confirmLabel: 'Odbaci i otvori', tone: 'danger',
+        onCancel: () => {
+          if (landing.current !== id) return;
+          askedLanding.current = null;
+          // A read, blur or account change retires the question, not the destination.
+          if (session.editRevision === review && session.focused && session.active && accountCurrent()) {
+            landing.current = null; setLandingActive(false);
+          }
+        },
+        onConfirm: () => {
+          if (landing.current !== id || session.editRevision !== review || !session.focused || !session.active || !accountCurrent()) return;
+          askedLanding.current = null; clearReview();
+          if (ownApplicationsPagedBuilt()) { session.tab = 'all'; setLandingActive(true); }
+          render(v => v + 1);
+        } });
+      return;
+    }
     const row = shownRows.find(row => row.prijavaId === id);
     if (!row) return;
     // A new explicit destination takes precedence over a retained filter. Consume it once:
     // later tab choices and closing the review remain the person's own decisions.
     if (session.tab !== 'all' && session.tab !== applicationSection(row)) session.tab = 'all';
-    landing.current = null; session.expanded = id; setFocusId(id); setFreshId(justSent ? id : null); setLandingActive(false); render(v => v + 1);
-  }, [data, session, named, justSent, editor.loading, accountCurrent, shownRows]);
+    if (session.expanded !== id) clearReview();
+    landing.current = null; askedLanding.current = null; session.expanded = id;
+    setFocusId(id); setFreshId(justSent ? id : null); setLandingActive(false); render(v => v + 1);
+  }, [data, session, named, justSent, editor.loading, accountCurrent, shownRows, session.editRevision, clearReview, confirmation.ask]);
   const token = session.token, revision = session.readRevision, editRevision = session.editRevision;
   const current = () => session.focused && session.active && token === session.token && revision === session.readRevision && accountCurrent();
   const rowCurrent = (p: MojaPrijavaProjekcija) => current() && shownRows.some(row => identity(row) === identity(p));
@@ -215,12 +255,16 @@ export default function MojePrijave() {
     });
   };
   const makeIntent = (p: MojaPrijavaProjekcija, action: 'KEEP' | 'UPDATE' | 'WITHDRAW') => {
-    if (!rowCurrent(p) || !idle() || editRevision !== session.editRevision) return;
+    // Withdrawal's dialog captures and checks its own review revision. An explicit discard may
+    // retire another row's edit before that question opens, so only KEEP/UPDATE use this render's revision.
+    if (!rowCurrent(p) || !idle() || action !== 'WITHDRAW' && editRevision !== session.editRevision) return;
     const stale = p.stanje === 'STALE_REVIEW_REQUIRED';
     if (stale && session.expanded !== p.prijavaId || !stale && (action !== 'WITHDRAW' || !p.mozePovuci)) return;
     const draft = session.draft ? pricedOffer(session.draft) : null;
     if (action === 'UPDATE') {
       if (!draft) return;
+      if (session.draftFor !== identity(p)) { session.message = 'Prijava se promenila tokom uređivanja. Sačuvaj svoj tekst, pa započni novi pregled.';
+        render(v => v + 1); return; }
       const price = /^\d+$/.test(draft.price) ? Number(draft.price) : NaN, people = /^\d+$/.test(draft.people) ? Number(draft.people) : NaN;
       if (positiveInteger(people) && people <= draft.pricing.pokrivenost.ukupno && draft.pricing.rezimCene === 'MY_PRICE'
         && fixedApplicationPrice(draft.pricing, people) === null) {
@@ -241,17 +285,28 @@ export default function MojePrijave() {
         prijavaVerzija: p.prijavaVerzija, clientRequestId: noviZahtevId('povuci-prijavu'), razlog: null }) };
     perform({ intent, row: p, inFlight: false, reconciled: false, result: null, code: null });
   };
+  const discardIfDirty = (next: () => void) => {
+    if (!current()) return;
+    if (!changedOffer(session.draft, session.original)) { next(); return; }
+    const review = session.editRevision;
+    confirmation.ask({ title: 'Odbaciti izmene prijave?', message: 'Uneta cena, broj ljudi ili napomena neće biti sačuvani.',
+      cancelLabel: 'Nastavi uređivanje', confirmLabel: 'Odbaci izmene', tone: 'danger',
+      onConfirm: () => { if (current() && review === session.editRevision) next(); } });
+  };
   const withdraw = (p: MojaPrijavaProjekcija) => {
     if (!rowCurrent(p) || !idle()) return;
-    const review = session.editRevision;
-    // The card shows the title without its stored wrapping quotes; the dialog names the same task the same way.
-    // The question names the task and says what follows for the other person and for the worker (plan 2.3): no reason is asked, because
-    // the withdrawal command takes none.
-    confirmation.ask({ title: 'Povući prijavu?',
-      message: `Osoba koja je objavila zadatak više ne vidi tvoju ponudu za „${readableTitle(p.naslov)}”. Ako zadatak i dalje prima prijave, možeš da pošalješ novu.`,
-      cancelLabel: 'Odustani', confirmLabel: 'Povuci prijavu', tone: 'danger', onConfirm: () => {
-        if (review === session.editRevision) makeIntent(p, 'WITHDRAW');
-      } });
+    discardIfDirty(() => {
+      if (!rowCurrent(p) || !idle()) return;
+      if (session.draft) { clearReview(); render(v => v + 1); }
+      const review = session.editRevision;
+      // The card shows the title without its stored wrapping quotes; the dialog names the same task the same way.
+      // The question names the task and says what follows for the other person and for the worker (plan 2.3): no reason is asked.
+      confirmation.ask({ title: 'Povući prijavu?',
+        message: `Osoba koja je objavila zadatak više ne vidi tvoju ponudu za „${readableTitle(p.naslov)}”. Ako zadatak i dalje prima prijave, možeš da pošalješ novu.`,
+        cancelLabel: 'Odustani', confirmLabel: 'Povuci prijavu', tone: 'danger', onConfirm: () => {
+          if (review === session.editRevision) makeIntent(p, 'WITHDRAW');
+        } });
+    });
   };
   const edit = async (p: MojaPrijavaProjekcija) => {
     if (!rowCurrent(p) || !idle() || session.expanded !== p.prijavaId) return;
@@ -259,34 +314,51 @@ export default function MojePrijave() {
     try {
       const result = await readExistingApplicationInterval(p);
       if (!rowCurrent(p) || generation !== session.editRevision) return;
-      if (result.ok) session.draft = pricedOffer({ price: String(p.cena.iznos), people: String(p.pokrivaMesta), note: p.napomena, ...result.podatak });
+      if (result.ok) { const offer = pricedOffer({ price: String(p.cena.iznos), people: String(p.pokrivaMesta), note: p.napomena, ...result.podatak });
+        session.draft = offer; session.original = offer; session.draftFor = identity(p); }
       else session.message = 'Ne možemo da prikažemo termin i cenu prijave. Osveži prijave pa pokušaj ponovo.';
     } catch { if (current() && generation === session.editRevision) session.message = 'Termin i cena nisu učitani. Osveži prijave pre izmene.'; }
     finally { if (generation === session.editRevision) { session.editingLoading = false; if (current()) render(v => v + 1); } }
   };
-  const navigate = (path: '/zadaci' | '/profil') => { if (current()) router.navigate(path); };
+  const navigate = (path: '/zadaci' | '/profil') => discardIfDirty(() => { clearReview(); router.navigate(path); });
+  const leaveScreen = () => { clearReview(); if (router.canGoBack()) router.back(); else router.replace('/'); };
+  const hardwareBack = useRef<() => boolean>(() => false);
+  hardwareBack.current = () => {
+    if (!current() || !changedOffer(session.draft, session.original)) return false;
+    discardIfDirty(leaveScreen); return true;
+  };
+  useEffect(() => {
+    const back = BackHandler.addEventListener('hardwareBackPress', () => hardwareBack.current());
+    return () => back.remove();
+  }, []);
   const pending = session.pending, visible = current();
+  const editedRow = session.expanded ? shownRows.find(p => p.prijavaId === session.expanded) : null;
+  const draftStale = !!session.draft && (!editedRow || session.draftFor !== identity(editedRow));
   // Paged: nothing of another set is shown under this tab's title, a refresh keeps what is on screen, and a destination that is not in the shown set is never called missing.
   const reading = !session.focused || !session.active || (paged ? !paged.settled || paged.state.loading || (editor.loading && shownRows.length === 0) : editor.loading);
   const wholeSetKnown = !paged || (paged.settled && session.tab === 'all' && !paged.state.loading && !paged.state.hasMore && !paged.state.loadingMore);
   return <><MyApplicationsPresentation rows={visible ? shownRows as MojaPrijavaProjekcija[] : []} loading={reading} paging={paged?.paging}
     unavailable={!data || (!!paged && paged.settled && paged.state.error)} message={session.message ?? editor.error} notice={data?.notice ?? null}
-    tab={session.tab} onTab={tab => { if (current()) { clearReview(); session.tab = tab; render(v => v + 1); } }}
+    tab={session.tab} onTab={tab => { if (current() && tab !== session.tab) discardIfDirty(() => { clearReview(); session.tab = tab; render(v => v + 1); }); }}
     focusId={visible ? focusId : null} freshId={visible ? freshId : null} requestedId={visible && wholeSetKnown ? named : null}
-    expanded={visible ? session.expanded : null} draft={visible ? session.draft : null} busy={editor.busy || !!pending?.inFlight}
-    editingLoading={session.editingLoading} pending={!!pending} canRetry={!!pending?.reconciled && !editor.uncertain && pending.result === 'unknown'}
+    expanded={visible ? session.expanded : null} draft={visible ? session.draft : null} draftStale={visible && draftStale}
+    busy={editor.busy || !!pending?.inFlight}
+    editingLoading={session.editingLoading} pending={!!pending}
+    pendingAction={pending ? withdrawal(pending) ? 'withdraw' : pending.intent.kind === 'resolve' && pending.intent.command.akcija === 'UPDATE' ? 'update' : 'keep' : null}
+    canRetry={!!pending?.reconciled && !editor.uncertain && pending.result === 'unknown'}
     canReset={!!pending?.reconciled && !editor.uncertain && (pending.result === 'rejected' || pending.result === 'receipt')}
     onRefresh={refresh} onExplore={() => navigate('/zadaci')} onProfile={() => navigate('/profil')}
-    onBack={() => { if (current()) { if (router.canGoBack()) router.back(); else router.replace('/'); } }}
-    onReview={p => { if (rowCurrent(p) && idle()) { clearReview(); session.expanded = p.prijavaId; render(v => v + 1); } }}
-    onClose={() => { if (current() && !session.pending) { clearReview(); render(v => v + 1); } }} onEdit={p => void edit(p)}
+    onBack={() => discardIfDirty(leaveScreen)}
+    onReview={p => { if (rowCurrent(p) && idle()) discardIfDirty(() => { clearReview(); session.expanded = p.prijavaId; render(v => v + 1); }); }}
+    onClose={() => { if (current() && !session.pending) discardIfDirty(() => { clearReview(); render(v => v + 1); }); }} onEdit={p => void edit(p)}
     onChange={draft => { if (current() && idle() && editRevision === session.editRevision && session.draft) { session.draft = pricedOffer({ ...session.draft, price: draft.price, people: draft.people, note: draft.note }); session.editRevision++; session.message = null; render(v => v + 1); } }}
-    onCancelEdit={() => { if (current() && idle()) { session.draft = null; session.editRevision++; session.message = null; render(v => v + 1); } }}
+    onCancelEdit={() => { if (current() && idle()) discardIfDirty(() => { clearEdit(); render(v => v + 1); }); }}
     onKeep={p => makeIntent(p, 'KEEP')} onUpdate={p => makeIntent(p, 'UPDATE')} onWithdraw={withdraw}
-    onAgreement={p => { if (rowCurrent(p) && !session.pending && p.stanje === 'SELECTED' && p.dogovorId) router.push(`/dogovor/${p.dogovorId}` as any); }}
-    onTask={p => { if (rowCurrent(p) && !session.pending) router.push({ pathname: '/prilike/[id]', params: { id: p.potrebaId } }); }}
+    onAgreement={p => { if (rowCurrent(p) && !session.pending && p.stanje === 'SELECTED' && p.dogovorId)
+      discardIfDirty(() => { clearReview(); router.push(`/dogovor/${p.dogovorId}` as any); }); }}
+    onTask={p => { if (rowCurrent(p) && !session.pending) discardIfDirty(() => { clearReview(); router.push({ pathname: '/prilike/[id]', params: { id: p.potrebaId } }); }); }}
     onRetry={() => { if (pending?.result === 'unknown' && pending === session.pending) perform(pending); }}
     onReset={() => { if (current() && pending === session.pending && pending?.reconciled && (pending.result === 'rejected' || pending.result === 'receipt') && !editor.busy && !editor.uncertain) {
-      session.pending = null; clearReview(); render(v => v + 1);
+      discardIfDirty(() => { session.pending = null; clearReview(); render(v => v + 1); });
     } }} />{confirmation.sheet}</>;
 }

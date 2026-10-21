@@ -180,6 +180,15 @@ describe('the route', () => {
     expect(texts()).not.toContain(sentence);
   });
 
+  it('returns from saving to a truthful unknown outcome if an unexpected client error escapes', async () => {
+    mockChange.mockRejectedValueOnce(new Error('unexpected transport failure'));
+    await draw(); await fill();
+    await act(async () => action().props.onPress());
+    expect(texts()).toContain('Ne znamo da li je lozinka promenjena. Odjavi se pa se prijavi novom lozinkom; ako ne uspe, starom.');
+    expect(action().props).toMatchObject({ loading: false, disabled: false });
+    expect(field('Nova lozinka').props.value).toBe(NEW);
+  });
+
   it('presses nothing while the words are not fit to send', async () => {
     await draw();
     await act(async () => action().props.onPress());

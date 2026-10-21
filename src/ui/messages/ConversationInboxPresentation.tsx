@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useState, type ReactNode } from 'react';
-import { FlatList, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, View, type ListRenderItemInfo } from 'react-native';
 import type { ConversationInboxItem } from '../../contracts/conversationInbox';
 import { DOGOVORENA_ZONA } from '../../lib/dogovorenoVreme';
 import { inicijali } from '../../lib/inicijali';
@@ -16,14 +16,13 @@ import { useLayoutClass } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { V2Action } from '../v2/V2Action';
-import { ListSkeleton } from '../notifications/ListSkeleton';
 import { TimedRow } from '../notifications/TimedRow';
 
 /**
  * The admitted reader's contract owns these facts (`MY_CONVERSATIONS_PAGE_V1`). Two things the Poruke design draws are NOT in that
- * projection today, so nothing supplies them yet and nothing is invented: that the Dogovor is closed (the "Završeni" set), and how
+ * projection today, so nothing supplies them yet and nothing is invented: that the conversation is closed, and how
  * many people a group has ("Grupa · 3 osobe"). A reader that learns them fills these optional fields and the row draws them; the route
- * fills `closed` from the Dogovori it already reads (R17).
+ * fills private Agreement closure from the Dogovori it already reads. Group lifecycle needs its own witness.
  */
 export type ConversationInboxRow = ConversationInboxItem & Readonly<{ closed?: boolean; memberCount?: number }>;
 export const conversationRowKey = (row: ConversationInboxRow): string => `${row.kind}:${row.id}`;
@@ -47,7 +46,7 @@ export type ConversationInboxPresentationProps = {
   onAgreements?: () => void;
   /**
    * R17: the Dogovori that are over (ids), read by the route from the Dogovori the app already reads. When every row says whether its Dogovor
-   * is closed (`closed` on the row, or its Dogovor in or out of this set), the list can be told in two sets, "Aktivni" and "Završeni". With
+   * is closed (`closed` on the row, or a PRIVATE Dogovor in or out of this set), the list can be told in two sets, "Aktivni" and "Istorija". With
    * `null` (not read yet, or the read failed) and no `closed` on the rows there is one list and no control: nothing is guessed.
    */
   closedAgreements?: ReadonlySet<string> | null;
@@ -65,7 +64,9 @@ export function conversationInboxRows(items: readonly ConversationInboxRow[], op
   const zone = { zona: options.zona ?? DOGOVORENA_ZONA, ...(options.sada ? { sada: options.sada } : {}) };
   // Whether the Dogovor is over: what the row says, else what the Dogovori read says; undefined is "not known", never "open".
   const closedOf = (item: ConversationInboxRow) => item.closed !== undefined ? item.closed
-    : options.closedAgreements ? options.closedAgreements.has(item.routeAgreementId) : undefined;
+    // A group's route points at one bilateral Agreement. Its completion/cancellation says nothing
+    // about the remaining group members; only an explicit group status may classify that row.
+    : item.kind === 'AGREEMENT' && options.closedAgreements ? options.closedAgreements.has(item.routeAgreementId) : undefined;
   return items.map(item => ({ key: conversationRowKey(item), item, moment: trenutak(item.lastMessage.createdAt, zone), closed: closedOf(item) }));
 }
 
@@ -90,12 +91,16 @@ export function conversationPreview(message: ConversationInboxRow['lastMessage']
   return `${message.mine ? 'Ti: ' : ''}${content}`;
 }
 
+/** Keep message punctuation when joining facts for a screen reader; a preview ending in a full stop must not become "..". */
+const spokenFacts = (facts: (string | null)[]): string => facts.filter((fact): fact is string => Boolean(fact))
+  .reduce((speech, fact) => speech ? `${speech}${/[.!?…]$/u.test(speech) ? ' ' : '. '}${fact}` : fact, '');
+
 const EMPTY_KEYS: ReadonlySet<string> = new Set();
 const EMPTY_ITEMS: readonly ConversationInboxRow[] = [];
 const rowKey = (row: ListItem) => row.key;
 
 type ConversationSet = 'active' | 'closed';
-const SETS = [{ key: 'active' as const, label: 'Aktivni' }, { key: 'closed' as const, label: 'Završeni' }];
+const SETS = [{ key: 'active' as const, label: 'Aktivni' }, { key: 'closed' as const, label: 'Istorija' }];
 
 export function ConversationInboxPresentation({ items, loading, refreshing, error, paging, pageError, hasMore,
   disabled = false, openingDisabled = false, openingKey = null, unavailableKeys = EMPTY_KEYS, openErrorKey = null,
@@ -106,7 +111,6 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
   // One list, or two when every row says whether its Dogovor is closed. The conversations themselves are never reordered.
   const closedKnown = rows.length > 0 && rows.every(row => row.closed !== undefined);
   const shown = useMemo(() => closedKnown ? rows.filter(row => (row.closed === true) === (set === 'closed')) : rows, [rows, closedKnown, set]);
-  const lastKey = shown.length ? shown[shown.length - 1].key : null;
   const reading = loading || refreshing;
   const readDisabled = disabled || reading || paging;
   const openDisabled = disabled || openingDisabled || openingKey !== null;
@@ -115,38 +119,44 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
   // The pull spinner is for a pull only: a read the screen starts by itself (a tab switched back, a focus) used to raise it, and on Android
   // it is a white disc over the top of the list, which sat half grown on the Aktivni/Završeni switch on the owner's phone (8 Oct 2026).
   const pull = usePullRefresh(refresh, reading);
-  const renderItem = useCallback(({ item: row }: ListRenderItemInfo<ListItem>) => <ConversationRow item={row.item} moment={row.moment} closed={row.closed === true}
-    last={row.key === lastKey}
+  const renderItem = useCallback(({ item: row }: ListRenderItemInfo<ListItem>) => <View style={s.conversationCard}>
+    <ConversationRow item={row.item} moment={row.moment} closed={row.closed === true}
     unavailable={unavailableKeys.has(row.key)} failed={openErrorKey === row.key} opening={openingKey === row.key}
-    openDisabled={openDisabled} onOpen={onOpen} photo={renderAvatar?.(row.item)} />,
-  [lastKey, unavailableKeys, openErrorKey, openingKey, openDisabled, onOpen, renderAvatar]);
+    openDisabled={openDisabled} onOpen={onOpen} photo={renderAvatar?.(row.item)} />
+  </View>,
+  [unavailableKeys, openErrorKey, openingKey, openDisabled, onOpen, renderAvatar]);
 
   const notice = items !== null && error ? <Surface kind="note" style={s.notice}>
     <T variant="note" accessibilityRole="alert">Razgovori nisu osveženi.</T>
-    <T variant="note" tone="muted">Poslednji učitani razgovori ostaju prikazani. Osveži ih da nastaviš.</T>
+    <T variant="note" tone="muted">{items.length > 0
+      ? 'Poslednji učitani razgovori ostaju prikazani. Osveži ih da nastaviš.'
+      : 'Pokušaj ponovo da proveriš ima li novih razgovora.'}</T>
     <V2Action label="Osveži razgovore" kind="quiet" compact onPress={onRefresh} disabled={readDisabled} loading={reading} />
   </Surface> : null;
   const control = closedKnown ? <Segmented value={set} onChange={setSet} options={SETS} /> : null;
-  const listHeader = titleInHeader && !control && !notice ? null : <View style={s.heading}>
+  const listHeader = <View style={s.heading}>
     {!titleInHeader ? <T variant="pageTitle" accessibilityRole="header">Poruke</T> : null}
+    <T variant="note" tone="muted">Razgovori o tvojim zadacima</T>
     {control}
     {notice}
   </View>;
 
   const incomplete = hasMore || pageError || paging;
-  const emptyTitle = incomplete ? closedKnown ? set === 'closed' ? 'Nema završenih među učitanim razgovorima' : 'Nema aktivnih među učitanim razgovorima'
+  const emptyTitle = incomplete ? closedKnown ? set === 'closed' ? 'Nema istorije među učitanim razgovorima' : 'Nema aktivnih među učitanim razgovorima'
     : 'Razgovori još nisu učitani do kraja'
-    : !closedKnown ? 'Još nema razgovora' : set === 'closed' ? 'Još nema završenih razgovora' : 'Nema aktivnih razgovora';
-  const emptyBody = incomplete ? 'Učitaj starije razgovore da nastaviš pregled.' : !closedKnown ? 'Čim nastane Dogovor, ovde je razgovor.'
-    : set === 'closed' ? 'Razgovori završenih Dogovora stoje ovde, da ih možeš pročitati.' : 'Završene razgovore vidiš pod „Završeni“.';
+    : !closedKnown ? 'Još nema razgovora' : set === 'closed' ? 'Istorija razgovora je prazna' : 'Nema aktivnih razgovora';
+  const emptyBody = incomplete ? 'Učitaj starije razgovore da nastaviš pregled.' : !closedKnown ? 'Razgovor započinješ iz Dogovora.'
+    : set === 'closed' ? 'Ovde su razgovori završenih i otkazanih Dogovora.' : 'Ranije razgovore vidiš u „Istoriji“.';
   const empty = items === null
     ? error && !reading
       ? <StateView kind="error" title="Razgovori nisu učitani" body="Proveri vezu pa pokušaj ponovo."
           primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: readDisabled }} />
-      // The rows that are coming, in their geometry (a face in its slot, two lines), and the one sentence a screen reader hears.
+      // A calm, explicit read state; no pulsing grey conversation placeholders.
       : <View accessibilityLiveRegion="polite" style={s.loading}>
-        <ListSkeleton rows={5} face />
-        <T variant="meta" tone="muted" style={s.center}>Učitavamo razgovore…</T>
+        <View style={[s.conversationCard, s.loadingCard]}>
+          <ActivityIndicator size="small" color={sys.color.green} accessibilityElementsHidden />
+          <T variant="bodyStrong">Učitavamo razgovore…</T>
+        </View>
       </View>
     : error ? null
       // Nobody has talked yet: the first encounter, the two panels at the size of a door; the quieter sets keep their 96.
@@ -168,7 +178,7 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
   </View>;
 }
 
-type RowProps = { item: ConversationInboxRow; moment: Trenutak | null; last: boolean; closed: boolean;
+type RowProps = { item: ConversationInboxRow; moment: Trenutak | null; closed: boolean;
   openDisabled: boolean; opening: boolean; unavailable: boolean; failed: boolean; photo?: ReactNode;
   onOpen: (row: ConversationInboxRow) => void };
 
@@ -176,16 +186,14 @@ type RowProps = { item: ConversationInboxRow; moment: Trenutak | null; last: boo
 const FACE = 48;
 
 /**
- * One conversation (UI/UX pass, 2026-10-08, the owner's phone): the face, then three lines and each of them ONE line. The person (or
- * the group) with the time of the last message at the end of the same line, what was said, and what it is about, in grey. A preview that
- * is longer than the room is cut by the line, not by a count of letters: the whole of it is in the conversation, and the row's one
- * label says all of it to a screen reader. A closed Dogovor draws nothing of its own (the lock explained nothing; the "Završeni" set
- * already says it is over) and a row draws no arrow: the whole row is the way in. At a large text size the time has no room beside the
- * name: the name may take two lines and the time goes to the front of the line of the task.
+ * The task leads because several group conversations otherwise have the same heading ("Grupa") and one person can have several jobs.
+ * Three compact lines preserve the existing density: task and time, last message, then person/group context. The entire text remains
+ * in the accessible label when a visual line is clipped. A closed private conversation carries Istorija even in a mixed list where
+ * group lifecycle is unknown. A row draws no arrow: its full content area opens the conversation.
  */
-const ConversationRow = memo(function ConversationRow({ item, moment, last, closed, openDisabled, opening, unavailable, failed, photo, onOpen }: RowProps) {
+const ConversationRow = memo(function ConversationRow({ item, moment, closed, openDisabled, opening, unavailable, failed, photo, onOpen }: RowProps) {
   const { stacked } = useLayoutClass();
-  const title = conversationTitle(item);
+  const context = item.kind === 'GROUP' ? conversationTitle(item) : `Privatno · ${conversationTitle(item)}`;
   const preview = conversationPreview(item.lastMessage);
   // Private unread is explicitly unknown in V1, even if an upstream caller accidentally supplies a number.
   const unread = item.kind === 'GROUP' && item.unreadMessageCount !== null && Number.isSafeInteger(item.unreadMessageCount)
@@ -193,16 +201,17 @@ const ConversationRow = memo(function ConversationRow({ item, moment, last, clos
   const status = unavailable ? 'Razgovor trenutno nije dostupan.' : failed ? 'Razgovor nije otvoren. Pokušaj ponovo.' : null;
   const stamp = conversationStamp(moment);
   const time = moment ? `${moment.dan}, ${moment.sat}` : null;
-  const label = [title, item.task.title, closed ? 'Dogovor je zatvoren' : null, preview, time, unread === null ? null : neprocitanih(unread), status].filter(Boolean).join('. ');
-  // The third line says what the conversation is about; while it opens, or when it cannot be opened, it says that instead.
-  const about = opening ? 'Otvaramo razgovor…' : status ?? item.task.title;
+  const label = spokenFacts([item.task.title, context, closed ? `${item.kind === 'GROUP' ? 'Razgovor je završen' : 'Dogovor je zatvoren'}. Samo za čitanje` : null, preview, time,
+    unread === null ? null : neprocitanih(unread), status]);
+  // Keep the counterpart visible even when the row is about the task; only authoritative closure earns Istorija.
+  const about = opening ? 'Otvaramo razgovor…' : status ?? `${closed ? 'Samo za čitanje · ' : ''}${context}`;
   const aboutLine = stacked && stamp && !opening && !status ? `${stamp} · ${about}` : about;
   const off = unavailable || opening;
   // The face is the one thing of the row's slot: a photo, the person's letters, or the picture of a group. Decoration only: the row speaks.
   const face = <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.face}>
     {photo ?? (item.kind === 'GROUP' ? <FactArt kind="users" size={FACE} /> : <Avatar initials={inicijali(item.counterpart?.displayName)} size={FACE} />)}
   </View>;
-  return <TimedRow leading={face} slot={FACE} title={title} titleLines={stacked ? 2 : 1} time={stacked ? null : stamp} last={last} disabled={off}
+  return <TimedRow leading={face} slot={FACE} title={item.task.title} titleLines={stacked ? 2 : 1} time={stacked ? null : stamp} last disabled={off}
     interactionDisabled={openDisabled}
     onPress={() => { if (!openDisabled) onOpen(item); }} accessibilityLabel={label}
     accessibilityHint={unavailable ? undefined : failed ? 'Pokušaj ponovo da otvoriš razgovor.' : 'Otvara razgovor uz ovaj zadatak.'}>
@@ -220,13 +229,15 @@ const s = StyleSheet.create({
   content: { flexGrow: 1, width: '100%', maxWidth: layout.maxWidth, alignSelf: 'center', paddingHorizontal: layout.gutter, paddingTop: sys.space.sm },
   heading: { gap: layout.group, paddingBottom: sys.space.sm },
   notice: { gap: sys.space.xs },
+  conversationCard: { backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.cardLine,
+    borderRadius: sys.radius.cardCompact, paddingHorizontal: sys.space.md, marginBottom: sys.space.sm },
   face: { width: FACE, height: FACE, alignItems: 'center', justifyContent: 'center' },
   line: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   grow: { flex: 1, minWidth: 0 },
   // The count of a group is 20 high, the height of the line it stands in, so a group's row is as tall as any other.
   unread: { minWidth: 20, height: 20, paddingHorizontal: sys.space.xs, borderRadius: sys.radius.pill, backgroundColor: sys.color.ink, alignItems: 'center', justifyContent: 'center' },
   unreadText: { color: sys.color.surface, textAlign: 'center', fontVariant: ['tabular-nums'] },
-  loading: { gap: sys.space.base },
-  center: { textAlign: 'center', maxWidth: '100%' },
+  loading: { paddingTop: sys.space.sm },
+  loadingCard: { minHeight: 86, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   footer: { paddingVertical: sys.space.base, gap: sys.space.sm },
 });

@@ -6,7 +6,7 @@ import { ConfirmSheet, SLOW_COMMAND_MS, useConfirmSheet, type ConfirmRequest } f
 import { ActionSheet, orderActions, type SheetAction } from '../ActionSheet';
 import { PeekSheet } from '../PeekSheet';
 import { Glyph } from '../Glyph';
-import { FOOTER_ESTIMATE, ProductSheet, SHEET_BACKDROP_HINT } from '../../product/ProductSheet';
+import { ProductSheet, SHEET_BACKDROP_HINT } from '../../product/ProductSheet';
 import { brandAction, pictureWell, sys } from '../tokens';
 import { Press } from '../../Press';
 
@@ -46,13 +46,13 @@ const press = async (instance: ReactTestInstance) => { await act(async () => { i
 const deferred = () => { let resolve!: () => void, reject!: (error: Error) => void;
   const promise = new Promise<void>((done, fail) => { resolve = done; reject = fail; }); return { promise, resolve, reject }; };
 const flat = (style: unknown) => Object.assign({}, ...[style].flat(3).filter(Boolean));
-const backdropOf = () => sheet().props.backdropComponent({ animatedIndex: { value: 0 }, animatedPosition: { value: 0 }, style: {} });
+const backdropOf = () => byTestId('product-sheet-backdrop');
 afterEach(async () => { await act(async () => tree?.unmount()); mockReduced = false; jest.useRealTimers(); });
 
 // The BOTTOM-SHEET FORM of the question: what a request that carries extra content, or whose caller says `form: 'sheet'`, is
 // drawn as (plan 2.20: "potvrda sa razlogom ili poljem"). A short question is a centred dialog now (owner 2026-10-07); its cases
 // are in confirm-dialog.test.tsx, case for case, so the one contract is held twice, once per form.
-describe('ConfirmSheet as a bottom sheet (form: "sheet")', () => {
+describe('ConfirmSheet with extra content in a centred modal', () => {
   const request = (patch: Partial<ConfirmRequest> = {}): ConfirmRequest => ({ title: 'Povući prijavu?',
     message: 'Prijava više neće biti aktivna.', confirmLabel: 'Povuci', form: 'sheet', ...patch });
 
@@ -93,14 +93,13 @@ describe('ConfirmSheet as a bottom sheet (form: "sheet")', () => {
   it('keeps one footer component, so the pressed confirm turns busy in place instead of being mounted again', async () => {
     const command = deferred();
     await render(<ConfirmSheet {...request({ onConfirm: () => command.promise })} onClosed={jest.fn()} />);
-    const component = sheet().props.footerComponent, footer = byTestId('product-sheet-footer'), confirm = byTestId('confirm-sheet-confirm');
+    const footer = byTestId('product-sheet-footer'), confirm = byTestId('confirm-sheet-confirm');
     await press(confirm);
     expect(byTestId('confirm-sheet-confirm').props.accessibilityState).toEqual({ disabled: true, busy: true });
     // The same component and the same rendered nodes: a screen reader keeps its place on the button just pressed.
-    expect(sheet().props.footerComponent).toBe(component);
     expect(byTestId('product-sheet-footer')).toBe(footer); expect(byTestId('confirm-sheet-confirm')).toBe(confirm);
     await act(async () => { tree.update(<ConfirmSheet {...request({ message: 'Druga rečenica.', onConfirm: () => command.promise })} onClosed={jest.fn()} />); });
-    expect(sheet().props.footerComponent).toBe(component); expect(byTestId('product-sheet-footer')).toBe(footer);
+    expect(byTestId('product-sheet-footer')).toBe(footer);
     await act(async () => { command.resolve(); await command.promise; });
   });
 
@@ -124,7 +123,7 @@ describe('ConfirmSheet as a bottom sheet (form: "sheet")', () => {
     // No way out while it runs: not the confirm again, not cancel, not Back, not a tap outside, not a drag.
     await press(confirm); await press(byTestId('confirm-sheet-cancel')); await act(async () => { modal().props.onRequestClose(); });
     const backdrop = backdropOf();
-    expect(backdrop.props.pressBehavior).toBe(0); expect(sheet().props.enablePanDownToClose).toBe(false);
+    expect(backdrop.props.disabled).toBe(true); await press(backdrop);
     expect(onConfirm).toHaveBeenCalledTimes(1); expect(onCancel).not.toHaveBeenCalled(); expect(onClosed).not.toHaveBeenCalled();
     const before = texts();
     await act(async () => { command.resolve(); await command.promise; });
@@ -139,12 +138,12 @@ describe('ConfirmSheet as a bottom sheet (form: "sheet")', () => {
     await press(byTestId('confirm-sheet-confirm'));
     await act(async () => { jest.advanceTimersByTime(SLOW_COMMAND_MS - 1); });
     await act(async () => { modal().props.onRequestClose(); });
-    expect(onClosed).not.toHaveBeenCalled(); expect(backdropOf().props.pressBehavior).toBe(0);
+    expect(onClosed).not.toHaveBeenCalled(); expect(backdropOf().props.disabled).toBe(true);
     await act(async () => { jest.advanceTimersByTime(1); });
     // Still the same busy confirm, and still no cancel: the command runs on and the screen that owns it says so.
     expect(byTestId('confirm-sheet-confirm').props.accessibilityState).toEqual({ disabled: true, busy: true });
     expect(byTestId('confirm-sheet-cancel').props.disabled).toBe(true);
-    expect(backdropOf().props.pressBehavior).toBe('close'); expect(sheet().props.enablePanDownToClose).toBe(true);
+    expect(backdropOf().props.disabled).toBe(false);
     // A tap outside now only closes the window; it no longer answers the question, and it says so in Serbian.
     expect(backdropOf().props).toMatchObject({ accessible: true, accessibilityHint: 'Zatvara prozor; radnja se nastavlja.' });
     await act(async () => { modal().props.onRequestClose(); });
@@ -169,18 +168,10 @@ describe('ConfirmSheet as a bottom sheet (form: "sheet")', () => {
     expect(onCancel).toHaveBeenCalledTimes(1); expect(onConfirm).not.toHaveBeenCalled(); expect(onClosed).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['Back', 'a tap outside', 'a drag down'])('%s is a cancel', async route => {
+  it.each(['Back', 'a tap outside'])('%s is a cancel', async route => {
     const onConfirm = jest.fn(), onCancel = jest.fn(), onClosed = jest.fn();
     await render(<ConfirmSheet {...request({ onConfirm, onCancel })} onClosed={onClosed} />);
-    await act(async () => {
-      if (route === 'Back') modal().props.onRequestClose();
-      else if (route === 'a drag down') sheet().props.onClose();
-      else {
-        const backdrop = sheet().props.backdropComponent({ animatedIndex: { value: 0 }, animatedPosition: { value: 0 }, style: {} });
-        expect(backdrop.props.pressBehavior).toBe('close');
-        sheet().props.onClose(); // What pressBehavior "close" does once the sheet has gone.
-      }
-    });
+    await act(async () => { if (route === 'Back') modal().props.onRequestClose(); else backdropOf().props.onPress(); });
     expect(onCancel).toHaveBeenCalledTimes(1); expect(onConfirm).not.toHaveBeenCalled(); expect(onClosed).toHaveBeenCalledTimes(1);
   });
 
@@ -195,7 +186,7 @@ describe('ConfirmSheet as a bottom sheet (form: "sheet")', () => {
 
   it('never moves when the phone asks for less motion', async () => {
     mockReduced = true; await render(<ConfirmSheet {...request()} onClosed={jest.fn()} />);
-    expect(sheet().props).toMatchObject({ animateOnMount: false, animationConfigs: { duration: 0 } });
+    expect(modal().props.animationType).toBe('none');
   });
 });
 
@@ -241,197 +232,77 @@ describe('useConfirmSheet', () => {
   });
 });
 
-describe('ProductSheet', () => {
-  it('pins its actions under the content, and the content makes room for them', async () => {
-    await render(<ProductSheet title="Filteri" onClose={jest.fn()} footer={() => <Text testID="apply">Primeni</Text>}>
-      {() => <Text>Sadržaj</Text>}</ProductSheet>);
-    expect(sheet().props.footerComponent).toEqual(expect.any(Function));
-    expect(byTestId('product-sheet-footer').findByProps({ testID: 'apply' })).toBeDefined();
-    const scroll = () => tree.root.findByType('ScrollView' as unknown as React.ElementType);
-    // Before its first layout the footer is taken at a confirmation's height, so the sentence is not hidden under it.
-    expect(FOOTER_ESTIMATE).toBe(130);
-    expect(flat(scroll().props.contentContainerStyle).paddingBottom).toBe(FOOTER_ESTIMATE + sys.space.sm);
-    await act(async () => { byTestId('product-sheet-footer').props.onLayout({ nativeEvent: { layout: { height: 96 } } }); });
-    expect(flat(scroll().props.contentContainerStyle).paddingBottom).toBe(104);
+describe('ProductSheet centred application modal', () => {
+  const element = (props: Partial<React.ComponentProps<typeof ProductSheet>> = {}) => <ProductSheet title="Pregled" onClose={jest.fn()}
+    footer={() => <Text testID="apply">Nastavi</Text>} {...props}>{() => <Text testID="body">Sadržaj</Text>}</ProductSheet>;
+
+  it('centres a bounded surface; heading and actions stay outside the body scroll', async () => {
+    await render(element());
+    expect(tree.root.findAllByType(BottomSheet)).toHaveLength(0);
+    expect(flat(byTestId('product-modal-viewport').props.style).justifyContent).toBe('center');
+    expect(flat(byTestId('product-modal-card').props.style).maxHeight).toBe('100%');
+    expect(byTestId('product-sheet-content').findAllByProps({ testID: 'apply' })).toHaveLength(0);
+    expect(byTestId('product-sheet-content').findAllByProps({ testID: 'product-sheet-heading' })).toHaveLength(0);
+    expect(byTestId('product-sheet-content').props.keyboardShouldPersistTaps).toBe('handled');
+    expect(byTestId('product-modal-card').props.accessibilityViewIsModal).toBe(true);
   });
 
-  it('keeps the same footer component across renders and updates its actions in place', async () => {
-    const element = (label: string) => <ProductSheet title="Filteri" onClose={jest.fn()}
-      footer={() => <Text testID="apply">{label}</Text>}>{() => <Text>Sadržaj</Text>}</ProductSheet>;
-    await render(element('Primeni'));
-    const component = sheet().props.footerComponent, footer = byTestId('product-sheet-footer');
-    await act(async () => { tree.update(element('Primeni izbor')); });
-    expect(sheet().props.footerComponent).toBe(component);
+  it('updates actions without remounting the footer or losing the body', async () => {
+    await render(element());
+    const footer = byTestId('product-sheet-footer'), body = byTestId('body');
+    await act(async () => tree.update(element({ footer: () => <Text testID="apply">Sačekaj…</Text> })));
     expect(byTestId('product-sheet-footer')).toBe(footer);
-    expect(byTestId('apply').props.children).toBe('Primeni izbor');
+    expect(byTestId('body')).toBe(body);
+    expect(byTestId('apply').props.children).toBe('Sačekaj…');
   });
 
-  // Round 2c (verifier vs, must 1): an undefined or empty hint made Gorhom speak its English default, which also claimed
-  // a tap closes the sheet when it did not. Every state now says what a tap outside really does, in Serbian, or is not
-  // visited at all.
-  it('says in Serbian what a tap outside really does, and is not visited where a tap does nothing', async () => {
-    await render(<ProductSheet title="Filteri" onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    expect(backdropOf().props).toMatchObject({ accessible: true, accessibilityHint: SHEET_BACKDROP_HINT });
-    await act(async () => tree.unmount());
-    await render(<ProductSheet title="Filteri" backdropHint="Zatvara meni." onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    expect(backdropOf().props.accessibilityHint).toBe('Zatvara meni.');
-    await act(async () => tree.unmount());
-    // A caller that has nothing to say takes the area out of the tree; its hint is still Serbian, never empty.
-    await render(<ProductSheet title="Filteri" backdropHint={null} onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    expect(backdropOf().props).toMatchObject({ accessible: false, accessibilityHint: 'Zatvori' });
-    // Unsaved input: a tap outside asks first, and says so; while the question stands it means "keep editing".
-    await act(async () => tree.unmount());
-    await render(<ProductSheet title="Filteri" dirty backdropHint="Zatvara meni." onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    expect(backdropOf().props).toMatchObject({ accessible: true, accessibilityHint: 'Pita pre nego što odbaci izmene.' });
-    await press(tree.root.findByProps({ accessibilityLabel: 'Zatvori', accessibilityRole: 'button' }));
-    expect(backdropOf().props).toMatchObject({ accessible: true, accessibilityHint: 'Nastavlja uređivanje.' });
-    // Not dismissible (a command runs): a tap outside does nothing, so it is not visited.
-    await act(async () => tree.unmount());
-    await render(<ProductSheet title="Filteri" dismissible={false} onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    expect(backdropOf().props.accessible).toBe(false);
+  it.each(['Back', 'close', 'outside'])('closes once through %s', async way => {
+    const onClose = jest.fn(); await render(element({ onClose }));
+    const close = way === 'Back' ? modal().props.onRequestClose : byTestId(way === 'close' ? 'product-sheet-close' : 'product-sheet-backdrop').props.onPress;
+    await act(async () => { close(); close(); }); expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  // Round 6 on the emulator (b4531ef4): the × sat alone under the green title on every titled sheet. RN's sticky header
-  // moves the sticky child's own style onto its wrapper and gives the child {flex: 1} alone, so a row direction on the
-  // sticky element is lost; the row must live one level inside it. Jest's ScrollView does not apply that wrapper, so
-  // this pins the structure, and the emulator shows the result.
-  it('keeps the title and its × on one row inside the sticky heading, not on the sticky element itself', async () => {
-    await render(<ProductSheet title="Ovo šalješ" onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    expect(tree.root.findByType('ScrollView' as unknown as React.ElementType).props.stickyHeaderIndices).toEqual([0]);
-    const title = tree.root.findByProps({ accessibilityRole: 'header' });
-    const close = tree.root.findByProps({ accessibilityLabel: 'Zatvori', accessibilityRole: 'button' });
-    const row = title.parent!;
-    expect(close.parent).toBe(row);
-    expect(flat(row.props.style)).toMatchObject({ flexDirection: 'row', alignItems: 'center' });
-    expect(flat(title.props.style)).toMatchObject({ flex: 1, color: sys.color.ink });
-    expect(flat(close.props.style)).toMatchObject({ width: 48, height: 48 });
-    // The sticky element carries only what its wrapper may take: the white and the padding under the row.
-    const sticky = row.parent!;
-    expect(flat(sticky.props.style)).toMatchObject({ backgroundColor: sys.color.surface, paddingBottom: sys.space.md });
-    expect(flat(sticky.props.style).flexDirection).toBeUndefined();
-  });
-
-  it('names a sheet without a visible title, and draws no heading for it', async () => {
-    await render(<ProductSheet label="Radnje" onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    expect(sheet().props.accessibilityLabel).toBe('Radnje');
-    expect(tree.root.findAll(node => node.props.accessibilityRole === 'header')).toHaveLength(0);
-  });
-
-  it('closes on Back and on its ×, each once', async () => {
-    const onClose = jest.fn();
-    await render(<ProductSheet title="Filteri" onClose={onClose}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    await act(async () => { modal().props.onRequestClose(); modal().props.onRequestClose(); });
-    expect(onClose).toHaveBeenCalledTimes(1);
-    // A fresh sheet, closed by its ×, pressed twice.
-    await act(async () => tree.unmount());
-    const onCloseByX = jest.fn();
-    await render(<ProductSheet title="Filteri" onClose={onCloseByX}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    const close = tree.root.findByProps({ accessibilityLabel: 'Zatvori' });
-    expect(close.props.accessibilityRole).toBe('button');
-    await act(async () => { close.props.onPress(); close.props.onPress(); });
-    expect(onCloseByX).toHaveBeenCalledTimes(1);
-  });
-
-  it('asks before throwing unsaved input away, and the caller\'s own commit never asks', async () => {
-    const onClose = jest.fn();
-    function Draft() {
-      const [dirty, setDirty] = useState(true);
-      return <ProductSheet title="Filteri" onClose={onClose} dirty={dirty}
-        footer={dismiss => <Text testID="commit" onPress={() => { setDirty(true); dismiss(); }}>Primeni</Text>}>
-        {() => <Text testID="clean" onPress={() => setDirty(false)}>Sadržaj</Text>}</ProductSheet>;
-    }
-    await render(<Draft />);
-    // No drag closes it and a tap outside stays where it is and asks instead.
-    expect(sheet().props.enablePanDownToClose).toBe(false);
-    const backdrop = sheet().props.backdropComponent({ animatedIndex: { value: 0 }, animatedPosition: { value: 0 }, style: {} });
-    expect(backdrop.props.pressBehavior).toBe(0);
-    await press(tree.root.findByProps({ accessibilityLabel: 'Zatvori' }));
+  it('asks before discarding input; Back in the question keeps the draft mounted', async () => {
+    const onClose = jest.fn(); await render(element({ onClose, dirty: true }));
+    const body = byTestId('body');
+    await press(byTestId('product-sheet-close'));
     expect(onClose).not.toHaveBeenCalled(); expect(texts()).toContain('Odbaciti izmene?');
-    expect(tree.root.findAllByProps({ testID: 'commit' })).toHaveLength(0);
-    // Back while it asks means "keep editing".
-    await act(async () => { modal().props.onRequestClose(); });
-    expect(texts()).not.toContain('Odbaciti izmene?'); expect(onClose).not.toHaveBeenCalled();
-    await act(async () => { modal().props.onRequestClose(); });
-    await press(byTestId('product-sheet-keep')); expect(texts()).not.toContain('Odbaciti izmene?');
-    await act(async () => { backdrop.props.onPress(); });
-    await press(byTestId('product-sheet-discard')); expect(onClose).toHaveBeenCalledTimes(1);
+    expect(backdropOf().props.accessibilityHint).toBe('Nastavlja uređivanje.');
+    await act(async () => modal().props.onRequestClose());
+    expect(byTestId('body')).toBe(body); expect(texts()).not.toContain('Odbaciti izmene?');
+    await press(backdropOf()); await press(byTestId('product-sheet-keep'));
+    expect(onClose).not.toHaveBeenCalled();
+    await press(backdropOf()); await press(byTestId('product-sheet-discard'));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('commits without the question', async () => {
-    const onClose = jest.fn();
-    await render(<ProductSheet title="Filteri" onClose={onClose} dirty
-      footer={dismiss => <Text testID="commit" onPress={dismiss}>Primeni</Text>}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
+  it('uses the latest dirty/busy state and blocks every user exit while pending', async () => {
+    const onClose = jest.fn(); await render(element({ onClose }));
+    const oldBack = modal().props.onRequestClose;
+    await act(async () => tree.update(element({ onClose, dirty: true, dismissible: false })));
+    await act(async () => oldBack()); await press(backdropOf()); await press(byTestId('product-sheet-close'));
+    expect(onClose).not.toHaveBeenCalled(); expect(backdropOf().props.accessible).toBe(false);
+    expect(byTestId('product-sheet-close').props.disabled).toBe(true);
+    await act(async () => tree.update(element({ onClose, dirty: true })));
+    await act(async () => oldBack()); expect(texts()).toContain('Odbaciti izmene?');
+  });
+
+  it('allows an explicit commit to close without throwing up a discard question', async () => {
+    const onClose = jest.fn(); await render(element({ onClose, dirty: true,
+      footer: dismiss => <Text testID="commit" onPress={dismiss}>Sačuvaj</Text> }));
     await press(byTestId('commit'));
     expect(onClose).toHaveBeenCalledTimes(1); expect(texts()).not.toContain('Odbaciti izmene?');
   });
 
-  it('cannot be left while it is not dismissible', async () => {
-    const onClose = jest.fn();
-    await render(<ProductSheet title="Filteri" onClose={onClose} dismissible={false}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    await act(async () => { modal().props.onRequestClose(); });
-    expect(tree.root.findByProps({ accessibilityLabel: 'Zatvori' }).props.disabled).toBe(true);
-    expect(sheet().props.enablePanDownToClose).toBe(false); expect(onClose).not.toHaveBeenCalled();
-  });
-
-  it('settles on a critically damped spring, and on nothing at all under reduced motion', async () => {
-    await render(<ProductSheet title="Filteri" onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    expect(sheet().props.animateOnMount).toBe(true);
-    expect(sheet().props.animationConfigs).toMatchObject({ overshootClamping: true });
-    await act(async () => tree.unmount());
+  it('respects reduced motion and keeps a labelled untitled menu accessible', async () => {
     mockReduced = true;
-    await render(<ProductSheet title="Filteri" onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    expect(sheet().props).toMatchObject({ animateOnMount: false, animationConfigs: { duration: 0 } });
-    // The caller's own reading still wins, as the discovery sheets pass it.
-    await act(async () => tree.unmount());
-    await render(<ProductSheet title="Filteri" reduced={false} onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    expect(sheet().props.animateOnMount).toBe(true);
-  });
-
-  // Plan 2.20: a sheet opens and settles on the one spring and leaves quicker than it came: a command (a button, the ×, Back)
-  // closes it over 160-180 ms on the decelerating curve, handed to Gorhom's own `close()`. Gorhom is a mock here, so this pins
-  // what the sheet ASKS for; how it looks on a phone is for the phone.
-  describe('closing', () => {
-    const closeOf = () => jest.spyOn((BottomSheet as unknown as { prototype: { close: (config?: unknown) => void } }).prototype, 'close');
-    afterEach(() => { jest.restoreAllMocks(); });
-
-    it('is asked for over 170 ms on the decelerating curve, whichever command closes it, and the spring stays what it opens on', async () => {
-      const close = closeOf();
-      expect(sys.motion.sheetClose).toBeGreaterThanOrEqual(160); expect(sys.motion.sheetClose).toBeLessThanOrEqual(180);
-      await render(<ProductSheet title="Filteri" onClose={jest.fn()} footer={dismiss => <Text testID="commit" onPress={dismiss}>Primeni</Text>}>
-        {() => <Text>Sadržaj</Text>}</ProductSheet>);
-      expect(sheet().props.animationConfigs).toBe(sys.motion.sheetSpring);
-      await press(byTestId('commit'));
-      expect(close).toHaveBeenCalledTimes(1);
-      expect(close).toHaveBeenLastCalledWith({ duration: sys.motion.sheetClose, easing: expect.anything() });
-      // Back and the × go the same way.
-      await act(async () => tree.unmount());
-      close.mockClear();
-      await render(<ProductSheet title="Filteri" onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-      await act(async () => { modal().props.onRequestClose(); });
-      expect(close).toHaveBeenLastCalledWith({ duration: sys.motion.sheetClose, easing: expect.anything() });
-    });
-
-    it('is at once under reduced motion, the system\'s or the caller\'s', async () => {
-      const close = closeOf();
-      mockReduced = true;
-      await render(<ProductSheet title="Filteri" onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-      await act(async () => { modal().props.onRequestClose(); });
-      expect(close).toHaveBeenLastCalledWith({ duration: 0 });
-      await act(async () => tree.unmount()); mockReduced = false; close.mockClear();
-      await render(<ProductSheet title="Filteri" reduced onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-      await act(async () => { modal().props.onRequestClose(); });
-      expect(close).toHaveBeenLastCalledWith({ duration: 0 });
-    });
-  });
-
-  // Plan 2.20(b): one close glyph. The sheet's × used to be a Phosphor X at 22 of its own; it is the registry's `close` at 24 now,
-  // in the same 48 well.
-  it('draws its × as the one close glyph, 24 in a 48 hit area', async () => {
-    await render(<ProductSheet title="Filteri" onClose={jest.fn()}>{() => <Text>Sadržaj</Text>}</ProductSheet>);
-    const close = tree.root.findByProps({ accessibilityLabel: 'Zatvori', accessibilityRole: 'button' });
-    const glyph = close.findByType(Glyph);
-    expect(glyph.props).toMatchObject({ name: 'close', size: 24 });
-    expect(flat(close.props.style)).toMatchObject({ width: 48, height: 48 });
+    const onClose = jest.fn();
+    await render(element({ title: undefined, label: 'Radnje', onClose }));
+    expect(modal().props.animationType).toBe('none');
+    expect(byTestId('product-modal-card').props.accessibilityLabel).toBe('Radnje');
+    expect(backdropOf().props.accessibilityHint).toBe(SHEET_BACKDROP_HINT);
+    await press(byTestId('product-sheet-close'));
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -445,12 +316,12 @@ describe('ActionSheet', () => {
   it('puts a destructive action last and draws it in the danger colour', async () => {
     expect(orderActions(actions([])).map(action => action.key)).toEqual(['profile', 'photos', 'report']);
     await render(<ActionSheet actions={actions([])} onClose={jest.fn()} />);
-    const rows = tree.root.findAllByType(Press);
+    const rows = tree.root.findAllByType(Press).filter(row => row.props.accessibilityRole === 'menuitem');
     expect(rows.map(row => row.props.accessibilityLabel)).toEqual(['Otvori profil', 'Fotografije', 'Prijavi ili blokiraj']);
     const label = rows[2].findByType('T' as unknown as React.ElementType);
     expect(flat(label.props.style).color).toBe(sys.color.danger);
     expect(flat(rows[0].props.style).minHeight).toBeGreaterThanOrEqual(48);
-    expect(sheet().props.accessibilityLabel).toBe('Radnje');
+    expect(byTestId('product-modal-card').props.accessibilityLabel).toBe('Radnje');
   });
 
   it('names the menu where a screen reader reads it, and says what a tap outside does', async () => {

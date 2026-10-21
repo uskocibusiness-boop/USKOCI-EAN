@@ -8,6 +8,7 @@ import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { Appear, useAppear } from '../system/Appear';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { Glyph } from '../system/Glyph';
 import { ConversationArt } from '../system/ConversationArt';
 import { layout } from '../system/layout';
 import { neprocitanih } from '../system/plural';
@@ -16,8 +17,8 @@ import { StateView } from '../system/StateView';
 import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
 import { usePullRefresh } from '../system/usePullRefresh';
-import { INBOX_SET_LABEL, canMarkRead, inboxDestination, inboxTaskTitle, readableServerCopy } from './inboxCopy';
-import { ListSkeleton } from './ListSkeleton';
+import { INBOX_SET_LABEL, canMarkRead, inboxActionLabel, inboxDestination, inboxTaskTitle, readableServerCopy } from './inboxCopy';
+import { NotificationLoading } from './NotificationLoading';
 import { SwipeToRead, type SwipeableRowHandle } from './SwipeToRead';
 import { TimedRow } from './TimedRow';
 
@@ -25,9 +26,9 @@ import { TimedRow } from './TimedRow';
  * Chronological events, grouped by the server moment, on the one rhythm of the app (UI/UX pass, 2026-10-08, composition spec 4.13):
  * the edge is 20, a day is a group heading (16/24, grey) with 24 above it and 12 under it, and "Označi sve" is the action at the end of
  * the first day's heading, not a row of its own. An event is a `TimedRow`: the picture (32, in a 40 slot) with the unread dot on it, the
- * event in 16/24 with its clock at the end of the same line, and the words under it (two lines at most). Where a tap goes ("Otvara Dogovor")
- * is said to a screen reader and to nobody else: a row that explains what it does is a row that is not clear (the owner's phone, 8 Oct 2026).
- * Rows of a day are parted by the inset line, days by space; no card, no band, no box.
+ * event and clock, task context below, then a quiet cue for a known destination. The whole row remains one target.
+ * Each event now sits on its own white card, matching the reviewed notification composition while the existing read and target
+ * behavior stays on the row's single press.
  *
  * The route/model still own read acknowledgment, target resolution and exact navigation. An event has no actor/avatar contract: none is
  * invented here. An unread row is the one with the dot (and its picture in colour); a pull to the left shows "Pročitano", which settles
@@ -98,7 +99,7 @@ export function inboxEventArt(eventType: string, family: string): FactArtKind {
     case 'OPPORTUNITY_AVAILABLE': case 'NEED_REVISED': case 'NEED_CANCELLED': return 'tasks';
     case 'COMPLETION_REQUIRED': return 'check';
   }
-  return family === 'responses' ? 'offers' : family === 'dogovor' ? 'agreements' : family === 'execution' ? 'check'
+  return family === 'responses' ? 'applications' : family === 'dogovor' ? 'agreements' : family === 'execution' ? 'check'
     : family === 'recovery' ? 'shield' : family === 'opportunities' ? 'tasks' : 'bell';
 }
 
@@ -125,8 +126,8 @@ function InboxRowBase({ item, moment, last, acting, busy, onOpen, onMarkRead, on
   const art = inboxEventArt(item.eventType, item.family);
   const { primary, secondary } = rowCopy(item);
   const when = moment ? `. ${moment.dan}, ${moment.sat}` : '';
-  // Where a tap goes is for a screen reader only; the eye gets the event, the words and the clock.
   const where = inboxDestination(item);
+  const actionLabel = inboxActionLabel(item);
   const markable = canMarkRead(item, !!onMarkRead);
   // One picture, 32: the event's own, a spinner while this row is being opened, and the unread dot on its corner (the dot shares the
   // picture's footprint instead of taking a gutter of its own). The picture keeps its colour once the row is read: what is read is said
@@ -139,11 +140,14 @@ function InboxRowBase({ item, moment, last, acting, busy, onOpen, onMarkRead, on
   // The swipe is never the only way: a screen reader is offered the same command in the row's actions menu, for an unread row only.
   const menu = markable ? { accessibilityActions: MARK_READ_ACTIONS,
     onAccessibilityAction: (event: { nativeEvent: { actionName: string } }) => { if (event.nativeEvent.actionName === MARK_READ_ACTION) onMarkRead!(item); } } : {};
-  const row = <TimedRow leading={leading} slot={layout.slot} title={primary} titleLines={2} strong={unread} time={moment?.sat} last={last} disabled={acting}
+  const row = <TimedRow leading={leading} slot={layout.slot} title={primary} titleLines={2} strong={unread} time={moment?.sat} last={last} card disabled={acting}
     onPress={() => onOpen(item)} {...menu}
     accessibilityLabel={`${unread ? 'Nepročitano' : 'Pročitano'}. ${readableServerCopy(item.title)}. ${readableServerCopy(item.body)}${when}`}
     accessibilityHint={where ? `${where}.` : undefined}>
     {secondary ? <T variant="note" tone="muted" numberOfLines={2}>{secondary}</T> : null}
+    {actionLabel ? <View testID="inbox-destination-cue" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={s.destination}>
+      <T variant="note" tone="green" style={s.destinationLabel}>{actionLabel}</T><Glyph name="arrow-right" size={16} tone="green" />
+    </View> : null}
   </TimedRow>;
   // Decided when the row mounts and never switched (a stable handler is handed down): a row that is read keeps its element type
   // and slides back, instead of being rebuilt under the finger.
@@ -173,7 +177,7 @@ function Banner({ title, sentence, retry, retryLabel = 'Pokušaj ponovo', disabl
   title: string; sentence: string; retry?: () => void; retryLabel?: string; disabled: boolean;
 }) {
   return <Surface kind="note" style={s.banner}>
-    <FactArt kind="info" size={24} muted />
+    <Glyph name="info" size={20} tone="muted" />
     <View style={s.bannerCopy}>
       <T variant="bodyStrong" accessibilityRole="alert">{title}</T>
       <T variant="note" tone="muted">{sentence}</T>
@@ -251,24 +255,27 @@ export function InboxList({ state, role, onRole, onOpen, onMarkRead, onReadAll, 
   const header = <View style={s.header}>
     <Segmented appearance="underline" value={role ?? 'ALL'} onChange={key => onRole(key === 'ALL' ? null : key as InboxRole)}
       options={INBOX_FILTERS.map(filter => ({ key: filter.role ?? 'ALL', label: filter.label }))} />
+    {loading && page ? <View accessibilityLiveRegion="polite" style={s.refreshing}>
+      <ActivityIndicator size="small" color={sys.color.green} />
+      <T variant="note" tone="muted">Proveravamo nova obaveštenja…</T>
+    </View> : null}
     {banner}
     {readAll && !firstIsDay && rows.length > 0 ? <DayHeader label="Obaveštenja" first readAll={readAll} /> : null}
   </View>;
 
-  const empty = loading || (!page && !error)
-    ? <View accessibilityLiveRegion="polite" style={s.loading}>
-        <ListSkeleton rows={5} heading />
-        <T variant="meta" tone="muted" style={s.loadingText}>Učitavamo obaveštenja…</T>
-      </View>
+  const empty = !page && (loading || !error)
+    ? <NotificationLoading label="Učitavamo obaveštenja…" />
     : !page ? <StateView kind="error" title="Obaveštenja nisu učitana" body="Proveri vezu i pokušaj ponovo da učitaš obaveštenja."
         primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: busy }} />
-      // The last loaded list always stays: an error with an empty page is the banner above, never "nothing here".
-      : error ? null
-        // Nothing has come yet (no role chosen): the bell at the size of a door, with the one way to say what should come. A chosen role
-        // that has none yet is a view, and keeps the quiet 96 and no action.
+      // A failed refresh has no current empty result to claim. Keep the last confirmed empty page and date its meaning.
+      : error ? <StateView kind="empty" art="bell" title="U poslednjem pregledu nije bilo obaveštenja"
+          body={error === 'load' ? 'Nismo uspeli da proverimo ima li novih. Osveži obaveštenja kada budeš mogao.'
+            : error === 'page' ? 'Starija obaveštenja nisu učitana.' : 'Ishod radnje još nije potvrđen.'} />
+        // A filtered empty is only this view, not proof that the whole inbox is empty. During a refresh it remains the last confirmed result.
         : <StateView kind="empty" hero={!role} art="bell" title={EMPTY_TITLE[role ?? 'ALL']}
             body={!role ? 'Nove prijave, poruke i važne promene stižu ovde.' : undefined}
-            primary={!role ? { label: 'Podesi obaveštenja', onPress: onSettings } : undefined} />;
+            primary={!role ? { label: 'Podesi obaveštenja', onPress: onSettings }
+              : { label: 'Prikaži sva obaveštenja', onPress: () => onRole(null), disabled: busy }} />;
 
   const footer = error === 'page' || page?.hasMore ? <View style={s.footer}>
     {error === 'page' ? <>
@@ -311,6 +318,9 @@ const s = StyleSheet.create({
   // The note of a failed read, on its quiet tint; its picture, words and one action 12 apart.
   banner: { flexDirection: 'row', gap: sys.space.md },
   bannerCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  refreshing: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  destination: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, paddingTop: sys.space.sm },
+  destinationLabel: { flexShrink: 1 },
   inlineAction: { paddingHorizontal: 0, alignSelf: 'flex-start' },
   // A day: 24 above, and 12 under it before the first row's own 12; the first one stands 12 under the sets and is as high as its action.
   day: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
@@ -325,7 +335,4 @@ const s = StyleSheet.create({
   dot: { position: 'absolute', top: 0, right: 0, width: sys.space.sm, height: sys.space.sm, borderRadius: sys.radius.pill, backgroundColor: sys.color.green,
     borderWidth: 1, borderColor: sys.color.surface },
   footer: { paddingTop: sys.space.base, gap: sys.space.sm },
-  // The first read: the rows that are coming, breathing, and the one sentence a screen reader hears.
-  loading: { gap: sys.space.base },
-  loadingText: { textAlign: 'center' },
 });

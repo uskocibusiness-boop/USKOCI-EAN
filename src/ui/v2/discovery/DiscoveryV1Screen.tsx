@@ -9,6 +9,7 @@ import type { DiscoveryV1MapMarker } from '../../../data/discoveryV1MarketplaceA
 import type { MarketplaceItem, MarketplaceView, PublicBounds } from '../../../data/marketplaceView';
 import type { WorkAreaCamera } from '../../../data/discoveryWorkArea';
 import type { TaskRelation } from '../../../data/taskRelation';
+import { discoveryWorkMode } from '../../../data/discoveryWorkMode';
 import { DiscoveryV1PresentationBridge } from '../../../data/discoveryV1PresentationBridge';
 import type { DiscoveryV1WarmReturn } from '../../../data/discoveryV1WarmReturn';
 import type { SearchDraft } from './DiscoverySearchPanel';
@@ -54,7 +55,7 @@ const SEARCH_SETTLE_MS = 250;
 const nextFrame = (work: () => void) => { if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => work()); else setTimeout(work, 0); };
 
 export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
-  const initialViewRef = useRef(props.initialView);
+  const initialViewRef = useRef(discoveryWorkMode(props.initialView));
   const currentRef = useRef(props.isCurrent); currentRef.current = props.isCurrent;
   const persistRef = useRef(props.onPersistView); persistRef.current = props.onPersistView;
   const optionalCommitRef = useRef<() => void>(() => {});
@@ -192,8 +193,9 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   // old view) read the place away again (found on the emulator: the place was read and, next, read away). The asked view is handed back at once.
   const askedView = useRef<MarketplaceView | null>(null);
   const [, showAsked] = useState(0);
-  const handleView = useCallback((view: MarketplaceView) => {
+  const handleView = useCallback((requested: MarketplaceView) => {
     if (!live()) return;
+    const view = discoveryWorkMode(requested);
     // Asking "Za mene" again is a new attempt: the last refusal is not repeated until this one is refused too.
     if (view.forMe) setForMeRefused(false);
     askedView.current = view; showAsked(count => count + 1);

@@ -41,7 +41,7 @@ export type AgreementOverviewProps = {
   problem?: { note?: ReactNode; exits?: ReactNode; form?: ReactNode };
   /** The entry to the conversation of a group Dogovor (it reads the group, so the route owns it). */
   group?: ReactNode;
-  /** Fresh group roster is shown above the bilateral conditions, which remain explicitly private. */
+  /** Fresh group roster follows the next action and explicitly individual accepted conditions. */
   groupReady?: boolean;
   privatePartyName?: string;
   /** Replaces the private location of the place section. For a gallery that must read nothing; the route leaves it out. */
@@ -65,18 +65,28 @@ export type AgreementOverviewProps = {
 
 export function AgreementOverview({ agreement, step, steps, info, headExtra, party, enabled, concealed = false, accountHasNumber, problem, group, groupReady = false, privatePartyName, location, on }: AgreementOverviewProps) {
   const title = readableTitle(agreement.naslov);
+  const ownRole = agreement.ucesnici.find(person => person.viSte)?.uloga;
+  const roleLabel = ownRole === 'narucilac' ? 'Ti objavljuješ' : ownRole === 'uskocer' ? 'Ti uskačeš' : undefined;
+  // These seats belong to this accepted bilateral Dogovor. Other collaborations and whether applications remain open
+  // cannot be inferred from this projection, even when its source task needs more people.
+  const coverage = agreement.pokrivenost;
+  const coverageLine = coverage.ukupno > 1 && coverage.popunjeno > 0
+    ? `Obuhvat ovog Dogovora: ${coverage.popunjeno} od ${coverage.ukupno} traženih mesta` : undefined;
   const link = (command: (() => void) | undefined) => command ? { disabled: !enabled, onPress: command } : undefined;
   return <>
-    {groupReady ? group : null}
+    {groupReady ? <T variant="pageTitle" accessibilityRole="header">{title}</T> : null}
     {groupReady ? <T variant="heading" accessibilityRole="header">{privatePartyName ? `Tvoj Dogovor: ${privatePartyName}` : 'Tvoj pojedinačni Dogovor'}</T> : null}
-    <AgreementHead title={title} step={step} steps={steps} info={info}>{headExtra}</AgreementHead>
+    <AgreementHead title={title} roleLabel={roleLabel} coverageLine={coverageLine} showTitle={!groupReady}
+      step={step} steps={steps} info={info}>{headExtra}</AgreementHead>
     {on.proposeTerm ? <AgreementTermNote disabled={!enabled} onPropose={on.proposeTerm} /> : null}
     {problem?.note}
     {problem?.exits}
     <AgreementTerms agreement={agreement} />
     {/* A 1:1 Dogovor names its one other person in the bar; the list of both sides is kept for a group (A13). */}
     {isGroupAgreement(agreement) && !groupReady ? <AgreementPeople agreement={agreement} /> : null}
-    {!groupReady ? group : null}
+    {/* The real next step and accepted personal terms stay ahead of a potentially long roster.
+        The group is a separate channel, not a source of shared price/status permissions. */}
+    {group}
     {/* One open section for the number and the place (it was a closed "Kontakt" and a closed "Lokacija i pristup"). */}
     <AgreementContactPlace agreement={agreement} enabled={enabled} concealed={concealed} canShare={party} accountHasNumber={accountHasNumber}
       locationSlot={location} onLayout={on.placeLayout} onTogglePhone={on.togglePhone} onOpenMessages={on.openMessages} onRequestAddress={on.requestAddress} />

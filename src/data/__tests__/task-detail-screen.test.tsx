@@ -116,7 +116,7 @@ describe('W04 actual screen and focused read lifecycle', () => {
     await render();
     // The section is "Mesto" (composition spec 2026-10-07, T3); it was "Mesto zadatka" and, before V41, "Gde je".
     expect(text()).toContain('Mesto');
-    expect(text()).toContain('Tačna adresa: samo u Dogovoru'); expect(text()).not.toContain('Približno područje.');
+    expect(text()).toContain('Tačnu adresu naručilac deli u Dogovoru'); expect(text()).not.toContain('Približno područje.');
     const map = tree!.root.findByProps({ coarse: true });
     expect(map.props.points).toEqual([{ id: 'area', label: 'Približno mesto', latitude: 45.2671, longitude: 19.8335 }]);
     expect(map.props.coarse).toBe(true);

@@ -10,6 +10,7 @@ import type { TaskCardRelation } from '../ui/v2/TaskFace';
 import { novac } from '../lib/novac';
 import type { DiscoveryV1SearchSnapshot, SearchPreviewView } from '../data/discoveryV1SearchOwner';
 import { discoveryV1SearchPreviewKey } from '../data/discoveryV1SearchOwner';
+import { discoveryWorkMode } from '../data/discoveryWorkMode';
 import { DiscoveryPresentation } from '../ui/v2/DiscoveryPresentation';
 import { DiscoveryPeek } from '../ui/v2/discovery/DiscoveryPeek';
 import { DiscoverySearchPanel, type PanelMode } from '../ui/v2/discovery/DiscoverySearchPanel';
@@ -129,7 +130,7 @@ const RECENT: readonly RecentSearch[] = [{ query: 'selidba', place: 'Novi Sad' }
 const NO_RECENT: readonly RecentSearch[] = [];
 const NO_PATCH: Partial<MarketplaceView> = {};
 function Panel({ mode, patch = NO_PATCH, recent = NO_RECENT }: { mode: PanelMode; patch?: Partial<MarketplaceView>; recent?: readonly RecentSearch[] }) {
-  const view = useMemo<MarketplaceView>(() => ({ ...initialMarketplaceView(), mode: 'map', ...patch }), [patch]);
+  const view = useMemo<MarketplaceView>(() => discoveryWorkMode({ ...initialMarketplaceView(), mode: 'map', ...patch }), [patch]);
   const [letters, setLetters] = useState('');
   const snapshot = useMemo<DiscoveryV1SearchSnapshot>(() => ({ active: true, generation: 1, key: discoveryV1SearchPreviewKey({ ...view, placeSearch: letters } as SearchPreviewView, AREA), status: 'ready',
     count: 41, undated: 0, availability: { hasKnownWorkMode: true, hasKnownSchedule: true, priceModes: ['MY_PRICE', 'OFFERS'] },

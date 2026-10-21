@@ -6,34 +6,29 @@ import { Glyph } from '../../system/Glyph';
 import { ChromeIconButton } from '../../system/ScreenChrome';
 import { Surface } from '../../system/Surface';
 import { sys } from '../../system/tokens';
-import { FILTERS_HINT, SEARCH_HINT, filtersSpoken } from './discoveryWords';
+import { FILTERS_HINT, filtersSpoken } from './discoveryWords';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { capsuleCollapse, chromeJoin } from './discoveryChrome';
 
 /** The bar's distance from the top of the map. */
 export const BAR_TOP = sys.space.md;
-/** Filter touch and its count stay together inside the toolbar. */
-const FILTERS_SIZE = 48;
+/** Any back or context-clear action remains a separate 48 dp target. */
 
-/** Compact map controls and the active query share one measured surface.
- * The query is a subtitle of search, with a separate accessible clear control.
+/** Filteri is the primary map control; search is available from its panel.
  * Notices remain outside that measurement so permission/error feedback never moves the sheet stops.
  */
-export function DiscoverySearchBar({ where, onBack, onSearch, onMore, onClearWhere, filters, onLayout, onSearchLayout, motion, chips, below }: {
+export function DiscoverySearchBar({ where, onBack, onClearWhere, filters, onLayout, onSearchLayout, motion, chips, below }: {
   /** Active search/area, in one line; null when nothing is. */ where: string | null;
-  onSearch: () => void;
   onBack?: () => void;
-  /** Secondary account/publication entries share one menu so the map does not need a second header. */
-  onMore?: () => void;
-  /** Set while the list is narrowed to what the pill says: the summary's "×" takes that narrowing away. */
+  /** Optional direct reset for the active place/query, shown inside the primary filter surface. */
   onClearWhere?: () => void;
-  /** The round button of the filters beside the pill, with how many conditions are on (none: no number). */
+  /** The primary map control and its active condition count. */
   filters?: { count: number; onPress: () => void };
-  /** The lower edge of the pill and its capsules from the top of the map: where the list stops when it is all the way up. */
+  /** The lower edge of the filter surface and its capsules from the top of the map: where the list stops when it is all the way up. */
   onLayout: (bottom: number) => void;
   onSearchLayout?: (bottom: number) => void;
   motion?: { sheetTop: SharedValue<number>; offset: SharedValue<number>; compactTop: number; capsules: number; hidden: boolean };
-  /** The row of capsules, under the pill. It is part of the measured edge. */
+  /** The row of capsules under Filteri. It is part of the measured edge. */
   chips?: ReactNode;
   /** Floats over the map under the capsules: a notice. Not part of the measured edge. */
   below?: ReactNode;
@@ -60,24 +55,25 @@ export function DiscoverySearchBar({ where, onBack, onSearch, onMore, onClearWhe
     <View testID="discovery-search-stack" pointerEvents="box-none" style={s.stack} onLayout={measure}>
       <View testID="discovery-search-row" pointerEvents="box-none" style={s.row}
         onLayout={event => onSearchLayout?.(Math.ceil(BAR_TOP + event.nativeEvent.layout.y + event.nativeEvent.layout.height))}>
+        {onBack ? <Surface kind="float" style={s.roundControl}><ChromeIconButton label="Nazad" glyph="back" quiet onPress={onBack} /></Surface> : null}
         <Surface kind="float" style={s.searchSurface}>
           <View style={s.controls}>
-            {onBack ? <ChromeIconButton label="Nazad" glyph="back" quiet onPress={onBack} /> : null}
-            <Press accessibilityRole="button" accessibilityLabel="Pretraži zadatke" accessibilityValue={where ? { text: where } : undefined}
-              accessibilityHint={SEARCH_HINT} haptic="select" scaleTo={sys.motion.scale.row} onPress={onSearch}
+            {filters ? <Press testID="filters-button" accessibilityRole="button" accessibilityLabel={filtersSpoken(filters.count)}
+              accessibilityValue={where ? { text: where } : undefined} accessibilityHint={FILTERS_HINT}
+              accessibilityState={{ selected: filters.count > 0 }} haptic="select" scaleTo={sys.motion.scale.row} onPress={filters.onPress}
               hitSlop={0} style={s.searchButton}>
-              <Glyph name="search" size={20} tone="ink" strong />
+              <Glyph name="filters" size={24} tone="ink" />
               <View style={s.searchCopy}>
-                <T variant="bodyStrong" style={s.searchLabel}>Pretraži zadatke</T>
+                <T variant="bodyStrong" style={s.searchLabel}>Filteri</T>
                 {where ? <T testID="discovery-search-context" variant="meta" tone="muted" numberOfLines={1}>{where}</T> : null}
               </View>
-            </Press>
-            {where && onClearWhere ? <Press testID="clear-where" accessibilityRole="button" accessibilityLabel="Prikaži sve zadatke"
+              {filters.count > 0 ? <View testID="filters-count" pointerEvents="none" importantForAccessibility="no-hide-descendants"
+                accessibilityElementsHidden style={s.badge}><T variant="label" style={s.badgeText}>{filters.count}</T></View> : null}
+            </Press> : null}
+            {where && onClearWhere ? <Press testID="clear-where" accessibilityRole="button" accessibilityLabel="Ukloni pretragu ili mesto"
               haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={onClearWhere} style={s.clear}>
               <Glyph name="close" size={16} tone="muted" />
             </Press> : null}
-            {filters ? <FiltersButton count={filters.count} onPress={filters.onPress} /> : null}
-            {onMore ? <ChromeIconButton label="Još mogućnosti" hint="Objava zadatka, profil i obaveštenja." glyph="more" quiet onPress={onMore} /> : null}
           </View>
         </Surface>
       </View>
@@ -91,21 +87,8 @@ export function DiscoverySearchBar({ where, onBack, onSearch, onMore, onClearWhe
   </View></>;
 }
 
-/** The filter count stays visible and spoken; the shared header owns the surface and shadow. */
-function FiltersButton({ count, onPress }: { count: number; onPress: () => void }) {
-  return <View style={s.filtersSurface}>
-    <Press testID="filters-button" accessibilityRole="button" accessibilityLabel={filtersSpoken(count)} accessibilityHint={FILTERS_HINT}
-      accessibilityState={{ selected: count > 0 }} haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={onPress} style={s.filtersTouch}>
-      <Glyph name="filters" size={24} tone="ink" />
-    </Press>
-    {count > 0 ? <View testID="filters-count" pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={s.badge}>
-      <T variant="label" style={s.badgeText}>{count}</T>
-    </View> : null}
-  </View>;
-}
-
 /**
- * A line the map says under the search: a float like the other things over the map (white, one edge, one shadow), and a polite live
+ * A line the map says under the filters: a float like the other things over the map (white, one edge, one shadow), and a polite live
  * region, so a screen reader hears it without losing its place.
  */
 function MapNotice({ name, stacked = false, children }: { name: string; stacked?: boolean; children: ReactNode }) {
@@ -116,7 +99,7 @@ function MapNotice({ name, stacked = false, children }: { name: string; stacked?
 
 /**
  * What "Moja lokacija" says when it cannot do its one job (no permission, the location switched off, no answer in time), or while it
- * is asking: a quiet white line under the search, with the way to the settings when that is the remedy.
+ * is asking: a quiet white line under the filters, with the way to settings when that is the remedy.
  */
 export function NearbyNotice({ message, onSettings }: { message: string; onSettings?: () => void }) {
   return <MapNotice name="nearby-notice">
@@ -150,18 +133,16 @@ const s = StyleSheet.create({
   bar: { position: 'absolute', top: BAR_TOP, left: 0, right: 0, gap: sys.space.sm },
   // The header and quick filters share the established measured gap.
   stack: { gap: sys.space.sm },
-  row: { paddingHorizontal: sys.space.base },
-  searchSurface: { minWidth: 0, borderRadius: sys.radius.card },
+  row: { paddingHorizontal: sys.space.base, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
+  searchSurface: { flex: 1, minWidth: 0, borderRadius: sys.radius.card },
+  roundControl: { borderRadius: sys.radius.pill, flexShrink: 0 },
   controls: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: sys.space.xs, minHeight: 56 },
   searchButton: { flex: 1, minWidth: 48, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: sys.space.sm,
     paddingHorizontal: sys.space.sm, paddingVertical: sys.space.sm, borderRadius: sys.radius.control },
   searchLabel: { flexShrink: 1, color: sys.color.ink },
   searchCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   clear: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  // The touch fills this control; its count sits at the upper right.
-  filtersSurface: { width: FILTERS_SIZE, height: FILTERS_SIZE, borderRadius: sys.radius.pill, flexShrink: 0 },
-  filtersTouch: { flex: 1, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill },
-  badge: { position: 'absolute', top: sys.space.xs, right: sys.space.xs, minWidth: 20, height: 20, paddingHorizontal: sys.space.xs, borderRadius: sys.radius.pill,
+  badge: { minWidth: 20, height: 20, paddingHorizontal: sys.space.xs, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.ink, alignItems: 'center', justifyContent: 'center' },
   badgeText: { color: sys.color.onDark, fontWeight: '700', fontVariant: ['tabular-nums'] },
   noticeSlot: { marginHorizontal: sys.space.base },

@@ -813,3 +813,1277 @@ Otvoreni su AI brzina/trošak, regionalni model, celoviti grupni mediji/članstv
 **Sledeći konkretan rezultat treba da bude mali povezani native skup: Početna → Zadaci/filter → detalj iste objave, sa karticom za obe perspektive, novom hijerarhijom i sačuvanim ponašanjem.** Time se smer vidi na pravom sadržaju. Istovremeno se AI kritični put zatvara kao zasebna tehnička celina u istom postojećem planu. Nakon toga isti jezik se prenosi u prijavu, Dogovor i čet.
 
 Posao je završen tek kada taj jezik i ponašanje prođu ceo dozvoljeni korisnički put, odgovarajući build i stvarne uređajske provere. Broj testova, broj nacrtanih ikonica i broj novih dokumenata nisu zamena za taj rezultat.
+
+
+## 21. Kompletan raspored MVP površina — dopuna vlasnika 20.10.2026.
+
+Vlasnik traži prvo celovit nacrt, zatim veći povezani krug implementacije. Sledeća razrada sadrži **65 površina i stanja u osam celina**, ne 65 novih ruta. Proveren je odnos sa svih **53 TSX fajlova u src/app**; tehnički layout-i, legacy adapteri i operaterska površina posebno su označeni. To dokazuje pokrivenost inventara, ne izvršavanje svih tokova. Jedini status ostaje `docs/control/redovi.json`, vizuelni autoritet isti Premium White canon. Postojeći §1–20 ostaju kontekst i prethodni predlog; precizniji aktuelni raspored je ispod.
+
+### Kako čitati
+
+Svaki zapis definiše jednu korisničku površinu ili stanje. Panel i stanje nisu nalog za novi zaseban route. Redosled sadržaja je od vrha ka dnu; primarna radnja pripada jednom smislenom stanju.
+
+#### Autoritet
+
+Ovo je razrada postojećeg Premium White canona i UI_DIRECTION_REVIEW_20261020.md. Registar 62 toka ostaje jedini status rada. Nacrt nije dokaz implementacije.
+
+#### Jedan nalog
+
+Četiri glavna odredišta: Početna, Zadaci, Dogovori, Poruke. Profil i obaveštenja iz zaglavlja. Uloga proizlazi iz konkretnog predmeta, bez globalnog prebacivanja identiteta.
+
+#### Kompozicija
+
+Jedna očigledna glavna radnja po stanju. Pomoćne radnje uz predmet ili u kratkom meniju. Dugi tokovi su ekrani; kratke odluke su paneli; uspeh/greška obično ostaju na istom predmetu.
+
+#### Vizuelni sistem
+
+Bela/blago tonirana podloga, taman tekst, duboka zelena za glavnu odluku, topla narandžasta za objavu/pažnju. Plava za informaciju/prijavu, crvena za destruktivno/grešku; status ima i tekst/oblik. Jedan centralni token sistem.
+
+#### Ikonice
+
+Navigacija i sitne komande: čisti vektorski simboli. Sadržaj: originalna kvalitetna 2.5D porodica — objava, radar, plavi papirni avion za prijavu, Dogovor, razgovor, kalendar, remote, lokacija, uspeh i prazno stanje. Nema ilustracije uz svaku reč; nema emoji kao nasumičnog sistema.
+
+#### Tipografija
+
+Veliki naslovi samo gde orijentišu; u listama naslov i vrednost vode, pomoćni tekst je mirniji. Puni smisao budžeta/ponude/iznosa se ne skraćuje. Ne seći dug naziv, datum ili ključni uslov da bi ličio na maketu.
+
+#### Responsive
+
+361, 390 i 412 dp; normalan i veliki sistemski font. Dvokolonske činjenice prelaze u redove kada je potrebno. Minimalni dodir dolazi iz centralnog tokena. Safe area i tastatura rezervišu prostor, ne prekrivaju potvrdu.
+
+#### Kretanje
+
+Back zatvara najbliži panel, zatim vraća predmet/listu. Tab pamti svoj kontekst. Nacrt, filter, viewport, pin, scroll, kanal i neposlati sadržaj pripadaju pravom nalogu i predmetu.
+
+#### Stanja
+
+Loading odgovara budućem sadržaju; empty vodi na smislenu radnju; error ima lokalni retry; offline označava poslednje poznato; unknown outcome proverava isti zahtev. Nedostupan broj nikada nije nula.
+
+#### Motion
+
+Kratak odziv na dodir, smislen pin→preview i sheet prelaz, mirno pristizanje stvarno novih stavki, lifecycle AI/radar, upload/delivery progress. Reduce Motion ima potpun statičan ekvivalent. Bez lažnog uspeha ili animacije pri svakom refresh-u.
+
+#### AI i server
+
+Topao razgovor razume i predlaže; server garantuje vlasništvo, reviziju, tačne ID-jeve, dozvoljene promene i Save/Publish. Razgovor ne šalje matching/push iz drafta. Pozadinski rezultat zastarele revizije ne prepisuje ispravku.
+
+#### MVP granica
+
+Srbija, Android, prijavljeni korisnik, obe perspektive, fotografije i glas u grupi, kvalitetan profil/recenzije. Portfolio, značke, novčanik, isplata u aplikaciji, peer privatni čet i lažni online status nisu deo ovog izdanja.
+
+### Mapa glavnih tokova
+
+```text
+OBJAVLJUJEM: Početna → AI → jedan pregled → objava → Moj zadatak → kandidati → izbor → Dogovor → čet → završetak → recenzija
+USKAČEM: Zadaci → mapa/lista → detalj → prijava → čekanje → izbor → Dogovor → čet → završetak → recenzija
+RADNI PROFIL: Profil → sačuvani pregled → isti AI razgovor → jedan pregled → Save → potvrđen profil
+OPORAVAK: isti predmet → označeno stanje → retry/provera ishoda → isti predmet bez duplikata
+```
+
+### 01 · Ulaz, prijava i povratak u nalog
+
+#### U01 · Dobro došao — Ekran
+
+**Vrh:** Oštar USKOČI znak; kratak uvod bez čekanja animacije
+
+**Sadržaj odozgo nadole:**
+
+1. Pomoć za jednokratne zadatke
+2. Dve razumljive namere: treba mi pomoć / želim da uskočim
+3. Jedna smirena originalna ilustracija, bez dve ogromne obojene polovine
+
+**Dno:** Prijavi se · Napravi nalog
+**Primarna radnja:** Prijavi se
+**Tok i Back:** Otvara prijavu; posle uspeha prethodni legitimni cilj ili Početna.
+**Dozvoljena polja:** Nema poslovnih formulara.
+**Podaci / granica:** Prvo izdanje nema obećanje gostujućeg AI razgovora. Uslovi i 18+ dostupni pre registracije.
+
+#### U02 · Prijavi se — Ekran
+
+**Vrh:** Nazad · Prijavi se
+
+**Sadržaj odozgo nadole:**
+
+1. Kratko objašnjenje
+2. Postojeći podržani način prijave
+3. Greška uz odgovarajuće polje
+4. Zaboravljena lozinka kao sekundarni link
+
+**Dno:** Prijavi se
+**Primarna radnja:** Prijavi se
+**Tok i Back:** Uspeh → sačuvani cilj; Back → ulaz. Tastatura ne prekriva potvrdu.
+**Dozvoljena polja:** Identifikator i lozinka prema aktuelnom Auth ugovoru; otkrivanje lozinke.
+**Podaci / granica:** Ne dodavati Google/Apple dugmad bez povezanog Auth toka. Ne otkrivati postojanje tuđeg naloga kroz poruke greške.
+
+#### U03 · Napravi nalog — Ekran
+
+**Vrh:** Nazad · Novi nalog
+
+**Sadržaj odozgo nadole:**
+
+1. Minimalni identitet potreban za nalog
+2. Jasni uslovi i privatnost
+3. Izričita saglasnost gde je potrebna
+4. Objašnjenje potvrde naloga
+
+**Dno:** Napravi nalog
+**Primarna radnja:** Napravi nalog
+**Tok i Back:** Potvrda → prijavljen početak; nedovršen proces može da se nastavi.
+**Dozvoljena polja:** Samo podržana Auth polja, ime i stvarna potvrda potrebnih uslova.
+**Podaci / granica:** Jedan nalog za obe uloge. 18+ je odluka prvog izdanja; način sprovođenja i pravna dokumenta moraju se proveriti pre objave.
+
+#### U04 · Potvrda / oporavak naloga — Stanje ili ekran
+
+**Vrh:** Nazad · Potvrdi nalog / Oporavi pristup
+
+**Sadržaj odozgo nadole:**
+
+1. Kome je poruka poslata, maskirano gde treba
+2. Otvori poruku / unesi kod samo ako Auth to podržava
+3. Rok i ponovni pokušaj bez lažnog odbrojavanja
+4. Nova lozinka u recovery sesiji
+
+**Dno:** Potvrdi / Sačuvaj lozinku
+**Primarna radnja:** Potvrdi odgovarajući korak
+**Tok i Back:** Istekao link → novi zahtev; uspeh → prijava ili sačuvani cilj.
+**Dozvoljena polja:** Kod ili nova lozinka, prema konkretnom Auth toku.
+**Podaci / granica:** Deep link mora pripadati pravoj sesiji. Sačuvati legitimni return cilj; ne vraćati tuđ nacrt.
+
+#### U05 · Sesija, mreža i nedostupan cilj — Stanje u toku
+
+**Vrh:** Naslov stvarnog odredišta ostaje
+
+**Sadržaj odozgo nadole:**
+
+1. Obnavljanje prijave sa mirnim indikatorom
+2. Ako predmet ne postoji: razlog koji smemo otkriti
+3. Ako je mreža slaba: poslednje poznato stanje i vreme osveženja
+4. Ako je nalog istekao: sačuvana lokalna namera
+
+**Dno:** Pokušaj ponovo / Prijavi se / Nazad
+**Primarna radnja:** Jedan izlaz prema stvarnom uzroku
+**Tok i Back:** Obnova nastavlja isti dozvoljeni tok.
+**Dozvoljena polja:** Bez ponovnog poslovnog unosa samo zato što je došlo do greške.
+**Podaci / granica:** Nikada automatski ponovo ne slati objavu, ponudu ili izbor sa nepoznatim ishodom.
+
+### 02 · Početna, otkrivanje i detalj zadatka
+
+#### H01 · Početna — Glavni tab
+
+**Vrh:** USKOČI · zvono · moj avatar
+
+**Sadržaj odozgo nadole:**
+
+1. Sledeći stvarni Dogovor ili radnja koja čeka mene
+2. Kompaktne namere: Objavi zadatak / Uskoči i zaradi
+3. Nastavi moj nacrt kada postoji
+4. Moji zadaci · Moje prijave · radni profil
+5. Najviše nekoliko relevantnih prilika sa tačnim nazivom skupa
+
+**Dno:** Početna · Zadaci · Dogovori · Poruke
+**Primarna radnja:** Radnja najvažnije obaveze; inače Objavi ili pronađi zadatak
+**Tok i Back:** Svaki blok vodi u konkretan predmet. Back vraća scroll, bez trajnog globalnog režima uloge.
+**Dozvoljena polja:** Nema novih formulara; dostupnost i poslovne činjenice kroz AI.
+**Podaci / granica:** Nepoznat broj nije nula. Javni preview nije „za mene“ bez matching podatka. Ne prikazivati prazne statistike ili duplirane hero kartice.
+
+#### Z01 · Zadaci · mapa i lista — Glavni tab
+
+**Vrh:** Pretraži zadatke · Filteri + stvarni broj kriterijuma
+
+**Sadržaj odozgo nadole:**
+
+1. Kratke kapsule: Na daljinu, Danas, Vikend i podržani kriterijumi
+2. Mapa sa grupisanim približnim pinovima
+3. Pretraži ovu oblast tek posle pomeranja
+4. Jedan sheet: kratak / srednji / puna lista
+5. Kartica izabranog pina vezana za isti predmet
+
+**Dno:** Stalna glavna navigacija; Mapa/Lista kada ima smisla
+**Primarna radnja:** Otvori zadatak
+**Tok i Back:** Detalj → isti viewport, pin, sheet i pozicija liste.
+**Dozvoljena polja:** Direktni filteri su pretraga; ne uređuju zadatak.
+**Podaci / granica:** Sačuvati postojeću mapu, paginaciju i fencing. REMOTE ne prikazivati kao lažnu tačku. Veliki skup proveriti stvarnim merenjem, ne zaključivati iz pet zadataka.
+
+#### Z02 · Pretraga — Panel
+
+**Vrh:** Nazad/Zatvori · polje pretrage
+
+**Sadržaj odozgo nadole:**
+
+1. Uneti izraz
+2. Skorašnje lične pretrage ako postoje
+3. Predložena oblast ili stvarni rezultati
+4. Jasno razdvojiti izbor mesta i naziv zadatka
+
+**Dno:** Prikaži rezultate / izaberi ponuđeno mesto
+**Primarna radnja:** Potvrdi pretragu
+**Tok i Back:** Vraća u isti tab. Otvaranje rezultata čuva upit i Back.
+**Dozvoljena polja:** Tekst pretrage; izbor mesta iz proverene geografske pretrage.
+**Podaci / granica:** Tastatura ima ispravan fokus. Kasniji odgovor starog upita ne sme prepisati novi.
+
+#### Z03 · Filteri — Panel
+
+**Vrh:** Filteri · Zatvori
+
+**Sadržaj odozgo nadole:**
+
+1. Način rada
+2. Kada: bilo kada / danas / vikend / kalendar
+3. Budžet: svi / sa iznosom / tražim ponude
+4. Ostali kriterijumi samo kada ih čita isti server upit
+5. Vidljiv pregled izabranog
+
+**Dno:** Očisti · Prikaži rezultate
+**Primarna radnja:** Prikaži rezultate
+**Tok i Back:** Zatvaranje bez primene vraća prethodne filtere; primena ostaje u istom viewport-u.
+**Dozvoljena polja:** Radio izbori, datum i podržana polja. Bez izmišljenog raspona cene ili kategorija.
+**Podaci / granica:** Broj na dugmetu samo kada je server potvrdio ceo trenutni upit. Ne računati ukupno iz jedne stranice.
+
+#### Z04 · Kalendar filtera — Unutrašnji panel
+
+**Vrh:** Kada · Nazad na filtere
+
+**Sadržaj odozgo nadole:**
+
+1. Izabrani datum ili opseg
+2. Dostupan mesec i razumljivo kretanje
+3. Jasna razlika: datum / fleksibilno
+4. Sažetak izabranog
+
+**Dno:** Potvrdi datume
+**Primarna radnja:** Potvrdi datume
+**Tok i Back:** Vraća nacrtu filtera, ne primenjuje sve krišom.
+**Dozvoljena polja:** Datum ili opseg.
+**Podaci / granica:** Veliki font i screen reader imaju nazive datuma i selected stanje. Ne sugerisati dostupnost radnika koju ovaj kalendar ne zna.
+
+#### Z05 · Pin i map preview — Sadržaj u mapi
+
+**Vrh:** Izabrani pin + Zatvori preview
+
+**Sadržaj odozgo nadole:**
+
+1. Naslov
+2. Budžet ili Tražim ponude
+3. Termin i približna oblast
+4. Slobodna mesta / moj status
+5. Kod više zadataka na tački: stvarni skup ili paginacija
+
+**Dno:** Pogledaj zadatak
+**Primarna radnja:** Pogledaj zadatak
+**Tok i Back:** Detalj → isti pin; Zatvori → ista mapa.
+**Dozvoljena polja:** Nema.
+**Podaci / granica:** Preview iznad navigacije, bez privatne adrese. Klaster nije izbor jednog proizvoljnog zadatka.
+
+#### Z06 · Tuđ zadatak — Ekran
+
+**Vrh:** Nazad · kontekstni meni
+
+**Sadržaj odozgo nadole:**
+
+1. Veliki naslov levo + aktuelni status
+2. Budžet/ponude i osnova ukupno/po osobi
+3. Kada · gde/remote · koliko ljudi
+4. Opis i stvarne fotografije
+5. Važni posebni uslovi
+6. Objavljivač: ime, ocena i broj recenzija
+7. Pitanja o zadatku kao sekundarni ulaz
+
+**Dno:** Prijavi se ili stvarni status moje prijave
+**Primarna radnja:** Prijavi se
+**Tok i Back:** Prijava → isti zadatak; profil objavljivača kao panel sa povratkom.
+**Dozvoljena polja:** Nema editovanja zadatka.
+**Podaci / granica:** Sopstveni, zatvoren, istekao i popunjen zadatak imaju posebnu radnju/razlog. Ne prikazivati „plaćeno“.
+
+#### Z07 · Moj zadatak — Ekran
+
+**Vrh:** Nazad · Izmeni kroz razgovor kada je dopušteno · Više
+
+**Sadržaj odozgo nadole:**
+
+1. Status i naslov
+2. Šta čeka mene: prijave / odgovor / nedostaje osoba
+3. Izabrani i preostala mesta
+4. Budžet, vreme i opšta lokacija
+5. Opis, fotografije i uslovi
+6. Aktivni Dogovor i istorija prema stvarnom stanju
+
+**Dno:** Pogledaj prijave / Otvori Dogovor / Objavi nacrt
+**Primarna radnja:** Jedna akcija prema server statusu
+**Tok i Back:** Kandidati → izbor → isti predmet. Izmena zadržava AI identitet i potvrdu.
+**Dozvoljena polja:** Nema ručnih poslovnih polja.
+**Podaci / granica:** Broj osoba, prijava i Dogovora nisu isti broj. Nakon prvog izbora ne vraćati običnu zamenu zadatka.
+
+#### Z08 · Moji zadaci — Ekran
+
+**Vrh:** Nazad · Moji zadaci · Nova objava
+
+**Sadržaj odozgo nadole:**
+
+1. Kompaktni izbor: Aktivni / Nacrti / Istorija
+2. Moj zadatak kao operativna kartica
+3. Prvo stavke koje traže odluku, bez tajnog menjanja sortiranja
+4. Paginacija / prazno stanje
+
+**Dno:** Objavi zadatak kada je pregled prazan
+**Primarna radnja:** Otvori moj zadatak
+**Tok i Back:** Back iz detalja vraća isti red i filter.
+**Dozvoljena polja:** Pretraga/status filter samo ako su korisni za veličinu skupa.
+**Podaci / granica:** Zatvaranje, arhiva i brisanje nacrta su različite radnje. Zbir mora doći iz pouzdanog agregata.
+
+#### Z09 · Fotografije zadatka — Panel ili ekran medija
+
+**Vrh:** Nazad · Fotografije
+
+**Sadržaj odozgo nadole:**
+
+1. Stvarni prilozi; jedna velika slika i kratka traka
+2. Pri uređivanju nacrta: dodaj, progres, greška i retry
+3. U pregledu: zum i broj fotografije
+
+**Dno:** Gotovo / Dodaj fotografiju prema kontekstu
+**Primarna radnja:** Pogledaj ili potvrdi medije
+**Tok i Back:** Vraća isti nacrt/detalj bez promene ostalih činjenica.
+**Dozvoljena polja:** Izbor galerije ili kamere.
+**Podaci / granica:** Nema generisanih slika predstavljenih kao stvarna lokacija. Uklanjanje priloga ne sme obrisati tuđu kopiju ili pogrešan nacrt.
+
+#### Z10 · Pitanja pre prijave — Ekran
+
+**Vrh:** Nazad · Pitanja o zadatku
+
+**Sadržaj odozgo nadole:**
+
+1. Sažet kontekst zadatka
+2. Pitanje, autor i odgovor jasno odvojeni
+3. Vlasnik vidi gde treba odgovor
+4. Odgovor ne menja tiho kanonske uslove
+
+**Dno:** Postavi pitanje / Odgovori
+**Primarna radnja:** Pošalji pitanje ili odgovor
+**Tok i Back:** Back → isti zadatak.
+**Dozvoljena polja:** Kratak tekst pitanja/odgovora.
+**Podaci / granica:** Pre Dogovora ne sugerisati deljenje privatnog kontakta/adrese. Prava pisanja i vidljivost prate postojeći ugovor.
+
+### 03 · Oba AI razgovora, lokacija i jedan pregled
+
+#### AI01 · AI · novi ili postojeći zadatak — Ekran razgovora
+
+**Vrh:** Zatvori/Nazad · Novi zadatak / Izmena zadatka
+
+**Sadržaj odozgo nadole:**
+
+1. Kratak topao odgovor; povremen smislen smajli
+2. Razgovor sa stvarnim fazama slanja
+3. Sažeta živa kartica koju korisnik može raširiti
+4. Pitanja samo za nepoznate bitne podatke
+5. Mapa se pojavljuje kao potrebna radnja, ne automatski posle svakog grada
+
+**Dno:** + fotografija · centralni mikrofon · tastatura; iznad po potrebi Pregledaj pre slanja
+**Primarna radnja:** Spremno za pregled kada je stvarno spremno
+**Tok i Back:** Isti conversationId i server nacrt. Povratak ne počinje ponovo.
+**Dozvoljena polja:** Poruka, glas, fotografija; nema formulara za naslov/budžet/vreme.
+**Podaci / granica:** Katalog može da se istražuje u pozadini uz reviziju. Save/Publish je posebna odluka. Ne prikazivati spremnost dok proveru zavisnog podatka još čekamo.
+
+#### AI02 · AI · radni profil — Ekran razgovora
+
+**Vrh:** Nazad · Tvoj radni profil
+
+**Sadržaj odozgo nadole:**
+
+1. Šta zaista nudiš kao uslugu
+2. Gde radiš kada je terenski
+3. Kada možeš, samo smisleno za taj rad
+4. Sažet predlog opisa, usluga i pokrivenosti
+5. Srodna usluga je pitanje, ne automatski upisana sposobnost
+
+**Dno:** Isti composer kao za zadatak
+**Primarna radnja:** Pregledaj profil
+**Tok i Back:** Isti aktivni intervju i predlog; čuvanje tek u pregledu.
+**Dozvoljena polja:** Poruka/glas; dostupnost, radijus i usluge menjaju se razgovorom.
+**Podaci / granica:** „Imam kombi“ nije pristanak na selidbe. Regija postaje sačuvana tek sa Save/read/matching podrškom. Alati i vozila nisu obavezni upitnik.
+
+#### AI03 · Snimanje i prepisivanje glasa — Stanje composera
+
+**Vrh:** Jasno „Slušam“ uz tajmer snimanja
+
+**Sadržaj odozgo nadole:**
+
+1. Vidljiv odziv mikrofona
+2. Otkazivanje dostupno i bez preciznog gesta
+3. Po puštanju: stvarno Prepisujem, zatim Slanje
+4. Ako je uključen pregled: tekst čeka korisnika
+
+**Dno:** Prekini / Pošalji u režimu pregleda
+**Primarna radnja:** Pusti mikrofon → slanje prepoznate poruke
+**Tok i Back:** Promena fokusa ne šalje slučajno; povratak čuva dozvoljeni neposlati tekst.
+**Dozvoljena polja:** Opcija Pregledaj pre slanja; tastatura kao ravnopravna alternativa.
+**Podaci / granica:** Ne glumiti live transkript. Glasovna poruka osobi je drugi tok. Greška ASR ne objavljuje zadatak.
+
+#### AI04 · Živa kartica razumevanja — Ugrađena kartica
+
+**Vrh:** Sažetak · proširi/skupi
+
+**Sadržaj odozgo nadole:**
+
+1. Naslov/opis koji AI razume
+2. Budžet, termin, ljudi, način i geografija zadatka; ili usluge, područje i dostupnost profila
+3. Nedostajući ili sporni podatak je vidljivo nepotvrđen
+
+**Dno:** Nastavi razgovor / Pregledaj kada spremno
+**Primarna radnja:** Otvori jedan pregled
+**Tok i Back:** Kartica prati istu server reviziju; ne vodi na šest editora.
+**Dozvoljena polja:** Nema olovaka ili ručnih poslovnih polja.
+**Podaci / granica:** Pozadinska klasifikacija ne sme prepisati kasniju ispravku. Ne prikazivati UUID/taxonomy tier korisniku.
+
+#### AI05 · Potvrdi mesto zadatka / rutu — Ekran potvrde
+
+**Vrh:** Nazad · Potvrdi mesto / Potvrdi rutu
+
+**Sadržaj odozgo nadole:**
+
+1. Kratko objašnjenje šta se potvrđuje
+2. Mapa i jasan pin ili numerisane tačke
+3. Razjašnjeni naziv/adresa iz razgovora
+4. Ko vidi približnu a ko privatnu lokaciju
+5. Kod nejasnog mesta: izbor proverene alternative
+
+**Dno:** Potvrdi ovo mesto / Potvrdi rutu
+**Primarna radnja:** Potvrdi geografiju
+**Tok i Back:** Vraća u isti pregled; ne objavljuje. Pogrešan grad/broj stanica menja se kroz razgovor.
+**Dozvoljena polja:** Pomeranje potvrđene tačke ili izbor geokoderskog kandidata, ne paralelna forma zadatka.
+**Podaci / granica:** Sve privatne tačke moraju imati dozvolu. Rutu ne svoditi na centar ako se za matching traži pokrivenost svih tačaka.
+
+#### AI06 · Potvrdi područje rada — Panel ili ekran potvrde
+
+**Vrh:** Nazad · Područje rada
+
+**Sadržaj odozgo nadole:**
+
+1. AI tumačenje: grad + radijus / imenovana regija / država / više oblasti
+2. Prikaz granice koji odgovara stvarnom modelu
+3. Remote odvojeno od fizičkog područja
+4. Kratko objašnjenje koji zadaci ulaze
+
+**Dno:** Potvrdi područje / Razjasni kroz razgovor
+**Primarna radnja:** Potvrdi podržano tumačenje
+**Tok i Back:** Vraća istom radnom AI nacrtu.
+**Dozvoljena polja:** Mapa potvrde; nema običnog slidera koji menja drugi izvor radnog profila.
+**Podaci / granica:** Regioni, više centara i cela zemlja zahtevaju povezan server model. Krug od 200 km ne sme glumiti celu Vojvodinu.
+
+#### AI07 · Jedan pregled zadatka — Ekran potvrde
+
+**Vrh:** Nazad · Pregled zadatka
+
+**Sadržaj odozgo nadole:**
+
+1. Kako će drugi videti zadatak
+2. Naslov, opis i svi bitni uslovi
+3. Budžet/ponude, vreme, ljudi, način i potvrđena geografija
+4. Fotografije i privatnost
+5. Jedna akcija Izmeni kroz razgovor
+
+**Dno:** Objavi zadatak
+**Primarna radnja:** Objavi zadatak
+**Tok i Back:** Posle potvrđenog upisa → Moj zadatak; neizvestan ishod → provera istog zahteva.
+**Dozvoljena polja:** Nema ručnih editora.
+**Podaci / granica:** Pregled i Save moraju biti vezani za istu potpisanu reviziju. Neposlati tekst nije već deo pregleda.
+
+#### AI08 · Jedan pregled radnog profila — Ekran potvrde
+
+**Vrh:** Nazad · Pregled profila
+
+**Sadržaj odozgo nadole:**
+
+1. Ime/slika iz identiteta
+2. Opis i tačno ponuđene usluge
+3. Potvrđeni načini, područje i dostupnost
+4. Šta će drugi videti
+5. Jedna akcija Izmeni kroz razgovor
+
+**Dno:** Sačuvaj profil
+**Primarna radnja:** Sačuvaj profil
+**Tok i Back:** Uspeh → ponovo pročitan sačuvani profil. Aktivacija ima jasno postojeće značenje.
+**Dozvoljena polja:** Nema ručnih polja za usluge, radijus ili raspored.
+**Podaci / granica:** Čuvanje razgovora nije aktivacija. Nema matching-a/push-a iz nepotvrđenog drafta.
+
+#### AI09 · Izmeni i ponovo objavi — Kratka potvrda uz AI tok
+
+**Vrh:** Nazad · Ponovna objava
+
+**Sadržaj odozgo nadole:**
+
+1. Polazni zadatak u istom AI kontekstu
+2. Jedan pregled novih uslova
+3. Jasno: stare prijave će biti zatvorene, nova objava dobija novi identitet
+4. Stara objava važi do potvrđene zamene
+
+**Dno:** Izmeni i ponovo objavi
+**Primarna radnja:** Potvrdi zamenu
+**Tok i Back:** Novi Moj zadatak; stari ostaje istorija i vodi na naslednika.
+**Dozvoljena polja:** Sve poslovne izmene kroz AI.
+**Podaci / granica:** Samo pre prvog ikada izabranog izvršioca. Potrebna transakcija, konkurentna zaštita, povezani stari kandidati i novi matching; ne glumiti samo klijentskim brisanjem.
+
+### 04 · Prijave, kandidati i izbor
+
+#### P01 · Pošalji prijavu — Ekran kratke radnje
+
+**Vrh:** Nazad · Tvoja prijava
+
+**Sadržaj odozgo nadole:**
+
+1. Kompaktan sažetak zadatka
+2. Tvoja ponuda sa valutom/osnovom
+3. Koliko osoba prijava pokriva kada ugovor to podržava
+4. Kratka poruka vlasniku
+5. Šta prihvataš slanjem
+
+**Dno:** Pošalji prijavu
+**Primarna radnja:** Pošalji prijavu
+**Tok i Back:** Uspeh → pregled prijave, isti zadatak ostaje dostupan.
+**Dozvoljena polja:** Iznos ponude, poruka, plus/minus broja osoba prema server kapacitetu.
+**Podaci / granica:** Ovo uređuje ponudu, ne zadatak. Jedan podnosilac za 3 osobe nije automatski 3 imenovana člana grupe.
+
+#### P02 · Moje prijave — Ekran
+
+**Vrh:** Nazad · Moje prijave
+
+**Sadržaj odozgo nadole:**
+
+1. Kompaktni filter Čeka / Izabran / Istorija
+2. Kartica: naslov, moj iznos, obuhvat i stvaran status
+3. Kod izabranog: jasan Otvori Dogovor
+4. Različiti razlozi povlačenja, odbijanja, isteka i ponovne objave
+
+**Dno:** Pronađi zadatak u praznom stanju
+**Primarna radnja:** Otvori prijavu ili Dogovor
+**Tok i Back:** Detalj → isti red, filter i scroll.
+**Dozvoljena polja:** Samo pretraga/statusni filter.
+**Podaci / granica:** Broj učitanih nije ukupan broj. Nema lažne oznake „pregledano“ bez događaja.
+
+#### P03 · Moja poslata prijava — Panel ili ekran
+
+**Vrh:** Nazad · Prijava
+
+**Sadržaj odozgo nadole:**
+
+1. Zadatak i vlasnik
+2. Tačno poslati iznos, ljudi i poruka
+3. Aktuelni status i razlog promene
+4. Ako je izabran: Dogovor
+5. Ako je zadatak zamenjen: veza na novi
+
+**Dno:** Otvori Dogovor / Povuci / Podržana izmena ponude
+**Primarna radnja:** Akcija prema stvarnom statusu
+**Tok i Back:** Povratak u iste Moje prijave.
+**Dozvoljena polja:** Izmena ponude samo ako postojeći ugovor dopušta; bez izmene zadatka.
+**Podaci / granica:** Ne slati ponovo posle nepoznatog ishoda. Povlačenje prijave pre izbora nije otkaz nastalog Dogovora.
+
+#### P04 · Kandidati za moj zadatak — Ekran
+
+**Vrh:** Nazad · Prijave
+
+**Sadržaj odozgo nadole:**
+
+1. Sažetak zadatka i broj potrebnih/preostalih ljudi
+2. Kandidat: lice, ime, ocena + broj, ponuda, broj osoba
+3. Najvažniji deo poruke bez sečenja ključnog uslova
+4. Jasan pogled u profil i celu ponudu
+5. Istinito sortiranje koje se ne menja pri skrolu
+
+**Dno:** Otvori kandidata; izbor u njegovom kontekstu
+**Primarna radnja:** Pogledaj kandidata
+**Tok i Back:** Otvara sažeti detalj/panel; Back čuva listu.
+**Dozvoljena polja:** Kompaktni podržani filteri; ne uvoditi klijentsko „najpouzdaniji“ bez podataka.
+**Podaci / granica:** Pojedinačni iznosi nisu javni drugim kandidatima. Popunjenost se proverava ponovo na izboru.
+
+#### P05 · Kandidat i potvrda izbora — Panel
+
+**Vrh:** Nazad/Zatvori · ime kandidata
+
+**Sadržaj odozgo nadole:**
+
+1. Javni profil, recenzije i ponuđene usluge
+2. Njegova puna prijava
+3. Ponuda i obuhvat
+4. Pri izboru: koga biraš, koliko mesta i koji iznos prihvataš
+
+**Dno:** Izaberi ovu prijavu
+**Primarna radnja:** Potvrdi izbor
+**Tok i Back:** Potvrđen izbor → postojeći ili grupni pregled Dogovora.
+**Dozvoljena polja:** Nema ručne izmene njegove ponude.
+**Podaci / granica:** Ne potvrditi uspeh pre servera. Ako se kapacitet promenio, prikazati novo stanje; ne pokušavati tajno drugi izbor.
+
+#### P06 · Povlačenje / nema kandidata / nedostaje osoba — Stanja + kratka potvrda
+
+**Vrh:** Naslov odgovarajućeg predmeta
+
+**Sadržaj odozgo nadole:**
+
+1. Prazno: još nema prijava, bez lažnog obećanja
+2. Delimično: izabrano X, traže se još Y
+3. Povlačenje: jasan predmet i posledica
+4. Zamena: potraga aktivna samo ako server to kaže
+
+**Dno:** Odgovarajuća jedna akcija
+**Primarna radnja:** Povuci prijavu / Pregledaj prijave / Otvori Dogovor
+**Tok i Back:** Ostaje na predmetu sa potvrđenim stanjem.
+**Dozvoljena polja:** Opcioni razlog samo kada je podržan.
+**Podaci / granica:** Automatska potraga nije automatski izbor osobe. Završen, istekao ili otkazan zadatak ne otvarati ponovo.
+
+### 05 · Dogovor, uslovi, završetak i otkaz
+
+#### D01 · Dogovori — Glavni tab
+
+**Vrh:** Dogovori · avatar/zvono ili dosledno postojeće zaglavlje
+
+**Sadržaj odozgo nadole:**
+
+1. Aktivni / Istorija
+2. Obaveza koja čeka mene prva, potom termin
+3. Jedna vlasnička kartica po zajedničkom zadatku kada grupisanje ugovorom potvrđeno
+4. Moja pojedinačna saradnja za izvršioca
+5. Miran ulaz u raspored
+
+**Dno:** Glavna navigacija
+**Primarna radnja:** Otvori Dogovor
+**Tok i Back:** Otvara konkretan pregled bez dupliranih kartica istog grupnog predmeta.
+**Dozvoljena polja:** Kompaktni filter perspektive, samo ako zaista pomaže.
+**Podaci / granica:** Grupni UI ne sme sabrati nepotpune stranice u lažni ukupni iznos ili završiti sve pojedinačne saradnje.
+
+#### D02 · Dogovor · jedan izvršilac — Ekran
+
+**Vrh:** Nazad · naslov · Više
+
+**Sadržaj odozgo nadole:**
+
+1. Status i šta se čeka
+2. Jedna sledeća radnja
+3. Obim, prihvaćeni iznos i termin
+4. Opšta lokacija/remote/predaja
+5. Učesnici
+6. Kratak timeline; detalji istorije na otvaranje
+
+**Dno:** Otvori razgovor; radnja završetka kada je relevantna
+**Primarna radnja:** Sledeća radnja prema serveru
+**Tok i Back:** Čet ↔ isti Dogovor. Back vraća aktivnu listu/poruku.
+**Dozvoljena polja:** Bez običnog editora prihvaćenih uslova.
+**Podaci / granica:** Tačan kontakt/adresa nisu automatski u hero bloku. Završen nije plaćen.
+
+#### D03 · Dogovor · više izvršilaca — Ekran zajedničkog predmeta
+
+**Vrh:** Nazad · naslov zadatka · status
+
+**Sadržaj odozgo nadole:**
+
+1. Popunjeno / potrebno sa jednim jasnim značenjem
+2. Zajednički uslovi i termin
+3. Lista članova sa njihovim stvarnim stanjem
+4. Vlasnik: privatna poruka uz svakog
+5. Izvršilac: moj obuhvat i privatno sa vlasnikom
+6. Grupni razgovor
+7. Važni događaji
+
+**Dno:** Grupni razgovor · sledeća radnja mog obuhvata
+**Primarna radnja:** Otvori grupu / uradi konkretnu obavezu
+**Tok i Back:** Jedan korisnički predmet, uz očuvane pojedinačne server identitete.
+**Dozvoljena polja:** Nema ukupnog finansijskog prikaza drugim izvršiocima.
+**Podaci / granica:** Zahteva proveru projekcije, članstva, paginacije i statusa svih saradnji. Prosečna ili nepotpuna lista ne glumi ukupni rezultat.
+
+#### D04 · Učesnici i istorija — Paneli
+
+**Vrh:** Zatvori · Učesnici / Istorija
+
+**Sadržaj odozgo nadole:**
+
+1. Ime, uloga i trenutni status
+2. Datum ulaska/izlaska kada postoji
+3. Vlasniku dozvoljeni privatni kanali
+4. Važni događaji sa vremenom i inicijatorom
+5. Starije učitavanje bez skoka
+
+**Dno:** Profil / Poruka prema dozvoli
+**Primarna radnja:** Otvori odabrani dozvoljeni predmet
+**Tok i Back:** Zatvaranje vraća isti Dogovor.
+**Dozvoljena polja:** Nema.
+**Podaci / granica:** Nema kanala izvršilac–izvršilac. Timeline nije slobodan klijentski zaključak.
+
+#### D05 · Usaglasi fleksibilan termin — Ograničeni tok
+
+**Vrh:** Nazad · Dogovorite termin
+
+**Sadržaj odozgo nadole:**
+
+1. Postojeći prihvaćeni okvir
+2. Predlog konkretnog vremena unutar tog okvira
+3. Staro i predloženo jasno razdvojeni
+4. Ko treba da potvrdi
+5. Prihvaćeno / odbijeno / čeka po pogođenim stranama
+
+**Dno:** Predloži / Prihvati / Odbij prema ulozi
+**Primarna radnja:** Potvrdi svoj odgovor
+**Tok i Back:** Vraća isti Dogovor; stari uslovi važe dok potrebni prihvati nisu potvrđeni.
+**Dozvoljena polja:** Predlog kroz odgovarajući razgovor/kontekst; potvrda konkretne vrednosti.
+**Podaci / granica:** MVP ne uvodi opšti editor već prihvaćenog fiksnog termina, cene ili obima. Potreban povezan server ugovor, verzija i obaveštenja.
+
+#### D06 · Završio sam / potvrdi završetak — Kratka potvrda
+
+**Vrh:** Zatvori · Završetak saradnje
+
+**Sadržaj odozgo nadole:**
+
+1. Jasno ko i koji obuhvat završava
+2. Kratko objašnjenje šta će druga strana videti
+3. Vlasniku: prijavljeni završetak i dostupna prijava problema
+4. Posle potvrde: stvarni završeni status
+
+**Dno:** Prijavi završetak / Potvrdi završetak
+**Primarna radnja:** Odgovarajuća potvrda
+**Tok i Back:** Dogovor → mogućnost recenzije ako je dozvoljena.
+**Dozvoljena polja:** Opciona poruka samo uz server podršku.
+**Podaci / granica:** Jedan član ne završava celu grupu. Ne tvrditi uplatu. Auto-završetak prikazati samo po stvarnom pravilu i roku.
+
+#### D07 · Otkaz / odustani / zatvori potragu — Kratka potvrda
+
+**Vrh:** Zatvori · tačan naziv radnje
+
+**Sadržaj odozgo nadole:**
+
+1. Koja saradnja ili zadatak se zatvara
+2. Ko će dobiti obaveštenje
+3. Šta ostaje u istoriji
+4. Da li se traži zamena ili prestaje potraga
+5. Razlog ne predstavlja automatsku krivicu
+
+**Dno:** Odustani / Otkaži zadatak / Zatvori potragu
+**Primarna radnja:** Potvrdi baš navedenu radnju
+**Tok i Back:** Potvrđeni ishod → predmet i arhivski kontekst.
+**Dozvoljena polja:** Opcioni razlog, bez zahteva da druga strana dozvoli odustajanje.
+**Podaci / granica:** Brisanje nacrta, otkaz saradnje i otkaz celog zadatka su različiti. CANCELLED ne računa se kao uspešno završeno; nema javne ocene otkaza.
+
+#### D08 · Oceni saradnju — Ekran kratke radnje
+
+**Vrh:** Nazad · Oceni saradnju
+
+**Sadržaj odozgo nadole:**
+
+1. Osoba, zadatak i potvrđen završetak
+2. 1–5 zvezdica sa jasnim nazivima
+3. Komentar
+4. Šta će biti javno
+
+**Dno:** Pošalji recenziju
+**Primarna radnja:** Pošalji recenziju
+**Tok i Back:** Povratak na završen Dogovor; objavljena ocena iz server readback-a.
+**Dozvoljena polja:** Ocena i komentar.
+**Podaci / granica:** Pravo ocene samo prema stvarnom ugovoru potvrđenog završetka. Otkaz nije završetak; ne izmišljati podocene tačnosti ili pouzdanosti.
+
+### 06 · Poruke i deljenje
+
+#### C01 · Poruke — Glavni tab
+
+**Vrh:** Poruke · pretraga kada skup opravdava
+
+**Sadržaj odozgo nadole:**
+
+1. Aktivni / Arhiva
+2. Privatni red: osoba + zadatak + poslednja dozvoljena poruka
+3. Grupni red: zadatak + znak grupe + pošiljalac
+4. Vreme i stvarno nepročitano
+5. Prazno: objasni da razgovor nastaje izborom
+
+**Dno:** Glavna navigacija
+**Primarna radnja:** Otvori razgovor
+**Tok i Back:** Vraća se na istu listu i nepročitani kontekst.
+**Dozvoljena polja:** Pretraga poruka samo u podržanom opsegu.
+**Podaci / granica:** Nema lažnog online/read statusa. Ne prikazivati privatni sadržaj drugog kanala u grupnom preview-u.
+
+#### C02 · Privatni razgovor — Ekran razgovora
+
+**Vrh:** Nazad · lice + ime · Više
+
+**Sadržaj odozgo nadole:**
+
+1. Kompaktno sklopivo sidro zadatka/Dogovora
+2. Poruke i odvojeni sistemski događaji
+3. Fotografija/audio sa stvarnim stanjem
+4. Nove poruke ne prekidaju čitanje starijih
+5. Vidljivo slanje, greška i pokušaj ponovo
+
+**Dno:** + prilog · tekst · mikrofon / pošalji
+**Primarna radnja:** Pošalji poruku
+**Tok i Back:** Zadržati tekst, položaj i kanal. Ulaz u Dogovor vraća isti razgovor.
+**Dozvoljena polja:** Tekst, fotografija, audio, podržano svesno deljenje.
+**Podaci / granica:** Kanali su vlasnik↔izabrani izvršilac. Nema automatskog prenosa nacrta na drugog primaoca.
+
+#### C03 · Grupni razgovor — Ekran razgovora
+
+**Vrh:** Nazad · naslov grupe · učesnici
+
+**Sadržaj odozgo nadole:**
+
+1. Isto sidro Dogovora
+2. Jasno ime pošiljaoca
+3. Grupne poruke, fotografije i glas
+4. Sistemske promene članstva
+5. Arhivsko objašnjenje kada je član izašao
+
+**Dno:** Isti composer, ili read-only objašnjenje
+**Primarna radnja:** Pošalji grupi
+**Tok i Back:** Profil člana ne otvara privatni kanal među izvršiocima.
+**Dozvoljena polja:** Tekst/fotografija/audio; MVP zahteva sve tri vrste.
+**Podaci / granica:** Novi član vidi dozvoljenu istoriju prema odluci; izašli samo do granice izlaska. RLS, direktni mediji, Realtime i push moraju pratiti isto članstvo.
+
+#### C04 · Dodaj prilog — Panel radnji
+
+**Vrh:** Zatvori · Dodaj u ovaj razgovor
+
+**Sadržaj odozgo nadole:**
+
+1. Fotografija iz galerije
+2. Kamera
+3. Lokacija
+4. Kontakt, samo ako postoji bezbedan ugovor
+
+**Dno:** Izaberi jednu vrstu
+**Primarna radnja:** Dodaj prilog
+**Tok i Back:** Otvara odgovarajući pregled i vraća se istom primaocu.
+**Dozvoljena polja:** Sistemski picker i dozvole.
+**Podaci / granica:** Dugme ne obećava mogućnost koju server nema. Pristupačne tekstualne oznake uz sve simbole.
+
+#### C05 · Pregled / slanje fotografije — Medijski ekran
+
+**Vrh:** Zatvori · primalac ili grupa
+
+**Sadržaj odozgo nadole:**
+
+1. Velika fotografija
+2. Opcioni opis ako podržan
+3. Upload sa tačnim stanjem
+4. Otkazivanje pre slanja i retry posle greške
+
+**Dno:** Pošalji fotografiju
+**Primarna radnja:** Pošalji potvrđenom primaocu
+**Tok i Back:** Povratak → isti kanal. Otvaranje primljene slike vraća istu poruku.
+**Dozvoljena polja:** Izbor fotografije; opis samo ako transport podržava.
+**Podaci / granica:** Privatni bucket i autorizacija; EXIF/lokacija, veličina i istekao URL moraju imati jasno rešavanje.
+
+#### C06 · Glasovna poruka — Stanje composera / pregled
+
+**Vrh:** Snimanje · trajanje · ko prima
+
+**Sadržaj odozgo nadole:**
+
+1. Vidljiv indikator
+2. Prekini/otkaži
+3. Pre slanja mogućnost preslušavanja prema konačnoj kompoziciji
+4. Primljena poruka: reprodukcija, trajanje i greška
+
+**Dno:** Pošalji / Odbaci
+**Primarna radnja:** Pošalji glasovnu poruku
+**Tok i Back:** Ne menja aktivni kanal. Reprodukcija prati fokus i audio lifecycle.
+**Dozvoljena polja:** Audio snimak, ne AI prepis.
+**Podaci / granica:** Trajanje i waveform ne glumiti. Bez beskonačne pozadinske reprodukcije ili slanja pri prekidu dozvole.
+
+#### C07 · Podeli lokaciju ili kontakt — Panel sa jasnim primaocima
+
+**Vrh:** Nazad · Podeli sa…
+
+**Sadržaj odozgo nadole:**
+
+1. Tačan sadržaj koji se deli
+2. Imenovani pojedinac ili grupa
+3. Objašnjenje ko to može videti, uključujući buduće članove grupe prema ugovoru
+4. Potvrda pre deljenja
+
+**Dno:** Podeli
+**Primarna radnja:** Svesno podeli izabrani sadržaj
+**Tok i Back:** U razgovoru nastaje jasna dozvoljena poruka/prilog ili grant prema implementaciji.
+**Dozvoljena polja:** Lokacija ili kontakt, ljudski potvrđeni.
+**Podaci / granica:** Ne obećavati opoziv već pročitanog teksta. Secure message/grant zahteva stvarni backend; običan tekst ne predstavljati kao opozivljiv.
+
+#### C08 · Neuspešna poruka / arhiva / blokada — Stanje unutar razgovora
+
+**Vrh:** Isti kanal ostaje prepoznatljiv
+
+**Sadržaj odozgo nadole:**
+
+1. Poruka: čeka / slanje / neizvestan ishod / nije poslata
+2. Retry uz isti identitet
+3. Arhiva objašnjava granicu pisanja
+4. Blokada ima jasan bezbednosni kontekst
+
+**Dno:** Pokušaj ponovo / Kopiraj tekst / Nazad
+**Primarna radnja:** Oporavi baš tu poruku
+**Tok i Back:** Uspeh ažurira isti red, ne dodaje duplikat.
+**Dozvoljena polja:** Neposlati tekst ostaje vezan za kanal i nalog.
+**Podaci / granica:** Posle izlaska iz grupe nema novih poruka ili medija kroz cache/push. Logout čisti privatnu sesiju bez otkrivanja narednom nalogu.
+
+### 07 · Jedinstven profil, ugled i raspored
+
+#### R01 · Moj profil — Ekran
+
+**Vrh:** Nazad · Profil · podešavanja kao miran ulaz
+
+**Sadržaj odozgo nadole:**
+
+1. Jedna kvalitetna kartica: fotografija, ime, javni pregled
+2. Reputacija razdvojena po perspektivi kada postoje podaci
+3. Radni profil: opis/usluge i aktivnost
+4. Moja aktivnost i raspored kao kratki redovi
+5. Nalog, privatnost i podrška grupisano
+
+**Dno:** Prikaži javni profil / Izmeni radni profil kroz razgovor
+**Primarna radnja:** Radnja prema nameri posete
+**Tok i Back:** Javni prikaz kao panel; Back vraća prethodni tab.
+**Dozvoljena polja:** Identitet direktno; poslovne činjenice kroz AI.
+**Podaci / granica:** Nema dva naloga ili dva različita lica. Portfolio, značke i potvrđena zarada nisu u prvom izdanju.
+
+#### R02 · Javni profil — Panel sa proširenim prikazom
+
+**Vrh:** Zatvori · osoba
+
+**Sadržaj odozgo nadole:**
+
+1. Fotografija i ime
+2. Ocena, broj recenzija i ulaz u komentare
+3. Kratak AI sastavljen opis stvarnih usluga
+4. Kategorije rada u korisničkom jeziku
+5. Podržani potvrđeni rezultati po ulozi
+6. Prijavi/blokiraj u sekundarnom meniju
+
+**Dno:** Pogledaj recenzije / vrati se kandidatu
+**Primarna radnja:** Pogledaj recenzije
+**Tok i Back:** Vraća kandidatu, zadatku ili četu iz kog je otvoren.
+**Dozvoljena polja:** Nema edit polja.
+**Podaci / granica:** Bez privatne adrese/telefona. Broj objavljenih zadataka nije broj uspešnih saradnji. Ne izmišljati verifikaciju ili pouzdanost.
+
+#### R03 · Recenzije — Lista u kontekstu profila
+
+**Vrh:** Nazad · Recenzije
+
+**Sadržaj odozgo nadole:**
+
+1. Prosek i stvaran broj
+2. Po ulozi samo ako server razdvaja
+3. Recenzija: autor, ocena, datum i komentar
+4. Paginacija
+5. Još nema recenzija kao neutralno stanje
+
+**Dno:** Otvori dozvoljeni kontekst / Nazad
+**Primarna radnja:** Pročitaj recenzije
+**Tok i Back:** Zadržati profil, filter i scroll.
+**Dozvoljena polja:** Nema proizvoljnih lokalnih statistika.
+**Podaci / granica:** Ne otkrivati privatni Dogovor kroz recenziju. Izvor proseka mora biti ceo autorizovani skup.
+
+#### R04 · Sačuvani radni profil — Ekran pregleda
+
+**Vrh:** Nazad · Radni profil
+
+**Sadržaj odozgo nadole:**
+
+1. Status profila
+2. Opis i konkretne usluge
+3. Načini izvršenja
+4. Stvarno potvrđeno područje
+5. Dostupnost kao čitljiv sažetak
+6. Kako me drugi vide
+
+**Dno:** Izmeni kroz razgovor
+**Primarna radnja:** Izmeni kroz razgovor
+**Tok i Back:** Vraća isti radni AI kontekst; Save → isti pregled iz servera.
+**Dozvoljena polja:** Bez ručnog radius/time/category editora.
+**Podaci / granica:** Nepotpuno područje ili usluga nisu zelena potvrda. Remote ne dobija izmišljeni radijus.
+
+#### R05 · Dostupnost i područje · stari ulazi — Pregled ili adapter
+
+**Vrh:** Nazad · jasan predmet
+
+**Sadržaj odozgo nadole:**
+
+1. Prikaži sačuvano stanje ako je korisno
+2. Jedno objašnjenje šta može da se promeni
+3. Usmeri na isti AI razgovor sa relevantnom temom
+
+**Dno:** Izmeni kroz razgovor
+**Primarna radnja:** Otvori postojeći razgovor
+**Tok i Back:** Back u radni profil. Postojeći linkovi ne završavaju na 404.
+**Dozvoljena polja:** Bez paralelnog ručnog upisa.
+**Podaci / granica:** Ne brisati rutu po nazivu: potvrda mape može ostati legitimna. Ukloniti dupli owner tek posle prevezivanja svih poziva.
+
+#### R06 · Raspored — Ekran
+
+**Vrh:** Nazad · Raspored
+
+**Sadržaj odozgo nadole:**
+
+1. Sažet izbor dana/nedelje
+2. Stvarne obaveze sa terminom
+3. Fleksibilni Dogovori odvojeno, bez lažnog sata
+4. Dostupnost kao referenca, ne ručni poslovni kalendar
+
+**Dno:** Otvori Dogovor
+**Primarna radnja:** Otvori obavezu
+**Tok i Back:** Vraća isti dan i poziciju.
+**Dozvoljena polja:** Izbor prikazanog datuma; promena dostupnosti kroz AI.
+**Podaci / granica:** Datum u vremenskoj zoni zadatka. Ne sabijati ponovljene dnevne prozore u jedan kontinuirani termin.
+
+#### R07 · Moja aktivnost — Ekran sa sažetkom
+
+**Vrh:** Nazad · Aktivnost
+
+**Sadržaj odozgo nadole:**
+
+1. Pouzdani broj objava
+2. Završene saradnje kao objavljivač / kao izvršilac
+3. Aktivne saradnje
+4. Vrednost samo ako postoji kompletan autorizovan agregat
+5. Istorija po periodu kada ima smisla
+
+**Dno:** Otvori odgovarajuću listu
+**Primarna radnja:** Pogledaj izvor rezultata
+**Tok i Back:** Broj vodi do istog skupa.
+**Dozvoljena polja:** Period/filter; bez finansijskih pretpostavki.
+**Podaci / granica:** Za MVP prikazati samo pouzdane korisne metrike. Nema Ukupno zarađeno, uspešnosti ili mesečnih grafika iz jedne stranice.
+
+### 08 · Obaveštenja, podešavanja, privatnost i podrška
+
+#### N01 · Obaveštenja — Ekran
+
+**Vrh:** Nazad · Obaveštenja · podešavanja
+
+**Sadržaj odozgo nadole:**
+
+1. Nepročitano jasno, bez oslanjanja samo na boju
+2. Grupisano po vremenu/događaju bez gubitka predmeta
+3. Naslov, kratak razlog i stvarni sledeći korak
+4. Zastareli cilj sa objašnjenjem
+
+**Dno:** Otvori odgovarajući predmet
+**Primarna radnja:** Otvori prijavu / Dogovor / poruku
+**Tok i Back:** Povratak čuva listu. OS push i inbox imaju provereno ciljanje.
+**Dozvoljena polja:** Podržani filter/označavanje pročitanog.
+**Podaci / granica:** Push ne otkriva privatnu adresu ili osetljiv sadržaj. Klik radi i iz hladnog starta, posle prijave i promene naloga.
+
+#### N02 · Podešavanja obaveštenja — Ekran
+
+**Vrh:** Nazad · Obaveštenja
+
+**Sadržaj odozgo nadole:**
+
+1. Poruke i Dogovori
+2. Prijave i važne promene
+3. Nove prilike prema profilu
+4. Sistem dozvola jasno odvojena od preferencija u aplikaciji
+
+**Dno:** Sačuvaj samo ako model ima eksplicitnu potvrdu; inače istinit potvrđeni switch
+**Primarna radnja:** Promeni podržanu preferenciju
+**Tok i Back:** Vraća se u profil/inbox.
+**Dozvoljena polja:** Direktni switch-evi za stvarno podržane vrste.
+**Podaci / granica:** Ne nuditi kategoriju koja nema server primenu. Odbijena OS dozvola ne prikazuje „uključeno na telefonu“.
+
+#### N03 · Nalog i podešavanja — Sekcija profila / namenski pregled
+
+**Vrh:** Nazad · Podešavanja
+
+**Sadržaj odozgo nadole:**
+
+1. Lični podaci i fotografija
+2. Prijava i bezbednost
+3. Privatnost
+4. Obaveštenja
+5. Pomoć
+6. Pravila i O aplikaciji
+7. Odjavi se na mirnom poslednjem mestu
+
+**Dno:** Otvori jasnu grupu
+**Primarna radnja:** Izaberi podešavanje
+**Tok i Back:** Back u isti profil; bez šest nivoa menija.
+**Dozvoljena polja:** Nema poslovnih polja radnog profila.
+**Podaci / granica:** Grupe po korisničkom jeziku, ne po nazivima RPC-ja. Brisanje naloga odvojeno od odjave.
+
+#### N04 · Lični podaci, fotografija, lozinka — Namenski kratki ekrani
+
+**Vrh:** Nazad · tačan naslov
+
+**Sadržaj odozgo nadole:**
+
+1. Trenutna vrednost i šta je javno
+2. Odgovarajući jedan skup polja
+3. Greška uz polje
+4. Kod fotografije pregled/kadriranje pre čuvanja
+5. Kod lozinke pravilo i bezbedan recovery
+
+**Dno:** Sačuvaj
+**Primarna radnja:** Sačuvaj identitet ili bezbednosnu izmenu
+**Tok i Back:** Readback → prethodni profil; cancel čuva staro.
+**Dozvoljena polja:** Ime/kontakt prema ugovoru, avatar picker, lozinka.
+**Podaci / granica:** Ovo su legitimni direktni lični unosi. Ne slati tajne u AI ili logove.
+
+#### N05 · Privatnost, blokirani i bezbednost — Ekrani / sekcije
+
+**Vrh:** Nazad · Privatnost / Blokirani
+
+**Sadržaj odozgo nadole:**
+
+1. Ko vidi javni profil
+2. Približna i deljena tačna lokacija
+3. Deljenje kontakta
+4. Blokirane osobe sa jasnim posledicama
+5. Prijava sadržaja/osobe
+6. Izvoz i brisanje naloga odvojeno
+
+**Dno:** Otvori ili potvrdi konkretnu radnju
+**Primarna radnja:** Upravljaj privatnošću
+**Tok i Back:** Vraća isti kontekst; blokada ima potvrdu i stvarni server ishod.
+**Dozvoljena polja:** Podržane privacy kontrole i razlog prijave.
+**Podaci / granica:** Ne obećavati brisanje već kopiranih poruka. Klijentsko sakrivanje nije autorizacija.
+
+#### N06 · Izvoz i brisanje naloga — Odvojeni kratki tokovi
+
+**Vrh:** Nazad · Izvoz podataka / Brisanje naloga
+
+**Sadržaj odozgo nadole:**
+
+1. Šta će biti obuhvaćeno
+2. Stvarni status zahteva
+3. Kod brisanja: posledice i eventualna ograničenja aktivnih obaveza
+4. Bez tehničkih worker statusa u korisničkom tekstu
+
+**Dno:** Zatraži izvoz / Potvrdi brisanje
+**Primarna radnja:** Izričita odgovarajuća potvrda
+**Tok i Back:** Uspešan zahtev ima praćenje; neizvestan ishod prvo se proverava.
+**Dozvoljena polja:** Minimalna potrebna potvrda/reautentifikacija.
+**Podaci / granica:** Ne tvrditi da je sve trenutno obrisano ako se obrada radi u pozadini. Istorija i obaveze prema važećem server/legal ugovoru.
+
+#### N07 · Odjavi se — Kratka potvrda po potrebi
+
+**Vrh:** Odjava
+
+**Sadržaj odozgo nadole:**
+
+1. Ako postoji neposlata poruka ili aktivno snimanje, objasni šta ostaje
+2. Bez suvišne potvrde kada nema rizika
+3. Privatna sesija se zatvara i push veza se ažurira
+
+**Dno:** Odjavi se
+**Primarna radnja:** Odjavi se
+**Tok i Back:** Ulaz; sledeći nalog ne vidi privatni cache prethodnog.
+**Dozvoljena polja:** Nema.
+**Podaci / granica:** Ne brisati korisnikov server nacrt. Otvoren neizvestan upis ne sme biti dupliran posle ponovne prijave.
+
+#### N08 · Pomoć i moji zahtevi — Ekran
+
+**Vrh:** Nazad · Pomoć
+
+**Sadržaj odozgo nadole:**
+
+1. Kratke najkorisnije teme
+2. Prijavi problem
+3. Moji zahtevi sa stvarnim statusom
+4. Veza na pravila i privatnost gde je relevantno
+
+**Dno:** Novi zahtev
+**Primarna radnja:** Prijavi problem
+**Tok i Back:** Novi zahtev → njegov detalj; povratak na listu.
+**Dozvoljena polja:** Pretraga tema samo ako postoji smislen lokalni sadržaj.
+**Podaci / granica:** Nema lažnog live podrška/odgovor za X minuta bez operativne podrške.
+
+#### N09 · Novi zahtev / detalj podrške — Ekran
+
+**Vrh:** Nazad · Podrška
+
+**Sadržaj odozgo nadole:**
+
+1. Predmet: aplikacija, zadatak, osoba ili Dogovor
+2. Kratak opis
+3. Dozvoljeni prilozi
+4. Poslati zahtev i njegova istorija/status
+5. Odgovor samo gde ugovor podržava
+
+**Dno:** Pošalji zahtev / Odgovori
+**Primarna radnja:** Pošalji podršci
+**Tok i Back:** Očuvan kontekst predmeta i zahtev bez dupliranja.
+**Dozvoljena polja:** Opis, vrsta problema i prilozi prema ugovoru.
+**Podaci / granica:** Privatni podaci minimalni. Operatorski ekran ostaje posebno autorizovan, nije potrošački meni.
+
+#### N10 · Pravila, saglasnosti i O aplikaciji — Ekrani čitanja
+
+**Vrh:** Nazad · jasan naslov
+
+**Sadržaj odozgo nadole:**
+
+1. Čitljiv sadržaj i važeća verzija
+2. Stvarni operater i kontakti kad potvrđeni
+3. Evidencija potrebne saglasnosti
+4. O aplikaciji: sažet smisao proizvoda i verzija
+5. Tehnički build detalj u posebnom proširivom delu
+
+**Dno:** Nazad / Prihvati samo kad je potrebno
+**Primarna radnja:** Pročitaj / potvrdi važeće uslove
+**Tok i Back:** Vraća započetom toku.
+**Dozvoljena polja:** Potvrda saglasnosti, ne novi upitnik.
+**Podaci / granica:** Pravna spremnost zahteva zasebnu aktuelnu proveru; ovaj nacrt nije pravno mišljenje.
+
+#### N11 · Arhiva i istek — Lista / stanje predmeta
+
+**Vrh:** Nazad · Istorija
+
+**Sadržaj odozgo nadole:**
+
+1. Završeno, otkazano, isteklo jasno odvojeno
+2. Stari zadatak povezan s novom objavom kada postoji
+3. Read-only razgovori prema dozvoli
+4. Stvarni datum događaja
+
+**Dno:** Otvori istoriju / napravi novi AI nacrt iz dozvoljenog konteksta
+**Primarna radnja:** Pogledaj predmet
+**Tok i Back:** Čuva filter i scroll.
+**Dozvoljena polja:** Nema tihe ponovne aktivacije.
+**Podaci / granica:** Arhiva nije fizičko brisanje. Stara vrednost „sutra“ mora ponovo biti razjašnjena pri novoj objavi.
+
+### Backend i otvorene funkcionalne zavisnosti
+
+- Regionalno radno područje, više centara, cela zemlja i pokrivenost svih tačaka rute: isti model kroz AI, potvrdu, Save, readback, matching i dispatch.
+- Brzina oba AI razgovora: odvojiti korisnički odgovor od revizionisane pozadinske klasifikacije tamo gde odluka ne zavisi od nje; meriti latenciju i tokene, bez obećanja odgovora za jednu sekundu bez merenja.
+- Jedan vlasnički grupni pregled: projekcija, pojedinačni iznosi/statusi, ulazak/izlazak, istorija, fotografije i audio kroz RLS, medije, Realtime i push.
+- Ponovna objava pre prvog izbora: transakcija sa novim task ID-jem, zatvaranje starih prijava, idempotency i obaveštenja starima i novom relevantnom skupu.
+- Fleksibilni termin, odustajanje i traženje zamene: autoritativne dozvoljene faze i potvrde; otkaz ne sme postati uspešno završen.
+- Javni profil i agregati po ulozi: pouzdani ukupni podaci umesto sabiranja jedne stranice.
+- Deljenje kontakta i tačne lokacije: stvarni grant/message tip i granice opoziva; ne glumiti secure sharing u običnom tekstu.
+- Push od sistemskog prijema do pravog objekta: hladan start, ugašen ekran, prijava, promena naloga i zastareo cilj. Jedan primljeni push nije dokaz svih vrsta.
+
+### Veći povezani krug implementacije
+
+#### I · Ugovori i zajednička osnova
+
+Prvo napraviti matricu: ekran → stvarni read model → dozvoljena radnja → status → oporavak. Konsolidovati ikonice, boje, tekst, stanja, zaglavlja, navigaciju i primarne akcije. Već izrađen prvi UI paket ostaje polazište.
+
+#### II · Cela putanja objave i prijave
+
+Početna, zadaci/mapa/lista, detalji obe perspektive, oba AI toka i jedan pregled, moje liste, ponuda, kandidati i izbor. Ukloniti zamenjene editore tek kada svi ulazi rade kroz jednog ownera.
+
+#### III · Izvršenje i komunikacija
+
+Jedinstven prikaz Dogovora, članovi, privatni/grupni čet, slika/audio, deljenje, završetak, otkaz/zamena, recenzija i ciljano obaveštenje. Backend proširenja moraju stići zajedno sa klijentom.
+
+#### IV · Nalog i zatvaranje proizvoda
+
+Profil, radni pregled, raspored, reputacija, obaveštenja, podrška, auth/recovery, privatnost, odjava, izvoz/brisanje i legal release preduslovi.
+
+#### V · Povezana završna provera
+
+Veći povezani presek: TypeScript i funkcionalna regresija, tačan APK, oba naloga, 361/390/412 × normalan/veliki font, mrežni prekidi, Back/obnova, mediji i push. Lokalne zaštite kritičnog upisa proveravaju se tokom izrade; kompletna vizuelna matrica na povezanom kraju.
+
+### Čišćenje i stari ulazi
+
+| Ulaz | Cilj |
+|---|---|
+| /prilike, /mapa | Jedan discovery owner /zadaci; stare ulaze sačuvati kao bezbedne adaptere prema stvarnoj upotrebi. |
+| /pregled-zadatka, /pregled-nacrta | Jedan review owner prema konkretnom task/conversation identitetu. Nema paralelna dva pregleda. |
+| /mesto-zadatka | Geografska potvrda u istom toku; ne drugi poslovni editor. |
+| /profil/dostupnost, /profil/lokacija | Čitljiv pregled/potvrda ili adapter u isti AI razgovor; ukloniti samo stvarno duplirani ručni owner. |
+| /prijave | Proveriti legacy ulaz prema aktuelnim mojim prijavama/kandidatima; bez menjanja značenja na slepo. |
+| /arhiva, /moje-aktivnosti | Istorija/aktivnost koriste isto značenje rezultata; bez drugog izvora zbirnih podataka. |
+| /podrska/operator | Zasebna autorizovana operaterska površina, van običnog korisničkog menija; ne brisati kao dekorativni višak. |
+| _layout, +native-intent | Tehnički vlasnici navigacije/deep-linka, nisu dodatni ekrani. Očuvati oporavak, bezbedan cilj i account fencing. |
+
+Čišćenje: stari owner → funkcionalni paritet → novi owner → prevezani ulazi i Back → relevantne zaštite → uklanjanje stare implementacije. Ne brisati testni fajl koji sadrži i korisničke/bezbednosne zaštite.

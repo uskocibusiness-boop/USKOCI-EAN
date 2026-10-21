@@ -520,7 +520,10 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
           <ChatAction label="Učitaj starije poruke" text={historyError && historyErrorDirection === 'older' ? 'Pokušaj ponovo · starije poruke' : 'Starije poruke'}
             onPress={() => loadHistory('older')} center refresh busy={loadingOlder || loadingNewer || loading || refreshing} />
         </View> : null}
-        {loading && !shown.length ? <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.ink} style={s.loading} /> : null}
+        {loading && !shown.length ? <View accessibilityLiveRegion="polite" style={s.loading}>
+          <ActivityIndicator accessibilityLabel="Učitavanje poruka" color={sys.color.ink} />
+          <T variant="note" tone="muted" style={[s.centerText, s.stateCopy]}>Učitavamo poruke i proveravamo ko učestvuje u Dogovoru.</T>
+        </View> : null}
         {/* Incoming push hints also refresh the visible conversation. Manual refresh remains available without push
             permission/delivery, including as a quiet action accessible without a pull gesture at the head of the
             thread (review r4 rd item 4; "Povuci naniže za nove poruke." used to be the only hint). It is there in the
@@ -531,7 +534,8 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
         {error ? <View style={s.stateBlock} accessibilityLiveRegion="polite">
           <View style={s.stateArt}><FactArt kind="chat" size={56} muted /></View>
           <T accessibilityRole="alert" variant="title" style={[s.ink, s.centerText]}>Poruke nisu učitane</T>
-          <T variant="copy" tone="muted" style={[s.centerText, s.stateCopy]}>Proveri vezu. Tvoj tekst ostaje sačuvan.</T>
+          <T variant="copy" tone="muted" style={[s.centerText, s.stateCopy]}>{state.draft.trim() || state.entries.length
+            ? 'Proveri vezu. Tvoj tekst ostaje sačuvan.' : 'Proveri vezu pa pokušaj ponovo.'}</T>
           <ChatAction label="Ponovo učitaj poruke" text="Pokušaj ponovo" onPress={() => void refresh()} center />
         </View> : null}
         {empty ? <View style={s.stateBlock}>
@@ -546,10 +550,14 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
           const { message, moment } = entry;
           // The small mark by my message: sent, or seen only when the read says so. The other person's message has none.
           const kind = readMark(message);
-          const summary = { accessibilityRole: 'button' as const,
+          const selectForSupport = () => setChosen(current => current === message.id ? null : message.id);
+          const summary = { accessibilityRole: support ? 'button' as const : 'text' as const,
             accessibilityLabel: messageSpoken(message, moment, kind ? MARK_WORDS[kind].toLowerCase() : undefined),
-            accessibilityHint: 'Dugim pritiskom prijavljuješ poruku podršci.',
-            onLongPress: () => setChosen(current => current === message.id ? null : message.id), haptic: 'select' as const, scaleTo: 1 as const };
+            accessibilityHint: support ? 'Dugim pritiskom biraš poruku za podršku.' : undefined,
+            onLongPress: support ? selectForSupport : undefined,
+            accessibilityActions: support ? [{ name: 'activate', label: 'Izaberi ovu poruku za podršku' }] : undefined,
+            onAccessibilityAction: support ? selectForSupport : undefined,
+            haptic: support ? 'select' as const : 'none' as const, scaleTo: 1 as const };
           const hasPhotos = !!photos && !!message.fotografije?.length;
           const common = { mine: message.moja, first: entry.first, last: entry.last, afterSeparator: entry.separator !== null, summary,
             mark: kind ? <MessageMark kind={kind} /> : null };
@@ -715,7 +723,7 @@ const s = StyleSheet.create({
   // A short conversation sits on the composer, where a reply is written; a state stands in the middle.
   listBottom: { justifyContent: 'flex-end' },
   listCentred: { justifyContent: 'center' },
-  loading: { paddingVertical: 24 },
+  loading: { paddingVertical: 24, alignItems: 'center', gap: sys.space.sm },
   center: { alignSelf: 'center' }, end: { alignSelf: 'flex-end' }, centerText: { textAlign: 'center' }, ink: { color: sys.color.ink },
   // The states of the conversation are the system's empty and error column (T7): the picture, one title, one sentence of at most 280, the way forward.
   stateBlock: { gap: sys.space.md, alignItems: 'center', paddingHorizontal: sys.space.xl, paddingVertical: sys.space.base },

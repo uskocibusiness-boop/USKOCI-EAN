@@ -7,6 +7,7 @@ import { supabaseKlijent } from './supabaseClient';
 import { revokePushBeforeLogout } from './pushDeviceClientService';
 import { forgetAgreementOutboxes } from './agreementOutbox';
 import { recentSearchesKey } from './recentSearchesKey';
+import { writeSettledMapPlace } from './confirmedDiscoveryMapPlace';
 import { voiceMessagesBuilt } from './voiceMessagesGate';
 import { signupConfirmationRedirect } from './authSignupRedirect';
 import {
@@ -55,13 +56,17 @@ export const authClientService: AuthClientPort = {
   async signUp({ email, password, firstName, lastName, city }) {
     const emailRedirectTo = signupConfirmationRedirect();
     if (!emailRedirectTo) throw new Error('Potvrda registracije trenutno nije dostupna. Pokušaj ponovo malo kasnije.');
-    const { data, error } = await supabaseKlijent().auth.signUp({
-      email, password,
-      // The existing signup trigger reads full_name. Keep the split metadata
-      // as well; neither credentials nor historical profile rows are rewritten.
-      options: { emailRedirectTo, data: { first_name: firstName, last_name: lastName,
-        full_name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' '), city } },
-    });
+    let result: Awaited<ReturnType<ReturnType<typeof supabaseKlijent>['auth']['signUp']>>;
+    try {
+      result = await supabaseKlijent().auth.signUp({
+        email, password,
+        // The existing signup trigger reads full_name. Keep the split metadata
+        // as well; neither credentials nor historical profile rows are rewritten.
+        options: { emailRedirectTo, data: { first_name: firstName, last_name: lastName,
+          full_name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' '), city } },
+      });
+    } catch (thrown) { throw safeAuthFailure(thrown, 'SIGN_UP'); }
+    const { data, error } = result;
     if (error) throw safeAuthFailure(error, 'SIGN_UP');
     return { hasSession: !!data.session };
   },
@@ -73,19 +78,29 @@ export const authClientService: AuthClientPort = {
     if (!emailRedirectTo) throw new Error('Potvrda registracije trenutno nije dostupna. Pokušaj ponovo malo kasnije.');
     const address = email.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) throw new Error('Unesi ispravnu email adresu.');
-    const { error } = await supabaseKlijent().auth.resend({ type: 'signup', email: address, options: { emailRedirectTo } });
+    let error: unknown;
+    try { ({ error } = await supabaseKlijent().auth.resend({ type: 'signup', email: address, options: { emailRedirectTo } })); }
+    catch (thrown) {
+      const current = sesijaSada();
+      if (current.user || current.accountRevision !== owner.accountRevision) throw new Error('AUTH_ACCOUNT_CHANGED');
+      throw safeAuthFailure(thrown, 'SIGNUP_RESEND');
+    }
     const current = sesijaSada();
     if (current.user || current.accountRevision !== owner.accountRevision) throw new Error('AUTH_ACCOUNT_CHANGED');
     if (error) throw safeAuthFailure(error, 'SIGNUP_RESEND');
   },
 
   async sendPhoneOtp(input) {
-    const { error } = await supabaseKlijent().auth.signInWithOtp(input);
+    let error: unknown;
+    try { ({ error } = await supabaseKlijent().auth.signInWithOtp(input)); }
+    catch (thrown) { throw safeAuthFailure(thrown, 'PHONE_SEND'); }
     if (error) throw safeAuthFailure(error, 'PHONE_SEND');
   },
 
   async verifyPhoneOtp(input) {
-    const { error } = await supabaseKlijent().auth.verifyOtp({ ...input, type: 'sms' });
+    let error: unknown;
+    try { ({ error } = await supabaseKlijent().auth.verifyOtp({ ...input, type: 'sms' })); }
+    catch (thrown) { throw safeAuthFailure(thrown, 'PHONE_VERIFY'); }
     if (error) throw safeAuthFailure(error, 'PHONE_VERIFY');
   },
 
@@ -129,6 +144,8 @@ export const authClientService: AuthClientPort = {
       // The recent searches of Zadaci belong to this account too and go with its session.
       await storage.removeItem(recentSearchesKey(expected.accountId));
     } catch { /* the text stays where it was; the session is gone either way */ }
+    // The confirmed camera place is local account context, and leaves with this session.
+    try { await writeSettledMapPlace(expected.accountId, null); } catch { /* logout already succeeded */ }
     // Voice recordings and downloaded voice messages exist only as files in the private cache; every one of them goes with the session.
     // A build without the voice flag never loads the file module.
     if (voiceMessagesBuilt()) {

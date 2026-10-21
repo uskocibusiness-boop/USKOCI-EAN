@@ -9,6 +9,8 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import { WorkerProfileFooter, WorkerProfileForm, WorkerProfileFrame, WorkerProfileStatus } from '../../ui/workerProfile/WorkerProfilePresentation';
+import { QuietReadState } from '../../ui/v2/QuietReadState';
+import { SkeletonList } from '../../ui/system/Skeleton';
 
 let tree: ReactTestRenderer;
 const texts = () => tree.root.findAllByType('T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
@@ -28,7 +30,7 @@ test('the personal profile reads saved facts and offers AI corrections without m
   await act(async () => { tree = create(<Screen value={draft()} />); });
   expect(texts()).toContain('Radni profil'); expect(texts()).toContain('Marko Marić');
   expect(texts()).toContain('Radni profil je još nacrt'); expect(texts()).toContain('zadaci ti se ne nude');
-  expect(texts()).toContain('Selidbe'); expect(texts()).toContain('Montaža'); expect(texts()).toContain('Kolica');
+  expect(texts()).toContain('Selidbe'); expect(texts()).toContain('Montaža'); expect(texts()).not.toContain('Kolica');
   expect(inputs()).toEqual([]);
   expect(labels().filter(label => String(label).startsWith('Izmeni:') || String(label).startsWith('Ukloni '))).toEqual([]);
   await act(async () => byLabel('Uredi kroz razgovor').props.onPress()); expect(openConversation).toHaveBeenCalledTimes(1);
@@ -49,6 +51,8 @@ test('status block: loading is spoken, an error keeps the one reload action', as
   const retry = jest.fn();
   await act(async () => { tree = create(<WorkerProfileFrame back={() => {}}><WorkerProfileStatus loading error={null} retry={retry} /></WorkerProfileFrame>); });
   expect(texts()).toContain('Učitavamo radni profil…');
+  expect(tree.root.findAllByType(QuietReadState)).toHaveLength(1);
+  expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<WorkerProfileFrame back={() => {}}><WorkerProfileStatus loading={false} error="Profil nije učitan." retry={retry} /></WorkerProfileFrame>); });
   expect(texts()).toContain('Profil nije učitan.'); await act(async () => byLabel('Ponovo učitaj profil').props.onPress()); expect(retry).toHaveBeenCalledTimes(1);

@@ -144,9 +144,8 @@ export const HOME_WAITING_LIMIT = 4;
 export const DRAFT_FRESH_DAYS = 7;
 
 /**
- * Whether a draft is recent enough to be offered as "Nastavi nacrt" (R18). The own-task read carries no timestamp today
- * (`PotrebaProjekcija` has none), so a draft of unknown age is offered, and the seven days apply as soon as the read says when the
- * draft was last changed. An age that cannot be read is an unknown age, not an old one.
+ * Whether a draft is recent enough to be offered as "Nastavi nacrt" (R18). The owner read includes an update instant when its
+ * receipt is valid. An older reader can still omit it: unknown age is never presented as an old draft.
  */
 export function draftIsFresh(updatedAt: string | null | undefined, now: number): boolean {
   if (typeof updatedAt !== 'string') return true;
@@ -256,7 +255,7 @@ export function composeHome(reads: HomeReads, serverAttention?: HomeSection<Home
       id: `agreement:${row.id}:term`, title: 'Predloži termin', ...subject(row.naslov), detail: 'Termin još nije dogovoren.',
       target: { kind: 'AGREEMENT_TERM' as const, agreementId: row.id } })),
     ...(needs ?? []).filter(row => row.stanje === 'NACRT' && readableTitle(row.naslov)
-      && draftIsFresh((row as { azurirano?: string | null }).azurirano, now)).slice(0, 1).map(row => ({
+      && draftIsFresh(row.azurirano, now)).slice(0, 1).map(row => ({
       id: `need:${row.id}:draft`, title: 'Nastavi nacrt', ...subject(row.naslov), detail: 'Nacrt još nije objavljen.',
       target: { kind: 'NEED' as const, needId: row.id } })),
   ];

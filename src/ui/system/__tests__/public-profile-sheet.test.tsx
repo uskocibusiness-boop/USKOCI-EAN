@@ -61,7 +61,7 @@ const factIds = () => factRows().map(node => (node.props.testID as string).repla
 afterEach(async () => { await act(async () => tree?.unmount()); mockWidth = 390; mockFontScale = 1; });
 
 describe('the states of the sheet', () => {
-  it('draws nothing without a state, a skeleton while loading, and a way to try again when the read failed', async () => {
+  it('draws nothing without a state, a calm read state while loading, and a way to try again when the read failed', async () => {
     await act(async () => { tree = create(<PublicProfileSheet state={null} onClose={noop} onRetry={noop} />); });
     expect(tree.toJSON()).toBeNull();
     await act(async () => tree.update(<PublicProfileSheet state={{ loading: true, data: null }} onClose={noop} onRetry={noop} />));
@@ -71,6 +71,10 @@ describe('the states of the sheet', () => {
     expect(all()).toContain('Javni profil trenutno nije dostupan.');
     await act(async () => { labelled('Pokušaj ponovo')[0].props.onPress(); });
     expect(retry).toHaveBeenCalledTimes(1);
+    await act(async () => tree.update(<PublicProfileSheet state={{ loading: false, data: null, notFound: true }} onClose={noop} onRetry={retry} />));
+    expect(all()).toContain('Javni profil nije pronađen.');
+    expect(all()).not.toContain('Proveri vezu i pokušaj ponovo.');
+    expect(labelled('Pokušaj ponovo')).toHaveLength(0);
   });
 
   it('is titled with the person\'s name, and says when there is none', async () => {

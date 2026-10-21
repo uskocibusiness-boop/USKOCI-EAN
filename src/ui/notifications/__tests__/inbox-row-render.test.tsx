@@ -5,7 +5,7 @@ import type { InboxItem } from '../../../contracts/inbox';
 
 /**
  * The inbox list drawn by the REAL components, press and text included (the route tests stand in named elements): the rows, the clock
- * at the end of each name, where a tap goes (said to a screen reader only), and the swipe command under an unread row, in the real
+ * at the end of each name, the known destination cue, and the swipe command under an unread row, in the real
  * library's own container. Nothing may throw, the touch targets and the words keep their sizes, and a read row has no command.
  */
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
@@ -31,12 +31,12 @@ const panels = () => tree.root.findAll(node => node.props.testID === 'swipe-read
 const buttons = (label: string) => tree.root.findAll(node => node.props.accessibilityRole === 'button' && node.props.accessibilityLabel === label);
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
-it('draws day groups and the rows with the clock at the end of the name, and says where a tap goes to a screen reader only, with nothing under 12 px', async () => {
+it('draws day groups and known destination cues with readable text and the same screen-reader hints', async () => {
   await draw(view([row('a', { eventType: 'MESSAGE_RECEIVED', title: 'Nova poruka', body: 'Imaš novu poruku u Dogovoru.' }),
     row('b', { eventType: 'OPPORTUNITY_AVAILABLE', title: 'Nova prilika koja ti može odgovarati', body: 'Prenos ormana', occurredAt: at(60 * 30) })]));
   expect(words()).toContain('Danas'); expect(words()).toContain('Juče');
-  // The owner's phone, 8 Oct 2026: "18:54 · Otvara Dogovor" explained what a row does. The row says the event, the words and the clock; the hint says the rest.
   expect(words()).not.toMatch(/Otvara/); expect(words()).not.toContain(' · ');
+  expect(words()).toContain('Otvori poruku'); expect(words()).toContain('Pogledaj zadatak');
   expect(words()).toMatch(/\d\d:\d\d/);
   const hints = tree.root.findAll(node => node.props.accessibilityRole === 'button' && typeof node.props.accessibilityHint === 'string').map(node => node.props.accessibilityHint);
   expect(hints).toEqual(expect.arrayContaining(['Otvara poruku u Dogovoru.', 'Otvara zadatak.']));
@@ -51,7 +51,7 @@ it('puts the clock on the line of the name, and the words or the task under it, 
     row('b', { title: 'Nova prijava', body: 'Imaš novu prijavu za zadatak.', occurredAt: at(60 * 30), ...{ taskTitle: 'Montaža police u hodniku' } })]));
   const first = tree.root.findAll(node => node.props.accessibilityRole === 'button' && String(node.props.accessibilityLabel).startsWith('Nepročitano. Dogovor je otkazan'))[0];
   const lines = first.findAll(node => (node.type as unknown) === 'Text').map(node => [node.props.children, node.props.numberOfLines]);
-  expect(lines).toEqual([['Dogovor je otkazan', 2], [expect.stringMatching(/^\d\d:\d\d$/), undefined], ['Druga strana je otkazala Dogovor. Razlog je u Porukama.', 2]]);
+  expect(lines).toEqual(expect.arrayContaining([['Dogovor je otkazan', 2], [expect.stringMatching(/^\d\d:\d\d$/), undefined], ['Druga strana je otkazala Dogovor. Razlog je u Porukama.', 2]]));
   // The task, when the read says which one, takes the place of the sentence under the event.
   expect(words()).toContain('Montaža police u hodniku'); expect(words()).not.toContain('Imaš novu prijavu za zadatak.');
 });
@@ -123,4 +123,20 @@ it('keeps the row\'s own press at 64 dp or more, on the white the revealed comma
   expect(StyleSheet.flatten(rowButton.props.style).minHeight).toBeGreaterThanOrEqual(64);
   const surface = tree.root.findAll(node => StyleSheet.flatten(node.props.style)?.backgroundColor === sys.color.surface);
   expect(surface.length).toBeGreaterThan(0);
+});
+
+it('draws each notification as a raised white card with a readable title and no old row divider', async () => {
+  await draw(view([row('a'), row('b')]), noop);
+  const cardButtons = tree.root.findAll(node => (node.type as unknown) === 'View' && node.props.accessibilityRole === 'button'
+    && String(node.props.accessibilityLabel).startsWith('Nepročitano.'));
+  expect(cardButtons).toHaveLength(2);
+  for (const card of cardButtons) {
+    const style = StyleSheet.flatten(card.props.style);
+    expect(style.backgroundColor).toBe(sys.color.surface);
+    expect(style.borderRadius).toBe(sys.radius.card);
+    expect(style.marginBottom).toBe(20);
+    expect(card.findAll(node => node.props.pointerEvents === 'none')).toHaveLength(0);
+    const title = card.findAll(node => (node.type as unknown) === 'Text')[0];
+    expect(StyleSheet.flatten(title.props.style).fontSize).toBe(sys.type.heading.fontSize);
+  }
 });

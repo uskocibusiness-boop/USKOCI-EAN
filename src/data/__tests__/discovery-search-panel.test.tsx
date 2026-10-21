@@ -1,5 +1,7 @@
+import { discoveryWorkMode } from '../discoveryWorkMode';
 import React from 'react';
-import { Animated, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
+import * as Motion from 'react-native-reanimated';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { BlurView } from 'expo-blur';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView, type PublicBounds } from '../marketplaceView';
@@ -28,8 +30,9 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 jest.mock('../../ui/system/FactArt', () => ({ FactArt: 'FactArt' }));
+jest.mock('react-native-worklets', () => ({ scheduleOnRN: (fn: (...args: any[]) => void, ...args: any[]) => fn(...args) }));
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { DiscoverySearchPanel, NO_SEARCH, type DiscoveryV1SearchPanelSeam, type PanelMode, type SearchDraft, type SearchReadiness } from '../../ui/v2/discovery/DiscoverySearchPanel';
+import { DiscoverySearchPanel, NO_SEARCH, type ConfirmedMapPlace, type DiscoveryV1SearchPanelSeam, type PanelMode, type SearchDraft, type SearchReadiness } from '../../ui/v2/discovery/DiscoverySearchPanel';
 import type { RecentSearch } from '../../ui/v2/discovery/recentSearches';
 import { sys } from '../../ui/system/tokens';
 
@@ -50,10 +53,14 @@ const row = (id: string, patch: Record<string, unknown> = {}): MarketplaceItem =
 let rows: MarketplaceItem[] = [], view: MarketplaceView, mine: ReadonlySet<string> | undefined, mapArea: PublicBounds | null, mode: PanelMode, recent: readonly RecentSearch[];
 let readiness: SearchReadiness = 'ready', p6Search: DiscoveryV1SearchPanelSeam | undefined, reduced = true;
 let blurTarget: { current: null } | undefined;
-const apply = jest.fn(), close = jest.fn(), openTask = jest.fn();
+const apply = jest.fn(), close = jest.fn(), openTask = jest.fn(), centerPlace = jest.fn();
+let placeResolver: React.ComponentProps<typeof DiscoverySearchPanel>['placeResolver'];
+let appliedMapPlace: ConfirmedMapPlace | null;
+let openSearch: (() => void) | undefined;
 let tree: ReactTestRenderer;
 const panelOf = () => <DiscoverySearchPanel items={rows} view={view} mine={mine} now={NOW} mapArea={mapArea} blurTarget={blurTarget}
-  mode={mode} reduced={reduced} readiness={readiness} p6Search={p6Search} recent={recent} onApply={apply} onClose={close} onOpenTask={openTask} />;
+  mode={mode} reduced={reduced} readiness={readiness} p6Search={p6Search} recent={recent} onApply={apply} onClose={close} onOpenTask={openTask}
+  placeResolver={placeResolver} appliedMapPlace={appliedMapPlace} onCenterPlace={centerPlace} onOpenSearch={openSearch} />;
 const render = async () => act(async () => { tree = create(panelOf()); });
 const byId = (testID: string) => tree.root.findAll(node => node.props.testID === testID)[0];
 const byLabel = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label);
@@ -78,9 +85,9 @@ const typeWhat = async (text: string) => act(async () => whatField().props.onCha
 const dayCell = (dayOfMonth: number) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'button'
   && new RegExp(`, ${dayOfMonth}\\. sep`).test(node.props.accessibilityLabel ?? ''))[0];
 const dateValue = () => tree.root.findByProps({ testID: 'search-date-toggle' }).props.accessibilityValue.text;
-const sheetHeight = () => (StyleSheet.flatten(byId('search-sheet').props.style).height as unknown as { __getValue(): number }).__getValue();
+const sheetHeight = () => StyleSheet.flatten(byId('search-sheet').props.style).height;
 const sheetCorner = () => {
-  const corner = StyleSheet.flatten(byId('search-sheet').props.style).borderTopLeftRadius as unknown;
+  const corner = StyleSheet.flatten(byId('search-sheet').props.style).borderRadius as unknown;
   return typeof corner === 'number' ? corner : (corner as { __getValue(): number }).__getValue();
 };
 const withPlatform = async (os: 'android' | 'ios', version: number | string, body: () => Promise<void>) => {
@@ -94,19 +101,16 @@ const withPlatform = async (os: 'android' | 'ios', version: number | string, bod
 };
 
 /** Animations stand still until the test finishes them: what is asked of the driver is read, and what follows a finish is checked. */
-type Run = { kind: 'timing' | 'spring'; value: Animated.Value; config: Record<string, unknown>; callback?: (result: { finished: boolean }) => void };
+type Run = { kind: 'timing' | 'spring'; config: Record<string, unknown>; callback?: (finished: boolean) => void };
 let runs: Run[] = [];
 const holdAnimations = () => {
   runs = [];
-  const make = (kind: Run['kind']) => (value: Animated.Value, config: Record<string, unknown>) => ({
-    start: (callback?: Run['callback']) => { runs.push({ kind, value, config, callback }); }, stop: () => undefined, reset: () => undefined,
-    _startNativeLoop: () => undefined, _isUsingNativeDriver: () => false,
-  });
-  jest.spyOn(Animated, 'timing').mockImplementation(make('timing') as never);
-  jest.spyOn(Animated, 'spring').mockImplementation(make('spring') as never);
+  jest.spyOn(Motion, 'withTiming').mockImplementation(((toValue: number, config: Record<string, unknown>, callback?: Run['callback']) => {
+    runs.push({ kind: 'timing', config: { ...config, toValue }, callback }); return toValue;
+  }) as never);
 };
 const finishAnimations = async () => act(async () => {
-  for (const run of runs.filter(entry => entry.callback)) { run.value.setValue(Number(run.config.toValue)); const callback = run.callback!; run.callback = undefined; callback({ finished: true }); }
+  for (const run of runs.filter(entry => entry.callback)) { const callback = run.callback!; run.callback = undefined; callback(true); }
 });
 
 beforeEach(() => {
@@ -118,12 +122,13 @@ beforeEach(() => {
   view = { ...initialMarketplaceView(), mode: 'map' }; mine = new Set(['mine']); mapArea = null; mode = 'search'; readiness = 'ready'; p6Search = undefined;
   reduced = true; blurTarget = undefined; recent = [];
   mockWindow = { width: 750, height: 1334, scale: 2, fontScale: 2 };
-  apply.mockReset(); close.mockReset(); openTask.mockReset(); mockKeyboardVisible = false; mockKeyboardDismiss.mockReset();
+  apply.mockReset(); close.mockReset(); openTask.mockReset(); centerPlace.mockReset(); placeResolver = undefined; appliedMapPlace = null; openSearch = undefined;
+  mockKeyboardVisible = false; mockKeyboardDismiss.mockReset();
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); jest.restoreAllMocks(); });
 
 const p6Snapshot = (patch: Partial<DiscoveryV1SearchSnapshot> = {}, within = ''): DiscoveryV1SearchSnapshot => ({
-  active: true, generation: 1, key: discoveryV1SearchPreviewKey({ ...view, placeSearch: within } as SearchPreviewView, mapArea), status: 'ready', count: 37, undated: 6,
+  active: true, generation: 1, key: discoveryV1SearchPreviewKey({ ...discoveryWorkMode(view), placeSearch: within } as SearchPreviewView, mapArea), status: 'ready', count: 37, undated: 6,
   availability: { hasKnownWorkMode: true, hasKnownSchedule: true, priceModes: ['MY_PRICE', 'OFFERS'] },
   places: [{ key: 'novi sad', text: 'Novi Sad', count: 21 }, { key: 'beograd', text: 'Beograd', count: 9 }],
   parts: [], placeHasMore: false, placePaging: false, everywhere: 80, inMapArea: mapArea ? 23 : null, facetError: false, ...patch,
@@ -376,18 +381,26 @@ describe('the server preview (P6) of the search', () => {
     await render();
     expect(show().props.label).toBe('Prikaži 37 zadataka');
     // the server has no count of the work done remotely, so none is said (a picture leads the row instead)
-    expect(offered().slice(0, 4)).toEqual(['Svi zadaci, 80 zadataka', 'Na daljinu', 'Novi Sad, 21 zadatak', 'Beograd, 9 zadataka']);
+    // The both-modes facet total cannot be presented as the on-location total.
+    expect(offered().slice(0, 4)).toEqual(['Svi zadaci na lokaciji', 'Na daljinu', 'Novi Sad, 21 zadatak', 'Beograd, 9 zadataka']);
     expect(texts()).toContain('Gradovi sa zadacima'); expect(texts()).not.toContain('Mesta sa zadacima');
     expect(radio('Na daljinu')[0].findAllByType('FactArt' as React.ElementType).map(node => node.props.kind)).toEqual(['remote']);
     await choose('Novi Sad, 21 zadatak');
     expect(lastDraft()).toMatchObject({ place: 'Novi Sad' });
   });
 
+  test('the on-location row leaves a remote-only search in physical work', async () => {
+    view = { ...view, where: 'remote' }; p6Search = p6Seam(p6Snapshot({ everywhere: null, places: [] }));
+    await render();
+    await choose('Svi zadaci na lokaciji');
+    expect(lastDraft()).toMatchObject({ where: 'onsite', place: null, area: null, pinPlace: null });
+  });
+
   test('a stale preview shows loading and never falls back to local row counts', async () => {
     rows = [row('a'), row('b')]; p6Search = p6Seam(p6Snapshot({ key: 'old-key', count: 999 }));
     await render();
     expect(show().props).toMatchObject({ label: 'Učitavamo zadatke…', disabled: true });
-    expect(offered()[0]).toBe('Svi zadaci');
+    expect(offered()[0]).toBe('Svi zadaci na lokaciji');
     expect(texts()).not.toContain('999');
     // Nothing is said missing while the places are still read: no city claims "Još nema zadataka" yet.
     expect(texts()).not.toContain('Još nema zadataka');
@@ -398,7 +411,7 @@ describe('the server preview (P6) of the search', () => {
     await render();
     expect(show().props).toMatchObject({ label: 'Prikaži 14 zadataka', disabled: false });
     expect(texts()).toContain('Mesta trenutno nisu dostupna. Pretraga zadataka i dalje radi.');
-    expect(offered()[0]).toBe('Svi zadaci');
+    expect(offered()[0]).toBe('Svi zadaci na lokaciji');
     expect(texts()).not.toContain('Još nema zadataka');
   });
 
@@ -482,7 +495,7 @@ describe('the server preview (P6) of the search', () => {
     await render();
     expect(show().props).toMatchObject({ label, disabled });
     expect(offered()[0]).toBe('Svi zadaci');
-    expect(offered().slice(0, 2).join(' ')).not.toMatch(/zadat/);
+    expect(offered().slice(0, 2).join(' ')).not.toMatch(/\d+ zadat/);
     expect(texts()).not.toMatch(/\d+ zadat/);
     // No city is said to have no tasks while nothing is known.
     expect(texts()).not.toContain('Još nema zadataka');
@@ -500,7 +513,17 @@ describe('the FILTERS are a sheet with the days, how the work is done and the am
   const group = (id: string) => byId(id);
   const open = async (id: string) => { expect(byId(`${id}-body`)).toBeDefined(); };
 
-  test('it rises from the bottom over a backdrop, with Kada, Gde and Iznos in that order, and nothing of the search', async () => {
+  test('opening search from filters mounts its full-screen modal instead of keeping dialog measurements', async () => {
+    mode = 'filters'; openSearch = () => { mode = 'search'; tree.update(panelOf()); };
+    await render();
+    await act(async () => byId('search-root').props.onLayout({ nativeEvent: { layout: { height: 1000 } } }));
+    expect(sheetHeight()).toBe(920);
+    await act(async () => actionNamed('Pretraži zadatke').props.onPress());
+    expect(whatField()).toBeDefined();
+    expect(sheetHeight()).toBe(mockWindow.height);
+  });
+
+  test('it opens with location, work mode, price and then time, and nothing of the search', async () => {
     mode = 'filters'; await render();
     expect(sheetHeight()).toBe(1227); expect(sheetCorner()).toBe(sys.radius.sheet); // 92 %: separate sections leave room for the date grid
     expect(byId('search-backdrop')).toBeDefined();
@@ -508,29 +531,30 @@ describe('the FILTERS are a sheet with the days, how the work is done and the am
     expect(StyleSheet.flatten(byId('search-sheet').props.style).backgroundColor).toBe(sys.color.surface);
     expect(byLabel('Zatvori filtere')).toHaveLength(1); expect(byLabel('Zatvori pretragu')).toHaveLength(0);
     const order = tree.root.findAll(node => String(node.type) === 'View' && /^filters-(when|where|amount)$/.test(node.props.testID ?? '')).map(node => node.props.testID);
-    expect(order).toEqual(['filters-when', 'filters-where', 'filters-amount']);
-    expect(texts()).toContain('Kada'); expect(texts()).toContain('Gde'); expect(texts()).toContain('Iznos');
+    expect(order).toEqual(['filters-where', 'filters-amount', 'filters-when']);
+    expect(texts()).toContain('Mesto na mapi'); expect(texts()).toContain('Način rada');
+    expect(texts()).toContain('Cena'); expect(texts()).toContain('Kada');
     expect(texts()).not.toMatch(/Broj ljudi|Osoba|osoba|Redosled/);
     // the search is the pill's: no field, no places, no recent searches
     expect(whatField()).toBeUndefined(); expect(tree.root.findAllByProps({ accessibilityLabel: 'Mesta' })).toHaveLength(0);
     expect(radio('Svi zadaci')).toHaveLength(0);
-    expect(actions().map(action => action.props.label)).toEqual(['Očisti', 'Prikaži 5 zadataka']);
+    expect(actions().map(action => action.props.label)).toEqual(['Pronađi mesto', 'Očisti', 'Prikaži 5 zadataka']);
   });
 
-  test('"Gde" is offered only when a task says how the work is done, or when it is already chosen', async () => {
+  test('work mode is offered when a task names it or an older choice must remain removable', async () => {
     rows = rows.filter(item => item.id !== 'remote'); mode = 'filters'; await render();
     expect(group('filters-where')).toBeUndefined();
     await act(async () => tree.unmount());
     view = { ...view, where: 'onsite' }; await render(); await open('filters-where');
-    expect(radio('Na licu mesta', group('filters-where'))[0].props.accessibilityState.checked).toBe(true);
+    expect(radio('Na lokaciji', group('filters-where'))[0].props.accessibilityState.checked).toBe(true);
   });
 
   test('the choices are one row each and a draft: nothing is applied before "Prikaži", and the number follows the choice', async () => {
     mode = 'filters'; await render();
     await open('filters-amount');
-    expect(radio('Svejedno', group('filters-amount'))[0].props.accessibilityState.checked).toBe(true);
+    expect(radio('Oba', group('filters-amount'))[0].props.accessibilityState.checked).toBe(true);
     await open('filters-where');
-    expect(radio('Svejedno', group('filters-where'))[0].props.accessibilityState.checked).toBe(true);
+    expect(radio('Oba', group('filters-where'))[0].props.accessibilityState.checked).toBe(true);
     await open('filters-when');
     await choose('Ovaj vikend', group('filters-when'));
     expect(radio('Ovaj vikend')[0].props.accessibilityState).toEqual({ checked: true });
@@ -538,9 +562,9 @@ describe('the FILTERS are a sheet with the days, how the work is done and the am
     await open('filters-amount');
     expect(byId('filters-when-body')).toBeDefined();
     expect(radio('Ovaj vikend')[0].props.accessibilityState.checked).toBe(true);
-    await choose('Tražim ponude', group('filters-amount'));
+    await choose('Ponude', byId('filters-amount'));
     expect(show().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
-    await choose('Sa iznosom', group('filters-amount'));
+    await choose('Fiksna cena', group('filters-amount'));
     expect(show().props.label).toBe('Prikaži 4 zadatka');
     expect(apply).not.toHaveBeenCalled(); expect(close).not.toHaveBeenCalled();
     await act(async () => show().props.onPress());
@@ -587,13 +611,13 @@ describe('the FILTERS are a sheet with the days, how the work is done and the am
     view = { ...view, price: 'OFFERS', when: 'weekend', place: 'Vračar, Beograd', query: 'pomoć' }; mode = 'filters'; await render();
     expect(show().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
     await act(async () => actionNamed('Očisti').props.onPress());
-    // The place and the word are the search's: they stay, and the tasks of that place are what is counted.
-    expect(show().props.label).toBe('Prikaži 1 zadatak');
+    // The place is now a filter too. Reset clears it while preserving the typed search words.
+    expect(show().props.label).toBe('Prikaži 5 zadataka');
     expect(radio('Ovaj vikend')[0].props.accessibilityState.checked).toBe(false);
     await open('filters-amount');
-    expect(radio('Svejedno', group('filters-amount'))[0].props.accessibilityState.checked).toBe(true);
+    expect(radio('Oba', group('filters-amount'))[0].props.accessibilityState.checked).toBe(true);
     await act(async () => show().props.onPress());
-    expect(lastDraft()).toEqual({ ...NO_SEARCH, place: 'Vračar, Beograd', query: 'pomoć' });
+    expect(lastDraft()).toEqual({ ...NO_SEARCH, query: 'pomoć' });
     // A new panel starts from the list's own view again; × applies nothing.
     apply.mockReset(); close.mockReset(); await act(async () => tree.unmount()); await render();
     expect(radio('Ovaj vikend')[0].props.accessibilityState.checked).toBe(true);
@@ -664,8 +688,114 @@ describe('the FILTERS are a sheet with the days, how the work is done and the am
     expect(show().props).toMatchObject({ label: 'Učitavamo zadatke…', disabled: true });
     await act(async () => tree.unmount());
     p6Search = p6Seam(p6Snapshot({ availability: { hasKnownWorkMode: false, hasKnownSchedule: true, priceModes: ['MY_PRICE'] } })); await render();
-    expect(group('filters-where')).toBeUndefined();
+    // The selected physical scope remains reachable even if this result has no known mode.
+    expect(group('filters-where')).toBeDefined();
   });
+
+  test('geocoded location moves only after choosing a candidate and applying; no point enters task filters', async () => {
+    mode = 'filters'; rows = [];
+    const lookup = jest.fn().mockResolvedValue({ status: 'PROPOSALS', requiresConfirmation: true, candidates: [{
+      label: 'Novi Sad, Srbija', countryCode: 'RS', position: { latitude: 45.25123, longitude: 19.83678 },
+      origin: { kind: 'PROVIDER_CANDIDATE', providerHint: 'locationiq', candidateHint: 'novi-sad' },
+    }] });
+    placeResolver = { search: lookup, cancel: jest.fn() } as never;
+    await render();
+    await act(async () => byId('filters-place-input').props.onChangeText('Novi Sad'));
+    expect(show().props).toMatchObject({ label: 'Izaberi potvrđeno mesto', disabled: true });
+    expect(texts(byId('search-footer'))).toContain('Pronađi mesto i izaberi predlog, ili obriši unos.');
+    await act(async () => actionNamed('Pronađi mesto').props.onPress());
+    expect(lookup).toHaveBeenCalledWith({ text: 'Novi Sad', countryCode: 'RS', scopeKey: 'discovery' });
+    expect(centerPlace).not.toHaveBeenCalled();
+    await act(async () => actionNamed('Izaberi: Novi Sad, Srbija').props.onPress());
+    expect(centerPlace).not.toHaveBeenCalled();
+    expect(show().props).toMatchObject({ label: 'Prikaži oblast na mapi', disabled: false });
+    await act(async () => show().props.onPress());
+    expect(centerPlace).toHaveBeenCalledTimes(1);
+    expect(centerPlace).toHaveBeenCalledWith({ label: 'Novi Sad, Srbija', position: { latitude: 45.25, longitude: 19.84 } });
+    expect(lastDraft()).toMatchObject({ place: null, pinPlace: null });
+  });
+
+  test('an applied map place remains named when filters reopen', async () => {
+    mode = 'filters'; view = { ...view, area: [19.8, 45.2, 19.9, 45.3] };
+    appliedMapPlace = { label: 'Novi Sad, Srbija', position: { latitude: 45.25, longitude: 19.84 } };
+    await render();
+    expect(byId('filters-place-input').props.value).toBe('Novi Sad, Srbija');
+    expect(centerPlace).not.toHaveBeenCalled();
+  });
+
+  test('editing a confirmed place requires a new proposal; clearing it explicitly removes its camera area', async () => {
+    mode = 'filters'; rows = [row('outside', { priblizno: { lat: 44.8, lng: 20.4 } })];
+    view = { ...view, area: [19.8, 45.2, 19.9, 45.3] };
+    appliedMapPlace = { label: 'Novi Sad, Srbija', position: { latitude: 45.25, longitude: 19.84 } };
+    await render();
+    await act(async () => byId('filters-place-input').props.onChangeText('Beograd'));
+    expect(show().props).toMatchObject({ label: 'Izaberi potvrđeno mesto', disabled: true });
+    await act(async () => byId('filters-place-input').props.onChangeText(''));
+    expect(show().props).toMatchObject({ label: 'Prikaži 1 zadatak', disabled: false });
+    await act(async () => show().props.onPress());
+    expect(apply).toHaveBeenCalledWith(expect.objectContaining({ place: null, area: null, pinPlace: null }), { clearMapPlace: true });
+    expect(centerPlace).not.toHaveBeenCalled();
+  });
+
+  test('P6 previews the cleared map area before the user can apply it', async () => {
+    mode = 'filters'; view = { ...view, area: [19.8, 45.2, 19.9, 45.3] };
+    appliedMapPlace = { label: 'Novi Sad, Srbija', position: { latitude: 45.25, longitude: 19.84 } };
+    p6Search = p6Seam(p6Snapshot());
+    await render();
+    await act(async () => byId('filters-place-input').props.onChangeText(''));
+    expect(p6Search.onDraft).toHaveBeenLastCalledWith(expect.objectContaining({ area: null, pinPlace: null }), mapArea);
+  });
+});
+
+test('P6 minimum stays hidden until the matching server rollout flag is built', async () => {
+  const original = process.env.EXPO_PUBLIC_P6_MIN_BUDGET_FILTER;
+  delete process.env.EXPO_PUBLIC_P6_MIN_BUDGET_FILTER;
+  try {
+    mode = 'filters'; p6Search = p6Seam(p6Snapshot()); await render();
+    expect(tree.root.findAllByProps({ testID: 'filters-min-budget-input' })).toHaveLength(0);
+  } finally {
+    if (original !== undefined) process.env.EXPO_PUBLIC_P6_MIN_BUDGET_FILTER = original;
+  }
+});
+
+test('P6 both-price minimum reaches the preview and Apply only after an authoritative reply', async () => {
+  const original = process.env.EXPO_PUBLIC_P6_MIN_BUDGET_FILTER;
+  process.env.EXPO_PUBLIC_P6_MIN_BUDGET_FILTER = '1';
+  try {
+    mode = 'filters'; p6Search = p6Seam(p6Snapshot()); await render();
+    const input = byId('filters-min-budget-input');
+    expect(input.props.accessibilityLabel).toBe('Najmanja fiksna cena u dinarima');
+    await act(async () => input.props.onChangeText('3000'));
+    expect(p6Search.onDraft).toHaveBeenCalledWith(expect.objectContaining({ price: 'all', minBudgetRsd: 3000 }), null);
+    expect(show().props).toMatchObject({ label: 'Učitavamo zadatke…', disabled: true });
+    const key = discoveryV1SearchPreviewKey({ ...discoveryWorkMode(view), minBudgetRsd: 3000, placeSearch: '' } as SearchPreviewView, mapArea);
+    p6Search = p6Seam(p6Snapshot({ key, count: 7 }));
+    await act(async () => tree.update(panelOf()));
+    expect(show().props).toMatchObject({ label: 'Prikaži 7 zadataka', disabled: false });
+    await act(async () => show().props.onPress());
+    expect(lastDraft()).toMatchObject({ price: 'all', minBudgetRsd: 3000 });
+  } finally {
+    if (original === undefined) delete process.env.EXPO_PUBLIC_P6_MIN_BUDGET_FILTER;
+    else process.env.EXPO_PUBLIC_P6_MIN_BUDGET_FILTER = original;
+  }
+});
+
+test('P6 rejects an invalid minimum before Apply and clears it for offers-only', async () => {
+  const original = process.env.EXPO_PUBLIC_P6_MIN_BUDGET_FILTER;
+  process.env.EXPO_PUBLIC_P6_MIN_BUDGET_FILTER = '1';
+  try {
+    mode = 'filters'; p6Search = p6Seam(p6Snapshot()); await render();
+    await act(async () => byId('filters-min-budget-input').props.onChangeText('0'));
+    expect(show().props).toMatchObject({ label: 'Proveri najmanju cenu', disabled: true });
+    expect(apply).not.toHaveBeenCalled();
+    await act(async () => byId('filters-min-budget-input').props.onChangeText('3000'));
+    await choose('Ponude', byId('filters-amount'));
+    expect(tree.root.findAllByProps({ testID: 'filters-min-budget-input' })).toHaveLength(0);
+    expect(p6Search.onDraft).toHaveBeenCalledWith(expect.objectContaining({ price: 'OFFERS', minBudgetRsd: null }), null);
+  } finally {
+    if (original === undefined) delete process.env.EXPO_PUBLIC_P6_MIN_BUDGET_FILTER;
+    else process.env.EXPO_PUBLIC_P6_MIN_BUDGET_FILTER = original;
+  }
 });
 
 describe('the layout at large text and in a narrow window', () => {
@@ -749,9 +879,9 @@ describe('the frame, the backdrop and the motion', () => {
     await act(async () => tree.unmount()); mode = 'filters';
     await act(async () => { tree = create(<SafeAreaInsetsContext.Provider value={{ top: 30, bottom: 20, left: 0, right: 0 }}>{panelOf()}</SafeAreaInsetsContext.Provider>); });
     await act(async () => byId('search-root').props.onLayout({ nativeEvent: { layout: { height: 1000 } } }));
-    expect(sheetHeight()).toBe(920);
+    expect(sheetHeight()).toBe(918);
     await act(async () => byId('search-root').props.onLayout({ nativeEvent: { layout: { height: 400 } } }));
-    expect(sheetHeight()).toBe(354); // status bar plus 16 dp wins over the percentage
+    expect(sheetHeight()).toBe(318); // Both safe edges and the outside margins bound the dialog
   });
 
   test('the panel is a transparent modal without the platform\'s own fade: its motion is its own', async () => {
@@ -759,14 +889,20 @@ describe('the frame, the backdrop and the motion', () => {
     expect(tree.root.findByType('Modal' as React.ElementType).props).toMatchObject({ transparent: true, animationType: 'none', statusBarTranslucent: true });
   });
 
-  test('the sheet rises on the sheet spring, the backdrop fades in, and under reduced motion nothing is asked of the driver', async () => {
+  test('the centred surface scales subtly without vertical travel, and reduced motion is static', async () => {
+    // Reanimated's default Jest stub drops animated styles; evaluate the worklet so
+    // this assertion observes the transforms the surface actually asks for.
+    jest.spyOn(Motion, 'useAnimatedStyle').mockImplementation(((factory: () => object) => factory()) as never);
     mode = 'filters'; holdAnimations(); reduced = false; await render();
-    const spring = runs.find(run => run.kind === 'spring' && run.config.toValue === 0)!;
-    expect(spring.config).toMatchObject({ ...sys.motion.sheetSpring, useNativeDriver: true });
-    const fade = runs.find(run => run.kind === 'timing' && run.config.toValue === 1 && run.config.useNativeDriver === true && run.config.duration === sys.motion.enter);
+    expect(runs.filter(run => run.kind === 'spring')).toHaveLength(0);
+    const transform = StyleSheet.flatten(byId('search-sheet-motion').props.style).transform;
+    expect(transform).toHaveLength(1);
+    expect(Object.keys(transform![0])).toEqual(['scale']);
+    expect(StyleSheet.flatten(byId('search-dialog-viewport').props.style).justifyContent).toBe('center');
+    const fade = runs.find(run => run.kind === 'timing' && run.config.toValue === 1 && run.config.duration === sys.motion.dialog.enter);
     expect(fade).toBeDefined();
     await act(async () => tree.unmount()); runs = []; reduced = true; await render();
-    expect(runs.filter(run => run.kind === 'spring' || run.config.duration === sys.motion.enter || run.config.duration === sys.motion.sheetClose)).toHaveLength(0);
+    expect(runs.filter(run => run.kind === 'spring' || run.config.duration === sys.motion.dialog.enter || run.config.duration === sys.motion.dialog.exit)).toHaveLength(0);
     expect(sheetHeight()).toBe(1227);
   });
 
@@ -774,20 +910,20 @@ describe('the frame, the backdrop and the motion', () => {
     holdAnimations(); reduced = false; await render();
     await finishAnimations(); runs = [];
     await tap('Zatvori pretragu');
-    const leaving = runs.filter(run => run.kind === 'timing' && run.config.useNativeDriver === true);
-    expect(leaving.map(run => run.config.duration)).toEqual([sys.motion.sheetClose, sys.motion.sheetClose]);
+    const leaving = runs.filter(run => run.kind === 'timing');
+    expect(leaving.map(run => run.config.duration)).toEqual([sys.motion.dialog.exit, sys.motion.dialog.exit]);
     expect(close).not.toHaveBeenCalled();
     await finishAnimations(); expect(close).toHaveBeenCalledTimes(1);
     await act(async () => tree.unmount()); close.mockReset(); runs = []; reduced = true; await render();
     await tap('Zatvori pretragu'); expect(close).toHaveBeenCalledTimes(1);
-    expect(runs.filter(run => run.config.duration === sys.motion.sheetClose)).toHaveLength(0);
+    expect(runs.filter(run => run.config.duration === sys.motion.dialog.exit)).toHaveLength(0);
   });
 
   test('the way out never depends on the animation callback', async () => {
     jest.useFakeTimers();
     holdAnimations(); reduced = false; await render();
     await tap('Zatvori pretragu'); expect(close).not.toHaveBeenCalled();
-    await act(async () => { jest.advanceTimersByTime(sys.motion.sheetClose + 300); });
+    await act(async () => { jest.advanceTimersByTime(sys.motion.dialog.exit + 300); });
     expect(close).toHaveBeenCalledTimes(1);
   });
 

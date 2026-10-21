@@ -20,7 +20,7 @@ import { buildQaInline, type TaskQaInlineState } from '../taskQaInlineModel';
  * SEE, that a failed read never looks like "no questions", that a waiting question has a word and a shape and not a colour
  * alone, and that the section reads and sends nothing itself.
  */
-// The first render loads the whole design system behind V2Action and the skeleton; on a machine running other suites that is
+// The first render loads the whole design system behind V2Action and its inline loading state; on a machine running other suites that is
 // slower than Jest's 5 s, and the cases below are about what is drawn, not how fast.
 jest.setTimeout(30_000);
 const NOW = new Date('2026-10-07T10:00:00Z'); // 12:00 in Belgrade

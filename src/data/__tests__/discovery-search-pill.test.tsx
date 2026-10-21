@@ -20,8 +20,8 @@ import { sys } from '../../ui/system/tokens';
  * 8 Oct 2026; the approved plan, U1): the pill is the SEARCH (a word and a place) and the button the FILTERS, which is why the magnifier never leads into the filters
  * and the button never into the search. Both stand at the top at every height of the list, and what hangs under them floats over the map without moving the list sheet's stops.
  */
-const search = jest.fn(), clear = jest.fn(), more = jest.fn(), back = jest.fn(), layout = jest.fn(), settings = jest.fn(), filters = jest.fn();
-const props = () => ({ where: '„farbanje“ · Novi Sad', onBack: back, onSearch: search, onClearWhere: clear, onMore: more, onLayout: layout, filters: { count: 0, onPress: filters } });
+const clear = jest.fn(), back = jest.fn(), layout = jest.fn(), settings = jest.fn(), filters = jest.fn();
+const props = () => ({ where: '„farbanje“ · Novi Sad', onBack: back, onClearWhere: clear, onLayout: layout, filters: { count: 0, onPress: filters } });
 let tree: ReactTestRenderer;
 const render = async (extra: Partial<React.ComponentProps<typeof DiscoverySearchBar>> = {}) => act(async () => {
   tree = create(<DiscoverySearchBar {...props()} {...extra} />);
@@ -31,28 +31,28 @@ const sized = (node: ReactTestInstance) => { let at: ReactTestInstance | null = 
 beforeEach(() => { jest.clearAllMocks(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
-test('the labelled search action opens search while its active context stays readable and spoken in full', async () => {
+test('the primary Filteri control keeps applied search context readable and spoken', async () => {
   await render();
-  const summary = button('Pretraži zadatke');
+  const summary = button('Filteri');
   expect(summary.props.accessibilityValue.text).toBe(props().where);
-  expect(summary.props.accessibilityHint).toBe(SEARCH_HINT);
-  expect(summary.findAllByType('T' as React.ElementType)[0].props.children).toBe('Pretraži zadatke');
+  expect(summary.props.accessibilityHint).toBe(FILTERS_HINT);
+  expect(summary.findAllByType('T' as React.ElementType)[0].props.children).toBe('Filteri');
   const words = summary.findAllByProps({ testID: 'discovery-search-context' });
   expect(words.map(text => text.props.numberOfLines)).toEqual([1]);
   expect(words.flatMap(text => text.children.filter(child => typeof child === 'string')).join('')).toBe(props().where);
   expect(words.every(text => text.props.allowFontScaling !== false && !text.props.adjustsFontSizeToFit)).toBe(true);
   await act(async () => summary.props.onPress());
-  expect(search).toHaveBeenCalledTimes(1);
-  expect(filters).not.toHaveBeenCalled(); // the pill never opens the filters
+  expect(filters).toHaveBeenCalledTimes(1);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pretraži zadatke' })).toHaveLength(0);
 });
 
-test('without an active search the labelled search action has no empty input or extra context row', async () => {
+test('without active context Filteri has no empty subtitle or input', async () => {
   await render({ where: null, onClearWhere: undefined });
-  const summary = button('Pretraži zadatke');
+  const summary = button('Filteri');
   expect(summary.props.accessibilityValue).toBeUndefined();
   const words = summary.findAllByType('T' as React.ElementType);
   expect(words).toHaveLength(1);
-  expect(words[0].props.children).toBe('Pretraži zadatke');
+  expect(words[0].props.children).toBe('Filteri');
   expect(words[0].props.numberOfLines).toBeUndefined();
   expect(tree.root.findAllByProps({ testID: 'discovery-search-context' })).toHaveLength(0);
   // the two things a search is, the one thing the pill opens (the approved plan, U1)
@@ -64,32 +64,31 @@ test('Back is independent from clearing or opening search, including while a que
   await render();
   await act(async () => button('Nazad').props.onPress());
   expect(back).toHaveBeenCalledTimes(1);
-  expect(clear).not.toHaveBeenCalled(); expect(search).not.toHaveBeenCalled(); expect(filters).not.toHaveBeenCalled();
-  expect(button('Pretraži zadatke').props.accessibilityValue.text).toBe(props().where);
+  expect(clear).not.toHaveBeenCalled(); expect(filters).not.toHaveBeenCalled();
+  expect(button('Filteri').props.accessibilityValue.text).toBe(props().where);
 });
 
-test('the pill opens the search and says so: a word and a place, never the filters', async () => {
+test('search is not a persistent map control', async () => {
   await render();
   expect(SEARCH_HINT).toBe('Otvara pretragu po reči i mestu.');
-  for (const filter of [/kada/i, /uslov/i, /filter/i, /cena/i, /iznos/i]) expect(SEARCH_HINT).not.toMatch(filter);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pretraži zadatke' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Još mogućnosti' })).toHaveLength(0);
 });
 
-test('the filters are a separate round button beside the pill: as high as it, with the sliders, opening the filters and nothing of the search', async () => {
+test('Filteri is the wide primary top action and opens the filter draft', async () => {
   await render();
   const open = button('Filteri');
   expect(open.props).toMatchObject({ testID: 'filters-button', accessibilityRole: 'button', accessibilityHint: FILTERS_HINT, accessibilityState: { selected: false } });
   expect(FILTERS_HINT).toBe('Otvara filtere: kada, gde i iznos.');
   // the search is the pill: what the button says it opens is the filters, never the words and the place
   expect(FILTERS_HINT).not.toMatch(/pretra/i);
-  expect(sized(open).width).toBeGreaterThanOrEqual(sys.touch.min);
-  expect(sized(open).height).toBeGreaterThanOrEqual(sys.touch.min);
-  // it stands in the pill's own row, after the pill, and is not a part of the pill's press
+  expect(StyleSheet.flatten(open.props.style).minHeight).toBeGreaterThanOrEqual(sys.touch.min);
+  // It owns the main surface; there is no separate search or ellipsis target.
   const row = tree.root.findByProps({ testID: 'discovery-search-row' });
   expect(row.findAllByProps({ testID: 'filters-button' })).toHaveLength(1);
-  expect(button('Pretraži zadatke').findAllByProps({ testID: 'filters-button' })).toHaveLength(0);
+  expect(row.findAllByProps({ accessibilityLabel: 'Pretraži zadatke' })).toHaveLength(0);
   await act(async () => open.props.onPress());
   expect(filters).toHaveBeenCalledTimes(1);
-  expect(search).not.toHaveBeenCalled();
   // no number while no condition is on
   expect(tree.root.findAllByProps({ testID: 'filters-count' })).toHaveLength(0);
 });
@@ -133,15 +132,13 @@ test('the capsules stand under the pill and the button, inside what is measured;
   expect(bar.children.indexOf(stack as never)).toBeLessThan(bar.children.findIndex(child => typeof child !== 'string' && child.type === NearbyNotice));
 });
 
-test('the pill\'s own × and the menu are full 48 touch targets, and the × is there only while the list is narrowed', async () => {
+test('the active-context reset is a full 48 touch target; no menu competes with chips', async () => {
   await render();
-  expect(StyleSheet.flatten(button('Prikaži sve zadatke').props.style)).toMatchObject({ width: 48, minHeight: 48 });
-  expect(StyleSheet.flatten(button('Još mogućnosti').props.style)).toMatchObject({ width: 48, height: 48 });
-  await act(async () => button('Prikaži sve zadatke').props.onPress());
-  await act(async () => button('Još mogućnosti').props.onPress());
-  expect(clear).toHaveBeenCalledTimes(1); expect(more).toHaveBeenCalledTimes(1);
-  await act(async () => tree.update(<DiscoverySearchBar {...props()} onClearWhere={undefined} onMore={undefined} />));
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Prikaži sve zadatke' })).toHaveLength(0);
+  expect(StyleSheet.flatten(button('Ukloni pretragu ili mesto').props.style)).toMatchObject({ width: 48, minHeight: 48 });
+  await act(async () => button('Ukloni pretragu ili mesto').props.onPress());
+  expect(clear).toHaveBeenCalledTimes(1);
+  await act(async () => tree.update(<DiscoverySearchBar {...props()} onClearWhere={undefined} />));
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Ukloni pretragu ili mesto' })).toHaveLength(0);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Još mogućnosti' })).toHaveLength(0);
 });
 

@@ -13,6 +13,8 @@ const mockBridge: { props: any } = { props: null };
 jest.mock('../discoveryV1PresentationBridge', () => ({ DiscoveryV1PresentationBridge: (props: any) => { mockBridge.props = props; return null; } }));
 const mockStateViews: any[] = [];
 jest.mock('../../ui/system/StateView', () => ({ StateView: (props: any) => { mockStateViews.push(props); return null; } }));
+const mockQuietReads: any[] = [];
+jest.mock('../../ui/v2/QuietReadState', () => ({ QuietReadState: (props: any) => { mockQuietReads.push(props); return null; } }));
 
 import { act, create } from 'react-test-renderer';
 import { DiscoveryV1Screen } from '../../ui/v2/discovery/DiscoveryV1Screen';
@@ -31,7 +33,7 @@ let info: jest.SpyInstance, persist: jest.Mock, current: boolean;
 const traced = () => info.mock.calls.map(call => String(call[0])).filter(line => line.startsWith('[USKOCI_P6_TRACE]'));
 
 beforeEach(() => {
-  mockPackage = 'rs.uskoci.dev'; mockBridge.props = null; mockStateViews.length = 0; persist = jest.fn(); current = true;
+  mockPackage = 'rs.uskoci.dev'; mockBridge.props = null; mockStateViews.length = 0; mockQuietReads.length = 0; persist = jest.fn(); current = true;
   info = jest.spyOn(console, 'info').mockImplementation(() => {});
   mockCoordinator.restore = jest.fn(async () => ({ kind: 'applied' }));
   mockCoordinator.retire = jest.fn();
@@ -53,7 +55,7 @@ const leave = (tree: any) => act(async () => { tree.unmount(); });
 test('a screen handed a kept coordinator shows its picture in the first render and reads nothing', async () => {
   const kept = keptCoordinator(), warm = warmReturn({ coordinator: kept, ageMs: 42_000 });
   const tree = await render(warm);
-  expect(mockStateViews).toHaveLength(0);                                   // no skeleton, not even for one frame
+  expect(mockQuietReads).toHaveLength(0);                                    // known content, no first-read state
   expect(mockBridge.props.snapshot.items).toHaveLength(2);
   expect(warm.candidate).toHaveBeenCalledWith('scope', SOURCE, INITIAL);
   expect(kept.attach).toHaveBeenCalledTimes(1);
@@ -86,8 +88,10 @@ test('a screen with nothing kept reads like a first visit and discards what the 
   const tree = await render(warm);
   expect(warm.discard).toHaveBeenCalledWith(mockCoordinator);
   expect(warm.claim).not.toHaveBeenCalled();
-  expect(mockCoordinator.restore).toHaveBeenCalledWith(INITIAL);
-  expect(mockStateViews.length).toBeGreaterThan(0);                          // the skeleton, until the read lands
+  expect(mockCoordinator.restore).toHaveBeenCalledWith({ ...INITIAL, where: 'onsite' });
+  expect(mockQuietReads.length).toBeGreaterThan(0);                           // a first-read explanation, until the read lands
+  expect(mockQuietReads[0].title).toBe('Učitavamo zadatke…');
+  expect(mockStateViews).toHaveLength(0);                                    // no placeholder cards
   expect(traced()).toEqual(['[USKOCI_P6_TRACE] ["restored","0/1"]']);        // no warm line
   await leave(tree);
 });
@@ -127,7 +131,7 @@ test('a kept coordinator that cannot be attached, retired meanwhile, is replaced
   const tree = await render(warm);
   expect(warm.claim).not.toHaveBeenCalled();
   expect(warm.discard).toHaveBeenCalledWith(mockCoordinator);
-  expect(mockCoordinator.restore).toHaveBeenCalledWith(INITIAL);
+  expect(mockCoordinator.restore).toHaveBeenCalledWith({ ...INITIAL, where: 'onsite' });
   expect(mockBridge.props.snapshot.view).toEqual({ id: 'cold-view' });
   expect(traced()).toEqual(['[USKOCI_P6_TRACE] ["restored","0/1"]']);
   await leave(tree);

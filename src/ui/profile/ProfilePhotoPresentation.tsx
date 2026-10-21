@@ -99,7 +99,7 @@ export function ProfilePhotoEditor({ onBack, stage, notice, error, permissionDen
     </View> : mode === 'staged' ? <View style={s.actions}>
       <SettingsAction label="Sačuvaj fotografiju" loading={running === 'APPLY'} disabled={!canAct} onPress={onApply} />
       <SettingsAction label="Odustani od izabrane fotografije" kind="quiet" loading={running === 'DISCARD'} disabled={!canAct} onPress={onDiscard} />
-    </View> : mode === 'pick' ? <View style={s.actions}>
+    </View> : mode === 'pick' && stage && stage.kind !== 'loading' ? <View style={s.actions}>
       <SettingsAction label="Izaberi iz galerije" loading={running === 'LIBRARY'} disabled={!canAct} onPress={onLibrary} />
       <SettingsAction label="Fotografiši" kind="secondary" loading={running === 'CAMERA'} disabled={!canAct} onPress={onCamera} />
       {/* The same width and the same centre as the two above: it stood indented at the start, as if it were part of the note. */}

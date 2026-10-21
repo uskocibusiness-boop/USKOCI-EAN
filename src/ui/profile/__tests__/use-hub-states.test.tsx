@@ -35,7 +35,7 @@ const ALL: readonly HubStateKey[] = ['support', 'blocked', 'export', 'legal'];
 
 beforeEach(() => {
   jest.clearAllMocks(); seen = {}; mockSession = { user: { id: 'account-a' }, accountRevision: 4 };
-  mockInbox.mockReset().mockResolvedValue(ok({ cases: [{ status: 'RECEIVED' }, { status: 'CLOSED' }, { status: 'IN_REVIEW' }] }));
+  mockInbox.mockReset().mockResolvedValue(ok({ cases: [{ status: 'RECEIVED' }, { status: 'CLOSED' }, { status: 'IN_REVIEW' }], nextBeforeCaseNumber: null }));
   mockBlocks.mockReset().mockResolvedValue(ok({ items: [{}, {}], nextCursor: null }));
   mockExport.mockReset().mockResolvedValue(ok({ hasRequest: false, request: null, downloadAvailable: false }));
   mockLegal.mockReset().mockResolvedValue(ok({ ready: true, acceptedCurrentBundle: true, documents: [] }));
@@ -44,7 +44,7 @@ afterEach(async () => { await act(async () => tree?.unmount()); });
 
 it('reads the four parts apart from each other and says each as the screen\'s rows need it', async () => {
   await mount(ALL);
-  expect(seen).toEqual({ support: 2, blocked: { count: 2, more: false }, exportPhase: 'NONE', legal: 'ACCEPTED' });
+  expect(seen).toEqual({ support: { count: 2, more: false }, blocked: { count: 2, more: false }, exportPhase: 'NONE', legal: 'ACCEPTED' });
   for (const read of [mockInbox, mockBlocks, mockExport, mockLegal]) expect(read).toHaveBeenCalledTimes(1);
 });
 
@@ -52,7 +52,13 @@ it('reads the support inbox of the person only: the own list, its first page, fo
   await mount(['support']);
   expect(mockInbox).toHaveBeenCalledWith('OWN', null, { accountId: 'account-a', accountRevision: 4 });
   expect(mockBlocks).not.toHaveBeenCalled(); expect(mockExport).not.toHaveBeenCalled(); expect(mockLegal).not.toHaveBeenCalled();
-  expect(seen).toMatchObject({ support: 2 });
+  expect(seen).toMatchObject({ support: { count: 2, more: false } });
+});
+
+it('preserves the next-page cursor as an inexact support count for the profile row', async () => {
+  mockInbox.mockResolvedValue(ok({ cases: [{ status: 'RECEIVED' }, { status: 'CLOSED' }], nextBeforeCaseNumber: '42' }));
+  await mount(['support']);
+  expect(seen.support).toEqual({ count: 1, more: true });
 });
 
 it('reads only the parts it is asked for: the privacy screen has no support inbox to read', async () => {
@@ -66,7 +72,7 @@ it.each([
   ['export', () => mockExport.mockResolvedValue(refused)], ['legal', () => mockLegal.mockResolvedValue(refused)],
 ])('does not know the %s part when its read is refused, and the other three still say theirs', async (part, arrange) => {
   arrange(); await mount(ALL);
-  const expected: Record<string, unknown> = { support: 2, blocked: { count: 2, more: false }, exportPhase: 'NONE', legal: 'ACCEPTED' };
+  const expected: Record<string, unknown> = { support: { count: 2, more: false }, blocked: { count: 2, more: false }, exportPhase: 'NONE', legal: 'ACCEPTED' };
   const key = { support: 'support', blocked: 'blocked', export: 'exportPhase', legal: 'legal' }[part as 'support']!;
   for (const [name, value] of Object.entries(expected)) {
     if (name === key) expect([name, (seen as Record<string, unknown>)[name]]).toEqual([name, undefined]);

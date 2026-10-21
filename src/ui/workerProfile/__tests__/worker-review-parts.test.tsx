@@ -106,13 +106,13 @@ describe('the review in parts (M2)', () => {
     expect(edit).not.toHaveBeenCalled();
   });
 
-  it('says tools and vehicles are information only now that MATCH-V1 is applied, and the old words stay one switch away', async () => {
+  it('shows nonempty equipment in the final save review while the signed server candidate still writes it', async () => {
     expect(TOOLS_AND_VEHICLES_ARE_INFORMATION_ONLY).toBe(true);
     await act(async () => { tree = create(<WorkerAiReviewDetails review={full} />); });
     const note = tree.root.findByProps({ testID: 'worker-tools-note' }).children.join('');
     expect(note).toBe('Samo informacija: ne utiču na pretragu ni na obaveštenja.');
-    // One sentence says it, once: no chip "samo informacija" explains nothing next to the title (owner's phone, 8 Oct 2026).
-    expect(texts()).not.toContain('samo informacija');
+    expect(texts()).toContain('Bušilica · Merdevine');
+    expect(texts()).toContain('Kombi');
     // The switch: the words are the owner's decision of 2026-10-07, drawn only while the server really treats the lists as information (a server without MATCH-V1 needs the old ones).
     expect(toolsAndVehiclesNote(true)).toBe('Samo informacija: ne utiču na pretragu ni na obaveštenja.');
     expect(toolsAndVehiclesNote(false)).toBe('Ako zadatak traži alat ili vozilo koje nemaš na spisku, taj zadatak ti se ne nudi i ne možeš da se prijaviš na njega.');
@@ -157,8 +157,8 @@ describe('the conversation draft is not matching readiness', () => {
   ] as const)('%s: offers review without inferring completion from candidate fields', async (_name, profile) => {
     const openReview = jest.fn();
     await act(async () => { tree = create(<WorkerAiCard profile={profile} compact={false} disabled={false} review={openReview} />); });
-    expect(texts()).toContain('Nacrt radnog profila');
-    expect(tree.root.findByProps({ testID: 'worker-draft-review-note' }).props.children).toMatch(/nacrt.*nije sačuvan/i);
+    expect(texts()).toContain('Nacrt · nije sačuvan');
+    expect(tree.root.findAllByProps({ testID: 'worker-draft-review-note' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ testID: 'worker-understood-mode' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ testID: 'worker-understood-handoff' })).toHaveLength(0);
     expect(texts()).not.toMatch(/sprem|potvrđen|aktivan|obaveštenja|od 2|od 5/i);
@@ -193,7 +193,7 @@ describe('the conversation draft is not matching readiness', () => {
     await act(async () => { tree = create(<WorkerAiCard profile={withoutEquipment.profile} compact={true} disabled={false} review={jest.fn()} />); });
     expect(texts()).not.toMatch(/još treba|nije navedeno|alat|vozilo|područje/i);
     expect(press('Pregledaj profil').props.disabled).toBe(false);
-    expect(capturedParts(withoutEquipment.profile).find(part => part.key === 'tools')?.done).toBe(false);
+    expect(capturedParts(withoutEquipment.profile).map(part => part.key)).toEqual(['skills', 'area', 'time']);
   });
 });
 

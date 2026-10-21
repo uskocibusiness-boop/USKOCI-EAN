@@ -80,11 +80,11 @@ export function FigureCell({ figure, onPress, testID }: { figure: Figure; onPres
     scaleTo={sys.motion.scale.row} onPress={onPress} style={s.cell}>{body}</Press>;
 }
 
-/** What stands where a figure is still being read: the shape of it, standing still (no spinner, nothing moves). */
+/** An independently read figure says what is happening without drawing a false number. */
 export function FigureCellPlaceholder({ label }: { label: string }) {
-  return <View accessible accessibilityRole="progressbar" accessibilityLabel={label} accessibilityState={{ busy: true }} style={s.cell}>
-    <View style={s.barValue} />
-    <View style={s.barLabel} />
+  return <View accessible accessibilityRole="text" accessibilityLabel={label} accessibilityState={{ busy: true }}
+    accessibilityLiveRegion="polite" style={s.cell}>
+    <T variant="note" tone="muted" style={s.center}>{label}</T>
   </View>;
 }
 
@@ -98,9 +98,11 @@ export function FigureCellError({ message, retryLabel, onRetry }: { message: str
 }
 
 const s = StyleSheet.create({
-  // Three cells share the row; two or one keep about the width of one of three and stand together in the middle, so the rhythm of the row does not change.
-  row: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'center', gap: sys.space.md },
-  cell: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, maxWidth: '36%', alignItems: 'center', gap: sys.space.xs },
+  // Two facts use the card's width instead of leaving a large empty centre; a third shares the same row.
+  row: { flexDirection: 'row', alignItems: 'stretch', justifyContent: 'center', gap: sys.space.sm },
+  cell: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, maxWidth: '48%', minHeight: 76,
+    alignItems: 'center', justifyContent: 'center', gap: sys.space.xs, paddingVertical: sys.space.sm,
+    paddingHorizontal: sys.space.xs, borderRadius: sys.radius.control, backgroundColor: sys.color.wash },
   valueRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs },
   labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: sys.space.xs, maxWidth: '100%' },
   ink: { color: sys.color.ink },
@@ -109,6 +111,4 @@ const s = StyleSheet.create({
   label: { letterSpacing: 0, textAlign: 'center', flexShrink: 1 },
   center: { textAlign: 'center' },
   action: { color: sys.color.green, fontWeight: '600' },
-  barValue: { width: 40, height: 24, borderRadius: sys.radius.control, backgroundColor: sys.color.skeleton },
-  barLabel: { width: 64, height: 12, borderRadius: sys.radius.control, backgroundColor: sys.color.skeleton },
 });

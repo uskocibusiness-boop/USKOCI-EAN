@@ -11,6 +11,7 @@ const P = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', Q = 'dddddddd-dddd-4ddd-8ddd-d
 const NAME = 'EXPO_PUBLIC_EX07_SAFETY_TARGET_NAME';
 const PERSON = 'Marko Petrović';
 let mockSession = { user: { id: A }, accountRevision: 1 };
+let mockRequestId = C;
 const mockStorage = { getItem: jest.fn(), setItem: jest.fn(), removeItem: jest.fn() };
 const mockSafety = { readBlock: jest.fn(), setBlock: jest.fn(), report: jest.fn(), readReportCommand: jest.fn(), readTarget: jest.fn() };
 jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true, default: {
@@ -22,7 +23,7 @@ jest.mock('../../../data/safetyClientService', () => ({ safetyClientService: {
   readTarget: (...args: unknown[]) => mockSafety.readTarget(...args),
 }, SAFETY_CATEGORIES: ['HARASSMENT', 'FRAUD', 'UNSAFE_WORK', 'DISCRIMINATION', 'OTHER'] }));
 jest.mock('../../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
-jest.mock('../../../lib/idempotencija', () => ({ noviUuidZahtevId: () => 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }));
+jest.mock('../../../lib/idempotencija', () => ({ noviUuidZahtevId: () => mockRequestId }));
 jest.mock('expo-router', () => ({ router: { back: jest.fn(), canGoBack: () => true },
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => effect(), [effect]) }));
 jest.mock('react-native', () => { const native = jest.requireActual('react-native'); return new Proxy(native, { get(target, key) {
@@ -54,6 +55,7 @@ beforeEach(() => {
   process.env[NAME] = '1';
   jest.clearAllMocks(); for (const f of Object.values(mockStorage)) f.mockReset(); for (const f of Object.values(mockSafety)) f.mockReset();
   mockSession = { user: { id: A }, accountRevision: 1 }; mockProps = { targetAccountId: B, needId: null, agreementId: null, profileId: P };
+  mockRequestId = C;
   mockStorage.getItem.mockResolvedValue(null); mockStorage.setItem.mockResolvedValue(undefined); mockStorage.removeItem.mockResolvedValue(undefined);
   mockSafety.readBlock.mockImplementation(async (targetAccountId: string) => ({ ok: true,
     podatak: { accountId: mockSession.user.id, targetAccountId, blocked: false, revision: 0, authoritative: true } }));
@@ -65,6 +67,45 @@ beforeEach(() => {
   mockSafety.readTarget.mockResolvedValue(resolved());
 });
 afterEach(async () => { await act(async () => tree?.unmount()); delete process.env[NAME]; jest.restoreAllMocks(); poruka.hide(); });
+
+describe('a private report restored with only its request ID', () => {
+  it('cannot submit different words under the old ID and requires an explicit, checked fresh start', async () => {
+    mockStorage.getItem.mockResolvedValue(C);
+    await render();
+    expect(copy()).toContain('Prethodna prijava nije potvrđena');
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Kratak razlog privatne prijave' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ label: 'Pošalji privatnu prijavu' })).toHaveLength(0);
+    expect(mockSafety.report).not.toHaveBeenCalled();
+
+    await act(async () => action('Započni novu prijavu').onPress());
+    expect(copy()).toContain('nova prijava može biti duplikat');
+    expect(mockStorage.removeItem).not.toHaveBeenCalled();
+    const confirm = tree.root.findAll(node => String(node.type) === 'Press' && node.props.testID === 'confirm-sheet-confirm')[0];
+    await act(async () => confirm.props.onPress());
+    expect(mockSafety.readReportCommand).toHaveBeenCalledTimes(2);
+    expect(mockStorage.removeItem).toHaveBeenCalledTimes(1);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Kratak razlog privatne prijave' })).toHaveLength(1);
+    mockRequestId = Q;
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uznemiravanje' }).props.onPress());
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Kratak razlog privatne prijave' }).props.onChangeText('Novi razlog'));
+    await act(async () => action('Pošalji privatnu prijavu').onPress());
+    expect(mockSafety.report).toHaveBeenCalledWith(expect.objectContaining({ clientRequestId: Q, reason: 'Novi razlog' }));
+  });
+
+  it('shows a late confirmed receipt instead of discarding its ID for a new report', async () => {
+    mockStorage.getItem.mockResolvedValue(C);
+    mockSafety.readReportCommand.mockResolvedValueOnce({ ok: true, podatak: { found: false, receipt: null } })
+      .mockResolvedValueOnce({ ok: true, podatak: { found: true, receipt: { reportId: Q, received: true,
+        createdAt: '2026-10-20T10:00:00Z', clientRequestId: C, idempotentReplay: false, authoritative: true } } });
+    await render();
+    await act(async () => action('Započni novu prijavu').onPress());
+    const confirm = tree.root.findAll(node => String(node.type) === 'Press' && node.props.testID === 'confirm-sheet-confirm')[0];
+    await act(async () => confirm.props.onPress());
+    expect(copy()).toContain('Prijava je primljena.');
+    expect(mockStorage.removeItem).not.toHaveBeenCalled();
+    expect(mockSafety.report).not.toHaveBeenCalled();
+  });
+});
 
 describe('the name comes from the server result for the profile the person came from', () => {
   it('asks the server once for that profile and draws the name it returns above the explanation, beside the unchanged generic copy', async () => {

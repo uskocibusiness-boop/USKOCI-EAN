@@ -28,6 +28,8 @@ jest.mock('../../ui/support/SupportContextEntry',()=>({SupportContextEntry:'Supp
 import {GroupConversationScreen} from '../../ui/groups/GroupConversationScreen';
 import {GroupConversationEntry} from '../../ui/groups/GroupConversationEntry';
 import {ConversationChannels,privateConversationChoices} from '../../ui/groups/ConversationChannels';
+import {QuietReadState} from '../../ui/v2/QuietReadState';
+import {SkeletonList} from '../../ui/system/Skeleton';
 import type {GroupContext} from '../groupConversationService';
 import {groupBodyHash} from '../groupConversationService';
 const ok=(podatak:unknown)=>({ok:true,podatak}),unknown={ok:false,kod:'GROUP_UNCONFIRMED',poruka:'Ishod nije potvrđen.'};
@@ -54,8 +56,25 @@ beforeEach(()=>{jest.clearAllMocks();for(const group of [mockStorage,mockService
  mockService.recover.mockResolvedValue(ok({found:false,receipt:null}));mockService.send.mockResolvedValue(unknown);mockService.markRead.mockResolvedValue(ok({markedCount:1}));
 });
 afterEach(async()=>{await act(async()=>tree?.unmount());tree=undefined;expect(mockListeners.size).toBe(0);mockListeners.clear();});
+it('shows a calm first read until authorized group context and messages arrive',async()=>{
+ const gate=deferred<unknown>();mockService.context.mockReturnValueOnce(gate.promise);await render();
+ expect(tree!.root.findAllByType(QuietReadState)).toHaveLength(1);
+ expect(tree!.root.findAllByType(SkeletonList)).toHaveLength(0);
+ expect(text()).toContain('Učitavamo razgovor…');
+ expect(text()).toContain('Proveravamo učesnike i poruke za ovaj zadatak.');
+ expect(text()).not.toContain(message.body);
+ expect(tree!.root.findAllByType('TextInput' as never)).toHaveLength(0);
+ expect(tree!.root.findByProps({label:'Nazad na Dogovor'})).toBeDefined();
+ await act(async()=>gate.resolve(ok(context())));
+ expect(tree!.root.findAllByType(QuietReadState)).toHaveLength(0);
+ expect(text()).toContain(message.body);
+ expect(tree!.root.findAllByType('TextInput' as never)).toHaveLength(1);
+ expect(mockService.send).not.toHaveBeenCalled();
+});
 it('renders actual common message, member names/avatars and keeps individual management absent for peers',async()=>{
  await render();expect(text()).toContain(message.body);expect(text()).toContain('Cenu, lične uslove i probleme dogovori privatno.');expect(text()).toContain('Ove poruke vide svi učesnici zadatka.');await tap('Učesnici razgovora');expect(text()).toContain('Bojana');
+ expect(tree!.root.findByProps({testID:'group-task-anchor'}).props.onPress).toBeUndefined();
+ expect(text()).toContain('Zajednički Zadatak');
  const avatars=tree!.root.findAllByType('Avatar' as never);expect(avatars).toHaveLength(2);expect(avatars.every(node=>node.props.profileId===B)).toBe(true);expect(text()).not.toContain('Tvoji pojedinačni Dogovori');expect(mockService.send).not.toHaveBeenCalled();expect(mockService.markRead).not.toHaveBeenCalled();
 });
 it('shows only requester management and routes to the exact canonical individual Agreement',async()=>{
@@ -87,6 +106,18 @@ it('shows sender identity with the message before opening the people panel',asyn
  await render();expect(tree!.root.findByProps({testID:`group-message-sender-${M}`})).toBeDefined();
  expect(tree!.root.findAllByType('Avatar' as never)[0].props.profileId).toBe(B); // same authorized member photo as the roster
  expect(text()).toContain('Bojana');expect(text()).toContain(message.body);
+});
+it('identifies my own group message as Ti while preserving its body, sender ownership and text-only composer',async()=>{
+ const c=context();c.group.members.push({accountId:A,profileId:A,displayName:'Marko',role:'PARTICIPANT'});
+ mockService.context.mockResolvedValue(ok(c));
+ mockService.messages.mockResolvedValue(ok({messages:[{...message,senderAccountId:A,mine:true}],nextBeforeSequence:null,nextAfterSequence:null}));
+ await render();
+ const sender=tree!.root.findByProps({testID:`group-message-sender-${M}`});
+ expect(sender.findAllByType('T' as never).map(node=>node.children.join(''))).toEqual(['Ti · 14:00']);
+ expect(text()).toContain('Grupa · 2 učesnika');
+ expect(text()).toContain(message.body);
+ expect(tree!.root.findAllByType('TextInput' as never)).toHaveLength(1);
+ expect(mockService.send).not.toHaveBeenCalled();
 });
 it('the overview lists the authoritative roster and only the allowed private target',async()=>{
  entry=true;await render();expect(text()).toContain('Učesnici zadatka');expect(text()).toContain('Bojana');
@@ -185,13 +216,24 @@ it('entry becomes reachable only after authoritative group context and routes ex
  entry=true;await render();await tap('Grupni razgovor · 1 nepročitano');expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]/grupa',params:{id:ID}});
 });
 it('entry hides unsupported group and discards late availability after account transition',async()=>{
- entry=true;const gate=deferred<unknown>();mockService.context.mockReturnValueOnce(gate.promise).mockResolvedValue(ok({...context(),group:null,available:false}));await render();expect(text()).toBe('null');
+ entry=true;const gate=deferred<unknown>();mockService.context.mockReturnValueOnce(gate.promise).mockResolvedValue(ok({...context(),group:null,available:false}));await render();expect(text()).toContain('Učitavamo učesnike…');
  // The absence now explains itself, so the new account reads why there is no group rather than a
  // blank. What this test is about is unchanged: the late answer for the old account is discarded,
  // no entry appears, and nothing navigates.
  await act(async()=>{mockSession={user:{id:B},accountRevision:2};tree!.update(page());gate.resolve(ok(context()));});
  expect(text()).toBe('Grupni razgovor se otvara kad su za ovaj zadatak izabrane najmanje dve osobe.');
  expect(mockPush).not.toHaveBeenCalled();
+});
+it('a failed roster read has a retry which restores only the authorized group',async()=>{
+ entry=true;mockService.context.mockResolvedValueOnce(unknown);await render();
+ expect(text()).toContain('Učesnici trenutno nisu učitani.');
+ expect(tree!.root.findAllByProps({label:'Grupni razgovor'})).toHaveLength(0);
+ await tap('Ponovo učitaj učesnike');
+ expect(text()).toContain('Bojana');
+ expect(text()).not.toContain('Učesnici trenutno nisu učitani.');
+ await tap('Grupni razgovor · 1 nepročitano');
+ expect(mockPush).toHaveBeenCalledWith({pathname:'/dogovor/[id]/grupa',params:{id:ID}});
+ expect(mockService.send).not.toHaveBeenCalled();
 });
 it('selects only an actually visible group message and preserves the read-only support exit',async()=>{
  mockService.context.mockResolvedValue(ok({...context(),group:{...context().group,canSend:false,terminal:true}}));await render();

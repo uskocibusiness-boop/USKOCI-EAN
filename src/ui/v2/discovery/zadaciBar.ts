@@ -5,12 +5,12 @@ import { sys } from '../../system/tokens';
 /**
  * The navigator owns one bar and its measured height. Discovery keeps it visible
  * during map/list browsing and reserves its space below previews and list content.
- * Focused routes can hide navigation without resizing the inner tab controls.
+ * A selected map pin can hide navigation without resizing the inner tab controls.
  *
  * The layout (`app/(app)/_layout`) owns the bar, so it owns the one value that moves it (`hidden`: 0 the bar is on show, 1 it is away) and
  * says how tall it is (`height`, its own height and the margin under it, which is the system inset or 12). It hands both to the screen
- * through this context. ZadaciNavigationBar moves a separate host; zadaciBarStyle keeps the inner geometry static. The screen drives the value from the
- * list's height (`useZadaciBarMotion`). Without a layout (a gallery, a test) there is no context, and the screen draws and does as it did
+ * through this context. ZadaciNavigationBar moves a separate host; zadaciBarStyle keeps the inner geometry static. The screen
+ * keeps the bar shown at all three list detents, and hides it during a selected-pin preview (`useZadaciBarMotion`). Without a layout (a gallery, a test) there is no context, and the screen draws and does as it did
  * without a bar: nothing is reserved and nothing moves.
  */
 export type ZadaciBar = { hidden: Animated.Value; height: number;

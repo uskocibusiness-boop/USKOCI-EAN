@@ -20,6 +20,8 @@ export type ScreenProps = {
   keyboardAvoiding?: boolean;
   children: ReactNode;
   testID?: string;
+  /** A recessed canvas makes individual white cards legible without changing other screens. */
+  background?: 'ground' | 'wash';
   /** Only in an exception. The measure of a screen is its edge, its top and its gap, and they are not this. */
   contentStyle?: StyleProp<ViewStyle>;
   /** For `useChromeTitleOnScroll`: the bar says the name once the large title has scrolled away. */
@@ -49,7 +51,7 @@ const EDGES: Record<ScreenKind, readonly Edge[]> = {
  * `FlowFooter`. With a foot the keyboard raises it (a `flow` does this by default, see `keyboardAvoiding`); the safe area
  * below is the screen's own, so the foot needs no `edge` of its own.
  */
-export function Screen({ kind, header, footer, scroll = true, keyboardAvoiding, children, testID, contentStyle, onScroll, onViewportLayout, refreshControl }: ScreenProps) {
+export function Screen({ kind, header, footer, scroll = true, keyboardAvoiding, children, testID, background = 'ground', contentStyle, onScroll, onViewportLayout, refreshControl }: ScreenProps) {
   const lifted = keyboardAvoiding ?? kind === 'flow';
   const content = [s.content, footer ? s.contentAboveFoot : s.contentToEnd, contentStyle];
   const body = scroll
@@ -60,7 +62,7 @@ export function Screen({ kind, header, footer, scroll = true, keyboardAvoiding, 
     {body}
     {footer ? <View style={s.footer}>{footer}</View> : null}
   </>;
-  return <SafeAreaView testID={testID} edges={EDGES[kind]} style={s.screen}>
+  return <SafeAreaView testID={testID} edges={EDGES[kind]} style={[s.screen, { backgroundColor: sys.color[background] }]}>
     {header}
     {lifted ? <KeyboardAvoidingView style={s.fill} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>{stage}</KeyboardAvoidingView>
       : <View style={s.fill}>{stage}</View>}

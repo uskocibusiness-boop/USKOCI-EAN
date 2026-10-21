@@ -23,14 +23,16 @@ jest.mock('../../store/sesija',()=>({useSesija:()=>({user:{id:mockAccount},accou
 jest.mock('../supabaseClient',()=>({supabaseKlijent:jest.fn()}));
 jest.mock('../../ui/profile/useAccountName',()=>({useAccountName:()=>mockAccountName}));
 jest.mock('../workerAiClientService',()=>({get workerAiClientService(){return mockApi;},
+ WORKER_AI_READ_TRANSPORT_UNAVAILABLE:'WORKER_AI_READ_TRANSPORT_UNAVAILABLE',
  explicitWorkerModes:jest.requireActual('../workerAiClientService').explicitWorkerModes,
  workerExplicitModeReviewEnabled:()=>false}));
 jest.mock('../workerAiTurnIntentJournal',()=>({get workerAiTurnIntentJournal(){return mockJournal;}}));
 jest.mock('../../features/voice/useHoldToTalk',()=>({useHoldToTalk:(options:unknown)=>mockVoiceHook(options)}));
 jest.mock('../../ui/aiFirst/VoiceComposer',()=>({VoiceComposer:'VoiceComposer'}));
-jest.mock('../../ui/aiFirst/AiConversationShell',()=>({AiConversationShell:({actions,status,children,newConversation,...props}:any)=>{
+jest.mock('../../ui/aiFirst/AiConversationShell',()=>({AiConversationShell:({actions,status,children,newConversation,exitAction,...props}:any)=>{
  const React=require('react');return React.createElement('Shell',props,
-  newConversation?React.createElement('NewConversation',{label:'Novi razgovor',...newConversation}):null,status,actions,children);
+  newConversation?React.createElement('NewConversation',{label:'Novi razgovor',...newConversation}):null,
+  props.pending&&props.canSend?React.createElement('Action',{label:'Pošalji ponovo',onPress:props.onSend}):null,status,actions,exitAction,children);
 }}));
 jest.mock('../../ui/workerProfile/WorkerProfilePresentation',()=>({WorkerProfileFrame:(props:any)=>require('react').createElement('Frame',props,props.children,props.footer),WorkerProfileStatus:'Status'}));
 jest.mock('../../ui/workerProfile/WorkerAiPresentation',()=>({WorkerAiActivation:'Activation',WorkerAiCard:'Card',WorkerAiReviewDetails:'Review',
@@ -78,7 +80,7 @@ it('a new empty interview starts with the invitation instead of an empty profile
  mockApi.read.mockResolvedValue(ok({...snapshot(),candidate:{...candidate(),skills:[]}}));
  await render();
  expect(shell().props.card(false)).toBeNull();
- expect(shell().props.welcome).toBe('Čime se baviš?');
+ expect(shell().props.welcome).toBe('Ćao! Čime se baviš? 😊');
  expect(shell().props.canEdit).toBe(true);
  expect(await correctionDisabled()).toBe(false);
  expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.prepare).not.toHaveBeenCalled();
@@ -102,6 +104,33 @@ it('does not label a newly opened profile conversation as an older draft',async(
  await render();
  expect(shell().props.card(false).props.resumed).toBe(false);
  expect(mockApi.send).not.toHaveBeenCalled();
+});
+it('keeps a same-account last-good worker interview visible but read-only after a proved offline refresh',async()=>{
+ await render();
+ await act(async()=>shell().props.onChange('Dodajem alat.'));
+ expect(shell().props.canSend).toBe(true);
+ mockApi.read.mockResolvedValueOnce({ok:false,kod:'WORKER_AI_READ_TRANSPORT_UNAVAILABLE',poruka:'Veza je prekinuta.'});
+ await act(async()=>{for(const listener of [...mockListeners])listener('background');});
+ await act(async()=>{for(const listener of [...mockListeners])listener('active');});
+ expect(shell().props.value).toBe('Dodajem alat.');
+ expect(shell().props.canEdit).toBe(false);expect(shell().props.canSend).toBe(false);
+ expect(visibleText()).toContain('Prikazan je poslednji učitan razgovor.');
+ await act(async()=>shell().props.onSend());expect(mockApi.send).not.toHaveBeenCalled();
+ mockApi.read.mockResolvedValueOnce(ok(snapshot()));
+ await click('Proveri razgovor');
+ expect(shell().props.canEdit).toBe(true);expect(shell().props.canSend).toBe(true);
+});
+it('allows only one manual conversation read while the previous check is loading',async()=>{
+ mockApi.read.mockResolvedValue(ok(snapshot(turn('PROCESSING'))));
+ await render();
+ const reading=deferred();mockApi.read.mockReturnValueOnce(reading.promise);
+ await click('Proveri razgovor');
+ expect(mockApi.read).toHaveBeenCalledTimes(2);
+ expect(action('Proveri razgovor').props.disabled).toBe(true);
+ await act(async()=>{action('Proveri razgovor').props.onPress();});
+ expect(mockApi.read).toHaveBeenCalledTimes(2);
+ await act(async()=>{reading.resolve(ok(snapshot(turn('PROCESSING'))));});
+ expect(action('Proveri razgovor').props.disabled).toBe(false);
 });
 it.each(['current','older revision','foreign owner','foreign conversation','foreign profile','expired','stale'])(
  'live understanding accepts only the current owned review: %s',async condition=>{
@@ -439,6 +468,91 @@ it('explicit abandon clears dispatched journal only after exact canonical parent
  await click('Novi razgovor');await answer('confirm-sheet-confirm');expect(mockApi.abandon).toHaveBeenCalledTimes(1);expect(mockApi.abandon).toHaveBeenCalledWith(C);expect(mockJournal.clear).toHaveBeenCalledWith(intent());
  expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/profil/razgovor',params:{entryKey:expect.stringMatching(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i)}});expect(mockApi.send).not.toHaveBeenCalled();
 });
+it.each(['lost receipt','rejected promise'])('new worker conversation waits for an exact ABANDONED readback after %s',async outcome=>{
+ mockApi.abandon.mockImplementation(async()=>{
+  mockApi.read.mockResolvedValue(ok({...snapshot(),status:'ABANDONED'}));
+  if(outcome==='rejected promise')throw new Error('transport closed');
+  return {ok:false,kod:'NETWORK',poruka:'Odgovor nije stigao.'};
+ });
+ await render();act(()=>shell().props.onChange('Neposlata dopuna'));
+ await click('Novi razgovor');
+ expect(tree.root.findByType(ConfirmSheet).props.message).toContain('Neposlati tekst neće biti sačuvan.');
+ await answer('confirm-sheet-confirm');
+ expect(mockApi.abandon).toHaveBeenCalledTimes(1);expect(mockApi.abandon).toHaveBeenCalledWith(C);
+ expect(mockApi.read).toHaveBeenCalledTimes(2);
+ expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/profil/razgovor',params:{entryKey:expect.stringMatching(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i)}});
+ expect(mockApi.open).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+});
+it('new worker conversation keeps the unsent text and blocks a second abandon when readback is still OPEN',async()=>{
+ mockApi.abandon.mockResolvedValue({ok:false,kod:'NETWORK',poruka:'Odgovor nije stigao.'});
+ await render();act(()=>shell().props.onChange('Ne gubi ovaj tekst'));
+ await click('Novi razgovor');await answer('confirm-sheet-confirm');
+ expect(mockApi.abandon).toHaveBeenCalledTimes(1);expect(mockApi.read).toHaveBeenCalledTimes(2);
+ expect(mockRouter.replace).not.toHaveBeenCalled();expect(shell().props.value).toBe('Ne gubi ovaj tekst');
+ expect(shell().props.canSend).toBe(false);expect(action('Proveri razgovor')).toBeDefined();
+ await click('Novi razgovor');expect(mockApi.abandon).toHaveBeenCalledTimes(1);
+});
+it('new worker conversation ignores a terminal readback for a different conversation',async()=>{
+ mockApi.abandon.mockResolvedValue({ok:false,kod:'NETWORK',poruka:'Odgovor nije stigao.'});
+ mockApi.read.mockResolvedValueOnce(ok(snapshot())).mockResolvedValueOnce(ok({...snapshot(),conversationId:B,status:'ABANDONED'}));
+ await render();act(()=>shell().props.onChange('Sačuvaj ovaj unos'));
+ await click('Novi razgovor');await answer('confirm-sheet-confirm');
+ expect(mockApi.abandon).toHaveBeenCalledTimes(1);expect(mockRouter.replace).not.toHaveBeenCalled();
+ expect(shell().props.value).toBe('Sačuvaj ovaj unos');expect(action('Proveri razgovor')).toBeDefined();
+});
+it('offers a separate named worker draft exit and keeps the typed text when confirmation is cancelled',async()=>{
+ await render();act(()=>shell().props.onChange('Neposlata dopuna'));
+ expect(action('Napusti razgovor').props.kind).toBe('destructive');
+ await click('Napusti razgovor');
+ expect(tree.root.findByType(ConfirmSheet).props).toMatchObject({title:'Napustiti razgovor?',
+  cancelLabel:'Nastavi razgovor',confirmLabel:'Napusti razgovor',tone:'danger'});
+ expect(tree.root.findByType(ConfirmSheet).props.message).toContain('ne brišu trajno');
+ await answer('confirm-sheet-cancel');
+ expect(mockApi.abandon).not.toHaveBeenCalled();expect(mockRouter.replace).not.toHaveBeenCalled();
+ expect(shell().props.value).toBe('Neposlata dopuna');
+});
+it.each(['accepted receipt','lost receipt'])('worker draft exit waits for ABANDONED readback after %s',async receipt=>{
+ mockApi.abandon.mockImplementation(async()=>{
+  mockApi.read.mockResolvedValue(ok({...snapshot(),status:'ABANDONED'}));
+  return receipt==='accepted receipt'?ok({...snapshot(),status:'ABANDONED'}):{ok:false,kod:'NETWORK',poruka:'Odgovor nije stigao.'};
+ });
+ await render();await click('Napusti razgovor');await answer('confirm-sheet-confirm');
+ expect(mockApi.abandon).toHaveBeenCalledTimes(1);expect(mockApi.abandon).toHaveBeenCalledWith(C);
+ expect(mockApi.read).toHaveBeenCalledTimes(2);
+ expect(mockRouter.replace).toHaveBeenCalledWith('/profil/radnik');
+ expect(mockApi.open).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+});
+it.each(['ABANDONED','OPEN'])('rejected worker draft exit reconciles exact conversation with %s readback',async status=>{
+ mockApi.abandon.mockImplementation(async()=>{
+  mockApi.read.mockResolvedValue(ok({...snapshot(),status}));
+  throw new Error('transport closed after command');
+ });
+ await render();act(()=>shell().props.onChange('Sačuvaj neposlatu dopunu'));
+ await click('Napusti razgovor');await answer('confirm-sheet-confirm');
+ expect(mockApi.abandon).toHaveBeenCalledTimes(1);expect(mockApi.abandon).toHaveBeenCalledWith(C);
+ expect(mockApi.read).toHaveBeenCalledTimes(2);
+ if(status==='ABANDONED'){
+  expect(mockRouter.replace).toHaveBeenCalledWith('/profil/radnik');
+ }else{
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(shell().props.value).toBe('Sačuvaj neposlatu dopunu');expect(shell().props.canSend).toBe(false);
+  await click('Napusti razgovor');expect(mockApi.abandon).toHaveBeenCalledTimes(1);
+ }
+});
+it.each(['accepted receipt','lost receipt'])('unconfirmed worker draft exit after %s and OPEN readback keeps typed text',async receipt=>{
+ mockApi.abandon.mockResolvedValue(receipt==='accepted receipt'?ok({...snapshot(),status:'ABANDONED'}):{ok:false,kod:'NETWORK',poruka:'Odgovor nije stigao.'});
+ await render();act(()=>shell().props.onChange('Ne gubi ovaj tekst'));
+ await click('Napusti razgovor');await answer('confirm-sheet-confirm');
+ expect(mockApi.abandon).toHaveBeenCalledTimes(1);expect(mockRouter.replace).not.toHaveBeenCalled();
+ expect(shell().props.value).toBe('Ne gubi ovaj tekst');expect(shell().props.canSend).toBe(false);
+ expect(action('Proveri razgovor')).toBeDefined();
+ await click('Napusti razgovor');expect(mockApi.abandon).toHaveBeenCalledTimes(1);
+});
+it('unresolved worker turn cannot use the draft exit',async()=>{
+ mockApi.read.mockResolvedValue(ok(snapshot(turn('PROCESSING'))));await render();
+ expect(action('Napusti razgovor').props.disabled).toBe(true);
+ await click('Napusti razgovor');expect(sheets()).toHaveLength(0);expect(mockApi.abandon).not.toHaveBeenCalled();
+});
 it.each(['COMPLETED','ABANDONED'])('starts a fresh route from a confirmed %s conversation without abandoning or sending again',async status=>{
  mockApi.read.mockResolvedValue(ok({...snapshot(),status}));
  await render();await click('Novi razgovor');await answer('confirm-sheet-confirm');
@@ -536,7 +650,7 @@ it('P5 worker review: one reachable card action prepares the existing review, ne
   expect(card.props.reviewInFooter).toBeUndefined(); expect(shell().props.footerAction).toBeUndefined();
   expect(mockApi.prepare).not.toHaveBeenCalled(); expect(mockApi.save).not.toHaveBeenCalled();
   await act(async () => card.props.review());
-  expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, true); expect(mockApi.save).not.toHaveBeenCalled();
+  expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, false); expect(mockApi.save).not.toHaveBeenCalled();
 });
 it('P5 worker review: no empty-profile call to action and no review during an unresolved turn', async () => {
   mockApi.read.mockResolvedValue(ok({ ...snapshot(), candidate: { ...candidate(), skills: [] } }));

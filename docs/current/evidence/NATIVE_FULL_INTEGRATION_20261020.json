@@ -1,0 +1,1565 @@
+{
+  "observedAt": "2026-10-20T17:50:20.888903+00:00",
+  "baseHead": "70bc79f250b33ae706a068579c3527dfbf297792",
+  "scope": "Native source integration in progress; no new build or live backend mutation",
+  "figma": {
+    "fileKey": "nZwxDeRClrrecngX09bimy",
+    "pages": 18,
+    "nodesRead": 12
+  },
+  "productSheetConsumers": [
+    {
+      "file": "src/ui/calendar/AvailabilityForm.tsx",
+      "renderSites": 3
+    },
+    {
+      "file": "src/ui/calendar/CalendarControls.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/calendar/LooseTerms.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/groups/GroupConversationPresentation.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/home/IntakeResume.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/legal/LegalDocuments.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/location/LocationControls.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/media/PhotoAttachSheet.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/support/SupportContextEntry.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/support/SupportDetailScreen.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/support/SupportNewScreen.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/system/ActionSheet.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/system/ConfirmSheet.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/system/InfoButton.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/system/PublicProfileSheet.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/v2/ApplicationComposerPresentation.tsx",
+      "renderSites": 2
+    },
+    {
+      "file": "src/ui/v2/ApplicationSelectionPresentation.tsx",
+      "renderSites": 2
+    },
+    {
+      "file": "src/ui/v2/MarketplacePresentation.tsx",
+      "renderSites": 1
+    }
+  ],
+  "nativeModalHosts": [
+    {
+      "file": "src/ui/agreements/AgreementCompletionReview.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/closure/ClosureDialog.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/location/LocationMapPreview.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/location/LocationPointEditor.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/media/PhotoViewer.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/permissions/PermissionAskHost.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/product/ProductSheet.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/system/ConfirmSheet.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/v2/DogovorenoMoment.tsx",
+      "renderSites": 1
+    },
+    {
+      "file": "src/ui/v2/discovery/SearchSheet.tsx",
+      "renderSites": 1
+    }
+  ],
+  "factArtKinds": [
+    "home",
+    "pin",
+    "calendar",
+    "clock",
+    "users",
+    "person",
+    "money",
+    "remote",
+    "map",
+    "tasks",
+    "agreements",
+    "offers",
+    "chat",
+    "bell",
+    "phone",
+    "star",
+    "check",
+    "info",
+    "shield",
+    "lock",
+    "eye",
+    "document",
+    "download",
+    "photo",
+    "support",
+    "vehicle",
+    "tool",
+    "alert",
+    "publish",
+    "send",
+    "applications"
+  ],
+  "robot": {
+    "path": "assets/ai/uskoci-assistant.png",
+    "sha256": "b04bec024cc55b9f7c951cbc9de252e2df21f3b35619ad8e09a08d995b861cf5",
+    "sourceComponent": "src/ui/aiFirst/AiAssistantArt.tsx",
+    "visualInspection": "Existing local PNG inspected; motion not newly tested"
+  },
+  "countLimits": "Source occurrence counts, not count of all modals or all flows. Tests and designLab excluded. OS dialogs and wrapper usage may add separate cases.",
+  "latestDirective": "Centered non-map modals; preserve map mechanics; new natural-color illustration family; remove radar; preserve robot; integrate all required screens/states before next install",
+  "runtimeChanged": true,
+  "generatedNewIcons": true,
+  "newBuildOrInstall": false,
+  "serverReadOrChanged": true,
+  "figmaChanged": false,
+  "preparationObservedAt": "2026-10-20T15:52:15.170248+00:00",
+  "changes": [
+    {
+      "id": "INT-02-MODALS",
+      "status": "SOURCE_IMPLEMENTED_TARGETED_TESTS_PASS_NATIVE_PENDING",
+      "files": [
+        "src/ui/product/ProductSheet.tsx",
+        "src/ui/v2/discovery/SearchSheet.tsx",
+        "src/ui/agreements/AgreementCompletionReview.tsx"
+      ],
+      "change": "Centrirani kratki aplikacioni dijalozi; tastatura, dirty/busy i single-close zaštite; fullscreen pretraga; postojeći map paneli i njihove konstante sačuvani."
+    },
+    {
+      "id": "INT-02-ART",
+      "status": "SOURCE_IMPLEMENTED_TARGETED_TESTS_PASS_NATIVE_PENDING",
+      "files": [
+        "src/ui/system/materialSubjects.ts",
+        "assets/illustrations/natural-v1/manifest.json",
+        "src/ui/home/HomePresentation.tsx"
+      ],
+      "change": "20 novih originalnih WebP ilustracija, prirodne boje, avion za prijave; radar uklonjen sa Početne. Robot zadržan. Kontrolne i male statusne ikone ostaju vektorske."
+    },
+    {
+      "id": "INT-03-PROFILE",
+      "status": "SOURCE_IMPLEMENTED_TARGETED_TESTS_PASS_NATIVE_PENDING",
+      "files": [
+        "src/ui/profile/ProfileHubPresentation.tsx",
+        "src/ui/settings/AccountSettingsPresentation.tsx",
+        "src/app/(app)/profil/podesavanja.tsx"
+      ],
+      "change": "Profil naknadno ispravljen prema stvarnom Figma čvoru 2:126: wash platno, identitet u beloj kartici, javni profil u kartici i odvojene kartice odredišta. Stvarni podaci i postojeća navigaciona zaštita sačuvani."
+    },
+    {
+      "id": "INT-04-DISCOVERY",
+      "status": "SOURCE_IMPLEMENTED_TARGETED_TESTS_PASS_NATIVE_PENDING",
+      "files": [
+        "src/data/discoveryWorkMode.ts",
+        "src/ui/v2/discovery/DiscoverySearchBar.tsx",
+        "src/ui/v2/discovery/DiscoveryV1Screen.tsx",
+        "src/ui/v2/DiscoveryPresentation.tsx"
+      ],
+      "change": "Zasebna pretraga i filteri, podrazumevano zadaci na lokaciji, remote u odvojenom režimu; reset ne vraća mešanje; kamera i gestovi zadržani."
+    },
+    {
+      "id": "INT-05-TERMS",
+      "status": "SOURCE_IMPLEMENTED_TARGETED_TESTS_PASS_NATIVE_PENDING",
+      "files": [
+        "src/ui/v2/AgreementPresentation.tsx"
+      ],
+      "change": "Prihvaćeni iznos pojedinačne saradnje i označeni redovi mesto/termin/ljudi; kompaktan kontekst poruka ostaje kompaktan; nepoznata cena nije nula."
+    },
+    {
+      "id": "INT-06-ACTIVATION",
+      "status": "SOURCE_IMPLEMENTED_TARGETED_TESTS_PASS_NATIVE_PENDING",
+      "files": [
+        "src/app/(app)/profil/radnik.tsx",
+        "src/app/(app)/profil/razgovor.tsx"
+      ],
+      "change": "Prvi pregled podrazumeva čuvanje bez aktivacije. Sa sačuvanog nacrta postoji pregled za aktivaciju, isti postojeći RPC i eksplicitna potvrda. Očuvana neposlata poruka, prethodno izabran režim, revision/idempotency i potvrđen readback."
+    },
+    {
+      "id": "INT-05-GROUP-CONTEXT",
+      "status": "SOURCE_IMPLEMENTED_TARGETED_TESTS_PASS_NATIVE_PENDING",
+      "files": [
+        "src/ui/agreements/AgreementOverview.tsx",
+        "src/ui/groups/GroupConversationEntry.tsx"
+      ],
+      "change": "Učesnici zadatka pre privatne saradnje; loading/error/retry umesto praznog mesta. Cena i status ostaju pojedinačni, za obe uloge."
+    },
+    {
+      "id": "INT-06-EDIT-CONSEQUENCE",
+      "status": "SOURCE_IMPLEMENTED_TARGETED_TESTS_PASS_NATIVE_PENDING",
+      "files": [
+        "src/app/(app)/pregled-zadatka.tsx",
+        "src/app/(app)/potrebe/[id]/pregled.tsx"
+      ],
+      "change": "Završni pregled objašnjava privremeno povlačenje zadatka dok se izmene proveravaju. Neuspeh ostaje privatan nacrt; bez lažnog uspeha ili obećanja atomarne zamene."
+    },
+    {
+      "id": "INT-07-AUTH-LAYOUT",
+      "status": "SOURCE_IMPLEMENTED_TARGETED_TESTS_PASS_NATIVE_PENDING",
+      "files": [
+        "src/ui/auth/AuthSheet.tsx"
+      ],
+      "change": "Duga forma prijave/registracije koristi ceo ekran, kraća stanja centrirani prikaz. Očuvani auth, Back, unos, keyboard reveal i recovery."
+    }
+  ],
+  "remaining": [
+    {
+      "id": "OPEN-GROUP-MEDIA",
+      "priority": "P0",
+      "need": "Grupne slike/glas: server-owned upload, storage pristup po članstvu/sekvenci i receipt; postojeći grupni servis tekstualan. Nije implementirano ni primenjeno ovim krugom."
+    },
+    {
+      "id": "OPEN-GROUP-TERMS",
+      "priority": "P0",
+      "need": "Usaglasiti odobreni fleksibilni termin sa postojećim opštim bilateralnim izmenama; dokazati saglasnost potrebnih učesnika, bez niza nezavisnih RPC-a koji glume atomarnost."
+    },
+    {
+      "id": "OPEN-REGIONS-REPUBLISH",
+      "priority": "P0",
+      "need": "DEV potvrđuje grad/radijus i izmenu istog zadatka preko DRAFT. Regionalni Save/read/matching/dispatch i nova atomarna replacement objava sa istorijom nisu implementirani."
+    },
+    {
+      "id": "OPEN-FLOW-COVERAGE",
+      "priority": "P0",
+      "need": "Svih 65 specifikacionih površina sada ima precizne native vlasnike. 786 Figma reakcija ostaje owner mapping; svaka radnja i svih 11 Master scenarija još nisu potvrđeni u novom APK-u."
+    },
+    {
+      "id": "OPEN-NATIVE-QA",
+      "priority": "P0",
+      "need": "Posle integracije jedinstven APK, stvarna tastatura/Back/gestovi/veći font, dva naloga, offline/unknown recovery i push ciljevi. Nijedna nova instalacija u ovom krugu."
+    },
+    {
+      "id": "OPEN-AI-ADMISSION-DEADLINE",
+      "priority": "P0",
+      "need": "AI promena roka za prijave nema završen ugovor; rok izvršenja nije rok za prijave. Ne vraćati paralelni ručni editor."
+    },
+    {
+      "id": "OPEN-RELEASE-OPERATIONS",
+      "priority": "P0_RELEASE",
+      "need": "Stvarni operater, važeći pravni tekstovi/politike i uslovi javnog izdanja zahtevaju potvrđene podatke. Tehnički testovi ih ne potvrđuju."
+    }
+  ],
+  "checks": {
+    "method": "Latest result per suite across full regression and targeted repairs; not one full run on a frozen tree.",
+    "runs": [
+      {
+        "name": "regression",
+        "file": "native-integration-regression.json",
+        "sha256": "7c00078e6e8c1b96dce6329dc757e0379514a61edcf7088ab76f2de524881ff2",
+        "suites": 622,
+        "passed": 13608,
+        "failed": 60,
+        "pending": 9
+      },
+      {
+        "name": "followup",
+        "file": "native-integration-followup.json",
+        "sha256": "2af5f6c444ce521fe48b0ae2b23553a8b68af830e59fb96001c8da92700656a0",
+        "suites": 26,
+        "passed": 822,
+        "failed": 17,
+        "pending": 0
+      },
+      {
+        "name": "final-recheck",
+        "file": "native-integration-final-recheck.json",
+        "sha256": "089f6aebe307118e83aa304c119204f4d1d6e6ee609875eece7fdb6b4c362405",
+        "suites": 6,
+        "passed": 453,
+        "failed": 1,
+        "pending": 0
+      },
+      {
+        "name": "closeout",
+        "file": "native-integration-closeout.json",
+        "sha256": "e2207a1d0657516823741a55b4f4e7bcd1718401dcb62a0260fa0108f1f7e87f",
+        "suites": 4,
+        "passed": 187,
+        "failed": 1,
+        "pending": 0
+      },
+      {
+        "name": "settings-group",
+        "file": "native-integration-settings-group.json",
+        "sha256": "c8aae6814ae4770fd3b737209dc2fc28e28931ffa07dc6c92d61854bc5c98d89",
+        "suites": 2,
+        "passed": 43,
+        "failed": 0,
+        "pending": 0
+      },
+      {
+        "name": "group-scope",
+        "file": "native-integration-group-scope.json",
+        "sha256": "f7ff3594cfde2335b2eb6dad0a0b74129e81f17197afc9d6c0f188c36c7a9ce5",
+        "suites": 1,
+        "passed": 95,
+        "failed": 2,
+        "pending": 0
+      },
+      {
+        "name": "group-scope-final",
+        "file": "native-integration-group-scope-final.json",
+        "sha256": "3c9b73b8475c0edcc6f2fb24e1516067c7aff771ddfcbf88f1533cd57d0b70b1",
+        "suites": 1,
+        "passed": 97,
+        "failed": 0,
+        "pending": 0
+      },
+      {
+        "name": "dialog-close",
+        "file": "native-integration-dialog-close.json",
+        "sha256": "e8d0a699c583465418f2eef0eecb2ea402e3400a0f0fe3f0df5bcfba825142d3",
+        "suites": 9,
+        "passed": 368,
+        "failed": 0,
+        "pending": 0
+      },
+      {
+        "name": "edit-review",
+        "file": "native-integration-edit-review.json",
+        "sha256": "1974730f9961f7bbbe3f828e632a318d20b0a0b7a25d24bdf7704d563dfa1d84",
+        "suites": 3,
+        "passed": 193,
+        "failed": 0,
+        "pending": 0
+      },
+      {
+        "name": "auth-layout",
+        "file": "native-integration-auth-layout.json",
+        "sha256": "889b332aed29e006bbe9645dc541609ebfd2bc33379b6029cc66fbe8c755a7e5",
+        "suites": 5,
+        "passed": 155,
+        "failed": 1,
+        "pending": 0
+      },
+      {
+        "name": "auth-recheck",
+        "file": "native-integration-auth-recheck.json",
+        "sha256": "331b855254644ae70063abc1c9cfa5973e9da2ee25cf42dddcda8f1a7ce17486",
+        "suites": 1,
+        "passed": 51,
+        "failed": 0,
+        "pending": 0
+      }
+    ],
+    "suiteCount": 623,
+    "assertions": {
+      "passed": 14015,
+      "pending": 9
+    },
+    "suitesWithFailedAssertions": 0,
+    "nativeDevice": "NOT_RUN_THIS_CANDIDATE",
+    "typecheck": {
+      "command": "tsc --noEmit",
+      "exitCode": 0,
+      "log": "native-integration-typecheck-final.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "visualLimit": "Figma settings/profile and all 20 original assets inspected. RN-web fonts fixed. 390×844 short dialog and 320×568 long dialog geometry checked: long content scrolls, footer remains reachable. This is not Android keyboard/gesture/performance proof.",
+  "serverReadOnly": true,
+  "serverChanged": false,
+  "mapping": "NATIVE_MAPIRANJE.json",
+  "devRead": "DEV_PROVERA.json",
+  "visualProofs": [
+    {
+      "file": "podesavanja-prikaz.png",
+      "sha256": "e6cf71678322b0ec2ee7d561af057fa73ce90a67d85292331d5ff695647533ba",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "source": "Production React Native presentation rendered with RN-web and explicit demonstration data",
+      "nativeApk": false
+    },
+    {
+      "file": "profil-prikaz.png",
+      "sha256": "dce698a660333570aabb4f5edfe24224e19cc2e0e7c4c61446fddf41827e1d0c",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "source": "Production React Native presentation rendered with RN-web and explicit demonstration data",
+      "nativeApk": false
+    }
+  ],
+  "sourceDiffCheck": {
+    "command": "git diff --check",
+    "exitCode": 0,
+    "at": "2026-10-20T17:54:53.269073+00:00"
+  },
+  "profileVisualCorrection": {
+    "observedAt": "2026-10-20T18:09:55.523939+00:00",
+    "id": "INT-03-PROFILE-FIGMA-CORRECTION",
+    "status": "SOURCE_AND_RN_WEB_VERIFIED_NATIVE_PENDING",
+    "figma": {
+      "fileKey": "nZwxDeRClrrecngX09bimy",
+      "nodeId": "2:126",
+      "url": "https://www.figma.com/design/nZwxDeRClrrecngX09bimy?node-id=2-126",
+      "evidence": "get_design_context with screenshot; actual node visually compared"
+    },
+    "correction": "Prethodni profil bio je otvorena lista i nije verno prenosio Figma kompoziciju. Raniji vizuelni dokaz nije dokaz završene vizuelne integracije.",
+    "transferred": [
+      "Svetla wash pozadina",
+      "Bela kartica identiteta, radius 24",
+      "Ime 26/32, Inter Bold",
+      "Javni profil unutar kartice",
+      "Odvojene navigacione kartice, radius 20, razmak 20",
+      "Namenska meka senka i 15/20 naslovi, 13/18 opisi",
+      "Moj profil, jedan nalog za obe mogućnosti"
+    ],
+    "nativeAdaptations": [
+      "Avatar 88 dp u krugu, postojeće uređivanje fotografije i oznaka kamere.",
+      "Stvarni grad, reputacija i završeni Dogovori ostaju povezani sa postojećim čitačima i akcijama.",
+      "Moji zadaci otvaraju postojeće /potrebe umesto neodređene demonstracione Moje aktivnosti.",
+      "Lični podaci ostaju dostupni kroz Podešavanja, bez paralelnog editora.",
+      "Opis radnog profila pokazuje postojeći stvarni status kada je poznat."
+    ],
+    "tests": {
+      "suites": 8,
+      "passed": 169,
+      "failed": 0,
+      "skipped": 0,
+      "typecheck": "tsc --noEmit, exit 0"
+    },
+    "visualChecks": [
+      "390×844 ready",
+      "320×568 long name + demonstration figures; no horizontal overflow",
+      "320×568 loading",
+      "320×568 error and retry",
+      "320×568 missing identity"
+    ],
+    "visualProofs": [
+      "profil-figma-ispravka.png",
+      "profil-dugo-ime-320.png"
+    ],
+    "limits": [
+      "RN-web presentation harness with marked demonstration data; not native APK evidence.",
+      "Android font scale, TalkBack, native shadow and gestures await the consolidated build.",
+      "This correction covers the own-profile screen, not all Figma screens."
+    ],
+    "build": false,
+    "install": false,
+    "serverChanged": false,
+    "sourceSha256": {
+      "src/ui/profile/ProfileHubPresentation.tsx": "3c6a57a390c1ebf9705af4111ecfabc10a3f4845e9bc82364516117155189f33",
+      "src/ui/system/Screen.tsx": "dda927d3cc255f64bfb43cd0427b88f2be4db270b02c1b500520d4c99c01aabd",
+      "src/ui/system/Avatar.tsx": "b204378e757afac4a2d8352baa2202c9f2a6094e804b8792b1c613b74d4855c3",
+      "src/ui/system/tokens.ts": "9d0f66f02ce8ddf795b45546840b4b5dfd1e3909dcf7c1c485768465310f7c27",
+      "src/ui/v2/V2Action.tsx": "278f1181ac1fd3175c87f22f11f09431c552f4f057f7d957ab2b61e6363a3ab8",
+      "src/data/__tests__/profile-hub.test.tsx": "32f8426cb7359285db22daa3cb4c16e4dde0a66fc47224a177e8f5312745e405",
+      "scripts/proofs/native-ui-integration.preview.tsx": "408d46567e4e3a2000faec5a69505c7316c895d0c0566a1f104fce6d0495d7b4"
+    }
+  },
+  "accountAndActionsReview": {
+    "id": "INT-03-ACCOUNT-AND-COMPACT-ACTIONS",
+    "observedAt": "2026-10-20T18:48:52.766578+00:00",
+    "status": "SOURCE_AND_RN_WEB_VERIFIED_NATIVE_PENDING",
+    "scope": "Follow-up to owner's profile feedback; compact settings/commands, capacity semantics and transfer audit",
+    "sources": [
+      {
+        "path": "src/ui/profile/AccountHeader.tsx",
+        "sha256": "02dbc7d214e148f4455f01e8676bc06d490ee4be40ef3488733ce7970233e39b"
+      },
+      {
+        "path": "src/ui/profile/ProfileHubPresentation.tsx",
+        "sha256": "31ab0c380a435d57faadb8876881fec55de9f4f3ee2d39d9f8e2db9c741c000e"
+      },
+      {
+        "path": "src/ui/settings/AccountSettingsPresentation.tsx",
+        "sha256": "ecfb76b29325cd47cdcb4080f432d8f2ca7767c364a186b513ece73009f06251"
+      },
+      {
+        "path": "src/ui/system/Glyph.tsx",
+        "sha256": "b3fecd17bfc11fbde46e28eafbc6add91fd8081ee614ad836941e71d2b750067"
+      },
+      {
+        "path": "src/ui/system/ScreenChrome.tsx",
+        "sha256": "d137fc4ae9d8302ef06fe92c85b3cea004a12ff355ef15984a890f35ef53aba1"
+      },
+      {
+        "path": "src/ui/v2/NeedPresentation.tsx",
+        "sha256": "1df9c5f8486c02f6506d2ab8902fa2d2492c98df2bb273fdaa718249de39a5d8"
+      },
+      {
+        "path": "src/ui/v2/detail/TaskDetailSummary.tsx",
+        "sha256": "b247d0df846d511589b727badd6bdb0ffddfb2a14433bb14e170ca8a6f7d75f8"
+      },
+      {
+        "path": "src/ui/v2/OwnTaskCard.tsx",
+        "sha256": "301aa69b56c7baa1a9b510d21432342d3450e67d22d55e57b07c141543c2419e"
+      },
+      {
+        "path": "scripts/proofs/native-ui-integration.preview.tsx",
+        "sha256": "dcaa7e3c7f8dfe75ad9e0873e7ec7c6188e3536fe35c5f9d117204d3204c7a4f"
+      },
+      {
+        "path": "src/data/__tests__/profile-hub.test.tsx",
+        "sha256": "42e0ef4c2a006d41d5eb60b658e4e975075e45a92ded5a0d190e64a61ac6f4c6"
+      },
+      {
+        "path": "src/data/__tests__/own-task-card.test.tsx",
+        "sha256": "0a73c3a4f55b45b2689d0e821dcafc34b7c9025940b1369bb596296ea20159b8"
+      },
+      {
+        "path": "src/data/__tests__/own-task-draft-visible-actions.test.tsx",
+        "sha256": "dce11ed142c04ed8b44b8e0b8f44928beb63f5a86080a2fa943529e2117dfb02"
+      },
+      {
+        "path": "src/data/__tests__/own-task-menu-screen.test.tsx",
+        "sha256": "05119dab990efa2ee171ed13eafcd78dd662a8f7a3e9483e9194d3b882d399aa"
+      }
+    ],
+    "figmaFreshlyRead": [
+      {
+        "node": "2:144",
+        "url": "https://www.figma.com/design/nZwxDeRClrrecngX09bimy?node-id=2-144"
+      },
+      {
+        "node": "25:334",
+        "url": "https://www.figma.com/design/nZwxDeRClrrecngX09bimy?node-id=25-334"
+      },
+      {
+        "node": "2:105",
+        "url": "https://www.figma.com/design/nZwxDeRClrrecngX09bimy?node-id=2-105"
+      },
+      {
+        "node": "2:114",
+        "url": "https://www.figma.com/design/nZwxDeRClrrecngX09bimy?node-id=2-114"
+      },
+      {
+        "node": "2:135",
+        "url": "https://www.figma.com/design/nZwxDeRClrrecngX09bimy?node-id=2-135"
+      },
+      {
+        "node": "6:213",
+        "url": "https://www.figma.com/design/nZwxDeRClrrecngX09bimy?node-id=6-213"
+      }
+    ],
+    "profileReferenceFromPreviousPass": "2:126",
+    "findings": [
+      {
+        "id": "VIS-SETTINGS",
+        "priority": "P1",
+        "status": "SOURCE_AND_RN_WEB_VERIFIED_NATIVE_PENDING",
+        "surface": "SCR-N03",
+        "figmaNode": "2:144",
+        "before": "Podešavanja su zadržavala otvorene redove i široku odjavu; kompozicija nije pratila odobrenu Figmu.",
+        "after": "Tri bele zaobljene grupe na svetloj pozadini, kompaktni redovi i odjava sa simbolom. Osam postojećih destinacija je sačuvano.",
+        "reason": "Brže skeniranje naloga, iskustva i pomoći uz manji vizuelni šum.",
+        "source": [
+          "src/ui/settings/AccountSettingsPresentation.tsx",
+          "src/ui/profile/AccountHeader.tsx"
+        ],
+        "verification": "Settings route/profile hub testovi; vizuelno 390×844 i 320×568. Android još nije proveren."
+      },
+      {
+        "id": "VIS-DRAFT-COMMANDS",
+        "priority": "P1",
+        "status": "SOURCE_AND_RN_WEB_VERIFIED_NATIVE_PENDING",
+        "surface": "SCR-Z07",
+        "before": "Izmena je zauzimala tekstualnu komandu; brisanje nacrta bilo je odvojeno na kraju detalja.",
+        "after": "Dve ikone u zaglavlju, dodirne površine 48×48, jasni accessibility nazivi; kanta otvara postojeću potvrdu.",
+        "reason": "Kompaktne sekundarne komande su dostupne bez skrolovanja; objava ostaje primarna radnja.",
+        "source": [
+          "src/ui/v2/NeedPresentation.tsx",
+          "src/ui/system/ScreenChrome.tsx"
+        ],
+        "verification": "Testirani stvarni route handler, odustajanje, busy, receipt/unknown recovery i zabrana brisanja nepodobnog nacrta. Vizuelno mali ekran."
+      },
+      {
+        "id": "VIS-CAPACITY",
+        "priority": "P1",
+        "status": "SOURCE_AND_RN_WEB_VERIFIED_NATIVE_PENDING",
+        "surface": "SCR-Z08",
+        "before": "Kartica sopstvenog zadatka prikazivala je potreban broj ljudi bez jasnog 0/2; detalj nacrta je prikazivao izbor pre objave.",
+        "after": "Objavljene kartice prikazuju izabrano/potrebno; nacrt samo zahtev. Nepoznata popunjenost ne postaje nula.",
+        "reason": "Broj prijava i broj izabranih izvršilaca imaju različito značenje.",
+        "source": [
+          "src/ui/v2/OwnTaskCard.tsx",
+          "src/ui/v2/detail/TaskDetailSummary.tsx"
+        ],
+        "verification": "Testovi 0/2, 1/2, 2/2, 2/3, 3/3, neispravni podaci, draft i postojeća stanja; RN-web vizuelna provera."
+      },
+      {
+        "id": "OPEN-VIS-WORKER-PROFILE",
+        "priority": "P1",
+        "status": "OPEN_VISUAL",
+        "surface": "SCR-R04",
+        "figmaNode": "6:213",
+        "before": "Sačuvani radni profil ima otvoren horizontalni prikaz identiteta i stare Settings grupe; Figma ima jasne kartice identiteta, načina rada i dostupnosti.",
+        "after": "Preneti Figma kompoziciju na postojeći reader, sa jasnim sačuvanim/aktivnim stanjem i odvojenom aktivacijom.",
+        "reason": "Promena profila naloga nije automatski završila i radni profil.",
+        "source": [
+          "src/ui/workerProfile/WorkerProfileSaved.tsx"
+        ],
+        "verification": "Figma screenshot/context i source pregled; kompletan novi native izgled nije implementiran ovim krugom."
+      },
+      {
+        "id": "OPEN-VIS-MESSAGES",
+        "priority": "P1",
+        "status": "OPEN_VISUAL_AND_FUNCTIONAL",
+        "surface": "SCR-C01",
+        "figmaNode": "2:114",
+        "before": "Inbox koristi stare TimedRow redove. Figma predviđa search i zaobljene kartice. Reader ima paginaciju bez odgovarajućeg search ugovora.",
+        "after": "Preneti kartice uz očuvanje group/private identiteta, nepročitanih i paginacije. Posebno definisati stvarnu pretragu; ne pretraživati samo učitanu stranu kao ceo inbox.",
+        "reason": "Ne sme postojati lep, ali lažno funkcionalan search.",
+        "source": [
+          "src/ui/messages/ConversationInboxPresentation.tsx"
+        ],
+        "verification": "Stvarni Figma screenshot/context i source; nije završen vizuelni prenos niti pretraga."
+      },
+      {
+        "id": "OPEN-VIS-NOTIFICATIONS",
+        "priority": "P1",
+        "status": "OPEN_VISUAL",
+        "surface": "SCR-N01",
+        "figmaNode": "2:135",
+        "before": "Stvarni inbox koristi redove/separatore, dok Figma ima kartice i drugačije grupisanje.",
+        "after": "Preneti hijerarhiju kartica uz postojeća read/unread, swipe i target/recovery pravila. Figma QA blok se ne prenosi u proizvod.",
+        "reason": "Jasan prioritet i tačan cilj su važniji od izgleda demonstracionih podataka.",
+        "source": [
+          "src/ui/notifications/InboxPresentation.tsx"
+        ],
+        "verification": "Figma screenshot/context i source pregled; ne potvrđuje sve push ciljeve."
+      },
+      {
+        "id": "OPEN-VIS-AGREEMENTS",
+        "priority": "P1",
+        "status": "OPEN_VISUAL_LIFECYCLE_REVIEW",
+        "surface": "SCR-D01",
+        "figmaNode": "2:105",
+        "before": "Native ima grupisanje po zadatku, aktivne/istoriju i uloge; Figma prikazuje jednostavniju karticu saradnje.",
+        "after": "Usaglasiti premium kompoziciju sa postojećom bogatijom logikom; pregledati oba ugla, 2/3, zatvorenu potragu, izmene i završetak.",
+        "reason": "Jednostavna demonstraciona kartica nije dokaz da su sve stvarne uloge i stanja preneti.",
+        "source": [
+          "src/ui/v2/AgreementCollectionPresentation.tsx"
+        ],
+        "verification": "Figma screenshot/context i source pregled; završna vizuelna validacija svih stanja ostaje."
+      },
+      {
+        "id": "OPEN-PROFILE-VALUE",
+        "priority": "P2",
+        "status": "MISSING_AGGREGATE_CONTRACT",
+        "surface": "SCR-R01",
+        "before": "MyWorkStats nosi brojače i pouzdanost, ali ne ukupan iznos dogovorenih poslova.",
+        "after": "Ako se uvodi, privatni zbir prihvaćenih uslova po valuti i ulozi, uz definisano postupanje sa otkazima i izmenama. Naziv Vrednost dogovorenih poslova, ne Zarađeno.",
+        "reason": "Budžet oglasa, dogovorena cena i stvarna isplata nisu ista činjenica. Zbir učitane stranice nije ukupan zbir.",
+        "source": [
+          "src/data/workTrustClientService.ts",
+          "supabase/candidates/profile-trust-20261007/candidate.sql"
+        ],
+        "verification": "Pregled lokalnog tipa/SQL kandidata, bez nove live DB provere ili promene."
+      }
+    ],
+    "metrics": {
+      "averageRating": "Existing AccountReputation reader; average + reviewCount; missing/error are not zero",
+      "completed": "Existing ProfileWorkSummary: completed agreements in both roles, not unique tasks",
+      "value": "Not added; authoritative aggregate absent from existing client contract",
+      "previewFigures": "4.8 / 12 reviews / 18 completed are demo-only in scripts/proofs, never route/backend data"
+    },
+    "checks": {
+      "suites": 10,
+      "passed": 299,
+      "failed": 0,
+      "skipped": 0,
+      "testCommand": "jest --runInBand --runTestsByPath (10 suites recorded in log)",
+      "testLog": "account-followup-tests-verified.log",
+      "typecheck": {
+        "command": "tsc --noEmit",
+        "exitCode": 0
+      },
+      "diffCheck": {
+        "command": "git diff --check",
+        "exitCode": 0
+      },
+      "limits": "Targeted tests, not a fresh full regression. Final edits after tests only updated explanatory comments.",
+      "initialFailure": "7 obsolete UI expectations failed in first targeted run; corrected to compact owner-requested layout, lifecycle assertions retained.",
+      "viewports": [
+        "390x844",
+        "320x568"
+      ],
+      "touchTargets": "Draft back/edit/delete 48x48; settings rows min48; no horizontal overflow at320",
+      "native": "Not run; RN-web is a component visual proof only"
+    },
+    "visualProofs": [
+      {
+        "file": "profil-sa-statistikom-390.png",
+        "description": "Moj profil; 390×844; demonstraciona ocena i broj završenih Dogovora",
+        "kind": "RN_WEB_DEMO_ONLY"
+      },
+      {
+        "file": "podesavanja-kompaktno-390.png",
+        "description": "Podešavanja; 390×844; tri grupe i osam stvarnih odredišta",
+        "kind": "RN_WEB_DEMO_ONLY"
+      },
+      {
+        "file": "podesavanja-mali-ekran-320.png",
+        "description": "Podešavanja; 320×568; skrolovanje do pomoći, odjave i naloga",
+        "kind": "RN_WEB_DEMO_ONLY"
+      },
+      {
+        "file": "nacrt-kompaktne-komande-390.png",
+        "description": "Moj nacrt; 390×844; olovka i kanta u zaglavlju",
+        "kind": "RN_WEB_DEMO_ONLY"
+      },
+      {
+        "file": "zadaci-popunjenost-390.png",
+        "description": "Kartice 0/2 i 1/2 sa po osam prijava; treća 2/2 dostupna skrolovanjem",
+        "kind": "RN_WEB_DEMO_ONLY"
+      }
+    ],
+    "coverageLimits": {
+      "identifiedSpecificationSurfaces": 65,
+      "mappedFigmaReactionNodes": 786,
+      "fullMasterScenariosVerifiedOnNewNativeCandidate": 0,
+      "totalMasterScenarios": 11,
+      "fullVisualTransferComplete": false,
+      "note": "Owner mapping is not implementation or verification. Six Figma areas freshly reviewed; prior profile reference reused."
+    },
+    "build": false,
+    "install": false,
+    "push": false,
+    "serverChanged": false,
+    "newLiveBackendRead": false,
+    "figmaChanged": false,
+    "newIconsGenerated": false,
+    "next": [
+      "Finish saved work profile composition with preserved save/activate lifecycle.",
+      "Finish Agreements for requester/worker and capacity/withdrawal/closed-search states.",
+      "Finish messages and notification visuals with valid real commands; separately solve search/group media.",
+      "Review remaining inventory against Figma by actual screen/action/state; preserve map mechanics.",
+      "Close functional contracts and all source regression gates before one final build, then native11-scenario check."
+    ]
+  },
+  "productFlowAudit": {
+    "at": "2026-10-20T19:02:10.853602+00:00",
+    "id": "INT-STATUS-ALL-FLOWS",
+    "scope": "Owner-requested status audit. No runtime changes or live writes.",
+    "sourceHead": "70bc79f250b33ae706a068579c3527dfbf297792",
+    "sourceBranch": "feature/unified-qa-master-20261017",
+    "workingTreeHasExistingChanges": true,
+    "fullTransferComplete": false,
+    "fullVisualConsistencyVerified": false,
+    "report": "PRESEK_SVIH_TOKOVA_20261020.md",
+    "serverEvidence": "DOKAZI_SERVER_READONLY_20261020.json",
+    "sourceEvidence": [
+      {
+        "path": "src/app/(app)/moje-prijave.tsx",
+        "sha256": "0d561fcf0084486bbe5ae9d91379fa3fa73f40a6918bc28fe60b821842b67561",
+        "anchors": [
+          {
+            "line": 100,
+            "text": "token: 0, readRevision: 0, reading: false, editRevision: 0, editingLoading: false, tab: 'all' as ApplicationsTab, hardReload: false,"
+          },
+          {
+            "line": 107,
+            "text": "if (ownApplicationsPagedBuilt() && named) { session.tab = 'all'; setLandingActive(true); render(v => v + 1); } else setLandingActive(false);"
+          },
+          {
+            "line": 174,
+            "text": "if (session.tab !== 'all' && session.tab !== applicationSection(row)) session.tab = 'all';"
+          }
+        ]
+      },
+      {
+        "path": "src/ui/v2/MyApplicationsPresentation.tsx",
+        "sha256": "bd43ea628b3f67edcd8c56821ef5dc1fcb2d6ee67e2dabe96e3b1cfbf184f971",
+        "anchors": [
+          {
+            "line": 53,
+            "text": "const TABS: readonly { key: ApplicationsTab; label: string }[] = [{ key: 'all', label: 'Sve' }, { key: 'attention', label: 'Čeka te' },"
+          },
+          {
+            "line": 54,
+            "text": "{ key: 'active', label: 'Aktivne' }, { key: 'finished', label: 'Završene' }];"
+          },
+          {
+            "line": 67,
+            "text": "/** What an empty set says. \"Čeka te\" keeps its meaning: what waits for my decision (a changed task, a Dogovor to open). */"
+          },
+          {
+            "line": 83,
+            "text": "* worker's side of the shared `PrijavaCard`), 12 apart. The legacy whole-list read draws groups. A paged read keeps the SERVER'S own sets even after the final page, which are chips (Sve · Čeka te ·"
+          },
+          {
+            "line": 84,
+            "text": "* Aktivne · Završene, the one control that scrolls sideways) with the count of the set as the first line of the list: what happens to be loaded is"
+          },
+          {
+            "line": 182,
+            "text": "// A number is drawn only for what waits for the person (\"Čeka te\"); the others are spoken (`Segmented`)."
+          }
+        ]
+      },
+      {
+        "path": "src/data/myApplicationsView.ts",
+        "sha256": "44ea79fcb9ccf914528ef4dacab73852d94ef74c61bc2cc57893dbd8aedb80ec",
+        "anchors": [
+          {
+            "line": 10,
+            "text": "export function applicationSection(p: Pick<MojaPrijavaProjekcija, 'traziPaznju' | 'stanje'>): ApplicationSection {"
+          },
+          {
+            "line": 11,
+            "text": "if (p.traziPaznju) return 'attention';"
+          },
+          {
+            "line": 18,
+            "text": "for (const row of rows) counts[applicationSection(row)]++;"
+          }
+        ]
+      },
+      {
+        "path": "src/data/candidateClientService.ts",
+        "sha256": "0fba366acd04adfc09b31474226e67e015549871a22e2be2fd0393218e35fdfa",
+        "anchors": [
+          {
+            "line": 18,
+            "text": "const STATES = new Set<StanjePrijave>(["
+          },
+          {
+            "line": 70,
+            "text": "function mapCandidate(raw: any): KandidatProjekcija {"
+          },
+          {
+            "line": 80,
+            "text": "if (!STATES.has(raw.state)) throw new Error('CANDIDATE_STATE_UNSUPPORTED');"
+          },
+          {
+            "line": 142,
+            "text": "const rows = data.map(mapCandidate);"
+          },
+          {
+            "line": 152,
+            "text": "* EX-04 S4 (A11): the same applications a keyset page at a time, in the same order, every document through the same `mapCandidate`; the first page also answers how many there are. A page that does"
+          },
+          {
+            "line": 162,
+            "text": "decode: raw => decodeCandidatesPage(raw, request, mapCandidate),"
+          }
+        ]
+      },
+      {
+        "path": "src/contracts/projections.ts",
+        "sha256": "9413fb6168d7b23c5c145db580ddacf2cf5f623e31a9369b7bc291af93170b84",
+        "anchors": [
+          {
+            "line": 203,
+            "text": "| 'TIME_CONFLICT_FROZEN';"
+          },
+          {
+            "line": 246,
+            "text": "export type StanjeMojePrijave ="
+          },
+          {
+            "line": 277,
+            "text": "stanje: StanjeMojePrijave;"
+          }
+        ]
+      },
+      {
+        "path": "src/ui/v2/CandidateFace.tsx",
+        "sha256": "8c6ec2f53451bc5a78dbf81996cd96cc5777d929d77413d15f1d8239a5cac024",
+        "anchors": [
+          {
+            "line": 132,
+            "text": "TIME_CONFLICT_FROZEN: 'Majstor je zauzet u ovom terminu drugim poslom.',"
+          },
+          {
+            "line": 138,
+            "text": "return text ? { text, tone: k.stanje === 'STALE' || k.stanje === 'OVERFILL' || k.stanje === 'TIME_CONFLICT_FROZEN' ? 'warn' : 'muted' } : null;"
+          }
+        ]
+      },
+      {
+        "path": "src/ui/needs/NeedLifecycleActions.tsx",
+        "sha256": "b90ae3790aabcafc936b47f3ca01f98aabc3c48208bc60769bcfbd2d14b98490",
+        "anchors": [
+          {
+            "line": 38,
+            "text": "export function needLifecycleEntries(need: PotrebaProjekcija | null): { deleteDraft: boolean; cancel: boolean; agreements: boolean } {"
+          },
+          {
+            "line": 40,
+            "text": "if (need.pokrivenost.popunjeno > 0) return { deleteDraft: false, cancel: false, agreements: true };"
+          },
+          {
+            "line": 42,
+            "text": "return { deleteDraft: need.stanje === 'NACRT', cancel: need.stanje !== 'NACRT', agreements: false };"
+          },
+          {
+            "line": 128,
+            "text": "&& need.pokrivenost.popunjeno === 0 && need.stanje !== 'ZATVORENA'"
+          },
+          {
+            "line": 129,
+            "text": "// A draft is deleted, never cancelled (see `needLifecycleEntries`); a published task is cancelled, never \"deleted\"."
+          },
+          {
+            "line": 130,
+            "text": "&& (action === 'DELETE_DRAFT' ? need.stanje === 'NACRT' : need.stanje !== 'NACRT');"
+          }
+        ]
+      },
+      {
+        "path": "src/ui/closure/ClosureDialog.tsx",
+        "sha256": "ed932658f4749c2d82ce17426e341f3c8b1b2bc23fd237fa9e4793c95f19f3b4",
+        "anchors": [
+          {
+            "line": 27,
+            "text": "<SettingsRow compact last label=\"Zatvaranje naloga\""
+          },
+          {
+            "line": 136,
+            "text": "confirmLabel: 'Da, trajno zatvori nalog', cancelLabel: 'Odustani', tone: 'danger',"
+          }
+        ]
+      },
+      {
+        "path": "src/ui/closure/ClosurePresentation.tsx",
+        "sha256": "2456fa41bb75c1646c33f0baf04741ae5d88e556818d8050201f8ca7db3c5121",
+        "anchors": [
+          {
+            "line": 42,
+            "text": "* The X is spoken \"Zatvori pregled\": a bare \"Zatvori\" inside \"Zatvaranje naloga\" could be heard as the closing itself"
+          },
+          {
+            "line": 49,
+            "text": "header={<ScreenChrome variant=\"flow\" title=\"Zatvaranje naloga\" closeLabel=\"Zatvori pregled\" disabled={closeDisabled} onClose={onClose} />}"
+          },
+          {
+            "line": 80,
+            "text": "* Zatvaranje naloga as a flow (round 5, owner step 11b): the consequences first, then the one way to start. Every word"
+          },
+          {
+            "line": 185,
+            "text": ": 'Zatvaranje naloga trenutno nije dostupno. Potpuna pravila zatvaranja i čuvanja još nisu objavljena.')"
+          }
+        ]
+      },
+      {
+        "path": "src/ui/v2/AgreementCollectionPresentation.tsx",
+        "sha256": "2c786a652b88bc85871eb5637d9dbe8e563acdd14e1d8911388a85d37ffbf968",
+        "anchors": [
+          {
+            "line": 23,
+            "text": "filterAgreementRole, groupAgreementTasks, isActiveAgreementTask, type AgreementTaskGroup, type AgreementRoleFilter,"
+          },
+          {
+            "line": 26,
+            "text": "/** Aktivni and Istorija (round-1 critique A11): \"Svi\" repeated both, and the count line repeated the tabs' own counts. */"
+          },
+          {
+            "line": 47,
+            "text": "/** Istorija shows \"Sve · Završeni · Otkazani\". The route may keep the choice through the foreground gate; without it the list keeps its own. */"
+          },
+          {
+            "line": 59,
+            "text": "const SECTIONS = [{ key: 'active', label: 'Aktivni' }, { key: 'history', label: 'Istorija' }] as const;"
+          },
+          {
+            "line": 60,
+            "text": "/** The Aktivni list is groups, each a heading followed by its cards; one flat list keeps the virtualised window and the row memo. */"
+          },
+          {
+            "line": 70,
+            "text": "const waitingTitle = (count: number) => `Čeka tebe · ${zadataka(count)}`;"
+          },
+          {
+            "line": 76,
+            "text": "// \"Čeka tvoju potvrdu\" narrows the active Dogovori only: nothing in history waits for a confirmation."
+          },
+          {
+            "line": 78,
+            "text": "// Istorija's chips: the route may keep the choice through the foreground gate; a list drawn without that keeps its own."
+          },
+          {
+            "line": 87,
+            "text": "const tasks = useMemo(() => groupAgreementTasks(roleItems), [roleItems]);"
+          },
+          {
+            "line": 96,
+            "text": "// Aktivni is groups (\"Čeka tebe\" first, then the days), each a heading and its cards; Istorija keeps the newest-first order"
+          },
+          {
+            "line": 107,
+            "text": "// The count belongs to \"Čeka tebe\". In history a direct link keeps outstanding actions discoverable."
+          },
+          {
+            "line": 135,
+            "text": "// A chip of Istorija that holds nothing while the other chips do: the way forward is \"Sve\", not another set."
+          },
+          {
+            "line": 140,
+            "text": "if (!groupAgreementTasks(items).some(task => isActiveAgreementTask(task) === (section === 'active'))) props.onSection(section === 'active' ? 'history' : 'active');"
+          },
+          {
+            "line": 144,
+            "text": ": historyFilter === 'cancelled' ? 'Nema otkazanih Dogovora' : 'Istorija je prazna';"
+          }
+        ]
+      },
+      {
+        "path": "src/ui/agreements/AgreementOverview.tsx",
+        "sha256": "660ae49be580ba348ddc28034cffca4aa3be95399782224f45f4fd03b79c65c4",
+        "anchors": [
+          {
+            "line": 8,
+            "text": "import { AgreementActions, AgreementDangerActions, AgreementHead, AgreementLinks, AgreementTermNote } from './AgreementOverviewParts';"
+          },
+          {
+            "line": 45,
+            "text": "groupReady?: boolean;"
+          },
+          {
+            "line": 66,
+            "text": "export function AgreementOverview({ agreement, step, steps, info, headExtra, party, enabled, concealed = false, accountHasNumber, problem, group, groupReady = false, privatePartyName, location, on }: AgreementOverviewProps) {"
+          },
+          {
+            "line": 70,
+            "text": "{groupReady ? <T variant=\"pageTitle\" accessibilityRole=\"header\">{title}</T> : null}"
+          },
+          {
+            "line": 71,
+            "text": "{groupReady ? group : null}"
+          },
+          {
+            "line": 72,
+            "text": "{groupReady ? <T variant=\"heading\" accessibilityRole=\"header\">{privatePartyName ? `Tvoj Dogovor: ${privatePartyName}` : 'Tvoj pojedinačni Dogovor'}</T> : null}"
+          },
+          {
+            "line": 73,
+            "text": "<AgreementHead title={title} showTitle={!groupReady} step={step} steps={steps} info={info}>{headExtra}</AgreementHead>"
+          },
+          {
+            "line": 79,
+            "text": "{isGroupAgreement(agreement) && !groupReady ? <AgreementPeople agreement={agreement} /> : null}"
+          },
+          {
+            "line": 80,
+            "text": "{!groupReady ? group : null}"
+          },
+          {
+            "line": 87,
+            "text": "<AgreementActions change={link(on.openChange)} problem={link(on.openProblem)} />"
+          },
+          {
+            "line": 92,
+            "text": "<AgreementDangerActions cancel={problem?.exits ? undefined : link(on.openCancel)} safety={link(on.openSafety)} />"
+          }
+        ]
+      },
+      {
+        "path": "src/app/dogovor/[id].tsx",
+        "sha256": "4ec0b520617fb92db67bb5bb4434bc5604f3f334ffb1c08586a02b181e3fb89d",
+        "anchors": [
+          {
+            "line": 19,
+            "text": "import { AgreementProblemExits, AgreementStatusView, AgreementProblemForm, AgreementProblemNote, AgreementProblemUnknown, overviewContent } from '../../ui/agreements/AgreementOverviewParts';"
+          },
+          {
+            "line": 20,
+            "text": "import { cancellationDetailsOf } from '../../ui/agreements/agreementListModel';"
+          },
+          {
+            "line": 38,
+            "text": "import { agreementProblemService, knownProblemRefusal, type AgreementProblemSnapshot } from '../../data/agreementClientService';"
+          },
+          {
+            "line": 39,
+            "text": "import { agreementCancellationService, cancellationOf, type AgreementCancellation } from '../../data/agreementCancellationClientService';"
+          },
+          {
+            "line": 50,
+            "text": "type ProblemWorkspace = DogovorProjekcija & {"
+          },
+          {
+            "line": 51,
+            "text": "problemReport: AgreementProblemSnapshot['report'];"
+          },
+          {
+            "line": 52,
+            "text": "problemReportState: AgreementProblemSnapshot['state'] | 'UNAVAILABLE';"
+          },
+          {
+            "line": 55,
+            "text": "type CompletionReview = { agreement: ProblemWorkspace; focus: object; readEpoch: number };"
+          },
+          {
+            "line": 59,
+            "text": "// Caller timeout does not claim that the server cancelled or rejected a write."
+          },
+          {
+            "line": 103,
+            "text": "const [problemOpen, setProblemOpen] = useState(false), [problemText, setProblemText] = useState('');"
+          },
+          {
+            "line": 104,
+            "text": "const [problemAttempt, setProblemAttempt] = useState<string | null>(null);"
+          },
+          {
+            "line": 105,
+            "text": "const problemAttemptRef = useRef<string | null>(null);"
+          },
+          {
+            "line": 112,
+            "text": "const anchors = useRef<{ problem: number | null; place: number | null }>({ problem: null, place: null });"
+          },
+          {
+            "line": 114,
+            "text": "const waitingAnchor = useRef<'problem' | 'place' | null>(null);"
+          }
+        ]
+      },
+      {
+        "path": "src/data/agreementClientService.ts",
+        "sha256": "bc988250a184c1e1bc0edad5dc70dcf1a02a443d1bac1cedec435c065b863adc",
+        "anchors": [
+          {
+            "line": 24,
+            "text": "'mojiDogovori' | 'dogovor' | 'posaljiPoruku' | 'predloziIzmenu' | 'odgovoriNaIzmenu' | 'prijaviProblem' | 'oznaciZavrsetak' | 'potvrdiZavrsetak'"
+          },
+          {
+            "line": 127,
+            "text": "problemOtvoren: Boolean(raw.problemOpened),"
+          },
+          {
+            "line": 151,
+            "text": "/** PKG-007 / GAP-0033: rpc_confirm_completion returns one authoritative terminal"
+          },
+          {
+            "line": 221,
+            "text": "export type AgreementProblemReceipt = {"
+          },
+          {
+            "line": 222,
+            "text": "agreementId: string; problemOpenedAt: string; problemOpenedBy: string;"
+          },
+          {
+            "line": 225,
+            "text": "export type AgreementProblemSnapshot = {"
+          },
+          {
+            "line": 229,
+            "text": "const problemErrors = {"
+          },
+          {
+            "line": 234,
+            "text": "AGREEMENT_NOT_REPORTABLE: 'Problem se može prijaviti samo dok je Dogovor aktivan.',"
+          },
+          {
+            "line": 236,
+            "text": "NARRATIVE_REQUIRED: 'Opiši problem.', NARRATIVE_TOO_LONG: 'Opis može imati najviše 4.000 znakova.',"
+          },
+          {
+            "line": 238,
+            "text": "const problemOptions = { errors: problemErrors, fallback: 'PROBLEM_REPORT_UNCONFIRMED', invalid: 'PROBLEM_REPORT_INVALID' };"
+          },
+          {
+            "line": 239,
+            "text": "/** A problem report refused for a known reason (deep read 8.8): its own sentence, not \"Prijava nije potvrđena\". */"
+          },
+          {
+            "line": 240,
+            "text": "export const knownProblemRefusal = (kod: string) => Object.prototype.hasOwnProperty.call(problemErrors, kod);"
+          },
+          {
+            "line": 246,
+            "text": "export const agreementProblemService = {"
+          },
+          {
+            "line": 247,
+            "text": "async submit(agreementId: string, description: string, account?: ReceiptAccount): Promise<Ishod<AgreementProblemReceipt>> {"
+          }
+        ]
+      },
+      {
+        "path": "src/data/agreementCancellationClientService.ts",
+        "sha256": "026e055bcd98b4bd8d87e11ab55c090c04622fdd1b9438f75245c4520eb46276",
+        "anchors": [
+          {
+            "line": 9,
+            "text": "* (`rpc_cancel_agreement`) already leaves behind - the status and its instant, the event sent to the other side, the canceller's"
+          }
+        ]
+      },
+      {
+        "path": "src/ui/profile/ProfileHubPresentation.tsx",
+        "sha256": "31ab0c380a435d57faadb8876881fec55de9f4f3ee2d39d9f8e2db9c741c000e",
+        "anchors": []
+      },
+      {
+        "path": "src/ui/settings/AccountSettingsPresentation.tsx",
+        "sha256": "ecfb76b29325cd47cdcb4080f432d8f2ca7767c364a186b513ece73009f06251",
+        "anchors": [
+          {
+            "line": 25,
+            "text": "<AccountGroup title=\"Tvoje iskustvo\">"
+          },
+          {
+            "line": 29,
+            "text": "<AccountGroup title=\"Pomoć\">"
+          },
+          {
+            "line": 30,
+            "text": "{row('Pomoć i podrška', 'messages', '/podrska', words.support ?? 'Odgovori i tvoji zahtevi')}"
+          },
+          {
+            "line": 37,
+            "text": "<Press accessibilityRole=\"button\" accessibilityLabel=\"Odjavi se\" accessibilityState={{ disabled: busy }}"
+          },
+          {
+            "line": 40,
+            "text": "<T style={s.title} tone={busy ? 'muted' : 'ink'}>{busy ? 'Sačekaj…' : 'Odjavi se'}</T>"
+          }
+        ]
+      },
+      {
+        "path": "src/ui/workerProfile/WorkerProfileSaved.tsx",
+        "sha256": "9d022af3c9d1143a66d798eb526c3fd48fa2a25b49189e1205db007324375304",
+        "anchors": [
+          {
+            "line": 12,
+            "text": "import { SettingsGroup, SettingsRow } from '../settings/SettingsPresentation';"
+          },
+          {
+            "line": 79,
+            "text": "<SettingsGroup>"
+          },
+          {
+            "line": 85,
+            "text": ": <SettingsRow label=\"Gde\" value={area || undefined} detail={area ? undefined : 'Izaberi gde želiš da radiš'} icon={<FactArt kind=\"pin\" size={32} />}"
+          },
+          {
+            "line": 88,
+            "text": "</SettingsGroup>"
+          },
+          {
+            "line": 91,
+            "text": "<SettingsGroup title=\"Kada\">"
+          },
+          {
+            "line": 93,
+            "text": "? <SettingsRow label=\"Dostupnost\" value={availableNow.value ? 'Mogu odmah' : 'Mogu odmah: isključeno'} valuePlacement=\"below\""
+          },
+          {
+            "line": 96,
+            "text": "{!readOnly && !availableNow ? <SettingsRow label=\"Nedeljni raspored\" icon={<FactArt kind=\"calendar\" size={32} />} disabled={disabled}"
+          },
+          {
+            "line": 98,
+            "text": "</SettingsGroup>"
+          },
+          {
+            "line": 99,
+            "text": "{draft.alati.length || draft.vozila.length ? <SettingsGroup>"
+          },
+          {
+            "line": 107,
+            "text": "</SettingsGroup> : null}"
+          }
+        ]
+      },
+      {
+        "path": "src/ui/messages/ConversationInboxPresentation.tsx",
+        "sha256": "9298adce450da7d896201866155dfb63313700b93ad20120a48dee0e5f2dd82e",
+        "anchors": [
+          {
+            "line": 20,
+            "text": "import { TimedRow } from '../notifications/TimedRow';"
+          },
+          {
+            "line": 205,
+            "text": "return <TimedRow leading={face} slot={FACE} title={title} titleLines={stacked ? 2 : 1} time={stacked ? null : stamp} last={last} disabled={off}"
+          },
+          {
+            "line": 214,
+            "text": "</TimedRow>;"
+          }
+        ]
+      },
+      {
+        "path": "src/ui/notifications/InboxPresentation.tsx",
+        "sha256": "27f8b336d9c694d8de0aeac54902a0ef4bfbc4e0fd53ed5b5d00fb077634754c",
+        "anchors": [
+          {
+            "line": 2,
+            "text": "import { AccessibilityInfo, ActivityIndicator, FlatList, StyleSheet, View } from 'react-native';"
+          },
+          {
+            "line": 20,
+            "text": "import { ListSkeleton } from './ListSkeleton';"
+          },
+          {
+            "line": 21,
+            "text": "import { SwipeToRead, type SwipeableRowHandle } from './SwipeToRead';"
+          },
+          {
+            "line": 22,
+            "text": "import { TimedRow } from './TimedRow';"
+          },
+          {
+            "line": 27,
+            "text": "* the first day's heading, not a row of its own. An event is a `TimedRow`: the picture (32, in a 40 slot) with the unread dot on it, the"
+          },
+          {
+            "line": 30,
+            "text": "* Rows of a day are parted by the inset line, days by space; no card, no band, no box."
+          },
+          {
+            "line": 60,
+            "text": "type DayRow = { kind: 'day'; id: string; label: string; first: boolean };"
+          },
+          {
+            "line": 61,
+            "text": "type EventRow = { kind: 'event'; id: string; item: InboxItem; moment: Trenutak | null; last: boolean };"
+          },
+          {
+            "line": 62,
+            "text": "export type InboxRowModel = DayRow | EventRow;"
+          },
+          {
+            "line": 69,
+            "text": "export function inboxRows(items: readonly InboxItem[], options: { zona?: string; sada?: Date } = {}): InboxRowModel[] {"
+          },
+          {
+            "line": 70,
+            "text": "const rows: InboxRowModel[] = [];"
+          },
+          {
+            "line": 71,
+            "text": "let day: string | null = null, previous: EventRow | null = null;"
+          },
+          {
+            "line": 117,
+            "text": "type RowProps = { item: InboxItem; moment: Trenutak | null; last: boolean; acting: boolean;"
+          },
+          {
+            "line": 121,
+            "text": "/** A swiped row opened: the list closes the one that was open before. */ onSwipeOpen?: (row: SwipeableRowHandle) => void };"
+          }
+        ]
+      },
+      {
+        "path": "src/ui/product/ProductSheet.tsx",
+        "sha256": "cc25fc08fba482db835047da0947c4b0d21f68307124ac9a36a1e538d2f87086",
+        "anchors": [
+          {
+            "line": 2,
+            "text": "import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';"
+          },
+          {
+            "line": 43,
+            "text": "* Native Modal owns focus and Back; the map retains its separate Gorhom panels."
+          },
+          {
+            "line": 86,
+            "text": "return <Modal visible transparent animationType={reduced ? 'none' : 'fade'} statusBarTranslucent onRequestClose={requestClose}>"
+          },
+          {
+            "line": 94,
+            "text": "<Animated.View testID=\"product-modal-card\" accessibilityViewIsModal accessibilityLabel={title ?? label}"
+          },
+          {
+            "line": 115,
+            "text": "</Modal>;"
+          },
+          {
+            "line": 120,
+            "text": "viewport: { flex: 1, justifyContent: 'center', alignItems: 'center' },"
+          },
+          {
+            "line": 123,
+            "text": "heading: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, padding: sys.space.base, paddingBottom: sys.space.sm },"
+          },
+          {
+            "line": 126,
+            "text": "close: { width: SHEET_TOUCH, height: SHEET_TOUCH, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },"
+          },
+          {
+            "line": 134,
+            "text": "flexDirection: 'row', gap: sys.space.sm, alignItems: 'center', justifyContent: 'center' },"
+          },
+          {
+            "line": 136,
+            "text": "onFilled: { color: sys.color.onGreen, textAlign: 'center' }, quiet: { color: sys.color.green, textAlign: 'center' },"
+          }
+        ]
+      },
+      {
+        "path": "src/data/discoveryWorkMode.ts",
+        "sha256": "cbb2b0f89b70e63299113bb2e97956675b81ea235bb786d990abb6fac14e9104",
+        "anchors": []
+      },
+      {
+        "path": "supabase/candidates/temporal-conflict-freezing-v1.sql",
+        "sha256": "cf8705f732b17ae57dafd9930ca8d791128c65062d4af42da9d46ad2e5c81cb3",
+        "anchors": [
+          {
+            "line": 5,
+            "text": "-- that interval are automatically projected as TIME_CONFLICT_FROZEN (canSelect=false)."
+          },
+          {
+            "line": 9,
+            "text": "create or replace function private.candidate_projection(p_need_id uuid)"
+          },
+          {
+            "line": 83,
+            "text": "then coalesce(v.proposed_start_at, nullif(btrim(v_need.schedule->>'starts_at'),'')::timestamptz) + interval '1 hour'"
+          },
+          {
+            "line": 119,
+            "text": "then 'TIME_CONFLICT_FROZEN'"
+          },
+          {
+            "line": 165,
+            "text": "when 'TIME_CONFLICT_FROZEN' then 2"
+          },
+          {
+            "line": 181,
+            "text": "comment on function private.candidate_projection(uuid) is"
+          }
+        ]
+      }
+    ],
+    "findings": [
+      {
+        "id": "OPEN-TEMPORAL-FREEZE-UX",
+        "priority": "P1",
+        "status": "OPEN_FUNCTIONAL_CONTRACT_CLIENT_INTEGRATION",
+        "class": "C",
+        "current": "Live calendar prevents conflicting selection and releases the interval on cancellation. Active candidate projection returns generic STALE for ineligibility, own applications expose no temporary conflict state.",
+        "gap": "TIME_CONFLICT_FROZEN appears in a candidate type/copy and an inactive SQL proposal, but candidateClientService rejects it. No complete frozen/recovery presentation for both roles.",
+        "proposal": "Use authoritative temporary eligibility reason, accepted by both readers/models; preserve application intent and reevaluate after interval release; do not reopen withdrawn/closed applications or closed search.",
+        "validationNeeded": "Two users, overlapping real intervals, selected agreement, paused other application, cancellation, release, still-open and expired/closed alternatives, both UI roles, refresh and unknown result."
+      },
+      {
+        "id": "OPEN-APPLICATIONS-ACTIVE-ARCHIVE",
+        "priority": "P1",
+        "status": "OPEN_UX_AND_PROJECTION_REVIEW",
+        "class": "C",
+        "current": "Default tab all; All/Attention/Active/Finished. Live own_application_rows ranks SELECTED as attention.",
+        "gap": "Does not match owner request for ongoing candidates as default with settled outcomes in history. my_application_state checks stale revision before terminal need state; potential stale-review-on-closed-task branch.",
+        "proposal": "Aktuelne default, review-needed and temporarily paused clearly separated, accepted entry points to Agreements, Arhiva with reason. Fix source classification before merely renaming tabs.",
+        "validationNeeded": "Pending/viewed/shortlisted, revision change, closed/expired/not-selected, withdrawal, selected and cancelled agreement, notification deep link into archived item, paged counts."
+      }
+    ],
+    "calendarConclusion": {
+      "liveConflictGuard": true,
+      "liveCancellationRelease": true,
+      "enabledSyncTriggers": true,
+      "fullFreezeClientUX": false,
+      "inactiveCandidateProjectionOnDev": null,
+      "businessScenarioExecuted": false,
+      "limits": "Fresh catalog/function readback, no business writes or user data reads. Recovery depends on open task, valid time, profile and other admission rules."
+    },
+    "accountClosure": {
+      "actualEntry": "Podešavanja → Privatnost i podaci → Zatvaranje naloga",
+      "recommendation": "Keep labeled entry, blockers/review and explicit irreversible confirmation; compact icon may accompany label.",
+      "executed": false
+    },
+    "coverage": {
+      "specificationSurfacesMapped": 65,
+      "figmaReactionNodesMapped": 786,
+      "newFinalNativeScenariosVerified": 0,
+      "requiredMasterScenarios": 11,
+      "newTestsRunThisAudit": 0,
+      "previousTargetedCheck": {
+        "suites": 10,
+        "passed": 299,
+        "failed": 0,
+        "skipped": 0
+      },
+      "limits": "Mapped owners are not certified handlers; source/RN-web proof is not native completion. No fabricated completeness percentage."
+    },
+    "recommendationOrder": [
+      "Complete application active/archive and temporary conflict/recovery contract with agreement replacement and both roles.",
+      "Complete worker profile, Agreements, Messages and Notifications compositions, then audit remaining screens and states.",
+      "Close group-media/group-consent/regions/atomic-republish/AI-admission-deadline contracts or explicitly decide exclusions from MVP.",
+      "Certify action-to-state-to-service-to-result/back coverage and run unified source regression.",
+      "Only then build and install final candidate; verify all eleven native scenarios and correct observed defects."
+    ],
+    "changesThisAudit": {
+      "runtime": false,
+      "server": false,
+      "figma": false,
+      "push": false,
+      "build": false,
+      "install": false,
+      "documentationOnly": true
+    },
+    "trackedOpenGroupCountAfterAudit": 14,
+    "trackedOpenIds": [
+      "OPEN-GROUP-MEDIA",
+      "OPEN-GROUP-TERMS",
+      "OPEN-REGIONS-REPUBLISH",
+      "OPEN-FLOW-COVERAGE",
+      "OPEN-NATIVE-QA",
+      "OPEN-AI-ADMISSION-DEADLINE",
+      "OPEN-RELEASE-OPERATIONS",
+      "OPEN-VIS-WORKER-PROFILE",
+      "OPEN-VIS-MESSAGES",
+      "OPEN-VIS-NOTIFICATIONS",
+      "OPEN-VIS-AGREEMENTS",
+      "OPEN-PROFILE-VALUE",
+      "OPEN-TEMPORAL-FREEZE-UX",
+      "OPEN-APPLICATIONS-ACTIVE-ARCHIVE"
+    ],
+    "openCountNote": "Named integration groups, not exhaustive count of all individual UX defects."
+  }
+}

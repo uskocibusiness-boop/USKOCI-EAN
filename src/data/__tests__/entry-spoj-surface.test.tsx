@@ -25,6 +25,7 @@ jest.mock('../../ui/entry/entryV49Math', () => {
 });
 let mockAccount = { accountRevision: 0, user: null as null | { id: string } };
 let mockFontScale = 1;
+let mockWindow = { width: 390, height: 844 };
 let mockInsets = { top: 33, bottom: 0, left: 0, right: 0 };
 const mockFinish = jest.fn();
 const mockForeground = new Set<(state: string) => void>();
@@ -37,7 +38,7 @@ const mockImageUnmounted = jest.fn();
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
-    if (key === 'useWindowDimensions') return () => ({ width: 390, height: 844, fontScale: mockFontScale });
+    if (key === 'useWindowDimensions') return () => ({ ...mockWindow, fontScale: mockFontScale });
     if (key === 'AppState') return { addEventListener: (_: string, callback: (state: string) => void) => { mockForeground.add(callback); return { remove: () => mockForeground.delete(callback) }; } };
     return ['View', 'ScrollView', 'Pressable', 'Text', 'ActivityIndicator'].includes(String(key)) ? key : Reflect.get(target, key);
   } });
@@ -93,7 +94,7 @@ const button = (label: string) => tree.root.findAll(node => String(node.type) ==
 const press = async (label: string) => { await act(async () => button(label).props.onPress()); };
 const advance = async (ms: number) => { await act(async () => { jest.advanceTimersByTime(ms); }); };
 const render = async () => { await act(async () => { tree = create(element()); }); };
-beforeEach(() => { jest.useFakeTimers(); jest.clearAllMocks(); mockForeground.clear(); mockSharedAssignments.length = 0; mockFrameTime = null; mockIntentTime = null; mockPhase = 'welcome'; mockReduced = false; mockFontScale = 1; mockInsets = { top: 33, bottom: 0, left: 0, right: 0 }; mockAccount = { accountRevision: 0, user: null }; requester.mockResolvedValue(undefined); worker.mockResolvedValue(undefined); });
+beforeEach(() => { jest.useFakeTimers(); jest.clearAllMocks(); mockForeground.clear(); mockSharedAssignments.length = 0; mockFrameTime = null; mockIntentTime = null; mockPhase = 'welcome'; mockReduced = false; mockFontScale = 1; mockWindow = { width: 390, height: 844 }; mockInsets = { top: 33, bottom: 0, left: 0, right: 0 }; mockAccount = { accountRevision: 0, user: null }; requester.mockResolvedValue(undefined); worker.mockResolvedValue(undefined); });
 afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTimers(); });
 
 it('shows the vector lockup and two real intent controls without dispatching on mount', async () => {
@@ -114,6 +115,31 @@ it('keeps entry illustration assets local and decorative, with usable authentica
     expect(JSON.stringify(photo.props.source)).not.toMatch(/https?:/);
   }
   for (const name of ['Prijavi se', 'Napravi nalog']) expect(StyleSheet.flatten(button(name).props.style).minHeight).toBeGreaterThanOrEqual(48);
+});
+it.each([['Prijavi se', false, signIn], ['Napravi nalog', false, signUp],
+  ['Prijavi se', true, signIn], ['Napravi nalog', true, signUp]] as const)(
+  'opens %s during the decorative intro without requiring Preskoči (reduced motion: %s)', async (label, reduced, callback) => {
+    mockPhase = 'intro'; mockWindow = { width: 320, height: 568 }; mockReduced = reduced;
+    await render();
+    const footer = tree.root.findByProps({ testID: 'entry-auth-footer' });
+    expect(footer.type).toBe('View');
+    expect(StyleSheet.flatten(footer.props.style).opacity).toBe(1);
+    expect(footer.props.importantForAccessibility).toBe('auto');
+    expect(button(label).props.disabled).toBe(false);
+    expect(tree.root.findByType('ScrollView' as React.ElementType).props.scrollEnabled).toBe(true);
+    expect(mockFinish).not.toHaveBeenCalled();
+    await press(label);
+    expect(mockFinish).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledTimes(1);
+  },
+);
+it('keeps the intro auth action guarded when the account changes before tap', async () => {
+  mockPhase = 'intro'; await render();
+  const retained = button('Prijavi se').props.onPress;
+  mockAccount = { accountRevision: 2, user: null };
+  await act(async () => retained());
+  expect(mockFinish).not.toHaveBeenCalled();
+  expect(signIn).not.toHaveBeenCalled();
 });
 
 // This checks the mounted entry actually used by /auth. The retired reference
@@ -413,10 +439,12 @@ it('keeps both intentions and their supporting text accessible with large text a
   expect(button('Uskoči i zaradi').props.disabled).toBe(false);
   expect(tree.root.findByType('ScrollView' as React.ElementType).props.scrollEnabled).toBe(true);
 });
-it('waits for measured geometry before starting the intro and keeps actions unavailable', async () => {
+it('waits for measured geometry before starting the intro while auth stays available', async () => {
   mockPhase = 'intro'; await render(); expect(mockTiming).not.toHaveBeenCalled();
   expect(mockSceneReady).not.toHaveBeenCalled();
   expect(button('Objavi zadatak').props.disabled).toBe(true);
+  expect(button('Prijavi se').props.disabled).toBe(false);
+  expect(button('Napravi nalog').props.disabled).toBe(false);
   await act(async () => tree.root.findByProps({ testID: 'entry-brand-panel' }).props.onLayout({ nativeEvent: { layout: { x: 24, y: 158.765625, width: 342, height: 227.328125 } } }));
   // Layout alone cannot release the cover: the source t=0 artwork is empty.
   // Layout only mounts prepared artwork. The real clock's cover acknowledgement

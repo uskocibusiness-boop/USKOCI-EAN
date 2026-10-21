@@ -5,8 +5,8 @@ import { FactArt } from './FactArt';
 import { ruleWidth } from './layout';
 import { sys } from './tokens';
 
-/** Row (32), list (40), root photo (48), compact identity (56), and profile portraits (72/96). */
-export type AvatarSize = 32 | 40 | 48 | 56 | 72 | 96;
+/** Row (32), list (40), root photo (48), compact identity (56), and profile portraits (72/88/96). */
+export type AvatarSize = 32 | 40 | 48 | 56 | 72 | 88 | 96;
 
 const LETTERS: Record<AvatarSize, TextStyle> = {
   32: { fontSize: 12, lineHeight: 16 },
@@ -14,9 +14,10 @@ const LETTERS: Record<AvatarSize, TextStyle> = {
   48: { fontSize: 18, lineHeight: 24 },
   56: { fontSize: 20, lineHeight: 26 },
   72: { fontSize: 26, lineHeight: 32 },
+  88: { fontSize: 30, lineHeight: 38 },
   96: { fontSize: 34, lineHeight: 42 },
 };
-const GLYPH: Record<AvatarSize, number> = { 32: 20, 40: 24, 48: 28, 56: 32, 72: 40, 96: 52 };
+const GLYPH: Record<AvatarSize, number> = { 32: 20, 40: 24, 48: 28, 56: 32, 72: 40, 88: 48, 96: 52 };
 
 /** The white edge of a face that stands for its screen (the sticker edge), two rules wide: 2 dp. */
 export const FACE_EDGE = ruleWidth * 2;

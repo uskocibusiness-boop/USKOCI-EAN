@@ -16,6 +16,7 @@ import { InfoButton } from '../system/InfoButton';
 import { KeyValueRow } from '../system/KeyValueRow';
 import { layout } from '../system/layout';
 import { ListRow } from '../system/ListRow';
+import { MoneySummary } from '../system/MoneySummary';
 import { useReducedMotion } from '../system/motion';
 import { dolaziOsoba, osoba, plural } from '../system/plural';
 import { ApplicationPeopleInput, applicationPeopleCount as wholePeople } from './ApplicationPeopleInput';
@@ -31,17 +32,14 @@ import { withInter } from '../interFont';
 import { MomentRise, useMomentPart } from './DogovorenoMoment';
 import { placesText, taskValue, valueSpoken } from './TaskFace';
 import { V2Action } from './V2Action';
+import { QuietReadState } from './QuietReadState';
 
 /**
- * The worker's one application to someone else's task (R13, 2026-09-25; one frame and one rhythm since 2026-10-08, composition spec 4.7,
- * template T4): the task as a header without a line, then one section for each thing the person decides, 24 apart: "Tvoja ponuda" (the
- * amount, 72 high, the figure 28), "Koliko vas dolazi" (the people), "Kada možeš" (a row that opens the exact time; the approved draft U7) and
- * "Poruka" (optional). What the other side sees of all this is behind the small ⓘ in the bar, not in a sentence on the page.
- * No line stands between them: the space is the divider, and the only line on the screen is the one above the foot. The review and the
- * confirmed result use the same open receipt, including the exact message. White is the reading surface; ink, fact art and the amount
- * establish hierarchy. ONE green action stays in the foot and the foot says one thing above it: what the person is about to send ("4.500 RSD
- * ukupno · dolaze 2 osobe"), or, while the action is grey, why (and then no sum of a form that is not complete). The existing explicit
- * review stands before sending.
+ * One application, with task context followed by price, people, availability and an optional message.
+ * The review groups its total and labeled facts with the same artwork as the task and candidate detail.
+ * A fixed task price stays read-only; only an offer-taking task exposes the amount input.
+ * One footer action opens the exact review, then sends it explicitly. A pending or uncertain command
+ * shows its retained facts instead of an editable form. Only confirmed success shows the sent receipt.
  *
  * Presentation only. Every guard stays in the route (`app/(app)/prilike/[id]/prijava.tsx`): the task revision, the durable
  * journal, the idempotent request id, the unknown-outcome readback and the exact replay. The reasons drawn beside a grey
@@ -132,13 +130,13 @@ function ComposerFrame({ back, children, footer, info = false }: { back: () => v
 }
 
 /**
- * While the read runs, the shape of the task that is coming stands in for it; a read that failed says so the one way
+ * While the read runs, a calm non-result keeps the task's place; a read that failed says so the one way
  * every screen does (`StateView`): its first sentence as the title, the rest under it, and the retry as the green action.
  */
 export function ComposerUnavailable({ loading, message, retry, back }: { loading: boolean; message: string; retry?: () => void; back: () => void }) {
   const [title, body] = splitFirstSentence(message);
   return <ComposerFrame back={back}>
-    {loading ? <StateView kind="loading" title="Učitavamo podatke…" skeleton={{ count: 1, rows: 4, variant: 'face' }} />
+    {loading ? <QuietReadState art="applications" title="Učitavamo podatke za prijavu…" body="Proveravamo zadatak i uslove prijave." />
       : <StateView kind="error" title={title} body={body ?? undefined} primary={retry ? { label: 'Pokušaj ponovo', onPress: retry } : undefined} />}
   </ComposerFrame>;
 }
@@ -158,7 +156,7 @@ function TaskHead({ opportunity, showTerms = true }: { opportunity: PrilikaProje
     : priced ? [title, opportunity.podrucjeTekst, places.spoken].filter(part => part.trim().length > 0).join(', ')
     : `${title}, ${valueSpoken(value)}, ${opportunity.podrucjeTekst}, ${places.spoken}`;
   return <View accessible accessibilityLabel={spoken} style={s.task}>
-    <T accessibilityRole="header" variant="heading">{title}</T>
+    <T accessibilityRole="header" variant="pageTitle">{title}</T>
     {!priced ? <T variant="note" tone="muted">{valueSpoken(value)}</T> : null}
     <View style={s.taskFacts}>
       <FactRow art="pin" value={opportunity.podrucjeTekst} />
@@ -173,11 +171,13 @@ function TaskHead({ opportunity, showTerms = true }: { opportunity: PrilikaProje
  */
 function SentFacts({ price, people, time, flexible, proposed }: { price: string | null; people: string; time: string; flexible: boolean; proposed: string | null }) {
   const timeNote = flexible ? 'Tačan početak i kraj još nisu dogovoreni.' : proposed ? `Tvoj predlog · termin zadatka je ${proposed}` : null;
-  return <View>
-    <KeyValueRow label="Ukupna ponuda" value={price ?? 'Proveri unetu cenu'} emphasis={price ? 'price' : undefined} />
-    <KeyValueRow label="Ljudi" value={people} />
-    <KeyValueRow label="Termin" value={time} last={!timeNote} />
-    {timeNote ? <T variant="note" tone="muted" style={s.timeNote}>{timeNote}</T> : null}
+  return <View style={s.reviewBody}>
+    {price ? <MoneySummary label="Ukupna ponuda" amount={price} basis="Za sve ljude iz tvoje prijave" />
+      : <FactRow art="money" label="Ukupna ponuda" value="Proveri unetu cenu" size="detail" />}
+    <Surface kind="panel" variant="tinted" tone="wash" density="comfortable" style={s.reviewBody}>
+      <FactRow art="users" label="Ljudi" value={people} size="detail" />
+      <FactRow art="calendar" label="Termin" value={time} note={timeNote ?? undefined} size="detail" />
+    </Surface>
   </View>;
 }
 
@@ -421,6 +421,7 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
       {offers ? <Section title="Tvoja ponuda">
         <View style={s.group}>
           <View style={[s.priceBox, focused === 'price' && s.fieldFocused, issue.price === 'invalid' && s.fieldDanger]}>
+            <FactArt kind="money" size={32} />
             <TextInput accessibilityLabel="Tvoja ukupna ponuda za ljude koje dovodiš (RSD)" keyboardType="number-pad" maxLength={10} value={draft.price}
               editable={!disabled} style={s.priceInput} placeholder="Iznos" placeholderTextColor={sys.color.muted}
               onFocus={() => setFocused('price')} onBlur={() => setFocused(null)}
@@ -496,14 +497,11 @@ function FixedPrice({ need }: { need: PotrebaProjekcija }) {
   // An absent legacy basis is an application total, never an inferred whole-task price.
   const basis = need.osnovaCene === 'PER_PERSON' ? 'po osobi'
     : need.osnovaCene === 'TOTAL' ? 'za ceo zadatak' : 'ukupno za tvoju prijavu';
-  return <Section title="Cena zadatka">
-    <View accessible accessibilityLabel={amount ? `Cena zadatka: ${amount} ${basis}` : 'Cena nije navedena'} style={s.fixed}>
-      {amount ? <>
-        <T variant="pageTitle" style={s.money}>{amount}</T><T variant="note" tone="muted">{basis}</T>
-      </> : <T variant="bodyStrong">Cena nije navedena</T>}
-    </View>
+  return <View style={s.group}>
+    {amount ? <MoneySummary label="Cena zadatka" amount={amount} basis={basis} />
+      : <FactRow size="detail" art="money" label="Cena zadatka" value="Cena nije navedena" />}
     {need.osnovaCene === 'TOTAL' ? <T variant="note" tone="muted">Tvoja cena se računa srazmerno broju ljudi, zaokruženo na najbliži dinar.</T> : null}
-  </Section>;
+  </View>;
 }
 
 const s = StyleSheet.create({
@@ -518,8 +516,6 @@ const s = StyleSheet.create({
     color: sys.color.ink, paddingVertical: sys.space.md }),
   fieldFocused: { borderColor: sys.color.green },
   fieldDanger: { borderColor: sys.color.danger },
-  fixed: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', gap: sys.space.sm, minHeight: layout.touch },
-  money: { fontVariant: ['tabular-nums'], maxWidth: '100%', flexShrink: 1 },
   note: withInter({ ...fieldBox, ...sys.type.body, color: sys.color.ink, backgroundColor: sys.color.surface,
     minHeight: 96, textAlignVertical: 'top', padding: sys.space.base }),
   // "Etiketa odlazi": the tag's place is reserved (96 and a gap) so nothing moves when it goes; the tag is at the top of it, the small row at its foot.
@@ -535,7 +531,6 @@ const s = StyleSheet.create({
   messageRow: { paddingVertical: sys.space.md, alignItems: 'flex-start' },
   receiptNote: { maxWidth: 360, width: '100%', alignSelf: 'center' },
   actions: { alignSelf: 'center', maxWidth: 320, width: '100%', gap: sys.space.sm },
-  timeNote: { paddingTop: sys.space.sm },
   reviewBody: { gap: layout.section },
   reviewTask: { gap: sys.space.sm },
   noteAction: { alignSelf: 'flex-start', paddingHorizontal: 0 },

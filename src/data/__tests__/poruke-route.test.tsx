@@ -116,10 +116,11 @@ describe('the build without the paired reader', () => {
 });
 
 describe('the list and its bar (UI/UX pass, 2026-10-08)', () => {
-  it('has the root bar of Početna and Dogovori: the mark, the bell and the face, with no name drawn (the tab bar says where you are)', async () => {
+  it('names Poruke visibly in its fixed header without a second list heading', async () => {
     await render();
     const header = tree.root.findByType('ScreenHeader' as never);
-    expect(header.props.title).toBe('Poruke'); expect(header.props.showTitle).toBeUndefined();
+    expect(header.props.title).toBe('Poruke'); expect(header.props.showTitle).toBe(true);
+    expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header')).toHaveLength(0);
     expect(tree.root.findByType('List' as never).props.contentContainerStyle).toBeDefined();
   });
 
@@ -128,8 +129,9 @@ describe('the list and its bar (UI/UX pass, 2026-10-08)', () => {
     await render();
     const list = tree.root.findAll(node => node.props.closedAgreements !== undefined && typeof node.props.onOpen === 'function')[0];
     expect(list.props.closedAgreements).toBe(mockClosed);
-    // The default set is "Aktivni": the private conversation is shown, the group of the closed Dogovor waits under "Završeni".
-    expect(rows()).toHaveLength(1);
+    // One finished bilateral relationship cannot hide the group while other members may still work.
+    expect(rows()).toHaveLength(2);
+    expect(rows()[1].props.accessibilityLabel).not.toContain('zatvoren');
     await act(async () => rows()[0].props.onPress());
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/dogovor/[id]', params: { id: personal.routeAgreementId, tab: 'poruke', from: 'poruke' } });
   });

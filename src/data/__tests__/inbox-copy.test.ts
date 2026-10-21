@@ -1,6 +1,6 @@
 import { execFileSync } from 'child_process';
 import type { InboxItem, InboxPage } from '../../contracts/inbox';
-import { INBOX_SET_LABEL, applyLocalReads, canMarkRead, inboxDestination, inboxTaskTitle, readableServerCopy } from '../../ui/notifications/inboxCopy';
+import { INBOX_SET_LABEL, applyLocalReads, canMarkRead, inboxActionLabel, inboxDestination, inboxTaskTitle, readableServerCopy } from '../../ui/notifications/inboxCopy';
 
 /**
  * The words and the small pure rules of the inbox (T4a, 2026-10-07): where a tap goes, in the owner's vocabulary, and the
@@ -25,6 +25,7 @@ describe('where a tap goes', () => {
       expect([eventType, role, typeof where]).toEqual([eventType, role, 'string']);
       expect(where).toMatch(/^Otvara /);
       expect(where).not.toMatch(/posao|poslov|Naručilac|Uskočer|server/i);
+      expect(inboxActionLabel({ eventType, role })).toMatch(/^(Otvori|Pregledaj|Pogledaj) /);
     }
   });
 
@@ -51,6 +52,14 @@ describe('where a tap goes', () => {
   it('says nothing for an event it does not know: a destination is never made up', () => {
     expect(inboxDestination({ eventType: 'SOMETHING_NEW', role: 'WORKER' })).toBeNull();
     expect(inboxDestination({ eventType: '', role: 'REQUESTER' })).toBeNull();
+    expect(inboxActionLabel({ eventType: 'SOMETHING_NEW', role: 'WORKER' })).toBeNull();
+    expect(inboxActionLabel({ eventType: '', role: 'REQUESTER' })).toBeNull();
+  });
+
+  it('keeps selection, a new application and a received message distinct in the visible next step', () => {
+    expect(inboxActionLabel({ eventType: 'RESPONSE_SELECTED', role: 'WORKER' })).toBe('Otvori dogovor');
+    expect(inboxActionLabel({ eventType: 'RESPONSE_RECEIVED', role: 'REQUESTER' })).toBe('Pregledaj prijave');
+    expect(inboxActionLabel({ eventType: 'MESSAGE_RECEIVED', role: 'WORKER' })).toBe('Otvori poruku');
   });
 });
 

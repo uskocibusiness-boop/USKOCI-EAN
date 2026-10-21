@@ -94,7 +94,7 @@ export function TabGlyph({ kind, selected }: { kind: TabKind; selected: boolean 
   }, [selected, reduced, pop]);
   return <Animated.View testID="tab-glyph" accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants"
     style={[s.glyph, { transform: [{ scale: pop }] }]}>
-    <Glyph name={TAB_SYMBOL[kind]} size={TAB_ICON} tone={selected ? 'green' : 'muted'} on={selected} />
+    <Glyph name={TAB_SYMBOL[kind]} size={TAB_ICON} tone={selected ? 'green' : 'muted'} strong={selected} />
   </Animated.View>;
 }
 

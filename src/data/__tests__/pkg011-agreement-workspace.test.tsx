@@ -11,6 +11,7 @@ const mockRouter = { canGoBack: jest.fn(() => true), back: jest.fn(), replace: j
 const mockNeedId = '30000000-0000-4000-8000-000000000001', mockApplicationId = '40000000-0000-4000-8000-000000000001';
 const mockRead = jest.fn(), mockMessages = jest.fn(), mockMessagesRead = jest.fn();
 const mockDisplayed = jest.fn();
+const mockGroupRead = jest.fn();
 let mockParams: Record<string, string> = { id: mockAgreementId };
 let mockReducedMotion = false;
 // These established assertions describe the roomy composition. The native Jest preset defaults to fontScale 2;
@@ -29,9 +30,9 @@ jest.mock('react-native', () => {
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => mockParams,
   useFocusEffect: (effect: () => void) => require('react').useEffect(() => effect(), [effect]) }));
 jest.mock('../agreementClientService', () => ({ agreementProblemService: { submit: jest.fn(), read: jest.fn() } }));
-jest.mock('../groupConversationService', () => ({ groupConversationService: { context: jest.fn().mockResolvedValue({ ok: true, podatak: { group: null } }) } }));
+jest.mock('../groupConversationService', () => ({ groupConversationService: { context: (...args: unknown[]) => mockGroupRead(...args) } }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView' } }));
+jest.mock('react-native-reanimated', () => ({ ...jest.requireActual('../../../__mocks__/react-native-reanimated'), __esModule: true, default: { ...jest.requireActual('../../../__mocks__/react-native-reanimated').default, View: 'AnimatedView' } }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 // One store answers both names (ui/system/motion, 2026-09-24): mocking it covers useSystemReducedMotion and every
@@ -89,11 +90,40 @@ async function render(workspace: Record<string, unknown>, messageRows: unknown[]
   await act(async () => { tree = create(<Dogovor />); });
 }
 beforeEach(() => { jest.clearAllMocks(); mockReducedMotion = false; mockParams = { id: mockAgreementId }; mockMessagesRead.mockResolvedValue(0);
+  mockGroupRead.mockReset().mockResolvedValue({ ok: true, podatak: { group: null, available: false } });
   mockDisplayed.mockReset().mockResolvedValue({ ok: true, podatak: {} });
   mockWindow = { width: 390, height: 844, fontScale: 1, scale: 3 };
   mockReviewContext.mockReset().mockResolvedValue({ ok: true, podatak: { eligible: true, review: null } });
   mockCancellationRead.mockReset().mockResolvedValue({ ok: true, podatak: new Map() }); mockAccountPhone = '+381601234567'; });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
+
+test.each(['narucilac', 'uskocer'] as const)('group context does not present a private status or price as a group-wide fact for %s', async role => {
+  const requester = role === 'narucilac';
+  mockGroupRead.mockResolvedValue({ ok: true, podatak: {
+    accountId: mockAccount, agreementId: mockAgreementId, needId: mockNeedId, available: true, authoritative: true,
+    group: { groupId: '50000000-0000-4000-8000-000000000001', title: 'Pomoć pri selidbi',
+      role: requester ? 'REQUESTER' : 'PARTICIPANT', canSend: true, terminal: false, unreadCount: 0,
+      managementNextId: null,
+      members: [
+        { accountId: mockAccount, profileId: mockAccount, displayName: 'Ana', role: requester ? 'REQUESTER' : 'PARTICIPANT' },
+        { accountId: mockOther, profileId: mockOther, displayName: 'Marko', role: requester ? 'PARTICIPANT' : 'REQUESTER' },
+      ],
+      management: requester ? [{ agreementId: mockAgreementId, accountId: mockOther, status: 'CONFIRMED', executionState: 'CONFIRMED', problemOpened: false }] : null,
+    },
+  } });
+  await render(base({ pokrivenost: { ukupno: 3, popunjeno: 1, preostalo: 2 } }, role));
+  const copy = texts();
+  const members = copy.indexOf('Učesnici zadatka'), privateTitle = copy.indexOf('Tvoj Dogovor: Marko');
+  expect(members).toBeGreaterThan(-1);
+  expect(privateTitle).toBeGreaterThan(-1);
+  expect(privateTitle).toBeLessThan(members);
+  expect(copy.indexOf('Dogovoreno', privateTitle)).toBeGreaterThan(privateTitle);
+  expect(copy.indexOf('3.000 RSD')).toBeGreaterThan(privateTitle);
+  expect(copy.indexOf('3.000 RSD')).toBeLessThan(members);
+  expect(copy.indexOf('Dogovoreno', privateTitle)).toBeLessThan(members);
+  expect(copy).not.toContain('Ukupna cena grupe');
+  expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
+});
 
 const quietLine = () => tree.root.findAllByProps({ testID: 'agreement-quiet-line' }).map(node => node.props.children);
 test('a confirmed Agreement with nothing to do shows no green action - one grey sentence of the state - and names the next step', async () => {
@@ -134,12 +164,12 @@ test.each([false, true])('completion review uses the accepted facts, sends nothi
     radnje: { mozeOznacitiZavrsetak: false, mozePotvrditiZavrsetak: true, izmenaNaCekanju: false, predlogIzmene: null } }));
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Potvrdi završetak' }).props.onPress());
   const modal = tree.root.findByType('Modal' as any);
-  expect(modal.props.animationType).toBe(reduced ? 'none' : 'slide');
+  expect(modal.props.animationType).toBe(reduced ? 'none' : 'fade');
   expect(modal.findByProps({ accessibilityLabel: 'Dogovoreni termin: 26. septembar, 10:00–12:00' })).toBeTruthy();
   expect(modal.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 4.200 RSD' })).toBeTruthy();
   expect(texts()).toContain('Marko');
   const retained = tree.root.findByProps({ accessibilityLabel: 'Da, potvrdi završetak' }).props.onPress;
-  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad na Dogovor' }).props.onPress());
+  await act(async () => tree.root.findAllByProps({ testID: 'product-sheet-close' })[0].props.onPress());
   await act(async () => retained());
   expect(tree.root.findAllByType('Modal' as any)).toHaveLength(0);
   expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled(); expect(mockSource.oznaciZavrsetak).not.toHaveBeenCalled();
@@ -208,16 +238,16 @@ describe('the rating is offered only while it is not given', () => {
   const ownReview = { reviewId: '50000000-0000-4000-8000-000000000001', agreementId: mockAgreementId, reviewerAccountId: mockAccount,
     targetAccountId: mockOther, rating: 5, tags: [], clientRequestId: '60000000-0000-4000-8000-000000000001', createdAt: '2026-09-23T10:00:00Z',
     idempotentReplay: false, authoritative: true };
-  test('a saved rating takes the green action away, says the rating is kept, and finishes the step bar', async () => {
+  test('a saved rating takes the green action away and leaves one accessible completed outcome', async () => {
     mockReviewContext.mockResolvedValue({ ok: true, podatak: { accountId: mockAccount, agreementId: mockAgreementId, targetAccountId: mockOther,
       eligible: false, review: ownReview, authoritative: true } });
     await render(base({ stanje: 'COMPLETED' }));
     expect(mockReviewContext).toHaveBeenCalledWith(mockAgreementId, { accountId: mockAccount, accountRevision: 0 });
     expect(brand()).toEqual([]); expect(labels()).not.toContain('Oceni saradnju'); expect(labels()).not.toContain('Otvori poruke');
-    expect(quietLine()).toEqual([]); expect(texts().match(/Dogovor je završen/g)).toHaveLength(1);
-    expect(texts()).toContain('Tvoja ocena je sačuvana.');
-    expect(tree.root.findByProps({ accessibilityRole: 'progressbar' }).props.accessibilityValue.text)
-      .toBe('Dogovoreno: urađeno. Gotovo: urađeno. Potvrđeno: urađeno. Ocena: urađeno.');
+    expect(quietLine()).toEqual([]); expect(texts().match(/Završen · ocena sačuvana/g)).toHaveLength(1);
+    expect(tree.root.findAllByProps({ testID: 'agreement-steps' })).toHaveLength(0);
+    const outcome = tree.root.findAll(node => String(node.type) === 'T' && node.props.children === 'Završen · ocena sačuvana')[0];
+    expect(outcome.props.accessibilityLiveRegion).toBe('polite');
     expect(mockRouter.navigate).not.toHaveBeenCalled();
   });
   test('a rating that can no longer be given is not offered either', async () => {
@@ -271,7 +301,7 @@ describe('a Dogovor without a saved amount says so and never shows one', () => {
     await act(async () => tree.unmount());
     await render(base());
     expect(texts()).toContain('3.000 RSD'); expect(texts()).toContain('ukupno');
-    expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
+    expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD, Za ovu saradnju' })).toBeTruthy();
   });
   test('Poruke opens the accepted overview where the missing amount stays words, never an invented price', async () => {
     mockParams = { id: mockAgreementId, tab: 'poruke' };
@@ -311,7 +341,7 @@ describe('Poruke says what waits for me and keeps accepted terms one press away'
     expect(texts()).toContain(words); expect(texts()).not.toContain('3.000 RSD');
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dogovor: Pomoć pri selidbi. Marko' }).props.onPress());
     expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
-    expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
+    expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD, Za ovu saradnju' })).toBeTruthy();
     expect(tree.root.findByProps({ accessibilityLabel: 'Termin: Fleksibilno' })).toBeTruthy();
     // Approximate task context belongs to the source link, separate from accepted time and price.
     expect(tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak: Pomoć pri selidbi. Beograd' })).toBeTruthy();
@@ -331,7 +361,7 @@ describe('Poruke says what waits for me and keeps accepted terms one press away'
     expect(texts()).not.toContain('Čeka tvoju ocenu');
     expect(texts()).not.toContain('3.000 RSD');
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Dogovor: Pomoć pri selidbi. Marko' }).props.onPress());
-    expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
+    expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD, Za ovu saradnju' })).toBeTruthy();
     expect(tree.root.findByProps({ accessibilityLabel: 'Termin: Fleksibilno' })).toBeTruthy();
     expect(tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak: Pomoć pri selidbi. Beograd' })).toBeTruthy();
   });
@@ -381,7 +411,7 @@ test('the requester reaches the Zadatak this Dogovor grew out of, and is offered
   expect(labels()).toContain('Otvori zadatak: Pomoć pri selidbi. Beograd');
   // The row only leads to the task; the work's name is the head of the page and its place is a row of the terms.
   expect(rowTexts('Otvori zadatak: Pomoć pri selidbi. Beograd')).toEqual(['Otvori zadatak']);
-  expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
+  expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD, Za ovu saradnju' })).toBeTruthy();
   expect(tree.root.findByProps({ accessibilityLabel: 'Mesto: Beograd' })).toBeTruthy();
   expect(labels()).not.toContain('Zadatak');
   expect(labels()).not.toContain('Tvoja prijava'); expect(labels()).not.toContain('Prijava');
@@ -391,7 +421,7 @@ test('the requester reaches the Zadatak this Dogovor grew out of, and is offered
 test('the worker reaches the Prilika and the offer they sent', async () => {
   await render(base({}, 'uskocer'));
   expect(rowTexts('Otvori zadatak: Pomoć pri selidbi. Beograd')).toEqual(['Otvori zadatak']);
-  expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
+  expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD, Za ovu saradnju' })).toBeTruthy();
   expect(labels()).not.toContain('Zadatak'); expect(rowTexts('Tvoja prijava')).toEqual(['Tvoja prijava']);
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Otvori zadatak: Pomoć pri selidbi. Beograd' }).props.onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/prilike/[id]', params: { id: mockNeedId } });
@@ -406,7 +436,7 @@ test.each([
   expect(labels()).not.toContain('Zadatak');
   expect(labels()).not.toContain('Otvori zadatak: Pomoć pri selidbi. Beograd');
   expect(labels()).not.toContain('Tvoja prijava');
-  expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
+  expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD, Za ovu saradnju' })).toBeTruthy();
   // The rest of the screen is unaffected.
   expect(labels()).toContain('Izmeni uslove');
 });
@@ -465,7 +495,7 @@ test('the top bar keeps the other person on both views, then Back returns to the
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress());
   expect(mockRouter.back).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
   expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
-  expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
+  expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD, Za ovu saradnju' })).toBeTruthy();
   expect(headers()).toContain('Marko');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress());
   expect(mockRouter.back).toHaveBeenCalledTimes(1); expect(mockRouter.replace).not.toHaveBeenCalled();
@@ -496,7 +526,7 @@ describe('the compact conversation keeps complete identity and accepted terms re
     expect(tree.root.findByProps({ accessibilityLabel: 'Poruke: Marko' })).toBeTruthy();
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Uslovi Dogovora: Pomoć pri selidbi' }).props.onPress());
     expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
-    expect(tree.root.findByProps({ accessibilityLabel: `${amountLabel}: ${amount}` })).toBeTruthy();
+    expect(tree.root.findByProps({ accessibilityLabel: `${amountLabel}: ${amount}${kind === 'missing' ? '' : ', Za ovu saradnju'}` })).toBeTruthy();
     expect(labels()).toContain('Poruke');
     expect(mockRead).toHaveBeenCalledTimes(1);
     expect(mockMessages).toHaveBeenCalledTimes(1);
@@ -511,7 +541,7 @@ describe('the compact conversation keeps complete identity and accepted terms re
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress());
     expect(mockRouter.back).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
     expect(tree.root.findAllByType('AgreementChat' as any)).toHaveLength(0);
-    expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
+    expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD, Za ovu saradnju' })).toBeTruthy();
     expect(headers()).toContain('Marko');
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Nazad' }).props.onPress());
     expect(mockRouter.back).toHaveBeenCalledTimes(1);

@@ -26,6 +26,7 @@ jest.mock('../../settings/SettingsPresentation', () => {
 });
 import LegalRoute from '../../../app/(app)/profil/pravna';
 import { PublicLegalModal } from '../LegalDocuments';
+import { SkeletonList } from '../../system/Skeleton';
 const ok = <T,>(podatak: T) => ({ ok: true, podatak });
 const bundle = (): LegalBundleStatus => ({ ready: true, acceptedCurrentBundle: false, reason: null, documents: [
   { kind: 'TERMS', version: 'RC2', sha256: 'a'.repeat(64), url: 'https://example.test/terms', publishedAt: '', effectiveAt: '' },
@@ -212,10 +213,13 @@ it('a pull keeps the documents on screen under the pull\'s own spinner, and noth
   await act(async () => finish(ok(bundle())));
   expect(pull().busy).toBe(false); expect(action('Prihvati pregledane dokumente').props).toMatchObject({ disabled: false }); expect(footReason()).toBeNull();
 });
-it('the first read is a skeleton and the invitation to read is only said when there is something to read', async () => {
+it('the first read names the check without drawing document rows or a skeleton', async () => {
   let finish!: (value: unknown) => void; mockRead.mockReturnValueOnce(new Promise(done => { finish = done; }));
   await act(async () => { tree = create(<LegalRoute />); });
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Učitavanje pravnih dokumenata' }).length).toBeGreaterThan(0); expect(hosts('SettingsRow')).toHaveLength(0);
+  expect(renderedCopy()).toContain('Učitavamo pravne dokumente');
+  expect(tree.root.findAllByProps({ testID: 'quiet-read-state' })).toHaveLength(1);
+  expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
+  expect(hosts('SettingsRow')).toHaveLength(0);
   await act(async () => finish(ok(bundle()))); expect(hosts('SettingsRow')).toHaveLength(2);
   await act(async () => tree.unmount());
   mockOwner = { user: null, accountRevision: 0 };
@@ -231,8 +235,8 @@ it('the public modal reads anonymously and never offers or records ledger accept
   mockOwner = { user: null, accountRevision: 0 }; const close = jest.fn();
   await act(async () => { tree = create(<PublicLegalModal kind="PRIVACY" onClose={close} />); });
   await act(async () => hosts('SettingsRow')[1].props.onPress()); expect(mockOpen).toHaveBeenCalledWith('https://example.test/privacy');
-  // The public view is a sheet now: its own close control ends it, and closing leaves the form behind it untouched.
-  await act(async () => tree.root.findByProps({ accessibilityRole: 'button', accessibilityLabel: 'Zatvori' }).props.onPress()); expect(close).toHaveBeenCalledTimes(1);
+  // The centred public view closes without accepting a document or touching the form behind it.
+  await act(async () => tree.root.findByProps({ testID: 'product-sheet-close' }).props.onPress()); expect(close).toHaveBeenCalledTimes(1);
   expect(hosts('SettingsScreen')).toHaveLength(0);
   expect(mockAccept).not.toHaveBeenCalled(); expect(mockProcessors).not.toHaveBeenCalled();
 });

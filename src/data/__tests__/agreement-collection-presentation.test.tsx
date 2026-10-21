@@ -57,11 +57,13 @@ test('active and history preserve both actual participant roles; attention means
   // "Milos SLJIVIC   Uskočio si": their name, then a sentence about me, with nothing to mark that
   // the subject had changed. Početna keeps the first person because it puts the relation first.
   expect(texts()).toContain('Traži pomoć'); expect(texts()).toContain('Uskače na tvoj zadatak');
+  expect(texts()).toContain('Ti objavljuješ'); expect(texts()).toContain('Ti uskačeš');
   expect(texts()).not.toContain('Uskočio si'); expect(texts()).not.toContain('Objavio si');
   // The filter speaks to the person ("tvoju"), never in the first person ("moju").
   await tap('Čeka tvoju potvrdu'); expect(titles()).toEqual(['Otvori Dogovor Posao waiting-mine']);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka moju potvrdu' })).toHaveLength(0);
   await tap('Čeka tvoju potvrdu'); await tap('Istorija'); expect(titles()).toEqual(['Otvori Dogovor Posao done', 'Otvori Dogovor Posao cancelled']);
+  expect(texts()).toContain('Sve uloge');
   // Round-1 critique A11 (owner step 8): Aktivni and Istorija only. "Svi" repeated both sets and is gone.
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Svi' })).toHaveLength(0);
   // Nothing in history waits for a confirmation, so the filter is offered on Aktivni only.
@@ -113,8 +115,9 @@ test('reuses full accepted amount, precise interval and coverage, without exposi
   // The accepted term is one full line (round-1 critique B15; it used to be split into a day and a time under it),
   // and the interval keeps every microsecond it was agreed with.
   await render(); const text = texts(); expect(text).toContain('11. septembar · 10:00:00.000001–10:00:00.000009'); expect(text).toContain('2.500 RSD'); expect(text).toContain('3'); expect(text).toContain('osobe');
-  // The amount stands alone on the card (the Dogovor itself says "Dogovoreno ukupno"); the ear still hears what it is.
-  expect(text).not.toContain('ukupno'); expect(card('Posao remote').props.accessibilityValue.text).toContain('2.500 RSD ukupno');
+  // The visible and spoken basis stays with this one accepted collaboration, never a sum for the source task.
+  expect(text).toContain('Cena ove saradnje'); expect(text).not.toContain('ukupno');
+  expect(card('Posao remote').props.accessibilityValue.text).toContain('2.500 RSD za ovu saradnju');
   expect(text).toContain('Na daljinu'); expect(text).not.toMatch(/PRIVATE_|REMOTE_MUST_HIDE_LOCATION/);
   await tap('Otvori Dogovor Posao remote'); expect(open).toHaveBeenCalledWith(rows[0]);
 });
@@ -307,7 +310,7 @@ test('only a Dogovor that waits for me carries the strip, in the order the Dogov
   expect(cardTexts('Posao mine')).toContain('Tvoja izmena čeka odgovor');
   for (const title of ['Posao mine', 'Posao change']) {
     expect(cardTexts(title)).toContain('Važeći iznos'); expect(cardTexts(title)).toContain('2.500 RSD');
-    expect(card(title).props.accessibilityValue.text).toContain('Važeći iznos, 2.500 RSD ukupno');
+    expect(card(title).props.accessibilityValue.text).toContain('Važeći iznos, 2.500 RSD za ovu saradnju');
   }
   expect(cardTexts('Posao plain')).not.toContain('Važeći iznos'); expect(card('Posao mine').props.accessibilityHint).toBeUndefined();
   expect(cardTexts('Posao confirm')).toContain('Potvrdi završetak'); expect(cardTexts('Posao confirm')).toContain('Čeka potvrdu');
@@ -565,6 +568,22 @@ test('the first rows after a skeleton arrive once, at most six; a warm list and 
   await tap('Istorija'); expect(arriving()).toBe(0);
 });
 
+test('a single actual role needs no account-like role switch; mixed roles retain the filter', async () => {
+  rows = [agreement('mine', 'CONFIRMED')];
+  await render();
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Tvoja uloga u Dogovorima' })).toHaveLength(0);
+  rows = [...rows, agreement('help', 'CONFIRMED', false)];
+  await act(async () => tree.update(<Screen />));
+  await tap('Uskačem');
+  expect(titles()).toEqual(['Otvori Dogovor Posao help']);
+  rows = [rows[0]];
+  await act(async () => tree.update(<Screen />));
+  // A disappeared role never strands the user inside a filter without its reset.
+  await tap('Sve uloge');
+  expect(titles()).toEqual(['Otvori Dogovor Posao mine']);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Tvoja uloga u Dogovorima' })).toHaveLength(0);
+});
+
 test('role filters use my actual participant role and persist across active/history without hiding the reset', async () => {
  rows = [agreement('request', 'CONFIRMED'), agreement('help', 'CONFIRMED', false), agreement('old-help', 'COMPLETED', false)];
  await render();await tap('Uskačem');expect(titles()).toEqual(['Otvori Dogovor Posao help']);
@@ -624,7 +643,7 @@ test('grouped rows speak cancellation details, changed terms, own pending change
     onRefresh={refresh} onHome={tasks} onCalendar={() => {}} onProfile={() => {}} />); });
   const spoken = (name: string) => tree.root.findByProps({ accessibilityLabel: `Otvori Dogovor Selidba, ${name}` }).props.accessibilityValue.text;
   expect(spoken('Ana')).toContain('Prijavljen je problem'); expect(spoken('Ana')).toContain('Tvoja izmena čeka odgovor');
-  expect(spoken('Ana')).toContain('izmenjeni uslovi'); expect(spoken('Ana')).toContain('Važeći iznos, 2.500 RSD ukupno');
+  expect(spoken('Ana')).toContain('izmenjeni uslovi'); expect(spoken('Ana')).toContain('Važeći iznos, 2.500 RSD za ovu saradnju');
   expect(spoken('Iva')).not.toContain('Važeći iznos');
   expect(spoken('Iva')).toContain('Plan je promenjen.');
 });

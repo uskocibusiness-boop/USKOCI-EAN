@@ -8,6 +8,7 @@ import { FactArt, type FactArtKind } from '../../system/FactArt';
 import { FACT_ROW_ART, FactRow } from '../../system/FactRow';
 import { Glyph } from '../../system/Glyph';
 import { InfoButton } from '../../system/InfoButton';
+import { MoneySummary } from '../../system/MoneySummary';
 import { layout } from '../../system/layout';
 import { plural } from '../../system/plural';
 import { Section } from '../../system/Section';
@@ -49,10 +50,11 @@ export function TaskDecisionValue({ need, size = 'detail', offersInfo }: { need:
   }
   // What the sum buys, in the words of the place: a page says "ukupno" for the whole task and "po osobi · ukupno 6.000 RSD" when the people multiply it; a card says "ukupno" or "po osobi".
   const basis = size === 'card' ? value.basis : needPriceBasisNote(need)?.replace('ukupno za ceo zadatak', 'ukupno') ?? null;
+  if (size === 'summary') return <MoneySummary label="Budžet" amount={value.amount} basis={basis} />;
   return <View accessible accessibilityRole="text" accessibilityLabel={`Budžet ${value.amount}${basis ? ` ${basis}` : ''}`} style={s.valueRow}>
-    <View style={size === 'summary' ? s.summaryArt : s.valueArt}><FactArt kind="money" size={size === 'summary' ? 44 : FACT_ROW_ART} /></View>
-    <View style={size === 'summary' ? s.summaryValue : size === 'card' ? s.valueCopyCard : s.valueCopy}>
-      <T variant={size === 'summary' ? 'priceLarge' : size === 'card' ? 'priceRow' : 'priceSmall'} style={s.amount}>{value.amount}</T>
+    <View style={s.valueArt}><FactArt kind="money" size={FACT_ROW_ART} /></View>
+    <View style={size === 'card' ? s.valueCopyCard : s.valueCopy}>
+      <T variant={size === 'card' ? 'priceRow' : 'priceSmall'} style={s.amount}>{value.amount}</T>
       {basis ? <T variant="note" tone="muted">{basis}</T> : null}
     </View>
   </View>;
@@ -70,7 +72,7 @@ export const OFFERS_INFO = {
  */
 export function TaskPlacePrivacy() {
   return <View style={s.withInfo}>
-    <View style={s.grow}><FactRow art="lock" value="Tačna adresa: samo u Dogovoru" /></View>
+    <View style={s.grow}><FactRow art="lock" value="Tačnu adresu naručilac deli u Dogovoru" /></View>
     <View style={s.infoSlot}>
       <InfoButton title="Ko vidi adresu" lines={['Na mapi se vidi približno područje, ne tačna adresa.', 'U Dogovoru naručilac bira kome deli tačnu adresu i privatne napomene. Izbor prijave sam po sebi ne otkriva adresu.']} />
     </View>
@@ -165,8 +167,6 @@ const RING = 2;
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
   prominentTitle: { textAlign: 'left' },
-  summaryArt: { width: 44, height: 44 },
-  summaryValue: { flex: 1, minWidth: 0, gap: sys.space.xs },
   // The amount's row has `FactRow`'s own geometry: the 28 picture, 12, the copy with its first line centred on the picture.
   valueRow: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, minHeight: FACT_ROW_ART },
   valueArt: { width: FACT_ROW_ART, height: FACT_ROW_ART },

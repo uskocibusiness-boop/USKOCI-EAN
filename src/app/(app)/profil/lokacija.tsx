@@ -15,6 +15,7 @@ import { T } from '../../../ui/Text';
 import { Press } from '../../../ui/Press';
 import { FactArt } from '../../../ui/system/FactArt';
 import { StateView } from '../../../ui/system/StateView';
+import { QuietReadState } from '../../../ui/v2/QuietReadState';
 import { CountryField, selectableCountry, useCountryOptions } from '../../../ui/location/CountryField';
 import { ResolvedPinMap } from '../../../ui/location/ResolvedPinMap';
 import { displayedPinPosition } from '../../../ui/location/ResolvedPinMap.types';
@@ -190,11 +191,15 @@ function WorkerPointConfirmation({ expectedProfileId }: { expectedProfileId: str
   const frame = (body: ReactNode) => <WorkerProfileFrame title="Tačka na mapi" backLabel="Nazad" back={leave.back}>{body}{leave.sheet}</WorkerProfileFrame>;
   if (!location) return frame(editor.error && !editor.loading
     ? <StateView kind="error" title="Područje rada nije učitano" body={editor.error} primary={{ label: 'Pokušaj ponovo', onPress: refresh }} />
-    : <StateView kind="loading" title="Učitavamo područje rada…" skeleton={{ count: 2, rows: 1 }} />);
+    : <QuietReadState art="map" title="Učitavamo područje rada…"
+      body="Proveravamo sačuvani grad i približnu tačku pre potvrde na mapi." />);
   if (!expectedProfileId || location.profileId !== expectedProfileId) return frame(<StateView kind="error" title="Otvori mapu iz svog radnog profila"
     primary={{ label: 'Nazad na profil', onPress: leave.back }} />);
   const modeNotice = modes.view.kind === 'loading'
-    ? <StateView kind="loading" title="Proveravamo način rada…" skeleton={{ count: 1, rows: 1 }} />
+    ? admittedScope.current === mapScope
+      ? <View accessibilityLiveRegion="polite"><T variant="note" tone="muted">Proveravamo način rada…</T></View>
+      : <QuietReadState art="map" title="Proveravamo način rada…"
+        body="Mapa će biti dostupna kada potvrdimo rad na lokaciji u tvom profilu." />
     : modes.view.kind === 'unavailable' ? <StateView kind="error" title="Način rada nije učitan" primary={{ label: 'Pokušaj ponovo', onPress: refresh }} />
       : !eligible ? <StateView kind="empty" title={modes.view.kind === 'confirmed' ? 'Za rad na daljinu mapa nije potrebna' : 'Prvo potvrdi način rada u razgovoru'}
         primary={{ label: 'Nazad na profil', onPress: leave.back }} /> : null;

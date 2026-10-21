@@ -6,6 +6,8 @@ import { sys } from './tokens';
 export type FactRowProps = {
   /** The picture of the fact (where, when, how many, how much): a `FactArt` kind. */
   art: FactArtKind;
+  /** Optional reading label; the value remains the strongest line on a detail screen. */
+  label?: string;
   /** The fact itself. It wraps, and is never cut with an ellipsis. */
   value: string;
   /** Something that belongs beside it, in a quieter line under it ("0 / 2 popunjeno"). */
@@ -28,14 +30,16 @@ export const FACT_ROW_ART = ART;
  * The fact is the line, so it wraps at any text size and the picture stays on its FIRST line (a fact of three lines does not
  * centre its picture on the middle one). A screen reader hears it as one sentence: the fact, then the note.
  */
-export function FactRow({ art, value, note, size = 'card', testID }: FactRowProps) {
+export function FactRow({ art, label, value, note, size = 'card', testID }: FactRowProps) {
   const detail = size === 'detail';
   const line = (detail ? sys.type.body : sys.type.note).lineHeight;
-  return <View testID={testID} accessible accessibilityRole="text" accessibilityLabel={note ? `${value}, ${note}` : value} style={s.row}>
+  const spoken = `${label ? `${label}: ` : ''}${value}${note ? `, ${note}` : ''}`;
+  return <View testID={testID} accessible accessibilityRole="text" accessibilityLabel={spoken} style={s.row}>
     <View style={s.art}><FactArt kind={art} size={ART} /></View>
     {/* The first line is centred on the picture: the leading is a few dp shorter than the 28 of the picture. */}
-    <View style={[s.copy, { paddingTop: Math.max(0, (ART - line) / 2) }]}>
-      <T variant={detail ? 'body' : 'note'} style={detail ? undefined : s.card}>{value}</T>
+    <View style={[s.copy, label ? s.labeled : { paddingTop: Math.max(0, (ART - line) / 2) }]}>
+      {label ? <T variant="note" tone="muted">{label}</T> : null}
+      <T variant={detail ? label ? 'bodyStrong' : 'body' : 'note'} style={detail ? undefined : s.card}>{value}</T>
       {note ? <T variant={detail ? 'note' : 'meta'} tone="muted">{note}</T> : null}
     </View>
   </View>;
@@ -45,5 +49,6 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, minHeight: ART },
   art: { width: ART, height: ART },
   copy: { flex: 1, minWidth: 0 },
+  labeled: { gap: sys.space.xs },
   card: { color: sys.color.fact },
 });

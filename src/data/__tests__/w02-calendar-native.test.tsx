@@ -187,7 +187,10 @@ describe('actual availability editor interactions', () => {
   it('keeps save, discard and the open editor action outside scrolling fields', async () => {
     const onSave = await render();
     const insideScroll = (node: ReturnType<typeof button>) => {
-      for (let parent = node.parent; parent; parent = parent.parent) if (parent.type === 'ScrollView' as React.ElementType) return true;
+      // Commands have an independently bounded scroll at large font sizes.
+      // They must remain outside the editor fields' scroll, not outside every scroll.
+      for (let parent = node.parent; parent; parent = parent.parent) if (parent.type === 'ScrollView' as React.ElementType
+        && parent.props.testID !== 'product-sheet-actions-scroll') return true;
       return false;
     };
     await addMonday();

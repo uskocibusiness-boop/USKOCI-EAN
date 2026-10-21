@@ -35,9 +35,10 @@ afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined
 
 test('accepted terms retain their values and covered people, separate from source-task context', async () => {
   await render(<AgreementTerms agreement={agreement} />);
-  // The terms are the rows of the one list, in this order: the place (its coarse area, never the private address), the term with its
-  // zone in one sentence, the one amount, the people.
-  expect(facts()).toEqual(['Mesto: Liman, Novi Sad', 'Termin: 26. sep · 17:00–19:00 (po vremenu u Srbiji)', 'Dogovoreno ukupno: 5.500 RSD', 'Ljudi: 2 osobe']);
+  // The individual accepted amount leads the logistics; no task budget or total
+  // task capacity can replace the amount or people accepted by this collaboration.
+  expect(facts()).toEqual(['Dogovoreno ukupno: 5.500 RSD, Za ovu saradnju', 'Mesto: Liman, Novi Sad', 'Termin: 26. sep · 17:00–19:00 (po vremenu u Srbiji)', 'Ljudi: 2 osobe']);
+  expect(text()).toContain('Za ovu saradnju');
   expect(text()).toContain('Uslovi su izmenjeni.');
   expect(text()).not.toContain('4 osobe');
   const open = jest.fn();
@@ -53,7 +54,7 @@ test('missing amount and terminal unscheduled terms stay explicit; remote contex
     cena: { iznos: 0, valuta: 'RSD', prikaz: '' }, vremeTekst: 'Termin nije potvrđen',
     pokrivenost: { ukupno: 1, popunjeno: 1, preostalo: 0, udeo: 1 } };
   await render(<><AgreementTaskLink agreement={missing} /><AgreementTerms agreement={missing} /></>);
-  expect(facts()).toEqual(['Mesto: Na daljinu', 'Termin: Bez tačnog termina', `Cena: ${BEZ_IZNOSA}`, 'Ljudi: 1 osoba']);
+  expect(facts()).toEqual([`Cena: ${BEZ_IZNOSA}`, 'Mesto: Na daljinu', 'Termin: Bez tačnog termina', 'Ljudi: 1 osoba']);
   expect(text()).toContain('Na daljinu');
   expect(text()).not.toContain('Liman');
   expect(text()).not.toContain('0 RSD');

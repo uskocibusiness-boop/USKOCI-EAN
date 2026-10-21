@@ -120,8 +120,8 @@ export function SettingsSwitchRow({ label, help, value, disabled = false, reason
       <View style={styles.rowCopy}>
         <SettingsText variant="bodyStrong" tone={disabled ? 'muted' : 'ink'}>{label}</SettingsText>
       </View>
-      <View style={styles.switchControl} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        <Switch value={value} disabled={disabled} onValueChange={onChange}
+      <View style={styles.switchControl} pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        <Switch value={value} disabled={disabled}
           trackColor={{ false: sys.color.lineStrong, true: sys.color.green }} thumbColor={sys.color.surface}
           ios_backgroundColor={sys.color.lineStrong} />
       </View>

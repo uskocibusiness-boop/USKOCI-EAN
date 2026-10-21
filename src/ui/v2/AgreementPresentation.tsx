@@ -8,10 +8,11 @@ import { Avatar } from '../system/Avatar';
 import { ScreenChrome } from '../system/ScreenChrome';
 import { Disclosure } from '../system/Disclosure';
 import { FactArt, type FactArtKind } from '../system/FactArt';
+import { FactRow } from '../system/FactRow';
 import { Glyph } from '../system/Glyph';
-import { KeyValueRow } from '../system/KeyValueRow';
 import { ListRow } from '../system/ListRow';
 import { MoneyArt } from '../system/MoneyArt';
+import { MoneySummary } from '../system/MoneySummary';
 import { Section } from '../system/Section';
 import { Segmented } from '../system/Segmented';
 import { sys } from '../system/tokens';
@@ -103,7 +104,7 @@ export function AgreementFact({ art, label, value, note, basis, money = false }:
   art: FactArtKind; label: string; value: string; note?: string | null; basis?: string | null; money?: boolean;
 }) {
   return <View accessible accessibilityLabel={`${label}: ${value}${note ? `, ${note}` : ''}`} style={s.fact}>
-    <View style={s.factArt}>{art === 'money' && money ? <MoneyArt size={24} /> : <FactArt kind={art} size={24} cut="art" tone={art === 'calendar' || art === 'users' ? 'quiet' : 'brand'} />}</View>
+    <View style={s.factArt}>{art === 'money' && money ? <MoneyArt size={24} /> : <FactArt kind={art} size={24} cut="art" />}</View>
     <View style={s.factCopy}>
       <T variant="note" style={money ? s.factMoney : s.factValue}>{value}{money && basis ? <T variant="note" tone="muted">{` ${basis}`}</T> : null}</T>
       {note ? <T variant="meta" tone="muted">{note}</T> : null}
@@ -125,7 +126,6 @@ export function AgreementTaskLink({ agreement: a, onOpenTask, disabled = false }
   onOpenTask?: () => void; disabled?: boolean;
 }) {
   const title = readableTitle(a.naslov);
-  const taskPlace = agreementTaskPlace(a);
   const content = <View style={s.titleRow}>
     <FactArt kind="document" size={24} cut="art" />
     <View style={s.taskCopy}>
@@ -151,11 +151,11 @@ export function termValue(a: Pick<DogovorProjekcija, 'vremeTekst' | 'stanje'>): 
 }
 
 /**
- * The accepted terms. In the overview (composition spec 4.9): the section "Uslovi", one row for each of Mesto (the coarse area or "Na daljinu", never the private address), Termin, Dogovoreno ukupno
- * (the one amount, large), Ljudi and Obim, parted by their inset lines and by nothing else. Changing them is the action "Izmeni uslove" of
- * the page's actions, in one place (J1, J15; the title used to carry a second "Izmeni"). A Dogovor without a saved amount says so in words
- * and a Dogovor without an exact term says that, in the words of the term and never as a value. In the chat's compact context (`compact`)
- * the same facts stand as the four small facts of the conversation's header, with no line between them.
+ * Accepted terms of this individual collaboration: the agreed amount, followed by
+ * labeled logistics and scope. Only the public coarse area belongs here. The
+ * separately authorized contact section owns any private address. Missing money
+ * remains a sentence; it must never look like a zero price or payment receipt.
+ * Compact chat keeps its smaller context without another amount panel.
  */
 export function AgreementTerms({ agreement: a, compact = false }: { agreement: DogovorProjekcija; compact?: boolean }) {
   const people = osoba(a.pokrivenost.popunjeno);
@@ -182,12 +182,12 @@ export function AgreementTerms({ agreement: a, compact = false }: { agreement: D
   const price = /\d/.test(amount);
   return <Section title="Uslovi">
     {a.verzija > 1 ? <T variant="meta" tone="muted" style={s.changedNote}>Uslovi su izmenjeni.</T> : null}
-    <View>
-      <KeyValueRow label="Mesto" value={agreementTaskPlace(a)} />
-      <KeyValueRow label="Termin" value={termValue(a)} />
-      {/* A Dogovor without a saved amount says so in words, in ink, and without "ukupno" beside it. */}
-      <KeyValueRow label={amount ? 'Dogovoreno ukupno' : 'Cena'} value={amount || BEZ_IZNOSA} emphasis={price ? 'price' : undefined} />
-      <KeyValueRow label="Ljudi" value={people} last={!scope} />
+    <View style={s.acceptedFacts}>
+      {price ? <MoneySummary label="Dogovoreno ukupno" amount={amount} basis="Za ovu saradnju" />
+        : <FactRow art="money" label="Cena" value={amount || BEZ_IZNOSA} size="detail" />}
+      <FactRow art={remote ? 'remote' : 'pin'} label="Mesto" value={agreementTaskPlace(a)} size="detail" />
+      <FactRow art="calendar" label="Termin" value={termValue(a)} size="detail" />
+      <FactRow art="users" label="Ljudi" value={people} size="detail" />
       {scope ? longScope(scope)
         ? <Disclosure label="Obim zadatka" hint="Prihvaćeni opis zadatka">
           <T selectable>{scope}</T>
@@ -238,6 +238,7 @@ const s = StyleSheet.create({
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm },
   taskCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   facts: { gap: sys.space.xs },
+  acceptedFacts: { gap: sys.space.base },
   changedNote: { marginBottom: sys.space.xs },
   scope: { gap: sys.space.xs, paddingVertical: sys.space.md },
   acceptedScope: { gap: sys.space.xs, paddingTop: sys.space.sm },

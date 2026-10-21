@@ -34,6 +34,7 @@ it('legacy and exact contracts admit only their fixed fields', () => {
   expect(publicPushTarget({ kind: 'INBOX' })).toEqual({ kind: 'INBOX' });
   expect(publicPushTarget({ kind: 'INBOX', eventType: 'MESSAGE_RECEIVED', eventId: event })).toEqual({ kind: 'MESSAGE_EVENT', eventId: event });
   for (const value of [null, [], { kind: 'INBOX', eventId: event }, { kind: 'INBOX', eventType: 'OTHER', eventId: event },
+    { kind: 'INBOX', eventType: 'RESPONSE_RECEIVED', eventId: event },
     { kind: 'INBOX', eventType: 'MESSAGE_RECEIVED', eventId: 'private' }, { kind: 'INBOX', eventType: 'MESSAGE_RECEIVED', eventId: event, url: '/private' }]) expect(publicPushTarget(value)).toBeNull();
 });
 it('resolves an owned event without needing an Inbox page; no read ACK is sent', async () => {

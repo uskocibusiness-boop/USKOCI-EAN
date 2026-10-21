@@ -40,6 +40,7 @@ import { SupportInboxScreen } from '../SupportInboxScreen';
 import { SupportReferenceView } from '../SupportReferenceView';
 import { ConfirmSheet } from '../../system/ConfirmSheet';
 import { InlineNote } from '../../privacy/InlineNote';
+import { SkeletonList } from '../../system/Skeleton';
 const ok = (podatak: unknown) => ({ ok: true, podatak }), unknown = { ok: false, kod: 'UNKNOWN', poruka: 'Sačekaj proveru.' };
 const journal = (kind: SupportKind = 'CREATE'): SupportIntent => ({ version: 1, accountId: A, clientRequestId: K, kind, caseId: kind === 'CREATE' ? null : C,
   expectedRevision: kind === 'CREATE' ? null : 2, inputSha256: 'a'.repeat(64) });
@@ -51,9 +52,9 @@ function detail(): SupportDetail { return { accountId: A, case: { id: C, caseNum
   decisions: [{ id: D, caseId: C, caseRevision: 2, outcome: 'REJECTED', reasonCode: 'REVIEWED', explanation: 'Pregledana odluka', effect: 'NONE', evidenceIds: [], priorDecisionId: null, createdAt: time, reviewType: 'INITIAL' }],
   appeals: [], evidence: [], nextAfterSequence: '2', authoritative: true }; }
 let tree: ReactTestRenderer, screen: 'NEW' | 'DETAIL' | 'INBOX' = 'NEW', reference: SupportReference | null | 'INVALID' = null, routeKey = true;
-let preset: SupportPreset | undefined;
+let preset: SupportPreset | undefined, initialTopic: 'NO_SHOW' | undefined;
 const element = () => <React.Fragment key={routeKey ? `${mockSession.user.id}:${mockSession.accountRevision}` : 'MOUNTED'}>
-  {screen === 'NEW' ? <SupportNewScreen reference={reference} preset={preset} /> : screen === 'DETAIL' ? <SupportDetailScreen caseId={C} /> : <SupportInboxScreen />}
+  {screen === 'NEW' ? <SupportNewScreen reference={reference} preset={preset} initialTopic={initialTopic} /> : screen === 'DETAIL' ? <SupportDetailScreen caseId={C} /> : <SupportInboxScreen />}
 </React.Fragment>;
 const render = async () => { await act(async () => { tree = create(element()); }); };
 const update = async () => { await act(async () => tree.update(element())); };
@@ -74,7 +75,7 @@ async function type(label: string, value: string) { await act(async () => field(
 function deferred() { let resolve!: (value: unknown) => void; const promise = new Promise(done => { resolve = done; }); return { resolve, promise }; }
 beforeEach(() => {
   jest.clearAllMocks(); Object.values(mockService).forEach(fn => fn.mockReset()); mockAgreements.mockReset();
-  screen = 'NEW'; reference = null; preset = undefined; routeKey = true; mockSession = { user: { id: A }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockAppState = 'active';
+  screen = 'NEW'; reference = null; preset = undefined; initialTopic = undefined; routeKey = true; mockSession = { user: { id: A }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockAppState = 'active';
   mockBack.handlers = [];
   mockService.capabilities.mockResolvedValue(ok({ accountId: A, operatorAvailable: false, canCreate: true, authoritative: true }));
   mockService.loadPending.mockResolvedValue(null); mockService.recover.mockResolvedValue(absent()); mockService.submit.mockResolvedValue(unknown); mockService.cancel.mockResolvedValue(unknown);
@@ -102,6 +103,15 @@ it('a topic that needs a Dogovor says so above the grey send button until one is
   expect(action('Pošalji privatni zahtev').disabled).toBe(true); expect(footerReason()).toContain('Izaberi Dogovor iznad');
   await act(async () => action('Izaberi Dogovor').onPress()); await act(async () => action('Stvarni sopstveni Dogovor').onPress());
   expect(action('Pošalji privatni zahtev').disabled).toBe(false); expect(footerReason()).toBeNull();
+});
+it('opens a no-show report from a Dogovor with the matching topic and reference already selected', async () => {
+  reference = { kind: 'AGREEMENT', id: C, revision: 4 }; initialTopic = 'NO_SHOW';
+  await render();
+  expect(text()).toContain('Prijava nedolaska');
+  await type('Kratak naslov', 'Nedolazak'); await type('Opis zahteva', 'Dogovoreni saradnik nije došao.');
+  expect(action('Pošalji privatni zahtev').disabled).toBe(false);
+  await act(async () => action('Pošalji privatni zahtev').onPress());
+  expect(mockService.prepare.mock.calls[0][3]).toMatchObject({ topic: 'NO_SHOW', context: reference });
 });
 it('does not submit a retained button after the visible draft changes', async () => {
   await render(); await type('Kratak naslov', 'Naslov'); await type('Opis zahteva', 'Prva verzija');
@@ -554,11 +564,13 @@ it('the empty list says ONE line and offers its one action in the footer, not a 
   expect(actions('Blokirane osobe')[0].props.detail).toBeUndefined(); expect(actions('Privatnost i podaci')[0].props.detail).toBeUndefined();
   expect(text()).not.toContain('Privatne prijave i blokiranja'); expect(text()).not.toContain('inbox'); expect(text()).not.toContain('Zahtev vide podnosilac');
 });
-it('a pull the person makes keeps the list on screen under its own spinner; only the first read is a skeleton, and no word "Osveži" stands over the list', async () => {
+it('a pull keeps the list on screen under its own spinner; the first read is calm and no word "Osveži" stands over the list', async () => {
   screen = 'INBOX';
   mockService.inbox.mockResolvedValue(inboxOf([inboxRow(C, '71', 'IN_REVIEW')]));
   const first = deferred(); mockService.inbox.mockReturnValueOnce(first.promise); await render();
   expect(text()).toContain('Učitavamo sačuvano stanje'); expect(pull()!.busy).toBe(true);
+  expect(tree.root.findAllByProps({ testID: 'quiet-read-state' })).toHaveLength(1);
+  expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
   await act(async () => first.resolve(inboxOf([inboxRow(C, '71', 'IN_REVIEW')])));
   expect(text()).toContain('#71'); expect(text()).not.toContain('Učitavamo sačuvano stanje');
   expect(pull()).toMatchObject({ busy: false }); expect(text()).not.toContain('Osveži'); expect(actions('Osveži zahteve')).toHaveLength(0);
@@ -592,9 +604,11 @@ it('a case being read again stays on screen: the conversation and the typed repl
   await act(async () => again.resolve(ok(detail())));
   expect(field('Tekst poruke')).toMatchObject({ value: 'Pola dopune', editable: true });
 });
-it('the first read of a case is a skeleton, and a failed read says what happened with one retry', async () => {
+it('the first read of a case is calm, and a failed read says what happened with one retry', async () => {
   screen = 'DETAIL'; const first = deferred(); mockService.detail.mockReturnValueOnce(first.promise); await render();
   expect(text()).toContain('Učitavamo sačuvano stanje'); expect(actions('Osveži predmet')).toHaveLength(0);
+  expect(tree.root.findAllByProps({ testID: 'quiet-read-state' })).toHaveLength(1);
+  expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
   await act(async () => first.resolve({ ok: false, poruka: 'Zahtev trenutno nije dostupan.' }));
   expect(text()).toContain('Zahtev nije učitan'); expect(text()).toContain('Zahtev trenutno nije dostupan.'); expect(actions('Osveži predmet')).toHaveLength(1);
 });
@@ -649,7 +663,7 @@ it.each(['DETAIL', 'INBOX'] as const)('what a re-read keeps on screen is never k
   await act(async () => { mockAppState = 'background'; mockListeners.forEach(fn => fn('background')); });
   expect(text()).not.toContain(mark);
   await act(async () => { mockAppState = 'active'; mockListeners.forEach(fn => fn('active')); });
-  // The new visit reads again: its first read is a skeleton, never what the earlier visit had read.
+  // The new visit reads again with a quiet state, never what the earlier visit had read.
   expect(text()).toContain('Učitavamo sačuvano stanje'); expect(text()).not.toContain(mark);
   await act(async () => held.resolve(kind === 'DETAIL' ? ok(detail()) : inboxOf([inboxRow(C, '71', 'IN_REVIEW')])));
   expect(text()).toContain(mark);

@@ -1,6 +1,10 @@
+import { discoveryWorkMode } from '../../../data/discoveryWorkMode';
+import type { CoarsePosition } from '../../../contracts/location';
+import type { ConfirmedMapPlace } from '../../../data/confirmedDiscoveryMapPlace';
+import { createProductionLocationResolver } from '../../../data/productionLocationResolver';
 import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { discoveryV1Opportunity } from '../../../data/discoveryV1MarketplaceAdapter';
-import { Keyboard, Platform, ScrollView, StyleSheet, View, type TextInput, useWindowDimensions } from 'react-native';
+import { Keyboard, Linking, Platform, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { atLeast, dateRange, discoveryItems, placeKey, placeSuggestions, remoteDiscoveryScope, saysWorkMode, serbianToday, undatedCount, workMode,
   type DateRange, type MarketplaceItem, type MarketplaceView, type PublicBounds, type WhenFilter, type WhereFilter } from '../../../data/marketplaceView';
 import { DISCOVERY_V1_PLACES_BY_CITY, discoveryV1SearchPreviewKey, type DiscoveryV1SearchSnapshot, type SearchPreviewView } from '../../../data/discoveryV1SearchOwner';
@@ -14,8 +18,9 @@ import { zadataka } from '../../system/plural';
 import { useTextScale } from '../../system/textScale';
 import { brandAction, sys } from '../../system/tokens';
 import { V2Action } from '../V2Action';
+import { displayedPinPosition } from '../../location/ResolvedPinMap.types';
 import { DateRangeGrid } from './DateRangeGrid';
-import { CLEAR, FILTER_GROUP, FILTER_WHEN, PRICE, SEARCH_WORDS, WHEN, WHERE, quoted, said, undatedWords, whenWords } from './discoveryWords';
+import { CLEAR, FILTER_WHEN, SEARCH_WORDS, WHEN, quoted, said, undatedWords, whenWords } from './discoveryWords';
 import { PLACE_WORDS, PlacePicker } from './PlacePicker';
 import type { PlaceRow } from './popularCities';
 import type { RecentSearch } from './recentSearches';
@@ -26,22 +31,25 @@ import { SearchSheet } from './SearchSheet';
 /**
  * The panel is TWO things (the owner's phone of 8 Oct 2026: "filteri odvojeni od pretrage"; the approved plan, U4 and U5): the SEARCH, which is a word and a place
  * and fills the whole screen (a field for the words, the places with how many tasks each, and what was searched before), and the FILTERS, which are conditions
- * and rise as a sheet from the bottom (when, how the work is done, the amount). The pill opens the first, the round button beside it the second; `mode` says
+ * and open in a centred dialog (place, work mode, price and time). The map opens filters; search is available from inside them. `mode` says
  * which. Both are one draft over the whole view, so what the other leaves is kept as it is. In the search a choice of a place (or of a search made before) is
  * the end of it: it is applied and the screen is the list again, with what was found. In the filters the choices are a draft, and the one green action applies it
  * and says how many tasks the list will then show.
  */
 export type PanelMode = 'search' | 'filters';
+export type { ConfirmedMapPlace } from '../../../data/confirmedDiscoveryMapPlace';
 
 /** Everything the search panel chooses, as a draft: in the filters nothing reaches the list before "Prikaži N zadataka". */
 export type SearchDraft = { query: string; place: string | null; area: PublicBounds | null;
   /** One public point the list is narrowed to (a place's "Prikaži sve u listi"); any other "Gde" choice replaces it. */
   pinPlace: string | null;
-  when: WhenFilter; dates: DateRange | null; where: WhereFilter; places: number; price: MarketplaceView['price'] };
+  when: WhenFilter; dates: DateRange | null; where: WhereFilter; places: number; price: MarketplaceView['price'];
+  /** P6 only. With "Oba", offers remain visible and this applies to fixed prices. */
+  minBudgetRsd?: number | null };
 export const NO_SEARCH: SearchDraft = { query: '', place: null, area: null, pinPlace: null, when: 'any', dates: null, where: 'any', places: 1, price: 'all' };
 export const draftOf = (view: MarketplaceView): SearchDraft => remoteDiscoveryScope({ query: view.query, place: view.place ?? null, area: view.area,
   pinPlace: view.pinPlace ?? null, when: view.when ?? 'any', dates: dateRange(view.dates), where: view.where ?? 'any', places: atLeast(view.places),
-  price: view.price });
+  price: view.price, ...(view.minBudgetRsd != null ? { minBudgetRsd: view.minBudgetRsd } : {}) });
 /**
  * What the panel can count by: the list and what is mine are known (`ready`); the list is still read (`loading`) or
  * could not be read (`error`), so there is nothing to count; or the list is known but not yet which of its tasks are mine
@@ -58,19 +66,22 @@ export type DiscoveryV1SearchPanelSeam = {
 
 /** "Gde" at its "everything": no place, no map area, no single point. The words searched are another choice and stay. */
 const ANYWHERE = { place: null, area: null, pinPlace: null } as const satisfies Partial<SearchDraft>;
+const WORK_MODE_OPTIONS: readonly (readonly [WhereFilter, string])[] = [['onsite', 'Na lokaciji'], ['remote', 'Na daljinu'], ['any', 'Oba']];
+const PRICE_OPTIONS: readonly (readonly [MarketplaceView['price'], string])[] = [['all', 'Oba'], ['MY_PRICE', 'Fiksna cena'], ['OFFERS', 'Ponude']];
 
 /**
- * The search over the Zadaci map (owner, 2026-10-07; the approved plan, U4): the whole screen, the field "Šta tražiš" at the top with the keyboard up, and
+ * The search reached through Zadaci filters: the whole screen, the field "Šta tražiš" at the top with the keyboard up, and
  * under it "Gde": every task, the work done remotely, the cities the tasks are in with their counts (the server's city list; the places the tasks name when it is not
  * there) and the biggest cities of Serbia (see `PlacePicker`), then what was searched before. A place chosen from the rows applies at once together with the words
  * typed; the keyboard's search key and the green action apply the words (and the place chosen before). Nothing here filters: the conditions are the filters' own.
  *
- * The filters (U5) are a sheet: "Kada" (the days, or a range of them), "Gde" (how the work is done) and "Iznos", each a row of choices that are all in sight, and
+ * The filters (U5) are a centred dialog: location, work mode, price and time, with their choices and
  * at the foot the quiet "Očisti" and the one green action, which says how many tasks the list will show (a polite live region, so the new number is heard). While the
  * list is not known yet nothing is counted: the action says the list is being read, or that it could not be, and cannot be pressed; while only what is mine is still
  * read it applies the draft without a number. × or Back leaves the list exactly as it was.
  */
-export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarget, mode, reduced, readiness = 'ready', p6Search, recent = [], onApply, onClose, onOpenTask }: {
+export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarget, mode, reduced, readiness = 'ready', p6Search, recent = [],
+  placeScopeKey = 'discovery', placeResolver, appliedMapPlace, onCenterPlace, onOpenSearch, onApply, onClose, onOpenTask }: {
   items: readonly MarketplaceItem[]; view: MarketplaceView; mine: ReadonlySet<string> | undefined; now: Date;
   /** The map's visible area when the camera has settled somewhere, for the counts of the search; null when unknown. */
   mapArea: PublicBounds | null;
@@ -84,10 +95,19 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   p6Search?: DiscoveryV1SearchPanelSeam;
   /** What this person searched before, newest first (the search only). */
   recent?: readonly RecentSearch[];
-  onApply: (draft: SearchDraft) => void; onClose: () => void;
+  onApply: (draft: SearchDraft, options?: { clearMapPlace?: boolean }) => void; onClose: () => void;
   onOpenTask?: (item: MarketplaceItem) => void;
+  /** Confirmed coarse map camera target; never treated as an unverified task-locality filter. */
+  onCenterPlace?: (place: ConfirmedMapPlace) => void;
+  appliedMapPlace?: ConfirmedMapPlace | null;
+  onOpenSearch?: () => void;
+  placeScopeKey?: string;
+  placeResolver?: Pick<ReturnType<typeof createProductionLocationResolver>, 'search' | 'cancel'>;
 }) {
-  const [draft, setDraft] = useState<SearchDraft>(() => draftOf(view));
+  const normalize = (value: SearchDraft): SearchDraft => remoteDiscoveryScope(p6Search ? discoveryWorkMode(value) : value);
+  const [draft, setDraft] = useState<SearchDraft>(() => normalize(draftOf(p6Search ? discoveryWorkMode(view) : view)));
+  // Kept as entered so an invalid number can be explained before it is sent to P6.
+  const [minText, setMinText] = useState(() => view.minBudgetRsd == null ? '' : String(view.minBudgetRsd));
   const [datesOpen, setDatesOpen] = useState(false);
   /** The first tap of a range: where it starts, until its end is tapped (the draft already holds that one day). */
   const [rangeStart, setRangeStart] = useState<string | null>(null);
@@ -96,6 +116,14 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const [typing, setTyping] = useState(false);
   // Choosing a place consumes only this visit's new input. An already applied task query remains intentional.
   const [committedQuery, setCommittedQuery] = useState(view.query);
+  const [locationQuery, setLocationQuery] = useState(appliedMapPlace?.label ?? '');
+  const [placeLookup, setPlaceLookup] = useState<{ status: 'idle' | 'loading' | 'error' | 'blocked' | 'empty' | 'ready';
+    candidates?: readonly { label: string; position: CoarsePosition }[] }>({ status: 'idle' });
+  const [selectedCenter, setSelectedCenter] = useState<ConfirmedMapPlace | null>(null);
+  const [productionPlaceResolver] = useState(() => createProductionLocationResolver());
+  const resolver = placeResolver ?? productionPlaceResolver;
+  const locationEpoch = useRef(0);
+  useEffect(() => () => { locationEpoch.current++; resolver.cancel(); }, [resolver]);
   const placeSearch = within || (typing ? draft.query : '');
   const [closing, setClosing] = useState(false);
   const large = useTextScale() >= 1.3;
@@ -105,9 +133,17 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const backdrop = searchBackdropKind({ os: Platform.OS, version: Platform.Version, hasTarget: !!blurTarget, reducedTransparency });
   const viewOf = (value: SearchDraft): MarketplaceView => ({ ...view, ...value });
   const serverOwned = !!p6Search;
-  const localCount = useMemo(() => serverOwned ? 0 : discoveryItems(items, viewOf(draft), mine, now).length, [serverOwned, items, view, draft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
-  const localUndated = useMemo(() => serverOwned ? 0 : undatedCount(items, viewOf(draft), mine, now), [serverOwned, items, view, draft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
-  const serverKey = discoveryV1SearchPreviewKey({ ...viewOf(draft), placeSearch } as SearchPreviewView, mapArea);
+  // The deployed RPC must advertise this through the matching build profile; the old server rejects the new key.
+  const minPriceAvailable = serverOwned && process.env.EXPO_PUBLIC_P6_MIN_BUDGET_FILTER === '1';
+  const minPriceVisible = minPriceAvailable && draft.price !== 'OFFERS';
+  const minPriceInvalid = minPriceVisible && minText.trim() !== ''
+    && (!/^[0-9]+$/.test(minText.trim()) || Number(minText.trim()) < 1 || Number(minText.trim()) > 2_147_483_647);
+  const clearingMapPlace = mode === 'filters' && !!appliedMapPlace && !locationQuery.trim() && draft.where !== 'remote';
+  const previewDraft = useMemo(() => clearingMapPlace ? { ...draft, area: null, pinPlace: null } : draft,
+    [clearingMapPlace, draft]);
+  const localCount = useMemo(() => serverOwned ? 0 : discoveryItems(items, viewOf(previewDraft), mine, now).length, [serverOwned, items, view, previewDraft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
+  const localUndated = useMemo(() => serverOwned ? 0 : undatedCount(items, viewOf(previewDraft), mine, now), [serverOwned, items, view, previewDraft, mine, now]); // eslint-disable-line react-hooks/exhaustive-deps
+  const serverKey = discoveryV1SearchPreviewKey({ ...viewOf(previewDraft), placeSearch } as SearchPreviewView, mapArea);
   const serverCurrent = !!p6Search && p6Search.snapshot.active && p6Search.snapshot.key === serverKey;
   const effectiveReadiness: SearchReadiness = p6Search
     ? !serverCurrent || p6Search.snapshot.status === 'loading' || p6Search.snapshot.status === 'idle' ? 'loading'
@@ -118,14 +154,13 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   const undated = p6Search ? serverCurrent ? p6Search.snapshot.undated ?? 0 : 0 : localUndated;
   // P6 availability is whole-collection authority. While its preview is changing, keep the control visible rather
   // than infer absence from a bounded page; a selected old value also remains removable.
-  const workModes = draft.where !== 'any' || (view.where ?? 'any') !== 'any'
-    || (p6Search ? !serverCurrent || p6Search.snapshot.availability?.hasKnownWorkMode !== false : saysWorkMode(items));
+  const workModes = !!p6Search || draft.where !== 'any' || (view.where ?? 'any') !== 'any' || saysWorkMode(items);
   // The route hands a fresh clone of its view with every snapshot, so `mapArea` is a new array each time: keyed by identity this effect asked for
   // a preview after every preview (a request loop while the panel was open). It follows the area's value.
   const mapAreaKey = mapArea ? mapArea.join(',') : '';
-  useEffect(() => { p6Search?.onDraft({ ...draft, placeSearch }, mapArea); }, [p6Search?.onDraft, draft, placeSearch, mapAreaKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { p6Search?.onDraft({ ...previewDraft, placeSearch }, mapArea); }, [p6Search?.onDraft, previewDraft, placeSearch, mapAreaKey]); // eslint-disable-line react-hooks/exhaustive-deps
   const today = serbianToday(now);
-  const edit = (patch: Partial<SearchDraft>) => setDraft(current => remoteDiscoveryScope({ ...current, ...patch }));
+  const edit = (patch: Partial<SearchDraft>) => setDraft(current => normalize({ ...current, ...patch }));
 
   // Once the panel has begun to leave, nothing in it is acted on again: a second "Prikaži" or × during the exit
   // must not apply the draft twice or close twice.
@@ -188,37 +223,69 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   };
   const applyDraft = (next: SearchDraft) => {
     if (leaving.value) return;
-    onApply(next);
+    const clearMapPlace = mode === 'filters' && !!appliedMapPlace && (!locationQuery.trim() || next.where === 'remote');
+    onApply(clearMapPlace && !locationQuery.trim() ? { ...next, area: null, pinPlace: null } : next, { clearMapPlace });
+    if (mode === 'filters' && next.where !== 'remote' && selectedCenter) onCenterPlace?.(selectedCenter);
     beginClose();
   };
   const apply = () => applyDraft(draft);
   /** A choice in the search that is the end of it: the draft with the choice is applied, and the screen is the list again. */
   const choose = (patch: Partial<SearchDraft>) => {
-    const next = remoteDiscoveryScope({ ...draft, ...patch });
+    const next = normalize({ ...draft, ...patch });
     setDraft(next); applyDraft(next);
   };
   // Each half takes away only its own: the search (the words and the place, and the work done remotely, which the search offers too) or the filters (the days, the work mode, the amount).
   const clearAll = () => {
     if (mode === 'search') {
       setDraft(current => ({ ...current, query: NO_SEARCH.query, place: NO_SEARCH.place, area: NO_SEARCH.area, pinPlace: NO_SEARCH.pinPlace,
-        where: current.where === 'remote' ? NO_SEARCH.where : current.where }));
+        where: p6Search ? current.where : current.where === 'remote' ? NO_SEARCH.where : current.where }));
       setWithin('');
       setTyping(false); setCommittedQuery('');
     } else {
-      setDraft(current => ({ ...current, when: NO_SEARCH.when, dates: NO_SEARCH.dates, where: NO_SEARCH.where, places: NO_SEARCH.places, price: NO_SEARCH.price }));
+      setDraft(current => ({ ...current, ...ANYWHERE, when: NO_SEARCH.when, dates: NO_SEARCH.dates,
+        where: NO_SEARCH.where, places: NO_SEARCH.places, price: NO_SEARCH.price,
+        ...(current.minBudgetRsd !== undefined ? { minBudgetRsd: null } : {}) }));
       setRangeStart(null);
+      setMinText('');
+      locationEpoch.current++; resolver.cancel(); setLocationQuery(''); setSelectedCenter(null); setPlaceLookup({ status: 'idle' });
     }
+  };
+  const lookUpPlace = async () => {
+    const text = locationQuery.trim();
+    if (!text || placeLookup.status === 'loading') return;
+    const epoch = ++locationEpoch.current;
+    resolver.cancel(); setSelectedCenter(null); setPlaceLookup({ status: 'loading' });
+    let result: Awaited<ReturnType<typeof resolver.search>>;
+    try { result = await resolver.search({ text, countryCode: 'RS', scopeKey: placeScopeKey }); }
+    catch { if (epoch === locationEpoch.current) setPlaceLookup({ status: 'error' }); return; }
+    if (epoch !== locationEpoch.current) return;
+    if (result.status !== 'PROPOSALS') {
+      setPlaceLookup({ status: result.status === 'PROVIDER_ACTIVATION_BLOCKED' ? 'blocked' : 'error' }); return;
+    }
+    const candidates = result.candidates.flatMap(candidate => {
+      const position = displayedPinPosition(candidate.position, true);
+      return candidate.countryCode === 'RS' && position ? [{ label: candidate.label, position }] : [];
+    });
+    setPlaceLookup(candidates.length ? { status: 'ready', candidates } : { status: 'empty' });
   };
 
   // The one green action. What it can say depends on authoritative membership count; a stale P6 preview never falls
   // back to the number of rows already loaded.
-  const show = effectiveReadiness === 'loading' ? { label: 'Učitavamo zadatke…', disabled: true }
+  const centering = mode === 'filters' && !!selectedCenter && draft.where !== 'remote';
+  const unconfirmedPlace = mode === 'filters' && draft.where !== 'remote' && !!locationQuery.trim()
+    && locationQuery.trim() !== (selectedCenter?.label ?? appliedMapPlace?.label ?? '');
+  const show = minPriceInvalid ? { label: 'Proveri najmanju cenu', disabled: true }
+    : unconfirmedPlace ? { label: 'Izaberi potvrđeno mesto', disabled: true }
+    : centering ? { label: 'Prikaži oblast na mapi', disabled: false }
+    : effectiveReadiness === 'loading' ? { label: 'Učitavamo zadatke…', disabled: true }
     : effectiveReadiness === 'error' ? { label: 'Zadaci nisu učitani', disabled: true }
       : effectiveReadiness === 'pending' ? { label: 'Prikaži zadatke', disabled: false }
         : count > 0 ? { label: `Prikaži ${zadataka(count)}`, disabled: false } : { label: 'Nema zadataka za ove uslove', disabled: true };
-  const emptyReason = counted && count === 0 ? 'Promeni filtere ili ih očisti.' : null;
-  const retryPreview = effectiveReadiness === 'error' && p6Search
-    ? () => p6Search.onDraft({ ...draft, placeSearch }, mapArea) : undefined;
+  const emptyReason = minPriceInvalid ? 'Unesi ceo iznos od 1 do 2.147.483.647 RSD.'
+    : unconfirmedPlace ? 'Pronađi mesto i izaberi predlog, ili obriši unos.'
+    : !centering && counted && count === 0 ? 'Promeni filtere ili ih očisti.' : null;
+  const retryPreview = !minPriceInvalid && !unconfirmedPlace && !centering && effectiveReadiness === 'error' && p6Search
+    ? () => p6Search.onDraft({ ...previewDraft, placeSearch }, mapArea) : undefined;
   // The foot every flow has (UI/UX pass 2026-10-08): the quiet "Očisti" beside the one green action, which says how many tasks the list will show;
   // when it cannot be pressed the reason stands in a line above it. At a large text size or a narrow window the two stand one under the other.
   const footer = <FlowFooter testID="search-footer" reason={retryPreview ? 'Zadaci nisu učitani. Tvoji izbori su sačuvani.' : emptyReason ?? undefined}>
@@ -245,7 +312,8 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
     if (draft.place && placesRead && !rows.some(place => placeKey(place.text) === placeKey(draft.place!)) && !partRows.some(place => placeKey(place.text) === placeKey(draft.place!))) {
       rows.push({ text: draft.place, count: p6Search ? null : known(0) });
     }
-    const everywhere = p6Search ? serverCurrent ? known(p6Search.snapshot.everywhere) : null
+    // The P6 "on location" row must not claim the both-modes facet total as its own.
+    const everywhere = p6Search ? serverCurrent && draft.where === 'onsite' ? known(p6Search.snapshot.everywhere) : null
       : known(discoveryItems(items, viewOf({ ...draft, ...ANYWHERE, query: '', where: draft.where === 'remote' ? 'any' : draft.where }), mine, now).length);
     // How many tasks are done remotely: known where the loaded tasks are all of them; the server's preview has no such count, so none is said there.
     const remoteCount = p6Search ? null : known(discoveryItems(items, viewOf({ ...draft, ...ANYWHERE, query: '', where: 'remote' }), mine, now).filter(item => workMode(item) === 'remote').length);
@@ -253,7 +321,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
     const placesComplete = counted && placesRead && !facetDown && !(p6Search && p6Search.snapshot.placeHasMore);
     // Choosing a place leaves the work done remotely (which has no place): a place and "Na daljinu" are not one search.
     const place = (text: string) => choose({ ...ANYWHERE, place: text, query: typing ? committedQuery : draft.query,
-      where: draft.where === 'remote' ? 'any' : draft.where });
+      where: p6Search && draft.where === 'remote' ? 'onsite' : draft.where === 'remote' ? 'any' : draft.where });
     const tasks = draft.query.trim() && counted && serverCurrent ? p6Search?.snapshot.tasks ?? [] : [];
     const header = <View style={s.searchHeader}>
       <ChromeIconButton glyph="back" label="Zatvori pretragu" hint="Lista ostaje kakva je bila." quiet onPress={onCloseButton} />
@@ -264,7 +332,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
           placeholder={SEARCH_WORDS.whatPlaceholder} clearLabel="Obriši reč" returnKeyType="search" onSubmit={() => { if (!show.disabled) apply(); }} />
       </View>
     </View>;
-    return <SearchSheet reduced={reduced} backdrop={backdrop} blurTarget={blurTarget} closing={closing} screen header={header} onShown={focusSearch}
+    return <SearchSheet key="search" reduced={reduced} backdrop={backdrop} blurTarget={blurTarget} closing={closing} screen header={header} onShown={focusSearch}
       title={SEARCH_WORDS.searchTitle} closeLabel="Zatvori pretragu" closeHint="Lista ostaje kakva je bila."
       footer={footer} onCloseButton={onCloseButton} onRequestClose={requestClose} onClosed={closed}>
       <ScrollView style={s.scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.sections}>
@@ -281,7 +349,9 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
         </View> : null}
         <T variant="bodyStrong" accessibilityRole="header" style={s.groupName}>Mesta</T>
         <PlacePicker within={placeSearch} onWithin={city => { setWithin(city); if (!city && typing) { edit({ query: committedQuery }); setTyping(false); } }}
-          anywhere={{ checked: !draft.place && !draft.area && !draft.pinPlace && draft.where !== 'remote', count: everywhere, onPress: () => choose({ ...ANYWHERE, where: draft.where === 'remote' ? 'any' : draft.where }) }}
+          anywhere={{ label: p6Search ? 'Svi zadaci na lokaciji' : undefined,
+            checked: !draft.place && !draft.area && !draft.pinPlace && (p6Search ? draft.where === 'onsite' : draft.where !== 'remote'),
+            count: everywhere, onPress: () => choose({ ...ANYWHERE, where: p6Search ? 'onsite' : draft.where === 'remote' ? 'any' : draft.where }) }}
           remote={{ available: workModes, checked: draft.where === 'remote', count: remoteCount, onPress: () => choose({ where: 'remote' }) }}
           remoteNote={draft.where === 'remote' ? SEARCH_WORDS.remoteNote : null}
           places={rows} parts={partRows} cities={!!p6Search && DISCOVERY_V1_PLACES_BY_CITY} serverFiltered={!!p6Search} chosenPlace={draft.place} ready={counted && placesRead}
@@ -294,7 +364,8 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
           {recent.map(entry => {
             const words = [entry.query ? quoted(entry.query) : null, entry.place].filter((part): part is string => !!part).join(' · ');
             return <Row key={`${entry.query}|${entry.place ?? ''}`} art="clock" text={words} label={`${SEARCH_WORDS.recent}: ${words}`} role="button"
-              onPress={() => choose({ query: entry.query, place: entry.place, area: null, pinPlace: null, where: draft.where === 'remote' && entry.place ? 'any' : draft.where })} />;
+              onPress={() => choose({ query: entry.query, place: entry.place, area: null, pinPlace: null,
+                where: draft.where === 'remote' && entry.place ? p6Search ? 'onsite' : 'any' : draft.where })} />;
           })}
         </View> : null}
       </ScrollView>
@@ -316,13 +387,54 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
   };
   const section = (key: string, title: string, children: ReactNode) =>
     <FilterSection key={key} id={key} title={title}>{children}</FilterSection>;
-  return <SearchSheet reduced={reduced} backdrop={backdrop} blurTarget={blurTarget} closing={closing} ratio={FILTERS_RATIO}
+  return <SearchSheet key="filters" reduced={reduced} backdrop={backdrop} blurTarget={blurTarget} closing={closing} ratio={FILTERS_RATIO}
     title={SEARCH_WORDS.filtersTitle} closeLabel="Zatvori filtere" closeHint="Lista ostaje kakva je bila."
     footer={footer} onCloseButton={onCloseButton} onRequestClose={requestClose} onClosed={onClose}>
     <ScrollView style={s.scroll} keyboardShouldPersistTaps="handled" contentContainerStyle={s.sections}>
-      {section('when', FILTER_GROUP.when, <>
+      {draft.where !== 'remote' ? section('place', 'Mesto na mapi', <>
+        <T variant="note" tone="muted">Unesi mesto, izaberi potvrđeni predlog, pa primeni. Mapa će se pomeriti na približno područje.</T>
+        <TextInput testID="filters-place-input" accessibilityLabel="Grad ili mesto" value={locationQuery} placeholder="Grad ili mesto"
+          autoCapitalize="words" autoCorrect={false} returnKeyType="search" onSubmitEditing={() => { void lookUpPlace(); }}
+          onChangeText={text => { locationEpoch.current++; resolver.cancel(); setLocationQuery(text); setSelectedCenter(null); setPlaceLookup({ status: 'idle' }); }}
+          style={s.locationInput} />
+        <V2Action label={placeLookup.status === 'loading' ? 'Tražimo mesto…' : 'Pronađi mesto'} kind="secondary"
+          disabled={!locationQuery.trim() || placeLookup.status === 'loading'} onPress={() => { void lookUpPlace(); }} />
+        {placeLookup.status === 'blocked' ? <T variant="note" accessibilityRole="alert">Pretraga mesta trenutno nije aktivirana.</T> : null}
+        {placeLookup.status === 'error' ? <T variant="note" accessibilityRole="alert">Mesto nije učitano. Pokušaj ponovo.</T> : null}
+        {placeLookup.status === 'empty' ? <T variant="note" accessibilityLiveRegion="polite">Nema predloga za uneto mesto.</T> : null}
+        {placeLookup.candidates?.map((candidate, index) => <V2Action key={`${candidate.label}:${index}`}
+          label={`${selectedCenter === candidate ? 'Izabrano' : 'Izaberi'}: ${candidate.label}`} kind="quiet"
+          onPress={() => { setSelectedCenter(candidate); setLocationQuery(candidate.label); edit(ANYWHERE); }} />)}
+        {selectedCenter ? <T variant="note" accessibilityLiveRegion="polite">{selectedCenter.label} je spremno. Mapa se pomera tek kada primeniš filtere.</T> : null}
+        {placeLookup.status === 'ready' ? <T variant="meta" accessibilityRole="link"
+          onPress={() => { void Linking.openURL('https://locationiq.com/attribution').catch(() => {}); }}>Pretraga: LocationIQ · izvori podataka</T> : null}
+      </>) : null}
+      {workModes ? section('where', 'Način rada', <>
+        <Choice compact label="Način rada" options={WORK_MODE_OPTIONS} value={draft.where} onChange={where => {
+          edit({ where }); if (where === 'remote') { setSelectedCenter(null); locationEpoch.current++; resolver.cancel(); }
+        }} />
+      </>) : null}
+      {section('amount', 'Cena', <>
+        <Choice compact label="Cena" options={PRICE_OPTIONS} value={draft.price} onChange={price => {
+          if (price === 'OFFERS') { setMinText(''); edit({ price, ...(draft.minBudgetRsd !== undefined ? { minBudgetRsd: null } : {}) }); }
+          else edit({ price });
+        }} />
+        {minPriceVisible ? <>
+          <T variant="note" tone="muted">Najmanja fiksna cena, ako želiš da je odrediš. {draft.price === 'all' ? 'Ponude ostaju u rezultatima.' : ''}</T>
+          <TextInput testID="filters-min-budget-input" accessibilityLabel="Najmanja fiksna cena u dinarima"
+            value={minText} placeholder="Na primer 3000" keyboardType="number-pad" maxLength={10}
+            onChangeText={text => {
+              setMinText(text);
+              const trimmed = text.trim(), amount = Number(trimmed);
+              edit({ minBudgetRsd: trimmed && /^[0-9]+$/.test(trimmed) && Number.isInteger(amount) && amount >= 1 && amount <= 2_147_483_647
+                ? amount : null });
+            }} style={s.locationInput} />
+          {minPriceInvalid ? <T variant="note" accessibilityRole="alert">Unesi ceo iznos od 1 do 2.147.483.647 RSD.</T> : null}
+        </> : null}
+      </>)}
+      {section('when', 'Kada', <>
         {/* A day that is chosen is taken away by tapping it again: there is no "any day" choice among the days. */}
-        <Choice compact label={FILTER_GROUP.when} options={whenOptions} value={whenValue}
+        <Choice compact label="Kada" options={whenOptions} value={whenValue}
           onChange={when => { setRangeStart(null); edit({ when: draft.when === when && !draft.dates ? 'any' : when, dates: null }); }} />
         <Press testID="search-date-toggle" accessibilityRole="button" accessibilityLabel="Datumi"
           accessibilityValue={{ text: draft.dates ? whenWords(draft, now) : 'Izaberi datume' }} accessibilityState={{ expanded: datesOpen }}
@@ -337,12 +449,8 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
         </View> : null}
         {counted && undated ? <T variant="note" tone="muted">{undatedWords(undated)}</T> : null}
       </>)}
-      {workModes ? section('where', FILTER_GROUP.where, <>
-        <Choice compact label={FILTER_GROUP.where} options={WHERE} value={draft.where} onChange={where => edit({ where })} />
-      </>) : null}
-      {section('amount', FILTER_GROUP.amount, <>
-        <Choice compact label={FILTER_GROUP.amount} options={PRICE} value={draft.price} onChange={price => edit({ price })} />
-      </>)}
+      {onOpenSearch ? <V2Action label="Pretraži zadatke" kind="quiet"
+        onPress={() => { Keyboard.dismiss(); onOpenSearch(); }} /> : null}
     </ScrollView>
   </SearchSheet>;
 }
@@ -372,6 +480,8 @@ const s = StyleSheet.create({
   recent: { gap: sys.space.xs },
   // The search's first row: the way back and the field, the field as wide as is left.
   searchHeader: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingLeft: sys.space.sm, paddingRight: sys.space.base, paddingTop: sys.space.sm, paddingBottom: sys.space.xs },
+  locationInput: { minHeight: sys.touch.min, borderWidth: 1, borderColor: sys.color.lineStrong, borderRadius: sys.radius.control,
+    paddingHorizontal: sys.space.md, color: sys.color.ink, backgroundColor: sys.color.surface },
   dateToggle: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: sys.touch.min,
     paddingHorizontal: sys.space.md, paddingVertical: sys.space.sm, backgroundColor: sys.color.wash, borderRadius: sys.radius.control },
   dateOn: { color: sys.color.ink, fontWeight: '600' },

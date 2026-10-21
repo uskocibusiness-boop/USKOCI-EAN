@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { View } from 'react-native';
 import { FactArt } from './FactArt';
 
-const SOURCE = require('../../../assets/illustrations/uskoci-money-v3.png');
+const SOURCE = require('../../../assets/illustrations/natural-v1/money.webp');
 
 /** Money subject only; amount, currency, basis and payment state belong to the adjacent facts. */
 export function MoneyArt({ size, quiet = false }: { size: 24 | 28 | 32; quiet?: boolean }) {

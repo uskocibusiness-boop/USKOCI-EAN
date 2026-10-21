@@ -8,6 +8,7 @@ import { FigureCell, FigureRow, NEW_RATING, finishedFigure, ratingFigure, reliab
 import { memberSincePhrase, publicTrustFacts } from '../profile/workTrustModel';
 import { ProductSheet } from '../product/ProductSheet';
 import { T } from '../Text';
+import { QuietReadState } from '../v2/QuietReadState';
 import { Avatar, FaceEdge } from './Avatar';
 import { FactArt } from './FactArt';
 import { FactRow } from './FactRow';
@@ -16,7 +17,8 @@ import { ListRow } from './ListRow';
 import { StateView } from './StateView';
 import { sys } from './tokens';
 
-export type PublicProfileState = { loading: boolean; data: JavniProfilProjekcija | null } | null;
+/** `notFound` is set only after a successful read returned no public projection; a failed read stays recoverable. */
+export type PublicProfileState = { loading: boolean; data: JavniProfilProjekcija | null; notFound?: boolean } | null;
 /** PKG-047 (F05): the one entry into report/block from a profile. The screen owns the read that turns
  *  this profile into the person behind it; the sheet only offers it and shows what came back. */
 export type SafetyEntry = { onPress: () => void; busy: boolean; error: string | null };
@@ -83,7 +85,9 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, safety, tru
   // Present only when the person wrote something; shown exactly as written.
   const about = profile?.biografija && profile.biografija.trim() ? profile.biografija : null;
   return <ProductSheet title={name ?? 'Javni profil'} closeLabel="Zatvori javni profil" backdropHint="Zatvara javni profil." onClose={onClose}>
-    {() => state.loading ? <StateView kind="loading" title="Učitavamo javni profil…" skeleton={{ count: 1, rows: 2 }} />
+    {() => state.loading ? <QuietReadState art="person" title="Učitavamo javni profil…" body="Proveravamo podatke koji smeju da budu javni." />
+      : !profile && state.notFound ? <StateView kind="empty" art="person" title="Javni profil nije pronađen."
+        body="Nema podataka za javni prikaz ovog profila." />
       : !profile ? <StateView kind="error" title="Javni profil trenutno nije dostupan." body="Proveri vezu i pokušaj ponovo."
         primary={{ label: 'Pokušaj ponovo', onPress: onRetry }} />
       : <View style={s.content}>

@@ -10,6 +10,7 @@ import { StateView } from '../system/StateView';
 import { sys } from '../system/tokens';
 import { ConversationArt } from '../system/ConversationArt';
 import { V2Action } from '../v2/V2Action';
+import { QuietReadState } from '../v2/QuietReadState';
 import type { WorkerDraft } from './workerProfileDraft';
 import { WorkerProfileSaved, type AvailableNowControl, type SavedProfilePart } from './WorkerProfileSaved';
 import type { WorkerExecutionModeView } from '../../hooks/useWorkerExecutionModes';
@@ -72,9 +73,9 @@ function useKeyboardShown() {
   return shown;
 }
 
-/** Reading the profile, or why it could not be read: the one state look (StateView). No draft is built from defaults. */
+/** Reading the profile, or why it could not be read. No draft is built from defaults. */
 export function WorkerProfileStatus({ loading, error, retry }: { loading: boolean; error?: string | null; retry: () => void }) {
-  if (loading) return <StateView kind="loading" title="Učitavamo radni profil…" skeleton={{ count: 3, rows: 2 }} />;
+  if (loading) return <QuietReadState art="person" title="Učitavamo radni profil…" body="Proveravamo sačuvane veštine i dostupnost." />;
   return <StateView kind="error" title="Radni profil nije dostupan" body={error ?? undefined}
     primary={{ label: 'Ponovo učitaj profil', onPress: retry }} />;
 }

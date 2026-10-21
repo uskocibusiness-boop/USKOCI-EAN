@@ -11,7 +11,7 @@ const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 const EASE_IN_OUT = [0.77, 0, 0.175, 1] as const;
 const PRESS_SPRING = { duration: 400, dampingRatio: 0.85 } as const;
 const SHEET_SPRING = { stiffness: 300, damping: 30, mass: 1, overshootClamping: true } as const;
-const DIALOG = { enter: 200, from: 0.96 } as const;
+const DIALOG = { enter: 200, exit: 160, from: 0.96 } as const;
 const LOOP = { breath: 700, typing: 520, glow: 1600 } as const;
 const ASSISTANT = { floatHalf: 2400, winkClose: 120, winkOpen: 140, blinkClose: 95, blinkOpen: 110,
   nextBlinkMin: 3500, nextBlinkJitter: 2800 } as const;

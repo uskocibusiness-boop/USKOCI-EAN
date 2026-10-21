@@ -23,13 +23,14 @@ export function AgreementActionsScreen({ agreementId, start }: {
   const { user, accountRevision } = useSesija(), accountId = user?.id ?? '';
   const [state, setState] = useState(initial), [form, setForm] = useState<Form | null>(null);
   const [review, setReview] = useState<AgreementActionCommand | null>(null), [error, setError] = useState<string | null>(null), [epoch, setEpoch] = useState(0);
-  const owner = useRef<object | null>(null), engine = useRef<AgreementActionsController | null>(null);
+  const owner = useRef<object | null>(null), engine = useRef<AgreementActionsController | null>(null), arrived = useRef(false);
   const leaving = useRef(false);
   const formRef = useRef(form); formRef.current = form;
   const reviewRef = useRef(review); reviewRef.current = review;
   const reviewBase = useRef(state.snapshot), submitting = useRef(false);
   useFocusEffect(useCallback(() => {
-    const scope = {}; owner.current = scope; leaving.current = false; submitting.current = false; setState(initial); setForm(null); setReview(null); setError(null);
+    const scope = {}; owner.current = scope; leaving.current = false; submitting.current = false; arrived.current = false;
+    setState(initial); setForm(null); setReview(null); setError(null);
     const current = () => owner.current === scope && !['background','inactive'].includes(AppState.currentState)
       && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
     const controller = new AgreementActionsController({ agreementId, account: { accountId, accountRevision }, current, storage: AsyncStorage });
@@ -62,9 +63,8 @@ export function AgreementActionsScreen({ agreementId, start }: {
   };
   // Arriving from the row (or the conversation's menu entry) "Izmeni uslove" or "Otkaži Dogovor": the form it names opens once, when the terms have been read and
   // the command is permitted. `openForm` keeps every one of its own guards, so a command that is not allowed leaves the hub.
-  const arrived = useRef(false);
   useEffect(() => {
-    if (!start || arrived.current || state.phase !== 'READY' || !snapshot || form || review) return;
+    if (!start || arrived.current || state.phase !== 'READY' || !snapshot || form || review || !actionCurrent()) return;
     arrived.current = true;
     openForm(start);
   });

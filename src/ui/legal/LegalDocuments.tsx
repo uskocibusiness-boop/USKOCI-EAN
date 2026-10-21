@@ -9,8 +9,8 @@ import { ProductSheet } from '../product/ProductSheet';
 import { SettingsAction, SettingsGroup, SettingsRow, SettingsScreen, SettingsText as T } from '../settings/SettingsPresentation';
 import { Disclosure } from '../system/Disclosure';
 import { FactArt, type FactArtKind } from '../system/FactArt';
-import { SkeletonList } from '../system/Skeleton';
 import { brandAction, sys } from '../system/tokens';
+import { QuietReadState } from '../v2/QuietReadState';
 import { V2Action } from '../v2/V2Action';
 import { boundedLegalRead, legalHttpsUrl, reviewedDocuments, type LegalReviewState } from './legalReview';
 
@@ -100,7 +100,7 @@ export function LegalReviewView({ state, onBack, action, actionReason = null, li
   return <SettingsScreen title="Pravila i saglasnosti" onBack={onBack} footerReason={actionReason}
     refresh={{ onRefresh: () => { if (!state.busy && !state.loading) onRefresh(); }, busy: state.loading }}
     footer={action ? <>{state.error ? <ErrorLine>{state.error}</ErrorLine> : null}{action}</> : null}>
-    {firstRead ? <View accessible accessibilityLabel="Učitavanje pravnih dokumenata"><SkeletonList count={2} rows={2} /></View> : <>
+    {firstRead ? <QuietReadState title="Učitavamo pravne dokumente" body="Proveravamo objavljene verzije pre prikaza." art="document" /> : <>
       {!action && state.error && documents ? <InlineNote tone="danger">{state.error}</InlineNote> : null}
       {/* A record, not a celebration: the state of the acceptance stands above what it is about. */}
       {confirmed ? <InlineNote tone="neutral" art="check" alert>Prihvaćene su trenutne verzije dokumenata.</InlineNote>
@@ -169,7 +169,7 @@ export function PublicLegalBody({ loading, bundle, error, onOpen, onRefresh }: {
   return <View style={s.sheet}>
     {/* The invitation to read is only said when there is something to read. */}
     {!loading && reviewedDocuments(bundle) ? <T variant="copy" tone="muted">Otvori objavljene dokumente. Kad ih pročitaš, nastavi sa popunjavanjem.</T> : null}
-    {loading ? <View accessible accessibilityLabel="Učitavanje pravnih dokumenata"><SkeletonList count={2} rows={1} /></View>
+    {loading ? <QuietReadState title="Učitavamo pravne dokumente" body="Proveravamo objavljene verzije pre prikaza." art="document" />
       : <LegalDocumentRows bundle={bundle} onOpen={onOpen} />}
     {error ? <ErrorLine>{error}</ErrorLine> : null}
     {!loading ? <SettingsAction label="Osveži dokumente" kind="quiet" onPress={onRefresh} /> : null}

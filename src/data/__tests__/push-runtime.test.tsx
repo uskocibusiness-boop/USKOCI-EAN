@@ -50,6 +50,12 @@ it('a cold Inbox tap also reuses navigation while preserving the startup destina
  expect(mockNavigate).toHaveBeenCalledWith('/obavestenja'); expect(mockPush).not.toHaveBeenCalled();
  expect(pendingRoute.take()).toBe('/obavestenja');
 });
+it('Nova prijava has only generic Inbox metadata, so its tap cannot guess a candidate', async () => {
+ mockCold.mockResolvedValue(response('new-application', { kind: 'INBOX' })); await mount();
+ expect(mockNavigate.mock.calls).toEqual([['/obavestenja']]);
+ expect(messagePushIntent.snapshot()).toBeNull();
+ expect(mockPush).not.toHaveBeenCalled();
+});
 it('exact message metadata creates an owned memory intent and still navigates only to the fixed Inbox', async () => {
  const eventId = '33333333-3333-4333-8333-333333333333';
  mockCold.mockResolvedValue(response('exact', { kind: 'INBOX', eventType: 'MESSAGE_RECEIVED', eventId })); await mount();

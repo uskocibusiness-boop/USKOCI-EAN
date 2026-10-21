@@ -1,5 +1,5 @@
-import { useRef, useState, type ReactNode } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { useRef, type ReactNode } from 'react';
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
 import type { PrilikaProjekcija } from '../../contracts/projections';
 import { Avatar } from '../system/Avatar';
@@ -24,8 +24,6 @@ import { plural, prijava } from '../system/plural';
 import { useLayoutClass } from '../system/textScale';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { HomeLaunchArt } from './HomeLaunchArt';
-import { AnimatedRadar } from '../v2/RadarIcon';
-import { ListSkeleton } from '../notifications/ListSkeleton';
 import { HowItWorks } from './HowItWorks';
 
 /** Two main actions, the next appointment, real pending work and the account's lists.
@@ -90,7 +88,7 @@ const DOOR_ART = 48;
 export const WAITING_LIMIT = 3;
 
 /** Equal intentions, without a persistent account role. Large text uses full-width rows. */
-function StartActions({ onPublish, onEarn, animate }: { onPublish: () => void; onEarn: () => void; animate: boolean }) {
+function StartActions({ onPublish, onEarn }: { onPublish: () => void; onEarn: () => void }) {
   const { stacked } = useLayoutClass();
   return <View testID="home-intentions" style={[s.actions, stacked && s.actionsStacked]}>
     <Press accessibilityRole="button" accessibilityLabel="Objavi zadatak" accessibilityHint="Opiši šta ti treba."
@@ -106,7 +104,7 @@ function StartActions({ onPublish, onEarn, animate }: { onPublish: () => void; o
     <Press accessibilityRole="button" accessibilityLabel="Uskoči i zaradi" accessibilityHint="Pronađi zadatak."
       haptic="select" onPress={onEarn} scaleTo={sys.motion.scale.row} style={[s.door, s.earnDoor, stacked && s.doorStacked]}>
       <View style={[s.doorMain, stacked && s.doorMainStacked]}>
-        <AnimatedRadar size={DOOR_ART} color={sys.color.green} sweepColor={sys.color.green} animate={animate} />
+        <HomeLaunchArt kind="discover" size={DOOR_ART} />
         <View style={s.doorCopy}>
           <T variant="heading" style={s.doorTitle}>Uskoči i zaradi</T>
           <T variant="note" tone="muted">Pronađi zadatak.</T>
@@ -120,7 +118,7 @@ function StartActions({ onPublish, onEarn, animate }: { onPublish: () => void; o
 function artFor(target: HomeTarget): FactArtKind {
   switch (target.kind) {
     case 'CANDIDATES': return 'users';
-    case 'APPLICATION': return 'offers';
+    case 'APPLICATION': return 'applications';
     case 'AGREEMENT': case 'AGREEMENT_CHANGE': return 'agreements';
     case 'AGREEMENT_TERM': return 'calendar';
     case 'WORKER_PROFILE': return 'users';
@@ -237,10 +235,17 @@ function Unavailable({ text }: { text: string }) {
 }
 
 /**
- * What the first read fills first, in its own order: the heading of "Čeka te" and two rows of the real geometry (picture slot,
- * two lines, 64 dp), breathing as one while the answer is on its way. No block is promised that may never come.
+ * The first read has a calm, truthful status. Its height roughly reserves the old two-row footprint, but no grey shapes suggest
+ * that an appointment or pending decision exists before the read confirms one. It stands after the stable doors and list entries:
+ * an empty first result therefore cannot pull those controls into a new position merely by removing a placeholder above them.
  */
-const HomeSkeleton = () => <ListSkeleton rows={2} heading label="Učitavanje" />;
+const INITIAL_READ_HEIGHT = sys.type.heading.lineHeight + layout.group + layout.rowMin * 2;
+function HomeInitialLoading() {
+  return <View testID="home-initial-loading" accessibilityLiveRegion="polite" style={s.initialLoading}>
+    <ActivityIndicator size="small" color={sys.color.green} />
+    <T variant="note" tone="muted" style={s.initialLoadingText}>Učitavamo tvoj pregled…</T>
+  </View>;
+}
 
 // The two doors count what their lists hold, never what waits: that is said once, under "Čeka te", from the server's
 // own attention list (PKG-042: no inference fallback). A door that also said "1 čeka izbor" contradicted a known empty
@@ -305,27 +310,15 @@ function ExploreTasksAction({ onEarn, opportunities, onOpenOpportunity }: {
 }
 
 export function HomePresentation(p: HomePresentationProps) {
-  const actionBounds = useRef({ y: 0, height: 0 });
-  const viewport = useRef({ y: 0, height: 0 });
-  const [actionsVisible, setActionsVisible] = useState(false);
-  const actionsVisibleRef = useRef(false);
-  const updateActionVisibility = () => {
-    const card = actionBounds.current, window = viewport.current;
-    const visible = card.height > 0 && window.height > 0 && window.y < card.y + card.height && window.y + window.height > card.y;
-    if (actionsVisibleRef.current !== visible) {
-      actionsVisibleRef.current = visible;
-      setActionsVisible(visible);
-    }
-  };
   const home = p.home;
   const { stacked } = useLayoutClass();
   // A row that was already here when the screen opened has nothing to tell you by sliding in; only a genuinely new one moves,
-  // and each list remembers what it has already shown. The first rows after a skeleton are news and arrive once (B1).
+  // and each list remembers what it has already shown. The first rows after the initial read are news and arrive once (B1).
   const waiting = useAppear(), agreements = useAppear();
-  const sawSkeleton = useRef(false);
-  if (p.loading && !home) sawSkeleton.current = true;
+  const sawInitialLoading = useRef(false);
+  if (p.loading && !home) sawInitialLoading.current = true;
   const prompts = home?.prompts ?? [];
-  waiting.settle([...(home?.attention ?? []), ...prompts].map(item => item.id), undefined, { afterLoading: sawSkeleton.current });
+  waiting.settle([...(home?.attention ?? []), ...prompts].map(item => item.id), undefined, { afterLoading: sawInitialLoading.current });
   // Raspored holds the one next appointment that has its day-first words, as a card, and nothing else. With none ahead there is no block
   // (the count of Dogovori with no day, `quietLine`, is no longer drawn here: a weak row, 8 Oct 2026); an active Dogovor is not lost for it,
   // since what it asks of me is said under "Čeka te" and all of them stand in Raspored.
@@ -362,14 +355,7 @@ export function HomePresentation(p: HomePresentationProps) {
   // disc of Android's pull at the top of the screen (the owner's phone, 8 Oct 2026).
   const pull = usePullRefresh(p.onRefresh, p.refreshing);
   return <Screen kind="root" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
-    onViewportLayout={event => { viewport.current.height = event.nativeEvent.layout.height; updateActionVisibility(); }}
-    onScroll={event => {
-      const { contentOffset, layoutMeasurement } = event.nativeEvent;
-      viewport.current = { y: contentOffset.y, height: layoutMeasurement.height };
-      updateActionVisibility();
-    }}
     refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
-    {p.loading && !home ? <HomeSkeleton /> : null}
     {recovery ? <Surface kind="note" testID="home-recovery" style={s.recovery}>
       <T accessibilityRole="alert" variant="note">{recovery === 'stale' ? 'Nema veze. Prikazano je poslednje učitano.'
         : recovery === 'partial' ? 'Deo pregleda trenutno nije učitan.' : 'Pregled nije učitan. Proveri vezu i pokušaj ponovo.'}</T>
@@ -402,21 +388,20 @@ export function HomePresentation(p: HomePresentationProps) {
     {/* A Dogovori read that failed says so here, never as an empty schedule; with no appointment ahead there is no block and no placeholder. */}
     {home?.agreements.kind === 'unavailable' ? <Section title="Sledeće"><Unavailable text="Ne možemo da učitamo Dogovore." /></Section> : null}
 
-    <View onLayout={event => { actionBounds.current = event.nativeEvent.layout; updateActionVisibility(); }}>
-      <StartActions onPublish={p.onPublish} onEarn={p.onEarn} animate={p.active === true && actionsVisible} />
-    </View>
+    <StartActions onPublish={p.onPublish} onEarn={p.onEarn} />
     {p.intakeResume}
 
     {/* My lists stand in one group of rows directly under what is above, with the one section gap and no heading or line of their own. */}
     <View>
       <MineRow art="tasks" title="Moji zadaci" detail={tasksDetail} onPress={p.onMyTasks} />
-      <MineRow art="offers" title="Moje prijave" detail={applicationsDetail} onPress={p.onMyApplications} last={!setupProfile && !availabilityShown} />
+      <MineRow art="applications" title="Moje prijave" detail={applicationsDetail} onPress={p.onMyApplications} last={!setupProfile && !availabilityShown} />
       <OptionalReadState kind="worker" state={p.workProfileRead} />
       {availabilityShown ? <AvailableNowRow control={p.availableNow!} last={!setupProfile} /> : null}
       {/* R20: until the work profile exists, one row says what it is for and opens its conversation. */}
       {setupProfile ? <ListRow leading={<FactArt kind="users" size={32} />} title="Podesi radni profil" subtitle="Dobijaš zadatke koji ti odgovaraju."
         onPress={() => p.onOpen({ kind: 'WORKER_PROFILE' })} last accessibilityLabel="Podesi radni profil. Dobijaš zadatke koji ti odgovaraju." /> : null}
     </View>
+    {p.loading && !home ? <HomeInitialLoading /> : null}
     <OptionalReadState kind="opportunities" state={p.opportunitiesRead} />
     <ExploreTasksAction onEarn={p.onEarn} opportunities={p.opportunities} onOpenOpportunity={p.onOpenOpportunity} />
     {home?.firstRun ? <HowItWorks stacked={stacked} /> : null}
@@ -458,6 +443,8 @@ const s = StyleSheet.create({
   copy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   more: { paddingTop: sys.space.sm },
   recovery: { gap: sys.space.sm, alignItems: 'flex-start' },
+  initialLoading: { minHeight: INITIAL_READ_HEIGHT, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center', gap: sys.space.base },
+  initialLoadingText: { textAlign: 'center' },
   carouselSection: { gap: sys.space.sm },
   carouselHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, gap: sys.space.md },
   carouselTitle: { color: sys.color.ink },

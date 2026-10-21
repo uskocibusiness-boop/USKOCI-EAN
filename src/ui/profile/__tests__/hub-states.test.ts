@@ -23,14 +23,20 @@ const exportStatus = (patch: Partial<DataExportStatus>): DataExportStatus => ({ 
 
 describe('"Podrška": how many requests are open', () => {
   it('says the count in the shape Serbian gives it, and says nothing for none or for an inbox that was not read', () => {
-    expect(supportWord(undefined)).toBeUndefined(); expect(supportWord(0)).toBeUndefined();
-    expect([1, 2, 3, 4, 5, 11, 12, 21, 22, 25].map(supportWord)).toEqual(['1 otvoren zahtev', '2 otvorena zahteva', '3 otvorena zahteva', '4 otvorena zahteva',
+    expect(supportWord(undefined)).toBeUndefined(); expect(supportWord({ count: 0, more: false })).toBeUndefined();
+    expect([1, 2, 3, 4, 5, 11, 12, 21, 22, 25].map(count => supportWord({ count, more: false }))).toEqual(['1 otvoren zahtev', '2 otvorena zahteva', '3 otvorena zahteva', '4 otvorena zahteva',
       '5 otvorenih zahteva', '11 otvorenih zahteva', '12 otvorenih zahteva', '21 otvoren zahtev', '22 otvorena zahteva', '25 otvorenih zahteva']);
   });
   it('counts the cases that are not closed, and nothing from an inbox that was not read', () => {
-    expect(openSupportCases(inbox('RECEIVED', 'IN_REVIEW', 'WAITING_FOR_AUTHOR', 'DECIDED', 'CLOSED', 'CLOSED'))).toBe(4);
-    expect(openSupportCases(inbox('CLOSED'))).toBe(0); expect(openSupportCases(inbox())).toBe(0);
+    expect(openSupportCases(inbox('RECEIVED', 'IN_REVIEW', 'WAITING_FOR_AUTHOR', 'DECIDED', 'CLOSED', 'CLOSED'))).toEqual({ count: 4, more: false });
+    expect(openSupportCases(inbox('CLOSED'))).toEqual({ count: 0, more: false }); expect(openSupportCases(inbox())).toEqual({ count: 0, more: false });
     expect(openSupportCases(null)).toBeUndefined(); expect(openSupportCases(undefined)).toBeUndefined();
+  });
+  it('labels a paged inbox as a lower bound, including when only closed cases are on the first page', () => {
+    const page = { ...inbox('RECEIVED', 'IN_REVIEW', 'CLOSED'), nextBeforeCaseNumber: '42' };
+    expect(openSupportCases(page)).toEqual({ count: 2, more: true });
+    expect(supportWord(openSupportCases(page))).toBe('Najmanje 2 otvorena zahteva');
+    expect(supportWord(openSupportCases({ ...inbox('CLOSED'), nextBeforeCaseNumber: '41' }))).toBeUndefined();
   });
 });
 
@@ -82,7 +88,7 @@ describe('"Pravila i saglasnosti": published, and accepted', () => {
 
 describe('the words of the four rows together, and the version', () => {
   it('turns what was read into the words of the rows, and leaves out every part that was not read', () => {
-    expect(hubWords({ support: 2, blocked: { count: 1, more: false }, exportPhase: 'PROCESSING', legal: 'PENDING' })).toEqual({
+    expect(hubWords({ support: { count: 2, more: false }, blocked: { count: 1, more: false }, exportPhase: 'PROCESSING', legal: 'PENDING' })).toEqual({
       support: '2 otvorena zahteva', blocked: '1', export: 'U pripremi', legal: 'Čekaju tvoju saglasnost' });
     const nothing = hubWords({});
     expect(nothing).toEqual({ support: undefined, blocked: undefined, export: undefined, legal: undefined });

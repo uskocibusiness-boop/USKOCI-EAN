@@ -24,8 +24,8 @@ export function NoticeSwitchRow({ label, spoken, value, mixed = false, disabled 
     onPress={() => onChange(!value)} style={s.row}>
     <View style={s.heading}>
       <T variant="bodyStrong" tone={disabled ? 'muted' : 'ink'} style={s.label}>{label}</T>
-      <View style={s.control} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        <Switch value={value} disabled={disabled} onValueChange={onChange}
+      <View style={s.control} pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+        <Switch value={value} disabled={disabled}
           trackColor={{ false: sys.color.lineStrong, true: sys.color.green }} thumbColor={sys.color.surface}
           ios_backgroundColor={sys.color.lineStrong} />
       </View>

@@ -48,7 +48,8 @@ jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalS
 jest.mock('../agreementClientService', () => ({ agreementProblemService: { submit: (...args: unknown[]) => mockProblemSubmit(...args), read: (...args: unknown[]) => mockProblemRead(...args) } }));
 jest.mock('../groupConversationService', () => ({ groupConversationService: { context: (...args: unknown[]) => mockGroupContext(...args) } }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView' }, FadeIn: { duration: () => undefined } }));
+jest.mock('react-native-reanimated', () => ({ ...jest.requireActual('../../../__mocks__/react-native-reanimated'), __esModule: true,
+  default: { ...jest.requireActual('../../../__mocks__/react-native-reanimated').default, View: 'AnimatedView' }, FadeIn: { duration: () => undefined } }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 // One store answers both names (ui/system/motion, 2026-09-24): mocking it covers useSystemReducedMotion and every
@@ -92,6 +93,8 @@ jest.mock('../agreementCancellationClientService', () => ({
 }));
 import Dogovor from '../../app/dogovor/[id]';
 import { poruka } from '../../ui/system/Poruka';
+import { SkeletonList } from '../../ui/system/Skeleton';
+import { QuietReadState } from '../../ui/v2/QuietReadState';
 
 const workspace = { id: '20000000-0000-4000-8000-000000000001', naslov: 'Pomoć pri selidbi', stanje: 'CONFIRMED',
   verzija: 1, cena: { prikaz: '3.000 RSD' }, pokrivenost: { ukupno: 1, popunjeno: 1, preostalo: 0 },
@@ -313,7 +316,7 @@ describe('D03 actual route and scoped resource integration', () => {
     const bar = at(word => word.text === 'Dogovoreno' && !word.header), terms = at(word => word.text === 'Uslovi' && word.header);
     expect(title).toBeGreaterThanOrEqual(0); expect(title).toBeLessThan(step);
     expect(step).toBeLessThan(bar); expect(bar).toBeLessThan(terms);
-    expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD' })).toBeTruthy();
+    expect(tree.root.findByProps({ accessibilityLabel: 'Dogovoreno ukupno: 3.000 RSD, Za ovu saradnju' })).toBeTruthy();
     await act(async () => open.props.onPress());
     expect(mockRouter.push).toHaveBeenCalledWith({ pathname: role === 'narucilac' ? '/potrebe/[id]/pregled' : '/prilike/[id]', params: { id: taskId } });
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Zadatak' })).toHaveLength(0);
@@ -449,8 +452,15 @@ describe('D03 actual route and scoped resource integration', () => {
     let rejectRead!: (error: Error) => void;
     mockRead.mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectRead = reject; }));
     await render(); expect(button('Nazad')).toBeTruthy();
+    expect(texts()).toContain('Učitavamo Dogovor…');
+    expect(texts()).toContain('Proveravamo pristup i važeće uslove.');
+    expect(texts()).not.toContain(workspace.naslov);
+    expect(tree.root.findAllByType(QuietReadState)).toHaveLength(1);
+    expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrdi završetak' })).toHaveLength(0);
     await act(async () => rejectRead(new Error('offline')));
     expect(texts()).toContain('Dogovor nije učitan'); expect(texts()).not.toContain('Dogovor nije dostupan');
+    expect(tree.root.findAllByType(QuietReadState)).toHaveLength(0);
     await act(async () => button('Ponovo učitaj Dogovor').props.onPress());
     expect(texts()).toContain(workspace.naslov);
   });
@@ -561,7 +571,7 @@ describe('D03 actual route and scoped resource integration', () => {
   it('a dismissed confirmation cannot send or dismiss a newly opened review', async () => {
     await render();
     const oldConfirm = await completionConfirmation();
-    const oldBack = button('Nazad na Dogovor').props.onPress;
+    const oldBack = tree.root.findByProps({ testID: 'product-sheet-close' }).props.onPress;
     await act(async () => oldBack());
     await completionConfirmation();
     await act(async () => { oldConfirm(); oldBack(); });

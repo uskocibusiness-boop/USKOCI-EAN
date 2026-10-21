@@ -113,6 +113,145 @@ describe('natural server AI response without bypassing authoritative review', ()
     expect(result.safety).toBe('CLARIFY');
     expect(result.proposals).toHaveLength(0);
   });
+  it.each(['100 EUR', '100 evra', '€100', '100 евра'])(
+    'keeps an explicit euro amount out of the RSD price fact: %s', amount => {
+      const people = { key: 'need.people_needed', value: 3 };
+      const turn = reply('REVIEW', 'Cena je upisana.', [people,
+        { key: 'need.price_mode', value: 'MY_PRICE' },
+        { key: 'need.price_rsd', value: 100, evidence: amount },
+        { key: 'need.title', value: 'Prenos za 100 evra' }]);
+      const result = guard(turn, `Prenesi sto za ${amount}, trebaju tri osobe.`, facts(), { localDate: '2026-10-12' });
+      expect(result.safety).toBe('CLARIFY');
+      expect(result.proposals).toEqual([people]);
+      expect(result.assistantMessage).toContain('RSD');
+      expect(result.assistantMessage).toContain('ponude');
+    });
+  it('does not turn a mixed euro/dinar correction into RSD without evidence for the selected amount', () => {
+    const turn = reply('ACK', 'Promenio sam cenu.', [{ key: 'need.price_rsd', value: 15000, evidence: '15000' }]);
+    const result = guard(turn, 'Ne 100 EUR, nego 15000 dinara.', facts(), { localDate: '2026-10-12' });
+    expect(result.safety).toBe('CLARIFY');
+    expect(result.proposals).toEqual([]);
+  });
+  it('keeps a clean task title and scope from the same message as an unsupported euro budget', () => {
+    const title = { key: 'need.title', value: 'Prenos stola' };
+    const description = { key: 'need.description', value: 'Preneti sto do stana na Limanu.' };
+    const turn = reply('ACK', 'Razumem.', [title, description,
+      { key: 'need.price_rsd', value: 100, evidence: '100 EUR' }]);
+    const result = guard(turn, 'Prenesi sto do stana na Limanu, budžet 100 EUR.', facts(), { localDate: '2026-10-12' });
+    expect(result.safety).toBe('CLARIFY');
+    expect(result.proposals).toEqual([title, description]);
+  });
+  it('allows an explicitly evidenced dinar correction in a message that rejects euros', () => {
+    const turn = reply('ACK', 'Cena je sada 15.000 dinara.', [
+      { key: 'need.price_rsd', value: 15000, evidence: '15000 dinara' }]);
+    const result = guard(turn, 'Ne 100 EUR, nego 15000 dinara.', facts(), { localDate: '2026-10-12' });
+    expect(result.safety).toBe('ALLOW');
+    expect(result.proposals).toEqual(turn.proposals);
+  });
+  it('lets a user explicitly choose offers after mentioning a euro amount', () => {
+    const turn = reply('REVIEW', 'Tražim ponude.', [{ key: 'need.price_mode', value: 'OFFERS', evidence: 'želim ponude' }]);
+    const active = facts().map(f => f.fact_key === 'need.price_mode' ? { ...f, fact_value: 'MY_PRICE' } : f);
+    active.push({ fact_key: 'need.price_rsd', fact_value: 10000, status: 'CONFIRMED' });
+    const result = guard(turn, 'Ne stavljaj 100 EUR, želim ponude.', active, { localDate: '2026-10-12' });
+    expect(result.safety).toBe('ALLOW');
+    expect(result.proposals).toEqual(turn.proposals);
+  });
+  it('clarifies an acknowledged euro price correction when the model omitted the price fact', () => {
+    const active = facts().map(f => f.fact_key === 'need.price_mode' ? { ...f, fact_value: 'MY_PRICE' } : f);
+    active.push({ fact_key: 'need.price_rsd', fact_value: 9000, status: 'CONFIRMED' });
+    const people = { key: 'need.people_needed', value: 3 };
+    const turn = reply('ACK', 'Cena je promenjena.', [people]);
+    const result = guard(turn, 'Promeni cenu na 100 EUR, a trebaju tri osobe.', active, { localDate: '2026-10-12' });
+    expect(result.safety).toBe('CLARIFY');
+    expect(result.dialogue.next).toBe('CLARIFY');
+    expect(result.proposals).toEqual([people]);
+    expect(result.assistantMessage).toContain('RSD');
+    expect(result.assistantMessage).not.toContain('Cena je promenjena');
+  });
+  it('does not downgrade policy REVIEW for an acknowledged euro correction without a price fact', () => {
+    const turn = reply('ACK', 'Cena je promenjena.');
+    turn.safety = 'REVIEW';
+    const result = guard(turn, 'Promeni cenu na 100 EUR.', facts(), { localDate: '2026-10-12' });
+    expect(result.safety).toBe('REVIEW');
+    expect(result.proposals).toEqual([]);
+    expect(result.assistantMessage).toContain('nisam upisao');
+  });
+  it('keeps an explicit offer choice on ACK when there is no euro price proposal', () => {
+    const offers = { key: 'need.price_mode', value: 'OFFERS', evidence: 'želim ponude' };
+    const turn = reply('ACK', 'Tražićemo ponude.', [offers]);
+    const active = facts().map(f => f.fact_key === 'need.price_mode' ? { ...f, fact_value: 'MY_PRICE' } : f);
+    active.push({ fact_key: 'need.price_rsd', fact_value: 9000, status: 'CONFIRMED' });
+    const result = guard(turn, 'Ne menjaj cenu na 100 EUR, želim ponude.', active, { localDate: '2026-10-12' });
+    expect(result.safety).toBe('ALLOW');
+    expect(result.proposals).toEqual([offers]);
+  });
+  it('keeps explicitly evidenced offers but drops a simultaneous euro-derived price', () => {
+    const offers = { key: 'need.price_mode', value: 'OFFERS', evidence: 'želim ponude' };
+    const people = { key: 'need.people_needed', value: 3 };
+    const turn = reply('REVIEW', 'Cena 100 RSD je sačuvana.', [offers,
+      { key: 'need.price_rsd', value: 100, evidence: '100 EUR' },
+      { key: 'need.price_basis', value: 'TOTAL', evidence: 'ukupno' }, people]);
+    const active = facts().map(f => f.fact_key === 'need.price_mode' ? { ...f, fact_value: 'MY_PRICE' } : f);
+    active.push({ fact_key: 'need.price_rsd', fact_value: 9000, status: 'CONFIRMED' });
+    const result = guard(turn, 'Ne stavljaj 100 EUR; želim ponude i trebaju mi tri osobe.', active, { localDate: '2026-10-12' });
+    expect(result.safety).toBe('ALLOW');
+    expect(result.proposals).toEqual([offers, people]);
+    expect(result.assistantMessage).toContain('tražiš ponude');
+    expect(result.assistantMessage).not.toContain('100 RSD');
+  });
+  it('keeps policy REVIEW while dropping a simultaneous euro price beside evidenced offers', () => {
+    const offers = { key: 'need.price_mode', value: 'OFFERS', evidence: 'желим понуде' };
+    const turn = reply('ACK', 'Cena 100 RSD je sačuvana.', [offers,
+      { key: 'need.price_rsd', value: 100, evidence: '100 евра' }]);
+    turn.safety = 'REVIEW';
+    const result = guard(turn, 'Не стављај 100 евра, желим понуде.', facts(), { localDate: '2026-10-12' });
+    expect(result.safety).toBe('REVIEW');
+    expect(result.proposals).toEqual([offers]);
+    expect(result.assistantMessage).toContain('Izabrao si ponude');
+  });
+  it('does not accept a hallucinated offer choice when only a euro price was requested', () => {
+    const turn = reply('ACK', 'Tražićemo ponude.', [
+      { key: 'need.price_mode', value: 'OFFERS', evidence: 'ponude' },
+      { key: 'need.price_rsd', value: 100, evidence: '100 EUR' }]);
+    const result = guard(turn, 'Budžet je 100 EUR.', facts(), { localDate: '2026-10-12' });
+    expect(result.safety).toBe('CLARIFY');
+    expect(result.proposals).toEqual([]);
+    expect(result.assistantMessage).toContain('RSD');
+  });
+  it('does not treat a rejected offer choice as consent to offers', () => {
+    const turn = reply('ACK', 'Tražićemo ponude.', [
+      { key: 'need.price_mode', value: 'OFFERS', evidence: 'Ne želim ponude' },
+      { key: 'need.price_rsd', value: 100, evidence: '100 EUR' }]);
+    const result = guard(turn, 'Ne želim ponude; cena je 100 EUR.', facts(), { localDate: '2026-10-12' });
+    expect(result.safety).toBe('CLARIFY');
+    expect(result.proposals).toEqual([]);
+  });
+  it('does not mistake a geographic Europe mention for a price', () => {
+    const turn = reply('ACK', 'Zabeleženo.', [{ key: 'need.price_rsd', value: 5000, evidence: '5000 dinara' }]);
+    const result = guard(turn, 'Posao je u Evropi, cena je 5000 dinara.', facts(), { localDate: '2026-10-12' });
+    expect(result.safety).toBe('ALLOW');
+    expect(result.proposals).toEqual(turn.proposals);
+  });
+  it('preserves policy REVIEW while withholding a false RSD price from explicit euros', () => {
+    const turn = reply('ACK', 'Cena 100 RSD je sačuvana.', [
+      { key: 'need.people_needed', value: 2 }, { key: 'need.price_rsd', value: 100, evidence: '100 EUR' }]);
+    turn.safety = 'REVIEW';
+    const result = guard(turn, 'Potrebne su dve osobe za 100 EUR.', facts(), { localDate: '2026-10-12' });
+    expect(result.safety).toBe('REVIEW');
+    expect(result.proposals).toEqual([{ key: 'need.people_needed', value: 2 }]);
+    expect(result.assistantMessage).toContain('dodatno proveriti');
+    expect(result.assistantMessage).toContain('nisam upisao');
+    expect(result.assistantMessage).not.toContain('100 RSD je sačuvana');
+  });
+  it('corrects a policy REVIEW claim even when the model omitted the euro price fact', () => {
+    const turn = reply('REVIEW', 'Cena 100 RSD je sačuvana.', [
+      { key: 'need.price_mode', value: 'MY_PRICE' }, { key: 'need.people_needed', value: 2 }]);
+    turn.safety = 'REVIEW';
+    const result = guard(turn, 'Dve osobe za 100 evra.', facts(), { localDate: '2026-10-12' });
+    expect(result.safety).toBe('REVIEW');
+    expect(result.proposals).toEqual([{ key: 'need.people_needed', value: 2 }]);
+    expect(result.assistantMessage).toContain('nisam upisao');
+  });
   it.each(['PER_HOUR', 'PER_DAY'])('retains independent answers while clarifying %s pricing', priceUnit => {
     const people = { key: 'need.people_needed', value: 3 };
     const place = { key: 'need.task_geography', value: { mode: 'REMOTE' } };

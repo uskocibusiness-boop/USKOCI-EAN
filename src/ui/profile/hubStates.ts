@@ -12,7 +12,7 @@ import { plural } from '../system/plural';
  * never says "nije dostupno" in its place (J4: a row says a second thing only when that thing is a fact).
  */
 export type HubStates = {
-  /** The cases of the person's own support inbox that are not closed (the first page; older ones are not counted). */ support?: number;
+  /** Open cases on the first page, plus whether older cases may remain. */ support?: { count: number; more: boolean };
   /** The blocked people of the first page, and whether there are more pages. */ blocked?: { count: number; more: boolean };
   /** Where the copy of the person's data is. */ exportPhase?: ExportPhase;
   /** The legal documents: not published, waiting for the person's acceptance, or accepted. */ legal?: 'UNPUBLISHED' | 'PENDING' | 'ACCEPTED';
@@ -21,9 +21,12 @@ export type HubStates = {
 /** The words of the four rows, from what was read; a part that was not read has no word. */
 export type HubWords = { support?: string; blocked?: string; export?: string; legal?: string };
 
-/** "2 otvorena zahteva": only when there is at least one open request; none is not worth a word on a row that opens the inbox. */
-export const supportWord = (open: number | undefined): string | undefined =>
-  open === undefined || open < 1 ? undefined : plural(open, 'otvoren zahtev', 'otvorena zahteva', 'otvorenih zahteva');
+/** An exact count only for a complete inbox; a next page makes the first-page count a lower bound. */
+export const supportWord = (support: HubStates['support']): string | undefined => {
+  if (!support || support.count < 1) return undefined;
+  const word = plural(support.count, 'otvoren zahtev', 'otvorena zahteva', 'otvorenih zahteva');
+  return support.more ? `Najmanje ${word}` : word;
+};
 
 /** "Nema" for nobody, otherwise how many ("2", and "50+" when another page follows). */
 export const blockedWord = (blocked: HubStates['blocked']): string | undefined =>
@@ -50,9 +53,9 @@ export const versionWord = (version: string | null | undefined): string | undefi
 
 // ---- from the answers of the services (each answer is read only if it is a real one) ----
 
-/** The cases that are not closed. */
-export function openSupportCases(inbox: SupportInbox | null | undefined): number | undefined {
-  return inbox ? inbox.cases.filter(row => row.status !== 'CLOSED').length : undefined;
+/** The known open cases and the server's signal that the inbox has another page. */
+export function openSupportCases(inbox: SupportInbox | null | undefined): HubStates['support'] {
+  return inbox ? { count: inbox.cases.filter(row => row.status !== 'CLOSED').length, more: inbox.nextBeforeCaseNumber !== null } : undefined;
 }
 export function blockedFrom(list: MyBlockedAccounts | null | undefined): HubStates['blocked'] {
   return list ? { count: list.items.length, more: list.nextCursor !== null } : undefined;

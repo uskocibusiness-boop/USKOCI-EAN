@@ -12,7 +12,7 @@ import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { CivilField } from '../calendar/CalendarControls';
 import { SettingsFooter, SettingsGroup, SettingsInfo } from '../settings/SettingsPresentation';
-import { ListSkeleton } from './ListSkeleton';
+import { NotificationLoading } from './NotificationLoading';
 import { NoticeSwitchRow } from './NoticeSwitchRow';
 import { Disclosure } from '../system/Disclosure';
 import { FactArt } from '../system/FactArt';
@@ -359,11 +359,7 @@ export function PushPreferencesView({ signedIn, data, busy, error, locked, dirty
  if (!data) return <View style={styles.fill}><ScrollView contentContainerStyle={styles.content}>
   {error ? <StateView kind="error" title="Podešavanja nisu učitana" body="Ne možemo da učitamo podešavanja. Pokušaj ponovo."
    primary={{ label: 'Pokušaj ponovo', onPress: onRefresh, disabled: busy }} />
-   // The rows that are coming, in their geometry (a title, its words, a switch), and the one sentence a screen reader hears.
-   : <View accessibilityLiveRegion="polite" style={styles.loading}>
-    <ListSkeleton rows={4} heading switches />
-    <T variant="meta" tone="muted" style={styles.loadingText}>Učitavamo podešavanja obaveštenja…</T>
-   </View>}
+   : <NotificationLoading label="Učitavamo podešavanja obaveštenja…" />}
  </ScrollView></View>;
  const { settings, native, push, registered, readiness } = data;
  const quiet = sharedQuiet(settings);
@@ -568,8 +564,6 @@ const styles = StyleSheet.create({
  block: { gap: sys.space.sm },
  // What "Napredno" holds stands in parts 24 apart, like the parts of the screen: the app's own list, each set's categories, the facts.
  advanced: { gap: layout.section },
- loading: { gap: sys.space.base },
- loadingText: { textAlign: 'center' },
  ink: { color: sys.color.ink },
  phoneStatus: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingVertical: sys.space.xs },
  phoneCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },

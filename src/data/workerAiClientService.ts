@@ -245,9 +245,12 @@ const ERRORS:Readonly<Record<string,string>>={
   WORKER_AI_RATE_LIMITED:'Poslato je previše poruka zaredom. Sačekaj kratko i proveri razgovor.',
 };
 const scope=():ReceiptAccount|undefined=>{const s=sesijaSada();return s.user?{accountId:s.user.id,accountRevision:s.accountRevision}:undefined;};
-function call<T>(name:string,args:Record<string,unknown>,decode:(v:unknown,aid:string)=>T|null,write=false):Promise<Ishod<T>>{
+/** Only a proved local read timeout or SDK no-response may keep a last-good interview visible. */
+export const WORKER_AI_READ_TRANSPORT_UNAVAILABLE='WORKER_AI_READ_TRANSPORT_UNAVAILABLE';
+function call<T>(name:string,args:Record<string,unknown>,decode:(v:unknown,aid:string)=>T|null,write=false,
+  readTransportUnavailable?:string):Promise<Ishod<T>>{
   const account=scope(); if(!account)return Promise.resolve(failure('AUTH_REQUIRED',ERRORS.AUTH_REQUIRED));
-  return readOwnedResult({account,errors:ERRORS,write,fallback:'WORKER_AI_UNCONFIRMED',invalid:'WORKER_AI_INVALID_RESPONSE',
+  return readOwnedResult({account,errors:ERRORS,write,readTransportUnavailable,fallback:'WORKER_AI_UNCONFIRMED',invalid:'WORKER_AI_INVALID_RESPONSE',
     request:()=>supabaseKlijent().rpc(name,args),decode:v=>decode(v,account.accountId)});
 }
 function recoveryCall(name:'rpc_read_worker_ai_turn_recovery'|'rpc_cancel_worker_ai_turn',conversationId:string,clientRequestId:string){
@@ -270,7 +273,7 @@ export const workerAiClientService={
     call('rpc_open_worker_ai',{p_client_request_id:clientRequestId},decodeWorkerAiSnapshot,true),
   read:(conversationId:string)=>!uuid(conversationId)?Promise.resolve(failure('WORKER_AI_ID_REQUIRED','Ponovo otvori razgovor.')):
     call(signedWorkerReviewEnabled()?'rpc_read_worker_ai_taxonomy':'rpc_read_worker_ai',
-      {p_conversation_id:conversationId},(v,a)=>decodeWorkerAiSnapshot(v,a,conversationId)),
+      {p_conversation_id:conversationId},(v,a)=>decodeWorkerAiSnapshot(v,a,conversationId),false,WORKER_AI_READ_TRANSPORT_UNAVAILABLE),
   patch:(conversationId:string,expectedRevision:number,patch:WorkerAiPatch)=>call('rpc_patch_worker_ai',
     {p_conversation_id:conversationId,p_expected_revision:expectedRevision,p_patch:JSON.parse(JSON.stringify(patch))},(v,a)=>decodeWorkerAiSnapshot(v,a,conversationId),true),
   prepare:(conversationId:string,expectedRevision:number,activate:boolean)=>call(

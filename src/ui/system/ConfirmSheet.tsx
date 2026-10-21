@@ -14,12 +14,11 @@ import { brandAction, sheetLift, sys } from './tokens';
 export const SLOW_COMMAND_MS = 2500;
 
 /**
- * What draws a question (plan 2.20, owner 2026-10-07: "short confirmations are a centred dialog; bottom sheets only for
- * menus and pickers/forms"):
+ * Both forms are centred (owner 2026-10-20). The wire names remain compatible with existing callers:
  * - `dialog`: a white card in the middle of the screen over a dimmed screen. A short question: a title that names what
  *   happens, one sentence, one confirm and a quiet way out. Every question asked so far is one of these.
- * - `sheet`: the bottom sheet (`ProductSheet`). For a question that needs room: a list of reasons, chips or a field
- *   (`extra`), which want the height and the keyboard.
+ * - `sheet`: the scrollable content dialog (`ProductSheet`), for reasons, chips or fields (`extra`).
+ *   Map panels have their separate gesture engine.
  */
 export type ConfirmForm = 'dialog' | 'sheet';
 
@@ -35,18 +34,18 @@ export type ConfirmRequest = {
   /** Runs at most once. A returned promise keeps the confirm busy and the sheet open until it settles. The sheet never
    *  reports success or failure itself: the screen that owns the command shows its outcome. */
   onConfirm?: () => void | Promise<unknown>;
-  /** Every ending that is not the confirm: the cancel button, Back, a tap outside, a drag down, or the sheet being
+  /** Every ending that is not the confirm: the cancel button, Back, a tap outside, or the dialog being
    *  retired by its screen. Runs at most once, and never after the confirm. */
   onCancel?: () => void;
   /**
-   * Content under the sentence that needs room: a list of reasons, chips, a field. A question that has it is a bottom
-   * sheet, whatever `form` says (see `confirmFormOf`): the content needs the height, and a field needs the keyboard. It
+   * Content under the sentence that needs room: a list of reasons, chips, a field. It uses the scrollable centred
+   * dialog, whatever `form` says (see `confirmFormOf`): content needs room and a field needs keyboard avoidance. It
    * keeps its own state and reports through the caller's callbacks; this component only draws it.
    */
   extra?: ReactNode;
   /**
    * What draws the question. Left out, it follows from the request: a bottom sheet when there is `extra` content, a dialog
-   * otherwise. Say `'sheet'` to keep the bottom sheet for a question that has no extra content. `'dialog'` together with
+   * otherwise. Say `'sheet'` to use the scrollable dialog for a question that has no extra content. `'dialog'` together with
    * `extra` is not honoured: the content has nowhere to stand in a dialog, so the sheet is drawn.
    */
   form?: ConfirmForm;
@@ -66,7 +65,7 @@ export function confirmFormOf(request: Pick<ConfirmRequest, 'form' | 'extra'>): 
 /**
  * What every form of the question shares: the one decision it takes, said once. The confirm runs the caller's command at
  * most once; a promise it returns keeps the confirm busy until it settles; every other ending (the cancel, Back, a tap
- * outside, a drag down, the screen taking the question away) is a cancel, and a cancel never follows a confirm. `ended`
+ * outside, the screen taking the question away) is a cancel, and a cancel never follows a confirm. `ended`
  * reports that the question is over, once; `dismiss`, which each form brings, is how that form leaves.
  */
 function useConfirmFlow({ onConfirm, onCancel, onClosed }: Pick<ConfirmRequest, 'onConfirm' | 'onCancel'> & { onClosed: () => void }) {
@@ -110,16 +109,16 @@ const outsideHint = (busy: boolean, cancelLabel: string | null) =>
  * A question asked inside the app instead of a system alert: a title, one sentence, a quiet cancel and ONE confirm.
  * Mounted means open. `onClosed` runs once the question is over (or was taken away by its parent), whatever ended it.
  *
- * Drawn in the form `confirmFormOf(request)` names: a centred dialog for a short question, the bottom sheet for one that
+ * Drawn in the form `confirmFormOf(request)` names: a compact centred dialog for a short question, a scrollable dialog for one that
  * carries `extra` content (or whose caller asks for `form: 'sheet'`). Both forms have the same contract, tested by the same
  * cases: one confirm that runs once, a busy state while its command runs, every other ending routed to the cancel path.
  */
 export function ConfirmSheet(props: ConfirmRequest & { onClosed: () => void; reduced?: boolean }) {
-  return confirmFormOf(props) === 'sheet' ? <ConfirmSheetBottom {...props} /> : <ConfirmDialog {...props} />;
+  return confirmFormOf(props) === 'sheet' ? <ConfirmContentDialog {...props} /> : <ConfirmDialog {...props} />;
 }
 
-/** The question as a bottom sheet: the one sheet engine, a pinned confirm and a quiet cancel, under the sentence and any extra content. */
-function ConfirmSheetBottom({ title, message, confirmLabel, cancelLabel = 'Odustani', tone = 'default', extra, onConfirm, onCancel,
+/** The question with extra content: central surface, independently scrolling content and pinned actions. */
+function ConfirmContentDialog({ title, message, confirmLabel, cancelLabel = 'Odustani', tone = 'default', extra, onConfirm, onCancel,
   onClosed, reduced }: ConfirmRequest & { onClosed: () => void; reduced?: boolean }) {
   const { busy, dismissible, ended, confirm, cancel } = useConfirmFlow({ onConfirm, onCancel, onClosed });
   const danger = tone === 'danger';

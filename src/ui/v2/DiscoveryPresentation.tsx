@@ -11,20 +11,22 @@ import { State as GestureState } from 'react-native-gesture-handler';
 import { ANIMATION_STATUS, BottomSheetFlatList, SCROLLABLE_STATUS, SHEET_STATE, useBottomSheetInternal, useScrollEventsHandlersDefault,
   type BottomSheetFlatListMethods, type ScrollEventsHandlersHookType } from '@gorhom/bottom-sheet';
 import { Crosshair } from 'phosphor-react-native';
-import { atLeast, dateRange, discoveryConditions, discoveryFiltered, discoveryMapScope, discoveryShown, discoveryStartSnap, initialMarketplaceView,
-  pinPlaces, placeKey, pointKey, publicInitialBounds, publicPoint, remoteDiscoveryScope, sameBounds, saysWhen, saysWorkMode, undatedCount, workMode, type DiscoveryShown,
+import { atLeast, dateRange, discoveryConditions, discoveryFiltered, discoveryMapScope, discoveryShown, discoveryStartSnap, initialMarketplaceView, inBounds,
+  pinPlaces, placeKey, pointKey, publicBounds, publicInitialBounds, publicPoint, remoteDiscoveryScope, sameBounds, saysWhen, saysWorkMode, undatedCount, workMode, type DiscoveryShown,
   type DiscoverySnap, type MarketplaceItem, type MarketplaceView, type PublicBounds, type WhenFilter } from '../../data/marketplaceView';
+import { readSettledMapPlace, settledMapPlaceMatches, writeSettledMapPlace, type SettledMapPlace } from '../../data/confirmedDiscoveryMapPlace';
+import { discoveryV1RouteIntentKey } from '../../data/discoveryV1RouteCoordinator';
+import { novac } from '../../lib/novac';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { Glyph } from '../system/Glyph';
 import { Appear, useAppear } from '../system/Appear';
-import { ActionSheet } from '../system/ActionSheet';
 import { useReducedMotion } from '../system/motion';
 import { zadataka } from '../system/plural';
 import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
 import { DiscoveryMap } from './DiscoveryMap';
-import type { DiscoveryV1ServerMapSeam } from './DiscoveryMap.types';
+import type { DiscoveryV1ServerMapSeam, NearbyCameraTarget } from './DiscoveryMap.types';
 import type { DiscoveryV1Availability, DiscoveryV1Counts } from '../../data/discoveryV1Contract';
 import { DiscoveryListSheet, SNAP } from './discovery/DiscoveryListSheet';
 import { DiscoveryPeek } from './discovery/DiscoveryPeek';
@@ -38,7 +40,7 @@ import { handleHint, listViewport, nextSheetIndex, snapHeights } from './discove
 import { TaskAgeContext, taskAgeOf, type PublishedAt } from './discovery/taskAge';
 import { useNearbyMap } from './discovery/useNearbyMap';
 import { useZadaciBar, useZadaciBarMotion } from './discovery/zadaciBar';
-import { DiscoverySearchPanel, type DiscoveryV1SearchPanelSeam, type PanelMode, type SearchDraft, type SearchReadiness } from './discovery/DiscoverySearchPanel';
+import { DiscoverySearchPanel, type ConfirmedMapPlace, type DiscoveryV1SearchPanelSeam, type PanelMode, type SearchDraft, type SearchReadiness } from './discovery/DiscoverySearchPanel';
 import { useRecentSearches } from './discovery/recentSearches';
 import { DistanceFromContext } from './discovery/taskDistance';
 import { CLEAR_ALL, FOR_ME_REFUSED, NEWEST_FIRST, OFF_MAP_CHIP, PRICE, QUICK_WHEN, WHEN, WHERE, WORK_PROFILE_ENTRY, countLineWords, countWords, datesWords, offMapWords,
@@ -173,7 +175,7 @@ const RESTORE_STALL_RETRIES = 2;
 const SNAP_NAME: readonly DiscoverySnap[] = ['peek', 'half', 'full'];
 /** Nothing to show yet (reading) or at all (a failed read). */
 const NOTHING: DiscoveryShown = { mapped: [], inArea: [], withoutPoint: [], listed: [] };
-type ListSection = { kind: 'map' | 'remote' | 'unlocated'; label: string; count: number };
+type ListSection = { kind: 'map' | 'remote' | 'unlocated' | 'offMap'; label: string; count: number; partial?: boolean };
 const listKind = (item: MarketplaceItem): ListSection['kind'] => publicPoint(item) ? 'map' : workMode(item) === 'remote' ? 'remote' : 'unlocated';
 
 const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, relation, onOpen, section, portraitVisible }: {
@@ -185,8 +187,8 @@ const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, relation
   const open = useCallback(() => onOpen(item), [onOpen, item]);
   return <>
     {section ? <View testID={`section-${section.kind}`} accessible accessibilityRole="header"
-      accessibilityLabel={`${section.label}, ${zadataka(section.count)}`} style={[s.section, index === 0 && s.sectionFirst]}>
-      <T variant="bodyStrong" style={s.sectionTitle}>{section.label}</T><T variant="meta" style={s.sectionCount}>{section.count}</T>
+      accessibilityLabel={`${section.label}, ${section.partial ? 'učitano: ' : ''}${zadataka(section.count)}`} style={[s.section, index === 0 && s.sectionFirst]}>
+      <T variant="bodyStrong" style={s.sectionTitle}>{section.label}</T><T variant="meta" style={s.sectionCount}>{section.partial ? `Učitano: ${section.count}` : section.count}</T>
     </View> : null}
     <Appear index={index} animate={animate}><TaskCard item={item} onOpen={open} relation={relation}
       portrait={portraitVisible ? <TaskPublisherPortrait item={item} size={40} /> : undefined} /></Appear>
@@ -195,26 +197,15 @@ const DiscoveryRow = memo(function DiscoveryRow({ item, index, animate, relation
 
 /**
  * Zadaci as one screen (owner step 4, 2026-09-24; critique A5–A7, B8–B12; Discovery V47, Airbnb's interaction in
- * USKOČI's look; recomposed on the owner's phone of 8 Oct 2026 and by the approved plan, U1 to U5). The map is the whole screen. Over it, at every height of the
- * list, float the tools: one white pill that says what is SEARCHED (a word and a place) and opens the SEARCH (which fills the screen: the words, the places with how
- * many tasks each, and what was searched before), a menu of secondary destinations, beside the pill the ROUND button of the FILTERS (with how many are on; it opens a
- * sheet from the bottom: when, how the work is done, the amount), and under them ONE row of raised capsules: "Za mene" (on or off) and the quick choices that toggle
- * real filters at once ("Danas", "Ovaj vikend", "Na daljinu", "Sa iznosom", each only where the tasks can back it), with "Nisu na mapi ✕" among them while that is on.
- * The pill never opens the filters, the button never opens the search and the capsules open neither.
+ * USKOČI's look; recomposed on the owner's phone of 8 Oct 2026 and by the approved plan, U1 to U5). The map is the whole screen. Its top control opens Filteri;
+ * the search is reached from there. The filter control names the active place or words and clears them, while quick choices toggle supported conditions directly.
+ * The list and its sheet remain available below these controls in every resting position.
  *
- * The list is a sheet over the map with three heights, and it follows the map: after the person's own move settles (a drag, a cluster, "moja
- * lokacija"), the list holds what the map shows, then every task that has no point at all, which an area can never leave out. The camera's
- * own moves never change what is listed. A place's "Prikaži sve u listi" narrows the list to exactly that point instead. The search pill says
- * either narrowing and carries its "×" back to every task. The sheet's top line says honestly how many tasks there are (never blank: while the
- * list is read it says so) and in what order, and under it, when some are not on the map (remote work, or a task placed nowhere), how many:
- * that row shows only them, and its capsule is the way back. The top line is itself the button that opens the list. The list rests low
- * (only its top line over the map, and the bottom navigation is AWAY), at half (the navigation comes back) or all the way up (directly under
- * the pill and the capsules, which stay on top; a floating "Mapa" brings the same map back, as does Android Back). It starts half open when
- * the map cannot show most of the tasks or there are few, and at its top line otherwise; where it rests, how far the list is scrolled and
- * where the camera stands are kept in the route's view. Choosing a pin opens one floating card for it at the very bottom of the screen; the
- * list sinks behind it (out of sight and out of a screen reader's reach), the navigation stays away and the map stays readable above it: the
- * camera moves only when the pin would be under the card. An empty list under the map rests at half the screen at most, so its own green
- * action and the green "Mapa" are never on screen together.
+ * The list is a sheet over the map with peek, half and full stops. A settled user move changes its AREA; camera-only moves do not.
+ * A place's "Prikaži sve u listi" narrows the list to one public point, while the filter control can clear search context.
+ * The list header gives the result count and a return to the map when the full sheet covers it. Main navigation remains accessible
+ * at each resting stop. The route keeps the sheet, list offset and viewport for a return from task detail. A selected pin opens its
+ * card above the list, and the native map retains ownership of camera and gestures.
  *
  * Own tasks remain visible with "Tvoj zadatak"; applied and unknown relationships are labeled distinctly.
  * Presentation only: every callback is the route's own guarded command.
@@ -340,13 +331,48 @@ function usePillFade(shown: boolean, reduced: boolean) {
 
 export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const { items, loading, error, refreshing = false } = props, view = remoteDiscoveryScope(props.view), reduced = useReducedMotion(), focused = useIsFocused();
-  const userIntent = props.onUserIntent;
+  const pendingFacetPlace = useRef<{ scopeKey: string; place: string; intentKey: string } | null>(null);
+  const userIntent = useCallback(() => { pendingFacetPlace.current = null; props.onUserIntent?.(); }, [props.onUserIntent]);
+  const placeAccount = props.scopeKey.split(':')[0];
+  const [activeMapPlace, setActiveMapPlace] = useState<{ scopeKey: string; place: ConfirmedMapPlace | null } | null>(null);
+  const [restoredMapPlace, setRestoredMapPlace] = useState<{ scopeKey: string; place: SettledMapPlace | null } | null>(null);
+  const placeMutation = useRef(0);
+  const pendingMapPlace = useRef<{ scopeKey: string; place: ConfirmedMapPlace } | null>(null);
+  const p6PlaceStorage = !!props.p6Seam;
+  useEffect(() => {
+    if (!p6PlaceStorage) return;
+    let current = true;
+    const mutation = placeMutation.current;
+    setRestoredMapPlace({ scopeKey: props.scopeKey, place: null });
+    void readSettledMapPlace(placeAccount).then(place => {
+      if (current && placeMutation.current === mutation) setRestoredMapPlace({ scopeKey: props.scopeKey, place });
+    }, () => {
+      if (current && placeMutation.current === mutation) setRestoredMapPlace({ scopeKey: props.scopeKey, place: null });
+    });
+    return () => { current = false; };
+  }, [placeAccount, props.scopeKey, p6PlaceStorage]);
+  const savedPlace = restoredMapPlace?.scopeKey === props.scopeKey && settledMapPlaceMatches(restoredMapPlace.place, view.area)
+    ? restoredMapPlace.place : null;
+  const appliedMapPlace = activeMapPlace?.scopeKey === props.scopeKey ? activeMapPlace.place : savedPlace;
+  const setAppliedMapPlace = (place: ConfirmedMapPlace | null) => {
+    placeMutation.current++;
+    setActiveMapPlace({ scopeKey: props.scopeKey, place });
+    if (p6PlaceStorage) {
+      const mayBeStored = (activeMapPlace?.scopeKey === props.scopeKey && !!activeMapPlace.place)
+        || restoredMapPlace?.scopeKey !== props.scopeKey || !!restoredMapPlace.place;
+      setRestoredMapPlace({ scopeKey: props.scopeKey, place: null });
+      if (mayBeStored) void writeSettledMapPlace(placeAccount, null).catch(() => undefined);
+    }
+  };
+  const rememberSettledMapPlace = (place: ConfirmedMapPlace, area: PublicBounds) => {
+    const settled: SettledMapPlace = { ...place, area: [...area] as PublicBounds };
+    placeMutation.current++;
+    setRestoredMapPlace({ scopeKey: props.scopeKey, place: settled });
+    if (p6PlaceStorage) void writeSettledMapPlace(placeAccount, settled).catch(() => undefined);
+  };
   const traceRef = useRef(props.trace); traceRef.current = props.trace;
   const trace = useCallback<DiscoveryTrace>((...args) => traceRef.current?.(...args), []);
   const traceState = useRef({ scrolled: false, index: -1 });
-  const [more, setMore] = useState(false);
-  useEffect(() => { setMore(false); }, [props.scopeKey]);
-  useEffect(() => { if (!focused) setMore(false); }, [focused]);
   const nearby = useNearbyMap(props.scopeKey, focused);
   const { width: windowWidth, height: windowHeight, fontScale } = useWindowDimensions();
   // The bottom navigation lies OVER the bottom of this screen from half height up and is away below that: the layout owns it (its height
@@ -354,7 +380,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // the system's own inset.
   const bar = useZadaciBar(), barHeight = bar?.height ?? 0, bottomInset = useBottomInset();
   const navigationInset = Math.max(barHeight, bottomInset);
-  const cardBottom = barHeight > 0 ? barHeight + CARD_BOTTOM : Math.max(CARD_BOTTOM, bottomInset);
+  // A selected pin takes over the map's bottom edge. Its preview clears the Android gesture area,
+  // while the tab bar leaves the screen; reserving the bar's height here stranded the card mid-map.
+  const cardBottom = Math.max(CARD_BOTTOM, bottomInset);
   const relations = props.relations;
   const pending = !!props.relationsPending;
   // Every change goes through the route's latest guarded `onView`, and two changes in one turn (a chip that also closes a
@@ -384,12 +412,12 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     openRef.current(item);
   }, [writeOffset, trace]);
 
-  // The two panels: the SEARCH (a word and a place; it fills the screen) opened by the pill, and the FILTERS (conditions; a sheet from the bottom) opened by the round
-  // button beside it. What the person searched before is read from the phone only once the search is open, and kept when a search is made.
+  // The map opens FILTERS from one visible control. SEARCH remains reachable inside filters and fills the screen.
+  // What the person searched before is read from the phone only once search is open, and kept when a search is made.
   const [panel, setPanel] = useState<PanelMode | null>(null);
   const recents = useRecentSearches(props.scopeKey, panel === 'search');
-  // "Nisu na mapi": the list shows only the tasks that have no point on the map (remote work, or a task placed nowhere). A way of looking at the
-  // loaded list, not a filter the server has: it is the presentation's own, it goes with the screen, and its number is the server's own count.
+  // "Nisu na mapi" is a view of actual point-free rows, not a new server filter. A total is shown only
+  // when the scope's server count is usable or the complete result has been read.
   const [offMap, setOffMap] = useState(false);
   useEffect(() => { setOffMap(false); }, [props.scopeKey]);
   const searchBlurTarget = useRef<View | null>(null);
@@ -472,8 +500,11 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const listFocusId = props.publicationFocus?.kind === 'list' && !view.area && !view.pinPlace
     && (retiredListFocus?.token !== props.publicationFocus.token || retiredListFocus.scopeKey !== props.scopeKey)
     ? props.publicationFocus.id : null;
-  // "Nisu na mapi": of everything the list holds, only what has no point on the map (never an invented row: the loaded ones that have none).
-  const lensed = useMemo(() => offMap ? ordinaryList.filter(item => !publicPoint(item)) : ordinaryList, [ordinaryList, offMap]);
+  // P6's ALL page interleaves map and point-free work by publication time. Present two distinct sections,
+  // preserving the server order within each; pagination/cursors and the map's own rows stay untouched.
+  const groupedList = useMemo(() => serverOwned ? [...inArea, ...withoutPoint] : ordinaryList,
+    [serverOwned, inArea, withoutPoint, ordinaryList]);
+  const lensed = useMemo(() => offMap ? groupedList.filter(item => !publicPoint(item)) : groupedList, [groupedList, offMap]);
   const listed = useMemo(() => {
     if (!listFocusId) return lensed;
     const chosen = lensed.find(item => item.id === listFocusId);
@@ -482,10 +513,21 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const p6WholeList = !!props.p6Seam && !area && !pinPlace;
   const sections = useMemo(() => {
     const result = new Map<number, ListSection>();
-    // The server orders a whole-list P6 page by time, so the three kinds interleave: a heading for every run of a kind would cut
-    // the list into one-card sections, and each card already names its own place ("Na daljinu", "Bez tačke"). Headings return where
-    // the server itself puts the mapped section first, that is, once an area or a place is chosen.
-    if (p6WholeList) return result;
+    if (serverOwned) {
+      // No public point is not evidence of REMOTE: cards retain their own execution mode.
+      // The heading counts only loaded rows when the authoritative page has a continuation.
+      let at = 0;
+      while (at < listed.length) {
+        const kind = publicPoint(listed[at]) ? 'map' : 'offMap';
+        let end = at + 1;
+        while (end < listed.length && !!publicPoint(listed[end]) === (kind === 'map')) end++;
+        if (kind === 'offMap' || withoutPoint.length) result.set(at, { kind, count: end - at,
+          label: kind === 'offMap' ? OFF_MAP_CHIP : pinPlace ? 'Na ovom mestu' : area ? 'U ovoj oblasti' : 'Na mapi',
+          partial: props.p6Seam?.pageHasMore === true });
+        at = end;
+      }
+      return result;
+    }
     // Publication remains the first, highlighted row; its temporary promotion does not turn
     // following map tasks into remote work or create a duplicate remote section above it.
     let at = listFocusId && listed[0]?.id === listFocusId ? 1 : 0;
@@ -499,7 +541,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       at = end;
     }
     return result;
-  }, [listed, listFocusId, withoutPoint.length, pinPlace, area, p6WholeList]);
+  }, [listed, listFocusId, withoutPoint.length, pinPlace, area, serverOwned, props.p6Seam?.pageHasMore]);
   const sectionsSignature = JSON.stringify([...sections]);
   const mappedWithoutPin = useMemo(() => mapped.filter(item => !publicPoint(item)).length, [mapped]);
   const groups = useMemo(() => pinPlaces(mapped), [mapped]);
@@ -511,7 +553,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   }, [relations, pending]);
   const undated = useMemo(() => loading || error ? 0 : props.p6Seam?.counts?.undated
     ?? undatedCount(items, filters, undefined, now), [loading, error, items, filters, now, props.p6Seam?.counts?.undated]);
-  const conditionCount = discoveryConditions(view);
+  const conditionCount = discoveryConditions(view) + Number(!!view.query.trim()) + Number(!!view.place || !!appliedMapPlace);
   // "Za mene" is on: the list is narrowed to the tasks that fit the person's work profile (the switch is drawn only when the route says it exists).
   const scope: ScopeKey = props.scope ?? (view.forMe ? 'forMe' : 'all');
   const forMeOn = !!props.forMeAvailable && scope === 'forMe';
@@ -664,7 +706,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   };
   // Every task again: the map's area and the one point are gone (the pill's "×", or an empty list's way back).
   const showAll = () => {
-    userIntent?.(); retireCameraIntent(); retireListFocus();
+    userIntent?.(); retireCameraIntent(); retireListFocus(); setAppliedMapPlace(null); pendingMapPlace.current = null;
     if (props.p6Seam) props.p6Seam.onShowAll(); else change({ area: null, pinPlace: null });
   };
   const onIndex = (index: number) => {
@@ -680,6 +722,16 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // so the one point a place's list was narrowed to is let go.
   const followArea = (bounds: PublicBounds, frame?: PublicBounds) => {
     userIntent?.(); retireListFocus();
+    const pending = pendingMapPlace.current;
+    pendingMapPlace.current = null;
+    if (pending?.scopeKey === props.scopeKey) {
+      if (inBounds({ lat: pending.place.position.latitude, lng: pending.place.position.longitude }, frame ?? bounds)) {
+        rememberSettledMapPlace(pending.place, bounds);
+      } else {
+        setAppliedMapPlace(null);
+        setGeocodedTarget(null);
+      }
+    } else if (!sameBounds(bounds, latestView.current.area)) setAppliedMapPlace(null);
     if (props.p6Seam) { props.p6Seam.onArea(bounds, frame); return; }
     const current = latestView.current;
     if (!sameBounds(bounds, current.area) || current.pinPlace) change({ area: bounds, pinPlace: null });
@@ -833,7 +885,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const listener = bar.hidden.addListener(({ value }) => trace('bar-value', value));
     return () => bar.hidden.removeListener(listener);
   }, [props.trace, trace, bar]);
-  useZadaciBarMotion({ bar, shown: true, active: focused, reduced });
+  useZadaciBarMotion({ bar, shown: !cardShown, active: focused, reduced });
   const onSheetAnimate = useCallback((_fromIndex: number, _toIndex: number) => {
     if (!currentSheet()) return;
     nativeSpringMoving.current = true; // A same-index geometry spring can also be interrupted.
@@ -849,7 +901,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       if (next.covered !== previous?.covered || next.owner !== previous?.owner) runOnJS(receiveCoverage)(next.covered);
     }, [position, mapShown, bodyHeight, listTop, coverageSequenceValue, receiveCoverage]);
   const mapCovered = coverage?.owner === coverageOwner && coverage.covered;
-  // The floating "Mapa" stands over the end of the list at the full height.
+  // Mapa belongs to the full-list header, beside the result count.
   const pillShown = expanded && mapShown && mapCovered;
   const pillFade = usePillFade(pillShown, reduced);
   // The first fit of the pins keeps them above where the sheet starts: its top line, or half the map (review r3 item 3).
@@ -871,24 +923,56 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // The panel's draft applies all at once; a newly chosen place brings its pins into view (the camera's own move, never an area).
   const openPanel = (mode: PanelMode) => { userIntent?.(); Keyboard.dismiss(); setPanel(mode); };
   const [fit, setFit] = useState<{ key: number; bounds: PublicBounds; bottom: number } | null>(null);
+  const fits = useRef(0);
+  // P6's PLACES facet has names and exact counts, but no coordinates. A different place must first read its own MAP seed;
+  // the bounded PAGE from the previous city cannot decide where the camera goes. Manual map intent cancels this one shot.
+  useEffect(() => {
+    const pending = pendingFacetPlace.current;
+    if (!pending || !props.p6Seam) return;
+    if (pending.scopeKey !== props.scopeKey || !view.place || placeKey(view.place) !== pending.place
+      || discoveryV1RouteIntentKey(view) !== pending.intentKey) {
+      pendingFacetPlace.current = null; return;
+    }
+    if (refreshing || loading || error) return;
+    pendingFacetPlace.current = null;
+    const bounds = publicBounds(props.p6Seam.map.wholeBounds);
+    if (bounds) setFit({ key: ++fits.current, bounds, bottom: (sheetIndex === SNAP.peek ? collapsedSnap : halfSheet) + GAP + footerRow });
+  }, [props.p6Seam?.map.wholeBounds, props.scopeKey, view.place, refreshing, loading, error, sheetIndex, collapsedSnap, halfSheet, footerRow]);
+  const [geocodedTarget, setGeocodedTarget] = useState<NearbyCameraTarget | null>(null);
+  const geocodedKey = useRef(0);
   const findNearby = () => {
     if (!nearby.start()) return;
-    userIntent?.(); Keyboard.dismiss(); clearSelection(); setFit(null); setSheetIndex(SNAP.peek);
+    userIntent?.(); Keyboard.dismiss(); clearSelection(); setFit(null); setGeocodedTarget(null);
+    setAppliedMapPlace(null); pendingMapPlace.current = null; setSheetIndex(SNAP.peek);
   };
-  const fits = useRef(0);
-  const apply = (draft: SearchDraft) => {
+  const apply = (draft: SearchDraft, options?: { clearMapPlace?: boolean }) => {
     const before = latestView.current.place;
     userIntent?.(); retireCameraIntent(); retireListFocus();
+    if (options?.clearMapPlace || draft.where === 'remote' || (panel === 'search' && (!draft.area || !!draft.place))) {
+      setAppliedMapPlace(null); pendingMapPlace.current = null;
+    }
     // A search that was made is kept for the next time (the search only: the filters change no word and no place).
     if (panel === 'search') recents.remember({ query: draft.query, place: draft.place });
-    change({ ...draft, selectedId: null, selectedPlace: null });
+    const newFacetPlace = !!props.p6Seam && panel === 'search' && !!draft.place && (!before || placeKey(before) !== placeKey(draft.place));
+    // A chosen P6 place starts a fresh MAP seed for that filter. The former viewport belongs to the previous city.
+    change({ ...draft, ...(newFacetPlace ? { viewport: null } : {}), selectedId: null, selectedPlace: null });
+    if (newFacetPlace) pendingFacetPlace.current = { scopeKey: props.scopeKey, place: placeKey(draft.place!),
+      intentKey: discoveryV1RouteIntentKey(latestView.current) };
     if (!draft.place || (before && placeKey(before) === placeKey(draft.place))) return;
+    if (newFacetPlace) return;
     const bounds = publicInitialBounds(discoveryShown(items, latestView.current, undefined, now).mapped);
     trace('fit', sheetIndex, bounds ? 1 : 0, sheetIndex === SNAP.peek ? collapsedSnap : halfSheet);
     if (bounds) setFit({ key: ++fits.current, bounds, bottom: (sheetIndex === SNAP.peek ? collapsedSnap : halfSheet) + GAP + footerRow });
   };
+  const centerOnConfirmedPlace = (place: ConfirmedMapPlace) => {
+    const { position } = place;
+    if (!Number.isFinite(position.latitude) || !Number.isFinite(position.longitude)) return;
+    userIntent?.(); clearSelection(); setFit(null); setSheetIndex(SNAP.peek);
+    setAppliedMapPlace(place); pendingMapPlace.current = { scopeKey: props.scopeKey, place };
+    setGeocodedTarget({ key: --geocodedKey.current, center: [position.longitude, position.latitude] });
+  };
   // "Poništi filtere" takes the conditions away, not the scope: "Za mene" is a choice of which tasks the list is about, so it stays.
-  const reset = () => { userIntent?.(); retireCameraIntent(); retireListFocus(); setOffMap(false);
+  const reset = () => { userIntent?.(); retireCameraIntent(); retireListFocus(); setOffMap(false); setAppliedMapPlace(null); pendingMapPlace.current = null;
     props.onView({ ...initialMarketplaceView(), mode: view.mode, viewport: view.viewport, sheet: view.sheet, ...(view.forMe ? { forMe: true } : {}) }); };
 
   // Quick chips: each toggles one existing filter at once, and is offered only when the tasks carry the fact it reads (or it is
@@ -902,7 +986,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const timed = useMemo(() => p6 ? !!availability?.hasKnownSchedule : saysWhen(items, now), [p6, availability, items, now]);
   const workModes = useMemo(() => p6 ? !!availability?.hasKnownWorkMode : saysWorkMode(items), [p6, availability, items]);
   const priceSaid = (key: 'MY_PRICE' | 'OFFERS') => p6 ? !!availability?.priceModes.includes(key) : items.some(item => item.rezimCene === key);
-  const toggle = (patch: Partial<MarketplaceView>) => { userIntent?.(); retireCameraIntent(); retireListFocus(); change({ ...patch, selectedId: null, selectedPlace: null }); };
+  const toggle = (patch: Partial<MarketplaceView>) => { userIntent?.(); retireCameraIntent(); retireListFocus();
+    if (patch.where === 'remote') { setAppliedMapPlace(null); pendingMapPlace.current = null; }
+    change({ ...patch, selectedId: null, selectedPlace: null }); };
   // The scope is the route's when it owns one; otherwise it is the view's own `forMe`, which the server reader sends as the filter's one optional key.
   const chooseScope = (next: ScopeKey) => { if (props.onScope) props.onScope(next); else toggle({ forMe: next === 'forMe' }); };
   const currentWhen = dateRange(view.dates) ? 'any' : view.when ?? 'any';
@@ -915,8 +1001,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     ...(range ? [{ key: 'dates', label: datesWords(range, now), selected: true, removable: true, hint: taken, onPress: () => toggle({ dates: null }) }]
       : currentWhen !== 'any' && !QUICK_WHEN.includes(currentWhen) ? [{ key: 'when', label: said(WHEN, currentWhen), selected: true, removable: true, hint: taken,
         onPress: () => toggle({ when: 'any' }) }] : []),
-    ...(view.where === 'onsite' ? [{ key: 'where:onsite', label: said(WHERE, 'onsite'), selected: true, removable: true, hint: taken, onPress: () => toggle({ where: 'any' }) }] : []),
+    ...(!p6 && view.where === 'onsite' ? [{ key: 'where:onsite', label: said(WHERE, 'onsite'), selected: true, removable: true, hint: taken, onPress: () => toggle({ where: 'any' }) }] : []),
     ...(view.price === 'OFFERS' ? [{ key: 'price:OFFERS', label: said(PRICE, 'OFFERS'), selected: true, removable: true, hint: taken, onPress: () => toggle({ price: 'all' }) }] : []),
+    ...(view.minBudgetRsd != null ? [{ key: 'price:min', label: `Od ${novac(view.minBudgetRsd)}`, selected: true, removable: true,
+      hint: 'Ukloni najmanju fiksnu cenu.', onPress: () => toggle({ minBudgetRsd: null }) }] : []),
     ...(atLeast(freePlaces) > 1 ? [{ key: 'places', label: placesWords(freePlaces), selected: true, removable: true, hint: taken, onPress: () => toggle({ places: 1 }) }] : []),
   ];
   const chips: QuickChip[] = [
@@ -926,17 +1014,18 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     // "Na daljinu" comes first of the quick capsules (the owner, 8 Oct 2026: remote tasks must be marked and easy to reach): the tasks the map
     // cannot show are one tap away and visible without scrolling the row at his phone's width. Then Danas, Ovaj vikend, Sa iznosom, each only
     // where the tasks can back it. Remote work has no stale map scope.
-    ...(workModes || view.where === 'remote' ? [{ key: 'where:remote', label: said(WHERE, 'remote'), selected: view.where === 'remote',
-      onPress: () => toggle({ where: view.where === 'remote' ? 'any' : 'remote' }) }] : []),
+    ...(p6 ? [{ key: 'where:onsite', label: 'Na lokaciji', selected: view.where === 'onsite', onPress: () => toggle({ where: 'onsite' }) }] : []),
+    ...(p6 || workModes || view.where === 'remote' ? [{ key: 'where:remote', label: said(WHERE, 'remote'), selected: view.where === 'remote',
+      onPress: () => toggle({ where: p6 ? 'remote' : view.where === 'remote' ? 'any' : 'remote' }) }] : []),
+    ...(p6 ? [{ key: 'where:any', label: 'Oba', selected: view.where === 'any', onPress: () => toggle({ where: 'any' }) }] : []),
     ...QUICK_WHEN.filter(key => timed || currentWhen === key).map(key => ({ key: `when:${key}`, label: said(WHEN, key), selected: currentWhen === key,
       onPress: () => toggle({ when: currentWhen === key ? 'any' : key as WhenFilter, dates: null }) })),
     ...(view.price === 'MY_PRICE' || priceSaid('MY_PRICE') ? [{ key: 'price:MY_PRICE', label: said(PRICE, 'MY_PRICE'), selected: view.price === 'MY_PRICE',
       onPress: () => toggle({ price: view.price === 'MY_PRICE' ? 'all' : 'MY_PRICE' }) }] : []),
   ];
 
-  // The one row of capsules over the map under the search pill, at every height of the list (UX plan section P; the owner's phone of 7 and 8 Oct 2026; the approved
-  // plan, U1). "Za mene" is a capsule that is on or off, built only when the route says it exists; the quick capsules write into the same state as the filters. The
-  // filters themselves are the round button beside the pill. The row is the tools' own, measured with the pill: the list stops under it.
+  // The one row of capsules under Filteri stays over the map at every list height. "Za mene" is shown only when the route says
+  // the server supports it. Quick capsules and the full panel write the same filter state; the list stops under this measured row.
   const chipRow = <DiscoveryChipRow forMeAvailable={props.forMeAvailable} scope={scope} onScope={chooseScope} chips={chips} />;
 
   // The list's scroll offset: remembered in the route's view a moment after the list stops, found again when the list
@@ -973,10 +1062,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     currentExtent.current = extent;
   }
   const currentList = useCallback(() => currentSheet() && currentExtent.current === extent, [currentSheet, extent]);
-  // What the list leaves under its last card: room for the floating "Mapa" at the full height, and the bottom navigation, which lies over the lower part
+  // What the list leaves under its last card: room for the bottom navigation, which lies over the lower part
   // of the sheet from half height up. It does not depend on whether the navigation is on show at the moment (a list that is read at its top line is
   // not looked at), so the rows' own geometry never changes with it.
-  const endPadding = (pillShown ? sys.space.huge + sys.space.xxl : sys.space.xxl) + barHeight;
+  const endPadding = sys.space.xxl + barHeight;
   const minimumListContent = listWindow > 0 ? listWindow + capsuleSpace : 0;
   const listPadding = useMemo(() => ({ paddingHorizontal: sys.space.lg, paddingTop: sys.space.xs, paddingBottom: endPadding, flexGrow: 1,
     ...(minimumListContent ? { minHeight: minimumListContent } : {}) }), [endPadding, minimumListContent]);
@@ -1202,6 +1291,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const [portraitIds, setPortraitIds] = useState<ReadonlySet<string>>(() => new Set());
   const portraitViewability = useRef({ itemVisiblePercentThreshold: 30, minimumViewTime: 180 }).current;
   const visibleRangeRef = useRef(props.p6Seam?.onVisibleRange); visibleRangeRef.current = props.p6Seam?.onVisibleRange;
+  const sourceIndexes = useMemo(() => new Map(mapped.map((item, index) => [item.id, index])), [mapped]);
+  const sourceIndexesRef = useRef(sourceIndexes); sourceIndexesRef.current = sourceIndexes;
   // One function for the life of the list: React Native refuses a FlatList whose `onViewableItemsChanged` changes on the fly ("Changing
   // onViewableItemsChanged on the fly is not supported", in development builds and on the web), so the current guard is read through a ref.
   const currentListRef = useRef(currentList); currentListRef.current = currentList;
@@ -1211,7 +1302,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const next = new Set(shown.slice(0, 6).map(token => token.item.id));
     setPortraitIds(current => current.size === next.size && [...next].every(id => current.has(id)) ? current : next);
     // P6: the rows on screen get their optional details (relation, publisher), not only the first hundred of the list.
-    const indexes = shown.map(token => token.index).filter((index): index is number => typeof index === 'number' && index >= 0);
+    // A section, publication promotion or point-free lens changes display indexes, never the P6 source indexes.
+    const indexes = shown.map(token => sourceIndexesRef.current.get(token.item.id)).filter((index): index is number => index !== undefined);
     if (indexes.length) visibleRangeRef.current?.(Math.min(...indexes), Math.max(...indexes));
   }, []);
   useEffect(() => { setPortraitIds(new Set()); }, [props.scopeKey]);
@@ -1227,21 +1319,25 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const exactListed = p6Counts?.listed ?? listed.length;
   const exactInArea = p6Counts?.inArea ?? inArea.length;
   const exactWithoutPoint = p6Counts?.withoutPoint ?? withoutPoint.length;
-  const exactPinless = view.where === 'remote' ? 0 : p6Counts?.withoutPoint ?? mappedWithoutPin;
-  // "Nisu na mapi": the number is the server's own count of the tasks that have no point (never counted from what happens to be loaded), the list shows
-  // those of them that are loaded, and while some are still to come on later pages they are asked for, one page at a time, until they are all here.
+  // The current P6 ALL contract counts section=1 as withoutPoint, but ALL puts every row in section=0.
+  // Its zero is not an exact count of point-free work. Until a complete page set is present, do not invent a total.
+  const pinlessCountKnown = !p6WholeList || !p6?.pageHasMore && mapped.length >= (p6Counts?.listed ?? mapped.length);
+  const exactPinless = view.where === 'remote' ? 0 : p6WholeList ? mappedWithoutPin : p6Counts?.withoutPoint ?? mappedWithoutPin;
+  // Continue through the same authorized pages until the point-free section is complete. An unknown
+  // ALL total must not hide later point-free rows or stop after a page containing only mapped work.
   const offMapNeeded = offMap ? exactPinless : 0;
-  const offMapMore = !!p6 && offMap && !loading && !refreshing && !error && p6.pageHasMore && !p6.loadingMore && listed.length < offMapNeeded;
-  useEffect(() => { if (offMapMore && currentList()) p6?.onNextPage(); }, [offMapMore, listed.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  const offMapMore = !!p6 && offMap && !loading && !refreshing && !error && p6.pageHasMore && !p6.loadingMore
+    && (!pinlessCountKnown || listed.length < offMapNeeded);
+  useEffect(() => { if (offMapMore && currentList()) p6?.onNextPage(); }, [offMapMore, listed.length, mapped.length]); // eslint-disable-line react-hooks/exhaustive-deps
   // The way in is a row under the count, only while some tasks are not on the map; the way out is its capsule. When nothing is left off the map (the
   // conditions changed, the remote filter came on) the choice has nothing to say and goes.
-  useEffect(() => { if (offMap && !loading && !refreshing && !error && !props.collectionStatus && exactPinless === 0) setOffMap(false); }, [offMap, loading, refreshing, error, props.collectionStatus, exactPinless]);
+  useEffect(() => { if (offMap && !loading && !refreshing && !error && !props.collectionStatus && pinlessCountKnown && exactPinless === 0) setOffMap(false); }, [offMap, loading, refreshing, error, props.collectionStatus, exactPinless, pinlessCountKnown]);
 
   // The one state view: reading, not read, nothing here, nothing for these conditions, nothing at all. The map and the list always show every
   // published task (owner, 2026-10-07); the explicit 'Za mene' subset also requires a current confirmed worker profile.
   // Tasks under these conditions exist elsewhere when the legacy read holds them, or when P6's whole-filter count says so.
   const elsewhere = p6 ? (p6.counts?.mapped ?? 0) > 0 : mapped.length > 0;
-  const conditionsOn = !!view.query.trim() || discoveryFiltered(view) || !!view.place;
+  const conditionsOn = !!view.query.trim() || (p6 ? conditionCount > 0 : discoveryFiltered(view)) || !!view.place;
   // "Za mene" on, and nothing else narrowing the list: what the person asked for is what leaves nothing, and the way on is every task again.
   const emptyKey = JSON.stringify([props.scopeKey, query, price, when, where, freePlaces, chosenPlace, dates, forMeOn, offMap]);
   type EmptyDescriptor = { kind: 'place'; point: boolean } | { kind: 'forMe' | 'filtered' | 'none' };
@@ -1279,29 +1375,37 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const collectionWords = props.collectionStatus === 'loading' ? 'Učitavamo ostale zadatke…'
     : props.collectionStatus === 'error' ? 'Ostali zadaci nisu učitani' : null;
   const replacingWords = refreshing && !loading ? 'Osvežavamo zadatke…' : null;
-  // With "Nisu na mapi" on the list is those tasks alone, and the top line counts exactly them.
+  // The focused point-free list distinguishes an exact total from a still-partial loaded count.
   const shownCount = offMap && !loading && !error ? exactPinless : exactListed;
-  const spoken = replacingWords ?? collectionWords ?? (offMap && !loading && !error ? `${countWords(shownCount)} · ${OFF_MAP_CHIP.toLocaleLowerCase('sr-Latn-RS')}` : `${line.words}${line.extra}`);
+  const offMapCountWords = pinlessCountKnown ? countWords(shownCount) : `${OFF_MAP_CHIP} · učitano: ${listed.length}`;
+  const spoken = replacingWords ?? collectionWords ?? (offMap && !loading && !error
+    ? pinlessCountKnown ? `${offMapCountWords} · ${OFF_MAP_CHIP.toLocaleLowerCase('sr-Latn-RS')}` : offMapCountWords : `${line.words}${line.extra}`);
   // The top edge is a glanceable count of the actual list. Area and pinless context remain in its
   // accessible name, the search summary and the list's own section heading.
   const count = <T variant="note" style={s.count}>
-    {replacingWords ?? collectionWords ?? (loading || error ? line.words : countWords(shownCount))}
+    {replacingWords ?? collectionWords ?? (loading || error ? line.words : offMap ? offMapCountWords : countWords(shownCount))}
   </T>;
   // The server reads the open tasks newest first (UX plan 2.14), and says so over the list: only a P6 page that holds more than one.
   const sorted = !!p6 && !loading && !refreshing && !error && !collectionWords && shownCount > 1;
+  const sortedWords = !offMap && inArea.length > 0 && withoutPoint.length > 0 ? 'Najnovije prvo u odeljku' : NEWEST_FIRST;
   // A passive map pan must not grow the top bar or move its chips. Its reset belongs beside the list count.
   const areaOnly = !!area && !view.place && !view.query.trim() && !pinPlace;
-  // What the pill says is searched (a place, words, one point), and its "×" ("Prikaži sve zadatke") takes all of that away in one step. A place has taken
+  // The filter control summarizes a selected place, words or one point; its "×" takes that context away in one step. A place has taken
   // over the area, so it goes with the area; words alone leave the area as it was (the list still follows the map); a point and the area go through the reader's own command.
-  const searchedWords = areaOnly ? null : searchWords(view);
+  const searchedWords = appliedMapPlace ? searchWords({ ...view, place: appliedMapPlace.label }) : areaOnly ? null : searchWords(view);
   const clearSearch = () => {
     const words = view.query.trim() !== '';
-    if (view.place) { toggle({ place: null, query: '', area: null, pinPlace: null }); return; }
+    if (appliedMapPlace || view.place) {
+      setAppliedMapPlace(null); pendingMapPlace.current = null; setGeocodedTarget(null);
+      toggle({ place: null, query: '', area: null, pinPlace: null }); return;
+    }
     if (words) toggle({ query: '' });
     if (pinPlace || (!words && area)) showAll();
   };
   // The row under the top line (the way in to "Nisu na mapi"): only while some are not on the map and the list is the whole list.
-  const showOffMap = !offMap && !loading && !refreshing && !error && !collectionWords && exactPinless > 0;
+  const showOffMap = !offMap && where !== 'remote' && !loading && !refreshing && !error && !collectionWords
+    && (!pinlessCountKnown || exactPinless > 0);
+  const offMapEntryWords = pinlessCountKnown ? offMapWords(exactPinless) : OFF_MAP_CHIP;
   const openOffMap = () => { userIntent?.(); retireCameraIntent(); retireListFocus(); clearSelection(); setOffMap(true); setSheetIndex(SNAP.half); };
   // iOS has no live region: a screen reader hears the new count once the list's area has stayed still for a second.
   const spokenRef = useRef(spoken); spokenRef.current = spoken;
@@ -1327,20 +1431,40 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     <View style={s.grab} />
     {/* A polite live region: TalkBack hears the count when it changes (a new area, a new read), without moving its focus. */}
     <View style={s.countLine}>
-    <Press testID="list-count" accessibilityRole="button" accessibilityLabel={spoken} accessibilityValue={sorted ? { text: NEWEST_FIRST } : undefined}
+    <Press testID="list-count" accessibilityRole="button" accessibilityLabel={spoken} accessibilityValue={sorted ? { text: sortedWords } : undefined}
       accessibilityState={{ expanded: sheetIndex > SNAP.peek, busy: loading || refreshing }} accessibilityHint={handleHint(sheetIndex)} accessibilityLiveRegion="polite"
       haptic="select" scaleTo={sys.motion.scale.row} onPress={cycleSheet} style={s.countRow}>
-      {count}{sorted && !areaOnly ? <T variant="note" tone="muted" style={s.sortedBy}>{NEWEST_FIRST}</T> : null}
+      {count}{sorted && !areaOnly && !pillShown ? <T variant="note" tone="muted" style={s.sortedBy}>{sortedWords}</T> : null}
     </Press>
+    {!loading && !refreshing ? <Press testID="discovery-refresh" accessibilityRole="button" accessibilityLabel="Osveži zadatke"
+      haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={refreshList} style={s.headerIcon}>
+      <Glyph name="refresh" size={20} tone="green" />
+    </Press> : null}
+    {props.onNew ? <Surface kind="float" style={s.publishSurface}>
+      <Press testID="discovery-publish" accessibilityRole="button" accessibilityLabel="Objavi zadatak"
+        haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={props.onNew} style={s.headerIcon}>
+        <Glyph name="plus" size={24} tone="onOrange" />
+      </Press>
+    </Surface> : null}
+    {pillFade.mounted ? <NativeAnimated.View pointerEvents={pillShown ? 'box-none' : 'none'} style={[s.mapPillSlot, { opacity: pillFade.opacity }]}
+      accessibilityElementsHidden={!pillShown} importantForAccessibility={pillShown ? 'auto' : 'no-hide-descendants'}>
+      <Surface kind="float" style={[s.mapPillSurface, emptyOverMap && s.mapPillQuiet]}>
+        <Press accessibilityRole="button" accessibilityLabel="Mapa" accessibilityHint="Spušta listu i prikazuje mapu." haptic="select" scaleTo={sys.motion.scale.button}
+          onPress={() => { userIntent?.(); setSheetIndex(SNAP.peek); }} style={s.mapPill}>
+          <Glyph name="map" size={20} tone={emptyOverMap ? 'green' : 'onGreen'} on />
+          <T variant="action" style={[s.mapPillText, emptyOverMap && s.mapPillQuietText]}>Mapa</T>
+        </Press>
+      </Surface>
+    </NativeAnimated.View> : null}
+    </View>
     {areaOnly ? <Press testID="clear-map-area" accessibilityRole="button" accessibilityLabel="Prikaži sve zadatke"
       haptic="select" hitSlop={0} onPress={showAll} style={s.areaReset}>
       <T variant="note" style={s.areaResetText}>Sve oblasti</T>
     </Press> : null}
-    </View>
-    {/* The way to the tasks that are not on the map: a quiet row under the count, which raises the list and shows only them. The number is the server's own. */}
-    {showOffMap ? <Press testID="off-map-entry" accessibilityRole="button" accessibilityLabel={`${offMapWords(exactPinless)}. Prikaži samo te zadatke.`}
+    {/* The focused point-free list remains reachable even before an ALL page set has a known count. */}
+    {showOffMap ? <Press testID="off-map-entry" accessibilityRole="button" accessibilityLabel={`${offMapEntryWords}. Prikaži samo te zadatke.`}
       haptic="select" scaleTo={sys.motion.scale.row} onPress={openOffMap} style={s.offMapRow}>
-      <T variant="note" style={s.offMapText}>{offMapWords(exactPinless)}</T><Glyph name="caret-right" size={16} tone="muted" />
+      <T variant="note" style={s.offMapText}>{offMapEntryWords}</T><Glyph name="caret-right" size={16} tone="muted" />
     </Press> : null}
     </View>
     {props.collectionStatus === 'error' ? <View style={s.relationsRecovery}>
@@ -1376,7 +1500,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           onPublicationCameraConsumed={consumeCameraIntent} onPublicationCameraRetired={retireCameraIntent}
           initialWorkArea={props.initialWorkArea} onInitialWorkAreaHandled={props.onInitialWorkAreaHandled}
           viewport={view.viewport} scopeKey={props.scopeKey} onSelect={select} onSelectPlace={selectPlace} onClear={clearSelection}
-          onViewport={viewport => change({ viewport })} onArea={followArea} fitTo={fit} centerNearby={nearby.target} me={nearby.me} onNearbyConsumed={nearby.consume}
+          onViewport={viewport => change({ viewport })} onArea={followArea} fitTo={fit} centerNearby={geocodedTarget ?? nearby.target} me={nearby.me}
+          onNearbyConsumed={key => { if (key < 0) setGeocodedTarget(current => current?.key === key ? null : current); else nearby.consume(key); }}
           onFitted={key => setFit(current => current?.key === key ? null : current)}
           onList={() => { userIntent?.(); setSheetIndex(SNAP.full); }} sheetTop={position} toolsBottom={toolsBottom} fitBottom={fitBottom} nearbyFitBottom={nearbyFitBottom}
           listDetent={cameraListDetent}
@@ -1411,7 +1536,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         <DiscoveryScrollReadiness owner={coverageOwner.sequence} extent={extent.sequence} command={sheetCommand.current.sequence}
           requestedIndex={sheetIndex} pendingRequest={sheetCommand.current.pending} onReady={receiveListReady} chromeOffset={chromeOffset}>
         {/* The content drag raises the sheet, then scrolls the list; at offset zero a downward drag lowers it again.
-            An onRefresh prop makes Gorhom reserve that FULL gesture for refresh. Refresh is an explicit menu action. */}
+            An onRefresh prop makes Gorhom reserve that FULL gesture for refresh. Refresh has its own action beside the list count. */}
         <CellLayoutContext.Provider value={cellLayoutContext}>
         <BottomSheetFlatList<MarketplaceItem> ref={listRef} data={listed} keyExtractor={keyOf} renderItem={renderItem} CellRendererComponent={DiscoveryCell}
           scrollEventsHandlersHook={useDiscoveryScrollEvents}
@@ -1431,8 +1556,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           }}
           onScrollBeginDrag={() => { interacted.current = true; trace('drag', currentSheet(), listReady.current, restore.current ?? -1, offset.current); tracedScroll.current = null; if (currentList()) { userIntent?.(); restore.current = null; } }}
           keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" showsVerticalScrollIndicator={false}
-          // The floating "Mapa" stands over the list's end at the full height, and the bottom navigation over its lower part from half height up;
-          // the end scrolls clear of both (`endPadding`).
+          // The bottom navigation overlays the lower list; the last card clears it through `endPadding`.
           contentContainerStyle={listPadding}
           // Six cards are more than one phone screen of this card; the window stays modest so a fast
           // scroll fills in quickly without holding the whole list mounted.
@@ -1442,7 +1566,6 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         </DiscoveryScrollReadiness>
       </DiscoveryListSheet>
       <DiscoverySearchBar where={searchedWords} onBack={bar ? undefined : props.onBack}
-        onSearch={() => openPanel('search')} onMore={() => { Keyboard.dismiss(); setMore(true); }}
         onClearWhere={searchedWords ? clearSearch : undefined}
         filters={{ count: conditionCount, onPress: () => openPanel('filters') }}
         onLayout={bottom => { setToolsBottom(current => current === bottom ? current : bottom); setToolsMeasured(true); }}
@@ -1454,22 +1577,10 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           {props.forMeRefused ? <ForMeNotice message={FOR_ME_REFUSED} entry={WORK_PROFILE_ENTRY} onEntry={props.onWorkProfile}
             onClose={() => props.onDismissForMeRefused?.()} /> : null}
         </>} />
-      {/* At the full height the same map is one tap away: a floating dark-green "Mapa" that lowers the list to its top line.
-          It fades in and out only when motion is allowed; under reduced motion it is simply there. */}
-      {pillFade.mounted ? <NativeAnimated.View pointerEvents={pillShown ? 'box-none' : 'none'} style={[s.mapPillRow, { bottom: sys.space.base + barHeight, opacity: pillFade.opacity }]}
-        accessibilityElementsHidden={!pillShown} importantForAccessibility={pillShown ? 'auto' : 'no-hide-descendants'}>
-        <Surface kind="float" style={[s.mapPillSurface, emptyOverMap && s.mapPillQuiet]}>
-          <Press accessibilityRole="button" accessibilityLabel="Mapa" accessibilityHint="Spušta listu i prikazuje mapu." haptic="select" scaleTo={sys.motion.scale.button}
-            onPress={() => { userIntent?.(); setSheetIndex(SNAP.peek); }} style={s.mapPill}>
-            <Glyph name="map" size={20} tone={emptyOverMap ? 'green' : 'onGreen'} on />
-            <T variant="action" style={[s.mapPillText, emptyOverMap && s.mapPillQuietText]}>Mapa</T>
-          </Press>
-        </Surface>
-      </NativeAnimated.View> : null}
       {/* The next page of a long list is on its way. It is said over the list's end and not inside it, so the end the list measures (and the
           place a return restores to) never moves; a quiet line, since a spinner lives only inside a button. */}
       {paging ? <View pointerEvents="none" accessible accessibilityLabel={PAGING_WORDS} accessibilityLiveRegion="polite"
-        style={[s.pagingRow, { bottom: sys.space.base + barHeight + (pillShown ? 48 + sys.space.sm : 0) }]}>
+        style={[s.pagingRow, { bottom: sys.space.base + barHeight }]}>
         <Surface kind="float" style={s.paging}><T variant="note" style={s.pagingText}>{PAGING_WORDS}</T></Surface>
       </View> : null}
       {cardShown ? <DiscoveryPeek selectionKey={props.p6Seam?.peek?.key ?? (chosen ? `task:${chosen.id}` : `place:${place!.key}`)}
@@ -1480,13 +1591,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     </BlurTargetView>
     {panel ? <DiscoverySearchPanel blurTarget={searchBlurTarget} items={items} view={view} mine={relations?.owned} now={now} mapArea={view.viewport?.bounds ?? null}
       mode={panel} reduced={reduced} readiness={readiness} p6Search={props.p6Seam?.search} recent={recents.items}
+      placeScopeKey={props.scopeKey} appliedMapPlace={appliedMapPlace} onCenterPlace={centerOnConfirmedPlace} onOpenSearch={() => setPanel('search')}
       onApply={apply} onClose={() => setPanel(null)} onOpenTask={openItem} /> : null}
-    {more && focused ? <ActionSheet title="Još mogućnosti" reduced={reduced} onClose={() => setMore(false)} actions={[
-      ...(props.onNew ? [{ key: 'new', label: 'Objavi zadatak', icon: 'tasks' as const, onPress: props.onNew }] : []),
-      { key: 'profile', label: 'Moj profil', icon: 'person', onPress: props.onProfile },
-      { key: 'refresh', label: 'Osveži zadatke', icon: 'tasks', onPress: refreshList },
-      ...(props.onNotifications ? [{ key: 'notifications', label: 'Obaveštenja', icon: 'bell' as const, onPress: props.onNotifications }] : []),
-    ]} /> : null}
   </SafeAreaView></DistanceFromContext.Provider></TaskAgeContext.Provider>;
 }
 
@@ -1508,9 +1614,11 @@ const s = StyleSheet.create({
   // Cancel the list's side inset so the moved header keeps the same measured width and cannot oscillate between modes.
   scrollingHeader: { marginHorizontal: -sys.space.lg },
   grab: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, marginTop: sys.space.sm, marginBottom: 0, backgroundColor: sys.color.lineStrong },
-  // Area reset is a separate target beside the handle; panning never adds another header row.
+  // Area reset is a separate row so the count and Mapa fit at 360 dp.
   countLine: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
-  areaReset: { minHeight: 48, maxWidth: '50%', justifyContent: 'center', flexShrink: 0 },
+  headerIcon: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  publishSurface: { borderRadius: sys.radius.pill, backgroundColor: sys.color.orange, borderColor: sys.color.orange },
+  areaReset: { minHeight: 48, alignSelf: 'flex-start', justifyContent: 'center' },
   areaResetText: { color: sys.color.green, fontWeight: '600' },
   countRow: { flex: 1, minWidth: 0, minHeight: 48, paddingVertical: sys.space.sm, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     gap: sys.space.md, borderRadius: sys.radius.control },
@@ -1520,7 +1628,7 @@ const s = StyleSheet.create({
   // on the count's own left edge, with its caret right after the words.
   offMapRow: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 40, paddingRight: sys.space.sm },
   offMapText: { color: sys.color.ink, fontWeight: '500' },
-  // The list's own padding is `listPadding` (it also clears the floating "Mapa" and the bottom navigation).
+  // The list's own padding is `listPadding` (it clears the bottom navigation).
   empty: { flex: 1, paddingVertical: sys.space.sm },
   undated: { paddingTop: sys.space.base, textAlign: 'center' },
   // The heading of a group of tasks (on the map, remote, with no point): the list's own words, never a card. 24 above it (12 of the gap between cards and 12 of its own), 12 under it.
@@ -1529,16 +1637,14 @@ const s = StyleSheet.create({
   sectionFirst: { paddingTop: 0 },
   sectionTitle: { fontWeight: '600', color: sys.color.ink },
   sectionCount: { color: sys.color.muted, fontVariant: ['tabular-nums'] },
-  // Bottom-centre, just above the bottom navigation (it lies over the bottom of the screen while the list is at the full height); the row's
-  // `bottom` is set where it is drawn, from the navigation's height.
-  mapPillRow: { position: 'absolute', left: 0, right: 0, bottom: sys.space.base, alignItems: 'center' },
-  // The quiet note while the next page is read: where the "Mapa" pill stands, or just above it when that is on show (`bottom` is set where it is drawn).
+  mapPillSlot: { flexShrink: 0 },
+  // The quiet note while the next page is read, above the bottom navigation.
   pagingRow: { position: 'absolute', left: 0, right: 0, bottom: sys.space.base, alignItems: 'center' },
   paging: { paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm, borderRadius: sys.radius.pill },
   pagingText: { color: sys.color.ink },
   // The green pill is a float like the rest: its own colour for ground and line, the system's shadow.
   mapPillSurface: { borderRadius: sys.radius.pill, backgroundColor: sys.color.green, borderColor: sys.color.green },
-  mapPill: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 48 - 2, paddingHorizontal: sys.space.xl, borderRadius: sys.radius.pill },
+  mapPill: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 48 - 2, paddingHorizontal: sys.space.md, borderRadius: sys.radius.pill },
   mapPillText: { color: sys.color.onGreen },
   mapPillQuiet: { backgroundColor: sys.color.surface, borderColor: sys.color.lineStrong },
   mapPillQuietText: { color: sys.color.green },

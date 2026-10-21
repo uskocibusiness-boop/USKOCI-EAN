@@ -16,12 +16,14 @@ jest.mock('../../hooks/useWorkerExecutionModes', () => ({ useWorkerExecutionMode
 const mockPostaviUlogu = jest.fn();
 const mockSignOut = jest.fn();
 const mockRouter = { navigate: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
-const mockRefresh = jest.fn(), mockWorkerProfile = jest.fn(), mockPublicProfile = jest.fn();
+const mockRefresh = jest.fn(), mockWorkRefresh = jest.fn(), mockWorkerProfile = jest.fn(), mockPublicProfile = jest.fn();
 type Row = { ime: string | null; grad: string | null; profileId?: string; kind?: string; stanje?: 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | null; vestine?: string[]; radijusKm?: number };
 const identity: Row = { ime: 'Ana Petrović', grad: 'Novi Sad' };
 let mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
 let mockResource = { data: { identity, capability: null } as { identity: Row | null; capability: Row | null } | null,
   loading: false, error: false, refresh: mockRefresh };
+let mockWorkResource: { data: Row | null; loading: boolean; error: boolean; refresh: jest.Mock } | null = null;
+let mockFocusCall = 0;
 
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
@@ -41,7 +43,9 @@ jest.mock('../ownProfileClientService', () => ({ ownProfileClientService: { read
 jest.mock('../publicProfileClientService', () => ({ publicProfileClientService: { javniProfil: (...args: unknown[]) => mockPublicProfile(...args) } }));
 // The public profile as a sheet is tested on its own (public-profile-sheet.test.tsx); here it is a named element, so the hub is tested for when it opens it.
 jest.mock('../../ui/system/PublicProfileSheet', () => ({ PublicProfileSheet: 'PublicProfileSheet' }));
-jest.mock('../../hooks/useFocusedResource', () => ({ useFocusedResource: () => mockResource }));
+jest.mock('../../hooks/useFocusedResource', () => ({ useFocusedResource: () => (mockFocusCall++ % 2) === 1
+  ? mockWorkResource ?? { data: mockResource.data?.capability ?? null, loading: mockResource.loading, error: mockResource.error, refresh: mockWorkRefresh }
+  : { data: mockResource.data?.identity ?? null, loading: mockResource.loading, error: mockResource.error, refresh: mockRefresh } }));
 // What the rows "Podrška", "Blokirane osobe", "Izvoz podataka" and "Pravila i saglasnosti" say about themselves is read apart from the profile (hub-states.test.ts and
 // use-hub-states.test.tsx test the mapping and the reads); here it is the value the screen is handed, so the hub is tested for the words it puts on its rows.
 let mockHubStates: Record<string, unknown> = {};
@@ -59,11 +63,13 @@ jest.mock('../../ui/reviews/AccountReputation', () => ({ AccountReputation: 'Acc
 jest.mock('../../ui/profile/ProfileWorkSummary', () => ({ ProfileWorkSummary: 'ProfileWorkSummary' }));
 
 import Profil from '../../app/(app)/profil';
+import Podesavanja from '../../app/(app)/profil/podesavanja';
 import { ProfileHub, type ProfileHubIdentity } from '../../ui/profile/ProfileHubPresentation';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
 
 let tree: ReactTestRenderer;
 async function render() { await act(async () => { tree = create(<Profil />); }); }
+async function renderSettings() { await act(async () => { tree = create(<Podesavanja />); }); }
 const press = (label: string) => tree.root.findByProps({ accessibilityLabel: label }).props.onPress();
 const logoutRow = () => tree.root.findAll(node => String(node.type) === 'Press' && ['Odjavi se', 'Sačekaj…'].includes(node.props.accessibilityLabel))[0];
 const logout = () => logoutRow().props.onPress();
@@ -76,6 +82,8 @@ beforeEach(() => {
   mockAccountId = 'account-a'; mockAccountRevision = 1; mockIntent = 'narucilac'; mockEmail = 'ana@example.rs';
   mockModeView = { kind: 'confirmed', modes: ['ON_SITE'] };
   mockResource = { data: { identity, capability: null }, loading: false, error: false, refresh: mockRefresh };
+  mockWorkResource = null;
+  mockFocusCall = 0;
   mockHubStates = {}; mockVersion = '1.4.2';
   mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
   mockRouter.canGoBack.mockReturnValue(true);
@@ -99,7 +107,7 @@ describe('real profile hub', () => {
   // Owner decision 1 (2026-09-19): one hub for one account. `mockIntent` stays in these tables as the
   // value the retired app mode last had; the hub must be the same hub whichever it was.
   it.each(['narucilac', 'uskocer'] as const)('keeps the existing notification entry in the one hub, whatever the app last was (%s)', async intent => {
-    mockIntent = intent; await render();
+    mockIntent = intent; await renderSettings();
     const open = tree.root.findByProps({ label: 'Obaveštenja' }).props.onPress;
     await act(async () => { open(); open(); });
     expect(mockRouter.navigate.mock.calls).toEqual([['/profil/obavestenja']]);
@@ -114,16 +122,17 @@ describe('real profile hub', () => {
 
   // 8 Oct 2026 (owner's phone, "ista stvar na više mesta"): the area and the week live in the work profile and the plan lives in Dogovori, so the
   // profile does not repeat any of the three as a row of its own.
-  it('does not repeat the area, the week or the planner: they are in the work profile and in Dogovori', async () => {
+  it('keeps area and availability in the work profile, and exposes the existing planner once', async () => {
     await render();
-    for (const label of ['Područje rada', 'Dostupnost', 'Raspored']) expect([label, tree.root.findAllByProps({ label })]).toEqual([label, []]);
+    for (const label of ['Područje rada', 'Dostupnost']) expect(tree.root.findAllByProps({ label })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ label: 'Moj raspored' })).toHaveLength(1);
     expect(visibleText()).not.toContain('Kalendar'); expect(tree.root.findAllByProps({ label: 'Kalendar obaveza' })).toHaveLength(0);
     expect(visibleText()).not.toContain('Dogovoreni termini');
   });
 
   it.each(['narucilac', 'uskocer'] as const)('opens privacy once, whatever the app last was (%s)', async intent => {
     mockIntent = intent;
-    await render();
+    await renderSettings();
     const open = tree.root.findByProps({ label: 'Privatnost i podaci' }).props.onPress;
     await act(async () => { open(); open(); });
     expect(mockRouter.navigate.mock.calls).toEqual([['/profil/privatnost']]);
@@ -132,14 +141,14 @@ describe('real profile hub', () => {
   it.each(['narucilac', 'uskocer'] as const)('opens export once, whatever the app last was (%s)', async intent => {
     mockIntent = intent;
     await render();
-    const open = tree.root.findByProps({ label: 'Izvoz podataka' }).props.onPress;
+    const open = tree.root.findByProps({ label: 'Podešavanja' }).props.onPress;
     await act(async () => { open(); open(); });
-    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/izvoz']]);
+    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/podesavanja']]);
   });
 
   it('retires the captured export entry across an account incarnation change', async () => {
     await render();
-    const open = tree.root.findByProps({ label: 'Izvoz podataka' }).props.onPress;
+    const open = tree.root.findByProps({ label: 'Podešavanja' }).props.onPress;
     mockAccountId = 'account-b'; mockAccountRevision = 2;
     mockAccountId = 'account-a'; mockAccountRevision = 3;
     await act(async () => open());
@@ -169,15 +178,79 @@ describe('real profile hub', () => {
     expect(visibleText()).toContain('Učitavamo profil');
   });
 
+  it('keeps a known requester identity usable while the optional work read waits or fails', async () => {
+    mockResource.data = { identity: { ...identity, profileId: 'requester-a', kind: 'REQUESTER' }, capability: null };
+    mockWorkResource = { data: null, loading: true, error: false, refresh: mockWorkRefresh };
+    await render();
+    expect(visibleText()).toContain('Ana Petrović');
+    expect(visibleText()).toContain('Učitavamo radni profil…');
+    expect(visibleText()).not.toContain('Profil trenutno nije dostupan.');
+    expect(tree.root.findByProps({ accessibilityLabel: 'Fotografija profila' }).props.disabled).toBe(false);
+    expect(tree.root.findByProps({ label: 'Radni profil' }).props.attention).toBe(false);
+
+    mockWorkResource = { data: null, loading: false, error: true, refresh: mockWorkRefresh };
+    await act(async () => tree.update(<Profil />));
+    expect(visibleText()).toContain('Ana Petrović');
+    expect(visibleText()).toContain('Radni profil trenutno nije dostupan.');
+    expect(visibleText()).not.toContain('Još nije podešen');
+    expect(tree.root.findByProps({ label: 'Radni profil' }).props.attention).toBe(false);
+    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Osveži radni profil' }).props.onPress());
+    expect(mockWorkRefresh).toHaveBeenCalledTimes(1);
+    expect(mockRefresh).not.toHaveBeenCalled();
+    await act(async () => tree.root.findByProps({ label: 'Radni profil' }).props.onPress());
+    expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/radnik');
+  });
+
+  it('waits for a true worker fallback when the requester row is absent, without inventing an empty profile after a failed read', async () => {
+    mockResource.data = { identity: null, capability: null };
+    mockWorkResource = { data: null, loading: true, error: false, refresh: mockWorkRefresh };
+    await render();
+    expect(tree.root.findByType(ProfileHub).props.identity.state).toBe('loading');
+    expect(visibleText()).not.toContain('Ime još nije uneto');
+
+    mockWorkResource = { data: null, loading: false, error: true, refresh: mockWorkRefresh };
+    await act(async () => tree.update(<Profil />));
+    expect(tree.root.findByType(ProfileHub).props.identity.state).toBe('error');
+    expect(visibleText()).not.toContain('Ime još nije uneto');
+    await act(async () => tree.root.findByProps({ label: 'Pokušaj ponovo' }).props.onPress());
+    expect(mockWorkRefresh).toHaveBeenCalledTimes(1);
+    expect(mockRefresh).not.toHaveBeenCalled();
+
+    mockWorkResource = { data: { ime: 'Milica Jovanović', grad: 'Novi Sad', profileId: 'worker-a', kind: 'WORKER', stanje: 'DRAFT' },
+      loading: false, error: false, refresh: mockWorkRefresh };
+    await act(async () => tree.update(<Profil />));
+    expect(tree.root.findByType(ProfileHub).props.identity.state).toBe('ready');
+    expect(visibleText()).toContain('Milica Jovanović');
+    expect(visibleText()).not.toContain('Ime još nije uneto');
+    mockWorkResource = { data: null, loading: false, error: false, refresh: mockWorkRefresh };
+    await act(async () => tree.update(<Profil />));
+    expect(visibleText()).toContain('Ime još nije uneto');
+  });
+
+  it('rejects a retained worker retry from a different account incarnation or an unfocused visit', async () => {
+    mockWorkResource = { data: null, loading: false, error: true, refresh: mockWorkRefresh };
+    await render();
+    const retry = tree.root.findByProps({ accessibilityLabel: 'Osveži radni profil' }).props.onPress;
+    mockAccountId = 'account-b'; mockAccountRevision = 2;
+    mockAccountId = 'account-a'; mockAccountRevision = 3;
+    await act(async () => retry());
+    expect(mockWorkRefresh).not.toHaveBeenCalled();
+    await act(async () => tree.unmount());
+    await act(async () => retry());
+    expect(mockWorkRefresh).not.toHaveBeenCalled();
+  });
+
   it.each(['ready', 'error'] as const)('replaces loading accessibility semantics with a fresh %s host while keeping its controls reachable', async state => {
     const openPhoto = jest.fn(), retry = jest.fn();
     const show = (value: ProfileHubIdentity) => <ProfileHub identity={value} busy={false} open={jest.fn()}
-      onBack={jest.fn()} onLogout={jest.fn()} logoutError={false} />;
+      onBack={jest.fn()} />;
     await act(async () => { tree = create(show({ state: 'loading' })); });
     const hub = tree.root;
     const loadingHost = tree.root.findByProps({ testID: 'profile-identity' });
-    expect(loadingHost.props).toMatchObject({ accessible: true, accessibilityRole: 'progressbar',
-      accessibilityLabel: 'Učitavamo profil', accessibilityState: { busy: true } });
+    expect(loadingHost.props).toMatchObject({ accessibilityLiveRegion: 'polite', accessibilityState: { busy: true } });
+    expect(loadingHost.findAllByProps({ testID: 'profile-loading-figures' })).toHaveLength(0);
+    expect(loadingHost.findAllByProps({ testID: 'profile-loading-action' })).toHaveLength(0);
+    expect(loadingHost.findAllByProps({ children: 'Proveravamo tvoje podatke pre prikaza profila.' })).toHaveLength(1);
     const value: ProfileHubIdentity = state === 'ready'
       ? { state: 'ready', name: 'Ana Petrović', place: 'Novi Sad', photo: <></>, photoReady: true, openPhoto, reputation: null }
       : { state: 'error', retry };
@@ -217,7 +290,7 @@ describe('real profile hub', () => {
   it('says in one line whether tasks can be offered to me: not set up, a draft, active, suspended', async () => {
     // The not-set-up copy lost its grammatical gender ("nisi podesio", 2026-09-23); what it says is unchanged.
     await render(); expect(detail()).toBe('Još nije podešen'); expect(visibleText()).not.toContain('podesio');
-    for (const [stanje, copy] of [['DRAFT', 'Nacrt · Novi Sad'], ['ACTIVE', 'Aktivan · Novi Sad'], ['SUSPENDED', 'Suspendovan. Obrati se podršci.']] as const) {
+    for (const [stanje, copy] of [['DRAFT', 'Nacrt · Dolazak: Novi Sad'], ['ACTIVE', 'Aktivan · Dolazak: Novi Sad'], ['SUSPENDED', 'Suspendovan. Obrati se podršci.']] as const) {
       mockResource = { ...mockResource, data: { identity, capability: { ime: 'Ana', grad: 'Novi Sad', stanje } } };
       await act(async () => tree.update(<Profil />)); expect(detail()).toBe(copy);
     }
@@ -226,7 +299,7 @@ describe('real profile hub', () => {
   it('names the skills and the area in that line: the first skill and how many more, the city and its radius', async () => {
     mockResource.data = { identity, capability: { ime: 'Ana', grad: 'Novi sad', stanje: 'ACTIVE', vestine: ['Moleraj', 'Keramika', 'Parket'], radijusKm: 100 } };
     await render();
-    expect(detail()).toBe('Aktivan · Moleraj +2 · Novi Sad, 100 km');
+    expect(detail()).toBe('Aktivan · Moleraj +2 · Dolazak: Novi Sad, do 100 km');
     mockResource = { ...mockResource, data: { identity, capability: { ime: 'Ana', grad: '  ', stanje: 'DRAFT', vestine: [], radijusKm: 20 } } };
     await act(async () => tree.update(<Profil />));
     expect(detail()).toBe('Nacrt');
@@ -243,10 +316,10 @@ describe('real profile hub', () => {
     expect(mockRouter.replace).toHaveBeenCalledWith('/');
   });
 
-  it('does not let a stale press act on a newly signed-in account', async () => {
-    await render();
+  it('does not let stale settings actions act on a newly signed-in account', async () => {
+    await renderSettings();
     mockAccountId = 'account-b';
-    await act(async () => { tree.root.findByProps({ label: 'Izvoz podataka' }).props.onPress(); logout(); });
+    await act(async () => { tree.root.findByProps({ label: 'Privatnost i podaci' }).props.onPress(); logout(); });
     expect(mockSignOut).not.toHaveBeenCalled();
     expect(mockRouter.navigate).not.toHaveBeenCalled();
     expect(mockRouter.replace).not.toHaveBeenCalled();
@@ -261,7 +334,7 @@ describe('real profile hub', () => {
 
   it('makes a failed local logout retryable without exposing the transport error', async () => {
     mockSignOut.mockRejectedValueOnce(new Error('secret transport detail'));
-    await render();
+    await renderSettings();
     await act(async () => logout());
     expect(visibleText()).toContain('Odjava nije uspela. Pokušaj ponovo.');
     expect(visibleText()).not.toContain('secret transport detail');
@@ -273,22 +346,22 @@ describe('real profile hub', () => {
   it('serializes local logout and ignores late failure after account changes', async () => {
     let reject!: (reason: Error) => void;
     mockSignOut.mockImplementation(() => new Promise((_, fail) => { reject = fail; }));
-    await render();
+    await renderSettings();
     const onPress = logoutRow().props.onPress;
     await act(async () => { onPress(); onPress(); });
     expect(mockSignOut.mock.calls).toEqual([[{ accountId: 'account-a', accountRevision: 1 }]]);
     mockAccountId = 'account-b';
     mockAccountRevision = 2;
-    await act(async () => { tree.update(<Profil />); reject(new Error('late failure')); });
+    await act(async () => { tree.update(<Podesavanja />); reject(new Error('late failure')); });
     expect(visibleText()).not.toContain('Odjava nije uspela');
     expect(mockRouter.replace).not.toHaveBeenCalled();
   });
 
   it('blocks an old action after batched A→B→A even before React rerenders', async () => {
-    await render();
+    await renderSettings();
     mockAccountId = 'account-b'; mockAccountRevision = 2;
     mockAccountId = 'account-a'; mockAccountRevision = 3;
-    await act(async () => { tree.root.findByProps({ label: 'Izvoz podataka' }).props.onPress(); logout(); });
+    await act(async () => { tree.root.findByProps({ label: 'Privatnost i podaci' }).props.onPress(); logout(); });
     expect(mockSignOut).not.toHaveBeenCalled();
     expect(mockRouter.navigate).not.toHaveBeenCalled();
     expect(mockRouter.replace).not.toHaveBeenCalled();
@@ -297,13 +370,18 @@ describe('real profile hub', () => {
   // 2026-09-24: the "Uredi" pill opened the same screen as the "Ime na profilu" row; one control per job.
   // T4a (2026-10-07): the one control opens more than the name. 8 Oct 2026 (the approved draft of the product, P1): it is named after the screen it opens,
   // "Lični podaci", because the name is changed there and nowhere else ("jedno ime za sve").
-  it('edits the profile through its one control, with no second edit control beside it', async () => {
+  it('edits identity through settings, without a competing editor on the hub', async () => {
     await render();
+    await act(async () => tree.root.findByProps({ label: 'Podešavanja' }).props.onPress());
+    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/podesavanja']]);
+    await act(async () => tree.unmount());
+    mockRouter.navigate.mockClear();
+    await renderSettings();
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi ime na profilu' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ label: 'Izmeni ime' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ label: 'Izmeni profil' })).toHaveLength(0);
     const pencil = tree.root.findByProps({ label: 'Lični podaci' });
-    expect(pencil.props.hint).toBe('Otvara izmenu fotografije, imena i opisa.');
+    expect(tree.root.findAllByProps({ label: 'Lični podaci' })).toHaveLength(1);
     await act(async () => pencil.props.onPress());
     expect(mockRouter.navigate.mock.calls).toEqual([['/profil/podaci']]);
   });
@@ -329,8 +407,8 @@ describe('real profile hub', () => {
     await render();
     const line = tree.root.findAll(node => String(node.type) === 'AccountReputation')[0];
     const summary = tree.root.findAll(node => typeof node.props.onOpen === 'function' && node.props.requesterProfileId !== undefined)[0];
-    await act(async () => { tree.root.findByProps({ label: 'Izvoz podataka' }).props.onPress(); line.props.onOpen(); summary.props.onOpen(); });
-    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/izvoz']]);
+    await act(async () => { tree.root.findByProps({ label: 'Podešavanja' }).props.onPress(); line.props.onOpen(); summary.props.onOpen(); });
+    expect(mockRouter.navigate.mock.calls).toEqual([['/profil/podesavanja']]);
   });
 
   // Nothing in the app sets the requester city, so the place falls back to the work area and is never an invitation.
@@ -350,11 +428,11 @@ describe('real profile hub', () => {
     mockResource.data = { identity: { ime: 'Ana', grad: 'NovI SAD' }, capability: { ime: 'Ana', grad: 'NOVI SAD', stanje: 'ACTIVE' } };
     await render();
     expect(visibleText()).toContain('Novi Sad'); expect(visibleText()).not.toContain('NovI'); expect(visibleText()).not.toContain('NOVI');
-    expect(detail()).toBe('Aktivan · Novi Sad');
+    expect(detail()).toBe('Aktivan · Dolazak: Novi Sad');
     mockResource = { ...mockResource, data: { identity: { ime: 'Ana', grad: 'Sremska Kamenica' }, capability: { ime: 'Ana', grad: 'Beograd - Zemun', stanje: 'ACTIVE' } } };
     await act(async () => tree.update(<Profil />));
     expect(visibleText()).toContain('Sremska Kamenica');
-    expect(detail()).toBe('Aktivan · Beograd - Zemun');
+    expect(detail()).toBe('Aktivan · Dolazak: Beograd - Zemun');
   });
 
   // The owner's phone, 8 Oct 2026: the header said "Novi Sad" and the rows under it "Novi sad" (the work area's city was typed with a small "s").
@@ -362,7 +440,7 @@ describe('real profile hub', () => {
     mockResource.data = { identity: { ime: 'Ana', grad: 'Novi sad' }, capability: { ime: 'Ana', grad: 'Novi sad', stanje: 'ACTIVE' } };
     await render();
     expect(visibleText()).toContain('Novi Sad'); expect(visibleText()).not.toContain('Novi sad');
-    expect(detail()).toBe('Aktivan · Novi Sad');
+    expect(detail()).toBe('Aktivan · Dolazak: Novi Sad');
   });
 
   // 8 Oct 2026 ("Lice i tri broja"): the face stands OVER the name, centred, whatever the window and the text size; nothing stacks differently.
@@ -402,11 +480,12 @@ describe('real profile hub', () => {
     expect(visibleText()).not.toContain('Aktivan'); expect(visibleText()).not.toContain('Nacrt'); expect(visibleText()).not.toContain('Još nije podešen');
   });
 
-  it('says nothing under the work profile while the read runs or failed: there is nothing true to say yet', async () => {
+  it('names the work read as loading or unavailable without claiming it is empty or active', async () => {
     mockResource = { ...mockResource, data: null, loading: true };
-    await render(); expect(detail()).toBeUndefined();
+    await render(); expect(detail()).toBe('Učitavamo radni profil…');
     mockResource = { ...mockResource, loading: false, error: true };
-    await act(async () => tree.update(<Profil />)); expect(detail()).toBeUndefined();
+    await act(async () => tree.update(<Profil />)); expect(detail()).toBe('Radni profil trenutno nije dostupan.');
+    expect(visibleText()).not.toContain('Još nije podešen');
   });
 
   // Round 5c: the name is never cut (it used to stop at three lines, so a name over ~42 letters ended in "…"); it wraps, centred under the face.
@@ -444,55 +523,22 @@ describe('real profile hub', () => {
   it('ignores a late logout failure after batched A→B→A and admits a fresh current action', async () => {
     let reject!: (reason: Error) => void;
     mockSignOut.mockImplementationOnce(() => new Promise((_, fail) => { reject = fail; }));
-    await render();
+    await renderSettings();
     await act(async () => logout());
     mockAccountId = 'account-b'; mockAccountRevision = 2;
     mockAccountId = 'account-a'; mockAccountRevision = 3;
     await act(async () => reject(new Error('old logout failure')));
     expect(visibleText()).not.toContain('Odjava nije uspela');
-    await act(async () => tree.update(<Profil />));
+    await act(async () => tree.update(<Podesavanja />));
     await act(async () => logout());
     expect(mockSignOut.mock.calls.at(-1)).toEqual([{ accountId: 'account-a', accountRevision: 3 }]);
   });
 });
 
-// UI/UX pass 2026-10-08 (F6, composition spec 4.14): the profile is one calm list of named sections, with the identity as a face
-// over the name instead of a card, and every way onward a row of the one kind. The owner's phone the same day: "Uskakanje" holds only the
-// work profile, "Nalog" the sign-in and what belongs to the account, "Pomoć" support and the bug report, "Privatnost" what is public and kept;
-// nothing is said twice (the approved draft of the product, P1).
-describe('the profile composed as one calm list', () => {
+// Figma 2:126: identity card and separate destinations; live reputation remains connected.
+describe('the profile identity and destination cards', () => {
   const headers = () => tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header').map(node => node.children.join(''));
-  const SECTIONS = ['Uskakanje', 'Nalog', 'Pomoć', 'Privatnost'];
-  /** The position of a node in the order the screen draws things from the top. */
   const order = (predicate: (node: ReactTestInstance) => boolean) => tree.root.findAll(() => true).findIndex(predicate);
-  const heading = (title: string) => order(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header' && node.children.join('') === title);
-
-  it('names four sections, in the order a person needs them: jumping in, the account, help, privacy', async () => {
-    await render();
-    expect(headers().filter(title => SECTIONS.includes(title))).toEqual(SECTIONS);
-  });
-
-  // The approved draft, P1: what stands in each section, row by row, in the order it is drawn.
-  it('puts in each section exactly the rows of the approved draft, and "O aplikaciji" alone after them', async () => {
-    mockResource.data = { identity: { ...identity, profileId: 'profile-r', kind: 'REQUESTER' }, capability: null };
-    await render();
-    const rows = tree.root.findAll(node => typeof node.props.label === 'string' && (typeof node.props.onPress === 'function' || node.props.value !== undefined))
-      .map(node => node.props.label as string);
-    const unique = rows.filter((label, at) => rows.indexOf(label) === at);
-    expect(unique.filter(label => ['Kako te drugi vide', 'Radni profil', 'E-pošta', 'Obaveštenja', 'Promeni lozinku', 'Podrška', 'Prijavi grešku',
-      'Privatnost i podaci', 'Blokirane osobe', 'Izvoz podataka', 'Pravila i saglasnosti', 'O aplikaciji'].includes(label))).toEqual([
-      'Kako te drugi vide', 'Radni profil', 'E-pošta', 'Obaveštenja', 'Promeni lozinku', 'Podrška', 'Prijavi grešku',
-      'Privatnost i podaci', 'Blokirane osobe', 'Izvoz podataka', 'Pravila i saglasnosti', 'O aplikaciji']);
-    // "Kako te drugi vide" belongs to the person, not to a setting: it stands under the figures, before the first section.
-    expect(heading('Uskakanje')).toBeGreaterThan(order(node => node.props.label === 'Kako te drugi vide'));
-    expect(order(node => node.props.label === 'Kako te drugi vide')).toBeGreaterThan(order(node => node.props.testID === 'profile-figures'));
-    // The sections are each other's neighbours in the draft's order.
-    const at = (label: string) => order(node => node.props.label === label && (typeof node.props.onPress === 'function' || node.props.value !== undefined));
-    expect(heading('Nalog')).toBeLessThan(at('E-pošta')); expect(at('Promeni lozinku')).toBeLessThan(heading('Pomoć'));
-    expect(heading('Pomoć')).toBeLessThan(at('Podrška')); expect(at('Prijavi grešku')).toBeLessThan(heading('Privatnost'));
-    expect(heading('Privatnost')).toBeLessThan(at('Privatnost i podaci')); expect(at('Pravila i saglasnosti')).toBeLessThan(at('O aplikaciji'));
-    expect(headers()).not.toContain('O aplikaciji');
-  });
 
   it('puts the three figures, the rating, finished and reliability, in one row under the name and before the sections, for an account with a work profile', async () => {
     mockResource.data = { identity: { ...identity, profileId: 'profile-r' }, capability: { ime: 'Ana', grad: 'Novi Sad', stanje: 'ACTIVE', profileId: 'profile-w' } };
@@ -503,9 +549,10 @@ describe('the profile composed as one calm list', () => {
     expect(rating).toBeGreaterThan(-1); expect(finished).toBeGreaterThan(-1);
     expect(name).toBeLessThan(rating);
     expect(rating).toBeLessThan(finished);
-    expect(finished).toBeLessThan(heading('Uskakanje'));
-    expect(heading('Uskakanje')).toBeLessThan(heading('Nalog'));
-    expect(heading('Nalog')).toBeLessThan(heading('Privatnost'));
+    expect(finished).toBeLessThan(order(node => node.props.label === 'Radni profil'));
+    const identityCard = tree.root.findByProps({ testID: 'profile-identity' });
+    expect(identityCard.findAll(node => String(node.type) === 'AccountReputation')).toHaveLength(1);
+    expect(identityCard.findAll(node => String(node.type) === 'ProfileWorkSummary')).toHaveLength(1);
     const row = tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'profile-figures')[0];
     const { StyleSheet } = jest.requireActual('react-native');
     expect(StyleSheet.flatten(row.props.style).flexDirection).toBe('row');
@@ -540,24 +587,23 @@ describe('the profile composed as one calm list', () => {
     expect(tree.root.findAll(node => String(node.type) === 'ProfileWorkSummary')).toHaveLength(0);
   });
 
-  // The sign-in is said ONCE, as a quiet row of "Nalog" (a label and its value, no arrow, no press); "Promeni lozinku" says nothing under it.
-  it('says the e-mail once, as a quiet row of the account, opens "Promeni lozinku" once, and draws no e-mail row when the account has none', async () => {
-    await render();
-    const row = () => tree.root.findByProps({ label: 'Promeni lozinku' });
-    const email = () => tree.root.findAll(node => node.props.label === 'E-pošta' && node.props.value !== undefined);
-    expect(email().map(node => node.props.value)).toEqual(['ana@example.rs']);
+  it('identifies the current account beside logout, opens access once, and invents no missing email', async () => {
+    await renderSettings();
+    const row = () => tree.root.findByProps({ label: 'Pristup nalogu' });
+    const email = () => tree.root.findAll(node => String(node.type) === 'T' && node.props.children === 'ana@example.rs');
+    expect(email()).toHaveLength(1);
     expect(email()[0].props.onPress).toBeUndefined();
-    expect(row().props.detail).toBeUndefined();
+    expect(row().props.detail).toBe('Promena lozinke');
     await act(async () => { row().props.onPress(); row().props.onPress(); });
     expect(mockRouter.navigate.mock.calls).toEqual([['/profil/lozinka']]);
     await act(async () => { tree.unmount(); });
     mockEmail = undefined;
-    await render();
+    await renderSettings();
     expect(email()).toHaveLength(0);
   });
 
   it('offers "Prijavi grešku" beside "Podrška", in the section "Pomoć", with no sentence under it', async () => {
-    await render();
+    await renderSettings();
     expect(tree.root.findAllByProps({ label: 'Prijavi grešku u aplikaciji' })).toHaveLength(0);
     const row = tree.root.findByProps({ label: 'Prijavi grešku' });
     expect(row.props.detail).toBeUndefined();
@@ -565,55 +611,14 @@ describe('the profile composed as one calm list', () => {
     await act(async () => row.props.onPress());
     expect(mockRouter.navigate.mock.calls).toEqual([['/profil/prijava-greske']]);
     const labels = tree.root.findAll(node => typeof node.props.label === 'string' && typeof node.props.onPress === 'function').map(node => node.props.label);
-    expect(labels.indexOf('Podrška')).toBeLessThan(labels.indexOf('Prijavi grešku'));
+    expect(labels).toContain('Pomoć i podrška');
+    expect(labels.indexOf('Pomoć i podrška')).toBeLessThan(labels.indexOf('Prijavi grešku'));
     expect(labels.indexOf('Prijavi grešku')).toBeLessThan(labels.indexOf('O aplikaciji'));
   });
 
   // The approved draft, P1: "Podrška (broj otvorenih)", "Blokirane osobe (Nema / 2)", "Izvoz podataka (Nije tražen)", "Pravila i saglasnosti (Još nisu objavljena)",
   // "O aplikaciji (Verzija 1.0.0)". A state that could not be read has no word, and no row says "nije dostupno" in its place (J4).
-  describe('the state some rows say about themselves', () => {
-    const value = (label: string) => tree.root.findByProps({ label }).props.value;
-    it('says, from what the app read, how many requests are open, how many people are blocked, where the export is and what the rules are', async () => {
-      mockHubStates = { support: 2, blocked: { count: 3, more: false }, exportPhase: 'READY_AVAILABLE', legal: 'PENDING' };
-      await render();
-      expect(value('Podrška')).toBe('2 otvorena zahteva');
-      expect(value('Blokirane osobe')).toBe('3');
-      expect(value('Izvoz podataka')).toBe('Spreman');
-      expect(value('Pravila i saglasnosti')).toBe('Čekaju tvoju saglasnost');
-      expect(value('O aplikaciji')).toBe('Verzija 1.4.2');
-    });
-
-    it('says "Nema" for nobody blocked, "Nije tražen" for an export nobody asked for, and the rules that are not published yet, and nothing for no open request', async () => {
-      mockHubStates = { support: 0, blocked: { count: 0, more: false }, exportPhase: 'NONE', legal: 'UNPUBLISHED' };
-      await render();
-      expect(value('Podrška')).toBeUndefined();
-      expect(value('Blokirane osobe')).toBe('Nema'); expect(value('Izvoz podataka')).toBe('Nije tražen'); expect(value('Pravila i saglasnosti')).toBe('Još nisu objavljena');
-    });
-
-    it('says a count with its Serbian shape, and "50+" when another page of the blocked follows', async () => {
-      mockHubStates = { support: 1, blocked: { count: 50, more: true } };
-      await render();
-      expect(value('Podrška')).toBe('1 otvoren zahtev'); expect(value('Blokirane osobe')).toBe('50+');
-      mockHubStates = { support: 5, blocked: { count: 1, more: false } };
-      await act(async () => tree.update(<Profil />));
-      expect(value('Podrška')).toBe('5 otvorenih zahteva'); expect(value('Blokirane osobe')).toBe('1');
-    });
-
-    it('says nothing on a row whose state could not be read, and invents no "nije dostupno" in its place', async () => {
-      mockHubStates = {}; mockVersion = null;
-      await render();
-      for (const label of ['Podrška', 'Blokirane osobe', 'Izvoz podataka', 'Pravila i saglasnosti', 'O aplikaciji']) expect([label, value(label)]).toEqual([label, undefined]);
-      expect(visibleText()).not.toMatch(/nije dostupn/i);
-    });
-
-    it('opens each of those rows once, whatever it says', async () => {
-      mockHubStates = { support: 2, blocked: { count: 1, more: false }, exportPhase: 'PROCESSING', legal: 'ACCEPTED' };
-      await render();
-      const open = tree.root.findByProps({ label: 'Blokirane osobe' }).props.onPress;
-      await act(async () => { open(); open(); });
-      expect(mockRouter.navigate.mock.calls).toEqual([['/profil/blokirani']]);
-    });
-  });
+  // State wording remains covered by hub-states, privacy-hub and the settings route tests.
 
   it('marks the work profile with a dot while something waits for the person (not set up, a draft), and not otherwise', async () => {
     const attention = () => tree.root.findByProps({ label: 'Radni profil' }).props.attention;
@@ -631,40 +636,24 @@ describe('the profile composed as one calm list', () => {
 
   // The owner's phone: the privacy rows had grey pictures and the password had a green one, "dve različite brave". Every row has the same kind of
   // picture, and each of the eleven rows has its own, so the lock is the password's and nothing else's.
-  it('draws every row with its own picture in the same colour: no grey set, and one lock on the whole screen', async () => {
-    await render();
-    const labels = ['Radni profil', 'Kako te drugi vide', 'Obaveštenja', 'Promeni lozinku', 'Podrška', 'Prijavi grešku', 'O aplikaciji',
-      'Privatnost i podaci', 'Blokirane osobe', 'Izvoz podataka', 'Pravila i saglasnosti'];
-    mockResource.data = { identity: { ...identity, profileId: 'profile-r', kind: 'REQUESTER' }, capability: null };
-    await act(async () => tree.update(<Profil />));
-    const kinds = labels.map(label => {
-      const row = tree.root.findByProps({ label });
-      expect([label, row.props.tone]).toEqual([label, undefined]);
-      const icon = (row.props.icon as { props: { kind?: string; name?: string; size: number } }).props;
-      if (label === 'Obaveštenja') expect(icon).toMatchObject({ name: 'notifications', size: 24 });
-      return icon.kind ?? icon.name;
-    });
-    expect(new Set(kinds).size).toBe(kinds.length);
-    expect(kinds.filter(kind => kind === 'lock')).toEqual(['lock']);
-    expect(kinds[labels.indexOf('Promeni lozinku')]).toBe('lock');
-  });
+  // Retired layout freeze: replaced by the connected profile/settings organization contract.
 
-  it('ends with the red "Odjavi se" as a command across the whole width (no arrow: it opens nothing), which waits while a row is opening', async () => {
-    await render();
+  it('keeps compact logout named and reachable, with a 48 dp target and the navigation busy guard', async () => {
+    await renderSettings();
     const { StyleSheet } = jest.requireActual('react-native');
     expect(logoutRow().props.accessibilityLabel).toBe('Odjavi se');
     expect(logoutRow().findAll(node => node.props.name === 'caret-right')).toHaveLength(0);
-    expect(StyleSheet.flatten(logoutRow().props.style).alignSelf).toBe('stretch');
-    const word = logoutRow().findAll(node => String(node.type) === 'T')[0];
-    expect(StyleSheet.flatten(word.props.style).textAlign).toBe('center');
-    await act(async () => tree.root.findByProps({ label: 'Izvoz podataka' }).props.onPress());
+    expect(StyleSheet.flatten(logoutRow().props.style).minHeight).toBeGreaterThanOrEqual(48);
+    expect(logoutRow().findAll(node => String(node.type) === 'T')[0].props.children).toBe('Odjavi se');
+    await act(async () => tree.root.findByProps({ label: 'Privatnost i podaci' }).props.onPress());
     expect(logoutRow().props.accessibilityLabel).toBe('Sačekaj…');
+    expect(logoutRow().props.accessibilityState).toMatchObject({ disabled: true, busy: true });
     expect(logoutRow().props.disabled).toBe(true);
   });
 
   it('says the sign-out failed above the row, as an alert in the danger colour, and does not draw it before', async () => {
     mockSignOut.mockRejectedValueOnce(new Error('x'));
-    await render();
+    await renderSettings();
     expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'alert')).toHaveLength(0);
     await act(async () => logout());
     const alert = tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'alert')[0];
@@ -672,18 +661,17 @@ describe('the profile composed as one calm list', () => {
     expect(alert.children).toEqual(['Odjava nije uspela. Pokušaj ponovo.']);
   });
 
-  it('draws the identity without a card: the face, the name at 28 and the city as a note in one centred block, the rating being the first figure outside it', async () => {
+  it('keeps actual identity, editable photo and reputation together in the profile card', async () => {
     await render();
     const identityBlock = tree.root.findByProps({ testID: 'profile-identity' });
     const name = identityBlock.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header')[0];
     expect(name.props.variant).toBe('pageTitle');
-    expect(identityBlock.findAll(node => String(node.type) === 'T' && node.props.variant === 'note' && node.children.includes('Novi Sad'))).toHaveLength(1);
-    expect(identityBlock.findAll(node => String(node.type) === 'AccountReputation')).toHaveLength(0);
+    expect(identityBlock.findAll(node => String(node.type) === 'T' && node.children.includes('Novi Sad'))).toHaveLength(1);
+    expect(identityBlock.findAll(node => String(node.type) === 'AccountReputation')).toHaveLength(1);
     const figures = tree.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'profile-figures')[0];
     expect(figures.findAll(node => String(node.type) === 'AccountReputation')).toHaveLength(1);
-    const { StyleSheet } = jest.requireActual('react-native');
-    const style = StyleSheet.flatten(identityBlock.props.style);
-    for (const key of ['borderWidth', 'borderColor', 'backgroundColor', 'padding', 'shadowOpacity', 'elevation']) expect([key, style[key]]).toEqual([key, undefined]);
+    expect(identityBlock.findAllByProps({ accessibilityLabel: 'Fotografija profila' })).toHaveLength(1);
+    expect(visibleText()).toContain('Jedan nalog · obe mogućnosti');
   });
 
   it('says a missing name once, as a plain muted line, and not as a second 28 px title', async () => {
@@ -694,10 +682,10 @@ describe('the profile composed as one calm list', () => {
   });
 });
 
-// "Kako te drugi vide" (Airbnb's standard, 8 Oct 2026): the person's own public profile, as the same sheet everyone else is shown, opened only by a press.
-describe('"Kako te drugi vide"', () => {
+// "Pogledaj javni profil" (Airbnb's standard, 8 Oct 2026): the person's own public profile, as the same sheet everyone else is shown, opened only by a press.
+describe('"Pogledaj javni profil"', () => {
   const sheet = () => tree.root.findAll(node => String(node.type) === 'PublicProfileSheet')[0];
-  const row = () => tree.root.findAllByProps({ label: 'Kako te drugi vide' })[0];
+  const row = () => tree.root.findAllByProps({ label: 'Pogledaj javni profil' })[0];
   const ownRow = (patch: Partial<Row> = {}): Row => ({ ime: 'Ana Petrović', grad: 'Novi Sad', profileId: 'profile-r', kind: 'REQUESTER', ...patch });
   const publicProfile = (profilId: string) => ({ profilId, uloga: 'narucilac', ime: 'Ana Petrović', avatarPutanja: null, grad: 'Novi Sad', naslov: null, biografija: null,
     poverenje: { ocenaProsek: null, brojRecenzija: 0, zavrseniBroj: 0, identitetVerifikovan: false, ocenaDostupna: false, recenzijeDostupne: true, verifikacijaIdentitetaDostupna: true } });
@@ -719,7 +707,7 @@ describe('"Kako te drugi vide"', () => {
     expect(mockPublicProfile).toHaveBeenCalledTimes(1); expect(mockPublicProfile.mock.calls[0][0]).toBe('profile-r');
     expect(sheet().props.state.loading).toBe(false); expect(sheet().props.state.data.profilId).toBe('profile-r');
     // It is a sheet over the screen, not a way onward: nothing else on the hub is opened, and the hub stays usable under it.
-    expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(logoutRow().props.disabled).not.toBe(true);
+    expect(mockRouter.navigate).not.toHaveBeenCalled(); expect(tree.root.findByProps({ label: 'Radni profil' }).props.disabled).not.toBe(true);
     await act(async () => { sheet().props.onClose(); });
     expect(sheet()).toBeUndefined();
   });
@@ -749,6 +737,16 @@ describe('"Kako te drugi vide"', () => {
     await act(async () => { sheet().props.onClose(); });
     await act(async () => { answer(publicProfile('profile-r')); });
     expect(sheet()).toBeUndefined();
+  });
+
+  it('separates a successful empty public-profile read from a failed read', async () => {
+    mockResource.data = { identity: ownRow(), capability: null };
+    mockPublicProfile.mockResolvedValueOnce(null).mockRejectedValueOnce(new Error('offline'));
+    await render();
+    await act(async () => { row().props.onPress(); });
+    expect(sheet().props.state).toEqual({ loading: false, data: null, notFound: true });
+    await act(async () => { sheet().props.onClose(); row().props.onPress(); });
+    expect(sheet().props.state).toEqual({ loading: false, data: null });
   });
 
   it('does not open for a press kept from another account', async () => {

@@ -52,6 +52,9 @@ function OwnedPasswordChange({ email }: { email: string | null }) {
       setError(passwordChangeMessages[result.code]);
       // A refusal that is about the typed words keeps the form for another try; a lost answer too, with its sentence above.
       setPhase('form');
+    } catch {
+      // The service normally returns a classified result. If an unexpected client error escapes it, the write's outcome is unknown.
+      if (current()) { setError(passwordChangeMessages.UNKNOWN_OUTCOME); setPhase('form'); }
     } finally { sending.current = false; }
   };
   return <ChangePasswordView email={email} values={values} phase={phase} error={error} reason={reason}

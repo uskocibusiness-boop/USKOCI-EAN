@@ -2,8 +2,8 @@
  * The Zadaci list sheet's three heights as plain numbers (UX plan 2.14, section O7 and P of the visual proposal, 2026-10-07;
  * the owner's phone of 8 Oct 2026).
  *
- * The sheet rests lowered ("mapa je glavna": only its top line over the map, and the bottom navigation is away), at half (map and
- * list, the navigation is back) or full ("lista je glavna": the whole list directly under the search pill and its row of capsules,
+ * The sheet rests lowered ("mapa je glavna": only its top line over the map), at half (map and
+ * list) or full ("lista je glavna": the whole list directly under the filter control and its row of capsules,
  * which stay on top; no strip of map is left between). A drag of the handle, of the list header or of the list moves between
  * them, and a tap on the handle goes to the next one. Everything below is arithmetic on measured pixels, so it can be tested
  * without a phone; the screen only hands in what it has measured.
@@ -48,8 +48,8 @@ export type SheetHeightsInput = {
   /** How much of the sheet's room the half stop leaves free below the full one at the least. */
   margin: number;
   /**
-   * How tall the bottom navigation is while it stands over the lower part of the screen (it comes with the half and the full stop, and
-   * lies OVER the sheet, which reaches the bottom of the screen at every height). The half stop is half of what the navigation leaves,
+   * How tall the bottom navigation is while it stands over the lower part of the screen (it remains visible at all three list stops,
+   * and lies OVER the sheet, which reaches the bottom of the screen at every height). The half stop is half of what the navigation leaves,
    * so the map above the sheet and the list between the sheet's top and the navigation are about as tall as each other. 0 where there
    * is no such navigation (a gallery, a test).
    */

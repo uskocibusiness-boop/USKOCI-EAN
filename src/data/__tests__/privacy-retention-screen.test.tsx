@@ -37,6 +37,7 @@ jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import Privacy from '../../app/(app)/profil/privatnost';
 import { InlineNote } from '../../ui/privacy/InlineNote';
 import { ListRow } from '../../ui/system/ListRow';
+import { SkeletonList } from '../../ui/system/Skeleton';
 
 const ok = (podatak: unknown) => ({ ok: true, podatak });
 const policy = (version = 'fixture-v1') => ({ ready: true, policyVersion: version, effectiveAt: '2026-09-10T00:00:00Z',
@@ -52,7 +53,7 @@ const update = async () => { await act(async () => tree.update(<Privacy />)); };
 const button = (label: string) => tree.root.findByProps({ label }).props;
 /**
  * "Rokovi čuvanja" is the one row of the hub that opens in place (approved draft of the product, 8 Oct 2026, P5), and everything about the schedule is inside it:
- * the skeleton, the sentence that it is not available, the rules, the retry of a read that failed and the automatic deletion. It starts closed on every visit.
+ * the loading line, the sentence that it is not available, the rules, the retry of a read that failed and the automatic deletion. It starts closed on every visit.
  */
 const retentionRow = () => tree.root.findByProps({ accessibilityLabel: 'Rokovi čuvanja' });
 const openRetention = async () => { await act(async () => retentionRow().props.onPress()); };
@@ -85,6 +86,7 @@ it.each(['narucilac', 'uskocer'])('reads both actual services in parallel for %s
   expect(texts()).not.toContain('Učitavamo rokove čuvanja');
   await openRetention();
   expect(texts()).toContain('Učitavamo rokove čuvanja'); expect(refreshPresses()).toHaveLength(0);
+  expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
   expect(mockRouter.navigate).not.toHaveBeenCalled();
 });
 it('keeps unpublished retention explicit, ONCE, inside its row, and opens closure through a separate review', async () => {
@@ -281,7 +283,7 @@ it('refocus enables new callbacks while retiring old ones without relying on res
   expect(mockPolicy).toHaveBeenCalledTimes(1); expect(mockExecution).toHaveBeenCalledTimes(1);
 });
 // UI/UX pass 2026-10-07 (team T4c): a re-read that leaves the published rules on screen, no stills of the old set.
-it('a re-read the person asks for (the pull) leaves the published rules on screen under the pull\'s own spinner; only the first read is a skeleton', async () => {
+it('a re-read the person asks for (the pull) leaves the published rules on screen under the pull\'s own spinner', async () => {
   mockPolicy.mockResolvedValue(ok(policy())); mockExecution.mockResolvedValue(ok(execution())); await render(); await openRetention();
   expect(texts()).toContain('AI razgovori i izdvojeni podaci');
   const policyAgain = deferred(), executionAgain = deferred(); mockPolicy.mockReturnValueOnce(policyAgain.promise); mockExecution.mockReturnValueOnce(executionAgain.promise);

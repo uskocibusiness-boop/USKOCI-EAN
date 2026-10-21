@@ -9,6 +9,7 @@ import { useUnsavedProfileBack } from '../../../hooks/useUnsavedProfileBack';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { useIzvor } from '../../../store/uloga';
 import { inicijali } from '../../../lib/inicijali';
+import { noviUuidZahtevId } from '../../../lib/idempotencija';
 import { ProfilePhoto } from '../../../ui/media/ContextPhotos';
 import { RatingLine } from '../../../ui/profile/RatingLine';
 import { useAccountName } from '../../../ui/profile/useAccountName';
@@ -267,7 +268,9 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
       ? { label: 'Sačuvaj profil', run: () => { void save(false); } }
       : { label: 'Uredi kroz razgovor', run: () => openConversation() };
     if (status !== 'DRAFT') return { label: 'Osveži radni profil', run: refresh };
-    if (reading) return { label: 'Nastavi kroz razgovor', run: () => openConversation() };
+    if (reading) return basicsReady && !!value && value.grad.trim().length >= 2
+      ? { label: 'Pregled za aktivaciju', run: () => openConversation(undefined, true) }
+      : { label: 'Nastavi kroz razgovor', run: () => openConversation() };
     if (localDirty) return { label: 'Sačuvaj izmene', run: () => { void save(false); } };
     if (!locationReady) return { label: 'Podesi područje rada', run: () => navigate('/profil/lokacija') };
     // The name is not typed here: when it is missing, the primary leads to the one place it is written.
@@ -277,12 +280,14 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     return { label: 'Proveri i aktiviraj profil', run: () => { if (account.state !== 'loading') void save(true); }, activates: true };
   })();
   // The AI entry preserves ownership and any unresolved legacy save.
-  const openConversation = (part?: WorkerAiPart) => {
+  const openConversation = (part?: WorkerAiPart, activation = false) => {
     if (!enabled || !current() || transportRef.current || pendingRef.current || latestStatus.current === 'SUSPENDED') return;
     if (draftRef.current && JSON.stringify(draftRef.current.value) !== JSON.stringify(draftRef.current.initial)) {
       setValidation('Sačuvaj unos pre otvaranja razgovora.'); return;
     }
-    if(part && accountId){
+    if(activation){
+      router.navigate({pathname:'/profil/razgovor',params:{activationRequest:noviUuidZahtevId()}});
+    }else if(part && accountId){
       const correction = rememberAiCorrection({accountId,accountRevision},`worker.${part}`);
       if(correction)router.navigate({pathname:'/profil/razgovor',params:{aiCorrection:correction.token}});
     }else router.navigate('/profil/razgovor');
@@ -297,7 +302,7 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
   const availableNowControl: AvailableNowControl | undefined = status === 'ACTIVE' && value
     ? { value: value.dostupanOdmah, onEdit: () => openConversation('time') } : undefined;
   return <WorkerProfileFrame back={back} scrollRef={scroll} onScroll={rememberReading} onScrollBeginDrag={beginReading}
-    right={visible ? <HeaderInfo title="Na šta utiče radni profil" testID="worker-profile-info" info={workerProfileInfoLines(!reading)} /> : undefined}
+    right={visible ? <HeaderInfo title="Na šta utiče radni profil" testID="worker-profile-info" info={workerProfileInfoLines(false)} /> : undefined}
     footer={visible && showFooter ? <WorkerProfileFooter message={message ?? (status === 'SUSPENDED' && localDirty ? 'Nesačuvani unos je zadržan. Izmene nisu dostupne dok traje suspenzija.' : null)} error={validation ?? editor.error}
     held={!!pending && !transportBusy}>
     {pending && (editor.uncertain || editor.error || status === 'SUSPENDED') ? <V2Action label="Pogledaj sačuvani profil" disabled={transportBusy} onPress={refresh} style={brandAction} />

@@ -55,6 +55,8 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Action' }));
 import ReviewRoute from '../../app/(app)/pregled-zadatka';
+import { QuietReadState } from '../../ui/v2/QuietReadState';
+import { SkeletonList } from '../../ui/system/Skeleton';
 import { AccessibilityInfo, StyleSheet } from 'react-native';
 import { sys, brandAction } from '../../ui/system/tokens';
 
@@ -125,6 +127,20 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
+it('keeps publication unavailable until the owned review has been read', async () => {
+  const firstRead = deferred<ReturnType<typeof ok>>();
+  mockPrepare.mockReturnValueOnce(firstRead.promise);
+  await render();
+  expect(tree.root.findAllByType(QuietReadState)).toHaveLength(1);
+  expect(text()).toContain('Pripremamo pregled…');
+  expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
+  expect(commands('Objavi zadatak')).toHaveLength(0);
+  expect(tree.root.findByProps({ accessibilityLabel: 'Nazad u razgovor' })).toBeDefined();
+  await act(async () => firstRead.resolve(ok(review())));
+  expect(tree.root.findAllByType(QuietReadState)).toHaveLength(0);
+  expect(publish().disabled).toBe(false);
+});
+
 it.each([{}, { entryKey: OTHER }, { conversationId: CONVERSATION }])('returns to the exact retained intake identity: %j', async params => {
   const handoff = rememberIntakeReviewReturn({ accountId: OWNER, accountRevision: 1 }, CONVERSATION, params)!;
   mockParams.intakeReturn = handoff.token;
@@ -179,9 +195,7 @@ it('prepares the displayed public and private review with one publish action and
 });
 
 it('says it is confirming changes when the review belongs to a task that already exists', async () => {
-  // The conversation offers "Pregledaj izmene" for a bound Need; this screen then said
-  // "Objavi zadatak", as if the task were being created now. The server never confused the two:
-  // accepting a bound review confirms an edit rather than creating a draft.
+  // The existing server returns the same task to DRAFT before publishing its changes.
   const bound = { ...review(), draftId: NEED, draftRevision: 4 };
   mockRead.mockResolvedValue(ok({ review: bound, command: null })); mockPrepare.mockResolvedValue(ok(bound));
   await render();
@@ -189,13 +203,37 @@ it('says it is confirming changes when the review belongs to a task that already
   expect(tree.root.findByProps({ accessibilityLabel: 'Potvrdi izmene' }).props.disabled).toBe(false);
   // The eyebrow that said "Izmena postojećeg zadatka" is no longer drawn (owner, 2026-09-23); the title below already says it is a review of changes.
   expect(text()).toContain('Pregled izmena');
+  expect(text()).toContain('Potvrdom se zadatak privremeno povlači iz pretrage');
+  expect(text()).toContain('Ako objava ne uspe, izmene ostaju sačuvane kao privatan nacrt.');
+  expect(mockAccept).not.toHaveBeenCalled();
 
   // A task being published for the first time still reads as a first publication.
   await act(async () => tree.unmount());
   mockRead.mockResolvedValue(ok({ review: review(), command: null })); mockPrepare.mockResolvedValue(ok(review()));
   await render();
   expect(publish().disabled).toBe(false);
+  expect(tree.root.findAllByProps({ testID: 'task-edit-publication-consequence' })).toHaveLength(0);
   /* the eyebrow "Ti odlučuješ šta objavljuješ" is no longer drawn (owner, 2026-09-23) */ 
+});
+
+it('shows the saved private draft when an accepted edit cannot be published, without claiming the old publication survived', async () => {
+  const bound = { ...review(), draftId: NEED, draftRevision: 4 };
+  const stopped = { ...notReadyCommand(), needRevision: 5 };
+  mockPrepare.mockResolvedValue(ok(bound));
+  mockAccept.mockImplementation(async () => {
+    mockRead.mockResolvedValue(ok({ review: bound, command: stopped }));
+    return ok(stopped);
+  });
+  await render();
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Potvrdi izmene' }).props.onPress());
+  expect(mockAccept).toHaveBeenCalledTimes(1);
+  expect(mockAccept.mock.calls[0][0].review.draftId).toBe(NEED);
+  expect(text()).toContain('Tvoj zadatak je sačuvan kao privatan nacrt.');
+  expect(text()).not.toContain('Izmene su objavljene.');
+  expect(commands('Otvori zadatak')).toHaveLength(0);
+  expect(action('Izmeni zadatak').disabled).toBe(false);
+  expect(mockResume).not.toHaveBeenCalled();
+  expect(mockRouter.replace).not.toHaveBeenCalled();
 });
 
 it('serializes retained taps to one immutable review command and freezes an unknown result until explicit readback', async () => {

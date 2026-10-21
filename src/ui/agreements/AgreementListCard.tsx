@@ -45,9 +45,8 @@ function AttentionFoot({ attention }: { attention: AgreementAttention }) {
 function AcceptedAmount({ item }: { item: DogovorProjekcija }) {
   const amount = item.cena.prikaz;
   if (!amount) return <T variant="note" tone="muted">{BEZ_IZNOSA}</T>;
-  if (!item.izmenaCeka) return <T variant="priceRow" style={s.amount}>{amount}</T>;
   return <View style={s.amountBlock}>
-    <T variant="meta" tone="muted">Važeći iznos</T>
+    <T variant="meta" tone="muted">{item.izmenaCeka ? 'Važeći iznos ove saradnje' : 'Cena ove saradnje'}</T>
     <T variant="priceRow" style={s.amount}>{amount}</T>
   </View>;
 }
@@ -64,13 +63,12 @@ function AcceptedTime({ when, place, zone }: { when: string; place: string; zone
  * One Dogovor of the list. Its height follows the accepted facts and the person's text size; the timezone is secondary to the time.
  * A `record`: the whole card is touched, so it has the shadow and nothing inside it is a card.
  *
- * Four lines. The other person's face with the work's title (black, two lines) and "ime · uloga" under it; when and where in one
- * grey line ("Danas 14:00 · Novi Sad"); the state chip on the left and the accepted amount on the right; and the orange foot ONLY
+ * An own-role eyebrow comes before the other person's face and work title; when and where follow in one
+ * grey line ("Danas 14:00 · Novi Sad"); the state chip is on the left and the accepted amount for this collaboration on the right; the orange foot appears ONLY
  * when something waits for me. The body is one press that opens the Dogovor, with no caret: the whole row is the target (B16). The
  * rating is a press of its own, beside the body and never inside it, that goes straight to the rating (A2). Nothing is drawn that the
  * list does not carry: no last message, no rating, no date built from the task. A pending proposal labels the amount "Važeći iznos";
- * otherwise it stands alone. "ukupno" is for the ear and
- * the Dogovor itself ("Dogovoreno ukupno"); a group says how many people it is in the line under the title.
+ * otherwise its visible label identifies the individual collaboration. A group says how many people it is in the line under the title.
  *
  * A cancelled Dogovor says when, by whom and why, in one grey line, once the server has answered (`cancellation`, CANCEL-INFO); until
  * then, or if it never does, the chip alone says "Otkazan" and nothing is guessed.
@@ -85,6 +83,8 @@ function AgreementCard({ item, now, cancellation, onOpen, onRate }: {
   const { style: lift, give, settle } = usePressLift();
 
   const other = item.ucesnici.find(person => !person.viSte);
+  const ownRole = item.ucesnici.find(person => person.viSte)?.uloga;
+  const roleLabel = ownRole === 'narucilac' ? 'Ti objavljuješ' : ownRole === 'uskocer' ? 'Ti uskačeš' : null;
   const attention = agreementAttention(item);
   const title = readableTitle(item.naslov);
   const role = agreementRole(other);
@@ -104,7 +104,7 @@ function AgreementCard({ item, now, cancellation, onOpen, onRate }: {
   // The rating foot is its own press only when the route hands over where it goes; otherwise it stays inside the body.
   const rateAside = attention?.kind === 'rate' && onRate ? attention : null;
   const footInside = attention && !rateAside ? attention : null;
-  const spoken = [name, role, `${agreementChipWord(chip)}${changed ? `, ${changed}` : ''}`, when, term.zone, amount ? `${item.izmenaCeka ? 'Važeći iznos, ' : ''}${amount} ukupno` : BEZ_IZNOSA, place, people,
+  const spoken = [name, role, `${agreementChipWord(chip)}${changed ? `, ${changed}` : ''}`, when, term.zone, amount ? `${item.izmenaCeka ? 'Važeći iznos, ' : ''}${amount} za ovu saradnju` : BEZ_IZNOSA, place, people,
     cancelledLine, ownProposal ? 'Tvoja izmena čeka odgovor' : null, item.problemOtvoren ? 'Prijavljen je problem' : null]
     .filter((part): part is string => !!part).join(', ');
   // The one Avatar: a missing name (an empty string since 2026-09-24) draws the person, never an empty disc or a dash.
@@ -115,6 +115,7 @@ function AgreementCard({ item, now, cancellation, onOpen, onRate }: {
         accessibilityHint={footInside ? `${footInside.title}. ${footInside.line}` : undefined} onPress={onOpen}
         onPressIn={give} onPressOut={settle} haptic="select" scaleTo={1} style={s.body}>
         <View style={s.main}>
+          {roleLabel ? <T variant="meta" style={s.roleLabel}>{roleLabel}</T> : null}
           <View style={s.head}>
             {other?.profilId ? <ProfilePhoto profileId={other.profilId} size={AVATAR} fallback={initials} /> : initials}
             <View style={s.headCopy}>
@@ -207,7 +208,7 @@ function AgreementCollaborator({ item, taskTitle, now, cancellation, onOpen, onR
   const place = item.rezim === 'DALJINSKI' ? 'Na daljinu' : item.putanjaTekst || 'Mesto nije navedeno';
   const cancelled = item.stanje === 'CANCELLED' ? cancellationDetailsOf(cancellation, other?.ime) : null;
   const spoken = [agreementChipWord(chip), item.verzija > 1 ? 'izmenjeni uslovi' : null, when, term.zone,
-    item.cena.prikaz ? `${item.izmenaCeka ? 'Važeći iznos, ' : ''}${amount} ukupno` : amount, place, people, attention?.title,
+    item.cena.prikaz ? `${item.izmenaCeka ? 'Važeći iznos, ' : ''}${amount} za ovu saradnju` : amount, place, people, attention?.title,
     cancelled ? cancellationLine(cancelled, now) : null,
     item.izmenaCeka?.mojPredlog ? 'Tvoja izmena čeka odgovor' : null, item.problemOtvoren ? 'Prijavljen je problem' : null].filter(Boolean).join(', ');
   const initials = <Avatar initials={other?.inicijali} size={AVATAR} />;
@@ -243,6 +244,7 @@ const s = StyleSheet.create({
   more: { minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
   body: { borderRadius: 0 },
   main: { gap: sys.space.sm },
+  roleLabel: { color: sys.color.green, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md },
   headCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   when: { color: sys.color.muted, fontVariant: ['tabular-nums'] },

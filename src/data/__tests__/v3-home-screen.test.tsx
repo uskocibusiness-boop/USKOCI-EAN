@@ -13,6 +13,7 @@ const mockSource = { mojePotrebe: jest.fn(), mojePrijaveStrana: jest.fn(), mojiD
 const mockRouter = { navigate: jest.fn(), push: jest.fn(), replace: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
 const mockListOpenIntakes = jest.fn();
 jest.mock('../index', () => ({ aiNeedV2Izvor: { listOpenIntakes: (...args: unknown[]) => mockListOpenIntakes(...args) } }));
+jest.mock('../aiOpenIntakes', () => ({ OPEN_INTAKE_PAGE_SIZE: 20, readIntakeLifecycle: jest.fn() }));
 jest.mock('../../lib/idempotencija', () => ({ noviUuidZahtevId: () => 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' }));
 jest.mock('../../ui/product/ProductSheet', () => ({ ProductSheet: ({ children, onClose, ...props }: any) =>
   require('react').createElement('Sheet', { ...props, onClose }, children(() => undefined)) }));
@@ -57,6 +58,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true
 } }));
 import { StyleSheet } from 'react-native';
 import { HomePresentation } from '../../ui/home/HomePresentation';
+import { ListSkeleton } from '../../ui/notifications/ListSkeleton';
 import { sys } from '../../ui/system/tokens';
 import { HOW_IT_WORKS_KEY, forgetHiddenHowItWorks } from '../../ui/home/HowItWorks';
 import { composeHome, type HomeSnapshot } from '../homeSnapshot';
@@ -77,7 +79,9 @@ const text = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(
 const action = (label: string) => ['Objavi zadatak', 'Uskoči i zaradi'].includes(label)
   ? tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0].props
   : tree.root.findByProps({ label }).props;
-const row = (start: string) => tree.root.findAll(node => String(node.type) === 'Press' && (String(node.props.accessibilityLabel).startsWith(start) || String(node.props.accessibilityLabel).includes(`. ${start}`)))[0].props;
+const row = (start: string) => tree.root.findAll(node => String(node.type) === 'Press' && (String(node.props.accessibilityLabel).startsWith(start)
+  || String(node.props.accessibilityLabel).startsWith(`Nastavi razgovor: ${start}`)
+  || String(node.props.accessibilityLabel).includes(`. ${start}`)))[0].props;
 /** The Raspored card: the one press that opens the next Dogovor (a Dogovor row of any other kind has its own hint). */
 const cards = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityHint === 'Otvara Dogovor.');
 const render = async () => { await act(async () => { tree = create(<Pocetna />); }); };
@@ -695,8 +699,8 @@ it('keeps both intentions touchable and moves to full-width rows for large text'
     expect(heights.every(height => height >= sys.touch.min)).toBe(true);
     expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'home-intentions' }).props.style).flexDirection)
       .toBe(fontScale >= 1.299 ? 'column' : 'row');
-    expect(tree.root.findAllByType('HomeLaunchArt' as React.ElementType).map(node => node.props.kind)).toEqual(['publish']);
-    expect(tree.root.findByType('AnimatedRadar' as React.ElementType).props.size).toBeGreaterThan(0);
+    expect(tree.root.findAllByType('HomeLaunchArt' as React.ElementType).map(node => node.props.kind)).toEqual(['publish', 'discover']);
+    expect(tree.root.findAllByType('AnimatedRadar' as React.ElementType)).toHaveLength(0);
     for (const door of doors) expect(door.findAll(node => String(node.type) === 'T')).toHaveLength(2);
   }
 });
@@ -1084,12 +1088,19 @@ describe('a brand-new account', () => {
   });
 });
 
-it('while the first read is on its way it shows the doors, the heading and one row of what will come, and the two lists without a count', async () => {
+it('keeps the stable doors and list entries in place during the first read, with a calm white loading slot and no invented content', async () => {
   const handlers = await direct(null, { loading: true });
-  // The skeleton has the geometry of what is coming: the heading and two rows (picture slot, two lines), breathing as one.
-  expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Učitavanje' && node.props.accessible === true).length).toBeGreaterThan(0);
+  const loading = tree.root.findByProps({ testID: 'home-initial-loading' });
+  expect(StyleSheet.flatten(loading.props.style)).toMatchObject({ minHeight: expect.any(Number), backgroundColor: sys.color.surface });
+  expect(StyleSheet.flatten(loading.props.style).minHeight).toBeGreaterThanOrEqual(160);
+  expect(tree.root.findAllByType(ListSkeleton)).toHaveLength(0);
+  expect(text()).toContain('Učitavamo tvoj pregled…');
   expect(text()).not.toContain('Čeka te'); expect(text()).not.toContain('Ništa ne čeka tvoju odluku.'); expect(text()).not.toContain('Opiši zadatak');
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci'); expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave');
+  const order = tree.root.findAll(node => node.props.testID === 'home-initial-loading' || String(node.type) === 'Press'
+    && ['Objavi zadatak', 'Uskoči i zaradi', 'Moji zadaci', 'Moje prijave'].includes(node.props.accessibilityLabel))
+    .map(node => node.props.testID === 'home-initial-loading' ? 'loading' : node.props.accessibilityLabel);
+  expect(order).toEqual(['Objavi zadatak', 'Uskoči i zaradi', 'Moji zadaci', 'Moje prijave', 'loading']);
   await act(async () => action('Objavi zadatak').onPress()); expect(handlers.onPublish).toHaveBeenCalledTimes(1);
 });
 
@@ -1100,6 +1111,7 @@ it('keeps the same launch targets mounted as the initial overview read completes
     node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0]);
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci');
   await act(async () => wait.resolve([]));
+  expect(tree.root.findAllByProps({ testID: 'home-initial-loading' })).toHaveLength(0);
   before.forEach((entry, index) => expect(tree.root.findAll(node => String(node.type) === 'Press'
     && node.props.accessibilityLabel === ['Objavi zadatak', 'Uskoči i zaradi'][index])[0]).toBe(entry));
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemaš zadatak');
@@ -1301,35 +1313,10 @@ it('retires a captured availability entry after focus or account changes', async
 
 });
 
-it('runs the Home radar only while its route and card are visible', async () => {
+it('uses quiet illustrations for both intentions without a radar loop', async () => {
   await render();
-  const radar = () => tree.root.findByType('AnimatedRadar' as any).props;
-  expect(radar().animate).toBe(false); // no guessed viewport before layout
-  const bounds = tree.root.findAll(node => String(node.type) === 'View' && typeof node.props.onLayout === 'function'
-    && node.findAllByType('AnimatedRadar' as any).length === 1)[0];
-  await act(async () => bounds.props.onLayout({ nativeEvent: { layout: { y: 8, height: 120 } } }));
-  const scroll = () => tree.root.findAll(node => String(node.type) === 'ScrollView' && !!node.props.onScroll)[0];
-  await act(async () => scroll().props.onLayout({ nativeEvent: { layout: { height: 700 } } }));
-  expect(radar().animate).toBe(true);
-  // Late arrival of real obligations can push the launch card below the viewport without a scroll.
-  await act(async () => bounds.props.onLayout({ nativeEvent: { layout: { y: 900, height: 120 } } }));
-  expect(radar().animate).toBe(false);
-  await act(async () => bounds.props.onLayout({ nativeEvent: { layout: { y: 8, height: 120 } } }));
-  const event = (y: number) => ({ nativeEvent: { contentOffset: { y }, layoutMeasurement: { height: 700 } } });
-  await act(async () => scroll().props.onScroll(event(200)));
-  expect(radar().animate).toBe(false);
-  await act(async () => scroll().props.onScroll(event(0)));
-  expect(radar().animate).toBe(true);
-  mockFocused = false;
-  await act(async () => tree.update(<Pocetna />));
-  expect(radar().animate).toBe(false);
-  mockFocused = true;
-  await act(async () => tree.update(<Pocetna />));
-  expect(radar().animate).toBe(true);
-});
-it('keeps the radar static in an inert gallery with no active route', async () => {
-  await direct(emptyHome());
-  expect(tree.root.findByType('AnimatedRadar' as any).props.animate).toBe(false);
+  expect(tree.root.findAllByType('AnimatedRadar' as React.ElementType)).toHaveLength(0);
+  expect(tree.root.findAllByType('HomeLaunchArt' as React.ElementType).map(node => node.props.kind)).toEqual(['publish', 'discover']);
 });
 
 describe('independent optional Home reads', () => {

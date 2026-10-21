@@ -27,6 +27,7 @@ import { V2Action } from '../../ui/v2/V2Action';
 import { NeedLifecycleActions, type NeedLifecycleMenu } from '../../ui/needs/NeedLifecycleActions';
 import { DetailTopBar } from '../../ui/system/DetailTopBar';
 import { StateView } from '../../ui/system/StateView';
+import { QuietReadState } from '../../ui/v2/QuietReadState';
 import { useConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { useReducedMotion } from '../../ui/system/motion';
 import { poruka } from '../../ui/system/Poruka';
@@ -408,12 +409,9 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => openPublishedNow.current());
     return () => subscription.remove();
   }, [momentOpen]));
-  // The server already knows the difference between publishing a new task and changing one that exists — accepting a bound review confirms
-  // an edit instead of creating a draft — but the screen said "Objavi zadatak" either way, right after the conversation had offered
-  // "Pregledaj izmene". The button says what the tap does (`revising`, above): "Potvrdi izmene" for a published task being changed (it is
-  // already live, so there is nothing left to "objavi": the blueprint of 8 Oct 2026, R2), and "Objavi zadatak" for a new task AND for a private
-  // draft that was never published (owner's phone, 2026-10-07: a draft opened from "Nacrti" read "Pregled izmena" and "Potvrdi izmene i objavi",
-  // words of an edit on a first publication).
+  // Accepting an edit stores the same task as DRAFT before evaluation/publication.
+  // Tell the owner before acceptance: a failed publication leaves that private draft.
+  // This is not the prototype's proposed atomic replacement with a new task ID.
   const acceptLabel = revising ? 'Potvrdi izmene' : 'Objavi zadatak';
   // What the server would refuse about the facts themselves: no amount for "Moja cena", a fixed time without
   // both ends, or one that has already begun (deep read 8.5, 5.1).
@@ -568,6 +566,9 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
         {command.state === 'ACCEPTED' && !editor.uncertain && !editor.error ? <V2Action label="Otvori moje zadatke" kind="quiet" disabled={disabled}
           onPress={() => { if (canAct()) navigate(() => router.replace('/potrebe')); }} /> : check(OUTCOME_ACTION.check, !resumeShown && !editShown, CHECK_SPOKEN)}
       </> : <>
+        {revising ? <T variant="note" tone="muted" testID="task-edit-publication-consequence">
+          Potvrdom se zadatak privremeno povlači iz pretrage dok proveravamo izmene. Ako objava ne uspe, izmene ostaju sačuvane kao privatan nacrt.
+        </T> : null}
         <PublishButton label={acceptLabel} blocked={publishBlocked} working={publishWorking} reason={caption} onPress={publish} />
         {/* While a write has no outcome yet, or has been refused, the one thing to do is to read what is true now. */}
         {editor.uncertain ? check(OUTCOME_ACTION.check, false, CHECK_SPOKEN) : editor.error ? check(OUTCOME_ACTION.refresh, false, 'Osveži pregled')
@@ -595,7 +596,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     <ReviewFrame scrollRef={scroll} footer={footer}
       header={<DetailTopBar backLabel="Nazad u razgovor" onBack={back} title={published ? 'Objavljeno' : revising ? 'Pregled izmena' : 'Pregled pre objave'} />}>
         {!review || !need ? editor.loading
-          ? <StateView kind="loading" title="Pripremamo pregled…" skeleton={{ count: 1, rows: 3, variant: 'preview' }} />
+          ? <QuietReadState art="document" title="Pripremamo pregled…"
+            body="Proveravamo sačuvane činjenice i mesto pre potvrde zadatka." />
           : <StateView kind="error" art="document" title={cannotLoad('pregled').title} body={editor.error ?? cannotLoad('pregled').copy}
             primary={{ label: OUTCOME_ACTION.retry, onPress: refresh, disabled: editor.busy || editor.loading }} />
         : <>

@@ -34,6 +34,22 @@ export function inboxDestination(item: Pick<InboxItem, 'eventType' | 'role'>): s
   }
 }
 
+/** Visible cue for the same known destination, never a second routing authority. */
+export function inboxActionLabel(item: Pick<InboxItem, 'eventType' | 'role'>): string | null {
+  const destination = inboxDestination(item);
+  return destination ? ({
+    'Otvara poruku u Dogovoru': 'Otvori poruku',
+    'Otvara predlog izmene Dogovora': 'Pregledaj izmenu',
+    'Otvara Dogovor': 'Otvori dogovor',
+    'Otvara zadatak': 'Pogledaj zadatak',
+    'Otvara prijave za tvoj zadatak': 'Pregledaj prijave',
+    'Otvara tvoju prijavu': 'Pogledaj prijavu',
+    'Otvara tvoj zadatak': 'Pogledaj svoj zadatak',
+    'Otvara tvoje prijave': 'Pogledaj svoje prijave',
+    'Otvara pitanja o zadatku': 'Pogledaj pitanja',
+  } as Record<string, string>)[destination] ?? null : null;
+}
+
 /** Events the person marked read one at a time (a swipe), each with the moment the server gave back. */
 export type ReadStamps = Readonly<Record<string, string>>;
 

@@ -96,8 +96,8 @@ describe('the finished figure', () => {
     mockResource = { ...mockResource, data: null, loading: true };
     await draw(jest.fn());
     expect(hosts('Press')).toHaveLength(0);
-    expect(texts()).toEqual([]);
-    expect(tree.root.findAll(node => node.props.accessibilityRole === 'progressbar')[0].props.accessibilityLabel).toBe('Učitavanje završenih Dogovora');
+    expect(texts()).toEqual(['Proveravamo završene Dogovore…']);
+    expect(tree.root.findAll(node => node.props.accessibilityRole === 'text')[0].props.accessibilityLabel).toBe('Proveravamo završene Dogovore…');
   });
 
   it('says the count could not be read when the whole read failed', async () => {

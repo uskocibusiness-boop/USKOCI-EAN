@@ -48,6 +48,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true
   removeItem: jest.fn(async (key: string) => { mockStorage.delete(key); }) } }));
 import Composer from '../../app/(app)/prilike/[id]/prijava';
 import Candidates from '../../app/(app)/potrebe/[id]/kandidati';
+import { applicationComposerDraftMemory } from '../applicationComposerDraftMemory';
 import { sys } from '../../ui/system/tokens';
 import { Avatar } from '../../ui/system/Avatar';
 import { ProfilePhoto } from '../../ui/media/ContextPhotos';
@@ -85,7 +86,7 @@ beforeEach(() => {
   mockSelect.mockResolvedValue({ ok: true, podatak: { dogovorId: agreement } }); mockPublic.mockResolvedValue(null);
   mockViewed.mockResolvedValue({ ok: true, podatak: null });
   mockOwnRead.mockReset(); mockOwnRead.mockResolvedValue(null);
-  mockStorage.clear();
+  mockStorage.clear(); applicationComposerDraftMemory.clearAll();
 });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; });
 async function reviewOffer() {
@@ -129,7 +130,7 @@ it('previews the actual offer message without marking it viewed; opening keeps t
 // The offer's price label read "Ukupno za dolazi 1 osoba" on the phone (2026-09-23): a sentence glued into a label.
 it('says whom the total is for in plain grammar on the offer screen', async () => {
   await render(Candidates); await tap('Pogledaj prijavu: Milan');
-  expect(tree!.root.findAll(node => node.props.accessibilityLabel === 'Ukupno za 2 osobe: 4.500 RSD')).not.toHaveLength(0);
+  expect(tree!.root.findAll(node => node.props.accessibilityLabel === 'Ukupna ponuda: 4.500 RSD, Ukupno za 2 osobe')).not.toHaveLength(0);
   expect(text()).not.toContain('Ukupno za dolaz');
 });
 
@@ -493,8 +494,8 @@ it('shows a legitimate STALE offer beside a current offer and permits choosing o
   ]);
   await render(Candidates);
   // PKG-035: the total names every application ever sent; the ones still open to choose are counted apart.
-  // V41 (2026-09-23): the free places moved to the task row at the top, the counts stand above the cards.
-  expect(text()).toContain('2 prijave · 1 za izbor'); expect(text()).toContain('Još 3 od 3 mesta');
+  // Selected capacity stays in the task brief; applications and the ones available for choice stay separate.
+  expect(text()).toContain('2 prijave · 1 za izbor'); expect(text()).toContain('0/3 izabrano');
   // The card that cannot be chosen says why on its own bottom line, and the list says once what that means.
   const stale = tree!.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pogledaj prijavu: Ranija ponuda')[0];
   expect(stale.findAll(node => String(node.type) === 'T' && node.props.children === 'Zadatak je izmenjen. Čekamo da osoba potvrdi prijavu.')).toHaveLength(1);
@@ -566,7 +567,7 @@ it('prices a per-person task by the people this application brings', async () =>
   await render();
   const priceFields = () => tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Tvoja ukupna ponuda za ljude koje dovodiš (RSD)');
   expect(text()).toContain('5.000 RSD po osobi');
-  expect(tree!.root.findAll(node => node.props.accessibilityLabel === 'Cena zadatka: 5.000 RSD po osobi')).not.toHaveLength(0);
+  expect(tree!.root.findAll(node => node.props.accessibilityLabel === 'Cena zadatka: 5.000 RSD, po osobi')).not.toHaveLength(0);
   expect(priceFields()).toHaveLength(0);
   expect(tree!.root.findAll(node => node.props.accessibilityLabel === '5.000 RSD ukupno, dolazi 1 osoba')).not.toHaveLength(0);
   await tap('Jedna osoba više'); expect(text()).toContain('10.000 RSD ukupno');
@@ -683,6 +684,8 @@ it('orders the loaded offers by the lowest total without a new read, keeps ties 
 });
 it('the task row at the top opens the Task itself, once', async () => {
   await render(Candidates);
+  expect(text()).toContain('0/3 izabrano');
+  expect(text()).not.toContain('Još 3 od 3 mesta');
   const open = press('Otvori zadatak: Unos ormara'); expect(open).toBeDefined();
   await act(async () => { open(); open(); });
   expect(mockRouter.navigate.mock.calls).toEqual([[{ pathname: '/potrebe/[id]/pregled', params: { id: mockId } }]]);

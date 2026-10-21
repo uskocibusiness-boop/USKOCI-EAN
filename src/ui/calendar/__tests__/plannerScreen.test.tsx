@@ -23,6 +23,8 @@ jest.mock('../../product/ProductSheet', () => ({
 import type { DogovorProjekcija } from '../../../contracts/projections';
 import { sys } from '../../system/tokens';
 import { PULL_GRACE_MS } from '../../system/usePullRefresh';
+import { SkeletonList } from '../../system/Skeleton';
+import { QuietReadState } from '../../v2/QuietReadState';
 import { AgendaScreen, type AgendaAvailability } from '../AgendaScreen';
 import { HOUR_HEIGHT } from '../calendarViews';
 import { ROLE_TONES } from '../roleTone';
@@ -213,6 +215,10 @@ describe('the month', () => {
     expect(byId('day-dot')).toHaveLength(0);
     expect(text()).toContain('Učitavamo raspored…'); expect(text()).not.toContain('Ništa nije zakazano');
     expect(cells()).toHaveLength(31);
+    expect(tree.root.findAllByType(QuietReadState)).toHaveLength(1);
+    expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
+    expect(button('Nazad')).toBeDefined();
+    expect(tab('Nedelja')).toBeDefined();
   });
   it('tints the days the worker can work, only for an active work profile', async () => {
     await draw({ availability: WORKING });
@@ -722,6 +728,15 @@ describe('a read that failed is said, and a day is never called empty for it', (
   it('shows a loading list, not an empty day, while the Dogovori are still being read', async () => {
     await draw({ list: { state: 'loading' } });
     expect(text()).toContain('Učitavamo raspored…'); expect(text()).not.toContain('Ništa nije zakazano');
+  });
+  it('labels worker terms as partial while owner Dogovori are still loading', async () => {
+    for (const initialView of ['month', 'week', 'day'] as const) {
+      await draw({ ...busy(), initialView, list: { state: 'loading' } });
+      expect(text()).toContain('Još učitavamo tvoje Dogovore. Za sada se vide termini u kojima uskačeš.');
+      expect(text()).not.toContain('Ništa nije zakazano');
+      expect(opens()).toContain('Otvori Dogovor sa potvrđenim terminom');
+      await act(async () => tree.unmount());
+    }
   });
   it('says the schedule failed with its own message and offers to read it again, in the month as in the other views', async () => {
     const given = await draw({ schedule: { state: 'error', message: 'Nalog je promenjen. Ponovo otvori Raspored.' } });

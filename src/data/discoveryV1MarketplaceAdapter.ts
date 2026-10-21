@@ -4,7 +4,7 @@ import { podrucjeTekst } from '../lib/location';
 import { needScheduleText } from './needDetailPresentation';
 import { readPublicNeedDetail } from './needClientService';
 import { atLeast, dateRange, pointKey, publicBounds, remoteDiscoveryScope, type MarketplaceView, type PublicBounds } from './marketplaceView';
-import type { DiscoveryV1Filter, DiscoveryV1Item } from './discoveryV1Contract';
+import { discoveryV1MinBudgetRsd, type DiscoveryV1Filter, type DiscoveryV1Item } from './discoveryV1Contract';
 import type { DiscoveryV1MapResponse, DiscoveryV1PlaceRow, DiscoveryV1PlacesResponse } from './discoveryV1SpatialContract';
 import type { DiscoveryV1Point, DiscoveryV1Scope } from './discoveryV1Owner';
 
@@ -32,11 +32,14 @@ export function discoveryV1PointMembersScope(key: string): { kind: 'POINT_MEMBER
 }
 export function discoveryV1ViewPlan(view: MarketplaceView): DiscoveryV1ViewPlan {
   const scoped=remoteDiscoveryScope(view), dates=dateRange(scoped.dates);
+  const minBudgetRsd=discoveryV1MinBudgetRsd(scoped.minBudgetRsd);
+  if(minBudgetRsd!==undefined&&scoped.price==='OFFERS')throw new Error('DISCOVERY_V1_MIN_BUDGET_PRICE_MODE');
   const filter:DiscoveryV1Filter={ text:scoped.query, price:scoped.price, where:scoped.where ?? 'any', places:atLeast(scoped.places),
     when:dates ? 'any' : scoped.when ?? 'any', dates,
     place:scoped.where==='remote' ? null : typeof scoped.place==='string' && scoped.place.trim() ? scoped.place : null,
     // Only "Za mene" ON is a key of the request: off, the request is the one the server has always read.
-    ...(scoped.forMe===true ? { forMe:true as const } : {}) };
+    ...(scoped.forMe===true ? { forMe:true as const } : {}),
+    ...(minBudgetRsd!==undefined ? { minBudgetRsd } : {}) };
   let pageScope:DiscoveryV1Scope={kind:'ALL'};
   if(scoped.where!=='remote' && scoped.pinPlace) pageScope={kind:'POINT_LIST',point:pinPoint(scoped.pinPlace)};
   else if(scoped.where!=='remote' && scoped.area) {

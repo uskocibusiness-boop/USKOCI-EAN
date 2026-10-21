@@ -18,6 +18,9 @@ jest.mock('../closureIntent',()=>({closureIntentJournal:{load:(...a:unknown[])=>
 jest.mock('../../../lib/idempotencija',()=>({noviUuidZahtevId:()=>mockKey}));
 jest.mock('../../settings/SettingsPresentation',()=>{const component=(name:string)=>({children,...props}:any)=>require('react').createElement(name,props,children);return Object.fromEntries(['SettingsScreen','SettingsIntro','SettingsPanel','SettingsInfo','SettingsText','SettingsAction','SettingsGroup','SettingsRow'].map(n=>[n,component(n)]));});
 import {ClosureDialog,ClosureEntry} from '../ClosureDialog';
+import { ClosureView, type ClosureCommands } from '../ClosurePresentation';
+import { QuietReadState } from '../../v2/QuietReadState';
+import { SkeletonList } from '../../system/Skeleton';
 import {ConfirmSheet} from '../../system/ConfirmSheet';
 import {InlineNote} from '../../privacy/InlineNote';
 const ok=(podatak:unknown)=>({ok:true,podatak}),ready=()=>({accountId:A,requestId:R,revision:1,ready:true,policySha256:'a'.repeat(64),blockers:[],code:null,retainedDatasets:[],authoritative:true});
@@ -38,6 +41,15 @@ const appState=async(state:string)=>{await act(async()=>{for(const listener of m
 const askStart=async()=>{await act(async()=>button('Pokreni zatvaranje naloga').props.onPress());};
 beforeEach(()=>{jest.clearAllMocks();mockAppListeners.clear();mockOwner={user:{id:A},accountRevision:1};mockFocused=true;mockLoad.mockResolvedValue(null);mockSave.mockResolvedValue(undefined);mockClear.mockResolvedValue(undefined);mockReview.mockResolvedValue(ok(ready()));mockRead.mockResolvedValue(ok({found:false,receipt:null,execution:null}));mockStart.mockResolvedValue({ok:false,kod:'CLOSURE_OUTCOME_UNKNOWN',poruka:'Ishod nije potvrđen.'});});
 afterEach(async()=>{await act(async()=>tree?.unmount());});
+it('checks account closure without fake placeholder rows and keeps the safe exit',async()=>{
+ const noop=()=>{};
+ const commands:ClosureCommands={onClose:mockClose,onPrepare:noop,onAskStart:noop,onRetry:noop,onRefresh:noop,
+  onLogout:noop,onSupport:noop,onBlocker:noop,onExport:noop};
+ await act(async()=>{tree=create(<ClosureView model={{busy:true,working:'refresh',message:'',review:null,intent:null,state:null,absent:false}} commands={commands}/>);});
+ expect(tree.root.findAllByType(QuietReadState)).toHaveLength(1);
+ expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
+ expect(text()).toContain('Proveravamo stanje…');
+});
 it('reads only on entry and starts once after explicit double tap, saving the key first',async()=>{await render();expect(mockStart).not.toHaveBeenCalled();mockSave.mockImplementation(async()=>{expect(mockStart).not.toHaveBeenCalled();});await askStart();expect(mockStart).not.toHaveBeenCalled();expect(text()).toContain('To ne možeš da poništiš');expect(sheets()[0].props).toMatchObject({confirmLabel:'Da, trajno zatvori nalog',cancelLabel:'Odustani',tone:'danger'});const press=confirmButton().props.onPress;await act(async()=>{press();press();});expect(mockStart).toHaveBeenCalledTimes(1);expect(mockSave).toHaveBeenCalledWith(pending());expect(mockRead).toHaveBeenCalledWith(mockKey,{accountId:A,accountRevision:1});});
 it('restores persisted unknown key with read only; absent does not auto-submit',async()=>{mockLoad.mockResolvedValue(pending());await render();expect(mockRead).toHaveBeenCalledWith(mockKey,{accountId:A,accountRevision:1});expect(mockStart).not.toHaveBeenCalled();expect(mockReview).not.toHaveBeenCalled();expect(button('Pošalji zahtev za zatvaranje ponovo')).toBeDefined();await act(async()=>button('Pošalji zahtev za zatvaranje ponovo').props.onPress());expect(mockStart).toHaveBeenCalledTimes(1);expect(mockStart.mock.calls[0][0]).toEqual(pending());});
 it('restored executing receipt does not become completed without worker evidence',async()=>{mockLoad.mockResolvedValue(pending());mockRead.mockResolvedValue(ok({found:true,receipt:{},execution:{state:'EXECUTING',accountId:A,generation:R}}));await render();expect(text()).toContain('Zatvaranje još nije završeno');expect(text()).not.toContain('Nalog je zatvoren.');expect(mockStart).not.toHaveBeenCalled();expect(button('Pokreni zatvaranje naloga')).toBeUndefined();});

@@ -18,6 +18,7 @@ import { useLayoutClass } from '../system/textScale';
 import { sys } from '../system/tokens';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { V2Action } from '../v2/V2Action';
+import { QuietReadState } from '../v2/QuietReadState';
 import { AgendaRow, type EntryFace } from './AgendaRow';
 import { agendaCoverage, type AgendaAgreement } from './agenda';
 import { availabilitySpans, dayAvailability } from './availabilityShade';
@@ -46,7 +47,7 @@ export type AgendaAvailability = Readonly<{ value: Pick<WorkerAvailability, 'tim
 
 const NO_EVENTS: readonly WorkerCalendarEvent[] = [];
 const VIEW_OPTIONS = CALENDAR_VIEWS.map(({ key, label }) => ({ key, label }));
-const LOADING = <StateView kind="loading" title="Učitavamo raspored…" skeleton={{ count: 2, rows: 2 }} />;
+const LOADING = <QuietReadState art="calendar" title="Učitavamo raspored…" body="Proveravamo dogovorene termine za izabrani period." />;
 
 /**
  * Raspored as a calendar (owner, 8 Oct 2026: "prikaz kalendara ... da ima pregled celog meseca, nedelje, dana"): the DOGOVORI of both
@@ -123,6 +124,7 @@ export function AgendaScreen({ selected, today, schedule, list, availability = n
   const zoneNote = phoneZone !== DOGOVORENA_ZONA;
   // What failed. A source that failed is said, and a day it could have filled is never called empty.
   const dogovoriFailed = list.state === 'error', dogovoriSilent = !!agreements && coverage === 'unknown';
+  const dogovoriPending = ready && list.state === 'loading';
   const partial = ready && (dogovoriFailed || dogovoriSilent);
 
   // The Dogovori of each day the view shows and the planner has read.
@@ -175,6 +177,8 @@ export function AgendaScreen({ selected, today, schedule, list, availability = n
   const notice = partial ? <View style={s.partial}>
     <View style={s.partialLines}><T variant="note" tone="muted">{nothing ? 'Nema termina u kojima uskačeš.' : 'Učitani su samo termini u kojima uskačeš.'}</T></View>
     {dogovoriFailed ? <V2Action label="Pokušaj ponovo" kind="quiet" compact onPress={onRetryList} /> : null}
+  </View> : dogovoriPending && !nothing ? <View accessibilityLiveRegion="polite" style={s.partial}>
+    <T variant="note" tone="muted">Još učitavamo tvoje Dogovore. Za sada se vide termini u kojima uskačeš.</T>
   </View> : null;
   // Never say a view is empty before every read it depends on has settled.
   const waiting = schedule.state === 'loading' || (ready && (!chosenKnown || (nothing && list.state === 'loading')));

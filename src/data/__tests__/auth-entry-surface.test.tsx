@@ -18,9 +18,11 @@ let mockBlur: undefined | (() => void);
 /** The phone's Back button: the handler the screen registered, so a test can press it. */
 let mockBack: undefined | (() => boolean);
 const mockOpenUrl = jest.fn();
+let mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
   return new Proxy(native, { get(target, key) {
+    if (key === 'useWindowDimensions') return () => mockWindow;
     if (key === 'AppState') return { addEventListener: (_: unknown, cb: typeof mockForeground) => {
       mockForeground = cb; return { remove: jest.fn() };
     } };
@@ -61,10 +63,12 @@ jest.mock('../authClientService', () => ({ authClientService: {
 } }));
 
 import AuthScreen from '../../app/auth';
+import { AuthSheet } from '../../ui/auth/AuthSheet';
 import { signupConfirmationIntent } from '../../store/signupConfirmationIntent';
 import { PROVIDER_UNAVAILABLE_COPY, RATE_LIMITED_COPY, SIGN_IN_FAILURE_COPY, SignInFailureError, type SignInFailureClass } from '../authFailureClasses';
 import { PasswordRecoveryError } from '../../contracts/passwordRecovery';
 import { restrictedAccountCopy } from '../../ui/auth/RestrictedAccountPanel';
+import { sys } from '../../ui/system/tokens';
 
 const emailOnly = { emailPassword: true, emailSignup: true, phoneOtp: false,
   emailConfirmationRequired: true, passwordRecovery: false };
@@ -100,6 +104,7 @@ function deferred<T>() {
 }
 beforeEach(() => {
   jest.clearAllMocks(); mockBack = undefined; mockOpenUrl.mockResolvedValue(undefined);
+  mockWindow = { width: 390, height: 844, scale: 3, fontScale: 1 };
   mockPrepare.mockResolvedValue(undefined); mockParams = {}; mockRead.mockResolvedValue(emailOnly); mockSession = { user: null, accountRevision: 0, signOutReason: null };
   for (const method of Object.values(mockAuth)) method.mockResolvedValue(undefined);
   mockAuth.signUp.mockResolvedValue({ hasSession: false });
@@ -339,8 +344,32 @@ it('gives an explicit route back if signup is disabled while the signup form is 
   await render(); await pressTab('Napravi nalog');
   mockRead.mockResolvedValue({ ...emailOnly, emailSignup: false });
   await act(async () => mockForeground('active'));
+  expect(tree.root.findByType(AuthSheet).props.expanded).toBe(false);
   expect(button('Nazad na prijavu')).toBeDefined(); await press('Nazad na prijavu');
+  expect(tree.root.findByType(AuthSheet).props.expanded).toBe(true);
   expect(button('Prijavi se')).toBeDefined();
+});
+
+it('keeps the long registration form full-height, then presents its short confirmation as a centered step', async () => {
+  await render(); await pressTab('Napravi nalog');
+  expect(tree.root.findByType(AuthSheet).props.expanded).toBe(true);
+  const viewport = () => StyleSheet.flatten(host('View').find(node => node.props.testID === 'auth-dialog-viewport')!.props.style);
+  const panel = () => StyleSheet.flatten(host('View').find(node => node.props.testID === 'auth-reference-sheet')!.props.style);
+  expect(viewport().backgroundColor).toBe(sys.color.surface);
+  for (const [label, value] of signUpValues) await fill(label, value);
+  await press('Napravi nalog');
+  expect(tree.root.findByType(AuthSheet).props.expanded).toBe(false);
+  expect(viewport().backgroundColor).toBe(sys.color.scrim);
+  expect(panel().maxHeight).toBe('76%');
+  expect(text()).toContain('Proveri email');
+  expect(input('Email')).toBeUndefined();
+  mockWindow = { width: 320, height: 568, scale: 2, fontScale: 1 };
+  await act(async () => tree.update(<AuthScreen />));
+  expect(viewport().backgroundColor).toBe(sys.color.surface);
+  expect(panel().maxHeight).toBe('100%');
+  await press('Nazad na prijavu');
+  expect(tree.root.findByType(AuthSheet).props.expanded).toBe(true);
+  expect(input('Email').props.value).toBe('ana@example.test');
 });
 
 it('blocks duplicate signup, conflicting navigation and editing, then shows accurate confirmation with a real login Back', async () => {

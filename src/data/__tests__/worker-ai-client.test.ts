@@ -1,4 +1,4 @@
-import {workerAiClientService as service,explicitWorkerModes,decodeWorkerAiTurnRecovery,decodeWorkerAiProfile,decodeWorkerAiReview,decodeWorkerAiSnapshot,type WorkerAiProfile,type WorkerAiReview,type WorkerAiSaved} from '../workerAiClientService';
+import {workerAiClientService as service,WORKER_AI_READ_TRANSPORT_UNAVAILABLE,explicitWorkerModes,decodeWorkerAiTurnRecovery,decodeWorkerAiProfile,decodeWorkerAiReview,decodeWorkerAiSnapshot,type WorkerAiProfile,type WorkerAiReview,type WorkerAiSaved} from '../workerAiClientService';
 const OWNER='11111111-1111-4111-8111-111111111111',OTHER='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',CONVERSATION='22222222-2222-4222-8222-222222222222',
  PROFILE='33333333-3333-4333-8333-333333333333',REVIEW='44444444-4444-4444-8444-444444444444',KEY='55555555-5555-4555-8555-555555555555';
 let mockSession: {user:{id:string};accountRevision:number;session?:{access_token:string}}={user:{id:OWNER},accountRevision:1};const mockRpc=jest.fn();
@@ -15,6 +15,12 @@ const snapshot=(done=false)=>({schemaVersion:'WORKER_PROFILE_V1',conversationId:
  profileStatus:done?'ACTIVE':'DRAFT',revision:2,candidate:profile(),safety:'ALLOW',stale:done,messages:[],turn:null,review:review(),saved:done?saved():null});
 beforeEach(()=>{mockSession={user:{id:OWNER},accountRevision:1};mockRpc.mockReset();mockRpc.mockImplementation(async(name:string)=>({error:null,data:
  name==='rpc_prepare_worker_ai_review'?review():name==='rpc_save_worker_ai_review'?saved():snapshot()}));});
+it('distinguishes proved no-response reads from an explicit server refusal',async()=>{
+ mockRpc.mockResolvedValueOnce({status:0,data:null,error:{code:'',message:'offline'}});
+ await expect(service.read(CONVERSATION)).resolves.toMatchObject({ok:false,kod:WORKER_AI_READ_TRANSPORT_UNAVAILABLE});
+ mockRpc.mockResolvedValueOnce({status:403,data:null,error:{code:'42501',message:'WORKER_AI_DENIED'}});
+ await expect(service.read(CONVERSATION)).resolves.toMatchObject({ok:false,kod:'WORKER_AI_DENIED'});
+});
 it('single profile review does not invoke canonical save or per-field confirmation',async()=>{
  await expect(service.prepare(CONVERSATION,2,true)).resolves.toEqual({ok:true,podatak:review()});expect(mockRpc.mock.calls.map(x=>x[0])).toEqual(['rpc_prepare_worker_ai_review']);
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import BottomSheet from '@gorhom/bottom-sheet';
+import { ProductSheet } from '../../ui/product/ProductSheet';
 import type { JavniProfilProjekcija, KandidatProjekcija, PotrebaProjekcija } from '../../contracts/projections';
 import { sys } from '../../ui/system/tokens';
 
@@ -403,6 +403,12 @@ describe('the order of the applications', () => {
     expect(all.map(candidate => candidate.prijavaId)).toEqual(['a', 'b', 'c', 'd', 'e']);
   });
 
+  it('puts applications without a stored price after priced offers when sorting by the lowest price', () => {
+    const unknown = k({ prijavaId: 'unknown', cena: { iznos: 0, valuta: 'RSD', prikaz: '' } });
+    const lower = k({ prijavaId: 'lower', cena: { iznos: 3000, valuta: 'RSD', prikaz: '3.000 RSD' } });
+    expect(sortCandidates([unknown, a, lower], 'PRICE').map(candidate => candidate.prijavaId)).toEqual(['lower', 'a', 'unknown']);
+  });
+
   it('offers "Najbolja ocena" beside the other two orders and orders the loaded list by it, without a new read', async () => {
     const refresh = jest.fn();
     await render(<CandidateListPresentation need={need} candidates={[a, b, c, d, e]} open={noop} back={noop} refresh={refresh} />);
@@ -423,10 +429,12 @@ describe('the offer sheet', () => {
   const green = () => tree.root.findAll(node => node.type === ('Press' as unknown as React.ElementType)
     && flat(node.props.style).backgroundColor === sys.color.green).map(node => node.props.accessibilityLabel);
 
-  it('is a sheet of the one engine with one green action that asks before it chooses', async () => {
+  it('is a centred review with one primary action that asks before it chooses', async () => {
     const choose = jest.fn();
     await render(offer({ choose }));
-    expect(tree.root.findAllByType(BottomSheet)).toHaveLength(1);
+    expect(tree.root.findAllByType(ProductSheet)).toHaveLength(1);
+    expect(texts()).toContain('0/3 izabrano');
+    expect(texts()).not.toContain('Još 3 od 3 mesta');
     expect(green()).toEqual(['Izaberi osobu']);
     await act(async () => pressNamed('Izaberi osobu').props.onPress());
     // A question (a verb and a question mark) and under it what is accepted and what follows (plan 2.3), in a centred dialog.
@@ -493,7 +501,7 @@ describe('the offer sheet', () => {
     expect(chips()).toEqual(['Izabrana']);
     // The Dogovor is made: the sheet gives way to the moment "Dogovoreno!" (the next tests), and the old line is not said any more.
     await act(async () => tree.update(offer({ confirmed: true })));
-    expect(tree.root.findAllByType(BottomSheet)).toHaveLength(0);
+    expect(tree.root.findAllByType(ProductSheet)).toHaveLength(0);
     expect(texts()).toContain('Dogovoreno!'); expect(texts()).not.toContain('Dogovor je sklopljen.');
   });
 
@@ -570,7 +578,8 @@ describe('the offer sheet', () => {
     await render(offer({ candidate: k({ napomena: note }), choose }));
     const full = tree.root.findAll(node => node.type === ('T' as unknown as React.ElementType) && node.props.children === note)[0];
     expect(full.props.selectable).toBe(true); expect(full.props.numberOfLines).toBeUndefined();
-    expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Ukupno za 2 osobe: 4.500 RSD')).toHaveLength(1);
+    expect(tree.root.findAll(node => node.type === ('View' as unknown as React.ElementType)
+      && node.props.accessibilityLabel === 'Ukupna ponuda: 4.500 RSD, Ukupno za 2 osobe')).toHaveLength(1);
     await act(async () => pressNamed('Izaberi osobu').props.onPress());
     expect(choose).not.toHaveBeenCalled();
     expect(texts()).toContain('Prihvataš: 4.500 RSD ukupno · 2 osobe · 20. sep · 10:00–11:00.');
@@ -644,10 +653,10 @@ describe('the public profile sheet', () => {
     naslov: null, biografija: null, poverenje: { ocenaProsek: null, brojRecenzija: 0, zavrseniBroj: 2, identitetVerifikovan: false,
       ocenaDostupna: false, recenzijeDostupne: true, verifikacijaIdentitetaDostupna: false } } as unknown as JavniProfilProjekcija);
 
-  it('is a sheet of the one engine titled with the name, and keeps its report-or-block entry with its states', async () => {
+  it('is a centred public profile titled with the name, and keeps its report-or-block entry with its states', async () => {
     const onPress = jest.fn(), onClose = jest.fn();
     await render(<PublicProfileSheet state={{ loading: false, data: profile() }} onClose={onClose} onRetry={noop} safety={{ onPress, busy: false, error: null }} />);
-    expect(tree.root.findAllByType(BottomSheet)).toHaveLength(1);
+    expect(tree.root.findAllByType(ProductSheet)).toHaveLength(1);
     expect(texts()).toContain('Marko Marković'); expect(texts()).toContain('Još nema'); expect(texts()).toContain('ocena'); expect(texts()).not.toContain('Javni profil');
     const entry = pressNamed('Prijavi ili blokiraj osobu: Marko Marković');
     expect(texts(entry)).toContain('Prijavi ili blokiraj osobu');

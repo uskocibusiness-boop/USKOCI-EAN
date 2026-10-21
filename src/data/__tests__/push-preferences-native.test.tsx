@@ -6,6 +6,7 @@ import {
   PushPreferences, PushPreferencesView, CHOICE_CATEGORIES, SWITCHED_OFF, choiceState, editSettings, pushScope, sharedFlag, sharedQuiet,
 } from '../../ui/notifications/PushPreferences';
 import { ListSkeleton } from '../../ui/notifications/ListSkeleton';
+import { NotificationLoading } from '../../ui/notifications/NotificationLoading';
 import type { NotificationRole, NotificationSettings } from '../../contracts/notificationPreferences';
 const mockRead = jest.fn(), mockSave = jest.fn(), mockNative = jest.fn(), mockGet = jest.fn(), mockSet = jest.fn(), mockReadiness = jest.fn();
 let mockAccount = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
@@ -114,14 +115,15 @@ describe('reading and commands', () => {
   expect(mockNative).toHaveBeenCalledWith(false, expect.any(Function));
   expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled();
  });
- it('while the first read is on its way the screen shows the rows that are coming, not a stack of cards, and says so in words', async () => {
+ it('while the first read is on its way the white screen names the loading state without grey placeholders', async () => {
   let answer!: (value: unknown) => void; mockRead.mockReturnValueOnce(new Promise(resolve => { answer = resolve; }));
   await mount();
-  expect(tree.root.findAllByType(ListSkeleton)).toHaveLength(1);
-  expect(tree.root.findByType(ListSkeleton).props).toMatchObject({ switches: true, heading: true });
+  expect(tree.root.findAllByType(NotificationLoading)).toHaveLength(1);
+  expect(tree.root.findAllByType(ListSkeleton)).toHaveLength(0);
+  expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'notification-loading' }).props.style).backgroundColor).toBe(sys.color.surface);
   expect(screenText()).toContain('Učitavamo podešavanja obaveštenja…');
   await act(async () => { answer(held.REQUESTER); await flush(); });
-  expect(tree.root.findAllByType(ListSkeleton)).toHaveLength(0);
+  expect(tree.root.findAllByType(NotificationLoading)).toHaveLength(0);
   expect(control('Prijave i poruke, kad objavljuješ').props.accessibilityState.checked).toBe(true);
  });
  it('after an uncertain save only readback is available, and repeated retry taps start one read', async () => {

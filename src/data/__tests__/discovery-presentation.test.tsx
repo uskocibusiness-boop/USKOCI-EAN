@@ -33,6 +33,7 @@ const mockRecentStore = new Map<string, string>();
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: async (key: string) => mockRecentStore.get(key) ?? null,
   setItem: async (key: string, value: string) => { mockRecentStore.set(key, value); },
+  removeItem: async (key: string) => { mockRecentStore.delete(key); },
 }));
 jest.mock('../../ui/v2/discovery/nearbyLocation', () => ({ loadNearbyLocation: async () => ({ Accuracy: { Balanced: 3 }, getForegroundPermissionsAsync: async () => ({ granted: false }),
   requestForegroundPermissionsAsync: () => mockNearbyPermission(), hasServicesEnabledAsync: async () => true,
@@ -76,6 +77,8 @@ jest.mock('react-native-reanimated', () => {
   return { ...shared, useSharedValue: (value: unknown) => React.useRef({ value, get(): unknown { return this.value; },
     set(next: unknown) { this.value = typeof next === 'function' ? next(this.value) : next; } }).current,
     useAnimatedStyle: (updater: () => object) => updater(),
+    // Complete presentation transitions here. Their cancellation/timing contract has its own SearchSheet tests.
+    withTiming: (value: unknown, _config: unknown, complete?: (finished: boolean) => void) => { complete?.(true); return value; },
     useAnimatedReaction: (prepare: () => unknown, react: (next: unknown, previous: unknown) => void) => {
       const entry = React.useRef({ prepare, react, previous: null }).current;
       entry.prepare = prepare; entry.react = react;
@@ -95,10 +98,10 @@ import { DiscoveryPeek } from '../../ui/v2/discovery/DiscoveryPeek';
 import { DiscoveryListState } from '../../ui/v2/discovery/DiscoveryListState';
 import { DiscoveryListSheet } from '../../ui/v2/discovery/DiscoveryListSheet';
 import { DiscoverySearchBar } from '../../ui/v2/discovery/DiscoverySearchBar';
+import { DiscoverySearchPanel } from '../../ui/v2/discovery/DiscoverySearchPanel';
 import { DiscoveryChipRow } from '../../ui/v2/discovery/DiscoveryChipRow';
 import { CONTROL_SIZE } from '../../ui/v2/discovery/mapClearBand';
 import { ZadaciBarContext } from '../../ui/v2/discovery/zadaciBar';
-import { ActionSheet } from '../../ui/system/ActionSheet';
 import { TaskCard } from '../../ui/v2/TaskCard';
 import { Appear, ROWS_THAT_ARRIVE } from '../../ui/system/Appear';
 import { materialControl, sys } from '../../ui/system/tokens';
@@ -167,7 +170,8 @@ const render = async () => act(async () => { tree = create(<Screen />, { createN
 const update = async () => act(async () => tree.update(<Screen />));
 const sampleUi = () => { for (const entry of mockReactions) { const next = entry.prepare(); entry.react(next, entry.previous); entry.previous = next; } };
 const deliverUi = async () => act(async () => { sampleUi(); while (mockRnDeliveries.length) mockRnDeliveries.shift()!(); });
-const press = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
+const press = (label: string) => label === 'Filteri' ? tree.root.findByProps({ testID: 'filters-button' })
+  : tree.root.findByProps({ accessibilityLabel: label });
 const pressable = (label: string) => tree.root.findAllByProps({ accessibilityLabel: label });
 const tap = async (label: string) => act(async () => press(label).props.onPress());
 const action = (label: string | RegExp) => tree.root.findAllByType('Action' as React.ElementType)
@@ -229,14 +233,18 @@ const physicalSheetAt = async (index: number, bodyHeight = 800) => {
 /** A quick chip over the map (a toggle, spoken as selected or not). */
 const quick = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label
   && node.props.accessibilityState && 'selected' in node.props.accessibilityState)[0];
-const removable = () => tree.root.findAll(node => /^Ukloni /.test(String(node.props.accessibilityLabel ?? '')));
+const removable = () => tree.root.findAll(node => node.props.testID !== 'clear-where' && /^Ukloni /.test(String(node.props.accessibilityLabel ?? '')));
 /** The one row of capsules over the map under the pill ("Filteri", "Za mene", the quick choices): the same row at every height of the list (the owner's phone, 8 Oct 2026). */
 const capsules = () => tree.root.findAll(node => String(node.type) === 'ScrollView' && node.props.testID === 'discovery-chips');
 const capsuleLabels = () => capsules()[0].findAll(node => String(node.type) === 'Press' && typeof node.props.accessibilityLabel === 'string')
   .map(node => String(node.props.accessibilityLabel));
 /** The capsule "Filteri" (which opens the filters and only them). */
 const filters = (label = 'Filteri') => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0];
-const tapFilters = async (label = 'Filteri') => act(async () => filters(label).props.onPress());
+const tapFilters = async (_label = 'Filteri') => act(async () => press('Filteri').props.onPress());
+const openSearch = async () => {
+  await tapFilters();
+  await act(async () => action('Pretraži zadatke').props.onPress());
+};
 const openFilterSection = async (id: 'when' | 'where' | 'amount') => {
   expect(tree.root.findByProps({ testID: `filters-${id}-body` })).toBeDefined();
 };
@@ -248,7 +256,7 @@ const showAction = () => tree.root.findAllByType('Action' as React.ElementType).
 const radioOf = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityLabel === label)[0];
 // The words that find tasks are typed in the field of the search, which fills the screen (the approved plan, U4); the green action applies them with the place chosen before.
 const search = async (words: string) => {
-  await tap('Pretraži zadatke');
+  await openSearch();
   await act(async () => press('Grad ili zadatak').props.onChangeText(words));
   await act(async () => showAction().props.onPress());
 };
@@ -288,7 +296,7 @@ test('what was searched is kept for this account and offered the next time the s
   rows = [row('a', { podrucjeTekst: 'Liman, Novi Sad' }), row('b', { podrucjeTekst: 'Vračar, Beograd' })];
   initial = { ...initial, query: 'pomoć' };
   await render();
-  await tap('Pretraži zadatke');
+  await openSearch();
   expect(tree.root.findAllByProps({ testID: 'search-recent' })).toHaveLength(0);
   await act(async () => press('Grad ili zadatak').props.onChangeText('Beograd'));
   await act(async () => radioOf('Vračar, Beograd, 1 zadatak').props.onPress());
@@ -296,16 +304,16 @@ test('what was searched is kept for this account and offered the next time the s
   // kept under this account's own key, as the words and the place of the search and nothing else
   expect([...mockRecentStore.keys()]).toEqual(['uskoci.zadaci.recent.v1.a']);
   expect(JSON.parse(mockRecentStore.get('uskoci.zadaci.recent.v1.a')!)).toEqual([{ query: 'pomoć', place: 'Vračar, Beograd' }]);
-  await tap('Prikaži sve zadatke'); expect(snapshot).toMatchObject({ query: '', place: null });
+  await tap('Ukloni pretragu ili mesto'); expect(snapshot).toMatchObject({ query: '', place: null });
   // a filter changes no word and no place, so it keeps nothing
-  await tapFilters(); await openFilterSection('amount'); await act(async () => radioOf('Sa iznosom').props.onPress()); await act(async () => showAction().props.onPress());
+  await tapFilters(); await openFilterSection('amount'); await act(async () => radioOf('Fiksna cena').props.onPress()); await act(async () => showAction().props.onPress());
   expect(JSON.parse(mockRecentStore.get('uskoci.zadaci.recent.v1.a')!)).toHaveLength(1);
-  await tap('Pretraži zadatke');
+  await openSearch();
   expect(tree.root.findAllByProps({ testID: 'search-recent' })).toHaveLength(1);
   await act(async () => press('Skorašnje pretrage: „pomoć“ · Vračar, Beograd').props.onPress());
   expect(snapshot).toMatchObject({ query: 'pomoć', place: 'Vračar, Beograd' }); expect(panel()).toHaveLength(0);
   // another account starts from nothing
-  await act(async () => tree.unmount()); scopeKey = 'b:1'; await render(); await tap('Pretraži zadatke');
+  await act(async () => tree.unmount()); scopeKey = 'b:1'; await render(); await openSearch();
   expect(tree.root.findAllByProps({ testID: 'search-recent' })).toHaveLength(0);
 });
 
@@ -404,7 +412,7 @@ test('only explicit search, map and list choices retire a pending publication la
   expect(userIntent).toHaveBeenCalledTimes(1);
   await act(async () => countLine().props.onPress());
   expect(userIntent).toHaveBeenCalledTimes(2);
-  await tap('Pretraži zadatke');
+  await openSearch();
   expect(userIntent).toHaveBeenCalledTimes(3);
 });
 
@@ -490,7 +498,7 @@ test('the full list stands directly under the tools: the map stays on show and l
   await deliverUi();
   expect(map().props.locked).toBe(true);
   expect(layer().props.pointerEvents).toBeUndefined(); expect(StyleSheet.flatten(layer().props.style).opacity).toBeUndefined();
-  expect(press('Pretraži zadatke')).toBeTruthy();
+  expect(press('Filteri')).toBeTruthy();
   expect(map().props.items).toBe(pins);
   expect(snapshot.viewport).toEqual(viewport); expect(snapshot.listOffset).toBe(160);
   // A tap on what shows of the map lowers the list to half; "Mapa" lowers it to the map.
@@ -969,9 +977,7 @@ test('a retired sheet cannot save an old scroll, cancel the current restore or c
     await render(); await layOutBody(760); await readyList();
     await act(async () => list().props.onScroll({ nativeEvent: { contentOffset: { y: 160 } } }));
     const oldScroll = list().props.onScroll, oldDrag = list().props.onScrollBeginDrag, oldContent = list().props.onContentSizeChange;
-    await tap('Još mogućnosti');
-    const oldRefresh = tree.root.findByType(ActionSheet).props.actions.find((action: { key: string }) => action.key === 'refresh').onPress;
-    await act(async () => tree.root.findByType(ActionSheet).props.onClose());
+    const oldRefresh = press('Osveži zadatke').props.onPress;
     await act(async () => oldScroll({ nativeEvent: { contentOffset: { y: 260 } } }));
     mockFocused = false; await update();
     await act(async () => { jest.advanceTimersByTime(OFFSET_SETTLE_MS); });
@@ -1465,17 +1471,17 @@ test('one screen: the map under the tools and the list as its sheet; no Lista/Ma
   expect(listSheet().props).toMatchObject({ enablePanDownToClose: false, enableDynamicSizing: false });
   expect(cards()).toEqual(['a', 'bb', 'ccc']);
   // The magnifier opens search; an active query stays readable separately and can be cleared without changing other filters.
-  expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
-  expect(texts(press('Pretraži zadatke'))).toBe('Pretraži zadatke');
+  expect(press('Filteri').props.accessibilityValue).toBeUndefined();
+  expect(texts(press('Filteri'))).toBe('Filteri');
   expect(pressable('Aktivna pretraga')).toHaveLength(0);
   expect(pressable('Prikaži sve zadatke')).toHaveLength(0);
   expect(tree.root.findAllByType('TextInput' as React.ElementType)).toHaveLength(0);
   await search('bb');
   expect(snapshot.query).toBe('bb'); expect(cards()).toEqual(['bb']); expect(panel()).toHaveLength(0);
-  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: '„bb“' });
+  expect(press('Filteri').props.accessibilityValue).toEqual({ text: '„bb“' });
   expect(tree.root.findByProps({ testID: 'discovery-search-context' }).props.children).toBe('„bb“');
-  await tap('Prikaži sve zadatke'); expect(snapshot.query).toBe(''); expect(cards()).toEqual(['a', 'bb', 'ccc']);
-  expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+  await tap('Ukloni pretragu ili mesto'); expect(snapshot.query).toBe(''); expect(cards()).toEqual(['a', 'bb', 'ccc']);
+  expect(press('Filteri').props.accessibilityValue).toBeUndefined();
 });
 
 test('portraits mount only for visible rows and unmount behind a pin, a collapsed sheet or an unfocused route', async () => {
@@ -1708,7 +1714,7 @@ test.each([[1, '1 zadatak'], [3, '3 zadatka'], [5, '5 zadataka'], [11, '11 zadat
     expect(countLine().props.accessibilityLabel).toBe(words);
   });
 
-test('at the full height a floating dark-green "Mapa" lowers the list to its top line; it fades only when motion is allowed', async () => {
+test('at the full height the dark-green "Mapa" in the list header lowers it to its top line', async () => {
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
   expect(pressable('Mapa')).toHaveLength(0);
   await layOutBody(); await dragSheet(2); await physicalSheetAt(2);
@@ -1722,8 +1728,9 @@ test('at the full height a floating dark-green "Mapa" lowers the list to its top
   // M-06: it fades on React Native's own Animated, in opacity only over the `enter` token on the native driver, and never through a Reanimated layout animation (R4, B22).
   expect(rowOf(pill).props.entering).toBeUndefined(); expect(rowOf(pill).props.exiting).toBeUndefined();
   expect((Animated.timing as jest.Mock).mock.calls.some(([, config]) => config.toValue === 1 && config.duration === sys.motion.enter && config.useNativeDriver === true)).toBe(true);
-  // It stands over the list's end, which keeps 80 clear under it (the pill is 48 high, 16 above the bottom).
-  expect(StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom).toBeGreaterThanOrEqual(80);
+  // It belongs to the header and no longer needs an extra 48 dp of blank list end.
+  expect(tree.root.findByProps({ testID: 'discovery-list-header' }).findAllByProps({ accessibilityLabel: 'Mapa' })).toHaveLength(1);
+  expect(StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom).toBe(sys.space.xxl);
   await tap('Mapa'); expect(listSheet().props.index).toBe(0); expect(pressable('Mapa')).toHaveLength(0);
   expect((Animated.timing as jest.Mock).mock.calls.some(([, config]) => config.toValue === 0 && config.duration === sys.motion.exit && config.useNativeDriver === true)).toBe(true);
   expect(StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom).toBe(sys.space.xxl);
@@ -1888,9 +1895,9 @@ test('a crowded place lists its own tasks then point-free work, without widening
   // The map still draws every task.
   expect(map().props.items).toHaveLength(6);
   // It is said by the search pill, "Na ovom mestu", and the pill's × takes it away; nothing is added under the count.
-  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Na ovom mestu' });
+  expect(press('Filteri').props.accessibilityValue).toEqual({ text: 'Na ovom mestu' });
   expect(removable()).toHaveLength(0);
-  await tap('Prikaži sve zadatke'); expect(snapshot).toMatchObject({ pinPlace: null, area: null }); expect(cards()).toHaveLength(6);
+  await tap('Ukloni pretragu ili mesto'); expect(snapshot).toMatchObject({ pinPlace: null, area: null }); expect(cards()).toHaveLength(6);
   // The next move of the map the person makes lets it go as well, and the list follows the map's area again.
   await act(async () => map().props.onSelectPlace('44.79,20.45')); await click('Prikaži sve u listi');
   expect(snapshot.pinPlace).toBe('44.79,20.45');
@@ -1914,8 +1921,8 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     expect(panel()).toHaveLength(1);
     expect(showAction().props.label).toBe('Prikaži 3 zadatka');
     await choose('Sutra'); expect(showAction().props.label).toBe('Prikaži 2 zadatka');
-    await openFilterSection('amount'); await choose('Tražim ponude'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
-    expect(radio('Tražim ponude').props.accessibilityState).toEqual({ checked: true });
+    await openFilterSection('amount'); await choose('Ponude'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
+    expect(radio('Ponude').props.accessibilityState).toEqual({ checked: true });
     expect(snapshot.when).toBe('any'); // nothing applies before the person says so
     await act(async () => showAction().props.onPress());
     expect(snapshot).toMatchObject({ when: 'tomorrow', price: 'OFFERS' }); expect(cards()).toEqual(['ponude']);
@@ -1924,7 +1931,7 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     expect(press('Filteri, 2 aktivna')).toBeTruthy();
     expect(texts(tree.root.findByProps({ testID: 'filters-count' }))).toBe('2');
     // The pill says what is SEARCHED, and the conditions are not that: it stays a place to start. Each condition that is on is a chosen capsule that takes itself away.
-    expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+    expect(press('Filteri').props.accessibilityValue).toBeUndefined();
     expect(chip('Sutra').props.accessibilityState).toEqual({ selected: true });
     await act(async () => chip('Sutra').props.onPress()); expect(snapshot.when).toBe('any');
     await act(async () => chip('Tražim ponude').props.onPress()); expect(snapshot.price).toBe('all'); expect(cards()).toHaveLength(3);
@@ -1939,22 +1946,22 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     expect(snapshot).toMatchObject({ when: 'any', places: 1, price: 'all' });
     await tapFilters();
     expect(radio('Danas').props.accessibilityState).toEqual({ checked: false }); // the discarded draft is gone
-    await choose('Danas'); await openFilterSection('amount'); await choose('Sa iznosom');
+    await choose('Danas'); await openFilterSection('amount'); await choose('Fiksna cena');
     await act(async () => clearAction().props.onPress());
-    expect(radio('Svejedno').props.accessibilityState).toEqual({ checked: true });
+    expect(radio('Oba').props.accessibilityState).toEqual({ checked: true });
     await openFilterSection('when');
     expect(radio('Danas').props.accessibilityState).toEqual({ checked: false });
     expect(showAction().props.label).toBe('Prikaži 3 zadatka');
   });
   test('"Gde" is offered only when a task says how the work is done, in the filters and as a quick capsule', async () => {
     await render(); await tapFilters();
-    expect(texts(panel()[0])).not.toContain('Gde'); expect(texts(panel()[0])).toContain('Kada'); expect(texts(panel()[0])).toContain('Iznos');
+    expect(texts(panel()[0])).not.toContain('Način rada'); expect(texts(panel()[0])).toContain('Kada'); expect(texts(panel()[0])).toContain('Cena');
     expect(texts(panel()[0])).not.toContain('Broj ljudi'); // the number of people is no choice of the filters any more
     expect(tree.root.findAll(node => node.props.accessibilityLabel === 'Na daljinu')).toHaveLength(0);
     await tap('Zatvori filtere'); await act(async () => tree.unmount());
     rows = [...rows, row('daljina', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
     await render(); await tapFilters();
-    expect(texts(panel()[0])).toContain('Gde');
+    expect(texts(panel()[0])).toContain('Način rada');
     await openFilterSection('where'); await choose('Na daljinu'); expect(showAction().props.label).toBe('Prikaži 1 zadatak');
     await tap('Zatvori filtere');
     expect(chip('Na daljinu').props.accessibilityState).toEqual({ selected: false });
@@ -1980,24 +1987,24 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     expect(snapshot.price).toBe('MY_PRICE'); expect(cards()).toEqual(['danas', 'sutra']);
     await tapFilters('Filteri, 1 aktivan');
     await openFilterSection('amount');
-    expect(radio('Sa iznosom').props.accessibilityState).toEqual({ checked: true });
+    expect(radio('Fiksna cena').props.accessibilityState).toEqual({ checked: true });
   });
   test('a place chosen in "Gde" applies at once, is said by the pill alone (no capsule repeats it), and is taken away there', async () => {
     rows = [row('a', { podrucjeTekst: 'Liman, Novi Sad' }), row('b', { podrucjeTekst: 'Vračar, Beograd' })];
-    await render(); await tap('Pretraži zadatke');
+    await render(); await openSearch();
     await choose('Vračar, Beograd, 1 zadatak');
     expect(panel()).toHaveLength(0);
     expect(snapshot.place).toBe('Vračar, Beograd'); expect(cards()).toEqual(['b']);
-    expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: 'Vračar, Beograd' });
+    expect(press('Filteri').props.accessibilityValue).toEqual({ text: 'Vračar, Beograd' });
     expect(removable()).toHaveLength(0);
-    await tap('Prikaži sve zadatke'); expect(snapshot.place).toBeNull(); expect(cards()).toEqual(['a', 'b']);
-    expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+    await tap('Ukloni pretragu ili mesto'); expect(snapshot.place).toBeNull(); expect(cards()).toEqual(['a', 'b']);
+    expect(press('Filteri').props.accessibilityValue).toBeUndefined();
   });
 
   // The owner's phone of 8 Oct 2026: "filteri odvojeni od pretrage". The pill never leads into the filters, and the round button never into the search.
   test('the pill opens the search (the words and Gde), the round button opens the filters (Kada, Gde, Iznos): two entrances, one draft', async () => {
     rows = [...rows, row('daljina', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
-    await render(); await tap('Pretraži zadatke');
+    await render(); await openSearch();
     expect(panel()).toHaveLength(1);
     expect(pressable('Grad ili zadatak')).toHaveLength(1);
     for (const filter of ['Kada', 'Iznos', 'Sa iznosom', 'Tražim ponude']) expect([filter, panel()[0].findAllByProps({ accessibilityLabel: filter }).length]).toEqual([filter, 0]);
@@ -2005,15 +2012,15 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     expect(action('Očisti')).toBeDefined();
     await tap('Zatvori pretragu'); expect(panel()).toHaveLength(0);
     await tapFilters(); expect(panel()).toHaveLength(1);
-    expect(texts(panel()[0])).toContain('Kada'); expect(texts(panel()[0])).toContain('Gde'); expect(texts(panel()[0])).toContain('Iznos');
+    expect(texts(panel()[0])).toContain('Kada'); expect(texts(panel()[0])).toContain('Način rada'); expect(texts(panel()[0])).toContain('Cena');
     expect(pressable('Grad ili zadatak')).toHaveLength(0);
     expect(pressable('Zatvori filtere')).toHaveLength(1); expect(pressable('Zatvori pretragu')).toHaveLength(0);
     expect(action('Očisti')).toBeDefined();
   });
 
-  test('each panel takes away only its own: the search\'s "Očisti" leaves the days and the amount, the filters\' leaves the word and the place', async () => {
+  test('search reset keeps conditions while filter reset clears location and conditions but preserves the word', async () => {
     initial = { ...initial, query: 'sutra', place: 'Beograd', when: 'tomorrow', price: 'OFFERS' };
-    await render(); await tap('Pretraži zadatke');
+    await render(); await openSearch();
     await act(async () => clearAction().props.onPress());
     await act(async () => showAction().props.onPress());
     expect(snapshot).toMatchObject({ query: '', place: null, when: 'tomorrow', price: 'OFFERS' });
@@ -2022,22 +2029,18 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
     // The empty list behind the panel offers the other words ("Poništi filtere" resets the view); the panel's own is "Očisti".
     await act(async () => clearAction().props.onPress());
     await act(async () => showAction().props.onPress());
-    expect(snapshot).toMatchObject({ query: 'sutra', place: 'Beograd', when: 'any', price: 'all' });
+    expect(snapshot).toMatchObject({ query: 'sutra', place: null, when: 'any', price: 'all' });
   });
 });
 
-test('secondary entries stay reachable from one menu without taking map space with a second header', async () => {
+test('publication and refresh remain directly reachable from the list header without a map menu', async () => {
   await render();
-  expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
-  expect(press('Pretraži zadatke')).toBeTruthy();
-  await tap('Još mogućnosti');
-  const menu = tree.root.findByType(ActionSheet);
-  expect(menu.props.actions.map((action: { label: string }) => action.label)).toEqual(['Objavi zadatak', 'Moj profil', 'Osveži zadatke']);
+  expect(press('Filteri')).toBeTruthy();
+  expect(pressable('Još mogućnosti')).toHaveLength(0);
   expect(newTask).not.toHaveBeenCalled(); expect(profile).not.toHaveBeenCalled();
-  await act(async () => menu.props.actions[0].onPress()); expect(newTask).toHaveBeenCalledTimes(1);
-  await act(async () => menu.props.actions[1].onPress()); expect(profile).toHaveBeenCalledTimes(1);
-  await act(async () => menu.props.onClose());
-  expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
+  await tap('Objavi zadatak'); expect(newTask).toHaveBeenCalledTimes(1);
+  await tap('Osveži zadatke'); expect(refresh).toHaveBeenCalledTimes(1);
+  expect(profile).not.toHaveBeenCalled();
 });
 
 test('reading, not read and nothing in this view keep their meanings, through the one state view', async () => {
@@ -2058,7 +2061,7 @@ test('reading, not read and nothing in this view keep their meanings, through th
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
   expect(listSheet().props.index).toBe(0);
   // Words that find nothing: the panel's one action says so and cannot apply them; the list keeps what it had.
-  await tap('Pretraži zadatke'); await act(async () => press('Grad ili zadatak').props.onChangeText('nema takvog'));
+  await openSearch(); await act(async () => press('Grad ili zadatak').props.onChangeText('nema takvog'));
   expect(showAction().props).toMatchObject({ label: 'Nema zadataka za ove uslove', disabled: true });
   await tap('Zatvori pretragu'); expect(snapshot.query).toBe('');
   // A list that is already empty under its search (a search kept from before) rises so the reason is seen.
@@ -2095,19 +2098,15 @@ test.each(['loading','error'] as const)('an incomplete %s collection outside the
   expect(action('Prikaži sve zadatke')).toBeUndefined();
 });
 
-test('explicit refresh preserves discovery scope without taking the sheet drag gesture', async () => {
+test('explicit header refresh preserves discovery scope without taking the sheet drag gesture', async () => {
   initial = { ...initial, sheet: 'full', query: 'pomoć', when: 'today' };
-  refreshing = true; await render();
+  await render();
   expect(list().props.onRefresh).toBeUndefined();
   expect(list().props.refreshing).toBeUndefined();
   expect(refresh).not.toHaveBeenCalled();
-  await tap('Još mogućnosti');
-  const menu = tree.root.findByType(ActionSheet);
-  await act(async () => menu.props.actions.find((action: { key: string }) => action.key === 'refresh').onPress());
+  await tap('Osveži zadatke');
   expect(refresh).toHaveBeenCalledTimes(1);
   expect(snapshot).toMatchObject({ query: 'pomoć', when: 'today', sheet: 'full' });
-  await act(async () => menu.props.onClose());
-  refreshing = false; await update();
   refreshing = true; await update();
   expect(refresh).toHaveBeenCalledTimes(1);
 });
@@ -2122,7 +2121,7 @@ test('the list follows the map area and the search pill clears it', async () => 
 test('panning keeps the compact header and real area filter, with a separate reset beside the list count', async () => {
   rows = Array.from({ length: 6 }, (_, i) => row(`t${i}`, at(44.7 + i / 50, 20.4))); await render();
   expect(tree.root.findAllByProps({ testID: 'clear-where' })).toHaveLength(0);
-  const before = StyleSheet.flatten(press('Pretraži zadatke').props.style);
+  const before = StyleSheet.flatten(press('Filteri').props.style);
   await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
   expect(removable()).toHaveLength(0);
   expect(snapshot.area).toEqual([20.3, 44.7, 20.5, 44.9]);
@@ -2130,16 +2129,35 @@ test('panning keeps the compact header and real area filter, with a separate res
   const clear = tree.root.findByProps({ testID: 'clear-map-area' });
   expect(clear.props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: 'Prikaži sve zadatke', hitSlop: 0 });
   expect(StyleSheet.flatten(clear.props.style)).toMatchObject({ minHeight: 48 });
-  expect(clear.parent).toBe(countLine().parent);
+  expect(clear.parent).toBe(countLine().parent?.parent);
   expect(texts(clear)).toBe('Sve oblasti');
-  expect(StyleSheet.flatten(press('Pretraži zadatke').props.style)).toEqual(before);
+  expect(StyleSheet.flatten(press('Filteri').props.style)).toEqual(before);
   expect(pressable('Aktivna pretraga')).toHaveLength(0);
-  expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
-  await tap('Pretraži zadatke'); expect(panel()).toHaveLength(1);
+  expect(press('Filteri').props.accessibilityValue).toBeUndefined();
+  await openSearch(); expect(panel()).toHaveLength(1);
   await tap('Zatvori pretragu');
   await tap('Prikaži sve zadatke'); expect(snapshot.area).toBeNull();
   expect(pressable('Aktivna pretraga')).toHaveLength(0);
   expect(tree.root.findAllByProps({ testID: 'clear-where' })).toHaveLength(0);
+});
+
+test('a confirmed map place is named and counted until cleared; a passive pan is not counted', async () => {
+  initial = { ...initial, query: 'Pomoć' };
+  await render(); await tapFilters();
+  const place = { label: 'Novi Sad, Srbija', position: { latitude: 45.25, longitude: 19.84 } };
+  await act(async () => tree.root.findByType(DiscoverySearchPanel).props.onCenterPlace(place));
+  expect(map().props.centerNearby.center).toEqual([19.84, 45.25]);
+  expect(press('Filteri').props.accessibilityLabel).toBe('Filteri, 2 aktivna');
+  expect(texts(press('Filteri'))).toContain('„Pomoć“ · Novi Sad, Srbija');
+  await act(async () => map().props.onArea([19.8, 45.2, 19.9, 45.3]));
+  expect(snapshot.area).toEqual([19.8, 45.2, 19.9, 45.3]);
+  await tap('Zatvori filtere');
+  await tap('Ukloni pretragu ili mesto');
+  expect(snapshot).toMatchObject({ area: null, query: '' });
+  expect(press('Filteri').props.accessibilityLabel).toBe('Filteri');
+  await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
+  expect(press('Filteri').props.accessibilityLabel).toBe('Filteri');
+  expect(tree.root.findAllByProps({ testID: 'discovery-search-context' })).toHaveLength(0);
 });
 
 // Discovery V47: the list follows the map, and the map keeps every pin whatever the area. A task with no public point
@@ -2202,14 +2220,14 @@ test('choosing a place in the search brings its pins into view once, as the came
   initial = { ...initial, area: [20.4, 44.7, 20.6, 44.9] };
   await render();
   expect(map().props.fitTo).toBeNull();
-  await tap('Pretraži zadatke'); await act(async () => radioOf('Liman, Novi Sad, 2 zadatka').props.onPress());
+  await openSearch(); await act(async () => radioOf('Liman, Novi Sad, 2 zadatka').props.onPress());
   expect(panel()).toHaveLength(0); // a place chosen in the search is applied at once
   expect(snapshot).toMatchObject({ place: 'Liman, Novi Sad', area: null });
   expect(map().props.fitTo).toMatchObject({ key: 1, bounds: [19.82, 45.22, 19.87, 45.27] });
   // The map says it brought them into view; the request is then gone, so a map mounted again does not fly there again.
   await act(async () => map().props.onFitted(1)); expect(map().props.fitTo).toBeNull();
   // Applying the same place again does not fly the map again.
-  await tap('Pretraži zadatke'); await act(async () => showAction().props.onPress()); expect(map().props.fitTo).toBeNull();
+  await openSearch(); await act(async () => showAction().props.onPress()); expect(map().props.fitTo).toBeNull();
 });
 
 // Discovery V47: where the sheet rests, how far the list is scrolled and where the camera stands live in the route's view
@@ -2272,7 +2290,7 @@ test('capsules collapse with native scrolling and return at the first row withou
       const chips = tree.root.findByProps({ testID: 'discovery-collapsing-chips' });
       expect(StyleSheet.flatten(chips.props.style).transform).toEqual([{ translateY: -Math.min(66, y) }]);
       expect(tree.root.findByProps({ testID: 'discovery-chips-clip' }).props.accessibilityElementsHidden).toBe(y >= 66);
-      expect(listSheet().props.snapPoints).toEqual(stops); expect(press('Pretraži zadatke')).toBeTruthy();
+      expect(listSheet().props.snapPoints).toEqual(stops); expect(press('Filteri')).toBeTruthy();
     }
     // The row is not in the sheet at all: nothing of it scrolls with the rows, and nothing of it is pinned above them.
     expect(listSheet().findAll(node => node.props.testID === 'discovery-chips')).toHaveLength(0);
@@ -2322,7 +2340,7 @@ test('when a search or filter leaves only tasks without a point on the map, the 
   expect(cards()).toEqual(['prevod']);
   expect(listSheet().props.index).toBe(2);
   // A new filter with no map result also opens the usable list from half height.
-  await tap('Prikaži sve zadatke'); await dragSheet(1);
+  await tap('Ukloni pretragu ili mesto'); await dragSheet(1);
   await search('prevod'); expect(listSheet().props.index).toBe(2);
 });
 
@@ -2388,7 +2406,7 @@ test('the map mounts without waiting for ownership and keeps the same pins after
   expect(tree.root.findAllByType('DiscoveryMap' as React.ElementType)).toHaveLength(1);
 });
 
-// The card sits just above the tab bar (its gap under it counts) and spans its whole face, padding included.
+// The card sits just above the Android safe bottom edge and spans its whole face, padding included.
 // Fixed zoom uses its measured cover only to hide when covered; the source strip never follows the card.
 test('a chosen pin\'s card tells the map how much it covers, and closing it gives that back', async () => {
   await render();
@@ -2481,10 +2499,7 @@ test('a waiting restore is dropped when the list is taken hold of or refreshed; 
     // A refresh drops it too.
     await act(async () => tree.unmount()); scrollToOffset.mockReset(); await render();
     expect(scrollToOffset).not.toHaveBeenCalled(); scrollToOffset.mockReset();
-    await tap('Još mogućnosti');
-    const refreshMenu = tree.root.findByType(ActionSheet);
-    await act(async () => refreshMenu.props.actions.find((action: { key: string }) => action.key === 'refresh').onPress());
-    await act(async () => refreshMenu.props.onClose());
+    await tap('Osveži zadatke');
     expect(refresh).toHaveBeenCalledTimes(1);
     await readyList(2000);
     expect(scrollToOffset).not.toHaveBeenCalled();
@@ -2519,14 +2534,14 @@ test('on iOS the new count is said once the list\'s area has stayed still for a 
 
 test('the search panel waits for public rows, but counts them while ownership is still pending', async () => {
   loading = true; rows = []; await render();
-  expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined(); // the pill claims no number, ever
+  expect(press('Filteri').props.accessibilityValue).toBeUndefined(); // the pill claims no number, ever
   await tapFilters();
   expect(action('Učitavamo zadatke…').props.disabled).toBe(true);
   await tap('Zatvori filtere');
-  await tap('Pretraži zadatke'); expect(radioOf('Svi zadaci')).toBeDefined(); // the search opens at Gde
+  await openSearch(); expect(radioOf('Svi zadaci')).toBeDefined(); // the search opens at Gde
   await tap('Zatvori pretragu'); await act(async () => tree.unmount());
   loading = false; relationsPending = true; rows = [row('a'), row('bb')]; await render();
-  await tap('Pretraži zadatke');
+  await openSearch();
   expect(action('Prikaži 2 zadatka').props.disabled).toBe(false); expect(radioOf('Svi zadaci, 2 zadatka')).toBeDefined();
   await tap('Zatvori pretragu'); await act(async () => tree.unmount());
   relationsPending = false; error = true; rows = []; await render(); await tapFilters();
@@ -2570,7 +2585,7 @@ test('at large text the search stays one line with separate tools and the pin pr
   initial = { ...initial, place: 'Beograd' };
   mockWindow = { width: 320, height: 640, scale: 2, fontScale: 1 }; await render();
   await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
-  const lines = () => press('Pretraži zadatke').findAllByProps({ testID: 'discovery-search-context' }).map(node => node.props.numberOfLines);
+  const lines = () => press('Filteri').findAllByProps({ testID: 'discovery-search-context' }).map(node => node.props.numberOfLines);
   expect(lines()).toEqual([1]);
   await act(async () => map().props.onSelect('bb'));
   expect(peek()!.props.maxDynamicContentSize).toBe(640 * 0.5);
@@ -2580,8 +2595,8 @@ test('at large text the search stays one line with separate tools and the pin pr
   expect(lines()).toEqual([1]);
   // Search, filters and menu remain separate from the collapsible quick filters.
   const searchRow = tree.root.findByProps({ testID: 'discovery-search-row' });
-  expect(searchRow.findAllByProps({ accessibilityLabel: 'Filteri' })).toHaveLength(1);
-  expect(searchRow.findByProps({ accessibilityLabel: 'Još mogućnosti' })).toBeTruthy();
+  expect(searchRow.findAllByProps({ testID: 'filters-button' })).toHaveLength(1);
+  expect(tree.root.findByProps({ testID: 'discovery-chips-clip' }).findAllByProps({ accessibilityLabel: 'Još mogućnosti' })).toHaveLength(0);
   expect(capsuleLabels()).not.toContain('Filteri');
   await act(async () => map().props.onSelect('bb'));
   expect(peek()!.props.maxDynamicContentSize).toBe(640 * 0.75);
@@ -2590,7 +2605,7 @@ test('at large text the search stays one line with separate tools and the pin pr
 // Appearance may evolve; selection still has words, a check, accessibility state and a full touch target.
 test('quick filters stay touchable at every list height and selection is conveyed beyond colour', async () => {
   await render();
-  expect(StyleSheet.flatten(press('Pretraži zadatke').props.style).borderWidth).toBeUndefined();
+  expect(StyleSheet.flatten(press('Filteri').props.style).borderWidth).toBeUndefined();
   const free = StyleSheet.flatten(quick('Sa iznosom').props.style);
   expect(quick('Sa iznosom').props.accessibilityState.selected).toBe(false);
   expect(free.minHeight).toBeGreaterThanOrEqual(48);
@@ -2611,7 +2626,7 @@ test('quick filters stay touchable at every list height and selection is conveye
   }
   // The pill's own × (it takes the search away) is a full 48 to a finger.
   await act(async () => tree.unmount()); initial = { ...initial, sheet: 'half', query: 'Pomoć' }; await render();
-  expect(StyleSheet.flatten(press('Prikaži sve zadatke').props.style)).toMatchObject({ width: 48, minHeight: 48 });
+  expect(StyleSheet.flatten(press('Ukloni pretragu ili mesto').props.style)).toMatchObject({ width: 48, minHeight: 48 });
 });
 
 test('the full list stands directly under the tools while a selected preview still leaves room for the map\'s furniture above it after resizing', async () => {
@@ -2656,7 +2671,7 @@ test.each([false, true])('a tall filter header scrolls at the full stop below se
   expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'discovery-scrolling-header' }).props.style).marginHorizontal).toBe(-sys.space.lg);
   // What is searched is said by the pill once, and the one condition that is on by its capsule: no row of "Ukloni uslov" chips is repeated under the count.
   expect(removable()).toHaveLength(0);
-  expect(press('Pretraži zadatke').props.accessibilityValue).toEqual({ text: empty ? '„Nema takvog zadatka“ · Beograd' : '„Pomoć“ · Beograd' });
+  expect(press('Filteri').props.accessibilityValue).toEqual({ text: empty ? '„Nema takvog zadatka“ · Beograd' : '„Pomoć“ · Beograd' });
   expect(quick('Narednih 7 dana').props.accessibilityState).toEqual({ selected: true }); // a time with no capsule of its own says itself once, and removes itself
   // Repeating native measurement in the new container leaves the same cap/mode rather than an expanding header loop.
   await act(async () => header().props.onLayout({ nativeEvent: { layout: { height: 240 } } }));
@@ -2665,7 +2680,7 @@ test.each([false, true])('a tall filter header scrolls at the full stop below se
   expect(listSheet().props.index).toBe(2);
   expect(StyleSheet.flatten(list().props.style).height).toBe(268); // same highest-detent viewport at half and full
   if (empty) expect(StyleSheet.flatten(press('Mapa').parent!.props.style).backgroundColor).toBe(sys.color.surface);
-  await tap('Prikaži sve zadatke');
+  await tap('Ukloni pretragu ili mesto');
   expect(snapshot.place).toBeNull(); expect(snapshot.query).toBe(''); expect(refresh).not.toHaveBeenCalled(); expect(open).not.toHaveBeenCalled();
   // The same header remains in the native scroll; no reparenting or duplicate header on resize.
   await layOutBody(700);
@@ -2717,12 +2732,12 @@ describe('Moja lokacija: an explicit camera-only location capture', () => {
     // The map's own move settles in its area, and that is what the list holds (the map hands it up as it does after a drag).
     await act(async () => map().props.onArea([20.3, 44.7, 20.5, 44.9]));
     expect(snapshot.area).toEqual([20.3, 44.7, 20.5, 44.9]);
-    expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+    expect(press('Filteri').props.accessibilityValue).toBeUndefined();
     expect(press('Prikaži sve zadatke')).toBeDefined();
   });
   test('the search has no position of its own: "Moja lokacija" is the map\'s button, and applying a search asks nothing of the phone', async () => {
     rows = [row('a'), row('b')]; await render();
-    await tap('Pretraži zadatke');
+    await openSearch();
     expect(pressable('U blizini')).toHaveLength(0); expect(tree.root.findAll(node => String(node.type) === 'Press' && /^U blizini/.test(node.props.accessibilityLabel ?? ''))).toHaveLength(0);
     await act(async () => showAction().props.onPress());
     await act(async () => undefined);
@@ -2763,20 +2778,124 @@ describe('Moja lokacija: an explicit camera-only location capture', () => {
   });
 });
 
-// P6: the server orders a whole-list page by time, so the three kinds of task interleave. A heading for every run of a kind cut the list
-// into one-card sections (found on the emulator); the cards already name their own place. An area or a place brings the headings back,
-// because the server then puts the mapped section first.
+// P6 cursors retain the server order. The presentation separates map work from point-free work,
+// preserving that order inside each section and the original indexes used for optional row details.
 const p6Seam_ = (): DiscoveryV1PresentationSeam => ({
   map: { markers: [], selectedKey: null, wholeBounds: [19, 44, 21, 46], onSelect: jest.fn() },
   peek: null, counts: null, pageHasMore: false, onArea: jest.fn(), onClearPeek: jest.fn(), onShowPlace: jest.fn(), onShowAll: jest.fn(), onNextPage: jest.fn(),
 });
-const runHeadings = () => tree.root.findAll(node => ['section-map', 'section-remote', 'section-unlocated'].includes(node.props.testID));
-test('a whole-list P6 page keeps the server order without run headings, and an area brings them back', async () => {
+test('P6 Mesta waits for the new city MAP seed instead of fitting the old bounded PAGE', async () => {
+  const noviSad: [number, number, number, number] = [19.7, 45.1, 20, 45.4];
+  rows = [row('bg', { podrucjeTekst: 'Vračar, Beograd', ...at(44.81, 20.46) })];
+  initial = { ...initial, viewport: { center: [20.46, 44.81], zoom: 12, bounds: [20.3, 44.7, 20.6, 44.9] } };
+  p6Seam = p6Seam_(); await render(); await layOutBody(); await openSearch();
+  refreshing = true; // the P6 route holds its previous complete PAGE/MAP while the new filter is read
+  await act(async () => tree.root.findByType(DiscoverySearchPanel).props.onApply({ ...snapshot, place: 'Novi Sad', area: null, pinPlace: null }));
+  expect(snapshot.place).toBe('Novi Sad');
+  expect(snapshot.viewport).toBeNull(); // new place asks P6 for fresh whole-filter MAP bounds
+  expect(map().props.fitTo).toBeNull(); // the old Beograd page/map cannot move the camera
+
+  rows = [row('ns', { podrucjeTekst: 'Liman, Novi Sad', ...at(45.25, 19.84) })];
+  p6Seam = { ...p6Seam, map: { ...p6Seam!.map, wholeBounds: noviSad } };
+  refreshing = false; await update();
+  expect(map().props.fitTo.bounds).toEqual(noviSad);
+});
+test('a manual map gesture retires a pending P6 Mesta camera move before the read lands', async () => {
+  rows = [row('bg', { podrucjeTekst: 'Vračar, Beograd', ...at(44.81, 20.46) })];
+  initial = { ...initial, viewport: { center: [20.46, 44.81], zoom: 12, bounds: [20.3, 44.7, 20.6, 44.9] } };
+  p6Seam = p6Seam_(); await render(); await layOutBody(); await openSearch();
+  refreshing = true;
+  await act(async () => tree.root.findByType(DiscoverySearchPanel).props.onApply({ ...snapshot, place: 'Novi Sad', area: null, pinPlace: null }));
+  await act(async () => map().props.onUserIntent());
+  p6Seam = { ...p6Seam, map: { ...p6Seam!.map, wholeBounds: [19.7, 45.1, 20, 45.4] } };
+  refreshing = false; await update();
+  expect(map().props.fitTo).toBeNull();
+});
+test('a failed P6 Mesta read retains the requested camera focus through an explicit retry', async () => {
+  const noviSad: [number, number, number, number] = [19.7, 45.1, 20, 45.4];
+  rows = [row('bg', { podrucjeTekst: 'Vračar, Beograd', ...at(44.81, 20.46) })];
+  p6Seam = p6Seam_(); await render(); await layOutBody(); await openSearch();
+  refreshing = true;
+  await act(async () => tree.root.findByType(DiscoverySearchPanel).props.onApply({ ...snapshot, place: 'Novi Sad', area: null, pinPlace: null }));
+  refreshing = false; error = true; await update();
+  refreshing = true; error = false; await update();
+  rows = [row('ns', { podrucjeTekst: 'Liman, Novi Sad', ...at(45.25, 19.84) })];
+  p6Seam = { ...p6Seam, map: { ...p6Seam!.map, wholeBounds: noviSad } };
+  refreshing = false; await update();
+  expect(map().props.fitTo.bounds).toEqual(noviSad);
+});
+const confirmedPlaceKey = 'uskoci.zadaci.confirmed-map-place.v1.a';
+const confirmedPlace = { label: 'Novi Sad, Srbija', position: { latitude: 45.25, longitude: 19.84 },
+  area: [19.7, 45.1, 20, 45.4] as [number, number, number, number] };
+test('a confirmed map place survives a cold presentation remount only over its settled P6 area, and clear removes it', async () => {
+  initial = { ...initial, area: confirmedPlace.area }; p6Seam = p6Seam_(); await render();
+  await tapFilters();
+  await act(async () => tree.root.findByType(DiscoverySearchPanel).props.onCenterPlace(confirmedPlace));
+  expect(map().props.centerNearby).toEqual({ key: -1, center: [19.84, 45.25] });
+  await act(async () => map().props.onArea(confirmedPlace.area));
+  await act(async () => { await Promise.resolve(); });
+  expect(JSON.parse(mockRecentStore.get(confirmedPlaceKey)!)).toEqual(confirmedPlace);
+  const returnedView = snapshot;
+  await act(async () => tree.unmount()); initial = returnedView; await render();
+  expect(tree.root.findByType(DiscoverySearchBar).props.where).toContain('Novi Sad');
+  expect(map().props.centerNearby).toBeNull(); // Storage never issues a new camera command.
+  await act(async () => tree.root.findByType(DiscoverySearchBar).props.onClearWhere());
+  await act(async () => { await Promise.resolve(); });
+  expect(mockRecentStore.has(confirmedPlaceKey)).toBe(false);
+  await act(async () => tree.unmount()); initial = returnedView; await render();
+  expect(String(tree.root.findByType(DiscoverySearchBar).props.where ?? '')).not.toContain('Novi Sad');
+});
+
+test('changing another filter preserves a confirmed map place until its field is explicitly cleared', async () => {
+  initial = { ...initial, area: confirmedPlace.area }; p6Seam = p6Seam_(); await render();
+  await tapFilters();
+  await act(async () => tree.root.findByType(DiscoverySearchPanel).props.onCenterPlace(confirmedPlace));
+  await act(async () => map().props.onArea(confirmedPlace.area));
+  expect(tree.root.findByType(DiscoverySearchBar).props.where).toContain('Novi Sad');
+  await act(async () => tree.root.findByType(DiscoverySearchPanel).props.onApply({ ...snapshot, price: 'OFFERS' }, { clearMapPlace: false }));
+  expect(snapshot.price).toBe('OFFERS');
+  expect(tree.root.findByType(DiscoverySearchBar).props.where).toContain('Novi Sad');
+  await act(async () => tree.root.findByType(DiscoverySearchPanel).props.onApply({ ...snapshot }, { clearMapPlace: true }));
+  expect(String(tree.root.findByType(DiscoverySearchBar).props.where ?? '')).not.toContain('Novi Sad');
+});
+
+test('an unrelated area arriving after location Apply cannot settle or save that place', async () => {
+  p6Seam = p6Seam_(); await render();
+  await tapFilters();
+  await act(async () => tree.root.findByType(DiscoverySearchPanel).props.onCenterPlace(confirmedPlace));
+  expect(map().props.centerNearby).toEqual({ key: -1, center: [19.84, 45.25] });
+  const unrelatedArea: [number, number, number, number] = [20.3, 44.7, 20.5, 44.9];
+  const unrelatedFrame: [number, number, number, number] = [20.2, 44.6, 20.6, 45];
+  await act(async () => map().props.onArea(unrelatedArea, unrelatedFrame));
+  await act(async () => { await Promise.resolve(); });
+  expect(p6Seam.onArea).toHaveBeenCalledWith(unrelatedArea, unrelatedFrame);
+  expect(map().props.centerNearby).toBeNull();
+  expect(String(tree.root.findByType(DiscoverySearchBar).props.where ?? '')).not.toContain('Novi Sad');
+  expect(mockRecentStore.has(confirmedPlaceKey)).toBe(false);
+});
+
+test('a stored place cannot label another area or account, and a later pan retires it', async () => {
+  mockRecentStore.set(confirmedPlaceKey, JSON.stringify(confirmedPlace));
+  p6Seam = p6Seam_(); initial = { ...initial, area: [20.3, 44.7, 20.5, 44.9] }; await render();
+  expect(String(tree.root.findByType(DiscoverySearchBar).props.where ?? '')).not.toContain('Novi Sad');
+  await act(async () => tree.unmount()); scopeKey = 'b:1'; initial = { ...initial, area: confirmedPlace.area }; await render();
+  expect(String(tree.root.findByType(DiscoverySearchBar).props.where ?? '')).not.toContain('Novi Sad');
+  await act(async () => tree.unmount()); scopeKey = 'a:2'; await render();
+  expect(tree.root.findByType(DiscoverySearchBar).props.where).toContain('Novi Sad');
+  await act(async () => map().props.onArea([19.8, 45.15, 20.1, 45.45]));
+  await act(async () => { await Promise.resolve(); });
+  expect(String(tree.root.findByType(DiscoverySearchBar).props.where ?? '')).not.toContain('Novi Sad');
+  expect(mockRecentStore.has(confirmedPlaceKey)).toBe(false);
+});
+const runHeadings = () => tree.root.findAll(node => ['section-map', 'section-remote', 'section-unlocated', 'section-offMap'].includes(node.props.testID));
+test('P6 separates map and point-free work, preserving every row and server order within each section', async () => {
   rows = [row('m1', at(44.81, 20.41)), row('r1', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } }), row('m2', at(44.82, 20.42)),
     row('n1', { priblizno: null }), row('r2', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
   p6Seam = p6Seam_(); await render();
-  expect(cards()).toEqual(['m1', 'r1', 'm2', 'n1', 'r2']);
-  expect(runHeadings()).toHaveLength(0);
+  expect(cards()).toEqual(['m1', 'm2', 'r1', 'n1', 'r2']);
+  expect(runHeadings().map(node => node.props.accessibilityLabel)).toEqual(['Na mapi, 2 zadatka', 'Nisu na mapi, 3 zadatka']);
+  expect(map().props.items.map((item: MarketplaceItem) => item.id)).toEqual(['m1', 'r1', 'm2', 'n1', 'r2']);
+  expect(countLine().props.accessibilityValue).toEqual({ text: 'Najnovije prvo u odeljku' });
   await act(async () => tree.unmount());
   initial = { ...initial, area: [20.3, 44.7, 20.5, 44.9] }; p6Seam = p6Seam_(); await render();
   expect(runHeadings().length).toBeGreaterThan(0);
@@ -2784,6 +2903,33 @@ test('a whole-list P6 page keeps the server order without run headings, and an a
   await act(async () => tree.unmount());
   initial = { ...initialMarketplaceView(), mode: 'map' }; p6Seam = undefined; await render();
   expect(runHeadings().length).toBeGreaterThan(0);
+});
+
+test('P6 ALL with only the physical remote 3D task names the point-free section even when server withoutPoint is zero', async () => {
+  rows = [row('figurice', { naslov: 'Izrada 3D figurica', priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
+  p6Seam = { ...p6Seam_(), counts: { kind: 'exact_live', observedAt: AT_NOW, mapped: 1, listed: 1, inArea: 0, withoutPoint: 0, undated: 0 } };
+  await render();
+  expect(cards()).toEqual(['Izrada 3D figurica']);
+  expect(runHeadings().map(node => node.props.accessibilityLabel)).toEqual(['Nisu na mapi, 1 zadatak']);
+  expect(texts(tree.root.findByProps({ testID: 'off-map-entry' }))).toBe('1 nije na mapi');
+  expect(listSheet().props.index).toBe(2);
+  await act(async () => tree.root.findByProps({ testID: 'off-map-entry' }).props.onPress());
+  await tap(cardLabel('Izrada 3D figurica'));
+  expect(open).toHaveBeenCalledWith(rows[0]);
+});
+
+test('P6 sectioned and point-free rows ask for their original source indexes, including after later pages arrive', async () => {
+  rows = [row('r1', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } }), row('m1'), row('r2', { priblizno: null })];
+  const onVisibleRange = jest.fn(); p6Seam = { ...p6Seam_(), onVisibleRange };
+  await render();
+  expect(cards()).toEqual(['m1', 'r1', 'r2']);
+  await act(async () => list().props.onViewableItemsChanged({ viewableItems: [{ item: rows[1], index: 0, isViewable: true }] }));
+  expect(onVisibleRange).toHaveBeenLastCalledWith(1, 1);
+  rows = [...rows, row('m2'), row('r3', { priblizno: null })]; await update();
+  expect(cards()).toEqual(['m1', 'm2', 'r1', 'r2', 'r3']);
+  await act(async () => tree.root.findByProps({ testID: 'off-map-entry' }).props.onPress());
+  await act(async () => list().props.onViewableItemsChanged({ viewableItems: [{ item: rows[4], index: 2, isViewable: true }] }));
+  expect(onVisibleRange).toHaveBeenLastCalledWith(4, 4);
 });
 
 // Independent review (P6 client finding): a P6 pin tap never lowered the list sheet, while the coordinator wrote `sheet: 'peek'` into the view it
@@ -2889,10 +3035,10 @@ test('a narrow P6 area header keeps sorting accessible and clears only through i
   expect(texts(count)).toBe('4 zadatka');
   expect(texts(count)).not.toContain('Najnovije prvo');
   expect(count.props.accessibilityValue).toEqual({ text: 'Najnovije prvo' });
-  expect(reset.parent === count.parent).toBe(true);
+  expect(reset.parent === count.parent?.parent).toBe(true);
   expect(reset.props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: 'Prikaži sve zadatke', hitSlop: 0 });
   expect(texts(reset)).toBe('Sve oblasti');
-  expect(StyleSheet.flatten(reset.props.style)).toMatchObject({ minHeight: 48, maxWidth: '50%' });
+  expect(StyleSheet.flatten(reset.props.style)).toMatchObject({ minHeight: 48 });
   expect(tree.root.findAllByProps({ testID: 'discovery-search-context' })).toHaveLength(0);
   await act(async () => reset.props.onPress());
   expect(onShowAll).toHaveBeenCalledTimes(1);
@@ -2926,31 +3072,45 @@ describe('an empty P6 list says what is true', () => {
 // The server's availability (every published task) says which chips have anything to say.
 describe('P6 quick chips follow the server availability, not the loaded page', () => {
   const chipLabels = () => tree.root.findAllByType(DiscoveryChipRow)[0].props.chips.map((chip: { label: string }) => chip.label);
+  const workChip = (label: string) => tree.root.findByType(DiscoveryChipRow).props.chips.find((chip: { label: string }) => chip.label === label);
   const dated = { schedule: { kind: 'TOMORROW_FLEXIBLE', startsAt: null, endsAt: null } };
   const narrow = (patch: Record<string, unknown> = {}) => row('narrow', { pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 }, ...patch });
+  test('Oba is the truthful default; each mode capsule selects only its own scope', async () => {
+    p6Seam = p6Seam_(); await render();
+    expect([workChip('Na lokaciji').selected, workChip('Na daljinu').selected, workChip('Oba').selected]).toEqual([false, false, true]);
+    await act(async () => workChip('Na daljinu').onPress());
+    expect(snapshot.where).toBe('remote');
+    expect([workChip('Na lokaciji').selected, workChip('Na daljinu').selected, workChip('Oba').selected]).toEqual([false, true, false]);
+    await act(async () => workChip('Na lokaciji').onPress());
+    expect(snapshot.where).toBe('onsite');
+    expect([workChip('Na lokaciji').selected, workChip('Na daljinu').selected, workChip('Oba').selected]).toEqual([true, false, false]);
+    await act(async () => workChip('Oba').onPress());
+    expect(snapshot.where).toBe('any');
+    expect([workChip('Na lokaciji').selected, workChip('Na daljinu').selected, workChip('Oba').selected]).toEqual([false, false, true]);
+  });
   test('chips come from the availability and stay while a read has not answered and the area holds nothing', async () => {
     rows = [narrow(dated)];
     p6Seam = { ...p6Seam_(), availability: { hasKnownWorkMode: true, hasKnownSchedule: true, priceModes: ['OFFERS'] } };
     await render();
     // The loaded row names a price and no work mode; the server says every task is OFFERS and some name a work mode.
     // (no "Sa iznosom": the server says every task asks for offers, and the stated amount is a filter with nothing to show)
-    expect(chipLabels()).toEqual(['Na daljinu', 'Danas', 'Ovaj vikend']);
+    expect(chipLabels()).toEqual(['Na lokaciji', 'Na daljinu', 'Oba', 'Danas', 'Ovaj vikend']);
     // A pan: the new area holds nothing and its read has not answered yet. The rail does not move.
     rows = []; p6Seam = { ...p6Seam!, availability: null }; await update();
-    expect(chipLabels()).toEqual(['Na daljinu', 'Danas', 'Ovaj vikend']);
+    expect(chipLabels()).toEqual(['Na lokaciji', 'Na daljinu', 'Oba', 'Danas', 'Ovaj vikend']);
     // The server says nothing names its days: the time chips are not offered, whatever the page holds.
     rows = [narrow(dated)]; p6Seam = { ...p6Seam!, availability: { hasKnownWorkMode: false, hasKnownSchedule: false, priceModes: ['MY_PRICE', 'OFFERS'] } };
     await update();
-    expect(chipLabels()).toEqual(['Sa iznosom']);
+    expect(chipLabels()).toEqual(['Na lokaciji', 'Na daljinu', 'Oba', 'Sa iznosom']);
   });
   test('a number of people the view already holds says itself in the row and takes itself away; it is never offered as a choice', async () => {
     rows = [row('roomy')]; p6Seam = { ...p6Seam_(), availability: { hasKnownWorkMode: false, hasKnownSchedule: false, priceModes: [] } };
-    await render(); expect(chipLabels()).toEqual([]);
+    await render(); expect(chipLabels()).toEqual(['Na lokaciji', 'Na daljinu', 'Oba']);
     await act(async () => tree.unmount());
     initial = { ...initial, places: 2 }; await render();
-    expect(chipLabels()).toEqual(['Za 2 i više']);
-    await act(async () => tree.root.findAllByType(DiscoveryChipRow)[0].props.chips[0].onPress());
-    expect(snapshot.places).toBe(1); expect(chipLabels()).toEqual([]);
+    expect(chipLabels()).toEqual(['Za 2 i više', 'Na lokaciji', 'Na daljinu', 'Oba']);
+    await act(async () => tree.root.findAllByType(DiscoveryChipRow)[0].props.chips.find((value: { label: string }) => value.label === 'Za 2 i više').onPress());
+    expect(snapshot.places).toBe(1); expect(chipLabels()).toEqual(['Na lokaciji', 'Na daljinu', 'Oba']);
     // the legacy reader reads its rows, and still offers no such choice
     await act(async () => tree.unmount());
     initial = { ...initialMarketplaceView(), mode: 'map' }; p6Seam = undefined; rows = [row('roomy'), row('narrow', { pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 } })]; await render();
@@ -2998,7 +3158,7 @@ describe('Zadaci composition: three heights, capsules over the map, furniture ab
     // The pill and the capsules are one measured stack, the pill first.
     const stack = tree.root.findByProps({ testID: 'discovery-search-stack' });
     expect(stack.findAllByProps({ testID: 'discovery-chips' })).toHaveLength(1);
-    await act(async () => press('Pretraži zadatke').props.onPress());
+    await act(async () => press('Filteri').props.onPress());
     expect(panel()).toHaveLength(1);
   });
 
@@ -3010,10 +3170,19 @@ describe('Zadaci composition: three heights, capsules over the map, furniture ab
     expect(texts(tree.root.findByProps({ testID: 'filters-count' }))).toBe('1');
     expect(labelsIn(capsules()[0])[0]).toBe('Tražim ponude');
     expect(quick('Tražim ponude').props.accessibilityState).toEqual({ selected: true });
-    expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+    expect(press('Filteri').props.accessibilityValue).toBeUndefined();
     // A notice hangs below the pill and its capsules, outside what is measured: the sheet's stops do not depend on it.
     const bar = tree.root.findByType(DiscoverySearchBar);
     expect(bar.props.below).toBeTruthy(); expect(bar.props.chips).toBeTruthy();
+  });
+
+  test('a fixed minimum with both price modes stays visible and can be removed directly', async () => {
+    rows = six(); initial = { ...initial, price: 'all', minBudgetRsd: 3000 };
+    await render();
+    expect(filters('Filteri, 1 aktivan')).toBeTruthy();
+    expect(labelsIn(capsules()[0])).toContain('Od 3.000 RSD');
+    await act(async () => quick('Od 3.000 RSD').props.onPress());
+    expect(snapshot).toMatchObject({ price: 'all', minBudgetRsd: null });
   });
 
   test.each([1, 2])('at height %i the same row of capsules stands over the map, and the sheet has none of its own', async index => {
@@ -3026,7 +3195,7 @@ describe('Zadaci composition: three heights, capsules over the map, furniture ab
     expect(StyleSheet.flatten(capsules()[0].props.style).opacity).toBeUndefined();
     expect(capsules()[0].props.accessibilityElementsHidden).toBeUndefined();
     // The pill stays at the top as the place to start the search, never as a summary of the filters.
-    expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+    expect(press('Filteri').props.accessibilityValue).toBeUndefined();
     // "Filteri" opens the filters (and only them).
     await act(async () => filters().props.onPress());
     expect(panel()).toHaveLength(1); expect(pressable('Zatvori filtere')).toHaveLength(1);
@@ -3079,7 +3248,7 @@ describe('Zadaci composition: three heights, capsules over the map, furniture ab
       expect(pill()).not.toContain('Za mene'); expect(pressable('Svi zadaci')).toHaveLength(0);
       // a scope is not a condition: "Filteri" counts none
       expect(tree.root.findByType(DiscoverySearchBar).props.filters.count).toBe(0);
-      expect(press('Pretraži zadatke').props.accessibilityValue).toBeUndefined();
+      expect(press('Filteri').props.accessibilityValue).toBeUndefined();
       // the capsule that is on takes itself away
       await act(async () => chip('Za mene').props.onPress());
       expect(snapshot.forMe).toBe(false);
@@ -3249,7 +3418,7 @@ describe('Zadaci composition: three heights, capsules over the map, furniture ab
 // The bottom navigation (the owner's phone of 8 Oct 2026: "dok je lista dole, donja navigacija se ne vidi; pojavi se kad se lista digne na pola ili skroz"). The layout owns the bar and the
 // one value that moves it (0: on show, 1: away) and says how tall the bar is; the screen drives the value from the list and keeps clear what the bar lies over. Without a layout (a gallery)
 // there is no bar, and nothing is reserved and nothing moves.
-describe('persistent navigation stays reachable during map/list browsing', () => {
+describe('navigation stays reachable during map/list browsing and withdraws for a selected pin', () => {
   const BAR = 72;
   const makeBar = () => ({ hidden: new Animated.Value(0.5), height: BAR });
   const hiddenNow = () => (barValue!.hidden as unknown as { __getValue: () => number }).__getValue();
@@ -3297,12 +3466,13 @@ describe('persistent navigation stays reachable during map/list browsing', () =>
     await physicallyAt(1); expect(hiddenNow()).toBe(0);
     await physicallyAt(0); expect(hiddenNow()).toBe(0); expect(slides()).toEqual([]);
   });
-  test('a pin preview reserves navigation space and keeps all destinations available', async () => {
+  test('a pin preview takes the safe bottom edge; navigation returns when it closes', async () => {
     barValue = makeBar(); initial = { ...initial, sheet: 'half' }; await render(); await layOutBody(800);
     await physicallyAt(1); expect(hiddenNow()).toBe(0);
     await act(async () => map().props.onSelect('bb'));
-    await physicallyAt(1); expect(hiddenNow()).toBe(0);
-    expect(tree.root.findByType(DiscoveryPeek).props.bottomInset).toBeGreaterThanOrEqual(BAR);
+    expect(hiddenNow()).toBe(1);
+    expect(tree.root.findByType(DiscoveryPeek).props.bottomInset).toBe(sys.space.md);
+    expect(listSheet().props.snapPoints[0]).toBe(HIDDEN);
     await physicallyAt(0); await tap('Zatvori pregled zadatka'); expect(hiddenNow()).toBe(0);
     await act(async () => countLine().props.onPress()); await physicallyAt(1); expect(hiddenNow()).toBe(0);
   });
@@ -3320,14 +3490,14 @@ describe('persistent navigation stays reachable during map/list browsing', () =>
 
   test('what the bar lies over is kept clear: the end of the list, the "Mapa" pill, the paging note, and the half stop is half of what the bar leaves', async () => {
     barValue = makeBar(); initial = { ...initial, sheet: 'full' }; await render(); await layOutBody(800); await physicallyAt(2);
-    expect(StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom).toBe(sys.space.huge + sys.space.xxl + BAR);
-    expect(StyleSheet.flatten(rowOf(press('Mapa')).props.style).bottom).toBe(sys.space.base + BAR);
+    expect(StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom).toBe(sys.space.xxl + BAR);
+    expect(tree.root.findByProps({ testID: 'discovery-list-header' }).findAllByProps({ accessibilityLabel: 'Mapa' })).toHaveLength(1);
     // half of the 800 the body is and the 72 the bar covers: the map above the sheet and the list between the sheet and the bar are about as tall as each other
     expect(listSheet().props.snapPoints[1]).toBe(Math.round((800 + BAR) / 2));
     // without a bar nothing is reserved
     await act(async () => tree.unmount()); barValue = undefined; await render(); await layOutBody(800); await physicallyAt(2);
-    expect(StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom).toBe(sys.space.huge + sys.space.xxl);
-    expect(StyleSheet.flatten(rowOf(press('Mapa')).props.style).bottom).toBe(sys.space.base);
+    expect(StyleSheet.flatten(list().props.contentContainerStyle).paddingBottom).toBe(sys.space.xxl);
+    expect(tree.root.findByProps({ testID: 'discovery-list-header' }).findAllByProps({ accessibilityLabel: 'Mapa' })).toHaveLength(1);
     expect(listSheet().props.snapPoints[1]).toBe(400);
   });
 
@@ -3336,7 +3506,7 @@ describe('persistent navigation stays reachable during map/list browsing', () =>
     p6Seam = { ...p6Seam_(), loadingMore: true, pageHasMore: true };
     await render(); await layOutBody(800); await physicallyAt(2);
     const note = tree.root.findByProps({ accessibilityLabel: 'Učitavamo još zadataka…' });
-    expect(StyleSheet.flatten(note.props.style).bottom).toBe(sys.space.base + BAR + 48 + sys.space.sm);
+    expect(StyleSheet.flatten(note.props.style).bottom).toBe(sys.space.base + BAR);
   });
 });
 
@@ -3433,6 +3603,8 @@ describe('"Nisu na mapi": the way to the tasks that are not on the map, honest t
 
   test('P6: the number is the server\'s own count, the pages are read on until all of them are here, and no further', async () => {
     rows = [row('m1', at(44.81, 20.41)), row('online', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
+    // AREA has an authoritative point-free section count; ALL does not in the current server contract.
+    initial = { ...initial, area: [20.3, 44.7, 20.5, 44.9] };
     p6Seam = { ...p6Seam_(), counts: counts(3), pageHasMore: true }; await render(); await layOutBody(800);
     // three are not on the map, though only one of them is loaded: the row says what the server counted
     expect(texts(entry()[0])).toBe('3 nisu na mapi');
@@ -3452,6 +3624,7 @@ describe('"Nisu na mapi": the way to the tasks that are not on the map, honest t
   });
 
   test('the lens goes by itself when nothing is left off the map, and with the scope of the account', async () => {
+    initial = { ...initial, area: [20.3, 44.7, 20.5, 44.9] };
     rows = mixed(); p6Seam = { ...p6Seam_(), counts: counts(2) }; await render(); await layOutBody(800);
     await act(async () => entry()[0].props.onPress());
     expect(capsuleLabels()).toContain('Nisu na mapi');
@@ -3474,6 +3647,28 @@ describe('"Nisu na mapi": the way to the tasks that are not on the map, honest t
     expect(entry()).toHaveLength(0);
     collectionStatus = undefined; await update();
     expect(entry()).toHaveLength(1);
+  });
+
+  test('P6 ALL uses no invented total and keeps paging past mapped-only pages to find point-free work', async () => {
+    rows = [row('m1')];
+    p6Seam = { ...p6Seam_(), counts: { ...counts(0, 3), inArea: 0 }, pageHasMore: true };
+    await render();
+    expect(texts(entry()[0])).toBe('Nisu na mapi');
+    await act(async () => entry()[0].props.onPress());
+    expect(cards()).toEqual([]);
+    expect(texts(countLine())).toBe('Nisu na mapi · učitano: 0');
+    expect(p6Seam.onNextPage).toHaveBeenCalledTimes(1);
+    // A page with no off-map result must not make the pagination effect stall.
+    rows = [...rows, row('m2')]; await update();
+    expect(p6Seam.onNextPage).toHaveBeenCalledTimes(2);
+    rows = [...rows, row('r1', { priblizno: null, detalji: { rezimLokacije: 'REMOTE' } })];
+    p6Seam = { ...p6Seam, pageHasMore: false }; await update();
+    expect(cards()).toEqual(['r1']);
+    expect(texts(countLine())).toBe('1 zadatak');
+    expect(p6Seam.onNextPage).toHaveBeenCalledTimes(2);
+    await act(async () => quick('Nisu na mapi').props.onPress());
+    expect(cards()).toEqual(['m1', 'm2', 'r1']);
+    expect(texts(entry()[0])).toBe('1 nije na mapi');
   });
 });
 

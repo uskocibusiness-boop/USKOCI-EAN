@@ -162,6 +162,10 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
       }
       const next = await aiNeedV2Izvor.loadConversation(id);
       if (!current() || !next || next.conversationId !== id) return unavailable();
+      // A canonical OPEN read settles an earlier abandon attempt without
+      // discarding the typed draft. An unavailable read keeps that attempt
+      // unresolved and blocks a second command until the person checks again.
+      if (abandoning.current && next.status === 'OPEN') abandoning.current = false;
       // Persisted FAILED after dispatch is terminal: SQL cannot reclaim this key
       // or complete a late attempt. PROCESSING (including expired) stays unknown.
       const terminalFailure = turn?.state === 'FAILED' && recovery?.providerDispatched && !turn.retryAllowed;
@@ -215,14 +219,14 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
   const renderedFocus = focus.current;
   const isCurrent = () => renderedFocus !== null && focus.current === renderedFocus && currentView.current === view
     && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
-  const canAct = () => isCurrent() && !navigating.current && !editor.loading && !editor.busy && !editor.uncertain && !!stanje;
+  const canAct = () => isCurrent() && !navigating.current && editor.loaded && !editor.loading && !editor.busy && !editor.uncertain && !!stanje;
   const navigate = (action: () => void) => { if (!isCurrent() || navigating.current) return;
     navigating.current = true; voice.controller.cancel('navigation'); action(); };
   const back = () => navigate(() => router.canGoBack() ? router.back() : router.replace('/potrebe'));
   const pending = request.current;
   const knownRetry = !!pending?.body && (!pending.locationContext || dialogueEnabled) && turn?.clientRequestId === pending.id && turn.retryAllowed;
   const writable = stanje?.status === 'OPEN' && stanje.safety !== 'BLOCK' && !abandoning.current;
-  const canSubmit = writable && !editor.loading && !radi && !editor.uncertain && (!pending || knownRetry);
+  const canSubmit = writable && editor.loaded && !editor.loading && !radi && !editor.uncertain && (!pending || knownRetry);
 
   const submitTurn = async (body: string, submittedDraft: SubmittedDraft | null = null, pointLease: LocationReplyLease | null = null, image?: { base64: string; mimeType: string }) => {
     if (!canAct() || !canSubmit || (!body && !image) || (pointLease && !pointLease.isCurrent())) { pointLease?.cancel(); return; }
@@ -422,6 +426,19 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
   // Starting over is a visible action. Never erase a journal or leave a still-unconfirmed write behind.
   const restartBlocked = () => !canAct() || !restartOwner.current || !!request.current || voice.controller.getSnapshot().phase !== 'IDLE'
     || (!!razgovorId && !photos.loaded) || photos.busy || !!photos.working || photos.unconfirmed || !!photoSourceAfterOpen || !!locationFlight.current;
+  const abandonAndRead = async (expectedId: string, owns: () => boolean): Promise<Ishod<IntakeSnapshot>> => {
+    // A lost or rejected command receipt is not proof that the server kept the
+    // conversation OPEN. Read exactly the owned conversation before deciding.
+    try { await aiNeedV2Izvor.abandonConversation(expectedId); } catch { /* Readback is authoritative. */ }
+    if (!owns()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
+    const confirmed = await read();
+    if (!owns()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
+    if (!confirmed.ok) return confirmed;
+    if (confirmed.podatak.conversation.conversationId !== expectedId
+      || confirmed.podatak.conversation.status !== 'ABANDONED' || request.current)
+      return { ok: false, kod: 'AI_INTAKE_ABANDON_UNCONFIRMED', poruka: 'Ne znamo da li je razgovor napušten. Proveri stanje.' };
+    return confirmed;
+  };
   const restart = () => {
     if (restartBlocked() || stanje?.status !== 'OPEN' || stanje.safety === 'BLOCK' || stanje.review.boundNeedId) return;
     const owner = restartOwner.current;
@@ -433,13 +450,8 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
         if (!razgovorId) { navigate(() => router.replace({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } })); return; }
         return editor.save(async () => {
           abandoning.current = true;
-          const result = await aiNeedV2Izvor.abandonConversation(razgovorId);
-          if (!ownsRestart()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
-          if (!result.ok) return result;
-          const confirmed = await read();
-          if (!ownsRestart()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
-          if (confirmed.ok && confirmed.podatak.conversation.conversationId === razgovorId
-            && confirmed.podatak.conversation.status === 'ABANDONED' && !request.current)
+          const confirmed = await abandonAndRead(razgovorId, ownsRestart);
+          if (confirmed.ok)
             navigate(() => router.replace({ pathname: '/nova', params: { entryKey: noviUuidZahtevId() } }));
           return confirmed;
         });
@@ -457,10 +469,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
       // Returned so the confirmation waits on it (a busy confirm) instead of closing before the command is sent.
       return editor.save(async () => {
         abandoning.current = true;
-        const result = await aiNeedV2Izvor.abandonConversation(razgovorId);
-        if (!isCurrent()) return { ok: false, kod: 'AI_INTAKE_CHANGED', poruka: 'Ponovo otvori razgovor.' };
-        if (!result.ok) return result;
-        return read();
+        return abandonAndRead(razgovorId, isCurrent);
       });
     };
     if (abandoning.current) { void submit(); return; }
@@ -500,10 +509,14 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
           ? 'Asistent nije uzeo u obzir prethodnu poruku. Izmeni je i pošalji ponovo.' : null;
 
   return <><IntakePresentation conversationKey={`${accountId}:${accountRevision}:${resumeId ?? openRequestId}`}
+    statusTitle={!sending && pending ? knownRetry ? 'Poruka čeka ponovni pokušaj'
+      : turn?.state === 'PROCESSING' && !editor.data?.recovery?.canCancel ? 'Poruka je u obradi' : 'Ishod nije potvrđen' : undefined}
     correction={correction && writable ? { ...correction, onDismiss: () => { if (canAct() && !request.current) setCorrection(null); } } : undefined}
     conversationOwnerKey={`${accountId}:${accountRevision}`}
     turnRoles={turnRoles.current}
-    conversation={stanje} value={unos} busy={radi} error={conversationErrorLine(greska, { hasDraft: stanje.facts.length > 0, unconfirmedSend: unconfirmedSend.current, statusCopy })}
+    conversation={stanje} value={unos} busy={radi}
+    busyLabel={radi && !sending ? abandoning.current ? 'Proveravamo da li je razgovor napušten…' : 'Proveravamo promenu…' : undefined}
+    error={conversationErrorLine(greska, { hasDraft: stanje.facts.length > 0, unconfirmedSend: unconfirmedSend.current, statusCopy })}
     canSubmit={!!canSubmit && !voiceBusy && !!(request.current?.body ?? unos).trim()}
     canEdit={!!canSubmit && !voiceBusy && !request.current} pending={!!request.current} statusCopy={statusCopy}
     locationDialogueEnabled={dialogueEnabled} onLocationPromptReady={registerLocationPrompt}
@@ -523,7 +536,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
     // back through `onTranscript` above, so each guard on sending stays here.
     voice={stanje.status === 'OPEN' ? { controller: voice.controller, state: voice.state, disabled: !canSubmit || !!request.current,
       onKeepText: keepTranscript } : undefined}
-    canReview={!!razgovorId && stanje.facts.length > 0 && !radi && !editor.loading && !editor.uncertain && !request.current}
+    canReview={!!razgovorId && stanje.facts.length > 0 && editor.loaded && !radi && !editor.loading && !editor.uncertain && !request.current}
     reviewDisabledReason={voiceBusy ? 'Završi govor pre otvaranja pregleda.' : writable ? photos.continueReason : null}
     reviewLabel={stanje.review.boundNeedId ? 'Pregledaj izmene' : 'Pregledaj zadatak'}
     showReadback={!sending && !!(editor.uncertain || ((request.current || abandoning.current) && stanje.status === 'OPEN') || greska)}
@@ -532,7 +545,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
     cancelPendingDisabled={!canAct()}
     cancelPendingDispatched={editor.data?.recovery?.providerDispatched}
     showAbandon={!!razgovorId && stanje.status === 'OPEN' && !stanje.review.boundNeedId}
-    abandonDisabled={radi || editor.loading || editor.uncertain}
+    abandonDisabled={radi || !editor.loaded || editor.loading || editor.uncertain}
     abandonLabel={abandoning.current ? 'Pokušaj ponovo da napustiš razgovor' : 'Napusti razgovor'}
     onNewTask={stanje.status === 'COMPLETED' || stanje.status === 'ABANDONED' ? noviZadatak : undefined}
     newTaskDisabled={!canAct() || !!request.current}

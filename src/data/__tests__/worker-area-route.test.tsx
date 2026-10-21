@@ -43,6 +43,8 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
 jest.mock('../../ui/location/ResolvedPinMap', () => ({ ResolvedPinMap: 'ResolvedPinMap' }));
 
 import Route, { WorkerLocationForm } from '../../app/(app)/profil/lokacija';
+import { QuietReadState } from '../../ui/v2/QuietReadState';
+import { SkeletonList } from '../../ui/system/Skeleton';
 
 const location = (): WorkerLocation => ({ accountId: 'account-a', profileId: 'worker-a', revision: 'revision-a',
   operatingCountryCode: 'RS', city: 'Novi Sad', radiusKm: 25, approximatePosition: null } as WorkerLocation);
@@ -74,6 +76,23 @@ describe('saved profile point confirmation', () => {
   beforeEach(() => { mockParams = { mode: 'point', profileId: 'worker-a' }; });
   const map = () => tree.root.findByType('ResolvedPinMap' as any);
   const update = async () => { await act(async () => tree.update(<Route />)); };
+
+  it('waits for the owned area and work mode without presenting an editable map or gray task-shaped rows', async () => {
+    mockEditor = idle({ data: null, loading: true });
+    await render();
+    expect(tree.root.findAllByType(QuietReadState)).toHaveLength(1);
+    expect(texts()).toContain('Učitavamo područje rada…');
+    expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
+    expect(tree.root.findAllByType('ResolvedPinMap' as any)).toHaveLength(0);
+    expect(buttons('Potvrdi tačku')).toHaveLength(0);
+
+    mockEditor = idle(); mockModeView = { kind: 'loading' }; await update();
+    expect(tree.root.findAllByType(QuietReadState)).toHaveLength(1);
+    expect(texts()).toContain('Proveravamo način rada…');
+    expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
+    expect(buttons('Potvrdi tačku')).toHaveLength(0);
+    expect(mockSaveCall).not.toHaveBeenCalled();
+  });
 
   it('has only a human-selected coarse point, preserves saved city/country/radius and confirms the owned revision', async () => {
     mockWriter.mockResolvedValue({ ok: true, podatak: { location: location() } });

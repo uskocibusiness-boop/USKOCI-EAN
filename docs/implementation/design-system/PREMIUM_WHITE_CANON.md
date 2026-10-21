@@ -2,6 +2,26 @@
 
 **Aktivan vizuelni i UX canon · 18.10.2026.**
 
+### Dopuna vlasnika 21.10.2026 — mapa i međustanja
+
+Najnovija odluka menja raniji opis gornje pretrage na mapi: gornja površina ima jednu jasnu komandu **Filteri**, bez zasebne pretrage i menija sa tri tačke. Pretraga mesta pripada filterima; potvrđen predlog lokacije pomera mapu i osvežava zadatke te oblasti. Filteri povezuju lokaciju, rad na lokaciji/na daljinu/oba, fiksnu cenu/ponude/oba i termin. Najmanja navedena fiksna cena sme da bude operativna tek uz potvrđen serverski filter; režim „Oba” tada zadržava i zadatke koji traže ponude. Mapa zadržava pinove, kameru i svoj postojeći panel.
+
+Prvo čitanje svakog ekrana jasno kaže šta se proverava, bez sivih lažnih kartica koje liče na rezultat. Osvežavanje već učitanog sadržaja ne sklanja potvrđene podatke. Greška, prazno stanje i nepoznat ishod upisa imaju različit tekst i sledeću radnju. Opcije AI razgovora ostaju imenovane i dostupne u razgovoru; mala neobjašnjena komanda sa tri tačke nije jedini put do važne radnje. Naslov razgovora koristi potvrđeni sadržaj, a trajno brisanje istorije se ne prikazuje dok ne postoji stvaran ugovor i provera ishoda.
+
+### Dopuna vlasnika 20.10.2026 — celovita native integracija
+
+Ova dopuna ima prednost nad ranijim vizuelnim odlukama:
+
+- Mapa, pin/kartica, kamera, gestovi i postojeći panel zadržavaju ponašanje. Doteruju se gornja pretraga, filteri i jasan pristup zadacima na daljinu. Mapa nije deo opšte zamene donjih panela.
+- Svi ostali aplikacioni modali, izbori i potvrde otvaraju se u sredini, preko zatamnjene pozadine, bez ulaska sa dna. Dugi tokovi zadržavaju poseban ekran; dugačak sadržaj modala skroluje uz dostupne naslov, zatvaranje i radnje. Sistemski dijalozi OS-a zadržavaju sistemsko ponašanje.
+- Radar se uklanja iz buduće kompozicije. Priprema se nova dosledna porodica kvalitetnih 2.5D ilustracija u prirodnim bojama po predmetu i nameni; plavi papirni avion označava prijave/slanje. Sve ilustracije ne moraju biti zelene. Navigacija i svakodnevne komande ostaju mirni, čitljivi vektorski simboli.
+- Postojeći USKOČI robot i identitet ostaju osnova za AI. Svaka posebna poza ili animacija mora imati stvaran asset i implementaciju; izgled robota ne dokazuje snimanje, govor ili završen upis.
+- Dobra grupisana organizacija Podešavanja i Profila iz Figme prenosi se u postojeći klijent. Jedan nalog može objavljivati i izvršavati; uloga se određuje prema konkretnom zadatku/Dogovoru.
+- Obuhvat je celina: glavni i pomoćni ekrani, obe perspektive, modali, prazna/loading/error/offline/stale/pending/unknown/success stanja, Back, nacrti, motion i postojeće veze sa servisima. Figma demonstracija ne postaje serverska funkcija samim prenosom izgleda.
+- Novi krug ne instalira međupakete. Izvor, asseti i ciljane provere rade se tokom integracije; objedinjena provera koda i ugovora prethodi jednom probnom build-u/instalaciji. Tastatura, gestovi i stvarni tokovi dokazuju se posle te instalacije. Ovo ne tvrdi da su već dokazani.
+
+Status implementacije i otvorene razlike vode se u postojećem registru i `docs/current/NATIVE_FULL_INTEGRATION_20261020.md`.
+
 Ovo je jedini aktuelni canon izgleda i organizacije ekrana. Primenjuje poslednju odluku vlasnika: disciplina, preglednost i osećaj kvaliteta kao referenca najboljih potrošačkih aplikacija, uključujući Airbnb, uz originalan USKOČI identitet. Ne kopiraju se tuđi logo, ilustracije, paleta, tekstovi niti konkretna kompozicija. Foundation ovog canona je odobren za primenu. Opisi željenog proizvoda nisu potvrda da ih instalirani APK ili server već podržavaju. Ovo nije drugi statusni plan: status ostaje u `docs/control/redovi.json`, postojećem LIVE planu i [aktuelnom fizičkom preseku](../../current/CURRENT_BASELINE_20261018.md).
 
 ## 1. Autoritet i tri vrste pravila
@@ -29,7 +49,7 @@ Kod je numerički izvor: `src/ui/system/tokens.ts`, `layout.ts`, `textScale.ts` 
 
 ## 3. Ikone, fotografije i logo
 
-**Sadržaj:** originalne dvobojne 2.5D ilustracije u zelenoj i toploj narandžastoj, uz neutralne i semantičke detalje. Dubina dolazi iz jasnih velikih oblika, diskretne senke i doslednog svetla. Ne iz tačnog starog broja SVG čvorova. Na malim veličinama koristi se čitljiv pojednostavljen rez istog značenja.
+**Sadržaj:** originalne 2.5D ilustracije sa prirodnim bojama po predmetu: plavi papirni avion, topli kalendar, neutralni metal/alati, raznovrsni ljudi i odgovarajući statusni tonovi. Zelena i narandžasta ostaju identitet, ali ne obavezna boja svakog predmeta. Dubina dolazi iz jasnih velikih oblika, diskretne senke i doslednog svetla. Na malim veličinama koristi se čitljiv pojednostavljen rez istog značenja.
 
 **Kontrole:** strelica, zatvaranje, filter, pretraga, slanje i glavna navigacija pripadaju doslednoj jasnoj porodici kontrolnih glyph-ova. Donja navigacija koristi jednostavne prepoznatljive simbole sa nazivima; bogate 2.5D ilustracije pripadaju sadržaju gde pomažu prepoznavanju namere. Dodirni prostor je veći od samog crteža. Akcija ima razumljivo dostupno ime; dekoracija se ne čita dva puta.
 
@@ -55,7 +75,7 @@ Povratak vraća filtere, položaj liste i mapu gde je korisnik bio. Deep link i 
 
 Ulaz treba da stane pregledno na običan ekran, uz bezbedan scroll kada tekst ili ekran to zahtevaju. Logo je kvalitetan i miran nakon kratkog uvoda. „Prijavi se“ i „Registruj se“ su vidljivi i dostupni, bez čekanja dekorativne animacije. Željeni gostujući tok dozvoljava probni AI nacrt uz očuvan prelazak na prijavu i eksplicitnu objavu. Audit 18.10. nije našao takav proizvodni tok: trenutni ulaz vodi u registraciju, a `/nova` zahteva prijavu. Ne nuditi „probaj bez naloga“ ili „1-klik prijavu“ dok stvarni ugovor i ponašanje to ne podrže.
 
-Početna daje dve jasne namere: **Objavi zadatak** i **Uskoči i zaradi**. Njihova težina i veličina mogu biti različite, ali obe moraju biti razumljive. Radar pripada kartici „Uskoči i zaradi“ prema ispravci vlasnika; može imati kratko smisleno kretanje uz aktivan ekran, bez stalnog ometanja drugih sadržaja.
+Početna daje dve jasne namere: **Objavi zadatak** i **Uskoči i zaradi**. Njihova težina i veličina mogu biti različite, ali obe moraju biti razumljive. Najnovija odluka vlasnika uklanja radar: ova namera dobija novu predmetnu ilustraciju pronalaženja rada, različitu od plavog aviona za prijave. Raniji radar ostaje samo istorijski prikaz.
 
 Ispod su samo korisne stvarne stavke: nastavi nacrt/razgovor, aktuelni zadaci, moje obaveze ili ono što čeka odluku. „Zadaci za mene“ se prikazuje tek za stvarno potvrđenu personalizovanu preporuku; postojeći pregled javnih zadataka bez sopstvenih nije dokaz matching-a. Ne vraćati opštu „Bezbedan dogovor“ promotivnu karticu kao obavezni blok. Prazni odeljci, ponovljene prečice i statistike bez vrednosti ne zauzimaju pola ekrana. Redosled se menja prema relevantnosti, bez izmišljanja događaja.
 

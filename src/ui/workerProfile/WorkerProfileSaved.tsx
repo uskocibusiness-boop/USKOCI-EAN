@@ -7,13 +7,11 @@ import { FactArt } from '../system/FactArt';
 import { ClockArt } from '../system/ClockArt';
 import { layout, ruleWidth } from '../system/layout';
 import { ListRow } from '../system/ListRow';
-import { brandAction, sys } from '../system/tokens';
-import { InfoTitle } from '../settings/InfoTitle';
+import { brandAction, profileLift, sys } from '../system/tokens';
 import { SettingsGroup, SettingsRow } from '../settings/SettingsPresentation';
 import { V2Action } from '../v2/V2Action';
 import { NameDifference, namesDiffer } from './NameDifference';
 import type { WorkerDraft } from './workerProfileDraft';
-import { toolsAndVehiclesNote } from './workerProfileFacts';
 import type { WorkerExecutionModeView } from '../../hooks/useWorkerExecutionModes';
 import type { WorkerAiPart } from './workerProfileFacts';
 
@@ -22,8 +20,6 @@ export type SavedProfilePath = '/profil/lokacija' | '/profil/dostupnost';
 /** Profile sections accepted by contextual AI edits. */
 export type SavedProfilePart = 'skills' | 'tools' | 'vehicles';
 
-/** Short equipment lists fit in their row; longer lists have a disclosure. */
-export const KIT_INLINE_MAX = 3;
 /** Number of services shown before the disclosure. */
 export const SKILL_CHIPS_MAX = 8;
 
@@ -31,7 +27,8 @@ export const SKILL_CHIPS_MAX = 8;
 export type AvailableNowControl = { value: boolean; onEdit: () => void };
 
 /**
- * The saved card reads all canonical facts. Disclosures reveal long lists without
+ * The saved card reads the MVP facts. Optional legacy equipment remains in data,
+ * but does not add a separate section to the ordinary profile reading. Disclosures reveal long lists without
  * entering an editor or sending a command. Editing is an explicit conversation action.
  * The route owns status, the AI entry and restrictions on a suspended profile.
  */
@@ -51,7 +48,7 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
   /** A separate, explicit confirmation of the saved area's approximate point. */ confirmMap?: () => void;
 }) {
   const grad = draft.grad.trim() ? cityLabel(draft.grad) : '';
-  const area = grad ? (draft.radius ? `${grad} · ${draft.radius} km` : grad) : '';
+  const area = grad ? (draft.radius ? `${grad} · do ${draft.radius} km` : grad) : '';
   const name = accountName?.trim() || draft.ime.trim();
   const confirmed = executionModes?.kind === 'confirmed' ? executionModes.modes : [];
   const onSite = confirmed.includes('ON_SITE'), remote = confirmed.includes('REMOTE');
@@ -64,11 +61,11 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
         <View style={s.cardRow}>
           <View style={s.face}>{face}</View>
           <View style={s.cardCopy}>
-            {name ? <T variant="bodyStrong" accessibilityRole="header" style={s.ink}>{name}</T> : null}
-            {rating}
+            {name ? <T variant="title" accessibilityRole="header" style={s.ink}>{name}</T> : null}
           </View>
         </View>
         {draft.biografija.trim() ? <Biography text={draft.biografija} /> : null}
+        {rating ? <View style={s.rating}><View pointerEvents="none" style={s.identityRule} />{rating}</View> : null}
       </View> : null}
       {status}
       {openConversation && showConversationAction && !readOnly ? <V2Action label="Uredi kroz razgovor" disabled={disabled} onPress={() => { if (!disabled) openConversation(); }} style={brandAction} /> : null}
@@ -76,35 +73,29 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
     {onUseAccountName && namesDiffer(draft.ime, accountName)
       ? <NameDifference workName={draft.ime} accountName={accountName!} disabled={disabled || nameWorking || readOnly} working={nameWorking} onUse={onUseAccountName} /> : null}
     {/* What the worker does and where: two rows of ONE group, every picture in the same slot, every title at the same edge. */}
-    <SettingsGroup>
-      <SkillsRow skills={draft.vestine} />
-      <ListRow title="Način rada" subtitle={modeLabel} leading={<FactArt kind={remote && !onSite ? 'remote' : 'tasks'} size={32} />}
-        last={!onSite && !grad} />
-      {executionModes?.kind === 'unavailable' && refreshModes ? <V2Action label="Proveri način rada" tone="neutral" kind="quiet" compact onPress={refreshModes} /> : null}
-      {onSite ? readOnly ? <ListRow title="Gde" value={area || 'Nije navedeno'} leading={<FactArt kind="pin" size={32} />} />
-        : <SettingsRow label="Gde" value={area || undefined} detail={area ? undefined : 'Izaberi gde želiš da radiš'} icon={<FactArt kind="pin" size={32} />}
-          disabled={disabled} onPress={() => openConversation ? openConversation('area') : navigate('/profil/lokacija')} last />
-        : grad ? <ListRow title="Grad profila" value={grad} leading={<FactArt kind="pin" size={32} />} last /> : null}
-    </SettingsGroup>
+    <View testID="worker-profile-work-card" style={s.sectionCard}>
+      <T variant="heading" accessibilityRole="header">Kako radiš</T>
+      <SettingsGroup>
+        <SkillsRow skills={draft.vestine} />
+        <ListRow title="Način rada" subtitle={modeLabel} leading={<FactArt kind={remote && !onSite ? 'remote' : 'tasks'} size={32} />}
+          last={!onSite && !grad} />
+        {executionModes?.kind === 'unavailable' && refreshModes ? <V2Action label="Proveri način rada" tone="neutral" kind="quiet" compact onPress={refreshModes} /> : null}
+        {onSite ? readOnly ? <ListRow title="Područje dolaska" value={area || 'Nije navedeno'} leading={<FactArt kind="pin" size={32} />} />
+          : <SettingsRow label="Područje dolaska" value={area || undefined} detail={area ? undefined : 'Reci gde dolaziš na zadatak'} icon={<FactArt kind="pin" size={32} />}
+            disabled={disabled} onPress={() => openConversation ? openConversation('area') : navigate('/profil/lokacija')} last />
+          : grad ? <ListRow title="Grad profila" value={grad} leading={<FactArt kind="pin" size={32} />} last /> : null}
+      </SettingsGroup>
+    </View>
     {onSite && !readOnly && confirmMap ? <V2Action label="Potvrdi tačku na mapi" tone="neutral" kind="quiet" compact disabled={disabled}
       onPress={() => { if (!disabled) confirmMap(); }} /> : null}
-    <SettingsGroup title="Kada">
-      {availableNow && !readOnly
-        ? <SettingsRow label="Dostupnost" value={availableNow.value ? 'Mogu odmah' : 'Mogu odmah: isključeno'} valuePlacement="below"
-          icon={<ClockArt size={32} quiet={disabled} />} disabled={disabled} onPress={() => { if (!disabled) availableNow.onEdit(); }} />
-        : <ListRow leading={<ClockArt size={32} quiet />} title="Mogu odmah" value={draft.dostupanOdmah ? 'Uključeno' : 'Isključeno'} />}
-      {!readOnly && !availableNow ? <SettingsRow label="Nedeljni raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled}
-        onPress={() => openConversation ? openConversation('time') : navigate('/profil/dostupnost')} last /> : null}
-    </SettingsGroup>
-    {draft.alati.length || draft.vozila.length ? <SettingsGroup>
-      <View testID="worker-profile-kit" style={s.group}>
-        <InfoTitle title="Oprema" info={[toolsAndVehiclesNote()]} testID="worker-kit-info" />
-        <View>
-          {draft.alati.length ? <KitRow label="Alat" art="tool" items={draft.alati} last={!draft.vozila.length} /> : null}
-          {draft.vozila.length ? <KitRow label="Vozila" art="vehicle" items={draft.vozila} last /> : null}
-        </View>
-      </View>
-    </SettingsGroup> : null}
+    <View testID="worker-profile-time-card" style={s.sectionCard}><SettingsGroup title="Kada">
+        {availableNow && !readOnly
+          ? <SettingsRow label="Dostupnost" value={availableNow.value ? 'Mogu odmah' : 'Mogu odmah: isključeno'} valuePlacement="below"
+            icon={<ClockArt size={32} quiet={disabled} />} disabled={disabled} onPress={() => { if (!disabled) availableNow.onEdit(); }} />
+          : <ListRow leading={<ClockArt size={32} quiet />} title="Mogu odmah" value={draft.dostupanOdmah ? 'Uključeno' : 'Isključeno'} />}
+        {!readOnly && !availableNow ? <SettingsRow label="Nedeljni raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled}
+          onPress={() => openConversation ? openConversation('time') : navigate('/profil/dostupnost')} last /> : null}
+      </SettingsGroup></View>
   </View>;
 }
 
@@ -127,21 +118,6 @@ function SkillsRow({ skills }: { skills: readonly string[] }) {
   </View>;
 }
 
-/** A long equipment list opens in place without entering an editor. */
-function KitRow({ label, art, items, last = false }: { label: string; art: 'tool' | 'vehicle'; items: readonly string[]; last?: boolean }) {
-  const [expanded, setExpanded] = useState(false);
-  const inline = items.length > 0 && items.length <= KIT_INLINE_MAX;
-  return <View>
-    <ListRow title={label} leading={<FactArt kind={art} size={32} />} last={last || items.length > KIT_INLINE_MAX}
-      subtitle={inline ? items.join(', ') : items.length === 0 ? 'Nije navedeno' : undefined}
-      value={items.length > KIT_INLINE_MAX ? String(items.length) : undefined} />
-    {items.length > KIT_INLINE_MAX ? <View style={s.details}>
-      {expanded ? items.map((item, index) => <T key={`${index}:${item}`} selectable variant="note">{item}</T>) : null}
-      <Disclosure label={label} expanded={expanded} onPress={() => setExpanded(value => !value)} />
-    </View> : null}
-  </View>;
-}
-
 function Disclosure({ label, expanded, onPress }: { label: string; expanded: boolean; onPress: () => void }) {
   return <Press accessibilityRole="button" accessibilityLabel={`${expanded ? 'Prikaži manje' : 'Prikaži sve'}: ${label}`}
     accessibilityState={{ expanded }} onPress={onPress} haptic="select" style={s.disclosure}>
@@ -160,19 +136,20 @@ function Biography({ text }: { text: string }) {
 
 const s = StyleSheet.create({
   ink: { color: sys.color.ink },
-  saved: { gap: sys.space.xl },
+  saved: { gap: layout.gutter },
   identity: { gap: sys.space.base },
-  card: { gap: sys.space.base },
+  card: { ...profileLift, backgroundColor: sys.color.surface, borderRadius: 24, padding: layout.gutter, gap: sys.space.base },
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   face: { alignItems: 'center', justifyContent: 'center' },
   cardCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
+  rating: { gap: sys.space.md },
+  identityRule: { height: ruleWidth, backgroundColor: sys.color.line },
+  sectionCard: { ...profileLift, backgroundColor: sys.color.surface, borderRadius: 24, padding: layout.gutter, gap: sys.space.md },
   slot: { width: layout.slot, alignItems: 'center', justifyContent: 'center' },
   skillsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingVertical: sys.space.md, minHeight: layout.rowMin },
   skillsCopy: { flex: 1, minWidth: 0, gap: sys.space.sm },
   services: { gap: sys.space.sm },
-  // The title of the equipment and its rows stand 12 apart, as every `Section` does.
   group: { gap: layout.group },
-  details: { marginLeft: layout.slot + sys.space.md, gap: sys.space.sm },
   disclosure: { minHeight: layout.touch, justifyContent: 'center', alignSelf: 'flex-start' },
   // The divider is not a border: it begins where the words begin, like the one of a `ListRow`.
   rule: { position: 'absolute', left: layout.slot + sys.space.md, right: 0, bottom: 0, height: ruleWidth, backgroundColor: sys.color.line },

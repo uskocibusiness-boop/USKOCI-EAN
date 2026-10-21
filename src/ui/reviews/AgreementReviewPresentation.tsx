@@ -16,6 +16,7 @@ import { plural } from '../system/plural';
 import { brandAction, sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
+import { QuietReadState } from '../v2/QuietReadState';
 import { RatingStar, STARS_WIDTH, STAR_SLOT, StarGlow } from './RatingStar';
 import { ReviewCommentField, type ReviewCommentFieldView } from './ReviewCommentField';
 import { ReviewCommentText } from './ReviewCommentText';
@@ -97,7 +98,7 @@ export function AgreementReviewPresentation({ backLabel, onBack, view, retry, no
     : null;
   const [errorTitle, errorBody] = view.kind === 'error' ? firstSentence(view.message) : ['', null];
   return <Screen kind="flow" keyboardAvoiding={keyboardAware} header={<DetailTopBar title="Ocena saradnje" backLabel={backLabel} onBack={onBack} />} footer={footer}>
-      {loading ? <StateView kind="loading" title="Učitavamo ocenu…" skeleton={{ count: 1, variant: 'person' }} />
+      {loading ? <QuietReadState art="star" title="Učitavamo ocenu…" body="Proveravamo Dogovor i mogućnost ocenjivanja." />
         : view.kind === 'error' ? <StateView kind="error" title={errorTitle} body={errorBody ?? undefined}
           primary={{ label: retry.label, onPress: retry.onPress, disabled: retry.disabled }} />
         : view.kind === 'saved' ? <SavedRating view={view} person={person} face={face} />

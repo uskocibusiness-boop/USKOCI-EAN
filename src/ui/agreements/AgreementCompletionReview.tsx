@@ -1,9 +1,8 @@
-import { Modal, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View } from 'react-native';
 import type { DogovorProjekcija } from '../../contracts/projections';
 import { readableTitle } from '../../data/needDetailPresentation';
-import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
-import { ProductFact, ProductFacts, ProductHeader } from '../product/ProductDetails';
+import { ProductFact, ProductFacts } from '../product/ProductDetails';
+import { ProductSheet } from '../product/ProductSheet';
 import { osoba } from '../system/plural';
 import { BEZ_IZNOSA } from '../../lib/novac';
 import { brandAction, sys, inset } from '../system/tokens';
@@ -14,12 +13,10 @@ import { V2Action } from '../v2/V2Action';
 export function AgreementCompletionReview({ agreement, worker, confirm, back }: {
   agreement: DogovorProjekcija; worker: boolean; confirm: () => void; back: () => void;
 }) {
-  const reduced = useSystemReducedMotion();
   const other = agreement.ucesnici.find(person => !person.viSte);
-  return <Modal visible presentationStyle="pageSheet" animationType={reduced ? 'none' : 'slide'} onRequestClose={back}>
-    <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-      <ProductHeader title="Pregled završetka" backLabel="Nazad na Dogovor" back={back} />
-      <ScrollView contentContainerStyle={s.content}>
+  return <ProductSheet title="Pregled završetka" closeLabel="Nazad na Dogovor" onClose={back}
+    footer={() => <V2Action label={worker ? 'Da, zadatak je gotov' : 'Da, potvrdi završetak'} onPress={confirm} style={brandAction} />}>
+    {() => <>
         <View style={s.intro}>
           <T accessibilityRole="header" variant="title" style={s.title}>{worker ? 'Zadatak je gotov?' : 'Potvrdi završetak'}</T>
           {/* One sentence each (J5): what the other side gets to do, or what is being confirmed. What follows is on the page they return to. */}
@@ -45,19 +42,12 @@ export function AgreementCompletionReview({ agreement, worker, confirm, back }: 
             ? 'Prijavljeni problem ostaje sačuvan. Automatski završetak je zaustavljen.'
             : 'Prijavljeni problem ostaje sačuvan. Ovom potvrdom ipak završavaš Dogovor; problem sam po sebi ne određuje krivicu ili dug.'}</T>
         </View> : null}
-      </ScrollView>
-      <View style={s.footer}>
-        <V2Action label={worker ? 'Da, zadatak je gotov' : 'Da, potvrdi završetak'} onPress={confirm} style={brandAction} />
-      </View>
-    </SafeAreaView>
-  </Modal>;
+    </>}
+  </ProductSheet>;
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: sys.color.surface },
-  content: { padding: 20, gap: 24, paddingBottom: 28 },
   intro: { gap: 12 }, title: { color: sys.color.ink }, ink: { color: sys.color.ink },
   terms: { gap: 8 },
   notice: { ...inset, padding: 16, gap: 8, backgroundColor: sys.color.warnSoft },
-  footer: { paddingHorizontal: 20, paddingVertical: 12, borderTopWidth: 1, borderColor: sys.color.line },
 });

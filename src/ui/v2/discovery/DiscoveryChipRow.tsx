@@ -16,18 +16,18 @@ export type ScopeKey = 'all' | 'forMe';
 export const FOR_ME = 'Za mene';
 
 /**
- * The one row of capsules over the map, under the search pill and the round filters button (UX plan 2.13 and section P; the owner's phone of 7 and 8 Oct
+ * The one row of capsules over the map, under the primary Filteri control (UX plan 2.13 and section P; the owner's phone of 7 and 8 Oct
  * 2026; the approved plan, U1: "Za mene · Danas · Ovaj vikend · Na daljinu · Sa iznosom", each only where the search really has it): the capsules that float
  * over the map, each raised off the tiles. It stands there at every height of the list and never moves into it: the list's own top line says only how
  * many tasks there are and in what order. It scrolls sideways, so a capsule cut by the edge says there is more.
  *
- * - "Na daljinu" comes first when available. "Za mene" follows: a capsule that is on or off, drawn only when the build says the server has the filter key (`forMeAvailable`,
+ * - "Na lokaciji" and "Na daljinu" lead when available. "Za mene" follows: a capsule that is on or off, drawn only when the build says the server has the filter key (`forMeAvailable`,
  *   DISCOVERY-ZAMENE): a control that does nothing is not shown. It used to be a two-part switch beside "Svi zadaci", which said "Svi zadaci"
  *   a second time under the pill and pushed the capsules off the screen.
  * - The rest are the quick choices the search really has and the tasks can back (the screen decides which), each writing into the same
  *   state as the filters, so there are never two sources of truth. What is on and has no capsule of its own stands here too, with its own ✕, so no
  *   condition filters the list unseen. "Moja lokacija" is not here: it is not a filter, it only moves the camera, so it stands above the list.
- * - The filters are not here: they have their own round button beside the pill (`DiscoverySearchBar`).
+ * - The full filters are opened by the primary control above this row (`DiscoverySearchBar`).
  */
 export function DiscoveryChipRow({ forMeAvailable = false, scope = 'all', onScope, chips, testID = 'discovery-chips' }: {
   forMeAvailable?: boolean;
@@ -36,12 +36,14 @@ export function DiscoveryChipRow({ forMeAvailable = false, scope = 'all', onScop
   testID?: string;
 }) {
   const remote = chips.find(chip => chip.key === 'where:remote');
+  const onsite = chips.find(chip => chip.key === 'where:onsite' && !chip.removable);
   return <ScrollView testID={testID} horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled"
     accessibilityLabel="Brzi filteri" style={s.rail} contentContainerStyle={s.chips}>
+    {onsite ? <Capsule key={onsite.key} label={onsite.label} selected={onsite.selected} hint={onsite.hint} onPress={onsite.onPress} /> : null}
     {remote ? <Capsule key={remote.key} label={remote.label} selected={remote.selected} removable={remote.removable} hint={remote.hint} onPress={remote.onPress} /> : null}
     {forMeAvailable ? <Capsule testID="chip-for-me" label={FOR_ME} selected={scope === 'forMe'} hint="Zadaci koji odgovaraju tvom radnom profilu."
       onPress={() => onScope?.(scope === 'forMe' ? 'all' : 'forMe')} /> : null}
-    {chips.filter(chip => chip.key !== remote?.key).map(chip => <Capsule key={chip.key} label={chip.label} selected={chip.selected} removable={chip.removable} hint={chip.hint} onPress={chip.onPress} />)}
+    {chips.filter(chip => chip.key !== remote?.key && chip.key !== onsite?.key).map(chip => <Capsule key={chip.key} label={chip.label} selected={chip.selected} removable={chip.removable} hint={chip.hint} onPress={chip.onPress} />)}
   </ScrollView>;
 }
 
@@ -64,7 +66,7 @@ const s = StyleSheet.create({
   rail: { flexGrow: 0, alignSelf: 'stretch' },
   chips: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base },
   touch: { minHeight: sys.touch.min, minWidth: sys.touch.min, justifyContent: 'center' },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 36, paddingVertical: sys.space.sm, paddingHorizontal: sys.space.md, borderRadius: sys.radius.pill,
+  chip: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, minHeight: 36, paddingVertical: sys.space.sm, paddingHorizontal: sys.space.sm, borderRadius: sys.radius.pill,
     borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface },
   chipOn: { backgroundColor: sys.color.greenSoft, borderColor: sys.color.green },
   chipText: { fontWeight: '500', color: sys.color.ink },

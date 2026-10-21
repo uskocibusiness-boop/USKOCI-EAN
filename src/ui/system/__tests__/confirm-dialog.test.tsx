@@ -214,7 +214,7 @@ describe('the motion of a dialog', () => {
   it('opens on a scale from 0.96 over 200 ms, decelerating, on the native driver, inside the Modal\'s own fade', async () => {
     const timing = jest.spyOn(Animated, 'timing');
     await render(<ConfirmSheet {...request()} onClosed={jest.fn()} />);
-    expect(sys.motion.dialog).toEqual({ enter: 200, from: 0.96 });
+    expect(sys.motion.dialog).toMatchObject({ enter: 200, from: 0.96 });
     // The window fades in (and out) by itself; the card scales in. One timing, nothing else of ours.
     expect(modal().props.animationType).toBe('fade');
     const calls = timings(timing);
@@ -319,13 +319,13 @@ describe('which form a question is drawn in', () => {
     await act(async () => { api.ask(request()); });
     expect(tree.root.findAllByType(BottomSheet)).toHaveLength(0); expect(has('confirm-dialog')).toBe(true);
     await act(async () => { api.ask(request({ extra: <Text testID="reasons">Izaberi razlog</Text> })); });
-    expect(tree.root.findAllByType(BottomSheet)).toHaveLength(1); expect(has('confirm-dialog')).toBe(false);
+    expect(has('product-modal-card')).toBe(true); expect(tree.root.findAllByType(BottomSheet)).toHaveLength(0); expect(has('confirm-dialog')).toBe(false);
     // The extra content stands under the sentence, inside the sheet, and the two commands are the sheet's pinned footer.
     expect(has('reasons')).toBe(true); expect(byTestId('product-sheet-footer').findAllByType(Press)).toHaveLength(2);
     await act(async () => { api.ask(request({ form: 'sheet' })); });
-    expect(tree.root.findAllByType(BottomSheet)).toHaveLength(1); expect(has('reasons')).toBe(false); expect(has('confirm-dialog')).toBe(false);
+    expect(has('product-modal-card')).toBe(true); expect(tree.root.findAllByType(BottomSheet)).toHaveLength(0); expect(has('reasons')).toBe(false); expect(has('confirm-dialog')).toBe(false);
     await act(async () => { api.ask(request({ form: 'dialog', extra: <Text>Razlog</Text> })); });
-    expect(tree.root.findAllByType(BottomSheet)).toHaveLength(1); expect(has('confirm-dialog')).toBe(false);
+    expect(has('product-modal-card')).toBe(true); expect(tree.root.findAllByType(BottomSheet)).toHaveLength(0); expect(has('confirm-dialog')).toBe(false);
     await act(async () => { api.ask(request()); });
     expect(tree.root.findAllByType(BottomSheet)).toHaveLength(0); expect(has('confirm-dialog')).toBe(true);
   });

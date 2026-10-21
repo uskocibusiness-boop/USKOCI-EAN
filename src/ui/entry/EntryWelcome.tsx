@@ -155,6 +155,10 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
   const PresentationView = settled ? View : Animated.View;
   const staticChoice = settled && !selected;
   const ChoiceView = staticChoice ? View : Animated.View;
+  // Authentication is usable while the decorative first-run intro plays.
+  // Keep its footer native and visible until an intent selection owns motion.
+  const staticAuth = phase !== 'loading' && !selected;
+  const AuthView = staticAuth ? View : Animated.View;
   const time = useBrandClock(intro && !!logo, phase === 'loading' || (intro && !logo), finish,
     logo && prepared ? acknowledgeSource : undefined, logo && prepared ? { readiness, phone, logo } : undefined);
   const green = useAnimatedStyle(() => ({ transform: [{ translateX: brandFrame(time.get(), phone, measuredLogo).background.greenPercent * width / 200 }] }));
@@ -231,8 +235,11 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
     pending.current = null; cancelAnimation(selectionTime); setSelected(null); setPreparing(false);
   };
   const enabled = phase === 'welcome' && !busy && !selected;
+  const authEnabled = phase !== 'loading' && !busy && !selected;
   const openAuth = (callback?: () => void) => {
-    if (enabled && !pending.current && sesijaSada().accountRevision === account && !sesijaSada().user) callback?.();
+    if (!authEnabled || pending.current || sesijaSada().accountRevision !== account || sesijaSada().user) return;
+    if (intro) finish();
+    callback?.();
   };
   return <View onLayout={onLayout} style={styles.root}>
     {/* Also mounted on reduced-motion / returning welcome, where artwork is static. */}
@@ -244,7 +251,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
       {selected && !reduced ? <Animated.View testID="entry-intent-fill" style={[StyleSheet.absoluteFill,
         { backgroundColor: selected === 'REQUESTER' ? ENTRY_V49.green : ENTRY_V49.orange }, sweep]} /> : null}
     </View>
-    <ScrollView scrollEnabled={!intro && !selected} contentContainerStyle={{ minHeight: g.height }}>
+    <ScrollView scrollEnabled={!selected} contentContainerStyle={{ minHeight: g.height }}>
       <View testID="entry-intents" pointerEvents={enabled ? 'box-none' : 'none'} accessibilityElementsHidden={!enabled}
         importantForAccessibility={enabled ? 'auto' : 'no-hide-descendants'} style={StyleSheet.absoluteFill}>
         {(['REQUESTER', 'WORKER'] as const).map(intent => <IntentColumn key={intent} intent={intent} selected={selected} enabled={enabled} settled={settled}
@@ -263,19 +270,19 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
           <Text style={[styles.tagline, { fontSize: g.tagSize, lineHeight: g.tagSize * 1.2, color: '#C44F08' }]}>za svaki zadatak.</Text>
         </PresentationView>
       </PresentationView>
-      <ChoiceView testID="entry-auth-footer" onLayout={event => measure('footer', event.nativeEvent.layout.height)}
-        pointerEvents={enabled ? 'auto' : 'none'} accessibilityElementsHidden={!enabled} importantForAccessibility={enabled ? 'auto' : 'no-hide-descendants'}
-        style={[styles.footer, { top: g.footY }, staticChoice ? styles.finalContent : footer]}>
-        <Press accessibilityRole="button" accessibilityLabel="Prijavi se" disabled={!enabled} haptic={enabled ? 'select' : 'none'} hitSlop={0}
+      <AuthView testID="entry-auth-footer" onLayout={event => measure('footer', event.nativeEvent.layout.height)}
+        pointerEvents={authEnabled ? 'auto' : 'none'} accessibilityElementsHidden={!authEnabled} importantForAccessibility={authEnabled ? 'auto' : 'no-hide-descendants'}
+        style={[styles.footer, { top: g.footY }, staticAuth ? styles.finalContent : footer]}>
+        <Press accessibilityRole="button" accessibilityLabel="Prijavi se" disabled={!authEnabled} haptic={authEnabled ? 'select' : 'none'} hitSlop={0}
           onPress={() => openAuth(onSignIn)} style={[styles.signIn, { minWidth: g.large ? 182 : 172 }]}>
           <Text style={[styles.signInText, g.large && { fontSize: 19, lineHeight: 24.7 }]}>Prijavi se</Text><ArrowRight size={18} color={ENTRY_V49.ink} />
         </Press>
-        {onSignUp ? <Press accessibilityRole="button" accessibilityLabel="Napravi nalog" disabled={!enabled} haptic={enabled ? 'select' : 'none'} hitSlop={0}
+        {onSignUp ? <Press accessibilityRole="button" accessibilityLabel="Napravi nalog" disabled={!authEnabled} haptic={authEnabled ? 'select' : 'none'} hitSlop={0}
           onPress={() => openAuth(onSignUp)} style={styles.registerHitArea}>
           <View style={styles.registerPill}><Text style={[styles.registerText, g.large && { fontSize: 16, lineHeight: 20.8 }]}>Napravi nalog</Text></View>
         </Press> : null}
         {(error || selectionError) ? <Text accessibilityRole="alert" style={styles.error}>{error || selectionError}</Text> : null}
-      </ChoiceView>
+      </AuthView>
     </ScrollView>
     {phase !== 'welcome' && logo ? <View pointerEvents="none" style={StyleSheet.absoluteFill}><BrandArtwork time={time} phone={phone} logo={logo} /></View> : null}
     {selected ? <Animated.View pointerEvents="none" testID="entry-intent-doorway" style={[StyleSheet.absoluteFill, styles.doorway, doorway]}>

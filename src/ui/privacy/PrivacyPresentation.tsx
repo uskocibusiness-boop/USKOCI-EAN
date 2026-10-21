@@ -6,7 +6,6 @@ import { Disclosure } from '../system/Disclosure';
 import { InfoButton } from '../system/InfoButton';
 import { ListRow } from '../system/ListRow';
 import { ruleWidth } from '../system/layout';
-import { StateView } from '../system/StateView';
 import { sys } from '../system/tokens';
 import { V2Action } from '../v2/V2Action';
 import type { HubWords } from '../profile/hubStates';
@@ -93,7 +92,7 @@ function RetentionBody({ policy, execution, admitted, expandedRule, onToggle, on
   const reading = policy.loading || execution.loading || refreshing;
   // A re-read that failed leaves the last answer in `data`, but the claim it makes is no longer confirmed: it is said as not confirmed.
   const executionFailed = execution.error || !!execution.refreshError;
-  if (policy.loading) return <StateView kind="loading" title="Učitavamo rokove čuvanja…" skeleton={{ count: 1, rows: 3 }} />;
+  if (policy.loading) return <T variant="note" tone="muted" accessibilityLiveRegion="polite">Učitavamo rokove čuvanja…</T>;
   // The retry stands as a word only where a read FAILED and there is nothing else to touch; every other re-read is the pull of the screen.
   if (policy.error) return <View style={s.stack}>
     <InlineNote tone="danger">Rokovi čuvanja trenutno nisu dostupni. Pokušaj ponovo.</InlineNote>

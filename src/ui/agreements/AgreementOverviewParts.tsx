@@ -14,6 +14,7 @@ import { StateView } from '../system/StateView';
 import { Surface } from '../system/Surface';
 import { field, sys } from '../system/tokens';
 import { ProductHeader } from '../product/ProductDetails';
+import { QuietReadState } from '../v2/QuietReadState';
 import { V2Action } from '../v2/V2Action';
 import { NextStepCard, type AgreementInfo, type AgreementStep } from './AgreementWorkspace';
 import { AgreementSteps } from './AgreementSteps';
@@ -33,22 +34,30 @@ import { AgreementSteps } from './AgreementSteps';
 export const overviewContent = { paddingHorizontal: layout.gutter, paddingTop: sys.space.sm, paddingBottom: layout.section, gap: layout.section } as const;
 
 /**
- * The head: the work's own name large (what this Dogovor is about, first), then where it stands - the dot, the state, the next step - and
- * the four steps of its way. When the next step waits for me, it is one tinted note and what it is about (a proposal's lines) stands in it.
+ * The head: my role, the work's own name, this bilateral agreement's accepted seat coverage when relevant, then where it stands —
+ * the dot, the state, the next step — and the four steps of its way. When the next step waits for me, it is one tinted note.
  * `steps` is the step bar's own props, so the same state is read in one place (`agreementStepModel`).
  */
-export function AgreementHead({ title, step, steps, info, children }: {
+export function AgreementHead({ title, roleLabel, coverageLine, step, steps, info, children, showTitle = true }: {
   /** The work's title, readable ("Prenos ormana do kombija"). */
-  title: string; step: AgreementStep; steps: ComponentProps<typeof AgreementSteps>;
+  title: string; roleLabel?: string; coverageLine?: string; step: AgreementStep; steps: ComponentProps<typeof AgreementSteps>;
+  /** A group overview already names the task above its roster; its private state must not repeat that title. */
+  showTitle?: boolean;
   /** How the Dogovor goes, behind an "ⓘ" at the end of the state's line: the screen says one sentence, the rest is one tap away. */
   info?: AgreementInfo | null;
   /** What a waiting step is about: the lines of a proposal, the way to read permissions again. Inside the step. */
   children?: ReactNode;
 }) {
+  // Only an authoritatively completed collaboration with my saved rating has no
+  // next step left. A pending-change/recovery heading still takes precedence.
+  const completedAndRated = steps.state === 'COMPLETED' && steps.ownRating === 'GIVEN' && step.status === 'task.completed';
   return <View style={s.head}>
-    <T accessibilityRole="header" variant="pageTitle" style={s.title}>{title}</T>
-    <NextStepCard tone={step.tone} status={step.status} title={step.title} body={step.body} aside={info ? <InfoButton title={info.title} lines={info.lines} /> : undefined}>{children}</NextStepCard>
-    <View style={s.steps}><AgreementSteps {...steps} /></View>
+    {roleLabel ? <T variant="meta" style={s.roleLabel}>{roleLabel}</T> : null}
+    {showTitle ? <T accessibilityRole="header" variant="pageTitle" style={s.title}>{title}</T> : null}
+    {coverageLine ? <T testID="agreement-individual-coverage" variant="note" tone="muted">{coverageLine}</T> : null}
+    <NextStepCard tone={step.tone} status={step.status} title={completedAndRated ? 'Završen · ocena sačuvana' : step.title}
+      body={completedAndRated ? null : step.body} aside={info ? <InfoButton title={info.title} lines={info.lines} /> : undefined}>{children}</NextStepCard>
+    {!completedAndRated ? <View style={s.steps}><AgreementSteps {...steps} /></View> : null}
   </View>;
 }
 
@@ -215,7 +224,7 @@ export function AgreementProblemForm({ value, onChange, editable, kept, busy, ca
 
 /**
  * The three ways on after a problem was reported (idea R04), so that a report is never a dead end: agree in Poruke; cancel the Dogovor
- * (with a reason, and then look for people again); or report that the other side did not come, which opens support with this Dogovor
+ * (with a reason and a review before sending); or report that the other side did not come, which opens support with this Dogovor
  * already chosen. Rows of the one list under their own title, each said by its title alone (what each does is spoken, J4); the cancelling is
  * the one that cannot be taken back, so its words are red. It is the ONLY place of "Otkaži Dogovor" while it stands (J1).
  */
@@ -228,7 +237,7 @@ export function AgreementProblemExits({ onMessages, onCancel, onNoShow, disabled
         accessibilityLabel="Dogovorite se u Porukama" accessibilityHint="Napišite šta je ostalo nerešeno." last={false} />
       {/* Red words are a command, but this one opens the cancelling with its reason, so it keeps the arrow of a way onward. */}
       {onCancel ? <ListRow leading={<Glyph name="cancel" size={24} tone="danger" />} tone="danger" arrow title="Otkaži Dogovor" onPress={onCancel} disabled={disabled}
-        accessibilityLabel="Otkaži Dogovor" accessibilityHint="Uz razlog. Posle toga možeš ponovo da tražiš ljude." /> : null}
+        accessibilityLabel="Otkaži Dogovor" accessibilityHint="Otkazivanje uz razlog. Pre slanja vidiš pregled." /> : null}
       <ListRow leading={<FactArt kind="shield" size={32} />} title="Prijavi nedolazak" onPress={onNoShow} disabled={disabled}
         accessibilityLabel="Prijavi nedolazak" accessibilityHint="Otvara podršku sa ovim Dogovorom." last />
     </View>
@@ -237,12 +246,12 @@ export function AgreementProblemExits({ onMessages, onCancel, onNoShow, disabled
 
 /**
  * The Dogovor while it is being read, or when it could not be: the system's one state view in the frame of every opened screen
- * (template T7). Loading is the breathing shape of what is coming and one quiet sentence; a failed read says what happened and has the one
- * way forward; a Dogovor the person has no access to has nothing to retry, so its way forward is back to the list.
+ * (template T7). Loading states only what is being checked; a failed read says what happened and has the one way forward;
+ * a Dogovor the person has no access to has nothing to retry, so its way forward is back to the list.
  */
 export function AgreementStatusView({ loading = false, error = false, retry, back }: { loading?: boolean; error?: boolean; retry?: () => void; back: () => void }) {
   return <Screen kind="detail" header={<ProductHeader title="Dogovor" back={back} />}>
-    {loading ? <StateView kind="loading" title="Učitavamo Dogovor…" skeleton={{ count: 2, rows: 3 }} />
+    {loading ? <QuietReadState art="document" title="Učitavamo Dogovor…" body="Proveravamo pristup i važeće uslove." />
       : error ? <StateView kind="error" art="document" title="Dogovor nije učitan" body="Proveri internet vezu i pokušaj ponovo."
         primary={retry ? { label: 'Ponovo učitaj Dogovor', onPress: retry } : undefined} />
         : <StateView kind="error" art="document" title="Dogovor nije dostupan" body="Veza je zastarela ili nemaš pristup ovom Dogovoru."
@@ -255,6 +264,7 @@ const s = StyleSheet.create({
   head: { gap: sys.space.md },
   steps: { marginTop: sys.space.xs },
   title: { color: sys.color.ink },
+  roleLabel: { color: sys.color.green, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
   termNote: { gap: sys.space.xs },
   termAction: { minHeight: layout.touch, justifyContent: 'center', alignSelf: 'flex-start' },
   actionWord: { fontWeight: '600' },

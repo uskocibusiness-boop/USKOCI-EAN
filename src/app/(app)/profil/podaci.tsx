@@ -12,6 +12,7 @@ import { ProfilePhoto } from '../../../ui/media/ContextPhotos';
 import { SettingsScreen } from '../../../ui/settings/SettingsPresentation';
 import { Avatar } from '../../../ui/system/Avatar';
 import { StateView } from '../../../ui/system/StateView';
+import { QuietReadState } from '../../../ui/v2/QuietReadState';
 import { DisplayNameForm, type NameSaveControl } from '../../../ui/profile/DisplayNameForm';
 import { EDIT_PHOTO, NameSaveButton, ProfileFactRows, ProfilePhotoBlock, VisibilityNote, WorkNameNotice, type AboutView, type CityView } from '../../../ui/profile/ProfileEditPresentation';
 import { writeWorkName } from '../../../ui/profile/writeWorkName';
@@ -93,7 +94,8 @@ function OwnedPersonalProfile() {
     </>
       : editor.error && !editor.loading ? <StateView kind="error" title="Profil nije učitan" body={editor.error}
         primary={{ label: 'Proveri sačuvane podatke', onPress: check, disabled: editor.busy || editor.loading }} />
-        : <StateView kind="loading" title="Učitavamo podatke…" skeleton={{ count: 1, rows: 1 }} />}
+        : <QuietReadState art="person" title="Učitavamo lične podatke…"
+          body="Proveravamo sačuvano ime pre nego što omogućiš izmene." />}
     {leave.sheet}
   </SettingsScreen>;
 }

@@ -31,7 +31,7 @@ jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalS
 jest.mock('../agreementClientService', () => ({ agreementProblemService: { submit: jest.fn(), read: (...args: unknown[]) => mockProblemRead(...args) } }));
 jest.mock('../groupConversationService', () => ({ groupConversationService: { context: jest.fn().mockResolvedValue({ ok: true, podatak: { group: null } }) } }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView' } }));
+jest.mock('react-native-reanimated', () => ({ ...jest.requireActual('../../../__mocks__/react-native-reanimated'), __esModule: true, default: { ...jest.requireActual('../../../__mocks__/react-native-reanimated').default, View: 'AnimatedView' } }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => false }));
@@ -170,8 +170,8 @@ describe('R04: three ways on after a problem was reported', () => {
 
   it('say what each is by its title alone: no line of explanation under a row, what it does is spoken', async () => {
     await reported();
-    for (const sentence of ['Napišite šta je ostalo nerešeno.', 'Uz razlog. Posle toga možeš ponovo da tražiš ljude.', 'Otvara podršku sa ovim Dogovorom.']) expect(texts()).not.toContain(sentence);
-    expect(press('Otkaži Dogovor').props.accessibilityHint).toBe('Uz razlog. Posle toga možeš ponovo da tražiš ljude.');
+    for (const sentence of ['Napišite šta je ostalo nerešeno.', 'Otkazivanje uz razlog. Pre slanja vidiš pregled.', 'Otvara podršku sa ovim Dogovorom.']) expect(texts()).not.toContain(sentence);
+    expect(press('Otkaži Dogovor').props.accessibilityHint).toBe('Otkazivanje uz razlog. Pre slanja vidiš pregled.');
   });
 
   it('are one tinted note, and the sentence in it is one: who sees the words, and that a problem decides no one is guilty or owes', async () => {
@@ -189,7 +189,7 @@ describe('R04: three ways on after a problem was reported', () => {
     await act(async () => press('Otkaži Dogovor').props.onPress());
     expect(mockRouter.push).toHaveBeenLastCalledWith({ pathname: '/dogovor/[id]/izmene', params: { id: mockAgreementId, start: 'cancel' } });
     await act(async () => press('Prijavi nedolazak').props.onPress());
-    expect(mockRouter.push).toHaveBeenLastCalledWith({ pathname: '/podrska/novi', params: { contextKind: 'AGREEMENT', contextId: mockAgreementId, contextRevision: '1' } });
+    expect(mockRouter.push).toHaveBeenLastCalledWith({ pathname: '/podrska/novi', params: { contextKind: 'AGREEMENT', contextId: mockAgreementId, contextRevision: '1', topic: 'NO_SHOW' } });
   });
 
   it('offer no cancelling to the requester once the work is reported done (the Dogovor has nothing left to cancel for them)', async () => {

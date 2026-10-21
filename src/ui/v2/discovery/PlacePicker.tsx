@@ -45,7 +45,7 @@ const counted = (text: string, count: number | null) => {
  */
 export function PlacePicker({ within, onWithin, anywhere, remote, remoteNote = null, places, parts = [], cities: byCity = false, serverFiltered = false, chosenPlace, ready, complete, more, note, onPlace }: {
   /** The city whose parts are shown, or '' for the cities. */ within: string; onWithin: (city: string) => void;
-  anywhere: { checked: boolean; count: number | null; onPress: () => void };
+  anywhere: { label?: string; checked: boolean; count: number | null; onPress: () => void };
   /** Work done remotely: a row of its own where tasks say how they are done (with how many when that is known). */
   remote: { available: boolean; checked: boolean; count: number | null; onPress: () => void };
   /**
@@ -79,11 +79,11 @@ export function PlacePicker({ within, onWithin, anywhere, remote, remoteNote = n
     .filter(({ city, standing }) => standing.kind !== 'place'
       && !((standing.kind === 'parts' || standing.kind === 'unknown') && foldPlace(city) === foldPlace(typed))), [places, typed, complete]);
   const chosen = chosenPlace ? placeKey(chosenPlace) : null;
-  const anywhereCount = counted(PLACE_WORDS.everything, anywhere.count), remoteCount = counted(PLACE_WORDS.remote, remote.count);
+  const anywhereCount = counted(anywhere.label ?? PLACE_WORDS.everything, anywhere.count), remoteCount = counted(PLACE_WORDS.remote, remote.count);
   if (remoteNote) {
     return <View testID="search-place-editor" style={s.editor}>
       <View accessibilityRole="radiogroup" accessibilityLabel="Mesta" style={s.list}>
-        <PlaceRow count={anywhere.count} text={PLACE_WORDS.everything} label={anywhereCount.label} checked={anywhere.checked} onPress={anywhere.onPress} />
+        <PlaceRow count={anywhere.count} text={anywhere.label ?? PLACE_WORDS.everything} label={anywhereCount.label} checked={anywhere.checked} onPress={anywhere.onPress} />
         <PlaceRow art={remote.count === null ? 'remote' : undefined} count={remote.count} text={PLACE_WORDS.remote} label={remoteCount.label}
           checked={remote.checked} onPress={remote.onPress} />
       </View>
@@ -96,7 +96,7 @@ export function PlacePicker({ within, onWithin, anywhere, remote, remoteNote = n
         haptic="select" scaleTo={sys.motion.scale.row} hitSlop={0} onPress={() => onWithin('')} style={s.back}>
         <Glyph name="caret-left" tone="ink" /><T variant="body" style={s.ink}>{typed}</T>
       </Press> : <>
-        <PlaceRow count={anywhere.count} text={PLACE_WORDS.everything} label={anywhereCount.label} checked={anywhere.checked} onPress={anywhere.onPress} />
+        <PlaceRow count={anywhere.count} text={anywhere.label ?? PLACE_WORDS.everything} label={anywhereCount.label} checked={anywhere.checked} onPress={anywhere.onPress} />
         {remote.available ? <PlaceRow art={remote.count === null ? 'remote' : undefined} count={remote.count} text={PLACE_WORDS.remote} label={remoteCount.label}
           checked={remote.checked} onPress={remote.onPress} /> : null}
       </>}

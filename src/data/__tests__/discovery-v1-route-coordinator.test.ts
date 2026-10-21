@@ -67,6 +67,89 @@ it('a search intent change reopens PAGE and MAP while passive state stays route-
  expect(route.snapshot().view).toMatchObject({query:'kombi',sheet:'full',listOffset:500});
 });
 
+it('minimum price binds PAGE MAP and PLACES; changing it starts a new traversal and warm return requires the same threshold',async()=>{
+ const h=harness(),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ const initial=view({price:'MY_PRICE',minBudgetRsd:5000});await route.open(initial);
+ expect(h.calls.map(request=>request.mode)).toEqual(['PAGE','MAP']);
+ expect(h.calls.every(request=>request.mode!=='EXACT_PUBLIC'&&request.filter.minBudgetRsd===5000)).toBe(true);
+ const draft={query:'',place:null,area:null,pinPlace:null,when:'any' as const,dates:null,where:'any' as const,places:1,price:'MY_PRICE' as const,minBudgetRsd:7500};
+ await route.previewSearch(draft,null);
+ expect(h.calls.slice(-2).map(request=>request.mode)).toEqual(['PAGE','PLACES']);
+ expect(h.calls.slice(-2).every(request=>request.mode!=='EXACT_PUBLIC'&&request.filter.minBudgetRsd===7500)).toBe(true);
+ expect(route.snapshot().view?.minBudgetRsd).toBe(5000); // the preview has not changed committed discovery
+ const before=h.calls.length;await route.applySearch(draft);
+ expect(h.calls[before]).toMatchObject({mode:'PAGE',anchor:null,after:null,filter:{minBudgetRsd:7500}});
+ expect(route.snapshot().view).toMatchObject({minBudgetRsd:7500,pages:1,listOffset:0});
+ expect(discoveryV1RouteIntentKey(initial)).not.toBe(discoveryV1RouteIntentKey({...initial,minBudgetRsd:7500}));
+ expect(route.detach()).toBe(true);
+ expect(route.warm({...initial,minBudgetRsd:7500,listOffset:200})).toBe(true);
+ expect(route.warm(initial)).toBe(false);
+ route.retire();
+});
+
+it.each(['all','OFFERS'] as const)('an empty price draft for %s clears the minimum for preview, application and later return',async price=>{
+ const h=harness(),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ await route.open(view({price:'MY_PRICE',minBudgetRsd:5000}));
+ const draft={query:'',place:null,area:null,pinPlace:null,when:'any' as const,dates:null,where:'any' as const,places:1,price};
+ await route.previewSearch(draft,null);
+ expect(h.calls.slice(-2).every(request=>request.mode!=='EXACT_PUBLIC'&&!Object.hasOwn(request.filter,'minBudgetRsd'))).toBe(true);
+ await route.applySearch(draft);
+ expect(route.snapshot().view?.minBudgetRsd).toBeNull();
+ await route.updateView({...route.snapshot().view!,price:'MY_PRICE'});
+ expect(h.calls.slice(-2).every(request=>request.mode!=='EXACT_PUBLIC'&&!Object.hasOwn(request.filter,'minBudgetRsd'))).toBe(true);
+ route.retire();
+});
+
+it('all plus minimum is preserved across preview, PAGE/MAP/PLACES and warm return; offers-only clears it',async()=>{
+ const h=harness(),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ const initial=view({price:'MY_PRICE',minBudgetRsd:5000});await route.open(initial);
+ const draft={query:'',place:null,area:null,pinPlace:null,when:'any' as const,dates:null,where:'any' as const,places:1,price:'all' as const,minBudgetRsd:5000};
+ await route.previewSearch(draft,null);
+ expect(h.calls.slice(-2).map(request=>request.mode)).toEqual(['PAGE','PLACES']);
+ expect(h.calls.slice(-2).every(request=>request.mode!=='EXACT_PUBLIC'&&request.filter.price==='all'&&request.filter.minBudgetRsd===5000)).toBe(true);
+ const before=h.calls.length;await route.applySearch(draft);
+ expect(h.calls.slice(before).map(request=>request.mode)).toEqual(['PAGE','MAP']);
+ expect(h.calls.slice(before).every(request=>request.mode!=='EXACT_PUBLIC'&&request.filter.price==='all'&&request.filter.minBudgetRsd===5000)).toBe(true);
+ expect(route.snapshot().view).toMatchObject({price:'all',minBudgetRsd:5000,pages:1,listOffset:0});
+ expect(discoveryV1RouteIntentKey(initial)).not.toBe(discoveryV1RouteIntentKey({...initial,price:'all'}));
+ expect(route.detach()).toBe(true);
+ expect(route.warm({...route.snapshot().view!,listOffset:180})).toBe(true);
+ expect(route.warm({...route.snapshot().view!,minBudgetRsd:null})).toBe(false);
+ expect(route.attach({isCurrent:()=>true,onOptionalState:()=>{}})).toBe(true);
+ await route.updateView({...route.snapshot().view!,price:'OFFERS'});
+ expect(route.snapshot().view).toMatchObject({price:'OFFERS',minBudgetRsd:null});
+ expect(h.calls.slice(-2).every(request=>request.mode!=='EXACT_PUBLIC'&&!Object.hasOwn(request.filter,'minBudgetRsd'))).toBe(true);
+ route.retire();
+});
+
+it.each([null,undefined])('an empty fixed-price search draft clears the remembered minimum: %s',async minBudgetRsd=>{
+ const h=harness(),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
+ await route.open(view({price:'MY_PRICE',minBudgetRsd:5000}));
+ const draft={query:'',place:null,area:null,pinPlace:null,when:'any' as const,dates:null,where:'any' as const,places:1,price:'MY_PRICE' as const,minBudgetRsd};
+ await route.previewSearch(draft,null);
+ expect(h.calls.slice(-2).every(request=>request.mode!=='EXACT_PUBLIC'&&!Object.hasOwn(request.filter,'minBudgetRsd'))).toBe(true);
+ expect(route.snapshot().view?.minBudgetRsd).toBe(5000);
+ await route.applySearch(draft);
+ expect(route.snapshot().view?.minBudgetRsd).toBeNull();
+ expect(h.calls.slice(-2).every(request=>request.mode!=='EXACT_PUBLIC'&&!Object.hasOwn(request.filter,'minBudgetRsd'))).toBe(true);
+ route.retire();
+});
+
+it('a late first page for the previous minimum cannot replace the new threshold or its exact server count',async()=>{
+ const h=harness(),old=deferred<any>();
+ const transport=jest.fn(async(request:DiscoveryV1OwnerRequest)=>{
+  if(request.mode==='PAGE')return request.filter.minBudgetRsd===5000?old.promise:page(7);
+  return h.transport(request);
+ });
+ const route=createDiscoveryV1RouteCoordinator(transport,h.overlay);
+ const first=route.open(view({price:'MY_PRICE',minBudgetRsd:5000}));
+ await route.open(view({price:'MY_PRICE',minBudgetRsd:7500}));
+ old.resolve(page(99));expect((await first).kind).toBe('stale');
+ expect(route.snapshot().view?.minBudgetRsd).toBe(7500);
+ expect(route.snapshot().screen.counts?.listed).toBe(7);
+ route.retire();
+});
+
 it('settled map scope shares the accepted anchor and preserves viewport sheet and offset',async()=>{
  const h=harness(),route=createDiscoveryV1RouteCoordinator(h.transport,h.overlay);
  const passive=view({sheet:'full',listOffset:420,viewport:{center:[20,45],zoom:13,bounds:[19,44,21,46]}});

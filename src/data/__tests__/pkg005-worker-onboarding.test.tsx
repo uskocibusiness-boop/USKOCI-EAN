@@ -81,10 +81,10 @@ describe('PKG-005 progressive Worker onboarding', () => {
     expect(form().props.reading).toBe(true);
     expect(form().props.openConversation).toEqual(expect.any(Function));
     expect(form().props.showConversationAction).toBe(false);
-    expect(tree!.root.findAll(node => String(node.type) === 'V2Action' && node.props.label === 'Nastavi kroz razgovor')).toHaveLength(1);
+    expect(tree!.root.findAll(node => String(node.type) === 'V2Action' && node.props.label === 'Pregled za aktivaciju')).toHaveLength(1);
     expect(action('Sačuvaj kao nacrt')).toBeUndefined(); expect(action('Proveri i aktiviraj profil')).toBeUndefined();
-    await act(async () => action('Nastavi kroz razgovor').props.onPress());
-    expect(mockNavigate).toHaveBeenCalledWith('/profil/razgovor'); expect(writeProfile).not.toHaveBeenCalled();
+    await act(async () => action('Pregled za aktivaciju').props.onPress());
+    expect(mockNavigate).toHaveBeenCalledWith({pathname:'/profil/razgovor',params:{activationRequest:expect.any(String)}}); expect(writeProfile).not.toHaveBeenCalled();
     mockNavigate.mockClear();
     await act(async () => form().props.openConversation('area'));
     expect(mockNavigate).toHaveBeenCalledTimes(1);

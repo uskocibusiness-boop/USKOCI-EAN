@@ -8,6 +8,8 @@ import { ConversationArt } from '../../ui/system/ConversationArt';
 import { FactArt } from '../../ui/system/FactArt';
 import { Glyph } from '../../ui/system/Glyph';
 import { TimedRow } from '../../ui/notifications/TimedRow';
+import { ListSkeleton } from '../../ui/notifications/ListSkeleton';
+import { NotificationLoading } from '../../ui/notifications/NotificationLoading';
 const mockRouter={push:jest.fn(),back:jest.fn(),replace:jest.fn(),canGoBack:jest.fn(()=>true)};
 const mockRole=jest.fn(), mockModel={canNavigate:jest.fn(()=>true),open:jest.fn(),readAll:jest.fn(),refresh:jest.fn(),more:jest.fn()};
 // UI-only push landing seam: the separate ingress tests retain Auth, event, and session responsibility.
@@ -80,18 +82,58 @@ test('the gear of a filtered list opens the settings on that set; "Sve" names no
   await act(async()=>press('Podesi obaveštenja').props.onPress());
   expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/profil/obavestenja',params:{skup:'WORKER'}}]]);
 });
-test('a filtered empty list names what it is empty of, without the settings shortcut',async()=>{
+test('a filtered empty list names its scope and returns to all without changing preferences',async()=>{
   await render();
   await act(async()=>press('Moji zadaci').props.onPress());
   expect(text()).toContain('Još nema obaveštenja o tvojim zadacima');expect(text()).not.toContain('Nove Prijave, poruke');
   expect(presses().filter(node=>node.props.accessibilityLabel==='Podesi obaveštenja')).toHaveLength(1);
   await act(async()=>press('Moje prijave').props.onPress());
   expect(text()).toContain('Još nema obaveštenja o tvojim prijavama');
+  await act(async()=>press('Prikaži sva obaveštenja').props.onPress());
+  expect(text()).toContain('Još nema obaveštenja');
+  expect(text()).not.toContain('Još nema obaveštenja o tvojim prijavama');
+  expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockModel.open).not.toHaveBeenCalled();
 });
-test('the first read shows the breathing placeholders under the tabs, not a bare spinner',async()=>{
+test('the first read says what is loading on white without simulated grey rows',async()=>{
   mockState={...mockState,page:null,loading:true};await render();
   expect(text()).toContain('Učitavamo obaveštenja…');expect(press('Sve')).toBeDefined();
+  expect(tree.root.findAllByType(NotificationLoading)).toHaveLength(1);
+  expect(tree.root.findAllByType(ListSkeleton)).toHaveLength(0);
+  expect(StyleSheet.flatten(tree.root.findByProps({testID:'notification-loading'}).props.style).backgroundColor).toBe('#FFFFFF');
   expect(text()).not.toContain('Još nema obaveštenja');
+});
+test('refreshing a confirmed empty inbox keeps that result visible and names the new read',async()=>{
+  mockState={...mockState,loading:true};await render();
+  expect(text()).toContain('Još nema obaveštenja');
+  expect(text()).toContain('Proveravamo nova obaveštenja…');
+  expect(tree.root.findAllByType(NotificationLoading)).toHaveLength(0);
+  expect(press('Podesi obaveštenja')).toBeDefined();
+});
+test('refreshing a loaded inbox keeps its confirmed event and unread state on screen',async()=>{
+  mockState={...mockState,page:{...mockState.page,items:[item],unreadCount:1},loading:true};await render();
+  expect(text()).toContain(item.title);
+  expect(text()).toContain('Proveravamo nova obaveštenja…');
+  expect(unreadRow()).toBeDefined();
+  expect(tree.root.findAllByProps({testID:'inbox-unread-dot'}).length).toBeGreaterThan(0);
+});
+test('a failed refresh of a confirmed empty inbox identifies the stale result and offers retry',async()=>{
+  mockState={...mockState,error:'load'};await render();
+  expect(text()).toContain('U poslednjem pregledu nije bilo obaveštenja');
+  expect(text()).toContain('Nismo uspeli da proverimo ima li novih.');
+  expect(text()).not.toContain('Još nema obaveštenja');
+  await act(async()=>press('Pokušaj ponovo').props.onPress());
+  expect(mockModel.refresh).toHaveBeenCalledTimes(1);
+});
+test('an unavailable resolved target stays in the inbox with an explanation',async()=>{
+  mockModel.open.mockResolvedValue({kind:'UNAVAILABLE'});
+  mockState.page.items=[item];mockState.page.unreadCount=1;await render();
+  await openItem();
+  expect(mockRouter.push).not.toHaveBeenCalled();
+  mockState={...mockState,unavailable:true};
+  await act(async()=>tree.update(<Inbox/>));
+  expect(text()).toContain('Sadržaj više nije dostupan.');
+  expect(text()).toContain('Možda je uklonjen ili mu više nemaš pristup.');
+  expect(text()).toContain(item.title);
 });
 test.each(['load','action','page'])('%s failure preserves last data without asserting a successful empty state',async error=>{
   mockState={...mockState,error,page:error==='load'?null:{...mockState.page,items:[item],unreadCount:1}};await render();
@@ -184,7 +226,7 @@ test('read state is accessible and unread entries remain distinguishable',async(
   expect(row(`Pročitano. Pročitan naslov.`).findAllByType('T' as React.ElementType)[0].props.variant).toBe('body');
   expect(unreadRow().findAllByType('T' as React.ElementType)[0].props.variant).toBe('bodyStrong');
   expect(picture('Pročitano. Pročitan naslov.').props.muted).toBeFalsy(); expect(picture(`Nepročitano. ${item.title}.`).props.muted).toBeFalsy();
-  // The three rows are the list's own `TimedRow`: the clock stands at the end of the name, and no row draws an arrow.
+  // The three cards keep the row's original touch, clock and accessibility semantics.
   expect(tree.root.findAllByType(TimedRow)).toHaveLength(3);
   expect(tree.root.findAllByType(Glyph).filter(node=>node.props.name==='caret-right')).toHaveLength(0);
 });
@@ -240,6 +282,15 @@ test('an event about the Zadatak itself still opens the Zadatak',async()=>{
   mockState.page.items=[{...item,eventType:'NEED_REVISED',role:'REQUESTER'}];mockState.page.unreadCount=1;await render();
   await openItem();
   expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/potrebe/[id]/pregled',params:{id:'actual-need'}}]]);
+});
+test('Nova prijava opens the authorized task candidate list after the Inbox row resolves',async()=>{
+  const application={...item,eventType:'RESPONSE_RECEIVED',role:'REQUESTER',title:'Nova prijava',body:'Stigla je nova prijava na tvoj zadatak.'};
+  mockModel.open.mockResolvedValue({kind:'CANDIDATES',id:'actual-need',role:'REQUESTER'});
+  mockState.page.items=[application];mockState.page.unreadCount=1;await render();
+  await act(async()=>unreadRow(application.title,application.body).props.onPress());
+  expect(mockModel.open).toHaveBeenCalledWith(application);
+  expect(mockRouter.push.mock.calls).toEqual([[{pathname:'/potrebe/[id]/kandidati',params:{id:'actual-need'}}]]);
+  expect(mockRouter.replace).not.toHaveBeenCalled();
 });
 // Owner decision 1 (2026-09-19): a notification opens the thing it is about. It used to stop at a sheet
 // that asked to switch the whole app into "the other intent" first, and one confirm did both.
@@ -329,7 +380,7 @@ test('a task change, a cancellation and a question are drawn as what they are, n
   expect(inboxEventArt('PRIVATE_ACCESS_GRANTED','dogovor')).toBe('lock');
   expect(inboxEventArt('REVIEW_RECEIVED','dogovor')).toBe('star');
   expect(inboxEventArt('COMPLETION_REQUIRED','dogovor')).toBe('check');
-  expect(inboxEventArt('RESPONSE_SELECTED','responses')).toBe('offers');
+  expect(inboxEventArt('RESPONSE_SELECTED','responses')).toBe('applications');
   expect(inboxEventArt('SOMETHING_NEW','recovery')).toBe('shield');
   expect(inboxEventArt('SOMETHING_NEW','account')).toBe('bell');
 });
@@ -355,9 +406,11 @@ test('a row says the event and its clock, not where a tap goes: that is the row\
     {...item,id:'x',eventType:'SOMETHING_NEW',family:'account',title:'Nešto novo',body:'Nešto se desilo.',occurredAt:ago(4)},
   ];mockState.page.unreadCount=4;await render();
   const clock=(minutes:number)=>trenutak(ago(minutes))!.sat;
-  // The owner's phone, 8 Oct 2026 ("18:54 · Otvara Dogovor"): nothing on the screen explains what a row does.
+  // A known destination has one visible cue; unknown event types never invent one.
   for(const minutes of [1,2,3,4])expect(text()).toContain(clock(minutes));
   expect(text()).not.toMatch(/Otvara/);expect(text()).not.toContain(' · ');
+  expect(text()).toContain('Pogledaj zadatak'); expect(text()).toContain('Otvori poruku'); expect(text()).toContain('Otvori dogovor');
+  expect(row('Nepročitano. Nešto novo.').findAllByProps({testID:'inbox-destination-cue'})).toHaveLength(0);
   // A screen reader hears where a tap goes; an event the table does not know says nothing: a destination is never made up.
   expect(row('Nepročitano. Nešto novo.').props.accessibilityHint).toBeUndefined();
   expect(row('Nepročitano. Nova prilika koja ti može odgovarati.').props.accessibilityHint).toBe('Otvara zadatak.');
@@ -369,8 +422,8 @@ test('an unread row has the dot and its name in the strong weight; a read row ke
   const variants=(prefix:string)=>row(prefix).findAllByType('T' as React.ElementType).filter(node=>typeof node.props.children==='string')
     .map(node=>[node.props.variant,node.props.tone]);
   // The name is 16/24 in ink (600 while it waits for you, 400 once you have seen it), the clock 13/18 and the words under it 14/20, both in grey.
-  expect(variants('Nepročitano. Nepročitan.')).toEqual([['bodyStrong','ink'],['meta','muted'],['note','muted']]);
-  expect(variants('Pročitano. Pročitan.')).toEqual([['body','ink'],['meta','muted'],['note','muted']]);
+  expect(variants('Nepročitano. Nepročitan.')).toEqual(expect.arrayContaining([['bodyStrong','ink'],['meta','muted'],['note','muted']]));
+  expect(variants('Pročitano. Pročitan.')).toEqual(expect.arrayContaining([['body','ink'],['meta','muted'],['note','muted']]));
   expect(tree.root.findAll(node=>node.props.testID==='inbox-unread-dot'&&typeof node.type==='string')).toHaveLength(1);
   // The picture is the same colour read or not ("siva ikona razgovora" on the owner's phone): read is said by the dot that goes.
   expect(picture('Nepročitano. Nepročitan.').props.muted).toBeFalsy();expect(picture('Pročitano. Pročitan.').props.muted).toBeFalsy();

@@ -6,7 +6,7 @@ import { rememberAiCorrection } from '../aiCorrectionIntent';
 const mockAccount = '11111111-1111-4111-8111-111111111111', mockProfile = '22222222-2222-4222-8222-222222222222', mockConversation = '33333333-3333-4333-8333-333333333333';
 const A = mockAccount, B = mockProfile, C = mockConversation;
 let mockRouteId: string | undefined = C;
-let mockCorrection: string | undefined, mockEntryKey: string | undefined, mockFocused=true;
+let mockCorrection: string | undefined, mockEntryKey: string | undefined, mockActivationRequest: string | undefined, mockFocused=true;
 const mockListeners = new Set<(s: string) => void>();
 const mockApi = { read: jest.fn(), open: jest.fn(), send: jest.fn(), recoverTurn: jest.fn(), cancelTurn: jest.fn(), patch: jest.fn(), prepare: jest.fn(), save: jest.fn(), abandon: jest.fn() };
 const mockJournal = { load: jest.fn(), save: jest.fn(), clear: jest.fn() };
@@ -24,7 +24,7 @@ jest.mock('react-native', () => { const native = jest.requireActual('react-nativ
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => true }));
-jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ conversationId: mockRouteId,aiCorrection:mockCorrection,entryKey:mockEntryKey }),
+jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => ({ conversationId: mockRouteId,aiCorrection:mockCorrection,entryKey:mockEntryKey,activationRequest:mockActivationRequest }),
   useFocusEffect: (fn: () => void) => require('react').useEffect(() => mockFocused?fn():undefined, [fn,mockFocused]) }));
 jest.mock('../../store/sesija', () => ({ useSesija: () => ({ user: { id: mockAccount }, accountRevision: 1 }), sesijaSada: () => ({ user: { id: mockAccount }, accountRevision: 1 }) }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: jest.fn() }));
@@ -74,7 +74,7 @@ const openReview = async () => {
 };
 beforeEach(() => {
   jest.clearAllMocks(); mockRouteId = C; mockRouter.canGoBack.mockReturnValue(true); mockAccountName = { state: 'ready', name: null };
-  mockCorrection=undefined;mockEntryKey=undefined;mockFocused=true;
+  mockCorrection=undefined;mockEntryKey=undefined;mockActivationRequest=undefined;mockFocused=true;
   mockVoice.state.phase='IDLE';
   mockJournal.load.mockResolvedValue(null); mockJournal.save.mockResolvedValue(undefined); mockJournal.clear.mockResolvedValue(undefined);
   mockApi.read.mockResolvedValue(ok(snapshot())); mockApi.open.mockResolvedValue(ok(snapshot()));
@@ -118,9 +118,9 @@ describe('the conversation (M1)', () => {
     expect(shell().props.correction.target).toBe(target);expect(shell().props.value).toBe('Moj neposlati odgovor');
     expect(shell().props.conversationKey).toBe(C);expect(mockApi.open).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
   });
-  it('is titled "Radni profil", puts the latest question first, and offers the "+" for the parts', async () => {
+  it('is titled "Moj radni profil", puts the latest question first, and offers the "+" for the parts', async () => {
     await render();
-    expect(shell().props.title).toBe('Radni profil'); expect(shell().props.questionFocus).toBe(true);
+    expect(shell().props.title).toBe('Moj radni profil'); expect(shell().props.questionFocus).toBe(true);
     expect(shell().props.attach).toMatchObject({ label: 'Šta želiš da izmeniš?', disabled: false });
     expect(shell().props.attach.hint).toBe('Izaberi temu i nastavi isti razgovor.');
   });
@@ -135,7 +135,7 @@ describe('the conversation (M1)', () => {
     await render();
     await act(async () => shell().props.onChange('Moj nezavršen odgovor'));
     await act(async () => { shell().props.attach.onPress(); });
-    expect(menuRows().map(row => row.props.accessibilityLabel)).toEqual(['Usluge koje nudiš', 'Područje rada', 'Kada imaš vremena', 'Alat i vozilo']);
+    expect(menuRows().map(row => row.props.accessibilityLabel)).toEqual(['Usluge koje nudiš', 'Područje rada', 'Kada imaš vremena']);
     await act(async () => { menuRow('Usluge koje nudiš').props.onPress(); });
     expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
     expect(shell().props.correction.target).toBe('worker.skills');
@@ -144,14 +144,14 @@ describe('the conversation (M1)', () => {
     expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.send).not.toHaveBeenCalled();
   });
 
-  it('equipment is an optional topic and dismissing it preserves the unsent message', async () => {
+  it('an area correction can be dismissed without losing the unsent message', async () => {
     await render();
     await act(async () => { shell().props.attach.onPress(); });
-    await act(async () => { menuRow('Alat i vozilo').props.onPress(); });
-    expect(shell().props.correction.target).toBe('worker.tools');
-    await act(async () => shell().props.onChange('Imam bušilicu.'));
+    await act(async () => { menuRow('Područje rada').props.onPress(); });
+    expect(shell().props.correction.target).toBe('worker.area');
+    await act(async () => shell().props.onChange('Radim u Novom Sadu.'));
     await act(async () => shell().props.correction.onDismiss());
-    expect(shell().props.correction).toBeUndefined(); expect(shell().props.value).toBe('Imam bušilicu.');
+    expect(shell().props.correction).toBeUndefined(); expect(shell().props.value).toBe('Radim u Novom Sadu.');
     expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.send).not.toHaveBeenCalled();
     expect(mockApi.prepare).not.toHaveBeenCalled();
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0); expect(shell()).toBeTruthy();
@@ -198,6 +198,33 @@ describe('the conversation (M1)', () => {
 });
 
 describe('the review (M2)', () => {
+  it('shows preparation and saving as different states, without claiming an unsaved profile is saved', async () => {
+    await render(); await openReview();
+    let finishPrepare!: (value: unknown) => void;
+    mockApi.prepare.mockImplementationOnce(() => new Promise(resolve => { finishPrepare = resolve; }));
+    mockApi.read.mockResolvedValue(ok(reviewed(0, false)));
+    await act(async () => { tree.root.findByType('Activation' as never).props.change(false); });
+    expect(action('Pripremamo pregled…').props.disabled).toBe(true);
+    expect(tree.root.findByProps({ testID: 'worker-review-progress' }).props.children)
+      .toContain('Profil još nije sačuvan.');
+    expect(mockApi.save).not.toHaveBeenCalled();
+    await act(async () => finishPrepare(ok({})));
+    expect(review().props.review.activate).toBe(false);
+    expect(action('Sačuvaj profil')).toBeTruthy();
+
+    let finishSave!: (value: unknown) => void;
+    mockApi.save.mockImplementationOnce(() => new Promise(resolve => { finishSave = resolve; }));
+    const saved = { ...reviewed(0, false), status: 'COMPLETED', saved: { reviewId: reviewed().review.reviewId,
+      conversationId: C, accountId: A, profileId: B, profileStatus: 'DRAFT', saved: true, authoritative: true } };
+    mockApi.read.mockResolvedValue(ok(saved));
+    await act(async () => { action('Sačuvaj profil').props.onPress(); });
+    expect(action('Čuvamo profil…').props.disabled).toBe(true);
+    expect(tree.root.findByProps({ testID: 'worker-review-progress' }).props.children)
+      .toContain('Čuvamo profil.');
+    expect(mockApi.save).toHaveBeenCalledTimes(1);
+    await act(async () => finishSave(ok({})));
+    expect(action('Otvori sačuvani profil')).toBeTruthy();
+  });
   it.each(['PERMISSION_PENDING','PREPARING','STARTING','LISTENING','FINALIZING'])(
     'a retained review callback cannot interrupt speech during %s',async phase=>{
       await render();await act(async()=>shell().props.onChange('Neposlata dopuna.'));
@@ -211,7 +238,7 @@ describe('the review (M2)', () => {
       expect(shell().props.value).toBe('Neposlata dopuna.');
       mockVoice.state.phase='IDLE';await act(async()=>tree.update(<Screen/>));
       await openReview();expect(review().props.review.revision).toBe(0);
-      expect(mockApi.prepare).toHaveBeenCalledWith(C,0,true);
+      expect(mockApi.prepare).toHaveBeenCalledWith(C,0,false);
       expect(tree.root.findByProps({testID:'worker-review-unsent-note'}).props.children).toContain('Neposlati tekst nije deo ovog pregleda.');
       await act(async()=>review().props.onEdit());
       expect(shell().props.value).toBe('Neposlata dopuna.');expect(shell().props.conversationKey).toBe(C);
@@ -366,7 +393,7 @@ describe('one name: the review is made under the account\'s name', () => {
     mockApi.patch.mockResolvedValue(ok(snapshot(1))); mockApi.prepare.mockResolvedValue(ok({}));
     await open(reviewed(1));
     expect(mockApi.patch).toHaveBeenCalledTimes(1); expect(mockApi.patch).toHaveBeenCalledWith(C, 0, { displayName: 'Milos' });
-    expect(mockApi.prepare).toHaveBeenCalledTimes(1); expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, true);
+    expect(mockApi.prepare).toHaveBeenCalledTimes(1); expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, false);
     expect(mockApi.patch.mock.invocationCallOrder[0]).toBeLessThan(mockApi.prepare.mock.invocationCallOrder[0]);
     expect(review()).toBeTruthy();
   });
@@ -375,7 +402,7 @@ describe('one name: the review is made under the account\'s name', () => {
     mockAccountName = { state: 'ready', name: 'Ana' };
     mockApi.prepare.mockResolvedValue(ok({}));
     await open();
-    expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, true);
+    expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, false);
   });
 
   it.each([['an account with no name', { state: 'ready', name: null }], ['a name that could not be read', { state: 'error', retry: () => {} }],
@@ -383,7 +410,7 @@ describe('one name: the review is made under the account\'s name', () => {
     mockAccountName = value as typeof mockAccountName;
     mockApi.prepare.mockResolvedValue(ok({}));
     await open();
-    expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, true);
+    expect(mockApi.patch).not.toHaveBeenCalled(); expect(mockApi.prepare).toHaveBeenCalledWith(C, 0, false);
   });
 
   it('a name patch that is refused or unconfirmed prepares nothing and opens no review', async () => {
@@ -442,13 +469,55 @@ describe('activation choice belongs to the conversation', () => {
     await act(async () => shell().props.card(false).props.review());
     expect(mockApi.prepare).toHaveBeenCalledWith(C, 1, false); expect(mockApi.save).not.toHaveBeenCalled();
   });
-  it('does not inherit false after leaving and opening a different conversation', async () => {
+  it('a different conversation starts with saving only, regardless of a previous activation choice', async () => {
     await prepareFalse();
     const other = '55555555-5555-4555-8555-555555555555';
     mockApi.read.mockResolvedValue(ok({ ...snapshot(), conversationId: other }));
     mockApi.prepare.mockResolvedValue(ok({})); mockRouteId = other;
     await act(async () => tree.update(<Screen />));
     await act(async () => shell().props.card(false).props.review());
-    expect(mockApi.prepare).toHaveBeenCalledWith(other, 0, true);
+    expect(mockApi.prepare).toHaveBeenCalledWith(other, 0, false);
+  });
+  it('new draft review defaults to saving without activation and never saves while preparing', async () => {
+    mockApi.prepare.mockImplementation(async (_cid, revision, activate) => {
+      mockApi.read.mockResolvedValue(ok(reviewed(revision, activate))); return ok({});
+    });
+    await render(); await act(async()=>shell().props.card(false).props.review());
+    expect(mockApi.prepare).toHaveBeenCalledWith(C,0,false);
+    expect(action('Sačuvaj profil')).toBeTruthy(); expect(mockApi.save).not.toHaveBeenCalled();
+  });
+  it('activation entry preserves an unfinished draft and only prepares activation after an explicit review tap', async () => {
+    await render(); await act(async()=>shell().props.onChange('Moj neposlati odgovor'));
+    mockActivationRequest='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    await act(async()=>tree.update(<Screen/>));
+    expect(shell().props.value).toBe('Moj neposlati odgovor');
+    expect(mockApi.prepare).not.toHaveBeenCalled(); expect(mockApi.open).not.toHaveBeenCalled();
+    mockApi.prepare.mockImplementation(async (_cid, revision, activate) => {
+      mockApi.read.mockResolvedValue(ok(reviewed(revision, activate))); return ok({});
+    });
+    await act(async()=>shell().props.card(false).props.review());
+    expect(mockApi.prepare).toHaveBeenCalledWith(C,0,true); expect(mockApi.save).not.toHaveBeenCalled();
+    await act(async()=>tree.root.findByType('Activation' as never).props.change(false));
+    await act(async()=>review().props.onEdit());
+    await act(async()=>shell().props.card(false).props.review());
+    expect(mockApi.prepare).toHaveBeenLastCalledWith(C,0,false);
+  });
+  it('opens a completed profile for activation once and reconciles its Save instead of opening again', async () => {
+    const next='55555555-5555-4555-8555-555555555555';
+    mockActivationRequest='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+    mockApi.read.mockResolvedValue(ok({...snapshot(),status:'COMPLETED',saved:{reviewId:'old'}}));
+    mockApi.open.mockResolvedValue(ok({...snapshot(),conversationId:next}));
+    await render();
+    expect(mockApi.open).toHaveBeenCalledTimes(1);
+    expect(mockApi.open).toHaveBeenCalledWith(mockActivationRequest);
+    mockApi.prepare.mockResolvedValue(ok({}));
+    const prepared={...reviewed(),conversationId:next};
+    mockApi.read.mockResolvedValue(ok(prepared));
+    await act(async()=>shell().props.card(false).props.review());
+    mockApi.save.mockResolvedValue(ok({}));
+    mockApi.read.mockResolvedValue(ok({...prepared,status:'COMPLETED',saved:{reviewId:prepared.review.reviewId,profileStatus:'ACTIVE'}}));
+    await click('Sačuvaj i aktiviraj profil');
+    expect(mockApi.open).toHaveBeenCalledTimes(1);
+    expect(action('Otvori sačuvani profil')).toBeTruthy();
   });
 });

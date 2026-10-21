@@ -47,6 +47,8 @@ jest.mock('../../ui/v2/V2Action', () => ({ V2Action: 'Button' }));
 import Route from '../../app/(app)/profil/podaci';
 import { DisplayNameForm } from '../../ui/profile/DisplayNameForm';
 import { Avatar } from '../../ui/system/Avatar';
+import { QuietReadState } from '../../ui/v2/QuietReadState';
+import { SkeletonList } from '../../ui/system/Skeleton';
 
 const identity = (displayName = 'Ana Petrović', revision = REVISION) => ({ schema: 'REQUESTER_IDENTITY_V1', accountId: ACCOUNT,
   profileId: PROFILE_ID, displayName, revision, writableFields: ['displayName'] });
@@ -74,6 +76,20 @@ function workProfileKeepsWhatIsWritten(initial = 'Ana') {
   mockWorkWrite.mockImplementation(async (command: { ime?: string }) => { if (command.ime !== undefined) name = command.ime; return ok(null); });
 }
 afterEach(async () => { await act(async () => tree?.unmount()); });
+
+it('keeps the personal data read separate from editable name and recovery', async () => {
+  let finish!: (value: unknown) => void;
+  mockRead.mockReturnValue(new Promise(resolve => { finish = resolve; }));
+  await render();
+  expect(tree.root.findAllByType(QuietReadState)).toHaveLength(1);
+  expect(texts()).toContain('Učitavamo lične podatke…');
+  expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Ime za prikaz' })).toHaveLength(0);
+  expect(barSave()).toBeUndefined();
+  await act(async () => finish(ok(identity())));
+  expect(field().props.value).toBe('Ana Petrović');
+  expect(tree.root.findAllByType(QuietReadState)).toHaveLength(0);
+});
 
 it('there is no save for the name that is already saved; an emptied name has a grey one in the bar that says why', async () => {
   await render();

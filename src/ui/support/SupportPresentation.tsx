@@ -13,10 +13,10 @@ import { FactArt, type FactArtKind } from '../system/FactArt';
 import { Glyph } from '../system/Glyph';
 import { TurningCaret } from '../system/Disclosure';
 import { ScreenChrome } from '../system/ScreenChrome';
-import { StateView } from '../system/StateView';
 import { STATUS_TONES, StatusMark, type StatusShape, type StatusTone } from '../system/StatusChip';
 import { layout, ruleWidth } from '../system/layout';
 import { Surface } from '../system/Surface';
+import { QuietReadState } from '../v2/QuietReadState';
 import { field, sys } from '../system/tokens';
 
 const supportLabels = {
@@ -86,7 +86,7 @@ export function SupportNotice({ children, error = false }: { children: ReactNode
   return <SupportNote tone={error ? 'danger' : 'info'}>{children}</SupportNote>;
 }
 export function SupportLoading() {
-  return <StateView kind="loading" title="Učitavamo sačuvano stanje…" skeleton={{ count: 3, rows: 2 }} />;
+  return <QuietReadState title="Učitavamo sačuvano stanje…" body="Proveravamo podatke pre prikaza." art="support" />;
 }
 export function SupportPrivacy({ safety = false }: { safety?: boolean }) {
   return <QuietLine art="shield">{safety

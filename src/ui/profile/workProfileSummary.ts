@@ -17,9 +17,9 @@ const STATE_WORD: Record<StanjeProfila, string> = { ACTIVE: 'Aktivan', DRAFT: 'N
 
 /**
  * What the work profile says about itself in the ONE line under its row on the profile (owner's phone, 8 Oct 2026: "Profil je aktivan."
- * and two rows under it for the area and the week said less than this): "Aktivan · Moleraj · Novi Sad, 100 km", that is, its state, its first
- * skill (and how many more there are) and its area. A part that does not exist is not said: a draft with no skills yet is "Nacrt · Novi Sad,
- * 100 km", and one with nothing at all is "Nacrt". No profile is "Još nije podešen"; a suspended one says what to do; a state the app does
+ * and two rows under it for the area and the week said less than this): state, first skill (and how many more), confirmed remote work
+ * and an explicitly named area for visits. The area never reads as a limit on remote work. A part that does not exist is not said;
+ * a draft with nothing at all is "Nacrt". No profile is "Još nije podešen"; a suspended one says what to do; a state the app does
  * not know says nothing (never "Aktivan").
  *
  * The long explanations that used to stand here ("Dok je nacrt, zadaci ti se ne nude.", "Bez njega ne možeš da se prijaviš na zadatak.") are
@@ -37,6 +37,6 @@ export function workProfileSummary(profile: WorkProfileFacts | null, executionMo
   const parts = [STATE_WORD[profile.stanje],
     skills.length ? `${clip(skills[0])}${skills.length > 1 ? ` +${skills.length - 1}` : ''}` : '',
     remote ? 'Na daljinu' : '',
-    onSite && city ? (radius ? `${city}, ${radius}` : city) : ''];
+    onSite && city ? `Dolazak: ${city}${radius ? `, do ${radius}` : ''}` : ''];
   return parts.filter(Boolean).join(' · ');
 }

@@ -39,6 +39,8 @@ jest.mock('../../media/ContextPhotos', () => ({ ProfilePhoto: 'ProfilePhoto' }))
 jest.mock('../ReceivedReviewsSection', () => ({ ReceivedReviewsSection: 'ReceivedReviewsSection' }));
 import Ocene from '../../../app/(app)/profil/ocene';
 import { trenutak } from '../../../lib/trenutak';
+import { SkeletonList } from '../../system/Skeleton';
+import { QuietReadState } from '../../v2/QuietReadState';
 
 let tree: ReactTestRenderer;
 const flush = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
@@ -102,9 +104,10 @@ describe('Primljene', () => {
     expect(mockReputation).toHaveBeenCalledWith(ME);
   });
 
-  it('reads as a still bar while it reads, never as "no ratings"', async () => {
+  it('names the pending average without a gray bar or claiming there are no ratings', async () => {
     mockReputation.mockReturnValue(new Promise(() => undefined)); await render();
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Učitavamo ocene' })).toHaveLength(1);
+    expect(texts()).toContain('Učitavamo prosek ocena…');
+    expect(tree.root.findAllByProps({ accessibilityRole: 'progressbar' })).toHaveLength(0);
     expect(texts()).not.toContain('Još nema ocena');
   });
 
@@ -162,6 +165,16 @@ describe('Primljene', () => {
 describe('Date', () => {
   const OLD = '2025-03-14T10:00:00Z', NEWER = '2025-06-02T09:00:00Z';
   const open = async () => { await act(async () => { tab('Date').props.onPress(); await flush(); }); };
+
+  it('keeps tabs and Back while the first given ratings read has no invented rows', async () => {
+    mockAgreements.mockReturnValue(new Promise(() => undefined));
+    await render(); await open();
+    expect(texts()).toContain('Učitavamo date ocene…');
+    expect(tree.root.findAllByType(QuietReadState)).toHaveLength(1);
+    expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
+    expect(tab('Primljene')).toBeDefined(); expect(press('Nazad')).toBeDefined();
+    expect(texts()).not.toContain('Još nema datih ocena');
+  });
 
   it('reads nothing until the tab is opened, and then the Dogovori without the rating enrichment, once', async () => {
     await render();

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../marketplaceView';
-import BottomSheet from '@gorhom/bottom-sheet';
 import { sys } from '../../ui/system/tokens';
+import { SkeletonList } from '../../ui/system/Skeleton';
+import { QuietReadState } from '../../ui/v2/QuietReadState';
 let mockReduced = false;
 jest.mock('react-native', () => {
  const native = jest.requireActual('react-native'), React = require('react');
@@ -263,7 +264,7 @@ describe('Filteri, the one control of the bar', () => {
  test('drag/backdrop closure discards filter drafts and opens nothing', async () => {
   await render(); await tap('Filteri'); await tap('Tražim ponude');
   expect(action('Prikaži 1 zadatak')).toBeTruthy();
-  await act(async () => tree.root.findByType(BottomSheet).props.onClose());
+  await act(async () => tree.root.findAllByProps({ testID: 'product-sheet-backdrop' })[0].props.onPress());
   expect(snapshot.price).toBe('all'); expect(tree.root.findAllByType('Modal' as React.ElementType)).toHaveLength(0);
   await tap('Filteri'); expect(press('Svi načini').props.accessibilityState.checked).toBe(true);
   expect(open).not.toHaveBeenCalled();
@@ -327,8 +328,7 @@ describe('Filteri, the one control of the bar', () => {
 
  test('reduced motion sheet is immediate; no unbound GPS, proximity or geocoding controls appear', async () => {
   mockReduced = true; await render(); await tap('Filteri'); expect(tree.root.findByType('Modal' as React.ElementType).props.animationType).toBe('none');
-  expect(tree.root.findByType(BottomSheet).props.animateOnMount).toBe(false);
-  expect(tree.root.findByType(BottomSheet).props.animationConfigs.duration).toBe(0);
+  expect(tree.root.findAllByProps({ testID: 'product-modal-card' }).length).toBeGreaterThan(0);
   expect(JSON.stringify(tree.toJSON())).not.toMatch(/GPS|Moja lokacija|km od|geocod/i);
  });
 
@@ -384,7 +384,13 @@ describe('the empty states', () => {
   rows = everyState(); loading = status === 'loading'; error = status === 'error'; await render();
   expect(cards()).toHaveLength(0); expect(groups()).toEqual([]); expect(tree.root.findAllByProps({ accessibilityHint: 'Otvara nacrte.' })).toHaveLength(0);
   if (error) { await click('Pokušaj ponovo'); expect(refresh).toHaveBeenCalledTimes(1); }
-  else expect(texts()).toContain('Učitavamo zadatke…');
+  else {
+   expect(texts()).toContain('Učitavamo zadatke…');
+   expect(texts()).toContain('Proveravamo tvoje objave, nacrte i istoriju.');
+   expect(tree.root.findAllByType(QuietReadState)).toHaveLength(1);
+   expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
+   expect(texts()).not.toMatch(/Još nemaš zadatak|Čeka tvoj izbor|Dogovoreno/);
+  }
  });
 
  // Review r3 item 7: the filtered-empty view's one way forward clears what was chosen, and only that. Nothing on this screen narrows the list any more;

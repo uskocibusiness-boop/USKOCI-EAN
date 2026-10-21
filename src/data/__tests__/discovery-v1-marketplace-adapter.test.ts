@@ -23,6 +23,27 @@ it('maps one MarketplaceView to one strict filter and AREA list scope',()=>{
 });
 it('dates override a stale quick-date word',()=>expect(discoveryV1ViewPlan(view({when:'week',dates:{from:'2026-09-30',to:'2026-10-02'}})).filter)
  .toEqual(expect.objectContaining({when:'any',dates:{from:'2026-09-30',to:'2026-10-02'}})));
+it.each([1,5000,2_147_483_647])('sends the minimal stated fixed price without changing its basis or other filters: %s',minBudgetRsd=>{
+ const baseline=discoveryV1ViewPlan(view({price:'MY_PRICE',forMe:true,where:'remote'}));
+ const constrained=discoveryV1ViewPlan(view({price:'MY_PRICE',forMe:true,where:'remote',minBudgetRsd}));
+ expect(constrained).toEqual({...baseline,filter:{...baseline.filter,minBudgetRsd}});
+});
+it.each([undefined,null])('absent or empty minimum preserves the exact old serialized filter: %s',minBudgetRsd=>{
+ for(const price of ['all','MY_PRICE','OFFERS'] as const){
+  const before=discoveryV1ViewPlan(view({price}));
+  expect(JSON.stringify(discoveryV1ViewPlan(view({price,minBudgetRsd})))).toBe(JSON.stringify(before));
+  expect(Object.hasOwn(before.filter,'minBudgetRsd')).toBe(false);
+ }
+});
+it.each([0,-1,0.5,2_147_483_648,NaN,Infinity,'5000',true,{}])('malformed minimum refuses rather than widening discovery: %p',minBudgetRsd=>{
+ expect(()=>discoveryV1ViewPlan(view({price:'MY_PRICE',minBudgetRsd:minBudgetRsd as number}))).toThrow('DISCOVERY_V1_MIN_BUDGET_INVALID');
+});
+it('all plus minimum keeps the all mode so the server can include offers and qualifying fixed prices',()=>{
+ expect(discoveryV1ViewPlan(view({price:'all',minBudgetRsd:5000})).filter).toMatchObject({price:'all',minBudgetRsd:5000});
+});
+it('an offers-only wire minimum is invalid rather than silently ignored',()=>{
+ expect(()=>discoveryV1ViewPlan(view({price:'OFFERS',minBudgetRsd:5000}))).toThrow('DISCOVERY_V1_MIN_BUDGET_PRICE_MODE');
+});
 it('remote intent clears locality and geographic query scopes without rewriting remembered view',()=>{
  const original=view({where:'remote',place:'Liman',area:[19,44,21,46],pinPlace:'45.25,19.83',viewport:{center:[20,45],zoom:10,bounds:[19,44,21,46]}});
  const p=discoveryV1ViewPlan(original);expect(p.filter.place).toBeNull();expect(p.pageScope).toEqual({kind:'ALL'});

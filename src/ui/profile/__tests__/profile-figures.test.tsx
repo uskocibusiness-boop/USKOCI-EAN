@@ -90,16 +90,16 @@ describe('a cell of the row', () => {
     expect(open).toHaveBeenCalledTimes(1);
   });
 
-  it('shares the row in thirds: grows and shrinks from nothing, never wider than a third and a bit, and never cuts its words', async () => {
+  it('shares the row: grows and shrinks for two or three facts, and never cuts its words', async () => {
     await draw(<FigureCell figure={ratingFigure(4.8, 12)} testID="cell" />);
     const cell = hosts('View').find(node => node.props.testID === 'cell')!;
-    expect(flat(cell)).toMatchObject({ flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, maxWidth: '36%', alignItems: 'center' });
+    expect(flat(cell)).toMatchObject({ flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 0, maxWidth: '48%', alignItems: 'center' });
     for (const line of hosts('T')) expect(line.props.numberOfLines).toBeUndefined();
   });
 });
 
 describe('the row', () => {
-  it('stands its cells side by side, centred as a group, so two or one keep the width of one of three', async () => {
+  it('stands its cells side by side, centred as a group, with room for two or three', async () => {
     await draw(<FigureRow testID="row"><FigureCell figure={finishedFigure(9)} /><FigureCell figure={reliabilityFigure(90)} /></FigureRow>);
     const row = hosts('View').find(node => node.props.testID === 'row')!;
     expect(flat(row)).toMatchObject({ flexDirection: 'row', justifyContent: 'center' });
@@ -108,11 +108,11 @@ describe('the row', () => {
 });
 
 describe('the states of a cell', () => {
-  it('is a still shape while it reads, a progress a screen reader can name, with nothing that moves', async () => {
+  it('names the independent read without a grey false number', async () => {
     await draw(<FigureCellPlaceholder label="Učitavanje reputacije" />);
-    const shape = hosts('View').find(node => node.props.accessibilityRole === 'progressbar')!;
-    expect(shape.props).toMatchObject({ accessible: true, accessibilityLabel: 'Učitavanje reputacije', accessibilityState: { busy: true } });
-    expect(texts()).toEqual([]);
+    const state = hosts('View').find(node => node.props.accessibilityLabel === 'Učitavanje reputacije')!;
+    expect(state.props).toMatchObject({ accessible: true, accessibilityRole: 'text', accessibilityState: { busy: true }, accessibilityLiveRegion: 'polite' });
+    expect(texts()).toEqual(['Učitavanje reputacije']);
   });
 
   it('says in one short line that it could not be read and offers the one way to read it again, in the same place', async () => {

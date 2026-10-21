@@ -126,18 +126,20 @@ describe('the search and the filters', () => {
     expect(field.props.value).toBe('selidba');
   });
 
-  test.each(['filteri', 'pretraga-kada'])('%s is the sheet of the filters: Kada, Iznos and the foot with the real number', async scene => {
+  test.each(['filteri', 'pretraga-kada'])('%s shows place, work mode, price mode, date and the result count', async scene => {
     await render({ scene });
-    expect(labels()).toContain('Zatvori filtere'); expect(texts()).toContain('Kada'); expect(texts()).toContain('Iznos');
-    expect(tree.root.findAllByType('Action' as React.ElementType).map(action => action.props.label)).toEqual(['Očisti', 'Prikaži 41 zadatak']);
+    expect(labels()).toContain('Zatvori filtere');
+    expect(texts()).toContain('Mesto na mapi'); expect(texts()).toContain('Način rada');
+    expect(texts()).toContain('Cena'); expect(texts()).toContain('Kada');
+    expect(tree.root.findAllByType('Action' as React.ElementType).map(action => action.props.label))
+      .toEqual(['Pronađi mesto', 'Očisti', 'Prikaži 41 zadatak']);
   });
 
-  test('filteri-izabrano has a day and an amount chosen', async () => {
+  test('filteri-izabrano has a day and fixed-price mode chosen', async () => {
     await render({ scene: 'filteri-izabrano' });
     const chosen = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'radio' && node.props.accessibilityState?.checked)
       .map(node => node.props.accessibilityLabel);
     expect(chosen()).toContain('Ovaj vikend');
-    expect(chosen()).toContain('Sa iznosom');
-    expect(chosen()).toContain('Ovaj vikend');
+    expect(chosen()).toContain('Fiksna cena');
   });
 });

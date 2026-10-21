@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { rememberAiCorrection } from '../../data/aiCorrectionIntent';
 import { useSesija } from '../../store/sesija';
-import { StateView } from '../system/StateView';
+import { QuietReadState } from '../v2/QuietReadState';
 import { WorkerProfileFrame } from './WorkerProfilePresentation';
 
 /** Compatibility entry for old links: a local owned topic, never a profile write or AI message. */
@@ -18,6 +18,6 @@ export function WorkerAiTopicEntry({ part }: { part: 'area' | 'time' }) {
   }, [accountId, accountRevision, part]));
   return <WorkerProfileFrame title={part === 'time' ? 'Dostupnost' : 'Područje rada'}
     back={() => router.canGoBack() ? router.back() : router.replace('/profil')}>
-    <StateView kind="loading" title="Otvaramo razgovor…" />
+    <QuietReadState art="chat" title="Otvaramo razgovor…" body="Pripremamo tvoj radni profil za izmenu." />
   </WorkerProfileFrame>;
 }

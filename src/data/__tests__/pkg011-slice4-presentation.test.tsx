@@ -83,8 +83,8 @@ test('a published Task leads with its state, title and the applications to choos
   expect(labels()).not.toContain('Mesto izvršenja');
   // Required equipment is now readable immediately, before any disclosure is opened.
   expect(copy).toContain('Trake');
-  // How many people the task needs is said in words and only because it is more than one; "0/2" said nothing; a price with no stated basis stays the bare amount.
-  expect(copy).toContain('Treba 2 osobe'); expect(copy).not.toMatch(/0\/2|popunjeno/);
+  // Selected capacity is explicit and separate from the applications count; an unstated price basis stays unknown.
+  expect(copy).toContain('0/2 izabrano'); expect(copy).not.toContain('Treba 2 osobe'); expect(copy).not.toContain('popunjeno');
   // The state is on top, the name under it, the block of state under the name (the bar's hidden copy of the name comes first in the tree).
   expect(copy.indexOf('Bira se · 3')).toBeLessThan(copy.lastIndexOf('Prenos ormara'));
   expect(copy.lastIndexOf('Prenos ormara')).toBeLessThan(copy.indexOf('3 prijave'));
@@ -103,10 +103,10 @@ test('V41 facts: the place, Termin as day and hours, Potrebno, and the price wit
   // Each grouped fact has one complete spoken label; no date or location is shortened by its layout.
   expect(spoken).toContain('Termin: 20. sep 2026 · 18:00 – 19:00 (po vremenu u Srbiji)');
   expect(spoken).toContain('Mesto: Novi Sad, Liman');
-  expect(spoken).toContain('Treba 2 osobe');
+  expect(spoken).toContain('Izabrani izvršioci: 0 od 2');
   // The sum is the first fact, with its picture, and what it covers goes quietly beside it, in the words the rest of the app uses.
-  expect(texts()).toContain('3.000 RSD po osobi · ukupno 6.000 RSD');
-  expect(spoken).toContain('Budžet 3.000 RSD po osobi · ukupno 6.000 RSD');
+  expect(texts()).toContain('3.000 RSD'); expect(texts()).toContain('po osobi · ukupno 6.000 RSD');
+  expect(spoken).toContain('Budžet: 3.000 RSD, po osobi · ukupno 6.000 RSD');
   await act(async () => tree.unmount());
   // A flexible range is never split into a day and an hour it does not have.
   await act(async () => { tree = create(<Screen value={need({ vremeTekst: 'Fleksibilan raspon · 13. sep 2026 – 14. sep 2026',
@@ -164,9 +164,11 @@ test('a private draft leads with the review and says no more than its chip; a cl
   await act(async () => { tree = create(<Screen value={need({ stanje: 'DELIMICNO_POPUNJENA', pokrivenost: { ukupno: 2, popunjeno: 1, preostalo: 1, udeo: 0.5 } })} />); });
   expect(await menuLabels()).toContain('Ne traži više nikoga');
 });
-test('loading shows placeholder geometry with a spoken status; an error keeps one retry', async () => {
+test('loading shows a calm spoken status without placeholder cards; an error keeps one retry', async () => {
   await act(async () => { tree = create(<Screen value={null} loading />); });
   expect(texts()).toContain('Učitavamo zadatak…'); expect(brand()).toEqual([]);
+  expect(tree.root.findAllByProps({ testID: 'quiet-read-state' })).toHaveLength(1);
+  expect(tree.root.findAll(node => node.props.variant === 'taskDetail')).toHaveLength(0);
   await act(async () => tree.unmount());
   await act(async () => { tree = create(<Screen value={null} error="Zadatak trenutno nije moguće učitati." />); });
   expect(texts()).toContain('Zadatak nije dostupan'); expect(byLabel('Pokušaj ponovo')).toBeTruthy(); expect(brand()).toEqual(['Pokušaj ponovo']);
@@ -180,8 +182,9 @@ test('the edit stands in the bar before everything the page says, and it is not 
   expect(order.indexOf('Izmeni zadatak')).toBeGreaterThan(-1);
   expect(order.indexOf('Izmeni zadatak')).toBeLessThan(order.indexOf('Pogledaj prijave, 3 prijave za izbor'));
   expect(brand()).toEqual(['Pogledaj prijave, 3 prijave za izbor']);
-  // The word beside the pencil is the control's own name, in the bar's captioned pill.
-  expect(byLabel('Izmeni zadatak').findAllByType('T' as React.ElementType).map(node => node.props.children)).toEqual(['Izmeni']);
+  // The edit is now a compact icon in the bar, while its accessible name remains complete.
+  expect(byLabel('Izmeni zadatak').findAllByType('T' as React.ElementType)).toHaveLength(0);
+  expect(byLabel('Izmeni zadatak').props.accessibilityRole).toBe('button');
 });
 test('says when it was published only when the read had the instant, quietly, after the place and before what ends the task', async () => {
   const now = new Date('2026-10-08T12:00:00Z');

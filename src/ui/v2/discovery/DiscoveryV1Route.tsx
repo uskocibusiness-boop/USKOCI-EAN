@@ -8,7 +8,7 @@ import { createDiscoveryV1WarmReturn, DISCOVERY_V1_WARM_RETURN_MS, type Discover
 import type { TaskRelation } from '../../../data/taskRelation';
 import { sesijaSada, useSesija } from '../../../store/sesija';
 import { izvorSada, useIzvor } from '../../../store/uloga';
-import { StateView } from '../../system/StateView';
+import { QuietReadState } from '../QuietReadState';
 import { FOR_ME_SWITCH_EXISTS } from '../../workerProfile/workerProfileFacts';
 import { DiscoveryV1Screen } from './DiscoveryV1Screen';
 import { useDiscoveryNativeTrace } from './discoveryNativeTrace';
@@ -22,7 +22,7 @@ export function DiscoveryV1Route() {
   const source = useIzvor(), { user, accountRevision } = useSesija();
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const [scope, setScope] = useState<object | null>(null);
-  const [view, setView] = useState<MarketplaceView>(() => ({ ...initialMarketplaceView(), mode: 'map' }));
+  const [view, setView] = useState<MarketplaceView>(() => ({ ...initialMarketplaceView(), mode: 'map', where: 'onsite' }));
   // A source/account ABA creates a different surface even when its displayed key repeats.
   const identitySequence = useRef(0);
   const identity = useMemo(() => ({ number: ++identitySequence.current }), [source, user?.id, accountRevision]);
@@ -119,7 +119,8 @@ export function DiscoveryV1Route() {
   }, [navigate]);
 
   if ((!scope && !canRetainMap()) || !user?.id) return <View style={{ paddingHorizontal: 16, paddingVertical: 24 }}>
-    <StateView kind="loading" title="Učitavamo zadatke…" skeleton={{ variant: 'task' }} />
+    <QuietReadState art="map" title="Otvaramo mapu zadataka…"
+      body="Proveravamo zadatke za ovaj nalog pre prikaza mape." />
   </View>;
 
   return <DiscoveryV1Screen key={`${user.id}:${accountRevision}:${identity.number}:${surfaceAttempt}`}

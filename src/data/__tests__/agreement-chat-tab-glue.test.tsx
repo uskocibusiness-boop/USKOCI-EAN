@@ -22,7 +22,7 @@ jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalS
 jest.mock('../agreementClientService', () => ({ agreementProblemService: { submit: jest.fn(), read: jest.fn() } }));
 jest.mock('../groupConversationService', () => ({ groupConversationService: { context: jest.fn().mockResolvedValue({ ok: true, podatak: { group: null } }) } }));
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
-jest.mock('react-native-reanimated', () => ({ __esModule: true, default: { View: 'AnimatedView' } }));
+jest.mock('react-native-reanimated', () => ({ ...jest.requireActual('../../../__mocks__/react-native-reanimated'), __esModule: true, default: { ...jest.requireActual('../../../__mocks__/react-native-reanimated').default, View: 'AnimatedView' } }));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => false }));

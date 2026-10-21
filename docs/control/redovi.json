@@ -207,6 +207,12 @@
           "githubRunId": "39370415630",
           "evidence": "docs/current/evidence/LIGHT_NAVIGATION_20261020.json",
           "boundary": "NAVIGATION_VISUAL_AND_TAB_SMOKE_ONLY; existing A08 P1 and whole-flow acceptance remain open"
+        },
+        "connected_ui_20261020": {
+          "status": "BOUNDED_EMULATOR_VERIFIED",
+          "sourceSha": "70bc79f250b33ae706a068579c3527dfbf297792",
+          "evidence": "docs/current/evidence/CONNECTED_UI_20261020.json",
+          "boundary": "BOUNDED_UI_NATIVE; full MVP, prior A08 issue and all server/write acceptance remain OPEN"
         }
       },
       "source_audit_20261018_current_baseline": {
@@ -228,12 +234,14 @@
         "proofStatus": "PENDING",
         "decision": "Jedan nalog koristi obe perspektive bez trajnog odvajanja uloga."
       },
-      "source_progress_20261020_light_navigation": "20.10: svetla centralna navigacija i mirni Glyph simboli, runtime be53b4ff, APK 47cbd0e2, CI 39370415630 SUCCESS, 622/14016 PASS. Instaliran -r na emulator bez brisanja sesije; Početna 361/390/412 dp × font1/1.3 vizuelno pregledana; sva četiri taba otvorena stvarnim dodirom. Nema nove phone/DEV primene ili prihvatanja celog poslovnog toka. docs/current/evidence/LIGHT_NAVIGATION_20261020.json."
+      "source_progress_20261020_light_navigation": "20.10: svetla centralna navigacija i mirni Glyph simboli, runtime be53b4ff, APK 47cbd0e2, CI 39370415630 SUCCESS, 622/14016 PASS. Instaliran -r na emulator bez brisanja sesije; Početna 361/390/412 dp × font1/1.3 vizuelno pregledana; sva četiri taba otvorena stvarnim dodirom. Nema nove phone/DEV primene ili prihvatanja celog poslovnog toka. docs/current/evidence/LIGHT_NAVIGATION_20261020.json.",
+      "source_progress_20261020_connected_ui": "20.10: Početna → Zadaci/mapa/lista/filteri → detalj, source/APK 70bc79f2, CI 39380225968 SUCCESS, 622/14019 PASS. Installed hash i embedded OTA potvrđeni; ograničen emulator pregled i Home 361/390/412 × font1/1.3. Povezan nacrt svih 65 površina; ostali MVP tokovi ostaju otvoreni. docs/current/evidence/CONNECTED_UI_20261020.json."
     },
     {
       "id": "A02",
       "grupa": "Put A · Objavi zadatak",
       "naslov": "Razgovor sa AI: kaži šta treba",
+      "source_progress_20261021_named_conversation": "Lokalni klijent: imenovan Novi razgovor u niti umesto tri tačke/osvežavanja u zaglavlju; naslov otvorenog nacrta samo iz potvrđenog need.title. Uklanjanje aktivne stavke zahteva potvrdu i readback; nije trajni delete istorije. Fokusirani AI skup 333/333 PASS, TSC PASS. Native 320dp i ceo tok objave nisu potvrđeni. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "nacrt": "UX nacrt §4 korak 2",
       "stari": [
         "FUNC-3754",
@@ -1425,6 +1433,12 @@
           "githubRunId": "39370415630",
           "evidence": "docs/current/evidence/LIGHT_NAVIGATION_20261020.json",
           "boundary": "NAVIGATION_VISUAL_AND_TAB_SMOKE_ONLY; existing A08 P1 and whole-flow acceptance remain open"
+        },
+        "connected_ui_20261020": {
+          "status": "BOUNDED_EMULATOR_VERIFIED",
+          "sourceSha": "70bc79f250b33ae706a068579c3527dfbf297792",
+          "evidence": "docs/current/evidence/CONNECTED_UI_20261020.json",
+          "boundary": "BOUNDED_UI_NATIVE; full MVP, prior A08 issue and all server/write acceptance remain OPEN"
         }
       },
       "owner_decisions_20261019": {
@@ -1433,7 +1447,15 @@
         "proofStatus": "PENDING",
         "decision": "Pre prvog izbora razlikovati izmenu bez prijava od Izmeni i ponovo objavi kada prijava postoji."
       },
-      "source_progress_20261020_light_navigation": "20.10: svetla centralna navigacija i mirni Glyph simboli, runtime be53b4ff, APK 47cbd0e2, CI 39370415630 SUCCESS, 622/14016 PASS. Instaliran -r na emulator bez brisanja sesije; Početna 361/390/412 dp × font1/1.3 vizuelno pregledana; sva četiri taba otvorena stvarnim dodirom. Nema nove phone/DEV primene ili prihvatanja celog poslovnog toka. docs/current/evidence/LIGHT_NAVIGATION_20261020.json."
+      "source_progress_20261020_light_navigation": "20.10: svetla centralna navigacija i mirni Glyph simboli, runtime be53b4ff, APK 47cbd0e2, CI 39370415630 SUCCESS, 622/14016 PASS. Instaliran -r na emulator bez brisanja sesije; Početna 361/390/412 dp × font1/1.3 vizuelno pregledana; sva četiri taba otvorena stvarnim dodirom. Nema nove phone/DEV primene ili prihvatanja celog poslovnog toka. docs/current/evidence/LIGHT_NAVIGATION_20261020.json.",
+      "source_progress_20261020_connected_ui": "20.10: Početna → Zadaci/mapa/lista/filteri → detalj, source/APK 70bc79f2, CI 39380225968 SUCCESS, 622/14019 PASS. Installed hash i embedded OTA potvrđeni; ograničen emulator pregled i Home 361/390/412 × font1/1.3. Povezan nacrt svih 65 površina; ostali MVP tokovi ostaju otvoreni. docs/current/evidence/CONNECTED_UI_20261020.json.",
+      "source_progress_20261020_native_package_1": {
+        "status": "LOCAL SOURCE / TARGETED TEST PASS / BOUNDED EMULATOR; full flow remains open",
+        "evidence": "docs/current/evidence/NATIVE_UI_PACKAGE_1_20261020.json",
+        "tests": "11 suites / 272 tests; tsc PASS",
+        "native": "Task owner detail, candidates and cancel-choice; offline component fixtures recorded separately",
+        "limits": "No live submit/select, physical phone or full end-to-end acceptance. QA application marked viewed by existing UI command."
+      }
     },
     {
       "id": "A09",
@@ -1691,6 +1713,13 @@
         "decisionStatus": "APPROVED_DIRECTION",
         "proofStatus": "PENDING",
         "decision": "Zamena pre prvog izbora zatvara stare aktivne prijave bez prenosa ponuda ili oznake krivice kandidata."
+      },
+      "source_progress_20261020_native_package_1": {
+        "status": "LOCAL SOURCE / TARGETED TEST PASS / BOUNDED EMULATOR; full flow remains open",
+        "evidence": "docs/current/evidence/NATIVE_UI_PACKAGE_1_20261020.json",
+        "tests": "11 suites / 272 tests; tsc PASS",
+        "native": "Task owner detail, candidates and cancel-choice; offline component fixtures recorded separately",
+        "limits": "No live submit/select, physical phone or full end-to-end acceptance. QA application marked viewed by existing UI command."
       }
     },
     {
@@ -1771,6 +1800,13 @@
         "decisionStatus": "APPROVED_DIRECTION",
         "proofStatus": "PENDING",
         "decision": "Prvi potvrđeni izbor je trajna granica obične ponovne objave; dogovoreni iznos nije dokaz plaćanja."
+      },
+      "source_progress_20261020_native_package_1": {
+        "status": "LOCAL SOURCE / TARGETED TEST PASS / BOUNDED EMULATOR; full flow remains open",
+        "evidence": "docs/current/evidence/NATIVE_UI_PACKAGE_1_20261020.json",
+        "tests": "11 suites / 272 tests; tsc PASS",
+        "native": "Task owner detail, candidates and cancel-choice; offline component fixtures recorded separately",
+        "limits": "No live submit/select, physical phone or full end-to-end acceptance. QA application marked viewed by existing UI command."
       }
     },
     {
@@ -2079,6 +2115,7 @@
       "id": "B00",
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Radni profil kroz razgovor sa AI",
+      "source_progress_20261021_safe_exit": "Lokalni klijent: Novi razgovor je imenovana radnja u niti; Napusti razgovor ima potvrdu, abandon i readback istog razgovora. Profil se otvara tek na potvrđen ABANDONED; OPEN/neuspešno čitanje čuva neposlati tekst. Fokusirani 333/333 PASS, TSC PASS; server nema list/archive/delete istorije, native raspored i ceo intervju otvoreni. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "source_progress_20261018_intent_dispatch": "Izvorni pregled jasnije odvaja remote-only rad od profilnog grada i terenskog kruga, prikazuje predlog kategorije običnim rečima i uslovno opisuje obaveštenja. DEV read-only šema potvrđuje jedan grad/radijus bez regionalnog modela; povezani server paket je opisan u docs/implementation/v5-ai-first/WORKER_INTENT_TO_DISPATCH_DESIGN_20261018.md, ali nije primenjen. Ciljani UI Jest 19/19 i TypeScript PASS; nema novog APK, Gemini, matching ili push dokaza.",
       "nacrt": "UX nacrt §5 korak 0",
       "stari": [
@@ -3168,6 +3205,7 @@
       "id": "B04",
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Mapa i lista prilika",
+      "source_progress_20261021_place_guard": "Lokalni klijent: Filteri su jedina primarna gornja komanda; LocationIQ mesto se primenjuje na kameru i P6 oblast. Kadar koji ne sadrži izabranu tačku ne sme da sačuva njen naziv nad tuđim rezultatima (discovery-presentation 238/238 PASS). Donja navigacija pri punoj listi ima source/test dokaz 42/42, ali HONOR dodir, native kamera/gest i ceo povratak iz detalja nisu potvrđeni. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "source_progress_20261018_empty_count": "Brojač prazne liste sada kaže 0 zadataka; objašnjenje i naredna radnja ostaju u stanju liste, bez duplog naslova. Ciljani Jest 414/414 i TypeScript PASS. Veliki skup, kamera i filteri nisu menjani. Dokaz: docs/implementation/ui-ux-pass-20261002/HOME_AND_QUIET_STATES_20261018.md.",
       "source_progress_20261018_remote_empty": "Na daljinu već otvara listu bez mape; prazno stanje sada koristi remote ikonicu i posebne reči, uz istu radnju poništavanja filtera. Discovery 229/229 i TypeScript PASS; Metro emulator vizuelno potvrđen. Veliki skup, kamera, fizički telefon i release APK čekaju. Dokaz: docs/implementation/ui-ux-pass-20261002/REMOTE_EMPTY_STATE_20261018.md.",
       "nacrt": "UX nacrt §5 korak 1",
@@ -3726,6 +3764,12 @@
           "source": "52720d9950694d09259a919f371e751b013df489",
           "ciRun": 38030187236,
           "nativeEvidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-52720d99.json"
+        },
+        "connected_ui_20261020": {
+          "status": "BOUNDED_EMULATOR_VERIFIED",
+          "sourceSha": "70bc79f250b33ae706a068579c3527dfbf297792",
+          "evidence": "docs/current/evidence/CONNECTED_UI_20261020.json",
+          "boundary": "BOUNDED_UI_NATIVE; full MVP, prior A08 issue and all server/write acceptance remain OPEN"
         }
       },
       "source_progress_20261018_worker_coverage": "Zajednički matcher na DEV-u ispravljen samo za city fallback bez koordinata. Kandidatski prefilter još koristi 300 km od jedne tačke i mora se proširiti pre regionalnog rada. Nema novog dispatch/push/device dokaza. Dokaz: docs/implementation/v5-ai-first/WORKER_COVERAGE_IMPLEMENTATION_20261018.md",
@@ -3733,12 +3777,14 @@
         "status": "DOCUMENTATION + STATIC INVENTORY; RUNTIME/NATIVE UNCHANGED",
         "note": "Inventar: 21 dizajn ruta u router stablu; runtime DEV gate ne dokazuje izostavljanje iz release bundle-a. Postojeći discovery i redirect-i ostaju. Predlog je jasna remote/teren kompozicija i izdvajanje laboratorije uz dokaz build-a.",
         "report": "docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md"
-      }
+      },
+      "source_progress_20261020_connected_ui": "20.10: Početna → Zadaci/mapa/lista/filteri → detalj, source/APK 70bc79f2, CI 39380225968 SUCCESS, 622/14019 PASS. Installed hash i embedded OTA potvrđeni; ograničen emulator pregled i Home 361/390/412 × font1/1.3. Povezan nacrt svih 65 površina; ostali MVP tokovi ostaju otvoreni. docs/current/evidence/CONNECTED_UI_20261020.json."
     },
     {
       "id": "B05",
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Pretraga i filteri",
+      "source_progress_20261021_modes": "Lokalni centrirani filter: potvrđeno mesto, Na lokaciji/Na daljinu/Oba, Fiksna cena/Ponude/Oba, vreme. Minimum fiksne cene je iza isključenog build flag-a; lokalni SQL kandidat ima 5 statičkih provera, ali nema izolovani PostgreSQL izvršni dokaz niti DEV primenu. RN-web 320/390dp nije native proba. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "nacrt": "UX nacrt §5 korak 1, §7",
       "stari": [
         "FUNC-3774"
@@ -4240,8 +4286,15 @@
           "targetedCi": 38033001120,
           "pkg049": 38033001100,
           "storeReady": false
+        },
+        "connected_ui_20261020": {
+          "status": "BOUNDED_EMULATOR_VERIFIED",
+          "sourceSha": "70bc79f250b33ae706a068579c3527dfbf297792",
+          "evidence": "docs/current/evidence/CONNECTED_UI_20261020.json",
+          "boundary": "BOUNDED_UI_NATIVE; full MVP, prior A08 issue and all server/write acceptance remain OPEN"
         }
-      }
+      },
+      "source_progress_20261020_connected_ui": "20.10: Početna → Zadaci/mapa/lista/filteri → detalj, source/APK 70bc79f2, CI 39380225968 SUCCESS, 622/14019 PASS. Installed hash i embedded OTA potvrđeni; ograničen emulator pregled i Home 361/390/412 × font1/1.3. Povezan nacrt svih 65 površina; ostali MVP tokovi ostaju otvoreni. docs/current/evidence/CONNECTED_UI_20261020.json."
     },
     {
       "id": "B06",
@@ -4347,7 +4400,21 @@
           "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
           "proposedChange": "Detalj nije uvećana list kartica; sekcije bez kutije oko svake.",
           "boundary": "No application source, DEV, device or acceptance-light change."
+        },
+        "connected_ui_20261020": {
+          "status": "BOUNDED_EMULATOR_VERIFIED",
+          "sourceSha": "70bc79f250b33ae706a068579c3527dfbf297792",
+          "evidence": "docs/current/evidence/CONNECTED_UI_20261020.json",
+          "boundary": "BOUNDED_UI_NATIVE; full MVP, prior A08 issue and all server/write acceptance remain OPEN"
         }
+      },
+      "source_progress_20261020_connected_ui": "20.10: Početna → Zadaci/mapa/lista/filteri → detalj, source/APK 70bc79f2, CI 39380225968 SUCCESS, 622/14019 PASS. Installed hash i embedded OTA potvrđeni; ograničen emulator pregled i Home 361/390/412 × font1/1.3. Povezan nacrt svih 65 površina; ostali MVP tokovi ostaju otvoreni. docs/current/evidence/CONNECTED_UI_20261020.json.",
+      "source_progress_20261020_native_package_1": {
+        "status": "LOCAL SOURCE / TARGETED TEST PASS / BOUNDED EMULATOR; full flow remains open",
+        "evidence": "docs/current/evidence/NATIVE_UI_PACKAGE_1_20261020.json",
+        "tests": "11 suites / 272 tests; tsc PASS",
+        "native": "Task owner detail, candidates and cancel-choice; offline component fixtures recorded separately",
+        "limits": "No live submit/select, physical phone or full end-to-end acceptance. QA application marked viewed by existing UI command."
       }
     },
     {
@@ -4490,6 +4557,7 @@
       "id": "B09",
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Pošalji ponudu",
+      "source_progress_20261021_unsent_draft": "Lokalni klijent čuva neposlatu cenu, broj ljudi, poruku i termin u memoriji procesa po nalogu/reviziji/zadatku kroz Back/remount; posle trajnog hvatanja komande briše cache, a nepoznat ishod oporavlja iz journal-a. Fokusirani 96/96 PASS. Nije durable posle gašenja procesa; native slanje i dva naloga otvoreni. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "nacrt": "UX nacrt §5 korak 3",
       "stari": [
         "FUNC-3776"
@@ -4575,12 +4643,20 @@
           "device_proof": "Aktuelni Round35 source nije novim APK-om proveren u ovoj sesiji. Istorijska stvarna slanja ostaju dokaz svojih buildova, ne trenutnog kandidata.",
           "status": "CLIENT FLOW SOURCE/CI PASS / SERVER PRICE AUTHORITY FOR MY_PRICE ALREADY LIVE (LEDGER 189) / RESIDUALS D0-D4 AWAIT THE OWNER / CURRENT NATIVE PENDING"
         }
+      },
+      "source_progress_20261020_native_package_1": {
+        "status": "LOCAL SOURCE / TARGETED TEST PASS / BOUNDED EMULATOR; full flow remains open",
+        "evidence": "docs/current/evidence/NATIVE_UI_PACKAGE_1_20261020.json",
+        "tests": "11 suites / 272 tests; tsc PASS",
+        "native": "Task owner detail, candidates and cancel-choice; offline component fixtures recorded separately",
+        "limits": "No live submit/select, physical phone or full end-to-end acceptance. QA application marked viewed by existing UI command."
       }
     },
     {
       "id": "B10",
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Moje prijave",
+      "source_progress_20261021_named_destination": "Lokalni klijent zadržava nesnimljenu izmenu pri blur/read i pri ulazu iz obaveštenja sa drugim prijavaId traži izbor Nastavi uređivanje/Odbaci i otvori pre promene reda ili taba. Fokusirani 64/64 PASS, TSC PASS. Server aktivne/arhivirane/zamrznute prijave nije zaokružen; native deep link nije proveren. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "nacrt": "UX nacrt §5 korak 4",
       "stari": [
         "FUNC-3779"
@@ -4699,6 +4775,7 @@
       "id": "B11",
       "grupa": "Put B · Uskoči i zaradi",
       "naslov": "Izmeni ili povuci ponudu",
+      "source_progress_20261021_dirty_editor": "Lokalni klijent: započeta izmena čuva cenu, broj ljudi i napomenu kroz blur/read; Back, tab, druga prijava i povlačenje traže potvrdu pre odbacivanja. Stara projekciona revizija čuva tekst ali blokira Save do ponovnog pregleda. Fokusirani 64/64 PASS, TSC PASS; Android Back/gest i stvarna komanda na telefonu otvoreni. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "nacrt": "UX nacrt §5 korak 4",
       "stari": [
         "FUNC-3777",
@@ -4894,6 +4971,7 @@
     },
     {
       "id": "D01",
+      "source_progress_20261021_connected_ui": "SOURCE/TEST: Lista Dogovora prikazuje sopstvenu ulogu i cenu pojedinacne saradnje; Sve uloge je jasan filter. Zajednicki ciljani prolaz 16 suite-ova/758 PASS, TSC i diff check PASS. Nema HONOR prihvatanja. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "source_progress_20261018_page_integrity": "SOURCE/TEST: neispravan hasMore/kursor, duplikati ili pogrešan redosled više ne daju uspešan nepotpun spisak. Mikrosekunde očuvane; Home otkazuje naredne stranice i transport na retirement/timeout. 24 nova regresiona testa; puna regresija 621/13861 PASS. Live authenticated read tri mala naloga potvrđuje envelope/keyset oblik; bez nove DB promene ili device prihvatanja. docs/current/HOME_READ_CONTINUATION_20261018.md.",
       "grupa": "Dogovor",
       "naslov": "Lista Dogovora",
@@ -5035,6 +5113,7 @@
     },
     {
       "id": "D02",
+      "source_progress_20261021_connected_ui": "SOURCE/TEST: Detalj Dogovora istice ulogu i prihvaceni obuhvat ove bilateralne saradnje, bez tvrdnje da je ceo zadatak popunjen ili ponovo otvoren. Zajednicki ciljani prolaz 16 suite-ova/758 PASS, TSC PASS. Native i oba aktera cekaju. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "grupa": "Dogovor",
       "naslov": "Dogovor: pregled, uslovi, sledeći korak",
       "nacrt": "UX nacrt §4 korak 10–11",
@@ -5149,6 +5228,7 @@
     },
     {
       "id": "D03",
+      "source_progress_20261021_connected_ui": "SOURCE/TEST: Inbox i privatni razgovor imaju zadatak kao kontekst, mirno ucitavanje i pristupacan izbor poruke za Podrsku; potvrda zatvaranja samo uz autoritativni status. Zajednicki ciljani prolaz 16 suite-ova/758 PASS, TSC PASS. Native/cold push cekaju. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "grupa": "Dogovor",
       "naslov": "Poruke",
       "source_progress_20261018_quiet_state": "Prazan Aktivni/Završeni podskup dobio kompaktan prikaz kada postoji drugi skup razgovora; prvi susret ostaje uvodni. Ciljani Jest 414/414 i Metro emulator vizuelno provereni; fizički uređaj i poruka kroz tok čekaju. Dokaz: docs/implementation/ui-ux-pass-20261002/HOME_AND_QUIET_STATES_20261018.md.",
@@ -5442,6 +5522,7 @@
     },
     {
       "id": "D05",
+      "source_progress_20261021_connected_ui": "SOURCE/TEST: Grupni razgovor sidri stvarni naslov zadatka i kanonsko vreme poruka, bez izmisljene zajednicke cene, adrese ili grupnog medija. Zajednicki ciljani prolaz 16 suite-ova/758 PASS, TSC PASS. Inbox lifecycle i native vise naloga nisu potvrdeni. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "grupa": "Dogovor",
       "naslov": "Grupni razgovor (više ljudi)",
       "nacrt": "UX nacrt §3",
@@ -6070,6 +6151,7 @@
     },
     {
       "id": "P01",
+      "source_progress_20261021_connected_ui": "SOURCE/TEST: Obavestenja pri refresh-u cuvaju poslednji potvrdjen sadrzaj ili prazno stanje i imenjuju neuspeo read; dogadjaj zadrzava postojece odrediste. Zajednicki ciljani prolaz 16 suite-ova/758 PASS, TSC PASS. Cold/background push i HONOR nisu provereni. docs/current/NATIVE_FULL_INTEGRATION_20261020.md.",
       "grupa": "Početna i obaveštenja",
       "naslov": "Obaveštenja u aplikaciji (zvonce)",
       "nacrt": "UX nacrt §6",
@@ -8761,6 +8843,118 @@
       "openRiskRows": [
         "A08"
       ]
+    },
+    "native_ui_package_1_20261020": {
+      "status": "LOCAL SOURCE / TARGETED TEST PASS / BOUNDED EMULATOR; full flow remains open",
+      "evidence": "docs/current/evidence/NATIVE_UI_PACKAGE_1_20261020.json",
+      "tests": "11 suites / 272 tests; tsc PASS",
+      "native": "Task owner detail, candidates and cancel-choice; offline component fixtures recorded separately",
+      "limits": "No live submit/select, physical phone or full end-to-end acceptance. QA application marked viewed by existing UI command."
+    },
+    "full_native_integration_owner_direction_20261020": {
+      "status": "DIRECTION RECORDED / PREFLIGHT STARTED; implementation and final validation open",
+      "plan": "docs/current/NATIVE_FULL_INTEGRATION_20261020.md",
+      "evidence": "docs/current/evidence/NATIVE_FULL_INTEGRATION_20261020.json",
+      "installation": "At end of integrated source pass, no intermediate package installs",
+      "map": "Preserve existing map interactions; improve top search/filters and separate remote tasks",
+      "modals": "Center non-map app modals; keyboard, dirty/busy/unknown and focus protections remain",
+      "art": "New natural-color 2.5D family; remove radar; existing USKOCI robot identity"
+    },
+    "full_native_integration_source_20261020": {
+      "at": "2026-10-20T17:50:20.888903+00:00",
+      "status": "IN_PROGRESS_SOURCE_ONLY",
+      "evidence": "docs/current/evidence/NATIVE_FULL_INTEGRATION_20261020.json",
+      "implementedIds": [
+        "INT-02-MODALS",
+        "INT-02-ART",
+        "INT-03-PROFILE",
+        "INT-04-DISCOVERY",
+        "INT-05-TERMS",
+        "INT-06-ACTIVATION",
+        "INT-05-GROUP-CONTEXT",
+        "INT-06-EDIT-CONSEQUENCE",
+        "INT-07-AUTH-LAYOUT"
+      ],
+      "openIds": [
+        "OPEN-GROUP-MEDIA",
+        "OPEN-GROUP-TERMS",
+        "OPEN-REGIONS-REPUBLISH",
+        "OPEN-FLOW-COVERAGE",
+        "OPEN-NATIVE-QA",
+        "OPEN-AI-ADMISSION-DEADLINE",
+        "OPEN-RELEASE-OPERATIONS",
+        "OPEN-VIS-WORKER-PROFILE",
+        "OPEN-VIS-MESSAGES",
+        "OPEN-VIS-NOTIFICATIONS",
+        "OPEN-VIS-AGREEMENTS",
+        "OPEN-PROFILE-VALUE",
+        "OPEN-TEMPORAL-FREEZE-UX",
+        "OPEN-APPLICATIONS-ACTIVE-ARCHIVE"
+      ],
+      "build": false,
+      "install": false,
+      "serverChanged": false,
+      "testSummary": {
+        "suiteCount": 623,
+        "assertions": {
+          "passed": 14015,
+          "pending": 9
+        },
+        "method": "composite"
+      },
+      "serverReadOnly": true,
+      "mapping": "docs/current/evidence/NATIVE_INTEGRATION_MAPPING_20261020.json",
+      "profileVisualCorrection": {
+        "at": "2026-10-20T18:09:55.523939+00:00",
+        "id": "INT-03-PROFILE-FIGMA-CORRECTION",
+        "status": "SOURCE_AND_RN_WEB_VERIFIED_NATIVE_PENDING",
+        "figmaNode": "2:126",
+        "tests": {
+          "suites": 8,
+          "passed": 169,
+          "failed": 0,
+          "skipped": 0,
+          "typecheck": "tsc --noEmit, exit 0"
+        },
+        "build": false,
+        "evidence": "docs/current/evidence/NATIVE_FULL_INTEGRATION_20261020.json#profileVisualCorrection"
+      },
+      "accountAndActionsReview": {
+        "at": "2026-10-20T18:48:52.766578+00:00",
+        "id": "INT-03-ACCOUNT-AND-COMPACT-ACTIONS",
+        "status": "SOURCE_AND_RN_WEB_VERIFIED_NATIVE_PENDING",
+        "evidence": "docs/current/evidence/NATIVE_FULL_INTEGRATION_20261020.json#accountAndActionsReview",
+        "report": "docs/current/NATIVE_FULL_INTEGRATION_20261020.md#pregled-prenosa-i-kompaktne-komande--20102026",
+        "tests": {
+          "suites": 10,
+          "passed": 299,
+          "failed": 0,
+          "skipped": 0,
+          "typecheckExit": 0
+        },
+        "next": [
+          "Finish saved work profile composition with preserved save/activate lifecycle.",
+          "Finish Agreements for requester/worker and capacity/withdrawal/closed-search states.",
+          "Finish messages and notification visuals with valid real commands; separately solve search/group media.",
+          "Review remaining inventory against Figma by actual screen/action/state; preserve map mechanics.",
+          "Close functional contracts and all source regression gates before one final build, then native11-scenario check."
+        ],
+        "build": false
+      },
+      "productFlowAudit": {
+        "at": "2026-10-20T19:02:10.853602+00:00",
+        "id": "INT-STATUS-ALL-FLOWS",
+        "status": "AUDITED_INCOMPLETE",
+        "evidence": "docs/current/evidence/NATIVE_FULL_INTEGRATION_20261020.json#productFlowAudit",
+        "report": "docs/current/NATIVE_FULL_INTEGRATION_20261020.md#presek-svih-tokova--20102026",
+        "newOpenIds": [
+          "OPEN-TEMPORAL-FREEZE-UX",
+          "OPEN-APPLICATIONS-ACTIVE-ARCHIVE"
+        ],
+        "liveReadOnly": true,
+        "runtimeChanged": false,
+        "build": false
+      }
     }
   },
   "finalization": {

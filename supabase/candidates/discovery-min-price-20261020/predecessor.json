@@ -1,0 +1,16 @@
+{
+  "checked_at": "2026-10-20 21:15:47.458959+00",
+  "postgres_version": "17.6",
+  "signature": "rpc_discovery_v1(jsonb)",
+  "body_md5": "a9b0985991f4ebfe4e95143e5cf57222",
+  "security_definer": false,
+  "volatility": "s",
+  "proconfig": [
+    "search_path=pg_catalog"
+  ],
+  "acl": "{postgres=X/postgres,authenticated=X/postgres}",
+  "owner": "postgres",
+  "comment": null,
+  "project": "leqcwgzvjsxugfgzdmth",
+  "status": "READ_ONLY_CAPTURE_CANDIDATE_NOT_APPLIED"
+}

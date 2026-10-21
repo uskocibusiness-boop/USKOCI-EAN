@@ -8,12 +8,21 @@ export type DiscoveryV1When = 'any' | 'today' | 'tomorrow' | 'week' | 'weekend' 
 export type DiscoveryV1Filter = {
   text: string; price: DiscoveryV1Price; where: DiscoveryV1Where; places: number; when: DiscoveryV1When;
   dates: null | { from: string; to: string }; place: string | null;
+  /** Minimal stated fixed price in RSD. With all, OFFERS remain eligible; OFFERS-only rejects it. No basis conversion. */
+  minBudgetRsd?: number;
   /**
-   * "Za mene": the one OPTIONAL key (DISCOVERY-ZAMENE, applied to DEV 2026-10-07). It is present only when true: left out, the request, its `filterKey`, its
+   * "Za mene": an OPTIONAL key (DISCOVERY-ZAMENE, applied to DEV 2026-10-07). It is present only when true: left out, the request, its `filterKey`, its
    * anchors and its cursors are exactly those of the reader without it. A change of it is a new traversal (a new anchor, never an old one reused).
    */
   forMe?: true;
 };
+/** Same bound as needs.requester_price_rsd (PostgreSQL integer). Empty UI state omits the wire key. */
+export function discoveryV1MinBudgetRsd(value: unknown): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 2_147_483_647)
+    throw new Error('DISCOVERY_V1_MIN_BUDGET_INVALID');
+  return value;
+}
 export type DiscoveryV1Anchor = {
   version: typeof DISCOVERY_V1; filterKey: string; timeAt: string; publishedThrough: string; expiresAt: string;
 };

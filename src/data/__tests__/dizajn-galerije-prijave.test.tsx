@@ -75,7 +75,7 @@ it.each([['Moji zadaci', MojiZadaci], ['Moje prijave', Prijave], ['Kandidati', K
 describe('Moji zadaci', () => {
   it.each([
     // "Papir na stolu" (2026-10-08): the groups by phase with their numbers, the two quiet rows under them, no count line and no tabs.
-    ['lista', ['Moji zadaci', 'Čeka tvoj izbor · 2', 'Objavljeno · 2', 'Dogovoreno · 1', 'Montaža dve police u hodniku', 'Treba 2 osobe', '3 prijave', '2 nacrta', '3 zadatka']],
+    ['lista', ['Moji zadaci', 'Čeka tvoj izbor · 2', 'Objavljeno · 2', 'Dogovoreno · 1', 'Montaža dve police u hodniku', '0/2 izabrano', '3 prijave', '2 nacrta', '3 zadatka']],
     ['puno', ['Čeka tvoj izbor · 5', 'Objavljeno · 6', 'Dogovoreno · 1']],
     ['dugi', ['Čeka tvoj izbor · 1', 'Objavljeno · 2', 'Prenos starog trokrilnog ormara']],
     ['nacrti', ['Nacrti', 'Pomoć oko bašte', 'Prenos ormara']],
@@ -103,10 +103,10 @@ describe('Moji zadaci', () => {
 
 describe('Moje prijave', () => {
   it.each([
-    ['lista', ['Moje prijave', 'Montaža police u hodniku', 'Poslata', 'Čeka odgovor · 4', 'Izabrana · 1', 'Završene · 2']],
+    ['lista', ['Moje prijave', 'Montaža police u hodniku', 'Poslata', 'Čeka odgovor · 4', 'Izabrana · 1', 'Istorija · 2']],
     // The approved draft U8: the application that was just sent is marked in its chip and stands first in its group; a set with a page still to come keeps the server's chips.
     ['nova', ['Poslata · upravo', 'Montaža dve police u hodniku', 'Čeka odgovor · 5']],
-    ['strane', ['Sve', 'Čeka te', 'Aktivne', 'Završene', '40 prijava', 'Prikaži još']],
+    ['strane', ['Čekaju odgovor', 'Čeka te', 'Istorija', 'Sve', '40 prijava', 'Prikaži još']],
     ['dugi', ['Prenos starog trokrilnog ormara']],
     ['prazno', []],
     ['ucitava', ['Učitavamo tvoje prijave']],
@@ -131,7 +131,7 @@ describe('Kandidati: the order is offered only for a whole list', () => {
 
 describe('Kandidati', () => {
   it.each([
-    ['lista', ['Milan Petrović', 'Ana Jovanović', '4.500 RSD', 'Ima: Kombi · Trake za nošenje', 'Još 3 od 3 mesta']],
+    ['lista', ['Milan Petrović', 'Ana Jovanović', '4.500 RSD', 'Ima: Kombi · Trake za nošenje', '0/3 izabrano']],
     ['dugacka', ['Aleksandra Stefanović-Radosavljević']],
     ['veliki', ['Milan Petrović']],
     ['prazno', ['Još nema prijava']],

@@ -42,7 +42,7 @@ export function AccountReputation({ accountId, onOpen }: {
  * "undefined". With `onOpen` an answer (ratings or none) is a way in that says where it goes ("Otvara ocene.") and ends in the arrow.
  */
 export function ReputationFigure({ state, onRetry, onOpen }: { state: 'loading' | 'error' | unknown; onRetry: () => void; onOpen?: () => void }) {
-  if (state === 'loading') return <FigureCellPlaceholder label="Učitavanje reputacije" />;
+  if (state === 'loading') return <FigureCellPlaceholder label="Proveravamo ocene…" />;
   if (state === 'error') return <FigureCellError message="Ocene trenutno nisu dostupne." retryLabel="Osveži ocene" onRetry={onRetry} />;
   if (!isReputation(state)) return null;
   const figure = state.reviewCount === 0 || state.averageRating === null ? NEW_RATING : ratingFigure(state.averageRating, state.reviewCount);

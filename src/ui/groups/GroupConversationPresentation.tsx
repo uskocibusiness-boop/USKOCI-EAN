@@ -14,8 +14,10 @@ import { Avatar } from '../system/Avatar';
 import { PillComposer, PillNote } from '../system/PillComposer';
 import { ChromeIconButton, ScreenChrome } from '../system/ScreenChrome';
 import { StateView } from '../system/StateView';
+import { plural } from '../system/plural';
 import { brandAction, sys } from '../system/tokens';
 import { usePullRefresh } from '../system/usePullRefresh';
+import { QuietReadState } from '../v2/QuietReadState';
 import { V2Action } from '../v2/V2Action';
 import type { GroupState } from './GroupConversationController';
 import { ConversationChannels } from './ConversationChannels';
@@ -118,10 +120,14 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
       </View>}
   </ProductSheet> : null;
   const header =<View style={[s.stack, s.gutter]}>
-    {first ? <StateView kind="loading" title="Učitavamo razgovor…" skeleton={{ count: 2, rows: 2 }} /> : null}
+    {first ? <QuietReadState art="chat" title="Učitavamo razgovor…" body="Proveravamo učesnike i poruke za ovaj zadatak." /> : null}
     {state.phase === 'ERROR' && !olderUnavailable ? <StateView kind="error" art="chat" title="Razgovor nije učitan" body={state.message ?? undefined}
       primary={{ label: 'Pokušaj ponovo', onPress: refresh }} /> : null}
     {group ? <>
+      <View testID="group-task-anchor" style={s.taskAnchor}>
+        <T variant="meta" tone="muted">Zadatak</T>
+        <T variant="bodyStrong" style={s.taskTitle}>{group.title}</T>
+      </View>
       <T variant="note" tone="muted">{p.onPrivate
         ? 'Cenu, lične uslove i probleme dogovori privatno.'
         : 'Poruke vide svi učesnici. Cenu, lične uslove i probleme dogovori privatno.'}</T>
@@ -129,7 +135,8 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
       {!group.terminal && !group.canSend ? <T variant="meta" tone="muted">Dostupna istorija razgovora</T> : null}
     </> : ready ? <StateView kind="empty" art="users" title="Grupni razgovor još nije otvoren"
       body="Grupni razgovor se otvara kad su za ovaj zadatak izabrane najmanje dve osobe. Tvoj privatni Dogovor je i dalje dostupan." /> : null}
-    {state.message && (state.phase !== 'ERROR' || olderUnavailable) ? <T variant="copy" accessibilityLiveRegion="polite">{state.message}</T> : null}
+    {state.message && (state.phase !== 'ERROR' || olderUnavailable) ? <T variant="copy" accessibilityRole={state.phase === 'ERROR' ? 'alert' : undefined}
+      accessibilityLiveRegion="polite">{state.message}</T> : null}
     {state.before ? <V2Action label={olderUnavailable ? 'Ponovo učitaj starije poruke' : 'Starije poruke'} kind="quiet" disabled={!ready && !olderUnavailable} onPress={older} /> : null}
     {/* A member admitted later reads the group from their admission on, so an empty thread is honest about what it shows. */}
     {ready && group && state.messages.length === 0 ? <StateView kind="empty" art="chat" title="Još nema poruka"
@@ -140,7 +147,9 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
     {ready && group && !group.terminal ? <V2Action label="Osveži poruke" kind="quiet" tone="neutral" compact style={s.centred} onPress={refresh} /> : null}
   </View>;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
-    <ScreenChrome variant="detail" title={group?.title ?? 'Grupni razgovor'} subtitle={group ? 'Grupni razgovor' : undefined}
+    <ScreenChrome variant="detail" title="Grupni razgovor" subtitle={group
+      ? group.members.length > 0 ? `Grupa · ${plural(group.members.length, 'učesnik', 'učesnika', 'učesnika')}` : 'Grupni razgovor'
+      : undefined}
       backLabel={p.backLabel ?? 'Nazad na Dogovor'} onBack={p.onBack}
       right={group ? <ChromeIconButton label="Učesnici razgovora" icon={Users} active={p.showPeople} onPress={people} /> : undefined} />
     <KeyboardAvoidingView style={s.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
@@ -168,7 +177,7 @@ function ScopedGroupConversation(p: GroupConversationPresentationProps) {
             {entry.separator ? <T accessibilityRole="header" variant="label" tone="muted" style={s.day}>{entry.separator}</T> : null}
             {entry.first ? <View testID={`group-message-sender-${item.messageId}`} style={[s.member, item.mine && s.supportMine]}>
               {sender && p.photo ? p.photo(sender, senderFallback) : senderFallback}
-              <T variant="note" tone="muted">{sender?.displayName ?? name(item)}</T>
+              <T variant="note" tone="muted">{item.mine ? 'Ti' : sender?.displayName ?? name(item)}{entry.moment.clock ? ` · ${entry.moment.clock}` : ''}</T>
             </View> : null}
             {/* A tap (or a long press, or the screen reader's action) offers the message to support: the entry that stood
                 under every message is one step away, never behind a gesture alone (review r6). Without support the
@@ -222,6 +231,9 @@ const s = StyleSheet.create({
   latest: { alignItems: 'center', paddingVertical: sys.space.xs },
   people: { gap: sys.space.md, paddingVertical: sys.space.sm },
   member: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, minHeight: 48 },
+  taskAnchor: { backgroundColor: sys.color.wash, borderRadius: sys.radius.cardCompact, paddingHorizontal: sys.space.base,
+    paddingVertical: sys.space.md, gap: sys.space.xs },
+  taskTitle: { color: sys.color.ink },
   parted: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.cardLine, paddingTop: sys.space.md },
   managed: { gap: sys.space.xs },
   // The bubbles are the Dogovor conversation's (../messages/bubbleShape): one shape, runs with one tail. A day or a pause is a quiet word.

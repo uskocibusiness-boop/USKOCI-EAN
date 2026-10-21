@@ -49,10 +49,9 @@ import { ConfirmSheet, confirmFormOf } from '../../ui/system/ConfirmSheet';
 import { brandAction, sys } from '../../ui/system/tokens';
 
 /**
- * A DRAFT, on its own screen (owner's phone, 2026-10-07: "there is no easy way to delete it or edit it"; 8 Oct 2026, rule J15: the "···" is gone). The ways
- * to change or delete a draft are drawn in plain sight: "Izmeni nacrt" (white, never green) in the bar of the page (the approved draft R3) and, last and in
- * the danger colour, "Obriši nacrt" at its end. Both call exactly what the menu rows called: the guarded edit and the lifecycle's own deletion, which
- * asks first in the centred dialog. The one green action, at the head of the page, stays the only one.
+ * Draft edit and deletion remain visible, now as compact labelled header icons (owner request, 20 Oct 2026).
+ * Both retain the guarded edit and lifecycle deletion; trash opens the existing centred confirmation.
+ * The publication review remains the single primary action. Compact visuals do not reduce the 48 dp touch target.
  */
 const need = (stanje = 'NACRT', patch: Record<string, unknown> = {}) => ({ id: NEED, revizija: 7, stanje, naslov: 'Pregledani Zadatak',
   opis: 'Opis', podrucjeTekst: 'Novi Sad', vremeTekst: 'Po dogovoru', pokrivenost: { ukupno: 2, popunjeno: 0, preostalo: 2, udeo: 0 }, uslovi: [],
@@ -68,7 +67,7 @@ const surfaceOf = (style: unknown): unknown => Array.isArray(style) ? style.map(
   : style && typeof style === 'object' ? (style as { backgroundColor?: unknown }).backgroundColor : undefined;
 const brand = () => presses().filter(node => surfaceOf(node.props.style) === brandAction.backgroundColor).map(node => node.props.accessibilityLabel);
 /** The tone of a row's title: the first words it draws. */
-const tone = (node: ReactTestInstance) => node.findAllByType('T' as React.ElementType)[0].props.tone as string;
+const tone = (node: ReactTestInstance) => node.findAll(child => child.props.name === 'trash')[0].props.tone as string;
 const sheets = () => tree.root.findAllByType(ConfirmSheet);
 const inSheet = (testID: string) => act(async () => { sheets()[0].findByProps({ testID }).props.onPress(); });
 beforeEach(() => {
@@ -83,17 +82,20 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
-it('a draft draws "Izmeni nacrt" in the bar and, last, "Obriši nacrt" (danger) as a row at the end, around the page\'s ONE green action', async () => {
+it('a draft exposes edit and trash in the header, with one primary review action', async () => {
   await render();
   expect(row('Izmeni nacrt')).toHaveLength(1); expect(row('Obriši nacrt')).toHaveLength(1);
   const order = presses().map(node => node.props.accessibilityLabel);
-  // The edit stands in the bar, in sight; the one green action is at the head of the page; and the deletion is the last of the page's own commands.
+  // Both secondary controls are visible in the header; neither sends a mutation before confirmation.
   expect(order.indexOf('Izmeni nacrt')).toBeLessThan(order.indexOf('Pregledaj za objavu'));
-  expect(order.indexOf('Pregledaj za objavu')).toBeLessThan(order.indexOf('Obriši nacrt'));
+  expect(order.indexOf('Obriši nacrt')).toBeLessThan(order.indexOf('Pregledaj za objavu'));
   // The words of the deletion are the danger colour.
   expect(tone(row('Obriši nacrt')[0])).toBe('danger');
   // The only green fill is the one action.
   expect(brand()).toEqual(['Pregledaj za objavu']);
+  const copy = tree.root.findAll(node => String(node.type) === 'T').map(node => node.props.children);
+  expect(copy).toContain('Treba 2 osobe');
+  expect(copy).not.toContain('0/2 izabrano');
   // Each is at least a full 48 touch target (the bar's control is 48 high, a row is 56).
   for (const label of ['Izmeni nacrt', 'Obriši nacrt']) {
     const box = StyleSheet.flatten(row(label)[0].props.style);

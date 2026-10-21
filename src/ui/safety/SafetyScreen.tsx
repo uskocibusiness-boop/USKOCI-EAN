@@ -15,7 +15,6 @@ import { withInter } from '../interFont';
 import { layout, ruleWidth } from '../system/layout';
 import { sys } from '../system/tokens';
 import { useConfirmSheet } from '../system/ConfirmSheet';
-import { StateView } from '../system/StateView';
 import { SuccessMark } from '../system/SuccessMark';
 import { vreme } from '../../lib/vreme';
 import { announceBlockChange } from './blockOutcome';
@@ -95,8 +94,8 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
     <SettingsGroup title="Kontakt sa osobom"><View style={s.section}>
       <T variant="copy">{blockConsequence}</T>
       <T variant="note" tone="muted">{unblockConsequence}</T>
-      {/* The first read is a skeleton of the state and the action that will stand here; a re-read keeps them on screen. */}
-      {editor.loading && !editor.data ? <StateView kind="loading" title="Proveravamo blokiranje…" skeleton={{ count: 1, rows: 1, variant: 'plain' }} /> : null}
+      {/* The first read names only the pending check; a re-read keeps the confirmed state and action on screen. */}
+      {editor.loading && !editor.data ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Proveravamo blokiranje…</T> : null}
       {editor.error ? <T tone="danger" accessibilityRole="alert">{editor.error}</T> : null}
       {editor.data ? <>
         <T accessibilityLiveRegion="polite">{editor.data.blocked ? 'Osoba je blokirana.' : 'Osoba nije blokirana.'}</T>
@@ -123,6 +122,8 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
 
 function PrivateReport(context: Context) {
   const { user, accountRevision } = useSesija(), accountId = user?.id ?? '';
+  const confirmation = useConfirmSheet();
+  const closeConfirmation = confirmation.close;
   // Only the opaque command ID is persisted. Report content never goes to local
   // storage, public projection, push, bilateral chat, analytics or console.
   const storageKey = `uskoci:safety-command:v1:${accountId}:${context.targetAccountId}:${context.needId ?? ''}:${context.agreementId ?? ''}`;
@@ -153,14 +154,16 @@ function PrivateReport(context: Context) {
       } catch { if (s.current()) setError('Prethodna prijava nije proverena. Ponovo otvori ekran.'); }
       finally { if (s.current()) { s.busy = false; setBusy(false); } }
     })();
-    return () => { if (scope.current === s) scope.current = null; frozen.current = null; setReason(''); setNarrative(''); setReceipt(null); };
-  }, [accountId, accountRevision, storageKey, readReceipt]));
+    return () => { closeConfirmation(); if (scope.current === s) scope.current = null; frozen.current = null; setReason(''); setNarrative(''); setReceipt(null); };
+  }, [accountId, accountRevision, storageKey, readReceipt, closeConfirmation]));
   const rendered = scope.current;
   const begin = (kind: 'send' | 'replay' | 'check' | 'new') => { const s = scope.current; if (!s || s !== rendered || !s.current() || s.busy) return null;
     s.busy = true; setBusy(true); setWorking(kind); setError(null); return s; };
   const finish = (s: NonNullable<typeof rendered>) => { if (s.current()) { s.busy = false; setBusy(false); setWorking(null); } };
   async function send() {
-    if (!loaded || receipt || (!frozen.current && (!category || !reason.trim()))) return;
+    // On a later visit only the request ID survives. Reusing it with newly written words would not be a replay
+    // of the original report, so the person must check that ID or explicitly begin a fresh report.
+    if (!loaded || receipt || (pending && !frozen.current) || (!frozen.current && (!category || !reason.trim()))) return;
     // A send that repeats the frozen command is a replay: its button says so; the first send keeps the words it was pressed with.
     const s = begin(frozen.current ? 'replay' : 'send'); if (!s) return;
     try {
@@ -185,7 +188,30 @@ function PrivateReport(context: Context) {
     } catch { if (s.current()) setError('Novi obrazac trenutno nije dostupan. Pokušaj ponovo.'); }
     finally { finish(s); }
   }
-  const editable = loaded && !busy && !frozen.current && !receipt;
+  async function startFreshAfterUnknown(requestId: string) {
+    if (!loaded || !pending || frozen.current || key.current !== requestId) return;
+    const s = begin('new'); if (!s) return;
+    try {
+      // A receipt may have appeared since the question opened. Do one last read before retiring its ID.
+      const result = await safetyClientService.readReportCommand(requestId); if (!s.current() || key.current !== requestId) return;
+      if (!result.ok) { setError(result.poruka); return; }
+      if (result.podatak.receipt) {
+        setReceipt(result.podatak.receipt); setFresh(false); setPending(false); setError(null); return;
+      }
+      await AsyncStorage.removeItem(storageKey); if (!s.current() || key.current !== requestId) return;
+      key.current = null; setPending(false); setError(null); setCategory(null); setReason(''); setNarrative('');
+    } catch { if (s.current()) setError('Nova prijava trenutno nije dostupna. Proveri prethodnu potvrdu i pokušaj ponovo.'); }
+    finally { finish(s); }
+  }
+  const unknownWithoutDraft = loaded && pending && !frozen.current && !!key.current && !receipt;
+  const askFreshAfterUnknown = () => {
+    if (!unknownWithoutDraft || busy || !key.current) return;
+    const requestId = key.current;
+    confirmation.ask({ title: 'Započeti novu prijavu?',
+      message: 'Prethodna prijava nije potvrđena. Ako naknadno stigne, nova prijava može biti duplikat.',
+      confirmLabel: 'Započni novu prijavu', onConfirm: () => startFreshAfterUnknown(requestId) });
+  };
+  const editable = loaded && !busy && !frozen.current && !receipt && !unknownWithoutDraft;
   // A grey send carries its reason beside it (owner's rule): what the form still lacks, or that the earlier report is being checked.
   const lacking = !category && !reason.trim() ? 'Izaberi vrstu prijave i upiši kratak razlog.'
     : !category ? 'Izaberi vrstu prijave.' : !reason.trim() ? 'Upiši kratak razlog.' : null;
@@ -197,7 +223,13 @@ function PrivateReport(context: Context) {
       <SuccessMark fresh={fresh} size={56} />
       <T variant="heading" accessibilityRole="header" accessibilityLiveRegion="polite">Prijava je primljena.</T>
       <T variant="note" tone="muted">{`Primljeno: ${vreme(receipt.createdAt)}`}</T>
-      <SettingsAction label="Nova privatna prijava" kind="quiet" disabled={busy} loading={working === 'new'} onPress={() => { void newReport(); }} /></View> : <>
+      <SettingsAction label="Nova privatna prijava" kind="quiet" disabled={busy} loading={working === 'new'} onPress={() => { void newReport(); }} /></View>
+      : unknownWithoutDraft ? <View style={s.done}>
+        <T variant="heading" accessibilityRole="header">Prethodna prijava nije potvrđena</T>
+        <T variant="note" tone="muted">Sačuvan je samo njen ID, ne i tekst. Možeš ponovo da proveriš potvrdu ili svesno započneš novu prijavu.</T>
+        <SettingsAction label="Proveri potvrdu prijave" kind="secondary" disabled={busy} loading={working === 'check'} onPress={() => { void check(); }} />
+        <SettingsAction label="Započni novu prijavu" kind="quiet" disabled={busy} loading={working === 'new'} onPress={askFreshAfterUnknown} />
+      </View> : <>
       <View accessibilityRole="radiogroup">{SAFETY_CATEGORIES.map((value, index) => <Press key={value} accessibilityRole="radio"
         accessibilityLabel={safetyCategoryCopy[value]} accessibilityState={{ selected: category === value, checked: category === value, disabled: !editable }}
         disabled={!editable} onPress={() => { if (scope.current === rendered && rendered?.current()) setCategory(value); }}
@@ -222,7 +254,8 @@ function PrivateReport(context: Context) {
         disabled={!loaded || busy || (!frozen.current && (!category || !reason.trim()))} onPress={() => { void send(); }} />
     </>}
     {error ? <T tone="danger" accessibilityRole="alert">{error}</T> : null}
-    {pending ? <SettingsAction label="Proveri potvrdu prijave" kind="secondary" disabled={busy} loading={working === 'check'} onPress={() => { void check(); }} /> : null}
+    {pending && !unknownWithoutDraft ? <SettingsAction label="Proveri potvrdu prijave" kind="secondary" disabled={busy} loading={working === 'check'} onPress={() => { void check(); }} /> : null}
+    {confirmation.sheet}
   </View></SettingsGroup>;
 }
 const input = withInter({ borderWidth: ruleWidth, borderColor: sys.color.line, borderRadius: sys.radius.control, paddingVertical: sys.space.md, paddingHorizontal: sys.space.base,

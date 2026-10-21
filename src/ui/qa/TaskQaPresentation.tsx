@@ -6,6 +6,7 @@ import {T} from '../Text';
 import {V2Action} from '../v2/V2Action';
 import {ChromeIconButton,ScreenChrome} from '../system/ScreenChrome';
 import {StateView} from '../system/StateView';
+import {QuietReadState} from '../v2/QuietReadState';
 import {PillComposer,PillNote} from '../system/PillComposer';
 import {Surface} from '../system/Surface';
 import {ruleWidth} from '../system/layout';
@@ -73,7 +74,7 @@ export function TaskQaPresentation(p:TaskQaPresentationProps) {
       <ScreenChrome variant="detail" onBack={p.onBack} title="Pitanja o zadatku" subtitle={p.title??undefined}
         right={<ChromeIconButton label="Osveži pitanja i ishod radnje" glyph="refresh" disabled={p.busy} onPress={p.onRefresh}/>}/>
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content}>
-        {!p.loaded&&p.busy?<StateView kind="loading" title="Učitavamo pitanja…" skeleton={{count:3,rows:2,variant:'thread'}}/>
+        {!p.loaded&&p.busy?<QuietReadState art="chat" title="Učitavamo pitanja…" body="Proveravamo pitanja i odgovore za ovaj zadatak." />
           :trouble?<StateView kind="error" art="chat" title="Pitanja nisu učitana" body={p.message}
             primary={p.canRetryRead?{label:'Pokušaj ponovo',onPress:p.onRefresh}:undefined}/>:null}
         {p.loaded||p.recovery?<>

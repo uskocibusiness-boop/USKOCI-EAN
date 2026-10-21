@@ -106,8 +106,8 @@ function Hub({ identity, capabilityDetail, capabilityNeedsAttention, busy = fals
   identity: ProfileHubIdentity; capabilityDetail?: string; capabilityNeedsAttention?: boolean; busy?: boolean; finished?: FinishedView; stats?: ProfileStatsState;
   email?: string; viewPublic?: boolean; words?: HubWords; version?: string }) {
   return <ProfileHub identity={identity} capabilityDetail={capabilityDetail} capabilityNeedsAttention={capabilityNeedsAttention} busy={busy}
-    email={email} open={noop} onBack={toList.current} onLogout={noop} logoutError={false} onViewPublic={viewPublic ? noop : undefined}
-    words={words} version={version}
+    open={noop} onBack={toList.current} onViewPublic={viewPublic ? noop : undefined}
+    words={words}
     workSummary={finished ? <FinishedAgreements view={finished} onOpen={noop} onRefresh={noop} /> : undefined}
     stats={stats ? <ReliabilityFigure state={stats} /> : undefined} />;
 }
@@ -122,8 +122,8 @@ const DRAFT_LINE = workProfileSummary({ stanje: 'DRAFT', vestine: ['Selidbe stan
 const SUSPENDED_LINE = workProfileSummary({ stanje: 'SUSPENDED', vestine: ['Moleraj'], grad: 'Novi Sad', radijusKm: 20 });
 const NO_PROFILE_LINE = workProfileSummary(null);
 // What the rows of the profile say about their own state, from the same functions the route uses over fixtures: open requests, blocked people, the export, the legal documents.
-const WORDS_A = hubWords({ support: 2, blocked: { count: 0, more: false }, exportPhase: 'NONE', legal: 'UNPUBLISHED' });
-const WORDS_B = hubWords({ support: 1, blocked: { count: 2, more: false }, exportPhase: 'READY_AVAILABLE', legal: 'ACCEPTED' });
+const WORDS_A = hubWords({ support: { count: 2, more: false }, blocked: { count: 0, more: false }, exportPhase: 'NONE', legal: 'UNPUBLISHED' });
+const WORDS_B = hubWords({ support: { count: 1, more: false }, blocked: { count: 2, more: false }, exportPhase: 'READY_AVAILABLE', legal: 'ACCEPTED' });
 const VERSION = versionWord('1.0.0');
 const face = (name: string | null) => <Avatar initials={inicijali(name)} size={PROFILE_AVATAR} />;
 const ready = (name: string | null, place: string | null, reputation: ReactNode, photo: ReactNode = face(name)): ProfileHubIdentity =>
@@ -192,7 +192,7 @@ function Worker({ initial, status, checks, readyToActivate = false, disabled = f
   const [value, setValue] = useState(initial);
   const now = initial.dostupanOdmah;
   return <WorkerProfileFrame back={toList.current} footer={footer}
-    right={<HeaderInfo title="Na šta utiče radni profil" info={workerProfileInfoLines(!reading)} />}>
+    right={<HeaderInfo title="Na šta utiče radni profil" info={workerProfileInfoLines(false)} />}>
     <WorkerProfileForm draft={value} change={setValue} disabled={disabled} status={status} navigate={noop} checks={checks}
       readyToActivate={readyToActivate} openConversation={noop} profileExists={status !== null}
       reading={reading} aiOnly introOnly={status === null} showConversationAction={!footer} onEditPart={reading ? noop : undefined}

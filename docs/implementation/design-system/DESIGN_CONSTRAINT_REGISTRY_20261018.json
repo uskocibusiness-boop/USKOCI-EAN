@@ -57007,5 +57007,84 @@
     ],
     "meaning": "Physical substitutions and protections are listed by implementation family. Mechanical inventory classifications are not blanket deletion approvals.",
     "fullProof": "docs/current/CURRENT_BASELINE_20261018.json"
+  },
+  "connectedUi20261020": {
+    "status": "SOURCE_REPLACED",
+    "sourceSha": "70bc79f250b33ae706a068579c3527dfbf297792",
+    "evidence": "docs/current/evidence/CONNECTED_UI_20261020.json",
+    "boundary": "The dated inventory remains intact. These are reviewed physical substitutions, not a deletion decision for all mechanical candidates. Native acceptance is recorded separately.",
+    "substitutions": [
+      {
+        "files": [
+          "src/ui/home/HomePresentation.tsx",
+          "src/data/__tests__/v3-home-screen.test.tsx"
+        ],
+        "withdrawn": "Exact 88 dp action height and 64 dp illustration; generic shortcuts always before obligations.",
+        "replacement": "Measured visible content, real pending actions first, responsive stacking, touch minimum, both routes, focus and Reduce Motion."
+      },
+      {
+        "files": [
+          "src/ui/v2/DiscoveryPresentation.tsx",
+          "src/ui/v2/discovery/zadaciBar.ts",
+          "src/data/__tests__/discovery-presentation.test.tsx",
+          "src/data/__tests__/zadaci-bar.test.tsx"
+        ],
+        "withdrawn": "Hide bottom navigation at peek/selected pin; numeric sheet reveal threshold.",
+        "replacement": "Destinations remain reachable; measured dock reserves sheet/card/list space; focus, animation cancellation and restoration retained."
+      },
+      {
+        "files": [
+          "src/ui/v2/discovery/DiscoverySearchPanel.tsx",
+          "src/ui/v2/discovery/SearchSheet.tsx",
+          "src/data/__tests__/discovery-search-panel.test.tsx",
+          "src/data/__tests__/dizajn-zadaci-gallery.test.tsx",
+          "src/data/__tests__/zadaci-guards-from-marketplace.test.tsx"
+        ],
+        "withdrawn": "Exactly one filter section expanded; separated floating sections; gallery toggle assertions.",
+        "replacement": "Visible grouped controls on one surface; same draft, authoritative preview count, cancel/apply, radio state, stale-response protection and retry."
+      },
+      {
+        "files": [
+          "src/ui/v2/discovery/DiscoveryChipRow.tsx",
+          "src/data/__tests__/discovery-chip-row.test.tsx"
+        ],
+        "withdrawn": "Exact raised/inset shadow and outer border radius.",
+        "replacement": "At least central touch minimum, semantic selected state, non-color mark, callbacks and horizontal scrolling."
+      },
+      {
+        "files": [
+          "src/ui/v2/discovery/DiscoverySearchBar.tsx",
+          "src/data/__tests__/discovery-search-pill.test.tsx"
+        ],
+        "withdrawn": "Separate large active-query row and exactly 56 dp filter control.",
+        "replacement": "Context in search control, full spoken context, independent clear/filter actions and touch minimum."
+      },
+      {
+        "files": [
+          "src/ui/InboxBell.tsx",
+          "src/ui/__tests__/inbox-bell.test.tsx",
+          "src/ui/system/__tests__/screen-chrome.test.tsx"
+        ],
+        "withdrawn": "Notification entry must use one 32 dp FactArt bitmap.",
+        "replacement": "Central notification glyph; true unread count, no invented badge, accessible target, account ownership and motion lifecycle."
+      },
+      {
+        "files": [
+          "src/ui/v2/discovery/TaskRecordBody.tsx",
+          "src/ui/v2/detail/TaskDetailSummary.tsx",
+          "src/data/__tests__/task-card-face.test.tsx"
+        ],
+        "withdrawn": "Every supporting fact uses a large illustration; offers must use note typography.",
+        "replacement": "Quiet semantic glyphs; budget and text offers distinct; full truthful facts, spoken meaning, no invented equipment/reputation, responsive cards. Explicit low-level icon mocks replaced with central semantic component mocks."
+      }
+    ],
+    "functionalRepair": {
+      "file": "src/ui/system/Skeleton.tsx",
+      "test": "src/ui/system/__tests__/skeleton.test.tsx",
+      "finding": "The old loading task geometry differed from the new content by 25–29 dp in the structural measurement.",
+      "action": "Updated the placeholder composition. Retained the test comparing loaded and loading height; did not relax the permitted jump."
+    },
+    "noWholeTestFilesDeleted": true,
+    "noServerContractChanges": true
   }
 }

@@ -98,15 +98,23 @@ describe.each(CASES)('the review says what the published page says: %s', (_name,
   it('preserves every material fact while naming the requester without claiming a draft is already published', async () => {
     const task = need();
     const landmarks = [task.naslov, task.ponudjenaCena?.prikaz, task.rezimCene === 'OFFERS' ? 'Tražim ponude' : null, taskPlace(task).text, task.vremeTekst,
-      task.pokrivenost.ukupno > 1 || task.pokrivenost.preostalo <= 0 ? placesText(task.pokrivenost, 'worker').text : null,
       task.narucilacIme || null, task.opis ? 'O zadatku' : null, task.opis, needRequirementRows(task).length ? 'Važno za ovaj zadatak' : null,
       ...needRequirementRows(task).map(row => row.label)].filter((word): word is string => !!word);
     for (const element of [real(task), preview(task)]) {
       await render(element);
       for (const fact of landmarks) expect(texts().join('\n')).toContain(fact);
       if (element.type === ReviewDetail) {
+        // The pre-publication review describes required people; the live detail reports confirmed selection.
+        // Both numbers come from the same task capacity, while an unknown single-person review fact stays absent.
+        if (task.pokrivenost.ukupno > 1 || task.pokrivenost.preostalo <= 0)
+          expect(texts()).toContain(placesText(task.pokrivenost, 'worker').text);
+        else expect(facts().some(row => row.art === 'users')).toBe(false);
         expect(texts()).not.toContain('Objavio');
         if (task.narucilacIme) expect(texts()).toContain('Naručilac');
+      } else {
+        expect(texts()).toContain(`${task.pokrivenost.popunjeno}/${task.pokrivenost.ukupno} izabrano`);
+        expect(tree.root.findAllByProps({ accessibilityLabel:
+          `Izabrani izvršioci: ${task.pokrivenost.popunjeno} od ${task.pokrivenost.ukupno}` })).toHaveLength(1);
       }
       await act(async () => tree.unmount());
     }

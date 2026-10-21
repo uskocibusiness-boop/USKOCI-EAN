@@ -30,6 +30,8 @@ jest.mock('../../ui/Text',()=>({T:'T'}));
 jest.mock('../../ui/v2/V2Action',()=>({V2Action:'Action'}));
 jest.mock('../../ui/calendar/CalendarControls',()=>({CivilField:'CivilField'}));
 import { AgreementActionsScreen } from '../../ui/agreements/AgreementActionsScreen';
+import { QuietReadState } from '../../ui/v2/QuietReadState';
+import { SkeletonList } from '../../ui/system/Skeleton';
 const terms={priceRsd:3500,currency:'RSD' as const,scopeNote:'Važeći obim',startsAt:null,endsAt:null};
 const proposal:AgreementChangeProposal={proposalId:PID,agreementId:ID,baseVersion:7,proposedBy:B,status:'PENDING',createdAt:'2026-09-13T10:00:00Z',
  reason:'Dodatni posao',respondedAt:null,respondedBy:null,termsAvailable:true,terms:{...terms,priceRsd:4000}};
@@ -56,6 +58,16 @@ beforeEach(()=>{
  for(const name of ['propose','respond','withdraw','cancel'] as const)mockService[name].mockResolvedValue(unknown);
 });
 afterEach(async()=>{await act(async()=>tree?.unmount());mockListeners.clear();});
+it('first read of Agreement actions is calm and keeps the existing navigation and refresh place',async()=>{
+ const gate=deferred<ReturnType<typeof ok>>();mockService.read.mockReturnValue(gate.promise);
+ await render();
+ expect(tree.root.findAllByType(QuietReadState)).toHaveLength(1);
+ expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
+ expect(text()).toContain('Učitavamo važeće uslove…');
+ expect(tree.root.findByProps({accessibilityLabel:'Nazad'})).toBeDefined();
+ await act(async()=>gate.resolve(ok(snapshot)));
+ expect(text()).toContain('Važeći obim');
+});
 it('shows current accepted terms and offers existing authoritative actions without any write on entry',async()=>{
  await render();expect(text()).toContain('Važeći obim');expect(action('Predloži izmenu')).toBeDefined();expect(action('Otkaži Dogovor')).toBeDefined();
  expect(mockService.propose).not.toHaveBeenCalled();expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
@@ -167,6 +179,7 @@ it('form and review are two steps of one flow whose X leaves the step without an
  await tap('Odustani od unosa');expect(action('Predloži izmenu')).toBeDefined();
  await tap('Otkaži Dogovor');await reason('Razlog');await tap('Pregledaj otkazivanje');expect(text()).toContain('Korak 2 od 2');
  expect(text()).toContain('Dogovor se završava otkazivanjem. Deljeni kontakt i precizna lokacija se opozivaju. Radnja sama ne određuje krivicu ili dug.');
+ expect(text()).toContain('Razlog koji navedeš druga strana dobija kao poruku o otkazivanju.');
  expect(action('Otkaži Dogovor').kind).toBe('destructive');
  expect(text()).toContain('Naziv Dogovora nije dostupan');expect(text()).toContain('Termin nije dogovoren');
  await tap('Odustani od radnje');expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();expect(action('Otkaži Dogovor')).toBeDefined();
@@ -339,6 +352,15 @@ describe('arriving from the Dogovor\'s menu',()=>{
   expect(action('Predloži izmenu')).toBeDefined();expect(text()).not.toContain('Korak 1 od 2');
   await act(async()=>{tree.update(<AgreementActionsScreen agreementId={ID} start="CANCEL"/>);});
   expect(text()).not.toContain('Korak 1 od 2');
+ });
+ it('opens the named form again on a new visit to the same mounted route',async()=>{
+  await arrive('CANCEL');await tap('Odustani od unosa');
+  expect(text()).not.toContain('Korak 1 od 2');
+  mockFocused=false;await act(async()=>{tree.update(<AgreementActionsScreen agreementId={ID} start="CANCEL"/>);});
+  mockFocused=true;await act(async()=>{tree.update(<AgreementActionsScreen agreementId={ID} start="CANCEL"/>);});
+  expect(text()).toContain('Korak 1 od 2');
+  expect(text()).toContain('Razlog otkazivanja Dogovora');
+  expect(mockService.cancel).not.toHaveBeenCalled();
  });
  it('opens the hub, not a form, when the command is not permitted or no form is named',async()=>{
   snapshot={...snapshot,actions:{...snapshot.actions,canCancel:false}};

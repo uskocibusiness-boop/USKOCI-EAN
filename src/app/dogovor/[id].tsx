@@ -476,9 +476,9 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
     if (outboxState.phase === 'ready' && !outboxState.draft?.trim()) void outbox.setDraft(ADDRESS_REQUEST_TEXT);
     setTab('poruke');
   };
-  /** "Prijavi nedolazak" (R04): support opens with this Dogovor already chosen (the person picks the topic there). */
+  /** "Prijavi nedolazak" (R04): support opens with this Dogovor and the matching topic selected. */
   const reportNoShow = () => {
-    if (formCurrent()) router.push({ pathname: '/podrska/novi', params: { contextKind: 'AGREEMENT', contextId: id.toLowerCase(), contextRevision: String(dogovor.verzija) } });
+    if (formCurrent()) router.push({ pathname: '/podrska/novi', params: { contextKind: 'AGREEMENT', contextId: id.toLowerCase(), contextRevision: String(dogovor.verzija), topic: 'NO_SHOW' } });
   };
   // The conversation's "···" (T3c): the overview shows every one of these as a row of the page (J15), so the menu is for the person who is in Poruke.
   const menuActions = agreementMenuActions({ party: !!me, hasOther: !!other, active, requester, canChange,

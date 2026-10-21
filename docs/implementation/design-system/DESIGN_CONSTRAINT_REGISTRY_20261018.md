@@ -19,6 +19,8 @@ Ovaj dodatak se odnosi na runtime/test diff prvog paketa iz odobrenog `UI_DIRECT
 | Zvono mora biti konkretna 32 dp ilustracija | `InboxBell`, jedan assertion `inbox-bell` | Centralni funkcionalni glyph. Sačuvani broj, nepoznato stanje, identitet naloga, otvaranje inbox-a, Reduce Motion i prekid animacije. |
 | Svaka činjenica kartice velika ilustracija; centriran naslov detalja | `TaskRecordBody`, `TaskDecision`, `TaskDetailSummary`, oba detail ekrana | Budžet, naslov i osoba vode; pomoćne činjenice koriste centralne simbole. Sačuvani svi podaci, full spoken summary, privatnost, owner/worker statusi i akcije. |
 
+Dopuna integracije: konkretni isti assertions usklađeni su i u `discovery-chip-row`, `screen-chrome`, `dizajn-zadaci-gallery`, `zadaci-guards-from-marketplace` i `task-card-face`. Izolovani card testovi sada mock-uju centralni Glyph; njegov stvarni registar zadržava sopstvene provere. `Skeleton` je fizički usklađen sa novom karticom jer je stara geometrija pravila razliku 25–29 dp. Provera skoka visine nije ublažena: popravljen je placeholder. Mašinski zapis: `connectedUi20261020`.
+
 Nijedan mešoviti testni fajl nije obrisan. Novi simboli su u istom `Glyph` registru; paleta, Surface i motion nemaju paralelne vlasnike. Native prihvatanje se ne izvodi iz ove tabele.
 
 - **101 test fajlova / 1313 statičkih grupa** je inventarisano. `it.each` je jedna deklarisana grupa; ovo nije broj izvršenih testova.

@@ -41,12 +41,12 @@ function Applications({ rows, loading = false }: { rows: MojaPrijavaProjekcija[]
     onRefresh={noop} onExplore={noop} onProfile={noop} onBack={noop} onReview={noop} onClose={noop} onEdit={noop} onChange={noop} onCancelEdit={noop}
     onKeep={noop} onUpdate={noop} onWithdraw={noop} onAgreement={noop} onTask={noop} onRetry={noop} onReset={noop} />;
 }
-test('Moje prijave names no app mode, parts its applications into groups with their counts instead of tabs, and gives each application the actions its state allows', async () => {
+test('Moje prijave names no app mode, keeps status groups and offers a route to current, attention and history', async () => {
   await act(async () => { tree = create(<Applications rows={[application('a', 'SUBMITTED'), application('b', 'SELECTED'), application('c', 'STALE_REVIEW_REQUIRED')]} />); });
   const copy = texts();
   expect(copy).toContain('Moje prijave'); expect(copy).not.toMatch(/Ja mogu|Meni treba/);
-  // The approved draft U8: what waits for the other side, what was chosen, what is over - each group with its count, and no tabs.
-  expect(presses().filter(node => node.props.accessibilityRole === 'tab')).toHaveLength(0);
+  expect(presses().filter(node => node.props.accessibilityRole === 'tab').map(node => node.props.accessibilityLabel))
+    .toEqual(['Čekaju odgovor', 'Čeka te', 'Istorija', 'Sve']);
   expect(copy).toContain('Čeka odgovor · 2'); expect(copy).toContain('Izabrana · 1'); expect(copy).not.toContain('Završene');
   expect(copy).toContain('Poslata'); expect(copy).toContain('Izabrana'); expect(copy).toContain('Zadatak je izmenjen.'); expect(copy).toContain('6.000 RSD');
   expect(labels()).toContain('Otvori Dogovor: Unos ormara b'); expect(labels()).toContain('Povuci prijavu: Unos ormara a'); expect(labels()).toContain('Pregledaj izmene zadatka: Unos ormara c');
@@ -80,12 +80,12 @@ describe('Moje prijave states', () => {
     onKeep={noop} onUpdate={noop} onWithdraw={noop} onAgreement={noop} onTask={noop} onRetry={noop} onReset={noop} {...patch} />;
   const tabs = () => presses().filter(node => node.props.accessibilityRole === 'tab');
 
-  test('with no application at all there is only the first run; with some there are groups, still no tabs', async () => {
+  test('with no application there is only the first run; with some the set tabs become available', async () => {
     await act(async () => { tree = create(make()); });
     expect(tabs()).toHaveLength(0);
     expect(texts()).toContain('Još nemaš prijavu');
     await act(async () => tree.update(make({ rows: [application('a', 'SUBMITTED')] })));
-    expect(tabs()).toHaveLength(0); expect(texts()).toContain('Čeka odgovor · 1');
+    expect(tabs()).toHaveLength(4); expect(texts()).toContain('Čeka odgovor · 1');
   });
 
   // The groups are the states the read gives, in the draft's order; a group with nothing in it is not drawn; what asks for the person stands first in its
@@ -97,13 +97,13 @@ describe('Moje prijave states', () => {
     const rows = [application('sent', 'SUBMITTED'), application('seen', 'VIEWED'), application('stale', 'STALE_REVIEW_REQUIRED'), application('gone', 'WITHDRAWN', { mozePovuci: false }),
       application('over', 'CLOSED', { mozePovuci: false }), application('won', 'SELECTED')];
     await act(async () => { tree = create(make({ rows })); });
-    expect(heads()).toEqual(['Čeka odgovor · 3', 'Izabrana · 1', 'Završene · 2']);
+    expect(heads()).toEqual(['Čeka odgovor · 3', 'Izabrana · 1', 'Istorija · 2']);
     // The changed task asks, so it leads its group; the others keep the order of the read.
     expect(order()).toEqual(['Unos ormara stale', 'Unos ormara sent', 'Unos ormara seen', 'Unos ormara won', 'Unos ormara gone', 'Unos ormara over']);
     await act(async () => tree.update(make({ rows, focusId: 'seen' })));
     expect(order().slice(0, 3)).toEqual(['Unos ormara seen', 'Unos ormara stale', 'Unos ormara sent']);
     await act(async () => tree.update(make({ rows: [application('won', 'SELECTED'), application('over', 'CLOSED', { mozePovuci: false })] })));
-    expect(heads()).toEqual(['Izabrana · 1', 'Završene · 1']);
+    expect(heads()).toEqual(['Izabrana · 1', 'Istorija · 1']);
   });
 
   test('marks the application that was just sent in its chip, for as long as it is named, and no other', async () => {
@@ -117,15 +117,16 @@ describe('Moje prijave states', () => {
 
   test.each([
     ['attention', application('a', 'SUBMITTED'), 'Ništa te ne čeka'],
-    ['active', application('a', 'WITHDRAWN', { mozePovuci: false }), 'Nema aktivnih prijava'],
-    ['finished', application('a', 'SUBMITTED'), 'Nema završenih prijava'],
-  ] as const)('an empty "%s" tab says so and leads back to all applications', async (tab, row, title) => {
+    ['active', application('a', 'WITHDRAWN', { mozePovuci: false }), 'Nema prijava koje čekaju odgovor'],
+    ['finished', application('a', 'SUBMITTED'), 'Istorija prijava je prazna'],
+  ] as const)('an empty "%s" tab says so and leaves the other sets reachable', async (tab, row, title) => {
     const onTab = jest.fn();
     await act(async () => { tree = create(make({ rows: [row], tab, onTab })); });
     expect(texts()).toContain(title);
     expect(labels().some(label => String(label).startsWith('Otvori zadatak'))).toBe(false);
-    await act(async () => byLabel('Prikaži sve prijave').props.onPress());
-    expect(onTab).toHaveBeenCalledWith('all');
+    const label = tab === 'active' ? 'Pogledaj istoriju' : 'Prikaži sve prijave';
+    await act(async () => byLabel(label).props.onPress());
+    expect(onTab).toHaveBeenCalledWith(tab === 'active' ? 'finished' : 'all');
   });
 
   // Verify r4b nit D: `busy` is a command (a write) in flight, not a read; the test's name says so now.
@@ -166,15 +167,24 @@ function Detail({ canApply = true, profile = null, relation = { kind: 'NONE' } }
     back={noop} retry={noop} apply={apply} onRequesterProfile={open} requesterProfile={profile} onCloseRequesterProfile={close} />;
 }
 beforeEach(() => { for (const mock of [open, close, apply, ownTask, ownApplication]) mock.mockClear(); });
+test('public task loading shows a calm status before the first read without exposing actions', async () => {
+  await act(async () => { tree = create(<PublicNeedPresentation need={null} loading error={false} missing={false} stale={false} busy={false}
+    canApply={false} canRetry relation={{ kind: 'NONE' }} onOwnTask={ownTask} onOwnApplication={ownApplication}
+    back={noop} retry={noop} apply={apply} />); });
+  expect(texts()).toContain('Učitavamo zadatak…');
+  expect(tree.root.findAllByProps({ testID: 'quiet-read-state' })).toHaveLength(1);
+  expect(tree.root.findAll(node => node.props.variant === 'taskDetail')).toHaveLength(0);
+  expect(brand()).toHaveLength(0);
+});
 test('the public Task leads with its title and four facts, offers the requester profile, and has exactly one brand action while applications are open', async () => {
   await act(async () => { tree = create(<Detail />); });
   const copy = texts();
   // Recomposed from zero (owner, 2026-09-23): no status box repeating what the action already says ("Traži ponude" over
   // a fixed price of 9.000 RSD said the opposite of the price). Potrebno is heard as words, not as a slash.
   expect(copy).not.toContain('Traži ponude'); expect(copy).not.toContain('Prijave su otvorene');
-  expect(copy).toContain('Selidba stana'); expect(copy).toContain('9.000 RSD'); expect(copy).toContain('Traži 2 osobe'); expect(copy).not.toMatch(/0\/2|popunjeno/);
+  expect(copy).toContain('Selidba stana'); expect(copy).toContain('9.000 RSD'); expect(copy).toContain('0/2 izabrano'); expect(copy).not.toContain('Traži 2 osobe'); expect(copy).not.toContain('popunjeno');
   // The facts are rows with one spoken sentence each (`FactRow`), in the order the page reads: what it pays, where, when, how many (in words, only because it is more than one).
-  for (const fact of ['Budžet 9.000 RSD', 'Mesto: Beograd, Vračar', 'Termin: Sutra ujutru', 'Traži 2 osobe']) {
+  for (const fact of ['Budžet: 9.000 RSD', 'Približno mesto: Beograd, Vračar', 'Termin: Sutra ujutru', 'Izabrani izvršioci: 0 od 2']) {
     expect(tree.root.findAll(node => node.props.accessibilityLabel === fact)).not.toHaveLength(0);
   }
   expect(copy).toContain('Dva sprata bez lifta.'); expect(copy).toContain('Ana'); expect(copy).toContain('4,8');

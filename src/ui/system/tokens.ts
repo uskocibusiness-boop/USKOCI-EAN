@@ -61,7 +61,9 @@ export const sys = {
     cardTitle: { fontSize: 20, lineHeight: 25, fontWeight: '600', letterSpacing: -0.6 } as TextStyle,
     /** The title of a card that is showing itself small, inside a list of other cards. */
     cardTitleCompact: { fontSize: 16, lineHeight: 21, fontWeight: '600', letterSpacing: -0.3 } as TextStyle,
-    /** The one money figure a detail screen is built around. */
+    /** Prominent budget/offer, with enough leading for enlarged system text. */
+    priceHero: { fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -0.7, fontVariant: ['tabular-nums'] } as TextStyle,
+    /** An amount in a detail section or receipt. */
     priceLarge: { fontSize: 24, lineHeight: 30, fontWeight: '700', letterSpacing: -0.7, fontVariant: ['tabular-nums'] } as TextStyle,
     /** Money inside a row that is compared with other rows. */
     priceSmall: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.5, fontVariant: ['tabular-nums'] } as TextStyle,
@@ -118,6 +120,9 @@ export const raisedItem: ViewStyle = {
   ...(NO_BOX_SHADOW ? { elevation: 2 }
     : { boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.055), 0px 5px 12px rgba(0, 0, 0, 0.07)' }),
 };
+/** Soft white cards on the recessed profile canvas, Figma 2:126. */
+export const profileLift: ViewStyle = NO_BOX_SHADOW ? { elevation: 2 }
+  : { boxShadow: '0px 6px 22px rgba(10, 31, 20, 0.09)' };
 /** Neutral lift for floating layers; marketplace rows opt into the separate raisedItem material. */
 export const floating: ViewStyle = NO_BOX_SHADOW ? { elevation: 1 }
   : { boxShadow: '0px 5px 18px rgba(0, 0, 0, 0.063), 0px 1px 2px rgba(0, 0, 0, 0.027)' };

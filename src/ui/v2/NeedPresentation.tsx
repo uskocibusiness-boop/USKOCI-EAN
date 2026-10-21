@@ -14,13 +14,13 @@ import { OUTCOME_ACTION } from '../system/outcomeCopy';
 import { Screen } from '../system/Screen';
 import { ChromeIconButton } from '../system/ScreenChrome';
 import { Section } from '../system/Section';
-import { SkeletonCard } from '../system/Skeleton';
 import { StateView } from '../system/StateView';
 import { StatusChip } from '../system/StatusChip';
 import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
 import { T } from '../Text';
 import { V2Action } from './V2Action';
+import { QuietReadState } from './QuietReadState';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 import { osoba, prijava as prijave } from '../system/plural';
 import { TaskDecisionRequirements, TaskDecisionTitle, TaskPlacePrivacy } from './detail/TaskDecision';
@@ -50,11 +50,11 @@ export type NeedPresentationProps = {
   /** The lifecycle's recovery (NeedLifecycleActions in its "···" placement): drawn only while it has something to say. */
   lifecycleActions?: ReactNode;
   /**
-   * The lifecycle's own ways in (cancel, delete a draft, the Dogovori, HITNO): each is a VISIBLE row at the end of the page, the red ones
-   * last (rule J15, the owner's "jedva se nađu" of 8 Oct 2026). There is no "···" on this screen: nothing is rare enough to hide.
+   * Lifecycle actions remain visible rows at the end of the page, with destructive actions last.
+   * Draft deletion has a dedicated header icon when onDeleteDraft is supplied; its duplicate row is omitted.
    */
   lifecycleMenu?: readonly SheetAction[];
-  /** Deleting this draft: the same callback the lifecycle's own entry calls (it asks first, in the centred dialog). Present only for a draft that can be deleted. */
+  /** Deleting this draft: the header trash opens the lifecycle's existing centred confirmation. */
   onDeleteDraft?: () => void;
   /** One contextual action may temporarily outrank applications/Dogovori; it never adds a second primary button. */
   primaryOverride?: { label: string; accessibilityLabel?: string; disabled?: boolean; arrow?: boolean; onPress: () => void };
@@ -137,17 +137,22 @@ export function NeedPresentation(props: NeedPresentationProps) {
   // The edit is the one thing about the task itself that is needed more than rarely, so it stands in the bar of the page, in sight (the approved
   // draft R3, rule J15), unless the green action already opens the conversation (a draft held back for its place): then it is that action and is not drawn twice.
   const editable = usable && (draft || canEdit) && primary?.kind !== 'EDIT' && !help?.actions.includes('EDIT');
-  const editControl = editable ? <ChromeIconButton label={draft ? 'Izmeni nacrt' : 'Izmeni zadatak'} glyph="edit" caption="Izmeni" disabled={busy} onPress={props.onEdit} /> : undefined;
+  const editableDraftDeletion = usable && draft && !!props.onDeleteDraft;
+  const editControl = editable || editableDraftDeletion ? <View style={s.headerActions}>
+    {editable ? <ChromeIconButton label={draft ? 'Izmeni nacrt' : 'Izmeni zadatak'} glyph="edit"
+      hint="Otvara izmenu kroz razgovor." disabled={busy} onPress={props.onEdit} /> : null}
+    {editableDraftDeletion ? <ChromeIconButton label="Obriši nacrt" glyph="trash" tone="danger"
+      hint="Otvara potvrdu brisanja nacrta." disabled={busy} onPress={props.onDeleteDraft!} /> : null}
+  </View> : undefined;
 
   // What ends or removes something, or is done once in a long while, as rows at the end of the page: the lifecycle's own ways in, the close of the
-  // search for the rest, and a draft's deletion. Ordinary ones first, the red ones last; a way to the Dogovori is not drawn twice.
+  // search for the rest. Draft deletion has one entry in the header. A way to Dogovori is not drawn twice.
   const agreementsOffered = !!overview && (overview.rows.agreements || overview.primary?.kind === 'AGREEMENTS');
   const entries = (props.lifecycleMenu ?? []).filter(entry => !(entry.key === 'agreements' && (agreementsOffered || !!props.onAgreements))
     && !(entry.key === 'delete-draft' && !!props.onDeleteDraft));
   const rows: { key: string; label: string; icon: FactArtKind; destructive: boolean; disabled: boolean; onPress: () => void }[] = usable && need ? [
     ...entries.map(entry => ({ key: entry.key, label: entry.label, icon: entry.icon, destructive: !!entry.destructive, disabled: !!entry.disabled, onPress: entry.onPress })),
     ...(canCloseRemaining ? [{ key: 'close-remaining', label: 'Ne traži više nikoga', icon: 'users' as const, destructive: true, disabled: false, onPress: props.onCloseRemaining }] : []),
-    ...(draft && props.onDeleteDraft ? [{ key: 'delete-draft', label: 'Obriši nacrt', icon: 'document' as const, destructive: true, disabled: false, onPress: props.onDeleteDraft }] : []),
   ].sort((a, b) => Number(a.destructive) - Number(b.destructive)) : [];
 
   const scrollTitle = useDetailScrollTitle();
@@ -155,8 +160,8 @@ export function NeedPresentation(props: NeedPresentationProps) {
     titleVisible={scrollTitle.titleVisible} right={editControl} />} onScroll={scrollTitle.onScroll}>
     {/* The lifecycle's recovery stays on the screen whatever the read is doing: a retained command is checked, and its
         outcome shown, even while the task loads or cannot be read. */}
-    {loading && !need ? <View style={s.state} accessibilityLiveRegion="polite">
-      <SkeletonCard rows={3} /><T variant="meta" tone="muted" style={s.center}>Učitavamo zadatak…</T>
+    {loading && !need ? <View style={s.state}>
+      <QuietReadState art="tasks" title="Učitavamo zadatak…" body="Proveravamo stanje zadatka i sačuvane radnje." />
       {props.lifecycleActions}
     </View>
       : !need ? <>
@@ -188,9 +193,8 @@ export function NeedPresentation(props: NeedPresentationProps) {
         {/* What happened to a cancel or a delete the owner sent is said where they read first: the check, the command running, its
             uncertain, confirmed or refused outcome. It draws nothing while there is nothing to say. */}
         {props.lifecycleActions}
-        <TaskDetailSummary need={need} audience="owner" place={remote ? 'Na daljinu' : need.podrucjeTekst} remote={remote}
-          people={`Treba ${osoba(need.pokrivenost.ukupno)}`}
-          peopleNote={!draft && need.pokrivenost.popunjeno > 0 ? `${need.pokrivenost.popunjeno} dogovoreno` : undefined} />
+        <TaskDetailSummary need={need} audience="owner" draft={draft} place={remote ? 'Na daljinu' : need.podrucjeTekst} remote={remote}
+          people={draft ? `Treba ${osoba(need.pokrivenost.ukupno)}` : undefined} />
         {/* Current applications and the next action share one block; they do not turn the task's budget into an agreed amount. */}
         <TaskStateBlock testID="own-task-state" notice={overview?.notice} line={overview?.line} applicants={overview?.applicants} faces={props.applicantFaces}
           note={overview?.note} primary={green} busy={busy} />
@@ -239,8 +243,8 @@ export function NeedPresentation(props: NeedPresentationProps) {
 }
 
 const s = StyleSheet.create({
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   ink: { color: sys.color.ink },
-  center: { textAlign: 'center' },
   state: { gap: sys.space.base },
   // The title remains a direct child of this measured block; multi-line and enlarged titles keep the correct chrome handoff.
   hero: { gap: sys.space.md, paddingVertical: sys.space.sm },

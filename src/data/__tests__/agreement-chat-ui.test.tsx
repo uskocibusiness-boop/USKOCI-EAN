@@ -622,6 +622,19 @@ describe('D03 actual message component', () => {
     expect(entry.canAct()).toBe(false);
     expect(tree.root.findByType('SupportContextEntry' as React.ElementType).props.reference.revision).toBe(5);
   });
+  it('offers the same support choice through a screen reader action, while a plain message stays text', async () => {
+    const read = { id: '30000000-0000-4000-8000-000000000001', dogovorVerzija: 2,
+      posiljalacAccountId: account, telo: 'Proveri ovu poruku.', moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null };
+    await render({ messages: [read] });
+    expect(held('Ti').props.accessibilityRole).toBe('text');
+    expect(held('Ti').props.accessibilityActions).toBeUndefined();
+    await act(async () => tree.update(<AgreementChat {...props} messages={[read]} support={{ canAct: () => true, navigate: jest.fn() }} />));
+    expect(held('Ti').props.accessibilityActions).toEqual([{ name: 'activate', label: 'Izaberi ovu poruku za podršku' }]);
+    await act(async () => held('Ti').props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
+    expect(tree.root.findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(1);
+    await act(async () => held('Ti').props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
+    expect(tree.root.findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(0);
+  });
   // Owner step 8: a calm, modern conversation. The other person on the left on the wash, mine on the right on pale green,
   // the clock small and muted, a day named once above its messages, and a floating pill composer.
   describe('the look of the conversation', () => {
@@ -736,7 +749,7 @@ describe('D03 actual message component', () => {
     // Review r4 rd item 4: with no live update and a pull a screen reader cannot easily make, the refresh is an action.
     // Verify r4b rd item 4 (was: no action in the empty thread, and one on a closed Dogovor): the empty thread is where
     // someone waits for the other side's first message, so it has the action; a closed Dogovor takes no new message, a
-    // failed read has its own retry, and the first read's spinner stands alone.
+    // failed read has its own retry, and the first read's status stands alone.
     it('offers a quiet refresh at the head of the thread and in the empty thread, and none where nothing new can come', async () => {
       await render({ messages: [message('1', false, 'Zdravo', '10:00')] });
       await act(async () => button('Osveži poruke').props.onPress());
@@ -755,7 +768,7 @@ describe('D03 actual message component', () => {
       await act(async () => tree.update(<AgreementChat {...props} loading messages={[]} />));
       expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži poruke' })).toHaveLength(0);
     });
-    // Review r4 rd item 8: the first read's spinner stands in the middle, like every other state.
+    // Review r4 rd item 8: the first read's status stands in the middle, like every other state.
     it('centres the first read and sits a read thread on the composer', async () => {
       const container = () => flat(tree.root.findAll(node => String(node.type) === 'ScrollView')[0].props.contentContainerStyle);
       await render({ loading: true });

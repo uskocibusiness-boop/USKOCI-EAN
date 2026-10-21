@@ -16,7 +16,7 @@ describe('material subjects keep semantic and small-mark boundaries', () => {
   it('bundles decorative art without a network request or entrance fade', async () => {
     const root = await render({ kind: 'pin', size: 28 });
     const art = root.findByType(Image);
-    expect(art.props.source).toBe(require('../../../../assets/illustrations/uskoci-pin-v1.png'));
+    expect(art.props.source).toBe(require('../../../../assets/illustrations/natural-v1/pin.webp'));
     expect(art.props).toMatchObject({ contentFit: 'contain', transition: 0, accessible: false, allowDownscaling: true });
     expect(art.props.style).toEqual({ width: 28, height: 28 });
     expect(root.findAllByType(Svg)).toHaveLength(0);

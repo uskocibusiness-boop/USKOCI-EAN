@@ -118,7 +118,6 @@ import { PhotoAttachSheet } from '../../ui/media/PhotoAttachSheet';
 import { PhotoViewer } from '../../ui/media/PhotoViewer';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { ActionSheet } from '../../ui/system/ActionSheet';
-import BottomSheet from '@gorhom/bottom-sheet';
 import { ProductSheet } from '../../ui/product/ProductSheet';
 import { AiConversationShell } from '../../ui/aiFirst/AiConversationShell';
 import { TASK_OPENINGS } from '../../ui/v2/IntakePresentation';
@@ -182,7 +181,7 @@ it('shows the first known public terms before title or map readiness, without tu
   const words=card.findAll(node=>node.type===('T' as React.ElementType)).flatMap(node=>node.children.filter(child=>typeof child==='string')).join(' ');
   expect(words).toContain('Razumeo sam');expect(words).toMatch(/6[.\s]000 RSD ukupno/);
   expect(words).toContain('2 osobe');expect(words).toContain('Novi Sad');expect(words).toContain('19. okt');expect(words).toContain('25. okt');expect(words).not.toContain('26. okt');
-  expect(words).toContain('Mesto još treba da potvrdiš na mapi.');expect(words).toContain('Zadatak još nije objavljen.');
+  expect(words).toContain('Mesto još treba da potvrdiš na mapi.');expect(words).toContain('nacrt nije objavljen');
   expect(words).not.toMatch(/Privatna|stan 7|Nepotvrđen naslov|bbbbbbbb/);
   expect(card.findAllByProps({accessibilityRole:'button'})).toHaveLength(0);noSummary();
   expect(mockSend).not.toHaveBeenCalled();expect(mockAbandon).not.toHaveBeenCalled();
@@ -263,7 +262,7 @@ const focus = async () => { mockFocused = true; await update(); };
 const leaveSheet = () => tree.root.findByType(ConfirmSheet);
 const leaveSheets = () => tree.root.findAllByType(ConfirmSheet);
 const answer = (testID: 'confirm-sheet-confirm' | 'confirm-sheet-cancel') => leaveSheet().findByProps({ testID }).props.onPress();
-const options = async () => { await act(async () => tree.root.findByProps({ accessibilityLabel: 'Opcije' }).props.onPress()); };
+const options = async () => { await act(async () => tree.root.findByProps({ accessibilityLabel: 'Opcije razgovora' }).props.onPress()); };
 // The options panel became the app's "···" menu (ActionSheet, 2026-09-24): its rows are menu items, not V2Actions, and it
 // closes without a choice the way a menu does (Back, a tap outside), which is its own onClose.
 const menuItems = (label: string) => tree.root.findAll(node => node.props.accessibilityRole === 'menuitem' && node.props.accessibilityLabel === label);
@@ -299,10 +298,16 @@ beforeEach(async () => {
 let mockServerPhotos: unknown[] = [];
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
-const voiceController = () => tree.root.findByType('VoiceComposer' as React.ElementType).props.controller;
+// The same controller owns both the idle notice and the visible microphone.
+// Text-first entry does not mount a capture control until voice is selected.
+const voiceController = () => tree.root.findByType('VoiceNotice' as React.ElementType).props.controller;
 it('starts the first speech gesture through the real hook/controller; only edited Send dispatches AI', async () => {
   mockRealVoice = true; await render();
   expect(mockOpen).not.toHaveBeenCalled(); expect(mockPermission).not.toHaveBeenCalled();
+  expect(input().value).toBe('');
+  await act(async () => tree.root.findByProps({ testID: 'ai-input-mode' }).props.onPress());
+  expect(tree.root.findByType('VoiceComposer' as React.ElementType)).toBeDefined();
+  expect(mockPermission).not.toHaveBeenCalled();
   const controller = voiceController();
   await act(async () => { expect(controller.begin('first-speech', 'accessible')).toBe(true); });
   expect(controller.getSnapshot().phase).toBe('LISTENING');
@@ -536,27 +541,27 @@ it('creates nothing until the first word, and then exactly one conversation', as
   expect(mockOpen).not.toHaveBeenCalled(); expect(mockLoad).not.toHaveBeenCalled();
   await blur(); await focus();
   expect(mockOpen).not.toHaveBeenCalled();
-  expect(text()).toContain('Ćao! 👋 Šta ti danas treba da se uradi?');
-  expect(tree.root.findAllByProps({ testID: 'ai-local-opening' })).toHaveLength(1);
+  expect(text()).toContain('Ćao! Reci mi šta ti treba. 😊');
+  expect(tree.root.findAllByProps({ testID: 'ai-local-opening' })).toHaveLength(0);
   expect(mockOpen).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
 
   await type(); await act(async () => submit().onPress());
-  expect(tree.root.findAllByProps({ testID: 'ai-local-opening' })).toHaveLength(1);
+  expect(tree.root.findAllByProps({ testID: 'ai-local-opening' })).toHaveLength(0);
   expect(mockSend).toHaveBeenCalledTimes(1);
   expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockSend).toHaveBeenCalledTimes(1);
   expect(mockSend.mock.calls[0][0]).toBe(id);
   await blur(); await focus();
   expect(mockOpen).toHaveBeenCalledTimes(1); expect(mockAbandon).not.toHaveBeenCalled();
 });
-it('presents one local assistant greeting before loaded history without creating a Gemini message', async () => {
+it('opens loaded history without replaying the first-visit greeting or creating a Gemini message', async () => {
   mockLoad.mockResolvedValue(conversation({ messages: [
     { id: other, fromAi: false, body: 'Treba mi krečenje.', safety: null, proposedFactIds: [] },
     { id: 'aaaaaaab-1111-4111-8111-111111111111', fromAi: true, body: 'Kada bi ti odgovaralo?', safety: 'ALLOW', proposedFactIds: [] },
   ] }));
   await resume();
   const greeting = tree.root.findAllByProps({ testID: 'ai-local-opening' });
-  expect(greeting).toHaveLength(1);
-  expect(greeting[0].props.accessibilityLabel).toBe('USKOČI: Ćao! 👋 Šta ti danas treba da se uradi?');
+  expect(greeting).toHaveLength(0);
+  expect(text()).not.toContain('Ćao! Reci mi šta ti treba. 😊');
   expect(mockOpen).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
   expect(text()).toContain('Kada bi ti odgovaralo?');
 });
@@ -650,8 +655,9 @@ it('keeps a server-processing reply pending after stream loss without resending 
   expect(await aiTurnIntentJournal.load(mockSession.user.id)).not.toBeNull();
 });
 it('requires real readback after unknown and retries the same key/body only when the server permits', async () => {
-  await render(); await type(); await act(async () => submit().onPress()); const sent = mockSend.mock.calls[0];
-  await act(async () => submit().onPress()); expect(mockSend).toHaveBeenCalledTimes(1);
+  await render(); await type(); const retainedSend = submit().onPress; await act(async () => retainedSend()); const sent = mockSend.mock.calls[0];
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošalji ponovo' })).toHaveLength(0);
+  await act(async () => retainedSend()); expect(mockSend).toHaveBeenCalledTimes(1);
   await act(async () => button('Proveri').onPress()); expect(mockTurn).toHaveBeenCalledWith(id, sent[2]);
   await act(async () => input().onChangeText('different body')); expect(input().value).toBe(sent[1]);
   await act(async () => submit().onPress()); expect(mockSend.mock.calls[1].slice(0,3)).toEqual(sent.slice(0,3));
@@ -698,6 +704,19 @@ it('keeps the line of any other failed send, even while the delivery is not know
   await render(); await type(); await act(async () => submit().onPress());
   expect(text()).toContain(OTHER); expect(text()).toContain('Ne znamo da li je poruka poslata.');
 });
+it('keeps the last confirmed conversation readable but locks its draft after a failed refresh', async () => {
+  mockLoad.mockResolvedValue(conversation({ messages: [{ id: other, fromAi: true, body: 'Koliko ljudi ti treba?', safety: null, proposedFactIds: [] }] }));
+  await resume(); await type('Treba mi dvoje ljudi.');
+  mockLoad.mockRejectedValueOnce(new Error('offline'));
+  await options(); await act(async () => menuItem('Osveži razgovor').onPress());
+  expect(text()).toContain('Koliko ljudi ti treba?');
+  expect(tree.root.findByType(AiConversationShell).props).toMatchObject({ canEdit: false, canSend: false });
+  expect(input().value).toBe('Treba mi dvoje ljudi.');
+  await act(async () => submit().onPress()); expect(mockSend).not.toHaveBeenCalled();
+  await act(async () => button('Proveri').onPress());
+  expect(tree.root.findByType(AiConversationShell).props.canEdit).toBe(true);
+  expect(input().value).toBe('Treba mi dvoje ljudi.');
+});
 it('keeps the retry, cancel and "Asistent još obrađuje" paths once a send has settled, and hides them again while the retry runs', async () => {
   await render(); await type(); await act(async () => submit().onPress());
   await act(async () => button('Proveri').onPress());
@@ -715,7 +734,8 @@ it('keeps the retry, cancel and "Asistent još obrađuje" paths once a send has 
 it('keeps an in-progress server receipt read-only and never polls or retries automatically', async () => {
   mockTurn.mockImplementation((_id: string, requestId: string) => Promise.resolve(turn(requestId, 'PROCESSING')));
   await render(); await type(); await act(async () => submit().onPress()); await act(async () => button('Proveri').onPress());
-  expect(submit().disabled).toBe(true); expect(text()).toContain('Asistent još obrađuje poruku'); expect(mockSend).toHaveBeenCalledTimes(1);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošalji ponovo' })).toHaveLength(0);
+  expect(input().editable).toBe(false); expect(text()).toContain('Asistent još obrađuje poruku'); expect(mockSend).toHaveBeenCalledTimes(1);
   expect(mockTurn).toHaveBeenCalledTimes(1);
 });
 it('resolves a lost success receipt using IDs, clears the sent draft and accepts a fresh next request', async () => {
@@ -798,8 +818,34 @@ it('keeps the leave question open with a busy confirm while abandonment runs, an
   await act(async () => answer('confirm-sheet-confirm'));
   expect(mockAbandon).toHaveBeenCalledTimes(1); expect(leaveSheets()).toHaveLength(1);
   expect(leaveSheet().findByProps({ testID: 'confirm-sheet-confirm' }).props.accessibilityState).toEqual({ disabled: true, busy: true });
+  expect(text()).toContain('Proveravamo da li je razgovor napušten…');
+  expect(text()).not.toContain('Stiže odgovor…');
   await act(async () => held.resolve(ok({ conversationId: id, status: 'ABANDONED', authoritative: true })));
   expect(leaveSheets()).toHaveLength(0); expect(text()).toContain('Razgovor je napušten.');
+});
+it('resolves a lost abandon receipt through the same owned conversation and preserves an OPEN draft', async () => {
+  mockAbandon.mockResolvedValueOnce(unknown());
+  await resume(); await type('Moja neposlata dopuna.'); await options();
+  await act(async () => menuItem('Napusti razgovor').onPress());
+  await act(async () => answer('confirm-sheet-confirm'));
+  expect(mockAbandon).toHaveBeenCalledTimes(1);
+  expect(mockLoad).toHaveBeenCalledTimes(2);
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(input().value).toBe('Moja neposlata dopuna.');
+  expect(input().editable).toBe(false);
+  await act(async () => button('Proveri').onPress());
+  expect(mockAbandon).toHaveBeenCalledTimes(1);
+  expect(input().value).toBe('Moja neposlata dopuna.');
+  expect(input().editable).toBe(true);
+});
+it('shows a closed task conversation when abandon receipt was lost but readback confirms ABANDONED', async () => {
+  mockAbandon.mockResolvedValueOnce(unknown());
+  mockLoad.mockResolvedValueOnce(conversation()).mockResolvedValue(conversation({ status: 'ABANDONED' }));
+  await resume(); await options(); await act(async () => menuItem('Napusti razgovor').onPress());
+  await act(async () => answer('confirm-sheet-confirm'));
+  expect(mockAbandon).toHaveBeenCalledTimes(1);
+  expect(text()).toContain('Razgovor je napušten.');
+  expect(field()).toHaveLength(0);
 });
 it.each(['PERMISSION_PENDING', 'PREPARING', 'STARTING', 'LISTENING', 'FINALIZING'] as const)('cancels %s capture before abandonment and removes its session scope after readback', async phase => {
   mockVoicePhase = phase; await resume();
@@ -1044,7 +1090,7 @@ it('offers photos from the composer before and after the first word, inside the 
   const optionLabels = () => tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string')
     .map(node => node.props.accessibilityLabel).join(' ');
   expect(plus().accessibilityState).toEqual({ disabled: false });
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Opcije' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Opcije razgovora' })).toHaveLength(0);
   // Merely opening the sheet creates nothing.
   await act(async () => plus().onPress());
   expect(tree.root.findAllByType(PhotoAttachSheet)).toHaveLength(1); expect(mockOpen).not.toHaveBeenCalled();
@@ -1348,9 +1394,10 @@ it('respects reduced motion for screen entry and the options panel', async () =>
   mockReduced = true; await render();
   expect(tree.root.findAllByType('AnimatedView' as React.ElementType)).toHaveLength(0);
   await act(async () => tree.unmount());
-  // The options panel is the sheet engine since 2026-09-24: under reduced motion it opens without its settle.
+  // The options use the common centered dialog; reduced motion disables its entrance.
   await resume(); await options();
-  expect(tree.root.findByType(BottomSheet).props).toMatchObject({ animateOnMount: false, animationConfigs: { duration: 0 } });
+  expect(tree.root.findByType('Modal' as React.ElementType).props.animationType).toBe('none');
+  expect(tree.root.findAllByProps({ testID: 'product-modal-card' }).length).toBeGreaterThan(0);
 });
 
 it('shows actual typed fixed dates and times in Serbian time, in the app’s one format', async () => {
@@ -1395,6 +1442,26 @@ it('starts over only after the same conversation is read back as abandoned', asy
   expect(mockRouter.replace).toHaveBeenCalledTimes(1);
   expect(mockRouter.replace.mock.calls[0][0]).toMatchObject({ pathname: '/nova', params: { entryKey: expect.any(String) } });
   expect(mockOpen).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
+});
+it('starts over after a lost abandon receipt only when the same conversation is canonically ABANDONED', async () => {
+  mockAbandon.mockResolvedValueOnce(unknown());
+  mockLoad.mockResolvedValueOnce(conversation()).mockResolvedValue(conversation({ status: 'ABANDONED' }));
+  await resume(); await act(async () => tree.root.findByProps({ accessibilityLabel: 'Novi razgovor' }).props.onPress());
+  await act(async () => answer('confirm-sheet-confirm'));
+  expect(mockAbandon).toHaveBeenCalledTimes(1);
+  expect(mockRouter.replace).toHaveBeenCalledTimes(1);
+  expect(mockRouter.replace.mock.calls[0][0]).toMatchObject({ pathname: '/nova', params: { entryKey: expect.any(String) } });
+});
+it('keeps the existing route and unsent text if an abandon readback belongs to another conversation', async () => {
+  mockLoad.mockResolvedValueOnce(conversation()).mockResolvedValue(conversation({ conversationId: other, status: 'ABANDONED' }));
+  await resume(); await type('Ne poslati ovo.');
+  await act(async () => tree.root.findByProps({ accessibilityLabel: 'Novi razgovor' }).props.onPress());
+  await act(async () => answer('confirm-sheet-confirm'));
+  expect(mockAbandon).toHaveBeenCalledTimes(1);
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+  expect(input().value).toBe('Ne poslati ovo.');
+  expect(input().editable).toBe(false);
+  expect(text()).toContain('Razgovor trenutno nije dostupan');
 });
 it('does not replace an open intake when abandon succeeded but canonical readback is still OPEN', async () => {
   await resume(); await act(async () => tree.root.findByProps({ accessibilityLabel: 'Novi razgovor' }).props.onPress());

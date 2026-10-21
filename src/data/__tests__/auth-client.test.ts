@@ -76,6 +76,16 @@ describe('central Auth client boundary', () => {
     await expect(pending).rejects.toThrow('AUTH_ACCOUNT_CHANGED');
   });
 
+  it('keeps account-change precedence when a stale resend rejects', async () => {
+    mockCurrent = { user: null, accountRevision: 0 };
+    let reject!: (reason: unknown) => void;
+    mockAuth.resend.mockReturnValueOnce(new Promise((_resolve, fail) => { reject = fail; }));
+    const pending = authClientService.resendSignupConfirmation('ana@example.test');
+    mockCurrent = { user: { id: 'another-account' }, accountRevision: 1 };
+    reject(new Error('provider secret https://private/token?secret'));
+    await expect(pending).rejects.toThrow('AUTH_ACCOUNT_CHANGED');
+  });
+
   it('keeps existing phone OTP options and explicitly verifies an sms token', async () => {
     await authClientService.sendPhoneOtp({ phone: '+381601234567' });
     await authClientService.verifyPhoneOtp({ phone: '+381601234567', token: '012345' });
@@ -137,6 +147,23 @@ describe('central Auth client boundary', () => {
       }
     },
   );
+
+  it.each([
+    ['signUp', 'Registracija trenutno nije uspela.'],
+    ['resend', 'Novu potvrdu trenutno nije moguće zatražiti.'],
+    ['signInWithOtp', 'Kod trenutno nije moguće poslati.'],
+    ['verifyOtp', 'Kod nije potvrđen.'],
+  ] as const)('sanitizes rejected %s SDK calls without exposing provider text', async (method, expected) => {
+    mockCurrent = { user: null, accountRevision: 0 };
+    mockAuth[method].mockRejectedValueOnce(new Error('provider secret https://private/token?secret'));
+    const commands = {
+      signUp: () => authClientService.signUp({ email: 'a@example.test', password: 'password', firstName: 'A', lastName: 'B', city: 'Novi Sad' }),
+      resend: () => authClientService.resendSignupConfirmation('a@example.test'),
+      signInWithOtp: () => authClientService.sendPhoneOtp({ phone: '+381601234567' }),
+      verifyOtp: () => authClientService.verifyPhoneOtp({ phone: '+381601234567', token: '012345' }),
+    };
+    await expect(commands[method]()).rejects.toThrow(expected);
+  });
 
   it('logs out only the current account with the existing local scope', async () => {
     await expect(authClientService.signOutLocal(actor)).resolves.toBeUndefined();

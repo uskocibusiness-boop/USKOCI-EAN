@@ -29,7 +29,7 @@ import { taskPlace, taskSpoken, taskValue } from './TaskFace';
  *      server's expiry, on one clock;
  *   2. the title (18/24, two lines at most; the whole of it is what a screen reader hears);
  *   3. the facts as rows of one kind, each with its picture: what it pays (the sum with what it buys, or the price tag and "Tražim ponude"; a
- *      word is never drawn as an amount), where, when and, ONLY when it is more than one, how many people ("Treba 3 osobe"; "0/1" said nothing);
+ *      word is never drawn as an amount), where, when and chosen/required people. Drafts show the requirement when more than one person is needed;
  *   4. the ONE line of data ("Još nema prijava", "3 prijave"). When it is the way to the applications waiting for my choice it is the card's
  *      foot ("noga"), its own target under a line and never inside the body: one touch to the applications instead of two. Only a task that
  *      waits for my decision has a foot; any other line is a quiet line of the body, and a draft has none.
@@ -64,12 +64,17 @@ function OwnTaskCardBase({ item, onOpen, onApplications, disabled = false, secti
   const foot = standing.toApplications && onApplications ? standing.next : null;
   const sentence = foot ? null : standing.next;
   const chipWords = chip ? `${STATUS_CHIPS[chip.status].word}${chip.detail ? `, ${chip.detail}` : ''}` : null;
-  // How many people only when it is more than one, in words ("Treba 3 osobe"), and how many are agreed once any is: "0/1" and "0/2 popunjeno" said nothing.
-  // A draft was never published, so it has nothing agreed to count.
+  // Capacity is independent from applications: eight applications can still mean 0/2 chosen.
+  // Drafts show only their requirement. Unknown capacity must not become a made-up zero.
   const { ukupno, popunjeno } = item.pokrivenost;
-  const people = ukupno > 1 ? { text: `Treba ${osoba(ukupno)}`, note: item.stanje !== 'NACRT' && popunjeno > 0 ? `${popunjeno} dogovoreno` : undefined } : null;
+  const knownCapacity = Number.isSafeInteger(ukupno) && ukupno > 0 && Number.isSafeInteger(popunjeno) && popunjeno >= 0 && popunjeno <= ukupno;
+  const people = item.stanje === 'NACRT'
+    ? ukupno > 1 ? `Treba ${osoba(ukupno)}` : null
+    : knownCapacity ? `${popunjeno}/${ukupno} izabrano` : 'Popunjenost nije dostupna';
+  const spokenPeople = item.stanje === 'NACRT' ? people
+    : knownCapacity ? `Izabrani izvršioci: ${popunjeno} od ${ukupno}` : people;
   const spoken = taskSpoken({ status: chipWords, urgent, value, budget: true, place: place.text, schedule, requirement: null,
-    places: people ? `${people.text}${people.note ? `, ${people.note}` : ''}` : null, next: sentence });
+    places: spokenPeople, next: sentence });
   const lift = usePressLift();
 
   return <Animated.View style={lift.style}>
@@ -88,7 +93,7 @@ function OwnTaskCardBase({ item, onOpen, onApplications, disabled = false, secti
           <TaskDecisionValue need={item} size="card" />
           <FactRow art={place.remote ? 'remote' : 'pin'} value={place.text} />
           <FactRow art="calendar" value={schedule} />
-          {people ? <FactRow art="users" value={people.text} note={people.note} /> : null}
+          {people ? <FactRow art="users" value={people} /> : null}
         </View>
         {sentence ? <T variant="note" tone="muted">{sentence}</T> : null}
       </Press>

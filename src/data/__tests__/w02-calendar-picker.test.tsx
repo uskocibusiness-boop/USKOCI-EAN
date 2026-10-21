@@ -16,7 +16,7 @@ jest.mock('@expo/ui/jetpack-compose', () => ({ Host: 'ComposeHost', TimePickerDi
 jest.mock('../../ui/calendar/CivilTimeDialog', () => jest.requireActual('../../ui/calendar/CivilTimeDialog.android'));
 jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
-jest.mock('react-native-reanimated', () => ({ useReducedMotion: () => mockReducedMotion }));
+jest.mock('react-native-reanimated', () => ({ ...jest.requireActual('../../../__mocks__/react-native-reanimated'), useReducedMotion: () => mockReducedMotion }));
 // Reduced motion is read from the one store (ui/system/motion) since 2026-09-24, no longer from Reanimated.
 jest.mock('../../ui/system/motion', () => ({ useReducedMotion: () => mockReducedMotion }));
 import { CivilField } from '../../ui/calendar/CalendarControls';

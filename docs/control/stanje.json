@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-20T05:03:31Z",
+  "osvezeno": "2026-10-20T23:04:00Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "47cbd0e2",
-  "head_poruka": "test(ai): preserve description contract after prompt consolidation",
+  "head": "70bc79f2",
+  "head_poruka": "fix(ui): align task loading geometry and preserve semantic regression coverage",
   "server": {
    "snimljeno": "2026-10-18T20:15:59Z",
    "migracije": 288,
@@ -3727,6 +3727,12 @@
      "githubRunId": "39370415630",
      "evidence": "docs/current/evidence/LIGHT_NAVIGATION_20261020.json",
      "boundary": "NAVIGATION_VISUAL_AND_TAB_SMOKE_ONLY; existing A08 P1 and whole-flow acceptance remain open"
+    },
+    "connected_ui_20261020": {
+     "status": "BOUNDED_EMULATOR_VERIFIED",
+     "sourceSha": "70bc79f250b33ae706a068579c3527dfbf297792",
+     "evidence": "docs/current/evidence/CONNECTED_UI_20261020.json",
+     "boundary": "BOUNDED_UI_NATIVE; full MVP, prior A08 issue and all server/write acceptance remain OPEN"
     }
    },
    "ukupno": "PROBLEM",
@@ -5042,6 +5048,12 @@
      "githubRunId": "39370415630",
      "evidence": "docs/current/evidence/LIGHT_NAVIGATION_20261020.json",
      "boundary": "NAVIGATION_VISUAL_AND_TAB_SMOKE_ONLY; existing A08 P1 and whole-flow acceptance remain open"
+    },
+    "connected_ui_20261020": {
+     "status": "BOUNDED_EMULATOR_VERIFIED",
+     "sourceSha": "70bc79f250b33ae706a068579c3527dfbf297792",
+     "evidence": "docs/current/evidence/CONNECTED_UI_20261020.json",
+     "boundary": "BOUNDED_UI_NATIVE; full MVP, prior A08 issue and all server/write acceptance remain OPEN"
     }
    },
    "ukupno": "PROBLEM",
@@ -7567,6 +7579,12 @@
      "source": "52720d9950694d09259a919f371e751b013df489",
      "ciRun": 38030187236,
      "nativeEvidence": "docs/implementation/evidence/visual-rounds-20261010/native-installed-52720d99.json"
+    },
+    "connected_ui_20261020": {
+     "status": "BOUNDED_EMULATOR_VERIFIED",
+     "sourceSha": "70bc79f250b33ae706a068579c3527dfbf297792",
+     "evidence": "docs/current/evidence/CONNECTED_UI_20261020.json",
+     "boundary": "BOUNDED_UI_NATIVE; full MVP, prior A08 issue and all server/write acceptance remain OPEN"
     }
    },
    "ukupno": "PROBLEM",
@@ -8111,6 +8129,12 @@
      "targetedCi": 38033001120,
      "pkg049": 38033001100,
      "storeReady": false
+    },
+    "connected_ui_20261020": {
+     "status": "BOUNDED_EMULATOR_VERIFIED",
+     "sourceSha": "70bc79f250b33ae706a068579c3527dfbf297792",
+     "evidence": "docs/current/evidence/CONNECTED_UI_20261020.json",
+     "boundary": "BOUNDED_UI_NATIVE; full MVP, prior A08 issue and all server/write acceptance remain OPEN"
     }
    },
    "ukupno": "PROBLEM",
@@ -8251,6 +8275,12 @@
      "agreement": "Postojeći lifecycle/podaci/zaštite ostaju; odobren nacrt je pravac.",
      "proposedChange": "Detalj nije uvećana list kartica; sekcije bez kutije oko svake.",
      "boundary": "No application source, DEV, device or acceptance-light change."
+    },
+    "connected_ui_20261020": {
+     "status": "BOUNDED_EMULATOR_VERIFIED",
+     "sourceSha": "70bc79f250b33ae706a068579c3527dfbf297792",
+     "evidence": "docs/current/evidence/CONNECTED_UI_20261020.json",
+     "boundary": "BOUNDED_UI_NATIVE; full MVP, prior A08 issue and all server/write acceptance remain OPEN"
     }
    },
    "ukupno": "NA TELEFONU NIJE PROVERENO",
@@ -11364,7 +11394,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "10 test fajl(ova)"
+    "test": "11 test fajl(ova)"
    },
    "telefon_dokaz": "pkg042/DEVICE_INSTALLATION_RECEIPT_20260922.json: postojeća prijava na tvom telefonu radi posle hladnog pokretanja.",
    "problem": "",
@@ -11477,7 +11507,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "10 test fajl(ova)"
+    "test": "11 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "Live preflight10.10: email redirect allowlist prazan, SiteURL localhost; podešavanje odbijeno403 zbog prava trenutne prijave. Custom SMTP isključen; trenutni free ugrađeni pošiljalac ne dopušta novi šablon. Izvor/testovi gotovi, stvarna dostava/povratak nisu dokazani. Isolated Android CI38003398495 nije prošao: prelaz na registraciju i prvi unos emaila timeout; lokalni API36.1 prolaz ne objašnjava originalni API35 pad.",
@@ -12833,7 +12863,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 0 serverskih funkcija",
-    "test": "10 test fajl(ova)"
+    "test": "11 test fajl(ova)"
    },
    "telefon_dokaz": "",
    "problem": "",
@@ -14385,6 +14415,46 @@
  },
  "ci": [
   {
+   "id": 39380225968,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "70bc79f2",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-20T06:24:57Z"
+  },
+  {
+   "id": 39379633716,
+   "ime": "PKG-042 application reader parity proof",
+   "sha": "22a5e674",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-20T06:18:37Z"
+  },
+  {
+   "id": 39379136091,
+   "ime": "Build latest V5 Android preview APK",
+   "sha": "1fabbffb",
+   "stanje": "completed",
+   "ishod": "failure",
+   "vreme": "2026-10-20T06:13:17Z"
+  },
+  {
+   "id": 39379117464,
+   "ime": "PKG-042 application reader parity proof",
+   "sha": "1fabbffb",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-20T06:13:05Z"
+  },
+  {
+   "id": 39372963276,
+   "ime": "PKG-042 application reader parity proof",
+   "sha": "f2d90c79",
+   "stanje": "completed",
+   "ishod": "success",
+   "vreme": "2026-10-20T05:04:52Z"
+  },
+  {
    "id": 39370415630,
    "ime": "Build latest V5 Android preview APK",
    "sha": "47cbd0e2",
@@ -14439,46 +14509,6 @@
    "stanje": "completed",
    "ishod": "success",
    "vreme": "2026-10-19T21:31:25Z"
-  },
-  {
-   "id": 39326249115,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "86b5f2f6",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-19T21:16:59Z"
-  },
-  {
-   "id": 39322097750,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "7423c476",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-19T20:46:20Z"
-  },
-  {
-   "id": 39320399499,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "0f237092",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-19T20:34:13Z"
-  },
-  {
-   "id": 39298019592,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "7f202518",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-19T17:53:55Z"
-  },
-  {
-   "id": 39291376956,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "24736a79",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-19T17:07:04Z"
   }
  ]
 }

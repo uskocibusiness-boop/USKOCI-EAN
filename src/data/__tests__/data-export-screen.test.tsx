@@ -19,6 +19,7 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('../../ui/Text', () => ({ T: 'T' })); jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 import ExportScreen from '../../app/(app)/profil/izvoz';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
+import { SkeletonList } from '../../ui/system/Skeleton';
 const ok = (podatak: unknown) => ({ ok: true, podatak });
 const descriptor = () => ({ artifactAvailable: true, artifactGeneration: GENERATION, artifactExpiresAt: '2099-01-01T00:00:00Z', byteLength: 3, sha256: 'a'.repeat(64), md5: 'b'.repeat(32) });
 const status = (state: string | null = null, fulfillment: unknown = null, key = 'existing-export-key') => ({ hasRequest: state !== null,
@@ -76,7 +77,10 @@ it('keeps one actual primary action outside scrolling content and cancellation s
 it('keeps the primary footer absent while the account export state is unresolved', async () => {
   const pending = deferred(); mockStatus.mockReturnValueOnce(pending.promise); await render();
   expect(tree.root.findAllByProps({ testID: 'settings-primary-footer' })).toHaveLength(0);
-  expect(tree.root.findByProps({ accessibilityLabel: 'Učitavanje stanja izvoza' })).toBeTruthy();
+  expect(tree.root.findByProps({ testID: 'quiet-read-state' })).toBeTruthy();
+  expect(texts()).toContain('Učitavamo stanje izvoza');
+  expect(texts()).not.toContain('Nije traženo');
+  expect(tree.root.findAllByType(SkeletonList)).toHaveLength(0);
   expect(mockRequest).not.toHaveBeenCalled(); expect(mockPrepare).not.toHaveBeenCalled();
 });
 it('serializes request double taps and reads back the accepted request', async () => {

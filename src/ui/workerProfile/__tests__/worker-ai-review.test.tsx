@@ -48,7 +48,8 @@ it('displays reviewed modes and handoff beside only their own service, while ret
       handoff:{required:true,shippingCountries:['RS']}}]};
   await act(async()=>{tree=create(<WorkerAiCard profile={prepared.profile} compact={false} review={jest.fn()} disabled={false} verifiedReview={prepared}/>);});
   expect(texts()).toContain('Bez dolaska kod naručioca');expect(texts()).toContain('Kod naručioca');expect(texts()).toContain('Slanje: RS');
-  expect(texts()).toContain('do 20 km');expect(texts()).toContain('Nacrt još nije sačuvan');expect(texts()).not.toContain('private-id');
+  expect(texts()).toContain('do 20 km');expect(texts()).toContain('Nacrt · nije sačuvan');expect(texts()).not.toContain('private-id');
+  expect(tree.root.findAllByProps({testID:'worker-draft-review-note'})).toHaveLength(0);
   const handoff=tree.root.findByProps({testID:'worker-understood-handoff'});
   expect(handoff.parent?.findAllByType('T' as React.ElementType).map(node=>node.props.children)).toContain('3D štampa');
   await act(async()=>tree.update(<WorkerAiCard profile={prepared.profile} compact={false} review={jest.fn()} disabled pending verifiedReview={null}/>));

@@ -242,10 +242,11 @@ test('a return from another screen rebuilds the same list, restores its read dep
   expect(bridge().props.snapshot.mapMarkers).toHaveLength(1);
 });
 
-test('clearing a filter reads the map again over the camera the person left, without the error state', async () => {
+test('switching from remote to both modes reads the map again over the camera the person left', async () => {
   await act(async () => { tree = create(<DiscoveryV1Route />); });
   await flush();
   expect(modes()).toEqual(['PAGE', 'MAP', 'MAP']);
+  expect(mockTransportCalls.every(request => request.mode === 'EXACT_PUBLIC' || request.filter.where === 'onsite')).toBe(true);
   const settled = { center: [20.6, 45.3], zoom: 8, bounds: NATIVE_BOUNDS };
   await act(async () => { bridge().props.onView({ ...bridge().props.snapshot.view, viewport: settled }); });
   await flush();
@@ -256,13 +257,16 @@ test('clearing a filter reads the map again over the camera the person left, wit
   await flush();
   expect(errorState()).toHaveLength(0);
   expect(modes()).toEqual(['PAGE']);
+  expect((mockTransportCalls[0] as any).filter.where).toBe('remote');
 
-  // Clearing it reads the list and the map over the same viewport the person left.
+  // "Oba" keeps its explicit work-mode filter and restores the saved map viewport.
   mockTransportCalls.length = 0;
   await act(async () => { bridge().props.onView({ ...bridge().props.snapshot.view, where: 'any' }); });
   await flush();
   expect(errorState()).toHaveLength(0);
   expect(modes()).toEqual(['PAGE', 'MAP']);
+  expect(mockTransportCalls.every(request => request.mode === 'EXACT_PUBLIC' || request.filter.where === 'any')).toBe(true);
+  expect(bridge().props.snapshot.view.where).toBe('any');
   expect((mockTransportCalls[1] as any).bounds).toEqual(CANONICAL_BOUNDS);
   expect(bridge().props.snapshot.items).toHaveLength(50);
   expect(bridge().props.snapshot.mapMarkers).toHaveLength(1);

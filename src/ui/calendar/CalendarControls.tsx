@@ -5,7 +5,7 @@ import { DateTimePicker } from '@expo/ui/community/datetime-picker';
 import { CivilTimeDialog } from './CivilTimeDialog';
 import { useReducedMotion } from '../system/motion';
 import { DetailTopBar } from '../system/DetailTopBar';
-import { StateView } from '../system/StateView';
+import { QuietReadState } from '../v2/QuietReadState';
 import { brandAction, sys, card, cardCompact, field } from '../system/tokens';
 import { ProductSheet } from '../product/ProductSheet';
 import { V2Action } from '../v2/V2Action';
@@ -53,12 +53,13 @@ export function CalendarAction({ kind = 'primary', full: _full, style, ...props 
 
 /**
  * The frame of the availability screen: the top bar, the keyboard, and either the content or, on the first read with
- * nothing yet to show, the shared loading placeholders.
+ * nothing yet to show, a calm first-read state.
  */
 export function CalendarScreen({ title, back, children, loading = false, scroll = true, footer }: {
   title: string; back: () => void; children: ReactNode; loading?: boolean; scroll?: boolean; footer?: ReactNode;
 }) {
-  const body = loading ? <StateView kind="loading" title="Učitavamo sačuvanu dostupnost…" skeleton={{ count: 3, rows: 1 }} /> : children;
+  const body = loading ? <QuietReadState art="calendar" title="Učitavamo sačuvanu dostupnost…"
+    body="Proveravamo dane i termine koje si sačuvao." /> : children;
   return <SafeAreaView edges={['top', 'bottom']} style={calendarStyles.screen}>
     <DetailTopBar title={title} onBack={back} />
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>

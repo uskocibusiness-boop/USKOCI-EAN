@@ -1,8 +1,8 @@
 import {
   ArrowClockwise, ArrowLeft, ArrowRight, ArrowSquareOut, ArrowUp, ArrowUpRight, ArrowsOutSimple, CalendarBlank, Camera, CaretDown, CaretLeft,
   CaretRight, CaretUp, Check, DotsThree, Eye, EyeSlash, Image, Info, MagnifyingGlass, MapTrifold, Microphone, Minus, PaperPlaneTilt, Plus,
-  Bell, ChatCircle, GearSix, Handshake, HouseSimple, Keyboard, PencilSimpleLine, MapPin, GlobeHemisphereWest, Users, Wrench, Truck,
-  SlidersHorizontal, Trash, User, Waveform, X, Prohibit, type Icon, type IconWeight,
+  Bell, ChatText, GearSix, Handshake, House, Keyboard, PencilSimpleLine, MapPin, GlobeHemisphereWest, Users, Wrench, Truck,
+  SlidersHorizontal, Trash, User, Waveform, X, Prohibit, ShieldCheck, SignOut, type Icon, type IconWeight,
 } from 'phosphor-react-native';
 import { sys } from './tokens';
 
@@ -14,7 +14,7 @@ import { sys } from './tokens';
 export const GLYPH_NAMES = ['back', 'close', 'caret-right', 'caret-left', 'caret-down', 'caret-up', 'plus', 'minus', 'check', 'send',
   'search', 'filters', 'more', 'mic', 'wave', 'arrow-right', 'arrow-up', 'arrow-up-right', 'refresh', 'trash', 'camera', 'image', 'eye',
   'eye-off', 'external', 'expand', 'info', 'map', 'profile', 'calendar', 'home', 'agreements', 'messages', 'notifications', 'edit', 'settings', 'cancel', 'keyboard',
-  'location', 'remote', 'people', 'tool', 'vehicle'] as const;
+  'location', 'remote', 'people', 'tool', 'vehicle', 'shield', 'logout'] as const;
 export type GlyphName = (typeof GLYPH_NAMES)[number];
 
 /** In-text, row or beside a word, chrome. */
@@ -39,10 +39,11 @@ const REGISTRY: Record<GlyphName, Icon> = {
   mic: Microphone, wave: Waveform, 'arrow-right': ArrowRight, 'arrow-up': ArrowUp, 'arrow-up-right': ArrowUpRight, refresh: ArrowClockwise,
   trash: Trash, camera: Camera, image: Image, eye: Eye, 'eye-off': EyeSlash, external: ArrowSquareOut, expand: ArrowsOutSimple, info: Info,
   map: MapTrifold, profile: User, calendar: CalendarBlank,
-  home: HouseSimple, agreements: Handshake, messages: ChatCircle, notifications: Bell, edit: PencilSimpleLine,
+  home: House, agreements: Handshake, messages: ChatText, notifications: Bell, edit: PencilSimpleLine,
   // The cog of "Podesi obaveštenja" (the inbox bar) and of every settings control after it: the notification screens drew it with a Phosphor import of their own.
   settings: GearSix, cancel: Prohibit, keyboard: Keyboard,
   location: MapPin, remote: GlobeHemisphereWest, people: Users, tool: Wrench, vehicle: Truck,
+  shield: ShieldCheck, logout: SignOut,
 };
 
 /** The short marks that read thin at any size. */

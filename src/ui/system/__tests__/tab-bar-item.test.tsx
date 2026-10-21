@@ -104,12 +104,12 @@ describe('the icon of a tab', () => {
     await render(<TabGlyph kind="home" selected={false} />);
     expect(pictures()).toHaveLength(1);
     const picture = pictures()[0];
-    expect(picture.props).toMatchObject({ name: 'home', size: TAB_ICON, tone: 'muted', on: false });
+    expect(picture.props).toMatchObject({ name: 'home', size: TAB_ICON, tone: 'muted', strong: false });
     expect(byId('tab-glyph').props).toMatchObject({ accessible: false, accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' });
     expect(flat(byId('tab-glyph')).opacity).toBeUndefined();
     await act(async () => tree.update(<TabGlyph kind="home" selected />));
     expect(pictures()).toEqual([picture]);
-    expect(picture.props).toMatchObject({ name: 'home', tone: 'green', on: true });
+    expect(picture.props).toMatchObject({ name: 'home', tone: 'green', strong: true });
     expect(flat(byId('tab-glyph')).opacity).toBeUndefined();
   });
 

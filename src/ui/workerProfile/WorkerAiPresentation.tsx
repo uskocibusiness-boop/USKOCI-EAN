@@ -51,10 +51,10 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
       accessibilityValue={{text:skills}} accessibilityState={{expanded}}
       accessibilityHint="Prikazuje sažetak unetih podataka u razgovoru."
       onPress={toggle} haptic="select" style={s.previewHead}>
-      <FactArt kind="tool" size={32} cut="art" />
+      <FactArt kind="tasks" size={32} cut="art" />
       <View style={[s.grow,s.previewSummary]}>
         <T variant="bodyStrong">Razumeo sam</T>
-        <T variant="note" tone="muted">Nacrt radnog profila · {expanded?'Sakrij detalje':'Detalji'}</T>
+        <T variant="note" tone="muted">Nacrt · nije sačuvan · {expanded?'Sakrij detalje':'Detalji'}</T>
       </View>
       <Glyph name={expanded?'caret-up':'caret-down'} tone="muted"/>
     </Press>
@@ -75,14 +75,11 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
       {profile.availability.availableNow?<PreviewFact art="clock">{availability}</PreviewFact>:null}
       {!modes.length&&profile.skills.length?<T testID="worker-understood-pending" variant="note" tone="muted">Način rada i predaju proveravamo u pregledu.</T>:null}
     </View>
-    <T testID="worker-draft-review-note" variant="note" tone="muted">{pending
+    {pending||resumed?<T testID="worker-draft-review-note" variant="note" tone="muted">{pending
       ?'Prethodno zabeleženo. Čekamo odgovor na poslednju poruku.'
-      :resumed?'Nastavljen nacrt. Sačuvani profil ostaje isti do pregleda i čuvanja.'
-        :'Nacrt još nije sačuvan kao radni profil.'}</T>
+      :'Nastavljen nacrt. Sačuvani profil ostaje isti do pregleda i čuvanja.'}</T>:null}
     {expanded?<View testID="worker-draft-details" style={s.previewFacts}>
         {!profile.availability.availableNow?<PreviewFact art="clock">{availability}</PreviewFact>:null}
-        {profile.tools.length?<PreviewFact art="tool">{list(profile.tools)}</PreviewFact>:null}
-        {profile.vehicles.length?<PreviewFact art="vehicle">{list(profile.vehicles)}</PreviewFact>:null}
         {profile.availability.rules.length||profile.availability.windows.length?<PreviewFact art="calendar">{schedule}</PreviewFact>:null}
       </View>:null}
     {showReview&&!reviewInFooter?<View style={s.reviewAction}>
@@ -193,7 +190,7 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
         scopeKey={`worker-review:${review.accountId}:${review.profileId}:${review.reviewId}:${review.revision}`}
         onChoose={()=>{ /* Frozen review, never a location editor. */ }}/>:null}
       {onSite
-        ?<T variant="note" tone="muted">{point?'Približan centar za terenske zadatke.':'Posle čuvanja profila izaberi „Potvrdi tačku na mapi“ za terenske zadatke.'}</T>:null}
+        ?<T variant="note" tone="muted">{point?'Približan centar za terenske zadatke.':'Terenski zadaci van istog grada traže potvrđen približan centar; sada nije podešen.'}</T>:null}
     </ReviewGroup>
     <ReviewGroup part="time">
       <Fact art="clock">{p.availability.availableNow?'Mogu odmah, dok to ne isključiš':'Mogu odmah: isključeno'}</Fact>
@@ -213,7 +210,6 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
     {p.tools.length||p.vehicles.length?<ReviewGroup part="tools">
       {p.tools.length?<Fact art="tool">{list(p.tools)}</Fact>:null}
       {p.vehicles.length?<Fact art="vehicle">{list(p.vehicles)}</Fact>:null}
-      {p.tools.length||p.vehicles.length?null:<T variant="body" tone="muted">{EMPTY}</T>}
       <T testID="worker-tools-note" variant="note" tone="muted">{toolsAndVehiclesNote()}</T>
     </ReviewGroup>:null}
     <ReviewGroup part="identity">

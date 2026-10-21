@@ -37,9 +37,9 @@ const channel = (topic: SupportTopic): SupportPayloads['CREATE']['channel'] =>
 const PAGE = 50;
 type ReadAgreements = () => Promise<DogovorProjekcija[]>;
 
-export function SupportNewScreen({ reference, preset }: { reference: SupportReference | null | 'INVALID'; preset?: SupportPreset }) {
+export function SupportNewScreen({ reference, preset, initialTopic }: { reference: SupportReference | null | 'INVALID'; preset?: SupportPreset; initialTopic?: 'NO_SHOW' }) {
   const model = useSupportController({ type: 'NEW' });
-  return <SupportNewView model={model} reference={reference} preset={preset} />;
+  return <SupportNewView model={model} reference={reference} preset={preset} initialTopic={initialTopic} />;
 }
 
 /**
@@ -47,8 +47,9 @@ export function SupportNewScreen({ reference, preset }: { reference: SupportRefe
  * words, and the send pinned in the footer with the reason it is grey. The words live only in memory, so Back with typed
  * words asks first. Presentation over the controller: every command, fence and payload is unchanged.
  */
-export function SupportNewView({ model, reference, preset, readAgreements = () => agreementClientService.mojiDogovori({ includeRatings: false }) }: {
+export function SupportNewView({ model, reference, preset, initialTopic, readAgreements = () => agreementClientService.mojiDogovori({ includeRatings: false }) }: {
   model: ReturnType<typeof useSupportController>; reference: SupportReference | null | 'INVALID';
+  initialTopic?: 'NO_SHOW';
   /** The first words of the request (a bug report knows its build). The request cannot be sent until the person has added to them. */ preset?: SupportPreset;
   /** Where the person's own Dogovori come from (the gallery hands in fixtures). */ readAgreements?: ReadAgreements;
 }) {
@@ -79,8 +80,8 @@ export function SupportNewView({ model, reference, preset, readAgreements = () =
       body="Sačuvane zahteve možeš ponovo da proveriš iz podrške." />
   </SupportFrame>;
   if (!model.focused) return <SupportFrame title="Novi zahtev" onBack={back}><SupportLoading /></SupportFrame>;
-  return <NewContents key={`${model.accountId}:${model.accountRevision}:${model.incarnationId}:${reference ? `${reference.kind}:${reference.id}:${reference.revision}` : 'NONE'}`}
-    model={model} initialReference={reference} preset={preset} readAgreements={readAgreements} back={back} />;
+  return <NewContents key={`${model.accountId}:${model.accountRevision}:${model.incarnationId}:${reference ? `${reference.kind}:${reference.id}:${reference.revision}` : 'NONE'}:${initialTopic ?? ''}`}
+    model={model} initialReference={reference} initialTopic={initialTopic} preset={preset} readAgreements={readAgreements} back={back} />;
 }
 
 function Attachment({ art, label, last }: { art: FactArtKind; label: string; last: boolean }) {
@@ -88,15 +89,15 @@ function Attachment({ art, label, last }: { art: FactArtKind; label: string; las
     {last ? null : <View pointerEvents="none" style={s.rule} />}</View>;
 }
 
-function NewContents({ model, initialReference, preset, readAgreements, back }: {
-  model: ReturnType<typeof useSupportController>; initialReference: SupportReference | null; preset?: SupportPreset; readAgreements: ReadAgreements; back: () => void;
+function NewContents({ model, initialReference, initialTopic, preset, readAgreements, back }: {
+  model: ReturnType<typeof useSupportController>; initialReference: SupportReference | null; initialTopic?: 'NO_SHOW'; preset?: SupportPreset; readAgreements: ReadAgreements; back: () => void;
 }) {
   const { state, current: parentCurrent, controller, navigate } = model;
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const current = () => alive.current && parentCurrent();
   const [topic, setTopic] = useState<CreateTopic>(initialReference?.kind === 'TASK_REVIEW' ? 'PUBLICATION_REVIEW'
-    : initialReference?.kind === 'AGREEMENT' ? 'COLLABORATION' : 'TECHNICAL');
+    : initialReference?.kind === 'AGREEMENT' ? initialTopic ?? 'COLLABORATION' : 'TECHNICAL');
   const [topicsExpanded, setTopicsExpanded] = useState(false);
   const [context, setContext] = useState<SupportReference | null>(initialReference);
   const [selectedEvidence, setSelectedEvidence] = useState<SupportReference | null>(

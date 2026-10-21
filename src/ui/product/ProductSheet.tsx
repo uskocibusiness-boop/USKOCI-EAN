@@ -1,215 +1,137 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type Context, type ReactNode } from 'react';
-import { Modal, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SafeArea from 'react-native-safe-area-context';
-import BottomSheet, { BottomSheetBackdrop, BottomSheetFooter, BottomSheetScrollView, type BottomSheetBackdropProps,
-  type BottomSheetBackgroundProps, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
-import { Easing } from 'react-native-reanimated';
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { Glyph } from '../system/Glyph';
-import { brandAction, sys } from '../system/tokens';
+import { brandAction, sheetLift, sys } from '../system/tokens';
 import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 
-const SheetBackground = ({ style }: BottomSheetBackgroundProps) => <View pointerEvents="none" accessible={false}
-  importantForAccessibility="no" style={[style, s.background]} />;
-const SheetHandle = () => <View accessible={false} importantForAccessibility="no" style={s.handleArea}><View style={s.handle} /></View>;
-
-/** Every command in a sheet is an important one: a full 48 even where the shared minimum is smaller. */
 export const SHEET_TOUCH = Math.max(48, sys.touch.min);
-/**
- * The one settle for every sheet: critically damped, no bounce. Reduced motion replaces it with no motion at all. The
- * value is `sys.motion.sheetSpring` (rule R3); this name stays only so the two other sheets that import it keep working
- * until they read the token directly.
- */
+// Compatibility exports for the map's independent, gesture-driven panels. Their motion is unchanged.
 export const SHEET_SPRING = sys.motion.sheetSpring;
-/**
- * How a sheet leaves when a COMMAND closes it (a button, the ×, Android Back): 170 ms on the decelerating curve, quicker than
- * the spring that opens it (plan 2.20, rule R2); reduced motion closes at once. Gorhom's `close()` takes it as that one call's
- * own configuration, so what the finger carries (a drag down) and a tap on the backdrop keep settling on `SHEET_SPRING`. Built
- * when asked, not when the file loads: a suite that stands in for Reanimated without its `Easing` still loads the sheet, and
- * then closes it on the timing's own default curve.
- */
 export function sheetCloseConfig(reduced: boolean) {
   return reduced ? { duration: 0 } : { duration: sys.motion.sheetClose, easing: Easing?.bezier?.(...sys.motion.easeOut) };
 }
-/** What the tap-outside area says it does on a sheet that simply closes. */
 export const SHEET_BACKDROP_HINT = 'Zatvara pregled bez primene izbora.';
-/** What the tap-outside area says on a sheet with unsaved input: a tap there asks first, it does not close. */
 export const SHEET_BACKDROP_DIRTY_HINT = 'Pita pre nego što odbaci izmene.';
-/**
- * The pinned actions' height before their first layout: a confirmation's primary (54), the gap (4), its quiet way out
- * (48) and the footer's padding above and below (12 + 12). Starting from 0 opened every confirmation short, with the
- * actions over its sentence, and then grew it; the real measurement replaces this on the first layout.
- */
 export const FOOTER_ESTIMATE = (brandAction.minHeight as number) + sys.space.xs + SHEET_TOUCH + 2 * sys.space.md;
 
-/**
- * What the pinned footer shows, handed to it through context. Gorhom renders `footerComponent` as a component, so the
- * component must be one stable function: a function rebuilt on every render (it closed over the footer's JSX) made
- * React throw the footer away and mount it again on every change — a busy confirm, a streamed token — and a screen
- * reader lost its place on the button just pressed.
- */
-const FooterSlot = createContext<{ content: ReactNode; measure: (height: number) => void }>({ content: null, measure: () => undefined });
-
-/**
- * The window's bottom inset, read from the provider's context — never a native SafeAreaView inside the sheet. A
- * SafeAreaView pads by where it sits on screen at that moment; inside a sheet that slides and sizes itself to its content,
- * every move changed that padding, the new height moved the sheet again, and the sheet shook without end (owner
- * 2026-10-07: "trese se sve vreme"). The context consumer answers null without a provider (the `useSafeAreaInsets` hook
- * throws there), and a test double that leaves the context out reads 0. The context either exists for the whole life of
- * the process or never does, so the hook order of this function never changes.
- */
-const InsetsContext = (SafeArea as { SafeAreaInsetsContext?: Context<{ bottom: number } | null> }).SafeAreaInsetsContext;
-const useBottomInset: () => number = InsetsContext
-  ? () => useContext(InsetsContext)?.bottom ?? 0
-  : () => 0;
-
-function PinnedFooter(props: BottomSheetFooterProps) {
-  const { content, measure } = useContext(FooterSlot);
-  const bottom = useBottomInset();
-  return <BottomSheetFooter {...props}>
-    <View testID="product-sheet-footer" style={[s.footer, { paddingBottom: sys.space.md + bottom }]}
-      onLayout={event => measure(Math.ceil(event.nativeEvent.layout.height))}>{content}</View>
-  </BottomSheetFooter>;
-}
+const InsetsContext = (SafeArea as { SafeAreaInsetsContext?: Context<{ top: number; bottom: number; left: number; right: number } | null> }).SafeAreaInsetsContext;
+const fallbackInsets = createContext<{ top: number; bottom: number; left: number; right: number } | null>(null);
 
 export type ProductSheetProps = {
-  /** The visible title. A sheet without one (a menu) names itself through `label`. */
   title?: string;
-  /** What assistive technology calls a sheet that has no visible title. */
   label?: string;
-  /** The × and the backdrop say this. */
   closeLabel?: string;
-  /** What a screen reader says a tap outside does, when it simply closes the sheet; `null` takes the tap-outside area out
-   *  of what a screen reader visits. Unsaved input says it asks first instead; while a command runs (not dismissible) a
-   *  tap outside does nothing, so the area is not visited at all. */
   backdropHint?: string | null;
-  /** The caller's own reading of the system setting; the sheet reads it itself when this is left out. */
   reduced?: boolean;
-  /** Called once the sheet is gone, whatever closed it. */
+  /** Called once. The owner remains responsible for the command's result. */
   onClose: () => void;
   children: (dismiss: () => void) => ReactNode;
-  /** Actions pinned under the content. They never scroll away, however long the content or large the text. */
+  /** Commands stay outside the content scroll. */
   footer?: (dismiss: () => void) => ReactNode;
-  /** Unsaved input. Every way out the person can take (×, Back, backdrop) asks before throwing it away, and a drag
-   *  down no longer closes. `dismiss`, handed to the content, is the caller's own commit and never asks. */
+  /** User dismissal asks before discarding; explicit commit may dismiss directly. */
   dirty?: boolean;
-  /** False while something the sheet started is still running: nothing the person does closes it until it settles. */
   dismissible?: boolean;
-  /** A sheet whose own buttons already close it (a confirmation) leaves the × out. */
   closeButton?: boolean;
 };
 
-/**
- * The one sheet engine. The native Modal owns focus and Android Back; Gorhom owns the drag, the scrolling and the
- * settling motion. The caller commits a draft explicitly, and every dismissal route only invokes onClose.
+/** Centred application dialog. The API name remains compatible with existing callers.
+ * Native Modal owns focus and Back; the map retains its separate Gorhom panels.
+ * Header/footer participate in layout, so no estimated overlay can cover the content.
+ * Keyboard avoidance bounds the whole surface; long content and unusually large actions can scroll independently.
  */
 export function ProductSheet({ title, label, closeLabel = 'Zatvori', backdropHint = SHEET_BACKDROP_HINT, reduced: callerReduced,
   onClose, children, footer, dirty = false, dismissible = true, closeButton = true }: ProductSheetProps) {
   const systemReduced = useSystemReducedMotion();
   const reduced = callerReduced ?? systemReduced;
-  const sheet = useRef<BottomSheet>(null), closing = useRef(false);
-  const { height } = useWindowDimensions();
+  const insets = useContext(InsetsContext ?? fallbackInsets) ?? { top: 0, bottom: 0, left: 0, right: 0 };
+  const closing = useRef(false);
   const [asking, setAsking] = useState(false);
-  const [footerHeight, setFooterHeight] = useState(FOOTER_ESTIMATE);
-  const bottom = useBottomInset();
-  // A re-measure within one pixel (the rounding up of a sub-pixel layout) is not a new height: settling on it would size
-  // the sheet again for nothing, and two such heights alternating is a loop.
-  const measureFooter = useCallback((next: number) => setFooterHeight(now => Math.abs(now - next) <= 1 ? now : next), []);
-  // The guard reads the newest values: Back and the backdrop call it from outside this render.
-  const state = useRef({ dirty, dismissible, asking }); state.current = { dirty, dismissible, asking };
+  const state = useRef({ dirty, dismissible, asking, onClose });
+  state.current = { dirty, dismissible, asking, onClose };
+  const scale = useSharedValue(reduced ? 1 : sys.motion.dialog.from);
+  const animated = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  useEffect(() => {
+    scale.value = reduced ? 1 : withTiming(1, { duration: sys.motion.dialog.enter, easing: Easing.bezier(...sys.motion.easeOut) });
+    return () => cancelAnimation(scale);
+  }, [reduced, scale]);
   useEffect(() => { if (!dirty) setAsking(false); }, [dirty]);
   const dismiss = useCallback(() => {
     if (closing.current) return;
     closing.current = true;
-    // The close is a command: it leaves on its own short timing (`SHEET_CLOSE`), or at once under reduced motion.
-    if (sheet.current) sheet.current.close(sheetCloseConfig(reduced)); else onClose();
-  }, [onClose, reduced]);
-  /** Every way out the person takes: ×, Android Back, the backdrop. */
+    state.current.onClose();
+  }, []);
   const requestClose = useCallback(() => {
     const now = state.current;
-    if (!now.dismissible) return;
-    // Back or a tap outside while the question is open means "no, keep editing".
+    if (!now.dismissible || closing.current) return;
     if (now.asking) { setAsking(false); return; }
     if (now.dirty) { setAsking(true); return; }
     dismiss();
   }, [dismiss]);
-  const guarded = dirty || !dismissible;
-  // Gorhom substitutes its own English hint for a missing or empty one ("Tap to close the bottom sheet"): always pass a
-  // true Serbian sentence, and take the backdrop out of the accessibility tree while a tap on it does nothing.
-  // While the discard question stands, a tap outside is its "no": editing goes on.
   const backdropSays = !dismissible ? null : asking ? 'Nastavlja uređivanje.' : dirty ? SHEET_BACKDROP_DIRTY_HINT : backdropHint;
-  const backdrop = useCallback((props: BottomSheetBackdropProps) => <BottomSheetBackdrop {...props}
-    appearsOnIndex={0} disappearsOnIndex={-1} opacity={0.3}
-    // A tap outside a guarded sheet stays where it is (snap to the open index) and asks the guard instead.
-    pressBehavior={guarded ? 0 : 'close'} onPress={guarded ? requestClose : undefined}
-    accessible={backdropSays !== null} accessibilityLabel={closeLabel} accessibilityHint={backdropSays ?? closeLabel} />,
-  [backdropSays, closeLabel, guarded, requestClose]);
   const pinned = asking ? <View style={s.discard} accessibilityLiveRegion="polite">
-    <T accessibilityRole="alert" variant="heading" style={s.discardTitle}>Odbaciti izmene?</T>
+    <T accessibilityRole="alert" variant="heading">Odbaciti izmene?</T>
     <T variant="copy" tone="muted">Unete izmene neće biti sačuvane.</T>
     <Press accessibilityRole="button" accessibilityLabel="Odbaci izmene" testID="product-sheet-discard" haptic="medium"
-      onPress={dismiss} style={[s.command, s.danger]}>
+      disabled={!dismissible} onPress={() => { if (state.current.dismissible) dismiss(); }} style={[s.command, s.danger]}>
       <T variant="action" style={s.onFilled}>Odbaci izmene</T></Press>
     <Press accessibilityRole="button" accessibilityLabel="Nastavi uređivanje" testID="product-sheet-keep" haptic="select"
       onPress={() => setAsking(false)} style={s.command}>
       <T variant="action" style={s.quiet}>Nastavi uređivanje</T></Press>
   </View> : footer ? footer(dismiss) : null;
-  // A new value on every render on purpose: the footer re-renders with the newest actions; only its component is stable.
-  const slot = { content: pinned, measure: measureFooter };
-  return <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={requestClose}>
+  return <Modal visible transparent animationType={reduced ? 'none' : 'fade'} statusBarTranslucent onRequestClose={requestClose}>
     <GestureHandlerRootView style={s.root}>
-      <FooterSlot.Provider value={slot}>
-        <BottomSheet ref={sheet} index={0} enableDynamicSizing enablePanDownToClose={!guarded}
-          accessible={false} accessibilityRole="none" accessibilityLabel={title ?? label}
-          maxDynamicContentSize={height * 0.85} animateOnMount={!reduced} onClose={onClose}
-          animationConfigs={reduced ? { duration: 0 } : SHEET_SPRING}
-          backdropComponent={backdrop} backgroundComponent={SheetBackground} handleComponent={SheetHandle}
-          footerComponent={pinned ? PinnedFooter : undefined}
-          keyboardBehavior="interactive" keyboardBlurBehavior="restore" enableBlurKeyboardOnGesture>
-          <BottomSheetScrollView keyboardShouldPersistTaps="handled"
-            // The title and its × stay at the top while a long content scrolls under them (verify r4c: the × of a long
-            // offer scrolled away). The heading stays inside the content, so the sheet's dynamic height still counts it.
-            stickyHeaderIndices={title ? [0] : undefined}
-            // The pinned actions sit over the end of the content; the content makes room for them, so the last line
-            // is never hidden under a button.
-            contentContainerStyle={[s.content, pinned ? { paddingBottom: footerHeight + sys.space.sm } : null]}>
-            {/* The row lives one level INSIDE the sticky element (round 6 on the emulator, b4531ef4: the × sat under the
-                title on every titled sheet). RN's ScrollViewStickyHeader moves the sticky child's own style onto its
-                wrapper and re-clones the child with {flex: 1} alone, so a row direction on the sticky View is lost and
-                its children stack; the outer View carries only what the wrapper may take (the white, the padding). */}
-            {title ? <View style={s.heading}><View style={s.headingRow}>
-              <T accessibilityRole="header" variant="title" style={s.title}>{title}</T>
-              {closeButton ? <Press accessibilityRole="button" accessibilityLabel={closeLabel} accessibilityState={{ disabled: !dismissible }}
-                disabled={!dismissible} onPress={requestClose} haptic="select" style={s.close}>
-                <Glyph name="close" size={24} /></Press> : null}
-            </View></View> : null}
-            <View style={[s.stack, pinned ? null : { paddingBottom: bottom }]}>
-              {children(dismiss)}
-            </View>
-          </BottomSheetScrollView>
-        </BottomSheet>
-      </FooterSlot.Provider>
+      <Pressable testID="product-sheet-backdrop" style={[StyleSheet.absoluteFill, s.dim]} onPress={requestClose}
+        accessible={backdropSays !== null} accessibilityRole="button" accessibilityLabel={closeLabel}
+        accessibilityHint={backdropSays ?? closeLabel} disabled={!dismissible} />
+      <KeyboardAvoidingView testID="product-modal-viewport" pointerEvents="box-none" behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={[s.viewport, { paddingTop: insets.top + sys.space.base, paddingBottom: insets.bottom + sys.space.base,
+          paddingLeft: insets.left + sys.space.base, paddingRight: insets.right + sys.space.base }]}>
+        <Animated.View testID="product-modal-card" accessibilityViewIsModal accessibilityLabel={title ?? label}
+          style={[s.card, animated]}>
+          {title || closeButton ? <View testID="product-sheet-heading" style={s.heading}>
+            {title ? <T accessibilityRole="header" variant="title" style={s.title}>{title}</T>
+              : <View style={s.closeSpacer} />}
+            {closeButton ? <Press testID="product-sheet-close" accessibilityRole="button" accessibilityLabel={closeLabel}
+              accessibilityState={{ disabled: !dismissible }} disabled={!dismissible} onPress={requestClose} haptic="none" style={s.close}>
+              <Glyph name="close" size={24} /></Press> : null}
+          </View> : null}
+          <ScrollView testID="product-sheet-content" style={s.body} contentContainerStyle={s.content}
+            keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" persistentScrollbar>
+            <View style={s.stack} accessibilityElementsHidden={asking} importantForAccessibility={asking ? 'no-hide-descendants' : 'auto'}
+              pointerEvents={asking ? 'none' : 'auto'}>{children(dismiss)}</View>
+          </ScrollView>
+          {pinned ? <ScrollView testID="product-sheet-actions-scroll" style={s.actionsScroll} keyboardShouldPersistTaps="handled"
+            contentContainerStyle={s.footer} bounces={false}>
+            <View testID="product-sheet-footer" style={s.stack}>{pinned}</View>
+          </ScrollView> : null}
+        </Animated.View>
+      </KeyboardAvoidingView>
     </GestureHandlerRootView>
   </Modal>;
 }
 const s = StyleSheet.create({
-  root: { flex: 1 }, background: { backgroundColor: sys.color.surface, borderRadius: sys.radius.sheet },
-  handleArea: { height: 24, alignItems: 'center', justifyContent: 'center' },
-  handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: sys.color.lineStrong },
-  content: { paddingHorizontal: sys.space.lg, paddingBottom: sys.space.base }, stack: { gap: sys.space.md },
-  // On the sheet's white, so what scrolls under the pinned title does not show through it; the padding is the stack's gap.
-  // Nothing about direction here: this style is moved onto RN's sticky wrapper (see the heading above).
-  heading: { paddingBottom: sys.space.md, backgroundColor: sys.color.surface },
-  // One row: the title takes the width and wraps in its column; the 48 × keeps its measure at the right end.
-  headingRow: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md }, title: { flex: 1, minWidth: 0, color: sys.color.ink },
+  root: { flex: 1 },
+  dim: { backgroundColor: sys.color.dim },
+  viewport: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  card: { width: '100%', maxWidth: 520, maxHeight: '100%', flexShrink: 1, borderRadius: sys.radius.sheet,
+    backgroundColor: sys.color.surface, overflow: 'hidden', ...sheetLift.detached },
+  heading: { flexDirection: 'row', alignItems: 'center', gap: sys.space.md, padding: sys.space.base, paddingBottom: sys.space.sm },
+  title: { flex: 1, minWidth: 0, color: sys.color.ink },
+  closeSpacer: { flex: 1 },
   close: { width: SHEET_TOUCH, height: SHEET_TOUCH, alignItems: 'center', justifyContent: 'center', borderRadius: sys.radius.pill, backgroundColor: sys.color.wash },
-  footer: { paddingHorizontal: sys.space.lg, paddingTop: sys.space.md, paddingBottom: sys.space.md, gap: sys.space.sm, backgroundColor: sys.color.surface },
-  discard: { gap: sys.space.sm }, discardTitle: { color: sys.color.ink },
+  body: { flexGrow: 0, flexShrink: 1 },
+  content: { padding: sys.space.base, paddingTop: sys.space.md },
+  stack: { gap: sys.space.md },
+  actionsScroll: { flexGrow: 0, flexShrink: 0, maxHeight: '48%', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: sys.color.lineStrong },
+  footer: { padding: sys.space.base },
+  discard: { gap: sys.space.sm },
   command: { minHeight: SHEET_TOUCH, borderRadius: sys.radius.primary, paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm,
     flexDirection: 'row', gap: sys.space.sm, alignItems: 'center', justifyContent: 'center' },
-  // The one filled command in the question: the primary's measure, in the danger colour.
   danger: { ...brandAction, backgroundColor: sys.color.danger },
   onFilled: { color: sys.color.onGreen, textAlign: 'center' }, quiet: { color: sys.color.green, textAlign: 'center' },
 });
