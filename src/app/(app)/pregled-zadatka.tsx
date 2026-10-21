@@ -521,7 +521,15 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     const viaConversation = target === 'conversation' || (target === 'location' && !hasPhysicalMap) || (!!target && target !== 'location' && !fact);
     return { key: todo.key, text: target === 'location' && !hasPhysicalMap ? 'Mesto ili način rada treba dopuniti u razgovoru.' : todo.text,
       actionLabel: target === 'location' && hasPhysicalMap ? 'Potvrdi tačke na mapi' : todoActionLabel(todo, viaConversation),
-      onPress: viaConversation ? () => editInConversation(target === 'location' ? 'task.location' : todo.text === REVIEW_FACT_COPY.HANDOFF_REQUIRED ? 'task.handoff' : 'task.details')
+      onPress: viaConversation ? () => editInConversation(
+          target === 'location'
+            ? 'task.location'
+            : todo.text === REVIEW_FACT_COPY.HANDOFF_REQUIRED
+              ? 'task.handoff'
+              : target && target !== 'conversation'
+                ? taskCorrectionTarget(target)
+                : 'task.details'
+        )
         : target === 'location' ? () => { void openLocation(); } : fact ? () => editInConversation(taskCorrectionTarget(fact.key)) : undefined };
   });
   const identityBlock = unavailableIdentityFact ? <View style={s.identity}>

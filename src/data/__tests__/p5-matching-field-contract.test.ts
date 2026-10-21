@@ -367,7 +367,7 @@ describe('EX-06 S05 field-to-consumer map: consumer-without-collector findings G
   it('G04-1/2/4: the worker AI schema, its server allow-list and the manual writer carry none of the unconsumed fields', () => {
     // WPP01 retires license/team proposals, while V1 SQL/wire compatibility
     // retains the older nine-key envelope. Do not conflate those two boundaries.
-    const providerList = "'displayName','bio','skills','tools','vehicles','location','availability'";
+    const providerList = "'displayName','bio','skills','tools','vehicles','location','availability','areaRequests'";
     const legacyList = "'displayName','bio','skills','tools','vehicles','licenses','teamCapacity','location','availability'";
     expect(lf(WI)).toContain(`[${providerList}].includes(k)`);
     expect(lf(WI)).not.toContain(`[${legacyList}].includes(k)`);

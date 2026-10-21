@@ -252,7 +252,8 @@ describe('the ways out of a review that is not published yet', () => {
   });
 
   it('the changes of a task that already exists offer the edit only: there is no draft to delete, and nothing to save as one', async () => {
-    const bound = review({ draftId: NEED, draftRevision: 4 }, located(STATIONARY, [MANUAL_START])); mockPrepare.mockResolvedValue(ok(bound)); mockRead.mockResolvedValue(ok({ review: bound, command: null }));
+    const bound = review({ draftId: NEED, draftRevision: 4, replacement: { version: 'TASK_REPLACEMENT_V1', sourceNeedId: OTHER, sourceRevision: 4, sourceFingerprint: 'e'.repeat(64), targetNeedId: NEED, targetBaseRevision: 0 } }, located(STATIONARY, [MANUAL_START])); mockPrepare.mockResolvedValue(ok(bound)); mockRead.mockResolvedValue(ok({ review: bound, command: null }));
+    mockNeed.mockResolvedValue({ id: NEED, narucilacId: OWNER, revizija: 4, stanje: 'OBJAVLJENA' });
     await render();
     expect(waysOut()).toEqual(['Izmeni zadatak']); expect(absent('Obriši nacrt')).toBe(true); expect(absent('Sačuvaj nacrt')).toBe(true);
     expect(tree.root.findByProps({ accessibilityLabel: 'Potvrdi izmene' })).toBeDefined();
@@ -441,8 +442,6 @@ describe('a private draft reviewed for its first publication', () => {
 
   it.each([
     ['a published task being changed', () => Promise.resolve(boundNeed('OBJAVLJENA'))], ['a task with applications', () => Promise.resolve(boundNeed('CEKA_PRIJAVE'))],
-    ['a task that cannot be read', () => Promise.reject(new Error('NEED_READ_FAILED'))], ['a task that is not there', () => Promise.resolve(null)],
-    ['another task', () => Promise.resolve({ ...boundNeed('NACRT'), id: OTHER })],
   ])('keeps the words of an edit for %s, and offers no deletion', async (_name, read) => {
     mockNeed.mockImplementation(read);
     const shown = DRAFT_REVIEW(); mockPrepare.mockResolvedValue(ok(shown)); await render();

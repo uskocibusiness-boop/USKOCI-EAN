@@ -572,7 +572,7 @@ describe('EX-06 S02 synthetic contract corpus', () => {
       for (const key of WORKER_PATCH_KEYS) expect(sources.workerClient).toMatch(new RegExp(`\\b${key}\\b`));
       const personalKeys = WORKER_PATCH_KEYS.filter(key => !['licenses', 'teamCapacity'].includes(key));
       for (const key of [...personalKeys, ...WORKER_LOCATION_KEYS, ...WORKER_AVAILABILITY_KEYS]) expect(sources.workerEdge).toMatch(new RegExp(`\\b${key}\\b`));
-      expect(sources.workerEdge).toContain("['displayName','bio','skills','tools','vehicles','location','availability'].includes(k)");
+      expect(sources.workerEdge).toContain("['displayName','bio','skills','tools','vehicles','location','availability','areaRequests'].includes(k)");
       for (const label of WORKER_REQUIRED_LABELS) expect(sources.workerClient).toContain(label);
       expect(sources.workerEdge).toContain('to je to|to je sve|gotovo');
       expect(sources.taskEdge).toContain('to je to|to je sve|gotovo');

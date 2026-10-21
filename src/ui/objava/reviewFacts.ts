@@ -116,9 +116,12 @@ export function reviewTodos(review: ReviewLocation & { safety: string; missingRe
   factProblem: string | null, identityBlock = false): ReviewTodo[] {
   const todos: ReviewTodo[] = [];
   if (review.safety === 'BLOCK') todos.push({ key: 'safety', text: 'Zadatak ne može da se objavi ovako. Izmeni ga u razgovoru.', target: 'conversation' });
-  // A REMOTE handoff already has a plain-language remedy below; do not say the same missing fact twice.
+  // Plain-language fact remedies already explain these below; do not say the same missing fact twice.
   const missing = review.missingRequired.filter(key => key !== 'need.category'
-    && !(factProblem === REVIEW_FACT_COPY.HANDOFF_REQUIRED && key === 'need.handoff'));
+    && !(factProblem === REVIEW_FACT_COPY.HANDOFF_REQUIRED && key === 'need.handoff')
+    && !(factProblem === REVIEW_FACT_COPY.MY_PRICE_AMOUNT_REQUIRED && key === 'need.price_rsd')
+    && !((factProblem === REVIEW_FACT_COPY.FIXED_WINDOW_BOUNDS_REQUIRED || factProblem === REVIEW_FACT_COPY.FIXED_WINDOW_START_PASSED)
+      && (key === 'need.starts_at' || key === 'need.ends_at')));
   if (missing.length) todos.push({ key: 'missing', text: `Nedostaje: ${missing.map(factLabel).join(', ')}.`, target: 'conversation' });
   else if (review.missingRequired.includes('need.category')) todos.push({ key: 'missing', text: 'Treba još malo o samom zadatku.', target: 'conversation' });
   if (!reviewLocationReadiness(review).ready) todos.push({ key: 'location', text: 'Mesto na mapi nije potvrđeno.', target: 'location' });
