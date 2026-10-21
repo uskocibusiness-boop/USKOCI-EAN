@@ -24,6 +24,9 @@ function sameHandoff(left, right) {
  * services are the EFFECTIVE post-guard draft. expectedServiceModes are effective
  * saved or current-draft choices after validated explicit changes, not consent.
  * This helper neither copies old hints nor derives modes from catalog support.
+ * @param {{inspection?: Record<string, any>, services?: string[], purpose?: string,
+ *   safety?: string, expectedServiceModes?: Array<Record<string, any>>,
+ *   taskMode?: string | null, taskHandoff?: unknown}} [input]
  */
 export function canAcceptDirectClassification({ inspection, services, purpose, safety,
   expectedServiceModes = [], taskMode = null, taskHandoff } = {}) {

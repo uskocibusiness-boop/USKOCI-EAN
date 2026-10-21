@@ -277,7 +277,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   research = createResearchDeadline(req.signal, startedAt);
   if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW')) {
     try {
-      explorer = await measureAiPhase('WORKER_CATALOG_START', () => createClassificationExplorer((name, args) => rpc(name, args, research!.signal, 4000), {
+      explorer = await measureAiPhase('WORKER_CATALOG_START', () => createClassificationExplorer((name: string, args: Record<string, unknown>) => rpc(name, args, research!.signal, 4000), {
         signal: research.signal, seedServices: context.candidate.skills, seedCategoryIds: savedCategoryIds,
       }));
       taxonomyPrompt = explorer.prompt();
@@ -434,8 +434,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
                   const same = (entry: any) => normalizedClassificationIdentity(entry.service) === normalizedClassificationIdentity(service);
                   const saved = serviceModeContext!.savedServices.filter(same);
                   const entries = saved.length ? saved : serviceModeContext!.draftServices.filter(same);
-                  const remote = entries.find(entry => entry.mode === 'REMOTE');
-                  return { service, modes: entries.map(entry => entry.mode),
+                  const remote = entries.find((entry: {mode: 'ON_SITE' | 'REMOTE'; handoff?: unknown}) => entry.mode === 'REMOTE');
+                  return { service, modes: entries.map((entry: {mode: 'ON_SITE' | 'REMOTE'}) => entry.mode),
                     ...(remote?.handoff ? { handoff: remote.handoff } : {}) };
                 }).filter((entry: any) => entry.modes.length);
                 const accepted = canAcceptDirectClassification({

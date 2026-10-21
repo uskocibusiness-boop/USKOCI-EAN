@@ -317,6 +317,9 @@ export function inspectGeminiClassificationShadow(raw,snapshot,purpose) {
  * answer/questions, appends an honest status where needed and distinguishes
  * permission to OPEN a review from any permission to save/activate/match.
  * `services` must be the post-turn typed services, not free-text intent guesses.
+ * @param {any} inspection
+ * @param {{purpose?: string, services?: string[], readyForReview?: boolean,
+ *   preservedServices?: string[], catalogAvailable?: boolean}} [options]
  */
 export function classificationTurnFeedback(inspection,{purpose,services=[],readyForReview=false,
   preservedServices=[],catalogAvailable=true}={}) {

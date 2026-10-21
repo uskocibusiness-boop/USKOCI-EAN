@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/worker-ai-cross-mode-source.yml'
       - 'supabase/functions/_shared/classificationGeminiShadow.mjs'
+      - 'supabase/functions/_shared/classificationDirectReply.mjs'
       - 'supabase/functions/_shared/workerServiceModeContext.mjs'
       - 'supabase/functions/uskoci-worker-interview/**'
       - 'supabase/proofs/ai/owned_intake_edge_runtime.mjs'
