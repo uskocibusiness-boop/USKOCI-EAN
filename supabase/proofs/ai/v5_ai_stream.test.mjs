@@ -102,8 +102,8 @@ for(const relation of ['UNCLEAR','DIFFERENT_TASK'])test(`work replacement ${rela
  assert.ok(instruction.includes('Za promenu vrste posla prvo razjasni'));
  assert.ok(instruction.includes('koji raniji termin, budžet i mesto i dalje važe'));
  assert.ok(instruction.includes('Ne šalji promenu vrste, naslova ili opisa dok to nije jasno'));
- assert.ok(instruction.includes('najviše tri kratka, povezana pitanja'));
- assert.ok(!instruction.includes('postavite tačno jedno kratko pitanje'));
+ assert.ok(instruction.includes('najviše JEDNU nepoznatu informaciju kroz jedno kratko pitanje'));
+ assert.ok(!instruction.includes('najviše tri kratka, povezana pitanja'));
  assert.ok(!instruction.includes('sa krečenja pređe na drugu uslugu), dialogue.taskRelation ostaje CONTINUE'));
  assert.ok(!f.calls.some(c=>/save_draft|publish|commit_admission|push/.test(c.url)));
 });
@@ -211,8 +211,9 @@ test('owned handler delivers one semantic question budget and rejects a provider
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),write.p_assistant_message);
  const instruction=provider.systemInstruction.parts.map(p=>p.text).join('\n');
  assert.equal(instruction.split('Jedinstveno pravilo pitanja:').length-1,1);
- assert.ok(instruction.includes('najviše TRI zasebne informacije'));
- assert.ok(instruction.includes('jesu PET informacija, čak i u dve rečenice'));
+ assert.ok(instruction.includes('najviše JEDNU nepoznatu informaciju kroz jedno kratko pitanje'));
+ assert.ok(instruction.includes('Ne sakrivajte drugi zahtev u nabrajanju'));
+ assert.ok(instruction.includes('Sve jasne činjenice iz cele korisnikove poruke predložite odmah'));
  assert.ok(instruction.includes('Ako je već rečeno Materijal imam, ne pitajte ko kupuje boju'));
  assert.ok(instruction.includes('WEEK_FLEXIBLE znači samo ovu kalendarsku nedelju'));
  assert.ok(instruction.includes('ne smeju postati FLEXIBLE bez granica'));
