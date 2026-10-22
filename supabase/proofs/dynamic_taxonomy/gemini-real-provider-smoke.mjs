@@ -83,7 +83,9 @@ function makePayload(baseline,purpose,toWire) {
     assert.deepEqual(serviceModeChangesJson,{type:'STRING'});
     assert.equal(wireSchema.required.includes('serviceModeChangesJson'),false);
   } else assert.equal(serviceModeChangesJson,undefined);
-  assert.equal(wireSchema.required.includes('classificationShadowJson'),purpose==='WORKER_CAPABILITY');
+  // Both interview schemas now REQUIRE the structured shadow snapshot.
+  // Missing metadata cannot silently look like an empty provider proposal.
+  assert.equal(wireSchema.required.includes('classificationShadowJson'),true);
   assert.equal('classificationShadow' in wireSchema.properties,false);
   assert.equal(JSON.stringify(sent).includes('additionalProperties'),false);
   assert.equal(JSON.stringify(sent).includes('maxItems'),false);
