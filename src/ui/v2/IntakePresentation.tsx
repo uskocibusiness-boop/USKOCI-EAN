@@ -471,7 +471,7 @@ export function IntakePresentation(props: Props) {
   const conversationTitle = conversation.review.boundNeedId ? summary.title ? `Izmena · ${summary.title}` : 'Izmena zadatka'
     : summary.title ?? 'Novi zadatak';
   return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversationTitle}
-    cardPlacement="end" initialInputMode="keyboard" closed={ended}
+    questionFocus cardPlacement="end" initialInputMode="keyboard" closed={ended}
     correction={props.correction}
     footerAction={footerAction}
     newConversation={props.onRestart ? { onPress: outsidePlace(props.onRestart), disabled: props.restartDisabled || editingPlace }

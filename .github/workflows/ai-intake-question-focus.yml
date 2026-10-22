@@ -1,0 +1,38 @@
+name: AI shared one-question focus in intake
+on:
+  push:
+    branches: [work/ai-intake-question-focus-20261022]
+    paths:
+      - 'src/ui/v2/IntakePresentation.tsx'
+      - 'src/data/__tests__/ai-conversation-layout.test.tsx'
+      - '.github/workflows/ai-intake-question-focus.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 1
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies and bind HEAD
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci
+          git diff --check
+      - name: TypeScript
+        run: npx tsc --noEmit -p tsconfig.json
+      - name: Shared AI conversation UI regression
+        run: npx jest --runInBand --testTimeout=30000 --runTestsByPath src/data/__tests__/ai-conversation-layout.test.tsx
+      - name: Full mobile regression
+        run: npx jest --maxWorkers=3 --testTimeout=30000
