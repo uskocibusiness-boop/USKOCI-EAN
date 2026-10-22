@@ -115,6 +115,17 @@ test('stable task rules precede fresh private context without dropping it or sha
  assert.notDeepEqual(timeContext(providerCall(a)),timeContext(providerCall(b)));
 });
 
+test('requester Gemini prompt asks only one missing fact and retains safety/review rules',async()=>{
+ const f=fixture({historyCount:3}); assert.equal((await f.invoke()).status,200);
+ const rules=prompt(providerCall(f));
+ assert.match(rules,/najviše JEDNU nepoznatu informaciju/);
+ assert.match(rules,/Jedno korisno pitanje po poruci/);
+ assert.doesNotMatch(rules,/najviše TRI zasebne informacije/);
+ assert.match(rules,/Tačna privatna adresa\/access notes/);
+ assert.match(rules,/ends_at je opcion/);
+ assert.match(rules,/Pregled pokazuje nedostatke/);
+});
+
 test('task prompt preserves proportional TOTAL applications and clarification without invented audio access',async()=>{
   const f=fixture();assert.equal((await f.invoke()).status,200);
   const instruction=prompt(providerCall(f));

@@ -76,6 +76,17 @@ const completions=f=>f.calls.filter(c=>c.url.endsWith('/rpc_complete_worker_ai_t
 const failures=f=>f.calls.filter(c=>c.url.endsWith('/rpc_fail_worker_ai_turn_service'));
 async function events(f,patch={}){const r=await f.invoke(patch);assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/text\/event-stream/);
  return (await r.text()).trim().split('\n\n').map(e=>JSON.parse(e.slice(6)));}
+test('worker Gemini prompt asks one question while preserving area, availability and Save authority',async()=>{
+ const f=fixture(); await events(f);
+ const rule=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
+ assert.match(rule,/Jedno korisno pitanje po poruci/);
+ assert.match(rule,/Ask at most ONE short question per reply/);
+ assert.doesNotMatch(rule,/at most THREE/);
+ assert.match(rule,/Novi Sad i Beograd means two CITY entries/);
+ assert.match(rule,/Only explicit Sačuvaj profil in the review applies the changes/);
+ assert.match(rule,/availabilityChange is/);
+});
+
 test('invalid fallback worker patch still settles complete provider thinking usage once',async()=>{
  const f=fixture({provider:()=>new Response('data: '+JSON.stringify({candidates:[{
    content:{parts:[{text:'{"safety":"ALLOW","assistantMessage":"Predlog.","patch":{"forbidden":true}}'}]},finishReason:'STOP'}],
