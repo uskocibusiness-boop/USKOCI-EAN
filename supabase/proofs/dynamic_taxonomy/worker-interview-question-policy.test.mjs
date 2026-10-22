@@ -71,7 +71,7 @@ test('first screen welcomes naturally and named sections describe offered skills
  assert.match(welcome,/Ako uključiš obaveštenja/);
  assert.match(welcome,/Za početak, koje vrste zadataka želiš da obavljaš/);
  assert.match(welcome,/na kraju sve pregledaš i potvrđuješ/);
- assert.match(route,/Sve izmene pregledaš pre čuvanja/);
+ assert.match(welcome,/Izmene važe tek kada ih pregledaš i sačuvaš/);
  assert.match(facts,/skills: 'Usluge koje nudiš'/);
  assert.match(facts,/key: 'skills', label: 'Usluge'/);
 });
