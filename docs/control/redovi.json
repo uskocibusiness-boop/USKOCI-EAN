@@ -13,56 +13,102 @@
     ]
   },
   "latest_published_edit_guard_20261021": {
-  "report": "docs/current/PUBLISHED_TASK_EDIT_GUARD_20261021.md",
-  "proof": "PED01 DEV 20261021095622; three edit entry points block new public edits before mutation; original rows unchanged in SQL rollback. Draft edit/replay, foreign owner denial, 184 Jest, TSC and 179 migration integrity PASS. No APK.",
-  "remaining": [
-    "safe_published_replacement",
-    "signed_http",
-    "native_acceptance"
-  ]
-},
+    "report": "docs/current/PUBLISHED_TASK_EDIT_GUARD_20261021.md",
+    "proof": "PED01 DEV 20261021095622; three edit entry points block new public edits before mutation; original rows unchanged in SQL rollback. Draft edit/replay, foreign owner denial, 184 Jest, TSC and 179 migration integrity PASS. No APK.",
+    "remaining": [
+      "safe_published_replacement",
+      "signed_http",
+      "native_acceptance"
+    ]
+  },
   "latest_calendar_20261021": {
     "report": "docs/current/APPLICATION_CALENDAR_CONFLICT_20261021.md",
     "proof": "DEV 20261021093741 applied; four reader calendar flags, overlap denial, cancellation release/reselection, start-only guard and ACL SQL rollback PASS. Client explanations, 180 Jest, TSC and migration integrity PASS.",
-    "remaining": ["concurrent_selection", "signed_http", "native_acceptance"]
+    "remaining": [
+      "concurrent_selection",
+      "signed_http",
+      "native_acceptance"
+    ]
   },
   "latest_replacement_20261021": {
     "report": "docs/current/REPLACEMENT_FLOW_DEV_20261021.md",
     "proof": "DEV rollback CCP03: real cancel and select 3/3 -> 2/3 -> 3/3; replay without duplicate; owner/worker workspace; former worker isolated; zero fixture accounts.",
-    "remaining": ["signed_http", "concurrent_selection", "calendar_overlap", "native_acceptance"]
+    "remaining": [
+      "signed_http",
+      "concurrent_selection",
+      "calendar_overlap",
+      "native_acceptance"
+    ]
   },
   "latest_application_refresh_20261021": {
     "report": "docs/current/APPLICATION_REFRESH_STATES_20261021.md",
     "proof": "SOURCE/TEST: owner coherent retained task/page snapshot and worker retained application rows during refresh; disabled commands and pagination; first read/error/account change remain distinct. 226/226 Jest and TSC PASS.",
-    "remaining": ["native_visual_acceptance", "signed_replacement_flow", "all_eleven_mvp_scenarios"]
+    "remaining": [
+      "native_visual_acceptance",
+      "signed_replacement_flow",
+      "all_eleven_mvp_scenarios"
+    ]
   },
   "latest_cancelled_candidate_20261021": {
-  "report": "docs/current/CANCELLED_CANDIDATE_DEV_20261021.md",
-  "proof": "DEV APPLIED 20261021085952; origin rollback real cancellation from synthetic 3/3 to 2/3; owner/worker CLOSED; ACL unchanged; zero fixture accounts; 324/324 Jest and TSC PASS.",
-  "remaining": [
-    "real_replacement_selection",
-    "signed_http_two_account_flow",
-    "native_visual_acceptance"
-  ]
-},
+    "report": "docs/current/CANCELLED_CANDIDATE_DEV_20261021.md",
+    "proof": "DEV APPLIED 20261021085952; origin rollback real cancellation from synthetic 3/3 to 2/3; owner/worker CLOSED; ACL unchanged; zero fixture accounts; 324/324 Jest and TSC PASS.",
+    "remaining": [
+      "real_replacement_selection",
+      "signed_http_two_account_flow",
+      "native_visual_acceptance"
+    ]
+  },
   "opis": "USKOČI kontrolna tabla — ručni deo. Automatski deo (ekran, kod, server, test) računa scripts/control/osvezi.mjs. Telefon je zelen samo uz stvarni dokaz sa telefona za tačnu verziju.",
   "latest_group_sync_20261021": {
     "report": "docs/current/MVP_FLOW_AUDIT_20261021.md",
     "proof": "SOURCE/TEST: foreground incremental group read na 8 s; očuvani draft/history/cursor; offline objašnjenje i send/read-mark zabrana do obnove; late-read/command/refresh/dispose zaštite. Četiri Jest paketa 161/161 PASS, TSC PASS. Figma readback 21 stranica i odvojeni Dogovor/grupa čvorovi. ADB samo emulator. Nema novog APK-a, DEV write-a niti HONOR/runtime prihvatanja svih 11 tokova.",
-    "open_gates": ["task_edit_atomic_new_id", "cancelled_candidate_parity", "worker_area_v2_signed_contract", "multi_worker_terms", "exact_application_push", "account_closure_and_ai_history_erasure", "native_visual_acceptance"]
+    "open_gates": [
+      "task_edit_atomic_new_id",
+      "cancelled_candidate_parity",
+      "worker_area_v2_signed_contract",
+      "multi_worker_terms",
+      "exact_application_push",
+      "account_closure_and_ai_history_erasure",
+      "native_visual_acceptance"
+    ]
   },
   "latest_source_dev_audit_20261021": {
     "report": "docs/current/MVP_FLOW_AUDIT_20261021.md",
     "proof": "Izvor, lokalni test i aktivni DEV su odvojeni; ponovljeni Jest je izlistao 635/635 paketa, 14341 PASS/9 SKIP (otvoren async handle posle rezimea), TypeScript PASS; task AI DEV v119 i worker AI DEV v73 ACTIVE, readback helpera i no-auth 401; nema potpisanog live AI razgovora, novog HONOR ili APK dokaza.",
-    "open_gates": ["task_edit_atomic", "cancelled_candidate_parity", "worker_area_v2", "worker_equipment_signed_save", "multi_worker_terms", "application_time_conflict", "exact_application_push", "account_closure_and_ai_history_erasure", "native_visual_acceptance"]
+    "open_gates": [
+      "task_edit_atomic",
+      "cancelled_candidate_parity",
+      "worker_area_v2",
+      "worker_equipment_signed_save",
+      "multi_worker_terms",
+      "application_time_conflict",
+      "exact_application_push",
+      "account_closure_and_ai_history_erasure",
+      "native_visual_acceptance"
+    ]
   },
   "latest_native_followup_20261021": {
     "proof": "Zajednički izvorni krug: mapa/filter mesto i Back, auth, AI međuekrani, Dogovori stale stanje, grupni čet i AI radna oblast. Puni Jest je izlistao 635/635 suite PASS, 14350 PASS/9 SKIP, TSC PASS; poslednja dva ciljano proverena podsistema (grupni čet 40/40, worker AI pregled 37/37) imaju zasebne provere posle njihovih izmena. Nema APK/HONOR prohoda za ovaj izvor.",
-    "open_gates": ["task_edit_atomic", "cancelled_candidate_parity_disposable_db", "worker_area_v2_signed_contract", "multi_worker_terms", "account_closure_and_ai_history_erasure", "native_visual_acceptance"]
+    "open_gates": [
+      "task_edit_atomic",
+      "cancelled_candidate_parity_disposable_db",
+      "worker_area_v2_signed_contract",
+      "multi_worker_terms",
+      "account_closure_and_ai_history_erasure",
+      "native_visual_acceptance"
+    ]
   },
   "latest_selected_map_price_20261021": {
     "proof": "SOURCE/TEST: izabrani TASK pin sme da prikaže RSD cenu samo iz tačnog javnog čitanja istog ID-ja i pina; novi PAGE/MAP poništava staru potvrdu i ponovo proverava izabrani zadatak. PLACE pregled skriva zastarele uslove do novog POINT_MEMBERS izbora. Welcome iz odobrenog Figma čvora 2:138, potvrda odjave i učesnikov ulaz u vlastiti Dogovor su izvorne izmene. Ponovljeni puni Jest: 636/636 suite PASS, 14.350 PASS, 9 SKIP, 0 FAIL; TypeScript PASS; Expo Android export PASS bez APK-a. Nema HONOR, potpisanog DEV ni potvrde svih Master tokova.",
-    "open_gates": ["task_currency_atomic_invalidation", "task_edit_atomic_new_id", "cancelled_candidate_parity_disposable_db", "worker_area_v2_signed_contract", "multi_worker_terms", "account_closure_and_ai_history_erasure", "native_visual_acceptance"]
+    "open_gates": [
+      "task_currency_atomic_invalidation",
+      "task_edit_atomic_new_id",
+      "cancelled_candidate_parity_disposable_db",
+      "worker_area_v2_signed_contract",
+      "multi_worker_terms",
+      "account_closure_and_ai_history_erasure",
+      "native_visual_acceptance"
+    ]
   },
   "pravilo_gotovo": "Red je GOTOV samo kad su ekran, kod, server i test zeleni I postoji dokaz sa telefona za tekuću verziju (V19 pravilo DONE_VERIFIED: stari problem ne postoji, normalan put radi, zaštite nisu oslabljene, dokazi pripadaju tačnoj verziji).",
   "redovi": [
@@ -726,7 +772,8 @@
       "source_progress_20261019_warmth": "DEV APPLIED / LIVE SCOPED: Task112/Worker67, izvor7d584c27. Zajednički topao glas; delimične task činjenice; eksplicitne kalendarske operacije; kanonski naziv+UUID normalizuju pogrešno označen REUSE_ALIAS bez novih sinonima. Završni worker početak i ponedeljak READY, tačni sati, bez izmišljene opreme. 14 QA poruka/25 modelskih poziva/$0.189180 interna procena; kanonski otisci pre Save nepromenjeni. Brzina 5.5–12.9s, pozadinski katalog još nije uveden. Nema novog APK/native/push dokaza. docs/current/AI_WARMTH_TIMING_20261019.md Lokalni Jest621/621,13959PASS/9SKIP/ 0 FAIL; završni Node i TypeScript PASS.",
       "source_progress_20261019_speed": "DEV APPLIED / LIVE SCOPED: 7423c476, Task 113 / Worker 68, 36/36 fajlova exact. Četiri QA poruke / sedam modelskih poziva / 0,060348 USD interni obračun / 0 neobračunatih operacija. Oba nastavka imaju po 1 modelski poziv i 0 poziva alata; isti 3D UUID, REMOTE/dostava RS, budžet i samo ponedeljak očuvani. Pet kanonskih otisaka pre Save-a nepromenjeno. CI 39322097750: 621 paket / 13.968 PASS / 0 FAIL / 0 SKIP. APK BUILT i fizički bounded smoke PASS na HONOR-u (Početna, Zadaci/mapa, prazni Dogovori, Poruke, About; sesija očuvana); puni AI tok na telefonu ostaje PENDING; bez objave, aktivacije, matching-a ili push dokaza. Trajna pozadinska klasifikacija i prompt kompresija nisu uvedene. docs/current/AI_SPEED_20261019.md",
       "source_progress_20261019_context": "ee7ae76e kontekst + UI 86b5; DEV114/69.4 READY/5 jednakih otisaka;7 poziva/0,059342USD, bez ukupnog ubrzanja. Proza naknadno ispravljena84751846 DEV115/70,36/36 exact;2 stvarna nastavka7,108/5,836s,2 READY/5 jednakih otisaka,2 poziva/ 0,015746 USD. ee7a CI621/13993PASS; novi native PENDING. Telefon registracija potvrđena, stvarna push isporuka UNTESTED. docs/current/AI_SPEED_20261019.md Push preflight: API privilege denied, flag readback unchanged; no SEND/fixture Save/Publish. Završni datirani checkpoint ee7a: CI SUCCESS/APKBUILT i bounded phone composer PASS; noviji kandidat ima odvojeni source_progress_20261020_checkpoint.",
-      "source_progress_20261020_checkpoint": "a18f31af / CI 39335921967 SUCCESS: 621 paket / 14.014 testova PASS, 0 FAIL, 0 SKIP. Tačan x86_64 APK instaliran je na emulator; sesija očuvana. Početna i detalj vizuelno pregledani na 361/390/412 dp × font 1,0/1,3. P1 OTVOREN: ponovljeni spoljašnji link ka vlasničkom detalju posle promene širine/fonta dva puta je dao prazan prikaz na 412 dp/1,3; normalan ulaz radi. Mapa ima ograničeni pregled zaglavlja/učitavanja, uz učitane pločice na 361/1 i 412/1,3; filteri, pretraga i in-app Nova prijava → pravi ekran Prijava provereni u navedenom opsegu. To nije celo native/end-to-end prihvatanje. DEV Task 115 / Worker 71; regioni i delimične strukturirane činjenice zadatka ostaju otvoreni."
+      "source_progress_20261020_checkpoint": "a18f31af / CI 39335921967 SUCCESS: 621 paket / 14.014 testova PASS, 0 FAIL, 0 SKIP. Tačan x86_64 APK instaliran je na emulator; sesija očuvana. Početna i detalj vizuelno pregledani na 361/390/412 dp × font 1,0/1,3. P1 OTVOREN: ponovljeni spoljašnji link ka vlasničkom detalju posle promene širine/fonta dva puta je dao prazan prikaz na 412 dp/1,3; normalan ulaz radi. Mapa ima ograničeni pregled zaglavlja/učitavanja, uz učitane pločice na 361/1 i 412/1,3; filteri, pretraga i in-app Nova prijava → pravi ekran Prijava provereni u navedenom opsegu. To nije celo native/end-to-end prihvatanje. DEV Task 115 / Worker 71; regioni i delimične strukturirane činjenice zadatka ostaju otvoreni.",
+      "source_progress_20261022_hardening": "AI source hardening and role separation in existing PR #39; 708 AI PASS / 1 TODO and full 638/14415 mobile regression. Explicit BLOCK preserved; provider refusals do not write BLOCK. Signed Gemini, Save/publish and device acceptance remain separate. docs/current/AI_HANDOFF_HARDENING_20261022.md. DEV APPLIED Task122 / Worker77; complete readback and anonymous 401. Six GitHub CI workflows SUCCESS for 13de7982. No signed Gemini/Save/native proof."
     },
     {
       "id": "A03",
@@ -2643,7 +2690,8 @@
       "source_progress_20261019_warmth": "DEV APPLIED / LIVE SCOPED: Task112/Worker67, izvor7d584c27. Zajednički topao glas; delimične task činjenice; eksplicitne kalendarske operacije; kanonski naziv+UUID normalizuju pogrešno označen REUSE_ALIAS bez novih sinonima. Završni worker početak i ponedeljak READY, tačni sati, bez izmišljene opreme. 14 QA poruka/25 modelskih poziva/$0.189180 interna procena; kanonski otisci pre Save nepromenjeni. Brzina 5.5–12.9s, pozadinski katalog još nije uveden. Nema novog APK/native/push dokaza. docs/current/AI_WARMTH_TIMING_20261019.md Lokalni Jest621/621,13959PASS/9SKIP/ 0 FAIL; završni Node i TypeScript PASS.",
       "source_progress_20261019_speed": "DEV APPLIED / LIVE SCOPED: 7423c476, Task 113 / Worker 68, 36/36 fajlova exact. Četiri QA poruke / sedam modelskih poziva / 0,060348 USD interni obračun / 0 neobračunatih operacija. Oba nastavka imaju po 1 modelski poziv i 0 poziva alata; isti 3D UUID, REMOTE/dostava RS, budžet i samo ponedeljak očuvani. Pet kanonskih otisaka pre Save-a nepromenjeno. CI 39322097750: 621 paket / 13.968 PASS / 0 FAIL / 0 SKIP. APK BUILT i fizički bounded smoke PASS na HONOR-u (Početna, Zadaci/mapa, prazni Dogovori, Poruke, About; sesija očuvana); puni AI tok na telefonu ostaje PENDING; bez objave, aktivacije, matching-a ili push dokaza. Trajna pozadinska klasifikacija i prompt kompresija nisu uvedene. docs/current/AI_SPEED_20261019.md",
       "source_progress_20261019_context": "ee7ae76e kontekst + UI 86b5; DEV114/69.4 READY/5 jednakih otisaka;7 poziva/0,059342USD, bez ukupnog ubrzanja. Proza naknadno ispravljena84751846 DEV115/70,36/36 exact;2 stvarna nastavka7,108/5,836s,2 READY/5 jednakih otisaka,2 poziva/ 0,015746 USD. ee7a CI621/13993PASS; novi native PENDING. Telefon registracija potvrđena, stvarna push isporuka UNTESTED. docs/current/AI_SPEED_20261019.md Push preflight: API privilege denied, flag readback unchanged; no SEND/fixture Save/Publish. Završni datirani checkpoint ee7a: CI SUCCESS/APKBUILT i bounded phone composer PASS; noviji kandidat ima odvojeni source_progress_20261020_checkpoint.",
-      "source_progress_20261020_checkpoint": "a18f31af / CI 39335921967 SUCCESS: 621 paket / 14.014 testova PASS, 0 FAIL, 0 SKIP. Tačan x86_64 APK instaliran je na emulator; sesija očuvana. Početna i detalj vizuelno pregledani na 361/390/412 dp × font 1,0/1,3. P1 OTVOREN: ponovljeni spoljašnji link ka vlasničkom detalju posle promene širine/fonta dva puta je dao prazan prikaz na 412 dp/1,3; normalan ulaz radi. Mapa ima ograničeni pregled zaglavlja/učitavanja, uz učitane pločice na 361/1 i 412/1,3; filteri, pretraga i in-app Nova prijava → pravi ekran Prijava provereni u navedenom opsegu. To nije celo native/end-to-end prihvatanje. DEV Task 115 / Worker 71; regioni i delimične strukturirane činjenice zadatka ostaju otvoreni."
+      "source_progress_20261020_checkpoint": "a18f31af / CI 39335921967 SUCCESS: 621 paket / 14.014 testova PASS, 0 FAIL, 0 SKIP. Tačan x86_64 APK instaliran je na emulator; sesija očuvana. Početna i detalj vizuelno pregledani na 361/390/412 dp × font 1,0/1,3. P1 OTVOREN: ponovljeni spoljašnji link ka vlasničkom detalju posle promene širine/fonta dva puta je dao prazan prikaz na 412 dp/1,3; normalan ulaz radi. Mapa ima ograničeni pregled zaglavlja/učitavanja, uz učitane pločice na 361/1 i 412/1,3; filteri, pretraga i in-app Nova prijava → pravi ekran Prijava provereni u navedenom opsegu. To nije celo native/end-to-end prihvatanje. DEV Task 115 / Worker 71; regioni i delimične strukturirane činjenice zadatka ostaju otvoreni.",
+      "source_progress_20261022_hardening": "AI source hardening and role separation in existing PR #39; 708 AI PASS / 1 TODO and full 638/14415 mobile regression. Explicit BLOCK preserved; provider refusals do not write BLOCK. Signed Gemini, Save/publish and device acceptance remain separate. docs/current/AI_HANDOFF_HARDENING_20261022.md. DEV APPLIED Task122 / Worker77; complete readback and anonymous 401. Six GitHub CI workflows SUCCESS for 13de7982. No signed Gemini/Save/native proof."
     },
     {
       "id": "B01",
@@ -12323,5 +12371,20 @@
       "wholeProductAccepted": false,
       "all62RowsClosed": false
     }
+  },
+  "latest_ai_hardening_20261022": {
+    "report": "docs/current/AI_HANDOFF_HARDENING_20261022.md",
+    "evidence": "docs/current/evidence/AI_HANDOFF_HARDENING_20261022.json",
+    "sourceCommit": "13de798231f16a6b3fc0e4261d9cf7c599a7a42c",
+    "proof": "DEV APPLIED: Task122 / Worker77, 20/20 and 19/19 source readback, anonymous 401. Source 13de7982; six GitHub CI workflows SUCCESS; 708 AI PASS + 1 TODO and 638/14415 mobile PASS. No new signed Gemini, native or end-to-end proof.",
+    "remaining": [
+      "signed_gemini_scenarios",
+      "pin_text_consistency",
+      "bounded_daily_availability",
+      "deadline_edit_writer",
+      "closure_export_retention",
+      "two_account_push_native_flow",
+      "public_release"
+    ]
   }
 }

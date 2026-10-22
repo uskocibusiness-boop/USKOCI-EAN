@@ -1,3 +1,5 @@
+**22.10 — aktuelni AI paket i primopredaja:** [izvršene ispravke, provere i otvoreni release uslovi](AI_HANDOFF_HARDENING_20261022.md), [mašinski dokaz](evidence/AI_HANDOFF_HARDENING_20261022.json). Provider refusal i aplikacioni BLOCK su razdvojeni; sve AI provere 708 PASS/1 TODO, mobilni 638/14.415 PASS. PR #39 je spojen; DEV Task122/Worker77 potvrđeni potpunim readback-om i HTTP401. Svih šest CI provera SUCCESS; potpisani Gemini i uređajski tok ostaju otvoreni. Stariji preseci ispod ostaju datirana istorija. Ovo nije prihvatanje finalnog APK-a.
+
 **PED02, 21.10:** [bezbedna zamena objave](PUBLISHED_TASK_REPLACEMENT_20261021.md) primenjena na DEV; 197 Jest, TSC, 181 migration integrity i authenticated SQL rollback PASS. Signed/provider/native ostaju otvoreni. Bez APK-a.
 
 # USKOČI — počni ovde

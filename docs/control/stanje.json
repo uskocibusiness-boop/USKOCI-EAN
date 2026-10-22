@@ -1,9 +1,9 @@
 {
  "meta": {
-  "osvezeno": "2026-10-21T07:41:08Z",
+  "osvezeno": "2026-10-22T18:39:04Z",
   "grana": "feature/unified-qa-master-20261017",
-  "head": "09d26fa9",
-  "head_poruka": "Guard Serbian task price clauses and align map price basis",
+  "head": "e629f449",
+  "head_poruka": "Merge PR #39: AI role separation and recoverable provider refusals",
   "server": {
    "snimljeno": "2026-10-18T20:15:59Z",
    "migracije": 288,
@@ -37,53 +37,53 @@
      "slug": "uskoci-ai-interview",
      "name": "uskoci-ai-interview",
      "status": "ACTIVE",
-     "version": 116,
+     "version": 122,
      "created_at": 1788261764727,
-     "updated_at": 1792469228032,
+     "updated_at": 1792694052327,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_116/source/supabase/functions/uskoci-ai-interview/index.ts",
-     "ezbr_sha256": "87cbb011d08097fc23a23e040547b047ccdd8542c9966b2506589c11d824a959",
-     "readback_source": "docs/current/evidence/AI_SPEED_20261019.json#latestCheckpoint.taskFollowup",
-     "readback_scope": "Task116 ACTIVE metadata and19exact files; previous115 inventory retained in task_clarify_refresh_20261020."
+     "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_122/source/supabase/functions/uskoci-ai-interview/index.ts",
+     "ezbr_sha256": "4988c98bc1482ab3217ab051eb49364ef466aaf44ba95eb1d0979b9217491ac8",
+     "readback_source": "docs/current/evidence/AI_HANDOFF_HARDENING_20261022.json",
+     "readback_scope": "Complete package readback matches sourceCommit 13de7982; anonymous POST 401; signed Gemini not exercised."
     },
     {
      "id": "bbadc4c5-81c7-490c-8549-69aa533be329",
      "slug": "uskoci-location-search",
      "name": "uskoci-location-search",
      "status": "ACTIVE",
-     "version": 21,
+     "version": 25,
      "created_at": 1789051259284,
-     "updated_at": 1789291048806,
+     "updated_at": 1792592620189,
      "verify_jwt": true,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_bbadc4c5-81c7-490c-8549-69aa533be329_3/source/supabase/functions/uskoci-location-search/index.ts",
-     "ezbr_sha256": "fbbbde04842356594b8408cec04e3d33b13d3248e459e26d5c08204c75ce8434"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_bbadc4c5-81c7-490c-8549-69aa533be329_25/source/supabase/functions/uskoci-location-search/index.ts",
+     "ezbr_sha256": "6edbe27708030ef3e20e7a43dd27fef9a2627a9d317b4af59d472f3b0433a8bd"
     },
     {
      "id": "daaabf21-7be3-48d6-b49c-ad2472b832b9",
      "slug": "uskoci-publication-evaluate",
      "name": "uskoci-publication-evaluate",
      "status": "ACTIVE",
-     "version": 21,
+     "version": 22,
      "created_at": 1789057551628,
-     "updated_at": 1790034934318,
+     "updated_at": 1792592638830,
      "verify_jwt": true,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_daaabf21-7be3-48d6-b49c-ad2472b832b9_14/source/supabase/functions/uskoci-publication-evaluate/index.ts",
-     "ezbr_sha256": "9e4af73429a0f973edbbdecb708dae8b5e9b266f630bec5f6d63663fb6e7fa4c"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_daaabf21-7be3-48d6-b49c-ad2472b832b9_22/source/supabase/functions/uskoci-publication-evaluate/index.ts",
+     "ezbr_sha256": "a73abe0ddb3502d8ad1b68f90e5e8da050b8c5721cdca9bc9e54b0f08b669e16"
     },
     {
      "id": "5765c92d-73fe-49ad-b0e8-ba02212088eb",
      "slug": "uskoci-data-export-worker",
      "name": "uskoci-data-export-worker",
      "status": "ACTIVE",
-     "version": 21,
+     "version": 22,
      "created_at": 1789060327220,
-     "updated_at": 1790015379615,
+     "updated_at": 1792592660338,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_5765c92d-73fe-49ad-b0e8-ba02212088eb_14/source/supabase/functions/uskoci-data-export-worker/index.ts",
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_5765c92d-73fe-49ad-b0e8-ba02212088eb_22/source/supabase/functions/uskoci-data-export-worker/index.ts",
      "ezbr_sha256": "37c6e8d7acd5f705cd1a118bd4010bdf8647762b7fa628be2e669f9531fba679"
     },
     {
@@ -91,12 +91,12 @@
      "slug": "uskoci-data-export-download",
      "name": "uskoci-data-export-download",
      "status": "ACTIVE",
-     "version": 21,
+     "version": 22,
      "created_at": 1789060338554,
-     "updated_at": 1790015536362,
+     "updated_at": 1792592664909,
      "verify_jwt": true,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_1172fb20-f74f-4bed-89d0-bc5a0ccc2c21_14/source/supabase/functions/uskoci-data-export-download/index.ts",
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_1172fb20-f74f-4bed-89d0-bc5a0ccc2c21_22/source/supabase/functions/uskoci-data-export-download/index.ts",
      "ezbr_sha256": "9a592d9bb329a7a26e0a854d53a2c799f712ae96ebc2c9949f3457b24f652e66"
     },
     {
@@ -104,66 +104,66 @@
      "slug": "uskoci-worker-interview",
      "name": "uskoci-worker-interview",
      "status": "ACTIVE",
-     "version": 71,
+     "version": 77,
      "created_at": 1789291116219,
-     "updated_at": 1792449193740,
+     "updated_at": 1792694058556,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_71/source/supabase/functions/uskoci-worker-interview/index.ts",
-     "ezbr_sha256": "28adc347193b1018d2c06f041ff0d47f89b222e96715cf6db217cd756d8b5b1f",
-     "readback_source": "docs/current/evidence/AI_SPEED_20261019.json#latestCheckpoint.workerFollowup",
-     "readback_scope": "Worker71 ACTIVE metadata and17exact source files; prior worker inventory retained in worker_followup_refresh_20261020."
+     "entrypoint_path": "/tmp/user_fn_leqcwgzvjsxugfgzdmth_dc1d633c-416a-4a10-bac7-ecc9a4c4a92a_77/source/supabase/functions/uskoci-worker-interview/index.ts",
+     "ezbr_sha256": "355c6a09ee68a62ebbc5f486ab42542e6e5330d80b0e9a40e04ab0cc96820866",
+     "readback_source": "docs/current/evidence/AI_HANDOFF_HARDENING_20261022.json",
+     "readback_scope": "Complete package readback matches sourceCommit 13de7982; anonymous POST 401; signed Gemini not exercised."
     },
     {
      "id": "1ba4db69-a390-4b55-a071-97bee74d2598",
      "slug": "uskoci-speech-session",
      "name": "uskoci-speech-session",
      "status": "ACTIVE",
-     "version": 22,
+     "version": 23,
      "created_at": 1789291120076,
-     "updated_at": 1789666914573,
+     "updated_at": 1792592656519,
      "verify_jwt": true,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_1ba4db69-a390-4b55-a071-97bee74d2598_14/source/supabase/functions/uskoci-speech-session/index.ts",
-     "ezbr_sha256": "114e2bc8c684ff9972eaa03349964391621e57120cd68b24b523561c80695abf"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_1ba4db69-a390-4b55-a071-97bee74d2598_23/source/supabase/functions/uskoci-speech-session/index.ts",
+     "ezbr_sha256": "c9be2c2be11cca3e93e661f5af8edf2dfd13cc09fc262f85d2b5a1de958fc8e0"
     },
     {
      "id": "eb0f75d5-d1ce-4936-9a84-68763d4727bd",
      "slug": "uskoci-qa-classify",
      "name": "uskoci-qa-classify",
      "status": "ACTIVE",
-     "version": 20,
+     "version": 21,
      "created_at": 1789291124175,
-     "updated_at": 1790042491953,
+     "updated_at": 1792592644555,
      "verify_jwt": true,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_eb0f75d5-d1ce-4936-9a84-68763d4727bd_13/source/supabase/functions/uskoci-qa-classify/index.ts",
-     "ezbr_sha256": "088f4381a10c57e5f12b1da4d1f3db40d7e2ea2fa905f13b8e1715ea62d1b25a"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_eb0f75d5-d1ce-4936-9a84-68763d4727bd_21/source/supabase/functions/uskoci-qa-classify/index.ts",
+     "ezbr_sha256": "8c16daa4f0e4e8f7df39270549bc68e61b26c973da9a96bbff37f2b15c34adcf"
     },
     {
      "id": "d9bde875-0cd9-4998-b395-76fa3de0af92",
      "slug": "uskoci-push-transport",
      "name": "uskoci-push-transport",
      "status": "ACTIVE",
-     "version": 35,
+     "version": 37,
      "created_at": 1789291177945,
-     "updated_at": 1792328540912,
+     "updated_at": 1792592615918,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_d9bde875-0cd9-4998-b395-76fa3de0af92_35/source/supabase/functions/uskoci-push-transport/index.ts",
-     "ezbr_sha256": "572d122aa7c3cad86c448e4fd67475ed95fd5c91013de8abd09808a2d58cb2a3"
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_d9bde875-0cd9-4998-b395-76fa3de0af92_37/source/supabase/functions/uskoci-push-transport/index.ts",
+     "ezbr_sha256": "dcfc991c37c35c76cc125b720a1629aa3b849ccb30e4528d80e3b454c9f5bb34"
     },
     {
      "id": "8ed1c1f2-c0e3-45f5-9a0b-4a1fcfd4c54c",
      "slug": "uskoci-media",
      "name": "uskoci-media",
      "status": "ACTIVE",
-     "version": 21,
+     "version": 22,
      "created_at": 1789291187416,
-     "updated_at": 1790827911619,
+     "updated_at": 1792592651315,
      "verify_jwt": true,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_8ed1c1f2-c0e3-45f5-9a0b-4a1fcfd4c54c_14/source/supabase/functions/uskoci-media/index.ts",
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_8ed1c1f2-c0e3-45f5-9a0b-4a1fcfd4c54c_22/source/supabase/functions/uskoci-media/index.ts",
      "ezbr_sha256": "34e4a23149d30c4abbf606aa5b1fddf12fd370fbf3904b6a20eb29c7a446d1ac"
     },
     {
@@ -171,12 +171,12 @@
      "slug": "uskoci-account-closure-worker",
      "name": "uskoci-account-closure-worker",
      "status": "ACTIVE",
-     "version": 11,
+     "version": 12,
      "created_at": 1789587374051,
-     "updated_at": 1790827630415,
+     "updated_at": 1792592668882,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_41dd529a-fcea-4866-a296-1dea5a70c08c_4/source/supabase/functions/uskoci-account-closure-worker/index.ts",
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_41dd529a-fcea-4866-a296-1dea5a70c08c_12/source/supabase/functions/uskoci-account-closure-worker/index.ts",
      "ezbr_sha256": "9f7373f9452ef85fb8c615bef64fc2a564aad32b39b9df80bad2152bd2c2ae11"
     },
     {
@@ -184,12 +184,12 @@
      "slug": "uskoci-taxonomy-postsave-worker",
      "name": "uskoci-taxonomy-postsave-worker",
      "status": "ACTIVE",
-     "version": 4,
+     "version": 5,
      "created_at": 1792005258288,
-     "updated_at": 1792008092028,
+     "updated_at": 1792592672917,
      "verify_jwt": false,
      "import_map": false,
-     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_9883163f-e66e-4501-b398-4ef2c6634214_2/source/supabase/functions/uskoci-taxonomy-postsave-worker/index.ts",
+     "entrypoint_path": "file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_9883163f-e66e-4501-b398-4ef2c6634214_5/source/supabase/functions/uskoci-taxonomy-postsave-worker/index.ts",
      "ezbr_sha256": "4fe24382f1da75ca33dfbd3fe66ac12c259d4a3fa0318593314d79ca55b1fe88"
     },
     {
@@ -5991,7 +5991,7 @@
    },
    "note": {
     "kod": "Ekran stiže do koda; poziva 6 serverskih funkcija",
-    "test": "7 test fajl(ova)"
+    "test": "8 test fajl(ova)"
    },
    "telefon_dokaz": "59876dc6: Još nema ocena, stvarni broj 0, Istorija/Back i profilno zvono potvrđeni; šire granice otvorene. docs/implementation/evidence/visual-rounds-20261010/native-installed-59876dc6.json",
    "problem": "Worker71 potvrđuje ciljano razjašnjenje i dva REMOTE UUID-a. Zaseban normalan signed Save aktivirao je izolovani QA ON_SITE profil sa tačnim Srbobran30km i20.10.17–19h; opšta tvrdnja da nema Save/aktivacije više nije aktuelna. Regionalno višeoblastno pokrivanje i nov pun native edit-to-save/matching tok ostaju otvoreni.",
@@ -13268,8 +13268,7 @@
  ],
  "aplikacija_zove_a_server_nema": [
   "rpc_prepare_ai_task_review_deadline",
-  "rpc_prepare_ai_task_review_deadline_taxonomy",
-  "rpc_resolve_activity_application_v1"
+  "rpc_prepare_ai_task_review_deadline_taxonomy"
  ],
  "nepovezani_pozivi_a_server_nema": [],
  "tokovi": {
@@ -13982,8 +13981,7 @@
   ],
   "novo_slomljeno": [
    "rpc_prepare_ai_task_review_deadline",
-   "rpc_prepare_ai_task_review_deadline_taxonomy",
-   "rpc_resolve_activity_application_v1"
+   "rpc_prepare_ai_task_review_deadline_taxonomy"
   ],
   "putevi_obavestenja": "svi nađeni u kodu"
  },
@@ -14423,102 +14421,5 @@
   "I27": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan.",
   "I32": "docs/implementation/design-system/r18-continuity-20260925/REAL_JOURNEY.md — R18 74f514d7; telefon + emulator; samo opisani remote/1 osoba/ponuda tok, ne ceo plan."
  },
- "ci": [
-  {
-   "id": 39534878543,
-   "ime": "N10 notification push-copy proof",
-   "sha": "324cebe4",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-21T02:46:30Z"
-  },
-  {
-   "id": 39520703997,
-   "ime": "PKG-042 application reader parity proof",
-   "sha": "b05efb0e",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-21T00:20:19Z"
-  },
-  {
-   "id": 39380225968,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "70bc79f2",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-20T06:24:57Z"
-  },
-  {
-   "id": 39379633716,
-   "ime": "PKG-042 application reader parity proof",
-   "sha": "22a5e674",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-20T06:18:37Z"
-  },
-  {
-   "id": 39379136091,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "1fabbffb",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-20T06:13:17Z"
-  },
-  {
-   "id": 39379117464,
-   "ime": "PKG-042 application reader parity proof",
-   "sha": "1fabbffb",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-20T06:13:05Z"
-  },
-  {
-   "id": 39372963276,
-   "ime": "PKG-042 application reader parity proof",
-   "sha": "f2d90c79",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-20T05:04:52Z"
-  },
-  {
-   "id": 39370415630,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "47cbd0e2",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-20T04:35:51Z"
-  },
-  {
-   "id": 39369801419,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "be53b4ff",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-20T04:28:58Z"
-  },
-  {
-   "id": 39335921967,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "a18f31af",
-   "stanje": "completed",
-   "ishod": "success",
-   "vreme": "2026-10-19T22:34:38Z"
-  },
-  {
-   "id": 39334864604,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "772c7eeb",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-19T22:25:38Z"
-  },
-  {
-   "id": 39332799344,
-   "ime": "Build latest V5 Android preview APK",
-   "sha": "c86d42d3",
-   "stanje": "completed",
-   "ishod": "failure",
-   "vreme": "2026-10-19T22:08:25Z"
-  }
- ]
+ "ci": null
 }
