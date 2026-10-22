@@ -60,7 +60,7 @@ function Home() {
       // Application totals come from one bounded page, not the whole history.
       // Tasks and Agreements still need their complete projections for drafts/appointments.
       const [needs, applications, agreements, attention] = await Promise.all([
-        readHomeSection(() => source.mojePotrebe({ includeUrgency: false }), signal),
+        readHomeSection(readSignal => source.mojePotrebe({ includeUrgency: false, signal: readSignal }), signal),
         readHomeSection(async () => {
           const page = await source.mojePrijaveStrana({ scope: 'ALL', limit: 1, cursor: null });
           if (!page.counts) throw new Error('HOME_APPLICATION_COUNTS_UNAVAILABLE');
