@@ -1,0 +1,44 @@
+name: Taxonomy source-check modernization
+on:
+  push:
+    branches: [work/ai-taxonomy-legacy-proof-20261022]
+    paths:
+      - 'supabase/proofs/dynamic_taxonomy/interview-existing-ai-source.test.mjs'
+      - 'supabase/proofs/dynamic_taxonomy/taxonomy-scoped-shadow.test.mjs'
+      - 'supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs'
+      - '.github/workflows/ai-taxonomy-legacy-proof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-only:
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install exact locked source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci
+          git diff --check
+      - name: Up-to-date canonical taxonomy and shadow safety assertions
+        run: |
+          node --test supabase/proofs/dynamic_taxonomy/interview-existing-ai-source.test.mjs supabase/proofs/dynamic_taxonomy/taxonomy-scoped-shadow.test.mjs
+      - name: Worker and requester Gemini provider-wire schema, offline only
+        run: node supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs --offline
+      - name: TypeScript and Deno source checks
+        run: |
+          npx tsc --noEmit -p tsconfig.json
+      - name: Full mobile regression
+        run: npx jest --maxWorkers=3 --testTimeout=30000

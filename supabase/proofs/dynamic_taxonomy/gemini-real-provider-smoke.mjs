@@ -8,6 +8,7 @@ import ts from 'typescript';
 import assert from 'node:assert/strict';
 import { withGeminiClassificationShadowSchema } from '../../functions/_shared/classificationGeminiShadow.mjs';
 import { workerServiceModeSchema } from '../../functions/_shared/workerServiceModeContext.mjs';
+import { workerAreaRequestSchema } from '../../functions/_shared/workerAreaResolver.mjs';
 
 const workerPath='supabase/functions/uskoci-worker-interview/index.ts';
 const needPath='supabase/functions/uskoci-ai-interview/index.ts';
@@ -38,8 +39,18 @@ function evaluate(segments,expression) {
   return vm.runInNewContext(javascript+'\n'+expression,{}, {timeout:1500});
 }
 function schemas() {
-  const worker=evaluate([extract(workerPath,'workerProviderSchema','function')],'workerProviderSchema()');
+  // This isolated vm executes a function extracted from the REAL Edge handler.
+  // Supply the imported area schema from its canonical module, never a hand-rolled copy.
+  assert.match(fs.readFileSync(workerPath,'utf8'), /import \{ workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas \} from ['"]\.\.\/_shared\/workerAreaResolver\.mjs['"]/);
+  const worker=evaluate([
+    'const workerAreaRequestSchema = '+JSON.stringify(workerAreaRequestSchema)+';',
+    extract(workerPath,'workerProviderSchema','function')
+  ],'workerProviderSchema()');
   const need=evaluate([
+    // Optional application-deadline proposals are disabled by default. The
+    // actual Edge feature switch lives in Deno.env; no real env or secrets in vm.
+    // Both DIALOGUE_VALUES and the interview fact allowlist reference it.
+    'const applicationDeadlineEnabled = () => false;',
     extract(registryPath,'NEED_FACT_V2_DEFINITIONS','variable'),
     extract(needPath,'DIALOGUE_VALUES','variable'),
     "const INTERVIEW_NEED_FACT_V2_KEYS = Object.keys(NEED_FACT_V2_DEFINITIONS).filter(key => !('manualOnly' in NEED_FACT_V2_DEFINITIONS[key]) && key !== 'need.required_licenses');",
@@ -72,7 +83,9 @@ function makePayload(baseline,purpose,toWire) {
     assert.deepEqual(serviceModeChangesJson,{type:'STRING'});
     assert.equal(wireSchema.required.includes('serviceModeChangesJson'),false);
   } else assert.equal(serviceModeChangesJson,undefined);
-  assert.equal(wireSchema.required.includes('classificationShadowJson'),purpose==='WORKER_CAPABILITY');
+  // Both interview schemas now REQUIRE the structured shadow snapshot.
+  // Missing metadata cannot silently look like an empty provider proposal.
+  assert.equal(wireSchema.required.includes('classificationShadowJson'),true);
   assert.equal('classificationShadow' in wireSchema.properties,false);
   assert.equal(JSON.stringify(sent).includes('additionalProperties'),false);
   assert.equal(JSON.stringify(sent).includes('maxItems'),false);
