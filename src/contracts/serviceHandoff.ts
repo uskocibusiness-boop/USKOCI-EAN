@@ -7,11 +7,6 @@ export type ServiceHandoff =
   | Readonly<{ required: false }>
   | Readonly<{
       required: true;
-      shippingCountries: string[];
-      localExchange?: Readonly<{ countryCode: string; city: string }>;
-    }>
-  | Readonly<{
-      required: true;
       shippingCountries?: string[];
-      localExchange: Readonly<{ countryCode: string; city: string }>;
+      localExchange?: Readonly<{ countryCode: string; city: string }>;
     }>;
