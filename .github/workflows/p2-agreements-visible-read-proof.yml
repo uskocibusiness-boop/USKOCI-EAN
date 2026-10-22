@@ -21,7 +21,6 @@ jobs:
     timeout-minutes: 35
     env:
       CI: '1'
-      EXPO_PUBLIC_USE_FAKE_SOURCE: '1'
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
