@@ -2,7 +2,8 @@
 
 const BRANCH = 'feature/unified-qa-master-20261017';
 const WORKFLOW = '.github/workflows/build-latest-v5-preview-apk.yml';
-const BASELINE = 'f56c94c35c8eb0f2f28a6961fb4bf358228c241c';
+// Successful ARM64 preview build 39627184837. Source baseline only; device installation unverified.
+const BASELINE = 'ababbdbcc70ee08df4408cfb318a5d028188d168';
 const REQUIRED_STEPS = ['TypeScript', 'Current source ownership', 'Full regression suite'];
 
 /** A completed APK run proves the same immutable client; no second full suite. */
