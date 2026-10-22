@@ -244,6 +244,7 @@ const OWN_FAILURE_NAMES = new Set([AI_CREDITS_UNAVAILABLE, 'AI_CLAIM_INVALID', '
 const RUNTIME_FAILURE_CLASSES: Record<string, string> = { SyntaxError: 'OUTPUT_NOT_JSON', TypeError: 'RUNTIME_TYPE_ERROR',
   RangeError: 'RUNTIME_RANGE_ERROR', AbortError: 'ABORTED', TimeoutError: 'TIMED_OUT' };
 function providerFailureClass(error: unknown): string {
+  if (error instanceof GeminiSafetyBlockedError) return 'GEMINI_SAFETY_BLOCKED';
   const thrown = object(error) ? error : {};
   if (typeof thrown.message === 'string' && OWN_FAILURE_NAMES.has(thrown.message)) return thrown.message;
   return typeof thrown.name === 'string' && Object.hasOwn(RUNTIME_FAILURE_CLASSES, thrown.name) ? RUNTIME_FAILURE_CLASSES[thrown.name] : 'UNKNOWN';
@@ -814,47 +815,35 @@ async function callGemini(
       responseMimeType: 'application/json', responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? (taxonomyExplorer ? withGeminiClassificationShadowSchema(locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : legacyProviderSchema() },
   });
   if (new TextEncoder().encode(payloadBody).byteLength > AI_TEST_LIMITS.llmRequestBytes) throw new Error('AI_CONTEXT_TOO_LARGE');
+  // Provider refusals settle through the owned-attempt failure path. Only a
+  // validated application policy decision may persist BLOCK on the conversation.
   if (taxonomyExplorer && providerBudget) {
-    try {
-      const result = await generateGeminiToolConversation({
-        url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
-        key, body: payloadBody, signal, ...providerBudget,
-        limits: { maxRequestBytes: AI_TEST_LIMITS.llmRequestBytes, timeoutMs: Math.max(1,researchTimeoutMs), accountingTimeoutMs: 3000 },
-        ...(devTaxonomyFlagP1('USKOCI_TAXONOMY_DIRECT_REPLY') && taxonomyExplorer.canTryDirectReply() ? {
-          directFirst: { systemParts: systemParts('direct'), accept: async (raw: string) => {
-            const turn = await parseOutput(JSON.parse(raw));
-            if (directAccepted) directResult = { raw, turn };
-            return directAccepted;
-          } },
-        } : {}),
-        tools: [{ declaration: taxonomyToolDeclaration, readOnly: true, execute: async (args, context) => {
-          try { return await taxonomyExplorer.execute(args, context) as Record<string,unknown>; }
-          catch { return { action:'CATALOG_UNAVAILABLE', complete:false, classificationAuthority:'NONE',
-            message:'Catalog research could not be completed. Keep useful task facts; use NEEDS_REVIEW for unresolved classification. Never infer absence or claim a category was created.' }; }
-        } }],
-      });
-      console.info('NEED_TAXONOMY_RESEARCH', 'COMPLETED', result.attempts, result.toolCalls);
-      return directResult?.raw === result.raw ? directResult.turn : await parseOutput(JSON.parse(result.raw));
-    } catch (error) {
-      if (error instanceof GeminiSafetyBlockedError)
-        return { safety:'BLOCK', assistantMessage:'Ne mogu da pomognem sa tim zahtevom.', proposals:[] };
-      throw error;
-    }
+    const result = await generateGeminiToolConversation({
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      key, body: payloadBody, signal, ...providerBudget,
+      limits: { maxRequestBytes: AI_TEST_LIMITS.llmRequestBytes, timeoutMs: Math.max(1,researchTimeoutMs), accountingTimeoutMs: 3000 },
+      ...(devTaxonomyFlagP1('USKOCI_TAXONOMY_DIRECT_REPLY') && taxonomyExplorer.canTryDirectReply() ? {
+        directFirst: { systemParts: systemParts('direct'), accept: async (raw: string) => {
+          const turn = await parseOutput(JSON.parse(raw));
+          if (directAccepted) directResult = { raw, turn };
+          return directAccepted;
+        } },
+      } : {}),
+      tools: [{ declaration: taxonomyToolDeclaration, readOnly: true, execute: async (args, context) => {
+        try { return await taxonomyExplorer.execute(args, context) as Record<string,unknown>; }
+        catch { return { action:'CATALOG_UNAVAILABLE', complete:false, classificationAuthority:'NONE',
+          message:'Catalog research could not be completed. Keep useful task facts; use NEEDS_REVIEW for unresolved classification. Never infer absence or claim a category was created.' }; }
+      } }],
+    });
+    console.info('NEED_TAXONOMY_RESEARCH', 'COMPLETED', result.attempts, result.toolCalls);
+    return directResult?.raw === result.raw ? directResult.turn : await parseOutput(JSON.parse(result.raw));
   }
   if (onText) {
-    try {
-      const raw = await streamGeminiTask({
-        url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-        key, body: payloadBody, signal, onText: () => {}, onUsage, timeoutMs: 30000,
-      });
-      return parseOutput(JSON.parse(raw));
-    } catch (streamError) {
-      if (streamError instanceof GeminiSafetyBlockedError) {
-        console.error('GEMINI_STREAM_SAFETY_BLOCKED', streamError.blockReason);
-        return { safety: 'BLOCK', assistantMessage: 'Zahtev nije prihvaćen jer sadrži nedozvoljen sadržaj. Opiši zadatak na drugi način.', proposals: [] };
-      }
-      throw streamError;
-    }
+    const raw = await streamGeminiTask({
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+      key, body: payloadBody, signal, onText: () => {}, onUsage, timeoutMs: 30000,
+    });
+    return parseOutput(JSON.parse(raw));
   }
   const providerResponse = await boundedJson(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
@@ -869,13 +858,14 @@ async function callGemini(
   const payload = providerResponse.data;
   // The non-streaming path reports the same counts on the single response body.
   if (onUsage) { const usage = geminiUsage(payload?.usageMetadata); if (usage) { try { onUsage(usage); } catch { /* accounting never breaks delivery */ } } }
-  const raw = geminiText(payload);
-  if (!raw) {
-    const blocked = Boolean(payload?.promptFeedback?.blockReason)
-      || (payload?.candidates ?? []).some((candidate: any) => ['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT'].includes(candidate?.finishReason));
-    if (blocked) return { safety: 'BLOCK', assistantMessage: 'Ne mogu da pomognem sa tim zahtevom.', proposals: [] };
-    throw new Error('PROVIDER_OUTPUT_MISSING');
+  if (payload?.promptFeedback?.blockReason) throw new GeminiSafetyBlockedError(payload.promptFeedback.blockReason);
+  for (const candidate of payload?.candidates ?? []) {
+    if (['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT', 'SPII', 'RECITATION'].includes(candidate?.finishReason))
+      throw new GeminiSafetyBlockedError(candidate.finishReason);
+    if (candidate?.safetyRatings?.some((rating: any) => rating?.blocked === true)) throw new GeminiSafetyBlockedError('SAFETY');
   }
+  const raw = geminiText(payload);
+  if (!raw) throw new Error('PROVIDER_OUTPUT_MISSING');
   const parsed = JSON.parse(raw);
   return schemaVersion === NEED_FACT_SCHEMA_V2 ? parseOutput(parsed) : parseLegacyOutput(parsed);
 }

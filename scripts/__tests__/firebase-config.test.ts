@@ -9,40 +9,37 @@ const original = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8')
 const firebasePath = './config/firebase/google-services.json';
 const enrollmentPlugin = './plugins/withFirebaseEnrollmentDisabled.js';
 const temporary = path.join(root, '.expo');
-const fixtures: string[] = [];
 
 function resolvePackage(packageName: string, extraEnv: Record<string, string | undefined> = {}) {
   fs.mkdirSync(temporary, { recursive: true });
   const fixture = fs.mkdtempSync(path.join(temporary, 'firebase-config-'));
-  fixtures.push(fixture);
-  const source = structuredClone(original);
-  source.expo.android.package = packageName;
-  source.expo.android.googleServicesFile = firebasePath;
-  source.expo.name = 'Disposable label'; source.expo.scheme = 'disposable-scheme';
-  source.expo.extra = { fixture: 'local-only' };
-  fs.writeFileSync(path.join(fixture, 'app.json'), JSON.stringify(source));
-  fs.copyFileSync(path.join(root, 'package.json'), path.join(fixture, 'package.json'));
-  fs.copyFileSync(path.join(root, 'app.config.js'), path.join(fixture, 'app.config.js'));
-  fs.mkdirSync(path.join(fixture, 'scripts'));
-  fs.copyFileSync(path.join(root, 'scripts/build-identity.cjs'), path.join(fixture, 'scripts/build-identity.cjs'));
-  fs.copyFileSync(path.join(root, 'scripts/build-contract.cjs'), path.join(fixture, 'scripts/build-contract.cjs'));
-  fs.mkdirSync(path.join(fixture, 'plugins'));
-  fs.copyFileSync(path.join(root, enrollmentPlugin), path.join(fixture, enrollmentPlugin));
-  // Use the same Node resolver as Expo CLI; Jest's browser module conditions
-  // otherwise select an unrelated ESM-only xcode dependency.
-  const result = spawnSync(process.execPath, ['-e',
-    "process.stdout.write(JSON.stringify(require('@expo/config').getConfig(process.argv[1], { skipSDKVersionRequirement: true }).exp))",
-    fixture], { cwd: root, encoding: 'utf8', timeout: 15000, env: { ...process.env, ...extraEnv } });
-  expect(result.status).toBe(0);
-  return JSON.parse(result.stdout);
-}
-
-afterAll(() => {
-  for (const fixture of fixtures) {
+  try {
+    const source = structuredClone(original);
+    source.expo.android.package = packageName;
+    source.expo.android.googleServicesFile = firebasePath;
+    source.expo.name = 'Disposable label'; source.expo.scheme = 'disposable-scheme';
+    source.expo.extra = { fixture: 'local-only' };
+    fs.writeFileSync(path.join(fixture, 'app.json'), JSON.stringify(source));
+    fs.copyFileSync(path.join(root, 'package.json'), path.join(fixture, 'package.json'));
+    fs.copyFileSync(path.join(root, 'app.config.js'), path.join(fixture, 'app.config.js'));
+    fs.mkdirSync(path.join(fixture, 'scripts'));
+    fs.copyFileSync(path.join(root, 'scripts/build-identity.cjs'), path.join(fixture, 'scripts/build-identity.cjs'));
+    fs.copyFileSync(path.join(root, 'scripts/build-contract.cjs'), path.join(fixture, 'scripts/build-contract.cjs'));
+    fs.mkdirSync(path.join(fixture, 'plugins'));
+    fs.copyFileSync(path.join(root, enrollmentPlugin), path.join(fixture, enrollmentPlugin));
+    // Use the same Node resolver as Expo CLI; Jest's browser module conditions
+    // otherwise select an unrelated ESM-only xcode dependency.
+    const result = spawnSync(process.execPath, ['-e',
+      "process.stdout.write(JSON.stringify(require('@expo/config').getConfig(process.argv[1], { skipSDKVersionRequirement: true }).exp))",
+      fixture], { cwd: root, encoding: 'utf8', timeout: 15000, env: { ...process.env, ...extraEnv } });
+    expect(result.status).toBe(0);
+    return JSON.parse(result.stdout);
+  } finally {
+    // Cleanup also runs when native config rejects a package or setup fails.
     if (path.dirname(path.resolve(fixture)) !== path.resolve(temporary)) throw new Error('Unsafe config fixture cleanup');
     fs.rmSync(fixture, { recursive: true, force: true });
   }
-});
+}
 
 describe('actual package-aware Firebase config', () => {
   it('keeps the exact owner-provided public file bytes', () => {

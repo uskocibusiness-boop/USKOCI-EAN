@@ -65,6 +65,7 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
       if(failure==='runtime')throw new (realm('TypeError'))('error sending request for url SYNTHETIC_GEMINI_KEY '+userText);
       if(failure==='http')return new Response('PRIVATE_PROVIDER_OUTPUT',{status:429});
       if(failure==='json')return new Response('PRIVATE_PROVIDER_OUTPUT '+userText+' SYNTHETIC_GEMINI_KEY',{status:200});
+      if(failure==='safety')return json({promptFeedback:{blockReason:'SAFETY'}});
       const result=providerOutput??(schema==='NEED_FACT_V2'?providerResult:{safety:'ALLOW',assistantMessage:'Potreban je pregled.',facts:[]});
       const output=failure==='output'?'PRIVATE_PROVIDER_OUTPUT '+userText:JSON.stringify(withDialogue(result));
       return url.includes('googleapis')?json({candidates:[{content:{parts:[{text:output}]}}]}):json({output_text:output});
@@ -101,6 +102,15 @@ const providerCall=fixture=>fixture.calls.find(x=>x.url.includes('googleapis')||
 const materialWrites=f=>f.calls.filter(call=>/\/(?:rpc_ai_complete_need_turn_v2_service|rpc_ai_apply_legacy_need_turn_service|rpc_ai_apply_interview_turn(?:_v2)?_service)$/.test(new URL(call.url).pathname));
 const prompt=call=>call.body.systemInstruction?.parts.map(p=>p.text).join('\n')??call.body.instructions;
 const timeContext=call=>JSON.parse(prompt(call).match(/Serverski vremenski kontekst za trenutni unos u Srbiji: (\{.+?\})\./)[1]);
+
+test('provider refusal fails the owned attempt without a persistent conversation BLOCK',async()=>{
+ const f=fixture({failure:'safety'});
+ assert.equal((await f.invoke()).status,502);
+ assert.equal(materialWrites(f).length,0);
+ assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service')).length,1);
+ assert.equal(f.calls.filter(c=>c.url.includes('googleapis')).length,1);
+ assert.ok(!f.calls.some(c=>/publish|commit_admission|push/.test(c.url)));
+});
 
 test('stable task rules precede fresh private context without dropping it or sharing facts',async()=>{
  const a=fixture({now:'2026-10-19T08:00:00.000Z',activeFacts:[semanticFact('need.title','PRIVATE_FIRST_TASK')]});
