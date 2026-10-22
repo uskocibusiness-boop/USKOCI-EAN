@@ -1,0 +1,46 @@
+name: AI Deno Edge contract compatibility
+on:
+  push:
+    branches: [work/ai-deno-contract-import-20261022]
+    paths:
+      - 'src/contracts/needFactsV2.ts'
+      - 'src/contracts/serviceHandoff.ts'
+      - 'supabase/proofs/ai/deno_type_import.test.mjs'
+      - '.github/workflows/ai-deno-contract-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      CI: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.5.6
+      - name: Locked install and exact source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci
+          git diff --check
+      - name: Deno path regression
+        run: node --test supabase/proofs/ai/deno_type_import.test.mjs
+      - name: Full TypeScript check
+        run: npx tsc --noEmit -p tsconfig.json
+      - name: Actual requester Edge Deno check
+        run: deno check supabase/functions/uskoci-ai-interview/index.ts
+      - name: Actual worker Edge Deno check
+        run: deno check supabase/functions/uskoci-worker-interview/index.ts
+      - name: Exact-source mocked requester and worker tests
+        run: node --test supabase/proofs/ai/ai_edge_context.test.mjs supabase/proofs/ai/v5_worker_edge.test.mjs

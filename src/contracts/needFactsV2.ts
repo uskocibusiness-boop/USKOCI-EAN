@@ -115,7 +115,7 @@ export type ResolvedLocationValue = Readonly<{
   points: readonly ConfirmedLocationPoint[];
 }>;
 
-export type NeedFactV2Value = string | number | boolean | string[] | NeedTaskGeography | ResolvedLocationValue | import('./serviceHandoff').ServiceHandoff;
+export type NeedFactV2Value = string | number | boolean | string[] | NeedTaskGeography | ResolvedLocationValue | import('./serviceHandoff.ts').ServiceHandoff;
 
 export function isNeedFactV2Key(value: string): value is NeedFactV2Key {
   return Object.prototype.hasOwnProperty.call(NEED_FACT_V2_DEFINITIONS, value);
