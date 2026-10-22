@@ -8,6 +8,7 @@ on:
       - 'src/app/(app)/profil/razgovor.tsx'
       - 'src/ui/v2/IntakePresentation.tsx'
       - 'src/data/__tests__/ai-conversation-layout.test.tsx'
+      - 'src/data/__tests__/ai-owned-intake-screen.test.tsx'
       - 'supabase/functions/uskoci-worker-interview/index.ts'
       - 'supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs'
       - '.github/workflows/ai-human-onboarding-proof.yml'
@@ -44,7 +45,7 @@ jobs:
           deno check supabase/functions/uskoci-worker-interview/index.ts
           deno check supabase/functions/uskoci-ai-interview/index.ts
       - name: First turn and visible AI welcome on screen
-        run: npx jest --runInBand --testTimeout=30000 --runTestsByPath src/ui/aiFirst/__tests__/aiInterviewWelcome.test.ts src/data/__tests__/ai-conversation-layout.test.tsx
+        run: npx jest --runInBand --testTimeout=30000 --runTestsByPath src/ui/aiFirst/__tests__/aiInterviewWelcome.test.ts src/data/__tests__/ai-conversation-layout.test.tsx src/data/__tests__/ai-owned-intake-screen.test.tsx
       - name: Real handler mocked turn compatibility
         run: node --test supabase/proofs/ai/v5_worker_edge.test.mjs supabase/proofs/ai/ai_edge_context.test.mjs
       - name: Worker taxonomy source authority and onboarding parity
