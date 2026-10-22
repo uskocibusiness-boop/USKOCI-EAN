@@ -10,7 +10,8 @@ import { needSearchRecoveryClientService } from '../../data/needSearchRecoveryCl
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
-import { filterAgreementRole, groupAgreementTasks, isActiveAgreementTask, type HistoryFilter, type AgreementRoleFilter } from '../../ui/agreements/agreementListModel';
+import type { HistoryFilter, AgreementRoleFilter } from '../../ui/agreements/agreementListModel';
+import { visibleAgreementTaskGroups, cancelledIdsForVisibleAgreementGroups } from '../../ui/agreements/optionalReadScope';
 import { ownerCapacityNeedIds, sameOwnerTaskId } from '../../ui/agreements/ownerTaskCapacity';
 import { AgreementCollectionPresentation, type AgreementCollectionSection } from '../../ui/v2/AgreementCollectionPresentation';
 
@@ -113,7 +114,12 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
   // Optional task-wide read. Each result is owner-only and belongs to this exact
   // settled Agreement list, account incarnation, focus and foreground visit.
   // Four reads at a time, at most twelve tasks; a slow task never blocks the list.
-  const capacityIds = useMemo(() => ownerCapacityNeedIds(resource.data ?? []), [resource.data]);
+  // Query task-wide capacity only for groups this tab/filter can actually display.
+  // The same grouping rules drive the rendered rows; switching tabs retires old results.
+  const visibleGroups = useMemo(() => visibleAgreementTaskGroups(resource.data ?? [],
+    { section, confirmationOnly, historyFilter, roleFilter }),
+  [resource.data, section, confirmationOnly, historyFilter, roleFilter]);
+  const capacityIds = useMemo(() => ownerCapacityNeedIds(visibleGroups.flatMap(group => group.items)), [visibleGroups]);
   const capacityKey = capacityIds.join('|');
   const [capacities, setCapacities] = useState<{ key: string; value: ReadonlyMap<string, NeedSearchState>;
     scope: object | null; generation: number; data: typeof resource.data } | null>(null);
@@ -142,9 +148,9 @@ function OwnedAgreements({ foreground, section, confirmationOnly, historyFilter,
   };
   // One bounded read for cancelled collaborations in this section, including siblings of an active task.
   // A failed or stale read leaves the authoritative status visible without inventing a reason.
-  const cancelledIds = useMemo(() => groupAgreementTasks(filterAgreementRole(resource.data ?? [], roleFilter))
-    .filter(task => isActiveAgreementTask(task) === (section === 'active'))
-    .flatMap(task => task.items.filter(item => item.stanje === 'CANCELLED').map(item => item.id)), [resource.data, section, roleFilter]);
+  // No cancelled-row details are visible under the history "Završeni" filter.
+  const cancelledIds = useMemo(() => cancelledIdsForVisibleAgreementGroups(visibleGroups, section, historyFilter),
+    [visibleGroups, section, historyFilter]);
   const cancelledKey = cancelledIds.join('|');
   const [cancellations, setCancellations] = useState<{ key: string; value: AgreementCancellations; scope: object | null;
     generation: number; data: typeof resource.data } | null>(null);
