@@ -1,8 +1,8 @@
 {
   "kind": "OWNER_AUTHORIZED_DEV_PREVIEW_CHECKPOINT",
-  "attempt": 4,
-  "previousRun": 39627184837,
-  "checkpointReason": "Owner-approved Phase A exact-source Android regression after PR #37 OTA native-baseline fix. Previously successful ARM64 preview source ababbdbcc70ee08df4408cfb318a5d028188d168 is installed on HONOR Android 16; target this run is emulator x86_64, with same-source validation required before any preview OTA.",
+  "attempt": 5,
+  "previousRun": 39778099360,
+  "checkpointReason": "Owner-approved Faza A: rerun complete exact-source Android preview regression after merging PR #38 with green TypeScript, AI mocks and full mobile Jest. Prior workflow #39778099360 stopped at obsolete historical AI prompt test; do not release OTA until successful new workflow proof.",
   "project": "leqcwgzvjsxugfgzdmth",
   "workflow": ".github/workflows/build-latest-v5-preview-apk.yml",
   "sourceAuthority": "Exact triggering commit/tree recorded by the existing build workflow, not an old APK or mutable branch label",
@@ -15,16 +15,15 @@
   "expectedReaderBodyMd5": "7c1d9a979585deae6c2bc2c1b9d597b1",
   "devReceipt": "docs/current/evidence/DEV_RELIABILITY_APPLICATION_20261018.json",
   "clientReceipt": "docs/current/evidence/HOME_READ_CONTINUATION_20261018.json",
-  "purpose": "Trigger the existing exact-source Android regression on current unified QA branch after accepted PR #37. No OTA dispatch, user-data changes or production actions.",
+  "purpose": "Trigger existing Android emulator x86_64 validation for current unified QA branch; if successful supply regressionRunId for controlled later DEV preview OTA. No production/SQL/Edge/OTA writes.",
   "notClaimed": [
-    "successful build before run completes",
-    "source equals last HEAD without the checkpoint commit",
-    "OTA publication",
-    "OTA reception on HONOR phone",
+    "successful Android regression before run completes",
+    "new OTA published",
+    "phone received update",
     "production release"
   ],
   "ownerApprovedAt": "2026-10-22",
-  "preCheckpointHead": "3cce4aac66f8ca2a84ba7198e089ff8a631c1e18",
+  "preCheckpointHead": "e40207880f3e7b62662dbe136d6b7fac58a319f0",
   "nativeBaseline": "ababbdbcc70ee08df4408cfb318a5d028188d168",
   "otaWorkflow": ".github/workflows/dev-android-preview-ota-20261014.yml"
 }
