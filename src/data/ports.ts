@@ -52,7 +52,7 @@ export interface PotrebeCitanje {
   /** Account-owned server attention; failure is unavailable, never an empty list. */
   paznjaZaPocetnu(): Promise<HomeAttentionPreview>;
   /** R03 — moje Potrebe. Defaults to urgency enrichment; count-only surfaces may leave it unobserved. */
-  mojePotrebe(options?: { includeUrgency?: boolean }): Promise<PotrebaProjekcija[]>;
+  mojePotrebe(options?: { includeUrgency?: boolean; signal?: AbortSignal }): Promise<PotrebaProjekcija[]>;
   /** EX-04 S1 (A09) — one keyset page of my own tasks in one of the server's sets. Needs the ex04a server contract: a build flag keeps the screen on `mojePotrebe` until DEV has it. */
   mojePotrebeStrana(request: OwnTasksPageRequest, options?: { includeUrgency?: boolean }): Promise<OwnTasksPage>;
   /** R04 — radni prostor jedne Potrebe. */
