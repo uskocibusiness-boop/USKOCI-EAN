@@ -47,6 +47,10 @@ function schemas() {
     extract(workerPath,'workerProviderSchema','function')
   ],'workerProviderSchema()');
   const need=evaluate([
+    // Optional application-deadline proposals are disabled by default. The
+    // actual Edge feature switch lives in Deno.env; no real env or secrets in vm.
+    // Both DIALOGUE_VALUES and the interview fact allowlist reference it.
+    'const applicationDeadlineEnabled = () => false;',
     extract(registryPath,'NEED_FACT_V2_DEFINITIONS','variable'),
     extract(needPath,'DIALOGUE_VALUES','variable'),
     "const INTERVIEW_NEED_FACT_V2_KEYS = Object.keys(NEED_FACT_V2_DEFINITIONS).filter(key => !('manualOnly' in NEED_FACT_V2_DEFINITIONS[key]) && key !== 'need.required_licenses');",
