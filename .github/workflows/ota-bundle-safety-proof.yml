@@ -12,7 +12,8 @@ permissions:
   actions: write
 jobs:
   dispatch-approved-preview:
-    if: ${{ github.repository == 'uskocibusiness-boop/USKOCI-EAN' && github.ref == 'refs/heads/operations/phase-a-preview-ota-20261022' && github.event.head_commit.message == 'ops: invoke owner-approved exact-source DEV preview OTA' }}
+    if: >-
+      ${{ github.repository == 'uskocibusiness-boop/USKOCI-EAN' && github.ref == 'refs/heads/operations/phase-a-preview-ota-20261022' && github.event.head_commit.message == 'ops: invoke owner-approved exact-source DEV preview OTA' }}
     runs-on: ubuntu-latest
     timeout-minutes: 4
     env:
@@ -29,17 +30,17 @@ jobs:
           sha="$(gh api "repos/$GH_REPO/git/ref/heads/$TARGET_BRANCH" --jq '.object.sha')"
           test "$sha" = "$TARGET_SHA" || { echo "::error::source moved; refusing dispatch"; exit 1; }
           gh api "repos/$GH_REPO/actions/runs/$REGRESSION_RUN_ID" \
-            --jq '[.head_sha,.head_branch,.path,.status,.conclusion,.event,.repository.full_name,.head_repository.full_name] | @tsv' \
-            | grep -Fx "$TARGET_SHA"$'\\t'"$TARGET_BRANCH"$'\\t''.github/workflows/build-latest-v5-preview-apk.yml'$'\\t''completed'$'\\t''success'$'\\t''push'$'\\t'"$GH_REPO"$'\\t'"$GH_REPO"
+            | jq -e --arg sha "$TARGET_SHA" --arg branch "$TARGET_BRANCH" --arg repo "$GH_REPO" \
+              '.head_sha==$sha and .head_branch==$branch and .path==".github/workflows/build-latest-v5-preview-apk.yml" and .status=="completed" and .conclusion=="success" and .event=="push" and .repository.full_name==$repo and .head_repository.full_name==$repo'
           gh api "repos/$GH_REPO/actions/runs/$REGRESSION_RUN_ID/jobs?filter=latest&per_page=100" \
-            --jq '[.jobs[] | select(.name=="android" and .status=="completed" and .conclusion=="success") | .steps[] | select(.conclusion=="success") | .name] | index("Full regression suite") != null and index("TypeScript") != null and index("Current source ownership") != null' \
-            | grep -Fx true
+            | jq -e --arg sha "$TARGET_SHA" \
+              '[.jobs[] | select(.name=="android" and .head_sha==$sha and .status=="completed" and .conclusion=="success") | .steps[] | select(.status=="completed" and .conclusion=="success") | .name] | (index("Full regression suite")!=null and index("TypeScript")!=null and index("Current source ownership")!=null)'
       - name: Dispatch protected existing workflow exactly once
         shell: bash
         run: |
           set -euo pipefail
           if gh api "repos/$GH_REPO/actions/workflows/dev-android-preview-ota-20261014.yml/runs?event=workflow_dispatch&per_page=60" \
-              --jq '.workflow_runs[] | select(.head_sha==env.TARGET_SHA) | .id' | grep -q '^[0-9]'; then
+              | jq -e --arg sha "$TARGET_SHA" 'any(.workflow_runs[]; .head_sha==$sha and .path==".github/workflows/dev-android-preview-ota-20261014.yml")' >/dev/null; then
             echo "An OTA dispatch already exists for this immutable SHA; not triggering a duplicate."
             exit 0
           fi
