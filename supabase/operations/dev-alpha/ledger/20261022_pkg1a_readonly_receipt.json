@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "package": "PKG1A_PROVENANCE_SAFETY_READONLY",
+  "observation": "HISTORICAL_READ_ONLY_DEV_SNAPSHOT_NOT_CURRENT_READINESS",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "observedAtUtc": "2026-10-22T03:55:07.706685Z",
+  "repository": {
+    "name": "uskocibusiness-boop/USKOCI-EAN",
+    "sourceBranch": "feature/unified-qa-master-20261017",
+    "sourceHead": "ababbdbcc70ee08df4408cfb318a5d028188d168"
+  },
+  "migrations": {
+    "total": 307,
+    "versionOnlyNoNameNoStatements": 217,
+    "withRecordedSQL": 90,
+    "head": {
+      "version": "20261021104742",
+      "name": "closure_executor_rollback_probe",
+      "archivePath": "supabase/operations/dev-alpha/ledger/20261021104742_closure_executor_rollback_probe.sql.txt",
+      "statementCount": 1,
+      "bytes": 8583,
+      "md5": "677b58772d8716f94e66ef3cf3d202dd",
+      "sha256": "160b0bb8101530664ab0422c513fe90429ae078da606aeaea10c8861e1209507",
+      "archiveNotExecutable": true
+    },
+    "unprovenAliasPairs": [
+      {
+        "local_source_version": "20261019071732",
+        "live_version": "20261019074443",
+        "reason": "Server record version only; not a byte-equivalence proof"
+      },
+      {
+        "local_source_version": "20261019085714",
+        "live_version": "20261019092405",
+        "reason": "Server record version only; not a byte-equivalence proof"
+      }
+    ]
+  },
+  "closure": {
+    "storedHashesMatch": true,
+    "storedMatchesComputed": false,
+    "retentionAiSourceReady": false,
+    "closureErasureBindingReady": false,
+    "closureBindingReady": false,
+    "releaseReady": false,
+    "doNotExecute": true
+  },
+  "safety": {
+    "databaseMutated": false,
+    "edgeDeployed": false,
+    "appPublished": false
+  },
+  "limitations": [
+    "Do not equate 217 version-only rows with 217 missing schema changes.",
+    "No claim of a complete 307-row byte-equivalence map.",
+    "Record of Oct 22 inspection only; perform fresh checks before enabling account closure.",
+    "No replay or repair performed on live database."
+  ]
+}
