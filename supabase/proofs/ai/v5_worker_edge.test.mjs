@@ -507,6 +507,17 @@ test('stale painting proposal cannot become a current service mode despite a kno
 test('completed/unknown claim replay cannot reserve or call the provider again',async()=>{
  const f=fixture({replay:true});assert.deepEqual(await(await f.invoke()).json(),turn());assert.equal(providers(f).length,0);assert.equal(f.calls.length,2);
 });
+test('draft worker requires administrative city for activation without limiting remote work or asking an address',async()=>{
+ const f=fixture(); await events(f);
+ const instruction=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
+ assert.match(instruction,/current server activation rpc_complete_worker_profile requires a city for a NEW DRAFT/);
+ assert.match(instruction,/ask ONE short natural question for the administrative city/);
+ assert.match(instruction,/Administrative city does NOT restrict REMOTE matching/);
+ assert.match(instruction,/For an already ACTIVE profile, do not reopen the city interview/);
+ assert.match(instruction,/Never invent a city or infer it from offered service/);
+ assert.match(instruction,/Only explicit Sačuvaj profil in the review applies the changes/);
+ assert.doesNotMatch(instruction,/Do not require a home city, address or GPS for a new worker/);
+});
 test('contextual worker clarification survives completion and stream without invented profile changes',async()=>{
  const output={assistantMessage:'Izvini, nije mi sasvim jasno na šta misliš. Možeš li to da kažeš drugim rečima?',safety:'CLARIFY',patch:{}};
  const f=fixture({output}),es=await events(f,{text:'SYNTHETIC_UNCLEAR_TEXT'});
