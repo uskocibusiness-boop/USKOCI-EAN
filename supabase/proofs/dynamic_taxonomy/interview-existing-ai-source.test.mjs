@@ -21,7 +21,7 @@ test('existing model proposes need.category from work meaning, not room or total
   assert.match(edge, /need\.category je konkretna VRSTA USLUGE iz celog razgovora/);
   assert.match(edge, /nezavisna od prostorije, kvadrature, komada, adrese, cene i datuma/);
   assert.match(edge, /vrste usluga nisu zatvoren spisak starih grupa/);
-  assert.match(edge, /klasifikacije/i);
+  assert.match(edge, /Klasifikacija i kanonsko imenovanje slede classificationShadowJson ugovor/);
   assert.match(facts, /'need\.category': \{ valueType: 'TEXT'/);
   assert.match(facts, /'need\.required_skills': \{ valueType: 'TEXT_ARRAY'/);
 });
