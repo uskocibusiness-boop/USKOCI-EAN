@@ -857,6 +857,22 @@ for(const [questionKey,message] of [
  assert.deepEqual(materialWrites(f)[0].body.p_proposals,[]);
 });
 
+test('known job description may ask ONE scope clarification without being replaced by budget question',async()=>{
+ const question='Da li se približnih 60 m² odnosi na površinu poda stana ili zidova koje treba okrečiti?';
+ const f=fixture({activeFacts:[semanticFact('need.description','Krečenje stana površine oko 60 m².'),semanticFact('need.people_needed',1)],
+  providerOutput:{safety:'CLARIFY',assistantMessage:question,facts:[],
+   dialogue:{...syntheticDialogue(),next:'CLARIFY',questionKey:'NONE'}}});
+ assert.equal((await f.invoke({text:'Treba da okrečim stan od 60 kvadrata.'})).status,200);
+ const written=materialWrites(f)[0].body;
+ assert.equal(written.p_assistant_message,question);
+ assert.deepEqual(written.p_proposals,[]);
+ assert.equal(written.p_safety,'CLARIFY');
+ const instruction=prompt(providerCall(f));
+ assert.match(instruction,/obim konkretno opisanog posla ostaje dvosmislen/);
+ assert.match(instruction,/dialogue.next CLARIFY sa questionKey NONE/);
+ assert.equal(providerCalls(f).length,1);
+});
+
 test('a direct explanation is preserved while location remains missing',async()=>{
  const message='Treba mi još grad preuzimanja; odredište već imamo.';
  const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:message,facts:[],
