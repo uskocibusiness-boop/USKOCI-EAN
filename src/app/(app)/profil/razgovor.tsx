@@ -13,6 +13,7 @@ import { inferWorkerExecutionModes, workerExecutionModeClientService } from '../
 
 import { useHoldToTalk } from '../../../features/voice/useHoldToTalk';
 import { AiConversationShell } from '../../../ui/aiFirst/AiConversationShell';
+import { workerInterviewOpening } from '../../../ui/aiFirst/aiInterviewWelcome';
 import { useAccountName } from '../../../ui/profile/useAccountName';
 import { ActionSheet } from '../../../ui/system/ActionSheet';
 import { brandAction, sys } from '../../../ui/system/tokens';
@@ -431,9 +432,12 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       reason={!enabled?unavailableNow:undefined}
       onPress={()=>{void review(activationRequest&&reviewedActivationRequest.current!==activationRequest?true:reviewActivation);}}/>:undefined}
     messages={data.messages.map(m=>({id:m.id,fromAi:m.role==='ASSISTANT',body:m.body}))}
+    // Immediate client introduction; no Gemini call, cost, fake persisted turn or automatic Save.
+    // Removed when the real owned conversation begins; re-entry never invents old AI messages.
+    introMessage={data.messages.length===0 && !unread ? workerInterviewOpening(hasProfileContent) : undefined}
     showWelcomeArt={!hasProfileContent}
     welcome={hasProfileContent?'Ćao! Šta želiš da dopuniš? 😊':'Ćao! Čime se baviš? 😊'}
-    welcomeDetail={hasProfileContent?'Reci šta želiš da promeniš. Sve izmene pregledaš pre čuvanja.':'Ispričaj koje usluge pružaš ili želiš da pružaš. Ostalo ćemo razjasniti kroz razgovor.'}
+    welcomeDetail=""
     placeholder="Opiši šta radiš"
     value={input} onChange={value=>{if(canAct()&&enabled&&writable){draftRevision.current+=1;draftText.current=value;setInput(value);}}} canEdit={!!enabled&&!!writable&&!pending.current}
     canSend={canRetry||(!!enabled&&!!writable&&!!input.trim()&&!pending.current)} pending={!!pending.current} busy={editor.busy}

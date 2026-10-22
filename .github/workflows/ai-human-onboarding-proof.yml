@@ -1,0 +1,45 @@
+name: AI interviews instant welcome and natural turn proof
+on:
+  push:
+    branches: [work/ai-human-onboarding-20261022]
+    paths:
+      - 'src/ui/aiFirst/aiInterviewWelcome.ts'
+      - 'src/ui/aiFirst/__tests__/aiInterviewWelcome.test.ts'
+      - 'src/app/(app)/profil/razgovor.tsx'
+      - 'src/ui/v2/IntakePresentation.tsx'
+      - 'src/data/__tests__/ai-conversation-layout.test.tsx'
+      - 'supabase/functions/uskoci-worker-interview/index.ts'
+      - '.github/workflows/ai-human-onboarding-proof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CI: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with: {fetch-depth: 1, ref: ${{ github.sha }}}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: {node-version: '24', cache: npm}
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with: {deno-version: v2.5.6}
+      - name: Locked install and exact source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci
+          git diff --check
+      - name: Full TypeScript and actual Edge handlers
+        run: |
+          npx tsc --noEmit -p tsconfig.json
+          deno check supabase/functions/uskoci-worker-interview/index.ts
+          deno check supabase/functions/uskoci-ai-interview/index.ts
+      - name: First turn and visible AI welcome on screen
+        run: npx jest --runInBand --testTimeout=30000 --runTestsByPath src/ui/aiFirst/__tests__/aiInterviewWelcome.test.ts src/data/__tests__/ai-conversation-layout.test.tsx
+      - name: Real handler mocked turn compatibility
+        run: node --test supabase/proofs/ai/v5_worker_edge.test.mjs supabase/proofs/ai/ai_edge_context.test.mjs
+      - name: Full Jest regression
+        run: npx jest --maxWorkers=3 --testTimeout=30000
