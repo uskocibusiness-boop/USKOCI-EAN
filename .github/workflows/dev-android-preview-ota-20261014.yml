@@ -29,7 +29,9 @@ jobs:
       USKOCI_OTA_TARGET: preview
       OTA_EXPECTED_SOURCE: ${{ inputs.source_sha }}
       OTA_REGRESSION_RUN_ID: ${{ inputs.regression_run_id }}
-      OTA_NATIVE_BASELINE: f56c94c35c8eb0f2f28a6961fb4bf358228c241c
+      # Verified candidate ARM64 preview APK: run 39627184837 (21 Oct 2026).
+      # This is a source compatibility baseline, NOT proof of installation on a phone.
+      OTA_NATIVE_BASELINE: ababbdbcc70ee08df4408cfb318a5d028188d168
       EXPO_PUBLIC_SUPABASE_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
       EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW
       EXPO_PUBLIC_USE_FAKE_SOURCE: '0'
