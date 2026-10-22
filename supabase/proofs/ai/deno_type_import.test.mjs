@@ -11,5 +11,6 @@ const handoff=readFileSync(resolve(root,'src/contracts/serviceHandoff.ts'),'utf8
 test('Edge type import has explicit .ts extension for Deno',()=>{
  assert.match(need,/import\(['"]\.\/serviceHandoff\.ts['"]\)\.ServiceHandoff/);
  assert.doesNotMatch(need,/import\(['"]\.\/serviceHandoff['"]\)/);
- assert.match(handoff,/export type \{ ServiceHandoff \} from ['"]\.\.\/\.\.\/supabase\/functions\/_shared\/serviceHandoff\.mjs['"]/);
+ assert.match(handoff,/export type ServiceHandoff =/);
+ assert.doesNotMatch(handoff,/export type \{ ServiceHandoff \} from/);
 });
