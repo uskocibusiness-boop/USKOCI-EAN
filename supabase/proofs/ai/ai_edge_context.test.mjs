@@ -120,6 +120,10 @@ test('requester Gemini prompt asks only one missing fact and retains safety/revi
  const rules=prompt(providerCall(f));
  assert.match(rules,/najviše JEDNU nepoznatu informaciju/);
  assert.match(rules,/Jedno korisno pitanje po poruci/);
+ assert.match(rules,/iskusan poslovođa i savetnik naručioca/);
+ assert.match(rules,/ako površina nije navedena, pitajte približnu kvadraturu/);
+ assert.match(rules,/SVE jasne činjenice/);
+ assert.doesNotMatch(rules,/experienced, warm craft and work-profile mentor/);
  assert.doesNotMatch(rules,/najviše TRI zasebne informacije/);
  assert.match(rules,/Tačna privatna adresa\/access notes/);
  assert.match(rules,/ends_at je opcion/);
