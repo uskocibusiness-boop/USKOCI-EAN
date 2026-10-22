@@ -1,0 +1,47 @@
+name: P2 Dogovori visible-read regression
+on:
+  push:
+    branches:
+      - work/p2-agreements-visible-reads-20261022
+    paths:
+      - 'src/app/(app)/dogovori.tsx'
+      - 'src/ui/agreements/optionalReadScope.ts'
+      - 'src/ui/agreements/__tests__/optionalReadScope.test.ts'
+      - '.github/workflows/p2-agreements-visible-read-proof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: p2-visible-read-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: '1'
+      EXPO_PUBLIC_USE_FAKE_SOURCE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 1
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Locked install and exact source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci
+          git diff --check
+      - name: TypeScript
+        run: npx tsc --noEmit -p tsconfig.json
+      - name: Targeted Dogovori and Početna regressions
+        run: |
+          npx jest --runInBand --testTimeout=30000 --runTestsByPath \
+            src/ui/agreements/__tests__/optionalReadScope.test.ts \
+            src/ui/agreements/__tests__/agreementListModel.test.ts \
+            src/data/__tests__/v3-home-snapshot.test.ts
