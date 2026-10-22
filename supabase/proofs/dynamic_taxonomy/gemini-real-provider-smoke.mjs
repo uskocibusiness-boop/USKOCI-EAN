@@ -8,6 +8,7 @@ import ts from 'typescript';
 import assert from 'node:assert/strict';
 import { withGeminiClassificationShadowSchema } from '../../functions/_shared/classificationGeminiShadow.mjs';
 import { workerServiceModeSchema } from '../../functions/_shared/workerServiceModeContext.mjs';
+import { workerAreaRequestSchema } from '../../functions/_shared/workerAreaResolver.mjs';
 
 const workerPath='supabase/functions/uskoci-worker-interview/index.ts';
 const needPath='supabase/functions/uskoci-ai-interview/index.ts';
@@ -38,7 +39,13 @@ function evaluate(segments,expression) {
   return vm.runInNewContext(javascript+'\n'+expression,{}, {timeout:1500});
 }
 function schemas() {
-  const worker=evaluate([extract(workerPath,'workerProviderSchema','function')],'workerProviderSchema()');
+  // This isolated vm executes a function extracted from the REAL Edge handler.
+  // Supply the imported area schema from its canonical module, never a hand-rolled copy.
+  assert.match(fs.readFileSync(workerPath,'utf8'), /import \{ workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas \} from ['"]\.\.\/_shared\/workerAreaResolver\.mjs['"]/);
+  const worker=evaluate([
+    'const workerAreaRequestSchema = '+JSON.stringify(workerAreaRequestSchema)+';',
+    extract(workerPath,'workerProviderSchema','function')
+  ],'workerProviderSchema()');
   const need=evaluate([
     extract(registryPath,'NEED_FACT_V2_DEFINITIONS','variable'),
     extract(needPath,'DIALOGUE_VALUES','variable'),

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { serviceExecutionInstruction } from '../../functions/_shared/serviceExecutionInstruction.mjs';
 
 // Source-only integrity guard. Does NOT invoke Gemini, deploy an Edge function,
 // create a category or prove end-to-end dispatch.
@@ -16,8 +17,11 @@ test('retain real server Gemini conversation, not a template-only replacement', 
   assert.match(edge, /NEED_FACT_SCHEMA_V2/);
 });
 test('existing model proposes need.category from work meaning, not room or total size', () => {
-  assert.match(edge, /Za need\.category izdvojite stvarnu VRSTU USLUGE/);
-  assert.match(edge, /Ne ograničavajte legitimne nove vrste usluga na jedanaest starih grupa/);
+  // Rules moved to the canonical V2 instruction, not to a literal legacy sentence.
+  assert.match(edge, /need\.category je konkretna VRSTA USLUGE iz celog razgovora/);
+  assert.match(edge, /nezavisna od prostorije, kvadrature, komada, adrese, cene i datuma/);
+  assert.match(edge, /vrste usluga nisu zatvoren spisak starih grupa/);
+  assert.match(edge, /klasifikacije/i);
   assert.match(facts, /'need\.category': \{ valueType: 'TEXT'/);
   assert.match(facts, /'need\.required_skills': \{ valueType: 'TEXT_ARRAY'/);
 });
@@ -33,8 +37,12 @@ test('new bridge consumes old text interface and grants no job or send rights', 
 });
 
 test('the existing task AI keeps two execution roots and never guesses online from service label', () => {
-  assert.match(edge, /USKOČI ima DVE glavne grane zadataka: NA LOKACIJI ili NA DALJINU/);
-  assert.match(edge, /ne zaključuj režim samo iz need\.category/);
-  assert.match(edge, /predloži need\.task_geography\.mode=REMOTE bez polazišta/);
-  assert.match(edge, /ne prebacuj ga neprimetno u drugu granu/);
+  // Execution-mode authority now lives in one imported shared instruction.
+  assert.match(edge, /serviceExecutionInstruction\('NEED_SERVICE'\)/);
+  const modeContract = serviceExecutionInstruction('NEED_SERVICE');
+  assert.match(modeContract, /only ON_SITE and REMOTE are execution modes/);
+  assert.match(modeContract, /A profession name, tools, vehicle, administrative city or catalog modes alone do not establish the execution/);
+  assert.match(modeContract, /Do not silently replace physical work with advice/);
+  assert.match(modeContract, /REMOTE has no work pin or route/);
+  assert.match(modeContract, /Unknown handoff is a missing fact/);
 });
