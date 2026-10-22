@@ -40,7 +40,7 @@ test('candidate ARM64 baseline is pinned in OTA workflow and regression receipt'
   assert.equal(BASELINE, 'ababbdbcc70ee08df4408cfb318a5d028188d168');
   const workflow = fs.readFileSync(path.resolve(__dirname,
     '../../.github/workflows/dev-android-preview-ota-20261014.yml'), 'utf8');
-  const match = workflow.match(/^\\s*OTA_NATIVE_BASELINE:\\s*([a-f0-9]{40})\\s*$/m);
+  const match = workflow.match(/^\s*OTA_NATIVE_BASELINE:\s*([a-f0-9]{40})\s*$/m);
   assert.ok(match, 'preview OTA workflow must pin an exact 40-character baseline');
   assert.equal(match[1], BASELINE, 'workflow and runtime evidence must use the same SHA');
   assert.equal(verifyRegressionEvidence(evidence()).installedNativeBaseline, BASELINE);
