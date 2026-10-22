@@ -26,5 +26,9 @@ test('versioned DEV Need taxonomy review is additive, authenticated-only and leg
  const digest=versionedSql.indexOf("envelope:=envelope||jsonb_build_object('displayedContentDigest'");
  assert.ok(candidate>=0&&digest>candidate,'classification must be part of signed digest');
  assert.match(client,/EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW==='true'/);
- assert.match(client,/signedNeedReviewEnabled\(\)\?'rpc_prepare_ai_task_review_taxonomy':'rpc_prepare_ai_task_review'/);
+ // The deadline feature flag and signed-review feature flag choose separate
+ // reviewed endpoints. Legacy defaults remain available to older APKs.
+ assert.match(client,/deadlineFactEnabled\(\)/);
+ assert.match(client,/signedNeedReviewEnabled\(\) \? 'rpc_prepare_ai_task_review_deadline_taxonomy' : 'rpc_prepare_ai_task_review_deadline'/);
+ assert.match(client,/signedNeedReviewEnabled\(\) \? 'rpc_prepare_ai_task_review_taxonomy' : 'rpc_prepare_ai_task_review'/);
 });
