@@ -1,16 +1,30 @@
 {
   "kind": "OWNER_AUTHORIZED_DEV_PREVIEW_CHECKPOINT",
-  "attempt": 3,
-  "previousRun": 39163968732,
-  "checkpointReason": "Successful previous phone build is retained. New source checkpoint includes dead-code cleanup, bounded Home application counts and cancellation/integrity of Agreement reads.",
+  "attempt": 4,
+  "previousRun": 39627184837,
+  "checkpointReason": "Owner-approved Phase A exact-source Android regression after PR #37 OTA native-baseline fix. Previously successful ARM64 preview source ababbdbcc70ee08df4408cfb318a5d028188d168 is installed on HONOR Android 16; target this run is emulator x86_64, with same-source validation required before any preview OTA.",
   "project": "leqcwgzvjsxugfgzdmth",
   "workflow": ".github/workflows/build-latest-v5-preview-apk.yml",
   "sourceAuthority": "Exact triggering commit/tree recorded by the existing build workflow, not an old APK or mutable branch label",
   "defaultTarget": "emulator-x86_64",
-  "appliedMigrations": ["20261018201142", "20261018201253", "20261018201517"],
+  "appliedMigrations": [
+    "20261018201142",
+    "20261018201253",
+    "20261018201517"
+  ],
   "expectedReaderBodyMd5": "7c1d9a979585deae6c2bc2c1b9d597b1",
   "devReceipt": "docs/current/evidence/DEV_RELIABILITY_APPLICATION_20261018.json",
   "clientReceipt": "docs/current/evidence/HOME_READ_CONTINUATION_20261018.json",
-  "purpose": "Build the connected client for the current emulator QA target after local regression and read-only deployed-RPC count parity. Task and Agreement aggregates remain separate work.",
-  "notClaimed": ["successful build before run completes", "installation", "phone verification", "production release"]
+  "purpose": "Trigger the existing exact-source Android regression on current unified QA branch after accepted PR #37. No OTA dispatch, user-data changes or production actions.",
+  "notClaimed": [
+    "successful build before run completes",
+    "source equals last HEAD without the checkpoint commit",
+    "OTA publication",
+    "OTA reception on HONOR phone",
+    "production release"
+  ],
+  "ownerApprovedAt": "2026-10-22",
+  "preCheckpointHead": "3cce4aac66f8ca2a84ba7198e089ff8a631c1e18",
+  "nativeBaseline": "ababbdbcc70ee08df4408cfb318a5d028188d168",
+  "otaWorkflow": ".github/workflows/dev-android-preview-ota-20261014.yml"
 }
