@@ -47,29 +47,38 @@ export function canAcceptDirectClassification({ inspection, services, purpose, s
     inspection.issues.every(issue => issue?.code === 'EMPTY_CLASSIFICATION_SHADOW');
   if (purpose === 'NEED_SERVICE' && offered.size !== 1) return false;
   if (!inspection.statuses.length || inspection.statuses.some(status =>
-    !['REUSE_CANDIDATE', 'MODE_UNCONFIRMED', 'ASK_CLARIFICATION'].includes(status))) return false;
+    !['REUSE_CANDIDATE', 'MODE_UNCONFIRMED', 'ASK_CLARIFICATION', 'ADMISSION_REVIEW_REQUIRED', 'NEEDS_REVIEW'].includes(status))) return false;
 
   const questions = new Set();
+  let pendingReviewsCount = 0;
   for (const issue of inspection.issues) {
     const key = identity(issue?.service);
-    if (!object(issue) || !offered.has(key) || issue.resolution !== 'ASK_USER' ||
+    if (!object(issue) || !offered.has(key)) return false;
+    if (issue.code === 'ADMISSION_REVIEW_REQUIRED' && issue.resolution === 'PENDING') {
+      pendingReviewsCount++;
+      continue;
+    }
+    if (issue.code === 'NEEDS_REVIEW' && issue.resolution === 'PENDING') {
+      continue;
+    }
+    if (issue.resolution !== 'ASK_USER' ||
         !(issue.code === 'ASK_CLARIFICATION' && issue.action === 'ASK_CLARIFICATION' ||
           issue.code === 'MODE_UNCONFIRMED' && issue.mode === 'UNCONFIRMED')) return false;
     questions.add(key);
   }
-  if (inspection.statuses.length !== proposals.length + inspection.issues.length) return false;
+  if (inspection.statuses.length !== proposals.length + inspection.issues.length - pendingReviewsCount) return false;
 
   const byService = new Map(), pairs = new Set();
   for (const proposal of proposals) {
     const key = identity(proposal?.service), pair = `${key}|${proposal?.mode}`;
-    if (!object(proposal) || !offered.has(key) || proposal.action !== 'REUSE_EXISTING' ||
-        !mode(proposal.mode) || typeof proposal.categoryId !== 'string' || !proposal.categoryId ||
-        pairs.has(pair)) return false;
+    const validProposal = (proposal.action === 'REUSE_EXISTING' && typeof proposal.categoryId === 'string' && !!proposal.categoryId) || (proposal.action === 'CREATE_CHILD' && typeof proposal.parentId === 'string' && !!proposal.parentId && Array.isArray(proposal.proposedPath) && proposal.proposedPath.length > 0);
+    if (!object(proposal) || !offered.has(key) || !validProposal ||
+        !mode(proposal.mode) || pairs.has(pair)) return false;
     if (proposal.mode === 'REMOTE' ? !decodeServiceHandoff(proposal.handoff) : own(proposal, 'handoff')) return false;
     pairs.add(pair);
     const entries = byService.get(key) ?? []; entries.push(proposal); byService.set(key, entries);
   }
-  if ([...offered].some(key => !questions.has(key) && !byService.has(key))) return false;
+  if ([...offered].some(key => !questions.has(key) && !byService.has(key) && !inspection.issues.some(i => (i.code === 'ADMISSION_REVIEW_REQUIRED' || i.code === 'NEEDS_REVIEW') && identity(i?.service) === key))) return false;
 
   const expectedKeys = new Set();
   for (const expected of expectedServiceModes) {
@@ -89,7 +98,8 @@ export function canAcceptDirectClassification({ inspection, services, purpose, s
     }
   }
   if (purpose === 'NEED_SERVICE' && proposals.length) {
-    if (!mode(taskMode) || proposals.length !== 1 || proposals[0].mode !== taskMode) return false;
+    if (proposals.length !== 1 || !mode(proposals[0].mode)) return false;
+    if (taskMode !== null && proposals[0].mode !== taskMode) return false;
     if (taskMode === 'REMOTE' && !sameHandoff(taskHandoff, proposals[0].handoff)) return false;
   }
   return true;

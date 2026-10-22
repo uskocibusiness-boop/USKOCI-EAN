@@ -182,9 +182,12 @@ export async function createClassificationExplorer(rpc, options = {}) {
       const initialNodes = new Map(initialPages.flatMap(({page}) => page.items.map(row => [row.categoryId,row])));
       if (phase === 'direct') {
         const keys = new Set(seeds.map(normalizedClassificationIdentity));
+        let directCategories = keys.size > 0
+          ? [...initialNodes.values()].filter(row => [row.label,...row.aliases].some(value => keys.has(normalizedClassificationIdentity(value))))
+          : [...initialNodes.values()];
+        if (!directCategories.length) directCategories = [...initialNodes.values()];
         return JSON.stringify({ catalogVersion: version, catalogFingerprint: digest, complete: false,
-          classificationAuthority: 'NONE', categories: [...initialNodes.values()]
-            .filter(row => [row.label,...row.aliases].some(value => keys.has(normalizedClassificationIdentity(value))))
+          classificationAuthority: 'NONE', categories: directCategories
             .map(({categoryId,label,aliases,modes}) => ({categoryId,label,aliases,modes})) });
       }
       return JSON.stringify({ catalogVersion: version, catalogFingerprint: digest, complete: false,

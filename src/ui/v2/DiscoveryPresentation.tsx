@@ -4,7 +4,6 @@ import { AccessibilityInfo, ActivityIndicator, Animated as NativeAnimated, BackH
   type CellRendererProps, type NativeScrollEvent, type ViewToken } from 'react-native';
 import * as SafeArea from 'react-native-safe-area-context';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { BlurTargetView } from 'expo-blur';
 import { useIsFocused } from 'expo-router';
 import Animated, { runOnJS, useAnimatedReaction, useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { State as GestureState } from 'react-native-gesture-handler';
@@ -1487,7 +1486,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
 
   return <TaskAgeContext.Provider value={ageOf}><DistanceFromContext.Provider value={nearby.me}><SafeAreaView edges={['top']} style={s.screen}>
     {/* Search is this screen's header. Identity belongs to Home; the existing account/publication entries stay in Još. */}
-    <BlurTargetView ref={searchBlurTarget} testID="discovery-body" style={s.body} onLayout={event => { const next = Math.round(event.nativeEvent.layout.height); if (next > 0) setBodyHeight(next); }}>
+    <View ref={searchBlurTarget} testID="discovery-body" style={s.body} onLayout={event => { const next = Math.round(event.nativeEvent.layout.height); if (next > 0) setBodyHeight(next); }}>
       {/* The map is the whole screen at every height of the list. When the list is all the way up it covers the map and the map locks; a tap on what
           is left of it (a gap by the tools) lowers the list to half. */}
       <View testID="discovery-map-layer" style={StyleSheet.absoluteFill}>
@@ -1589,7 +1588,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         maxHeight={previewMaxHeight}
         onOpen={openItem} onShowPlace={showPlace} onClose={clearSelection}
         onHeight={next => setCardHeight(current => current === next ? current : next)} /> : null}
-    </BlurTargetView>
+    </View>
     {panel ? <DiscoverySearchPanel blurTarget={searchBlurTarget} items={items} view={view} mine={relations?.owned} now={now} mapArea={view.viewport?.bounds ?? null}
       mode={panel} reduced={reduced} readiness={readiness} p6Search={props.p6Seam?.search} recent={recents.items}
       placeScopeKey={props.scopeKey} appliedMapPlace={appliedMapPlace} onCenterPlace={centerOnConfirmedPlace} onOpenSearch={() => setPanel('search')}

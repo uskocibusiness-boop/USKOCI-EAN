@@ -418,7 +418,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           const answer = await generateGeminiToolConversation({
             url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
             key, body, signal: research!.signal, limits: { timeoutMs: Math.min(35000, remaining), accountingTimeoutMs: 3000 },
-            ...(devTaxonomyFlagP1('USKOCI_TAXONOMY_DIRECT_REPLY') && explorer.canTryDirectReply() ? {
+            ...(devTaxonomyFlagP1('USKOCI_TAXONOMY_DIRECT_REPLY') ? {
               directFirst: { systemParts: systemParts('direct'), accept: async (candidateRaw: string) => {
                 await verifyReply(candidateRaw);
                 const prepared = analyzeOutput(candidateRaw);

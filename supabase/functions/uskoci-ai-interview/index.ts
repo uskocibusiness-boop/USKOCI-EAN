@@ -449,7 +449,7 @@ function commonInstruction() {
     'Jedinstveno pravilo pitanja: tražite najviše TRI zasebne informacije u jednoj poruci, kroz najviše tri kratka, povezana pitanja. Brojite informacije koje osoba treba da odgovori, ne rečenice ili upitnike: površina poda ili zidova + gletovanje + deo grada + dan + budžet jesu PET informacija, čak i u dve rečenice. Jedno pitanje traži jednu informaciju; ponuđene alternative za istu informaciju ne povećavaju broj. Ne skrivajte dodatna pitanja u zagradama, nabrajanju ili rečenici bez upitnika. Svako pitanje jasno odvojite. Najpre razjasnite ono što menja vrstu/obim rada ili sprečava ispravan pregled, mesto i termin; opcione detalje ostavite za kasnije. Ako nedostaje samo jedan podatak, pitajte samo za njega; ako je sve jasno, ne izmišljajte novo pitanje. Delimičan odgovor sačuvajte i sledeći put tražite samo preostale informacije. To što osoba nije odgovorila na jedno pitanje ne poništava ostale odgovore.',
     'Ako korisnik ispravlja raniji podatak, predložite novu vrednost istog ključa. Server čuva supersession istoriju.',
     'Nikada ne izmišljajte cenu, vreme, lokaciju, sprat, lift, broj ljudi, vozilo, dozvolu ili drugi materijalni uslov.',
-    'Broj predmeta nije broj izvršilaca. Treba mi prevoz stola, treba mi neko i tri figurice sami po sebi ne određuju need.people_needed=1 ili 3. Bez izričito navedenog ili prethodno poznatog broja ljudi izostavite tu činjenicu i kratko pitajte koliko ljudi treba. Ne upisujte uobičajenu pretpostavku kao da ju je korisnik rekao.',
+    'Broj predmeta nije broj izvršilaca: na primer prevoz stola, tri stolice ili tri figurice sami po sebi ne određuju broj radnika (need.people_needed). Za uobičajene zanatske, kućne, popravne i lične zadatke (krečenje, popravka, čišćenje, servis, časovi), podrazumeva se 1 izvršilac ako korisnik ne traži više ljudi ili veću ekipu. Ako korisnik sam navede broj (npr. trebaju mi dvojica), zapišite taj broj. Za poslove gde je broj ljudi neizvestan a može biti bitan (npr. selidbe teških stvari), pitajte prirodno u sklopu razgovora o obimu. Nemojte započinjati razgovor hladnim ili izolovanim pitanjem koliko ljudi treba.',
     'Licence i sertifikati nisu uslov koji ovaj proizvod proverava ili koristi za izbor osobe. Ne pitajte za njih i ne predlažite need.required_licenses. Ako korisnik traži takav uslov, jasno objasnite da aplikacija ne podržava njegovu proveru; ne prenosite ga u druge uslove, veštine, naslov ili opis kao podržan filter. Ne tvrdite da je neko kvalifikovan ili zakonski ovlašćen. Sačuvani istorijski podaci nisu dozvola da ponovo uvodite taj uslov.',
     'nextCalendarWeek je serverski izračunata SLEDEĆA kalendarska nedelja u Srbiji: startsAt je ponedeljak u ponoć, endsAt naredni ponedeljak u ponoć (isključiva granica), inclusiveLastDate poslednji uključeni dan — nedelja. Za prikaz ljudima koristite početni datum i inclusiveLastDate, nikada datum isključivog endsAt kao uključeni poslednji dan: 19.10. do isključivo 26.10. u 00:00 znači od 19. do 25. oktobra, ne 19–26. Koristite te tačne granice samo kada korisnik zaista traži fleksibilno izvršenje naredne nedelje; to nije podrazumevani termin, dogovoreni sat niti potvrda. Pomaci obe granice mogu se razlikovati zbog promene računanja vremena; nikada ne kopirajte današnji utcOffset na buduće datume. Ostale datume ne zamenjujte ovim periodom.',
     'Novi timestamp predlozi za lokalni termin u Srbiji moraju predstavljati stvarni lokalni datum i sat u Europe/Belgrade sa pomakom koji važi baš tada, uključujući promenu računanja vremena. Doslovan ISO timestamp koji korisnik izričito navede sa Z ili drugim pomakom sačuvajte tačno kao navedeni instant, uz isti doslovni timestamp u evidence. Ako je relevantna druga zona, a nije jasno kako se termin odnosi na lokalno vreme zadatka, razjasnite je; nemojte sami pomerati termin.',
@@ -483,10 +483,11 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     'Sastavite kratak, smislen need.title iz jasnog posla. Need.description je neutralna sinteza poznatog iz razgovora, bez novih uslova. I uz CLARIFY za način rada u facts sačuvajte jasan obim, materijal i grad, kao i ostale nezavisne činjenice. Iz opisa izostavite nerešen fizički/REMOTE izbor i preciznu adresu; ona pripada samo need.exact_address.',
     'Sačuvajte stvarni posao i poznatu predaju. Ne ponavljajte cenu i datume koji već imaju strukturirana polja. Pri izmeni uklonite staro ponavljanje iz opisa uz očuvane ostale detalje; to ne povlači niti menja vremenska/cenovna polja. Raspon u odgovoru prikazuje poslednji uključeni dan; isključiva ponoć narednog dana nije dodatni dan rada.',
     'Za obične atomske činjenice evidence je kratak citat korisnika. Za naslov/opis koji su sinteza, evidence može biti kratko: "Sinteza potvrđenih činjenica i razgovora".',
-    "need.category je konkretna VRSTA USLUGE iz celog razgovora (radnja + predmet), nezavisna od prostorije, kvadrature, komada, adrese, cene i datuma: krečenje sobe/stana -> krečenje zidova. U need.category upišite SAMO naziv konkretne usluge, bez nadkategorije/putanje/prefiksa: 3D printovanje, ne Digitalne usluge / 3D printovanje. Ispravite staru putanju na konkretan naziv kada je poznat. Promena obima nije nova kategorija. Krečenje i gletovanje mogu biti posebne kompetencije; farbanje automobila nije krečenje zidova. Klasifikacija i kanonsko imenovanje slede classificationShadowJson ugovor. Ako trebaju nove grane, predložite ih samo u classificationShadowJson, nikada u need.category; vrste usluga nisu zatvoren spisak starih grupa.",
+    "need.category je konkretna VRSTA USLUGE iz celog razgovora (radnja + predmet), nezavisna od prostorije, kvadrature, komada, adrese, cene i datuma: krečenje sobe/stana -> krečenje zidova. U need.category upišite SAMO naziv konkretne usluge, bez nadkategorije/putanje/prefiksa: 3D printovanje, ne Digitalne usluge / 3D printovanje. Ispravite staru putanju na konkretan naziv kada je poznat. Promena obima nije nova kategorija. Krečenje i gletovanje mogu biti posebne kompetencije; farbanje automobila nije krečenje zidova. Klasifikacija i kanonsko imenovanje slede classificationShadowJson ugovor. Ako je vrsta usluge nova, u classificationShadowJson predložite akciju CREATE_CHILD sa parentId postavljenim na odgovarajući postojeći root (npr. Zanati i popravke, Sitne popravke, Fizički poslovi, Čišćenje, Digitalne usluge) i proposedPath=[service], nikada u need.category; vrste usluga nisu zatvoren spisak starih grupa.",
     'Iz dovoljno jasnog opisa predložite i nedostajuću need.category: kratak naziv stvarno opisane vrste zadatka, bez novih uslova i bez opšteg rezervnog naziva poput ostalo. Kategorija je interni podatak; ne pitajte korisnika za kategoriju. Ako opis nije jasan, pitajte šta konkretno treba uraditi. Pre REVIEW proverite i naslov i kategoriju. Ako korisnik samo završava razgovor, a već postoji jasan need.description, možete dopuniti samo nedostajući naslov ili kategoriju uz evidence koji je doslovan isečak tog postojećeg opisa; ne menjajte nijedan postojeći podatak i ne dodajte materijalne uslove iz komande završetka.',
     'dialogue opisuje sledeći korak, nije nova činjenica. next: ASK samo za nedostajući podatak, CLARIFY za stvarnu dvosmislenost, REVIEW za završetak i prelazak na pregled, ACK za izmenu bez pitanja, ANSWER kada korisnik traži objašnjenje. questionKey je tačan ključ najvažnijeg nedostajućeg podatka za ASK, inače NONE; dodatna pitanja ne menjaju taj postojeći ugovor. Ne birajte ASK za već poznat podatak.',
-    "Ne obećavajte pronađenu mapu, tačne koordinate ili izvršioca. Ne otvarate ekrane: recite da korisnik može da otvori pregled, ne da ste ga otvorili. Ne pozdravljajte ponovo: prvi pozdrav je statički prikazan na telefonu, bez AI poziva.",
+    "Ne obećavajte pronađenu mapu, tačne koordinate ili izvršioca. Ne otvarate ekrane: recite da korisnik može da otvori pregled, ne da ste ga otvorili. Kada korisnik započne razgovor pozdravom (npr. 'ćao', 'pozdrav', 'zdravo', 'dobar dan'), uzvratite toplo i prirodno (npr. 'Pozdrav! Rado ću ti pomoći oko...') uz prvo prirodno pitanje. U toku daljeg razgovora nemojte ponavljati pozdrav u svakoj poruci.",
+    'Vodite razgovor lepo, polako i opušteno, navodeći korisnika korak po korak: 1) Obim i opis posla (šta se tačno radi, okvirna kvadratura ili prostor, priprema/materijal); 2) Lokacija (grad i kvart / deo grada ili orijentir); 3) Termin (kada bi odgovaralo da se uradi — datum, okvirno ili fleksibilno); 4) Budžet (da li nudi određen iznos u dinarima ili želi da dobije ponude majstora). Ne prelazite na REVIEW pre nego što su poznati obim, lokacija, termin i budžet/ponude, osim ako korisnik izričito sam ne zatraži pregled ("to je to", "gotovo", "objavi"). Uvek postavljajte najviše jedno do dva smislena, povezana pitanja po poruci.',
     'Pitajte ono što je korisno za stvarni posao, prema jedinstvenom pravilu pitanja. Kod krečenja razlika između površine poda i zidova može biti važna za procenu; gletovanje i materijal nisu obavezan upitnik. Ako je već rečeno Materijal imam, ne pitajte ko kupuje boju. Za selidbu detalji poput sprata, lifta ili gabarita imaju smisla samo ako menjaju obim. Ne insistirajte na opcionim detaljima ako ih korisnik ne zna ili želi da ih dogovori direktno sa radnikom.',
     'Ako je stacionarni posao poznat samo po gradu, pitajte prirodno za ulicu, kvart ili obližnji orijentir pre tvrdnje da je unos spreman za pregled. Korisnik ne mora navesti kućni broj: privatni need.exact_address može biti doslovno navedena ulica ili orijentir, samo da pokrene predlog na mapi, koji osoba zasebno potvrđuje. Nikada ne izmišljajte ulicu, broj ili koordinate.',
     'Fleksibilan dan UNUTAR navedenog perioda nije isto što i bilo kada. Naredne/sledeće nedelje, narednih sedam dana ili između dva datuma ne smeju postati FLEXIBLE bez granica, REMOTE_ANYTIME bez granica ili WEEK_FLEXIBLE. WEEK_FLEXIBLE znači samo ovu kalendarsku nedelju. Za ograničen fleksibilan period koristite FLEXIBLE sa need.starts_at i need.ends_at koji predstavljaju granice mogućeg izvršenja, ne zakazan početak, trajanje ili rezervaciju celog perioda. Jasno navedene cele datume/nedelju možete predstaviti od lokalne ponoći prvog dana do isključive lokalne ponoći posle poslednjeg dana, sa vremenskim pomakom koji važi za svaki datum (promena sata može biti između granica). Relativnu nedelju računajte iz serverskog datuma i prikažite konkretne datume u odgovoru/pregledu. Ako period nije jasan, pitajte od kog do kog datuma; ne birajte samovoljno jedan dan ili čas. Narednih sedam dana nije nužno naredna kalendarska nedelja. Sačuvajte ograničenje i kada osoba kasnije odgovori samo za cenu ili mesto; termin nije razjašnjen time što je ostao u opisu. Ako raniji FLEXIBLE nema granice, a iz razgovora je jasno da period postoji, dopunite granice ili razjasnite period. Za druge vrste posla ne pitajte molerske detalje.',
@@ -771,26 +772,29 @@ async function callGemini(
       }
       const {handoff:proposedHandoff,...rest}=hint;
       if(hint.mode!=='REMOTE'||geography&&geography.mode!=='REMOTE')return [rest];
-      if(Object.hasOwn(hint,'handoff')&&(!handoff||
-          JSON.stringify(decodeServiceHandoff(proposedHandoff))!==JSON.stringify(handoff))){
+      const effectiveHandoff = handoff ?? { required: false };
+      const decodedProposed = decodeServiceHandoff(proposedHandoff);
+      if(Object.hasOwn(hint,'handoff')&&(decodedProposed && JSON.stringify(decodedProposed)!==JSON.stringify(effectiveHandoff))){
         const issue={service:hint.service,mode:hint.mode,action:hint.action,code:'HANDOFF_SOURCE_MISMATCH',
           resolution:'RETRY',question:null};
         checked.issues=[...('issues' in checked?checked.issues:[]),issue];
         return [];
       }
-      return [{...rest,...(handoff?{handoff}:{})}];
+      return [{...rest,...(handoff?{handoff}:{handoff:{required:false}})}];
     });
     const feedback=classificationTurnFeedback(checked,{purpose:'NEED_SERVICE',
       services:typeof category==='string'?[category]:[],catalogAvailable:!!taxonomyCatalog,readyForReview:turn.dialogue?.next==='REVIEW'});
     // A catalog failure keeps the useful typed answer unresolved. It must not
     // spend another model call trying to repair unavailable/stale evidence.
-    directAccepted = !taxonomyCatalog || ['DIFFERENT_TASK','UNCLEAR'].includes(parsedTurn.dialogue?.taskRelation ?? '') || canAcceptDirectClassification({
+    const isChatTurn = ['ASK', 'CLARIFY', 'ANSWER', 'ACK'].includes(parsedTurn.dialogue?.next ?? '') && turn.safety === 'ALLOW';
+    const categoryProposedInTurn = turn.proposals.some((p: any) => p.key === 'need.category');
+    const directClassificationOk = !categoryProposedInTurn || canAcceptDirectClassification({
       inspection: checked, purpose: 'NEED_SERVICE', safety: turn.safety,
       services: typeof category === 'string' ? [category] : [],
       taskMode: geography?.mode === 'REMOTE' ? 'REMOTE' : geography ? 'ON_SITE' : null,
-      taskHandoff: handoff,
+      taskHandoff: geography?.mode === 'REMOTE' ? (handoff ?? { required: false }) : handoff,
     });
-    onClassificationHints?.(checked.reviewProposals,feedback,taxonomyCatalog);
+    directAccepted = !taxonomyCatalog || ['DIFFERENT_TASK','UNCLEAR'].includes(parsedTurn.dialogue?.taskRelation ?? '') || isChatTurn || (turn.safety === 'ALLOW' && directClassificationOk);
     return turn;
   };
   // Stable rules precede private per-turn data. This permits provider prefix
@@ -819,7 +823,7 @@ async function callGemini(
         url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
         key, body: payloadBody, signal, ...providerBudget,
         limits: { maxRequestBytes: AI_TEST_LIMITS.llmRequestBytes, timeoutMs: Math.max(1,researchTimeoutMs), accountingTimeoutMs: 3000 },
-        ...(devTaxonomyFlagP1('USKOCI_TAXONOMY_DIRECT_REPLY') && taxonomyExplorer.canTryDirectReply() ? {
+        ...(devTaxonomyFlagP1('USKOCI_TAXONOMY_DIRECT_REPLY') ? {
           directFirst: { systemParts: systemParts('direct'), accept: async (raw: string) => {
             const turn = await parseOutput(JSON.parse(raw));
             if (directAccepted) directResult = { raw, turn };
@@ -1237,7 +1241,8 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     const needsPlaceDetail = dialogue.questionKey === 'need.task_geography' && (cityOnlyStationary || !!incompleteRoutePoint);
     const clarifyingApplicationDeadline = applicationDeadlineEnabled() && dialogue.questionKey === 'need.response_deadline'
       && !facts.has('need.response_deadline') && (pendingDeadlineQuestion || /prijav|konkuri|javlj/iu.test(input));
-    if (!missing.includes(dialogue.questionKey) && !needsPlaceDetail && !clarifyingApplicationDeadline) {
+    const askingAlreadyKnown = activeFacts.some(f => f.fact_key === dialogue.questionKey && f.status !== 'UNKNOWN' && !proposals.some(p => p.key === dialogue.questionKey));
+    if (askingAlreadyKnown && !needsPlaceDetail && !clarifyingApplicationDeadline) {
       assistantMessage = missing.length ? incompleteMessage() : nextPlaceMessage;
     }
   } else if (dialogue?.next === 'REVIEW' && missing.length) {
