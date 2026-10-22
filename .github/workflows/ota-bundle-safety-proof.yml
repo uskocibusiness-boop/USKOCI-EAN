@@ -1,51 +1,45 @@
-# One-time operational bridge for the previously approved DEV preview OTA only.
-# Runs from an isolated operations branch; the protected publication workflow
-# still performs its full exact-source regression, native and EAS environment gates.
-name: One-time approved DEV preview OTA dispatch
+name: OTA bundle runtime and feature safety
 on:
-  push:
-    branches: [operations/phase-a-preview-ota-20261022]
+  pull_request:
     paths:
+      - 'scripts/ota-release-preflight.cjs'
+      - 'scripts/ota-regression-evidence.cjs'
+      - 'scripts/__tests__/ota-regression-evidence.test.cjs'
+      - '.github/workflows/dev-android-preview-ota-20261014.yml'
+      - 'scripts/__tests__/ota-release-preflight.test.cjs'
+      - 'scripts/ota-preview-guard.cjs'
+      - 'app.config.js'
+      - 'app.json'
+      - 'eas.json'
+      - 'package.json'
+      - '.github/workflows/ota-bundle-safety-proof.yml'
+  push:
+    branches: [fix/match-ai-category-fallback-20261010]
+    paths:
+      - 'scripts/ota-release-preflight.cjs'
+      - 'scripts/__tests__/ota-release-preflight.test.cjs'
+      - 'scripts/ota-preview-guard.cjs'
+      - 'app.config.js'
+      - 'app.json'
+      - 'eas.json'
+      - 'package.json'
       - '.github/workflows/ota-bundle-safety-proof.yml'
 permissions:
   contents: read
-  actions: write
 jobs:
-  dispatch-approved-preview:
-    if: >-
-      ${{ github.repository == 'uskocibusiness-boop/USKOCI-EAN' && github.ref == 'refs/heads/operations/phase-a-preview-ota-20261022' && github.event.head_commit.message == 'ops: invoke owner-approved exact-source DEV preview OTA' }}
+  verify-preview-contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
-    env:
-      GH_TOKEN: ${{ github.token }}
-      GH_REPO: ${{ github.repository }}
-      TARGET_SHA: fcef803e719ba5663f6cfd8fbd5a601e08a3479b
-      TARGET_BRANCH: feature/unified-qa-master-20261017
-      REGRESSION_RUN_ID: '39781869336'
+    timeout-minutes: 5
     steps:
-      - name: Verify exact master and successful source-locked regression
-        shell: bash
-        run: |
-          set -euo pipefail
-          sha="$(gh api "repos/$GH_REPO/git/ref/heads/$TARGET_BRANCH" --jq '.object.sha')"
-          test "$sha" = "$TARGET_SHA" || { echo "::error::source moved; refusing dispatch"; exit 1; }
-          gh api "repos/$GH_REPO/actions/runs/$REGRESSION_RUN_ID" \
-            | jq -e --arg sha "$TARGET_SHA" --arg branch "$TARGET_BRANCH" --arg repo "$GH_REPO" \
-              '.head_sha==$sha and .head_branch==$branch and .path==".github/workflows/build-latest-v5-preview-apk.yml" and .status=="completed" and .conclusion=="success" and .event=="push" and .repository.full_name==$repo and .head_repository.full_name==$repo'
-          gh api "repos/$GH_REPO/actions/runs/$REGRESSION_RUN_ID/jobs?filter=latest&per_page=100" \
-            | jq -e --arg sha "$TARGET_SHA" \
-              '[.jobs[] | select(.name=="android" and .head_sha==$sha and .status=="completed" and .conclusion=="success") | .steps[] | select(.status=="completed" and .conclusion=="success") | .name] | (index("Full regression suite")!=null and index("TypeScript")!=null and index("Current source ownership")!=null)'
-      - name: Dispatch protected existing workflow exactly once
-        shell: bash
-        run: |
-          set -euo pipefail
-          if gh api "repos/$GH_REPO/actions/workflows/dev-android-preview-ota-20261014.yml/runs?event=workflow_dispatch&per_page=60" \
-              | jq -e --arg sha "$TARGET_SHA" 'any(.workflow_runs[]; .head_sha==$sha and .path==".github/workflows/dev-android-preview-ota-20261014.yml")' >/dev/null; then
-            echo "An OTA dispatch already exists for this immutable SHA; not triggering a duplicate."
-            exit 0
-          fi
-          gh api -X POST "repos/$GH_REPO/actions/workflows/dev-android-preview-ota-20261014.yml/dispatches" \
-            -f "ref=$TARGET_BRANCH" \
-            -f "inputs[source_sha]=$TARGET_SHA" \
-            -f "inputs[regression_run_id]=$REGRESSION_RUN_ID"
-          echo "Requested protected DEV preview OTA for exact SHA $TARGET_SHA, regression $REGRESSION_RUN_ID."
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Check preview OTA plan without bundling or publishing
+        run: node scripts/ota-release-preflight.cjs --target preview --plan-only
+      - name: Negative tests for OTA runtime, flags and DEV production target
+        run: node --test scripts/__tests__/ota-release-preflight.test.cjs
+      - name: Exact native baseline and regression proof consistency
+        run: node --test scripts/__tests__/ota-regression-evidence.test.cjs
