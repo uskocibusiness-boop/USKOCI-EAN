@@ -1,0 +1,37 @@
+name: PKG1A read-only migration evidence
+on:
+  push:
+    branches: [work/pkg1a-provenance-20261022]
+    paths:
+      - 'scripts/pkg1a_audit.mjs'
+      - 'scripts/__tests__/pkg1a_audit.test.mjs'
+      - 'supabase/migrations/MIGRATION_PROVENANCE.json'
+      - 'supabase/operations/dev-alpha/ledger/20261021104742_closure_executor_rollback_probe.sql.txt'
+      - 'supabase/operations/dev-alpha/ledger/20261022_pkg1a_readonly_receipt.json'
+      - '.github/workflows/pkg1a-provenance-readonly.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 1
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Verify exact checkout and script syntax
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git diff --check
+          node --check scripts/pkg1a_audit.mjs
+      - name: Offline provenance audit, no live database access
+        run: node scripts/pkg1a_audit.mjs
+      - name: Offline tamper and closure-safety tests
+        run: node --test scripts/__tests__/pkg1a_audit.test.mjs
