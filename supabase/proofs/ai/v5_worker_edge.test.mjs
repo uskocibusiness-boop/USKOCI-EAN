@@ -81,6 +81,9 @@ test('worker Gemini prompt asks one question while preserving area, availability
  const rule=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
  assert.match(rule,/Jedno korisno pitanje po poruci/);
  assert.match(rule,/Ask at most ONE short question per reply/);
+ assert.match(rule,/experienced, warm craft and work-profile mentor/);
+ assert.match(rule,/what the person CAN and WANTS to do/);
+ assert.doesNotMatch(rule,/iskusan poslovođa i savetnik naručioca/);
  assert.doesNotMatch(rule,/at most THREE/);
  assert.match(rule,/Novi Sad i Beograd means two CITY entries/);
  assert.match(rule,/Only explicit Sačuvaj profil in the review applies the changes/);

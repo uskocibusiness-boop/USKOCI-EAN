@@ -12,6 +12,16 @@ on:
       - '.github/workflows/ai-interview-one-question-proof.yml'
   pull_request:
     paths:
+      - 'jest.config.cjs'
+      - 'scripts/__tests__/firebase-config.test.ts'
+      - 'supabase/functions/_shared/**'
+      - 'supabase/proofs/ai/**'
+      - 'supabase/functions/_shared/interviewVoiceInstruction.mjs'
+      - 'supabase/functions/uskoci-ai-interview/index.ts'
+      - 'supabase/functions/uskoci-worker-interview/index.ts'
+      - 'supabase/proofs/ai/interview_voice_one_question.test.mjs'
+      - 'supabase/proofs/ai/ai_edge_context.test.mjs'
+      - 'supabase/proofs/ai/v5_worker_edge.test.mjs'
       - 'supabase/proofs/ai/v5_ai_stream.test.mjs'
       - '.github/workflows/ai-interview-one-question-proof.yml'
   workflow_dispatch:
@@ -43,12 +53,8 @@ jobs:
           git diff --check
       - name: Full TypeScript
         run: npx tsc --noEmit -p tsconfig.json
-      - name: Shared voice and exact-source mocked Edge tests
+      - name: All AI source, provider boundary and mocked Edge tests
         run: |
-          node --test \
-            supabase/proofs/ai/interview_voice_one_question.test.mjs \
-            supabase/proofs/ai/ai_edge_context.test.mjs \
-            supabase/proofs/ai/v5_worker_edge.test.mjs \
-            supabase/proofs/ai/v5_ai_stream.test.mjs
+          node --test --test-concurrency=3 supabase/proofs/ai/*.test.mjs
       - name: Full mobile Jest regression
         run: npx jest --maxWorkers=3 --testTimeout=30000

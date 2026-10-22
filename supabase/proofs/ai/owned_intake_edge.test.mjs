@@ -46,7 +46,12 @@ test('verified Auth identity and owned context drive same stable command through
  assert.equal(new Headers(claim.init.headers).get('Authorization'),'Bearer SYNTHETIC_SERVICE');
  assert.equal(completes(f)[0].body.p_attempt_id,attemptId);assert.equal(completes(f)[0].body.p_client_request_id,key);
  assert.ok(!f.calls.some(x=>x.url.endsWith('/rpc_ai_apply_interview_turn_v2_service')));
- assert.ok(!JSON.stringify(providers(f)[0].body).includes(account));assert.deepEqual(f.logs,[]);
+ assert.ok(!JSON.stringify(providers(f)[0].body).includes(account));
+ // The current owner emits count-only completion timing. Admit exactly that
+ // record, retaining a closed log shape rather than ignoring arbitrary logs.
+ assert.equal(f.logs.length,1);const timing=f.logs[0];assert.equal(timing.length,4);
+ assert.deepEqual([timing[0],timing[1],timing[3]],['AI_PHASE_MS','NEED_COMPLETE','SUCCEEDED']);
+ assert.ok(Number.isSafeInteger(timing[2])&&timing[2]>=0);
 });
 for(const state of ['SUCCEEDED','PROCESSING','FAILED'])test(`durable ${state} claim readback invokes no provider or completion`,async()=>{
  const f=fixture({claim:()=>json({turn:turn(state),claim:null})});const response=await f.invoke();

@@ -65,6 +65,7 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
       if(failure==='runtime')throw new (realm('TypeError'))('error sending request for url SYNTHETIC_GEMINI_KEY '+userText);
       if(failure==='http')return new Response('PRIVATE_PROVIDER_OUTPUT',{status:429});
       if(failure==='json')return new Response('PRIVATE_PROVIDER_OUTPUT '+userText+' SYNTHETIC_GEMINI_KEY',{status:200});
+      if(failure==='safety')return json({promptFeedback:{blockReason:'SAFETY'}});
       const result=providerOutput??(schema==='NEED_FACT_V2'?providerResult:{safety:'ALLOW',assistantMessage:'Potreban je pregled.',facts:[]});
       const output=failure==='output'?'PRIVATE_PROVIDER_OUTPUT '+userText:JSON.stringify(withDialogue(result));
       return url.includes('googleapis')?json({candidates:[{content:{parts:[{text:output}]}}]}):json({output_text:output});
@@ -102,6 +103,15 @@ const materialWrites=f=>f.calls.filter(call=>/\/(?:rpc_ai_complete_need_turn_v2_
 const prompt=call=>call.body.systemInstruction?.parts.map(p=>p.text).join('\n')??call.body.instructions;
 const timeContext=call=>JSON.parse(prompt(call).match(/Serverski vremenski kontekst za trenutni unos u Srbiji: (\{.+?\})\./)[1]);
 
+test('provider refusal fails the owned attempt without a persistent conversation BLOCK',async()=>{
+ const f=fixture({failure:'safety'});
+ assert.equal((await f.invoke()).status,502);
+ assert.equal(materialWrites(f).length,0);
+ assert.equal(f.calls.filter(c=>c.url.endsWith('/rpc_ai_fail_need_turn_v2_service')).length,1);
+ assert.equal(f.calls.filter(c=>c.url.includes('googleapis')).length,1);
+ assert.ok(!f.calls.some(c=>/publish|commit_admission|push/.test(c.url)));
+});
+
 test('stable task rules precede fresh private context without dropping it or sharing facts',async()=>{
  const a=fixture({now:'2026-10-19T08:00:00.000Z',activeFacts:[semanticFact('need.title','PRIVATE_FIRST_TASK')]});
  const b=fixture({now:'2026-10-20T08:00:00.000Z',activeFacts:[semanticFact('need.title','PRIVATE_SECOND_TASK')]});
@@ -120,6 +130,10 @@ test('requester Gemini prompt asks only one missing fact and retains safety/revi
  const rules=prompt(providerCall(f));
  assert.match(rules,/najviše JEDNU nepoznatu informaciju/);
  assert.match(rules,/Jedno korisno pitanje po poruci/);
+ assert.match(rules,/iskusan poslovođa i savetnik naručioca/);
+ assert.match(rules,/ako površina nije navedena, pitajte približnu kvadraturu/);
+ assert.match(rules,/SVE jasne činjenice/);
+ assert.doesNotMatch(rules,/experienced, warm craft and work-profile mentor/);
  assert.doesNotMatch(rules,/najviše TRI zasebne informacije/);
  assert.match(rules,/Tačna privatna adresa\/access notes/);
  assert.match(rules,/ends_at je opcion/);
@@ -851,6 +865,22 @@ for(const [questionKey,message] of [
  assert.equal((await f.invoke({text:'SYNTHETIC_PARTIAL_ROUTE_OR_TIME'})).status,200);
  assert.equal(materialWrites(f)[0].body.p_assistant_message,message);
  assert.deepEqual(materialWrites(f)[0].body.p_proposals,[]);
+});
+
+test('known job description may ask ONE scope clarification without being replaced by budget question',async()=>{
+ const question='Da li se približnih 60 m² odnosi na površinu poda stana ili zidova koje treba okrečiti?';
+ const f=fixture({activeFacts:[semanticFact('need.description','Krečenje stana površine oko 60 m².'),semanticFact('need.people_needed',1)],
+  providerOutput:{safety:'CLARIFY',assistantMessage:question,facts:[],
+   dialogue:{...syntheticDialogue(),next:'CLARIFY',questionKey:'NONE'}}});
+ assert.equal((await f.invoke({text:'Treba da okrečim stan od 60 kvadrata.'})).status,200);
+ const written=materialWrites(f)[0].body;
+ assert.equal(written.p_assistant_message,question);
+ assert.deepEqual(written.p_proposals,[]);
+ assert.equal(written.p_safety,'CLARIFY');
+ const instruction=prompt(providerCall(f));
+ assert.match(instruction,/obim konkretno opisanog posla ostaje dvosmislen/);
+ assert.match(instruction,/dialogue.next CLARIFY sa questionKey NONE/);
+ assert.equal(providerCalls(f).length,1);
 });
 
 test('a direct explanation is preserved while location remains missing',async()=>{

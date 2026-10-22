@@ -418,6 +418,35 @@ for(const registered of [true,false])test(`Need actual handler captures only ser
  assert.ok(!f.calls.some(c=>/ensure_path|commit_admission|publish|push/.test(c.url)));
 });
 
+for(const taxonomy of [false,true]) for(const payload of [
+ {promptFeedback:{blockReason:'SAFETY'}},
+ {candidates:[{finishReason:'SAFETY'}]},
+ {candidates:[{safetyRatings:[{blocked:true}],finishReason:'STOP',content:{role:'model',parts:[{text:JSON.stringify(withDialogue({safety:'ALLOW',assistantMessage:'Ne sme biti prihvaćeno.',facts:[]}))}]}}]},
+])test(`provider refusal does not persist BLOCK; catalog=${taxonomy}`,async()=>{
+ const service='Izrada digitalnih maketa';
+ const f=fixture({env:taxonomy?{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true'}:{},
+  activeFacts:[activeFact('need.category',service),activeFact('need.task_geography',{mode:'REMOTE'},'OBJECT')],
+  catalog:body=>oneNodeCatalog(body,{categoryId:id(20),parentId:null,label:service,aliases:[],path:[service],isLeaf:true}),
+  provider:()=>{const response={...payload,usageMetadata:{promptTokenCount:100,candidatesTokenCount:0,totalTokenCount:100}};
+    return taxonomy?json(response):new Response('data: '+JSON.stringify(response)+'\n\n',
+      {headers:{'Content-Type':'text/event-stream'}});}});
+ const es=await events(f);
+ assert.equal(es.at(-1).kind,'safe_error');
+ assert.ok(!es.some(e=>e.kind==='text_delta'||e.kind==='final'));
+ assert.equal(writes(f).length,0);assert.equal(failures(f).length,1);
+ assert.equal(providers(f).length,1);
+ assert.match(providers(f)[0].url,taxonomy ? /:generateContent$/ : /:streamGenerateContent\?alt=sse$/);
+ assert.ok(!f.calls.some(c=>/publish|commit_admission|push/.test(c.url)));
+});
+
+test('a validated policy BLOCK remains authoritative and has no proposed facts',async()=>{
+ const f=fixture({output:{safety:'BLOCK',assistantMessage:'Ne mogu da pomognem sa tim zahtevom.',facts:[]}});
+ const es=await events(f);
+ assert.equal(es.at(-1).kind,'final');assert.equal(writes(f).length,1);
+ assert.equal(writes(f)[0].body.p_safety,'BLOCK');assert.deepEqual(writes(f)[0].body.p_proposals,[]);
+ assert.equal(failures(f).length,0);
+});
+
 for(const diagnostics of [false,true]) for(const status of [402,429])
 test(`SSE provider ${status}, diagnostics=${diagnostics}: one safe terminal error, no prose or successful receipt`,async()=>{
  const f=fixture({headers:diagnostics?{'x-client-info':'uskoci-app/ai-availability-v1'}:{},
