@@ -12,6 +12,12 @@ on:
       - '.github/workflows/ai-interview-one-question-proof.yml'
   pull_request:
     paths:
+      - 'supabase/functions/_shared/interviewVoiceInstruction.mjs'
+      - 'supabase/functions/uskoci-ai-interview/index.ts'
+      - 'supabase/functions/uskoci-worker-interview/index.ts'
+      - 'supabase/proofs/ai/interview_voice_one_question.test.mjs'
+      - 'supabase/proofs/ai/ai_edge_context.test.mjs'
+      - 'supabase/proofs/ai/v5_worker_edge.test.mjs'
       - 'supabase/proofs/ai/v5_ai_stream.test.mjs'
       - '.github/workflows/ai-interview-one-question-proof.yml'
   workflow_dispatch:
