@@ -551,7 +551,7 @@ describe('EX-06 S02 synthetic contract corpus', () => {
       expect(sources.registry.size).toBeGreaterThanOrEqual(23);
       expect([...sources.registry.keys()]).toEqual(expect.arrayContaining(['need.title', 'need.category', 'need.price_basis', 'need.task_geography', 'need.resolved_location']));
       expect(sources.priceModes).toEqual(['MY_PRICE', 'OFFERS']);
-      expect(sources.priceBases).toEqual(['TOTAL', 'PER_PERSON']);
+      expect(sources.priceBases).toEqual(['TOTAL', 'PER_PERSON', 'HOURLY']);
       expect(sources.scheduleKinds).toHaveLength(6);
       expect(sources.geographyModes).toHaveLength(5);
       expect(sources.dialogue.next).toEqual(['ASK', 'CLARIFY', 'REVIEW', 'ACK', 'ANSWER']);
