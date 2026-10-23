@@ -26,7 +26,13 @@ import { withClassificationFeedback } from '../_shared/classificationReply.mjs';
 import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction, preserveWorkerServiceModes, recoverWorkerExistingIdentity } from '../_shared/workerServiceModeContext.mjs';
 import { guardWorkerAreaOutput } from '../_shared/workerAreaAdmission.mjs';
 import { workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas } from '../_shared/workerAreaResolver.mjs';
+import { buildWorkerFullTreeTaxonomyProposals, loadFullCatalogTree, runInBackground, fetchUnconsumedClarificationHint, persistConsumeClarificationHint } from '../_shared/backgroundTaxonomyArchitect.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
+
+const isLiveDualGemini = (): boolean =>
+  (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '') === 'https://leqcwgzvjsxugfgzdmth.supabase.co' &&
+  (Deno.env.get('SUPABASE_ANON_KEY') ?? '').startsWith('eyJ') &&
+  Deno.env.get('USKOCI_TAXONOMY_DUAL_GEMINI') !== 'false';
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info',
   'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };
@@ -278,7 +284,19 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   const savedCategoryIds = Array.isArray(context.serviceModeContext?.savedServices)
     ? context.serviceModeContext.savedServices.map((entry: any) => entry.categoryId).filter(id) : [];
   research = createResearchDeadline(req.signal, startedAt);
-  if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW')) {
+  const dualGeminiActive = isLiveDualGemini();
+  let pendingWorkerClarificationHint: any = null;
+  if (dualGeminiActive) {
+    void loadFullCatalogTree((name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? req.signal, t ?? 4000), req.signal).catch(() => null);
+    try {
+      pendingWorkerClarificationHint = await fetchUnconsumedClarificationHint(
+        (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? req.signal, t ?? 2500),
+        input.conversationId,
+        claim.turn.turnId
+      );
+    } catch { /* Non-fatal */ }
+  }
+  if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW') && !dualGeminiActive) {
     try {
       explorer = await measureAiPhase('WORKER_CATALOG_START', () => createClassificationExplorer((name: string, args: Record<string, unknown>) => rpc(name, args, research!.signal, 4000), {
         signal: research.signal, seedServices: context.candidate.skills, seedCategoryIds: savedCategoryIds,
@@ -301,9 +319,13 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   const modeParts=serviceModeContext ? [{text:workerServiceModeInstruction(serviceModeContext,false)}] : [];
   const runtimePart={text:workerRuntimeContext(context,new Date().toISOString())};
   const modeContextParts=serviceModeContext ? [{text:'Server-owned service mode context: '+JSON.stringify(serviceModeContext)}] : [];
+  const clarificationPart = pendingWorkerClarificationHint?.ambiguityPrompt ? [{
+    text: `Pozadinski klasifikator usluga je zabeležio pitanje za razjašnjenje: „${pendingWorkerClarificationHint.ambiguityPrompt}“. Postavi ovo pitanje prirodno i prijatno radniku u sledećoj poruci kako bi se razjasnio tačan opseg usluga koje nudi.`
+  }] : [];
   const systemParts=(phase:'direct'|'research')=>[...stableParts,
     ...(taxonomyPrompt ? [{text:geminiClassificationShadowInstruction('WORKER_CAPABILITY',phase)}] : []),
     ...modeParts,runtimePart,
+    ...clarificationPart,
     ...(taxonomyPrompt ? [{text:phase==='direct'&&explorer ? explorer.prompt('direct') : taxonomyPrompt}] : []),
     ...modeContextParts];
   const body=JSON.stringify({systemInstruction:{parts:systemParts('research')},contents:history,
@@ -463,12 +485,13 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           // accepted. Otherwise even an invalid patch could speak to the person.
           key,body,signal:research!.signal,onText:()=>{},onUsage:value=>{usage.value=value;},timeoutMs:30000});
         if(abort.signal.aborted)throw new Error('WORKER_AI_CANCELLED');
-        const {output: preparedOutput,reviewHints,classificationInspection,preservedServices} = analyzeOutput(raw);
+        const {output: preparedOutput,reviewHints: initialReviewHints,classificationInspection,preservedServices} = analyzeOutput(raw);
+        let reviewHints = initialReviewHints;
         let output = preparedOutput;
-        if (finishOnly(input.text) && ['ALLOW','CLARIFY'].includes(output.safety)) {
+        if (finishOnly(input.text) && ['ALLOW','CLARIFY'].includes(output.safety) && !dualGeminiActive) {
           output={...output,assistantMessage:workerFinishReviewMessage(context.candidate?.skills,reviewHints,!!taxonomyCatalog)};
         }
-        if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW')) {
+        if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW') && !dualGeminiActive) {
           const services=output.patch.skills ?? context.candidate.skills;
           const feedback=classificationTurnFeedback({ ...classificationInspection, reviewProposals:reviewHints },
             {purpose:'WORKER_CAPABILITY',services,readyForReview:finishOnly(input.text),preservedServices,catalogAvailable:!!taxonomyCatalog});
@@ -490,13 +513,54 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
             }
           }
         }
+        const bgAbort = new AbortController();
+        let dualWorkerArchitectPromise: Promise<any> | null = null;
+        if (dualGeminiActive && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
+          const skillsModified = Array.isArray(output.patch.skills) || Boolean(pendingWorkerClarificationHint);
+          const effectiveSkills = output.patch.skills ?? context.candidate?.skills ?? [];
+          const hasWorkAreas = Boolean((output.patch.workAreas ?? context.candidate?.workAreas)?.length || (output.patch.location ?? context.candidate?.location)?.city);
+          if (skillsModified && Array.isArray(effectiveSkills) && effectiveSkills.length > 0) {
+            dualWorkerArchitectPromise = measureAiPhase('WORKER_BG_ARCHITECT', () => buildWorkerFullTreeTaxonomyProposals({
+              rpc: (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 5000),
+              geminiKey: key,
+              geminiModel: model,
+              skills: effectiveSkills,
+              messages: context.messages,
+              serviceModeContext: context.serviceModeContext,
+              hasWorkAreas,
+              conversationId: input.conversationId,
+              draftRevision: context.draftRevision ?? context.candidate?.revision ?? 1,
+              signal: bgAbort.signal,
+            })).catch(() => null);
+          }
+        }
         const turn=await measureAiPhase('WORKER_COMPLETE', () => rpc('rpc_complete_worker_ai_turn_service',{...identity,p_attempt_id:claim.turn.attemptId,p_output:output},abort.signal));
         if (!object(turn)||turn.state!=='SUCCEEDED'||turn.turnId!==claim.turn.turnId||turn.attemptId!==claim.turn.attemptId
           ||turn.conversationId!==input.conversationId||turn.clientRequestId!==input.clientRequestId) throw new Error('WORKER_AI_INVALID');
-        // Optional, post-completion SHADOW receipt; never gates the saved turn.
-        // The DB RPC must independently fence account, attempt and SUCCESS.
-        // It does NOT approve a category, profile skill, match or push.
-        if (reviewHints.length && taxonomyCatalog &&
+        if (turn.state === 'SUCCEEDED' && pendingWorkerClarificationHint?.service) {
+          void runInBackground(persistConsumeClarificationHint(
+            (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 2500),
+            input.conversationId, pendingWorkerClarificationHint.service));
+        }
+        if (dualWorkerArchitectPromise) {
+          void runInBackground((async () => {
+            const timer = setTimeout(() => bgAbort.abort(), 9000);
+            try {
+              const built = await dualWorkerArchitectPromise;
+              if (built && built.proposals.length > 0 && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
+                await rpc('rpc_taxonomy_capture_gemini_turn_hints_service', {
+                  p_account_id: account, p_conversation_id: input.conversationId,
+                  p_client_request_id: input.clientRequestId,
+                  p_turn_id: claim.turn.turnId, p_attempt_id: claim.turn.attemptId,
+                  p_purpose: 'WORKER_CAPABILITY', p_catalog_version: built.catalogVersion,
+                  p_proposals: built.proposals,
+                }, bgAbort.signal, 3500);
+              }
+            } catch { /* Non-fatal background capture */ } finally {
+              clearTimeout(timer);
+            }
+          })());
+        } else if (reviewHints.length && taxonomyCatalog &&
             devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
           const captureCatalogVersion = taxonomyCatalog.catalogVersion;
           try {
@@ -520,8 +584,15 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         research?.dispose();
         // Completed provider usage remains payable after invalid output or a
         // disconnected client. Unknown/incomplete usage retains its reservation.
-        if (usage.value) { try { await rpc('rpc_ai_test_record_usage_service',{p_operation_id:input.clientRequestId,p_model:model,
-          p_prompt_tokens:usage.value.promptTokens,p_output_tokens:usage.value.outputTokens,p_total_tokens:usage.value.totalTokens},new AbortController().signal,3000); } catch {} }
+        if (usage.value) {
+          const usageVal = usage.value;
+          const recordUsage = async () => {
+            try { await rpc('rpc_ai_test_record_usage_service',{p_operation_id:input.clientRequestId,p_model:model,
+              p_prompt_tokens:usageVal.promptTokens,p_output_tokens:usageVal.outputTokens,p_total_tokens:usageVal.totalTokens},new AbortController().signal,3000); } catch {}
+          };
+          if (dualGeminiActive) void runInBackground(recordUsage());
+          else await recordUsage();
+        }
         req.signal.removeEventListener('abort',stop); if(!abort.signal.aborted) { try {controller.close();}catch{} } abort.abort();
       }
     }, cancel(){stop();req.signal.removeEventListener('abort',stop);}

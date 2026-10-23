@@ -1851,11 +1851,11 @@ test('pin and discovery list keep the truthful task face without redundant surro
   const previewArt = card.findAll(node => ['map', 'money', 'star'].includes(String(node.props.kind)))
     .map(node => node.props.kind);
   expect(previewArt).toEqual(expect.arrayContaining(['map', 'money', 'star']));
-  // Who is needed is said in words and only where it is more than one (the owner, 8 Oct 2026: no "0/1"): the person who can come is told how many places are left.
-  expect(words).toContain('Još 2 od 3 mesta'); expect(words).not.toContain('1/3');
+  // Who is needed is said in words and only where it is more than one: the person who can come is told how many places are left.
+  expect(words).toContain('1/3 nađeno (još 2 slobodno)');
   // The card draws no word for what the amount is (the owner, 8 Oct 2026); a screen reader is told it is the budget.
   expect(card.props.accessibilityValue.text).toContain('Budžet 2.000 RSD ukupno');
-  expect(card.props.accessibilityValue.text).toContain('Još 2 od 3 mesta');
+  expect(card.props.accessibilityValue.text).toContain('1 od 3 nađeno, još 2 slobodno');
   // Nothing in it is framed as a card of its own, and nothing is a photo or a place for one.
   const edged = card.findAll(node => String(node.type) === 'View' && (StyleSheet.flatten(node.props.style)?.borderWidth ?? 0) > 0);
   expect(edged).toHaveLength(0);

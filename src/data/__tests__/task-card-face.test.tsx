@@ -192,15 +192,23 @@ describe('the value slot', () => {
 describe('the places and the person', () => {
   // The owner's phone of 8 Oct 2026: "bez 0/1 — ništa ne znači onome ko traži zadatak". The count of people is said in words, only for a task that needs more than one, and what is
   // read is the same sentence a screen reader hears. For the one who can come: how many places are left; once all are taken, that.
-  it.each([[2, 0, 'Treba 2 osobe'], [3, 0, 'Treba 3 osobe'], [5, 0, 'Treba 5 osoba'], [3, 1, 'Još 2 od 3 mesta'], [3, 2, 'Još 1 od 3 mesta'], [3, 3, 'Sva mesta su popunjena']])(
-    'say the people a task needs in words (%s total, %s filled): "%s"', async (ukupno, popunjeno, words) => {
-      const pokrivenost = { ukupno, popunjeno, preostalo: ukupno - popunjeno, udeo: popunjeno / ukupno };
-      await render(<TaskCard item={task({ pokrivenost })} onOpen={jest.fn()} />);
-      expect(texts()).toContain(words);
+  it.each([
+    [2, 0, 'Treba 2 osobe', 'Treba 2 osobe'],
+    [3, 0, 'Treba 3 osobe', 'Treba 3 osobe'],
+    [5, 0, 'Treba 5 osoba', 'Treba 5 osoba'],
+    [3, 1, '1/3 nađeno (još 2 slobodno)', '1 od 3 nađeno, još 2 slobodno'],
+    [3, 2, '2/3 nađeno (još 1 slobodno)', '2 od 3 nađeno, još 1 slobodno'],
+    [3, 3, 'Sva mesta su popunjena', 'Sva mesta su popunjena'],
+  ])('say the people a task needs in words (%s total, %s filled): "%s"', async (ukupno, popunjeno, words, spoken) => {
+    const pokrivenost = { ukupno, popunjeno, preostalo: ukupno - popunjeno, udeo: popunjeno / ukupno };
+    await render(<TaskCard item={task({ pokrivenost })} onOpen={jest.fn()} />);
+    expect(texts()).toContain(words);
+    if (popunjeno === 0 && words !== 'Sva mesta su popunjena') {
       expect(texts().join(' ')).not.toMatch(/\d\/\d/);
-      expect(facts()).toContain('users');
-      expect(presses()[0].props.accessibilityLabel).toContain(words);
-    });
+    }
+    expect(facts()).toContain('users');
+    expect(presses()[0].props.accessibilityLabel).toContain(spoken);
+  });
 
   it('says nothing of the count for a task for one person ("0/1" meant nothing), and a face with neither a person nor a count has no foot at all', async () => {
     const one = { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 };

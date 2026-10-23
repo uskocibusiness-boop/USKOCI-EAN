@@ -42,6 +42,18 @@ import { createResearchDeadline } from '../_shared/researchDeadline.ts';
 import { withGeminiClassificationShadowSchema, inspectGeminiClassificationShadow, geminiClassificationShadowInstruction, classificationTurnFeedback } from '../_shared/classificationGeminiShadow.mjs';
 
 import { withClassificationFeedback } from '../_shared/classificationReply.mjs';
+import {
+  buildFullTreeTaxonomyProposals,
+  loadFullCatalogTree,
+  runInBackground,
+  persistConsumeClarificationHint,
+  fetchUnconsumedClarificationHint,
+} from '../_shared/backgroundTaxonomyArchitect.mjs';
+
+const isLiveDualGemini = (): boolean =>
+  (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '') === 'https://leqcwgzvjsxugfgzdmth.supabase.co' &&
+  (Deno.env.get('SUPABASE_ANON_KEY') ?? '').startsWith('eyJ') &&
+  Deno.env.get('USKOCI_TAXONOMY_DUAL_GEMINI') !== 'false';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -483,7 +495,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     'Sastavite kratak, smislen need.title iz jasnog posla. Need.description je neutralna sinteza poznatog iz razgovora, bez novih uslova. I uz CLARIFY za način rada u facts sačuvajte jasan obim, materijal i grad, kao i ostale nezavisne činjenice. Iz opisa izostavite nerešen fizički/REMOTE izbor i preciznu adresu; ona pripada samo need.exact_address.',
     'Sačuvajte stvarni posao i poznatu predaju. Ne ponavljajte cenu i datume koji već imaju strukturirana polja. Pri izmeni uklonite staro ponavljanje iz opisa uz očuvane ostale detalje; to ne povlači niti menja vremenska/cenovna polja. Raspon u odgovoru prikazuje poslednji uključeni dan; isključiva ponoć narednog dana nije dodatni dan rada.',
     'Za obične atomske činjenice evidence je kratak citat korisnika. Za naslov/opis koji su sinteza, evidence može biti kratko: "Sinteza potvrđenih činjenica i razgovora".',
-    "need.category je konkretna VRSTA USLUGE iz celog razgovora (radnja + predmet), nezavisna od prostorije, kvadrature, komada, adrese, cene i datuma: krečenje sobe/stana -> krečenje zidova. U need.category upišite SAMO naziv konkretne usluge, bez nadkategorije/putanje/prefiksa: 3D printovanje, ne Digitalne usluge / 3D printovanje. Ispravite staru putanju na konkretan naziv kada je poznat. Promena obima nije nova kategorija. Krečenje i gletovanje mogu biti posebne kompetencije; farbanje automobila nije krečenje zidova. Klasifikacija i kanonsko imenovanje slede classificationShadowJson ugovor. Ako je vrsta usluge nova, u classificationShadowJson predložite akciju CREATE_CHILD sa parentId postavljenim na odgovarajući postojeći root (npr. Zanati i popravke, Sitne popravke, Fizički poslovi, Čišćenje, Digitalne usluge) i proposedPath=[service], nikada u need.category; vrste usluga nisu zatvoren spisak starih grupa.",
+    "need.category je konkretna VRSTA USLUGE iz celog razgovora (radnja + predmet), nezavisna od prostorije, kvadrature, komada, adrese, cene i datuma: krečenje sobe/stana -> krečenje zidova. U need.category upišite SAMO naziv konkretne usluge, bez nadkategorije/putanje/prefiksa: 3D printovanje, ne Digitalne usluge / 3D printovanje. Ispravite staru putanju na konkretan naziv kada je poznat. Promena obima nije nova kategorija. Krečenje i gletovanje mogu biti posebne kompetencije; farbanje automobila nije krečenje zidova. Vrste usluga nisu zatvoren spisak starih grupa; ako je vrsta usluge nova ili specifična, navedite njen prirodan naziv na srpskom.",
     'Iz dovoljno jasnog opisa predložite i nedostajuću need.category: kratak naziv stvarno opisane vrste zadatka, bez novih uslova i bez opšteg rezervnog naziva poput ostalo. Kategorija je interni podatak; ne pitajte korisnika za kategoriju. Ako opis nije jasan, pitajte šta konkretno treba uraditi. Pre REVIEW proverite i naslov i kategoriju. Ako korisnik samo završava razgovor, a već postoji jasan need.description, možete dopuniti samo nedostajući naslov ili kategoriju uz evidence koji je doslovan isečak tog postojećeg opisa; ne menjajte nijedan postojeći podatak i ne dodajte materijalne uslove iz komande završetka.',
     'dialogue opisuje sledeći korak, nije nova činjenica. next: ASK samo za nedostajući podatak, CLARIFY za stvarnu dvosmislenost, REVIEW za završetak i prelazak na pregled, ACK za izmenu bez pitanja, ANSWER kada korisnik traži objašnjenje. questionKey je tačan ključ najvažnijeg nedostajućeg podatka za ASK, inače NONE; dodatna pitanja ne menjaju taj postojeći ugovor. Ne birajte ASK za već poznat podatak.',
     "Ne obećavajte pronađenu mapu, tačne koordinate ili izvršioca. Ne otvarate ekrane: recite da korisnik može da otvori pregled, ne da ste ga otvorili. Kada korisnik započne razgovor pozdravom (npr. 'ćao', 'pozdrav', 'zdravo', 'dobar dan'), uzvratite toplo i prirodno (npr. 'Pozdrav! Rado ću ti pomoći oko...') uz prvo prirodno pitanje. U toku daljeg razgovora nemojte ponavljati pozdrav u svakoj poruci.",
@@ -714,6 +726,7 @@ async function callGemini(
   imageMime?: string,
   providerBudget?: ReturnType<typeof createTaxonomyProviderBudget>,
   researchTimeoutMs = 35000,
+  clarificationHint?: { ambiguityPrompt?: string; service?: string } | null,
 ) {
   const contents = history.slice(-30).map((row) => ({
     role: row.role === 'ASSISTANT' ? 'model' : 'user',
@@ -772,29 +785,26 @@ async function callGemini(
       }
       const {handoff:proposedHandoff,...rest}=hint;
       if(hint.mode!=='REMOTE'||geography&&geography.mode!=='REMOTE')return [rest];
-      const effectiveHandoff = handoff ?? { required: false };
-      const decodedProposed = decodeServiceHandoff(proposedHandoff);
-      if(Object.hasOwn(hint,'handoff')&&(decodedProposed && JSON.stringify(decodedProposed)!==JSON.stringify(effectiveHandoff))){
+      if(Object.hasOwn(hint,'handoff')&&(!handoff||
+          (proposedHandoff && JSON.stringify(proposedHandoff)!==JSON.stringify(handoff)))){
         const issue={service:hint.service,mode:hint.mode,action:hint.action,code:'HANDOFF_SOURCE_MISMATCH',
           resolution:'RETRY',question:null};
         checked.issues=[...('issues' in checked?checked.issues:[]),issue];
         return [];
       }
-      return [{...rest,...(handoff?{handoff}:{handoff:{required:false}})}];
+      return [{...rest,...(handoff?{handoff}:{})}];
     });
     const feedback=classificationTurnFeedback(checked,{purpose:'NEED_SERVICE',
       services:typeof category==='string'?[category]:[],catalogAvailable:!!taxonomyCatalog,readyForReview:turn.dialogue?.next==='REVIEW'});
     // A catalog failure keeps the useful typed answer unresolved. It must not
     // spend another model call trying to repair unavailable/stale evidence.
-    const isChatTurn = ['ASK', 'CLARIFY', 'ANSWER', 'ACK'].includes(parsedTurn.dialogue?.next ?? '') && turn.safety === 'ALLOW';
-    const categoryProposedInTurn = turn.proposals.some((p: any) => p.key === 'need.category');
-    const directClassificationOk = !categoryProposedInTurn || canAcceptDirectClassification({
+    directAccepted = !taxonomyCatalog || ['DIFFERENT_TASK','UNCLEAR'].includes(parsedTurn.dialogue?.taskRelation ?? '') || canAcceptDirectClassification({
       inspection: checked, purpose: 'NEED_SERVICE', safety: turn.safety,
       services: typeof category === 'string' ? [category] : [],
       taskMode: geography?.mode === 'REMOTE' ? 'REMOTE' : geography ? 'ON_SITE' : null,
-      taskHandoff: geography?.mode === 'REMOTE' ? (handoff ?? { required: false }) : handoff,
+      taskHandoff: handoff,
     });
-    directAccepted = !taxonomyCatalog || ['DIFFERENT_TASK','UNCLEAR'].includes(parsedTurn.dialogue?.taskRelation ?? '') || isChatTurn || (turn.safety === 'ALLOW' && directClassificationOk);
+    onClassificationHints?.(checked.reviewProposals, feedback, taxonomyCatalog);
     return turn;
   };
   // Stable rules precede private per-turn data. This permits provider prefix
@@ -804,6 +814,9 @@ async function callGemini(
   const runtimeParts = [
     ...(schemaVersion === NEED_FACT_SCHEMA_V2 ? [{text:needRuntimeContext(activeFacts,timeContext)},
       {text:needFinishContext(activeFacts,taskFinishOnly(text) && !locationContext)}].filter(part=>part.text) : []),
+    ...(clarificationHint?.ambiguityPrompt ? [{
+      text: `Pozadinski klasifikator usluga je zabeležio pitanje za razjašnjenje: „${clarificationHint.ambiguityPrompt}“. Postavi ovo pitanje prirodno i prijatno korisniku u sledećoj poruci kako bi se razjasnio tačan obim posla.`,
+    }] : []),
     ...(locationContext ? [{ text: locationInstruction(locationContext) }] : []),
   ];
   const systemParts = (phase: 'direct' | 'research') => [...stableParts,
@@ -1409,6 +1422,7 @@ Deno.serve(async (req: Request) => {
     let taxonomyCatalog: CatalogSnapshot | null = null;
     let taxonomyExplorer: ClassificationExplorer | null = null;
     let research: ReturnType<typeof createResearchDeadline> | null = null;
+    let pendingClarificationHint: any = null;
     try {
       if (wantsStream && (schemaVersion !== NEED_FACT_SCHEMA_V2 || provider !== 'gemini' || geminiModel !== 'gemini-3.8-flash')) {
         await retireAttempt();
@@ -1440,8 +1454,12 @@ Deno.serve(async (req: Request) => {
       // Current server queries are shared with the worker assistant. The model
       // sees pages and may request any other branch; no whole-tree payload.
       research = createResearchDeadline(signal, requestStartedAt);
+      const dualGeminiActive = isLiveDualGemini();
+      if (dualGeminiActive) {
+        void loadFullCatalogTree((name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? signal, t ?? 4000), signal).catch(() => null);
+      }
       let taxonomyPrompt = '';
-      if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW')) {
+      if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW') && !dualGeminiActive) {
         try {
           taxonomyExplorer = await measureAiPhase('NEED_CATALOG_START', () => createClassificationExplorer(async (name, args) => {
             const result = await rpc(name, args, research!.signal, 4000);
@@ -1452,13 +1470,22 @@ Deno.serve(async (req: Request) => {
           console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'LOADED');
         } catch { console.info('NEED_TAXONOMY_CATALOG_SHADOW', 'UNAVAILABLE'); }
       }
+      if (dualGeminiActive) {
+        try {
+          pendingClarificationHint = await fetchUnconsumedClarificationHint(
+            (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? signal, t ?? 2500),
+            conversationId,
+            claimedTurnId
+          );
+        } catch { /* Non-fatal */ }
+      }
       const providerBudget = taxonomyExplorer ? createTaxonomyProviderBudget({ supabaseUrl,serviceRoleKey,accountId,conversationId,
         operationId:requestId,firstReservationId:budget.reservationId!,model:geminiModel }) : undefined;
       aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, effectiveUserMessage, timeContext, research.signal, onText,
         (usage) => { reportedUsage = usage; }, locationContext, taxonomyPrompt, taxonomyExplorer,
         (hints,feedback,catalog) => { taxonomyReviewHints = hints; taxonomyFeedback = feedback; taxonomyCatalog = catalog; }, imageBase64, imageMime,
-        providerBudget, Math.min(35000,research.remainingMs()));
-      if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW'))
+        providerBudget, Math.min(35000,research.remainingMs()), pendingClarificationHint);
+      if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW') && !dualGeminiActive)
         aiTurn = withClassificationFeedback(aiTurn,taxonomyFeedback,{finishOnly:taskFinishOnly(effectiveUserMessage) && !locationContext,maximum:1200});
       if (locationContext) {
         // A validated answer to the shown question (e.g. 'to je to') stays a map
@@ -1466,7 +1493,7 @@ Deno.serve(async (req: Request) => {
         if (explicitPublicationOnly(effectiveUserMessage) || taskFinishOnly(effectiveUserMessage) && aiTurn.locationAction !== 'CONFIRM_DISPLAYED') aiTurn.locationAction = 'CONTINUE';
         else if (!aiTurn.locationAction || aiTurn.safety !== 'ALLOW') aiTurn.locationAction = 'CLARIFY';
       }
-    } catch (providerError) {
+    } catch (providerError: any) {
       console.error('AI_PROVIDER_FAILED', providerFailureClass(providerError));
       await retireAttempt();
       if (availabilityDiagnostics && providerError instanceof GeminiCreditsUnavailableError) return response(503, { code: AI_CREDITS_UNAVAILABLE });
@@ -1474,15 +1501,20 @@ Deno.serve(async (req: Request) => {
     } finally {
       research?.dispose();
       if (reportedUsage) {
-        try {
-          await rpc('rpc_ai_test_record_usage_service', { p_operation_id: requestId, p_model: geminiModel,
-            p_prompt_tokens: reportedUsage.promptTokens, p_output_tokens: reportedUsage.outputTokens,
-            p_total_tokens: reportedUsage.totalTokens }, new AbortController().signal, 3000);
-        } catch { /* Retain the conservative reservation; never retry inference. */ }
+        const usageSnapshot = reportedUsage;
+        const recordUsage = async () => {
+          try {
+            await rpc('rpc_ai_test_record_usage_service', { p_operation_id: requestId, p_model: geminiModel,
+              p_prompt_tokens: usageSnapshot.promptTokens, p_output_tokens: usageSnapshot.outputTokens,
+              p_total_tokens: usageSnapshot.totalTokens }, new AbortController().signal, 3000);
+          } catch { /* Retain the conservative reservation; never retry inference. */ }
+        };
+        if (isLiveDualGemini()) void runInBackground(recordUsage());
+        else await recordUsage();
       }
     }
     if (signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
-    if (schemaVersion === NEED_FACT_SCHEMA_V2 && !locationContext && !taxonomyExplorer) {
+    if (schemaVersion === NEED_FACT_SCHEMA_V2 && !locationContext && !taxonomyExplorer && !isLiveDualGemini()) {
       // Shadow-mode ONLY: the existing Gemini has already proposed typed facts,
       // and the authoritative owner-bound SQL completion still owns persistence.
       // Never gate a paid AI completion on a preview RPC/network failure.
@@ -1506,7 +1538,40 @@ Deno.serve(async (req: Request) => {
       if (signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
     }
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
-      const result = await measureAiPhase('NEED_COMPLETE', () => rpc(locationContext ? 'rpc_ai_complete_need_location_turn_v1_service' : 'rpc_ai_complete_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId,
+      const bgAbort = new AbortController();
+      let dualArchitectPromise: Promise<any> | null = null;
+      if (isLiveDualGemini() && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
+        const turnProposals = aiTurn.proposals ?? [];
+        const proposedKeys = new Set(turnProposals.map((p: any) => p.key));
+        const nonCoreKeys = [
+          'need.price_rsd', 'need.price_mode', 'need.price_basis',
+          'need.starts_at', 'need.ends_at', 'need.schedule_kind',
+          'need.exact_address', 'need.access_notes'
+        ];
+        const onlyNonCoreModified = proposedKeys.size > 0 && [...proposedKeys].every((k) => nonCoreKeys.includes(k));
+
+        if (!onlyNonCoreModified) {
+          const effectiveFact = (key: string) =>
+            aiTurn.proposals.find((p: any) => p.key === key)?.value ??
+            activeFacts.find((f: any) => f.fact_key === key && f.status !== 'UNKNOWN')?.fact_value;
+          const effCategory = effectiveFact('need.category');
+          const effGeo = effectiveFact('need.task_geography') as any;
+          const effHandoff = effectiveFact('need.handoff');
+          const effMode = effGeo?.mode === 'REMOTE' ? 'REMOTE' : 'ON_SITE';
+          if (typeof effCategory === 'string' && effCategory.trim().length >= 3) {
+            dualArchitectPromise = measureAiPhase('NEED_BG_ARCHITECT', () => buildFullTreeTaxonomyProposals({
+              rpc: (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 5000),
+              geminiKey,
+              geminiModel,
+              items: [{ service: effCategory.trim(), mode: effMode, handoff: effHandoff }],
+              conversationId,
+              draftRevision: claimedTurnId,
+              signal: bgAbort.signal,
+            })).catch(() => null);
+          }
+        }
+      }
+      const result = await measureAiPhase('NEED_COMPLETE', async () => await rpc(locationContext ? 'rpc_ai_complete_need_location_turn_v1_service' : 'rpc_ai_complete_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId,
         p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: aiTurn.proposals,
         ...(locationContext ? { p_location_context: locationContext, p_location_action: aiTurn.locationAction } : {}) }, signal));
       const completed = locationContext ? result.data?.turn : result.data;
@@ -1516,9 +1581,29 @@ Deno.serve(async (req: Request) => {
       if (completed.state === 'SUCCEEDED' && (completed.receipt.proposedCount !== aiTurn.proposals.length || completed.receipt.safety !== aiTurn.safety))
         throw new Error('AI_TURN_RECEIPT_INVALID');
       if (locationContext && completed.state === 'SUCCEEDED' && result.data.location.action !== aiTurn.locationAction) throw new Error('AI_TURN_RECEIPT_INVALID');
-      // Optional, post-completion shadow hint receipt. This is not consent;
-      // missing RPC or network availability never destroys a succeeded Need turn.
-      if (completed.state === 'SUCCEEDED' && taxonomyCatalog && taxonomyReviewHints.length &&
+      if (completed.state === 'SUCCEEDED' && pendingClarificationHint?.service) {
+        void runInBackground(persistConsumeClarificationHint(
+          (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 2500),
+          conversationId, pendingClarificationHint.service));
+      }
+      if (completed.state === 'SUCCEEDED' && dualArchitectPromise) {
+        void runInBackground((async () => {
+          const timer = setTimeout(() => bgAbort.abort(), 9000);
+          try {
+            const built = await dualArchitectPromise;
+            if (built && built.proposals.length > 0 && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
+              await rpc('rpc_taxonomy_capture_gemini_turn_hints_service', {
+                p_account_id: accountId, p_conversation_id: conversationId,
+                p_client_request_id: requestId, p_turn_id: claimedTurnId, p_attempt_id: attemptId,
+                p_purpose: 'NEED_SERVICE', p_catalog_version: built.catalogVersion,
+                p_proposals: built.proposals,
+              }, bgAbort.signal, 3500);
+            }
+          } catch { /* Non-fatal background capture */ } finally {
+            clearTimeout(timer);
+          }
+        })());
+      } else if (completed.state === 'SUCCEEDED' && taxonomyCatalog && taxonomyReviewHints.length &&
           devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
         try {
           const capture=await measureAiPhase('NEED_HINT_CAPTURE', () => rpc('rpc_taxonomy_capture_gemini_turn_hints_service',{

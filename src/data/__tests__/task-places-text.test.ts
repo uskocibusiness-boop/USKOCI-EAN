@@ -39,7 +39,7 @@ describe('capacityWords: the people a task needs, in words and only when it is m
     });
 
   it('tells the one who can come what is left, and the owner how far it is, once some places are taken', () => {
-    expect(capacityWords(covered(1, 3), 'worker')).toEqual({ text: 'Još 2 od 3 mesta', spoken: 'Još 2 od 3 mesta' });
+    expect(capacityWords(covered(1, 3), 'worker')).toEqual({ text: '1/3 nađeno (još 2 slobodno)', spoken: '1 od 3 nađeno, još 2 slobodno' });
     expect(capacityWords(covered(1, 3), 'owner')).toEqual({ text: '1/3 popunjeno', spoken: '1 od 3 mesta popunjeno' });
     expect(capacityWords(covered(2, 4), 'owner')).toEqual({ text: '2/4 popunjeno', spoken: '2 od 4 mesta popunjena' });
   });

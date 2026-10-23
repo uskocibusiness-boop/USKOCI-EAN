@@ -8,6 +8,7 @@ import { Press } from '../Press';
 import { T } from '../Text';
 import { Glyph } from '../system/Glyph';
 import { useReducedMotion } from '../system/motion';
+import { tick } from '../system/haptics';
 import { MapCredits, MapSources } from '../v2/discovery/MapCredits';
 import { cameraHintBounds, displayedPinPosition, type ResolvedPinMapProps } from './ResolvedPinMap.types';
 import { useMapStyle } from './mapStyle';
@@ -118,6 +119,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
     const start = touch(event), nativeMap = map.current;
     if (!canDrag() || !start || !nativeMap || !pin || drag.current) return;
     event.stopPropagation();
+    tick('gestureStart');
     // Both projection directions come from the native map. Screen movement is
     // the real marker responder delta in DIP, matching Map.project/unproject.
     let stop!: () => void;
@@ -141,6 +143,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
     const session = drag.current, point = touch(event), nativeMap = map.current;
     if (!session || !currentDrag(session) || session.released) return;
     event.stopPropagation(); session.released = true;
+    tick('gestureEnd');
     try {
       if (!point || !nativeMap) return;
       const delta: Pixel = [point[0] - session.start[0], point[1] - session.start[1]];
@@ -205,11 +208,13 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
             onResponderGrant={beginDrag} onResponderMove={moveDrag} onResponderRelease={event => { void endDrag(event); }}
             onResponderTerminate={() => { if (owns()) cancelDrag(); }} onResponderTerminationRequest={() => !owns() || !drag.current}
             style={[styles.marker, offset ? { transform: [{ translateX: offset[0] }, { translateY: offset[1] }] } : null]}>
-          <Image key={`${pin.latitude}:${pin.longitude}:${coarse}:${disabled}`}
-            source={require('../../../assets/resolved-location-pin.png')}
-            accessible={false} fadeDuration={0} resizeMode="contain" style={styles.marker}
-            onLoad={() => { if (owns()) setImageToken(token); }}
-            onError={() => { if (owns()) { setImageToken(null); mark('failed'); } }} />
+            <View style={[styles.pinWrapper, offset ? styles.pinDragging : null]}>
+              <Image key={`${pin.latitude}:${pin.longitude}:${coarse}:${disabled}`}
+                source={require('../../../assets/resolved-location-pin.png')}
+                accessible={false} fadeDuration={0} resizeMode="contain" style={styles.marker}
+                onLoad={() => { if (owns()) setImageToken(token); }}
+                onError={() => { if (owns()) { setImageToken(null); mark('failed'); } }} />
+            </View>
           </View>
         </Marker> : null}
       </Map> : null}
@@ -273,6 +278,8 @@ const styles = StyleSheet.create({
   feedback: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, alignItems: 'center', justifyContent: 'center', padding: sys.space.lg,
     gap: sys.space.md, backgroundColor: sys.color.surface },
   marker: { width: 44, height: 48 },
+  pinWrapper: { width: 44, height: 48, alignItems: 'center', justifyContent: 'center' },
+  pinDragging: { transform: [{ translateY: -18 }, { scale: 1.2 }], ...sys.elevation.raised },
   // A white map control (as Discovery's zoom), above the credits at the bottom of the rounded frame.
   expand: { position: 'absolute', top: sys.space.sm, right: sys.space.sm, width: 44, height: 44, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line, alignItems: 'center', justifyContent: 'center',

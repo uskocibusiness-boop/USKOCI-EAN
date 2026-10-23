@@ -468,8 +468,10 @@ export function IntakePresentation(props: Props) {
       node: <TaskPhotoLine photos={attach} items={group.items} total={photoItems.length} latest={index === groups.length - 1} ask={photoConfirm.ask}
         disabled={photosOff} onGallery={() => props.onPhotoSource?.('LIBRARY')} /> }));
   }
-  const conversationTitle = conversation.review.boundNeedId ? summary.title ? `Izmena · ${summary.title}` : 'Izmena zadatka'
-    : summary.title ?? 'Novi zadatak';
+  const conversationTitle = conversation.review.boundNeedId
+    ? summary.title ? `Izmena · ${summary.title}` : 'Izmena zadatka'
+    : 'USKOČI Asistent';
+
   return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversationTitle}
     cardPlacement="end" initialInputMode="keyboard" closed={ended}
     correction={props.correction}

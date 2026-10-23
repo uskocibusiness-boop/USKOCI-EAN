@@ -533,9 +533,14 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
             </View>
             <FlowFooter>
               {position ? <>
-                <T variant="bodyStrong" style={editorStyles.fullTitle}>{pointQuestion}</T>
-                <T variant="note" tone="muted" accessibilityLiveRegion="polite">{lookup.status === 'LOADING' && lookupMode === 'reverse'
-                  ? 'Čitamo adresu za izabrani pin…' : expandedPlace}</T>
+                <View testID="location-modal-place-card" style={editorStyles.placeCard}>
+                  <FactArt kind="pin" size={24} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <T variant="bodyStrong" style={editorStyles.fullTitle}>{pointQuestion}</T>
+                    <T variant="note" tone="muted" accessibilityLiveRegion="polite">{lookup.status === 'LOADING' && lookupMode === 'reverse'
+                      ? 'Čitamo adresu za izabrani pin…' : expandedPlace}</T>
+                  </View>
+                </View>
                 <T variant="note" tone="muted">Dodirni mapu ili prevuci oznaku ako želiš preciznije mesto.</T>
                 <Button tone="neutral" label={`Da, ovo je ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdi tačku: ${title}`}
                   kind="secondary" style={brandAction} disabled={controlDisabled || !focused || lookup.status === 'LOADING'}
@@ -549,13 +554,18 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         </Modal>
       </> : null}
       {position ? <>
-        <T variant="bodyStrong" accessibilityLiveRegion="polite" style={{ color: sys.color.ink }}>{pointQuestion}</T>
-        {!loading && !correctionOpen ? <T variant="note" tone="muted">{toSerbianLatin(expandedPlace)}</T> : null}
-        {loading && lookupMode === 'reverse' ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Tražimo adresu za izabrani pin…</T> : null}
-        {!loading && lookupMode === 'reverse' && lookup.status !== 'IDLE'
-          && (lookup.status !== 'PROPOSALS' || lookup.candidates.length === 0) ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">
-          Adresa nije određena. Tačka je ostala tamo gde je izabrana.
-        </T> : null}
+        <View testID="location-place-card" style={editorStyles.placeCard}>
+          <FactArt kind="pin" size={24} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <T variant="bodyStrong" accessibilityLiveRegion="polite" style={{ color: sys.color.ink }}>{pointQuestion}</T>
+            {!loading && !correctionOpen ? <T variant="note" tone="muted">{toSerbianLatin(expandedPlace)}</T> : null}
+            {loading && lookupMode === 'reverse' ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">Tražimo adresu za izabrani pin…</T> : null}
+            {!loading && lookupMode === 'reverse' && lookup.status !== 'IDLE'
+              && (lookup.status !== 'PROPOSALS' || lookup.candidates.length === 0) ? <T variant="note" tone="muted" accessibilityLiveRegion="polite">
+              Adresa nije određena. Tačka je ostala tamo gde je izabrana.
+            </T> : null}
+          </View>
+        </View>
         {correctionOpen && allowManualDetails ? <LocationField label={`${title} — adresa za ovaj pin (opciono)`} value={address} maxLength={1000}
           editable={!controlDisabled && focused} onChangeText={value => {
             if (ownsEdit()) { retireSearch(false, true); setAddress(value); invalidate(); }
@@ -652,4 +662,15 @@ const editorStyles = StyleSheet.create({
   fullHeaderCopy: { flex: 1, minWidth: 0, gap: sys.space.xs },
   fullTitle: { color: sys.color.ink },
   fullMap: { flex: 1, paddingHorizontal: sys.space.sm, paddingTop: sys.space.sm, paddingBottom: sys.space.sm },
+  placeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: sys.space.sm,
+    padding: sys.space.md,
+    backgroundColor: sys.color.surface,
+    borderRadius: sys.radius.card,
+    borderWidth: 1,
+    borderColor: sys.color.line,
+    ...sys.elevation.soft,
+  },
 });

@@ -159,7 +159,7 @@ export type WorkerProfileFocusRequest = { target: 'skill' | 'tool' | 'vehicle'; 
 /** Saved profile or first AI entry. Legacy draft command recovery stays in the route.
  * Compatibility props do not re-enable the retired manual editor. */
 export function WorkerProfileForm({ draft, disabled, status, navigate, openConversation, showConversationAction = true, profileExists = true, introOnly = false,
-  accountName = null, onUseAccountName, nameWorking = false, face, rating, availableNow, executionModes, refreshModes, confirmMap }: {
+  accountName = null, onUseAccountName, nameWorking = false, face, rating, availableNow, executionModes, refreshModes, confirmMap, checks, readyToActivate }: {
   draft: WorkerDraft; change: (value: WorkerDraft) => void; disabled: boolean; status: StanjeProfila | null;
   navigate: (path: WorkerNavigation) => void; focusRequest?: WorkerProfileFocusRequest | null;
   checks?: WorkerActivationChecks; readyToActivate?: boolean; openConversation?: (part?: WorkerAiPart) => void; profileExists?: boolean;
@@ -190,7 +190,7 @@ export function WorkerProfileForm({ draft, disabled, status, navigate, openConve
     executionModes={executionModes} refreshModes={refreshModes} confirmMap={confirmMap}
     readOnly={status === 'SUSPENDED'} face={face} rating={rating} availableNow={availableNow}
     accountName={accountName} onUseAccountName={onUseAccountName} nameWorking={nameWorking}
-    status={<ActivationStatus status={status} readyToActivate={false} disabled={disabled} navigate={navigate} />} />;
+    status={<ActivationStatus status={status} checks={checks} readyToActivate={readyToActivate ?? false} disabled={disabled} navigate={navigate} />} />;
 }
 
 const s = StyleSheet.create({

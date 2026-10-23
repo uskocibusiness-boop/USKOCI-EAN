@@ -13,7 +13,7 @@ export function withClassificationFeedback(turn, feedback, { finishOnly = false,
   if (finishOnly || turn.dialogue?.next === 'REVIEW') assistantMessage = next;
   // Existing substantive questions stay first. On an ordinary answer, add the
   // missing question or honest processing state without restarting the intake.
-  else if (!assistantMessage.includes('?') &&
+  else if (!(feedback.state === 'ASK_USER' && assistantMessage.includes('?')) &&
       !assistantMessage.includes(next) && assistantMessage.length + next.length + 2 <= maximum)
     assistantMessage += '\n\n' + next;
   return { ...turn, assistantMessage,

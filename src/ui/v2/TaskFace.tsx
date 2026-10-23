@@ -113,7 +113,7 @@ export function capacityWords(places: Pokrivenost, audience: 'worker' | 'owner')
   if (places.ukupno <= 1) return null;
   if (places.popunjeno <= 0) { const text = `Treba ${osobuAkuz(places.ukupno)}`; return { text, spoken: text }; }
   return audience === 'owner' ? { text: `${places.popunjeno}/${places.ukupno} popunjeno`, spoken: filledSpoken(places) }
-    : { text: `Još ${places.preostalo} od ${places.ukupno} mesta`, spoken: `Još ${places.preostalo} od ${places.ukupno} mesta` };
+    : { text: `${places.popunjeno}/${places.ukupno} nađeno (još ${places.preostalo} slobodno)`, spoken: `${places.popunjeno} od ${places.ukupno} nađeno, još ${places.preostalo} slobodno` };
 }
 
 /**

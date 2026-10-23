@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, Easing, Pressable, StyleSheet, View } from 'react-native';
 import { HourglassMedium, Microphone, StopCircle } from 'phosphor-react-native';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
@@ -50,9 +50,10 @@ export function useVoiceScreenReader(): boolean {
 const reviewing = (state: VoiceSnapshot, reader: boolean) => state.session ? state.session.mode === 'accessible' : reader;
 
 /** The microphone keeps its gesture; the ordinary AI pill uses a practical 52 px target. */
-export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 48 | 52 | 60; tapToTalk?: boolean; reviewFirst?: boolean }) {
+export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 48 | 52 | 60 | 64; tapToTalk?: boolean; reviewFirst?: boolean }) {
   const reader = useVoiceScreenReader();
   const reduced = useReducedMotion();
+  const pulseAnim = useRef(new Animated.Value(0)).current;
   const gesture = useRef<string | null>(null), startY = useRef(0);
   const gestureTap = useRef(false);
   // Gesture and delivery are independent. A held recording can be reviewed; a tapped
@@ -64,7 +65,7 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
   const blocked = (p.disabled && !active) || occupied;
   const listening = phase === 'LISTENING';
   const targetSize = p.size ?? 48;
-  const glyphSize = targetSize === 60 ? 28 : targetSize === 52 ? 26 : 22;
+  const glyphSize = targetSize === 64 ? 30 : targetSize === 60 ? 28 : targetSize === 52 ? 26 : 22;
   // Pressable's onPressOut also fires on leaving its press rectangle or losing the responder.
   // Held speech must finish only on actual responder release; termination cancels it unsent.
   const MicTarget = explicit ? Pressable : View;
@@ -75,6 +76,20 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
   // A recording that fails says so with the error tick, here and not in the notice, so the same error is not felt twice.
   useEffect(() => { if (p.state.error) tick('error'); }, [p.state.error]);
   useEffect(() => { if (phase === 'IDLE') gesture.current = null; }, [phase]);
+  useEffect(() => {
+    if (listening && !reduced && targetSize === 64) {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1, duration: sys.motion.arrive.duration, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 0, duration: sys.motion.arrive.duration, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])
+      );
+      loop.start();
+      return () => loop.stop();
+    } else {
+      pulseAnim.setValue(0);
+    }
+  }, [listening, reduced, targetSize, pulseAnim]);
   const begin = () => {
     if (p.disabled || occupied || active || gesture.current) return;
     const id = noviUuidZahtevId(); gesture.current = id; gestureTap.current = explicit;
@@ -117,14 +132,25 @@ export function VoiceComposer(p: VoiceInput & { onTooShort?: () => void; size?: 
     onPress={explicit ? () => gesture.current ? release() : begin() : undefined}
     onResponderMove={explicit ? undefined : event => { if (gesture.current && startY.current - event.nativeEvent.pageY > 70) cancel(); }}
     style={[s.target, { width: targetSize, height: targetSize }]}>
-    <View style={[s.micCircle, { width: targetSize - 4, height: targetSize - 4 }, targetSize === 60 && s.micPrimary, listening && s.micListening, waiting && s.micWaiting]}>
+    <View style={[s.micCircle, { width: targetSize - 4, height: targetSize - 4 }, targetSize === 60 && s.micPrimary, targetSize === 64 && s.mic64, listening && s.micListening, waiting && s.micWaiting]}>
+      {listening && !reduced && targetSize === 64 ? (
+        <Animated.View style={[s.pulseRing, {
+          width: targetSize - 4,
+          height: targetSize - 4,
+          borderRadius: (targetSize - 4) / 2,
+          transform: [{
+            scale: pulseAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.35] })
+          }],
+          opacity: pulseAnim.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.5, 0.25, 0] }),
+        }]} />
+      ) : null}
       {waiting ? reduced
         ? <View accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-            <HourglassMedium size={glyphSize} color={sys.color.artRole.ai.front} />
+            <HourglassMedium size={glyphSize} color={targetSize === 64 ? '#FFFFFF' : sys.color.artRole.ai.front} />
           </View>
-        : <ActivityIndicator size="small" color={sys.color.artRole.ai.front} />
-        : active && review ? <StopCircle size={glyphSize} weight="fill" color={listening ? sys.color.onGreen : sys.color.ink} />
-          : <Microphone size={glyphSize} weight={listening ? 'fill' : 'regular'} color={listening ? sys.color.onGreen : blocked ? sys.color.muted : sys.color.ink} />}
+        : <ActivityIndicator size="small" color={targetSize === 64 ? '#FFFFFF' : sys.color.artRole.ai.front} />
+        : active && review ? <StopCircle size={glyphSize} weight="fill" color={targetSize === 64 ? '#FFFFFF' : listening ? sys.color.onGreen : sys.color.ink} />
+          : <Microphone size={glyphSize} weight={listening ? 'fill' : 'regular'} color={targetSize === 64 ? '#FFFFFF' : listening ? sys.color.onGreen : blocked ? sys.color.muted : sys.color.ink} />}
     </View>
   </MicTarget>;
 }
@@ -153,7 +179,9 @@ export function VoiceNotice(p: VoiceInput & { tapToTalk?: boolean; hint?: string
         : 'Slušam… Pusti da pošalješ, povuci nagore da odustaneš.'
       : state.phase === 'FINALIZING' ? 'Prepoznajemo govor…' : PHASE_WORDS[state.phase] ?? '';
     return <View testID="voice-notice" style={s.notice}>
-      {words ? <T testID="voice-live-transcript" selectable numberOfLines={3} style={s.heard}>{words}</T> : null}
+      {words ? <View style={s.heardBubble}>
+        <T testID="voice-live-transcript" selectable numberOfLines={3} style={s.heard}>{words}</T>
+      </View> : null}
       <View style={s.noticeRow}>
         {listening && state.audioLevel !== null ? <Levels level={state.audioLevel} /> : null}
         <T accessibilityLiveRegion="polite" variant="note" style={[s.noticeText, listening && s.noticeLive]}>{line}</T>
@@ -183,7 +211,10 @@ const s = StyleSheet.create({
   target: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   micCircle: { width: 44, height: 44, borderRadius: sys.radius.pill, alignItems: 'center', justifyContent: 'center' },
   micPrimary: { backgroundColor: sys.color.artRole.ai.soft },
-  micListening: { backgroundColor: sys.color.ink },
+  mic64: { backgroundColor: '#0E4D3C', shadowColor: '#0E4D3C', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 8, elevation: 4 },
+  pulseRing: { position: 'absolute', borderWidth: 2, borderColor: '#0E4D3C', backgroundColor: '#0E4D3C' },
+  heardBubble: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 18, backgroundColor: sys.conversation.userSoft, borderWidth: 1, borderColor: sys.conversation.userSoftEdge, alignSelf: 'stretch', marginBottom: 4 },
+  micListening: { backgroundColor: '#0E4D3C' },
   micWaiting: { backgroundColor: sys.color.wash },
   notice: { gap: 4, paddingHorizontal: 8 },
   noticeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },

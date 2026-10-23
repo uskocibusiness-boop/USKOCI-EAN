@@ -163,12 +163,13 @@ export function ScreenChrome(props: ScreenChromeProps) {
 
   const { title, subtitle, titleVisible } = props;
   const scrolled = titleVisible !== undefined;
-  return <View style={[s.bar, props.tone === 'conversation' && {backgroundColor:sys.conversation.ground}]}>
-    <ChromeIconButton label={props.backLabel ?? 'Nazad'} glyph="back" disabled={props.disabled} onPress={props.onBack} />
+  const isConversation = props.tone === 'conversation';
+  return <View style={[s.bar, isConversation && s.conversationBar]}>
+    <ChromeIconButton label={props.backLabel ?? 'Nazad'} glyph="back" quiet={isConversation} disabled={props.disabled} onPress={props.onBack} />
     {props.lead}
     <View style={[s.copy, scrolled && s.scrolledCopy]}>
-      {title && !scrolled ? <ChromeTitle title={title} subtitle={subtitle} />
-        : title ? <FadingTitle visible={titleVisible!}><ChromeTitle title={title} subtitle={subtitle} scrolled /></FadingTitle>
+      {title && !scrolled ? <ChromeTitle title={title} subtitle={subtitle} conversation={isConversation} />
+        : title ? <FadingTitle visible={titleVisible!}><ChromeTitle title={title} subtitle={subtitle} scrolled conversation={isConversation} /></FadingTitle>
           : subtitle ? <T variant="meta" tone="muted" numberOfLines={1}>{subtitle}</T> : null}
     </View>
     {props.right}
@@ -185,10 +186,10 @@ export const SCROLL_TITLE_MAX_SCALE = 1.3;
  * A title that is always there may take two lines. The scrolled-in one is a reminder of a name the screen already showed
  * large, so it is one line with an ellipsis and follows the text scale only up to `SCROLL_TITLE_MAX_SCALE`.
  */
-function ChromeTitle({ title, subtitle, scrolled = false }: { title: string; subtitle?: string; scrolled?: boolean }) {
+function ChromeTitle({ title, subtitle, scrolled = false, conversation = false }: { title: string; subtitle?: string; scrolled?: boolean; conversation?: boolean }) {
   const cap = scrolled ? SCROLL_TITLE_MAX_SCALE : undefined;
   return <>
-    <T accessibilityRole="header" variant="title" numberOfLines={scrolled ? 1 : 2} maxFontSizeMultiplier={cap} style={s.title}>{title}</T>
+    <T accessibilityRole="header" variant={conversation ? 'heading' : 'title'} numberOfLines={scrolled || conversation ? 1 : 2} maxFontSizeMultiplier={cap} style={[s.title, conversation && s.conversationTitle]}>{title}</T>
     {subtitle ? <T variant="meta" tone="muted" numberOfLines={1} maxFontSizeMultiplier={cap}>{subtitle}</T> : null}
   </>;
 }
@@ -231,6 +232,8 @@ export function useChromeTitleOnScroll(threshold = 72): { titleVisible: boolean;
 const s = StyleSheet.create({
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: chrome.gap, minHeight: chrome.minHeight,
     paddingHorizontal: chrome.paddingHorizontal, paddingVertical: chrome.paddingVertical },
+  conversationBar: { minHeight: 52, paddingVertical: sys.space.xs, paddingHorizontal: layout.gutter, backgroundColor: sys.conversation.ground, borderBottomWidth: 0 },
+  conversationTitle: { ...sys.type.bodyStrong, fontSize: 17, fontWeight: '600', color: sys.color.ink },
   copy: { flex: 1, minWidth: 0 },
   // The scrolled-in title's area spans the bar's content height (its 48 px controls), and the title lies over it.
   scrolledCopy: { alignSelf: 'stretch' },

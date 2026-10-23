@@ -87,14 +87,14 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
           : grad ? <ListRow title="Grad profila" value={grad} leading={<FactArt kind="pin" size={32} />} last /> : null}
       </SettingsGroup>
     </View>
-    {onSite && !draft.workAreas?.length && !readOnly && confirmMap ? <V2Action label="Potvrdi tačku na mapi" tone="neutral" kind="quiet" compact disabled={disabled}
+    {onSite && !readOnly && confirmMap ? <V2Action label="Potvrdi tačku na mapi" tone="neutral" kind="quiet" compact disabled={disabled}
       onPress={() => { if (!disabled) confirmMap(); }} /> : null}
     <View testID="worker-profile-time-card" style={s.sectionCard}><SettingsGroup title="Kada">
         {availableNow && !readOnly
           ? <SettingsRow label="Dostupnost" value={availableNow.value ? 'Mogu odmah' : 'Mogu odmah: isključeno'} valuePlacement="below"
             icon={<ClockArt size={32} quiet={disabled} />} disabled={disabled} onPress={() => { if (!disabled) availableNow.onEdit(); }} />
           : <ListRow leading={<ClockArt size={32} quiet />} title="Mogu odmah" value={draft.dostupanOdmah ? 'Uključeno' : 'Isključeno'} />}
-        {!readOnly && !availableNow ? <SettingsRow label="Nedeljni raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled}
+        {!readOnly ? <SettingsRow label="Nedeljni raspored" icon={<FactArt kind="calendar" size={32} />} disabled={disabled}
           onPress={() => openConversation ? openConversation('time') : navigate('/profil/dostupnost')} last /> : null}
       </SettingsGroup></View>
   </View>;

@@ -315,7 +315,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
   const hasText = p.value.trim().length > 0;
   // Unknown does not mean failed: only the caller's explicit retry grant can
   // offer another send while this same request is pending.
-  const sendShown = p.pending ? p.canSend : !voiceMode && hasText;
+  const sendShown = p.pending ? p.canSend : hasText;
   const textRoom = composerWidth - 32 - (p.attach ? 48 : 0) - (p.voice ? 52 : 0) - (sendShown || p.voice ? 48 : 0);
   const stackedComposer = textScale >= 1.3 || (composerWidth > 0 && textRoom < 128) || expandedDraft || p.value.includes('\n');
   // Once a narrow field wraps, keep the full-width draft until it is short again.
@@ -569,7 +569,7 @@ export function AiConversationShell(p: AiConversationShellProps) {
           const width = event.nativeEvent.layout.width;
           if (Number.isFinite(width) && width > 0) setComposerWidth(previous => previous === width ? previous : width);
         }}
-          style={[s.pill, !voiceMode && stackedComposer && s.pillExpanded, inputFocused && s.pillFocused]}>
+          style={[s.pill, voiceMode && s.voicePill, !voiceMode && stackedComposer && s.pillExpanded, inputFocused && s.pillFocused]}>
           {p.attach ? <View style={[s.attachmentSlot, !voiceMode && stackedComposer && s.attachmentBelow]}>
             <Press accessibilityRole="button" accessibilityLabel={p.attach.label} accessibilityHint={p.attach.hint}
               accessibilityState={{ disabled: !!p.attach.disabled }} disabled={p.attach.disabled} haptic={p.attach.disabled ? 'none' : 'select'}
@@ -592,19 +592,20 @@ export function AiConversationShell(p: AiConversationShellProps) {
             // A field that cannot be edited now says so in its ink: the words in it are held, not a draft to change.
             style={[s.input, { height: inputHeight }, stackedComposer && s.inputExpanded, !p.canEdit && s.inputOff]} />}
           <View testID="ai-composer-tools" style={[s.composerTools, voiceMode && s.voiceTools, !voiceMode && stackedComposer && s.toolsBelow]}>
-            {p.voice ? voiceMode ? <VoiceComposer {...p.voice} size={60} tapToTalk={tapToTalk} reviewFirst={reviewFirst} onTooShort={() => setHoldHint(true)} />
-              : <Press testID="ai-input-mode" accessibilityRole="button" accessibilityLabel="Pređi na govor"
+            {p.voice ? voiceMode ? (
+              <VoiceComposer {...p.voice} size={64} tapToTalk={tapToTalk} reviewFirst={reviewFirst} onTooShort={() => setHoldHint(true)} />
+            ) : <Press testID="ai-input-mode" accessibilityRole="button" accessibilityLabel="Pređi na govor"
                 accessibilityHint={modeBlocked ? modeReason : 'Izaberi govor; snimanje počinje tek na mikrofonu.'}
                 accessibilityState={{ disabled: modeBlocked || p.pending }} disabled={modeBlocked || p.pending} haptic="select"
                 onPress={() => { if (!p.pending) chooseInput('voice'); }} style={s.target}>
                 <Glyph name="mic" size={24} tone={p.pending ? 'muted' : 'green'} />
               </Press> : null}
-          {sendShown ? <Press testID="ai-send" accessibilityRole="button" accessibilityLabel={p.pending ? 'Pošalji ponovo' : 'Pošalji poruku'}
-            accessibilityHint={sendReason ?? undefined} accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend}
-            onPress={() => { if (!p.canSend) return; latest(false); p.onSend(); }} haptic={p.canSend ? 'light' : 'none'} hitSlop={0} style={s.target}>
-            <View style={[s.round, s.send, !p.canSend && s.roundOff]}>
-              <Glyph name="send" size={24} on tone={p.canSend ? 'onGreen' : 'muted'} /></View>
-          </Press> : null}
+            {sendShown ? <Press testID="ai-send" accessibilityRole="button" accessibilityLabel={p.pending ? 'Pošalji ponovo' : 'Pošalji poruku'}
+              accessibilityHint={sendReason ?? undefined} accessibilityState={{ disabled: !p.canSend }} disabled={!p.canSend}
+              onPress={() => { if (!p.canSend) return; latest(false); p.onSend(); }} haptic={p.canSend ? 'light' : 'none'} hitSlop={0} style={s.target}>
+              <View style={[s.round, s.send, !p.canSend && s.roundOff]}>
+                <Glyph name="send" size={24} on tone={p.canSend ? 'onGreen' : 'muted'} /></View>
+            </Press> : null}
           </View>
           {voiceMode ? <Press testID="ai-input-mode" accessibilityRole="button" accessibilityLabel="Pređi na tastaturu"
             accessibilityHint={modeBlocked ? modeReason : hasText ? 'Neposlata poruka je sačuvana.' : 'Napiši poruku umesto govora.'}
@@ -746,7 +747,8 @@ const s = StyleSheet.create({
   reviewBox: { width: 20, height: 20, borderRadius: sys.radius.check, borderWidth: 1, borderColor: sys.color.muted, alignItems: 'center', justifyContent: 'center' },
   reviewBoxOn: { borderColor: sys.color.green, backgroundColor: sys.color.green },
   voicePrompt: { textAlign: 'center', paddingHorizontal: sys.space.sm },
-  voiceTools: { flex: 1, justifyContent: 'center' },
+  voiceTools: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  voicePill: { minHeight: 76, paddingHorizontal: 12, paddingVertical: 6, justifyContent: 'space-between', backgroundColor: sys.conversation.surface },
   gestureChoice: { minHeight: sys.touch.min, justifyContent: 'center', alignSelf: 'flex-start' },
   // One ordinary horizontal pill; only a wrapped draft or limited reading space moves tools below.
   pill: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 6,
@@ -770,4 +772,6 @@ const s = StyleSheet.create({
   voiceRound: { backgroundColor: sys.color.artRole.ai.soft },
   // Disabled is a quiet wash with a muted glyph, never a faded ghost of the live control.
   roundOff: { backgroundColor: sys.color.wash },
+  round64: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
+  send64: { backgroundColor: '#0E4D3C', shadowColor: '#0E4D3C', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 8, elevation: 4 },
 });
