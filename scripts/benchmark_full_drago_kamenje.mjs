@@ -5,9 +5,17 @@ const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsI
 
 const supabase = createClient(SUPABASE_URL, ANON_KEY);
 
+const testEmail = process.env.USKOCI_TEST_EMAIL || 'test_ai_agent_sim_1792703736740@uskoci.rs';
+const testPassword = process.env.USKOCI_TEST_PASSWORD || '';
+
+if (!testPassword) {
+  console.error('USKOCI_TEST_PASSWORD environment variable must be set to run this benchmark.');
+  process.exit(1);
+}
+
 const { data: auth, error: authErr } = await supabase.auth.signInWithPassword({
-  email: 'test_ai_agent_sim_1792703736740@uskoci.rs',
-  password: 'Password123!Secure',
+  email: testEmail,
+  password: testPassword,
 });
 
 if (authErr) {

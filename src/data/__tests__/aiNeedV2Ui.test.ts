@@ -202,7 +202,11 @@ describe('PKG-025d price basis in the review', () => {
   // refuses it with V2_PRICE_BASIS_INVALID, and the person is told nothing useful. The refusal
   // belongs where the typing happened.
   it.each(['po komadu', 'PO_OSOBI_MOZDA', 'total price'])('refuses %s here rather than on the server', text => {
-    expect(correctionFromText(basis('TOTAL'), text)).toEqual({ ok: false, message: 'Koristiš: ukupno ili po osobi.' });
+    expect(correctionFromText(basis('TOTAL'), text)).toEqual({ ok: false, message: 'Koristiš: ukupno, po satu ili po osobi.' });
+  });
+
+  it('accepts po satu as HOURLY', () => {
+    expect(correctionFromText(basis('TOTAL'), 'po satu')).toEqual({ ok: true, value: 'HOURLY', displayValue: 'po satu' });
   });
 
   it('leaves an empty field to the general rule, which already says the better thing', () => {
@@ -249,7 +253,7 @@ describe('choices for the enum facts and a digits-only amount, saving what the t
   const enumFact = (key: AiNeedV2Fact['key'], value: unknown) => typedFact({ key, valueType: 'ENUM', value });
   const ACCEPTED: Record<string, string[]> = {
     'need.price_mode': ['MY_PRICE', 'OFFERS'],
-    'need.price_basis': ['TOTAL', 'PER_PERSON'],
+    'need.price_basis': ['TOTAL', 'PER_PERSON', 'HOURLY'],
     'need.schedule_kind': ['FIXED_WINDOW', 'FLEXIBLE', 'REMOTE_ANYTIME', 'TODAY_FLEXIBLE', 'TOMORROW_FLEXIBLE', 'WEEK_FLEXIBLE'],
   };
 

@@ -102,7 +102,7 @@ export function reviewAsTask(review: ReviewSource, person: PreviewPerson | null 
     ...(person?.avatarId ? { narucilacAvatarId: person.avatarId } : {}),
     priblizno: anchor ? { lat: anchor.latitude, lng: anchor.longitude } : null,
     ...(priceMode ? { rezimCene: priceMode } : {}),
-    osnovaCene: basis === 'TOTAL' || basis === 'PER_PERSON' ? basis : null,
+    osnovaCene: basis === 'TOTAL' || basis === 'PER_PERSON' || basis === 'HOURLY' ? basis : null,
     // An amount left from before is not the price of a task that asks for offers: it is no price at all.
     ...(priceMode === 'MY_PRICE' && amount ? { ponudjenaCena: { iznos: amount, valuta: 'RSD', prikaz: novac(amount) } } : {}),
   };

@@ -555,6 +555,15 @@
         "raw_md5": "bd5a67353abbc1b550a47fa549709179",
         "raw_sha256": "bb980104058f6c37a1f10ac3c049db68a2156e246742e92cc6433f2fdcadb7cd",
         "raw_bytes": 22861
+      },
+      {
+        "file": "20261023220000_universal_crown_taxonomy_and_hourly_pricing.sql",
+        "version": "20261023220000",
+        "name": "universal_crown_taxonomy_and_hourly_pricing",
+        "classification": "SOURCE_ONLY_LIVE_BINDING_UNPROVEN",
+        "raw_md5": "cd735a77dd655fdc6d9621788e52cb17",
+        "raw_sha256": "9b1a212e8c480a7a7ff61e07cfbb478bb6409df1d92e2d7e44a18349bfff189d",
+        "raw_bytes": 27767
       }
     ],
     "last_extended_at_utc": "2026-10-21T10:45:54.025661+00:00"

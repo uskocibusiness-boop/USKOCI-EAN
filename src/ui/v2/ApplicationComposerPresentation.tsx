@@ -495,12 +495,14 @@ export function ApplicationComposerPresentation({ need, opportunity, draft, chan
 function FixedPrice({ need }: { need: PotrebaProjekcija }) {
   const amount = need.ponudjenaCena?.prikaz;
   // An absent legacy basis is an application total, never an inferred whole-task price.
-  const basis = need.osnovaCene === 'PER_PERSON' ? 'po osobi'
+  const basis = need.osnovaCene === 'HOURLY' ? 'po satu rada'
+    : need.osnovaCene === 'PER_PERSON' ? 'po osobi'
     : need.osnovaCene === 'TOTAL' ? 'za ceo zadatak' : 'ukupno za tvoju prijavu';
   return <View style={s.group}>
     {amount ? <MoneySummary label="Cena zadatka" amount={amount} basis={basis} />
       : <FactRow size="detail" art="money" label="Cena zadatka" value="Cena nije navedena" />}
     {need.osnovaCene === 'TOTAL' ? <T variant="note" tone="muted">Tvoja cena se računa srazmerno broju ljudi, zaokruženo na najbliži dinar.</T> : null}
+    {need.osnovaCene === 'HOURLY' ? <T variant="note" tone="muted">Cena je fiksna satnica koju plaća naručilac po satu rada.</T> : null}
   </View>;
 }
 

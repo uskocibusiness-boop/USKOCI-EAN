@@ -165,7 +165,7 @@ async function projectOpenTasks(items: Record<string, unknown>[], assertCurrent:
       narucilacOcena: formatPublicRating(narucilac),
       narucilacBrojOcena: publicReviewCount(narucilac),
       rezimCene: r.mode,
-      osnovaCene: r.price_basis === 'TOTAL' || r.price_basis === 'PER_PERSON' ? r.price_basis : null,
+      osnovaCene: r.price_basis === 'TOTAL' || r.price_basis === 'PER_PERSON' || r.price_basis === 'HOURLY' ? r.price_basis : null,
       ponudjenaCena: r.requester_price_rsd ? rsd(r.requester_price_rsd) : undefined,
     };
   });
@@ -441,7 +441,7 @@ export const supabaseIzvor: SupabaseIzvor = {
       narucilacOcena: formatPublicRating(narucilac),
       narucilacBrojOcena: publicReviewCount(narucilac),
       rezimCene: data.mode as any,
-      osnovaCene: data.price_basis === 'TOTAL' || data.price_basis === 'PER_PERSON' ? data.price_basis : null,
+      osnovaCene: data.price_basis === 'TOTAL' || data.price_basis === 'PER_PERSON' || data.price_basis === 'HOURLY' ? data.price_basis : null,
       ponudjenaCena: data.requester_price_rsd ? rsd(data.requester_price_rsd) : undefined,
     };
   },

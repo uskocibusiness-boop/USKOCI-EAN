@@ -32,6 +32,10 @@ const PRICE_BASIS: Record<string, string> = {
   'po osobi': 'PER_PERSON',
   po_osobi: 'PER_PERSON',
   per_person: 'PER_PERSON',
+  'po satu': 'HOURLY',
+  'po satu rada': 'HOURLY',
+  sat: 'HOURLY',
+  hourly: 'HOURLY',
 };
 
 const SCHEDULE_KIND: Record<string, string> = {
@@ -83,7 +87,7 @@ export function factEditorKind(fact: AiNeedV2Fact): FactEditorKind {
 }
 
 const PRICE_LABELS: Record<string, string> = { MY_PRICE: 'Moja cena', OFFERS: 'Ponude', FASTEST: 'Najbrže (raniji način)' };
-const PRICE_BASIS_LABELS: Record<string, string> = { TOTAL: 'Ukupno za ceo zadatak', PER_PERSON: 'Po osobi' };
+const PRICE_BASIS_LABELS: Record<string, string> = { TOTAL: 'Ukupno za ceo zadatak', PER_PERSON: 'Po osobi', HOURLY: 'Po satu rada' };
 const SCHEDULE_LABELS: Record<string, string> = { FIXED_WINDOW: 'Tačan termin', FLEXIBLE: 'Fleksibilno', REMOTE_ANYTIME: 'Daljinski bilo kada',
   TODAY_FLEXIBLE: 'Danas', TOMORROW_FLEXIBLE: 'Sutra', WEEK_FLEXIBLE: 'Ove nedelje' };
 
@@ -96,7 +100,7 @@ export type FactChoice = { value: string; label: string };
  */
 const FACT_CHOICES: Partial<Record<NeedFactV2Key, readonly FactChoice[]>> = {
   'need.price_mode': ['MY_PRICE', 'OFFERS'].map(value => ({ value, label: PRICE_LABELS[value] })),
-  'need.price_basis': ['TOTAL', 'PER_PERSON'].map(value => ({ value, label: PRICE_BASIS_LABELS[value] })),
+  'need.price_basis': ['TOTAL', 'PER_PERSON', 'HOURLY'].map(value => ({ value, label: PRICE_BASIS_LABELS[value] })),
   'need.schedule_kind': ['TODAY_FLEXIBLE', 'TOMORROW_FLEXIBLE', 'WEEK_FLEXIBLE', 'FIXED_WINDOW', 'FLEXIBLE', 'REMOTE_ANYTIME']
     .map(value => ({ value, label: SCHEDULE_LABELS[value] })),
 };
@@ -371,8 +375,8 @@ export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorre
       }
       if (fact.key === 'need.price_basis') {
         const value = PRICE_BASIS[normalized] ?? text.toUpperCase();
-        if (!['TOTAL', 'PER_PERSON'].includes(value)) {
-          return { ok: false, message: 'Koristiš: ukupno ili po osobi.' };
+        if (!['TOTAL', 'PER_PERSON', 'HOURLY'].includes(value)) {
+          return { ok: false, message: 'Koristiš: ukupno, po satu ili po osobi.' };
         }
         return { ok: true, value, displayValue: text };
       }

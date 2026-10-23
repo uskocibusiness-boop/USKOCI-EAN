@@ -27,7 +27,7 @@ import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 /** What stands in the value slot. A retained map card can temporarily await a fresh exact price. */
 export type TaskValue =
-  | { kind: 'amount'; amount: string; basis: 'ukupno' | 'po osobi' | null }
+  | { kind: 'amount'; amount: string; basis: 'ukupno' | 'po osobi' | 'po satu' | null }
   | { kind: 'offers' }
   | { kind: 'unpriced' }
   | { kind: 'unverified' };
@@ -37,7 +37,7 @@ export function taskValue(item: Pick<MarketplaceItem, 'rezimCene' | 'ponudjenaCe
   const amount = item.ponudjenaCena?.prikaz;
   if (!amount) return { kind: 'unpriced' };
   // The card says what the number buys in one or two words (A10, B14); the full sentence stays on the detail.
-  return { kind: 'amount', amount, basis: item.osnovaCene === 'TOTAL' ? 'ukupno' : item.osnovaCene === 'PER_PERSON' ? 'po osobi' : null };
+  return { kind: 'amount', amount, basis: item.osnovaCene === 'HOURLY' ? 'po satu' : item.osnovaCene === 'TOTAL' ? 'ukupno' : item.osnovaCene === 'PER_PERSON' ? 'po osobi' : null };
 }
 
 /** The words of a value slot without an amount. They are labels, never drawn as money. */

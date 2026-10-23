@@ -94,8 +94,8 @@ export type PotrebaProjekcija = {
   /** Server-owned selectable count. Absent/null is unknown, never the historical total. */
   brojPrijavaZaIzbor?: number | null;
   rezimCene?: RezimCene;
-  /** Sta cena znaci: TOTAL = ceo zadatak, PER_PERSON = jedno mesto. null/undefined = postojece znacenje. */
-  osnovaCene?: "TOTAL" | "PER_PERSON" | null;
+  /** Sta cena znaci: TOTAL = ceo zadatak, PER_PERSON = jedno mesto, HOURLY = po satu. null/undefined = postojece znacenje. */
+  osnovaCene?: "TOTAL" | "PER_PERSON" | "HOURLY" | null;
   ponudjenaCena?: Novac;
   /** Missing only for earlier saved/mock projections; never infer missing topology. */
   detalji?: NeedDetailProjection;
@@ -139,8 +139,8 @@ export type PrilikaProjekcija = {
   /** Približna tačka za mapu. Tačna lokacija se otkriva tek po pravilima Dogovora. */
   priblizno: { lat: number; lng: number } | null;
   rezimCene?: RezimCene;
-  /** Sta cena znaci: TOTAL = ceo zadatak, PER_PERSON = jedno mesto. null/undefined = postojece znacenje. */
-  osnovaCene?: "TOTAL" | "PER_PERSON" | null;
+  /** Sta cena znaci: TOTAL = ceo zadatak, PER_PERSON = jedno mesto, HOURLY = po satu. null/undefined = postojece znacenje. */
+  osnovaCene?: "TOTAL" | "PER_PERSON" | "HOURLY" | null;
   ponudjenaCena?: Novac;
 };
 
@@ -265,7 +265,7 @@ export type ApplicationTaskFacts = {
   rezimLokacije: import('./needFactsV2').NeedTaskGeographyMode | null;
   vremenskaZona: string | null;
   rezimCene: RezimCene;
-  osnovaCene: 'TOTAL' | 'PER_PERSON' | null;
+  osnovaCene: 'TOTAL' | 'PER_PERSON' | 'HOURLY' | null;
   potrebnoMesta: number;
 };
 
