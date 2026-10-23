@@ -661,8 +661,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
               open={showMore} onToggle={() => { if (!quietEdit) setShowMore(open => !open); }}>
               {moreFacts.map((item, index) => {
                 const shown = displayFact(item);
+                const isBlank = !item.value || (Array.isArray(item.value) && item.value.length === 0) || item.status === 'UNKNOWN';
                 return <ReviewFactRow key={item.key} label={factName(item.key)} value={priceAmountRowValue(priceMode, shown) ?? reviewRowValue(shown)}
-                  system={item.source === 'SYSTEM'} last={index === moreFacts.length - 1} />;
+                  system={item.source === 'SYSTEM'}
+                  edit={canEdit ? () => editInConversation(taskCorrectionTarget(item.key)) : undefined}
+                  actionLabel={isBlank ? 'Dodaj' : 'Izmeni'}
+                  last={index === moreFacts.length - 1} />;
               })}
             </ReviewMoreFacts> : undefined} />
           {hasPhysicalMap && review.location && !command && !todos.some(todo => todo.target === 'location') ? <V2Action label={opening ? 'Otvaramo mapu…'

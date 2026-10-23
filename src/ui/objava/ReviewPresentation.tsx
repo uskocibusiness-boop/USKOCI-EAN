@@ -139,8 +139,8 @@ export function ReviewEditing({ name, rowRef, children }: { name?: string; rowRe
  * "Izmeni" at the end of the row (`KeyValueRow`: beside the label when the value is short and the text ordinary, under it when it is long or the
  * text is large). While an edit is open the row is its editor (`children`).
  */
-export function ReviewFactRow({ label, value, system, edit, children, rowRef, last = false }: {
-  label: string; value: string; system: boolean; edit?: () => void;
+export function ReviewFactRow({ label, value, system, edit, actionLabel, children, rowRef, last = false }: {
+  label: string; value: string; system: boolean; edit?: () => void; actionLabel?: string;
   /** An open correction: replaces the value with its editor. */ children?: ReactNode;
   rowRef?: (node: View | null) => void; /** The last row of its group: no divider under it. */ last?: boolean;
 }) {
@@ -148,7 +148,7 @@ export function ReviewFactRow({ label, value, system, edit, children, rowRef, la
   // A value the system chose says so under it, in the same quiet words, so it is not read as the owner's own.
   const shown = system ? <View><T variant="body">{value}</T><T variant="meta" tone="muted">Podrazumevana vrednost</T></View> : value;
   return <View ref={rowRef} collapsable={false}>
-    <KeyValueRow label={label} value={shown} action={edit ? { label: 'Izmeni', onPress: edit } : undefined} last={last} />
+    <KeyValueRow label={label} value={shown} action={edit ? { label: actionLabel ?? 'Izmeni', onPress: edit } : undefined} last={last} />
   </View>;
 }
 

@@ -537,6 +537,24 @@
         "live_recorded_md5": "811f0756646e9598021816f760e6ebcb",
         "live_recorded_sha256": "2f3a9957e33f2347a637fc273a8d96170d04225c5a99a02c17c672348d3d03a9",
         "note": "DEV applied with embedded synthetic authenticated SQL rollback gate. Not a phone/provider E2E attestation."
+      },
+      {
+        "file": "20261023200000_taxonomy_snapshot_and_turn_hints.sql",
+        "version": "20261023200000",
+        "name": "taxonomy_snapshot_and_turn_hints",
+        "classification": "SOURCE_ONLY_LIVE_BINDING_UNPROVEN",
+        "raw_md5": "890df30ff146eced7d2663deffdb6700",
+        "raw_sha256": "31db42b2980588b957621f998c2eaf0dc48502287cf7fc7106df8ce95208dfdc",
+        "raw_bytes": 8629
+      },
+      {
+        "file": "20261023210000_matching_work_areas_and_public_grants.sql",
+        "version": "20261023210000",
+        "name": "matching_work_areas_and_public_grants",
+        "classification": "SOURCE_ONLY_LIVE_BINDING_UNPROVEN",
+        "raw_md5": "bd5a67353abbc1b550a47fa549709179",
+        "raw_sha256": "bb980104058f6c37a1f10ac3c049db68a2156e246742e92cc6433f2fdcadb7cd",
+        "raw_bytes": 22861
       }
     ],
     "last_extended_at_utc": "2026-10-21T10:45:54.025661+00:00"

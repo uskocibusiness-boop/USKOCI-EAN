@@ -465,6 +465,10 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
         <V2Action label="Izmeni aktivnu pretragu" kind="quiet"
           onPress={() => { Keyboard.dismiss(); onOpenSearch(); }} />
       </View> : null}
+      {onOpenSearch && !view.query.trim() ? <View testID="filters-keyword-search" style={s.activeQuery}>
+        <V2Action label="Pretraži po reči (npr. krečenje, selidba)" kind="secondary"
+          onPress={() => { Keyboard.dismiss(); onOpenSearch(); }} />
+      </View> : null}
     </ScrollView>
   </SearchSheet>;
 }
