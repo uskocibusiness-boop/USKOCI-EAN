@@ -25,6 +25,7 @@ import { V2Action } from './V2Action';
 import { CardTitle, valueSpoken } from './TaskFace';
 import { normalizeNeedLocation, pointsMissing } from '../../lib/location';
 import { AiConversationShell, type AiConversationShellProps } from '../aiFirst/AiConversationShell';
+import { taskInterviewOpening } from '../aiFirst/aiInterviewWelcome';
 import type { VoiceInput } from '../aiFirst/VoiceComposer';
 import type { LocationReplyPrompt } from '../location/ConversationPointAsk';
 import { ConfirmedPlaceLine } from '../location/ConfirmedPlaceLine';
@@ -473,7 +474,7 @@ export function IntakePresentation(props: Props) {
     : 'USKOČI Asistent';
 
   return <AiConversationShell conversationKey={props.conversationKey ?? conversation.conversationId} title={conversationTitle}
-    cardPlacement="end" initialInputMode="keyboard" closed={ended}
+    questionFocus cardPlacement="end" initialInputMode="keyboard" closed={ended}
     correction={props.correction}
     footerAction={footerAction}
     newConversation={props.onRestart ? { onPress: outsidePlace(props.onRestart), disabled: props.restartDisabled || editingPlace }
@@ -490,10 +491,12 @@ export function IntakePresentation(props: Props) {
     value={value} canEdit={props.canEdit} canSend={props.canSubmit && (!editingPlace || contextualReply)}
     sendBlockedReason={editingPlace ? 'Prvo potvrdi mesto ili zatvori mapu.' : undefined}
     messages={messages} pending={pending} busy={busy} busyLabel={props.busyLabel} streamingText={props.streamingText}
+    // The greeting is client-owned UI, not an LLM call or server-authored message.
+    introMessage={messages.length===0 && !props.sentMessage ? taskInterviewOpening(!!conversation.review.boundNeedId) : undefined}
     sentMessage={props.sentMessage}
     // A local welcome disappears once the real thread begins. It is never an AI turn.
     welcome="Ćao! Reci mi šta ti treba. 😊"
-    welcomeDetail="Napiši ili ispričaj svojim rečima. Zajedno ćemo razjasniti detalje."
+    welcomeDetail=""
     openings={TASK_OPENINGS}
     placeholder="Opiši šta ti treba"
     onBack={() => { if (editingPlaceNow.current && closePlace.current) closePlace.current(); else props.onBack(); }}

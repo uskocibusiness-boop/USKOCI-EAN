@@ -1,0 +1,49 @@
+name: P3 Početna owner-read cancellation regression
+on:
+  push:
+    branches: [work/p3-home-owner-read-cancel-20261022]
+    paths:
+      - 'src/data/ports.ts'
+      - 'src/data/needClientService.ts'
+      - 'src/app/(app)/index.tsx'
+      - 'src/data/__tests__/cdl-a03-need-read-equivalence.test.ts'
+      - '.github/workflows/p3-home-owner-read-cancel.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: p3-home-read-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    if: github.repository == 'uskocibusiness-boop/USKOCI-EAN'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 1
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependencies and verify source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci
+          git diff --check
+      - name: Full TypeScript project
+        run: npx tsc --noEmit -p tsconfig.json
+      - name: Targeted owner-read and Home tests
+        run: |
+          npx jest --runInBand --testTimeout=30000 --runTestsByPath \
+            src/data/__tests__/cdl-a03-need-read-equivalence.test.ts \
+            src/data/__tests__/home-read-lifetime.test.ts \
+            src/data/__tests__/v3-home-screen.test.tsx \
+            src/data/__tests__/v3-home-snapshot.test.ts
+      - name: Full Jest regression
+        run: npx jest --maxWorkers=3 --testTimeout=30000

@@ -3368,4 +3368,31 @@
     "physical_predecessor_migration_count": 101,
     "replay_registration": "15th pending entry extends the unchanged historical87 replay suffix; physical pending count is1."
   }
+,
+  "pkg1a_readonly_reconciliation_20261022": {
+    "classification": "READ_ONLY_DATED_SUPPLEMENT_NOT_MIGRATION",
+    "observed_at_utc": "2026-10-22T03:55:07.706685Z",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "repository_head": "ababbdbcc70ee08df4408cfb318a5d028188d168",
+    "evidence": "supabase/operations/dev-alpha/ledger/20261022_pkg1a_readonly_receipt.json",
+    "observed_migration_count": 307,
+    "version_only_no_statements_count": 217,
+    "head_version": "20261021104742",
+    "head_archived_statement_sha256": "160b0bb8101530664ab0422c513fe90429ae078da606aeaea10c8861e1209507",
+    "head_archived_statement_path": "supabase/operations/dev-alpha/ledger/20261021104742_closure_executor_rollback_probe.sql.txt",
+    "unproven_possible_aliases": [
+      {
+        "local_source_version": "20261019071732",
+        "live_version": "20261019074443",
+        "reason": "Server record version only; not a byte-equivalence proof"
+      },
+      {
+        "local_source_version": "20261019085714",
+        "live_version": "20261019092405",
+        "reason": "Server record version only; not a byte-equivalence proof"
+      }
+    ],
+    "closure_release_ready": false,
+    "immutability": "Append-only evidence; historical entries and migration history untouched. Never replay archived SQL."
+  }
 }

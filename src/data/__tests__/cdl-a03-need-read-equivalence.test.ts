@@ -176,6 +176,36 @@ describe('CDL-A03 — canonical Need read contract', () => {
     ]);
   });
 
+  it('passes an active Home abort signal through to the owner-list PostgREST transport', async () => {
+    const controller = new AbortController();
+    const readWithAbort = jest.fn().mockResolvedValue({ data: [], error: null });
+    mocks.mockRpc.mockImplementationOnce(() => ({ abortSignal: readWithAbort }));
+    await expect(needClientService.mojePotrebe({ includeUrgency: false, signal: controller.signal })).resolves.toEqual([]);
+    expect(mocks.mockRpc).toHaveBeenCalledWith('rpc_list_my_tasks');
+    expect(readWithAbort).toHaveBeenCalledTimes(1);
+    expect(readWithAbort).toHaveBeenCalledWith(controller.signal);
+  });
+
+  it('does not call Auth or RPC if the Home owner read was already retired', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(needClientService.mojePotrebe({ includeUrgency: false, signal: controller.signal }))
+      .rejects.toThrow('NEED_LIST_RETIRED');
+    expect(mocks.mockGetUser).not.toHaveBeenCalled();
+    expect(mocks.mockRpc).not.toHaveBeenCalled();
+  });
+
+  it('does not start RPC when the Home signal retires during Auth', async () => {
+    const controller = new AbortController();
+    let releaseAuth!: (value: unknown) => void;
+    mocks.mockGetUser.mockImplementationOnce(() => new Promise(resolve => { releaseAuth = resolve; }));
+    const read = needClientService.mojePotrebe({ includeUrgency: false, signal: controller.signal });
+    controller.abort();
+    releaseAuth({ data: { user: { id: 'requester-1' } }, error: null });
+    await expect(read).rejects.toThrow('NEED_LIST_RETIRED');
+    expect(mocks.mockRpc).not.toHaveBeenCalled();
+  });
+
   it('mojePotrebe remains fail-loud for auth error and unauthenticated state', async () => {
     mocks.mockGetUser.mockResolvedValue({ data: { user: null }, error: { message: 'AUTH_BROKEN' } });
     await expect(needClientService.mojePotrebe()).rejects.toThrow('AUTH_BROKEN');

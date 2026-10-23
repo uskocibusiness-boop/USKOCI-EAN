@@ -1,0 +1,43 @@
+name: Worker city activation contract for remote and on-site interviews
+on:
+  push:
+    branches: [work/ai-worker-activation-city-20261022]
+    paths:
+      - 'supabase/functions/uskoci-worker-interview/index.ts'
+      - 'supabase/proofs/ai/v5_worker_edge.test.mjs'
+      - '.github/workflows/ai-worker-activation-city.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.5.6
+      - name: Exact source and locked install
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          npm ci
+          git diff --check
+      - name: TypeScript and Edge source compatibility
+        run: |
+          npx tsc --noEmit -p tsconfig.json
+          deno check supabase/functions/uskoci-worker-interview/index.ts
+      - name: Exact-source worker and requester mock Edge tests
+        run: node --test supabase/proofs/ai/v5_worker_edge.test.mjs supabase/proofs/ai/ai_edge_context.test.mjs
+      - name: Full Jest mobile regression
+        run: npx jest --maxWorkers=3 --testTimeout=30000

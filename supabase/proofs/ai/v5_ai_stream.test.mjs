@@ -102,8 +102,8 @@ for(const relation of ['UNCLEAR','DIFFERENT_TASK'])test(`work replacement ${rela
  assert.ok(instruction.includes('Za promenu vrste posla prvo razjasni'));
  assert.ok(instruction.includes('koji raniji termin, budžet i mesto i dalje važe'));
  assert.ok(instruction.includes('Ne šalji promenu vrste, naslova ili opisa dok to nije jasno'));
- assert.ok(instruction.includes('najviše tri kratka, povezana pitanja'));
- assert.ok(!instruction.includes('postavite tačno jedno kratko pitanje'));
+ assert.ok(instruction.includes('najviše JEDNU nepoznatu informaciju kroz jedno kratko pitanje'));
+ assert.ok(!instruction.includes('najviše tri kratka, povezana pitanja'));
  assert.ok(!instruction.includes('sa krečenja pređe na drugu uslugu), dialogue.taskRelation ostaje CONTINUE'));
  assert.ok(!f.calls.some(c=>/save_draft|publish|commit_admission|push/.test(c.url)));
 });
@@ -211,8 +211,9 @@ test('owned handler delivers one semantic question budget and rejects a provider
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),write.p_assistant_message);
  const instruction=provider.systemInstruction.parts.map(p=>p.text).join('\n');
  assert.equal(instruction.split('Jedinstveno pravilo pitanja:').length-1,1);
- assert.ok(instruction.includes('najviše TRI zasebne informacije'));
- assert.ok(instruction.includes('jesu PET informacija, čak i u dve rečenice'));
+ assert.ok(instruction.includes('najviše JEDNU nepoznatu informaciju kroz jedno kratko pitanje'));
+ assert.ok(instruction.includes('Ne sakrivajte drugi zahtev u nabrajanju'));
+ assert.ok(instruction.includes('Sve jasne činjenice iz cele korisnikove poruke predložite odmah'));
  assert.ok(instruction.includes('Ako je već rečeno Materijal imam, ne pitajte ko kupuje boju'));
  assert.ok(instruction.includes('WEEK_FLEXIBLE znači samo ovu kalendarsku nedelju'));
  assert.ok(instruction.includes('ne smeju postati FLEXIBLE bez granica'));
@@ -415,6 +416,35 @@ for(const registered of [true,false])test(`Need actual handler captures only ser
   assert.ok(f.calls.indexOf(capture[0])>f.calls.indexOf(writes(f)[0]));
  }
  assert.ok(!f.calls.some(c=>/ensure_path|commit_admission|publish|push/.test(c.url)));
+});
+
+for(const taxonomy of [false,true]) for(const payload of [
+ {promptFeedback:{blockReason:'SAFETY'}},
+ {candidates:[{finishReason:'SAFETY'}]},
+ {candidates:[{safetyRatings:[{blocked:true}],finishReason:'STOP',content:{role:'model',parts:[{text:JSON.stringify(withDialogue({safety:'ALLOW',assistantMessage:'Ne sme biti prihvaćeno.',facts:[]}))}]}}]},
+])test(`provider refusal does not persist BLOCK; catalog=${taxonomy}`,async()=>{
+ const service='Izrada digitalnih maketa';
+ const f=fixture({env:taxonomy?{USKOCI_TAXONOMY_UNIFIED_SHADOW:'true'}:{},
+  activeFacts:[activeFact('need.category',service),activeFact('need.task_geography',{mode:'REMOTE'},'OBJECT')],
+  catalog:body=>oneNodeCatalog(body,{categoryId:id(20),parentId:null,label:service,aliases:[],path:[service],isLeaf:true}),
+  provider:()=>{const response={...payload,usageMetadata:{promptTokenCount:100,candidatesTokenCount:0,totalTokenCount:100}};
+    return taxonomy?json(response):new Response('data: '+JSON.stringify(response)+'\n\n',
+      {headers:{'Content-Type':'text/event-stream'}});}});
+ const es=await events(f);
+ assert.equal(es.at(-1).kind,'safe_error');
+ assert.ok(!es.some(e=>e.kind==='text_delta'||e.kind==='final'));
+ assert.equal(writes(f).length,0);assert.equal(failures(f).length,1);
+ assert.equal(providers(f).length,1);
+ assert.match(providers(f)[0].url,taxonomy ? /:generateContent$/ : /:streamGenerateContent\?alt=sse$/);
+ assert.ok(!f.calls.some(c=>/publish|commit_admission|push/.test(c.url)));
+});
+
+test('a validated policy BLOCK remains authoritative and has no proposed facts',async()=>{
+ const f=fixture({output:{safety:'BLOCK',assistantMessage:'Ne mogu da pomognem sa tim zahtevom.',facts:[]}});
+ const es=await events(f);
+ assert.equal(es.at(-1).kind,'final');assert.equal(writes(f).length,1);
+ assert.equal(writes(f)[0].body.p_safety,'BLOCK');assert.deepEqual(writes(f)[0].body.p_proposals,[]);
+ assert.equal(failures(f).length,0);
 });
 
 for(const diagnostics of [false,true]) for(const status of [402,429])

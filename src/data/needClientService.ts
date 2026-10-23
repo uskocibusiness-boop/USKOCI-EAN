@@ -154,12 +154,18 @@ function mapNeed(raw: any): WithEnding<PotrebaProjekcija> {
  */
 export const needClientService: NeedReadService = {
   async mojePotrebe(options) {
+    // The Home resource owns a single focus/timeout signal. Retiring that read
+    // must also retire the expensive owner-list transport, not merely its UI result.
+    const signal = options?.signal;
+    if (signal?.aborted) throw new Error('NEED_LIST_RETIRED');
     const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (signal?.aborted) throw new Error('NEED_LIST_RETIRED');
     if (authError) throw new Error(authError.message || 'AUTH_READ_FAILED');
     if (!authData.user) throw new Error('AUTH_REQUIRED');
 
-    const { data, error } = await supabase.rpc('rpc_list_my_tasks');
-
+    const request = supabase.rpc('rpc_list_my_tasks');
+    const { data, error } = await (signal ? request.abortSignal(signal) : request);
+    if (signal?.aborted) throw new Error('NEED_LIST_RETIRED');
     if (error) throw new Error(error.message || 'NEED_LIST_FAILED');
     if (!Array.isArray(data)) throw new Error('NEED_LIST_INVALID_PROJECTION');
     // Home counts do not consume urgency badges. A skipped read stays unobserved, never inferred NORMAL.

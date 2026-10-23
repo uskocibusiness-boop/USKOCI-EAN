@@ -28,6 +28,12 @@
   "evidencePolicy": "Evidence su datirani zapisi rezultata na navedenom SHA/run-u, a ne aktivne instrukcije. Stare formulacije o odobrenju, freeze pravilima i STOP uslovima u njihovom result tekstu imaju samo istorijski status; aktuelni rad uređuju AGENTS.md, CURRENT_BASELINE_20261018 i PREMIUM_WHITE_CANON.",
   "evidence": [
     {
+      "id": "AI-HANDOFF-HARDENING-20261022",
+      "sha": "13de798231f16a6b3fc0e4261d9cf7c599a7a42c",
+      "run": 39831787791,
+      "result": "DEV Task122/Worker77; complete 20/20 and 19/19 source readback; anonymous HTTP401. Six source CI workflows SUCCESS, 708 AI PASS plus 1 TODO; full mobile638/14415 and TypeScript PASS. No SQL, provider call, new APK/OTA, signed Gemini, two-phone E2E or release claim. docs/current/AI_HANDOFF_HARDENING_20261022.md"
+    },
+    {
       "id": "NATIVE-UI-PACKAGE-1-20261020",
       "sha": "70bc79f250b33ae706a068579c3527dfbf297792",
       "run": null,

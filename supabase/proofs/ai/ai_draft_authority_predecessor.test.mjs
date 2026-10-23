@@ -16,6 +16,8 @@ test('exact historical fixture derives the frozen predecessor and optional D03',
   assert.equal(plan.historical_predecessor_count, 85);
 }));
 test('historical AI planner rejects the larger current integration source instead of silently admitting it', () => {
+  // Current forward migrations may fail the inventory gate before byte checks.
+  // Every accepted error here still refuses admission before database access.
   assert.throws(() => readAiAuthorityPredecessorPlan(), /SOURCE_PROVENANCE_INVENTORY_MISMATCH|UNKNOWN_MISSING_OR_CHANGED_PREDECESSOR_SOURCE|SOURCE_CR_BYTE/);
 });
 test('unknown additional migration refuses source admission before any database operation', () => fixture(root => {

@@ -1,4 +1,6 @@
 import React from 'react';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { StyleSheet, View } from 'react-native';
 import type { VoiceSnapshot } from '../../features/voice/holdToTalk';
@@ -55,6 +57,53 @@ const props = (): AiConversationShellProps => ({title:'Novi zadatak',card:jest.f
 const text = () => tree.root.findAll(node => node.type === 'T' as React.ElementType).flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 beforeEach(()=>{mockHeight=844;mockWidth=390;mockScale=1;mockReduced=false;});
 afterEach(async()=>{await act(async()=>tree?.unmount());});
+it('both interview screens use the same question-focused shared shell', () => {
+  const intake = readFileSync(resolve(__dirname, '../../ui/v2/IntakePresentation.tsx'), 'utf8');
+  const worker = readFileSync(resolve(__dirname, '../../app/(app)/profil/razgovor.tsx'), 'utf8');
+  expect(intake).toMatch(/<AiConversationShell[\s\S]{0,200}questionFocus/);
+  expect(worker).toMatch(/<AiConversationShell[\s\S]{0,200}questionFocus/);
+});
+
+it('question focus emphasizes only the latest AI turn and keeps old context readable', async () => {
+  const p = props();
+  p.questionFocus = true;
+  p.messages = [
+    { id: 'ai-old', fromAi: true, body: 'Starije pojašnjenje.' },
+    { id: 'person', fromAi: false, body: 'U Novom Sadu.' },
+    { id: 'ai-next', fromAi: true, body: 'Koliko ljudi ti treba?' },
+  ];
+  await act(async () => { tree = create(<AiConversationShell {...p} />); });
+  const findText = (value: string) => tree.root.findAllByType('T' as React.ElementType)
+    .find(n => n.props.children === value)!;
+  const previous = StyleSheet.flatten(findText('Starije pojašnjenje.').props.style);
+  const latest = StyleSheet.flatten(findText('Koliko ljudi ti treba?').props.style);
+  expect(previous.fontSize).toBeLessThan(latest.fontSize);
+  expect(findText('U Novom Sadu.')).toBeDefined();
+  expect(p.onSend).not.toHaveBeenCalled();
+});
+
+it('shows an instant local onboarding assistant bubble without sending or inventing a server turn', async () => {
+  const p=props();
+  p.introMessage='Dobrodošlica u USKOČI. Za početak, kakve zadatke želiš?';
+  await act(async()=>{tree=create(<AiConversationShell {...p} />);});
+  expect(tree.root.findAllByProps({testID:'ai-local-opening'})).toHaveLength(1);
+  expect(text()).toContain('Za početak, kakve zadatke želiš?');
+  expect(p.onSend).not.toHaveBeenCalled();
+  expect(p.onChange).not.toHaveBeenCalled();
+  await act(async()=>tree.update(<AiConversationShell {...p} introMessage={undefined}
+    messages={[{id:'owned-user',fromAi:false,body:'Krečenje zidova'}]} />));
+  expect(tree.root.findAllByProps({testID:'ai-local-opening'})).toHaveLength(0);
+  expect(text()).toContain('Krečenje zidova');
+  expect(p.onSend).not.toHaveBeenCalled();
+});
+
+it('both routes show client welcome only before actual owned messages arrive',()=>{
+  const worker = readFileSync(resolve(__dirname, '../../app/(app)/profil/razgovor.tsx'),'utf8');
+  const intake = readFileSync(resolve(__dirname, '../../ui/v2/IntakePresentation.tsx'),'utf8');
+  expect(worker).toContain('introMessage={data.messages.length===0 && !unread ? workerInterviewOpening(hasProfileContent) : undefined}');
+  expect(intake).toContain('introMessage={messages.length===0 && !props.sentMessage ? taskInterviewOpening(!!conversation.review.boundNeedId) : undefined}');
+});
+
 it('handles an overlay keyboard on Android without a second height-based window resize', async () => {
   const p = props();
   await act(async () => { tree = create(<AiConversationShell {...p} />); });

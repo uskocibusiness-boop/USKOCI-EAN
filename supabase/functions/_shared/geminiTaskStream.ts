@@ -285,9 +285,11 @@ export async function streamGeminiTask(input: {
       if (!Array.isArray(data.candidates) || data.candidates.length > 1) throw new Error('AI_STREAM_INVALID');
       const candidate = data.candidates[0];
       if (!candidate) return;
-      if (candidate.finishReason && ['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT'].includes(candidate.finishReason)) {
+      if (candidate.finishReason && ['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT', 'SPII', 'RECITATION'].includes(candidate.finishReason)) {
         throw new GeminiSafetyBlockedError(candidate.finishReason);
       }
+      if (Array.isArray(candidate.safetyRatings) && candidate.safetyRatings.some((rating: any) => rating?.blocked === true))
+        throw new GeminiSafetyBlockedError('SAFETY');
       if (candidate.finishReason && candidate.finishReason !== 'STOP') throw new Error('AI_STREAM_INCOMPLETE');
       if (candidate.finishReason === 'STOP') stopped = true;
       for (const part of candidate.content?.parts ?? []) {
