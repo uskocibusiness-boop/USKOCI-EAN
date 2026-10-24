@@ -81,6 +81,11 @@ jobs:
           const fs=require('fs');
           const c=require('./app.config.js')({config:JSON.parse(fs.readFileSync('app.json','utf8')).expo});
           if(c.android.package!=='rs.uskoci.preview'||c.runtimeVersion!=='uskoci-v1-preview-r1'||c.updates.requestHeaders['expo-channel-name']!=='preview')throw Error('Not Android preview');
+          if(process.env.USKOCI_PUSH_PROOF_BUILD!=='1'||process.env.EXPO_PUBLIC_USKOCI_DEV_AUTO_PUSH_ENROLL!=='1')throw Error('DEV_FCM_PROOF_GATES_NOT_ENABLED');
+          if(c.android.googleServicesFile!=='./config/firebase/google-services.json')throw Error('FIREBASE_CONFIG_NOT_SELECTED');
+          if(c.plugins.some(x=>(Array.isArray(x)?x[0]:x)==='./plugins/withFirebaseEnrollmentDisabled.js'))throw Error('FIREBASE_STILL_DISABLED');
+          const firebase=JSON.parse(fs.readFileSync('config/firebase/google-services.json','utf8'));
+          if(!firebase.client?.some(x=>x.client_info?.android_client_info?.package_name==='rs.uskoci.preview'))throw Error('FIREBASE_PACKAGE_MISMATCH');
           const enabled = ['EXPO_PUBLIC_P6_DISCOVERY_READER', 'EXPO_PUBLIC_EX04_OWN_TASKS_PAGED',
             'EXPO_PUBLIC_EX04_OWN_APPLICATIONS_PAGED', 'EXPO_PUBLIC_EX04_CANDIDATES_PAGED',
             'EXPO_PUBLIC_VOICE_MESSAGES', 'EXPO_PUBLIC_CONVERSATION_INBOX',
