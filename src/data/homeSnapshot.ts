@@ -34,7 +34,8 @@ export type HomeReads = { needs: HomeSection<PotrebaProjekcija[]>;
   /** Production reads exact aggregate counts; full arrays remain the legacy proof/gallery adapter. */
   applications: HomeSection<MojaPrijavaProjekcija[] | ApplicationCounts>;
   agreements: HomeSection<DogovorProjekcija[]>; workerProfile?: HomeSection<HomeWorkProfileRead | null>;
-  opportunities?: HomeSection<PrilikaProjekcija[]> };
+  opportunities?: HomeSection<PrilikaProjekcija[]>;
+  applicationItems?: MojaPrijavaProjekcija[]; };
 export type HomeTarget = { kind: 'NEED'; needId: string } | { kind: 'CANDIDATES'; needId: string }
   | { kind: 'APPLICATION'; applicationId: string } | { kind: 'AGREEMENT'; agreementId: string }
   /** R02: the Dogovor has no term yet. The row opens the form that proposes one (Izmene Dogovora, "Predloži termin"). */

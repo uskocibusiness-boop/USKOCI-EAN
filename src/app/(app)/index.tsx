@@ -4,6 +4,7 @@ import { ActualUserAvatar } from '../../ui/system/ActualUserAvatar';
 import { AppState } from 'react-native';
 import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { router, useFocusEffect } from 'expo-router';
+import type { MojaPrijavaProjekcija } from '../../contracts/projections';
 import { composeHome, readHomeOptional, readHomeSection, type HomeAttentionPreview, type HomeReads, type HomeSection, type HomeTarget } from '../../data/homeSnapshot';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
 import { sesijaSada, useSesija } from '../../store/sesija';
@@ -59,18 +60,20 @@ function Home() {
     try {
       // Application totals come from one bounded page, not the whole history.
       // Tasks and Agreements still need their complete projections for drafts/appointments.
+      let pageItems: MojaPrijavaProjekcija[] = [];
       const [needs, applications, agreements, attention] = await Promise.all([
         readHomeSection(readSignal => source.mojePotrebe({ includeUrgency: false, signal: readSignal }), signal),
         readHomeSection(async () => {
           const page = await source.mojePrijaveStrana({ scope: 'ALL', limit: 1, cursor: null });
           if (!page.counts) throw new Error('HOME_APPLICATION_COUNTS_UNAVAILABLE');
+          if (Array.isArray(page.items)) pageItems = page.items;
           return page.counts;
         }, signal),
         readHomeSection(readSignal => source.mojiDogovori({ signal: readSignal }), signal),
         readHomeSection(() => source.paznjaZaPocetnu(), signal)]);
       // Every failed read is unavailable, never an account with nothing in it.
       if ([needs, applications, agreements, attention].every(part => part.kind === 'unavailable')) throw new Error('HOME_READ_FAILED');
-      return { needs, applications, agreements, attention };
+      return { needs, applications, agreements, attention, applicationItems: pageItems };
     } finally { signal.removeEventListener('abort', retireRetry); }
   }, [source]);
   const resource = useFocusedResource(load, KEEP_LAST_READ);
@@ -117,7 +120,11 @@ function Home() {
   // destination (2026-09-23). Every press keeps the focus, account and foreground guards above.
   const onProfile = () => navigate(() => router.navigate('/profil'));
   const profile = home?.workerProfile?.kind === 'known' ? home.workerProfile.value : null;
+  const myTasks = resource.data?.needs.kind === 'known' ? resource.data.needs.value : undefined;
+  const myApplications = resource.data?.applicationItems;
   return <HomePresentation active={focused} header={<ScreenHeader title="Početna" onProfile={onProfile} profileEntry={<ActualUserAvatar onPress={onProfile} />} />} home={home} loading={resource.loading} refreshing={resource.refreshing} error={!!resource.error}
+    myTasks={myTasks}
+    myApplications={myApplications}
     opportunities={opportunities}
     workProfileRead={{ loading: workerResource.loading, refreshing: workerResource.refreshing, error: workerResource.error,
       stale: !!workerResource.refreshError, onRetry: () => refreshOptional('worker') }}

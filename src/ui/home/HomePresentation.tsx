@@ -1,7 +1,7 @@
 import { useRef, type ReactNode } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { readableTitle } from '../../data/needDetailPresentation';
-import type { PrilikaProjekcija } from '../../contracts/projections';
+import type { MojaPrijavaProjekcija, PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/projections';
 import { Avatar } from '../system/Avatar';
 import { FactArt, type FactArtKind } from '../system/FactArt';
 import { inicijali } from '../../lib/inicijali';
@@ -19,6 +19,8 @@ import { layout } from '../system/layout';
 import { T } from '../Text';
 import { V2Action } from '../v2/V2Action';
 import { TaskCard } from '../v2/TaskCard';
+import { OwnTaskCard } from '../v2/OwnTaskCard';
+import { ApplicationCard } from '../v2/ApplicationFace';
 import { sys } from '../system/tokens';
 import { plural, prijava } from '../system/plural';
 import { useLayoutClass } from '../system/textScale';
@@ -60,6 +62,8 @@ export type HomePresentationProps = {
   photo?: (profileId: string, standIn: ReactNode) => ReactNode;
   opportunities?: readonly PrilikaProjekcija[];
   onOpenOpportunity?: (id: string) => void;
+  myTasks?: readonly PotrebaProjekcija[];
+  myApplications?: readonly MojaPrijavaProjekcija[];
   workProfileRead?: HomeOptionalRead;
   opportunitiesRead?: HomeOptionalRead;
 };
@@ -354,7 +358,9 @@ export function HomePresentation(p: HomePresentationProps) {
   // The pull spinner is for a pull. "Osveži pregled" has a spinner of its own, and no read the route starts by itself may raise the white
   // disc of Android's pull at the top of the screen (the owner's phone, 8 Oct 2026).
   const pull = usePullRefresh(p.onRefresh, p.refreshing);
-  return <Screen kind="root" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
+  const myActiveTasks = (p.myTasks ?? []).filter(item => item.stanje !== 'OTKAZANA' && item.stanje !== 'ARHIVIRANA');
+  const myActiveApplications = (p.myApplications ?? []).filter(item => item.stanje !== 'WITHDRAWN' && item.stanje !== 'CLOSED');
+  return <Screen kind="root" background="wash" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
     refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
     {recovery ? <Surface kind="note" testID="home-recovery" style={s.recovery}>
       <T accessibilityRole="alert" variant="note">{recovery === 'stale' ? 'Nema veze. Prikazano je poslednje učitano.'
@@ -392,9 +398,37 @@ export function HomePresentation(p: HomePresentationProps) {
     {p.intakeResume}
 
     {/* My lists stand in one group of rows directly under what is above, with the one section gap and no heading or line of their own. */}
-    <View>
+    <View style={s.mineGroup}>
       <MineRow art="tasks" title="Moji zadaci" detail={tasksDetail} onPress={p.onMyTasks} />
-      <MineRow art="applications" title="Moje prijave" detail={applicationsDetail} onPress={p.onMyApplications} last={!setupProfile && !availabilityShown} />
+      {myActiveTasks.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carouselList}>
+          {myActiveTasks.slice(0, 5).map(task => (
+            <View key={task.id} style={s.carouselCard}>
+              <OwnTaskCard
+                item={task}
+                onOpen={() => p.onOpen({ kind: 'NEED', needId: task.id })}
+                onApplications={task.brojPrijavaZaIzbor > 0 ? () => p.onOpen({ kind: 'CANDIDATES', needId: task.id }) : undefined}
+              />
+            </View>
+          ))}
+        </ScrollView>
+      ) : null}
+      <MineRow art="applications" title="Moje prijave" detail={applicationsDetail} onPress={p.onMyApplications} last={!setupProfile && !availabilityShown && myActiveApplications.length === 0} />
+      {myActiveApplications.length > 0 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.carouselList}>
+          {myActiveApplications.slice(0, 5).map(app => (
+            <View key={app.prijavaId} style={s.carouselCard}>
+              <ApplicationCard
+                row={app}
+                onTask={() => p.onOpen({ kind: 'NEED', needId: app.potrebaId })}
+                onAgreement={() => app.dogovorId ? p.onOpen({ kind: 'AGREEMENT', agreementId: app.dogovorId }) : undefined}
+                onWithdraw={p.onMyApplications}
+                onReview={p.onMyApplications}
+              />
+            </View>
+          ))}
+        </ScrollView>
+      ) : null}
       <OptionalReadState kind="worker" state={p.workProfileRead} />
       {availabilityShown ? <AvailableNowRow control={p.availableNow!} last={!setupProfile} /> : null}
       {/* R20: until the work profile exists, one row says what it is for and opens its conversation. */}
@@ -445,6 +479,7 @@ const s = StyleSheet.create({
   recovery: { gap: sys.space.sm, alignItems: 'flex-start' },
   initialLoading: { minHeight: INITIAL_READ_HEIGHT, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center', gap: sys.space.base },
   initialLoadingText: { textAlign: 'center' },
+  mineGroup: { gap: sys.space.sm },
   carouselSection: { gap: sys.space.sm },
   carouselHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, gap: sys.space.md },
   carouselTitle: { color: sys.color.ink },

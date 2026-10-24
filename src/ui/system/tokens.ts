@@ -117,8 +117,8 @@ const NO_BOX_SHADOW = Platform?.OS === 'android' && typeof Platform?.Version ===
 /** Targeted lift for navigable marketplace items (owner material direction). No geometry or animation is imposed. */
 export const raisedItem: ViewStyle = {
   backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line,
-  ...(NO_BOX_SHADOW ? { elevation: 2 }
-    : { boxShadow: '0px 2px 3px rgba(0, 0, 0, 0.055), 0px 5px 12px rgba(0, 0, 0, 0.07)' }),
+  ...(NO_BOX_SHADOW ? { elevation: 3 }
+    : { boxShadow: '0px 2px 4px rgba(18, 38, 28, 0.04), 0px 8px 24px rgba(18, 38, 28, 0.07)' }),
 };
 /** Soft white cards on the recessed profile canvas, Figma 2:126. */
 export const profileLift: ViewStyle = NO_BOX_SHADOW ? { elevation: 2 }
