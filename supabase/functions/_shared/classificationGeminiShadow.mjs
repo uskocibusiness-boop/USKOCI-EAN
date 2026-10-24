@@ -90,14 +90,14 @@ export function workerServicesMissingScope(skills,reviewProposals) {
  * turn, promoting provider hints or pretending any consent was stored.
  */
 export function workerFinishReviewMessage(skills,reviewProposals,catalogAvailable) {
-  if(!catalogAvailable)return 'Otvori pregled profila. Tamo možeš da dopuniš podatke i potvrdiš čuvanje.';
+  if(!catalogAvailable)return 'Otvorite pregled profila. Tamo možete da dopunite podatke i potvrdite čuvanje.';
   const unresolved=workerServicesMissingScope(skills,reviewProposals);
-  if(!unresolved.count)return 'Otvori pregled profila. Tamo možeš da dopuniš podatke i potvrdiš čuvanje.';
+  if(!unresolved.count)return 'Otvorite pregled profila. Tamo možete da dopunite podatke i potvrdite čuvanje.';
   const examples=unresolved.labels.join(', ');
   const more=unresolved.count-unresolved.labels.length;
-  return 'Otvori pregled profila. Za '+examples+
+  return 'Otvorite pregled profila. Za '+examples+
     (more>0?' i još '+more+' usluga':'')+
-    ' nije potvrđeno da li radiš na lokaciji, na daljinu ili oba. Možeš to razjasniti u razgovoru, ili sačuvati profil bez automatskog povezivanja za te usluge.';
+    ' nije potvrđeno da li radite na lokaciji, na daljinu ili oba. Možete to razjasniti u razgovoru, ili sačuvati profil bez automatskog povezivanja za te usluge.';
 }
 
 function validItem(p,snapshot) {
@@ -359,9 +359,9 @@ export function classificationTurnFeedback(inspection,{purpose,services=[],ready
   const questions=[...new Set(byResolution('ASK_USER').map(issue=>issue.question).filter(Boolean))].slice(0,3);
   let notice=null;
   if(state==='ASK_USER')notice='Za povezivanje još treba razjasniti uslugu ili način rada. Uneti podaci ostaju u nacrtu.';
-  if(state==='RETRY')notice='Podaci ostaju u nacrtu, ali povezivanje vrste usluge još nije provereno. Nije potrebno da ponavljaš već date podatke.';
+  if(state==='RETRY')notice='Podaci ostaju u nacrtu, ali povezivanje vrste usluge još nije provereno. Nije potrebno da ponavljate već date podatke.';
   if(state==='PENDING')notice=canOfferReview
-    ? 'Predlog nove vrste usluge možeš da proveriš u pregledu. Nije aktivan pre potvrde i čuvanja.'
+    ? 'Predlog nove vrste usluge možete da proverite u pregledu. Nije aktivan pre potvrde i čuvanja.'
     : 'Podaci ostaju u nacrtu. Povezivanje vrste usluge još čeka proveru.';
   if(state==='UNSUPPORTED')notice='Podaci nisu potvrđeni za povezivanje zadataka. Za ovu uslugu je potrebna dodatna provera.';
   return {state,canOfferReview,questions,notice,issues};
