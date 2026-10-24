@@ -30,11 +30,9 @@ export function DevAutoPushEnrollment({ ready = false }: { ready?: boolean }) {
       && sesijaSada().accountRevision === accountRevision
       && sesijaSada().sessionEpoch === sessionEpoch;
     async function registerAfterConsent() {
-      // An already registered device, or an ambiguous session, is not a reason
-      // to ask again or overwrite existing settings.
-      const previous = await pushDeviceClientService.sessionDevice(scope);
-      if (!owns() || !previous.ok || previous.podatak.kind !== 'NONE') return;
-
+      // Registration is per native token, not per account. An account may
+      // legitimately own another phone; that must not block enrollment here.
+      // Never rotate or overwrite another phone's existing registration.
       // Android owns the permission decision. No permission means no RPC.
       const native = await nativePushDevice(true, owns);
       if (!owns() || native.kind !== 'READY') return;
