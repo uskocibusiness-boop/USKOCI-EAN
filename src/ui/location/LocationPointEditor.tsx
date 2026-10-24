@@ -542,7 +542,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
                   </View>
                 </View>
                 <T variant="note" tone="muted">Dodirni mapu ili prevuci oznaku ako želiš preciznije mesto.</T>
-                <Button tone="neutral" label={`Da, ovo je ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdi tačku: ${title}`}
+                <Button tone="neutral" label={`✓ Potvrdi ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdi tačku: ${title}`}
                   kind="secondary" style={brandAction} disabled={controlDisabled || !focused || lookup.status === 'LOADING'}
                   onPress={() => { if (confirm()) setExpandedMap(false); }} />
               </> : <>
@@ -571,7 +571,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
             if (ownsEdit()) { retireSearch(false, true); setAddress(value); invalidate(); }
           }} /> : null}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: sys.space.sm }}>
-          <Button tone="neutral" label={`Da, ovo je ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdi tačku: ${title}`} kind="secondary"
+          <Button tone="neutral" label={`✓ Potvrdi ${title.toLocaleLowerCase()}`} accessibilityLabel={`Potvrdi tačku: ${title}`} kind="secondary"
             style={confirmAsPrimary ? { ...brandAction, flex: 1 } : { flex: 1 }} disabled={controlDisabled || !focused || loading} onPress={confirm} />
           <Button tone="neutral" label={correctionOpen ? 'Završi izmenu' : 'Nije tu'} kind="quiet"
             disabled={controlDisabled || !focused} onPress={() => {

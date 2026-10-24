@@ -333,7 +333,7 @@ describe('compact conversation proposal', () => {
     expect(text()).toContain('Da li je ovo početak?');
     expect(text()).toContain(candidate.label);
     expect(text()).not.toContain('Svi vide približno područje.');
-    expect(button('Potvrdi tačku: Početak').props.label).toBe('Da, ovo je početak');
+    expect(button('Potvrdi tačku: Početak').props.label).toBe('✓ Potvrdi početak');
     expect(tree.root.findAllByType('LocationField' as React.ElementType)).toHaveLength(0);
     expect(button('Pronađi na mapi')).toBeUndefined(); expect(button('Koristi moju lokaciju')).toBeUndefined();
     expect(button('Pronađi adresu za ovaj pin')).toBeUndefined(); expect(props.onConfirm).not.toHaveBeenCalled();
