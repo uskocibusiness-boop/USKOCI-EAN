@@ -48,6 +48,9 @@ export function DevAutoPushEnrollment({ ready = false }: { ready?: boolean }) {
       const preferences = await Promise.all(ROLES.map(role =>
         notificationPreferencesClientService.read(scope.accountId, role)));
       if (!owns()) return;
+      // A saved PUSH_OFF decision is not replaced by an OS permission grant.
+      // Auto-opt-in is restricted to the first, as-yet-unconfigured DEV setup.
+      if (preferences.some(item => item.exists && !item.settings.push_enabled)) return;
 
       const result = await pushDeviceClientService.set(
         scope, native.token, native.platform, true, existing.podatak.revision);
