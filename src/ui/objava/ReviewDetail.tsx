@@ -90,17 +90,18 @@ export function ReviewDetail({ need, parts, photos, map, address, more, person, 
   const stops = moves && routeAddsToArea(needGeographyRows(need), need.podrucjeTekst) ? needGeographyRows(need) : [];
   const requirements = needRequirementRows(need);
   return <View testID="review-detail" style={s.detail}>
+    {photos}
     <View style={s.summary}>
       <PartRow part={parts.title}><TaskDecisionTitle onLayout={noop}>{readableTitle(need.naslov)}</TaskDecisionTitle></PartRow>
-      {need.opis ? <PartSection title="O zadatku" part={parts.description}><DetailDescription text={need.opis} /></PartSection> : null}
     </View>
     <View style={s.facts}>
-      <PartRow part={parts.value}><TaskDecisionValue need={need} /></PartRow>
-      <PartRow part={parts.place}><FactRow size="detail" art={place.remote ? 'remote' : 'pin'} value={place.text} /></PartRow>
       <PartRow part={parts.time}><FactRow size="detail" art="calendar" value={time} /></PartRow>
+      <PartRow part={parts.place}><FactRow size="detail" art={place.remote ? 'remote' : 'pin'} value={place.text} /></PartRow>
       {showPeople ? <PartRow part={parts.people}><FactRow size="detail" art="users" value={people.text} /></PartRow> : null}
+      <PartRow part={parts.value}><TaskDecisionValue need={need} /></PartRow>
     </View>
-    {photos}
+    {need.opis ? <PartSection title="O zadatku" part={parts.description}><DetailDescription text={need.opis} /></PartSection> : null}
+    {person ? <Publisher person={person} /> : null}
     {requirements.length ? <Section title="Važno za ovaj zadatak">
       <View>{requirements.map((row, index) => <PartRow key={`${row.label}:${index}`} part={parts.requirements[row.label] ?? NO_PART}>
         <FactRow size="detail" art={REQUIREMENT_ART[row.label] ?? 'document'} value={requirementValues(row.value)} note={row.label} />
@@ -111,7 +112,6 @@ export function ReviewDetail({ need, parts, photos, map, address, more, person, 
       <View style={s.stack}>{map}{stops.length ? <DetailRoute rows={stops} /> : null}</View>
     </PartSection> : null}
     {address}
-    {person ? <Publisher person={person} /> : null}
     <PartSection title="Prijave" part={parts.deadline}><T variant="body">{deadlineWords(need.rokZaPrijaveIso ?? null, deadlineDecision)}</T></PartSection>
   </View>;
 }

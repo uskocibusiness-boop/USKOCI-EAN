@@ -634,16 +634,6 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
           {snapshot?.locationConflict ? <Surface kind="note" tone="warn"><T accessibilityRole="alert" style={s.warnText}>
             Mesto je promenjeno posle prethodnog pregleda. Prikazano je trenutno mesto; pregledaj ga ili izmeni pre objave.
           </T></Surface> : null}
-          {/* A legacy review has NO signed classification authority either. Do not
-              suggest workers will be notified merely because publication succeeded. */}
-          {review.classificationState !== 'READY' ?
-            <Surface kind="note" tone="warn"><T variant="note">
-              Vrsta posla još nije potvrđena za automatsko povezivanje sa radnicima. Zadatak može da bude objavljen, ali preporuke će sačekati proveru kategorije.
-            </T></Surface> : null}
-          {review.classificationCandidates?.filter(item=>item.action==='CREATE_CHILD'||item.action==='CREATE_NEW_BRANCH').map(item=>
-            <Surface key={`${item.service}:${item.mode}`} kind="note"><T variant="note">
-              {item.action==='CREATE_CHILD'?'Nova grana':'Nova glavna grana'} za ovaj zadatak: {item.action==='CREATE_CHILD'?`${item.parentLabel} → `:''}{item.path.join(' → ')}. Biće dodata posle potvrde, ako prođe završnu proveru.
-            </T></Surface>)}
           {/* The task detail as it is published: Airbnb-style clean preview with zero redundant intermediate cards. */}
           <ReviewDetail need={need} parts={parts} person={reviewer} knownPeopleCount={knownPeopleCount}
             deadlineDecision={process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1 === 'true'

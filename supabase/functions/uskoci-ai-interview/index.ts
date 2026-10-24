@@ -256,6 +256,7 @@ const OWN_FAILURE_NAMES = new Set([AI_CREDITS_UNAVAILABLE, 'AI_CLAIM_INVALID', '
 const RUNTIME_FAILURE_CLASSES: Record<string, string> = { SyntaxError: 'OUTPUT_NOT_JSON', TypeError: 'RUNTIME_TYPE_ERROR',
   RangeError: 'RUNTIME_RANGE_ERROR', AbortError: 'ABORTED', TimeoutError: 'TIMED_OUT' };
 function providerFailureClass(error: unknown): string {
+  if (error instanceof GeminiSafetyBlockedError) return 'GEMINI_SAFETY_BLOCKED';
   const thrown = object(error) ? error : {};
   if (typeof thrown.message === 'string' && OWN_FAILURE_NAMES.has(thrown.message)) return thrown.message;
   return typeof thrown.name === 'string' && Object.hasOwn(RUNTIME_FAILURE_CLASSES, thrown.name) ? RUNTIME_FAILURE_CLASSES[thrown.name] : 'UNKNOWN';
@@ -458,7 +459,7 @@ function commonInstruction() {
     'Rod korisnika nije poznat. Ne pretpostavljajte rod: umesto rekao si ili htela si koristite oblik bez roda, na primer kažeš ili prema tvojoj poruci.',
     'Ovo je višekoračni razgovor, ne formular. Ne ponavljajte pitanja za podatke koji su već poznati i važeći.',
     'Vi vodite korisnika do sledećeg korisnog koraka. Osoba ne mora znati koja polja postoje, tražiti od vas sledeće pitanje ili izgovoriti gotovo. Najpre rešite nejasnoću koja sprečava ispravan zadatak. Pitanje neka kaže koji deo nedostaje i ponudi razumljiv način odgovora. Ako osoba kaže ne znam za opcioni detalj, nastavite sa poznatim podacima. Ne zahtevajte savršeno napisanu rečenicu; razjasnite samo nejasan podatak koji menja rezultat.',
-    'Jedinstveno pravilo pitanja: tražite najviše TRI zasebne informacije u jednoj poruci, kroz najviše tri kratka, povezana pitanja. Brojite informacije koje osoba treba da odgovori, ne rečenice ili upitnike: površina poda ili zidova + gletovanje + deo grada + dan + budžet jesu PET informacija, čak i u dve rečenice. Jedno pitanje traži jednu informaciju; ponuđene alternative za istu informaciju ne povećavaju broj. Ne skrivajte dodatna pitanja u zagradama, nabrajanju ili rečenici bez upitnika. Svako pitanje jasno odvojite. Najpre razjasnite ono što menja vrstu/obim rada ili sprečava ispravan pregled, mesto i termin; opcione detalje ostavite za kasnije. Ako nedostaje samo jedan podatak, pitajte samo za njega; ako je sve jasno, ne izmišljajte novo pitanje. Delimičan odgovor sačuvajte i sledeći put tražite samo preostale informacije. To što osoba nije odgovorila na jedno pitanje ne poništava ostale odgovore.',
+    'Jedinstveno pravilo pitanja: u jednoj poruci tražite najviše JEDNU nepoznatu informaciju kroz jedno kratko pitanje. Ne sakrivajte drugi zahtev u nabrajanju, zagradama, ponuđenim alternativama za različite podatke ili rečenici bez upitnika. Najpre razjasnite ono što stvarno menja obim ili sprečava bezbedan pregled, mesto ili termin. Sve jasne činjenice iz cele korisnikove poruke predložite odmah; delimičan odgovor ostaje važeći i naredna poruka pita samo za sledeći zaista potreban podatak. Ako je sve jasno ili osoba traži pregled, nemojte otvarati nova opciona pitanja.',
     'Ako korisnik ispravlja raniji podatak, predložite novu vrednost istog ključa. Server čuva supersession istoriju.',
     'Nikada ne izmišljajte cenu, vreme, lokaciju, sprat, lift, broj ljudi, vozilo, dozvolu ili drugi materijalni uslov.',
     'Broj predmeta nije broj izvršilaca: na primer prevoz stola, tri stolice ili tri figurice sami po sebi ne određuju broj radnika (need.people_needed). Za uobičajene zanatske, kućne, popravne i lične zadatke (krečenje, popravka, čišćenje, servis, časovi), podrazumeva se 1 izvršilac ako korisnik ne traži više ljudi ili veću ekipu. Ako korisnik sam navede broj (npr. trebaju mi dvojica), zapišite taj broj. Za poslove gde je broj ljudi neizvestan a može biti bitan (npr. selidbe teških stvari), pitajte prirodno u sklopu razgovora o obimu. Nemojte započinjati razgovor hladnim ili izolovanim pitanjem koliko ljudi treba.',
@@ -498,8 +499,9 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     "need.category je konkretna VRSTA USLUGE iz celog razgovora (radnja + predmet), nezavisna od prostorije, kvadrature, komada, adrese, cene i datuma: krečenje sobe/stana -> krečenje zidova. U need.category upišite SAMO naziv konkretne usluge, bez nadkategorije/putanje/prefiksa: 3D printovanje, ne Digitalne usluge / 3D printovanje. Ispravite staru putanju na konkretan naziv kada je poznat. Promena obima nije nova kategorija. Krečenje i gletovanje mogu biti posebne kompetencije; farbanje automobila nije krečenje zidova. Vrste usluga nisu zatvoren spisak starih grupa; ako je vrsta usluge nova ili specifična, navedite njen prirodan naziv na srpskom.",
     'Iz dovoljno jasnog opisa predložite i nedostajuću need.category: kratak naziv stvarno opisane vrste zadatka, bez novih uslova i bez opšteg rezervnog naziva poput ostalo. Kategorija je interni podatak; ne pitajte korisnika za kategoriju. Ako opis nije jasan, pitajte šta konkretno treba uraditi. Pre REVIEW proverite i naslov i kategoriju. Ako korisnik samo završava razgovor, a već postoji jasan need.description, možete dopuniti samo nedostajući naslov ili kategoriju uz evidence koji je doslovan isečak tog postojećeg opisa; ne menjajte nijedan postojeći podatak i ne dodajte materijalne uslove iz komande završetka.',
     'dialogue opisuje sledeći korak, nije nova činjenica. next: ASK samo za nedostajući podatak, CLARIFY za stvarnu dvosmislenost, REVIEW za završetak i prelazak na pregled, ACK za izmenu bez pitanja, ANSWER kada korisnik traži objašnjenje. questionKey je tačan ključ najvažnijeg nedostajućeg podatka za ASK, inače NONE; dodatna pitanja ne menjaju taj postojeći ugovor. Ne birajte ASK za već poznat podatak.',
+    'Ako need.description već postoji, ali važan obim konkretno opisanog posla ostaje dvosmislen (na primer 60 kvadrata poda naspram površine zidova), postavite JEDNO pitanje kao dialogue.next CLARIFY sa questionKey NONE, ne ASK za već poznati need.description. To je razjašnjenje obima postojećeg posla, a ne dodatno obavezno polje. Ne potvrđujte novi obim u facts dok korisnik ne odgovori; sačuvajte sve druge nezavisno jasne činjenice. Korisnik koji ne zna detalj ili želi da ga dogovori direktno može preći na pregled bez beskonačnog ispitivanja. Ne izmišljajte kvadraturu niti postavljajte ovo pitanje za posao čiji je obim već razumljiv.',
     "Ne obećavajte pronađenu mapu, tačne koordinate ili izvršioca. Ne otvarate ekrane: recite da korisnik može da otvori pregled, ne da ste ga otvorili. Kada korisnik započne razgovor pozdravom (npr. 'ćao', 'pozdrav', 'zdravo', 'dobar dan'), uzvratite toplo i prirodno (npr. 'Pozdrav! Rado ću ti pomoći oko...') uz prvo prirodno pitanje. U toku daljeg razgovora nemojte ponavljati pozdrav u svakoj poruci.",
-    'Vodite razgovor lepo, polako i opušteno, navodeći korisnika korak po korak: 1) Obim i opis posla (šta se tačno radi, okvirna kvadratura ili prostor, priprema/materijal); 2) Lokacija (grad i kvart / deo grada ili orijentir); 3) Termin (kada bi odgovaralo da se uradi — datum, okvirno ili fleksibilno); 4) Budžet (da li nudi određen iznos u dinarima ili želi da dobije ponude majstora). Ne prelazite na REVIEW pre nego što su poznati obim, lokacija, termin i budžet/ponude, osim ako korisnik izričito sam ne zatraži pregled ("to je to", "gotovo", "objavi"). Uvek postavljajte najviše jedno do dva smislena, povezana pitanja po poruci.',
+    'USKOČI AI za objavljivanje zadataka je iskusan poslovođa i savetnik naručioca, NE savetnik za radni profil. Vodite razgovor prirodno, korak po korak: obim i opis posla, lokacija, termin i budžet/ponude (TOTAL, PER_PERSON ili HOURLY). Ne prelazite na REVIEW pre nego što su poznati obim, lokacija, termin i budžet/ponude, osim ako korisnik izričito sam ne zatraži pregled. Pre nego što rutinski pređete na cenu, rok ili pregled, proverite da li opis dovoljno objašnjava stvaran obim posla budućem izvršiocu. Postavite samo JEDNO najkorisnije sledeće pitanje kada važan, još nepoznat detalj menja vrstu rada, realnu procenu obima ili razumevanje ponude. Kod krečenja, ako površina nije navedena, pitajte približnu kvadraturu; ako jeste, ali nije jasno da li označava pod ili zidove, razjasnite samo to. Stanje zidova, gletovanje i ko obezbeđuje boju proverite samo kada su bitni za konkretan obim i već nisu poznati. Ako je već rečeno Materijal imam, ne pitajte ko kupuje boju. Za selidbu, prema potrebi razjasnite veličinu tereta, sprat ili lift; za časove predmet i nivo; za prevoz gabarite i relaciju; za digitalni rad očekivani rezultat. Jedno pitanje ne znači samo jedno prihvaćeno korisničko saopštenje: iz cele poruke odmah izdvojite SVE jasne činjenice. Sastavite prirodan i koristan need.description samo od potvrđenog, bez pretvaranja opcionih detalja u obavezna polja, izmišljanja ili ponavljanja postojećih uslova. Ako korisnik ne zna detalj ili želi dogovor sa radnikom, nastavite prema pregledu bez insistiranja.',
     'Pitajte ono što je korisno za stvarni posao, prema jedinstvenom pravilu pitanja. Kod krečenja razlika između površine poda i zidova može biti važna za procenu; gletovanje i materijal nisu obavezan upitnik. Ako je već rečeno Materijal imam, ne pitajte ko kupuje boju. Za selidbu detalji poput sprata, lifta ili gabarita imaju smisla samo ako menjaju obim. Ne insistirajte na opcionim detaljima ako ih korisnik ne zna ili želi da ih dogovori direktno sa radnikom.',
     'Ako je stacionarni posao poznat samo po gradu, pitajte prirodno za ulicu, kvart ili obližnji orijentir pre tvrdnje da je unos spreman za pregled. Korisnik ne mora navesti kućni broj: privatni need.exact_address može biti doslovno navedena ulica ili orijentir, samo da pokrene predlog na mapi, koji osoba zasebno potvrđuje. Nikada ne izmišljajte ulicu, broj ili koordinate.',
     'Fleksibilan dan UNUTAR navedenog perioda nije isto što i bilo kada. Naredne/sledeće nedelje, narednih sedam dana ili između dva datuma ne smeju postati FLEXIBLE bez granica, REMOTE_ANYTIME bez granica ili WEEK_FLEXIBLE. WEEK_FLEXIBLE znači samo ovu kalendarsku nedelju. Za ograničen fleksibilan period koristite FLEXIBLE sa need.starts_at i need.ends_at koji predstavljaju granice mogućeg izvršenja, ne zakazan početak, trajanje ili rezervaciju celog perioda. Jasno navedene cele datume/nedelju možete predstaviti od lokalne ponoći prvog dana do isključive lokalne ponoći posle poslednjeg dana, sa vremenskim pomakom koji važi za svaki datum (promena sata može biti između granica). Relativnu nedelju računajte iz serverskog datuma i prikažite konkretne datume u odgovoru/pregledu. Ako period nije jasan, pitajte od kog do kog datuma; ne birajte samovoljno jedan dan ili čas. Narednih sedam dana nije nužno naredna kalendarska nedelja. Sačuvajte ograničenje i kada osoba kasnije odgovori samo za cenu ili mesto; termin nije razjašnjen time što je ostao u opisu. Ako raniji FLEXIBLE nema granice, a iz razgovora je jasno da period postoji, dopunite granice ili razjasnite period. Za druge vrste posla ne pitajte molerske detalje.',
@@ -831,8 +833,7 @@ async function callGemini(
   });
   if (new TextEncoder().encode(payloadBody).byteLength > AI_TEST_LIMITS.llmRequestBytes) throw new Error('AI_CONTEXT_TOO_LARGE');
   if (taxonomyExplorer && providerBudget) {
-    try {
-      const result = await generateGeminiToolConversation({
+    const result = await generateGeminiToolConversation({
         url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
         key, body: payloadBody, signal, ...providerBudget,
         limits: { maxRequestBytes: AI_TEST_LIMITS.llmRequestBytes, timeoutMs: Math.max(1,researchTimeoutMs), accountingTimeoutMs: 3000 },
@@ -851,26 +852,13 @@ async function callGemini(
       });
       console.info('NEED_TAXONOMY_RESEARCH', 'COMPLETED', result.attempts, result.toolCalls);
       return directResult?.raw === result.raw ? directResult.turn : await parseOutput(JSON.parse(result.raw));
-    } catch (error) {
-      if (error instanceof GeminiSafetyBlockedError)
-        return { safety:'BLOCK', assistantMessage:'Ne mogu da pomognem sa tim zahtevom.', proposals:[] };
-      throw error;
-    }
   }
   if (onText) {
-    try {
-      const raw = await streamGeminiTask({
-        url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
-        key, body: payloadBody, signal, onText: () => {}, onUsage, timeoutMs: 30000,
-      });
-      return parseOutput(JSON.parse(raw));
-    } catch (streamError) {
-      if (streamError instanceof GeminiSafetyBlockedError) {
-        console.error('GEMINI_STREAM_SAFETY_BLOCKED', streamError.blockReason);
-        return { safety: 'BLOCK', assistantMessage: 'Zahtev nije prihvaćen jer sadrži nedozvoljen sadržaj. Opiši zadatak na drugi način.', proposals: [] };
-      }
-      throw streamError;
-    }
+    const raw = await streamGeminiTask({
+      url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+      key, body: payloadBody, signal, onText: () => {}, onUsage, timeoutMs: 30000,
+    });
+    return parseOutput(JSON.parse(raw));
   }
   const providerResponse = await boundedJson(
     `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
@@ -885,13 +873,14 @@ async function callGemini(
   const payload = providerResponse.data;
   // The non-streaming path reports the same counts on the single response body.
   if (onUsage) { const usage = geminiUsage(payload?.usageMetadata); if (usage) { try { onUsage(usage); } catch { /* accounting never breaks delivery */ } } }
-  const raw = geminiText(payload);
-  if (!raw) {
-    const blocked = Boolean(payload?.promptFeedback?.blockReason)
-      || (payload?.candidates ?? []).some((candidate: any) => ['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT'].includes(candidate?.finishReason));
-    if (blocked) return { safety: 'BLOCK', assistantMessage: 'Ne mogu da pomognem sa tim zahtevom.', proposals: [] };
-    throw new Error('PROVIDER_OUTPUT_MISSING');
+  if (payload?.promptFeedback?.blockReason) throw new GeminiSafetyBlockedError(payload.promptFeedback.blockReason);
+  for (const candidate of payload?.candidates ?? []) {
+    if (['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT', 'SPII', 'RECITATION'].includes(candidate?.finishReason))
+      throw new GeminiSafetyBlockedError(candidate.finishReason);
+    if (candidate?.safetyRatings?.some((rating: any) => rating?.blocked === true)) throw new GeminiSafetyBlockedError('SAFETY');
   }
+  const raw = geminiText(payload);
+  if (!raw) throw new Error('PROVIDER_OUTPUT_MISSING');
   const parsed = JSON.parse(raw);
   return schemaVersion === NEED_FACT_SCHEMA_V2 ? parseOutput(parsed) : parseLegacyOutput(parsed);
 }
