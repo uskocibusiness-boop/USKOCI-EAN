@@ -33,6 +33,7 @@ module.exports = ({ config }) => {
   } };
   const inertPlugin = './plugins/withFirebaseEnrollmentDisabled.js';
   const pushProof = process.env.USKOCI_PUSH_PROOF_BUILD === '1';
+  const devAutoPush = process.env.EXPO_PUBLIC_USKOCI_DEV_AUTO_PUSH_ENROLL === '1';
   const plugins = (config.plugins ?? []).filter(plugin =>
     (Array.isArray(plugin) ? plugin[0] : plugin) !== inertPlugin);
   const mapPlugin = '@maplibre/maplibre-react-native';
@@ -70,6 +71,9 @@ module.exports = ({ config }) => {
       enableBackgroundRecording: false,
       enableBackgroundPlayback: false,
     }]);
+  }
+  if (devAutoPush && (!pushProof || production || android.package !== 'rs.uskoci.preview')) {
+    throw new Error('DEV_AUTO_PUSH_REQUIRES_ISOLATED_PREVIEW_PUSH_PROOF_BUILD');
   }
   if (pushProof && android.package !== 'rs.uskoci.preview') {
     throw new Error('USKOCI_PUSH_PROOF_BUILD_REQUIRES_PREVIEW_PACKAGE');
