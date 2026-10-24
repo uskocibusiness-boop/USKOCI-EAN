@@ -158,8 +158,12 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     console.info(`[USKOCI_MAP_LOAD] ${JSON.stringify([event, Math.max(0, Math.round(Date.now() - traceStart.current))])}`);
   }, []);
   const [nativeFrameReady, setNativeFrameReady] = useState(false), focused = useRef(true);
+  const [focusEpoch, setFocusEpoch] = useState(0);
+  // A pin preview can keep the native map alive under task details. Its camera is temporary even if the
+  // server clears the selected key while the route is away; restore the person's saved area on return.
+  const previewCameraActive = useRef(false);
   useFocusEffect(useCallback(() => {
-    focused.current = true; setNativeFrameReady(false);
+    focused.current = true; setNativeFrameReady(false); setFocusEpoch(epoch => epoch + 1);
     return () => {
       focused.current = false; traceLoad('retired');
       cancelArea(); query.current++; intent.current = 0; openedCluster.current = null;
@@ -364,6 +368,7 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     const zoom = Math.min(18, Math.max(12, settledZoom.current ?? 12));
     const dispatched = moveCamera({ center: request.center, zoom,
       padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.focusBottom ?? 0) }, sys.motion.camera);
+    if (dispatched) previewCameraActive.current = true;
     if (dispatched && request.publicationToken) props.onPublicationCameraConsumed?.(request.publicationToken, props.scopeKey);
   }, [props.selectedId, props.selectedPlace, status, frame, props.cameraLayoutReady, props.toolsBottom, props.focusBottom,
     dataKey, props.fitTo?.key, props.centerNearby?.key, props.publicationCameraToken]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -413,10 +418,20 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
     if (status !== 'ready' || !frame || props.cameraLayoutReady === false || !camera.current) return;
     pendingServerFocus.current = null; initialFitPending.current = false;
     cancelArea(); intent.current = 0; openedCluster.current = null;
-    moveCamera({ center: request.center, zoom: Math.min(18, Math.max(NEARBY_ZOOM, settledZoom.current ?? NEARBY_ZOOM)),
+    const dispatched = moveCamera({ center: request.center, zoom: Math.min(18, Math.max(NEARBY_ZOOM, settledZoom.current ?? NEARBY_ZOOM)),
       padding: boundedFitPadding(frame, props.toolsBottom ?? 0, props.coverBottom || props.focusBottom || 0) }, sys.motion.camera);
+    if (dispatched) previewCameraActive.current = true;
   }, [serverMap?.selectedKey, props.coverBottom, props.focusBottom, status, frame, props.cameraLayoutReady, props.toolsBottom,
     dataKey, props.fitTo?.key, props.centerNearby?.key]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!previewCameraActive.current || serverMap?.selectedKey || props.selectedId || props.selectedPlace
+      || !props.viewport || status !== 'ready' || props.cameraLayoutReady === false || !frame || !owns() || !camera.current) return;
+    previewCameraActive.current = false;
+    setViewport(props.viewport);
+    settledZoom.current = props.viewport.zoom;
+    cancelArea(); intent.current = 0; openedCluster.current = null;
+    camera.current.fitBounds(props.viewport.bounds, { padding: { top: 0, right: 0, bottom: 0, left: 0 }, duration: reduced ? 0 : sys.motion.camera });
+  }, [serverMap?.selectedKey, props.selectedId, props.selectedPlace, props.viewport, status, props.cameraLayoutReady, frame, focusEpoch]); // eslint-disable-line react-hooks/exhaustive-deps
   // Settled detents produce one quiet camera move, never a frame-by-frame bridge call. The same base is used for both
   // directions, so repeated opening/closing cannot accumulate zoom or center drift. A new map gesture/destination wins.
   useEffect(() => {
@@ -525,16 +540,21 @@ function MapSession(props: DiscoveryMapProps & { owns: () => boolean; onRetry: (
         manualMapIntent(); if (serverMap) latest.current.props.p6Server?.onClear?.(); else latest.current.props.onClear?.();
       } }}
       // The person takes hold of the map again before the last move's wait is over: that move was not where they stopped.
-      onRegionWillChange={event => { if (owns() && event.nativeEvent?.userInteraction === true) { initialFitPending.current = false; openedCluster.current = null; manualMapIntent(); cancelArea(); } }}
+      onRegionWillChange={event => { if (owns() && event.nativeEvent?.userInteraction === true) { initialFitPending.current = false; previewCameraActive.current = false; openedCluster.current = null; manualMapIntent(); cancelArea(); } }}
       // The region the camera settles into on first load arrives BEFORE the map reports itself
       // ready, so this guard used to throw it away — and nothing else produces a viewport. The viewport
       // is known as soon as the map says where it is; persisting that position upward still waits for ready,
       // so a neutral world overview never becomes the remembered viewport, nor the list's area.
       onRegionDidChange={event => { if (!owns()) return; const value = publicViewport(event.nativeEvent); setViewport(value);
         if (value) settledZoom.current = value.zoom;
-        if (event.nativeEvent?.userInteraction === true) { initialFitPending.current = false; manualMapIntent(); }
+        if (event.nativeEvent?.userInteraction === true) { initialFitPending.current = false; previewCameraActive.current = false; manualMapIntent(); }
         if (value && load.current === 'ready' && !initialFitPending.current) {
-          latest.current.props.onViewport(value);
+          // A pin's quiet focus is temporary preview geometry. Persisting it made Back from details reopen
+          // the map at the pin's artificial zoom instead of the person's previous area. A hand-driven move
+          // still becomes the new remembered viewport, even while a preview is open.
+          const previewFocus = !!(previewCameraActive.current || serverMap?.selectedKey || props.selectedId || props.selectedPlace
+            || pendingServerFocus.current || pendingFocus.current);
+          if (!previewFocus || event.nativeEvent?.userInteraction === true) latest.current.props.onViewport(value);
           // Only the person's own move makes the list follow the map: a drag or a pinch (the map says so), or a cluster or "moja
           // lokacija" they tapped. The camera's own moves (the first fit, a chosen pin, a chosen place) never.
           const opened = openedCluster.current;

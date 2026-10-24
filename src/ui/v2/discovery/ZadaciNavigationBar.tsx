@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Animated, StyleSheet } from 'react-native';
 import { BottomTabBar, type BottomTabBarProps } from 'expo-router/js-tabs';
 import type { ZadaciBar } from './zadaciBar';
+import { sys } from '../../system/tokens';
 
 /** Discovery moves its own host. The navigator keeps its keyboard animation and height measurement inside it. */
 export function ZadaciNavigationBar({ bar, visible, ...props }: BottomTabBarProps & { bar: ZadaciBar; visible: boolean }) {
@@ -16,9 +17,14 @@ export function ZadaciNavigationBar({ bar, visible, ...props }: BottomTabBarProp
   // Keep the host stable throughout Discovery's detents, and detach it only at a navigation mode boundary.
   const mode = discovery ? 'discovery' : fullScreen ? 'full' : 'root';
   return <Animated.View key={mode} testID={discovery ? visible ? 'zadaci-navigation-visible' : 'zadaci-navigation-hidden' : 'navigation-bar'}
-    pointerEvents={hidden ? 'none' : 'box-none'} accessibilityElementsHidden={hidden} importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}
-    style={[discovery ? motion : styles.ordinary, fullScreen ? styles.absent : undefined, hidden ? styles.hidden : styles.visible]}>
+    pointerEvents={hidden ? 'none' : discovery ? 'auto' : 'box-none'} accessibilityElementsHidden={hidden} importantForAccessibility={hidden ? 'no-hide-descendants' : 'auto'}
+    style={[discovery ? motion : styles.ordinary, discovery ? styles.discoveryDock : undefined,
+      fullScreen ? styles.absent : undefined, hidden ? styles.hidden : styles.visible]}>
     <BottomTabBar {...props} />
   </Animated.View>;
 }
-const styles = StyleSheet.create({ ordinary: { transform: [{ translateY: 0 }] }, absent: { display: 'none' }, hidden: { opacity: 0 }, visible: { display: 'flex', opacity: 1 } });
+const styles = StyleSheet.create({ ordinary: { transform: [{ translateY: 0 }] },
+  // The floating tab capsule sits above the gesture inset. The list sheet continues behind it; an opaque dock
+  // prevents a clipped task card from showing through the inset or receiving taps underneath navigation.
+  discoveryDock: { backgroundColor: sys.color.surface },
+  absent: { display: 'none' }, hidden: { opacity: 0 }, visible: { display: 'flex', opacity: 1 } });

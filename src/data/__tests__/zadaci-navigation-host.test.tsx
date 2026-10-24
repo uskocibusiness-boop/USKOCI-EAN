@@ -36,7 +36,8 @@ test('PEEK/HALF and other routes keep one real bar inside a distinct stable moti
   const discoveryBar = tree.root.findByType(BottomTabBar);
   await act(async () => { bar.hidden.setValue(0); tree.update(<Shell bar={bar} visible />); });
   expect(StyleSheet.flatten(host().props.style).transform).toBe(transform);
-  expect(host().props.pointerEvents).toBe('box-none');
+  expect(host().props.pointerEvents).toBe('auto');
+  expect(StyleSheet.flatten(host().props.style).backgroundColor).toBeDefined();
   expect(tree.root.findByType(BottomTabBar)).toBe(discoveryBar);
   await act(async () => { bar.hidden.setValue(1); tree.update(<Shell bar={bar} visible={false} />); });
   expect(StyleSheet.flatten(host().props.style).opacity).toBe(0);

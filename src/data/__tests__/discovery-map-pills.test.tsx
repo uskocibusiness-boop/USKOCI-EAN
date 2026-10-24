@@ -1065,6 +1065,50 @@ test('every new P6 pin centers its own longitude and latitude once; card resize 
   expect(mockEase).toHaveBeenCalledWith(expect.objectContaining({ center: [20.35, 44.82], zoom: 12 }));
 });
 
+test('pin preview camera does not replace the remembered map viewport, but a manual move does', async () => {
+  const saved = { center: [20.4, 44.8], zoom: 9, bounds: [20.1, 44.5, 20.8, 45.1] };
+  extra = { viewport: saved, cameraLayoutReady: true };
+  await render(); await measureFrame(); await ready();
+  selectedId = 'money'; await update();
+  const focused = { center: [20.46, 44.81], zoom: 12, bounds: [20.4, 44.75, 20.52, 44.87] };
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...focused, userInteraction: false } }));
+  expect(setViewport).not.toHaveBeenCalled();
+  selectedId = null; await update();
+  expect(mockFit).toHaveBeenCalledWith(saved.bounds, expect.objectContaining({ padding: { top: 0, right: 0, bottom: 0, left: 0 } }));
+  mockFit.mockClear(); selectedId = 'money'; await update();
+  await act(async () => native().props.onRegionDidChange({ nativeEvent: { ...focused, userInteraction: true } }));
+  expect(setViewport).toHaveBeenLastCalledWith(focused);
+  selectedId = null; await update();
+  expect(mockFit).not.toHaveBeenCalled();
+});
+
+test('a P6 preview restores the saved area when its selection clears', async () => {
+  const saved = { center: [20.4, 44.8], zoom: 9, bounds: [20.1, 44.5, 20.8, 45.1] };
+  const marker = { kind: 'TASK', key: 'task:money', point: { lat: 44.81, lng: 20.46 }, taskId: 'money', taskCount: 1 };
+  const seam = (selectedKey: string | null) => ({ markers: [marker], selectedKey, wholeBounds: saved.bounds, onSelect: jest.fn() });
+  extra = { viewport: saved, cameraLayoutReady: true, p6Server: seam(null), coverBottom: 300 };
+  await render(); await measureFrame(); await ready();
+  extra = { ...extra, p6Server: seam('task:money') }; await update();
+  expect(mockEase).toHaveBeenCalledWith(expect.objectContaining({ center: [20.46, 44.81] }));
+  extra = { ...extra, p6Server: seam(null) }; await update();
+  expect(mockFit).toHaveBeenCalledWith(saved.bounds, expect.objectContaining({ duration: sys.motion.camera }));
+  expect(setViewport).not.toHaveBeenCalled();
+});
+
+test('a retained native map restores the pre-preview area after returning from task details', async () => {
+  const saved = { center: [20.4, 44.8], zoom: 9, bounds: [20.1, 44.5, 20.8, 45.1] };
+  const marker = { kind: 'TASK', key: 'task:money', point: { lat: 44.81, lng: 20.46 }, taskId: 'money', taskCount: 1 };
+  const seam = (selectedKey: string | null) => ({ markers: [marker], selectedKey, wholeBounds: saved.bounds, onSelect: jest.fn() });
+  extra = { viewport: saved, cameraLayoutReady: true, p6Server: seam(null), coverBottom: 300, canRetainMap: () => true };
+  await render(); await measureFrame(); await ready();
+  extra = { ...extra, p6Server: seam('task:money') }; await update();
+  mockFocused = false; await update();
+  mockFit.mockClear(); extra = { ...extra, p6Server: seam(null) }; await update();
+  expect(mockFit).not.toHaveBeenCalled();
+  mockFocused = true; await update();
+  expect(mockFit).toHaveBeenCalledWith(saved.bounds, expect.objectContaining({ duration: sys.motion.camera }));
+});
+
 test('a choice the P6 map is mounted with stays put, and Reduce Motion jumps instead of flying', async () => {
   const low = { kind: 'TASK', key: 'task:low', point: { lat: 44.73, lng: 20.45 }, taskId: '00000000-0000-4000-8000-000000000004', taskCount: 1 };
   const seam = (selectedKey: string | null) => ({ markers: [low], selectedKey, wholeBounds: [20.2, 44.6, 20.7, 45], onSelect: jest.fn() });

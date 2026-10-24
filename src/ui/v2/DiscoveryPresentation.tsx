@@ -375,11 +375,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const traceState = useRef({ scrolled: false, index: -1 });
   const nearby = useNearbyMap(props.scopeKey, focused);
   const { width: windowWidth, height: windowHeight, fontScale } = useWindowDimensions();
-  // The bottom navigation lies OVER this screen at all three list stops: the layout owns it (its height
-  // and the one value that moves it); with none (a gallery, a test) nothing is reserved and nothing moves. What stands at the very bottom clears
-  // the system's own inset.
+  // The navigator owns the bar: it withdraws at the map's lowered PEEK stop and returns at HALF/FULL.
+  // Only the Android system inset is reserved under the count at PEEK.
   const bar = useZadaciBar(), barHeight = bar?.height ?? 0, bottomInset = useBottomInset();
-  const navigationInset = Math.max(barHeight, bottomInset);
   // A selected pin takes over the map's bottom edge. Its preview clears the Android gesture area,
   // while the tab bar leaves the screen; reserving the bar's height here stranded the card mid-map.
   const cardBottom = Math.max(CARD_BOTTOM, bottomInset);
@@ -766,10 +764,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   const [kick, setKick] = useState(0);
   // A hand on the list ends the nudging: a later nudge would move the sheet under the scroll (Gorhom locks the list while the sheet moves).
   const interacted = useRef(false);
-  // Navigation remains available at every map/list height. Reserve its measured height
-  // at PEEK and below previews, just as the list already reserves it at FULL.
-  const collapsedLead = tallHeader ? Math.min(headerLeadHeight, mapClearSheet - 2) : peek;
-  const collapsedSnap = tallHeader ? Math.min(collapsedLead + navigationInset, Math.max(3, mapClearSheet - 2)) : collapsedLead + navigationInset;
+  // The low stop exposes just the handle and count. The rest of the header and first card stay below the screen.
+  const collapsedLead = tallHeader ? Math.min(headerLeadHeight, mapClearSheet - 2) : headerLeadHeight;
+  const collapsedSnap = tallHeader ? Math.min(collapsedLead + bottomInset, Math.max(3, mapClearSheet - 2)) : collapsedLead + bottomInset;
   const snapPoints = useMemo(() => snapHeights({ bodyHeight, fullTop: listTop, halfTop: fullSheetTop(toolsBottom, LIST_GAP),
     collapsed: collapsedSnap, hidden: HIDDEN, cardShown, margin: GAP, bar: barHeight }),
     [bodyHeight, listTop, toolsBottom, collapsedSnap, cardShown, barHeight]);
@@ -885,11 +882,12 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     const listener = bar.hidden.addListener(({ value }) => trace('bar-value', value));
     return () => bar.hidden.removeListener(listener);
   }, [props.trace, trace, bar]);
-  useZadaciBarMotion({ bar, shown: !cardShown, active: focused, reduced });
-  const onSheetAnimate = useCallback((_fromIndex: number, _toIndex: number) => {
+  const { announce: announceBar } = useZadaciBarMotion({ bar, shown: !cardShown && sheetIndex > SNAP.peek, active: focused, reduced });
+  const onSheetAnimate = useCallback((_fromIndex: number, toIndex: number) => {
     if (!currentSheet()) return;
     nativeSpringMoving.current = true; // A same-index geometry spring can also be interrupted.
-  }, [currentSheet]);
+    announceBar(!cardShown && toIndex > SNAP.peek);
+  }, [currentSheet, announceBar, cardShown]);
   const [coverage, setCoverage] = useState<{ owner: typeof coverageOwner; covered: boolean } | null>(null);
   const receiveCoverage = useCallback((covered: boolean) => {
     if (!focused || !coverageOwner.active || currentCoverageOwner.current !== coverageOwner) return;
@@ -1382,7 +1380,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // The top edge is a glanceable count of the actual list. Area and pinless context remain in its
   // accessible name, the search summary and the list's own section heading.
   const count = <T variant="note" style={s.count}>
-    {replacingWords ?? collectionWords ?? (loading || error ? line.words : offMap ? offMapCountWords : countWords(shownCount))}
+    {replacingWords ?? collectionWords ?? (loading || error ? line.words : offMap ? offMapCountWords
+      : sheetIndex === SNAP.peek && (area || pinPlace) ? line.words : countWords(shownCount))}
   </T>;
   // The server reads the open tasks newest first (UX plan 2.14), and says so over the list: only a P6 page that holds more than one.
   const sorted = !!p6 && !loading && !refreshing && !error && !collectionWords && shownCount > 1;
@@ -1433,13 +1432,13 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     <Press testID="list-count" accessibilityRole="button" accessibilityLabel={spoken} accessibilityValue={sorted ? { text: sortedWords } : undefined}
       accessibilityState={{ expanded: sheetIndex > SNAP.peek, busy: loading || refreshing }} accessibilityHint={handleHint(sheetIndex)} accessibilityLiveRegion="polite"
       haptic="select" scaleTo={sys.motion.scale.row} onPress={cycleSheet} style={s.countRow}>
-      {count}{sorted && !areaOnly && !pillShown ? <T variant="note" tone="muted" style={s.sortedBy}>{sortedWords}</T> : null}
+      {count}{sheetIndex > SNAP.peek && sorted && !areaOnly && !pillShown ? <T variant="note" tone="muted" style={s.sortedBy}>{sortedWords}</T> : null}
     </Press>
-    {!loading && !refreshing ? <Press testID="discovery-refresh" accessibilityRole="button" accessibilityLabel="Osveži zadatke"
+    {sheetIndex > SNAP.peek && !loading && !refreshing ? <Press testID="discovery-refresh" accessibilityRole="button" accessibilityLabel="Osveži zadatke"
       haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={refreshList} style={s.headerIcon}>
       <Glyph name="refresh" size={20} tone="green" />
     </Press> : null}
-    {props.onNew ? <Surface kind="float" style={s.publishSurface}>
+    {sheetIndex > SNAP.peek && props.onNew ? <Surface kind="float" style={s.publishSurface}>
       <Press testID="discovery-publish" accessibilityRole="button" accessibilityLabel="Objavi zadatak"
         haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={props.onNew} style={s.headerIcon}>
         <Glyph name="plus" size={24} tone="onOrange" />
