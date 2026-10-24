@@ -53,7 +53,7 @@ export function useZadaciBarMotion({ bar, shown, active, reduced }: { bar: Zadac
     if (next) bar.setVisible?.(true);
     running.current = slide(bar.hidden, next);
     running.current.start(({ finished }) => {
-      if (finished && generation.current === command) bar.setVisible?.(next);
+      if (generation.current === command) bar.setVisible?.(next);
     });
   }, [bar, reduced]);
   useLayoutEffect(() => {

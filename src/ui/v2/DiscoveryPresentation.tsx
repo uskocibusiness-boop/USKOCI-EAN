@@ -712,7 +712,9 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     trace('index', index, sheetIndex, currentSheet());
     // A spring completion can already be queued when this screen loses focus. It belongs to that visit,
     // not to the requested stop or selected pin restored when the person comes back.
-    if (!currentSheet() || !acceptSheetIndex(index)) return;
+    if (!currentSheet()) return;
+    if (sheetCommand.current.pending) sheetCommand.current = { ...sheetCommand.current, pending: false };
+    if (!acceptSheetIndex(index)) return;
     nativeSettledIndex.current = index; nativeSpringMoving.current = false;
     // Pulling the list up is looking at the list: a pin's card does not stay over it.
     if (index > SNAP.peek) clearSelection();
@@ -1383,8 +1385,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   // The top edge is a glanceable count of the actual list. Area and pinless context remain in its
   // accessible name, the search summary and the list's own section heading.
   const count = <T variant="note" style={s.count}>
-    {replacingWords ?? collectionWords ?? (loading || error ? line.words : offMap ? offMapCountWords
-      : sheetIndex === SNAP.peek && (area || pinPlace) ? line.words : countWords(shownCount))}
+    {replacingWords ?? collectionWords ?? (loading || error ? line.words : offMap ? offMapCountWords : countWords(shownCount))}
   </T>;
   // The server reads the open tasks newest first (UX plan 2.14), and says so over the list: only a P6 page that holds more than one.
   const sorted = !!p6 && !loading && !refreshing && !error && !collectionWords && shownCount > 1;

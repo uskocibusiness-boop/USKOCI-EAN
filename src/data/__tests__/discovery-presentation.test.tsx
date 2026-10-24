@@ -3475,57 +3475,52 @@ describe('navigation stays reachable during map/list browsing and withdraws for 
     listSheet().props.animatedPosition.value = 800 - Number(listSheet().props.snapPoints[index]);
     await deliverUi();
   };
-  test('the bar is visible immediately at every detent, including before native settlement', async () => {
-    for (const [sheet, index, hidden] of [['peek', 0, 0], ['half', 1, 0], ['full', 2, 0]] as const) {
+  test('the bar is visible at half and full, and withdraws at peek', async () => {
+    for (const [sheet, index, hidden] of [['peek', 0, 1], ['half', 1, 0], ['full', 2, 0]] as const) {
       barValue = makeBar(); initial = { ...initial, sheet }; await render(); await layOutBody(800);
-      expect(hiddenNow()).toBe(0);
+      expect(hiddenNow()).toBe(hidden);
       await physicallyAt(index);
       expect([sheet, hiddenNow()]).toEqual([sheet, hidden]);
       await act(async () => tree.unmount());
     }
   });
   test('an interrupted sheet spring never hides navigation or adds another animation', async () => {
-    barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
-    await physicallyAt(0);
-    await act(async () => listSheet().props.onAnimate?.(0, 1));
+    barValue = makeBar(); initial = { ...initial, sheet: 'half' }; await render(); await layOutBody(800);
     expect(hiddenNow()).toBe(0);
-    await physicallyAt(1); expect(hiddenNow()).toBe(0);
-    expect(slides()).toEqual([]);
-    await physicallyAt(0); // Gorhom suppresses onChange and onAnimate at the original index
-    expect(listSheet().props.index).toBe(0); expect(hiddenNow()).toBe(0);
+    await act(async () => listSheet().props.onAnimate?.(1, 2));
+    expect(hiddenNow()).toBe(0);
     expect(slides()).toEqual([]);
   });
-  test('count commands and settlement callbacks do not override actual height', async () => {
+  test('count commands and settlement callbacks cycle navigation with detents', async () => {
     barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
-    await physicallyAt(0); await act(async () => countLine().props.onPress());
-    expect(listSheet().props.index).toBe(1); expect(hiddenNow()).toBe(0);
-    await physicallyAt(1); expect(hiddenNow()).toBe(0);
-    await act(async () => countLine().props.onPress()); await physicallyAt(2);
-    expect(hiddenNow()).toBe(0);
+    expect(hiddenNow()).toBe(1);
     await act(async () => countLine().props.onPress());
-    expect(hiddenNow()).toBe(0); // native is still full
-    await physicallyAt(0); expect(hiddenNow()).toBe(0);
+    expect(listSheet().props.index).toBe(1); expect(hiddenNow()).toBe(0);
+    await act(async () => countLine().props.onPress());
+    expect(listSheet().props.index).toBe(2); expect(hiddenNow()).toBe(0);
+    await act(async () => countLine().props.onPress());
+    expect(listSheet().props.index).toBe(0); expect(hiddenNow()).toBe(1);
     const count = slides().length;
     await act(async () => listSheet().props.onChange(0)); expect(slides()).toHaveLength(count);
   });
-  test('reduced motion keeps navigation available without a slide', async () => {
-    mockReduced = true; barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
-    await physicallyAt(1); expect(hiddenNow()).toBe(0);
-    await physicallyAt(0); expect(hiddenNow()).toBe(0); expect(slides()).toEqual([]);
+  test('reduced motion keeps navigation available at half without a slide', async () => {
+    mockReduced = true; barValue = makeBar(); initial = { ...initial, sheet: 'half' }; await render(); await layOutBody(800);
+    expect(hiddenNow()).toBe(0);
+    expect(slides()).toEqual([]);
   });
   test('a pin preview takes the safe bottom edge; navigation returns when it closes', async () => {
     barValue = makeBar(); initial = { ...initial, sheet: 'half' }; await render(); await layOutBody(800);
-    await physicallyAt(1); expect(hiddenNow()).toBe(0);
+    expect(hiddenNow()).toBe(0);
     await act(async () => map().props.onSelect('bb'));
     expect(hiddenNow()).toBe(1);
     expect(tree.root.findByType(DiscoveryPeek).props.bottomInset).toBe(sys.space.md);
     expect(listSheet().props.snapPoints[0]).toBe(HIDDEN);
-    await physicallyAt(0); await tap('Zatvori pregled zadatka'); expect(hiddenNow()).toBe(0);
-    await act(async () => countLine().props.onPress()); await physicallyAt(1); expect(hiddenNow()).toBe(0);
+    await tap('Zatvori pregled zadatka'); expect(hiddenNow()).toBe(1);
+    await act(async () => countLine().props.onPress()); expect(hiddenNow()).toBe(0);
   });
   test('a selected task hides the date and quick-filter row while Filteri keeps the criteria reachable', async () => {
     rows = [row('a', { schedule: { kind: 'FLEXIBLE', startsAt: null, endsAt: null } })];
-    barValue = makeBar(); await render(); await layOutBody(800);
+    barValue = makeBar(); initial = { ...initial, sheet: 'half' }; await render(); await layOutBody(800);
     expect(capsuleLabels()).toContain('Danas');
     const before = { when: snapshot.when, where: snapshot.where, price: snapshot.price };
     await act(async () => map().props.onSelect('a'));
@@ -3539,12 +3534,12 @@ describe('navigation stays reachable during map/list browsing and withdraws for 
     await act(async () => tree.root.findByType(DiscoverySearchPanel).props.onClose());
     expect(capsules()).toHaveLength(0);
     await tap('Zatvori pregled zadatka');
-    expect(hiddenNow()).toBe(0); expect(capsuleLabels()).toContain('Danas');
+    expect(hiddenNow()).toBe(1); expect(capsuleLabels()).toContain('Danas');
     expect({ when: snapshot.when, where: snapshot.where, price: snapshot.price }).toEqual(before);
   });
   test('the P6 selected task uses the same focused map chrome and restores chips after its peek clears', async () => {
     rows = [row('t1', { schedule: { kind: 'FLEXIBLE', startsAt: null, endsAt: null } })];
-    barValue = makeBar();
+    barValue = makeBar(); initial = { ...initial, sheet: 'half' };
     p6Seam = { ...p6Seam_(), availability: { hasKnownWorkMode: true, hasKnownSchedule: true, priceModes: ['MY_PRICE'] },
       map: { ...p6Seam_().map, markers: [serverTask] } };
     await render(); await layOutBody(800);
@@ -3560,15 +3555,15 @@ describe('navigation stays reachable during map/list browsing and withdraws for 
     expect(peek()).toBeUndefined(); expect(hiddenNow()).toBe(0); expect(capsuleLabels()).toContain('Danas');
   });
   test.each(['blur', 'scope'] as const)('queued physical bar updates cannot escape their %s owner', async kind => {
-    barValue = makeBar(); initial = { ...initial, sheet: 'peek' }; await render(); await layOutBody(800);
-    await physicallyAt(0);
-    listSheet().props.animatedPosition.value = 800 - Number(listSheet().props.snapPoints[1]); sampleUi();
+    barValue = makeBar(); initial = { ...initial, sheet: 'half' }; await render(); await layOutBody(800);
+    expect(hiddenNow()).toBe(0);
+    listSheet().props.animatedPosition.value = 800 - Number(listSheet().props.snapPoints[0]); sampleUi();
     const queued = mockRnDeliveries.splice(0);
     if (kind === 'blur') mockFocused = false; else scopeKey = 'b:2';
     await update(); await act(async () => queued.forEach(deliver => deliver()));
     expect(hiddenNow()).toBe(0);
     if (kind === 'blur') { mockFocused = true; await update(); }
-    await physicallyAt(1); expect(hiddenNow()).toBe(0);
+    expect(hiddenNow()).toBe(0);
   });
 
   test('what the bar lies over is kept clear: the end of the list, the "Mapa" pill, the paging note, and the half stop is half of what the bar leaves', async () => {
