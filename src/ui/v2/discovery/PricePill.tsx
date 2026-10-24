@@ -64,7 +64,7 @@ const s = StyleSheet.create({
     borderWidth: 2, borderColor: sys.color.orange, opacity: 0.16 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: sys.space.xs, minHeight: 40, paddingLeft: 4, paddingRight: sys.space.md, paddingVertical: 3,
     borderRadius: sys.radius.pill, borderWidth: 1, borderColor: sys.color.line, backgroundColor: sys.color.surface,
-    shadowColor: sys.color.ink, shadowOpacity: 0.06, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
+    shadowColor: sys.color.ink, shadowOpacity: 0.12, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
   markOnly: { paddingRight: 4, minWidth: 40 },
   mark: { width: 34, height: 34, borderRadius: sys.radius.pill, backgroundColor: sys.color.surface, alignItems: 'center', justifyContent: 'center' },
   urgent: { borderColor: sys.color.danger },
