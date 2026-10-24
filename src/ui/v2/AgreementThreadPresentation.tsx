@@ -123,7 +123,7 @@ const s = StyleSheet.create({
     backgroundColor: sys.conversation.ground },
   barTitle: { flex: 1, minWidth: 0 },
   tabs: { paddingHorizontal: layout.gutter, paddingBottom: sys.space.sm, backgroundColor: sys.conversation.ground },
-  hiddenTabs: { display: 'none' },
+  hiddenTabs: { height: 0, opacity: 0, overflow: 'hidden', position: 'absolute' },
   identity: { flex: 1, minWidth: 0 },
   threadIdentity: { flex: 1, minWidth: 0, minHeight: layout.touch, flexDirection: 'row', alignItems: 'center', gap: sys.space.md },
   overview: { minHeight: layout.touch, minWidth: layout.touch, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: sys.space.xs,
