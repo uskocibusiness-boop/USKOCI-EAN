@@ -72,7 +72,8 @@ module.exports = ({ config }) => {
       enableBackgroundPlayback: false,
     }]);
   }
-  if (devAutoPush && (!pushProof || production || android.package !== 'rs.uskoci.preview')) {
+  if (devAutoPush && (!pushProof || production || android.package !== 'rs.uskoci.preview'
+    || process.env.EXPO_PUBLIC_SUPABASE_URL !== 'https://leqcwgzvjsxugfgzdmth.supabase.co')) {
     throw new Error('DEV_AUTO_PUSH_REQUIRES_ISOLATED_PREVIEW_PUSH_PROOF_BUILD');
   }
   if (pushProof && android.package !== 'rs.uskoci.preview') {
