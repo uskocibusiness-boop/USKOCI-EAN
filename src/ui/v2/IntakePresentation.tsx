@@ -495,10 +495,10 @@ export function IntakePresentation(props: Props) {
     introMessage={messages.length===0 && !props.sentMessage ? taskInterviewOpening(!!conversation.review.boundNeedId) : undefined}
     sentMessage={props.sentMessage}
     // A local welcome disappears once the real thread begins. It is never an AI turn.
-    welcome="Ćao! Reci mi šta ti treba. 😊"
+    welcome="Dobar dan! Opišite šta Vam je potrebno. 🧡"
     welcomeDetail=""
     openings={TASK_OPENINGS}
-    placeholder="Opiši šta ti treba"
+    placeholder="Opišite šta Vam je potrebno"
     onBack={() => { if (editingPlaceNow.current && closePlace.current) closePlace.current(); else props.onBack(); }}
     onChange={props.onChange} onSend={send}
     onOptions={menu.length ? () => { Keyboard.dismiss(); setPanel('options'); } : undefined} voice={editingPlace && !contextualReply ? undefined : props.voice}

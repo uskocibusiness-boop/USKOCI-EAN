@@ -80,7 +80,7 @@ it('a new empty interview starts with the invitation instead of an empty profile
  mockApi.read.mockResolvedValue(ok({...snapshot(),candidate:{...candidate(),skills:[]}}));
  await render();
  expect(shell().props.card(false)).toBeNull();
- expect(shell().props.welcome).toBe('Ćao! Čime se baviš? 😊');
+ expect(shell().props.welcome).toBe('Dobar dan! Čime se bavite? 🧡');
  expect(shell().props.canEdit).toBe(true);
  expect(await correctionDisabled()).toBe(false);
  expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.prepare).not.toHaveBeenCalled();

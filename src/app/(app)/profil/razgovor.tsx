@@ -436,9 +436,9 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     // Removed when the real owned conversation begins; re-entry never invents old AI messages.
     introMessage={data.messages.length===0 && !unread ? workerInterviewOpening(hasProfileContent) : undefined}
     showWelcomeArt={!hasProfileContent}
-    welcome={hasProfileContent?'Ćao! Šta želiš da dopuniš? 😊':'Ćao! Čime se baviš? 😊'}
+    welcome={hasProfileContent?'Dobar dan! Šta želite da dopunite? 🧡':'Dobar dan! Čime se bavite? 🧡'}
     welcomeDetail=""
-    placeholder="Opiši šta radiš"
+    placeholder="Opišite čime se bavite"
     value={input} onChange={value=>{if(canAct()&&enabled&&writable){draftRevision.current+=1;draftText.current=value;setInput(value);}}} canEdit={!!enabled&&!!writable&&!pending.current}
     canSend={canRetry||(!!enabled&&!!writable&&!!input.trim()&&!pending.current)} pending={!!pending.current} busy={editor.busy}
     busyLabel={editor.busy && !abort.current ? 'Proveravamo promenu…' : undefined} streamingText={stream}
