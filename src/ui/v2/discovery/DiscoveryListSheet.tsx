@@ -44,11 +44,12 @@ const SunkBackground = ({ style }: BottomSheetBackgroundProps) => <View pointerE
  * it: the map's furniture stands directly above the sheet and moves with it, and a veil over the map would grey it while it rises.
  * Under reduced motion it changes height at once.
  */
-export function DiscoveryListSheet({ index, snapPoints, position, reduced, animateOnMount = false, onIndex, onAnimate, header, sunk = false, compactTop = 0, capsuleSpace = 0,
+export function DiscoveryListSheet({ index, snapPoints, position, animatedIndex, reduced, animateOnMount = false, onIndex, onAnimate, header, sunk = false, compactTop = 0, capsuleSpace = 0,
   children }: {
   index: number; snapPoints: readonly (number | string)[];
   compactTop?: number; capsuleSpace?: number;
   /** Where the sheet's top edge is, for the map's furniture that rides on it. */ position?: SharedValue<number>;
+  /** Gorhom's continuous normalized stop index (0: peek, 1: half, 2: full). */ animatedIndex?: SharedValue<number>;
   reduced: boolean; animateOnMount?: boolean; onIndex: (index: number) => void;
   /** The sheet starts to move to another stop (a drag let go of, a tap, a command): the stop it goes to. */
   onAnimate?: (fromIndex: number, toIndex: number) => void;
@@ -58,8 +59,8 @@ export function DiscoveryListSheet({ index, snapPoints, position, reduced, anima
 }) {
   const join = useMemo(() => ({ compactTop, capsuleSpace }), [compactTop, capsuleSpace]);
   return <ChromeJoinContext.Provider value={join}><BottomSheet index={index} snapPoints={snapPoints as (number | string)[]} enableDynamicSizing={false} enablePanDownToClose={false}
-    enableOverDrag={false}
-    animateOnMount={animateOnMount} animatedPosition={position} onAnimate={onAnimate} onChange={next => { if (next >= 0) onIndex(next); }}
+    enableOverDrag={false} topInset={0}
+    animateOnMount={animateOnMount} animatedPosition={position} animatedIndex={animatedIndex} onAnimate={onAnimate} onChange={next => { if (next >= 0) onIndex(next); }}
     animationConfigs={reduced ? { duration: 0 } : SHEET_SPRING} handleComponent={null} backgroundComponent={sunk ? SunkBackground : ListBackground}
     accessible={false} accessibilityRole="none" accessibilityLabel={sunk ? null : 'Lista zadataka'}
     keyboardBehavior="extend" keyboardBlurBehavior="restore">

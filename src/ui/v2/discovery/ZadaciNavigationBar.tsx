@@ -11,7 +11,7 @@ export function ZadaciNavigationBar({ bar, visible, ...props }: BottomTabBarProp
   const routeStyle = StyleSheet.flatten(options.tabBarStyle);
   const fullScreen = !!routeStyle && 'display' in routeStyle && routeStyle.display === 'none';
   const motion = useMemo(() => ({ position: 'absolute' as const, left: 0, right: 0, bottom: 0, height: bar.height,
-    transform: [{ translateY: bar.hidden.interpolate({ inputRange: [0, 1], outputRange: [0, bar.height + 1] }) }] }), [bar.hidden, bar.height]);
+    transform: [{ translateY: bar.hidden.interpolate({ inputRange: [0, 1], outputRange: [0, bar.height + 1], extrapolate: 'clamp' }) }] }), [bar.hidden, bar.height]);
   const hidden = fullScreen || (discovery && !visible);
   // A native-driver transform / display:none from Discovery must not survive into another root.
   // Keep the host stable throughout Discovery's detents, and detach it only at a navigation mode boundary.

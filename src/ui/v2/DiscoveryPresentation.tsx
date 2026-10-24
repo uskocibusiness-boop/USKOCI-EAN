@@ -567,12 +567,14 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   sequence: 0, pending: false }));
   const sheetIndex = sheet.index, sheetCommand = useRef(sheet);
   const cameraListDetent = useSharedValue(sheetIndex);
+  const sheetAnimatedIndex = useSharedValue(sheetIndex);
   const setSheetIndex = useCallback((index: number) => {
     if (sheetCommand.current.index === index) return;
     trace('want', index, sheetCommand.current.index);
     const next = { index, sequence: sheetCommand.current.sequence + 1, pending: true };
     sheetCommand.current = next; applySheet(next);
-  }, [trace]);
+    sheetAnimatedIndex.value = index;
+  }, [trace, sheetAnimatedIndex]);
   const appliedPublication = useRef<string | null>(null);
   useEffect(() => {
     const request = props.publicationFocus;
@@ -585,6 +587,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     // Native observations may reconcile a drag, but cannot cancel an explicit target before its spring starts.
     if (command.pending && command.index !== index) return false;
     cameraListDetent.value = index;
+    sheetAnimatedIndex.value = index;
     if (command.index !== index) {
       const next = { index, sequence: command.sequence + 1, pending: false };
       sheetCommand.current = next; applySheet(next);
@@ -594,7 +597,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       sheetCommand.current = { ...command, pending: false };
     }
     return true;
-  }, [cameraListDetent]);
+  }, [cameraListDetent, sheetAnimatedIndex]);
   // Requested React index and physically settled native index are deliberately separate.
   // This lets a quiet return keep native FlatList geometry, while an interrupted spring still forces a fresh mount.
   const nativeSettledIndex = useRef(sheetIndex), nativeSpringMoving = useRef(false);
@@ -719,6 +722,15 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     // Pulling the list up is looking at the list: a pin's card does not stay over it.
     if (index > SNAP.peek) clearSelection();
     announceBarRef.current?.(!cardShown && index > SNAP.peek);
+    if (bar) {
+      if (index === SNAP.peek) {
+        bar.hidden.setValue(1);
+        bar.setVisible?.(false);
+      } else if (!cardShown) {
+        bar.hidden.setValue(0);
+        bar.setVisible?.(true);
+      }
+    }
   };
   // The list follows the map: a settled move of the person's own hands up the bounds it shows, and it is a new "where",
   // so the one point a place's list was narrowed to is let go.
@@ -893,6 +905,41 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     nativeSpringMoving.current = true; // A same-index geometry spring can also be interrupted.
     announceBar(!cardShown && toIndex > SNAP.peek);
   }, [currentSheet, announceBar, cardShown]);
+  const hasBar = !!bar;
+  const receiveBarProgress = useCallback((progress: number) => {
+    if (!bar || !focused || coverageOwner.sequence !== currentCoverageOwner.current.sequence) return;
+    bar.hidden.setValue(progress);
+    bar.setVisible?.(progress < 0.95);
+  }, [bar, focused, coverageOwner]);
+  const barVisit = coverageOwner.sequence;
+  useAnimatedReaction(() => {
+    const visit = barVisit;
+    if (!hasBar || !focused || cardShown) return { progress: 1, visit };
+    const animIdx = sheetAnimatedIndex.value;
+    const hasAnimIdx = typeof animIdx === 'number' && Number.isFinite(animIdx) && animIdx >= 0;
+    if (bodyHeight > 0 && typeof snapPoints[0] === 'number' && typeof snapPoints[1] === 'number') {
+      const current = position.value;
+      const halfTop = bodyHeight - snapPoints[1];
+      const peekTop = bodyHeight - snapPoints[0];
+      if (peekTop > halfTop) {
+        if (current <= halfTop + 4 || (hasAnimIdx && animIdx >= 0.95)) return { progress: 0, visit };
+        if (current >= peekTop - 4 || (hasAnimIdx && animIdx <= 0.05)) return { progress: 1, visit };
+        const raw = (current - halfTop) / (peekTop - halfTop);
+        return { progress: Math.max(0, Math.min(1, Math.round(raw * 50) / 50)), visit };
+      }
+    }
+    if (hasAnimIdx) {
+      if (animIdx <= 0.05) return { progress: 1, visit };
+      if (animIdx >= 0.95) return { progress: 0, visit };
+      const raw = 1 - Math.min(1, animIdx);
+      return { progress: Math.max(0, Math.min(1, Math.round(raw * 50) / 50)), visit };
+    }
+    return { progress: sheetIndex > SNAP.peek ? 0 : 1, visit };
+  }, (next, previous) => {
+    if (!previous || next.progress !== previous.progress || next.visit !== previous.visit) {
+      runOnJS(receiveBarProgress)(next.progress);
+    }
+  }, [hasBar, focused, cardShown, sheetIndex, windowHeight, bodyHeight, snapPoints, position, sheetAnimatedIndex, barVisit, coverageOwner, receiveBarProgress]);
   const [coverage, setCoverage] = useState<{ owner: typeof coverageOwner; covered: boolean } | null>(null);
   const receiveCoverage = useCallback((covered: boolean) => {
     if (!focused || !coverageOwner.active || currentCoverageOwner.current !== coverageOwner) return;
@@ -1527,7 +1574,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
           </Press>
         </Surface>
       </Animated.View> : null}
-      <DiscoveryListSheet key={nativeMountKey} index={sheetIndex} snapPoints={sheetSnapPoints} position={position} reduced={reduced}
+      <DiscoveryListSheet key={nativeMountKey} index={sheetIndex} snapPoints={sheetSnapPoints} position={position} animatedIndex={sheetAnimatedIndex} reduced={reduced}
         compactTop={listTop} capsuleSpace={capsuleSpace}
         // Gorhom's `index` effect returns early while `animateOnMount` is set and its mount animation has not FINISHED (an interrupted one never
         // sets `didAnimateOnMount`), and nothing re-runs it: a later request for another detent is lost, React says FULL and the native sheet stays
