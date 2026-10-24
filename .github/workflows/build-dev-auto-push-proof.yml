@@ -103,6 +103,9 @@ jobs:
         # Tests explicitly pass '1' when covering each opt-in feature.
         env:
           NODE_ENV: test
+          # Regression suite must exercise the ordinary provider-inert preview,
+          # while the native Android build below uses the dedicated push proof.
+          USKOCI_PUSH_PROOF_BUILD: '0'
           EXPO_PUBLIC_USKOCI_DEV_AUTO_PUSH_ENROLL: '0'
           EAS_BUILD_PROFILE: ''
           USKOCI_OTA_TARGET: ''
