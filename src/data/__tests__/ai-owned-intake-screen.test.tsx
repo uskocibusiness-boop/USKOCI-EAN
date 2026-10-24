@@ -529,7 +529,7 @@ it('creates nothing until the first word, and then exactly one conversation', as
   expect(mockOpen).not.toHaveBeenCalled(); expect(mockLoad).not.toHaveBeenCalled();
   await blur(); await focus();
   expect(mockOpen).not.toHaveBeenCalled();
-  expect(text()).toContain('Tu sam da ti pomognem da objaviš zadatak na USKOČI.');
+  expect(text()).toContain('Tu sam da Vam pomognem');
   expect(tree.root.findAllByProps({ testID: 'ai-local-opening' })).toHaveLength(1);
   expect(mockOpen).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
 
@@ -549,7 +549,7 @@ it('opens loaded history without replaying the first-visit greeting or creating 
   await resume();
   const greeting = tree.root.findAllByProps({ testID: 'ai-local-opening' });
   expect(greeting).toHaveLength(0);
-  expect(text()).not.toContain('Tu sam da ti pomognem da objaviš zadatak na USKOČI.');
+  expect(text()).not.toContain('Tu sam da Vam pomognem');
   expect(mockOpen).not.toHaveBeenCalled(); expect(mockSend).not.toHaveBeenCalled();
   expect(text()).toContain('Kada bi ti odgovaralo?');
 });

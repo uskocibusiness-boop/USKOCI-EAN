@@ -22,6 +22,8 @@ export type ResolvedPinMapProps = Readonly<{
   /** The conversation's small map: an expand control in the frame's top-right corner that opens the caller's
    *  full-screen editor. It never moves, selects or saves a point. */
   expand?: Readonly<{ label: string; onPress: () => void; disabled?: boolean }>;
+  /** Optional slot/role: 'start' | 'end' | 'serviceArea' */
+  slot?: string;
 }>;
 
 // Public style configuration reused from the reviewed PR67 renderer. No address,

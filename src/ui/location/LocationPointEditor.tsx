@@ -514,7 +514,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
         {/* The expand control is the small map's own top-right corner (owner, 2026-10-07), not a button under it. */}
         <ResolvedPinMap position={position} cameraHint={shownCameraHint}
           cameraHintZoom={streetContextOnly ? 16.5 : initialQuestion && placeByHand ? 12 : undefined} onChoose={choose} scopeKey={scopeKey}
-          disabled={controlDisabled || !focused} height={156} compact
+          disabled={controlDisabled || !focused} height={156} compact slot={slot}
           expand={{ label: `Uvećaj mapu za: ${title}`, disabled: controlDisabled || !focused,
             onPress: () => { if (owns()) setExpandedMap(true); } }} />
         <Modal visible={expandedMap} animationType="slide" onRequestClose={() => { if (owns()) setExpandedMap(false); }}>
@@ -529,7 +529,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
             <View style={editorStyles.fullMap}>
               <ResolvedPinMap position={position} cameraHint={shownCameraHint}
                 cameraHintZoom={streetContextOnly ? 16.5 : initialQuestion && placeByHand ? 12 : undefined} onChoose={choose} scopeKey={`${scopeKey}:expanded`}
-                disabled={controlDisabled || !focused} compact fill />
+                disabled={controlDisabled || !focused} compact fill slot={slot} />
             </View>
             <FlowFooter>
               {position ? <>
@@ -633,7 +633,7 @@ function ScopedPointEditor({ slot, title, point, scopeKey, countryCode, initialQ
     {lookup.status !== 'IDLE' ? <Button label="Otkaži pretragu" kind="quiet" disabled={controlDisabled || !focused} onPress={cancelSearch} /> : null}
     {lookup.status === 'IDLE' && selectedLabel ? <Button label="Ukloni izabranu tačku" kind="quiet" disabled={controlDisabled || !focused} onPress={cancelSearch} /> : null}
     {!autoLocate || position || placeByHand
-      ? <ResolvedPinMap position={position} onChoose={choose} scopeKey={scopeKey} disabled={controlDisabled || !focused} />
+      ? <ResolvedPinMap position={position} onChoose={choose} scopeKey={scopeKey} disabled={controlDisabled || !focused} slot={slot} />
       : <Button label="Izaberi tačku na mapi" kind="quiet" disabled={controlDisabled || !focused}
         onPress={() => setPlaceByHand(true)} />}
     {position ? <Button label={lookupMode === 'reverse' && lookup.status === 'LOADING' ? 'Tražimo adresu…' : 'Pronađi adresu za ovaj pin'}

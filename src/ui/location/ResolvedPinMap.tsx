@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Image, StyleSheet, View, type GestureResponderEvent } from 'react-native';
+import Svg, { Circle, Ellipse, Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useFocusEffect } from 'expo-router';
 import { Camera, Map, Marker, type CameraRef, type MapRef } from '@maplibre/maplibre-react-native';
 import { sys } from '../system/tokens';
@@ -24,6 +25,55 @@ const pixel = (value: unknown): Pixel | null => Array.isArray(value) && value.le
 
 /** A branded approximate marker: its halo still makes the public two-decimal location visibly imprecise. */
 const AREA = 64;
+
+type ModernMapPinProps = {
+  isDragging?: boolean;
+  disabled?: boolean;
+  slot?: string;
+};
+
+export function ModernMapPin({ isDragging = false, disabled = false, slot }: ModernMapPinProps) {
+  const isEnd = slot === 'end';
+  const pinTop = isEnd ? '#F57C00' : '#079C77';
+  const pinBase = isEnd ? '#D84315' : '#0E4D3C';
+  const pinStroke = isEnd ? '#BF360C' : '#063D2E';
+  const gradId = `uskociPin_${isEnd ? 'end' : 'start'}`;
+
+  return (
+    <View style={styles.modernPinRoot} pointerEvents="none">
+      <View style={[styles.modernPinShadow, isDragging && styles.modernPinShadowDragging]}>
+        <Svg width={28} height={10} viewBox="0 0 28 10">
+          <Ellipse cx={14} cy={5} rx={isDragging ? 6 : 10} ry={isDragging ? 2.2 : 3.5} fill="rgba(14, 45, 34, 0.28)" />
+        </Svg>
+      </View>
+      <View style={[styles.modernPinBody, isDragging && styles.modernPinBodyDragging]}>
+        <Svg width={38} height={46} viewBox="0 0 38 46">
+          <Defs>
+            <LinearGradient id={gradId} x1="0%" y1="0%" x2="0%" y2="100%">
+              <Stop offset="0%" stopColor={pinTop} />
+              <Stop offset="100%" stopColor={pinBase} />
+            </LinearGradient>
+          </Defs>
+          <Path
+            d="M19 44 C19 44 4 28 4 18 C4 9.7 10.7 3 19 3 C27.3 3 34 9.7 34 18 C34 28 19 44 19 44 Z"
+            fill={`url(#${gradId})`}
+            stroke={pinStroke}
+            strokeWidth={1.5}
+          />
+          <Path
+            d="M8 15 C8 10 11.5 6 17 6"
+            stroke="rgba(255, 255, 255, 0.45)"
+            strokeWidth={1.4}
+            strokeLinecap="round"
+            fill="none"
+          />
+          <Circle cx={19} cy={18} r={5.2} fill="#FFFFFF" />
+          <Circle cx={19} cy={18} r={2.2} fill={pinBase} />
+        </Svg>
+      </View>
+    </View>
+  );
+}
 
 /** MapLibre rendering and lifetime pattern adapted from PR67; no provider or save authority. */
 function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; retry: () => void }) {
@@ -53,10 +103,10 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   // Initial context fits every real resolver candidate, without choosing any of them.
   // Keep it initial-only: ordinary rerenders must not undo the person's pan/zoom.
   const hintBounds = cameraHintBounds(props.cameraHint, coarse);
-  const detailZoom = coarse ? 10 : compact ? 17 : 15;
+  const detailZoom = coarse ? 15 : compact ? 15.5 : 15.2;
   const singleHint = props.cameraHint?.length === 1 ? displayedPinPosition(props.cameraHint[0], coarse) : null;
   const requestedHintZoom = typeof props.cameraHintZoom === 'number' && Number.isFinite(props.cameraHintZoom)
-    ? Math.max(0, Math.min(coarse ? 13 : 18, props.cameraHintZoom)) : null;
+    ? Math.max(0, Math.min(coarse ? 17 : 18, props.cameraHintZoom)) : null;
   const initial = useRef(pin ? { center: [pin.longitude, pin.latitude] as [number, number], zoom: detailZoom }
     : singleHint && requestedHintZoom !== null
       ? { center: [singleHint.longitude, singleHint.latitude] as [number, number], zoom: requestedHintZoom }
@@ -95,14 +145,14 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
     const center = Array.isArray(state?.center) && state.center.length === 2
       ? displayedPinPosition({ longitude: state.center[0], latitude: state.center[1] }) : null;
     idle.current = center && typeof state?.zoom === 'number' && Number.isFinite(state.zoom)
-      && state.zoom >= 0 && state.zoom <= (coarse ? 13 : 18) ? token : null;
+      && state.zoom >= 0 && state.zoom <= (coarse ? 17 : 18) ? token : null;
     setIdleToken(idle.current);
     const centered = center && typeof state?.zoom === 'number' && Number.isFinite(state.zoom)
       && Math.abs(state.zoom - detailZoom) < 0.01
       && Math.abs(center.latitude - pin.latitude) < 0.00001 && Math.abs(center.longitude - pin.longitude) < 0.00001;
     setCenteredToken(centered ? token : null);
   };
-  const coordinateText = pin ? `Geografska širina ${(Math.round(pin.latitude * 1e6) / 1e6).toFixed(coarse ? 2 : 6)}; geografska dužina ${(Math.round(pin.longitude * 1e6) / 1e6).toFixed(coarse ? 2 : 6)}.` : null;
+  const coordinateText = pin ? `Geografska širina ${(Math.round(pin.latitude * 1e6) / 1e6).toFixed(coarse ? 4 : 6)}; geografska dužina ${(Math.round(pin.longitude * 1e6) / 1e6).toFixed(coarse ? 4 : 6)}.` : null;
   const choose = (lngLat: unknown) => {
     if (!owns() || load.current !== 'ready' || latest.current.props.disabled
       || !Array.isArray(lngLat) || lngLat.length !== 2) return;
@@ -191,7 +241,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         onRegionWillChange={() => { if (owns()) { idle.current = null; cancelDrag(); setIdleToken(null); setCenteredToken(null); } }}
         onRegionDidChange={event => observeCenter(event.nativeEvent)}
         onPress={event => { if (!drag.current) choose(event.nativeEvent.lngLat); }}>
-        <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={coarse ? 13 : 18} />
+        <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={coarse ? 17 : 18} />
         {pin && area ? <Marker id="location-area" lngLat={[pin.longitude, pin.latitude]} anchor="center">
           {/* The brand mark gives the task detail the same identity as Discovery's pins. The halo, rather than a
               sharp pin tip, continues to say that this public point is approximate. */}
@@ -209,9 +259,10 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
             onResponderTerminate={() => { if (owns()) cancelDrag(); }} onResponderTerminationRequest={() => !owns() || !drag.current}
             style={[styles.marker, offset ? { transform: [{ translateX: offset[0] }, { translateY: offset[1] }] } : null]}>
             <View style={[styles.pinWrapper, offset ? styles.pinDragging : null]}>
+              <ModernMapPin slot={props.slot} isDragging={!!offset} disabled={disabled} />
               <Image key={`${pin.latitude}:${pin.longitude}:${coarse}:${disabled}`}
                 source={require('../../../assets/resolved-location-pin.png')}
-                accessible={false} fadeDuration={0} resizeMode="contain" style={styles.marker}
+                accessible={false} fadeDuration={0} resizeMode="contain" style={styles.hiddenImage}
                 onLoad={() => { if (owns()) setImageToken(token); }}
                 onError={() => { if (owns()) { setImageToken(null); mark('failed'); } }} />
             </View>
@@ -279,7 +330,13 @@ const styles = StyleSheet.create({
     gap: sys.space.md, backgroundColor: sys.color.surface },
   marker: { width: 44, height: 48 },
   pinWrapper: { width: 44, height: 48, alignItems: 'center', justifyContent: 'center' },
-  pinDragging: { transform: [{ translateY: -18 }, { scale: 1.2 }], ...sys.elevation.raised },
+  pinDragging: { transform: [{ translateY: -14 }, { scale: 1.1 }], ...sys.elevation.raised },
+  modernPinRoot: { width: 44, height: 48, alignItems: 'center', justifyContent: 'flex-end' },
+  modernPinShadow: { position: 'absolute', bottom: -2, width: 28, height: 10, alignItems: 'center', justifyContent: 'center' },
+  modernPinShadowDragging: { opacity: 0.5, transform: [{ scale: 0.8 }] },
+  modernPinBody: { width: 38, height: 46, alignItems: 'center', justifyContent: 'center' },
+  modernPinBodyDragging: { transform: [{ translateY: -10 }, { scale: 1.08 }] },
+  hiddenImage: { position: 'absolute', width: 0, height: 0, opacity: 0 },
   // A white map control (as Discovery's zoom), above the credits at the bottom of the rounded frame.
   expand: { position: 'absolute', top: sys.space.sm, right: sys.space.sm, width: 44, height: 44, borderRadius: sys.radius.pill,
     backgroundColor: sys.color.surface, borderWidth: 1, borderColor: sys.color.line, alignItems: 'center', justifyContent: 'center',
