@@ -323,8 +323,8 @@ function usePillFade(shown: boolean, reduced: boolean) {
     setLeaving(!shown);
     const run = NativeAnimated.timing(opacity, { toValue: shown ? 1 : 0, duration: shown ? sys.motion.enter : sys.motion.exit,
       easing: Easing.bezier(...sys.motion.easeOut), useNativeDriver: true });
-    run.start(({ finished }) => { if (finished && !shown) setLeaving(false); });
-    return () => run.stop();
+    run.start(() => { if (!shown) setLeaving(false); });
+    return () => { run.stop(); if (!shown) setLeaving(false); };
   }, [shown, reduced, opacity]);
   return { opacity, mounted: shown || leaving };
 }
@@ -707,6 +707,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     userIntent?.(); retireCameraIntent(); retireListFocus(); setAppliedMapPlace(null); pendingMapPlace.current = null;
     if (props.p6Seam) props.p6Seam.onShowAll(); else change({ area: null, pinPlace: null });
   };
+  const announceBarRef = useRef<((next: boolean) => void) | null>(null);
   const onIndex = (index: number) => {
     trace('index', index, sheetIndex, currentSheet());
     // A spring completion can already be queued when this screen loses focus. It belongs to that visit,
@@ -715,6 +716,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     nativeSettledIndex.current = index; nativeSpringMoving.current = false;
     // Pulling the list up is looking at the list: a pin's card does not stay over it.
     if (index > SNAP.peek) clearSelection();
+    announceBarRef.current?.(!cardShown && index > SNAP.peek);
   };
   // The list follows the map: a settled move of the person's own hands up the bounds it shows, and it is a new "where",
   // so the one point a place's list was narrowed to is let go.
@@ -883,6 +885,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     return () => bar.hidden.removeListener(listener);
   }, [props.trace, trace, bar]);
   const { announce: announceBar } = useZadaciBarMotion({ bar, shown: !cardShown && sheetIndex > SNAP.peek, active: focused, reduced });
+  announceBarRef.current = announceBar;
   const onSheetAnimate = useCallback((_fromIndex: number, toIndex: number) => {
     if (!currentSheet()) return;
     nativeSpringMoving.current = true; // A same-index geometry spring can also be interrupted.
@@ -1424,7 +1427,8 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
     onLayout={event => { const next = Math.ceil(event.nativeEvent.layout.height); if (next > 0) setPeek(current => current === next ? current : next); }}>
     <View testID="discovery-list-header-lead" onLayout={event => {
       const next = Math.ceil(event.nativeEvent.layout.height) + sys.space.sm;
-      if (next > sys.space.sm) setHeaderLeadHeight(current => current === next ? current : next);
+      const capped = Math.min(next, 96);
+      if (capped > sys.space.sm) setHeaderLeadHeight(current => current === capped ? current : capped);
     }}>
     <View style={s.grab} />
     {/* A polite live region: TalkBack hears the count when it changes (a new area, a new read), without moving its focus. */}
@@ -1444,7 +1448,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
         <Glyph name="plus" size={24} tone="onOrange" />
       </Press>
     </Surface> : null}
-    {pillFade.mounted ? <NativeAnimated.View pointerEvents={pillShown ? 'box-none' : 'none'} style={[s.mapPillSlot, { opacity: pillFade.opacity }]}
+    {pillFade.mounted ? <NativeAnimated.View pointerEvents={pillShown ? 'box-none' : 'none'} style={[s.mapPillSlot, { opacity: pillFade.opacity }, !pillShown && s.mapPillSlotHidden]}
       accessibilityElementsHidden={!pillShown} importantForAccessibility={pillShown ? 'auto' : 'no-hide-descendants'}>
       <Surface kind="float" style={[s.mapPillSurface, emptyOverMap && s.mapPillQuiet]}>
         <Press accessibilityRole="button" accessibilityLabel="Mapa" accessibilityHint="Spušta listu i prikazuje mapu." haptic="select" scaleTo={sys.motion.scale.button}
@@ -1637,6 +1641,7 @@ const s = StyleSheet.create({
   sectionTitle: { fontWeight: '600', color: sys.color.ink },
   sectionCount: { color: sys.color.muted, fontVariant: ['tabular-nums'] },
   mapPillSlot: { flexShrink: 0 },
+  mapPillSlotHidden: { position: 'absolute', right: 0 },
   // The quiet note while the next page is read, above the bottom navigation.
   pagingRow: { position: 'absolute', left: 0, right: 0, bottom: sys.space.base, alignItems: 'center' },
   paging: { paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm, borderRadius: sys.radius.pill },
