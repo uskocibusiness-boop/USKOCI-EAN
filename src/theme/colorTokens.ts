@@ -117,7 +117,7 @@ export const colorTokens = {
     surface: '#FFFFFF',
     summary: '#FFFFFF',
     edge: '#DEDEDE',
-    user: '#292929',
+    user: GREEN,
     onUser: '#FFFFFF',
     /** Softer own-message treatment for the AI thread. All colours live here, never in a screen. */
     userSoft: '#E8F5E9',
