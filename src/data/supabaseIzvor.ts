@@ -76,7 +76,7 @@ function openTaskRow(item: Record<string, any>) {
     mode: item.priceMode, requester_price_rsd: item.requesterPriceRsd, price_basis: item.priceBasis,
     requester_profile_id: item.requesterProfileId, response_deadline: item.responseDeadline,
     remaining_search_closed_at: null,
-    description: '',
+    description: typeof item.description === 'string' ? item.description : '',
     need_geography: item.publicTopology == null ? null : { public_topology: item.publicTopology },
     need_requirement_details: item.criticalConditions == null ? null : { critical_conditions: item.criticalConditions },
   };
@@ -84,13 +84,13 @@ function openTaskRow(item: Record<string, any>) {
 
 function publicTaskContext(raw: Record<string, any>) {
   const { detail: detalji, schedule } = readPublicNeedDetail(raw);
-  if (typeof raw.description !== 'string') throw new Error('TASK_DESCRIPTION_INVALID');
+  const opis = typeof raw.description === 'string' ? raw.description : '';
   const remote = detalji.rezimLokacije === 'REMOTE';
   const lat = raw.approximate_lat, lng = raw.approximate_lng;
   const priblizno = !remote && typeof lat === 'number' && Number.isFinite(lat) && Math.abs(lat) <= 90
     && typeof lng === 'number' && Number.isFinite(lng) && Math.abs(lng) <= 180
     ? { lat: Number(lat.toFixed(2)), lng: Number(lng.toFixed(2)) } : null;
-  return { opis: raw.description, detalji, schedule, taskCountryCode: raw.task_country_code ?? undefined,
+  return { opis, detalji, schedule, taskCountryCode: raw.task_country_code ?? undefined,
     taskTimezone: raw.task_timezone ?? undefined, vremeTekst: needScheduleText(schedule, raw.task_timezone ?? undefined),
     podrucjeTekst: remote ? 'Na daljinu' : podrucjeTekst(raw.approximate_area, raw.approximate_city), priblizno };
 }

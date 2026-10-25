@@ -52,7 +52,7 @@ import {
 
 const isLiveDualGemini = (): boolean =>
   (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '') === 'https://leqcwgzvjsxugfgzdmth.supabase.co' &&
-  (Deno.env.get('SUPABASE_ANON_KEY') ?? '').startsWith('eyJ') &&
+  Boolean(Deno.env.get('SUPABASE_ANON_KEY')) &&
   Deno.env.get('USKOCI_TAXONOMY_DUAL_GEMINI') !== 'false';
 
 const corsHeaders = {
@@ -516,7 +516,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     'Predložite samo nove ili stvarno izmenjene činjenice. Isti podatak ne predlažite ponovo samo zato što ga pominjete. UNKNOWN znači nerazjašnjeno, ne važeći uslov. Izostavljanje činjenice iz facts ne briše njenu raniju vrednost: ne tvrdi da je ranija cena, termin ili mesto uklonjeno ako nema potvrđene izmene. Ako osoba želi drugi odvojen zadatak, DIFFERENT_TASK čuva ovaj nacrt i upućuje na Novi zadatak; ne prenosi uslove iz jednog zadatka u drugi.',
     'valueJson je JSON tekst stvarne tipizovane vrednosti: tekst/enum/timestamp kao JSON string sa navodnicima, integer kao broj, boolean true/false, niz kao JSON niz stringova, geography kao JSON objekat.',
     'need.price_mode može biti samo MY_PRICE ili OFFERS. Ako je MY_PRICE, need.price_rsd mora biti poznat pre spremnosti za nacrt.',
-    'Podržan je prirodan unos i u evrima (€) i u dinarima (RSD) bez preračunavanja. Kada korisnik navede iznos u evrima (npr. „50 evra“, „100€“, „50 EUR“), iznos zapišite u need.price_rsd (npr. 50), a u displayValue prikažite „50 €“ (ili „100 €“). Kada korisnik navede samo broj bez valute (npr. „5000“) ili dinare, podrazumevajte dinare: iznos zapišite u need.price_rsd (npr. 5000), a u displayValue prikažite „5.000 RSD“. Ne vršite konverziju po kursu. U odgovoru asistent prirodno potvrđuje uneti iznos i valutu (npr. „Zabeležio sam budžet od 50 €.“ ili „Zabeležio sam budžet od 5.000 RSD.“). Ako korisnik želi ponude, izaberite need.price_mode=OFFERS.',
+    'Sačuvani iznos need.price_rsd je isključivo u dinarima (RSD). Broj bez valute nije potvrda da su dinari; pitajte koji iznos u RSD osoba želi da postavi. Razumite kada osoba izričito navede evre/EUR/€, uključujući kratku naknadnu ispravku „u evrima“ posle broja, ali taj broj ne upisujte kao dinare i ne preračunavajte po pretpostavljenom kursu. Kratko recite da je trenutna cena u aplikaciji u dinarima i pitajte koji iznos u RSD želi da postavi; ostale jasne odgovore sačuvajte. Ako osoba umesto toga želi ponude, izaberite OFFERS. Bez nove potvrde ne tvrdite da je evro iznos sačuvan kao cena.',
     'need.price_basis može biti TOTAL, PER_PERSON ili HOURLY i postavlja se isključivo uz need.price_mode MY_PRICE. Kada korisnik navede satnicu (npr. „1200 na sat“, „1500 po satu“), postavite need.price_basis na HOURLY, a iznos u need.price_rsd. Kada zadatak traži više od jedne osobe i korisnik je naveo ukupan iznos, jednom kratko pitajte da li je taj iznos ukupno za ceo zadatak (TOTAL) ili po osobi (PER_PERSON), i postavite činjenicu iz odgovora.',
     'TOTAL dozvoljava prijavu i za deo traženih ljudi. Iznos prijave je round(ukupna cena zadatka × broj ljudi u prijavi / ukupno traženih ljudi), zaokružen jednom na najbliži ceo dinar. Za 9000 RSD i 3 osobe, jedna osoba dobija 3000 RSD; za 10000 RSD i 3 osobe, jedna dobija 3333, a dve 6667 RSD. Ne množite prethodno zaokruženu cenu za jednu osobu. need.price_rsd ostaje ukupna cena zadatka, ne iznos delimične prijave; ne menjajte sačuvane uslove Dogovora. PER_PERSON ostaje cena za ceo zadatak po osobi. Ovo objasnite samo kada je korisniku potrebno; ne pretvarajte objašnjenje u dodatno pitanje ili razlog za promenu osnove cene.',
     'Cena se odnosi na ceo obim posla (TOTAL, PER_PERSON) ili na satnicu (HOURLY). Kada korisnik izričito navede satnicu (npr. 1500 din po satu), to je HOURLY cena i upisuje se u need.price_rsd uz need.price_basis=HOURLY. Ako korisnik navede samo dnevnicu, razjasnite satnicu ili ukupan iznos za ceo posao.',
@@ -688,11 +688,7 @@ function parseV2Output(parsed: any): ParsedTurn {
       let value: unknown;
       try { value = JSON.parse(fact.valueJson); } catch { throw new Error('AI_V2_FACT_INVALID'); }
       if (!valueMatchesContract(key, value)) { console.info('NEED_AI_OUTPUT_GATE', 'FACT_VALUE_INVALID'); throw new Error('AI_V2_FACT_INVALID'); }
-      let displayValue = typeof fact?.displayValue === 'string' ? fact.displayValue.trim() : '';
-      if (key === 'need.price_rsd' && typeof value === 'number') {
-        const isEuro = displayValue.includes('€') || /eur|evr/i.test(displayValue) || (typeof fact?.evidence === 'string' && /€|eur|evr/i.test(fact.evidence));
-        displayValue = isEuro ? `${value.toLocaleString('sr-RS')} €` : `${value.toLocaleString('sr-RS')} RSD`;
-      }
+      const displayValue = typeof fact?.displayValue === 'string' ? fact.displayValue.trim() : '';
       const evidence = typeof fact?.evidence === 'string' ? fact.evidence.trim() : '';
       const confidence = fact?.confidence;
       if (!displayValue || displayValue.length > 1000 || !evidence || evidence.length > 500 ||
@@ -989,11 +985,16 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const unsupportedEuroWithoutPriceFact = !priceProposal
     && (priceClauses.some(clause => hasAmountIn(clause, euroUnit)) || euroFollowup)
     && !explicitOffers;
-  const unsupportedPrice = explicitOffers && !!priceProposal;
-  const priceMessage = 'Cena je postavljena na traženje ponuda.';
+  const unsupportedPrice = euroPriceProposed || unsupportedEuroWithoutPriceFact || barePriceProposed
+    || barePriceWithoutFact || explicitOffers && !!priceProposal;
+  const priceMessage = activeRsdPrice && !explicitOffers
+    ? `Razumem ${barePriceProposed || barePriceWithoutFact ? 'iznos, ali valuta nije potvrđena' : 'da je iznos bio u evrima'}. Taj iznos nisam upisao kao novu cenu u dinarima. Ranije prikazan iznos u RSD može ostati u nacrtu; nemoj potvrditi objavu dok ne kažeš koji iznos u RSD želiš ili izabereš ponude.`
+    : barePriceProposed || barePriceWithoutFact
+      ? 'Razumem iznos, ali valuta nije potvrđena. Taj iznos nisam upisao kao cenu. Cena zadatka se trenutno čuva u dinarima. Koji iznos u RSD želiš da postaviš? Možeš i da tražiš ponude.'
+      : 'Razumem iznos u evrima. Taj iznos nisam upisao kao cenu u dinarima i neću sam da preračunavam. Koji iznos u RSD želiš da postaviš? Možeš i da tražiš ponude.';
   const offerMessage = euroPriceProposed || unsupportedEuroWithoutPriceFact
-    ? 'Razumem, tražite ponude majstora. Iznos u evrima nisam upisao kao fiksnu cenu u dinarima.'
-    : 'Razumem, tražite ponude majstora. Nejasan iznos nisam upisao kao fiksnu cenu u dinarima.';
+    ? 'Razumem, tražiš ponude. Iznos u evrima nisam upisao kao cenu u dinarima.'
+    : 'Razumem, tražiš ponude. Nejasan iznos nisam upisao kao cenu u dinarima.';
   const suspectAmountToken = proposedAmountToken ?? priceClauses.join(' ').match(/\d[\d.,]*/u)?.[0]
     ?.replace(/[^\d]/gu, '').split('').join('[\\s.,]*');
   const containsSuspectAmount = (text: string) => !!suspectAmountToken && new RegExp(
@@ -1177,14 +1178,6 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   }
   const facts = new Map(activeFacts.filter(f => f.status !== 'UNKNOWN').map(f => [f.fact_key, f.fact_value]));
   for (const proposal of proposals) facts.set(proposal.key, proposal.value);
-  if (!facts.has('need.task_country_code')) {
-    facts.set('need.task_country_code', 'RS');
-    proposals.push({ key: 'need.task_country_code', value: 'RS' });
-  }
-  if (!facts.has('need.people_needed')) {
-    facts.set('need.people_needed', 1);
-    proposals.push({ key: 'need.people_needed', value: 1 });
-  }
   const missing = [...new Set(['need.description', 'need.people_needed', 'need.price_mode',
     ...(facts.get('need.price_mode') === 'MY_PRICE' ? ['need.price_rsd', ...(Number(facts.get('need.people_needed')) > 1 ? ['need.price_basis'] : [])] : []),
     'need.schedule_kind', ...(facts.get('need.schedule_kind') === 'FIXED_WINDOW' ? ['need.starts_at'] : []),
@@ -1193,16 +1186,16 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     ...Object.entries(NEED_FACT_V2_DEFINITIONS).filter(([, definition]) => definition.requiredForDraft).map(([key]) => key)])]
     .filter(key => !facts.has(key) || key==='need.handoff'&&!decodeServiceHandoff(facts.get(key)));
   const questions: Record<string, string> = {
-    'need.description': 'Šta treba da se uradi?', 'need.people_needed': 'Koliko ljudi Vam je potrebno?',
-    'need.price_mode': 'Imate li planiran budžet ili želite da dobijete ponude majstora?', 'need.price_rsd': 'Koliki je okvirni budžet za ceo posao?',
-    'need.price_basis': 'Da li je taj budžet ukupan za ceo posao ili po osobi?', 'need.schedule_kind': 'Kada želite da se zadatak uradi?',
+    'need.description': 'Šta treba da se uradi?', 'need.people_needed': 'Koliko ljudi ti treba?',
+    'need.price_mode': 'Imaš li planiran budžet ili želiš da dobiješ ponude?', 'need.price_rsd': 'Koliki je budžet za ceo posao?',
+    'need.price_basis': 'Da li je taj budžet ukupan za ceo posao ili po osobi?', 'need.schedule_kind': 'Kada treba da se uradi?',
     'need.starts_at': 'Kog datuma i u koliko sati posao počinje?', 'need.ends_at': 'Kada se posao završava?',
     'need.task_country_code': 'U kojoj državi je zadatak?', 'need.task_geography': 'Gde treba da se uradi?',
-    'need.handoff': 'Kako preuzimate rezultat — digitalno, slanjem ili lično u kom gradu?',
+    'need.handoff': 'Kako preuzimaš rezultat — digitalno, slanjem u koju državu ili lično u kom gradu?',
   };
   const incompleteMessage = () => {
     const key = missing.find(key => questions[key]);
-    return key ? questions[key] : 'Pregled još nije dovršen. Možete dopuniti opis zadatka ili otvoriti pregled.';
+    return key ? questions[key] : 'Pregled još nije dovršen. Možeš da dopuniš opis zadatka ili otvoriš pregled.';
   };
   // A city-only stationary task is valid geography for categorisation, but not a
   // ready point on the map. This is a conversation gate, NOT a public address or

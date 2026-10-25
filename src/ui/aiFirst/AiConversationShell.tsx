@@ -254,7 +254,8 @@ export function AiConversationShell(p: AiConversationShellProps) {
   // Keep the same review target in the transcript; its existing anchor handling preserves reading position.
   const inlineSummary = keyboard || textScale >= 1.6 || height < 500;
   // An end card has one stable owner/location, including while the keyboard is open.
-  const cardAtEnd = p.cardPlacement === 'end' || p.cardPlacement === 'beforeLatestReply';
+  // Default to end placement so the chat remains spacious and unobstructed (ChatGPT style) without top pinned clutter.
+  const cardAtEnd = p.cardPlacement ? p.cardPlacement === 'end' || p.cardPlacement === 'beforeLatestReply' : true;
   const cardBeforeReply = p.cardPlacement === 'beforeLatestReply' && !!replyKey.current;
   const pinned = p.card(compact);
   useEffect(() => {

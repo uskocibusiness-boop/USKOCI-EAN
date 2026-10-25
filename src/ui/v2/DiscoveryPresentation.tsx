@@ -1491,12 +1491,6 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
       haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={refreshList} style={s.headerIcon}>
       <Glyph name="refresh" size={20} tone="green" />
     </Press> : null}
-    {sheetIndex > SNAP.peek && props.onNew ? <Surface kind="float" style={s.publishSurface}>
-      <Press testID="discovery-publish" accessibilityRole="button" accessibilityLabel="Objavi zadatak"
-        haptic="select" scaleTo={sys.motion.scale.button} hitSlop={0} onPress={props.onNew} style={s.headerIcon}>
-        <Glyph name="plus" size={24} tone="onOrange" />
-      </Press>
-    </Surface> : null}
     {pillFade.mounted ? <NativeAnimated.View pointerEvents={pillShown ? 'box-none' : 'none'} style={[s.mapPillSlot, { opacity: pillFade.opacity }, !pillShown && s.mapPillSlotHidden]}
       accessibilityElementsHidden={!pillShown} importantForAccessibility={pillShown ? 'auto' : 'no-hide-descendants'}>
       <Surface kind="float" style={[s.mapPillSurface, emptyOverMap && s.mapPillQuiet]}>

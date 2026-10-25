@@ -31,7 +31,7 @@ declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:
 
 const isLiveDualGemini = (): boolean =>
   (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '') === 'https://leqcwgzvjsxugfgzdmth.supabase.co' &&
-  (Deno.env.get('SUPABASE_ANON_KEY') ?? '').startsWith('eyJ') &&
+  Boolean(Deno.env.get('SUPABASE_ANON_KEY')) &&
   Deno.env.get('USKOCI_TAXONOMY_DUAL_GEMINI') !== 'false';
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info',

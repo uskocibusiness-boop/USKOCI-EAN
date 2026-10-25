@@ -99,21 +99,12 @@ const EMPTY_KEYS: ReadonlySet<string> = new Set();
 const EMPTY_ITEMS: readonly ConversationInboxRow[] = [];
 const rowKey = (row: ListItem) => row.key;
 
-type ConversationSet = 'active' | 'closed';
-const SETS = [{ key: 'active' as const, label: 'Aktivni' }, { key: 'closed' as const, label: 'Istorija' }];
-
 export function ConversationInboxPresentation({ items, loading, refreshing, error, paging, pageError, hasMore,
   disabled = false, openingDisabled = false, openingKey = null, unavailableKeys = EMPTY_KEYS, openErrorKey = null,
   onOpen, onRefresh, onLoadMore, renderAvatar, header, titleInHeader = false, onAgreements, closedAgreements = null, bottomInset = 0, zona, sada,
 }: ConversationInboxPresentationProps) {
-  const [set, setSet] = useState<ConversationSet>('active');
   const rows = useMemo(() => conversationInboxRows(items ?? EMPTY_ITEMS, { zona, sada, closedAgreements }), [items, zona, sada, closedAgreements]);
-  // Separate only witnessed states. An unknown group (or any other unknown row) stays reachable in both views,
-  // without being called active or finished. Filtering preserves the reader's order.
-  const hasKnownStatus = rows.some(row => row.closed !== undefined);
-  const hasUnknownStatus = rows.some(row => row.closed === undefined);
-  const shown = useMemo(() => hasKnownStatus ? rows.filter(row => row.closed === undefined || (row.closed === true) === (set === 'closed')) : rows,
-    [rows, hasKnownStatus, set]);
+  const shown = rows;
   const reading = loading || refreshing;
   const readDisabled = disabled || reading || paging;
   const openDisabled = disabled || openingDisabled || openingKey !== null;
@@ -136,21 +127,15 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
       : 'Pokušaj ponovo da proveriš ima li novih razgovora.'}</T>
     <V2Action label="Osveži razgovore" kind="quiet" compact onPress={onRefresh} disabled={readDisabled} loading={reading} />
   </Surface> : null;
-  const control = hasKnownStatus ? <Segmented value={set} onChange={setSet} options={SETS} /> : null;
   const listHeader = <View style={s.heading}>
     {!titleInHeader ? <T variant="pageTitle" accessibilityRole="header">Poruke</T> : null}
     <T variant="note" tone="muted">Razgovori o tvojim zadacima</T>
-    {control}
-    {hasKnownStatus && hasUnknownStatus ? <T variant="note" tone="muted">Razgovori bez potvrđenog statusa prikazani su u oba pregleda.</T> : null}
     {notice}
   </View>;
 
   const incomplete = hasMore || pageError || paging;
-  const emptyTitle = incomplete ? hasKnownStatus ? set === 'closed' ? 'Nema istorije među učitanim razgovorima' : 'Nema aktivnih među učitanim razgovorima'
-    : 'Razgovori još nisu učitani do kraja'
-    : !hasKnownStatus ? 'Još nema razgovora' : set === 'closed' ? 'Istorija razgovora je prazna' : 'Nema aktivnih razgovora';
-  const emptyBody = incomplete ? 'Učitaj starije razgovore da nastaviš pregled.' : !hasKnownStatus ? 'Razgovor započinješ iz Dogovora.'
-    : set === 'closed' ? 'Ovde su razgovori završenih i otkazanih Dogovora.' : 'Ranije razgovore vidiš u „Istoriji“.';
+  const emptyTitle = incomplete ? 'Razgovori još nisu učitani do kraja' : 'Još nema razgovora';
+  const emptyBody = incomplete ? 'Učitaj starije razgovore da nastaviš pregled.' : 'Razgovor započinješ iz Dogovora.';
   const empty = items === null
     ? error && !reading
       ? <StateView kind="error" title="Razgovori nisu učitani" body="Proveri vezu pa pokušaj ponovo."
@@ -163,8 +148,8 @@ export function ConversationInboxPresentation({ items, loading, refreshing, erro
         </View>
       </View>
     : error ? null
-      // Nobody has talked yet: the first encounter, the two panels at the size of a door; the quieter sets keep their 96.
-      : <StateView kind="empty" hero={!hasKnownStatus} compact={hasKnownStatus} art="chat" title={emptyTitle} body={emptyBody}
+      // Nobody has talked yet: clean empty state with direct action to Agreements
+      : <StateView kind="empty" hero compact={false} art="chat" title={emptyTitle} body={emptyBody}
           primary={onAgreements && emptyTitle === 'Još nema razgovora' ? { label: 'Otvori Dogovore', onPress: onAgreements, disabled: openDisabled } : undefined} />;
   const footer = items !== null && (hasMore || pageError || paging) ? <View style={s.footer}>
     {pageError ? <T variant="note" accessibilityRole="alert">Stariji razgovori nisu učitani. Pokušaj ponovo da nastaviš.</T> : null}
