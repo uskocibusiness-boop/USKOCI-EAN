@@ -358,9 +358,10 @@ export function HomePresentation(p: HomePresentationProps) {
   // The pull spinner is for a pull. "Osveži pregled" has a spinner of its own, and no read the route starts by itself may raise the white
   // disc of Android's pull at the top of the screen (the owner's phone, 8 Oct 2026).
   const pull = usePullRefresh(p.onRefresh, p.refreshing);
-  const myActiveTasks = (p.myTasks ?? []).filter(item => item.stanje !== 'OTKAZANA' && item.stanje !== 'ARHIVIRANA');
+  const myActiveTasks = (p.myTasks ?? []).filter(item => item.stanje !== 'ZATVORENA');
   const myActiveApplications = (p.myApplications ?? []).filter(item => item.stanje !== 'WITHDRAWN' && item.stanje !== 'CLOSED');
   return <Screen kind="root" background="wash" header={p.header ?? <ScreenHeader title="Početna" onProfile={p.onProfile} />}
+    contentStyle={{ paddingBottom: 100 }}
     refreshControl={<RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} tintColor={sys.color.green} colors={[sys.color.green]} />}>
     {recovery ? <Surface kind="note" testID="home-recovery" style={s.recovery}>
       <T accessibilityRole="alert" variant="note">{recovery === 'stale' ? 'Nema veze. Prikazano je poslednje učitano.'
@@ -407,7 +408,7 @@ export function HomePresentation(p: HomePresentationProps) {
               <OwnTaskCard
                 item={task}
                 onOpen={() => p.onOpen({ kind: 'NEED', needId: task.id })}
-                onApplications={task.brojPrijavaZaIzbor > 0 ? () => p.onOpen({ kind: 'CANDIDATES', needId: task.id }) : undefined}
+                onApplications={(task.brojPrijavaZaIzbor ?? 0) > 0 ? () => p.onOpen({ kind: 'CANDIDATES', needId: task.id }) : undefined}
               />
             </View>
           ))}

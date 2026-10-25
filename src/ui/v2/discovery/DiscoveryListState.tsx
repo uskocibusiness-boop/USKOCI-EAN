@@ -20,7 +20,7 @@ import { QuietReadState } from '../QuietReadState';
  */
 export type DiscoveryListStateKind =
   | { kind: 'loading' }
-  | { kind: 'error'; onRetry: () => void }
+  | { kind: 'error'; onRetry: () => void; errorDetail?: string }
   | { kind: 'place'; point: boolean; onShowAll: () => void }
   | { kind: 'filtered'; remote?: boolean; onClear: () => void }
   | { kind: 'forMe'; onShowAll: () => void; onWorkProfile?: () => void }
@@ -54,7 +54,7 @@ export function DiscoveryListState({ state, clearAllLabel, compact = false }: {
       <ActivityIndicator size="small" color={sys.color.green} accessible={false} />
       <T variant="note" tone="muted" style={s.readText}>{w.loading}</T>
     </View> : <QuietReadState art="tasks" title={w.loading} body="Proveravamo zadatke u ovom prikazu." />;
-    case 'error': return <StateView compact={compact} kind="error" art="tasks" title={w.error} body={w.errorBody} primary={{ label: w.retry, onPress: state.onRetry }} />;
+    case 'error': return <StateView compact={compact} kind="error" art="tasks" title={w.error} body={state.errorDetail ? `${w.errorBody} (${state.errorDetail})` : w.errorBody} primary={{ label: w.retry, onPress: state.onRetry }} />;
     case 'place': return <StateView compact={compact} art="map" title={state.point ? w.pointTitle : w.areaTitle} body={state.point ? w.pointBody : w.areaBody}
       primary={{ label: w.showAll, onPress: state.onShowAll }} />;
     case 'filtered': return <StateView compact={compact} art={state.remote ? 'remote' : 'map'}

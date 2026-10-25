@@ -124,20 +124,18 @@ function PartRow({ part, children }: { part: PreviewPart; children: ReactNode })
       {children}
       {part.note ? <T variant="meta" tone="muted">{part.note}</T> : null}
     </View>
-    {part.pencil ? <EditPencil pencil={part.pencil} /> : null}
   </View>;
 }
 
 /**
- * A section of the page with its name and, at the end of that line, its pencil. The line is a touch of 48 dp when there is a pencil, and
- * it pulls up 12 dp into the gap above it so the name stays where it would be without one (as `Section` does with its own command).
+ * A section of the page with its name. Usklađeno sa Premium White kanonom:
+ * nema pojedinačnih olovaka uz svaku činjenicu; izmena se radi kroz centralnu
+ * akciju „Izmeni kroz razgovor“.
  */
 function PartSection({ title, part, children }: { title: string; part: PreviewPart; children: ReactNode }) {
-  const pencil = !part.editor && part.pencil ? part.pencil : null;
-  return <View style={pencil ? s.pulled : undefined}>
-    <View style={[s.heading, pencil ? s.headingTouch : s.headingPlain]}>
+  return <View>
+    <View style={[s.heading, s.headingPlain]}>
       <T variant="heading" accessibilityRole="header" style={s.headingText}>{title}</T>
-      {pencil ? <EditPencil pencil={pencil} /> : null}
     </View>
     {part.editor ?? children}
     {!part.editor && part.note ? <T variant="meta" tone="muted">{part.note}</T> : null}
@@ -183,7 +181,6 @@ export function OwnerAddress({ frame, map, part }: { frame: AddressFrame; map?: 
           <FactArt kind="pin" size={24} />
           <T variant="bodyStrong" accessibilityRole="header" style={s.headingText}>Tačna adresa</T>
         </View>
-        {pencil ? <EditPencil pencil={pencil} /> : null}
       </View>
       {frame.places.map(place => <View key={place.slot} accessible accessibilityLabel={named ? `${place.title}: ${place.text}` : place.text} style={s.place}>
         {named ? <T variant="meta" tone="muted">{place.title}</T> : null}
@@ -215,18 +212,16 @@ export function ReviewGallery({ assetIds, pencil, picture }: { assetIds: readonl
   const photos = assetIds.map(assetId => ({ assetId }));
   const context = {};
   return <>
-    <PencilOverPhoto pencil={pencil}>
-      <View style={s.gallery} accessibilityElementsHidden={open} importantForAccessibility={open ? 'no-hide-descendants' : 'auto'}>
-        {picture ? <View style={s.standIn}>{picture(index)}</View>
-          : <PhotoPages context={context} photos={photos} index={index} onIndex={setIndex} onOpen={page => { setIndex(page); setOpen(true); }}
-            pending={<FactArt kind="photo" size={48} />} />}
-        {assetIds.length > 1 ? <View pointerEvents="none" style={s.overlay}>
-          <View style={s.counter}>
-            <T variant="meta" accessibilityLabel={`Fotografija ${index + 1} od ${assetIds.length}`}>{`${index + 1} / ${assetIds.length}`}</T>
-          </View>
-        </View> : null}
-      </View>
-    </PencilOverPhoto>
+    <View style={s.gallery} accessibilityElementsHidden={open} importantForAccessibility={open ? 'no-hide-descendants' : 'auto'}>
+      {picture ? <View style={s.standIn}>{picture(index)}</View>
+        : <PhotoPages context={context} photos={photos} index={index} onIndex={setIndex} onOpen={page => { setIndex(page); setOpen(true); }}
+          pending={<FactArt kind="photo" size={48} />} />}
+      {assetIds.length > 1 ? <View pointerEvents="none" style={s.overlay}>
+        <View style={s.counter}>
+          <T variant="meta" accessibilityLabel={`Fotografija ${index + 1} od ${assetIds.length}`}>{`${index + 1} / ${assetIds.length}`}</T>
+        </View>
+      </View> : null}
+    </View>
     {open && !picture ? <PhotoViewer context={context} photos={photos} index={index} onIndex={setIndex} onClose={() => setOpen(false)} /> : null}
   </>;
 }

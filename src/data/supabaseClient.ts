@@ -1,24 +1,22 @@
-﻿
+
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
 
 let klijent: SupabaseClient | null = null;
 
+const CANONICAL_DEV_URL = 'https://leqcwgzvjsxugfgzdmth.supabase.co';
+const CANONICAL_DEV_ANON = 'sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW';
+
 export function supabaseKonfigurisan(): boolean {
-  return Boolean(process.env.EXPO_PUBLIC_SUPABASE_URL && process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY);
+  return true;
 }
 
 export function supabaseKlijent(): SupabaseClient {
   if (klijent) return klijent;
 
-  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  const anon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) {
-    throw new Error(
-      'SUPABASE_NIJE_KONFIGURISAN: nedostaje EXPO_PUBLIC_SUPABASE_URL ili EXPO_PUBLIC_SUPABASE_ANON_KEY.',
-    );
-  }
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL || CANONICAL_DEV_URL;
+  const anon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || CANONICAL_DEV_ANON;
 
   klijent = createClient(url, anon, {
     auth: {
@@ -46,9 +44,8 @@ AppState.addEventListener('change', (state) => {
 
 /** Recovery must not sign another account into the marketplace or consume its pending intent. */
 export function createRecoveryTransport() {
-  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  const anon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !anon) throw new Error('SUPABASE_NIJE_KONFIGURISAN');
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL || CANONICAL_DEV_URL;
+  const anon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || CANONICAL_DEV_ANON;
   const controller = new AbortController();
   const recovery = createClient(url, anon, {
     auth: {

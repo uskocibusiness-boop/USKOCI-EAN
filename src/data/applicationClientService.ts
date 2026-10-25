@@ -46,7 +46,7 @@ function readTaskFacts(raw: any, required: boolean): ApplicationTaskFacts | null
   const mode = raw.executionLocationMode === null ? null : LOCATION_MODES.find(value => value === raw.executionLocationMode) ?? invalid();
   const zone = raw.taskTimezone === null ? null : typeof raw.taskTimezone === 'string' && timeZone(raw.taskTimezone) ? raw.taskTimezone : invalid();
   const priceMode = raw.priceMode === 'MY_PRICE' || raw.priceMode === 'OFFERS' ? raw.priceMode : invalid();
-  const basis = raw.priceBasis === null ? null : raw.priceBasis === 'TOTAL' || raw.priceBasis === 'PER_PERSON' ? raw.priceBasis : invalid();
+  const basis = raw.priceBasis === null ? null : raw.priceBasis === 'TOTAL' || raw.priceBasis === 'PER_PERSON' || raw.priceBasis === 'HOURLY' ? raw.priceBasis : invalid();
   if (priceMode === 'OFFERS' && basis !== null) invalid();
   if (!positiveInteger(raw.requiredSlots) || raw.requiredSlots > 50) invalid();
   return { raspored: { kind, startsAt, endsAt }, rezimLokacije: mode, vremenskaZona: zone, rezimCene: priceMode, osnovaCene: basis,

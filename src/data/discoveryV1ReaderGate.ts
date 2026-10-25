@@ -12,6 +12,7 @@ export type DiscoveryReader = 'P6' | 'LEGACY';
  * disposable-stack proof builds, Jest, web) keeps the legacy readers, and recompiling a profile without it is the kill switch.
  */
 export function discoveryV1ProductionReaderBuilt(buildFlag: unknown = process.env.EXPO_PUBLIC_P6_DISCOVERY_READER): boolean {
+  if (process.env.EXPO_PUBLIC_P6_DISCOVERY_READER === '0' || !process.env.EXPO_PUBLIC_P6_DISCOVERY_READER) return false;
   return buildFlag === P6_DISCOVERY_READER_BUILT;
 }
 

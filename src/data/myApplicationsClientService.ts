@@ -5,7 +5,7 @@ import { failure, positiveInteger, readOwnedResult, record, sameId, timestamp, u
 import { supabaseKlijent } from './supabaseClient';
 
 export type ApplicationEditPricing = {
-  rezimCene: 'MY_PRICE' | 'OFFERS'; osnovaCene?: 'TOTAL' | 'PER_PERSON';
+  rezimCene: 'MY_PRICE' | 'OFFERS'; osnovaCene?: 'TOTAL' | 'PER_PERSON' | 'HOURLY';
   ponudjenaCena?: { iznos: number }; pokrivenost: { ukupno: number };
 };
 export type ExistingApplicationInterval = { start: string | null; end: string | null; pricing: ApplicationEditPricing };
@@ -78,10 +78,10 @@ export function readExistingApplicationInterval(p: MojaPrijavaProjekcija) {
       if (start !== null && end !== null && calendarInstant(start)! >= calendarInstant(end)!) return null;
       // Read the price rule from the SAME current Need revision as the saved interval, never from the old offer.
       if (need.mode !== 'MY_PRICE' && need.mode !== 'OFFERS' || !positiveInteger(need.required_slots) || need.required_slots > 50 ||
-          need.price_basis !== null && need.price_basis !== 'TOTAL' && need.price_basis !== 'PER_PERSON' ||
+          need.price_basis !== null && need.price_basis !== 'TOTAL' && need.price_basis !== 'PER_PERSON' && need.price_basis !== 'HOURLY' ||
           need.mode === 'OFFERS' && need.price_basis !== null || need.mode === 'MY_PRICE' && !positiveInteger(need.requester_price_rsd)) return null;
       const pricing: ApplicationEditPricing = { rezimCene: need.mode, pokrivenost: { ukupno: need.required_slots },
-        ...(need.price_basis === null ? {} : { osnovaCene: need.price_basis }),
+        ...(need.price_basis === null ? {} : { osnovaCene: need.price_basis as 'TOTAL' | 'PER_PERSON' | 'HOURLY' }),
         ...(need.mode === 'MY_PRICE' ? { ponudjenaCena: { iznos: need.requester_price_rsd as number } } : {}) };
       return { start, end, pricing };
     },

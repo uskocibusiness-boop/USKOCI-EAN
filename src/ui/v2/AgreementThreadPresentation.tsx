@@ -99,7 +99,7 @@ export function AgreementThreadPresentation({ agreement, person, onOverview, onB
         {onMore ? <ChromeIconButton glyph="more" label="Više radnji" hint="Izmena uslova, deljenje broja, prijava problema, otkazivanje, blokiranje osobe"
           onPress={onMore} /> : null}
       </View>
-      <View testID="agreement-thread-tabs" style={s.hiddenTabs}><AgreementTabs tab="poruke" onChange={tab => { if (tab === 'pregled') onOverview(); }} /></View>
+      <View testID="agreement-thread-tabs" style={s.hiddenTabs} accessibilityElementsHidden={true} importantForAccessibility="no-hide-descendants"><AgreementTabs tab="poruke" onChange={tab => { if (tab === 'pregled') onOverview(); }} /></View>
       {waiting ? <View style={s.waitingRow}><T variant="note" style={s.waiting}>{waiting}</T></View> : null}
     </>}
     {channels ? <View style={s.tabs}>{channels}</View> : null}

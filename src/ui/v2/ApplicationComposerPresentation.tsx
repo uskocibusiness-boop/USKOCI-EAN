@@ -114,8 +114,7 @@ const capitalised = (text: string) => text.charAt(0).toUpperCase() + text.slice(
  * card and the sheet of the candidate show (the name and photo, the rating, the total, the people, the term, the message, and the vehicle and the
  * tools of the application), nothing the application does not carry.
  */
-export const WHAT_THE_OTHER_SIDE_SEES = ['Osoba koja traži pomoć vidi tvoje ime i fotografiju, ocenu, iznos, broj ljudi, termin i poruku.',
-  'Vidi i vozilo i alat iz tvoje prijave.'] as const;
+export const WHAT_THE_OTHER_SIDE_SEES = ['Osoba koja traži pomoć vidi tvoje ime i fotografiju, ocenu, iznos, broj ljudi, termin i poruku.'] as const;
 
 /**
  * The screen's frame: the bar that says whose application this is, a keyboard-safe body that scrolls, and the pinned foot. The

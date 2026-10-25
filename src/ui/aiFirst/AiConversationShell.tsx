@@ -773,5 +773,5 @@ const s = StyleSheet.create({
   // Disabled is a quiet wash with a muted glyph, never a faded ghost of the live control.
   roundOff: { backgroundColor: sys.color.wash },
   round64: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center' },
-  send64: { backgroundColor: '#0E4D3C', shadowColor: '#0E4D3C', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 8, elevation: 4 },
+  send64: { backgroundColor: sys.color.green, shadowColor: sys.color.green, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 8, elevation: 4 },
 });

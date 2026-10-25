@@ -35,7 +35,7 @@ export type DiscoveryV1Item = {
   verifiedIdentityRequired: boolean; approximateCity: string | null; approximateArea: string | null; pin: DiscoveryV1Pin | null;
   requiredSlots: number; coveredSlots: number; requiredSkills: string[]; requiredTools: string[]; requiredVehicles: string[];
   requiredLicenses: string[]; minimumExperienceYears: number | null; priceMode: 'MY_PRICE' | 'OFFERS';
-  requesterPriceRsd: number | null; priceBasis: 'TOTAL' | 'PER_PERSON' | null; requesterProfileId: string;
+  requesterPriceRsd: number | null; priceBasis: 'TOTAL' | 'PER_PERSON' | 'HOURLY' | null; requesterProfileId: string;
   responseDeadline: string | null; acceptsApplications: boolean; publicTopology: Record<string, unknown> | null;
   criticalConditions: string[] | null;
 };
@@ -150,8 +150,8 @@ function decodeItem(value: unknown, asOf: string): DiscoveryV1Item {
   const priceMode = row.priceMode as 'MY_PRICE' | 'OFFERS';
   const requesterPriceRsd = row.requesterPriceRsd === null ? null : integer(row.requesterPriceRsd, 'DISCOVERY_V1_ITEM_PRICE');
   if ((priceMode === 'MY_PRICE') !== (requesterPriceRsd !== null)) invalid('DISCOVERY_V1_ITEM_PRICE_CONTRACT');
-  if (row.priceBasis !== null && row.priceBasis !== 'TOTAL' && row.priceBasis !== 'PER_PERSON') invalid('DISCOVERY_V1_ITEM_PRICE_BASIS');
-  const priceBasis = row.priceBasis as 'TOTAL' | 'PER_PERSON' | null;
+  if (row.priceBasis !== null && row.priceBasis !== 'TOTAL' && row.priceBasis !== 'PER_PERSON' && row.priceBasis !== 'HOURLY') invalid('DISCOVERY_V1_ITEM_PRICE_BASIS');
+  const priceBasis = row.priceBasis as 'TOTAL' | 'PER_PERSON' | 'HOURLY' | null;
   const requesterProfileId = uuid(row.requesterProfileId, 'DISCOVERY_V1_ITEM_PROFILE');
   const responseDeadline = nullableInstant(row.responseDeadline, 'DISCOVERY_V1_ITEM_DEADLINE');
   const acceptsApplications = bool(row.acceptsApplications, 'DISCOVERY_V1_ITEM_ACCEPTS');

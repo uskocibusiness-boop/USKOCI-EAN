@@ -214,7 +214,11 @@ export const supabaseIzvor: SupabaseIzvor = {
   async otvorenePrilike(options) {
     const signal = options?.signal;
     const owner = sesijaSada(), accountId = owner.user?.id, accountRevision = owner.accountRevision;
-    if (!accountId) throw new Error('AUTH_REQUIRED');
+    console.warn('[OTVORENE_PRILIKE_ENTER]', accountId, accountRevision);
+    if (!accountId) {
+      console.warn('[OTVORENE_PRILIKE_AUTH_REQUIRED]');
+      throw new Error('AUTH_REQUIRED');
+    }
     // The whole walk belongs to one account visit. A token refresh keeps it; logout or A -> B -> A
     // retires it before another page/enrichment can start, even if the route already ignored it.
     const assertCurrent = () => {
@@ -233,11 +237,14 @@ export const supabaseIzvor: SupabaseIzvor = {
       assertCurrent();
       if (page >= 25) throw new Error('OPPORTUNITIES_TOO_MANY_PAGES');
       const request = supabase.rpc('rpc_list_open_tasks_v3', {
-        p_limit: 200, p_before_at: cursor?.at ?? null, p_before_id: cursor?.id ?? null,
+        p_bbox: null, p_filters: {}, p_limit: 200, p_before_at: cursor?.at ?? null, p_before_id: cursor?.id ?? null,
       });
       const { data, error } = await (signal && typeof request.abortSignal === 'function' ? request.abortSignal(signal) : request);
       assertCurrent();
-      if (error) throw error;
+      if (error) {
+        console.error('[RPC_LIST_OPEN_TASKS_V3_ERROR]', error.message, error.code, (error as any).details);
+        throw error;
+      }
       const result = record(data);
       if (!result || !Array.isArray(result.items) || result.items.length > 200 || typeof result.hasMore !== 'boolean'
         || calendarInstant(result.asOf) === null || (result.hasMore && result.items.length === 0)) {

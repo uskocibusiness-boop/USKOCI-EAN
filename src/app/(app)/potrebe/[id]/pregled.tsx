@@ -341,7 +341,12 @@ function OwnedNeed({ id }: { id: string }) {
     // R16 (F3's `noApplicationsHelp`): the page says "Nema prijava već 24 sata" only when the read can tell the truth. Today the owner's read of a
     // task carries neither `publishedAt` nor the photo count, so the answer is null; the day the server gives them (and the switch is on), the
     // rows appear. Every one of the ways is a change of the task, which the edit asks about before it opens.
-    waitingHelp={potreba ? noApplicationsHelp({ need: potreba, canEdit: potreba.pokrivenost.popunjeno === 0 && !preostalaPotragaZatvorena && potreba.stanje !== 'ZATVORENA' }) : null}
+    waitingHelp={potreba ? noApplicationsHelp({
+      need: potreba,
+      publishedAt: potreba.objavljeno ?? null,
+      photoCount: potreba.brojFotografija ?? 0,
+      canEdit: potreba.pokrivenost.popunjeno === 0 && !preostalaPotragaZatvorena && potreba.stanje !== 'ZATVORENA',
+    }) : null}
     onWaitingHelp={otvoriIzmenu}
     // What the page may say about the search for the missing places comes only from what this screen already read (the R3 state):
     // "Dogovor je otkazan" and "Tvoj zadatak opet prima prijave" never from a guess. `speaks` is true while the recovery section is

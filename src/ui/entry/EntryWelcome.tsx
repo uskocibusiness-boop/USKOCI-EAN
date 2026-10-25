@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, Animated, AppState, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEntrySplashReady } from '../../hooks/useEntrySplashReady';
@@ -43,6 +43,35 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
     loaded.current.add(name);
     if (loaded.current.size === 3) onSceneReady();
   }, [onSceneReady]);
+
+  const enterAnim = useRef(new Animated.Value(reducedMotion ? 1 : 0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (reducedMotion) return;
+    Animated.timing(enterAnim, {
+      toValue: 1,
+      duration: 450,
+      useNativeDriver: true,
+    }).start();
+
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1.025,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [reducedMotion]);
 
   // A callback may finish after a different account, a background transition or
   // a replacement choice. Its isCurrent guard must become false immediately.
@@ -112,22 +141,24 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
       accessibilityElementsHidden={!!selected} importantForAccessibility={selected ? 'no-hide-descendants' : 'auto'}
       contentContainerStyle={[styles.content, { paddingHorizontal: gutter,
         paddingTop: Math.max(24, insets.top + (height < 700 ? 12 : 36)), paddingBottom: Math.max(24, insets.bottom + 24) }]}>
-      <View testID="entry-card" style={[styles.card, { padding: cardPadding }]}>
+      <Animated.View testID="entry-card" style={[styles.card, { padding: cardPadding, opacity: enterAnim, transform: [{ translateY: enterAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }]}>
         <Image testID="entry-logo" source={logo} contentFit="contain" transition={0}
           style={{ width: logoWidth, height: logoWidth / 3, alignSelf: 'center' }}
           accessible accessibilityLabel="USKOČI" onLoad={() => acknowledgeImage('logo')} />
         <T testID="entry-title" style={[styles.title, width < 350 && styles.narrowTitle]}>Za svaki zadatak,{`\n`}prava osoba.</T>
         <T style={styles.description}>Objavi šta ti treba ili uskoči svojim vremenom i znanjem.</T>
         <View style={[styles.choices, { gap: artGap }]}>
-          <Press testID="entry-requester" accessibilityRole="button" accessibilityLabel="Objavi zadatak"
-            accessibilityHint="Pripremi objavljivanje zadatka. Isti nalog može i da se prijavljuje na zadatke."
-            accessibilityState={{ disabled: !available, busy: selected === 'REQUESTER' }}
-            disabled={!available} haptic={available ? 'select' : 'none'} scaleTo={sys.motion.scale.button}
-            onPress={() => choose('REQUESTER')} style={[styles.choice, { width: artSize }]}>
-            <Image testID="entry-art-publish" source={publish} contentFit="contain" transition={0}
-              style={{ width: artSize, height: artSize }} accessible={false} onLoad={() => acknowledgeImage('publish')} />
-            <T style={styles.choiceLabel}>Objavi zadatak</T>
-          </Press>
+          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+            <Press testID="entry-requester" accessibilityRole="button" accessibilityLabel="Objavi zadatak"
+              accessibilityHint="Pripremi objavljivanje zadatka. Isti nalog može i da se prijavljuje na zadatke."
+              accessibilityState={{ disabled: !available, busy: selected === 'REQUESTER' }}
+              disabled={!available} haptic={available ? 'select' : 'none'} scaleTo={sys.motion.scale.button}
+              onPress={() => choose('REQUESTER')} style={[styles.choice, { width: artSize }]}>
+              <Image testID="entry-art-publish" source={publish} contentFit="contain" transition={0}
+                style={{ width: artSize, height: artSize }} accessible={false} onLoad={() => acknowledgeImage('publish')} />
+              <T style={styles.choiceLabel}>Objavi zadatak</T>
+            </Press>
+          </Animated.View>
           <Press testID="entry-worker" accessibilityRole="button" accessibilityLabel="Uskoči i zaradi"
             accessibilityHint="Pronađi zadatke koji ti odgovaraju. Isti nalog može i da objavljuje zadatke."
             accessibilityState={{ disabled: !available, busy: selected === 'WORKER' }}
@@ -138,8 +169,8 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
             <T style={styles.choiceLabel}>Uskoči i zaradi</T>
           </Press>
         </View>
-      </View>
-      <View testID="entry-auth-footer" style={styles.authFooter}>
+      </Animated.View>
+      <Animated.View testID="entry-auth-footer" style={[styles.authFooter, { opacity: enterAnim }]}>
         <Press accessibilityRole="button" accessibilityLabel="Prijavi se" disabled={!available}
           accessibilityState={{ disabled: !available }} haptic={available ? 'select' : 'none'}
           scaleTo={sys.motion.scale.button} onPress={() => openAuth(onSignIn)} style={styles.signIn}>
@@ -154,7 +185,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
         <View style={styles.footnote}>
           <T style={styles.footnoteText}>Jedan nalog za obe uloge</T>
         </View>
-      </View>
+      </Animated.View>
     </ScrollView>
     {selected ? <View testID="entry-preparing" style={styles.preparingCover}
       accessibilityViewIsModal importantForAccessibility="yes">

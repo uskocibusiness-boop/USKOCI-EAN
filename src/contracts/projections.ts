@@ -93,6 +93,10 @@ export type PotrebaProjekcija = {
   brojPrijava: number;
   /** Server-owned selectable count. Absent/null is unknown, never the historical total. */
   brojPrijavaZaIzbor?: number | null;
+  /** Server-owned publication instant. Null/absent for draft or unknown. */
+  objavljeno?: string | null;
+  /** Number of attached photos. */
+  brojFotografija?: number;
   rezimCene?: RezimCene;
   /** Sta cena znaci: TOTAL = ceo zadatak, PER_PERSON = jedno mesto, HOURLY = po satu. null/undefined = postojece znacenje. */
   osnovaCene?: "TOTAL" | "PER_PERSON" | "HOURLY" | null;

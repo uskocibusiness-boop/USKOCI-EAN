@@ -111,7 +111,7 @@ function validValue(key: NeedFactV2Key, value: unknown): boolean {
   if (key === 'need.handoff') return decodeServiceHandoff(value) !== null;
   if (key === 'need.resolved_location') { const v = record(value); return !!v && !!normalizeNeedLocation({ ...record(v.binding), accessNotes: null, resolvedLocation: value })?.resolvedLocation; }
   if (key === 'need.price_mode') return ['FASTEST', 'MY_PRICE', 'OFFERS'].includes(String(value));
-  if (key === 'need.price_basis') return ['TOTAL', 'PER_PERSON'].includes(String(value));
+  if (key === 'need.price_basis') return ['TOTAL', 'PER_PERSON', 'HOURLY'].includes(String(value));
   if (key === 'need.schedule_kind') return ['FIXED_WINDOW', 'FLEXIBLE', 'REMOTE_ANYTIME', 'TODAY_FLEXIBLE', 'TOMORROW_FLEXIBLE', 'WEEK_FLEXIBLE'].includes(String(value));
   return text(value, key === 'need.title' ? 140 : key === 'need.category' ? 120 : key === 'need.exact_address' ? 1000 : key === 'need.access_notes' ? 2000 : 6000);
 }

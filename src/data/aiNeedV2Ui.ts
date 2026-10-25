@@ -1,5 +1,6 @@
 import { capabilityTerms } from '../lib/capabilityTerms';
 import { countryCode } from '../lib/market';
+import { novac } from '../lib/novac';
 import { serviceHandoffText } from '../contracts/serviceHandoff';
 import { calendarInstant } from '../lib/calendarTime';
 import { locationSlots, normalizeNeedLocation, normalizeTaskGeography } from '../lib/location';
@@ -214,8 +215,14 @@ export function factReviewValue(fact: AiNeedV2Fact): string {
     return values ? values.length ? values.map(item => `• ${item}`).join('\n') : 'Nema navedenih stavki' : 'Podatak nije dostupan';
   }
   if (fact.valueType === 'BOOLEAN') return value === true ? 'Da' : value === false ? 'Ne' : 'Podatak nije dostupan';
-  if (fact.valueType === 'INTEGER') return typeof value === 'number' && Number.isInteger(value)
-    ? `${value}${fact.key === 'need.price_rsd' ? ' RSD' : ''}` : 'Podatak nije dostupan';
+  if (fact.valueType === 'INTEGER') {
+    if (typeof value !== 'number' || !Number.isInteger(value)) return 'Podatak nije dostupan';
+    if (fact.key === 'need.price_rsd') {
+      const isEuro = typeof fact.displayValue === 'string' && (fact.displayValue.includes('€') || /eur|evr/i.test(fact.displayValue));
+      return novac(value, isEuro ? 'EUR' : 'RSD');
+    }
+    return String(value);
+  }
   if (fact.valueType === 'TIMESTAMPTZ') {
     const instant = calendarInstant(value);
     if (instant === null) return 'Termin nije dostupan';

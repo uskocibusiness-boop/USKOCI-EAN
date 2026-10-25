@@ -86,7 +86,7 @@ const ERRORS: Readonly<Record<string, string>> = {
   V2_EXACT_ADDRESS_INVALID: 'Adresa može imati najviše 1.000 znakova.',
   V2_ACCESS_NOTES_INVALID: 'Napomena o pristupu može imati najviše 2.000 znakova.',
   V2_PRICE_MODE_INVALID: 'Cena može biti „moja cena“ ili „ponude“.',
-  V2_PRICE_BASIS_INVALID: 'Cena može biti „ukupno“ ili „po osobi“.',
+  V2_PRICE_BASIS_INVALID: 'Cena može biti „ukupno“, „po osobi“ ili „po satu“.',
   V2_SCHEDULE_KIND_INVALID: 'Termin izmeni prirodnim jezikom kroz razgovor.',
   V2_AREA_GEOGRAPHY_INVALID: 'Lokaciju izmeni kroz razgovor.',
   V2_STATIONARY_GEOGRAPHY_INVALID: 'Lokaciju izmeni kroz razgovor.',
@@ -248,7 +248,7 @@ function validFactValue(key: AiNeedV2Fact['key'], value: unknown): boolean {
   }
   if (type === 'TIMESTAMPTZ') return timestamp(value);
   if (key === 'need.price_mode') return ['FASTEST', 'MY_PRICE', 'OFFERS'].some(item => item === value);
-  if (key === 'need.price_basis') return ['TOTAL', 'PER_PERSON'].some(item => item === value);
+  if (key === 'need.price_basis') return ['TOTAL', 'PER_PERSON', 'HOURLY'].some(item => item === value);
   if (key === 'need.schedule_kind') return ['FIXED_WINDOW', 'FLEXIBLE', 'REMOTE_ANYTIME', 'TODAY_FLEXIBLE', 'TOMORROW_FLEXIBLE', 'WEEK_FLEXIBLE'].some(item => item === value);
   const max = key === 'need.title' ? 140 : key === 'need.category' ? 120 : key === 'need.exact_address' ? 1000 : key === 'need.access_notes' ? 2000 : 6000;
   return boundedText(value, max);

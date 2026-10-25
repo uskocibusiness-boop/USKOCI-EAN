@@ -25,9 +25,9 @@ export default function Zadaci() {
   const { user, accountRevision } = useSesija();
   const proofParams = useLocalSearchParams<{ p6Proof?: string | string[] }>();
   const proofParam = Array.isArray(proofParams.p6Proof) ? proofParams.p6Proof[0] : proofParams.p6Proof;
-  // The build's compile-time flag (never a URL parameter) selects the P6 server reader.
-  // A URL alone cannot open the proof reader: the compile-time proof flag + exact DEV package are both required.
-  return selectDiscoveryReader({ publicationHandoff: false, proofParam }) === 'P6'
+  const reader = selectDiscoveryReader({ publicationHandoff: false, proofParam });
+  console.warn('[ZADACI_READER_SELECTED]', reader, user?.id);
+  return reader === 'P6'
     ? <DiscoveryV1Route key={`p6:${user?.id ?? ''}:${accountRevision}`} />
     : <Discovery key={`${user?.id ?? ''}:${accountRevision}`} />;
 }
@@ -81,9 +81,13 @@ function Discovery() {
   }, [trace]));
   const load = useCallback(async (signal: AbortSignal) => {
     let timer: ReturnType<typeof setTimeout> | undefined;
-    try { return await Promise.race([source.otvorenePrilike({ signal }), new Promise<never>((_, reject) => {
-      timer = setTimeout(() => reject(new Error('MARKETPLACE_READ_TIMEOUT')), 15_000);
-    })]);
+    try {
+      return await Promise.race([source.otvorenePrilike({ signal }), new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('MARKETPLACE_READ_TIMEOUT')), 15_000);
+      })]);
+    } catch (err: any) {
+      console.error('[ZADACI_LOAD_ERROR]', err?.message, err?.stack);
+      throw err;
     } finally { if (timer) clearTimeout(timer); }
   }, [source]);
   const resource = useFocusedResource(load, { coalesce: true });
@@ -125,6 +129,7 @@ function Discovery() {
   // Looking for work, seeing my own tasks and publishing a new one are three things one account
   // does; none of them switches the app into another mode first (owner decision 1, 2026-09-19).
   return <DiscoveryPresentation items={items} loading={resource.loading} refreshing={resource.refreshing || relations.refreshing} error={!!resource.error}
+      errorMessage={resource.error ? ((resource.error as any)?.message || String(resource.error)) : undefined}
       initialWorkArea={workArea.target} onInitialWorkAreaHandled={workArea.handled}
       scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view} relations={relations.data ?? undefined} relationsPending={relationsPending}
       relationsError={relations.error}

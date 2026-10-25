@@ -101,6 +101,8 @@ function mapNeed(raw: any): WithEnding<PotrebaProjekcija> {
     // rpc_read_task already includes updated_at for the owner. Keep it typed and
     // validated so Home can avoid promoting an old draft over current actions.
     ...(timestamp(raw.updated_at) ? { azurirano: raw.updated_at } : {}),
+    ...(timestamp(raw.published_at) ? { objavljeno: raw.published_at } : {}),
+    brojFotografija: Array.isArray(raw.public_photo_paths) ? raw.public_photo_paths.length : 0,
     revizija: Number(raw.revision),
     naslov: raw.title ?? '',
     opis: raw.description ?? '',
@@ -133,7 +135,7 @@ function mapNeed(raw: any): WithEnding<PotrebaProjekcija> {
     brojPrijava,
     brojPrijavaZaIzbor,
     rezimCene: mode,
-    osnovaCene: raw.price_basis === 'TOTAL' || raw.price_basis === 'PER_PERSON' ? raw.price_basis : null,
+    osnovaCene: raw.price_basis === 'TOTAL' || raw.price_basis === 'PER_PERSON' || raw.price_basis === 'HOURLY' ? raw.price_basis : null,
     ponudjenaCena:
       cena === null || cena === undefined
         ? undefined

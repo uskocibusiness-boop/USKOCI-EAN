@@ -26,7 +26,9 @@ export function iznos(value: number): string {
  */
 export function novac(value: number, valuta = 'RSD'): string {
   const grouped = iznos(value);
-  return grouped ? `${grouped} ${valuta}` : '';
+  if (!grouped) return '';
+  if (valuta === 'EUR' || valuta === '€') return `${grouped} €`;
+  return `${grouped} ${valuta}`;
 }
 
 /** An agreed amount that was never saved, said in words wherever an amount would stand; never "0 RSD". */
