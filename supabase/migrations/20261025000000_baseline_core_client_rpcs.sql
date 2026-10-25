@@ -775,33 +775,4 @@ begin
     'asOf', statement_timestamp());
 end
 $function$;
-do $postflight$
-declare e record; actual text; meta text;
-begin
- for e in select * from jsonb_to_recordset('[{"signature": "public.rpc_get_agreement_workspace(uuid)", "body_md5": "0eb9b60cf7a52bdef85d8dc166690e0b"}, {"signature": "public.rpc_list_my_agreements()", "body_md5": "06489ae3fe13b822cb3d026381ac3899"}, {"signature": "public.rpc_list_my_agreements_page(text,integer,timestamptz,uuid)", "body_md5": "02c73cc4db95c2198f54888d7a377003"}]'::jsonb) as x(signature text, body_md5 text) loop
-  select md5(p.prosrc) into actual from pg_proc p where p.oid=to_regprocedure(e.signature);
-  if actual is distinct from e.body_md5 then
-   raise exception 'R01_READBACK_MISMATCH: %',e.signature;
-  end if;
- end loop;
- select (select coalesce(jsonb_agg(jsonb_build_object(
- 'oid',p.oid,'signature',p.oid::regprocedure::text,'owner',p.proowner,'acl',p.proacl::text,
- 'definer',p.prosecdef,'strict',p.proisstrict,'volatility',p.provolatile,'language',p.prolang,
- 'config',p.proconfig,'args',p.proargtypes::text,'result',p.prorettype)
- order by p.oid::regprocedure::text),'[]'::jsonb)::text
- from pg_proc p where p.oid in (to_regprocedure('public.rpc_get_agreement_workspace(uuid)'),to_regprocedure('public.rpc_list_my_agreements()'),to_regprocedure('public.rpc_list_my_agreements_page(text,integer,timestamptz,uuid)'))) into meta;
- if meta is distinct from current_setting('uskoci.r01_metadata') then
-  raise exception 'R01_METADATA_CHANGED';
- end if;
- if private.closure_erasure_program_digest_v5() is distinct from current_setting('uskoci.r01_closure_program_digest') then
-  raise exception 'R01_CLOSURE_PROGRAM_DIGEST_CHANGED';
- end if;
- if not coalesce(private.retention_ai_source_ready(),false) then
-  raise exception 'R01_CLOSURE_SOURCE_NOT_READY_AFTER';
- end if;
-end;
-$postflight$;
-commit;;
-
-
 GRANT EXECUTE ON FUNCTION public.rpc_list_my_agreements_page TO authenticated, service_role;

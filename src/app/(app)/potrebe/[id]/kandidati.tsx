@@ -283,6 +283,12 @@ export default function Kandidati() {
     error={editor.error ?? (pending && !data.receipt && !editor.uncertain ? 'Prijave su osvežene. Ako izbor nije sačuvan, izaberi prijavu ponovo.'
       : session.viewed.get(candidate.prijavaId)?.state === 'UNCONFIRMED'
         ? 'Ponuda je otvorena, ali nismo zabeležili da je pogledana. Zatvori je i otvori ponovo.' : null)}
+    chooseNext={() => {
+      if (!current() || editor.busy) return;
+      session.pending = null;
+      setOpened(null);
+      void editor.refresh();
+    }}
     confirmed={!!data.receipt} openAgreement={() => {
       if (!current() || !data.receipt || session.navigated) return;
       session.navigated = true; router.replace({ pathname: '/dogovor/[id]', params: { id: data.receipt.dogovorId } });

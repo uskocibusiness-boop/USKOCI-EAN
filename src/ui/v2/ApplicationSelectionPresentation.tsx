@@ -337,8 +337,11 @@ const CHOOSE_LABEL = 'Izaberi osobu';
  * Closing the sheet is the screen's Back: it returns to the list, or, once a choice was made, leaves as Back always did.
  * Nothing closes it while the choice runs.
  */
-export function CandidateSelectionPresentation({ need, candidate, back, publicProfile, publicTrust, choose, busy, pending, uncertain, refresh, error, confirmed, openAgreement, reset, readAgreement, openLinkedAgreement, publicPhoto, safety, photo, ownFace, themFace, viewed = false }: {
-  need: PotrebaProjekcija; candidate: KandidatProjekcija; back: () => void; publicProfile: () => Promise<JavniProfilProjekcija | null>;
+export function CandidateSelectionPresentation({ need, candidate, back, chooseNext, publicProfile, publicTrust, choose, busy, pending, uncertain, refresh, error, confirmed, openAgreement, reset, readAgreement, openLinkedAgreement, publicPhoto, safety, photo, ownFace, themFace, viewed = false }: {
+  need: PotrebaProjekcija; candidate: KandidatProjekcija; back: () => void;
+  /** In multi-worker tasks: return to the candidate list to select the next helper. */
+  chooseNext?: () => void;
+  publicProfile: () => Promise<JavniProfilProjekcija | null>;
   /** The server confirmed that this application was seen (it was opened on this phone): the chip says "Viđena" instead of "Poslata". */
   viewed?: boolean;
   /** The route's one choice. A returned promise keeps the confirmation busy until the command settles. */
@@ -414,14 +417,25 @@ export function CandidateSelectionPresentation({ need, candidate, back, publicPr
   // the sheet gives way to the moment, a whole screen with two faces, the task's title, the word, three rows and the one green way on, which
   // is this sheet's own `Otvori Dogovor` with every guard it had. Fresh only when the choice was confirmed while this sheet was open: reopened
   // on an outcome that was already confirmed (back from the profile's safety screen) it is the last frame at once, and nothing ticks.
-  if (confirmed) return <DogovorenoMoment fresh={!confirmedAtMount} onBack={back} action={primary}
-    // Both faces are handed in by the screen, from the sources the app already has (your own profile, the candidate's public portrait); without
-    // one, yours is the drawn person and theirs their letters, never letters that belong to nobody.
-    youFace={ownFace ?? <Avatar initials={null} size={72} />}
-    themFace={themFace ?? (publicPhoto ? publicPhoto(candidate.radnikProfilId, 72) : <Avatar initials={candidate.inicijali || null} size={72} />)}
-    // A candidate whose name the read could not give has no letters: the pair is just "vas dvoje", never "Ti i Ime nije dostupno".
-    people={candidate.inicijali ? `Ti i ${candidate.ime}` : 'Vas dvoje'} taskTitle={readableTitle(need.naslov)} term={term}
-    amount={value.kind === 'amount' ? `${value.amount} ${value.basis}` : UNPRICED} />;
+  if (confirmed) {
+    const remainingSlots = Math.max(0, (need.pokrivenost?.preostalo ?? 0) - (candidate?.pokrivaMesta ?? 1));
+    const secondaryAction = chooseNext && remainingSlots > 0 ? (
+      <V2Action
+        label={`Izaberi sledećeg pomoćnika (još ${remainingSlots} ${remainingSlots === 1 ? 'mesto' : 'mesta'})`}
+        kind="quiet"
+        onPress={chooseNext}
+      />
+    ) : undefined;
+    return <DogovorenoMoment fresh={!confirmedAtMount} onBack={back} action={primary}
+      secondaryAction={secondaryAction}
+      // Both faces are handed in by the screen, from the sources the app already has (your own profile, the candidate's public portrait); without
+      // one, yours is the drawn person and theirs their letters, never letters that belong to nobody.
+      youFace={ownFace ?? <Avatar initials={null} size={72} />}
+      themFace={themFace ?? (publicPhoto ? publicPhoto(candidate.radnikProfilId, 72) : <Avatar initials={candidate.inicijali || null} size={72} />)}
+      // A candidate whose name the read could not give has no letters: the pair is just "vas dvoje", never "Ti i Ime nije dostupno".
+      people={candidate.inicijali ? `Ti i ${candidate.ime}` : 'Vas dvoje'} taskTitle={readableTitle(need.naslov)} term={term}
+      amount={value.kind === 'amount' ? `${value.amount} ${value.basis}` : UNPRICED} />;
+  }
   // The person's name is the sheet's title (review r4 rk item 3): a real heading for a screen reader, and the sheet's own
   // visible × beside it, which a sighted person on iOS had no way to find before (only the handle, a tap outside and
   // Android Back closed it). The row under it keeps the picture and the rating, and opens the public profile.

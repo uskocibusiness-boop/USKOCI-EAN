@@ -991,10 +991,10 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     ? `Razumem ${barePriceProposed || barePriceWithoutFact ? 'iznos, ali valuta nije potvrđena' : 'da je iznos bio u evrima'}. Taj iznos nisam upisao kao novu cenu u dinarima. Ranije prikazan iznos u RSD može ostati u nacrtu; nemoj potvrditi objavu dok ne kažeš koji iznos u RSD želiš ili izabereš ponude.`
     : barePriceProposed || barePriceWithoutFact
       ? 'Razumem iznos, ali valuta nije potvrđena. Taj iznos nisam upisao kao cenu. Cena zadatka se trenutno čuva u dinarima. Koji iznos u RSD želiš da postaviš? Možeš i da tražiš ponude.'
-      : 'Razumem iznos u evrima. Taj iznos nisam upisao kao cenu u dinarima i neću sam da preračunavam. Koji iznos u RSD želiš da postaviš? Možeš i da tražiš ponude.';
+      : 'U aplikaciji se cene vode u dinarima (RSD). Možete li mi reći okvirnu cenu u dinarima, ili želite da ostavimo mogućnost da Vam majstori pošalju svoje ponude?';
   const offerMessage = euroPriceProposed || unsupportedEuroWithoutPriceFact
-    ? 'Razumem, tražiš ponude. Iznos u evrima nisam upisao kao cenu u dinarima.'
-    : 'Razumem, tražiš ponude. Nejasan iznos nisam upisao kao cenu u dinarima.';
+    ? 'Razumem, tražite ponude majstora. Iznos u evrima nisam upisao kao fiksnu cenu u dinarima.'
+    : 'Razumem, tražite ponude majstora. Nejasan iznos nisam upisao kao fiksnu cenu u dinarima.';
   const suspectAmountToken = proposedAmountToken ?? priceClauses.join(' ').match(/\d[\d.,]*/u)?.[0]
     ?.replace(/[^\d]/gu, '').split('').join('[\\s.,]*');
   const containsSuspectAmount = (text: string) => !!suspectAmountToken && new RegExp(
@@ -1178,6 +1178,14 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   }
   const facts = new Map(activeFacts.filter(f => f.status !== 'UNKNOWN').map(f => [f.fact_key, f.fact_value]));
   for (const proposal of proposals) facts.set(proposal.key, proposal.value);
+  if (!facts.has('need.task_country_code')) {
+    facts.set('need.task_country_code', 'RS');
+    proposals.push({ key: 'need.task_country_code', value: 'RS' });
+  }
+  if (!facts.has('need.people_needed')) {
+    facts.set('need.people_needed', 1);
+    proposals.push({ key: 'need.people_needed', value: 1 });
+  }
   const missing = [...new Set(['need.description', 'need.people_needed', 'need.price_mode',
     ...(facts.get('need.price_mode') === 'MY_PRICE' ? ['need.price_rsd', ...(Number(facts.get('need.people_needed')) > 1 ? ['need.price_basis'] : [])] : []),
     'need.schedule_kind', ...(facts.get('need.schedule_kind') === 'FIXED_WINDOW' ? ['need.starts_at'] : []),
@@ -1186,16 +1194,16 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     ...Object.entries(NEED_FACT_V2_DEFINITIONS).filter(([, definition]) => definition.requiredForDraft).map(([key]) => key)])]
     .filter(key => !facts.has(key) || key==='need.handoff'&&!decodeServiceHandoff(facts.get(key)));
   const questions: Record<string, string> = {
-    'need.description': 'Šta treba da se uradi?', 'need.people_needed': 'Koliko ljudi ti treba?',
-    'need.price_mode': 'Imaš li planiran budžet ili želiš da dobiješ ponude?', 'need.price_rsd': 'Koliki je budžet za ceo posao?',
-    'need.price_basis': 'Da li je taj budžet ukupan za ceo posao ili po osobi?', 'need.schedule_kind': 'Kada treba da se uradi?',
+    'need.description': 'Šta treba da se uradi?', 'need.people_needed': 'Koliko ljudi Vam je potrebno?',
+    'need.price_mode': 'Imate li planiran budžet ili želite da dobijete ponude majstora?', 'need.price_rsd': 'Koliki je okvirni budžet za ceo posao?',
+    'need.price_basis': 'Da li je taj budžet ukupan za ceo posao ili po osobi?', 'need.schedule_kind': 'Kada želite da se zadatak uradi?',
     'need.starts_at': 'Kog datuma i u koliko sati posao počinje?', 'need.ends_at': 'Kada se posao završava?',
     'need.task_country_code': 'U kojoj državi je zadatak?', 'need.task_geography': 'Gde treba da se uradi?',
-    'need.handoff': 'Kako preuzimaš rezultat — digitalno, slanjem u koju državu ili lično u kom gradu?',
+    'need.handoff': 'Kako preuzimate rezultat — digitalno, slanjem ili lično u kom gradu?',
   };
   const incompleteMessage = () => {
     const key = missing.find(key => questions[key]);
-    return key ? questions[key] : 'Pregled još nije dovršen. Možeš da dopuniš opis zadatka ili otvoriš pregled.';
+    return key ? questions[key] : 'Pregled još nije dovršen. Možete dopuniti opis zadatka ili otvoriti pregled.';
   };
   // A city-only stationary task is valid geography for categorisation, but not a
   // ready point on the map. This is a conversation gate, NOT a public address or

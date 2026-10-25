@@ -79,7 +79,7 @@ function Meeting({ still, label, you, them }: { still: boolean; label: string; y
   </View>;
 }
 
-export function DogovorenoMoment({ youFace, themFace, people, taskTitle, term, amount, action, fresh, onBack }: {
+export function DogovorenoMoment({ youFace, themFace, people, taskTitle, term, amount, action, secondaryAction, fresh, onBack }: {
   /** Your face and the chosen person's, 72 each: a photo, or the Avatar with their letters (a drawn person when there is neither). */
   youFace: ReactNode; themFace: ReactNode;
   /** "Ti i Milan Petrović": the first row, and what a screen reader calls the pair. */
@@ -90,6 +90,8 @@ export function DogovorenoMoment({ youFace, themFace, people, taskTitle, term, a
   term: string; amount: string;
   /** The one green way on: the sheet's `Otvori Dogovor`, with its guards. */
   action: ReactNode;
+  /** Secondary action for multi-worker tasks to select remaining helpers. */
+  secondaryAction?: ReactNode;
   /** The Dogovor was made while this screen was open: the faces meet and the tick plays. Otherwise the last frame, still. */
   fresh: boolean;
   /** Android Back. */
@@ -115,7 +117,10 @@ export function DogovorenoMoment({ youFace, themFace, people, taskTitle, term, a
             <FactRow art={art} value={value} size="detail" />
           </MomentRise>)}
       </View>
-      <MomentRise still={still} delay={ACTION_AT} style={s.action}>{action}</MomentRise>
+      <MomentRise still={still} delay={ACTION_AT} style={s.action}>
+        {action}
+        {secondaryAction ? <View style={s.secondaryAction}>{secondaryAction}</View> : null}
+      </MomentRise>
     </Screen>
   </Modal>;
 }
@@ -130,4 +135,5 @@ const s = StyleSheet.create({
   centred: { textAlign: 'center' },
   rows: { alignSelf: 'stretch', gap: sys.space.md, maxWidth: 320, width: '100%' },
   action: { alignSelf: 'center', maxWidth: 320, width: '100%' },
+  secondaryAction: { marginTop: sys.space.sm, width: '100%' },
 });

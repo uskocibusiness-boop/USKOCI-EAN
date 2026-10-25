@@ -564,6 +564,15 @@
         "raw_md5": "cd735a77dd655fdc6d9621788e52cb17",
         "raw_sha256": "9b1a212e8c480a7a7ff61e07cfbb478bb6409df1d92e2d7e44a18349bfff189d",
         "raw_bytes": 27767
+      },
+      {
+        "file": "20261025000000_baseline_core_client_rpcs.sql",
+        "version": "20261025000000",
+        "name": "baseline_core_client_rpcs",
+        "classification": "SOURCE_ONLY_LIVE_BINDING_UNPROVEN",
+        "raw_md5": "017369cd5189ee6ff2dbb6ebfd32363e",
+        "raw_sha256": "2bc1fe5b862547f1b600f5206bf13c49c7a4097dacfd2985f08503f974c941e1",
+        "raw_bytes": 53850
       }
     ],
     "last_extended_at_utc": "2026-10-21T10:45:54.025661+00:00"
@@ -3367,8 +3376,7 @@
     "reused": "Existing NEED_FACT_V2 geography and owner-confirmed location commands; forward after admitted regional authority.",
     "physical_predecessor_migration_count": 101,
     "replay_registration": "15th pending entry extends the unchanged historical87 replay suffix; physical pending count is1."
-  }
-,
+  },
   "pkg1a_readonly_reconciliation_20261022": {
     "classification": "READ_ONLY_DATED_SUPPLEMENT_NOT_MIGRATION",
     "observed_at_utc": "2026-10-22T03:55:07.706685Z",
