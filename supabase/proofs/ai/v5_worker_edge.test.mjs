@@ -545,13 +545,13 @@ test('completed/unknown claim replay cannot reserve or call the provider again',
 test('draft worker requires administrative city for activation without limiting remote work or asking an address',async()=>{
  const f=fixture(); await events(f);
  const instruction=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
- assert.match(instruction,/A NEW DRAFT needs one city even for REMOTE work/);
- assert.match(instruction,/if missing, ask one natural question for the city/);
+ assert.match(instruction,/rpc_complete_worker_profile requires a city for a NEW DRAFT, even for REMOTE work/);
+ assert.match(instruction,/if missing, ask ONE short natural question for the administrative city/);
  assert.match(instruction,/Administrative city does NOT restrict REMOTE matching/);
- assert.match(instruction,/Do not reopen missing city for an ACTIVE legacy profile/);
- assert.match(instruction,/never infer it from language, phone, service, work area or geolocation/);
+ assert.match(instruction,/Do not reopen the city interview only because an old profile lacks a city/);
+ assert.match(instruction,/never invent a city or infer it from language, phone, service, work area or geolocation/);
  assert.match(instruction,/Only explicit Sačuvaj profil in the review applies the changes/);
- assert.doesNotMatch(instruction,/Do not require a home city, address or GPS for a new worker/);
+ assert.match(instruction,/Never require a home city, address or GPS for a new worker/);
 });
 test('contextual worker clarification survives completion and stream without invented profile changes',async()=>{
  const output={assistantMessage:'Izvini, nije mi sasvim jasno na šta misliš. Možeš li to da kažeš drugim rečima?',safety:'CLARIFY',patch:{}};

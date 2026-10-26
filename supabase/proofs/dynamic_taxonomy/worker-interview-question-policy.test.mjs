@@ -17,7 +17,7 @@ test('shared Serbian voice and worker interview request ONE fact, not a fixed qu
  assert.match(interviewVoiceInstruction(),/Jedno korisno pitanje po poruci/);
  assert.match(prompt,/Ask at most ONE short question per reply/);
  assert.match(prompt,/Accept ALL independently clear facts in one patch/);
- assert.match(prompt,/Do not sound like a form/);
+ assert.match(prompt,/Never recap the whole profile, repeat answered questions or sound like a form/);
  assert.doesNotMatch(prompt,/Ask up to THREE short, related questions/);
 });
 test('questions see owned candidate and bounded saved history, without discarding unrelated facts',()=>{
@@ -55,7 +55,7 @@ test('ON_SITE territory and REMOTE mode retain shared execution authority',()=>{
 test('review/Save is required before activation and matching authority',()=>{
  assert.match(prompt,/Every proposed change is in the NACRT/);
  assert.match(prompt,/Only explicit Sačuvaj profil in the review applies the changes/);
- assert.match(prompt,/proactively suggest a single profile review/);
+ assert.match(prompt,/Proactively suggest a single profile review/);
  assert.match(prompt,/Do not say saved, activated, verified or all complete/);
  assert.match(handler,/rpc_complete_worker_ai_turn_service/);
  assert.doesNotMatch(handler,/rpc_taxonomy_bind_reviewed_worker_service/);
@@ -64,14 +64,13 @@ test('review/Save is required before activation and matching authority',()=>{
 test('first screen welcomes naturally and named sections describe offered skills',()=>{
  const route=readFileSync(new URL('../../../src/app/(app)/profil/razgovor.tsx',import.meta.url),'utf8');
  const facts=readFileSync(new URL('../../../src/ui/workerProfile/workerProfileFacts.ts',import.meta.url),'utf8');
- assert.match(route,/welcome=\{hasProfileContent\?'Ćao! Šta želiš da dopuniš\? 😊':'Ćao! Čime se baviš\? 😊'\}/);
+ assert.match(route,/welcome=\{hasProfileContent\?'Dobar dan! Šta želite da dopunite\? 🧡':'Dobar dan! Čime se bavite\? 🧡'\}/);
  const welcome=readFileSync(new URL('../../../src/ui/aiFirst/aiInterviewWelcome.ts',import.meta.url),'utf8');
  assert.match(route,/introMessage=\{data\.messages\.length===0 && !unread \? workerInterviewOpening\(hasProfileContent\) : undefined\}/);
- assert.match(welcome,/Drago mi je što si deo USKOČI zajednice/);
- assert.match(welcome,/Ako uključiš obaveštenja/);
- assert.match(welcome,/Za početak, koje vrste zadataka želiš da obavljaš/);
- assert.match(welcome,/na kraju sve pregledaš i potvrđuješ/);
- assert.match(welcome,/Izmene važe tek kada ih pregledaš i sačuvaš/);
+ assert.match(welcome,/Dobro došli u USKOČI zajednicu/);
+ assert.match(welcome,/Za početak, koje vrste poslova ili usluga želite da ponudite/);
+ assert.match(welcome,/na kraju sve mirno pregledate i potvrđujete/);
+ assert.match(welcome,/izmene važe tek kada ih pregledate i sačuvate/);
  assert.match(facts,/skills: 'Usluge koje nudiš'/);
  assert.match(facts,/key: 'skills', label: 'Usluge'/);
 });
@@ -79,8 +78,8 @@ test('new DRAFT city requirement matches activation while REMOTE remains nationw
  assert.match(prompt,/server activation rpc_complete_worker_profile requires a city for a NEW DRAFT/);
  assert.match(prompt,/ask ONE short natural question for the administrative city/);
  assert.match(prompt,/Administrative city does NOT restrict REMOTE matching/);
- assert.match(prompt,/do not reopen the city interview only because an old profile lacks a city/);
- assert.match(prompt,/Never invent a city or infer it from offered service/);
+ assert.match(prompt,/Do not reopen the city interview only because an old profile lacks a city/);
+ assert.match(prompt,/never invent a city or infer it from language, phone, service, work area or geolocation/);
  assert.match(prompt,/not a home street, house number, map pin, GPS point or work radius/);
 });
 test('activation progress requires actual stored administrative city and country',()=>{
@@ -88,5 +87,5 @@ test('activation progress requires actual stored administrative city and country
  assert.match(facts,/Activation needs a country and a city/);
  assert.match(facts,/place\.operatingCountryCode && place\.city\.trim\(\)\.length > 0/);
  assert.match(prompt,/If operating country is also unknown, ask only for the highest-priority missing fact per message/);
- assert.doesNotMatch(prompt,/Do not require a home city, address or GPS for a new worker/);
+ assert.match(prompt,/Never require a home city, address or GPS for a new worker/);
 });
