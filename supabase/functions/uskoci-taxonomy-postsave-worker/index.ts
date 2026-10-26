@@ -42,6 +42,10 @@ async function boundedJson(response:Response,signal:AbortSignal):Promise<unknown
   }
   body+=decoder.decode();
   try{return JSON.parse(body);}catch{throw new Unavailable(true);}
+ }catch{
+  // A failed body stream or invalid UTF-8 is an uncertain transport receipt,
+  // not a semantic rejection of the already signed review. Reuse its job key.
+  throw new Unavailable(true);
  }finally{void reader.cancel().catch(()=>undefined);}
 }
 let running=false;

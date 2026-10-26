@@ -168,7 +168,8 @@ export async function persistClarificationHint(rpc, hint) {
         p_ambiguity_prompt: hint.ambiguityPrompt,
         p_reason: reason,
       });
-      if (res?.ok === false || res?.data?.stored === false || res?.stored === false) return false;
+      const receipt = res?.ok === true ? res.data : res;
+      if (res?.ok === false || receipt?.stored !== true || receipt?.draftRevision !== draftRevision) return false;
     } catch {
       return false;
     }
@@ -177,22 +178,25 @@ export async function persistClarificationHint(rpc, hint) {
   return true;
 }
 
-/** Marks the question as asked: in this instance's memory at once, and in the database so another instance never repeats it. */
+/** Mark the exact revision locally only after its durable consume receipt is confirmed. */
 export async function persistConsumeClarificationHint(rpc, conversationId, draftRevision, service) {
   draftRevision = hintDraftRevision(draftRevision);
   if (!conversationId || draftRevision === null) return false;
-  consumeClarificationHint(conversationId, draftRevision, service);
   if (typeof rpc === 'function') {
     try {
-      await rpc('rpc_taxonomy_consume_turn_hint_revision_service', {
+      const res = await rpc('rpc_taxonomy_consume_turn_hint_revision_service', {
         p_conversation_id: conversationId,
         p_draft_revision: draftRevision,
         p_service: service ?? null,
       });
+      const receipt = res?.ok === true ? res.data : res;
+      if (res?.ok === false || receipt?.draftRevision !== draftRevision ||
+          !Number.isSafeInteger(receipt?.consumed) || receipt.consumed < 0) return false;
     } catch {
       return false;
     }
   }
+  consumeClarificationHint(conversationId, draftRevision, service);
   return true;
 }
 

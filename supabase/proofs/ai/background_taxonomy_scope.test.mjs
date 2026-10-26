@@ -35,7 +35,7 @@ for (const [label, reason] of [
     const rpc = async (name, args) => {
       calls.push({ name, args });
       // Mirrors only the verified length contract, not a database execution.
-      return { stored: Array.from(args.p_reason).length <= 300 };
+      return { stored: Array.from(args.p_reason).length <= 300, draftRevision: args.p_draft_revision };
     };
     const hint = { conversationId, draftRevision: 7, service: 'klima', mode: null,
       ambiguityPrompt: 'Koju vrstu rada na klimi tražite?', reason };
@@ -71,7 +71,7 @@ test('clarification reason normalization preserves SQL nullable reason semantics
   for (const reason of [null, '   ', '  Dovoljno kratko obrazloženje.  ']) {
     const conversationId = `nullable-reason-${String(reason)}`;
     let outgoing;
-    assert.equal(await persistClarificationHint(async (_name, args) => { outgoing = args; return { stored: true }; }, {
+    assert.equal(await persistClarificationHint(async (_name, args) => { outgoing = args; return { stored: true, draftRevision: args.p_draft_revision }; }, {
       conversationId, draftRevision: 0, service: 'klima', mode: null,
       ambiguityPrompt: 'Koju vrstu rada na klimi tražite?', reason,
     }), true);
