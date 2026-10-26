@@ -1,3 +1,0 @@
-# EX-04 native HONOR scripts (frozen evidence artefacts, 2026-10-01)
-
-These are the scripts the three owner windows ran (`ui.py` helpers, `ex04_boundary.py` window 1, `ex04_boundary2.py` window 2, `ex04_boundary3.py` window 3). They are evidence of HOW the numbers in ROUND_79 were produced, not reusable QA tooling: they hardcode the serial of the owner's phone, which the QA direction forbids for tooling (use `scripts/qa_device.py` for that). Rules they obey: taps, swipes, Back and reads only (window 1 also one `adb install -r`), a foreground guard before every input, a hard time budget, a stop when a call is in progress. The test APK they ran against is `9ef10b67...18ab` (page limit 2, candidates 1; a test instrument, never a product value).

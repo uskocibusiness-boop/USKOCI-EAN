@@ -79,6 +79,8 @@ export const motionTokens = {
   loop: LOOP,
   assistant: ASSISTANT,
   radarSweep: 2600,
+  /** Welcome artwork; these timings do not hold back intent selection. */
+  welcome: { entrance: 450, choicePulseHalf: 2000 },
   /** Rare decorative arrival; never delays a control or completion state. */
   arrive: { duration: 800, easing: [0.22, 0.8, 0.25, 1] as const },
 } as const;

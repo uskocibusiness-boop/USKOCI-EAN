@@ -1,3 +1,0 @@
-src/ui/location/LocationMapPreview.tsx(137,66): error TS2339: Property 'md' does not exist on type '{ readonly check: 6; readonly badge: 12; readonly chip: 12; readonly control: 12; readonly primary: 12; readonly cardCompact: 24; readonly card: 24; readonly sheet: 28; readonly pill: 999; }'.
-src/ui/location/LocationMapPreview.tsx(140,78): error TS2339: Property 'md' does not exist on type '{ readonly check: 6; readonly badge: 12; readonly chip: 12; readonly control: 12; readonly primary: 12; readonly cardCompact: 24; readonly card: 24; readonly sheet: 28; readonly pill: 999; }'.
-src/ui/location/LocationOverviewMap.tsx(157,29): error TS2551: Property 'absoluteFillObject' does not exist on type 'typeof StyleSheet'. Did you mean 'absoluteFill'?

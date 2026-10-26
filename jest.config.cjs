@@ -27,6 +27,8 @@ module.exports = {
   // Expo's disposable config copies contain package.json files; they are build
   // scratch, not modules or tests. Never let Haste index them as a second app.
   modulePathIgnorePatterns: ['<rootDir>/.expo/'],
+  // UI suites create many native stand-ins; recycle workers before memory piles up.
+  workerIdleMemoryLimit: '512MB',
   // One pure ESM contract is shared by the mobile client and Edge runtime.
   transform: {
     ...expoPreset.transform,

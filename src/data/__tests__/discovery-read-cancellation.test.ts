@@ -72,7 +72,7 @@ it('allows token refresh within the same account revision and preserves the raw 
   mockSession = { ...mockSession, sessionEpoch: 2 }; pending.resolve(page([item()], true));
   expect((await result).map(row => row.id)).toEqual([id(100), id(99)]);
   expect(mockRpc).toHaveBeenNthCalledWith(2, 'rpc_list_open_tasks_v3', {
-    p_limit: 200, p_before_at: '2026-09-18T10:00:00.123456Z', p_before_id: id(100),
+    p_bbox: null, p_filters: {}, p_limit: 200, p_before_at: '2026-09-18T10:00:00.123456Z', p_before_id: id(100),
   });
   expect(firstAbort).toHaveBeenCalledWith(abort.signal); expect(secondAbort).toHaveBeenCalledWith(abort.signal);
 });

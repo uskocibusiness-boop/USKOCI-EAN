@@ -34,41 +34,39 @@ type ModernMapPinProps = {
 
 export function ModernMapPin({ isDragging = false, disabled = false, slot }: ModernMapPinProps) {
   const isEnd = slot === 'end';
-  const pinTop = isEnd ? '#F57C00' : '#079C77';
-  const pinBase = isEnd ? '#D84315' : '#0E4D3C';
-  const pinStroke = isEnd ? '#BF360C' : '#063D2E';
+  const pin = isEnd ? sys.color.mapPin.end : sys.color.mapPin.start;
   const gradId = `uskociPin_${isEnd ? 'end' : 'start'}`;
 
   return (
     <View style={styles.modernPinRoot} pointerEvents="none">
       <View style={[styles.modernPinShadow, isDragging && styles.modernPinShadowDragging]}>
         <Svg width={28} height={10} viewBox="0 0 28 10">
-          <Ellipse cx={14} cy={5} rx={isDragging ? 6 : 10} ry={isDragging ? 2.2 : 3.5} fill="rgba(14, 45, 34, 0.28)" />
+          <Ellipse cx={14} cy={5} rx={isDragging ? 6 : 10} ry={isDragging ? 2.2 : 3.5} fill={sys.color.mapPin.shadow} />
         </Svg>
       </View>
       <View style={[styles.modernPinBody, isDragging && styles.modernPinBodyDragging]}>
         <Svg width={38} height={46} viewBox="0 0 38 46">
           <Defs>
             <LinearGradient id={gradId} x1="0%" y1="0%" x2="0%" y2="100%">
-              <Stop offset="0%" stopColor={pinTop} />
-              <Stop offset="100%" stopColor={pinBase} />
+              <Stop offset="0%" stopColor={pin.top} />
+              <Stop offset="100%" stopColor={pin.base} />
             </LinearGradient>
           </Defs>
           <Path
             d="M19 44 C19 44 4 28 4 18 C4 9.7 10.7 3 19 3 C27.3 3 34 9.7 34 18 C34 28 19 44 19 44 Z"
             fill={`url(#${gradId})`}
-            stroke={pinStroke}
+            stroke={pin.stroke}
             strokeWidth={1.5}
           />
           <Path
             d="M8 15 C8 10 11.5 6 17 6"
-            stroke="rgba(255, 255, 255, 0.45)"
+            stroke={sys.color.mapPin.shine}
             strokeWidth={1.4}
             strokeLinecap="round"
             fill="none"
           />
-          <Circle cx={19} cy={18} r={5.2} fill="#FFFFFF" />
-          <Circle cx={19} cy={18} r={2.2} fill={pinBase} />
+          <Circle cx={19} cy={18} r={5.2} fill={sys.color.surface} />
+          <Circle cx={19} cy={18} r={2.2} fill={pin.base} />
         </Svg>
       </View>
     </View>
@@ -103,10 +101,13 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
   // Initial context fits every real resolver candidate, without choosing any of them.
   // Keep it initial-only: ordinary rerenders must not undo the person's pan/zoom.
   const hintBounds = cameraHintBounds(props.cameraHint, coarse);
-  const detailZoom = coarse ? 15 : compact ? 15.5 : 15.2;
+  // A public approximate area must not invite street-level inspection.
+  // The editable coarse picker can still zoom in before rounding its proposal.
+  const detailZoom = area ? 10 : coarse ? 15 : compact ? 15.5 : 15.2;
+  const maximumZoom = area ? 13 : coarse ? 17 : 18;
   const singleHint = props.cameraHint?.length === 1 ? displayedPinPosition(props.cameraHint[0], coarse) : null;
   const requestedHintZoom = typeof props.cameraHintZoom === 'number' && Number.isFinite(props.cameraHintZoom)
-    ? Math.max(0, Math.min(coarse ? 17 : 18, props.cameraHintZoom)) : null;
+    ? Math.max(0, Math.min(maximumZoom, props.cameraHintZoom)) : null;
   const initial = useRef(pin ? { center: [pin.longitude, pin.latitude] as [number, number], zoom: detailZoom }
     : singleHint && requestedHintZoom !== null
       ? { center: [singleHint.longitude, singleHint.latitude] as [number, number], zoom: requestedHintZoom }
@@ -145,14 +146,14 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
     const center = Array.isArray(state?.center) && state.center.length === 2
       ? displayedPinPosition({ longitude: state.center[0], latitude: state.center[1] }) : null;
     idle.current = center && typeof state?.zoom === 'number' && Number.isFinite(state.zoom)
-      && state.zoom >= 0 && state.zoom <= (coarse ? 17 : 18) ? token : null;
+      && state.zoom >= 0 && state.zoom <= maximumZoom ? token : null;
     setIdleToken(idle.current);
     const centered = center && typeof state?.zoom === 'number' && Number.isFinite(state.zoom)
       && Math.abs(state.zoom - detailZoom) < 0.01
       && Math.abs(center.latitude - pin.latitude) < 0.00001 && Math.abs(center.longitude - pin.longitude) < 0.00001;
     setCenteredToken(centered ? token : null);
   };
-  const coordinateText = pin ? `Geografska širina ${(Math.round(pin.latitude * 1e6) / 1e6).toFixed(coarse ? 4 : 6)}; geografska dužina ${(Math.round(pin.longitude * 1e6) / 1e6).toFixed(coarse ? 4 : 6)}.` : null;
+  const coordinateText = pin ? `Geografska širina ${(Math.round(pin.latitude * 1e6) / 1e6).toFixed(coarse ? 2 : 6)}; geografska dužina ${(Math.round(pin.longitude * 1e6) / 1e6).toFixed(coarse ? 2 : 6)}.` : null;
   const choose = (lngLat: unknown) => {
     if (!owns() || load.current !== 'ready' || latest.current.props.disabled
       || !Array.isArray(lngLat) || lngLat.length !== 2) return;
@@ -241,7 +242,7 @@ function NativePinSession(props: ResolvedPinMapProps & { owns: () => boolean; re
         onRegionWillChange={() => { if (owns()) { idle.current = null; cancelDrag(); setIdleToken(null); setCenteredToken(null); } }}
         onRegionDidChange={event => observeCenter(event.nativeEvent)}
         onPress={event => { if (!drag.current) choose(event.nativeEvent.lngLat); }}>
-        <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={coarse ? 17 : 18} />
+        <Camera ref={camera} initialViewState={initial.current} minZoom={0} maxZoom={maximumZoom} />
         {pin && area ? <Marker id="location-area" lngLat={[pin.longitude, pin.latitude]} anchor="center">
           {/* The brand mark gives the task detail the same identity as Discovery's pins. The halo, rather than a
               sharp pin tip, continues to say that this public point is approximate. */}

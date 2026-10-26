@@ -1,0 +1,47 @@
+name: USKOCI clean branch checks
+
+on:
+  push:
+    branches: [feature/uskoci-cisto]
+  pull_request:
+    branches: [feature/uskoci-cisto]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uskoci-clean-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-and-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install exact dependencies and verify native patch
+        run: npm ci
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Mobile unit and contract tests
+        run: npm test -- --maxWorkers=2 --silent
+      - name: AI intake and taxonomy contracts
+        run: |
+          node --test --test-reporter=dot supabase/proofs/ai/ai_edge_context.test.mjs
+          node --test --test-reporter=dot \
+            supabase/proofs/ai/v5_ai_stream.test.mjs \
+            supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs \
+            supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs \
+            supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs
+      - name: Migration source integrity
+        run: python supabase/migrations/check_migration_integrity.py

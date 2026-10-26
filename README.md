@@ -1,29 +1,34 @@
-# USKOČI
+# USKOČI — aktivni izvorni kod
 
-Postojeća Expo / React Native aplikacija za objavljivanje zadataka, prijave i dogovore. Supabase je autoritet za poslovne podatke, dozvole i promene stanja.
+Ovaj folder prati GitHub granu `feature/uskoci-cisto` repozitorijuma
+`uskocibusiness-boop/USKOCI-EAN`. Aplikacija je Expo / React Native projekat;
+DEV backend je Supabase projekat `leqcwgzvjsxugfgzdmth`.
 
-## Nastavak rada
+## Šta je u folderu
 
-- **[Počni ovde — aktuelni radni prostor, kod, dokazi i istorija](docs/current/README_USKOCI_LIVE_MASTER_PLAN.md)**
-- [Pravila i autoritet](AGENTS.md)
-- [Aktuelni operativni plan](docs/current/USKOCI_OPERATIVNI_MASTER_PLAN_LIVE.html)
-- [Jedini registar statusa](docs/control/redovi.json)
-- [Aktuelni dizajnerski pravac](docs/implementation/OWNER_DESIGN_DIRECTION_20260922.md)
-- [Inventar nagomilavanja i redosled sređivanja, 18.10.2026.](docs/implementation/ui-ux-pass-20261002/CURRENT_BASELINE_CLEANUP_20261018.md)
+- `src/`, `assets/`, `modules/`, `plugins/`, `patches/`, `config/` i `vendor/`:
+  klijentski kod i resursi.
+- `supabase/functions/` i `supabase/migrations/`: Edge kod i kanonske SQL
+  migracije. Istorija primena na DEV-u nije isto što i broj lokalnih SQL fajlova.
+- `src/**/__tests__/`, `supabase/proofs/` i `supabase/candidates/`: postojeće
+  provere i kandidati. Kandidat SQL nije automatski primenjena migracija.
+- `scripts/`: provere ugovora builda, nativne zakrpe i resursa.
 
-Na inventaru 18.10.2026. aktivan je checkout `USKOCI-EAN`, grana `feature/unified-qa-master-20261017`. Pri nastavku proveri Git; prethodna `work/uskoci-ui-unification-20260924` i istorijski GitHub default nisu nalog za promenu grane. Datirani izveštaji ostaju dokaz svog izvora, ne sadašnjeg APK-a.
+`node_modules/`, `android/`, `.expo/`, lokalni `.env` i generisani resursi se ne
+prate u Git-u. Instalacija zavisnosti na novoj mašini treba da ih obnovi iz
+`package-lock.json`, `patches/` i sačuvanih ulaznih resursa.
 
-## Lokalni rad
+## Brze lokalne provere
 
-```sh
+```text
 npm ci
-npm start
+npx tsc --noEmit
+npm test -- --runInBand
+node --test supabase/proofs/ai/ai_edge_context.test.mjs
+python supabase/migrations/check_migration_integrity.py
 ```
 
-`npm ci` primenjuje odobrenu native zakrpu i sinhronizuje postojeće entry resurse. Reference, `patches/` i postinstall ulazi pripadaju aktivnom buildu; čuvaju se pri čišćenju. Android razvojni APK sastavlja postojeći workflow `.github/workflows/build-android-dev-apk.yml` sa izborom `phone` ili `emulator`.
-
-## Izdavanje
-
-DEV APK i javno izdanje imaju odvojene uslove. Store paket `rs.uskoci`, produkcioni backend, provider konfiguracija, pravni sadržaj i potpisani AAB prate postojeći plan i eksplicitnu odluku o objavi. Dokaz ranijeg APK-a ostaje vezan za taj izvor i obim.
-
-Expo template komanda `reset-project` uklonjena je iz npm skripti: ovo je postojeća aplikacija, a reset skripta premešta ili briše njen izvor. Istorijska datoteka ostaje sačuvana do zasebnog arhiviranja; ne koristi se u normalnom radu.
+Preview APK cilja DEV. Produkcioni build/OTA je namerno blokiran u
+`scripts/build-contract.cjs` dok se ne podesi i proveri zaseban produkcioni
+backend. Prolaz tipova i lokalnih testova sam po sebi ne potvrđuje instalaciju
+ili korisnički tok na telefonu.

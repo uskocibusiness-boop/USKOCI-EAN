@@ -1,3 +1,0 @@
-# Preserve the captured bytes certified by MANIFEST.json.
-*.log -text whitespace=cr-at-eol
-*.xml -text

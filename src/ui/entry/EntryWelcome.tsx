@@ -51,7 +51,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
     if (reducedMotion) return;
     Animated.timing(enterAnim, {
       toValue: 1,
-      duration: 450,
+      duration: sys.motion.welcome.entrance,
       useNativeDriver: true,
     }).start();
 
@@ -59,12 +59,12 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
       Animated.sequence([
         Animated.timing(pulseAnim, {
           toValue: 1.025,
-          duration: 2000,
+          duration: sys.motion.welcome.choicePulseHalf,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 2000,
+          duration: sys.motion.welcome.choicePulseHalf,
           useNativeDriver: true,
         }),
       ])

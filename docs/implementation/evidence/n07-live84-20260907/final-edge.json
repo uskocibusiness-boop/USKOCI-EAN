@@ -1,9 +1,0 @@
-{
-  "content": [
-    {
-      "type": "text",
-      "text": "{\"functions\":[{\"id\":\"e0e3181b-e87b-4b8f-9c90-abfc30ddf938\",\"slug\":\"uskoci-ai-interview\",\"name\":\"uskoci-ai-interview\",\"status\":\"ACTIVE\",\"version\":6,\"created_at\":1788261764727,\"updated_at\":1788704254880,\"verify_jwt\":true,\"import_map\":false,\"entrypoint_path\":\"file:///tmp/user_fn_leqcwgzvjsxugfgzdmth_e0e3181b-e87b-4b8f-9c90-abfc30ddf938_6/source/supabase/functions/uskoci-ai-interview/index.ts\",\"ezbr_sha256\":\"012507310cd74cf9e769021aea71f8cfdd4e483406edbff0ee35e0b527e98954\"}]}"
-    }
-  ],
-  "isError": false
-}

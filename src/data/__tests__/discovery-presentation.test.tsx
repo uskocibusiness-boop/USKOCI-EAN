@@ -2043,13 +2043,15 @@ describe('Pretraga i uslovi (Discovery V47)', () => {
   });
 });
 
-test('publication and refresh remain directly reachable from the list header without a map menu', async () => {
+test('the list keeps filters and refresh without restoring the floating publish action', async () => {
   await render();
   expect(press('Filteri')).toBeTruthy();
   expect(pressable('Još mogućnosti')).toHaveLength(0);
   expect(newTask).not.toHaveBeenCalled(); expect(profile).not.toHaveBeenCalled();
-  await tap('Objavi zadatak'); expect(newTask).toHaveBeenCalledTimes(1);
+  expect(pressable('Objavi zadatak')).toHaveLength(0);
+  await act(async () => tree.root.findByProps({ testID: 'list-count' }).props.onPress());
   await tap('Osveži zadatke'); expect(refresh).toHaveBeenCalledTimes(1);
+  expect(newTask).not.toHaveBeenCalled();
   expect(profile).not.toHaveBeenCalled();
 });
 

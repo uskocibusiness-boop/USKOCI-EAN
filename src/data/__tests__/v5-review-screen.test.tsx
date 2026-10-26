@@ -807,7 +807,7 @@ it.each([null, '2026-10-12T10:15:00.000Z'])('preserves the server application de
   expect(mockAccept.mock.calls[0][0].review.responseDeadline).toBe(deadline);
 });
 
-it('opens the separate application-deadline correction in the same AI conversation when enabled', async () => {
+it('shows the application deadline and returns to the same AI conversation for corrections', async () => {
   const previous = process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1;
   process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1 = 'true';
   try {
@@ -818,11 +818,12 @@ it('opens the separate application-deadline correction in the same AI conversati
     mockPrepare.mockResolvedValue(ok(signed));
     await render();
     expect(text()).toContain('Prijave do');
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Izmeni, Rok za prijave' }).props.onPress());
+    expect(commands('Izmeni, Rok za prijave')).toHaveLength(0);
+    await act(async () => action('Izmeni zadatak').onPress());
     const route = mockRouter.replace.mock.calls.at(-1)![0];
     expect(route.pathname).toBe('/nova');
     expect(takeAiCorrection(route.params.aiCorrection, { accountId: OWNER, accountRevision: 1 }, 'task', CONVERSATION)?.target)
-      .toBe('task.deadline');
+      .toBe('task.details');
     expect(mockCorrect).not.toHaveBeenCalled();
     expect(mockAccept).not.toHaveBeenCalled();
   } finally {

@@ -61,8 +61,9 @@ describe('money is written one way', () => {
     expect(iznos(18000)).toBe('18.000');
   });
 
-  it('keeps a currency it was given instead of relabelling it', () => {
-    expect(novac(1500, 'EUR')).toBe('1.500 EUR');
+  it('keeps a currency it was given while displaying euros by their symbol', () => {
+    expect(novac(1500, 'EUR')).toBe('1.500 €');
+    expect(novac(1500, 'USD')).toBe('1.500 USD');
   });
 
   it('says nothing rather than something wrong when the number is not one', () => {

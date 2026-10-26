@@ -1,6 +1,0 @@
-run=36721005694
-sha=56a84df09f09945fd2ebc1497a2155ac4eaef7bd
-journey=full
-apk_run=36702278038
-cbbb44157fe1428bdc102492873eb9e682174e604d8b23f2846677c7be4b98f7  /tmp/p6-native-apk/USKOCI-P6-NATIVE-x86_64.apk
-fatal_lines=5

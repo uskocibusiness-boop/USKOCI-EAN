@@ -1,6 +1,0 @@
-17:39:00 device <serial withheld> physical HONOR VKP-NX9 android 16 arm64-v8a (1264, 2728) app 1.0.0 35 dfd6130034be992c
-17:39:00 PASS INSTALLED_APK_IS_THE_BUILT_ARTIFACT {"installed": "dfd6130034be992cffb5314b845e14a78339d7b150d83c7dd3818918dbed5fc3", "expected": "dfd6130034be992cffb5314b845e14a78339d7b150d83c7dd3818918dbed5fc3"}
-17:39:49 map state: sheet (0, 2125, 1264, 2377) cards 0 list-count button True
-17:39:53 markers on screen 0 not yet tried 0
-17:39:53 FAIL MAP_HAS_A_TASK_BUCKET_TO_TIME {"tried": 0}
-17:39:53 RESULT FAIL

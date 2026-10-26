@@ -357,7 +357,7 @@ it.each([undefined, 'end'] as const)('keeps one review reachable while typing wi
   await act(async () => { mockKeyboard.keyboardDidShow(); });
   const thread = tree.root.findByProps({ testID: 'ai-conversation-thread' });
   expect(tree.root.findAllByProps({ testID: 'ai-pinned-card' })).toHaveLength(0);
-  expect(tree.root.findAllByProps({ testID: 'ai-end-card' })).toHaveLength(cardPlacement === 'end' ? 1 : 0);
+  expect(tree.root.findAllByProps({ testID: 'ai-end-card' })).toHaveLength(1);
   expect(tree.root.findAllByProps({ testID: 'review-target' })).toHaveLength(1);
   expect(thread.findByProps({ accessibilityLabel: 'USKOČI: U kom gradu radiš?' })).toBeDefined();
   await act(async () => { thread.findByProps({ testID: 'review-target' }).props.onTouchEnd(); });

@@ -76,7 +76,9 @@ function openTaskRow(item: Record<string, any>) {
     mode: item.priceMode, requester_price_rsd: item.requesterPriceRsd, price_basis: item.priceBasis,
     requester_profile_id: item.requesterProfileId, response_deadline: item.responseDeadline,
     remaining_search_closed_at: null,
-    description: typeof item.description === 'string' ? item.description : '',
+    // The list RPC does not authorize a description. Keep the safe fallback for
+    // downstream readers, but never promote an unexpected server field to public UI.
+    description: '',
     need_geography: item.publicTopology == null ? null : { public_topology: item.publicTopology },
     need_requirement_details: item.criticalConditions == null ? null : { critical_conditions: item.criticalConditions },
   };

@@ -134,6 +134,8 @@ it('draws the public approximate point as an area, not a pin, and speaks it once
   expect(frame().props).toMatchObject({ accessible: true, accessibilityRole: 'image',
     accessibilityLabel: 'Približno područje na mapi. Geografska širina 45.12; geografska dužina 19.65.' });
   expect(map().props).toMatchObject({ accessibilityLabel: 'Mapa približnog područja', importantForAccessibility: 'no-hide-descendants' });
+  expect(tree.root.findByType('NativeCamera' as React.ElementType).props.initialViewState.zoom).toBe(10);
+  expect(tree.root.findByType('NativeCamera' as React.ElementType).props.maxZoom).toBe(13);
   expect(JSON.stringify(tree.toJSON())).not.toContain('45.123456');
   expect(JSON.stringify(tree.toJSON())).not.toContain('19.654321');
   expect(text()).not.toContain('Dodirni mapu'); expect(text()).not.toContain('Geografska');
@@ -531,7 +533,8 @@ it('keeps coincident camera results at a nonzero extent and coarse hints at publ
   expect((bounds[0] + bounds[2]) / 2).toBeCloseTo(19.65, 8);
   expect((bounds[1] + bounds[3]) / 2).toBeCloseTo(45.12, 8);
   expect(bounds[2] - bounds[0]).toBeCloseTo(0.01, 8); expect(bounds[3] - bounds[1]).toBeCloseTo(0.01, 8);
-  expect(tree.root.findByType('NativeCamera' as React.ElementType).props.maxZoom).toBe(13);
+  // An editable coarse picker may zoom closer, while its emitted point remains rounded.
+  expect(tree.root.findByType('NativeCamera' as React.ElementType).props.maxZoom).toBe(17);
   expect(onChoose).not.toHaveBeenCalled();
 });
 

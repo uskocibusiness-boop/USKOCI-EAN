@@ -1,6 +1,0 @@
-{
-  "success": true,
-  "transport_is_error": false,
-  "live_alias": "20260907130151_clean_d03_message_retry",
-  "operation": "Already completed exact canonical DDL; documentation performs no apply."
-}

@@ -1,8 +1,0 @@
-17:54:37 device <serial withheld> physical HONOR VKP-NX9 android 16 arm64-v8a (1264, 2728) app 1.0.0 35 dfd6130034be992c
-17:54:37 PASS INSTALLED_APK_IS_THE_BUILT_ARTIFACT {"installed": "dfd6130034be992cffb5314b845e14a78339d7b150d83c7dd3818918dbed5fc3", "expected": "dfd6130034be992cffb5314b845e14a78339d7b150d83c7dd3818918dbed5fc3"}
-17:55:32 PASS LIST_SHOWS_CARDS_AND_A_COUNT {"cards": 5, "count": 7, "note": "identical labels collapse; the count line is the truth"}
-17:55:40 PASS SEARCH_PANEL_OPENS_WITH_A_TEXT_FIELD {"openedS": 3.38}
-17:55:53 PASS SEARCH_SUGGESTS_A_PLACE_WITH_A_COUNT {"suggestions": ["Detelinara, Novi Sad, 2 zadatka", "Svi zadaci, 7 zadataka", "Oblast sa mape, 3 zadatka"]}
-17:56:05 PASS SEARCH_COUNT_MATCHES_THE_SUGGESTION {"suggestion": "Detelinara, Novi Sad, 2 zadatka", "list": 2}
-17:56:12 FAIL SEARCH_RESTORED_TO_THE_STATE_BEFORE {"before": "Pretraži zadatke, Svi zadaci, Bilo kada · Dodaj uslove", "after": "Pretraži zadatke, Detelinara, Novi Sad, Bilo kada · Dodaj uslove", "countBefore": 7, "countAfter": 2}
-17:56:13 RESULT FAIL

@@ -603,8 +603,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     title: single('need.title'), value: grouped('value'), place: {}, time: grouped('time'),
     people: single('need.people_needed'), description: single('need.description'),
     map: {},
-    deadline: process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1 === 'true' && !command && !quietEdit
-      ? { pencil: { label: 'Izmeni, Rok za prijave', onPress: () => editInConversation('task.deadline') } } : {},
+    deadline: {},
     requirements: need ? Object.fromEntries(needRequirementRows(need).flatMap(row => REQUIREMENT_FACT[row.label]
       ? [[row.label, single(REQUIREMENT_FACT[row.label])] as const] : [])) : {},
   };

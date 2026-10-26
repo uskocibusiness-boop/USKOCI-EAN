@@ -61,10 +61,10 @@ describe('W03 authoritative discovery read, through the bounded server reader', 
     publicProfile.mockResolvedValue(null);
     const result = await supabaseIzvor.otvorenePrilike();
     expect(result.map(row => row.id)).toEqual([NEED1, NEED2, NEED3]);
-    expect(mockRpc).toHaveBeenNthCalledWith(1, 'rpc_list_open_tasks_v3', { p_limit: 200, p_before_at: null, p_before_id: null });
+    expect(mockRpc).toHaveBeenNthCalledWith(1, 'rpc_list_open_tasks_v3', { p_bbox: null, p_filters: {}, p_limit: 200, p_before_at: null, p_before_id: null });
     // The cursor is the last row of the page it just read, so the next page starts strictly after it.
     expect(mockRpc).toHaveBeenNthCalledWith(2, 'rpc_list_open_tasks_v3',
-      { p_limit: 200, p_before_at: '2026-09-18T09:00:00Z', p_before_id: NEED2 });
+      { p_bbox: null, p_filters: {}, p_limit: 200, p_before_at: '2026-09-18T09:00:00Z', p_before_id: NEED2 });
   });
 
   it('refuses rather than silently truncating a list that never ends', async () => {

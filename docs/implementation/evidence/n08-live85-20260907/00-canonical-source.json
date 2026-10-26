@@ -1,7 +1,0 @@
-{
-  "canonical_sha": "06d8ce1a14c87ca2237d94aa5a60cd7230899ff6",
-  "file": "supabase/migrations/20260907100000_clean_n08_notification_preferences.sql",
-  "bytes": 13177,
-  "md5": "349e81a12760af65dc4d5d98a7677333",
-  "sha256": "f1829f054b79e5c2f8cba529711185a530949d371b9de552af6997ebabe0ec16"
-}

@@ -1,9 +1,0 @@
-PASS src/data/__tests__/task-detail-screen.test.tsx (14.763 s)
-PASS src/ui/location/__tests__/LocationMapPreview.test.tsx
-
-Test Suites: 2 passed, 2 total
-Tests:       37 passed, 37 total
-Snapshots:   0 total
-Time:        16.967 s
-Ran all test suites within paths "src/ui/location/__tests__/LocationMapPreview.test.tsx", "src/data/__tests__/task-detail-screen.test.tsx".
-Test results written to: docs\implementation\product-v1-closure-20260926\finalization-20260927\ROUND_08_FINAL_JEST.json

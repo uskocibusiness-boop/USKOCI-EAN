@@ -63,6 +63,13 @@ export const colorTokens = {
     greenEdge: '#226B52',
     orangeEdge: '#E57917',
     orangeHalo: '#FFD2A8',
+    /** Branded map marker gradients; the destination stays warm, the start green. */
+    mapPin: {
+      start: { top: '#079C77', base: '#0E4D3C', stroke: '#063D2E' },
+      end: { top: '#F57C00', base: '#D84315', stroke: '#BF360C' },
+      shadow: '#0E2D2247',
+      shine: '#FFFFFF73',
+    },
     /** A fact beside its icon on a card (where, when): a step darker than muted, so a scanned list reads. */
     fact: '#404040',
     /** A count that asks for attention, on white: few places left. */

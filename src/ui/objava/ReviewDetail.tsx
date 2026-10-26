@@ -18,7 +18,7 @@ import { Surface } from '../system/Surface';
 import { sys } from '../system/tokens';
 import { publisherRatingLine, publisherTrust, TaskDecisionTitle, TaskDecisionValue } from '../v2/detail/TaskDecision';
 import { placesText, taskPlace } from '../v2/TaskFace';
-import { EditPencil, PencilOverPhoto, type PartPencil } from './EditPencil';
+import { PencilOverPhoto, type PartPencil } from './EditPencil';
 import { deadlineWords, type AddressFrame } from './reviewFacts';
 
 /**
@@ -212,16 +212,18 @@ export function ReviewGallery({ assetIds, pencil, picture }: { assetIds: readonl
   const photos = assetIds.map(assetId => ({ assetId }));
   const context = {};
   return <>
-    <View style={s.gallery} accessibilityElementsHidden={open} importantForAccessibility={open ? 'no-hide-descendants' : 'auto'}>
-      {picture ? <View style={s.standIn}>{picture(index)}</View>
-        : <PhotoPages context={context} photos={photos} index={index} onIndex={setIndex} onOpen={page => { setIndex(page); setOpen(true); }}
-          pending={<FactArt kind="photo" size={48} />} />}
-      {assetIds.length > 1 ? <View pointerEvents="none" style={s.overlay}>
-        <View style={s.counter}>
-          <T variant="meta" accessibilityLabel={`Fotografija ${index + 1} od ${assetIds.length}`}>{`${index + 1} / ${assetIds.length}`}</T>
-        </View>
-      </View> : null}
-    </View>
+    <PencilOverPhoto pencil={open ? undefined : pencil}>
+      <View style={s.gallery} accessibilityElementsHidden={open} importantForAccessibility={open ? 'no-hide-descendants' : 'auto'}>
+        {picture ? <View style={s.standIn}>{picture(index)}</View>
+          : <PhotoPages context={context} photos={photos} index={index} onIndex={setIndex} onOpen={page => { setIndex(page); setOpen(true); }}
+            pending={<FactArt kind="photo" size={48} />} />}
+        {assetIds.length > 1 ? <View pointerEvents="none" style={s.overlay}>
+          <View style={s.counter}>
+            <T variant="meta" accessibilityLabel={`Fotografija ${index + 1} od ${assetIds.length}`}>{`${index + 1} / ${assetIds.length}`}</T>
+          </View>
+        </View> : null}
+      </View>
+    </PencilOverPhoto>
     {open && !picture ? <PhotoViewer context={context} photos={photos} index={index} onIndex={setIndex} onClose={() => setOpen(false)} /> : null}
   </>;
 }

@@ -1,9 +1,0 @@
-{
-  "run": "34150043928",
-  "head": "50d67149adf286adcba9e813a30f92fccc8168a7",
-  "conclusion": "failure",
-  "artifact_id": 10029703587,
-  "zip_sha256": "5fb36d7888394ffeeae736ab669f0f13c7c08f3da3158aa307e551054778a4fb",
-  "png_xml_pairs": 38,
-  "w04_w05_pairs": 10
-}

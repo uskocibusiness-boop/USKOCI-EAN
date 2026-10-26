@@ -75,6 +75,9 @@ describe('the variable reaches no release profile and is read in one file only',
       .flatMap(entry => (entry.isDirectory() ? everyFile(`${dir}/${entry.name}`) : [`${dir}/${entry.name}`]));
     const dev = '.github/workflows/build-android-dev-apk.yml';
     for (const file of everyFile('.github').filter(item => item !== dev)) expect(`${file}: ${read(file).includes(NAME)}`).toBe(`${file}: false`);
+    // The clean branch has no APK workflow. Absence is the safest DEV default;
+    // any future workflow must still use the approved value only.
+    if (!exists(dev)) return;
     const text = read(dev);
     const hits = text.split('\n').filter(line => line.includes(NAME) && !line.trim().startsWith('#'));
     expect(hits.length).toBeLessThanOrEqual(1);
