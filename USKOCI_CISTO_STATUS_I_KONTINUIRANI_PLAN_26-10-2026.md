@@ -6,14 +6,18 @@ Ovaj dokument je operativni status posle rada na ČISTO grani. Priloženi forenz
 
 ## Kratak zaključak
 
-Temelj je sada sređen u četiri završene celine:
+Temelj je sada sređen u osam zatvorenih, dokazivih celina:
 
 1. radne oblasti radnika prolaze kroz signed worker pipeline;
 2. klasifikaciona pitanja imaju trajnu numeric revision zaštitu i stale fence;
 3. drugi Gemini se više ne poziva kada se klasifikaciono značenje nije promenilo;
-4. task i worker promptovi su skraćeni i usaglašeni na jedno kratko pitanje.
+4. task i worker promptovi su skraćeni i usaglašeni na jedno kratko pitanje;
+5. lokalna migraciona evidencija i stale CI očekivanje su usklađeni bez lažnog preimenovanja živog SQL-a;
+6. kratki worker prompt je dobio nazad samo funkcionalno neophodna safety pravila;
+7. pozadinski Gemini ima tačne telemetry oznake, pa se njegova obrada ne tumači kao čekanje glavnog razgovora;
+8. buduća objava bez kanonske kategorije ima lokalni, unapred pripremljen DB gate.
 
-Nije dirana produkcija. Nije diran ugovor za `HOURLY`, jer plan pravilno zahteva odluku kako se računa konačna prijava i Dogovor. Sledeći dokazni korak je pravi DEV E2E tok sa testnim nalozima, zatim satnica tek kada se potvrdi njen proizvodni ugovor.
+Nije dirana produkcija. Nije deployovan DEV. Nije diran ugovor za `HOURLY`, jer plan pravilno zahteva odluku kako se računa konačna prijava i Dogovor. Sledeći dokazni korak je pravi DEV E2E tok sa testnim nalozima, zatim satnica tek kada se potvrdi njen proizvodni ugovor.
 
 ## Šta je urađeno i dokazano
 
@@ -88,19 +92,59 @@ Urađeno:
 
 DEV funkcije posle ove celine: task v151, worker v104, obe ACTIVE. Task je redeployovan još jednom posle poslednje mikro-dopune, zato v151 jeste konačna DEV verzija za ovaj commit.
 
+### 5. Forenzički baseline, migraciona evidencija i CI očekivanje
+
+Commitovi: `0fff6e4c` i `db0ddae6`.
+
+- Stari welcome test je očekivao rečenicu uklonjenu namernim sažimanjem prompta; očekivanje je usklađeno sa sadašnjim UI tekstom.
+- Tri postojeće AI migracije su evidentirane kao `APPLIED_RECORDED_BYTES_DIFFER`: DEV ima srodne, ali drugačije imenovane i bajt-različite zabeležene SQL zapise. Nisu proglašene bezbednim za replay.
+- U `docs/ai-stabilization/` je dodat proverljiv presek: aktivni tokovi, runtime granice, agregatni DB dokazi i eksplicitna lista onoga što nije E2E dokazano.
+
+Dokaz: fokusirani welcome test 5/5; ceo paket 621 suite / 14.131 test; migracioni integrity test 15/15.
+
+### 6. Kratak worker prompt bez izgubljenih poslovnih pravila
+
+Commit: `8cacf889`.
+
+Sažimanje iz `c9ddc5d` je bilo previše agresivno: uklonilo je nekoliko stvarnih ugovora, a ne samo duplikate. Vraćena su kratka pravila za više jasnih činjenica u jednoj poruci, neizmišljanje usluga, privatnost grada/adrese, kontinuiran remote režim i istinit odgovor o Save/aktivaciji. Prompt nije vraćen u prethodni dugački oblik.
+
+Dokaz: worker edge i policy proof 127/127.
+
+### 7. Razdvojena latencija pozadinskog Geminija
+
+Commit: `8967ee21`.
+
+`NEED_BG_ARCHITECT` i `WORKER_BG_ARCHITECT` su bile aktivne putanje, ali telemetry ih je vodio kao `UNKNOWN`. Sada se pozadinskih približno 6–9 sekundi ne meša sa glavnim `NEED_COMPLETE`/`WORKER_COMPLETE` turnom. Ovo ne menja redosled poziva ni UI ponašanje.
+
+Dokaz: relevantni AI proof paketi 261/261.
+
+### 8. Gate za objavu bez kategorije — source-only, nije deployovan
+
+Commit: `278aec2a`.
+
+Read-only DEV provera je našla 8 objavljenih potreba sa `category_id` i 2 bez njega. Živa definicija `rpc_publish_need_canonical` i njen publication context nisu ni pominjali `category_id`, iako FK već postoji. Dodata je samo lokalna, append-only migracija `20261026214500_published_need_category_gate.sql`: `NOT VALID` constraint sprečava budući prelaz u `PUBLISHED` bez kategorije, a ne menja istorijske redove.
+
+Migracija je eksplicitno označena `SOURCE_ONLY_LIVE_BINDING_UNPROVEN`. Nije izvršena, nije deployovana i ne predstavlja odluku da se istorijska dva reda automatski poprave.
+
+Dokaz: novi regression test 1/1, migration integrity PASS (194 fajla), Python integrity test 15/15.
+
 ## Tačni push-evi
 
 Poslednji push je:
 
 ```text
-c9ddc5d5e9454a4badfce348d0a4fec901e67f35
-2026-10-26 16:21:21 +01:00
-Condense Gemini interview instructions
+278aec2aadbf8d3e7c97d0dd6ddea41f8089795b
+2026-10-26
+fix(taxonomy): gate publication on canonical category
 ```
 
 Prethodni push-evi ove kontinuirane serije:
 
 ```text
+db0ddae6  docs(ai): record verified DEV stabilization baseline
+8967ee21  fix(ai): label background classifier latency
+8cacf889  fix(ai): retain concise worker interview safety rules
+0fff6e4c  ci: reconcile AI migration provenance and welcome test
 c3b231f  16:12:55  Skip unchanged taxonomy classifications
 669df27  16:08:41  Fence taxonomy hints by durable revision
 44a2d98  16:02:34  Fix signed worker work areas pipeline
@@ -137,7 +181,7 @@ Nema masovnog brisanja. `legacy`, `shadow`, explorer i compatibility wrapperi os
 
 ### Celina 5 — DEV E2E latency i signed tok
 
-1. Proveriti dostupne DEV testne naloge i runtime zastavice bez ispisivanja tajni.
+1. Proveriti dostupne DEV testne naloge i runtime zastavice bez ispisivanja tajni. Za sada je samo potvrđeno da su funkcije ACTIVE; tajne nisu čitane.
 2. Izmeriti: claim/admission, prvi Gemini byte/TTFT, završetak glavnog Geminija, writer, SSE flush, background classifier i ukupni turn.
 3. Scenario worker: Novi Sad + 30 km; Novi Sad i Beograd; dodaj gletovanje bez gubitka krečenja; REMOTE bez terenskog područja.
 4. Scenario task: POINT_TO_POINT, REMOTE + handoff, fleksibilan period, EUR bez lažnog RSD, spreman zadatak bez opcionalnog pitanja.
@@ -170,7 +214,7 @@ Za svaku celinu radim isti krug:
 2. napišem mali, dokazivi patch;
 3. dodam ili osvežim test koji hvata konkretan bug;
 4. pokrenem ciljane testove i TypeScript;
-5. deployujem samo DEV;
+5. deployujem samo DEV kada vlasnik to izričito odobri;
 6. proverim ACTIVE verziju i, gde je moguće, live SQL stanje;
 7. commitujem i pushujem na `feature/uskoci-cisto`;
 8. dopunim ovaj status fajl novim commitom, rezultatima i sledećim korakom.
