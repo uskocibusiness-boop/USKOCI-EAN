@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildFullTreeTaxonomyProposals, consumeClarificationHint, fetchUnconsumedClarificationHint,
   getUnconsumedClarificationHint, hintDraftRevision, persistClarificationHint, storeClarificationHint,
-  taskTaxonomyMode, taskTaxonomyScope } from '../../functions/_shared/backgroundTaxonomyArchitect.mjs';
+  taskClassificationFingerprint, taskTaxonomyMode, taskTaxonomyScope, workerSkillsFingerprint } from '../../functions/_shared/backgroundTaxonomyArchitect.mjs';
 
 test('clarification RPC receives a bigint-compatible revision, never a turn UUID', async () => {
   const turnId = '22222222-2222-4222-8222-222222222222';
@@ -53,6 +53,22 @@ test('task taxonomy keeps known scope but never carries it to a different servic
   assert.equal(taskTaxonomyScope({ ...known, category: 'Selidba' }), '');
   assert.equal(taskTaxonomyScope({ ...known, category: 'Selidba', proposedDescription: 'Prenos ormana' }), 'Prenos ormana');
   assert.equal(taskTaxonomyScope({ priorCategory: null, category: 'Krečenje', priorDescription: known.priorDescription }), known.priorDescription);
+});
+
+test('classification fingerprints ignore formatting but detect meaning, mode and handoff changes',()=>{
+ const base={service:' Krečenje ',scopeSummary:'Krečenje dnevne  sobe',mode:'ON_SITE',handoff:null};
+ assert.equal(taskClassificationFingerprint(base),taskClassificationFingerprint({...base,service:'krečenje',scopeSummary:'  krečenje dnevne sobe '}));
+ assert.notEqual(taskClassificationFingerprint(base),taskClassificationFingerprint({...base,scopeSummary:'Gletovanje i krečenje'}));
+ assert.notEqual(taskClassificationFingerprint(base),taskClassificationFingerprint({...base,mode:'REMOTE',handoff:{required:false}}));
+ assert.notEqual(taskClassificationFingerprint({...base,mode:'REMOTE',handoff:{required:false}}),
+  taskClassificationFingerprint({...base,mode:'REMOTE',handoff:{required:true,shippingCountries:['RS']}}));
+ assert.equal(taskClassificationFingerprint({...base,mode:null}),null);
+});
+
+test('worker skill fingerprint treats the same full replacement as unchanged',()=>{
+ assert.equal(workerSkillsFingerprint(['Krečenje','Gletovanje']),workerSkillsFingerprint([' gletovanje ','krečenje','KREČENJE']));
+ assert.notEqual(workerSkillsFingerprint(['Krečenje']),workerSkillsFingerprint(['Krečenje','Gletovanje']));
+ assert.equal(workerSkillsFingerprint(null),null);
 });
 
 test('novel task classification receives bounded public scope and does not reuse a decision for a different scope', async () => {

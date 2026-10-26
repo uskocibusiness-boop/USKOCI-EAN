@@ -46,6 +46,7 @@ import {
   buildFullTreeTaxonomyProposals,
   taskTaxonomyMode,
   taskTaxonomyScope,
+  taskClassificationFingerprint,
   loadFullCatalogTree,
   runInBackground,
   persistClarificationHint,
@@ -1536,24 +1537,22 @@ Deno.serve(async (req: Request) => {
       let dualArchitectPromise: Promise<any> | null = null;
       if (isLiveDualGemini() && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
         const turnProposals = aiTurn.proposals ?? [];
-        const proposedKeys = new Set(turnProposals.map((p: any) => p.key));
-        const nonCoreKeys = [
-          'need.price_rsd', 'need.price_mode', 'need.price_basis',
-          'need.starts_at', 'need.ends_at', 'need.schedule_kind',
-          'need.exact_address', 'need.access_notes'
-        ];
-        const onlyNonCoreModified = proposedKeys.size > 0 && [...proposedKeys].every((k) => nonCoreKeys.includes(k));
+        const fact = (key: string) => activeFacts.find((f: any) => f.fact_key === key && f.status !== 'UNKNOWN')?.fact_value;
+        const effectiveFact = (key: string) => turnProposals.find((p: any) => p.key === key)?.value ?? fact(key);
+        const effCategory = effectiveFact('need.category');
+        const priorCategory = fact('need.category');
+        const priorDescription = fact('need.description');
+        const proposedDescription = turnProposals.find((p: any) => p.key === 'need.description')?.value;
+        const effGeo = effectiveFact('need.task_geography') as any;
+        const effHandoff = effectiveFact('need.handoff');
+        const priorFingerprint=taskClassificationFingerprint({service:priorCategory,scopeSummary:priorDescription,
+          mode:taskTaxonomyMode(fact('need.task_geography')),handoff:fact('need.handoff')});
+        const effectiveScope=taskTaxonomyScope({priorCategory,category:effCategory,priorDescription,proposedDescription});
+        const effectiveFingerprint=taskClassificationFingerprint({service:effCategory,scopeSummary:effectiveScope,
+          mode:taskTaxonomyMode(effGeo),handoff:effHandoff});
+        const classificationInputChanged=effectiveFingerprint!==null && effectiveFingerprint!==priorFingerprint;
 
-        if (!onlyNonCoreModified) {
-          const effectiveFact = (key: string) =>
-            aiTurn.proposals.find((p: any) => p.key === key)?.value ??
-            activeFacts.find((f: any) => f.fact_key === key && f.status !== 'UNKNOWN')?.fact_value;
-          const effCategory = effectiveFact('need.category');
-          const priorCategory = activeFacts.find((f: any) => f.fact_key === 'need.category' && f.status !== 'UNKNOWN')?.fact_value;
-          const priorDescription = activeFacts.find((f: any) => f.fact_key === 'need.description' && f.status !== 'UNKNOWN')?.fact_value;
-          const proposedDescription = turnProposals.find((p: any) => p.key === 'need.description')?.value;
-          const effGeo = effectiveFact('need.task_geography') as any;
-          const effHandoff = effectiveFact('need.handoff');
+        if (classificationInputChanged || Boolean(pendingClarificationHint)) {
           // A missing geography is not evidence of on-site execution. The
           // classifier runs when the conversation has a typed execution mode.
           const effMode = taskTaxonomyMode(effGeo);
@@ -1563,7 +1562,7 @@ Deno.serve(async (req: Request) => {
               geminiKey,
               geminiModel,
               items: [{ service: effCategory.trim(), mode: effMode, handoff: effHandoff }],
-              scopeSummary: taskTaxonomyScope({ priorCategory, category: effCategory, priorDescription, proposedDescription }),
+              scopeSummary: effectiveScope,
               conversationId,
               // Completion persists one USER and one ASSISTANT message.
               draftRevision: taskDraftRevision + 2,

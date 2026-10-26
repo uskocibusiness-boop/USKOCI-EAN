@@ -26,7 +26,7 @@ import { withClassificationFeedback } from '../_shared/classificationReply.mjs';
 import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction, preserveWorkerServiceModes, recoverWorkerExistingIdentity } from '../_shared/workerServiceModeContext.mjs';
 import { guardWorkerAreaOutput } from '../_shared/workerAreaAdmission.mjs';
 import { workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas } from '../_shared/workerAreaResolver.mjs';
-import { buildWorkerFullTreeTaxonomyProposals, loadFullCatalogTree, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint } from '../_shared/backgroundTaxonomyArchitect.mjs';
+import { buildWorkerFullTreeTaxonomyProposals, loadFullCatalogTree, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint, workerSkillsFingerprint } from '../_shared/backgroundTaxonomyArchitect.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const isLiveDualGemini = (): boolean =>
@@ -485,7 +485,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           // accepted. Otherwise even an invalid patch could speak to the person.
           key,body,signal:research!.signal,onText:()=>{},onUsage:value=>{usage.value=value;},timeoutMs:30000});
         if(abort.signal.aborted)throw new Error('WORKER_AI_CANCELLED');
-        const {output: preparedOutput,reviewHints: initialReviewHints,classificationInspection,preservedServices} = analyzeOutput(raw);
+        const {output: preparedOutput,reviewHints: initialReviewHints,classificationInspection,preservedServices,serviceModeChangesJson} = analyzeOutput(raw);
         let reviewHints = initialReviewHints;
         let output = preparedOutput;
         if (finishOnly(input.text) && ['ALLOW','CLARIFY'].includes(output.safety) && !dualGeminiActive) {
@@ -516,10 +516,12 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         const bgAbort = new AbortController();
         let dualWorkerArchitectPromise: Promise<any> | null = null;
         if (dualGeminiActive && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
-          const skillsModified = Array.isArray(output.patch.skills) || Boolean(pendingWorkerClarificationHint);
+          const skillsModified = Array.isArray(output.patch.skills) &&
+            workerSkillsFingerprint(output.patch.skills)!==workerSkillsFingerprint(context.candidate?.skills);
+          const serviceModesModified = typeof serviceModeChangesJson==='string' && serviceModeChangesJson.trim()!=='' && serviceModeChangesJson.trim()!=='[]';
           const effectiveSkills = output.patch.skills ?? context.candidate?.skills ?? [];
           const hasWorkAreas = Boolean((output.patch.workAreas ?? context.candidate?.workAreas)?.length || (output.patch.location ?? context.candidate?.location)?.city);
-          if (skillsModified && Array.isArray(effectiveSkills) && effectiveSkills.length > 0) {
+          if ((skillsModified || serviceModesModified || Boolean(pendingWorkerClarificationHint)) && Array.isArray(effectiveSkills) && effectiveSkills.length > 0) {
             dualWorkerArchitectPromise = measureAiPhase('WORKER_BG_ARCHITECT', () => buildWorkerFullTreeTaxonomyProposals({
               rpc: (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 5000),
               geminiKey: key,

@@ -34,6 +34,27 @@ export function taskTaxonomyScope({ priorCategory, category, priorDescription, p
   return typeof priorDescription === 'string' ? priorDescription : '';
 }
 
+function stableTaxonomyValue(value) {
+  if (Array.isArray(value)) return value.map(stableTaxonomyValue);
+  if (value && typeof value === 'object') return Object.fromEntries(Object.keys(value).sort()
+    .map((key) => [key, stableTaxonomyValue(value[key])]));
+  return value;
+}
+
+export function taskClassificationFingerprint({ service, scopeSummary, mode, handoff }) {
+  const normalizedService = normalizedClassificationIdentity(service);
+  if (!normalizedService || !['ON_SITE','REMOTE'].includes(mode)) return null;
+  const normalizedScope = typeof scopeSummary === 'string'
+    ? scopeSummary.normalize('NFKC').trim().replace(/\s+/gu,' ').toLocaleLowerCase('sr') : '';
+  const normalizedHandoff = mode === 'REMOTE' ? (decodeServiceHandoff(handoff) ?? null) : null;
+  return JSON.stringify(stableTaxonomyValue({ service: normalizedService, scope: normalizedScope, mode, handoff: normalizedHandoff }));
+}
+
+export function workerSkillsFingerprint(skills) {
+  if (!Array.isArray(skills)) return null;
+  return [...new Set(skills.map(normalizedClassificationIdentity).filter(Boolean))].sort().join('|');
+}
+
 export function storeClarificationHint(conversationId, draftRevision, hint) {
   if (!conversationId) return;
   draftRevision = hintDraftRevision(draftRevision);
