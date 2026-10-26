@@ -151,4 +151,3 @@ PGlite runs PostgreSQL semantics in a disposable in-memory fixture. Four exact l
 The proof deliberately passes while reproducing undesirable behavior. It must not be used as a green release signal. No schema, migration or historical applied file was modified to suppress the behavior.
 
 Before S11/S12 repair: finish the writer/caller/provenance gate, decide how display text carries stable reviewed service identity across direct profile edits, write red-to-green contract tests including explicit withdrawal/alias/unknown/retired/revision conflict, and only then prepare a small forward candidate change. DEV deployment and mutating E2E still require separate owner approval. The pending ledger recovery and complete matching transitive graph remain open in the wider MASTER plan.
-

@@ -102,4 +102,3 @@ UNION ALL SELECT 'binding',to_jsonb(c) FROM private.work_taxonomy_binding_contro
 UNION ALL SELECT 'outbox',to_jsonb(c) FROM private.work_taxonomy_review_outbox_control_v1 c
 UNION ALL SELECT 'pending',to_jsonb(c) FROM private.work_taxonomy_pending_control_v1 c
 UNION ALL SELECT 'strict_scope',to_jsonb(c) FROM private.taxonomy_match_scope_control_v1 c;
-

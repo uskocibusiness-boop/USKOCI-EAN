@@ -131,22 +131,22 @@
     },
     {
       "path": "docs/ai-stabilization/06_SQL_WRITER_MATRIX.csv",
-      "sha256": "ddfce917158d89bed972e690d6f6e59cc9f3bcd1de938c6c7b129a11eb5024c4",
-      "bytes": 33882,
+      "sha256": "8b87dbaca11bb3f4634050e45400fc0fa79f4e96a8ad29c9023052cf27d4e771",
+      "bytes": 33881,
       "status": "FULL",
       "sections": []
     },
     {
       "path": "docs/ai-stabilization/06_SQL_WRITER_READONLY.sql",
-      "sha256": "5a6f92b8ab52d3b3cb57aef2524b19585ef6dd797bc1e227ae29df1c3519b633",
-      "bytes": 6425,
+      "sha256": "87f48595616f6949848e93d78dce1cfc6992b96c3afcf1873591a1194f3bbecc",
+      "bytes": 6424,
       "status": "FULL",
       "sections": []
     },
     {
       "path": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md",
-      "sha256": "dd524a29d135217e3c2a385e7e21bd035e4bbf9b578a522aa9a7b7774b78317b",
-      "bytes": 15995,
+      "sha256": "b1a10194b3a087370cacd7746dd9f8402751880abd0b9760c33a339c631ef98c",
+      "bytes": 15994,
       "status": "FULL",
       "sections": []
     },
