@@ -23,7 +23,7 @@ test('need strips new fields before strict facts parser and owner-bound completi
 });
 test('need category is a single service label and taxonomy tree stays in shadow metadata',()=>{
  assert.match(need,/U need\.category upišite SAMO naziv konkretne usluge/);
- assert.match(need,/predložite ih samo u classificationShadowJson/);
+ assert.match(need,/bez nadkategorije\/putanje\/prefiksa/);
  assert.doesNotMatch(need,/možete navesti stablo u formatu Šira grupa/);
 });
 
@@ -81,7 +81,7 @@ const workerReviewUI=readFileSync(new URL('../../../src/ui/workerProfile/WorkerA
 test('worker shadow asks for COMPLETE current skills, never partial patch-only suggestions or invented delivery consent',()=>{
   for(const clause of ['compare EACH distinct entry in the resulting skills array',
     'Cover EVERY offered skill','never return only the skills newly mentioned',
-    'UNCONFIRMED rather than omitting it or guessing','within the interview limit of up to THREE related questions',
+    'UNCONFIRMED rather than omitting it or guessing','at most ONE necessary question per turn',
     'never owner consent']) assert.ok(sharedPrompt.includes(clause),clause);
   assert.match(sharedPrompt,/purpose==='WORKER_CAPABILITY'/);
   // The private shadow is advisory. It must never activate auto-notifications.

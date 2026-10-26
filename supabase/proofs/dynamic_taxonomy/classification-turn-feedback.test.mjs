@@ -127,7 +127,7 @@ test('worker partial coverage retains valid hints and bounds questions without d
   const unclear=Array.from({length:4},(_,index)=>plan({service:`Usluga broj ${index}`,categoryId:'',action:'ASK_CLARIFICATION'}));
   const {result,inspected}=review([plan(),...unclear],'WORKER_CAPABILITY',['3D printovanje',...unclear.map(p=>p.service)]);
   assert.equal(inspected.reviewProposals.length,1);assert.equal(result.state,'ASK_USER');assert.equal(result.canOfferReview,false);
-  assert.equal(result.questions.length,3);assert.equal(result.issues.length,4);
+  assert.equal(result.questions.length,1);assert.equal(result.issues.length,4);
 });
 
 test('preservation evidence is scoped to covered current services and never conceals global corruption or outage',()=>{
