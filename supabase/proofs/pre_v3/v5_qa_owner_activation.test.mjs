@@ -2,11 +2,11 @@
 // to the separately executed v5_qa_owner_activation_proof.mjs after146.
 import test from 'node:test';import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';import {createHash} from 'node:crypto';
-import {renderQaPolicyCandidate} from '../../../scripts/render-qa-policy-bundle.mjs';
+import {readQaPolicyArtifact,renderQaPolicyCandidate} from '../qa_policy_fixture.mjs';
 const read=path=>readFileSync(new URL(path,import.meta.url),'utf8').replaceAll('\r\n','\n');
 const source=read('../../migrations/20260913081242_clean_v5_qa_owner_product_activation.sql');
-const artifactBytes=readFileSync(new URL('../../../docs/implementation/v5-ai-first/PRESELECTION_QA_EXECUTABLE_POLICY.json',import.meta.url));
-const artifact=JSON.parse(artifactBytes),sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
+const {artifactBytes,artifact}=readQaPolicyArtifact();
+const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
 const embedded=text=>{const found=text.match(/a jsonb:='((?:[^']|'')*)'::jsonb;/);assert.ok(found);return JSON.parse(found[1].replaceAll("''","'"));};
 const proof=read('./v5_qa_owner_activation_proof.mjs');
 test('147 embeds the same approved five-rule artifact as the inactive candidate renderer, with its exact raw hash',()=>{

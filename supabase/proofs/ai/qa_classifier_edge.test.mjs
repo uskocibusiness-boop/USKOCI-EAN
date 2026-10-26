@@ -1,8 +1,9 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';import {readFileSync} from 'node:fs';
+import test from 'node:test';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';
 import {loadQaClassifierHandler} from './qa_classifier_edge_runtime.mjs';
+import {readQaPolicyArtifact} from '../qa_policy_fixture.mjs';
 const id=n=>`${String(n).padStart(8,'0')}-1111-4111-8111-111111111111`,A=id(1),N=id(2),K=id(3),C=id(4),ATTEMPT=id(5),Q=id(6);
 const sha=s=>createHash('sha256').update(s).digest('hex'),json=(v,status=200)=>new Response(JSON.stringify(v),{status,headers:{'Content-Type':'application/json'}});
-const policy=JSON.parse(readFileSync('docs/implementation/v5-ai-first/PRESELECTION_QA_EXECUTABLE_POLICY.json','utf8')).document;
+const policy=readQaPolicyArtifact().artifact.document;
 function fixture(config={}){
  const calls=[],reads=[],type=config.type??'ASK',input={type,needId:N,needRevision:1,questionId:type==='ASK'?null:Q,text:'Synthetic clarification',clientRequestId:K};
  const output=config.output??{outcome:'ALLOW',materiality:type==='ASK'?null:'NON_MATERIAL',ruleIds:['QA-SAFE-CLARIFICATION'],safeReasonCodes:['SAFE_PUBLIC_CLARIFICATION']};

@@ -2,8 +2,8 @@
 import {readFileSync,writeFileSync,existsSync} from 'node:fs';
 import {createHash} from 'node:crypto';
 import * as rt from '../pre_v3/closure_runtime.mjs';
-import {renderQaPolicyCandidate} from '../../../scripts/render-qa-policy-bundle.mjs';
 import {loadQaClassifierHandler} from '../ai/qa_classifier_edge_runtime.mjs';
+import {readQaPolicyArtifact,renderQaPolicyCandidate} from '../qa_policy_fixture.mjs';
 const {assert,sql,rows,q,ok,denied,randomUUID,service,env,lockedRace}=rt;
 assert.equal(env.RU5_DEVICE_SUPABASE_URL,'http://127.0.0.1:54321');
 assert.equal(env.DB_URL,'postgresql://postgres:postgres@127.0.0.1:54322/postgres');
@@ -40,7 +40,7 @@ const requesterProfile=sql("select id from public.app_profiles where account_id=
 assert.ok(requesterProfile);
 if(sql("select count(*) from private.publication_policy_bundles where policy_id='PRESELECTION_QA_V1' and jurisdiction='RS' and version=1")==='0')sql(renderQaPolicyCandidate());
 const bundle=sql("select id from private.publication_policy_bundles where policy_id='PRESELECTION_QA_V1' and jurisdiction='RS' and version=1");
-const expectedPolicy=JSON.parse(readFileSync('docs/implementation/v5-ai-first/PRESELECTION_QA_EXECUTABLE_POLICY.json','utf8')).document;
+const expectedPolicy=readQaPolicyArtifact().artifact.document;
 expectedPolicy.rules.sort((a,b)=>a.ruleId.localeCompare(b.ruleId));
 assert.deepEqual(JSON.parse(sql('select private.publication_policy_document('+q(bundle)+'::uuid)')),expectedPolicy);
 sql(`update private.publication_policy_bundles set is_reviewed=true,is_active=true,reviewed_at=clock_timestamp(),activated_at=clock_timestamp(),review_provenance=review_provenance||'{"disposable040Fixture":true}'::jsonb where id=${q(bundle)}::uuid`);

@@ -2,7 +2,7 @@
 // The policy activation and budget reset are labelled disposable fixtures.
 import {createHash} from 'node:crypto';
 import {assert,rows,sql,prove,pass,apply,login,need,actor,requester,anon,service,ok,denied,requesterId,rp,randomUUID,q,lockedRace,env} from './closure_runtime.mjs';
-import {renderQaPolicyCandidate} from '../../../scripts/render-qa-policy-bundle.mjs';
+import {renderQaPolicyCandidate} from '../qa_policy_fixture.mjs';
 import {loadQaClassifierHandler} from '../ai/qa_classifier_edge_runtime.mjs';
 import {createObservedQaRpc} from './observed_qa_rpc.mjs';
 const hash=s=>createHash('sha256').update(s.trim()).digest('hex');

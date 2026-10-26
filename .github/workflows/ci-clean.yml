@@ -37,11 +37,14 @@ jobs:
         run: npm test -- --maxWorkers=2 --silent
       - name: AI intake and taxonomy contracts
         run: |
-          node --test --test-reporter=dot supabase/proofs/ai/ai_edge_context.test.mjs
+          node --test --test-concurrency=2 --test-reporter=dot supabase/proofs/ai/*.test.mjs
           node --test --test-reporter=dot \
-            supabase/proofs/ai/v5_ai_stream.test.mjs \
+            supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs \
+            supabase/proofs/taxonomy/published_need_category_gate.test.mjs \
             supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs \
             supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs \
             supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs
       - name: Migration source integrity
-        run: python supabase/migrations/check_migration_integrity.py
+        run: |
+          python supabase/migrations/check_migration_integrity.py
+          python -m unittest discover -s supabase/migrations -p test_migration_integrity.py
