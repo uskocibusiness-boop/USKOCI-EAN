@@ -3406,7 +3406,7 @@
   "physical_suffix_reconciliation_20261026": {
     "observed_at_utc": "2026-10-26",
     "project": "leqcwgzvjsxugfgzdmth",
-    "scope": "Append-only, independently checked read-only reconciliation of three applied SQL migrations. Recorded ledger versions differ from GitHub physical filenames, and recorded statement bytes differ from canonical physical source bytes. Never replay because this classification is not semantic equivalence.",
+    "scope": "Append-only, independently checked read-only reconciliation of three applied SQL migrations plus one later source-only forward gate. Recorded ledger versions differ from GitHub physical filenames, and recorded statement bytes differ from canonical physical source bytes. Never replay an applied reconciliation entry because this classification is not semantic equivalence.",
     "evidence": "supabase/operations/dev-alpha/ledger/20261026_ai_contract_migrations.readonly.json",
     "entries": [
       {
@@ -3450,6 +3450,17 @@
         "raw_md5": "69a40c0d4a436a83bbe180336a5163fc",
         "raw_sha256": "2e8a3342ed3d625f398ebbda8d21e799dcdbb136b801337136b0aea68ded60e8",
         "raw_bytes": 7036
+      },
+      {
+        "file": "20261026214500_published_need_category_gate.sql",
+        "version": "20261026214500",
+        "name": "published_need_category_gate",
+        "classification": "SOURCE_ONLY_LIVE_BINDING_UNPROVEN",
+        "raw_md5": "65516605de75d78ada994680545657f4",
+        "raw_sha256": "6083ff11335e90cda3a59c4f01f621b1e1a4a64187b7d863bf82b96cc5397ada",
+        "raw_bytes": 1183,
+        "unit": "AI_STABILIZATION_PUBLICATION_CATEGORY_GATE",
+        "note": "Source-only forward gate from a 2026-10-26 read-only DEV finding. It is not applied or approved for deployment; NOT VALID preserves historical null-category rows for a separate repair decision."
       }
     ]
   }

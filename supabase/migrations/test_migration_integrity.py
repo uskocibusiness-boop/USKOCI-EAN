@@ -126,10 +126,13 @@ class Oct26ReconciliationTests(unittest.TestCase):
 
     def test_frozen_ledger_mapping_is_not_conflated_with_git_source_bytes(self):
         verified = check_physical_suffix(self.section, self.manifest, self.evidence)
-        self.assertEqual(len(verified), 3)
-        for row in self.section["entries"]:
+        self.assertEqual(len(verified), 4)
+        applied = [row for row in self.section["entries"] if row["classification"] == "APPLIED_RECORDED_BYTES_DIFFER"]
+        source_only = [row for row in self.section["entries"] if row["classification"] == "SOURCE_ONLY_LIVE_BINDING_UNPROVEN"]
+        self.assertEqual(len(applied), 3)
+        self.assertEqual(len(source_only), 1)
+        for row in applied:
             self.assertTrue(row["live_applied"])
-            self.assertEqual(row["classification"], "APPLIED_RECORDED_BYTES_DIFFER")
             self.assertNotEqual(row["version"], row["live_version"])
             self.assertNotEqual(row["raw_sha256"], row["live_recorded_sha256"])
 

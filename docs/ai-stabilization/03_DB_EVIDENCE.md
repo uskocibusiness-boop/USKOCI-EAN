@@ -16,6 +16,8 @@ DEV records current logical AI migrations under different historical version lab
 
 That classification means exactly this: a related DEV change is recorded, but local bytes must not be re-run, renamed, or treated as a proven semantic duplicate. Any future database repair must be a new append-only migration after a fresh function/table preimage. No migration was applied during this stabilization work.
 
+The new local-only forward migration `20261026214500_published_need_category_gate.sql` addresses the discovered publication gap with a `NOT VALID` constraint: every newly published Need must have the existing taxonomy foreign key, while historical rows are neither modified nor silently declared clean. It remains unapplied pending a dedicated DEV preimage/rehearsal and explicit deployment approval.
+
 ## Deferred measurements
 
 The pending-review view did not return within the bounded CLI collection window. It is recorded as **not collected**, not as zero or healthy. Investigate its query plan/definition separately before treating it as a runtime incident.
