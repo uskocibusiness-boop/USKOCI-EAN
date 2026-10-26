@@ -15,7 +15,8 @@ export function loadWorkerRecoveryHandler(options){
  const context=vm.createContext({Request,Response,Headers,URL,URLSearchParams,Intl,TextEncoder,TextDecoder,ReadableStream,AbortController,crypto:webcrypto,
   Date:options.Date??Date,setTimeout:options.setTimeout??setTimeout,clearTimeout:options.clearTimeout??clearTimeout,
   fetch:options.fetch,console:{error:(...args)=>{if(options.log)options.log(args);else assert.ok(args.every(x=>typeof x==='number'||/^[A-Z_]+$/.test(x)));},
-   info:(...args)=>{if(options.log)options.log(args);else assert.ok(isProviderUsageLog(args)||args.every(x=>typeof x==='number'||/^[A-Z_,]+$/.test(x)));}},
+   info:(...args)=>{if(options.log)options.log(args);else assert.ok(isProviderUsageLog(args)||args.every(x=>typeof x==='number'||/^[A-Z_,]+$/.test(x)));},
+   warn:(...args)=>{if(options.log)options.log(args);else assert.ok(args.every(x=>typeof x==='number'||/^[A-Z0-9_,]+$/.test(x)));}},
   Deno:{env:{get:options.env},serve:fn=>{assert.equal(handler,undefined);handler=fn;}}});
  function evaluate(file,require){
   const bytes=readFileSync(resolve(root,file));sourceHashes[file]=createHash('sha256').update(bytes).digest('hex');
@@ -61,6 +62,7 @@ export function loadWorkerRecoveryHandler(options){
  const areaResolver=evaluate('supabase/functions/_shared/workerAreaResolver.mjs',()=>assert.fail('UNDECLARED_AREA_IMPORT'));
  const backgroundArchitect=evaluate('supabase/functions/_shared/backgroundTaxonomyArchitect.mjs',name=>{
   if(name==='./serviceHandoff.mjs')return handoff;
+  if(name==='./workerServiceModeContext.mjs')return serviceModes;
   assert.equal(name,'./classificationEngine.mjs');return classification;
  });
  const imports={'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,'../../../src/contracts/aiAvailability.ts':availability,

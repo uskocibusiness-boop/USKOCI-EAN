@@ -18,7 +18,8 @@ export function loadOwnedIntakeHandler(options){
  const context=vm.createContext({Request,Response,Headers,URL,URLSearchParams,Intl,TextEncoder,TextDecoder,ReadableStream,AbortController,crypto:webcrypto,
   Date:options.Date??Date,setTimeout:options.setTimeout??setTimeout,clearTimeout:options.clearTimeout??clearTimeout,
   fetch:options.fetch,console:{error:(...args)=>{if(options.log)options.log(args);else assert.ok(args.every(x=>typeof x==='number'||/^[A-Z_]+$/.test(x)));},
-   info:(...args)=>{if(options.log)options.log(args);else assert.ok(isProviderUsageLog(args)||args.every(x=>typeof x==='number'||/^[A-Z_,]+$/.test(x)));}},
+   info:(...args)=>{if(options.log)options.log(args);else assert.ok(isProviderUsageLog(args)||args.every(x=>typeof x==='number'||/^[A-Z_,]+$/.test(x)));},
+   warn:(...args)=>{if(options.log)options.log(args);else assert.ok(args.every(x=>typeof x==='number'||/^[A-Z0-9_,]+$/.test(x)));}},
   Deno:{env:{get:options.env},serve:fn=>{assert.equal(handler,undefined);handler=fn;}}});
  function evaluate(file,require){
   const bytes=historical?historical.read(file):readFileSync(resolve(root,file));sourceHashes[file]=createHash('sha256').update(bytes).digest('hex');
@@ -60,8 +61,13 @@ export function loadOwnedIntakeHandler(options){
   assert.equal(name,'./aiTestBudget.ts');return budget;
  });
  const researchDeadline=historical?null:evaluate('supabase/functions/_shared/researchDeadline.ts',()=>assert.fail('UNDECLARED_DEADLINE_IMPORT'));
+ const serviceModes=historical?null:evaluate('supabase/functions/_shared/workerServiceModeContext.mjs',name=>{
+  if(name==='./serviceHandoff.mjs')return handoff;
+  assert.equal(name,'./classificationEngine.mjs');return classification;
+ });
  const backgroundArchitect=historical?null:evaluate('supabase/functions/_shared/backgroundTaxonomyArchitect.mjs',name=>{
   if(name==='./serviceHandoff.mjs')return handoff;
+  if(name==='./workerServiceModeContext.mjs')return serviceModes;
   assert.equal(name,'./classificationEngine.mjs');return classification;
  });
  const imports={'../../../src/contracts/needFactsV2.ts':shared,'../_shared/aiTestBudget.ts':budget,'../_shared/geminiTaskStream.ts':stream,

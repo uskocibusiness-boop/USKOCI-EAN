@@ -48,10 +48,18 @@ function fixture(config={}){
    if(url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'))return config.capture?.(body)??json({action:'HINT_CAPTURED',authority:'NONE'});
    assert.fail('UNEXPECTED_ROUTE');
  };
- const {handler}=loadOwnedIntakeHandler({fetch,env:name=>env[name],setTimeout:config.setTimeout});
+ const {handler}=loadOwnedIntakeHandler({fetch,env:name=>env[name],setTimeout:config.setTimeout,log:config.log});
  return {calls,message,invoke:()=>handler(new Request('https://edge.invalid',{method:'POST',headers:{Authorization:'Bearer SYNTHETIC',Accept:config.locationContext?'application/json':'text/event-stream','Content-Type':'application/json',...config.headers},body:JSON.stringify({conversationId:conversation,clientRequestId:key,text:config.text??'SYNTHETIC_USER_TEXT',...(config.locationContext?{mode:'locationReply',locationContext:config.locationContext}:{})})}))};
 }
 async function events(f){const response=await f.invoke();assert.match(response.headers.get('content-type'),/text\/event-stream/);return (await response.text()).trim().split('\n\n').map(e=>JSON.parse(e.slice(6)));}
+for(const failed of [false,true])test('need streaming provider has one count-only latency phase, failed='+failed,async()=>{
+ const logs=[],f=fixture({log:args=>logs.push(args),...(failed?{provider:()=>new Response('PRIVATE_PROVIDER_BODY',{status:503})}:{})});
+ const es=await events(f),phases=logs.filter(args=>args[0]==='AI_PHASE_MS'&&args[1]==='PROVIDER');
+ assert.equal(phases.length,1);assert.equal(phases[0].length,4);assert.equal(typeof phases[0][2],'number');assert.ok(phases[0][2]>=0);
+ assert.equal(phases[0][3],failed?'FAILED':'SUCCEEDED');
+ assert.equal(es.at(-1).kind,failed?'safe_error':'final');
+ assert.ok(!JSON.stringify(logs).includes('PRIVATE_PROVIDER_BODY'));assert.ok(!JSON.stringify(logs).includes('SYNTHETIC_USER_TEXT'));
+});
 for(const phase of ['PROPOSAL','UNRESOLVED'])test('review cannot skip the current '+phase+' map decision',async()=>{
  const locationContext={version:1,promptToken:id(31),reviewRevision:'a'.repeat(64),slot:'start',phase,
   question:'Da li je ovo polazište?',query:'PRIVATNO_MESTO',proposal:phase==='PROPOSAL'?{id:id(32),label:'PRIVATNA_ADRESA'}:null,alternatives:[]};

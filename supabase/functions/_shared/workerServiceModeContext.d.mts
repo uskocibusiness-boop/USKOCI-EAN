@@ -6,7 +6,10 @@ export type WorkerServiceModeContext = {
 };
 export function readWorkerServiceModeContext(context: Record<string, any>): WorkerServiceModeContext;
 export function workerServiceModeSchema(schema: Record<string, any>): Record<string, any>;
-export function workerServiceModeInstruction(context: WorkerServiceModeContext, includeContext?: boolean): string;
+export function workerServiceModeInstruction(context: WorkerServiceModeContext, includeContext?: boolean, includeClassification?: boolean): string;
+export type WorkerModeRequest = {service: string; modes: Array<'REMOTE' | 'ON_SITE'>; evidence: string; handoff?: ServiceHandoff};
+export function workerModeRequests(serviceModeChangesJson: unknown, context: {messages: Array<{role: string; body?: unknown}>},
+  offered: ReadonlyMap<string, unknown>): Map<string, WorkerModeRequest>;
 export function recoverWorkerExistingIdentity(input: {
   raw: Record<string, any>; inspection: any; context: Record<string, any>;
   modeContext: WorkerServiceModeContext; catalog: any;

@@ -23,7 +23,7 @@ import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruct
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
 import { withGeminiClassificationShadowSchema, inspectGeminiClassificationShadow, geminiClassificationShadowInstruction, workerFinishReviewMessage, classificationTurnFeedback } from '../_shared/classificationGeminiShadow.mjs';
 import { withClassificationFeedback } from '../_shared/classificationReply.mjs';
-import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction, preserveWorkerServiceModes, recoverWorkerExistingIdentity } from '../_shared/workerServiceModeContext.mjs';
+import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction, workerModeRequests, preserveWorkerServiceModes, recoverWorkerExistingIdentity } from '../_shared/workerServiceModeContext.mjs';
 import { guardWorkerAreaOutput } from '../_shared/workerAreaAdmission.mjs';
 import { workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas } from '../_shared/workerAreaResolver.mjs';
 import { buildWorkerFullTreeTaxonomyProposals, loadFullCatalogTree, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint, workerSkillsFingerprint } from '../_shared/backgroundTaxonomyArchitect.mjs';
@@ -201,7 +201,7 @@ Administrative profile city is separate from work territory. The server activati
 The phone already showed the introduction, so do not repeat it. Lead proactively toward review without field names or a magic finish phrase. Count requested facts, not question marks: at most ONE per reply. Resolve routing ambiguity before optional details. If asked why a city, radius or schedule is needed, answer first and retain independent corrections. Understand typing mistakes; clarify only the important unclear value.
 Working-area questions concern ON_SITE work only. Use patch.areaRequests for a COMPLETE replacement of the desired area list, max five, omitting it when unchanged. COUNTRY with countryCode RS, query empty and radiusKm null means Cela Srbija. CITY with canonical nominative query and radiusKm null means work in that named locality, without inventing a travel radius. RADIUS requires a canonical city query and explicitly stated 1–200 kilometres. Novi Sad i Beograd means two CITY entries; Novi Sad i okolina needs the missing km question, not a default. Preserve areas the person has not removed when adding a city. Never ask for street, house number, home pin or GPS. Never generate coordinates, sourceRef or patch.workAreas: the server resolves areaRequests against the geocoder. Do not send legacy patch.location together with areaRequests. The review shows the complete resolved territory before saving.
 Vojvodina, Balkan and other region/cross-border scopes do not yet have verified matching boundaries. Explain that briefly and ask which Serbian cities (up to five) or whether all Serbia is acceptable. Never replace a region with a giant radius or silently narrow the person to one city. Requests outside Serbia need clarification; do not claim they were saved. Keep this explanation distinct from any missing calendar detail; ask at most one question in this reply.
-Reconcile the public biography with explicit corrections: when the person replaces a service, mode or working area, inspect the existing bio for a claim that this change makes obsolete. In the SAME patch, update only that affected claim using the person's stated facts, preserving unrelated introduction and limitations. For example, if bio says work throughout Vojvodina and the person now explicitly says only Novi Sad and up to 30 km, do not leave the old province-wide claim in bio. If the person merely chooses a temporary matching radius while still accepting work elsewhere, do not infer that broader real-world availability was withdrawn; ask only if the distinction matters. Do not rewrite a personal introduction simply because location changes. Omit unchanged fields means omit facts that remain true, not retain a contradiction created by the current change. BIOGRAPHY CREATION RULE: Never silently invent or impose a biography without the worker's explicit choice. Once the offered services, work territory and basic availability are gathered, politely ask the worker: 'Prikupili smo sve važne podatke o uslugama, području i rasporedu. Želite li da sami sastavite kratak opis za svoj profil ili želite da Vam ja predložim profesionalan opis na osnovu svega što ste naveli?'. If the worker asks the assistant to compose it (e.g. 'ti uradi', 'napiši ti', 'predloži mi'), draft a warm, professional, 2-3 sentence biography in natural Serbian summarizing their confirmed trade and area, include it in patch.bio, present the draft verbatim in assistantMessage, and ask: 'Sastavio sam sledeći predlog opisa: „...“. Da li Vam odgovara ovakav opis ili biste želeli nešto da promenimo?'. If the worker provides their own text or requests an adjustment, respect their words and update patch.bio accordingly.
+Reconcile the public biography with explicit corrections: when the person replaces a service, mode or working area, inspect the existing bio for a claim that this change makes obsolete. In the SAME patch, update only that affected claim using the person's stated facts, preserving unrelated introduction and limitations. For example, if bio says work throughout Vojvodina and the person now explicitly says only Novi Sad and up to 30 km, do not leave the old province-wide claim in bio. If the person merely chooses a temporary matching radius while still accepting work elsewhere, do not infer that broader real-world availability was withdrawn; ask only if the distinction matters. Do not rewrite a personal introduction simply because location changes. Omit unchanged fields means omit facts that remain true, not retain a contradiction created by the current change. Biography is optional and must not delay review. Never silently invent or impose one, and do not open a biography-choice or approval question when routing facts are ready. If the worker explicitly asks for a biography, draft 2-3 concise Serbian sentences from confirmed facts in patch.bio and show the draft; the single profile review owns its approval. Respect the worker's own text and explicit adjustments.
 If the person says to je to, gotovo, sačuvaj or asks to finish, open no optional calendar questions. Proactively suggest a single profile review once routing facts are known; review owns explicit saving and shows missing requirements. Do not say saved, activated, verified or all complete. A finish-only turn has an empty patch. Calendar detail is not mandatory; never reconfirm unchanged hours or availableNow.
 The skills array is a COMPLETE replacement list, not additions. When adding a service, keep every existing offered service the person has not explicitly removed; return the complete desired skills list. When removing or correcting a service, change only what the person explicitly named and preserve the others. Merely not mentioning an existing service is not a withdrawal. Never infer an offered job from equipment, knowledge or a newly added related service. Existing tools and vehicles in the candidate are historical data: do not ask about them, propose patch.tools or patch.vehicles, clear them, or claim they were removed. Do not move a new equipment claim into bio as a substitute. This also applies when equipment is volunteered or the person requests an equipment edit; explain briefly that this interview cannot change it now, then continue with other clear changes. Existing values remain visible in the signed profile review because Save still writes the whole candidate. Historical equipment is preserved privately and is not part of the new review or new application evidence. Country must be explicitly known; no assumption from language. Use the structured areaRequests contract above for work territory. Biography is plain text, no contact data invented.
 Availability intent is a required provider-only check: availabilityChange is {kind: NONE|PATCH|CLARIFY, evidence: string}. Use NONE and empty evidence only when this turn requests no availability change. Use PATCH both for INITIAL stated working hours and for later changes, with a short verbatim quote copied from the owned USER history and a real patch.availability operation. Initial hours are a change from an empty calendar, never NONE. For Radnim danima od 15 do 19, vikendom ne radim with an empty calendar, add one null-ruleId AVAILABLE weekly rule targeting [1,2,3,4,5], 15:00–19:00; do not add weekend hours or ask again for the days/hours already supplied. For an incomplete request use CLARIFY with its exact USER quote and patch.availability=null: preserve the known days/start in conversation and ask only for the missing part. For 'radnim danima posle 16', ask 'Do koliko sati radnim danima?', never ask the days/start again or invent an end time. Keep independently useful service/area questions; a calendar clarification must not erase them. The prose and this intent are NOT a calendar change by themselves. Before returning, verify that every availability change acknowledged in assistantMessage has the matching ruleChanges/windowsUpsert/windowIdsRemove/timezone/availableNow operation. Never say changed or ready if the requested operation is absent.
@@ -309,14 +309,14 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     }
   }
   let serviceModeContext: ReturnType<typeof readWorkerServiceModeContext> | null = null;
-  if (explorer) {
+  if (explorer || dualGeminiActive) {
     try { serviceModeContext=readWorkerServiceModeContext(context); }
     catch { await fail(); return json(503,{code:'WORKER_AI_NOT_CONFIRMED'}); }
   }
   const history=context.messages.slice(-30).map((row:any)=>({role:row.role==='ASSISTANT'?'model':'user',parts:[{text:String(row.body).slice(0,4000)}]}));
   // Keep a stable instruction prefix; current owned data always follows it.
   const stableParts=[{text:instruction()}, {text:serviceExecutionInstruction('WORKER_CAPABILITY')}];
-  const modeParts=serviceModeContext ? [{text:workerServiceModeInstruction(serviceModeContext,false)}] : [];
+  const modeParts=serviceModeContext ? [{text:workerServiceModeInstruction(serviceModeContext,false,!!explorer)}] : [];
   const runtimePart={text:workerRuntimeContext(context,new Date().toISOString())};
   const modeContextParts=serviceModeContext ? [{text:'Server-owned service mode context: '+JSON.stringify(serviceModeContext)}] : [];
   const clarificationPart = pendingWorkerClarificationHint?.ambiguityPrompt ? [{
@@ -328,8 +328,9 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
     ...clarificationPart,
     ...(taxonomyPrompt ? [{text:phase==='direct'&&explorer ? explorer.prompt('direct') : taxonomyPrompt}] : []),
     ...modeContextParts];
+  const interviewSchema=explorer ? withGeminiClassificationShadowSchema(workerProviderSchema(),'WORKER_CAPABILITY') : workerProviderSchema();
   const body=JSON.stringify({systemInstruction:{parts:systemParts('research')},contents:history,
-    generationConfig:{temperature:0.2,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,responseMimeType:'application/json',responseSchema:explorer ? workerServiceModeSchema(withGeminiClassificationShadowSchema(workerProviderSchema(),'WORKER_CAPABILITY')) : workerProviderSchema()}});
+    generationConfig:{temperature:0.2,maxOutputTokens:AI_TEST_LIMITS.llmMaxOutputTokens,responseMimeType:'application/json',responseSchema:serviceModeContext ? workerServiceModeSchema(interviewSchema) : interviewSchema}});
   if (new TextEncoder().encode(body).byteLength>AI_TEST_LIMITS.llmRequestBytes) { try { await fail(); } catch {} return json(413,{code:'WORKER_AI_CONTEXT_TOO_LARGE'}); }
   let firstReservationId: string;
   try {
@@ -480,10 +481,10 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           raw = answer.raw;
           console.info('WORKER_TAXONOMY_RESEARCH', 'COMPLETED', answer.attempts, answer.toolCalls);
           if (acceptedDirectRaw !== raw) await verifyReply(raw);
-        } else raw=await streamGeminiTask({url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+        } else raw=await measureAiPhase('PROVIDER', () => streamGeminiTask({url:`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
           // Provider prose remains private until shape, patch and completion are
           // accepted. Otherwise even an invalid patch could speak to the person.
-          key,body,signal:research!.signal,onText:()=>{},onUsage:value=>{usage.value=value;},timeoutMs:30000});
+          key,body,signal:research!.signal,onText:()=>{},onUsage:value=>{usage.value=value;},timeoutMs:30000}));
         if(abort.signal.aborted)throw new Error('WORKER_AI_CANCELLED');
         const {output: preparedOutput,reviewHints: initialReviewHints,classificationInspection,preservedServices,serviceModeChangesJson} = analyzeOutput(raw);
         let reviewHints = initialReviewHints;
@@ -515,11 +516,20 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         }
         const bgAbort = new AbortController();
         let dualWorkerArchitectPromise: Promise<any> | null = null;
-        if (dualGeminiActive && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
+        if (dualGeminiActive && ['ALLOW','CLARIFY'].includes(output.safety) && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
           const skillsModified = Array.isArray(output.patch.skills) &&
             workerSkillsFingerprint(output.patch.skills)!==workerSkillsFingerprint(context.candidate?.skills);
-          const serviceModesModified = typeof serviceModeChangesJson==='string' && serviceModeChangesJson.trim()!=='' && serviceModeChangesJson.trim()!=='[]';
           const effectiveSkills = output.patch.skills ?? context.candidate?.skills ?? [];
+          // Only a mode/handoff request supported by this USER turn starts new
+          // background work. Repeating an older draft quote on a bio-only edit
+          // must not pay for the same classification again.
+          const offered=new Map<string,string>();
+          if(Array.isArray(effectiveSkills))for(const skill of effectiveSkills){
+            const identity=normalizedClassificationIdentity(skill);
+            if(identity)offered.set(identity,skill);
+          }
+          const serviceModesModified=workerModeRequests(serviceModeChangesJson,
+            {messages:[{role:'USER',body:input.text}]},offered).size>0;
           const hasWorkAreas = Boolean((output.patch.workAreas ?? context.candidate?.workAreas)?.length || (output.patch.location ?? context.candidate?.location)?.city);
           if ((skillsModified || serviceModesModified || Boolean(pendingWorkerClarificationHint)) && Array.isArray(effectiveSkills) && effectiveSkills.length > 0) {
             dualWorkerArchitectPromise = measureAiPhase('WORKER_BG_ARCHITECT', () => buildWorkerFullTreeTaxonomyProposals({
@@ -529,6 +539,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
               skills: effectiveSkills,
               messages: context.messages,
               serviceModeContext: context.serviceModeContext,
+              serviceModeChangesJson,
               hasWorkAreas,
               conversationId: input.conversationId,
               // The completed turn increments the durable worker candidate once.

@@ -853,10 +853,10 @@ async function callGemini(
       return directResult?.raw === result.raw ? directResult.turn : await parseOutput(JSON.parse(result.raw));
   }
   if (onText) {
-    const raw = await streamGeminiTask({
+    const raw = await measureAiPhase('PROVIDER', () => streamGeminiTask({
       url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
       key, body: payloadBody, signal, onText: () => {}, onUsage, timeoutMs: 30000,
-    });
+    }));
     return parseOutput(JSON.parse(raw));
   }
   const providerResponse = await boundedJson(

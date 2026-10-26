@@ -1,19 +1,71 @@
 // Background Taxonomy Architect ("Drugi Gemini u pozadini").
 // Sees the ENTIRE taxonomy tree (all roots, branches, and leaf categories),
 // caches the full tree in memory by catalogVersion + catalogFingerprint,
-// resolves exact/alias/mode-extension matches deterministically in 0ms,
+// resolves requester exact/alias identity deterministically; worker scope still
+// requires saved consent or a valid new USER-quoted proposal and provider result,
 // detects ambiguity and emits clarificationRequest hints without falling back to Zanati i popravke,
 // and invokes a fast focused Gemini call for genuinely novel services
 // without ever blocking the user-facing conversational response.
 
 import { normalizedClassificationIdentity } from './classificationEngine.mjs';
 import { decodeServiceHandoff } from './serviceHandoff.mjs';
+import { workerModeRequests } from './workerServiceModeContext.mjs';
 
 let cachedFullCatalog = null;
 const cachedNovelDecisions = new Map();
 
 // In-memory store for asynchronous clarification hints across conversation turns
 const clarificationHintsByConversation = new Map();
+
+const executionMode = value => value === 'ON_SITE' || value === 'REMOTE';
+class TaxonomyProviderError extends Error {
+  constructor(code, status = 'RETRYABLE_PROVIDER') {
+    super(code);
+    this.code = code;
+    this.status = status;
+  }
+}
+function providerFailure(error) {
+  // Never log exception messages or provider bodies: they can contain user text.
+  return error instanceof TaxonomyProviderError
+    ? { status: error.status, code: error.code }
+    : { status: 'RETRYABLE_PROVIDER', code: error?.name === 'AbortError' ? 'PROVIDER_ABORTED' : 'PROVIDER_TRANSPORT_FAILURE' };
+}
+function reportProviderFailure(error, failures) {
+  recordFailure(providerFailure(error), failures);
+}
+function recordFailure(failure, failures) {
+  failures.push(failure);
+  console.warn('BG_TAXONOMY_PROVIDER_FAILURE', failure.status, failure.code);
+}
+async function providerEntries(res, field) {
+  if (!res.ok) throw new TaxonomyProviderError(`PROVIDER_HTTP_${res.status}`,
+    res.status === 408 || res.status === 429 || res.status >= 500 ? 'RETRYABLE_PROVIDER' : 'PROVIDER_PERMANENT_FAILURE');
+  let data;
+  try { data = await res.json(); } catch { throw new TaxonomyProviderError('PROVIDER_INVALID_JSON'); }
+  if (data?.promptFeedback?.blockReason) throw new TaxonomyProviderError('PROVIDER_REFUSED', 'PROVIDER_PERMANENT_FAILURE');
+  const candidate = data?.candidates?.[0];
+  if (candidate?.finishReason && candidate.finishReason !== 'STOP') {
+    throw new TaxonomyProviderError(candidate.finishReason === 'MAX_TOKENS' ? 'PROVIDER_TRUNCATED' : 'PROVIDER_REFUSED',
+      candidate.finishReason === 'MAX_TOKENS' ? 'RETRYABLE_PROVIDER' : 'PROVIDER_PERMANENT_FAILURE');
+  }
+  const parts = candidate?.content?.parts;
+  const rawText = Array.isArray(parts) ? parts.filter(part => !part.thought && typeof part.text === 'string').map(part => part.text).join('') : '';
+  let parsed;
+  try { parsed = JSON.parse(rawText); } catch { throw new TaxonomyProviderError('PROVIDER_INVALID_MODEL_JSON'); }
+  if (!Array.isArray(parsed?.[field]) || parsed[field].length === 0) throw new TaxonomyProviderError('PROVIDER_INCOMPLETE_RESULT');
+  return parsed[field];
+}
+function validClarification(decision) {
+  return ['NEEDS_CLARIFICATION', 'AMBIGUOUS'].includes(decision?.action)
+    && typeof decision.ambiguityPrompt === 'string' && decision.ambiguityPrompt.trim().length >= 8
+    && typeof decision.reason === 'string' && decision.reason.trim().length >= 10;
+}
+function decisionFailure(decision) {
+  return ['REUSE_EXISTING', 'EXTEND_MODE'].includes(decision?.action)
+    ? { status: 'PROVIDER_PERMANENT_FAILURE', code: 'SEMANTIC_REUSE_ADMISSION_UNAVAILABLE' }
+    : { status: 'RETRYABLE_PROVIDER', code: 'PROVIDER_INVALID_DECISION' };
+}
 
 export function hintDraftRevision(value) {
   return Number.isSafeInteger(value) && value >= 0 ? value : null;
@@ -358,11 +410,7 @@ async function classifyNovelServicesWithGemini({
     signal,
   });
 
-  if (!res.ok) throw new Error(`GEMINI_ARCHITECT_HTTP_${res.status}`);
-  const data = await res.json();
-  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
-  const parsed = JSON.parse(rawText);
-  return Array.isArray(parsed?.decisions) ? parsed.decisions : [];
+  return providerEntries(res, 'decisions');
 }
 
 /**
@@ -394,6 +442,7 @@ export async function buildFullTreeTaxonomyProposals({
   const proposals = [];
   const unresolved = [];
   const clarifications = [];
+  const failures = [];
 
   for (const item of items) {
     const service = typeof item?.service === 'string' ? item.service.trim() : '';
@@ -454,41 +503,31 @@ export async function buildFullTreeTaxonomyProposals({
           signal,
         });
       } catch (err) {
-        console.warn('BG_GEMINI_ARCHITECT_FALLBACK', err?.message ?? 'ERR');
+        reportProviderFailure(err, failures);
       }
+    } else {
+      recordFailure({ status: 'PROVIDER_PERMANENT_FAILURE', code: 'PROVIDER_NOT_CONFIGURED' }, failures);
     }
 
     for (const item of unresolved) {
       const norm = normalizedClassificationIdentity(item.service);
-      const decision = aiDecisions.find(
+      const decisions = aiDecisions.filter(
         (d) => normalizedClassificationIdentity(d?.service) === norm && d?.mode === item.mode
       );
-
-      const isAmbiguous = decision?.action === 'NEEDS_CLARIFICATION' ||
-        decision?.action === 'AMBIGUOUS' ||
-        !decision?.parentId ||
-        !validNodeIds.has(decision.parentId);
-
-      if (isAmbiguous) {
-        const ambiguityPrompt = (typeof decision?.ambiguityPrompt === 'string' && decision.ambiguityPrompt.trim().length >= 8)
-          ? decision.ambiguityPrompt.trim()
-          : `Da li možete da pojasnite šta tačno podrazumeva usluga „${item.service}“?`;
-        const reason = (typeof decision?.reason === 'string' && decision.reason.trim().length >= 10)
-          ? decision.reason.trim().slice(0, 900)
-          : `Usluga „${item.service}“ je višeznačna i zahteva pojašnjenje tačnog obima posla.`;
-
+      const decision = decisions.length === 1 ? decisions[0] : null;
+      if (validClarification(decision)) {
         const clarification = {
           conversationId: conversationId ?? null,
           draftRevision: draftRevision ?? null,
           service: item.service,
           mode: item.mode,
           action: 'NEEDS_CLARIFICATION',
-          ambiguityPrompt,
-          reason,
+          ambiguityPrompt: decision.ambiguityPrompt.trim().slice(0, 500),
+          reason: decision.reason.trim().slice(0, 900),
           createdAt: new Date().toISOString(),
         };
         clarifications.push(clarification);
-      } else {
+      } else if (decision?.action === 'CREATE_CHILD' && validNodeIds.has(decision.parentId)) {
         const parentId = decision.parentId;
         const rawReason = typeof decision?.reason === 'string' && decision.reason.trim().length >= 10
           ? decision.reason.trim().slice(0, 900)
@@ -509,6 +548,8 @@ export async function buildFullTreeTaxonomyProposals({
           catalogVersion: catalog.catalogVersion,
           ...(item.handoff ? { handoff: item.handoff } : {}),
         });
+      } else if (aiDecisions.length > 0) {
+        recordFailure({ ...decisionFailure(decision), service: item.service, mode: item.mode }, failures);
       }
     }
   }
@@ -518,6 +559,7 @@ export async function buildFullTreeTaxonomyProposals({
     proposals,
     clarifications,
     clarificationHint: clarifications[0] ?? null,
+    failures,
   };
 }
 
@@ -540,8 +582,8 @@ async function classifyWorkerServicesWithGemini({
     'Ti si USKOČI Arhitekta stabla usluga za radni profil (drugi Gemini u pozadini).',
     'Ispred sebe vidiš KOMPLETNO stablo svih postojećih kategorija u bazi, listu usluga radnika (skills) i njegove poruke.',
     'Za SVAKU uslugu iz liste skills odredi:',
-    '1. mode: "ON_SITE" (rad na lokaciji/terenu) ili "REMOTE" (rad na daljinu/od kuće/online). Ako je usluga već imala potvrđen mode u priorModes a korisnik ga nije menjao, zadrži taj mode. Ako je usluga fizički/terenski posao ili radnik navodi područje rada (hasWorkAreas=true) bez rada na daljinu, koristi "ON_SITE".',
-    '2. Ako usluga ne postoji u stablu pod tim nazivom, izaberi NAJPRECIZNIJEG postojećeg roditelja iz stabla (parentId UUID). Ako je veština preširoka ili višeznačna (npr. samo "klima" bez montaža/servis ili "nameštaj"), vrati action="NEEDS_CLARIFICATION", parentId="", i u ambiguityPrompt postavi pitanje za radnika.',
+    '1. mode: "ON_SITE" (izvršenje kod naručioca/na terenu), "REMOTE" (izvršenje drugde, uključujući radionicu) ili "UNKNOWN". Koristi samo način rada koji je radnik izričito ponudio za tu uslugu ili njegov sačuvani izbor u priorModes. Katalog, vrsta posla i područje rada nisu dokaz saglasnosti. Nepoznat način rada ostaje UNKNOWN i zahteva jedno kratko pitanje.',
+    '2. Ako usluga postoji pod tim nazivom, vrati REUSE_EXISTING za postojeći mode ili EXTEND_MODE za izričito tražen novi mode, uz parentId="". U suprotnom izaberi NAJPRECIZNIJEG postojećeg roditelja iz stabla (action="CREATE_CHILD", parentId UUID). Ako je veština preširoka ili višeznačna (npr. samo "klima" bez montaža/servis ili "nameštaj"), vrati action="NEEDS_CLARIFICATION", parentId="", i u ambiguityPrompt postavi pitanje za radnika.',
     '3. Za REMOTE uslugu odredi handoffKind: "NONE" (digitalna isporuka bez fizičke predaje), "SHIPPING_RS" (slanje poštom/kurirskom službom u Srbiji), ili "LOCAL_EXCHANGE" (lično preuzimanje u gradu handoffCity).',
     '4. reason: kratko obrazloženje na srpskom (15 do 200 znakova).',
   ].join(' ');
@@ -563,11 +605,11 @@ async function classifyWorkerServicesWithGemini({
         type: 'ARRAY',
         items: {
           type: 'OBJECT',
-          required: ['service', 'mode', 'parentId', 'handoffKind', 'handoffCity', 'reason'],
+          required: ['service', 'mode', 'action', 'parentId', 'handoffKind', 'handoffCity', 'reason'],
           properties: {
             service: { type: 'STRING' },
-            mode: { type: 'STRING', enum: ['ON_SITE', 'REMOTE'] },
-            action: { type: 'STRING', enum: ['CREATE_CHILD', 'NEEDS_CLARIFICATION', 'AMBIGUOUS'] },
+            mode: { type: 'STRING', enum: ['ON_SITE', 'REMOTE', 'UNKNOWN'] },
+            action: { type: 'STRING', enum: ['REUSE_EXISTING', 'EXTEND_MODE', 'CREATE_CHILD', 'NEEDS_CLARIFICATION', 'AMBIGUOUS'] },
             parentId: { type: 'STRING' },
             ambiguityPrompt: { type: 'STRING' },
             handoffKind: { type: 'STRING', enum: ['NONE', 'SHIPPING_RS', 'LOCAL_EXCHANGE'] },
@@ -600,11 +642,7 @@ async function classifyWorkerServicesWithGemini({
     signal,
   });
 
-  if (!res.ok) throw new Error(`GEMINI_WORKER_ARCHITECT_HTTP_${res.status}`);
-  const data = await res.json();
-  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';
-  const parsed = JSON.parse(rawText);
-  return Array.isArray(parsed?.items) ? parsed.items : [];
+  return providerEntries(res, 'items');
 }
 
 export async function buildWorkerFullTreeTaxonomyProposals({
@@ -614,6 +652,7 @@ export async function buildWorkerFullTreeTaxonomyProposals({
   skills,
   messages,
   serviceModeContext,
+  serviceModeChangesJson,
   hasWorkAreas,
   conversationId,
   draftRevision,
@@ -627,15 +666,27 @@ export async function buildWorkerFullTreeTaxonomyProposals({
   const catalog = await loadFullCatalogTree(rpc, signal);
   const validNodeIds = new Set(catalog.categories.map((c) => c.categoryId));
 
-  const priorModes = [
-    ...(Array.isArray(serviceModeContext?.savedServices) ? serviceModeContext.savedServices : []),
-    ...(Array.isArray(serviceModeContext?.draftServices) ? serviceModeContext.draftServices : []),
-  ];
+  // Draft classifier hints are not consent. Only saved modes and explicit
+  // USER-quoted requests may constrain this still-unapproved proposal.
+  const priorModes = Array.isArray(serviceModeContext?.savedServices) ? serviceModeContext.savedServices : [];
+  const ownedMessages = Array.isArray(messages) ? messages : [];
+  const requests = workerModeRequests(serviceModeChangesJson, { messages: ownedMessages },
+    new Map(cleanSkills.map(service => [normalizedClassificationIdentity(service), service])));
+  let declaredChanges = [];
+  let malformedChanges = false;
+  if (typeof serviceModeChangesJson === 'string' && serviceModeChangesJson.trim() !== '') {
+    try {
+      const parsed = JSON.parse(serviceModeChangesJson);
+      if (Array.isArray(parsed) && parsed.length <= 12) declaredChanges = parsed;
+      else malformedChanges = true;
+    } catch { malformedChanges = true; }
+  }
   const userMessages = Array.isArray(messages)
     ? messages.filter((m) => m?.role === 'USER' && typeof m?.body === 'string').map((m) => m.body)
     : [];
 
   let aiItems = [];
+  const failures = [];
   if (geminiKey && geminiModel) {
     try {
       aiItems = await classifyWorkerServicesWithGemini({
@@ -649,13 +700,17 @@ export async function buildWorkerFullTreeTaxonomyProposals({
         signal,
       });
     } catch (err) {
-      console.warn('BG_WORKER_GEMINI_ARCHITECT_FALLBACK', err?.message ?? 'ERR');
+      reportProviderFailure(err, failures);
     }
+  } else {
+    recordFailure({ status: 'PROVIDER_PERMANENT_FAILURE', code: 'PROVIDER_NOT_CONFIGURED' }, failures);
   }
+  const providerUnavailable = failures.length > 0;
 
   const proposals = [];
   const clarifications = [];
   const seenKeys = new Set();
+  const unresolvedServices = [];
 
   for (const service of cleanSkills) {
     const norm = normalizedClassificationIdentity(service);
@@ -664,49 +719,46 @@ export async function buildWorkerFullTreeTaxonomyProposals({
     const matchingAi = aiItems.filter((item) => normalizedClassificationIdentity(item?.service) === norm);
     const matchingPrior = priorModes.filter((item) => normalizedClassificationIdentity(item?.service) === norm);
 
-    let chosenEntries = [];
-    if (matchingAi.length > 0) {
-      chosenEntries = matchingAi.map((entry) => {
-        const mode = entry.mode === 'REMOTE' ? 'REMOTE' : 'ON_SITE';
-        let handoff = undefined;
-        if (mode === 'REMOTE') {
-          if (entry.handoffKind === 'SHIPPING_RS') {
-            handoff = { required: true, shippingCountries: ['RS'] };
-          } else if (entry.handoffKind === 'LOCAL_EXCHANGE' && typeof entry.handoffCity === 'string' && entry.handoffCity.trim().length >= 3) {
-            handoff = { required: true, localExchange: { countryCode: 'RS', city: entry.handoffCity.trim() } };
-          } else {
-            handoff = { required: false };
-          }
-        }
-        return {
-          mode,
-          handoff,
-          action: entry.action ?? 'CREATE_CHILD',
-          parentId: entry.parentId,
-          ambiguityPrompt: entry.ambiguityPrompt,
-          reason: entry.reason,
-        };
-      });
-    } else if (matchingPrior.length > 0) {
-      chosenEntries = matchingPrior.map((entry) => ({
-        mode: entry.mode === 'REMOTE' ? 'REMOTE' : 'ON_SITE',
-        handoff: entry.mode === 'REMOTE' ? (decodeServiceHandoff(entry.handoff) ?? { required: false }) : undefined,
-        action: 'REUSE_EXISTING',
-        parentId: '',
-        reason: 'Zadržan ranije izabran način rada za ovu uslugu.',
-      }));
-    } else {
-      const catMatches = catalog.byNormalizedKey.get(norm) ?? [];
-      const defaultMode = catMatches.length === 1 && Array.isArray(catMatches[0].modes) && catMatches[0].modes.length === 1
-        ? catMatches[0].modes[0]
-        : 'ON_SITE';
-      chosenEntries = [{
-        mode: defaultMode,
-        handoff: defaultMode === 'REMOTE' ? { required: false } : undefined,
-        action: catMatches.length === 1 ? 'REUSE_EXISTING' : 'NEEDS_CLARIFICATION',
-        parentId: '',
-        reason: 'Standardni način izvršenja usluge prema profilu i katalogu.',
-      }];
+    const requested = requests.get(norm);
+    if (malformedChanges || !requested && declaredChanges.some(change => normalizedClassificationIdentity(change?.service) === norm)) {
+      // A rejected/duplicated fresh declaration is not an unrelated edit. Do
+      // not silently resurrect the old mode while that change is unresolved.
+      unresolvedServices.push(service);
+      recordFailure({ status: 'RETRYABLE_PROVIDER', code: 'WORKER_MODE_REQUEST_INVALID', service }, failures);
+      continue;
+    }
+    if (requested && providerUnavailable) {
+      unresolvedServices.push(service);
+      continue;
+    }
+    const savedValid = matchingPrior.length > 0
+      && new Set(matchingPrior.map(entry => entry.categoryId)).size === 1
+      && matchingPrior.every(entry => executionMode(entry.mode)
+        && (!Object.hasOwn(entry, 'handoff') || entry.mode === 'REMOTE' && decodeServiceHandoff(entry.handoff)));
+    const chosenEntries = requested ? requested.modes.map(mode => {
+      const saved = savedValid ? matchingPrior.find(entry => entry.mode === mode) : null;
+      const handoff = mode === 'REMOTE'
+        ? Object.hasOwn(requested, 'handoff') ? decodeServiceHandoff(requested.handoff) : decodeServiceHandoff(saved?.handoff)
+        : undefined;
+      return { mode, ...(handoff ? { handoff } : {}) };
+    }) : savedValid ? matchingPrior : [];
+    const addClarification = (decision, mode) => clarifications.push({
+      conversationId: conversationId ?? null,
+      draftRevision: draftRevision ?? null,
+      service, mode, action: 'NEEDS_CLARIFICATION',
+      ambiguityPrompt: decision.ambiguityPrompt.trim().slice(0, 500),
+      reason: decision.reason.trim().slice(0, 900), createdAt: new Date().toISOString(),
+    });
+    if (chosenEntries.length === 0) {
+      unresolvedServices.push(service);
+      // A valid actual question is distinct from unavailable/malformed output.
+      if (matchingAi.length === 1 && validClarification(matchingAi[0])
+          && ['UNKNOWN', 'ON_SITE', 'REMOTE'].includes(matchingAi[0].mode)) {
+        addClarification(matchingAi[0], null);
+      } else if (aiItems.length > 0) {
+        recordFailure({ status: 'RETRYABLE_PROVIDER', code: 'WORKER_MODE_UNCONFIRMED', service }, failures);
+      }
+      continue;
     }
 
     for (const chosen of chosenEntries) {
@@ -714,10 +766,31 @@ export async function buildWorkerFullTreeTaxonomyProposals({
       if (seenKeys.has(dedupeKey)) continue;
       seenKeys.add(dedupeKey);
 
+      const decisions = matchingAi.filter(entry => entry.mode === chosen.mode);
+      const decision = decisions.length === 1 ? decisions[0] : null;
+      if (validClarification(decision)) {
+        addClarification(decision, chosen.mode);
+        continue;
+      }
+      if (requested && (!['REUSE_EXISTING', 'EXTEND_MODE', 'CREATE_CHILD'].includes(decision?.action)
+          || typeof decision.reason !== 'string' || decision.reason.trim().length < 10)) {
+        unresolvedServices.push(service);
+        recordFailure({ status: 'RETRYABLE_PROVIDER', code: 'PROVIDER_INVALID_DECISION', service, mode: chosen.mode }, failures);
+        continue;
+      }
+
       const matches = catalog.byNormalizedKey.get(norm) ?? [];
       if (matches.length === 1) {
         const match = matches[0];
         const hasMode = Array.isArray(match.modes) && match.modes.includes(chosen.mode);
+        // Saved continuity cannot repair a changed catalog or extend a mode.
+        // Fresh changes have already required one valid provider decision;
+        // its optional ID cannot contradict this deterministic exact identity.
+        if (!requested && (chosen.categoryId !== match.categoryId || !hasMode)
+            || requested && decision.categoryId && decision.categoryId !== match.categoryId) {
+          unresolvedServices.push(service);
+          continue;
+        }
         proposals.push({
           service,
           mode: chosen.mode,
@@ -732,38 +805,24 @@ export async function buildWorkerFullTreeTaxonomyProposals({
           ...(chosen.mode === 'REMOTE' && chosen.handoff ? { handoff: chosen.handoff } : {}),
         });
       } else {
-        const isValidParent = chosen.parentId && validNodeIds.has(chosen.parentId);
-        if (isValidParent && chosen.action !== 'NEEDS_CLARIFICATION' && chosen.action !== 'AMBIGUOUS') {
-          const rawReason = typeof chosen.reason === 'string' && chosen.reason.trim().length >= 10
-            ? chosen.reason.trim().slice(0, 900)
+        const isValidParent = decision?.parentId && validNodeIds.has(decision.parentId);
+        if (requested && isValidParent && decision.action === 'CREATE_CHILD') {
+          const rawReason = typeof decision.reason === 'string' && decision.reason.trim().length >= 10
+            ? decision.reason.trim().slice(0, 900)
             : `Nova specifična usluga „${service}“ raspoređena pod odgovarajuću granu kataloga.`;
           proposals.push({
             service,
             mode: chosen.mode,
             action: 'CREATE_CHILD',
             categoryId: '',
-            parentId: chosen.parentId,
+            parentId: decision.parentId,
             proposedPath: [service],
             reason: rawReason,
             catalogVersion: catalog.catalogVersion,
             ...(chosen.mode === 'REMOTE' && chosen.handoff ? { handoff: chosen.handoff } : {}),
           });
-        } else {
-          // Never dump into default root fallback; emit clarification hint
-          const ambiguityPrompt = (typeof chosen.ambiguityPrompt === 'string' && chosen.ambiguityPrompt.trim().length >= 8)
-            ? chosen.ambiguityPrompt.trim()
-            : `Da li možete da pojasnite koje tačno radove podrazumeva „${service}“?`;
-          const clarification = {
-            conversationId: conversationId ?? null,
-            draftRevision: draftRevision ?? null,
-            service,
-            mode: chosen.mode,
-            action: 'NEEDS_CLARIFICATION',
-            ambiguityPrompt,
-            reason: chosen.reason || `Usluga „${service}“ zahteva pojašnjenje tačnih kompetencija.`,
-            createdAt: new Date().toISOString(),
-          };
-          clarifications.push(clarification);
+        } else if (aiItems.length > 0) {
+          recordFailure({ ...decisionFailure(decision), service, mode: chosen.mode }, failures);
         }
       }
     }
@@ -774,5 +833,7 @@ export async function buildWorkerFullTreeTaxonomyProposals({
     proposals,
     clarifications,
     clarificationHint: clarifications[0] ?? null,
+    failures,
+    unresolvedServices: [...new Set(unresolvedServices)],
   };
 }

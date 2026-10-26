@@ -53,6 +53,8 @@ function fixture(options={}){
   if(url.endsWith('/rpc_taxonomy_ai_catalog_context_service'))return json(options.catalog(JSON.parse(init.body)));
   if(url.endsWith('/rpc_taxonomy_query_catalog_service'))return json(queryCatalog(JSON.parse(init.body).p_query,options.catalog));
   if(url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'))return json({action:'HINT_CAPTURED',authority:'NONE'});
+  if(url.endsWith('/rpc_taxonomy_fetch_snapshot_v1')){assert.ok(options.snapshot,'UNEXPECTED_FULL_CATALOG_CALL');return json(options.snapshot);}
+  if(url.endsWith('/rpc_taxonomy_get_unconsumed_turn_hint_service'))return json(null);
   if(url.endsWith('/rpc_ai_test_record_usage_service')){const body=JSON.parse(init.body);return json({recorded:true,authoritative:true,
    operationId:body.p_operation_id,promptTokens:body.p_prompt_tokens,outputTokens:body.p_output_tokens,totalTokens:body.p_total_tokens});}
   if(url.endsWith('/rpc_fail_worker_ai_turn_service'))return options.fail?.(init)??json(turn('FAILED'));
@@ -61,6 +63,7 @@ function fixture(options={}){
    return json(options.geocoder(new URL(url)));
   }
   if(url.startsWith('https://generativelanguage.googleapis.com/')){
+   if(/:generateContent/.test(url)&&options.backgroundProvider)return options.backgroundProvider(init);
    if(options.provider) return options.provider(init);
    const raw=JSON.stringify({availabilityChange:options.availabilityChange??{kind:'NONE',evidence:''},...output}),fragments=Array.from(raw);
    if(/:generateContent/.test(url))return json({candidates:[{content:{role:'model',parts:[{text:raw}]},finishReason:options.finishReason??'STOP'}],
@@ -80,6 +83,13 @@ const completions=f=>f.calls.filter(c=>c.url.endsWith('/rpc_complete_worker_ai_t
 const failures=f=>f.calls.filter(c=>c.url.endsWith('/rpc_fail_worker_ai_turn_service'));
 async function events(f,patch={}){const r=await f.invoke(patch);assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/text\/event-stream/);
  return (await r.text()).trim().split('\n\n').map(e=>JSON.parse(e.slice(6)));}
+for(const failed of [false,true])test('worker streaming provider has one count-only latency phase, failed='+failed,async()=>{
+ const logs=[],f=fixture({log:args=>logs.push(args),...(failed?{provider:()=>new Response('PRIVATE_PROVIDER_BODY',{status:503})}:{})});
+ const es=await events(f),phases=logs.filter(args=>args[0]==='AI_PHASE_MS'&&args[1]==='PROVIDER');
+ assert.equal(phases.length,1);assert.equal(phases[0].length,4);assert.equal(typeof phases[0][2],'number');assert.ok(phases[0][2]>=0);
+ assert.equal(phases[0][3],failed?'FAILED':'SUCCEEDED');assert.equal(es.at(-1).kind,failed?'safe_error':'final');
+ assert.ok(!JSON.stringify(logs).includes('PRIVATE_PROVIDER_BODY'));assert.ok(!JSON.stringify(logs).includes('SYNTHETIC_USER_MESSAGE'));
+});
 test('worker Gemini prompt asks one question while preserving area, availability and Save authority',async()=>{
  const f=fixture(); await events(f);
  const rule=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
@@ -93,6 +103,82 @@ test('worker Gemini prompt asks one question while preserving area, availability
  assert.match(rule,/Only explicit Sačuvaj profil in the review applies the changes/);
  assert.match(rule,/availabilityChange is/);
  assert.ok(rule.length<20000,`stable worker instruction grew to ${rule.length} characters`);
+});
+
+// Exact current handler with both Gemini transports stubbed. These scenarios
+// prove routing and accepted patch boundaries, not real provider semantics.
+function dualModeFixture({modes=['REMOTE'],handoff,evidence,quote,priorMode='ON_SITE',priorHandoff,outputSafety='ALLOW',backgroundStatus,log,catalogModes=['REMOTE','ON_SITE']}={}){
+ const service='Časovi engleskog',categoryId=id(20);
+ const userText=quote??'Od sada držim časove engleskog samo online.';
+ const modeContext={schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:4,
+  savedServices:[{service,categoryId,mode:priorMode,...(priorHandoff?{handoff:priorHandoff}:{})}],draftServices:[],unresolvedServices:[]};
+ const changes=[{service,modes,evidence:evidence??userText,...(handoff?{handoff}:{})}];
+ const f=fixture({env:{SUPABASE_URL:'https://leqcwgzvjsxugfgzdmth.supabase.co'},log,
+  context:{schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:4,
+   profileStatus:'ACTIVE',serviceModeContext:modeContext,
+   candidate:{skills:[service],bio:'Prethodni opis.',availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},
+   messages:[{role:'USER',body:userText},{role:'ASSISTANT',body:'ASSISTANT_ONLY_SCOPE_QUOTE'}]},
+  snapshot:{catalogVersion:7,catalogFingerprint:'a'.repeat(32),categories:[{
+   categoryId,parentId:null,label:service,aliases:[],path:[service],isLeaf:true,modes:catalogModes}]},
+  output:{assistantMessage:'Predlog izmene je u nacrtu.',safety:outputSafety,patch:{bio:'Dopunjen opis.'},serviceModeChangesJson:JSON.stringify(changes)},
+  backgroundProvider:()=>backgroundStatus?new Response('PRIVATE_BG_PROVIDER_BODY',{status:backgroundStatus}):json({candidates:[{content:{parts:[{text:JSON.stringify({items:modes.map(mode=>({service,mode,
+   action:'CREATE_CHILD',parentId:'',handoffKind:handoff?.shippingCountries?'SHIPPING_RS':'NONE',handoffCity:'',
+   reason:'Izričit predlog radnika za njegovu postojeću uslugu.'}))})}]},finishReason:'STOP'}]})});
+ return {...f,userText,changes,modeContext};
+}
+async function settleBackground(){for(let i=0;i<20;i++)await new Promise(resolve=>setImmediate(resolve));}
+test('dual worker mode-only correction reaches background review without a skills edit',async()=>{
+ const f=dualModeFixture({handoff:{required:false}});
+ const es=await events(f,{text:f.userText});await settleBackground();
+ assert.equal(es.at(-1).kind,'final');
+ const main=providers(f).find(call=>call.url.includes(':streamGenerateContent')).body;
+ assert.ok(main.generationConfig.responseSchema.properties.serviceModeChangesJson);
+ assert.equal(main.generationConfig.responseSchema.properties.classificationShadowJson,undefined);
+ assert.match(main.systemInstruction.parts.map(part=>part.text).join(' '),/include that initial declaration with the exact USER service quote/);
+ assert.doesNotMatch(main.systemInstruction.parts.map(part=>part.text).join(' '),/Keep the normal classificationShadowJson full snapshot/);
+ assert.equal(providers(f).filter(call=>call.url.includes(':generateContent')).length,1);
+ const capture=f.calls.find(call=>call.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
+ assert.deepEqual(capture?.body.p_proposals.map(p=>({mode:p.mode,handoff:p.handoff})),[{mode:'REMOTE',handoff:{required:false}}]);
+ assert.deepEqual(completions(f)[0].body.p_output.patch,{bio:'Dopunjen opis.'});
+ assert.equal(Object.hasOwn(completions(f)[0].body.p_output,'serviceModeChangesJson'),false);
+ assert.ok(!f.calls.some(call=>/rpc_save_worker|rpc_set_worker_execution_modes/.test(call.url)));
+});
+test('dual worker handoff-only correction retains REMOTE and queues the new bounded handoff',async()=>{
+ const f=dualModeFixture({priorMode:'REMOTE',priorHandoff:{required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}},
+  quote:'Od sada šaljem urađene radove poštom samo unutar Srbije.',handoff:{required:true,shippingCountries:['RS']}});
+ const es=await events(f,{text:f.userText});await settleBackground();assert.equal(es.at(-1).kind,'final');
+ assert.equal(providers(f).filter(call=>call.url.includes(':generateContent')).length,1);
+ const capture=f.calls.find(call=>call.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
+ assert.deepEqual(capture?.body.p_proposals.map(p=>({mode:p.mode,handoff:p.handoff})),[{mode:'REMOTE',handoff:{required:true,shippingCountries:['RS']}}]);
+});
+for(const evidence of ['PRIVATE_INVENTED_SCOPE','ASSISTANT_ONLY_SCOPE_QUOTE'])test('dual worker invented or assistant mode evidence does not trigger classification: '+evidence,async()=>{
+ const f=dualModeFixture({evidence});const es=await events(f,{text:f.userText});await settleBackground();
+ assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
+ assert.equal(f.calls.filter(call=>call.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service')).length,0);
+});
+test('dual worker mode evidence from an earlier turn does not rerun classification for an unrelated bio edit',async()=>{
+ const f=dualModeFixture();const es=await events(f,{text:'Dopuni samo opis profila.'});await settleBackground();
+ assert.equal(es.at(-1).kind,'final');assert.equal(providers(f).length,1);
+});
+for(const outputSafety of ['BLOCK','REVIEW'])test('dual worker rejected mode change does not launch classifier: '+outputSafety,async()=>{
+ const f=dualModeFixture({outputSafety});await events(f,{text:f.userText});await settleBackground();
+ assert.equal(providers(f).length,1);assert.equal(f.calls.filter(call=>call.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service')).length,0);
+});
+for(const mutation of ['stale','unknown_mode'])test('dual worker invalid authoritative mode context stops before budget and provider: '+mutation,async()=>{
+ const f=dualModeFixture();
+ if(mutation==='stale')f.modeContext.revision=3;else f.modeContext.savedServices[0].mode='UNKNOWN';
+ const response=await f.invoke({text:f.userText});assert.equal(response.status,503);
+ assert.equal(providers(f).length,0);assert.equal(completions(f).length,0);
+ assert.equal(f.calls.filter(call=>call.url.includes('budget_reserve')).length,0);
+});
+for(const catalogModes of [['ON_SITE'],['ON_SITE','REMOTE']])test('dual worker classifier outage keeps the completed conversation without applying a fresh scope, supported='+catalogModes.includes('REMOTE'),async()=>{
+ const logs=[],f=dualModeFixture({backgroundStatus:503,catalogModes,log:args=>logs.push(args)});
+ const es=await events(f,{text:f.userText});await settleBackground();
+ assert.equal(es.at(-1).kind,'final');assert.equal(completions(f).length,1);
+ assert.equal(providers(f).filter(call=>call.url.includes(':generateContent')).length,1);
+ assert.equal(f.calls.filter(call=>/rpc_taxonomy_capture_gemini_turn_hints_service|rpc_taxonomy_store_classification_turn_hint_service/.test(call.url)).length,0);
+ assert.deepEqual(logs.filter(args=>args[0]==='BG_TAXONOMY_PROVIDER_FAILURE'),[['BG_TAXONOMY_PROVIDER_FAILURE','RETRYABLE_PROVIDER','PROVIDER_HTTP_503']]);
+ assert.ok(!JSON.stringify(logs).includes('PRIVATE_BG_PROVIDER_BODY'));
 });
 
 test('COUNTRY area request reaches the service-only writer as canonical workAreas without coordinates',async()=>{

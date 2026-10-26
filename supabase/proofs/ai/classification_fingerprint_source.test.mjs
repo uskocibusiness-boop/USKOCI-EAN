@@ -14,6 +14,8 @@ test('task background classifier runs on semantic fingerprint change or an exact
 
 test('worker same-list patch is not a classification change while explicit mode evidence remains relevant',()=>{
  assert.match(worker,/workerSkillsFingerprint\(output\.patch\.skills\)!==workerSkillsFingerprint\(context\.candidate\?\.skills\)/);
- assert.match(worker,/const serviceModesModified = typeof serviceModeChangesJson==='string'/);
+ // A nonempty metadata string is not a mode change. The active dual path
+ // requires a valid offered service plus evidence from this USER turn.
+ assert.match(worker,/const serviceModesModified=workerModeRequests\(serviceModeChangesJson,\s*\{messages:\[\{role:'USER',body:input\.text\}\]\},offered\)\.size>0/);
  assert.match(worker,/skillsModified \|\| serviceModesModified \|\| Boolean\(pendingWorkerClarificationHint\)/);
 });
