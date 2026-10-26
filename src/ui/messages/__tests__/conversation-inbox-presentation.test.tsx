@@ -196,11 +196,10 @@ describe('what the server does not carry stays undrawn', () => {
     expect(rows()[0].props.accessibilityLabel).not.toContain('zatvoren');
   });
 
-  it('a closed Dogovor, when a reader supplies it, stands under "Istorija" and says so aloud, with no lock and no arrow: the set says it is over', async () => {
+  it('keeps a closed Dogovor in the same list and says that it is read-only', async () => {
     await draw(props([row({ id: A, at: '2026-10-03T10:00:00Z', closed: true, name: 'Ivana', task: 'Prevoz fotelje iz Podbare', preview: 'Hvala!' })]));
-    // The row says its Dogovor is closed, so the list is told in two sets and this one is under "Istorija" (opened here).
-    expect(rows()).toHaveLength(0);
-    await act(async () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Istorija')[0].props.onPress());
+    expect(rows()).toHaveLength(1);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Istorija' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ testID: 'conversation-lock' })).toHaveLength(0);
     expect(rows()[0].props.accessibilityLabel).toBe('Prevoz fotelje iz Podbare. Privatno · Ivana. Dogovor je zatvoren. Samo za čitanje. Hvala! 3. okt, 12:00');
     expect(texts(rows()[0])).toContain('Samo za čitanje · Privatno · Ivana');
@@ -210,20 +209,20 @@ describe('what the server does not carry stays undrawn', () => {
 });
 
 describe('the states of the list', () => {
-  it('does not claim a filtered set is empty before older pages have been read', async () => {
+  it('keeps the one list visible while older pages are loaded', async () => {
     const active = row({ id: A, at: '2026-10-07T11:00:00Z', closed: false });
     const closed = row({ id: B, at: '2026-10-05T11:00:00Z', closed: true });
     const p = props([active], { hasMore: true });
     await draw(p);
-    await act(async () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Istorija')[0].props.onPress());
-    expect(tree.root.findByType('StateView' as never).props.title).toBe('Nema istorije među učitanim razgovorima');
+    expect(rows()).toHaveLength(1);
     await act(async () => tree.root.findByProps({ label: 'Učitaj starije razgovore' }).props.onPress());
     expect(p.onLoadMore).toHaveBeenCalledTimes(1);
     await act(async () => tree.update(<ConversationInboxPresentation {...p} items={[active, closed]} hasMore={false} />));
-    expect(rows()).toHaveLength(1);
-    expect(rows()[0].props.accessibilityLabel).toContain('Dogovor je zatvoren');
+    expect(rows()).toHaveLength(2);
+    expect(rows()[1].props.accessibilityLabel).toContain('Dogovor je zatvoren');
     await act(async () => tree.update(<ConversationInboxPresentation {...p} hasMore={false} />));
-    expect(tree.root.findByType('StateView' as never).props.title).toBe('Istorija razgovora je prazna');
+    expect(rows()).toHaveLength(1);
+    expect(tree.root.findAllByType('StateView' as never)).toHaveLength(0);
   });
   it('shows the first read, a failure that can be tried again, and an empty inbox with the way to the Dogovori', async () => {
     await draw(props(null, { loading: true }));
@@ -285,50 +284,32 @@ describe('the face', () => {
   });
 });
 
-// UI/UX pass, 2026-10-08 (F1; composition spec 4.11 and R17): the list tells the active conversations from the finished ones.
-describe('Aktivni and Istorija (R17)', () => {
+// The current inbox has one list: status is conveyed by each row, not by tabs.
+describe('one list for active and finished conversations', () => {
   const rowsOf = [
     row({ id: A, at: '2026-10-07T11:00:00Z', name: 'Jovana' }),
     row({ id: B, at: '2026-10-06T10:00:00Z', name: 'Teodora' }),
     row({ id: C, at: '2026-10-03T10:00:00Z', name: 'Ivana' }),
   ];
-  const tab = (label: string) => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityRole === 'tab' && node.props.accessibilityLabel === label)[0];
   const names = () => rows().map(node => texts(node).split(' | ').find(value => value.includes('Privatno · '))?.split('Privatno · ')[1]);
 
-  it('has one list until at least one status is known, then leaves unknown rows in both views', async () => {
+  it('keeps every row in server order with or without known status', async () => {
     await draw(props(rowsOf));
-    expect(names()).toEqual(['Jovana', 'Teodora', 'Ivana']); expect(tab('Aktivni')).toBeUndefined();
+    expect(names()).toEqual(['Jovana', 'Teodora', 'Ivana']);
     await act(async () => tree.update(<ConversationInboxPresentation {...props(rowsOf, { closedAgreements: null })} />));
-    expect(tab('Aktivni')).toBeUndefined();
+    expect(names()).toEqual(['Jovana', 'Teodora', 'Ivana']);
     await act(async () => tree.update(<ConversationInboxPresentation {...props([{ ...rowsOf[0], closed: false }, rowsOf[1]])} />));
-    expect(tab('Aktivni')).toBeDefined(); expect(names()).toEqual(['Jovana', 'Teodora']);
-    expect(texts()).toContain('Razgovori bez potvrđenog statusa prikazani su u oba pregleda.');
-    await act(async () => tab('Istorija').props.onPress());
-    expect(names()).toEqual(['Teodora']);
-    expect(rows()[0].props.accessibilityLabel).not.toMatch(/zatvoren|završen/);
+    expect(names()).toEqual(['Jovana', 'Teodora']);
+    expect(tree.root.findAll(node => node.props.accessibilityRole === 'tab')).toHaveLength(0);
+    expect(texts()).not.toContain('Razgovori bez potvrđenog statusa prikazani su u oba pregleda.');
   });
 
-  it('tells the two sets by the Dogovori that are over: "Aktivni" first, the order of the server kept inside each', async () => {
+  it('marks a finished Dogovor in its own row without removing it from the list', async () => {
     await draw(props(rowsOf, { closedAgreements: new Set([B]) }));
-    expect([tab('Aktivni').props.accessibilityState, tab('Istorija').props.accessibilityState]).toEqual([{ selected: true }, { selected: false }]);
-    expect(names()).toEqual(['Jovana', 'Ivana']);
-    await act(async () => tab('Istorija').props.onPress());
-    expect(names()).toEqual(['Teodora']);
-    // A closed conversation is read, not hidden: its row says the Dogovor is closed, and a tap opens it.
-    expect(rows()[0].props.accessibilityLabel).toContain('Dogovor je zatvoren');
-  });
-
-  it('takes what the row says over what the set says, and a set that is empty says so with the way to the other', async () => {
-    await draw(props(rowsOf.map(item => ({ ...item, closed: false })), { closedAgreements: new Set([A, B, C]) }));
-    expect(rows()).toHaveLength(3);
-    await act(async () => tab('Istorija').props.onPress());
-    expect(rows()).toHaveLength(0);
-    expect(tree.root.findAllByType('StateView' as never)[0].props).toMatchObject({ kind: 'empty', title: 'Istorija razgovora je prazna' });
-    await act(async () => tree.update(<ConversationInboxPresentation {...props(rowsOf, { closedAgreements: new Set([A, B, C]) })} />));
-    await act(async () => tab('Aktivni').props.onPress());
-    expect(tree.root.findAllByType('StateView' as never)[0].props).toMatchObject({ title: 'Nema aktivnih razgovora', body: 'Ranije razgovore vidiš u „Istoriji“.' });
-    // The Dogovori are the way out of "no conversations at all", not of a set that is empty.
-    expect(tree.root.findAllByType('StateView' as never)[0].props.primary).toBeUndefined();
+    expect(names()).toEqual(['Jovana', 'Teodora', 'Ivana']);
+    expect(rows()[1].props.accessibilityLabel).toContain('Dogovor je zatvoren');
+    expect(rows()[1].props.accessibilityState).toEqual({ disabled: false });
+    expect(tree.root.findAllByType('StateView' as never)).toHaveLength(0);
   });
 
   it('classifies a private Agreement by its id but never derives group closure from one member', () => {
@@ -342,38 +323,30 @@ describe('Aktivni and Istorija (R17)', () => {
     expect(conversationInboxRows([{ ...shared, closed: true }], { closedAgreements: new Set() })[0].closed).toBe(true);
   });
 
-  it('switches known private rows while an unknown group remains visible and openable in both views', async () => {
+  it('keeps a group and a finished private conversation openable in the same list', async () => {
     const active = row({ id: A, at: '2026-10-07T11:00:00Z', name: 'Jovana' });
     const shared = group({ id: B, at: '2026-10-07T10:00:00Z' });
     const finished = row({ id: C, at: '2026-10-05T10:00:00Z', name: 'Ivana' });
     const p = props([active, shared, finished], { closedAgreements: new Set([shared.routeAgreementId, finished.routeAgreementId]) });
     await draw(p);
-    expect(tab('Aktivni')).toBeDefined();
-    expect(rows()).toHaveLength(2);
+    expect(rows()).toHaveLength(3);
     expect(rows()[0].props.accessibilityLabel).toContain('Privatno · Jovana');
     expect(rows()[1].props.accessibilityLabel).not.toContain('zatvoren');
     await act(async () => rows()[1].props.onPress());
     expect(p.onOpen).toHaveBeenCalledWith(shared);
-    await act(async () => tab('Istorija').props.onPress());
-    expect(rows()).toHaveLength(2);
-    expect(rows()[0].props.accessibilityLabel).toContain('Grupa');
-    expect(rows()[0].props.accessibilityLabel).not.toMatch(/zatvoren|završen|Samo za čitanje/);
-    expect(rows()[1].props.accessibilityLabel).toContain('Dogovor je zatvoren');
-    expect(texts(rows()[1])).toContain('Samo za čitanje · Privatno · Ivana');
-    await act(async () => rows()[0].props.onPress());
-    expect(p.onOpen).toHaveBeenLastCalledWith(shared);
+    expect(rows()[2].props.accessibilityLabel).toContain('Dogovor je zatvoren');
+    expect(texts(rows()[2])).toContain('Samo za čitanje · Privatno · Ivana');
+    await act(async () => rows()[2].props.onPress());
+    expect(p.onOpen).toHaveBeenLastCalledWith(finished);
     expect(p.onOpen).toHaveBeenCalledTimes(2);
-    expect(texts()).toContain('Razgovori bez potvrđenog statusa prikazani su u oba pregleda.');
   });
 
-  it('places an explicitly classified group in only its witnessed view', async () => {
+  it('keeps an explicitly closed group visible and labelled', async () => {
     const shared = group({ id: B, at: '2026-10-07T10:00:00Z', closed: true });
     await draw(props([row({ id: A, at: '2026-10-07T11:00:00Z', closed: false }), shared]));
-    expect(rows()).toHaveLength(1);
+    expect(rows()).toHaveLength(2);
     expect(texts()).not.toContain('Razgovori bez potvrđenog statusa prikazani su u oba pregleda.');
-    await act(async () => tab('Istorija').props.onPress());
-    expect(rows()).toHaveLength(1);
-    expect(rows()[0].props.accessibilityLabel).toContain('Razgovor je završen');
+    expect(rows()[1].props.accessibilityLabel).toContain('Razgovor je završen');
   });
 });
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Linking, StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
-import { ResolvedPinMap } from '../../ResolvedPinMap';
+import { ModernMapPin, ResolvedPinMap } from '../../ResolvedPinMap';
 import { ResolvedPinMap as WebPinMap } from '../../ResolvedPinMap.web';
 import type { ResolvedPinMapProps } from '../../ResolvedPinMap.types';
 import { sys } from '../../../system/tokens';
@@ -153,7 +153,8 @@ it.each([
   await render({ position: { latitude: 45.25, longitude: 19.83 }, ...mode }); await ready();
   expect(map().props).toMatchObject({ accessibilityLabel: name, importantForAccessibility: importance });
   expect(annotation().props).toMatchObject({ id: 'location-proposal', anchor: 'bottom' });
-  expect(markerImage().props.style).toEqual({ width: 44, height: 48 });
+  expect(annotation().findAllByType(ModernMapPin)).toHaveLength(1);
+  expect(markerImage().props.style).toMatchObject({ width: 0, height: 0, opacity: 0 });
   expect(handle().props.accessibilityLabel).toBe('Oznaka izabrane tačke na mapi');
   if ('disabled' in mode) {
     expect(frame().props.accessibilityLabel).toBe('Tačka na mapi. Geografska širina 45.250000; geografska dužina 19.830000.');
@@ -168,7 +169,7 @@ it('renders only the two-decimal coarse position and emits only a user-selected 
   await act(async () => map().props.onPress(tap(20.123456, 44.654321)));
   expect(onChoose).not.toHaveBeenCalled();
   await ready();
-  expect(mockJump).toHaveBeenCalledWith({ center: [19.65, 45.12], zoom: 10 });
+  expect(mockJump).toHaveBeenCalledWith({ center: [19.65, 45.12], zoom: 15 });
   await act(async () => map().props.onPress(tap(20.123456, 44.654321)));
   expect(onChoose).toHaveBeenCalledWith({ latitude: 44.65, longitude: 20.12 });
   expect(annotation().props.lngLat).toEqual([19.65, 45.12]); // Parent owns accepting the proposal.
@@ -274,7 +275,7 @@ it('announces real selected coordinates outside the Android bitmap and updates o
   expect(status.props.accessible).toBe(true);
   expect(annotation().findAllByProps({ accessibilityRole: 'text' })).toHaveLength(0);
   expect(text()).toContain('Dodirni mapu ili prevuci oznaku do pravog mesta.');
-  await act(async () => map().props.onRegionDidChange({ nativeEvent: { center: [19.8312344, 45.2512344], zoom: 15 } }));
+  await act(async () => map().props.onRegionDidChange({ nativeEvent: { center: [19.8312344, 45.2512344], zoom: 15.2 } }));
   expect(text()).toContain('Tačka je na sredini mape. Pomeri oznaku ako treba.');
 });
 
@@ -285,7 +286,7 @@ it('camera readiness requires the current native center and zoom, then clears on
     await act(async () => map().props.onRegionDidChange({ nativeEvent: state }));
     expect(text()).not.toContain('Tačka je na sredini mape');
   }
-  await act(async () => map().props.onRegionDidChange({ nativeEvent: { center: [19.83, 45.25], zoom: 15 } }));
+  await act(async () => map().props.onRegionDidChange({ nativeEvent: { center: [19.83, 45.25], zoom: 15.2 } }));
   expect(text()).toContain('Tačka je na sredini mape');
   await act(async () => map().props.onRegionWillChange());
   expect(text()).not.toContain('Tačka je na sredini mape');
@@ -319,10 +320,11 @@ it('clears selected-coordinate and idle state on point removal, account switch, 
 it('keeps decoded image readiness separate from actual camera idle without any offscreen refresh', async () => {
   await render({ position: { latitude: 45.25, longitude: 19.83 } }); await ready();
   const marker = markerImage();
-  expect(marker.props).toMatchObject({ accessible: false, fadeDuration: 0, resizeMode: 'contain', style: { width: 44, height: 48 } });
+  expect(annotation().findAllByType(ModernMapPin)).toHaveLength(1);
+  expect(marker.props).toMatchObject({ accessible: false, fadeDuration: 0, resizeMode: 'contain', style: { width: 0, height: 0, opacity: 0 } });
   expect(handle().props.onStartShouldSetResponder()).toBe(false);
   await act(async () => {
-    map().props.onRegionDidChange({ nativeEvent: { center: [19.83, 45.25], zoom: 15 } });
+    map().props.onRegionDidChange({ nativeEvent: { center: [19.83, 45.25], zoom: 15.2 } });
     jest.advanceTimersByTime(500);
   });
   expect(mockProject).not.toHaveBeenCalled();
@@ -492,8 +494,8 @@ it('frames all real candidates as camera context without selecting a winner or c
 it('uses a closer street zoom for a compact chat pin without changing ordinary map zoom', async () => {
   await render({ position: { latitude: 45.25, longitude: 19.84 }, compact: true }); await ready();
   expect(tree.root.findByType('NativeCamera' as React.ElementType).props.initialViewState)
-    .toEqual({ center: [19.84, 45.25], zoom: 17 });
-  expect(mockJump).toHaveBeenCalledWith({ center: [19.84, 45.25], zoom: 17 });
+    .toEqual({ center: [19.84, 45.25], zoom: 15.5 });
+  expect(mockJump).toHaveBeenCalledWith({ center: [19.84, 45.25], zoom: 15.5 });
 });
 
 it('can zoom one passive resolver hint to a street while keeping it unselected', async () => {
@@ -508,7 +510,7 @@ it('can zoom one passive resolver hint to a street while keeping it unselected',
 it('keeps a real point authoritative over a camera hint and never carries a hint across scope changes', async () => {
   const cameraHint = [{ latitude: 45.2, longitude: 19.8 }, { latitude: 45.3, longitude: 19.9 }];
   await render({ position: { latitude: 44, longitude: 20 }, cameraHint }); await ready();
-  expect(tree.root.findByType('NativeCamera' as React.ElementType).props.initialViewState).toEqual({ center: [20, 44], zoom: 15 });
+  expect(tree.root.findByType('NativeCamera' as React.ElementType).props.initialViewState).toEqual({ center: [20, 44], zoom: 15.2 });
   await act(async () => tree.update(<ResolvedPinMap {...initial} scopeKey="new-account-context" />));
   expect(tree.root.findByType('NativeCamera' as React.ElementType).props.initialViewState).toEqual({ center: [0, 0], zoom: 1 });
   expect(tree.root.findAllByType('NativeMarker' as React.ElementType)).toHaveLength(0);

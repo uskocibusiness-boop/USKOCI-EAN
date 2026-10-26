@@ -1,5 +1,4 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { NeedLocationInput } from '../../../contracts/location';
 import type { NeedFactV2Key, NeedTaskGeography } from '../../../contracts/needFactsV2';
@@ -122,7 +121,7 @@ describe.each(CASES)('the review says what the published page says: %s', (_name,
 });
 
 describe('what the review adds and what it leaves out', () => {
-  it('keeps contextual edits accessible, calls only the chosen correction, and removes actions for a frozen review', async () => {
+  it('never revives per-field pencils, even if legacy parts still supply them', async () => {
     const callbacks = { title: jest.fn(), value: jest.fn(), place: jest.fn(), time: jest.fn(), people: jest.fn(), description: jest.fn() };
     const labels = { title: 'Naslov', value: 'Cena', place: 'Mesto', time: 'Termin', people: 'Broj ljudi', description: 'Opis' };
     const parts: ReviewDetailParts = { ...NO_PARTS };
@@ -131,15 +130,10 @@ describe('what the review adds and what it leaves out', () => {
     }
     const need = reviewAsTask({ reviewId: 'review-1', draftId: null, responseDeadline: null, location: placed(STATIONARY), publicProjection: FULL }, PERSON);
     await render(<ReviewDetail need={need} parts={parts} />);
-    const commands = tree.root.findAllByType(EditPencil);
-    expect(commands).toHaveLength(6);
+    expect(tree.root.findAllByType(EditPencil)).toHaveLength(0);
     for (const key of Object.keys(callbacks) as (keyof typeof callbacks)[]) {
-      const command = tree.root.findAll(node => node.type === ('Press' as any) && node.props.accessibilityLabel === `Izmeni, ${labels[key]}`)[0];
-      expect(command.props.accessibilityRole).toBe('button');
-      const target = StyleSheet.flatten(command.props.style);
-      expect(target.minWidth).toBeGreaterThanOrEqual(44); expect(target.minHeight).toBeGreaterThanOrEqual(44);
-      await act(async () => command.props.onPress({ nativeEvent: { target: 1 } }));
-      expect(callbacks[key]).toHaveBeenCalledWith(); expect(callbacks[key]).toHaveBeenCalledTimes(1);
+      expect(tree.root.findAllByProps({ accessibilityLabel: `Izmeni, ${labels[key]}` })).toHaveLength(0);
+      expect(callbacks[key]).not.toHaveBeenCalled();
     }
     expect(texts()).not.toContain('Izmeni');
     await act(async () => tree.update(<ReviewDetail need={need} parts={NO_PARTS} />));

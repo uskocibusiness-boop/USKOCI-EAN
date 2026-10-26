@@ -16,8 +16,8 @@ jest.mock('../../ui/media/AgreementPhotoComposer', () => ({ AgreementPhotoCompos
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
 import { AgreementChat, CLOSED_SENTENCE } from '../../ui/AgreementChat';
-import { shiftDate } from '../../ui/calendar/calendarPresentation';
-import { serbianDayRange, serbianToday } from '../../ui/calendar/serbianDays';
+import { civilInstant, shiftDate } from '../../ui/calendar/calendarPresentation';
+import { serbianToday } from '../../ui/calendar/serbianDays';
 import { sys } from '../../ui/system/tokens';
 import { forgetAutoResendForTests, takeAutoResend } from '../../ui/messages/threadModel';
 
@@ -41,9 +41,14 @@ const button = (label: string) => tree.root.findByProps({ accessibilityLabel: la
 const corners = (node: ReactTestInstance) => { const s = flat(node.props.style); return [s.borderTopLeftRadius, s.borderTopRightRadius, s.borderBottomRightRadius, s.borderBottomLeftRadius]; };
 const BIG = sys.radius.card, JOINT = sys.space.sm;
 
-/** An instant on the day `back` days ago in SERBIAN time, at hh:mm there. */
-const at = (back: number, hours: number, minutes = 0) =>
-  new Date(Date.parse(serbianDayRange(shiftDate(serbianToday(), -back)).from) + (hours * 60 + minutes) * 60_000).toISOString();
+/** A Serbian wall-clock instant; adding hours to midnight is wrong on DST days. */
+const at = (back: number, hours: number, minutes = 0) => {
+  const day = shiftDate(serbianToday(), -back);
+  const clock = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+  const instant = civilInstant(day, clock, 'Europe/Belgrade').value;
+  if (!instant) throw new Error(`Invalid chat fixture time: ${day} ${clock}`);
+  return instant;
+};
 let counter = 0;
 const row = (moja: boolean, telo: string, createdAt: string, over: Record<string, unknown> = {}) => ({ id: `30000000-0000-4000-8000-${String(++counter).padStart(12, '0')}`,
   dogovorVerzija: 1, clientMessageId: null, posiljalacAccountId: moja ? account : other, posiljalacIme: moja ? 'Ja' : 'Marko', moja, telo,

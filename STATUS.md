@@ -28,8 +28,10 @@ instalaciju i rad. Izbrisani fajlovi ostaju u Git istoriji.
 
 ## Nije završeno
 
-- Puna Jest regresija još sadrži zastarele testove za ranije tabove Poruka,
-  deljenje telefona, stare olovke na pregledu, map marker i vremensku zonu.
+- Puna Jest regresija: 615/621 paketa i 14.129/14.162 testova prolazi.
+  Preostalih 6 paketa / 33 testa su u Dogovorima i dalje očekuju svesno,
+  dvosmerno deljenje telefona. Trenutni ekran dozvoljava samo Poruke u
+  aplikaciji. To je odluka o proizvodu i privatnosti koja čeka vlasnikov izbor.
   CI namerno pokreće celu regresiju i neće biti zelen dok se očekivanja ne
   usklade sa odobrenim proizvodnim ponašanjem. Ne zaobilaziti padove samo da
   provera pozeleni.
