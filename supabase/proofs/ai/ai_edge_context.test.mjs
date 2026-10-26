@@ -131,7 +131,7 @@ test('requester Gemini prompt asks only one missing fact and retains safety/revi
  const rules=prompt(providerCall(f));
  assert.match(rules,/najviše JEDNU nepoznatu informaciju/);
  assert.match(rules,/Jedno korisno pitanje po poruci/);
- assert.match(rules,/iskusan poslovođa i savetnik naručioca/);
+ assert.match(rules,/savetnik naručioca za jedan zadatak/);
  assert.match(rules,/ako površina nije navedena, pitajte približnu kvadraturu/);
  assert.match(rules,/SVE jasne činjenice/);
  assert.doesNotMatch(rules,/experienced, warm craft and work-profile mentor/);
@@ -139,14 +139,14 @@ test('requester Gemini prompt asks only one missing fact and retains safety/revi
  assert.match(rules,/Tačna privatna adresa\/access notes/);
  assert.match(rules,/ends_at je opcion/);
  assert.match(rules,/Pregled pokazuje nedostatke/);
+ assert.ok(rules.length<30000,`stable task instruction grew to ${rules.length} characters`);
 });
 
 test('task prompt preserves proportional TOTAL applications and clarification without invented audio access',async()=>{
   const f=fixture();assert.equal((await f.invoke()).status,200);
   const instruction=prompt(providerCall(f));
   assert.ok(instruction.includes('TOTAL dozvoljava prijavu i za deo traženih ljudi'));
-  assert.ok(instruction.includes('jedna dobija 3333, a dve 6667'));
-  assert.ok(instruction.includes('need.price_rsd ostaje ukupna cena zadatka'));
+  assert.ok(instruction.includes('need.price_rsd ostaje ukupna cena'));
   assert.ok(!instruction.includes('jedna prijava pokriva ceo zadatak'));
   assert.ok(!instruction.includes('cuo sam od tebe'));
   assert.ok(instruction.includes('safety CLARIFY i bez novih činjenica'));
@@ -318,8 +318,8 @@ for(const [now,startsAt,endsAt,inclusiveLastDate] of [
 ])test(`server next calendar week uses per-date offsets and exclusive end at ${now}`,async()=>{
   const f=fixture({now});assert.equal((await f.invoke()).status,200);
   assert.deepEqual(timeContext(providerCall(f)).nextCalendarWeek,{startsAt,endsAt,inclusiveLastDate});
-  assert.ok(prompt(providerCall(f)).includes('inclusiveLastDate poslednji uključeni dan'));
-  assert.ok(prompt(providerCall(f)).includes('od 19. do 25. oktobra, ne 19–26'));
+  assert.ok(prompt(providerCall(f)).includes('ljudima prikažite startsAt–inclusiveLastDate'));
+  assert.ok(prompt(providerCall(f)).includes('DST može dati različite pomake granica'));
   const write=materialWrites(f).find(c=>c.url.includes('/rpc_ai_complete_need_turn_v2_service'));
   assert.ok(write);assert.ok(!JSON.stringify(write.body).includes('nextCalendarWeek'));
 });
@@ -340,8 +340,8 @@ for(const provider of ['gemini'])test(`${provider} actual handler sends newest30
   const call=providerCall(f),messages=provider==='gemini'?call.body.contents:call.body.input;
   const texts=messages.map(x=>x.parts?.[0].text??x.content[0].text);
   assert.deepEqual(texts,[...Array.from({length:30},(_,i)=>`SYNTHETIC_HISTORY_${i+21}`),userText]);
-  assert.match(prompt(call),/nedostajući čas, trajanje, kraj termina ili nejasnu lokaciju/);
-  assert.match(prompt(call),/nikada potvrđen termin Zadatka/);assert.match(prompt(call),/ljudska potvrda/);
+  assert.match(prompt(call),/ne izmišljajte čas, trajanje ili kraj/);
+  assert.match(prompt(call),/ne potvrđen termin/);assert.match(prompt(call),/ljudska potvrda/);
   assert.equal(timeContext(call).timeZone,'Europe/Belgrade');
   if(provider==='gemini'){
     assert.equal(call.headers['x-goog-api-key'],f.env.GEMINI_API_KEY);assert.equal(new URL(call.url).search,'');

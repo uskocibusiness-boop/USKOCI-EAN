@@ -6,8 +6,8 @@ test('shared USKOČI dialogue has one question, remembers clear answers and does
  const rules=interviewVoiceInstruction();
  assert.match(rules,/Jedno korisno pitanje po poruci/);
  assert.match(rules,/najviše JEDNU informaciju/);
- assert.match(rules,/prihvati sve druge jasne odgovore/);
- assert.match(rules,/ne postavljaj već odgovoreno pitanje/);
- assert.match(rules,/pre potvrde sistema/);
+ assert.match(rules,/Prihvatite sve jasne podatke/);
+ assert.match(rules,/ne pitajte već odgovoreno/);
+ assert.match(rules,/bez potvrde sistema/);
  assert.ok(rules.length < 1600,'do not grow duplicated conversational guidance');
 });

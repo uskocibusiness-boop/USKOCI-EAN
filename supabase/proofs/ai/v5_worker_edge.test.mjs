@@ -92,6 +92,7 @@ test('worker Gemini prompt asks one question while preserving area, availability
  assert.match(rule,/Novi Sad i Beograd means two CITY entries/);
  assert.match(rule,/Only explicit Sačuvaj profil in the review applies the changes/);
  assert.match(rule,/availabilityChange is/);
+ assert.ok(rule.length<20000,`stable worker instruction grew to ${rule.length} characters`);
 });
 
 test('COUNTRY area request reaches the service-only writer as canonical workAreas without coordinates',async()=>{
@@ -544,11 +545,11 @@ test('completed/unknown claim replay cannot reserve or call the provider again',
 test('draft worker requires administrative city for activation without limiting remote work or asking an address',async()=>{
  const f=fixture(); await events(f);
  const instruction=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
- assert.match(instruction,/current server activation rpc_complete_worker_profile requires a city for a NEW DRAFT/);
- assert.match(instruction,/ask ONE short natural question for the administrative city/);
+ assert.match(instruction,/A NEW DRAFT needs one city even for REMOTE work/);
+ assert.match(instruction,/if missing, ask one natural question for the city/);
  assert.match(instruction,/Administrative city does NOT restrict REMOTE matching/);
- assert.match(instruction,/For an already ACTIVE profile, do not reopen the city interview/);
- assert.match(instruction,/Never invent a city or infer it from offered service/);
+ assert.match(instruction,/Do not reopen missing city for an ACTIVE legacy profile/);
+ assert.match(instruction,/never infer it from language, phone, service, work area or geolocation/);
  assert.match(instruction,/Only explicit Sačuvaj profil in the review applies the changes/);
  assert.doesNotMatch(instruction,/Do not require a home city, address or GPS for a new worker/);
 });
