@@ -40,6 +40,7 @@ jobs:
           node --test --test-reporter=dot supabase/proofs/ai/ai_edge_context.test.mjs
           node --test --test-reporter=dot \
             supabase/proofs/ai/v5_ai_stream.test.mjs \
+            supabase/proofs/ai/taxonomy_recovery_diagnostic.test.mjs \
             supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs \
             supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs \
             supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs

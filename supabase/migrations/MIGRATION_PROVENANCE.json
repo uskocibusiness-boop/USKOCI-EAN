@@ -3402,5 +3402,55 @@
     ],
     "closure_release_ready": false,
     "immutability": "Append-only evidence; historical entries and migration history untouched. Never replay archived SQL."
+  },
+  "physical_suffix_reconciliation_20261026": {
+    "observed_at_utc": "2026-10-26",
+    "project": "leqcwgzvjsxugfgzdmth",
+    "scope": "Append-only, independently checked read-only reconciliation of three applied SQL migrations. Recorded ledger versions differ from GitHub physical filenames, and recorded statement bytes differ from canonical physical source bytes. Never replay because this classification is not semantic equivalence.",
+    "evidence": "supabase/operations/dev-alpha/ledger/20261026_ai_contract_migrations.readonly.json",
+    "entries": [
+      {
+        "file": "20261026145430_worker_ai_signed_work_areas.sql",
+        "version": "20261026145430",
+        "name": "worker_ai_signed_work_areas",
+        "classification": "APPLIED_RECORDED_BYTES_DIFFER",
+        "live_applied": true,
+        "live_version": "20261026145706",
+        "live_name": "worker_ai_signed_work_areas",
+        "live_recorded_md5": "fb8070f2d4175cf566481a9a47733ab8",
+        "live_recorded_sha256": "813c9f3be56bb6afa7e0ac789f1aaa5f4aa71f60a726c55766f84ecfa4c4317f",
+        "raw_md5": "908066ca45a462df3a0d7a022c3334b5",
+        "raw_sha256": "2a78b6b90f1863b584af5f755050019960ba5728aab0684cd6f23f54d03a5ec7",
+        "raw_bytes": 13361
+      },
+      {
+        "file": "20261026150020_worker_ai_area_source_continuity.sql",
+        "version": "20261026150020",
+        "name": "worker_ai_area_source_continuity",
+        "classification": "APPLIED_RECORDED_BYTES_DIFFER",
+        "live_applied": true,
+        "live_version": "20261026150106",
+        "live_name": "worker_ai_area_source_continuity",
+        "live_recorded_md5": "aaf17069e3c97106121f51f11d5e6ec3",
+        "live_recorded_sha256": "bd1c5745e5c96ca541689522e8c81f7fc50d222dd58e925f96952a3488638230",
+        "raw_md5": "6226d1caa6103a1212fe92793538a427",
+        "raw_sha256": "d2179e1f713fcfa6f29612270aca36266b5b706b58a58dfa2eae2171876629e0",
+        "raw_bytes": 3428
+      },
+      {
+        "file": "20261026150523_classification_hint_revision_fence.sql",
+        "version": "20261026150523",
+        "name": "classification_hint_revision_fence",
+        "classification": "APPLIED_RECORDED_BYTES_DIFFER",
+        "live_applied": true,
+        "live_version": "20261026150745",
+        "live_name": "classification_hint_revision_fence",
+        "live_recorded_md5": "26222bfc3f98c8b01503411583dc61be",
+        "live_recorded_sha256": "2dddf4f9916f76de65e83cd04191a21cff4d4adb097066c97d0a9fa3306a9589",
+        "raw_md5": "69a40c0d4a436a83bbe180336a5163fc",
+        "raw_sha256": "2e8a3342ed3d625f398ebbda8d21e799dcdbb136b801337136b0aea68ded60e8",
+        "raw_bytes": 7036
+      }
+    ]
   }
 }
