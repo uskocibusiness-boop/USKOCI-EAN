@@ -115,5 +115,35 @@ class PhysicalSuffixTests(unittest.TestCase):
         self.mutate("APPLIED_EXACT_LEDGER_BYTES", "classification", "ASSUMED_SAFE")
 
 
+class Oct26ReconciliationTests(unittest.TestCase):
+    def setUp(self):
+        root = Path(__file__).parent
+        metadata = json.loads((root / "MIGRATION_PROVENANCE.json").read_text(encoding="utf-8"))
+        self.section = metadata["physical_suffix_reconciliation_20261026"]
+        self.evidence = json.loads((root.parent.parent / self.section["evidence"]).read_text(encoding="utf-8"))
+        self.manifest = dict((line.split("  ")[1], line.split("  ")[0])
+                             for line in (root / "MD5_MANIFEST.txt").read_text(encoding="utf-8").splitlines())
+
+    def test_frozen_ledger_mapping_is_not_conflated_with_git_source_bytes(self):
+        verified = check_physical_suffix(self.section, self.manifest, self.evidence)
+        self.assertEqual(len(verified), 3)
+        for row in self.section["entries"]:
+            self.assertTrue(row["live_applied"])
+            self.assertEqual(row["classification"], "APPLIED_RECORDED_BYTES_DIFFER")
+            self.assertNotEqual(row["version"], row["live_version"])
+            self.assertNotEqual(row["raw_sha256"], row["live_recorded_sha256"])
+
+    def test_false_exact_byte_claim_or_wrong_ledger_hash_fails_closed(self):
+        for mutation in ("classification", "live_recorded_sha256", "raw_md5"):
+            with self.subTest(mutation=mutation):
+                section = copy.deepcopy(self.section)
+                if mutation == "classification":
+                    section["entries"][0][mutation] = "APPLIED_EXACT_LEDGER_BYTES"
+                else:
+                    section["entries"][0][mutation] = "INVALID"
+                with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                    check_physical_suffix(section, self.manifest, self.evidence)
+
+
 if __name__ == "__main__":
     unittest.main()

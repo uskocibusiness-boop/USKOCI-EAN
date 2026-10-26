@@ -156,7 +156,24 @@ def main() -> None:
         if not evidence_path.is_relative_to(ROOT.parent.parent.resolve()):
             fail("physical suffix evidence escaped repository")
         suffix_names = check_physical_suffix(suffix, manifest_map, json.loads(evidence_path.read_text(encoding="utf-8")))
-    if history_names + pending_names + suffix_names != disk_names:
+    # Oct-26 forward work has independently observed live ledger revisions,
+    # but differently named physical files and different recorded SQL bytes.
+    # Preserve the Oct-18 snapshot unchanged; check the new evidence separately.
+    oct26_section = metadata.get("physical_suffix_reconciliation_20261026")
+    oct26_suffix_names = []
+    if oct26_section:
+        oct26_evidence_path = (ROOT.parent.parent / oct26_section["evidence"]).resolve()
+        if not oct26_evidence_path.is_relative_to(ROOT.parent.parent.resolve()):
+            fail("Oct-26 suffix evidence escaped repository")
+        oct26_suffix_names = check_physical_suffix(
+            oct26_section, manifest_map,
+            json.loads(oct26_evidence_path.read_text(encoding="utf-8")),
+        )
+        if len(oct26_suffix_names) != 3:
+            fail("Oct-26 physical reconciliation requires exactly three recorded files")
+        if suffix_names and oct26_suffix_names[0] <= suffix_names[-1]:
+            fail("Oct-26 reconciliation is not strictly after earlier physical suffix")
+    if history_names + pending_names + suffix_names + oct26_suffix_names != disk_names:
         fail(
             "frozen history/replay plus current physical suffix do not exactly match "
             "canonical migration files"
@@ -251,6 +268,7 @@ def main() -> None:
         f"live_snapshot={len(history_entries)} "
         f"pending={len(pending_names)} "
         f"physical_suffix={len(suffix_names)} "
+        f"oct26_suffix={len(oct26_suffix_names)} "
         "191500=RECORDED_STATEMENT_RECONSTRUCTION "
         "exact_byte_mirror=false "
         "participant_contract=PASS"
