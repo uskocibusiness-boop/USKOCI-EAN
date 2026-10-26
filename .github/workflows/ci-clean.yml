@@ -29,10 +29,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed
+        with:
+          deno-version: v2.5.6
       - name: Install exact dependencies and verify native patch
         run: npm ci
       - name: TypeScript
         run: npx tsc --noEmit
+      - name: Deno AI Edge import and type checks (no execution)
+        run: |
+          deno check --no-config --no-lock --no-npm --no-remote \
+            supabase/functions/uskoci-ai-interview/index.ts \
+            supabase/functions/uskoci-worker-interview/index.ts \
+            supabase/functions/uskoci-taxonomy-postsave-worker/index.ts
       - name: Mobile unit and contract tests
         run: npm test -- --maxWorkers=2 --silent
       - name: AI intake and taxonomy contracts
@@ -41,9 +50,18 @@ jobs:
           node --test --test-reporter=dot \
             supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs \
             supabase/proofs/taxonomy/published_need_category_gate.test.mjs \
+            supabase/proofs/taxonomy/live_writer_characterization.test.mjs \
             supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs \
             supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs \
             supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs
+          node --test --test-reporter=dot \
+            supabase/proofs/dynamic_taxonomy/classification-gemini-shadow.test.mjs \
+            supabase/proofs/dynamic_taxonomy/service-handoff.test.mjs \
+            supabase/proofs/dynamic_taxonomy/worker-existing-identity-recovery.test.mjs \
+            supabase/proofs/dynamic_taxonomy/classification-direct-reply.test.mjs \
+            supabase/proofs/dynamic_taxonomy/classification-verified-alias.test.mjs \
+            supabase/proofs/dynamic_taxonomy/classification-turn-feedback.test.mjs \
+            supabase/proofs/dynamic_taxonomy/classification-gemini-shadow-source.test.mjs
       - name: Migration source integrity
         run: |
           python supabase/migrations/check_migration_integrity.py
