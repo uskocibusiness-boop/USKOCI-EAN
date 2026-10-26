@@ -32,7 +32,7 @@ function queryCatalog(query,catalog){
   classificationAuthority:'NONE',capabilityAuthority:'NONE',notificationAuthority:'NONE'};
 }
 function fixture(options={}){
- let handler;const calls=[],env={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'PUBLIC_SYNTHETIC',SUPABASE_SERVICE_ROLE_KEY:'SERVICE_SYNTHETIC',
+ let handler;const calls=[],env={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'PUBLIC_SYNTHETIC',SUPABASE_SERVICE_ROLE_KEY:'SERVICE_SYNTHETIC',LOCATIONIQ_ACCESS_TOKEN:'LOCATION_SYNTHETIC',
   AI_PROVIDER:'gemini',GEMINI_MODEL:'gemini-3.8-flash',GEMINI_API_KEY:'PROVIDER_SYNTHETIC',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',...options.env};
  const output=options.output??{assistantMessage:'Profil je spreman za zajednički pregled 🟢.',safety:'ALLOW',patch:{skills:['Prenos stvari']}};
  const fetch=async(url,init={})=>{
@@ -56,6 +56,10 @@ function fixture(options={}){
   if(url.endsWith('/rpc_ai_test_record_usage_service')){const body=JSON.parse(init.body);return json({recorded:true,authoritative:true,
    operationId:body.p_operation_id,promptTokens:body.p_prompt_tokens,outputTokens:body.p_output_tokens,totalTokens:body.p_total_tokens});}
   if(url.endsWith('/rpc_fail_worker_ai_turn_service'))return options.fail?.(init)??json(turn('FAILED'));
+  if(url.startsWith('https://eu1.locationiq.com/v1/search')){
+   assert.ok(options.geocoder,'UNEXPECTED_LOCATIONIQ_CALL');
+   return json(options.geocoder(new URL(url)));
+  }
   if(url.startsWith('https://generativelanguage.googleapis.com/')){
    if(options.provider) return options.provider(init);
    const raw=JSON.stringify({availabilityChange:options.availabilityChange??{kind:'NONE',evidence:''},...output}),fragments=Array.from(raw);
@@ -88,6 +92,32 @@ test('worker Gemini prompt asks one question while preserving area, availability
  assert.match(rule,/Novi Sad i Beograd means two CITY entries/);
  assert.match(rule,/Only explicit Sačuvaj profil in the review applies the changes/);
  assert.match(rule,/availabilityChange is/);
+});
+
+test('COUNTRY area request reaches the service-only writer as canonical workAreas without coordinates',async()=>{
+ const output={assistantMessage:'Cela Srbija je dodata u nacrt područja rada.',safety:'ALLOW',patch:{
+  areaRequests:[{kind:'COUNTRY',countryCode:'RS',query:'',radiusKm:null}]}};
+ const f=fixture({output});await events(f,{text:'Radim na terenu po celoj Srbiji.'});
+ assert.equal(providers(f).length,1);
+ assert.deepEqual(completions(f)[0].body.p_output.patch,{workAreas:[{
+  kind:'COUNTRY',countryCode:'RS',label:'Cela Srbija',city:null,sourceRef:null,
+  latitude:null,longitude:null,radiusKm:null}]});
+ assert.equal(f.calls.filter(c=>c.url.startsWith('https://eu1.locationiq.com/')).length,0);
+});
+
+test('RADIUS area request is resolved by LocationIQ and only rounded canonical data reaches SQL',async()=>{
+ const output={assistantMessage:'Novi Sad i krug od 30 km su u nacrtu.',safety:'ALLOW',patch:{
+  areaRequests:[{kind:'RADIUS',countryCode:'RS',query:'Novi Sad',radiusKm:30}],
+  location:{city:'NE_SME_PROCI',radiusKm:30}}};
+ const f=fixture({output,geocoder:url=>{
+  assert.equal(url.searchParams.get('q'),'Novi Sad');
+  assert.equal(url.searchParams.get('countrycodes'),'rs');
+  return [{type:'city',class:'place',osm_type:'relation',osm_id:'12345',lat:'45.267136',lon:'19.833549',
+   address:{country_code:'rs',city:'Novi Sad'}}];
+ }});await events(f,{text:'Radim u Novom Sadu i do 30 kilometara.'});
+ assert.deepEqual(completions(f)[0].body.p_output.patch,{workAreas:[{
+  kind:'RADIUS',countryCode:'RS',label:'Novi Sad · do 30 km',city:'Novi Sad',
+  sourceRef:'osm:relation:12345',latitude:45.27,longitude:19.83,radiusKm:30}]});
 });
 
 test('invalid fallback worker patch still settles complete provider thinking usage once',async()=>{
