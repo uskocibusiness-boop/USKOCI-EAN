@@ -34,7 +34,7 @@ describe('first USKOČI AI welcome',()=>{
   });
   test('worker LLM is instructed not to repeat onboarding or request unsupported fields',()=>{
     const source=readFileSync(resolve(__dirname,'../../../../supabase/functions/uskoci-worker-interview/index.ts'),'utf8');
-    expect(source).toContain('The phone already shows the opening introduction');
+    expect(source).toContain('The phone already showed the introduction');
     expect(source).toContain('Ask at most ONE short question per reply');
     expect(source).toContain('Only explicit Sačuvaj profil in the review applies the changes');
   });
