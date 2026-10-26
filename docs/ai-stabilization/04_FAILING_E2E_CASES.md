@@ -1,20 +1,25 @@
-# Regression and E2E evidence ledger
+# Regresije i E2E granice
 
-## Reproduced and corrected locally
+| Lokalno reprodukovan problem | Popravka |
+| --- | --- |
+| S09: HTTP429/503, abort, invalid/truncated JSON postaje pitanje | Tehnički status odvojen od prave semantičke nejasnoće; nema izmišljenog pitanja. |
+| S10: katalog/workAreas/provider guess pretpostavlja mode | Saved izbor ili USER-quote predlog; nepoznato ostaje nepoznato, handoff se čuva. |
+| Samo mode/handoff promena ne pokreće klasifikaciju | Postojeći mode helper/schema uključen u dual tok; metadata uklonjena pre completion RPC-a. |
+| Provider outage propušta nov mode koji katalog podržava | Nova scope promena ne prolazi bez validne odluke; nepromenjeni saved izbor opstaje. |
+| Biografija produžava obavezan razgovor | Opciono; eksplicitno tražen predlog ide u isti završni review. |
+| Writer vreme pogrešno nazvano Gemini latencijom | PROVIDER wrapper i stvarni handler testovi success/failure, bez sadržaja poruka. |
+| CHECK blokira pending objavu i stare izmene | Kandidat povučen/arhiviran; 6 izvršnih PG testova čuva FK i scope granice. |
 
-| Case | Root cause | Fix | Verification |
-| --- | --- | --- | --- |
-| CI welcome assertion failed after prompt condensation | Test expected a removed long-form sentence. | `0fff6e4c` asserts the current concise copy. | Focused Jest: 5/5; full suite: 621 suites / 14,131 tests. |
-| Worker prompt lost functional safety instructions | Condensation removed rules rather than merely shrinking duplicate text. | `8cacf889` restores compact rules for multi-fact patches, related work, city/privacy, and truthful completion. | Worker proofs: 127/127. |
-| Background classifier time appeared as `UNKNOWN` | Telemetry vocabulary lacked two active phase names. | `8967ee21` names requester/worker background architecture phases. | Relevant AI proofs: 261/261. |
+Ranije: welcome assertion 0fff6e4c, worker safety pravila 8cacf889, BG labels 8967ee21. Njihovi raniji test brojevi su istorijski, ne novi E2E.
 
-## Not yet a claimed E2E pass
+## Nije potvrđeno
 
-No test account was used to invoke a real Gemini turn, save an AI draft, publish it, match it, or send a push. Therefore these remain required DEV E2E cases, not completed work:
+- Stvarni Gemini kvalitet/latencija, geocoder, telefon i DEV deploy: nisu izvršeni novi pozivi.
+- S07/S08 semantički REUSE različitog naziva i signed SQL admission nisu rešeni.
+- S06/F4 durable retry i kompletna 70+30 golden matrica nisu završeni.
+- Review→Save→objava→matching→push→prijava→Dogovor nije izvršen.
+- EUR korekcija ranije aktivnog RSD fakta ostaje postojeći TODO: potreban atomski writer/review ugovor.
+- HOURLY/downstream cene zahtevaju poslovni ugovor; nema tihe konverzije.
+- Objavljeno bez kategorije nije samo po sebi zabranjeno; nije dozvola za automatski matching.
 
-1. Requester: on-site, remote/handoff, flexible date, EUR, and ready-to-review flows.
-2. Worker: city plus signed radius, remote-only, replacement skill list, and save/reopen behavior.
-3. Cross-path: semantic change causes one background classifier capture; price/date/address-only edits do not.
-4. Publication/matching: a newly published need must carry a canonical `category_id`; inspect the two historical null-category publications before adding any enforcement.
-
-The execution constraint remains: no DEV invocation, deployment, data write, or real notification without explicit approval.
+Tačni testovi i commitovi su u glavnom status fajlu u korenu. Lokalne popravke nisu DEPLOYED niti E2E_PASS.

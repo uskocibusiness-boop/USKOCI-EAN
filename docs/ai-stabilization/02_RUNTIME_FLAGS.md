@@ -1,17 +1,29 @@
-# Runtime flags and latency boundaries
+# Runtime zastavice, payload i latencija
 
-This is a source-and-DEV-evidence record, not a dump of secrets.
+Ključevi nisu čitani/beleženi. Source uključuje dual režim u DEV-u osim kada je USKOCI_TAXONOMY_DUAL_GEMINI=false; raniji logovi pokazuju BG aktivnost, ali tačne skrivene flag vrednosti nisu potvrđene.
 
-| Item | What is proven | What is not proven |
-| --- | --- | --- |
-| Dual Gemini gate | Source enables it in DEV unless `USKOCI_TAXONOMY_DUAL_GEMINI` is exactly `false`; DEV logs include background architect activity. | The stored secret value was not read. |
-| Primary interview | Both active DEV edge versions match the current local source at the audited files. | A real user/device transcript was not generated here. |
-| Background classifier | It runs after the durable main response and only for semantic change/pending clarification. Historical samples take roughly 6–9 seconds. | That duration is not requester reply latency. |
-| Main completion | Sampled logs show requester `NEED_COMPLETE` and worker `WORKER_COMPLETE` timing. | No per-turn full waterfall is persisted yet for auth, preflight hint, provider TTFT, writer and UI paint. |
-| Optional preflight hint | Both edges perform an optional, bounded clarification-hint read before the main turn. | Removing/reordering it is not safe until its value and timeout impact are measured. |
+| Mera | Stvarno značenje |
+| --- | --- |
+| NEED_COMPLETE / WORKER_COMPLETE | Samo completion/writer RPC. Ranijih približno 120–329 ms NIJE vreme Gemini odgovora. |
+| PROVIDER | Novi lokalni wrapper za oba direktna streaming poziva; čekanje i prijem stream-a, bez naknadnog parse/writer/readback/UI. |
+| NEED_BG_ARCHITECT / WORKER_BG_ARCHITECT | BG katalog/klasifikacija; ranijih približno 6–9 s nije glavni odgovor. Faza može završiti bez izuzetka uz tehnički failure kod. |
+| Klijent | NEED čeka EOF pa owned readback; worker prihvata potvrđeni delta pa readback. Vreme prikaza na telefonu nije izmereno. |
 
-## Interpretation rule
+Stari opis COMPLETE kao glavne Gemini latencije bio je pogrešan.
 
-The main interview Gemini needs only compact role/extraction/question guidance plus the current verified conversation state. Deterministic rules remain outside it: auth, revision fence, RSD/EUR and date validation, geocoding, signed work areas, review/save, publication, matching, and RLS.
+## Sintetičko lokalno merenje, bez provider poziva
 
-`8967ee21` adds the missing telemetry names `NEED_BG_ARCHITECT` and `WORKER_BG_ARCHITECT`. It does not change execution order, provider calls, or user-facing behavior.
+| Dual tok | Stabilno uputstvo (znaci) | Dinamički system deo | Ceo JSON zahtev (UTF-8 bajtovi) |
+| --- | ---: | ---: | ---: |
+| WORKER, posle lokalnih izmena | 19.759 | 448 | 23.737 |
+| NEED | 26.819 | 357 | 29.933 |
+
+Prazan kalendar/owned state; ovo nije produkcioni prosek. History se šalje zasebno u contents i povećava zahtev. Nema eksplicitne cachedContent reference u pregledanom zahtevu. To ne dokazuje odsustvo implicitnog cache-a, cache hit ili 75% uštede.
+
+Zadržani limiti: zahtev 262.144 bajtova, output 8.192 tokena; direktni provider 30 s, research 42 s, klijent 55 s. Limiti nisu izmerena latencija i nisu povećavani.
+
+## Otvoreno F6/F10
+
+Kratko normativno uputstvo, uklanjanje duplikata uz golden testove i očuvanje kalendara/cene/geografije/signed Save zaštita. Kompaktni serviceMeaning za klasifikator umesto nepotrebne istorije. Bez-PII trace auth/preflight/TTFT/provider/writer/readback/UI; p50/p95 i usage/cache merenje na posebno odobrenim DEV pozivima.
+
+Nema sirovog token-streama pre validacije samo radi privida brzine. Konačno sažimanje i poboljšanje stvarne brzine NISU završeni.

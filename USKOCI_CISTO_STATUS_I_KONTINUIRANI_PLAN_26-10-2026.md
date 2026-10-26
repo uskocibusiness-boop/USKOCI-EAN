@@ -1,222 +1,128 @@
-# USKOČI ČISTO — status, dokaz i kontinuirani plan
+# USKOČI ČISTO — objedinjeni status i nastavak MASTER plana
 
-Presek: 26. oktobar 2026, grana `feature/uskoci-cisto`, Supabase DEV projekat `leqcwgzvjsxugfgzdmth`.
+Ažurirano: 27.10.2026, lokalno vreme; read-only DEV dokazi prikupljeni 26.10. UTC.
+Repo: uskocibusiness-boop/USKOCI-EAN. Jedina grana rada: feature/uskoci-cisto.
+Ovaj dokument zamenjuje raniji preoptimističan zaključak o „osam zatvorenih celina”.
 
-Ovaj dokument je operativni status posle rada na ČISTO grani. Priloženi forenzički plan `USKOCI_CISTO_KONACNI_PLAN_ISPRAVKI_AI_26-10-2026.md` tretiran je kao referentni nalaz i backlog, ne kao instrukcija koju treba slepo izvršiti. Nova istina je stanje koda, testova, commitova i DEV-a navedeno ispod.
+## 1. Gde smo stvarno
 
-## Kratak zaključak
+Izvršene su konkretne lokalne popravke, ali **aplikacija nije proglašena završenom niti E2E potvrđenom**.
+MASTER F0 je delimično urađen; postoje lokalno potvrđene P0 regresije i mali popravci iz F2/F6/F10. Nema nove arhitekture, novih SQL migracija ili masovnog brisanja.
 
-Temelj je sada sređen u osam zatvorenih, dokazivih celina:
+Ovu etapu vode originalni USKOCI_ULTRA_MASTER_PLAN_2026-10-26 i izvršna komanda iz Downloads. Oba dokumenta pročitana su u celosti. Stari dodatni izveštaji navedeni u njihovom poglavlju izvora nisu svi pronađeni/pročitani i ne navode se kao novo provereni dokaz.
 
-1. radne oblasti radnika prolaze kroz signed worker pipeline;
-2. klasifikaciona pitanja imaju trajnu numeric revision zaštitu i stale fence;
-3. drugi Gemini se više ne poziva kada se klasifikaciono značenje nije promenilo;
-4. task i worker promptovi su skraćeni i usaglašeni na jedno kratko pitanje;
-5. lokalna migraciona evidencija i stale CI očekivanje su usklađeni bez lažnog preimenovanja živog SQL-a;
-6. kratki worker prompt je dobio nazad samo funkcionalno neophodna safety pravila;
-7. pozadinski Gemini ima tačne telemetry oznake, pa se njegova obrada ne tumači kao čekanje glavnog razgovora;
-8. buduća objava bez kanonske kategorije ima lokalni, unapred pripremljen DB gate.
+## 2. Šta je sada popravljeno
 
-Nije dirana produkcija. Nije deployovan DEV. Nije diran ugovor za `HOURLY`, jer plan pravilno zahteva odluku kako se računa konačna prijava i Dogovor. Sledeći dokazni korak je pravi DEV E2E tok sa testnim nalozima, zatim satnica tek kada se potvrdi njen proizvodni ugovor.
+### A. Povučena pogrešna zabrana objave — commit 46ab53e5
 
-## Šta je urađeno i dokazano
+Prethodni 278aec2a je dodao neprimenjenu CHECK NOT VALID zabranu PUBLISHED zadatka bez category_id.
+To nije bilo usklađeno sa MASTER F5.3: objava može postojati dok automatsko povezivanje čeka potvrdu usluge. Izvršni PostgreSQL test pokazao je i da zabrana blokira običnu izmenu naslova starog objavljenog zadatka.
 
-### 1. Worker `workAreas` end-to-end
+- Kandidat uklonjen samo iz aktivnog migracionog spiska i sačuvan identičan pod docs/ai-stabilization/rejected/.
+- DEV provera potvrđuje da constraint nikada nije bio postavljen; baza nije menjana.
+- Sačuvani postojeći FK i strict scope matching; kategorički ID sam nije dovoljan bez potpisane aktuelne revizije i saglasnosti radnika.
+- PGlite je dodat samo kao pinovana dev/test zavisnost, ne runtime aplikacije.
+- Dokaz: 6/6 izvršnih PG testova; 15/15 migration integrity testova; integrity PASS za 193 SQL fajla.
+- Granica: minimalne fixture tabele i PG18.3; nije puna DEV PG17 publish/binder/dispatch proba.
 
-Commit: `44a2d98 Fix signed worker work areas pipeline`.
+### B. Razgovor i klasifikator — commit d2290292, nije deployovano
 
-Urađeno:
+- **S09:** 429/503, abort, neispravan/nepotpun JSON, prekid zbog token limita i provider refusal više ne postaju lažno pitanje korisniku. Razlikuju se tehnički statusi; prava semantička nejasnoća i dalje može dati jedno pitanje.
+- **S10:** radnik ne dobija ON_SITE iz kataloga ili područja rada. Čuvaju se njegovi saved izbori i handoff; nova promena zahteva postojeći USER-quote ugovor i validan rezultat, pa tek onda signed review/Save.
+- Promena samo načina rada ili predaje sada pokreće dual klasifikator. Nevalidni/stari citati i BLOCK/REVIEW ne pokreću nepotrebni posao.
+- Greška modela ne sme proširiti mode čak ni kada katalog podržava novi mode. Nepromenjeni sačuvani izbor opstaje.
+- Biografija je opciona; nema obaveznog dodatnog razgovora i zasebne potvrde pre završnog review-a.
+- Oba direktna streaming razgovora imaju PROVIDER merenje success/failure bez sadržaja poruka.
+- Signed Save, owner/revision fence, geocoder/workAreas, potpuna skills lista i bezbednosna validacija ostali su postojeći autoriteti.
+- Tehnički failure statusi JESU dijagnostika, ali NISU trajni retry mehanizam.
 
-- `areaRequests` se razrešava kroz postojeći server-side geocoder/resolver;
-- samo service-owned tok sme da upiše kanonizovane oblasti;
-- ručni/auth patch i LLM koordinate se odbijaju;
-- nove sesije čitaju signed work areas i source hash;
-- posle Save-a refresh se radi samo za istu signed sesiju/reviziju;
-- konkurentna ili stara sesija ostaje stale;
-- kompatibilne stare otvorene sesije su migrirane, a stvarno zastarela namerno ostavljena stale;
-- matching scenariji: blizu Novog Sada, Beograd van zone, `COUNTRY`, `REMOTE` bez terenskih oblasti.
+Status: CODE_CHANGED_NOT_E2E. Ceo AI paket je ponovo izvršen posle ispravki testne infrastrukture: 796 PASS, 0 FAIL, 1 postojeći TODO.
 
-Promenjeni artefakti uključuju SQL migracije `20261026145430_worker_ai_signed_work_areas.sql` i `20261026150020_worker_ai_area_source_continuity.sql`, proof `worker_signed_areas_sql.test.mjs` i worker edge test.
+### C. Forenzički pregled i istinitija evidencija
 
-Dokaz: ciljani server testovi 123/123, client testovi 196/196, TypeScript čist. DEV SQL i signed review provereni.
+- GitHub početni HEAD ponovo potvrđen kao 70ac69c3; lokalna grana nije bila iza remote-a.
+- PR #40/#41/#42 su OPEN; nisu spojeni. Razlika prema unified-qa-master pokazuje 223 uklonjena istorijska workflow-a i jedan novi ci-clean. To nije automatski dokaz da sve stare CI provere imaju zamenu; pokrivenost treba zasebno mapirati.
+- Devet OPEN pending slučajeva razdvojeno je na **3 STALE_REPLACED** i **6 UNDETERMINED**. Tri stara worker pregleda već imaju noviji Save istog profila. Nema masovnog retry-a ili promene statusa.
+- Svaki praćeni fajl dobija hash/tip/status u FILE_REVIEW_LEDGER-u. Automatski popis nije „pročitao sam sve”; nepregledani fajlovi su jasno označeni.
+- Statički import/RPC graf polazi od šest aktivnih ulaza; nije kompletan runtime/SQL/trigger graf.
 
-### 2. Trajna klasifikaciona pitanja i revision fence
+### D. Testna infrastruktura — commit 33b1a50f
 
-Commit: `669df27 Fence taxonomy hints by durable revision`.
+Obnovljene su reference QA testova na jedini postojeći policy izvor u migraciji, ne stari direktorijum dokumenata. Helper proverava kompletan hash 4.771-bajtnog originala i identičan neaktivirani renderer. Cela AI offline grupa i dodatne regresije uključene su u ci-clean.yml. Nije pokrenut nijedan disposable SQL proof protiv DEV-a.
 
-Urađeno:
+Novi kodni commitovi ove etape: 46ab53e5, d2290292, 33b1a50f. Dokumentacioni commit čuva ovaj presek i manifest. Stanje remote-a proverava se posle push-a; ovaj tekst sam po sebi nije potvrda GitHub CI uspeha.
 
-- UUID više ne ide kao `draftRevision`; koristi se stvarna numeric revision;
-- task koristi revision izveden iz maksimalnog message sequence-a;
-- worker koristi aktuelnu durable revision;
-- hint se ne čita iz druge revizije;
-- pogrešna/null revision se odbija;
-- upis hinta ide posle uspešnog glavnog turn-a kroz registrovani background waitUntil;
-- uveden je revision-scoped consume RPC;
-- stari cross-revision consume endpoint više nije javno/service-dostupan;
-- testiran je exact revision store/get/consume, pogrešna revizija vraća null, cleanup radi.
+## 3. Važne ispravke ranijih tvrdnji
 
-DEV funkcije posle ove celine: task v148, worker v102.
+**120–329 ms nije brzina Geminija.** NEED_COMPLETE/WORKER_COMPLETE meri samo writer RPC. Ukupna latencija do odgovora na telefonu još nije izmerena ovom etapom. Pozadinskih približno 6–9 sekundi takođe nije glavni odgovor.
 
-Dokaz: task 71/71 i worker 118/118 u ciljanim testovima, source testovi i TypeScript čisti; DEV privilege provera potvrđena.
+Promptovi nisu završno sažeti. Sintetički izmereno stabilno uputstvo: NEED 26.819 znakova, WORKER 19.759; istorija i dinamički podaci dolaze dodatno. Nema eksplicitnog cachedContent u pregledanim zahtevima. Ne postoji dokaz garantovanog cache hit-a ili 75% uštede.
 
-### 3. Klasifikacioni fingerprint i preskakanje duplog Gemini poziva
+Semantičko povezivanje različitih naziva iste usluge i dalje nije završeno: S07/S08 traže zajednički ugovor i SQL admission. Ne sme se samo izbrisati identity guard.
 
-Commit: `c3b231f Skip unchanged taxonomy classifications`.
+## 4. Testovi — šta je zaista izvršeno sada
 
-Urađeno:
+- Cela mobilna aplikacija: **621/621 paketa, 14.131/14.131 testova, 3/3 snapshot-a**.
+- TypeScript npx tsc --noEmit: PASS nakon ažuriranja mode deklaracija.
+- Sedam povezanih Edge/mode/handoff/policy paketa: 393 slučaja, **392 PASS, 0 FAIL, 1 postojeći TODO**.
+- BG failure/scope regresije: **50/50 PASS**.
+- CI taxonomy/signed-review/publication podskup: **37/37 PASS**, uključujući šest PG testova.
+- Migration integrity: **193 SQL fajla PASS; 15/15 Python testova**.
+- Svi AI proof fajlovi: **797 ukupno, 796 PASS, 0 FAIL, 1 postojeći TODO**. Stari fingerprint source regex je usklađen sa jačom USER-quote proverom. QA policy se čita iz postojeće migracije uz proveru identičnog kompletnog istorijskog hash-a; stare arhive nisu vraćene.
+- QA activation/fixture podskup: **15/15 PASS**. Tri disposable skripte su proverene sintaksno, nisu izvršavale SQL.
+- CI sada pokreće celu AI offline grupu, novu PG regresiju i Python integrity unit testove. GitHub rezultat novog SHA se ne podrazumeva iz lokalnih testova.
 
-- task fingerprint uključuje normalizovani service, opisani scope, `ON_SITE/REMOTE` i handoff;
-- razlike u razmacima, velikim slovima i formatu ne pale novi classifier;
-- promena cene, termina ili privatne adrese sama po sebi ne pali classifier;
-- promena usluge, obima, načina rada ili handoff-a pali classifier;
-- worker poredi punu semantičku listu skills, ne samo prisustvo `patch.skills`;
-- eksplicitna promena service mode-a i dalje pali classifier;
-- pending clarification hint i dalje ima prioritet i ponovo se obrađuje;
-- dodati su helper/source testovi za task i worker.
+Brojevi podskupova se preklapaju i ne sabiraju se u jedinstven broj testova.
+Postojeći TODO: aktivni RSD fact zahteva atomsku writer/review invalidaciju pri ispravci na EUR.
 
-DEV funkcije posle ove celine: task v149, worker v103, obe ACTIVE.
+Nisu izvršeni pravi Gemini pozivi, telefonski tok, DEV deploy, matching/dispatch/push ili E2E sa test nalozima.
 
-### 4. Sažet i usaglašen prompt
+## 5. Raniji rad koji se čuva
 
-Commit: `c9ddc5d Condense Gemini interview instructions`.
+| Commit | Ranije uvedena funkcionalnost |
+| --- | --- |
+| 44a2d98 | Signed worker workAreas + server geocoder i Save kontinuitet |
+| 669df27 | Trajna numeric revision zaštita klasifikacionih pitanja |
+| c3b231f | Fingerprint i preskakanje nepromenjene klasifikacije |
+| c9ddc5d | Ranije sažimanje oba prompta i jedno pitanje |
+| 0fff6e4c | Migraciona provenance evidencija i welcome očekivanje |
+| 8cacf889 | Vraćena neophodna sažeta worker pravila |
+| 8967ee21 | Ispravne oznake BG faza; ne merenje celog razgovora |
+| db0ddae6 / 70ac69c3 | Početni baseline/status, sada korigovani |
+| 278aec2a | Pogrešan source-only gate; POVUČEN commitom 46ab53e5 |
 
-Urađeno:
+Ranije zabeleženi DEV task v151 / worker v104 / post-save v5 nisu verzije novih lokalnih popravki. U ovom odobrenom radu ništa nije deployovano niti dirana produkcija.
 
-- zajednički glas više ne govori „jedno pitanje ili 2–3 nepovezana potpitanja“;
-- task je zadržao sva deterministički važna pravila: RSD/EUR, datume i DST, geografiju, privatnu adresu, nacrt, pregled, Save/objavu, ljude, kategoriju i handoff;
-- uklonjeni su duplikati tona, pozdrava, kalendara, krečenja i cenovnih objašnjenja;
-- worker je zadržao signed Save, complete replacement `skills`, areaRequests, administrativni grad, availability/calendar i service-mode kontinuitet, ali bez ponavljanja istog pravila u više pasusa;
-- uvedeni su regresioni limiti: stabilna task instrukcija <30.000 znakova, worker instrukcija <20.000 znakova;
-- testne provere su prilagođene novom, kraćem tekstu, bez menjanja serverskih validacija.
+## 6. Šta dalje, redosledom MASTER plana
 
-DEV funkcije posle ove celine: task v151, worker v104, obe ACTIVE. Task je redeployovan još jednom posle poslednje mikro-dopune, zato v151 jeste konačna DEV verzija za ovaj commit.
-
-### 5. Forenzički baseline, migraciona evidencija i CI očekivanje
-
-Commitovi: `0fff6e4c` i `db0ddae6`.
-
-- Stari welcome test je očekivao rečenicu uklonjenu namernim sažimanjem prompta; očekivanje je usklađeno sa sadašnjim UI tekstom.
-- Tri postojeće AI migracije su evidentirane kao `APPLIED_RECORDED_BYTES_DIFFER`: DEV ima srodne, ali drugačije imenovane i bajt-različite zabeležene SQL zapise. Nisu proglašene bezbednim za replay.
-- U `docs/ai-stabilization/` je dodat proverljiv presek: aktivni tokovi, runtime granice, agregatni DB dokazi i eksplicitna lista onoga što nije E2E dokazano.
-
-Dokaz: fokusirani welcome test 5/5; ceo paket 621 suite / 14.131 test; migracioni integrity test 15/15.
-
-### 6. Kratak worker prompt bez izgubljenih poslovnih pravila
-
-Commit: `8cacf889`.
-
-Sažimanje iz `c9ddc5d` je bilo previše agresivno: uklonilo je nekoliko stvarnih ugovora, a ne samo duplikate. Vraćena su kratka pravila za više jasnih činjenica u jednoj poruci, neizmišljanje usluga, privatnost grada/adrese, kontinuiran remote režim i istinit odgovor o Save/aktivaciji. Prompt nije vraćen u prethodni dugački oblik.
-
-Dokaz: worker edge i policy proof 127/127.
-
-### 7. Razdvojena latencija pozadinskog Geminija
-
-Commit: `8967ee21`.
-
-`NEED_BG_ARCHITECT` i `WORKER_BG_ARCHITECT` su bile aktivne putanje, ali telemetry ih je vodio kao `UNKNOWN`. Sada se pozadinskih približno 6–9 sekundi ne meša sa glavnim `NEED_COMPLETE`/`WORKER_COMPLETE` turnom. Ovo ne menja redosled poziva ni UI ponašanje.
-
-Dokaz: relevantni AI proof paketi 261/261.
-
-### 8. Gate za objavu bez kategorije — source-only, nije deployovan
-
-Commit: `278aec2a`.
-
-Read-only DEV provera je našla 8 objavljenih potreba sa `category_id` i 2 bez njega. Živa definicija `rpc_publish_need_canonical` i njen publication context nisu ni pominjali `category_id`, iako FK već postoji. Dodata je samo lokalna, append-only migracija `20261026214500_published_need_category_gate.sql`: `NOT VALID` constraint sprečava budući prelaz u `PUBLISHED` bez kategorije, a ne menja istorijske redove.
-
-Migracija je eksplicitno označena `SOURCE_ONLY_LIVE_BINDING_UNPROVEN`. Nije izvršena, nije deployovana i ne predstavlja odluku da se istorijska dva reda automatski poprave.
-
-Dokaz: novi regression test 1/1, migration integrity PASS (194 fajla), Python integrity test 15/15.
-
-## Tačni push-evi
-
-Poslednji push je:
-
-```text
-278aec2aadbf8d3e7c97d0dd6ddea41f8089795b
-2026-10-26
-fix(taxonomy): gate publication on canonical category
-```
-
-Prethodni push-evi ove kontinuirane serije:
-
-```text
-db0ddae6  docs(ai): record verified DEV stabilization baseline
-8967ee21  fix(ai): label background classifier latency
-8cacf889  fix(ai): retain concise worker interview safety rules
-0fff6e4c  ci: reconcile AI migration provenance and welcome test
-c3b231f  16:12:55  Skip unchanged taxonomy classifications
-669df27  16:08:41  Fence taxonomy hints by durable revision
-44a2d98  16:02:34  Fix signed worker work areas pipeline
-```
-
-Svi su pushovani na `origin/feature/uskoci-cisto`. Produkcija nije merge-ovana niti deployovana.
-
-## Test status
-
-- task stream: 71/71 PASS;
-- task context/semantic suite: 145/145 PASS, 1 postojeći TODO za EUR invalidaciju;
-- worker edge suite: ciljane funkcionalne provere PASS; poslednji padovi bili su samo očekivani testovi stare formulacije prompta i ažurirani su na novu formulaciju;
-- worker/task TypeScript: PASS;
-- workAreas server proof: 123/123 PASS;
-- client worker suite: 196/196 PASS;
-- fingerprint helper/source testovi: PASS;
-- full istorijski source paket i dalje ima 9 ranijih, nepovezanih stale-source padova; nisu nastali ovim izmenama i ne proglašavam ih popravljеним bez posebne analize.
-
-## Šta nije urađeno
-
-### Satnica (`HOURLY`)
-
-Nije menjana. Živi SQL nizvodno još mora da dobije ugovor za `submit_response`, `select_response`, candidate state, Dogovor i UI. Pre koda vlasnik mora potvrditi: da li je 1.500 RSD samo satnica ili i procena ukupne cene, kako se ponaša više radnika i da li se u prijavi šalje stopa, procenjeni sati ili oba podatka. Neću tiho pretvarati `HOURLY` u `TOTAL`.
-
-### Pravi Gemini/DEV E2E sa testnim nalozima
-
-Unit/proof transporti su završeni, ali prirodni jezički tok kroz pravi Gemini, signed review, Save, matching i push mora se voditi sa namenskim DEV nalozima. To je sledeći dokaz, ne nešto što treba zaključiti iz mock testa.
-
-### Brisanje starog koda
-
-Nema masovnog brisanja. `legacy`, `shadow`, explorer i compatibility wrapperi ostaju dok se ne dokaže koji runtime flag i APK ih zaista dostižu. Prvo se pravi matrica ACTIVE / CONDITIONAL / LEGACY_REQUIRED / TEST_ONLY / DEAD_CONFIRMED.
-
-## Plan od sada — kontinuirani redosled
-
-### Celina 5 — DEV E2E latency i signed tok
-
-1. Proveriti dostupne DEV testne naloge i runtime zastavice bez ispisivanja tajni. Za sada je samo potvrđeno da su funkcije ACTIVE; tajne nisu čitane.
-2. Izmeriti: claim/admission, prvi Gemini byte/TTFT, završetak glavnog Geminija, writer, SSE flush, background classifier i ukupni turn.
-3. Scenario worker: Novi Sad + 30 km; Novi Sad i Beograd; dodaj gletovanje bez gubitka krečenja; REMOTE bez terenskog područja.
-4. Scenario task: POINT_TO_POINT, REMOTE + handoff, fleksibilan period, EUR bez lažnog RSD, spreman zadatak bez opcionalnog pitanja.
-5. Za svaki scenario proveriti: AI poruka → candidate → review → Save → signed source → matching fit → dispatch/push receipt.
-6. Ako padne, popravljati prvi dokazani prekinuti link, ne ceo sistem.
-
-Kriterijum završetka: svaki scenario ima sačuvan očekivani/izmereni rezultat, latency breakdown i nema duplog Gemini troška pri retry-u.
-
-### Celina 6 — Ugovor za HOURLY
-
-Tek posle potvrde vlasnika definisati DB invariant, prijavu, izbor, Dogovor, review copy, UI i regresione testove. Ako odluka nije potvrđena, uvesti bezbedan gate koji jasno kaže da satnica još nije podržana u prijavi.
-
-### Celina 7 — Klasifikator i katalog
-
-Dodati/zaključiti kratki `serviceMeaning` snapshot: radnja + predmet + potvrđeni scope, bez pune istorije, privatne adrese, budžeta i datuma. Unknown mode ne sme automatski postati ON_SITE. Testirati promenu usluge i stale katalog snapshot.
-
-### Celina 8 — Razdvajanje determinističkih pravila
-
-Prompt ostaje za ulogu, razgovor, ekstrakciju i sledeće pitanje. Validator/server ostaje autoritet za RSD/EUR, DST, geocoder/pin, revision, Save, RLS, matching i objavu. Svako pravilo koje je istovremeno u promptu i regex-u dobija jedan jasno označen autoritet.
-
-### Celina 9 — Cleanup tek posle dokazne matrice
-
-Za svaki legacy/shadow fajl zabeležiti ko ga poziva, pod kojim flagom, na kojoj verziji Edge-a i da li postoji aktivan test. Tek tada odlučiti KEEP / FIX / ARCHIVE / DELETE. Ništa se ne briše samo zato što u imenu ima `legacy` ili `shadow`.
-
-## Pravilo rada za svaku sledeću celinu
-
-Za svaku celinu radim isti krug:
-
-1. pročitam relevantan source i živu DEV definiciju;
-2. napišem mali, dokazivi patch;
-3. dodam ili osvežim test koji hvata konkretan bug;
-4. pokrenem ciljane testove i TypeScript;
-5. deployujem samo DEV kada vlasnik to izričito odobri;
-6. proverim ACTIVE verziju i, gde je moguće, live SQL stanje;
-7. commitujem i pushujem na `feature/uskoci-cisto`;
-8. dopunim ovaj status fajl novim commitom, rezultatima i sledećim korakom.
-
-Ovaj fajl ne znači da je ceo plan završen; znači da je stanje merljivo i da se dalje nastavlja od Celina 5, bez vraćanja na već završene celine i bez diranja produkcije.
+1. **Dovršiti F0:** potpuna matrica aktivnih pisaca/poziva/privilegija i CI pokrivenosti; razjasniti šest UNDETERMINED slučajeva i audit porekla null kategorija. Nastaviti stvarno čitanje preostalog source/SQL/config/test sadržaja.
+2. **F0 baseline E2E — posebno odobrenje:** namenska DEV dva naloga, ograničen budžet i izolovane potrebe/profili, bez stvarnih obaveštenja. Tačno meriti prvi prekinuti link, provider/writer/Save/classification/matching. DEV deploy traži zasebno izričito odobrenje.
+3. **F1 ugovor i golden corpus:** service intent/decision/result, stabilan serviceInstanceKey, scope/revision/digest/catalog i 70 jezičkih +30 failure/race slučajeva. Čuvati postojeće signed digest-e.
+4. **F2/S07:** shared semantički classifier u režimu bez upisa; REUSE/EXTEND sa stvarnim UUID-jem i proverenim katalogom, ne dupliranje kategorije jer se naziv razlikuje.
+5. **F3/S08:** SQL admission uz najmanje postojeće owner/source/risk/mode/consent/idempotency zaštite; zatim trigger/binder i worker retain/revoke. Bez novih migracija dok F0 gate nije zatvoren.
+6. **F4/S06:** trajni bounded recovery za dokazano tehničke greške, postojeći outbox, lease/backoff/cost cap/stale fence; nikada svih devet pending naslepo.
+7. **F5:** dokaz review→Save→objava→matching→dispatch, zatim odobreni test-phone push→prijava→Dogovor. Null/pending nema automatsku matching dozvolu.
+8. **F6/F10:** finalno kratka uputstva bez dupliranja server pravila, kompaktan klasifikacioni snapshot, A/B jezički kvalitet i stvarna p50/p95 latencija/cache/tokeni.
+9. **F7:** svi primarni ekrani, navigacija, loading/empty/error/offline/accessibility i Android dokaz. Ne označavati frontend završenim na osnovu backend testova.
+10. **F8:** poslovni ugovor za HOURLY, cenu, broj radnika, prijavu i Dogovor; EUR bez skrivene konverzije. Te odluke nisu pretpostavljene.
+11. **F9/F11/F12:** čišćenje samo DEAD_CONFIRMED sadržaja, sigurnosne i operativne provere, release/build/Play/sajt posle prethodnih gate-ova.
+
+## 7. Dozvole i način rada
+
+Dozvoljene su male lokalne izmene, read-only DEV/GitHub, offline testovi i commit/push ČISTO grane.
+Bez posebne dozvole nema DEV deploy-a, produkcije, destruktivnih migracija, stvarnih obaveštenja ili automatskog popravljanja podataka.
+
+Svaka celina: reprodukcija → mali patch → negativni i pozitivni test → nezavisni pregled → commit → push → dokaz/otvorene granice.
+Prolaz testa sa stubom nije tvrdnja da pravi provider, baza i telefon rade zajedno.
+
+## 8. Dokazi u repozitorijumu
+
+- docs/ai-stabilization/00_BASELINE_STATE.md — početno stanje i granice F0.
+- docs/ai-stabilization/01B_FILE_REVIEW_LEDGER.csv — popis fajlova, hash i tačan status čitanja.
+- docs/ai-stabilization/01_DEPENDENCY_GRAPH.csv — statički import/RPC graf.
+- docs/ai-stabilization/02_RUNTIME_FLAGS.md — stvarno značenje vremena i veličina zahteva.
+- docs/ai-stabilization/03_DB_EVIDENCE.md — read-only DB dokazi i povučeni gate.
+- docs/ai-stabilization/04_FAILING_E2E_CASES.md — regresije i šta nije E2E.
+- docs/ai-stabilization/05_PENDING_FORENSIC_LEDGER.csv i 05_PENDING_READONLY.sql — devet slučajeva i reproduktivni SELECT upiti.
+
+Ovaj fajl je jedinstvena operativna polazna tačka; nije potvrda da je ceo MASTER završen.

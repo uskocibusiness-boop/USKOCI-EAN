@@ -1,43 +1,37 @@
-# USKOČI AI stabilization — verified baseline
+# USKOČI AI — baseline i granice dokaza
 
-**Captured:** 2026-10-26 (read-only DEV checks)<br>
-**Repository / branch:** `uskocibusiness-boop/USKOCI-EAN` / `feature/uskoci-cisto`<br>
-**Verified remote commit:** `8967ee21937479f80f99114d0044b02ee8ed260f`<br>
-**DEV project:** `leqcwgzvjsxugfgzdmth` (`eu-central-1`, healthy)<br>
-**Production:** not queried, changed, or deployed.
+Presek: 2026-10-26 UTC (rad je nastavljen 27.10. po lokalnom vremenu).
+Repo `uskocibusiness-boop/USKOCI-EAN`, grana `feature/uskoci-cisto`.
+Početni lokalni i ponovo provereni GitHub HEAD: `70ac69c3a78d8de062f0c0790b18de78a9c54d6e`.
+DEV: `leqcwgzvjsxugfgzdmth`. Produkcija nije proveravana niti menjana.
 
-## What is active now
+## Aktivne putanje i verzije
 
-| Path | DEV evidence | Conclusion |
-| --- | --- | --- |
-| Requester conversation | `uskoci-ai-interview` v151, active | Current dual-Gemini requester path is deployed. |
-| Worker conversation | `uskoci-worker-interview` v104, active | Current dual-Gemini worker path is deployed. |
-| Post-save taxonomy | `uskoci-taxonomy-postsave-worker` v5, active | A DEV cron invokes this worker every minute; do not change it without a separate preimage audit. |
-| Source parity | Live index/shared source compared with this branch (LF-normalized) | Active conversation code is not an older, separate implementation. |
+Ranije potvrđen DEV: task v151, worker v104, post-save v5, ACTIVE. Novije lokalne popravke iz ove etape NISU deployovane; ranija source parity provera ne znači da sadašnji lokalni HEAD odgovara deployed bundle-u.
 
-The two interview functions validate the caller through `/auth/v1/user` in code. Their platform setting `verify_jwt=false` must therefore not be read alone as an authorization conclusion.
+NEED: `nova.tsx → aiNeedTurnStream.ts/aiNeedV2Production.ts → uskoci-ai-interview → durable facts/review → publish/binder/matching`.
 
-## Verified request path
+WORKER: `profil/razgovor.tsx → workerAiClientService.ts → uskoci-worker-interview → signed review/Save → category/mode/area binding`.
 
-`nova.tsx` → `aiNeedTurnStream.ts` / `aiNeedV2Production.ts` → `uskoci-ai-interview` → durable facts/review RPCs → canonical publish/matching path.
+Post-save worker obrađuje gotove planove, ne klasifikuje prazne pending redove. Postojeći minutni cron nije menjan. BG klasifikacija može početi pre completion RPC-a; trajno beleženje rezultata registruje se posle uspešnog completion-a. Sam klasifikator ne objavljuje i ne šalje obaveštenja.
 
-`profil/razgovor.tsx` → `workerAiClientService.ts` → `uskoci-worker-interview` → signed worker review/save RPCs → worker category/mode/area bindings.
+Oba razgovora proveravaju korisnika preko Auth servisa. Samo platform `verify_jwt=false` nije dovoljan zaključak o autorizaciji.
 
-Both edges may start `backgroundTaxonomyArchitect.mjs` only after a semantic change or a pending clarification. The durable main turn completes before that background capture; the background worker does not itself publish or dispatch.
+## F0 nije zatvoren
 
-## Facts that must not be overstated
+- `01B_FILE_REVIEW_LEDGER.csv`: svi git-index putevi, SHA256 radnih bajtova, tip i status pregleda. NOT_CONTENT_REVIEWED nije završen audit.
+- `reviewed-files.json`: samo potpuno pročitani fajlovi sa reviewer-om i hash-om; promena bajtova poništava potvrdu.
+- `01_DEPENDENCY_GRAPH.csv`: statički graf iz šest entrypoint-a; RPC literal i istorijska SQL definicija nisu dokaz runtime aktivacije. evidence_line pripada source fajlu za IMPORT/RPC_LITERAL, target SQL fajlu za SQL_DEFINITION_CANDIDATE.
+- Potpuna lista aktivnih pisaca/privilegija/triggera, dinamički pozivi, OTA verzija i puna ručna pokrivenost ostaju otvoreni.
+- Realni baseline sa test nalozima i telefonom nije pokrenut; zahteva posebno odobrenje.
+- Nema novih migracija, masovnog brisanja ili uklanjanja legacy funkcija pre F0 gate-a.
 
-- Live logs show sampled main completion and background-classifier timings, but no physical handset E2E has been run in this work item.
-- The client currently waits for validated final conversation text; it does not render provider deltas. Enabling raw token streaming would be a product/safety change, not a latency toggle.
-- Runtime secret values cannot be read safely. Code defaults the dual-Gemini gate on in DEV unless `USKOCI_TAXONOMY_DUAL_GEMINI === 'false'`; actual secret value remains unverified.
-- Local and remote migration histories use different historical version names. The three current AI migrations were recorded as byte-different, not declared semantically identical or safe to replay.
+## GitHub / CI
 
-## Completed safe changes since the baseline parent
+PR #40/#41/#42 ostaju OPEN prema ČISTO grani, nisu spojeni. Potpuni sadržaj svih PR nije ponovno pregledan u ovoj etapi. Welcome očekivanje iz #40 rešeno je ranijim commitom.
 
-| Commit | Result |
-| --- | --- |
-| `0fff6e4c` | Reconciled local migration provenance evidence and corrected a stale welcome assertion. |
-| `8cacf889` | Restored concise worker-interview rules that had actually been lost during prompt condensation. |
-| `8967ee21` | Labels task/worker background classifier timings instead of recording them as `UNKNOWN`. |
+Početni CI run `40414037404`, SHA `70ac69c3`: SUCCESS. To nije dokaz za noviji commit.
 
-All three are pushed to the named development branch. No migration was applied, no function deployed, and no notification sent.
+Poređenje sa `feature/unified-qa-master-20261017` SHA `456328d9b6de16b97c3b75a5fd620efc1d0224df` potvrđuje uklanjanje brojnih istorijskih workflow-a i novi ci-clean.yml. Potrebna je matrica ekvivalentne pokrivenosti; ne vraćati naslepo workflow koji deployuje ili poziva live servis. Ova etapa uključuje nove offline regresije u ČISTO CI.
+
+Dozvoljeno: read-only DEV/GitHub, lokalne izmene, offline testovi, commit/push razvojne grane. Bez DEV deploy-a, produkcije, migracija, stvarnih obaveštenja ili masovne obrade pending redova.
