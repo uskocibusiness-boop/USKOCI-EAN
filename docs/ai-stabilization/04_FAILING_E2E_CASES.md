@@ -9,6 +9,7 @@
 | Biografija produžava obavezan razgovor | Opciono; eksplicitno tražen predlog ide u isti završni review. |
 | Writer vreme pogrešno nazvano Gemini latencijom | PROVIDER wrapper i stvarni handler testovi success/failure, bez sadržaja poruka. |
 | CHECK blokira pending objavu i stare izmene | Kandidat povučen/arhiviran; 6 izvršnih PG testova čuva FK i scope granice. |
+| Ispravno pitanje nestaje zbog reason>300 | Live SQL limit usklađen sa oba buildera i persistence helperom; codepoint-safe tekst i isti RPC/cache sadržaj, bez keširanja odbijenog upisa. |
 
 Ranije: welcome assertion 0fff6e4c, worker safety pravila 8cacf889, BG labels 8967ee21. Njihovi raniji test brojevi su istorijski, ne novi E2E.
 

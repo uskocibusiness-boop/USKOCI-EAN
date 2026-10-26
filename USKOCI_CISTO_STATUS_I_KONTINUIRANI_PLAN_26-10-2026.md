@@ -36,7 +36,7 @@ To nije bilo usklađeno sa MASTER F5.3: objava može postojati dok automatsko po
 - Signed Save, owner/revision fence, geocoder/workAreas, potpuna skills lista i bezbednosna validacija ostali su postojeći autoriteti.
 - Tehnički failure statusi JESU dijagnostika, ali NISU trajni retry mehanizam.
 
-Status: CODE_CHANGED_NOT_E2E. Ceo AI paket je ponovo izvršen posle ispravki testne infrastrukture: 796 PASS, 0 FAIL, 1 postojeći TODO.
+Status: CODE_CHANGED_NOT_E2E. Ceo AI paket je ponovo izvršen i posle poslednje dopune 147950a3: 808 PASS, 0 FAIL, 1 postojeći TODO.
 
 ### C. Forenzički pregled i istinitija evidencija
 
@@ -52,6 +52,12 @@ Obnovljene su reference QA testova na jedini postojeći policy izvor u migraciji
 
 Novi kodni commitovi ove etape: 46ab53e5, d2290292, 33b1a50f. Dokumentacioni commit čuva ovaj presek i manifest. Stanje remote-a proverava se posle push-a; ovaj tekst sam po sebi nije potvrda GitHub CI uspeha.
 
+### E. Čuvanje klasifikacionog pitanja — commit 147950a3
+
+Završna read-only provera aktuelnog DEV RPC-a otkrila je još jedan neusaglašen ugovor: modelov razlog mogao je imati 900 znakova, a SQL dopušta 300. Razlog i pitanje sada se ograničavaju bez presecanja Unicode codepoint-a, uz isti normalizovan tekst za RPC i lokalni keš. NULL mode/reason i revision zaštita ostaju nepromenjeni; odbijen SQL ne puni keš. Devet novih scenarija palo je pre ispravke, a ciljani paket sada prolazi 19/19.
+
+DEV worker context oblik i nullable clarification mode potvrđeni su čitanjem aktivnih definicija, bez otvaranja sesije. To nije E2E poziv. GitHub CI za prethodni dokumentovani SHA 881c6e94 prošao je: run 40418294231. Kasnija dopuna 147950a3 ima ponovo izvršenu kompletnu lokalnu AI grupu; CI rezultat završnog SHA proverava se zasebno.
+
 ## 3. Važne ispravke ranijih tvrdnji
 
 **120–329 ms nije brzina Geminija.** NEED_COMPLETE/WORKER_COMPLETE meri samo writer RPC. Ukupna latencija do odgovora na telefonu još nije izmerena ovom etapom. Pozadinskih približno 6–9 sekundi takođe nije glavni odgovor.
@@ -65,10 +71,10 @@ Semantičko povezivanje različitih naziva iste usluge i dalje nije završeno: S
 - Cela mobilna aplikacija: **621/621 paketa, 14.131/14.131 testova, 3/3 snapshot-a**.
 - TypeScript npx tsc --noEmit: PASS nakon ažuriranja mode deklaracija.
 - Sedam povezanih Edge/mode/handoff/policy paketa: 393 slučaja, **392 PASS, 0 FAIL, 1 postojeći TODO**.
-- BG failure/scope regresije: **50/50 PASS**.
+- BG failure/scope regresije: prethodno **50/50 PASS**; naknadni scope paket proširen je sa 7 na **19/19 PASS**.
 - CI taxonomy/signed-review/publication podskup: **37/37 PASS**, uključujući šest PG testova.
 - Migration integrity: **193 SQL fajla PASS; 15/15 Python testova**.
-- Svi AI proof fajlovi: **797 ukupno, 796 PASS, 0 FAIL, 1 postojeći TODO**. Stari fingerprint source regex je usklađen sa jačom USER-quote proverom. QA policy se čita iz postojeće migracije uz proveru identičnog kompletnog istorijskog hash-a; stare arhive nisu vraćene.
+- Svi AI proof fajlovi posle poslednje dopune: **809 ukupno, 808 PASS, 0 FAIL, 1 postojeći TODO**. Stari fingerprint source regex je usklađen sa jačom USER-quote proverom. QA policy se čita iz postojeće migracije uz proveru identičnog kompletnog istorijskog hash-a; stare arhive nisu vraćene.
 - QA activation/fixture podskup: **15/15 PASS**. Tri disposable skripte su proverene sintaksno, nisu izvršavale SQL.
 - CI sada pokreće celu AI offline grupu, novu PG regresiju i Python integrity unit testove. GitHub rezultat novog SHA se ne podrazumeva iz lokalnih testova.
 

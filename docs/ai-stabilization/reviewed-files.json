@@ -132,7 +132,7 @@
     "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
   },
   "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs": {
-    "sha256": "5bce412412e01fe90f4bb59e741321b3cb381f5158e0d7a5046ae012d8fead00",
+    "sha256": "8044f9daa4c3f79f58b5368601d1b3fe6a2f0c810314e890eddf48f551d97ff3",
     "reviewer": "classifier_failure_review; root reviewed final diff",
     "coverage": "FULL",
     "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
@@ -144,7 +144,7 @@
     "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
   },
   "supabase/proofs/ai/background_taxonomy_scope.test.mjs": {
-    "sha256": "c2f2d29260eee9eee56a306936a3270fe792b45338af879d007dfe38aba5f67d",
+    "sha256": "35e2edb00506bc81736fbfc89f1d0df2906957515862626eef7cd99bfd5fd419",
     "reviewer": "classifier_failure_review; root reviewed final diff",
     "coverage": "FULL",
     "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
@@ -264,19 +264,19 @@
     "evidence": "docs/ai-stabilization/00_BASELINE_STATE.md"
   },
   "docs/ai-stabilization/03_DB_EVIDENCE.md": {
-    "sha256": "5a60552e1f929ceddb31c6632de2a9efed25e4f63f82e0a882dbf0f05fb25065",
+    "sha256": "f8f97b87a0d03d211ad6dc69e7a76a2190673db0d105c1774da5c1f426988d79",
     "reviewer": "root",
     "coverage": "FULL",
     "evidence": "docs/ai-stabilization/00_BASELINE_STATE.md"
   },
   "docs/ai-stabilization/04_FAILING_E2E_CASES.md": {
-    "sha256": "fc530fbdecff0db9b7f2866e55bd98a346de8e2aeff66e19b597a5a7e80be6e7",
+    "sha256": "61f9b5ec6af6003738ed2c4b1a26ad624ca42ec9411328638fbfd59165a19466",
     "reviewer": "root",
     "coverage": "FULL",
     "evidence": "docs/ai-stabilization/00_BASELINE_STATE.md"
   },
   "USKOCI_CISTO_STATUS_I_KONTINUIRANI_PLAN_26-10-2026.md": {
-    "sha256": "7c75f8cffcc0a58464b29bdad705604ec58a74c682c091b195d48caae5f37a0d",
+    "sha256": "b4acd84e947fb396501482cdfbb34f55ba581efad592647e697b0ab2e7ff742e",
     "reviewer": "root",
     "coverage": "FULL",
     "evidence": "docs/ai-stabilization/00_BASELINE_STATE.md"

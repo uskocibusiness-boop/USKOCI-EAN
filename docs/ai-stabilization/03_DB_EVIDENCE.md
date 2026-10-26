@@ -31,3 +31,11 @@ Nijedan red nije promenjen. taxonomy_reconcile_pending_reviews_v1 samo dodaje ne
 Tri postojeće oktobarske migracije ostaju APPLIED_RECORDED_BYTES_DIFFER, ne replay-safe. Povučena je samo nova neprimenjena pogrešna zabrana. Preostalih 193 SQL fajla prolazi integrity checker. Nema novih migracija ili preimenovanja primenjenih SQL-ova.
 
 Bez dodatne dozvole nema recovery-ja, scheduler/promena reda, novih binding-a ili obaveštenja.
+
+## Završna provera Edge/SQL ugovora, 23:15:16 UTC
+
+Aktivni rpc_read_worker_ai_context_service vraća WORKER_SERVICE_MODE_CONTEXT_V1, istu session reviziju i prazne nizove za odsutne saved/draft izbore. Handoff koji ne postoji izostavljen je, nije JSON null. Clarification store dopušta NULL/ON_SITE/REMOTE; category capture ne dopušta UNKNOWN. Relevantni privilegovani RPC-ovi imaju EXECUTE samo za service_role.
+
+Store/table reason maksimum je 300 codepoint-a; prompt mora imati 8–600 nakon btrim. Pronađen source limit900 za reason ispravljen je lokalno u 147950a3: oba buildera i persistence su usklađeni, uz Unicode i cache-rejection regresije. Nema SQL izmene.
+
+Prosrc MD5: context RPC 584ca4ae2d02e33823d9d75a92c14649; private mode-context 58a9fc44a3caf09d14c2b13579afd882; hint store 057e52a930f1649c2cced38bb162de51; proposal capture 2e8a861398c36a4efc23fa961b45897b.
