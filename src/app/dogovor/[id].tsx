@@ -9,7 +9,7 @@ import { layout } from '../../ui/system/layout';
 import { sys } from '../../ui/system/tokens';
 import { ActionSheet } from '../../ui/system/ActionSheet';
 import { useReducedMotion } from '../../ui/system/motion';
-import { PorukaHost, poruka } from '../../ui/system/Poruka';
+import { PorukaHost } from '../../ui/system/Poruka';
 import { V2Action } from '../../ui/v2/V2Action';
 import { AgreementTabs, AgreementPersonBar, isNoTermText, type AgreementTab } from '../../ui/v2/AgreementPresentation';
 import { WorkspaceFooter, agreementNextStep, agreementQuietLine, agreementStepsInfo, agreementWaitsForMe } from '../../ui/agreements/AgreementWorkspace';
@@ -38,7 +38,6 @@ import { needScheduleText } from '../../data/needDetailPresentation';
 import { agreementProblemService, knownProblemRefusal, type AgreementProblemSnapshot } from '../../data/agreementClientService';
 import { agreementCancellationService, cancellationOf, type AgreementCancellation } from '../../data/agreementCancellationClientService';
 import { reviewsClientService } from '../../data/reviewsClientService';
-import { knownLegacyRefusal } from '../../data/legacyRpcFailure';
 import { completionDenial } from '../../data/agreementCompletion';
 import { calendarInstant } from '../../lib/calendarTime';
 
@@ -77,10 +76,6 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   id: string; accountId: string; accountRevision: number; requestedTab: AgreementTab; requestedMessageId?: string; fromInbox: boolean;
 }) {
   const izvor = useIzvor();
-  // "Podeli svoj broj" can succeed only for an account that has a number to share: the server reads it from the account, and an account
-  // made with an email has none (R01a). The session's user says so; anyone else is pointed to Poruke instead of to a command that fails.
-  const sessionPhone = useSesija().user?.phone;
-  const accountHasNumber = typeof sessionPhone === 'string' && sessionPhone.trim().length > 0;
   const [tab, updateTab] = useState<AgreementTab>(requestedTab);
   // A retained geometry callback from a prior Poruke visit cannot acknowledge a later visit.
   const chatVisit = useRef<object>({}), tabRef = useRef(tab);
@@ -115,8 +110,6 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   // The footer's height, so the outcome bar (Poruka) floats above it.
   const [footerHeight, setFooterHeight] = useState(0);
   const reducedMotion = useReducedMotion();
-  // The latest commands, for a bar whose "Vrati" is pressed after the render that showed it.
-  const later = useRef<{ sharePhone: (share: boolean, undoable?: boolean) => Promise<void> }>({ sharePhone: async () => {} });
   const completionDisplay = useRef<object | null>(null);
   const completionReviewRef = useRef<CompletionReview | null>(null), completionReadEpoch = useRef(0);
   const closeCompletionReview = useCallback(() => {
@@ -349,33 +342,6 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
       return next;
     });
   };
-  /** Runs one command and reads the Dogovor back. True only when the command went through AND the readback confirmed it. */
-  const mutate = async (command: () => Promise<Ishod<unknown>>): Promise<boolean> => {
-    if (!enabled || !me || !ownsAccount() || !activeRef.current || !freshRef.current) return false;
-    let confirmed = false;
-    await workspace.save(async () => {
-      const result = await bounded(command);
-      // A known refusal keeps its own sentence (deep read 8.4: "Podeli svoj broj" said only "nije potvrđena").
-      if (!result.ok) return knownLegacyRefusal(result.kod) ? { ok: false as const, kod: result.kod, poruka: result.poruka }
-        : { ok: false as const, kod: 'AGREEMENT_ACTION_UNCONFIRMED', poruka: 'Ne znamo da li je promena sačuvana. Osveži Dogovor pa pokušaj ponovo.' };
-      const next = await read();
-      confirmed = next.ok;
-      return next;
-    });
-    return confirmed;
-  };
-  /**
-   * Shares my number, or withdraws it. No question first (plan 2.3): the outcome bar says what happened, once the server has
-   * confirmed it, and offers "Vrati" - the opposite command - for a few seconds. Undoing is not undoable in turn.
-   */
-  const sharePhone = async (share: boolean, undoable = true) => {
-    const done = await mutate(() => share ? izvor.podeliTelefon(id) : izvor.opoziviTelefon(id));
-    if (!done) return;
-    // A name is never declined here ("sa Markom" cannot be written for every name): it stands as the subject of its sentence.
-    poruka.show({ text: share ? `Broj je podeljen. ${other?.ime?.trim() || 'Druga strana'} ga sada vidi.` : 'Deljenje broja je opozvano.', confirmed: true,
-      ...(undoable ? { action: { label: 'Vrati', onPress: () => { void later.current.sharePhone(!share, false); } } } : {}) });
-  };
-  later.current = { sharePhone };
   /** Takes the person to a section of this page (the menu's way to the problem form and to the place). */
   const scrollToAnchor = (name: 'problem' | 'place') => {
     // Chosen from the conversation (its bar has the "···"): the section lives in the overview, so go there first and
@@ -482,10 +448,9 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
   };
   // The conversation's "···" (T3c): the overview shows every one of these as a row of the page (J15), so the menu is for the person who is in Poruke.
   const menuActions = agreementMenuActions({ party: !!me, hasOther: !!other, active, requester, canChange,
-    phoneShared: dogovor.kontakt.mojTelefonPodeljen, accountHasNumber, hasLocation: dogovor.rezim !== 'DALJINSKI' && dogovor.kontakt.lokacijaPostoji,
+    hasLocation: dogovor.rezim !== 'DALJINSKI' && dogovor.kontakt.lokacijaPostoji,
     problemFree: !dogovor.problemOtvoren && !report, enabled }, {
     onChange: () => toChanges('propose'), onCancel: () => toChanges('cancel'),
-    onPhone: () => { void sharePhone(!dogovor.kontakt.mojTelefonPodeljen); },
     onLocation: () => scrollToAnchor('place'),
     onProblem: openProblemForm,
     onSafety: () => { if (other && formCurrent()) router.navigate({ pathname: '/bezbednost', params: { targetAccountId: other.id, agreementId: id } }); },
@@ -561,7 +526,7 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
           : <ProductHeader back={backToAgreements} title="Dogovor" />}
         <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
         <ScrollView ref={scroller} keyboardShouldPersistTaps="handled" contentContainerStyle={overviewContent}>
-          <AgreementOverview agreement={dogovor} step={nextStep} info={stepsInfo} party={!!me} enabled={enabled} concealed={resumeRequired} accountHasNumber={accountHasNumber}
+          <AgreementOverview agreement={dogovor} step={nextStep} info={stepsInfo} party={!!me} enabled={enabled} concealed={resumeRequired}
             steps={{ state: dogovor.stanje, ownRating: dogovor.ownRating, cancellation: cancelled ? cancellationDetailsOf(cancellation, other?.ime) : null }}
             headExtra={<>
               {active && me && !radnje ? <View style={s.stack}>
@@ -587,7 +552,6 @@ function DogovorContent({ id, accountId, accountRevision, requestedTab, requeste
               // done, the requester confirms or reports a problem (owner decision 2026-09-21), so nothing is left to change for them; a finished
               // or cancelled Dogovor has nothing left to change or cancel (emulator sweep, 2026-09-23).
               proposeTerm: needsTerm ? () => toChanges('propose') : undefined,
-              togglePhone: () => { void sharePhone(!dogovor.kontakt.mojTelefonPodeljen); },
               openMessages, requestAddress,
               openTask,
               openApplication: worker && dogovor.izvor?.prijavaId ? () => {

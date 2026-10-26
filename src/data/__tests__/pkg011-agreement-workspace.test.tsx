@@ -151,9 +151,9 @@ test('a confirmed Agreement with nothing to do shows no green action - one grey 
   // What can be done is on the page as rows (J15, owner 2026-10-08), the four of them, and the bar of the overview has no "···".
   expect(labels()).toEqual(expect.arrayContaining(['Izmeni uslove', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu', 'Tok Dogovora']));
   expect(labels()).not.toContain('Više radnji');
-  // The number and the place are ONE open section, not a closed "Kontakt" row and a closed "Lokacija i pristup" row.
-  expect(copy).toContain('Kontakt i mesto'); expect(labels()).not.toContain('Kontakt'); expect(labels()).not.toContain('Lokacija i pristup');
-  expect(copy).toContain('Broj druge strane'); expect(copy).toContain('Još nije podeljen.');
+  // Communication stays in-app; exact task location has its own grant.
+  expect(copy).toContain('Komunikacija i mesto'); expect(labels()).not.toContain('Kontakt'); expect(labels()).not.toContain('Lokacija i pristup');
+  expect(labels()).toContain('Poruke u aplikaciji'); expect(copy).not.toContain('Broj druge strane');
   // The timeline is progressive disclosure: collapsed until the user asks for it.
   expect(copy).not.toContain('Dogovor je potvrđen');
   await act(async () => tree.root.findByProps({ accessibilityLabel: 'Tok Dogovora' }).props.onPress());
@@ -639,8 +639,8 @@ test.each(['narucilac', 'uskocer'] as const)('retired current-location sharing i
   await render(base({ kontakt: { mojTelefonPodeljen: false, njihovTelefon: null, lokacijaPostoji: true } }, role));
   expect(labels()).not.toContain('Trenutna lokacija osobe koja dolazi');
   expect(labels()).not.toContain('Podeli svoju trenutnu lokaciju');
-  // The place is part of the one open section "Kontakt i mesto": its private location is read and drawn there, never in a row of its own.
-  expect(texts()).toContain('Kontakt i mesto');
+  // The private location is read and drawn in its own granted section.
+  expect(texts()).toContain('Komunikacija i mesto');
   expect(labels()).not.toContain('Lokacija i pristup'); expect(labels()).not.toContain('Kontakt');
   expect(labels()).toContain('Osveži dozvolu za lokaciju');
 });
@@ -775,29 +775,29 @@ describe('the actions of the overview are rows of the page, and the "···" is 
     test('lists the rare actions in the plan\'s order, the two that end something last and in the danger colour', async () => {
       await render(base(physical));
       await openMenu();
-      expect(menuLabels()).toEqual(['Izmeni uslove', 'Podeli svoj broj', 'Podeli lokaciju', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu']);
+      expect(menuLabels()).toEqual(['Izmeni uslove', 'Podeli lokaciju', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu']);
       const ink = (row: ReactTestInstance) => (StyleSheet.flatten(row.findByType('T' as any).props.style) as { color?: string } | undefined)?.color;
-      expect(menuRows().map(ink)).toEqual([sys.color.ink, sys.color.ink, sys.color.ink, sys.color.ink, sys.color.danger, sys.color.danger]);
+      expect(menuRows().map(ink)).toEqual([sys.color.ink, sys.color.ink, sys.color.ink, sys.color.danger, sys.color.danger]);
     });
 
     test('is shorter where less can be done: no location for the worker, no change or cancel for the requester once the work is reported done', async () => {
       await render(base(physical, 'uskocer'));
       await openMenu();
-      expect(menuLabels()).toEqual(['Izmeni uslove', 'Podeli svoj broj', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu']);
+      expect(menuLabels()).toEqual(['Izmeni uslove', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu']);
       await act(async () => tree.unmount());
       await render(base({ ...physical, stanje: 'AWAITING_REQUESTER' }));
       await openMenu();
-      expect(menuLabels()).toEqual(['Podeli svoj broj', 'Podeli lokaciju', 'Prijavi problem', 'Prijavi ili blokiraj osobu']);
+      expect(menuLabels()).toEqual(['Podeli lokaciju', 'Prijavi problem', 'Prijavi ili blokiraj osobu']);
     });
 
-    test('is only the safety entry on a finished Dogovor, and the number entry reads for what it will do', async () => {
+    test('is only the safety entry on a finished Dogovor and never offers phone sharing', async () => {
       await render(base({ stanje: 'COMPLETED' }));
       await openMenu();
       expect(menuLabels()).toEqual(['Prijavi ili blokiraj osobu']);
       await act(async () => tree.unmount());
       await render(base({ kontakt: { mojTelefonPodeljen: true, njihovTelefon: null, lokacijaPostoji: false } }));
       await openMenu();
-      expect(menuLabels()).toContain('Opozovi deljenje broja'); expect(menuLabels()).not.toContain('Podeli svoj broj');
+      expect(menuLabels()).not.toContain('Opozovi deljenje broja'); expect(menuLabels()).not.toContain('Podeli svoj broj');
     });
 
     test('has no menu at all for a Dogovor that does not name the other side and offers nothing', async () => {
@@ -843,71 +843,14 @@ describe('the actions of the overview are rows of the page, and the "···" is 
   });
 });
 
-describe('sharing the number asks nothing and says what happened once the server has confirmed it', () => {
-  afterEach(async () => { await act(async () => poruka.hide()); });
-  const shared = (flag: boolean) => base({ kontakt: { mojTelefonPodeljen: flag, njihovTelefon: null, lokacijaPostoji: false } });
-
-  test('the section\'s row shares it, the bar says so with "Vrati", and "Vrati" withdraws it and says that, without another "Vrati"', async () => {
-    mockSource.podeliTelefon.mockResolvedValue({ ok: true, podatak: null }); mockSource.opoziviTelefon.mockResolvedValue({ ok: true, podatak: null });
-    await render(base());
-    mockRead.mockResolvedValue(shared(true));
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Podeli svoj broj' }).props.onPress());
-    expect(mockSource.podeliTelefon).toHaveBeenCalledWith(mockAgreementId);
-    expect(poruka.current()).toMatchObject({ text: 'Broj je podeljen. Marko ga sada vidi.', confirmed: true, action: { label: 'Vrati' } });
-    expect(labels()).toContain('Opozovi deljenje broja');
-    mockRead.mockResolvedValue(shared(false));
-    await act(async () => tree.root.findByProps({ testID: 'poruka-action' }).props.onPress());
-    expect(mockSource.opoziviTelefon).toHaveBeenCalledWith(mockAgreementId);
-    expect(poruka.current()).toMatchObject({ text: 'Deljenje broja je opozvano.', confirmed: true });
-    expect(poruka.current()?.action).toBeUndefined();
-    expect(labels()).toContain('Podeli svoj broj');
-  });
-
-  test('the row says what it does by its title and states the fact when the number is shared; no sentence explains the sharing on the page', async () => {
-    await render(base());
-    expect(texts()).not.toContain('Deljenje je odvojeno u oba smera');
-    expect(tree.root.findByProps({ accessibilityLabel: 'Podeli svoj broj' }).props.accessibilityHint).toBe('Deljenje je odvojeno u oba smera: druga strana ne deli automatski svoj broj.');
-    await act(async () => tree.unmount());
-    await render(shared(true));
-    expect(texts()).toContain('Druga strana vidi tvoj broj.');
-  });
-
-  test('the section\'s own button does the same thing, and withdrawing says it and offers "Vrati" too', async () => {
-    mockSource.opoziviTelefon.mockResolvedValue({ ok: true, podatak: null }); mockSource.podeliTelefon.mockResolvedValue({ ok: true, podatak: null });
-    await render(shared(true));
-    mockRead.mockResolvedValue(shared(false));
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Opozovi deljenje broja' }).props.onPress());
-    expect(mockSource.opoziviTelefon).toHaveBeenCalledTimes(1);
-    expect(poruka.current()).toMatchObject({ text: 'Deljenje broja je opozvano.', action: { label: 'Vrati' } });
-    mockRead.mockResolvedValue(shared(true));
-    await act(async () => tree.root.findByProps({ testID: 'poruka-action' }).props.onPress());
-    expect(mockSource.podeliTelefon).toHaveBeenCalledWith(mockAgreementId);
-  });
-
-  test('the conversation\'s menu shares it too, with the same command', async () => {
-    mockSource.podeliTelefon.mockResolvedValue({ ok: true, podatak: null });
-    mockParams = { id: mockAgreementId, tab: 'poruke' };
-    await render(base());
-    mockRead.mockResolvedValue(shared(true));
-    await chooseRow('Podeli svoj broj');
-    expect(mockSource.podeliTelefon).toHaveBeenCalledWith(mockAgreementId);
-  });
-
-  test('a refused command shows no success bar, and says the refusal in the app\'s own words', async () => {
-    mockSource.podeliTelefon.mockResolvedValue({ ok: false, kod: 'NOPE', poruka: 'adapter text' });
-    await render(base());
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Podeli svoj broj' }).props.onPress());
-    expect(poruka.current()).toBeNull();
-    expect(texts()).toContain('Ne znamo da li je promena sačuvana');
-    expect(texts()).not.toContain('adapter text');
-  });
-
-  test('the outcome bar is drawn by this screen\'s own host, since the screen covers the navigator that has the other one', async () => {
-    mockSource.podeliTelefon.mockResolvedValue({ ok: true, podatak: null });
-    await render(base());
-    mockRead.mockResolvedValue(shared(true));
-    await act(async () => tree.root.findByProps({ accessibilityLabel: 'Podeli svoj broj' }).props.onPress());
-    expect(tree.root.findAllByProps({ testID: 'poruka-action' }).length).toBeGreaterThan(0);
+describe('phone privacy in the Agreement route', () => {
+  test('hides old phone grants and exposes only in-app messages', async () => {
+    await render(base({ kontakt: { mojTelefonPodeljen: true, njihovTelefon: '+381601234567', lokacijaPostoji: false } }));
+    expect(labels()).toContain('Poruke u aplikaciji');
+    expect(labels()).not.toContain('Podeli svoj broj');
+    expect(labels()).not.toContain('Opozovi deljenje broja');
+    expect(texts()).not.toContain('+381601234567');
+    expect(mockSource.podeliTelefon).not.toHaveBeenCalled();
   });
 });
 
@@ -941,9 +884,9 @@ describe('how a Dogovor goes is behind an "ⓘ" at its head, for a side of a Dog
     expect(texts()).not.toContain('dodirni „Zadatak je gotov“'); expect(quietLine()).toEqual(['Čeka da Marko javi da je zadatak gotov.']);
   });
 
-  test('sharing the number has its ⓘ beside the title of the contact, and the row says only what it does', async () => {
+  test('does not explain phone sharing, which is not available', async () => {
     await render(base());
-    expect(tree.root.findAllByType(InfoButton).map(node => node.props.title)).toContain('Kako se deli broj');
+    expect(tree.root.findAllByType(InfoButton).map(node => node.props.title)).not.toContain('Kako se deli broj');
     expect(texts()).not.toContain('Kad podeliš svoj broj, druga strana ne deli automatski svoj.');
   });
 });

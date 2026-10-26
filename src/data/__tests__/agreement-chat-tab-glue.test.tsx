@@ -82,7 +82,7 @@ describe('the conversation\'s "···"', () => {
     expect(chat()).toHaveLength(1);                                                  // Poruke is what is shown
     expect(labels()).toContain('Više radnji');
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Više radnji' }).props.onPress());
-    expect(menuLabels()).toEqual(['Izmeni uslove', 'Podeli svoj broj', 'Podeli lokaciju', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu']);
+    expect(menuLabels()).toEqual(['Izmeni uslove', 'Podeli lokaciju', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu']);
   });
 
   it('"Prijavi ili blokiraj osobu" goes where the overview\'s safety row goes, for this person and this Dogovor', async () => {

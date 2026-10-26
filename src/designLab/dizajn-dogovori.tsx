@@ -218,13 +218,11 @@ function StillLocation({ requester }: { requester: boolean }) {
 }
 
 /** The Dogovor as its route composes it: the person's bar, the tabs, the Pregled (`AgreementOverview`, the same component) and its footer, or the Poruke. */
-function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTab = 'pregled', chat, recovery = false, formOpen = false, accountHasNumber = true, scale }: {
+function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTab = 'pregled', chat, recovery = false, formOpen = false, scale }: {
   item: DogovorProjekcija; me: UcesnikProjekcija; ownRating?: 'DUE' | 'GIVEN' | 'CLOSED' | 'UNKNOWN' | 'NOT_APPLICABLE'; brand: string;
   initialTab?: AgreementTab; chat?: Omit<ComponentProps<typeof Chat>, 'thread'>; recovery?: boolean;
   /** The form that reports a problem is open (the row "Prijavi problem" was pressed). */
   formOpen?: boolean;
-  /** The signed-in account has a number to share (R01a). */
-  accountHasNumber?: boolean;
   /** The text size the scene stands for (the lab has none): the step bar is drawn for it, and from 1.3 the layouts stack as on a phone. */
   scale?: number;
 }) {
@@ -259,7 +257,7 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
       {other ? <AgreementPersonBar person={other} back={noop} /> : <ProductHeader back={noop} title="Dogovor" />}
       <View style={s.tabs}><AgreementTabs tab={tab} onChange={setTab} /></View>
       <ScrollView contentContainerStyle={overviewContent}>
-        <AgreementOverview agreement={item} step={step} info={active ? agreementStepsInfo({ worker: isWorker }) : null} party enabled={!recovery} accountHasNumber={accountHasNumber}
+        <AgreementOverview agreement={item} step={step} info={active ? agreementStepsInfo({ worker: isWorker }) : null} party enabled={!recovery}
           steps={{ state: item.stanje, ownRating, cancellation: cancelled, room: scale ? { width: room.width, scale } : undefined }}
           // The proposal's lines stand inside the step card, as the route draws them (verify r4b rd item 3): what changes
           // and why, and for one's own proposal the quiet way to look at it (the other side's is answered from the footer).
@@ -279,7 +277,7 @@ function DogovorScene({ item, me, ownRating = 'NOT_APPLICABLE', brand, initialTa
           location={<StillLocation requester={isRequester} />}
           on={{
             proposeTerm: needsTerm ? noop : undefined,
-            togglePhone: noop, openMessages: () => setTab('poruke'), requestAddress: () => setTab('poruke'),
+            openMessages: () => setTab('poruke'), requestAddress: () => setTab('poruke'),
             openTask: item.izvor?.zadatakId ? noop : undefined, openApplication: isWorker && item.izvor?.prijavaId ? noop : undefined,
             openChange: canChange ? noop : undefined, openCancel: canChange ? noop : undefined,
             openProblem: active && !note && !opened ? () => setOpened(true) : undefined, openSafety: other ? noop : undefined,
@@ -329,7 +327,7 @@ function Scene({ scene, scale }: { scene: SceneKey; scale?: number }) {
     case 'problem': return <DogovorScene item={PROBLEM_AGREEMENT} me={ME_REQUESTER} brand="" scale={scale} />;
     case 'form': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="" formOpen scale={scale} />;
     case 'shared': return <DogovorScene item={SHARED_AGREEMENT} me={ME_REQUESTER} brand="" scale={scale} />;
-    case 'no-number': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="" accountHasNumber={false} scale={scale} />;
+    case 'no-number': return <DogovorScene item={LIST[0]} me={ME_REQUESTER} brand="" scale={scale} />;
     case 'cancelled': return <DogovorScene item={LIST[8]} me={ME_WORKER} brand="" scale={scale} />;
     case 'cancelled-me': return <DogovorScene item={LIST[7]} me={ME_REQUESTER} brand="" scale={scale} />;
     case 'long-detail': return <DogovorScene item={LONG[0]} me={ME_REQUESTER} brand="" scale={scale} />;

@@ -7,37 +7,29 @@ import { agreementMenuActions, MENU_WAIT_REASON, type AgreementMenuCommands, typ
  * could not do. Built from the facts; the route gives each entry its command.
  */
 const commands = (): AgreementMenuCommands & Record<keyof AgreementMenuCommands, jest.Mock> => ({
-  onChange: jest.fn(), onCancel: jest.fn(), onPhone: jest.fn(), onLocation: jest.fn(), onProblem: jest.fn(), onSafety: jest.fn(),
+  onChange: jest.fn(), onCancel: jest.fn(), onLocation: jest.fn(), onProblem: jest.fn(), onSafety: jest.fn(),
 });
 const input = (patch: Partial<AgreementMenuInput> = {}): AgreementMenuInput => ({
-  party: true, hasOther: true, active: true, requester: true, canChange: true, phoneShared: false, accountHasNumber: true, hasLocation: true, problemFree: true, enabled: true, ...patch });
+  party: true, hasOther: true, active: true, requester: true, canChange: true, hasLocation: true, problemFree: true, enabled: true, ...patch });
 const labels = (patch: Partial<AgreementMenuInput> = {}) => agreementMenuActions(input(patch), commands()).map(action => action.label);
 
 describe('the menu\'s entries and their order', () => {
-  it('is, for the requester of an agreed physical Dogovor: change, number, location, problem - then, in red, cancel and report/block', () => {
-    expect(labels()).toEqual(['Izmeni uslove', 'Podeli svoj broj', 'Podeli lokaciju', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu']);
+  it('offers agreement actions without phone sharing', () => {
+    expect(labels()).toEqual(['Izmeni uslove', 'Podeli lokaciju', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu']);
   });
 
   it('keeps the plan\'s order after the sheet\'s own ordering, with the danger entries last and only those two in danger', () => {
     const actions = agreementMenuActions(input(), commands());
-    expect(orderActions(actions).map(action => action.key)).toEqual(['change', 'phone', 'location', 'problem', 'cancel', 'safety']);
+    expect(orderActions(actions).map(action => action.key)).toEqual(['change', 'location', 'problem', 'cancel', 'safety']);
     expect(actions.filter(action => action.destructive).map(action => action.label)).toEqual(['Otkaži Dogovor', 'Prijavi ili blokiraj osobu']);
-    expect(actions.slice(0, 4).every(action => !action.destructive)).toBe(true);
+    expect(actions.slice(0, 3).every(action => !action.destructive)).toBe(true);
     expect(actions.map(action => action.key)).toEqual([...new Set(actions.map(action => action.key))]);
   });
 
-  it('writes the number entry for what it will do', () => {
-    expect(labels({ phoneShared: false })).toContain('Podeli svoj broj');
-    expect(labels({ phoneShared: true })).toContain('Opozovi deljenje broja');
-    expect(labels({ phoneShared: true })).not.toContain('Podeli svoj broj');
-  });
-
-  it('offers sharing the number only to an account that has one (R01a), and withdrawing it to whoever shared it', () => {
-    const none = labels({ accountHasNumber: false });
-    expect(none).not.toContain('Podeli svoj broj');
-    expect(none).toEqual(['Izmeni uslove', 'Podeli lokaciju', 'Prijavi problem', 'Otkaži Dogovor', 'Prijavi ili blokiraj osobu']);
-    // A number that was shared can always be taken back, whatever the account says now.
-    expect(labels({ accountHasNumber: false, phoneShared: true })).toContain('Opozovi deljenje broja');
+  it('never offers sharing or withdrawing a phone number', () => {
+    for (const variant of [input(), input({ active: false }), input({ enabled: false })]) {
+      expect(agreementMenuActions(variant, commands()).map(action => action.key)).not.toContain('phone');
+    }
   });
 
   it('offers sharing the location to the requester only, and only where a physical place exists', () => {
@@ -55,7 +47,7 @@ describe('the menu\'s entries and their order', () => {
     const waiting = labels({ canChange: false });
     expect(waiting).not.toContain('Izmeni uslove');
     expect(waiting).not.toContain('Otkaži Dogovor');
-    expect(waiting).toEqual(['Podeli svoj broj', 'Podeli lokaciju', 'Prijavi problem', 'Prijavi ili blokiraj osobu']);
+    expect(waiting).toEqual(['Podeli lokaciju', 'Prijavi problem', 'Prijavi ili blokiraj osobu']);
   });
 
   it('is only the safety entry on a Dogovor that is over, and nothing for someone who is not a side of it', () => {
@@ -74,7 +66,7 @@ describe('the menu\'s commands', () => {
     const given = commands();
     const actions = agreementMenuActions(input(), given);
     const byKey = Object.fromEntries(actions.map(action => [action.key, action]));
-    const wiring: [string, keyof AgreementMenuCommands][] = [['change', 'onChange'], ['phone', 'onPhone'], ['location', 'onLocation'],
+    const wiring: [string, keyof AgreementMenuCommands][] = [['change', 'onChange'], ['location', 'onLocation'],
       ['problem', 'onProblem'], ['cancel', 'onCancel'], ['safety', 'onSafety']];
     for (const [key, command] of wiring) {
       byKey[key].onPress();
@@ -85,12 +77,12 @@ describe('the menu\'s commands', () => {
 
   it('tells the person where "Podeli lokaciju" goes, since the share state is read in the section it opens', () => {
     const location = agreementMenuActions(input(), commands()).find(action => action.key === 'location');
-    expect(location?.hint).toBe('Otvara odeljak Kontakt i mesto.');
+    expect(location?.hint).toBe('Otvara odeljak Komunikacija i mesto.');
   });
 
   it('draws every entry grey with the reason while the page is reading or saving, never hidden and never faded', () => {
     const actions = agreementMenuActions(input({ enabled: false }), commands());
-    expect(actions).toHaveLength(6);
+    expect(actions).toHaveLength(5);
     for (const action of actions) expect([action.key, action.disabled, action.reason]).toEqual([action.key, true, MENU_WAIT_REASON]);
     const live = agreementMenuActions(input({ enabled: true }), commands());
     for (const action of live) expect([action.key, action.disabled, action.reason]).toEqual([action.key, false, undefined]);

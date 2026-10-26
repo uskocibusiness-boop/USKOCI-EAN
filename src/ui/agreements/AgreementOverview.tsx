@@ -35,8 +35,6 @@ export type AgreementOverviewProps = {
   enabled: boolean;
   /** Back from the background: the private part waits for the fresh read. */
   concealed?: boolean;
-  /** The signed-in account carries a phone number to share (R01a). */
-  accountHasNumber: boolean;
   /** A reported problem (or one whose details could not be read), the ways on after it, and the form that reports one. At most one of note and form. */
   problem?: { note?: ReactNode; exits?: ReactNode; form?: ReactNode };
   /** The entry to the conversation of a group Dogovor (it reads the group, so the route owns it). */
@@ -53,7 +51,7 @@ export type AgreementOverviewProps = {
   on: {
     /** The note "Termin još nije dogovoren" and its "Predloži termin". Given only for an agreed Dogovor with no term and nothing else waiting. */
     proposeTerm?: () => void;
-    togglePhone: () => void; openMessages: () => void; requestAddress?: () => void;
+    openMessages: () => void; requestAddress?: () => void;
     /** Rows of the links. */
     openTask?: () => void; openApplication?: () => void;
     /** Rows of the actions: "Izmeni uslove" (the form of a proposal), "Prijavi problem", "Otkaži Dogovor" (the form of the cancelling) and "Prijavi ili blokiraj osobu". */
@@ -63,7 +61,7 @@ export type AgreementOverviewProps = {
   };
 };
 
-export function AgreementOverview({ agreement, step, steps, info, headExtra, party, enabled, concealed = false, accountHasNumber, problem, group, groupReady = false, privatePartyName, location, on }: AgreementOverviewProps) {
+export function AgreementOverview({ agreement, step, steps, info, headExtra, party, enabled, concealed = false, problem, group, groupReady = false, privatePartyName, location, on }: AgreementOverviewProps) {
   const title = readableTitle(agreement.naslov);
   const ownRole = agreement.ucesnici.find(person => person.viSte)?.uloga;
   const roleLabel = ownRole === 'narucilac' ? 'Ti objavljuješ' : ownRole === 'uskocer' ? 'Ti uskačeš' : undefined;
@@ -87,9 +85,9 @@ export function AgreementOverview({ agreement, step, steps, info, headExtra, par
     {/* The real next step and accepted personal terms stay ahead of a potentially long roster.
         The group is a separate channel, not a source of shared price/status permissions. */}
     {group}
-    {/* One open section for the number and the place (it was a closed "Kontakt" and a closed "Lokacija i pristup"). */}
-    <AgreementContactPlace agreement={agreement} enabled={enabled} concealed={concealed} canShare={party} accountHasNumber={accountHasNumber}
-      locationSlot={location} onLayout={on.placeLayout} onTogglePhone={on.togglePhone} onOpenMessages={on.openMessages} onRequestAddress={on.requestAddress} />
+    {/* Communication stays in-app; the private location keeps its separate grant. */}
+    <AgreementContactPlace agreement={agreement} enabled={enabled} concealed={concealed}
+      locationSlot={location} onLayout={on.placeLayout} onOpenMessages={on.openMessages} onRequestAddress={on.requestAddress} />
     <AgreementLinks
       task={on.openTask ? { title, place: agreementTaskPlace(agreement), ...link(on.openTask)! } : undefined}
       application={link(on.openApplication)} history={agreement.hronologija} />

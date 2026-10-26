@@ -35,9 +35,9 @@ const agreement = (patch: Partial<DogovorProjekcija> = {}): DogovorProjekcija =>
 const noop = () => undefined;
 const props = (patch: Partial<AgreementOverviewProps> = {}, over: Partial<AgreementOverviewProps['on']> = {}): AgreementOverviewProps => {
   const item = patch.agreement ?? agreement();
-  return { agreement: item, party: true, enabled: true, accountHasNumber: true,
+  return { agreement: item, party: true, enabled: true,
     step: agreementNextStep({ state: item.stanje, party: true, worker: false, change: { waits: false, mine: null }, ownRating: 'NOT_APPLICABLE', problemOpen: false, deadline: '' }),
-    steps: { state: item.stanje }, ...patch, on: { togglePhone: noop, openMessages: noop, ...over } };
+    steps: { state: item.stanje }, ...patch, on: { openMessages: noop, ...over } };
 };
 let tree: ReactTestRenderer;
 const draw = async (value: AgreementOverviewProps) => { await act(async () => { tree = create(<AgreementOverview {...value} />); }); };
@@ -73,7 +73,7 @@ describe('the order of the overview', () => {
   });
   it('is the work\'s name, where the Dogovor stands, its terms, and the contact - parted by space, with no title of its own for the rows that lead elsewhere or for the actions', async () => {
     await draw(props({}, everything));
-    expect(headers()).toEqual(['Prenos ormana do kombija', 'Dogovoreno', 'Uslovi', 'Kontakt i mesto']);
+    expect(headers()).toEqual(['Prenos ormana do kombija', 'Dogovoreno', 'Uslovi', 'Komunikacija i mesto']);
     // The rows that lead elsewhere come first, then the actions in the order of the page: the calm ones, the two that end something last.
     expect(labels().filter(label => /^(Otvori zadatak|Izmeni uslove|Prijavi problem|Otkaži Dogovor|Prijavi ili blokiraj)/.test(label)))
       .toEqual(['Otvori zadatak: Prenos ormana do kombija. Liman, Novi Sad', ...ACTIONS]);
@@ -157,9 +157,9 @@ describe('a row is drawn only for a command the route gave it', () => {
   });
 
   it('greys every row while the page cannot take a command', async () => {
-    await draw(props({ enabled: false }, { ...everything, togglePhone: noop }));
+    await draw(props({ enabled: false }, { ...everything }));
     const disabled = tree.root.findAll(node => String(node.type) === 'Press' && node.props.disabled === true).map(node => node.props.accessibilityLabel);
-    expect(disabled).toEqual(expect.arrayContaining([...ACTIONS, 'Podeli svoj broj']));
+    expect(disabled).toEqual(expect.arrayContaining(ACTIONS));
   });
 
   it('draws the form that reports a problem in the place of its row, in a view that reports where it stands', async () => {
@@ -212,7 +212,7 @@ describe('the actions are on the page (J15) and say themselves by their title al
 
 /**
  * The explanations stand behind an "ⓘ" (the coordinator, 8 Oct 2026): the page says one sentence or nothing, and what else a person may want
- * to know - how a Dogovor goes, what sharing a number means, what a reported problem changes - is one tap away, next to what it explains.
+ * to know - how a Dogovor goes and what a reported problem changes - is one tap away, next to what it explains.
  */
 describe('the explanations stand behind an "ⓘ"', () => {
   const infos = () => tree.root.findAllByType(InfoButton);
@@ -235,19 +235,14 @@ describe('the explanations stand behind an "ⓘ"', () => {
     expect(titles()).not.toContain('Kako ide Dogovor');
   });
 
-  it('puts how sharing the number works at the end of the title of the contact, where the number can be shared or taken back, and nowhere else', async () => {
-    await draw(props());
-    expect(titles()).toContain('Kako se deli broj');
-    expect(headers()).toContain('Kontakt i mesto');
-    expect(infos().find(node => node.props.title === 'Kako se deli broj')!.props.lines).toEqual(['Deljenje je odvojeno u oba smera.', 'Kad podeliš svoj broj, druga strana ne deli automatski svoj.']);
-    // Said by the ⓘ and not by a line under the row.
-    expect(texts()).not.toContain('Deljenje je odvojeno u oba smera.');
-    await act(async () => tree.unmount());
-    await draw(props({ accountHasNumber: false }));
-    expect(titles()).not.toContain('Kako se deli broj'); expect(headers()).toContain('Kontakt i mesto');
-    await act(async () => tree.unmount());
-    await draw(props({ agreement: agreement({ stanje: 'COMPLETED' }) }));
+  it('has no phone sharing explanation or phone action even if old contact data includes a number', async () => {
+    const item = agreement({ kontakt: { ...agreement().kontakt, mojTelefonPodeljen: true, njihovTelefon: '+381 64 123-4567' } });
+    await draw(props({ agreement: item }));
+    expect(headers()).toContain('Komunikacija i mesto');
     expect(titles()).not.toContain('Kako se deli broj');
+    expect(labels()).not.toContain('Podeli svoj broj');
+    expect(labels()).not.toContain('Opozovi deljenje broja');
+    expect(texts()).not.toContain('+381 64 123-4567');
   });
 
   it('puts what a reported problem changes behind the ⓘ of its note while the Dogovor is open, and none on a Dogovor that is over', async () => {

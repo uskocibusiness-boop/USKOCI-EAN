@@ -85,17 +85,18 @@ describe('the Dogovor of the owner\'s phone picture, in the gallery', () => {
 });
 
 describe('the ideas of the UI pass, as the gallery draws them', () => {
-  it('R01a: an account without a number is told where contact happens, and is offered no command that cannot succeed', async () => {
+  it('offers in-app messages regardless of the account phone state', async () => {
     await open('no-number');
-    expect(labels()).toContain('Kontakt kroz Poruke'); expect(labels()).not.toContain('Podeli svoj broj');
+    expect(labels()).toContain('Poruke u aplikaciji'); expect(labels()).not.toContain('Podeli svoj broj');
     await act(async () => { tree.unmount(); });
     await open('one');
-    expect(labels()).toContain('Podeli svoj broj'); expect(labels()).not.toContain('Kontakt kroz Poruke');
+    expect(labels()).toContain('Poruke u aplikaciji'); expect(labels()).not.toContain('Podeli svoj broj');
   });
 
-  it('a shared number is called, and withdrawn', async () => {
+  it('never renders an old shared number or a phone action', async () => {
     await open('shared');
-    expect(labels()).toContain('Pozovi, 064 123 4567'); expect(labels()).toContain('Opozovi deljenje broja');
+    expect(labels()).not.toContain('Pozovi, 064 123 4567'); expect(labels()).not.toContain('Opozovi deljenje broja');
+    expect(text()).not.toContain('064 123 4567');
   });
 
   it('R02: a Dogovor with no term says so where the person reads what comes next, with the way to propose one', async () => {

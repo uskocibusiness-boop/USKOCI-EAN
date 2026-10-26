@@ -506,10 +506,8 @@ describe('D03 actual route and scoped resource integration', () => {
     let resolve!: (result: unknown) => void;
     mockSource.potvrdiZavrsetak.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
     await render();
-    // (The number and the place are one open section now: nothing to open before the share command is there.)
     const complete = await completionConfirmation();
-    const share = button('Podeli svoj broj').props.onPress;
-    await act(async () => { complete(); complete(); share(); });
+    await act(async () => { complete(); complete(); });
     expect(mockSource.potvrdiZavrsetak).toHaveBeenCalledTimes(1);
     expect(mockSource.podeliTelefon).not.toHaveBeenCalled();
     expect(mockRead).toHaveBeenCalledTimes(1);
@@ -519,21 +517,13 @@ describe('D03 actual route and scoped resource integration', () => {
     expect(texts()).toContain('Dogovor je završen');
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Potvrdi završetak' })).toHaveLength(0);
   });
-  it('keeps completion idle while a different command is being saved', async () => {
-    let resolve!: (result: unknown) => void;
-    mockSource.podeliTelefon.mockImplementationOnce(() => new Promise(done => { resolve = done; }));
+  it('never offers phone sharing while completion is available', async () => {
     await render();
-    await act(async () => button('Podeli svoj broj').props.onPress());
-    expect(mockSource.podeliTelefon).toHaveBeenCalledTimes(1);
-    expect(button('Potvrdi završetak').props.disabled).toBe(true);
-    expect(button('Potvrdi završetak').props.accessibilityState.busy).not.toBe(true);
-    expect(tree.root.findByProps({ testID: 'agreement-action-footer' })
-      .findAll(node => String(node.type) === 'T').flatMap(node => node.children)).toContain('Čuvamo promenu…');
-    await act(async () => resolve({ ok: true, podatak: null }));
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Podeli svoj broj' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Opozovi deljenje broja' })).toHaveLength(0);
     expect(button('Potvrdi završetak').props.disabled).toBe(false);
     expect(mockSource.potvrdiZavrsetak).not.toHaveBeenCalled();
-    // The confirmed command is said once, by the outcome bar this screen hosts.
-    expect(poruka.current()).toMatchObject({ text: 'Broj je podeljen. Marko ga sada vidi.', confirmed: true });
+    expect(mockSource.podeliTelefon).not.toHaveBeenCalled();
   });
   it('an unknown completion remains fenced until explicit successful reconciliation', async () => {
     mockSource.potvrdiZavrsetak.mockResolvedValueOnce({ ok: false, kod: 'TIMEOUT', poruka: 'secret upstream detail' });
@@ -840,7 +830,7 @@ describe('D03 actual route and scoped resource integration', () => {
   it('hides private workspace on background and fences retained actions until foreground readback', async () => {
     mockRead.mockResolvedValueOnce({ ...workspace, kontakt: { ...workspace.kontakt, njihovTelefon: '+38160111222' } });
     await render();
-    expect(texts()).toContain('+38160111222');
+    expect(texts()).not.toContain('+38160111222');
     const complete = await completionConfirmation();
     await act(async () => { mockAppListeners.forEach(listener => listener('background')); complete(); });
     expect(texts()).not.toContain('+38160111222');
@@ -876,7 +866,7 @@ describe('D03 actual route and scoped resource integration', () => {
   it('back from the background the overview keeps its last content with a quiet "Osvežavamo…" line; nothing private, nothing pressable', async () => {
     mockRead.mockResolvedValueOnce({ ...workspace, kontakt: { ...workspace.kontakt, njihovTelefon: '+38160111222' } });
     await render();
-    expect(texts()).toContain('+38160111222'); expect(texts()).not.toContain('Osvežavamo…');
+    expect(texts()).not.toContain('+38160111222'); expect(texts()).not.toContain('Osvežavamo…');
     await act(async () => mockAppListeners.forEach(listener => listener('background')));
     // In the background itself nothing is drawn, as before.
     expect(texts()).not.toContain(workspace.naslov); expect(texts()).not.toContain('+38160111222'); expect(texts()).toContain('Učitavamo Dogovor');
@@ -887,8 +877,8 @@ describe('D03 actual route and scoped resource integration', () => {
     expect(texts()).toContain(workspace.naslov); expect(texts()).toContain('Uslovi'); expect(texts()).toContain('Osvežavamo…');
     expect(texts()).not.toContain('Učitavamo Dogovor');
     // ...with the private part held back until the fresh read has landed, and every command closed.
-    expect(texts()).not.toContain('+38160111222'); expect(texts()).toContain('Proveravamo broj druge strane…');
-    expect(button('Potvrdi završetak').props.disabled).toBe(true); expect(button('Podeli svoj broj').props.disabled).toBe(true);
+    expect(texts()).not.toContain('+38160111222'); expect(texts()).not.toContain('Proveravamo broj druge strane…');
+    expect(button('Potvrdi završetak').props.disabled).toBe(true);
     await act(async () => resolve({ ...workspace, naslov: 'Novi naslov' }));
     expect(texts()).toContain('Novi naslov'); expect(texts()).not.toContain('Osvežavamo…'); expect(texts()).not.toContain('Proveravamo broj druge strane…');
     expect(button('Potvrdi završetak').props.disabled).toBe(false);

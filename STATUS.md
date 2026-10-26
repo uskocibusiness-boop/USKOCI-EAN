@@ -10,8 +10,8 @@ instalaciju i rad. Izbrisani fajlovi ostaju u Git istoriji.
 
 - `npm ci` u ovom folderu kreira sopstveni `node_modules`, primenjuje i proverava
   nativnu Reanimated zakrpu i proverava ulazne grafičke resurse.
-- `npx tsc --noEmit`, provera integriteta 190 lokalnih migracija i odabrani AI
-  ugovorni testovi prolaze.
+- `npx tsc --noEmit`, svih 621 Jest paketa (14.131 test), provera integriteta
+  190 lokalnih migracija i odabrani AI ugovorni testovi prolaze.
 - Brzi Gemini je na DEV-u ranije meren oko 2,9–7,2 s za četiri konkretna
   poziva. To nije dokaz odziva ispod sekunde niti 75% uštede tokena.
 - Dva razgovora i dva pozadinska toka nisu četiri istovremena modela koji
@@ -25,26 +25,33 @@ instalaciju i rad. Izbrisani fajlovi ostaju u Git istoriji.
   namensku kontrolu za medije.
 - Neproverena zastavica za ime u bezbednosnom ekranu uklonjena je iz EAS
   profila; nepostojeći deadline RPC nije uključen pogrešno nazvanom zastavicom.
+- Po odluci vlasnika „Samo poruke za sad“, aktivni Dogovor i njegov meni više
+  ne nude deljenje/opoziv/pozivanje telefonom. Kontaktni odeljak vodi u Poruke;
+  broj iz starije projekcije se ne prikazuje. Odvojena dozvola za tačnu
+  lokaciju ostaje. Testovi ekrana i menija sada proveravaju ovaj ugovor.
 
 ## Nije završeno
 
-- Puna Jest regresija: 615/621 paketa i 14.129/14.162 testova prolazi.
-  Preostalih 6 paketa / 33 testa su u Dogovorima i dalje očekuju svesno,
-  dvosmerno deljenje telefona. Trenutni ekran dozvoljava samo Poruke u
-  aplikaciji. Vlasnik je 26.10.2026. potvrdio da se telefonski broj NE deli; postojeća očekivanja testova treba pregledati i uskladiti.
-  CI namerno pokreće celu regresiju i neće biti zelen dok se očekivanja ne
-  usklade sa odobrenim proizvodnim ponašanjem. Ne zaobilaziti padove samo da
-  provera pozeleni.
+- Serverski Supabase RPC za postojeće `PHONE` grantove i starije klijente nije
+  menjan niti je DEV baza migrirana u ovoj izmeni. Zato ovo jeste ugovor
+  aktuelnog UI-ja, ali još nije server-side zabrana razmene telefona.
+  Slobodan tekst u Porukama takođe može da sadrži broj; za njegovu zabranu
+  bila bi potrebna posebna, jasno definisana moderacija.
 - Produkcioni build/OTA je namerno blokiran dok postoji samo potvrđeni DEV
   backend. Nema dokaza za store release ili pun tok na fizičkom telefonu iz
   ovog novog foldera.
-- Sledeće: pregledati preostale testove po ugovoru privatnosti, dokazati AI
-  latenciju i prompt-cache na reprezentativnom uzorku, pa uraditi native
-  instalaciju i tokove na testnom nalogu pre odluke o produkciji.
+- Sledeće: zatvoriti telefonske grantove i za starije klijente na serveru u
+  zasebnoj migraciji; dokazati AI latenciju i prompt-cache na reprezentativnom
+  uzorku, pa uraditi native instalaciju i tokove na testnom nalogu pre odluke
+  o produkciji.
 
 ## Odluka vlasnika — 26.10.2026: privatnost kontakta
 
-- **POTVRĐENO:** USKOČI ne deli telefonski broj između korisnika; komunikacija i dogovor odvijaju se u Porukama unutar aplikacije.
-- Šest preostalih test-paketa (33 testa) potrebno je pojedinačno pregledati i uskladiti sa ovom odlukom; ne isključivati testove i ne menjati produkcionu logiku samo radi zelenog CI rezultata.
-- Sledeća provera: puna Jest regresija, TypeScript, AI ugovori, migracije; tek zatim ARM64 preview APK i test na fizičkom telefonu.
+- **POTVRĐENA NAMERA:** telefonski broj se ne deli kroz Dogovor; komunikacija
+  i dogovor odvijaju se u Porukama unutar aplikacije. Aktuelni UI je usklađen,
+  ali stariji klijenti i server ostaju otvorena bezbednosna granica.
+- Ranijih 6 neuspešnih Jest paketa / 33 testa pregledano je i usklađeno sa
+  ovom odlukom; puna regresija i TypeScript sada prolaze.
+- Sledeća provera: AI ugovori, migracije, zatim ARM64 preview APK i test na
+  fizičkom telefonu.
 - Produkciona objava ostaje blokirana dok nisu potvrđeni zaseban produkcioni backend, bezbednosne provere i realan end-to-end test.

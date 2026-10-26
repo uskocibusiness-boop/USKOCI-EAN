@@ -3,7 +3,7 @@ import type { SheetAction } from '../system/ActionSheet';
 /**
  * The "···" menu of the CONVERSATION of a Dogovor (plan 2.6; T3c): while Poruke is shown, what can be done is one tap from its bar. In this order:
  *
- *   Izmeni uslove · Podeli svoj broj (only an account that has a number) / Opozovi deljenje broja · Podeli lokaciju (only the requester) · Prijavi problem
+ *   Izmeni uslove · Podeli lokaciju (only the requester) · Prijavi problem
  *   ----
  *   Otkaži Dogovor · Prijavi ili blokiraj osobu            (both in the danger colour)
  *
@@ -23,9 +23,6 @@ export type AgreementMenuInput = {
   requester: boolean;
   /** The page offers "Izmene i otkazivanje" (not to the requester once the work is reported done, not on a finished Dogovor). */
   canChange: boolean;
-  phoneShared: boolean;
-  /** The signed-in account has a phone number to share (R01a). Without one "Podeli svoj broj" cannot succeed, so it is not offered; withdrawing a number already shared is. */
-  accountHasNumber: boolean;
   /** A physical Dogovor with an exact location behind the grant. */
   hasLocation: boolean;
   /** No problem is open yet: an open one is shown on the page instead. */
@@ -35,7 +32,7 @@ export type AgreementMenuInput = {
 };
 
 export type AgreementMenuCommands = {
-  onChange: () => void; onCancel: () => void; onPhone: () => void; onLocation: () => void; onProblem: () => void; onSafety: () => void;
+  onChange: () => void; onCancel: () => void; onLocation: () => void; onProblem: () => void; onSafety: () => void;
 };
 
 /** Why a row is grey: the page is reading or saving something. */
@@ -47,12 +44,9 @@ export function agreementMenuActions(input: AgreementMenuInput, commands: Agreem
   const live = { disabled: off, reason: off ? MENU_WAIT_REASON : undefined };
   const rows: SheetAction[] = [];
   if (input.active && input.canChange) rows.push({ key: 'change', label: 'Izmeni uslove', icon: 'document', onPress: commands.onChange, ...live });
-  if (input.active && (input.phoneShared || input.accountHasNumber)) {
-    rows.push({ key: 'phone', label: input.phoneShared ? 'Opozovi deljenje broja' : 'Podeli svoj broj', icon: 'phone', onPress: commands.onPhone, ...live });
-  }
   if (input.active && input.requester && input.hasLocation) {
     // The share state is read inside the section it opens, so the entry takes the person there instead of guessing.
-    rows.push({ key: 'location', label: 'Podeli lokaciju', icon: 'pin', onPress: commands.onLocation, hint: 'Otvara odeljak Kontakt i mesto.', ...live });
+    rows.push({ key: 'location', label: 'Podeli lokaciju', icon: 'pin', onPress: commands.onLocation, hint: 'Otvara odeljak Komunikacija i mesto.', ...live });
   }
   if (input.active && input.problemFree) rows.push({ key: 'problem', label: 'Prijavi problem', icon: 'alert', onPress: commands.onProblem, ...live });
   if (input.active && input.canChange) {

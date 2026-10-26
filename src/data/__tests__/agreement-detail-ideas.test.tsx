@@ -4,7 +4,7 @@ import { ADDRESS_REQUEST_TEXT } from '../../ui/agreements/agreementContactModel'
 
 /**
  * The Dogovor's overview as its route draws it, for the ideas of the UI pass of 2026-10-08 (`POTREBE_KORISNIKA_20261007.md`):
- * R01a (a number is offered only to an account that has one), R03 (the question for the address is written into the conversation's draft,
+ * In-app messages only, R03 (the question for the address is written into the conversation's draft,
  * never sent), R04 (three ways on after a problem was reported), CANCEL-INFO (who cancelled, when and why, read once for a cancelled
  * Dogovor) and the states while the Dogovor is read. The state machine, the guards and the journals are the other route suites'.
  */
@@ -84,28 +84,28 @@ beforeEach(() => {
 });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); });
 
-describe('R01a: a number is offered only to an account that has one', () => {
-  it('tells an account without a number where contact happens, and the row takes it to Poruke', async () => {
+describe('communication stays in app regardless of account phone state', () => {
+  it('takes an account without a number to Poruke', async () => {
     mockAccountPhone = undefined;
     await render(base());
-    expect(labels()).toContain('Kontakt kroz Poruke'); expect(labels()).not.toContain('Podeli svoj broj');
+    expect(labels()).toContain('Poruke u aplikaciji'); expect(labels()).not.toContain('Podeli svoj broj');
     expect(chat()).toHaveLength(0);
-    await act(async () => press('Kontakt kroz Poruke').props.onPress());
+    await act(async () => press('Poruke u aplikaciji').props.onPress());
     expect(chat()).toHaveLength(1);
   });
 
   it('treats an empty number as none', async () => {
     mockAccountPhone = '   ';
     await render(base());
-    expect(labels()).toContain('Kontakt kroz Poruke'); expect(labels()).not.toContain('Podeli svoj broj');
+    expect(labels()).toContain('Poruke u aplikaciji'); expect(labels()).not.toContain('Podeli svoj broj');
   });
 
-  it('keeps "Podeli svoj broj" for an account that has one', async () => {
+  it('does not offer phone sharing to an account that has a number', async () => {
     await render(base());
-    expect(labels()).toContain('Podeli svoj broj'); expect(labels()).not.toContain('Kontakt kroz Poruke');
+    expect(labels()).not.toContain('Podeli svoj broj'); expect(labels()).toContain('Poruke u aplikaciji');
   });
 
-  it('leaves the number out of the "···" of the conversation too, yet lets a number that was shared be taken back', async () => {
+  it('leaves phone actions out of the conversation menu even for an old shared-number record', async () => {
     mockAccountPhone = undefined;
     // The overview has no menu (its actions are rows of the page); the "···" is the conversation's.
     mockParams = { id: mockAgreementId, tab: 'poruke' };
@@ -116,12 +116,13 @@ describe('R01a: a number is offered only to an account that has one', () => {
     await act(async () => tree.unmount());
     await render(base({ kontakt: { mojTelefonPodeljen: true, njihovTelefon: null, lokacijaPostoji: false } }));
     await act(async () => tree.root.findByProps({ accessibilityLabel: 'Više radnji' }).props.onPress());
-    expect(menu()).toContain('Opozovi deljenje broja');
+    expect(menu()).not.toContain('Opozovi deljenje broja');
   });
 
-  it('calls the number the other side shared, with one press', async () => {
+  it('does not display or call a number the other side once shared', async () => {
     await render(base({ kontakt: { mojTelefonPodeljen: false, njihovTelefon: '064 123 4567', lokacijaPostoji: false } }));
-    expect(labels()).toContain('Pozovi, 064 123 4567');
+    expect(labels()).not.toContain('Pozovi, 064 123 4567');
+    expect(texts()).not.toContain('064 123 4567');
   });
 });
 

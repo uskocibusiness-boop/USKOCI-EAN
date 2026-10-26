@@ -27,9 +27,6 @@ export function AgreementContactPlace({
   enabled: boolean;
   onLayout?: (event: LayoutChangeEvent) => void;
   concealed?: boolean;
-  canShare?: boolean;
-  accountHasNumber?: boolean;
-  onTogglePhone?: () => void;
   onOpenMessages?: () => void;
   onRequestAddress?: () => void;
   locationSlot?: ReactNode;
