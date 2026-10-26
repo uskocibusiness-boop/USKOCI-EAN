@@ -31,7 +31,7 @@ instalaciju i rad. Izbrisani fajlovi ostaju u Git istoriji.
 - Puna Jest regresija: 615/621 paketa i 14.129/14.162 testova prolazi.
   Preostalih 6 paketa / 33 testa su u Dogovorima i dalje očekuju svesno,
   dvosmerno deljenje telefona. Trenutni ekran dozvoljava samo Poruke u
-  aplikaciji. To je odluka o proizvodu i privatnosti koja čeka vlasnikov izbor.
+  aplikaciji. Vlasnik je 26.10.2026. potvrdio da se telefonski broj NE deli; postojeća očekivanja testova treba pregledati i uskladiti.
   CI namerno pokreće celu regresiju i neće biti zelen dok se očekivanja ne
   usklade sa odobrenim proizvodnim ponašanjem. Ne zaobilaziti padove samo da
   provera pozeleni.
@@ -41,3 +41,10 @@ instalaciju i rad. Izbrisani fajlovi ostaju u Git istoriji.
 - Sledeće: pregledati preostale testove po ugovoru privatnosti, dokazati AI
   latenciju i prompt-cache na reprezentativnom uzorku, pa uraditi native
   instalaciju i tokove na testnom nalogu pre odluke o produkciji.
+
+## Odluka vlasnika — 26.10.2026: privatnost kontakta
+
+- **POTVRĐENO:** USKOČI ne deli telefonski broj između korisnika; komunikacija i dogovor odvijaju se u Porukama unutar aplikacije.
+- Šest preostalih test-paketa (33 testa) potrebno je pojedinačno pregledati i uskladiti sa ovom odlukom; ne isključivati testove i ne menjati produkcionu logiku samo radi zelenog CI rezultata.
+- Sledeća provera: puna Jest regresija, TypeScript, AI ugovori, migracije; tek zatim ARM64 preview APK i test na fizičkom telefonu.
+- Produkciona objava ostaje blokirana dok nisu potvrđeni zaseban produkcioni backend, bezbednosne provere i realan end-to-end test.
