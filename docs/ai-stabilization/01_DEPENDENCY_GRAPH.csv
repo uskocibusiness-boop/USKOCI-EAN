@@ -1,0 +1,15 @@
+layer,component,role,authority_or_boundary,status
+client-requester,src/app/(app)/nova.tsx,Requester conversation UI,Renders validated final result; currently discards SSE text deltas,ACTIVE
+client-requester,src/data/aiNeedTurnStream.ts,Requester turn transport,Client-to-edge transport,ACTIVE
+client-requester,src/data/aiNeedV2Production.ts,Requester command/read model,Validates authoritative response documents,ACTIVE
+edge-requester,supabase/functions/uskoci-ai-interview/index.ts,Requester interview and durable turn,Auth/context/claim/budget/main Gemini orchestration,ACTIVE
+client-worker,src/app/(app)/profil/razgovor.tsx,Worker conversation UI,Can render deltas but edge currently supplies final validated result,ACTIVE
+client-worker,src/data/workerAiClientService.ts,Worker turn transport,Client-to-edge transport,ACTIVE
+edge-worker,supabase/functions/uskoci-worker-interview/index.ts,Worker interview and signed save,Auth/context/claim/budget/main Gemini orchestration,ACTIVE
+shared,supabase/functions/_shared/backgroundTaxonomyArchitect.mjs,Background taxonomy capture,Non-authoritative hint/capture after main completion,ACTIVE_CONDITIONAL
+shared,supabase/functions/_shared/classificationEngine.mjs,Classification rules,Classifier support; must not bypass server admission,ACTIVE
+shared,supabase/functions/_shared/aiPhaseTiming.mjs,Latency telemetry,Phase classification only; no behavior change,ACTIVE
+database,public.ai_conversations; public.ai_messages; public.ai_structured_facts,Durable conversation/fact record,Database/RLS/RPC authority,ACTIVE
+database,private.classification_turn_hints,Revision-scoped clarification hint,Read/consume must stay revision fenced,ACTIVE
+background,supabase/functions/uskoci-taxonomy-postsave-worker,Post-save taxonomy processing,Active DEV cron target; audit before changing,ACTIVE
+matching,private.worker_need_fit_v1,Worker-need fit calculation,Uses canonical stored fields/bindings,ACTIVE
