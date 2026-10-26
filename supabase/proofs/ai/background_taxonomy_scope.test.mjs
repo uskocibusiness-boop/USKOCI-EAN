@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildFullTreeTaxonomyProposals, consumeClarificationHint, fetchUnconsumedClarificationHint,
+import { buildFullTreeTaxonomyProposals, buildWorkerFullTreeTaxonomyProposals, consumeClarificationHint, fetchUnconsumedClarificationHint,
   getUnconsumedClarificationHint, hintDraftRevision, persistClarificationHint, storeClarificationHint,
   taskClassificationFingerprint, taskTaxonomyMode, taskTaxonomyScope, workerSkillsFingerprint } from '../../functions/_shared/backgroundTaxonomyArchitect.mjs';
 
@@ -22,6 +22,96 @@ test('clarification RPC receives a bigint-compatible revision, never a turn UUID
   await fetchUnconsumedClarificationHint(rpc, '44444444-4444-4444-8444-444444444444', turnId);
   assert.deepEqual(calls,[]);
 });
+
+for (const [label, reason] of [
+  ['301 characters', 'r'.repeat(301)],
+  ['900+ characters', 'razlog'.repeat(160)],
+  ['emoji boundary', 'r'.repeat(299) + '🛠️' + ' ostatak'.repeat(100)],
+  ['emoji-only', '🧑'.repeat(901)],
+]) {
+  test(`clarification persistence bounds ${label} to the database's 300 codepoints`, async () => {
+    const conversationId = `reason-bound-${label}`;
+    const calls = [];
+    const rpc = async (name, args) => {
+      calls.push({ name, args });
+      // Mirrors only the verified length contract, not a database execution.
+      return { stored: Array.from(args.p_reason).length <= 300 };
+    };
+    const hint = { conversationId, draftRevision: 7, service: 'klima', mode: null,
+      ambiguityPrompt: 'Koju vrstu rada na klimi tražite?', reason };
+    assert.equal(await persistClarificationHint(rpc, hint), true);
+    assert.equal(calls.length, 1);
+    const outgoing = calls[0].args;
+    const stored = getUnconsumedClarificationHint(conversationId, 7);
+    assert.equal(outgoing.p_reason, Array.from(reason).slice(0, 300).join(''));
+    assert.equal(Array.from(outgoing.p_reason).length, 300);
+    assert.equal(stored.reason, outgoing.p_reason, 'local and durable representations cannot diverge');
+    assert.equal(outgoing.p_mode, null);
+    assert.equal(stored.mode, null);
+    assert.equal(outgoing.p_draft_revision, 7);
+    assert.equal(stored.draftRevision, 7);
+    assert.equal(getUnconsumedClarificationHint(conversationId, 6), null);
+    assert.equal(hint.reason, reason, 'normalization must not mutate the caller input');
+  });
+}
+
+for (const [label, result] of [['direct rejection', { stored: false }],
+  ['wrapped rejection', { ok: true, data: { stored: false } }], ['transport rejection', { ok: false }]]) {
+  test(`a bounded clarification with ${label} is not cached`, async () => {
+    const conversationId = `reason-rejected-${label}`;
+    assert.equal(await persistClarificationHint(async () => result, {
+      conversationId, draftRevision: 9, service: 'klima', mode: null,
+      ambiguityPrompt: 'Koju vrstu rada na klimi tražite?', reason: 'r'.repeat(901),
+    }), false);
+    assert.equal(getUnconsumedClarificationHint(conversationId, 9), null);
+  });
+}
+
+test('clarification reason normalization preserves SQL nullable reason semantics', async () => {
+  for (const reason of [null, '   ', '  Dovoljno kratko obrazloženje.  ']) {
+    const conversationId = `nullable-reason-${String(reason)}`;
+    let outgoing;
+    assert.equal(await persistClarificationHint(async (_name, args) => { outgoing = args; return { stored: true }; }, {
+      conversationId, draftRevision: 0, service: 'klima', mode: null,
+      ambiguityPrompt: 'Koju vrstu rada na klimi tražite?', reason,
+    }), true);
+    const expected = typeof reason === 'string' ? reason.replace(/^ +| +$/g, '') || null : reason;
+    assert.equal(outgoing.p_reason, expected);
+    assert.equal(getUnconsumedClarificationHint(conversationId, 0).reason, expected);
+    assert.equal(outgoing.p_draft_revision, 0);
+  }
+});
+
+for (const purpose of ['need', 'worker']) {
+  for (const short of [false, true]) {
+    test(`${purpose} clarification uses PostgreSQL codepoints for bounds, short=${short}`, async t => {
+      const reason = '🧑'.repeat(950);
+      const ambiguityPrompt = short ? '😀😀😀😀' : 'r'.repeat(499) + '🛠️' + 'z'.repeat(200);
+      const decision = { service: 'klima', mode: 'ON_SITE', action: 'NEEDS_CLARIFICATION', parentId: '',
+        ambiguityPrompt, reason };
+      t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP',
+        content: { parts: [{ text: JSON.stringify(purpose === 'need' ? { decisions: [decision] } : { items: [decision] }) }] },
+      }] })));
+      const args = { geminiKey: 'synthetic', geminiModel: 'synthetic',
+        rpc: async () => ({ ok: true, data: { catalogVersion: 809040 + Number(short), catalogFingerprint: purpose + short,
+          categories: [{ categoryId: '11111111-1111-4111-8111-111111111111', label: 'Servis uređaja',
+            path: ['Servis uređaja'], aliases: [], modes: ['ON_SITE'] }] } }),
+      };
+      const result = purpose === 'need'
+        ? await buildFullTreeTaxonomyProposals({ ...args, items: [{ service: 'klima', mode: 'ON_SITE' }] })
+        : await buildWorkerFullTreeTaxonomyProposals({ ...args, skills: ['klima'], messages: [],
+          serviceModeContext: { savedServices: [], draftServices: [] } });
+      if (short) {
+        assert.deepEqual(result.clarifications, [], 'four emoji are four characters, below the SQL minimum of eight');
+      } else {
+        assert.equal(result.clarifications.length, 1);
+        assert.equal(result.clarificationHint.reason, Array.from(reason).slice(0, 300).join(''));
+        assert.equal(result.clarificationHint.ambiguityPrompt, Array.from(ambiguityPrompt).slice(0, 500).join(''));
+        assert.equal(Array.from(result.clarificationHint.ambiguityPrompt).length, 500);
+      }
+    });
+  }
+}
 
 test('in-memory hints are revision-exact and consuming one revision cannot erase another',()=>{
  const conversationId='55555555-5555-4555-8555-555555555555';

@@ -56,9 +56,11 @@ async function providerEntries(res, field) {
   if (!Array.isArray(parsed?.[field]) || parsed[field].length === 0) throw new TaxonomyProviderError('PROVIDER_INCOMPLETE_RESULT');
   return parsed[field];
 }
+// PostgreSQL char_length counts codepoints; UTF-16 slice can split an emoji.
+const boundedCodepoints = (value, limit) => Array.from(value).slice(0, limit).join('');
 function validClarification(decision) {
   return ['NEEDS_CLARIFICATION', 'AMBIGUOUS'].includes(decision?.action)
-    && typeof decision.ambiguityPrompt === 'string' && decision.ambiguityPrompt.trim().length >= 8
+    && typeof decision.ambiguityPrompt === 'string' && Array.from(decision.ambiguityPrompt.trim()).length >= 8
     && typeof decision.reason === 'string' && decision.reason.trim().length >= 10;
 }
 function decisionFailure(decision) {
@@ -150,6 +152,12 @@ export async function persistClarificationHint(rpc, hint) {
   if (!hint?.conversationId) return false;
   const draftRevision = hintDraftRevision(hint.draftRevision);
   if (draftRevision === null) return false;
+  // Mirror the store RPC's btrim/nullif semantics, with its 300-character cap.
+  // Send and cache the identical text; a rejected write must never warm memory.
+  const reason = typeof hint.reason === 'string'
+    ? boundedCodepoints(hint.reason.replace(/^ +| +$/g, ''), 300).replace(/ +$/g, '') || null
+    : hint.reason;
+  const normalizedHint = { ...hint, reason };
   if (typeof rpc === 'function') {
     try {
       const res = await rpc('rpc_taxonomy_store_classification_turn_hint_service', {
@@ -158,14 +166,14 @@ export async function persistClarificationHint(rpc, hint) {
         p_service: hint.service,
         p_mode: hint.mode ?? null,
         p_ambiguity_prompt: hint.ambiguityPrompt,
-        p_reason: hint.reason,
+        p_reason: reason,
       });
       if (res?.ok === false || res?.data?.stored === false || res?.stored === false) return false;
     } catch {
       return false;
     }
   }
-  storeClarificationHint(hint.conversationId, draftRevision, hint);
+  storeClarificationHint(hint.conversationId, draftRevision, normalizedHint);
   return true;
 }
 
@@ -522,8 +530,8 @@ export async function buildFullTreeTaxonomyProposals({
           service: item.service,
           mode: item.mode,
           action: 'NEEDS_CLARIFICATION',
-          ambiguityPrompt: decision.ambiguityPrompt.trim().slice(0, 500),
-          reason: decision.reason.trim().slice(0, 900),
+          ambiguityPrompt: boundedCodepoints(decision.ambiguityPrompt.trim(), 500),
+          reason: boundedCodepoints(decision.reason.trim(), 300),
           createdAt: new Date().toISOString(),
         };
         clarifications.push(clarification);
@@ -746,8 +754,8 @@ export async function buildWorkerFullTreeTaxonomyProposals({
       conversationId: conversationId ?? null,
       draftRevision: draftRevision ?? null,
       service, mode, action: 'NEEDS_CLARIFICATION',
-      ambiguityPrompt: decision.ambiguityPrompt.trim().slice(0, 500),
-      reason: decision.reason.trim().slice(0, 900), createdAt: new Date().toISOString(),
+      ambiguityPrompt: boundedCodepoints(decision.ambiguityPrompt.trim(), 500),
+      reason: boundedCodepoints(decision.reason.trim(), 300), createdAt: new Date().toISOString(),
     });
     if (chosenEntries.length === 0) {
       unresolvedServices.push(service);
