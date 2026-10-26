@@ -295,10 +295,11 @@ function notReadyCopy(code: string, missing?: readonly string[], stationary = fa
 }
 
 async function resumeFor(s: ReceiptAccount, command: AiTaskPublicationCommand): Promise<Ishod<AiTaskPublicationCommand>> {
+  const expectedKey = command.clientRequestId;
   const read = await readFor(s, command.reviewId);
   if (!read.ok) return read;
   let stored = read.podatak.command;
-  if (!stored || stored.clientRequestId !== command.clientRequestId) return failure('TASK_REVIEW_COMMAND_MISMATCH', COPY.TASK_REVIEW_COMMAND_MISMATCH);
+  if (!stored || !sameId(stored.clientRequestId, expectedKey)) return failure('TASK_REVIEW_COMMAND_MISMATCH', COPY.TASK_REVIEW_COMMAND_MISMATCH);
   if ((stored.state === 'ACCEPTED' || stored.state === 'EVALUATED')
     && read.podatak.review.publicProjection.some(f => f.key === 'need.verified_identity_required' && f.value === true)) {
     return failure('IDENTITY_VERIFICATION_UNAVAILABLE', COPY.IDENTITY_VERIFICATION_UNAVAILABLE);
@@ -317,7 +318,8 @@ async function resumeFor(s: ReceiptAccount, command: AiTaskPublicationCommand): 
     const refreshed = await readFor(s, stored.reviewId);
     if (!refreshed.ok) return refreshed;
     stored = refreshed.podatak.command;
-    if (!stored) return failure('TASK_REVIEW_COMMAND_MISMATCH', COPY.TASK_REVIEW_COMMAND_MISMATCH);
+    if (!stored || !sameId(stored.clientRequestId, expectedKey))
+      return failure('TASK_REVIEW_COMMAND_MISMATCH', COPY.TASK_REVIEW_COMMAND_MISMATCH);
     if (stored.state === 'ACCEPTED') {
       if (!evaluated.ok) return evaluated;
       // The server says exactly what is missing. Repeating a generic "reload" left the
@@ -329,11 +331,17 @@ async function resumeFor(s: ReceiptAccount, command: AiTaskPublicationCommand): 
     }
   }
   if (stored.state !== 'EVALUATED' || stored.evaluation?.kind !== 'DECISION' || stored.evaluation.decision.outcome !== 'ALLOW') return { ok: true, podatak: stored };
-  return rpc(s, 'rpc_publish_accepted_ai_task_review', { p_review_id: stored.reviewId, p_client_request_id: stored.clientRequestId }, raw => decodeCommandForReview(raw, read.podatak.review), true);
+  const publishingKey = stored.clientRequestId;
+  return rpc(s, 'rpc_publish_accepted_ai_task_review', { p_review_id: stored.reviewId, p_client_request_id: publishingKey }, raw => {
+    const receipt = decodeCommandForReview(raw, read.podatak.review);
+    return receipt && sameId(receipt.clientRequestId, publishingKey) ? receipt : null;
+  }, true);
 }
 async function acceptFor(s: ReceiptAccount, command: Readonly<{ review: AiTaskReviewEnvelope; clientRequestId: string }>): Promise<Ishod<AiTaskPublicationCommand>> {
   if (!uuid(command?.clientRequestId) || !decodeAiTaskReview(command.review, s.accountId)) return invalid();
   const frozenReview = { ...command.review };
+  // Acceptance is idempotent by review: an existing canonical command may have
+  // an earlier request key. Only resume/publish are bound to that selected key.
   return rpc(s, 'rpc_accept_ai_task_review', { p_review_id: command.review.reviewId,
     p_displayed_content_digest: command.review.displayedContentDigest, p_client_request_id: command.clientRequestId },
     raw => decodeCommandForReview(raw, frozenReview), true);
