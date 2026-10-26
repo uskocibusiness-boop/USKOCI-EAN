@@ -1,8 +1,8 @@
 // Count-only latency evidence. No prompts, IDs, coordinates, provider bodies or errors.
 // A telemetry failure must never change the operation's result or retry it.
 const phases = new Set(['PROVIDER', 'CATALOG_TOOLS', 'ADMISSION', 'ACCOUNTING',
-  'NEED_CATALOG_START', 'NEED_CATALOG_VERIFY', 'NEED_COMPLETE', 'NEED_HINT_CAPTURE',
-  'WORKER_CATALOG_START', 'WORKER_CATALOG_VERIFY', 'WORKER_COMPLETE', 'WORKER_HINT_CAPTURE']);
+  'NEED_CATALOG_START', 'NEED_CATALOG_VERIFY', 'NEED_BG_ARCHITECT', 'NEED_COMPLETE', 'NEED_HINT_CAPTURE',
+  'WORKER_CATALOG_START', 'WORKER_CATALOG_VERIFY', 'WORKER_BG_ARCHITECT', 'WORKER_COMPLETE', 'WORKER_HINT_CAPTURE']);
 /** @template T
  * @param {string} phase
  * @param {() => Promise<T>} operation

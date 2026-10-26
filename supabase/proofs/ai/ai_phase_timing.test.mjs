@@ -8,10 +8,15 @@ test('phase telemetry preserves results/errors and cannot emit user content',asy
   const result={private:'PRIVATE_RESPONSE'}, failure=new Error('PRIVATE_ERROR');
   let calls=0;
   assert.equal(await measureAiPhase('PROVIDER',async()=>{calls++;return result;}),result);
+  assert.equal(await measureAiPhase('NEED_BG_ARCHITECT',async()=>{calls++;return result;}),result);
+  assert.equal(await measureAiPhase('WORKER_BG_ARCHITECT',async()=>{calls++;return result;}),result);
   await assert.rejects(measureAiPhase('PRIVATE_PROMPT',async()=>{calls++;throw failure;}),error=>error===failure);
-  assert.equal(calls,2);assert.equal(logs.length,2);
+  assert.equal(calls,4);assert.equal(logs.length,4);
   assert.deepEqual(logs.map(x=>[x[0],x[1],x[3]]),[
-   ['AI_PHASE_MS','PROVIDER','SUCCEEDED'],['AI_PHASE_MS','UNKNOWN','FAILED']]);
+   ['AI_PHASE_MS','PROVIDER','SUCCEEDED'],
+   ['AI_PHASE_MS','NEED_BG_ARCHITECT','SUCCEEDED'],
+   ['AI_PHASE_MS','WORKER_BG_ARCHITECT','SUCCEEDED'],
+   ['AI_PHASE_MS','UNKNOWN','FAILED']]);
   assert.ok(logs.every(x=>Number.isFinite(x[2])&&x[2]>=0));
   assert.ok(!JSON.stringify(logs).includes('PRIVATE_'));
   console.info=()=>{throw Error('LOGGER_DOWN');};
