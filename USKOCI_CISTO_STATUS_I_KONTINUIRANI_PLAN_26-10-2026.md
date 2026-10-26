@@ -4,6 +4,40 @@ Ažurirano: 27.10.2026, lokalno vreme; read-only DEV dokazi prikupljeni 26.10. U
 Repo: uskocibusiness-boop/USKOCI-EAN. Jedina grana rada: feature/uskoci-cisto.
 Ovaj dokument zamenjuje raniji preoptimističan zaključak o „osam zatvorenih celina”.
 
+## 0. Najnoviji nastavak — 27.10.2026
+
+Nastavljeno je sa potvrđenog lokalnog/remote HEAD-a `5e7790e8`; prethodni GitHub CI run `40419447597` je SUCCESS. Sledeće promene su **source-only, nisu deployovane**:
+
+| Celina | Šta je popravljeno / dokaz | Commit | Šta ostaje otvoreno |
+| --- | --- | --- | --- |
+| Trajne AI potvrde i post-save transport | Store/consume zahtevaju validan ACK i tačnu reviziju pre promene keša; prekinuto telo/UTF-8 ostaju tehnička greška za postojeći retry, ne terminalni review. Lifecycle + scope 57/57 PASS. | `8f6e0627` | Durable retry nedostajućeg klasifikacionog rezultata i silent capture greške. |
+| Jedno pitanje | Shadow/research uputstva i feedback daju jedno pitanje, čuvajući sve druge nejasnoće i zabranu preranog review-a. Novi testovi 6/6 PASS posle 6 početnih neuspeha. | `c74211ed` | Konačno sažimanje svih promptova, jezički kvalitet i živa latencija. |
+| CI i SQL dokazi | Vraćene Deno provere tri ulaza, 7 dynamic paketa (114/114), dodata izvršna karakterizacija stvarnih SQL pisaca (18/18). | `9eced571` | Puna zamena 223 istorijska workflow-a nije dokazana; pravi PG16/17 i E2E su otvoreni. |
+| Klijentska objava | Provera i potvrda objave ostaju vezane za izabranu komandu. Sačuvan legitiman canonical replay istog pregleda pod ranijim ključem; bez dodatnog RPC-a. Novi testovi 12/12 PASS. | `4efb0de3` | Stvarni telefon → DEV Save/publish tok. |
+
+Nezavisni SQL pregled je sprečio preterano strog accept guard pre konačnog commita: prihvatanje istog pregleda sme da vrati postojeću komandu sa starijim ključem. Resume/publish imaju drugačiji, stroži ugovor. Nije uveden novi sloj ili dodatno čekanje u razgovoru.
+
+### Završne lokalne provere ovog nastavka
+
+- Mobilni Jest: **622/622 paketa, 14.143/14.143 testova, 3/3 snapshot-a**.
+- Cela AI Node grupa: **856 ukupno; 855 PASS, 0 FAIL, 1 postojeći TODO**.
+- Dodatni dynamic taxonomy paketi: **114/114 PASS**; signed/question-policy podskup: **31/31 PASS**.
+- PGlite: **24/24 PASS** (18 novih characterization + 6 ranijih gate testova). Novi testovi reprodukuju postojeće ponašanje, nisu popravka baze.
+- TypeScript i Deno 2.5.6 check tri Edge ulaza: PASS. Requester ima postojeći `@ts-nocheck`, pa to nije potpuna tipska provera njegovog tela ni Supabase runtime E2E.
+- Migration integrity: **193 SQL fajla PASS; Python 15/15 PASS**.
+
+Podskupovi se preklapaju. Preostali AI TODO za RSD→EUR invalidaciju nije uklonjen ni sakriven. Novi GitHub CI rezultat mora se proveriti na konačnom push SHA-u; prethodni zeleni run nije dokaz za ove izmene.
+
+### Proširena analiza, bez tvrdnje da je sve pročitano
+
+Tri stručna pregleda obuhvatila su klijentski tok, background lifecycle i SQL pisce. **42 izabrana živa SQL tela** pročitana su u celosti i hash-om ponovo potvrđena; to nije 42 potpuno pročitana migraciona fajla niti cela baza. Aktivni direktni writer radnikovog profila razlikovan je od signed AI Save-a. Reprodukovani su rizici teksta naspram kategorije i preimenovanja naspram povlačenja usluge, ali nije menjana šema.
+
+Obim lokalnih fajlova vodi `01B_FILE_REVIEW_LEDGER.csv`: od 3.426 praćenih fajlova, **117 FULL, 17 PARTIAL, 3.290 još bez sadržajnog pregleda i 2 izvedena inventara**. FULL/PARTIAL zahteva hash i dokaz čitanja; brojevi uključuju source, testove, konfiguraciju i dokumentaciju, nisu broj samo runtime fajlova. Inventar i prolaz testova ne broje se kao čitanje sadržaja. F0 ostaje otvoren.
+
+Detalji: `docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md`, `06_BACKGROUND_LIFECYCLE_REVIEW.md`, `06_SQL_WRITER_REVIEW.md`, `06_SQL_WRITER_MATRIX.csv` i `06_CI_COVERAGE_REVIEW.md`.
+
+**Sledeće po MASTER redosledu:** dovršiti writer/caller/provenance i CI pokrivenost; oblikovati F1 testni korpus i očuvanje stabilnog identiteta pri preimenovanju/povlačenju. Za background failures prvo dokazati tačan failure/unchanged-turn tok i postojeće ACK/lifecycle granice. Ne uklanjati SQL identity/consent zaštite niti uvoditi automatski retry svih pending slučajeva. DEV deploy, live upisi, Gemini/E2E merenje i obaveštenja i dalje traže posebno odobrenje.
+
 ## 1. Gde smo stvarno
 
 Izvršene su konkretne lokalne popravke, ali **aplikacija nije proglašena završenom niti E2E potvrđenom**.
@@ -66,7 +100,7 @@ Promptovi nisu završno sažeti. Sintetički izmereno stabilno uputstvo: NEED 26
 
 Semantičko povezivanje različitih naziva iste usluge i dalje nije završeno: S07/S08 traže zajednički ugovor i SQL admission. Ne sme se samo izbrisati identity guard.
 
-## 4. Testovi — šta je zaista izvršeno sada
+## 4. Testovi prethodnog preseka — pre nastavka iz odeljka 0
 
 - Cela mobilna aplikacija: **621/621 paketa, 14.131/14.131 testova, 3/3 snapshot-a**.
 - TypeScript npx tsc --noEmit: PASS nakon ažuriranja mode deklaracija.

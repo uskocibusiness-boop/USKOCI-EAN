@@ -1,0 +1,1015 @@
+{
+  "schema": "USKOCI_F0_SQL_REVIEW_MANIFEST_V1",
+  "reviewer": "publication_contract_review",
+  "baseCommit": "5e7790e8445e09f38275ec19bdb86e8948c66558",
+  "branch": "feature/uskoci-cisto",
+  "devProjectRef": "leqcwgzvjsxugfgzdmth",
+  "snapshotUtc": "2026-10-26T23:45:17Z",
+  "f0Gate": "OPEN",
+  "remoteActions": "SELECT metadata/source/configuration only; no application RPC invocation or remote mutation",
+  "scope": "Selected category/skills writer, trigger, signed Save and post-save binding graph. Not exhaustive SQL/schema/auth/runtime/E2E review.",
+  "statusSemantics": {
+    "FULL": "Complete local file contents read. SHA256 is full on-disk bytes at capture. Not a claim of all transitive dependencies or live deployment.",
+    "PARTIAL": "Only named functions/ranges read or exact-body verified against fully read live source; whole file is not reviewed.",
+    "FULL_LIVE_FUNCTION_BODY": "Whole observed prosrc read; hash rechecked at snapshot. Enclosing migration and transitive callees not automatically reviewed."
+  },
+  "files": [
+    {
+      "path": "supabase/migrations/20261013193000_uskoci_needs_category_sync_trigger.sql",
+      "sha256": "7c1630c81ed68a4fd6620f908154ebfb0dd38c54b250a7e5124f5a36a06aa3d8",
+      "bytes": 1264,
+      "status": "FULL",
+      "sections": []
+    },
+    {
+      "path": "supabase/migrations/20261014093000_uskoci_worker_profile_authoritative_capability_sync.sql",
+      "sha256": "201e7132ab8a3fa88ad8804ebc70e2b1a567ceed783d93f038bbb4dd1507ee98",
+      "bytes": 5460,
+      "status": "FULL",
+      "sections": [
+        {
+          "symbol": "worker_profile_sync_taxonomy_capabilities_trg_fn",
+          "startLine": 131,
+          "endLine": 147,
+          "bodyMd5": "f24e6379c27ea76f477a93577e70d0cd",
+          "equalsLive": true
+        }
+      ]
+    },
+    {
+      "path": "supabase/candidates/dynamic-taxonomy-20261011/worker-no-implicit-admission-v1.sql",
+      "sha256": "3228eeaa25cf178784a7251f4c079ea165166277d3996adebf65e6b9a176672a",
+      "bytes": 4310,
+      "status": "FULL",
+      "sections": []
+    },
+    {
+      "path": "supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-postsave-binding-tick-v1.sql",
+      "sha256": "9eafd7f85b3229d579397911a4237667d257ae90332e3827d20bda3d4bf4f8aa",
+      "bytes": 6622,
+      "status": "FULL",
+      "sections": []
+    },
+    {
+      "path": "supabase/candidates/dynamic-taxonomy-20261011/disposable-worker-safe-sync-assert.sql",
+      "sha256": "5d600a45a02bacd4618c7d55d9281a9ac72733b1b08905c05d0c145952045837",
+      "bytes": 4542,
+      "status": "FULL",
+      "sections": []
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs",
+      "sha256": "57093fcfcfe1252e1f8990751c47d43072ead03ec1f4e57885f62273eb0626f6",
+      "bytes": 6548,
+      "status": "FULL",
+      "sections": []
+    },
+    {
+      "path": "supabase/functions/uskoci-taxonomy-postsave-worker/index.ts",
+      "sha256": "7dd480eef01ffe54f2444e518cf141415eb710d129afe974f3c640b3ec2912df",
+      "bytes": 6446,
+      "status": "FULL",
+      "sections": []
+    },
+    {
+      "path": "src/data/workerProfileClientService.ts",
+      "sha256": "efeb24186ed66a00dfe97b44fd2ec56e669c1082715cc6b7b3843b175e3057de",
+      "bytes": 8656,
+      "status": "FULL",
+      "sections": []
+    },
+    {
+      "path": "supabase/migrations/20261016185402_dev_signed_taxonomy_binding_requeue_20261016.sql",
+      "sha256": "b01e51264a54c469112108559232dd90a1ce6c6f4a0d42132019a7fd0bdb11d0",
+      "bytes": 3530,
+      "status": "FULL",
+      "sections": [
+        {
+          "symbol": "taxonomy_signed_binding_requeue_v1",
+          "startLine": 6,
+          "endLine": 63,
+          "bodyMd5": "f540b18ff827bd6c5e4d277ad873bcea",
+          "equalsLive": true
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20260904230500_clean_ru4_ai_edit_replay_boundary.sql",
+      "sha256": "297947cff6a5e344d9988f23a3291acbafcc43c5a017760808a181b04f318938",
+      "bytes": 4377,
+      "status": "FULL",
+      "sections": [
+        {
+          "symbol": "rpc_confirm_need_edit_from_review_v2",
+          "startLine": 4,
+          "endLine": 86,
+          "bodyMd5": "cb14889cd68c928bec95577d28ae2eb5",
+          "equalsLive": true
+        }
+      ]
+    },
+    {
+      "path": "supabase/proofs/taxonomy/live_writer_characterization.test.mjs",
+      "sha256": "868dee090a0196b9471b2dff9e195d8edddce0eadc73567fcf057a337aa1abd7",
+      "bytes": 16492,
+      "status": "FULL",
+      "sections": []
+    },
+    {
+      "path": "src/lib/capabilityTerms.ts",
+      "sha256": "fb6f9cd322a3548e9a30b22fc584ad1608052358959beaddf9552306f026d4ad",
+      "bytes": 698,
+      "status": "FULL",
+      "sections": []
+    },
+    {
+      "path": "src/ui/workerProfile/workerProfileDraft.ts",
+      "sha256": "272230ce33f889aeac932d506f661f8f8da57781c2d95fc26d859a6ee3832c0e",
+      "bytes": 7342,
+      "status": "FULL",
+      "sections": []
+    },
+    {
+      "path": "docs/ai-stabilization/06_SQL_WRITER_MATRIX.csv",
+      "sha256": "ddfce917158d89bed972e690d6f6e59cc9f3bcd1de938c6c7b129a11eb5024c4",
+      "bytes": 33882,
+      "status": "FULL",
+      "sections": []
+    },
+    {
+      "path": "docs/ai-stabilization/06_SQL_WRITER_READONLY.sql",
+      "sha256": "5a6f92b8ab52d3b3cb57aef2524b19585ef6dd797bc1e227ae29df1c3519b633",
+      "bytes": 6425,
+      "status": "FULL",
+      "sections": []
+    },
+    {
+      "path": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md",
+      "sha256": "dd524a29d135217e3c2a385e7e21bd035e4bbf9b578a522aa9a7b7774b78317b",
+      "bytes": 15995,
+      "status": "FULL",
+      "sections": []
+    },
+    {
+      "path": "supabase/migrations/20261019104047_taxonomy_parent_navigation_and_mode_admission.sql",
+      "sha256": "1d871cf4d4ce520aecba68783086f672f81fda21f9717c828466811189d38274",
+      "bytes": 94571,
+      "status": "PARTIAL",
+      "sections": [
+        {
+          "symbol": "taxonomy_review_candidate_projection_v2",
+          "startLine": 354,
+          "endLine": 522,
+          "bodyMd5": "f9318f476e32a8233fbb07ccf5d22aeb",
+          "equalsLive": true
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261019104604_service_handoff_signed_matching.sql",
+      "sha256": "e2c40877d39d9546bd0cdd6584c7bd07db63e7546e8e92612e34e75a78f0c1b8",
+      "bytes": 114967,
+      "status": "PARTIAL",
+      "sections": [
+        {
+          "symbol": "rpc_save_need_draft_from_review",
+          "startLine": 150,
+          "endLine": 414,
+          "bodyMd5": "39a3d39e60e8ab42f7e0269aba965280",
+          "equalsLive": true
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261021101159_staged_task_replacement.sql",
+      "sha256": "1a75b59baf6492702b70294f4321067f9f0c6c3113a5203697ac1788410e90d0",
+      "bytes": 64139,
+      "status": "PARTIAL",
+      "sections": [
+        {
+          "symbol": "rpc_accept_ai_task_review",
+          "startLine": 573,
+          "endLine": 637,
+          "bodyMd5": "535fa065c24b514423af8d04a8a58574",
+          "equalsLive": true
+        },
+        {
+          "symbol": "rpc_publish_need_canonical",
+          "startLine": 812,
+          "endLine": 1060,
+          "bodyMd5": "9d20dbb6063d8025d7255b10affdd566",
+          "equalsLive": true
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261021103732_worker_equipment_retired_signed_policy.sql",
+      "sha256": "93e8ac510ea87ea7d37dcc9290c1b94c135d978e7c5229a225294d10b9247f67",
+      "bytes": 67877,
+      "status": "PARTIAL",
+      "sections": [
+        {
+          "symbol": "rpc_prepare_worker_ai_review",
+          "startLine": 123,
+          "endLine": 165,
+          "bodyMd5": "b521d11f93593472a29dc033e13e0d15",
+          "equalsLive": true
+        },
+        {
+          "symbol": "rpc_save_worker_ai_review",
+          "startLine": 167,
+          "endLine": 223,
+          "bodyMd5": "be6c0ff39256999c3b68142ecfdfb147",
+          "equalsLive": true
+        },
+        {
+          "symbol": "rpc_prepare_worker_ai_review_taxonomy",
+          "startLine": 225,
+          "endLine": 422,
+          "bodyMd5": "b1fea09e43410257f8d731cbee444ec6",
+          "equalsLive": true
+        },
+        {
+          "symbol": "rpc_prepare_worker_ai_review_taxonomy_confirmed",
+          "startLine": 424,
+          "endLine": 489,
+          "bodyMd5": "d5d404cbff28e997889848c95e9be095",
+          "equalsLive": true
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261021103954_task_review_writer_readiness.sql",
+      "sha256": "30a973b0250d343c0c2c11e4b2d7f3df9bc7ac4038d90361d13532f136616bc3",
+      "bytes": 30134,
+      "status": "PARTIAL",
+      "sections": [
+        {
+          "symbol": "rpc_prepare_ai_task_review",
+          "startLine": 9,
+          "endLine": 132,
+          "bodyMd5": "3701c41f5fcca0bdfd1e50573305600c",
+          "equalsLive": true
+        },
+        {
+          "symbol": "rpc_prepare_ai_task_review_taxonomy",
+          "startLine": 133,
+          "endLine": 309,
+          "bodyMd5": "af3c9d848b69995219f3432d0fda3586",
+          "equalsLive": true
+        }
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261021104455_closure_taxonomy_archive_copy_coverage.sql",
+      "sha256": "2f3a9957e33f2347a637fc273a8d96170d04225c5a99a02c17c672348d3d03a9",
+      "bytes": 265652,
+      "status": "PARTIAL",
+      "sections": [
+        {
+          "symbol": "rpc_taxonomy_prepare_admission_service",
+          "startLine": 607,
+          "endLine": 715,
+          "bodyMd5": "8fb67af44c4de3bc93cf2144fd6629c6",
+          "equalsLive": true
+        },
+        {
+          "symbol": "rpc_taxonomy_commit_reviewed_batch_service",
+          "startLine": 717,
+          "endLine": 1022,
+          "bodyMd5": "757a754bd2310d07eb0587e1f8279b2b",
+          "equalsLive": true
+        },
+        {
+          "symbol": "rpc_taxonomy_bind_reviewed_worker_service",
+          "startLine": 1024,
+          "endLine": 1199,
+          "bodyMd5": "a209973be36f4fe57e8963eefdf7bceb",
+          "equalsLive": true
+        },
+        {
+          "symbol": "rpc_taxonomy_bind_reviewed_need_service",
+          "startLine": 1201,
+          "endLine": 1316,
+          "bodyMd5": "fa0873f285473eb513bdae1302157569",
+          "equalsLive": true
+        },
+        {
+          "symbol": "rpc_taxonomy_assign_worker_categories_service",
+          "startLine": 1473,
+          "endLine": 1522,
+          "bodyMd5": "59f2d25b4a1b3a8051d7ac90ab956544",
+          "equalsLive": true
+        },
+        {
+          "symbol": "rpc_taxonomy_approve_admission",
+          "startLine": 1568,
+          "endLine": 1609,
+          "bodyMd5": "98916c75b4b4aa7e3ba711472126263f",
+          "equalsLive": true
+        },
+        {
+          "symbol": "rpc_taxonomy_commit_admission_service",
+          "startLine": 1611,
+          "endLine": 1707,
+          "bodyMd5": "e109f516f90fa93b2ef3d10de7c85a51",
+          "equalsLive": true
+        },
+        {
+          "symbol": "rpc_taxonomy_finalize_reviewed_batch_service",
+          "startLine": 1709,
+          "endLine": 1750,
+          "bodyMd5": "af9cd22b779037a8c9f7fad5c8543cfe",
+          "equalsLive": true
+        },
+        {
+          "symbol": "sync_worker_skills_to_taxonomy_capabilities",
+          "startLine": 1752,
+          "endLine": 1834,
+          "bodyMd5": "8bfb57431cd6a6fcff2e1e80fe8b5fbc",
+          "equalsLive": true
+        },
+        {
+          "symbol": "rpc_taxonomy_claim_reviewed_batches_service",
+          "startLine": 1836,
+          "endLine": 1868,
+          "bodyMd5": "ad4197f0599bd900f0f77245ec6e8c29",
+          "equalsLive": true
+        },
+        {
+          "symbol": "rpc_taxonomy_bind_ready_reviews_service",
+          "startLine": 1870,
+          "endLine": 1968,
+          "bodyMd5": "af2a6941abc507f7ea39adb2883c007d",
+          "equalsLive": true
+        },
+        {
+          "symbol": "rpc_taxonomy_reconcile_reviewed_outbox_service",
+          "startLine": 1970,
+          "endLine": 2023,
+          "bodyMd5": "41747bdfdba0af1d941bf4fb91f1a887",
+          "equalsLive": true
+        },
+        {
+          "symbol": "taxonomy_reconcile_pending_reviews_v1",
+          "startLine": 2025,
+          "endLine": 2069,
+          "bodyMd5": "7b57e773d59a41634c41911316d7b77b",
+          "equalsLive": true
+        }
+      ]
+    },
+    {
+      "path": "src/app/(app)/profil/radnik.tsx",
+      "sha256": "91a7971964e08a6b7009d8caa4763b738beebec051079d97cb1dae16eda4af08",
+      "bytes": 24959,
+      "status": "PARTIAL",
+      "sections": [
+        {
+          "startLine": 101,
+          "endLine": 160,
+          "note": "save/commit caller only"
+        }
+      ]
+    },
+    {
+      "path": "src/app/(app)/prilike/[id]/prijava.tsx",
+      "sha256": "7c84608b53c3abe443248bcdd04231fe6f6c2fad03277fb7e3bb7599cc446c66",
+      "bytes": 20408,
+      "status": "PARTIAL",
+      "sections": [
+        {
+          "startLine": 146,
+          "endLine": 188,
+          "note": "optional skill append after successful application only"
+        }
+      ]
+    },
+    {
+      "path": "src/data/workerAiClientService.ts",
+      "sha256": "efaa36507794b47a0febbe57a1295526b91dd77e786cf52ae79721d34cffa9db",
+      "bytes": 28202,
+      "status": "PARTIAL",
+      "sections": [
+        {
+          "startLine": 293,
+          "endLine": 310,
+          "note": "prepare/save RPC dispatch excerpt only"
+        }
+      ]
+    },
+    {
+      "path": "src/data/aiTaskReviewClientService.ts",
+      "sha256": "52f8a5c578f903ce4a449483c934c1455b8a1113c4c6e841e7f5c22f55c6785a",
+      "bytes": 32730,
+      "status": "PARTIAL",
+      "sections": [
+        {
+          "startLine": 271,
+          "endLine": 378,
+          "note": "prepare/accept/publish excerpt inspected; parallel client edits separately reviewed by conversation agent; this is not a FULL review"
+        }
+      ]
+    }
+  ],
+  "liveFunctions": [
+    {
+      "schema": "private",
+      "signature": "private.after_need_revision()",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748578+00",
+      "bodyMd5": "645eb3b7dbcc4ec37df8e5298a382d5f",
+      "bodySha256": "8c4a700f2174439b44807160b38ea6e4c3fe2abedeeb6466b575df4d5a21e42e",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "private",
+      "signature": "private.enqueue_on_need_change()",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748597+00",
+      "bodyMd5": "a0f65116a72c779634d9a85baf4c7a23",
+      "bodySha256": "3f455e61e90e556483cae059e1140f323bc1b409c223db1e7aec5782cfd8a370",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "private",
+      "signature": "private.guard_need_write()",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748599+00",
+      "bodyMd5": "314b93f7f89d3d52dbcf17a2a2552502",
+      "bodySha256": "a80075ee7a7cafb298a1f386027b0bfa55e9ef3f641d9bccff41c38a9eede5f8",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "private",
+      "signature": "private.guard_worker_fact_authority()",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748601+00",
+      "bodyMd5": "a6be4e85f69592615e8c5b8272028d0d",
+      "bodySha256": "ed6033024bb4b62ea3cfc7f2094b013eed86cefc996ae655c1aa013e159ad550",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "private",
+      "signature": "private.needs_sync_taxonomy_category_trigger_fn()",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748603+00",
+      "bodyMd5": "3244c0fd784d722ece2e3ace8688bfe7",
+      "bodySha256": "209e97023d6d33fd534256e93b33650fd49e2f14c6ecfe5f188de48a22f6428b",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": null,
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "private",
+      "signature": "private.stage_task_replacement(uuid,uuid,text,jsonb)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748612+00",
+      "bodyMd5": "fd9e9aae4ed6de23207d0c07c5c41941",
+      "bodySha256": "ccc697cb46ea95bef92e535ab0327abe1a05c3f2bd9d002a369321c9f61823c7",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "private",
+      "signature": "private.sync_worker_skills_to_taxonomy_capabilities(uuid,text[])",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748614+00",
+      "bodyMd5": "8bfb57431cd6a6fcff2e1e80fe8b5fbc",
+      "bodySha256": "10b81ed7173090fe194a478ffae431f8158c91746badba20062278b14d51f624",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "private",
+      "signature": "private.taxonomy_normalize_v1(text)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748616+00",
+      "bodyMd5": "8c360cb0a05699cdae25485a5efc77ba",
+      "bodySha256": "b72fa29cbac28d9c0dfacd139df3f1e5387ca283ef5070e28443d7f23a1d6830",
+      "owner": "postgres",
+      "securityDefiner": false,
+      "executeAclRaw": "{postgres=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "private",
+      "signature": "private.taxonomy_pending_saved_event_v1()",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748618+00",
+      "bodyMd5": "f6a266fa6552838bb63dcb0a87f849b2",
+      "bodySha256": "4921284e32c3676ef5983483d4b7b2e2ac4963e54b9cf50149eb1ed0b333ca93",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "private",
+      "signature": "private.taxonomy_queue_review_after_save_v1()",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.74862+00",
+      "bodyMd5": "82031e4f37a89f124c00e1371dfb80bc",
+      "bodySha256": "91f2f1c080325164bb76e9a7920cddda46cf615d81e6244ad64df07461063c72",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "private",
+      "signature": "private.taxonomy_reconcile_pending_reviews_v1(integer)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748622+00",
+      "bodyMd5": "7b57e773d59a41634c41911316d7b77b",
+      "bodySha256": "e3873f2c161cecfa1b643fde60d9d3f352617c28dd55d14bc13e16f15ca488ab",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "private",
+      "signature": "private.taxonomy_register_low_risk_v1(text,text,boolean)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748624+00",
+      "bodyMd5": "e267dde8ed26125f3609343434e41085",
+      "bodySha256": "6ed9987faea3acd494898b4ee5e5dd67fb88342ef0f29557a96534b972dbf735",
+      "owner": "postgres",
+      "securityDefiner": false,
+      "executeAclRaw": "{postgres=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "private",
+      "signature": "private.taxonomy_review_candidate_projection_v2(text,jsonb,jsonb,uuid,uuid)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748626+00",
+      "bodyMd5": "f9318f476e32a8233fbb07ccf5d22aeb",
+      "bodySha256": "0c65532121c72cc76626e009e0e937f2db779528bb57e0c7fd01dbb07189013f",
+      "owner": "postgres",
+      "securityDefiner": false,
+      "executeAclRaw": "{postgres=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "private",
+      "signature": "private.taxonomy_review_exact_projection_v1(text,jsonb,jsonb)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748628+00",
+      "bodyMd5": "68eea7a2a923f558f2c27cc6c58f7073",
+      "bodySha256": "bcec1c2cc38c65a898f6fa1a6bbe45ba0c7b4047a5201ceb545d701f55fbcbec",
+      "owner": "postgres",
+      "securityDefiner": false,
+      "executeAclRaw": "{postgres=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "private",
+      "signature": "private.taxonomy_signed_binding_requeue_v1()",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748629+00",
+      "bodyMd5": "f540b18ff827bd6c5e4d277ad873bcea",
+      "bodySha256": "a82d0a22126b4ef722e0273556846c18ba39191b6f70c332f69a307e1eea7b80",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "private",
+      "signature": "private.worker_profile_sync_taxonomy_capabilities_trg_fn()",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748632+00",
+      "bodyMd5": "f24e6379c27ea76f477a93577e70d0cd",
+      "bodySha256": "06edd01a3b94386b95f1200dac04742d862c29ef962e00811c7cc685ff3a4e32",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": null,
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_accept_ai_task_review(uuid,text,uuid)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748633+00",
+      "bodyMd5": "535fa065c24b514423af8d04a8a58574",
+      "bodySha256": "253d40ee5c8b485b4f134b778cb978af6b9ed1f2baa80753470b1e0ae3eea17a",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_confirm_need_edit(uuid,integer,text,jsonb)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748635+00",
+      "bodyMd5": "32df63b29b8fea3fec6b6d53bc93d3e6",
+      "bodySha256": "e26a6b97577be4e514e654061e5b2d5293582ae8782d83e4819032166b40edbe",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_confirm_need_edit_from_review(uuid,integer,uuid,text)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748637+00",
+      "bodyMd5": "4742520f9660b9ecabbe4a165a660eb5",
+      "bodySha256": "359477fe8ea41aa19e88bb001c7665989acafa6a9b15915681b306a3eb44eb06",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_confirm_need_edit_from_review_v2(uuid,integer,uuid,text)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748639+00",
+      "bodyMd5": "cb14889cd68c928bec95577d28ae2eb5",
+      "bodySha256": "f4d66174d80d2d2cc44d7b52ba4cf098426560732327c80b53b84cc4d6776c78",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_prepare_ai_task_review(uuid,timestamp with time zone,jsonb)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.74864+00",
+      "bodyMd5": "3701c41f5fcca0bdfd1e50573305600c",
+      "bodySha256": "cdf5e0458e47d3a25cf374577bedc91a4659866032404578d36c97613f676e24",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_prepare_ai_task_review_taxonomy(uuid,timestamp with time zone,jsonb)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748642+00",
+      "bodyMd5": "af3c9d848b69995219f3432d0fda3586",
+      "bodySha256": "93923268d9db1f510ae8067b6d1b8c921929ca6bad0e43fe7395d0e3dd6eab68",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_prepare_worker_ai_review(uuid,integer,boolean)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748738+00",
+      "bodyMd5": "b521d11f93593472a29dc033e13e0d15",
+      "bodySha256": "d4f16ff51563add99449e17cbf03efffb1afb9071ca3ae76fbe38126ba5c0f2d",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_prepare_worker_ai_review_taxonomy(uuid,integer,boolean)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748741+00",
+      "bodyMd5": "b1fea09e43410257f8d731cbee444ec6",
+      "bodySha256": "145f690ca86a902bbaadc222149708b757f4ac36a062c42eba727a730f4db3c2",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_prepare_worker_ai_review_taxonomy_confirmed(uuid,integer,boolean,jsonb)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748742+00",
+      "bodyMd5": "d5d404cbff28e997889848c95e9be095",
+      "bodySha256": "25857bdedadd96cf692038e2524b8d4d134d0cccd5ce6c7c566a01750fbbeabf",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_publish_accepted_ai_task_review(uuid,uuid)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748744+00",
+      "bodyMd5": "610a2f0eb6a8cf5ba5e53cd750bdc438",
+      "bodySha256": "1c9b10eb00c9abbc96ba0442b736f668cc871cce8a85a9b2c5409731bcfb363a",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_publish_need_canonical(uuid,integer,bigint,timestamp with time zone,text)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748746+00",
+      "bodyMd5": "9d20dbb6063d8025d7255b10affdd566",
+      "bodySha256": "1048a0fbb6cac6d494e8cd11e580b69910f1bd29c398a0ff625038bb43b3685b",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_save_need_draft_from_review(uuid,uuid,text)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748782+00",
+      "bodyMd5": "39a3d39e60e8ab42f7e0269aba965280",
+      "bodySha256": "acfd53f44bff0a55fe3fd90783b751e9825dd391188309dbe11cc69b937744c3",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_save_worker_ai_review(uuid,text,uuid)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748783+00",
+      "bodyMd5": "be6c0ff39256999c3b68142ecfdfb147",
+      "bodySha256": "cc96b3e65f9ab0cb782b5d48bb220e60189f4af8199a9278f3ba848c254407ae",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_taxonomy_approve_admission(uuid,text,text)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748785+00",
+      "bodyMd5": "98916c75b4b4aa7e3ba711472126263f",
+      "bodySha256": "4b6e79852a3cb41e72cbfdc26893022750e84908dbef269a852595825e891b46",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_taxonomy_assign_worker_categories_service(uuid,uuid[])",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748787+00",
+      "bodyMd5": "59f2d25b4a1b3a8051d7ac90ab956544",
+      "bodySha256": "75f9146a988214a690649f7c67c5b5b634320b631befb138f1d662db401faef1",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_taxonomy_bind_ready_reviews_service(integer)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748789+00",
+      "bodyMd5": "af2a6941abc507f7ea39adb2883c007d",
+      "bodySha256": "893b6dde1a93ebfd96c9c0c9c55c89162cc3ce508a15de17d0158e8be824f7b0",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_taxonomy_bind_reviewed_need_service(uuid,uuid,uuid,uuid,integer)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748791+00",
+      "bodyMd5": "fa0873f285473eb513bdae1302157569",
+      "bodySha256": "372c4e5c51a95df05b51c827f18b38579cf4bdecbf3d6f0f645f77ababf518fd",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_taxonomy_bind_reviewed_worker_service(uuid,uuid,uuid,uuid)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748792+00",
+      "bodyMd5": "a209973be36f4fe57e8963eefdf7bceb",
+      "bodySha256": "f0bba9d195e5f35f24e42380f1805226f689566d5890bc1821c151a47828bdbd",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_taxonomy_claim_reviewed_batches_service(integer)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748794+00",
+      "bodyMd5": "ad4197f0599bd900f0f77245ec6e8c29",
+      "bodySha256": "38ccb33b840a42624eb3a44acf8d7503a688c3d16df39e294bfa6632b26bc206",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_taxonomy_commit_admission_service(uuid)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748796+00",
+      "bodyMd5": "e109f516f90fa93b2ef3d10de7c85a51",
+      "bodySha256": "0cea225ae0c86d9f22f2282cebb88b4d3045e049deb5b71db8e7782280f570f4",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748798+00",
+      "bodyMd5": "757a754bd2310d07eb0587e1f8279b2b",
+      "bodySha256": "f7fdfb56b2c8b5745b30383f4885b696f2c73f66148385172b3d91a36f1df12e",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_taxonomy_consume_turn_hint_revision_service(uuid,bigint,text)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748799+00",
+      "bodyMd5": "720f4da5965c354d06b8d0871a8cb5c3",
+      "bodySha256": "819dd185a3cb7612af475122f737d11417594f673c99c2a4d7c54c7b05813445",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_taxonomy_ensure_path_service(text[],text,text[])",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748801+00",
+      "bodyMd5": "53fd8f7c5601998ec7ee76a7cf800829",
+      "bodySha256": "33a8115052f4d050b1ea6305434f6e9d2e2f107d3ceccf3b0f190f8d6aef2905",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_taxonomy_finalize_reviewed_batch_service(uuid,uuid,text)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748803+00",
+      "bodyMd5": "af9cd22b779037a8c9f7fad5c8543cfe",
+      "bodySha256": "a905792bb9f5704fe874a75eec9adac77201930de731771a62d268cd71fb0f9a",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_taxonomy_prepare_admission_service(uuid,uuid,text,uuid,jsonb)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748848+00",
+      "bodyMd5": "8fb67af44c4de3bc93cf2144fd6629c6",
+      "bodySha256": "7810002d2c3f6246d2d272e1bb84f4f52875ff224fcc9a11aa1b03e773f61dd8",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    },
+    {
+      "schema": "public",
+      "signature": "rpc_taxonomy_reconcile_reviewed_outbox_service(integer)",
+      "status": "FULL_LIVE_FUNCTION_BODY",
+      "observedAtUtc": "2026-10-26 23:45:17.748851+00",
+      "bodyMd5": "41747bdfdba0af1d941bf4fb91f1a887",
+      "bodySha256": "df68158695a77dcc8f39555cb1862aab7ed9c69d2bd0a2667ae6770d307f105b",
+      "owner": "postgres",
+      "securityDefiner": true,
+      "executeAclRaw": "{postgres=X/postgres,service_role=X/postgres}",
+      "searchPath": [
+        "search_path=pg_catalog, private"
+      ]
+    }
+  ],
+  "test": {
+    "path": "supabase/proofs/taxonomy/live_writer_characterization.test.mjs",
+    "command": "node --test supabase/proofs/taxonomy/live_writer_characterization.test.mjs",
+    "result": "PASS",
+    "subcases": 17,
+    "nodeReportedTests": 18,
+    "failures": 0,
+    "purpose": "CHARACTERIZATION_OF_CURRENT_RISK_NOT_FIX",
+    "limits": "Exact live bodies with minimal in-memory PGlite schema and stubbed closure guards. Not full DEV schema/auth/RLS/trigger equivalence; S08 identity SELECT only, not full batch; no live user incident inferred."
+  }
+}

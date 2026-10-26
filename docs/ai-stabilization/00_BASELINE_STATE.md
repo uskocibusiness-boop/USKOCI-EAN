@@ -20,7 +20,7 @@ Oba razgovora proveravaju korisnika preko Auth servisa. Samo platform `verify_jw
 ## F0 nije zatvoren
 
 - `01B_FILE_REVIEW_LEDGER.csv`: svi git-index putevi, SHA256 radnih bajtova, tip i status pregleda. NOT_CONTENT_REVIEWED nije završen audit.
-- `reviewed-files.json`: samo potpuno pročitani fajlovi sa reviewer-om i hash-om; promena bajtova poništava potvrdu.
+- `reviewed-files.json`: sadržajno pregledani fajlovi sa eksplicitnim FULL/PARTIAL obimom, reviewer-om i hash-om; promena bajtova poništava potvrdu.
 - `01_DEPENDENCY_GRAPH.csv`: statički graf iz šest entrypoint-a; RPC literal i istorijska SQL definicija nisu dokaz runtime aktivacije. evidence_line pripada source fajlu za IMPORT/RPC_LITERAL, target SQL fajlu za SQL_DEFINITION_CANDIDATE.
 - Potpuna lista aktivnih pisaca/privilegija/triggera, dinamički pozivi, OTA verzija i puna ručna pokrivenost ostaju otvoreni.
 - Realni baseline sa test nalozima i telefonom nije pokrenut; zahteva posebno odobrenje.

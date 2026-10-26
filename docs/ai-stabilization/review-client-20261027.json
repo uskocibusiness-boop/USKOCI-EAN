@@ -1,0 +1,591 @@
+{
+  "src/data/aiNeedV2Production.ts": {
+    "sha256": "3f04bfe0a4057e52e76585ea925cebf0d539e6de2f931eb05e05a9054b0dd7ac",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        490
+      ]
+    ],
+    "totalLines": 490,
+    "finding": "Owned NEED open/send/recovery; post-send snapshot header precedes parallel messages and review facts. Current receipt IDs and facts decoder fail closed.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/workerAiClientService.ts": {
+    "sha256": "efaa36507794b47a0febbe57a1295526b91dd77e786cf52ae79721d34cffa9db",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        324
+      ]
+    ],
+    "totalLines": 324,
+    "finding": "Worker read/prepare is feature gated; signed and legacy save share rpc_save_worker_ai_review. Snapshot, review digest and turn ownership are decoded.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/aiTaskReviewClientService.ts": {
+    "sha256": "52f8a5c578f903ce4a449483c934c1455b8a1113c4c6e841e7f5c22f55c6785a",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        405
+      ]
+    ],
+    "totalLines": 405,
+    "finding": "C01 narrowed after peer review: canonical accept may legitimately return an earlier key for the same review. Fixed selected-key continuity only after evaluation and in publication acknowledgment; read/latest/accept discovery preserved.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/serverReceipt.ts": {
+    "sha256": "e57274eb4f199ec846bbfcc99e3a52455adf2efe48f547c31593ca4520b75c8f",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        93
+      ]
+    ],
+    "totalLines": 93,
+    "finding": "Account revision is checked around async requests; timeout is not a server cancellation; no automatic mutation replay.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/aiNeedTurnStream.ts": {
+    "sha256": "354ac2cdb7d8bc67125544ef6a0728449534c965b730249bae4f8c099e72a53f",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        135
+      ]
+    ],
+    "totalLines": 135,
+    "finding": "Both interview streams enforce conversation/request/attempt IDs, ordering and size limits; terminal result is returned after EOF. EOF contribution is not measured.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/aiTurnIntentJournal.ts": {
+    "sha256": "12a30fa5db3b0159ac9fa2ecaa189e135e7408a024336f3ac5b884cc4eec4e7b",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        38
+      ]
+    ],
+    "totalLines": 38,
+    "finding": "Account-scoped serialized AsyncStorage journal retains only opaque identifiers; matching-key clear prevents another pending turn from being erased.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/workerAiTurnIntentJournal.ts": {
+    "sha256": "3307479db7e3641f7f33d6bcd4bdce56a0e813223db22cb93c36e54cd5ddb50f",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        38
+      ]
+    ],
+    "totalLines": 38,
+    "finding": "Worker journal mirrors identity-only persistence and matching-key clear; no message body persists.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/aiProductionOverrides.ts": {
+    "sha256": "a1b5545db6335ff2ce3770df4b4a97a5ab5dde40f54ee7394b0223f864e92e8d",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        151
+      ]
+    ],
+    "totalLines": 151,
+    "finding": "Legacy ai API remains composed but active NEED screen uses aiNeedV2Izvor. No delete authority inferred from selected-caller search.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/aiCommandOverrides.ts": {
+    "sha256": "46948f0e1ad010041cda0a080356158038b0d73f3969c235c1daadf9f898afcf",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        58
+      ]
+    ],
+    "totalLines": 58,
+    "finding": "Legacy AI command adapters remain; not the current signed task review accept/evaluate/publish flow.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/aiOpenIntakes.ts": {
+    "sha256": "c4bf4e24aa50ad26b6b526436c0f20bac03d13c63db123a14fba4d19ea27b7aa",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        105
+      ]
+    ],
+    "totalLines": 105,
+    "finding": "Owned REST metadata/title reads validate account, purpose and unbound intake before continuation; no AI messages/private facts fetched for home list.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/aiCorrectionIntent.ts": {
+    "sha256": "cd730d81d06a47d1cc8808faa8d6af2812724009c74b8380e8b3b5928a338aee",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        65
+      ]
+    ],
+    "totalLines": 65,
+    "finding": "Explicit correction intent is bounded and tied to the review/conversation; no hidden facts or command replay.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/intakeReviewReturn.ts": {
+    "sha256": "73a2c83b3490f0cd121daa559ed7384adf25a4d59e5bbd85708473ec39d46579",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        33
+      ]
+    ],
+    "totalLines": 33,
+    "finding": "Ephemeral return handoff tracks conversation/return intent; does not persist full user facts.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/index.ts": {
+    "sha256": "91ad7ce697ceb684fa12d5e5968f220cb4707a672bbb97fec953dcd3bc3f532d",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        79
+      ]
+    ],
+    "totalLines": 79,
+    "finding": "aiNeedV2Izvor directly binds aiNeedV2Production while legacy API is separately composed into izvor.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/publicationHandoff.ts": {
+    "sha256": "70196a74e14fafe00ef7ae9e0adc88b04307b5abd71fa0ef243f6c45af3190d5",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        53
+      ]
+    ],
+    "totalLines": 53,
+    "finding": "In-memory publication navigation handoff; the server command remains recovery authority.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/app/(app)/nova.tsx": {
+    "sha256": "fc196c1fff02a0df9ebdae9a8b23d0ee72965ad599aee031922c85d887554709",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        569
+      ]
+    ],
+    "totalLines": 569,
+    "finding": "NEED journals before send; suppresses live text until canonical readback; retained last-good view locks writes. Recover is not automatic resend.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/app/(app)/profil/razgovor.tsx": {
+    "sha256": "9dc936f83568c0515a720d5c1a10aa5b27a7c34184fee138adfbd021b53185a1",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        482
+      ]
+    ],
+    "totalLines": 482,
+    "finding": "WORKER streams provisional text then recovers/reads canonical state. Signed Save skips legacy heuristic global-mode bridge.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/app/(app)/pregled-zadatka.tsx": {
+    "sha256": "0ab1c2bcb95739a3423cb01d210b76d8a380f8307f9e3e67846a189b8d2ab7b7",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        683
+      ]
+    ],
+    "totalLines": 683,
+    "finding": "Current review route uses immutable server review and explicit accept/resume; published success requires owner-read. Unknown outcomes lock unsafe transitions.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/hooks/useOwnedEditor.ts": {
+    "sha256": "9327ddc29292ff16cc68a65fb8b668cea3c0cc44dc07b64e1f721fbfb5a645d0",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        120
+      ]
+    ],
+    "totalLines": 120,
+    "finding": "Request identity and account revision gate reads/saves; stale completions cannot update the current editor.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/locationDialogueClientService.ts": {
+    "sha256": "9f04fcf96060a28d80db47e70767e217f7d4ca427abf19fa8372178ec057c2ee",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        75
+      ]
+    ],
+    "totalLines": 75,
+    "finding": "Location replies use the same interview Edge with a validated location context and owned command, not an unrelated fact writer.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/workerExecutionModeClientService.ts": {
+    "sha256": "a9a6c62c7eb12c4ed5a00e849ab4bb5e4dc16e07405a9aa5ecccbcb5995b96e0",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        98
+      ]
+    ],
+    "totalLines": 98,
+    "finding": "Legacy mode inference/write remains reachable only after unsigned worker Save in the reviewed caller. Signed path intentionally skips it.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/reviewFactProblem.ts": {
+    "sha256": "39f27ce733298ec3dc6e5a6a9dba8d229331258bb1caeed74832daf3c6d98301",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        61
+      ]
+    ],
+    "totalLines": 61,
+    "finding": "Maps server fact validation failures to the relevant review surface without changing canonical facts.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/supabaseClient.ts": {
+    "sha256": "5a4ff75385ef4f7cf93eb3dd9fda97182f4d18024a37764490fb043e8a86945c",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        62
+      ]
+    ],
+    "totalLines": 62,
+    "finding": "SDK client has a canonical DEV fallback and configured() true; streaming callers require explicit env URL/key, a potential configuration inconsistency, not a live incident.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/publicationClientService.ts": {
+    "sha256": "bf01c440b5a6e9f18531009cc7d373769a07c29ee49d6a0c58e88bfe59135a0c",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        123
+      ]
+    ],
+    "totalLines": 123,
+    "finding": "Non-review publication adapter validates decision/need revision and receipts; active AI review service has a separate review-bound command path.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/lib/idempotencija.ts": {
+    "sha256": "d28bddd73d0e06ff6618737724a4912663af2a74df20d11531c0192fa65f0fa3",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        29
+      ]
+    ],
+    "totalLines": 29,
+    "finding": "Generates command UUIDs for explicit user operations; durability/replay semantics come from owned journals and server receipts.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/store/sesija.ts": {
+    "sha256": "c4fdf63e00069e4b02e9e94faae59fceeff9ad703f2f2e064d21bf86eeb79a88",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        195
+      ]
+    ],
+    "totalLines": 195,
+    "finding": "Account identity revision protects ABA account changes; token-only refresh changes session epoch but not account revision.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/__tests__/ai-need-turn-stream.test.ts": {
+    "sha256": "03e1a9bd0e5bcfe8d6df091503ba084c2829ff90184915df881287625ae028ee",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        33
+      ]
+    ],
+    "totalLines": 33,
+    "finding": "Synthetic stream contract coverage for final receipt, ordering/identity and no automatic retry; not provider/device timing.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/__tests__/pkg002-ai-stream-boundary.test.ts": {
+    "sha256": "09ffaab18eca9bf47a523068a78c8e95f3a676a35c527bfb1107aa4bfae1f36c",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        51
+      ]
+    ],
+    "totalLines": 51,
+    "finding": "Synthetic adversarial stream boundary tests cover malformed/oversized text and identity/order failures.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/__tests__/worker-ai-client.test.ts": {
+    "sha256": "4cc1061c4f3a46d0087f0448db6a8a1baf14d1c7d9a39e1c92e7bfb9bfaa8e03",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        278
+      ]
+    ],
+    "totalLines": 278,
+    "finding": "Worker ownership/review/result validation and signed-mode feature gates are exercised with mocked RPCs.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/__tests__/ai-task-review-client.test.ts": {
+    "sha256": "6d440be902396f6a8fe706163e3cb34da8447636e154d92cc96399cfea436bef",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        431
+      ]
+    ],
+    "totalLines": 431,
+    "finding": "Existing review decode, accept/evaluate/publish, recovery and failure guards remain intact; rerun with C01 tests.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/__tests__/w03-ai-need-client.test.ts": {
+    "sha256": "0feacd9dca4d03592052001a4411344cd4e89291689b50dc3843b6cfd125a433",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        308
+      ]
+    ],
+    "totalLines": 308,
+    "finding": "NEED open/send/recover/snapshot contracts use synthetic SDK responses; no live calls.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/__tests__/ai-turn-intent-journal.test.ts": {
+    "sha256": "0bafe065d1d110687509f022dbfc640e44b7f85a87bf5aefd9790405f509e7fa",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        30
+      ]
+    ],
+    "totalLines": 30,
+    "finding": "NEED journal persistence, malformed recovery and mismatched clear isolation are tested.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/__tests__/worker-ai-turn-intent-journal.test.ts": {
+    "sha256": "27b2b4319f2be08b16eca402107985c3d29daf21065ff071740f6ff8f1a1f48b",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        30
+      ]
+    ],
+    "totalLines": 30,
+    "finding": "Worker journal persistence and matching-key clearing are tested independently.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/__tests__/client-ai-path-20261027.test.ts": {
+    "sha256": "726d87db9584f4ad4fe2a8b7e9340031d2dd904ebc39552387aac83f2b938d0a",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        140
+      ]
+    ],
+    "totalLines": 140,
+    "finding": "12 synthetic tests: exact/case UUID, legitimate old-key canonical accept and safe acceptAndPublish recovery, foreign-review no evaluator, changed post-evaluation/publish key rejected, repeated resume read-only, readLatest discovery, immutable selected-key snapshot.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/__tests__/ai-owned-intake-screen.test.tsx": {
+    "sha256": "e8bba10a93ff4f3886a30111271ba83d86306681861ddb751459e853275bbb54",
+    "reviewer": "conversation_path_review",
+    "coverage": "PARTIAL",
+    "readRanges": [
+      [
+        1,
+        190
+      ]
+    ],
+    "totalLines": 1946,
+    "finding": "Read setup and early tests (lines 1-190), plus selected test-name search. Whole suite executed; this is NOT a full content review.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "src/data/__tests__/worker-ai-conversation-recovery.test.tsx": {
+    "sha256": "bf003bf435277c929ad3b1484c3e7bc1165f1b57f1e9604e1f9f4f4e063f8e23",
+    "reviewer": "conversation_path_review",
+    "coverage": "PARTIAL",
+    "readRanges": [
+      [
+        1,
+        200
+      ]
+    ],
+    "totalLines": 668,
+    "finding": "Read setup and early tests (lines 1-200), plus selected test-name search. Whole suite executed; this is NOT a full content review.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  ".github/workflows/ci-clean.yml": {
+    "sha256": "e06360574f966268fa3b7c627dedb4a82ba0d0a25f73210abceacc6d2068d2ef",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        68
+      ]
+    ],
+    "totalLines": 68,
+    "finding": "Independent CI review: three Deno entrypoints, seven named dynamic regression files and local PG characterization are in executable steps. This is not a live/provider E2E gate.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "supabase/proofs/ai/clean_ci_coverage.test.mjs": {
+    "sha256": "252b280354e4d06773b544a9616a5fcff067899129864f8d48f4e0038cd833e6",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        36
+      ]
+    ],
+    "totalLines": 36,
+    "finding": "Three source-structure guards passed. Regex checks the YAML, not transitive scripts or whole-workflow network isolation; NEED @ts-nocheck limits type-safety claims.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "package.json": {
+    "sha256": "f33ada181d48c71c114c6b8ac576c9a514699be6db17f6392dbde5eb42b2beff",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        76
+      ]
+    ],
+    "totalLines": 76,
+    "finding": "CI npm test invokes Jest; pinned PGlite is local test runtime. npm ci includes native patch/assets postinstall; workflow is not globally network-offline.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "supabase/migrations/20260912213702_clean_v5_review_acceptance.sql": {
+    "sha256": "cc837755330127fd272188195cf7e4fcb09ad8b908d0cc6a279ef036e4c5d4ac",
+    "reviewer": "conversation_path_review",
+    "coverage": "PARTIAL",
+    "readRanges": [
+      [
+        214,
+        260
+      ],
+      [
+        320,
+        340
+      ]
+    ],
+    "totalLines": 346,
+    "finding": "Read accept and publish definitions only: same-review accept may return existing canonical key (232), whereas publish requires selected key (330). Entire migration not read in this pass.",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md",
+    "reviewedDate": "2026-10-27"
+  }
+}

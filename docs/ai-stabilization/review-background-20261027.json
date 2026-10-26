@@ -1,0 +1,267 @@
+{
+  "reviewer": "classifier_failure_review",
+  "reviewDate": "2026-10-27",
+  "baselineCommit": "5e7790e8445e09f38275ec19bdb86e8948c66558",
+  "scope": "Local source + synthetic offline regression; read-only DEV function-body evidence via publication_contract_review; no live workflow execution",
+  "statusMeaning": {
+    "FULL": "Entire listed file read; not a claim every transitive dependency or deployed counterpart was validated",
+    "PARTIAL": "Only stated sections read"
+  },
+  "runtimeFilesOwned": [
+    "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs",
+    "supabase/functions/uskoci-taxonomy-postsave-worker/index.ts"
+  ],
+  "tests": {
+    "allAi": {
+      "total": 856,
+      "passed": 855,
+      "failed": 0,
+      "todo": 1
+    },
+    "lifecycleAndScope": {
+      "passed": 57
+    },
+    "peerShadow": {
+      "passed": 24
+    },
+    "peerClient": {
+      "passed": 12,
+      "note": "Independent review found initial accept-key false rejection; final reviewed source retains canonical-by-review accept and key-bound resume/publish; regression now covers live replay semantics"
+    }
+  },
+  "files": [
+    {
+      "path": "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs",
+      "status": "FULL",
+      "sha256": "7a5a4fd1a34c5256a98399abf9b490786c5890450366e1f8eff4c4ef423e501f",
+      "evidence": [
+        "BGL-02; BGL-03; BGL-04; BGL-05; complete module, persistence/provider/catalog/mode builders"
+      ]
+    },
+    {
+      "path": "supabase/functions/_shared/workerServiceModeContext.mjs",
+      "status": "FULL",
+      "sha256": "0f98cbad472a87c8d90fc95ed78bbcd793c6af1f84370c51469fa28e066e4761",
+      "evidence": [
+        "Current quoted requests; saved/draft mode authority; whole module"
+      ]
+    },
+    {
+      "path": "supabase/functions/_shared/classificationEngine.mjs",
+      "status": "FULL",
+      "sha256": "7b888425294c7c2d9d95927b14c4a0a544d44ad0b785a6f0749c610b1b433971",
+      "evidence": [
+        "Normalization; exact/alias gate; catalog completeness; owner-review boundary"
+      ]
+    },
+    {
+      "path": "supabase/functions/_shared/serviceHandoff.mjs",
+      "status": "FULL",
+      "sha256": "8cb5dc67f70abe5dfcc4d85a211549e0d70be4102e2e2aa966d2388550b0f438",
+      "evidence": [
+        "Whole handoff decoder and formatter; no implicit physical delivery"
+      ]
+    },
+    {
+      "path": "supabase/functions/_shared/aiPhaseTiming.mjs",
+      "status": "FULL",
+      "sha256": "e382ad8682ac2b456b22418db8c418dab3de08fffb9c329fd51fb417dcc4cf09",
+      "evidence": [
+        "Count-only phase telemetry; no outcome mutation"
+      ]
+    },
+    {
+      "path": "supabase/functions/_shared/taxonomyPostSaveWorker.mjs",
+      "status": "FULL",
+      "sha256": "04b2346c479a0f82ec63648c231ec873da376543122b58f518c3b68780c7b5bb",
+      "evidence": [
+        "BGL-01; claim, signed commit, retry classification, lease finalize"
+      ]
+    },
+    {
+      "path": "supabase/functions/uskoci-taxonomy-postsave-worker/index.ts",
+      "status": "FULL",
+      "sha256": "7dd480eef01ffe54f2444e518cf141415eb710d129afe974f3c640b3ec2912df",
+      "evidence": [
+        "BGL-01; authorization, flags, bounds, read/decode, cancellation, binding"
+      ]
+    },
+    {
+      "path": "supabase/functions/uskoci-ai-interview/index.ts",
+      "status": "PARTIAL",
+      "sha256": "31ba43efd4d44a17c1830455e8c893ce3cca9cb77b920c6b804f078d64421866",
+      "evidence": [
+        "Imports and relevant typed context/completion/dual capture paths, especially 1465-1640; not whole handler"
+      ]
+    },
+    {
+      "path": "supabase/functions/uskoci-worker-interview/index.ts",
+      "status": "PARTIAL",
+      "sha256": "a11bf1782ca74210f80f0971dd69ea48676567e1a1aac959f4a05b9adebd26ed",
+      "evidence": [
+        "Imports/context and completion/dual capture paths, especially 510-625; not whole handler"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261026150523_classification_hint_revision_fence.sql",
+      "status": "FULL",
+      "sha256": "2e8a3342ed3d625f398ebbda8d21e799dcdbb136b801337136b0aea68ded60e8",
+      "evidence": [
+        "Exact-revision store/get/consume; current revision and role checks; success ACK"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261023200000_taxonomy_snapshot_and_turn_hints.sql",
+      "status": "FULL",
+      "sha256": "31db42b2980588b957621f998c2eaf0dc48502287cf7fc7106df8ce95208dfdc",
+      "evidence": [
+        "Historical snapshot and hint schema/RPC baseline; later revision migration governs current hints"
+      ]
+    },
+    {
+      "path": "supabase/migrations/20261021104455_closure_taxonomy_archive_copy_coverage.sql",
+      "status": "PARTIAL",
+      "sha256": "2f3a9957e33f2347a637fc273a8d96170d04225c5a99a02c17c672348d3d03a9",
+      "evidence": [
+        "Capture function approximately 1318-1472: turn/attempt/revision/digest/replay; not full closure migration"
+      ]
+    },
+    {
+      "path": "supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-batch-outbox-v1.sql",
+      "status": "FULL",
+      "sha256": "6f2443a3a0ef91176d1525ae22b3841a5dcb2e0721c1be10d67fbfe996948b57",
+      "evidence": [
+        "Historical candidate: Save trigger, reconcile, claim lease, finalize; not assertion of live byte parity"
+      ]
+    },
+    {
+      "path": "supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-postsave-binding-tick-v1.sql",
+      "status": "FULL",
+      "sha256": "9eafd7f85b3229d579397911a4237667d257ae90332e3827d20bda3d4bf4f8aa",
+      "evidence": [
+        "Historical candidate: binding gate, revision/owner checks, bounded retries; not live parity assertion"
+      ]
+    },
+    {
+      "path": "supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-pending-ledger-v1.sql",
+      "status": "FULL",
+      "sha256": "ca19681e186cba89ad83c8389258c0753a5524e1410571b37b8bf929af785c30",
+      "evidence": [
+        "Historical candidate: pending record/reconcile is not classification producer/resolver"
+      ]
+    },
+    {
+      "path": "supabase/proofs/ai/background_lifecycle_review.test.mjs",
+      "status": "FULL",
+      "sha256": "3b4e1c125f4fae939d58dcf0a70d5483a99a40415216f930d04c864c1e155987",
+      "evidence": [
+        "New 38 offline ACK/transport behavior tests; red-before-green evidence BGL-01/BGL-02"
+      ]
+    },
+    {
+      "path": "supabase/proofs/ai/background_taxonomy_scope.test.mjs",
+      "status": "FULL",
+      "sha256": "ee185d1359f163515c39c2654b65e3f19cd685319b215aeaa7a81b6bc2d8c88c",
+      "evidence": [
+        "19 tests; Unicode/revision/scope assertions retained; success stubs now include actual ACK revision"
+      ]
+    },
+    {
+      "path": "supabase/proofs/ai/background_taxonomy_failures.test.mjs",
+      "status": "FULL",
+      "sha256": "0b909a9294142e45ba575267caa63cd2987ba2e60017703d6d872357605d8c77",
+      "evidence": [
+        "S09/S10 outages/invalid modes/saved scope/fresh requests; 43 tests preserved"
+      ]
+    },
+    {
+      "path": "supabase/proofs/ai/classification_fingerprint_source.test.mjs",
+      "status": "FULL",
+      "sha256": "4e8498268aead996843668571d3ea7e7b51ae01b0a09a2c891441d2ffc21c274",
+      "evidence": [
+        "Task semantic fingerprint and worker meaningful trigger source checks"
+      ]
+    },
+    {
+      "path": "supabase/proofs/ai/classification_hint_revision_sql.test.mjs",
+      "status": "FULL",
+      "sha256": "ccd05230f4af858d988d03fcc9d469fa1e2a22cf09ff5c8aca6503843c5287c4",
+      "evidence": [
+        "Revision fences and completion-before-capture source checks"
+      ]
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs",
+      "status": "FULL",
+      "sha256": "57093fcfcfe1252e1f8990751c47d43072ead03ec1f4e57885f62273eb0626f6",
+      "evidence": [
+        "10 processor tests; semantic vs network, lease/receipt authority, bounds"
+      ]
+    },
+    {
+      "path": "supabase/functions/_shared/classificationGeminiShadow.mjs",
+      "status": "FULL",
+      "sha256": "9a32399f49ff062ae3159afab827910309b99834dd824b4a4d9be1a9eef41015",
+      "evidence": [
+        "Independent parent one-question diff review; all issues retained; authority gates unchanged"
+      ]
+    },
+    {
+      "path": "supabase/functions/_shared/classificationReply.mjs",
+      "status": "FULL",
+      "sha256": "d5d93e8d64969a62802ddbd7e25bc24ba0b9a131971d5c5a9b40645c8361bf44",
+      "evidence": [
+        "Peer review: facts/safety/review unchanged; first-question rendering"
+      ]
+    },
+    {
+      "path": "supabase/proofs/ai/shadow_one_question.test.mjs",
+      "status": "FULL",
+      "sha256": "21841c54f66d0effbc3ae55a3e6eab1385f0ead10e24650e15706c16b5f42b25",
+      "evidence": [
+        "6 new peer tests; prompt phases and feedback state/facts"
+      ]
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/classification-turn-feedback.test.mjs",
+      "status": "FULL",
+      "sha256": "053c6049a2d792bb9057dbba0dd75994f816482cec35bd360e066a1f1f5f27d6",
+      "evidence": [
+        "10 peer feedback tests; state/canOfferReview guards; changed expected question count"
+      ]
+    },
+    {
+      "path": "supabase/proofs/dynamic_taxonomy/classification-gemini-shadow-source.test.mjs",
+      "status": "FULL",
+      "sha256": "3f77c7e8daf7e6d1c39534d939c19e7862eabd9ecc4491556be0d2fa1854129f",
+      "evidence": [
+        "8 peer source assertions; source check is not live E2E"
+      ]
+    },
+    {
+      "path": "src/data/aiTaskReviewClientService.ts",
+      "status": "FULL",
+      "sha256": "52f8a5c578f903ce4a449483c934c1455b8a1113c4c6e841e7f5c22f55c6785a",
+      "evidence": [
+        "Read-only peer C01 review: initial canonical replay false-reject found and removed by owning agent; final diff reviewed, no remaining contract regression found"
+      ]
+    },
+    {
+      "path": "src/data/serverReceipt.ts",
+      "status": "FULL",
+      "sha256": "e57274eb4f199ec846bbfcc99e3a52455adf2efe48f547c31593ca4520b75c8f",
+      "evidence": [
+        "Read-only peer C01 review: UUID case equality and account revision fence"
+      ]
+    },
+    {
+      "path": "src/data/__tests__/client-ai-path-20261027.test.ts",
+      "status": "FULL",
+      "sha256": "726d87db9584f4ad4fe2a8b7e9340031d2dd904ebc39552387aac83f2b938d0a",
+      "evidence": [
+        "Read-only peer C01 final 12 tests pass, including same-review/new-key canonical replay, key-bound selected resume/publish and UUID case"
+      ]
+    }
+  ],
+  "runtimeCommit": "8f6e0627"
+}

@@ -97,9 +97,9 @@
   },
   "supabase/functions/uskoci-ai-interview/index.ts": {
     "sha256": "31ba43efd4d44a17c1830455e8c893ce3cca9cb77b920c6b804f078d64421866",
-    "reviewer": "conversation_path_review",
+    "reviewer": "classifier_failure_review",
     "coverage": "PARTIAL",
-    "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
   },
   "supabase/proofs/ai/v5_ai_stream.test.mjs": {
     "sha256": "0498c5f0a30dc276e23bc6f6b0d0afd78d8a5dd323580a57447967c5b8adb75b",
@@ -132,10 +132,10 @@
     "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
   },
   "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs": {
-    "sha256": "8044f9daa4c3f79f58b5368601d1b3fe6a2f0c810314e890eddf48f551d97ff3",
-    "reviewer": "classifier_failure_review; root reviewed final diff",
+    "sha256": "7a5a4fd1a34c5256a98399abf9b490786c5890450366e1f8eff4c4ef423e501f",
+    "reviewer": "classifier_failure_review",
     "coverage": "FULL",
-    "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
   },
   "supabase/proofs/ai/background_taxonomy_failures.test.mjs": {
     "sha256": "0b909a9294142e45ba575267caa63cd2987ba2e60017703d6d872357605d8c77",
@@ -144,10 +144,10 @@
     "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
   },
   "supabase/proofs/ai/background_taxonomy_scope.test.mjs": {
-    "sha256": "35e2edb00506bc81736fbfc89f1d0df2906957515862626eef7cd99bfd5fd419",
-    "reviewer": "classifier_failure_review; root reviewed final diff",
+    "sha256": "ee185d1359f163515c39c2654b65e3f19cd685319b215aeaa7a81b6bc2d8c88c",
+    "reviewer": "classifier_failure_review",
     "coverage": "FULL",
-    "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
   },
   "supabase/candidates/dynamic-taxonomy-20261011/taxonomy-strict-worker-mode-v1.sql": {
     "sha256": "01be0e5392d8fbf55e1e2a51dbacdb99e8ecde007e59b1691479f18147997200",
@@ -222,10 +222,10 @@
     "evidence": "docs/ai-stabilization/03_DB_EVIDENCE.md"
   },
   "supabase/functions/uskoci-taxonomy-postsave-worker/index.ts": {
-    "sha256": "6428f040d223aaecc915409ed9d20639cc70166c58446895489369140820ee4b",
-    "reviewer": "root",
+    "sha256": "7dd480eef01ffe54f2444e518cf141415eb710d129afe974f3c640b3ec2912df",
+    "reviewer": "classifier_failure_review",
     "coverage": "FULL",
-    "evidence": "docs/ai-stabilization/00_BASELINE_STATE.md"
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
   },
   "package.json": {
     "sha256": "f33ada181d48c71c114c6b8ac576c9a514699be6db17f6392dbde5eb42b2beff",
@@ -240,10 +240,10 @@
     "evidence": "docs/ai-stabilization/00_BASELINE_STATE.md"
   },
   ".github/workflows/ci-clean.yml": {
-    "sha256": "72d3eb4ff4e213ed504a9dbcf9bbe8ca9bbc7e3a8ee293cebc2438ea2ae776e8",
-    "reviewer": "root",
+    "sha256": "e06360574f966268fa3b7c627dedb4a82ba0d0a25f73210abceacc6d2068d2ef",
+    "reviewer": "conversation_path_review",
     "coverage": "FULL",
-    "evidence": "docs/ai-stabilization/00_BASELINE_STATE.md"
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
   },
   "scripts/audit-ai-baseline.mjs": {
     "sha256": "be64492ce5f882bcbc0ba4a58da1b343a07a62f9e187f556a4f825b319b6964b",
@@ -252,10 +252,10 @@
     "evidence": "docs/ai-stabilization/00_BASELINE_STATE.md"
   },
   "docs/ai-stabilization/00_BASELINE_STATE.md": {
-    "sha256": "23a5afbf334bf6729a758ded4b50504adfc9b719d998934b341b21d13eeb82bb",
+    "sha256": "d8e9ed4c5317c566080b7d09b378cdbc74e4de11648d449c14d2692bed618dce",
     "reviewer": "root",
     "coverage": "FULL",
-    "evidence": "docs/ai-stabilization/00_BASELINE_STATE.md"
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
   },
   "docs/ai-stabilization/02_RUNTIME_FLAGS.md": {
     "sha256": "060a77eaa89e9c93cdfa65265c4ed8b87c3aa98550463be0e4d3f6321d61be9b",
@@ -276,9 +276,531 @@
     "evidence": "docs/ai-stabilization/00_BASELINE_STATE.md"
   },
   "USKOCI_CISTO_STATUS_I_KONTINUIRANI_PLAN_26-10-2026.md": {
-    "sha256": "b4acd84e947fb396501482cdfbb34f55ba581efad592647e697b0ab2e7ff742e",
+    "sha256": "61320aa2a3e1393687f2d8c1974f0f2ba79ca2e8fbf80a298c15c98a0a224739",
     "reviewer": "root",
     "coverage": "FULL",
     "evidence": "docs/ai-stabilization/00_BASELINE_STATE.md"
+  },
+  "supabase/functions/_shared/classificationEngine.mjs": {
+    "sha256": "7b888425294c7c2d9d95927b14c4a0a544d44ad0b785a6f0749c610b1b433971",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "supabase/functions/_shared/serviceHandoff.mjs": {
+    "sha256": "8cb5dc67f70abe5dfcc4d85a211549e0d70be4102e2e2aa966d2388550b0f438",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "supabase/functions/_shared/taxonomyPostSaveWorker.mjs": {
+    "sha256": "04b2346c479a0f82ec63648c231ec873da376543122b58f518c3b68780c7b5bb",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "supabase/migrations/20261026150523_classification_hint_revision_fence.sql": {
+    "sha256": "2e8a3342ed3d625f398ebbda8d21e799dcdbb136b801337136b0aea68ded60e8",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "supabase/migrations/20261023200000_taxonomy_snapshot_and_turn_hints.sql": {
+    "sha256": "31db42b2980588b957621f998c2eaf0dc48502287cf7fc7106df8ce95208dfdc",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "supabase/migrations/20261021104455_closure_taxonomy_archive_copy_coverage.sql": {
+    "sha256": "2f3a9957e33f2347a637fc273a8d96170d04225c5a99a02c17c672348d3d03a9",
+    "reviewer": "publication_contract_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "supabase/candidates/dynamic-taxonomy-20261011/owner-reviewed-batch-outbox-v1.sql": {
+    "sha256": "6f2443a3a0ef91176d1525ae22b3841a5dcb2e0721c1be10d67fbfe996948b57",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "supabase/proofs/ai/background_lifecycle_review.test.mjs": {
+    "sha256": "3b4e1c125f4fae939d58dcf0a70d5483a99a40415216f930d04c864c1e155987",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "supabase/proofs/ai/classification_hint_revision_sql.test.mjs": {
+    "sha256": "ccd05230f4af858d988d03fcc9d469fa1e2a22cf09ff5c8aca6503843c5287c4",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs": {
+    "sha256": "57093fcfcfe1252e1f8990751c47d43072ead03ec1f4e57885f62273eb0626f6",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "supabase/functions/_shared/classificationGeminiShadow.mjs": {
+    "sha256": "9a32399f49ff062ae3159afab827910309b99834dd824b4a4d9be1a9eef41015",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "supabase/functions/_shared/classificationReply.mjs": {
+    "sha256": "d5d93e8d64969a62802ddbd7e25bc24ba0b9a131971d5c5a9b40645c8361bf44",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "supabase/proofs/ai/shadow_one_question.test.mjs": {
+    "sha256": "21841c54f66d0effbc3ae55a3e6eab1385f0ead10e24650e15706c16b5f42b25",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "supabase/proofs/dynamic_taxonomy/classification-turn-feedback.test.mjs": {
+    "sha256": "053c6049a2d792bb9057dbba0dd75994f816482cec35bd360e066a1f1f5f27d6",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "supabase/proofs/dynamic_taxonomy/classification-gemini-shadow-source.test.mjs": {
+    "sha256": "3f77c7e8daf7e6d1c39534d939c19e7862eabd9ecc4491556be0d2fa1854129f",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "src/data/aiTaskReviewClientService.ts": {
+    "sha256": "52f8a5c578f903ce4a449483c934c1455b8a1113c4c6e841e7f5c22f55c6785a",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "src/data/serverReceipt.ts": {
+    "sha256": "e57274eb4f199ec846bbfcc99e3a52455adf2efe48f547c31593ca4520b75c8f",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "src/data/__tests__/client-ai-path-20261027.test.ts": {
+    "sha256": "726d87db9584f4ad4fe2a8b7e9340031d2dd904ebc39552387aac83f2b938d0a",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+  },
+  "supabase/migrations/20261014093000_uskoci_worker_profile_authoritative_capability_sync.sql": {
+    "sha256": "201e7132ab8a3fa88ad8804ebc70e2b1a567ceed783d93f038bbb4dd1507ee98",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "supabase/candidates/dynamic-taxonomy-20261011/worker-no-implicit-admission-v1.sql": {
+    "sha256": "3228eeaa25cf178784a7251f4c079ea165166277d3996adebf65e6b9a176672a",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "supabase/candidates/dynamic-taxonomy-20261011/disposable-worker-safe-sync-assert.sql": {
+    "sha256": "5d600a45a02bacd4618c7d55d9281a9ac72733b1b08905c05d0c145952045837",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "src/data/workerProfileClientService.ts": {
+    "sha256": "efeb24186ed66a00dfe97b44fd2ec56e669c1082715cc6b7b3843b175e3057de",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "supabase/migrations/20261016185402_dev_signed_taxonomy_binding_requeue_20261016.sql": {
+    "sha256": "b01e51264a54c469112108559232dd90a1ce6c6f4a0d42132019a7fd0bdb11d0",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "supabase/migrations/20260904230500_clean_ru4_ai_edit_replay_boundary.sql": {
+    "sha256": "297947cff6a5e344d9988f23a3291acbafcc43c5a017760808a181b04f318938",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "supabase/proofs/taxonomy/live_writer_characterization.test.mjs": {
+    "sha256": "868dee090a0196b9471b2dff9e195d8edddce0eadc73567fcf057a337aa1abd7",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "src/lib/capabilityTerms.ts": {
+    "sha256": "fb6f9cd322a3548e9a30b22fc584ad1608052358959beaddf9552306f026d4ad",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "src/ui/workerProfile/workerProfileDraft.ts": {
+    "sha256": "272230ce33f889aeac932d506f661f8f8da57781c2d95fc26d859a6ee3832c0e",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "docs/ai-stabilization/06_SQL_WRITER_MATRIX.csv": {
+    "sha256": "ddfce917158d89bed972e690d6f6e59cc9f3bcd1de938c6c7b129a11eb5024c4",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "docs/ai-stabilization/06_SQL_WRITER_READONLY.sql": {
+    "sha256": "5a6f92b8ab52d3b3cb57aef2524b19585ef6dd797bc1e227ae29df1c3519b633",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md": {
+    "sha256": "dd524a29d135217e3c2a385e7e21bd035e4bbf9b578a522aa9a7b7774b78317b",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "supabase/migrations/20261019104047_taxonomy_parent_navigation_and_mode_admission.sql": {
+    "sha256": "1d871cf4d4ce520aecba68783086f672f81fda21f9717c828466811189d38274",
+    "reviewer": "publication_contract_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "supabase/migrations/20261019104604_service_handoff_signed_matching.sql": {
+    "sha256": "e2c40877d39d9546bd0cdd6584c7bd07db63e7546e8e92612e34e75a78f0c1b8",
+    "reviewer": "publication_contract_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "supabase/migrations/20261021101159_staged_task_replacement.sql": {
+    "sha256": "1a75b59baf6492702b70294f4321067f9f0c6c3113a5203697ac1788410e90d0",
+    "reviewer": "publication_contract_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "supabase/migrations/20261021103732_worker_equipment_retired_signed_policy.sql": {
+    "sha256": "93e8ac510ea87ea7d37dcc9290c1b94c135d978e7c5229a225294d10b9247f67",
+    "reviewer": "publication_contract_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "supabase/migrations/20261021103954_task_review_writer_readiness.sql": {
+    "sha256": "30a973b0250d343c0c2c11e4b2d7f3df9bc7ac4038d90361d13532f136616bc3",
+    "reviewer": "publication_contract_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "src/app/(app)/profil/radnik.tsx": {
+    "sha256": "91a7971964e08a6b7009d8caa4763b738beebec051079d97cb1dae16eda4af08",
+    "reviewer": "publication_contract_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "src/app/(app)/prilike/[id]/prijava.tsx": {
+    "sha256": "7c84608b53c3abe443248bcdd04231fe6f6c2fad03277fb7e3bb7599cc446c66",
+    "reviewer": "publication_contract_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+  },
+  "src/data/workerAiClientService.ts": {
+    "sha256": "efaa36507794b47a0febbe57a1295526b91dd77e786cf52ae79721d34cffa9db",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/aiNeedV2Production.ts": {
+    "sha256": "3f04bfe0a4057e52e76585ea925cebf0d539e6de2f931eb05e05a9054b0dd7ac",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/aiTurnIntentJournal.ts": {
+    "sha256": "12a30fa5db3b0159ac9fa2ecaa189e135e7408a024336f3ac5b884cc4eec4e7b",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/workerAiTurnIntentJournal.ts": {
+    "sha256": "3307479db7e3641f7f33d6bcd4bdce56a0e813223db22cb93c36e54cd5ddb50f",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/aiProductionOverrides.ts": {
+    "sha256": "a1b5545db6335ff2ce3770df4b4a97a5ab5dde40f54ee7394b0223f864e92e8d",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/aiCommandOverrides.ts": {
+    "sha256": "46948f0e1ad010041cda0a080356158038b0d73f3969c235c1daadf9f898afcf",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/aiOpenIntakes.ts": {
+    "sha256": "c4bf4e24aa50ad26b6b526436c0f20bac03d13c63db123a14fba4d19ea27b7aa",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/aiCorrectionIntent.ts": {
+    "sha256": "cd730d81d06a47d1cc8808faa8d6af2812724009c74b8380e8b3b5928a338aee",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/intakeReviewReturn.ts": {
+    "sha256": "73a2c83b3490f0cd121daa559ed7384adf25a4d59e5bbd85708473ec39d46579",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/index.ts": {
+    "sha256": "91ad7ce697ceb684fa12d5e5968f220cb4707a672bbb97fec953dcd3bc3f532d",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/publicationHandoff.ts": {
+    "sha256": "70196a74e14fafe00ef7ae9e0adc88b04307b5abd71fa0ef243f6c45af3190d5",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/app/(app)/nova.tsx": {
+    "sha256": "fc196c1fff02a0df9ebdae9a8b23d0ee72965ad599aee031922c85d887554709",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/app/(app)/profil/razgovor.tsx": {
+    "sha256": "9dc936f83568c0515a720d5c1a10aa5b27a7c34184fee138adfbd021b53185a1",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/app/(app)/pregled-zadatka.tsx": {
+    "sha256": "0ab1c2bcb95739a3423cb01d210b76d8a380f8307f9e3e67846a189b8d2ab7b7",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/hooks/useOwnedEditor.ts": {
+    "sha256": "9327ddc29292ff16cc68a65fb8b668cea3c0cc44dc07b64e1f721fbfb5a645d0",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/locationDialogueClientService.ts": {
+    "sha256": "9f04fcf96060a28d80db47e70767e217f7d4ca427abf19fa8372178ec057c2ee",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/workerExecutionModeClientService.ts": {
+    "sha256": "a9a6c62c7eb12c4ed5a00e849ab4bb5e4dc16e07405a9aa5ecccbcb5995b96e0",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/reviewFactProblem.ts": {
+    "sha256": "39f27ce733298ec3dc6e5a6a9dba8d229331258bb1caeed74832daf3c6d98301",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/supabaseClient.ts": {
+    "sha256": "5a4ff75385ef4f7cf93eb3dd9fda97182f4d18024a37764490fb043e8a86945c",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/publicationClientService.ts": {
+    "sha256": "bf01c440b5a6e9f18531009cc7d373769a07c29ee49d6a0c58e88bfe59135a0c",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/lib/idempotencija.ts": {
+    "sha256": "d28bddd73d0e06ff6618737724a4912663af2a74df20d11531c0192fa65f0fa3",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/store/sesija.ts": {
+    "sha256": "c4fdf63e00069e4b02e9e94faae59fceeff9ad703f2f2e064d21bf86eeb79a88",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/__tests__/ai-need-turn-stream.test.ts": {
+    "sha256": "03e1a9bd0e5bcfe8d6df091503ba084c2829ff90184915df881287625ae028ee",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/__tests__/pkg002-ai-stream-boundary.test.ts": {
+    "sha256": "09ffaab18eca9bf47a523068a78c8e95f3a676a35c527bfb1107aa4bfae1f36c",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/__tests__/worker-ai-client.test.ts": {
+    "sha256": "4cc1061c4f3a46d0087f0448db6a8a1baf14d1c7d9a39e1c92e7bfb9bfaa8e03",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/__tests__/ai-task-review-client.test.ts": {
+    "sha256": "6d440be902396f6a8fe706163e3cb34da8447636e154d92cc96399cfea436bef",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/__tests__/w03-ai-need-client.test.ts": {
+    "sha256": "0feacd9dca4d03592052001a4411344cd4e89291689b50dc3843b6cfd125a433",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/__tests__/ai-turn-intent-journal.test.ts": {
+    "sha256": "0bafe065d1d110687509f022dbfc640e44b7f85a87bf5aefd9790405f509e7fa",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/__tests__/worker-ai-turn-intent-journal.test.ts": {
+    "sha256": "27b2b4319f2be08b16eca402107985c3d29daf21065ff071740f6ff8f1a1f48b",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/__tests__/ai-owned-intake-screen.test.tsx": {
+    "sha256": "e8bba10a93ff4f3886a30111271ba83d86306681861ddb751459e853275bbb54",
+    "reviewer": "conversation_path_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "src/data/__tests__/worker-ai-conversation-recovery.test.tsx": {
+    "sha256": "bf003bf435277c929ad3b1484c3e7bc1165f1b57f1e9604e1f9f4f4e063f8e23",
+    "reviewer": "conversation_path_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "supabase/proofs/ai/clean_ci_coverage.test.mjs": {
+    "sha256": "252b280354e4d06773b544a9616a5fcff067899129864f8d48f4e0038cd833e6",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "supabase/migrations/20260912213702_clean_v5_review_acceptance.sql": {
+    "sha256": "cc837755330127fd272188195cf7e4fcb09ad8b908d0cc6a279ef036e4c5d4ac",
+    "reviewer": "conversation_path_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/06_CLIENT_PATH_REVIEW.md"
+  },
+  "jest.config.cjs": {
+    "sha256": "9bbfb963d8879bb6d7781a0c07524613b704b680e15779d9f04a6ee3f7dea2eb",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "jest.urgent-env.cjs": {
+    "sha256": "6ecea2c313b6079dd40033ff068c9b2af4f1399d80a2cb7df0858c8d0a88c49f",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "scripts/check-eas-preview.cjs": {
+    "sha256": "c6fcb7a2520ccd1682dbbb96394df5c9e25916715ff2044ac5c51b9ad6190e94",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "scripts/build-contract.cjs": {
+    "sha256": "84242eee458ea1d1772a23cc52fa045fb4cfb28e9f28efa07d64cc287d1d8884",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "scripts/build-identity.cjs": {
+    "sha256": "857fe667c8c674195c5d006b33739c3fa2bc373a7f2a272edac2adacad2d7959",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "scripts/verify-native-patches.cjs": {
+    "sha256": "5dfb2ceb7cc84e7990e2693e258af7aa7f2fa4a4d7f820830b93a3fb658ad71e",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "scripts/sync-entry-reference-assets.cjs": {
+    "sha256": "6de62225e627e9092a26ecbf399119670028f4a1b903c51c94fa103758042fe8",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "app.config.js": {
+    "sha256": "ba94f1cba05519349bf119c4cfe0402e6c71273fd8bfb629e2c27cc12fba2684",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "eas.json": {
+    "sha256": "c92ab9188c7fab11c03766a3bea162bd946eedce0d093e75160e0310f1f08d52",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "supabase/proofs/ai/deno_type_import.test.mjs": {
+    "sha256": "e8d26ae7146bdc53874eb261844837dd38f3f0ff0081cc8fe9b93bb0c1efbfb6",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "supabase/proofs/ai/v5_media_deno_runtime.test.ts": {
+    "sha256": "823c5c1fc849a866b6b504aa672855492881c8bfaef3ef7169d645feb80bc0cb",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "supabase/proofs/dynamic_taxonomy/classification-gemini-shadow.test.mjs": {
+    "sha256": "32c722c4ca1cc02a3d3a2bace10c12a063c78b0ac6cba402223ad28499b42a44",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "supabase/proofs/dynamic_taxonomy/service-handoff.test.mjs": {
+    "sha256": "b5ad32ad1e2ac97644d040155dea0c9ed755ccb2bd8ec0412c39ccbd5a0f2475",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "supabase/proofs/dynamic_taxonomy/worker-existing-identity-recovery.test.mjs": {
+    "sha256": "202538b162591cd9c1556fcf4787a054419108ab580075f1d3112881297b1a65",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "supabase/proofs/dynamic_taxonomy/classification-direct-reply.test.mjs": {
+    "sha256": "aa62e56c715e1a30aa16ef109055f0eb87dfe33cf91d8c92d0bb1e087e216db0",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "supabase/proofs/dynamic_taxonomy/classification-verified-alias.test.mjs": {
+    "sha256": "dbd0d5361525a4781790a901534b63252064cb8c7c5a2bc0a807a4d2d71fdaf8",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md": {
+    "sha256": "f4638fb4857bac194c3ea4e3f75385bd6b460cdc4d7112372beed88b6e76fef1",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
   }
 }
