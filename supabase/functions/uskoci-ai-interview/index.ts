@@ -48,6 +48,7 @@ import {
   taskTaxonomyScope,
   loadFullCatalogTree,
   runInBackground,
+  persistClarificationHint,
   persistConsumeClarificationHint,
   fetchUnconsumedClarificationHint,
 } from '../_shared/backgroundTaxonomyArchitect.mjs';
@@ -1414,6 +1415,8 @@ Deno.serve(async (req: Request) => {
     let taxonomyExplorer: ClassificationExplorer | null = null;
     let research: ReturnType<typeof createResearchDeadline> | null = null;
     let pendingClarificationHint: any = null;
+    const taskDraftRevision = history.reduce((latest: number, row: any) =>
+      Number.isSafeInteger(row?.sequence_no) ? Math.max(latest, row.sequence_no) : latest, 0);
     try {
       if (wantsStream && (schemaVersion !== NEED_FACT_SCHEMA_V2 || provider !== 'gemini' || geminiModel !== 'gemini-3.8-flash')) {
         await retireAttempt();
@@ -1466,7 +1469,7 @@ Deno.serve(async (req: Request) => {
           pendingClarificationHint = await fetchUnconsumedClarificationHint(
             (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? signal, t ?? 2500),
             conversationId,
-            null // Task context has no numeric draft revision; the turn ID is a UUID.
+            taskDraftRevision
           );
         } catch { /* Non-fatal */ }
       }
@@ -1562,7 +1565,8 @@ Deno.serve(async (req: Request) => {
               items: [{ service: effCategory.trim(), mode: effMode, handoff: effHandoff }],
               scopeSummary: taskTaxonomyScope({ priorCategory, category: effCategory, priorDescription, proposedDescription }),
               conversationId,
-              draftRevision: null,
+              // Completion persists one USER and one ASSISTANT message.
+              draftRevision: taskDraftRevision + 2,
               signal: bgAbort.signal,
             })).catch(() => null);
           }
@@ -1579,15 +1583,19 @@ Deno.serve(async (req: Request) => {
         throw new Error('AI_TURN_RECEIPT_INVALID');
       if (locationContext && completed.state === 'SUCCEEDED' && result.data.location.action !== aiTurn.locationAction) throw new Error('AI_TURN_RECEIPT_INVALID');
       if (completed.state === 'SUCCEEDED' && pendingClarificationHint?.service) {
-        void runInBackground(persistConsumeClarificationHint(
-          (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 2500),
-          conversationId, pendingClarificationHint.service));
+          void runInBackground(persistConsumeClarificationHint(
+            (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 2500),
+            conversationId, taskDraftRevision, pendingClarificationHint.service));
       }
       if (completed.state === 'SUCCEEDED' && dualArchitectPromise) {
         void runInBackground((async () => {
           const timer = setTimeout(() => bgAbort.abort(), 9000);
           try {
             const built = await dualArchitectPromise;
+            if (built?.clarifications?.length) {
+              await Promise.all(built.clarifications.slice(0,1).map((hint: any) => persistClarificationHint(
+                (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 2500), hint)));
+            }
             if (built && built.proposals.length > 0 && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
               await rpc('rpc_taxonomy_capture_gemini_turn_hints_service', {
                 p_account_id: accountId, p_conversation_id: conversationId,

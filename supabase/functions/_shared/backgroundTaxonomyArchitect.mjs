@@ -37,6 +37,7 @@ export function taskTaxonomyScope({ priorCategory, category, priorDescription, p
 export function storeClarificationHint(conversationId, draftRevision, hint) {
   if (!conversationId) return;
   draftRevision = hintDraftRevision(draftRevision);
+  if (draftRevision === null) return;
   const existing = clarificationHintsByConversation.get(conversationId) ?? [];
   const filtered = existing.filter((h) => h.draftRevision !== draftRevision);
   filtered.push({
@@ -51,30 +52,34 @@ export function storeClarificationHint(conversationId, draftRevision, hint) {
 
 export function getUnconsumedClarificationHint(conversationId, draftRevision) {
   if (!conversationId) return null;
+  draftRevision = hintDraftRevision(draftRevision);
+  if (draftRevision === null) return null;
   const list = clarificationHintsByConversation.get(conversationId);
   if (!Array.isArray(list) || list.length === 0) return null;
-  const found = list.find((h) => !h.consumed);
+  const found = list.find((h) => !h.consumed && h.draftRevision === draftRevision);
   return found ?? null;
 }
 
-export function consumeClarificationHint(conversationId, service) {
+export function consumeClarificationHint(conversationId, draftRevision, service) {
   if (!conversationId) return;
+  draftRevision = hintDraftRevision(draftRevision);
+  if (draftRevision === null) return;
   const list = clarificationHintsByConversation.get(conversationId);
   if (!Array.isArray(list)) return;
   for (const h of list) {
-    if (!service || h.service === service) {
+    if (h.draftRevision === draftRevision && (!service || h.service === service)) {
       h.consumed = true;
     }
   }
 }
 
 export async function persistClarificationHint(rpc, hint) {
-  if (!hint?.conversationId) return;
+  if (!hint?.conversationId) return false;
   const draftRevision = hintDraftRevision(hint.draftRevision);
-  storeClarificationHint(hint.conversationId, draftRevision, hint);
+  if (draftRevision === null) return false;
   if (typeof rpc === 'function') {
     try {
-      await rpc('rpc_taxonomy_store_classification_turn_hint_service', {
+      const res = await rpc('rpc_taxonomy_store_classification_turn_hint_service', {
         p_conversation_id: hint.conversationId,
         p_draft_revision: draftRevision,
         p_service: hint.service,
@@ -82,37 +87,44 @@ export async function persistClarificationHint(rpc, hint) {
         p_ambiguity_prompt: hint.ambiguityPrompt,
         p_reason: hint.reason,
       });
+      if (res?.ok === false || res?.data?.stored === false || res?.stored === false) return false;
     } catch {
-      // Non-fatal if table/rpc not yet deployed; in-memory cache handles current edge instance
+      return false;
     }
   }
+  storeClarificationHint(hint.conversationId, draftRevision, hint);
+  return true;
 }
 
 /** Marks the question as asked: in this instance's memory at once, and in the database so another instance never repeats it. */
-export async function persistConsumeClarificationHint(rpc, conversationId, service) {
-  if (!conversationId) return;
-  consumeClarificationHint(conversationId, service);
+export async function persistConsumeClarificationHint(rpc, conversationId, draftRevision, service) {
+  draftRevision = hintDraftRevision(draftRevision);
+  if (!conversationId || draftRevision === null) return false;
+  consumeClarificationHint(conversationId, draftRevision, service);
   if (typeof rpc === 'function') {
     try {
-      await rpc('rpc_taxonomy_consume_turn_hint_service', {
+      await rpc('rpc_taxonomy_consume_turn_hint_revision_service', {
         p_conversation_id: conversationId,
+        p_draft_revision: draftRevision,
         p_service: service ?? null,
       });
     } catch {
-      // The in-memory mark already prevents a repeat on this instance.
+      return false;
     }
   }
+  return true;
 }
 
 export async function fetchUnconsumedClarificationHint(rpc, conversationId, draftRevision) {
   draftRevision = hintDraftRevision(draftRevision);
+  if (draftRevision === null) return null;
   const mem = getUnconsumedClarificationHint(conversationId, draftRevision);
   if (mem) return mem;
   if (typeof rpc === 'function' && conversationId) {
     try {
       const res = await rpc('rpc_taxonomy_get_unconsumed_turn_hint_service', {
         p_conversation_id: conversationId,
-        p_draft_revision: draftRevision ?? null,
+        p_draft_revision: draftRevision,
       });
       const data = res?.ok ? res.data : res;
       if (data && typeof data.ambiguityPrompt === 'string') {
@@ -455,10 +467,6 @@ export async function buildFullTreeTaxonomyProposals({
           createdAt: new Date().toISOString(),
         };
         clarifications.push(clarification);
-        if (conversationId) {
-          storeClarificationHint(conversationId, draftRevision, clarification);
-          void persistClarificationHint(rpc, clarification).catch(() => null);
-        }
       } else {
         const parentId = decision.parentId;
         const rawReason = typeof decision?.reason === 'string' && decision.reason.trim().length >= 10
@@ -735,10 +743,6 @@ export async function buildWorkerFullTreeTaxonomyProposals({
             createdAt: new Date().toISOString(),
           };
           clarifications.push(clarification);
-          if (conversationId) {
-            storeClarificationHint(conversationId, draftRevision, clarification);
-            void persistClarificationHint(rpc, clarification).catch(() => null);
-          }
         }
       }
     }

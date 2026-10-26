@@ -26,7 +26,7 @@ import { withClassificationFeedback } from '../_shared/classificationReply.mjs';
 import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction, preserveWorkerServiceModes, recoverWorkerExistingIdentity } from '../_shared/workerServiceModeContext.mjs';
 import { guardWorkerAreaOutput } from '../_shared/workerAreaAdmission.mjs';
 import { workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas } from '../_shared/workerAreaResolver.mjs';
-import { buildWorkerFullTreeTaxonomyProposals, loadFullCatalogTree, runInBackground, fetchUnconsumedClarificationHint, persistConsumeClarificationHint } from '../_shared/backgroundTaxonomyArchitect.mjs';
+import { buildWorkerFullTreeTaxonomyProposals, loadFullCatalogTree, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint } from '../_shared/backgroundTaxonomyArchitect.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const isLiveDualGemini = (): boolean =>
@@ -529,7 +529,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
               serviceModeContext: context.serviceModeContext,
               hasWorkAreas,
               conversationId: input.conversationId,
-              draftRevision: context.revision,
+              // The completed turn increments the durable worker candidate once.
+              draftRevision: context.revision + 1,
               signal: bgAbort.signal,
             })).catch(() => null);
           }
@@ -540,13 +541,17 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         if (turn.state === 'SUCCEEDED' && pendingWorkerClarificationHint?.service) {
           void runInBackground(persistConsumeClarificationHint(
             (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 2500),
-            input.conversationId, pendingWorkerClarificationHint.service));
+            input.conversationId, context.revision, pendingWorkerClarificationHint.service));
         }
         if (dualWorkerArchitectPromise) {
           void runInBackground((async () => {
             const timer = setTimeout(() => bgAbort.abort(), 9000);
             try {
               const built = await dualWorkerArchitectPromise;
+              if (built?.clarifications?.length) {
+                await Promise.all(built.clarifications.slice(0,1).map((hint: any) => persistClarificationHint(
+                  (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 2500), hint)));
+              }
               if (built && built.proposals.length > 0 && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
                 await rpc('rpc_taxonomy_capture_gemini_turn_hints_service', {
                   p_account_id: account, p_conversation_id: input.conversationId,
