@@ -1,0 +1,42 @@
+name: USKOCI controlled DEV Gemini smoke
+
+# Manual only. Never runs on PR, push, production or another Supabase project.
+on:
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: One dedicated DEV test conversation, no Save or Publish
+        required: true
+        type: choice
+        options:
+          - NEED
+          - WORKER
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uskoci-dev-ai-smoke
+  cancel-in-progress: false
+
+jobs:
+  one-dev-test-turn:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Execute one paid DEV test turn (test account only)
+        env:
+          USKOCI_DEV_URL: https://leqcwgzvjsxugfgzdmth.supabase.co
+          USKOCI_DEV_SMOKE_ACK: DEV_TEST_PAID_ONE_TURN_NO_PUBLISH
+          USKOCI_DEV_SMOKE_KIND: ${{ inputs.kind }}
+          USKOCI_DEV_SMOKE_EMAIL: ${{ secrets.USKOCI_DEV_SMOKE_EMAIL }}
+          USKOCI_DEV_SMOKE_PASSWORD: ${{ secrets.USKOCI_DEV_SMOKE_PASSWORD }}
+          USKOCI_DEV_SMOKE_ACCOUNT_ID: ${{ secrets.USKOCI_DEV_SMOKE_ACCOUNT_ID }}
+          USKOCI_DEV_ANON_KEY: ${{ secrets.USKOCI_DEV_ANON_KEY }}
+        run: node scripts/uskoci-ai-dev-smoke.mjs
