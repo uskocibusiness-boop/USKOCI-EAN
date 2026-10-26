@@ -173,12 +173,8 @@ def main() -> None:
             item for item in oct26_section.get("entries", [])
             if item.get("classification") == "APPLIED_RECORDED_BYTES_DIFFER"
         ]
-        source_only_oct26 = [
-            item for item in oct26_section.get("entries", [])
-            if item.get("classification") == "SOURCE_ONLY_LIVE_BINDING_UNPROVEN"
-        ]
-        if len(applied_oct26) != 3 or len(source_only_oct26) != 1:
-            fail("Oct-26 reconciliation requires three applied records and one source-only forward gate")
+        if len(oct26_suffix_names) != 3 or len(applied_oct26) != 3:
+            fail("Oct-26 reconciliation requires exactly three applied records")
         if suffix_names and oct26_suffix_names[0] <= suffix_names[-1]:
             fail("Oct-26 reconciliation is not strictly after earlier physical suffix")
     if history_names + pending_names + suffix_names + oct26_suffix_names != disk_names:

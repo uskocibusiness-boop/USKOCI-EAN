@@ -46,6 +46,7 @@
     "expo-updates": "~57.0.19"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.8",
     "@imagemagick/magick-wasm": "0.0.43",
     "@types/jest": "29.5.14",
     "@types/react": "~19.2.2",
