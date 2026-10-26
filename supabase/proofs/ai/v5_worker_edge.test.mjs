@@ -734,7 +734,7 @@ for(const input of ['To je to.','Sačuvaj','Сачувај','Gotovo, to je sve!'
   assert.equal(es.at(-1).kind,'final');
   const applied=completions(f)[0].body.p_output;
   assert.deepEqual(applied.patch,{},'finish is not authorization for invented profile changes');
-  assert.equal(applied.assistantMessage,'Otvori pregled profila. Tamo možeš da dopuniš podatke i potvrdiš čuvanje.');
+  assert.equal(applied.assistantMessage,'Otvorite pregled profila. Tamo možete da dopunite podatke i potvrdite čuvanje.');
   assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),applied.assistantMessage);
   assert.ok(!es.some(e=>e.text?.includes('dostupnost')));
   assert.equal(providers(f).length,1,'no second paid model call to rewrite a reply');

@@ -44,6 +44,8 @@ import { withGeminiClassificationShadowSchema, inspectGeminiClassificationShadow
 import { withClassificationFeedback } from '../_shared/classificationReply.mjs';
 import {
   buildFullTreeTaxonomyProposals,
+  taskTaxonomyMode,
+  taskTaxonomyScope,
   loadFullCatalogTree,
   runInBackground,
   persistConsumeClarificationHint,
@@ -1464,7 +1466,7 @@ Deno.serve(async (req: Request) => {
           pendingClarificationHint = await fetchUnconsumedClarificationHint(
             (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? signal, t ?? 2500),
             conversationId,
-            claimedTurnId
+            null // Task context has no numeric draft revision; the turn ID is a UUID.
           );
         } catch { /* Non-fatal */ }
       }
@@ -1544,17 +1546,23 @@ Deno.serve(async (req: Request) => {
             aiTurn.proposals.find((p: any) => p.key === key)?.value ??
             activeFacts.find((f: any) => f.fact_key === key && f.status !== 'UNKNOWN')?.fact_value;
           const effCategory = effectiveFact('need.category');
+          const priorCategory = activeFacts.find((f: any) => f.fact_key === 'need.category' && f.status !== 'UNKNOWN')?.fact_value;
+          const priorDescription = activeFacts.find((f: any) => f.fact_key === 'need.description' && f.status !== 'UNKNOWN')?.fact_value;
+          const proposedDescription = turnProposals.find((p: any) => p.key === 'need.description')?.value;
           const effGeo = effectiveFact('need.task_geography') as any;
           const effHandoff = effectiveFact('need.handoff');
-          const effMode = effGeo?.mode === 'REMOTE' ? 'REMOTE' : 'ON_SITE';
-          if (typeof effCategory === 'string' && effCategory.trim().length >= 3) {
+          // A missing geography is not evidence of on-site execution. The
+          // classifier runs when the conversation has a typed execution mode.
+          const effMode = taskTaxonomyMode(effGeo);
+          if (typeof effCategory === 'string' && effCategory.trim().length >= 3 && effMode) {
             dualArchitectPromise = measureAiPhase('NEED_BG_ARCHITECT', () => buildFullTreeTaxonomyProposals({
               rpc: (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 5000),
               geminiKey,
               geminiModel,
               items: [{ service: effCategory.trim(), mode: effMode, handoff: effHandoff }],
+              scopeSummary: taskTaxonomyScope({ priorCategory, category: effCategory, priorDescription, proposedDescription }),
               conversationId,
-              draftRevision: claimedTurnId,
+              draftRevision: null,
               signal: bgAbort.signal,
             })).catch(() => null);
           }

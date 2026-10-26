@@ -15,8 +15,28 @@ const cachedNovelDecisions = new Map();
 // In-memory store for asynchronous clarification hints across conversation turns
 const clarificationHintsByConversation = new Map();
 
+export function hintDraftRevision(value) {
+  return Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+
+export function taskTaxonomyMode(geography) {
+  if (geography?.mode === 'REMOTE') return 'REMOTE';
+  if (['STATIONARY', 'POINT_TO_POINT', 'MULTI_STOP', 'AREA_BASED'].includes(geography?.mode)) return 'ON_SITE';
+  return null;
+}
+
+export function taskTaxonomyScope({ priorCategory, category, priorDescription, proposedDescription }) {
+  if (typeof proposedDescription === 'string') return proposedDescription;
+  // A new service must not be classified using the old task's scope. A scope
+  // already gathered before the first category is still useful.
+  if (typeof priorCategory === 'string' && typeof category === 'string' &&
+      normalizedClassificationIdentity(priorCategory) !== normalizedClassificationIdentity(category)) return '';
+  return typeof priorDescription === 'string' ? priorDescription : '';
+}
+
 export function storeClarificationHint(conversationId, draftRevision, hint) {
   if (!conversationId) return;
+  draftRevision = hintDraftRevision(draftRevision);
   const existing = clarificationHintsByConversation.get(conversationId) ?? [];
   const filtered = existing.filter((h) => h.draftRevision !== draftRevision);
   filtered.push({
@@ -50,12 +70,13 @@ export function consumeClarificationHint(conversationId, service) {
 
 export async function persistClarificationHint(rpc, hint) {
   if (!hint?.conversationId) return;
-  storeClarificationHint(hint.conversationId, hint.draftRevision, hint);
+  const draftRevision = hintDraftRevision(hint.draftRevision);
+  storeClarificationHint(hint.conversationId, draftRevision, hint);
   if (typeof rpc === 'function') {
     try {
       await rpc('rpc_taxonomy_store_classification_turn_hint_service', {
         p_conversation_id: hint.conversationId,
-        p_draft_revision: hint.draftRevision ?? null,
+        p_draft_revision: draftRevision,
         p_service: hint.service,
         p_mode: hint.mode ?? null,
         p_ambiguity_prompt: hint.ambiguityPrompt,
@@ -84,6 +105,7 @@ export async function persistConsumeClarificationHint(rpc, conversationId, servi
 }
 
 export async function fetchUnconsumedClarificationHint(rpc, conversationId, draftRevision) {
+  draftRevision = hintDraftRevision(draftRevision);
   const mem = getUnconsumedClarificationHint(conversationId, draftRevision);
   if (mem) return mem;
   if (typeof rpc === 'function' && conversationId) {
@@ -233,6 +255,7 @@ async function classifyNovelServicesWithGemini({
   geminiModel,
   catalog,
   unresolvedItems,
+  scopeSummary,
   signal,
 }) {
   const treeLines = catalog.categories.map((c) => {
@@ -248,12 +271,14 @@ async function classifyNovelServicesWithGemini({
     '2. Ako u stablu ne postoji tačna kategorija, ali je namera potpuno jasna i nedvosmislena, izaberi NAJPRECIZNIJEG postojećeg roditelja (parentId UUID iz stabla — može biti koren ili postojeća podgrana na dubljem nivou) pod kojim treba napraviti novu podgranu (action="CREATE_CHILD").',
     '3. Za CREATE_CHILD polje parentId MORA biti tačan UUID postojećeg čvora iz stabla, a proposedPath sadrži SAMO novu podgranu ispod tog roditelja (npr. [service]).',
     '4. KRITIČNO PRAVILO ZA DVOSMISLENE USLUGE: Ako je tražena usluga dvosmislena, neodređena ili se može odnositi na više bitno različitih poslova (npr. samo "klima" — da li je montaža/ugradnja nove klime ili redovan servis/čišćenje/dopuna freona?; ili "nameštaj" — da li je sklapanje/montaža gotovog nameštaja, izrada po meri ili tapaciranje/restauracija?), NIKADA nemoj nagađati roditelja i NIKADA nemoj stavljati u opšte Zanati i popravke. U tom slučaju vrati action="NEEDS_CLARIFICATION", parentId="", i u ambiguityPrompt postavi prirodno, kratko pitanje na srpskom koje razjašnjava tačnu vrstu posla.',
+    'Kratak opis obima je kontekst za razjašnjenje značenja usluge, ne dozvola da izmisliš novu uslugu ili način rada. Ne prenosi opis u naziv kategorije.',
     '5. Polje reason mora biti kratko obrazloženje na srpskom (15 do 200 znakova).',
   ].join(' ');
 
   const userText = JSON.stringify({
     catalogVersion: catalog.catalogVersion,
     servicesToClassify: unresolvedItems,
+    scopeSummary,
     completeCatalogTree: treeLines,
   });
 
@@ -317,11 +342,19 @@ export async function buildFullTreeTaxonomyProposals({
   geminiKey,
   geminiModel,
   items,
+  scopeSummary,
   conversationId,
   draftRevision,
   signal,
 }) {
   if (!Array.isArray(items) || items.length === 0) return null;
+  // The caller passes the typed public description, not the private address,
+  // access notes or map pin. Do not retain the description in an in-memory key.
+  const publicScope = typeof scopeSummary === 'string' ? scopeSummary.trim().slice(0, 500) : '';
+  const scopeHash = publicScope
+    ? Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(publicScope))))
+      .map((byte) => byte.toString(16).padStart(2, '0')).join('')
+    : '';
   const catalog = await loadFullCatalogTree(rpc, signal);
   const validNodeIds = new Set(catalog.categories.map((c) => c.categoryId));
 
@@ -355,7 +388,7 @@ export async function buildFullTreeTaxonomyProposals({
         ...(decodedHandoff ? { handoff: decodedHandoff } : {}),
       });
     } else {
-      const cacheKey = `${catalog.catalogVersion}|${norm}|${mode}`;
+      const cacheKey = `${catalog.catalogVersion}|${norm}|${mode}|${scopeHash}`;
       const cachedDecision = cachedNovelDecisions.get(cacheKey);
       if (cachedDecision && validNodeIds.has(cachedDecision.parentId)) {
         proposals.push({
@@ -384,6 +417,7 @@ export async function buildFullTreeTaxonomyProposals({
           geminiModel,
           catalog,
           unresolvedItems: unresolved.map(({ service, mode }) => ({ service, mode })),
+          scopeSummary: publicScope,
           signal,
         });
       } catch (err) {
@@ -431,7 +465,7 @@ export async function buildFullTreeTaxonomyProposals({
           ? decision.reason.trim().slice(0, 900)
           : `Nova specifična usluga „${item.service}“ raspoređena pod odgovarajuću granu kataloga.`;
 
-        cachedNovelDecisions.set(`${catalog.catalogVersion}|${norm}|${item.mode}`, {
+        cachedNovelDecisions.set(`${catalog.catalogVersion}|${norm}|${item.mode}|${scopeHash}`, {
           parentId,
           reason: rawReason,
         });

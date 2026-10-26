@@ -292,7 +292,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
       pendingWorkerClarificationHint = await fetchUnconsumedClarificationHint(
         (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? req.signal, t ?? 2500),
         input.conversationId,
-        claim.turn.turnId
+        context.revision
       );
     } catch { /* Non-fatal */ }
   }
@@ -529,7 +529,7 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
               serviceModeContext: context.serviceModeContext,
               hasWorkAreas,
               conversationId: input.conversationId,
-              draftRevision: context.draftRevision ?? context.candidate?.revision ?? 1,
+              draftRevision: context.revision,
               signal: bgAbort.signal,
             })).catch(() => null);
           }

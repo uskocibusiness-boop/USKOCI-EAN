@@ -315,7 +315,7 @@ for(const shadow of ['[]',JSON.stringify([proposal({mode:'UNCONFIRMED'})])])
 test('worker saved mode continuity clears resolved feedback on finish: '+shadow,async()=>{
   const f=fixture('WORKER_CAPABILITY',{saved:true,text:'To je to.',output:{classificationShadowJson:shadow}});await f.invoke();
   assert.deepEqual(capture(f)[0].body.p_proposals.map(p=>p.mode),['REMOTE']);
-  assert.match(writtenMessage(f),/Otvori pregled profila/);
+  assert.match(writtenMessage(f),/Otvorite pregled profila/);
   assert.doesNotMatch(writtenMessage(f),/kod klijenta|još nije provereno|još treba razjasniti/);
   assert.deepEqual(complete(f).body.p_output.patch,{});assert.equal(provider(f).length,1);
 });
