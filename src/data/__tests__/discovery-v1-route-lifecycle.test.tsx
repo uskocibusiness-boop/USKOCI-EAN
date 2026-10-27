@@ -324,7 +324,7 @@ test('a return that cannot read the map still ends in the honest error state wit
   await flush();
   const shown = errorState();
   expect(shown.length).toBeGreaterThan(0);
-  expect(shown[0].props.primary.label).toBe('Pokušaj ponovo');
+  expect(shown[0].props.primary.label).toBe('Pokušajte ponovo');
   expect(traced()).toContain('[USKOCI_P6_TRACE] ["restore-failed","DISCOVERY_V1_READ_FAILED"]');
 });
 

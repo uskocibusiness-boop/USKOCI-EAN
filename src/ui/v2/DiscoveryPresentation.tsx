@@ -1,4 +1,5 @@
 import type { WorkAreaCamera } from '../../data/discoveryWorkArea';
+import type { ReadFailureReason } from '../../data/readFailure';
 import { createContext, memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type Context, type ReactNode } from 'react';
 import { AccessibilityInfo, ActivityIndicator, Animated as NativeAnimated, BackHandler, Easing, Keyboard, Platform, StyleSheet, View, useWindowDimensions, type ListRenderItemInfo,
   type CellRendererProps, type NativeScrollEvent, type ViewToken } from 'react-native';
@@ -88,7 +89,7 @@ export type DiscoveryV1PresentationSeam = {
 };
 
 export type DiscoveryPresentationProps = { items: readonly MarketplaceItem[]; loading: boolean; refreshing?: boolean; error: boolean;
-  errorMessage?: string;
+  errorReason?: ReadFailureReason;
   /** An exact published row can be shown while the independent collection is incomplete. */
   collectionStatus?: 'loading' | 'error';
   /** One-shot locality fallback, never a filter, task point or GPS marker. */
@@ -1395,7 +1396,7 @@ export function DiscoveryPresentation(props: DiscoveryPresentationProps) {
   if (confirmedEmpty.current.key !== emptyKey) confirmedEmpty.current = { key: emptyKey, value: null };
   const heldEmpty = refreshing && !loading && !error && !props.collectionStatus ? confirmedEmpty.current.value : null;
   const computedState: DiscoveryListStateKind = loading || (refreshing && !heldEmpty) || props.collectionStatus === 'loading' || offMapMore || (offMap && !!p6?.loadingMore && !listed.length) ? { kind: 'loading' }
-    : error || props.collectionStatus === 'error' ? { kind: 'error', onRetry: refreshList, errorDetail: props.errorMessage }
+    : error || props.collectionStatus === 'error' ? { kind: 'error', onRetry: refreshList, errorReason: props.errorReason }
       // Only the map's area or its one point leaves nothing: the tasks are elsewhere on the map, one move or one tap away.
       : (pinPlace || area) && elsewhere && !offMap ? { kind: 'place', point: !!pinPlace, onShowAll: showAll }
         : forMeOn && !conditionsOn ? { kind: 'forMe', onShowAll: () => chooseScope('all'), onWorkProfile: props.onWorkProfile }

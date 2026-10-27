@@ -5,6 +5,7 @@ import { noviUuidZahtevId } from '../../lib/idempotencija';
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import Constants from 'expo-constants';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
+import { readFailureReason } from '../../data/readFailure';
 import { initialMarketplaceView, type MarketplaceItem, type MarketplaceView } from '../../data/marketplaceView';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { izvorSada, useIzvor } from '../../store/uloga';
@@ -85,8 +86,8 @@ function Discovery() {
       return await Promise.race([source.otvorenePrilike({ signal }), new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new Error('MARKETPLACE_READ_TIMEOUT')), 15_000);
       })]);
-    } catch (err: any) {
-      console.error('[ZADACI_LOAD_ERROR]', err?.message, err?.stack);
+    } catch (err) {
+      console.error('[ZADACI_LOAD_ERROR]', readFailureReason(err));
       throw err;
     } finally { if (timer) clearTimeout(timer); }
   }, [source]);
@@ -129,7 +130,7 @@ function Discovery() {
   // Looking for work, seeing my own tasks and publishing a new one are three things one account
   // does; none of them switches the app into another mode first (owner decision 1, 2026-09-19).
   return <DiscoveryPresentation items={items} loading={resource.loading} refreshing={resource.refreshing || relations.refreshing} error={!!resource.error}
-      errorMessage={resource.error ? ((resource.error as any)?.message || String(resource.error)) : undefined}
+      errorReason={resource.error ? resource.errorReason : undefined}
       initialWorkArea={workArea.target} onInitialWorkAreaHandled={workArea.handled}
       scopeKey={`${user?.id ?? ''}:${accountRevision}`} view={view} relations={relations.data ?? undefined} relationsPending={relationsPending}
       relationsError={relations.error}

@@ -2057,7 +2057,7 @@ test('the list keeps filters and refresh without restoring the floating publish 
 
 test('reading, not read and nothing in this view keep their meanings, through the one state view', async () => {
   error = true; rows = []; await render();
-  expect(texts()).toContain('Ne možemo da učitamo zadatke'); await click('Pokušaj ponovo'); expect(refresh).toHaveBeenCalledTimes(1);
+  expect(texts()).toContain('Ne možemo da učitamo zadatke'); await click('Pokušajte ponovo'); expect(refresh).toHaveBeenCalledTimes(1);
   // The top line says it too, never a blank.
   expect(countLine().props.accessibilityLabel).toBe('Zadaci nisu učitani');
   await act(async () => tree.unmount());
