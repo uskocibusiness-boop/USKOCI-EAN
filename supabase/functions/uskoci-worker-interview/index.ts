@@ -516,6 +516,10 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         }
         const bgAbort = new AbortController();
         let dualWorkerArchitectPromise: Promise<any> | null = null;
+        let bgTimer: ReturnType<typeof setTimeout> | undefined;
+        let backgroundDetached = false;
+        const stopBackground = () => { bgAbort.abort(); clearTimeout(bgTimer); };
+        try {
         if (dualGeminiActive && ['ALLOW','CLARIFY'].includes(output.safety) && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
           const skillsModified = Array.isArray(output.patch.skills) &&
             workerSkillsFingerprint(output.patch.skills)!==workerSkillsFingerprint(context.candidate?.skills);
@@ -532,6 +536,10 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
             {messages:[{role:'USER',body:input.text}]},offered).size>0;
           const hasWorkAreas = Boolean((output.patch.workAreas ?? context.candidate?.workAreas)?.length || (output.patch.location ?? context.candidate?.location)?.city);
           if ((skillsModified || serviceModesModified || Boolean(pendingWorkerClarificationHint)) && Array.isArray(effectiveSkills) && effectiveSkills.length > 0) {
+            if (abort.signal.aborted) throw new Error('WORKER_AI_CANCELLED');
+            abort.signal.addEventListener('abort', stopBackground, { once: true });
+            // Budget includes work done while the foreground completion is pending.
+            bgTimer = setTimeout(stopBackground, 9000);
             dualWorkerArchitectPromise = measureAiPhase('WORKER_BG_ARCHITECT', () => buildWorkerFullTreeTaxonomyProposals({
               rpc: (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 5000),
               geminiKey: key,
@@ -552,32 +560,38 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         if (!object(turn)||turn.state!=='SUCCEEDED'||turn.turnId!==claim.turn.turnId||turn.attemptId!==claim.turn.attemptId
           ||turn.conversationId!==input.conversationId||turn.clientRequestId!==input.clientRequestId) throw new Error('WORKER_AI_INVALID');
         if (turn.state === 'SUCCEEDED' && pendingWorkerClarificationHint?.service) {
+          // Consumption belongs to the confirmed turn, not the classifier's budget.
+          const consumeSignal = new AbortController().signal;
           void runInBackground(persistConsumeClarificationHint(
-            (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 2500),
+            (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? consumeSignal, t ?? 2500),
             input.conversationId, context.revision, pendingWorkerClarificationHint.service));
         }
         if (dualWorkerArchitectPromise) {
+          abort.signal.removeEventListener('abort', stopBackground);
           void runInBackground((async () => {
-            const timer = setTimeout(() => bgAbort.abort(), 9000);
             try {
               const built = await dualWorkerArchitectPromise;
               if (built?.clarifications?.length) {
-                await Promise.all(built.clarifications.slice(0,1).map((hint: any) => persistClarificationHint(
+                const stored = await Promise.all(built.clarifications.slice(0,1).map((hint: any) => persistClarificationHint(
                   (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 2500), hint)));
+                if (stored.some((ok: boolean) => !ok)) console.info('WORKER_TAXONOMY_HINT_STORE', 'UNAVAILABLE');
               }
               if (built && built.proposals.length > 0 && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
-                await rpc('rpc_taxonomy_capture_gemini_turn_hints_service', {
+                const ack = await rpc('rpc_taxonomy_capture_gemini_turn_hints_service', {
                   p_account_id: account, p_conversation_id: input.conversationId,
                   p_client_request_id: input.clientRequestId,
                   p_turn_id: claim.turn.turnId, p_attempt_id: claim.turn.attemptId,
                   p_purpose: 'WORKER_CAPABILITY', p_catalog_version: built.catalogVersion,
                   p_proposals: built.proposals,
                 }, bgAbort.signal, 3500);
+                if (ack?.action !== 'HINT_CAPTURED' || ack?.authority !== 'NONE')
+                  console.info('WORKER_TAXONOMY_HINT_CAPTURE', 'RECEIPT_UNEXPECTED');
               }
-            } catch { /* Non-fatal background capture */ } finally {
-              clearTimeout(timer);
+            } catch { console.info('WORKER_TAXONOMY_HINT_CAPTURE', 'UNAVAILABLE'); } finally {
+              clearTimeout(bgTimer);
             }
           })());
+          backgroundDetached = true;
         } else if (reviewHints.length && taxonomyCatalog &&
             devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
           const captureCatalogVersion = taxonomyCatalog.catalogVersion;
@@ -595,6 +609,10 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         }
         send('text_delta',{text:output.assistantMessage});
         send('final',{turn});
+        } finally {
+          abort.signal.removeEventListener('abort', stopBackground);
+          if (!backgroundDetached && bgTimer !== undefined) stopBackground();
+        }
       } catch (error) { await fail(); if(!abort.signal.aborted) { try { send('safe_error',{code:
         req.headers.get(AI_DIAGNOSTICS_HEADER)===AI_DIAGNOSTICS_VERSION && error instanceof GeminiCreditsUnavailableError
           ? AI_CREDITS_UNAVAILABLE : 'AI_TURN_NOT_CONFIRMED'}); } catch {} } }

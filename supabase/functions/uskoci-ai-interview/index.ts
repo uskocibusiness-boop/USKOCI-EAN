@@ -1530,6 +1530,10 @@ Deno.serve(async (req: Request) => {
     if (schemaVersion === NEED_FACT_SCHEMA_V2) {
       const bgAbort = new AbortController();
       let dualArchitectPromise: Promise<any> | null = null;
+      let bgTimer: ReturnType<typeof setTimeout> | undefined;
+      let backgroundDetached = false;
+      const stopBackground = () => { bgAbort.abort(); clearTimeout(bgTimer); };
+      try {
       if (isLiveDualGemini() && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
         const turnProposals = aiTurn.proposals ?? [];
         const fact = (key: string) => activeFacts.find((f: any) => f.fact_key === key && f.status !== 'UNKNOWN')?.fact_value;
@@ -1552,6 +1556,10 @@ Deno.serve(async (req: Request) => {
           // classifier runs when the conversation has a typed execution mode.
           const effMode = taskTaxonomyMode(effGeo);
           if (typeof effCategory === 'string' && effCategory.trim().length >= 3 && effMode) {
+            if (signal.aborted) throw new Error('AI_REQUEST_CANCELLED');
+            signal.addEventListener('abort', stopBackground, { once: true });
+            // Budget includes work done while the foreground completion is pending.
+            bgTimer = setTimeout(stopBackground, 9000);
             dualArchitectPromise = measureAiPhase('NEED_BG_ARCHITECT', () => buildFullTreeTaxonomyProposals({
               rpc: (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 5000),
               geminiKey,
@@ -1577,31 +1585,37 @@ Deno.serve(async (req: Request) => {
         throw new Error('AI_TURN_RECEIPT_INVALID');
       if (locationContext && completed.state === 'SUCCEEDED' && result.data.location.action !== aiTurn.locationAction) throw new Error('AI_TURN_RECEIPT_INVALID');
       if (completed.state === 'SUCCEEDED' && pendingClarificationHint?.service) {
+          // Consumption belongs to the confirmed turn, not the classifier's budget.
+          const consumeSignal = new AbortController().signal;
           void runInBackground(persistConsumeClarificationHint(
-            (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 2500),
+            (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? consumeSignal, t ?? 2500),
             conversationId, taskDraftRevision, pendingClarificationHint.service));
       }
       if (completed.state === 'SUCCEEDED' && dualArchitectPromise) {
+        signal.removeEventListener('abort', stopBackground);
         void runInBackground((async () => {
-          const timer = setTimeout(() => bgAbort.abort(), 9000);
           try {
             const built = await dualArchitectPromise;
             if (built?.clarifications?.length) {
-              await Promise.all(built.clarifications.slice(0,1).map((hint: any) => persistClarificationHint(
+              const stored = await Promise.all(built.clarifications.slice(0,1).map((hint: any) => persistClarificationHint(
                 (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 2500), hint)));
+              if (stored.some((ok: boolean) => !ok)) console.info('NEED_TAXONOMY_HINT_STORE', 'UNAVAILABLE');
             }
             if (built && built.proposals.length > 0 && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
-              await rpc('rpc_taxonomy_capture_gemini_turn_hints_service', {
+              const capture = await rpc('rpc_taxonomy_capture_gemini_turn_hints_service', {
                 p_account_id: accountId, p_conversation_id: conversationId,
                 p_client_request_id: requestId, p_turn_id: claimedTurnId, p_attempt_id: attemptId,
                 p_purpose: 'NEED_SERVICE', p_catalog_version: built.catalogVersion,
                 p_proposals: built.proposals,
               }, bgAbort.signal, 3500);
+              if (!capture.ok || capture.data?.action !== 'HINT_CAPTURED' || capture.data?.authority !== 'NONE')
+                console.info('NEED_TAXONOMY_HINT_CAPTURE', 'UNAVAILABLE');
             }
-          } catch { /* Non-fatal background capture */ } finally {
-            clearTimeout(timer);
+          } catch { console.info('NEED_TAXONOMY_HINT_CAPTURE', 'UNAVAILABLE'); } finally {
+            clearTimeout(bgTimer);
           }
         })());
+        backgroundDetached = true;
       } else if (completed.state === 'SUCCEEDED' && taxonomyCatalog && taxonomyReviewHints.length &&
           devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
         try {
@@ -1621,6 +1635,10 @@ Deno.serve(async (req: Request) => {
       // owned completion receipt. The existing stream still reports acceptance.
       if (completed.state === 'SUCCEEDED') onText?.(aiTurn.assistantMessage);
       return locationContext ? response(completed.state === 'SUCCEEDED' ? 200 : completed.state === 'PROCESSING' ? 202 : 409, result.data) : turnResponse(completed);
+      } finally {
+        signal.removeEventListener('abort', stopBackground);
+        if (!backgroundDetached && bgTimer !== undefined) stopBackground();
+      }
     }
     // Existing LEGACY_TEXT_V1 path remains isolated. V2 never calls this writer.
     const result = await rpc('rpc_ai_apply_legacy_need_turn_service', { p_account_id: accountId, p_conversation_id: conversationId,

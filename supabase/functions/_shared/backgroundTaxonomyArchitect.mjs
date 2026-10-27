@@ -224,8 +224,10 @@ export async function fetchUnconsumedClarificationHint(rpc, conversationId, draf
 }
 
 export function runInBackground(promise) {
-  const safe = Promise.resolve(promise).catch((err) => {
-    console.warn('BG_TAXONOMY_ARCHITECT_WARN', err?.message ?? 'UNKNOWN');
+  const safe = Promise.resolve(promise).catch(() => {
+    // Exception text may contain provider/user data. Logging must also remain
+    // non-fatal: this promise is deliberately detached from the foreground.
+    try { console.warn('BG_TAXONOMY_ARCHITECT_WARN', 'FAILED'); } catch { /* Non-fatal telemetry. */ }
   });
   if (typeof globalThis.EdgeRuntime?.waitUntil === 'function') {
     globalThis.EdgeRuntime.waitUntil(safe);
