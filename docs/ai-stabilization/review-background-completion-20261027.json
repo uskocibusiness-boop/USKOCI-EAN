@@ -1,0 +1,88 @@
+{
+  "reviewer": "classifier_failure_review",
+  "date": "2026-10-27",
+  "baselineCommit": "cb6a1fd0468e8f279a0a24f1f71bf9fb941dd402",
+  "scope": "BGL-04 exact-source offline regression and local inline lifecycle repair; no remote DB/AI calls, deploy or commit",
+  "tests": {
+    "initialLifecycle": {
+      "total": 12,
+      "passed": 2,
+      "failed": 10
+    },
+    "finalLifecycle": {
+      "total": 16,
+      "passed": 16
+    },
+    "combinedCaptureLifecycle": {
+      "total": 56,
+      "passed": 56
+    },
+    "peerBackgroundRunner": {
+      "total": 5,
+      "passed": 5
+    },
+    "allAi": {
+      "total": 927,
+      "passed": 926,
+      "failed": 0,
+      "todo": 1
+    },
+    "denoOffline": {
+      "version": "2.5.6",
+      "typescript": "5.9.2",
+      "entrypoints": 3,
+      "exitCode": 0,
+      "flags": "check --no-config --no-lock --no-npm --no-remote"
+    }
+  },
+  "files": [
+    {
+      "path": "supabase/functions/uskoci-ai-interview/index.ts",
+      "sha256": "928338ca8abad174013055ff12265f1603337be816425ac857f28c5556fca655",
+      "status": "PARTIAL",
+      "evidence": "Current imports, execute, BG launch/completion/capture, stream cancellation and finalizers (~1401-1685); lifecycle patch and peer ACK diff reviewed."
+    },
+    {
+      "path": "supabase/functions/uskoci-worker-interview/index.ts",
+      "sha256": "b88b471a6f07238a08be1d6a96977b6a0018e98f3acab0c1e3cf9dfd38ad3f0b",
+      "status": "PARTIAL",
+      "evidence": "Current mode-context/input and stream completion/BG/finalizers (~287-635); lifecycle patch and peer ACK diff reviewed."
+    },
+    {
+      "path": "supabase/proofs/ai/owned_intake_edge_runtime.mjs",
+      "sha256": "67d6820cd41d837fc500fbb030bd792b371987f095fa05f488294d779b39cd76",
+      "status": "FULL",
+      "evidence": "Exact-source module allowlist and whole loader; optional EdgeRuntime injection only."
+    },
+    {
+      "path": "supabase/proofs/ai/worker_recovery_edge_runtime.mjs",
+      "sha256": "042db2b9d8eff1080eda7276f7e132884dccfca273624872cca8b88d96bcfe5a",
+      "status": "FULL",
+      "evidence": "Exact-source module allowlist and whole loader; optional EdgeRuntime injection only."
+    },
+    {
+      "path": "supabase/proofs/ai/background_completion_lifecycle.test.mjs",
+      "sha256": "e8aa141d2a01e369fad4ce4b1e640550500f1c007d99b32de9d9abf1b4088046",
+      "status": "FULL",
+      "evidence": "16 exact-handler offline cases; 12 initial cases red2PASS/10FAIL, final16PASS."
+    },
+    {
+      "path": "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs",
+      "sha256": "712738b1f724c6478d9b57ffca8a6b1ba2dbb6755dc5853f6e54f7654a495bf5",
+      "status": "PARTIAL",
+      "evidence": "Current runInBackground block and BG builder launch/signal path; prior complete review recorded separately. Peer fixed logger diff reviewed."
+    },
+    {
+      "path": "supabase/proofs/ai/background_runner.test.mjs",
+      "sha256": "b17e189a9fe0157374908b6b7c00e6a596c298635952071d3325623171a56ea6",
+      "status": "FULL",
+      "evidence": "5 parent helper regressions read and run; no findings."
+    },
+    {
+      "path": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md",
+      "sha256": "4f2f270dead9cb6a575bc3d1f6cd35a3eca84c6e8767917a49a3ea44a976f50b",
+      "status": "FULL",
+      "evidence": "Existing lifecycle findings reread before BGL-04 reproduction."
+    }
+  ]
+}

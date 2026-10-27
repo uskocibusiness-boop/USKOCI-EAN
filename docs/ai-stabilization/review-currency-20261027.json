@@ -1,0 +1,415 @@
+{
+  "schema": "USKOCI_CUR01_CHARACTERIZATION_REVIEW_V1",
+  "reviewer": "publication_contract_review",
+  "baseCommit": "cb6a1fd0",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "date": "2026-10-27",
+  "f0Gate": "OPEN",
+  "runtimeChanged": false,
+  "migrationChanged": false,
+  "todoRemoved": false,
+  "remoteWrites": false,
+  "networkUsage": "Supabase SELECT pg_proc/pg_trigger/pg_attribute and registry schema rows only; no user data, mutating RPC, provider call or deployment.",
+  "result": "CURRENT_INVALIDATION_GAP_REPRODUCED_NOT_FIXED",
+  "files": [
+    {
+      "path": "src/contracts/needFactsV2.ts",
+      "sha256": "1b10b0745418054580251d60d428df412e0915fbe4524acab9d06b51b4fca069",
+      "bytes": 7574,
+      "status": "FULL",
+      "scope": "Complete file read/authored; not a claim of deployed code or transitive dependency coverage."
+    },
+    {
+      "path": "supabase/proofs/ai/dialogue_fixture.mjs",
+      "sha256": "d8f95170e5dab7c1dc097eaf2fa8390b62083e4297b136be103174c7167fc6f8",
+      "bytes": 398,
+      "status": "FULL",
+      "scope": "Complete file read/authored; not a claim of deployed code or transitive dependency coverage."
+    },
+    {
+      "path": "supabase/candidates/task-currency-correction-20261021/README.md",
+      "sha256": "2d16259df08da98df4a38ba5e80f4f3668ab183a6cd91303f0d76edc33d2de4f",
+      "bytes": 9232,
+      "status": "FULL",
+      "scope": "Complete file read/authored; not a claim of deployed code or transitive dependency coverage."
+    },
+    {
+      "path": "supabase/candidates/task-currency-correction-20261021/REGRESSION_MATRIX.md",
+      "sha256": "590cc632fa519702643d0fc42b019f0a311f6a8d45f2ab85b6f4f78de48c94c9",
+      "bytes": 10728,
+      "status": "FULL",
+      "scope": "Complete file read/authored; not a claim of deployed code or transitive dependency coverage."
+    },
+    {
+      "path": "supabase/proofs/ai/currency_correction_characterization.test.mjs",
+      "sha256": "4e763ba4ff035691b0d13d98ee570e2f3f6b6b0afa9871f58ed35922d5bd0f13",
+      "bytes": 30809,
+      "status": "FULL",
+      "scope": "Complete file read/authored; not a claim of deployed code or transitive dependency coverage."
+    },
+    {
+      "path": "supabase/functions/uskoci-ai-interview/index.ts",
+      "sha256": "928338ca8abad174013055ff12265f1603337be816425ac857f28c5556fca655",
+      "bytes": 130714,
+      "status": "PARTIAL",
+      "scope": "Imports 1-75; price prompt/validator references; complete guardConversationTurn pricing branch 904-1098; completion dispatch; provider/claim excerpt. NOT whole Edge file."
+    },
+    {
+      "path": "supabase/proofs/ai/ai_edge_context.test.mjs",
+      "sha256": "bdc5d737ecdc8c1f1c0005567a7c2cca6b434fe060aad7ffdd936b8658f58bd9",
+      "bytes": 75460,
+      "status": "PARTIAL",
+      "scope": "Fixture 1-112, first tests through170, currency test excerpts533-754; TODO unchanged; not entire suite source."
+    },
+    {
+      "path": "supabase/migrations/20261021103954_task_review_writer_readiness.sql",
+      "sha256": "30a973b0250d343c0c2c11e4b2d7f3df9bc7ac4038d90361d13532f136616bc3",
+      "bytes": 30134,
+      "status": "PARTIAL",
+      "scope": "Legacy prepare definition9-132 fully read plus signed prepare canAccept/price presence extracts; prior full live definitions hash-rechecked; surrounding migration not fully read."
+    },
+    {
+      "path": "supabase/migrations/20260907120000_clean_ai_need_draft_safety_authority.sql",
+      "sha256": "ee0077ae883328f865a73eed0ebab9434a8c2e47add750b055de45950e5a77d1",
+      "bytes": 21141,
+      "status": "PARTIAL",
+      "scope": "Exact function body rpc_ai_need_review_v2 lines53-143 matches fully read live MD51e6b3f195bb47e09a7bb7887f087b9cd; not whole migration."
+    },
+    {
+      "path": "supabase/migrations/20260910172132_clean_w03_owned_ai_intake_authority.sql",
+      "sha256": "558d06608a597724598e58c7494d1d2783b1b844a019b89e0f4ac19461988e3d",
+      "bytes": 43904,
+      "status": "PARTIAL",
+      "scope": "Exact function body rpc_ai_confirm_fact lines520-545 matches fully read live MD5a2f6f717eb132c3124ad13c1739823a5; not whole migration."
+    },
+    {
+      "path": "supabase/migrations/20260913044510_clean_v5_unknown_ai_turn_exit.sql",
+      "sha256": "ee76aaa08153b28142e764d7c0863f8386c292692010f9a25d0f0a1d4b9a3ce1",
+      "bytes": 20714,
+      "status": "PARTIAL",
+      "scope": "Exact function body rpc_ai_complete_need_turn_v2_service lines78-109 matches fully read live MD580775fc093f270838096ccc104a88668; not whole migration."
+    },
+    {
+      "path": "supabase/migrations/20261019104604_service_handoff_signed_matching.sql",
+      "sha256": "e2c40877d39d9546bd0cdd6584c7bd07db63e7546e8e92612e34e75a78f0c1b8",
+      "bytes": 114967,
+      "status": "PARTIAL",
+      "scope": "Exact function body validate_need_v2_fact lines109-148 matches fully read live MD5a09d1b629431902b59636ff078ff282e; not whole migration."
+    },
+    {
+      "path": "supabase/migrations/20261023220000_universal_crown_taxonomy_and_hourly_pricing.sql",
+      "sha256": "9b1a212e8c480a7a7ff61e07cfbb478bb6409df1d92e2d7e44a18349bfff189d",
+      "bytes": 27767,
+      "status": "PARTIAL",
+      "scope": "Exact function body validate_need_v2_fact_pre_fastest_retirement lines27-157 matches fully read live MD514d72565f9397f808cc2b24a7ccaf712; not whole migration."
+    }
+  ],
+  "liveFunctions": [
+    {
+      "signature": "private.ai_claim_need_turn_context_v1(uuid,uuid,uuid,text,jsonb)",
+      "bodyMd5": "114bd0b4b9d6e60a0abb0d0d64e63c69",
+      "status": "FULL_LIVE_BODY_READ",
+      "observedAtUtc": "2026-10-27 04:43:39.86091+00",
+      "fixtureEmbedded": false,
+      "localMigrationMatches": []
+    },
+    {
+      "signature": "private.ai_task_review_source(uuid)",
+      "bodyMd5": "61c7ad3b2917bcd80ec43d2a74f726a3",
+      "status": "FULL_LIVE_BODY_READ",
+      "observedAtUtc": "2026-10-27 04:43:39.861307+00",
+      "fixtureEmbedded": false,
+      "localMigrationMatches": []
+    },
+    {
+      "signature": "rpc_ai_apply_interview_turn_v2_service(uuid,uuid,text,text,text,jsonb)",
+      "bodyMd5": "14ace04bd1895f4d230d41baf13dd6d6",
+      "status": "FULL_LIVE_BODY_READ",
+      "observedAtUtc": "2026-10-27 04:43:39.861402+00",
+      "fixtureEmbedded": true,
+      "localMigrationMatches": []
+    },
+    {
+      "signature": "rpc_ai_complete_need_turn_v2_service(uuid,uuid,uuid,uuid,text,text,text,jsonb)",
+      "bodyMd5": "80775fc093f270838096ccc104a88668",
+      "status": "FULL_LIVE_BODY_READ",
+      "observedAtUtc": "2026-10-27 04:43:39.861756+00",
+      "fixtureEmbedded": false,
+      "localMigrationMatches": [
+        {
+          "file": "supabase/migrations/20260913044510_clean_v5_unknown_ai_turn_exit.sql",
+          "symbol": "rpc_ai_complete_need_turn_v2_service",
+          "normalization": "raw",
+          "md5": "80775fc093f270838096ccc104a88668",
+          "startLine": 78,
+          "endLine": 109
+        }
+      ]
+    },
+    {
+      "signature": "rpc_ai_confirm_fact(uuid)",
+      "bodyMd5": "a2f6f717eb132c3124ad13c1739823a5",
+      "status": "FULL_LIVE_BODY_READ",
+      "observedAtUtc": "2026-10-27 04:43:39.861862+00",
+      "fixtureEmbedded": true,
+      "localMigrationMatches": [
+        {
+          "file": "supabase/migrations/20260910172132_clean_w03_owned_ai_intake_authority.sql",
+          "symbol": "rpc_ai_confirm_fact",
+          "normalization": "raw",
+          "md5": "a2f6f717eb132c3124ad13c1739823a5",
+          "startLine": 520,
+          "endLine": 545
+        }
+      ]
+    },
+    {
+      "signature": "private.ai_need_turn_context(uuid)",
+      "bodyMd5": "972099be9f9429d87bc1566334e7d8f2",
+      "status": "FULL_LIVE_BODY_READ",
+      "observedAtUtc": "2026-10-27 04:44:10.93804+00",
+      "fixtureEmbedded": false,
+      "localMigrationMatches": []
+    },
+    {
+      "signature": "private.ai_task_review_source_before_media(uuid)",
+      "bodyMd5": "dbd934c97eb0f37691e0692c977d35b3",
+      "status": "FULL_LIVE_BODY_READ",
+      "observedAtUtc": "2026-10-27 04:44:10.938268+00",
+      "fixtureEmbedded": true,
+      "localMigrationMatches": []
+    },
+    {
+      "signature": "private.need_publication_context(uuid,integer,uuid)",
+      "bodyMd5": "47c471edbb45f07a71177b4fcfbeb617",
+      "status": "FULL_LIVE_BODY_READ",
+      "observedAtUtc": "2026-10-27 04:44:10.938322+00",
+      "fixtureEmbedded": false,
+      "localMigrationMatches": []
+    },
+    {
+      "signature": "rpc_ai_need_review_v2(uuid)",
+      "bodyMd5": "1e6b3f195bb47e09a7bb7887f087b9cd",
+      "status": "FULL_LIVE_BODY_READ",
+      "observedAtUtc": "2026-10-27 04:44:10.938706+00",
+      "fixtureEmbedded": true,
+      "localMigrationMatches": [
+        {
+          "file": "supabase/migrations/20260907120000_clean_ai_need_draft_safety_authority.sql",
+          "symbol": "rpc_ai_need_review_v2",
+          "normalization": "raw",
+          "md5": "1e6b3f195bb47e09a7bb7887f087b9cd",
+          "startLine": 53,
+          "endLine": 143
+        }
+      ]
+    },
+    {
+      "signature": "private.validate_need_v2_fact(text,jsonb)",
+      "bodyMd5": "a09d1b629431902b59636ff078ff282e",
+      "status": "FULL_LIVE_BODY_READ",
+      "observedAtUtc": "2026-10-27 04:44:10.938817+00",
+      "fixtureEmbedded": true,
+      "localMigrationMatches": [
+        {
+          "file": "supabase/migrations/20261019104604_service_handoff_signed_matching.sql",
+          "symbol": "validate_need_v2_fact",
+          "normalization": "raw",
+          "md5": "a09d1b629431902b59636ff078ff282e",
+          "startLine": 109,
+          "endLine": 148
+        }
+      ]
+    },
+    {
+      "signature": "private.validate_need_v2_fact_pre_country(text,jsonb)",
+      "bodyMd5": "6bfc84d00aaf74ea1f057053c92b4649",
+      "status": "FULL_LIVE_BODY_READ",
+      "observedAtUtc": "2026-10-27; same read-only inspection",
+      "fixtureEmbedded": true,
+      "localMigrationMatches": []
+    },
+    {
+      "signature": "private.validate_need_v2_fact_pre_fastest_retirement(text,jsonb)",
+      "bodyMd5": "14d72565f9397f808cc2b24a7ccaf712",
+      "status": "FULL_LIVE_BODY_READ",
+      "observedAtUtc": "2026-10-27; same read-only inspection",
+      "fixtureEmbedded": false,
+      "localMigrationMatches": [
+        {
+          "file": "supabase/migrations/20261023220000_universal_crown_taxonomy_and_hourly_pricing.sql",
+          "symbol": "validate_need_v2_fact_pre_fastest_retirement",
+          "normalization": "raw",
+          "md5": "14d72565f9397f808cc2b24a7ccaf712",
+          "startLine": 27,
+          "endLine": 157
+        }
+      ]
+    },
+    {
+      "signature": "private.validate_need_v2_fact_pre_location(text,jsonb)",
+      "bodyMd5": "cfb6efa2581c8d2c0d60cc3e11f55c7c",
+      "status": "FULL_LIVE_BODY_READ",
+      "observedAtUtc": "2026-10-27; same read-only inspection",
+      "fixtureEmbedded": true,
+      "localMigrationMatches": []
+    }
+  ],
+  "liveTriggers": [
+    {
+      "relation": "ai_conversations",
+      "name": "guard_need_edit_base_marker_trg",
+      "function": "private.guard_need_edit_base_marker()",
+      "enabled": "O",
+      "bodyMd5": "a88fa97fe58cab5b374d99eb9ee2c9af",
+      "status": "FULL_LIVE_TRIGGER_BODY_READ_NOT_INSTALLED_IN_FIXTURE"
+    },
+    {
+      "relation": "ai_conversations",
+      "name": "guard_retention_ai_origin_trg",
+      "function": "private.guard_retention_ai_origin()",
+      "enabled": "O",
+      "bodyMd5": "f378d9640f366416fc277a4753ec5fe4",
+      "status": "FULL_LIVE_TRIGGER_BODY_READ_NOT_INSTALLED_IN_FIXTURE"
+    },
+    {
+      "relation": "ai_conversations",
+      "name": "pre_v3_closure_ai_conversation",
+      "function": "private.closure_guard_owned_write()",
+      "enabled": "O",
+      "bodyMd5": "f13117fd601dcb82de423b78f25acb4f",
+      "status": "FULL_LIVE_TRIGGER_BODY_READ_NOT_INSTALLED_IN_FIXTURE"
+    },
+    {
+      "relation": "ai_messages",
+      "name": "guard_retention_ai_messages_trg",
+      "function": "private.guard_retention_ai_child()",
+      "enabled": "O",
+      "bodyMd5": "57c374edac340755d033506c92a5eec1",
+      "status": "FULL_LIVE_TRIGGER_BODY_READ_NOT_INSTALLED_IN_FIXTURE"
+    },
+    {
+      "relation": "ai_messages",
+      "name": "pre_v3_closure_ai_message",
+      "function": "private.closure_guard_owned_write()",
+      "enabled": "O",
+      "bodyMd5": "f13117fd601dcb82de423b78f25acb4f",
+      "status": "FULL_LIVE_TRIGGER_BODY_READ_NOT_INSTALLED_IN_FIXTURE"
+    },
+    {
+      "relation": "ai_structured_facts",
+      "name": "guard_ai_fact_schema_trg",
+      "function": "private.guard_ai_fact_schema()",
+      "enabled": "O",
+      "bodyMd5": "58c5a40f731b3aef845691668ec1f2d4",
+      "status": "FULL_LIVE_TRIGGER_BODY_READ_NOT_INSTALLED_IN_FIXTURE"
+    },
+    {
+      "relation": "ai_structured_facts",
+      "name": "guard_ai_fact_write_trg",
+      "function": "private.guard_ai_fact_write()",
+      "enabled": "O",
+      "bodyMd5": "f9972cfc47af0358a9f4f03c2e43fe63",
+      "status": "FULL_LIVE_TRIGGER_BODY_READ_NOT_INSTALLED_IN_FIXTURE"
+    },
+    {
+      "relation": "ai_structured_facts",
+      "name": "guard_resolved_location_fact_trg",
+      "function": "private.guard_resolved_location_fact()",
+      "enabled": "O",
+      "bodyMd5": "08fb5e837ee4cfe8c1e56fb9589b5dc2",
+      "status": "FULL_LIVE_TRIGGER_BODY_READ_NOT_INSTALLED_IN_FIXTURE"
+    },
+    {
+      "relation": "ai_structured_facts",
+      "name": "guard_retention_ai_facts_trg",
+      "function": "private.guard_retention_ai_child()",
+      "enabled": "O",
+      "bodyMd5": "57c374edac340755d033506c92a5eec1",
+      "status": "FULL_LIVE_TRIGGER_BODY_READ_NOT_INSTALLED_IN_FIXTURE"
+    },
+    {
+      "relation": "ai_structured_facts",
+      "name": "invalidate_resolved_location_fact_trg",
+      "function": "private.invalidate_resolved_location_fact()",
+      "enabled": "O",
+      "bodyMd5": "998febc1ba2a93e6737d77ee46ce0d72",
+      "status": "FULL_LIVE_TRIGGER_BODY_READ_NOT_INSTALLED_IN_FIXTURE"
+    },
+    {
+      "relation": "ai_structured_facts",
+      "name": "pre_v3_closure_ai_fact",
+      "function": "private.closure_guard_owned_write()",
+      "enabled": "O",
+      "bodyMd5": "f13117fd601dcb82de423b78f25acb4f",
+      "status": "FULL_LIVE_TRIGGER_BODY_READ_NOT_INSTALLED_IN_FIXTURE"
+    }
+  ],
+  "columnMetadata": [
+    {
+      "attname": "mode",
+      "attnotnull": true,
+      "relation": "needs",
+      "type": "text"
+    },
+    {
+      "attname": "requester_price_rsd",
+      "attnotnull": false,
+      "relation": "needs",
+      "type": "integer"
+    },
+    {
+      "attname": "price_basis",
+      "attnotnull": false,
+      "relation": "needs",
+      "type": "text"
+    }
+  ],
+  "proof": {
+    "path": "supabase/proofs/ai/currency_correction_characterization.test.mjs",
+    "command": "node --test supabase/proofs/ai/currency_correction_characterization.test.mjs",
+    "passed": 10,
+    "failed": 0,
+    "subcases": 9,
+    "existingEdgeSubset": {
+      "passed": 4,
+      "failed": 0,
+      "pattern": "u evrima corrects|later explicit RSD|explicit OFFERS|task Edge keeps an explicit euro"
+    },
+    "limitations": [
+      "Exact live fact writer, base V2 review, review source, owner confirmation and price-validation bodies, not complete deployed SQL schema.",
+      "Synthetic owner and prerequisite facts; no full RLS, closure/retention triggers, account security, lease/claim races or concurrency.",
+      "canSaveDraft is rpc_ai_need_review_v2 output, not full signed prepare/accept/canonical publication execution.",
+      "Guard is actual current local Edge source; no claim its current source is deployed or provider interpretation was tested.",
+      "BASE/SIGNED prepare and publication risk assessed from full live/source bodies; no actual saved user incident or automatic publication is asserted.",
+      "Existing price/currency TODO is deliberately retained; green test characterizes current risk and is not a release gate."
+    ]
+  },
+  "findings": [
+    {
+      "code": "CUR01",
+      "result": "EUR correction filters new proposals but does not retract old CONFIRMED RSD facts; exact writer persists CLARIFY messages only; base review still canSaveDraft=true."
+    },
+    {
+      "code": "CUR01_REVIEW_SOURCE",
+      "result": "New messages change source material and stale prior review, but new review still carries old active amount. Later ALLOW clears safety warning, not price."
+    },
+    {
+      "code": "CUR01_CONSENT_CONTROL",
+      "result": "Explicit changed RSD amount supersedes old amount to NEEDS_CONFIRMATION; unchanged mode/basis are suppressed by Edge. Owner confirmation remains distinct."
+    },
+    {
+      "code": "CUR01_OFFERS_CONTROL",
+      "result": "OFFERS replaces price mode; fact writer alone does not supersede old amount/basis. Canonical Need writer explicitly nulls non-MY_PRICE amount, so no saved-Need amount bug is asserted."
+    },
+    {
+      "code": "HOURLY_EXISTING_MISMATCH",
+      "result": "Live SQL validator permits HOURLY; local Edge prompt permits HOURLY but PER_HOUR dialogue branch removes price facts and says hourly unsupported. No runtime change made."
+    },
+    {
+      "code": "CURRENT_CURRENCY_CONTRACT",
+      "result": "Observed Need monetary columns are mode/requester_price_rsd/price_basis; no currency/range column or price_resolution_state appeared in selected metadata. This is not a complete wider-product money-contract audit."
+    }
+  ],
+  "minimalNextStep": "Keep TODO and preservation tests. F0/F1 must define one revision-bound authoritative price-correction transition covering claim/failure, immutable old facts, new signed review and already-saved DRAFT publication fence; preserve explicit OFFERS, supported HOURLY and rate basis. Do not deploy/replay the old rollback-only CUR01 candidate or infer EUR conversion. Full monetary contract and historical-source/retention prerequisites remain to be reconciled before forward SQL."
+}

@@ -1,0 +1,239 @@
+{
+  "supabase/proofs/ai/background_capture_receipt.test.mjs": {
+    "sha256": "a2bcad25c62e5e184c4dfb105cbd9d6c0ca618dfb83304b0ed84a4f0f1daa53d",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        191
+      ]
+    ],
+    "totalLines": 191,
+    "finding": "40 exact-handler synthetic tests, including fixed diagnostics, success preservation, precise owner/revision and unchanged-followup behavior.",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "supabase/proofs/ai/owned_intake_edge_runtime.mjs": {
+    "sha256": "67d6820cd41d837fc500fbb030bd792b371987f095fa05f488294d779b39cd76",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        83
+      ]
+    ],
+    "totalLines": 83,
+    "finding": "Current NEED handler and dependencies transpiled unchanged; injected waitUntil only collects synthetic background promises.",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "supabase/proofs/ai/worker_recovery_edge_runtime.mjs": {
+    "sha256": "042db2b9d8eff1080eda7276f7e132884dccfca273624872cca8b88d96bcfe5a",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        78
+      ]
+    ],
+    "totalLines": 78,
+    "finding": "Current WORKER handler and dependencies transpiled unchanged; no default network or credentials; optional runtime injection is test-only.",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs": {
+    "sha256": "712738b1f724c6478d9b57ffca8a6b1ba2dbb6755dc5853f6e54f7654a495bf5",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        853
+      ]
+    ],
+    "totalLines": 853,
+    "finding": "Verified direct/wrapped store ACK, exact revisions, classification-to-hint construction and fixed guarded runInBackground logging. Shared runtime edit belongs to parent.",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "supabase/functions/uskoci-ai-interview/index.ts": {
+    "sha256": "928338ca8abad174013055ff12265f1603337be816425ac857f28c5556fca655",
+    "reviewer": "conversation_path_review",
+    "coverage": "PARTIAL",
+    "readRanges": [
+      [
+        1319,
+        1333
+      ],
+      [
+        1409,
+        1472
+      ],
+      [
+        1529,
+        1641
+      ]
+    ],
+    "totalLines": 1687,
+    "finding": "Checked wrapped RPC transport, sequence-based revision, dual trigger and completion-owned store/capture callback; only ACK diagnostics edited by this agent.",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "supabase/functions/uskoci-worker-interview/index.ts": {
+    "sha256": "b88b471a6f07238a08be1d6a96977b6a0018e98f3acab0c1e3cf9dfd38ad3f0b",
+    "reviewer": "conversation_path_review",
+    "coverage": "PARTIAL",
+    "readRanges": [
+      [
+        240,
+        256
+      ],
+      [
+        516,
+        622
+      ]
+    ],
+    "totalLines": 638,
+    "finding": "Checked direct RPC/throw transport and dual trigger/completion/store/capture callback; only ACK diagnostics edited by this agent.",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "supabase/proofs/ai/background_lifecycle_review.test.mjs": {
+    "sha256": "3b4e1c125f4fae939d58dcf0a70d5483a99a40415216f930d04c864c1e155987",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        184
+      ]
+    ],
+    "totalLines": 184,
+    "finding": "Existing helper ACK tests distinguish direct/wrapped response and durable store from cache mutation; unchanged positive contract.",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "supabase/proofs/ai/background_runner.test.mjs": {
+    "sha256": "b17e189a9fe0157374908b6b7c00e6a596c298635952071d3325623171a56ea6",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        51
+      ]
+    ],
+    "totalLines": 51,
+    "finding": "Independent peer review: fixed safe rejection log, hostile message getter and log sink cases, unchanged waitUntil registration semantics.",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "supabase/proofs/ai/dialogue_fixture.mjs": {
+    "sha256": "d8f95170e5dab7c1dc097eaf2fa8390b62083e4297b136be103174c7167fc6f8",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        4
+      ]
+    ],
+    "totalLines": 4,
+    "finding": "Synthetic ANSWER/CONTINUE metadata supports exact NEED handler transport test; not a provider-quality proof.",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "supabase/proofs/ai/v5_ai_stream.test.mjs": {
+    "sha256": "0498c5f0a30dc276e23bc6f6b0d0afd78d8a5dd323580a57447967c5b8adb75b",
+    "reviewer": "conversation_path_review",
+    "coverage": "PARTIAL",
+    "readRanges": [
+      [
+        1,
+        125
+      ]
+    ],
+    "totalLines": 518,
+    "finding": "Read synthetic NEED fixture and early cases to reuse actual transport shape, not the full existing suite.",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "supabase/proofs/ai/v5_worker_edge.test.mjs": {
+    "sha256": "c6141547db06bf7836fc31becbfd40e0c5e533a4f3f941573b7097a10b32ff32",
+    "reviewer": "conversation_path_review",
+    "coverage": "PARTIAL",
+    "readRanges": [
+      [
+        1,
+        181
+      ]
+    ],
+    "totalLines": 996,
+    "finding": "Read worker fixture and existing dual mode-only/failure cases; not the full existing suite.",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "supabase/migrations/20261026150523_classification_hint_revision_fence.sql": {
+    "sha256": "2e8a3342ed3d625f398ebbda8d21e799dcdbb136b801337136b0aea68ded60e8",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        117
+      ]
+    ],
+    "totalLines": 117,
+    "finding": "Store returns stored:true plus requested numeric draftRevision; closed/stale returns stored:false; revision derives from worker candidate or max NEED message sequence.",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "supabase/candidates/dynamic-taxonomy-20261011/gemini-turn-review-hints-v1.sql": {
+    "sha256": "c90357f6514075b9fcd7c33adf5f173366755542152a0bfe29809deea5170a31",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        158
+      ]
+    ],
+    "totalLines": 158,
+    "finding": "Historical capture contract: exact successful owner/turn/attempt scope and non-authoritative HINT_CAPTURED/NONE acknowledgment. Candidate is not proof of deployed byte identity.",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "supabase/candidates/dynamic-taxonomy-20261011/create-new-branch-v3-forward-dev.sql": {
+    "sha256": "753da37dd7dbbef5366c098401e03401c53bb3d6aa211768fd398b03311362fe",
+    "reviewer": "conversation_path_review",
+    "coverage": "PARTIAL",
+    "readRanges": [
+      [
+        1,
+        143
+      ]
+    ],
+    "totalLines": 793,
+    "finding": "Only capture definition inspected: same success ACK and immutable turn/replay fences; remainder not audited in this pass.",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewedDate": "2026-10-27"
+  },
+  "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md": {
+    "sha256": "4f2f270dead9cb6a575bc3d1f6cd35a3eca84c6e8767917a49a3ea44a976f50b",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "readRanges": [
+      [
+        1,
+        108
+      ]
+    ],
+    "totalLines": 108,
+    "finding": "Prior read-only live evidence confirms store/capture acknowledgment contract; BGL03 silent status is now addressed locally, durable retry remains open.",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewedDate": "2026-10-27"
+  }
+}

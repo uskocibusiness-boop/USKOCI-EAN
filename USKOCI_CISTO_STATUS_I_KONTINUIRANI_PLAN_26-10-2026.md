@@ -1,10 +1,38 @@
 # USKOČI ČISTO — objedinjeni status i nastavak MASTER plana
 
-Ažurirano: 27.10.2026, lokalno vreme; read-only DEV dokazi prikupljeni 26.10. UTC.
+Ažurirano: 27.10.2026; najnoviji read-only DEV SQL dokaz prikupljen 27.10. u 04:43–04:46 UTC.
 Repo: uskocibusiness-boop/USKOCI-EAN. Jedina grana rada: feature/uskoci-cisto.
 Ovaj dokument zamenjuje raniji preoptimističan zaključak o „osam zatvorenih celina”.
 
 ## 0. Najnoviji nastavak — 27.10.2026
+
+Polazni lokalni i GitHub HEAD ponovo je potvrđen kao `cb6a1fd0`, sa uspešnim CI run-om `40423068239`. Završena je sledeća mala lokalna celina, bez deploy-a ili izmene baze:
+
+| Celina | Stvarni rezultat | Commit | Otvoreno |
+| --- | --- | --- | --- |
+| Pozadinski AI i potvrde upisa | Rok od 9 sekundi kreće pri pokretanju klasifikatora; neuspešan/neispravan completion ili otkazivanje prekida posao. Potvrđen uspeh nastavlja BG posle zatvaranja stream-a. Store/capture greške dobijaju fiksnu dijagnostiku bez privatnog teksta; consume prethodnog pitanja ima nezavisan ograničen signal. | `937c0780` | Trajni recovery propuštene klasifikacije, živa latencija i DEV proba. |
+| Cena RSD→EUR i satnica | Dodata izvršna reprodukcija: stari potvrđeni RSD ostaje u novom pregledu posle „u evrima”; SQL HOURLY i Edge PER_HOUR guard nisu usklađeni. **Dokaz problema, ne popravka.** | `7ef48bb8` | Atomski price-correction/review/publication ugovor i potpuno očuvanje valute/satnice. |
+
+**Provere konačnih lokalnih bajtova:**
+
+- Novi paketi: **71/71 PASS** — 40 capture/ACK, 16 lifecycle, 5 logging i 10 currency characterization. Pre runtime izmena početni paketi imali su 28, 10 i 4 neuspeha; pozitivne kontrole su već prolazile.
+- Cela AI grupa: **927 ukupno, 926 PASS, 0 FAIL, 1 raniji TODO**. TODO RSD→EUR namerno ostaje.
+- Cela mobilna aplikacija: **622 paketa, 14.143 testa, 3 snapshot-a — sve PASS**.
+- Dodatni CI ugovori: **55/55 PASS** (uključuje 24 PG i 31 signed/question), plus **114/114 dynamic PASS**.
+- TypeScript i offline Deno 2.5.6 check tri Edge ulaza: PASS. Postojeći requester @ts-nocheck ostaje granica tipske provere.
+- Migration integrity: **193 SQL fajla PASS; Python 15/15 PASS**. Nema nove migracije.
+
+Podskupovi se preklapaju. Nezavisni reviewer nije našao blocker u lifecycle/logging patchu ni u granicama currency dokaza. Abort prekida lokalni transport; nije potvrda rollback-a već poslatog udaljenog zahteva. Zeleni characterization test ne znači da je problem cene rešen.
+
+**Obim čitanja:** trenutni ledger obuhvata 3.434 praćena fajla: **130 FULL, 23 PARTIAL, 3.279 bez registrovanog sadržajnog pregleda i 2 izvedena inventara**. Dodati su source/test/SQL pregledi sa hash-evima, ne samo broj pokrenutih testova. FULL worker handler održan je kumulativno: ranije ceo fajl + ceo novi diff; requester ostaje PARTIAL. F0 nije zatvoren.
+
+Detaljan jedinstveni dokaz ove celine: `docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md`. Tri prateća snapshot manifesta beleže tačan obim i SQL MD5, dok centralni manifest i ledger daju trenutno stanje. Raniji izveštaji ispod su istorijski preseci.
+
+**Sledeće po planu:** dovršiti F0 writer/caller/provenance i neproverene CI putanje; u F1 precizno zatvoriti ugovor promene cene i očuvanja identiteta usluge. Potom najmanja dokazana SQL i durable-recovery izmena, bez preuranjene nove arhitekture. Sledeća nepovezana poruka trenutno ne ponavlja neuspešan classifier automatski — to je sada testom dokazano, ne popravljeno. Konačni kratki promptovi, telefon/E2E i p50/p95 merenje ostaju otvoreni.
+
+Nema DEV deploy-a, produkcije, živog Gemini testa, DB upisa ili stvarnih obaveštenja. Novi GitHub CI proverava se na završnom push SHA-u; prethodni zeleni run nije dokaz za novi commit.
+
+## 0A. Prethodni nastavak — 27.10.2026
 
 Nastavljeno je sa potvrđenog lokalnog/remote HEAD-a `5e7790e8`; prethodni GitHub CI run `40419447597` je SUCCESS. Sledeće promene su **source-only, nisu deployovane**:
 

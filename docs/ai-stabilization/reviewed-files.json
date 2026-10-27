@@ -1,9 +1,10 @@
 {
   "supabase/functions/uskoci-worker-interview/index.ts": {
-    "sha256": "a11bf1782ca74210f80f0971dd69ea48676567e1a1aac959f4a05b9adebd26ed",
+    "sha256": "b88b471a6f07238a08be1d6a96977b6a0018e98f3acab0c1e3cf9dfd38ad3f0b",
     "reviewer": "conversation_path_review",
     "coverage": "FULL",
-    "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md",
+    "reviewBasis": "Prior FULL a11bf1782ca74210f80f0971dd69ea48676567e1a1aac959f4a05b9adebd26ed plus complete current diff and context reviewed by conversation_path_review; not new whole-file reread."
   },
   "supabase/functions/_shared/workerServiceModeContext.mjs": {
     "sha256": "0f98cbad472a87c8d90fc95ed78bbcd793c6af1f84370c51469fa28e066e4761",
@@ -19,9 +20,9 @@
   },
   "supabase/functions/_shared/aiPhaseTiming.mjs": {
     "sha256": "e382ad8682ac2b456b22418db8c418dab3de08fffb9c329fd51fb417dcc4cf09",
-    "reviewer": "conversation_path_review",
+    "reviewer": "root",
     "coverage": "FULL",
-    "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
   },
   "supabase/functions/_shared/serviceExecutionInstruction.mjs": {
     "sha256": "32fd4302489e61837c3904c99d018b7a715d82143eef2f30e42777a8b4a3b55a",
@@ -37,21 +38,21 @@
   },
   "supabase/functions/_shared/researchDeadline.ts": {
     "sha256": "6ae7a25c1bac1b2da89a10ed2c1ddbeed12def545411f796ce151695708054f9",
-    "reviewer": "conversation_path_review",
+    "reviewer": "root",
     "coverage": "FULL",
-    "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
   },
   "supabase/proofs/ai/worker_recovery_edge_runtime.mjs": {
-    "sha256": "b9ee2d5df519c8369b98e28198ecea17d3051b185a2d4dced8c5c3f6777ad4c2",
+    "sha256": "042db2b9d8eff1080eda7276f7e132884dccfca273624872cca8b88d96bcfe5a",
     "reviewer": "conversation_path_review",
     "coverage": "FULL",
-    "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
   },
   "supabase/proofs/ai/owned_intake_edge_runtime.mjs": {
-    "sha256": "c400cbb5d73b049d071e3cebebd910f30261f08e62d11876aa73de10effbf59b",
+    "sha256": "67d6820cd41d837fc500fbb030bd792b371987f095fa05f488294d779b39cd76",
     "reviewer": "conversation_path_review",
     "coverage": "FULL",
-    "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
   },
   "supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs": {
     "sha256": "5866c9caa265ccbd438e4c006abc4ef2f4b487aa4aa2e642acc8e6effcdae8f1",
@@ -96,22 +97,22 @@
     "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
   },
   "supabase/functions/uskoci-ai-interview/index.ts": {
-    "sha256": "31ba43efd4d44a17c1830455e8c893ce3cca9cb77b920c6b804f078d64421866",
-    "reviewer": "classifier_failure_review",
+    "sha256": "928338ca8abad174013055ff12265f1603337be816425ac857f28c5556fca655",
+    "reviewer": "conversation_path_review",
     "coverage": "PARTIAL",
-    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
   },
   "supabase/proofs/ai/v5_ai_stream.test.mjs": {
     "sha256": "0498c5f0a30dc276e23bc6f6b0d0afd78d8a5dd323580a57447967c5b8adb75b",
     "reviewer": "conversation_path_review",
     "coverage": "PARTIAL",
-    "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
   },
   "supabase/proofs/ai/v5_worker_edge.test.mjs": {
     "sha256": "c6141547db06bf7836fc31becbfd40e0c5e533a4f3f941573b7097a10b32ff32",
     "reviewer": "conversation_path_review",
     "coverage": "PARTIAL",
-    "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
   },
   "supabase/proofs/pkg040/pkg040_proof.mjs": {
     "sha256": "900159e846adcf18827e779cd9719ff9e985e12276272fabb98062ebe5b9d7e8",
@@ -132,10 +133,10 @@
     "evidence": "docs/ai-stabilization/04_FAILING_E2E_CASES.md"
   },
   "supabase/functions/_shared/backgroundTaxonomyArchitect.mjs": {
-    "sha256": "7a5a4fd1a34c5256a98399abf9b490786c5890450366e1f8eff4c4ef423e501f",
-    "reviewer": "classifier_failure_review",
+    "sha256": "712738b1f724c6478d9b57ffca8a6b1ba2dbb6755dc5853f6e54f7654a495bf5",
+    "reviewer": "conversation_path_review",
     "coverage": "FULL",
-    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
   },
   "supabase/proofs/ai/background_taxonomy_failures.test.mjs": {
     "sha256": "0b909a9294142e45ba575267caa63cd2987ba2e60017703d6d872357605d8c77",
@@ -276,10 +277,10 @@
     "evidence": "docs/ai-stabilization/00_BASELINE_STATE.md"
   },
   "USKOCI_CISTO_STATUS_I_KONTINUIRANI_PLAN_26-10-2026.md": {
-    "sha256": "61320aa2a3e1393687f2d8c1974f0f2ba79ca2e8fbf80a298c15c98a0a224739",
+    "sha256": "83e4a709f1b1f69eba9959c2f963e7bc64344746723e67c7a84c0ff5f894f45c",
     "reviewer": "root",
     "coverage": "FULL",
-    "evidence": "docs/ai-stabilization/00_BASELINE_STATE.md"
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
   },
   "supabase/functions/_shared/classificationEngine.mjs": {
     "sha256": "7b888425294c7c2d9d95927b14c4a0a544d44ad0b785a6f0749c610b1b433971",
@@ -301,9 +302,9 @@
   },
   "supabase/migrations/20261026150523_classification_hint_revision_fence.sql": {
     "sha256": "2e8a3342ed3d625f398ebbda8d21e799dcdbb136b801337136b0aea68ded60e8",
-    "reviewer": "classifier_failure_review",
+    "reviewer": "conversation_path_review",
     "coverage": "FULL",
-    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
   },
   "supabase/migrations/20261023200000_taxonomy_snapshot_and_turn_hints.sql": {
     "sha256": "31db42b2980588b957621f998c2eaf0dc48502287cf7fc7106df8ce95208dfdc",
@@ -325,9 +326,9 @@
   },
   "supabase/proofs/ai/background_lifecycle_review.test.mjs": {
     "sha256": "3b4e1c125f4fae939d58dcf0a70d5483a99a40415216f930d04c864c1e155987",
-    "reviewer": "classifier_failure_review",
+    "reviewer": "conversation_path_review",
     "coverage": "FULL",
-    "evidence": "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md"
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
   },
   "supabase/proofs/ai/classification_hint_revision_sql.test.mjs": {
     "sha256": "ccd05230f4af858d988d03fcc9d469fa1e2a22cf09ff5c8aca6503843c5287c4",
@@ -471,7 +472,7 @@
     "sha256": "e2c40877d39d9546bd0cdd6584c7bd07db63e7546e8e92612e34e75a78f0c1b8",
     "reviewer": "publication_contract_review",
     "coverage": "PARTIAL",
-    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
   },
   "supabase/migrations/20261021101159_staged_task_replacement.sql": {
     "sha256": "1a75b59baf6492702b70294f4321067f9f0c6c3113a5203697ac1788410e90d0",
@@ -489,7 +490,7 @@
     "sha256": "30a973b0250d343c0c2c11e4b2d7f3df9bc7ac4038d90361d13532f136616bc3",
     "reviewer": "publication_contract_review",
     "coverage": "PARTIAL",
-    "evidence": "docs/ai-stabilization/06_SQL_WRITER_REVIEW.md"
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
   },
   "src/app/(app)/profil/radnik.tsx": {
     "sha256": "91a7971964e08a6b7009d8caa4763b738beebec051079d97cb1dae16eda4af08",
@@ -802,5 +803,119 @@
     "reviewer": "root",
     "coverage": "FULL",
     "evidence": "docs/ai-stabilization/06_CI_COVERAGE_REVIEW.md"
+  },
+  "supabase/proofs/ai/background_completion_lifecycle.test.mjs": {
+    "sha256": "e8aa141d2a01e369fad4ce4b1e640550500f1c007d99b32de9d9abf1b4088046",
+    "reviewer": "classifier_failure_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/proofs/ai/background_runner.test.mjs": {
+    "sha256": "b17e189a9fe0157374908b6b7c00e6a596c298635952071d3325623171a56ea6",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "docs/ai-stabilization/06_BACKGROUND_LIFECYCLE_REVIEW.md": {
+    "sha256": "4f2f270dead9cb6a575bc3d1f6cd35a3eca84c6e8767917a49a3ea44a976f50b",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "src/contracts/needFactsV2.ts": {
+    "sha256": "1b10b0745418054580251d60d428df412e0915fbe4524acab9d06b51b4fca069",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/proofs/ai/dialogue_fixture.mjs": {
+    "sha256": "d8f95170e5dab7c1dc097eaf2fa8390b62083e4297b136be103174c7167fc6f8",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/candidates/task-currency-correction-20261021/README.md": {
+    "sha256": "2d16259df08da98df4a38ba5e80f4f3668ab183a6cd91303f0d76edc33d2de4f",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/candidates/task-currency-correction-20261021/REGRESSION_MATRIX.md": {
+    "sha256": "590cc632fa519702643d0fc42b019f0a311f6a8d45f2ab85b6f4f78de48c94c9",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/proofs/ai/currency_correction_characterization.test.mjs": {
+    "sha256": "4e763ba4ff035691b0d13d98ee570e2f3f6b6b0afa9871f58ed35922d5bd0f13",
+    "reviewer": "publication_contract_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/proofs/ai/ai_edge_context.test.mjs": {
+    "sha256": "bdc5d737ecdc8c1f1c0005567a7c2cca6b434fe060aad7ffdd936b8658f58bd9",
+    "reviewer": "publication_contract_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/migrations/20260907120000_clean_ai_need_draft_safety_authority.sql": {
+    "sha256": "ee0077ae883328f865a73eed0ebab9434a8c2e47add750b055de45950e5a77d1",
+    "reviewer": "publication_contract_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/migrations/20260910172132_clean_w03_owned_ai_intake_authority.sql": {
+    "sha256": "558d06608a597724598e58c7494d1d2783b1b844a019b89e0f4ac19461988e3d",
+    "reviewer": "publication_contract_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/migrations/20260913044510_clean_v5_unknown_ai_turn_exit.sql": {
+    "sha256": "ee76aaa08153b28142e764d7c0863f8386c292692010f9a25d0f0a1d4b9a3ce1",
+    "reviewer": "publication_contract_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/migrations/20261023220000_universal_crown_taxonomy_and_hourly_pricing.sql": {
+    "sha256": "9b1a212e8c480a7a7ff61e07cfbb478bb6409df1d92e2d7e44a18349bfff189d",
+    "reviewer": "publication_contract_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/proofs/ai/background_capture_receipt.test.mjs": {
+    "sha256": "a2bcad25c62e5e184c4dfb105cbd9d6c0ca618dfb83304b0ed84a4f0f1daa53d",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/candidates/dynamic-taxonomy-20261011/gemini-turn-review-hints-v1.sql": {
+    "sha256": "c90357f6514075b9fcd7c33adf5f173366755542152a0bfe29809deea5170a31",
+    "reviewer": "conversation_path_review",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/candidates/dynamic-taxonomy-20261011/create-new-branch-v3-forward-dev.sql": {
+    "sha256": "753da37dd7dbbef5366c098401e03401c53bb3d6aa211768fd398b03311362fe",
+    "reviewer": "conversation_path_review",
+    "coverage": "PARTIAL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/functions/_shared/geminiTaskStream.ts": {
+    "sha256": "52995599c0c4dd89350681fa657c2777089046dd560555e764931f20c9b12aac",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/functions/_shared/aiTestBudget.ts": {
+    "sha256": "de7b0a9f4b5f90f8cb036577ff6cfeb48c8bdd03b8a5d2987cb393c60f393331",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
+  },
+  "supabase/functions/_shared/taxonomyProviderBudget.ts": {
+    "sha256": "f7ea72984ea53779737f16b1b1a7c95ec9db842d1352c6e6bd19d4152757aad5",
+    "reviewer": "root",
+    "coverage": "FULL",
+    "evidence": "docs/ai-stabilization/07_BACKGROUND_COMPLETION_AND_CURRENCY.md"
   }
 }
