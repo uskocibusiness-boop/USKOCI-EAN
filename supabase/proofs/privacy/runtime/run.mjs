@@ -11,6 +11,7 @@ import {admitCliBuild, cliSource} from './cli-bootstrap-build.mjs';
 import {compareManagedNetHook, managedNetHookObservation, validateManagedNetHookBaseline} from './managed-net-hook.mjs';
 import {compareNativeNetProvenance, nativeNetObservation, validateNativeNetBaseline} from './native-net-provenance.mjs';
 import {compareHostedLoginDependency, hostedLoginObservation, validateHostedLoginBaseline} from './hosted-login-dependency.mjs';
+import {adminPathObservation, compareAdminEffectivePath, validateAdminPathBaseline} from './admin-effective-path.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repository = resolve(here, '../../../..');
@@ -36,6 +37,9 @@ const files = {
   hosted_login_query: join(here, 'hosted-login-dependency.sql'),
   hosted_login_expected: join(here, 'hosted-login-dependency-expected.json'),
   hosted_login_comparator: join(here, 'hosted-login-dependency.mjs'),
+  admin_path_query: join(here, 'admin-effective-path.sql'),
+  admin_path_expected: join(here, 'admin-effective-path-expected.json'),
+  admin_path_comparator: join(here, 'admin-effective-path.mjs'),
   pins: join(here, 'pins.json'),
   runner: fileURLToPath(import.meta.url),
   diagnostics: join(here, 'managed-diagnostics.mjs'),
@@ -171,6 +175,9 @@ function sourceCheck() {
   required(readFileSync(files.hosted_login_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
     'HOSTED_LOGIN_QUERY_NOT_READ_ONLY');
   validateHostedLoginBaseline(json(files.hosted_login_expected), sha256(readFileSync(files.hosted_login_query)));
+  required(readFileSync(files.admin_path_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
+    'ADMIN_PATH_QUERY_NOT_READ_ONLY');
+  validateAdminPathBaseline(json(files.admin_path_expected), sha256(readFileSync(files.admin_path_query)));
   return Object.fromEntries(Object.entries(files).map(([name, path]) => [name, sha256(readFileSync(path))]));
 }
 
@@ -196,7 +203,8 @@ async function run() {
   const receipt = {unit: 'R01_DISPOSABLE_SCHEMA_RUNTIME', result: 'FAIL', source_sha: process.env.GITHUB_SHA,
     stages: [], live_access: false, fixtures_run: false, candidate_applied: false, actual_auth_proven: false,
     postgrest_boundary_proven: false, metadata_equal: false,
-    native_net_provenance_verified: false, hosted_login_dependency_verified: false};
+    native_net_provenance_verified: false, hosted_login_dependency_verified: false,
+    admin_effective_path_verified: false};
   let stage = 'SOURCE_ADMISSION';
   function command(label, executable, args, {input, cwd = repository, timeout = 120000, allowed = [0]} = {}) {
     stage = label;
@@ -211,7 +219,7 @@ async function run() {
       receipt.startup_failure = scrubStartupFailure(result.stdout ?? '', result.stderr ?? '');
     }
     if (!accepted && ['PG_ADMISSION', 'SERVICE_MIGRATION_ADMISSION', 'AUTH_SEARCH_INDEXES', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
-      'MANAGED_NET_HOOK_CAPTURE', 'NATIVE_NET_PROVENANCE_CAPTURE', 'HOSTED_LOGIN_DEPENDENCY_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
+      'MANAGED_NET_HOOK_CAPTURE', 'NATIVE_NET_PROVENANCE_CAPTURE', 'HOSTED_LOGIN_DEPENDENCY_CAPTURE', 'ADMIN_EFFECTIVE_PATH_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
       receipt.sql_failures ??= [];
       receipt.sql_failures.push({stage: label, ...scrubSqlFailure(result.stderr ?? '')});
     }
@@ -347,6 +355,16 @@ async function run() {
     receipt.hosted_login_dependency_verified = hostedComparison.provenance_verified;
     writeJSON(join(paths.publicDir, 'hosted-login-dependency-diff.json'), hostedComparison);
     console.log('R01_HOSTED_LOGIN_DEPENDENCY_JSON ' + JSON.stringify(hostedComparison));
+    // Preserve the admin session's default effective search_path. The proof SQL
+    // qualifies catalog references and deliberately does not SET search_path.
+    const adminPath = adminPathObservation(JSON.parse(sql('ADMIN_EFFECTIVE_PATH_CAPTURE',
+      readFileSync(files.admin_path_query, 'utf8'), 'supabase_admin')));
+    writeJSON(join(paths.publicDir, 'admin-effective-path-observed.json'), adminPath);
+    const adminPathComparison = compareAdminEffectivePath(json(files.admin_path_expected), adminPath,
+      receipt.source_hashes.admin_path_query);
+    receipt.admin_effective_path_verified = adminPathComparison.effective_disposable_path_verified;
+    writeJSON(join(paths.publicDir, 'admin-effective-path-diff.json'), adminPathComparison);
+    console.log('R01_ADMIN_EFFECTIVE_PATH_JSON ' + JSON.stringify(adminPathComparison));
     const managedNetComparison = compareManagedNetHook(json(files.managed_net_expected), managedNetHook,
       receipt.source_hashes.managed_net_query);
     receipt.managed_net_hook_equal = managedNetComparison.equal;
@@ -368,6 +386,8 @@ async function run() {
     required(nativeNetComparison.provenance_verified, 'NATIVE_NET_PROVENANCE_DIFFERENT');
     stage = 'HOSTED_LOGIN_DEPENDENCY_ADMISSION';
     required(hostedComparison.provenance_verified, 'HOSTED_LOGIN_DEPENDENCY_DIFFERENT');
+    stage = 'ADMIN_EFFECTIVE_PATH_ADMISSION';
+    required(adminPathComparison.effective_disposable_path_verified, 'ADMIN_EFFECTIVE_PATH_DIFFERENT');
     receipt.result = 'METADATA_EQUAL';
     console.log('R01 disposable schema metadata equality verified; HTTP and candidate proof remain unexecuted.');
   } catch (error) {
