@@ -56,6 +56,11 @@ jobs:
           python -m unittest discover -s supabase/proofs/ex04 -p 'test_r03_*.py'
       - name: R10/R12 closure roster source checks (no DB execution)
         run: node --test supabase/proofs/ex04/r03-closure-roster.test.mjs
+      - name: R05 guarded TODAY source and synthetic PostgreSQL day windows
+        run: |
+          python supabase/proofs/r05/build_today_candidate.py --check
+          python -m unittest discover -s supabase/proofs/r05 -p 'test_*.py'
+          node --test supabase/proofs/r05/today_window.test.mjs
       - name: AI intake and taxonomy contracts
         run: |
           node --test --test-concurrency=2 --test-reporter=dot supabase/proofs/ai/*.test.mjs
