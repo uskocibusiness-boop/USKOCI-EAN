@@ -478,6 +478,54 @@ const priorBarePrice=[
  {sequence_no:2,role:'USER',body:'100'},
  {sequence_no:3,role:'ASSISTANT',body:'Koji iznos u RSD želiš da postaviš?'},
 ];
+for(const text of ['Cena je 1200 RSD na sat.', 'Cena je 1200 RSD po osobi po satu.'])
+test('D06 hourly unit rate reaches the owned writer without headcount multiplication: '+text,async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Satnica je 1200 RSD po osobi po satu.',facts:[
+  priceFact('need.price_mode','MY_PRICE',text),priceFact('need.price_rsd',1200,text),
+  {...priceFact('need.price_basis','HOURLY',text),displayValue:'Ukupno za ekipu'},
+  priceFact('need.people_needed',2,'dve osobe')],dialogue:{...syntheticDialogue(),next:'ACK',priceUnit:'PER_HOUR'}}});
+ assert.equal((await f.invoke({text})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'ALLOW');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[
+  ['need.price_mode','MY_PRICE'],['need.price_rsd',1200],['need.price_basis','HOURLY'],['need.people_needed',2]]);
+ assert.equal(write.p_proposals.find(p=>p.key==='need.price_basis').displayValue,'Po osobi po satu');
+ assert.equal(write.p_proposals.find(p=>p.key==='need.price_rsd').displayValue,'1200 RSD');
+ assert.equal(write.p_proposals.some(p=>p.key==='need.ends_at'),false);
+ assert.match(prompt(providerCall(f)),/HOURLY u aplikaciji znači isključivo RSD po osobi po satu/);
+ const responseSchema=providerCall(f).body.generationConfig.responseSchema;
+ assert.ok(responseSchema.properties.dialogue.properties.priceUnit.enum.includes('PER_TEAM_HOUR'));
+});
+
+for(const [text,priceUnit] of [
+ ['Cena je 1200 RSD na sat za celu ekipu.','PER_HOUR'],
+ ['Cena je 1200 RSD na sat; za dve osobe.','PER_HOUR'],
+ ['Naša trojka deli 1200 RSD za svaki sat.','PER_TEAM_HOUR'],
+])test('team or ambiguous hourly amount is withheld before owned completion: '+text,async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Cena je potvrđena.',facts:[
+  priceFact('need.price_mode','MY_PRICE',text),priceFact('need.price_rsd',1200,text),
+  priceFact('need.price_basis','HOURLY',text),priceFact('need.people_needed',2,'dve osobe')],
+  dialogue:{...syntheticDialogue(),next:'ACK',priceUnit}}});
+ assert.equal((await f.invoke({text})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals.map(p=>[p.key,p.value]),[['need.people_needed',2]]);
+ assert.match(write.p_assistant_message,/po osobi po satu/);
+});
+
+test('a team-basis correction retracts a previously confirmed individual hourly price in owned completion',async()=>{
+ const text='Mislio sam 1200 RSD za celu ekipu na sat.';
+ const f=fixture({activeFacts:[semanticFact('need.price_mode','MY_PRICE'),semanticFact('need.price_rsd',1200),
+  semanticFact('need.price_basis','HOURLY')],providerOutput:{safety:'ALLOW',assistantMessage:'Cena je ista.',facts:[
+  priceFact('need.price_mode','MY_PRICE',text),priceFact('need.price_rsd',1200,text),priceFact('need.price_basis','HOURLY',text)],
+  dialogue:{...syntheticDialogue(),next:'ACK',priceUnit:'PER_HOUR'}}});
+ assert.equal((await f.invoke({text})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals,[{action:'INVALIDATE_PRICE',reason:'UNSUPPORTED_PRICE_BASIS'}]);
+ assert.match(write.p_assistant_message,/Prethodna cena više nije potvrđena/);
+});
+
 test('a bare 100 is not silently written as 100 RSD before currency is known',async()=>{
  const f=fixture({historyRows:[priorBarePrice[0]],providerOutput:{safety:'ALLOW',assistantMessage:'Sačuvao sam 100 RSD.',facts:[
   priceFact('need.price_mode','MY_PRICE','100'),priceFact('need.price_rsd',100,'100'),

@@ -202,7 +202,7 @@ describe('PKG-025d price basis in the review', () => {
   // refuses it with V2_PRICE_BASIS_INVALID, and the person is told nothing useful. The refusal
   // belongs where the typing happened.
   it.each(['po komadu', 'PO_OSOBI_MOZDA', 'total price'])('refuses %s here rather than on the server', text => {
-    expect(correctionFromText(basis('TOTAL'), text)).toEqual({ ok: false, message: 'Koristiš: ukupno, po satu ili po osobi.' });
+    expect(correctionFromText(basis('TOTAL'), text)).toEqual({ ok: false, message: 'Koristiš: ukupno, po osobi ili po osobi po satu.' });
   });
 
   it('accepts po satu as HOURLY', () => {

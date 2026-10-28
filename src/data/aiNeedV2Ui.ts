@@ -33,6 +33,8 @@ const PRICE_BASIS: Record<string, string> = {
   'po osobi': 'PER_PERSON',
   po_osobi: 'PER_PERSON',
   per_person: 'PER_PERSON',
+  'po osobi po satu': 'HOURLY',
+  'po satu po osobi': 'HOURLY',
   'po satu': 'HOURLY',
   'po satu rada': 'HOURLY',
   sat: 'HOURLY',
@@ -88,7 +90,7 @@ export function factEditorKind(fact: AiNeedV2Fact): FactEditorKind {
 }
 
 const PRICE_LABELS: Record<string, string> = { MY_PRICE: 'Moja cena', OFFERS: 'Ponude', FASTEST: 'Najbrže (raniji način)' };
-const PRICE_BASIS_LABELS: Record<string, string> = { TOTAL: 'Ukupno za ceo zadatak', PER_PERSON: 'Po osobi', HOURLY: 'Po satu rada' };
+const PRICE_BASIS_LABELS: Record<string, string> = { TOTAL: 'Ukupno za ceo zadatak', PER_PERSON: 'Po osobi', HOURLY: 'Po osobi po satu' };
 const SCHEDULE_LABELS: Record<string, string> = { FIXED_WINDOW: 'Tačan termin', FLEXIBLE: 'Fleksibilno', REMOTE_ANYTIME: 'Daljinski bilo kada',
   TODAY_FLEXIBLE: 'Danas', TOMORROW_FLEXIBLE: 'Sutra', WEEK_FLEXIBLE: 'Ove nedelje' };
 
@@ -383,7 +385,7 @@ export function correctionFromText(fact: AiNeedV2Fact, input: string): FactCorre
       if (fact.key === 'need.price_basis') {
         const value = PRICE_BASIS[normalized] ?? text.toUpperCase();
         if (!['TOTAL', 'PER_PERSON', 'HOURLY'].includes(value)) {
-          return { ok: false, message: 'Koristiš: ukupno, po satu ili po osobi.' };
+          return { ok: false, message: 'Koristiš: ukupno, po osobi ili po osobi po satu.' };
         }
         return { ok: true, value, displayValue: text };
       }

@@ -407,10 +407,49 @@ test('R07a price retraction: actual Edge, guarded candidate writer and current r
   for(const basis of ['TOTAL','PER_PERSON','HOURLY'])await db.query('select private.validate_need_v2_fact($1,$2::jsonb)',['need.price_basis',json(basis)]);
   await assert.rejects(db.query('select private.validate_need_v2_fact($1,$2::jsonb)',['need.price_mode',json('FASTEST')]),{code:'22023'});
  });
- await t.test('existing mismatch: Edge PER_HOUR strips price despite live SQL HOURLY support',async()=>{
+ await t.test('R07b Edge preserves the per-person hourly rate through the actual writer and review',async()=>{
   const hourly=guard('Cena je 1200 RSD na sat.',[proposal('need.price_mode','MY_PRICE','1200 RSD na sat'),
    proposal('need.price_rsd',1200,'1200 RSD na sat'),proposal('need.price_basis','HOURLY','na sat')],[],'PER_HOUR');
-  assert.equal(hourly.safety,'CLARIFY');assert.equal(hourly.proposals.filter(p=>p.key.startsWith('need.price_')).length,0);
-  assert.match(hourly.assistantMessage,/satnica još nije cena celog zadatka/);
+  assert.equal(hourly.safety,'ALLOW');assert.equal(hourly.proposals.filter(p=>p.key.startsWith('need.price_')).length,3);
+  await apply('Cena je 1200 RSD na sat.',hourly);
+  const persisted=await active();
+  assert.equal(persisted.find(f=>f.fact_key==='need.price_rsd').fact_value,1200);
+  assert.equal(persisted.find(f=>f.fact_key==='need.price_basis').fact_value,'HOURLY');
+  const reviewed=(await read()).facts;
+  assert.equal(reviewed.find(f=>f.key==='need.price_rsd').value,1200);
+  assert.equal(reviewed.find(f=>f.key==='need.price_basis').value,'HOURLY');
+ });
+ await t.test('R07b team correction retracts old hourly consent and an unrelated ALLOW cannot restore readiness',async()=>{
+  for(const fact of (await active()).filter(f=>f.fact_key.startsWith('need.price_')))
+   await db.query('select public.rpc_ai_confirm_fact($1)',[fact.id]);
+  assert.equal((await read()).canSaveDraft,true);
+  const prepared=(await one('select public.rpc_prepare_ai_task_review($1) as result',[conversation])).result;
+  assert.equal(prepared.canAccept,true);
+  const history=(await db.query('select * from private.ai_task_reviews order by id')).rows;
+  const old=(await active()).filter(f=>f.fact_key.startsWith('need.price_'));
+  const input='Mislio sam 1200 RSD za celu ekipu na sat.';
+  const corrected=guard(input,[proposal('need.price_mode','MY_PRICE',input),
+   proposal('need.price_rsd',1200,input),proposal('need.price_basis','HOURLY',input)],await active(),'PER_HOUR');
+  assert.equal(corrected.priceRetraction,'UNSUPPORTED_PRICE_BASIS');
+  assert.deepEqual(JSON.parse(json(edge.needTurnPersistenceProposals(corrected))),[
+   {action:'INVALIDATE_PRICE',reason:'UNSUPPORTED_PRICE_BASIS'}]);
+  await apply(input,corrected);
+  assert.equal((await active()).some(f=>f.fact_key.startsWith('need.price_')),false);
+  for(const fact of old){
+   const stored=await one('select status,confirmed_at,superseded_at from public.ai_structured_facts where id=$1',[fact.id]);
+   assert.equal(stored.status,'CONFIRMED');assert.ok(stored.confirmed_at);assert.ok(stored.superseded_at);
+  }
+  await apply('Hvala.',{safety:'ALLOW',assistantMessage:'Nema na čemu.',proposals:[]});
+  assert.equal((await read()).canSaveDraft,false);
+  assert.equal((await active()).some(f=>f.fact_key.startsWith('need.price_')),false);
+  await assert.rejects(db.query('select public.rpc_accept_ai_task_review($1,$2,$3)',
+   [prepared.reviewId,prepared.displayedContentDigest,randomUUID()]),{message:'TASK_REVIEW_STALE'});
+  assert.deepEqual((await db.query('select * from private.ai_task_reviews order by id')).rows,history);
+ });
+ await t.test('R07b team hourly wording cannot become an individual rate through a misleading provider hint',async()=>{
+  const hourly=guard('Cena je 1200 RSD na sat za celu ekipu.',[proposal('need.price_mode','MY_PRICE'),
+   proposal('need.price_rsd',1200),proposal('need.price_basis','HOURLY')],[],'PER_HOUR');
+  assert.equal(hourly.safety,'CLARIFY');assert.equal(hourly.proposals.length,0);
+  assert.match(hourly.assistantMessage,/po osobi po satu/);
  });
 });

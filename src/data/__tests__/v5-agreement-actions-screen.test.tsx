@@ -396,3 +396,13 @@ describe('"Prikaži aktuelni Dogovor" shows the Dogovor (it used to show this hu
   expect(mockStorage.removeItem).toHaveBeenCalledTimes(1);expect(mockReplace).toHaveBeenCalledTimes(1);
  });
 });
+
+it('reviews an hourly price change in the accepted per-person unit and sends no unit mutation', async () => {
+ snapshot = { ...snapshot, terms: { ...terms, priceBasis: 'HOURLY' } };
+ await render(); expect(text()).toContain('3.500 RSD po osobi po satu');
+ await tap('Predloži izmenu'); await type('Predložena satnica po osobi u RSD po satu', '1200');
+ await tap('Pregledaj predlog');
+ expect(text()).toContain('1.200 RSD po osobi po satu');
+ await tap('Pošalji predlog izmene');
+ expect(mockService.propose.mock.calls[0][0].izmena).toEqual({ cenaIznos: 1200, cenaValuta: 'RSD' });
+});

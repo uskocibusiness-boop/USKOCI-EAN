@@ -27,7 +27,7 @@ import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 /** What stands in the value slot. A retained map card can temporarily await a fresh exact price. */
 export type TaskValue =
-  | { kind: 'amount'; amount: string; basis: 'ukupno' | 'po osobi' | 'po satu' | null }
+  | { kind: 'amount'; amount: string; basis: 'ukupno' | 'po osobi' | 'po osobi po satu' | null }
   | { kind: 'offers' }
   | { kind: 'unpriced' }
   | { kind: 'unverified' };
@@ -37,7 +37,7 @@ export function taskValue(item: Pick<MarketplaceItem, 'rezimCene' | 'ponudjenaCe
   const amount = item.ponudjenaCena?.prikaz;
   if (!amount) return { kind: 'unpriced' };
   // The card says what the number buys in one or two words (A10, B14); the full sentence stays on the detail.
-  return { kind: 'amount', amount, basis: item.osnovaCene === 'HOURLY' ? 'po satu' : item.osnovaCene === 'TOTAL' ? 'ukupno' : item.osnovaCene === 'PER_PERSON' ? 'po osobi' : null };
+  return { kind: 'amount', amount, basis: item.osnovaCene === 'HOURLY' ? 'po osobi po satu' : item.osnovaCene === 'TOTAL' ? 'ukupno' : item.osnovaCene === 'PER_PERSON' ? 'po osobi' : null };
 }
 
 /** The words of a value slot without an amount. They are labels, never drawn as money. */
@@ -234,7 +234,7 @@ export function CardValue({ value, large, prominent = false }: { value: TaskValu
   if (value.kind === 'amount') {
     return <View style={large ? s.valueRow : valueStyles.amountSide}>
       <T style={[valueStyles.amount, prominent && s.decisionAmount, large && valueStyles.alignStart, large && s.valueWrap]}>{value.amount}</T>
-      {value.basis ? <T style={[valueStyles.basis, large && valueStyles.alignStart]} numberOfLines={1}>{value.basis}</T> : null}
+      {value.basis ? <T style={[valueStyles.basis, large && valueStyles.alignStart]} numberOfLines={value.basis === 'po osobi po satu' ? undefined : 1}>{value.basis}</T> : null}
     </View>;
   }
   return <View style={large ? s.valueRow : valueStyles.wordSide}>

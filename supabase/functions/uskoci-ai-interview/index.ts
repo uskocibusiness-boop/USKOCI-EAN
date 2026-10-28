@@ -101,7 +101,7 @@ type ParsedTurn = {
   assistantMessage: string;
   proposals: Array<Record<string, unknown>>;
   // Set only by the deterministic guard, never accepted from model output.
-  priceRetraction?: 'UNSUPPORTED_CURRENCY' | 'AMBIGUOUS_CURRENCY';
+  priceRetraction?: 'UNSUPPORTED_CURRENCY' | 'AMBIGUOUS_CURRENCY' | 'UNSUPPORTED_PRICE_BASIS';
   locationAction?: LocationAction;
   dialogue?: { next: string; questionKey: string; taskRelation: string; priceUnit: string; schedulePattern: string };
 };
@@ -113,7 +113,7 @@ const DIALOGUE_VALUES = {
     ...(applicationDeadlineEnabled() ? ['need.response_deadline'] : []),
     'need.task_country_code', 'need.task_geography', 'need.handoff'],
   taskRelation: ['CONTINUE', 'DIFFERENT_TASK', 'UNCLEAR'],
-  priceUnit: ['WHOLE_JOB', 'PER_DAY', 'PER_HOUR', 'UNSPECIFIED'],
+  priceUnit: ['WHOLE_JOB', 'PER_DAY', 'PER_HOUR', 'PER_TEAM_HOUR', 'UNSPECIFIED'],
   schedulePattern: ['SINGLE', 'FLEXIBLE_RANGE', 'REPEATED', 'UNSPECIFIED'],
 };
 
@@ -518,7 +518,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     'valueJson je JSON tekst stvarne tipizovane vrednosti: tekst/enum/timestamp kao JSON string sa navodnicima, integer kao broj, boolean true/false, niz kao JSON niz stringova, geography kao JSON objekat.',
     'need.price_mode može biti samo MY_PRICE ili OFFERS. Ako je MY_PRICE, need.price_rsd mora biti poznat pre spremnosti za nacrt.',
     'Sačuvani iznos need.price_rsd je isključivo u dinarima (RSD). Broj bez valute nije potvrda da su dinari; pitajte koji iznos u RSD osoba želi da postavi. Razumite kada osoba izričito navede evre/EUR/€, uključujući kratku naknadnu ispravku „u evrima“ posle broja, ali taj broj ne upisujte kao dinare i ne preračunavajte po pretpostavljenom kursu. Kratko recite da je trenutna cena u aplikaciji u dinarima i pitajte koji iznos u RSD želi da postavi; ostale jasne odgovore sačuvajte. Ako osoba umesto toga želi ponude, izaberite OFFERS. Bez nove potvrde ne tvrdite da je evro iznos sačuvan kao cena.',
-    'need.price_basis može biti TOTAL, PER_PERSON ili HOURLY i postavlja se isključivo uz need.price_mode MY_PRICE. Kada korisnik navede satnicu (npr. „1200 na sat“, „1500 po satu“), postavite need.price_basis na HOURLY, a iznos u need.price_rsd. Kada zadatak traži više od jedne osobe i korisnik je naveo ukupan iznos, jednom kratko pitajte da li je taj iznos ukupno za ceo zadatak (TOTAL) ili po osobi (PER_PERSON), i postavite činjenicu iz odgovora.',
+    'need.price_basis može biti TOTAL, PER_PERSON ili HOURLY i postavlja se isključivo uz need.price_mode MY_PRICE. HOURLY u aplikaciji znači isključivo RSD po osobi po satu. Za „1200 RSD na sat“ upišite need.price_basis HOURLY i need.price_rsd 1200; u odgovoru jasno recite po osobi po satu. Ne množite satnicu brojem ljudi ili sati radi upisa. Dve osobe po tri sata sa satnicom 1200 RSD daju 7200 RSD samo kao objašnjenje za poznato trajanje, nikada kao zamenu jedinične satnice; bez poznatog trajanja ne izmišljajte ukupnu sumu. Jasnu satnicu za celu ekipu ili nejasan iznos „za dve osobe na sat“ označite dialogue.priceUnit PER_TEAM_HOUR i pitajte koji iznos u RSD po osobi po satu osoba želi; ne delite iznos i ne pretpostavljajte saglasnost. PER_HOUR označava podržanu satnicu po osobi, a ne cenu cele ekipe. Kada zadatak traži više od jedne osobe i korisnik je naveo ukupan iznos za ceo posao, jednom kratko pitajte da li je taj iznos ukupno za ceo zadatak (TOTAL) ili po osobi (PER_PERSON), i postavite činjenicu iz odgovora.',
     'TOTAL dozvoljava prijavu i za deo traženih ljudi: iznos je round(ukupno × ljudi u prijavi / traženi ljudi), zaokružen jednom. need.price_rsd ostaje ukupna cena; PER_PERSON je cena po osobi. Objasnite samo na zahtev.',
     'Dnevnica nije podržana cenovna osnova; razjasnite satnicu ili ukupan iznos za ceo posao.',
     'need.schedule_kind može biti samo FIXED_WINDOW, FLEXIBLE, REMOTE_ANYTIME, TODAY_FLEXIBLE, TOMORROW_FLEXIBLE ili WEEK_FLEXIBLE. FIXED_WINDOW zahteva potvrđen starts_at. ends_at je opcion i popunjava se samo ako je korisnik zaista rekao završetak. Ako korisnik kaže sutra u 7, need.schedule_kind=FIXED_WINDOW i need.starts_at=sutra u 07:00 po server-vremenu; nikada TOMORROW_FLEXIBLE samo zato što je rekao sutra. TOMORROW_FLEXIBLE važi kada je naveden samo dan bez tačnog sata. Ne izmišljaj kraj ili trajanje. Kada su oba vremena navedena, kraj mora biti posle početka.',
@@ -703,7 +703,8 @@ function parseV2Output(parsed: any): ParsedTurn {
         value,
         // This typed key is always whole RSD. Presentation text cannot change
         // its amount or currency; the intent guard still requires RSD consent.
-        displayValue: key === 'need.price_rsd' ? `${value} RSD` : displayValue,
+        displayValue: key === 'need.price_rsd' ? `${value} RSD`
+          : key === 'need.price_basis' && value === 'HOURLY' ? 'Po osobi po satu' : displayValue,
         confidence: Math.max(0, Math.min(1, confidence)),
         evidence,
       });
@@ -926,7 +927,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const hasAmountIn = (text: string, unit: string) => new RegExp(
     `(?:^|[^\\p{L}\\p{N}])(?:\\d[\\d\\s.,]*\\s*(?:(?:u|na|у|на)\\s+)?${unit}|${unit}\\s*\\d[\\d\\s.,]*)(?=$|[^\\p{L}])`, 'iu').test(text);
   const euroUnit = '(?:€|eur|evr(?:o|a|i|ima)?|euro|eura|евр(?:о|а|и|има)?|еур(?:о|а)?)';
-  const dinarUnit = '(?:rsd|din(?:ar(?:a|i|e|ima)?)?|дин(?:ар(?:а|и|е|има)?)?)';
+  const dinarUnit = '(?:rsd|рсд|din(?:ar(?:a|i|e|ima)?)?|дин(?:ар(?:а|и|е|има)?)?)';
   const priceWords = /bud(?:ž|z)et|cen(?:a|u|e|om)|iznos|naknad|naplat|za ceo posao|po osobi|буџет|цен[ауеом]|износ|накнад|наплат/iu;
   const expenseWords = /materijal|материјал|prevoz|превоз|goriv\p{L}*|горив\p{L}*|oprem\p{L}*|опрем\p{L}*/iu;
   // Work with the clause about the task price. A currency next to material
@@ -1027,14 +1028,60 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
         && !(unsupportedPrice && containsSuspectAmount(proposal.value));
     return true;
   });
+  // D06: HOURLY always stores the rate for one person for one hour. Neither
+  // provider metadata nor an explicit team amount can silently change that
+  // basis. Keep the amount itself; headcount and time never multiply this fact.
+  const effectivePriceFact = (key: string) => turn.proposals.find(p => p.key === key)?.value
+    ?? activeFacts.find(f => f.fact_key === key && f.status !== 'UNKNOWN')?.fact_value;
+  const hourlyWords = /(?:na\s+sat|po\s+satu|satnic\p{L}*|на\s+сат|по\s+сату|сатниц\p{L}*)/iu;
+  const hourly = ['PER_HOUR', 'PER_TEAM_HOUR'].includes(turn.dialogue?.priceUnit ?? '')
+    || turn.proposals.some(p => p.key === 'need.price_basis' && p.value === 'HOURLY')
+    || hourlyWords.test(priceClause);
+  // Include a trailing scope-only clause ("1200 RSD na sat; za celu ekipu"),
+  // but not an earlier price that the latest price clause explicitly replaces.
+  const priceScope = priceClause ? input.slice(input.lastIndexOf(priceClause)) : input;
+  const teamScope = /(?:za\s+(?:(?:celu|cijelu|celokupnu|svu)\s+)?ekipu|za\s+(?:sve|obe|obje|dve|dvije|tri|četiri|cetiri|\d+)\s+(?:osobe|radnik\p{L}*|ljudi)|sat\s+cele\s+ekipe|за\s+(?:(?:целу|цијелу|целокупну|сву)\s+)?екипу|за\s+(?:све|обе|две|двије|три|четири|\d+)\s+(?:особе|радник\p{L}*|људи)|сат\s+целе\s+екипе)/giu;
+  const statedTeamScope = [...priceScope.matchAll(teamScope)]
+    .some(match => !/(?:^|[^\p{L}])(?:ne|nije|не|није)\s*$/iu.test(priceScope.slice(0, match.index)));
+  const teamHourly = turn.dialogue?.priceUnit === 'PER_TEAM_HOUR' || hourly && statedTeamScope;
+  const activeHourly = activeFacts.some(f => f.fact_key === 'need.price_basis'
+    && f.status !== 'UNKNOWN' && f.fact_value === 'HOURLY');
+  const teamOnlyReply = new RegExp('^\\s*(?:(?:mislio sam|mislila sam|mislim|to je|cena je|ipak|zapravo|мислио сам|мислила сам|мислим|то је|цена је|ипак|заправо)\\s+)*(?:'
+    + teamScope.source + ')[.!\\s]*$', 'iu').test(input);
+  // A model hint can ask for clarification, never revoke existing consent by
+  // itself. Require an actual price correction, including a short team-scope
+  // reply to the already known hourly rate, not e.g. gloves for the whole team.
+  const statedHourlyCorrection = statedTeamScope && !priceScope.includes('?')
+    && (hourlyWords.test(priceScope) || activeHourly && (priceWords.test(priceScope) || teamOnlyReply));
+  const hourlyRetraction = teamHourly && statedHourlyCorrection && activeRsdPrice && !explicitOffers && !unsupportedPrice
+    && turn.dialogue?.taskRelation === 'CONTINUE' ? 'UNSUPPORTED_PRICE_BASIS' as const : undefined;
+  const hourlyMismatch = hourly && (teamHourly || effectivePriceFact('need.price_mode') !== 'MY_PRICE'
+    || effectivePriceFact('need.price_basis') !== 'HOURLY'
+    || !Number.isSafeInteger(effectivePriceFact('need.price_rsd'))
+    || Number(effectivePriceFact('need.price_rsd')) < 1
+    || ['WHOLE_JOB', 'PER_DAY'].includes(turn.dialogue?.priceUnit ?? ''));
+  const unitPrice = !explicitOffers && (turn.dialogue?.priceUnit === 'PER_DAY'
+    || hourlyMismatch && !spuriousNumericPriceProposal);
+  const repeated = turn.dialogue?.schedulePattern === 'REPEATED';
+  const withheldUnitFacts = new Set(['need.price_mode', 'need.price_rsd', 'need.price_basis', 'need.title', 'need.description',
+    ...(repeated ? ['need.schedule_kind', 'need.starts_at', 'need.ends_at'] : [])]);
+  const unitMessage = repeated
+    ? 'Odvojene smene još ne možemo da sačuvamo kao jedan zadatak. Koji pojedinačni termin želiš da dogovoriš?'
+    : hourlyMismatch
+      ? `${hourlyRetraction ? 'Prethodna cena više nije potvrđena. ' : ''}Satnica se čuva po osobi po satu. Koji iznos u RSD po osobi po satu želiš da postaviš?`
+      : 'Dnevnica još nije podržana. Koji iznos u RSD želiš za ceo posao, ukupno ili po osobi?';
   if (turn.safety === 'REVIEW') {
     // Keep a policy-review decision intact while preventing a mismatched price
     // from reaching its writer. This branch intentionally does not downgrade it.
-    const filtered = unsupportedPrice || spuriousNumericPriceProposal ? { ...turn, priceRetraction, proposals: withoutUnsupportedPrice(turn.proposals),
+    let filtered = unsupportedPrice || spuriousNumericPriceProposal ? { ...turn, priceRetraction, proposals: withoutUnsupportedPrice(turn.proposals),
       assistantMessage: spuriousNumericPriceProposal
         ? 'Ovaj zahtev treba dodatno proveriti. Predlog cene nije potkrepljen tvojom porukom.'
         : explicitOffers ? `Ovaj zahtev treba dodatno proveriti. ${offerMessage}`
           : `Ovaj zahtev treba dodatno proveriti. ${priceMessage}` } : turn;
+    if (unitPrice || repeated) filtered = { ...filtered,
+      priceRetraction: filtered.priceRetraction ?? hourlyRetraction,
+      proposals: filtered.proposals.filter(p => !withheldUnitFacts.has(p.key)),
+      assistantMessage: unsupportedPrice ? filtered.assistantMessage : `Ovaj zahtev treba dodatno proveriti. ${unitMessage}` };
     return guardTimestampProposals(filtered, input, activeFacts, time, pendingDeadlineQuestion);
   }
   if (taskFinishOnly(input) && (!contextualLocation || turn.locationAction !== 'CONFIRM_DISPLAYED')
@@ -1092,22 +1139,16 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
         : turn.assistantMessage };
     dialogue = turn.dialogue;
   }
-  const unitPrice = dialogue?.priceUnit === 'PER_DAY' || dialogue?.priceUnit === 'PER_HOUR';
-  const repeated = dialogue?.schedulePattern === 'REPEATED';
   if (unitPrice || repeated) {
     // An unsupported term does not erase independent answers in the same message.
     // Withhold its dependent facts and synthesized copy: a daily rate or several
     // shifts must not leak into a total price, one appointment or a public summary.
     // In particular, the price for several shifts is not the price for a new single shift.
-    const withheld = new Set(['need.price_mode', 'need.price_rsd', 'need.price_basis', 'need.title', 'need.description',
-      ...(repeated ? ['need.schedule_kind', 'need.starts_at', 'need.ends_at'] : [])]);
     const partial = { ...turn, safety: 'CLARIFY' as const,
-      proposals: turn.proposals.filter(p => !withheld.has(p.key)),
+      priceRetraction: turn.priceRetraction ?? hourlyRetraction,
+      proposals: turn.proposals.filter(p => !withheldUnitFacts.has(p.key)),
       dialogue: { ...dialogue!, next: 'CLARIFY', questionKey: '' },
-      assistantMessage: repeated
-        ? 'Odvojene smene još ne možemo da sačuvamo kao jedan zadatak. Koji pojedinačni termin želiš da dogovoriš?'
-          + (unitPrice ? ' Koji je iznos za ceo posao u tom terminu?' : '')
-        : 'Koji iznos želiš za ceo posao, uz napomenu da li je ukupno ili po osobi? Dnevnica ili satnica još nije cena celog zadatka.' };
+      assistantMessage: unsupportedPrice && !repeated ? turn.assistantMessage : unitMessage };
     // Continue all existing validation, including relative dates and bounded
     // flexible ranges. A pricing clarification must never bypass time guards.
     turn = partial;

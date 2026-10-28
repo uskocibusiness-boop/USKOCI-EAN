@@ -145,7 +145,7 @@ export type IzmenaKomanda = Idempotentno & {
 
 export interface Komande {
   /** rpc_submit_response */
-  podnesiPrijavu(k: PodnesiPrijavuKomanda): Promise<Ishod<{ prijavaId: string; verzija: number; hash: string }>>;
+  podnesiPrijavu(k: PodnesiPrijavuKomanda): Promise<Ishod<{ prijavaId: string; verzija: number; hash: string; osnovaCene?: 'TOTAL' | 'HOURLY' }>>;
 
   /** P0C-03 — rpc_withdraw_response; stale-revision odluke ostaju RU-4 authority. */
   povuciPrijavu(k: PovuciPrijavuKomanda): Promise<Ishod<{ stanje: 'WITHDRAWN'; verzija: number }>>;

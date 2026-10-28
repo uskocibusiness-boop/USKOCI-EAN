@@ -106,7 +106,8 @@ export function candidateMeasures(candidates: readonly KandidatProjekcija[], who
   if (!whole) return marks;
   const open = candidates.filter(k => k.stanje === 'SELECTABLE');
   const priced = open.filter(k => candidateValue(k).kind === 'amount');
-  const lowest = priced.length > 1 ? Math.min(...priced.map(k => k.cena.iznos)) : null;
+  const comparable = new Set(priced.map(k => k.osnovaCene === 'HOURLY' ? 'HOURLY' : 'TOTAL')).size <= 1;
+  const lowest = comparable && priced.length > 1 ? Math.min(...priced.map(k => k.cena.iznos)) : null;
   const rated = open.map(k => ({ k, figure: candidateRatingFigure(k) })).filter(entry => entry.figure && entry.figure.count > 0);
   const best = rated.length > 1 ? Math.max(...rated.map(entry => entry.figure!.rating)) : null;
   for (const k of open) {
@@ -139,6 +140,9 @@ export function candidateRatingFigure(k: Pick<KandidatProjekcija, 'ocenaTekst' |
 export function sortCandidates(candidates: readonly KandidatProjekcija[], sort: CandidateSort): readonly KandidatProjekcija[] {
   // The server's order is the list exactly as read: the same array, so the default draws what it always drew.
   if (sort === 'ARRIVAL') return candidates;
+  // A rate and a total are different units; keep arrival order instead of ranking unlike amounts.
+  if (sort === 'PRICE' && new Set(candidates.filter(k => candidateValue(k).kind === 'amount')
+    .map(k => k.osnovaCene === 'HOURLY' ? 'HOURLY' : 'TOTAL')).size > 1) return candidates;
   const indexed = candidates.map((k, at) => ({ k, at }));
   if (sort === 'PRICE') return indexed.map(entry => ({ ...entry, price: candidateValue(entry.k) })).sort((a, b) =>
     a.price.kind === 'amount' && b.price.kind === 'amount' ? a.k.cena.iznos - b.k.cena.iznos || a.at - b.at
@@ -456,7 +460,8 @@ export function CandidateSelectionPresentation({ need, candidate, back, chooseNe
         {blocked ? <V2Action label="Osveži prijave" kind="quiet" compact onPress={refresh} disabled={busy} style={s.noteAction} /> : null}
       </View>
       {value.kind === 'amount'
-        ? <MoneySummary label="Ukupna ponuda" amount={priceWords} basis={`Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}`} />
+        ? <MoneySummary label={candidate.osnovaCene === 'HOURLY' ? 'Satnica' : 'Ukupna ponuda'} amount={priceWords}
+          basis={candidate.osnovaCene === 'HOURLY' ? 'Po osobi po satu' : `Ukupno za ${osobuAkuz(candidate.pokrivaMesta)}`} />
         : <FactRow art="money" size="detail" label="Ukupna ponuda" value={priceWords} />}
       <Surface kind="panel" variant="tinted" tone="wash" density="comfortable" style={s.offerFacts}>
         <FactRow art="users" size="detail" label="Dolazi" value={osoba(candidate.pokrivaMesta)} />

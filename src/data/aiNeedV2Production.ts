@@ -86,7 +86,7 @@ const ERRORS: Readonly<Record<string, string>> = {
   V2_EXACT_ADDRESS_INVALID: 'Adresa može imati najviše 1.000 znakova.',
   V2_ACCESS_NOTES_INVALID: 'Napomena o pristupu može imati najviše 2.000 znakova.',
   V2_PRICE_MODE_INVALID: 'Cena može biti „moja cena“ ili „ponude“.',
-  V2_PRICE_BASIS_INVALID: 'Cena može biti „ukupno“, „po osobi“ ili „po satu“.',
+  V2_PRICE_BASIS_INVALID: 'Cena može biti „ukupno“, „po osobi“ ili „po osobi po satu“.',
   V2_SCHEDULE_KIND_INVALID: 'Termin izmeni prirodnim jezikom kroz razgovor.',
   V2_AREA_GEOGRAPHY_INVALID: 'Lokaciju izmeni kroz razgovor.',
   V2_STATIONARY_GEOGRAPHY_INVALID: 'Lokaciju izmeni kroz razgovor.',

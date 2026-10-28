@@ -484,3 +484,9 @@ describe('card interaction ownership', () => {
     expect(presses()[0].props.accessibilityLabel).toContain('Farbanje dnevne sobe');
   });
 });
+
+it('keeps the complete hourly unit readable at larger text', async () => {
+  mockScale = 1.3;
+  await render(<TaskCard item={task({ osnovaCene: 'HOURLY' })} onOpen={jest.fn()} />);
+  expect(textNode('po osobi po satu').props.numberOfLines).toBeUndefined();
+});

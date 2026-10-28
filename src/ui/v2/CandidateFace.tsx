@@ -74,12 +74,12 @@ export function candidateTrust(k: Pick<KandidatProjekcija, 'ocenaTekst' | 'recen
 /** What stands in the price row: the total, or the quiet words for a price that was not stored. The people have a place of their own. */
 export type CandidateValue = PrijavaModel['price'];
 export const UNPRICED = PRICE_NOT_STORED;
-export function candidateValue(k: Pick<KandidatProjekcija, 'cena' | 'pokrivaMesta'>): CandidateValue {
+export function candidateValue(k: Pick<KandidatProjekcija, 'cena' | 'pokrivaMesta' | 'osnovaCene'>): CandidateValue {
   const shown = (k.cena?.prikaz ?? '').trim();
   if (!shown || !/\d/.test(shown) || !Number.isSafeInteger(k.cena.iznos) || k.cena.iznos <= 0) return { kind: 'unpriced' };
   // An amount never loses its currency: a figure written without one gets the offer's own.
   const amount = /[A-Za-z]/.test(shown) ? shown : `${shown} ${k.cena.valuta || 'RSD'}`;
-  return { kind: 'amount', amount, basis: 'ukupno' };
+  return { kind: 'amount', amount, basis: k.osnovaCene === 'HOURLY' ? 'po osobi po satu' : 'ukupno' };
 }
 
 /** An amount as it is written, in its figure and its currency ("4.500 RSD" → "4.500", "RSD"): the figure carries the card's right side, the currency is a quiet word. */

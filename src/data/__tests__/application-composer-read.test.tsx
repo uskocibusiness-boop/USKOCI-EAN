@@ -620,3 +620,65 @@ describe('R18 storage integrity', () => {
     expect(mockSubmit).toHaveBeenCalledTimes(1);
   });
 });
+
+it('sends one per-person hourly rate, freezes its unit on disk, and preserves it after cold restore and a task edit', async () => {
+  const hourly = { ...need(), rezimCene: 'MY_PRICE', osnovaCene: 'HOURLY', ponudjenaCena: { iznos: 1200, valuta: 'RSD', prikaz: '1.200 RSD' } };
+  mockNeed.mockResolvedValue(hourly); mockTask.mockResolvedValue({ ...hourly, primaNovePrijave: true });
+  mockSubmit.mockResolvedValue({ ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Proveri stanje.' });
+  await render(); await edit('Koliko ljudi dolazi', '2'); await sendOffer();
+  const command = mockSubmit.mock.calls[0][0];
+  expect(command).toMatchObject({ cenaRsd: 1200, pokrivenaMesta: 2, potrebaRevizija: 3 });
+  expect(JSON.parse([...mockStorage.values()][0]).applicationPriceBasis).toBe('HOURLY');
+  await act(async () => tree!.unmount()); tree = undefined;
+  const current = { ...hourly, revizija: 4, osnovaCene: 'TOTAL' };
+  mockNeed.mockResolvedValue(current); mockTask.mockResolvedValue({ ...current, primaNovePrijave: true });
+  await render();
+  expect(text()).toContain('Po osobi po satu');
+  mockSubmit.mockResolvedValue({ ok: true, podatak: { prijavaId: k().prijavaId, verzija: 2, hash: k().hash, osnovaCene: 'HOURLY' } });
+  await tap('Pošalji ponovo');
+  expect(mockSubmit.mock.calls[1][0]).toEqual(command);
+  expect(text()).toContain('po osobi po satu');
+  expect(mockStorage.size).toBe(0);
+});
+it('does not confirm an hourly command when its success receipt omits the new price unit', async () => {
+  const hourly = { ...need(), rezimCene: 'MY_PRICE', osnovaCene: 'HOURLY', ponudjenaCena: { iznos: 1200, valuta: 'RSD', prikaz: '1.200 RSD' } };
+  mockNeed.mockResolvedValue(hourly); mockTask.mockResolvedValue({ ...hourly, primaNovePrijave: true });
+  await render(); await sendOffer();
+  expect(text()).toContain('Osnovica cene nije potvrđena');
+  expect(text()).not.toContain('Prijava je poslata.');
+  expect(mockStorage.size).toBe(1); expect(mockAddSkill).not.toHaveBeenCalled();
+});
+it('restores a pre-hourly journal as its original total even when the current task is now hourly', async () => {
+  mockSubmit.mockResolvedValue({ ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Proveri stanje.' });
+  await offer(); await sendOffer();
+  const [key, raw] = [...mockStorage.entries()][0]; const old = JSON.parse(raw); delete old.applicationPriceBasis;
+  mockStorage.set(key, JSON.stringify(old));
+  await act(async () => tree!.unmount()); tree = undefined;
+  const current = { ...need(), revizija: 4, rezimCene: 'MY_PRICE', osnovaCene: 'HOURLY', ponudjenaCena: { iznos: 4500, valuta: 'RSD', prikaz: '4.500 RSD' } };
+  mockNeed.mockResolvedValue(current); mockTask.mockResolvedValue({ ...current, primaNovePrijave: true });
+  await render();
+  expect(text()).toContain('Ukupna ponuda');
+  expect(text()).not.toContain('Po osobi po satu');
+});
+it('does not first-submit an old total journal as hourly under the same task revision', async () => {
+  const key = `uskoci.application.command.v1.owner-a.${mockId}`;
+  const bytes = JSON.stringify({ version: 1, accountId: 'owner-a', needId: mockId, command: {
+    clientRequestId: 'prijava_old_unsent', potrebaId: mockId, potrebaRevizija: 3,
+    radnikProfilId: k().radnikProfilId, pokrivenaMesta: 2, cenaRsd: 4500,
+    predlozeniPocetak: null, predlozeniKraj: null, napomena: null,
+  } });
+  mockStorage.set(key, bytes);
+  const current = { ...need(), rezimCene: 'MY_PRICE', osnovaCene: 'HOURLY', ponudjenaCena: { iznos: 4500, valuta: 'RSD', prikaz: '4.500 RSD' } };
+  mockNeed.mockResolvedValue(current); mockTask.mockResolvedValue({ ...current, primaNovePrijave: true });
+  await render(); await tap('Pošalji ponovo');
+  expect(mockSubmit).not.toHaveBeenCalled(); expect(mockAddSkill).not.toHaveBeenCalled();
+  expect(mockStorage.get(key)).toBe(bytes);
+  expect(text()).toContain('Proveri svoje postojeće prijave.');
+  expect(text()).not.toContain('Prijava je poslata.');
+  expect(press('Sastavi novu prijavu')).toBeUndefined();
+  expect(press('Proveri da li je poslato')).toBeDefined();
+  expect(press('Dopuni radni profil')).toBeUndefined();
+  await tap('Otvori moje prijave');
+  expect(mockRouter.push).toHaveBeenCalledWith('/moje-prijave');
+  expect(mockStorage.get(key)).toBe(bytes); expect(mockSubmit).not.toHaveBeenCalled();
+});

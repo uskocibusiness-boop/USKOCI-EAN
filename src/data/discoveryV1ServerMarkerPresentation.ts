@@ -15,7 +15,7 @@ export function discoveryV1SelectedTaskPrice(marker: DiscoveryV1MapMarker, selec
   const price = item.ponudjenaCena, amount = price?.iznos;
   if (!price || price.valuta !== 'RSD' || typeof amount !== 'number' || !Number.isSafeInteger(amount) || amount < 1 || amount > 2_147_483_647
     || price.prikaz !== novac(amount)) return null;
-  const basis = item.osnovaCene === 'TOTAL' ? 'ukupno' : item.osnovaCene === 'PER_PERSON' ? 'po osobi' : null;
+  const basis = item.osnovaCene === 'HOURLY' ? 'po osobi po satu' : item.osnovaCene === 'TOTAL' ? 'ukupno' : item.osnovaCene === 'PER_PERSON' ? 'po osobi' : null;
   return basis ? `${price.prikaz} ${basis}` : null;
 }
 

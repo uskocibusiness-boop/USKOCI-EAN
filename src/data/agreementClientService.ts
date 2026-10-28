@@ -50,6 +50,8 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
   const myName = requester ? raw.requesterName : raw.workerName;
   const otherName = requester ? raw.workerName : raw.requesterName;
   const terms = raw.terms ?? {};
+  if (terms.priceBasis != null && terms.priceBasis !== 'TOTAL' && terms.priceBasis !== 'HOURLY')
+    throw new Error('AGREEMENT_PRICE_BASIS_INVALID');
   const acceptedTerms = record(raw.terms);
   const total = Number(raw.requiredSlots ?? 1);
   const covered = Math.max(0, Math.min(total, Number(terms.covered_slots ?? 1)));
@@ -96,6 +98,7 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
     naslov: raw.title ?? '',
     stanje: status,
     cena: agreedAmount ? novac(amount, currency) : { iznos: 0, valuta: currency, prikaz: '' },
+    ...(terms.priceBasis == null ? {} : { osnovaCene: terms.priceBasis }),
     // Parent task edits cannot silently change an already accepted Agreement.
     vremeTekst: acceptedSchedule(terms),
     ...(acceptedTerms ? {
@@ -179,11 +182,12 @@ function pendingChangeSummary(raw: Record<string, unknown>, actions: ServerActio
     && uuid(raw.requesterAccountId) && uuid(raw.workerAccountId)
     ? decodePendingProposal(actions.pendingChanges[0], raw.id, raw.currentVersion, raw.requesterAccountId, raw.workerAccountId) : null;
   const accepted = decodeChangeTerms(raw.terms);
-  if (!proposal || !proposal.termsAvailable || !accepted) return null;
+  if (!proposal || !proposal.termsAvailable || !accepted
+    || (proposal.terms.priceBasis ?? 'TOTAL') !== (accepted.priceBasis ?? 'TOTAL')) return null;
   const proposed = proposal.terms, mine = sameId(proposal.proposedBy, uid);
   const window = (terms: AgreementChangeTerms) => acceptedSchedule({ proposed_start_at: terms.startsAt, proposed_end_at: terms.endsAt });
   const izmene: PredlogIzmeneSazetak['izmene'] = [];
-  if (proposed.priceRsd !== accepted.priceRsd) izmene.push({ polje: 'Cena', sada: novac(accepted.priceRsd).prikaz, predlog: novac(proposed.priceRsd).prikaz });
+  if (proposed.priceRsd !== accepted.priceRsd) izmene.push({ polje: 'Cena', sada: novac(accepted.priceRsd).prikaz + (accepted.priceBasis === 'HOURLY' ? ' po osobi po satu' : ''), predlog: novac(proposed.priceRsd).prikaz + (proposed.priceBasis === 'HOURLY' ? ' po osobi po satu' : '') });
   if (proposed.startsAt !== accepted.startsAt || proposed.endsAt !== accepted.endsAt) izmene.push({ polje: 'Termin', sada: window(accepted), predlog: window(proposed) });
   if ((proposed.scopeNote ?? '') !== (accepted.scopeNote ?? '')) izmene.push({ polje: 'Obim', sada: accepted.scopeNote || 'Nije naveden', predlog: proposed.scopeNote || 'Nije naveden' });
   return { id: proposal.proposalId, moj: mine, mozeOdgovoriti: !mine && actions.canRespondChange,
@@ -296,7 +300,7 @@ export const agreementProblemService = {
 /** Selective admission from saved M05 commit60a3ce68, with source113 action
  * snapshot and bounds. PR101 safe errors and legacy message refusal stay intact. */
 export type AgreementChangeTerms = {
-  priceRsd: number; currency: 'RSD'; scopeNote: string | null; startsAt: string | null; endsAt: string | null;
+  priceRsd: number; priceBasis?: 'TOTAL' | 'HOURLY'; currency: 'RSD'; scopeNote: string | null; startsAt: string | null; endsAt: string | null;
 };
 export type AgreementChangeProposal = {
   proposalId: string; agreementId: string; baseVersion: number; proposedBy: string;
@@ -401,6 +405,7 @@ function respondChange(proposalId: string, accept: boolean) {
 function decodeChangeTerms(raw: unknown): AgreementChangeTerms | null {
   const terms = record(raw);
   if (!terms || !positiveInteger(terms.price_rsd) ||
+    (terms.priceBasis != null && terms.priceBasis !== 'TOTAL' && terms.priceBasis !== 'HOURLY') ||
     (terms.scope_note != null && (typeof terms.scope_note !== 'string' || Array.from(terms.scope_note).length > 4000)) ||
     (Object.prototype.hasOwnProperty.call(terms, 'currency') && terms.currency !== 'RSD')) return null;
   const start = terms.proposed_start_at ?? null, end = terms.proposed_end_at ?? null;
@@ -408,7 +413,7 @@ function decodeChangeTerms(raw: unknown): AgreementChangeTerms | null {
     const s = calendarInstant(start), e = calendarInstant(end);
     if ((s === undefined) !== (e === undefined) || s === null || e === null || s >= e) return null;
   }
-  return { priceRsd: terms.price_rsd, currency: 'RSD', scopeNote: terms.scope_note as string | null ?? null,
+  return { priceRsd: terms.price_rsd, ...(terms.priceBasis == null ? {} : { priceBasis: terms.priceBasis }), currency: 'RSD', scopeNote: terms.scope_note as string | null ?? null,
     startsAt: start as string | null, endsAt: end as string | null };
 }
 /** The workspace owns both pending rows and capability truth. One bounded
@@ -422,10 +427,12 @@ function decodeChangeWorkspace(raw: unknown, agreementId: string, accountId: str
     !['CONFIRMED', 'SUPERSEDED', 'COMPLETED', 'CANCELLED'].includes(row.agreementStatus as string)) return null;
   const actions = decodeActionState(row.actionState, agreementId, row.currentVersion, accountId);
   if (!actions) return null;
+  const accepted = decodeChangeTerms(row.terms);
   const proposals: AgreementChangeProposal[] = [];
   for (const item of actions.pendingChanges) {
     const proposal = decodePendingProposal(item, agreementId, row.currentVersion, row.requesterAccountId, row.workerAccountId);
-    if (!proposal) return null;
+    if (!proposal || accepted && proposal.termsAvailable
+      && (proposal.terms.priceBasis ?? 'TOTAL') !== (accepted.priceBasis ?? 'TOTAL')) return null;
     proposals.push(proposal);
   }
   // The same two name fields the Dogovor projection reads (mapAgreement); a missing or blank one is null, never a label.
@@ -435,7 +442,7 @@ function decodeChangeWorkspace(raw: unknown, agreementId: string, accountId: str
     agreementStatus: row.agreementStatus as AgreementChangeSnapshot['agreementStatus'],
     requesterAccountId: row.requesterAccountId, workerAccountId: row.workerAccountId,
     counterpartName: typeof counterpart === 'string' && counterpart.trim() ? counterpart.trim() : null,
-    terms: decodeChangeTerms(row.terms), proposals,
+    terms: accepted, proposals,
     actions: { agreementId, agreementVersion: row.currentVersion, accountId, authoritative: true,
       canProposeChange: actions.canProposeChange, canRespondChange: actions.canRespondChange,
       canWithdrawChange: actions.canWithdrawChange, canMarkWorkDone: actions.canMarkWorkDone,

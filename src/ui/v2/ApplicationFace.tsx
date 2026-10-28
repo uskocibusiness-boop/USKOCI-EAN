@@ -63,11 +63,11 @@ const REASON: Partial<Record<StanjeMojePrijave, NonNullable<PrijavaModel['reason
  * positive number with its written form is not an amount, and the card says so in words ("Cena nije navedena").
  */
 export type ApplicationValue = PrijavaPrice;
-export function applicationValue(row: Pick<MojaPrijavaProjekcija, 'cena'>): ApplicationValue {
+export function applicationValue(row: Pick<MojaPrijavaProjekcija, 'cena' | 'osnovaCene'>): ApplicationValue {
   const amount = row.cena?.prikaz?.trim();
   const number = row.cena?.iznos;
   if (!amount || typeof number !== 'number' || !Number.isFinite(number) || number <= 0) return { kind: 'unpriced' };
-  return { kind: 'amount', amount, basis: 'ukupno' };
+  return { kind: 'amount', amount, basis: row.osnovaCene === 'HOURLY' ? 'po osobi po satu' : 'ukupno' };
 }
 
 /**

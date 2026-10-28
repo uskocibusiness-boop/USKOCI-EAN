@@ -49,7 +49,8 @@ begin
   -- Only one exact leading control is accepted; normal proposal limits remain 12.
   if (v_proposals->0) ? 'action' then
     if (v_proposals->0) is distinct from '{"action":"INVALIDATE_PRICE","reason":"UNSUPPORTED_CURRENCY"}'::jsonb
-      and (v_proposals->0) is distinct from '{"action":"INVALIDATE_PRICE","reason":"AMBIGUOUS_CURRENCY"}'::jsonb then
+      and (v_proposals->0) is distinct from '{"action":"INVALIDATE_PRICE","reason":"AMBIGUOUS_CURRENCY"}'::jsonb
+      and (v_proposals->0) is distinct from '{"action":"INVALIDATE_PRICE","reason":"UNSUPPORTED_PRICE_BASIS"}'::jsonb then
       raise exception 'PRICE_RETRACTION_INVALID' using errcode='22023';
     end if;
     if p_safety is distinct from 'CLARIFY' and p_safety is distinct from 'REVIEW' then

@@ -38,6 +38,7 @@ export function SupportReferenceView({ value, caseId }: { value: SupportSnapshot
       // A missing amount must not fall back to an old model-generated label.
       const shown = f.key === 'need.price_rsd'
         ? typeof f.value === 'number' ? novac(f.value, 'RSD') : BEZ_IZNOSA
+        : f.key === 'need.price_basis' && f.value === 'HOURLY' ? 'Po osobi po satu'
         : typeof f.displayValue === 'string' ? f.displayValue : typeof f.value === 'string' || typeof f.value === 'number'
           ? String(f.value) : typeof f.value === 'boolean' ? f.value ? 'Da' : 'Ne'
             : Array.isArray(f.value) && f.value.every(x => typeof x === 'string') ? f.value.join(', ') : null;

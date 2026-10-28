@@ -112,7 +112,7 @@ export const ru4Production = {
     } };
   },
 
-  async resolveChangedApplication(input: Ru4RazresiPrijavuInput): Promise<Ishod<{ status: string; version: number }>> {
+  async resolveChangedApplication(input: Ru4RazresiPrijavuInput): Promise<Ishod<{ status: string; version: number; priceBasis?: 'TOTAL' | 'HOURLY' }>> {
     const { data, error } = await supabase.rpc('rpc_resolve_stale_response_after_need_edit', {
       p_response_id: input.prijavaId,
       p_expected_response_version: input.ocekivanaVerzija,
@@ -126,9 +126,12 @@ export const ru4Production = {
       p_scope_note: input.napomena ?? null,
     });
     if (error) return fail(error, 'STALE_RESPONSE_RESOLUTION_FAILED', 'Prijava nije mogla da se uskladi sa izmenjenim zadatkom.');
+    if (data?.applicationPriceBasis != null && data.applicationPriceBasis !== 'TOTAL' && data.applicationPriceBasis !== 'HOURLY')
+      return failure('STALE_RESPONSE_RESOLUTION_UNCONFIRMED', 'Osnovica cene nije potvrđena. Proveri stanje prijave.');
     return {
       ok: true,
       podatak: {
+        ...(data?.applicationPriceBasis == null ? {} : { priceBasis: data.applicationPriceBasis }),
         status: String(data?.status ?? ''),
         version: Number(data?.version ?? input.ocekivanaVerzija),
       },

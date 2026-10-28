@@ -407,6 +407,6 @@ export function pinLabel(item: MarketplaceItem): PinLabel {
   if (item.rezimCene === 'OFFERS') return { text: 'Ponude', tone: 'offer', spoken: 'Tražim ponude' };
   const price = item.ponudjenaCena, full = typeof price?.prikaz === 'string' ? price.prikaz.trim() : '';
   if (!price || !full) return { text: '', tone: 'none', spoken: 'Cena nije navedena' };
-  const basis = item.osnovaCene === 'TOTAL' ? ' ukupno' : item.osnovaCene === 'PER_PERSON' ? ' po osobi' : '';
+  const basis = item.osnovaCene === 'HOURLY' ? ' po osobi po satu' : item.osnovaCene === 'TOTAL' ? ' ukupno' : item.osnovaCene === 'PER_PERSON' ? ' po osobi' : '';
   return { text: full + basis, tone: 'money', spoken: full + basis };
 }

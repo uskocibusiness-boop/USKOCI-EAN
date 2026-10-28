@@ -739,3 +739,16 @@ it.each([
   expect(text()).toContain('Sačuvani naslov');
   expect(JSON.stringify(value)).toBe(original);
 });
+
+it('support review names the captured hourly unit without trusting stale presentation words', async () => {
+  const value = { kind: 'TASK_REVIEW' as const, id: D, revision: null, content: {
+    draftId: null, draftRevision: null, displayedContentDigest: 'a'.repeat(64),
+    publicFacts: [{ key: 'need.price_basis', value: 'HOURLY', displayValue: 'Ukupno', status: 'CONFIRMED' }],
+    safety: 'ALLOW', createdAt: time, policy: { bundleId: null, version: null, contentSha256: null }, evaluation: null, media: [],
+  } };
+  const original = JSON.stringify(value);
+  await act(async () => { tree = create(<SupportReferenceView value={value} caseId={C} />); });
+  expect(text()).toContain('Po osobi po satu');
+  expect(text()).not.toContain('Ukupno');
+  expect(JSON.stringify(value)).toBe(original);
+});

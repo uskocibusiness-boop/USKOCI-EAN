@@ -46,6 +46,10 @@ jobs:
         run: npm test -- --maxWorkers=2 --silent
       - name: Optional profile skill SDK and SQL comparison
         run: node --test scripts/f13-skill-cas.test.mjs
+      - name: Hourly application and Agreement SQL chain
+        run: |
+          python supabase/proofs/ai/generate_hourly_candidate.py --check
+          node --test scripts/r07b-hourly-chain.test.mjs
       - name: AI intake and taxonomy contracts
         run: |
           node --test --test-concurrency=2 --test-reporter=dot supabase/proofs/ai/*.test.mjs

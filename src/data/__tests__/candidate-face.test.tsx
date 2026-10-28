@@ -443,6 +443,16 @@ describe('the offer sheet', () => {
   const green = () => tree.root.findAll(node => node.type === ('Press' as unknown as React.ElementType)
     && flat(node.props.style).backgroundColor === sys.color.green).map(node => node.props.accessibilityLabel);
 
+  it('reviews a per-person hourly rate in the selection sheet and final confirmation without calling it a total', async () => {
+    await render(offer({ candidate: k({ osnovaCene: 'HOURLY', cena: { iznos: 1200, valuta: 'RSD', prikaz: '1.200 RSD' } }) }));
+    expect(tree.root.findAll(node => node.type === ('View' as unknown as React.ElementType)
+      && node.props.accessibilityLabel === 'Satnica: 1.200 RSD, Po osobi po satu')).toHaveLength(1);
+    expect(texts()).not.toContain('Ukupna ponuda');
+    expect(texts()).not.toContain('Ukupno za 2 osobe');
+    await act(async () => pressNamed('Izaberi osobu').props.onPress());
+    expect(texts()).toContain('Prihvataš: 1.200 RSD po osobi po satu · 2 osobe');
+  });
+
   it('is a centred review with one primary action that asks before it chooses', async () => {
     const choose = jest.fn();
     await render(offer({ choose }));
@@ -723,4 +733,17 @@ describe('the public profile sheet', () => {
     const bio = tree.root.findAll(node => node.props.children === data.biografija)[0];
     expect(bio.props.numberOfLines).toBeUndefined(); expect(bio.props.selectable).toBe(true);
   });
+});
+
+it('labels an immutable hourly application per person per hour without multiplying its headcount', () => {
+  const hourly = k({ osnovaCene: 'HOURLY', cena: { iznos: 1200, valuta: 'RSD', prikaz: '1.200 RSD' }, pokrivaMesta: 2 });
+  expect(candidateValue(hourly)).toEqual({ kind: 'amount', amount: '1.200 RSD', basis: 'po osobi po satu' });
+  expect(candidateSpoken(hourly, 'Trajanje po dogovoru')).toContain('1.200 RSD po osobi po satu');
+  expect(candidateValue(k())).toMatchObject({ basis: 'ukupno' });
+});
+it('does not compare a total against an hourly rate when an older application remains in the list', () => {
+  const total = k({ prijavaId: 'total', cena: { iznos: 6000, valuta: 'RSD', prikaz: '6.000 RSD' } });
+  const hourly = k({ prijavaId: 'hourly', osnovaCene: 'HOURLY', cena: { iznos: 1200, valuta: 'RSD', prikaz: '1.200 RSD' } });
+  expect([...candidateMeasures([total, hourly], true).values()]).not.toContain(MEASURE_LOWEST_PRICE);
+  expect(sortCandidates([total, hourly], 'PRICE')).toEqual([total, hourly]);
 });

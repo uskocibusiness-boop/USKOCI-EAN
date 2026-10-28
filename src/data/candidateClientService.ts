@@ -79,6 +79,8 @@ function mapCandidate(raw: any): KandidatProjekcija {
       (from === null || to === null || from >= to)) throw new Error('CANDIDATE_INTERVAL_INVALID');
   if (!STATES.has(raw.state)) throw new Error('CANDIDATE_STATE_UNSUPPORTED');
   if (raw.calendarConflict !== undefined && typeof raw.calendarConflict !== 'boolean') throw new Error('CANDIDATE_CALENDAR_INVALID');
+  if (raw.applicationPriceBasis != null && !['TOTAL', 'HOURLY'].includes(raw.applicationPriceBasis))
+    throw new Error('APPLICATION_PRICE_BASIS_INVALID');
   if (!Number.isInteger(raw.priceRsd) || raw.priceRsd <= 0) throw new Error('CANDIDATE_PRICE_INVALID');
   if (!Number.isInteger(raw.coveredSlots) || raw.coveredSlots < 1) throw new Error('CANDIDATE_COVERAGE_INVALID');
   if (!Number.isInteger(raw.remainingSlots) || raw.remainingSlots < 0) throw new Error('CANDIDATE_REMAINING_INVALID');
@@ -112,6 +114,7 @@ function mapCandidate(raw: any): KandidatProjekcija {
     recenzijeTekst: reviews !== null ? plural(reviews, 'ocena', 'ocene', 'ocena')
       : completed !== null ? plural(completed, 'završen zadatak', 'završena zadatka', 'završenih zadataka') : '',
     cena: rsd(raw.priceRsd),
+    ...(raw.applicationPriceBasis == null ? {} : { osnovaCene: raw.applicationPriceBasis }),
     pokrivaMesta: raw.coveredSlots,
     preostaloMesta: raw.remainingSlots,
     dolazakTekst: dogovorenoVreme(raw.proposedStartAt),

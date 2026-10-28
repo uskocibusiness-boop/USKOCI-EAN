@@ -277,3 +277,13 @@ it('writes each side\'s initials from the real name only, and none for a missing
   expect(missing?.ucesnici.map(person => person.inicijali)).toEqual(['', '']);
   expect(missing?.ucesnici.map(person => person.ime)).toEqual(['Ti', 'Druga strana']);
 });
+
+it('maps accepted hourly terms without inferring the unit from a later source-task edit', async () => {
+  resetHappyAuth();
+  mockRpc.mockResolvedValue({ data: { ...rawAgreement, priceBasis: 'TOTAL', terms: { ...rawAgreement.terms, priceBasis: 'HOURLY' } }, error: null });
+  expect(await agreementClientService.dogovor('agr-1')).toMatchObject({ osnovaCene: 'HOURLY', cena: { iznos: 2400 } });
+  mockRpc.mockResolvedValue({ data: { ...rawAgreement, priceBasis: 'HOURLY' }, error: null });
+  expect((await agreementClientService.dogovor('agr-1'))?.osnovaCene).toBeUndefined();
+  mockRpc.mockResolvedValue({ data: { ...rawAgreement, terms: { ...rawAgreement.terms, priceBasis: 'PER_PERSON' } }, error: null });
+  await expect(agreementClientService.dogovor('agr-1')).rejects.toThrow('AGREEMENT_PRICE_BASIS_INVALID');
+});
