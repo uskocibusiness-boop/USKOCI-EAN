@@ -1,0 +1,58 @@
+name: R01 current disposable schema parity
+
+on:
+  pull_request:
+    branches: [feature/uskoci-cisto]
+    paths:
+      - '.github/workflows/r01-disposable-schema.yml'
+      - 'supabase/proofs/privacy/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r01-disposable-schema-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  current-schema:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CI: '1'
+      SUPABASE_TELEMETRY_DISABLED: '1'
+      DO_NOT_TRACK: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.18.0'
+      - name: Admit source and verify the proof checker
+        run: |
+          node --check supabase/proofs/privacy/runtime/run.mjs
+          node --test supabase/proofs/privacy/r01-bootstrap-parity.test.mjs supabase/proofs/privacy/runtime/run.test.mjs
+          node supabase/proofs/privacy/runtime/run.mjs check-source
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb
+        with:
+          version: 2.116.0
+          github-token: ${{ github.token }}
+      - name: Bootstrap approved current source and require strict catalog equality
+        run: node supabase/proofs/privacy/runtime/run.mjs run
+      - name: Destroy only this disposable project without backup
+        if: always()
+        run: node supabase/proofs/privacy/runtime/run.mjs stop
+      - name: Retain scrubbed versions, hashes and differences
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: r01-schema-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/r01-schema-public/runtime-receipt.json
+            ${{ runner.temp }}/r01-schema-public/cleanup-receipt.json
+            ${{ runner.temp }}/r01-schema-public/versions.json
+            ${{ runner.temp }}/r01-schema-public/images.json
+            ${{ runner.temp }}/r01-schema-public/parity-diff.json
+          if-no-files-found: warn
+          retention-days: 14

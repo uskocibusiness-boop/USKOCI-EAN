@@ -174,7 +174,7 @@ WITH app_namespaces AS MATERIALIZED (
     coalesce(jsonb_agg(to_jsonb(r) ORDER BY database, role, setting), '[]'::jsonb) FROM safe_setting_rows r
 )
 SELECT jsonb_build_object(
-  'unit', 'R01_BOOTSTRAP_METADATA_ONLY', 'format_version', 1,
+  'unit', 'R01_BOOTSTRAP_METADATA_ONLY', 'format_version', 3,
   'captured_at', statement_timestamp(), 'database_name', current_database(),
   'session_role', session_user, 'server_version', current_setting('server_version'),
   'server_version_num', current_setting('server_version_num')::integer,
@@ -197,6 +197,20 @@ SELECT jsonb_build_object(
     'closure_pre_request', to_regprocedure('public.rpc_closure_api_guard()') IS NOT NULL),
   'normalized_sections', (SELECT jsonb_object_agg(name, jsonb_build_object(
     'row_count', jsonb_array_length(items), 'md5', md5(items::text)) ORDER BY name) FROM catalog_sections),
+  -- Full metadata rows make a differing digest diagnosable and allow a faithful
+  -- disposable bootstrap. Keep the output in the private evidence store; source
+  -- definitions/defaults may include operational literals and require review
+  -- before any derived schema is published. No business rows are selected.
+  'catalog_sections', (SELECT jsonb_object_agg(name, items ORDER BY name) FROM catalog_sections),
+  'function_definitions', (SELECT coalesce(jsonb_agg(jsonb_build_object(
+    'schema', n.nspname, 'name', p.proname,
+    'identity_arguments', pg_get_function_identity_arguments(p.oid),
+    'definition', pg_get_functiondef(p.oid)
+  ) ORDER BY n.nspname, p.proname, pg_get_function_identity_arguments(p.oid)), '[]'::jsonb)
+    FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE (n.nspname IN ('public', 'private', 'rls_private')
+      OR (n.nspname = 'auth' AND p.proname IN ('uid', 'jwt', 'role', 'email')))
+      AND p.prokind IN ('f', 'p')),
   'function_inventory', (SELECT items FROM catalog_sections WHERE name = 'function_inventory'),
   'schemas', (SELECT items FROM catalog_sections WHERE name = 'schemas'),
   'memberships', (SELECT items FROM catalog_sections WHERE name = 'memberships'),
@@ -214,8 +228,9 @@ SELECT jsonb_build_object(
     FROM pg_extension e JOIN pg_namespace n ON n.oid = e.extnamespace),
   'sequences', (SELECT coalesce(jsonb_agg(jsonb_build_object(
     'schema', c.nspname, 'name', c.relname, 'type', format_type(s.seqtypid, NULL),
-    'start', s.seqstart, 'increment', s.seqincrement, 'min', s.seqmin,
-    'max', s.seqmax, 'cache', s.seqcache, 'cycle', s.seqcycle,
+    -- Decimal strings preserve all bigint bits through JSON/JavaScript transport.
+    'start', s.seqstart::text, 'increment', s.seqincrement::text, 'min', s.seqmin::text,
+    'max', s.seqmax::text, 'cache', s.seqcache::text, 'cycle', s.seqcycle,
     'owned_by', (SELECT coalesce(jsonb_agg(jsonb_build_object(
       'schema', n.nspname, 'relation', t.relname, 'column', a.attname,
       'dependency_kind', d.deptype) ORDER BY n.nspname, t.relname, a.attname), '[]'::jsonb)

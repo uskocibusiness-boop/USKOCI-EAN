@@ -58,6 +58,29 @@ transaction with `search_path=pg_catalog` and bounded timeouts; it does not call
 application functions or read application/Auth records. Keep the captured output
 in the evidence store, not a public repository export.
 
+Capture format 3 also includes the complete normalized catalog sections and exact
+function definitions for reconstructing the disposable target. All sequence bigint
+options are decimal strings; JavaScript must never round them during transport.
+Format 2 is superseded and must not be used as a bootstrap source. Function/default
+text can contain operational literals, so the raw capture remains in managed
+evidence storage and generated source receives a publication review.
+
+`r01-bootstrap-parity.mjs` builds a fingerprint-only manifest and compares a later
+format-3 capture. It checks sixteen groups, required objects, read-only PostgreSQL
+17 capture, pinned search path, unsupported shapes, duplicate consistency and exact
+function-definition hashes. It refuses unsafe numeric inputs and incomplete
+captures. Differences report identities, field names and hashes, without source
+or default literals. There are no blanket managed-platform exceptions: every
+difference blocks metadata admission and needs review. Even complete metadata
+equality is not proof of Auth/PostgREST behavior, reference fixtures or closure
+readiness.
+
+```sh
+node supabase/proofs/privacy/r01-bootstrap-parity.test.mjs
+node supabase/proofs/privacy/r01-bootstrap-parity.mjs manifest CAPTURE.json
+node supabase/proofs/privacy/r01-bootstrap-parity.mjs compare EXPECTED.json CAPTURE.json
+```
+
 The query is a capture, not a bootstrap or parity verdict. Function body hashes
 can be compared with REV10 directly; definition/expression digests use this new
 pinned-path format. A disposable PostgreSQL 17 stack must reproduce the relevant
