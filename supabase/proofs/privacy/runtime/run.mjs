@@ -10,6 +10,7 @@ import {compareEffective} from './platform-effective.mjs';
 import {admitCliBuild, cliSource} from './cli-bootstrap-build.mjs';
 import {compareManagedNetHook, managedNetHookObservation, validateManagedNetHookBaseline} from './managed-net-hook.mjs';
 import {compareNativeNetProvenance, nativeNetObservation, validateNativeNetBaseline} from './native-net-provenance.mjs';
+import {compareHostedLoginDependency, hostedLoginObservation, validateHostedLoginBaseline} from './hosted-login-dependency.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repository = resolve(here, '../../../..');
@@ -32,6 +33,9 @@ const files = {
   native_net_query: join(here, 'native-net-provenance.sql'),
   native_net_expected: join(here, 'native-net-provenance-expected.json'),
   native_net_comparator: join(here, 'native-net-provenance.mjs'),
+  hosted_login_query: join(here, 'hosted-login-dependency.sql'),
+  hosted_login_expected: join(here, 'hosted-login-dependency-expected.json'),
+  hosted_login_comparator: join(here, 'hosted-login-dependency.mjs'),
   pins: join(here, 'pins.json'),
   runner: fileURLToPath(import.meta.url),
   diagnostics: join(here, 'managed-diagnostics.mjs'),
@@ -164,6 +168,9 @@ function sourceCheck() {
   required(readFileSync(files.native_net_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
     'NATIVE_NET_QUERY_NOT_READ_ONLY');
   validateNativeNetBaseline(json(files.native_net_expected), sha256(readFileSync(files.native_net_query)));
+  required(readFileSync(files.hosted_login_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
+    'HOSTED_LOGIN_QUERY_NOT_READ_ONLY');
+  validateHostedLoginBaseline(json(files.hosted_login_expected), sha256(readFileSync(files.hosted_login_query)));
   return Object.fromEntries(Object.entries(files).map(([name, path]) => [name, sha256(readFileSync(path))]));
 }
 
@@ -188,7 +195,8 @@ async function run() {
   mkdirSync(paths.publicDir, {mode: 0o700});
   const receipt = {unit: 'R01_DISPOSABLE_SCHEMA_RUNTIME', result: 'FAIL', source_sha: process.env.GITHUB_SHA,
     stages: [], live_access: false, fixtures_run: false, candidate_applied: false, actual_auth_proven: false,
-    postgrest_boundary_proven: false, metadata_equal: false, native_net_provenance_verified: false};
+    postgrest_boundary_proven: false, metadata_equal: false,
+    native_net_provenance_verified: false, hosted_login_dependency_verified: false};
   let stage = 'SOURCE_ADMISSION';
   function command(label, executable, args, {input, cwd = repository, timeout = 120000, allowed = [0]} = {}) {
     stage = label;
@@ -203,7 +211,7 @@ async function run() {
       receipt.startup_failure = scrubStartupFailure(result.stdout ?? '', result.stderr ?? '');
     }
     if (!accepted && ['PG_ADMISSION', 'SERVICE_MIGRATION_ADMISSION', 'AUTH_SEARCH_INDEXES', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
-      'MANAGED_NET_HOOK_CAPTURE', 'NATIVE_NET_PROVENANCE_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
+      'MANAGED_NET_HOOK_CAPTURE', 'NATIVE_NET_PROVENANCE_CAPTURE', 'HOSTED_LOGIN_DEPENDENCY_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
       receipt.sql_failures ??= [];
       receipt.sql_failures.push({stage: label, ...scrubSqlFailure(result.stderr ?? '')});
     }
@@ -331,6 +339,14 @@ async function run() {
     console.log('R01_EFFECTIVE_JSON ' + JSON.stringify(effectiveSummary));
     for (const row of effectiveRows) console.log('R01_EFFECTIVE_ROW_JSON ' + JSON.stringify(row));
     receipt.effective_diagnostic_equal = effective.equal;
+    const hostedLogin = hostedLoginObservation(JSON.parse(sql('HOSTED_LOGIN_DEPENDENCY_CAPTURE',
+      readFileSync(files.hosted_login_query, 'utf8'), 'supabase_admin')));
+    writeJSON(join(paths.publicDir, 'hosted-login-dependency-observed.json'), hostedLogin);
+    const hostedComparison = compareHostedLoginDependency(json(files.hosted_login_expected), hostedLogin,
+      receipt.source_hashes.hosted_login_query);
+    receipt.hosted_login_dependency_verified = hostedComparison.provenance_verified;
+    writeJSON(join(paths.publicDir, 'hosted-login-dependency-diff.json'), hostedComparison);
+    console.log('R01_HOSTED_LOGIN_DEPENDENCY_JSON ' + JSON.stringify(hostedComparison));
     const managedNetComparison = compareManagedNetHook(json(files.managed_net_expected), managedNetHook,
       receipt.source_hashes.managed_net_query);
     receipt.managed_net_hook_equal = managedNetComparison.equal;
@@ -350,6 +366,8 @@ async function run() {
     required(managedNetComparison.equal, 'MANAGED_NET_HOOK_DIFFERENT');
     stage = 'NATIVE_NET_PROVENANCE_ADMISSION';
     required(nativeNetComparison.provenance_verified, 'NATIVE_NET_PROVENANCE_DIFFERENT');
+    stage = 'HOSTED_LOGIN_DEPENDENCY_ADMISSION';
+    required(hostedComparison.provenance_verified, 'HOSTED_LOGIN_DEPENDENCY_DIFFERENT');
     receipt.result = 'METADATA_EQUAL';
     console.log('R01 disposable schema metadata equality verified; HTTP and candidate proof remain unexecuted.');
   } catch (error) {
