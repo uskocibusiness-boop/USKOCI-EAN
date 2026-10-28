@@ -118,6 +118,22 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
     }
   }, [commit, live]);
 
+  // MAP has its own status. Only anchor recovery that actually accepted a new PAGE can clear a list failure.
+  const executeMap = useCallback(async (action: () => Promise<unknown>) => {
+    if (!live()) return;
+    try {
+      const pending = action(); commit();
+      const result = await pending as { kind?: string; pageApplied?: boolean };
+      if (live() && result.kind === 'applied' && result.pageApplied) setError(false);
+    } catch (failure) {
+      // Ordinary MAP failures are contained by the session; rejection here is a failed traversal renewal.
+      if (live()) {
+        if (failure instanceof Error && failure.message === DISCOVERY_V1_FOR_ME_REFUSED) { refuseForMe(); return; }
+        traceDiscoveryV1('read-failed', discoveryV1ErrorCode(failure)); setError(true);
+      }
+    } finally { commit(); }
+  }, [commit, live]);
+
   const refuseForMe = () => {
     setForMeRefused(true);
     const view = coordinator.snapshot().view;
@@ -254,7 +270,8 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
   const onVisibleRange = useCallback((first: number, last: number) => { if (live()) coordinator.showRows(first, last); }, [coordinator, live]);
   // The markers follow a camera move that is not the person's own; the list and the peek are not touched, and a read that proves nothing about
   // the list never clears its error.
-  const onViewportSettled = useCallback((bounds: PublicBounds) => { void execute(async () => { await coordinator.refreshMap(bounds); }); }, [coordinator, execute]);
+  const onViewportSettled = useCallback((bounds: PublicBounds) => { void executeMap(() => coordinator.refreshMap(bounds)); }, [coordinator, executeMap]);
+  const onRetryMap = useCallback(() => { void executeMap(() => coordinator.retryMap()); }, [coordinator, executeMap]);
   const onShowPlace = useCallback(() => {
     const peek = coordinator.snapshot().screen.peek;
     if (peek?.kind === 'PLACE') void execute(() => coordinator.showPoint(peek.point), false, true);
@@ -298,7 +315,7 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
       ? { ...state.screen, view: askedView.current ?? state.screen.view, exactTaskId: null, verifiedPlaceKey: null }
       : askedView.current ? { ...state.screen, view: askedView.current } : state.screen} overlay={state.overlay} search={state.search}
     selectedMarkerKey={pendingKey ?? state.selectedMarkerKey} loadingMore={state.loadingMore}
-    actions={{ onSelectMarker: selectMarker, onViewportSettled, onArea, onClearPeek, onShowPlace, onShowAll, onNextPage, onSearchDraft, onNextSearchPlaces, onVisibleRange }}
+    actions={{ onSelectMarker: selectMarker, onViewportSettled, onRetryMap, onArea, onClearPeek, onShowPlace, onShowAll, onNextPage, onSearchDraft, onNextSearchPlaces, onVisibleRange }}
     canRetainMap={props.canRetainMap}
     loading={loading} refreshing={state.replacing} error={error} scopeKey={props.scopeKey}
     initialWorkArea={props.initialWorkArea} onInitialWorkAreaHandled={props.onInitialWorkAreaHandled}

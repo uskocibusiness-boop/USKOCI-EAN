@@ -18,6 +18,7 @@ const task:any={id:ID,revision:1,naslov:'Selidba',statusTekst:'Traži ponude',ta
 const view={...initialMarketplaceView(),mode:'map' as const,viewport:{center:[19.83,45.25] as [number,number],zoom:10,
  bounds:[19.7,45.1,20,45.4] as [number,number,number,number]}};
 const screen=(peek:any=null):DiscoveryV1ScreenSnapshot=>({active:true,view,wireItems:[wire],items:[task],
+ mapRead:{loading:false,error:null},
  mapMarkers:[{kind:'TASK',key:'task:'+ID,point:{lat:45.25,lng:19.83},taskId:ID,taskCount:1}],mapWholeBounds:[19.7,45.1,20,45.4],
   places:[],peek,exactTaskId:null,verifiedPlaceKey:null,counts:{kind:'exact_live',observedAt:AT,mapped:1000,listed:840,inArea:700,withoutPoint:140,undated:12},
  availability:{hasKnownWorkMode:true,hasKnownSchedule:true,priceModes:['OFFERS']},mapCounts:{kind:'exact_live',observedAt:AT,mapped:1000,withoutPoint:140},
@@ -78,6 +79,26 @@ it('carries the viewport-settled action to the map seam only when the screen sup
  expect(without.p6Seam.map).not.toHaveProperty('onViewportSettled');
  const withIt=discoveryV1PresentationBridgeModel(screen(),overlay(),null,false,{...actions,onViewportSettled});
  expect(withIt.p6Seam.map.onViewportSettled).toBe(onViewportSettled);
+});
+
+it.each([
+ {loading:false,error:'CONTRACT' as const},
+ {loading:true,error:'NETWORK' as const},
+ {loading:false,error:null},
+])('hands the independent MAP status and its own retry to the presentation: %j',mapRead=>{
+ const onRetryMap=jest.fn();
+ const model=discoveryV1PresentationBridgeModel({...screen(),mapRead},overlay(),null,false,{...actions,onRetryMap});
+ expect(model.p6Seam.mapRead).toEqual({...mapRead,onRetry:onRetryMap});
+ expect(model.items).toHaveLength(1);
+ expect(model.p6Seam.map.markers).toEqual(screen().mapMarkers);
+ model.p6Seam.mapRead!.onRetry();
+ expect(onRetryMap).toHaveBeenCalledTimes(1);
+ expect(actions.onNextPage).not.toHaveBeenCalled();
+});
+
+it('does not offer an inert MAP retry when its action is not supplied',()=>{
+ const model=discoveryV1PresentationBridgeModel({...screen(),mapRead:{loading:false,error:'UNAVAILABLE'}},overlay(),null,false,actions);
+ expect(model.p6Seam).not.toHaveProperty('mapRead');
 });
 
 // Audit fix 6: the quick chips are offered from the server's whole-filter availability, which the bridge hands to the presentation.
