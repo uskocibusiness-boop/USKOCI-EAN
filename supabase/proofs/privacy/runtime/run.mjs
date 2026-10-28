@@ -14,6 +14,7 @@ import {compareHostedLoginDependency, hostedLoginObservation, validateHostedLogi
 import {adminPathObservation, compareAdminEffectivePath, validateAdminPathBaseline} from './admin-effective-path.mjs';
 import {extensionAclObservation, compareExtensionAclScope, validateExtensionAclBaseline} from './extension-acl-scope.mjs';
 import {storageAclObservation, compareStorageOwnerAcl, validateStorageAclBaseline} from './storage-owner-acl.mjs';
+import {extensionAclTupleObservation, compareExtensionAclTuples, validateExtensionAclTupleBaseline} from './extension-acl-tuples.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repository = resolve(here, '../../../..');
@@ -48,6 +49,9 @@ const files = {
   storage_acl_query: join(here, 'storage-owner-acl.sql'),
   storage_acl_expected: join(here, 'storage-owner-acl-expected.json'),
   storage_acl_comparator: join(here, 'storage-owner-acl.mjs'),
+  extension_acl_tuples_query: join(here, 'extension-acl-tuples.sql'),
+  extension_acl_tuples_expected: join(here, 'extension-acl-tuples-expected.json'),
+  extension_acl_tuples_comparator: join(here, 'extension-acl-tuples.mjs'),
   pins: join(here, 'pins.json'),
   runner: fileURLToPath(import.meta.url),
   diagnostics: join(here, 'managed-diagnostics.mjs'),
@@ -192,6 +196,12 @@ function sourceCheck() {
   required(readFileSync(files.storage_acl_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
     'STORAGE_ACL_QUERY_NOT_READ_ONLY');
   validateStorageAclBaseline(json(files.storage_acl_expected), sha256(readFileSync(files.storage_acl_query)));
+  required(readFileSync(files.extension_acl_tuples_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
+    'EXTENSION_ACL_TUPLES_QUERY_NOT_READ_ONLY');
+  validateExtensionAclTupleBaseline(json(files.extension_acl_tuples_expected),
+    sha256(readFileSync(files.extension_acl_tuples_query)));
+  assert.deepEqual(json(files.extension_acl_tuples_expected).observation.routines.map(r => r.key_hash),
+    json(files.extension_acl_expected).observation.routines.map(r => r.key_hash));
   return Object.fromEntries(Object.entries(files).map(([name, path]) => [name, sha256(readFileSync(path))]));
 }
 
@@ -219,7 +229,7 @@ async function run() {
     postgrest_boundary_proven: false, metadata_equal: false,
     native_net_provenance_verified: false, hosted_login_dependency_verified: false,
     admin_effective_path_verified: false, extension_acl_caller_scope_verified: false,
-    storage_owner_acl_verified: false};
+    storage_owner_acl_verified: false, extension_acl_tuples_captured: false};
   let stage = 'SOURCE_ADMISSION';
   function command(label, executable, args, {input, cwd = repository, timeout = 120000, allowed = [0]} = {}) {
     stage = label;
@@ -234,7 +244,7 @@ async function run() {
       receipt.startup_failure = scrubStartupFailure(result.stdout ?? '', result.stderr ?? '');
     }
     if (!accepted && ['PG_ADMISSION', 'SERVICE_MIGRATION_ADMISSION', 'AUTH_SEARCH_INDEXES', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
-      'MANAGED_NET_HOOK_CAPTURE', 'NATIVE_NET_PROVENANCE_CAPTURE', 'HOSTED_LOGIN_DEPENDENCY_CAPTURE', 'ADMIN_EFFECTIVE_PATH_CAPTURE', 'EXTENSION_ACL_SCOPE_CAPTURE', 'STORAGE_OWNER_ACL_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
+      'MANAGED_NET_HOOK_CAPTURE', 'NATIVE_NET_PROVENANCE_CAPTURE', 'HOSTED_LOGIN_DEPENDENCY_CAPTURE', 'ADMIN_EFFECTIVE_PATH_CAPTURE', 'EXTENSION_ACL_SCOPE_CAPTURE', 'STORAGE_OWNER_ACL_CAPTURE', 'EXTENSION_ACL_TUPLES_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
       receipt.sql_failures ??= [];
       receipt.sql_failures.push({stage: label, ...scrubSqlFailure(result.stderr ?? '')});
     }
@@ -397,6 +407,21 @@ async function run() {
     receipt.storage_owner_acl_verified = storageComparison.owner_grant_representation_verified;
     writeJSON(join(paths.publicDir, 'storage-owner-acl-diff.json'), storageComparison);
     console.log('R01_STORAGE_OWNER_ACL_JSON ' + JSON.stringify(storageComparison));
+    const tuples = extensionAclTupleObservation(JSON.parse(sql('EXTENSION_ACL_TUPLES_CAPTURE',
+      readFileSync(files.extension_acl_tuples_query, 'utf8'), 'supabase_admin')));
+    // Ensure both read-only captures refer to exactly the same 49 catalog objects.
+    required(tuples.routines.every((row, i) => row.key_hash === aclCapture.routines[i].key_hash &&
+      row.owner_md5 === aclCapture.routines[i].owner_md5 &&
+      row.acl_null === aclCapture.routines[i].null_acl &&
+      row.acl.length === aclCapture.routines[i].full_acl_count),
+    'EXTENSION_ACL_CROSS_CAPTURE_REFUSED');
+    // Full per-role ACL tuple data stays private to the disposable job.
+    writeJSON(join(paths.privateDir, 'extension-acl-tuples-capture.json'), tuples);
+    const tupleDiff = compareExtensionAclTuples(json(files.extension_acl_tuples_expected), tuples,
+      receipt.source_hashes.extension_acl_tuples_query, aclComparison);
+    receipt.extension_acl_tuples_captured = true;
+    writeJSON(join(paths.publicDir, 'extension-acl-tuples-diff.json'), tupleDiff);
+    console.log('R01_EXTENSION_ACL_TUPLES_JSON ' + JSON.stringify(tupleDiff));
     const managedNetComparison = compareManagedNetHook(json(files.managed_net_expected), managedNetHook,
       receipt.source_hashes.managed_net_query);
     receipt.managed_net_hook_equal = managedNetComparison.equal;

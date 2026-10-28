@@ -32,7 +32,7 @@ jobs:
       - name: Admit source and verify the proof checker
         run: |
           node --check supabase/proofs/privacy/runtime/run.mjs
-          node --test supabase/proofs/privacy/r01-bootstrap-parity.test.mjs supabase/proofs/privacy/runtime/run.test.mjs supabase/proofs/privacy/runtime/managed-diagnostics.test.mjs supabase/proofs/privacy/runtime/platform-effective.test.mjs supabase/proofs/privacy/runtime/cli-bootstrap-build.test.mjs supabase/proofs/privacy/runtime/native-net-provenance.test.mjs supabase/proofs/privacy/runtime/hosted-login-dependency.test.mjs supabase/proofs/privacy/runtime/admin-effective-path.test.mjs supabase/proofs/privacy/runtime/extension-acl-scope.test.mjs supabase/proofs/privacy/runtime/storage-owner-acl.test.mjs
+          node --test supabase/proofs/privacy/r01-bootstrap-parity.test.mjs supabase/proofs/privacy/runtime/run.test.mjs supabase/proofs/privacy/runtime/managed-diagnostics.test.mjs supabase/proofs/privacy/runtime/platform-effective.test.mjs supabase/proofs/privacy/runtime/cli-bootstrap-build.test.mjs supabase/proofs/privacy/runtime/native-net-provenance.test.mjs supabase/proofs/privacy/runtime/hosted-login-dependency.test.mjs supabase/proofs/privacy/runtime/admin-effective-path.test.mjs supabase/proofs/privacy/runtime/extension-acl-scope.test.mjs supabase/proofs/privacy/runtime/storage-owner-acl.test.mjs supabase/proofs/privacy/runtime/extension-acl-tuples.test.mjs
           node supabase/proofs/privacy/runtime/run.mjs check-source
       - name: Build pinned CLI without the legacy webhook bootstrap
         run: node supabase/proofs/privacy/runtime/cli-bootstrap-build.mjs build
@@ -66,6 +66,7 @@ jobs:
             ${{ runner.temp }}/r01-schema-public/extension-acl-scope-diff.json
             ${{ runner.temp }}/r01-schema-public/storage-owner-acl-observed.json
             ${{ runner.temp }}/r01-schema-public/storage-owner-acl-diff.json
+            ${{ runner.temp }}/r01-schema-public/extension-acl-tuples-diff.json
             ${{ runner.temp }}/r01-cli-build-public/*.json
           if-no-files-found: warn
           retention-days: 14
