@@ -273,15 +273,12 @@ test('R04/F05: explicit worker semantic REUSE retains the same ID but remains un
 });
 
 
-test('R04/F05: model may not reuse a fabricated, mode-incompatible or structural category ID',async t=>{
-  const cases=[
-    ['fabricated', '99999999-9999-4999-8999-999999999999', ['ON_SITE'], {}],
-    ['wrong mode', categoryId, ['REMOTE'], {}],
-    ['non-leaf parent', categoryId, ['ON_SITE'], {isLeaf:false}],
-  ];
-  for(const [label,candidateId,modes,patch] of cases) {
-    // Separate provider mocks and snapshot versions prevent cross-case cached
-    // results; a rejected model ID cannot turn into a catalog write.
+for(const [label,candidateId,modes,patch] of [
+  ['fabricated', '99999999-9999-4999-8999-999999999999', ['ON_SITE'], {}],
+  ['wrong mode', categoryId, ['REMOTE'], {}],
+  ['non-leaf parent', categoryId, ['ON_SITE'], {isLeaf:false}],
+]) {
+  test(`R04/F05: model cannot reuse ${label}`,async t=>{
     const f=fixture(t,()=>response({decisions:[{
       service:'Popravka klima',mode:'ON_SITE',action:'REUSE_EXISTING',
       categoryId:candidateId,parentId:'',
@@ -291,8 +288,8 @@ test('R04/F05: model may not reuse a fabricated, mode-incompatible or structural
     assert.deepEqual(result.proposals,[],label);
     assert.deepEqual(result.clarifications,[],label);
     assert.ok(result.failures.some(x=>x.code==='SEMANTIC_REUSE_ADMISSION_UNAVAILABLE'),label);
-  }
-});
+  });
+}
 
 test('R04/F05: a mismatched model service or forged parent cannot bind an existing ID',async t=>{
   const f=fixture(t,()=>response({decisions:[{
