@@ -22,7 +22,7 @@ const document = (n: number, over: Record<string, unknown> = {}) => ({
   revision: 2, published_at: null, created_at: '2026-03-01T10:00:00+00:00', updated_at: '2026-03-01T10:00:00+00:00', response_deadline: null,
   minimum_experience_years: null, execution_location_mode: null, required_licenses: [], task_country_code: null, task_timezone: 'Europe/Belgrade',
   price_basis: 'PER_PERSON', covered_slots: 1, selectable_application_count: 2, marketplace_responses: [{ id: uuid(800 + n) }], need_geography: null,
-  need_requirement_details: null, sortAt: `2026-03-01T10:0${n}:00+00:00`, ...over });
+  need_requirement_details: null, sortAt: `2026-03-01T10:${String(59 - n).padStart(2, '0')}:00+00:00`, ...over });
 const payload = (docs: any[], over: Record<string, unknown> = {}) => ({ items: docs, hasMore: false, counts: { ...COUNTS }, asOf: AS_OF, ...over });
 const first = { scope: 'ACTIVE' as const, limit: 30, cursor: null };
 beforeEach(() => { mockRpc.mockReset(); mockUrgency.mockReset(); mockUrgency.mockResolvedValue(new Map()); mockAccount = { user: { id: ACCOUNT }, accountRevision: 1 }; });
@@ -32,8 +32,8 @@ it('asks for the first page by scope and limit, and for the next one from the la
   await needClientService.mojePotrebeStrana(first);
   expect(mockRpc).toHaveBeenLastCalledWith('rpc_list_my_needs_page', { p_scope: 'ACTIVE', p_limit: 30 });
   mockRpc.mockResolvedValue({ data: payload([document(2)], { counts: null }), error: null });
-  await needClientService.mojePotrebeStrana({ scope: 'HISTORY', limit: 7, cursor: { at: '2026-03-01T10:01:00+00:00', id: uuid(1) } });
-  expect(mockRpc).toHaveBeenLastCalledWith('rpc_list_my_needs_page', { p_scope: 'HISTORY', p_limit: 7, p_before_at: '2026-03-01T10:01:00+00:00', p_before_id: uuid(1) });
+  await needClientService.mojePotrebeStrana({ scope: 'HISTORY', limit: 7, cursor: { at: '2026-03-01T10:58:00+00:00', id: uuid(1) } });
+  expect(mockRpc).toHaveBeenLastCalledWith('rpc_list_my_needs_page', { p_scope: 'HISTORY', p_limit: 7, p_before_at: '2026-03-01T10:58:00+00:00', p_before_id: uuid(1) });
 });
 
 it('maps every task through the same mapNeed as the whole list: the same card, price basis and selectable count', async () => {
@@ -117,6 +117,43 @@ describe('the set the person is looking at, in the server\'s words', () => {
     expect(ownTasksRefined(view({ query: 'ormar' }) as any)).toBe(true); expect(ownTasksRefined(view({ price: 'OFFERS' }) as any)).toBe(true);
     expect(ownTasksRefined(view({ section: 'history', attention: true }) as any)).toBe(false);
   });
+});
+
+it('rejects a repeated or forward-moving keyset page instead of treating it as more tasks', () => {
+  const cursor = { at: '2026-03-01T10:58:00+00:00', id: uuid(1) };
+  const request = { ...first, cursor };
+  const map = (row: any) => ({ id: row.id }) as any;
+  const later = (documents: any[]) => ({ items: documents, counts: null, hasMore: false, asOf: AS_OF });
+
+  expect(decodeOwnTasksPage(later([document(2)]), request, map)?.items).toHaveLength(1);
+  expect(decodeOwnTasksPage(later([document(1)]), request, map)).toBeNull();
+  expect(decodeOwnTasksPage(later([document(2, { sortAt: '2026-03-01T10:59:00+00:00' })]), request, map)).toBeNull();
+  expect(decodeOwnTasksPage(later([document(2), document(1)]), request, map)).toBeNull();
+});
+
+it('compares exact PostgreSQL microseconds, UTC offsets and UUID ties in descending order', () => {
+  const map = (row: any) => ({ id: row.id }) as any;
+  const at = '2026-03-01T10:00:00.123456+00:00';
+  const earlier = '2026-03-01T11:00:00.123455+01:00';
+  const sameInstant = '2026-03-01T11:00:00.123456+01:00';
+  const documentAt = (n: number, time: string) => document(n, { sortAt: time });
+  const firstPage = (documents: any[]) => payload(documents, { hasMore: false });
+  expect(decodeOwnTasksPage(firstPage([documentAt(3, at), documentAt(2, earlier)]), first, map)?.items).toHaveLength(2);
+  expect(decodeOwnTasksPage(firstPage([documentAt(2, earlier), documentAt(3, at)]), first, map)).toBeNull();
+  expect(decodeOwnTasksPage(firstPage([documentAt(3, at), documentAt(2, sameInstant)]), first, map)?.items).toHaveLength(2);
+  expect(decodeOwnTasksPage(firstPage([documentAt(2, at), documentAt(3, sameInstant)]), first, map)).toBeNull();
+  expect(decodeOwnTasksPage(firstPage([documentAt(3, at)]),
+    { ...first, cursor: { at: sameInstant, id: uuid(3) } }, map)).toBeNull();
+});
+
+it('rejects malformed paging parameters at the client boundary', () => {
+  const map = (row: any) => ({ id: row.id }) as any;
+  const body = payload([document(1)]);
+  for (const limit of [0, -1, 101, 1.5, Number.NaN]) {
+    expect(decodeOwnTasksPage(body, { ...first, limit }, map)).toBeNull();
+  }
+  expect(decodeOwnTasksPage(body, { ...first, cursor: { at: 'bad', id: uuid(1) } }, map)).toBeNull();
+  expect(decodeOwnTasksPage(body, { ...first, cursor: { at: AS_OF, id: 'bad' } }, map)).toBeNull();
 });
 
 it('decodes with an injected mapper, so a task the mapper refuses refuses the page', () => {
