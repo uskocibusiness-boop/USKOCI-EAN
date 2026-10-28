@@ -8,6 +8,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {buildManagedDiagnostics} from './managed-diagnostics.mjs';
 import {compareEffective} from './platform-effective.mjs';
 import {admitCliBuild, cliSource} from './cli-bootstrap-build.mjs';
+import {compareManagedNetHook, managedNetHookObservation, validateManagedNetHookBaseline} from './managed-net-hook.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repository = resolve(here, '../../../..');
@@ -24,6 +25,9 @@ const files = {
   effective_query: join(here, 'platform-effective.sql'),
   effective_expected: join(here, 'platform-effective-expected.json'),
   effective_comparator: join(here, 'platform-effective.mjs'),
+  managed_net_query: join(here, 'managed-net-hook.sql'),
+  managed_net_expected: join(here, 'managed-net-hook-expected.json'),
+  managed_net_comparator: join(here, 'managed-net-hook.mjs'),
   pins: join(here, 'pins.json'),
   runner: fileURLToPath(import.meta.url),
   diagnostics: join(here, 'managed-diagnostics.mjs'),
@@ -76,12 +80,6 @@ export function validateServiceHistory(history) {
     history.realtime.every(version => typeof version === 'string' && /^\d{14}$/.test(version)),
   'REALTIME_HISTORY_FORMAT_REFUSED');
   assert.deepEqual(history, pins.service_history);
-}
-
-export function validateNoLegacyWebhook(observed) {
-  required(observed?.webhook_schema_absent === true && observed.webhook_function_absent === true &&
-    observed.webhook_event_absent === true && observed.net_get_invoker === true &&
-    observed.net_post_invoker === true, 'LEGACY_WEBHOOK_BOOTSTRAP_PRESENT');
 }
 
 export function validateEnvironment(env, platform) {
@@ -156,6 +154,9 @@ function sourceCheck() {
   required(readFileSync(files.effective_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;') &&
     json(files.effective_expected).query_sha256 === sha256(readFileSync(files.effective_query)),
   'EFFECTIVE_QUERY_BINDING_REFUSED');
+  required(readFileSync(files.managed_net_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
+    'MANAGED_NET_QUERY_NOT_READ_ONLY');
+  validateManagedNetHookBaseline(json(files.managed_net_expected), sha256(readFileSync(files.managed_net_query)));
   return Object.fromEntries(Object.entries(files).map(([name, path]) => [name, sha256(readFileSync(path))]));
 }
 
@@ -195,7 +196,7 @@ async function run() {
       receipt.startup_failure = scrubStartupFailure(result.stdout ?? '', result.stderr ?? '');
     }
     if (!accepted && ['PG_ADMISSION', 'SERVICE_MIGRATION_ADMISSION', 'AUTH_SEARCH_INDEXES', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
-      'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
+      'MANAGED_NET_HOOK_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
       receipt.sql_failures ??= [];
       receipt.sql_failures.push({stage: label, ...scrubSqlFailure(result.stderr ?? '')});
     }
@@ -284,17 +285,13 @@ async function run() {
     // Extra platform extensions are reported by strict full-catalog parity too.
     writeJSON(join(paths.publicDir, 'versions.json'), {cli: version, admission: initial, extensions});
     assert.deepEqual(orderExtensions(extensions), orderExtensions(pins.extensions));
-    const noWebhook = JSON.parse(sql('NO_LEGACY_WEBHOOK', `BEGIN TRANSACTION READ ONLY;
-      SET LOCAL search_path=pg_catalog;
-      SELECT jsonb_build_object(
-        'webhook_schema_absent',to_regnamespace('supabase_functions') IS NULL,
-        'webhook_function_absent',to_regprocedure('extensions.grant_pg_net_access()') IS NULL,
-        'webhook_event_absent',NOT EXISTS(SELECT 1 FROM pg_event_trigger WHERE evtname='issue_pg_net_access'),
-        'net_get_invoker',(SELECT NOT prosecdef FROM pg_proc WHERE oid=to_regprocedure('net.http_get(text,jsonb,jsonb,integer)')),
-        'net_post_invoker',(SELECT NOT prosecdef FROM pg_proc WHERE oid=to_regprocedure('net.http_post(text,jsonb,jsonb,jsonb,integer)')));
-      ROLLBACK;`, 'supabase_admin'));
-    validateNoLegacyWebhook(noWebhook);
-    receipt.legacy_webhook_absent = noWebhook;
+    const managedNetHook = managedNetHookObservation(JSON.parse(sql('MANAGED_NET_HOOK_CAPTURE',
+      readFileSync(files.managed_net_query, 'utf8'), 'supabase_admin')));
+    // Publish the actual safe observation before any equality assertion. Legitimate
+    // native helper/event presence is checked against DEV after full diagnostics.
+    receipt.managed_net_hook_observed = managedNetHook;
+    writeJSON(join(paths.publicDir, 'managed-net-hook-observed.json'), managedNetHook);
+    console.log('R01_MANAGED_NET_OBSERVED_JSON ' + JSON.stringify(managedNetHook));
     writeJSON(join(paths.publicDir, 'versions.json'), {cli: version, postgres_version_num: initial.server_version_num, admission: initial, extensions});
     // Revalidate approved source bytes immediately before executing them.
     required(JSON.stringify(sourceCheck()) === JSON.stringify(receipt.source_hashes), 'SOURCE_CHANGED_DURING_START');
@@ -323,10 +320,18 @@ async function run() {
     console.log('R01_EFFECTIVE_JSON ' + JSON.stringify(effectiveSummary));
     for (const row of effectiveRows) console.log('R01_EFFECTIVE_ROW_JSON ' + JSON.stringify(row));
     receipt.effective_diagnostic_equal = effective.equal;
+    const managedNetComparison = compareManagedNetHook(json(files.managed_net_expected), managedNetHook,
+      receipt.source_hashes.managed_net_query);
+    receipt.managed_net_hook_equal = managedNetComparison.equal;
+    receipt.managed_net_hook_differences = managedNetComparison.differences;
+    writeJSON(join(paths.publicDir, 'managed-net-hook-diff.json'), managedNetComparison);
+    console.log('R01_MANAGED_NET_JSON ' + JSON.stringify(managedNetComparison));
     // The supplemental report never overrides strict catalog admission.
     stage = 'STRICT_PARITY';
     receipt.metadata_equal = scrubbed.metadata_equal;
     required(comparison.status === 0 && scrubbed.metadata_equal, 'METADATA_PARITY_DIFFERENT');
+    stage = 'MANAGED_NET_HOOK_ADMISSION';
+    required(managedNetComparison.equal, 'MANAGED_NET_HOOK_DIFFERENT');
     receipt.result = 'METADATA_EQUAL';
     console.log('R01 disposable schema metadata equality verified; HTTP and candidate proof remain unexecuted.');
   } catch (error) {

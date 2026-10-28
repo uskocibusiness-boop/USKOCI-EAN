@@ -11,6 +11,20 @@ default ACL records, its role search_path, ten added schema-permission rows and
 the two pg_net security-mode/configuration differences. The new run must measure
 the actual result. A predicted removal is not accepted evidence.
 
+Run `40732062562` reached the actual patched TypeScript shell, isolated startup
+and all version/history checks, but stopped at an incorrect assertion that the
+native pg_net helper/event should be absent. Its individual booleans are unknown
+and it produced no new strict or supplemental comparison. The read-only DEV
+contract in `artifacts/r01/20261028-managed-net-hook-contract.json` (SHA-256
+`9bf79f4562d4829466d0a9e8706d8d9380a83465c71b9501d84e4dbba5800134`)
+instead confirms legitimate helper/event presence, invoker mode for the helper
+and both HTTP routines, and absence of the `supabase_functions` schema.
+`managed-net-hook-expected.json` binds the exact catalog query to that observed
+native contract. Its comparison is enforced after the next complete strict and
+supplemental captures; any differing helper body, ACL, security setting or event
+definition still fails. Neither that source correction nor a successful CLI
+build is a platform or R01 boundary admission.
+
 Any later limited admission must consume the **same validated raw capture** and
 the unchanged strict and supplemental comparators. It must enumerate each
 remaining identity and field; reject every extra, missing or changed field outside
@@ -51,6 +65,24 @@ contain zero literal mentions. Namespaces named `supabase_admin`, `$user` and
 literal `\$user` are all absent. This contains only catalog metadata, not Auth
 or business rows. It supports the scoped hypotheses but is not yet a paired
 disposable assertion or a complete dynamic-code dependency proof.
+
+The follow-up catalog capture
+`artifacts/r01/20261028-storage-acl-extension-invoker-metadata.json` (SHA-256
+`c2020c0675a8c9d71a4d9d4dad516fc526aec609f5ac11efbb25711498d9debf`)
+identifies the exact prior Storage ACL delta: both sides have 32 normalized
+grantee/grantor/privilege tuples. Only the eight explicit grant-option bits for
+the table owner `supabase_storage_admin` differ (DEV true; prior disposable
+false). Every other tuple is the same. The owner itself is identical; the
+[PostgreSQL 17 ownership rule](https://www.postgresql.org/docs/17/ddl-priv.html)
+gives an owner implicit grant options, explaining the already-equal effective
+grantability checks. This is a concrete owner-bit representation difference,
+not an allowance for arbitrary Storage grants. It must be rechecked against the
+new disposable capture and still remains a strict metadata difference.
+
+The same read-only capture confirms zero SECURITY DEFINER functions among all
+49 affected extension routines: pgcrypto 36, uuid-ossp 10, pg_stat_statements 3.
+This strengthens the execution-authority condition but does not substitute for
+the paired body/config/EXECUTE comparison or the actual API tests.
 
 Only after every actually remaining difference is proved within this scope may
 an isolated next stage create synthetic Auth users, exercise current PostgREST

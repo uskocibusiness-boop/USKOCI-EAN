@@ -49,9 +49,10 @@ The runner now uses the explicitly identified **disposable derivative**
 `2.116.0-r01-no-webhook`, not the unmodified released CLI. The pinned upstream
 [active TypeScript startup source](https://github.com/supabase/cli/blob/997a1e69a4a83466964ed874d3a604c88a7b3866/apps/cli/src/legacy/shared/db-bootstrap/postgres.service.ts)
 unconditionally inserts its legacy `templates/db-webhook.sql.ts` into a new database.
-That separate template adds `supabase_functions`, role/default privileges and
-an event trigger, and changes pg_net GET/POST to SECURITY DEFINER. Those are
-observed disposable-only additions, not part of the captured DEV baseline.
+That separate template adds `supabase_functions`, role/default privileges,
+replaces the native pg_net helper/event contract and changes pg_net GET/POST to
+SECURITY DEFINER. DEV has a legitimate native `grant_pg_net_access()` helper and
+`issue_pg_net_access` event trigger; their presence alone is not legacy injection.
 
 `cli-bootstrap-build.mjs` fetches the exact upstream commit, verifies a clean
 checkout and SHA-256 for the complete active startup import/call chain, untouched
@@ -75,8 +76,19 @@ the source/toolchain/binary hashes and fixed failure categories, while download
 and build logs stay private. No script changes a managed object's owner or
 privileges after database startup. Service images and migration histories remain
 unchanged. The runtime accepts only that build receipt and binary hash, including
-for cleanup, and checks actual absence of the legacy schema/function/event
-trigger and actual invoker mode of both pg_net functions before application DDL.
+for cleanup. `managed-net-hook.sql` records the legacy schema's absence, both
+pg_net functions' invoker mode, and the exact native helper/event metadata from
+the read-only DEV baseline. Helper owner, security mode, settings, ACL, body and
+definition, plus event owner, event kind, enabled state, tags and target are all
+compared. Missing or changed objects fail. The safe observed booleans and hashes
+are published before application DDL; enforcement occurs after full strict and
+supplemental capture so a failed assertion cannot hide those diagnostics.
+
+Run 40732062562 proved the compiled active shell and isolated startup but stopped
+at the previous, incorrect helper/event absence assertion. Its five individual
+booleans are unknown because they were not recorded before that assertion.
+There is no new parity count from that run. The corrected check uses exact query
+bytes bound to `managed-net-hook-expected.json`, rather than guessing absence.
 
 This removes a demonstrated source of divergence; it is **not** a waiver for
 remaining differences or a claim that the derivative reproduces the whole hosted
@@ -130,5 +142,5 @@ The baseline fingerprints come from a separate read-only DEV capture. The same
 query runs after disposable bootstrap, even when strict catalog comparison finds
 differences. Its report hashes identities and string values; only validated
 boolean capability fields are public. Exact query bytes are bound to the baseline.
-This diagnostic does not accept any of the 13 remaining catalog differences or
+This diagnostic does not accept any previously observed catalog differences or
 claim full extension dependency, Auth, HTTP or application behavior coverage.

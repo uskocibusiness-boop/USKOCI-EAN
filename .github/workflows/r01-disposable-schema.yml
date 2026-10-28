@@ -54,6 +54,8 @@ jobs:
             ${{ runner.temp }}/r01-schema-public/parity-diff.json
             ${{ runner.temp }}/r01-schema-public/managed-diagnostics.json
             ${{ runner.temp }}/r01-schema-public/platform-effective-diff.json
+            ${{ runner.temp }}/r01-schema-public/managed-net-hook-observed.json
+            ${{ runner.temp }}/r01-schema-public/managed-net-hook-diff.json
             ${{ runner.temp }}/r01-cli-build-public/*.json
           if-no-files-found: warn
           retention-days: 14
