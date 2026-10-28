@@ -386,6 +386,71 @@ export async function loadFullCatalogTree(rpc, signal) {
   return indexFullCatalog(catalogVersion, catalogFingerprint, [...allNodes.values()], true);
 }
 
+/**
+ * The classifier must see the same parent/child structure regardless of the
+ * order in a snapshot or in paged ROOTS/CHILDREN responses. Never infer a
+ * hierarchy from indentation on an arbitrary (e.g. alphabetical) list.
+ *
+ * This is only model input: it grants NO authority to create/reuse a category,
+ * change modes, or skip the signed review/save admission.
+ */
+export function formatFullCatalogHierarchy(catalog) {
+  if (catalog?.verifiedComplete !== true || !Array.isArray(catalog.categories)
+      || catalog.categories.length === 0 || catalog.categories.length > 20000) {
+    throw new Error('FULL_CATALOG_HIERARCHY_UNVERIFIED');
+  }
+  const byId = new Map(), children = new Map();
+  for (const node of catalog.categories) {
+    const id = node?.categoryId;
+    const parentId = node?.parentId ?? null;
+    if (typeof id !== 'string' || !id || byId.has(id)
+        || (parentId !== null && (typeof parentId !== 'string' || !parentId || parentId === id))
+        || typeof node?.label !== 'string' || !node.label.trim()
+        || typeof node?.isLeaf !== 'boolean'
+        || !Array.isArray(node?.aliases) || !Array.isArray(node?.modes)
+        || !node.aliases.every(alias => typeof alias === 'string')
+        || !node.modes.every(mode => typeof mode === 'string')) {
+      throw new Error('FULL_CATALOG_HIERARCHY_INVALID');
+    }
+    byId.set(id, { ...node, parentId });
+    const siblings = children.get(parentId) ?? [];
+    siblings.push(id);
+    children.set(parentId, siblings);
+  }
+  for (const { parentId } of byId.values()) {
+    if (parentId !== null && !byId.has(parentId)) throw new Error('FULL_CATALOG_HIERARCHY_ORPHAN');
+  }
+  const roots = children.get(null) ?? [];
+  if (roots.length === 0) throw new Error('FULL_CATALOG_HIERARCHY_CYCLE');
+  for (const ids of children.values()) ids.sort();
+  const seen = new Set(), lines = [];
+  const stack = roots.slice().reverse().map(id => ({ id, path: [], pathIds: [] }));
+  let totalBytes = 0;
+  const encoder = new TextEncoder();
+  while (stack.length > 0) {
+    const { id, path, pathIds } = stack.pop();
+    if (seen.has(id) || pathIds.length >= 32) throw new Error('FULL_CATALOG_HIERARCHY_CYCLE');
+    seen.add(id);
+    const node = byId.get(id), nested = children.get(id) ?? [];
+    if (node.isLeaf && nested.length !== 0) throw new Error('FULL_CATALOG_HIERARCHY_LEAF_PARENT');
+    const nextPath = [...path, node.label], nextPathIds = [...pathIds, id];
+    // JSON quoting prevents labels/aliases containing newlines, quotes or
+    // prompt-like text from altering the line format.
+    const line = JSON.stringify({
+      id, parentId: node.parentId, pathIds: nextPathIds, path: nextPath,
+      aliases: node.aliases, modes: node.modes, isLeaf: node.isLeaf,
+    });
+    totalBytes += encoder.encode(line).length + 1;
+    if (totalBytes > 350000) throw new Error('FULL_CATALOG_HIERARCHY_TOO_LARGE');
+    lines.push(line);
+    for (let i = nested.length - 1; i >= 0; i--) {
+      stack.push({ id: nested[i], path: nextPath, pathIds: nextPathIds });
+    }
+  }
+  if (seen.size !== byId.size) throw new Error('FULL_CATALOG_HIERARCHY_ORPHAN_OR_CYCLE');
+  return lines.join('\n');
+}
+
 async function classifyNovelServicesWithGemini({
   geminiKey,
   geminiModel,
@@ -394,10 +459,7 @@ async function classifyNovelServicesWithGemini({
   scopeSummary,
   signal,
 }) {
-  const treeLines = catalog.categories.map((c) => {
-    const indent = '  '.repeat(Math.max(0, (c.path?.length ?? 1) - 1));
-    return `${indent}- ${c.label} [id:${c.categoryId}] [modes:${(c.modes ?? []).join(',')}]`;
-  }).join('\n');
+  const treeLines = formatFullCatalogHierarchy(catalog);
 
   const systemText = [
     'Ti si USKOČI Arhitekta stabla usluga (drugi Gemini u pozadini).',
@@ -624,10 +686,7 @@ async function classifyWorkerServicesWithGemini({
   hasWorkAreas,
   signal,
 }) {
-  const treeLines = catalog.categories.map((c) => {
-    const indent = '  '.repeat(Math.max(0, (c.path?.length ?? 1) - 1));
-    return `${indent}- ${c.label} [id:${c.categoryId}] [modes:${(c.modes ?? []).join(',')}]`;
-  }).join('\n');
+  const treeLines = formatFullCatalogHierarchy(catalog);
 
   const systemText = [
     'Ti si USKOČI Arhitekta stabla usluga za radni profil (drugi Gemini u pozadini).',
