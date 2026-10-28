@@ -44,6 +44,8 @@ jobs:
             supabase/functions/uskoci-taxonomy-postsave-worker/index.ts
       - name: Mobile unit and contract tests
         run: npm test -- --maxWorkers=2 --silent
+      - name: Optional profile skill SDK and SQL comparison
+        run: node --test scripts/f13-skill-cas.test.mjs
       - name: AI intake and taxonomy contracts
         run: |
           node --test --test-concurrency=2 --test-reporter=dot supabase/proofs/ai/*.test.mjs

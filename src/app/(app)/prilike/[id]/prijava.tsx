@@ -5,6 +5,7 @@ import type { Ishod, PodnesiPrijavuKomanda } from '../../../../data/ports';
 import { applicationRefusalGuidance, boundedApplicationSelectionRead, conclusiveApplicationRefusal } from '../../../../data/applicationSelectionClientService';
 import { applicationCommandJournal } from '../../../../data/applicationCommandJournal';
 import { applicationComposerDraftMemory } from '../../../../data/applicationComposerDraftMemory';
+import { workerProfileClientService } from '../../../../data/workerProfileClientService';
 import { fixedApplicationPrice } from '../../../../data/needDetailPresentation';
 import { useOwnedEditor } from '../../../../hooks/useOwnedEditor';
 import { noviZahtevId } from '../../../../lib/idempotencija';
@@ -18,7 +19,8 @@ const NOT_RETIRED_ON_DEVICE = 'Stara prijava nije uklonjena sa telefona. Pokuša
 const JOURNAL_RECOVERY_REQUIRED = 'Prvo proveri da li je prethodna prijava poslata. Izaberi „Proveri da li je poslato“.';
 type Receipt = { prijavaId: string; verzija: number; hash: string };
 type Loaded = { need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; applications: MojaPrijavaProjekcija[]; receipt: Receipt | null };
-type Pending = { command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean };
+type SkillAddition = Readonly<{ input: Readonly<{ accountId: string; accountRevision: number; profileId: string; skill: string }>; current: () => boolean }>;
+type Pending = { command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean; skillAddition: SkillAddition | null };
 /** A price the task names is never typed: it follows the people this application brings (deep read 8.10). */
 function withTaskPrice(draft: ApplicationDraft, need: PotrebaProjekcija): ApplicationDraft {
   if (need.rezimCene !== 'MY_PRICE') return draft;
@@ -76,7 +78,8 @@ export default function Prijava() {
             session.notice = 'Sačuvana prijava na telefonu se nije mogla pročitati, pa je uklonjena. Proveri svoje prijave.';
           } else if (stored.state === 'PRESENT' && !session.pending) {
             const command = stored.record.command;
-            session.pending = { command, need, opportunity, profile, result: null, inFlight: false, reconciled: false };
+            // The journal owns only the application, not consent for an optional profile change.
+            session.pending = { command, need, opportunity, profile, result: null, inFlight: false, reconciled: false, skillAddition: null };
             session.draft = { price: String(command.cenaRsd), people: String(command.pokrivenaMesta), note: command.napomena ?? '',
               start: command.predlozeniPocetak, end: command.predlozeniKraj };
             if (draftScope) applicationComposerDraftMemory.clear(draftScope);
@@ -135,6 +138,12 @@ export default function Prijava() {
       const command: PodnesiPrijavuKomanda = Object.freeze({ clientRequestId: noviZahtevId('prijava'), potrebaId: data.need.id, potrebaRevizija: data.need.revizija,
         radnikProfilId: data.profile.id, pokrivenaMesta: Number(draft.people), cenaRsd: Number(draft.price),
         predlozeniPocetak: draft.start, predlozeniKraj: draft.end, napomena: draft.note.trim() || null });
+      const skill = data.need.detalji?.kategorija ?? data.opportunity.detalji?.kategorija ?? null;
+      const hasSkill = skill ? (data.profile.vestine ?? []).some(value => value.trim().toLowerCase() === skill.trim().toLowerCase()) : true;
+      // Freeze the single requested addition and its screen generation before the first await.
+      // A later profile read supplies the skills to merge; this snapshot never supplies an array to write.
+      const skillAddition: SkillAddition | null = addCategoryToProfile && skill && !hasSkill
+        ? Object.freeze({ input: Object.freeze({ accountId, accountRevision, profileId: data.profile.id, skill }), current }) : null;
       // PKG-006: the identity is durable before any I/O. Without it nothing is sent, and the
       // composer stays editable for a plain retry (no request ever left this device).
       session.journaling = true;
@@ -153,7 +162,7 @@ export default function Prijava() {
       // From here the exact command, rather than editable fields, owns recovery.
       if (draftScope) applicationComposerDraftMemory.clear(draftScope);
       if (!current() || session.pending) return;
-      session.pending = { need: data.need, opportunity: data.opportunity, profile: data.profile, result: null, inFlight: false, reconciled: false, command };
+      session.pending = { need: data.need, opportunity: data.opportunity, profile: data.profile, result: null, inFlight: false, reconciled: false, command, skillAddition };
     }
     void editor.save(async () => {
       setValidation(null);
@@ -171,15 +180,17 @@ export default function Prijava() {
       // Only this command's own authoritative receipt retires the durable identity.
       if (result.ok) {
         await applicationCommandJournal.clear(accountId, pending.command.potrebaId, pending.command.clientRequestId).catch(() => undefined);
-        const taskCategory = pending.need.detalji?.kategorija ?? pending.opportunity.detalji?.kategorija ?? null;
-        const profileSkills = pending.profile.vestine ?? [];
-        const hasSkill = taskCategory ? profileSkills.some(v => v.trim().toLowerCase() === taskCategory.trim().toLowerCase()) : true;
-        if (addCategoryToProfile && taskCategory && !hasSkill) {
+        const addition = pending.skillAddition;
+        // The optional action is attempted at most once, even if the application receipt is replayed.
+        pending.skillAddition = null;
+        if (addition && current() && addition.current()) {
+          const stillCurrent = () => current() && addition.current();
+          const notice = `Prijava je poslata, ali dodavanje veštine „${addition.input.skill}“ nije potvrđeno. Proveri radni profil.`;
           try {
-            const profileResult = await izvor.azurirajRadnikProfil({ vestine: [...profileSkills, taskCategory] });
-            if (!profileResult.ok && currentAccount()) session.profileSkillNotice = `Prijava je poslata, ali veština „${taskCategory}“ nije dodata u radni profil. Proveri i dodaj je tamo.`;
+            const profileResult = await workerProfileClientService.addSkill(addition.input, stillCurrent);
+            if (!profileResult.ok && stillCurrent()) session.profileSkillNotice = notice;
           } catch {
-            if (currentAccount()) session.profileSkillNotice = `Prijava je poslata, ali veština „${taskCategory}“ nije dodata u radni profil. Proveri i dodaj je tamo.`;
+            if (stillCurrent()) session.profileSkillNotice = notice;
           }
         }
       }
@@ -232,7 +243,9 @@ export default function Prijava() {
   const skillOptIn = taskCategory && !hasCategorySkill ? {
     category: taskCategory,
     enabled: addCategoryToProfile,
-    onToggle: (enabled: boolean) => { setAddCategoryToProfile(enabled); render(v => v + 1); },
+    onToggle: (enabled: boolean) => { if (current() && !editor.busy && !session.pending && !session.resetting && !session.journaling && !session.journalRecovery && !session.reading) {
+      setAddCategoryToProfile(enabled); render(v => v + 1);
+    } },
   } : null;
   return <ApplicationComposerPresentation need={currentNeed} opportunity={currentOpp}
     draft={session.draft} change={draft => { if (current() && !editor.busy && !session.pending && !session.resetting && !session.journaling && !session.journalRecovery && !session.reading) {

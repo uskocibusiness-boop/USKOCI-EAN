@@ -6,7 +6,10 @@ import { capabilityTerms } from '../lib/capabilityTerms';
 import { failure, readOwnedResult, record, sameId, uuid, type ReceiptAccount, type ReceiptOptions } from './serverReceipt';
 import { supabaseKlijent } from './supabaseClient';
 
-type WorkerProfileClientService = Pick<Izvor, 'azurirajRadnikProfil'>;
+export type WorkerSkillAddition = Readonly<ReceiptAccount & { profileId: string; skill: string }>;
+type WorkerProfileClientService = Pick<Izvor, 'azurirajRadnikProfil'> & {
+  addSkill: (input: WorkerSkillAddition, stillCurrent: () => boolean) => Promise<Ishod<null>>;
+};
 const inFlight = new Set<string>();
 const COPY: Readonly<Record<string, string>> = {
   AUTH_REQUIRED: 'Prijavi se da izmeniš profil.',
@@ -30,11 +33,90 @@ function profileRow(raw: unknown, account: string, expectedId?: string): { id: s
   return { id: row.id };
 }
 
+function skillRow(raw: unknown, account: string, profileId: string): string[] | null {
+  const row = record(raw);
+  if (!profileRow(raw, account, profileId) || !capabilityTerms(row?.skills)) return null;
+  const skills = row!.skills as string[];
+  // The comparison must retain the exact stored array, including spelling,
+  // whitespace, order and duplicates. Validation is not a normalization step.
+  return skills.some(skill => skill.includes('\0')) ? null : [...skills];
+}
+
+function textArrayLiteral(values: string[]): string {
+  // PostgREST eq() stringifies its argument: neither a JS array nor JSON is a
+  // PostgreSQL text[] literal. Quote each item, escaping only quotes/backslashes.
+  return `{${values.map(value => `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`).join(',')}}`;
+}
+
 /** Profile capabilities/identity only; location and availability writes are refused.
  * Existing activation RPC and the same owned-result
  * fence as location/calendar/availability. Captured owner filters also protect
  * REST writes if the SDK token changes while the request is being prepared. */
 export const workerProfileClientService: WorkerProfileClientService = {
+  /** Optional addition after a confirmed application. Never creates/activates a
+   * profile or replaces skills from the application's older profile snapshot. */
+  async addSkill(input, stillCurrent) {
+    const raw = record(input);
+    const term = capabilityTerms([raw?.skill]);
+    if (!raw || !uuid(raw.accountId) || !uuid(raw.profileId) || !Number.isSafeInteger(raw.accountRevision) ||
+        !term || term[0].includes('\0')) return failure('PROFILE_INPUT_INVALID', 'Podaci za dodavanje veštine nisu ispravni.');
+    const account: ReceiptAccount = { accountId: raw.accountId, accountRevision: raw.accountRevision as number };
+    const profileId = raw.profileId, skill = term[0];
+    const stale = () => failure('PROFILE_SKILL_INTENT_EXPIRED', 'Ponovo otvori radni profil da dodaš veštinu.');
+    if (!stillCurrent()) return stale();
+    const lock = `${account.accountId}:${account.accountRevision}`;
+    if (inFlight.has(lock)) return failure('PROFILE_BUSY', 'Prethodno čuvanje profila se još obrađuje.');
+    inFlight.add(lock);
+    async function run<T>(options: Omit<ReceiptOptions<T>, 'errors'> & { request: () => PromiseLike<unknown> }): Promise<Ishod<T>> {
+      if (!stillCurrent()) return stale();
+      const result = await readOwnedResult({ ...options, errors: COPY, account });
+      return stillCurrent() ? result : stale();
+    }
+    try {
+      const supabase = supabaseKlijent();
+      const authenticated = await run({ request: () => supabase.auth.getUser(), fallback: 'AUTH_REQUIRED', invalid: 'AUTH_ACCOUNT_CHANGED',
+        decode: response => sameId(record(record(response)?.user)?.id, account.accountId) ? true : null });
+      if (!authenticated.ok) return authenticated;
+      // Only a confirmed zero-row CAS response permits a fresh read and retry.
+      // An error, timeout or malformed receipt is never replayed here.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const existing = await run({
+          request: () => supabase.from('app_profiles').select('id,account_id,kind,skills')
+            .eq('id', profileId).eq('account_id', account.accountId).eq('kind', 'WORKER').maybeSingle(),
+          fallback: 'PROFILE_READ_FAILED', invalid: 'PROFILE_INVALID_RESPONSE',
+          decode: response => {
+            if (response === null) return { skills: null };
+            const skills = skillRow(response, account.accountId, profileId);
+            return skills ? { skills } : null;
+          },
+        });
+        if (!existing.ok) return existing;
+        const skills = existing.podatak.skills;
+        if (!skills) return failure('PROFILE_NOT_FOUND', COPY.PROFILE_NOT_FOUND);
+        if (skills.some(value => value.trim().toLowerCase() === skill.trim().toLowerCase())) return { ok: true, podatak: null };
+        if (skills.length >= 50) return failure('V2_FACT_TYPE_INVALID', COPY.V2_FACT_TYPE_INVALID);
+        const merged = [...skills, skill];
+        const updated = await run({
+          request: () => supabase.from('app_profiles').update({ skills: merged }).eq('id', profileId)
+            .eq('account_id', account.accountId).eq('kind', 'WORKER').eq('skills', textArrayLiteral(skills))
+            .select('id,account_id,kind,skills'),
+          fallback: 'PROFILE_UPDATE_FAILED', invalid: 'PROFILE_INVALID_RESPONSE', write: true,
+          decode: response => {
+            if (!Array.isArray(response) || response.length > 1) return null;
+            if (response.length === 0) return { changed: false };
+            const saved = skillRow(response[0], account.accountId, profileId);
+            return saved && saved.length === merged.length && saved.every((value, index) => value === merged[index])
+              ? { changed: true } : null;
+          },
+        });
+        if (!updated.ok) return updated;
+        if (updated.podatak.changed) return { ok: true, podatak: null };
+      }
+      return failure('PROFILE_SKILLS_CHANGED', 'Veštine su u međuvremenu izmenjene. Proveri ih u radnom profilu.');
+    } catch {
+      return failure('PROFILE_UPDATE_FAILED', 'Dodavanje veštine nije potvrđeno. Proveri radni profil.');
+    } finally { inFlight.delete(lock); }
+  },
   async azurirajRadnikProfil(k: AzurirajProfilKomanda): Promise<Ishod<null>> {
     const owner = sesijaSada();
     if (!owner.user) return failure('AUTH_REQUIRED', COPY.AUTH_REQUIRED);

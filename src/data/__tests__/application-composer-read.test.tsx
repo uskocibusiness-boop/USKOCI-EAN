@@ -2,6 +2,7 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 const mockTask = jest.fn(), mockNeed = jest.fn(), mockProfile = jest.fn(), mockWorkWrite = jest.fn(), mockSubmit = jest.fn(), mockSelect = jest.fn(), mockCandidates = jest.fn(), mockApplications = jest.fn(), mockPublic = jest.fn();
 const mockViewed = jest.fn();
+const mockAddSkill = jest.fn();
 const mockSource = { prilika: mockTask, potreba: mockNeed, mojRadnikProfil: mockProfile, azurirajRadnikProfil: mockWorkWrite, podnesiPrijavu: mockSubmit,
   izaberiPrijavu: mockSelect, prijaveZaPotrebu: mockCandidates, mojePrijave: mockApplications, javniProfil: mockPublic, oznaciPrijavuVidjenom: mockViewed };
 const mockRouter = { replace: jest.fn(), push: jest.fn(), back: jest.fn(), canGoBack: jest.fn(() => true) };
@@ -31,6 +32,7 @@ jest.mock('../../ui/Text', () => ({ T: 'T' }));
 jest.mock('../../ui/Press', () => ({ Press: 'Press' }));
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
+jest.mock('../workerProfileClientService', () => ({ workerProfileClientService: { addSkill: (...args: unknown[]) => mockAddSkill(...args) } }));
 const mockStorage = new Map<string, string>();
 jest.mock('@react-native-async-storage/async-storage', () => ({ __esModule: true, default: {
   getItem: jest.fn(async (key: string) => mockStorage.get(key) ?? null),
@@ -66,6 +68,7 @@ beforeEach(() => {
   mockNeed.mockResolvedValue(need()); mockTask.mockResolvedValue({ ...need(), primaNovePrijave: true, rokZaPrijaveIso: null });
   mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'ACTIVE' });
   mockWorkWrite.mockResolvedValue({ ok: true, podatak: null });
+  mockAddSkill.mockResolvedValue({ ok: true, podatak: null });
   mockCandidates.mockResolvedValue([k()]); mockApplications.mockResolvedValue([]);
   mockSubmit.mockResolvedValue({ ok: true, podatak: { prijavaId: k().prijavaId, verzija: 2, hash: k().hash } });
   mockSelect.mockResolvedValue({ ok: true, podatak: { dogovorId: agreement } }); mockPublic.mockResolvedValue(null);
@@ -120,12 +123,122 @@ it('does not show a different task or account the unsent application, and gives 
 it('keeps the accepted application confirmed and reports an optional work-profile update failure', async () => {
   mockNeed.mockResolvedValue({ ...need(), detalji: { kategorija: 'Selidbe' } });
   mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'ACTIVE', vestine: [] });
-  mockWorkWrite.mockResolvedValue({ ok: false, kod: 'PROFILE_UPDATE_FAILED', poruka: 'Update failed.' });
+  mockAddSkill.mockResolvedValue({ ok: false, kod: 'PROFILE_UPDATE_FAILED', poruka: 'Update failed.' });
   await offer(); await sendOffer();
   expect(mockSubmit).toHaveBeenCalledTimes(1);
-  expect(mockWorkWrite).toHaveBeenCalledWith({ vestine: ['Selidbe'] });
-  expect(text()).toContain('Prijava je poslata, ali veština „Selidbe“ nije dodata u radni profil.');
+  expect(mockAddSkill).toHaveBeenCalledWith({ accountId: 'owner-a', accountRevision: 1,
+    profileId: '10000000-0000-4000-8000-000000000002', skill: 'Selidbe' }, expect.any(Function));
+  expect(mockWorkWrite).not.toHaveBeenCalled();
+  expect(text()).toContain('Prijava je poslata, ali dodavanje veštine „Selidbe“ nije potvrđeno. Proveri radni profil.');
   expect(press('Otvori moje prijave')).toBeDefined();
+});
+
+describe('F13 optional profile skill belongs to the original application screen', () => {
+  const storage = jest.requireMock('@react-native-async-storage/async-storage').default as { setItem: jest.Mock; removeItem: jest.Mock };
+  const receipt = () => ({ ok: true, podatak: { prijavaId: k().prijavaId, verzija: 2, hash: k().hash } });
+  const unknown = { ok: false, kod: 'APPLICATION_SELECTION_UNCONFIRMED', poruka: 'Ishod nije potvrđen.' };
+  const presentation = () => tree!.root.findByType(ApplicationSelectionPresentation);
+  const toggle = () => tree!.root.findAll(node => String(node.type) === 'Switch' && node.props.testID === 'composer-skill-opt-in-switch')[0].props.onValueChange;
+  beforeEach(() => {
+    mockNeed.mockResolvedValue({ ...need(), detalji: { kategorija: 'Selidbe' } });
+    mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'ACTIVE', vestine: ['Nošenje'] });
+  });
+
+  it('opt-out sends the application without any profile write', async () => {
+    await offer(); await act(async () => toggle()(false)); await sendOffer();
+    expect(text()).toContain('Prijava je poslata.');
+    expect(mockAddSkill).not.toHaveBeenCalled(); expect(mockWorkWrite).not.toHaveBeenCalled();
+  });
+
+  it.each([{ skills: undefined }, { skills: [' SELIDBE '] }])('does not request an optional addition without an offered missing skill ($skills)', async ({ skills }) => {
+    if (skills) mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'ACTIVE', vestine: skills });
+    else mockNeed.mockResolvedValue(need());
+    await offer(); await sendOffer();
+    expect(mockSubmit).toHaveBeenCalledTimes(1); expect(mockAddSkill).not.toHaveBeenCalled();
+  });
+
+  it('freezes the original choice, identity and single skill before journal storage; stale arrays never become a write', async () => {
+    const gate = deferred();
+    storage.setItem.mockImplementationOnce(async (key: string, value: string) => { await gate.promise; mockStorage.set(key, value); });
+    await offer(); const retainedToggle = toggle(); await sendOffer();
+    expect(mockSubmit).not.toHaveBeenCalled();
+    await act(async () => retainedToggle(false));
+    await act(async () => gate.resolve(undefined));
+    expect(mockAddSkill).toHaveBeenCalledTimes(1);
+    const [input, current] = mockAddSkill.mock.calls[0];
+    expect(input).toEqual({ accountId: 'owner-a', accountRevision: 1, profileId: '10000000-0000-4000-8000-000000000002', skill: 'Selidbe' });
+    expect(Object.isFrozen(input)).toBe(true); expect(current()).toBe(true);
+    expect(mockWorkWrite).not.toHaveBeenCalled();
+  });
+
+  const transitions = ['another account', 'A→B→A', 'blur and refocus', 'another task'] as const;
+  const leaveOriginal = async (transition: typeof transitions[number]) => {
+    if (transition === 'another account' || transition === 'A→B→A') {
+      mockAccount = { user: { id: 'owner-b' }, accountRevision: 2 }; await update();
+      if (transition === 'A→B→A') { mockAccount = { user: { id: 'owner-a' }, accountRevision: 3 }; await update(); }
+    } else if (transition === 'blur and refocus') {
+      mockFocused = false; await update(); mockFocused = true; await update();
+    } else {
+      mockId = '20000000-0000-4000-8000-000000000001'; await update();
+    }
+  };
+  it.each(transitions)('does not add a skill when %s replaces the screen while the application is pending', async transition => {
+    const gate = deferred(); mockSubmit.mockReturnValueOnce(gate.promise);
+    await offer(); await sendOffer();
+    await leaveOriginal(transition);
+    await act(async () => gate.resolve(receipt()));
+    expect(mockSubmit).toHaveBeenCalledTimes(1); expect(mockAddSkill).not.toHaveBeenCalled();
+    expect(mockWorkWrite).not.toHaveBeenCalled();
+  });
+
+  it.each(transitions)('checks ownership again after journal cleanup when %s replaces the screen', async transition => {
+    const gate = deferred();
+    storage.removeItem.mockImplementationOnce(async (key: string) => { await gate.promise; mockStorage.delete(key); });
+    await offer(); await sendOffer();
+    expect(storage.removeItem).toHaveBeenCalledTimes(1); expect(mockAddSkill).not.toHaveBeenCalled();
+    await leaveOriginal(transition);
+    await act(async () => gate.resolve(undefined));
+    expect(mockAddSkill).not.toHaveBeenCalled(); expect(mockWorkWrite).not.toHaveBeenCalled();
+  });
+
+  it('a fresh read followed by an explicit application replay does not revive the old optional intent', async () => {
+    mockSubmit.mockResolvedValueOnce(unknown);
+    await offer(); await sendOffer();
+    const original = mockSubmit.mock.calls[0][0];
+    await tap('Proveri da li je poslato'); await tap('Pošalji ponovo');
+    expect(mockSubmit.mock.calls[1][0]).toEqual(original);
+    expect(text()).toContain('Prijava je poslata.'); expect(mockAddSkill).not.toHaveBeenCalled();
+  });
+
+  it('a cold journal restore never invents consent for the optional profile addition', async () => {
+    mockSubmit.mockResolvedValueOnce(unknown);
+    await offer(); await sendOffer(); const original = mockSubmit.mock.calls[0][0];
+    await act(async () => tree!.unmount()); tree = undefined; await render();
+    await tap('Pošalji ponovo');
+    expect(mockSubmit.mock.calls[1][0]).toEqual(original);
+    expect(text()).toContain('Prijava je poslata.'); expect(mockAddSkill).not.toHaveBeenCalled();
+    expect(mockWorkWrite).not.toHaveBeenCalled();
+  });
+
+  it('consumes the optional attempt once, preserving success even if it throws and the receipt is replayed', async () => {
+    mockAddSkill.mockRejectedValueOnce(new Error('private transport details'));
+    await offer(); await sendOffer();
+    expect(text()).toContain('Prijava je poslata, ali dodavanje veštine „Selidbe“ nije potvrđeno.');
+    expect(text()).not.toContain('private transport details'); expect(press('Otvori moje prijave')).toBeDefined();
+    const original = mockSubmit.mock.calls[0][0];
+    await act(async () => { await presentation().props.submit(); });
+    expect(mockSubmit.mock.calls[1][0]).toEqual(original);
+    expect(mockAddSkill).toHaveBeenCalledTimes(1); expect(press('Otvori moje prijave')).toBeDefined();
+  });
+
+  it('passes a live screen guard to the profile command and drops a late optional failure notice after refocus', async () => {
+    const gate = deferred(); mockAddSkill.mockReturnValueOnce(gate.promise);
+    await offer(); await sendOffer();
+    const guard = mockAddSkill.mock.calls[0][1]; expect(guard()).toBe(true);
+    await leaveOriginal('blur and refocus'); expect(guard()).toBe(false);
+    await act(async () => gate.resolve({ ok: false, kod: 'PROFILE_UPDATE_FAILED', poruka: 'Update failed.' }));
+    expect(text()).not.toContain('dodavanje veštine „Selidbe“ nije potvrđeno'); expect(mockAddSkill).toHaveBeenCalledTimes(1);
+  });
 });
 
 it('rearms read and Retry after returning to the same retained tab', async () => {
