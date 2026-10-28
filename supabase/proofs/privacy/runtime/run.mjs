@@ -18,6 +18,7 @@ const files = {
   comparator: join(privacy, 'r01-bootstrap-parity.mjs'),
   config: join(here, 'config.toml'),
   extensions: join(here, 'extensions.sql'),
+  auth_indexes: join(here, 'auth-search-indexes.sql'),
   pins: join(here, 'pins.json'),
   runner: fileURLToPath(import.meta.url),
   diagnostics: join(here, 'managed-diagnostics.mjs'),
@@ -175,7 +176,7 @@ async function run() {
     if (!accepted && label === 'START_STACK') {
       receipt.startup_failure = scrubStartupFailure(result.stdout ?? '', result.stderr ?? '');
     }
-    if (!accepted && ['PG_ADMISSION', 'SERVICE_MIGRATION_ADMISSION', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
+    if (!accepted && ['PG_ADMISSION', 'SERVICE_MIGRATION_ADMISSION', 'AUTH_SEARCH_INDEXES', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
       'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE'].includes(label)) {
       receipt.sql_failures ??= [];
       receipt.sql_failures.push({stage: label, ...scrubSqlFailure(result.stderr ?? '')});
@@ -184,7 +185,7 @@ async function run() {
     return result;
   }
   function sql(label, source, role = 'postgres') {
-    required(['postgres', 'supabase_admin'].includes(role), 'DATABASE_ROLE_REFUSED');
+    required(['postgres', 'supabase_admin', 'supabase_auth_admin'].includes(role), 'DATABASE_ROLE_REFUSED');
     return command(label, 'docker', ['exec', '-i', `supabase_db_${pins.project_id}`,
       'psql', '-X', '-qAt', '-U', role, '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose', '-f', '-'],
     {input: source, timeout: 300000}).stdout.trim();
@@ -252,6 +253,9 @@ async function run() {
     receipt.service_history_verified = true;
     receipt.service_history = serviceHistory;
 
+    required(JSON.stringify(sourceCheck()) === JSON.stringify(receipt.source_hashes), 'SOURCE_CHANGED_DURING_START');
+    sql('AUTH_SEARCH_INDEXES', "SET uskoci.r01.bootstrap = 'LOCAL_ONLY';\n" + readFileSync(files.auth_indexes, 'utf8'),
+      'supabase_auth_admin');
     sql('PLATFORM_EXTENSIONS', "SET uskoci.r01.bootstrap = 'LOCAL_ONLY';\n" + readFileSync(files.extensions, 'utf8'), 'supabase_admin');
     const extensions = JSON.parse(sql('EXTENSION_ADMISSION', `SELECT jsonb_agg(jsonb_build_object(
       'name',e.extname,'schema',n.nspname,'version',e.extversion) ORDER BY e.extname)
