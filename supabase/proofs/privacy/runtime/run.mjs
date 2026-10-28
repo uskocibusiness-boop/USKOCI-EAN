@@ -29,6 +29,8 @@ const files = {
   diagnostics: join(here, 'managed-diagnostics.mjs'),
   cli_builder: join(here, 'cli-bootstrap-build.mjs'),
   cli_source: join(here, 'cli-bootstrap-source.json'),
+  cli_probe: join(here, 'cli-bootstrap-probe.mjs'),
+  cli_compile: join(here, 'cli-bootstrap-compile.mjs'),
   workflow: join(repository, '.github/workflows/r01-disposable-schema.yml'),
 };
 const sha256 = value => createHash('sha256').update(value).digest('hex');
@@ -89,7 +91,7 @@ export function validateEnvironment(env, platform) {
     /^\d+$/.test(env.GITHUB_RUN_ATTEMPT ?? ''), 'CI_IDENTITY_REFUSED');
   required(isAbsolute(env.RUNNER_TEMP ?? '') && isAbsolute(env.GITHUB_WORKSPACE ?? ''), 'CI_PATH_REFUSED');
   for (const key of ['SUPABASE_ACCESS_TOKEN', 'SUPABASE_DB_PASSWORD', 'SUPABASE_WORKDIR',
-    'SUPABASE_INTERNAL_IMAGE_REGISTRY', 'SUPABASE_SERVICES_HOSTNAME', 'DOCKER_HOST', 'DOCKER_CONTEXT']) {
+    'SUPABASE_INTERNAL_IMAGE_REGISTRY', 'SUPABASE_SERVICES_HOSTNAME', 'DOCKER_HOST', 'DOCKER_CONTEXT', 'SUPABASE_GO_BINARY']) {
     required(!env[key], 'EXTERNAL_RUNTIME_CONFIGURATION_REFUSED');
   }
 }

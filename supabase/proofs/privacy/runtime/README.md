@@ -47,18 +47,30 @@ lists PostgreSQL 17.6 and PostGIS 3.3.7; actual versions are still checked at ru
 
 The runner now uses the explicitly identified **disposable derivative**
 `2.116.0-r01-no-webhook`, not the unmodified released CLI. The pinned upstream
-[startup source](https://github.com/supabase/cli/blob/997a1e69a4a83466964ed874d3a604c88a7b3866/apps/cli-go/internal/db/start/start.go)
-unconditionally inserts its legacy `templates/webhook.sql` into a new database.
+[active TypeScript startup source](https://github.com/supabase/cli/blob/997a1e69a4a83466964ed874d3a604c88a7b3866/apps/cli/src/legacy/shared/db-bootstrap/postgres.service.ts)
+unconditionally inserts its legacy `templates/db-webhook.sql.ts` into a new database.
 That separate template adds `supabase_functions`, role/default privileges and
 an event trigger, and changes pg_net GET/POST to SECURITY DEFINER. Those are
 observed disposable-only additions, not part of the captured DEV baseline.
 
 `cli-bootstrap-build.mjs` fetches the exact upstream commit, verifies a clean
-checkout and SHA-256 for the affected source, untouched webhook template,
-go.mod and go.sum, and removes only the single 22-byte concatenation expression.
-The source before and after has a pinned hash. It compiles with the pinned,
-SHA-256-verified Go 1.26.10 distribution and checksum-verified read-only module
-resolution; final source status may contain only this one change. It publishes
+checkout and SHA-256 for the complete active startup import/call chain, untouched
+webhook template, frozen pnpm lockfile/workspace, go.mod and go.sum. It removes
+only the single 41-byte TypeScript concatenation expression. The source before
+and after has a pinned hash. It uses verified Bun 1.4.0 and pnpm 11.4.0 archives,
+frozen dependency resolution with installation scripts disabled, and upstream's
+legacy entrypoint and release build defines. The unchanged Go source is compiled
+with verified Go 1.26.10 and read-only module resolution into the co-located
+`supabase-go` sidecar for the shell's remaining delegated commands. The start,
+stop and services commands execute directly in the TypeScript shell.
+
+Before and after patching, the builder executes the actual TypeScript container
+constructor: all non-script container fields must hash identically, and the
+resulting startup script must differ only by the exact webhook template.
+The compiled shell's `--version`, `start --help`, `stop --help` and
+`services --help` must all pass before a build is admitted. Final source status
+may contain only the reviewed TypeScript change. The runtime checks hashes for
+both compiled executables; an unbound Go sidecar or build is rejected. It publishes
 the source/toolchain/binary hashes and fixed failure categories, while download
 and build logs stay private. No script changes a managed object's owner or
 privileges after database startup. Service images and migration histories remain

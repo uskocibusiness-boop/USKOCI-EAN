@@ -9,7 +9,8 @@
   "removed_test_cases": {
     "C08": 23,
     "C12": 74,
-    "total": 97
+    "total": 97,
+    "accounting": "Explicitly retired cases only; dynamic inventory reduction is recorded separately."
   },
   "retained_location_permission_cases": 8,
   "records": [
@@ -295,7 +296,8 @@
         "typescript": "PASS: node node_modules/typescript/bin/tsc --noEmit (exit 0)",
         "reference_search": "PASS: no retired symbol/import/call remains in src; no retired adapter/prototype/test entry in .github, scripts or config/package files.",
         "limits": "Local source/test verification only; no DB/RPC deletion, deploy, native device acceptance or release claim.",
-        "diff_check": "PASS: git diff --check (exit 0)"
+        "diff_check": "PASS: git diff --check (exit 0)",
+        "case_accounting": "74 explicitly retired C12 cases plus 2 generated auth-scale inventory cases = C12 total reduction 76. C08/C12 explicit 97 plus dynamic 2 = total Jest reduction 99."
       },
       "historical_reference_if_needed": {
         "commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
@@ -392,7 +394,30 @@
           ],
           "retained_location_cases": 8
         }
-      ]
+      ],
+      "dynamic_inventory_test_cases_removed": {
+        "path": "src/ui/auth/__tests__/auth-scale.test.ts",
+        "source_commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
+        "source_sha256": "d6659128d0e1aa44dc232fe3959016c4f5c6b3d33ec3c1bdbd68d420f4b26e7b",
+        "unchanged_guard_source": true,
+        "cause": "Unchanged auth-scale suite uses sources(src/ui/permissions) inside SCOPE and two it.each(SCOPE) inventories. Retiring notificationAsk.ts removes its two generated cases without editing the guard.",
+        "removed_target": "src/ui/permissions/notificationAsk.ts",
+        "inventory_source_count_before": 22,
+        "inventory_source_count_after": 21,
+        "removed_cases": [
+          "the sign-in screens stand on the one scale src/ui/permissions/notificationAsk.ts spells no padding, margin or gap off the scale",
+          "the sign-in screens stand on the one scale src/ui/permissions/notificationAsk.ts spells no size, corner, colour, hairline or typeface of its own"
+        ],
+        "verification": "Read-only git-tree/current file inventory comparison; sole removed auth/permission source is notificationAsk.ts. Existing guard source is unchanged. No full-suite rerun.",
+        "scope_count_including_two_explicit_auth_routes_before": 24,
+        "scope_count_including_two_explicit_auth_routes_after": 23
+      }
     }
-  ]
+  ],
+  "dynamic_inventory_test_cases_removed": 2,
+  "total_jest_case_reduction": {
+    "C08": 23,
+    "C12": 76,
+    "total": 99
+  }
 }

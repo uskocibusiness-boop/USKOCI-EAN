@@ -38,6 +38,20 @@ execution. Dynamic SQL can hide dependencies from pg_depend; inspect all
 affected captured executable bodies and fail if authority can reach an unproved
 object. A statement that an entire managed schema is irrelevant is not enough.
 
+The separate read-only DEV capture
+`artifacts/r01/20261028-hosted-cli-role-dependencies.json` (SHA-256
+`3574fb9f89b4022b2124ce94b82bad33452d5484fc069012476a09d735617b76`)
+advances the hosted-login case: pg_shdepend reports no objects depending on
+`cli_login_postgres`; its sole membership is that login role as a non-inheriting,
+non-admin member of postgres with SET allowed. The login role has none of
+SUPERUSER/CREATEROLE/CREATEDB/REPLICATION/BYPASSRLS. All eight queried
+request/service/postgres principals have neither inherited USAGE nor SET to
+that login role. Captured application/Auth/Storage/extensions routine bodies
+contain zero literal mentions. Namespaces named `supabase_admin`, `$user` and
+literal `\$user` are all absent. This contains only catalog metadata, not Auth
+or business rows. It supports the scoped hypotheses but is not yet a paired
+disposable assertion or a complete dynamic-code dependency proof.
+
 Only after every actually remaining difference is proved within this scope may
 an isolated next stage create synthetic Auth users, exercise current PostgREST
 paths, apply the unchanged R01 candidate and test all three private columns.

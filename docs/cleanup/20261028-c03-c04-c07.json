@@ -5,16 +5,16 @@
   "source_evidence": "REV10 dokazi/izvrsivost/readiness_review.json cleanup.retirement_batches, cleanup.normalized_path_index, cleanup.required_per_change_record",
   "source_commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
   "metrics": {
-    "scoped_paths_before": 24,
-    "scoped_paths_after": 16,
+    "scoped_paths_before": 25,
+    "scoped_paths_after": 17,
     "removed_files": 9,
     "added_files": 1,
     "net_removed_files": 8,
-    "lines_before": 6047,
-    "lines_after": 3915,
-    "net_removed_lines": 2132,
-    "bytes_before_lf": 438103,
-    "bytes_after_lf": 291310,
+    "lines_before": 6133,
+    "lines_after": 3999,
+    "net_removed_lines": 2134,
+    "bytes_before_lf": 442946,
+    "bytes_after_lf": 296124,
     "focused_suites_before": 10,
     "focused_suites_after": 8,
     "focused_cases_before": 320,
@@ -294,6 +294,16 @@
             "lines_after": 220,
             "bytes_before": 15671,
             "bytes_after_lf": 15591
+          },
+          {
+            "path": "src/ui/system/__tests__/glyph-import-guard.test.ts",
+            "action": "MODIFIED",
+            "before_sha256": "349c70cb82cfe22fb67b175c62022f27dd1feea36c07c1242f80449873d08e19",
+            "after_lf_sha256": "f4a5609b9c66eee8d329d33f98e79892fdfc24d085d718c49997ba6189723a9f",
+            "lines_before": 86,
+            "lines_after": 85,
+            "bytes_before": 4843,
+            "bytes_after_lf": 4815
           }
         ],
         "retired_exports": [
@@ -348,7 +358,8 @@
         "candidate-face.test.tsx 59 → 59; removed test-only requester model assertions while retaining candidateHas/candidateTerm/candidateSpoken",
         "task-card-face.test.tsx 54 → 54; CardPlaces rendering replaced by existing placesText business assertions; actual TaskCard cases retained",
         "prijava-card.test.tsx 15 → 14; 1 requester-only retired composition case removed; mixed worker checks retained",
-        "task-card-layout-class.test.tsx 84 PASS; application-face.test.tsx 44 PASS"
+        "task-card-layout-class.test.tsx 84 PASS; application-face.test.tsx 44 PASS",
+        "glyph-import-guard.test.ts: remove only the stale TaskFace Phosphor importer allowance after full CI40730103171 found it; guard logic and all 5 cases unchanged."
       ],
       "compatibility_boundary": "No merging of requester/worker interactions and no changes to command ownership, amounts, people counts, status or accessibility strings. No server/data projection changes. Tests establish structural behavior; native pixel-fit remains the release/device gate.",
       "verification": {
@@ -356,7 +367,23 @@
         "removed_cases": 1,
         "additional_active_card_tests": 128,
         "unchanged_ast_declarations": 30,
-        "typecheck": "PASS"
+        "typecheck": "PASS",
+        "ci_followup": {
+          "ci_run": "40730103171",
+          "source_commit": "abc0f70e6d10c0c4b295fc75f71b0c195c1fcae9",
+          "observed_result": "1 failed / 14115 total tests; 613 of 614 suites passed",
+          "failure": "glyph-import-guard kept TaskFace.tsx on reviewed Phosphor importers after retired CardNext/CardFootLine and their only icon import were removed",
+          "fix": "Remove only src/ui/v2/TaskFace.tsx from PHOSPHOR_IMPORTERS; do not weaken source-scan assertions or restore obsolete runtime import",
+          "runtime_changes": false,
+          "verification": {
+            "command": "node node_modules/jest/bin/jest.js --runInBand --silent --json --outputFile=../cleanup-ui-glyph-fix.json --runTestsByPath src/ui/system/__tests__/glyph-import-guard.test.ts src/ui/system/__tests__/one-token-source.test.ts",
+            "status": "PASS",
+            "suites": 2,
+            "cases": 78,
+            "seconds": 1.925
+          },
+          "full_ci_after_fix": "PENDING parent run; no passing full-CI claim"
+        }
       }
     },
     {
@@ -460,11 +487,11 @@
             "path": "src/data/__tests__/entry-brand-raster.test.tsx",
             "action": "ADDED",
             "before_sha256": null,
-            "after_lf_sha256": "a4029d0da4e1d099da5df470c7041fac17dcfbc8d3979f4be3350452f9cc4f98",
+            "after_lf_sha256": "8b654cbecedf487bde81d0988d0af9be3c42e86a0086b972cad400f12800b064",
             "lines_before": 0,
-            "lines_after": 26,
+            "lines_after": 25,
             "bytes_before": 0,
-            "bytes_after_lf": 1709
+            "bytes_after_lf": 1708
           },
           {
             "path": "src/ui/system/__tests__/one-token-source.test.ts",
@@ -492,7 +519,7 @@
           "src/ui/entry/BrandAssets.tsx",
           "src/ui/entry/BrandRaster.tsx",
           "src/ui/entry/spojBrandMath.ts",
-          "src/ui/entry/brandParts.ts",
+          "src/ui/entry/spojBrandData.ts",
           "assets/brand/premium-entry",
           "assets/brand/reference-entry",
           "scripts/sync-entry-reference-assets.cjs",
@@ -567,10 +594,128 @@
     "cleanup-ui-install-proof.json": {
       "sha256": "5912d762c03fda9b9aa2e0c4c766300e55e509364c5edc1322ea392233feb89e",
       "location": "../cleanup-ui-install-proof.json"
+    },
+    "cleanup-ui-glyph-fix.json": {
+      "sha256": "5b20b2ba8263cf5a57e8a0f6173a75ebc8ae9f76406e9fb76cbd6c35f7e03dff",
+      "location": "../cleanup-ui-glyph-fix.json"
+    },
+    "cleanup-ui-auth-scale-current.json": {
+      "sha256": "6b451ae5ba7542d26fd15bf2f4475d9125e7ac97fce19a775146cecb5d122bdf",
+      "location": "../cleanup-ui-auth-scale-current.json"
+    },
+    "cleanup-second-test-count-reconciliation.json": {
+      "sha256": "003133b2ead899b9b8caad0397768031ab105c5919ea0b09fbcb88d4290c5baa",
+      "location": "../cleanup-second-test-count-reconciliation.json"
     }
   },
   "review": {
     "react_skill": "vercel:react-best-practices SKILL.md reviewed; no new state/effects/events/fetching, active memo components/accessible descriptions/role-specific composition retained",
     "remaining": "Full CI/build and device/native acceptance are parent/release checks; root ledger update intentionally belongs to parent agent."
+  },
+  "ci_followup": {
+    "ci_run": "40730103171",
+    "source_commit": "abc0f70e6d10c0c4b295fc75f71b0c195c1fcae9",
+    "observed_result": "1 failed / 14115 total tests; 613 of 614 suites passed",
+    "failure": "glyph-import-guard kept TaskFace.tsx on reviewed Phosphor importers after retired CardNext/CardFootLine and their only icon import were removed",
+    "fix": "Remove only src/ui/v2/TaskFace.tsx from PHOSPHOR_IMPORTERS; do not weaken source-scan assertions or restore obsolete runtime import",
+    "runtime_changes": false,
+    "verification": {
+      "command": "node node_modules/jest/bin/jest.js --runInBand --silent --json --outputFile=../cleanup-ui-glyph-fix.json --runTestsByPath src/ui/system/__tests__/glyph-import-guard.test.ts src/ui/system/__tests__/one-token-source.test.ts",
+      "status": "PASS",
+      "suites": 2,
+      "cases": 78,
+      "seconds": 1.925
+    },
+    "full_ci_after_fix": "PENDING parent run; no passing full-CI claim"
+  },
+  "whole_batch_case_count_reconciliation": {
+    "schema": "USKOCI_CLEANUP_SECOND_JEST_COUNT_RECONCILIATION_V1",
+    "baseline_commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
+    "baseline_full_ci": "40718314704",
+    "current_full_ci": "40730103171",
+    "baseline_suites": 622,
+    "current_suites": 614,
+    "baseline_cases": 14352,
+    "current_cases": 14115,
+    "delta": 237,
+    "recorded_explicit_retirements": {
+      "C03_C04_C07": 138,
+      "C08": 23,
+      "C12": 74
+    },
+    "additional_derived_retirements": {
+      "owner": "C12",
+      "path": "src/ui/auth/__tests__/auth-scale.test.ts",
+      "test_source_unchanged": true,
+      "test_sha256_lf": "d6659128d0e1aa44dc232fe3959016c4f5c6b3d33ec3c1bdbd68d420f4b26e7b",
+      "scope_before": [
+        "src/app/auth.tsx",
+        "src/app/oporavak.tsx",
+        "src/ui/auth/AccountClosingState.tsx",
+        "src/ui/auth/AuthControls.tsx",
+        "src/ui/auth/AuthFlowFrame.tsx",
+        "src/ui/auth/AuthFormStep.tsx",
+        "src/ui/auth/AuthGallery.tsx",
+        "src/ui/auth/AuthIntentLine.tsx",
+        "src/ui/auth/AuthPresentation.tsx",
+        "src/ui/auth/AuthSheet.tsx",
+        "src/ui/auth/AuthStateSteps.tsx",
+        "src/ui/auth/RecoveryLinkSteps.tsx",
+        "src/ui/auth/RestrictedAccountPanel.tsx",
+        "src/ui/auth/authCopy.ts",
+        "src/ui/auth/authMethods.ts",
+        "src/ui/auth/authValidation.ts",
+        "src/ui/auth/keyboardReveal.ts",
+        "src/ui/auth/supportContact.ts",
+        "src/ui/auth/useKeyboardOpen.ts",
+        "src/ui/permissions/PermissionAskHost.tsx",
+        "src/ui/permissions/locationPermission.ts",
+        "src/ui/permissions/notificationAsk.ts",
+        "src/ui/permissions/permissionAsk.ts",
+        "src/ui/permissions/testing/answeringHost.ts"
+      ],
+      "scope_after": [
+        "src/app/auth.tsx",
+        "src/app/oporavak.tsx",
+        "src/ui/auth/AccountClosingState.tsx",
+        "src/ui/auth/AuthControls.tsx",
+        "src/ui/auth/AuthFlowFrame.tsx",
+        "src/ui/auth/AuthFormStep.tsx",
+        "src/ui/auth/AuthGallery.tsx",
+        "src/ui/auth/AuthIntentLine.tsx",
+        "src/ui/auth/AuthPresentation.tsx",
+        "src/ui/auth/AuthSheet.tsx",
+        "src/ui/auth/AuthStateSteps.tsx",
+        "src/ui/auth/RecoveryLinkSteps.tsx",
+        "src/ui/auth/RestrictedAccountPanel.tsx",
+        "src/ui/auth/authCopy.ts",
+        "src/ui/auth/authMethods.ts",
+        "src/ui/auth/authValidation.ts",
+        "src/ui/auth/keyboardReveal.ts",
+        "src/ui/auth/supportContact.ts",
+        "src/ui/auth/useKeyboardOpen.ts",
+        "src/ui/permissions/PermissionAskHost.tsx",
+        "src/ui/permissions/locationPermission.ts",
+        "src/ui/permissions/permissionAsk.ts",
+        "src/ui/permissions/testing/answeringHost.ts"
+      ],
+      "fixed_cases": 3,
+      "parameterized_groups": 2,
+      "cases_before": 51,
+      "cases_after": 49,
+      "current_executed_cases": 49,
+      "current_result": "PASS",
+      "removed_cases": [
+        "the sign-in screens stand on the one scale src/ui/permissions/notificationAsk.ts spells no padding, margin or gap off the scale",
+        "the sign-in screens stand on the one scale src/ui/permissions/notificationAsk.ts spells no size, corner, colour, hairline or typeface of its own"
+      ]
+    },
+    "reconciled_totals": {
+      "C03_C04_C07": 138,
+      "C08": 23,
+      "C12_including_derived": 76,
+      "total": 237
+    },
+    "classification": "RETIRED_RULE: generic source scanner no longer generates checks for removed notificationAsk prototype; scanner remains unchanged for all current files."
   }
 }

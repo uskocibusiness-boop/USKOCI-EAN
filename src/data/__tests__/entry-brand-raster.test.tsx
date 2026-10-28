@@ -23,4 +23,3 @@ it('passes atlas normalization through the real native SVG transform extractor',
     await act(async () => tree.unmount());
   }
 });
-
