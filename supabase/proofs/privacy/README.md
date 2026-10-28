@@ -48,6 +48,25 @@ owner-page R03 wire incompatibility is characterized, not repaired.
 
 Run only against the target identified by the connection context. Save its JSON result with the source commit and capture time. The read-only transaction ends with `ROLLBACK`. The query deliberately has no schema changes, grants, fixture writes, digest rebind, deployment or password/token output.
 
+`r01-capture-bootstrap-metadata.sql` additionally inventories the metadata needed
+to reconstruct a current disposable application schema: extension versions,
+sequence options/ownership (not values), role membership options, event triggers,
+unsupported object shapes and the managed Auth relation contract. It returns all
+application/helper function hashes and eleven ordered catalog section digests,
+including the real `authenticator` pre-request setting. It runs in a read-only
+transaction with `search_path=pg_catalog` and bounded timeouts; it does not call
+application functions or read application/Auth records. Keep the captured output
+in the evidence store, not a public repository export.
+
+The query is a capture, not a bootstrap or parity verdict. Function body hashes
+can be compared with REV10 directly; definition/expression digests use this new
+pinned-path format. A disposable PostgreSQL 17 stack must reproduce the relevant
+catalog and resolve differences before real Auth/PostgREST tests. Review managed
+platform differences explicitly; do not copy hosted operational roles or replace
+managed schemas to force equality. Do not reuse the historical P6 replay as proof
+of the current schema. Current capture/comparison identities and remaining work
+are recorded in `docs/plan/CODEX_PLAN_RADA.md`.
+
 Fresh DEV metadata on 2026-10-27 still showed authenticated table SELECT and effective SELECT on all three private Need columns; anon SELECT was false. The first isolated candidate should remove the broader SELECT sources and regrant a reviewed explicit public column whitelist in one transaction. PostgreSQL table REVOKE also removes corresponding column grants, so a bare revoke would break readers. Preserve current RLS, authenticated helper access, owner-authorized actions and service consumers. Do not replay old PKG045b or rewrite an applied migration.
 
 Before claiming F21 fixed, execute a current synthetic Auth/PostgREST proof with:
