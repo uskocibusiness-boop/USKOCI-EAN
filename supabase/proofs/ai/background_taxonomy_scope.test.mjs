@@ -94,8 +94,10 @@ for (const purpose of ['need', 'worker']) {
       }] })));
       const args = { geminiKey: 'synthetic', geminiModel: 'synthetic',
         rpc: async () => ({ ok: true, data: { catalogVersion: 809040 + Number(short), catalogFingerprint: purpose + short, count: 1,
-          categories: [{ categoryId: '11111111-1111-4111-8111-111111111111', label: 'Servis uređaja',
-            path: ['Servis uređaja'], aliases: [], modes: ['ON_SITE'] }] } }),
+          categories: [{ categoryId: '11111111-1111-4111-8111-111111111111', parentId: null, isLeaf: true,
+            label: 'Servis uređaja', path: ['Servis uređaja'],
+            pathIds: ['11111111-1111-4111-8111-111111111111'],
+            aliases: [], modes: ['ON_SITE'] }] } }),
       };
       const result = purpose === 'need'
         ? await buildFullTreeTaxonomyProposals({ ...args, items: [{ service: 'klima', mode: 'ON_SITE' }] })
@@ -176,8 +178,9 @@ test('novel task classification receives bounded public scope and does not reuse
   const rpc = async (name) => {
     assert.equal(name, 'rpc_taxonomy_fetch_snapshot_v1');
     return { ok: true, data: { catalogVersion: 987654321, catalogFingerprint: 'scope-test', count: 1,
-      categories: [{ categoryId: parentId, label: 'Klimatizacija', path: ['Klimatizacija'],
-        aliases: [], modes: ['ON_SITE'] }] } };
+      categories: [{ categoryId: parentId, parentId: null, isLeaf: true,
+        label: 'Klimatizacija', path: ['Klimatizacija'],
+        pathIds: [parentId], aliases: [], modes: ['ON_SITE'] }] } };
   };
   const classify = (scopeSummary) => buildFullTreeTaxonomyProposals({
     rpc, geminiKey: 'test-key', geminiModel: 'test-model',

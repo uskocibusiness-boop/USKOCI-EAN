@@ -283,6 +283,9 @@ export async function loadFullCatalogTree(rpc, signal) {
       }
       // Even if metadata is unchanged, a fresh authoritative complete response
       // replaces an earlier partial snapshot rather than retaining it.
+      // Count alone cannot certify parent closure. Refuse malformed trees
+      // before warming the shared complete cache used by both model paths.
+      formatFullCatalogHierarchy({ verifiedComplete: true, categories: snap.categories });
       return indexFullCatalog(snap.catalogVersion, snap.catalogFingerprint, snap.categories, true);
     }
   } catch {
@@ -381,9 +384,10 @@ export async function loadFullCatalogTree(rpc, signal) {
     }
   }
 
-  // This is the ONLY fallback cache write. A request that fails, changes
-  // version, loses a page or exceeds capacity cannot poison future queries.
-  return indexFullCatalog(catalogVersion, catalogFingerprint, [...allNodes.values()], true);
+  // A paged walk also needs coherent ancestry before it can claim completeness.
+  const completeNodes = [...allNodes.values()];
+  formatFullCatalogHierarchy({ verifiedComplete: true, categories: completeNodes });
+  return indexFullCatalog(catalogVersion, catalogFingerprint, completeNodes, true);
 }
 
 /**
@@ -404,6 +408,7 @@ export function formatFullCatalogHierarchy(catalog) {
     const id = node?.categoryId;
     const parentId = node?.parentId ?? null;
     if (typeof id !== 'string' || !id || byId.has(id)
+        || !Object.hasOwn(node, 'parentId')
         || (parentId !== null && (typeof parentId !== 'string' || !parentId || parentId === id))
         || typeof node?.label !== 'string' || !node.label.trim()
         || typeof node?.isLeaf !== 'boolean'
