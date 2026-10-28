@@ -435,6 +435,7 @@ export const supabaseIzvor: SupabaseIzvor = {
 
     return {
       id: data.id,
+      revision: Number.isSafeInteger(data.revision) && data.revision > 0 ? data.revision : undefined,
       urgency: urgency.get(data.id),
       naslov: data.title,
       statusTekst: !remainingClosed && ['PUBLISHED', 'SELECTION'].includes(data.status) ? 'Traži ponude' : 'Prijave zatvorene',

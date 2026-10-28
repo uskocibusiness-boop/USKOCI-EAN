@@ -113,6 +113,8 @@ export type PotrebaProjekcija = {
  */
 export type PrilikaProjekcija = {
   id: string;
+  /** Public task revision for read invalidation; older projections may omit it. */
+  revision?: number;
   urgency?: NeedUrgencyProjection;
   naslov: string;
   opis?: string;
