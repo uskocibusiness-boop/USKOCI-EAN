@@ -5,7 +5,7 @@ import { buildFullTreeTaxonomyProposals, buildWorkerFullTreeTaxonomyProposals } 
 
 const categoryId = '11111111-1111-4111-8111-111111111111';
 let version = 800000;
-function fixture(t, provider, modes = ['ON_SITE']) {
+function fixture(t, provider, modes = ['ON_SITE'], categoryPatch = {}) {
   const catalogVersion = ++version;
   const calls = [];
   t.mock.method(globalThis, 'fetch', async (_url, init) => {
@@ -17,7 +17,7 @@ function fixture(t, provider, modes = ['ON_SITE']) {
     return { ok: true, data: { catalogVersion, catalogFingerprint: String(catalogVersion), count: 1, categories: [
       { categoryId, parentId: null, isLeaf: true,
         label: 'Servis klima', aliases: [], modes,
-        path: ['Servis klima'], pathIds: [categoryId] },
+        path: ['Servis klima'], pathIds: [categoryId], ...categoryPatch },
     ] } };
   };
   return { calls, args: { rpc, geminiKey: 'synthetic', geminiModel: 'synthetic', conversationId: 'synthetic-conversation', draftRevision: 4 } };
@@ -192,13 +192,22 @@ test('provider diagnostics never log returned private prose or exception details
   assert.doesNotMatch(JSON.stringify(logs), /PRIVATE|ADDRESS|TOKEN/);
   assert.match(JSON.stringify(logs), /PROVIDER_TRANSPORT_FAILURE/);
 });
-test('invalid category IDs and unsupported semantic reuse do not become user questions', async t => {
+test('R04/F05: requester can preserve an unregistered synonym as a pending existing-ID hint', async t => {
   const f = fixture(t, () => response({ decisions: [{ service: 'Popravka klima', mode: 'ON_SITE',
-    action: 'REUSE_EXISTING', categoryId, parentId: '', reason: 'Same semantic service.' }] }));
+    action: 'REUSE_EXISTING', categoryId, parentId: '',
+    reason: 'Popravka klima je isti konkretan servis postojeće kategorije.' }] }));
   const result = await need(f.args);
-  assert.deepEqual(result.proposals, []);
+  assert.equal(result.proposals.length, 1);
+  assert.deepEqual({ action: result.proposals[0].action, categoryId: result.proposals[0].categoryId,
+    parentId: result.proposals[0].parentId, proposedPath: result.proposals[0].proposedPath },
+  { action: 'REUSE_EXISTING', categoryId, parentId: '', proposedPath: [] });
+  assert.equal(result.proposals[0].catalogVersion, result.catalogVersion);
   assert.deepEqual(result.clarifications, []);
-  assert.ok(result.failures.length > 0, 'semantic SQL admission remains explicitly unresolved');
+  assert.deepEqual(result.failures, []);
+  assert.ok(f.calls[0].generationConfig.responseSchema.properties.decisions.items.properties.categoryId);
+  // The deployed SQL review still returns PENDING for this unregistered synonym;
+  // no category, alias, consent, capability or READY is granted by this object.
+  assert.ok(!Object.hasOwn(result, 'canAccept'));
 });
 test('an explicit semantic clarification stays a single question', async t => {
   const f = fixture(t, () => response({ decisions: [{ service: 'Popravka klima', mode: 'ON_SITE',
@@ -243,19 +252,120 @@ test('R04 BOTH: one provider result does not conceal the unclassified second mod
   assert.deepEqual(result.clarifications,[]);
 });
 
-test('unregistered semantic REUSE never acquires category authority or disappears from recovery',async t=>{
+test('R04/F05: explicit worker semantic REUSE retains the same ID but remains unresolved for signed review',async t=>{
   const f=fixture(t,()=>response({items:[{
     service:'Popravka klima',mode:'ON_SITE',action:'REUSE_EXISTING',
     categoryId,parentId:'',handoffKind:'NONE',handoffCity:'',
-    reason:'Model tvrdi da značenje već postoji u katalogu.'
+    reason:'Popravka je po zadatom obimu ista usluga servisiranja klima.'
   }]}));
   const requested={...bothRequest,
     serviceModeChangesJson:JSON.stringify([{service:explicitBoth.service,
       modes:['ON_SITE'],evidence:explicitBoth.evidence}])};
   const result=await worker(f.args,requested);
+  assert.equal(result.proposals.length,1);
+  assert.equal(result.proposals[0].categoryId,categoryId);
+  assert.equal(result.proposals[0].action,'REUSE_EXISTING');
+  assert.deepEqual(result.proposals[0].proposedPath,[]);
+  assert.deepEqual(result.unresolvedServices,['Popravka klima']);
+  assert.deepEqual(result.failures,[]);
+  assert.ok(!Object.hasOwn(result.proposals[0],'handoff'));
+  assert.ok(f.calls[0].generationConfig.responseSchema.properties.items.items.properties.categoryId);
+});
+
+
+test('R04/F05: model may not reuse a fabricated, mode-incompatible or structural category ID',async t=>{
+  const cases=[
+    ['fabricated', '99999999-9999-4999-8999-999999999999', ['ON_SITE'], {}],
+    ['wrong mode', categoryId, ['REMOTE'], {}],
+    ['non-leaf parent', categoryId, ['ON_SITE'], {isLeaf:false}],
+  ];
+  for(const [label,candidateId,modes,patch] of cases) {
+    // Separate provider mocks and snapshot versions prevent cross-case cached
+    // results; a rejected model ID cannot turn into a catalog write.
+    const f=fixture(t,()=>response({decisions:[{
+      service:'Popravka klima',mode:'ON_SITE',action:'REUSE_EXISTING',
+      categoryId:candidateId,parentId:'',
+      reason:'Model smatra da se rad odnosi na istu postojeću uslugu.'
+    }]}),modes,patch);
+    const result=await need(f.args);
+    assert.deepEqual(result.proposals,[],label);
+    assert.deepEqual(result.clarifications,[],label);
+    assert.ok(result.failures.some(x=>x.code==='SEMANTIC_REUSE_ADMISSION_UNAVAILABLE'),label);
+  }
+});
+
+test('R04/F05: a mismatched model service or forged parent cannot bind an existing ID',async t=>{
+  const f=fixture(t,()=>response({decisions:[{
+    service:'Montaža klima',mode:'ON_SITE',action:'REUSE_EXISTING',
+    categoryId,parentId:'',reason:'Isto postojeće značenje po odgovoru modela.'
+  }]}));
+  const result=await need(f.args);
+  assert.deepEqual(result.proposals,[]);
+  assert.deepEqual(result.clarifications,[]);
+  assert.ok(result.failures.length>0);
+});
+
+test('R04/F05: worker BOTH cannot silently assign two distinct existing category IDs',async t=>{
+  const secondId='22222222-2222-4222-8222-222222222222';
+  const catalogVersion=987654307;
+  const calls=[];
+  t.mock.method(globalThis,'fetch',async (_url,init)=>{
+    calls.push(JSON.parse(init.body));
+    const items=['ON_SITE','REMOTE'].map((mode,i)=>({
+      service:'Popravka klima',mode,action:'REUSE_EXISTING',
+      categoryId:i===0?categoryId:secondId,parentId:'',
+      handoffKind:'NONE',handoffCity:'',
+      reason:'Izabrani postojeći list navodno predstavlja isto značenje rada.'
+    }));
+    return response({items});
+  });
+  const cats=[categoryId,secondId].map((id,i)=>({
+    categoryId:id,parentId:null,isLeaf:true,label:i?'Servis elektrike':'Servis klima',
+    aliases:[],modes:['ON_SITE','REMOTE'],path:[i?'Servis elektrike':'Servis klima'],
+    pathIds:[id]
+  }));
+  const rpc=async name=>{
+    assert.equal(name,'rpc_taxonomy_fetch_snapshot_v1');
+    return {ok:true,data:{catalogVersion,catalogFingerprint:'b'.repeat(32),
+      count:cats.length,categories:cats}};
+  };
+  const evidence='Popravku klima nudim i kod Vas i na daljinu.';
+  const result=await worker({rpc,geminiKey:'synthetic',geminiModel:'synthetic'},{
+    skills:['Popravka klima'],messages:[{role:'USER',body:evidence}],
+    serviceModeChangesJson:JSON.stringify([{service:'Popravka klima',
+      modes:['ON_SITE','REMOTE'],evidence}])});
+  assert.equal(calls.length,1);
   assert.deepEqual(result.proposals,[]);
   assert.deepEqual(result.unresolvedServices,['Popravka klima']);
-  assert.ok(result.failures.some(f=>f.code==='SEMANTIC_REUSE_ADMISSION_UNAVAILABLE'));
+  assert.ok(result.failures.some(x=>x.code==='WORKER_SERVICE_CATEGORY_ID_CONFLICT'));
+});
+
+test('R04/F05: valid worker BOTH semantic reuse retains one ID without inventing handoff or READY',async t=>{
+  const f=fixture(t,()=>response({items:['ON_SITE','REMOTE'].map(mode=>({
+    service:'Popravka klima',mode,action:'REUSE_EXISTING',categoryId,parentId:'',
+    handoffKind:'NONE',handoffCity:'',
+    reason:'Ista konkretna servisna usluga bez stvaranja drugog ID-a.'
+  }))}),['ON_SITE','REMOTE']);
+  const evidence='Popravku klima nudim kod klijenta i na daljinu.';
+  const result=await worker(f.args,{
+    messages:[{role:'USER',body:evidence}],
+    serviceModeChangesJson:JSON.stringify([{service:'Popravka klima',
+      modes:['ON_SITE','REMOTE'],evidence}])
+  });
+  assert.deepEqual(result.proposals.map(x=>[x.mode,x.categoryId]),
+    [['ON_SITE',categoryId],['REMOTE',categoryId]]);
+  assert.deepEqual(result.unresolvedServices,['Popravka klima']);
+  assert.ok(result.proposals.every(x=>!Object.hasOwn(x,'handoff')));
+});
+
+test('R04/F05: worker may not convert semantic hint into a mode without USER evidence',async t=>{
+  const f=fixture(t,()=>response({items:[{
+    service:'Popravka klima',mode:'ON_SITE',action:'REUSE_EXISTING',
+    categoryId,parentId:'',reason:'Isti postojeći rad za kategoriju.'
+  }]}));
+  const result=await worker(f.args);
+  assert.deepEqual(result.proposals,[]);
+  assert.deepEqual(result.unresolvedServices,['Popravka klima']);
 });
 
 test('a valid clarification for one explicit mode leaves the other provisional, not complete',async t=>{
