@@ -592,7 +592,8 @@ export async function buildFullTreeTaxonomyProposals({
     if (!service || service.length < 3 || !mode) continue;
     const norm = normalizedClassificationIdentity(service);
     if (!norm) continue;
-    const decodedHandoff = mode === 'REMOTE' ? (decodeServiceHandoff(item.handoff) ?? { required: false }) : undefined;
+    // Unknown physical/digital handoff is not consent to digital delivery.
+    const decodedHandoff = mode === 'REMOTE' ? decodeServiceHandoff(item.handoff) : undefined;
 
     const matches = catalog.byNormalizedKey.get(norm) ?? [];
     if (matches.length === 1) {
