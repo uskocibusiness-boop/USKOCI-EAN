@@ -2,6 +2,7 @@
 <!-- EXECUTION-UPDATE-BEGIN: provenance-20261028 -->
 
 > **Radna verzija istog plana — 28.10.2026.** Ovaj fajl je jedini operativni ulaz za nastavak u repozitorijumu. Aktuelni rezultat i sledeći korak su u [odeljku 11.2a](#112a-aktuelni-izvršni-status--28102026). Tekst REV10 u nastavku ostaje sačuvana osnova; njegove izjave o neizvršenoj implementaciji opisuju isporuku dokumentacije od 27.10.2026, a ne poništavaju kasnije izvršne zapise.
+> **Potvrđene poslovne odluke 28.10.2026:** Z10/D06 je satnica po osobi; Z10/D08 je povezivanje prema mestu početka posla. Izvršni zapisi uz §9.1–9.2 zamenjuju ranije oznake da su ove dve odluke otvorene. Implementacija i provere R07b/R05 tek slede.
 >
 > Izvor: [neizmenjeni CODEX_PLAN_RADA.md iz REV10](../../../review-inputs/USKOCI_KOMPLETAN_PLAN_I_DOKAZI_REV10_2026-10-27/CODEX_PLAN_RADA.md), SHA-256 `8d74ed652900937b6fa865d1df08246a7769d5a09a4092e571b187f966fb813b`. Originalni ZIP i raspakovani izvor nisu menjani. REV14 određuje ciljnu UX arhitekturu; ovaj dokument i dalje vodi R01–R12.
 >
@@ -2972,6 +2973,11 @@ Kapacitet reda dokazati ograničenim očekivanim talasom i konkurentnim događaj
 Poznata ispravnost, interni tehnički izbor i promena poslovnog obećanja imaju različit postupak. Vlasniku se pokazuje konkretan, pregledljiv predlog samo gde odluka menja proizvod. Izbor klase, retry vlasnika, cache invalidacije ili rasporeda programerskog rada rešava izvršni tim u okviru važeće namere.
 
 ### 9.1. Satnica kroz broj ljudi i trajanje — R07b
+<!-- EXECUTION-UPDATE-BEGIN: decision-d06-20261028 -->
+
+**Odluka vlasnika 28.10.2026 — Z10/D06 `CONFIRMED`: satnica je po osobi.** Korisnik je u razgovoru potvrdio osnovicu; ovo zamenjuje otvoreni izbor iz sačuvanog REV10 teksta ispod. Ista osnovica mora biti jasno prikazana i sačuvana kroz razgovor, pregled, objavu, prijavu, izbor i Dogovor: RSD po osobi po satu. Primer: dve osobe × tri sata × 1.200 RSD = 7.200 RSD kada su broj osoba i trajanje poznati. Kada trajanje nije poznato, prikazuje se satnica bez izmišljene konačne sume. Ova odluka ne uvodi novu valutu ili automatsku naplatu. R07b implementacija, kompatibilnost postojećih čitača i povezane pozitivne/negativne provere ostaju otvorene; poslovna osnovica više ne čeka odluku.
+
+<!-- EXECUTION-UPDATE-END: decision-d06-20261028 -->
 
 Potrebno je zaključiti da li HOURLY označava cenu po osobi, sat cele ekipe ili izričitu podršku oba značenja. **Dve osobe × tri sata × 1.200 RSD = 7.200 RSD** kada je satnica po osobi; **tri sata × 1.200 RSD = 3.600 RSD** kada je to cena sata cele ekipe. Primer objašnjava ugovor, ne tvrdi da aplikacija već obračunava konačan račun.
 
@@ -2980,6 +2986,13 @@ Predlog najmanjeg jasnog ugovora jeste satnica po osobi, vidljivo označena kroz
 **R07a korekcija zastarele RSD potvrde, F11 abandon i F13 zaštita paralelnog profila ne čekaju ovu odluku.** Korekcija „mislio sam evre” povlači staru nevažeću saglasnost, ali sama ne uvodi EUR, kurs ili automatski OFFERS.
 
 ### 9.2. Područje posla sa više lokacija — deo R05
+<!-- EXECUTION-UPDATE-BEGIN: decision-d08-20261028 -->
+
+**Odluka vlasnika 28.10.2026 — Z10/D08 `CONFIRMED`: povezivanje ide prema mestu početka posla.** Za posao sa više lokacija područje radnika proverava se prema polazištu/mestu preuzimanja, uz vidljivu celu rutu. Odredište, usputne stanice i tranzit van sačuvanog područja sami po sebi nisu razlog za isključivanje kandidata po ovom prostornom kriterijumu. Primer: posao Novi Sad–Beograd prostorno se povezuje po početku u Novom Sadu. Za posao na jednoj lokaciji ta lokacija je i mesto početka. Mesto početka mora biti deo potvrđenog posla, a ne pretpostavljeno iz stare profilne tačke ili trenutnog GPS-a.
+
+Odluka zatvara raniji izbor iz REV10 teksta ispod. Ne menja pravila ručne prijave, vreme/raspoloživost i druge uslove podobnosti, niti uvodi automatski izbor izvršioca umesto postojećeg korisničkog izbora. R05 tek treba povezati isti kriterijum kroz pronalaženje kandidata, prostorno filtriranje i slanje preporuka, uz provere za podržane tipove poslova i kontrolisano ponašanje kada potvrđeno polazište nedostaje. Odluka je potvrđena; implementacija i dokaz nisu završeni.
+
+<!-- EXECUTION-UPDATE-END: decision-d08-20261028 -->
 
 Za Novi Sad–Beograd razlikovati rad na lokaciji, mesto preuzimanja, odredište i tranzit. Uporediti najmanje prevoz između gradova, dostavu sa više stanica i stvaran rad na dve lokacije.
 
@@ -3300,9 +3313,9 @@ Ovaj zapis konsoliduje izvedene izmene koda do commita `442b1cb3df42c28079757d3e
 | R02 / F15–F17 / SB11 | `IN_PROGRESS` | F17/SB11 i F16 klijentski PAGE/MAP partial failure/retry imaju lokalni i CI dokaz; novi skup je potvrđen run-om `40652955784`. F15 PAGE/MAP/PLACES serverski ugovor i stvarni HALF/FULL/PEEK/native-style/insets dokaz ostaju otvoreni. Serverski deo nastaviti po usklađenom R01 ugovoru. |
 | R03 / F01 | `DEFINED`; implementacija `UNPROVEN` | Pet scope-ova, counts, cursor i format owner stranice ostaju za implementaciju; postojeći mismatch je samo karakterisan R01 testom. |
 | R04 | `DEFINED`; bez nove implementacije | Sačuvati postojeće semantičke/review/Save vlasnike; rad tek sledi prema odeljku 6. |
-| R05 | `DEFINED`; bez nove implementacije | Poslovni i povezivački ugovori i njihove provere ostaju otvoreni prema odeljku 6. |
+| R05 | `DEFINED`; D08 `CONFIRMED`; bez nove implementacije | Vlasnik 28.10.2026. određuje povezivanje po mestu početka posla (§9.2). Primena istog kriterijuma kroz pronalaženje, prostorno filtriranje i preporuke, kao i ostale provere područja/vremena, ostaju otvorene. |
 | R06 | `DEFINED`; bez nove implementacije | Trajni nastavak i potpuni rezultat ostaju otvoreni prema odeljku 6. |
-| R07 | `DEFINED`; bez nove implementacije | Postojeće cenovne/readback popravke mogu napredovati; D06 osnovica satnice nije izmišljena niti zatvorena. |
+| R07 | `DEFINED`; D06 `CONFIRMED`; bez nove implementacije | Vlasnik 28.10.2026. određuje satnicu po osobi (§9.1). R07b usklađenje kroz razgovor/pregled/objavu/prijavu/izbor/Dogovor i njegove provere tek slede. R07a korekcije cene, odustajanje i zaštita paralelnog upisa takođe ostaju otvoreni. |
 | R08 | `DEFINED`; bez nove implementacije | Završetak razgovora, spremnost i konkretna UI stanja ostaju otvoreni prema odeljku 6. |
 | R09 | `DEFINED`; bez nove implementacije | Queue, preference, receipt i uređajska isporuka nisu ponovo izvršeni u ovom radu. |
 | R10 | `DEFINED`; bez nove implementacije | workAreas/export/closure i saglasnosti nisu popravljeni; poznati false binding ostaje otvoren. |
@@ -3440,6 +3453,8 @@ Pregled svih 13 strict razlika: (1) Storage zapis ima potvrdu jednakih 80 efekti
 Privatni dokazi u istom managed evidence prostoru: `artifacts/r01/20261028-disposable-ci-40674981454.log` SHA `a69a6dc172a26dc3131cb987c10783e1da57a3563583d35c08837997a67f122a`; `20261028-platform-effective-interpretation.json` SHA `9db70a53ecef249cfccd3298a9a999f3cbc63dc963400f2a30f18d7c91aa54ce`; `20261028-remaining-13-effective-review.json` SHA `fe71bde73e795088d0b6aa737f84237b473c964005c8e6d8345b445e5918004a`. Query SHA `659c33eaae7d84d4b35ca0a9aef0135928a7fa505c997cc94c34706073f870ad`; expected capture canonical SHA `5c1b02cb10b4380cc643822ee1197b14034e3dbea2fb9feeb775505ccca2612c`, observed `02cacbf1ca225f23e7338c7f0390470a7c13240dabdada08da1606517ba486ae`.
 
 [Puni CI 40674981672](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40674981672), job `122770968864`, za isti source je **SUCCESS**: 623 suite-a / 14.253 testa / 3 snapshot-a, TypeScript, Edge/AI ugovori, migration integrity i izolovani SQL korak. Log `artifacts/r01/20261028-full-ci-40674981672.log` SHA `c4530e6b6e3c29d6d264e3f0e3f9403c506c7fbeb593bc429470d5444404ba22`. R01 ostaje `IN_PROGRESS`; stvarni Auth/PostgREST, kandidat i native kompatibilnost jos nisu dokazani. Ovaj checkpoint dokumentuje izvrsen rezultat; ne pretvara ga u integracioni prolaz.
+
+**2026-10-28 — potvrđene D06 i D08.** Vlasnik u razgovoru potvrđuje satnicu po osobi i povezivanje prema mestu početka posla. Tačan važeći ugovor upisan je uz §9.1–9.2 i u aktuelne R05/R07 redove. Istorijski zapisi o otvorenim odlukama ostaju dokaz ranijeg stanja, ali nisu važeća blokada. Ovo je dokumentaciona primena korisničke odluke; kod, Supabase i status implementacije nisu promenjeni. Pri nastavku R05/R07 koristiti ove odluke bez ponovnog traženja iste potvrde.
 
 #### Sledeći dozvoljeni korak i pravilo nastavka
 
