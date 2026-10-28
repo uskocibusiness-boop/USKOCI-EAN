@@ -355,6 +355,37 @@ test('R04/F05: valid worker BOTH semantic reuse retains one ID without inventing
   assert.ok(result.proposals.every(x=>!Object.hasOwn(x,'handoff')));
 });
 
+
+test('R04/F08: remote requester never invents digital handoff if the user did not supply one',async t=>{
+  const f=fixture(t,()=>response({decisions:[{
+    service:'Popravka klima',mode:'REMOTE',action:'CREATE_CHILD',parentId:categoryId,
+    reason:'Jasno izdvojen posao za pripremu nove kategorije.'
+  }]}),['REMOTE']);
+  const result=await buildFullTreeTaxonomyProposals({...f.args,
+    items:[{service:'Popravka klima',mode:'REMOTE'}]});
+  assert.equal(result.proposals.length,1);
+  assert.equal(result.proposals[0].action,'CREATE_CHILD');
+  assert.equal(Object.hasOwn(result.proposals[0],'handoff'),false,
+    'missing remote handoff is unknown, not digital delivery');
+});
+
+test('R04/F05/F08: semantic remote existing-ID hint never fabricates physical or digital handoff',async t=>{
+  const f=fixture(t,()=>response({decisions:[{
+    service:'Popravka klima',mode:'REMOTE',action:'REUSE_EXISTING',categoryId,parentId:'',
+    reason:'Ista konkretna servisna usluga u katalogu bez stvaranja nove kategorije.'
+  }]}),['REMOTE']);
+  const plain=await buildFullTreeTaxonomyProposals({...f.args,
+    items:[{service:'Popravka klima',mode:'REMOTE'}]});
+  assert.equal(plain.proposals.length,1);
+  assert.equal(plain.proposals[0].categoryId,categoryId);
+  assert.equal(Object.hasOwn(plain.proposals[0],'handoff'),false);
+  const approvedHandoff={required:true,shippingCountries:['RS']};
+  const explicit=await buildFullTreeTaxonomyProposals({...f.args,
+    items:[{service:'Popravka klima',mode:'REMOTE',handoff:approvedHandoff}]});
+  assert.equal(explicit.proposals.length,1);
+  assert.deepEqual(explicit.proposals[0].handoff,approvedHandoff);
+});
+
 test('R04/F05: worker may not convert semantic hint into a mode without USER evidence',async t=>{
   const f=fixture(t,()=>response({items:[{
     service:'Popravka klima',mode:'ON_SITE',action:'REUSE_EXISTING',
