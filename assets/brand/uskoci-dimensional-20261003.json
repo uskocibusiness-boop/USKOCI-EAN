@@ -7,7 +7,7 @@
   "method": "Built-in imagegen transparent-background edit of the supplied reference; result copied byte-for-byte. No raster recoloring, cleanup or resampling. Semantic clipping and transforms are in BrandRaster.tsx. Splash and pin PNGs are rendered from the actual shared BrandMark and existing SVG pin shell using bundled Sharp; no new application dependency.",
   "prompt": "Edit target: attached original USKOČI logo. Create the faithful production transparent-background cutout of this EXACT logo. Preserve the original dimensional green and orange material, the two people making the U and shaking hands, the orange location pin and green smile inside U, and the exact following letters S K O Č I (first three green, last two orange, orange caron). Do NOT redesign the logo, letterforms, layout, perspective or colors. Remove all white background and broad ground cast shadows completely, retaining only subtle self-shadow on the material. Transparent pixels inside all openings including the O and around every part. Center the whole original horizontal wordmark with only a small even transparent safe margin, tightly composed wide landscape 3:1 canvas. Crisp smooth edges, original rounded polished physical depth, strong small-size clarity. No extra text, symbols, objects, frames or decorative effects. The logo is to become a mobile app asset; faithful shape and spelling are critical.",
   "atlas": {
-    "file": "assets/brand/uskoci-dimensional-20261003.png",
+    "file": "assets/brand/premium-entry/logo.png",
     "sha256": "870f2b26838a06a3f0f6c92c9fc61ddc238b777be53562bdf8fb0a14da44cb86",
     "bytes": 846476,
     "width": 2172,

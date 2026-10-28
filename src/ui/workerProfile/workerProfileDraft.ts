@@ -57,23 +57,6 @@ export function workerCommand(draft: WorkerDraft, initial: WorkerDraft, activate
   // concurrent edit must not turn a different profile into a claimed success.
   return { command, expected: activate ? { ...values, zavrsi: true } : command };
 }
-/**
- * Quick picks (presentation only). A picture tile inserts its catalog label as the same free text a person could type
- * ("Kombi", "Transportna kolica"); nothing new is stored and matching stays the existing lower-cased exact match. Two
- * spellings of one term are the same term here: the folded form trims ASCII spaces (as `capabilityTerms` and btrim do)
- * and lower-cases in Serbian Latin.
- */
-export const foldTerm = (term: string) => term.replace(/^ +| +$/g, '').toLocaleLowerCase('sr-Latn-RS');
-/** Whether the list already holds this term, in any spelling of its case. */
-export const hasTerm = (values: readonly string[], label: string) => values.some(value => foldTerm(value) === foldTerm(label));
-/**
- * A tile's tap: removes every item that folds to the label (a typed "kombi" and a duplicate "Kombi" alike), or adds the
- * label when the list has room (50 items, the `capabilityTerms` cap). A full list is returned unchanged.
- */
-export function toggleTerm(values: readonly string[], label: string): string[] {
-  if (hasTerm(values, label)) return values.filter(value => foldTerm(value) !== foldTerm(label));
-  return values.length < 50 ? [...values, label] : [...values];
-}
 export function workerReadbackMatches(profile: RadnikProfilProjekcija | null, command: AzurirajProfilKomanda, expectedId: string | null): boolean {
   if (!profile || (expectedId !== null && profile.id !== expectedId) || (command.zavrsi && profile.stanje !== 'ACTIVE')) return false;
   return (Object.keys(command) as (keyof AzurirajProfilKomanda)[]).every(key => key === 'zavrsi' || key === 'capacityRevision' ||

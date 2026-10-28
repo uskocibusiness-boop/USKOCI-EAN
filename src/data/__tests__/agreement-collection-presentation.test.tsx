@@ -603,24 +603,6 @@ test('the first rows after a skeleton arrive once, at most six; a warm list and 
   await tap('Istorija'); expect(arriving()).toBe(0);
 });
 
-// M-02 (motion spec 2026-10-07): rows arrive only when they are news. After a skeleton the first rows (never more than six) settle in once;
-// a list that was already there, and a change of set or filter, stay still.
-test('the first rows after a skeleton arrive once, at most six; a warm list and a change of set do not move', async () => {
-  const arriving = () => tree.root.findAll(node => String(node.type) === 'View' && node.props.entering !== undefined).length;
-  rows = []; loading = true; await render();
-  expect(arriving()).toBe(0);
-  loading = false;
-  rows = Array.from({ length: 9 }, (_, index) => agreement(`row-${index}`, 'CONFIRMED'));
-  await act(async () => tree.update(<Screen />));
-  expect(arriving()).toBeGreaterThan(0); expect(arriving()).toBeLessThanOrEqual(6);
-  await act(async () => tree.unmount());
-  // Warm: the rows were there when the screen opened, so there is nothing to tell by moving.
-  rows = [agreement('warm', 'CONFIRMED'), agreement('over', 'COMPLETED')];
-  await render();
-  expect(arriving()).toBe(0);
-  await tap('Istorija'); expect(arriving()).toBe(0);
-});
-
 test('a single actual role needs no account-like role switch; mixed roles retain the filter', async () => {
   rows = [agreement('mine', 'CONFIRMED')];
   await render();
