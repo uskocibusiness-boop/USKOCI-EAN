@@ -93,7 +93,7 @@ for (const purpose of ['need', 'worker']) {
         content: { parts: [{ text: JSON.stringify(purpose === 'need' ? { decisions: [decision] } : { items: [decision] }) }] },
       }] })));
       const args = { geminiKey: 'synthetic', geminiModel: 'synthetic',
-        rpc: async () => ({ ok: true, data: { catalogVersion: 809040 + Number(short), catalogFingerprint: purpose + short,
+        rpc: async () => ({ ok: true, data: { catalogVersion: 809040 + Number(short), catalogFingerprint: purpose + short, count: 1,
           categories: [{ categoryId: '11111111-1111-4111-8111-111111111111', label: 'Servis uređaja',
             path: ['Servis uređaja'], aliases: [], modes: ['ON_SITE'] }] } }),
       };

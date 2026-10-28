@@ -118,7 +118,7 @@ function dualModeFixture({modes=['REMOTE'],handoff,evidence,quote,priorMode='ON_
    profileStatus:'ACTIVE',serviceModeContext:modeContext,
    candidate:{skills:[service],bio:'Prethodni opis.',availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},
    messages:[{role:'USER',body:userText},{role:'ASSISTANT',body:'ASSISTANT_ONLY_SCOPE_QUOTE'}]},
-  snapshot:{catalogVersion:7,catalogFingerprint:'a'.repeat(32),categories:[{
+  snapshot:{catalogVersion:7,catalogFingerprint:'a'.repeat(32),count:1,categories:[{
    categoryId,parentId:null,label:service,aliases:[],path:[service],isLeaf:true,modes:catalogModes}]},
   output:{assistantMessage:'Predlog izmene je u nacrtu.',safety:outputSafety,patch:{bio:'Dopunjen opis.'},serviceModeChangesJson:JSON.stringify(changes)},
   backgroundProvider:()=>backgroundStatus?new Response('PRIVATE_BG_PROVIDER_BODY',{status:backgroundStatus}):json({candidates:[{content:{parts:[{text:JSON.stringify({items:modes.map(mode=>({service,mode,
