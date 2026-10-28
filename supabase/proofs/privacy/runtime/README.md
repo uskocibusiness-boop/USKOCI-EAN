@@ -4,7 +4,9 @@ The `r01-disposable-schema.yml` PR workflow starts a new local Supabase project
 inside the Ubuntu runner's temporary directory. It executes only the reviewed
 generated `bootstrap/current-application.sql`, after checking its generation
 manifest hash, exact CLI/PostgreSQL/extension versions and local container
-identity. There are no historical migration replays, fixtures, candidate ACL
+identity. Admission requires the registered `supabase_privileged_role` group and
+effective inherited `USAGE` for NOSUPERUSER `postgres`; bare membership does not
+pass. These conditions match the read-only DEV observation. There are no historical migration replays, fixtures, candidate ACL
 changes, hosted project links, API credentials or business records.
 
 The independent `r01-bootstrap-parity.mjs` checker compares the actual capture
@@ -13,7 +15,8 @@ Managed role, schema, ownership and extension differences are not exceptions.
 An initial failed comparison is diagnostic evidence, not a successful bootstrap
 or a reason to edit managed schemas until they happen to match.
 
-Only versions, image digests, source hashes, stage exit codes and a comparison
+Only versions, image digests, source hashes, stage exit codes, SQLSTATEs,
+bounded guard names, numeric source line locations and a comparison
 whose object identities are hashed are uploaded. Full SQL output, server logs,
 raw catalog/function definitions and any local service configuration remain in
 the ephemeral runner directory. Cleanup always stops only this job's owned

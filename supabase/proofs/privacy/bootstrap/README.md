@@ -34,8 +34,11 @@ defaults and operational role definitions remain the platform's responsibility.
 The independent runner must create a fresh, isolated local Supabase PostgreSQL 17
 database named `postgres`, verify the loopback target, then install the captured
 extension versions/schemas. The generated manifest lists all eight prerequisites.
-Supautils must be loaded with `supautils.privileged_role=postgres`; the `postgres`
-role must remain NOSUPERUSER. Supautils supplies the supported ability to create
+Supautils must register `supautils.privileged_role` in `pg_settings` with context
+`sighup` and value `supabase_privileged_role`, as confirmed in the current DEV
+catalog. The `postgres` role must have immediately inherited privileges
+(`pg_has_role(..., 'USAGE')`), and remain NOSUPERUSER. Membership without
+inheritance is insufficient. Supautils supplies the supported ability to create
 an event trigger owned by that role. No role elevation or admin finalizer is used.
 The `public` schema owner must be `pg_database_owner`, and existing `private` and
 `rls_private` schemas, if any, must be owned by `postgres`. The Auth, Storage and

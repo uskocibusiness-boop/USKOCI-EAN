@@ -48,6 +48,14 @@ export function validateGeneratedInputs(sql, generation, expected) {
   required(!/^\s*\\/m.test(sql), 'PSQL_META_COMMAND_REFUSED');
 }
 
+export function validatePostgresAdmission(initial) {
+  required(initial?.server_version_num === pins.postgres_version_num && initial.user === 'postgres' &&
+    initial.database === 'postgres' && initial.socket === true && initial.postgres_superuser === false &&
+    initial.supautils_privileged_role === pins.supautils_privileged_role &&
+    initial.supautils_privileged_context === 'sighup' && initial.postgres_privileged_usage === true,
+  'PG_RUNTIME_REFUSED');
+}
+
 export function validateEnvironment(env, platform) {
   required(platform === 'linux' && env.RUNNER_OS === 'Linux' && env.GITHUB_ACTIONS === 'true', 'CI_HOST_REFUSED');
   required(env.GITHUB_EVENT_NAME === 'pull_request' && env.GITHUB_BASE_REF === 'feature/uskoci-cisto', 'CI_EVENT_REFUSED');
@@ -62,6 +70,8 @@ export function validateEnvironment(env, platform) {
 
 export function scrubSqlFailure(stderr) {
   return {stderr_sha256: sha256(stderr),
+    source_lines: [...new Set([...stderr.matchAll(/^psql:<stdin>:(\d{1,7}):\s+(?:ERROR|FATAL|PANIC):/gm)]
+      .map(m => Number(m[1])))].filter(line => line > 0).sort((a, b) => a - b),
     sqlstates: [...new Set([...stderr.matchAll(/\b(?:ERROR|FATAL|PANIC):[ \t]+([0-9A-Z]{5}):/g)].map(m => m[1]))].sort(),
     guards: [...new Set([...stderr.matchAll(/\bR01_[A-Z_]{1,96}\b/g)].map(m => m[0]))].sort()};
 }
@@ -143,7 +153,7 @@ async function run() {
   function sql(label, source, role = 'postgres') {
     required(['postgres', 'supabase_admin'].includes(role), 'DATABASE_ROLE_REFUSED');
     return command(label, 'docker', ['exec', '-i', `supabase_db_${pins.project_id}`,
-      'psql', '-X', '-qAt', '-U', role, '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose'],
+      'psql', '-X', '-qAt', '-U', role, '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose', '-f', '-'],
     {input: source, timeout: 300000}).stdout.trim();
   }
   try {
@@ -189,11 +199,13 @@ async function run() {
       'server_version_num',current_setting('server_version_num')::integer,
       'user',current_user,'database',current_database(),'socket',inet_client_addr() IS NULL,
       'postgres_superuser',(SELECT rolsuper FROM pg_roles WHERE rolname='postgres'),
-      'supautils_privileged_role',current_setting('supautils.privileged_role',true));`));
+      'supautils_privileged_role',(SELECT setting FROM pg_settings WHERE name='supautils.privileged_role'),
+      'supautils_privileged_context',(SELECT context FROM pg_settings WHERE name='supautils.privileged_role'),
+      'postgres_privileged_usage',EXISTS (SELECT 1 FROM pg_settings s JOIN pg_roles r ON r.rolname=s.setting
+        WHERE s.name='supautils.privileged_role' AND s.context='sighup'
+          AND pg_has_role(current_user,r.oid,'USAGE')));`));
     writeJSON(join(paths.publicDir, 'versions.json'), {cli: version, admission: initial});
-    required(initial.server_version_num === pins.postgres_version_num && initial.user === 'postgres' &&
-      initial.database === 'postgres' && initial.socket && initial.postgres_superuser === false &&
-      initial.supautils_privileged_role === 'postgres', 'PG_RUNTIME_REFUSED');
+    validatePostgresAdmission(initial);
     receipt.postgres_version_num = initial.server_version_num;
     sql('PLATFORM_EXTENSIONS', "SET uskoci.r01.bootstrap = 'LOCAL_ONLY';\n" + readFileSync(files.extensions, 'utf8'), 'supabase_admin');
     const extensions = JSON.parse(sql('EXTENSION_ADMISSION', `SELECT jsonb_agg(jsonb_build_object(
@@ -202,7 +214,7 @@ async function run() {
     // Extra platform extensions are reported by strict full-catalog parity too.
     writeJSON(join(paths.publicDir, 'versions.json'), {cli: version, admission: initial, extensions});
     assert.deepEqual(orderExtensions(extensions), orderExtensions(pins.extensions));
-    writeJSON(join(paths.publicDir, 'versions.json'), {cli: version, postgres_version_num: initial.server_version_num, extensions});
+    writeJSON(join(paths.publicDir, 'versions.json'), {cli: version, postgres_version_num: initial.server_version_num, admission: initial, extensions});
     // Revalidate approved source bytes immediately before executing them.
     required(JSON.stringify(sourceCheck()) === JSON.stringify(receipt.source_hashes), 'SOURCE_CHANGED_DURING_START');
     sql('APPLICATION_SCHEMA', "SET uskoci.r01.bootstrap = 'LOCAL_ONLY';\n" + readFileSync(files.sql, 'utf8'));

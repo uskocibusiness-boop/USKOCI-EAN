@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {scrubComparison, scrubSqlFailure, validateEnvironment, validateGeneratedInputs} from './run.mjs';
+import {scrubComparison, scrubSqlFailure, validateEnvironment, validateGeneratedInputs, validatePostgresAdmission} from './run.mjs';
 
 const pins = JSON.parse(readFileSync(new URL('./pins.json', import.meta.url), 'utf8'));
 const sql = "BEGIN;\nDO $$ BEGIN IF current_setting('uskoci.r01.bootstrap', true) IS DISTINCT FROM 'LOCAL_ONLY' " +
@@ -24,6 +24,28 @@ test('source admission rejects a changed SQL body, missing guard, extension drif
   wrongVersion.prerequisite_extensions = pins.extensions.map(e => e.name === 'postgis' ? {...e, version: '3.6.0'} : e);
   assert.throws(() => validateGeneratedInputs(sql, wrongVersion, expected));
   assert.throws(() => validateGeneratedInputs(sql, generation(), {...expected, server_version_num: 180000}));
+});
+
+test('PostgreSQL admission accepts the observed privileged group with effective inherited usage', () => {
+  validatePostgresAdmission({server_version_num: 170006, user: 'postgres', database: 'postgres',
+    socket: true, postgres_superuser: false, supautils_privileged_role: 'supabase_privileged_role',
+    supautils_privileged_context: 'sighup', postgres_privileged_usage: true});
+});
+
+test('PostgreSQL admission fails closed on membership-only, absent configuration and target drift', () => {
+  const valid = {server_version_num: 170006, user: 'postgres', database: 'postgres', socket: true,
+    postgres_superuser: false, supautils_privileged_role: 'supabase_privileged_role',
+    supautils_privileged_context: 'sighup', postgres_privileged_usage: true};
+  for (const change of [{postgres_privileged_usage: false, postgres_privileged_member: true},
+    {postgres_privileged_usage: null}, {postgres_privileged_usage: 'true'},
+    {supautils_privileged_role: null}, {supautils_privileged_role: 'postgres'},
+    {supautils_privileged_role: 'other_privileged_group'}, {supautils_privileged_context: 'user'},
+    {supautils_privileged_context: null}, {postgres_superuser: true}, {postgres_superuser: null},
+    {user: 'supabase_admin'}, {database: 'other'}, {socket: false}, {socket: 1},
+    {server_version_num: 180003}]) {
+    assert.throws(() => validatePostgresAdmission({...valid, ...change}), /PG_RUNTIME_REFUSED/);
+  }
+  assert.throws(() => validatePostgresAdmission(null), /PG_RUNTIME_REFUSED/);
 });
 
 const environment = () => ({RUNNER_OS: 'Linux', GITHUB_ACTIONS: 'true', GITHUB_EVENT_NAME: 'pull_request',
@@ -65,9 +87,10 @@ test('malformed comparison cannot turn mismatches or raw text into accepted publ
 
 test('SQL diagnostics retain only SQLSTATE, bounded guard names and a hash', () => {
   const privateText = 'SYNTHETIC_PRIVATE_VALUE';
-  const stderr = 'ERROR:  42501: R01_BOOTSTRAP_NOT_ADMITTED ' + privateText + '\nCONTEXT: SELECT secret;';
+  const stderr = 'psql:<stdin>:12345: ERROR:  42501: R01_BOOTSTRAP_NOT_ADMITTED ' + privateText + '\nCONTEXT: SELECT secret;';
   const result = scrubSqlFailure(stderr);
   assert.deepEqual(result.sqlstates, ['42501']);
+  assert.deepEqual(result.source_lines, [12345]);
   assert.deepEqual(result.guards, ['R01_BOOTSTRAP_NOT_ADMITTED']);
   assert.equal(result.stderr_sha256, hash(stderr));
   assert.equal(JSON.stringify(result).includes(privateText), false);

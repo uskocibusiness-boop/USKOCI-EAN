@@ -1,6 +1,7 @@
 {
   "cli": "2.116.0",
   "postgres_version_num": 170006,
+  "supautils_privileged_role": "supabase_privileged_role",
   "project_id": "uskoci-r01-schema-ci",
   "images": {
     "db": "supabase/postgres:17.6.1.165",

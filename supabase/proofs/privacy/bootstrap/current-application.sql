@@ -26,9 +26,13 @@ DO $r01_admission$ BEGIN
 
     RAISE EXCEPTION 'R01_BOOTSTRAP_NOT_ADMITTED'; END IF;
 
-  IF current_setting('supautils.privileged_role',true) IS DISTINCT FROM 'postgres'
+  IF NOT EXISTS (SELECT 1 FROM pg_settings s JOIN pg_roles r ON r.rolname=s.setting
 
-     OR (SELECT rolsuper FROM pg_roles WHERE rolname='postgres') THEN
+      WHERE s.name='supautils.privileged_role' AND s.setting='supabase_privileged_role'
+
+        AND s.context='sighup' AND pg_has_role(current_user,r.oid,'USAGE'))
+
+     OR (SELECT rolsuper FROM pg_roles WHERE rolname='postgres') IS DISTINCT FROM false THEN
 
     RAISE EXCEPTION 'R01_SUPAUTILS_PRIVILEGED_NONSUPER_POSTGRES_REQUIRED'; END IF;
 
@@ -40012,7 +40016,7 @@ FOR target IN SELECT * FROM (VALUES ('TABLE','"private"."account_block_commands"
 
     FOR principal IN SELECT DISTINCT grantee FROM aclexplode(coalesce(prior,acldefault(
 
-      CASE target.kind WHEN 'FUNCTION' THEN 'f' WHEN 'SCHEMA' THEN 'n' WHEN 'SEQUENCE' THEN 'S' ELSE 'r' END::"char",owner_id))) LOOP
+      CASE target.kind WHEN 'FUNCTION' THEN 'f' WHEN 'SCHEMA' THEN 'n' WHEN 'SEQUENCE' THEN 's' ELSE 'r' END::"char",owner_id))) LOOP
 
       EXECUTE format('REVOKE ALL PRIVILEGES ON %s %s FROM %s',target.kind,target.object_name,
 
