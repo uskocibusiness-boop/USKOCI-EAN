@@ -1,5 +1,7 @@
 # USKOČI — stvarno stanje čistog foldera (26.10.2026)
 
+> **Nastavak od 28.10.2026:** aktuelni R01–R12 status, stvarni rezultati i sledeći korak vode se u jednom [CODEX_PLAN_RADA.md](docs/plan/CODEX_PLAN_RADA.md#112a-aktuelni-izvršni-status--28102026). Odeljci ispod čuvaju istorijski presek izvornog foldera od 26.10.2026; njihove stare potvrde nisu novi prolaz radne grane `work/rev14-review-f17`.
+
 Ovaj folder je jedini lokalni checkout za `feature/uskoci-cisto`. Stari
 `USKOCI ZAVRSAVANJE/USKOCI-EAN` nije menjan. Više hiljada starih izveštaja,
 workflow-a i pomoćnih skripti iz udaljene grane nije deo ovog izvornog foldera;

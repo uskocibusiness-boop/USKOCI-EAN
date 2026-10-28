@@ -1,5 +1,7 @@
 # REV10 / REV14 first implementation slice
 
+Continuation and current R01–R12 status are maintained in the same [CODEX_PLAN_RADA.md](../plan/CODEX_PLAN_RADA.md#112a-aktuelni-izvršni-status--28102026). This file records the historical 2026-10-27 slice only; it is not a separate plan or the latest R01 implementation status.
+
 Base: `a9692e11942609bab9406215c3e407d79589dafa`, `uskocibusiness-boop/USKOCI-EAN`, `feature/uskoci-cisto`. Local working branch: `work/rev14-review-f17`. Original user packages remain the reference: REV10 is the R01–R12 operational plan; REV14 is the target UX architecture and is not implementation evidence.
 
 ## F17: useful, bounded Discovery read failures
