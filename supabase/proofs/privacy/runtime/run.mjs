@@ -185,7 +185,7 @@ async function run() {
     return result;
   }
   function sql(label, source, role = 'postgres') {
-    required(['postgres', 'supabase_admin', 'supabase_auth_admin'].includes(role), 'DATABASE_ROLE_REFUSED');
+    required(['postgres', 'supabase_admin'].includes(role), 'DATABASE_ROLE_REFUSED');
     return command(label, 'docker', ['exec', '-i', `supabase_db_${pins.project_id}`,
       'psql', '-X', '-qAt', '-U', role, '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-v', 'VERBOSITY=verbose', '-f', '-'],
     {input: source, timeout: 300000}).stdout.trim();
@@ -255,7 +255,7 @@ async function run() {
 
     required(JSON.stringify(sourceCheck()) === JSON.stringify(receipt.source_hashes), 'SOURCE_CHANGED_DURING_START');
     sql('AUTH_SEARCH_INDEXES', "SET uskoci.r01.bootstrap = 'LOCAL_ONLY';\n" + readFileSync(files.auth_indexes, 'utf8'),
-      'supabase_auth_admin');
+      'supabase_admin');
     sql('PLATFORM_EXTENSIONS', "SET uskoci.r01.bootstrap = 'LOCAL_ONLY';\n" + readFileSync(files.extensions, 'utf8'), 'supabase_admin');
     const extensions = JSON.parse(sql('EXTENSION_ADMISSION', `SELECT jsonb_agg(jsonb_build_object(
       'name',e.extname,'schema',n.nspname,'version',e.extversion) ORDER BY e.extname)

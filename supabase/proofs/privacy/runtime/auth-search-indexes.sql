@@ -4,6 +4,8 @@
 -- opt-in index worker is disabled by default in this local CLI stack.
 -- A fresh empty disposable database permits synchronous, atomic creation.
 BEGIN;
+-- Use the already admitted local maintenance session; no Auth password is read.
+SET LOCAL ROLE supabase_auth_admin;
 SET LOCAL statement_timeout = '60s';
 SET LOCAL lock_timeout = '5s';
 SET LOCAL search_path = pg_catalog;
@@ -11,6 +13,7 @@ DO $r01_auth_index_admission$
 BEGIN
   IF current_setting('uskoci.r01.bootstrap', true) IS DISTINCT FROM 'LOCAL_ONLY'
      OR current_user <> 'supabase_auth_admin'
+     OR session_user <> 'supabase_admin'
      OR current_database() <> 'postgres'
      OR current_setting('server_version_num') <> '170006'
      OR inet_client_addr() IS NOT NULL

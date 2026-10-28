@@ -77,7 +77,8 @@ search indexes. They match the pinned Auth v2.196.0
 [index worker](https://github.com/supabase/auth/blob/v2.196.0/internal/indexworker/indexworker.go),
 whose [configuration](https://github.com/supabase/auth/blob/v2.196.0/internal/conf/configuration.go)
 defaults to disabled. This separate prerequisite runs atomically as the existing
-`supabase_auth_admin` owner, through the owned container's local socket, before
-application DDL. It refuses an existing application or nonempty Auth users table.
+`supabase_auth_admin` owner via transaction-local `SET ROLE` from the admitted
+`supabase_admin` socket session, before application DDL. No Auth database password
+is read. It refuses an existing application or nonempty Auth users table.
 It changes no ownership, role, ACL or table definition. Its source hash is included
 in the runtime receipt; full strict catalog comparison still checks every index.
