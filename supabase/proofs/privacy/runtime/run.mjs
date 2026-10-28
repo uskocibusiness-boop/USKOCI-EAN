@@ -5,6 +5,7 @@ import {spawnSync} from 'node:child_process';
 import {existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync} from 'node:fs';
 import {dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
+import {buildManagedDiagnostics} from './managed-diagnostics.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repository = resolve(here, '../../../..');
@@ -19,6 +20,7 @@ const files = {
   extensions: join(here, 'extensions.sql'),
   pins: join(here, 'pins.json'),
   runner: fileURLToPath(import.meta.url),
+  diagnostics: join(here, 'managed-diagnostics.mjs'),
   workflow: join(repository, '.github/workflows/r01-disposable-schema.yml'),
 };
 const sha256 = value => createHash('sha256').update(value).digest('hex');
@@ -141,7 +143,8 @@ async function run() {
     writeFileSync(join(paths.privateDir, `${label}.stdout`), result.stdout ?? '', {mode: 0o600});
     writeFileSync(join(paths.privateDir, `${label}.stderr`), result.stderr ?? '', {mode: 0o600});
     const accepted = !result.error && allowed.includes(result.status);
-    receipt.stages.push({stage: label, passed: accepted, exit_code: result.status ?? null});
+    receipt.stages.push({stage: label, passed: !result.error && result.status === 0,
+      accepted_exit: accepted, exit_code: result.status ?? null});
     if (!accepted && ['PG_ADMISSION', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
       'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE'].includes(label)) {
       receipt.sql_failures ??= [];
@@ -226,6 +229,13 @@ async function run() {
     const scrubbed = scrubComparison(JSON.parse(comparison.stdout));
     writeJSON(join(paths.publicDir, 'parity-diff.json'), scrubbed);
     console.log('R01_PARITY_JSON ' + JSON.stringify(scrubbed));
+    const diagnostics = buildManagedDiagnostics(json(files.expected), JSON.parse(capture));
+    required(diagnostics.metadata_equal === scrubbed.metadata_equal &&
+      diagnostics.difference_count === scrubbed.difference_count, 'DIAGNOSTIC_BINDING_REFUSED');
+    writeJSON(join(paths.publicDir, 'managed-diagnostics.json'), diagnostics);
+    const {rows: diagnosticRows, ...diagnosticSummary} = diagnostics;
+    console.log('R01_MANAGED_DIAGNOSTICS_JSON ' + JSON.stringify(diagnosticSummary));
+    for (const row of diagnosticRows) console.log('R01_MANAGED_ROW_JSON ' + JSON.stringify(row));
     receipt.metadata_equal = scrubbed.metadata_equal;
     required(comparison.status === 0 && scrubbed.metadata_equal, 'METADATA_PARITY_DIFFERENT');
     receipt.result = 'METADATA_EQUAL';

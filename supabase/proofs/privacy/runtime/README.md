@@ -44,3 +44,14 @@ defines the runtime images. Its [configuration loader](https://raw.githubusercon
 supports the explicit service version files used here. The
 [PostgreSQL image source](https://raw.githubusercontent.com/supabase/postgres/17.6.1.165/README.md)
 lists PostgreSQL 17.6 and PostGIS 3.3.7; actual versions are still checked at runtime.
+
+Managed differences also produce a diagnostic artifact with per-field and
+per-column hashes and ACL tuples (hashed grantee/grantor, privilege code and
+grant option). ACL ordering is normalized only in this diagnostic view; the
+strict comparator still rejects every catalog difference. NULL and empty ACLs
+remain distinct. No raw names, SQL expressions or setting values are published.
+Unknown field names are counted but never echoed. Unknown ACL quoting refuses
+diagnostics rather than exposing raw text. Each diagnostic row is logged
+separately to avoid truncating the complete report into one oversized log line.
+The report is bound to the validated capture and does not admit fixtures or
+change any schema, platform configuration, role or privilege.

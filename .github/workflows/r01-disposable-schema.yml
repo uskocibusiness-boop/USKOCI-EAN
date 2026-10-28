@@ -32,7 +32,7 @@ jobs:
       - name: Admit source and verify the proof checker
         run: |
           node --check supabase/proofs/privacy/runtime/run.mjs
-          node --test supabase/proofs/privacy/r01-bootstrap-parity.test.mjs supabase/proofs/privacy/runtime/run.test.mjs
+          node --test supabase/proofs/privacy/r01-bootstrap-parity.test.mjs supabase/proofs/privacy/runtime/run.test.mjs supabase/proofs/privacy/runtime/managed-diagnostics.test.mjs
           node supabase/proofs/privacy/runtime/run.mjs check-source
       - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb
         with:
@@ -54,5 +54,6 @@ jobs:
             ${{ runner.temp }}/r01-schema-public/versions.json
             ${{ runner.temp }}/r01-schema-public/images.json
             ${{ runner.temp }}/r01-schema-public/parity-diff.json
+            ${{ runner.temp }}/r01-schema-public/managed-diagnostics.json
           if-no-files-found: warn
           retention-days: 14
