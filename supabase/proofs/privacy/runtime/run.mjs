@@ -12,6 +12,7 @@ import {compareManagedNetHook, managedNetHookObservation, validateManagedNetHook
 import {compareNativeNetProvenance, nativeNetObservation, validateNativeNetBaseline} from './native-net-provenance.mjs';
 import {compareHostedLoginDependency, hostedLoginObservation, validateHostedLoginBaseline} from './hosted-login-dependency.mjs';
 import {adminPathObservation, compareAdminEffectivePath, validateAdminPathBaseline} from './admin-effective-path.mjs';
+import {extensionAclObservation, compareExtensionAclScope, validateExtensionAclBaseline} from './extension-acl-scope.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repository = resolve(here, '../../../..');
@@ -40,6 +41,9 @@ const files = {
   admin_path_query: join(here, 'admin-effective-path.sql'),
   admin_path_expected: join(here, 'admin-effective-path-expected.json'),
   admin_path_comparator: join(here, 'admin-effective-path.mjs'),
+  extension_acl_query: join(here, 'extension-acl-scope.sql'),
+  extension_acl_expected: join(here, 'extension-acl-scope-expected.json'),
+  extension_acl_comparator: join(here, 'extension-acl-scope.mjs'),
   pins: join(here, 'pins.json'),
   runner: fileURLToPath(import.meta.url),
   diagnostics: join(here, 'managed-diagnostics.mjs'),
@@ -178,6 +182,9 @@ function sourceCheck() {
   required(readFileSync(files.admin_path_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
     'ADMIN_PATH_QUERY_NOT_READ_ONLY');
   validateAdminPathBaseline(json(files.admin_path_expected), sha256(readFileSync(files.admin_path_query)));
+  required(readFileSync(files.extension_acl_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
+    'EXTENSION_ACL_QUERY_NOT_READ_ONLY');
+  validateExtensionAclBaseline(json(files.extension_acl_expected), sha256(readFileSync(files.extension_acl_query)));
   return Object.fromEntries(Object.entries(files).map(([name, path]) => [name, sha256(readFileSync(path))]));
 }
 
@@ -204,7 +211,7 @@ async function run() {
     stages: [], live_access: false, fixtures_run: false, candidate_applied: false, actual_auth_proven: false,
     postgrest_boundary_proven: false, metadata_equal: false,
     native_net_provenance_verified: false, hosted_login_dependency_verified: false,
-    admin_effective_path_verified: false};
+    admin_effective_path_verified: false, extension_acl_caller_scope_verified: false};
   let stage = 'SOURCE_ADMISSION';
   function command(label, executable, args, {input, cwd = repository, timeout = 120000, allowed = [0]} = {}) {
     stage = label;
@@ -219,7 +226,7 @@ async function run() {
       receipt.startup_failure = scrubStartupFailure(result.stdout ?? '', result.stderr ?? '');
     }
     if (!accepted && ['PG_ADMISSION', 'SERVICE_MIGRATION_ADMISSION', 'AUTH_SEARCH_INDEXES', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
-      'MANAGED_NET_HOOK_CAPTURE', 'NATIVE_NET_PROVENANCE_CAPTURE', 'HOSTED_LOGIN_DEPENDENCY_CAPTURE', 'ADMIN_EFFECTIVE_PATH_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
+      'MANAGED_NET_HOOK_CAPTURE', 'NATIVE_NET_PROVENANCE_CAPTURE', 'HOSTED_LOGIN_DEPENDENCY_CAPTURE', 'ADMIN_EFFECTIVE_PATH_CAPTURE', 'EXTENSION_ACL_SCOPE_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
       receipt.sql_failures ??= [];
       receipt.sql_failures.push({stage: label, ...scrubSqlFailure(result.stderr ?? '')});
     }
@@ -365,6 +372,14 @@ async function run() {
     receipt.admin_effective_path_verified = adminPathComparison.effective_disposable_path_verified;
     writeJSON(join(paths.publicDir, 'admin-effective-path-diff.json'), adminPathComparison);
     console.log('R01_ADMIN_EFFECTIVE_PATH_JSON ' + JSON.stringify(adminPathComparison));
+    const aclCapture = extensionAclObservation(JSON.parse(sql('EXTENSION_ACL_SCOPE_CAPTURE',
+      readFileSync(files.extension_acl_query, 'utf8'), 'supabase_admin')));
+    writeJSON(join(paths.publicDir, 'extension-acl-scope-observed.json'), aclCapture);
+    const aclComparison = compareExtensionAclScope(json(files.extension_acl_expected), aclCapture,
+      receipt.source_hashes.extension_acl_query);
+    receipt.extension_acl_caller_scope_verified = aclComparison.caller_scope_verified;
+    writeJSON(join(paths.publicDir, 'extension-acl-scope-diff.json'), aclComparison);
+    console.log('R01_EXTENSION_ACL_SCOPE_JSON ' + JSON.stringify(aclComparison));
     const managedNetComparison = compareManagedNetHook(json(files.managed_net_expected), managedNetHook,
       receipt.source_hashes.managed_net_query);
     receipt.managed_net_hook_equal = managedNetComparison.equal;
@@ -388,6 +403,8 @@ async function run() {
     required(hostedComparison.provenance_verified, 'HOSTED_LOGIN_DEPENDENCY_DIFFERENT');
     stage = 'ADMIN_EFFECTIVE_PATH_ADMISSION';
     required(adminPathComparison.effective_disposable_path_verified, 'ADMIN_EFFECTIVE_PATH_DIFFERENT');
+    stage = 'EXTENSION_ACL_CALLER_SCOPE_ADMISSION';
+    required(aclComparison.caller_scope_verified, 'EXTENSION_ACL_CALLER_SCOPE_DIFFERENT');
     receipt.result = 'METADATA_EQUAL';
     console.log('R01 disposable schema metadata equality verified; HTTP and candidate proof remain unexecuted.');
   } catch (error) {
