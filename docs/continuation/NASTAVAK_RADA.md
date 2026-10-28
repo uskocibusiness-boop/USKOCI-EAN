@@ -2,6 +2,10 @@
 
 Ovo je ulaz za nastavak, ne novi plan. Jedini operativni plan ostaje [CODEX_PLAN_RADA.md](../plan/CODEX_PLAN_RADA.md), posebno §11.2a i dnevnik `ledger-20261028`. Ovaj presek je napravljen 28.10.2026. Posle novih promena prednost ima noviji provereni zapis u tom planu.
 
+> **Obavezno pre nastavka:** ovaj dokument sadrži istorijski presek prenosa od 28.10.2026, a grana je potom napredovala. Brojevi, statusi i „prvi sledeći korak” u kopiranoj komandi ispod nisu zamena za novije zapise glavnog plana. Prvo osveži radnu granu bez gubitka lokalnih izmena, pročitaj najnovije dopune izvršnog dnevnika i proveri rezultat tamo navedenog CI-a. Konkretan naredni zadatak uzmi iz najnovijeg relevantnog zapisa, ne iz istorijske tačke 6 ovog uputstva.
+>
+> **Bez ponavljanja analize u krug:** sačuvani nalazi, izvorni registri, odluke i završene provere su početna osnova. Za izabrani zadatak pročitaj njegov postojeći izvršni zapis, povezani izvor i uslov prihvatanja. Ponovo proveravaj samo promenjeni kod/okruženje, nedostajući dokaz ili novu regresiju; navedi razlog. Posle provere pređi na implementaciju ili precizno zabeleži blokadu i nastavi nezavisan posao. Opšti ponovni audit svih ZIP-ova nije preduslov svake izmene.
+
 ## Preuzimanje bez starog računara
 
 Potreban je Git, Python 3.9+ i, za razvoj aplikacije, Node/npm prema repozitorijumu i CI. Za lokalnu bazu potrebna je odgovarajuća Docker okolina; postojeći Windows računar je nema, zato se izolovane serverske provere izvršavaju na GitHub Ubuntu runneru.

@@ -3725,6 +3725,12 @@ Native helper sada ima dokazano poreklo u pinovanoj Postgres migraciji; tekstual
 - **Granica dokaza:** [CI 40763030492](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40763030492) za novi source bio je `IN_PROGRESS` u trenutku upisa; ne tvrditi PASS unapred. [R01 schema CI 40763030467](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40763030467) je odvojeni strict SQL gate, bez veze sa uspehom katalogskog učitavanja. Ovo zatvara samo problem *nepotpunog fallback čitača*, ne R04 u celini: semantic REUSE, hijerarhija, BOTH/handoff, potpisani pregled, save/binder/readback, real Gemini, uređaj i deployment ostaju `UNPROVEN`.
 - **Sledeći korak:** uzeti stvarni full CI ishod, popraviti samo potvrđenu regresiju ako postoji; zatim upariti fallback complete node count sa server META/semantic ancestor pravilom i nastaviti R04 po postojećem §6, bez treće AI strategije ili dupliranja master plana.
 
+### Provera potpunosti prenosa i pravilo nastavka — 28.10.2026.
+
+Na udaljenoj grani do `d980c2f82c09ef968ea4c5de4fcb038d4387f98d` ponovo su provereni Git bajtovi sva tri paketa: REV14 11 fajlova, REV10 139 fajlova i izvršni paket 155 fajlova. Oba originalna ZIP-a su bajt-po-bajt identična dostavljenim prilozima; sva tri odgovaraju SHA-256 manifestu, a provera 305 članova prolazi. Izvršni paket je istorijski presek prenosa, ne automatski arhiv svake buduće CI sesije. Noviji kod i izvršne dopune postoje u istoj grani i ovom planu; novije CI rezultate čitati preko konkretnih run linkova iz tih zapisa.
+
+`docs/continuation/NASTAVAK_RADA.md` sada izričito daje prednost najnovijem izvršnom zapisu nad svojim starijim statusima i prvim korakom. Za nastavak koristiti postojeće nalaze, cilj, pogođene putanje, zavisnosti i acceptance iz ovog plana i njegovih punih izvora. Ne ponavljati opšti audit ZIP-ova ili završene popravke; ponovnu proveru ograničiti na promenu izvora/okruženja, nedostajući dokaz ili novu regresiju i upisati razlog. Ova dopuna ne zatvara R/C/SV zadatke niti potvrđuje deployment.
+
 <!-- EXECUTION-UPDATE-END: ledger-20261028 -->
 ### 11.3. Zapis jednog završenog ili blokiranog koraka
 
