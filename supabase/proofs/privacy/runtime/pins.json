@@ -9,14 +9,14 @@
     "auth": "supabase/gotrue:v2.196.0",
     "rest": "postgrest/postgrest:v16.1",
     "storage": "supabase/storage-api:v1.80.0",
-    "realtime": "supabase/realtime:v2.148.4"
+    "realtime": "supabase/realtime:v2.148.3"
   },
   "version_files": {
     "postgres-version": "17.6.1.165",
     "gotrue-version": "v2.196.0",
     "rest-version": "v16.1",
     "storage-version": "v1.80.0",
-    "realtime-version": "v2.148.4"
+    "realtime-version": "v2.148.3"
   },
   "extensions": [
     {

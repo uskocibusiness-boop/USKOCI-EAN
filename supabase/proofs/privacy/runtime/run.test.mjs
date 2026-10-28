@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {scrubComparison, scrubSqlFailure, validateEnvironment, validateGeneratedInputs, validatePostgresAdmission, validateServiceHistory} from './run.mjs';
+import {scrubComparison, scrubSqlFailure, scrubStartupFailure, validateEnvironment, validateGeneratedInputs, validatePostgresAdmission, validateServiceHistory} from './run.mjs';
 
 const pins = JSON.parse(readFileSync(new URL('./pins.json', import.meta.url), 'utf8'));
 const sql = "BEGIN;\nDO $$ BEGIN IF current_setting('uskoci.r01.bootstrap', true) IS DISTINCT FROM 'LOCAL_ONLY' " +
@@ -112,4 +112,15 @@ test('platform history admission rejects stale, missing, mutated and extra migra
     change(history);
     assert.throws(() => validateServiceHistory(history));
   }
+});
+
+test('startup diagnostics classify image and service failures without publishing log content', () => {
+  const privateText = 'SYNTHETIC_PRIVATE_TOKEN_AND_URL';
+  const stderr = `failed to resolve reference ${privateText}: manifest unknown\nservice unhealthy`;
+  assert.deepEqual(scrubStartupFailure('', stderr), {stdout_sha256: hash(''), stderr_sha256: hash(stderr),
+    categories: ['IMAGE_NOT_FOUND', 'SERVICE_UNHEALTHY']});
+  assert.equal(JSON.stringify(scrubStartupFailure(privateText, stderr)).includes(privateText), false);
+  assert.deepEqual(scrubStartupFailure('', privateText).categories, []);
+  assert.deepEqual(scrubStartupFailure('connection refused', 'migration failed: permission denied').categories,
+    ['CONNECTION_REFUSED', 'MIGRATION_FAILED', 'PERMISSION_DENIED']);
 });

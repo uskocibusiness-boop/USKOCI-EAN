@@ -88,6 +88,23 @@ export function scrubSqlFailure(stderr) {
     guards: [...new Set([...stderr.matchAll(/\bR01_[A-Z_]{1,96}\b/g)].map(m => m[0]))].sort()};
 }
 
+export function scrubStartupFailure(stdout, stderr) {
+  // Only fixed categories leave the runner; never publish a matched log substring.
+  const output = stdout + '\n' + stderr;
+  const patterns = {
+    IMAGE_NOT_FOUND: /manifest unknown|manifest.*not found|failed to resolve reference/i,
+    IMAGE_ACCESS_REFUSED: /pull access denied|unauthorized: authentication required/i,
+    REGISTRY_RATE_LIMIT: /toomanyrequests|pull rate limit/i,
+    SERVICE_UNHEALTHY: /unhealthy|health check failed/i,
+    CONNECTION_REFUSED: /connection refused/i,
+    TIMEOUT: /timed out|deadline exceeded/i,
+    MIGRATION_FAILED: /migration.*failed|failed.*migration/i,
+    PERMISSION_DENIED: /permission denied/i,
+  };
+  return {stdout_sha256: sha256(stdout), stderr_sha256: sha256(stderr),
+    categories: Object.entries(patterns).filter(([, pattern]) => pattern.test(output)).map(([name]) => name)};
+}
+
 export function scrubComparison(comparison) {
   required(comparison?.unit === 'R01_BOOTSTRAP_METADATA_COMPARISON' &&
     typeof comparison.metadata_equal === 'boolean' && Array.isArray(comparison.differences), 'COMPARISON_FORMAT_REFUSED');
@@ -155,6 +172,9 @@ async function run() {
     const accepted = !result.error && allowed.includes(result.status);
     receipt.stages.push({stage: label, passed: !result.error && result.status === 0,
       accepted_exit: accepted, exit_code: result.status ?? null});
+    if (!accepted && label === 'START_STACK') {
+      receipt.startup_failure = scrubStartupFailure(result.stdout ?? '', result.stderr ?? '');
+    }
     if (!accepted && ['PG_ADMISSION', 'SERVICE_MIGRATION_ADMISSION', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
       'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE'].includes(label)) {
       receipt.sql_failures ??= [];
