@@ -11,6 +11,7 @@ const CONVERSATION = '22222222-2222-4222-8222-222222222222', REVIEW = '33333333-
 const NEED = '55555555-5555-4555-8555-555555555555';
 let mockSession = { user: { id: OWNER }, accountRevision: 1 }, mockFocused = true, mockCounter = 0;
 let mockParams: { conversationId?: string | string[]; intakeReturn?: string | string[] } = { conversationId: CONVERSATION };
+const mockIntakeLifecycle = jest.fn();
 const mockLatest = jest.fn(), mockRead = jest.fn(), mockPrepare = jest.fn(), mockAccept = jest.fn(), mockResume = jest.fn();
 const mockNeed = jest.fn(), mockCorrect = jest.fn(), mockOpenEdit = jest.fn(), mockDraft = jest.fn(), mockAbandon = jest.fn(), mockPoruka = jest.fn();
 const mockLocationRead = jest.fn(), mockLocationSave = jest.fn(), mockCancelResolver = jest.fn();
@@ -25,6 +26,7 @@ jest.mock('../needLifecycleClientService', () => ({ ...jest.requireActual('../ne
   cancelNeed: jest.fn(), deleteDraftNeed: (...args: unknown[]) => mockDelete(...args), readCommandReceipt: (...args: unknown[]) => mockReceipt(...args),
 } }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => { throw new Error('Unexpected transport'); } }));
+jest.mock('../aiOpenIntakes', () => ({ readIntakeLifecycle: (...args: unknown[]) => mockIntakeLifecycle(...args) }));
 jest.mock('../aiTaskReviewClientService', () => ({ aiTaskReviewClientService: {
   readLatest: (...args: unknown[]) => mockLatest(...args), read: (...args: unknown[]) => mockRead(...args),
   prepare: (...args: unknown[]) => mockPrepare(...args), acceptAndPublish: (...args: unknown[]) => mockAccept(...args),
@@ -137,10 +139,11 @@ const boundNeed = (stanje = 'OBJAVLJENA', patch: Record<string, unknown> = {}) =
   podrucjeTekst: 'Novi Sad', vremeTekst: 'Po dogovoru', pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 }, uslovi: [], brojPrijava: 0, ...patch });
 beforeEach(() => {
   jest.clearAllMocks();
-  for (const mock of [mockLatest, mockRead, mockPrepare, mockAccept, mockResume, mockNeed, mockCorrect, mockOpenEdit, mockLocationRead, mockLocationSave,
+  for (const mock of [mockIntakeLifecycle, mockLatest, mockRead, mockPrepare, mockAccept, mockResume, mockNeed, mockCorrect, mockOpenEdit, mockLocationRead, mockLocationSave,
     mockDraft, mockAbandon, mockPoruka, mockDelete, mockReceipt, mockMine, ...Object.values(mockStored)]) mock.mockReset();
   mockSession = { user: { id: OWNER }, accountRevision: 1 }; mockFocused = true; mockCounter = 0;
   mockParams = { conversationId: CONVERSATION };
+  mockIntakeLifecycle.mockImplementation(async (id: string) => ({ id, status: 'OPEN', boundNeedId: null }));
   mockLatest.mockResolvedValue(ok(null)); mockRead.mockResolvedValue(ok({ review: review(), command: null }));
   mockPrepare.mockResolvedValue(ok(review())); mockAccept.mockResolvedValue(unknownOutcome()); mockResume.mockResolvedValue(unknownOutcome());
   mockLocationRead.mockResolvedValue(ok({ conversationId: CONVERSATION, revision: 'location-r1', value: null, authoritative: true }));
@@ -334,14 +337,14 @@ describe('the ways out of a review that is not published yet', () => {
       expect(sheets()[0].props.title).toBe('Obrisati nacrt?');
     });
 
-    it('the confirm leaves the conversation through the one command the server has, says "Nacrt je obrisan." with no "Vrati", and goes home', async () => {
+    it('the confirm leaves the conversation through the one command the server has, says "Razgovor je napušten." with no "Vrati", and goes home', async () => {
       await render();
       await act(async () => action('Obriši nacrt').onPress());
       await inSheet('confirm-sheet-confirm');
       expect(mockAbandon).toHaveBeenCalledTimes(1); expect(mockAbandon).toHaveBeenCalledWith(CONVERSATION);
       // There is no way to undo it, so the bar offers none.
       expect(mockPoruka).toHaveBeenCalledTimes(1);
-      expect(mockPoruka).toHaveBeenCalledWith({ text: 'Nacrt je obrisan.', confirmed: true });
+      expect(mockPoruka).toHaveBeenCalledWith({ text: 'Razgovor je napušten.', confirmed: true });
       expect(mockPoruka.mock.calls[0][0].action).toBeUndefined();
       expect(mockRouter.replace).toHaveBeenCalledTimes(1); expect(mockRouter.replace).toHaveBeenCalledWith('/');
       expect(mockAccept).not.toHaveBeenCalled(); expect(mockDraft).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
@@ -360,6 +363,95 @@ describe('the ways out of a review that is not published yet', () => {
       expect(absent('Izmeni zadatak')).toBe(true); expect(action('Obriši nacrt').disabled).toBe(true);
       expect(absent('Sačuvaj nacrt')).toBe(true);
       expect(action('Proveri').disabled).toBe(false);
+    });
+  });
+
+  describe('lost abandon acknowledgement reads the same conversation', () => {
+    const loseAnswer = async () => {
+      mockAbandon.mockResolvedValue({ ok: false, kod: 'AI_CONVERSATION_ABANDON_UNCONFIRMED', poruka: 'Napuštanje nije potvrđeno.' });
+      await render();
+      await act(async () => action('Obriši nacrt').onPress());
+      await inSheet('confirm-sheet-confirm');
+      mockPrepare.mockClear(); mockLatest.mockClear(); mockRead.mockClear(); mockLocationRead.mockClear(); mockIntakeLifecycle.mockClear();
+    };
+    it('ABANDONED is confirmed without prepare, publication, another abandon or an invented task', async () => {
+      await loseAnswer();
+      mockIntakeLifecycle.mockResolvedValue({ id: CONVERSATION, status: 'ABANDONED', boundNeedId: null });
+      await act(async () => action('Proveri').onPress());
+      expect(mockIntakeLifecycle).toHaveBeenCalledTimes(1); expect(mockIntakeLifecycle).toHaveBeenCalledWith(CONVERSATION);
+      expect(text()).toContain('Razgovor je napušten.'); expect(text()).toContain('nisu trajno obrisani');
+      expect(mockPrepare).not.toHaveBeenCalled(); expect(mockLatest).not.toHaveBeenCalled(); expect(mockRead).not.toHaveBeenCalled();
+      expect(mockLocationRead).not.toHaveBeenCalled(); expect(mockNeed).not.toHaveBeenCalled();
+      expect(mockAccept).not.toHaveBeenCalled(); expect(mockDraft).not.toHaveBeenCalled(); expect(mockResume).not.toHaveBeenCalled();
+      expect(mockAbandon).toHaveBeenCalledTimes(1); expect(absent('Obriši nacrt')).toBe(true);
+      expect(mockRouter.replace).not.toHaveBeenCalled();
+      await act(async () => action('Na početnu').onPress());
+      expect(mockRouter.replace).toHaveBeenCalledWith('/');
+    });
+    it('OPEN is not success or a write replay; another removal needs another confirmation', async () => {
+      await loseAnswer();
+      await act(async () => action('Proveri').onPress());
+      expect(text()).not.toContain('Razgovor je napušten.'); expect(mockPoruka).not.toHaveBeenCalled();
+      expect(mockRouter.replace).not.toHaveBeenCalled(); expect(mockAbandon).toHaveBeenCalledTimes(1);
+      expect(action('Obriši nacrt').disabled).toBeFalsy();
+      await act(async () => action('Obriši nacrt').onPress());
+      expect(sheets()).toHaveLength(1); expect(mockAbandon).toHaveBeenCalledTimes(1);
+      await inSheet('confirm-sheet-cancel');
+      expect(mockAbandon).toHaveBeenCalledTimes(1);
+    });
+    it('an unavailable or invalid lifecycle read remains uncertain and blocks writes until a later valid read', async () => {
+      await loseAnswer(); mockIntakeLifecycle.mockRejectedValue(new Error('No authoritative row'));
+      await act(async () => action('Proveri').onPress());
+      expect(text()).not.toContain('Razgovor je napušten.'); expect(mockPrepare).not.toHaveBeenCalled();
+      expect(mockLatest).not.toHaveBeenCalled(); expect(mockAbandon).toHaveBeenCalledTimes(1);
+      expect(action('Proveri').disabled).toBe(false); expect(absent('Sačuvaj nacrt')).toBe(true);
+      mockIntakeLifecycle.mockResolvedValue({ id: CONVERSATION, status: 'ABANDONED', boundNeedId: null });
+      await act(async () => action('Proveri').onPress());
+      expect(text()).toContain('Razgovor je napušten.'); expect(mockPrepare).not.toHaveBeenCalled();
+    });
+    it('a completed bound conversation recovers its actual accepted command, not an abandon success', async () => {
+      await loseAnswer();
+      mockIntakeLifecycle.mockResolvedValue({ id: CONVERSATION, status: 'COMPLETED', boundNeedId: NEED });
+      mockLatest.mockResolvedValue(ok({ review: review(), command: command('ACCEPTED') }));
+      await act(async () => action('Proveri').onPress());
+      expect(mockLatest).toHaveBeenCalledWith(CONVERSATION); expect(mockPrepare).not.toHaveBeenCalled();
+      expect(text()).not.toContain('Razgovor je napušten.'); expect(text()).toContain('Nacrt je sačuvan.');
+      expect(mockPoruka).not.toHaveBeenCalled(); expect(mockAbandon).toHaveBeenCalledTimes(1);
+    });
+    it.each([['COMPLETED', null], ['COMPLETED', NEED], ['ABANDONED', NEED]] as const)(
+      'closed %s state with binding %s and no command cannot confirm abandonment or prepare again', async (status, boundNeedId) => {
+      await loseAnswer();
+      mockIntakeLifecycle.mockResolvedValue({ id: CONVERSATION, status, boundNeedId });
+      await act(async () => action('Proveri').onPress());
+      expect(text()).not.toContain('Razgovor je napušten.'); expect(mockPrepare).not.toHaveBeenCalled();
+      expect(mockPoruka).not.toHaveBeenCalled(); expect(mockAbandon).toHaveBeenCalledTimes(1);
+    });
+    it('remount reads terminal state before preparing even after the local pending marker is lost', async () => {
+      await loseAnswer(); await act(async () => tree.unmount());
+      mockIntakeLifecycle.mockResolvedValue({ id: CONVERSATION, status: 'ABANDONED', boundNeedId: null });
+      await render();
+      expect(text()).toContain('Razgovor je napušten.'); expect(mockPrepare).not.toHaveBeenCalled();
+      expect(mockAbandon).toHaveBeenCalledTimes(1); expect(mockAccept).not.toHaveBeenCalled();
+    });
+    it.each(['blur', 'A-B-A', 'route'] as const)('a late abandonment read cannot affect the screen after %s', async change => {
+      await loseAnswer(); const held = deferred(); mockIntakeLifecycle.mockReturnValueOnce(held.promise);
+      await act(async () => action('Proveri').onPress());
+      if (change === 'blur') await blur();
+      else if (change === 'route') { mockParams = { conversationId: OTHER }; await update(); }
+      else {
+        mockSession = { user: { id: OTHER }, accountRevision: 2 }; await update();
+        mockSession = { user: { id: OWNER }, accountRevision: 3 }; await update();
+      }
+      await act(async () => held.resolve({ id: CONVERSATION, status: 'ABANDONED', boundNeedId: null }));
+      expect(text()).not.toContain('Razgovor je napušten.'); expect(mockPoruka).not.toHaveBeenCalled();
+      expect(mockRouter.replace).not.toHaveBeenCalled(); expect(mockAbandon).toHaveBeenCalledTimes(1);
+    });
+    it('focus return settles the pending abandon before reading or preparing another review', async () => {
+      await loseAnswer(); await blur();
+      mockIntakeLifecycle.mockResolvedValue({ id: CONVERSATION, status: 'ABANDONED', boundNeedId: null });
+      mockFocused = true; await update();
+      expect(text()).toContain('Razgovor je napušten.'); expect(mockPrepare).not.toHaveBeenCalled();
+      expect(mockLatest).not.toHaveBeenCalled(); expect(mockAbandon).toHaveBeenCalledTimes(1);
     });
   });
 

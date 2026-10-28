@@ -25,6 +25,7 @@ const mockNeed = jest.fn(), mockCorrect = jest.fn(), mockOpenEdit = jest.fn(), m
 const mockLocationRead = jest.fn(), mockLocationSave = jest.fn(), mockCancelResolver = jest.fn();
 const mockRouter = { replace: jest.fn(), push: jest.fn() };
 const mockHardwareBack = new Set<() => boolean>();
+jest.mock('../aiOpenIntakes', () => ({ readIntakeLifecycle: async (id: string) => ({ id, status: 'OPEN', boundNeedId: null }) }));
 jest.mock('../aiTaskReviewClientService', () => ({ aiTaskReviewClientService: {
   readLatest: (...args: unknown[]) => mockLatest(...args), read: (...args: unknown[]) => mockRead(...args),
   prepare: (...args: unknown[]) => mockPrepare(...args), acceptAndPublish: (...args: unknown[]) => mockAccept(...args),

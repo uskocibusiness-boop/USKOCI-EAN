@@ -10,6 +10,7 @@ import { publishedTaskRoute, rememberPublication } from '../../data/publicationH
 import { readIntakeReviewReturn } from '../../data/intakeReviewReturn';
 import { rememberAiCorrection, taskCorrectionTarget, type AiCorrectionTarget } from '../../data/aiCorrectionIntent';
 import { aiNeedV2Izvor, izvor } from '../../data';
+import { readIntakeLifecycle } from '../../data/aiOpenIntakes';
 import { factLabel, priceAmountRowValue } from '../../data/aiNeedV2Ui';
 import { needRequirementRows } from '../../data/needDetailPresentation';
 import type { NeedFactV2Key } from '../../contracts/needFactsV2';
@@ -54,7 +55,7 @@ import type { PartPencil } from '../../ui/objava/EditPencil';
 import { reviewAsTask } from '../../ui/objava/reviewAsTask';
 import { useReviewPerson } from '../../ui/objava/useReviewPerson';
 
-type Snapshot = { review: AiTaskReviewEnvelope; command: AiTaskPublicationCommand | null; publishedReadback: boolean; locationConflict: boolean;
+type Snapshot = { review: AiTaskReviewEnvelope | null; abandoned?: boolean; command: AiTaskPublicationCommand | null; publishedReadback: boolean; locationConflict: boolean;
   /** The task this review is bound to, when it reads as a private draft that was never published: then the review is its FIRST publication. */
   draftNeed: PotrebaProjekcija | null;
   /** The bound task is (or, once accepted, was) a private draft, so the words are those of a first publication, not of an edit. */
@@ -79,6 +80,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const accountId = user?.id;
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const pending = useRef<{ review: AiTaskReviewEnvelope; id: string } | null>(null);
+  const pendingAbandon = useRef<string | null>(null);
   const [locationEditor, setLocationEditor] = useState<NeedLocationReview | null>(null);
   // What the task does not say yet is named in one row ("Dodaj još podataka"), and that row opens it. Nothing is hidden;
   // a wall of "Nema navedenih stavki" is just not a wall.
@@ -121,6 +123,19 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     const current = () => scope !== null && scope === focus.current && !!accountId
       && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
     if (!conversationId || !current()) return changed();
+    const abandoned = (): Ishod<Snapshot> => ({ ok: true, podatak: { review: null, command: null,
+      abandoned: true, publishedReadback: false, locationConflict: false, draftNeed: null, firstPublication: false } });
+    // An uncertain abandon owns a different outcome from publication. Read the
+    // same conversation before touching the immutable review or preparing another.
+    let lifecycle: Awaited<ReturnType<typeof readIntakeLifecycle>> | null = null;
+    if (pendingAbandon.current === conversationId) {
+      lifecycle = await readIntakeLifecycle(conversationId);
+      if (!current()) return changed();
+      if (lifecycle.status === 'ABANDONED' && lifecycle.boundNeedId === null) return abandoned();
+      // OPEN permits a fresh explicit choice; this read never repeats abandonment.
+      // A completed/bound conversation must recover its actual review command.
+      pendingAbandon.current = null;
+    }
     const latest = pending.current
       ? await aiTaskReviewClientService.read(pending.current.review.reviewId)
       : await aiTaskReviewClientService.readLatest(conversationId);
@@ -138,6 +153,16 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       return { ok: true, podatak: { review, command, publishedReadback, locationConflict: false, draftNeed: null,
         firstPublication: !!review.draftId && firstPublicationOf.current === review.draftId } };
     }
+    // Also check after remount/refocus: an in-memory pending action can be lost,
+    // while the server's abandoned state survives. Never prepare a closed intake.
+    lifecycle ??= await readIntakeLifecycle(conversationId);
+    if (!current()) return changed();
+    if (lifecycle.status === 'ABANDONED') {
+      return lifecycle.boundNeedId === null ? abandoned() : { ok: false, kod: 'AI_INTAKE_STATE_UNCONFIRMED',
+        poruka: 'Stanje razgovora nije potvrđeno. Proveri ponovo.' };
+    }
+    if (lifecycle.status === 'COMPLETED') return { ok: false,
+      kod: 'AI_INTAKE_STATE_UNCONFIRMED', poruka: 'Razgovor više nije otvoren. Njegov sačuvani ishod još nije potvrđen. Proveri ponovo.' };
     let locationConflict = false;
     const savedReview = latest.podatak?.review;
     let location = locationProposal.current ?? (savedReview?.location
@@ -216,6 +241,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     && !lifecycleNow.current;
   const navigate = (fn: () => void) => { if (!current() || navigating.current) return; navigating.current = true; fn(); };
   const back = () => navigate(() => {
+    if (snapshot?.abandoned) { router.replace('/'); return; }
     if (!conversationId) { router.replace('/nova'); return; }
     // Keep the original route key: adding the newly assigned conversationId remounted a new
     // intake and erased its unsent text. Direct/restored reviews still open the canonical ID.
@@ -379,10 +405,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
         if (!mine || busyNow.current || !canAct()) return;
         // The sheet waits on the command it started and shows no outcome of its own: the bar and the next screen do.
         return editor.save(async () => {
+          pendingAbandon.current = id;
           const result = await aiNeedV2Izvor.abandonConversation(id);
           if (!current()) return changed();
           if (!result.ok) return result;
-          poruka.show({ text: 'Nacrt je obrisan.', confirmed: true });
+          pendingAbandon.current = null;
+          poruka.show({ text: 'Razgovor je napušten.', confirmed: true });
           navigate(() => router.replace('/'));
           return { ok: true, podatak: snapshot! };
         });
@@ -484,6 +512,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const factName = (key: NeedFactV2Key) => key === 'need.people_needed' ? 'Broj ljudi' : factLabel(key);
   /** What is shown at the top of the screen after a failure about the place is said where it can be read (a note, and the screen goes up to it). */
   const showAtTop = () => scroll.current?.scrollTo({ y: 0, animated: !reduced });
+
+  if (snapshot?.abandoned) return <SafeAreaView edges={['top', 'bottom']} style={frame.canvas}>
+    <StateView title="Razgovor je napušten." art="check"
+      body="Ovaj razgovor više ne možeš da nastaviš. Njegovi podaci nisu trajno obrisani."
+      primary={{ label: 'Na početnu', onPress: () => navigate(() => router.replace('/')) }} />
+  </SafeAreaView>;
 
   // The moment replaces the whole review: a finished publication has nothing left to change here. It continues to the task's own
   // overview by itself, on a tap and on Android Back (see `PublishedMoment`); this route's own fence decides whether it may.
