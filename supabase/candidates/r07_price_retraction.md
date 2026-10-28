@@ -38,6 +38,22 @@ sessions are absent. It does not prove full signed accept/Save/publication,
 retention, physical devices or deployment. The separate hourly mismatch remains
 an explicit characterization, not an R07b completion claim.
 
+The regression also calls `price_review_boundary_fixture.mjs`: seven additional
+cases run the current prepare/accept/direct-save/publish functions. An actual
+prepared review with a confirmed price is rejected after retraction, including
+after a later ALLOW or return to the same amount. A refreshed incomplete review
+cannot be accepted; direct save reports missing `need.price_mode`. New RSD and
+explicit OFFERS produce fresh acceptable reviews. Publishing without an accepted
+command is refused. These cases bring the focused run to 26 passing tests.
+
+This is a boundary proof: geography and policy are fixed synthetic fixtures,
+and valid acceptance intentionally raises a sentinel before location saving or
+fact confirmation. No draft or publication is successfully written. Real media
+source helpers run on an empty asset table. The seven main review/media body
+hashes were rechecked read-only on DEV; the leaf location validator comes from
+the unchanged canonical bootstrap. Full authenticated acceptance and publication
+remain unproven. Combined Edge/SQL regression: 173 passed, one integration TODO.
+
 `ai_edge_context.test.mjs` runs the actual handler with synthetic transport. It
 checks retraction delivery, model-control rejection and that a failed write or
 incorrect receipt cannot return a confirmed success.

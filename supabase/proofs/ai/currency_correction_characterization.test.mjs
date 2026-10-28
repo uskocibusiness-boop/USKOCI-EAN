@@ -1,6 +1,7 @@
 // R07a regression after the recorded prepatch characterization. No network or deployment.
 // Exact DEV SQL bodies observed 2026-10-27 04:43-04:46 UTC, leqcwgzvjsxugfgzdmth.
-// Narrow PGlite schema: real completion/context/status; NOT Auth, full RLS/closure, concurrent locks or signed Save/publication.
+// Narrow PGlite schema: completion/context/status and prepared-review boundaries;
+// NOT Auth, full RLS/closure, concurrent locks or successful signed Save/publication.
 // The real Edge guard is evaluated; test exports are appended only in the VM.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -12,6 +13,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import {PGlite} from '@electric-sql/pglite';
 import {syntheticDialogue} from './dialogue_fixture.mjs';
+import {verifyPriceReviewBoundary} from './price_review_boundary_fixture.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../../..');
 const entry=resolve(root,'supabase/functions/uskoci-ai-interview/index.ts');
@@ -382,6 +384,7 @@ test('R07a price retraction: actual Edge, guarded candidate writer and current r
   assert.deepEqual(await active(),facts);
   assert.equal((await one('select count(*)::int as n from public.ai_messages')).n,messages);
  });
+ await verifyPriceReviewBoundary({t,db,bootstrap,install,owner,conversation,apply,guard,proposal,active,seedPrice});
  await t.test('live validator supports TOTAL/PER_PERSON/HOURLY and retains FASTEST retirement',async()=>{
   for(const basis of ['TOTAL','PER_PERSON','HOURLY'])await db.query('select private.validate_need_v2_fact($1,$2::jsonb)',['need.price_basis',json(basis)]);
   await assert.rejects(db.query('select private.validate_need_v2_fact($1,$2::jsonb)',['need.price_mode',json('FASTEST')]),{code:'22023'});
