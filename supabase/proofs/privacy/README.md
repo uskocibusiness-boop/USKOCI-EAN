@@ -1,5 +1,49 @@
 # R01 privacy evidence
 
+## Local candidate and executable regression proof
+
+`../../candidates/r01_needs_column_privileges.sql` restores the existing explicit
+38-column public contract. It denies all other columns, including the three
+private targets, the later `category_id`, and future columns. It changes only
+SELECT for PUBLIC/anon/authenticated; it asserts that all other ACL entries remain
+unchanged. Effective-privilege postconditions reject inherited access paths.
+The single DO statement rolls back completely on failure. Existing RLS, RPCs,
+writers and closure certificates are not changed.
+
+The candidate is intentionally outside the migration inventory. It requires
+`SET uskoci.r01.disposable = 'LOCAL_ONLY'` and must only be exercised in a disposable
+database. Do not set that flag on DEV or promote the file until the HTTP and
+compatibility proof below is complete. Use `supabase migration new` when promoting
+the reviewed change; never alter the already applied broad-grant migration.
+
+Run from the repository root with the installed, locked development dependencies:
+
+```sh
+node --check supabase/proofs/privacy/r01-column-boundary.test.mjs
+node --check supabase/proofs/privacy/r01_fixture.mjs
+node supabase/proofs/privacy/r01-column-boundary.test.mjs
+```
+
+The proof first reproduces access to a foreign synthetic actor/reason, then applies
+the real candidate and exercises rejected projections/aliases/filters/order/group,
+wildcards, whole-row/computed arguments, public positive controls, owner and
+participant RLS, world separation, close-search writing, draft writes, new columns,
+stray grants, inherited grants and atomic rollback. It runs current captured
+detail/owner RPC bodies and rejects a forged-owner composite. It verifies function
+body hashes before installing the fixture. CI runs the same command without a
+network or database URL.
+
+`r01_fixture.mjs` is a test-source fixture captured from metadata, not application
+data. It is deliberately bounded: injected claims replace Auth; geography is
+inert text; account closure/classification, candidate-state, audit and event
+internals are fixture substitutes; most triggers/constraints are absent. No
+PostgREST, Storage, Realtime, full closure digest, native/OTA or live deployment is
+proven by this test. Its fixture certificate check demonstrates that the candidate
+does not write those rows, not that real closure certification is valid. Current
+owner-page R03 wire incompatibility is characterized, not repaired.
+
+## Metadata and promotion checks
+
 `r01_read_preflight.sql` is a reusable metadata-only snapshot for the Need column boundary. It runs inside a read-only transaction and reads only system catalogs. It inventories privileges, policy expressions, function hashes/ACL/security settings, relevant schema access, default ACL and whitelisted PostgREST settings. It does not invoke application functions or read user/business rows. A successful query is evidence capture, not a passing privacy test.
 
 Run only against the target identified by the connection context. Save its JSON result with the source commit and capture time. The read-only transaction ends with `ROLLBACK`. The query deliberately has no schema changes, grants, fixture writes, digest rebind, deployment or password/token output.
