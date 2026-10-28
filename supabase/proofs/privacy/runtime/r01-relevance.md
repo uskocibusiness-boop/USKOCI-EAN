@@ -5,11 +5,11 @@ authorize a fixture, or classify the full platform as equal. It follows the
 source-provenance correction that omits the CLI's unconditional legacy webhook
 bootstrap before an empty disposable database is initialized.
 
-The prior runtime `40718314171` has 13 strict differences and 62 supplemental
+The prior runtime `40718314171` had 13 strict differences and 62 supplemental
 differences. The legacy bootstrap accounts for the added role membership, three
 default ACL records, its role search_path, ten added schema-permission rows and
-the two pg_net security-mode/configuration differences. The new run must measure
-the actual result. A predicted removal is not accepted evidence.
+the two pg_net security-mode/configuration differences. The measured follow-up
+below replaces these old counts; no predicted removal is accepted evidence.
 
 Run `40732062562` reached the actual patched TypeScript shell, isolated startup
 and all version/history checks, but stopped at an incorrect assertion that the
@@ -20,10 +20,51 @@ contract in `artifacts/r01/20261028-managed-net-hook-contract.json` (SHA-256
 instead confirms legitimate helper/event presence, invoker mode for the helper
 and both HTTP routines, and absence of the `supabase_functions` schema.
 `managed-net-hook-expected.json` binds the exact catalog query to that observed
-native contract. Its comparison is enforced after the next complete strict and
+native contract. Its comparison is enforced after the complete strict and
 supplemental captures; any differing helper body, ACL, security setting or event
 definition still fails. Neither that source correction nor a successful CLI
 build is a platform or R01 boundary admission.
+
+The final bounded run [`40734402209`](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40734402209)
+at source `b98ef389fe65bd19ffa047edbb82c4ff0c1aee5a` (tested PR projection
+`552984f47ba514f1d3f2408b0e2945d607176f86`) completed application bootstrap,
+strict and supplemental capture, separate managed-hook comparison and cleanup.
+Its result remains **FAIL**. Evidence is
+`artifacts/r01/20261028-cli-native-hook-ci-40734402209.log`, SHA-256
+`d8067ec26695f600e5810569298e1cab37869b28956f3413dc4517a65c431212`.
+
+- Strict: **8 differences**, down from 13. They are one Storage table ACL,
+  the missing hosted login role and its one membership, two rows for the managed
+  admin search_path spelling, and three extension owners. No application table,
+  policy, function, trigger or other strict section differs.
+- Supplemental: **49 differences**, down from 62. Every row is an extension
+  routine with only `owner` and `acl_md5` changed. All captured boolean privileges,
+  role reachability and schema/Storage permissions match. The pg_net routines
+  now match this complete supplemental inventory.
+- Managed hook: **3 differing fields**, `helper.config_md5`, `helper.body_md5`
+  and `helper.definition_md5`. The legacy schema is absent and both HTTP routines
+  are SECURITY INVOKER. Native helper owner, security mode and ACL match; all five
+  event fields match. This separate failure is retained alongside strict FAIL.
+- The generated application SQL, original baseline fingerprints and strict
+  comparator hashes are unchanged. No fixtures, actual Auth sessions, HTTP
+  boundary or candidate execution occurred; live access was false. Cleanup passed.
+
+The next concrete owner is the **native Postgres image's managed hook**, not the
+CLI startup template. At the pinned Postgres source commit
+`73119f8bfae2bfb07ddfa18240ab8e5f56f737a8` and
+`migrations/db/migrations/20250220051611_pg_net_perms_fix.sql`, the extracted
+native body MD5 `53257458358d6f67987b20099abdb9d4` equals this runtime's body.
+Changing only the old-version string `'0.8'` to `'0.8.0'` produces the captured
+DEV body MD5 `2ee4e6920eeba3068bcfa838105352e2`. The other observed distinction
+is native NULL function configuration versus DEV's explicit empty search_path.
+These are measured distinctions, not an authorization to replace the helper.
+Resolve their image/provisioning provenance or establish an exact, separately
+reviewed R01 dependency proof covering when the CREATE EXTENSION event can fire
+and how its invoker names resolve. A blanket helper-body or search-path exception
+is not acceptable. Then pair the already-collected hosted-role dependencies and
+effective admin path with the disposable side and enforce the specific cases
+below before any synthetic Auth/PostgREST run. Do not repeat this diagnostic run
+without a concrete change in those prerequisites.
 
 Any later limited admission must consume the **same validated raw capture** and
 the unchanged strict and supplemental comparators. It must enumerate each
