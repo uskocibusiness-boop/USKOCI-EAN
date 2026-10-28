@@ -13,6 +13,7 @@ import {compareNativeNetProvenance, nativeNetObservation, validateNativeNetBasel
 import {compareHostedLoginDependency, hostedLoginObservation, validateHostedLoginBaseline} from './hosted-login-dependency.mjs';
 import {adminPathObservation, compareAdminEffectivePath, validateAdminPathBaseline} from './admin-effective-path.mjs';
 import {extensionAclObservation, compareExtensionAclScope, validateExtensionAclBaseline} from './extension-acl-scope.mjs';
+import {storageAclObservation, compareStorageOwnerAcl, validateStorageAclBaseline} from './storage-owner-acl.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repository = resolve(here, '../../../..');
@@ -44,6 +45,9 @@ const files = {
   extension_acl_query: join(here, 'extension-acl-scope.sql'),
   extension_acl_expected: join(here, 'extension-acl-scope-expected.json'),
   extension_acl_comparator: join(here, 'extension-acl-scope.mjs'),
+  storage_acl_query: join(here, 'storage-owner-acl.sql'),
+  storage_acl_expected: join(here, 'storage-owner-acl-expected.json'),
+  storage_acl_comparator: join(here, 'storage-owner-acl.mjs'),
   pins: join(here, 'pins.json'),
   runner: fileURLToPath(import.meta.url),
   diagnostics: join(here, 'managed-diagnostics.mjs'),
@@ -185,6 +189,9 @@ function sourceCheck() {
   required(readFileSync(files.extension_acl_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
     'EXTENSION_ACL_QUERY_NOT_READ_ONLY');
   validateExtensionAclBaseline(json(files.extension_acl_expected), sha256(readFileSync(files.extension_acl_query)));
+  required(readFileSync(files.storage_acl_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
+    'STORAGE_ACL_QUERY_NOT_READ_ONLY');
+  validateStorageAclBaseline(json(files.storage_acl_expected), sha256(readFileSync(files.storage_acl_query)));
   return Object.fromEntries(Object.entries(files).map(([name, path]) => [name, sha256(readFileSync(path))]));
 }
 
@@ -211,7 +218,8 @@ async function run() {
     stages: [], live_access: false, fixtures_run: false, candidate_applied: false, actual_auth_proven: false,
     postgrest_boundary_proven: false, metadata_equal: false,
     native_net_provenance_verified: false, hosted_login_dependency_verified: false,
-    admin_effective_path_verified: false, extension_acl_caller_scope_verified: false};
+    admin_effective_path_verified: false, extension_acl_caller_scope_verified: false,
+    storage_owner_acl_verified: false};
   let stage = 'SOURCE_ADMISSION';
   function command(label, executable, args, {input, cwd = repository, timeout = 120000, allowed = [0]} = {}) {
     stage = label;
@@ -226,7 +234,7 @@ async function run() {
       receipt.startup_failure = scrubStartupFailure(result.stdout ?? '', result.stderr ?? '');
     }
     if (!accepted && ['PG_ADMISSION', 'SERVICE_MIGRATION_ADMISSION', 'AUTH_SEARCH_INDEXES', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
-      'MANAGED_NET_HOOK_CAPTURE', 'NATIVE_NET_PROVENANCE_CAPTURE', 'HOSTED_LOGIN_DEPENDENCY_CAPTURE', 'ADMIN_EFFECTIVE_PATH_CAPTURE', 'EXTENSION_ACL_SCOPE_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
+      'MANAGED_NET_HOOK_CAPTURE', 'NATIVE_NET_PROVENANCE_CAPTURE', 'HOSTED_LOGIN_DEPENDENCY_CAPTURE', 'ADMIN_EFFECTIVE_PATH_CAPTURE', 'EXTENSION_ACL_SCOPE_CAPTURE', 'STORAGE_OWNER_ACL_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
       receipt.sql_failures ??= [];
       receipt.sql_failures.push({stage: label, ...scrubSqlFailure(result.stderr ?? '')});
     }
@@ -380,6 +388,15 @@ async function run() {
     receipt.extension_acl_caller_scope_verified = aclComparison.caller_scope_verified;
     writeJSON(join(paths.publicDir, 'extension-acl-scope-diff.json'), aclComparison);
     console.log('R01_EXTENSION_ACL_SCOPE_JSON ' + JSON.stringify(aclComparison));
+    const storageAcl = storageAclObservation(JSON.parse(sql('STORAGE_OWNER_ACL_CAPTURE',
+      readFileSync(files.storage_acl_query, 'utf8'), 'supabase_admin')));
+    // Exact Storage rows are kept within the scrubbed proof folder, not business data.
+    writeJSON(join(paths.publicDir, 'storage-owner-acl-observed.json'), storageAcl);
+    const storageComparison = compareStorageOwnerAcl(json(files.storage_acl_expected), storageAcl,
+      receipt.source_hashes.storage_acl_query);
+    receipt.storage_owner_acl_verified = storageComparison.owner_grant_representation_verified;
+    writeJSON(join(paths.publicDir, 'storage-owner-acl-diff.json'), storageComparison);
+    console.log('R01_STORAGE_OWNER_ACL_JSON ' + JSON.stringify(storageComparison));
     const managedNetComparison = compareManagedNetHook(json(files.managed_net_expected), managedNetHook,
       receipt.source_hashes.managed_net_query);
     receipt.managed_net_hook_equal = managedNetComparison.equal;
@@ -405,6 +422,8 @@ async function run() {
     required(adminPathComparison.effective_disposable_path_verified, 'ADMIN_EFFECTIVE_PATH_DIFFERENT');
     stage = 'EXTENSION_ACL_CALLER_SCOPE_ADMISSION';
     required(aclComparison.caller_scope_verified, 'EXTENSION_ACL_CALLER_SCOPE_DIFFERENT');
+    stage = 'STORAGE_OWNER_ACL_ADMISSION';
+    required(storageComparison.owner_grant_representation_verified, 'STORAGE_OWNER_ACL_DIFFERENT');
     receipt.result = 'METADATA_EQUAL';
     console.log('R01 disposable schema metadata equality verified; HTTP and candidate proof remain unexecuted.');
   } catch (error) {
