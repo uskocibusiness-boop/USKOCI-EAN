@@ -272,7 +272,20 @@ export function DiscoveryV1Screen(props: DiscoveryV1ScreenProps) {
       void execute(async () => { await coordinator.previewSearch(draft, mapArea); });
     }, SEARCH_SETTLE_MS);
   }, [coordinator, execute]);
-  const onNextSearchPlaces = useCallback(() => { void execute(async () => { await coordinator.nextSearchPlaces(); }); }, [coordinator, execute]);
+  const onNextSearchPlaces = useCallback(() => {
+    if (!live()) return;
+    void (async () => {
+      try {
+        const pending = coordinator.nextSearchPlaces();
+        commit();
+        await pending;
+      } catch (failure) {
+        // The search owner retains its rows and exposes facetError for this retry.
+        // A places read cannot set or clear the independent list/map error.
+        if (live()) traceDiscoveryV1('read-failed', discoveryV1ErrorCode(failure));
+      } finally { commit(); }
+    })();
+  }, [coordinator, commit, live]);
 
   // Before the first read lands (or when it failed) there is no list to hold the state, so the state stands on its own, in the words of the list's own states.
   if (!state?.screen.active || !state.screen.view) {

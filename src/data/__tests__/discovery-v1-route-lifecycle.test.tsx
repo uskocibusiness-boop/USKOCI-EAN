@@ -400,6 +400,80 @@ test('a search draft asked again for the same words reads once, and its previews
   expect(bridge().props.error).toBe(false);
 });
 
+const pagedPlacesServer = (request: DiscoveryV1OwnerRequest): unknown => {
+  const result = server(request) as any;
+  if (request.mode === 'PLACES' && request.after === null) {
+    return { ...result, hasMore: true, nextCursor: { key: 'novi sad, liman', text: 'Novi Sad, Liman', count: 30 } };
+  }
+  return result;
+};
+const openPagedSearch = async () => {
+  await act(async () => { tree = create(<DiscoveryV1Route />); }); await flush();
+  mockTransport = async request => pagedPlacesServer(request);
+  const draft = { query: 'Liman', place: null, area: null, pinPlace: null, when: 'any', dates: null, where: 'any', places: 1, price: 'all' };
+  jest.useFakeTimers();
+  try {
+    await act(async () => { bridge().props.actions.onSearchDraft(draft, NATIVE_BOUNDS); });
+    await act(async () => { jest.advanceTimersByTime(400); });
+  } finally { jest.useRealTimers(); }
+  await flush();
+  expect(bridge().props.search).toMatchObject({ status: 'ready', placeHasMore: true, facetError: false });
+};
+
+test.each(['transport', 'decode'])('R02 SB11: a places %s failure stays local and retries without hiding the list or map', async failure => {
+  await openPagedSearch();
+  const before = bridge().props, gate = pendingRead();
+  mockTransportCalls.length = 0;
+  mockTransport = async request => {
+    server(request); await gate.promise;
+    if (failure === 'transport') throw new Error('DISCOVERY_V1_READ_FAILED');
+    return { bad: 'places' };
+  };
+  await act(async () => { bridge().props.actions.onNextSearchPlaces(); });
+  expect(bridge().props.search.placePaging).toBe(true);
+  await act(async () => { gate.resolve(); }); await flush();
+  expect(bridge().props.search).toEqual({ ...before.search, placePaging: false, facetError: true });
+  expect(bridge().props.error).toBe(false);
+  expect(bridge().props.snapshot.items).toEqual(before.snapshot.items);
+  expect(bridge().props.snapshot.mapMarkers).toEqual(before.snapshot.mapMarkers);
+  expect(bridge().props.snapshot.view).toEqual(before.snapshot.view);
+  const failedRequest = mockTransportCalls[0];
+  mockTransport = async request => pagedPlacesServer(request);
+  await act(async () => { bridge().props.actions.onNextSearchPlaces(); }); await flush();
+  expect(mockTransportCalls[1]).toEqual(failedRequest);
+  expect(bridge().props.search).toMatchObject({ placePaging: false, facetError: false, placeHasMore: false });
+  expect(bridge().props.error).toBe(false);
+  expect(bridge().props.snapshot.items).toEqual(before.snapshot.items);
+  expect(bridge().props.snapshot.mapMarkers).toEqual(before.snapshot.mapMarkers);
+});
+
+test('R02 SB11: a successful places continuation cannot clear an independent list failure', async () => {
+  await openPagedSearch();
+  mockTransport = async request => {
+    if (request.mode === 'PAGE' && request.after) throw new Error('DISCOVERY_V1_READ_FAILED');
+    return pagedPlacesServer(request);
+  };
+  await act(async () => { bridge().props.actions.onNextPage(); }); await flush();
+  expect(bridge().props.error).toBe(true);
+  await act(async () => { bridge().props.actions.onNextSearchPlaces(); }); await flush();
+  expect(bridge().props.search).toMatchObject({ placePaging: false, facetError: false, placeHasMore: false });
+  expect(bridge().props.error).toBe(true);
+});
+
+test('R02 SB11: an old places failure cannot publish into a newer account revision', async () => {
+  await openPagedSearch();
+  const gate = pendingRead();
+  mockTransport = async request => { server(request); await gate.promise; return { bad: 'old places' }; };
+  await act(async () => { bridge().props.actions.onNextSearchPlaces(); });
+  mockRevision++; mockTransport = async request => server(request);
+  await act(async () => { tree!.update(<DiscoveryV1Route />); }); await flush();
+  const accepted = bridge().props;
+  await act(async () => { gate.resolve(); }); await flush();
+  expect(bridge().props.search).toEqual(accepted.search);
+  expect(bridge().props.snapshot).toEqual(accepted.snapshot);
+  expect(bridge().props.error).toBe(false);
+});
+
 test('a change of view is handed back at once, so the next change is built on it and a chosen place is not read away', async () => {
   await act(async () => { tree = create(<DiscoveryV1Route />); });
   await flush();
