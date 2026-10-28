@@ -15,6 +15,7 @@ import {adminPathObservation, compareAdminEffectivePath, validateAdminPathBaseli
 import {extensionAclObservation, compareExtensionAclScope, validateExtensionAclBaseline} from './extension-acl-scope.mjs';
 import {storageAclObservation, compareStorageOwnerAcl, validateStorageAclBaseline} from './storage-owner-acl.mjs';
 import {extensionAclTupleObservation, compareExtensionAclTuples, validateExtensionAclTupleBaseline} from './extension-acl-tuples.mjs';
+import {requestPathObservation, compareRequestPath, validateRequestPathBaseline} from './request-call-graph.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repository = resolve(here, '../../../..');
@@ -52,6 +53,9 @@ const files = {
   extension_acl_tuples_query: join(here, 'extension-acl-tuples.sql'),
   extension_acl_tuples_expected: join(here, 'extension-acl-tuples-expected.json'),
   extension_acl_tuples_comparator: join(here, 'extension-acl-tuples.mjs'),
+  request_path_query: join(here, 'request-call-graph.sql'),
+  request_path_expected: join(here, 'request-call-graph-expected.json'),
+  request_path_comparator: join(here, 'request-call-graph.mjs'),
   pins: join(here, 'pins.json'),
   runner: fileURLToPath(import.meta.url),
   diagnostics: join(here, 'managed-diagnostics.mjs'),
@@ -202,6 +206,9 @@ function sourceCheck() {
     sha256(readFileSync(files.extension_acl_tuples_query)));
   assert.deepEqual(json(files.extension_acl_tuples_expected).observation.routines.map(r => r.key_hash),
     json(files.extension_acl_expected).observation.routines.map(r => r.key_hash));
+  required(readFileSync(files.request_path_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
+    'REQUEST_PATH_QUERY_NOT_READ_ONLY');
+  validateRequestPathBaseline(json(files.request_path_expected),sha256(readFileSync(files.request_path_query)));
   return Object.fromEntries(Object.entries(files).map(([name, path]) => [name, sha256(readFileSync(path))]));
 }
 
@@ -229,7 +236,8 @@ async function run() {
     postgrest_boundary_proven: false, metadata_equal: false,
     native_net_provenance_verified: false, hosted_login_dependency_verified: false,
     admin_effective_path_verified: false, extension_acl_caller_scope_verified: false,
-    storage_owner_acl_verified: false, extension_acl_tuples_captured: false};
+    storage_owner_acl_verified: false, extension_acl_tuples_captured: false,
+    request_path_qualified_source_verified: false};
   let stage = 'SOURCE_ADMISSION';
   function command(label, executable, args, {input, cwd = repository, timeout = 120000, allowed = [0]} = {}) {
     stage = label;
@@ -244,7 +252,7 @@ async function run() {
       receipt.startup_failure = scrubStartupFailure(result.stdout ?? '', result.stderr ?? '');
     }
     if (!accepted && ['PG_ADMISSION', 'SERVICE_MIGRATION_ADMISSION', 'AUTH_SEARCH_INDEXES', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
-      'MANAGED_NET_HOOK_CAPTURE', 'NATIVE_NET_PROVENANCE_CAPTURE', 'HOSTED_LOGIN_DEPENDENCY_CAPTURE', 'ADMIN_EFFECTIVE_PATH_CAPTURE', 'EXTENSION_ACL_SCOPE_CAPTURE', 'STORAGE_OWNER_ACL_CAPTURE', 'EXTENSION_ACL_TUPLES_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
+      'MANAGED_NET_HOOK_CAPTURE', 'NATIVE_NET_PROVENANCE_CAPTURE', 'HOSTED_LOGIN_DEPENDENCY_CAPTURE', 'ADMIN_EFFECTIVE_PATH_CAPTURE', 'EXTENSION_ACL_SCOPE_CAPTURE', 'STORAGE_OWNER_ACL_CAPTURE', 'EXTENSION_ACL_TUPLES_CAPTURE', 'REQUEST_PATH_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
       receipt.sql_failures ??= [];
       receipt.sql_failures.push({stage: label, ...scrubSqlFailure(result.stderr ?? '')});
     }
@@ -422,6 +430,15 @@ async function run() {
     receipt.extension_acl_tuples_captured = true;
     writeJSON(join(paths.publicDir, 'extension-acl-tuples-diff.json'), tupleDiff);
     console.log('R01_EXTENSION_ACL_TUPLES_JSON ' + JSON.stringify(tupleDiff));
+    const requestPath = requestPathObservation(JSON.parse(sql('REQUEST_PATH_CAPTURE',
+      readFileSync(files.request_path_query, 'utf8'), 'supabase_admin')));
+    // Full catalog metadata stays private; public output contains hashes and bounded flags.
+    writeJSON(join(paths.privateDir, 'request-path-capture.json'), requestPath);
+    const requestPathComparison = compareRequestPath(json(files.request_path_expected), requestPath,
+      receipt.source_hashes.request_path_query);
+    receipt.request_path_qualified_source_verified = requestPathComparison.qualified_source_equal;
+    writeJSON(join(paths.publicDir, 'request-path-diff.json'), requestPathComparison);
+    console.log('R01_REQUEST_PATH_CATALOG_JSON ' + JSON.stringify(requestPathComparison));
     const managedNetComparison = compareManagedNetHook(json(files.managed_net_expected), managedNetHook,
       receipt.source_hashes.managed_net_query);
     receipt.managed_net_hook_equal = managedNetComparison.equal;
@@ -449,6 +466,8 @@ async function run() {
     required(aclComparison.caller_scope_verified, 'EXTENSION_ACL_CALLER_SCOPE_DIFFERENT');
     stage = 'STORAGE_OWNER_ACL_ADMISSION';
     required(storageComparison.owner_grant_representation_verified, 'STORAGE_OWNER_ACL_DIFFERENT');
+    stage = 'REQUEST_PATH_SOURCE_ADMISSION';
+    required(requestPathComparison.qualified_source_equal, 'REQUEST_PATH_SOURCE_DIFFERENT');
     receipt.result = 'METADATA_EQUAL';
     console.log('R01 disposable schema metadata equality verified; HTTP and candidate proof remain unexecuted.');
   } catch (error) {
