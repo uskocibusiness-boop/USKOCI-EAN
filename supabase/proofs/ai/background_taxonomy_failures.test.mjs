@@ -209,3 +209,66 @@ test('an explicit semantic clarification stays a single question', async t => {
   assert.equal(result.clarifications.length, 1);
   assert.equal(result.clarificationHint.ambiguityPrompt, 'Da li treba popravka ili samo čišćenje?');
 });
+
+const explicitBoth = {
+  service:'Popravka klima',modes:['ON_SITE','REMOTE'],
+  evidence:'Radim popravku klima kod klijenta i na daljinu, uz slanje poštom.',
+  handoff:{required:true,shippingCountries:['RS']},
+};
+const bothRequest = {messages:[{role:'USER',body:explicitBoth.evidence}],
+  serviceModeChangesJson:JSON.stringify([explicitBoth])};
+const fullDecision = mode=>({service:'Popravka klima',mode,action:'CREATE_CHILD',
+  parentId:categoryId,handoffKind:mode==='REMOTE'?'SHIPPING_RS':'NONE',
+  handoffCity:'',reason:'Potvrđena nova usluga sa konkretnim izvršenjem.'});
+
+test('R04 BOTH: two explicit modes preserve one category parent and requested REMOTE handoff',async t=>{
+  const f=fixture(t,()=>response({items:[fullDecision('ON_SITE'),fullDecision('REMOTE')]}));
+  const result=await worker(f.args,bothRequest);
+  assert.equal(f.calls.length,1);
+  assert.deepEqual(result.proposals.map(p=>p.mode),['ON_SITE','REMOTE']);
+  assert.deepEqual(result.proposals.map(p=>p.parentId),[categoryId,categoryId]);
+  assert.equal(result.proposals[0].action,'CREATE_CHILD');
+  assert.equal(result.proposals[1].action,'CREATE_CHILD');
+  assert.ok(!Object.hasOwn(result.proposals[0],'handoff'));
+  assert.deepEqual(result.proposals[1].handoff,explicitBoth.handoff);
+  assert.deepEqual(result.unresolvedServices,[]);
+});
+
+test('R04 BOTH: one provider result does not conceal the unclassified second mode',async t=>{
+  const f=fixture(t,()=>response({items:[fullDecision('ON_SITE')]}));
+  const result=await worker(f.args,bothRequest);
+  assert.deepEqual(result.proposals.map(p=>p.mode),['ON_SITE']);
+  assert.deepEqual(result.unresolvedServices,['Popravka klima']);
+  assert.ok(result.failures.some(f=>f.code==='PROVIDER_INVALID_DECISION'&&f.mode==='REMOTE'));
+  assert.deepEqual(result.clarifications,[]);
+});
+
+test('unregistered semantic REUSE never acquires category authority or disappears from recovery',async t=>{
+  const f=fixture(t,()=>response({items:[{
+    service:'Popravka klima',mode:'ON_SITE',action:'REUSE_EXISTING',
+    categoryId,parentId:'',handoffKind:'NONE',handoffCity:'',
+    reason:'Model tvrdi da značenje već postoji u katalogu.'
+  }]}));
+  const requested={...bothRequest,
+    serviceModeChangesJson:JSON.stringify([{service:explicitBoth.service,
+      modes:['ON_SITE'],evidence:explicitBoth.evidence}])};
+  const result=await worker(f.args,requested);
+  assert.deepEqual(result.proposals,[]);
+  assert.deepEqual(result.unresolvedServices,['Popravka klima']);
+  assert.ok(result.failures.some(f=>f.code==='SEMANTIC_REUSE_ADMISSION_UNAVAILABLE'));
+});
+
+test('a valid clarification for one explicit mode leaves the other provisional, not complete',async t=>{
+  const f=fixture(t,()=>response({items:[
+    fullDecision('ON_SITE'),
+    {service:'Popravka klima',mode:'REMOTE',action:'NEEDS_CLARIFICATION',
+      parentId:'',ambiguityPrompt:'Da li usluga uključuje fizičku predaju?',
+      handoffKind:'SHIPPING_RS',handoffCity:'',
+      reason:'Za rad na daljinu nedostaje razjašnjenje predaje.'}
+  ]}));
+  const result=await worker(f.args,bothRequest);
+  assert.deepEqual(result.proposals.map(p=>p.mode),['ON_SITE']);
+  assert.equal(result.clarifications.length,1);
+  assert.equal(result.clarifications[0].mode,'REMOTE');
+  assert.deepEqual(result.unresolvedServices,['Popravka klima']);
+});

@@ -857,13 +857,18 @@ export async function buildWorkerFullTreeTaxonomyProposals({
         : undefined;
       return { mode, ...(handoff ? { handoff } : {}) };
     }) : savedValid ? matchingPrior : [];
-    const addClarification = (decision, mode) => clarifications.push({
-      conversationId: conversationId ?? null,
-      draftRevision: draftRevision ?? null,
-      service, mode, action: 'NEEDS_CLARIFICATION',
-      ambiguityPrompt: boundedCodepoints(decision.ambiguityPrompt.trim(), 500),
-      reason: boundedCodepoints(decision.reason.trim(), 300), createdAt: new Date().toISOString(),
-    });
+    const addClarification = (decision, mode) => {
+      // A question is NOT a completed mode. Keep its service visible to the
+      // later review/recovery path, including one unresolved half of BOTH.
+      unresolvedServices.push(service);
+      clarifications.push({
+        conversationId: conversationId ?? null,
+        draftRevision: draftRevision ?? null,
+        service, mode, action: 'NEEDS_CLARIFICATION',
+        ambiguityPrompt: boundedCodepoints(decision.ambiguityPrompt.trim(), 500),
+        reason: boundedCodepoints(decision.reason.trim(), 300), createdAt: new Date().toISOString(),
+      });
+    };
     if (chosenEntries.length === 0) {
       unresolvedServices.push(service);
       // A valid actual question is distinct from unavailable/malformed output.
@@ -936,8 +941,14 @@ export async function buildWorkerFullTreeTaxonomyProposals({
             catalogVersion: catalog.catalogVersion,
             ...(chosen.mode === 'REMOTE' && chosen.handoff ? { handoff: chosen.handoff } : {}),
           });
-        } else if (aiItems.length > 0) {
-          recordFailure({ ...decisionFailure(decision), service, mode: chosen.mode }, failures);
+        } else {
+          // Model-proposed semantic REUSE is not a server-verified alias, and
+          // missing/invalid mode decisions cannot silently disappear when a
+          // different mode for the same service already has a proposal.
+          unresolvedServices.push(service);
+          if (aiItems.length > 0) {
+            recordFailure({ ...decisionFailure(decision), service, mode: chosen.mode }, failures);
+          }
         }
       }
     }
