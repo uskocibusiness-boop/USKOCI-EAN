@@ -3677,6 +3677,13 @@ Native helper sada ima dokazano poreklo u pinovanoj Postgres migraciji; tekstual
 - Uski leksički katalog pregled 7 šema (`auth, extensions, net, private, public, realtime, storage`) ima 550 funkcija označenih SECURITY DEFINER; među njihovim telima **0 direktnih `CREATE EXTENSION` i 0 direktnih `SET ROLE`/set_config(role) obrazaca** po konkretnom regexu. Jedan literal `CREATE EXTENSION` postoji među svim pregledanim funkcijama, ne među SECURITY DEFINER. **Ovo nije potpuno pokriće dinamičkog SQL, indirektnih RPC poziva, C implementacija ili identiteta live Auth/PostgREST**. Ne koristiti broj 0 kao blanket permission waiver.
 - Nije izvršen DDL, promena role, SQL kandidat ili fixture; izvorni checksum-i i existing strict FAIL su očuvani. Sledeće dozvoljeno sužavanje R01 je pregled stvarnih request-call path/policy/definer zavisnosti i kompletan testni runtime principal pre `R01_BOUNDARY_PREREQUISITES`, a ne automatski prelazak na live schema migraciju. Kodna i API granica R01 ostaje `IN_PROGRESS`.
 
+
+### Potvrda celog source CI i nepromenjene release kapije — 28.10.2026.
+
+- Za najnoviji izvršni source `204cd80736e30a225c7b8f6005dbe0c0451cbc32` [USKOCI clean branch checks 40749357819](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40749357819) završen je **SUCCESS**, sa `614/614` Jest suite-a, `14.115/14.115` mobilnih i ugovornih testova, `3/3` snapshot-a, TypeScript, Deno import/type, R07 hourly/Agreement SQL, AI/taxonomy, migration integrity i R01 izolovanim SQL/test graničnim kontrolama. Test iz ovog job-a **nije** stvarni Auth/HTTP, native build, uređaj, OTA ili store submission.
+- Upari ga sa posebnim [schema CI 40749357597](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40749357597), koji je i dalje **FAIL** na 8 strict/49 supplemental/3 native net-helper raw razlike, sa odvojenim dokazanim Storage ACL, native hook provenance, hosted-login i admin path uskim kontrolama. Novi `R01_EXTENSION_ACL_TUPLES_DIAGNOSTIC` potvrđuje objašnjenu podelu svih 49 grantee/grantor tuple, ali `exact_acl_equal=false`, i zato **ne** otključava synthetic Auth/PostgREST.
+- Originalne REV10/REV14 dokaze, njihov byte hash, dosadašnju migracionu istoriju, canonical bootstrap, privacy guard i closure evidenciju sačuvati. Nisu primenjeni SQL kandidati ni live Supabase promene. Nema razloga ponavljati full CI nad ovim identičnim source-om bez nove promene ili hipoteze. Sledeći korak ostaje bounded stvarni request-call path/definer/dependency dokaz za R01, a kada nije ispunjen — nastavak nezavisnih R/C prema postojećim zavisnostima.
+
 <!-- EXECUTION-UPDATE-END: ledger-20261028 -->
 ### 11.3. Zapis jednog završenog ili blokiranog koraka
 
