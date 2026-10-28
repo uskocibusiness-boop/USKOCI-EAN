@@ -55,3 +55,13 @@ diagnostics rather than exposing raw text. Each diagnostic row is logged
 separately to avoid truncating the complete report into one oversized log line.
 The report is bound to the validated capture and does not admit fixtures or
 change any schema, platform configuration, role or privilege.
+
+The Storage and Realtime pins override the CLI defaults: Storage v1.80.0
+and Realtime v2.148.4 match the observed service migration frontier (Storage 73;
+Realtime 20261009120000). Fifteen recent Storage source hashes match the DEV
+ledger using postgres-migrations' SHA1(basename + SQL); fifteen recent Realtime
+migration identifiers match the selected tag. The runner admits exactly these
+recent ledger entries on the disposable server before application bootstrap.
+This establishes a catalog-compatible candidate, not the deployed service binary
+version. Later Storage tags introduce migration 74 and were not selected.
+No managed privileges/owners are rewritten to obtain parity.

@@ -58,6 +58,16 @@ export function validatePostgresAdmission(initial) {
   'PG_RUNTIME_REFUSED');
 }
 
+export function validateServiceHistory(history) {
+  required(Array.isArray(history?.storage) && history.storage.length === 15 &&
+    history.storage.every(row => Number.isInteger(row.id) && row.id >= 0 &&
+      /^[a-f0-9]{40}$/.test(row.hash)), 'STORAGE_HISTORY_FORMAT_REFUSED');
+  required(Array.isArray(history.realtime) && history.realtime.length === 15 &&
+    history.realtime.every(version => typeof version === 'string' && /^\d{14}$/.test(version)),
+  'REALTIME_HISTORY_FORMAT_REFUSED');
+  assert.deepEqual(history, pins.service_history);
+}
+
 export function validateEnvironment(env, platform) {
   required(platform === 'linux' && env.RUNNER_OS === 'Linux' && env.GITHUB_ACTIONS === 'true', 'CI_HOST_REFUSED');
   required(env.GITHUB_EVENT_NAME === 'pull_request' && env.GITHUB_BASE_REF === 'feature/uskoci-cisto', 'CI_EVENT_REFUSED');
@@ -145,7 +155,7 @@ async function run() {
     const accepted = !result.error && allowed.includes(result.status);
     receipt.stages.push({stage: label, passed: !result.error && result.status === 0,
       accepted_exit: accepted, exit_code: result.status ?? null});
-    if (!accepted && ['PG_ADMISSION', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
+    if (!accepted && ['PG_ADMISSION', 'SERVICE_MIGRATION_ADMISSION', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
       'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE'].includes(label)) {
       receipt.sql_failures ??= [];
       receipt.sql_failures.push({stage: label, ...scrubSqlFailure(result.stderr ?? '')});
@@ -210,6 +220,18 @@ async function run() {
     writeJSON(join(paths.publicDir, 'versions.json'), {cli: version, admission: initial});
     validatePostgresAdmission(initial);
     receipt.postgres_version_num = initial.server_version_num;
+    const serviceHistory = JSON.parse(sql('SERVICE_MIGRATION_ADMISSION', `BEGIN TRANSACTION READ ONLY;
+      SET LOCAL search_path=pg_catalog;
+      SELECT jsonb_build_object(
+        'storage',(SELECT jsonb_agg(to_jsonb(x) ORDER BY id) FROM
+          (SELECT id,hash FROM storage.migrations ORDER BY id DESC LIMIT 15) x),
+        'realtime',(SELECT jsonb_agg(version ORDER BY version) FROM
+          (SELECT version::text FROM realtime.schema_migrations ORDER BY version DESC LIMIT 15) x));
+      ROLLBACK;`, 'supabase_admin'));
+    validateServiceHistory(serviceHistory);
+    receipt.service_history_verified = true;
+    receipt.service_history = serviceHistory;
+
     sql('PLATFORM_EXTENSIONS', "SET uskoci.r01.bootstrap = 'LOCAL_ONLY';\n" + readFileSync(files.extensions, 'utf8'), 'supabase_admin');
     const extensions = JSON.parse(sql('EXTENSION_ADMISSION', `SELECT jsonb_agg(jsonb_build_object(
       'name',e.extname,'schema',n.nspname,'version',e.extversion) ORDER BY e.extname)

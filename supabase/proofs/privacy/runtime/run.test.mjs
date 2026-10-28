@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {scrubComparison, scrubSqlFailure, validateEnvironment, validateGeneratedInputs, validatePostgresAdmission} from './run.mjs';
+import {scrubComparison, scrubSqlFailure, validateEnvironment, validateGeneratedInputs, validatePostgresAdmission, validateServiceHistory} from './run.mjs';
 
 const pins = JSON.parse(readFileSync(new URL('./pins.json', import.meta.url), 'utf8'));
 const sql = "BEGIN;\nDO $$ BEGIN IF current_setting('uskoci.r01.bootstrap', true) IS DISTINCT FROM 'LOCAL_ONLY' " +
@@ -96,4 +96,20 @@ test('SQL diagnostics retain only SQLSTATE, bounded guard names and a hash', () 
   assert.equal(JSON.stringify(result).includes(privateText), false);
   assert.equal(JSON.stringify(result).includes('SELECT secret'), false);
   assert.deepEqual(scrubSqlFailure('unstructured private output').sqlstates, []);
+});
+
+test('platform history admission rejects stale, missing, mutated and extra migration evidence', () => {
+  validateServiceHistory(structuredClone(pins.service_history));
+  for (const change of [
+    history => history.storage.pop(),
+    history => {history.storage[0].hash = '0'.repeat(40);},
+    history => {history.storage.at(-1).id = 74;},
+    history => {history.realtime[0] = '20260709120000';},
+    history => {history.realtime[0] = 20260709120000;},
+    history => {history.storage[0].sql = 'SYNTHETIC_PRIVATE_MARKER';},
+  ]) {
+    const history = structuredClone(pins.service_history);
+    change(history);
+    assert.throws(() => validateServiceHistory(history));
+  }
 });
