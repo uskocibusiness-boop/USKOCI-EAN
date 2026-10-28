@@ -6,6 +6,7 @@ import {existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, writeFileS
 import {dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {buildManagedDiagnostics} from './managed-diagnostics.mjs';
+import {compareEffective} from './platform-effective.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repository = resolve(here, '../../../..');
@@ -19,6 +20,9 @@ const files = {
   config: join(here, 'config.toml'),
   extensions: join(here, 'extensions.sql'),
   auth_indexes: join(here, 'auth-search-indexes.sql'),
+  effective_query: join(here, 'platform-effective.sql'),
+  effective_expected: join(here, 'platform-effective-expected.json'),
+  effective_comparator: join(here, 'platform-effective.mjs'),
   pins: join(here, 'pins.json'),
   runner: fileURLToPath(import.meta.url),
   diagnostics: join(here, 'managed-diagnostics.mjs'),
@@ -138,6 +142,9 @@ function sourceCheck() {
   }
   validateGeneratedInputs(readFileSync(files.sql, 'utf8'), json(files.generation), json(files.expected));
   required(readFileSync(files.capture, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'), 'CAPTURE_NOT_READ_ONLY');
+  required(readFileSync(files.effective_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;') &&
+    json(files.effective_expected).query_sha256 === sha256(readFileSync(files.effective_query)),
+  'EFFECTIVE_QUERY_BINDING_REFUSED');
   return Object.fromEntries(Object.entries(files).map(([name, path]) => [name, sha256(readFileSync(path))]));
 }
 
@@ -177,7 +184,7 @@ async function run() {
       receipt.startup_failure = scrubStartupFailure(result.stdout ?? '', result.stderr ?? '');
     }
     if (!accepted && ['PG_ADMISSION', 'SERVICE_MIGRATION_ADMISSION', 'AUTH_SEARCH_INDEXES', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
-      'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE'].includes(label)) {
+      'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
       receipt.sql_failures ??= [];
       receipt.sql_failures.push({stage: label, ...scrubSqlFailure(result.stderr ?? '')});
     }
@@ -282,6 +289,17 @@ async function run() {
     const {rows: diagnosticRows, ...diagnosticSummary} = diagnostics;
     console.log('R01_MANAGED_DIAGNOSTICS_JSON ' + JSON.stringify(diagnosticSummary));
     for (const row of diagnosticRows) console.log('R01_MANAGED_ROW_JSON ' + JSON.stringify(row));
+    const effectiveCapture = JSON.parse(sql('PLATFORM_EFFECTIVE_CAPTURE', readFileSync(files.effective_query, 'utf8')));
+    writeJSON(join(paths.privateDir, 'platform-effective-capture.json'), effectiveCapture);
+    const effective = compareEffective(json(files.effective_expected), effectiveCapture,
+      receipt.source_hashes.effective_query);
+    writeJSON(join(paths.publicDir, 'platform-effective-diff.json'), effective);
+    const {differences: effectiveRows, ...effectiveSummary} = effective;
+    console.log('R01_EFFECTIVE_JSON ' + JSON.stringify(effectiveSummary));
+    for (const row of effectiveRows) console.log('R01_EFFECTIVE_ROW_JSON ' + JSON.stringify(row));
+    receipt.effective_diagnostic_equal = effective.equal;
+    // The supplemental report never overrides strict catalog admission.
+    stage = 'STRICT_PARITY';
     receipt.metadata_equal = scrubbed.metadata_equal;
     required(comparison.status === 0 && scrubbed.metadata_equal, 'METADATA_PARITY_DIFFERENT');
     receipt.result = 'METADATA_EQUAL';

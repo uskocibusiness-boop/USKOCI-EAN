@@ -82,3 +82,13 @@ defaults to disabled. This separate prerequisite runs atomically as the existing
 is read. It refuses an existing application or nonempty Auth users table.
 It changes no ownership, role, ACL or table definition. Its source hash is included
 in the runtime receipt; full strict catalog comparison still checks every index.
+
+`platform-effective.sql` collects read-only effective Storage privileges, role
+reachability, schema permissions and routine metadata for pgcrypto, uuid-ossp,
+pg_stat_statements and pg_net. It invokes no application or extension routines.
+The baseline fingerprints come from a separate read-only DEV capture. The same
+query runs after disposable bootstrap, even when strict catalog comparison finds
+differences. Its report hashes identities and string values; only validated
+boolean capability fields are public. Exact query bytes are bound to the baseline.
+This diagnostic does not accept any of the 13 remaining catalog differences or
+claim full extension dependency, Auth, HTTP or application behavior coverage.
