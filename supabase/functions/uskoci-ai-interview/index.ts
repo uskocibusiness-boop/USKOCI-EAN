@@ -100,6 +100,8 @@ type ParsedTurn = {
   safety: 'ALLOW' | 'CLARIFY' | 'REVIEW' | 'BLOCK';
   assistantMessage: string;
   proposals: Array<Record<string, unknown>>;
+  // Set only by the deterministic guard, never accepted from model output.
+  priceRetraction?: 'UNSUPPORTED_CURRENCY' | 'AMBIGUOUS_CURRENCY';
   locationAction?: LocationAction;
   dialogue?: { next: string; questionKey: string; taskRelation: string; priceUnit: string; schedulePattern: string };
 };
@@ -253,7 +255,7 @@ const sameUuid = (value: unknown, expected: string) => isUuid(value) && value.to
 // network error quotes its request, and a text that is merely shaped like one of our names proves
 // nothing about where it came from. A name that is not listed is logged as UNKNOWN.
 const OWN_FAILURE_NAMES = new Set([AI_CREDITS_UNAVAILABLE, 'AI_CLAIM_INVALID', 'AI_CONTEXT_INVALID', 'AI_CONTEXT_TOO_LARGE', 'AI_LEGACY_PERSIST_FAILED',
-  'AI_MANUAL_ONLY_FACT_REJECTED', 'AI_PAYLOAD_EMPTY', 'AI_PAYLOAD_TOO_LARGE', 'AI_REQUEST_CANCELLED', 'AI_STREAM_INCOMPLETE',
+  'AI_MANUAL_ONLY_FACT_REJECTED', 'AI_PAYLOAD_EMPTY', 'AI_PAYLOAD_TOO_LARGE', 'AI_PRICE_RETRACTION_CONFLICT', 'AI_REQUEST_CANCELLED', 'AI_STREAM_INCOMPLETE',
   'AI_STREAM_INVALID', 'AI_STREAM_REJECTED', 'AI_STREAM_STOPPED', 'AI_STREAM_TOO_LARGE', 'AI_STREAM_UNAVAILABLE',
   'AI_TEST_BUDGET_UNAVAILABLE', 'AI_TRANSPORT_STOPPED', 'AI_TURN_RECEIPT_INVALID', 'AI_V2_FACT_INVALID', 'AI_V2_OUTPUT_INVALID',
   'ASSISTANT_MESSAGE_INVALID', 'ASSISTANT_MESSAGE_MISSING', 'CATALOG_RPC_UNAVAILABLE', 'PROVIDER_HTTP_FAILED', 'PROVIDER_OUTPUT_MISSING']);
@@ -902,6 +904,17 @@ function sameFactValue(left: unknown, right: unknown): boolean {
   return JSON.stringify(ordered(left)) === JSON.stringify(ordered(right));
 }
 
+function needTurnPersistenceProposals(turn: ParsedTurn): Array<Record<string, unknown>> {
+  if (!turn.priceRetraction) return turn.proposals;
+  if (!['CLARIFY', 'REVIEW'].includes(turn.safety) || turn.proposals.some(p =>
+    ['need.price_mode', 'need.price_rsd', 'need.price_basis'].includes(String(p.key)))) {
+    throw new Error('AI_PRICE_RETRACTION_CONFLICT');
+  }
+  // One service-only control precedes the ordinary facts. It is not a new fact
+  // and does not change the receipt's proposedCount or client review schema.
+  return [{ action: 'INVALIDATE_PRICE', reason: turn.priceRetraction }, ...turn.proposals];
+}
+
 function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], activeFacts: any[], time: ServerTimeContext, contextualLocation?: LocationContext, pendingDeadlineQuestion = false): ParsedTurn {
   if (turn.safety === 'BLOCK') return turn;
   // The monetary contract stores whole RSD only. A model that returns the
@@ -986,8 +999,12 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     && !explicitOffers;
   const unsupportedPrice = euroPriceProposed || unsupportedEuroWithoutPriceFact || barePriceProposed
     || barePriceWithoutFact || explicitOffers && !!priceProposal;
-  const priceMessage = activeRsdPrice && !explicitOffers
-    ? `Razumem ${barePriceProposed || barePriceWithoutFact ? 'iznos, ali valuta nije potvrđena' : 'da je iznos bio u evrima'}. Taj iznos nisam upisao kao novu cenu u dinarima. Ranije prikazan iznos u RSD može ostati u nacrtu; nemoj potvrditi objavu dok ne kažeš koji iznos u RSD želiš ili izabereš ponude.`
+  const priceRetraction = activeRsdPrice && unsupportedPrice && !explicitOffers
+    && turn.dialogue?.taskRelation === 'CONTINUE'
+    ? barePriceProposed || barePriceWithoutFact ? 'AMBIGUOUS_CURRENCY' as const : 'UNSUPPORTED_CURRENCY' as const
+    : undefined;
+  const priceMessage = priceRetraction
+    ? 'Prethodna cena više nije potvrđena. Koji iznos u RSD želite da postavite ili želite da primate ponude?'
     : barePriceProposed || barePriceWithoutFact
       ? 'Razumem iznos, ali valuta nije potvrđena. Taj iznos nisam upisao kao cenu. Cena zadatka se trenutno čuva u dinarima. Koji iznos u RSD želiš da postaviš? Možeš i da tražiš ponude.'
       : 'Razumem iznos u evrima. Taj iznos nisam upisao kao cenu u dinarima i neću sam da preračunavam. Koji iznos u RSD želiš da postaviš? Možeš i da tražiš ponude.';
@@ -1011,7 +1028,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   if (turn.safety === 'REVIEW') {
     // Keep a policy-review decision intact while preventing a mismatched price
     // from reaching its writer. This branch intentionally does not downgrade it.
-    const filtered = unsupportedPrice || spuriousNumericPriceProposal ? { ...turn, proposals: withoutUnsupportedPrice(turn.proposals),
+    const filtered = unsupportedPrice || spuriousNumericPriceProposal ? { ...turn, priceRetraction, proposals: withoutUnsupportedPrice(turn.proposals),
       assistantMessage: spuriousNumericPriceProposal
         ? 'Ovaj zahtev treba dodatno proveriti. Predlog cene nije potkrepljen tvojom porukom.'
         : explicitOffers ? `Ovaj zahtev treba dodatno proveriti. ${offerMessage}`
@@ -1055,7 +1072,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     turn = explicitOffers
       ? { ...turn, proposals: withoutUnsupportedPrice(turn.proposals),
           assistantMessage: offerMessage }
-      : { ...turn, safety: 'CLARIFY', proposals: withoutUnsupportedPrice(turn.proposals),
+      : { ...turn, safety: 'CLARIFY', priceRetraction, proposals: withoutUnsupportedPrice(turn.proposals),
           dialogue: dialogue ? { ...dialogue, next: 'CLARIFY', questionKey: '' } : undefined,
           assistantMessage: priceMessage };
     dialogue = turn.dialogue;
@@ -1575,7 +1592,7 @@ Deno.serve(async (req: Request) => {
         }
       }
       const result = await measureAiPhase('NEED_COMPLETE', async () => await rpc(locationContext ? 'rpc_ai_complete_need_location_turn_v1_service' : 'rpc_ai_complete_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId,
-        p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: aiTurn.proposals,
+        p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: needTurnPersistenceProposals(aiTurn),
         ...(locationContext ? { p_location_context: locationContext, p_location_action: aiTurn.locationAction } : {}) }, signal));
       const completed = locationContext ? result.data?.turn : result.data;
       if (!result.ok || !validTurn(completed, conversationId, requestId) || completed.turnId !== claimedTurnId

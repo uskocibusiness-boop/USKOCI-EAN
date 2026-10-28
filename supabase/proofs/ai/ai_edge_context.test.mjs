@@ -42,9 +42,10 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
     if(url.endsWith('/rpc_ai_dispatch_need_turn_v2_service'))return json(true);
     if(url.endsWith('/rpc_ai_test_budget_reserve_service'))return json({admitted:true,reservationId:'88888888-8888-4888-8888-888888888888',replay:false,code:'AI_TEST_RESERVED'});
     if(url.endsWith('/rpc_ai_fail_need_turn_v2_service'))return json(turn('FAILED'));
+    if(url.endsWith('/rpc_ai_complete_need_turn_v2_service') && failure==='completion')return json({code:'SYNTHETIC_WRITER_REFUSAL'},400);
     if(url.endsWith('/rpc_ai_complete_need_turn_v2_service'))return json(turn('SUCCEEDED',{
       userMessageId:'66666666-6666-4666-8666-666666666666',assistantMessageId:'77777777-7777-4777-8777-777777777777',
-      proposedCount:body.p_proposals.length,safety:body.p_safety,schemaVersion:'NEED_FACT_V2',authoritative:true}));
+      proposedCount:failure==='receipt-count' ? body.p_proposals.length : body.p_proposals.filter(p=>!p.action).length,safety:body.p_safety,schemaVersion:'NEED_FACT_V2',authoritative:true}));
     if(url.includes('/rest/v1/ai_messages?')){
       const query=new URL(url).searchParams;
       assert.equal(query.get('order'),'sequence_no.desc');assert.equal(query.get('limit'),'40');
@@ -530,16 +531,29 @@ test('u evrima after a bare amount cannot create an RSD price even when the mode
  assert.match(write.p_assistant_message,/iznos u evrima/i);
  assert.match(write.p_assistant_message,/RSD/);
 });
-test('u evrima corrects a false model ACK and warns when an older RSD fact may remain',async()=>{
+test('u evrima sends an atomic price retraction with the owned completion',async()=>{
  const f=fixture({historyRows:priorBarePrice,activeFacts:[semanticFact('need.price_mode','MY_PRICE'),semanticFact('need.price_rsd',100)],
   providerOutput:{safety:'ALLOW',assistantMessage:'Da, cena je 100 RSD.',facts:[],
    dialogue:{...syntheticDialogue(),next:'ACK'}}});
  assert.equal((await f.invoke({text:'u evrima'})).status,200);
  const write=materialWrites(f)[0].body;
  assert.equal(write.p_safety,'CLARIFY');
- assert.deepEqual(write.p_proposals,[]);
- assert.match(write.p_assistant_message,/Ranije prikazan iznos u RSD može ostati u nacrtu/);
- assert.match(write.p_assistant_message,/nemoj potvrditi objavu/);
+ assert.deepEqual(write.p_proposals,[{action:'INVALIDATE_PRICE',reason:'UNSUPPORTED_CURRENCY'}]);
+ assert.match(write.p_assistant_message,/Prethodna cena više nije potvrđena/);
+});
+for(const failure of ['completion','receipt-count'])test(`price retraction ${failure} cannot return a confirmed success`,async()=>{
+ const f=fixture({failure,activeFacts:[semanticFact('need.price_mode','MY_PRICE'),semanticFact('need.price_rsd',100)],
+  providerOutput:{safety:'ALLOW',assistantMessage:'Cena je 100 RSD.',facts:[],dialogue:{...syntheticDialogue(),next:'ACK'}}});
+ const result=await f.invoke({text:'u evrima'});
+ assert.equal(result.status,502);
+ const body=await result.json();assert.equal(body.code,'AI_TURN_NOT_CONFIRMED');
+ assert.ok(!JSON.stringify(body).includes('više nije potvrđena'));
+ assert.deepEqual(materialWrites(f)[0].body.p_proposals,[{action:'INVALIDATE_PRICE',reason:'UNSUPPORTED_CURRENCY'}]);
+});
+test('the model cannot supply the reserved price retraction control',async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Razumem.',facts:[],
+  dialogue:{...syntheticDialogue(),next:'ACK'},priceRetraction:'UNSUPPORTED_CURRENCY'}});
+ assert.equal((await f.invoke()).status,502);assert.equal(materialWrites(f).length,0);
 });
 for(const euroInput of ['100 EUR','€100'])test(`explicit ${euroInput} does not become a dinar price`,async()=>{
  const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Cena je 100 RSD.',facts:[
@@ -751,7 +765,9 @@ test('a later explicit offer choice cannot carry a model-invented RSD price',asy
  assert.match(write.p_assistant_message,/tražiš ponude/);
  assert.doesNotMatch(write.p_assistant_message,/100 RSD/);
 });
-test.todo('P0: a prior active RSD fact needs an atomic writer/review invalidation when corrected to EUR; this Edge guard cannot retract it');
+// Atomic writer/review and owned replay regressions now execute in
+// currency_correction_characterization.test.mjs. The wider proof remains open.
+test.todo('R07a integration: real Auth and full signed accept/Save/publish after price retraction, including an already prepared review');
 test('PKG041 negation with correct evidence is preserved, not converted to the first mentioned day',async()=>{
  const f=fixture({now:'2026-09-20T22:59:00Z',providerOutput:{safety:'ALLOW',assistantMessage:'Termin je unet.',facts:[
   {key:'need.schedule_kind',valueJson:'"TODAY_FLEXIBLE"',displayValue:'Danas',evidence:'danas',confidence:1}]}});
