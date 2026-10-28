@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-28",
+  "scope": "Portable documentation/evidence handoff; no app/server implementation changes",
+  "checks": {
+    "archives": 3,
+    "exact_members": 305,
+    "fresh_temp_restore": "PASS; copied only continuation folder, no original workspace dependency",
+    "repeat_restore": "PASS; zero writes",
+    "existing_conflict": "PASS; fails before missing file restoration",
+    "corrupt_archive": "PASS; destination not created",
+    "unsafe_paths": "PASS; parent traversal, absolute, drive and backslash rejected",
+    "secret_pattern_scan": {
+      "entries_including_archives": 308,
+      "hits": 0
+    },
+    "canonical_bootstrap_sha256": "1702ea9a70a08265d74441557c04b6840a343493905a780c6b89fc4dc598f99f",
+    "git_diff_check": "PASS"
+  },
+  "limitations": [
+    "Full application CI was not repeated for evidence-only packaging. Prior runtime CI is separately linked.",
+    "Credentials/account access and generated installable application artifacts are not transferred.",
+    "Historical evidence paths need mapping documented in NASTAVAK_RADA.md."
+  ]
+}

@@ -98,3 +98,7 @@ supabase/candidates/worker-personal-v2-20261003/** text eol=lf
 
 # Preserve captured function body bytes, including meaningful CRLF/trailing spaces.
 supabase/proofs/privacy/bootstrap/current-application.sql -text whitespace=cr-at-eol,-blank-at-eol
+
+# Portable evidence archives are immutable binary payloads.
+docs/continuation/payload/*.zip binary
+docs/continuation/*.py text eol=lf
