@@ -28,7 +28,7 @@ function fixture(purpose, outcome = 'SUCCEEDED', { pendingHint = false, backgrou
   const taskTurn = (state, body = {}) => ({ conversationId: conversation, clientRequestId: requestKey, state, turnId,
     retryAllowed: state === 'FAILED', receipt: state === 'SUCCEEDED' ? { userMessageId: id(6), assistantMessageId: id(7),
       proposedCount: body.p_proposals?.length ?? 0, safety: 'ALLOW', schemaVersion: 'NEED_FACT_V2', authoritative: true } : null });
-  const snapshot = { catalogVersion: 7, catalogFingerprint: 'a'.repeat(32), categories: [{ categoryId: parentId,
+  const snapshot = { catalogVersion: 7, catalogFingerprint: 'a'.repeat(32), count: 1, categories: [{ categoryId: parentId,
     parentId: null, label: 'Ručni rad', aliases: [], path: ['Ručni rad'], isLeaf: true, modes: ['REMOTE'] }] };
   const modeContext = { schemaVersion: 'WORKER_SERVICE_MODE_CONTEXT_V1', revision: 0,
     savedServices: [], draftServices: [], unresolvedServices: [] };

@@ -14,7 +14,7 @@ function fixture(t, provider, modes = ['ON_SITE']) {
   });
   const rpc = async name => {
     assert.equal(name, 'rpc_taxonomy_fetch_snapshot_v1');
-    return { ok: true, data: { catalogVersion, catalogFingerprint: String(catalogVersion), categories: [
+    return { ok: true, data: { catalogVersion, catalogFingerprint: String(catalogVersion), count: 1, categories: [
       { categoryId, label: 'Servis klima', aliases: [], modes, path: ['Servis klima'] },
     ] } };
   };

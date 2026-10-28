@@ -236,7 +236,7 @@ export function runInBackground(promise) {
   return safe;
 }
 
-export function indexFullCatalog(catalogVersion, catalogFingerprint, categories) {
+export function indexFullCatalog(catalogVersion, catalogFingerprint, categories, verifiedComplete = false) {
   const byNormalizedKey = new Map();
   for (const cat of categories) {
     const labelKey = normalizedClassificationIdentity(cat.label);
@@ -260,93 +260,130 @@ export function indexFullCatalog(catalogVersion, catalogFingerprint, categories)
     catalogFingerprint,
     categories,
     byNormalizedKey,
+    verifiedComplete,
   };
   return cachedFullCatalog;
 }
 
 export async function loadFullCatalogTree(rpc, signal) {
-  // 1. Target primary path: Single-query PostgreSQL JSONB snapshot loader (1 roundtrip ~15ms)
+  // A snapshot is complete only when its own count matches its actual items;
+  // a same-version/fingerprint cached PARTIAL tree is never a substitute.
   try {
     const snapRes = await rpc('rpc_taxonomy_fetch_snapshot_v1', { p_generation: 1 }, signal, 2500);
     const snap = snapRes?.ok ? snapRes.data : snapRes;
-    if (snap && Number.isSafeInteger(snap.catalogVersion) && Array.isArray(snap.categories)) {
-      if (
-        cachedFullCatalog &&
-        cachedFullCatalog.catalogVersion === snap.catalogVersion &&
-        cachedFullCatalog.catalogFingerprint === snap.catalogFingerprint
-      ) {
-        return cachedFullCatalog;
+    if (snap && Number.isSafeInteger(snap.catalogVersion) && snap.catalogVersion > 0
+        && typeof snap.catalogFingerprint === 'string' && snap.catalogFingerprint.length > 0
+        && Array.isArray(snap.categories) && Number.isSafeInteger(snap.count)
+        && snap.count === snap.categories.length) {
+      const ids = new Set();
+      for (const item of snap.categories) {
+        if (!item || typeof item.categoryId !== 'string' || !item.categoryId
+            || ids.has(item.categoryId)) throw new Error('FULL_CATALOG_SNAPSHOT_INVALID');
+        ids.add(item.categoryId);
       }
-      return indexFullCatalog(snap.catalogVersion, snap.catalogFingerprint, snap.categories);
+      // Even if metadata is unchanged, a fresh authoritative complete response
+      // replaces an earlier partial snapshot rather than retaining it.
+      return indexFullCatalog(snap.catalogVersion, snap.catalogFingerprint, snap.categories, true);
     }
   } catch {
-    // Graceful fallback to query catalog service if snapshot RPC is not yet deployed
+    // Snapshot RPC unavailable, malformed or not yet deployed: use a complete
+    // paged walk. Neither path may cache an unverified partial result.
   }
 
-  // 2. Fast META check (~80ms) to verify if cached full tree is still current
   const metaRes = await rpc('rpc_taxonomy_query_catalog_service', {
     p_query: { operation: 'META', scope: 'ALL', limit: 1 },
   }, signal, 3000);
   const meta = metaRes?.ok ? metaRes.data : metaRes;
-  if (
-    cachedFullCatalog &&
-    meta &&
-    Number.isSafeInteger(meta.catalogVersion) &&
-    cachedFullCatalog.catalogVersion === meta.catalogVersion &&
-    cachedFullCatalog.catalogFingerprint === meta.catalogFingerprint
-  ) {
+  if (cachedFullCatalog?.verifiedComplete && meta
+      && Number.isSafeInteger(meta.catalogVersion)
+      && cachedFullCatalog.catalogVersion === meta.catalogVersion
+      && cachedFullCatalog.catalogFingerprint === meta.catalogFingerprint) {
     return cachedFullCatalog;
   }
 
-  // 3. Fallback level-by-level walk: query roots and children
-  const rootsRes = await rpc('rpc_taxonomy_query_catalog_service', {
-    p_query: { operation: 'ROOTS', scope: 'ALL', limit: 100 },
-  }, signal, 4000);
-  const rootsPage = rootsRes?.ok ? rootsRes.data : rootsRes;
-  if (!rootsPage || !Array.isArray(rootsPage.items)) {
-    throw new Error('FULL_CATALOG_ROOTS_UNAVAILABLE');
+  // Fallback: drain EVERY ROOTS and CHILDREN cursor. Limits refuse work instead
+  // of silently cutting off a catalog and declaring an absent service new.
+  const PAGE_LIMIT = 100, MAX_PAGES = 2048, MAX_NODES = 20000, BATCH = 16;
+  let pageReads = 0, catalogVersion = null, catalogFingerprint = null;
+  const allNodes = new Map(), queue = [];
+  const readPages = async (operation, categoryId = null) => {
+    const result = [], cursors = new Set();
+    let cursor = null;
+    do {
+      if (++pageReads > MAX_PAGES) throw new Error('FULL_CATALOG_PAGE_LIMIT');
+      const p_query = { operation, scope: 'ALL', limit: PAGE_LIMIT };
+      if (categoryId !== null) {
+        p_query.categoryId = categoryId;
+        p_query.catalogVersion = catalogVersion;
+        p_query.catalogFingerprint = catalogFingerprint;
+      }
+      if (cursor !== null) p_query.cursor = cursor;
+      const response = await rpc('rpc_taxonomy_query_catalog_service', { p_query }, signal, 4000);
+      const page = response?.ok ? response.data : response;
+      if (!page || !Array.isArray(page.items)
+          || !Number.isSafeInteger(page.catalogVersion) || page.catalogVersion < 1
+          || typeof page.catalogFingerprint !== 'string' || !page.catalogFingerprint
+          || page.operation !== operation || page.scope !== 'ALL'
+          || !Number.isSafeInteger(page.count) || page.count !== page.items.length
+          || !Object.hasOwn(page, 'nextCursor')
+          || (page.nextCursor !== null
+              && (typeof page.nextCursor !== 'string' || !page.nextCursor))) {
+        throw new Error('FULL_CATALOG_PAGE_INVALID');
+      }
+      if (catalogVersion === null) {
+        catalogVersion = page.catalogVersion;
+        catalogFingerprint = page.catalogFingerprint;
+      } else if (page.catalogVersion !== catalogVersion
+          || page.catalogFingerprint !== catalogFingerprint) {
+        throw new Error('FULL_CATALOG_VERSION_CHANGED');
+      }
+      for (const item of page.items) {
+        if (!item || typeof item.categoryId !== 'string' || !item.categoryId
+            || typeof item.isLeaf !== 'boolean'
+            || (operation === 'ROOTS' && item.parentId !== null)
+            || (operation === 'CHILDREN' && item.parentId !== categoryId)) {
+          throw new Error('FULL_CATALOG_ITEM_INVALID');
+        }
+        result.push(item);
+      }
+      const next = page.nextCursor;
+      if (next !== null) {
+        if (cursors.has(next) || page.items.length === 0) {
+          throw new Error('FULL_CATALOG_CURSOR_STALLED');
+        }
+        cursors.add(next);
+      }
+      cursor = next;
+    } while (cursor !== null);
+    return result;
+  };
+
+  const roots = await readPages('ROOTS');
+  if (meta && Number.isSafeInteger(meta.catalogVersion)
+      && (meta.catalogVersion !== catalogVersion
+          || meta.catalogFingerprint !== catalogFingerprint)) {
+    throw new Error('FULL_CATALOG_META_STALE');
   }
-
-  const catalogVersion = rootsPage.catalogVersion;
-  const catalogFingerprint = rootsPage.catalogFingerprint;
-  const allNodes = new Map();
-  const queue = [];
-
-  for (const item of rootsPage.items) {
+  const accept = item => {
+    if (allNodes.has(item.categoryId)) throw new Error('FULL_CATALOG_DUPLICATE_ID');
+    if (allNodes.size >= MAX_NODES) throw new Error('FULL_CATALOG_NODE_LIMIT');
     allNodes.set(item.categoryId, item);
     if (!item.isLeaf) queue.push(item.categoryId);
-  }
-
-  let depthGuard = 0;
-  while (queue.length > 0 && depthGuard++ < 6) {
-    const batch = queue.splice(0, 32);
-    const childrenPages = await Promise.all(
-      batch.map(async (categoryId) => {
-        const res = await rpc('rpc_taxonomy_query_catalog_service', {
-          p_query: {
-            operation: 'CHILDREN',
-            categoryId,
-            scope: 'ALL',
-            limit: 100,
-            catalogVersion,
-            catalogFingerprint,
-          },
-        }, signal, 4000);
-        return res?.ok ? res.data : res;
-      })
-    );
-    for (const page of childrenPages) {
-      if (!page || !Array.isArray(page.items)) continue;
-      for (const item of page.items) {
-        if (!allNodes.has(item.categoryId)) {
-          allNodes.set(item.categoryId, item);
-          if (!item.isLeaf) queue.push(item.categoryId);
-        }
-      }
+  };
+  for (const root of roots) accept(root);
+  while (queue.length > 0) {
+    const batch = queue.splice(0, BATCH);
+    // Concurrent reads, deterministic insertion in parent/batch order.
+    const childLists = await Promise.all(batch.map(id => readPages('CHILDREN', id)));
+    for (let i = 0; i < childLists.length; i++) {
+      if (childLists[i].length === 0) throw new Error('FULL_CATALOG_NONLEAF_EMPTY');
+      for (const child of childLists[i]) accept(child);
     }
   }
 
-  return indexFullCatalog(catalogVersion, catalogFingerprint, [...allNodes.values()]);
+  // This is the ONLY fallback cache write. A request that fails, changes
+  // version, loses a page or exceeds capacity cannot poison future queries.
+  return indexFullCatalog(catalogVersion, catalogFingerprint, [...allNodes.values()], true);
 }
 
 async function classifyNovelServicesWithGemini({

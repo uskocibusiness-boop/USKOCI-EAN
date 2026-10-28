@@ -63,7 +63,7 @@ function fixture(kind,operation,responseFactory,options={}){
       proposedCount:body.p_proposals.length,safety:body.p_safety}});
     if(name==='rpc_complete_worker_ai_turn_service')return json(currentTurn());
     if(name==='rpc_taxonomy_get_unconsumed_turn_hint_service')return json(null);
-    if(name==='rpc_taxonomy_fetch_snapshot_v1')return json({catalogVersion:7,catalogFingerprint:'a'.repeat(32),
+    if(name==='rpc_taxonomy_fetch_snapshot_v1')return json({catalogVersion:7,catalogFingerprint:'a'.repeat(32),count:1,
       categories:[{categoryId:rootId,parentId:null,label:'Synthetic root',aliases:[],path:['Synthetic root'],isLeaf:false,modes:['ON_SITE']}]});
     if(name===storeRpc||name===captureRpc){
       assert.equal(name,operation==='store'?storeRpc:captureRpc);

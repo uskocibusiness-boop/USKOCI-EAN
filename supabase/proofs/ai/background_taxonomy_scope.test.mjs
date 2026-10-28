@@ -175,7 +175,7 @@ test('novel task classification receives bounded public scope and does not reuse
   };
   const rpc = async (name) => {
     assert.equal(name, 'rpc_taxonomy_fetch_snapshot_v1');
-    return { ok: true, data: { catalogVersion: 987654321, catalogFingerprint: 'scope-test',
+    return { ok: true, data: { catalogVersion: 987654321, catalogFingerprint: 'scope-test', count: 1,
       categories: [{ categoryId: parentId, label: 'Klimatizacija', path: ['Klimatizacija'],
         aliases: [], modes: ['ON_SITE'] }] } };
   };
