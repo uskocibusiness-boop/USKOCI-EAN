@@ -57,7 +57,7 @@ jobs:
             supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs \
             supabase/proofs/taxonomy/published_need_category_gate.test.mjs \
             supabase/proofs/taxonomy/live_writer_characterization.test.mjs \
-            supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs \
+            supabase/proofs/dynamic_taxonomy/classification-active-review.test.mjs \
             supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs \
             supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs
           node --test --test-reporter=dot \

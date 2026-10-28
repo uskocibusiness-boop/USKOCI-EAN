@@ -37,7 +37,7 @@ jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar', FaceEdge: 'FaceEd
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 import { CandidateListPresentation, CandidateSelectionPresentation, MEASURE_BEST_RATING, MEASURE_LOWEST_PRICE, candidateMeasures, candidateRatingFigure,
   sortCandidates } from '../../ui/v2/ApplicationSelectionPresentation';
-import { UNPRICED, candidateChip, candidateHas, candidateSpoken, candidateStatus, candidateTerm, candidateTrust, candidateValue, compareIdentityHeight, requesterPrijava,
+import { UNPRICED, candidateChip, candidateHas, candidateSpoken, candidateStatus, candidateTerm, candidateTrust, candidateValue, compareIdentityHeight,
   splitAmount } from '../../ui/v2/CandidateFace';
 import { DogovorenoMoment } from '../../ui/v2/DogovorenoMoment';
 import { PublicProfileSheet } from '../../ui/system/PublicProfileSheet';
@@ -204,12 +204,7 @@ describe('the candidate row', () => {
     expect(splitAmount('4.500')).toEqual(['4.500', '']);
   });
 
-  it('builds the one model both lists draw, with only what the read carried', () => {
-    const model = requesterPrijava(k({ napomena: '  ' }), { timezone: 'Europe/Belgrade', taskTerm: 'Sutra, fleksibilno', viewed: true, avatar: null });
-    expect(model).toMatchObject({ status: 'application.seen', reason: null, term: 'Sutra, fleksibilno', showTerm: false, people: '2 osobe', message: null,
-      has: { art: 'vehicle', text: 'Ima: Kombi · Trake' }, price: { kind: 'amount', amount: '4.500 RSD', basis: 'ukupno' }, who: { kind: 'person', name: 'Milan Petrović' } });
-    // The term is on the card only when the person proposed one; what they have is only what they declared (a vehicle first, then the tools).
-    expect(requesterPrijava(k({ predlozeniPocetak: '2026-09-20T08:00:00Z', predlozeniKraj: '2026-09-20T09:00:00Z' }), { timezone: 'Europe/Belgrade', taskTerm: 'x', avatar: null }).showTerm).toBe(true);
+  it('keeps candidate requirements, time and spoken text faithful to the read', () => {
     expect(candidateHas(k({ dokazPrijave: { sema: 'APPLICATION_V1_SELF_DECLARED', kapacitetTima: 1, vestine: ['Farbanje'], alati: ['Trake', ' '], vozila: [], licence: [] } })))
       .toEqual({ art: 'tool', text: 'Ima: Trake' });
     expect(candidateHas(k({ dokazPrijave: { sema: 'APPLICATION_V1_SELF_DECLARED', kapacitetTima: 1, vestine: ['Farbanje'], alati: [], vozila: [], licence: [] } }))).toBeNull();

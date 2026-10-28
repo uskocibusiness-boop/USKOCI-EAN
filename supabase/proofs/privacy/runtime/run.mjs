@@ -7,6 +7,7 @@ import {dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {buildManagedDiagnostics} from './managed-diagnostics.mjs';
 import {compareEffective} from './platform-effective.mjs';
+import {admitCliBuild, cliSource} from './cli-bootstrap-build.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repository = resolve(here, '../../../..');
@@ -26,6 +27,8 @@ const files = {
   pins: join(here, 'pins.json'),
   runner: fileURLToPath(import.meta.url),
   diagnostics: join(here, 'managed-diagnostics.mjs'),
+  cli_builder: join(here, 'cli-bootstrap-build.mjs'),
+  cli_source: join(here, 'cli-bootstrap-source.json'),
   workflow: join(repository, '.github/workflows/r01-disposable-schema.yml'),
 };
 const sha256 = value => createHash('sha256').update(value).digest('hex');
@@ -71,6 +74,12 @@ export function validateServiceHistory(history) {
     history.realtime.every(version => typeof version === 'string' && /^\d{14}$/.test(version)),
   'REALTIME_HISTORY_FORMAT_REFUSED');
   assert.deepEqual(history, pins.service_history);
+}
+
+export function validateNoLegacyWebhook(observed) {
+  required(observed?.webhook_schema_absent === true && observed.webhook_function_absent === true &&
+    observed.webhook_event_absent === true && observed.net_get_invoker === true &&
+    observed.net_post_invoker === true, 'LEGACY_WEBHOOK_BOOTSTRAP_PRESENT');
 }
 
 export function validateEnvironment(env, platform) {
@@ -199,14 +208,17 @@ async function run() {
   }
   try {
     receipt.source_hashes = sourceCheck();
+    const admittedCli = admitCliBuild();
+    const cli = admittedCli.binary;
+    receipt.cli_build = admittedCli.receipt;
     const head = command('SOURCE_HEAD', 'git', ['rev-parse', 'HEAD']).stdout.trim();
     required(head === process.env.GITHUB_SHA, 'SOURCE_HEAD_REFUSED');
     command('SOURCE_CLEAN', 'git', ['diff', '--exit-code', '--quiet']);
-    const version = command('CLI_VERSION', 'supabase', ['--version']).stdout.trim();
-    required(version === pins.cli, 'CLI_VERSION_REFUSED');
+    const version = command('CLI_VERSION', cli, ['--version']).stdout.trim();
+    required(version === cliSource.build_version && cliSource.upstream_version === pins.cli, 'CLI_VERSION_REFUSED');
     receipt.cli_version = version;
-    command('CLI_START_HELP', 'supabase', ['start', '--help']);
-    command('CLI_STOP_HELP', 'supabase', ['stop', '--help']);
+    command('CLI_START_HELP', cli, ['start', '--help']);
+    command('CLI_STOP_HELP', cli, ['stop', '--help']);
     const existing = command('EMPTY_STACK', 'docker', ['ps', '-aq', '--filter',
       `label=com.supabase.cli.project=${pins.project_id}`]).stdout.trim();
     required(existing === '', 'PREEXISTING_STACK_REFUSED');
@@ -218,8 +230,8 @@ async function run() {
     }
     // The cleanup marker is written only after the no-preexisting-stack check.
     writeJSON(join(paths.privateDir, 'owned-stack.json'), {project_id: pins.project_id});
-    command('SERVICE_PINS', 'supabase', ['services', '--workdir', paths.project]);
-    command('START_STACK', 'supabase', ['start', '--workdir', paths.project, '--exclude', excluded], {timeout: 600000});
+    command('SERVICE_PINS', cli, ['services', '--workdir', paths.project]);
+    command('START_STACK', cli, ['start', '--workdir', paths.project, '--exclude', excluded], {timeout: 600000});
     const images = [];
     for (const [service, expected] of Object.entries(pins.images)) {
       const container = `supabase_${service}_${pins.project_id}`;
@@ -270,6 +282,17 @@ async function run() {
     // Extra platform extensions are reported by strict full-catalog parity too.
     writeJSON(join(paths.publicDir, 'versions.json'), {cli: version, admission: initial, extensions});
     assert.deepEqual(orderExtensions(extensions), orderExtensions(pins.extensions));
+    const noWebhook = JSON.parse(sql('NO_LEGACY_WEBHOOK', `BEGIN TRANSACTION READ ONLY;
+      SET LOCAL search_path=pg_catalog;
+      SELECT jsonb_build_object(
+        'webhook_schema_absent',to_regnamespace('supabase_functions') IS NULL,
+        'webhook_function_absent',to_regprocedure('extensions.grant_pg_net_access()') IS NULL,
+        'webhook_event_absent',NOT EXISTS(SELECT 1 FROM pg_event_trigger WHERE evtname='issue_pg_net_access'),
+        'net_get_invoker',(SELECT NOT prosecdef FROM pg_proc WHERE oid=to_regprocedure('net.http_get(text,jsonb,jsonb,integer)')),
+        'net_post_invoker',(SELECT NOT prosecdef FROM pg_proc WHERE oid=to_regprocedure('net.http_post(text,jsonb,jsonb,jsonb,integer)')));
+      ROLLBACK;`, 'supabase_admin'));
+    validateNoLegacyWebhook(noWebhook);
+    receipt.legacy_webhook_absent = noWebhook;
     writeJSON(join(paths.publicDir, 'versions.json'), {cli: version, postgres_version_num: initial.server_version_num, admission: initial, extensions});
     // Revalidate approved source bytes immediately before executing them.
     required(JSON.stringify(sourceCheck()) === JSON.stringify(receipt.source_hashes), 'SOURCE_CHANGED_DURING_START');
@@ -326,7 +349,8 @@ function stop() {
   }
   required(json(marker).project_id === pins.project_id && existsSync(join(paths.project, 'supabase/config.toml')),
     'CLEANUP_OWNER_REFUSED');
-  const result = spawnSync('supabase', ['stop', '--workdir', paths.project, '--no-backup'],
+  const {binary} = admitCliBuild();
+  const result = spawnSync(binary, ['stop', '--workdir', paths.project, '--no-backup'],
     {encoding: 'utf8', timeout: 120000, maxBuffer: 16 * 1024 * 1024});
   writeFileSync(join(paths.privateDir, 'cleanup.stdout'), result.stdout ?? '', {mode: 0o600});
   writeFileSync(join(paths.privateDir, 'cleanup.stderr'), result.stderr ?? '', {mode: 0o600});

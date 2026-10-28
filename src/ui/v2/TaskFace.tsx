@@ -1,18 +1,12 @@
-import { memo, type ReactNode } from 'react';
 import { StyleSheet, View, type StyleProp, type TextStyle } from 'react-native';
-import { CaretDown, CaretRight } from 'phosphor-react-native';
 import type { NeedScheduleProjection, NeedUrgencyProjection, Pokrivenost, PotrebaProjekcija, StanjePotrebe } from '../../contracts/projections';
 import type { NeedTaskGeographyPoint } from '../../contracts/needFactsV2';
 import { hasNeedAttention, type MarketplaceItem } from '../../data/marketplaceView';
-import { inicijali } from '../../lib/inicijali';
-import { Avatar } from '../system/Avatar';
-import { FactArt, type FactArtKind, type FactArtRole } from '../system/FactArt';
-import { MoneyArt } from '../system/MoneyArt';
+import type { FactArtKind } from '../system/FactArt';
 import { osobuAkuz, plural } from '../system/plural';
-import type { WindowRoom } from '../system/textScale';
-import { nested, sys } from '../system/tokens';
+import { sys } from '../system/tokens';
 import { T } from '../Text';
-import { HEAD_GAP, TITLE_SIZE, headBeside } from './cardHeadFit';
+import { TITLE_SIZE } from './cardHeadFit';
 import { NeedUrgencyBadge } from './NeedUrgencyBadge';
 
 /**
@@ -208,138 +202,9 @@ export function CardStatus({ status, urgency, now }: { status: { text: string; q
   </View>;
 }
 
-/**
- * The title and its terms form one brief. The price stands beside the title when the title fits the column it leaves
- * (`headBeside`: measured below 380 dp, the old length gate from there up); larger text, a word instead of an amount and a
- * title that would break or tower keep a full-width heading with the price under it.
- */
-export function CardHead({ title, value, large, room }: { title: string; value: TaskValue; large: boolean;
-  /** The window the card is drawn in. Without it the head keeps the fixed gate it had before the room was measured. */
-  room?: WindowRoom }) {
-  const stacked = large || value.kind !== 'amount' || !headBeside(title, value.amount, value.basis, room);
-  return <View style={stacked ? s.headStacked : s.head}>
-    <T style={[s.title, s.briefTitle, !stacked && s.titleSide]}>{title}</T>
-    <View style={s.briefTerms}>
-      {value.kind === 'offers' ? <FactArt kind="offers" size={24} cut="art" /> : null}
-      <View style={s.briefValue}><CardValue value={value} large={stacked} prominent /></View>
-    </View>
-  </View>;
-}
-
-/**
- * The value slot. An amount is money (colour, weight, tabular figures) and is never cut: it keeps its own width and the
- * title gives way (card review r3 item 2). A word is a quiet label, capped at 42% so it cannot squeeze the title.
- */
-export function CardValue({ value, large, prominent = false }: { value: TaskValue; large: boolean; prominent?: boolean }) {
-  if (value.kind === 'amount') {
-    return <View style={large ? s.valueRow : valueStyles.amountSide}>
-      <T style={[valueStyles.amount, prominent && s.decisionAmount, large && valueStyles.alignStart, large && s.valueWrap]}>{value.amount}</T>
-      {value.basis ? <T style={[valueStyles.basis, large && valueStyles.alignStart]} numberOfLines={value.basis === 'po osobi po satu' ? undefined : 1}>{value.basis}</T> : null}
-    </View>;
-  }
-  return <View style={large ? s.valueRow : valueStyles.wordSide}>
-    <T style={[valueStyles.valueWord, prominent && value.kind === 'offers' && s.offerWord, large && valueStyles.alignStart, large && s.valueWrap]}
-      numberOfLines={large ? undefined : 2}>{VALUE_WORDS[value.kind]}</T>
-  </View>;
-}
-
-/** A task's real value and capacity, below its full-width title. Large text gives each its own row. */
-export function CardDecision({ value, places, large }: { value: TaskValue; places: ReactNode; large: boolean }) {
-  return <View style={[s.decision, large && s.decisionStacked]}>
-    <View style={s.decisionValue}>
-      {value.kind !== 'unpriced' ? <View style={s.decisionArt}>{value.kind === 'offers' ? <FactArt kind="offers" size={24} cut="art" /> : <MoneyArt size={24} />}</View> : null}
-      <View style={s.decisionCopy}><CardValue value={value} large prominent /></View>
-    </View>
-    {places ? <View style={s.decisionPlaces}>{places}</View> : null}
-  </View>;
-}
-
-/** One complete fact. A larger illustration opts into a matching slot without crowding the words. */
-export function CardFact({ art, text, lines = 1, artSize = 24 }: { art: ReactNode; text: string; lines?: number; artSize?: 24 | 28 }) {
-  return <View style={s.fact}>
-    <View style={[s.art, artSize === 28 && s.artLarge]}>{art}</View>
-    <T style={s.factText} numberOfLines={lines || undefined}>{text}</T>
-  </View>;
-}
-
-/** Line 5: a condition draws the "info" fact, a vehicle the van and a tool the toolbox, all at fact size. */
-export function CardRequirement({ requirement, artSize = 24, role }: { requirement: TaskRequirement; artSize?: 24 | 28; role?: FactArtRole }) {
-  return <CardFact art={<FactArt kind={REQUIREMENT_ART[requirement.kind]} size={artSize} cut="art" role={role} />}
-    text={requirement.text} lines={0} artSize={artSize} />;
-}
-
-/** Who posted the task: the one avatar and the one initials rule of the app, the name, and the honest rating. */
-export const CardPerson = memo(function CardPerson({ name, rating, count, size = 40, portrait }: {
-  name: string; rating: string | null | undefined; count: number | null | undefined; size?: 32 | 40 | 56;
-  /** Authorized media supplied by the caller; this drawing starts no profile or photo read. */
-  portrait?: ReactNode;
-}) {
-  const trust = ratingWords(rating, count);
-  return <View style={s.person}>
-    <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden
-      style={{ width: size, height: size, borderRadius: sys.radius.pill, overflow: 'hidden', flexShrink: 0 }}>
-      {portrait ?? <Avatar initials={inicijali(name)} size={size} />}
-    </View>
-    <View style={s.personText}>
-      <T style={s.personName} numberOfLines={1}>{name}</T>
-      {trust ? <View style={s.rating}>
-        {trust.star ? <FactArt kind="star" size={14} /> : null}
-        <T style={s.ratingText} numberOfLines={1}>{trust.text}</T>
-      </View> : null}
-    </View>
-  </View>;
-});
-
-/** A person or next-step note anchors the brief; a compact capacity stays at its lower right, including stacked mode. */
-export function CardBriefFoot({ places, person, large, capacityAtEnd = false }: {
-  places: ReactNode; person: ReactNode; large: boolean; capacityAtEnd?: boolean;
-}) {
-  return <View style={[s.briefFoot, large && s.briefFootStacked]}>
-    {person ? <View style={large ? s.briefPersonStacked : s.briefPerson}>{person}</View> : null}
-    {places ? <View style={capacityAtEnd ? s.briefCapacityEnd : !large && person ? s.briefCapacity : undefined}>{places}</View> : null}
-  </View>;
-}
-
-/** Line 6: places on the left, the person anchored bottom right; at large text they are two whole lines. */
-export function CardFoot({ places, person, large }: { places: ReactNode; person: ReactNode; large: boolean }) {
-  return <View style={large ? s.footStacked : s.foot}>
-    {places}
-    {person ? <View style={large ? s.personStacked : s.personSide}>{person}</View> : null}
-  </View>;
-}
-
-/**
- * The count of places. Beside the person it never shrinks, so a long name is what gives way ("Nikola Petrov…"), never
- * "Traži 2 os…" (card review r3 item 3); on its own line at large text it may take a second line.
- */
-export function CardPlaces({ places, audience, large = false, display = 'words' }: {
-  places: Pokrivenost; audience: 'worker' | 'owner'; large?: boolean; display?: 'words' | 'fraction';
-}) {
-  const words = placesText(places, audience, display);
-  return <View style={large ? s.placesStacked : s.places}>
-    <FactArt kind="users" size={20} cut="art" tone="quiet" />
-    <T style={[s.placesText, display === 'fraction' && s.placesFraction, large && s.placesTextStacked]} numberOfLines={large ? undefined : 1}>{words.text}</T>
-  </View>;
-}
-
-/** A line inside the card's own target: "Nastavi uređivanje" continues the draft the card opens. */
-export function CardNext({ label }: { label: string }) {
-  return <View style={s.next}><T style={s.nextText} numberOfLines={1}>{label}</T><CaretRight size={16} weight="bold" color={sys.color.green} /></View>;
-}
-
-/** A quiet sentence of fact inside the card, never a target of its own. */
-export function CardNote({ text }: { text: string }) {
-  return <T style={s.note} numberOfLines={2}>{text}</T>;
-}
-
-/** What waits for me, for a card that has nowhere to send it (no route handed over): the foot's dot and words, as a line. */
-export function CardWaitingLine({ text }: { text: string }) {
-  return <View style={s.waitingRow}><WaitingDot /><T style={s.waitingLine} numberOfLines={1}>{text}</T></View>;
-}
-
 /** The orange dot that marks what waits for me: a dot, never an orange fill (R1 critique B1). */
 export function WaitingDot() {
-  return <View style={faceStyles.ownerFootDot} />;
+  return <View style={s.waitingDot} />;
 }
 
 /* ------------------------------------------------------------------ parts other faces share (step 5c, 2026-09-24) */
@@ -375,116 +240,12 @@ export function CardTitle({ title, lines = 2, style }: { title: string; lines?: 
   return <T style={[s.title, style]} numberOfLines={lines || undefined}>{title}</T>;
 }
 
-/**
- * The words of a card's one foot action, a quiet row link at the bottom of the card and never a button inside it. The
- * card that draws it puts it in its own press, a sibling of the body, on `faceStyles.footLink` (or `ownerFoot` for what
- * waits for me), so no target sits inside another:
- * - `green`   goes somewhere (a caret to the right);
- * - `ink`     a rare step that asks before it ends something, drawn quietly on every card that allows it (no caret: it
- *             opens a question, not a screen; the question itself carries the danger colour; a red foot tone had no
- *             caller and was removed, verify r4c);
- * - `waiting` is what waits for me: the orange dot and the `warn` words, as the own-task foot.
- * Disabled draws the words muted, never faded.
- */
-export type FootTone = 'green' | 'ink' | 'waiting';
-const FOOT_TONES: Record<FootTone, string> = { green: sys.color.green, ink: sys.color.ink, waiting: sys.color.warn };
-export function CardFootLine({ label, tone, caret = 'none', disabled = false }: { label: string; tone: FootTone;
-  caret?: 'right' | 'down' | 'none'; disabled?: boolean }) {
-  const color = disabled ? sys.color.muted : FOOT_TONES[tone];
-  const Caret = caret === 'down' ? CaretDown : CaretRight;
-  return <>
-    {tone === 'waiting' ? <WaitingDot /> : null}
-    <T style={[s.footLinkText, { color }]} numberOfLines={2}>{label}</T>
-    {caret !== 'none' ? <Caret size={18} weight="bold" color={color} /> : null}
-  </>;
-}
-
-/**
- * The value slot's type, shared by every face that shows an amount or the word instead of one (the task card, my
- * application's offer, a candidate's offer, the AI's live draft), so no face keeps its own copy (review r4 item 8). An
- * amount is money (colour, weight, tabular figures) and is never cut; what it buys and a word are quiet labels.
- */
-export const valueStyles = StyleSheet.create({
-  // An amount keeps its whole width, whatever the phone and the text size: the title beside it is what gives way.
-  amountSide: { alignItems: 'flex-end', flexShrink: 0 },
-  // A word may take two short lines rather than squeeze the title.
-  wordSide: { alignItems: 'flex-end', maxWidth: '42%', flexShrink: 0 },
-  alignStart: { textAlign: 'left' },
-  amount: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.2, color: sys.color.money, fontVariant: ['tabular-nums'], textAlign: 'right' },
-  basis: { fontSize: 12, lineHeight: 16, fontWeight: '500', color: sys.color.muted, textAlign: 'right' },
-  valueWord: { fontSize: 15, lineHeight: 20, fontWeight: '500', color: sys.color.muted, textAlign: 'right' },
-});
-
-export const faceStyles = StyleSheet.create({
-  /**
-   * The own-task foot (R1 critique B1, card review r3 item 6): the bottom strip of the card on the quiet wash under one
-   * hairline, with an orange dot and the words in `warn`. An orange fill on every waiting card spent the screen's one
-   * orange fill several times over in Moji zadaci. Its lower corners follow the card's, inside its 1 px edge.
-   */
-  ownerFoot: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 16, paddingVertical: 10,
-    borderTopWidth: 1, borderTopColor: sys.color.line, backgroundColor: sys.color.wash,
-    borderBottomLeftRadius: nested(sys.radius.cardCompact, 1), borderBottomRightRadius: nested(sys.radius.cardCompact, 1) },
-  ownerFootDot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
-  /**
-   * A quiet foot link (`CardFootLine` green or ink): the own-task foot's geometry, one hairline above and 48 px of
-   * touch, on the card's own white. The hairline is the border between the two targets, as there.
-   */
-  footLink: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 48, paddingHorizontal: 16, paddingVertical: 10,
-    borderTopWidth: 1, borderTopColor: sys.color.line },
-});
-
 const s = StyleSheet.create({
   grow: { flex: 1 },
   statusRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   status: { flexDirection: 'row', alignItems: 'center', gap: 7, flexShrink: 1 },
   dot: { width: 6, height: 6, borderRadius: sys.radius.pill },
   statusText: { flexShrink: 1, letterSpacing: 0.3 },
-  head: { flexDirection: 'row', alignItems: 'flex-start', gap: HEAD_GAP },
-  headStacked: { gap: 8 },
-  briefTitle: { color: sys.color.ink },
-  briefTerms: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.sm, flexShrink: 0 },
-  briefValue: { flexShrink: 1, minWidth: 0 },
   title: { fontSize: TITLE_SIZE, lineHeight: 26, fontWeight: sys.type.cardTitle.fontWeight, letterSpacing: -0.3, color: sys.color.ink },
-  titleSide: { flex: 1, minWidth: 0 },
-  valueRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap', columnGap: 8, rowGap: 2 },
-  valueWrap: { flexShrink: 1, maxWidth: '100%' },
-  decision: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', columnGap: 16, rowGap: 10 },
-  decisionStacked: { flexDirection: 'column', alignItems: 'flex-start' },
-  decisionValue: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, flexShrink: 1, maxWidth: '100%' },
-  decisionArt: { paddingTop: 2 },
-  decisionCopy: { flexShrink: 1, minWidth: 0 },
-  decisionPlaces: { flexShrink: 1, maxWidth: '100%' },
-  decisionAmount: { ...sys.type.priceSmall },
-  offerWord: { fontSize: 15, lineHeight: 20, fontWeight: '500', color: sys.color.muted },
-  fact: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  art: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
-  artLarge: { width: 28, height: 28, flexShrink: 0 },
-  factText: { flex: 1, minWidth: 0, fontSize: 14, lineHeight: 21, fontWeight: '400', color: sys.color.muted },
-  foot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 2 },
-  footStacked: { gap: 8, marginTop: 2 },
-  places: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 },
-  placesStacked: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
-  placesText: { fontSize: 15, lineHeight: 22, fontWeight: '500', color: sys.color.fact, fontVariant: ['tabular-nums'] },
-  placesFraction: { fontWeight: '600', color: sys.color.muted },
-  placesTextStacked: { flexShrink: 1 },
-  personSide: { flexShrink: 1, minWidth: 0, maxWidth: '62%' },
-  personStacked: { alignSelf: 'flex-end', maxWidth: '100%' },
-  briefFoot: { flexDirection: 'row', alignItems: 'center', columnGap: sys.space.base, rowGap: sys.space.md,
-    borderTopWidth: 1, borderTopColor: sys.color.line, paddingTop: sys.space.md },
-  briefFootStacked: { flexDirection: 'column', alignItems: 'flex-start' },
-  briefPerson: { flex: 1.5, minWidth: 0 },
-  briefPersonStacked: { alignSelf: 'stretch' },
-  briefCapacity: { flex: 1, minWidth: 0 },
-  briefCapacityEnd: { alignSelf: 'flex-end', marginLeft: 'auto', flexShrink: 0 },
-  person: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  personText: { flexShrink: 1, minWidth: 0 },
-  personName: { fontSize: 14, lineHeight: 20, fontWeight: '600', color: sys.color.ink },
-  rating: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  ratingText: { flexShrink: 1, fontSize: 13, lineHeight: 17, fontWeight: '500', color: sys.color.muted, fontVariant: ['tabular-nums'] },
-  next: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  nextText: { fontSize: 14, lineHeight: 19, fontWeight: '600', color: sys.color.green },
-  note: { fontSize: 14, lineHeight: 19, fontWeight: '500', color: sys.color.muted },
-  waitingRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 },
-  waitingLine: { flexShrink: 1, fontSize: 14, lineHeight: 19, fontWeight: '700', color: sys.color.warn },
-  footLinkText: { flex: 1, minWidth: 0, fontSize: 14, lineHeight: 19, fontWeight: '700' },
+  waitingDot: { width: 8, height: 8, borderRadius: sys.radius.pill, backgroundColor: sys.color.orange },
 });

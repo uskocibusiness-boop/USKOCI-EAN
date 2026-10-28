@@ -92,11 +92,9 @@ describe('PKG-007 — requester confirmation receipt', () => {
     const dataDir = join(__dirname, '..');
     const baseline = readFileSync(join(dataDir, 'supabaseIzvor.ts'), 'utf8');
     const canonical = readFileSync(join(dataDir, 'agreementClientService.ts'), 'utf8');
-    const authority = readFileSync(join(dataDir, 'productionAuthorityOverrides.ts'), 'utf8');
     expect(baseline).not.toContain('async potvrdiZavrsetak(');
     expect(baseline).not.toContain("rpc('rpc_confirm_completion'");
     expect(baseline).toContain("'potvrdiZavrsetak'");
-    expect(authority).not.toContain('potvrdiZavrsetak');
     expect(canonical).toContain('async potvrdiZavrsetak(');
     expect(canonical).toContain("supabase.rpc('rpc_confirm_completion'");
   });

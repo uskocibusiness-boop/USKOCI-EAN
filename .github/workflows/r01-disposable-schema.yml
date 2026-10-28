@@ -17,7 +17,7 @@ concurrency:
 jobs:
   current-schema:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       CI: '1'
       SUPABASE_TELEMETRY_DISABLED: '1'
@@ -32,12 +32,10 @@ jobs:
       - name: Admit source and verify the proof checker
         run: |
           node --check supabase/proofs/privacy/runtime/run.mjs
-          node --test supabase/proofs/privacy/r01-bootstrap-parity.test.mjs supabase/proofs/privacy/runtime/run.test.mjs supabase/proofs/privacy/runtime/managed-diagnostics.test.mjs supabase/proofs/privacy/runtime/platform-effective.test.mjs
+          node --test supabase/proofs/privacy/r01-bootstrap-parity.test.mjs supabase/proofs/privacy/runtime/run.test.mjs supabase/proofs/privacy/runtime/managed-diagnostics.test.mjs supabase/proofs/privacy/runtime/platform-effective.test.mjs supabase/proofs/privacy/runtime/cli-bootstrap-build.test.mjs
           node supabase/proofs/privacy/runtime/run.mjs check-source
-      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb
-        with:
-          version: 2.116.0
-          github-token: ${{ github.token }}
+      - name: Build pinned CLI without the legacy webhook bootstrap
+        run: node supabase/proofs/privacy/runtime/cli-bootstrap-build.mjs build
       - name: Bootstrap approved current source and require strict catalog equality
         run: node supabase/proofs/privacy/runtime/run.mjs run
       - name: Destroy only this disposable project without backup
@@ -56,5 +54,6 @@ jobs:
             ${{ runner.temp }}/r01-schema-public/parity-diff.json
             ${{ runner.temp }}/r01-schema-public/managed-diagnostics.json
             ${{ runner.temp }}/r01-schema-public/platform-effective-diff.json
+            ${{ runner.temp }}/r01-cli-build-public/*.json
           if-no-files-found: warn
           retention-days: 14

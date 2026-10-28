@@ -40,12 +40,10 @@ describe('CDL-A04 — canonical response viewed contract', () => {
   it('physically eliminates the transitional response-viewed owners', () => {
     const dataDir = join(__dirname, '..');
     const indexSource = readFileSync(join(dataDir, 'index.ts'), 'utf8');
-    const authoritySource = readFileSync(join(dataDir, 'productionAuthorityOverrides.ts'), 'utf8');
     const baselineSource = readFileSync(join(dataDir, 'supabaseIzvor.ts'), 'utf8');
 
     expect(indexSource).toContain("import { responseClientService } from './responseClientService'");
     expect(indexSource).toContain('...responseClientService');
-    expect(authoritySource).not.toContain('oznaciPrijavuVidjenom');
     expect(baselineSource).not.toContain('async oznaciPrijavuVidjenom(');
     expect(baselineSource).toContain("'oznaciPrijavuVidjenom'");
   });

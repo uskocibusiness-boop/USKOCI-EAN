@@ -53,7 +53,6 @@ describe('CDL-A02 — canonical Agreement mutation contract', () => {
   it('physically eliminates all transitional owners for the three migrated mutations', () => {
     const dataDir = join(__dirname, '..');
     const indexSource = readFileSync(join(dataDir, 'index.ts'), 'utf8');
-    const authoritySource = readFileSync(join(dataDir, 'productionAuthorityOverrides.ts'), 'utf8');
     const baselineSource = readFileSync(join(dataDir, 'supabaseIzvor.ts'), 'utf8');
 
     expect(existsSync(join(dataDir, 'agreementProductionOverrides.ts'))).toBe(false);
@@ -61,7 +60,6 @@ describe('CDL-A02 — canonical Agreement mutation contract', () => {
     expect(indexSource).toContain('...agreementClientService');
 
     for (const method of ['predloziIzmenu', 'odgovoriNaIzmenu', 'posaljiPoruku']) {
-      expect(authoritySource).not.toContain(`async ${method}(`);
       expect(baselineSource).not.toContain(`async ${method}(`);
       expect(baselineSource).toContain(`'${method}'`);
     }

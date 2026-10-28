@@ -3,12 +3,8 @@ import { StyleSheet } from 'react-native';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import { sys } from '../../ui/system/tokens';
 
-/**
- * PrijavaCard (plan 2.12, owner 2026-10-07; composition spec 4.7, 2026-10-08): an application as ONE recognisable object for both people
- * who see it. One anatomy — the state as the app's one chip, who it is about, what it is worth on ONE line (the offer and the people), the
- * term, what the person has and the message — and only the head differs: the TASK for the worker, the PERSON for the requester. The worker's
- * term stands before the offer (it says which job this is), the requester's after it. This suite holds the anatomy alone; the worker's shell
- * (`application-face`) and the requester's (`candidate-face`) hold their own.
+/** The worker's application content and shared price/status parts.
+ * CandidateFace's current requester composition is covered in candidate-face.test.tsx.
  */
 jest.mock('react-native', () => {
   const native = jest.requireActual('react-native');
@@ -21,7 +17,6 @@ import { STATUS_CHIPS } from '../../ui/system/StatusChip';
 
 const model = (patch: Partial<PrijavaModel> = {}): PrijavaModel => ({ status: 'application.sent', who: { kind: 'task', title: 'Krečenje zida' }, term: 'Sutra, fleksibilno',
   price: { kind: 'amount', amount: '350 RSD', basis: 'ukupno' }, people: '1 osoba', message: null, ...patch });
-const person = (name = 'Marko Petrović'): PrijavaModel['who'] => ({ kind: 'person', name, avatar: <React.Fragment />, trust: <React.Fragment /> });
 
 let tree: ReactTestRenderer;
 const render = async (element: React.ReactElement) => act(async () => { tree = create(element); });
@@ -61,39 +56,27 @@ describe('the state', () => {
 });
 
 describe('who it is about', () => {
-  it('the worker meets the TASK, the requester the PERSON, and neither meets the other\'s head', async () => {
+  it('the worker sees the task of the application', async () => {
     await render(<PrijavaCard model={model()} large={false} />);
     expect(texts()).toEqual(['Poslata', 'Krečenje zida', 'Sutra, fleksibilno', '350 RSD', 'ukupno', '·', '1 osoba']);
-    await render(<PrijavaCard model={model({ who: person() })} large={false} />);
-    expect(texts()).toEqual(['Poslata', 'Marko Petrović', '350 RSD', 'ukupno', '·', '1 osoba', 'Sutra, fleksibilno']);
   });
 
-  it('keeps a long title whole and lets the head carry one quiet mark of its own', async () => {
+  it('keeps a long title whole', async () => {
     const title = 'Prevoz i prenos četiri torbe sa Petrovaradina do centra Novog Sada, uz pomoć dve osobe';
-    await render(<PrijavaCard model={model({ who: { kind: 'task', title } })} large trailing={<React.Fragment />} />);
+    await render(<PrijavaCard model={model({ who: { kind: 'task', title } })} large />);
     expect(tree.root.findAll(node => node.type === ('T' as React.ElementType) && node.props.children === title)[0].props.numberOfLines).toBeUndefined();
   });
 });
 
-describe('the facts, in one order for each view', () => {
-  it('the worker reads the term, then the offer and the people on one line, then the message; the requester the offer, then the term, then the message', async () => {
+describe('the worker application facts', () => {
+  it('reads the term, then the offer and people, then the message', async () => {
     await render(<PrijavaCard model={model({ message: '„Donosim trake.“' })} large={false} />);
     expect(texts().slice(-6)).toEqual(['Sutra, fleksibilno', '350 RSD', 'ukupno', '·', '1 osoba', '„Donosim trake.“']);
-    await render(<PrijavaCard model={model({ who: person(), message: '„Donosim trake.“' })} large={false} />);
-    expect(texts().slice(-6)).toEqual(['350 RSD', 'ukupno', '·', '1 osoba', 'Sutra, fleksibilno', '„Donosim trake.“']);
   });
 
-  it("the requester's list says the term only when the person proposed one, and says what the person has before the message", async () => {
-    await render(<PrijavaCard model={model({ who: person(), showTerm: false, has: { art: 'vehicle', text: 'Ima: Kombi · Trake' }, message: '„Donosim trake.“' })} large={false} />);
-    expect(texts()).toEqual(['Poslata', 'Marko Petrović', '350 RSD', 'ukupno', '·', '1 osoba', 'Ima: Kombi · Trake', '„Donosim trake.“']);
-    expect(texts()).not.toContain('Sutra, fleksibilno');
-  });
-
-  it('draws a fact picture beside the term and beside what the person has, and nowhere else: the offer and the people are one line of words', async () => {
+  it('draws the term as a fact and keeps the offer and people on one line', async () => {
     await render(<PrijavaCard model={model({ message: 'Poruka.' })} large={false} />);
     expect(tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => node.props.kind)).toEqual(['calendar']);
-    await render(<PrijavaCard model={model({ who: person(), has: { art: 'tool', text: 'Ima: Trake' } })} large={false} />);
-    expect(tree.root.findAll(node => node.type === ('FactArt' as React.ElementType)).map(node => node.props.kind)).toEqual(['calendar', 'tool']);
   });
 
   it('a price that was not stored says "Cena nije navedena" in plain regular grey words, with no figure, no currency and no "ukupno"', async () => {

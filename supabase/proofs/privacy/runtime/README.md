@@ -45,6 +45,34 @@ supports the explicit service version files used here. The
 [PostgreSQL image source](https://raw.githubusercontent.com/supabase/postgres/17.6.1.165/README.md)
 lists PostgreSQL 17.6 and PostGIS 3.3.7; actual versions are still checked at runtime.
 
+The runner now uses the explicitly identified **disposable derivative**
+`2.116.0-r01-no-webhook`, not the unmodified released CLI. The pinned upstream
+[startup source](https://github.com/supabase/cli/blob/997a1e69a4a83466964ed874d3a604c88a7b3866/apps/cli-go/internal/db/start/start.go)
+unconditionally inserts its legacy `templates/webhook.sql` into a new database.
+That separate template adds `supabase_functions`, role/default privileges and
+an event trigger, and changes pg_net GET/POST to SECURITY DEFINER. Those are
+observed disposable-only additions, not part of the captured DEV baseline.
+
+`cli-bootstrap-build.mjs` fetches the exact upstream commit, verifies a clean
+checkout and SHA-256 for the affected source, untouched webhook template,
+go.mod and go.sum, and removes only the single 22-byte concatenation expression.
+The source before and after has a pinned hash. It compiles with the pinned,
+SHA-256-verified Go 1.26.10 distribution and checksum-verified read-only module
+resolution; final source status may contain only this one change. It publishes
+the source/toolchain/binary hashes and fixed failure categories, while download
+and build logs stay private. No script changes a managed object's owner or
+privileges after database startup. Service images and migration histories remain
+unchanged. The runtime accepts only that build receipt and binary hash, including
+for cleanup, and checks actual absence of the legacy schema/function/event
+trigger and actual invoker mode of both pg_net functions before application DDL.
+
+This removes a demonstrated source of divergence; it is **not** a waiver for
+remaining differences or a claim that the derivative reproduces the whole hosted
+platform. The original generated SQL, expected fingerprints and strict comparison
+are unchanged. A nonzero strict comparison still fails and prevents fixtures and
+HTTP/candidate execution. See `r01-relevance.md` for the separate evidence needed
+before narrowing admission; that document does not currently enable admission.
+
 Managed differences also produce a diagnostic artifact with per-field and
 per-column hashes and ACL tuples (hashed grantee/grantor, privilege code and
 grant option). ACL ordering is normalized only in this diagnostic view; the

@@ -28,7 +28,6 @@ jest.mock('../qaRecoveryClientService', () => fail());
 jest.mock('../qaSubmissionClientService', () => fail());
 jest.mock('../preselectionQaClientService', () => fail());
 jest.mock('../agreementClientService', () => fail());
-jest.mock('../agreementCurrentLocationService', () => fail());
 jest.mock('../groupConversationService', () => fail());
 jest.mock('../supportCaseClientService', () => fail());
 jest.mock('../mediaClientService', () => fail());

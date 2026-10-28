@@ -1,0 +1,398 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-28",
+  "source_evidence": "USKOCI_KOMPLETAN_PLAN_I_DOKAZI_REV10_2026-10-27/dokazi/izvrsivost/readiness_review.json: cleanup retirement batches C08/C12 and required_per_change_record",
+  "source_commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
+  "scope": "C08 and C12 source retirement; no R04/R08/R09/R11 or release completion claim",
+  "removed_source_files": 7,
+  "removed_test_files": 6,
+  "removed_test_cases": {
+    "C08": 23,
+    "C12": 74,
+    "total": 97
+  },
+  "retained_location_permission_cases": 8,
+  "records": [
+    {
+      "id": "C08",
+      "source_commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
+      "path_or_symbol": [
+        {
+          "path": "src/data/aiCommandOverrides.ts",
+          "source_sha256": "46948f0e1ad010041cda0a080356158038b0d73f3969c235c1daadf9f898afcf",
+          "source_bytes": 2327
+        },
+        {
+          "path": "src/data/aiProductionOverrides.ts",
+          "source_sha256": "a1b5545db6335ff2ce3770df4b4a97a5ab5dde40f54ee7394b0223f864e92e8d",
+          "source_bytes": 5503
+        },
+        {
+          "path": "src/data/productionAuthorityOverrides.ts",
+          "source_sha256": "4f962e967a5b36fbc63e4680a6e6189106b7a1c72c0c0a97f040c077eaf72ceb",
+          "source_bytes": 1535
+        },
+        {
+          "path": "src/data/lazniAi.ts",
+          "source_sha256": "9270066100adaf14f110099143afb2083ae27993efe0b629404181fd494a1637",
+          "source_bytes": 12208
+        },
+        {
+          "path": "src/data/index.ts",
+          "source_sha256": "91ad7ce697ceb684fa12d5e5968f220cb4707a672bbb97fec953dcd3bc3f532d",
+          "source_bytes": 4051
+        },
+        {
+          "path": "src/data/ports.ts",
+          "source_sha256": "d68ae8705ce446d6d33aed3ad9bc56b150fdf40887f28954f10e2332fc39584f",
+          "source_bytes": 12158
+        },
+        {
+          "path": "src/data/lazniIzvor.ts",
+          "source_sha256": "c531850da56a5e279a9af574448d81ed312ce1fd1f4c5030ffcac7250eba07de",
+          "source_bytes": 34640
+        },
+        {
+          "path": "src/data/supabaseIzvor.ts",
+          "source_sha256": "e01829a865b89ff6d1badbbfc4795cbad7d4f2b56e1c37668260dcb891f6720f",
+          "source_bytes": 29814
+        }
+      ],
+      "current_consumer_or_none": "Before retirement: index.ts composed the three V1 overrides; lazniIzvor composed lazniAi and resetujAi; supabaseIzvor retained potvrdiCinjenicu. No active screen called the six V1 port methods; only four retired V1 test suites did.",
+      "business_rule_authority": "CODEX_PLAN_RADA.md C08 + REV10 readiness_review.json cleanup retirement batch C08; active conversation, signed review/Save/publish and all non-AI commands/readers remain.",
+      "action": "Delete V1 adapters and fake AI as one unit, remove all six AiIntake members and the last V1 confirm dispatch, remove obsolete Omit entries; retain non-AI fake state/reset. Remove V1-only test suites and only obsolete file-existence assertions from eight active CDL/receipt suites.",
+      "active_replacement": [
+        "src/data/aiNeedV2Production.ts and index.ts aiNeedV2Izvor (active V2 intake/review/Save)",
+        "src/data/publicationClientService.ts (canonical publication)",
+        "src/data/needClientService.ts, agreementClientService.ts, contactClientService.ts, workerProfileClientService.ts and unchanged remaining central Izvor composition",
+        "src/data/lazniIzvor.ts resetujLazniIzvor resets non-AI demo state"
+      ],
+      "dependent_tests_configs_docs": {
+        "removed_test_files": [
+          {
+            "path": "src/data/__tests__/r02-ai-nacrt.test.ts",
+            "source_sha256": "9e03f28089e55bf5440e0b1977f3917c3620f0de9a6be7b8b70fbd66aaaddf6e",
+            "source_bytes": 6275
+          },
+          {
+            "path": "src/data/__tests__/cdl-a10-ai-command-shadow-equivalence.test.ts",
+            "source_sha256": "4f4f6e1eb960d2aae1c1fbcea4022f58375c10b06e37ac83ceb34dad224e32ec",
+            "source_bytes": 6150
+          },
+          {
+            "path": "src/data/__tests__/cdl-a11-ai-conversation-shadow-equivalence.test.ts",
+            "source_sha256": "960aaf8edee1e08a0901808608e35317d421f336a979483dbeaa0620d89ce196",
+            "source_bytes": 3084
+          },
+          {
+            "path": "src/data/__tests__/cdl-a12-ai-publish-shadow-equivalence.test.ts",
+            "source_sha256": "2d2799546b26a045056f5dbdb8baa3f0ee6f5df4c5fa135108a79ec4c363214e",
+            "source_bytes": 4257
+          }
+        ],
+        "rebound_active_tests": [
+          "src/data/__tests__/cdl-a02-agreement-mutation-equivalence.test.ts",
+          "src/data/__tests__/cdl-a04-response-viewed-equivalence.test.ts",
+          "src/data/__tests__/cdl-a05-phone-grant-equivalence.test.ts",
+          "src/data/__tests__/cdl-a06-problem-report-equivalence.test.ts",
+          "src/data/__tests__/cdl-a07-completion-mark-equivalence.test.ts",
+          "src/data/__tests__/cdl-a08-exact-location-equivalence.test.ts",
+          "src/data/__tests__/cdl-a09-worker-profile-equivalence.test.ts",
+          "src/data/__tests__/pkg007-completion-receipt.test.ts"
+        ],
+        "config": "NODE_ENV/JEST_WORKER_ID and EXPO_PUBLIC_USE_FAKE_SOURCE selection preserved. Production still requires Supabase config. V2 remains production-backed even when non-AI fake source is selected. No CI/config entry selects a removed V1 adapter.",
+        "fixture_extraction": "None needed: all fake AI state consumers were the retired r02-ai-nacrt test; shared non-AI fixtures remain in lazniIzvor.",
+        "historical_docs": "Existing historical plan/proof/coverage documents remain historical and are superseded for active source by this record."
+      },
+      "compatibility_boundary": "Client source cleanup only. Does not delete server functions or persisted conversations/facts and does not change existing installed client behavior; active V2 may still share a server RPC name with old adapters.",
+      "verification": {
+        "status": "PASS",
+        "baseline_retired_and_mixed_suites": 7,
+        "baseline_cases_passed": 105,
+        "focused_active_suites": 24,
+        "focused_active_cases": 1046,
+        "focused_failed_cases": 0,
+        "focused_command": "node node_modules/jest/bin/jest.js --runInBand --runTestsByPath <focused_test_paths>",
+        "focused_test_paths": [
+          "src/data/__tests__/ai-owned-intake-screen.test.tsx",
+          "src/data/__tests__/locationPointEditor.test.tsx",
+          "src/data/__tests__/push-runtime.test.tsx",
+          "src/data/__tests__/w03-ai-need-client.test.ts",
+          "src/data/__tests__/publication-client.test.ts",
+          "src/data/__tests__/agreement-private-location.test.tsx",
+          "src/data/__tests__/review-comment-text.test.ts",
+          "src/data/__tests__/v5-agreement-current-location-native.test.ts",
+          "src/data/__tests__/ru4-need-edit-client.test.ts",
+          "src/data/__tests__/cdl-a08-exact-location-equivalence.test.ts",
+          "src/data/__tests__/push-settings-route.test.tsx",
+          "src/data/__tests__/cdl-a02-agreement-mutation-equivalence.test.ts",
+          "src/data/__tests__/cdl-a09-worker-profile-equivalence.test.ts",
+          "src/data/__tests__/m02-atomski-izbor.test.ts",
+          "src/data/__tests__/dizajn-dodaci.test.tsx",
+          "src/data/__tests__/native-push-device.test.ts",
+          "src/data/__tests__/pkg007-completion-receipt.test.ts",
+          "src/data/__tests__/cdl-a04-response-viewed-equivalence.test.ts",
+          "src/data/__tests__/m07-zavrsetak.test.ts",
+          "src/data/__tests__/m04-privatnost-kontakt.test.ts",
+          "src/data/__tests__/cdl-a05-phone-grant-equivalence.test.ts",
+          "src/data/__tests__/cdl-a06-problem-report-equivalence.test.ts",
+          "src/data/__tests__/cdl-a07-completion-mark-equivalence.test.ts",
+          "src/ui/permissions/__tests__/permission-sites.test.ts"
+        ],
+        "baseline_result_sha256": "3b88f3651e1b6d46b3b328cb338a8cef4c3c4f7fde1bda4941403104dbbb1c31",
+        "focused_result_sha256": "02fc725c747864631432a2689a12051965ab1852e04e8e3fa630fd4e18abbd05",
+        "typescript": "PASS: node node_modules/typescript/bin/tsc --noEmit (exit 0)",
+        "reference_search": "PASS: no retired symbol/import/call remains in src; no retired adapter/prototype/test entry in .github, scripts or config/package files.",
+        "limits": "Local source/test verification only; no DB/RPC deletion, deploy, native device acceptance or release claim.",
+        "diff_check": "PASS: git diff --check (exit 0)"
+      },
+      "historical_reference_if_needed": {
+        "commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
+        "recovery": "git show <source_commit>:<path> for every source/test path listed here"
+      },
+      "removed_test_cases": [
+        {
+          "path": "src/data/__tests__/r02-ai-nacrt.test.ts",
+          "removed_cases": [
+            "R02 — AI predlaže, ne potvrđuje iz jedne rečenice izvlači strukturu i sve stavlja na potvrdu",
+            "R02 — AI predlaže, ne potvrđuje razlikuje ono što je korisnik rekao od onoga što je AI zaključio",
+            "R02 — ispravka potiskuje, ne ostavlja dva stanja „ipak u 18h\" menja jedinu aktuelnu vrednost vremena",
+            "R02 — ispravka potiskuje, ne ostavlja dva stanja potvrda potisnute činjenice se odbija",
+            "R02 — ispravka potiskuje, ne ostavlja dva stanja ručna ispravka takođe potiskuje i odmah je potvrđena",
+            "R02 — objava zahteva ljudsku potvrdu ne objavljuje dok obavezni podaci nisu potvrđeni",
+            "R02 — objava zahteva ljudsku potvrdu objavljuje kad je sve obavezno potvrđeno",
+            "R02 — objava zahteva ljudsku potvrdu traži podatak koji nedostaje umesto da ga izmisli",
+            "R02 — safety gate blokira nedozvoljen sadržaj i ne objavljuje ga",
+            "R02 — safety gate kratak nejasan unos traži pojašnjenje umesto pogađanja"
+          ]
+        },
+        {
+          "path": "src/data/__tests__/cdl-a10-ai-command-shadow-equivalence.test.ts",
+          "removed_cases": [
+            "CDL-A10 — canonical AI command owner after shadow deletion physically eliminates both lower production owners and preserves the winner",
+            "CDL-A10 — canonical AI command owner after shadow deletion preserves message trim and exact Edge invocation",
+            "CDL-A10 — canonical AI command owner after shadow deletion preserves fail-fast message validation before Edge",
+            "CDL-A10 — canonical AI command owner after shadow deletion preserves invalid Edge response as failure rather than fake success",
+            "CDL-A10 — canonical AI command owner after shadow deletion does not read or display arbitrary Edge error bodies",
+            "CDL-A10 — canonical AI command owner after shadow deletion preserves fact correction trim and exact RPC contract",
+            "CDL-A10 — canonical AI command owner after shadow deletion preserves fact correction validation and server failure mapping"
+          ]
+        },
+        {
+          "path": "src/data/__tests__/cdl-a12-ai-publish-shadow-equivalence.test.ts",
+          "removed_cases": [
+            "CDL-A12 — legacy AI publish single owner after shadow deletion proves the stale lower publish shadow is physically gone and the surviving owner is required",
+            "CDL-A12 — legacy AI publish single owner after shadow deletion preserves auth + requester profile resolution and exact fail-closed RPC contract",
+            "CDL-A12 — legacy AI publish single owner after shadow deletion preserves fail-closed auth/profile boundaries before the RPC"
+          ]
+        },
+        {
+          "path": "src/data/__tests__/cdl-a11-ai-conversation-shadow-equivalence.test.ts",
+          "removed_cases": [
+            "CDL-A11 — canonical AI conversation owner after shadow deletion physically eliminates both lower production owners and preserves the winner",
+            "CDL-A11 — canonical AI conversation owner after shadow deletion retires the unkeyed opener without creating a conversation",
+            "CDL-A11 — canonical AI conversation owner after shadow deletion repeated legacy opens remain non-writing rather than creating duplicate records"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "C12",
+      "source_commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
+      "path_or_symbol": [
+        {
+          "path": "src/data/agreementCurrentLocationService.ts",
+          "source_sha256": "1cf79a4c790907d1400e52746c12ba358a583181a6d96eceb6bd282aa080f0d2",
+          "source_bytes": 5558
+        },
+        {
+          "path": "src/ui/agreements/AgreementLocationController.ts",
+          "source_sha256": "41dc28dec14a425ef5cb304301e6765eff3f5fa83ab83c68378c45704671b7df",
+          "source_bytes": 6411
+        },
+        {
+          "path": "src/ui/permissions/notificationAsk.ts",
+          "source_sha256": "cdee04e74839dca57c1870972084856744c1199cb7c89552363311bcfd598530",
+          "source_bytes": 1769
+        }
+      ],
+      "current_consumer_or_none": "AgreementLocationController had only its instantiating unit test; agreementCurrentLocationService had that controller and its own test, plus an unused gallery mock. notificationAsk had only permission-sites tests, including a test asserting it had no app importers.",
+      "business_rule_authority": "CODEX_PLAN_RADA.md C12 + REV10 readiness_review.json cleanup retirement batch C12; no new GPS SHARE feature; preserve native location, exact-location grants and active push enrollment.",
+      "action": "Delete unattached GPS REQUEST/SHARE controller/service and only their tests; delete unattached notificationAsk and its six behavior plus two keep-unwired tests. Preserve all eight active location permission cases; remove one obsolete gallery mock.",
+      "active_replacement": [
+        "src/data/nativeCurrentLocation.ts used by src/ui/location/LocationPointEditor.tsx",
+        "src/data/contactClientService.ts exact-location grant/read + src/ui/AgreementPrivateLocation.tsx",
+        "src/data/nativePushDevice.ts and active PushRuntime/settings enrollment owners",
+        "src/ui/permissions/locationPermission.ts and permissionAsk.ts"
+      ],
+      "dependent_tests_configs_docs": {
+        "removed_test_files": [
+          {
+            "path": "src/data/__tests__/v5-agreement-current-location-controller.test.ts",
+            "source_sha256": "dc4cb3a132056c53ef5fb870620fd0b261e287f2df5e43fe9a751712dbe14b4d",
+            "source_bytes": 10740
+          },
+          {
+            "path": "src/data/__tests__/v5-agreement-current-location-service.test.ts",
+            "source_sha256": "eb5d3ff02cae3561fc97edcfeefe11561c9e3e771aa3f77d205ec1e0bb938938",
+            "source_bytes": 7772
+          }
+        ],
+        "rebound_active_tests": [
+          "src/ui/permissions/__tests__/permission-sites.test.ts",
+          "src/data/__tests__/dizajn-dodaci.test.tsx"
+        ],
+        "retained_tests": [
+          "v5-agreement-current-location-native.test.ts",
+          "locationPointEditor.test.tsx",
+          "agreement-private-location.test.tsx",
+          "cdl-a08-exact-location-equivalence.test.ts",
+          "native-push-device.test.ts",
+          "push-runtime.test.tsx",
+          "push-settings-route.test.tsx",
+          "src/ui/permissions/__tests__/permission-sites.test.ts locationNeed cases"
+        ],
+        "config": "No runtime/config/generator/CI importer found for retired prototype. Permission copy/broker and native GPS dependency remain.",
+        "historical_docs": "Historical GPS/permission prototype and SQL proofs remain recoverable and do not imply the feature is active."
+      },
+      "compatibility_boundary": "No server RPC/migration/permission declaration changes. No native helper removed, no new GPS sharing behavior activated, no push enrollment behavior changed.",
+      "verification": {
+        "status": "PASS",
+        "baseline_retired_and_mixed_suites": 7,
+        "baseline_cases_passed": 105,
+        "focused_active_suites": 24,
+        "focused_active_cases": 1046,
+        "focused_failed_cases": 0,
+        "focused_command": "node node_modules/jest/bin/jest.js --runInBand --runTestsByPath <focused_test_paths>",
+        "focused_test_paths": [
+          "src/data/__tests__/ai-owned-intake-screen.test.tsx",
+          "src/data/__tests__/locationPointEditor.test.tsx",
+          "src/data/__tests__/push-runtime.test.tsx",
+          "src/data/__tests__/w03-ai-need-client.test.ts",
+          "src/data/__tests__/publication-client.test.ts",
+          "src/data/__tests__/agreement-private-location.test.tsx",
+          "src/data/__tests__/review-comment-text.test.ts",
+          "src/data/__tests__/v5-agreement-current-location-native.test.ts",
+          "src/data/__tests__/ru4-need-edit-client.test.ts",
+          "src/data/__tests__/cdl-a08-exact-location-equivalence.test.ts",
+          "src/data/__tests__/push-settings-route.test.tsx",
+          "src/data/__tests__/cdl-a02-agreement-mutation-equivalence.test.ts",
+          "src/data/__tests__/cdl-a09-worker-profile-equivalence.test.ts",
+          "src/data/__tests__/m02-atomski-izbor.test.ts",
+          "src/data/__tests__/dizajn-dodaci.test.tsx",
+          "src/data/__tests__/native-push-device.test.ts",
+          "src/data/__tests__/pkg007-completion-receipt.test.ts",
+          "src/data/__tests__/cdl-a04-response-viewed-equivalence.test.ts",
+          "src/data/__tests__/m07-zavrsetak.test.ts",
+          "src/data/__tests__/m04-privatnost-kontakt.test.ts",
+          "src/data/__tests__/cdl-a05-phone-grant-equivalence.test.ts",
+          "src/data/__tests__/cdl-a06-problem-report-equivalence.test.ts",
+          "src/data/__tests__/cdl-a07-completion-mark-equivalence.test.ts",
+          "src/ui/permissions/__tests__/permission-sites.test.ts"
+        ],
+        "baseline_result_sha256": "3b88f3651e1b6d46b3b328cb338a8cef4c3c4f7fde1bda4941403104dbbb1c31",
+        "focused_result_sha256": "02fc725c747864631432a2689a12051965ab1852e04e8e3fa630fd4e18abbd05",
+        "typescript": "PASS: node node_modules/typescript/bin/tsc --noEmit (exit 0)",
+        "reference_search": "PASS: no retired symbol/import/call remains in src; no retired adapter/prototype/test entry in .github, scripts or config/package files.",
+        "limits": "Local source/test verification only; no DB/RPC deletion, deploy, native device acceptance or release claim.",
+        "diff_check": "PASS: git diff --check (exit 0)"
+      },
+      "historical_reference_if_needed": {
+        "commit": "17c58fc855ee53bc6345abdcb7c3c5042f930fcf",
+        "recovery": "git show <source_commit>:<path> for every retired prototype/test listed here"
+      },
+      "removed_test_cases": [
+        {
+          "path": "src/data/__tests__/v5-agreement-current-location-controller.test.ts",
+          "removed_cases": [
+            "REQUEST never acquires GPS and sends only null point after persisting the opaque identity",
+            "SHARE captures once across duplicate taps and stores no coordinates or timestamp before the first network write",
+            "does not persist or send after capture DENIED",
+            "does not persist or send after capture CANCELLED",
+            "does not persist or send after capture UNAVAILABLE",
+            "does not persist or send after capture UNSUPPORTED",
+            "an explicit stop wins over an already-resolved POINT awaiting its microtask continuation",
+            "restores unknown SHARE through read only without new capture, UUID or network write",
+            "restores unknown REQUEST through read only without new capture, UUID or network write",
+            "cancel race uses the authoritative COMMITTED outcome and retains journal until acknowledgment",
+            "cancel race uses the authoritative CANCELLED outcome and retains journal until acknowledgment",
+            "unknown cancellation keeps the exact original identity and only refreshes by read",
+            "restored positive receipt is confirmed without GPS and remains durable until explicit acknowledgment",
+            "keeps corrupt storage closed across refresh instead of replacing its unknown identity 0",
+            "keeps corrupt storage closed across refresh instead of replacing its unknown identity 1",
+            "keeps corrupt storage closed across refresh instead of replacing its unknown identity 2",
+            "a storage failure prevents any unjournaled share write",
+            "account or focus retirement fences late capture without clearing durable identity",
+            "account or focus retirement fences late storage without clearing durable identity",
+            "account or focus retirement fences late network without clearing durable identity",
+            "ignores retained callbacks after dispose and removes subscriptions",
+            "requires the current authoritative SHARE capability and never derives it from mere membership",
+            "requires the current authoritative REQUEST capability and never derives it from mere membership"
+          ]
+        },
+        {
+          "path": "src/data/__tests__/v5-agreement-current-location-service.test.ts",
+          "removed_cases": [
+            "decodes only the owned current location context and preserves timestamp precision",
+            "rejects forged, extra or incompatible read fields 0",
+            "rejects forged, extra or incompatible read fields 1",
+            "rejects forged, extra or incompatible read fields 2",
+            "rejects forged, extra or incompatible read fields 3",
+            "rejects forged, extra or incompatible read fields 4",
+            "rejects forged, extra or incompatible read fields 5",
+            "rejects forged, extra or incompatible read fields 6",
+            "rejects forged, extra or incompatible read fields 7",
+            "rejects forged, extra or incompatible read fields 8",
+            "rejects forged, extra or incompatible read fields 9",
+            "rejects forged, extra or incompatible read fields 10",
+            "rejects forged, extra or incompatible read fields 11",
+            "rejects forged, extra or incompatible read fields 12",
+            "accepts a closed context only when it reveals no previous point or request",
+            "rejects malformed point shape 0",
+            "rejects malformed point shape 1",
+            "rejects malformed point shape 2",
+            "rejects malformed point shape 3",
+            "rejects malformed point shape 4",
+            "rejects malformed point shape 5",
+            "rejects malformed point shape 6",
+            "requires exactly six opaque journal fields, exact route identity and bounded JSON",
+            "reads exact unknown identity without point, write, new key or mutable request revision",
+            "rejects mismatched recovery and write confirmation 0",
+            "rejects mismatched recovery and write confirmation 1",
+            "rejects mismatched recovery and write confirmation 2",
+            "rejects mismatched recovery and write confirmation 3",
+            "rejects mismatched recovery and write confirmation 4",
+            "rejects mismatched recovery and write confirmation 5",
+            "rejects mismatched recovery and write confirmation 6",
+            "rejects mismatched recovery and write confirmation 7",
+            "rejects mismatched recovery and write confirmation 8",
+            "rejects malformed readback union 0",
+            "rejects malformed readback union 1",
+            "rejects malformed readback union 2",
+            "rejects malformed readback union 3",
+            "sends explicit cancellation with no coordinates and accepts actual COMMITTED race result",
+            "sends explicit cancellation with no coordinates and accepts actual CANCELLED race result",
+            "sends exactly one explicit measured point under its original opaque identity",
+            "fences account replacement before dispatch and ABA while waiting",
+            "a bounded timeout is unknown and neither retries nor publishes a late receipt",
+            "sanitizes unrecognized server errors and preserves known permission refusal"
+          ]
+        },
+        {
+          "path": "src/ui/permissions/__tests__/permission-sites.test.ts",
+          "removed_cases": [
+            "askForNotifications: the question after the first task or application (built, tested, not wired) is already allowed: no question and no system window",
+            "askForNotifications: the question after the first task or application (built, tested, not wired) the system will not ask again: no question, no window, and the caller's recovery says what is left",
+            "askForNotifications: the question after the first task or application (built, tested, not wired) \"Ne sada\": the system is not asked, and nothing else happens",
+            "askForNotifications: the question after the first task or application (built, tested, not wired) \"Dozvoli\": the system's own window follows, and its answer is the result",
+            "askForNotifications: the question after the first task or application (built, tested, not wired) without a host to draw the question the window follows directly, as it would have without this helper",
+            "askForNotifications: the question after the first task or application (built, tested, not wired) claims nothing when the state cannot be read or the window fails",
+            "the notification question stays unwired is imported by no source file of the app, and itself reaches neither expo-notifications nor Firebase nor the push runtime",
+            "the notification question stays unwired the \"notifications\" question exists in the copy, so wiring it later needs no new words"
+          ],
+          "retained_location_cases": 8
+        }
+      ]
+    }
+  ]
+}

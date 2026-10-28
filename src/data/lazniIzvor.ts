@@ -23,7 +23,6 @@ import type {
 } from '../contracts/projections';
 import { noTaskRelations, taskRelationIndex } from './taskRelation';
 import type { Ishod, IzborKomanda, IzmenaKomanda, PodnesiPrijavuKomanda, PovuciPrijavuKomanda, Izvor } from './ports';
-import { lazniAi, resetujAi } from './lazniAi';
 import { osoba } from '../ui/system/plural';
 import { novac } from '../lib/novac';
 import { composeHome } from './homeSnapshot';
@@ -153,7 +152,6 @@ function struktuiraj(s: Stanje): Stanje {
 /** Samo za testove — vraća izvor na poznato stanje. */
 export function resetujLazniIzvor() {
   stanje = struktuiraj(POCETNO);
-  resetujAi();
 }
 
 const PROZOR_MS = 48 * 3600 * 1000;
@@ -372,14 +370,6 @@ export const lazniIzvor: Izvor = {
     return { rows: home.attention, more: home.attentionMore, asOf: new Date().toISOString() };
   },
   poreklo: 'lazni',
-
-  // R02 — AI intake. Isti port, pa zamena Supabaseom ne dira ekran.
-  otvoriRazgovor: lazniAi.otvoriRazgovor,
-  razgovor: lazniAi.razgovor,
-  posaljiKorisnikovuPoruku: lazniAi.posaljiKorisnikovuPoruku,
-  potvrdiCinjenicu: lazniAi.potvrdiCinjenicu,
-  ispraviCinjenicu: lazniAi.ispraviCinjenicu,
-  objaviPotrebu: lazniAi.objaviPotrebu,
 
   async mojePotrebe() {
     await kasnjenje();

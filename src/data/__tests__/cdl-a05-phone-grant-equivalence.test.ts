@@ -33,13 +33,10 @@ describe('CDL-A05 — canonical phone grant contract', () => {
   it('physically eliminates both transitional PHONE grant owners', () => {
     const dataDir = join(__dirname, '..');
     const indexSource = readFileSync(join(dataDir, 'index.ts'), 'utf8');
-    const authoritySource = readFileSync(join(dataDir, 'productionAuthorityOverrides.ts'), 'utf8');
     const baselineSource = readFileSync(join(dataDir, 'supabaseIzvor.ts'), 'utf8');
 
     expect(indexSource).toContain("import { contactClientService } from './contactClientService'");
     expect(indexSource).toContain('...contactClientService');
-    expect(authoritySource).not.toContain('podeliTelefon');
-    expect(authoritySource).not.toContain('opoziviTelefon');
     expect(baselineSource).not.toContain('async podeliTelefon(');
     expect(baselineSource).not.toContain('async opoziviTelefon(');
     expect(baselineSource).toContain("'podeliTelefon'");

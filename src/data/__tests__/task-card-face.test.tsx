@@ -33,7 +33,7 @@ jest.mock('phosphor-react-native', () => ({ CaretRight: 'CaretRight', CaretDown:
 import { TaskCard, CARD_PRESS_SCALE } from '../../ui/v2/TaskCard';
 import { TaskAgeContext } from '../../ui/v2/discovery/taskAge';
 import { DistanceFromContext } from '../../ui/v2/discovery/taskDistance';
-import { CardPlaces, ownerNext, placesText, scheduleConfirmed, taskStatus } from '../../ui/v2/TaskFace';
+import { ownerNext, placesText, scheduleConfirmed, taskStatus } from '../../ui/v2/TaskFace';
 
 const needs = (patch: Partial<NeedDetailProjection['zahtevi']> = {}): NeedDetailProjection['zahtevi'] => ({ vestine: [], alati: [], vozila: [], dozvole: [],
   bitniUslovi: null, iskustvoGodina: null, potvrdjenIdentitet: false, ...patch });
@@ -221,13 +221,10 @@ describe('the places and the person', () => {
     expect(tree.root.findAll(node => node.type === VIEW && node.props.testID === 'task-face-foot')).toHaveLength(0);
   });
 
-  it('retains the full audience-specific count in the shared component used by the composer and preview', async () => {
+  it('retains full audience-specific capacity wording', () => {
     const places = { ukupno: 3, popunjeno: 1, preostalo: 2, udeo: 1 / 3 };
-    await render(<CardPlaces places={places} audience="worker" />);
-    expect(texts()).toEqual(['Još 2 od 3 mesta']);
-    expect(placesText(places, 'worker').spoken).toBe('Još 2 od 3 mesta');
-    await act(async () => tree.update(<CardPlaces places={places} audience="owner" />));
-    expect(texts()).toEqual(['1/3 popunjeno']);
+    expect(placesText(places, 'worker')).toEqual({ text: 'Još 2 od 3 mesta', spoken: 'Još 2 od 3 mesta' });
+    expect(placesText(places, 'owner')).toEqual({ text: '1/3 popunjeno', spoken: '1 od 3 mesta popunjeno' });
   });
 
   it('show the owner the progress on a task of mine met in discovery, with no person', async () => {

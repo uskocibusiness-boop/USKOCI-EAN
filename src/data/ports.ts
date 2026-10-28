@@ -205,45 +205,6 @@ export interface Komande {
   otkrijTacnuLokaciju(dogovorId: string): Promise<Ishod<ExactLocationReveal>>;
 }
 
-/* ----------------------------------------------------- R02 — AI intake */
-
-/**
- * Istorijski V1 lanac. Produkcijski V2 lanac je aiNeedV2Izvor:
- *   rpc_ai_open_need_conversation_owned_v2 → uskoci-ai-interview → rpc_ai_need_review_v2
- *   → rpc_save_need_draft_from_review → rpc_publish_need_canonical (fail-closed do D-0140)
- */
-export interface AiIntake {
-  /** @deprecated Non-writing compatibility stub; use aiNeedV2Izvor.openConversation with a stable request ID. */
-  otvoriRazgovor(): Promise<Ishod<{ razgovorId: string }>>;
-
-  /** Poruke i nacrt su dve projekcije istog stanja — čitaju se zajedno. */
-  razgovor(razgovorId: string): Promise<{
-    poruke: import('../contracts/projections').PorukaRazgovora[];
-    nacrt: import('../contracts/projections').NacrtPotrebeProjekcija;
-  } | null>;
-
-  /**
-   * Korisnik kaže nešto. Server (Edge `uskoci-ai-interview`) izvlači činjenice
-   * i predlaže ih — nikad ih ne čuva kao potvrđene.
-   */
-  posaljiKorisnikovuPoruku(
-    razgovorId: string,
-    telo: string,
-  ): Promise<Ishod<{ predlozeno: number }> >;
-
-  /** rpc_ai_confirm_fact — HUMAN_CONFIRMED korak. Bez njega nema objave. */
-  potvrdiCinjenicu(cinjenicaId: string): Promise<Ishod<null>>;
-
-  /** Korisnik ispravlja: stara činjenica se POTISKUJE, ne prepisuje. */
-  ispraviCinjenicu(
-    cinjenicaId: string,
-    novaVrednost: string,
-  ): Promise<Ishod<{ novaCinjenicaId: string }>>;
-
-  /** CANONICAL_SAVED — koristi isti nacrt, ne rekonstruiše iz istorije chata. */
-  objaviPotrebu(razgovorId: string): Promise<Ishod<{ potrebaId: string }>>;
-}
-
 /* ----------------------------------------------------- Profil */
 
 export interface ProfilCitanje {
@@ -272,7 +233,7 @@ export interface ProfilKomande {
 }
 
 /** Sve na jednom mestu — jedan objekat koji ekrani dobijaju. */
-export interface Izvor extends PotrebeCitanje, PrijaveCitanje, DogovoriCitanje, Komande, AiIntake, ProfilCitanje, ProfilKomande {
+export interface Izvor extends PotrebeCitanje, PrijaveCitanje, DogovoriCitanje, Komande, ProfilCitanje, ProfilKomande {
   /** 'lazni' dok ne odobrimo Supabase; kasnije 'supabase'. */
   readonly poreklo: 'lazni' | 'supabase';
 }

@@ -437,14 +437,12 @@ const motionLiterals = (source: string): Partial<Record<MotionFamily, number>> =
  * which literal families remain in transitional components. Historical counts below are inventory only. Press, Appear, Arrive and Segmented (item 1.4) are clean; the
  * sheets, SuccessMark, the AI shell and the voice composer move onto `sys.motion` in their own items and then lose
  * their entry.
- * `entryV49Math.ts` retains an entry-specific duration pending its owner migration.
  * The map camera needs no entry: it spells `duration: 0` (a jump) or `sys.motion.camera`.
  */
 const MOTION_LITERALS_ALLOWED: Record<string, Partial<Record<MotionFamily, number>>> = {
   'src/app/(app)/profil/lokacija.tsx': { scale: 1 },
   'src/ui/calendar/AvailabilityForm.tsx': { scale: 4 },
   'src/ui/calendar/CalendarControls.tsx': { scale: 1 },
-  'src/ui/entry/entryV49Math.ts': { duration: 1 }, // Transitional entry consumer
   'src/ui/product/ProductDetails.tsx': { scale: 1 }, // DetailDescription's "Prikaži ceo opis"; DetailLink and ProductPerson (2 of 3) are gone
   'src/ui/support/SupportPresentation.tsx': { scale: 1 },
   'src/ui/system/Disclosure.tsx': { scale: 1 },

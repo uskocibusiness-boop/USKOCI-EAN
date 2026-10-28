@@ -9,8 +9,8 @@ import type { MarketplaceItem } from '../marketplaceView';
 import { layoutClassFor } from '../../ui/system/textScale';
 /** Current visual composition: full-width titles; value/capacity and offers stack for larger text.
  * Keep facts, commands and accessible descriptions across window sizes. Historical title/price adjacency
- * no longer describes TaskCard (CardHead has no production consumer). The font-table guard remains
- * because the discovery card head (cardHeadFit) and the calendar steps still use textWidth for their geometry.
+ * no longer describes TaskCard. The font-table guard remains because the calendar steps
+ * still use textWidth for their geometry.
  * Native8d22 evidence at361dp/115%/130% is recorded separately; these are structural safeguards only.
  */
 let mockScale = 1, mockWidth = 411;

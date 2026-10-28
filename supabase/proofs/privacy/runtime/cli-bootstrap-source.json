@@ -1,0 +1,20 @@
+{
+  "unit": "R01_CLI_BOOTSTRAP_SOURCE",
+  "format_version": 1,
+  "repository": "https://github.com/supabase/cli.git",
+  "upstream_version": "2.116.0",
+  "upstream_commit": "997a1e69a4a83466964ed874d3a604c88a7b3866",
+  "build_version": "2.116.0-r01-no-webhook",
+  "go_version": "go1.26.10",
+  "go_archive": "https://go.dev/dl/go1.26.10.linux-amd64.tar.gz",
+  "go_archive_sha256": "ccfe7ae822d2c2f41f4fe7c956199967a4dac22d0ee0d2b2bfdb440aab3b20c5",
+  "source_files": {
+    "apps/cli-go/internal/db/start/start.go": "7ab27e66d133e842e06b8eccf02449813a670d5692ca544a87a5145b1b9a6215",
+    "apps/cli-go/internal/db/start/templates/webhook.sql": "aa956b7b1f205284a524882fe0d580c72d86374aea9c9c2e93ac398df5e07d0b",
+    "apps/cli-go/go.mod": "5ce8c7ad67da60e265ebd7450e33168a3267d1ad0e99712aa2c2573d1788d11b",
+    "apps/cli-go/go.sum": "cd1bcf265f277594328e3e5d1f78c5da5108cdc3a56f8d71f9e1efd50f0a64d5"
+  },
+  "patch_path": "apps/cli-go/internal/db/start/start.go",
+  "omitted_expression": "` + webhookSchema + `\n",
+  "patched_sha256": "9982c918510fbe1b2795c4e504182fc499d93a3adb0d6109c0756e3c9becebca"
+}
