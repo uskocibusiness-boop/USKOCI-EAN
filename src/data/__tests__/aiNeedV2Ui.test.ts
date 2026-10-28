@@ -319,3 +319,10 @@ describe('choices for the enum facts and a digits-only amount, saving what the t
     expect(priceAmountRowValue('OFFERS', typedFact({ key: 'need.people_needed', valueType: 'INTEGER', value: 2 }))).toBeNull();
   });
 });
+
+it.each(['100 EUR', '100 €', 'sto evra', '999999 RSD'])('typed RSD ignores contradictory presentation %s', displayValue => {
+  const fact: AiNeedV2Fact = { ...priceModeFact, key: 'need.price_rsd', valueType: 'INTEGER', value: 100, displayValue };
+  expect(factReviewValue(fact)).toBe('100 RSD');
+  expect(factCorrectionValue(fact)).toBe('100');
+  expect(fact.displayValue).toBe(displayValue);
+});

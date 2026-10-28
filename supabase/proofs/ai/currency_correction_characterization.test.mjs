@@ -385,6 +385,24 @@ test('R07a price retraction: actual Edge, guarded candidate writer and current r
   assert.equal((await one('select count(*)::int as n from public.ai_messages')).n,messages);
  });
  await verifyPriceReviewBoundary({t,db,bootstrap,install,owner,conversation,apply,guard,proposal,active,seedPrice});
+ await t.test('normalized AI display survives the actual writer and prepared review without changing old copies',async()=>{
+  const historic=await one('select envelope from private.ai_task_reviews order by created_at,id limit 1');
+  const input='Cena je 100 RSD ukupno.';
+  const parsed=edge.parseV2Output({safety:'ALLOW',assistantMessage:'Cena je 100 RSD.',dialogue:syntheticDialogue(),facts:[
+   {key:'need.price_mode',valueJson:'"MY_PRICE"',displayValue:'Moja cena',evidence:input,confidence:1},
+   {key:'need.price_rsd',valueJson:'100',displayValue:'100 EUR',evidence:input,confidence:1},
+   {key:'need.price_basis',valueJson:'"TOTAL"',displayValue:'Ukupno',evidence:input,confidence:1}]});
+  const turn=edge.guardConversationTurn(parsed,input,[],await active(),now);
+  assert.equal(turn.safety,'ALLOW');
+  await apply(input,turn);
+  const saved=await one("select fact_value,display_value,status from public.ai_structured_facts where conversation_id=$1 and fact_key='need.price_rsd' and superseded_at is null",[conversation]);
+  assert.deepEqual(saved,{fact_value:100,display_value:'100 RSD',status:'NEEDS_CONFIRMATION'});
+  assert.equal((await read()).facts.find(f=>f.key==='need.price_rsd').displayValue,'100 RSD');
+  const prepared=(await one('select public.rpc_prepare_ai_task_review($1) as result',[conversation])).result;
+  assert.equal(prepared.publicProjection.find(f=>f.key==='need.price_rsd').displayValue,'100 RSD');
+  assert.equal(prepared.publicProjection.find(f=>f.key==='need.price_rsd').value,100);
+  assert.deepEqual(await one('select envelope from private.ai_task_reviews order by created_at,id limit 1'),historic);
+ });
  await t.test('live validator supports TOTAL/PER_PERSON/HOURLY and retains FASTEST retirement',async()=>{
   for(const basis of ['TOTAL','PER_PERSON','HOURLY'])await db.query('select private.validate_need_v2_fact($1,$2::jsonb)',['need.price_basis',json(basis)]);
   await assert.rejects(db.query('select private.validate_need_v2_fact($1,$2::jsonb)',['need.price_mode',json('FASTEST')]),{code:'22023'});

@@ -218,8 +218,8 @@ export function factReviewValue(fact: AiNeedV2Fact): string {
   if (fact.valueType === 'INTEGER') {
     if (typeof value !== 'number' || !Number.isInteger(value)) return 'Podatak nije dostupan';
     if (fact.key === 'need.price_rsd') {
-      const isEuro = typeof fact.displayValue === 'string' && (fact.displayValue.includes('€') || /eur|evr/i.test(fact.displayValue));
-      return novac(value, isEuro ? 'EUR' : 'RSD');
+      // The typed key owns the currency, including for historical display copies.
+      return novac(value, 'RSD');
     }
     return String(value);
   }

@@ -44,7 +44,7 @@ prepared review with a confirmed price is rejected after retraction, including
 after a later ALLOW or return to the same amount. A refreshed incomplete review
 cannot be accepted; direct save reports missing `need.price_mode`. New RSD and
 explicit OFFERS produce fresh acceptable reviews. Publishing without an accepted
-command is refused. These cases bring the focused run to 26 passing tests.
+command is refused. With the new normalized-display persistence case, the focused run has 27 passing tests.
 
 This is a boundary proof: geography and policy are fixed synthetic fixtures,
 and valid acceptance intentionally raises a sentinel before location saving or
@@ -52,11 +52,21 @@ fact confirmation. No draft or publication is successfully written. Real media
 source helpers run on an empty asset table. The seven main review/media body
 hashes were rechecked read-only on DEV; the leaf location validator comes from
 the unchanged canonical bootstrap. Full authenticated acceptance and publication
-remain unproven. Combined Edge/SQL regression: 173 passed, one integration TODO.
+remain unproven. Combined Edge/SQL regression: 183 passed, one integration TODO.
 
 `ai_edge_context.test.mjs` runs the actual handler with synthetic transport. It
 checks retraction delivery, model-control rejection and that a failed write or
 incorrect receipt cannot return a confirmed success.
+
+New AI price display text is now normalized from the validated typed RSD amount
+before persistence. Actual writer/read/prepare tests confirm that copy; EUR or
+ambiguous user input still cannot authorize a price. The auxiliary fact formatter
+and historical support review render the captured typed amount as RSD, with no
+stale-label fallback for null. The main publication review was already correct
+and is unchanged. Four UI suites (212 tests) and TypeScript passed. Signed review
+and support snapshots and exported historical copies are not rewritten; direct
+correction RPC display strings are outside this normalization scope. This is a
+presentation/new-AI-input fix, not a database-wide historical cleanup.
 
 The SQL file is an opt-in local candidate, **not an applied migration**. It
 requires `SET uskoci.r07.disposable = 'LOCAL_ONLY'` and refuses an unexpected

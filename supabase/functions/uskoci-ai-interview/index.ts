@@ -701,7 +701,9 @@ function parseV2Output(parsed: any): ParsedTurn {
       proposals.push({
         key,
         value,
-        displayValue,
+        // This typed key is always whole RSD. Presentation text cannot change
+        // its amount or currency; the intent guard still requires RSD consent.
+        displayValue: key === 'need.price_rsd' ? `${value} RSD` : displayValue,
         confidence: Math.max(0, Math.min(1, confidence)),
         evidence,
       });

@@ -720,3 +720,22 @@ describe('a bug report', () => {
     expect(tree.root.findAllByType(ConfirmSheet)).toHaveLength(1);
   });
 });
+
+it.each([
+  { amount: 100, displayValue: '100 EUR', status: 'CONFIRMED', expected: '100 RSD' },
+  { amount: 5000, displayValue: '999 €', status: 'NEEDS_CONFIRMATION', expected: '5.000 RSD' },
+  { amount: null, displayValue: '100 EUR', status: 'UNKNOWN', expected: 'Iznos nije sačuvan' },
+])('support review uses its captured typed price: $amount, $displayValue', async ({ amount, displayValue, status, expected }) => {
+  const value = { kind: 'TASK_REVIEW' as const, id: D, revision: null, content: {
+    draftId: null, draftRevision: null, displayedContentDigest: 'a'.repeat(64),
+    publicFacts: [{ key: 'need.price_rsd', value: amount, displayValue, status },
+      { key: 'need.title', value: 'Naslov', displayValue: 'Sačuvani naslov', status: 'CONFIRMED' }],
+    safety: 'ALLOW', createdAt: time, policy: { bundleId: null, version: null, contentSha256: null }, evaluation: null, media: [],
+  } };
+  const original = JSON.stringify(value);
+  await act(async () => { tree = create(<SupportReferenceView value={value} caseId={C} />); });
+  expect(text()).toContain(expected);
+  expect(text()).not.toContain(displayValue);
+  expect(text()).toContain('Sačuvani naslov');
+  expect(JSON.stringify(value)).toBe(original);
+});

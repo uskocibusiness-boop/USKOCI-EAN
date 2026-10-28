@@ -1021,3 +1021,31 @@ function withoutTiming(logs) {
   }
   return logs.filter(row=>row[0]!=='AI_PHASE_MS');
 }
+
+for(const displayValue of ['100 EUR','100 €','sto evra','999999 RSD'])test(`explicit RSD persists canonical price display instead of ${displayValue}`,async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Cena je 100 RSD.',facts:[
+  priceFact('need.price_mode','MY_PRICE','100 RSD'),
+  {...priceFact('need.price_rsd',100,'100 RSD'),displayValue},
+  {...priceFact('need.people_needed',2,'2 osobe'),displayValue:'Dve osobe'}]}});
+ assert.equal((await f.invoke({text:'Cena je 100 RSD; 2 osobe.'})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'ALLOW');
+ assert.deepEqual(write.p_proposals.find(p=>p.key==='need.price_rsd'),
+  {key:'need.price_rsd',value:100,displayValue:'100 RSD',confidence:1,evidence:'100 RSD'});
+ assert.equal(write.p_proposals.find(p=>p.key==='need.people_needed').displayValue,'Dve osobe');
+});
+for(const input of ['Cena je 100 EUR.','Cena je 100.'])test(`canonicalizing a model display cannot authorize ${input}`,async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Cena je 100 RSD.',facts:[
+  priceFact('need.price_mode','MY_PRICE',input),{...priceFact('need.price_rsd',100,input),displayValue:'100 EUR'}]}});
+ assert.equal((await f.invoke({text:input})).status,200);
+ const write=materialWrites(f)[0].body;
+ assert.equal(write.p_safety,'CLARIFY');
+ assert.deepEqual(write.p_proposals.filter(p=>p.key.startsWith('need.price_')),[]);
+});
+
+for(const [name,displayValue] of [['null',null],['empty',''],['oversized','x'.repeat(1001)]])test(`malformed price presentation ${name} is rejected before normalization`,async()=>{
+ const f=fixture({providerOutput:{safety:'ALLOW',assistantMessage:'Cena je 100 RSD.',facts:[
+  {...priceFact('need.price_rsd',100,'100 RSD'),displayValue}]}});
+ assert.equal((await f.invoke({text:'Cena je 100 RSD.'})).status,502);
+ assert.equal(materialWrites(f).length,0);
+});
