@@ -37,6 +37,10 @@ test('diagnostics preserve each missing dashboard entry and owner change, never 
  assert.equal(v.exact_acl_equal,false);
  assert.equal(v.counts.dev_dashboard_only,49);
  assert.equal(v.counts.owner_changed,49);
+ assert.equal(v.role_grants.dev.pgcrypto.grantees.dashboard_user,36);
+ assert.equal(v.role_grants.disposable.pgcrypto.grantees.supabase_admin,36);
+ assert.equal(v.role_grants.disposable.pgcrypto.grantees.dashboard_user,undefined);
+ assert.equal(v.role_grants.dev.pgcrypto.unclassified_entries,0);
  assert.equal(v.request_scope_match,true);
  assert.match(v.limitations,/Does not waive/);
 });

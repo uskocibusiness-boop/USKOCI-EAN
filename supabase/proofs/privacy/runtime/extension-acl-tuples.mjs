@@ -1,4 +1,9 @@
 // Exact hashed per-routine ACL tuple diagnostic; NEVER accepts a schema waiver.
+import {createHash} from 'node:crypto';
+const systemRoles=['PUBLIC','dashboard_user','postgres','supabase_admin','anon','authenticated',
+ 'authenticator','service_role','supabase_auth_admin','supabase_storage_admin',
+ 'supabase_functions_admin','supabase_realtime_admin'];
+const namesByHash=new Map(systemRoles.map(name=>[createHash('md5').update(name).digest('hex'),name]));
 const names={pgcrypto:36,'uuid-ossp':10,pg_stat_statements:3};
 const roles=['anon','authenticated','authenticator','postgres','service_role','supabase_admin',
  'supabase_auth_admin','supabase_functions_admin','supabase_realtime_admin','supabase_storage_admin'];
@@ -106,13 +111,33 @@ export function compareExtensionAclTuples(expected,capture,queryHash,scope){
     native_owner_option_only:nativeOnly.filter(x=>x.owner_entry).length});
   }
  }
+ function roleSummary(capture){
+  const byExt=Object.fromEntries(Object.keys(names).map(ext=>[ext,{
+    grantees:{},grantors:{},owner_entries:{},grantable_entries:0,unclassified_entries:0
+  }]));
+  const add=(obj,key)=>{obj[key]=(obj[key]||0)+1;};
+  for(const row of capture.routines){
+    const group=byExt[row.extension];
+    for(const acl of row.acl){
+      const grantee=namesByHash.get(acl.grantee_md5)||'UNCLASSIFIED';
+      const grantor=namesByHash.get(acl.grantor_md5)||'UNCLASSIFIED';
+      add(group.grantees,grantee);
+      add(group.grantors,grantor);
+      if(acl.owner_entry)add(group.owner_entries,grantee);
+      if(acl.grantable)group.grantable_entries++;
+      if(grantee==='UNCLASSIFIED'||grantor==='UNCLASSIFIED')group.unclassified_entries++;
+    }
+  }
+  return byExt;
+ }
+ const role_grants={dev:roleSummary(dev),disposable:roleSummary(native)};
  const exactEqual=metadata.length===0&&canonical(dev.dashboard_role)===canonical(native.dashboard_role);
  return {unit:'R01_EXTENSION_ACL_TUPLES_DIAGNOSTIC',format_version:1,query_sha256:queryHash,
    exact_acl_equal:exactEqual,request_scope_match:true,
    dashboard_role_present_on_dev:dev.dashboard_role!==null,
    dashboard_role_present_on_disposable:native.dashboard_role!==null,
    admin_reachability_changed:canonical(dev.dashboard_reachability)!==canonical(native.dashboard_reachability),
-   counts:summary,by_extension:ext,changed_routines:metadata.length,per_routine:metadata,
+   counts:summary,by_extension:ext,role_grants,changed_routines:metadata.length,per_routine:metadata,
    limitations:'Hashed full grantor/grantee/privilege/grant-option diagnostics only. '+
      'Does not waive any owner, grantor, dashboard or strict metadata difference. '+
      'Dynamic SQL, admin rights, Auth/PostgREST, Storage lifecycle and candidate remain unproven.'};
