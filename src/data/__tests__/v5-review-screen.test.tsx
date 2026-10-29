@@ -1170,6 +1170,29 @@ it('R04/F05: signed semantic candidate is shown without unlocking publish, priva
   expect(mockDraft).not.toHaveBeenCalled();
 });
 
+
+it('R04/F05: accepted private draft with pending category cannot resume publication and offers same-Need edit',async()=>{
+  const service='Montaža gotovog ormara';
+  const shown:AiTaskReviewEnvelope={...review(),classificationState:'REVIEW_REQUIRED',
+    classificationCandidates:[],reviewedServiceModes:[],
+    classificationCatalogVersion:17,classificationCatalogFingerprint:'a'.repeat(32),
+    semanticReviewCandidates:[{service,mode:'ON_SITE',categoryId:'66666666-6666-4666-8666-666666666666',
+      categoryLabel:'Sklapanje ormara',categoryParentId:null,
+      reason:'Isti konkretan posao sklapanja gotovog ormara.',catalogVersion:17}]};
+  mockLatest.mockResolvedValue(ok({review:shown,command:command('ACCEPTED')}));
+  mockOpenEdit.mockResolvedValue(ok({conversationId:OTHER,needId:NEED,revision:1,
+    needStatus:'DRAFT',authoritative:true}));
+  await render();
+  expect(commands('Objavi ovaj nacrt')).toHaveLength(0);
+  expect(commands('Nastavi objavu')).toHaveLength(0);
+  expect(commands('Izmeni zadatak')).toHaveLength(1);
+  await act(async()=>action('Izmeni zadatak').onPress());
+  expect(mockOpenEdit).toHaveBeenCalledWith(NEED);
+  expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/nova',params:{conversationId:OTHER}});
+  expect(mockResume).not.toHaveBeenCalled();
+  expect(mockAccept).not.toHaveBeenCalled();
+});
+
 // Round 6 (objava): the review as the moment of truth. What still blocks publication is listed with its way to the fix,
 // the category is never named, the conversation is reached by the arrow or a "Još treba" row, the success spring is
 // kept for a publication confirmed on this screen, and the place is its own step that Android Back leaves.
