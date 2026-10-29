@@ -30,6 +30,28 @@ export const workerAiTurnIntentJournal = {
       throw new Error('WORKER_AI_UNRESOLVED_INTENT');
     await AsyncStorage.setItem(key(intent.accountId), encoded);
   }),
+
+  /** Explicitly abandon ONLY an unparsable/invalid local ID record. A valid
+   * unresolved command is never cleared here, even if the user asks again.
+   * Server state is untouched; any unknown server outcome stays unknown.
+   */
+  discardCorrupt: (accountId: string) => queue(accountId, async () => {
+    if (!uuid(accountId)) throw new Error('WORKER_AI_LOCAL_INTENT_INVALID');
+    const storageKey = key(accountId);
+    const raw = await AsyncStorage.getItem(storageKey);
+    if (raw === null) return false;
+    try {
+      parse(raw, accountId);
+      return false; // Valid pending server command: must use recoverTurn/readback.
+    } catch (error) {
+      if (!(error instanceof SyntaxError)
+          && !(error instanceof Error && error.message === 'WORKER_AI_LOCAL_INTENT_INVALID')) throw error;
+    }
+    // Another local write, if any, cannot be discarded on a stale observation.
+    if (await AsyncStorage.getItem(storageKey) !== raw) return false;
+    await AsyncStorage.removeItem(storageKey);
+    return true;
+  }),
   clear: (intent: WorkerAiTurnIntent) => queue(intent.accountId, async () => {
     const old = parse(await AsyncStorage.getItem(key(intent.accountId)), intent.accountId);
     if (old?.conversationId === intent.conversationId && old.clientRequestId === intent.clientRequestId)

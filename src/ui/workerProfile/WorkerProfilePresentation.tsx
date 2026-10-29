@@ -75,13 +75,15 @@ function useKeyboardShown() {
 }
 
 /** Reading the profile, or why it could not be read. No draft is built from defaults. */
-export function WorkerProfileStatus({ loading, error, retry, context = 'profile' }: {
-  loading: boolean; error?: string | null; retry: () => void; context?: 'profile' | 'conversation';
+export function WorkerProfileStatus({ loading, error, retry, recoverCorrupt, context = 'profile' }: {
+  loading: boolean; error?: string | null; retry: () => void; recoverCorrupt?: () => void;
+  context?: 'profile' | 'conversation';
 }) {
   if (context === 'conversation') return loading
     ? <QuietReadState art="chat" title="Otvaramo razgovor" body="Pripremamo razgovor i proveravamo stanje nacrta." />
     : <StateView kind="error" art="chat" title="Razgovor nije dostupan" body={error ?? undefined}
-      primary={{ label: 'Ponovo učitaj razgovor', onPress: retry }} />;
+      primary={{ label: 'Ponovo učitaj razgovor', onPress: retry }}
+      quiet={recoverCorrupt ? {label:'Oporavi lokalni zapis',onPress:recoverCorrupt}:undefined} />;
   if (loading) return <QuietReadState art="person" title="Učitavamo radni profil…" body="Proveravamo sačuvane veštine i dostupnost." />;
   return <StateView kind="error" title="Radni profil nije dostupan" body={error ?? undefined}
     primary={{ label: 'Ponovo učitaj profil', onPress: retry }} />;

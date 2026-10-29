@@ -71,6 +71,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
   const draftText = useRef(unos); draftText.current = unos;
   const draftRevision = useRef(0);
   const [recoveryConversation, setRecoveryConversation] = useState<string | null>(null);
+  const [corruptLocalIntent, setCorruptLocalIntent] = useState(false);
   const [streamingText, setStreamingText] = useState('');
   const streamAbort = useRef<AbortController | null>(null);
   // The send command that is running right now, if any. While it runs its outcome is not unknown, it is not here yet:
@@ -119,6 +120,7 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
     try {
       const stored = await aiTurnIntentJournal.load(accountId!);
       if (!current()) return unavailable();
+      setCorruptLocalIntent(false);
       if (stored) {
         if (resumeId && resumeId !== stored.conversationId) {
           setRecoveryConversation(stored.conversationId);
@@ -189,7 +191,13 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
         }
       }
       return { ok: true, podatak: { conversation: next, turn, recovery } };
-    } catch { return unavailable(); }
+    } catch (error) {
+      if (error instanceof Error && error.message === 'AI_LOCAL_INTENT_INVALID' && current()) {
+        setCorruptLocalIntent(true);
+        return { ok: false, kod: 'AI_LOCAL_INTENT_INVALID', poruka: 'Lokalni zapis prethodnog slanja nije ispravan. Slanje je zaustavljeno dok ne izaberete oporavak.' };
+      }
+      return unavailable();
+    }
   }, [accountId, accountRevision, invalidRoute, openRequestId, resumeId]);
   const editor = useOwnedEditor(read);
   // The two controls offered at the worst moment - "Proveri ishod" and "Osveži razgovor" - used to
@@ -457,6 +465,26 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
         });
       } });
   };
+  const recoverCorruptLocal = () => {
+    if (!isCurrent() || !accountId || !corruptLocalIntent || editor.loading || editor.busy) return;
+    const ownerId = accountId, entry = focus.current;
+    confirmation.ask({
+      title: 'Oporaviti lokalni zapis?',
+      message: 'Oštećeni zapis na ovom telefonu ne sadrži proverljiv identitet prethodnog slanja. Briše se samo taj neispravan lokalni zapis, ne poruka na serveru. Nećemo automatski ponovo slati ništa; ishod prethodnog slanja može ostati nepoznat.',
+      cancelLabel: 'Odustani', confirmLabel: 'Oporavi zapis',
+      onConfirm: async () => {
+        if (!entry || entry !== focus.current || !isCurrent()) return;
+        try {
+          const removed = await aiTurnIntentJournal.discardCorrupt(ownerId);
+          if (entry !== focus.current || !isCurrent()) return;
+          if (removed) setCorruptLocalIntent(false);
+          await editor.refresh(); // A valid concurrent intent is reconciled, never discarded.
+        } catch {
+          if (entry === focus.current && isCurrent()) await editor.refresh();
+        }
+      },
+    });
+  };
   const osvezi = () => { if (!isCurrent() || navigating.current || radi || editor.loading) return;
     voice.controller.cancel('navigation'); void editor.refresh(); };
   const napusti = () => {
@@ -479,7 +507,9 @@ function OwnedIntake({ resumeId, entryKey, invalidRoute, correctionToken }: { re
 
   if (!stanje) return <IntakeUnavailable loading={editor.loading} title={resumeId ? 'Razgovor o zadatku' : 'Novi zadatak'}
     error={greska ?? 'Proveri vezu i pokušaj ponovo.'} retry={invalidRoute || recoveryConversation ? undefined : osvezi} back={back}
-    recover={recoveryConversation ? () => navigate(() => router.replace({ pathname: '/nova', params: { conversationId: recoveryConversation } })) : undefined} />;
+    recover={recoveryConversation ? () => navigate(() => router.replace({ pathname: '/nova', params: { conversationId: recoveryConversation } })) : undefined}
+    recoverCorrupt={corruptLocalIntent && !invalidRoute ? recoverCorruptLocal : undefined}
+    overlay={confirmation.sheet} />;
 
   // The send is still running (the answer may be streaming): "Stiže odgovor…" is the whole truth, so no recovery is drawn.
   // Before 2026-10-07 the request was already pending here while the last read held no turn for it, and the copy below fell

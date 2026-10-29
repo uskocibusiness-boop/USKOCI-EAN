@@ -71,7 +71,7 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const [menu,setMenu]=useState(false),[adding,setAdding]=useState(false);
   const draftText=useRef(input);draftText.current=input;
   const draftRevision=useRef(0);
-  const [recovery,setRecovery]=useState<WorkerAiTurnRecovery|null>(null),[,intentChanged]=useState(0);
+  const [recovery,setRecovery]=useState<WorkerAiTurnRecovery|null>(null),[corruptLocalIntent,setCorruptLocalIntent]=useState(false),[,intentChanged]=useState(0);
   const pending=useRef<Attempt|null>(null),saveKey=useRef<{reviewId:string;key:string}|null>(null);
   const [rejectedReviewId,setRejectedReviewId]=useState<string|null>(null);
   // A prepared review is authoritative. Retain its activation choice when a
@@ -98,8 +98,13 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     // Restore before opening a conversation or sending anything. Storage holds
     // only three IDs; canonical history restores text after an accepted turn.
     let saved:WorkerAiTurnIntent|null;
-    try{saved=await journal.load(accountId!);}catch{return {ok:false,kod:'WORKER_AI_LOCAL_INTENT_INVALID',poruka:'Ne možemo da proverimo prethodno slanje. Pokušaj ponovo.'};}
+    try{saved=await journal.load(accountId!);}catch(error){
+      if(error instanceof Error&&error.message==='WORKER_AI_LOCAL_INTENT_INVALID'&&owns()){setCorruptLocalIntent(true);
+        return {ok:false,kod:'WORKER_AI_LOCAL_INTENT_INVALID',poruka:'Lokalni zapis prethodnog slanja nije ispravan. Ne šaljemo novu poruku dok ne izaberete oporavak.'};}
+      return unavailable();
+    }
     if(focus.current!==scope||!owns()||!active.current)return unavailable();
+    setCorruptLocalIntent(false);
     if(saved){
       if(cid.current!==saved.conversationId){cid.current=saved.conversationId;router.setParams({conversationId:saved.conversationId});}
       if(pending.current?.id!==saved.clientRequestId){pending.current={id:saved.clientRequestId,text:null,submittedDraft:null};intentChanged(n=>n+1);}
@@ -238,6 +243,24 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
     leave(()=>router.canGoBack()?router.back():router.replace('/profil/radnik'));
   };
   const refresh=()=>{if(current()&&!editor.busy&&!editor.loading&&!voiceBusy)void editor.refresh();};
+  const recoverCorruptLocal=()=>{
+    if(!current()||!accountId||!corruptLocalIntent||editor.busy||editor.loading)return;
+    const ownerId=accountId,entry=focus.current;
+    confirmSheet.ask({
+      title:'Oporaviti lokalni zapis?',
+      message:'Oštećeni zapis na ovom telefonu nema proverljiv identitet prethodnog slanja. Briše se samo taj neispravan lokalni zapis, ne poruka na serveru. Ništa se ne šalje automatski; stari ishod može ostati nepoznat.',
+      cancelLabel:'Odustani',confirmLabel:'Oporavi zapis',
+      onConfirm:async()=>{
+        if(!entry||entry!==focus.current||!current())return;
+        try{
+          const removed=await journal.discardCorrupt(ownerId);
+          if(entry!==focus.current||!current())return;
+          if(removed)setCorruptLocalIntent(false);
+          await editor.refresh(); // Valid races remain server-reconciled.
+        }catch{if(entry===focus.current&&current())await editor.refresh();}
+      },
+    });
+  };
   const cancelPending=async()=>{
     const command=pending.current;if(!canAct()||voiceBusy||!data||!command||!recovery?.canCancel)return;
     await editor.save(async()=>{const result=await api.cancelTurn(data.conversationId,command.id);
@@ -345,7 +368,8 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   const lastGoodUnverified=!!data&&!editor.loaded&&!editor.loading;
   const lastGoodCopy='Prikazan je poslednji učitan razgovor. Slanje i čuvanje su pauzirani dok ne proverimo stanje.';
   if(leaving||!data||!foreground||resuming)return <WorkerProfileFrame back={back} title="Moj radni profil" tone="conversation"><WorkerProfileStatus context="conversation" loading={leaving||editor.loading||!foreground||resuming}
-    error={leaving?null:editor.error} retry={refresh}/>{!leaving&&foreground&&!resuming?confirmSheet.sheet:null}</WorkerProfileFrame>;
+    error={leaving?null:editor.error} retry={refresh}
+    recoverCorrupt={!leaving&&foreground&&!resuming&&corruptLocalIntent?recoverCorruptLocal:undefined}/>{!leaving&&foreground&&!resuming?confirmSheet.sheet:null}</WorkerProfileFrame>;
   const reviewBusyLabel=reviewActivity==='preparing'?'Pripremamo pregled…':reviewActivity==='saving'?'Čuvamo profil…':'Proveravamo stanje…';
   const busyPanelCopy=editor.busy?<T testID="worker-review-progress" accessibilityRole="alert" variant="meta" tone="muted">
     {reviewActivity==='preparing'?'Pripremamo novi pregled. Profil još nije sačuvan.':reviewActivity==='saving'

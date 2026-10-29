@@ -3955,6 +3955,14 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 - **Status granica:** SOURCE COMMITTED; puni CI i Metro/native, stvarni preview env i oba uređaja moraju se posebno potvrditi. X04 ostaje `IN_PROGRESS` do odgovarajuće integracije. R01 strict parity/real HTTP zasebno BLOCKED.
 
 
+### R11c/X01 + R06 — 29.10.2026: kontrolisan oporavak korumpiranog lokalnog AI intent-a (SOURCE, CI pending)
+
+- **Uzrok:** oba `aiTurnIntentJournal` modula čuvaju tačno tri opaque UUID-a, a oba UI toka fail-closed odbijaju korumpiran/neispravan JSON. Čitanje takvog ključa stalno odbija razgovor i nema korisničku radnju za samo taj neupotrebljiv lokalni zapis. Korumpirani zapis se nikada ne sme tumačiti kao validan server receipt, ali validan nerešen pokušaj ne sme biti obrisan radi „oporavka”.
+- **Izmena:** oba postojeća journal owner-a dobijaju isključivo eksplicitnu `discardCorrupt(accountId)` radnju, serijalizovanu kroz postojeći account queue. Uklanja samo nekonzistentan/neparsabilan zapis za **taj nalog** posle ponovnog čitanja iste vrednosti, nikada tri validna UUID-a. Oštećenje se ne briše automatski pri load, save ili clear. Oba stvarna AI ekrana imaju sekundarno dugme „Oporavi lokalni zapis” samo pri toj konkretnoj grešci, uz potvrdu koja otvoreno navodi da se briše isključivo lokalni ID, ne server događaj; nema ponovnog slanja, Save-a ili autoritativnog tvrdjenja ishoda. Nakon korisničke radnje radi se isti postojeći read/recovery; account/focus/incarnation se proveravaju pre i posle čekanja.
+- **Testovi:** postojeći need i worker journal testovi čuvaju negativne slučajeve, dopunjavaju validan unresolved bez brisanja, eksplicitno korumpiran zapis, drugi nalog i povratak normalnog save/read-a. UI koristi postojeći StateView/ConfirmSheet umesto drugog recovery toka; native i realni server ostaju zasebno nedokazani. Nema SQL, Edge, DEV niti novog poslovnog ključa.
+- **Granica:** čak i kada korisnik eksplicitno ukloni korumpiran lokalni identitet, prethodna serverska poruka može i dalje postojati/ne biti završena. Ovo nije opšta „restartuj sve” opcija niti način da se validan UNKNOWN zaobiđe. R11c/X01 ostaje `IN_PROGRESS` do CI + uređajskog povratka i account-switch scenarija.
+
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita
