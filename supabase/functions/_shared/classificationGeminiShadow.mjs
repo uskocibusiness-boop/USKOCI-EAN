@@ -89,15 +89,19 @@ export function workerServicesMissingScope(skills,reviewProposals) {
 /** Finish-only response: reveal incompleteness without forcing another AI
  * turn, promoting provider hints or pretending any consent was stored.
  */
-export function workerFinishReviewMessage(skills,reviewProposals,catalogAvailable) {
-  if(!catalogAvailable)return 'Otvorite pregled profila. Tamo možete da dopunite podatke i potvrdite čuvanje.';
+export function workerFinishReviewMessage(skills,reviewProposals,catalogAvailable,mayOfferBio=false) {
+  // An optional writing offer is not a mandatory interview field, saved bio or classification permission.
+  const bioOffer=mayOfferBio
+    ? ' Ako želite, mogu da sastavim kratak opis Vašeg rada na osnovu potvrđenih podataka. Opis nije uslov za pregled ili čuvanje.'
+    : '';
+  if(!catalogAvailable)return 'Otvorite pregled profila. Tamo možete da dopunite podatke i potvrdite čuvanje.'+bioOffer;
   const unresolved=workerServicesMissingScope(skills,reviewProposals);
-  if(!unresolved.count)return 'Otvorite pregled profila. Tamo možete da dopunite podatke i potvrdite čuvanje.';
+  if(!unresolved.count)return 'Otvorite pregled profila. Tamo možete da dopunite podatke i potvrdite čuvanje.'+bioOffer;
   const examples=unresolved.labels.join(', ');
   const more=unresolved.count-unresolved.labels.length;
   return 'Otvorite pregled profila. Za '+examples+
     (more>0?' i još '+more+' usluga':'')+
-    ' nije potvrđeno da li radite na lokaciji, na daljinu ili oba. Možete to razjasniti u razgovoru, ili sačuvati profil bez automatskog povezivanja za te usluge.';
+    ' nije potvrđeno da li radite na lokaciji, na daljinu ili oba. Možete to razjasniti u razgovoru, ili sačuvati profil bez automatskog povezivanja za te usluge.'+bioOffer;
 }
 
 function validItem(p,snapshot) {

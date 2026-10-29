@@ -3938,6 +3938,13 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 - **Status:** SOURCE COMMITTED, rezultat novog CI mora se potvrditi zasebno. Ne primenjuje se D12 flag na DEV/PROD, nema server/Edge/OTA/native dokaza. R01 current-schema parity je nezavisan i neprekriven FAIL.
 
 
+### R08/C10 — 29.10.2026: opciona AI ponuda opisa radnog profila (SOURCE ONLY)
+
+- **Poreklo i odluka:** vlasnik proizvoda je izričito tražio da AI na kraju radničkog razgovora *ponudi* da na osnovu poznatih činjenica napiše kratak opis rada. Raniji worker prompt dozvoljavao je pisanje samo na izričit zahtev i zabranjivao proaktivnu ponudu; sada ta zabrana nije usklađena sa odlukom. Opis ostaje opcioni podatak, nije dodatni obavezni korak, Save niti automatska aktivacija.
+- **Izmenjen aktivni put:** `uskoci-worker-interview/index.ts` nudi jednu nenametljivu rečenicu kada su routing činjenice jasne i profil nema biografiju. Tek ako radnik prihvati/zatraži opis, model u postojećem `patch.bio` predlaže dve do tri srpske rečenice iz stvarno potvrđenih usluga i informacija, bez izmišljanja iskustva, opreme, certifikata ili obećanja. `workerFinishReviewMessage` u starom kompatibilnom finish-only putu dobija samo opcioni parametar `mayOfferBio` i zadržava poziv na isti jedini pregled; ne otvara novo obavezno pitanje. Potvrda opisa ostaje u potpisanom review/Save, ne u modelovoj poruci.
+- **Provera/ograničenje:** dopunjeni postojeći `worker-interview-question-policy.test.mjs` proverava usklađenu instrukciju, a `classification-turn-feedback.test.mjs` direktno proverava ponuđeni/neponuđeni opis, nedostajući scope i odsustvo kategorije. Nije izmenjena tabela, RPC, Gemini model, transport, stari klient ili R01 SQL. Dok CI ne završi, ovo je samo source commit; izvorna izmena nije dokaz da AI u stvarnom razgovoru pravilno piše tekst, da je Save uspeo ili da je native prikaz završen.
+
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita
