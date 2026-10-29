@@ -117,8 +117,10 @@ BEGIN
      WHERE a.grantee='authenticated'::regrole::oid AND
            a.privilege_type IN ('TRUNCATE','TRIGGER','REFERENCES')
        AND a.grantor='postgres'::regrole::oid AND NOT a.is_grantable;
-   IF v_anon_count<>CASE WHEN v_target.anon_expected THEN 3 ELSE 0 END
-     OR v_auth_count<>CASE WHEN v_target.auth_expected THEN 3 ELSE 0 END
+   IF (v_target.anon_expected AND v_anon_count<>3)
+     OR (NOT v_target.anon_expected AND v_anon_count<>0)
+     OR (v_target.auth_expected AND v_auth_count<>3)
+     OR (NOT v_target.auth_expected AND v_auth_count<>0)
      OR EXISTS(SELECT 1 FROM aclexplode(v_table.relacl) a
        WHERE a.privilege_type IN ('TRUNCATE','TRIGGER','REFERENCES')
          AND a.grantee IN (0,'anon'::regrole::oid,'authenticated'::regrole::oid)
