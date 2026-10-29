@@ -137,7 +137,7 @@ export const ru4Production = {
       ok: true,
       podatak: {
         ...(receipt.applicationPriceBasis == null ? {} : { priceBasis: receipt.applicationPriceBasis }),
-        status: receipt.status,
+        status: expectedStatus,
         version: receipt.version,
       },
     };
