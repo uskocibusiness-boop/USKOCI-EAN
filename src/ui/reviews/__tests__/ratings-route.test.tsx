@@ -12,6 +12,7 @@ const ME = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', THEM = 'bbbbbbbb-bbbb-4bbb-8b
 const FLAG = 'EXPO_PUBLIC_D12_REVIEW_COMMENT';
 let mockSession = { user: { id: ME }, accountRevision: 1 };
 let mockParams: Record<string, string> = {};
+let mockFocused = true;
 const mockRouter = { navigate: jest.fn(), back: jest.fn(), replace: jest.fn(), canGoBack: jest.fn(() => true) };
 const mockReputation = jest.fn(), mockOwn = jest.fn(), mockAgreements = jest.fn(), mockContext = jest.fn();
 jest.mock('react-native', () => {
@@ -23,7 +24,7 @@ jest.mock('react-native', () => {
 });
 jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView' }));
 jest.mock('expo-router', () => ({ get router() { return mockRouter; }, useLocalSearchParams: () => mockParams,
-  useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(effect, [effect]) }));
+  useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(() => mockFocused ? effect() : undefined, [effect, mockFocused]) }));
 jest.mock('../../../store/sesija', () => ({ useSesija: () => mockSession, sesijaSada: () => mockSession }));
 jest.mock('../../../data/supabaseClient', () => ({ supabaseKlijent: () => { throw new Error('Unexpected direct call in a route test'); } }));
 jest.mock('../../../data/reviewsClientService', () => ({ ...jest.requireActual('../../../data/reviewsClientService'),
@@ -59,7 +60,7 @@ const review = (id: string, rating: number, createdAt: string, comment?: string)
 const unrated = (id: string) => ({ ok: true, podatak: { accountId: ME, agreementId: id, targetAccountId: THEM, eligible: true, review: null, authoritative: true } });
 
 beforeEach(() => {
-  jest.clearAllMocks(); delete process.env[FLAG]; mockParams = {}; mockSession = { user: { id: ME }, accountRevision: 1 };
+  jest.clearAllMocks(); delete process.env[FLAG]; mockParams = {}; mockFocused = true; mockSession = { user: { id: ME }, accountRevision: 1 };
   mockRouter.canGoBack.mockReturnValue(true);
   mockReputation.mockReset().mockResolvedValue(reputation(4, 5));
   mockOwn.mockReset().mockImplementation(async (_account: string, intent: string) => intent === 'narucilac' ? { profileId: PROFILE, ime: 'Ana', grad: null, kind: 'REQUESTER', stanje: null } : null);
@@ -198,6 +199,21 @@ describe('Date', () => {
     expect(texts()).toContain('Marko Marković'); expect(texts()).toContain('Selidba c'); expect(texts()).toContain(trenutak(NEWER)!.dan);
     // A written comment is drawn outside the row's own press (it has a control of its own).
     expect(texts()).toContain('Sve po dogovoru.'); expect(rows[0].findAll(node => String(node.type) === 'T' && node.children.includes('Sve po dogovoru.'))).toHaveLength(0);
+  });
+
+  it('refreshes a new given rating after blur and refocus even if completed Agreement IDs are unchanged', async () => {
+    mockParams = { tab: 'date' };
+    mockAgreements.mockResolvedValue([agreement('a')]);
+    mockContext.mockResolvedValue(review('a', 5, OLD));
+    await render();
+    expect(hosts('Press').filter(node => node.props.accessibilityHint === 'Otvara Dogovor.')[0]?.props.accessibilityLabel).toContain('Ocena 5 od 5');
+    mockFocused = false;
+    await act(async () => { tree.update(<Ocene />); await flush(); });
+    mockContext.mockResolvedValue(review('a', 3, OLD));
+    mockFocused = true;
+    await act(async () => { tree.update(<Ocene />); await flush(); });
+    expect(mockContext).toHaveBeenCalledTimes(2);
+    expect(hosts('Press').filter(node => node.props.accessibilityHint === 'Otvara Dogovor.')[0]?.props.accessibilityLabel).toContain('Ocena 3 od 5');
   });
 
   it('opens the Dogovor of a row, once', async () => {

@@ -3900,6 +3900,14 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 - **Naredni nezavisni owner:** R11b/SB02 `useGivenRatings` i `useReceivedReviews` invalidacija pri potvrđenoj oceni i ponovnom fokusiranju, bez promene R01 metadata parity i bez novih master dokumenata.
 
 
+### R11b/SB02 — 29.10.2026: osvežavanje datih i primljenih ocena na stvarni povratak (SOURCE COMMITTED, CI PROVERA U TOKU)
+
+- **Uzrok:** `useGivenRatings` je čuvao data receipt-e samo po skupu završenih Agreement ID-jeva, pa nova ocena za isti Dogovor nije ponovo čitana. `useReceivedReviews` je čitao prvu stranu samo na mount/account change, ne pri povratku na ekran.
+- **Korekcija aktivnog korisničkog puta:** `profil/ocene.tsx` sada izdaje novi revision isključivo na ponovni focus, ne pri običnoj promeni taba/rerenderu. Isti postojeći Given/Received reader-i obnavljaju potvrđene rating/comment receipt-e i prvu stranu čak i kada su ID-jevi ostali isti. Given re-proverava ranije otvoren broj Dogovora, zadržava poslednji dobar red kada njegov novi read ne uspe i ne meša rezultat odbačene generacije; Received zadržava poslednju proverenu stranu kod privremene greške i resetuje paging tek na prihvaćen novi rezultat. Account/revision ograde ostaju u postojećem parent key-u/reader-ima. Nema SQL, Edge, policy ili fee izmene.
+- **Dokaz u testovima:** `use-given-ratings.test.tsx` proverava novu ocenu uz iste ID-jeve, izostanak ponovnog čitanja na običan rerender, privremenu grešku i sledeći oporavak. `received-reviews.test.tsx` proverava novu stranu uz identičan reviewId i zadržavanje dobrog prikaza kod neuspeha. `ratings-route.test.tsx` pokriva blur→refocus sa istim Dogovorom. Testovi su source committed; ne označavati unit/native/CI uspeh dok se workflow ne završi. SB09 javni komentari ostaju zaseban otvoren zadatak.
+- **Dalje:** proveriti tačan novi CI i R11b/SB09 javni read/prikaz, zatim R11f/X03 finite/receipt granicu. R01 integration i DEV rollout ostaju zasebno BLOCKED.
+
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita

@@ -24,12 +24,13 @@ const reads: string[] = [];
 let answer: (id: string) => Promise<Ishod<ReviewContext>> = async id => rated(id);
 const readContext = (id: string) => { reads.push(id); return answer(id); };
 let view: GivenRatingsView, tree: ReactTestRenderer;
+let refreshRevision = 0;
 const flush = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
-function Probe() { view = useGivenRatings(async () => [], readContext); return null; }
+function Probe() { view = useGivenRatings(async () => [], readContext, refreshRevision); return null; }
 const mount = async () => { await act(async () => { tree = create(<Probe />); await flush(); }); };
 const remount = async () => { await act(async () => { tree.update(<Probe />); await flush(); }); };
 const settled = (ids: string[], extra: Partial<typeof mockResource> = {}) => { mockResource = { data: ids.map(id => agreement(id)), loading: false, error: false, refresh: jest.fn(), ...extra }; };
-beforeEach(() => { reads.length = 0; answer = async id => rated(id); settled(['a', 'b']); });
+beforeEach(() => { reads.length = 0; refreshRevision = 0; answer = async id => rated(id); settled(['a', 'b']); });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 it('is loading until the list of Dogovori is read, then ready with the ratings of the first step', async () => {
@@ -53,6 +54,30 @@ it('keeps what it has when a refresh returns the same finished Dogovori, even in
   expect(reads.sort()).toEqual(['a', 'b']);
   settled(['a', 'b']); await remount();
   expect(reads).toHaveLength(2); expect(view.phase).toBe('ready');
+});
+
+it('re-reads a confirmed new rating on return with the SAME finished Dogovor IDs, not on an ordinary rerender', async () => {
+  await mount();
+  expect(view.rows.find(row => row.agreementId === 'a')?.rating).toBe(5);
+  answer = async id => rated(id, id === 'a' ? 2 : 5);
+  settled(['a', 'b']); await remount();
+  expect(reads).toHaveLength(2);
+  refreshRevision += 1; await remount();
+  expect(reads).toEqual(['a', 'b', 'a', 'b']);
+  expect(view.rows.find(row => row.agreementId === 'a')?.rating).toBe(2);
+});
+
+it('keeps the previous good rating if a return read temporarily fails, and recovers on a later return', async () => {
+  await mount();
+  answer = async id => id === 'a' ? { ok: false, kod: 'REVIEW_READ_UNAVAILABLE', poruka: 'x' } as Ishod<ReviewContext> : rated('b', 3);
+  refreshRevision += 1; await remount();
+  expect(view.rows.find(row => row.agreementId === 'a')?.rating).toBe(5);
+  expect(view.rows.find(row => row.agreementId === 'b')?.rating).toBe(3);
+  expect(view.failedCount).toBe(1);
+  answer = async id => rated(id, 4);
+  refreshRevision += 1; await remount();
+  expect(view.failedCount).toBe(0);
+  expect(view.rows.map(row => row.rating)).toEqual([4, 4]);
 });
 
 it('starts over when the set of finished Dogovori really changed, and a Dogovor that is not finished changes nothing', async () => {

@@ -5,7 +5,7 @@ import type { Ishod } from '../../data/ports';
 import { reviewCommentsClientService } from '../../data/reviewCommentsClientService';
 import type { ReviewContext } from '../../data/reviewsClientService';
 import { useFocusedResource } from '../../hooks/useFocusedResource';
-import { afterNextGiven, afterRetryGiven, failedGiven, finishedAgreements, hasOlderGiven, nextGiven, readGivenStep, startGiven,
+import { GIVEN_STEP, afterNextGiven, afterRetryGiven, failedGiven, finishedAgreements, hasOlderGiven, newestFirst, nextGiven, readGivenStep, startGiven,
   type GivenRating, type GivenState } from './givenRatings';
 
 /** The list of Dogovori is read with the same patience the Dogovori screen has. */
@@ -36,7 +36,7 @@ export type GivenRatingsView = {
  * when the set of finished Dogovori really changed: a refresh that returns the same ones is silent.
  */
 export function useGivenRatings(readAgreements: () => Promise<DogovorProjekcija[]> = readAllAgreements,
-  readContext: (agreementId: string) => Promise<Ishod<ReviewContext>> = readReceipt): GivenRatingsView {
+  readContext: (agreementId: string) => Promise<Ishod<ReviewContext>> = readReceipt, refreshRevision = 0): GivenRatingsView {
   const load = useCallback(() => within(readAgreements()), [readAgreements]);
   const agreements = useFocusedResource(load);
   const finished = useMemo(() => agreements.data ? finishedAgreements(agreements.data) : null, [agreements.data]);
@@ -51,17 +51,27 @@ export function useGivenRatings(readAgreements: () => Promise<DogovorProjekcija[
     if (finished === null || key === null) return;
     const mine = ++run.current;
     busy.current = false;
-    const state = startGiven(finished), slice = nextGiven(state);
-    setHeld({ key, state }); setWorking('first');
+    const state = startGiven(finished);
+    const previous = latest.current?.key === key ? latest.current.state : null;
+    // Refresh every already-opened step on a genuine screen return, even if the Agreement IDs are unchanged.
+    // Preserve the last good rows until the new owner read answers, and never merge an old rating over the new one.
+    const slice = nextGiven(state, Math.max(GIVEN_STEP, previous?.asked ?? 0));
+    if (!previous) { setHeld({ key, state }); setWorking('first'); }
+    else setWorking(null);
     void readGivenStep(slice, readContext, () => run.current === mine).then(step => {
       if (!step) return;
-      setHeld(current => current && current.key === key ? { key, state: afterNextGiven(current.state, step, slice.length) } : current);
+      const fresh = afterNextGiven(state, step, slice.length);
+      // A failed context read is unknown, not proof that an existing rating disappeared.
+      const retained = previous?.rows.filter(row => step.failed.includes(row.agreementId)
+        && !fresh.rows.some(next => next.agreementId === row.agreementId)) ?? [];
+      setHeld(current => current && current.key === key ? { key,
+        state: { ...fresh, rows: retained.length ? newestFirst([...fresh.rows, ...retained]) : fresh.rows } } : current);
       setWorking(null);
     });
     return () => { run.current++; };
-    // `finished` is read once per set; only a different set restarts the walk.
+    // A different finished set or an explicit screen-return revision restarts the owner receipt read.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [key, readContext]);
+  }, [key, readContext, refreshRevision]);
 
   const step = useCallback((kind: 'more' | 'retry') => {
     const current = latest.current;

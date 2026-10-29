@@ -33,10 +33,14 @@ function OwnedRatings({ accountId }: { accountId: string | null }) {
   const { tab: asked } = useLocalSearchParams<{ tab?: string }>();
   const [tab, setTab] = useState<RatingsTab>(asked === 'date' ? 'given' : 'received');
   const [givenOpened, setGivenOpened] = useState(asked === 'date');
-  const focus = useRef<object | null>(null), navigating = useRef(false);
+  const focus = useRef<object | null>(null), navigating = useRef(false), hasVisited = useRef(false);
+  const [reviewRevision, setReviewRevision] = useState(0);
   // This screen stays mounted between visits, so a tab named by the link is taken on every focus.
   useFocusEffect(useCallback(() => {
     const visit = {}; focus.current = visit; navigating.current = false;
+    // A rating can change while the completed Agreement IDs stay identical. Only a real return, not a tab render, refreshes it.
+    if (hasVisited.current) setReviewRevision(value => value + 1);
+    else hasVisited.current = true;
     if (asked === 'date') { setTab('given'); setGivenOpened(true); } else if (asked === 'primljene') setTab('received');
     return () => { if (focus.current === visit) focus.current = null; };
   }, [asked]));
@@ -54,13 +58,13 @@ function OwnedRatings({ accountId }: { accountId: string | null }) {
   return <RatingsScreen tab={tab} onTab={choose} givenOpened={givenOpened}
     onBack={() => go(() => router.canGoBack() ? router.back() : router.replace('/profil'))}
     received={<ReceivedRatings view={receivedView(reputation, () => { void reputation.refresh(); })}
-      comments={commentsBuilt ? <ReceivedReviewsSection photo={commentPhoto} /> : null} />}
-    given={<GivenTab open={agreementId => go(() => router.navigate({ pathname: '/dogovor/[id]', params: { id: agreementId } }))} />} />;
+      comments={commentsBuilt ? <ReceivedReviewsSection photo={commentPhoto} refreshRevision={reviewRevision} /> : null} />}
+    given={<GivenTab refreshRevision={reviewRevision} open={agreementId => go(() => router.navigate({ pathname: '/dogovor/[id]', params: { id: agreementId } }))} />} />;
 }
 
 /** The body of "Date". It is mounted only after the tab was opened, because mounting it is what reads the Dogovori. */
-function GivenTab({ open }: { open: (agreementId: string) => void }) {
-  const given = useGivenRatings();
+function GivenTab({ open, refreshRevision }: { open: (agreementId: string) => void; refreshRevision: number }) {
+  const given = useGivenRatings(undefined, undefined, refreshRevision);
   const view: GivenView = given.phase === 'loading' ? { kind: 'loading' } : given.phase === 'error' ? { kind: 'error', onRetry: given.refresh }
     : { kind: 'ready', rows: given.rows.map(row => ({ ...row, onOpen: () => open(row.agreementId) })), failed: given.failedCount,
       onRetryFailed: given.retryFailed, older: given.older, onMore: given.more, working: given.working };
