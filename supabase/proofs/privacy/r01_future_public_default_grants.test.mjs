@@ -60,9 +60,15 @@ test('R01/F21 future-public ACL: explicit platform owner, atomic refusal, both c
   // preserve all actual default ACLs. A caller cannot self-authorize by
   // merely setting an arbitrary custom GUC.
   await assert.rejects(db.exec(candidate),/R01_DEFAULTS_DISPOSABLE_PLATFORM_OWNER_REQUIRED/);
+  // A rejected BEGIN/DO leaves PostgreSQL in aborted transaction state until
+  // the caller rolls back. This is part of the fail-closed regression proof.
+  await db.exec('ROLLBACK');
   assert.deepEqual(await query(rowSql),baseline);
   await db.exec("SET uskoci.r01.disposable='LOCAL_ONLY'");
   await assert.rejects(db.exec(candidate),/R01_DEFAULTS_DISPOSABLE_PLATFORM_OWNER_REQUIRED/);
+  // A rejected BEGIN/DO leaves PostgreSQL in aborted transaction state until
+  // the caller rolls back. This is part of the fail-closed regression proof.
+  await db.exec('ROLLBACK');
   assert.deepEqual(await query(rowSql),baseline);
 
   await db.exec('SET ROLE supabase_admin');
@@ -71,6 +77,7 @@ test('R01/F21 future-public ACL: explicit platform owner, atomic refusal, both c
    await db.exec('ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public GRANT SELECT ON TABLES TO unexpected_public_reader');
    const tampered=await query(rowSql);
    await assert.rejects(db.exec(candidate),/R01_DEFAULTS_ACL_PREDECESSOR_DRIFT/);
+   await db.exec('ROLLBACK');
    assert.deepEqual(await query(rowSql),tampered,'disallowed extra grant is not swept under the rug');
    await db.exec('ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public REVOKE ALL ON TABLES FROM unexpected_public_reader');
 
