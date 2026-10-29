@@ -1,7 +1,7 @@
 # USKOČI — jedinstveni plan dovršavanja proizvoda i objavljivanja
 <!-- EXECUTION-UPDATE-BEGIN: provenance-20261028 -->
 
-> **Aktuelni ulaz u izvršenje — 29.10.2026.** Jedini operativni plan i dalje je **ovaj fajl**. Telo REV10 i §11.2a sa početnim datumom 28.10. su istorijska osnova; **noviji, datirani izvršni zapisi na kraju §11.2a imaju prednost**. Poslednji potvrđeni kodni HEAD `e3e43b070534053a51ec092a8e62e04a3c21f056` (R11a/SB01 javna prilika, [glavni CI 40868238014](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40868238014) **SUCCESS**); glavne provere [40860493444](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40860493444) i provereni docs-only [40865374246](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40865374246) su **SUCCESS**; odvojeni strict disposable PG17 [40865374252](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40865374252) je **FAIL** (8 managed metadata, 49 extension owner/ACL i 3 pg_net helper razlike). Nijedan R paket nije prihvaćen kao celina, R01 SQL kandidati nisu DEV primena, nema novog APK/OTA/release dokaza. Početni repo commit za ovaj aktualizovani indeks je `344288a49740c780253576d20cc3526585da30e9` (ne tumačiti ga kao source promenu).
+> **Aktuelni ulaz u izvršenje — 29.10.2026.** Jedini operativni plan i dalje je **ovaj fajl**. **Merodavna tabela R01–R12 / C01–C19 / SV01–SV14 je na početku §11.2a**, pre istorijskog preseka od 28.10; datirani izvršni zapisi ispod čuvaju pun dokaz. Izvorni HEAD posle minimalne test-ispravke: `4fb1d9b488f73632b57479e1133ba7b40954e2ec`; [prethodni full CI 40906012761](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40906012761) FAIL zbog testnog SyntaxError-a, [schema 40906012666](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40906012666) FAIL (8 strict / 49 supplementary). Za novi HEAD provera tek mora biti potvrđena. Nema DEV migracije, Edge deployment-a, native build-a ili release-a. R01 gate ne blokira nezavisne source/UI/R11 izmene; ne slabiti ACL, RLS, closure, strict parity ili stare kompatibilne ugovore radi prolaza.
 > **Izvršni režim bez kruženja:** §4.2–4.3 već propisuju postojeću pravilu: za **svaki** preostali F/SB/X/R/C/SV uzeti poslednji status, pročitati njegov konkretan Z10/Z09/Z16/REV14 dokaz i aktuelnog reader/writer vlasnika, odmah uraditi najmanju povezanu promenu, pozitivni i negativni test i readback, upisati jedan dokaz u isti dnevnik. Ne obnavljati pun audit svih 305 arhivskih fajlova za svaku izmenu; ne pozivati stari fixture kao aktuelni dokaz. **R01 strict parity blokira odluku o server migraciji, integracionom prihvatu i release-u, ali NE BLOKIRA nezavisno source/CI popravljanje R11, UI, aktivnih klijentskih tokova i drugih R zadataka sa poznatim ugovorima.** R02/R03 server acceptance tek po usklađenom R01 ugovoru, a izvorni rad na nezavisnim potrošačima može napredovati uz eksplicitne granice. Ne slabliti parity, RLS, closure ili zaštitu naloga zbog brzine. Preći na sledeći nezavisan posao kada je konkretan gate blokiran, umesto ponavljanja istog neuspelog koraka bez nove hipoteze.
 > **Izvorni materijal:** 3 neizmenjena ZIP-a za REV14, REV10 i execution evidence su u `docs/continuation/payload/`; `docs/continuation/MANIFEST.json` popisuje **305** unutrašnjih putanja, a `docs/continuation/restore.py` proverava hash i vraća ih u `review-inputs/`, `evidence/` i `managed-artifacts/` bez menjanja postojećih različitih fajlova. Samo postojanje ZIP-a i manifesta **nije dokaz** ponovnog čitanja svakog priloga. Referentne PDF-ove tretirati kao istorijske prikaze, MD dnevnik kao novi izvršni status.
 
@@ -3292,6 +3292,97 @@ Izraz „definisano” nije „nacrtano”, „nacrtano” nije „implementiran
 <!-- EXECUTION-UPDATE-BEGIN: ledger-20261028 -->
 
 ### 11.2a. Aktuelni izvršni status — 28.10.2026.
+
+<!-- LIVE-STATUS-20261029-BEGIN -->
+#### Merodavan centralni status izvršavanja — 29.10.2026.
+
+> **Važenje:** ovaj presek je pregled najnovijih datiranih zapisa i stvarnih trenutnih izvora, ne automatski generisana tabela. Ima prednost nad starim početnim statusima u §7.2 i istorijskom 28.10 tabelom odmah ispod. Stariji dokazi/commitovi ostaju neizmenjeni. Nijedno R/SV prihvatanje nije automatski DONE zbog lokalnog testa. Ažurirati ovu tabelu posle svake relevantne source/CI/DEV/native promene uz novi identitet dokaza.
+
+**Identitet poslednje promene:** [radna grana](https://github.com/uskocibusiness-boop/USKOCI-EAN/tree/work/rev14-review-f17) i [Draft PR #43](https://github.com/uskocibusiness-boop/USKOCI-EAN/pull/43), source commit `4fb1d9b488f73632b57479e1133ba7b40954e2ec` (jedina izmena je ispravan naslov photo+text AI testa, bez promene assertion-a). Poslednji provereni CI pre ove korekcije: [main 40906012761](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40906012761) **FAIL** — Node SyntaxError u `supabase/proofs/ai/owned_intake_edge.test.mjs:64`, 943 PASS, 1 FAIL, 1 TODO; [schema 40906012666](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40906012666) **FAIL** — 8 strict managed i 49 dopunskih owner/ACL razlika. Za commit `4fb1d9b4` pun CI nije proglašen uspešnim dok se ne pročita njegovo odgovarajuće izvršenje. Raniji [40895261139](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40895261139) i [40868238014](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40868238014) bili su **SUCCESS na ranijim izvornim revizijama**, nisu dokaz novog HEAD-a.
+
+**Oznake:** SOURCE = promena u izvoru; CANDIDATE = SQL/predlog van primenjene migracije; FOCUSED PASS = ciljane sintetičke/izolovane provere; CI PASS/FAIL vezati za konkretan SHA/run; DEV READ = metadata read-only; DEV APPLY = stvarna odobrena promena na DEV; NATIVE = potvrđen instalirani mobilni kandidat. SOURCE, izolovani SQL i export ne znače DEV APPLY, stvarni Gemini, Auth/PostgREST ili objavljen APK. `OPEN` je zaseban otvoren posao, ne dozvola za slepo brisanje.
+
+##### Kodiranje, testovi i integracija — R01–R12
+
+| Paket | Stvarni poslednji source status | Provera / granica | Sledeća potvrda |
+|---|---|---|---|
+| **R01** | SOURCE: Need 38-kolonska projekcija, buduća default ACL, 21 nonrow prava i šest-RPC PHONE kandidati; nema DEV apply | Izolovani SQL + raniji source CI PASS; strict CI 40906012666 FAIL: 8 managed i 49 dodatnih owner/ACL razlika | BLOCKED za current-schema PG17 parity i stvarni Auth/PostgREST; bez zaobilaženja RLS/ACL |
+| **R02** | SOURCE implementiran F17/SB11/F16, lista i mapa odvojeni | Raniji ciljani i full CI PASS; native nije proveren | PAGE/MAP/PLACES aktuelni serverski read i HALF/FULL/PEEK na uređaju |
+| **R03** | SOURCE keyset DESC provera i izolovani page-only kandidat; helper ostaje | CI 40755608109 i 40756877836 PASS za svoj source; generator proveren, DDL nije izvršen | Pet scope-ova/counts/kanonski payload + Auth/HTTP; closure source_ready=false |
+| **R04** | SOURCE complete parent-first katalog, BOTH/REMOTE zaštite i semantic review/signed-fence kandidati | CI 40823080080 PASS na ranijem R04 SHA; kasniji source zahteva odgovarajuću proveru | Stvarni Gemini, current-schema signed review/Save/binder i bezbedan semantic reuse; nije LIVE |
+| **R05** | SOURCE TODAY_FLEXIBLE null prozor kandidat; D08 start-lokacija potvrđena | CI 40777104573 PASS za uski kandidat; 11/11 sintetičkih provera; 390,5 km false-negative reprodukovan | Indeksirani signed-area retrieval nadskup i ceo Za mene/dispatch; ništa na DEV |
+| **R06** | X01 kontrolisan oporavak korumpiranog lokalnog AI intent-a SOURCE; ostatak otvoren | Za najnovije izmene nema završnog current-HEAD PASS-a | Durable background AI plan/retry/usage, provider granice i stvarni readback |
+| **R07** | SOURCE RSD korekcija, satnica po osobi, abandon readback, skill CAS, guarded SQL | Raniji SQL + full CI PASS (npr. 40718314704); migracije i live proof nisu | Signed Save/publish/replacement, Auth/API, expand pa podržani klijenti; R07b nije activated |
+| **R08** | SOURCE jedno pitanje, prirodan kraj i opciona AI ponuda opisa profila; bez autopisanja | CI ranije PASS, novije 29.10 promene imaju FAIL/pending regresije; novi photo test naslov ispravljen | Stvarni Need/worker model, završni review, Save/activation i native tok |
+| **R09** | SOURCE SB10 vidljivo ručno osvežavanje poruka | UI regresije dodate; real provider/device nije potvrđen | Push queue/claim/send/receipt, nezavisne preference, tačno odredište |
+| **R10** | Read-only closure roster 148/148 signatura, ali source digest i certifikat se ne slažu | DEV retention_ai_source_ready=false; nema export/erasure acceptance | workAreas u svim kopijama, saglasnosti, export/erasure i zatvaranje naloga |
+| **R11** | 11 C paketa sa source promenama; Home public target CI PASS, ocene/komentari/reset/safety/config source promene | CI 40868238014 PASS za stariji R11a SHA; noviji R11 paket i native ostaju delimično nepotvrđeni | C10/C11/C13–C17/C19, odgovarajući negativni testovi, stvarni ekran/telefon i REV14 UX |
+| **R12** | Revizije izdanja, source/lock manifest i Android/iOS Metro/Hermes export | Izvozi PASS za stariji SHA; nema native build/APK/OTA/store/device signoff | R01/R10 integracija, dva naloga/telefona, artefakti i realan rollout |
+
+##### Čišćenje aktivnog koda — C01–C19
+
+Na 28.10. postoji **11/19 source izmenjenih C paketa**: C01–C09, C12 i C18, sa pojedinačnim dokazima u [docs/cleanup](../cleanup/). To nije 11 potpuno native/produkciono prihvaćenih celina. C10, C11 i C13 imaju povezane delimične source radove, ali njihov retirement nije zatvoren; ostali paketi čekaju. **Prvobitni opis ‘nije izvršeno’ u §7.2 znači početni REV10 status, ne poništava novije JSON/commit dokaze.**
+
+| Paket | Trenutni nivo | Šta je urađeno ili šta preostaje |
+|---|---|---|
+| **C01** | SOURCE+FOCUSED PASS | 21 nekorišćen template asset; aktivni icon/splash/font očuvani |
+| **C02** | SOURCE+FOCUSED PASS | Stari ručni quick-pick; aktivni worker draft/readback ostaje |
+| **C03** | SOURCE+FOCUSED PASS | Ručno fact-edit grananje, aktivni prikaz i AI korekcija sačuvani |
+| **C04** | SOURCE+FOCUSED PASS | Neaktivni card/layout; requester/worker kartice sačuvane |
+| **C05** | SOURCE+FOCUSED PASS | Nevezani registry/stats uz očuvane selection journal zaštite |
+| **C06** | SOURCE+FOCUSED PASS | Jedan identičan test uklonjen, druga provera ostaje |
+| **C07** | SOURCE+FOCUSED PASS | BrandScene/V49; EntryWelcome/assets/fonts ostaju |
+| **C08** | SOURCE+FOCUSED PASS | V1 i fake AI portovi; V2 review/Save/publish ostaje |
+| **C09** | SOURCE+FOCUSED PASS | Sintetički builder uklonjen; 13 stvarnih current-SQL/Edge testova umesto 12 sintetičkih |
+| **C10** | PARTIAL_SOURCE, CLEANUP OPEN | AI biografija i pitanja popravljani; alternativne strategije još nisu dokazanom zamenom povučene |
+| **C11** | SQL_CANDIDATE, OPEN | Samo poruke šest-RPC kandidat; stari PHONE klijent/server ugovor i dalje čeka acceptance |
+| **C12** | SOURCE+FOCUSED PASS | Nezakačeni GPS/notification prototipovi; native GPS i push ostaju |
+| **C13** | PARTIAL_SOURCE, OPEN | Javni komentar povezan sa aktivnim prikazom, feature flag/DEV/telefon nije potvrđen |
+| **C14** | OPEN | Stari testovi pravila i oracle ostaju za per-assertion mapiranje |
+| **C15** | OPEN | Reprodukciju greške prevesti u test popravljene semantike po stvarnoj vertikali |
+| **C16** | OPEN | Istorijski kandidati/proof arhive: ownership, manifest, očuvanje porekla |
+| **C17** | OPEN | Konačni build/CI/Jest katalog po svim preostalim retirement izmenama |
+| **C18** | SOURCE+FOCUSED PASS | Tri byte-identical premium kopije povezane na aktivnu putanju |
+| **C19** | OPEN | SQL/proof blizanci uz očuvanje primenjenih migracija i replay istorije |
+
+##### Serverski backlog — SV01–SV14
+
+**Nijedna od 14 SV grupa nije kompletno DEV/current-schema/Auth/HTTP prihvaćena.** Kandidati i metadata dokazi ne čine serverski rollout. Svaki destruktivni zahvat čeka svoj Z16 manifest, stvarni trenutni objekat, pozivaoce i negativne provere. Ne dirati primenjene SQL migracije, prava ili source certifikate da bi test veštački prošao.
+
+| Grupa | Nivo | Sledeći smisleni izlaz |
+|---|---|---|
+| **SV01** | SOURCE CANDIDATES, UNAPPLIED | R01 javna privatnost/kolone/default prava, stvarni Auth/API i current-schema parity |
+| **SV02** | SOURCE PARTIAL, UNAPPLIED | Katalog i hijerarhija kroz current snapshot, signer/Save |
+| **SV03** | SOURCE PARTIAL, UNAPPLIED | Semantička odluka, trajni prvi BG plan i bounded provider |
+| **SV04** | OPEN | Post-save worker, durable retry i primereni readback |
+| **SV05** | OPEN | Push queue/scheduler/transport/receipt na stvarnom provider-u |
+| **SV06** | OPEN | Sve kopije/export, erasure i zatvaranje naloga |
+| **SV07** | OPEN | Legacy delete RPC — proveriti sve stare pozivaoce i grantove pre povlačenja |
+| **SV08** | SOURCE PHONE CANDIDATE, UNAPPLIED | Messages-only uz stari revoke i zasebnu tačnu lokaciju |
+| **SV09** | OPEN | Namerno odbijajući taxonomy wrapper tek kad nema potrebnih potrošača |
+| **SV10** | OPEN | Sedam DEV tabela, retention/zavisnosti; reset arhiva ostaje |
+| **SV11** | OPEN | Dokaz redundantnosti scope indeksa pre bezbednog uklanjanja |
+| **SV12** | OPEN | DEV debug endpointi/tabela, operativni potrošači i retention |
+| **SV13** | PARTIAL SOURCE, NOT ACCEPTED | Precizan ACL/role/extension bez nultovanja upozorenja i waiver-a |
+| **SV14** | PARTIAL PROOF, FAIL GATE | Čist PG17 bootstrap/current schema strict parity, odvojeni upgrade i dokaz porekla |
+
+##### Dogovori — proverena stvarna organizacija, bez dupliranja rešenja
+
+Na trenutnom izvoru **već postoje** role filteri `Sve uloge / Tražim pomoć / Uskačem`, aktivni i istorijski odeljak, `Čeka tvoju potvrdu`, istorijski `Sve/Završeni/Otkazani`, grupisanje bilateralnih Dogovora po zadatku i sopstvenoj ulozi, te vremenske grupe `Čeka tebe / Ranije / Danas / Sutra / Ove nedelje / Kasnije / Termin još nije dogovoren`. Provereni konkretni vlasnici: `src/app/(app)/dogovori.tsx`, `src/ui/agreements/agreementListModel.ts`, `src/ui/agreements/optionalReadScope.ts`, `src/ui/v2/AgreementCollectionPresentation.tsx` (samo import/binding za poslednji fajl, bez pune native provere). **To je SOURCE-VIDLJIVO, ne testirano u ovoj sesiji na telefonu.** Ne praviti drugi sistem filtera ili tvrditi da ne postoji postojeće filtriranje. Pitanje dodatnog lokacijskog filtera ostaje zasebna UX odluka posle provere pune prezentacije i stvarnih podataka.
+
+##### Redosled izvršavanja i granice
+
+1. **Odmah:** ispravljen je konkretni SyntaxError AI testa na commitu `4fb1d9b4`; proveriti CI na najnovijem PR HEAD-u i popravljati samo novu dokazanu regresiju. Ne ponavljati stare suite-ove bez delte.
+2. **Nezavisan source posao:** nastaviti R08 prirodan razgovor, R11 interakcije/recovery/ocena/komentara i preostale C pakete kada imaju dokazanog potrošača i test. Svaka promena: izvor → pozitivan i negativan slučaj → readback → jedan dnevnički zapis.
+3. **R01 integraciona kapija:** razrešiti konkretnu current-schema PG17 platform parity razliku bez slabljenja strict comparator-a i bez DEV upisa; zatim stvarni Auth/PostgREST pozitivni/negativni test privatnih Need polja i PHONE ugovora sa sintetičkim nalozima i validnim closure dokazom.
+4. **Zavisne vertikale:** po usklađenom R01 ugovoru redom R02/R03 i R04/R06/R08 signed Save/Publish, R05 matching, R07 cena/prijava/Dogovor, R09 push i R10 data lifecycle; proveriti kompatibilnost starijih klijenata pre migracije. Blokiran zadatak ne zaustavlja drugi nezavisan source posao.
+5. **R11/R12 prihvat:** konačno vezati J01–J14 za stvarne aktivne ekrane, akcije, testove i dokaze na telefonima, očistiti preostale C/SV prema stvarnim preduslovima, tek zatim potpisan Android/iOS kandidat i prodavnice. Nema lažnog DONE statusa, release-a ili automatske produkcione promene.
+
+**Sledeće ažuriranje ovog istog bloka:** upisati tačan CI run/conclusion za commit posle `4fb1d9b4` (ili kasniji HEAD), bez ponavljanja stare 28.10 tabele, i sledeći konkretni source/DEV/native rezultat. Izvorni JSON-evi, Z09/Z10/Z16, ceo REV14 i istorijski ZIP-ovi ostaju izvor po potrebi; ne praviti drugi master i ne ponovo učitavati svih 305 arhivskih fajlova pri svakoj izmeni.
+<!-- LIVE-STATUS-20261029-END -->
+
+#### Istorijski status od 28.10.2026. — sačuvan radi porekla, nije tekuća tabela
+
 
 Ovaj zapis obuhvata prethodnu R07b satnicu i završeni source krug C03/C04/C07/C08/C09/C12, uz stvarno izvršenu R01 inicijalizaciju bez dodatnog CLI webhook SQL-a. Source `b98ef389fe65bd19ffa047edbb82c4ff0c1aee5a` ima puni CI `40734402563` SUCCESS (614 suite-a / 14.115 testova). Schema CI `40734402209` završio je sve capture-e: strict razlike 13→8, supplemental 62→49, uz tri zasebne razlike native helper hash-eva; konačan ishod ostaje FAIL, bez Auth/HTTP/kandidata. Ukupno 11/19 C paketa ima source promene; osam C i svih 14 SV ostaju otvoreni. Od 12 R paketa pet je IN_PROGRESS (R01/R02/R07/R11/R12), sedam DEFINED; nijedan nije u celini zatvoren do isporuke. Završni checkpoint menja samo dokumentaciju i zadržava provereni kod. Odgovoran za rad i ažuriranje: Codex u ovoj sesiji. Dokazni prilozi nisu konkurentni planovi.
 
