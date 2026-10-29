@@ -38,14 +38,62 @@ function recordFailure(failure, failures) {
   failures.push(failure);
   console.warn('BG_TAXONOMY_PROVIDER_FAILURE', failure.status, failure.code);
 }
-async function providerEntries(res, field) {
-  if (!res.ok) throw new TaxonomyProviderError(`PROVIDER_HTTP_${res.status}`,
-    res.status === 408 || res.status === 429 || res.status >= 500 ? 'RETRYABLE_PROVIDER' : 'PROVIDER_PERMANENT_FAILURE');
-  let data;
-  try { data = await res.json(); } catch { throw new TaxonomyProviderError('PROVIDER_INVALID_JSON'); }
+async function boundedProviderJson(res, signal) {
+  // Same decoded-byte ceiling as the foreground stream. The existing caller's
+  // nine-second BG lifecycle owns cancellation; this reader adds no new timer.
+  const maximum = 524288;
+  let reader;
+  let rejectStopped;
+  const stopped = new Promise((_, reject) => { rejectStopped = reject; });
+  void stopped.catch(() => undefined);
+  const stop = () => rejectStopped(new TaxonomyProviderError('PROVIDER_ABORTED'));
+  signal?.addEventListener('abort', stop, { once: true });
+  try {
+    if (signal?.aborted) throw new TaxonomyProviderError('PROVIDER_ABORTED');
+    if (!res.ok) throw new TaxonomyProviderError(`PROVIDER_HTTP_${res.status}`,
+      res.status === 408 || res.status === 429 || res.status >= 500 ? 'RETRYABLE_PROVIDER' : 'PROVIDER_PERMANENT_FAILURE');
+    const declared = res.headers.get('content-length');
+    if (declared !== null && (!/^\d+$/.test(declared) || !Number.isSafeInteger(Number(declared)))) {
+      throw new TaxonomyProviderError('PROVIDER_INVALID_CONTENT_LENGTH');
+    }
+    if (declared !== null && Number(declared) > maximum) throw new TaxonomyProviderError('PROVIDER_BODY_TOO_LARGE');
+    if (!res.body) throw new TaxonomyProviderError('PROVIDER_INVALID_JSON');
+    reader = res.body.getReader();
+    const decoder = new TextDecoder('utf-8', { fatal: true });
+    const chunks = [];
+    let total = 0;
+    while (true) {
+      // Abort must settle even if the transport's pending read ignores it.
+      const part = await Promise.race([reader.read(), stopped]);
+      if (signal?.aborted) throw new TaxonomyProviderError('PROVIDER_ABORTED');
+      if (part.done) break;
+      total += part.value.byteLength;
+      if (total > maximum) throw new TaxonomyProviderError('PROVIDER_BODY_TOO_LARGE');
+      chunks.push(decoder.decode(part.value, { stream: true }));
+    }
+    chunks.push(decoder.decode());
+    // Fetch may decompress the body while retaining its encoded length header.
+    const encoding = res.headers.get('content-encoding')?.trim().toLowerCase();
+    if ((!encoding || encoding === 'identity') && declared !== null && Number(declared) !== total) {
+      throw new TaxonomyProviderError('PROVIDER_INCOMPLETE_RESPONSE');
+    }
+    return JSON.parse(chunks.join(''));
+  } catch (error) {
+    if (error instanceof TaxonomyProviderError) throw error;
+    throw new TaxonomyProviderError(signal?.aborted ? 'PROVIDER_ABORTED' : 'PROVIDER_INVALID_JSON');
+  } finally {
+    signal?.removeEventListener('abort', stop);
+    // Includes rejected HTTP/header/body paths. Cleanup cannot prolong the BG
+    // deadline or expose provider text, even if cancellation itself fails/hangs.
+    try { void (reader ? reader.cancel() : res.body?.cancel())?.catch(() => undefined); } catch { /* best-effort cleanup */ }
+  }
+}
+async function providerEntries(res, field, signal) {
+  const data = await boundedProviderJson(res, signal);
   if (data?.promptFeedback?.blockReason) throw new TaxonomyProviderError('PROVIDER_REFUSED', 'PROVIDER_PERMANENT_FAILURE');
   const candidate = data?.candidates?.[0];
-  if (candidate?.finishReason && candidate.finishReason !== 'STOP') {
+  if (!candidate?.finishReason) throw new TaxonomyProviderError('PROVIDER_INCOMPLETE_RESULT');
+  if (candidate.finishReason !== 'STOP') {
     throw new TaxonomyProviderError(candidate.finishReason === 'MAX_TOKENS' ? 'PROVIDER_TRUNCATED' : 'PROVIDER_REFUSED',
       candidate.finishReason === 'MAX_TOKENS' ? 'RETRYABLE_PROVIDER' : 'PROVIDER_PERMANENT_FAILURE');
   }
@@ -552,7 +600,7 @@ async function classifyNovelServicesWithGemini({
     signal,
   });
 
-  return providerEntries(res, 'decisions');
+  return providerEntries(res, 'decisions', signal);
 }
 
 /**
@@ -793,7 +841,7 @@ async function classifyWorkerServicesWithGemini({
     signal,
   });
 
-  return providerEntries(res, 'items');
+  return providerEntries(res, 'items', signal);
 }
 
 export async function buildWorkerFullTreeTaxonomyProposals({

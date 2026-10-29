@@ -170,7 +170,7 @@ test('novel task classification receives bounded public scope and does not reuse
   globalThis.fetch = async (_url, init) => {
     const body = JSON.parse(init.body);
     payloads.push(JSON.parse(body.contents[0].parts[0].text));
-    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({
+    return new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({
       decisions: [{ service: 'klima', mode: 'ON_SITE', action: 'CREATE_CHILD', parentId,
         reason: 'Potvrđeni obim određuje granu klimatizacije.' }],
     }) }] } }] }), { status: 200 });
