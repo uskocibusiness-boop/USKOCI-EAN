@@ -26,7 +26,21 @@ const anonSet=new Set([
 const authSet=new Set(tables.filter(x=>!['access_grants','agreement_messages'].includes(x)));
 const rights=['TRUNCATE','TRIGGER','REFERENCES'];
 const mustRollback=async(db,promise,error)=>{
- try{await assert.rejects(promise,error);}finally{await db.exec('ROLLBACK');}
+ try{await assert.rejects(promise,error);}
+ catch(failure){
+  // Only bounded PostgreSQL parser metadata from source-only synthetic tests.
+  // Never emit a query, environment value, role secret or fixture data.
+  const original=failure?.actual??failure;
+  console.error('R01_NONROW_TEST_DIAG '+JSON.stringify({
+   sqlstate:String(original?.code??'').slice(0,8),
+   position:String(original?.position??'').slice(0,8),
+   internalPosition:String(original?.internalPosition??'').slice(0,8),
+   routine:String(original?.routine??'').slice(0,80),
+   where:String(original?.where??'').slice(0,300),
+   message:String(original?.message??'').slice(0,170),
+  }));
+  throw failure;
+ }finally{await db.exec('ROLLBACK');}
 };
 const aclSnapshot=async(db)=> (await db.query(`select c.relname,c.relacl::text acl,
  c.relrowsecurity rls,pg_get_userbyid(c.relowner) owner
