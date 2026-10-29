@@ -3908,6 +3908,14 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 - **Dalje:** proveriti tačan novi CI i R11b/SB09 javni read/prikaz, zatim R11f/X03 finite/receipt granicu. R01 integration i DEV rollout ostaju zasebno BLOCKED.
 
 
+### R11f/X03 — 29.10.2026: ne-finite My Applications i nepotpun stale-response receipt (SOURCE COMMITTED, CI PROVERA U TOKU)
+
+- **Uzrok:** `applicationClientService.mapApplication` je koristio `Number(raw...)` ali samo `<1` / `<=0` proveru, pa su `Infinity` i `NaN` prolazili u legitimnu karticu. `ru4Production.resolveChangedApplication` je vraćao `ok:true` i kad server nije dostavio status/verziju, popunjavajući verziju iz prethodnog klijentskog očekivanja.
+- **Izmena u postojećim vlasnicima:** lista i paginirani čitač sada odbijaju ne-finite cenu, nesigurne/necelobrojne revizije, verziju i broj pokrivenih mesta; validan number-like PostgREST iznos/slot je i dalje podržan. Stale response write sada zahteva stvaran `SUBMITTED` ili `WITHDRAWN` prema komandi, striktno pozitivan server version i poznatu osnovicu cene, bez fabricated uspeha i bez prepravljanja postojećeg readback u `moje-prijave.tsx`.
+- **Dokazi:** regresije su dodate u postojeći `ru5-p0c03-application-client.test.ts`, `own-applications-page-client.test.ts` i `ru4-need-edit-client.test.ts`; pozitivan kompletan receipt + dopušten numeric oblik, i negativni NaN/Infinity, decimale, missing status/version, pogrešno stanje i nepoznata osnovica. Bez SQL/DEV/Edge/OTA. CI rezultat ne pretpostavljati dok se workflow ne završi.
+- **Status:** R11f/X03 SOURCE IMPLEMENTED, potreban CI i stvarni naredni UI/API readback pre punog closure-a. R11f/X04 ostaje otvoren. R01 strict parity ostaje nezavisno BLOCKED.
+
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita

@@ -126,14 +126,19 @@ export const ru4Production = {
       p_scope_note: input.napomena ?? null,
     });
     if (error) return fail(error, 'STALE_RESPONSE_RESOLUTION_FAILED', 'Prijava nije mogla da se uskladi sa izmenjenim zadatkom.');
-    if (data?.applicationPriceBasis != null && data.applicationPriceBasis !== 'TOTAL' && data.applicationPriceBasis !== 'HOURLY')
-      return failure('STALE_RESPONSE_RESOLUTION_UNCONFIRMED', 'Osnovica cene nije potvrđena. Proveri stanje prijave.');
+    const receipt = record(data);
+    const expectedStatus = input.akcija === 'WITHDRAW' ? 'WITHDRAWN' : 'SUBMITTED';
+    // A missing version/status is UNKNOWN, never an accepted command. Do not infer the response version from the request.
+    if (!receipt || receipt.status !== expectedStatus || !positiveInteger(receipt.version)
+      || (receipt.applicationPriceBasis != null && receipt.applicationPriceBasis !== 'TOTAL' && receipt.applicationPriceBasis !== 'HOURLY')) {
+      return failure('STALE_RESPONSE_RESOLUTION_UNCONFIRMED', 'Ishod usklađivanja prijave nije potvrđen. Osveži listu.');
+    }
     return {
       ok: true,
       podatak: {
-        ...(data?.applicationPriceBasis == null ? {} : { priceBasis: data.applicationPriceBasis }),
-        status: String(data?.status ?? ''),
-        version: Number(data?.version ?? input.ocekivanaVerzija),
+        ...(receipt.applicationPriceBasis == null ? {} : { priceBasis: receipt.applicationPriceBasis }),
+        status: receipt.status,
+        version: receipt.version,
       },
     };
   },
