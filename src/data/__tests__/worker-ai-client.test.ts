@@ -276,3 +276,31 @@ it('signed manual mode request sends the exact worker-selected service and scope
   if(signed===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;else process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW=signed;
  }
 });
+
+
+it('R04/F05: worker review displays an existing-ID meaning comparison but never upgrades it to READY',()=>{
+  const proposed={
+    service:'Prenos',mode:'ON_SITE',categoryId:SIGNED_CATEGORY,
+    categoryLabel:'Selidbe i prenos',categoryParentId:null,
+    reason:'Ovo je istovetno konkretnoj usluzi prenošenja nameštaja.',catalogVersion:3
+  };
+  const pending={...signedWorkerReview(),classificationState:'REVIEW_REQUIRED',
+    classificationCandidates:[],reviewedServiceModes:[],
+    semanticReviewCandidates:[proposed]};
+  const decoded=decodeWorkerAiReview(pending,OWNER,CONVERSATION);
+  expect(decoded).toMatchObject({classificationState:'REVIEW_REQUIRED',
+    semanticReviewCandidates:[proposed],classificationCandidates:[],reviewedServiceModes:[]});
+  // No new network write, permission or reviewed mode is derived from this hint.
+  expect(mockRpc).not.toHaveBeenCalled();
+  for(const patch of [
+    {classificationState:'READY'},
+    {semanticReviewCandidates:[{...proposed,categoryId:'not-an-id'}]},
+    {semanticReviewCandidates:[{...proposed,mode:'REMOTE'}],classificationCatalogVersion:4},
+    {semanticReviewCandidates:[{...proposed,service:'Drugi zadatak'}]},
+    {semanticReviewCandidates:[{...proposed,categoryLabel:'Čišćenje klima',unknown:true}]},
+    {reviewedServiceModes:[{service:'Prenos',mode:'ON_SITE'}]},
+    {classificationCandidates:signedWorkerReview().classificationCandidates},
+    {classificationCatalogFingerprint:null},
+  ]) expect(decodeWorkerAiReview({...pending,...patch},OWNER,CONVERSATION)).toBeNull();
+  expect(decodeWorkerAiReview({...pending,accountId:OTHER},OWNER,CONVERSATION)).toBeNull();
+});
