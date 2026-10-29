@@ -476,7 +476,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // would be refused by the very question it asked.
   const screenBusy = editor.busy || editor.loading || editor.uncertain || opening;
   const disabled = screenBusy || lifecycleActive;
-  const publishBlocked = !review || disabled || publishedEditUnavailable || !review.canAccept || !locationReadiness.ready || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
+  // R04: saving a private DRAFT is separate from publishing for matching.
+  // A signed but unconfirmed semantic comparison must not appear publish-ready.
+  const classificationPending = !!review?.classificationState && review.classificationState!=='READY';
+  const publishBlocked = !review || disabled || publishedEditUnavailable || !review.canAccept || classificationPending || !locationReadiness.ready || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
   // "Loading = the write this action started": only the publish spins the publish button; while a draft or a fact saves
   // it simply waits grey.
   const publishWorking = editor.busy && publishing;
@@ -485,7 +488,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // One line ABOVE the publish button, in the foot, ONLY when the button is grey: the first thing in its way, short (the full list is "Još treba"
   // above). A grey button always says why, and the reason stands over it, not under it, where it read as the next thing. A button that can be pressed
   // says what it does by its name and has no sentence over it ("Objavljuješ ovu verziju zadatka." said what "Objavi zadatak" is; the owner, 8 Oct 2026).
-  const caption = todos.length || unavailableIdentityFact ? 'Prvo uradi ono što piše pod „Još treba“.' : null;
+  const caption = todos.length || unavailableIdentityFact ? 'Prvo uradite ono što piše pod „Još treba“.' :
+    classificationPending ? 'Potvrdite značenje usluge pre objave. Nacrt možete da sačuvate.' : null;
   // A command that fails ticks once with the failure pattern (haptics rule R5), whether it ends in a refusal or in an outcome not known.
   const failedWith = useRef<string | null>(null);
   useEffect(() => { if (editor.error && editor.error !== failedWith.current) tick('error'); failedWith.current = editor.error; }, [editor.error]);
@@ -667,6 +671,13 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
           {snapshot?.locationConflict ? <Surface kind="note" tone="warn"><T accessibilityRole="alert" style={s.warnText}>
             Mesto je promenjeno posle prethodnog pregleda. Prikazano je trenutno mesto; pregledaj ga ili izmeni pre objave.
           </T></Surface> : null}
+          {review.semanticReviewCandidates?.length ? <Surface kind="note">
+            <T accessibilityRole="header" variant="bodyStrong">Proverite predlog postojeće usluge</T>
+            {review.semanticReviewCandidates.map(item=><T testID="need-semantic-review-proposal" key={item.service+'|'+item.mode} variant="note">
+              {item.service} → {item.categoryLabel} ({item.mode==='ON_SITE'?'na lokaciji':'na daljinu'}). {item.reason}
+            </T>)}
+            <T accessibilityRole="alert" variant="note" tone="muted">Ovo je AI predlog, ne potvrđena kategorija. Objavljivanje i povezivanje čekaju proveru. Za ispravku se vratite u isti razgovor; privatan nacrt možete da sačuvate.</T>
+          </Surface> : null}
           {/* The task detail as it is published: Airbnb-style clean preview with zero redundant intermediate cards. */}
           <ReviewDetail need={need} parts={parts} person={reviewer} knownPeopleCount={knownPeopleCount}
             deadlineDecision={process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1 === 'true'
