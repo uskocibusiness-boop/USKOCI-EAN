@@ -1,6 +1,7 @@
 import type { AiNeedSafety, AiNeedV2FactSource, AiNeedV2FactStatus } from '../contracts/aiNeedV2';
 import type { NeedLocationInput } from '../contracts/location';
 import { decodeServiceHandoff, type ServiceHandoff } from '../contracts/serviceHandoff';
+import { decodeTaxonomySemanticReviewCandidates, type TaxonomySemanticReviewCandidate } from '../contracts/taxonomySemanticReview';
 import { isNeedFactV2Key, MAX_NEED_FACT_V2_PAYLOAD, NEED_FACT_V2_DEFINITIONS, type NeedFactV2Key } from '../contracts/needFactsV2';
 import type { PublicationEvaluation, PublishNeedReceipt } from '../contracts/publication';
 import { normalizeNeedLocation, normalizeTaskGeography, locationRevision } from '../lib/location';
@@ -46,6 +47,8 @@ export type AiTaskReviewEnvelope = Readonly<{
   classificationCatalogVersion?: number | null;
   classificationCatalogFingerprint?: string | null;
   reviewedServiceModes?: readonly [];
+  /** Signed source-bound comparison; no category admission, alias or matching right. */
+  semanticReviewCandidates?: readonly TaxonomySemanticReviewCandidate[];
   /** Server-owned ancestry included in the immutable displayed-content digest. */
   replacement?: AiTaskReplacement;
 }>;
@@ -134,8 +137,10 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
     'classificationCatalogFingerprint','reviewedServiceModes'];
   const hasClassification = !!r && Object.hasOwn(r,'classificationState');
   const hasReplacement = !!r && Object.hasOwn(r, 'replacement');
-  const expectedKeys = [...baseKeys, ...(hasClassification ? classificationKeys : []), ...(hasReplacement ? ['replacement'] : [])];
-  if (!r || !only(r, expectedKeys)
+  const hasSemantic = !!r && Object.hasOwn(r,'semanticReviewCandidates');
+  const expectedKeys = [...baseKeys, ...(hasClassification ? classificationKeys : []),
+    ...(hasSemantic?['semanticReviewCandidates']:[]), ...(hasReplacement ? ['replacement'] : [])];
+  if (!r || (hasSemantic&&!hasClassification) || !only(r, expectedKeys)
     || !uuid(r.reviewId) || !sameId(r.accountId, accountId) || !uuid(r.conversationId) || r.schemaVersion !== 'NEED_FACT_V2'
     || (r.draftId === null ? r.draftRevision !== 0 : !uuid(r.draftId) || !positiveInteger(r.draftRevision))
     || !hash(r.displayedContentDigest) || !hash(r.factsRevision) || !locationRevision(r.geographyRevision)
@@ -170,7 +175,8 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
   if (r.missingRequired.includes('need.handoff') && location?.geography.mode !== 'REMOTE') return null;
   if ((r.location !== null && !location) || (r.canAccept && (r.safety === 'BLOCK' || !location || r.missingRequired.length > 0))) return null;
   let signedClassification: Pick<AiTaskReviewEnvelope,'classificationState'|'classificationCandidates'|
-    'classificationCatalogVersion'|'classificationCatalogFingerprint'|'reviewedServiceModes'> = {};
+    'classificationCatalogVersion'|'classificationCatalogFingerprint'|'reviewedServiceModes'|'semanticReviewCandidates'> = {};
+  let signedSemantic:TaxonomySemanticReviewCandidate[]|undefined;
   if (hasClassification) {
     if (typeof r.classificationState !== 'string' ||
         !['READY','PENDING_CLASSIFICATION','REVIEW_REQUIRED','SERVICE_MODE_CONFIRMATION_REQUIRED',
@@ -179,6 +185,7 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
         r.reviewedServiceModes.length !== 0) return null;
     const items = r.classificationCandidates;
     if (r.classificationState === 'READY') {
+      if(hasSemantic)return null;
       const candidate = record(items[0]);
       const category = publicProjection.find(f => f?.key === 'need.category');
       const mode = location?.geography.mode === 'REMOTE' ? 'REMOTE' :
@@ -213,6 +220,16 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
         candidate.catalogVersion <= 0 || candidate.catalogVersion !== r.classificationCatalogVersion ||
         typeof r.classificationCatalogFingerprint !== 'string' ||
         !/^[a-f0-9]{32}$/.test(r.classificationCatalogFingerprint)) return null;
+    } else if(hasSemantic){
+      if(r.classificationState!=='REVIEW_REQUIRED'||items.length!==0
+        ||typeof r.classificationCatalogFingerprint!=='string'
+        ||!/^[a-f0-9]{32}$/.test(r.classificationCatalogFingerprint))return null;
+      const category=publicProjection.find(f=>f?.key==='need.category'&&f.status!=='UNKNOWN');
+      const mode=location?.geography.mode==='REMOTE'?'REMOTE'
+        :['STATIONARY','POINT_TO_POINT','MULTI_STOP','AREA_BASED'].includes(String(location?.geography.mode))?'ON_SITE':null;
+      signedSemantic=decodeTaxonomySemanticReviewCandidates(r.semanticReviewCandidates,
+        r.classificationCatalogVersion,typeof category?.value==='string'?[category.value]:[],mode)??undefined;
+      if(!signedSemantic)return null;
     } else if (items.length !== 0 || r.classificationCatalogVersion !== null ||
       r.classificationCatalogFingerprint !== null) return null;
     signedClassification = {
@@ -221,6 +238,7 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
       classificationCatalogVersion:r.classificationCatalogVersion as number | null,
       classificationCatalogFingerprint:r.classificationCatalogFingerprint as string | null,
       reviewedServiceModes:[],
+      ...(signedSemantic?{semanticReviewCandidates:signedSemantic}:{}),
     };
   }
   return { reviewId: r.reviewId, accountId: r.accountId, conversationId: r.conversationId, schemaVersion: 'NEED_FACT_V2',
