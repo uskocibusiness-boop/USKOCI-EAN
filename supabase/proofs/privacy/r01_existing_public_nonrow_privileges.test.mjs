@@ -95,7 +95,7 @@ test('R01/F21: direct nonrow grant correction preserves legal reads/writes and s
   // The exact 21-target list is a prerequisite, not a sweep of unknown
   // future/public tables that may have a different permission owner.
   await db.exec(`CREATE TABLE public.surprise_table(id integer);
-   GRANT TRUNCATE TO anon ON TABLE public.surprise_table;`);
+   GRANT TRUNCATE ON TABLE public.surprise_table TO anon;`);
   const beforeSurprise=await aclSnapshot(db);
   await mustRollback(db,db.exec(candidate),/R01_NONROW_UNREVIEWED_PUBLIC_GRANTS/);
   assert.deepEqual(await aclSnapshot(db),beforeSurprise);
