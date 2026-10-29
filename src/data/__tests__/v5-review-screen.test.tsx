@@ -1142,6 +1142,34 @@ it('a flip of the retired app mode retires nothing: a publish in flight still la
   expect(mockAccept).toHaveBeenCalledTimes(1); expect(mockRead.mock.calls.length).toBeGreaterThan(reads);
 });
 
+
+it('R04/F05: signed semantic candidate is shown without unlocking publish, private draft remains separate',async()=>{
+  const original=review();
+  const service='Montaža gotovog ormara';
+  const proposal={
+    service,mode:'ON_SITE' as const,categoryId:'66666666-6666-4666-8666-666666666666',
+    categoryLabel:'Sklapanje ormara',categoryParentId:null,
+    reason:'Isti konkretan posao sklapanja već gotovog ormara.',catalogVersion:17
+  };
+  const pending:AiTaskReviewEnvelope={...original,
+    publicProjection:[...original.publicProjection,
+      {id:'service',key:'need.category',value:service,displayValue:service,privacyClass:'PUBLIC',
+        source:'EXPLICIT_USER_ANSWER',status:'CONFIRMED'}],
+    classificationState:'REVIEW_REQUIRED',classificationCandidates:[],reviewedServiceModes:[],
+    classificationCatalogVersion:17,classificationCatalogFingerprint:'a'.repeat(32),
+    semanticReviewCandidates:[proposal]};
+  mockPrepare.mockResolvedValue(ok(pending));
+  await render();
+  expect(text()).toContain('Proverite predlog postojeće usluge');
+  expect(text()).toContain('Sklapanje ormara');
+  expect(text()).toContain('Ovo je AI predlog, ne potvrđena kategorija.');
+  expect(text()).toContain('Potvrdite značenje usluge pre objave.');
+  expect(publish().disabled).toBe(true);
+  expect(action('Sačuvaj nacrt').disabled).toBeFalsy();
+  expect(mockAccept).not.toHaveBeenCalled();
+  expect(mockDraft).not.toHaveBeenCalled();
+});
+
 // Round 6 (objava): the review as the moment of truth. What still blocks publication is listed with its way to the fix,
 // the category is never named, the conversation is reached by the arrow or a "Još treba" row, the success spring is
 // kept for a publication confirmed on this screen, and the place is its own step that Android Back leaves.
