@@ -36,6 +36,7 @@ jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 import { SupportNewScreen, supportRouteReference } from '../SupportNewScreen';
 import { clearSupportNewDraft } from '../supportNewDraft';
+import { clearSupportReplyDraft } from '../supportReplyDraft';
 import { SupportDetailScreen } from '../SupportDetailScreen';
 import { SupportInboxScreen } from '../SupportInboxScreen';
 import { SupportReferenceView } from '../SupportReferenceView';
@@ -75,7 +76,7 @@ const text = () => tree.root.findAllByType('T' as React.ElementType).flatMap(n =
 async function type(label: string, value: string) { await act(async () => field(label).onChangeText(value)); }
 function deferred() { let resolve!: (value: unknown) => void; const promise = new Promise(done => { resolve = done; }); return { resolve, promise }; }
 beforeEach(() => {
-  clearSupportNewDraft();
+  clearSupportNewDraft(); clearSupportReplyDraft();
   jest.clearAllMocks(); Object.values(mockService).forEach(fn => fn.mockReset()); mockAgreements.mockReset();
   screen = 'NEW'; reference = null; preset = undefined; initialTopic = undefined; routeKey = true; mockSession = { user: { id: A }, accountRevision: 1 }; mockIntent = 'narucilac'; mockFocused = true; mockAppState = 'active';
   mockBack.handlers = [];
@@ -281,6 +282,49 @@ it('does not submit a retained reply after its draft has changed, and sends the 
   expect(mockService.prepare).toHaveBeenCalledWith('AUTHOR_REPLY', C, 2, { body: 'Promenjena dopuna', evidence: [] }, expect.objectContaining({ accountId: A }));
   // The outcome is unknown here: the words stay in the field, not editable, until a readback settles it.
   expect(field('Tekst poruke').value).toBe('Promenjena dopuna'); expect(field('Tekst poruke').editable).toBe(false);
+});
+it('R11d keeps an unsent detail reply after same-account blur/focus and fences the earlier send', async () => {
+  screen = 'DETAIL'; routeKey = false; await render(); await type('Tekst poruke', 'Dopuna pre povratka.');
+  const old = field('Pošalji poruku').onPress;
+  mockFocused = false; await update(); await act(async () => old()); expect(mockService.prepare).not.toHaveBeenCalled();
+  mockFocused = true; await update(); expect(field('Tekst poruke').value).toBe('Dopuna pre povratka.');
+  await act(async () => old()); expect(mockService.prepare).not.toHaveBeenCalled();
+  await act(async () => field('Pošalji poruku').onPress());
+  expect(mockService.prepare.mock.calls[0][3].body).toBe('Dopuna pre povratka.');
+});
+it('R11d keeps a private reply but not an old case projection across background reload', async () => {
+  screen = 'DETAIL'; routeKey = false; await render(); await type('Tekst poruke', 'Nezavršeni privatni odgovor');
+  const held = deferred(); mockService.detail.mockReturnValueOnce(held.promise);
+  await act(async () => { mockAppState = 'background'; mockListeners.forEach(fn => fn('background')); });
+  expect(text()).not.toContain('Privatna dopuna');
+  await act(async () => { mockAppState = 'active'; mockListeners.forEach(fn => fn('active')); });
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Tekst poruke' })).toHaveLength(0);
+  await act(async () => held.resolve(ok(detail())));
+  expect(field('Tekst poruke').value).toBe('Nezavršeni privatni odgovor');
+});
+it('R11d does not restore another account incarnation private case reply', async () => {
+  screen = 'DETAIL'; routeKey = false; await render(); await type('Tekst poruke', 'Samo moj odgovor');
+  mockSession = { user: { id: B }, accountRevision: 2 }; await update();
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Tekst poruke' })
+    .every(node => node.props.value === '')).toBe(true);
+  mockSession = { user: { id: A }, accountRevision: 3 }; await update();
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Tekst poruke' })
+    .every(node => node.props.value === '')).toBe(true);
+});
+it('R11d header Back confirms deliberate draft discard and the next visit remains blank', async () => {
+  screen = 'DETAIL'; routeKey = false; await render(); await type('Tekst poruke', 'Izričito odbacujem.');
+  await act(async () => tree.root.findByProps({ variant: 'detail' }).props.onBack());
+  expect(tree.root.findByType(ConfirmSheet).props).toMatchObject({
+    title: 'Odbaciti napisanu dopunu?', confirmLabel: 'Odbaci', cancelLabel: 'Nastavi pisanje',
+  });
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+  await act(async () => tree.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-cancel' }).props.onPress());
+  expect(field('Tekst poruke').value).toBe('Izričito odbacujem.');
+  await act(async () => tree.root.findByProps({ variant: 'detail' }).props.onBack());
+  await act(async () => tree.root.findByType(ConfirmSheet).findByProps({ testID: 'confirm-sheet-confirm' }).props.onPress());
+  expect(mockRouter.replace).toHaveBeenCalledWith('/podrska');
+  mockFocused = false; await update(); mockFocused = true; await update();
+  expect(field('Tekst poruke').value).toBe('');
 });
 it('operator reconsideration uses only the actual server appeal and does not infer independent review', async () => {
   screen = 'DETAIL'; mockService.detail.mockResolvedValue(ok({ ...detail(), viewerRole: 'OPERATOR', operatorAvailable: true, allowedActions: ['DECIDE_APPEAL'],
