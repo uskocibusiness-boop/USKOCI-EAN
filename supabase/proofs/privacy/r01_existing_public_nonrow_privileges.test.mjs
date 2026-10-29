@@ -129,7 +129,15 @@ test('R01/F21: direct nonrow grant correction preserves legal reads/writes and s
     assert.equal((await db.query("SELECT has_table_privilege('service_role',$1::regclass,$2::text) ok",
       ['public.'+name,right])).rows[0].ok,true,`server/${name}/${right}`);
    }
-   assert.equal((await db.query("SELECT has_table_privilege('authenticated',$1::regclass,'INSERT') ok",['public.'+name])).rows[0].ok,true);
+   // The fixture grants INSERT by COLUMN, not as a table-level privilege.
+   // Preserve the actual column authorization; a table privilege check here
+   // would incorrectly report a lost grant.
+   assert.equal((await db.query("SELECT has_column_privilege('authenticated',$1::regclass,'id','INSERT') ok",
+     ['public.'+name])).rows[0].ok,true,`column insert/${name}`);
+   assert.equal((await db.query("SELECT has_column_privilege('authenticated',$1::regclass,'public_value','SELECT') ok",
+     ['public.'+name])).rows[0].ok,true,`column read/${name}`);
+   assert.equal((await db.query("SELECT has_table_privilege('authenticated',$1::regclass,'DELETE') ok",
+     ['public.'+name])).rows[0].ok,true,`table delete/${name}`);
   }
   const policyAfter=(await db.query("SELECT jsonb_agg(to_jsonb(p) ORDER BY p.oid) v FROM pg_policy p")).rows[0].v;
   assert.deepEqual(policyAfter,policyBefore,'RLS policy rows unmodified');
