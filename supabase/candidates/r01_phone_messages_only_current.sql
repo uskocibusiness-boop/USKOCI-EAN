@@ -30,7 +30,8 @@ BEGIN
   LOOP
     SELECT p0.* INTO p FROM pg_proc p0 WHERE p0.oid=to_regprocedure(x.sig);
     IF NOT FOUND OR md5(p.prosrc) IS DISTINCT FROM x."bodyMd5"
-       OR md5(pg_get_functiondef(p.oid)) IS DISTINCT FROM x."definitionMd5"
+       OR (current_setting('server_version_num')::integer/10000=17
+          AND md5(pg_get_functiondef(p.oid)) IS DISTINCT FROM x."definitionMd5")
        OR pg_get_userbyid(p.proowner) IS DISTINCT FROM x.owner
        OR p.proacl::text IS DISTINCT FROM x.acl
        OR p.proconfig::text IS DISTINCT FROM x.config
