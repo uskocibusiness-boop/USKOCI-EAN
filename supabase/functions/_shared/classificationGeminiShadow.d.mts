@@ -33,4 +33,4 @@ export declare function workerServicesMissingScope(skills: unknown, reviewPropos
   count: number; labels: string[];
 };
 /** Owner-facing finish-only guidance; no profile Save or capability write. */
-export declare function workerFinishReviewMessage(skills: unknown, reviewProposals: unknown, catalogAvailable: boolean): string;
+export declare function workerFinishReviewMessage(skills: unknown, reviewProposals: unknown, catalogAvailable: boolean, mayOfferBio?: boolean): string;
