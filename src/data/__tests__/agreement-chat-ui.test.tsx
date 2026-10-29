@@ -752,7 +752,13 @@ describe('D03 actual message component', () => {
     // failed read has its own retry, and the first read's status stands alone.
     it('offers a quiet refresh at the head of the thread and in the empty thread, and none where nothing new can come', async () => {
       await render({ messages: [message('1', false, 'Zdravo', '10:00')] });
-      await act(async () => button('Osveži poruke').props.onPress());
+      // SB10: the refresh action cannot be focusable while hidden at zero height or opacity.
+      const visibleRefresh = button('Osveži poruke');
+      const visibleStyle = Object.assign({}, ...[visibleRefresh.props.style].flat(4).filter(Boolean));
+      expect(visibleStyle.minHeight).toBeGreaterThanOrEqual(44);
+      expect(visibleStyle.height).not.toBe(0);
+      expect(visibleStyle.opacity ?? 1).toBeGreaterThan(0);
+      await act(async () => visibleRefresh.props.onPress());
       expect(props.refresh).toHaveBeenCalledTimes(1);
       await act(async () => tree.update(<AgreementChat {...props} messages={[]} />));
       expect(texts()).toContain('Napiši prvu poruku');

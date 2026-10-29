@@ -3924,6 +3924,13 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 - **Cleanup C13:** review service je aktivan potrošač, stoga se ne briše kao navodni višak. Sledeći otvoren X04 konfiguracioni autoritet i R09/SB10 accessible refresh ostaju iz glavnog plana.
 
 
+### R09/SB10 — 29.10.2026: vidljiva i fokusabilna ručna kontrola osvežavanja poruka (SOURCE COMMITTED, CI PROVERA U TOKU)
+
+- **Uzrok:** stvarni `AgreementChat` je u popunjenoj prepisci prikazivao fokusabilan `ChatAction` sa labelom „Osveži poruke”, ali `refreshQuiet` stil ga je namerno sakrivao sa `height: 0` i `opacity: 0`. Klik callback je postojao, ali nije bilo odgovarajuće vidljive dodirne površine.
+- **Ispravka:** sačuvan je isti reader, `refresh()` callback i disabled/loading semantika; skinut je isključivo stari skriveni stil. Kontrola sada dobija postojeći `chatAction.minHeight`, diskretnu boju i nema opacity/zero-height ograde. Posebni retry/empty/terminal slučajevi ostaju u istom aktivnom UI ugovoru. Nema novog refresh mehanizma, SQL/Edge ili dozvola.
+- **Regresija:** postojeći integracioni `agreement-chat-ui.test.tsx` osim realnog onPress-a proverava da je dodirna površina najmanje 44 i da nema skrivene visine/prozirnosti; postojeći scenario zadržava odsustvo kontrole u završenom Dogovoru ili neuspelom inicijalnom čitanju. Source receipt; native TalkBack/VoiceOver i stvarni telefon još nisu potvrđeni.
+
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita

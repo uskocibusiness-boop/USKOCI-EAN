@@ -733,7 +733,8 @@ const s = StyleSheet.create({
   chatAction: { minHeight: COMMAND, justifyContent: 'center', alignSelf: 'flex-start', paddingHorizontal: 4 },
   refreshAction: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base,
     borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill },
-  refreshQuiet: { borderWidth: 0, alignSelf: 'flex-end', paddingHorizontal: 8, height: 0, opacity: 0, overflow: 'hidden' },
+  // A focused button must also be visible and tappable. The previous zero-height/transparent style stranded screen-reader focus.
+  refreshQuiet: { borderWidth: 0, alignSelf: 'flex-end', paddingHorizontal: sys.space.sm },
   // A day or a pause, said once above its messages: a quiet word, no box (proposal R1). The bubble shape lives in ./messages/bubbleShape.
   day: { alignSelf: 'center', marginTop: sys.space.base, marginBottom: sys.space.sm, paddingHorizontal: sys.space.md,
     fontSize: 12, lineHeight: 16, fontWeight: '600', color: sys.color.muted, fontVariant: ['tabular-nums'] },
