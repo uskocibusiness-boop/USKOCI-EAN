@@ -191,6 +191,16 @@ it('while one unblock runs, its own action spins and the others wait', async () 
   expect(mockSetBlock).toHaveBeenCalledTimes(1);
 });
 
+it('a late confirmed unblock cannot show success toast after the blocked list loses focus',async()=>{
+  mockList.mockResolvedValueOnce(ok([{targetAccountId:B,displayName:'Marko',revision:4}])).mockResolvedValue(ok([]));
+  let resolve!: (value:unknown)=>void;
+  mockSetBlock.mockReturnValueOnce(new Promise(done=>{resolve=done;}));
+  await render();await askUnblock('Marko');
+  await act(async()=>{confirmButton().props.onPress();});
+  await act(async()=>{refocus();});
+  await act(async()=>resolve(receipt(B,5)));
+  expect(poruka.current()).toBeNull();
+});
 it('a question left open is retired when the list is read again, so a late confirm sends nothing', async () => {
   mockList.mockResolvedValueOnce(ok([{ targetAccountId: B, displayName: 'Marko' }], C)).mockResolvedValue(ok([{ targetAccountId: C, displayName: 'Ana' }]));
   await render();

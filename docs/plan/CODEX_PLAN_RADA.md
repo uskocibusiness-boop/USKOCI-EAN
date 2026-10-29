@@ -3986,6 +3986,14 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 - **Granica:** samo ažuriranje source assert-a; novi CI treba proći. Stvarni model, DEV Edge i native signed Save ostaju zasebno nepotvrđeni.
 
 
+### R11c/X06 — 29.10.2026: kasni potvrđeni safety toast / Undo ostaje u životnom veku izvornog ekrana (SOURCE COMMITTED; CI pending)
+
+- **Tačan uzrok:** `announceBlockChange` je pozivan posle `await editor.save` iz dva stvarna ekrana. Zajednički Undo imao je account/revision ogradu, ali početno `poruka.show` nije proveravalo nijednu nakon kasnog potvrđenog odgovora; u međuvremenu je korisnik mogao da promeni nalog, ode sa ekrana ili da se vrati u novu incarnaciju.
+- **Uska izmena postojećih vlasnika:** `blockOutcome.ts` sada na ulazu u `announceBlockChange` proverava aktuelan account+revision i opcioni callback `stillCurrent`. Isti callback važi za Undo neposredno pre komande i nakon `await` pre nove poruke i `onSettled`. `SafetyScreen` i `profil/blokirani` hvataju zaseban **focus-lifetime epoch**, različit od read/question revizija; na blur/novi kontekst se invalidira, a odloženi Save ne može pokazati obaveštenje ili sprovesti Undo u novoj epohi. Serverova potvrđena radnja se ne poništava i ne prepisuje; dok je ekran živ ostaje isti zajednički rezultat i Undo. `onSettled` osvežava samo izvornu aktivnu epohu.
+- **Regresija:** dodat mali stvarni `blockOutcome` test account/epoch, Undo pre/posle promene i pozivni testovi za `SafetyScreen` (kasni account incarnation) i `BlockedAccounts` (kasni blur/refocus). Postojeći pozitivni Undo/cancel/readback testovi ostaju aktivni. Ne sadrži PII, SQL/Edge, DEV, OTA niti promenjene blokade naloga.
+- **Dokazna granica:** SOURCE COMMITTED, zahteva TypeScript, target Jest i pun CI; stvarni native focus/app background se testira odvojeno. X06 ostaje `IN_PROGRESS` do adekvatne uređajske provere. R01 strict parity odvojeno FAIL.
+
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita
