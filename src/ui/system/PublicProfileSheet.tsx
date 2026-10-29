@@ -7,7 +7,6 @@ import { inicijali } from '../../lib/inicijali';
 import { tidyPlaceLabel } from '../location/placeText';
 import { FigureCell, FigureRow, NEW_RATING, finishedFigure, ratingFigure, reliabilityFigure, type Figure } from '../profile/ProfileFigures';
 import { memberSincePhrase, publicTrustFacts } from '../profile/workTrustModel';
-import { ReviewCommentsSection } from '../reviews/ReviewCommentsSection';
 import { ProductSheet } from '../product/ProductSheet';
 import { T } from '../Text';
 import { QuietReadState } from '../v2/QuietReadState';
@@ -86,6 +85,10 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, safety, tru
   const initials = profile ? inicijali(profile.ime) : null;
   // Present only when the person wrote something; shown exactly as written.
   const about = profile?.biografija && profile.biografija.trim() ? profile.biografija : null;
+  // The public sheet is also used by the offline Design Lab. Load the data-reading child only for an admitted profile in a D12 build.
+  const CommentsSection = profile && reviewCommentBuilt()
+    ? (require('../reviews/ReviewCommentsSection') as typeof import('../reviews/ReviewCommentsSection')).ReviewCommentsSection
+    : null;
   return <ProductSheet title={name ?? 'Javni profil'} closeLabel="Zatvori javni profil" backdropHint="Zatvara javni profil." onClose={onClose}>
     {() => state.loading ? <QuietReadState art="person" title="Učitavamo javni profil…" body="Proveravamo podatke koji smeju da budu javni." />
       : !profile && state.notFound ? <StateView kind="empty" art="person" title="Javni profil nije pronađen."
@@ -108,7 +111,7 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, safety, tru
         </View> : null}
         {facts ? <Confirmations facts={facts} trust={trust} /> : null}
         {/* The D12 server alone chooses which written reviews this visitor may read; a denied/null response draws nothing. */}
-        {reviewCommentBuilt() ? <ReviewCommentsSection profileId={profile.profilId}
+        {CommentsSection ? <CommentsSection profileId={profile.profilId}
           photo={photo ? (authorProfileId, size, fallback) => photo(authorProfileId, size) ?? fallback : undefined} /> : null}
         {safety ? <View>
           {/* A command with its words in red and its arrow: it opens the report, so the row says where it goes. */}

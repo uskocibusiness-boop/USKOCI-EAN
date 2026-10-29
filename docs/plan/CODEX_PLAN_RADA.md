@@ -3931,6 +3931,13 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 - **Regresija:** postojeći integracioni `agreement-chat-ui.test.tsx` osim realnog onPress-a proverava da je dodirna površina najmanje 44 i da nema skrivene visine/prozirnosti; postojeći scenario zadržava odsustvo kontrole u završenom Dogovoru ili neuspelom inicijalnom čitanju. Source receipt; native TalkBack/VoiceOver i stvarni telefon još nisu potvrđeni.
 
 
+### R11b/SB09 — 29.10.2026: izolacija javnog komentara od Design Lab rendera (CI regresija i source ispravka)
+
+- **Tačan novi CI nalaz:** [USKOCI clean checks 40878085966](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40878085966) na `b91adfd4` je **FAIL** u `dizajn-galerije-prijave.test.tsx`: 615/616 suite-ova prolazi, 14.085/14.085 izvršenih Jest testova i 3/3 snapshota prolaze. Test opravdano odbija uvoz podatkovnog servisa u offline Design Lab galeriju. Sled `PublicProfileSheet` → statički `ReviewCommentsSection` → `reviewCommentsClientService` → `supabaseClient` bio je novi uzrok. Ne gasiti galerijski test niti uvoziti SQL Auth u dizajnerske scene.
+- **Ciljana izmena aktivnog vlasnika:** `PublicProfileSheet` više ne uvozi javni komentar na nivou modula, nego poziva postojeći `ReviewCommentsSection` samo kada se prikazuje stvarno učitan javni profil i `reviewCommentBuilt()` važi; identičan profilni ID, server authorization/null, portrait fallback i paginacija ostaju. Ne uvodi se lažni komentar, novi čitač ili designLab kopija. Ovim se vraća izvorni invariant da galerija bez D12 ne importuje servis. Postojeći `public-profile-sheet.test.tsx` sa flag OFF/ON i `dizajn-galerije-prijave.test.tsx` služe kao regresija.
+- **Status:** SOURCE COMMITTED, rezultat novog CI mora se potvrditi zasebno. Ne primenjuje se D12 flag na DEV/PROD, nema server/Edge/OTA/native dokaza. R01 current-schema parity je nezavisan i neprekriven FAIL.
+
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita
