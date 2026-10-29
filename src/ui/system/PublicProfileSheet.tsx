@@ -2,10 +2,12 @@ import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { JavniProfilPoverenje, JavniProfilProjekcija } from '../../contracts/projections';
 import type { PublicWorkTrust } from '../../data/workTrustClientService';
+import { reviewCommentBuilt } from '../../data/reviewCommentGate';
 import { inicijali } from '../../lib/inicijali';
 import { tidyPlaceLabel } from '../location/placeText';
 import { FigureCell, FigureRow, NEW_RATING, finishedFigure, ratingFigure, reliabilityFigure, type Figure } from '../profile/ProfileFigures';
 import { memberSincePhrase, publicTrustFacts } from '../profile/workTrustModel';
+import { ReviewCommentsSection } from '../reviews/ReviewCommentsSection';
 import { ProductSheet } from '../product/ProductSheet';
 import { T } from '../Text';
 import { QuietReadState } from '../v2/QuietReadState';
@@ -64,7 +66,7 @@ export const memberSinceFact = memberSincePhrase;
  * server returned it), the person's own "O meni" when they wrote one, and the confirmations as `FactRow`s with their 2.5D pictures:
  * "Identitet je potvrđen" only when it is true, and what the trust read adds when the server lets this viewer have it ("Dogovoreno N
  * zadataka", "Na USKOČI-ju od ..."). Nothing here is a control except the safety entry, which is last and red: no row opens another
- * person's ratings, because no read of them exists.
+ * person's private received ratings; the existing public-comment reader is a separate, server-authorized list.
  *
  * Reporting and blocking are rare, so they close the sheet's content, apart from the facts by the sheet's own spacing and not by a
  * line: one row that names the person's action ("Prijavi ili blokiraj osobu") and says the report is private. The row keeps the
@@ -105,6 +107,9 @@ export function PublicProfileSheet({ state, onClose, onRetry, photo, safety, tru
           <T selectable variant="body" style={s.ink}>{about}</T>
         </View> : null}
         {facts ? <Confirmations facts={facts} trust={trust} /> : null}
+        {/* The D12 server alone chooses which written reviews this visitor may read; a denied/null response draws nothing. */}
+        {reviewCommentBuilt() ? <ReviewCommentsSection profileId={profile.profilId}
+          photo={photo ? (authorProfileId, size, fallback) => photo(authorProfileId, size) ?? fallback : undefined} /> : null}
         {safety ? <View>
           {/* A command with its words in red and its arrow: it opens the report, so the row says where it goes. */}
           <ListRow leading={<FactArt kind="shield" size={32} muted />} title={safety.busy ? 'Otvaramo…' : SAFETY_LABEL} tone="danger" arrow last

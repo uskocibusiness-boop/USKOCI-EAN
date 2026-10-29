@@ -3916,6 +3916,14 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 - **Status:** R11f/X03 SOURCE IMPLEMENTED, potreban CI i stvarni naredni UI/API readback pre punog closure-a. R11f/X04 ostaje otvoren. R01 strict parity ostaje nezavisno BLOCKED. TypeScript iz workflow 40876883567 prijavio je `receipt.status: unknown` (TS2322); uz postojeću strogu proveru jednakosti upisuje se provereni `expectedStatus`, bez promene poslovnog ugovora. Novi CI je jedini relevantan rezultat.
 
 
+### R11b/SB09 + C13 — 29.10.2026: javni komentar u postojećem profilu (SOURCE COMMITTED, CI PROVERA U TOKU)
+
+- **Uzrok:** postojeći `ReviewCommentsSection` + `reviewCommentsClientService.list` imaju stvarni server-authorized D12 paged public reader, ali je `PublicProfileSheet` prikazivao samo ocenu/agregat, bez pozivaoca za ovaj čitač. Time je korisniku ostajao skriven sadržaj koji server već dozvoljava da pročita.
+- **Izmena:** jedini aktivni javni profil `PublicProfileSheet` sada umeće postojeći `ReviewCommentsSection` tek po važećem `reviewCommentBuilt()` feature flag-u i tek kad je konkretan public profil uspešno pročitan. Prosleđuje stvarni `profilId` prikazane osobe i, kada je dostupan, existing public portrait reader za autora komentara. Reader nastavlja da poštuje server `null` kao potpuno zatvoren prikaz (block, account closure, missing D12), odvojenu read grešku, existing keyset pagination i account/revision ograde. Safety/report entry ostaje poslednji; nema promene SQL, javne publike ili uvođenja novog review servisa.
+- **Test:** `public-profile-sheet.test.tsx` sada proverava flag OFF, loaded profil ON, odsustvo komentara pre učitavanja i posle zatvaranja, stvarni target profile ID, author-photo fallback. Existing `review-comments-section.test.tsx` pokriva privacy-null, account switch, late response, pagination i negativne slučajeve. Nivo: source, bez stvarne DEV/Auth/native potvrde. D12 flag se ovom izmenom ne uključuje u produkciji; SB09 integraciono prihvatanje ostaje otvoreno dok realni server i telefon ne potvrde isti ugovor.
+- **Cleanup C13:** review service je aktivan potrošač, stoga se ne briše kao navodni višak. Sledeći otvoren X04 konfiguracioni autoritet i R09/SB10 accessible refresh ostaju iz glavnog plana.
+
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita
