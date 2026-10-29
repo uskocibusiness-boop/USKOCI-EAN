@@ -159,7 +159,7 @@ export function MyApplicationsPresentation(props: Props) {
           <T variant="meta" tone="muted">Napomena</T>
           <TextInput accessibilityLabel="Napomena uz ponudu" value={draft.note} multiline editable={!disabled} onChangeText={note => props.onChange({ ...draft, note })} style={[s.input, s.multiline]} />
           <T variant="note" tone="muted">Ponuđeni termin ostaje nepromenjen: {draft.start || draft.end
-            ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: draft.start, endsAt: draft.end }, deviceZone()) : 'Nije naveden u prijavi.'}</T>
+            ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: draft.start, endsAt: draft.end }, p.zadatak?.vremenskaZona || deviceZone()) : 'Nije naveden u prijavi.'}</T>
           <V2Action label="Sačuvaj izmenjenu prijavu" onPress={() => props.onUpdate(p)} disabled={disabled || props.draftStale || invalidPeople || invalidFixedPrice} style={brandAction} />
           <V2Action label="Odustani od izmene" onPress={props.onCancelEdit} disabled={disabled} kind="quiet" />
         </View> : <View>

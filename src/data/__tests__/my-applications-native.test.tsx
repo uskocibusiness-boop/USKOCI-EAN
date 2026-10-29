@@ -307,6 +307,18 @@ it('requires a visible stale review, then KEEP preserves null-ignored fields and
   expect(mockResolve.mock.calls[0][0]).toMatchObject({ akcija: 'KEEP', ocekivanaVerzija: 2, ocekivanaPotrebaRevizija: 4, cenaRsd: null, napomena: null });
   expect(mockRead).toHaveBeenCalledTimes(2); expect(text()).toContain('Prijava je ažurirana');
 });
+it('R11e/SB12 renders the unchanged proposed interval in the server-provided task zone, not just the phone zone', async () => {
+  mockRows = [{ ...stale(), zadatak: { raspored: { kind: 'FIXED_WINDOW', startsAt: interval.start, endsAt: interval.end },
+    rezimLokacije: 'STATIONARY', vremenskaZona: 'Europe/Belgrade', rezimCene: 'OFFERS', osnovaCene: 'TOTAL', potrebnoMesta: 3 } }];
+  await render(); await tap('Čeka te'); await tap(REVIEW_FOOT); await tap('Izmeni prijavu');
+  const sentence = text().slice(text().indexOf('Ponuđeni termin ostaje nepromenjen'));
+  expect(sentence).toContain('12:00');
+  expect(sentence).toContain('13:00');
+  expect(mockResolve).not.toHaveBeenCalled();
+  await edit('Cena ponude (RSD)', '5600');
+  await tap('Sačuvaj izmenjenu prijavu');
+  expect(mockResolve.mock.calls[0][0]).toMatchObject({ predlozeniPocetak: interval.start, predlozeniKraj: interval.end });
+});
 it('updates price, people and note while preserving the exact existing interval including microseconds', async () => {
   await editing(); expect(mockInterval).toHaveBeenCalledWith(stale()); expect(text()).toContain('Ponuđeni termin ostaje nepromenjen');
   await edit('Cena ponude (RSD)', '5600'); await edit('Broj ljudi', '3'); await edit('Napomena uz ponudu', '  Donosimo nove trake.  ');
