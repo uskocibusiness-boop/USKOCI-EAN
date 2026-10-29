@@ -20,6 +20,8 @@ const TICK_MS = 250;
 export type VoiceComposerPhase = 'idle' | 'requesting' | 'recording' | 'review' | 'uploading' | 'failed';
 export type VoiceComposerError = Readonly<{ code: string; message: string }>;
 export type RecoveredRecording = Readonly<{ ref: AgreementUploadRef; assetId: string; durationMs: number }>;
+/** A previously journaled request whose server outcome is not yet terminal; no audio bytes or private message are cached. */
+export type UnresolvedRecording = Readonly<{ ref: AgreementUploadRef; state: 'ABSENT' | 'PROCESSING' | 'STAGED' | 'UNKNOWN' }>;
 export type VoiceComposerSnapshot = Readonly<{
   phase: VoiceComposerPhase;
   /** Milliseconds recorded so far while recording. */
@@ -37,6 +39,9 @@ export type VoiceComposerSnapshot = Readonly<{
   canRetry: boolean;
   /** Recordings the server holds READY that no message carries (an app restart between the upload and the send). Sending or deleting is explicit. */
   recovered: readonly RecoveredRecording[];
+  /** Unknown and in-progress upload identities remain visible until an authoritative read or cancellation settles them. */
+  unresolved: readonly UnresolvedRecording[];
+  recoveryBusy: boolean;
 }>;
 
 type Outbox = Readonly<{
@@ -81,6 +86,8 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
   let failure: VoiceComposerError | null = null;
   let preview: 'idle' | 'playing' | 'paused' = 'idle', previewMs = 0, previewLoaded = false;
   let recovered: readonly RecoveredRecording[] = [];
+  let unresolved: readonly UnresolvedRecording[] = [];
+  let checkingRecovery = false;
   // The recording being delivered: its client key, whether any upload was attempted, and the READY asset once there is one.
   let pending: { ref: AgreementUploadRef; attempted: boolean; assetId: string | null } | null = null;
   let ticker: unknown = null, unsubscribeRecorder: Array<() => void> = [], unsubscribePlayer: (() => void) | null = null;
@@ -98,7 +105,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
     const allowed = options.isCurrent() && live.writable && live.version !== null && !outboxBusy() && !finishing;
     return Object.freeze({ phase, elapsedMs, durationMs: recorded?.durationMs ?? null, preview, previewMs, level, error: failure,
       canRecord: phase === 'idle' && allowed && !starting && !working && !releaseRecordingClaim, canSend: (phase === 'review') && allowed && !working,
-      canDiscard: !working && !finishing && (phase === 'recording' || phase === 'review' || phase === 'failed'), canRetry: phase === 'failed' && allowed && !working, recovered });
+      canDiscard: !working && !finishing && (phase === 'recording' || phase === 'review' || phase === 'failed'), canRetry: phase === 'failed' && allowed && !working, recovered, unresolved, recoveryBusy: checkingRecovery || working });
   };
   snapshot = build();
   const publish = () => { snapshot = build(); for (const listener of [...listeners]) { try { listener(); } catch { /* a screen's own failure never stops the model */ } } };
@@ -234,7 +241,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
     if (toCancel?.attempted) {
       const result = await options.uploads.cancel(toCancel.ref, scope);
       if (!alive(g)) return;
-      if (!result.ok || (result.podatak.state !== 'CANCELLED' && !result.podatak.attachedMessageId && result.podatak.state !== 'FAILED' && result.podatak.state !== 'ABSENT')) {
+      if (!result.ok || (result.podatak.state !== 'CANCELLED' && !result.podatak.attachedMessageId && result.podatak.state !== 'FAILED')) {
         fail(error('OUTCOME_UNKNOWN')); publish(); return;
       }
       try { await options.journal.clear(options.accountId, toCancel.ref, () => alive(g)); } catch { /* the next restore clears a cancelled identity */ }
@@ -351,32 +358,71 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
     finally { working = false; if (alive(g)) publish(); }
   }
 
-  /** On focus: read every journal identity. Terminal or attached ones are cleared; a READY recording no message carries is offered, never sent on its own. */
+  /** A persisted upload attempt is never erased because one read said ABSENT.
+   * The network and upload worker can still finish later. Only a confirmed terminal
+   * state or attached message retires that key; all others remain visible for
+   * explicit readback/cancellation. No automatic send or server cancellation. */
   async function restore() {
-    const g = generation; if (!options.isCurrent()) return;
-    let refs: AgreementUploadRef[];
-    try { refs = await options.journal.load(options.accountId, options.agreementId); } catch { return; }
-    if (!alive(g)) return;
-    const reserved = new Set<string>();
-    try { for (const entry of options.outbox.getSnapshot().entries) if (entry.command.voice) reserved.add(entry.command.voice.assetId); } catch { /* treated as none reserved */ }
-    const found: RecoveredRecording[] = [];
-    for (const ref of refs) {
-      if (pending && pending.ref.clientRequestId === ref.clientRequestId) continue;
-      const read = await options.uploads.read(ref, scope);
+    const g = generation;
+    if (!options.isCurrent() || checkingRecovery || working) return;
+    checkingRecovery = true; publish();
+    try {
+      let refs: AgreementUploadRef[];
+      try { refs = await options.journal.load(options.accountId, options.agreementId); }
+      catch { if (alive(g)) fail(error('OUTCOME_UNKNOWN')); return; }
       if (!alive(g)) return;
-      if (!read.ok) continue;
-      const up = read.podatak;
-      if (up.state === 'READY' && up.assetId && !up.attachedMessageId && up.voice) { if (!reserved.has(up.assetId)) found.push({ ref, assetId: up.assetId, durationMs: up.voice.durationMs }); continue; }
-      if (up.state === 'READY' && up.assetId && reserved.has(up.assetId) && !up.attachedMessageId) continue;
-      if (up.state === 'PROCESSING' || up.state === 'STAGED') continue;
-      try { await options.journal.clear(options.accountId, ref, () => alive(g)); } catch { /* cleared on the next focus */ }
-    }
-    if (!alive(g)) return;
-    recovered = found; publish();
+      const reserved = new Set<string>();
+      try { for (const entry of options.outbox.getSnapshot().entries) if (entry.command.voice) reserved.add(entry.command.voice.assetId); }
+      catch { /* keep the journal; a later refresh checks again */ }
+      const found: RecoveredRecording[] = [], waiting: UnresolvedRecording[] = [];
+      for (const ref of refs) {
+        if (pending && pending.ref.clientRequestId === ref.clientRequestId) continue;
+        let read: Awaited<ReturnType<Uploads['read']>> | null = null;
+        try { read = await options.uploads.read(ref, scope); } catch { /* retain the identity */ }
+        if (!alive(g)) return;
+        if (!read?.ok) { waiting.push({ ref, state: 'UNKNOWN' }); continue; }
+        const up = read.podatak;
+        if (up.attachedMessageId || up.state === 'FAILED' || up.state === 'CANCELLED') {
+          try { await options.journal.clear(options.accountId, ref, () => alive(g)); }
+          catch { waiting.push({ ref, state: 'UNKNOWN' }); }
+          if (!alive(g)) return;
+          continue;
+        }
+        if (up.state === 'READY' && up.assetId && up.voice) {
+          if (!reserved.has(up.assetId)) found.push({ ref, assetId: up.assetId, durationMs: up.voice.durationMs });
+          continue;
+        }
+        // ABSENT/PROCESSING/STAGED are not evidence that a dispatched attempt is safely gone.
+        waiting.push({ ref, state: up.state === 'ABSENT' || up.state === 'PROCESSING' || up.state === 'STAGED' ? up.state : 'UNKNOWN' });
+      }
+      if (!alive(g)) return;
+      recovered = found; unresolved = waiting; publish();
+    } finally { checkingRecovery = false; if (alive(g)) publish(); }
+  }
+  /** Explicit user cancellation only, never on mount or background restore. */
+  async function cancelUnresolved(ref: AgreementUploadRef) {
+    const g = generation;
+    const item = unresolved.find(entry => entry.ref.clientRequestId === ref.clientRequestId
+      && entry.ref.agreementId === ref.agreementId && entry.ref.agreementVersion === ref.agreementVersion);
+    if (!item || !options.isCurrent() || working || checkingRecovery) return;
+    working = true; publish();
+    try {
+      const response = await options.uploads.cancel(item.ref, scope);
+      if (!alive(g)) return;
+      const up = response.ok ? response.podatak : null;
+      if (!up || (!up.attachedMessageId && up.state !== 'CANCELLED' && up.state !== 'FAILED')) {
+        fail(error('OUTCOME_UNKNOWN')); return;
+      }
+      await options.journal.clear(options.accountId, item.ref, () => alive(g));
+      if (!alive(g)) return;
+      unresolved = unresolved.filter(entry => entry.ref.clientRequestId !== item.ref.clientRequestId);
+      fail(null);
+    } catch { if (alive(g)) fail(error('OUTCOME_UNKNOWN')); }
+    finally { working = false; if (alive(g)) publish(); }
   }
   async function sendRecovered(ref: AgreementUploadRef) {
     const g = generation, item = recovered.find(entry => entry.ref.clientRequestId === ref.clientRequestId);
-    if (!item || !options.isCurrent() || working || !agreementNow().writable || outboxBusy()) return;
+    if (!item || !options.isCurrent() || working || checkingRecovery || !agreementNow().writable || outboxBusy()) return;
     working = true; publish();
     try {
       await options.outbox.sendVoice({ agreementVersion: item.ref.agreementVersion, assetId: item.assetId });
@@ -389,12 +435,14 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
   }
   async function discardRecovered(ref: AgreementUploadRef) {
     const g = generation, item = recovered.find(entry => entry.ref.clientRequestId === ref.clientRequestId);
-    if (!item || !options.isCurrent() || working) return;
+    if (!item || !options.isCurrent() || working || checkingRecovery) return;
     working = true; publish();
     try {
       const result = await options.uploads.cancel(item.ref, scope);
       if (!alive(g)) return;
-      if (!result.ok) { fail(error('OUTCOME_UNKNOWN')); return; }
+      if (!result.ok || (!result.podatak.attachedMessageId && result.podatak.state !== 'CANCELLED' && result.podatak.state !== 'FAILED')) {
+        fail(error('OUTCOME_UNKNOWN')); return;
+      }
       try { await options.journal.clear(options.accountId, item.ref, () => alive(g)); } catch { /* cleared on the next focus */ }
       recovered = recovered.filter(entry => entry.ref.clientRequestId !== ref.clientRequestId);
     } catch { if (alive(g)) fail(error('OUTCOME_UNKNOWN')); }
@@ -417,7 +465,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
     getSnapshot: () => snapshot,
     /** Re-derives the snapshot when the Agreement or the outbox changed under the model (the hook calls this on every render that changed them). */
     refresh: publish,
-    start, stop, discard, togglePreview, send, retry, restore, sendRecovered, discardRecovered, dispose,
+    start, stop, discard, togglePreview, send, retry, restore, sendRecovered, discardRecovered, cancelUnresolved, dispose,
   };
 }
 export type VoiceMessageComposer = ReturnType<typeof createVoiceMessageComposer>;

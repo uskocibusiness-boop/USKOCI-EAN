@@ -150,12 +150,24 @@ export function AgreementVoicePanel({ voice, writable }: { voice: AgreementVoice
     </View> : null}
     {state.error ? <T variant="note" tone="danger" accessibilityLiveRegion="polite">{state.error.message}</T> : null}
     {voice.interactionError ? <T variant="note" tone="danger" accessibilityLiveRegion="polite">{voice.interactionError}</T> : null}
+    {state.unresolved.map(item => <View style={s.preview} key={item.ref.clientRequestId}>
+      <T variant="bodyStrong">Nepotvrđeno slanje glasovne poruke</T>
+      <T variant="note" tone="muted">{item.state === 'STAGED' ? 'Snimak čeka obradu na serveru.'
+        : item.state === 'PROCESSING' ? 'Snimak se još obrađuje.'
+          : item.state === 'ABSENT' ? 'Server još ne potvrđuje ovaj pokušaj. Proveri isti snimak.'
+            : 'Stanje ranijeg snimka trenutno nije provereno.'}</T>
+      <View style={s.row}>
+        <Action label="Proveri stanje snimka" disabled={state.recoveryBusy} onPress={() => { void voice.refreshRecovery(); }} />
+        <Action label="Otkaži nepotvrđeni snimak" disabled={state.recoveryBusy}
+          onPress={() => { void voice.cancelUnresolved(item.ref); }} />
+      </View>
+    </View>)}
     {state.recovered.map(item => <View style={s.preview} key={item.ref.clientRequestId}>
       <T variant="bodyStrong">Sačuvan snimak · {voiceTime(item.durationMs)}</T>
       <T variant="note" tone="muted">Snimak je sačuvan, ali još nije poslat.</T>
       <View style={s.row}>
-        <Action label="Odbaci sačuvan snimak" onPress={() => { void voice.discardRecovered(item.ref); }} />
-        {writable ? <Action label="Pošalji sačuvan snimak" primary onPress={() => { void voice.sendRecovered(item.ref); }} /> : null}
+        <Action label="Odbaci sačuvan snimak" disabled={state.recoveryBusy} onPress={() => { void voice.discardRecovered(item.ref); }} />
+        {writable ? <Action label="Pošalji sačuvan snimak" primary disabled={state.recoveryBusy} onPress={() => { void voice.sendRecovered(item.ref); }} /> : null}
       </View>
     </View>)}
   </View>;
