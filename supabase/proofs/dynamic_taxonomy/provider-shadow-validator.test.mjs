@@ -18,6 +18,14 @@ for (const purpose of ['need','worker']) {
       assert.throws(()=>verify(purpose,{classificationShadowJson:value}),
         new RegExp(purpose.toUpperCase()+'_SHADOW_JSON_INVALID'));
     }
-    assert.deepEqual(verify(purpose,{classificationShadowJson:'[{"service":"synthetic"}]'}),[{service:'synthetic'}]);
+    const valid={service:'3D printovanje',mode:'REMOTE',action:'NEEDS_REVIEW',categoryId:'',parentId:'',
+      proposedPath:[],reason:'This exact work still needs a classification review.',catalogVersion:9};
+    assert.deepEqual(verify(purpose,{classificationShadowJson:JSON.stringify([valid])}),[valid]);
+    for(const item of [{...valid,mode:'BOTH'},{...valid,reason:'x'}, {...valid,unknown:'private'},
+      {...valid,categoryId:'22222222-2222-4222-8222-222222222222'},
+      {...valid,proposedPath:['Not accepted']}]) {
+      assert.throws(()=>verify(purpose,{classificationShadowJson:JSON.stringify([item])}),
+        new RegExp(purpose.toUpperCase()+'_SHADOW_JSON_INVALID'));
+    }
   });
 }

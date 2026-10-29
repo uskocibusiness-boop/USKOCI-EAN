@@ -122,6 +122,14 @@ function validItem(p,snapshot) {
   if(p.action==='PROPOSE_RESTRUCTURE')return p.categoryId===''&&p.proposedPath.length>0;
   return p.categoryId===''&&p.parentId===''&&p.proposedPath.length===0;
 }
+
+/** Syntax validation shared by live hint admission and the provider proof.
+ * A syntactically valid plan is STILL an untrusted hint: catalog identity,
+ * owner mode/handoff consent and the signed review are checked elsewhere.
+ */
+export function isValidClassificationPlanShape(plan) {
+  return validItem(plan);
+}
 // Diagnostic classes only. Never log model-authored service text, paths or IDs.
 function invalidPlanCode(p) {
   if(!record(p))return 'TYPE';

@@ -19,6 +19,8 @@ export declare function geminiClassificationShadowInstruction(purpose?: Classifi
 export declare function inspectGeminiClassificationShadow(
   raw: unknown, snapshot: CatalogSnapshot | null, purpose: ClassificationPurpose,
 ): ClassificationInspection;
+/** Syntax-only check; never category/owner/Save authority. */
+export declare function isValidClassificationPlanShape(plan: unknown): boolean;
 
 /** Advisory only; never mutates the response, grants Save, or makes a provider call. */
 export declare function classificationTurnFeedback(

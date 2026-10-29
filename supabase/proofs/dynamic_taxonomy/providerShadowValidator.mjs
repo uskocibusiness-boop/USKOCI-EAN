@@ -1,9 +1,10 @@
 /**
  * Offline/proof-only shape gate for the Gemini real-provider smoke.
- * The live semantic engine still owns full category identity, mode, safety and
- * signed Save rules. This guard prevents a missing/invalid REQUIRED field from
- * silently passing the paid smoke, but does not grant any classification.
+ * Reuse the LIVE classification syntax gate. Category identity, mode consent
+ * and signed Save still require the catalog, server and human review.
  */
+import { isValidClassificationPlanShape } from '../../functions/_shared/classificationGeminiShadow.mjs';
+
 export function assertProviderClassificationShadow(name, value) {
   if (!['need', 'worker'].includes(name)) throw new Error('UNKNOWN_PROVIDER_PURPOSE');
   if (!value || typeof value !== 'object' || Array.isArray(value)
@@ -17,7 +18,7 @@ export function assertProviderClassificationShadow(name, value) {
   catch { throw new Error(name.toUpperCase()+'_SHADOW_JSON_INVALID'); }
   const limit=name==='worker'?24:6;
   if (!Array.isArray(proposals) || proposals.length>limit
-      || proposals.some(item=>!item||typeof item!=='object'||Array.isArray(item)))
+      || proposals.some(item=>!isValidClassificationPlanShape(item)))
     throw new Error(name.toUpperCase()+'_SHADOW_JSON_INVALID');
   return proposals;
 }
