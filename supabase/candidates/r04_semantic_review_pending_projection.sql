@@ -24,7 +24,7 @@ BEGIN
     AND p.proconfig=ARRAY['search_path=pg_catalog, private']::text[]
     AND p.proacl::text='{postgres=X/postgres}') THEN
    RAISE EXCEPTION 'R04_REVIEW_PROJECTION_METADATA_DRIFT' USING errcode='55000'; END IF;
-END $r04$;
+END; $r04$;
 CREATE OR REPLACE FUNCTION private.taxonomy_review_candidate_projection_v2(p_purpose text, p_services jsonb, p_service_modes jsonb, p_owner_account_id uuid, p_conversation_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -261,5 +261,5 @@ DO $r04$
 BEGIN
  IF private.retention_ai_source_ready() IS DISTINCT FROM TRUE THEN
    RAISE EXCEPTION 'R04_CLOSURE_MOVED' USING errcode='55000'; END IF;
-END $r04$;
+END; $r04$;
 COMMIT;
