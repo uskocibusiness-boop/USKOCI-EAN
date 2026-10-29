@@ -30,7 +30,7 @@ BEGIN
     private.closure_source_digest_v5() IS DISTINCT FROM
      (SELECT sha256 FROM private.closure_source_v5 WHERE singleton) THEN
    RAISE EXCEPTION 'R04_SIGNERS_CLOSURE_NOT_READY' USING errcode='55000'; END IF;
-END $r04$;
+END; $r04$;
 CREATE TEMP TABLE r04_signer_before ON COMMIT DROP AS
  SELECT oid,to_jsonb(p) attributes FROM pg_proc p WHERE oid IN (
    'public.rpc_prepare_ai_task_review_taxonomy(uuid,timestamp with time zone,jsonb)'::regprocedure,
@@ -513,5 +513,5 @@ BEGIN
    RAISE EXCEPTION 'R04_SIGNER_METADATA_CHANGED' USING errcode='55000'; END IF;
  IF private.retention_ai_source_ready() IS DISTINCT FROM TRUE THEN
    RAISE EXCEPTION 'R04_SIGNERS_CLOSURE_MOVED' USING errcode='55000'; END IF;
-END $r04$;
+END; $r04$;
 COMMIT;
