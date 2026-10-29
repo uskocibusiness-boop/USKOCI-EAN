@@ -3963,6 +3963,14 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 - **Granica:** čak i kada korisnik eksplicitno ukloni korumpiran lokalni identitet, prethodna serverska poruka može i dalje postojati/ne biti završena. Ovo nije opšta „restartuj sve” opcija niti način da se validan UNKNOWN zaobiđe. R11c/X01 ostaje `IN_PROGRESS` do CI + uređajskog povratka i account-switch scenarija.
 
 
+### R11g/SB14 — 29.10.2026: Gemini real-provider proof obavezno validira shadow polje (SOURCE COMMITTED; CI pending)
+
+- **Uzrok u stvarnom proverivaču:** `gemini-real-provider-smoke.mjs` imao je `if ('classificationShadowJson' in value)`; odsutno obavezno polje nije bilo greška, iako oba važeća wire schema zahtevaju ovaj podatak. Zeleni paid smoke zato nije morao potvrditi prisustvo klasifikacionog izlaza. Ovo je kvar dokazne kapije, ne potvrđen incident sa stvarnim korisnikom/modelom.
+- **Ispravka:** postojeći opt-in paid smoke bez mrežnog/SQL zaobilaženja sada poziva mali proof-only `assertProviderClassificationShadow`; oba purpose-a zahtevaju eksplicitni string i ispravan ograničen niz, ne dopuštaju odsutno, `null`, invalid JSON, ne-array, previše članova ili previše bajtova. `[]` ostaje dozvoljen samo kao eksplicitno prisutan rezultat; ovaj pomoćnik ne validira semantičko pravo ili grant. Nema trećeg AI modela ni nove runtime strategije.
+- **Automatske negativne kontrole:** `provider-shadow-validator.test.mjs` proverava sve navedene oblike bez provider poziva. `ci-clean.yml` dodaje taj Node test i postojeći `gemini-real-provider-smoke.mjs --offline` sa realnim source schema extractor-om; opt-in `--provider` ostaje zasebno test sa namerno zadatim ključem/modelom i dva ograničena sintetička poziva. Nema DEV/Edge/deploy-a ni live model dokaza.
+- **Status:** source commit, CI rezultat zahteva zasebnu proveru. R11g/SB14 i R12 proof readiness ostaju `IN_PROGRESS`; R01 strict parity ostaje zasebna BLOCKED kapija.
+
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita
