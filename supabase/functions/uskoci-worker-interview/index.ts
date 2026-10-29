@@ -214,7 +214,12 @@ No other fields, account IDs, task facts, publication actions or hidden tool com
 // instruction or a sentence containing a correction must still reach the model.
 function finishOnly(input: string): boolean {
   const normalized = input.normalize('NFKC').toLowerCase().trim().replace(/[.!?,…]+/g, ' ').replace(/\s+/g, ' ').trim();
-  return /^(?:to je to|to je sve|gotovo|gotovo to je sve|sačuvaj|sacuvaj|sačuvaj profil|sacuvaj profil|то је то|то је све|готово|сачувај|сачувај профил)$/.test(normalized);
+  // Thanks is natural conversation framing, not a second command or a correction.
+  // Remove only a complete, bounded greeting/farewell; exact finish intents remain
+  // anchored so "to je to, ali promenite..." reaches the normal interview.
+  const utterance = normalized.replace(/^(?:hvala(?: vam)?|хвала(?: вам)?)\s+/u, '')
+    .replace(/\s+(?:hvala(?: vam)?|хвала(?: вам)?)$/u, '');
+  return /^(?:to je to|to je sve|gotovo|gotovo to je sve|sačuvaj|sacuvaj|sačuvaj profil|sacuvaj profil|то је то|то је све|готово|сачувај|сачувај профил)$/.test(utterance);
 }
 
 export async function handleWorkerInterview(req: Request): Promise<Response> {

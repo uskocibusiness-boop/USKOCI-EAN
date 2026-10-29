@@ -891,7 +891,12 @@ async function callGemini(
 
 function taskFinishOnly(input: string): boolean {
   const normalized = input.normalize('NFKC').toLowerCase().trim().replace(/[.!?,…]+/g, ' ').replace(/\s+/g, ' ').trim();
-  return /^(?:to je to|to je sve|gotovo|gotovo to je sve|objavi|objavi zadatak|sačuvaj|sacuvaj|то је то|то је све|готово|објави|објави задатак|сачувај)$/.test(normalized);
+  // Thanks is natural conversation framing, not a second command or a correction.
+  // Remove only a complete, bounded greeting/farewell; exact finish intents remain
+  // anchored so "to je to, ali promenite..." reaches the normal interview.
+  const utterance = normalized.replace(/^(?:hvala(?: vam)?|хвала(?: вам)?)\s+/u, '')
+    .replace(/\s+(?:hvala(?: vam)?|хвала(?: вам)?)$/u, '');
+  return /^(?:to je to|to je sve|gotovo|gotovo to je sve|objavi|objavi zadatak|sačuvaj|sacuvaj|то је то|то је све|готово|објави|објави задатак|сачувај)$/.test(utterance);
 }
 
 // Explicit task publication stays outside map confirmation. This is a publication

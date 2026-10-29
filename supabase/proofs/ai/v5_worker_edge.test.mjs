@@ -844,7 +844,7 @@ for(const change of ['add','remove'])test(`worker ${change} instruction keeps un
  assert.ok(prompt.includes("'Imam kombi' is equipment, NOT consent to transport or removals"));
 });
 
-for(const input of ['To je to.','Sačuvaj','Сачувај','Gotovo, to je sve!'])
+for(const input of ['To je to.','Sačuvaj','Сачувај','Gotovo, to je sve!','Hvala, to je to.','To je sve, hvala Vam!','Хвала, то је све.','То је то, хвала!'])
  test('finish request hands off to profile review without another availability question: '+input,async()=>{
   const output={assistantMessage:'Da li su tvoje radno vreme i dostupnost tačni?',safety:'ALLOW',patch:{tools:['Izmišljeni alat']}};
   const f=fixture({output}),es=await events(f,{text:input});
@@ -865,6 +865,10 @@ for(const input of ['To je to.','Sačuvaj','Сачувај','Gotovo, to je sve!'
 test('finish handling does not swallow a correction or override a safety refusal',async()=>{
  const plain=fixture(),es=await events(plain,{text:'Nemoj još da sačuvaš.'});assert.equal(es.at(-1).kind,'final');
  assert.deepEqual(completions(plain)[0].body.p_output,plain.output);
+ const courtesy=fixture();
+ await events(courtesy,{text:'Hvala, to je to, ali želim da promenim uslugu.'});
+ assert.deepEqual(completions(courtesy)[0].body.p_output,courtesy.output,
+   'a polite correction must reach the actual provider, not be erased by finish-only');
  const equipment=fixture(),equipmentEvents=await events(equipment,{text:'Sačuvaj, ali dodaj da imam kolica.'});
  assert.equal(equipmentEvents.at(-1).kind,'final');
  assert.deepEqual(completions(equipment)[0].body.p_output.patch,equipment.output.patch);

@@ -73,6 +73,29 @@ test('typed instruction plus photo preserves exactly the user's text at claim an
   assert.equal(parts[1].inlineData.mimeType,'image/jpeg');
 });
 
+for(const phrase of ['Hvala, to je to.','To je sve, hvala Vam!','Хвала, то је све.','То је то, хвала!'])test(
+  'natural courteous Need finish still opens one review without another invented material fact: '+phrase,async()=>{
+    const f=fixture();
+    const response=await f.invoke({text:phrase});
+    assert.equal(response.status,200);
+    assert.equal(providers(f).length,1);
+    assert.equal(completes(f).length,1);
+    const completion=completes(f)[0].body;
+    assert.equal(completion.p_user_message,phrase);
+    assert.deepEqual(completion.p_proposals,[]);
+    assert.equal(completion.p_assistant_message,
+      'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.');
+  });
+test('a courteous finish followed by a correction must not be swallowed as review-only',async()=>{
+  const f=fixture();
+  const input='Hvala, to je to, ali još promenite broj ljudi.';
+  const response=await f.invoke({text:input});
+  assert.equal(response.status,200);
+  assert.equal(completes(f)[0].body.p_user_message,input);
+  assert.notEqual(completes(f)[0].body.p_assistant_message,
+    'Otvori pregled zadatka. Tamo možeš da dopuniš podatke i potvrdiš objavu.');
+});
+
 test('verified Auth identity and owned context drive same stable command through exact completion',async()=>{
  const f=fixture();assert.deepEqual(await(await f.invoke()).json(),turn());
  const auth=f.calls[0],claim=f.calls.find(x=>x.url.endsWith('/rpc_ai_claim_need_turn_v2_service'));
