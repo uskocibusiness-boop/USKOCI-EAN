@@ -36,6 +36,8 @@ jobs:
         run: npm ci
       - name: R01 future public default ACL boundary (isolated PostgreSQL only)
         run: node --test --test-reporter=spec supabase/proofs/privacy/r01_future_public_default_grants.test.mjs
+      - name: R01 existing nonrow public ACL boundary (isolated PostgreSQL only)
+        run: node --test --test-reporter=spec supabase/proofs/privacy/r01_existing_public_nonrow_privileges.test.mjs
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Deno AI Edge import and type checks (no execution)
