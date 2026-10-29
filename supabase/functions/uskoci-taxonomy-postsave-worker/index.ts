@@ -25,15 +25,24 @@ const sameKey=(provided:string,expected:string)=>{
 };
 async function boundedJson(response:Response,signal:AbortSignal):Promise<unknown>{
  const maxBytes=32768;
- const declared=response.headers.get('content-length');
- if(declared!==null&&(!/^\d+$/.test(declared)||Number(declared)>maxBytes))
-   throw new Unavailable(true);
- if(!response.body)throw new Unavailable(true);
- const reader=response.body.getReader();let size=0,body='';const decoder=new TextDecoder('utf-8',{fatal:true});
+ let reader:ReadableStreamDefaultReader<Uint8Array>|undefined;
+ let rejectStopped!:(reason:Unavailable)=>void;
+ const stopped=new Promise<never>((_,reject)=>{rejectStopped=reject;});
+ void stopped.catch(()=>undefined);
+ const stop=()=>rejectStopped(new Unavailable(true));
+ signal.addEventListener('abort',stop,{once:true});
  try{
+  if(signal.aborted)throw new Unavailable(true);
+  const declared=response.headers.get('content-length');
+  if(declared!==null&&(!/^\d+$/.test(declared)||!Number.isSafeInteger(Number(declared))||Number(declared)>maxBytes))
+    throw new Unavailable(true);
+  if(!response.body)throw new Unavailable(true);
+  reader=response.body.getReader();
+  let size=0,body='';const decoder=new TextDecoder('utf-8',{fatal:true});
   for(;;){
    if(signal.aborted)throw new Unavailable(true);
-   const part=await reader.read();
+   // The one tick deadline also owns a body which does not react to Fetch abort.
+   const part=await Promise.race([reader.read(),stopped]);
    if(signal.aborted)throw new Unavailable(true);
    if(part.done)break;
    size+=part.value.byteLength;
@@ -41,12 +50,19 @@ async function boundedJson(response:Response,signal:AbortSignal):Promise<unknown
    body+=decoder.decode(part.value,{stream:true});
   }
   body+=decoder.decode();
+  const encoding=response.headers.get('content-encoding')?.trim().toLowerCase();
+  if((!encoding||encoding==='identity')&&declared!==null&&Number(declared)!==size)
+    throw new Unavailable(true);
   try{return JSON.parse(body);}catch{throw new Unavailable(true);}
  }catch{
   // A failed body stream or invalid UTF-8 is an uncertain transport receipt,
   // not a semantic rejection of the already signed review. Reuse its job key.
   throw new Unavailable(true);
- }finally{void reader.cancel().catch(()=>undefined);}
+ }finally{
+  signal.removeEventListener('abort',stop);
+  // Cancel header-rejected bodies too; cleanup must never extend the deadline.
+  try{void (reader?reader.cancel():response.body?.cancel())?.catch(()=>undefined);}catch{/* best effort */}
+ }
 }
 let running=false;
 Deno.serve(async request=>{
@@ -76,6 +92,7 @@ Deno.serve(async request=>{
  const controller=new AbortController();
  const cancel=()=>controller.abort();
  request.signal.addEventListener('abort',cancel,{once:true});
+ if(request.signal.aborted)cancel();
  const timeout=setTimeout(cancel,24000);
  try{
   const rpc=async(name:string,args:RpcArgs)=>{
@@ -85,7 +102,8 @@ Deno.serve(async request=>{
     'rpc_taxonomy_commit_reviewed_batch_service',
     'rpc_taxonomy_finalize_reviewed_batch_service',
     'rpc_taxonomy_bind_ready_reviews_service',
-   ].includes(name)||controller.signal.aborted)throw new Unavailable();
+   ].includes(name))throw new Unavailable();
+   if(controller.signal.aborted)throw new Unavailable(true);
    let response:Response;
    try{
     response=await fetch(origin+'/rest/v1/rpc/'+name,{
@@ -96,7 +114,7 @@ Deno.serve(async request=>{
    }catch{throw new Unavailable(true);}
    if(!response.ok){
     void response.body?.cancel().catch(()=>undefined);
-    throw new Unavailable(response.status===429||response.status>=500);
+    throw new Unavailable(response.status===408||response.status===429||response.status>=500);
    }
    return boundedJson(response,controller.signal);
   };

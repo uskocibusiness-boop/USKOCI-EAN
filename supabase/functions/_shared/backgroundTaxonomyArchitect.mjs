@@ -13,6 +13,35 @@ import { workerModeRequests } from './workerServiceModeContext.mjs';
 
 let cachedFullCatalog = null;
 const cachedNovelDecisions = new Map();
+const NOVEL_DECISION_TTL_MS = 5 * 60 * 1000;
+const NOVEL_DECISION_MAX_ENTRIES = 128;
+
+function pruneNovelDecisions(now) {
+  for (const [key, entry] of cachedNovelDecisions) {
+    // A clock rollback cannot turn an old decision into an indefinitely fresh one.
+    if (now < entry.createdAt || now - entry.createdAt >= NOVEL_DECISION_TTL_MS) cachedNovelDecisions.delete(key);
+  }
+}
+function cachedNovelDecision(key) {
+  pruneNovelDecisions(Date.now());
+  const entry = cachedNovelDecisions.get(key);
+  if (!entry) return null;
+  cachedNovelDecisions.delete(key);
+  cachedNovelDecisions.set(key, entry); // LRU order only; a hit never renews age.
+  return entry;
+}
+function cacheNovelDecision(key, parentId, reason) {
+  // Only small validated CREATE_CHILD hints are retained, never whole responses,
+  // user scope, account/review identity, credentials or a grant of authority.
+  if (!key || parentId.length > 128) return;
+  const createdAt = Date.now();
+  pruneNovelDecisions(createdAt);
+  cachedNovelDecisions.delete(key);
+  cachedNovelDecisions.set(key, Object.freeze({ parentId, reason, createdAt }));
+  while (cachedNovelDecisions.size > NOVEL_DECISION_MAX_ENTRIES) {
+    cachedNovelDecisions.delete(cachedNovelDecisions.keys().next().value);
+  }
+}
 
 // In-memory store for asynchronous clarification hints across conversation turns
 const clarificationHintsByConversation = new Map();
@@ -527,13 +556,11 @@ export function formatFullCatalogHierarchy(catalog) {
   return lines.join('\n');
 }
 
-async function classifyNovelServicesWithGemini({
-  geminiKey,
+function novelServicesRequest({
   geminiModel,
   catalog,
   unresolvedItems,
   scopeSummary,
-  signal,
 }) {
   const treeLines = formatFullCatalogHierarchy(catalog);
 
@@ -580,23 +607,43 @@ async function classifyNovelServicesWithGemini({
   };
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent`;
-  const res = await fetch(url, {
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: systemText }] },
+    contents: [{ role: 'user', parts: [{ text: userText }] }],
+    generationConfig: {
+      temperature: 0.1,
+      maxOutputTokens: 1024,
+      responseMimeType: 'application/json',
+      responseSchema,
+      ...(String(geminiModel).includes('2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
+    },
+  });
+  return { url, body };
+}
+
+async function novelDecisionKey(request, catalog, unresolved) {
+  // The active Need caller has one service. Do not reuse a batch item's result
+  // outside the co-service context that the model actually saw.
+  if (unresolved.length !== 1) return null;
+  // Exact request bytes cover the prompt/schema/config, exact service spelling,
+  // public scope and complete tree (labels/aliases/parents/modes). The database
+  // fingerprint alone does not cover all those bytes. Handoff is re-bound to
+  // the current caller, not transferred as consent from a previous decision.
+  // The model endpoint has no credential; headers are deliberately excluded.
+  const identity = JSON.stringify(['NEED_NOVEL_CREATE_CHILD_V1', catalog.catalogVersion,
+    catalog.catalogFingerprint, request.url, request.body, stableTaxonomyValue(unresolved[0].handoff ?? null)]);
+  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(identity))))
+    .map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function classifyNovelServicesWithGemini({ geminiKey, request, signal }) {
+  const res = await fetch(request.url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'x-goog-api-key': geminiKey,
     },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: systemText }] },
-      contents: [{ role: 'user', parts: [{ text: userText }] }],
-      generationConfig: {
-        temperature: 0.1,
-        maxOutputTokens: 1024,
-        responseMimeType: 'application/json',
-        responseSchema,
-        ...(String(geminiModel).includes('2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
-      },
-    }),
+    body: request.body,
     signal,
   });
 
@@ -622,10 +669,6 @@ export async function buildFullTreeTaxonomyProposals({
   // The caller passes the typed public description, not the private address,
   // access notes or map pin. Do not retain the description in an in-memory key.
   const publicScope = typeof scopeSummary === 'string' ? scopeSummary.trim().slice(0, 500) : '';
-  const scopeHash = publicScope
-    ? Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(publicScope))))
-      .map((byte) => byte.toString(16).padStart(2, '0')).join('')
-    : '';
   const catalog = await loadFullCatalogTree(rpc, signal);
   const validNodeIds = new Set(catalog.categories.map((c) => c.categoryId));
 
@@ -661,39 +704,35 @@ export async function buildFullTreeTaxonomyProposals({
         ...(decodedHandoff ? { handoff: decodedHandoff } : {}),
       });
     } else {
-      const cacheKey = `${catalog.catalogVersion}|${norm}|${mode}|${scopeHash}`;
-      const cachedDecision = cachedNovelDecisions.get(cacheKey);
-      if (cachedDecision && validNodeIds.has(cachedDecision.parentId)) {
-        proposals.push({
-          service,
-          mode,
-          action: 'CREATE_CHILD',
-          categoryId: '',
-          parentId: cachedDecision.parentId,
-          proposedPath: [service],
-          reason: cachedDecision.reason,
-          catalogVersion: catalog.catalogVersion,
-          ...(decodedHandoff ? { handoff: decodedHandoff } : {}),
-        });
-      } else {
-        unresolved.push({ service, mode, handoff: decodedHandoff });
-      }
+      unresolved.push({ service, mode, handoff: decodedHandoff });
     }
   }
 
   if (unresolved.length > 0) {
     let aiDecisions = [];
+    let cacheKey = null;
     if (geminiKey && geminiModel) {
       try {
-        aiDecisions = await classifyNovelServicesWithGemini({
-          geminiKey,
+        if (signal?.aborted) throw new TaxonomyProviderError('PROVIDER_ABORTED');
+        const request = novelServicesRequest({
           geminiModel,
           catalog,
           unresolvedItems: unresolved.map(({ service, mode }) => ({ service, mode })),
           scopeSummary: publicScope,
-          signal,
         });
+        cacheKey = await novelDecisionKey(request, catalog, unresolved);
+        if (signal?.aborted) throw new TaxonomyProviderError('PROVIDER_ABORTED');
+        const cached = cacheKey ? cachedNovelDecision(cacheKey) : null;
+        if (cached && validNodeIds.has(cached.parentId)) {
+          aiDecisions = [{ service: unresolved[0].service, mode: unresolved[0].mode,
+            action: 'CREATE_CHILD', parentId: cached.parentId, reason: cached.reason }];
+          cacheKey = null; // Revalidation below must not renew the cached age.
+        } else {
+          aiDecisions = await classifyNovelServicesWithGemini({ geminiKey, request, signal });
+          if (signal?.aborted) throw new TaxonomyProviderError('PROVIDER_ABORTED');
+        }
       } catch (err) {
+        aiDecisions = [];
         reportProviderFailure(err, failures);
       }
     } else {
@@ -734,10 +773,7 @@ export async function buildFullTreeTaxonomyProposals({
           ? decision.reason.trim().slice(0, 900)
           : `Nova specifična usluga „${item.service}“ raspoređena pod odgovarajuću granu kataloga.`;
 
-        cachedNovelDecisions.set(`${catalog.catalogVersion}|${norm}|${item.mode}|${scopeHash}`, {
-          parentId,
-          reason: rawReason,
-        });
+        cacheNovelDecision(cacheKey, parentId, rawReason);
         proposals.push({
           service: item.service,
           mode: item.mode,

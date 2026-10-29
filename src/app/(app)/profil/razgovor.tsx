@@ -425,8 +425,11 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   // Legacy equipment alone is not a configured MVP work profile. The V1 wire
   // still carries it for signed-review compatibility, but the conversation
   // introduces the service, area and availability that actually route tasks.
+  // Signed territories need not populate the legacy city. They are content
+  // worth reviewing, not proof of completion, consent or activation readiness.
   const hasProfileContent = data.candidate.skills.length > 0 || data.candidate.bio.trim().length > 0
-    || data.candidate.location.city.trim().length > 0 || data.candidate.availability.availableNow
+    || data.candidate.location.city.trim().length > 0 || (data.candidate.workAreas?.length ?? 0) > 0
+    || data.candidate.availability.availableNow
     || data.candidate.availability.rules.length > 0 || data.candidate.availability.windows.length > 0;
   // A past review must not lend its service modes or delivery scope to a newer draft.
   const currentReview=!data.stale&&!reviewNeedsRestart&&data.review?.accountId===data.accountId

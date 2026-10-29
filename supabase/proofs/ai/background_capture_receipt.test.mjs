@@ -170,6 +170,14 @@ for(const modes of [['ON_SITE'],['REMOTE'],['ON_SITE','REMOTE']]){
 }
 
 for(const kind of ['NEED','WORKER']){
+  test(kind+' dual turn loads one catalog only when classification inputs change',async()=>{
+    const f=fixture(kind,'capture',()=>json({action:'HINT_CAPTURED',authority:'NONE'}));
+    await f.execute();
+    const snapshots=()=>f.calls.filter(call=>call.url.endsWith('/rpc_taxonomy_fetch_snapshot_v1'));
+    assert.equal(snapshots().length,1,'the builder owns the single complete snapshot load');
+    await f.followup();
+    assert.equal(snapshots().length,1,'unchanged conversational followup must not prefetch the entire catalog');
+  });
   for(const operation of ['store','capture']){
     test(kind+' valid '+operation+' ACK leaves the success stream and diagnostics clean',async()=>{
       const f=fixture(kind,operation,args=>json(operation==='store'?{stored:true,draftRevision:args.p_draft_revision}:{action:'HINT_CAPTURED',authority:'NONE'}));

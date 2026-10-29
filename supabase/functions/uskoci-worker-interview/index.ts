@@ -26,7 +26,7 @@ import { withClassificationFeedback } from '../_shared/classificationReply.mjs';
 import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction, workerModeRequests, preserveWorkerServiceModes, recoverWorkerExistingIdentity } from '../_shared/workerServiceModeContext.mjs';
 import { guardWorkerAreaOutput } from '../_shared/workerAreaAdmission.mjs';
 import { workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas } from '../_shared/workerAreaResolver.mjs';
-import { buildWorkerFullTreeTaxonomyProposals, loadFullCatalogTree, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint, workerSkillsFingerprint } from '../_shared/backgroundTaxonomyArchitect.mjs';
+import { buildWorkerFullTreeTaxonomyProposals, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint, workerSkillsFingerprint } from '../_shared/backgroundTaxonomyArchitect.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const isLiveDualGemini = (): boolean =>
@@ -292,7 +292,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   const dualGeminiActive = isLiveDualGemini();
   let pendingWorkerClarificationHint: any = null;
   if (dualGeminiActive) {
-    void loadFullCatalogTree((name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? req.signal, t ?? 4000), req.signal).catch(() => null);
+    // The BG builder loads a fresh complete snapshot only when needed. A
+    // speculative load on every message duplicates that RPC without saving I/O.
     try {
       pendingWorkerClarificationHint = await fetchUnconsumedClarificationHint(
         (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? req.signal, t ?? 2500),

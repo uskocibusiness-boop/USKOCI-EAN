@@ -47,7 +47,6 @@ import {
   taskTaxonomyMode,
   taskTaxonomyScope,
   taskClassificationFingerprint,
-  loadFullCatalogTree,
   runInBackground,
   persistClarificationHint,
   persistConsumeClarificationHint,
@@ -1510,9 +1509,8 @@ Deno.serve(async (req: Request) => {
       // sees pages and may request any other branch; no whole-tree payload.
       research = createResearchDeadline(signal, requestStartedAt);
       const dualGeminiActive = isLiveDualGemini();
-      if (dualGeminiActive) {
-        void loadFullCatalogTree((name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? signal, t ?? 4000), signal).catch(() => null);
-      }
+      // Dual classification owns its snapshot after a relevant input change.
+      // A speculative load here cannot skip the builder's fresh snapshot RPC.
       let taxonomyPrompt = '';
       if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW') && !dualGeminiActive) {
         try {
