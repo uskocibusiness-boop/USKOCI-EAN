@@ -3972,6 +3972,13 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 - **Status:** source commit, CI rezultat zahteva zasebnu proveru. R11g/SB14 i R12 proof readiness ostaju `IN_PROGRESS`; R01 strict parity ostaje zasebna BLOCKED kapija.
 
 
+### R08/F12 — 29.10.2026: klasifikacija ne dodaje drugo pitanje uz aktivan ASK/CLARIFY (SOURCE, CI pending)
+
+- **Stvarni uzrok:** aktivni `classificationReply.mjs` je razdvajanje dodatnog metadata pitanja svodio na proveru `assistantMessage.includes('?')`. Pri prirodnoj poruci bez upitnika, iako je typed `dialogue.next=ASK/CLARIFY`, klasifikator je dodavao drugi upit. Obrnut slučaj: pri ACK poruci sa novim klasifikacionim pitanjem tekst bi sadržao pitanje, a typed `dialogue.next` bi ostao ACK. F12 zahteva jednu korisnu odluku i dosledan status, ne samo broj znakova pitanja.
+- **Ispravka u postojećem shared owner-u:** `withClassificationFeedback` sada poštuje typed ASK/CLARIFY kao već aktivno pitanje i ANSWER kao korisnikovo traženo objašnjenje, bez slepog dodavanja drugog metadata pitanja. Kada mora da zameni odbijeni REVIEW/finish ili da uz običan ACK doda jedno nerešeno klasifikaciono pitanje, typed `dialogue.next` postaje `CLARIFY` sa neutralnim `questionKey`; bez promene činjenica, Save, score ili klasifikacionog autoriteta. Worker izlaz bez `dialogue` zadržava postojeću zaštitu zasnovanu na tekstu; ne izmišljamo mu typed polje.
+- **Regresije:** proširen `supabase/proofs/ai/shadow_one_question.test.mjs` stvarnim pozivom shared helper-a pokriva jedan upit bez znaka pitanja, korisničko objašnjenje, ACK+metadata pitanje i potpis statusa bez dodavanja činjenica. Ovaj guard **ne dokazuje** da model sam nikad ne stavi više pitanja u jednu rečenicu; potpuni F12/R08 ostaje otvoren za stvarni modelski i native acceptance. Nema Edge deploy-a, DEV SQL, korisničkog upisa ni novog prompt servisnog sloja.
+
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita
