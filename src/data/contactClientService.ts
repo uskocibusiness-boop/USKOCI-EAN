@@ -1,14 +1,9 @@
-import { legacyRpcFailure } from './legacyRpcFailure';
 import type { Ishod, Izvor } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 import type { ExactLocationReveal, LocationGrant, LocationGrantState } from '../contracts/contact';
 import { locationPrivateText, normalizeNeedLocation } from '../lib/location';
 import { sesijaSada } from '../store/sesija';
 import { failure, positiveInteger, readOwnedResult, readReceipt, record, sameId, timestamp, uuid } from './serverReceipt';
-
-const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
-  get: (_target, prop) => (supabaseKlijent() as never)[prop],
-});
 
 type ContactClientService = Pick<Izvor, 'podeliTelefon' | 'opoziviTelefon' | 'otkrijTacnuLokaciju'
   | 'lokacijskaDozvola' | 'podeliTacnuLokaciju' | 'opoziviTacnuLokaciju'>;
@@ -75,10 +70,6 @@ async function setLocationGrant(agreementId: string, granted: boolean): Promise<
   return result.ok ? { ok: true, podatak: null } : result;
 }
 
-function rpcFailure<T>(error: unknown, fallbackCode: string, fallbackMessage: string): Ishod<T> {
-  return legacyRpcFailure(error, fallbackCode, fallbackMessage);
-}
-
 /**
  * Canonical production boundary for contact/privacy operations migrated so far.
  * Backend authority remains in canonical grant/reveal RPCs; this service preserves
@@ -92,13 +83,28 @@ export const contactClientService: ContactClientService = {
   },
 
   async opoziviTelefon(dogovorId) {
-    const { error } = await supabase.rpc('rpc_set_contact_grant', {
-      p_agreement_id: dogovorId,
-      p_channel: 'PHONE',
-      p_granted: false,
+    // Historical PHONE revocation remains available. A void ACK or lost write
+    // must not be called successful; only the owned server receipt confirms it.
+    if (!uuid(dogovorId)) return failure('AGREEMENT_NOT_FOUND', 'Dogovor nije dostupan.');
+    const accountId = sesijaSada().user?.id;
+    const result = await readReceipt({
+      rpc: 'rpc_set_contact_grant',
+      args: { p_agreement_id: dogovorId, p_channel: 'PHONE', p_granted: false },
+      write: true,
+      errors: { AUTH_REQUIRED: 'Prijavite se da nastavite.', NOT_PARTY: 'Niste učesnik ovog Dogovora.',
+        AGREEMENT_NOT_FOUND: 'Dogovor nije dostupan.' },
+      fallback: 'PHONE_REVOKE_UNCONFIRMED', invalid: 'PHONE_REVOKE_INVALID',
+      decode: raw => {
+        const data = record(raw);
+        return data?.authoritative === true && data.channel === 'PHONE'
+          && sameId(data.agreementId, dogovorId) && !!accountId
+          && sameId(data.grantedByAccountId, accountId)
+          && uuid(data.grantedToAccountId) && !sameId(data.grantedToAccountId, accountId)
+          && data.granted === false
+          && (uuid(data.grantId) || data.grantId === null) ? { accepted: true } : null;
+      },
     });
-    if (error) return rpcFailure(error, 'PHONE_REVOKE_FAILED', 'Deljenje telefona nije opozvano.');
-    return { ok: true, podatak: null };
+    return result.ok ? { ok: true, podatak: null } : result;
   },
 
   async lokacijskaDozvola(dogovorId) {
