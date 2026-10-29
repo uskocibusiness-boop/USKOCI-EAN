@@ -11,7 +11,9 @@
 -- gates must be satisfied before promoting it via a newly generated migration.
 --
 -- Test only with SET uskoci.r01.disposable='LOCAL_ONLY' on an approved
--- ephemeral PostgreSQL 17 database named postgres under supabase_admin.
+-- ephemeral database named postgres under supabase_admin.
+-- PG17 (target) and PG18 (isolated PGlite SQL semantics only) are admitted;
+-- the latter does not prove the hosted PG17 platform or current-schema parity.
 BEGIN;
 SET LOCAL search_path = pg_catalog;
 DO $r01_future$
@@ -28,7 +30,7 @@ BEGIN
     OR current_database()<>'postgres'
     OR current_user<>'supabase_admin'
     OR to_regrole('cli_login_postgres') IS NOT NULL
-    OR current_setting('server_version_num')::integer/10000<>17
+    OR current_setting('server_version_num')::integer/10000 NOT IN (17,18)
   THEN RAISE EXCEPTION 'R01_DEFAULTS_DISPOSABLE_PLATFORM_OWNER_REQUIRED'
     USING errcode='55000'; END IF;
 
