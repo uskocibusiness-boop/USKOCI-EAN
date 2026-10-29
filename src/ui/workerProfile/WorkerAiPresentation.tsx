@@ -171,6 +171,15 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
           {handoff?<T testID="worker-review-handoff" variant="note" tone="muted">Predaja: {handoff}</T>:null}
         </View>;
       })}</View>:<T variant="body" tone="muted">{EMPTY}</T>}
+      {review.semanticReviewCandidates?.length ? <View testID="worker-semantic-review-proposals" style={s.services}>
+        <T accessibilityRole="header" variant="bodyStrong">Proverite predložene iste usluge</T>
+        {review.semanticReviewCandidates.map(item=><View key={item.service+'|'+item.mode} style={s.service}>
+          <T variant="bodyStrong">{item.service}</T>
+          <T variant="note" tone="muted">AI predlaže postojeću kategoriju: {item.categoryLabel} · {item.mode==='ON_SITE'?'Na lokaciji':'Na daljinu'}</T>
+          <T variant="note" tone="muted">{item.reason}</T>
+        </View>)}
+        <T accessibilityRole="alert" variant="note" tone="muted">Ovo je samo predlog, ne potvrđena sposobnost. Automatsko povezivanje čeka proveru značenja i načina rada; za ispravku se vratite u isti razgovor.</T>
+      </View> : null}
       {review.classificationState&&review.classificationState!=='READY'
         ?<T testID="worker-classification-pending" variant="note" tone="muted">
           {review.classificationState==='SERVICE_MODE_CONFIRMATION_REQUIRED'
