@@ -80,7 +80,8 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
       uloga: requester ? 'uskocer' : 'narucilac',
       mesta: requester ? covered : null,
       viSte: false,
-      telefon: raw.theirPhone ?? null,
+      // The current product uses only in-app messages, even against an old RPC.
+      telefon: null,
     },
   ];
 
@@ -119,8 +120,10 @@ function mapAgreement(raw: any, uid: string): DogovorProjekcija {
     ucesnici: participants,
     rezim: mode === 'REMOTE' ? 'DALJINSKI' : mode === 'PICKUP_DELIVERY' ? 'PREUZIMANJE_DOSTAVA' : 'FIZICKI',
     kontakt: {
-      mojTelefonPodeljen: Boolean(raw.myPhoneShared),
-      njihovTelefon: raw.theirPhone ?? null,
+      // A legacy server may still project older PHONE grants until migration.
+      // Never surface those fields in the supported messages-only client.
+      mojTelefonPodeljen: false,
+      njihovTelefon: null,
       lokacijaPostoji: mode !== 'REMOTE',
       tacnaLokacija: null,
       emailNijeDeljen: true,
