@@ -2,6 +2,7 @@
  * CDL-A05 — canonical PHONE grant/revoke contract.
  *
  * Pre-deletion old-vs-new equivalence was proven by PRE-P4 run 33957532925.
+ * Current messages-only policy also prevents new PHONE grants in the client.
  * After deletion these tests lock the canonical RPC/error contract and prove
  * both migrated commands have one physical production owner.
  */
@@ -43,19 +44,17 @@ describe('CDL-A05 — canonical phone grant contract', () => {
     expect(baselineSource).toContain("'opoziviTelefon'");
   });
 
-  it('podeliTelefon preserves exact RPC, PHONE channel, granted=true and success', async () => {
+  it('podeliTelefon refuses legacy sharing without any server call', async () => {
     resetRpc({ data: null, error: null });
 
     const result = await contactClientService.podeliTelefon('agr-1');
 
-    expect(mockRpc.mock.calls).toEqual([
-      ['rpc_set_contact_grant', {
-        p_agreement_id: 'agr-1',
-        p_channel: 'PHONE',
-        p_granted: true,
-      }],
-    ]);
-    expect(result).toEqual({ ok: true, podatak: null });
+    expect(mockRpc).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      ok: false,
+      kod: 'PHONE_SHARING_DISABLED',
+      poruka: 'Brojevi telefona se ne dele. Koristite poruke u aplikaciji.',
+    });
   });
 
   it('opoziviTelefon preserves exact RPC, PHONE channel, granted=false and success', async () => {
@@ -74,9 +73,6 @@ describe('CDL-A05 — canonical phone grant contract', () => {
   });
 
   it.each([
-    ['grant message', 'podeliTelefon', { message: 'GRANT_DENIED', code: '42501' }, { ok: false, kod: 'PHONE_GRANT_FAILED', poruka: 'Broj telefona nije podeljen.' }],
-    ['grant code', 'podeliTelefon', { code: '42501' }, { ok: false, kod: 'PHONE_GRANT_FAILED', poruka: 'Broj telefona nije podeljen.' }],
-    ['grant fallback', 'podeliTelefon', {}, { ok: false, kod: 'PHONE_GRANT_FAILED', poruka: 'Broj telefona nije podeljen.' }],
     ['revoke message', 'opoziviTelefon', { message: 'REVOKE_DENIED', code: '42501' }, { ok: false, kod: 'PHONE_REVOKE_FAILED', poruka: 'Deljenje telefona nije opozvano.' }],
     ['revoke code', 'opoziviTelefon', { code: '42501' }, { ok: false, kod: 'PHONE_REVOKE_FAILED', poruka: 'Deljenje telefona nije opozvano.' }],
     ['revoke fallback', 'opoziviTelefon', {}, { ok: false, kod: 'PHONE_REVOKE_FAILED', poruka: 'Deljenje telefona nije opozvano.' }],
