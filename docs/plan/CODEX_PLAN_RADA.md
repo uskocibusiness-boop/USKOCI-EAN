@@ -4139,6 +4139,12 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 - **Dodatni mounted testovi:** blur/focus i novi neslan ključ, background sa otkazivanjem, promenjena version i aktuelni neizmenjeni obim, X/account izolacija, durable UNKNOWN bez povratka RAM predloga, i lokalni journal write failure koji mora sačuvati nacrt bez mrežnog dispatch-a. Izvorni source-only dokaz je commited, a status celog CI mora se tek potvrditi. Nema native Android/iOS uređajskog dokaza.
 - **Nije zatvoreno:** pravi Auth/HTTP, serversko čuvanje start-only predloga (zaseban model/read/writer posao), promene dozvola/revision pri ponovnom ulasku i Android Back. R11d/SB07 i R12 ostaju IN_PROGRESS. Preostali C/SV paketi nisu menjani.
 
+### R11d/SB07 — 29.10.2026: stvarni prvi CI rezultat i uska korekcija testa
+
+- [Full GitHub CI 40918087166](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40918087166) za source e26444f je FAIL: 617/618 suite-ova, 14.186/14.187 mobilnih testova PASS, 3/3 snapshot-a, TypeScript i prethodni R01/R04 koraci PASS. **Jedina greška** u v5-agreement-actions-screen.test.tsx R11d/SB07 je očekivanje sirovog teksta 4200 u preglednoj kartici. Kanonski srpski formatter src/lib/novac.ts za isti iznos daje 4.200 RSD. Prethodno je provereno da obnovljeno input polje ima vrednost 4200; finalni review test mora zahtevati stvarno prikazani format 4.200 RSD, ne sirovo polje.
+- Ispravljeno je SAMO ovo očekivanje u istom pozitivnom testu; ostaju negativne provere starih callback-ova, nove verzije, različitih naloga, nevernog unsent/journal pokušaja, nedostajućeg lokalnog journal write-a i odsustva upisa pre potvrde. Nije izmenjen proizvodni kod, RLS, poslovno pravilo, ni status prethodnih CI rezultata. Za novi commit potrebno je ponovo pročitati puni CI; do tada SB07 ostaje SOURCE COMMITTED / CI PENDING.
+- Odvojeni [R01 strict schema 40918087141](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40918087141) ostaje FAIL iz poznate managed platform razlike i nije vezan za ovaj prikaz.
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita

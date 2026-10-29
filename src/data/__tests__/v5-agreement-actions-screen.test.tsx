@@ -85,7 +85,7 @@ it('R11d/SB07 restores typed unsent change fields through blur/focus with fresh 
  expect(tree.root.findByProps({accessibilityLabel:'Predložena cena u RSD'}).props.value).toBe('4200');
  expect(mockUuid).toHaveBeenCalledTimes(2); // fresh, unsubmitted id after remount; no old command reused
  expect(tree.root.findByProps({accessibilityLabel:'Razlog predloga — opciono'}).props.value).toBe('Novi dogovor o ceni');
- await tap('Pregledaj predlog');expect(text()).toContain('4200');expect(text()).toContain('Novi dogovor o ceni');
+ await tap('Pregledaj predlog');expect(text()).toContain('4.200 RSD');expect(text()).toContain('Novi dogovor o ceni');
  expect(mockService.propose).not.toHaveBeenCalled();
 });
 it('R11d/SB07 recovers the private cancellation reason after a background transition, not the old case snapshot',async()=>{
