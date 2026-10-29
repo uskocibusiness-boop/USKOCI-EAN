@@ -9,6 +9,7 @@ import { decodeTaskApplicationDeadlineFact } from '../contracts/taskApplicationD
 import { decodeServiceHandoff } from '../contracts/serviceHandoff';
 import type { Ishod } from './ports';
 import { supabaseKlijent } from './supabaseClient';
+import { readPublicSupabaseConfig } from './publicSupabaseConfig';
 import { listOpenIntakes } from './aiOpenIntakes';
 import { sesijaSada } from '../store/sesija';
 import { aiAvailabilityFromSdkError, requestAiTurnStream, type AiTurnStreamOptions } from './aiNeedTurnStream';
@@ -390,7 +391,8 @@ export const aiNeedV2Production = {
         if (!account) return scopeChanged();
         if (stream) {
           const session = sesijaSada().session;
-          const url = process.env.EXPO_PUBLIC_SUPABASE_URL, anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+          const config = readPublicSupabaseConfig();
+          const url = config?.url, anonKey = config?.anonKey;
           if (!session?.access_token || !url || !anonKey) return scopeChanged();
           return requestAiTurnStream({ ...stream, url, anonKey, accessToken: session.access_token,
             conversationId, clientRequestId, text, deadline, current: () => scopeCurrent(account),

@@ -12,6 +12,7 @@ import { calendarInstant } from '../lib/calendarTime';
 import { sesijaSada } from '../store/sesija';
 import { failure, readOwnedResult, record, sameId, uuid, type ReceiptAccount } from './serverReceipt';
 import { supabaseKlijent } from './supabaseClient';
+import { readPublicSupabaseConfig } from './publicSupabaseConfig';
 import { requestAiTurnStream, type AiTurnStreamOptions } from './aiNeedTurnStream';
 
 export type WorkerAiProfile = Readonly<{
@@ -330,7 +331,8 @@ export const workerAiClientService={
   },
   abandon:(conversationId:string)=>call('rpc_abandon_worker_ai',{p_conversation_id:conversationId},(v,a)=>decodeWorkerAiSnapshot(v,a,conversationId),true),
   async send(conversationId:string,body:string,clientRequestId:string,stream:AiTurnStreamOptions):Promise<Ishod<WorkerAiTurn>>{
-    const account=scope(),session=sesijaSada().session,url=process.env.EXPO_PUBLIC_SUPABASE_URL,anonKey=process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+    const account=scope(),session=sesijaSada().session,config=readPublicSupabaseConfig();
+    const url=config?.url,anonKey=config?.anonKey;
     if(!account||!session?.access_token||!url||!anonKey)return failure('AUTH_REQUIRED',ERRORS.AUTH_REQUIRED);
     if(!uuid(conversationId)||!uuid(clientRequestId)||!text(body,4000)||!body.trim())return failure('WORKER_AI_INPUT_INVALID','Unesi poruku do 4000 znakova.');
     return readOwnedResult({account,errors:ERRORS,write:true,timeoutMs:55_000,fallback:'WORKER_AI_UNCONFIRMED',invalid:'WORKER_AI_INVALID_RESPONSE',

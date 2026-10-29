@@ -2,23 +2,22 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState } from 'react-native';
+import { readPublicSupabaseConfig } from './publicSupabaseConfig';
 
 let klijent: SupabaseClient | null = null;
 
-const CANONICAL_DEV_URL = 'https://leqcwgzvjsxugfgzdmth.supabase.co';
-const CANONICAL_DEV_ANON = 'sb_publishable_o_I-YOn57oPCrIboF0OjPQ_c3DHmOZW';
 
 export function supabaseKonfigurisan(): boolean {
-  return true;
+  return readPublicSupabaseConfig() !== null;
 }
 
 export function supabaseKlijent(): SupabaseClient {
   if (klijent) return klijent;
 
-  const url = process.env.EXPO_PUBLIC_SUPABASE_URL || CANONICAL_DEV_URL;
-  const anon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || CANONICAL_DEV_ANON;
+  const config = readPublicSupabaseConfig();
+  if (!config) throw new Error('SUPABASE_CONFIGURATION_INVALID');
 
-  klijent = createClient(url, anon, {
+  klijent = createClient(config.url, config.anonKey, {
     auth: {
       storage: AsyncStorage,
       autoRefreshToken: true,
@@ -44,10 +43,10 @@ AppState.addEventListener('change', (state) => {
 
 /** Recovery must not sign another account into the marketplace or consume its pending intent. */
 export function createRecoveryTransport() {
-  const url = process.env.EXPO_PUBLIC_SUPABASE_URL || CANONICAL_DEV_URL;
-  const anon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || CANONICAL_DEV_ANON;
+  const config = readPublicSupabaseConfig();
+  if (!config) throw new Error('SUPABASE_CONFIGURATION_INVALID');
   const controller = new AbortController();
-  const recovery = createClient(url, anon, {
+  const recovery = createClient(config.url, config.anonKey, {
     auth: {
       storageKey: 'uskoci-password-recovery',
       autoRefreshToken: false,

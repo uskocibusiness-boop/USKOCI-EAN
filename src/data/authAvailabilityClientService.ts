@@ -1,4 +1,5 @@
 import { configuredRecoveryRedirect } from './passwordRecoveryLink';
+import { readPublicSupabaseConfig } from './publicSupabaseConfig';
 import type { AuthAvailability, AuthAvailabilityPort } from '../contracts/authAvailability';
 
 function projectSettings(raw: unknown): AuthAvailability {
@@ -24,9 +25,9 @@ function projectSettings(raw: unknown): AuthAvailability {
 
 export const authAvailabilityClientService: AuthAvailabilityPort = {
   async read(signal) {
-    const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
-    const anon = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-    if (!url || !anon) throw new Error('AUTH_SETTINGS_UNCONFIGURED');
+    const config = readPublicSupabaseConfig();
+    if (!config) throw new Error('AUTH_SETTINGS_UNCONFIGURED');
+    const { url, anonKey: anon } = config;
     const controller = new AbortController();
     const abort = () => controller.abort();
     if (signal?.aborted) abort();

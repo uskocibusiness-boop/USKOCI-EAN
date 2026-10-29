@@ -1,13 +1,15 @@
 import { createConfiguredLocationResolver } from './configuredLocationResolver';
 import { supabaseKlijent, supabaseKonfigurisan } from './supabaseClient';
+import { readPublicSupabaseConfig } from './publicSupabaseConfig';
 import { sesijaSada } from '../store/sesija';
 
 /** Only the app's authenticated Edge endpoint is reachable from the native editor. */
 export function createProductionLocationResolver() {
   // Owner-approved provider identity is public. Its access token exists only in Edge.
   const providerHint = 'locationiq';
-  const baseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  if (!baseUrl || !supabaseKonfigurisan()) return createConfiguredLocationResolver();
+  const config = readPublicSupabaseConfig();
+  if (!config || !supabaseKonfigurisan()) return createConfiguredLocationResolver();
+  const baseUrl = config.url;
   const owner = sesijaSada(), accountId = owner.user?.id, incarnation = owner.accountRevision;
   const owns = () => !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === incarnation;
   return createConfiguredLocationResolver({ endpoint: `${baseUrl.replace(/\/$/, '')}/functions/v1/uskoci-location-search`, providerHint,

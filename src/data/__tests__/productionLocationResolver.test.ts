@@ -11,15 +11,17 @@ const query = { text: 'Novi Sad', countryCode: 'RS', scopeKey: 'LOCAL_ACCOUNT_AN
 const candidates = [{ label: 'Synthetic public city', countryCode: 'RS', position: { latitude: 45.251234, longitude: 19.831234 },
   providerHint: 'locationiq', candidateId: 'synthetic-candidate' }];
 const session = (account = 'account-A', token = 'SYNTHETIC_USER_JWT') => ({ data: { session: { user: { id: account }, access_token: token } }, error: null });
-const oldUrl = process.env.EXPO_PUBLIC_SUPABASE_URL, oldHint = process.env.EXPO_PUBLIC_LOCATION_PROVIDER_HINT;
+const oldUrl = process.env.EXPO_PUBLIC_SUPABASE_URL, oldKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY, oldHint = process.env.EXPO_PUBLIC_LOCATION_PROVIDER_HINT;
 const deferred = <T,>() => { let resolve!: (value: T) => void;const promise = new Promise<T>(done => { resolve = done; });return { promise, resolve }; };
 beforeEach(() => {
   jest.clearAllMocks();mockOwner = { user: { id: 'account-A' }, accountRevision: 1 };mockConfigured = true;
-  process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://project.test.invalid';process.env.EXPO_PUBLIC_LOCATION_PROVIDER_HINT = 'approved-provider';
+  process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://project.test.invalid';process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'SYNTHETIC_PUBLIC_KEY';
+  process.env.EXPO_PUBLIC_LOCATION_PROVIDER_HINT = 'approved-provider';
   mockGetSession.mockResolvedValue(session());mockInvoke.mockResolvedValue({ data: { candidates }, error: null });
 });
 afterAll(() => {
   if (oldUrl === undefined) delete process.env.EXPO_PUBLIC_SUPABASE_URL;else process.env.EXPO_PUBLIC_SUPABASE_URL = oldUrl;
+  if (oldKey === undefined) delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;else process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = oldKey;
   if (oldHint === undefined) delete process.env.EXPO_PUBLIC_LOCATION_PROVIDER_HINT;else process.env.EXPO_PUBLIC_LOCATION_PROVIDER_HINT = oldHint;
 });
 
@@ -28,6 +30,21 @@ it.each(['url', 'supabase'])('keeps missing %s configuration blocked without Aut
   if (missing === 'supabase') mockConfigured = false;
   await expect(createProductionLocationResolver().search(query)).resolves.toEqual({ status: 'PROVIDER_ACTIVATION_BLOCKED' });
   expect(mockGetSession).not.toHaveBeenCalled();expect(mockInvoke).not.toHaveBeenCalled();
+});
+
+it('retains canonical DEV fallback only for an entirely absent public pair', async () => {
+  delete process.env.EXPO_PUBLIC_SUPABASE_URL;
+  delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  await expect(createProductionLocationResolver().search(query)).resolves.toMatchObject({ status: 'PROPOSALS' });
+  expect(mockGetSession).toHaveBeenCalledTimes(1);
+  expect(mockInvoke).toHaveBeenCalledTimes(1);
+});
+
+it('blocks malformed or mismatched config before any session or Edge call', async () => {
+  process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://custom.example.test/evil?key=PRIVATE';
+  await expect(createProductionLocationResolver().search(query)).resolves.toEqual({ status: 'PROVIDER_ACTIVATION_BLOCKED' });
+  expect(mockGetSession).not.toHaveBeenCalled();
+  expect(mockInvoke).not.toHaveBeenCalled();
 });
 
 it('uses the approved public provider identity without a client token or optional hint variable', async () => {

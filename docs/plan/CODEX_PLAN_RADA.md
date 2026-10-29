@@ -3947,6 +3947,14 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 - **Provera/ograničenje:** dopunjeni postojeći `worker-interview-question-policy.test.mjs` proverava usklađenu instrukciju, a `classification-turn-feedback.test.mjs` direktno proverava ponuđeni/neponuđeni opis, nedostajući scope i odsustvo kategorije. Nije izmenjena tabela, RPC, Gemini model, transport, stari klient ili R01 SQL. Dok CI ne završi, ovo je samo source commit; izvorna izmena nije dokaz da AI u stvarnom razgovoru pravilno piše tekst, da je Save uspeo ili da je native prikaz završen.
 
 
+### R11f/X04 — 29.10.2026: jedinstvena javna Supabase konfiguracija (SOURCE COMMITTED; CI pending)
+
+- **Reprodukovan uzrok:** `supabaseClient.ts` birao je kanonski DEV URL + public key kada env nedostaje, ali `authAvailabilityClientService.ts` i oba AI stream consumer-a zahtevali su oba env-a, dok je `productionLocationResolver.ts` zahtevao samo URL. Pri parcijalnom env-u SDK je mogao da spoji override URL sa starim kanonskim ključem. Ovo je konfigurisanje/read putanja, ne pravo Auth ili SQL delovanje.
+- **Izmena jednog vlasnika:** kanonski public DEV par je premešten u jedan **čist, bez-sporednih-efekata** `src/data/publicSupabaseConfig.ts`. `readPublicSupabaseConfig()` vraća postojeći DEV podrazumevani par samo ako **oba** EXPO_PUBLIC polja potpuno odsustvuju; kompletan par validira/normalizuje zajedno, a delimičan, prazan ili nevalidan override odbija. Uvezani su postojeći SDK i password recovery, Auth availability settings, oba AI stream consumer-a i lokacijski Edge resolver. Nema alternativnog backend servisa, bypass auth/grant-a, novog endpointa ili promene production build zaštite (`build-contract.cjs` i dalje ne dopušta production).
+- **Regresije:** novi mali čisti konfiguracioni test proverava celu kombinatoriku default/override/partial/HTTP invalid, a postojeći Auth availability, location resolver i worker AI streaming testovi proveravaju isti izabrani par, odsustvo mrežnog poziva kad je konfiguracija nevažeća i konzistentan DEV fallback. Nisu dirani pravi JWT, korisnički podaci, Edge deploy, R01 ACL ili produkcioni flag.
+- **Status granica:** SOURCE COMMITTED; puni CI i Metro/native, stvarni preview env i oba uređaja moraju se posebno potvrditi. X04 ostaje `IN_PROGRESS` do odgovarajuće integracije. R01 strict parity/real HTTP zasebno BLOCKED.
+
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita
