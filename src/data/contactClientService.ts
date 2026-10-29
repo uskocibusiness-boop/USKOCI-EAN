@@ -85,14 +85,10 @@ function rpcFailure<T>(error: unknown, fallbackCode: string, fallbackMessage: st
  * the already-active request/error contract without adding client-side authority.
  */
 export const contactClientService: ContactClientService = {
-  async podeliTelefon(dogovorId) {
-    const { error } = await supabase.rpc('rpc_set_contact_grant', {
-      p_agreement_id: dogovorId,
-      p_channel: 'PHONE',
-      p_granted: true,
-    });
-    if (error) return rpcFailure(error, 'PHONE_GRANT_FAILED', 'Broj telefona nije podeljen.');
-    return { ok: true, podatak: null };
+  async podeliTelefon(_dogovorId) {
+    // Messages-only policy: never send a legacy PHONE-grant RPC, even while
+    // an older server deployment still accepts it. Revocation remains below.
+    return failure('PHONE_SHARING_DISABLED', 'Brojevi telefona se ne dele. Koristite poruke u aplikaciji.');
   },
 
   async opoziviTelefon(dogovorId) {
