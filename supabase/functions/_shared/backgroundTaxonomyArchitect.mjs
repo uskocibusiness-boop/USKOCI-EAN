@@ -1001,11 +1001,12 @@ export async function buildWorkerFullTreeTaxonomyProposals({
         }
       }
     }
-    // One specific service cannot acquire two different canonical IDs just
+    // One specific service cannot acquire different canonical IDs or parents
     // because the provider answered ON_SITE and REMOTE separately. Refuse the
     // conflicting hints together; valid unrelated services remain untouched.
     const claimed = proposals.filter(p => normalizedClassificationIdentity(p.service) === norm);
     if (new Set(claimed.filter(p => p.categoryId).map(p => p.categoryId)).size > 1
+        || new Set(claimed.filter(p => p.action === 'CREATE_CHILD').map(p => p.parentId)).size > 1
         || claimed.some(p => p.action === 'REUSE_EXISTING')
           && claimed.some(p => p.action === 'CREATE_CHILD')) {
       for (let i = proposals.length - 1; i >= 0; i--) {
@@ -1013,6 +1014,17 @@ export async function buildWorkerFullTreeTaxonomyProposals({
       }
       unresolvedServices.push(service);
       recordFailure({ status: 'RETRYABLE_PROVIDER', code: 'WORKER_SERVICE_CATEGORY_ID_CONFLICT', service }, failures);
+    } else if (claimed.length > 0 && chosenEntries.some(entry => !claimed.some(p => p.mode === entry.mode))) {
+      // The existing capture RPC stores proposals only. A local unresolved flag
+      // cannot protect that boundary: half of BOTH would look like a complete
+      // single-mode proposal. Keep this service atomic until all its requested
+      // modes are classified; retain its real clarification and other services.
+      // This is not consent, a durable retry, or a canonical taxonomy write.
+      for (let i = proposals.length - 1; i >= 0; i--) {
+        if (normalizedClassificationIdentity(proposals[i].service) === norm) proposals.splice(i, 1);
+      }
+      unresolvedServices.push(service);
+      recordFailure({ status: 'RETRYABLE_PROVIDER', code: 'WORKER_SERVICE_MODE_SET_INCOMPLETE', service }, failures);
     }
   }
 

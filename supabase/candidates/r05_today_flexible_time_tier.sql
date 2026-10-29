@@ -52,6 +52,23 @@ begin
     return null;
   end if;
 
+  -- A bounded TODAY that has already started still has a usable remainder.
+  -- This is flexible availability: any saved free period before its actual end
+  -- is enough. FIXED_WINDOW keeps its separate full-interval requirement.
+  if n.schedule_kind='TODAY_FLEXIBLE' and n.starts_at is not null and n.ends_at is not null
+     and n.starts_at<=at_now then
+    if not isfinite(n.starts_at) or not isfinite(n.ends_at)
+       or n.starts_at>=n.ends_at then return null; end if;
+    live:=coalesce(p.available_now,false)
+      and not exists(select 1 from public.profile_availability_windows w where w.profile_id=pid
+        and w.availability_state='UNAVAILABLE' and w.starts_at<=at_now and w.ends_at>at_now)
+      and not exists(select 1 from private.worker_calendar_events c where c.worker_profile_id=pid
+        and c.state='BLOCKING' and c.starts_at<=at_now and c.ends_at>at_now);
+    if live then return 1; end if;
+    if private.worker_available_periods(pid,at_now,n.ends_at,tz)<>'{}'::tstzmultirange then return 2; end if;
+    return null;
+  end if;
+
   if n.schedule_kind in ('FLEXIBLE','REMOTE_ANYTIME') and n.starts_at is not null then
     if not isfinite(n.starts_at) or
        (n.ends_at is not null and (not isfinite(n.ends_at) or n.ends_at<=n.starts_at)) then
@@ -220,7 +237,7 @@ BEGIN
   PERFORM set_config('search_path','pg_catalog',true);
   PERFORM set_config('lock_timeout','5s',true);
   PERFORM set_config('statement_timeout','45s',true);
-  IF md5(target_body) IS DISTINCT FROM '04828e3bd6ad3db554c1fc704b350374'
+  IF md5(target_body) IS DISTINCT FROM '1354cc27a2a58976dab28debfeeb241d'
      OR (SELECT md5(replace(prosrc,E'\r\n',E'\n'))
          FROM pg_proc WHERE oid=to_regprocedure(signature))
         IS DISTINCT FROM 'a845d98b624ae4ac8ec33159beb8bb17' THEN

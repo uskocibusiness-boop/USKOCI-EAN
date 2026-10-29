@@ -7,7 +7,7 @@ ROOT=Path(__file__).resolve().parents[3]
 SOURCE=ROOT/'supabase'/'proofs'/'r05'/'worker_need_time_tier_v1-current.sql'
 TARGET=ROOT/'supabase'/'candidates'/'r05_today_flexible_time_tier.sql'
 PREDECESSOR_MD5='a845d98b624ae4ac8ec33159beb8bb17'
-TARGET_MD5='04828e3bd6ad3db554c1fc704b350374'
+TARGET_MD5='1354cc27a2a58976dab28debfeeb241d'
 ANCHOR="  has_rules := exists(select 1 from public.profile_availability_rules r where r.profile_id=pid and r.active);\n"
 INSERTION=r"""
   -- R05/F18: TODAY without a fixed interval ends at LOCAL task-day midnight.
@@ -31,6 +31,23 @@ INSERTION=r"""
         and c.state='BLOCKING' and c.starts_at<=at_now and c.ends_at>at_now);
     if live then return 1; end if;
     if private.worker_available_periods(pid,ws,we,tz)<>'{}'::tstzmultirange then return 2; end if;
+    return null;
+  end if;
+
+  -- A bounded TODAY that has already started still has a usable remainder.
+  -- This is flexible availability: any saved free period before its actual end
+  -- is enough. FIXED_WINDOW keeps its separate full-interval requirement.
+  if n.schedule_kind='TODAY_FLEXIBLE' and n.starts_at is not null and n.ends_at is not null
+     and n.starts_at<=at_now then
+    if not isfinite(n.starts_at) or not isfinite(n.ends_at)
+       or n.starts_at>=n.ends_at then return null; end if;
+    live:=coalesce(p.available_now,false)
+      and not exists(select 1 from public.profile_availability_windows w where w.profile_id=pid
+        and w.availability_state='UNAVAILABLE' and w.starts_at<=at_now and w.ends_at>at_now)
+      and not exists(select 1 from private.worker_calendar_events c where c.worker_profile_id=pid
+        and c.state='BLOCKING' and c.starts_at<=at_now and c.ends_at>at_now);
+    if live then return 1; end if;
+    if private.worker_available_periods(pid,at_now,n.ends_at,tz)<>'{}'::tstzmultirange then return 2; end if;
     return null;
   end if;
 """

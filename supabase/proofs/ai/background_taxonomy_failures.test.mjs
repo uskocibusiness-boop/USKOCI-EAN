@@ -246,7 +246,7 @@ test('R04 BOTH: two explicit modes preserve one category parent and requested RE
 test('R04 BOTH: one provider result does not conceal the unclassified second mode',async t=>{
   const f=fixture(t,()=>response({items:[fullDecision('ON_SITE')]}));
   const result=await worker(f.args,bothRequest);
-  assert.deepEqual(result.proposals.map(p=>p.mode),['ON_SITE']);
+  assert.deepEqual(result.proposals,[]);
   assert.deepEqual(result.unresolvedServices,['Popravka klima']);
   assert.ok(result.failures.some(f=>f.code==='PROVIDER_INVALID_DECISION'&&f.mode==='REMOTE'));
   assert.deepEqual(result.clarifications,[]);
@@ -396,7 +396,7 @@ test('R04/F05: worker may not convert semantic hint into a mode without USER evi
   assert.deepEqual(result.unresolvedServices,['Popravka klima']);
 });
 
-test('a valid clarification for one explicit mode leaves the other provisional, not complete',async t=>{
+test('a valid clarification for one explicit mode keeps the whole service out of capture',async t=>{
   const f=fixture(t,()=>response({items:[
     fullDecision('ON_SITE'),
     {service:'Popravka klima',mode:'REMOTE',action:'NEEDS_CLARIFICATION',
@@ -405,8 +405,48 @@ test('a valid clarification for one explicit mode leaves the other provisional, 
       reason:'Za rad na daljinu nedostaje razjašnjenje predaje.'}
   ]}));
   const result=await worker(f.args,bothRequest);
-  assert.deepEqual(result.proposals.map(p=>p.mode),['ON_SITE']);
+  assert.deepEqual(result.proposals,[]);
   assert.equal(result.clarifications.length,1);
   assert.equal(result.clarifications[0].mode,'REMOTE');
   assert.deepEqual(result.unresolvedServices,['Popravka klima']);
+});
+
+for (const missingMode of ['ON_SITE', 'REMOTE']) {
+  test(`R04 BOTH capture boundary: missing ${missingMode} cannot narrow the proposed service`, async t => {
+    const presentMode = missingMode === 'ON_SITE' ? 'REMOTE' : 'ON_SITE';
+    const otherService = 'Montaža klima';
+    const evidence = `${explicitBoth.evidence} Montažu klima radim kod klijenta.`;
+    const f = fixture(t, () => response({ items: [fullDecision(presentMode),
+      { ...fullDecision('ON_SITE'), service: otherService },
+    ] }));
+    const result = await worker(f.args, {
+      skills: ['Popravka klima', otherService], messages: [{ role: 'USER', body: evidence }],
+      serviceModeChangesJson: JSON.stringify([
+        { ...explicitBoth, evidence }, { service: otherService, modes: ['ON_SITE'], evidence },
+      ]),
+    });
+    // Edge capture persists only proposals, not unresolvedServices. Its payload
+    // must therefore never contain half of a user-requested mode set.
+    assert.deepEqual(result.proposals.map(p => [p.service, p.mode]), [[otherService, 'ON_SITE']]);
+    assert.deepEqual(result.unresolvedServices, ['Popravka klima']);
+    assert.ok(result.failures.some(f => f.code === 'WORKER_SERVICE_MODE_SET_INCOMPLETE'));
+    assert.equal(f.calls.length, 1, 'no paid automatic repair call');
+  });
+}
+
+test('R04 BOTH: two CREATE_CHILD hints cannot put one service under different parents', async t => {
+  const otherParent = '22222222-2222-4222-8222-222222222222';
+  const catalogVersion = ++version;
+  t.mock.method(globalThis, 'fetch', async () => response({ items: [fullDecision('ON_SITE'),
+    { ...fullDecision('REMOTE'), parentId: otherParent },
+  ] }));
+  const rpc = async () => ({ ok: true, data: { catalogVersion, catalogFingerprint: String(catalogVersion), count: 2,
+    categories: [categoryId, otherParent].map((id, i) => ({ categoryId: id, parentId: null,
+      isLeaf: true, label: i ? 'Računari' : 'Servis klima', aliases: [], modes: ['ON_SITE', 'REMOTE'],
+      path: [i ? 'Računari' : 'Servis klima'], pathIds: [id] })),
+  } });
+  const result = await worker({ rpc, geminiKey: 'synthetic', geminiModel: 'synthetic' }, bothRequest);
+  assert.deepEqual(result.proposals, []);
+  assert.deepEqual(result.unresolvedServices, ['Popravka klima']);
+  assert.ok(result.failures.some(f => f.code === 'WORKER_SERVICE_CATEGORY_ID_CONFLICT'));
 });

@@ -23,6 +23,7 @@ const captureRpc='rpc_taxonomy_capture_gemini_turn_hints_service';
 
 function fixture(kind,operation,responseFactory,options={}){
   const calls=[],logs=[],background=[],unexpected=[];
+  const user=options.user??USER;
   let unchanged=false;
   const requestKey=()=>unchanged?id(10):key;
   const currentTurn=(state='SUCCEEDED')=>({...((kind==='NEED'?needTurn:workerTurn)(state)),
@@ -31,10 +32,10 @@ function fixture(kind,operation,responseFactory,options={}){
     fact_schema_version:'NEED_FACT_V2',status:'CONFIRMED',source:'USER_TEXT',created_at:'2026-10-27T10:00:00Z'});
   const completedRevision=kind==='NEED'?8:5;
   const mainOutput=kind==='NEED'?withDialogue({safety:'ALLOW',assistantMessage:'Predlog je zabeležen u nacrtu.',
-    facts:[{key:'need.category',valueJson:JSON.stringify(SERVICE),displayValue:SERVICE,evidence:USER,confidence:1}]}):
+    facts:[{key:'need.category',valueJson:JSON.stringify(SERVICE),displayValue:SERVICE,evidence:user,confidence:1}]}):
     {safety:'ALLOW',assistantMessage:'Predlog je zabeležen u nacrtu.',patch:{skills:[SERVICE]},
       availabilityChange:{kind:'NONE',evidence:''},
-      serviceModeChangesJson:JSON.stringify([{service:SERVICE,modes:['ON_SITE'],evidence:USER}])};
+      serviceModeChangesJson:JSON.stringify([{service:SERVICE,modes:options.workerModes??['ON_SITE'],evidence:user}])};
   const decision={service:SERVICE,mode:'ON_SITE',action:operation==='store'?'NEEDS_CLARIFICATION':'CREATE_CHILD',
     parentId:operation==='store'?'':rootId,reason:REASON,ambiguityPrompt:PROMPT,handoffKind:'NONE',handoffCity:''};
   const env={SUPABASE_URL:'https://leqcwgzvjsxugfgzdmth.supabase.co',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC',
@@ -55,7 +56,7 @@ function fixture(kind,operation,responseFactory,options={}){
     if(name==='rpc_read_worker_ai_context_service')return json({schemaVersion:'WORKER_PROFILE_V1',accountId:account,
       conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:unchanged?5:4,profileStatus:'ACTIVE',
       serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:unchanged?5:4,savedServices:[],draftServices:[],unresolvedServices:[]},
-      candidate:{skills:unchanged?[SERVICE]:[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:USER}]});
+      candidate:{skills:unchanged?[SERVICE]:[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:user}]});
     if(name==='rpc_ai_dispatch_need_turn_v2_service')return json(true);
     if(name==='rpc_dispatch_worker_ai_turn_service')return json({dispatched:true,turn:currentTurn('PROCESSING')});
     if(name==='rpc_ai_test_budget_reserve_service')return json({admitted:true,reservationId:id(9),replay:false,code:'AI_TEST_RESERVED'});
@@ -74,7 +75,7 @@ function fixture(kind,operation,responseFactory,options={}){
     if(name==='rpc_ai_fail_need_turn_v2_service')return json(currentTurn('FAILED'));
     if(name==='rpc_fail_worker_ai_turn_service')return json(currentTurn('FAILED'));
     if(address.startsWith('https://generativelanguage.googleapis.com/')){
-      if(address.includes(':generateContent'))return providerResult(kind==='NEED'?{decisions:[decision]}:{items:[decision]});
+      if(address.includes(':generateContent'))return providerResult(kind==='NEED'?{decisions:[decision]}:{items:options.workerDecisions??[decision]});
       const output=unchanged?(kind==='NEED'?withDialogue({safety:'ALLOW',assistantMessage:'Nacrt je ostao isti.',facts:[]}):
         {safety:'ALLOW',assistantMessage:'Opis je dopunjen.',patch:{bio:'Dopunjen opis.'},availabilityChange:{kind:'NONE',evidence:''}}):mainOutput;
       const data='data: '+JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify(output)}]},finishReason:'STOP'}]})+'\n\n';
@@ -89,7 +90,7 @@ function fixture(kind,operation,responseFactory,options={}){
   const invoke=async()=>{
     const response=await loaded.handler(new Request('https://synthetic.invalid',{method:'POST',
       headers:{Authorization:'Bearer SYNTHETIC',Accept:'text/event-stream','Content-Type':'application/json'},
-      body:JSON.stringify({conversationId:conversation,clientRequestId:requestKey(),text:unchanged?'Samo dopuni opis bez promene usluge.':USER})}));
+      body:JSON.stringify({conversationId:conversation,clientRequestId:requestKey(),text:unchanged?'Samo dopuni opis bez promene usluge.':user})}));
     assert.equal(response.status,200);
     const events=(await response.text()).trim().split('\n\n').map(line=>JSON.parse(line.slice(6)));
     assert.ok(background.length>0,'success registers background work');
@@ -100,7 +101,7 @@ function fixture(kind,operation,responseFactory,options={}){
     assert.ok(!events.some(event=>event.kind==='safe_error'));
     return events;
   };
-  return {calls,logs,completedRevision,async execute(){
+  return {calls,logs,completedRevision,invoke,async execute(){
     const events=await invoke();
     assert.equal(calls.filter(call=>call.url.includes('generativelanguage.googleapis.com/')).length,2,'one conversational and one architect call, no retry');
     assert.equal(calls.filter(call=>call.url.includes(':generateContent')).length,1);
@@ -145,6 +146,27 @@ function fixture(kind,operation,responseFactory,options={}){
     assert.equal(calls.filter(call=>call.url.endsWith('/'+storeRpc)||call.url.endsWith('/'+captureRpc)).length,1);
     assert.ok(!calls.some(call=>/rpc_(ai_fail_need|fail_worker)|save_worker|publish|commit_admission|push/.test(call.url)));
   }};
+}
+
+for(const modes of [['ON_SITE'],['REMOTE'],['ON_SITE','REMOTE']]){
+  test(`WORKER real capture path retains complete BOTH or nothing: provider ${modes.join('+')}`,async()=>{
+    const f=fixture('WORKER','capture',()=>json({action:'HINT_CAPTURED',authority:'NONE'}),{
+      user:'Nudim '+SERVICE+' i kod naručioca i na daljinu.',workerModes:['ON_SITE','REMOTE'],
+      workerDecisions:modes.map(mode=>({service:SERVICE,mode,action:'CREATE_CHILD',parentId:rootId,
+        reason:REASON,handoffKind:'NONE',handoffCity:''})),
+    });
+    await f.invoke();
+    const captures=f.calls.filter(call=>call.url.endsWith('/'+captureRpc));
+    if(modes.length===2){
+      assert.equal(captures.length,1);
+      assert.deepEqual(captures[0].body.p_proposals.map(p=>p.mode),['ON_SITE','REMOTE']);
+      assert.equal(captures[0].body.p_purpose,'WORKER_CAPABILITY');
+    }else{
+      assert.equal(captures.length,0,'no partial service leaks through the active Edge to capture RPC');
+    }
+    assert.equal(f.calls.filter(call=>call.url.includes(':generateContent')).length,1);
+    assert.ok(!f.calls.some(call=>/save_worker|publish|commit_admission|push/.test(call.url)));
+  });
 }
 
 for(const kind of ['NEED','WORKER']){
