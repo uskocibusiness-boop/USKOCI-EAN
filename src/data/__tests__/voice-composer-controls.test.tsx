@@ -25,7 +25,7 @@ const mockTick=jest.fn();
 // Rule R5: the held microphone is felt where listening really begins and where the finger lets go, never at touch-down.
 jest.mock('../../ui/system/haptics',()=>({tick:(...a:unknown[])=>mockTick(...a),forgetTicks:jest.fn()}));
 import { VoiceComposer, VoiceNotice } from '../../ui/aiFirst/VoiceComposer';
-import { AgreementVoiceMic } from '../../ui/media/AgreementVoiceControls';
+import { AgreementVoiceMic, voiceTime } from '../../ui/media/AgreementVoiceControls';
 let tree:ReactTestRenderer;
 const idle:VoiceSnapshot={phase:'IDLE',session:null,finalText:'',interimText:'',audioLevel:null,fallbackText:'',error:null};
 
@@ -180,6 +180,12 @@ it('screen reader sees explicit Stop, not an instruction to release a held finge
   // 2026-09-24: the composer has no mode switch of its own any more; tapping instead of holding is voice mode.
   expect(tree.root.findAllByProps({label:'Govor bez držanja'})).toHaveLength(0);
 });
+it('R11c/C17 the existing voice time label shares the bounded canonical formatter', () => {
+  expect(voiceTime(7_000)).toBe('0:07');
+  expect(voiceTime(65_000)).toBe('1:05');
+  for (const invalid of [NaN, Infinity, -Infinity, -1]) expect(voiceTime(invalid)).toBe('0:00');
+});
+
 describe('Agreement held voice-message control',()=>{
   const setupVoice=(screenReader=false,review=false)=>({
     recording:{phase:'idle',canRecord:true},screenReader,review,

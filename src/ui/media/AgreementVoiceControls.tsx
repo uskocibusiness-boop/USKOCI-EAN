@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import type { PorukaProjekcija } from '../../contracts/projections';
 import type { AgreementVoiceController } from '../../hooks/useAgreementVoice';
+import { voiceClock } from '../../features/voiceMessages/voiceCopy';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { Glyph } from '../system/Glyph';
@@ -11,10 +12,8 @@ import { sys } from '../system/tokens';
 import { usePressLift } from '../system/usePressLift';
 import { useLayoutClass } from '../system/textScale';
 
-export function voiceTime(ms: number): string {
-  const seconds = Math.max(0, Math.floor(ms / 1000));
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
-}
+// One formatter for the voice workflow. The shared owner rejects NaN/Infinity and negative mock/provider values.
+export const voiceTime = voiceClock;
 function Action({ label, onPress, disabled = false, primary = false }: {
   label: string; onPress(): void; disabled?: boolean; primary?: boolean;
 }) {
