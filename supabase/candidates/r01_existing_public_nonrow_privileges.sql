@@ -273,5 +273,6 @@ BEGIN
        FROM pg_default_acl d) IS DISTINCT FROM v_defaults THEN
    RAISE EXCEPTION 'R01_NONROW_UNRELATED_AUTHORITY_CHANGED' USING errcode='55000';
  END IF;
-END $r01_existing$;
+END;
+$r01_existing$;
 COMMIT;
