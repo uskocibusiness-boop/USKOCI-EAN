@@ -6,7 +6,8 @@ import {readFileSync} from 'node:fs';
 import {PGlite} from '@electric-sql/pglite';
 
 const candidate=readFileSync(new URL('../../candidates/r01_phone_messages_only_current.sql',import.meta.url),'utf8');
-const revert=readFileSync(new URL('../../candidates/r01_phone_read_consent_20261009.revert.sql',import.meta.url),'utf8');
+// Current DEV reader definitions already include the previous safety-grant fix.
+const revert=readFileSync(new URL('../../candidates/r01_phone_read_consent_20261009.sql',import.meta.url),'utf8');
 function defs(s) {
  const found=[...s.matchAll(/CREATE OR REPLACE FUNCTION[\s\S]*?\$function\$;/g)].map(m=>m[0]);
  return new Map(found.map(s=>[s.match(/FUNCTION\s+(?:public|private)\.([a-z0-9_]+)\(/i)[1],s]));
