@@ -13,7 +13,10 @@ function queue<T>(accountId: string, work: () => Promise<T>): Promise<T> {
 function parse(raw: string | null, accountId: string): WorkerAiTurnIntent | null {
   if (!uuid(accountId)) throw new Error('WORKER_AI_LOCAL_INTENT_INVALID');
   if (raw === null) return null;
-  const value = record(JSON.parse(raw));
+  let parsed: unknown;
+  try { parsed = JSON.parse(raw); }
+  catch { throw new Error('WORKER_AI_LOCAL_INTENT_INVALID'); }
+  const value = record(parsed);
   if (!value || Object.keys(value).length !== 3 || value.accountId !== accountId
     || !uuid(value.conversationId) || !uuid(value.clientRequestId)) throw new Error('WORKER_AI_LOCAL_INTENT_INVALID');
   return { accountId, conversationId: value.conversationId, clientRequestId: value.clientRequestId };

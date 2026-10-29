@@ -48,6 +48,7 @@ it('discardCorrupt cannot silently remove a valid concurrent captured command',a
 it.each(['not-json', JSON.stringify({ ...intent, text: 'private' }), JSON.stringify({ ...intent, accountId: B })])(
   'fails closed on invalid persisted state without replacing it', async raw => {
     await AsyncStorage.setItem('uskoci.ai.turn.intent.v1.' + A, raw);
-    await expect(journal.load(A)).rejects.toThrow(); await expect(journal.save(intent)).rejects.toThrow();
+    await expect(journal.load(A)).rejects.toThrow('AI_LOCAL_INTENT_INVALID');
+    await expect(journal.save(intent)).rejects.toThrow('AI_LOCAL_INTENT_INVALID');
     expect(await AsyncStorage.getItem('uskoci.ai.turn.intent.v1.' + A)).toBe(raw);
   });
