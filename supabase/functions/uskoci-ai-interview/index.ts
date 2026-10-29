@@ -1635,7 +1635,10 @@ Deno.serve(async (req: Request) => {
         }
       }
       const result = await measureAiPhase('NEED_COMPLETE', async () => await rpc(locationContext ? 'rpc_ai_complete_need_location_turn_v1_service' : 'rpc_ai_complete_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId,
-        p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: needTurnPersistenceProposals(aiTurn),
+        // The claim, completion hash and persisted USER message must share one
+        // canonical value. A photo-only request has no typed text, but does have
+        // the server's deterministic human-readable photo placeholder.
+        p_user_message: effectiveUserMessage, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: needTurnPersistenceProposals(aiTurn),
         ...(locationContext ? { p_location_context: locationContext, p_location_action: aiTurn.locationAction } : {}) }, signal));
       const completed = locationContext ? result.data?.turn : result.data;
       if (!result.ok || !validTurn(completed, conversationId, requestId) || completed.turnId !== claimedTurnId

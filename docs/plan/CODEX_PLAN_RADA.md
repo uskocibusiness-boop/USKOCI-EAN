@@ -3994,6 +3994,15 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 - **Dokazna granica:** SOURCE COMMITTED, zahteva TypeScript, target Jest i pun CI; stvarni native focus/app background se testira odvojeno. X06 ostaje `IN_PROGRESS` do adekvatne uređajske provere. R01 strict parity odvojeno FAIL.
 
 
+### R11c/SB15 — 29.10.2026: foto bez teksta koristi identičan claim/complete sadržaj (SOURCE COMMITTED; CI pending)
+
+- **Konkretan uzrok:** `uskoci-ai-interview/index.ts` je za photo-only podešavao `effectiveUserMessage = 'Poslao sam fotografiju posla.'` pri `rpc_ai_claim_need_turn_v2_service` i pri modelskom pozivu, dok je `rpc_ai_complete_need_turn_v2_service` primao prazno `text`. Postojeći SQL vlasnik poredi request hash `{conversationId,text}` i čuva USER poruku sa ne-praznim tekstom; isti pokušaj je mogao da padne u completion i ostane sa neutvrđenim ishodom. Ovo nije dokaz konkretnog live 502 uzroka bez odgovarajućeg trace-a.
+- **Tačna izmena:** oba SQL kraja sada koriste **isti** `effectiveUserMessage` za istu fotografiju/tekst u jednoj komandi; human-readable kratka foto rečenica ostaje samo za slučaj bez korisnikovog teksta, dok mixed text+photo zadržava stvarne korisnikove reči. Model i dalje dobija sintetičku informaciju o fotografiji i stvarni `inlineData`, bez promene slanja/streaminga, role/account, prava, provider troška ili modelskog promta.
+- **Postojeći izvršni dokaz:** `owned_intake_edge.test.mjs` dobija dve stvarne Edge handler synthetic I/O kontrole, photo-only i typed+photo: completion mora odgovarati prethodnom claim-u, provider dobija pravu image MIME/inlineData, istorija ne sadrži prazan USER string, log nema foto bajtova. Nije dodavana nova klasa rukovaoca niti se menjao test koji karakteriše prethodni kvar.
+- **Namerno otvorena zaštita:** postojeći SQL request hash i dalje ne identifikuje **konkretne attachment bajtove** kada je isti clientRequestId pogrešno upotrebljen za različite fotografije istog text-a. Za pun SB15 treba tačan server-odobren attachment ID/hash u kanonskom request identity ugovoru, kompatibilni stari klijenti i pozitivni/negativni stvarni SQL/Edge dokazi. Ne gurati sirovi SHA u javni opis/razgovor, ne menjati istorijsku migraciju napamet. Ova uska izmena zatvara samo poznatu claim/completion neusaglašenost, ne ceo SB15 ili R06.
+- **Status:** SOURCE COMMITTED; potreban pun CI i potom odgovarajući DEV Edge/version i Auth/PostgREST dokaz. Nema DEV deploy-a, migracije ni pravog modelskog zahteva.
+
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita
