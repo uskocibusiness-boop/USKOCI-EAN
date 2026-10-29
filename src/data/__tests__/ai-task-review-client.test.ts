@@ -429,3 +429,28 @@ it('explicit preview opt-in routes requester review to signed version without ch
     else process.env.EXPO_PUBLIC_USKOCI_NEED_SIGNED_REVIEW=prior;
   }
 });
+
+
+it('R04/F05: requester reads signed unapproved meaning without granting a publishable category',()=>{
+  const category='Montaža gotovog ormara';
+  const row={id:null,key:'need.category',value:category,displayValue:category,
+    privacyClass:'PUBLIC',source:'EXPLICIT_USER_ANSWER',status:'CONFIRMED'};
+  const proposal={
+    service:category,mode:'REMOTE',categoryId:NEED,categoryLabel:'Sklapanje ormara',
+    categoryParentId:null,reason:'Isti konkretan posao sklapanja gotovog ormara.',catalogVersion:9
+  };
+  const signed={...review(),publicProjection:[row],
+    classificationState:'REVIEW_REQUIRED',classificationCandidates:[],reviewedServiceModes:[],
+    classificationCatalogVersion:9,classificationCatalogFingerprint:'f'.repeat(32),
+    semanticReviewCandidates:[proposal]};
+  expect(decodeAiTaskReview(signed,OWNER)).toMatchObject({
+    classificationState:'REVIEW_REQUIRED',classificationCandidates:[],
+    semanticReviewCandidates:[proposal],canAccept:true});
+  expect(decodeAiTaskReview({...signed,classificationState:'READY'},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...signed,publicProjection:[]},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...signed,semanticReviewCandidates:[{...proposal,mode:'ON_SITE'}]},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...signed,semanticReviewCandidates:[{...proposal,categoryId:'fake-id'}]},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...signed,semanticReviewCandidates:[{...proposal,catalogVersion:10}]},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...signed,semanticReviewCandidates:[{...proposal,categoryLabel:'Sklapanje ormara',unreviewed:true}]},OWNER)).toBeNull();
+  expect(decodeAiTaskReview({...signed,accountId:OTHER},OWNER)).toBeNull();
+});
