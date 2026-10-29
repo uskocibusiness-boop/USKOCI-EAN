@@ -61,7 +61,7 @@ test('photo-only AI uses one canonical human-readable message for claim, provide
   assert.equal(parts[1].inlineData.data,'c3ludGhldGljLXBob3Rv');
   assert.ok(!f.logs.some(value=>JSON.stringify(value).includes('c3ludGhldGljLXBob3Rv')),'photo bytes must stay out of logs');
 });
-test('typed instruction plus photo preserves exactly the user's text at claim and completion',async()=>{
+test("typed instruction plus photo preserves exactly the user's text at claim and completion",async()=>{
   const f=fixture();
   const reply=await f.invoke({text:'Pogledajte oštećenu stolicu.',imageBase64:'c3ludGhldGljLXBob3Rv',imageMime:'image/jpeg'});
   assert.equal(reply.status,200);
