@@ -16,6 +16,7 @@ import {extensionAclObservation, compareExtensionAclScope, validateExtensionAclB
 import {storageAclObservation, compareStorageOwnerAcl, validateStorageAclBaseline} from './storage-owner-acl.mjs';
 import {extensionAclTupleObservation, compareExtensionAclTuples, validateExtensionAclTupleBaseline} from './extension-acl-tuples.mjs';
 import {requestPathObservation, compareRequestPath, validateRequestPathBaseline} from './request-call-graph.mjs';
+import {extensionProvenanceObservation, compareExtensionProvenance} from './extension-provenance.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repository = resolve(here, '../../../..');
@@ -53,6 +54,8 @@ const files = {
   extension_acl_tuples_query: join(here, 'extension-acl-tuples.sql'),
   extension_acl_tuples_expected: join(here, 'extension-acl-tuples-expected.json'),
   extension_acl_tuples_comparator: join(here, 'extension-acl-tuples.mjs'),
+  extension_provenance_query: join(here, 'extension-provenance.sql'),
+  extension_provenance_diagnostic: join(here, 'extension-provenance.mjs'),
   request_path_query: join(here, 'request-call-graph.sql'),
   request_path_expected: join(here, 'request-call-graph-expected.json'),
   request_path_comparator: join(here, 'request-call-graph.mjs'),
@@ -204,6 +207,8 @@ function sourceCheck() {
     'EXTENSION_ACL_TUPLES_QUERY_NOT_READ_ONLY');
   validateExtensionAclTupleBaseline(json(files.extension_acl_tuples_expected),
     sha256(readFileSync(files.extension_acl_tuples_query)));
+  required(readFileSync(files.extension_provenance_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
+    'EXTENSION_PROVENANCE_QUERY_NOT_READ_ONLY');
   assert.deepEqual(json(files.extension_acl_tuples_expected).observation.routines.map(r => r.key_hash),
     json(files.extension_acl_expected).observation.routines.map(r => r.key_hash));
   required(readFileSync(files.request_path_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
@@ -252,6 +257,7 @@ async function run() {
       receipt.startup_failure = scrubStartupFailure(result.stdout ?? '', result.stderr ?? '');
     }
     if (!accepted && ['PG_ADMISSION', 'SERVICE_MIGRATION_ADMISSION', 'AUTH_SEARCH_INDEXES', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
+      'EXTENSION_PROVENANCE_BEFORE', 'EXTENSION_PROVENANCE_AFTER',
       'MANAGED_NET_HOOK_CAPTURE', 'NATIVE_NET_PROVENANCE_CAPTURE', 'HOSTED_LOGIN_DEPENDENCY_CAPTURE', 'ADMIN_EFFECTIVE_PATH_CAPTURE', 'EXTENSION_ACL_SCOPE_CAPTURE', 'STORAGE_OWNER_ACL_CAPTURE', 'EXTENSION_ACL_TUPLES_CAPTURE', 'REQUEST_PATH_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
       receipt.sql_failures ??= [];
       receipt.sql_failures.push({stage: label, ...scrubSqlFailure(result.stderr ?? '')});
@@ -332,9 +338,19 @@ async function run() {
     receipt.service_history = serviceHistory;
 
     required(JSON.stringify(sourceCheck()) === JSON.stringify(receipt.source_hashes), 'SOURCE_CHANGED_DURING_START');
+    const extensionBefore = extensionProvenanceObservation(JSON.parse(sql('EXTENSION_PROVENANCE_BEFORE',
+      readFileSync(files.extension_provenance_query, 'utf8'), 'supabase_admin')));
+    writeJSON(join(paths.publicDir, 'extension-provenance-before.json'), extensionBefore);
     sql('AUTH_SEARCH_INDEXES', "SET uskoci.r01.bootstrap = 'LOCAL_ONLY';\n" + readFileSync(files.auth_indexes, 'utf8'),
       'supabase_admin');
     sql('PLATFORM_EXTENSIONS', "SET uskoci.r01.bootstrap = 'LOCAL_ONLY';\n" + readFileSync(files.extensions, 'utf8'), 'supabase_admin');
+    const extensionAfter = extensionProvenanceObservation(JSON.parse(sql('EXTENSION_PROVENANCE_AFTER',
+      readFileSync(files.extension_provenance_query, 'utf8'), 'supabase_admin')));
+    writeJSON(join(paths.publicDir, 'extension-provenance-after.json'), extensionAfter);
+    const extensionProvenance = compareExtensionProvenance(extensionBefore, extensionAfter,
+      receipt.source_hashes.extension_provenance_query);
+    writeJSON(join(paths.publicDir, 'extension-provenance-diff.json'), extensionProvenance);
+    console.log('R01_EXTENSION_PROVENANCE_JSON ' + JSON.stringify(extensionProvenance));
     const extensions = JSON.parse(sql('EXTENSION_ADMISSION', `SELECT jsonb_agg(jsonb_build_object(
       'name',e.extname,'schema',n.nspname,'version',e.extversion) ORDER BY e.extname)
       FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace;`));

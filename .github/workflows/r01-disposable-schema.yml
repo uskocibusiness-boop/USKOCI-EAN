@@ -32,6 +32,7 @@ jobs:
       - name: Admit source and verify the proof checker
         run: |
           node --check supabase/proofs/privacy/runtime/run.mjs
+          node --test supabase/proofs/privacy/runtime/extension-provenance.test.mjs
           node --test supabase/proofs/privacy/r01-bootstrap-parity.test.mjs supabase/proofs/privacy/runtime/run.test.mjs supabase/proofs/privacy/runtime/managed-diagnostics.test.mjs supabase/proofs/privacy/runtime/platform-effective.test.mjs supabase/proofs/privacy/runtime/cli-bootstrap-build.test.mjs supabase/proofs/privacy/runtime/native-net-provenance.test.mjs supabase/proofs/privacy/runtime/hosted-login-dependency.test.mjs supabase/proofs/privacy/runtime/admin-effective-path.test.mjs supabase/proofs/privacy/runtime/extension-acl-scope.test.mjs supabase/proofs/privacy/runtime/storage-owner-acl.test.mjs supabase/proofs/privacy/runtime/extension-acl-tuples.test.mjs supabase/proofs/privacy/runtime/request-call-graph.test.mjs
           node supabase/proofs/privacy/runtime/run.mjs check-source
       - name: Build pinned CLI without the legacy webhook bootstrap
@@ -51,6 +52,9 @@ jobs:
             ${{ runner.temp }}/r01-schema-public/cleanup-receipt.json
             ${{ runner.temp }}/r01-schema-public/versions.json
             ${{ runner.temp }}/r01-schema-public/images.json
+            ${{ runner.temp }}/r01-schema-public/extension-provenance-before.json
+            ${{ runner.temp }}/r01-schema-public/extension-provenance-after.json
+            ${{ runner.temp }}/r01-schema-public/extension-provenance-diff.json
             ${{ runner.temp }}/r01-schema-public/parity-diff.json
             ${{ runner.temp }}/r01-schema-public/managed-diagnostics.json
             ${{ runner.temp }}/r01-schema-public/platform-effective-diff.json

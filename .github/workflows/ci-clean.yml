@@ -97,6 +97,7 @@ jobs:
           python -m unittest discover -s supabase/migrations -p test_migration_integrity.py
       - name: Need column privacy boundary (isolated SQL)
         run: |
+          node --test supabase/proofs/privacy/runtime/extension-provenance.test.mjs supabase/proofs/privacy/runtime/extension-provenance-sql.test.mjs
           node supabase/proofs/privacy/r01-column-boundary.test.mjs
           node supabase/proofs/privacy/r01-bootstrap-parity.test.mjs
           python -B -m unittest discover -s supabase/proofs/privacy/bootstrap -p 'test_*.py'
