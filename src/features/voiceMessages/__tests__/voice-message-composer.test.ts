@@ -224,6 +224,27 @@ it('R11c/SB04 retains ABSENT, STAGED, PROCESSING and unreadable journaled upload
   expect(s.composer.getSnapshot().recovered).toHaveLength(4);
   expect(s.outbox.sendVoice).not.toHaveBeenCalled();
 });
+it('R11c/SB04 does not offer any voice asset for a second send when the outbox snapshot is unavailable', async () => {
+  const ref: Ref = { agreementId, agreementVersion: 3, clientRequestId: '55555555-5555-4555-8555-000000000008' };
+  const s = setup({ journal: [ref] });
+  s.uploads.read.mockImplementation(async (r: Ref) => good(receipt(r, 'READY')));
+  s.outbox.getSnapshot = () => { throw new Error('OUTBOX_NOT_READABLE'); };
+  await s.composer.restore();
+  expect(s.composer.getSnapshot()).toMatchObject({ recovered: [], unresolved: [{ ref, state: 'UNKNOWN' }],
+    error: { code: 'OUTCOME_UNKNOWN' } });
+  expect(s.outbox.sendVoice).not.toHaveBeenCalled();
+  expect(s.journal.clear).not.toHaveBeenCalled();
+});
+it('R11c/SB04 blocks a new voice recording while persisted upload recovery is still checking the outbox', async () => {
+  const s = setup(); let done!: (refs: Ref[]) => void;
+  s.journal.load.mockReturnValueOnce(new Promise<Ref[]>(resolve => { done = resolve; }));
+  const checking = s.composer.restore();
+  expect(s.composer.getSnapshot()).toMatchObject({ recoveryBusy: true, canRecord: false });
+  await s.composer.start();
+  expect(s.recorder.state.started).toBe(0);
+  done([]); await checking;
+  expect(s.composer.getSnapshot()).toMatchObject({ recoveryBusy: false, canRecord: true });
+});
 it('R11c/SB04 explicitly cancels an unresolved key only after a confirmed terminal server response', async () => {
   const ref: Ref = { agreementId, agreementVersion: 3, clientRequestId: '55555555-5555-4555-8555-000000000001' };
   const s = setup({ journal: [ref] });

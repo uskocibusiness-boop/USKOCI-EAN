@@ -102,7 +102,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
   const outboxBusy = () => { try { return options.outbox.getSnapshot().capturing; } catch { return true; } };
   const build = (): VoiceComposerSnapshot => {
     const live = agreementNow();
-    const allowed = options.isCurrent() && live.writable && live.version !== null && !outboxBusy() && !finishing;
+    const allowed = options.isCurrent() && live.writable && live.version !== null && !outboxBusy() && !finishing && !checkingRecovery;
     return Object.freeze({ phase, elapsedMs, durationMs: recorded?.durationMs ?? null, preview, previewMs, level, error: failure,
       canRecord: phase === 'idle' && allowed && !starting && !working && !releaseRecordingClaim, canSend: (phase === 'review') && allowed && !working,
       canDiscard: !working && !finishing && (phase === 'recording' || phase === 'review' || phase === 'failed'), canRetry: phase === 'failed' && allowed && !working, recovered, unresolved, recoveryBusy: checkingRecovery || working });
@@ -373,7 +373,16 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
       if (!alive(g)) return;
       const reserved = new Set<string>();
       try { for (const entry of options.outbox.getSnapshot().entries) if (entry.command.voice) reserved.add(entry.command.voice.assetId); }
-      catch { /* keep the journal; a later refresh checks again */ }
+      catch {
+        // Never offer an asset for a second send when the active outbox cannot tell us whether it already owns it.
+        if (alive(g)) {
+          recovered = [];
+          unresolved = refs.filter(ref => !pending || pending.ref.clientRequestId !== ref.clientRequestId)
+            .map(ref => ({ ref, state: 'UNKNOWN' as const }));
+          fail(error('OUTCOME_UNKNOWN')); publish();
+        }
+        return;
+      }
       const found: RecoveredRecording[] = [], waiting: UnresolvedRecording[] = [];
       for (const ref of refs) {
         if (pending && pending.ref.clientRequestId === ref.clientRequestId) continue;
