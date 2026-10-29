@@ -43,7 +43,7 @@ const flat = (style: unknown) => (StyleSheet.flatten(style as never) ?? {}) as R
 const texts = (node: ReactTestInstance = tree.root) => node.findAll(child => String(child.type) === 'T').flatMap(child => child.children.filter(c => typeof c === 'string')).join(' ');
 const button = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
 const has = (label: string) => tree.root.findAllByProps({ accessibilityLabel: label }).length > 0;
-const idle = { phase: 'idle', elapsedMs: 0, durationMs: null, preview: 'idle', level: null, error: null, canRecord: true, canSend: false, canDiscard: false, canRetry: false, recovered: [] };
+const idle = { phase: 'idle', elapsedMs: 0, durationMs: null, preview: 'idle', level: null, error: null, canRecord: true, canSend: false, canDiscard: false, canRetry: false, recovered: [], unresolved: [], recoveryBusy: false };
 async function render(over: Partial<typeof props> = {}) {
   await act(async () => { tree = create(<AgreementChat {...props} {...over} />, { createNodeMock: element => element.type === ('ScrollView' as never) ? { scrollToEnd: jest.fn(), scrollTo: jest.fn() } : null }); });
 }
@@ -58,7 +58,7 @@ beforeEach(() => {
     review: false, reviewFirst: false, screenReader: false, setReviewFirst: jest.fn(), interactionError: null,
     begin: jest.fn().mockResolvedValue(undefined), endHold: jest.fn().mockResolvedValue(undefined), release: jest.fn().mockResolvedValue(undefined),
     cancel: jest.fn().mockResolvedValue(undefined), preview: jest.fn(), send: jest.fn().mockResolvedValue(undefined), retry: jest.fn(),
-    refreshRecovery: jest.fn(), sendRecovered: jest.fn(), discardRecovered: jest.fn(), toggle: jest.fn().mockResolvedValue(undefined),
+    refreshRecovery: jest.fn(), sendRecovered: jest.fn(), discardRecovered: jest.fn(), cancelUnresolved: jest.fn(), toggle: jest.fn().mockResolvedValue(undefined),
   });
   const state: OutboxSnapshot = { phase: 'ready', draft: '', capturing: false, entries: [], error: null };
   props = { messages: [], loading: false, error: false, writable: true, terminal: false, refresh: jest.fn().mockResolvedValue(undefined),
@@ -111,6 +111,26 @@ describe('a voice message in the thread', () => {
     expect(mockVoice.outbox.retry).toHaveBeenCalledWith('glas_00000009');
     expect(outbox.retry).not.toHaveBeenCalled();
   });
+});
+
+it('R11c/SB04 unresolved upload is visible, checkable and explicitly cancellable without an automatic send', async () => {
+  const ref = { agreementId: agreement, agreementVersion: 2, clientRequestId: '60000000-0000-4000-8000-000000000001' };
+  mockVoice.recording = { ...idle, unresolved: [{ ref, state: 'STAGED' }] };
+  await render();
+  expect(texts()).toContain('Nepotvrđeno slanje glasovne poruke');
+  expect(texts()).toContain('Snimak čeka obradu na serveru.');
+  expect(has('Proveri stanje snimka')).toBe(true);
+  expect(has('Otkaži nepotvrđeni snimak')).toBe(true);
+  expect(mockVoice.cancelUnresolved).not.toHaveBeenCalled();
+  expect(mockVoice.sendRecovered).not.toHaveBeenCalled();
+  await act(async () => button('Proveri stanje snimka').props.onPress());
+  expect(mockVoice.refreshRecovery).toHaveBeenCalledTimes(1);
+  await act(async () => button('Otkaži nepotvrđeni snimak').props.onPress());
+  expect(mockVoice.cancelUnresolved).toHaveBeenCalledWith(ref);
+  mockVoice.recording = { ...mockVoice.recording, recoveryBusy: true };
+  await act(async () => tree.update(<AgreementChat {...props} />));
+  expect(button('Otkaži nepotvrđeni snimak').props.disabled).toBe(true);
+  expect(button('Proveri stanje snimka').props.disabled).toBe(true);
 });
 
 describe('a voice send the network left unknown', () => {
