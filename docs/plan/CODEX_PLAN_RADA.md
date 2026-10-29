@@ -4003,6 +4003,13 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 - **Status:** SOURCE COMMITTED; potreban pun CI i potom odgovarajući DEV Edge/version i Auth/PostgREST dokaz. Nema DEV deploy-a, migracije ni pravog modelskog zahteva.
 
 
+### R11c/X06 — 29.10.2026: Jest hoist ispravka nakon punog CI (SOURCE FIX; recheck pending)
+
+- **Izvršeni dokaz:** [main CI 40897067137](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40897067137) je FAIL samo zato što novi `src/data/__tests__/block-outcome-lifecycle.test.ts` nije mogao biti transformisan: Jest factory `jest.mock(...)` koristi promenljivu `session` van dozvoljenog opsega (Babel hoist). **617/618 suite-ova PASS, svih 14.163 izvršenih Jest testova PASS**; suita X06 nije izvršena. Nije dokaz X06 logike ni potvrda celog CI. TypeScript je prošao.
+- **Ispravka bez slabljenja testa:** isti postojeći synthetic owner objekat preimenovan je u `mockSession` na svim korišćenjima u tom jednom test fajlu, što je po Jest factory pravilu dozvoljen prefiks. Aplikacioni sigurnosni guard, proveravani scenariji i očekivani ishodi nisu menjani.
+- **Dalje:** ponoviti ceo CI na novom HEAD-u, pročitati svaku eventualnu sledeću regresiju, ne objavljivati X06 kao CI PASS pre stvarnog prolaza. R01 managed strict metadata parity ostaje nezavisan blokator i ne preskače se.
+
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita

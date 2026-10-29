@@ -2,10 +2,10 @@ import { announceBlockChange, blockWords } from '../../ui/safety/blockOutcome';
 
 const OWNER='11111111-1111-4111-8111-111111111111';
 const OTHER='22222222-2222-4222-8222-222222222222';
-let session={user:{id:OWNER},accountRevision:1};
+let mockSession={user:{id:OWNER},accountRevision:1};
 let active=true;
 const mockShow=jest.fn(),mockSetBlock=jest.fn();
-jest.mock('../../store/sesija',()=>({sesijaSada:()=>session}));
+jest.mock('../../store/sesija',()=>({sesijaSada:()=>mockSession}));
 jest.mock('../../ui/system/Poruka',()=>({poruka:{show:(...args:unknown[])=>mockShow(...args)}}));
 jest.mock('../safetyClientService',()=>({safetyClientService:{setBlock:(...args:unknown[])=>mockSetBlock(...args)}}));
 jest.mock('../../lib/idempotencija',()=>({noviUuidZahtevId:()=> '33333333-3333-4333-8333-333333333333'}));
@@ -15,10 +15,10 @@ const announce=(onSettled=jest.fn())=>{
   announceBlockChange(receipt,owner,{stillCurrent:()=>active,onSettled});
   return onSettled;
 };
-beforeEach(()=>{mockShow.mockReset();mockSetBlock.mockReset();session={user:{id:OWNER},accountRevision:1};active=true;});
+beforeEach(()=>{mockShow.mockReset();mockSetBlock.mockReset();mockSession={user:{id:OWNER},accountRevision:1};active=true;});
 
 it('does not show confirmed toast if the account changed before receipt announcement',()=>{
-  session={user:{id:OTHER},accountRevision:2};
+  mockSession={user:{id:OTHER},accountRevision:2};
   announce();
   expect(mockShow).not.toHaveBeenCalled();
 });
@@ -65,8 +65,8 @@ it('old undo result cannot announce after account round-trip with same ID but ne
   let resolve!: (value:{ok:boolean})=>void;
   mockSetBlock.mockReturnValueOnce(new Promise(done=>{resolve=done;}));
   mockShow.mock.calls[0][0].action.onPress();
-  session={user:{id:OTHER},accountRevision:2};
-  session={user:{id:OWNER},accountRevision:3};
+  mockSession={user:{id:OTHER},accountRevision:2};
+  mockSession={user:{id:OWNER},accountRevision:3};
   resolve({ok:true});
   await Promise.resolve();await Promise.resolve();await Promise.resolve();
   expect(mockShow).toHaveBeenCalledTimes(1);
