@@ -421,7 +421,7 @@ export function HomePresentation(p: HomePresentationProps) {
             <View key={app.prijavaId} style={s.carouselCard}>
               <ApplicationCard
                 row={app}
-                onTask={() => p.onOpen({ kind: 'NEED', needId: app.potrebaId })}
+                onTask={() => p.onOpenOpportunity ? p.onOpenOpportunity(app.potrebaId) : p.onMyApplications()}
                 onAgreement={() => app.dogovorId ? p.onOpen({ kind: 'AGREEMENT', agreementId: app.dogovorId }) : undefined}
                 onWithdraw={p.onMyApplications}
                 onReview={p.onMyApplications}
