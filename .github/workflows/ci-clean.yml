@@ -74,7 +74,7 @@ jobs:
         run: |
           node --test --test-reporter=spec supabase/proofs/dynamic_taxonomy/provider-shadow-validator.test.mjs
           node supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs --offline
-          node --test --test-concurrency=2 --test-reporter=dot supabase/proofs/ai/*.test.mjs
+          node --test --test-concurrency=2 --test-reporter=spec supabase/proofs/ai/*.test.mjs
           node --test --test-reporter=dot \
             supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs \
             supabase/proofs/taxonomy/published_need_category_gate.test.mjs \
