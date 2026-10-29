@@ -54,7 +54,7 @@ begin
   (r.envelope->>'responseDeadline')::timestamptz,'v5-publish:'||r.id::text);
  update private.ai_task_review_commands set state='PUBLISHED',published=v_published where review_id=r.id;
  return private.ai_task_review_command_document(r.id);
-end $function$
+end $function$;
 DO $r04$
 BEGIN
  IF NOT EXISTS(SELECT 1 FROM r04_publish_before b JOIN pg_proc p ON p.oid=b.oid
