@@ -239,13 +239,53 @@ export function consumeClarificationHint(conversationId, draftRevision, service)
   if (!conversationId) return;
   draftRevision = hintDraftRevision(draftRevision);
   if (draftRevision === null) return;
-  const list = clarificationHintsByConversation.get(conversationId);
-  if (!Array.isArray(list)) return;
-  for (const h of list) {
-    if (h.draftRevision === draftRevision && (!service || h.service === service)) {
-      h.consumed = true;
-    }
-  }
+  const list = clarificationHintsByConversation.get(conversationId) ?? [];
+  let foundRevision = false;
+  const next = list.map(h => {
+    if (h.draftRevision !== draftRevision) return h;
+    foundRevision = true;
+    return { ...h, consumed: h.consumed || !service || h.service === service };
+  });
+  // Record the completed consume even before a first GET has populated memory.
+  // An immutable slot fences older reads; a fresh confirmed replacement can
+  // still populate the same revision after this operation.
+  if (!foundRevision) next.push({ conversationId, draftRevision, service, consumed: true, timestamp: Date.now() });
+  clarificationHintsByConversation.set(conversationId, next);
+}
+
+const trimSqlSpaces = value => typeof value === 'string' ? value.replace(/^ +| +$/g, '') : value;
+const hintMemorySlot = (conversationId, draftRevision) =>
+  clarificationHintsByConversation.get(conversationId)?.find(hint => hint.draftRevision === draftRevision);
+
+function cacheConfirmedHint(hint, previous) {
+  // Same-isolate guard only: a late read/ACK cannot overwrite a newer hint or
+  // resurrect an entry consumed while the request was in flight.
+  const current = hintMemorySlot(hint.conversationId, hint.draftRevision);
+  if (current !== previous) return false;
+  storeClarificationHint(hint.conversationId, hint.draftRevision, hint);
+  return true;
+}
+
+function decodeClarificationHint(res, conversationId, draftRevision) {
+  if (res?.ok === false) return null;
+  const data = res?.ok === true ? res.data : res;
+  const canonicalText = (value, min, max) => typeof value === 'string' && value === trimSqlSpaces(value) &&
+    Array.from(value).length >= min && Array.from(value).length <= max;
+  if (!data || typeof data !== 'object' || Array.isArray(data) ||
+      data.conversationId !== conversationId || data.draftRevision !== draftRevision ||
+      !canonicalText(data.service, 1, 200) || ![null, 'ON_SITE', 'REMOTE'].includes(data.mode) ||
+      !canonicalText(data.ambiguityPrompt, 8, 600) ||
+      !(data.reason === null || canonicalText(data.reason, 1, 300))) return null;
+  return { conversationId, draftRevision, service: data.service, mode: data.mode,
+    ambiguityPrompt: data.ambiguityPrompt, reason: data.reason };
+}
+
+async function readClarificationHint(rpc, conversationId, draftRevision) {
+  try {
+    return decodeClarificationHint(await rpc('rpc_taxonomy_get_unconsumed_turn_hint_service', {
+      p_conversation_id: conversationId, p_draft_revision: draftRevision,
+    }), conversationId, draftRevision);
+  } catch { return null; }
 }
 
 export async function persistClarificationHint(rpc, hint) {
@@ -255,10 +295,13 @@ export async function persistClarificationHint(rpc, hint) {
   // Mirror the store RPC's btrim/nullif semantics, with its 300-character cap.
   // Send and cache the identical text; a rejected write must never warm memory.
   const reason = typeof hint.reason === 'string'
-    ? boundedCodepoints(hint.reason.replace(/^ +| +$/g, ''), 300).replace(/ +$/g, '') || null
-    : hint.reason;
-  const normalizedHint = { ...hint, reason };
+    ? trimSqlSpaces(boundedCodepoints(trimSqlSpaces(hint.reason), 300)) || null
+    : hint.reason ?? null;
+  const normalizedHint = { ...hint, draftRevision, service: trimSqlSpaces(hint.service), mode: hint.mode ?? null,
+    ambiguityPrompt: trimSqlSpaces(hint.ambiguityPrompt), reason };
+  const previous = hintMemorySlot(hint.conversationId, draftRevision);
   if (typeof rpc === 'function') {
+    let confirmed = false;
     try {
       const res = await rpc('rpc_taxonomy_store_classification_turn_hint_service', {
         p_conversation_id: hint.conversationId,
@@ -269,12 +312,20 @@ export async function persistClarificationHint(rpc, hint) {
         p_reason: reason,
       });
       const receipt = res?.ok === true ? res.data : res;
-      if (res?.ok === false || receipt?.stored !== true || receipt?.draftRevision !== draftRevision) return false;
-    } catch {
-      return false;
+      // A business rejection is final. Transport failure/malformed ACK is not
+      // proof of rollback, but must never cause another replacement STORE.
+      if (res?.ok !== false && (receipt === false || receipt?.stored === false)) return false;
+      confirmed = res?.ok !== false && receipt?.stored === true && receipt?.draftRevision === draftRevision;
+    } catch { /* The write may have committed before its receipt was lost. */ }
+    if (!confirmed) {
+      // Bypass memory and use the caller's existing signal/deadline for one GET.
+      // This proves only current matching content, not provider-attempt identity.
+      const observed = await readClarificationHint(rpc, hint.conversationId, draftRevision);
+      if (!observed || ['service', 'mode', 'ambiguityPrompt', 'reason']
+        .some(key => observed[key] !== normalizedHint[key])) return false;
     }
   }
-  storeClarificationHint(hint.conversationId, draftRevision, normalizedHint);
+  cacheConfirmedHint(normalizedHint, previous);
   return true;
 }
 
@@ -306,19 +357,9 @@ export async function fetchUnconsumedClarificationHint(rpc, conversationId, draf
   const mem = getUnconsumedClarificationHint(conversationId, draftRevision);
   if (mem) return mem;
   if (typeof rpc === 'function' && conversationId) {
-    try {
-      const res = await rpc('rpc_taxonomy_get_unconsumed_turn_hint_service', {
-        p_conversation_id: conversationId,
-        p_draft_revision: draftRevision,
-      });
-      const data = res?.ok ? res.data : res;
-      if (data && typeof data.ambiguityPrompt === 'string') {
-        storeClarificationHint(conversationId, draftRevision, data);
-        return data;
-      }
-    } catch {
-      // Graceful fallback
-    }
+    const previous = hintMemorySlot(conversationId, draftRevision);
+    const data = await readClarificationHint(rpc, conversationId, draftRevision);
+    if (data) return cacheConfirmedHint(data, previous) ? data : getUnconsumedClarificationHint(conversationId, draftRevision);
   }
   return null;
 }

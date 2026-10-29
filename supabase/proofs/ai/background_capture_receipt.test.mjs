@@ -23,6 +23,7 @@ const captureRpc='rpc_taxonomy_capture_gemini_turn_hints_service';
 
 function fixture(kind,operation,responseFactory,options={}){
   const calls=[],logs=[],background=[],unexpected=[];
+  let committedHint=null;
   const user=options.user??USER;
   let unchanged=false;
   const requestKey=()=>unchanged?id(10):key;
@@ -63,11 +64,19 @@ function fixture(kind,operation,responseFactory,options={}){
     if(name==='rpc_ai_complete_need_turn_v2_service')return json({...currentTurn(),receipt:{...receipt,
       proposedCount:body.p_proposals.length,safety:body.p_safety}});
     if(name==='rpc_complete_worker_ai_turn_service')return json(currentTurn());
-    if(name==='rpc_taxonomy_get_unconsumed_turn_hint_service')return json(null);
+    if(name==='rpc_taxonomy_get_unconsumed_turn_hint_service')return committedHint&&options.readbackResponse
+      ? options.readbackResponse(committedHint,init.signal) : json(committedHint);
     if(name==='rpc_taxonomy_fetch_snapshot_v1')return json({catalogVersion:7,catalogFingerprint:'a'.repeat(32),count:1,
       categories:[{categoryId:rootId,parentId:null,label:'Synthetic root',aliases:[],path:['Synthetic root'],isLeaf:false,modes:['ON_SITE']}]});
     if(name===storeRpc||name===captureRpc){
       assert.equal(name,operation==='store'?storeRpc:captureRpc);
+      if(name===storeRpc&&options.commitBeforeReply){
+        // Model the existing SQL write committing before its response is lost.
+        // This transport fixture is not a claim of real hosted SQL execution.
+        committedHint={conversationId:body.p_conversation_id,draftRevision:body.p_draft_revision,
+          service:body.p_service,mode:body.p_mode,ambiguityPrompt:body.p_ambiguity_prompt,reason:body.p_reason,
+          ...options.readbackOverrides};
+      }
       return responseFactory(body);
     }
     if(name==='rpc_ai_test_record_usage_service')return json({recorded:true,authoritative:true,operationId:body.p_operation_id,
@@ -86,22 +95,23 @@ function fixture(kind,operation,responseFactory,options={}){
   const load=kind==='NEED'?loadOwnedIntakeHandler:loadWorkerRecoveryHandler;
   const loaded=load({fetch,env:name=>env[name],log:args=>{logs.push(args);
     if(options.throwLog&&args[0]===kind+'_TAXONOMY_HINT_'+operation.toUpperCase())throw new Error('SYNTHETIC_PRIVATE_LOG_SINK');
-  },EdgeRuntime:{waitUntil:promise=>background.push(promise)}});
-  const invoke=async()=>{
+  },EdgeRuntime:{waitUntil:promise=>background.push(promise)},
+    setTimeout:options.setTimeout,clearTimeout:options.clearTimeout});
+  const invoke=async(waitForBackground=true)=>{
     const response=await loaded.handler(new Request('https://synthetic.invalid',{method:'POST',
       headers:{Authorization:'Bearer SYNTHETIC',Accept:'text/event-stream','Content-Type':'application/json'},
       body:JSON.stringify({conversationId:conversation,clientRequestId:requestKey(),text:unchanged?'Samo dopuni opis bez promene usluge.':user})}));
     assert.equal(response.status,200);
     const events=(await response.text()).trim().split('\n\n').map(line=>JSON.parse(line.slice(6)));
     assert.ok(background.length>0,'success registers background work');
-    await Promise.all(background);
+    if(waitForBackground)await Promise.all(background);
     assert.deepEqual(unexpected,[]);
     assert.equal(events.at(-1).kind,'final','background failure must not fail a durable successful conversation');
     assert.equal(events.at(-1).turn.state,'SUCCEEDED');
     assert.ok(!events.some(event=>event.kind==='safe_error'));
     return events;
   };
-  return {calls,logs,completedRevision,invoke,async execute(){
+  return {calls,logs,completedRevision,invoke,settle:()=>Promise.all(background),async execute(){
     const events=await invoke();
     assert.equal(calls.filter(call=>call.url.includes('generativelanguage.googleapis.com/')).length,2,'one conversational and one architect call, no retry');
     assert.equal(calls.filter(call=>call.url.includes(':generateContent')).length,1);
@@ -170,6 +180,79 @@ for(const modes of [['ON_SITE'],['REMOTE'],['ON_SITE','REMOTE']]){
 }
 
 for(const kind of ['NEED','WORKER']){
+  for(const lostReply of ['null','HTTP','thrown']){
+    test(kind+' committed clarification survives '+lostReply+' ACK loss by one exact read, without rewriting or reclassifying',async()=>{
+      const f=fixture(kind,'store',()=>{
+        if(lostReply==='thrown')throw new Error('SYNTHETIC_PRIVATE_TRANSPORT');
+        return lostReply==='HTTP'?json({message:'SYNTHETIC_PRIVATE_HTTP'},503):json(null);
+      },{commitBeforeReply:true});
+      await f.execute();
+      const writes=f.calls.filter(call=>call.url.endsWith('/'+storeRpc));
+      const reads=f.calls.filter(call=>call.url.endsWith('/rpc_taxonomy_get_unconsumed_turn_hint_service'));
+      assert.equal(reads.length,2,'one ordinary read before the turn and one forced receipt read after the write');
+      assert.ok(f.calls.indexOf(reads[1])>f.calls.indexOf(writes[0]));
+      assert.equal(reads[1].body.p_conversation_id,conversation);
+      assert.equal(reads[1].body.p_draft_revision,f.completedRevision);
+      assert.ok(reads[1].signal instanceof AbortSignal,'boundedJson uses a per-request child signal');
+      assert.ok(!f.logs.some(args=>args[0]===kind+'_TAXONOMY_HINT_STORE'),'an exact durable readback resolves the ambiguous store result');
+    });
+  }
+  for(const [field,value] of [['conversationId',id(99)],['draftRevision',99],['service','OTHER_PRIVATE_SERVICE'],
+    ['mode','REMOTE'],['ambiguityPrompt','OTHER_PRIVATE_PROMPT'],['reason','OTHER_PRIVATE_REASON']]){
+    test(kind+' does not adopt a different clarification '+field+' after a lost ACK',async()=>{
+      const f=fixture(kind,'store',()=>json(null),{commitBeforeReply:true,readbackOverrides:{[field]:value}});
+      await f.execute();
+      assert.deepEqual(f.logs.filter(args=>args[0]===kind+'_TAXONOMY_HINT_STORE'),[[kind+'_TAXONOMY_HINT_STORE','UNAVAILABLE']]);
+    });
+  }
+  test(kind+' delayed clarification readback cannot hold the successful foreground response',async()=>{
+    let releaseRead,notifyRead;
+    const readGate=new Promise(resolve=>{releaseRead=resolve;});
+    const readStarted=new Promise(resolve=>{notifyRead=resolve;});
+    const f=fixture(kind,'store',()=>json(null),{commitBeforeReply:true,
+      readbackResponse:async value=>{notifyRead();await readGate;return json(value);}});
+    let timer;
+    try{
+      const [events]=await Promise.race([Promise.all([f.invoke(false),readStarted]),new Promise((_,reject)=>{
+        timer=setTimeout(()=>reject(new Error('FOREGROUND_BLOCKED_ON_HINT_READBACK')),3000);
+      })]);
+      assert.equal(events.at(-1).turn.state,'SUCCEEDED');
+      assert.equal(f.calls.filter(call=>call.url.includes(':generateContent')).length,1);
+    }finally{clearTimeout(timer);releaseRead();await f.settle();}
+    assert.ok(!f.logs.some(args=>args[0]===kind+'_TAXONOMY_HINT_STORE'));
+    assert.equal(f.calls.filter(call=>call.url.endsWith('/'+storeRpc)).length,1);
+  });
+  test(kind+' clarification readback is aborted by the existing overall background deadline',async()=>{
+    const timers=new Map();let timerId=0,notifyRead,readSignal,watchdog;
+    const readStarted=new Promise(resolve=>{notifyRead=resolve;});
+    const f=fixture(kind,'store',()=>json(null),{commitBeforeReply:true,
+      setTimeout:(fn,ms)=>{const id=++timerId;timers.set(id,{fn,ms});return id;},
+      clearTimeout:id=>timers.delete(id),
+      readbackResponse:(_value,signal)=>new Promise((_,reject)=>{
+        readSignal=signal;notifyRead();
+        const abort=()=>reject(new Error('SYNTHETIC_READBACK_ABORT'));
+        signal.addEventListener('abort',abort,{once:true});if(signal.aborted)abort();
+      })});
+    try{
+      const [events]=await Promise.race([Promise.all([f.invoke(false),readStarted]),new Promise((_,reject)=>{
+        watchdog=setTimeout(()=>reject(new Error('SYNTHETIC_READBACK_NOT_STARTED')),3000);
+      })]);
+      assert.equal(events.at(-1).turn.state,'SUCCEEDED');
+      assert.equal(readSignal.aborted,false);
+      const deadlines=[...timers.values()].filter(timer=>timer.ms===9000);
+      assert.equal(deadlines.length,1,'readback must not create or restart an overall background deadline');
+      deadlines[0].fn();
+      assert.equal(readSignal.aborted,true,'the existing owner deadline reaches the GET child signal');
+      await f.settle();
+      assert.deepEqual(f.logs.filter(args=>args[0]===kind+'_TAXONOMY_HINT_STORE'),[[kind+'_TAXONOMY_HINT_STORE','UNAVAILABLE']]);
+      assert.equal(f.calls.filter(call=>call.url.includes(':generateContent')).length,1);
+      assert.equal(f.calls.filter(call=>call.url.endsWith('/'+storeRpc)).length,1);
+    }finally{
+      clearTimeout(watchdog);
+      for(const timer of [...timers.values()])if(timer.ms===9000)timer.fn();
+      await f.settle();
+    }
+  });
   test(kind+' dual turn loads one catalog only when classification inputs change',async()=>{
     const f=fixture(kind,'capture',()=>json({action:'HINT_CAPTURED',authority:'NONE'}));
     await f.execute();
