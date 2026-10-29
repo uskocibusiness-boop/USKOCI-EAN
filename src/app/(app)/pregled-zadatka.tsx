@@ -488,7 +488,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // One line ABOVE the publish button, in the foot, ONLY when the button is grey: the first thing in its way, short (the full list is "Još treba"
   // above). A grey button always says why, and the reason stands over it, not under it, where it read as the next thing. A button that can be pressed
   // says what it does by its name and has no sentence over it ("Objavljuješ ovu verziju zadatka." said what "Objavi zadatak" is; the owner, 8 Oct 2026).
-  const caption = todos.length || unavailableIdentityFact ? 'Prvo uradite ono što piše pod „Još treba“.' :
+  const caption = todos.length || unavailableIdentityFact ? 'Prvo uradi ono što piše pod „Još treba“.' :
     classificationPending ? 'Potvrdite značenje usluge pre objave. Nacrt možete da sačuvate.' : null;
   // A command that fails ticks once with the failure pattern (haptics rule R5), whether it ends in a refusal or in an outcome not known.
   const failedWith = useRef<string | null>(null);
