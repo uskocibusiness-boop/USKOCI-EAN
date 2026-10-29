@@ -22,7 +22,7 @@ DECLARE
   v_unchanged_before jsonb;
   v_unchanged_after jsonb;
   v_owner_count integer;
-  v_target_count integer;
+  -- The exact four target rows must continue granting service_role rights.
 BEGIN
   IF current_setting('uskoci.r01.disposable',true) IS DISTINCT FROM 'LOCAL_ONLY'
     OR current_database()<>'postgres'
@@ -94,15 +94,14 @@ BEGIN
       WHERE d.defaclnamespace='public'::regnamespace
         AND pg_get_userbyid(d.defaclrole) IN ('postgres','supabase_admin')
         AND d.defaclobjtype IN ('r','S'))<>4
-    OR EXISTS(SELECT 1 FROM pg_default_acl d, aclexplode(d.defaclacl) a
+    OR (SELECT count(*) FROM pg_default_acl d
       WHERE d.defaclnamespace='public'::regnamespace
         AND pg_get_userbyid(d.defaclrole) IN ('postgres','supabase_admin')
         AND d.defaclobjtype IN ('r','S')
-        AND a.grantee='service_role'::regrole::oid
-        AND a.privilege_type=CASE WHEN d.defaclobjtype='r'
-          THEN 'SELECT' ELSE 'USAGE' END
-        GROUP BY d.defaclrole,d.defaclobjtype
-        HAVING count(*)<>1)
+        AND EXISTS(SELECT 1 FROM aclexplode(d.defaclacl) a
+          WHERE a.grantee='service_role'::regrole::oid
+            AND a.privilege_type=CASE WHEN d.defaclobjtype='r'
+              THEN 'SELECT' ELSE 'USAGE' END))<>4
   THEN RAISE EXCEPTION 'R01_DEFAULTS_POSTCONDITION_FAILED'
     USING errcode='55000'; END IF;
 
