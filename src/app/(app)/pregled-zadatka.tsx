@@ -347,7 +347,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       || (command.evaluation?.kind === 'DECISION' && command.evaluation.decision.outcome !== 'ALLOW'));
     // The canonical ACCEPTED state has no evaluation dispatch;145 also blocks
     // any later claim for this immutable unsupported review. Unknown stays read-only.
-    const unavailableEditExit = !!unavailableIdentityFact && command.authoritative === true
+    // An accepted private draft with a still-unresolved signed category must
+    // open the existing edit conversation, not offer an unsupported publish.
+    const unavailableEditExit = (!!unavailableIdentityFact || classificationPending)
+      && command.authoritative === true
       && (command.state === 'EVALUATED' || command.state === 'ACCEPTED');
     if (!supportedEditExit && !unavailableEditExit && !commandMapIncomplete) return;
     await editor.save(async () => {
@@ -596,9 +599,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const moreFacts = command ? [] : publicFacts.filter(item => !!item.id && MORE_LISTS.includes(item.key) && blankList(item));
   // Which green action a stored command offers: its resume, or the way back to the conversation. With neither, the check is the one way forward
   // and wears the green itself.
-  const resumeShown = resumableCommand && locationReadiness.ready && !unavailableIdentityFact;
+  const resumeShown = resumableCommand && locationReadiness.ready && !unavailableIdentityFact && !classificationPending;
   const editShown = !!command && ((command.state === 'EVALUATED' && (evaluation?.kind === 'NOT_READY' || (!!outcome && outcome !== 'ALLOW')))
-    || (!!unavailableIdentityFact && command.authoritative === true && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')) || commandMapIncomplete);
+    || ((!!unavailableIdentityFact || classificationPending) && command.authoritative === true
+      && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')) || commandMapIncomplete);
   // The table's three words (`system/outcomeCopy`): what is not known is looked at ("Proveri", one button), what may be old is read again
   // ("Osveži"). A screen reader still hears what is read.
   const check = (label: string, primary = false, spoken?: string) => <V2Action label={label} accessibilityLabel={spoken} style={primary ? brandAction : undefined}
