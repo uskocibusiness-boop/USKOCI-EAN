@@ -21,12 +21,14 @@ const baseSetup=`
    GRANT ALL ON SEQUENCES TO postgres,anon,authenticated,service_role;
  ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
    GRANT EXECUTE ON FUNCTIONS TO postgres,anon,authenticated,service_role;
+ SET ROLE supabase_admin;
  ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
    GRANT ALL ON TABLES TO postgres,anon,authenticated,service_role;
  ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
    GRANT ALL ON SEQUENCES TO postgres,anon,authenticated,service_role;
  ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin IN SCHEMA public
    GRANT EXECUTE ON FUNCTIONS TO postgres,anon,authenticated,service_role;
+ RESET ROLE;
  CREATE TABLE public.preexisting_need (id int);
  GRANT SELECT ON public.preexisting_need TO authenticated,service_role;
 `;
