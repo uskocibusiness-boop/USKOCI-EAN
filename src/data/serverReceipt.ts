@@ -67,6 +67,10 @@ export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
   const controller = new AbortController();
   let rejectCancelled: (reason: Error) => void = () => {};
   const cancelled = new Promise<never>((_resolve, reject) => { rejectCancelled = reject; });
+  // Observe cancellation before dispatch: a request may synchronously abort and
+  // throw before Promise.race is installed. Race the original rejected promise,
+  // not this observer, so cancellation still settles the owned operation.
+  void cancelled.catch(() => {});
   const cancel = (reason: Error) => {
     if (controller.signal.aborted) return;
     // Settle even when the native transport ignores abort. A dispatched write remains unknown, never replayable merely due to cancellation.
@@ -79,14 +83,9 @@ export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
     options.signal?.addEventListener('abort', abort);
     timer = setTimeout(() => cancel(localTimeout), options.timeoutMs ?? 15_000);
     // No automatic write replay. Aborting local transport does not establish server rollback.
-    let resolveRequest!: (value: unknown) => void;
-    let rejectRequest!: (reason: unknown) => void;
-    const request = new Promise<unknown>((resolve, reject) => { resolveRequest = resolve; rejectRequest = reject; });
-    // Install handlers first, but retain synchronous request start for existing command owners.
-    // Caller code can synchronously abort and throw; both rejections already belong to this race.
-    const responsePending = Promise.race([request, cancelled]);
-    try { resolveRequest(options.request(controller.signal)); } catch (error) { rejectRequest(error); }
-    const response: unknown = await responsePending;
+    // Retain synchronous dispatch and the existing native-Promise resolution
+    // timing; an extra adopting Promise delays chained Auth/read commands.
+    const response: unknown = await Promise.race([Promise.resolve(options.request(controller.signal)), cancelled]);
     if (!current()) return changed();
     if (controller.signal.aborted) return unconfirmed();
     const result = record(response);

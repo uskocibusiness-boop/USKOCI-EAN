@@ -70,6 +70,8 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
     try {
       const profile = await mediaClientService.readProfileAvatar(profileId);
       if (!current()) return changed(); if (!profile.ok) return profile;
+      if (!sameId(profile.podatak.accountId, accountId) || !sameId(profile.podatak.profileId, profileId)
+        || profile.podatak.authoritative !== true) return changed();
       const stored = await AsyncStorage.getItem(key);
       if (!current()) return changed(); intent.current = decodeIntent(stored); storedIntent.current = stored; readAttempted.current = !!intent.current;
       let asset: MediaAsset | null = null;
@@ -81,20 +83,26 @@ function AvatarEditor({ profileId }: { profileId: string | null }) {
           setNotice(uploaded.poruka);
           return { ok: true, podatak: { profile: profile.podatak, asset: null, intent: intent.current } };
         }
-        if (uploaded.podatak.scope !== 'AVATAR' || !sameId(uploaded.podatak.profileId, profileId)
+        if (uploaded.podatak.authoritative !== true || uploaded.podatak.scope !== 'AVATAR' || !sameId(uploaded.podatak.profileId, profileId)
           || !sameId(uploaded.podatak.accountId, accountId) || !sameId(uploaded.podatak.clientRequestId, intent.current.requestId)
           || (intent.current.assetId && !sameId(uploaded.podatak.assetId, intent.current.assetId))) return changed();
         asset = uploaded.podatak;
       }
-      const discarded = intent.current?.phase === 'DISCARD' && asset?.selected === false;
+      const appliedToProfile = asset?.state === 'READY' && asset.ref !== null && profile.podatak.avatarPath === asset.ref;
+      // Another session may apply this exact asset before our discard. The
+      // discard writer then refuses; its read does not expose the old apply
+      // receipt. Only this owned profile's exact current path proves it saved.
+      const alreadyApplied = intent.current?.phase === 'DISCARD' && appliedToProfile;
+      const discarded = !alreadyApplied && intent.current?.phase === 'DISCARD' && asset?.selected === false;
       const resolved = intent.current?.phase === 'CLEAR' ? profile.podatak.avatarPath === null
-        : discarded || intent.current?.phase === 'APPLY' && asset?.state === 'READY' && profile.podatak.avatarPath === asset.ref;
+        : alreadyApplied || discarded || intent.current?.phase === 'APPLY' && appliedToProfile;
       if (resolved || (intent.current?.phase === 'UPLOAD' && asset && (!asset.selected || asset.state === 'FAILED'))) {
         // A change whose outcome was not known has now been confirmed: the old photograph is no longer the one to remember.
         if (resolved && !discarded) ownPhotoCache.forget();
         if (!(await replaceAvatarIntent(key, stored, null, current)) || !current()) return changed();
         intent.current = null; storedIntent.current = null; bytes.current = null; asset = null;
-        setNotice(discarded ? 'Izabrana fotografija je odbačena.' : resolved ? 'Fotografija profila je sačuvana.' : 'Fotografija nije dodata. Možeš izabrati drugu.');
+        setNotice(alreadyApplied ? 'Fotografija je već sačuvana na profilu. Ako želiš da je ukloniš, izaberi „Ukloni fotografiju profila“.'
+          : discarded ? 'Izabrana fotografija je odbačena.' : resolved ? 'Fotografija profila je sačuvana.' : 'Fotografija nije dodata. Možeš izabrati drugu.');
       }
       return { ok: true, podatak: { profile: profile.podatak, asset, intent: intent.current } };
     } catch { return failure('MEDIA_READ_UNCONFIRMED', 'Ne znamo da li je fotografija sačuvana. Proveri to.'); }
