@@ -61,6 +61,9 @@ jobs:
           python supabase/proofs/r05/build_today_candidate.py --check
           python -m unittest discover -s supabase/proofs/r05 -p 'test_*.py'
           node --test supabase/proofs/r05/today_window.test.mjs
+      - name: R04 semantic SQL isolation and signed publication fence (no DEV write)
+        run: |
+          node --test --test-reporter=spec             supabase/proofs/ai/r04_semantic_review_pending.test.mjs             supabase/proofs/ai/r04_signed_taxonomy_publish_fence.test.mjs
       - name: AI intake and taxonomy contracts
         run: |
           node --test --test-concurrency=2 --test-reporter=dot supabase/proofs/ai/*.test.mjs
