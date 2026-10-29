@@ -30,6 +30,7 @@ jest.mock('../../ui/Text',()=>({T:'T'}));
 jest.mock('../../ui/v2/V2Action',()=>({V2Action:'Action'}));
 jest.mock('../../ui/calendar/CalendarControls',()=>({CivilField:'CivilField'}));
 import { AgreementActionsScreen } from '../../ui/agreements/AgreementActionsScreen';
+import { clearAgreementUnsentDraft } from '../../ui/agreements/agreementUnsentDraft';
 import { QuietReadState } from '../../ui/v2/QuietReadState';
 import { SkeletonList } from '../../ui/system/Skeleton';
 const terms={priceRsd:3500,currency:'RSD' as const,scopeNote:'Važeći obim',startsAt:null,endsAt:null};
@@ -51,6 +52,7 @@ const reason=async(words:string)=>{await chip('Drugo');await type('Razlog otkazi
 const text=()=>JSON.stringify(tree.toJSON());
 function deferred<T>(){let resolve!:(value:T)=>void;const promise=new Promise<T>(done=>{resolve=done;});return {promise,resolve};}
 beforeEach(()=>{
+ clearAgreementUnsentDraft();
  jest.clearAllMocks();for(const group of [mockService,mockStorage])for(const fn of Object.values(group))fn.mockReset();
  mockSession={user:{id:A},accountRevision:1};mockFocused=true;mockForeground='active';snapshot=initial();mockUuid.mockReturnValue(KEY);
  mockStorage.getItem.mockResolvedValue(null);mockStorage.setItem.mockResolvedValue(undefined);mockStorage.removeItem.mockResolvedValue(undefined);
@@ -71,6 +73,79 @@ it('first read of Agreement actions is calm and keeps the existing navigation an
 it('shows current accepted terms and offers existing authoritative actions without any write on entry',async()=>{
  await render();expect(text()).toContain('Važeći obim');expect(action('Predloži izmenu')).toBeDefined();expect(action('Otkaži Dogovor')).toBeDefined();
  expect(mockService.propose).not.toHaveBeenCalled();expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
+});
+it('R11d/SB07 restores typed unsent change fields through blur/focus with fresh request id and no hidden write',async()=>{
+ await render();await tap('Predloži izmenu');
+ await type('Predložena cena u RSD','4200');
+ await type('Razlog predloga — opciono','Novi dogovor o ceni');
+ const old=action('Pregledaj predlog').onPress;
+ mockFocused=false;await act(async()=>tree.update(page()));
+ await act(async()=>old());expect(mockService.propose).not.toHaveBeenCalled();
+ mockFocused=true;await act(async()=>tree.update(page()));
+ expect(tree.root.findByProps({accessibilityLabel:'Predložena cena u RSD'}).props.value).toBe('4200');
+ expect(mockUuid).toHaveBeenCalledTimes(2); // fresh, unsubmitted id after remount; no old command reused
+ expect(tree.root.findByProps({accessibilityLabel:'Razlog predloga — opciono'}).props.value).toBe('Novi dogovor o ceni');
+ await tap('Pregledaj predlog');expect(text()).toContain('4200');expect(text()).toContain('Novi dogovor o ceni');
+ expect(mockService.propose).not.toHaveBeenCalled();
+});
+it('R11d/SB07 recovers the private cancellation reason after a background transition, not the old case snapshot',async()=>{
+ await render();await tap('Otkaži Dogovor');await reason('Razlog iz ranijeg ulaska');
+ const old=action('Pregledaj otkazivanje').onPress;
+ await act(async()=>{mockForeground='background';mockListeners.forEach(fn=>fn('background'));});
+ await act(async()=>old());expect(mockService.cancel).not.toHaveBeenCalled();
+ await act(async()=>{mockForeground='active';mockListeners.forEach(fn=>fn('active'));});
+ expect(text()).toContain('Razlog iz ranijeg ulaska');
+ await tap('Pregledaj otkazivanje');expect(text()).toContain('Razlog iz ranijeg ulaska');expect(mockService.cancel).not.toHaveBeenCalled();
+});
+it('R11d/SB07 restores typed values but requires a new review when the agreement version changes',async()=>{
+ await render();await tap('Predloži izmenu');await type('Predložena cena u RSD','4200');
+ snapshot={...snapshot,agreementVersion:8,terms:{...terms,scopeNote:'Noviji sačuvani obim'},
+  actions:{...snapshot.actions,agreementVersion:8}};
+ mockFocused=false;await act(async()=>tree.update(page()));
+ mockFocused=true;await act(async()=>tree.update(page()));
+ expect(text()).toContain('Uslovi Dogovora su se promenili');
+ expect(tree.root.findByProps({accessibilityLabel:'Predložena cena u RSD'}).props.value).toBe('4200');
+ expect(tree.root.findByProps({accessibilityLabel:'Predloženi obim zadatka'}).props.value).toBe('Noviji sačuvani obim');
+ expect(mockService.propose).not.toHaveBeenCalled();
+ await tap('Pregledaj predlog');await tap('Pošalji predlog izmene');
+ expect(mockService.propose.mock.calls[0][0]).toMatchObject({ocekivanaVerzija:8,izmena:{cenaIznos:4200}});
+});
+it('R11d/SB07 intentional X or account change never restores a previous private proposal',async()=>{
+ await render();await tap('Predloži izmenu');await type('Razlog predloga — opciono','Privatan nacrt');
+ await tap('Odustani od unosa');mockFocused=false;await act(async()=>tree.update(page()));
+ mockFocused=true;await act(async()=>tree.update(page()));
+ expect(action('Predloži izmenu')).toBeDefined();
+ await tap('Predloži izmenu');await type('Razlog predloga — opciono','Samo stari nalog');
+ mockSession={user:{id:B},accountRevision:2};await act(async()=>tree.update(page()));
+ expect(text()).not.toContain('Samo stari nalog');
+ mockSession={user:{id:A},accountRevision:3};await act(async()=>tree.update(page()));
+ expect(text()).not.toContain('Samo stari nalog');expect(mockService.propose).not.toHaveBeenCalled();
+});
+it('R11d/SB07 a sent or UNKNOWN proposal is recovered from its journal, never a second unsent RAM form',async()=>{
+ await render();await tap('Predloži izmenu');await type('Predložena cena u RSD','4200');
+ await type('Razlog predloga — opciono','Razlog koji je možda stigao');
+ await tap('Pregledaj predlog');await tap('Pošalji predlog izmene');
+ expect(mockStorage.setItem).toHaveBeenCalledTimes(1);
+ // Emulate the durable journal storage that the controller actually reopens on focus.
+ mockStorage.getItem.mockResolvedValue(mockStorage.setItem.mock.calls[0][1]);
+ mockFocused=false;await act(async()=>tree.update(page()));
+ mockFocused=true;await act(async()=>tree.update(page()));
+ expect(action('Proveri da li je uspelo')).toBeDefined();
+ expect(tree.root.findAllByProps({accessibilityLabel:'Predložena cena u RSD'})).toHaveLength(0);
+ expect(mockService.propose).toHaveBeenCalledTimes(1);
+});
+it('R11d/SB07 keeps the unsent form if local journal persistence fails before any network dispatch',async()=>{
+ await render();await tap('Predloži izmenu');await type('Predložena cena u RSD','4300');
+ await type('Razlog predloga — opciono','Razlog bez sačuvanog journal-a');
+ await tap('Pregledaj predlog');
+ mockStorage.setItem.mockRejectedValueOnce(new Error('LOCAL_JOURNAL_WRITE_FAILED'));
+ await tap('Pošalji predlog izmene');
+ expect(mockService.propose).not.toHaveBeenCalled();
+ mockFocused=false;await act(async()=>tree.update(page()));
+ mockFocused=true;await act(async()=>tree.update(page()));
+ expect(tree.root.findByProps({accessibilityLabel:'Predložena cena u RSD'}).props.value).toBe('4300');
+ expect(tree.root.findByProps({accessibilityLabel:'Razlog predloga — opciono'}).props.value).toBe('Razlog bez sačuvanog journal-a');
+ expect(mockStorage.setItem).toHaveBeenCalledTimes(1);
 });
 it('reviews actual entered terms and reason once, persists opaque metadata and deduplicates retained final taps',async()=>{
  await render();await tap('Predloži izmenu');await type('Predložena cena u RSD','4200');
