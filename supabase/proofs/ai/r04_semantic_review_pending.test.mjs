@@ -22,6 +22,8 @@ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS
   'SELECT nullif(current_setting(''test.uid'',true),'''')::uuid';
 CREATE FUNCTION extensions.digest(bytea,text) RETURNS bytea LANGUAGE sql IMMUTABLE AS
   'SELECT decode(md5(encode($1,''hex'')),''hex'')';
+CREATE FUNCTION extensions.digest(text,text) RETURNS bytea LANGUAGE sql IMMUTABLE AS
+  'SELECT decode(md5($1),''hex'')';
 CREATE TABLE private.work_taxonomy_control(singleton boolean primary key,catalog_version bigint);
 INSERT INTO private.work_taxonomy_control VALUES(true,17);
 CREATE TABLE private.work_taxonomy_categories(
@@ -74,11 +76,14 @@ BEGIN
 END $exact$;
 INSERT INTO private.work_taxonomy_categories VALUES
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',null,'Sklapanje ormara','sklapanje ormara','ESTABLISHED'),
- ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',null,'Čišćenje klima','čišćenje klima','ESTABLISHED');
+ ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',null,'Čišćenje klima','čišćenje klima','ESTABLISHED'),
+ ('cccccccc-cccc-4ccc-8ccc-cccccccccccc',null,'Montaža grejanja','montaža grejanja','ESTABLISHED');
 INSERT INTO private.work_taxonomy_category_modes VALUES
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','ON_SITE'),
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','REMOTE'),
- ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','ON_SITE');
+ ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','ON_SITE'),
+ ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','REMOTE'),
+ ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','ON_SITE');
 INSERT INTO private.worker_ai_sessions VALUES
  ('11111111-1111-4111-8111-111111111111','33333333-3333-4333-8333-333333333333',
   '{"skills":["Montaža gotovog ormara"]}'::jsonb,1,'worker-base');
@@ -143,7 +148,7 @@ test('R04/F05 signed-review input remains nonauthoritative even with a valid exi
    // Invented ID / wrong mode / non-leaf category never reaches READY.
    for(const invalid of [
      [make('ON_SITE','99999999-9999-4999-8999-999999999999'),'ON_SITE'],
-     [make('REMOTE',competitor),'REMOTE'],
+     [make('REMOTE','cccccccc-cccc-4ccc-8ccc-cccccccccccc'),'REMOTE'],
    ]) {
      await update('WORKER_CAPABILITY',[invalid[0]]);
      const value=await read('WORKER_CAPABILITY',[invalid[1]]);
