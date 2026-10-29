@@ -55,8 +55,8 @@ type Journal = Readonly<{
 }>;
 type Uploads = Readonly<{
   upload(ref: AgreementUploadRef, bytes: ArrayBuffer, scope?: ReceiptAccount, signal?: AbortSignal): Promise<Ishod<AgreementVoiceUpload>>;
-  read(ref: AgreementUploadRef, scope?: ReceiptAccount): Promise<Ishod<AgreementVoiceUpload>>;
-  cancel(ref: AgreementUploadRef, scope?: ReceiptAccount): Promise<Ishod<AgreementVoiceUpload>>;
+  read(ref: AgreementUploadRef, scope?: ReceiptAccount, signal?: AbortSignal): Promise<Ishod<AgreementVoiceUpload>>;
+  cancel(ref: AgreementUploadRef, scope?: ReceiptAccount, signal?: AbortSignal): Promise<Ishod<AgreementVoiceUpload>>;
 }>;
 export type VoiceComposerOptions = Readonly<{
   accountId: string; accountRevision: number; agreementId: string;
@@ -78,6 +78,8 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
   const now = options.now ?? (() => Date.now());
   const timers = options.timers ?? { setInterval: (h: () => void, ms: number) => setInterval(h, ms), clearInterval: (h: unknown) => clearInterval(h as ReturnType<typeof setInterval>) };
   const scope: ReceiptAccount = { accountId: options.accountId, accountRevision: options.accountRevision };
+  // One mounted owner cancels upload, readback and explicit cancellation alike. Server outcomes remain journaled until reconciled.
+  const requestAbort = new AbortController();
   const listeners = new Set<() => void>();
   let generation = 0;
   let phase: VoiceComposerPhase = 'idle';
@@ -94,10 +96,10 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
   let releaseRecordingClaim: AudioLease | null = null, releasePreviewClaim: AudioLease | null = null;
   let starting = false, finishing: Promise<void> | null = null, previewBusy = false, previewGeneration = 0;
   let previewStopping: Promise<void> | null = null;
-  let abort: AbortController | null = null, working = false;
+  let working = false;
   let snapshot!: VoiceComposerSnapshot;
 
-  const alive = (g: number) => g === generation && options.isCurrent();
+  const alive = (g: number) => g === generation && !requestAbort.signal.aborted && options.isCurrent();
   const agreementNow = () => { try { return options.agreement(); } catch { return { version: null, writable: false }; } };
   const outboxBusy = () => { try { return options.outbox.getSnapshot().capturing; } catch { return true; } };
   const build = (): VoiceComposerSnapshot => {
@@ -239,7 +241,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
     // A server recording is cancelled first. If that cannot be confirmed the recording stays where it is: the next start shows it as a recovered recording,
     // never a silent send, and deleting it is one explicit tap.
     if (toCancel?.attempted) {
-      const result = await options.uploads.cancel(toCancel.ref, scope);
+      const result = await options.uploads.cancel(toCancel.ref, scope, requestAbort.signal);
       if (!alive(g)) return;
       if (!result.ok || (result.podatak.state !== 'CANCELLED' && !result.podatak.attachedMessageId && result.podatak.state !== 'FAILED')) {
         fail(error('OUTCOME_UNKNOWN')); publish(); return;
@@ -291,7 +293,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
       let ref = item.ref;
       if (item.attempted) {
         // Read first: a dispatched unknown request never allocates another key and never asserts absence.
-        const read = await options.uploads.read(ref, scope);
+        const read = await options.uploads.read(ref, scope, requestAbort.signal);
         if (!alive(g)) return;
         if (!read.ok) { phase = 'failed'; fail(error(read.kod === 'AUTH_ACCOUNT_CHANGED' ? read.kod : 'UPLOAD_UNCONFIRMED', read.poruka)); publish(); return; }
         const state = read.podatak.state;
@@ -311,8 +313,8 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
         if (!(bytes instanceof ArrayBuffer) || bytes.byteLength < VOICE_MIN_BYTES || bytes.byteLength > VOICE_MAX_BYTES) {
           phase = 'failed'; fail(error('RECORDING_INVALID')); publish(); return;
         }
-        item.attempted = true; abort = new AbortController();
-        const result = await options.uploads.upload(ref, bytes, scope, abort.signal); abort = null;
+        item.attempted = true;
+        const result = await options.uploads.upload(ref, bytes, scope, requestAbort.signal);
         if (!alive(g)) return;
         if (!result.ok) { phase = 'failed'; fail(error(result.kod === 'AUTH_ACCOUNT_CHANGED' ? result.kod : result.kod.startsWith('MEDIA_') || result.kod === 'INTERACTION_BLOCKED' || result.kod === 'ACCOUNT_CLOSING' ? result.kod : 'UPLOAD_UNCONFIRMED', result.poruka)); publish(); return; }
         const up = result.podatak;
@@ -387,7 +389,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
       for (const ref of refs) {
         if (pending && pending.ref.clientRequestId === ref.clientRequestId) continue;
         let read: Awaited<ReturnType<Uploads['read']>> | null = null;
-        try { read = await options.uploads.read(ref, scope); } catch { /* retain the identity */ }
+        try { read = await options.uploads.read(ref, scope, requestAbort.signal); } catch { /* retain the identity */ }
         if (!alive(g)) return;
         if (!read?.ok) { waiting.push({ ref, state: 'UNKNOWN' }); continue; }
         const up = read.podatak;
@@ -416,7 +418,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
     if (!item || !options.isCurrent() || working || checkingRecovery) return;
     working = true; publish();
     try {
-      const response = await options.uploads.cancel(item.ref, scope);
+      const response = await options.uploads.cancel(item.ref, scope, requestAbort.signal);
       if (!alive(g)) return;
       const up = response.ok ? response.podatak : null;
       if (!up || (!up.attachedMessageId && up.state !== 'CANCELLED' && up.state !== 'FAILED')) {
@@ -447,7 +449,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
     if (!item || !options.isCurrent() || working || checkingRecovery) return;
     working = true; publish();
     try {
-      const result = await options.uploads.cancel(item.ref, scope);
+      const result = await options.uploads.cancel(item.ref, scope, requestAbort.signal);
       if (!alive(g)) return;
       if (!result.ok || (!result.podatak.attachedMessageId && result.podatak.state !== 'CANCELLED' && result.podatak.state !== 'FAILED')) {
         fail(error('OUTCOME_UNKNOWN')); return;
@@ -461,7 +463,7 @@ export function createVoiceMessageComposer(options: VoiceComposerOptions) {
   /** The screen lost focus, the account changed or the Agreement closed: the microphone and the speaker are released at once and an unsent recording is discarded. */
   async function dispose() {
     generation += 1; const file = recorded;
-    stopTicker(); unsubscribeRecording(); abort?.abort(); abort = null;
+    stopTicker(); unsubscribeRecording(); requestAbort.abort();
     if (phase === 'recording' || phase === 'requesting' || releaseRecordingClaim) await options.recorder.cancel();
     releaseRecordingClaim?.(); releaseRecordingClaim = null;
     await stopPreview();

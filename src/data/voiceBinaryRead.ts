@@ -8,23 +8,19 @@ const invalid = () => ({ data: null, error: null });
 
 /** The bytes of ONE authorized voice message, read as a binary body (the Functions SDK would decode an audio response as text and destroy it).
  * Same fences as the photo reader: the current session only, no second auth client, no stored URL, no persistent cache, no redirect. The body carries
- * the Agreement, the asset and (for a received or already sent message) the canonical message id; the server authorizes that exact message twice. */
+ * the Agreement, the asset and (for a received or already sent message) the canonical message id; the server authorizes that exact message twice.
+ * The service receipt owner supplies the one deadline/cancellation signal, covering session lookup, fetch and the complete body read. */
 export async function readVoiceBinary(input: {
-  account: ReceiptAccount; body: Readonly<Record<string, string>>; signal?: AbortSignal;
+  account: ReceiptAccount; body: Readonly<Record<string, string>>; signal: AbortSignal;
 }) {
-  const controller = new AbortController();
   let retired = false;
-  const current = () => !retired && !controller.signal.aborted && !input.signal?.aborted
+  const current = () => !retired && !input.signal.aborted
     && sesijaSada().user?.id === input.account.accountId && sesijaSada().accountRevision === input.account.accountRevision;
-  const abort = () => controller.abort();
   let rejectAborted: (() => void) | undefined;
   const aborted = new Promise<never>((_resolve, reject) => {
     rejectAborted = () => reject(new Error('MEDIA_READ_CANCELLED'));
-    controller.signal.addEventListener('abort', rejectAborted);
+    input.signal.addEventListener('abort', rejectAborted);
   });
-  // A recording is larger than a photo and is downloaded whole: a longer bound than the 15 s image read.
-  const timer = setTimeout(abort, 30_000);
-  input.signal?.addEventListener('abort', abort);
   try {
     if (!current()) return unavailable();
     const request = async () => {
@@ -40,7 +36,7 @@ export async function readVoiceBinary(input: {
       if (auth.error || !session || !sameId(session.user.id, input.account.accountId)
         || typeof session.access_token !== 'string' || !session.access_token || /\s/.test(session.access_token)) return unavailable();
       const response = await fetch(endpoint.href, {
-        method: 'POST', signal: controller.signal, cache: 'no-store', credentials: 'omit', redirect: 'error',
+        method: 'POST', signal: input.signal, cache: 'no-store', credentials: 'omit', redirect: 'error',
         headers: { 'Content-Type': 'application/json', Accept: 'audio/mp4', apikey: publicKey,
           Authorization: `Bearer ${session.access_token}`, 'x-media-operation': 'agreement-voice-read' },
         body: JSON.stringify(input.body),
@@ -60,8 +56,6 @@ export async function readVoiceBinary(input: {
     return unavailable();
   } finally {
     retired = true;
-    clearTimeout(timer);
-    input.signal?.removeEventListener('abort', abort);
-    if (rejectAborted) controller.signal.removeEventListener('abort', rejectAborted);
+    if (rejectAborted) input.signal.removeEventListener('abort', rejectAborted);
   }
 }

@@ -48,7 +48,10 @@ beforeEach(() => {
   mockSet.mockImplementation(async (key: string, value: string) => { mockJournal.set(key, value); });
   mockRead.mockResolvedValue(ok(profile())); mockReceipt.mockResolvedValue(ok(asset()));
   mockUpload.mockResolvedValue(ok(asset())); mockPick.mockResolvedValue(photo); mockApply.mockResolvedValue(unknown());
-  mockDiscard.mockResolvedValue(ok({ assetId: ASSET, profileId: PROFILE, accountId: OWNER, discarded: true, authoritative: true }));
+  mockDiscard.mockImplementation(async () => {
+    mockReceipt.mockResolvedValue(ok({ ...asset(), selected: false }));
+    return ok({ assetId: ASSET, profileId: PROFILE, accountId: OWNER, discarded: true, authoritative: true });
+  });
 });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 it('stages the chosen picture and publishes it only through the explicit profile action', async () => {
@@ -76,6 +79,117 @@ it('retires a definitively rejected staged upload and never offers to apply it',
   expect(tree.root.findAllByProps({ label: 'Sačuvaj fotografiju' })).toHaveLength(0);
   expect(dump()).toContain('Fotografija nije dodata.');
   expect(mockApply).not.toHaveBeenCalled(); expect(mockUpload).not.toHaveBeenCalled();
+});
+const pendingUpload = () => JSON.stringify({ phase: 'UPLOAD', requestId: REQUEST, assetId: null, expectedPath: null });
+const pendingAsset = (state: 'PROCESSING' | 'STAGED') => ({ ...asset(), state, ref: null, sha256: null, width: null, height: null, byteSize: null });
+it.each(['PROCESSING', 'STAGED'] as const)('after a restart with no bytes, explicitly discards the admitted %s avatar and confirms the same asset is deselected', async state => {
+  mockJournal.set(journalKey, pendingUpload()); mockReceipt.mockResolvedValue(ok(pendingAsset(state)));
+  await render();
+  expect(dump()).toContain('Fotografija se još obrađuje.');
+  expect(tree.root.findAllByProps({ label: 'Izaberi iz galerije' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ label: 'Pošalji promenu ponovo' })).toHaveLength(0);
+  expect(mockDiscard).not.toHaveBeenCalled(); expect(mockUpload).not.toHaveBeenCalled();
+  const discard = action('Odustani od izabrane fotografije').onPress;
+  await act(async () => { void discard(); void discard(); });
+  expect(mockDiscard.mock.calls).toEqual([[{ assetId: ASSET, profileId: PROFILE }]]);
+  expect(mockReceipt.mock.calls).toEqual([[REQUEST], [REQUEST]]);
+  expect(mockJournal.has(journalKey)).toBe(false); expect(action('Izaberi iz galerije').disabled).toBe(false);
+  expect(mockUpload).not.toHaveBeenCalled(); expect(mockApply).not.toHaveBeenCalled(); expect(mockClear).not.toHaveBeenCalled();
+});
+it('keeps an absent old upload identity after restart, then recovers a late admitted avatar without resending pixels', async () => {
+  const stored = pendingUpload(); mockJournal.set(journalKey, stored);
+  mockReceipt.mockResolvedValue({ ok: false, kod: 'MEDIA_NOT_FOUND', poruka: 'Fotografija nije dostupna.' });
+  await render(); await act(async () => action('Proveri sačuvanu fotografiju').onPress());
+  expect(mockJournal.get(journalKey)).toBe(stored);
+  for (const label of ['Odustani od izabrane fotografije', 'Izaberi iz galerije', 'Pošalji promenu ponovo'])
+    expect(tree.root.findAllByProps({ label })).toHaveLength(0);
+  expect(mockDiscard).not.toHaveBeenCalled(); expect(mockUpload).not.toHaveBeenCalled();
+  mockReceipt.mockResolvedValue(ok(asset())); await act(async () => action('Proveri sačuvanu fotografiju').onPress());
+  expect(action('Sačuvaj fotografiju').disabled).toBe(false);
+  expect(mockJournal.get(journalKey)).toBe(stored); expect(mockUpload).not.toHaveBeenCalled();
+});
+it.each(['MEDIA_UNCONFIRMED', 'MEDIA_NOT_EDITABLE', 'MEDIA_INVALID_RESPONSE'])('retains a restarted processing avatar and its exact DISCARD command on %s', async kod => {
+  mockJournal.set(journalKey, pendingUpload()); mockReceipt.mockResolvedValue(ok(pendingAsset('PROCESSING')));
+  mockDiscard.mockResolvedValue({ ok: false, kod, poruka: 'Odbacivanje nije potvrđeno.' });
+  await render(); await act(async () => action('Odustani od izabrane fotografije').onPress());
+  expect(JSON.parse(mockJournal.get(journalKey)!)).toEqual({ phase: 'DISCARD', requestId: REQUEST, assetId: ASSET, expectedPath: null });
+  expect(tree.root.findAllByProps({ label: 'Izaberi iz galerije' })).toHaveLength(0);
+  expect(mockReceipt).toHaveBeenCalledTimes(1); expect(mockUpload).not.toHaveBeenCalled();
+});
+it('does not release selection on a discard ACK until readback confirms deselection; a failed read keeps the journal', async () => {
+  mockJournal.set(journalKey, pendingUpload()); mockReceipt.mockResolvedValue(ok(pendingAsset('STAGED')));
+  mockDiscard.mockImplementation(async () => {
+    mockReceipt.mockResolvedValue(unknown());
+    return ok({ assetId: ASSET, profileId: PROFILE, accountId: OWNER, discarded: true, authoritative: true });
+  });
+  await render(); await act(async () => action('Odustani od izabrane fotografije').onPress());
+  const stored = mockJournal.get(journalKey);
+  expect(JSON.parse(stored!).phase).toBe('DISCARD');
+  expect(tree.root.findAllByProps({ label: 'Izaberi iz galerije' })).toHaveLength(0);
+  mockReceipt.mockResolvedValue(ok(asset())); await act(async () => action('Proveri sačuvanu fotografiju').onPress());
+  expect(mockJournal.get(journalKey)).toBe(stored); // A still-selected READY asset is not terminal for this discard.
+  mockReceipt.mockResolvedValue(ok({ ...asset(), selected: false }));
+  await act(async () => action('Proveri sačuvanu fotografiju').onPress());
+  expect(mockJournal.has(journalKey)).toBe(false); expect(mockDiscard).toHaveBeenCalledTimes(1); expect(mockUpload).not.toHaveBeenCalled();
+});
+it.each([
+  { accountId: '55555555-5555-4555-8555-555555555555' },
+  { profileId: '55555555-5555-4555-8555-555555555555' },
+  { clientRequestId: '55555555-5555-4555-8555-555555555555' },
+  { assetId: '55555555-5555-4555-8555-555555555555' },
+  { scope: 'TASK', profileId: null, conversationId: PROFILE },
+])('never clears an old discard journal from a deselected receipt outside its exact identity %#', async patch => {
+  const stored = JSON.stringify({ phase: 'DISCARD', requestId: REQUEST, assetId: ASSET, expectedPath: null });
+  mockJournal.set(journalKey, stored); mockReceipt.mockResolvedValue(ok({ ...asset(), selected: false, ...patch }));
+  await render(); expect(mockJournal.get(journalKey)).toBe(stored);
+  expect(tree.root.findAllByProps({ label: 'Izaberi iz galerije' })).toHaveLength(0); expect(mockDiscard).not.toHaveBeenCalled();
+});
+it('an old terminal read cannot clear a newer intent in another editor of the same profile', async () => {
+  const old = JSON.stringify({ phase: 'DISCARD', requestId: REQUEST, assetId: ASSET, expectedPath: null });
+  const newer = JSON.stringify({ phase: 'UPLOAD', requestId: '55555555-5555-4555-8555-555555555555', assetId: null, expectedPath: null });
+  mockJournal.set(journalKey, old);
+  let finish!: (value: unknown) => void;
+  mockReceipt.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  await render(); mockJournal.set(journalKey, newer);
+  await act(async () => finish(ok({ ...asset(), selected: false })));
+  expect(mockJournal.get(journalKey)).toBe(newer); expect(mockUpload).not.toHaveBeenCalled();
+  expect(tree.root.findAllByProps({ label: 'Izaberi iz galerije' })).toHaveLength(0);
+});
+it('an old retry cannot send a discard after another editor advances the profile journal', async () => {
+  const old = JSON.stringify({ phase: 'DISCARD', requestId: REQUEST, assetId: ASSET, expectedPath: null });
+  const newer = JSON.stringify({ phase: 'UPLOAD', requestId: '55555555-5555-4555-8555-555555555555', assetId: null, expectedPath: null });
+  mockJournal.set(journalKey, old); await render(); mockJournal.set(journalKey, newer);
+  await act(async () => action('Pošalji promenu ponovo').onPress());
+  expect(mockJournal.get(journalKey)).toBe(newer); expect(mockDiscard).not.toHaveBeenCalled(); expect(mockUpload).not.toHaveBeenCalled();
+});
+it('recovers a lost discard ACK through readback alone, including a late READY but deselected result', async () => {
+  mockJournal.set(journalKey, pendingUpload()); mockReceipt.mockResolvedValue(ok(pendingAsset('PROCESSING')));
+  mockDiscard.mockResolvedValue(unknown());
+  await render(); await act(async () => action('Odustani od izabrane fotografije').onPress());
+  expect(JSON.parse(mockJournal.get(journalKey)!).phase).toBe('DISCARD');
+  mockReceipt.mockResolvedValue(ok({ ...asset(), selected: false }));
+  await act(async () => action('Proveri sačuvanu fotografiju').onPress());
+  expect(mockJournal.has(journalKey)).toBe(false); expect(action('Izaberi iz galerije').disabled).toBe(false);
+  expect(mockDiscard).toHaveBeenCalledTimes(1); expect(mockUpload).not.toHaveBeenCalled(); expect(mockApply).not.toHaveBeenCalled();
+});
+it('an old discard ACK cannot finish the journal after an account A→B→A revision change', async () => {
+  mockJournal.set(journalKey, pendingUpload()); mockReceipt.mockResolvedValue(ok(pendingAsset('PROCESSING')));
+  let finish!: (value: unknown) => void;
+  mockDiscard.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+  await render(); await act(async () => action('Odustani od izabrane fotografije').onPress());
+  const stored = mockJournal.get(journalKey);
+  mockSession = { user: { id: '55555555-5555-4555-8555-555555555555' }, accountRevision: 2 };
+  await act(async () => tree.update(<Route />));
+  mockSession = { user: { id: OWNER }, accountRevision: 3 }; await act(async () => tree.update(<Route />));
+  const reads = mockReceipt.mock.calls.length;
+  await act(async () => finish(ok({ assetId: ASSET, profileId: PROFILE, accountId: OWNER, discarded: true, authoritative: true })));
+  expect(mockReceipt).toHaveBeenCalledTimes(reads); expect(mockJournal.get(journalKey)).toBe(stored);
+  expect(tree.root.findAllByProps({ label: 'Izaberi iz galerije' })).toHaveLength(0); expect(mockUpload).not.toHaveBeenCalled();
+});
+it('a malformed journal stays blocked and is never treated as an empty upload slot', async () => {
+  mockJournal.set(journalKey, '{broken'); await render();
+  expect(mockJournal.get(journalKey)).toBe('{broken'); expect(mockReceipt).not.toHaveBeenCalled();
+  expect(tree.root.findAllByProps({ label: 'Izaberi iz galerije' })).toHaveLength(0); expect(mockUpload).not.toHaveBeenCalled();
 });
 it('retires the staged choice without applying it and prevents a retained apply callback', async () => {
   await render(); await act(async () => action('Izaberi iz galerije').onPress()); const apply = action('Sačuvaj fotografiju').onPress;

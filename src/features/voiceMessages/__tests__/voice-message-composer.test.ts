@@ -285,6 +285,50 @@ it('R11c/SB04 an attempted upload ABSENT cancel is not a terminal deletion', asy
   expect(s.journal.clear).not.toHaveBeenCalled();
   expect(s.files.files.has(recordingUri)).toBe(true);
 });
+it('R11c/SB04 retirement aborts an in-flight recovery read and ignores a late terminal receipt without erasing its journal', async () => {
+  const ref: Ref = { agreementId, agreementVersion: 3, clientRequestId: '55555555-5555-4555-8555-000000000009' };
+  const s = setup({ journal: [ref] }); let finish!: () => void;
+  s.uploads.read.mockImplementation(() => new Promise(resolve => { finish = () => resolve(good(receipt(ref, 'CANCELLED'))); }));
+  const checking = s.composer.restore(); await new Promise(resolve => setImmediate(resolve));
+  expect(s.uploads.read.mock.calls[0][1]).toEqual(scope);
+  const signal = s.uploads.read.mock.calls[0][2] as AbortSignal;
+  expect(signal.aborted).toBe(false);
+  s.live.current = false; await s.composer.dispose(); expect(signal.aborted).toBe(true);
+  finish(); await checking;
+  expect(s.stored).toEqual([ref]); expect(s.journal.clear).not.toHaveBeenCalled();
+  expect(s.uploads.cancel).not.toHaveBeenCalled(); expect(s.outbox.sendVoice).not.toHaveBeenCalled();
+});
+it.each(['ABSENT', 'READY'])('R11c/SB04 retirement aborts explicit %s cancellation, retaining the key for the next owner to reconcile', async state => {
+  const ref: Ref = { agreementId, agreementVersion: 3, clientRequestId: '55555555-5555-4555-8555-000000000010' };
+  const s = setup({ journal: [ref] });
+  s.uploads.read.mockImplementation(async () => good(receipt(ref, state))); await s.composer.restore();
+  let finish!: () => void;
+  s.uploads.cancel.mockImplementation(() => new Promise(resolve => { finish = () => resolve(good(receipt(ref, 'CANCELLED'))); }));
+  const cancelling = state === 'READY' ? s.composer.discardRecovered(ref) : s.composer.cancelUnresolved(ref);
+  const signal = s.uploads.cancel.mock.calls[0][2] as AbortSignal;
+  expect(s.uploads.cancel.mock.calls[0][1]).toEqual(scope); expect(signal.aborted).toBe(false);
+  s.live.current = false; await s.composer.dispose(); expect(signal.aborted).toBe(true);
+  finish(); await cancelling;
+  expect(s.stored).toEqual([ref]); expect(s.journal.clear).not.toHaveBeenCalled();
+  expect(s.outbox.sendVoice).not.toHaveBeenCalled();
+  const replacement = setup({ journal: s.stored });
+  replacement.uploads.read.mockImplementation(async () => good(receipt(ref, 'CANCELLED')));
+  await replacement.composer.restore();
+  expect(replacement.stored).toEqual([]); expect(replacement.journal.clear).toHaveBeenCalledTimes(1);
+});
+it('R11c/SB04 retry readback uses the same owner signal as upload and cannot deliver after retirement', async () => {
+  const s = setup(); s.uploads.upload.mockResolvedValueOnce(bad('AGREEMENT_VOICE_UNCONFIRMED'));
+  await recordAndStop(s); await s.composer.send();
+  let finish!: () => void;
+  s.uploads.read.mockImplementation((ref: Ref) => new Promise(resolve => { finish = () => resolve(good(receipt(ref, 'READY'))); }));
+  const retrying = s.composer.retry();
+  const signal = s.uploads.read.mock.calls[0][2] as AbortSignal;
+  expect(signal).toBe(s.uploads.upload.mock.calls[0][3]);
+  s.live.current = false; await s.composer.dispose(); expect(signal.aborted).toBe(true);
+  finish(); await retrying;
+  expect(s.stored).toHaveLength(1); expect(s.journal.clear).not.toHaveBeenCalled();
+  expect(s.uploads.upload).toHaveBeenCalledTimes(1); expect(s.outbox.sendVoice).not.toHaveBeenCalled();
+});
 it('another audio owner taking the speaker or microphone stops a recording into review and a preview into silence', async () => {
   const s = setup(); await s.composer.start(); s.tick(3000);
   await s.arbiter.claim('playback', () => undefined);

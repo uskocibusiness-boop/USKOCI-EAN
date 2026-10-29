@@ -42,10 +42,12 @@ export function readReceipt<T>(options: ReceiptOptions<T> & {
 /** Shared Auth/REST/RPC result fence; not a second business writer. An explicit
  * scope keeps every stage of a multi-request command bound to its original user. */
 export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
-  request: () => PromiseLike<unknown>;
+  /** Forward this signal through transport AND response-body reads. The receipt owner bounds the whole request. */
+  request: (signal: AbortSignal) => PromiseLike<unknown>;
   account?: ReceiptAccount;
-  /** Explicit opt-in for AI evaluation/interviews; ordinary RPCs retain15 seconds. */
-  timeoutMs?: 55_000;
+  signal?: AbortSignal;
+  /** Voice binary reads may take 30 seconds; AI/upload calls opt into 55. Ordinary RPCs retain 15 seconds. */
+  timeoutMs?: 30_000 | 55_000;
 }): Promise<Ishod<T>> {
   const owner = sesijaSada();
   const accountId = options.account?.accountId ?? owner.user?.id;
@@ -58,16 +60,35 @@ export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
     : 'Podaci trenutno nisu dostupni. Proveri vezu i pokušaj ponovo.');
   if (!current()) return changed();
   const localTimeout = new Error('RPC_RECEIPT_TIMEOUT');
+  const localCancelled = new Error('RPC_RECEIPT_CANCELLED');
   const transportUnavailable = () => !options.write && options.readTransportUnavailable
     ? failure(options.readTransportUnavailable, 'Veza je prekinuta. Pokušaj ponovo.') : unconfirmed();
+  if (options.signal?.aborted) return unconfirmed();
+  const controller = new AbortController();
+  let rejectCancelled: (reason: Error) => void = () => {};
+  const cancelled = new Promise<never>((_resolve, reject) => { rejectCancelled = reject; });
+  const cancel = (reason: Error) => {
+    if (controller.signal.aborted) return;
+    // Settle even when the native transport ignores abort. A dispatched write remains unknown, never replayable merely due to cancellation.
+    rejectCancelled(reason);
+    controller.abort();
+  };
+  const abort = () => cancel(localCancelled);
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    // No automatic write replay. A timeout bounds the caller, not server execution.
-    const response: unknown = await Promise.race([
-      Promise.resolve(options.request()),
-      new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(localTimeout), options.timeoutMs ?? 15_000); }),
-    ]);
+    options.signal?.addEventListener('abort', abort);
+    timer = setTimeout(() => cancel(localTimeout), options.timeoutMs ?? 15_000);
+    // No automatic write replay. Aborting local transport does not establish server rollback.
+    let resolveRequest!: (value: unknown) => void;
+    let rejectRequest!: (reason: unknown) => void;
+    const request = new Promise<unknown>((resolve, reject) => { resolveRequest = resolve; rejectRequest = reject; });
+    // Install handlers first, but retain synchronous request start for existing command owners.
+    // Caller code can synchronously abort and throw; both rejections already belong to this race.
+    const responsePending = Promise.race([request, cancelled]);
+    try { resolveRequest(options.request(controller.signal)); } catch (error) { rejectRequest(error); }
+    const response: unknown = await responsePending;
     if (!current()) return changed();
+    if (controller.signal.aborted) return unconfirmed();
     const result = record(response);
     if (!result || !Object.prototype.hasOwnProperty.call(result, 'error')) return unconfirmed();
     if (result.error !== null) {
@@ -89,5 +110,6 @@ export async function readOwnedResult<T>(options: ReceiptOptions<T> & {
     return error === localTimeout ? transportUnavailable() : unconfirmed();
   } finally {
     if (timer !== undefined) clearTimeout(timer);
+    options.signal?.removeEventListener('abort', abort);
   }
 }
