@@ -1,6 +1,7 @@
 import { AI_CREDITS_UNAVAILABLE, AI_CREDITS_UNAVAILABLE_COPY } from '../contracts/aiAvailability';
 import { decodeWorkerAreas, type WorkerArea } from '../contracts/workerAreas';
 import { decodeServiceHandoff } from '../contracts/serviceHandoff';
+import { decodeTaxonomySemanticReviewCandidates, type TaxonomySemanticReviewCandidate } from '../contracts/taxonomySemanticReview';
 import type { WorkerLocation } from '../contracts/location';
 import type { WorkerAvailabilityInput, AvailabilityRule, AvailabilityWindow } from '../contracts/workerAvailability';
 import type { Ishod } from './ports';
@@ -60,6 +61,8 @@ export type WorkerAiReviewClassification = Readonly<{
   reviewedServiceModes:WorkerAiReviewedMode[];
   classificationCatalogVersion:number|null;
   classificationCatalogFingerprint:string|null;
+  /** A signed but unapproved existing-ID meaning comparison, never READY. */
+  semanticReviewCandidates?:TaxonomySemanticReviewCandidate[];
 }>;
 export type WorkerAiReview = Readonly<{ schemaVersion:'WORKER_PROFILE_V1'; reviewId:string; conversationId:string; accountId:string;
   profileId:string; revision:number; profile:WorkerAiProfile; activate:boolean; missingRequired:string[]; canAccept:boolean;
@@ -139,8 +142,22 @@ function decodeClassification(v:Record<string,unknown>,profile:WorkerAiProfile):
   const result:WorkerAiReviewClassification={classificationState:state,
     classificationCandidates:[],reviewedServiceModes:[],
     classificationCatalogVersion:null,classificationCatalogFingerprint:null};
-  if(state!=='READY')return v.classificationCandidates.length===0&&v.reviewedServiceModes.length===0
-    &&v.classificationCatalogVersion===null&&v.classificationCatalogFingerprint===null?result:null;
+  if(state!=='READY'){
+    if(Object.hasOwn(v,'semanticReviewCandidates')){
+      if(state!=='REVIEW_REQUIRED'||v.classificationCandidates.length!==0||v.reviewedServiceModes.length!==0
+        ||!revision(v.classificationCatalogVersion)||Number(v.classificationCatalogVersion)<1
+        ||typeof v.classificationCatalogFingerprint!=='string'
+        ||!/^[a-f0-9]{32}$/.test(v.classificationCatalogFingerprint))return null;
+      const candidate=decodeTaxonomySemanticReviewCandidates(
+        v.semanticReviewCandidates,v.classificationCatalogVersion,profile.skills);
+      return candidate?{...result,semanticReviewCandidates:candidate,
+        classificationCatalogVersion:v.classificationCatalogVersion as number,
+        classificationCatalogFingerprint:v.classificationCatalogFingerprint}:null;
+    }
+    return v.classificationCandidates.length===0&&v.reviewedServiceModes.length===0
+      &&v.classificationCatalogVersion===null&&v.classificationCatalogFingerprint===null?result:null;
+  }
+  if(Object.hasOwn(v,'semanticReviewCandidates'))return null;
   const version=v.classificationCatalogVersion;
   if(!revision(version)||version<1||typeof v.classificationCatalogFingerprint!=='string'
     ||!/^([a-f0-9]{32})$/.test(v.classificationCatalogFingerprint))return null;
@@ -203,8 +220,9 @@ export function decodeWorkerAiReview(raw:unknown,account:string,cid:string):Work
   const extra=!!v&&classKeys.some(key=>Object.hasOwn(v,key));
   const equipment=!!v&&Object.hasOwn(v,'equipmentPolicy');
   const areas=!!v&&Object.hasOwn(v,'workAreaPolicy');
-  const keys=[...(extra?[...legacy,...classKeys]:legacy),...(areas?['workAreaPolicy']:[])];
-  if(!v||!exact(v,equipment?[...keys,'equipmentPolicy']:keys)
+  const semantic=!!v&&Object.hasOwn(v,'semanticReviewCandidates');
+  const keys=[...(extra?[...legacy,...classKeys]:legacy),...(semantic?['semanticReviewCandidates']:[]),...(areas?['workAreaPolicy']:[])];
+  if(!v||(semantic&&!extra)||!exact(v,equipment?[...keys,'equipmentPolicy']:keys)
     ||(equipment&&v.equipmentPolicy!=='PRESERVE_LEGACY_NO_WRITE_V1')
     ||(areas&&v.workAreaPolicy!=='SIGNED_WORK_AREAS_V1')
     ||v.schemaVersion!=='WORKER_PROFILE_V1'||!uuid(v.reviewId)||!sameId(v.conversationId,cid)||!sameId(v.accountId,account)||!uuid(v.profileId)
