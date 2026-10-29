@@ -3892,6 +3892,14 @@ Prvi izlaz nije novi opšti izveštaj. To je osvežen zapis relevantnog izvora i
 
 Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i uslovima prodavnica. Dužina dokumenta, broj fajlova ili veliki broj starih testova nisu osnov za datum. Konačan pregled R12 mora pokazati stvaran proizvod koji korisnik može proći, a ne samo zbir zatvorenih tehničkih kartica.
 
+### R11h/X05 — 29.10.2026: potpuni reset demo kandidata (SOURCE COMMITTED, CI PROVERA U TOKU)
+
+- **Uzrok:** demo `src/data/lazniIzvor.ts` je držao mutabilni `KANDIDATI` van objekta `stanje`; `podnesiPrijavu` je dodavao kandidata, dok je `resetujLazniIzvor` resetovao samo `stanje`. Nova testna sesija je zato mogla videti prethodnu prijavu i pogrešnu listu.
+- **Ispravka:** kandidat-lista je sada deo jednog `Stanje` i inicijalizuje se kopijom `POCETNI_KANDIDATI`; isti reset kopira i pojedinačne cene, uz postojeće revision, profile, withdrawal, idempotency, allocation i poruke kolekcije. Čitanja i pisanja koriste `stanje.kandidati`, ne paralelnu globalnu listu. Nema SQL/Edge/production promene niti brisanja istorijskih dokaza.
+- **Regresija:** `src/data/__tests__/lazni-izvor-reset.test.ts` proverava submit, withdrawal, izmenjen profil i reviziju, pozitivan reset sa istim početnim kandidatima, negativno odbijanje stare prijave, isti početni ID i tri uzastopna čista ciklusa. Povezani Jest/TypeScript CI ishod nije pretpostavljen; source commit je nivo dokaza do završetka run-a.
+- **Naredni nezavisni owner:** R11b/SB02 `useGivenRatings` i `useReceivedReviews` invalidacija pri potvrđenoj oceni i ponovnom fokusiranju, bez promene R01 metadata parity i bez novih master dokumenata.
+
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita
