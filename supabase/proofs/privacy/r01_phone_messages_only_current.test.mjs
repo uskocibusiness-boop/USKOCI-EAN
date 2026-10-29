@@ -24,9 +24,9 @@ function previous(name){
  if(name==='grant_is_ownable')return s.replace("when 'PHONE' then false",
   "when 'PHONE' then p_granter in (a.requester_account_id, a.worker_account_id)");
  if(name==='rpc_set_contact_grant')return s.replace(
-  "\n  -- Product contract: only Agreement messages. Existing PHONE grants\n  -- may still be REVOKED by their owner; no new PHONE grant is admitted.\n  if p_channel = 'PHONE' and p_granted then\n    raise exception 'PHONE_SHARING_DISABLED' using errcode = '42501';\n  end if;\n",'');
+  "\n  -- Product contract: only Agreement messages. Existing PHONE grants\n  -- may still be REVOKED by their owner; no new PHONE grant is admitted.\n  if p_channel = 'PHONE' and p_granted then\n    raise exception 'PHONE_SHARING_DISABLED' using errcode = '42501';\n  end if;\n",'\n');
  if(name==='rpc_reveal_contact')return s.replace(
-  "\n  -- Historical PHONE receipts remain revocable, never reveal a phone.\n  if p_channel = 'PHONE' then\n    raise exception 'PHONE_SHARING_DISABLED' using errcode='42501';\n  end if;\n",'');
+  "\n  -- Historical PHONE receipts remain revocable, never reveal a phone.\n  if p_channel = 'PHONE' then\n    raise exception 'PHONE_SHARING_DISABLED' using errcode='42501';\n  end if;\n",'\n');
  throw Error('MISSING_PREIMAGE');
 }
 const db=new PGlite();
