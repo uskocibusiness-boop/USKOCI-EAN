@@ -34,6 +34,8 @@ jobs:
           deno-version: v2.5.6
       - name: Install exact dependencies and verify native patch
         run: npm ci
+      - name: R01 future public default ACL boundary (isolated PostgreSQL only)
+        run: node --test --test-reporter=spec supabase/proofs/privacy/r01_future_public_default_grants.test.mjs
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Deno AI Edge import and type checks (no execution)
@@ -86,8 +88,6 @@ jobs:
         run: |
           python supabase/migrations/check_migration_integrity.py
           python -m unittest discover -s supabase/migrations -p test_migration_integrity.py
-      - name: R01 future public default ACL boundary (isolated PostgreSQL only)
-        run: node --test --test-reporter=spec supabase/proofs/privacy/r01_future_public_default_grants.test.mjs
       - name: Need column privacy boundary (isolated SQL)
         run: |
           node supabase/proofs/privacy/r01-column-boundary.test.mjs
