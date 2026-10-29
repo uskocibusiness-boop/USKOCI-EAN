@@ -52,7 +52,7 @@ test('R01: legacy PHONE grants refused, old revoke kept, EXACT_LOCATION kept',as
  'CREATE TABLE public.agreements(id uuid primary key,requester_account_id uuid,worker_account_id uuid,requester_profile_id uuid,worker_profile_id uuid,need_id uuid,status text,selected_response_id uuid,current_version integer,created_at timestamptz default now());',
  'CREATE TABLE public.app_accounts(id uuid primary key,phone text);',
  'CREATE TABLE public.app_profiles(id uuid primary key,display_name text);',
- 'CREATE TABLE public.needs(id uuid primary key,title text,approximate_area text,approximate_city text,required_slots integer,starts_at timestamptz,revision integer,task_country_code text);',
+ 'CREATE TABLE public.needs(id uuid primary key,title text,approximate_area text,approximate_city text,required_slots integer,starts_at timestamptz,revision integer,task_country_code text,requester_account_id uuid);',
  'CREATE TABLE public.need_geography(need_id uuid primary key,public_topology jsonb);',
  'CREATE TABLE public.need_sensitive(need_id uuid primary key,exact_address text,resolved_location jsonb,access_notes text,exact_lat numeric,exact_lng numeric);',
  'CREATE TABLE public.access_grants(id uuid default gen_random_uuid(),agreement_id uuid,channel text,granted_by_account_id uuid,granted_to_account_id uuid,status text,granted_at timestamptz,revoked_at timestamptz,expires_at timestamptz,UNIQUE(agreement_id,channel,granted_by_account_id,granted_to_account_id));',
@@ -79,7 +79,7 @@ test('R01: legacy PHONE grants refused, old revoke kept, EXACT_LOCATION kept',as
    [user,'+38111111',worker,'+38122222',other,'+38133333']);
  await db.query('INSERT INTO public.app_profiles VALUES($1,$2),($3,$4)',
    ['00000000-0000-4000-8000-000000000020','Buyer','00000000-0000-4000-8000-000000000021','Worker']);
- await db.query("INSERT INTO public.needs VALUES($1,'Task','Area','Novi Sad',1,now(),1,'RS')",[need]);
+ await db.query("INSERT INTO public.needs VALUES($1,'Task','Area','Novi Sad',1,now(),1,'RS',$2)",[need,user]);
  await db.query("INSERT INTO public.need_geography VALUES($1,'{}')",[need]);
  await db.query("INSERT INTO public.need_sensitive VALUES($1,'EXACT_SYNTHETIC_ADDRESS',null,'DOOR',45.1,19.8)",[need]);
  await db.query("INSERT INTO public.agreements(id,requester_account_id,worker_account_id,requester_profile_id,worker_profile_id,need_id,status,current_version) VALUES($1,$2,$3,$4,$5,$6,'CONFIRMED',1)",
