@@ -38,6 +38,9 @@ const mustRollback=async(db,promise,error)=>{
    routine:String(original?.routine??'').slice(0,80),
    where:String(original?.where??'').slice(0,300),
    message:String(original?.message??'').slice(0,170),
+   inputLength:typeof original?.query==='string'?original.query.length:null,
+   inputContext:typeof original?.query==='string'&&Number.isSafeInteger(Number(original?.position))
+     ?original.query.slice(Math.max(0,Number(original.position)-70),Number(original.position)+70).replace(/[^a-zA-Z0-9_. ;(),=:\\-]/g,'?').slice(0,140):null,
   }));
   throw failure;
  }finally{await db.exec('ROLLBACK');}
