@@ -3980,6 +3980,12 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 - **Regresije:** proširen `supabase/proofs/ai/shadow_one_question.test.mjs` stvarnim pozivom shared helper-a pokriva jedan upit bez znaka pitanja, korisničko objašnjenje, ACK+metadata pitanje i potpis statusa bez dodavanja činjenica. Ovaj guard **ne dokazuje** da model sam nikad ne stavi više pitanja u jednu rečenicu; potpuni F12/R08 ostaje otvoren za stvarni modelski i native acceptance. Nema Edge deploy-a, DEV SQL, korisničkog upisa ni novog prompt servisnog sloja.
 
 
+### R08 — 29.10.2026: regresija postojećeg worker biography policy testa, CI ispravka
+
+- **Dokaz:** [CI 40893590714](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40893590714) je FAIL u `worker-interview-question-policy.test.mjs`: prethodni assert je zahtevao doslovnu staru rečenicu `the single profile review owns its approval`, dok aktivni prompt sada eksplicitno kaže `only the owner's review/Save approves it` i `same signed profile review`. Funkcionalni guard nije uklonjen; test je usklađen sa novom, konkretnijom istom obavezom pregleda i potvrde. Nije promenjen prompt, server niti AI Save.
+- **Granica:** samo ažuriranje source assert-a; novi CI treba proći. Stvarni model, DEV Edge i native signed Save ostaju zasebno nepotvrđeni.
+
+
 ## 12. Izvori, način korišćenja i obuhvat objedinjavanja
 
 ### 12.1. Šta je u jednom ZIP-u i kojim redom se čita
