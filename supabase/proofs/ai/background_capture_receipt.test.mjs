@@ -20,6 +20,7 @@ const needTurn=(state='SUCCEEDED')=>({conversationId:conversation,clientRequestI
 const workerTurn=(state='SUCCEEDED')=>({conversationId:conversation,clientRequestId:key,state,turnId,attemptId,retryAllowed:false,authoritative:true});
 const storeRpc='rpc_taxonomy_store_classification_turn_hint_service';
 const captureRpc='rpc_taxonomy_capture_gemini_turn_hints_service';
+const receiptRpc='rpc_taxonomy_read_gemini_turn_hint_receipt_service';
 
 function fixture(kind,operation,responseFactory,options={}){
   const calls=[],logs=[],background=[],unexpected=[];
@@ -41,7 +42,8 @@ function fixture(kind,operation,responseFactory,options={}){
     parentId:operation==='store'?'':rootId,reason:REASON,ambiguityPrompt:PROMPT,handoffKind:'NONE',handoffCity:''};
   const env={SUPABASE_URL:'https://leqcwgzvjsxugfgzdmth.supabase.co',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC',
     SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE',AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_PROVIDER',
-    GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true'};
+    GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',
+    USKOCI_TAXONOMY_CAPTURE_RECEIPT_READBACK_ENABLED:options.captureReadback?'true':'false'};
   const fetch=async(url,init={})=>{
     const address=String(url),body=init.body?JSON.parse(init.body):null;
     calls.push({url:address,body,signal:init.signal});
@@ -68,6 +70,15 @@ function fixture(kind,operation,responseFactory,options={}){
       ? options.readbackResponse(committedHint,init.signal) : json(committedHint);
     if(name==='rpc_taxonomy_fetch_snapshot_v1')return json({catalogVersion:7,catalogFingerprint:'a'.repeat(32),count:1+(options.extraCategories?.length??0),
       categories:[{categoryId:rootId,parentId:null,label:'Synthetic root',aliases:[],path:['Synthetic root'],isLeaf:false,modes:['ON_SITE']},...(options.extraCategories??[])]});
+    if(name===receiptRpc){
+      const verified={schemaVersion:'TAXONOMY_CAPTURE_RECEIPT_V1',
+        state:'CAPTURE_PRESENT',authority:'NONE',applicability:'NOT_EVALUATED',retryAllowed:false,
+        accountId:body.p_account_id,conversationId:body.p_conversation_id,
+        clientRequestId:body.p_client_request_id,turnId:body.p_turn_id,
+        attemptId:body.p_attempt_id,purpose:body.p_purpose,
+        catalogVersion:body.p_catalog_version,payloadDigest:'a'.repeat(64)};
+      return json(options.captureReceiptOverride?{...verified,...options.captureReceiptOverride}:verified);
+    }
     if(name===storeRpc||name===captureRpc){
       assert.equal(name,operation==='store'?storeRpc:captureRpc);
       if(name===storeRpc&&options.commitBeforeReply){
@@ -196,6 +207,38 @@ for(const modes of [['ON_SITE'],['REMOTE'],['ON_SITE','REMOTE']]){
     }
     assert.equal(f.calls.filter(call=>call.url.includes(':generateContent')).length,1);
     assert.ok(!f.calls.some(call=>/save_worker|publish|commit_admission|push/.test(call.url)));
+  });
+}
+
+
+for(const kind of ['NEED','WORKER']){
+  test(kind+' capture lost ACK resolves via exact historical receipt without rewriting or reclassifying',async()=>{
+    const f=fixture(kind,'capture',()=>json(null),{captureReadback:true});
+    await f.execute();
+    const writes=f.calls.filter(call=>call.url.endsWith('/'+captureRpc));
+    const reads=f.calls.filter(call=>call.url.endsWith('/'+receiptRpc));
+    assert.equal(writes.length,1);
+    assert.equal(reads.length,1);
+    assert.ok(f.calls.indexOf(reads[0])>f.calls.indexOf(writes[0]));
+    assert.deepEqual(reads[0].body,writes[0].body,'one exact operation and entire proposal content');
+    assert.ok(!f.logs.some(args=>args[0]===kind+'_TAXONOMY_HINT_CAPTURE'));
+    assert.equal(f.calls.filter(call=>call.url.includes(':generateContent')).length,1);
+  });
+  for(const [field,value] of [['turnId',id(98)],['attemptId',id(99)],['purpose','OTHER'],
+    ['catalogVersion',98],['retryAllowed',true],['authority','GRANTED'],['extraPrivate','PRIVATE_SERVICE']]){
+    test(kind+' capture cannot use forged historical receipt '+field,async()=>{
+      const f=fixture(kind,'capture',()=>json(null),
+        {captureReadback:true,captureReceiptOverride:{[field]:value}});
+      await f.execute();
+      assert.equal(f.calls.filter(call=>call.url.endsWith('/'+captureRpc)).length,1);
+      assert.equal(f.calls.filter(call=>call.url.endsWith('/'+receiptRpc)).length,1);
+      assert.ok(f.logs.some(args=>args[0]===kind+'_TAXONOMY_HINT_CAPTURE'));
+    });
+  }
+  test(kind+' feature gate off never contacts undeployed receipt endpoint',async()=>{
+    const f=fixture(kind,'capture',()=>json(null));
+    await f.execute();
+    assert.equal(f.calls.filter(call=>call.url.endsWith('/'+receiptRpc)).length,0);
   });
 }
 

@@ -414,6 +414,51 @@ export async function fetchUnconsumedClarificationHint(rpc, conversationId, draf
   return null;
 }
 
+/**
+ * R06: One bounded historical capture readback, never another writer/model call.
+ * The existing current-schema candidate validates exact identity, JSONB payload
+ * digest and closure on the server. CAPTURE_PRESENT is historical evidence only,
+ * NOT READY, fresh consent, a matching right or a publish instruction.
+ *
+ * The gated readback RPC is intentionally NOT deployed yet. This helper may be
+ * called only after the owner's completed turn; the old write path is unchanged
+ * until an independently approved rollout of the receipt RPC.
+ */
+export async function captureTaxonomyHintsWithReceipt(rpc, args, allowReadback = false) {
+  if (typeof rpc !== 'function' || !args || !Array.isArray(args.p_proposals)
+      || !['NEED_SERVICE', 'WORKER_CAPABILITY'].includes(args.p_purpose)) return 'UNCONFIRMED';
+  let fallback = 'UNCONFIRMED';
+  try {
+    const result = await rpc('rpc_taxonomy_capture_gemini_turn_hints_service', args);
+    const ack = result?.ok === true ? result.data : result;
+    if (result?.ok !== false && ack?.action === 'HINT_CAPTURED' && ack.authority === 'NONE')
+      return 'ACKED';
+    if (result?.ok !== false) fallback = 'UNEXPECTED_ACK';
+  } catch { /* Capture may have committed before the response was lost. */ }
+
+  if (allowReadback !== true) return fallback;
+  try {
+    const result = await rpc('rpc_taxonomy_read_gemini_turn_hint_receipt_service', args);
+    const receipt = result?.ok === true ? result.data : result;
+    const fields = ['schemaVersion','state','authority','applicability','retryAllowed',
+      'accountId','conversationId','clientRequestId','turnId','attemptId',
+      'purpose','catalogVersion','payloadDigest'];
+    if (result?.ok === false || !receipt || typeof receipt !== 'object' || Array.isArray(receipt)
+        || Object.keys(receipt).length !== fields.length
+        || !fields.every(key => Object.hasOwn(receipt, key))
+        || receipt.schemaVersion !== 'TAXONOMY_CAPTURE_RECEIPT_V1'
+        || receipt.state !== 'CAPTURE_PRESENT' || receipt.authority !== 'NONE'
+        || receipt.applicability !== 'NOT_EVALUATED' || receipt.retryAllowed !== false
+        || receipt.accountId !== args.p_account_id || receipt.conversationId !== args.p_conversation_id
+        || receipt.clientRequestId !== args.p_client_request_id
+        || receipt.turnId !== args.p_turn_id || receipt.attemptId !== args.p_attempt_id
+        || receipt.purpose !== args.p_purpose || receipt.catalogVersion !== args.p_catalog_version
+        || typeof receipt.payloadDigest !== 'string'
+        || !/^[a-f0-9]{64}$/.test(receipt.payloadDigest)) return fallback;
+    return 'HISTORICAL_CAPTURE_PRESENT';
+  } catch { return fallback; }
+}
+
 export function runInBackground(promise) {
   const safe = Promise.resolve(promise).catch(() => {
     // Exception text may contain provider/user data. Logging must also remain

@@ -48,6 +48,7 @@ import {
   taskTaxonomyScope,
   taskClassificationFingerprint,
   runInBackground,
+  captureTaxonomyHintsWithReceipt,
   persistClarificationHint,
   persistConsumeClarificationHint,
   fetchUnconsumedClarificationHint,
@@ -1668,13 +1669,16 @@ Deno.serve(async (req: Request) => {
               if (stored.some((ok: boolean) => !ok)) console.info('NEED_TAXONOMY_HINT_STORE', 'UNAVAILABLE');
             }
             if (built && built.proposals.length > 0 && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
-              const capture = await rpc('rpc_taxonomy_capture_gemini_turn_hints_service', {
-                p_account_id: accountId, p_conversation_id: conversationId,
-                p_client_request_id: requestId, p_turn_id: claimedTurnId, p_attempt_id: attemptId,
-                p_purpose: 'NEED_SERVICE', p_catalog_version: built.catalogVersion,
-                p_proposals: built.proposals,
-              }, bgAbort.signal, 3500);
-              if (!capture.ok || capture.data?.action !== 'HINT_CAPTURED' || capture.data?.authority !== 'NONE')
+              const status = await captureTaxonomyHintsWithReceipt(
+                (name: string, args: Record<string, unknown>) => rpc(name,args,bgAbort.signal,3500),
+                {
+                  p_account_id: accountId, p_conversation_id: conversationId,
+                  p_client_request_id: requestId, p_turn_id: claimedTurnId, p_attempt_id: attemptId,
+                  p_purpose: 'NEED_SERVICE', p_catalog_version: built.catalogVersion,
+                  p_proposals: built.proposals,
+                },
+                Deno.env.get('USKOCI_TAXONOMY_CAPTURE_RECEIPT_READBACK_ENABLED') === 'true');
+              if (status !== 'ACKED' && status !== 'HISTORICAL_CAPTURE_PRESENT')
                 console.info('NEED_TAXONOMY_HINT_CAPTURE', 'UNAVAILABLE');
             }
           } catch { console.info('NEED_TAXONOMY_HINT_CAPTURE', 'UNAVAILABLE'); } finally {
@@ -1685,14 +1689,15 @@ Deno.serve(async (req: Request) => {
       } else if (completed.state === 'SUCCEEDED' && taxonomyCatalog && taxonomyReviewHints.length &&
           devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
         try {
-          const capture=await measureAiPhase('NEED_HINT_CAPTURE', () => rpc('rpc_taxonomy_capture_gemini_turn_hints_service',{
-            p_account_id:accountId,p_conversation_id:conversationId,
-            p_client_request_id:requestId,p_turn_id:claimedTurnId,p_attempt_id:attemptId,
-            p_purpose:'NEED_SERVICE',p_catalog_version:taxonomyCatalog.catalogVersion,
-            p_proposals:taxonomyReviewHints,
-          },signal,2500));
-          if (!capture.ok || capture.data?.action!=='HINT_CAPTURED' ||
-              capture.data?.authority!=='NONE') {
+          const status=await measureAiPhase('NEED_HINT_CAPTURE', () =>
+            captureTaxonomyHintsWithReceipt((name: string, args: Record<string, unknown>) =>
+              rpc(name,args,signal,2500),{
+              p_account_id:accountId,p_conversation_id:conversationId,
+              p_client_request_id:requestId,p_turn_id:claimedTurnId,p_attempt_id:attemptId,
+              p_purpose:'NEED_SERVICE',p_catalog_version:taxonomyCatalog.catalogVersion,
+              p_proposals:taxonomyReviewHints,
+            },Deno.env.get('USKOCI_TAXONOMY_CAPTURE_RECEIPT_READBACK_ENABLED')==='true'));
+          if (status!=='ACKED' && status!=='HISTORICAL_CAPTURE_PRESENT') {
             console.info('NEED_TAXONOMY_HINT_CAPTURE','UNAVAILABLE');
           }
         } catch { console.info('NEED_TAXONOMY_HINT_CAPTURE','UNAVAILABLE'); }

@@ -26,7 +26,7 @@ import { withClassificationFeedback } from '../_shared/classificationReply.mjs';
 import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction, workerModeRequests, preserveWorkerServiceModes, recoverWorkerExistingIdentity } from '../_shared/workerServiceModeContext.mjs';
 import { guardWorkerAreaOutput } from '../_shared/workerAreaAdmission.mjs';
 import { workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas } from '../_shared/workerAreaResolver.mjs';
-import { buildWorkerFullTreeTaxonomyProposals, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint, workerSkillsFingerprint } from '../_shared/backgroundTaxonomyArchitect.mjs';
+import { buildWorkerFullTreeTaxonomyProposals, runInBackground, captureTaxonomyHintsWithReceipt, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint, workerSkillsFingerprint } from '../_shared/backgroundTaxonomyArchitect.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const isLiveDualGemini = (): boolean =>
@@ -585,15 +585,17 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
                 if (stored.some((ok: boolean) => !ok)) console.info('WORKER_TAXONOMY_HINT_STORE', 'UNAVAILABLE');
               }
               if (built && built.proposals.length > 0 && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
-                const ack = await rpc('rpc_taxonomy_capture_gemini_turn_hints_service', {
+                const status = await captureTaxonomyHintsWithReceipt(
+                  (name: string, args: Record<string,unknown>)=>rpc(name,args,bgAbort.signal,3500),{
                   p_account_id: account, p_conversation_id: input.conversationId,
                   p_client_request_id: input.clientRequestId,
                   p_turn_id: claim.turn.turnId, p_attempt_id: claim.turn.attemptId,
                   p_purpose: 'WORKER_CAPABILITY', p_catalog_version: built.catalogVersion,
                   p_proposals: built.proposals,
-                }, bgAbort.signal, 3500);
-                if (ack?.action !== 'HINT_CAPTURED' || ack?.authority !== 'NONE')
-                  console.info('WORKER_TAXONOMY_HINT_CAPTURE', 'RECEIPT_UNEXPECTED');
+                },Deno.env.get('USKOCI_TAXONOMY_CAPTURE_RECEIPT_READBACK_ENABLED')==='true');
+                if (status!=='ACKED' && status!=='HISTORICAL_CAPTURE_PRESENT')
+                  console.info('WORKER_TAXONOMY_HINT_CAPTURE',
+                    status==='UNEXPECTED_ACK'?'RECEIPT_UNEXPECTED':'UNAVAILABLE');
               }
             } catch { console.info('WORKER_TAXONOMY_HINT_CAPTURE', 'UNAVAILABLE'); } finally {
               clearTimeout(bgTimer);
@@ -604,15 +606,17 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
             devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
           const captureCatalogVersion = taxonomyCatalog.catalogVersion;
           try {
-            const ack=await measureAiPhase('WORKER_HINT_CAPTURE', () => rpc('rpc_taxonomy_capture_gemini_turn_hints_service',{
-              p_account_id:account,p_conversation_id:input.conversationId,
-              p_client_request_id:input.clientRequestId,
-              p_turn_id:claim.turn.turnId,p_attempt_id:claim.turn.attemptId,
-              p_purpose:'WORKER_CAPABILITY',p_catalog_version:captureCatalogVersion,
-              p_proposals:reviewHints,
-            },abort.signal,2500));
-            if (ack?.action!=='HINT_CAPTURED' || ack?.authority!=='NONE')
-              console.info('WORKER_TAXONOMY_HINT_CAPTURE','RECEIPT_UNEXPECTED');
+            const status=await measureAiPhase('WORKER_HINT_CAPTURE', () =>
+              captureTaxonomyHintsWithReceipt((name: string,args:Record<string,unknown>)=>rpc(name,args,abort.signal,2500),{
+                p_account_id:account,p_conversation_id:input.conversationId,
+                p_client_request_id:input.clientRequestId,
+                p_turn_id:claim.turn.turnId,p_attempt_id:claim.turn.attemptId,
+                p_purpose:'WORKER_CAPABILITY',p_catalog_version:captureCatalogVersion,
+                p_proposals:reviewHints,
+              },Deno.env.get('USKOCI_TAXONOMY_CAPTURE_RECEIPT_READBACK_ENABLED')==='true'));
+            if (status!=='ACKED' && status!=='HISTORICAL_CAPTURE_PRESENT')
+              console.info('WORKER_TAXONOMY_HINT_CAPTURE',
+                status==='UNEXPECTED_ACK'?'RECEIPT_UNEXPECTED':'UNAVAILABLE');
           } catch { console.info('WORKER_TAXONOMY_HINT_CAPTURE','UNAVAILABLE'); }
         }
         send('text_delta',{text:output.assistantMessage});
