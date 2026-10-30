@@ -2,6 +2,9 @@
 
 ID-jevi su istovetni u obe mape. Ciljni S-ekran i spojeni tok mogu se razlikovati; poređenje nije dokaz da je zadržan svaki acceptance.
 
+**Izvršni autoritet 30.10:** konačni [Product/UX master A–J/S01–S18](../../product/USKOCI_PRODUCT_UX_MASTER.md) nadređen je istorijskoj REV14 ciljnoj mapi, a [CODEX master `12.6](../../plan/CODEX_PLAN_RADA.md) vodi status i acceptance. Ovde se čuvaju sva 77 stara ID-ja; puni `dizajn/spec/screen_contracts.json` u Bridge arhivi ima detalje, a mapa iz ovog fajla sama po sebi ne dokazuje 77 implementiranih ekrana. Konkretna korekcija: `archive` nije novi root/full-screen cilj, već kompatibilni redirect uz domensku istoriju; sadašnji kod još nije ispravljen.
+
+
 | ID | Stari ugovor | Stare R/SV veze | Novi cilj | Spojeno u |
 |---|---|---|---|---|
 | `launch` | Pokretanje i obnova | R11a, R12 | System/infrastructure state | None |
@@ -49,7 +52,7 @@ ID-jevi su istovetni u obe mape. Ciljni S-ekran i spojeni tok mogu se razlikovat
 | `qa` | Pitanja o zadatku | J10, R01, R11, R12 | Embedded section + See all screen | taskDetail / ownTask |
 | `qaComposer` | Pitanje ili odgovor | J10, J13, R11, R12 | Bottom sheet composer | qa |
 | `calendar` | Raspored | J08, J11, R05, R11e, SB12, R12 | Full screen | None |
-| `archive` | Arhiva | J10, J11, R03, R11, R12 | Full screen | None |
+| `archive` | Arhiva | J10, J11, R03, R11, R12 | **Compatibility redirect (konačni Product/UX S05/S06/S08)**; stari REV14 cilj `Full screen` je superseded | Dogovori → Prethodne saradnje (siguran cold fallback; čuvati domenska porekla) |
 | `profile` | Profil | J06, J14, R11, R12 | Full screen | None |
 | `personal` | Lični podaci | R11d, X02, R12 | Full screen | None |
 | `avatar` | Fotografija profila | R11c, SB05, R12 | Photo picker/editor sheet | personal / profile |
