@@ -11,7 +11,11 @@ import {pgcrypto} from '@electric-sql/pglite/contrib/pgcrypto';
 import {snapshot} from './r01_fixture.mjs';
 
 const candidate = readFileSync(new URL('../../candidates/r01_needs_column_privileges.sql', import.meta.url), 'utf8');
-const secretColumns = ['requester_account_id', 'remaining_search_closed_by_account_id', 'remaining_search_close_reason'];
+// All columns outside the reviewed 38-column direct-read allowlist. Keep the
+// internal category_id behind the same direct SQL/API access boundary; unlike
+// the first three it is an internal identity, not a personal identifier.
+const nonPublicColumns = ['requester_account_id', 'remaining_search_closed_by_account_id',
+  'remaining_search_close_reason', 'category_id'];
 // Independent historical public contract, not parsed from the candidate.
 const publicColumns = `id requester_profile_id status title description category approximate_city approximate_area
  approximate_lat approximate_lng schedule_kind starts_at ends_at required_slots mode requester_price_rsd
@@ -23,6 +27,7 @@ const uuid = n => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const owner=uuid(1), reader=uuid(2), participant=uuid(3), real=uuid(4), closed=uuid(5);
 const published=uuid(101), selection=uuid(102), active=uuid(103), draft=uuid(104), realNeed=uuid(105);
 const marker='SYNTHETIC_PRIVATE_R01_REASON';
+const internalCategory=uuid(301);
 const db = new PGlite({extensions:{pgcrypto}});
 test.after(() => db.close());
 const query = async (sql, args=[]) => (await db.query(sql,args)).rows;
@@ -60,7 +65,12 @@ async function aclState() {
 test('R01 current SQL boundary and compatibility controls', async t => {
   await t.test('fixture binds current function bodies before execution', async () => {
     assert.equal(publicColumns.length,38);
+    assert.equal(new Set(publicColumns).size,38,'no duplicate public column can hide an exclusion');
     assert.equal(snapshot.columns.length,42);
+    assert.equal(new Set(snapshot.columns.map(c=>c.name)).size,42);
+    assert.deepEqual(snapshot.columns.map(c=>c.name)
+      .filter(name=>!publicColumns.includes(name)).sort(),[...nonPublicColumns].sort(),
+    'every current column excluded from the public projection must be denied in SQL');
     for(const f of snapshot.functions) {
       const body=f.definition.match(/AS \$function\$([\s\S]*)\$function\$/)?.[1];
       assert(body, f.signature);
@@ -139,15 +149,19 @@ test('R01 current SQL boundary and compatibility controls', async t => {
         statement_timestamp()-interval '1 day',case when $3='SELECTION' then statement_timestamp() end,
         case when $3='SELECTION' then $2::uuid end,case when $3='SELECTION' then $4 end)`,[id,who,status,marker]);
     }
+    // An explicit internal ID makes the baseline and the later denial
+    // meaningful; null values alone cannot demonstrate the exposure.
+    await db.query('update public.needs set category_id=$1 where id=$2',[internalCategory,selection]);
     await db.exec(`insert into public.agreements(need_id,worker_account_id,status) values('${active}','${participant}','CONFIRMED');
       insert into public.need_selections values('${active}','${participant}','SELECTED',1);
       insert into private.fixture_candidates values('${published}','SELECTABLE');`);
   });
 
   await t.test('baseline reproduces foreign private data access with a successful public control', async () => {
-    const rows=await as('authenticated',reader,()=>query(`select id,requester_account_id,
+    const rows=await as('authenticated',reader,()=>query(`select id,requester_account_id,category_id,
       remaining_search_closed_by_account_id,remaining_search_close_reason from public.needs where id=$1`,[selection]));
-    assert.deepEqual(rows,[{id:selection,requester_account_id:owner,remaining_search_closed_by_account_id:owner,remaining_search_close_reason:marker}]);
+    assert.deepEqual(rows,[{id:selection,requester_account_id:owner,category_id:internalCategory,
+      remaining_search_closed_by_account_id:owner,remaining_search_close_reason:marker}]);
     assert.deepEqual(await as('authenticated',reader,()=>query('select id from public.needs where id=$1',[published])),[{id:published}]);
   });
 
@@ -177,7 +191,7 @@ test('R01 current SQL boundary and compatibility controls', async t => {
   await t.test('private projections, aliases, predicates, ordering and whole rows fail with 42501', async () => {
     for(const actor of [owner,reader,participant]) {
       await as('authenticated',actor,async()=>{
-        for(const col of secretColumns) for(const sql of [
+        for(const col of nonPublicColumns) for(const sql of [
           `select ${col} from public.needs`, `select ${col} as public_title from public.needs`,
           `select id from public.needs where ${col} is not null`, `select id from public.needs order by ${col}`,
           `select count(*) from public.needs group by ${col}`
@@ -219,13 +233,15 @@ test('R01 current SQL boundary and compatibility controls', async t => {
     assert.equal(foreign.id,published);
     assert.equal(owned.selectable_application_count,1);
     assert.equal(foreign.selectable_application_count,null);
-    for(const value of [foreign,owned]) for(const col of secretColumns) assert.equal(Object.hasOwn(value,col),false);
+    for(const value of [foreign,owned]) for(const col of nonPublicColumns) assert.equal(Object.hasOwn(value,col),false);
     const list=await as('authenticated',owner,()=>scalar('select public.rpc_list_my_tasks()'));
     assert.deepEqual(list.map(x=>x.id).sort(),[published,selection,active,draft].sort());
+    for(const item of list) for(const col of nonPublicColumns) assert.equal(Object.hasOwn(item,col),false);
     assert(!JSON.stringify(list).includes(marker));
     assert.deepEqual(await as('authenticated',reader,()=>scalar('select public.rpc_list_my_tasks()')),[]);
     const page=await as('authenticated',owner,()=>scalar("select public.rpc_list_my_needs_page('ALL',30,null,null)"));
     assert.deepEqual(page.items.map(x=>x.id).sort(),[published,selection,active,draft].sort());
+    for(const item of page.items) for(const col of nonPublicColumns) assert.equal(Object.hasOwn(item,col),false);
     assert(!JSON.stringify(page).includes(marker));
     // Existing R03 wire mismatch is deliberately not reclassified as fixed.
     assert.equal(Object.hasOwn(page,'counts'),false);
@@ -255,7 +271,8 @@ test('R01 current SQL boundary and compatibility controls', async t => {
     await as('authenticated',owner,()=>query(`insert into public.needs(id,requester_account_id,status) values($1,$2,'DRAFT')`,[id,owner]));
     assert.deepEqual(await as('authenticated',owner,()=>query("update public.needs set title='Changed' where id=$1 returning id,title",[id])),[{id,title:'Changed'}]);
     assert.deepEqual(await as('authenticated',reader,()=>query("update public.needs set title='Foreign' where id=$1 returning id",[id])),[]);
-    await denied(as('authenticated',owner,()=>query("update public.needs set title='Private returning' where id=$1 returning requester_account_id",[id])));
+    for(const col of nonPublicColumns) await denied(as('authenticated',owner,
+      ()=>query(`update public.needs set title='Private returning' where id=$1 returning ${col}`,[id])));
   });
 
   await t.test('future columns default to unreadable; stray PUBLIC/anon grants are removed', async () => {
