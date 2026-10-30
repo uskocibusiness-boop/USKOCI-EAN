@@ -84,6 +84,38 @@ test('R06 need: a normal non-redirecting response still classifies a new service
   assert.equal(result.proposals.length, 1);
   assert.equal(result.proposals[0].action, 'CREATE_CHILD');
   assert.deepEqual(result.failures, []);
+  assert.ok(f.calls[0].generationConfig.responseSchema.properties.decisions.items.required.includes('action'));
+});
+
+test('R04 Need: CREATE_CHILD cannot also claim an existing category ID', async t => {
+  const f=fixture(t,()=>response({decisions:[{
+    service:'Popravka klima',mode:'ON_SITE',action:'CREATE_CHILD',
+    categoryId,parentId:categoryId,
+    reason:'Nova usluga ne može istovremeno nositi tuđ postojeći identitet kategorije.'
+  }]}));
+  const result=await need(f.args);
+  assert.equal(f.calls.length,1,'do not repeat a potentially billed provider call');
+  assert.deepEqual(result.proposals,[]);
+  assert.deepEqual(result.clarifications,[]);
+  assert.ok(result.failures.some(failure=>failure.code==='PROVIDER_INVALID_DECISION'));
+});
+
+test('R04 Worker: CREATE_CHILD cannot also claim an existing category ID', async t => {
+  const evidence='Nudim popravku klima kod klijenta.';
+  const f=fixture(t,()=>response({items:[{
+    service:'Popravka klima',mode:'ON_SITE',action:'CREATE_CHILD',
+    categoryId,parentId:categoryId,handoffKind:'NONE',handoffCity:'',
+    reason:'Nova usluga ne može istovremeno nositi tuđ postojeći identitet kategorije.'
+  }]}));
+  const result=await worker(f.args,{
+    messages:[{role:'USER',body:evidence}],
+    serviceModeChangesJson:JSON.stringify([{service:'Popravka klima',modes:['ON_SITE'],evidence}]),
+  });
+  assert.equal(f.calls.length,1);
+  assert.deepEqual(result.proposals,[]);
+  assert.deepEqual(result.clarifications,[]);
+  assert.deepEqual(result.unresolvedServices,['Popravka klima']);
+  assert.ok(result.failures.some(failure=>failure.code==='PROVIDER_INVALID_DECISION'));
 });
 
 test('missing credentials do not call a provider or invent a question', async t => {

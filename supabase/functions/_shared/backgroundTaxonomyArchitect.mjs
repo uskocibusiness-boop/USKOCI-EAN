@@ -670,7 +670,7 @@ function novelServicesRequest({
         type: 'ARRAY',
         items: {
           type: 'OBJECT',
-          required: ['service', 'mode', 'parentId', 'reason'],
+          required: ['service', 'mode', 'action', 'parentId', 'reason'],
           properties: {
             service: { type: 'STRING' },
             mode: { type: 'STRING', enum: ['ON_SITE', 'REMOTE'] },
@@ -847,7 +847,10 @@ export async function buildFullTreeTaxonomyProposals({
           reason: reusable.reason, catalogVersion: catalog.catalogVersion,
           ...(item.handoff ? { handoff: item.handoff } : {}),
         });
-      } else if (decision?.action === 'CREATE_CHILD' && validNodeIds.has(decision.parentId)) {
+      } else if (decision?.action === 'CREATE_CHILD' && validNodeIds.has(decision.parentId)
+          && (decision.categoryId === undefined || decision.categoryId === '')) {
+        // A new category cannot also claim an existing categoryId. Refuse
+        // contradictory provider output instead of discarding its identity.
         const parentId = decision.parentId;
         const rawReason = typeof decision?.reason === 'string' && decision.reason.trim().length >= 10
           ? decision.reason.trim().slice(0, 900)
@@ -897,7 +900,7 @@ async function classifyWorkerServicesWithGemini({
     'Ispred sebe vidiš KOMPLETNO stablo svih postojećih kategorija u bazi, listu usluga radnika (skills) i njegove poruke.',
     'Za SVAKU uslugu iz liste skills odredi:',
     '1. mode: "ON_SITE" (izvršenje kod naručioca/na terenu), "REMOTE" (izvršenje drugde, uključujući radionicu) ili "UNKNOWN". Koristi samo način rada koji je radnik izričito ponudio za tu uslugu ili njegov sačuvani izbor u priorModes. Katalog, vrsta posla i područje rada nisu dokaz saglasnosti. Nepoznat način rada ostaje UNKNOWN i zahteva jedno kratko pitanje.',
-    '2. Ako postoji isti canonical naziv ili alias, predloži REUSE_EXISTING ili EXTEND_MODE samo za radnikov izričito ponuđeni mode. Ako neupisan sinonim nedvosmisleno označava ISTI konkretan posao kao postojeći list, predloži REUSE_EXISTING uz categoryId tog lista, parentId="" i razlog koji upoređuje značenje. Proveri sve konkurentne grane i ne spajaj montažu klime sa čišćenjem klime. To je samo hint, ne upis sposobnosti. Ako je stvarno NOV posao, CREATE_CHILD uz parentId tačnog roditelja. Preširoko ili dvosmisleno (samo "klima" ili "nameštaj") zahteva NEEDS_CLARIFICATION.',
+    '2. Ako postoji isti canonical naziv ili alias, predloži REUSE_EXISTING ili EXTEND_MODE samo za radnikov izričito ponuđeni mode. Ako neupisan sinonim nedvosmisleno označava ISTI konkretan posao kao postojeći list, predloži REUSE_EXISTING uz categoryId tog lista, parentId="" i razlog koji upoređuje značenje. Proveri sve konkurentne grane i ne spajaj montažu klime sa čišćenjem klime. To je samo hint, ne upis sposobnosti. Ako je stvarno NOV posao, CREATE_CHILD uz parentId tačnog roditelja i categoryId=""; nova grana ne sme imati ID postojeće kategorije. Preširoko ili dvosmisleno (samo "klima" ili "nameštaj") zahteva NEEDS_CLARIFICATION.',
     '3. Za REMOTE uslugu odredi handoffKind: "NONE" (digitalna isporuka bez fizičke predaje), "SHIPPING_RS" (slanje poštom/kurirskom službom u Srbiji), ili "LOCAL_EXCHANGE" (lično preuzimanje u gradu handoffCity).',
     '4. reason: kratko obrazloženje na srpskom (15 do 200 znakova).',
   ].join(' ');
@@ -1147,6 +1150,9 @@ export async function buildWorkerFullTreeTaxonomyProposals({
         });
       } else {
         const isValidParent = decision?.parentId && validNodeIds.has(decision.parentId);
+        // Match Need: a new child may reference an existing parent but never
+        // claim an existing category identity in the same model decision.
+        const isNewCategory = decision?.categoryId === undefined || decision.categoryId === '';
         const reusable = requested && matches.length === 0
           ? semanticReuseHint(decision, service, chosen.mode, catalog) : null;
         if (reusable) {
@@ -1160,7 +1166,7 @@ export async function buildWorkerFullTreeTaxonomyProposals({
             ...(chosen.mode === 'REMOTE' && chosen.handoff ? { handoff: chosen.handoff } : {}),
           });
           unresolvedServices.push(service);
-        } else if (requested && isValidParent && decision.action === 'CREATE_CHILD') {
+        } else if (requested && isValidParent && isNewCategory && decision.action === 'CREATE_CHILD') {
           const rawReason = typeof decision.reason === 'string' && decision.reason.trim().length >= 10
             ? decision.reason.trim().slice(0, 900)
             : `Nova specifična usluga „${service}“ raspoređena pod odgovarajuću granu kataloga.`;
