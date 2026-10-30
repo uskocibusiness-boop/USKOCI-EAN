@@ -29,6 +29,7 @@ async function setup(install=true){
   "CREATE FUNCTION private.ai_task_review_source(uuid) RETURNS jsonb LANGUAGE sql STABLE AS $$ SELECT jsonb_build_object('conversation',$1::text) $$;",
   'CREATE TABLE private.worker_ai_sessions(account_id uuid,conversation_id uuid,candidate jsonb,revision integer,base_hash text);',
   'CREATE TABLE private.worker_ai_turns(account_id uuid,conversation_id uuid,client_request_id uuid,turn_id uuid,attempt_id uuid,state text,cancelled_at timestamptz,completion_hash text,source_revision integer);',
+  'CREATE TABLE private.work_taxonomy_gemini_turn_hints_v1(purpose text,account_id uuid,conversation_id uuid,client_request_id uuid,turn_id uuid,attempt_id uuid,source_fingerprint text);',
   "SELECT set_config('test.jwt_role','service_role',false);",
   "SELECT set_config('uskoci.r06_first_plan.disposable','LOCAL_ONLY',false);"
  ].join('\n'));
@@ -157,7 +158,6 @@ test('R06 dispatched provider operation has fixed identity; unknown result is ne
 test('R06 a captured status requires the actual same-source receipt, not a model assertion',async t=>{
  const db=await setup();t.after(()=>db.close());await needFixture(db);
  await db.exec('UPDATE private.work_taxonomy_first_plan_control_v1 SET enabled=true');
- await db.exec('CREATE TABLE private.work_taxonomy_gemini_turn_hints_v1(purpose text,account_id uuid,conversation_id uuid,client_request_id uuid,turn_id uuid,attempt_id uuid,source_fingerprint text)');
  await enqueue(db,need);
  const row=(await db.query('SELECT public.rpc_taxonomy_first_plan_claim_service(1) result')).rows[0].result[0];
  await db.query('SELECT public.rpc_taxonomy_first_plan_mark_dispatched_service($1::uuid,$2::uuid,$3::uuid)',
@@ -172,7 +172,6 @@ test('R06 a captured status requires the actual same-source receipt, not a model
 test('R06 expired dispatched lease reconciles UNKNOWN without a paid replay',async t=>{
  const db=await setup();t.after(()=>db.close());await needFixture(db);
  await db.exec('UPDATE private.work_taxonomy_first_plan_control_v1 SET enabled=true');
- await db.exec('CREATE TABLE private.work_taxonomy_gemini_turn_hints_v1(purpose text,account_id uuid,conversation_id uuid,client_request_id uuid,turn_id uuid,attempt_id uuid,source_fingerprint text)');
  await enqueue(db,need);
  const row=(await db.query('SELECT public.rpc_taxonomy_first_plan_claim_service(1) result')).rows[0].result[0];
  await db.query('SELECT public.rpc_taxonomy_first_plan_mark_dispatched_service($1::uuid,$2::uuid,$3::uuid)',
