@@ -1,6 +1,6 @@
 // Background Taxonomy Architect ("Drugi Gemini u pozadini").
 // Sees the ENTIRE taxonomy tree (all roots, branches, and leaf categories),
-// caches the full tree in memory by catalogVersion + catalogFingerprint,
+// indexes a fresh complete snapshot (admission metadata is not a content stamp),
 // resolves requester exact/alias identity deterministically; worker scope still
 // requires saved consent or a valid new USER-quoted proposal and provider result,
 // detects ambiguity and emits clarificationRequest hints without falling back to Zanati i popravke,
@@ -11,7 +11,6 @@ import { normalizedClassificationIdentity } from './classificationEngine.mjs';
 import { decodeServiceHandoff } from './serviceHandoff.mjs';
 import { workerModeRequests } from './workerServiceModeContext.mjs';
 
-let cachedFullCatalog = null;
 const cachedNovelDecisions = new Map();
 const NOVEL_DECISION_TTL_MS = 5 * 60 * 1000;
 const NOVEL_DECISION_MAX_ENTRIES = 128;
@@ -423,21 +422,25 @@ export function indexFullCatalog(catalogVersion, catalogFingerprint, categories,
     }
   }
 
-  cachedFullCatalog = {
+  return {
     catalogVersion,
     catalogFingerprint,
     categories,
     byNormalizedKey,
     verifiedComplete,
   };
-  return cachedFullCatalog;
 }
 
 export async function loadFullCatalogTree(rpc, signal) {
+  const assertActive = () => {
+    if (signal?.aborted) throw new Error('FULL_CATALOG_ABORTED');
+  };
+  assertActive();
   // A snapshot is complete only when its own count matches its actual items;
-  // a same-version/fingerprint cached PARTIAL tree is never a substitute.
+  // metadata equality alone cannot certify a complete current tree.
   try {
     const snapRes = await rpc('rpc_taxonomy_fetch_snapshot_v1', { p_generation: 1 }, signal, 2500);
+    assertActive();
     const snap = snapRes?.ok ? snapRes.data : snapRes;
     if (snap && Number.isSafeInteger(snap.catalogVersion) && snap.catalogVersion > 0
         && typeof snap.catalogFingerprint === 'string' && snap.catalogFingerprint.length > 0
@@ -449,28 +452,30 @@ export async function loadFullCatalogTree(rpc, signal) {
             || ids.has(item.categoryId)) throw new Error('FULL_CATALOG_SNAPSHOT_INVALID');
         ids.add(item.categoryId);
       }
-      // Even if metadata is unchanged, a fresh authoritative complete response
-      // replaces an earlier partial snapshot rather than retaining it.
+      // Use the fresh authoritative complete response even if metadata has not
+      // changed; the admission fingerprint does not cover every display label.
       // Count alone cannot certify parent closure. Refuse malformed trees
-      // before warming the shared complete cache used by both model paths.
+      // before returning the index used by either model path.
       formatFullCatalogHierarchy({ verifiedComplete: true, categories: snap.categories });
+      assertActive();
       return indexFullCatalog(snap.catalogVersion, snap.catalogFingerprint, snap.categories, true);
     }
   } catch {
+    // Caller cancellation is not permission to start another catalog read.
+    assertActive();
     // Snapshot RPC unavailable, malformed or not yet deployed: use a complete
-    // paged walk. Neither path may cache an unverified partial result.
+    // paged walk. Neither path may return an unverified partial result.
   }
 
+  assertActive();
   const metaRes = await rpc('rpc_taxonomy_query_catalog_service', {
     p_query: { operation: 'META', scope: 'ALL', limit: 1 },
   }, signal, 3000);
+  assertActive();
   const meta = metaRes?.ok ? metaRes.data : metaRes;
-  if (cachedFullCatalog?.verifiedComplete && meta
-      && Number.isSafeInteger(meta.catalogVersion)
-      && cachedFullCatalog.catalogVersion === meta.catalogVersion
-      && cachedFullCatalog.catalogFingerprint === meta.catalogFingerprint) {
-    return cachedFullCatalog;
-  }
+  // Admission metadata omits display/alias labels. An equal pair cannot certify
+  // unchanged model input or authorize stale fallback after a failed snapshot.
+  // Until the server supplies a complete content stamp, drain the current pages.
 
   // Fallback: drain EVERY ROOTS and CHILDREN cursor. Limits refuse work instead
   // of silently cutting off a catalog and declaring an absent service new.
@@ -481,6 +486,7 @@ export async function loadFullCatalogTree(rpc, signal) {
     const result = [], cursors = new Set();
     let cursor = null;
     do {
+      assertActive();
       if (++pageReads > MAX_PAGES) throw new Error('FULL_CATALOG_PAGE_LIMIT');
       const p_query = { operation, scope: 'ALL', limit: PAGE_LIMIT };
       if (categoryId !== null) {
@@ -490,6 +496,7 @@ export async function loadFullCatalogTree(rpc, signal) {
       }
       if (cursor !== null) p_query.cursor = cursor;
       const response = await rpc('rpc_taxonomy_query_catalog_service', { p_query }, signal, 4000);
+      assertActive();
       const page = response?.ok ? response.data : response;
       if (!page || !Array.isArray(page.items)
           || !Number.isSafeInteger(page.catalogVersion) || page.catalogVersion < 1
@@ -530,6 +537,7 @@ export async function loadFullCatalogTree(rpc, signal) {
   };
 
   const roots = await readPages('ROOTS');
+  assertActive();
   if (meta && Number.isSafeInteger(meta.catalogVersion)
       && (meta.catalogVersion !== catalogVersion
           || meta.catalogFingerprint !== catalogFingerprint)) {
@@ -543,9 +551,11 @@ export async function loadFullCatalogTree(rpc, signal) {
   };
   for (const root of roots) accept(root);
   while (queue.length > 0) {
+    assertActive();
     const batch = queue.splice(0, BATCH);
     // Concurrent reads, deterministic insertion in parent/batch order.
     const childLists = await Promise.all(batch.map(id => readPages('CHILDREN', id)));
+    assertActive();
     for (let i = 0; i < childLists.length; i++) {
       if (childLists[i].length === 0) throw new Error('FULL_CATALOG_NONLEAF_EMPTY');
       for (const child of childLists[i]) accept(child);
@@ -555,6 +565,7 @@ export async function loadFullCatalogTree(rpc, signal) {
   // A paged walk also needs coherent ancestry before it can claim completeness.
   const completeNodes = [...allNodes.values()];
   formatFullCatalogHierarchy({ verifiedComplete: true, categories: completeNodes });
+  assertActive();
   return indexFullCatalog(catalogVersion, catalogFingerprint, completeNodes, true);
 }
 
@@ -988,15 +999,36 @@ export async function buildWorkerFullTreeTaxonomyProposals({
     ? messages.filter((m) => m?.role === 'USER' && typeof m?.body === 'string').map((m) => m.body)
     : [];
 
+  const savedEntriesValid = entries => entries.length > 0
+    && new Set(entries.map(entry => entry.categoryId)).size === 1
+    && entries.every(entry => executionMode(entry.mode)
+      && (!Object.hasOwn(entry, 'handoff') || entry.mode === 'REMOTE' && decodeServiceHandoff(entry.handoff)));
+  // Revalidate saved identity against this fresh complete catalog. Unchanged
+  // choices do not need a paid opinion (or a new consent inferred by a model).
+  // A rejected fresh declaration must still block preservation, never look
+  // like an unrelated edit. Draft hints remain excluded from this authority.
+  const preservedIdentities = new Set();
+  for (const service of cleanSkills) {
+    const norm = normalizedClassificationIdentity(service);
+    if (!norm || malformedChanges || requests.has(norm)
+        || declaredChanges.some(change => normalizedClassificationIdentity(change?.service) === norm)) continue;
+    const matches = catalog.byNormalizedKey.get(norm) ?? [];
+    const saved = priorModes.filter(entry => normalizedClassificationIdentity(entry?.service) === norm);
+    if (matches.length === 1 && savedEntriesValid(saved)
+        && saved.every(entry => entry.categoryId === matches[0].categoryId && matches[0].modes?.includes(entry.mode))) {
+      preservedIdentities.add(norm);
+    }
+  }
+  const classificationSkills = cleanSkills.filter(service => !preservedIdentities.has(normalizedClassificationIdentity(service)));
   let aiItems = [];
   const failures = [];
-  if (geminiKey && geminiModel) {
+  if (classificationSkills.length > 0 && geminiKey && geminiModel) {
     try {
       aiItems = await classifyWorkerServicesWithGemini({
         geminiKey,
         geminiModel,
         catalog,
-        skills: cleanSkills,
+        skills: classificationSkills,
         userMessages,
         priorModes,
         hasWorkAreas: Boolean(hasWorkAreas),
@@ -1005,7 +1037,7 @@ export async function buildWorkerFullTreeTaxonomyProposals({
     } catch (err) {
       reportProviderFailure(err, failures);
     }
-  } else {
+  } else if (classificationSkills.length > 0) {
     recordFailure({ status: 'PROVIDER_PERMANENT_FAILURE', code: 'PROVIDER_NOT_CONFIGURED' }, failures);
   }
   const providerUnavailable = failures.length > 0;
@@ -1019,7 +1051,9 @@ export async function buildWorkerFullTreeTaxonomyProposals({
     const norm = normalizedClassificationIdentity(service);
     if (!norm) continue;
 
-    const matchingAi = aiItems.filter((item) => normalizedClassificationIdentity(item?.service) === norm);
+    // Ignore unsolicited provider entries for work deliberately not requested.
+    const matchingAi = preservedIdentities.has(norm) ? []
+      : aiItems.filter((item) => normalizedClassificationIdentity(item?.service) === norm);
     const matchingPrior = priorModes.filter((item) => normalizedClassificationIdentity(item?.service) === norm);
 
     const requested = requests.get(norm);
@@ -1034,10 +1068,7 @@ export async function buildWorkerFullTreeTaxonomyProposals({
       unresolvedServices.push(service);
       continue;
     }
-    const savedValid = matchingPrior.length > 0
-      && new Set(matchingPrior.map(entry => entry.categoryId)).size === 1
-      && matchingPrior.every(entry => executionMode(entry.mode)
-        && (!Object.hasOwn(entry, 'handoff') || entry.mode === 'REMOTE' && decodeServiceHandoff(entry.handoff)));
+    const savedValid = savedEntriesValid(matchingPrior);
     const chosenEntries = requested ? requested.modes.map(mode => {
       const saved = savedValid ? matchingPrior.find(entry => entry.mode === mode) : null;
       const handoff = mode === 'REMOTE'

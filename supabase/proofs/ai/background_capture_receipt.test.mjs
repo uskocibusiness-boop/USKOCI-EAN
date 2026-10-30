@@ -34,7 +34,7 @@ function fixture(kind,operation,responseFactory,options={}){
   const completedRevision=kind==='NEED'?8:5;
   const mainOutput=kind==='NEED'?withDialogue({safety:'ALLOW',assistantMessage:'Predlog je zabeležen u nacrtu.',
     facts:[{key:'need.category',valueJson:JSON.stringify(SERVICE),displayValue:SERVICE,evidence:user,confidence:1}]}):
-    {safety:'ALLOW',assistantMessage:'Predlog je zabeležen u nacrtu.',patch:{skills:[SERVICE]},
+    {safety:'ALLOW',assistantMessage:'Predlog je zabeležen u nacrtu.',patch:{skills:options.workerSkills??[SERVICE]},
       availabilityChange:{kind:'NONE',evidence:''},
       serviceModeChangesJson:JSON.stringify([{service:SERVICE,modes:options.workerModes??['ON_SITE'],evidence:user}])};
   const decision={service:SERVICE,mode:'ON_SITE',action:operation==='store'?'NEEDS_CLARIFICATION':'CREATE_CHILD',
@@ -56,8 +56,8 @@ function fixture(kind,operation,responseFactory,options={}){
     if(name==='rpc_claim_worker_ai_turn_service')return json({acquired:true,turn:currentTurn('PROCESSING')});
     if(name==='rpc_read_worker_ai_context_service')return json({schemaVersion:'WORKER_PROFILE_V1',accountId:account,
       conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:unchanged?5:4,profileStatus:'ACTIVE',
-      serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:unchanged?5:4,savedServices:[],draftServices:[],unresolvedServices:[]},
-      candidate:{skills:unchanged?[SERVICE]:[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:user}]});
+      serviceModeContext:{schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:unchanged?5:4,savedServices:options.savedServices??[],draftServices:[],unresolvedServices:[]},
+      candidate:{skills:unchanged?[SERVICE]:options.priorSkills??[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:user}]});
     if(name==='rpc_ai_dispatch_need_turn_v2_service')return json(true);
     if(name==='rpc_dispatch_worker_ai_turn_service')return json({dispatched:true,turn:currentTurn('PROCESSING')});
     if(name==='rpc_ai_test_budget_reserve_service')return json({admitted:true,reservationId:id(9),replay:false,code:'AI_TEST_RESERVED'});
@@ -66,8 +66,8 @@ function fixture(kind,operation,responseFactory,options={}){
     if(name==='rpc_complete_worker_ai_turn_service')return json(currentTurn());
     if(name==='rpc_taxonomy_get_unconsumed_turn_hint_service')return committedHint&&options.readbackResponse
       ? options.readbackResponse(committedHint,init.signal) : json(committedHint);
-    if(name==='rpc_taxonomy_fetch_snapshot_v1')return json({catalogVersion:7,catalogFingerprint:'a'.repeat(32),count:1,
-      categories:[{categoryId:rootId,parentId:null,label:'Synthetic root',aliases:[],path:['Synthetic root'],isLeaf:false,modes:['ON_SITE']}]});
+    if(name==='rpc_taxonomy_fetch_snapshot_v1')return json({catalogVersion:7,catalogFingerprint:'a'.repeat(32),count:1+(options.extraCategories?.length??0),
+      categories:[{categoryId:rootId,parentId:null,label:'Synthetic root',aliases:[],path:['Synthetic root'],isLeaf:false,modes:['ON_SITE']},...(options.extraCategories??[])]});
     if(name===storeRpc||name===captureRpc){
       assert.equal(name,operation==='store'?storeRpc:captureRpc);
       if(name===storeRpc&&options.commitBeforeReply){
@@ -157,6 +157,26 @@ function fixture(kind,operation,responseFactory,options={}){
     assert.ok(!calls.some(call=>/rpc_(ai_fail_need|fail_worker)|save_worker|publish|commit_admission|push/.test(call.url)));
   }};
 }
+
+test('WORKER active mixed-edit path classifies only new work and captures the complete saved-mode snapshot',async()=>{
+  const prior='SYNTHETIC_SAVED_WORK',categoryId=id(40);
+  const handoff={required:true,shippingCountries:['RS']};
+  const f=fixture('WORKER','capture',()=>json({action:'HINT_CAPTURED',authority:'NONE'}),{
+    priorSkills:[prior],workerSkills:[prior,SERVICE],
+    savedServices:[{service:prior,mode:'ON_SITE',categoryId},{service:prior,mode:'REMOTE',categoryId,handoff}],
+    extraCategories:[{categoryId,parentId:rootId,label:prior,aliases:[],path:['Synthetic root',prior],isLeaf:true,modes:['ON_SITE','REMOTE']}],
+  });
+  await f.invoke();
+  const provider=f.calls.filter(call=>call.url.includes(':generateContent'));
+  assert.equal(provider.length,1);
+  assert.deepEqual(JSON.parse(provider[0].body.contents[0].parts[0].text).skills,[SERVICE]);
+  const captures=f.calls.filter(call=>call.url.endsWith('/'+captureRpc));
+  assert.equal(captures.length,1);
+  assert.equal(captures[0].body.p_proposals.length,3);
+  assert.deepEqual(captures[0].body.p_proposals.filter(p=>p.service===prior).map(p=>[p.categoryId,p.mode,p.handoff]),
+    [[categoryId,'ON_SITE',undefined],[categoryId,'REMOTE',handoff]]);
+  assert.ok(!f.calls.some(call=>/save_worker|publish|commit_admission|push/.test(call.url)));
+});
 
 for(const modes of [['ON_SITE'],['REMOTE'],['ON_SITE','REMOTE']]){
   test(`WORKER real capture path retains complete BOTH or nothing: provider ${modes.join('+')}`,async()=>{

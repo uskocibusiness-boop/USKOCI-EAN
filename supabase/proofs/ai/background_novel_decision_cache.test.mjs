@@ -202,10 +202,12 @@ test('an already aborted turn cannot consume a warm cache or dispatch a provider
   await f.request();
   const abort = new AbortController();
   abort.abort();
-  const stopped = await f.request({ signal: abort.signal });
+  let reads = 0;
+  // Cancellation now stops at catalog entry, before even querying the cache
+  // input. The handler already handles loader rejection as cancelled BG work.
+  await assert.rejects(f.request({ signal: abort.signal, rpc: async () => { reads++; } }), /FULL_CATALOG_ABORTED/);
   assert.equal(f.calls.length, 1);
-  assert.deepEqual(stopped.proposals, []);
-  assert.equal(stopped.failures[0].code, 'PROVIDER_ABORTED');
+  assert.equal(reads, 0);
 });
 
 test('abort during asynchronous identity hashing cannot consume the warm cache', async t => {

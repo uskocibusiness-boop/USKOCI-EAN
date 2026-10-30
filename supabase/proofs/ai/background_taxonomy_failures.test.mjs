@@ -91,16 +91,18 @@ test('provider failure preserves saved mode and physical handoff exactly, never 
   assert.deepEqual(result.proposals, []);
   assert.deepEqual(result.clarifications, []);
 });
-test('confirmed saved REMOTE continuity preserves its handoff through provider failure', async t => {
+test('confirmed saved REMOTE continuity survives provider failure for another unresolved service', async t => {
   const f = fixture(t, () => new Response('{}', { status: 503 }), ['REMOTE', 'ON_SITE']);
   const handoff = { required: true, localExchange: { countryCode: 'RS', city: 'Novi Sad' } };
-  const result = await worker(f.args, { skills: ['Servis klima'], serviceModeContext: {
+  const result = await worker(f.args, { skills: ['Servis klima', 'Popravka klima'], serviceModeContext: {
     savedServices: [{ service: 'Servis klima', mode: 'REMOTE', categoryId, handoff }],
     draftServices: [{ service: 'Servis klima', mode: 'ON_SITE', categoryId }],
   } });
   assert.deepEqual(result.proposals.map(p => [p.mode, p.handoff, p.action]), [['REMOTE', handoff, 'REUSE_EXISTING']]);
   assert.deepEqual(result.clarifications, []);
   assert.equal(result.failures[0].status, 'RETRYABLE_PROVIDER');
+  assert.equal(f.calls.length, 1);
+  assert.deepEqual(result.unresolvedServices, ['Popravka klima']);
 });
 test('saved missing handoff stays unknown even if the provider proposes worldwide digital work', async t => {
   const f = fixture(t, () => response({ items: [{ service: 'Servis klima', mode: 'REMOTE', action: 'CREATE_CHILD',
