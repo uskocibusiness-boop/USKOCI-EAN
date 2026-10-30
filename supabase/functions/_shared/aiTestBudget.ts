@@ -28,24 +28,34 @@ export async function reserveAiTestBudget(input: {
   const timeout = setTimeout(stop, 5000);
   input.signal?.addEventListener('abort', stop, { once: true });
   if (input.signal?.aborted) stop();
+  // A response body or fetch implementation may ignore AbortSignal. The five-
+  // second budget and caller cancellation must still settle this reservation.
+  // Do not interpret an interrupted reservation as proof of no provider charge
+  // or automatically create another paid operation.
+  const cancelled=new Promise<never>((_,reject)=>{
+    const onAbort=()=>reject(new Error('AI_TEST_BUDGET_UNAVAILABLE'));
+    if(abort.signal.aborted)onAbort();
+    else abort.signal.addEventListener('abort',onAbort,{once:true});
+  });
+  void cancelled.catch(()=>undefined);
   const assertActive = () => {
     if (abort.signal.aborted) throw new Error('AI_TEST_BUDGET_UNAVAILABLE');
   };
   try {
     assertActive();
-    const response = await fetch(input.supabaseUrl + '/rest/v1/rpc/rpc_ai_test_budget_reserve_service', {
+    const response = await Promise.race([fetch(input.supabaseUrl + '/rest/v1/rpc/rpc_ai_test_budget_reserve_service', {
       method: 'POST', redirect: 'error', signal: abort.signal,
       headers: { 'Content-Type': 'application/json', apikey: input.serviceRoleKey, Authorization: 'Bearer ' + input.serviceRoleKey },
       body: JSON.stringify({ p_account_id: input.accountId, p_operation_id: input.operationId, p_kind: input.kind,
         p_max_cost_microusd: input.kind === 'LLM' ? AI_TEST_LIMITS.llmReservationMicrousd : AI_TEST_LIMITS.speechReservationMicrousd }),
-    });
+    }),cancelled]);
     if (abort.signal.aborted || !response.ok || !response.body) { void response.body?.cancel(); throw new Error('AI_TEST_BUDGET_UNAVAILABLE'); }
     const reader = response.body.getReader();
     let content = '', length = 0;
     try {
       const decoder = new TextDecoder();
       while (true) {
-        const part = await reader.read();
+        const part = await Promise.race([reader.read(),cancelled]);
         assertActive();
         if (part.done) break;
         length += part.value.byteLength;
