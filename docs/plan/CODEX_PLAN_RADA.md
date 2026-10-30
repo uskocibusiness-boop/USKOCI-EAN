@@ -1,4 +1,6 @@
 # USKOČI — jedinstveni plan dovršavanja proizvoda i objavljivanja
+> **KONTROLISANO USAGLAŠAVANJE 30.10.2026 — proizvodni kanon / izvršna istina:** tačna kopija finalnog Product/UX mastera 29.10.2026 sada je u [docs/product/USKOCI_PRODUCT_UX_MASTER.md](../product/USKOCI_PRODUCT_UX_MASTER.md), Git blob `1a487caca16d3354f79d0db7c76526893df6e5d7`. Ovaj dokument ostaje JEDINI izvršni master; povezivanje i razrešenje starih nalaza su u `12.6, posle `12.5. Provere vezane za prethodni source `472de27afcdffe86f9da3ad351cb3ff0e113367a`: Full CI 41130520059 FAIL (AI/Edge: 39 slučajeva, uključujući R06 SQL/media fixtures), R01 41130520128 FAIL (strict 8 + 49 dopunskih + 3 hook). To nije release PASS niti novi DEV/native dokaz. Kasniji dokumentacioni commit ne menja te rezultate; kodna izmena zahteva novi dokaz.
+
 <!-- EXECUTION-UPDATE-BEGIN: provenance-20261028 -->
 
 <!-- A30-EXECUTION-RECONCILIATION-20261030 -->
@@ -4687,3 +4689,92 @@ Sačuvani su svih 42 nalaza, 12 R paketa, R11a–h, R12a–j, J01–J14, A01–A
 **Posebni kontrolni slučajevi bez automatske promene pravila:** `MARKET:M04`/`UI:UI-CONTRACT-01` (nepoznat ishod poruke, „Proveri“ i retry), `ACCOUNT:ACCOUNT02` (dve uloge i delimičan upis push izbora), `CAL:CAL05` (arhivski closure razlog), `MARKET:M20` (deljenje bez javnog URL-a), 1–3/6 fotografija (odobreno pravilo produkta pre izmene), 13 mikro-tokova novijeg UX mastera. Dokazi i ovaj dokument ne ovlašćuju novi PROD/DEV upis, slabljenje R01/R10 ili masovni cleanup.
 
 **Javna zaštita:** tri istorijska e-mail zapisa su redigovana samo u javnoj kopiji i precizno dokumentovana sa originalnim/objavljenim SHA-256; ostatak izvora je byte-identičan. Originalni GitHub continuation REV10/UX REV14/evidence fajlovi i njihovi hash-evi nisu menjani.
+
+### 12.6. Zaključavanje jedinstvene izvršne istine — 30.10.2026 (konsolidacija, ne drugi master)
+
+**Svrha:** Codex odmah nastavlja postojeći R01–R12 / F/SB/X / C01–C19 / SV01–SV14 / A30 redosled, bez novog generičkog audita i bez ponovnog odlučivanja već odobrenog proizvoda. Ovaj dodatak ne menja UX dizajn, aplikacioni kod, baze, migracije, Edge, APK, produkciju niti istorijske dokaze. Nije prijava da je bilo koji nezatvoreni R posao sada DONE.
+
+#### 12.6.1. Autoritet i tačne verzije
+
+| Pitanje | Jedini autoritet | Granica |
+|---|---|---|
+| Šta USKOČI treba da bude i radi | **[USKOCI_PRODUCT_UX_MASTER.md](../product/USKOCI_PRODUCT_UX_MASTER.md)**, kanonski odeljci A–J / S01–S18, 29.10.2026; SHA-256 originala `7bb8b3b4217c85885ad63a85709e3eda4acdc7f34312779b3a0822fbf758727c`, Git blob `1a487caca16d3354f79d0db7c76526893df6e5d7` | Unutar ovog dokumenta stara istorija počinje tek iza „ISTORIJSKA EVIDENCIJA I DOKAZI” (oko linije 1716). Njegovi ranije pinovani SHA-ovi nisu sadašnji CI ili runtime dokaz. „Jedini glavni radni dokument” odnosi se na PRODUCT/UX, ne na izvršni R/C/SV dnevnik. |
+| Ko izvršava i zatvara zadatak | **Ovaj `11.2a, `4.2–4.3, `12.5–12.6** | Jedini EXECUTION master, nema REV15 ili paralelnog backlog-a. Rade se izvorni R/C/SV zadaci sa vezanim dokazima. |
+| Šta je historijski pregledano | REV10/REV14 originalni ZIP, Z09/Z10/Z16, [Bridge README](../continuation/source-bridge-20261030/README.md), [208 linkova](../continuation/source-bridge-20261030/POVEZANI_NALAZI.json), puni 77 ugovora u obnovljenom Bridge-u | Svi Bridge `208` zapisi su POINTERI sa statusom `HISTORICAL_FINDING_REQUIRES_CURRENT_CODE_AND_TEST_CHECK`. To nisu 208 trenutno otvorenih bugova niti 208 dokazanih popravki. Stari SHA `a9692e` je poreklo, ne danas testiran source. |
+| Šta je stvarno implementirano | Aktuelni GitHub reader/writer/test na radnoj grani, njihov SHA, live DEV readback i fizički APK gde je traženo | Pored svakog nalaza mora se navesti `SOURCE / CI / DEV / NATIVE / PROD` odvojeno. Source ≠ migracija ≠ Edge deploy ≠ OTA/native ≠ release. |
+| Gde nastaviti | Grana `work/rev14-review-f17`, Draft PR [#43](https://github.com/uskocibusiness-boop/USKOCI-EAN/pull/43) prema `feature/uskoci-cisto` | Repo DEFAULT grana `work/uskoci-ui-unification-20260924` NIJE ova radna grana. Prvo proveriti HEAD, nerešene izmene, CI run ID i trenutni ugovor; ne resetovati rad. |
+
+**Klasifikacija jednog nalaza:** `CONFIRMED_CURRENT_GAP`, `SOURCE_REPAIRED_CI_VERIFIED`, `SOURCE_PRESENT_UNPROVEN`, `SUPERSEDED_BY_LATER_DECISION`, `DECISION_REQUIRED`, `BLOCKED_EXTERNAL_PROOF`. Obavezno: aktuelna putanja + SHA/revision + pozitivan i negativan test ili tačan nedostajući dokaz. Ne pretvarati istorijski tekst/komentar ili screenshot u trenutni E2E dokaz.
+
+#### 12.6.2. Proverena neprekinutost izvora i nepotvrđena implementacija
+
+- REV10: 139 istorijskih članova; REV14 FULL: 908 članova; 132 zajednička dokazna fajla su bajt-identična. Novi GitHub Bridge je 17 proverljivih delova, obnovljiv ZIP sa 463 člana, od kojih 439 istorijskih tekstualnih izvora. Grafički renderi/PDF/fontovi nisu svi u Bridge-u; inventar svih 908 putanja ostaje. Originalna stara tri ZIP-a i 305 evidentiranih članova u `docs/continuation/payload/` ostaju sačuvani. Ovo je dokaz integriteta/porekla, ne potvrda tačnosti svih zaključaka.
+- U Bridge-u postoji **208/208 validnih JSON pokazivača**, grupisanih kao 12 R, 42 F/SB/X, 19 C, 14 SV, 77 SCREEN, 24 MARKET, 10 ACCOUNT, 6 CAL i 4 UI. Ne praviti 208 novih zadataka: vezivati ih za postojećeg vlasnika. Ako je istorijska putanja već namerno povučena kroz C-cleanup, rezultat je `SUPERSEDED/RETIRED_WITH_PROOF`, ne „missing file = regression”.
+- **77 izvornih screen ugovora** imaju puna stanja, ulaze i kriterijume prihvatanja. Sažeta REV14 mapa ima istih 77 ID-jeva, ali nije zamena za ceo acceptance. Novi Product/UX kanon mapira 77 istorijskih površina na **S01–S18** i označava 13 nedovoljno razrađenih mikrotokova. Puni stari contract čitati samo za relevantan sadašnji ekran i pri neusklađenosti primeniti noviju odluku + aktuelni security/compatibility guard.
+- Ne mešati završetak dokumentacionog mapiranja sa zatvaranjem CI/DEV/native testova ili fizičkim izdanjem. Nije dozvoljen proizvoljan procenat napretka iz broja fajlova, redova ili PASS suite-ova.
+
+#### 12.6.3. Odobreni Product/UX ugovori naspram trenutnih reader/writer delova
+
+| Kanonsko pravilo (noviji Product/UX izvor) | Aktuelni dokaz / rizik na ranije pregledanom source `472de27` | Izvršni vlasnik / acceptance |
+|---|---|---|
+| Jedan nalog, obe namere; samo **Početna · Zadaci · Dogovori · Poruke** su 4 root taba; Profil preko avatara, ne peti tab | `src/app/(app)/_layout.tsx` već definiše četiri root odredišta. Stari izveštaji o 3 taba i drugi repo su POVUČENI. | R11a/R12: zadržati root/Back/cold navigation, nikad ponovo otvarati odluku o petom tab-u. |
+| Formalni UI `Vi/Vam/Vas/Vaš` u korisničkim tekstovima | `src/ui/AgreementChat.tsx` i `src/ui/auth/AuthFormStep.tsx` još sadrže „Ti/Možeš/Tvoj”; istorijske kopije se ne masovno prepisuju. | R08/R11/R12 + A30-D13: aktivni UI/notification/Edge deterministički tekst, zasnovan na tačnom izvoru i testu; first-person nazivi maskota ostaju. |
+| Registracija: **ime, prezime, e-mail, lozinka**; grad se pita samo u Need/Worker kontekstu | `src/ui/auth/authValidation.ts` traži `grad` za SIGNUP, a `src/app/auth.tsx` ga šalje. | R11a/R12 (Auth) + R01: server/account/signup validacija, stari klijenti i readback PRE uklanjanja obaveznog UI polja. P0 stvarni code/product nesklad. |
+| Reputacija: **„Kao naručilac” / „Kao uskočer”**, bez nedokazanog blended public trust-a | `src/ui/reviews/AccountReputation.tsx` prikazuje jedan account aggregate. Nemamo ovim source read-om dokaz da backend već isporučuje dve nezavisne role metrike. | R11b/R01/R12 + Product S13: potvrditi role-scoped read i blind-rating public-visibility; bez lažnog `0,0` ili dupliranih ocena. Dok server nije potvrđen — bez izmišljene dve statistike. |
+| **Najviše 6 fotografija zadatka**, preporučeno **1–3** kao primer korisniku | Stariji brief „1–3” NIJE ograničenje niti otvorena nova vlasnička odluka; noviji Product master zaključava MAX=6. Medijski/source limiti se i dalje proveravaju na client/server/Storage. | R11c/R09/R12: proveriti dosledni limit, permissions, edit revision, recovery, foto bez teksta i kompatibilnost. Bridge `PHOTO_LIMIT 1–3 vs 6 DECISION_REQUIRED` je SUPERSEDED. |
+| Istorija je u domenu (Dogovori/Prethodne saradnje, Moji zadaci/Prethodni, Moje prijave/Prethodne); `/arhiva` samo compatibility redirect | `src/app/(app)/arhiva.tsx` trenutno montira zajednički `ArchiveScreen`, a `AgendaScreen` nudi „Arhiva”; stara 77-map tabela navodi Full screen i zato NIJE najnovija instrukcija. | R11e/R03/R09/R12: obezbediti svaki domenski read, reason i autorizovani cold deep link, tek potom siguran redirect; CAL05 ne rešavati beskrajno u budućem retired ekran-u. |
+| UNKNOWN poruka: **„Proveri” samo read**, zasebna eksplicitna namera ponovnog slanja | `src/ui/AgreementChat.tsx` nepoznat ishod poziva `outbox.retry`; `src/data/agreementOutbox.ts` `retry()` može pozvati `dispatch()`; postoji i auto-resend. To NE dokazuje dvostruku isporuku, ali nije read-only. | R09/R11c (MARKET:M04/UI-CONTRACT-01): poseban read-only exact-key query/reconcile; retry uz jasnu nameru, idempotentnost i caller/role fence; UNKNOWN/restart/offline/collision test. |
+| Neposlati predlog Dogovora mora se očuvati pri običnom Back iz pregleda dok unos nije izričito odbačen | `AgreementActionsScreen.tsx` / `agreementUnsentDraft.ts` postoje, ali `closeReview` i `back` brišu memoriju. Nacrt je RAM-only: bez novog poslovnog ugovora NE obećavati preživljavanje gašenja procesa. | R11d/R09 (MARKET:M03/SB07): Back review→form sa istim podacima; izričito odbacivanje; changed agreement version; test realnog povratka i granice trajnosti. |
+| Deljenje zadatka je pravi deep link **tek kada postoji odobrena javna destinacija** | `src/ui/v2/detail/taskShare.ts` namerno daje samo naslov i područje, kaže „There is no link yet”. Nema verifikovanog javnog URL-a. | R12 (MARKET:M20): prevesti u public safe link samo uz route/authorized recipient/fallback/store proof. Dotad ne izmišljati URL, a deljenje teksta ne nazivati otvarivim linkom. |
+| Jedan prikaz Push settings; server ima dva scope-a, a potvrda se prikazuje tek posle readback-a | `PushPreferences.tsx` trenutno sekvencijalno čuva REQUESTER pa WORKER; drugi upis može pasti posle prvog, iako je UI zaključan i readback postoji. | R09/SB08/A30-D11/M08: atomarni server scope upis ili dokazano partial-recovery iskustvo, lost ACK/Back/restart i OS/device token odvojeno od DB podešavanja. |
+| HOURLY znači RSD **po osobi po satu**; nema tihog pretvaranja u ukupnu sumu | Aktivni R07b source i izolovani SQL kandidat imaju testni trag, ali nema potvrđene šemske promocije/starog klijenta/kompletnog signed E2E. | R07/R12/M07: immutable unit, recalc po prijavi/ljudima, update/revision, old-client compatibility; ni `TOTAL` ni cena ekipe ne menjaju se krišom. |
+| MATCHING prema **početnom mestu posla**, remote/handoff, workAreas i TODAY | D08 zaključan; potreban pozitivan i negativan DEV dokaz da `Za mene` i dispatch koriste isti potpisani matcher i da 300+ km prefilter ne gubi validnog radnika. | R05/SV + R12: E2E punog raspona, COUNTRY/CITY/RADIUS/REMOTE, start-only, availability now, oba naloga. |
+| AI predlaže; čovek potvrđuje; trajni prvi klasifikacioni posao mora biti upisan pre provider-a | R06 `r06_first_plan_enqueue_candidate.sql` je `LOCAL_ONLY`; aktivni Need/Worker Edge handleri još nemaju poziv novom durable FIRST-PLAN pre provider-I/O. Testovi kandidata padaju na sintaksi; ne mešati post-save outbox sa pre-provider enqueue. | R04/R06/SV02–SV04/M04: validni caller/revision/mode/handoff, lease, idempotent UNKNOWN (bez novog plaćenog poziva), usage ledger, Save/admission/binder, DEV/provider E2E; default-OFF do odobrenog gate-a. |
+| Privatnost i konačni eksport/brisanje su istina, ne marketinško obećanje | Zadnji read-only DEV: `private.retention_ai_source_ready()=false`, `private.data_export_policy_binding() IS NULL`; R10 i release nisu READY. | R10/SV06/M09–M10/R12: sve kopije/media/AI/usage/workAreas/prefs/consent/closure + pozitivni/negativni readback; nikad ne uklanjati gate da bi test prošao. |
+| Group chat media / javni komentari / personalni trust samo uz dokazan backend guard | Product/UX G izričito traži text-only group dok nema autorizovanih photo attachment-a; „blind” ocene moraju biti nedostupne javnosti dok autorizacija nije dokazana. | R09/R11b/R11c/R12: stvarni reader, membership, author ID, read-only/error/abort i data retention, ne vizuelno lažno dugme. |
+| Public approximate location, exact samo bilateralnom authorized Dogovoru, kontakt MVP samo poruke | Stariji `PHONE` put i installed clients mogu još imati kompatibilne grants; korisnički URL/tačna lokacija se ne otkrivaju pre autoriteta. | R01/R09/R11/R12: stvarni RLS/HTTP, revoke, unauthorized, old client proof; ne gasiti server path bez matrice zavisnosti. |
+
+**Granica vizuelnog posla:** S01–S18 su zaključani PRODUCT/UX ugovori, ali nisu pixel-final APK; HTML/Design Lab prikazi nisu realan telefon. U ovom tehničkom krugu **ne redizajnirati** ekrane i ne otvarati već zaključanu navigaciju. Izvršiti samo funkcionalne probleme ili dokumentaciono vezivanje; vizuelni freeze ostaje poseban odgovarajući J/R12 QA gate.
+
+#### 12.6.4. Trinaest mikrotokova — jedan vlasnik i acceptance, bez dodatnih 13 backlog-ova
+
+| Historijski ekran / detalj | Kanonska S porodica | Veza u postojeći izvršni plan |
+|---|---|---|
+| 27 Status i zatvaranje zadatka | S03/S05/S18 | R03/R11/R10: legalne state transitions, owner-only, pun/ponovni kapacitet, lifecycle readback |
+| 40 Učesnici grupe | S09/S11 | R09/R01: samo autorizovani učesnici i dozvoljeni privatni target |
+| 42 Ocene | S13/S18 | R11b/R01: requester/worker agregati, pregled/visibility, nespojivi role read odbiti |
+| 44 Q&A | S03/S18 | R11b/R09: pitanje/odgovor, moderation, materijalna izmena, protected target |
+| 49 Profilna fotografija | S13/S15 | R11c/R11b: jedna shared identity fotografija, verified replace/remove/revoke |
+| 54 Promena lozinke | S15/S17 | R11/R12: samo podržan provider i stvarni recovery |
+| 55 Dozvole uređaja | S15/S17 | R09/R12: system permission ≠ push transport ≠ provider readiness |
+| 57 Push preferences | S17/S15 | R09/M08: dva role scope-a + token + partial/lost ACK |
+| 60 Rokovi čuvanja | S15 | R10/M09: javno obećanje samo za realno potvrđenu politiku |
+| 62 Pravni dokument/consent | S15 | R10/R11: tačan hash verzije, delayed old ACK, atomic readback |
+| 65 Blokirane osobe | S15 | R10/R11: listed/unblock authorized i bez podataka druge osobe |
+| 66 Prijavi/blokiraj | S18/S15 | R09/R11: zasebni report i block receipts, scope i negacije |
+| 74 Fotografije zadatka | S16/S03 | R11c/R09: MAX=6, proof edit/owner/version, media recovery i public safe projection |
+
+Svaki ovaj mikro-acceptance otvara se samo uz relevantnu implementacionu celinu; **ne** dodavati 13 novih paralelnih listi. Za svih 77 istorijskih ekrana obavezno pronaći verziju u punom `dizajn/spec/screen_contracts.json` kroz Bridge, a zatim odgovarajuću važeću porodicu S01–S18. Proveriti bar normal, partial/error, unknown, unauthorized, Back i restart po domenskoj relevantnosti; ne tvrditi 77/77 runtime PASS bez dokaza.
+
+#### 12.6.5. CI/DEV/NATIVE istina na dokumentacionom preseku
+
+| Gate | Poslednji eksplicitno provereni dokaz | Značenje |
+|---|---|---|
+| SOURCE | `work/rev14-review-f17@472de27afcdffe86f9da3ad351cb3ff0e113367a`; naredna izmena Product/UX fajla je dokumentaciona | Ovo je istorijski zatečeni **kodni** osnov za gore ciljano proverene putanje, ne potvrdjeni run na budućem SHA. |
+| Full CI | [41130520059](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41130520059) **FAIL** | AI/Edge korak: 1334 slučaja, 1294 PASS, 39 FAIL, 1 TODO. Od toga 10 R06 PGlite `syntax error at end of input` na LOCAL_ONLY kandidatu i 29 medijskih fixture/import slučajeva. Ovo nisu dokazi 39 live incidenata. Ne „popravljati” test slabljenjem stvarnih security/receipt assertions. |
+| R01 | [41130520128](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41130520128) **FAIL** | 8 strict, 49 extension owner/ACL i 3 managed-hook polja; efektivna jednača prava nekih caller-a ≠ puna strict/parity Auth/HTTP dozvola. |
+| DEV | Prethodno dokumentovano stanje `314 live migracija`, SV04 post-save v6 parsijalno odobren i aktivan, Need v151, Worker v104; bez novog readback-a tokom ove dokumentacione izmene | Candidate SQL NIJE live schema/migracija. Bez posebnog odobrenog scope-a nema apply-a/deploy-a. DEV runtime i billing proveriti nanovo pre isticanja. |
+| NATIVE/STORE | Nema novog build/OTA/instalacija na dva telefona ni E2E dokaza na ovim dokumentacionim commitovima | Preview ili ranije successful Expo export ≠ instalirani current APK i release PASS. |
+
+**Naredni tehnički posao bez kruženja:** R06 SQL sintaksa precizno, izolovani PostgreSQL/PGlite + svi R06 AI slučajevi; zatim obezbediti medijske testove protiv **stvarnih** deljenih modula (sada `mediaUploadAdmission.mjs`), 39/39 regresije i nov Full CI na kodnom SHA. R01 parallel READ-ONLY hosted/native parity + real end-user Auth/PostgREST, bez waiver-a. Zatim R04/R06 durable FIRST-PLAN i nezavisni R02–R12 source poslovi po `4.2; R10 closure i R12 fizički Android E2E ostaju release kapije. Svaki dokaz upisati u `11.2a`; ne ažurirati ovu tabelu kao da je sama po sebi nova testna provera.
+
+#### 12.6.6. Codex workflow za brži, tačniji nastavak
+
+1. Osveži HEAD i očuvaj nepoznat lokalni worktree. Pročitaj samo **ovaj master: uvod + `11.2a + `12.5–12.6**, zatim `4.2–4.3 i odgovarajući R/C/SV zapis; ne čitaj 31.746 linija Product/UX za svaki zadatak. Relevantan S01–S18 i njegov E/J gate otvori samo kada je potrošač aktivna korisnička površina.
+2. Prilikom prvog korišćenja novog Bridge-a verifikuj 17-delni SHA/restore; `kontekst.py R06 --repo .` ili odgovarajući R/C/SV/SCREEN ID pokazuje izvorni JSON pointer i istorijski SHA; `drift.py` proverava samo pogođene owners. Nije potrebno ponovo čitati svih 439 dokaza.
+3. Po svakom poslu napravi jedan izvršni zapis: `ID | approved product rule | historical pointer | current owner path/SHA | status BEFORE | minimal edit | positive + negative tests | CI run/SHA | DEV readback | native proof | status AFTER | next eligible job`.
+4. Isti request/owner/revision/receipt identitet mora da ostane kroz Auth → AI/Review → Save/Publish → Matching → Application → Agreement → Messages → Completion/Rating → Export/Closure. Ne rešavati UI ekran lažnim mock-success, niti ubacivati novi RPC kada stari owner radi bez opravdanja. Testiraj timeout, duplikat, race, restart, logout i unauthorized po domenu.
+5. Statusi **ne smeju** biti globalno `DONE` zbog jedne zelene suite ili dokumentovanog source-a. Ako R01/R10 blokira migraciju, ostavi precizan dokaz blokade i nastavi nezavisan source/QA posao. Merge, DEV/PROD, billing i release odobravati na svojim stvarnim gate-ovima.
+6. Nema novih master planova, prepisivanja istorijskih evidencija, brisanja primenjenih migracija niti masovnog cleanupa prema inventarskoj brojci. Product/UX noviji kanon istiskuje istorijski predlog, ali ne slabije autorizacije, RLS, kompatibilnost i idempotency.
+
+**Dokumentaciono „USAGLAŠENO” znači:** jedinstveni autoritet, svi relevantni izvori povezani i svaka protivrečnost označena najnovijom odlukom, otvorenim ili superseded statusom. **Ne znači:** Full CI, Auth, R01, R10, DEV, dva Android telefona ili production ready. Ovo je sve do njihovog zasebnog realnog acceptance-a.
