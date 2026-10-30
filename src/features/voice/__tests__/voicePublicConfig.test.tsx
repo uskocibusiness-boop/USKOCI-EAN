@@ -10,9 +10,15 @@ const CONVERSATION = 'bbbbbbbb-2222-4222-8222-222222222222';
 let mockAccountId = ACCOUNT, mockRevision = 7, mockToken: string | null = 'owned-access-token';
 let mockSpeechAdapterOptions: SpeechAdapterOptions | null = null;
 
-jest.mock('react-native', () => ({
-  AppState: { currentState: 'active', addEventListener: () => ({ remove: () => undefined }) },
-}));
+jest.mock('react-native', () => {
+  const native = jest.requireActual('react-native');
+  return new Proxy(native, { get(target, key) {
+    if (key === 'AppState') return {
+      currentState: 'active', addEventListener: () => ({ remove: () => undefined }),
+    };
+    return Reflect.get(target, key);
+  } });
+});
 jest.mock('expo-router', () => ({
   useFocusEffect: (effect: () => void | (() => void)) => require('react').useEffect(effect, [effect]),
 }));
