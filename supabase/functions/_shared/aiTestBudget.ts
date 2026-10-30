@@ -66,8 +66,9 @@ export async function reserveAiTestBudget(input: {
   } finally { clearTimeout(timeout); input.signal?.removeEventListener('abort', stop); stop(); }
 }
 
-/** A session that produced nothing spent nothing, so its worst-case hold goes back.
- *  The RPC itself refuses to release any operation that has recorded usage. */
+/** Only call with proof that no audio was dispatched and no provider output observed.
+ * Missing output after dispatch is UNKNOWN, never proof of zero cost. The RPC also
+ * refuses release when usage exists, but absence of recorded usage is not that proof. */
 export async function releaseUnusedAiTestReservation(input: {
   supabaseUrl: string; serviceRoleKey: string; operationId: string;
 }): Promise<boolean> {
@@ -86,8 +87,9 @@ export async function releaseUnusedAiTestReservation(input: {
   finally { clearTimeout(timeout); }
 }
 
-/** A session that did transcribe settles against the audio it actually sent, priced at the
- *  published rate. The RPC refuses when provider usage exists, so reported usage always wins. */
+/** A fully completed session uses the existing duration/output estimate, not a provider
+ * invoice. Partial/unknown completion keeps its hold. The RPC refuses when provider
+ * usage exists, so reported usage always wins. */
 export async function settleAiTestAudio(input: {
   supabaseUrl: string; serviceRoleKey: string; operationId: string; audioBytes: number; transcriptChars: number;
 }): Promise<boolean> {

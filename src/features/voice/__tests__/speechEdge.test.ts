@@ -40,6 +40,14 @@ describe('speech Edge authenticated budget admission', () => {
         expect(JSON.parse(init!.body as string)).toEqual({ p_account_id: account, p_operation_id: operation, p_kind: 'STT', p_max_cost_microusd: 200000 });
         return json(options.budget ?? { admitted: true, reservationId: reservation, replay: false, code: 'AI_TEST_RESERVED' });
       }
+      if (url.endsWith('/rpc_ai_test_release_unused_reservation_service')) {
+        expect(JSON.parse(init!.body as string)).toEqual({ p_operation_id: operation });
+        return json({ released: true });
+      }
+      if (url.endsWith('/rpc_ai_test_settle_audio_service')) {
+        expect(JSON.parse(init!.body as string)).toEqual({ p_operation_id: operation, p_audio_bytes: 6, p_transcript_chars: 10 });
+        return json({ settled: true });
+      }
       throw new Error('Unexpected synthetic route');
     });
     globalThis.WebSocket = class extends FakeSocket { constructor(url: string) { super(url); providerSockets.push(this); } } as unknown as typeof WebSocket;
@@ -83,6 +91,60 @@ describe('speech Edge authenticated budget admission', () => {
     const h = fixture({ purpose: 'PROFILE' }); expect((await h.invoke()).status).toBe(200);
     expect(h.calls.filter(url => url.includes('/rpc_'))).toHaveLength(2);
     expect(h.calls.findIndex(url => url.endsWith('/rpc_read_worker_ai_context_service'))).toBeLessThan(h.calls.findIndex(url => url.endsWith('/rpc_ai_test_budget_reserve_service')));
+  });
+
+  function openAudio(h: ReturnType<typeof fixture>) {
+    const client = h.upgrade.mock.results[0].value.socket as FakeSocket;
+    const provider = h.providerSockets[0];
+    const message = (socket: FakeSocket, value: object) =>
+      (socket.onmessage as (event: MessageEvent) => void)({ data: JSON.stringify(value) } as MessageEvent);
+    (provider.onopen as (event: Event) => void)({} as Event);
+    message(provider, { setupComplete: {} });
+    return { client, provider, message };
+  }
+  const accountingCalls = (h: ReturnType<typeof fixture>) =>
+    h.calls.filter(url => /rpc_ai_test_(release_unused_reservation|settle_audio)_service$/.test(url));
+
+  it.each(['cancel', 'timeout', 'provider-error', 'provider-close', 'partial', 'send-throws'])
+  ('retains the reservation after audio dispatch with unknown completion: %s', async ending => {
+    const h = fixture(); await h.invoke();
+    const { client, provider, message } = openAudio(h);
+    if (ending === 'send-throws') provider.send.mockImplementationOnce(() => { throw new Error('PRIVATE_TRANSPORT_DETAIL'); });
+    expect(() => message(client, { kind: 'audio', sequence: 0, pcmBase64: 'AAAAAAAA' })).not.toThrow();
+    if (ending === 'partial') message(provider, { serverContent: { inputTranscription: { text: 'Dve osobe.' } } });
+    if (ending === 'provider-error') (provider.onerror as (event: Event) => void)({} as Event);
+    else if (ending === 'provider-close') (provider.onclose as (event: CloseEvent) => void)({} as CloseEvent);
+    else if (ending === 'timeout') { message(client, { kind: 'release' }); jest.advanceTimersByTime(15001); }
+    else if (ending !== 'send-throws') message(client, { kind: 'cancel' });
+    expect(provider.close).toHaveBeenCalledTimes(1);
+    expect(accountingCalls(h)).toEqual([]);
+    expect(h.providerSockets).toHaveLength(1);
+    expect(JSON.stringify(client.send.mock.calls)).not.toContain('PRIVATE_TRANSPORT_DETAIL');
+    // Repeated close/cancel and late provider text cannot release or settle again.
+    (client.onclose as (event: CloseEvent) => void)({} as CloseEvent);
+    message(provider, { serverContent: { inputTranscription: { text: 'late' }, generationComplete: true } });
+    expect(accountingCalls(h)).toEqual([]);
+  });
+
+  it('releases once when cancelled before any audio or provider output', async () => {
+    const h = fixture(); await h.invoke();
+    const { client, message } = openAudio(h);
+    message(client, { kind: 'cancel' }); message(client, { kind: 'cancel' });
+    expect(accountingCalls(h)).toEqual([expect.stringMatching(/release_unused_reservation_service$/)]);
+    await h.waitUntil.mock.calls[1][0];
+  });
+
+  it('keeps the existing single settlement for a confirmed complete transcription', async () => {
+    const h = fixture(); await h.invoke();
+    const { client, provider, message } = openAudio(h);
+    message(client, { kind: 'audio', sequence: 0, pcmBase64: 'AAAAAAAA' });
+    message(provider, { serverContent: { inputTranscription: { text: 'Dve osobe.' } } });
+    expect(accountingCalls(h)).toEqual([]);
+    message(client, { kind: 'release' });
+    message(provider, { serverContent: { generationComplete: true } });
+    message(client, { kind: 'cancel' });
+    expect(accountingCalls(h)).toEqual([expect.stringMatching(/settle_audio_service$/)]);
+    await h.waitUntil.mock.calls[1][0];
   });
 
   it.each([{ auth: '' }, { auth: 'Bearer token extra' }, { query: `conversationId=${conversation}&operationId=${operation}&model=evil` }])('rejects malformed request without provider spending %j', async patch => {
