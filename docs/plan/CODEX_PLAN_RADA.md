@@ -3420,6 +3420,29 @@ Ova matrica **nadjačava zastarele opise nivoa** iz ranijih datiranih checkpoint
 
 **Sačuvani status C/SV:** C01–C09, C12 i C18 imaju SOURCE/FOCUSED nivo (nisu svi release-DONE); C10/C11/C13/C15/C17 su parcijalni; C14/C16/C19 i bezbedno veliki cleanup ostaju otvoreni. SV01–SV03, SV05–SV14 nisu potpuno prihvaćeni; **SV04 jedini ima aktivan DEV transport v6, acceptance OPEN**. U ovoj dokumentacionoj reviziji nije izvršena ni jedna nova provera na telefonu, paid provider test, SQL apply ili aktuelni workflow run posle source HEAD-a.
 
+<!-- SOURCE-CONTINUATION-20261030-1826 -->
+#### A30 — nastavak implementacije, CI regresije i proširenje provera — 30.10.2026.
+
+**Merodavni source HEAD pre ovog dokumentacionog unosa:** `f8cd83e3384f7cc26109d69130f1b8a6e8394000`, ista `work/rev14-review-f17` i Draft PR #43. Ovo su isključivo source/test/CI izmene, bez primene SQL-a ili Edge funkcija na DEV/PROD i bez dizajnerskih promena.
+
+| Commit | Izvršeni izvorni rad | Tačan status |
+|---|---|---|
+| [`df958bf0`](https://github.com/uskocibusiness-boop/USKOCI-EAN/commit/df958bf0eee4b677a76f9788a654c5ae3d1d2512) | X04 voice regresioni Jest mock sada zadržava stvarni React Native `Platform` i menja samo `AppState`, posle reprodukovanog `TypeError ... reading 'select'`. | SOURCE; finalni Jest pass tek po poslednjem CI-ju. Raniji full CI 41102560532 (07393018) imao je 622 PASS / 1 novi test FAIL, a media admission 7/7 Node PASS. |
+| [`501893b4`](https://github.com/uskocibusiness-boop/USKOCI-EAN/commit/501893b45a86e925444a594d8eec443e30572b45) | A30-D01: uklonjen globalni `jest.urgent-env.cjs`; V1 Jest podrazumevano bez HITNO. Sačuvani pozitivni kasniji HITNO unit testovi izolovanim per-suite flagom i V1 negativnim guard-om. | SOURCE; pun Jest/CI potvrditi na poslednjem source SHA-u. Nije uveden HITNO u V1. |
+| [`90523e75`](https://github.com/uskocibusiness-boop/USKOCI-EAN/commit/90523e7501832e3325b57d1c0cbc1437b972364f) | A30-D02: `worker-profile-read.test.ts` zahteva `mockRpc` **da nije pozvan** posle nevalidnog Auth identiteta, odsutnog naloga ili zakašnjelog Auth rezultata, umesto samo starog `mockFrom`. | SOURCE/test-only; aktivni proizvodni RPC nije menjan, CI čekanje. |
+| [`8d00724e`](https://github.com/uskocibusiness-boop/USKOCI-EAN/commit/8d00724ea28e99b5c1217a1247730203f866cfb0) | A30-D03: uklonjen `@ts-nocheck` iz `uskoci-speech-session/index.ts`; preciziran UUID type guard. | Prva nova Deno provera pronašla 9 stvarnih type error-a (`Deno` nedeklarisan / WebSocket close event). Nije lažno proglašen PASS. |
+| [`30312e7f`](https://github.com/uskocibusiness-boop/USKOCI-EAN/commit/30312e7f550fd001d0ff20bc66091cf66d4da61a) | A30-D03: eksplicitna tipizirana Deno env/serve/upgradeWebSocket i `CloseEvent` deklaracija, без повратка `@ts-nocheck`. | SOURCE; Deno test proveravati na aktuelnom head-u. |
+| [`96fc28ea`](https://github.com/uskocibusiness-boop/USKOCI-EAN/commit/96fc28ea8e448fd3e553584cba463eaba27a5ccb) | `ci-clean.yml` eksplicitno typecheck-uje 11 non-npm glavnih Edge funkcija i dvanaesti `uskoci-media` u zasebnoj pinned npm Deno proveri; bez `continue-on-error`. | CI 41106038867 reprodukovao `TS2307` u deljenom `qaSubmission.ts` (nedostaje eksplicitno `.ts`). D12 / glavni Need AI `@ts-nocheck` je još otvoren, tako da obuhvat ≠ potpuno tipiziran kod. |
+| [`f8cd83e3`](https://github.com/uskocibusiness-boop/USKOCI-EAN/commit/f8cd83e3384f7cc26109d69130f1b8a6e8394000) | Zajednički QA `import type` koristi `./preselectionQa.ts`; bez izmene runtime poslovne logike, uz potvrđenu aktivnu prethodnu definiciju. | Najnoviji [full CI 41106500883](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41106500883) pri ovom zapisu **IN_PROGRESS**, [R01 41106500746](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41106500746) **IN_PROGRESS**. Ne tvrditi PASS dok GitHub nema završni rezultat. |
+
+**Read-only D07 konkretan novi DEV dokaz:** tačno 19/19 navedenih aktivnih RPC-ova postoji u `public`, svih 19 je `postgres` vlasnik, `SECURITY DEFINER`, `search_path=pg_catalog`, nijedan nije direktno anon-executable; `rpc_ai_test_record_usage_service` je samo `service_role` executable, ostalih 18 su dostupni `authenticated` uz sopstvene SQL guards. Ovo **ne dokazuje** da su svi identično rekonstruisani u `supabase/migrations/`; puna body-signature/ACL/provenance i clean PG17/upgradе provera ostaju M01/D07.
+
+**Isolate-local media dodatna provera:** sedam stvarnih Node testova je već prošlo u GitHub CI 41102560532 (na `07393018`). Odvojeni lokalni sintetički stres test istog admission algoritma odradio je 20 × 80 zahteva, bez probijanja kapaciteta ili zaglavljenih dozvola. To NIJE istovremeni DEV/Storage/Android E2E dokaz; A30-D06 release gate ostaje OPEN.
+
+**Sledeći redosled:** (1) potvrditi konačni `f8cd83e3` CI, popraviti svaku novu stvarnu TS/Jest/R06 grešku; (2) bez smanjenja testova završiti D01 i D03, a Need AI 1.7k linija `@ts-nocheck` rešavati zasebnom strogo tipiziranom revizijom; (3) vratiti se osnovnom R06 first-plan SQL / provider try/retry i nepoznatom naplatnom ishodu; (4) R01 Auth/PostgREST + schema parity i R10 closure ostaju nezavisni deployment gate-ovi; (5) nikakav PROD/DEV apply bez posebnog odobrenja.
+
+<!-- SOURCE-CONTINUATION-END -->
+
 <!-- SOURCE-PROGRESS-20261030-1758 -->
 #### A30 — izvršni source checkpoint, 30.10.2026, posle usaglašenog plana
 
