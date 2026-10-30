@@ -1,5 +1,17 @@
 # KOMANDA ZA CODEX — NASTAVAK ISTOG RADA, BEZ NOVOG MASTER PLANA
 
+## AKTUELNO PRAVILO ZA NASTAVAK — POSLE INTEGRACIJE (30.10.2026)
+
+**Tačke 4–5 u originalnoj komandi ispod su već izvršene na nivou dokumentacionog mapiranja:** `208/208` istorijskih veza je indeksirano, `77` screen ID-jeva mapirano, `44` dodatna nalaza povezana; `docs/plan/CODEX_PLAN_RADA.md` već sadrži `12.5` i sada **`12.6`. **NE ponavljati** „jednokratno mapiraj/integrisi dopunu” u narednoj Codex sesiji. To nije 208 dokazanih runtime popravki: ažuriranje konkretnog nalaza tek posle pregleda današnjeg code/SHA + test + DEV/native readback.
+
+Novi PRODUCT/UX kanon je [tačan master 29.10](../../product/USKOCI_PRODUCT_UX_MASTER.md); izvršni autoritet je samo [CODEX master `11.2a i `12.6](../../plan/CODEX_PLAN_RADA.md). Četiri taba, MAX 6 fotografija (1–3 preporuka), signup bez obaveznog grada, dve role reputacije i `/arhiva` compatibility redirect su **već zaključane odluke**; ne tražiti istu odluku ponovo, ali ne tvrditi da je implementacija već završena.
+
+Prvi sledeći tehnički posao: potvrdite aktuelni HEAD/CI; R06 LOCAL_ONLY SQL parser regresije, media harness/fixture i nov Full CI; R01 pravi Auth/PostgREST i PG17 strict parity nezavisno. R10/DEV/native/release ostaju zasebni gates. Nema drugog master plana i nema source/SQL/Edge/apply promene iz samog ovog istorijskog dokaznog paketa.
+
+### Istorijska komanda — za kontekst, obavezno tumačiti po novijem masteru
+
+
+
 Ovo je dodatni dokazni paket, ne novi izvršni plan. Operativni plan je samo `docs/plan/CODEX_PLAN_RADA.md` na `work/rev14-review-f17` (PR #43). Pre rada proveri remote HEAD, `git status`, poslednji dovršeni CI, §11.2a i konkurentne izmene; ne resetuj i ne prepisuj ništa.
 
 1. U radnom folderu gde je ovaj paket raspakovan pokreni `python alati/proveri.py` i utvrdi `PASS`. Ne zahteva mrežu, deploy, model, DB write.
