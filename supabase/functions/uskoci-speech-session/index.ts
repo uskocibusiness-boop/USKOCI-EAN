@@ -1,9 +1,10 @@
-// @ts-nocheck
 // Native authenticated bounded audio proxy. Provider key never leaves this Edge boundary.
 import { releaseUnusedAiTestReservation, reserveAiTestBudget, settleAiTestAudio } from '../_shared/aiTestBudget.ts';
 import { bridgeSpeech } from './proxy.ts';
+// Supabase Edge background lifetimes are runtime-owned; no silent TypeScript escape.
+declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 
-const uuid = (value: unknown) => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+const uuid = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 const deny = (status: number, code: string) => new Response(JSON.stringify({ code }), {
   status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' },
 });
