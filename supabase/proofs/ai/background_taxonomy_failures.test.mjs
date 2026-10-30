@@ -295,6 +295,80 @@ const fullDecision = mode=>({service:'Popravka klima',mode,action:'CREATE_CHILD'
   parentId:categoryId,handoffKind:mode==='REMOTE'?'SHIPPING_RS':'NONE',
   handoffCity:'',reason:'Potvrđena nova usluga sa konkretnim izvršenjem.'});
 
+
+test('R04 Need preserves multi-level CREATE_CHILD through the review-only hint without shortening its cache',async t=>{
+  const path=['Održavanje klima','Popravka klima'];
+  const f=fixture(t,()=>response({decisions:[{service:'Popravka klima',mode:'ON_SITE',
+    action:'CREATE_CHILD',categoryId:'',parentId:categoryId,proposedPath:path,
+    reason:'Usluga ide pod novu užu strukturnu granu odgovarajućeg roditelja.'}]}),['ON_SITE'],{isLeaf:false});
+  const a=await need(f.args),b=await need(f.args);
+  assert.deepEqual(a.proposals.map(p=>[p.action,p.proposedPath]),[['CREATE_CHILD',path]]);
+  assert.deepEqual(b.proposals[0].proposedPath,path);
+  assert.deepEqual(a.failures,[]);
+  assert.equal(f.calls.length,2,'multiple proposed levels must never reuse a parent-only cached hint');
+  assert.ok(f.calls[0].generationConfig.responseSchema.properties.decisions.items.properties.proposedPath);
+});
+
+test('R04 Need proposes a new structural root only with explicit matching path and no existing ID',async t=>{
+  const f=fixture(t,()=>response({decisions:[{service:'3D skeniranje',mode:'ON_SITE',
+    action:'CREATE_NEW_BRANCH',categoryId:'',parentId:'',proposedPath:['3D usluge','3D skeniranje'],
+    reason:'Nema prikladnog postojećeg roditelja za ovu posebnu oblast.'}]}));
+  const r=await buildFullTreeTaxonomyProposals({...f.args,items:[{service:'3D skeniranje',mode:'ON_SITE'}]});
+  assert.deepEqual(r.proposals.map(p=>[p.action,p.parentId,p.categoryId,p.proposedPath]),
+    [['CREATE_NEW_BRANCH','','',['3D usluge','3D skeniranje']]]);
+  assert.deepEqual(r.failures,[]);
+  assert.ok(f.calls[0].generationConfig.responseSchema.properties.decisions.items.properties.action.enum.includes('CREATE_NEW_BRANCH'));
+  assert.ok(!Object.hasOwn(r,'canAccept'),'a hint is not a signed Save');
+});
+
+test('R04 Worker proposes natural-depth new root only with explicit USER mode consent',async t=>{
+  const evidence='Nudim 3D skeniranje kod naručioca.';
+  const f=fixture(t,()=>response({items:[{service:'3D skeniranje',mode:'ON_SITE',
+    action:'CREATE_NEW_BRANCH',categoryId:'',parentId:'',proposedPath:['3D usluge','3D skeniranje'],
+    handoffKind:'NONE',handoffCity:'',
+    reason:'Potrebna je nova grana za jasno izabranu vrstu posla.'}]}));
+  const r=await worker(f.args,{skills:['3D skeniranje'],messages:[{role:'USER',body:evidence}],
+    serviceModeChangesJson:JSON.stringify([{service:'3D skeniranje',modes:['ON_SITE'],evidence}])});
+  assert.deepEqual(r.proposals.map(p=>[p.action,p.parentId,p.proposedPath]),
+    [['CREATE_NEW_BRANCH','',['3D usluge','3D skeniranje']]]);
+  assert.deepEqual(r.unresolvedServices,[]);
+  assert.deepEqual(r.failures,[]);
+});
+
+test('R04 Need rejects a provider structural path whose last leaf is not the requested service',async t=>{
+  const f=fixture(t,()=>response({decisions:[{service:'Popravka klima',mode:'ON_SITE',
+    action:'CREATE_CHILD',categoryId:'',parentId:categoryId,
+    proposedPath:['Održavanje klima','Čišćenje klima'],
+    reason:'Provider returned a different concrete service as its final leaf.'}]}));
+  const r=await need(f.args);
+  assert.deepEqual(r.proposals,[]);
+  assert.ok(r.failures.some(f=>f.code==='PROVIDER_INVALID_DECISION'));
+});
+
+test('R04 Worker BOTH keeps one multi-level identity when both modes agree on every path node',async t=>{
+  const path=['Klimatizacija','Popravka klima'];
+  const f=fixture(t,()=>response({items:[
+    {...fullDecision('ON_SITE'),categoryId:'',proposedPath:path},
+    {...fullDecision('REMOTE'),categoryId:'',proposedPath:path},
+  ]}));
+  const r=await worker(f.args,bothRequest);
+  assert.deepEqual(r.proposals.map(p=>[p.mode,p.action,p.proposedPath]),[
+    ['ON_SITE','CREATE_CHILD',path],['REMOTE','CREATE_CHILD',path]]);
+  assert.deepEqual(r.unresolvedServices,[]);
+});
+
+test('R04 Worker BOTH refuses two different structural paths for the same offered service',async t=>{
+  const f=fixture(t,()=>response({items:[
+    {...fullDecision('ON_SITE'),categoryId:'',proposedPath:['Klimatizacija','Popravka klima']},
+    {...fullDecision('REMOTE'),categoryId:'',proposedPath:['Domaćinstvo','Popravka klima']},
+  ]}));
+  const r=await worker(f.args,bothRequest);
+  assert.deepEqual(r.proposals,[]);
+  assert.deepEqual(r.unresolvedServices,['Popravka klima']);
+  assert.ok(r.failures.some(x=>x.code==='WORKER_SERVICE_CATEGORY_ID_CONFLICT'));
+  assert.equal(f.calls.length,1,'no automatic paid retry');
+});
+
 test('R04 BOTH: two explicit modes preserve one category parent and requested REMOTE handoff',async t=>{
   const f=fixture(t,()=>response({items:[fullDecision('ON_SITE'),fullDecision('REMOTE')]}));
   const result=await worker(f.args,bothRequest);
