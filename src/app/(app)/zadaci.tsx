@@ -27,7 +27,6 @@ export default function Zadaci() {
   const proofParams = useLocalSearchParams<{ p6Proof?: string | string[] }>();
   const proofParam = Array.isArray(proofParams.p6Proof) ? proofParams.p6Proof[0] : proofParams.p6Proof;
   const reader = selectDiscoveryReader({ publicationHandoff: false, proofParam });
-  console.warn('[ZADACI_READER_SELECTED]', reader, user?.id);
   return reader === 'P6'
     ? <DiscoveryV1Route key={`p6:${user?.id ?? ''}:${accountRevision}`} />
     : <Discovery key={`${user?.id ?? ''}:${accountRevision}`} />;
