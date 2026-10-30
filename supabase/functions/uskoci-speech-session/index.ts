@@ -3,6 +3,11 @@ import { releaseUnusedAiTestReservation, reserveAiTestBudget, settleAiTestAudio 
 import { bridgeSpeech } from './proxy.ts';
 // Supabase Edge background lifetimes are runtime-owned; no silent TypeScript escape.
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
+declare const Deno: {
+  env: { get(name: string): string | undefined };
+  serve(handler: (request: Request) => Response | Promise<Response>): void;
+  upgradeWebSocket(request: Request, options?: { idleTimeout?: number }): { socket: WebSocket; response: Response };
+};
 
 const uuid = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 const deny = (status: number, code: string) => new Response(JSON.stringify({ code }), {
@@ -94,7 +99,7 @@ Deno.serve(async (req: Request) => {
     // Hold the worker until the actual close event, including delivery of its final frame.
     const closed = new Promise<void>(resolve => {
       const onClose = socket.onclose;
-      socket.onclose = event => { try { onClose?.call(socket, event); } finally { resolve(); } };
+      socket.onclose = (event: CloseEvent) => { try { onClose?.call(socket, event); } finally { resolve(); } };
     });
     if (typeof EdgeRuntime !== 'undefined') EdgeRuntime.waitUntil(closed);
     return response;
