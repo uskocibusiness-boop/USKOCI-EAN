@@ -28,19 +28,30 @@ test('need category is a single service label and taxonomy tree stays in shadow 
 });
 
 const captureSql=readFileSync(new URL('../../candidates/dynamic-taxonomy-20261011/gemini-turn-review-hints-v1.sql',import.meta.url),'utf8');
+const activeCapture=readFileSync(new URL('../../functions/_shared/backgroundTaxonomyArchitect.mjs',import.meta.url),'utf8');
 test('both handlers write optional hint receipts only after immutable successful AI turn',()=>{
  const wc=worker.indexOf("rpc('rpc_complete_worker_ai_turn_service'");
- const wh=worker.indexOf("rpc('rpc_taxonomy_capture_gemini_turn_hints_service'");
+ const wh=worker.indexOf('captureTaxonomyHintsWithReceipt(');
  const nc=need.indexOf("'rpc_ai_complete_need_turn_v2_service'");
- const nh=need.indexOf("rpc('rpc_taxonomy_capture_gemini_turn_hints_service'");
+ const nh=need.indexOf('captureTaxonomyHintsWithReceipt(');
  assert.ok(wc>0&&wh>wc,'worker hint capture must follow successful turn completion');
  assert.ok(nc>0&&nh>nc,'need hint capture must follow successful turn completion');
  for(const source of [worker,need]){
   assert.match(source,/USKOCI_TAXONOMY_SHADOW_CAPTURE/);
   assert.match(source,/reviewHints|taxonomyReviewHints/);
-  assert.match(source,/HINT_CAPTURED/);
+  assert.match(source,/captureTaxonomyHintsWithReceipt/);
+  assert.match(source,/USKOCI_TAXONOMY_CAPTURE_RECEIPT_READBACK_ENABLED/);
+  assert.match(source,/HISTORICAL_CAPTURE_PRESENT/);
   assert.match(source,/authority[^\n]*NONE/);
  }
+ // The actual writer remains in the single reused helper, not a second
+ // classifier or a client-side writer. Its historical receipt never grants
+ // Save, matching, binding or a retry of the billed provider request.
+ assert.match(activeCapture,/rpc\('rpc_taxonomy_capture_gemini_turn_hints_service'/);
+ assert.match(activeCapture,/rpc\('rpc_taxonomy_read_gemini_turn_hint_receipt_service'/);
+ assert.match(activeCapture,/ack\.authority === 'NONE'/);
+ assert.match(activeCapture,/receipt\.applicability !== 'NOT_EVALUATED'/);
+ assert.match(activeCapture,/receipt\.retryAllowed !== false/);
 });
 test('hint capture candidate is service-only, private, versioned and has no admission authority',()=>{
  assert.match(captureSql,/ENABLE ROW LEVEL SECURITY/);
