@@ -423,6 +423,8 @@ describe('what this account is to the task, and how far it is', () => {
 describe('what a screen reader hears', () => {
   // The card is heard once: its command name, then every fact it shows in order. Nothing inside it is a stop of its own.
   it('is one sentence after the command name, in the order the face is drawn', async () => {
+  // Only this dormant future-HITNO scenario opts in; V1 defaults to OFF.
+  process.env.EXPO_PUBLIC_URGENT = '1';
     await render(<TaskCard item={task({ urgency: LATER, detalji: detail({}, { vozila: ['Kombi'] }) })} relation="APPLIED" onOpen={jest.fn()} />);
     const [card] = presses();
     expect(card.props.accessibilityLabel).toBe('Otvori zadatak Farbanje dnevne sobe. HITNO, Prijava poslata, Budžet 5.500 RSD ukupno, Liman, Novi Sad, 24. sep · 17:00, '
@@ -486,4 +488,11 @@ it('keeps the complete hourly unit readable at larger text', async () => {
   mockScale = 1.3;
   await render(<TaskCard item={task({ osnovaCene: 'HOURLY' })} onOpen={jest.fn()} />);
   expect(textNode('po osobi po satu').props.numberOfLines).toBeUndefined();
+});
+
+// Never retain a dormant future-HITNO override beyond its test.
+const originalUrgentForV1Regression = process.env.EXPO_PUBLIC_URGENT;
+afterEach(() => {
+  if (originalUrgentForV1Regression === undefined) delete process.env.EXPO_PUBLIC_URGENT;
+  else process.env.EXPO_PUBLIC_URGENT = originalUrgentForV1Regression;
 });

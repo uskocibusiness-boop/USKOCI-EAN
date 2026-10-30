@@ -407,6 +407,8 @@ describe('one screen for both sets', () => {
 
 describe('the quiet hours', () => {
  it('saves overnight quiet hours, timezone and explicit HITNO override, in both sets, through the same revisioned settings writer', async () => {
+  // Only this dormant future-HITNO scenario opts in; V1 defaults to OFF.
+  process.env.EXPO_PUBLIC_URGENT = '1';
   await mount();
   await pickTime('Početak tihih sati', 23, 15);
   await pickTime('Kraj tihih sati', 6, 45);
@@ -903,4 +905,11 @@ describe('saving', () => {
    expect(announce).toHaveBeenCalledTimes(1); expect(announce).toHaveBeenCalledWith('Podešavanja su sačuvana.');
   } finally { (Platform as { OS: string }).OS = os; announce.mockRestore(); }
  });
+});
+
+// Never retain a dormant future-HITNO override beyond its test.
+const originalUrgentForV1Regression = process.env.EXPO_PUBLIC_URGENT;
+afterEach(() => {
+  if (originalUrgentForV1Regression === undefined) delete process.env.EXPO_PUBLIC_URGENT;
+  else process.env.EXPO_PUBLIC_URGENT = originalUrgentForV1Regression;
 });
