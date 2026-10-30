@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
 import { processTaxonomyPostSaveTick, TaxonomyWorkerProtocolError } from '../../functions/_shared/taxonomyPostSaveWorker.mjs';
 
 const owner='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
@@ -125,6 +126,28 @@ test('unknown error or throwing retryable getter cannot be classified as semanti
     assert.equal(result.reviewRequired,0);
     assert.equal(calls[3].args.p_error_code,'TEMPORARY_UNAVAILABLE');
   }
+});
+
+test('explicit non-retryable errors thrown across Edge runtime realms still request review',async()=>{
+  const error=vm.runInNewContext("Object.assign(new Error('synthetic typed 400'),{retryable:false})");
+  assert.equal(error instanceof Error,false,'cross-realm errors cannot be tested using instanceof Error');
+  const {rpc,calls}=setup({commitError:error,
+    settle:args=>({outboxId:id,status:args.p_error_code==='BATCH_REVIEW_REQUIRED'?'REVIEW_REQUIRED':'INVALID'})});
+  const result=await processTaxonomyPostSaveTick(rpc);
+  assert.equal(result.reviewRequired,1);
+  assert.equal(result.retry,0);
+  assert.equal(calls[3].args.p_error_code,'BATCH_REVIEW_REQUIRED');
+});
+
+test('untyped cross-realm transport error stays an uncertain same-key retry',async()=>{
+  const error=vm.runInNewContext("new Error('synthetic lost ACK')");
+  assert.equal(error instanceof Error,false);
+  const {rpc,calls}=setup({commitError:error,
+    settle:args=>({outboxId:id,status:args.p_error_code==='TEMPORARY_UNAVAILABLE'?'RETRY':'INVALID'})});
+  const result=await processTaxonomyPostSaveTick(rpc);
+  assert.equal(result.retry,1);
+  assert.equal(calls[2].args.p_request_key,request);
+  assert.equal(calls[3].args.p_error_code,'TEMPORARY_UNAVAILABLE');
 });
 
 test('a receipt suggesting worker or push authority is quarantined for retry',async()=>{

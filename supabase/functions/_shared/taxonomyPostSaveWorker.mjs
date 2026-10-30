@@ -61,9 +61,12 @@ export async function processTaxonomyPostSaveTick(rpc,{limit=3,reconcileLimit=25
       // through the database's bounded RETRY/lease protocol (max 5 claims).
       let confirmedPermanent=false;
       try {
-        confirmedPermanent=error instanceof Error
+        // Deno/Node VM boundaries can throw Error objects from another realm:
+        // instanceof Error is NOT a reliable proof of a known 4xx failure.
+        // Require our internal transport's explicit own boolean classification.
+        confirmedPermanent=error!==null && typeof error==='object'
           && !(error instanceof TaxonomyWorkerProtocolError)
-          && error.retryable===false;
+          && Object.hasOwn(error,'retryable') && error.retryable===false;
       } catch { /* hostile or broken error metadata is still UNKNOWN */ }
       errorCode=confirmedPermanent?'BATCH_REVIEW_REQUIRED':'TEMPORARY_UNAVAILABLE';
     }
