@@ -6,6 +6,21 @@ Ovo je ulaz za nastavak, ne novi plan. Jedini operativni plan ostaje [CODEX_PLAN
 >
 > **Bez ponavljanja analize u krug:** sačuvani nalazi, izvorni registri, odluke i završene provere su početna osnova. Za izabrani zadatak pročitaj njegov postojeći izvršni zapis, povezani izvor i uslov prihvatanja. Ponovo proveravaj samo promenjeni kod/okruženje, nedostajući dokaz ili novu regresiju; navedi razlog. Posle provere pređi na implementaciju ili precizno zabeleži blokadu i nastavi nezavisan posao. Opšti ponovni audit svih ZIP-ova nije preduslov svake izmene.
 
+## Dopuna 30.10.2026 — proširena izvorna forenzika, u istom masteru
+
+**Noviji dokazni most je sada na GitHub-u:** [source-bridge-20261030/README.md](source-bridge-20261030/README.md). To nije drugi plan niti nova aplikaciona implementacija. Povezuje 208 istorijskih nalaza/ugovora sa postojećim R/C/SV zadacima, uključujući dodatne funkcionalne REV13/REV14 tekstove koji nisu bili u starom paketu od 305 članova. Izvorni veliki REV14 FULL sa slikama i PDF-ovima nije dodat kao duplirana binarna arhiva; njegove 908 putanje ostaju u inventaru.
+
+Posle uobičajenog `git clone`/osvežavanja grane, **jednom** proveri i obnovi ovaj dopunski tekstualni skup kada radiš konkretne R/C/SV popravke:
+
+```sh
+python docs/continuation/source-bridge-20261030/assemble.py
+python docs/continuation/source-bridge-20261030/assemble.py --restore ../USKOCI_ANALIZE
+python ../USKOCI_ANALIZE/USKOCI_CODEX_BRIDGE_2026-10-30/alati/proveri.py
+python ../USKOCI_ANALIZE/USKOCI_CODEX_BRIDGE_2026-10-30/alati/kontekst.py R06 --repo .
+```
+
+Na Windowsu `py -3` može umesto `python`. Provera ne menja GitHub, kod aplikacije, Supabase, tajne ni produkciju. Pri svakoj popravci otvaraj samo vezane dokaze, uporedi stari SHA sa stvarnim današnjim kodom i po postojećem §11.2a razdvoji SOURCE, CI, DEV i NATIVE. **Ranija rečenica „REV13 nije dostavljen“ u istorijskom prenosu od 28.10. odnosi se na tadašnju sesiju**, ne na sada raspoloživi prošireni tekstualni most. Ne primenjivati stara vizuelna/cenovna pravila ili brisanja bez novije korisničke odluke i negativnog testa.
+
 ## Preuzimanje bez starog računara
 
 Potreban je Git, Python 3.9+ i, za razvoj aplikacije, Node/npm prema repozitorijumu i CI. Za lokalnu bazu potrebna je odgovarajuća Docker okolina; postojeći Windows računar je nema, zato se izolovane serverske provere izvršavaju na GitHub Ubuntu runneru.
