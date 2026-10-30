@@ -40,6 +40,8 @@ jobs:
         run: node --test --test-reporter=spec supabase/proofs/privacy/r01_existing_public_nonrow_privileges.test.mjs
       - name: R01 PHONE closure against current SQL definitions (isolated only)
         run: node --test --test-reporter=spec supabase/proofs/privacy/r01_phone_messages_only_current.test.mjs
+      - name: R01 DEV zero-row probe safety contracts (offline only)
+        run: node --test --test-reporter=spec supabase/proofs/privacy/r01-dev-column-probe.test.mjs
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Deno AI Edge import and type checks (no execution)
@@ -47,7 +49,8 @@ jobs:
           deno check --no-config --no-lock --no-npm --no-remote \
             supabase/functions/uskoci-ai-interview/index.ts \
             supabase/functions/uskoci-worker-interview/index.ts \
-            supabase/functions/uskoci-taxonomy-postsave-worker/index.ts
+            supabase/functions/uskoci-taxonomy-postsave-worker/index.ts \
+            supabase/functions/uskoci-speech-session/index.ts
       - name: R04 semantic SQL isolation and signed publication fence (no DEV write)
         run: |
           node --test --test-reporter=spec supabase/proofs/ai/r04_semantic_review_pending.test.mjs supabase/proofs/ai/r04_signed_taxonomy_publish_fence.test.mjs
