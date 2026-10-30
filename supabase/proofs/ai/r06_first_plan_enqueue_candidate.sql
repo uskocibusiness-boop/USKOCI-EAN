@@ -14,7 +14,7 @@ BEGIN
  IF to_regclass('private.work_taxonomy_first_plan_jobs_v1') IS NOT NULL
  OR to_regprocedure('public.rpc_taxonomy_first_plan_enqueue_service(uuid,uuid,uuid,uuid,uuid,text,jsonb)') IS NOT NULL
  THEN RAISE EXCEPTION 'R06_FIRST_PLAN_ALREADY_EXISTS' USING errcode='55000'; END IF;
-END $local$;
+END; $local$;
 CREATE TABLE private.work_taxonomy_first_plan_control_v1 (
  singleton boolean PRIMARY KEY DEFAULT true CHECK(singleton),
  enabled boolean NOT NULL DEFAULT false
@@ -97,7 +97,7 @@ BEGIN
          OR (later.state='SUCCEEDED' AND later.updated_at>t.updated_at)));
  END IF;
  RETURN v_source;
-END $fn$;
+END; $fn$;
 
 CREATE FUNCTION public.rpc_taxonomy_first_plan_enqueue_service(
  p_account_id uuid,p_conversation_id uuid,p_client_request_id uuid,
@@ -170,7 +170,7 @@ BEGIN
   RAISE EXCEPTION 'R06_FIRST_PLAN_REPLAY_CONFLICT' USING errcode='22023'; END IF;
  RETURN jsonb_build_object('state',v_job.state,'jobId',v_job.id,
   'authority','NONE','providerAuthority','NONE','attempts',v_job.attempts);
-END $fn$;
+END; $fn$;
 
 CREATE FUNCTION public.rpc_taxonomy_first_plan_receipt_service(p_job_id uuid)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'pg_catalog'
@@ -187,7 +187,7 @@ BEGIN
  RETURN jsonb_build_object('state',v_job.state,'jobId',v_job.id,
    'attempts',v_job.attempts,'authority','NONE','providerAuthority','NONE',
    'retryAllowed',v_job.state='RETRY');
-END $fn$;
+END; $fn$;
 
 
 -- The internal worker claims an owner-bound PENDING/RETRY job with a short
@@ -235,7 +235,7 @@ BEGIN
      'authority','NONE','providerAuthority','NONE'));
  END LOOP;
  RETURN v_out;
-END $fn$;
+END; $fn$;
 
 CREATE FUNCTION public.rpc_taxonomy_first_plan_mark_dispatched_service(
  p_job_id uuid,p_lease_token uuid,p_provider_operation_id uuid)
@@ -262,7 +262,7 @@ BEGIN
  WHERE id=p_job_id;
  RETURN jsonb_build_object('state','DISPATCHED','jobId',p_job_id,
   'authority','NONE','retryAllowed',false);
-END $fn$;
+END; $fn$;
 
 CREATE FUNCTION public.rpc_taxonomy_first_plan_finish_service(
  p_job_id uuid,p_lease_token uuid,p_outcome text)
@@ -302,7 +302,7 @@ BEGIN
  WHERE id=j.id;
  RETURN jsonb_build_object('state',v_state,'jobId',j.id,'authority','NONE',
    'providerAuthority','NONE','retryAllowed',v_state='RETRY');
-END $fn$;
+END; $fn$;
 
 CREATE FUNCTION public.rpc_taxonomy_first_plan_reconcile_service(p_limit integer)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'pg_catalog'
@@ -332,7 +332,7 @@ BEGIN
     'jobId',j.id,'state',v_state,'authority','NONE','retryAllowed',false));
  END LOOP;
  RETURN v_out;
-END $fn$;
+END; $fn$;
 
 REVOKE ALL ON FUNCTION private.taxonomy_first_plan_current_source_v1(uuid,uuid,uuid,uuid,uuid,text)
  FROM PUBLIC,anon,authenticated,service_role;
@@ -382,5 +382,5 @@ BEGIN
     THEN RAISE EXCEPTION 'R06_FIRST_PLAN_ACL_INVALID' USING errcode='55000'; END IF;
   END LOOP;
  END LOOP;
-END $acl$;
+END; $acl$;
 COMMIT;
