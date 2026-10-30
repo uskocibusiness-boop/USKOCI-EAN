@@ -33,10 +33,24 @@ CREATE TABLE private.work_taxonomy_first_plan_jobs_v1 (
  state text NOT NULL DEFAULT 'PENDING'
    CHECK(state IN('PENDING','CLAIMED','RETRY','DISPATCHED','CAPTURED','UNKNOWN','REVIEW_REQUIRED')),
  attempts integer NOT NULL DEFAULT 0 CHECK(attempts BETWEEN 0 AND 3),
+ lease_token uuid, lease_until timestamptz,
+ dispatched_at timestamptz, provider_operation_id uuid,
+ retry_after timestamptz NOT NULL DEFAULT statement_timestamp(),
+ error_code text,
  created_at timestamptz NOT NULL DEFAULT statement_timestamp(),
  updated_at timestamptz NOT NULL DEFAULT statement_timestamp(),
- UNIQUE(purpose,account_id,turn_id)
+ UNIQUE(purpose,account_id,turn_id),
+ CHECK((lease_token IS NULL AND lease_until IS NULL) OR
+       (lease_token IS NOT NULL AND lease_until IS NOT NULL)),
+ CHECK((dispatched_at IS NULL AND provider_operation_id IS NULL) OR
+       (dispatched_at IS NOT NULL AND provider_operation_id IS NOT NULL))
 );
+CREATE INDEX work_taxonomy_first_plan_claim_idx
+ ON private.work_taxonomy_first_plan_jobs_v1(state,retry_after,created_at,id)
+ WHERE state IN ('PENDING','RETRY','CLAIMED');
+CREATE UNIQUE INDEX work_taxonomy_first_plan_provider_operation_key
+ ON private.work_taxonomy_first_plan_jobs_v1(provider_operation_id)
+ WHERE provider_operation_id IS NOT NULL;
 REVOKE ALL ON private.work_taxonomy_first_plan_control_v1,
  private.work_taxonomy_first_plan_jobs_v1 FROM PUBLIC,anon,authenticated,service_role;
 ALTER TABLE private.work_taxonomy_first_plan_control_v1 ENABLE ROW LEVEL SECURITY;
@@ -172,7 +186,153 @@ BEGIN
  PERFORM private.closure_assert_open(v_job.account_id);
  RETURN jsonb_build_object('state',v_job.state,'jobId',v_job.id,
    'attempts',v_job.attempts,'authority','NONE','providerAuthority','NONE',
-   'retryAllowed',false);
+   'retryAllowed',v_job.state='RETRY');
+END $fn$;
+
+
+-- The internal worker claims an owner-bound PENDING/RETRY job with a short
+-- lease, but MAY NOT contact a provider until mark_dispatched atomically
+-- records the unique logical operation key. Unknown post-dispatch outcomes are
+-- never requeued; a missing readback is NOT evidence of an unbilled request.
+CREATE FUNCTION public.rpc_taxonomy_first_plan_claim_service(p_limit integer)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'pg_catalog'
+AS $fn$
+DECLARE j private.work_taxonomy_first_plan_jobs_v1%ROWTYPE;
+ v_source text;v_out jsonb:='[]'::jsonb;
+BEGIN
+ IF coalesce(auth.jwt()->>'role','')<>'service_role' THEN
+   RAISE EXCEPTION 'R06_FIRST_PLAN_DENIED' USING errcode='42501'; END IF;
+ IF p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 3 THEN
+   RAISE EXCEPTION 'R06_FIRST_PLAN_LIMIT_INVALID' USING errcode='22023'; END IF;
+ IF (SELECT enabled FROM private.work_taxonomy_first_plan_control_v1 WHERE singleton)
+   IS DISTINCT FROM true THEN RETURN v_out; END IF;
+ FOR j IN SELECT * FROM private.work_taxonomy_first_plan_jobs_v1 q
+  WHERE q.state IN('PENDING','RETRY','CLAIMED')
+    AND q.retry_after<=statement_timestamp()
+    AND (q.state<>'CLAIMED' OR q.lease_until<statement_timestamp())
+    AND q.dispatched_at IS NULL
+    AND NOT private.closure_account_restricted(q.account_id)
+  ORDER BY q.created_at,q.id
+  FOR UPDATE SKIP LOCKED LIMIT p_limit LOOP
+   v_source:=private.taxonomy_first_plan_current_source_v1(
+     j.account_id,j.conversation_id,j.client_request_id,j.turn_id,j.attempt_id,j.purpose);
+   IF v_source IS DISTINCT FROM j.source_fingerprint OR j.attempts>=3 THEN
+     UPDATE private.work_taxonomy_first_plan_jobs_v1
+      SET state='REVIEW_REQUIRED',lease_token=NULL,lease_until=NULL,
+        error_code='SOURCE_STALE_OR_ATTEMPTS_EXHAUSTED',updated_at=statement_timestamp()
+      WHERE id=j.id;
+     CONTINUE;
+   END IF;
+   UPDATE private.work_taxonomy_first_plan_jobs_v1
+    SET state='CLAIMED', attempts=attempts+1,lease_token=gen_random_uuid(),
+      lease_until=statement_timestamp()+interval '60 seconds',
+      updated_at=statement_timestamp()
+    WHERE id=j.id RETURNING * INTO j;
+   v_out:=v_out||jsonb_build_array(jsonb_build_object(
+     'jobId',j.id,'accountId',j.account_id,'conversationId',j.conversation_id,
+     'clientRequestId',j.client_request_id,'turnId',j.turn_id,'attemptId',j.attempt_id,
+     'purpose',j.purpose,'sourceFingerprint',j.source_fingerprint,'targets',j.targets,
+     'leaseToken',j.lease_token,'attempts',j.attempts,
+     'authority','NONE','providerAuthority','NONE'));
+ END LOOP;
+ RETURN v_out;
+END $fn$;
+
+CREATE FUNCTION public.rpc_taxonomy_first_plan_mark_dispatched_service(
+ p_job_id uuid,p_lease_token uuid,p_provider_operation_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'pg_catalog'
+AS $fn$
+DECLARE j private.work_taxonomy_first_plan_jobs_v1%ROWTYPE;
+BEGIN
+ IF coalesce(auth.jwt()->>'role','')<>'service_role' THEN
+   RAISE EXCEPTION 'R06_FIRST_PLAN_DENIED' USING errcode='42501'; END IF;
+ IF p_job_id IS NULL OR p_lease_token IS NULL OR p_provider_operation_id IS NULL
+  OR p_provider_operation_id IS DISTINCT FROM p_job_id THEN
+   RAISE EXCEPTION 'R06_FIRST_PLAN_OPERATION_KEY_INVALID' USING errcode='22023'; END IF;
+ SELECT * INTO j FROM private.work_taxonomy_first_plan_jobs_v1 WHERE id=p_job_id FOR UPDATE;
+ IF NOT FOUND OR j.state<>'CLAIMED' OR j.lease_token IS DISTINCT FROM p_lease_token
+   OR j.lease_until<=statement_timestamp() OR j.dispatched_at IS NOT NULL
+   OR private.closure_account_restricted(j.account_id)
+   OR private.taxonomy_first_plan_current_source_v1(
+    j.account_id,j.conversation_id,j.client_request_id,j.turn_id,j.attempt_id,j.purpose)
+      IS DISTINCT FROM j.source_fingerprint THEN
+   RAISE EXCEPTION 'R06_FIRST_PLAN_STALE_LEASE' USING errcode='42501'; END IF;
+ UPDATE private.work_taxonomy_first_plan_jobs_v1
+ SET state='DISPATCHED',dispatched_at=statement_timestamp(),
+   provider_operation_id=p_provider_operation_id,updated_at=statement_timestamp()
+ WHERE id=p_job_id;
+ RETURN jsonb_build_object('state','DISPATCHED','jobId',p_job_id,
+  'authority','NONE','retryAllowed',false);
+END $fn$;
+
+CREATE FUNCTION public.rpc_taxonomy_first_plan_finish_service(
+ p_job_id uuid,p_lease_token uuid,p_outcome text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'pg_catalog'
+AS $fn$
+DECLARE j private.work_taxonomy_first_plan_jobs_v1%ROWTYPE;
+ v_captured boolean=false;v_state text;v_code text;
+BEGIN
+ IF coalesce(auth.jwt()->>'role','')<>'service_role' THEN
+   RAISE EXCEPTION 'R06_FIRST_PLAN_DENIED' USING errcode='42501'; END IF;
+ IF p_job_id IS NULL OR p_lease_token IS NULL OR p_outcome IS NULL OR p_outcome NOT IN
+  ('CAPTURE_CONFIRMED','FAILED_BEFORE_DISPATCH','PROVIDER_UNKNOWN') THEN
+   RAISE EXCEPTION 'R06_FIRST_PLAN_OUTCOME_INVALID' USING errcode='22023'; END IF;
+ SELECT * INTO j FROM private.work_taxonomy_first_plan_jobs_v1 WHERE id=p_job_id FOR UPDATE;
+ IF NOT FOUND OR j.lease_token IS DISTINCT FROM p_lease_token
+   OR j.lease_until<=statement_timestamp() OR j.state NOT IN('CLAIMED','DISPATCHED') THEN
+   RAISE EXCEPTION 'R06_FIRST_PLAN_STALE_LEASE' USING errcode='42501'; END IF;
+ IF j.dispatched_at IS NULL AND p_outcome='FAILED_BEFORE_DISPATCH' THEN
+   v_state:=CASE WHEN j.attempts<3 THEN 'RETRY' ELSE 'REVIEW_REQUIRED' END;
+   v_code:='FAILED_BEFORE_DISPATCH';
+ ELSIF j.dispatched_at IS NOT NULL THEN
+   SELECT EXISTS(SELECT 1 FROM private.work_taxonomy_gemini_turn_hints_v1 h
+    WHERE h.purpose=j.purpose AND h.account_id=j.account_id
+     AND h.conversation_id=j.conversation_id AND h.client_request_id=j.client_request_id
+     AND h.turn_id=j.turn_id AND h.attempt_id=j.attempt_id
+     AND h.source_fingerprint=j.source_fingerprint) INTO v_captured;
+   v_state:=CASE WHEN v_captured THEN 'CAPTURED' ELSE 'UNKNOWN' END;
+   v_code:=CASE WHEN v_captured THEN NULL ELSE 'PROVIDER_OR_CAPTURE_UNKNOWN' END;
+ ELSE
+   v_state:='REVIEW_REQUIRED';v_code:='UNEXPECTED_BEFORE_DISPATCH_COMPLETION';
+ END IF;
+ UPDATE private.work_taxonomy_first_plan_jobs_v1
+   SET state=v_state,lease_token=NULL,lease_until=NULL,
+     retry_after=CASE WHEN v_state='RETRY' THEN statement_timestamp()+interval '30 seconds'
+       ELSE retry_after END,
+     error_code=v_code,updated_at=statement_timestamp()
+ WHERE id=j.id;
+ RETURN jsonb_build_object('state',v_state,'jobId',j.id,'authority','NONE',
+   'providerAuthority','NONE','retryAllowed',v_state='RETRY');
+END $fn$;
+
+CREATE FUNCTION public.rpc_taxonomy_first_plan_reconcile_service(p_limit integer)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'pg_catalog'
+AS $fn$
+DECLARE j private.work_taxonomy_first_plan_jobs_v1%ROWTYPE;
+ v_state text;v_out jsonb:='[]'::jsonb;
+BEGIN
+ IF coalesce(auth.jwt()->>'role','')<>'service_role' THEN
+   RAISE EXCEPTION 'R06_FIRST_PLAN_DENIED' USING errcode='42501'; END IF;
+ IF p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 10 THEN
+   RAISE EXCEPTION 'R06_FIRST_PLAN_LIMIT_INVALID' USING errcode='22023'; END IF;
+ FOR j IN SELECT * FROM private.work_taxonomy_first_plan_jobs_v1 q
+  WHERE q.state='DISPATCHED' AND q.lease_until<statement_timestamp()
+  ORDER BY q.created_at,q.id FOR UPDATE SKIP LOCKED LIMIT p_limit LOOP
+   v_state:=CASE WHEN EXISTS(
+     SELECT 1 FROM private.work_taxonomy_gemini_turn_hints_v1 h
+     WHERE h.purpose=j.purpose AND h.account_id=j.account_id
+       AND h.conversation_id=j.conversation_id AND h.client_request_id=j.client_request_id
+       AND h.turn_id=j.turn_id AND h.attempt_id=j.attempt_id
+       AND h.source_fingerprint=j.source_fingerprint)
+    THEN 'CAPTURED' ELSE 'UNKNOWN' END;
+   UPDATE private.work_taxonomy_first_plan_jobs_v1
+   SET state=v_state,lease_token=NULL,lease_until=NULL,
+       error_code=CASE WHEN v_state='CAPTURED' THEN NULL ELSE 'PROVIDER_OR_CAPTURE_UNKNOWN' END,
+       updated_at=statement_timestamp() WHERE id=j.id;
+   v_out:=v_out||jsonb_build_array(jsonb_build_object(
+    'jobId',j.id,'state',v_state,'authority','NONE','retryAllowed',false));
+ END LOOP;
+ RETURN v_out;
 END $fn$;
 
 REVOKE ALL ON FUNCTION private.taxonomy_first_plan_current_source_v1(uuid,uuid,uuid,uuid,uuid,text)
@@ -181,17 +341,35 @@ REVOKE ALL ON FUNCTION public.rpc_taxonomy_first_plan_enqueue_service(uuid,uuid,
  FROM PUBLIC,anon,authenticated,service_role;
 REVOKE ALL ON FUNCTION public.rpc_taxonomy_first_plan_receipt_service(uuid)
  FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.rpc_taxonomy_first_plan_claim_service(integer)
+ FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.rpc_taxonomy_first_plan_mark_dispatched_service(uuid,uuid,uuid)
+ FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.rpc_taxonomy_first_plan_finish_service(uuid,uuid,text)
+ FROM PUBLIC,anon,authenticated,service_role;
+REVOKE ALL ON FUNCTION public.rpc_taxonomy_first_plan_reconcile_service(integer)
+ FROM PUBLIC,anon,authenticated,service_role;
 GRANT EXECUTE ON FUNCTION public.rpc_taxonomy_first_plan_enqueue_service(uuid,uuid,uuid,uuid,uuid,text,jsonb)
  TO service_role;
 GRANT EXECUTE ON FUNCTION public.rpc_taxonomy_first_plan_receipt_service(uuid)
  TO service_role;
+GRANT EXECUTE ON FUNCTION public.rpc_taxonomy_first_plan_claim_service(integer) TO service_role;
+GRANT EXECUTE ON FUNCTION public.rpc_taxonomy_first_plan_mark_dispatched_service(uuid,uuid,uuid)
+ TO service_role;
+GRANT EXECUTE ON FUNCTION public.rpc_taxonomy_first_plan_finish_service(uuid,uuid,text)
+ TO service_role;
+GRANT EXECUTE ON FUNCTION public.rpc_taxonomy_first_plan_reconcile_service(integer) TO service_role;
 DO $acl$
 DECLARE f record;a record;
 BEGIN
  FOR f IN SELECT oid,proowner,prosecdef,proconfig,proacl FROM pg_proc
   WHERE oid IN (
     to_regprocedure('public.rpc_taxonomy_first_plan_enqueue_service(uuid,uuid,uuid,uuid,uuid,text,jsonb)'),
-    to_regprocedure('public.rpc_taxonomy_first_plan_receipt_service(uuid)'))
+    to_regprocedure('public.rpc_taxonomy_first_plan_receipt_service(uuid)'),
+    to_regprocedure('public.rpc_taxonomy_first_plan_claim_service(integer)'),
+    to_regprocedure('public.rpc_taxonomy_first_plan_mark_dispatched_service(uuid,uuid,uuid)'),
+    to_regprocedure('public.rpc_taxonomy_first_plan_finish_service(uuid,uuid,text)'),
+    to_regprocedure('public.rpc_taxonomy_first_plan_reconcile_service(integer)'))
  LOOP
   IF f.proowner<>'postgres'::regrole OR f.prosecdef IS DISTINCT FROM true
     OR f.proconfig IS DISTINCT FROM ARRAY['search_path=pg_catalog']::text[]

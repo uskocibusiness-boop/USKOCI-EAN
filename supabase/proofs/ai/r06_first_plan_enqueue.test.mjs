@@ -110,3 +110,75 @@ test('local-only guard fails atomically before any schema change when flag is ab
  const r=await db.query("SELECT to_regclass('private.work_taxonomy_first_plan_jobs_v1') t");
  assert.equal(r.rows[0].t,null);
 });
+
+
+test('R06 lease claim is one owner/source-bound operation; pre-dispatch retries stop at three',async t=>{
+ const db=await setup();t.after(()=>db.close());await needFixture(db);
+ await db.exec('UPDATE private.work_taxonomy_first_plan_control_v1 SET enabled=true');
+ const enrolled=await enqueue(db,need);
+ const claim=()=>db.query('SELECT public.rpc_taxonomy_first_plan_claim_service(1) result').then(r=>r.rows[0].result);
+ const finish=(job,lease,reason)=>db.query(
+  'SELECT public.rpc_taxonomy_first_plan_finish_service($1::uuid,$2::uuid,$3::text) result',
+  [job,lease,reason]).then(r=>r.rows[0].result);
+ for(let attempt=1;attempt<=3;attempt++){
+  const claimed=(await claim())[0];
+  assert.equal(claimed.jobId,enrolled.jobId);
+  assert.equal(claimed.attempts,attempt);
+  assert.equal(claimed.providerAuthority,'NONE');
+  assert.deepEqual(await claim(),[]);
+  const result=await finish(claimed.jobId,claimed.leaseToken,'FAILED_BEFORE_DISPATCH');
+  assert.equal(result.state,attempt<3?'RETRY':'REVIEW_REQUIRED');
+  await db.exec("UPDATE private.work_taxonomy_first_plan_jobs_v1 SET retry_after=now()-interval '1 second'");
+ }
+ assert.deepEqual(await claim(),[]);
+});
+test('R06 dispatched provider operation has fixed identity; unknown result is never automatically repeated',async t=>{
+ const db=await setup();t.after(()=>db.close());await needFixture(db);
+ await db.exec('UPDATE private.work_taxonomy_first_plan_control_v1 SET enabled=true');
+ const enrolled=await enqueue(db,need);
+ const row=(await db.query('SELECT public.rpc_taxonomy_first_plan_claim_service(1) result')).rows[0].result[0];
+ assert.equal(row.jobId,enrolled.jobId);
+ const mark=async operation=>(await db.query(
+  'SELECT public.rpc_taxonomy_first_plan_mark_dispatched_service($1::uuid,$2::uuid,$3::uuid) result',
+  [row.jobId,row.leaseToken,operation])).rows[0].result;
+ await assert.rejects(mark(id(200)),/R06_FIRST_PLAN_OPERATION_KEY_INVALID/);
+ assert.equal((await mark(row.jobId)).state,'DISPATCHED');
+ await assert.rejects(mark(row.jobId),/R06_FIRST_PLAN_STALE_LEASE/);
+ const finished=(await db.query(
+  'SELECT public.rpc_taxonomy_first_plan_finish_service($1::uuid,$2::uuid,$3::text) result',
+  [row.jobId,row.leaseToken,'PROVIDER_UNKNOWN'])).rows[0].result;
+ assert.equal(finished.state,'UNKNOWN');
+ assert.equal(finished.retryAllowed,false);
+ assert.deepEqual((await db.query('SELECT public.rpc_taxonomy_first_plan_claim_service(2) result')).rows[0].result,[]);
+ const receipt=(await db.query('SELECT public.rpc_taxonomy_first_plan_receipt_service($1::uuid) result',[row.jobId])).rows[0].result;
+ assert.equal(receipt.state,'UNKNOWN');assert.equal(receipt.retryAllowed,false);
+ assert.equal(JSON.stringify(receipt).includes('Synthetic repair'),false);
+});
+test('R06 a captured status requires the actual same-source receipt, not a model assertion',async t=>{
+ const db=await setup();t.after(()=>db.close());await needFixture(db);
+ await db.exec('UPDATE private.work_taxonomy_first_plan_control_v1 SET enabled=true');
+ await db.exec('CREATE TABLE private.work_taxonomy_gemini_turn_hints_v1(purpose text,account_id uuid,conversation_id uuid,client_request_id uuid,turn_id uuid,attempt_id uuid,source_fingerprint text)');
+ await enqueue(db,need);
+ const row=(await db.query('SELECT public.rpc_taxonomy_first_plan_claim_service(1) result')).rows[0].result[0];
+ await db.query('SELECT public.rpc_taxonomy_first_plan_mark_dispatched_service($1::uuid,$2::uuid,$3::uuid)',
+   [row.jobId,row.leaseToken,row.jobId]);
+ await db.query('INSERT INTO private.work_taxonomy_gemini_turn_hints_v1 VALUES($1,$2,$3,$4,$5,$6,$7)',
+   ['NEED_SERVICE',a,c,k,t,attempt,row.sourceFingerprint]);
+ const result=(await db.query(
+  'SELECT public.rpc_taxonomy_first_plan_finish_service($1::uuid,$2::uuid,$3::text) result',
+  [row.jobId,row.leaseToken,'CAPTURE_CONFIRMED'])).rows[0].result;
+ assert.equal(result.state,'CAPTURED');assert.equal(result.retryAllowed,false);
+});
+test('R06 expired dispatched lease reconciles UNKNOWN without a paid replay',async t=>{
+ const db=await setup();t.after(()=>db.close());await needFixture(db);
+ await db.exec('UPDATE private.work_taxonomy_first_plan_control_v1 SET enabled=true');
+ await db.exec('CREATE TABLE private.work_taxonomy_gemini_turn_hints_v1(purpose text,account_id uuid,conversation_id uuid,client_request_id uuid,turn_id uuid,attempt_id uuid,source_fingerprint text)');
+ await enqueue(db,need);
+ const row=(await db.query('SELECT public.rpc_taxonomy_first_plan_claim_service(1) result')).rows[0].result[0];
+ await db.query('SELECT public.rpc_taxonomy_first_plan_mark_dispatched_service($1::uuid,$2::uuid,$3::uuid)',
+   [row.jobId,row.leaseToken,row.jobId]);
+ await db.query("UPDATE private.work_taxonomy_first_plan_jobs_v1 SET lease_until=now()-interval '1 second' WHERE id=$1",[row.jobId]);
+ const out=(await db.query('SELECT public.rpc_taxonomy_first_plan_reconcile_service(1) result')).rows[0].result;
+ assert.deepEqual(out,[{jobId:row.jobId,state:'UNKNOWN',authority:'NONE',retryAllowed:false}]);
+ assert.deepEqual((await db.query('SELECT public.rpc_taxonomy_first_plan_claim_service(1) result')).rows[0].result,[]);
+});
