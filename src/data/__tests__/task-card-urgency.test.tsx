@@ -28,8 +28,13 @@ let tree: ReactTestRenderer;
 const texts = () => tree.root.findAll(node => node.type === ('T' as React.ElementType)).flatMap(node => node.children.filter(child => typeof child === 'string'));
 /** The status row is the first child of the card, a row that holds the status or a spacer and the badge. */
 const topRow = () => tree.root.findByType('Press' as React.ElementType).children[0] as ReactTestRenderer['root'];
-beforeEach(() => { jest.useFakeTimers({ now: new Date('2026-09-23T10:00:00Z') }); });
-afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers(); });
+// Deliberately test the dormant later-release badge with the feature opted in only here.
+const originalUrgentFlag = process.env.EXPO_PUBLIC_URGENT;
+beforeEach(() => { process.env.EXPO_PUBLIC_URGENT = '1'; jest.useFakeTimers({ now: new Date('2026-09-23T10:00:00Z') }); });
+afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.useRealTimers();
+  if (originalUrgentFlag === undefined) delete process.env.EXPO_PUBLIC_URGENT;
+  else process.env.EXPO_PUBLIC_URGENT = originalUrgentFlag;
+});
 
 it('draws no top row for an expired HITNO on a task with no status', async () => {
   await act(async () => { tree = create(<TaskCard item={task({ urgency: { level: 'HITNO', expiresAt: '2026-09-23T09:59:59Z' } })} onOpen={jest.fn()} />); });
