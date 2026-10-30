@@ -94,7 +94,8 @@ function privateProbes(){
 export async function runDevColumnProbe(input){
   const report={unit:'R01_DEV_ZERO_ROW_COLUMN_PROBE',project_ref:DEV_PROJECT_REF,
     result:'REFUSED',reason:null,actual_user_verified:false,r01_accepted:false,
-    public_controls:{before:false,after:false},private_results:[],request_count:0,
+    public_controls:{before:false,after:false},private_results:[],
+    private_projection_outcome:'NOT_VERIFIED',request_count:0,
     expected_private_probes:13,limits:{max_body_bytes:MAX_BODY_BYTES},
     limitations:['Zero-row projection/permission diagnostic only; no business rows or fixture writes.',
       'No RLS/world/owner/participant positive-row, candidate, closure, native-client or disposable parity acceptance.',
@@ -167,7 +168,14 @@ export async function runDevColumnProbe(input){
     if(!report.public_controls.after){report.result='INCONCLUSIVE';report.reason='PUBLIC_CONTROL_FAILED';inconclusive();}
     else if(report.private_results.length!==13||report.private_results.some(row=>row.classification==='inconclusive')){
       report.result='INCONCLUSIVE';report.reason='UNCLASSIFIED_PRIVATE_RESPONSE';inconclusive();
-    }else report.result='COMPLETED';
+    }else {
+      report.result='COMPLETED';
+      // Completion means the zero-row diagnostic finished, not that privacy
+      // passed. Even one accepted private projection is a blocking finding.
+      report.private_projection_outcome=report.private_results.some(
+        row=>row.classification==='accepted_private_projection'
+      )?'AT_LEAST_ONE_PRIVATE_PROJECTION_ACCEPTED':'ALL_PRIVATE_PROJECTIONS_DENIED_ZERO_ROWS_ONLY';
+    }
   }catch(error){
     report.result='ABORTED';report.reason=error instanceof ProbeError?error.code:'INTERNAL_PROBE_FAILURE';inconclusive();
   }finally{

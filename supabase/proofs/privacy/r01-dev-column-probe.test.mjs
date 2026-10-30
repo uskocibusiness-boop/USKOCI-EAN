@@ -25,6 +25,7 @@ test('only verified end-user GETs with zero rows and no count; public controls b
   const f=fixture();const report=await runDevColumnProbe(options({fetch:f.fetch}));
   assert.equal(report.result,'COMPLETED');assert.equal(report.actual_user_verified,true);
   assert.equal(report.r01_accepted,false);assert.equal(report.private_results.length,13);
+  assert.equal(report.private_projection_outcome,'AT_LEAST_ONE_PRIVATE_PROJECTION_ACCEPTED');
   assert.ok(report.private_results.every(row=>row.classification==='accepted_private_projection'));
   assert.equal(f.calls.length,16);
   assert.equal(f.calls[0].url.pathname,'/auth/v1/user');
@@ -53,7 +54,25 @@ test('exact table permission errors become denials only with successful public c
     json({code:'42501',message:'permission denied for table needs',details:null,hint:null},403));
   const report=await runDevColumnProbe(options({fetch:f.fetch}));
   assert.equal(report.result,'COMPLETED');
+  assert.equal(report.private_projection_outcome,'ALL_PRIVATE_PROJECTIONS_DENIED_ZERO_ROWS_ONLY');
+  assert.equal(report.r01_accepted,false);
   assert.ok(report.private_results.every(row=>row.classification==='denied_private_projection'));
+});
+
+test('mixed zero-row privileges keep a blocking verdict when only one private projection succeeds',async()=>{
+  let tableReads=0;
+  const f=fixture(()=>{
+    tableReads++;
+    if(tableReads===1||tableReads===2||tableReads===15)return json([]);
+    return json({code:'42501',message:'permission denied for table needs'},403);
+  });
+  const report=await runDevColumnProbe(options({fetch:f.fetch}));
+  assert.equal(report.result,'COMPLETED');
+  assert.equal(report.private_projection_outcome,'AT_LEAST_ONE_PRIVATE_PROJECTION_ACCEPTED');
+  assert.equal(report.private_results.filter(row=>row.classification==='accepted_private_projection').length,1);
+  assert.equal(report.private_results.filter(row=>row.classification==='denied_private_projection').length,12);
+  assert.equal(report.r01_accepted,false);
+  assert.equal(f.calls.length,16);
 });
 
 for(const [label,change] of [
@@ -100,6 +119,7 @@ test('a failed final public control invalidates all preceding private classifica
   let reads=0;const f=fixture(()=>++reads===15?json({code:'42501',message:'ACCOUNT_CLOSING'},403):json([]));
   const report=await runDevColumnProbe(options({fetch:f.fetch}));
   assert.equal(report.result,'INCONCLUSIVE');assert.equal(report.reason,'PUBLIC_CONTROL_FAILED');
+  assert.equal(report.private_projection_outcome,'NOT_VERIFIED');
   assert.ok(report.private_results.every(row=>row.classification==='inconclusive'));
 });
 
