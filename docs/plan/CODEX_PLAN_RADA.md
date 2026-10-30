@@ -4778,3 +4778,34 @@ Svaki ovaj mikro-acceptance otvara se samo uz relevantnu implementacionu celinu;
 6. Nema novih master planova, prepisivanja istorijskih evidencija, brisanja primenjenih migracija niti masovnog cleanupa prema inventarskoj brojci. Product/UX noviji kanon istiskuje istorijski predlog, ali ne slabije autorizacije, RLS, kompatibilnost i idempotency.
 
 **Dokumentaciono „USAGLAŠENO” znači:** jedinstveni autoritet, svi relevantni izvori povezani i svaka protivrečnost označena najnovijom odlukom, otvorenim ili superseded statusom. **Ne znači:** Full CI, Auth, R01, R10, DEV, dva Android telefona ili production ready. Ovo je sve do njihovog zasebnog realnog acceptance-a.
+
+#### 12.6.7. Automatski Git drift istorijskih owner putanja — dodatna precizna pretraga (30.10.2026)
+
+**Fiksirani izvor upoređivanja:** istorijski `feature/uskoci-cisto@a9692e11942609bab9406215c3e407d79589dafa` naspram tekućeg Git stabla radne grane sa dokumentacionim usaglašavanjem (source u smislu aplikacionog koda nije menjan tim usaglašavanjem). Upoređeni su puni, netrunkirani Git trees i **svih 369 različitih `old_owner_paths`** koje referencira 208-zapisni Bridge. Ovo je automatska provera prisustva/identičnosti Git blob-a, **NE semantička provera svih 369 implementacija**.
+
+| Rezultat na 369 istorijskih putanja | Broj | Značenje za Codex |
+|---|---:|---|
+| Ista putanja, **isti Git blob** | **206** | Fajl je bajt-identičan istorijskom komitu. Može se koristiti već pročitano telo samo ako se poznati dependency/DEV ugovor nije promenio. Ne predstavlja automatski PASS. |
+| Ista putanja, **promenjen Git blob** | **116** | Pročitaj konkretan diff od istorijskog commita do aktuelnog, proveri aktivni caller/test i izvorni nalaz; ne citiraj stari line number kao sadašnji. |
+| Putanja **nedostaje** u trenutnom Git tree-u | **47** | **46/47** se po tačnoj tekstualnoj putanji nalazi u evidencijama `docs/cleanup/20261028-*.json`; proveriti odgovarajući retirement record i zamenski test, ne vraćati povučene module. Preostala 1/47 je apsolutna stara **vanrepo** prototipska putanja `/workspace/scratch/860d815b9b58/design_work/study_rev12/prototype_snapshot_REV11.js`; nije nedostajući aktivni app fajl. |
+
+Po kategorijama istorijskih referenci: R `12` sa source putanjama (3/12 svi stari blobovi nepromenjeni, 9/12 imaju promenu), F/SB/X `42` (7 potpuno starih / 35 sa promenom), C `19` (3 potpuno stara / 16 sa promenom ili povlačenjem), MARKET `24` (4 potpuno stara / 20 promenjena), UI `4` (svih 4 promenjena). **SV14, SCREEN77, ACCOUNT10, CAL6 nemaju direktni `old_owner_paths` u indeksu** i ovaj tree-drift za njih ne dokazuje current source pokrivenost: oni traže stvarni server/screen/client owner i acceptance iz Z16/77/S01–S18.
+
+**Codex filter:** nemoj prijaviti `MISSING_FILE`/`NOT_IMPLEMENTED` samo zato što je stari C cleanup povukao simbol, niti `FIXED` samo zato što je Git blob promenjen. Izvršni verdict i dalje mora da ima povezani aktuelni test i odgovarajući SQL/Edge/DEV/native dokaz. Ovaj drift treba ponoviti **samo kada se relevantan code owner promeni**, ne na svakom document-only commit-u.
+
+#### 12.6.8. Dodatni Product P0/P1 funkcionalni ugovori — ne izgubiti pri tehničkom radu
+
+Ovi usvojeni ciljevi su u [Product/UX masteru](../product/USKOCI_PRODUCT_UX_MASTER.md), naročito `I P0/P1` i S03–S14; sami po sebi ne dokazuju trenutni bug u svakom navedenom fajlu. Pre izvršenja proveriti današnji source i serverski ugovor; implementirati po postojećem R vlasniku:
+
+| Ugovor / negativni scenario | Veza i uslov |
+|---|---|
+| Application prijava **ne uvodi novi alternativni termin** niti implicitno dopisuje radnikovu veštinu; stariji journal može imati takav oblik | R07/R11/R12: novi form payload bez neželjenog polja; stari isti-key unresolved/replay sačuvan, ne menjati finalni dogovoreni termin bez potvrde. |
+| Za više osoba broj ljudi bira se **u konkretnoj prijavi**, ne kao trajan `team_capacity` radnog profila | R07/R11/R05: preostala mesta, whole-application izbor, server maksimalan broj i overfill race, bez proizvoljnog automatskog grupisanja ponuda. |
+| OFFERS poređenje kandidata mora koristiti **uporedivu cenu po osobi**; HOURLY po osobi/satu, ne total ekipe | R07/R11/R12: sort, preview, immutable application terms i accepted agreement pod istim units/people; pozitivni i negativni changed-revision test. |
+| Remote posao sa rokom nije automatski zauzet interval u kalendaru; dostupnost nije jednaka potvrđenoj obavezi | R05/R11e/R12: civil time zone/DST, start-only, flexible deadline, potvrđeni Dogovori i worker hard conflict bez lažnog `busy`. |
+| Aktivacija radnog profila koji nudi samo REMOTE mora biti moguća bez izmišljene adrese; `Mogu odmah` ima TTL i stvarno gašenje | R04/R05/R08/R12: saved workAreas i način rada, signed source, default/expired availability, exact Za mene/dispatch matcher. |
+| Push događaj mora voditi do **tačnog autorizovanog cilja** za izbor, izmenu, završetak, problem, ocene i dozvoljen Q&A | R09/R12: account/revision/logout/opt-out, suppression, direct-target + readback, ne tvrditi event pokrivenost iz jednog testnog batch-a. |
+| Owner Task saradnje moraju voditi do **tačnog zadatkom filtriranog** Dogovora ili task-group, bez mešanja odnosa | R03/R09/R11/R12: task identity, private conversation i cold link scope; dvostruki korisnici/race/closed case. |
+| Polja public task-a i profila ne smeju implicitno otkriti adresu, telefon, privatne veštine, status drugog korisnika ili nevezujuće ocene | R01/R07/R09/R11/R12: public coarse location, exact-location grant samo bilateralno, authorized role reputation i RLS/PostgREST negativa. |
+
+**Ovime je dokumentaciono zatvoreno prespajanje izvora za nastavak.** Nije dozvoljeno proglasiti tehnički `DONE` u ime ove dopune: realan R06/Full CI, R01 strict, R10 retention/erasure, DEV/native i Google Play release moraju dobiti zasebne run-ove, potpisani readback i korisnički zaključak kada je potreban.
