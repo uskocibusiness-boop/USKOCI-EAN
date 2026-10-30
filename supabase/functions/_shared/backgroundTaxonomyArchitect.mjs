@@ -43,8 +43,39 @@ function cacheNovelDecision(key, parentId, reason) {
   }
 }
 
-// In-memory store for asynchronous clarification hints across conversation turns
-const clarificationHintsByConversation = new Map();
+// Bounded same-isolate hints/fences, never a substitute for the SQL lifecycle.
+// One map slot per conversation/revision, including pending/consumed markers.
+const clarificationHintSlots = new Map();
+const CLARIFICATION_TTL_MS = 5 * 60 * 1000;
+const CLARIFICATION_MAX_SLOTS = 128;
+const hintMemoryKey = (conversationId, draftRevision) => JSON.stringify([conversationId, draftRevision]);
+function pruneClarificationHints(now = Date.now()) {
+  for (const [key, entry] of clarificationHintSlots) {
+    if (now < entry.timestamp || now - entry.timestamp >= CLARIFICATION_TTL_MS) clarificationHintSlots.delete(key);
+  }
+}
+function setHintMemorySlot(entry) {
+  pruneClarificationHints();
+  const key = hintMemoryKey(entry.conversationId, entry.draftRevision);
+  clarificationHintSlots.delete(key);
+  clarificationHintSlots.set(key, Object.freeze(entry));
+  while (clarificationHintSlots.size > CLARIFICATION_MAX_SLOTS) {
+    clarificationHintSlots.delete(clarificationHintSlots.keys().next().value);
+  }
+  return entry;
+}
+function hintMemorySlot(conversationId, draftRevision) {
+  pruneClarificationHints();
+  return clarificationHintSlots.get(hintMemoryKey(conversationId, draftRevision));
+}
+function reserveHintMemorySlot(conversationId, draftRevision) {
+  // An absent slot also needs an immutable token before awaiting. Otherwise
+  // evicting a later consume marker could turn undefined back into undefined
+  // and admit a stale response after the eviction/expiry (an ABA race).
+  return hintMemorySlot(conversationId, draftRevision) ?? setHintMemorySlot({
+    conversationId, draftRevision, consumed: true, timestamp: Date.now(),
+  });
+}
 
 const executionMode = value => value === 'ON_SITE' || value === 'REMOTE';
 class TaxonomyProviderError extends Error {
@@ -213,49 +244,40 @@ export function storeClarificationHint(conversationId, draftRevision, hint) {
   if (!conversationId) return;
   draftRevision = hintDraftRevision(draftRevision);
   if (draftRevision === null) return;
-  const existing = clarificationHintsByConversation.get(conversationId) ?? [];
-  const filtered = existing.filter((h) => h.draftRevision !== draftRevision);
-  filtered.push({
-    ...hint,
+  setHintMemorySlot({
+    service: hint.service, mode: hint.mode, ambiguityPrompt: hint.ambiguityPrompt, reason: hint.reason,
     conversationId,
-    draftRevision: draftRevision ?? null,
+    draftRevision,
     consumed: false,
     timestamp: Date.now(),
   });
-  clarificationHintsByConversation.set(conversationId, filtered);
 }
 
 export function getUnconsumedClarificationHint(conversationId, draftRevision) {
   if (!conversationId) return null;
   draftRevision = hintDraftRevision(draftRevision);
   if (draftRevision === null) return null;
-  const list = clarificationHintsByConversation.get(conversationId);
-  if (!Array.isArray(list) || list.length === 0) return null;
-  const found = list.find((h) => !h.consumed && h.draftRevision === draftRevision);
-  return found ?? null;
+  const found = hintMemorySlot(conversationId, draftRevision);
+  if (!found || found.consumed) return null;
+  const key = hintMemoryKey(conversationId, draftRevision);
+  clarificationHintSlots.delete(key);
+  clarificationHintSlots.set(key, found); // LRU only; never renew the timestamp.
+  return found;
 }
 
 export function consumeClarificationHint(conversationId, draftRevision, service) {
   if (!conversationId) return;
   draftRevision = hintDraftRevision(draftRevision);
   if (draftRevision === null) return;
-  const list = clarificationHintsByConversation.get(conversationId) ?? [];
-  let foundRevision = false;
-  const next = list.map(h => {
-    if (h.draftRevision !== draftRevision) return h;
-    foundRevision = true;
-    return { ...h, consumed: h.consumed || !service || h.service === service };
-  });
-  // Record the completed consume even before a first GET has populated memory.
-  // An immutable slot fences older reads; a fresh confirmed replacement can
-  // still populate the same revision after this operation.
-  if (!foundRevision) next.push({ conversationId, draftRevision, service, consumed: true, timestamp: Date.now() });
-  clarificationHintsByConversation.set(conversationId, next);
+  const previous = hintMemorySlot(conversationId, draftRevision);
+  // Replace the fence even when the named service differs. Confirmed consume
+  // drops the private text; an unrelated current hint keeps its original age.
+  setHintMemorySlot(previous && !previous.consumed && service && previous.service !== service
+    ? { ...previous }
+    : { conversationId, draftRevision, consumed: true, timestamp: Date.now() });
 }
 
 const trimSqlSpaces = value => typeof value === 'string' ? value.replace(/^ +| +$/g, '') : value;
-const hintMemorySlot = (conversationId, draftRevision) =>
-  clarificationHintsByConversation.get(conversationId)?.find(hint => hint.draftRevision === draftRevision);
 
 function cacheConfirmedHint(hint, previous) {
   // Same-isolate guard only: a late read/ACK cannot overwrite a newer hint or
@@ -299,7 +321,7 @@ export async function persistClarificationHint(rpc, hint) {
     : hint.reason ?? null;
   const normalizedHint = { ...hint, draftRevision, service: trimSqlSpaces(hint.service), mode: hint.mode ?? null,
     ambiguityPrompt: trimSqlSpaces(hint.ambiguityPrompt), reason };
-  const previous = hintMemorySlot(hint.conversationId, draftRevision);
+  const previous = reserveHintMemorySlot(hint.conversationId, draftRevision);
   if (typeof rpc === 'function') {
     let confirmed = false;
     try {
@@ -353,14 +375,19 @@ export async function persistConsumeClarificationHint(rpc, conversationId, draft
 
 export async function fetchUnconsumedClarificationHint(rpc, conversationId, draftRevision) {
   draftRevision = hintDraftRevision(draftRevision);
-  if (draftRevision === null) return null;
-  const mem = getUnconsumedClarificationHint(conversationId, draftRevision);
-  if (mem) return mem;
-  if (typeof rpc === 'function' && conversationId) {
-    const previous = hintMemorySlot(conversationId, draftRevision);
-    const data = await readClarificationHint(rpc, conversationId, draftRevision);
-    if (data) return cacheConfirmedHint(data, previous) ? data : getUnconsumedClarificationHint(conversationId, draftRevision);
+  if (!conversationId || draftRevision === null) return null;
+  if (typeof rpc !== 'function') return getUnconsumedClarificationHint(conversationId, draftRevision);
+  // The GET enforces open/current/unconsumed/unexpired state. Its schema has no
+  // expiresAt or operation ID, so even a young local hint cannot replace it.
+  // Use the caller's existing bounded RPC once; no write/provider retry or timer.
+  const previous = reserveHintMemorySlot(conversationId, draftRevision);
+  const data = await readClarificationHint(rpc, conversationId, draftRevision);
+  if (data) return cacheConfirmedHint(data, previous) ? data : null;
+  if (hintMemorySlot(conversationId, draftRevision) === previous) {
+    clarificationHintSlots.delete(hintMemoryKey(conversationId, draftRevision));
   }
+  // A conflicting or failed read never promotes a different local receipt to
+  // current database evidence, and cannot delete a newer same-isolate result.
   return null;
 }
 
