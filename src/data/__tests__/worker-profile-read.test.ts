@@ -36,7 +36,9 @@ it('only successful missing row is absence; Auth and table errors cannot create 
   mockRead.mockResolvedValue({ data: null, error: { message: 'private table diagnostic' } });
   await expect(supabaseIzvor.mojRadnikProfil()).rejects.toThrow('WORKER_PROFILE_READ_FAILED');
   mockRpc.mockClear(); mockFrom.mockClear(); mockGetUser.mockResolvedValue({ data: { user: null }, error: { message: 'private auth diagnostic' } });
-  await expect(supabaseIzvor.mojRadnikProfil()).rejects.toThrow('WORKER_PROFILE_READ_FAILED'); expect(mockFrom).not.toHaveBeenCalled();
+  await expect(supabaseIzvor.mojRadnikProfil()).rejects.toThrow('WORKER_PROFILE_READ_FAILED');
+  // The active protected profile projection must not be requested after failed Auth.
+  expect(mockRpc).not.toHaveBeenCalled(); expect(mockFrom).not.toHaveBeenCalled();
 });
 it.each([
   { team_capacity: null }, { team_capacity: 0 }, { team_capacity: '2' }, { team_capacity: 51 }, { capacity_revision: 'bad' }, { account_id: B }, { id: 'invalid' }, { kind: 'REQUESTER' }, { profile_status: 'UNKNOWN' }, { radius_km: null },
@@ -53,7 +55,7 @@ it('historically blank optional text remains blank and explicit false/1km is pre
 });
 it('requires an actual current account before any SDK request', async () => {
   mockSession.user = null; await expect(supabaseIzvor.mojRadnikProfil()).rejects.toThrow('WORKER_PROFILE_AUTH_REQUIRED');
-  expect(mockGetUser).not.toHaveBeenCalled(); expect(mockFrom).not.toHaveBeenCalled();
+  expect(mockGetUser).not.toHaveBeenCalled(); expect(mockRpc).not.toHaveBeenCalled(); expect(mockFrom).not.toHaveBeenCalled();
 });
 it.each(['auth', 'select'])('fences account ABA after an asynchronous %s operation', async stage => {
   let finish!: (result: unknown) => void;
@@ -66,12 +68,14 @@ it.each(['auth', 'select'])('fences account ABA after an asynchronous %s operati
 });
 it('does not query a profile for a different server Auth identity', async () => {
   mockGetUser.mockResolvedValue({ data: { user: { id: B } }, error: null });
-  await expect(supabaseIzvor.mojRadnikProfil()).rejects.toThrow('WORKER_PROFILE_READ_FAILED'); expect(mockFrom).not.toHaveBeenCalled();
+  await expect(supabaseIzvor.mojRadnikProfil()).rejects.toThrow('WORKER_PROFILE_READ_FAILED');
+  expect(mockRpc).not.toHaveBeenCalled(); expect(mockFrom).not.toHaveBeenCalled();
 });
 it('a timed-out Auth read cannot later start a profile query', async () => {
   jest.useFakeTimers(); let finish!: (result: unknown) => void;
   mockGetUser.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
   const pending = expect(supabaseIzvor.mojRadnikProfil()).rejects.toThrow('WORKER_PROFILE_READ_FAILED');
   await jest.advanceTimersByTimeAsync(15_000); await pending;
-  finish({ data: { user: { id: A } }, error: null }); await Promise.resolve(); expect(mockFrom).not.toHaveBeenCalled();
+  finish({ data: { user: { id: A } }, error: null }); await Promise.resolve();
+  expect(mockRpc).not.toHaveBeenCalled(); expect(mockFrom).not.toHaveBeenCalled();
 });
