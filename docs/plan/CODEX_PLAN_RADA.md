@@ -3420,6 +3420,17 @@ Ova matrica **nadjačava zastarele opise nivoa** iz ranijih datiranih checkpoint
 
 **Sačuvani status C/SV:** C01–C09, C12 i C18 imaju SOURCE/FOCUSED nivo (nisu svi release-DONE); C10/C11/C13/C15/C17 su parcijalni; C14/C16/C19 i bezbedno veliki cleanup ostaju otvoreni. SV01–SV03, SV05–SV14 nisu potpuno prihvaćeni; **SV04 jedini ima aktivan DEV transport v6, acceptance OPEN**. U ovoj dokumentacionoj reviziji nije izvršena ni jedna nova provera na telefonu, paid provider test, SQL apply ili aktuelni workflow run posle source HEAD-a.
 
+<!-- SOURCE-CONTINUATION-20261030-1833 -->
+#### A30 — HITNO regresija: konkretna ispravka 8 Jest paketa, 30.10.2026.
+
+Prethodni [full CI 41106500883](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41106500883) na source `f8cd83e3` je **FAIL, 615 PASS / 8 FAIL / 623 ukupno**. Deno provera **svih 12** main Edge handlera i zasebni media admission 7/7 PASS stigli su do Jest-a; svih osam fail-ova su stari testovi koji su očekivali budući HITNO uključen globalno dok V1 sada namerno ima `EXPO_PUBLIC_URGENT` isključen: `discovery-map-pills`, `push-preferences-native`, `w02-calendar-native`, `marketplace-presentation`, `task-card-face`, `own-task-card`, `task-card-layout-class`, `own-task-menu-screen`.
+
+**Izvršena source popravka:** [`85fe58fe`](https://github.com/uskocibusiness-boop/USKOCI-EAN/commit/85fe58fe06db28e0aec4c2067a1fd7145ef7d25c) — 8 postojećih Jest datoteka, **11 posebno imenovanih budućih HITNO slučajeva** dobilo je eksplicitno per-test uključenje i obavezno vraćanje prethodnog flag-a u `afterEach`. Ostali testovi u istim datotekama ostaju pod stvarnim V1 default-OFF, bez `jest.urgent-env.cjs` i bez `skip/only` ili umanjivanja očekivanih bezbednosnih assertion-a. To nije implementacija budućeg HITNO u javni build niti menja backend. Poslednji [full CI 41107840100](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41107840100) i zaseban [R01 41107840125](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41107840125) su pri ovom zapisu **IN_PROGRESS** на извору `85fe58fe`; ниједан није проглашен PASS унапред.
+
+**Sledeći obavezan readback:** ako Jest sada PASS, ne zaustavljati se — sledeći AI/R06 SQL test je ranije ostao iza Jest kapije, i njegov stvarni ishod tek treba pročitati; zatim TypeScript/Deno/manifest/release ograničenja po masteru. Ako bilo koji test padne, ponoviti taj isti mali source korak sa reprodukovanom regresijom, ne sakrivati fail. R01 strict parity ostaje nezavisan blokator. DEV/PROD/Edge/EAS/kod dizajna nisu menjani ovim checkpoint-om.
+
+<!-- SOURCE-CONTINUATION-1833-END -->
+
 <!-- SOURCE-CONTINUATION-20261030-1826 -->
 #### A30 — nastavak implementacije, CI regresije i proširenje provera — 30.10.2026.
 
