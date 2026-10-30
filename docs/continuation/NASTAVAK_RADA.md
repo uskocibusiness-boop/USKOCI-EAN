@@ -2,6 +2,23 @@
 
 Ovo je ulaz za nastavak, ne novi plan. Jedini operativni plan ostaje [CODEX_PLAN_RADA.md](../plan/CODEX_PLAN_RADA.md), posebno §11.2a i dnevnik `ledger-20261028`. Ovaj presek je napravljen 28.10.2026. Posle novih promena prednost ima noviji provereni zapis u tom planu.
 
+
+## AKTUELNA ULAZNA TAČKA — usaglašena izvršna istina (30.10.2026)
+
+**Ovaj odeljak ima prednost nad istorijskom komandom niže.** Nema novog mastera. Jedini izvršni dokument je [CODEX_PLAN_RADA.md](../plan/CODEX_PLAN_RADA.md) (§11.2a, §4.2–4.3, §12.5 i novo **§12.6**). Konačan Product/UX autoritet 29.10.2026, čija je **byte-identična** kopija sada na GitHub-u: [docs/product/USKOCI_PRODUCT_UX_MASTER.md](../product/USKOCI_PRODUCT_UX_MASTER.md), Git blob `1a487caca16d3354f79d0db7c76526893df6e5d7`, 31.746 redova. U njemu su kanonski odeljci A–J/S01–S18; istorijske sekcije ispod „ISTORIJSKA EVIDENCIJA” nisu konkurentski zahtevi. To je PRODUCT master, a ne paralelni Codex EXECUTION master.
+
+**Proverena početna CI istina PRE ovog dokumentacionog sređivanja:** source `472de27afcdffe86f9da3ad351cb3ff0e113367a`, [Full 41130520059](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41130520059) **FAIL** (10 R06 SQL syntactic + 29 media harness/fixture slučajeva unutar AI/Edge faze); [R01 41130520128](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41130520128) **FAIL** (8 strict, 49 owner/ACL, 3 native helper razlike). Dokumentacioni commitovi nisu kodna popravka i noviji CI se mora pogledati pre tvrdnje da je gate zatvoren.
+
+**Naredni kontrolisani koraci za Codex:**
+1. Učitaj **radnu** `work/rev14-review-f17` (ne GitHub default i ne target `feature/uskoci-cisto`), proveri remote HEAD, lokalno stablo, PR #43 i poslednji završen run baš na relevantnom code SHA. Ne resetuj tuđi kod.
+2. Pročitaj **jednom** postojeći CODEX master §11.2a + §12.6 + §4.2–4.3, zatim konkretan R/C/SV zadatak. Kada je korisnički UI ili proizvodna logika pogođena, otvori samo odgovarajući S01–S18 deo Product mastera i njegov E/J acceptance; ne čitaj sve istorijske revizije ponovo.
+3. U Bridge-u su 208 **istorijskih pokazivača**, ne 208 otvorenih grešaka; 77 puni screen contracts, 44 dodatna nalaza, 13 mikrotokova mapirani su u §12.6. Obnovi i proveri paket jednom; za jedan R posao koristi `kontekst.py` i `drift.py` na tačnim source putanjama.
+4. **Prvi tehnički prioritet:** tačna R06 SQL/PGlite sintaksa i medijski testni harness koji se promenio zajedno sa `mediaUploadAdmission.mjs`, bez slabljenja testova. Izvrši fokusirane, zatim puni Full CI. Nastavi nezavisno R01 realan Auth/PostgREST/PG17 i ostale R02–R12 prema §4.2. Ne ponavljaj isti FAIL bez nove hipoteze.
+5. Za svaku izmenu zapiši samo u **isti §11.2a**: R/C/SV ID, PRODUCT pravilo, current reader/writer putanju i SHA, dokaz iz Bridge-a, test (pozitivan/negativan), relevantan CI run i DEV/NATIVE readback, pre/posle status i sledeći posao.
+6. R01 striktni paritet, R10 data erasure/export, stare klijentske kompatibilnosti i R12 dva Android naloga/uređaja ostaju stvarne RELEASE kapije. Ne raditi SQL/Edge DEV apply, billing aktivaciju, produkciju ili merge automatski samo zato što dokumentacija sada ima ujedinjen redosled.
+
+**Završetak dokumentacionog dela ≠ završetak aplikacije.** Već odlučena pravila (4 root taba bez Profila, max 6 fotografija/1–3 preporuka, bez obaveznog grada na SIGNUP, role-scoped reputacija, domenska istorija umesto `/arhiva` full ekrana) su navedena u §12.6; ne zahtevaju ponovno pitanje vlasniku, ali zahtevaju stvarnu implementaciju, kompatibilnost i dokaz tamo gde code još odstupa.
+
 > **Obavezno pre nastavka:** ovaj dokument sadrži istorijski presek prenosa od 28.10.2026, a grana je potom napredovala. Brojevi, statusi i „prvi sledeći korak” u kopiranoj komandi ispod nisu zamena za novije zapise glavnog plana. Prvo osveži radnu granu bez gubitka lokalnih izmena, pročitaj najnovije dopune izvršnog dnevnika i proveri rezultat tamo navedenog CI-a. Konkretan naredni zadatak uzmi iz najnovijeg relevantnog zapisa, ne iz istorijske tačke 6 ovog uputstva.
 >
 > **Bez ponavljanja analize u krug:** sačuvani nalazi, izvorni registri, odluke i završene provere su početna osnova. Za izabrani zadatak pročitaj njegov postojeći izvršni zapis, povezani izvor i uslov prihvatanja. Ponovo proveravaj samo promenjeni kod/okruženje, nedostajući dokaz ili novu regresiju; navedi razlog. Posle provere pređi na implementaciju ili precizno zabeleži blokadu i nastavi nezavisan posao. Opšti ponovni audit svih ZIP-ova nije preduslov svake izmene.
