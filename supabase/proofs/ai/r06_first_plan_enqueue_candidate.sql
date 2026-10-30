@@ -212,8 +212,7 @@ BEGIN
     AND (q.state<>'CLAIMED' OR q.lease_until<statement_timestamp())
     AND q.dispatched_at IS NULL
     AND NOT private.closure_account_restricted(q.account_id)
-  ORDER BY q.created_at,q.id
-  FOR UPDATE SKIP LOCKED LIMIT p_limit LOOP
+  ORDER BY q.created_at,q.id LIMIT p_limit FOR UPDATE SKIP LOCKED LOOP
    v_source:=private.taxonomy_first_plan_current_source_v1(
      j.account_id,j.conversation_id,j.client_request_id,j.turn_id,j.attempt_id,j.purpose);
    IF v_source IS DISTINCT FROM j.source_fingerprint OR j.attempts>=3 THEN
@@ -317,7 +316,7 @@ BEGIN
    RAISE EXCEPTION 'R06_FIRST_PLAN_LIMIT_INVALID' USING errcode='22023'; END IF;
  FOR j IN SELECT * FROM private.work_taxonomy_first_plan_jobs_v1 q
   WHERE q.state='DISPATCHED' AND q.lease_until<statement_timestamp()
-  ORDER BY q.created_at,q.id FOR UPDATE SKIP LOCKED LIMIT p_limit LOOP
+  ORDER BY q.created_at,q.id LIMIT p_limit FOR UPDATE SKIP LOCKED LOOP
    v_state:=CASE WHEN EXISTS(
      SELECT 1 FROM private.work_taxonomy_gemini_turn_hints_v1 h
      WHERE h.purpose=j.purpose AND h.account_id=j.account_id
