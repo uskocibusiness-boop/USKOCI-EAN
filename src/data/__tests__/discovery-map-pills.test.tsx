@@ -154,6 +154,8 @@ test('positive account relations label individual pins without putting private o
 });
 
 test('selected urgent own task keeps selection, urgency and relationship distinct; a shared point has no individual badge', async () => {
+  // Opt in only to the dormant HITNO behavior this specific assertion verifies.
+  process.env.EXPO_PUBLIC_URGENT = '1';
   extra = { relations: taskRelationIndex([{ needId: 'urgent', relation: 'OWNER' }], rows.map(item => item.id)) };
   selectedId = 'urgent'; await render(); await ready();
   const selected = pills().find(pill => pill.selected);
@@ -169,6 +171,8 @@ test('selected urgent own task keeps selection, urgency and relationship distinc
 // Review r3 item 8: the native side keys annotations by id. An id that stayed `pill-<point>` while the content changed let
 // an insert-before-remove in one commit leave a dead pill; the id now changes with what the pill says, as its key does.
 test('a pill\'s native id changes with what it says, as its key does', async () => {
+  // Opt in only to the dormant HITNO behavior this specific assertion verifies.
+  process.env.EXPO_PUBLIC_URGENT = '1';
   await render(); await ready();
   const ids = () => annotations().map(node => String(node.props.id));
   expect(ids()).toContain('pill-44.81,20.46-6.000 RSD-false');

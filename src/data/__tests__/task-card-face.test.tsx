@@ -434,6 +434,8 @@ describe('what a screen reader hears', () => {
   });
 
   it('has no stop of its own inside: the whole face sits under a subtree hidden from assistive technology', async () => {
+  // Opt in only to the dormant HITNO behavior this specific assertion verifies.
+  process.env.EXPO_PUBLIC_URGENT = '1';
     await render(<TaskCard item={task({ urgency: LATER })} onOpen={jest.fn()} />);
     const [card] = presses();
     const hidden = (node: ReactTestInstance): boolean => node !== card && (node.props.importantForAccessibility === 'no-hide-descendants'
