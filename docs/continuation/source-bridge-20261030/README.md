@@ -1,5 +1,8 @@
 # USKOČI — povezana izvorna forenzika REV10–REV14 (30. oktobar 2026)
 
+> **NOVI POTPUNI REFERENTNI IZVOR:** [Product/UX master od 29.10](../../product/USKOCI_PRODUCT_UX_MASTER.md), bajt-identično sačuvan; kanonski A–J/S01–S18 ima prednost nad starim vizuelnim predlozima, dok je **jedini izvršni master** i dalje [CODEX_PLAN_RADA.md](../../plan/CODEX_PLAN_RADA.md) (§11.2a, §12.5–12.6). Bridge pokazuje istorijsko poreklo, NE 208 otvorenih bugova niti kompletan potvrđen runtime. Radna grana je `work/rev14-review-f17`; CI/DEV/NATIVE stanje uzimati iz poslednjeg izvršnog dokaza, ne iz Bridge preseka. Već odlučeno: MAX 6 fotografija (1–3 preporuka), `/arhiva` samo kompatibilnost, signup bez obaveznog grada, 2 role reputacije, 4 glavna taba. Korekcija [77 starih ugovora](UGOVORI_77.md) čuva ID-jeve i jasno označava povučeni stari archive target.
+
+
 **Ovo NIJE drugi master.** Jedini važeći izvršni plan: [`docs/plan/CODEX_PLAN_RADA.md`](../../plan/CODEX_PLAN_RADA.md), posebno §11.2a (status i dokazi) i §12.5 (poreklo i mapa za nastavak). Ovo je čitljiv indeks **dokaza** i samoproveravajući arhiv za Codex.
 
 ## Šta sadrži
