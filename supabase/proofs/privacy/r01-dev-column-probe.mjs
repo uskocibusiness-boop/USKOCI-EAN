@@ -6,7 +6,12 @@ export const DEV_PROJECT_REF='leqcwgzvjsxugfgzdmth';
 export const DEV_ORIGIN=`https://${DEV_PROJECT_REF}.supabase.co`;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_BODY_BYTES=32768;
-const PRIVATE_COLUMNS=['requester_account_id','remaining_search_closed_by_account_id','remaining_search_close_reason'];
+// R01's 38-column public allowlist excludes these four fields. category_id
+// is internal rather than a personal identifier, but is not a direct public
+// Data API projection; the bound test guards drift with the SQL candidate.
+const PRIVATE_COLUMNS=['requester_account_id','remaining_search_closed_by_account_id','remaining_search_close_reason','category_id'];
+const MAX_GET_REQUESTS=20;
+const EXPECTED_PRIVATE_PROBES=17;
 class ProbeError extends Error {
   constructor(code){super(code);this.code=code;}
 }
@@ -96,10 +101,11 @@ export async function runDevColumnProbe(input){
     result:'REFUSED',reason:null,actual_user_verified:false,r01_accepted:false,
     public_controls:{before:false,after:false},private_results:[],
     private_projection_outcome:'NOT_VERIFIED',request_count:0,
-    expected_private_probes:13,limits:{max_body_bytes:MAX_BODY_BYTES},
+    expected_private_probes:EXPECTED_PRIVATE_PROBES,limits:{max_body_bytes:MAX_BODY_BYTES,max_get_requests:MAX_GET_REQUESTS},
     limitations:['Zero-row projection/permission diagnostic only; no business rows or fixture writes.',
       'No RLS/world/owner/participant positive-row, candidate, closure, native-client or disposable parity acceptance.',
       'Matching HTTP denial requires exact permission error plus successful public controls; other failures are inconclusive.',
+      'Four current non-public columns are covered; future schema changes need a new admission review.',
       'The caller must separately bind an approved synthetic account; this probe does not discover or create one.']};
   let limits;
   try{limits=validateInput(input);}catch(error){report.reason=error instanceof ProbeError?error.code:'INPUT_REFUSED';return report;}
@@ -123,6 +129,7 @@ export async function runDevColumnProbe(input){
     overall.signal.addEventListener('abort',onOverallAbort,{once:true});
     const timer=setTimeout(()=>controller.abort('REQUEST_TIMEOUT'),limits.requestTimeoutMs);
     try{
+      if(report.request_count>=MAX_GET_REQUESTS)fail('REQUEST_LIMIT_REFUSED');
       report.request_count++;
       const response=await raceAbort(fetchImpl(url.href,{method:'GET',redirect:'error',credentials:'omit',cache:'no-store',
         headers:{Accept:'application/json',apikey:input.publicApiKey,Authorization:`Bearer ${input.accessToken}`},
@@ -166,7 +173,7 @@ export async function runDevColumnProbe(input){
     }
     report.public_controls.after=isEmptySuccess(await tableRead({select:'id'}));
     if(!report.public_controls.after){report.result='INCONCLUSIVE';report.reason='PUBLIC_CONTROL_FAILED';inconclusive();}
-    else if(report.private_results.length!==13||report.private_results.some(row=>row.classification==='inconclusive')){
+    else if(report.private_results.length!==EXPECTED_PRIVATE_PROBES||report.private_results.some(row=>row.classification==='inconclusive')){
       report.result='INCONCLUSIVE';report.reason='UNCLASSIFIED_PRIVATE_RESPONSE';inconclusive();
     }else {
       report.result='COMPLETED';

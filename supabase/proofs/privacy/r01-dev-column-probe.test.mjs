@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { snapshot } from './r01_fixture.mjs';
 import { DEV_ORIGIN, runDevColumnProbe } from './r01-dev-column-probe.mjs';
 
 const userId='11111111-1111-4111-8111-111111111111';
@@ -21,13 +23,37 @@ function fixture(handler){
   return {calls,fetch};
 }
 
+test('R01 SQL allowlist and current 42-column proof agree with the entire HTTP exclusion set',async()=>{
+  // This intentionally fails on an unreviewed new column or changed SQL allowlist.
+  const sql=readFileSync(new URL('../../candidates/r01_needs_column_privileges.sql',import.meta.url),'utf8');
+  const match=sql.match(/allowed CONSTANT text\[\] := ARRAY\[([\s\S]*?)\];/);
+  assert.ok(match,'candidate public allowlist must exist');
+  const allowed=[...match[1].matchAll(/'([a-z_]+)'/g)].map(x=>x[1]);
+  const current=snapshot.columns.map(x=>x.name);
+  const excluded=current.filter(x=>!allowed.includes(x)).sort();
+  assert.equal(allowed.length,38);
+  assert.equal(new Set(allowed).size,38);
+  assert.equal(current.length,42);
+  assert.equal(new Set(current).size,42);
+  assert.deepEqual(excluded,['category_id','remaining_search_close_reason',
+    'remaining_search_closed_by_account_id','requester_account_id'].sort());
+  assert.deepEqual(allowed.filter(x=>!current.includes(x)),[]);
+  const f=fixture();const report=await runDevColumnProbe(options({fetch:f.fetch}));
+  assert.deepEqual([...new Set(report.private_results.filter(x=>x.column!=='*')
+    .map(x=>x.column))].sort(),excluded);
+  assert.equal(report.expected_private_probes,17);
+  assert.equal(report.limits.max_get_requests,20);
+  assert.equal(report.request_count,20);
+  assert.equal(report.r01_accepted,false);
+});
+
 test('only verified end-user GETs with zero rows and no count; public controls bracket all private forms',async()=>{
   const f=fixture();const report=await runDevColumnProbe(options({fetch:f.fetch}));
   assert.equal(report.result,'COMPLETED');assert.equal(report.actual_user_verified,true);
-  assert.equal(report.r01_accepted,false);assert.equal(report.private_results.length,13);
+  assert.equal(report.r01_accepted,false);assert.equal(report.private_results.length,17);
   assert.equal(report.private_projection_outcome,'AT_LEAST_ONE_PRIVATE_PROJECTION_ACCEPTED');
   assert.ok(report.private_results.every(row=>row.classification==='accepted_private_projection'));
-  assert.equal(f.calls.length,16);
+  assert.equal(f.calls.length,20);
   assert.equal(f.calls[0].url.pathname,'/auth/v1/user');
   const reads=f.calls.slice(1);
   assert.equal(reads[0].url.searchParams.get('select'),'id');
@@ -38,7 +64,7 @@ test('only verified end-user GETs with zero rows and no count; public controls b
     assert.equal(new Headers(init.headers).has('prefer'),false);
     if(url.pathname==='/rest/v1/needs')assert.equal(url.searchParams.get('limit'),'0');
   }
-  for(const column of ['requester_account_id','remaining_search_closed_by_account_id','remaining_search_close_reason']){
+  for(const column of ['requester_account_id','remaining_search_closed_by_account_id','remaining_search_close_reason','category_id']){
     assert.ok(reads.some(({url})=>url.searchParams.get('select')===column));
     assert.ok(reads.some(({url})=>url.searchParams.get('select')===`probe_value:${column}`));
     assert.ok(reads.some(({url})=>url.searchParams.get(column)==='is.null'));
@@ -63,16 +89,32 @@ test('mixed zero-row privileges keep a blocking verdict when only one private pr
   let tableReads=0;
   const f=fixture(()=>{
     tableReads++;
-    if(tableReads===1||tableReads===2||tableReads===15)return json([]);
+    if(tableReads===1||tableReads===2||tableReads===19)return json([]);
     return json({code:'42501',message:'permission denied for table needs'},403);
   });
   const report=await runDevColumnProbe(options({fetch:f.fetch}));
   assert.equal(report.result,'COMPLETED');
   assert.equal(report.private_projection_outcome,'AT_LEAST_ONE_PRIVATE_PROJECTION_ACCEPTED');
   assert.equal(report.private_results.filter(row=>row.classification==='accepted_private_projection').length,1);
-  assert.equal(report.private_results.filter(row=>row.classification==='denied_private_projection').length,12);
+  assert.equal(report.private_results.filter(row=>row.classification==='denied_private_projection').length,16);
   assert.equal(report.r01_accepted,false);
-  assert.equal(f.calls.length,16);
+  assert.equal(f.calls.length,20);
+});
+
+test('category_id alone remains a blocking direct projection outside the reviewed public columns',async()=>{
+  const f=fixture(url=>{
+    if(url.searchParams.get('select')==='id'&&url.searchParams.size===2)return json([]);
+    if(url.searchParams.get('select')==='category_id')return json([]);
+    return json({code:'42501',message:'permission denied for table needs'},403);
+  });
+  const report=await runDevColumnProbe(options({fetch:f.fetch}));
+  assert.equal(report.result,'COMPLETED');
+  assert.equal(report.private_projection_outcome,'AT_LEAST_ONE_PRIVATE_PROJECTION_ACCEPTED');
+  assert.deepEqual(report.private_results.filter(x=>x.classification==='accepted_private_projection')
+    .map(x=>[x.column,x.form]),[['category_id','select']]);
+  assert.equal(report.private_results.filter(x=>x.classification==='denied_private_projection').length,16);
+  assert.equal(report.request_count,20);
+  assert.equal(report.r01_accepted,false);
 });
 
 for(const [label,change] of [
@@ -116,7 +158,7 @@ for(const message of ['ACCOUNT_CLOSING','permission denied for schema public','A
 }
 
 test('a failed final public control invalidates all preceding private classifications',async()=>{
-  let reads=0;const f=fixture(()=>++reads===15?json({code:'42501',message:'ACCOUNT_CLOSING'},403):json([]));
+  let reads=0;const f=fixture(()=>++reads===19?json({code:'42501',message:'ACCOUNT_CLOSING'},403):json([]));
   const report=await runDevColumnProbe(options({fetch:f.fetch}));
   assert.equal(report.result,'INCONCLUSIVE');assert.equal(report.reason,'PUBLIC_CONTROL_FAILED');
   assert.equal(report.private_projection_outcome,'NOT_VERIFIED');
