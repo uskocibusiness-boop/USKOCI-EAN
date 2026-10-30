@@ -44,13 +44,22 @@ jobs:
         run: node --test --test-reporter=spec supabase/proofs/privacy/r01-dev-column-probe.test.mjs
       - name: TypeScript
         run: npx tsc --noEmit
-      - name: Deno AI Edge import and type checks (no execution)
+      - name: Deno non-npm Edge type checks (11 main functions; no execution)
         run: |
           deno check --no-config --no-lock --no-npm --no-remote \
+            supabase/functions/uskoci-account-closure-worker/index.ts \
             supabase/functions/uskoci-ai-interview/index.ts \
-            supabase/functions/uskoci-worker-interview/index.ts \
+            supabase/functions/uskoci-data-export-download/index.ts \
+            supabase/functions/uskoci-data-export-worker/index.ts \
+            supabase/functions/uskoci-location-search/index.ts \
+            supabase/functions/uskoci-publication-evaluate/index.ts \
+            supabase/functions/uskoci-push-transport/index.ts \
+            supabase/functions/uskoci-qa-classify/index.ts \
+            supabase/functions/uskoci-speech-session/index.ts \
             supabase/functions/uskoci-taxonomy-postsave-worker/index.ts \
-            supabase/functions/uskoci-speech-session/index.ts
+            supabase/functions/uskoci-worker-interview/index.ts
+      - name: Deno pinned npm Media Edge type check (12th main function; no execution)
+        run: deno check --no-config --no-lock --no-remote --node-modules-dir=none supabase/functions/uskoci-media/index.ts
       - name: R04 semantic SQL isolation and signed publication fence (no DEV write)
         run: |
           node --test --test-reporter=spec supabase/proofs/ai/r04_semantic_review_pending.test.mjs supabase/proofs/ai/r04_signed_taxonomy_publish_fence.test.mjs
