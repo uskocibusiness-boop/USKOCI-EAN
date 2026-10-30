@@ -718,6 +718,7 @@ async function novelDecisionKey(request, catalog, unresolved) {
 async function classifyNovelServicesWithGemini({ geminiKey, request, signal }) {
   const res = await fetch(request.url, {
     method: 'POST',
+    redirect: 'error',
     headers: {
       'Content-Type': 'application/json',
       'x-goog-api-key': geminiKey,
@@ -938,6 +939,7 @@ async function classifyWorkerServicesWithGemini({
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent`;
   const res = await fetch(url, {
     method: 'POST',
+    redirect: 'error',
     headers: {
       'Content-Type': 'application/json',
       'x-goog-api-key': geminiKey,

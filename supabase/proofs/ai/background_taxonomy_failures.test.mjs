@@ -8,9 +8,11 @@ let version = 800000;
 function fixture(t, provider, modes = ['ON_SITE'], categoryPatch = {}) {
   const catalogVersion = ++version;
   const calls = [];
+  const requestOptions = [];
   t.mock.method(globalThis, 'fetch', async (_url, init) => {
+    requestOptions.push({ method: init.method, redirect: init.redirect });
     calls.push(JSON.parse(init.body));
-    return provider();
+    return provider(init);
   });
   const rpc = async name => {
     assert.equal(name, 'rpc_taxonomy_fetch_snapshot_v1');
@@ -20,7 +22,7 @@ function fixture(t, provider, modes = ['ON_SITE'], categoryPatch = {}) {
         path: ['Servis klima'], pathIds: [categoryId], ...categoryPatch },
     ] } };
   };
-  return { calls, args: { rpc, geminiKey: 'synthetic', geminiModel: 'synthetic', conversationId: 'synthetic-conversation', draftRevision: 4 } };
+  return { calls, requestOptions, args: { rpc, geminiKey: 'synthetic', geminiModel: 'synthetic', conversationId: 'synthetic-conversation', draftRevision: 4 } };
 }
 const response = (value, extra = {}) => new Response(JSON.stringify({ candidates: [
   { finishReason: 'STOP', content: { parts: [{ text: JSON.stringify(value) }] }, ...extra },
@@ -55,6 +57,35 @@ for (const [label, provider, expected] of failureCases) {
     });
   }
 }
+
+for (const [purpose, build] of [['need', need], ['worker', worker]]) {
+  test(`R06 ${purpose}: provider redirect is rejected before following an unexpected destination`, async t => {
+    // Simulate Fetch's redirect:'error' rejection, without contacting a provider
+    // or copying the synthetic API key into the simulated second hop.
+    const f = fixture(t, init => {
+      if (init.redirect === 'error') throw new TypeError('simulated redirect refusal');
+      return response({ decisions: [{ service: 'Popravka klima', mode: 'ON_SITE',
+        action: 'CREATE_CHILD', parentId: categoryId, reason: 'Valid synthetic categorization.' }],
+        items: [] });
+    });
+    const result = await build(f.args);
+    assert.deepEqual(f.requestOptions, [{ method: 'POST', redirect: 'error' }]);
+    assert.equal(f.calls.length, 1, 'never retry a possibly dispatched paid request');
+    assert.deepEqual(result.proposals, [], 'redirect may not yield an accepted classification');
+    assert.deepEqual(result.clarifications, []);
+    assert.ok(result.failures.some(failure => failure.code === 'PROVIDER_TRANSPORT_FAILURE'));
+  });
+}
+test('R06 need: a normal non-redirecting response still classifies a new service', async t => {
+  const f = fixture(t, () => response({ decisions: [{ service: 'Popravka klima', mode: 'ON_SITE',
+    action: 'CREATE_CHILD', parentId: categoryId, reason: 'Valid synthetic categorization.' }] }));
+  const result = await need(f.args);
+  assert.deepEqual(f.requestOptions, [{ method: 'POST', redirect: 'error' }]);
+  assert.equal(result.proposals.length, 1);
+  assert.equal(result.proposals[0].action, 'CREATE_CHILD');
+  assert.deepEqual(result.failures, []);
+});
+
 test('missing credentials do not call a provider or invent a question', async t => {
   const f = fixture(t, () => { throw new Error('must not call'); });
   for (const build of [need, worker]) {
@@ -236,6 +267,7 @@ test('R04 BOTH: two explicit modes preserve one category parent and requested RE
   const f=fixture(t,()=>response({items:[fullDecision('ON_SITE'),fullDecision('REMOTE')]}));
   const result=await worker(f.args,bothRequest);
   assert.equal(f.calls.length,1);
+  assert.deepEqual(f.requestOptions, [{ method: 'POST', redirect: 'error' }]);
   assert.deepEqual(result.proposals.map(p=>p.mode),['ON_SITE','REMOTE']);
   assert.deepEqual(result.proposals.map(p=>p.parentId),[categoryId,categoryId]);
   assert.equal(result.proposals[0].action,'CREATE_CHILD');
