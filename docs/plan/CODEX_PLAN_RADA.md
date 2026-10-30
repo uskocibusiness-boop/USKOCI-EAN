@@ -1,6 +1,15 @@
 # USKOČI — jedinstveni plan dovršavanja proizvoda i objavljivanja
 <!-- EXECUTION-UPDATE-BEGIN: provenance-20261028 -->
 
+<!-- A30-EXECUTION-RECONCILIATION-20261030 -->
+> **NAJNOVIJI IZVRŠNI PRESEK — 30.10.2026, isključivo usaglašavanje mastera (A30).** Jedini operativni plan je i dalje ovaj `docs/plan/CODEX_PLAN_RADA.md`; radni source pre dokumentacionog upisa je `work/rev14-review-f17@c7a0b964027fe0ee4ba02795cf99484279e39382`, [Draft PR #43](https://github.com/uskocibusiness-boop/USKOCI-EAN/pull/43) prema `feature/uskoci-cisto`. Dopunjeni nezavisni predlog 30.10 (`V-01–V-03, D01–D13, M01–M10`) ovde je **prevezan** na postojeće R01–R12, F/SB/X, C01–C19 i SV01–SV14, a NE dodat kao drugi plan. Novi tehnički nalazi nose prefiks **A30-D01–A30-D13**: stara vlasnička **Z10/D06** i **Z10/D08** ostaju satnica po osobi i povezivanje od početka posla. Ne tvrditi da je 100% svih mogućih kvarova pronađeno. Izričita odluka vlasnika: **Profil NE IDE u donju navigaciju**; trenutni jedan shell sa četiri glavna taba se čuva. Globalnog preklopnika uloga nema. Redizajn i vizuelni master su odvojeni i ovde se **ne odlučuje** o njima ili o novim tabovima Dogovora.
+
+> **CI istina:** [full 41074572909](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41074572909) za pomenuti source je **FAIL** u AI/R06 SQL kandidat proverenim testovima; mobile Jest, TypeScript i postojeća četiri direktna Deno check-a prošli su do tog koraka. [R01 41074572941](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41074572941) je nezavisno **FAIL** na 8 strict, 49 extension-owner/ACL i 3 managed-net razlike. `caller_mismatch_count=0` uz `caller_scope_verified=false` NIJE zatvoren paritet. R06 `supabase/proofs/ai/r06_first_plan_enqueue_candidate.sql` je LOCAL_ONLY (NE migracija/deploy), sa devet PL/pgSQL `END $tag$;` završetaka bez unutrašnjeg `;`; AI harness prijavljuje `syntax error at end of input`. Prvi sledeći **kodni** posao je precizna sintaksna popravka + izolovani R06 test + ceo AI + full CI; to NIJE izvršeno ovom dokumentacionom revizijom.
+
+> **DEV read-only 30.10:** `leqcwgzvjsxugfgzdmth` ACTIVE_HEALTHY, PostgreSQL 17.6.1.165, **314** evidentiranih live migracija i **15** aktivnih Edge funkcija (12 glavnih repo + tri dodatne/testne). Need AI **v151**, Worker AI **v104**, post-save worker **v6**, media **v22**, push **v37**. Jedino SV04 post-save v6 ima ranije odobren parcijalan DEV transport deploy, stvarni signed end-to-end retry/readback prihvat nije. `private.retention_ai_source_ready()=false`, `private.data_export_policy_binding() IS NULL`; R10 i release nisu spremni. Ovaj upis **ne menja** aplikacioni kod, SQL, ACL/RLS, DEV/PROD, Edge, EAS, tajne, feature flagove, cron, APK ili business podatke. Starije datirane tvrdnje ispod ostaju istorija, ne aktuelni izvor statusa.
+
+> **Radni prioritet A30:** R06 SQL/source CI pa nezavisne R01/Auth/PostgREST i PG17 kanonske RPC provere; R04/R06 durable first-plan, AI budžet/default-OFF; 12/12 Edge tipovi i V1 test okruženje; postojeći R02–R12 funkcionalni tokovi; M01–M10 tek kroz izolovano dokazani dependency lanac i posebno odobrene DEV promene; Android E2E na dva naloga/telefona; *poslednje* dokazano bezbedno C/SV čišćenje. R01 blokira SQL promociju i release, ali ne nezavisan source/QA rad. Nema masovnog brisanja 250 test suite-ova, 39 source ili ~1.480 SQL/proof fajlova na osnovu samog broja.
+
 > **Najnovije — odobren i izvršen uski DEV prenos, 29.10.2026.** Posle korisnikovog „Odobravam” prenet je samo SV04 transport `uskoci-taxonomy-postsave-worker`, **v5 → v6 ACTIVE**, na kanonski DEV `leqcwgzvjsxugfgzdmth` u **21:21:05.811 UTC**. Oba isporučena fajla ponovo su preuzeta i byte-identična testiranom paketu; 36/36 ciljanih testova i 3/3 bezbedne HTTP probe pre i posle prenosa PASS. Pet postojećih SQL ugovora/dozvola nepromenjeno. Need v151 i Worker v104 ostaju nepromenjeni: novi razgovorni/BG/cache source još nije deployovan. Nema SQL apply-a, izmene tajni/flagova/cron-a, ručno pokrenutog poslovnog tick-a, poziva Geminija ili slanja obaveštenja. Postojeći scheduler nastavlja svoj rad; ne tvrdi se da u pozadini nije bilo upisa. R01/R10 i potpuni SV04 retry/readback prihvat ostaju otvoreni. Prethodni zapisi „nema DEV deploy-a” opisuju stanje pre ovog izričitog odobrenja; detaljan zapis i rollback su u §11.2a.
 
 > **Nastavak 29.10.2026 — R06/R08 source potvrđen; R01 uzrok sužen, nije zatvoren.** Nastavljen je isti checkout sa `20cf55c3`; korisnički prilozi ostaju netaknuti. `519da086` uklanja suvišni dual katalog prefetch, ograničava i vezuje Need decision-cache za stvarni zahtev, zatvara post-save body/abort praznine i vraća pregled area-only radnog nacrta. `3f2378aec961c0f1574ba47409fd34ed179694a1` dodaje samo R01 pre/post dijagnostiku. [Full CI 40953254095 SUCCESS](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40953254095): 621 suite / 14.280 testova / 3 snapshota; AI 1099 PASS + 1 postojeći TODO. [R01 40953254067 FAIL](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/40953254067) na STRICT_PARITY: istih 8 strict / 49 owner-ACL / 3 managed-hook razlika. Novi native 17.6 dokaz pokazuje da svih 49 extension rutina ima već isto zatečeno owner/ACL stanje pre lokalnih prerequisites; oni nisu izvor tih razlika. To ne dokazuje tačan hosted/native provisioning uzrok niti daje parity waiver. Detalji i sledeći koraci su u §11.2a; niži datirani checkpoint-i su istorija. Završni checkpoint menja samo ovaj dokument, ne testirani source. DEV/PROD nisu menjani, R01 i trajni first-plan posao ostaju otvoreni.
@@ -96,7 +105,7 @@ U narednim odeljcima „postojeće”, „aktuelno telo” i linijski brojevi oz
 
 Ova pravila proizlaze iz dostavljenog aktuelnog paketa i pročitanog STATUS-a. Novija izričita odluka korisnika ima prednost. Naziv starog testa, izdvojeni prototip ili istorijska memorija ne menjaju kanon.
 
-1. **Dve uloge u jednom proizvodu.** Naručilac i izvršilac imaju odvojene zadatke, prikaze i ovlašćenja. Promena uloge ili naloga ne prenosi nedozvoljene podatke i komande.
+1. **Jedan nalog, dve uloge po objektu, bez globalnog moda.** Isti nalog može objaviti svoj zadatak i prijaviti se na tuđi; stvarna prava dolaze iz serverom potvrđenog odnosa sa konkretnim zadatkom/Dogovorom, ne iz preklopnika. Root shell ima četiri glavna taba: Početna, Zadaci, Dogovori i Poruke. Profil ostaje zasebna ruta, **ne peti donji tab** (vlasnička odluka 30.10). Nacrti, poruke, session/revision i komande ne prelaze na drugi nalog ili tuđ objekat.
 2. **Prirodan razgovor.** Sve jasne činjenice ulaze u predlog. Sledeći odgovor traži najviše jednu stvarno potrebnu informaciju. Prazan ulaz ne pokreće model ili poslovni upis.
 3. **Klasifikacija je unutrašnji posao.** Čovek potvrđuje svoju potrebu ili ponudu; ne bira tehničku kategoriju da bi popravio interni kvar. Jasna usluga dobija bezbedan tehnički nastavak kada prvi pokušaj nije završen.
 4. **Stabilan identitet.** Postojeća usluga zadržava pravi ID. Semantički sinonim nije automatski nova kategorija. Za opravdanu novu granu baza validira i stvara zapis, pa vraća stvarni ID; model ne izmišlja trajni UUID.
@@ -110,7 +119,7 @@ Ova pravila proizlaze iz dostavljenog aktuelnog paketa i pročitanog STATUS-a. N
 12. **Nema prećutnih novih pravila.** Ne uvoditi zabranu broja telefona u slobodnoj poruci, nove valute, pretplate, naknade, HITNO ili obavezna polja kao usputno čišćenje.
 13. **Čuvaju se dokazane zaštite.** Account/focus/revision ograde, journal pre dispatch-a, stabilan request identitet, signed review/digest, eksplicitna potvrda, idempotentni upis i autoritativni readback ostaju kod svojih postojećih vlasnika.
 14. **Govori se stvarni ishod.** „Poslato”, „sačuvano”, „objavljeno”, „izabrano”, „izvezeno” ili „obrisano” prikazuje se tek na odgovarajućoj potvrdi. UNKNOWN se proverava kao ista radnja; ne skriva se novim slanjem ili lažnim uspehom.
-15. **Jedan dosledan jezik.** AI instrukcija već propisuje persiranje. Determinističke poruke razgovora uskladiti s njom; ostali konačni tekstovi i nazivi razrađuju se kao povezana celina, bez mešanja tehničkih detalja u korisnički tok.
+15. **Jedan dosledan jezik (A30-D13).** U aktivnim determinističkim UI, servisnim i Edge AI porukama obavezno je učtivo persiranje „Vi/Vam/Vas“; ne mešati „želite“ sa „želiš“. Naslovi u korisnikovom prvom licu („Moji zadaci“, „Moje prijave“) ostaju prirodni. Nikad ne prepisivati sačuvane korisničke opise, poruke, ocene, prijave problema, rute, kodove grešaka, JSON polja ili istorijske logove. Ovo ne pokreće novu raspravu o izgledu aplikacije.
 
 ### Obim završetka
 
@@ -162,7 +171,7 @@ Ovo je obavezan inventar oblasti, **ne tvrdnja da je izvršen nov popis svih rut
 | Br. | Grupa i obuhvat | Obavezni izlaz i veza |
 |---|---|---|
 | **01** | Početni ulaz i Auth: prijava, registracija, potvrda kontakta prema podržanom načinu, oporavak, nevažeći/istekao link, odjava. | Čovek pouzdano ulazi u pravi nalog; nema prazne slepe ulice ili tuđeg nastavka. R01/R11/R12. |
-| **02** | Izbor i promena uloge, povratak u prethodno radno okruženje. | Jasno „Treba mi neko” / „Želim da uskočim”; dozvoljeni nacrti ostaju kod svog vlasnika. R11/R12. |
+| **02** | Kontekst naručioca i izvršioca unutar jednog naloga, bez globalnog prebacivanja uloge. | Prava po konkretnom objektu; dozvoljeni nacrti i povratak ostaju u pravom nalogu. Četiri postojeća glavna taba su autoritet; Profil se ne dodaje kao peti. R01/R11/R12. |
 | **03** | Početna, donja navigacija, prečice, povratak i zabranjeno odredište. | Svaka aktivna radnja otvara odgovarajući sadržaj u pravoj ulozi. R11a; ulazi u J01–J14. |
 | **04** | Naručilac AI: uvod, tekst, glas, fotografija, dopuna, prekid i nastavak. | Jasne činjenice opstaju; jedno potrebno pitanje; tehnički problem ne postaje pitanje o kategoriji. J01/J02/J13. |
 | **05** | Pregled potrebe, izmena, fotografije, razgovorna i pregledna mapa, predaja. | Jedna razumljiva celina; vidljivo je šta je predlog, lokalna izmena i sačuvani podatak. J03/J04. |
@@ -183,6 +192,8 @@ Ovo je obavezan inventar oblasti, **ne tvrdnja da je izvršen nov popis svih rut
 | **20** | O aplikaciji, pomoć, kontakt podrške i javni linkovi. | Razumljiv identitet izdanja, funkcionalni linkovi i jasan put do pomoći. R11/R12. |
 
 Loading, greška, offline, uvećan tekst i tastatura nisu novi ekrani po automatizmu: pripadaju svakoj relevantnoj grupi. Skrivena nedozvoljena ruta mora ostati zaštićena i pri direktnom linku, nezavisno od vidljivosti dugmeta.
+
+**A30 granica izmene:** V-03 (predlozi o dodatnim tabovima Dogovora) NIJE usvojena izmena navigacije ili dizajna. Sadašnji kod ima dva taba `pregled|poruke`, a `agreement.hronologija` se prikazuje u Pregledu; ostaje funkcionalan predmet J11 bez odobrenog redizajna. `useAgreementPhotos.saved` NIJE potpuna galerija već poslatih slika jer `attachedMessageId` izuzima pridružene stavke, a istorija poruka je paginirana. Ne obećavati „nula SQL migracija“ za nepostojeću galeriju, ne uvoditi tab „Dokazi“, obaveznu foto potvrdu ili novu tabelu samo radi izgleda. Dizajn se podešava odvojeno u postojećem UX masteru.
 
 ### 3.4. Cele priče naručioca, izvršioca i sistema
 
@@ -345,6 +356,28 @@ Svaki red zadržava primarnog R vlasnika iz izvornog tehničkog mapiranja. R11a�
 
 **Sačuvane korekcije nalaza:** F14 ne vraća povučenu sumnju o samostalnoj promeni `priceBasis`; ostaje poreklo source/live i reproduktivnost. SB/X opisi su preuzeti sa svojim ranijim dokaznim ograničenjima, a ne ponovljeni runtime nalazi. F21 zahteva proveru stvarne kolonske granice bez tvrdnje da je dokazana eksfiltracija. F16 uređajski problem zahteva isti scenario na novom kandidatu, a ne pretpostavku iz novijeg source-a.
 
+#### A30 — novi konkretni nalazi, sa tačnim vlasnikom i ograničenjem dokaza
+
+Ovo je **dopuna postojećeg** registra F01–F21/SB01–SB15/X01–X06, a NE konkurentnih 13 projekata. Izvorni predlog od 30.10. ima D01–D13; ovde koristiti samo A30-D01–A30-D13 da ne pregazimo odluke Z10/D06 i Z10/D08. Tvrdnje „100% pregledano“, „svih 14.299 testova je pogrešno“, „svih 250 suite-ova za brisanje“, „uvek uspešan media upload“ i „R01 je lažni alarm“ nisu dokazane.
+
+| ID | Potvrđeni nalaz i šta NIJE dokazano | Gde se izvršava, koji izlaz |
+|---|---|---|
+| **A30-D01** | `jest.config.cjs` globalno uključuje `jest.urgent-env.cjs`/HITNO iako ga V1 build nema; uticaj na svaki test nije dokazan. | R11g/R12/C14/C17: V1 default test env bez HITNO, posebni future-testovi i negativan V1 build guard; ceo Jest. |
+| **A30-D02** | Inventarski predlog 41 `src` (uključujući 2 test helpera), ~250–265 Jest suite-ova i ~58 krhkih source skenera; broj nije dokaz mrtvog runtime-a. | R11/C01–C19: caller/Expo route/native/dynamic import/old APK + replacement/test/rollback po FAJLU pre brisanja. |
+| **A30-D03** | `ci-clean.yml` neposredno Deno-check-uje **4/12** glavnih Edge funkcija; Need i Speech nose `@ts-nocheck`; client `tsconfig` široko uključuje kandidatski SQL TS. | R12/C17: 12/12 strogi Edge type/import, bez globalnih suppressions; odvojiti client/Deno obuhvat bez gubitka shared contracts, bez duplih test komandi. |
+| **A30-D04** | Need/Worker dual AI ima zakucan DEV URL u `devTaxonomyFlagP1` i `isLiveDualGemini`; zamena sa `!== 'false'` bi mogla naplatiti nedokazan model na PROD. | R04/R06/C10/SV02–SV03: jedini eksplicitan server config, default-OFF do R01/R06/budget/signed acceptance; legacy uklanjati tek posle caller ekvivalencije. |
+| **A30-D05** | Pet AI/STT funkcija još zavisi od `USKOCI_GEMINI_PAID_TEST_ENABLED` i test admission budžeta; novi abort/unknown source treba očuvati. | R06/R12/SV03: DEV allowlist naspram PROD autentičnih kvota, dnevni i globalni limit, isti provider attempt key, usage receipt, bez drugog plaćenog poziva na UNKNOWN. |
+| **A30-D06** | `uskoci-media` koristi jednu `busy` promenljivu po **Deno isolate-u** i vraća 429 pri paralelnom upload-u; nije dokaz jedan globalni šalter za sve korisnike. | R09/R11c/R12: bounded FIFO/semafor, odvojeni WASM photo/audio resursi, abort/timeout/saturacija, očuvani media receipts i kontrolisan 429 kada je red pun. |
+| **A30-D07** | 19 imenovanih aktivnih RPC-ova postoji na DEV; nedostajanje u celokupnom `migrations/` iz dostavljenog audita tek treba automatski potvrditi protiv punog repo i live kataloga. | R01/R12/SV14/C16: stvarni signature/owner/search_path/ACL i clean PG17 bootstrap + postojeći upgrade; bez slepog `CREATE OR REPLACE` na DEV. |
+| **A30-D08** | R01 strict FAIL 8+49+3, `caller_mismatch_count=0` ali `caller_scope_verified=false`; nije prihvaćen platform waiver. | R01/SV13/SV14: dokazati hosted/native provenance i puna efektivna prava, Storage/auth/definer + namenski end-user PostgREST pozitivni/negativni test. |
+| **A30-D09** | DEV `retention_ai_source_ready=false`, export binding NULL; pre-check blokade ne smeju biti obrisane kao nepotrebne. | R10/SV06/R12: sve nove kolone/tabele, kopije, export, erasure, program digest pa finalni M10 i full consent/closure proof. |
+| **A30-D10** | Dva `eas.json` profila imaju `P6_DISCOVERY_READER=0`; `zadaci.tsx` debug ispisuje account ID. | R02/R12: P6=1 samo iza stvarnog PAGE/MAP/PLACES/ForMe i native dokaza; ukloniti PII logovanje. |
+| **A30-D11** | X04 useHoldToTalk config; F11 prepare/abandon; X05 demo reset; SB03 legal READ_REQUIRED; SB08 nezavisni push upisi; F10 per-service mode prikaz; R07a `INVALIDATE_PRICE`. | R07–R11: sedam tačnih aktivnih vlasnika, pozitivan/negativan test, receipt/readback i deploy zavisnost. Jedan `found=false` ne potvrđuje da stara consent operacija nikada neće stići. |
+| **A30-D12** | ~1.480 `proofs/candidates/operations` fajlova za povlačenje je inventarski predlog, ne DELETE dozvola; `modules/uskoci-voice` ima Android, nema iOS modul. | C16/C19/R12: primenjene migracije, provenance i replay čuvati; iOS glas zahteva zaseban native ugovor ili pošten text-only UI, Android-first. |
+| **A30-D13** | Mešanje „ti/Vi“ u determinističkim UI/AI stringovima. | §2.15/R08/R11/R12: dosledno persiranje, ali „Moji zadaci“ ostaje, istorijski korisnički tekst ne menjati. |
+
+**Dokazna klasifikacija:** A30-D01/D03/D04/D06/D10 i odabrani D11 imaju direktno potvrđenu source putanju na HEAD-u; A30-D07 ima DEV read-only potvrdu postojanja 19 RPC-ova (ne gotovu migracionu reproduktivnost); A30-D08/D09 direktno potvrđene CI/DEV blokade; količine brisanja D02/D12 ostaju `UNVERIFIED_INVENTORY`. Svaka promena ima posebni status `DEFINISANO → SOURCE → IZOLACIJA → CI → DEV → NATIVE → PROD` i tačan SHA/receipt.
+
 ### 4.2. Izvršni redosled i zavisnosti
 
 R12 počinje da prikuplja integracione i uređajske dokaze od prve završene vertikale. Njegov konačni release presek dolazi posle relevantnih završenih zadataka. UI/UX prati promenu stanja i ponašanja; ne ostavlja se kao nepovezano završno ukrašavanje.
@@ -366,11 +399,34 @@ R12 počinje da prikuplja integracione i uređajske dokaze od prve završene ver
 
 R02 i R03 mogu se raditi paralelno nakon usklađenog R01 ugovora; nezavisni klijentski nacrti/ocene mogu napredovati paralelno sa AI radom. Promene istog review/matching/export vlasnika usklađivati sekvencijalno da jedna grana ne izgubi tuđu zaštitu. Veći cleanup ide posle popravljene aktivne veze, uz caller/kompatibilnost dokaz. SB14, provera samog proverivača, prati svaki zadatak od početka.
 
+#### A30 — redosled izvršavanja i uslovnih SQL grupa
+
+**Faza 0, odmah posle dokumentacije:** sintaksna popravka LOCAL_ONLY R06 SQL kandidata, izvorni PGlite/PG dokaz bez oslabljenih očekivanja, svi R06/AI testovi i puni source CI. R01 strict FAIL ostaje odvojen blokator, ne prikriva se. **Paralelni nezavisni tokovi:** (A) R01 realan Auth/HTTP + strogi paritet, (B) R04/R06 prvi trajni plan i D04/D05 budžet, (C) R11/R12 HITNO/V1 baseline i 12/12 Edge check, (D) ostali R02–R10 klijentski/source/isolated rad. Promene istog SQL writer-a ili potpisa raditi sekvencijalno, uz receipt/readback. R01 blokira rizične šemske apply-e i release, ne nezavisne kodne ispravke.
+
+**M01–M10 su grupe zavisnosti, NE gotovih deset migracija.** Sve najpre na čistom PostgreSQL 17.6 i reprezentativnoj nadogradnji postojećeg inventara (DEV ima 314 live zapisa); tek sa posebnom autorizacijom i pozitivnim/negativnim dokazima DB/DEV promocija.
+
+| Grupa | Izvršni predmet | Obavezan uslov pre aplikacionog/DEV uključivanja |
+|---|---|---|
+| M01 | A30-D07: nedostajući/rasuti aktivni RPC izvori | 19 potpisa i svi dodatni aktivni pozivi mapirani na kanonski SQL, ACL/owner/dependencies, clean bootstrap + upgrade. |
+| M02 | R01 privatne Need kolone, 21 nonrow/default ACL, SV08 PHONE closure | Strict aplikacioni/request/auth parity i stvarna end-user PostgREST negativa + stari klijenti. |
+| M03 | R02 PAGE/MAP/PLACES i R03 pet scope-ova/counts | Tekući SQL/auth i closure ugovor, bez blanket uklanjanja `CLOSURE_NOT_READY`. |
+| M04 | R04/R06 semantički REUSE/new branch, **durable first-plan pre provider-a** | Atomski verified Need/Worker turn, account/source/revision/mode/handoff, lease/UNKNOWN/usage i closure. |
+| M05 | R05 saved workAreas/prefilter/TODAY | 300+ km/no false negative, D08 start-lokacija, isti `Za mene`/dispatch matcher. |
+| M06 | R07a `INVALIDATE_PRICE` | Writer razume action PRE isporuke Edge-a koji ga šalje; stare verzije ostaju compatible. |
+| M07 | R07b HOURLY po osobi + F13 CAS + D05 quota | Potpisani price basis, revision race, audit i globalni budget fail-closed. |
+| M08 | R09/SB08 atomski preference upis i F20 batch push | Dva role scope-a u DB, posebni OS/device/provider ACK i suppression/opredeljenje. |
+| M09 | R10/F19 svi export/erasure/retention adapteri | WorkAreas, durable AI, usage, media, prefs, archive, consent i closure kompletni. |
+| M10 | R10/SV06 završni source/export/erasure certifikat | Samo nakon prethodnih relevantnih promena: `retention_ai_source_ready()=true`, `data_export_policy_binding()` nije NULL; ponoviti posle novog relevantnog schema/source drifta. |
+
+Ne skidati security pre-check samo zato što sprečava migraciju: eventualni installer-only put ima zatvorenu korisničku aktivaciju do R01/R10. Pre SV/DEV apply-a: tačni fajlovi, korisničko odobrenje obuhvata, pre/post SQL read, kompatibilnost, rollback/kompenzacija i verzija funkcije. **Cleanup C14–C19/D02/D12 ide tek posle verifikovane zamene.** Android dva naloga/dva telefona i J01–J14 sa timeout/konkurencijom/privatnošću su završni runtime gate, ne zeleni snapshot.
+
 ### 4.3. Jedinica rada i kriterijum izlaza
 
 Svaki korak ima korisnički ishod, postojeći vlasnički put, najmanju povezanu promenu, relevantnu pozitivnu i negativnu kontrolu, potreban UI prikaz i stvarni readback. Zasebno označiti definiciju, nacrt, implementaciju i dokaz. Rad na istom review/matching/export vlasniku uskladiti sekvencijalno; nezavisne površine mogu se raditi paralelno.
 
 Ne tražiti ponovo puni audit ili nove spekulativne arhitekture kada postoji konkretan potvrđeni uzrok. Kada određeni dokaz ili poslovna odluka nedostaje, označiti pogođeni korak i nastaviti nezavisni posao. Širi cleanup sledi popravljenu aktivnu vezu i dokaz potrošača. SB14, proveravanje samog proverivača, prati sve zadatke.
+
+**A30 — obavezan failure-mode kriterijum (§4.3).** Za svaki aktivni kritični tok potvrditi: normalan ishod; konkurentna dva korisnika i ograničen kapacitet; spor/izgubljen internet; timeout/abort; restart; isti zahtev ponovo; promenjen nalog/revizija; odjavu/revoke; pogrešnog korisnika; UNKNOWN/readback; autorizovan oporavak bez duplog upisa ili naplate. Testni zahtev zavisi od domena, ne nameće se svima ista matrica. Media: paralelni foto/glas, memory/bytes cleanup i bezbedan 429. AI: turn+source+mode, once/provider budget i prvi plan. Push: opt-out, claimed/delivered, target posle logout. Legal/export: nova verzija dokumenata i kasni stari consent, sve kopije. Dogovor: dva učesnika, accepted terms, pending izmena, problem, completion, ocena i poruke. Pozitivan PASS bez realne negativne kontrole i tačnog SHA nije završetak.
 
 ## 5. Vlasništvo nad stanjem i očuvani ugovori
 
@@ -426,6 +482,8 @@ Predlog modela i capture imaju `authority:NONE`. Za postojeći posao koristi se 
 
 Svi zadaci su deo istog plana. Status opisanog koda i starih testova nije novo izvršavanje ove revizije. Pre izmene potvrditi konkretan aktuelni sadržaj i relevantni deployment; posle izmene upisati stvarni rezultat u odeljak 11. Tačno pročitane zajedničke CI komande su u odeljku 8.3. Puni Z09 je priložen: per-R predložene komande, preduslove i granice čitati u `dokazi/namena_i_testovi/intent_review.json` (`test_matrix.work_items`, `test_command_review`). One nisu izvršene ovom revizijom; pre upotrebe proveriti cilj i fixture preduslove.
 
+**A30-D07/D08 — novi uslov:** R01 [strict 41074572941](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41074572941) FAIL (8 strict/49 extension owner-ACL/3 managed-net); `caller_mismatch_count=0` uz `caller_scope_verified=false` nije dokaz pune efektivne autorizacije. Potrebni hosted/native provisioning, admin/definer/Storage/auth putanje, tačan platform pin bez blanket waiver-a, stvarni end-user zero-row i pozitivno/negativno čitanje privatnih Need kolona na istom world-u. 19 živih RPC-ova su zaseban reproduktivni problem M01. **Status: SOURCE kandidat, DEV ACL/HTTP acceptance OPEN.**
+
 ### R01 — Privatnost čitanja, stvarne dozvole i isporučeni ugovor
 <!-- EXECUTION-UPDATE-BEGIN: r01-20261028 -->
 
@@ -479,6 +537,8 @@ Negativne kontrole obuhvataju drugi svet, anoniman ili zatvoren nalog, pogrešnu
 | `src/data/__tests__/build-identity.test.tsx` | Sačuvati dozvoljena javna identity polja i embedded/OTA prikaz. | Ne potvrđuje koji je APK/OTA stvarno instaliran niti da je kompatibilan sa živim SQL-om. |
 
 **Izlaz:** proverena privatnosna migracija, očuvani legitimni čitači, tačni podržani ugovori i izvršen pozitivan/negativan dokaz. F21 ostaje otvoren dok se zabrana ne dokaže na stvarnoj autorizacionoj granici.
+
+**A30-D10:** P6 je `0` u oba EAS profila; `zadaci.tsx` ima user-ID `console.warn`. PAGE/MAP/PLACES/ForMe/filter i nezavisna greška mape od liste, Auth/HTTP i native prove moraju biti završeni PRE P6=1. Ukloniti PII debug u build-u. **Status: SOURCE delimičan, P6/native OPEN.**
 
 ### R02 — Discovery, mapa, filteri i istinito stanje greške
 <!-- EXECUTION-UPDATE-BEGIN: r02-20261028 -->
@@ -563,6 +623,8 @@ Ranije izolovane tri route karakterizacije, pet boolean slučajeva i osam stari/
 
 **Izlaz:** usklađen Discovery ugovor za podržane klijente, razdvojeni delimični ishodi, razumljiva dijagnostika, završiv search recovery i stvarni native dokaz prikaza.
 
+**A30-D07:** pet scope-ova/counts ne prihvatati samo zbog izolovanog `rpc_list_my_needs_page` kandidata; proveriti stvarni SQL, autoritet, sve active RPC i baseline clean PG17/upgrade, prazan i neprazan cursor, negative access i closure. **Status: SOURCE/proof delimičan, DEV/HTTP OPEN.**
+
 ### R03 — Moje potrebe, pet scope-ova i stabilno straničenje
 
 #### Problem i cilj
@@ -615,6 +677,8 @@ Delimični/mrežni neuspeh naredne strane ne sme se preimenovati u uspešan kraj
 | `supabase/proofs/ex04/ex04a_proof.mjs` | Rebase namere lokalnog RPC poređenja svih pet scope-ova i outsider/anon kontrola. | Stari apply očekuje staro stanje oba vlasnika; ne izvršavati ga napamet. |
 
 **Izlaz:** jedan ispravan own-tasks ugovor potvrđen stvarnim reader/decoder lancem, uz očuvanih ostalih deset baseline funkcija i zasebno zatvoren Discovery posao.
+
+**A30-D04:** `devTaxonomyFlagP1`/`isLiveDualGemini` u Need/Worker sadrže hardcoded DEV URL. Zameniti jednim proverljivim server-scope config owner-om sa default-OFF za novu naplativu strategiju dok R06/kvote/signed Save nisu potvrđeni. Ne koristiti `!== 'false'` kao implicitnu aktivaciju na PROD. Gen1/2/Shadow/Explorer povlačiti tek posle dokazane trenutne i podržane stare caller ekvivalencije; nova natural-depth kategorija iz AI ne znači da je zaista upisana bez ljudske potvrde. **Status: SOURCE+CI po starijem SHA-u; provider/DEV E2E OPEN.**
 
 ### R04 — Potpuna klasifikacija, stabilan identitet i potvrđena namera
 
@@ -703,6 +767,8 @@ Nenajavljen mrežni poziv u lokalnoj kontrolisanoj probi mora biti odbijen fixtu
 
 **Izlaz:** jedan dokumentovan aktivan semantički ugovor sa potpunim input-om i rezultatom, stabilnim ID-jem, celim BOTH i bezbednim kontinuitetom do sačuvanog autoritativnog stanja. Reprodukovani audit kvar nije novi PASS rešenja.
 
+**A30-M05:** potvrđena odluka Z10/D08 = početak zadatka; 300+ km prefilter mora biti nadskup eligible, ne gubiti COUNTRY/CITY/RADIUS/REMOTE/TODAY i složene rute. `Za mene` i push dispatch moraju imati isti signed matcher i različite, dozvoljene ručne prijave. **Status: TODAY lokalni kandidat, server apply/E2E OPEN.**
+
 ### R05 — Sačuvana područja, vreme i izbor stvarno dozvoljenih kandidata
 
 #### Problem, obim i vlasnici
@@ -760,6 +826,8 @@ Jedan autoritet treba da izvede dan objave i preostali dozvoljeni interval u pos
 | `supabase/proofs/match_category_fallback/dispatch-prefilter-assert.sql` | Rebase na aktuelne definicije i signed oblasti, sa celom malom matricom parova. | Istorijski aggregate/fixture nije sadašnji autoritativni match. |
 
 Ne vraćati iz starih fixture-a ukinute equipment/team/experience ili all-slots politike. Current TOTAL proporcionalnost covered/original slots ostaje kod cenovnog vlasnika. **Izlaz:** bez lažno negativnog početnog izbacivanja, ista važeća area/time odluka kroz automatski lanac i očuvana zasebna ručna prijava.
+
+**A30-D04/D05 — P0:** novi `supabase/proofs/ai/r06_first_plan_enqueue_candidate.sql` (LOCAL_ONLY) ima 9 `END $tag$;` bez `END;` pre tag-a; [full CI 41074572909](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41074572909) FAIL na SQL parser-u. Popraviti sintaksu i sve postojeće pozit./negat. testove bez slabljenja ACL-a. To još NE rešava trajni pre-provider enrollment u istoj potvrđenoj Need/Worker turn transakciji, source/revision/handoff, bounded lease/retry i provider usage/UNKNOWN bez duplog plaćenog poziva. Pet AI/STT funkcija imaju DEV test-budget gate; produkciju odvojiti eksplicitnim per-account i globalnim limitima, zadržati nove abort/lost-ACK popravke. SV04 **DEV v6 transport** nije dovoljan prvi-plan dokaz. **Status: BLOCKED R06 CI, ostalo IN_PROGRESS.**
 
 ### R06 — Trajan nastavak, ograničen transport, cache i tačan AI obračun
 
@@ -864,6 +932,8 @@ Istorijski testovi 40 capture/ACK, 16 completion/lifecycle, pet runner slučajev
 
 **Izlaz:** trajan prvi plan i post-save nastavak imaju odvojene ispravne preduslove, ograničen oporavak i readback; aktivni transport proverava potpun odgovor; svaki pokušaj ima svoj obračun; kompletan katalog ne prenosi se bez potrebe; cache ne menja autoritet, privatnost ili korisničku saglasnost.
 
+**A30-D11/R07a:** aktivni Edge predlaže `INVALIDATE_PRICE`; odgovarajući kanonski SQL writer mora podržati povlačenje nevažeće cene pre Edge deploy-a. RSD/OFFERS i Z10/D06 satnica po osobi po satu ostaju; F11 OPEN pregled i UNKNOWN abandon moraju imati tačan no-mutation/readback; F13 veštine CAS ne smeju pregaziti tuđu reviziju. **Status: SOURCE/izolovani ugovor, live signed Save/Publish OPEN.**
+
 ### R07 — Cena, odustajanje i dodatni profilni upis
 
 #### Problem, zavisnosti i traženi rezultat
@@ -926,6 +996,8 @@ Najmanji novi dokazi su stvarni signed accept/Save/publish tok nakon korekcije c
 
 Uslov završetka je potvrđen poslovni rezultat kroz pravi reader/writer i razumljiv prikaz na telefonu. Stare izolovane reprodukcije ne dokazuju da je pogrešna cena stvarno objavljena ili da je izazvan live incident. Pri popravci sačuvati ulaz koji je reprodukovao kvar i promeniti završno očekivanje na ispravno ponašanje, u okviru C15.
 
+
+**A30-D11/F10/D13:** `WorkerProfileSaved.tsx` sada pokazuje `SkillsRow` stringove i jedan zbirni „Način rada“; konačno ponovno čitanje mora verno prikazati mode/handoff/pending **po svakoj potvrđenoj usluzi**, ne uzeti neodobreni AI draft kao istinu. Jedno pitanje, završni review i Save/Save+activate ostaju bez novih obaveznih polja. Deterministički AI copy persirati, ne menjati user text. **Status: SOURCE delimičan, real model/Save/device OPEN.**
 
 ### R08 — Prirodan završetak razgovora i veran sačuvani rezultat
 
@@ -1004,6 +1076,8 @@ Dopuniti `src/data/__tests__/ai-natural-server-guard.test.ts` stvarnim kombinova
 Za svaki primarni AI/pregled/profil/map ekran popuniti zajednički obrazac od 16 polja iz §3.5. Uspešna props proba nije dokaz da isti sadržaj dolazi iz sačuvanog server modela. U aktivnom razgovoru nema parcijalnih kartica. Istorijski dizajn ili test ne uvodi dodatni obavezni mode/equipment/bio formular.
 
 
+**A30-D06/D11/SB08/F20:** `PushPreferences.tsx` danas sekvencijalno zapisuje REQUESTER i WORKER; atomski server upis oba scope-a ili proveable reconcile, ali OS permission, uređajski token i push provider nisu jedna SQL transakcija. Ugovor za opt-out, logout/stari token, ponovno slanje istim idempotency key, suppression već prijavljenog radnika, pravi event → claim → provider ACK → dozvoljen tap/deeplink; 2+ korisnika foto/glas obrađuju se sa R11c. **Status: provider/device acceptance OPEN.**
+
 ### R09 — Obaveštenja, poruke i tačno odredište
 
 #### Problem, zavisnosti i traženi rezultat
@@ -1053,6 +1127,8 @@ Refresh u `AgreementChat.tsx` učiniti stvarno vidljivom i dostupnom radnjom ili
 
 Izvršiti mali ograničen burst: jedan primalac je već odgovorio istoj reviziji, drugi nije; PUSH on/IN_APP off; grupna poruka sa tačnom publikom; zatim stvarni dodir notifikacije. Uključiti foreground, background, ugašenu aplikaciju, hladan start, isti događaj, revoked/expired sesiju i odsutan cilj. Namerno isključen push se ne šalje. Istorijski transport koji presreće Expo, koristi jedan uređaj i IN_APP on ostaje lokalni dokaz, ne novi dokaz kapaciteta, nezavisnih postavki ili native tap-a.
 
+
+**A30-D09/D11/SB03:** DEV `retention_ai_source_ready=false`, export binding NULL. `legalReview.ts` može ostati u `READ_REQUIRED` pri nepoznatom starom pokušaju i novom TERMS/PRIVACY hash-u; ne brisati intent nakon jednog `found=false` bez autoritativnog final/cancel/readback, zadržati novu eksplicitnu saglasnost. WorkAreas, novi durable AI/job/usage, mediji, push, arhive i nalog moraju u current/backup/export/erasure pre M10. `CLOSURE_NOT_READY` ne skidati samo da bi migracija prošla; razdvojiti instalaciju i aktivaciju uz fail-closed. **Status: R10 BLOCKED i nije sertifikovan.**
 
 ### R10 — Život podataka, saglasnosti, izvoz i zatvaranje naloga
 
@@ -1104,6 +1180,8 @@ Najmanji izvršni skup: sintetički profil sa svim podržanim tipovima workAreas
 
 Istorijski P1 v1→v2 server dokaz ne zatvara SB03 UI; P2 tadašnji roster ne obuhvata nova workAreas/sve sadašnje arhive; P3 ograničeni AI_ABANDONED_UNBOUND adapter ne dokazuje ceo account closure; stari P4 READY nije današnja dozvola aktivacije. Očuvati korisne grant/race/lock dokaze, a proširiti samo promene i nedostajuće granice.
 
+
+**A30-D01/D02/D06/D11/D13 — funkcionalnost, bez vizuelnog redizajna:** `uskoci-media` ima isolate-global `busy` i simultani zahtevi mogu dobiti 429; bounded FIFO/semafor mora imati photo WASM memory plafon, odvojen audio capacity, abort/deadline, cleanup, stable receipt i dozvoljen iskren 429 na saturaciji. `useHoldToTalk.ts` uskladiti sa centralnim public config owner-om; `lazniIzvor.ts` reset izolovati; HITNO V1 Jest default ispraviti. D02 39 source i 250–265 suite fajlova nisu gotov delete spisak: caller/dynamic route/test/old native/rollback dokazati po fajlu. **Status: pojedinačni source koraci postoje, ceo R11 OPEN.**
 
 ### R11 — Ostali ekrani, oporavak i kontrolisano čišćenje
 
@@ -1218,6 +1296,8 @@ Za ostale imenovane vlasnike dopuniti njihov stvarni postojeći test ili najmanj
 
 Posle povlačenja proveriti import/require, package skripte, CI eksplicitne ulaze, Jest glob, TypeScript includes, postinstall i asset generatore. Archive ime samo ne isključuje izvršavanje. Dependency se uklanja tek kada nema potrebnog runtime/build/test potrošača. Meriti stvarne putanje, selekciju/broj testova, trajanje u istom okruženju i install/type/build; native resursi traže uređaj. Ne obećavati APK uštedu iz broja repo bajtova.
 
+
+**A30-D03/D07/D10/D12:** direktni CI `deno check` pokriva 4/12 glavnih Edge handler-a, a Need i Speech imaju `@ts-nocheck`; ukloniti te blokade uz stvarne tipove, uvesti 12/12 + proveru zajedničkih ugovora. A30-D07 19 živih RPC-a mora biti reproduktivno kanonizovano pre čistog PROD-a (ne pretpostaviti da `CREATE OR REPLACE` i live DEV istovetno rade). P6=1 samo posle R02 integracije/native; `modules/uskoci-voice` ima samo Android native folder, iOS bez implementacije zahteva zasebnu native potvrdu ili iskren text-only način. R12 release: 2 nezavisna naloga/telefona, J01–J14, realan provider/push/media, restart/timeout, eksport/brisanje, tačan APK SHA/runtime/OTA i rollback. **Status: objava BLOCKED.**
 
 ### R12 — Stvarna celina, native kandidati i objavljivanje
 
@@ -1359,6 +1439,8 @@ Stare rollback.preimage.sql kopije više funkcija ponegde spajaju `pg_get_functi
 #### Precizna jedinica povlačenja
 
 Za `workerProfileDraft.ts` uski kandidati su `foldTerm`, `hasTerm` i `toggleTerm`; `workerDraft`, `workerCommand`, `workerReadbackMatches`, `nameForSave` i povezani recovery/name-adoption ostaju. Za `workTrustModel` kandidat je `statsView`, dok `publicTrustFacts` i `memberSincePhrase` imaju stvarne javne potrošače. Za dormant worker explicit-mode podskup odsustvo non-test src caller-a ostaje uslovna preporuka: stari APK i serverski ugovor proveravaju se pre retirement-a. Primenjene SQL migracije čuvaju istoriju; kandidat, rollback preimage i demonstracioni ekran imaju zasebnu namenu. Poreklo ove odluke je opisani rev7 pregled; sadašnje potrošače proveriti u konkretnoj radnoj kopiji.
+
+**A30-D02/D12 izvršno pravilo:** inventarski brojevi 41 source/250–265 Jest/~1.480 SQL/proof fajlova nisu `DELETE` lista. Za **svaki** C14/C16/C17/C19 kandidat pre brisanja proveriti active import/caller/dinamičku Expo rutu/native build/CI source scan, server potrošače, primenjenu migraciju, potreban rollback/forenzički dokaz, zaštitu starog podržanog APK-a, zamenski pozitivan i negativan test i reverzibilan commit. Klasifikovati `CURRENT / REQUIRED_PROOF / HISTORICAL_READ_ONLY / SUPERSEDED / REMOVABLE`; izvorni checksum/provenance sačuvati. `worker-profile-read.test.ts` mora dokazivati aktivni RPC, ne mrtav mock; `glyph-import-guard` ne sme obarati build zbog povučenog demo fajla; EX06 ugovor uskladiti sa važećim modelom, bez slabije bezbednosne pokrivenosti. Nema ciljne kvote „360 suite-ova“.
 
 ### 7.2. Konkretni paketi C01–C19
 
@@ -1881,6 +1963,8 @@ Svih 14 izvornih zapisa sada je priloženo u [serverskom manifestu](dokazi/serve
 **Kada se otvara puni inventar.** Isti manifest sadrži svih 3.037 zapisa u `object_inventory`, tačan `identity`/`kind`, dokaze i obrazložene statuse, uz povezane schema/operations/Edge inventare. Pre izmene ili povlačenja konkretnog objekta čitaju se njegov zapis, odgovarajuća SV grupa, zavisnosti i sadašnji stvarni potrošači. Neki SV predmeti su grupe/ulazi, a ne unapred napisana migracija; tačna jedinica promene zatvara se kod tih vlasnika. Inventar nije potpun dinamički runtime call graph; `pg_depend`, kvalifikovane reference i literalni RPC pozivi imaju navedena ograničenja. Odsustvo pozivaoca nije samo po sebi dozvola za brisanje.
 
 Svaka grupa zadržava svih **12 izvršnih polja**. Veze ka R zadacima i uslov `destructive_action_ready=false` dodatno su navedeni. Oznaka završene analize znači da je namera promene zapisana; ne znači da su implementacija, release dokaz ili svako uslovno povlačenje već odobreni. Potpuna Auth management konfiguracija, efektivne tajne/zastavice, produkcioni projekat i ponašanje svih starih klijenata ostaju ranije navedene granice.
+
+**A30-D07, zajednički SV14/M01 ulaz:** nezavisni predlog identifikuje 19 aktivnih RPC-a koji postoje na DEV-u, dok njihova puna pokrivenost kanonskim `supabase/migrations/` još traži exhaustivni source/SQL diff: `rpc_list_my_conversations_v1`, `rpc_read_agreement_messages_page_v1`, `rpc_read_agreement_messages_page_v2`, `rpc_read_agreement_message_window_v1`, `rpc_read_agreement_message_window_v2`, `rpc_mark_displayed_agreement_messages_v1`, `rpc_home_attention`, `rpc_resolve_activity_message_v1`, `rpc_resolve_activity_opportunity_v1`, `rpc_read_worker_ai_taxonomy`, `rpc_public_work_trust_v1`, `rpc_list_received_reviews_v1`, `rpc_my_work_stats_v1`, `rpc_agreement_cancellation_v1`, `rpc_cancel_media_upload`, `rpc_reopen_remaining_search`, `rpc_get_need_search_state`, `rpc_get_reopen_remaining_search_receipt`, `rpc_ai_test_record_usage_service`. Za SV14 sačuvati potpise, `SECURITY DEFINER/INVOKER`, `search_path`, grants, SQL bodies, zavisnosti i rollback. Postojanje na DEV-u nije automatski dokaz da je funkcija izostala iz **svakog** istorijskog SQL izvora ili da je novi `CREATE OR REPLACE` siguran za postojeće overload-e. PR ima 198 lokalnih migration fajlova na proveravanom HEAD-u, DEV ima 314 evidentiranih migracija; potrebne su zasebne fresh-bootstrap i upgrade provere.
 
 #### SV01 — Privatne Need kolone i buduće podrazumevane dozvole
 
@@ -2827,6 +2911,20 @@ Statistika je sa DEV-a: 167 public/private tabela, oko 25 MB sa njihovim indeksi
 
 ## 8. Prihvatanje, testovi i merenja
 
+#### A30 — arhitekturna negativna/konkurentna matrica (dopunjuje postojeće testove, ne menja dizajn)
+
+| Podsistem | Pozitivna provera | Obavezna negativna/race/oporavak |
+|---|---|---|
+| AUTH/R01 | Dozvoljena javna i sopstvena projekcija | 3+ privatne Need kolone nedostupne stvarnom `authenticated`/neučesniku kroz PostgREST; stara sesija, revoked token, owner/definer/Storage, stari APK, closure. |
+| AI/R04/R06 | Need i Worker prirodno dovrše signed predlog i sačuvaju identitet/mode | Dva jednaka request-a; sinonim/stale revision/BOTH/handoff; provider timeout/abort, lost ACK, pre-dispatch first-plan restart, UNKNOWN bez drugog naplatnog poziva, dnevni/globalni limit. |
+| Discovery/R02/R03/R05 | PAGE/MAP/PLACES/ForMe/counts na istom katalogu | Prazna/neprazna strana, cursor/dup, mapa pada a lista ostaje, >300 km podudaran kandidat, stari location/mode, TODAY i ručna prijava. |
+| Media/R11 | Tekst/foto/glas iz dva korisnička naloga | Isti isolate 2+ concurrent, queue overflow/429, WASM memory, wrong owner/asset, cancel/timeout, strana prijava, izgubljen upload ACK, predaja poruci i cleanup. |
+| Push/R09 | Event→queue→claim→provider→tačan klik na poruku/zadatak | Istovremeni task/candidate, suppression, opt-out, stari uređaj, odjava, retry iste poruke, duplikat/UNKNOWN delivery, nevažeći deep link. |
+| Dogovor/R07–R11 | Obe strane vide iste važeće uslove, completion i ocenu | Pending izmena ne menja accepted terms, otkazivanje/problem/close, restart tokom chata/fotografije, nepripadajući korisnik nema privatne podatke. |
+| Legal/R10 | Novi TERMS/PRIVACY i izvoz/brisanje daju dokaz | Stari unknown intent pa nova verzija, kasni odgovor, ponovljeni request, svih workAreas/AI/media/archival kopija, tuđ nalog, stale export grant. |
+
+**Testovi su stvarni samo uz dokazanu implementaciju, pravi status i tačan SHA/run.** 30k sintetičkih redova nisu 30k stvarnih korisnika; Expo/Jest mock nije native Android dokaz, PGlite nije hosted PG17/Auth, provider mock nije obračun troška. Istovremeno samo zato što je najnoviji CI crven na R06 kandidatu ne poništavaju se raniji izolovano provereni mobile/type ugovori na istom ili starijem SHA-u.
+
 ### 8.1. Kako se bira dovoljna provera
 
 Za svaku promenu birati najkraći dokaz koji prelazi stvarnu rizičnu granicu. Promena wire ugovora traži stvarni odgovor kroz pravi decoder; promena prava pozitivni i negativni autorizovani zahtev; promena native geometrije stvarni prikaz i gest na uređaju. Izmena nekoliko reči sama ne zahteva novi veliki testni sistem.
@@ -3269,6 +3367,8 @@ Rok za objavu određuje se nakon svežeg preseka, procene konkretnih zadataka, p
 [P11]: https://developer.apple.com/news/?id=3d8a9yyh
 [P12]: https://developer.apple.com/app-store/app-privacy-details/
 
+**A30 release kapije (bez uvođenja novih vizuelnih odluka):** za javno izdanje potreban je stvaran PG17 kanonski schema/upgrade, strogi R01/Auth/HTTP i R10 export/closure, aktivni i finansijski ograničeni realni AI provider, potpuno potvrđena dva korisnička toka Need/Worker, push opt-out/target, istovremeni media upload, P6 tek posle R02 gate-a, 12/12 Edge check, svež Android preview/build hash, realni J01–J14 na dva naloga/telefona i staged rollout/rollback. `modules/uskoci-voice` je Android-first; iOS mikrofon se ne prikazuje kao radi bez native implementacije i dokaza. Godišnji/istorijski archive proof, stari APK i tačna verzija Edge-a nisu automatski validni za novo izdanje.
+
 ## 11. Kontinuitet: ažurira se ovaj isti plan
 
 ### 11.1. Jedan operativni ulaz
@@ -3298,6 +3398,27 @@ Izraz „definisano” nije „nacrtano”, „nacrtano” nije „implementiran
 <!-- EXECUTION-UPDATE-BEGIN: ledger-20261028 -->
 
 ### 11.2a. Aktuelni izvršni status — 28.10.2026.
+
+#### A30 — aktuelna matrica 30.10.2026, vodi nezavisan source/DEV/native status
+
+Ova matrica **nadjačava zastarele opise nivoa** iz ranijih datiranih checkpoint-a bez brisanja njihove istorije. Dnevnik dole ostaje evidencija prethodnih koraka. Statusi su po izvorima, ne ukupni „% završeno“.
+
+| Paket | Dokazano do HEAD c7a0b964 | Šta ostaje, konkretna blokada |
+|---|---|---|
+| **R01** | Uski SOURCE privacy kandidati, direktni DEV read, 42 kolone i ograničen SQL probe | Strict 41074572941 FAIL (8/49/3); nedostaje stvarni end-user Auth/PostgREST + usklađen PG17 paritet; DEV apply nije. |
+| **R02** | PAGE/MAP klijent i ranije fokusirane provere | Server PAGE/MAP/PLACES, stvarni `Za mene`, P6=0 i native provera. |
+| **R03** | Keyset/scope klijentski delovi i LOCAL_ONLY kandidat | Pet scope-ova/counts na stvarnom SQL/Auth/HTTP i closure compatible. |
+| **R04** | Katalog i natural-depth `CREATE_CHILD/CREATE_NEW_BRANCH` source/raniji CI | Real Gemini, signed review/Save/binder, pravilna nova grana/alias i važeći produkcioni config. |
+| **R05** | TODAY/source i odluka start-lokacije | Indeksiran prefilter, >300 km, saved areas, `Za mene`/dispatch/native parity. |
+| **R06** | SV04 transport DEV v6, brojne ACK/abort/source popravke | **Novi R06 first-plan SQL kandidat ima syntax FAIL u full CI**; durable pre-provider enqueue/UNKNOWN/usage i pravi E2E otvoreni. |
+| **R07** | Satnica po osobi i RSD correction SOURCE, izolovani testovi | Writer pre `INVALIDATE_PRICE` Edge deploy-a, signed Save/Publish/Apply/Agreement i stari klijenti. |
+| **R08** | Prirodan razgovor i area-only review source | Saved per-service mode/handoff, realni intervju do potvrde i ponovnog čitanja na telefonu. |
+| **R09** | Delovi poruka, refresh i push source | Atomic role preference, real provider/queue/click, media konkurentnost i odjava. |
+| **R10** | Closure roster/read-only dokaz | `source_ready=false`, export binding NULL, consent/workAreas/AI/media/push kopije i finalni M10. |
+| **R11** | Više C i SB/X izmena SOURCE/FOCUSED | A30-D01/D02/D06/D11/D13, regresije, oporavak, testovi; redizajn nije u ovoj reviziji. |
+| **R12** | Stari Expo/Metro dokaz i source workflow | 12/12 Edge checks, kanonskih 19 RPC, novi Android E2E, R01/R10, produkcioni rollout. |
+
+**Sačuvani status C/SV:** C01–C09, C12 i C18 imaju SOURCE/FOCUSED nivo (nisu svi release-DONE); C10/C11/C13/C15/C17 su parcijalni; C14/C16/C19 i bezbedno veliki cleanup ostaju otvoreni. SV01–SV03, SV05–SV14 nisu potpuno prihvaćeni; **SV04 jedini ima aktivan DEV transport v6, acceptance OPEN**. U ovoj dokumentacionoj reviziji nije izvršena ni jedna nova provera na telefonu, paid provider test, SQL apply ili aktuelni workflow run posle source HEAD-a.
 
 <!-- LIVE-STATUS-20261029-BEGIN -->
 #### Merodavan centralni status izvršavanja — 30.10.2026.
@@ -4429,6 +4550,8 @@ Rok se određuje prema stvarnom izvršnom preseku, obimu zahvata, uređajima i u
 **Glavni dokumenti jesu dovoljni da se razume cilj i redosled, ali nisu dovoljni za svaki tehnički zahvat.** Za povlačenje serverskog objekta trebaju njegove stvarne zavisnosti i pun SV zapis; za čišćenje tačna putanja i njeni potrošači; za izmenu testa potrebno je znati šta je raniji rezultat zaista dokazivao. Zato su dokazi uključeni i povezani sa zadacima. Ne čitaju se svih 120 prvobitnih priloga pri svakom koraku, ali se ne uklanjaju iz predaje.
 
 Pre rada: otvoriti ovaj plan i relevantni zapis u tehničkoj referenci; iz mape izabrati dokaz; proveriti verziju izvora; osvežiti pogođeni kod/server; tek zatim izmeniti i dokazati konkretan rezultat. Zapis novog rezultata unosi se uz isti zadatak. Novi dokaz ne prepisuje istorijski log ili potvrdu.
+
+**A30 — dokazna veza novog inventara (nije novi ZIP ni master):** inicijalni Gemini predlog 30.10.2026 je ulaz za `A30-D01–A30-D13`, ali svaka izvršna promena počinje od tačnog aktivnog fajla i live source/DB prava, ne od njegovog zaključka „100%“. Dokazi: [PR #43](https://github.com/uskocibusiness-boop/USKOCI-EAN/pull/43), [full CI 41074572909](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41074572909), [strict R01 41074572941](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41074572941), `src/app/(app)/_layout.tsx`, `jest.config.cjs`, `jest.urgent-env.cjs`, `eas.json`, `.github/workflows/ci-clean.yml`, `supabase/functions/uskoci-media/index.ts`, dva AI handlera, `supabase/functions/_shared/aiTestBudget.ts`, `src/ui/legal/legalReview.ts`, `src/ui/notifications/PushPreferences.tsx`, `src/ui/workerProfile/WorkerProfileSaved.tsx`, `supabase/proofs/ai/r06_first_plan_enqueue_candidate.sql`, DEV READ-ONLY 314 migrations/15 Edge/v151-v104-v6/retention false. Za 19 RPC-a M01 traži individualni signature/provenance zapis; za D02/D12 stvarni path-by-path caller/test dokaz. Pre svakog upisa u ovaj master držati `SHA + actor + verified level + next owner`. **Jedna datoteka i jedan izvršni registar**, bez još jednog ulaznog plana.
 
 ### 12.2. Mapa zadataka i potrebnih dokaza
 
