@@ -58,7 +58,7 @@ test('untrusted/ill-formed claim is refused before any commit',async()=>{
  assert.equal(calls.length,2);
 });
 test('a semantic error becomes review-required without hiding the saved profile',async()=>{
- const failure=Error('BATCH_SEMANTIC_IDENTITY_MISMATCH');
+ const failure=Object.assign(Error('BATCH_SEMANTIC_IDENTITY_MISMATCH'),{retryable:false});
  const {rpc,calls}=setup({commitError:failure,
   settle:args=>({status:args.p_error_code==='BATCH_REVIEW_REQUIRED'?'REVIEW_REQUIRED':'INVALID',outboxId:id})});
  const result=await processTaxonomyPostSaveTick(rpc);
@@ -73,6 +73,60 @@ test('uncertain network commit reply is retried with same idempotency request ke
  assert.equal(result.retry,1);assert.equal(calls[2].args.p_request_key,request);
  assert.equal(calls[3].args.p_error_code,'TEMPORARY_UNAVAILABLE');
 });
+test('lost commit ACK with an untyped error retries the SAME already-committed operation and reads its receipt',async()=>{
+  let durableCommit=false,commits=0;
+  const calls=[];
+  const rpc=async(name,args)=>{
+    calls.push({name,args});
+    if(name==='rpc_taxonomy_reconcile_reviewed_outbox_service')return 0;
+    if(name==='rpc_taxonomy_claim_reviewed_batches_service')return [job];
+    if(name==='rpc_taxonomy_commit_reviewed_batch_service'){
+      commits++;
+      if(!durableCommit){
+        durableCommit=true;
+        // The database committed before the transport lost the response.
+        // This Error has no retryable marker, so it cannot be proven terminal.
+        throw new Error('synthetic response lost after commit');
+      }
+      return receipt; // Existing SQL's idempotent response, never a new plan.
+    }
+    if(name==='rpc_taxonomy_finalize_reviewed_batch_service'){
+      return {outboxId:id,status:args.p_error_code===null?'COMMITTED':
+        args.p_error_code==='TEMPORARY_UNAVAILABLE'?'RETRY':'REVIEW_REQUIRED'};
+    }
+    throw Error('unexpected synthetic RPC');
+  };
+  const first=await processTaxonomyPostSaveTick(rpc);
+  const second=await processTaxonomyPostSaveTick(rpc);
+  assert.equal(first.retry,1);
+  assert.equal(first.reviewRequired,0);
+  assert.equal(first.admitted,0);
+  assert.equal(second.admitted,1);
+  assert.equal(second.retry,0);
+  assert.equal(commits,2);
+  assert.equal(durableCommit,true);
+  const commitCalls=calls.filter(x=>x.name==='rpc_taxonomy_commit_reviewed_batch_service');
+  assert.deepEqual(commitCalls.map(x=>x.args.p_request_key),[request,request]);
+  const finishCalls=calls.filter(x=>x.name==='rpc_taxonomy_finalize_reviewed_batch_service');
+  assert.deepEqual(finishCalls.map(x=>x.args.p_error_code),['TEMPORARY_UNAVAILABLE',null]);
+  assert.ok(!calls.some(x=>/publish|dispatch|push|ai_test|gemini/i.test(x.name)));
+});
+
+test('unknown error or throwing retryable getter cannot be classified as semantic denial',async()=>{
+  for(const failure of [
+    new TypeError('synthetic parser failure with unknown commit outcome'),
+    Object.defineProperty(new Error('synthetic error shape'), 'retryable',
+      {get(){throw new Error('private error getter must not escape');}}),
+  ]){
+    const {rpc,calls}=setup({commitError:failure,settle:args=>
+      ({outboxId:id,status:args.p_error_code==='TEMPORARY_UNAVAILABLE'?'RETRY':'REVIEW_REQUIRED'})});
+    const result=await processTaxonomyPostSaveTick(rpc);
+    assert.equal(result.retry,1);
+    assert.equal(result.reviewRequired,0);
+    assert.equal(calls[3].args.p_error_code,'TEMPORARY_UNAVAILABLE');
+  }
+});
+
 test('a receipt suggesting worker or push authority is quarantined for retry',async()=>{
  const {rpc,calls}=setup({reply:{...receipt,notificationAuthority:'GRANTED'},
   settle:args=>({status:args.p_error_code==='TEMPORARY_UNAVAILABLE'?'RETRY':'INVALID',outboxId:id})});
