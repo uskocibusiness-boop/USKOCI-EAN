@@ -259,6 +259,40 @@ it('form and review are two steps of one flow whose X leaves the step without an
  expect(text()).toContain('Naziv Dogovora nije dostupan');expect(text()).toContain('Termin nije dogovoren');
  await tap('Odustani od radnje');expect(mockService.cancel).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();expect(action('Otkaži Dogovor')).toBeDefined();
 });
+it('R11d Back from preview restores entered proposal rather than discarding it; explicit X still discards',async()=>{
+ const {BackHandler}=require('react-native');const handlers:(()=>boolean)[]=[];
+ const spy=jest.spyOn(BackHandler,'addEventListener').mockImplementation(((_:string,fn:()=>boolean)=>{
+  handlers.push(fn);return {remove:()=>handlers.splice(handlers.indexOf(fn),1)};
+ }) as never);
+ try{
+  await render();await tap('Predloži izmenu');await type('Predložena cena u RSD','4200');
+  await type('Razlog predloga — opciono','Nacrt za proveru');await tap('Pregledaj predlog');
+  expect(text()).toContain('4.200 RSD');
+  await act(async()=>{expect(handlers[0]()).toBe(true);});
+  expect(tree.root.findByProps({accessibilityLabel:'Predložena cena u RSD'}).props.value).toBe('4200');
+  expect(tree.root.findByProps({accessibilityLabel:'Razlog predloga — opciono'}).props.value).toBe('Nacrt za proveru');
+  expect(mockService.propose).not.toHaveBeenCalled();expect(mockStorage.setItem).not.toHaveBeenCalled();
+  await tap('Pregledaj predlog');expect(text()).toContain('Nacrt za proveru');
+  await tap('Odustani od radnje');await tap('Predloži izmenu');
+  expect(tree.root.findByProps({accessibilityLabel:'Predložena cena u RSD'}).props.value).toBe('3500');
+  expect(tree.root.findByProps({accessibilityLabel:'Razlog predloga — opciono'}).props.value).toBe('');
+ }finally{spy.mockRestore();}
+});
+it('R11d normal Back keeps unsent editor RAM for a new visit while explicit X deletes it',async()=>{
+ const {BackHandler}=require('react-native');const handlers:(()=>boolean)[]=[];
+ const spy=jest.spyOn(BackHandler,'addEventListener').mockImplementation(((_:string,fn:()=>boolean)=>{
+  handlers.push(fn);return {remove:()=>handlers.splice(handlers.indexOf(fn),1)};
+ }) as never);
+ try{
+  await render();await tap('Otkaži Dogovor');await reason('Razlog ostaje pri Back');
+  await act(async()=>{expect(handlers[0]()).toBe(true);});
+  expect(action('Otkaži Dogovor')).toBeDefined();expect(mockService.cancel).not.toHaveBeenCalled();
+  await tap('Otkaži Dogovor');expect(text()).toContain('Razlog ostaje pri Back');
+  await tap('Odustani od unosa');await tap('Otkaži Dogovor');
+  expect(text()).not.toContain('Razlog ostaje pri Back');
+  expect(mockStorage.setItem).not.toHaveBeenCalled();
+ }finally{spy.mockRestore();}
+});
 it('the system Back closes a step of the flow like its X, and leaves the screen only from the hub',async()=>{
  const {BackHandler}=require('react-native');const handlers:(()=>boolean)[]=[];
  const spy=jest.spyOn(BackHandler,'addEventListener').mockImplementation(((_:string,fn:()=>boolean)=>{handlers.push(fn);return {remove:()=>handlers.splice(handlers.indexOf(fn),1)};}) as never);

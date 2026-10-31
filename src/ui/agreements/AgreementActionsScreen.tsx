@@ -16,6 +16,7 @@ import { clearAgreementUnsentDraft, readAgreementUnsentDraft, rememberAgreementU
 
 type Form = AgreementActionForm;
 const initial: AgreementActionsState = { phase: 'LOADING', snapshot: null, journal: null, error: null, message: null, canRetry: false, needsReentry: false };
+const CHANGED_TERMS_NOTICE = 'Uslovi Dogovora su se promenili. Proverite uneti predlog u odnosu na nove uslove pre potvrde.';
 export function AgreementActionsScreen({ agreementId, start }: {
   agreementId: string;
   /** The form to open as soon as the terms in force have been read (the rows "Izmeni uslove" and "Otkaži Dogovor" of the Dogovor, and the conversation's "···", name one); without it the hub opens. */
@@ -29,9 +30,9 @@ export function AgreementActionsScreen({ agreementId, start }: {
   const leaving = useRef(false);
   const formRef = useRef(form); formRef.current = form;
   const reviewRef = useRef(review); reviewRef.current = review;
-  const reviewBase = useRef(state.snapshot), submitting = useRef(false);
+  const reviewBase = useRef(state.snapshot), reviewDraft = useRef<Form | null>(null), submitting = useRef(false);
   useFocusEffect(useCallback(() => {
-    const scope = {}; owner.current = scope; leaving.current = false; submitting.current = false; arrived.current = false;
+    const scope = {}; owner.current = scope; leaving.current = false; submitting.current = false; arrived.current = false; reviewDraft.current = null;
     setState(initial); setForm(null); setReview(null); setError(null);
     const current = () => owner.current === scope && !['background','inactive'].includes(AppState.currentState)
       && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
@@ -81,7 +82,7 @@ export function AgreementActionsScreen({ agreementId, start }: {
     formRef.current = next; setForm(next);
     const versionChanged = !!saved && saved.form.kind === kind && saved.agreementVersion !== snapshot.agreementVersion;
     setError(versionChanged
-      ? 'Uslovi Dogovora su se promenili. Proveri uneti predlog u odnosu na nove uslove pre potvrde.' : null);
+      ? CHANGED_TERMS_NOTICE : null);
   };
   // Arriving from the row (or the conversation's menu entry) "Izmeni uslove" or "Otkaži Dogovor": the form it names opens once, when the terms have been read and
   // the command is permitted. `openForm` keeps every one of its own guards, so a command that is not allowed leaves the hub.
@@ -112,7 +113,8 @@ export function AgreementActionsScreen({ agreementId, start }: {
     if (state.journal && journalFor(normalized).payloadHash !== state.journal.payloadHash) {
       setError('Ovo se razlikuje od onoga što je ranije poslato. Unesi iste podatke i isti razlog.'); return;
     }
-    reviewBase.current = snapshot; reviewRef.current = normalized; setReview(normalized); formRef.current = null; setForm(null); setError(null);
+    reviewBase.current = snapshot; reviewDraft.current = fromForm ? formRef.current : null;
+    reviewRef.current = normalized; setReview(normalized); formRef.current = null; setForm(null); setError(null);
   };
   const prepareForm = () => {
     if (!form || formRef.current !== form || !current() || busy || !snapshot) return;
@@ -145,7 +147,7 @@ export function AgreementActionsScreen({ agreementId, start }: {
     if (!current() || busy || submitting.current || !review || reviewRef.current !== review || controller?.snapshot().snapshot !== reviewBase.current) return;
     submitting.current = true;
     // The controller must commit its existing journal first; only that durable proof retires unsent RAM.
-    try { await controller.submit(review); if (current()) { setReview(null); reviewRef.current = null; } }
+    try { await controller.submit(review); if (current()) { setReview(null); reviewRef.current = null; reviewDraft.current = null; } }
     finally { if (current()) submitting.current = false; }
   };
   const run = (name: 'refresh' | 'retry') => { if (actionCurrent() && !busy && !submitting.current && !formRef.current && !reviewRef.current) void controller?.[name](); };
@@ -165,15 +167,28 @@ export function AgreementActionsScreen({ agreementId, start }: {
   // The screen came from its Dogovor; with no stack under it (a cold start), it goes to that Dogovor.
   const back = () => {
     if (!current()) return;
-    // Retire before navigation: a journal write may settle before the route blurs.
-    // Keep the journal for read-only recovery, but never start its writer after exit.
-    clearAgreementUnsentDraft(draftScope);
+    // Normal Back is not a discard: keep the scope-fenced, RAM-only unsent draft for return.
+    // The journal's writer is disposed and may only be reconciled by its existing receipt.
     leaving.current = true; owner.current = null; controller?.dispose();
     if (engine.current === controller) engine.current = null;
     if (router.canGoBack()) router.back(); else router.replace({ pathname: '/dogovor/[id]', params: { id: agreementId } });
   };
   const closeForm = () => { if (current() && formRef.current === form) { clearAgreementUnsentDraft(draftScope); formRef.current = null; setForm(null); setError(null); } };
-  const closeReview = () => { if (current() && reviewRef.current === review && !submitting.current) { clearAgreementUnsentDraft(draftScope); reviewRef.current = null; setReview(null); setError(null); } };
+  const closeReview = () => { if (current() && reviewRef.current === review && !submitting.current) {
+    // The labelled X is explicit abandonment, unlike the system Back.
+    if (reviewDraft.current) clearAgreementUnsentDraft(draftScope);
+    reviewDraft.current = null; arrived.current = true; reviewRef.current = null; setReview(null); setError(null);
+  } };
+  const returnFromReview = () => {
+    if (!current() || reviewRef.current !== review || submitting.current) return;
+    const draft = reviewDraft.current;
+    reviewDraft.current = null; reviewRef.current = null; setReview(null);
+    if (draft) {
+      formRef.current = draft; setForm(draft);
+      setError(reviewBase.current && snapshot && reviewBase.current.agreementVersion !== snapshot.agreementVersion
+        ? CHANGED_TERMS_NOTICE : null);
+    } else { arrived.current = true; setError(null); }
+  };
   // A step of the flow is closed by the system Back as by its X, so a typed proposal or reason is never lost to a whole-
   // screen exit; while a command runs, Back waits with the step (review r6).
   const stepBack = useRef<() => boolean>(() => false);
@@ -181,7 +196,13 @@ export function AgreementActionsScreen({ agreementId, start }: {
     if (leaving.current) return true;
     if (!current()) return false;
     if (!form && !review) { back(); return true; }
-    if (!busy && !submitting.current) { if (form) closeForm(); else closeReview(); }
+    if (!busy && !submitting.current) {
+      if (review) returnFromReview();
+      else if (form) {
+        // Back from the editor goes to the hub without an implicit discard.
+        arrived.current = true; formRef.current = null; setForm(null); setError(null);
+      }
+    }
     return true;
   };
   useFocusEffect(useCallback(() => {
