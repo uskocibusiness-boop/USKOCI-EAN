@@ -227,7 +227,7 @@ export default function AuthScreen() {
       setPreparedIntent({ intent, accountRevision: sesijaSada().accountRevision });
       if (changing) return;
       setRezim('SIGNUP'); setFaza('EMAIL'); clearFeedback(); setOtvoren(true);
-    }, () => { if (current()) setGreska('Izbor nije sačuvan. Pokušaj ponovo.'); });
+    }, () => { if (current()) setGreska('Izbor nije sačuvan. Pokušajte ponovo.'); });
   }
 
   async function emailAkcija() {
@@ -337,8 +337,8 @@ export default function AuthScreen() {
     if (name === 'email' || name === 'lozinka') { setGreska(null); setFailureNext(null); }
   });
 
-  const failureAction = failureNext === 'HAVE_ACCOUNT' ? { note: 'Možda već imaš nalog.', label: authCopy.signIn, onPress: () => { switchWay('LOGIN'); } }
-    : failureNext === 'RESEND' ? { label: 'Pošalji ponovo potvrdu', onPress: () => { void ponoviPotvrduEmaila(); } } : null;
+  const failureAction = failureNext === 'HAVE_ACCOUNT' ? { note: 'Možda već imate nalog.', label: authCopy.signIn, onPress: () => { switchWay('LOGIN'); } }
+    : failureNext === 'RESEND' ? { label: 'Pošaljite ponovo potvrdu', onPress: () => { void ponoviPotvrduEmaila(); } } : null;
   const signupClosed = rezim === 'SIGNUP' && !methods.emailSignup;
   const emailAvailable = rezim === 'SIGNUP' ? methods.emailSignup : methods.emailPassword;
   const toSignIn = <PrimaryButton title={authCopy.backToSignIn} onPress={nazadNaEmail} busy={radi} />;
