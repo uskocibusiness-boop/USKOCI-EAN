@@ -63,3 +63,35 @@ test('foreign reviewer, wrong target, other Agreement, null time/identity do not
  await db.exec('UPDATE public.agreements SET worker_account_id=requester_account_id');
  assert.equal(await ready(db,'2026-11-30T12:00:00Z'),false);
 });
+
+test('R11b patches all three current reader shapes and hides early ratings in every projection',async t=>{
+ const db=await setup();t.after(()=>db.close());
+ const profile=id(6);
+ await db.exec([
+  'CREATE TABLE public.app_profiles(id uuid PRIMARY KEY,account_id uuid);',
+  'CREATE TABLE private.agreement_review_comments_v1(agreement_id uuid,target_account_id uuid,hidden_at timestamptz);',
+  "CREATE FUNCTION private.account_reputation(account_id uuid) RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER AS $f$ SELECT jsonb_build_object('count',count(*)::int) from private.agreement_reviews where target_account_id=account_id; $f$;",
+  "CREATE FUNCTION public.rpc_list_received_reviews_v1(p_limit integer,p_after text) RETURNS integer LANGUAGE plpgsql SECURITY DEFINER AS $f$ DECLARE v_actor uuid:='"+b+"'; BEGIN RETURN (SELECT count(*)::integer FROM private.agreement_reviews rv where rv.target_account_id = v_actor); END; $f$;",
+  "CREATE FUNCTION public.rpc_list_review_comments_v1(p_profile_id uuid,p_limit integer,p_after jsonb) RETURNS integer LANGUAGE plpgsql SECURITY DEFINER AS $f$ DECLARE v_profile public.app_profiles; BEGIN SELECT * INTO v_profile FROM public.app_profiles WHERE id=p_profile_id; RETURN (SELECT count(*)::integer FROM private.agreement_review_comments_v1 c JOIN private.agreement_reviews rv ON rv.agreement_id=c.agreement_id AND rv.target_account_id=c.target_account_id where c.target_account_id=v_profile.account_id and c.hidden_at is null); END; $f$;",
+ ].join('\n'));
+ await db.query('INSERT INTO public.app_profiles VALUES($1,$2)',[profile,b]);
+ await db.query('INSERT INTO private.agreement_review_comments_v1 VALUES($1,$2,NULL)',[agreement,b]);
+ await db.exec("UPDATE public.agreement_execution SET completed_at=statement_timestamp()-interval '1 day'");
+ const patch='DO $patch$'+sql.split('DO $patch$')[1].split('COMMIT;')[0];
+ await db.exec(patch);
+ const signatures=['private.account_reputation(uuid)','public.rpc_list_received_reviews_v1(integer,text)',
+  'public.rpc_list_review_comments_v1(uuid,integer,jsonb)'];
+ for(const sig of signatures){
+  const def=(await db.query('SELECT pg_get_functiondef(to_regprocedure($1)) as definition',[sig])).rows[0].definition;
+  assert.match(def,/private\.agreement_review_publication_ready_v1\(rv\.agreement_id\)/);
+ }
+ const publicRows=async()=>[
+  (await db.query("SELECT (private.account_reputation($1::uuid)->>'count')::integer n",[b])).rows[0].n,
+  (await db.query('SELECT public.rpc_list_received_reviews_v1(20,NULL) n')).rows[0].n,
+  (await db.query('SELECT public.rpc_list_review_comments_v1($1::uuid,20,NULL) n',[profile])).rows[0].n,
+ ];
+ await write(db,a,b);
+ assert.deepEqual(await publicRows(),[0,0,0]);
+ await write(db,b,a);
+ assert.deepEqual(await publicRows(),[1,1,1]);
+});
