@@ -146,13 +146,13 @@ describe('the ideas of the UI pass, as the gallery draws them', () => {
   it('an unknown send shows a read-only check and a distinct explicit resend; refused send stays failed', async () => {
     await open('chat-unknown');
     expect(text()).toContain('Ne znamo da li je stigla'); expect(text()).not.toContain('Nije poslato');
-    expect(labels()).toContain('Proveri da li je stigla: Parking je iza zgrade.');
-    expect(labels()).toContain('Ponovi slanje poruke Parking je iza zgrade.');
-    expect(text()).toContain('Pošalji ponovo');
+    expect(labels()).toContain('Proverite da li je stigla: Parking je iza zgrade.');
+    expect(labels()).toContain('Ponovite slanje poruke Parking je iza zgrade.');
+    expect(text()).toContain('Pošaljite ponovo');
     await act(async () => { tree.unmount(); });
     await open('chat');
     expect(text()).toContain('Nije poslato'); expect(text()).toContain('Poruka nije sačuvana na telefonu. Tekst nije odbačen; pokušaj ponovo.');
-    expect(text()).toContain('Pošalji ponovo'); expect(text()).not.toContain('Proveri');
+    expect(text()).toContain('Pošaljite ponovo'); expect(text()).not.toContain('Proverite da li je stigla:');
   });
 
   it('the group conversation says what the screen of the group says when fewer than two people are chosen', async () => {
