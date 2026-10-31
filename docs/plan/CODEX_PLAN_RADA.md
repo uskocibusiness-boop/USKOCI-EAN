@@ -3401,6 +3401,15 @@ Izraz „definisano” nije „nacrtano”, „nacrtano” nije „implementiran
 
 ### 11.2a. Aktuelni izvršni status — 28.10.2026.
 
+#### R05/F18 — dopuna retrieval prefiltara za potvrđene udaljene oblasti (31.10.2026, LOCAL_ONLY)
+
+**Poreklo:** direct READ-ONLY DEV PG17 definicije `private.candidate_profile_ids(uuid,integer)` MD5 `665d3bcba58ea4a930a5ac5801383a84` i `private.candidate_profile_ids_v1b(uuid,integer,integer)` MD5 `60b8eae4b4efa8a6b05b81c6c08b0021`. Obe ograničavaju početni skup na staru approximate geografsku tačku do 300 km i rezervnu granu bez tačke; aktivno sačuvano radno područje u `private.worker_saved_areas_v1` proverava tek kasniji `worker_need_fit_v1`. Zato je reprodukovan **statički false-negative put**, nije dokazan broj pogođenih ljudi.
+
+**Izvršen source kandidat u ovom PR-u:** `supabase/candidates/r05_saved_area_retrieval.sql` (**LOCAL_ONLY, nije migracija/DEV apply**), pinovan na šest konkretnh DEV function body MD5 potpisa. U oba postojeća prefiltera pre starog no-pin fallback-a umeće samo ograničen extra pass za udaljenu stariu tačku sa potvrđenim sačuvanim područjem koje izvorni `private.worker_area_fit_v1` autorizuje. Zadržava `dispatch_cheap_candidate_admitted`, `worker_notify_room_v1b` za capped verziju, identitet zadatka, redosled/limit i sve stare native/profile prijave. `supabase/proofs/ai/r05_saved_area_retrieval.test.mjs` izvršava TAČAN patch na sintetičkom PGlite domenu geografije, sa negativnim/drugim svetom? **Ne tvrditi drugi-svet u ovoj fixture**: izvršava near/far/false-area/DRAFT/limit/cap/null-cap/no-pin. Test ulazi u postojeću AI/Edge glob CI proveru.
+
+**Ograničenje:** sintetički numerički domain NIJE pravi PostGIS, nema auth/device/profil šteta ili realnog EXPLAIN/indeksa, moguć je skupi far-profile scan i širi retrieval može i dalje zakinuti validnog radnika kada preliminarni limit ispune slabiji near kandidati. R05/F18 **NIJE ZATVOREN**: nakon source/CI dokaza obavezni su bounded perf, realna geometrija/signed worker area, COUNTRY/CITY/RADIUS/REMOTE/TODAY, zajednički Za mene/dispatch, dva naloga/uređaja, R01 i odobrena DEV migracija. Nikakve DEV/PROD/Edge/OTA/billing promene ovom izmenom.
+
+
 #### Izvršni source krug 31.10.2026 — R11b/S13, R11f/X03, R08/F10/S14 (NOVO, bez DEV pisanja)
 
 **Autoritet:** samo ovaj `docs/plan/CODEX_PLAN_RADA.md`; kod `work/rev14-review-f17`, Draft PR #43; pre ovog kruga potvrđen HEAD `bff06c980388e96079ad7bf27d288bb45eb05a38`. Ponovo čitati PR HEAD pre svake sledeće izmene. Sva tri izvršna koraka su u istom PR-u, bez novog mastera. Ovo nije nova DEV/PROD/OTA/nativna isporuka.
