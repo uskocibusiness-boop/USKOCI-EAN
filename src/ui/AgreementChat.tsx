@@ -11,7 +11,6 @@ import { AgreementPhotoComposer, AgreementPhotoSheet } from './media/AgreementPh
 import { PHOTO_WORDS } from './media/photoWords';
 import { Glyph } from './system/Glyph';
 import { tick } from './system/haptics';
-import { OUTCOME_ACTION } from './system/outcomeCopy';
 import { AuthorizedPhoto } from './media/AuthorizedPhoto';
 import { PhotoViewer, type PhotoReadContext, type PagePhoto } from './media/PhotoViewer';
 import { Press } from './Press';
@@ -78,18 +77,18 @@ type Props = {
 };
 
 const errors: Record<OutboxError, string> = {
-  STORAGE_UNAVAILABLE: 'Poruka nije sačuvana na telefonu. Tekst nije odbačen; pokušaj ponovo.',
+  STORAGE_UNAVAILABLE: 'Poruka nije sačuvana na telefonu. Tekst nije odbačen; pokušajte ponovo.',
   STORAGE_INVALID: 'Poruke sačuvane na ovom telefonu nije moguće učitati. Prepiska je bezbedno sačuvana.',
-  CAPACITY: 'Čeka 50 poruka koje nisu poslate. Proveri ih pre nove poruke.',
-  INVALID_MESSAGE: 'Poruka može imati od 1 do 2.000 znakova. Proveri tekst.',
-  READ_ONLY: 'Dogovor trenutno ne prihvata nove poruke. Osveži njegov status.',
-  NOT_AVAILABLE: 'Više nemaš pristup slanju u ovom Dogovoru. Osveži njegov status.',
-  AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Vrati se na Dogovore.',
-  CONFLICT: 'Ova poruka se razlikuje od sačuvane. Možeš da kopiraš tekst.',
+  CAPACITY: 'Čeka 50 poruka koje nisu poslate. Proverite ih pre nove poruke.',
+  INVALID_MESSAGE: 'Poruka može imati od 1 do 2.000 znakova. Proverite tekst.',
+  READ_ONLY: 'Dogovor trenutno ne prihvata nove poruke. Osvežite njegov status.',
+  NOT_AVAILABLE: 'Više nemate pristup slanju u ovom Dogovoru. Osvežite njegov status.',
+  AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Vratite se na Dogovore.',
+  CONFLICT: 'Ova poruka se razlikuje od sačuvane. Možete da kopiraš tekst.',
   UNAVAILABLE: 'Veza je prekinuta. Ne znamo da li je poruka stigla.',
-  // The words describe and the button ("Proveri", `outcomeCopy`) commands: the line does not say the verb of the button twice.
+  // The words describe and the button ("Proverite", `outcomeCopy`) commands: the line does not say the verb of the button twice.
   INVALID_RESPONSE: 'Ne znamo da li je poruka stigla. Neće se poslati dvaput.',
-  NOT_READY: 'Sačekaj da se učitaju sačuvane poruke.',
+  NOT_READY: 'Sačekajte da se učitaju sačuvane poruke.',
 };
 
 /**
@@ -117,7 +116,7 @@ const COMMAND = 48;
 /** The "+" inside the pill: the 44 touch token, a round well. */
 const INLINE_PLUS = 44;
 /** The one sentence a closed Dogovor says under its thread, in place of the field. The projection carries no date or side to add. */
-export const CLOSED_SENTENCE = 'Dogovor je zatvoren. Poruke možeš samo da čitaš.';
+export const CLOSED_SENTENCE = 'Dogovor je zatvoren. Poruke možete samo da čitate.';
 
 /** Quiet text action used inside the conversation (retry, refresh). The spoken label may be longer than the visible text. */
 function ChatAction({ label, text = label, onPress, tone = 'green', center = false, end = false, refresh = false, busy = false, quiet = false }: { label: string; text?: string; onPress: () => void;
@@ -142,19 +141,19 @@ function TerminalPhotoRecovery({ photos, capturing }: { photos: AgreementPhotosC
   return <View style={s.details} testID="agreement-terminal-photo-recovery">
     <T variant="bodyStrong">Pripremljene fotografije</T>
     {photos.message ? <T variant="meta" accessibilityLiveRegion="polite">{photos.message}</T> : null}
-    <ChatAction label="Osveži fotografije poruke" text="Proveri fotografije" refresh busy={busy} onPress={() => { void photos.refresh(); }} />
+    <ChatAction label="Osvežite fotografije poruke" text="Proverite fotografije" refresh busy={busy} onPress={() => { void photos.refresh(); }} />
     {items.map((item, index) => <View key={item.ref.clientRequestId} style={s.details}>
       <T variant="meta">{`Fotografija ${index + 1}`}</T>
-      {photos.reserved(item) ? <T variant="meta" tone="muted">Fotografija je uz poruku. Prvo proveri da li je poslata.</T> : <>
+      {photos.reserved(item) ? <T variant="meta" tone="muted">Fotografija je uz poruku. Prvo proverite da li je poslata.</T> : <>
         <T variant="meta" tone="muted">{item.receipt?.state === 'READY' ? 'Fotografija nije pridružena poruci.' : 'Ne znamo da li je fotografija poslata.'}</T>
-        <ChatAction label={`Ukloni pripremljenu fotografiju ${index + 1}`} text="Ukloni fotografiju" busy={busy}
+        <ChatAction label={`Uklonite pripremljenu fotografiju ${index + 1}`} text="Uklonite fotografiju" busy={busy}
           onPress={() => { void photos.remove(item.ref); }} />
       </>}
     </View>)}
     {saved.length ? <>
-      <ChatAction label="Prikaži ranije pripremljene fotografije" busy={busy} onPress={() => setShowSaved(old => !old)} />
+      <ChatAction label="Prikažite ranije pripremljene fotografije" busy={busy} onPress={() => setShowSaved(old => !old)} />
       {showSaved ? saved.map((upload, index) => <ChatAction key={upload.clientRequestId}
-        label={`Prikaži ranije pripremljenu fotografiju ${index + 1}`} text={`Fotografija ${index + 1} · Prikaži za uklanjanje`}
+        label={`Prikažite ranije pripremljenu fotografiju ${index + 1}`} text={`Fotografija ${index + 1} · Prikažite za uklanjanje`}
         busy={busy || photos.items.length >= 6} onPress={() => { void photos.restore(upload.clientRequestId); }} />) : null}
     </> : null}
   </View>;
@@ -513,16 +512,16 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
             <T variant="note" tone="muted" style={s.centerText}>{messages.length
               ? 'Nove poruke nisu proverene. Ranije učitane poruke su i dalje ovde.'
               : 'Nove poruke nisu proverene.'}</T>
-            <ChatAction label="Ponovo proveri nove poruke" text="Pokušaj ponovo" onPress={() => void refresh()} center refresh busy={refreshing} />
+            <ChatAction label="Ponovo proverite nove poruke" text="Pokušajte ponovo" onPress={() => void refresh()} center refresh busy={refreshing} />
           </View> : null}
           {/* Measure the complete pre-message region: failure replaces this action with the notice,
               so compensating the notice alone would shift an older message by the removed button's height. */}
           {!error && !refreshError && !terminal && (shown.length > 0 || local.length > 0) && !(loading && !shown.length)
-            ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} refresh quiet busy={refreshing} /> : null}
+            ? <ChatAction label="Osvežite poruke" onPress={() => void refresh()} refresh quiet busy={refreshing} /> : null}
         </View>
         {!error && hasOlder && onLoadOlder ? <View>
           {historyError && historyErrorDirection === 'older' ? <T variant="note" tone="muted" style={s.centerText} accessibilityLiveRegion="polite">Starije poruke nisu učitane. Prepiska ostaje ovde.</T> : null}
-          <ChatAction label="Učitaj starije poruke" text={historyError && historyErrorDirection === 'older' ? 'Pokušaj ponovo · starije poruke' : 'Starije poruke'}
+          <ChatAction label="Učitajte starije poruke" text={historyError && historyErrorDirection === 'older' ? 'Pokušajte ponovo · starije poruke' : 'Starije poruke'}
             onPress={() => loadHistory('older')} center refresh busy={loadingOlder || loadingNewer || loading || refreshing} />
         </View> : null}
         {loading && !shown.length ? <View accessibilityLiveRegion="polite" style={s.loading}>
@@ -540,16 +539,16 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
           <View style={s.stateArt}><FactArt kind="chat" size={56} muted /></View>
           <T accessibilityRole="alert" variant="title" style={[s.ink, s.centerText]}>Poruke nisu učitane</T>
           <T variant="copy" tone="muted" style={[s.centerText, s.stateCopy]}>{state.draft.trim() || state.entries.length
-            ? 'Proveri vezu. Tvoj tekst ostaje sačuvan.' : 'Proveri vezu pa pokušaj ponovo.'}</T>
-          <ChatAction label="Ponovo učitaj poruke" text="Pokušaj ponovo" onPress={() => void refresh()} center />
+            ? 'Proverite vezu. Vaš tekst ostaje sačuvan.' : 'Proverite vezu pa pokušajte ponovo.'}</T>
+          <ChatAction label="Ponovo učitaj poruke" text="Pokušajte ponovo" onPress={() => void refresh()} center />
         </View> : null}
         {empty ? <View style={s.stateBlock}>
           <View style={s.stateArt}><FactArt kind="chat" size={56} muted={terminal} /></View>
           {/* A finished Dogovor with no messages cannot take a first one; it says so instead of inviting it. */}
           {terminal ? <T variant="copy" tone="muted" style={[s.centerText, s.stateCopy]}>U ovom Dogovoru nije bilo poruka.</T> : <>
-            <T accessibilityRole="header" variant="title" style={[s.ink, s.centerText]}>Napiši prvu poruku</T>
+            <T accessibilityRole="header" variant="title" style={[s.ink, s.centerText]}>Napišite prvu poruku</T>
             <T variant="copy" tone="muted" style={[s.centerText, s.stateCopy]}>Poruke vide samo učesnici ovog Dogovora.</T>
-            {!refreshError ? <ChatAction label="Osveži poruke" onPress={() => void refresh()} center refresh busy={refreshing} /> : null}</>}
+            {!refreshError ? <ChatAction label="Osvežite poruke" onPress={() => void refresh()} center refresh busy={refreshing} /> : null}</>}
         </View> : null}
         {thread.map(entry => {
           const { message, moment } = entry;
@@ -558,9 +557,9 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
           const selectForSupport = () => setChosen(current => current === message.id ? null : message.id);
           const summary = { accessibilityRole: support ? 'button' as const : 'text' as const,
             accessibilityLabel: messageSpoken(message, moment, kind ? MARK_WORDS[kind].toLowerCase() : undefined),
-            accessibilityHint: support ? 'Dugim pritiskom biraš poruku za podršku.' : undefined,
+            accessibilityHint: support ? 'Dugim pritiskom birate poruku za podršku.' : undefined,
             onLongPress: support ? selectForSupport : undefined,
-            accessibilityActions: support ? [{ name: 'activate', label: 'Izaberi ovu poruku za podršku' }] : undefined,
+            accessibilityActions: support ? [{ name: 'activate', label: 'Izaberite ovu poruku za podršku' }] : undefined,
             onAccessibilityAction: support ? selectForSupport : undefined,
             haptic: support ? 'select' as const : 'none' as const, scaleTo: 1 as const };
           const hasPhotos = !!photos && !!message.fotografije?.length;
@@ -583,7 +582,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
               photos={message.fotografije?.map((photo, photoIndex) => <Press key={photo.assetId} accessible={false} scaleTo={1} haptic="select"
                 onLongPress={summary.onLongPress}><AuthorizedPhoto assetId={photo.assetId} agreementId={photos!.agreementId} messageId={message.id}
                 label={`Fotografija poruke ${photoIndex + 1}`} style={s.photo}
-                open={{ label: `Otvori fotografiju poruke ${photoIndex + 1}`, hint: 'Pregled preko celog ekrana.',
+                open={{ label: `Otvorite fotografiju poruke ${photoIndex + 1}`, hint: 'Pregled preko celog ekrana.',
                   onLongPress: summary.onLongPress,
                   onPress: () => openGallery({ outbox, context: { agreementId: photos!.agreementId, messageId: message.id },
                     photos: message.fotografije!, index: photoIndex }) }} /></Press>)} />
@@ -597,14 +596,14 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
             {support && chosen === message.id && uuid(message.id) && positiveInteger(message.dogovorVerzija) ? <View
               style={[s.supportEntry, message.moja ? s.supportMine : s.supportTheirs]}><SupportContextEntry
                 reference={{ kind: 'AGREEMENT_MESSAGE', id: message.id.toLowerCase(), revision: message.dogovorVerzija }}
-                label="Izaberi ovu poruku za podršku" previewText={[message.glas ? 'Glasovna poruka. Podrška ne može da presluša snimak.' : message.telo, message.fotografije?.length
+                label="Izaberite ovu poruku za podršku" previewText={[message.glas ? 'Glasovna poruka. Podrška ne može da presluša snimak.' : message.telo, message.fotografije?.length
                   ? `Privatne fotografije uz ovu poruku: ${message.fotografije.length}. Uključene su u izabrani dokaz.` : ''].filter(Boolean).join('\n')} disabled={loading}
                 canAct={supportCurrent} navigate={support.navigate} /></View> : null}
           </View>;
         })}
         {!error && hasNewer && onLoadNewer ? <View>
           {historyError && historyErrorDirection === 'newer' ? <T variant="note" tone="muted" style={s.centerText} accessibilityLiveRegion="polite">Novije poruke nisu učitane. Prepiska ostaje ovde.</T> : null}
-          <ChatAction label="Učitaj novije poruke" text={historyError && historyErrorDirection === 'newer' ? 'Pokušaj ponovo · novije poruke' : 'Novije poruke'}
+          <ChatAction label="Učitajte novije poruke" text={historyError && historyErrorDirection === 'newer' ? 'Pokušajte ponovo · novije poruke' : 'Novije poruke'}
             onPress={() => loadHistory('newer')} center refresh busy={loadingOlder || loadingNewer || loading || refreshing} />
         </View> : null}
         {/* What I sent and the read has not returned yet: said by its real outbox state, with no day of its own (an
@@ -615,7 +614,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
           const failed = entry.state === 'failed';
           const kind = entryMark(entry);
           const what = entry.command.body || (entry.command.voice ? 'glasovna poruka' : entry.command.photos ? 'fotografija' : 'poruka');
-          const summary = { accessibilityRole: 'text' as const, accessibilityLabel: `Ti: ${what}, ${MARK_WORDS[kind].toLowerCase()}`, scaleTo: 1 as const };
+          const summary = { accessibilityRole: 'text' as const, accessibilityLabel: `Vi: ${what}, ${MARK_WORDS[kind].toLowerCase()}`, scaleTo: 1 as const };
           // An unloaded newer window separates this local run from the last visible canonical message.
           const first = index === 0 && (hasNewer || !thread[thread.length - 1]?.message.moja);
           const common = { mine: true, first, last: index === local.length - 1,
@@ -625,19 +624,19 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
             {entry.command.photos ? <PhotoBubble {...common} caption={entry.command.body || null}
               photos={entry.command.photos.assetIds.map((assetId, photoIndex) => <AuthorizedPhoto key={assetId} assetId={assetId}
                 agreementId={entry.command.agreementId} messageId={entry.messageId} label={`Fotografija poruke na čekanju ${photoIndex + 1}`}
-                style={s.photo} open={{ label: `Otvori fotografiju poruke na čekanju ${photoIndex + 1}`,
+                style={s.photo} open={{ label: `Otvorite fotografiju poruke na čekanju ${photoIndex + 1}`,
                   onPress: () => openGallery({ outbox, context: { agreementId: entry.command.agreementId, messageId: entry.messageId },
                     localId: entry.command.clientMessageId, photos: entry.command.photos!.assetIds.map(id => ({ assetId: id })), index: photoIndex }) }} />)} />
               : <TextBubble {...common} lines={[entry.command.body, entry.command.voice ? 'Glasovna poruka' : ''].filter(Boolean)} />}
             {entry.state === 'unknown' || failed ? <View style={s.pendingNote}>
               <T variant="meta" tone={failed ? 'danger' : 'muted'} style={s.rightText} accessibilityLiveRegion="polite">{MARK_WORDS[kind]}</T>
               {failed && entry.error ? <T variant="meta" tone="muted" style={s.rightText}>{errors[entry.error]}</T> : null}
-              {entry.state === 'unknown' ? <ChatAction label={`Proveri da li je stigla: ${what}`}
-                text={OUTCOME_ACTION.check} tone="ink" end refresh busy={refreshing}
+              {entry.state === 'unknown' ? <ChatAction label={`Proverite da li je stigla: ${what}`}
+                text="Proverite" tone="ink" end refresh busy={refreshing}
                 onPress={checkUnknown} /> : null}
               {sendsAllowed && (entry.command.voice ? voice?.outboxState.phase === 'ready' : state.phase === 'ready') ? <ChatAction
-                label={entry.command.voice ? 'Pošalji glasovnu poruku ponovo' : `Ponovi slanje poruke ${entry.command.body}`}
-                text="Pošalji ponovo" tone="ink" end onPress={() => resend(entry)} /> : null}
+                label={entry.command.voice ? 'Pošaljite glasovnu poruku ponovo' : `Ponovite slanje poruke ${entry.command.body}`}
+                text="Pošaljite ponovo" tone="ink" end onPress={() => resend(entry)} /> : null}
             </View> : null}
           </View>;
         })}
@@ -646,12 +645,12 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
       {state.error || state.phase === 'error' || (terminal && !!photos) || (!terminal && !writable) || denied || length > 2000 || photoPanel ? <View testID="agreement-chat-details" style={s.details}>
         {state.error ? <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{errors[state.error]}</T> : null}
         {state.phase === 'error' || state.error === 'STORAGE_UNAVAILABLE' || state.error === 'STORAGE_INVALID'
-          ? <ChatAction label="Ponovo učitaj sačuvane poruke" text="Pokušaj ponovo" onPress={() => void outbox.start()} /> : null}
+          ? <ChatAction label="Ponovo učitaj sačuvane poruke" text="Pokušajte ponovo" onPress={() => void outbox.start()} /> : null}
         {/* A closed Dogovor keeps its history and existing-photo recovery, without a new-message/photo composer; the one
             sentence that says so stands under the thread, where the field would be. */}
-        {!terminal && !writable ? <T variant="meta" tone="muted">Osveži Dogovor pre nove poruke. Nacrt ostaje sačuvan.</T> : null}
-        {!terminal && (!writable || denied) ? <ChatAction label="Osveži status Dogovora" onPress={() => void refreshWorkspace()} /> : null}
-        {!terminal && length > 2000 ? <T variant="meta" tone="danger">{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova — skrati poruku.</T> : null}
+        {!terminal && !writable ? <T variant="meta" tone="muted">Osvežite Dogovor pre nove poruke. Nacrt ostaje sačuvan.</T> : null}
+        {!terminal && (!writable || denied) ? <ChatAction label="Osvežite status Dogovora" onPress={() => void refreshWorkspace()} /> : null}
+        {!terminal && length > 2000 ? <T variant="meta" tone="danger">{length.toLocaleString('sr-Latn-RS')} / 2.000 znakova — skratite poruku.</T> : null}
         {photos && photoPanel ? <AgreementPhotoComposer photos={photos} capturing={state.capturing}
           showSaved={savedOpen} onHideSaved={() => setSavedOpen(false)} /> : null}
         {photos && terminal ? <TerminalPhotoRecovery photos={photos} capturing={state.capturing} /> : null}
@@ -659,7 +658,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
       {voice ? <View style={s.details}>
         <AgreementVoicePanel voice={voice} writable={writable && !terminal} />
         {voice.outboxState.error ? <T variant="meta" tone="danger" accessibilityLiveRegion="polite">{errors[voice.outboxState.error]}</T> : null}
-        {voice.outboxState.phase === 'error' ? <ChatAction label="Učitaj sačuvana slanja glasovnih poruka" text="Pokušaj ponovo" onPress={() => { void voice.outbox.start(); }} /> : null}
+        {voice.outboxState.phase === 'error' ? <ChatAction label="Učitajte sačuvana slanja glasovnih poruka" text="Pokušajte ponovo" onPress={() => { void voice.outbox.start(); }} /> : null}
       </View> : null}
       </ScrollView>
       {showLatest || hasNewer ? <View style={s.latestRow}>
@@ -675,14 +674,14 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
             accessibilityElementsHidden={hideEmptyTextForVoiceReview}
             importantForAccessibility={hideEmptyTextForVoiceReview ? 'no-hide-descendants' : 'auto'}>
             <TextInput value={state.draft} onChangeText={outbox.setDraft} multiline editable={!terminal && !voiceBusy}
-              accessibilityLabel="Napiši poruku" placeholder="Poruka" placeholderTextColor={sys.color.muted}
+              accessibilityLabel="Napišite poruku" placeholder="Poruka" placeholderTextColor={sys.color.muted}
               onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
               // Let an ordinary multiline draft show up to three full lines. The old keyboard cap was one
               // line plus padding, which clipped the first line while the caret scrolled to the last one.
               scrollEnabled style={[s.input, s.writingInput, inlineTools && s.inputInline, { minHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale + 24)) },
                 compact && { maxHeight: Math.max(COMMAND, Math.ceil(sys.type.body.lineHeight * textScale * (textScale >= 1.6 ? 2 : 3) + 24)) }]} />
             <View style={[s.commandSlot, !inlineTools && showMic && s.hidden]}>
-            <Press accessibilityRole="button" accessibilityLabel="Pošalji poruku" disabled={!canSend}
+            <Press accessibilityRole="button" accessibilityLabel="Pošaljite poruku" disabled={!canSend}
               accessibilityElementsHidden={showMic} importantForAccessibility={showMic ? 'no-hide-descendants' : 'auto'}
               accessibilityState={{ disabled: !canSend, busy: state.capturing }} onPress={send} haptic={canSend ? 'light' : 'none'} hitSlop={0} style={[s.sendArea, showMic && s.hidden]}>
               <View style={[s.send, canSend && s.sendReady]}>
