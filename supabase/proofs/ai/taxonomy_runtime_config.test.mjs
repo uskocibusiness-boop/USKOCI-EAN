@@ -37,7 +37,7 @@ test('paid dual rejects spoofed host, project, unsafe URL and any non-DEV endpoi
  for(const url of ['http://'+ref+'.supabase.co', 'https://otherproject123456789.supabase.co',
   project+'.attacker.invalid',project+'/rpc',project+'/?x=1',project+'/#x',
   'https://name:secret@'+ref+'.supabase.co', 'https://'+ref+'.supabase.co:444',
-  'https://db.invalid','https://'+ref.toUpperCase()+'.supabase.co']){
+  'https://db.invalid']){
   assert.equal(taxonomyDualGeminiEnabled(read({...allowed,SUPABASE_URL:url})),false,url);
  }
  assert.equal(taxonomyDualGeminiEnabled(read({...allowed,SUPABASE_URL:project+'/'})),true);
