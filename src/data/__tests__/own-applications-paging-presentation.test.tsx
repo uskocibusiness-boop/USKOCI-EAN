@@ -37,10 +37,10 @@ const row = (id: string, patch: Partial<MojaPrijavaProjekcija> = {}): MojaPrijav
   podrucjeTekst: 'Liman, Novi Sad', vremeTekst: '20. sep · 10:00', dogovorId: null, promenjenaPotreba: false, mozePovuci: true, traziPaznju: false, ...patch });
 const COUNTS: ApplicationCounts = { total: 40, attention: 4, active: 12, finished: 24 };
 let rows: MojaPrijavaProjekcija[], paging: ApplicationsPaging | undefined, tab: ApplicationsTab, loading = false, unavailable = false;
-const loadMore = jest.fn(), onTab = jest.fn(), onExplore = jest.fn();
+const loadMore = jest.fn(), refresh = jest.fn(), onTab = jest.fn(), onExplore = jest.fn();
 const makePaging = (patch: Partial<ApplicationsPaging> = {}): ApplicationsPaging => ({ counts: COUNTS, hasMore: true, loadingMore: false, moreError: false, onLoadMore: loadMore, ...patch });
 const props = () => ({ rows, loading, unavailable, message: null, notice: null, tab, onTab, expanded: null, draft: null, busy: false, editingLoading: false, pending: false,
-  canRetry: false, canReset: false, onRefresh: jest.fn(), onExplore, onProfile: jest.fn(), onBack: jest.fn(), onReview: jest.fn(), onClose: jest.fn(), onEdit: jest.fn(),
+  canRetry: false, canReset: false, onRefresh: refresh, onExplore, onProfile: jest.fn(), onBack: jest.fn(), onReview: jest.fn(), onClose: jest.fn(), onEdit: jest.fn(),
   onChange: jest.fn(), onCancelEdit: jest.fn(), onKeep: jest.fn(), onUpdate: jest.fn(), onWithdraw: jest.fn(), onAgreement: jest.fn(), onRetry: jest.fn(), onReset: jest.fn(),
   onTask: jest.fn(), paging });
 let tree: ReactTestRenderer;
@@ -55,7 +55,7 @@ const heads = () => tree.root.findAllByType('T' as React.ElementType).filter(nod
   .map(node => node.props.children as string);
 const list = () => tree.root.findByType('List' as React.ElementType);
 beforeEach(() => { jest.spyOn(console, 'error').mockImplementation(() => {}); rows = [row('one'), row('two')]; paging = makePaging(); tab = 'all'; loading = unavailable = false;
-  loadMore.mockClear(); onTab.mockClear(); onExplore.mockClear(); });
+  loadMore.mockClear(); refresh.mockClear(); onTab.mockClear(); onExplore.mockClear(); });
 afterEach(async () => { if (tree) await act(async () => tree.unmount()); jest.restoreAllMocks(); });
 
 test('refresh keeps worker cards visible and disables withdrawal until current states arrive', async () => {
@@ -141,6 +141,40 @@ test('the foot offers the next page, says it is reading, or says it failed and o
   action('Pokušaj ponovo').props.onPress(); expect(loadMore).toHaveBeenCalledTimes(2);
   paging = makePaging({ hasMore: false }); await rerender();
   expect(actions()).not.toContain('Prikaži još'); expect(actions()).not.toContain('Pokušaj ponovo');
+});
+
+test('terminal page smaller than its server count keeps the received rows and offers an explicit readback', async () => {
+  paging = makePaging({ hasMore: false }); await render();
+  expect(texts()).toContain('40 prijava');
+  expect(texts()).toContain('Spisak prijava nije potpun. Broj učitanih prijava ne odgovara serverskom stanju.');
+  expect(texts()).toContain('Unos one');
+  expect(texts()).toContain('Unos two');
+  expect(actions()).toContain('Proveri spisak prijava');
+  expect(list().props.onEndReached).toBeUndefined();
+  await act(async () => action('Proveri spisak prijava').props.onPress());
+  expect(refresh).toHaveBeenCalledTimes(1);
+  // A genuine last page, with the exact active-scope count, is not an error.
+  paging = makePaging({ counts: { total: 2, attention: 0, active: 2, finished: 0 }, hasMore: false });
+  await rerender();
+  expect(actions()).not.toContain('Proveri spisak prijava');
+  expect(texts()).not.toContain('Spisak prijava nije potpun.');
+});
+
+test('an empty final page with a nonzero count never claims there are no applications', async () => {
+  rows = []; tab = 'active'; paging = makePaging({
+    counts: { total: 3, active: 1, attention: 1, finished: 1 }, hasMore: false,
+  });
+  await render();
+  expect(texts()).toContain('Spisak prijava nije potpun');
+  expect(texts()).not.toContain('Nema prijava koje čekaju odgovor');
+  expect(texts()).not.toContain('Još nemaš prijavu');
+  await act(async () => action('Proveri spisak prijava').props.onPress());
+  expect(refresh).toHaveBeenCalledTimes(1);
+  // Authenticated zero for the active scope still gets its legitimate empty state.
+  paging = makePaging({ counts: { total: 3, active: 0, attention: 1, finished: 2 }, hasMore: false });
+  await rerender();
+  expect(texts()).toContain('Nema prijava koje čekaju odgovor');
+  expect(actions()).not.toContain('Proveri spisak prijava');
 });
 
 test('the end of the list asks for the next page only when there is one, nothing is being read and the last read did not fail', async () => {
