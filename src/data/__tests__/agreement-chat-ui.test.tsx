@@ -331,12 +331,12 @@ describe('D03 actual message component', () => {
     const newPhotos = { ...oldPhotos, refresh: jest.fn().mockResolvedValue(undefined) };
     const pending = { ...state, entries: [{ command, state: 'unknown' as const, persisted: true, attempt: 1 }] };
     await render({ state: pending, photos: oldPhotos });
-    await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
+    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
     await act(async () => tree.update(<AgreementChat {...props} state={pending} photos={newPhotos} />));
     await act(async () => settle());
     expect(oldPhotos.refresh).not.toHaveBeenCalled(); expect(newPhotos.refresh).toHaveBeenCalledTimes(1);
     outbox.retry.mockImplementationOnce(() => new Promise<void>(resolve => { settle = resolve; }));
-    await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
+    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
     await act(async () => tree.unmount());
     await act(async () => settle());
     expect(newPhotos.refresh).toHaveBeenCalledTimes(1); expect(props.refresh).toHaveBeenCalledTimes(1);
@@ -551,6 +551,9 @@ describe('D03 actual message component', () => {
     expect(texts()).toContain('Ne znamo da li je stigla'); expect(texts()).not.toContain('Poslato');
     expect(texts()).not.toContain('Pročitano'); expect(texts()).not.toContain('Isporučeno');
     await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
+    expect(props.refresh).toHaveBeenCalledTimes(1);
+    expect(outbox.retry).not.toHaveBeenCalled();
+    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
     expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
   });
   it('an answer the app cannot read says what is not known, once, and the one button is the check (the word of `outcomeCopy`)', async () => {
@@ -567,15 +570,17 @@ describe('D03 actual message component', () => {
     await act(async () => button('Pošalji poruku').props.onPress());
     expect(outbox.sendDraft).toHaveBeenCalledTimes(1);
   });
-  it('terminal state blocks new text/send but leaves unknown-intent retry', async () => {
+  it('terminal state blocks every write but retains read-only unknown verification', async () => {
     await render({ terminal: true, writable: false, state: { ...state, entries: [{ command, state: 'unknown', persisted: true, attempt: 1 }] } });
     // A finished Dogovor draws no field and no send at all (owner, 2026-09-23); the one line says it is read-only.
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Napiši poruku' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošalji poruku' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži status Dogovora' })).toHaveLength(0);
     expect(texts()).toContain(CLOSED_SENTENCE);
+    expect(tree.root.findAllByProps({ accessibilityLabel: `Ponovi slanje poruke ${command.body}` })).toHaveLength(0);
     await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
-    expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
+    expect(props.refresh).toHaveBeenCalledTimes(1);
+    expect(outbox.retry).not.toHaveBeenCalled();
   });
   it('server reconciliation suppresses the local duplicate only for matching sender/key/body', async () => {
     const pending = { command, state: 'unknown' as const, persisted: true, attempt: 1 };

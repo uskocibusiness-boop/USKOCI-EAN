@@ -23,7 +23,6 @@ jest.mock('../../ui/system/haptics', () => ({ tick: jest.fn(), forgetTicks: jest
 import { tick } from '../../ui/system/haptics';
 import { AgreementChat, CLOSED_SENTENCE } from '../../ui/AgreementChat';
 import { sys } from '../../ui/system/tokens';
-import { forgetAutoResendForTests } from '../../ui/messages/threadModel';
 
 /**
  * Voice in the conversation (team T3c): a voice message is a bubble in the same shape as text and photo, with a play control, a
@@ -48,7 +47,7 @@ async function render(over: Partial<typeof props> = {}) {
   await act(async () => { tree = create(<AgreementChat {...props} {...over} />, { createNodeMock: element => element.type === ('ScrollView' as never) ? { scrollToEnd: jest.fn(), scrollTo: jest.fn() } : null }); });
 }
 beforeEach(() => {
-  jest.clearAllMocks(); forgetAutoResendForTests();
+  jest.clearAllMocks();
   jest.spyOn(global, 'requestAnimationFrame').mockImplementation(() => 1);
   jest.spyOn(global, 'cancelAnimationFrame').mockImplementation(() => undefined);
   Object.keys(mockVoice).forEach(key => delete mockVoice[key]);
@@ -107,7 +106,10 @@ describe('a voice message in the thread', () => {
     await render();
     expect(texts()).toContain('Glasovna poruka'); expect(texts()).toContain('Ne znamo da li je stigla');
     await act(async () => button('Proveri da li je stigla: glasovna poruka').props.onPress());
-    // The explicit retry goes to the voice outbox, never the text one.
+    expect(props.refresh).toHaveBeenCalledTimes(1);
+    expect(mockVoice.outbox.retry).not.toHaveBeenCalled();
+    await act(async () => button('Pošalji glasovnu poruku ponovo').props.onPress());
+    // A second explicit gesture uses the original VOICE command, never the text journal.
     expect(mockVoice.outbox.retry).toHaveBeenCalledWith('glas_00000009');
     expect(outbox.retry).not.toHaveBeenCalled();
   });
@@ -137,25 +139,25 @@ describe('a voice send the network left unknown', () => {
   const command = { accountId: account, agreementId: agreement, clientMessageId: 'glas_00000010', body: '', voice: { agreementVersion: 2, assetId: glas.assetId } };
   const unknown = (error?: string) => ({ command, state: 'unknown', ...(error ? { error } : {}), persisted: true, attempt: 1 });
 
-  it('is tried once by itself through the VOICE outbox, with the retained command\'s own id, and never through the text outbox', async () => {
+  it('never auto-resends an unknown VOICE command on mount/remount; explicit resend preserves its key', async () => {
     mockVoice.outboxState = { phase: 'ready', error: null, entries: [unknown('UNAVAILABLE')] };
     await render();
-    expect(mockVoice.outbox.retry).toHaveBeenCalledTimes(1);
+    await act(async () => tree.update(<AgreementChat {...props} />));
+    expect(mockVoice.outbox.retry).not.toHaveBeenCalled();
+    expect(outbox.retry).not.toHaveBeenCalled();
+    await act(async () => button('Pošalji glasovnu poruku ponovo').props.onPress());
     expect(mockVoice.outbox.retry).toHaveBeenCalledWith('glas_00000010');
     expect(outbox.retry).not.toHaveBeenCalled(); expect(outbox.sendDraft).not.toHaveBeenCalled();
-    // A later render with the same unknown entry does not try it again.
-    await act(async () => tree.update(<AgreementChat {...props} />));
-    expect(mockVoice.outbox.retry).toHaveBeenCalledTimes(1);
   });
 
-  it('waits until the voice outbox itself is ready, so the one automatic try is not spent on a retry that would be ignored, and then takes it', async () => {
+  it('restoring the voice outbox does not send; explicit resend is still possible once ready', async () => {
     mockVoice.outboxState = { phase: 'loading', error: null, entries: [unknown('UNAVAILABLE')] };
     await render();
     expect(mockVoice.outbox.retry).not.toHaveBeenCalled();
-    // The text journal was ready long ago and had nothing to retry; the voice journal becomes ready later and has its own opening.
     mockVoice.outboxState = { phase: 'ready', error: null, entries: [unknown('UNAVAILABLE')] };
     await act(async () => tree.update(<AgreementChat {...props} />));
-    expect(mockVoice.outbox.retry).toHaveBeenCalledTimes(1);
+    expect(mockVoice.outbox.retry).not.toHaveBeenCalled();
+    await act(async () => button('Pošalji glasovnu poruku ponovo').props.onPress());
     expect(mockVoice.outbox.retry).toHaveBeenCalledWith('glas_00000010');
   });
 

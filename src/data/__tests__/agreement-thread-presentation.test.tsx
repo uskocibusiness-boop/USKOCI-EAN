@@ -196,7 +196,7 @@ it('keeps storage recovery and a forced pending-photo tray in the scroll, with t
   expect(history().findAllByProps({ accessibilityLabel: 'Pošalji poruku' })).toHaveLength(0);
 });
 
-it('leaves a closed thread read-only while retaining exact unknown-outcome retry and accepted terms access', async () => {
+it('leaves a closed thread read-only with exact unknown-outcome check and accepted terms access', async () => {
   mockWindow = { width: 320, height: 718, fontScale: 2, scale: 3 };
   props.agreement = { ...agreement, stanje: 'COMPLETED' };
   props.waiting = null;
@@ -210,9 +210,11 @@ it('leaves a closed thread read-only while retaining exact unknown-outcome retry
   // The closed sentence stands under the thread, where the field was (proposal R2), not inside the scroll.
   expect(text()).toContain(CLOSED_SENTENCE); expect(text(history())).not.toContain(CLOSED_SENTENCE);
   expect(tree.root.findByProps({ testID: 'agreement-chat-closed' })).toBeTruthy();
+  expect(tree.root.findAllByProps({ accessibilityLabel: `Ponovi slanje poruke ${command.body}` })).toHaveLength(0);
   await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
-  expect(props.chat.outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
-  expect(props.chat.photos!.refresh).toHaveBeenCalledTimes(1);
+  expect(props.chat.outbox.retry).not.toHaveBeenCalled();
+  expect(props.chat.refresh).toHaveBeenCalledTimes(1);
+  expect(props.chat.photos!.refresh).not.toHaveBeenCalled();
   await act(async () => button(`Uslovi Dogovora: ${agreement.naslov}`).props.onPress());
   expect(props.onOverview).toHaveBeenCalledTimes(1);
 });
