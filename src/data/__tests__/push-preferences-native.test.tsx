@@ -160,6 +160,23 @@ describe('reading and commands', () => {
   expect(mockSave).toHaveBeenCalledTimes(1);
   expect(mockSave).toHaveBeenCalledWith(USER, 'REQUESTER', { ...settings, push_enabled: true }, 2);
  });
+ it('enable after a partial unknown response resumes only unsaved WORKER, without registering the phone twice',async () => {
+  await mount();
+  mockSave.mockImplementationOnce((_a: string, role: NotificationRole, saved: NotificationSettings, revision: number) => {
+   held[role] = { ...held[role], revision: revision + 1, settings: saved }; return Promise.resolve(held[role]);
+  }).mockRejectedValueOnce(Error('lost worker acknowledgement'));
+  await act(async () => { button('Uključi obaveštenja na telefonu').props.onPress(); await flush(); });
+  expect(mockSave).toHaveBeenCalledTimes(2); expect(mockSet).toHaveBeenCalledTimes(1);
+  await act(async () => { button('Pokušaj ponovo').props.onPress(); await flush(); });
+  expect(button('Sačuvaj podešavanja').props.disabled).toBe(false);
+  mockSave.mockImplementationOnce((_a: string, role: NotificationRole, saved: NotificationSettings, revision: number) => {
+   held[role] = { ...held[role], revision: revision + 1, settings: saved }; return Promise.resolve(held[role]);
+  });
+  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
+  expect(mockSave).toHaveBeenCalledTimes(3);
+  expect(mockSave).toHaveBeenLastCalledWith(USER, 'WORKER', { ...settings, push_enabled: true }, 5);
+  expect(mockSet).toHaveBeenCalledTimes(1);
+ });
  it('OS denial never registers or opts in', async () => { await mount(); mockNative.mockResolvedValue({ kind: 'DENIED' }); await act(async () => { button('Uključi obaveštenja na telefonu').props.onPress(); await flush(); }); expect(mockSet).not.toHaveBeenCalled(); expect(mockSave).not.toHaveBeenCalled(); });
  it('unknown registration clears action and requires readback; retained callback cannot resend', async () => {
   await mount(); const old = button('Uključi obaveštenja na telefonu').props.onPress; mockSet.mockResolvedValue({ ok: false });
@@ -194,6 +211,22 @@ describe('reading and commands', () => {
   expect(mockSave).toHaveBeenCalledTimes(2);
   expect(mockSave).toHaveBeenCalledWith(USER, 'REQUESTER', { ...settings, push_enabled: false }, 2);
   expect(mockSave).toHaveBeenCalledWith(USER, 'WORKER', { ...settings, push_enabled: false }, 5);
+  expect(mockSet).not.toHaveBeenCalled();
+ });
+ it('disable after a partial unknown response offers only the uncommitted second preference', async () => {
+  serve({ REQUESTER: { push_enabled: true }, WORKER: { push_enabled: true } }); await mount(); await openPhoneManagement();
+  mockSave.mockImplementationOnce((_a: string, role: NotificationRole, saved: NotificationSettings, revision: number) => {
+   held[role] = { ...held[role], revision: revision + 1, settings: saved }; return Promise.resolve(held[role]);
+  }).mockRejectedValueOnce(Error('lost worker acknowledgement'));
+  await act(async () => { button('Isključi obaveštenja na telefonu').props.onPress(); await flush(); });
+  await act(async () => { button('Pokušaj ponovo').props.onPress(); await flush(); });
+  expect(button('Sačuvaj podešavanja').props.disabled).toBe(false);
+  mockSave.mockImplementationOnce((_a: string, role: NotificationRole, saved: NotificationSettings, revision: number) => {
+   held[role] = { ...held[role], revision: revision + 1, settings: saved }; return Promise.resolve(held[role]);
+  });
+  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
+  expect(mockSave).toHaveBeenCalledTimes(3);
+  expect(mockSave).toHaveBeenLastCalledWith(USER, 'WORKER', { ...settings, push_enabled: false }, 5);
   expect(mockSet).not.toHaveBeenCalled();
  });
  it('disable leaves a set that already does not send as it is', async () => {
