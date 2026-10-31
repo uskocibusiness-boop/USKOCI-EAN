@@ -109,7 +109,7 @@ describe('the group "Ulaz i prijava na nalog"', () => {
 
   it('exposes named authentication fields, recovery actions and truthful inline errors', async () => {
     await open('Ulaz: prijava');
-    expect(inputs()).toEqual(['Email', 'Lozinka']); expect(text()).toContain('Nastavi tamo gde si stao.'); expect(text()).toContain('Zaboravljena lozinka?');
+    expect(inputs()).toEqual(['Email', 'Lozinka']); expect(text()).toContain('Nastavite tamo gde ste stali.'); expect(text()).toContain('Zaboravljena lozinka?');
     await exit();
     await pressHost('Galerija: Ulaz: registracija');
     expect(inputs()).toEqual(['Ime', 'Prezime', 'Email', 'Lozinka']); expect(text()).toContain('Tražiš pomoć'); expect(text()).toContain('Najmanje 6 znakova.');
@@ -118,10 +118,10 @@ describe('the group "Ulaz i prijava na nalog"', () => {
     expect(text()).toContain('Unesi email.'); expect(text()).toContain('Unesi lozinku.');
     await exit();
     await pressHost('Galerija: Ulaz: pogrešna lozinka');
-    expect(text()).toContain('Prijava nije uspela. Proveri email i lozinku i pokušaj ponovo.');
+    expect(text()).toContain('Prijava nije uspela. Proverite email i lozinku i pokušaj ponovo.');
     await exit();
     await pressHost('Galerija: Ulaz: email nije potvrđen');
-    expect(text()).toContain('Pošalji ponovo potvrdu');
+    expect(text()).toContain('Pošaljite ponovo potvrdu');
     await exit();
     await pressHost('Galerija: Ulaz: registracija nije prošla');
     expect(text()).toContain('Možda već imaš nalog.');
@@ -130,13 +130,13 @@ describe('the group "Ulaz i prijava na nalog"', () => {
   it('a failed check of the available ways in is a quiet note under a form that is all there', async () => {
     await open('Ulaz: provera načina prijave nije uspela');
     expect(inputs()).toEqual(['Email', 'Lozinka']);
-    expect(text()).toContain('Dodatne načine prijave nismo uspeli da proverimo.'); expect(text()).toContain('Pokušaj ponovo');
+    expect(text()).toContain('Dodatne načine prijave nismo uspeli da proverimo.'); expect(text()).toContain('Pokušajte ponovo');
     expect(text()).not.toContain('Ne možemo da proverimo dostupne načine prijave');
   });
 
   it('the keyboard scene stands the sheet on a column that is a keyboard shorter', async () => {
     await open('Ulaz: tastatura otvorena (prijava)');
-    expect(text()).toContain('tastatura'); expect(inputs()).toEqual(['Email', 'Lozinka']); expect(text()).toContain('Prijavi se');
+    expect(text()).toContain('tastatura'); expect(inputs()).toEqual(['Email', 'Lozinka']); expect(text()).toContain('Prijavite se');
   });
 
   it('every scene can be opened directly by its key', async () => {
