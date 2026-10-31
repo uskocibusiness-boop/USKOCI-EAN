@@ -3401,6 +3401,13 @@ Izraz „definisano” nije „nacrtano”, „nacrtano” nije „implementiran
 
 ### 11.2a. Aktuelni izvršni status — 28.10.2026.
 
+#### Izvršni krug 31.10.2026 — R05 source + CI zatvoren kao lokalna potcelina; A30-D13 radni profil formalno obraćanje
+
+**R05/F18 — stvarni rezultat source kandidata:** [Full CI 41246486564](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41246486564) = **SUCCESS** na `2c2651066841bbaf969e17b95ca5e01e8a84ae57`: **623/623 Jest suite, 14.341/14.341 test, 3/3 snapshot, AI/Edge 1.356 PASS / 0 FAIL / 1 istorijski TODO**, plus novi isolated PGlite testovi koji stvarno primenjuju candidate SQL u numeričkom synthetic geography modelu (near/far, cap/null-cap, DRAFT, wrong area, no GPS). To **nije** pravi PostGIS/DEV Auth/SQL migration, ne zatvara R05 retrieval perf, integraciju Za mene/dispatch ili R01. Ne pretvarati prošireni sintetički retrieval u produkcionu migraciju bez plana indeksa/ograničenja skeniranja i autorizovanog E2E.
+
+**A30-D13/R08/R11a — sledeći funkcionalni copy zahvat**: `src/ui/workerProfile/WorkerAiPresentation.tsx` i `workerProfileFacts.ts` usklađuju aktivne determinističke tekstove AI pregleda/saved profila: korisničke upute, upozorenja i objašnjenja „Vi/Vam/Vaš”, uz očuvane prve lične oznake stanja „Mogu odmah” i „O meni” koje nisu obraćanje korisniku. Uz to ažurirane su samo odgovarajuće montirane/profilne ugovorne test-verifikacije, bez promene API, modelskih promptova, signed review sadržaja, poslovnih dozvola ili dizajna. **CI za ovu novu source promenu mora biti zasebno potvrđen, nije automatski PASS zato što je prethodni SHA zelen.** Ostatak sistemskog A30-D13 rada je OPEN; nema DEV/PROD/Edge/OTA promena.
+
+
 #### R05/F18 — dopuna retrieval prefiltara za potvrđene udaljene oblasti (31.10.2026, LOCAL_ONLY)
 
 **Poreklo:** direct READ-ONLY DEV PG17 definicije `private.candidate_profile_ids(uuid,integer)` MD5 `665d3bcba58ea4a930a5ac5801383a84` i `private.candidate_profile_ids_v1b(uuid,integer,integer)` MD5 `60b8eae4b4efa8a6b05b81c6c08b0021`. Obe ograničavaju početni skup na staru approximate geografsku tačku do 300 km i rezervnu granu bez tačke; aktivno sačuvano radno područje u `private.worker_saved_areas_v1` proverava tek kasniji `worker_need_fit_v1`. Zato je reprodukovan **statički false-negative put**, nije dokazan broj pogođenih ljudi.

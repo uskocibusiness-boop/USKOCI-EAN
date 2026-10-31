@@ -236,24 +236,24 @@ describe('what the data does today is behind the "ⓘ", not on the screen', () =
     await show();
     const copy = all().join(' | ');
     expect(copy).not.toContain('Na šta utiče'); expect(copy).not.toContain('Javni profil'); expect(copy).not.toContain('Zadaci · Za mene');
-    expect(copy).not.toContain('Novi i već otvoreni zadaci koji ti odgovaraju');
+    expect(copy).not.toContain('Novi i već otvoreni zadaci koji Vam odgovaraju');
     expect(tree.root.findAllByProps({ testID: 'worker-effect-public' })).toHaveLength(0);
   });
 
   it('names the notifications, the public profile and the "Za mene" list now that the server has it, as sentences that stand on their own', () => {
     expect(FOR_ME_SWITCH_EXISTS).toBe(true);
     expect(workerProfileInfoLines()).toEqual([
-      'Obaveštenja: novi i već otvoreni zadaci koji ti odgovaraju.',
-      'Javni profil: ime, „O meni“ i grad vide osobe koje otvore tvoj profil.',
-      'Zadaci · Za mene: lista po tvom području i vremenu.']);
+      'Obaveštenja: novi i već otvoreni zadaci koji Vam odgovaraju.',
+      'Javni profil: ime, „O meni“ i grad vide osobe koje otvore Vaš profil.',
+      'Zadaci · Za mene: lista po Vašem području i vremenu.']);
   });
 
   it('adds the equipment note and the people count only while the profile is edited by hand, and leaves "Za mene" out for a server without it', () => {
     expect(workerProfileInfoLines(true).slice(3)).toEqual([toolsAndVehiclesNote(), PEOPLE_COUNT_NOTE]);
-    expect(PEOPLE_COUNT_NOTE).toBe('Ako za neki zadatak obezbeđuješ više ljudi, njihov broj navodiš u toj ponudi.');
+    expect(PEOPLE_COUNT_NOTE).toBe('Ako za neki zadatak obezbeđujete više ljudi, njihov broj navodite u toj ponudi.');
     expect(workerProfileInfoLines(false, false)).toEqual([
-      'Obaveštenja: novi i već otvoreni zadaci koji ti odgovaraju.', 'Javni profil: ime, „O meni“ i grad vide osobe koje otvore tvoj profil.']);
-    expect(workerProfileInfoLines(true, true, false)[3]).toBe('Ako zadatak traži alat ili vozilo koje nemaš na spisku, taj zadatak ti se ne nudi i ne možeš da se prijaviš na njega.');
+      'Obaveštenja: novi i već otvoreni zadaci koji Vam odgovaraju.', 'Javni profil: ime, „O meni“ i grad vide osobe koje otvore Vaš profil.']);
+    expect(workerProfileInfoLines(true, true, false)[3]).toBe('Ako zadatak traži alat ili vozilo koje nemate na spisku, taj zadatak Vam se ne nudi i ne možete da se prijavite na njega.');
   });
 
   it('has the "Za mene" effect while the build has the switch, and only then', () => {
@@ -261,7 +261,7 @@ describe('what the data does today is behind the "ⓘ", not on the screen', () =
     expect(profileEffects(false).map(row => row.key)).toEqual(['notifications', 'public']);
     const withSwitch = profileEffects(true);
     expect(withSwitch.map(row => row.key)).toEqual(['notifications', 'public', 'forMe']);
-    expect(withSwitch[2]).toMatchObject({ title: 'Zadaci · Za mene', detail: 'Lista po tvom području i vremenu' });
+    expect(withSwitch[2]).toMatchObject({ title: 'Zadaci · Za mene', detail: 'Lista po Vašem području i vremenu' });
     expect(withSwitch[2].opens).toBeUndefined();
   });
 

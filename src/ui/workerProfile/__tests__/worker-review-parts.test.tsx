@@ -63,7 +63,7 @@ describe('the review in parts (M2)', () => {
     expect(copy).not.toContain('15 km');
     expect(copy).toContain('Bušilica · Merdevine'); expect(copy).toContain('Kombi');
     expect(copy).toContain('Radim vikendom.'); expect(copy).not.toContain('Ana'); expect(copy.split(' | ')).not.toContain('Ime');
-    for (const title of ['Usluge koje nudiš', 'Područje', 'Kada imaš vremena', 'Alat i vozilo', 'O meni']) expect(copy).toContain(title);
+    for (const title of ['Usluge koje nudite', 'Područje', 'Kada imate vremena', 'Alat i vozilo', 'O meni']) expect(copy).toContain(title);
   });
 
   it('shows the proposed catalog place and keeps remote work independent of the profile city', async () => {
@@ -144,7 +144,7 @@ describe('the review in parts (M2)', () => {
     expect(texts()).toContain('Kombi');
     // The switch: the words are the owner's decision of 2026-10-07, drawn only while the server really treats the lists as information (a server without MATCH-V1 needs the old ones).
     expect(toolsAndVehiclesNote(true)).toBe('Samo informacija: ne utiču na pretragu ni na obaveštenja.');
-    expect(toolsAndVehiclesNote(false)).toBe('Ako zadatak traži alat ili vozilo koje nemaš na spisku, taj zadatak ti se ne nudi i ne možeš da se prijaviš na njega.');
+    expect(toolsAndVehiclesNote(false)).toBe('Ako zadatak traži alat ili vozilo koje nemate na spisku, taj zadatak Vam se ne nudi i ne možete da se prijavite na njega.');
   });
 
   it('keeps the missing required fields on top and never invents a part that was not given', async () => {
@@ -152,7 +152,7 @@ describe('the review in parts (M2)', () => {
     await act(async () => { tree = create(<WorkerAiReviewDetails review={missing} />); });
     const alert = tree.root.findAll(node => node.props.accessibilityRole === 'alert');
     // The server names the missing name "Ime"; it is the ACCOUNT's name now, which is what the person is told to add.
-    expect(alert).toHaveLength(1); expect(alert[0].children.join('')).toBe('Dopuni: Ime naloga, Veštine.');
+    expect(alert).toHaveLength(1); expect(alert[0].children.join('')).toBe('Dopunite: Ime naloga, Veštine.');
     expect(texts()).not.toMatch(/undefined|null|NaN/);
     // The skills, the tools and vehicles, and "O meni": three parts with nothing in them, each said with the one word.
     expect(texts().split('Nije navedeno').length - 1).toBe(2);
@@ -161,7 +161,7 @@ describe('the review in parts (M2)', () => {
 
   it('the constant sentence with the bell says only what the profile is used for, in ink', async () => {
     await act(async () => { tree = create(<WorkerAiNotificationsNote matchingReady />); });
-    expect(WORKER_PROFILE_NOTIFICATIONS_NOTE).toBe('Zadatke povezujemo sa potvrđenim uslugama, načinom rada, područjem i vremenom. Obaveštenja su tvoj izbor.');
+    expect(WORKER_PROFILE_NOTIFICATIONS_NOTE).toBe('Zadatke povezujemo sa potvrđenim uslugama, načinom rada, područjem i vremenom. Obaveštenja birate Vi.');
     const note = tree.root.findByProps({ testID: 'worker-review-notifications-note' });
     expect(note.props.children).toBe(WORKER_PROFILE_NOTIFICATIONS_NOTE); expect(note.props.tone).toBeUndefined();
     expect(note.props.variant).not.toBe('meta');
@@ -230,7 +230,7 @@ describe('classification recovery uses the existing conversation',()=>{
  it('explains missing service modes and offers one AI correction without manual options',async()=>{
   const edit=jest.fn();
   await act(async()=>{tree=create(<WorkerAiReviewDetails review={{...review(),classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED'}} onEdit={edit}/>);});
-  expect(tree.root.findByProps({testID:'worker-classification-pending'}).props.children).toContain('U istom razgovoru reci');
+  expect(tree.root.findByProps({testID:'worker-classification-pending'}).props.children).toContain('U istom razgovoru navedite');
   expect(tree.root.findAllByProps({accessibilityRole:'radio'})).toHaveLength(0);
   expect(texts()).not.toContain('Izaberi ga za svaku uslugu');
   await act(async()=>press('Izmeni kroz razgovor').props.onPress());

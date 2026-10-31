@@ -176,9 +176,9 @@ describe('the saved profile is read first', () => {
   it('says what the profile does today behind the "ⓘ": notifications, the public profile and the "Za mene" list the server now has', async () => {
     await renderReading();
     expect(infoLines()).toEqual([
-      'Obaveštenja: novi i već otvoreni zadaci koji ti odgovaraju.',
-      'Javni profil: ime, „O meni“ i grad vide osobe koje otvore tvoj profil.',
-      'Zadaci · Za mene: lista po tvom području i vremenu.']);
+      'Obaveštenja: novi i već otvoreni zadaci koji Vam odgovaraju.',
+      'Javni profil: ime, „O meni“ i grad vide osobe koje otvore Vaš profil.',
+      'Zadaci · Za mene: lista po Vašem području i vremenu.']);
   });
   it('keeps optional saved equipment out of the MVP profile reading', async () => {
     await renderReading();

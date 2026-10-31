@@ -135,8 +135,8 @@ describe('the conversation (M1)', () => {
     await render();
     await act(async () => shell().props.onChange('Moj nezavršen odgovor'));
     await act(async () => { shell().props.attach.onPress(); });
-    expect(menuRows().map(row => row.props.accessibilityLabel)).toEqual(['Usluge koje nudiš', 'Područje rada', 'Kada imaš vremena']);
-    await act(async () => { menuRow('Usluge koje nudiš').props.onPress(); });
+    expect(menuRows().map(row => row.props.accessibilityLabel)).toEqual(['Usluge koje nudite', 'Područje rada', 'Kada imate vremena']);
+    await act(async () => { menuRow('Usluge koje nudite').props.onPress(); });
     expect(tree.root.findAllByType(ActionSheet)).toHaveLength(0);
     expect(shell().props.correction.target).toBe('worker.skills');
     expect(shell().props.value).toBe('Moj nezavršen odgovor');
@@ -157,10 +157,10 @@ describe('the conversation (M1)', () => {
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0); expect(shell()).toBeTruthy();
   });
 
-  it('"Kada imaš vremena" opens a topic in the same conversation', async () => {
+  it('"Kada imate vremena" opens a topic in the same conversation', async () => {
     await render();
     await act(async () => { shell().props.attach.onPress(); });
-    await act(async () => { menuRow('Kada imaš vremena').props.onPress(); });
+    await act(async () => { menuRow('Kada imate vremena').props.onPress(); });
     expect(shell().props.correction.target).toBe('worker.time');
     expect(tree.root.findAllByType('Manual' as never)).toHaveLength(0);
   });
