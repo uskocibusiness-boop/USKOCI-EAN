@@ -118,8 +118,8 @@ BEGIN
    OR jsonb_typeof(p_targets) IS DISTINCT FROM 'array'
    OR pg_column_size(p_targets)>18000
    OR jsonb_array_length(p_targets)<1
-   OR jsonb_array_length(p_targets)>
-     CASE WHEN p_purpose='NEED_SERVICE' THEN 1 ELSE 24 END
+   OR (p_purpose='NEED_SERVICE' AND jsonb_array_length(p_targets)>1)
+   OR (p_purpose='WORKER_CAPABILITY' AND jsonb_array_length(p_targets)>24)
  THEN RAISE EXCEPTION 'R06_FIRST_PLAN_INVALID' USING errcode='22023'; END IF;
  FOR v_target IN SELECT value FROM jsonb_array_elements(p_targets) LOOP
   IF jsonb_typeof(v_target)<>'object'
