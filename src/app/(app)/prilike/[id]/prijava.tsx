@@ -42,10 +42,11 @@ export default function Prijava() {
   // per-account/Need command journal; only its own server outcome retires it.
   const session = useMemo(() => ({ pending: null as Pending | null, draft: null as ApplicationDraft | null, navigated: false, focused: false, focusToken: 0, readRevision: 0, reading: false,
     journaling: false, journalRecovery: false, resetting: false, notice: null as string | null,
-    profileSkillNotice: null as string | null }), [id, izvor, user?.id, accountRevision]);
+    profileSkillNotice: null as string | null, skillConsent: false }), [id, izvor, user?.id, accountRevision]);
   const [, render] = useState(0);
   const [validation, setValidation] = useState<string | null>(null);
-  const [addCategoryToProfile, setAddCategoryToProfile] = useState(false);
+  // Consent is scoped to this particular application incarnation, never carried from A→B→A.
+  const addCategoryToProfile = session.skillConsent;
   useFocusEffect(useCallback(() => {
     session.focused = true; session.focusToken++; render(v => v + 1);
     return () => { session.focused = false; };
@@ -262,7 +263,7 @@ export default function Prijava() {
     category: taskCategory,
     enabled: addCategoryToProfile,
     onToggle: (enabled: boolean) => { if (current() && !editor.busy && !session.pending && !session.resetting && !session.journaling && !session.journalRecovery && !session.reading) {
-      setAddCategoryToProfile(enabled); render(v => v + 1);
+      session.skillConsent = enabled; render(v => v + 1);
     } },
   } : null;
   return <ApplicationComposerPresentation applicationPriceBasis={pending?.applicationPriceBasis} need={currentNeed} opportunity={currentOpp}
