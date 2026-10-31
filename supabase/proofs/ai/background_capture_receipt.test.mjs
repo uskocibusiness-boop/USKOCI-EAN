@@ -42,7 +42,16 @@ function fixture(kind,operation,responseFactory,options={}){
     parentId:operation==='store'?'':rootId,reason:REASON,ambiguityPrompt:PROMPT,handoffKind:'NONE',handoffCity:''};
   const env={SUPABASE_URL:'https://leqcwgzvjsxugfgzdmth.supabase.co',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC',
     SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE',AI_PROVIDER:'gemini',GEMINI_API_KEY:'SYNTHETIC_PROVIDER',
-    GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',
+    GEMINI_MODEL:'gemini-3.8-flash',USKOCI_GEMINI_PAID_TEST_ENABLED:'true', 
+    // This fixture exercises the explicitly approved DEV dual-classifier path.
+    // Production behavior stays default-OFF; tests must never rely on a URL
+    // silently granting billable calls or write/capture authority.
+    USKOCI_TAXONOMY_DUAL_GEMINI:'true',
+    USKOCI_TAXONOMY_ROLLOUT_SCOPE:'DEV',
+    USKOCI_TAXONOMY_ALLOWED_PROJECT_REF:'leqcwgzvjsxugfgzdmth',
+    USKOCI_TAXONOMY_UNIFIED_SHADOW:'true',
+    USKOCI_TAXONOMY_SHADOW_CAPTURE:'true',
+    USKOCI_TAXONOMY_DIRECT_REPLY:'true',
     USKOCI_TAXONOMY_CAPTURE_RECEIPT_READBACK_ENABLED:options.captureReadback?'true':'false'};
   const fetch=async(url,init={})=>{
     const address=String(url),body=init.body?JSON.parse(init.body):null;
