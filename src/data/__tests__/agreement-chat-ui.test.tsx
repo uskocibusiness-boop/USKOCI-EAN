@@ -19,7 +19,6 @@ jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
 jest.mock('../../ui/system/haptics', () => ({ tick: jest.fn(), forgetTicks: jest.fn() }));
 import { tick } from '../../ui/system/haptics';
 import { AgreementChat, CLOSED_SENTENCE, messageSpoken } from '../../ui/AgreementChat';
-import { forgetAutoResendForTests, takeAutoResend } from '../../ui/messages/threadModel';
 
 const account = '10000000-0000-4000-8000-000000000001';
 const agreement = '20000000-0000-4000-8000-000000000001';
@@ -55,10 +54,6 @@ async function render(overrides: Partial<typeof props> = {}) {
 }
 beforeEach(() => {
   jest.clearAllMocks();
-  // These cases are about the person's own retry. The automatic retry (once per message, on opening the thread, on the return
-  // to the foreground or when a failing read works again) has its own suite, so the fixture message is spent here.
-  forgetAutoResendForTests();
-  takeAutoResend([{ command, state: 'unknown', persisted: true, attempt: 1 }]);
   frames.clear(); frameId = 0;
   jest.spyOn(global, 'requestAnimationFrame').mockImplementation(callback => { frames.set(++frameId, callback); return frameId; });
   jest.spyOn(global, 'cancelAnimationFrame').mockImplementation(id => { if (id != null) frames.delete(id); });
@@ -226,6 +221,9 @@ describe('D03 actual message component', () => {
     await act(async () => button('Ponovo proveri nove poruke').props.onPress());
     expect(props.refresh).toHaveBeenCalledTimes(1);
     await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
+    expect(props.refresh).toHaveBeenCalledTimes(2);
+    expect(outbox.retry).not.toHaveBeenCalled();
+    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
     expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
     expect(photos.refresh).toHaveBeenCalledTimes(1);
   });
@@ -333,12 +331,12 @@ describe('D03 actual message component', () => {
     const newPhotos = { ...oldPhotos, refresh: jest.fn().mockResolvedValue(undefined) };
     const pending = { ...state, entries: [{ command, state: 'unknown' as const, persisted: true, attempt: 1 }] };
     await render({ state: pending, photos: oldPhotos });
-    await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
+    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
     await act(async () => tree.update(<AgreementChat {...props} state={pending} photos={newPhotos} />));
     await act(async () => settle());
     expect(oldPhotos.refresh).not.toHaveBeenCalled(); expect(newPhotos.refresh).toHaveBeenCalledTimes(1);
     outbox.retry.mockImplementationOnce(() => new Promise<void>(resolve => { settle = resolve; }));
-    await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
+    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
     await act(async () => tree.unmount());
     await act(async () => settle());
     expect(newPhotos.refresh).toHaveBeenCalledTimes(1); expect(props.refresh).toHaveBeenCalledTimes(1);
@@ -553,6 +551,9 @@ describe('D03 actual message component', () => {
     expect(texts()).toContain('Ne znamo da li je stigla'); expect(texts()).not.toContain('Poslato');
     expect(texts()).not.toContain('Pročitano'); expect(texts()).not.toContain('Isporučeno');
     await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
+    expect(props.refresh).toHaveBeenCalledTimes(1);
+    expect(outbox.retry).not.toHaveBeenCalled();
+    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
     expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
   });
   it('an answer the app cannot read says what is not known, once, and the one button is the check (the word of `outcomeCopy`)', async () => {
@@ -569,15 +570,17 @@ describe('D03 actual message component', () => {
     await act(async () => button('Pošalji poruku').props.onPress());
     expect(outbox.sendDraft).toHaveBeenCalledTimes(1);
   });
-  it('terminal state blocks new text/send but leaves unknown-intent retry', async () => {
+  it('terminal state blocks every write but retains read-only unknown verification', async () => {
     await render({ terminal: true, writable: false, state: { ...state, entries: [{ command, state: 'unknown', persisted: true, attempt: 1 }] } });
     // A finished Dogovor draws no field and no send at all (owner, 2026-09-23); the one line says it is read-only.
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Napiši poruku' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošalji poruku' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži status Dogovora' })).toHaveLength(0);
     expect(texts()).toContain(CLOSED_SENTENCE);
+    expect(tree.root.findAllByProps({ accessibilityLabel: `Ponovi slanje poruke ${command.body}` })).toHaveLength(0);
     await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
-    expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
+    expect(props.refresh).toHaveBeenCalledTimes(1);
+    expect(outbox.retry).not.toHaveBeenCalled();
   });
   it('server reconciliation suppresses the local duplicate only for matching sender/key/body', async () => {
     const pending = { command, state: 'unknown' as const, persisted: true, attempt: 1 };
@@ -752,7 +755,13 @@ describe('D03 actual message component', () => {
     // failed read has its own retry, and the first read's status stands alone.
     it('offers a quiet refresh at the head of the thread and in the empty thread, and none where nothing new can come', async () => {
       await render({ messages: [message('1', false, 'Zdravo', '10:00')] });
-      await act(async () => button('Osveži poruke').props.onPress());
+      // SB10: the refresh action cannot be focusable while hidden at zero height or opacity.
+      const visibleRefresh = button('Osveži poruke');
+      const visibleStyle = Object.assign({}, ...[visibleRefresh.props.style].flat(4).filter(Boolean));
+      expect(visibleStyle.minHeight).toBeGreaterThanOrEqual(44);
+      expect(visibleStyle.height).not.toBe(0);
+      expect(visibleStyle.opacity ?? 1).toBeGreaterThan(0);
+      await act(async () => visibleRefresh.props.onPress());
       expect(props.refresh).toHaveBeenCalledTimes(1);
       await act(async () => tree.update(<AgreementChat {...props} messages={[]} />));
       expect(texts()).toContain('Napiši prvu poruku');

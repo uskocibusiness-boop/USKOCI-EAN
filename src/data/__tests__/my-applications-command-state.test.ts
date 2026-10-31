@@ -76,3 +76,11 @@ it('bounds an unanswered named read and does not treat a late withdrawal as its 
   finish(response({ status: 'WITHDRAWN' }));
   await expect(read).resolves.toMatchObject({ ok: false }); expect(jest.getTimerCount()).toBe(0);
 });
+
+it('reads the persisted price unit independently of current task facts and refuses unsupported units', async () => {
+  mockSingle.mockResolvedValue(response({ price_basis: 'HOURLY', price_rsd: 1200 }));
+  expect(await readApplicationCommandState(subject)).toMatchObject({ ok: true, podatak: { priceBasis: 'HOURLY', priceRsd: 1200 } });
+  expect(mockSelect.mock.calls[0][0]).toContain('price_basis');
+  mockSingle.mockResolvedValue(response({ price_basis: 'PER_PERSON' }));
+  expect(await readApplicationCommandState(subject)).toMatchObject({ ok: false });
+});

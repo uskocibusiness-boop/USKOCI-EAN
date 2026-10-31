@@ -18,7 +18,7 @@ import { usePressLift } from '../system/usePressLift';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { RecordFoot, recordBody, recordFlush } from './offer/RecordParts';
-import { PRICE_NOT_STORED, PrijavaPriceText, PrijavaState, prijavaStatusWord, type PrijavaModel, type PrijavaStatus } from './PrijavaCard';
+import { PRICE_NOT_STORED, PrijavaPriceText, PrijavaState, prijavaStatusWord, type PrijavaPrice, type PrijavaStatus } from './PrijavaCard';
 
 /**
  * The requester's side of an application (owner's step 7, 2026-09-24; one `Surface record` since 2026-10-08, composition spec 4.7; "Ponude
@@ -72,14 +72,14 @@ export function candidateTrust(k: Pick<KandidatProjekcija, 'ocenaTekst' | 'recen
 }
 
 /** What stands in the price row: the total, or the quiet words for a price that was not stored. The people have a place of their own. */
-export type CandidateValue = PrijavaModel['price'];
+export type CandidateValue = PrijavaPrice;
 export const UNPRICED = PRICE_NOT_STORED;
-export function candidateValue(k: Pick<KandidatProjekcija, 'cena' | 'pokrivaMesta'>): CandidateValue {
+export function candidateValue(k: Pick<KandidatProjekcija, 'cena' | 'pokrivaMesta' | 'osnovaCene'>): CandidateValue {
   const shown = (k.cena?.prikaz ?? '').trim();
   if (!shown || !/\d/.test(shown) || !Number.isSafeInteger(k.cena.iznos) || k.cena.iznos <= 0) return { kind: 'unpriced' };
   // An amount never loses its currency: a figure written without one gets the offer's own.
   const amount = /[A-Za-z]/.test(shown) ? shown : `${shown} ${k.cena.valuta || 'RSD'}`;
-  return { kind: 'amount', amount, basis: 'ukupno' };
+  return { kind: 'amount', amount, basis: k.osnovaCene === 'HOURLY' ? 'po osobi po satu' : 'ukupno' };
 }
 
 /** An amount as it is written, in its figure and its currency ("4.500 RSD" → "4.500", "RSD"): the figure carries the card's right side, the currency is a quiet word. */
@@ -159,20 +159,6 @@ export function candidateTerm(k: Pick<KandidatProjekcija, 'predlozeniPocetak' | 
 export function messagePreview(message: string): { text: string; cut: boolean } {
   const text = Array.from(message).slice(0, 180).join('');
   return { text, cut: text.length < message.length };
-}
-
-/**
- * The shared card's model for an application seen by the requester: nothing here that the read did not carry. The requester's list no longer
- * draws it ("Ponude preko stola": `CandidateCard` draws its own five rows, with the term always on it); the function stays only as the shared
- * model's description of what the read carries about an application (the same `PrijavaModel` the worker's card is built from), and is held by its test.
- */
-export function requesterPrijava(k: KandidatProjekcija, context: { timezone?: string | null; taskTerm: string; viewed?: boolean; avatar: ReactNode }): PrijavaModel {
-  const message = k.napomena?.trim();
-  return { status: candidateChip(k, context.viewed), reason: candidateStatus(k),
-    who: { kind: 'person', name: k.ime, avatar: context.avatar, trust: <CandidateTrustLine candidate={k} /> },
-    term: candidateTerm(k, context.timezone, context.taskTerm), showTerm: candidateTime(k, context.timezone) !== null,
-    price: candidateValue(k), people: osoba(k.pokrivaMesta), has: candidateHas(k), message: message || null,
-    quiet: k.stanje === 'WITHDRAWN' || k.stanje === 'CLOSED' || k.stanje === 'FULL' };
 }
 
 /**

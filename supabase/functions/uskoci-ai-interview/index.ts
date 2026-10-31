@@ -47,8 +47,8 @@ import {
   taskTaxonomyMode,
   taskTaxonomyScope,
   taskClassificationFingerprint,
-  loadFullCatalogTree,
   runInBackground,
+  captureTaxonomyHintsWithReceipt,
   persistClarificationHint,
   persistConsumeClarificationHint,
   fetchUnconsumedClarificationHint,
@@ -100,6 +100,8 @@ type ParsedTurn = {
   safety: 'ALLOW' | 'CLARIFY' | 'REVIEW' | 'BLOCK';
   assistantMessage: string;
   proposals: Array<Record<string, unknown>>;
+  // Set only by the deterministic guard, never accepted from model output.
+  priceRetraction?: 'UNSUPPORTED_CURRENCY' | 'AMBIGUOUS_CURRENCY' | 'UNSUPPORTED_PRICE_BASIS';
   locationAction?: LocationAction;
   dialogue?: { next: string; questionKey: string; taskRelation: string; priceUnit: string; schedulePattern: string };
 };
@@ -111,7 +113,7 @@ const DIALOGUE_VALUES = {
     ...(applicationDeadlineEnabled() ? ['need.response_deadline'] : []),
     'need.task_country_code', 'need.task_geography', 'need.handoff'],
   taskRelation: ['CONTINUE', 'DIFFERENT_TASK', 'UNCLEAR'],
-  priceUnit: ['WHOLE_JOB', 'PER_DAY', 'PER_HOUR', 'UNSPECIFIED'],
+  priceUnit: ['WHOLE_JOB', 'PER_DAY', 'PER_HOUR', 'PER_TEAM_HOUR', 'UNSPECIFIED'],
   schedulePattern: ['SINGLE', 'FLEXIBLE_RANGE', 'REPEATED', 'UNSPECIFIED'],
 };
 
@@ -253,7 +255,7 @@ const sameUuid = (value: unknown, expected: string) => isUuid(value) && value.to
 // network error quotes its request, and a text that is merely shaped like one of our names proves
 // nothing about where it came from. A name that is not listed is logged as UNKNOWN.
 const OWN_FAILURE_NAMES = new Set([AI_CREDITS_UNAVAILABLE, 'AI_CLAIM_INVALID', 'AI_CONTEXT_INVALID', 'AI_CONTEXT_TOO_LARGE', 'AI_LEGACY_PERSIST_FAILED',
-  'AI_MANUAL_ONLY_FACT_REJECTED', 'AI_PAYLOAD_EMPTY', 'AI_PAYLOAD_TOO_LARGE', 'AI_REQUEST_CANCELLED', 'AI_STREAM_INCOMPLETE',
+  'AI_MANUAL_ONLY_FACT_REJECTED', 'AI_PAYLOAD_EMPTY', 'AI_PAYLOAD_TOO_LARGE', 'AI_PRICE_RETRACTION_CONFLICT', 'AI_REQUEST_CANCELLED', 'AI_STREAM_INCOMPLETE',
   'AI_STREAM_INVALID', 'AI_STREAM_REJECTED', 'AI_STREAM_STOPPED', 'AI_STREAM_TOO_LARGE', 'AI_STREAM_UNAVAILABLE',
   'AI_TEST_BUDGET_UNAVAILABLE', 'AI_TRANSPORT_STOPPED', 'AI_TURN_RECEIPT_INVALID', 'AI_V2_FACT_INVALID', 'AI_V2_OUTPUT_INVALID',
   'ASSISTANT_MESSAGE_INVALID', 'ASSISTANT_MESSAGE_MISSING', 'CATALOG_RPC_UNAVAILABLE', 'PROVIDER_HTTP_FAILED', 'PROVIDER_OUTPUT_MISSING']);
@@ -516,7 +518,7 @@ function v2Instruction(activeFacts: any[], timeContext: ServerTimeContext, finis
     'valueJson je JSON tekst stvarne tipizovane vrednosti: tekst/enum/timestamp kao JSON string sa navodnicima, integer kao broj, boolean true/false, niz kao JSON niz stringova, geography kao JSON objekat.',
     'need.price_mode može biti samo MY_PRICE ili OFFERS. Ako je MY_PRICE, need.price_rsd mora biti poznat pre spremnosti za nacrt.',
     'Sačuvani iznos need.price_rsd je isključivo u dinarima (RSD). Broj bez valute nije potvrda da su dinari; pitajte koji iznos u RSD osoba želi da postavi. Razumite kada osoba izričito navede evre/EUR/€, uključujući kratku naknadnu ispravku „u evrima“ posle broja, ali taj broj ne upisujte kao dinare i ne preračunavajte po pretpostavljenom kursu. Kratko recite da je trenutna cena u aplikaciji u dinarima i pitajte koji iznos u RSD želi da postavi; ostale jasne odgovore sačuvajte. Ako osoba umesto toga želi ponude, izaberite OFFERS. Bez nove potvrde ne tvrdite da je evro iznos sačuvan kao cena.',
-    'need.price_basis može biti TOTAL, PER_PERSON ili HOURLY i postavlja se isključivo uz need.price_mode MY_PRICE. Kada korisnik navede satnicu (npr. „1200 na sat“, „1500 po satu“), postavite need.price_basis na HOURLY, a iznos u need.price_rsd. Kada zadatak traži više od jedne osobe i korisnik je naveo ukupan iznos, jednom kratko pitajte da li je taj iznos ukupno za ceo zadatak (TOTAL) ili po osobi (PER_PERSON), i postavite činjenicu iz odgovora.',
+    'need.price_basis može biti TOTAL, PER_PERSON ili HOURLY i postavlja se isključivo uz need.price_mode MY_PRICE. HOURLY u aplikaciji znači isključivo RSD po osobi po satu. Za „1200 RSD na sat“ upišite need.price_basis HOURLY i need.price_rsd 1200; u odgovoru jasno recite po osobi po satu. Ne množite satnicu brojem ljudi ili sati radi upisa. Dve osobe po tri sata sa satnicom 1200 RSD daju 7200 RSD samo kao objašnjenje za poznato trajanje, nikada kao zamenu jedinične satnice; bez poznatog trajanja ne izmišljajte ukupnu sumu. Jasnu satnicu za celu ekipu ili nejasan iznos „za dve osobe na sat“ označite dialogue.priceUnit PER_TEAM_HOUR i pitajte koji iznos u RSD po osobi po satu osoba želi; ne delite iznos i ne pretpostavljajte saglasnost. PER_HOUR označava podržanu satnicu po osobi, a ne cenu cele ekipe. Kada zadatak traži više od jedne osobe i korisnik je naveo ukupan iznos za ceo posao, jednom kratko pitajte da li je taj iznos ukupno za ceo zadatak (TOTAL) ili po osobi (PER_PERSON), i postavite činjenicu iz odgovora.',
     'TOTAL dozvoljava prijavu i za deo traženih ljudi: iznos je round(ukupno × ljudi u prijavi / traženi ljudi), zaokružen jednom. need.price_rsd ostaje ukupna cena; PER_PERSON je cena po osobi. Objasnite samo na zahtev.',
     'Dnevnica nije podržana cenovna osnova; razjasnite satnicu ili ukupan iznos za ceo posao.',
     'need.schedule_kind može biti samo FIXED_WINDOW, FLEXIBLE, REMOTE_ANYTIME, TODAY_FLEXIBLE, TOMORROW_FLEXIBLE ili WEEK_FLEXIBLE. FIXED_WINDOW zahteva potvrđen starts_at. ends_at je opcion i popunjava se samo ako je korisnik zaista rekao završetak. Ako korisnik kaže sutra u 7, need.schedule_kind=FIXED_WINDOW i need.starts_at=sutra u 07:00 po server-vremenu; nikada TOMORROW_FLEXIBLE samo zato što je rekao sutra. TOMORROW_FLEXIBLE važi kada je naveden samo dan bez tačnog sata. Ne izmišljaj kraj ili trajanje. Kada su oba vremena navedena, kraj mora biti posle početka.',
@@ -699,7 +701,10 @@ function parseV2Output(parsed: any): ParsedTurn {
       proposals.push({
         key,
         value,
-        displayValue,
+        // This typed key is always whole RSD. Presentation text cannot change
+        // its amount or currency; the intent guard still requires RSD consent.
+        displayValue: key === 'need.price_rsd' ? `${value} RSD`
+          : key === 'need.price_basis' && value === 'HOURLY' ? 'Po osobi po satu' : displayValue,
         confidence: Math.max(0, Math.min(1, confidence)),
         evidence,
       });
@@ -886,7 +891,12 @@ async function callGemini(
 
 function taskFinishOnly(input: string): boolean {
   const normalized = input.normalize('NFKC').toLowerCase().trim().replace(/[.!?,…]+/g, ' ').replace(/\s+/g, ' ').trim();
-  return /^(?:to je to|to je sve|gotovo|gotovo to je sve|objavi|objavi zadatak|sačuvaj|sacuvaj|то је то|то је све|готово|објави|објави задатак|сачувај)$/.test(normalized);
+  // Thanks is natural conversation framing, not a second command or a correction.
+  // Remove only a complete, bounded greeting/farewell; exact finish intents remain
+  // anchored so "to je to, ali promenite..." reaches the normal interview.
+  const utterance = normalized.replace(/^(?:hvala(?: vam)?|хвала(?: вам)?)\s+/u, '')
+    .replace(/\s+(?:hvala(?: vam)?|хвала(?: вам)?)$/u, '');
+  return /^(?:to je to|to je sve|gotovo|gotovo to je sve|objavi|objavi zadatak|sačuvaj|sacuvaj|то је то|то је све|готово|објави|објави задатак|сачувај)$/.test(utterance);
 }
 
 // Explicit task publication stays outside map confirmation. This is a publication
@@ -902,6 +912,17 @@ function sameFactValue(left: unknown, right: unknown): boolean {
   return JSON.stringify(ordered(left)) === JSON.stringify(ordered(right));
 }
 
+function needTurnPersistenceProposals(turn: ParsedTurn): Array<Record<string, unknown>> {
+  if (!turn.priceRetraction) return turn.proposals;
+  if (!['CLARIFY', 'REVIEW'].includes(turn.safety) || turn.proposals.some(p =>
+    ['need.price_mode', 'need.price_rsd', 'need.price_basis'].includes(String(p.key)))) {
+    throw new Error('AI_PRICE_RETRACTION_CONFLICT');
+  }
+  // One service-only control precedes the ordinary facts. It is not a new fact
+  // and does not change the receipt's proposedCount or client review schema.
+  return [{ action: 'INVALIDATE_PRICE', reason: turn.priceRetraction }, ...turn.proposals];
+}
+
 function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], activeFacts: any[], time: ServerTimeContext, contextualLocation?: LocationContext, pendingDeadlineQuestion = false): ParsedTurn {
   if (turn.safety === 'BLOCK') return turn;
   // The monetary contract stores whole RSD only. A model that returns the
@@ -911,7 +932,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
   const hasAmountIn = (text: string, unit: string) => new RegExp(
     `(?:^|[^\\p{L}\\p{N}])(?:\\d[\\d\\s.,]*\\s*(?:(?:u|na|у|на)\\s+)?${unit}|${unit}\\s*\\d[\\d\\s.,]*)(?=$|[^\\p{L}])`, 'iu').test(text);
   const euroUnit = '(?:€|eur|evr(?:o|a|i|ima)?|euro|eura|евр(?:о|а|и|има)?|еур(?:о|а)?)';
-  const dinarUnit = '(?:rsd|din(?:ar(?:a|i|e|ima)?)?|дин(?:ар(?:а|и|е|има)?)?)';
+  const dinarUnit = '(?:rsd|рсд|din(?:ar(?:a|i|e|ima)?)?|дин(?:ар(?:а|и|е|има)?)?)';
   const priceWords = /bud(?:ž|z)et|cen(?:a|u|e|om)|iznos|naknad|naplat|za ceo posao|po osobi|буџет|цен[ауеом]|износ|накнад|наплат/iu;
   const expenseWords = /materijal|материјал|prevoz|превоз|goriv\p{L}*|горив\p{L}*|oprem\p{L}*|опрем\p{L}*/iu;
   // Work with the clause about the task price. A currency next to material
@@ -986,8 +1007,12 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     && !explicitOffers;
   const unsupportedPrice = euroPriceProposed || unsupportedEuroWithoutPriceFact || barePriceProposed
     || barePriceWithoutFact || explicitOffers && !!priceProposal;
-  const priceMessage = activeRsdPrice && !explicitOffers
-    ? `Razumem ${barePriceProposed || barePriceWithoutFact ? 'iznos, ali valuta nije potvrđena' : 'da je iznos bio u evrima'}. Taj iznos nisam upisao kao novu cenu u dinarima. Ranije prikazan iznos u RSD može ostati u nacrtu; nemoj potvrditi objavu dok ne kažeš koji iznos u RSD želiš ili izabereš ponude.`
+  const priceRetraction = activeRsdPrice && unsupportedPrice && !explicitOffers
+    && turn.dialogue?.taskRelation === 'CONTINUE'
+    ? barePriceProposed || barePriceWithoutFact ? 'AMBIGUOUS_CURRENCY' as const : 'UNSUPPORTED_CURRENCY' as const
+    : undefined;
+  const priceMessage = priceRetraction
+    ? 'Prethodna cena više nije potvrđena. Koji iznos u RSD želite da postavite ili želite da primate ponude?'
     : barePriceProposed || barePriceWithoutFact
       ? 'Razumem iznos, ali valuta nije potvrđena. Taj iznos nisam upisao kao cenu. Cena zadatka se trenutno čuva u dinarima. Koji iznos u RSD želiš da postaviš? Možeš i da tražiš ponude.'
       : 'Razumem iznos u evrima. Taj iznos nisam upisao kao cenu u dinarima i neću sam da preračunavam. Koji iznos u RSD želiš da postaviš? Možeš i da tražiš ponude.';
@@ -1008,14 +1033,60 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
         && !(unsupportedPrice && containsSuspectAmount(proposal.value));
     return true;
   });
+  // D06: HOURLY always stores the rate for one person for one hour. Neither
+  // provider metadata nor an explicit team amount can silently change that
+  // basis. Keep the amount itself; headcount and time never multiply this fact.
+  const effectivePriceFact = (key: string) => turn.proposals.find(p => p.key === key)?.value
+    ?? activeFacts.find(f => f.fact_key === key && f.status !== 'UNKNOWN')?.fact_value;
+  const hourlyWords = /(?:na\s+sat|po\s+satu|satnic\p{L}*|на\s+сат|по\s+сату|сатниц\p{L}*)/iu;
+  const hourly = ['PER_HOUR', 'PER_TEAM_HOUR'].includes(turn.dialogue?.priceUnit ?? '')
+    || turn.proposals.some(p => p.key === 'need.price_basis' && p.value === 'HOURLY')
+    || hourlyWords.test(priceClause);
+  // Include a trailing scope-only clause ("1200 RSD na sat; za celu ekipu"),
+  // but not an earlier price that the latest price clause explicitly replaces.
+  const priceScope = priceClause ? input.slice(input.lastIndexOf(priceClause)) : input;
+  const teamScope = /(?:za\s+(?:(?:celu|cijelu|celokupnu|svu)\s+)?ekipu|za\s+(?:sve|obe|obje|dve|dvije|tri|četiri|cetiri|\d+)\s+(?:osobe|radnik\p{L}*|ljudi)|sat\s+cele\s+ekipe|за\s+(?:(?:целу|цијелу|целокупну|сву)\s+)?екипу|за\s+(?:све|обе|две|двије|три|четири|\d+)\s+(?:особе|радник\p{L}*|људи)|сат\s+целе\s+екипе)/giu;
+  const statedTeamScope = [...priceScope.matchAll(teamScope)]
+    .some(match => !/(?:^|[^\p{L}])(?:ne|nije|не|није)\s*$/iu.test(priceScope.slice(0, match.index)));
+  const teamHourly = turn.dialogue?.priceUnit === 'PER_TEAM_HOUR' || hourly && statedTeamScope;
+  const activeHourly = activeFacts.some(f => f.fact_key === 'need.price_basis'
+    && f.status !== 'UNKNOWN' && f.fact_value === 'HOURLY');
+  const teamOnlyReply = new RegExp('^\\s*(?:(?:mislio sam|mislila sam|mislim|to je|cena je|ipak|zapravo|мислио сам|мислила сам|мислим|то је|цена је|ипак|заправо)\\s+)*(?:'
+    + teamScope.source + ')[.!\\s]*$', 'iu').test(input);
+  // A model hint can ask for clarification, never revoke existing consent by
+  // itself. Require an actual price correction, including a short team-scope
+  // reply to the already known hourly rate, not e.g. gloves for the whole team.
+  const statedHourlyCorrection = statedTeamScope && !priceScope.includes('?')
+    && (hourlyWords.test(priceScope) || activeHourly && (priceWords.test(priceScope) || teamOnlyReply));
+  const hourlyRetraction = teamHourly && statedHourlyCorrection && activeRsdPrice && !explicitOffers && !unsupportedPrice
+    && turn.dialogue?.taskRelation === 'CONTINUE' ? 'UNSUPPORTED_PRICE_BASIS' as const : undefined;
+  const hourlyMismatch = hourly && (teamHourly || effectivePriceFact('need.price_mode') !== 'MY_PRICE'
+    || effectivePriceFact('need.price_basis') !== 'HOURLY'
+    || !Number.isSafeInteger(effectivePriceFact('need.price_rsd'))
+    || Number(effectivePriceFact('need.price_rsd')) < 1
+    || ['WHOLE_JOB', 'PER_DAY'].includes(turn.dialogue?.priceUnit ?? ''));
+  const unitPrice = !explicitOffers && (turn.dialogue?.priceUnit === 'PER_DAY'
+    || hourlyMismatch && !spuriousNumericPriceProposal);
+  const repeated = turn.dialogue?.schedulePattern === 'REPEATED';
+  const withheldUnitFacts = new Set(['need.price_mode', 'need.price_rsd', 'need.price_basis', 'need.title', 'need.description',
+    ...(repeated ? ['need.schedule_kind', 'need.starts_at', 'need.ends_at'] : [])]);
+  const unitMessage = repeated
+    ? 'Odvojene smene još ne možemo da sačuvamo kao jedan zadatak. Koji pojedinačni termin želiš da dogovoriš?'
+    : hourlyMismatch
+      ? `${hourlyRetraction ? 'Prethodna cena više nije potvrđena. ' : ''}Satnica se čuva po osobi po satu. Koji iznos u RSD po osobi po satu želiš da postaviš?`
+      : 'Dnevnica još nije podržana. Koji iznos u RSD želiš za ceo posao, ukupno ili po osobi?';
   if (turn.safety === 'REVIEW') {
     // Keep a policy-review decision intact while preventing a mismatched price
     // from reaching its writer. This branch intentionally does not downgrade it.
-    const filtered = unsupportedPrice || spuriousNumericPriceProposal ? { ...turn, proposals: withoutUnsupportedPrice(turn.proposals),
+    let filtered = unsupportedPrice || spuriousNumericPriceProposal ? { ...turn, priceRetraction, proposals: withoutUnsupportedPrice(turn.proposals),
       assistantMessage: spuriousNumericPriceProposal
         ? 'Ovaj zahtev treba dodatno proveriti. Predlog cene nije potkrepljen tvojom porukom.'
         : explicitOffers ? `Ovaj zahtev treba dodatno proveriti. ${offerMessage}`
           : `Ovaj zahtev treba dodatno proveriti. ${priceMessage}` } : turn;
+    if (unitPrice || repeated) filtered = { ...filtered,
+      priceRetraction: filtered.priceRetraction ?? hourlyRetraction,
+      proposals: filtered.proposals.filter(p => !withheldUnitFacts.has(p.key)),
+      assistantMessage: unsupportedPrice ? filtered.assistantMessage : `Ovaj zahtev treba dodatno proveriti. ${unitMessage}` };
     return guardTimestampProposals(filtered, input, activeFacts, time, pendingDeadlineQuestion);
   }
   if (taskFinishOnly(input) && (!contextualLocation || turn.locationAction !== 'CONFIRM_DISPLAYED')
@@ -1055,7 +1126,7 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
     turn = explicitOffers
       ? { ...turn, proposals: withoutUnsupportedPrice(turn.proposals),
           assistantMessage: offerMessage }
-      : { ...turn, safety: 'CLARIFY', proposals: withoutUnsupportedPrice(turn.proposals),
+      : { ...turn, safety: 'CLARIFY', priceRetraction, proposals: withoutUnsupportedPrice(turn.proposals),
           dialogue: dialogue ? { ...dialogue, next: 'CLARIFY', questionKey: '' } : undefined,
           assistantMessage: priceMessage };
     dialogue = turn.dialogue;
@@ -1073,22 +1144,16 @@ function guardConversationTurn(turn: ParsedTurn, input: string, history: any[], 
         : turn.assistantMessage };
     dialogue = turn.dialogue;
   }
-  const unitPrice = dialogue?.priceUnit === 'PER_DAY' || dialogue?.priceUnit === 'PER_HOUR';
-  const repeated = dialogue?.schedulePattern === 'REPEATED';
   if (unitPrice || repeated) {
     // An unsupported term does not erase independent answers in the same message.
     // Withhold its dependent facts and synthesized copy: a daily rate or several
     // shifts must not leak into a total price, one appointment or a public summary.
     // In particular, the price for several shifts is not the price for a new single shift.
-    const withheld = new Set(['need.price_mode', 'need.price_rsd', 'need.price_basis', 'need.title', 'need.description',
-      ...(repeated ? ['need.schedule_kind', 'need.starts_at', 'need.ends_at'] : [])]);
     const partial = { ...turn, safety: 'CLARIFY' as const,
-      proposals: turn.proposals.filter(p => !withheld.has(p.key)),
+      priceRetraction: turn.priceRetraction ?? hourlyRetraction,
+      proposals: turn.proposals.filter(p => !withheldUnitFacts.has(p.key)),
       dialogue: { ...dialogue!, next: 'CLARIFY', questionKey: '' },
-      assistantMessage: repeated
-        ? 'Odvojene smene još ne možemo da sačuvamo kao jedan zadatak. Koji pojedinačni termin želiš da dogovoriš?'
-          + (unitPrice ? ' Koji je iznos za ceo posao u tom terminu?' : '')
-        : 'Koji iznos želiš za ceo posao, uz napomenu da li je ukupno ili po osobi? Dnevnica ili satnica još nije cena celog zadatka.' };
+      assistantMessage: unsupportedPrice && !repeated ? turn.assistantMessage : unitMessage };
     // Continue all existing validation, including relative dates and bounded
     // flexible ranges. A pricing clarification must never bypass time guards.
     turn = partial;
@@ -1445,9 +1510,8 @@ Deno.serve(async (req: Request) => {
       // sees pages and may request any other branch; no whole-tree payload.
       research = createResearchDeadline(signal, requestStartedAt);
       const dualGeminiActive = isLiveDualGemini();
-      if (dualGeminiActive) {
-        void loadFullCatalogTree((name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? signal, t ?? 4000), signal).catch(() => null);
-      }
+      // Dual classification owns its snapshot after a relevant input change.
+      // A speculative load here cannot skip the builder's fresh snapshot RPC.
       let taxonomyPrompt = '';
       if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW') && !dualGeminiActive) {
         try {
@@ -1575,7 +1639,10 @@ Deno.serve(async (req: Request) => {
         }
       }
       const result = await measureAiPhase('NEED_COMPLETE', async () => await rpc(locationContext ? 'rpc_ai_complete_need_location_turn_v1_service' : 'rpc_ai_complete_need_turn_v2_service', { ...identityArgs(), p_attempt_id: attemptId,
-        p_user_message: text, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: aiTurn.proposals,
+        // The claim, completion hash and persisted USER message must share one
+        // canonical value. A photo-only request has no typed text, but does have
+        // the server's deterministic human-readable photo placeholder.
+        p_user_message: effectiveUserMessage, p_assistant_message: aiTurn.assistantMessage, p_safety: aiTurn.safety, p_proposals: needTurnPersistenceProposals(aiTurn),
         ...(locationContext ? { p_location_context: locationContext, p_location_action: aiTurn.locationAction } : {}) }, signal));
       const completed = locationContext ? result.data?.turn : result.data;
       if (!result.ok || !validTurn(completed, conversationId, requestId) || completed.turnId !== claimedTurnId
@@ -1602,13 +1669,16 @@ Deno.serve(async (req: Request) => {
               if (stored.some((ok: boolean) => !ok)) console.info('NEED_TAXONOMY_HINT_STORE', 'UNAVAILABLE');
             }
             if (built && built.proposals.length > 0 && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
-              const capture = await rpc('rpc_taxonomy_capture_gemini_turn_hints_service', {
-                p_account_id: accountId, p_conversation_id: conversationId,
-                p_client_request_id: requestId, p_turn_id: claimedTurnId, p_attempt_id: attemptId,
-                p_purpose: 'NEED_SERVICE', p_catalog_version: built.catalogVersion,
-                p_proposals: built.proposals,
-              }, bgAbort.signal, 3500);
-              if (!capture.ok || capture.data?.action !== 'HINT_CAPTURED' || capture.data?.authority !== 'NONE')
+              const status = await captureTaxonomyHintsWithReceipt(
+                (name: string, args: Record<string, unknown>) => rpc(name,args,bgAbort.signal,3500),
+                {
+                  p_account_id: accountId, p_conversation_id: conversationId,
+                  p_client_request_id: requestId, p_turn_id: claimedTurnId, p_attempt_id: attemptId,
+                  p_purpose: 'NEED_SERVICE', p_catalog_version: built.catalogVersion,
+                  p_proposals: built.proposals,
+                },
+                Deno.env.get('USKOCI_TAXONOMY_CAPTURE_RECEIPT_READBACK_ENABLED') === 'true');
+              if (status !== 'ACKED' && status !== 'HISTORICAL_CAPTURE_PRESENT')
                 console.info('NEED_TAXONOMY_HINT_CAPTURE', 'UNAVAILABLE');
             }
           } catch { console.info('NEED_TAXONOMY_HINT_CAPTURE', 'UNAVAILABLE'); } finally {
@@ -1619,14 +1689,15 @@ Deno.serve(async (req: Request) => {
       } else if (completed.state === 'SUCCEEDED' && taxonomyCatalog && taxonomyReviewHints.length &&
           devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
         try {
-          const capture=await measureAiPhase('NEED_HINT_CAPTURE', () => rpc('rpc_taxonomy_capture_gemini_turn_hints_service',{
-            p_account_id:accountId,p_conversation_id:conversationId,
-            p_client_request_id:requestId,p_turn_id:claimedTurnId,p_attempt_id:attemptId,
-            p_purpose:'NEED_SERVICE',p_catalog_version:taxonomyCatalog.catalogVersion,
-            p_proposals:taxonomyReviewHints,
-          },signal,2500));
-          if (!capture.ok || capture.data?.action!=='HINT_CAPTURED' ||
-              capture.data?.authority!=='NONE') {
+          const status=await measureAiPhase('NEED_HINT_CAPTURE', () =>
+            captureTaxonomyHintsWithReceipt((name: string, args: Record<string, unknown>) =>
+              rpc(name,args,signal,2500),{
+              p_account_id:accountId,p_conversation_id:conversationId,
+              p_client_request_id:requestId,p_turn_id:claimedTurnId,p_attempt_id:attemptId,
+              p_purpose:'NEED_SERVICE',p_catalog_version:taxonomyCatalog.catalogVersion,
+              p_proposals:taxonomyReviewHints,
+            },Deno.env.get('USKOCI_TAXONOMY_CAPTURE_RECEIPT_READBACK_ENABLED')==='true'));
+          if (status!=='ACKED' && status!=='HISTORICAL_CAPTURE_PRESENT') {
             console.info('NEED_TAXONOMY_HINT_CAPTURE','UNAVAILABLE');
           }
         } catch { console.info('NEED_TAXONOMY_HINT_CAPTURE','UNAVAILABLE'); }

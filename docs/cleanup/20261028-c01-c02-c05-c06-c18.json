@@ -1,0 +1,410 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-28",
+  "source_evidence": "USKOCI_KOMPLETAN_PLAN_I_DOKAZI_REV10_2026-10-27/dokazi/izvrsivost/readiness_review.json: cleanup.retirement_batches, cleanup.normalized_path_index, cleanup.required_per_change_record",
+  "scope": "C01, C02, C05, C06, C18 source cleanup with focused verification; no claim that R11 or release/native acceptance is complete",
+  "source_commit": "15c346a1744fde6b4ce4c4ebd4a2cbb12e021af1",
+  "removed_asset_files": 24,
+  "removed_asset_bytes": 4578117,
+  "removed_test_cases": {
+    "C02": 5,
+    "C05_registry": 8,
+    "C05_stats": 5,
+    "C06_duplicate": 1,
+    "total": 19
+  },
+  "records": [
+    {
+      "id": "C01",
+      "source_commit": "15c346a1744fde6b4ce4c4ebd4a2cbb12e021af1",
+      "path_or_symbol": [
+        {
+          "path": "assets/entry-splash-empty.xml",
+          "sha256": "c15bd6a3d338b1a881f7ba385aa87d1e3e670bff011b2175bc4440e44a3fd0fd",
+          "bytes": 196
+        },
+        {
+          "path": "assets/images/android-icon-background.png",
+          "sha256": "fb139c2dee362ebf2070e23b96da6fc0d43f8492de38b8af1fd7223e19b5861d",
+          "bytes": 17549
+        },
+        {
+          "path": "assets/images/android-icon-foreground.png",
+          "sha256": "9e3d0315a33c6799de601dd34cd8bf8cc3a8d16f3bf75592baec2ceb7240b391",
+          "bytes": 78796
+        },
+        {
+          "path": "assets/images/android-icon-monochrome.png",
+          "sha256": "6371fc2c12e33ad2215a86c281db3d682a81bebe7c957a842c13b8bf00cceb83",
+          "bytes": 4140
+        },
+        {
+          "path": "assets/images/expo-badge-white.png",
+          "sha256": "d9ba28c5e93aea3c2dabd901ee96fea3bb296ad8e648f6f64706dae11a1a62bd",
+          "bytes": 4129
+        },
+        {
+          "path": "assets/images/expo-badge.png",
+          "sha256": "ff353c7efadbd379903923cb604fca11c908cba0d4658cc2bd1f147d98317249",
+          "bytes": 4137
+        },
+        {
+          "path": "assets/images/expo-logo.png",
+          "sha256": "27b060a757a29038c9618586baa0ba3894dbe60d084c6059df497ff429c2d92f",
+          "bytes": 3317
+        },
+        {
+          "path": "assets/images/favicon.png",
+          "sha256": "a4e030697a7571b3e95d31860e4da55d2f98e5e861e2b55e414f45a8556828ba",
+          "bytes": 1129
+        },
+        {
+          "path": "assets/images/icon.png",
+          "sha256": "7a667804bb80a6a424a5daf18a2599c4f32237cf06fe78fc0de45dbb09e0eccf",
+          "bytes": 799005
+        },
+        {
+          "path": "assets/images/logo-glow.png",
+          "sha256": "bbd98a3f3c12d090f4df6065b7462fcdf6bc266209d002b4ef5fe554c245f66c",
+          "bytes": 331624
+        },
+        {
+          "path": "assets/images/react-logo.png",
+          "sha256": "224b7636b15e672801579b5b418077cbc2ca42f0146389062364356b0ecb5c5c",
+          "bytes": 6341
+        },
+        {
+          "path": "assets/images/react-logo@2x.png",
+          "sha256": "fa600be9ad2f869c7a8dbaffc78bb15af741123e1319c948f0be51753a153cde",
+          "bytes": 14225
+        },
+        {
+          "path": "assets/images/react-logo@3x.png",
+          "sha256": "cd84e02a5d542a3e71b7fa10a685c1b9fb51db4aff92aca6c0da6461ce17be16",
+          "bytes": 21252
+        },
+        {
+          "path": "assets/images/splash-icon.png",
+          "sha256": "27b060a757a29038c9618586baa0ba3894dbe60d084c6059df497ff429c2d92f",
+          "bytes": 3317
+        },
+        {
+          "path": "assets/images/tabIcons/explore.png",
+          "sha256": "e2dea1c2d20929d83e8eebd74818e808b1b72e376d3a1f3a03679fff0255d073",
+          "bytes": 215
+        },
+        {
+          "path": "assets/images/tabIcons/explore@2x.png",
+          "sha256": "1b54913b3a0acc3e1fb72d3b9b79ad04814304b35bbb9d03a533e6130ad6c26a",
+          "bytes": 347
+        },
+        {
+          "path": "assets/images/tabIcons/explore@3x.png",
+          "sha256": "2f3e43801df70ebe83273b90a7d170bacf5ca74a8a8dc5c154a020c2c8b06609",
+          "bytes": 468
+        },
+        {
+          "path": "assets/images/tabIcons/home.png",
+          "sha256": "3829632ec7d495225395f5da3d0942935d7d055979b174613d1ade82fe420e76",
+          "bytes": 253
+        },
+        {
+          "path": "assets/images/tabIcons/home@2x.png",
+          "sha256": "21c5a07df9017d97464a0a8256e265288f2fca0741ca651de05e12b32f32f5ab",
+          "bytes": 343
+        },
+        {
+          "path": "assets/images/tabIcons/home@3x.png",
+          "sha256": "fe5b397975e7cb70ae7a122472d174ed12ec2ae106f7b49c968225ad37f8b3b8",
+          "bytes": 479
+        },
+        {
+          "path": "assets/images/tutorial-web.png",
+          "sha256": "e372ec23ad6262e2e0dc2799ce416b495a631a565bcd24f0615d4afc04dac3bd",
+          "bytes": 58959
+        }
+      ],
+      "current_consumer_or_none": "None in current source, tests, app.json/app.config.js, EAS/Metro config, plugins, scripts, workflows or asset metadata. Exact path/basename and directory searches checked; TypeScript AST scan found no computed require calls in tracked src/scripts/plugins.",
+      "business_rule_authority": "Plan section 7.2 C01, newer specific retirement decision and normalized per-path entries; remove only the 21 named unreferenced template/placeholder resources.",
+      "action": "Removed exactly 21 Git-tracked assets after source hash, tracked status and resolved workspace path checks.",
+      "active_replacement": [
+        "assets/brand/app-icon/*",
+        "assets/entry-splash-mark.png",
+        "assets/brand/premium-entry/*",
+        "assets/brand/reference-entry/*",
+        "assets/fonts/inter/*"
+      ],
+      "dependent_tests_configs_docs": [
+        "app.json",
+        "app.config.js",
+        "metro.config.cjs",
+        "eas.json",
+        "scripts/sync-entry-reference-assets.cjs",
+        "src/data/__tests__/entry-splash-ready-hook.test.tsx",
+        "src/data/__tests__/entry-spoj-surface.test.tsx"
+      ],
+      "compatibility_boundary": "Local bundled asset cleanup only. Existing installed APK/OTA artifacts remain self-contained; no server, database, native identity, active icon, splash image or font changed. Build/native acceptance is not inferred from source checks.",
+      "verification": "Resolved Expo config assets all exist; 61 literal relative asset imports resolve; no dynamic requires; reference generator verified 3 outputs; focused entry tests pass. Binary bytes removed: 1,350,025; XML bytes removed: 196.",
+      "historical_reference_if_needed": "15c346a1744fde6b4ce4c4ebd4a2cbb12e021af1 preserves every removed file; historical plan and review ledgers retain original path identities."
+    },
+    {
+      "id": "C02",
+      "source_commit": "15c346a1744fde6b4ce4c4ebd4a2cbb12e021af1",
+      "path_or_symbol": [
+        "src/ui/workerProfile/workerProfileDraft.ts::foldTerm/hasTerm/toggleTerm",
+        "src/ui/workerProfile/__tests__/worker-profile-terms.test.ts"
+      ],
+      "current_consumer_or_none": "The three helpers were referenced only within workerProfileDraft.ts and the dedicated worker-profile-terms test. Full symbol/import search found no product caller.",
+      "business_rule_authority": "Plan section 7.2 C02; AI profile editing is active and the former quick-pick editor is retired.",
+      "action": "Removed only the three exports and the dedicated 5-case retired test suite.",
+      "active_replacement": [
+        "workerDraft",
+        "workerCommand",
+        "workerReadbackMatches",
+        "nameForSave",
+        "src/app/(app)/profil/radnik.tsx",
+        "worker AI profile conversation"
+      ],
+      "dependent_tests_configs_docs": [
+        "src/data/__tests__/worker-profile-native.test.tsx",
+        "src/ui/workerProfile/WorkerProfilePresentation.tsx",
+        "src/ui/workerProfile/WorkerProfileSaved.tsx"
+      ],
+      "compatibility_boundary": "No change to active profile command format, readback, name adoption, activation or uncertain-write recovery. Whole workerProfileDraft.ts is preserved.",
+      "verification": "Retired symbols have zero remaining runtime/test references. Profile native renderer suite passes; before runner verified 5 retired cases prior to removal.",
+      "historical_reference_if_needed": "15c346a1744fde6b4ce4c4ebd4a2cbb12e021af1 and USKOCI_KOMPLETAN_PLAN_I_DOKAZI_REV10_2026-10-27/dokazi/izvrsivost/readiness_review.json: cleanup.retirement_batches, cleanup.normalized_path_index, cleanup.required_per_change_record"
+    },
+    {
+      "id": "C05",
+      "source_commit": "15c346a1744fde6b4ce4c4ebd4a2cbb12e021af1",
+      "path_or_symbol": [
+        "src/lib/selectionIdempotency.ts",
+        "src/lib/__tests__/selectionIdempotency.test.ts",
+        "src/ui/profile/workTrustModel.ts::statsView/reliabilityNeeds/StatRow/StatsView/number",
+        "src/ui/profile/__tests__/work-trust-model.test.ts::Moja statistika"
+      ],
+      "current_consumer_or_none": "Registry and SelectionIntent existed only in the registry file/test. Private statsView, reliabilityNeeds and their types/formatter had only internal/test references. RELIABILITY_MEANING is consumed by ProfileStats; publicTrustFacts/memberSincePhrase have active profile/task consumers and remain.",
+      "business_rule_authority": "Plan section 7.2 C05 and specific normalized-path retirement entries supersede generic historical KEEP on selectionIdempotency.ts; active requester route owns selection recovery, and ReliabilityFigure replaced the private funnel.",
+      "action": "Removed unused registry and 8 dedicated tests; removed unmounted private stats implementation and 5 retired tests. Preserved 20 public trust/date/copy cases.",
+      "active_replacement": [
+        "src/app/(app)/potrebe/[id]/kandidati.tsx::session.pending/frozen command/clientRequestId/readSelectedAgreement",
+        "src/data/applicationCommandJournal.ts",
+        "src/ui/profile/ProfileStats.tsx::ReliabilityFigure",
+        "publicTrustFacts",
+        "memberSincePhrase",
+        "RELIABILITY_LABEL",
+        "RELIABILITY_MEANING",
+        "RELIABILITY_FEW"
+      ],
+      "dependent_tests_configs_docs": [
+        "src/data/__tests__/application-selection-native.test.tsx",
+        "src/data/__tests__/application-selection-client.test.ts",
+        "src/data/__tests__/application-command-journal.test.ts",
+        "src/ui/profile/__tests__/work-trust-model.test.ts",
+        "src/ui/profile/__tests__/profile-stats.test.tsx",
+        "src/ui/profile/__tests__/use-public-work-trust.test.tsx"
+      ],
+      "compatibility_boundary": "Requester selection remains memory-scoped pending/frozen-command recovery; it is not called a durable restart journal. Worker application journal remains durable and untouched. No server idempotency, privacy/formula or public trust behavior changed.",
+      "verification": "Selection route/client, durable application journal and active trust/statistics suites pass. Registry/private-stats retired symbols have zero remaining runtime/test references. Before/after test counts prove removal of 13 retired cases.",
+      "historical_reference_if_needed": "15c346a1744fde6b4ce4c4ebd4a2cbb12e021af1 and USKOCI_KOMPLETAN_PLAN_I_DOKAZI_REV10_2026-10-27/dokazi/izvrsivost/readiness_review.json: cleanup.retirement_batches, cleanup.normalized_path_index, cleanup.required_per_change_record"
+    },
+    {
+      "id": "C06",
+      "source_commit": "15c346a1744fde6b4ce4c4ebd4a2cbb12e021af1",
+      "path_or_symbol": [
+        "src/data/__tests__/agreement-collection-presentation.test.tsx::second identical M-02 first-row-arrival block"
+      ],
+      "current_consumer_or_none": "Both identical blocks were executed by Jest; neither had unique assertions or setup.",
+      "business_rule_authority": "Plan section 7.2 C06: keep one complete initial-animation/warm-list/filter-change check.",
+      "action": "Compared exact current block bytes, then removed only the second copy, including its duplicate comment.",
+      "active_replacement": "The first complete M-02 block remains unchanged, with all assertions: at most six first arrivals; warm and filtered lists stay still.",
+      "dependent_tests_configs_docs": [
+        "src/data/__tests__/agreement-collection-presentation.test.tsx"
+      ],
+      "compatibility_boundary": "Test-only deduplication; no product change or weakened assertion.",
+      "verification": "Same suite before: 54/54 PASS; after: 53/53 PASS. Exactly one duplicate case removed.",
+      "historical_reference_if_needed": "15c346a1744fde6b4ce4c4ebd4a2cbb12e021af1"
+    },
+    {
+      "id": "C18",
+      "source_commit": "15c346a1744fde6b4ce4c4ebd4a2cbb12e021af1",
+      "path_or_symbol": [
+        {
+          "path": "assets/brand/premium-entry/discover.png",
+          "sha256": "c9637868157f86d3d33d57be986880f9fd5cf712d972b72df544f5dc489bc015",
+          "bytes": 1325912
+        },
+        {
+          "path": "assets/brand/premium-entry/logo.png",
+          "sha256": "870f2b26838a06a3f0f6c92c9fc61ddc238b777be53562bdf8fb0a14da44cb86",
+          "bytes": 846476
+        },
+        {
+          "path": "assets/brand/premium-entry/publish.png",
+          "sha256": "ebac6aec8979633961ab54ab576876c70beef3dbff2236c8ae77fb53b8a90671",
+          "bytes": 1055508
+        },
+        {
+          "path": "assets/brand/uskoci-dimensional-20261003.png",
+          "sha256": "870f2b26838a06a3f0f6c92c9fc61ddc238b777be53562bdf8fb0a14da44cb86",
+          "bytes": 846476
+        },
+        {
+          "path": "assets/illustrations/uskoci-discover-v3.png",
+          "sha256": "c9637868157f86d3d33d57be986880f9fd5cf712d972b72df544f5dc489bc015",
+          "bytes": 1325912
+        },
+        {
+          "path": "assets/illustrations/uskoci-task-launch-v2.png",
+          "sha256": "ebac6aec8979633961ab54ab576876c70beef3dbff2236c8ae77fb53b8a90671",
+          "bytes": 1055508
+        }
+      ],
+      "current_consumer_or_none": "Logo copy had BrandRaster, two SVG hrefs, atlas provenance and a splash source assertion. Illustration copies had manifest/provenance references only. Full source/config/script/design-gallery search identified no other consumers or image generator input.",
+      "business_rule_authority": "Plan section 7.2 C18 requires one premium-entry owner for three byte-identical pairs with every dependent reference rebound.",
+      "action": "Rebound BrandRaster, splash/task SVG hrefs, atlas file metadata, illustration manifest/provenance and splash assertion; deleted only three duplicate PNGs after exact SHA-256 checks.",
+      "active_replacement": [
+        "assets/brand/premium-entry/logo.png",
+        "assets/brand/premium-entry/discover.png",
+        "assets/brand/premium-entry/publish.png"
+      ],
+      "dependent_tests_configs_docs": [
+        "src/ui/entry/BrandRaster.tsx",
+        "assets/entry-splash-mark.svg",
+        "assets/discovery/uskoci-task-material.svg",
+        "assets/brand/uskoci-dimensional-20261003.json",
+        "assets/illustrations/MANIFEST.json",
+        "assets/illustrations/PROVENANCE.json",
+        "src/data/__tests__/entry-splash-ready-hook.test.tsx",
+        "src/data/__tests__/entry-spoj-surface.test.tsx",
+        "src/data/__tests__/entry-spoj-brand-geometry.test.ts",
+        "src/data/__tests__/entry-v49-reference.test.ts"
+      ],
+      "compatibility_boundary": "All canonical PNG bytes stay identical. SVG geometry/transforms remain byte-equivalent after only the target href replacement (line-ending normalization for comparison). Exported splash/task PNGs stay unchanged. Historical source names remain recoverable at source_commit. No APK size or new native visual acceptance claim.",
+      "verification": "All 3 canonical hashes equal deleted partners; 19 illustration manifest hashes/lengths and 19 provenance file paths validate; both SVG references resolve; entry surface/geometry/splash/reference tests pass. Duplicate PNG bytes removed: 3,227,896.",
+      "historical_reference_if_needed": "15c346a1744fde6b4ce4c4ebd4a2cbb12e021af1 preserves the old aliases and immutable provenance history; the current atlas and illustration metadata now resolve to canonical files."
+    }
+  ],
+  "verification": {
+    "before": {
+      "suites": 4,
+      "tests": 92,
+      "results": [
+        {
+          "path": "src/data/__tests__/agreement-collection-presentation.test.tsx",
+          "passed": 54,
+          "total": 54
+        },
+        {
+          "path": "src/ui/profile/__tests__/work-trust-model.test.ts",
+          "passed": 25,
+          "total": 25
+        },
+        {
+          "path": "src/lib/__tests__/selectionIdempotency.test.ts",
+          "passed": 8,
+          "total": 8
+        },
+        {
+          "path": "src/ui/workerProfile/__tests__/worker-profile-terms.test.ts",
+          "passed": 5,
+          "total": 5
+        }
+      ]
+    },
+    "after": {
+      "suites": 12,
+      "tests": 372,
+      "results": [
+        {
+          "path": "src/data/__tests__/application-selection-native.test.tsx",
+          "passed": 67,
+          "total": 67
+        },
+        {
+          "path": "src/data/__tests__/worker-profile-native.test.tsx",
+          "passed": 34,
+          "total": 34
+        },
+        {
+          "path": "src/data/__tests__/application-selection-client.test.ts",
+          "passed": 49,
+          "total": 49
+        },
+        {
+          "path": "src/data/__tests__/entry-splash-ready-hook.test.tsx",
+          "passed": 16,
+          "total": 16
+        },
+        {
+          "path": "src/data/__tests__/entry-spoj-surface.test.tsx",
+          "passed": 15,
+          "total": 15
+        },
+        {
+          "path": "src/data/__tests__/application-command-journal.test.ts",
+          "passed": 34,
+          "total": 34
+        },
+        {
+          "path": "src/ui/profile/__tests__/use-public-work-trust.test.tsx",
+          "passed": 11,
+          "total": 11
+        },
+        {
+          "path": "src/ui/profile/__tests__/profile-stats.test.tsx",
+          "passed": 8,
+          "total": 8
+        },
+        {
+          "path": "src/data/__tests__/entry-v49-reference.test.ts",
+          "passed": 24,
+          "total": 24
+        },
+        {
+          "path": "src/data/__tests__/entry-spoj-brand-geometry.test.ts",
+          "passed": 41,
+          "total": 41
+        },
+        {
+          "path": "src/data/__tests__/agreement-collection-presentation.test.tsx",
+          "passed": 53,
+          "total": 53
+        },
+        {
+          "path": "src/ui/profile/__tests__/work-trust-model.test.ts",
+          "passed": 20,
+          "total": 20
+        }
+      ]
+    },
+    "assets": {
+      "canonicalPairs": 3,
+      "illustrationManifestEntries": 19,
+      "provenanceEntries": 19,
+      "configuredAssetPaths": [
+        "./assets/brand/app-icon/icon.png",
+        "./assets/brand/app-icon/icon.png",
+        "./assets/brand/app-icon/android-icon-foreground.png",
+        "./assets/brand/app-icon/android-icon-monochrome.png",
+        "./assets/brand/app-icon/favicon.png",
+        "./assets/entry-splash-mark.png",
+        "./assets/entry-splash-mark.png",
+        "./assets/fonts/inter/Inter-Regular.ttf",
+        "./assets/fonts/inter/Inter-Medium.ttf",
+        "./assets/fonts/inter/Inter-SemiBold.ttf",
+        "./assets/fonts/inter/Inter-Bold.ttf",
+        "./assets/fonts/inter/Inter-ExtraBold.ttf"
+      ],
+      "relativeAssetImportsChecked": 61,
+      "dynamicRequires": [],
+      "referenceGenerator": "3 outputs verified by sync-entry-reference-assets.cjs",
+      "nativeBuildOrApkSizeMeasured": false
+    },
+    "limitations": [
+      "No Android/iOS build or phone appearance validation was performed in this cleanup batch.",
+      "APK size was not measured; byte count is removed tracked repository asset content.",
+      "Shared full TypeScript/CI verification is tracked by the parent execution checkpoint."
+    ]
+  }
+}

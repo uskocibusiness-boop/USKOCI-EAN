@@ -96,6 +96,8 @@ test('the small brand mark sends distinct enamel stops to native SVG without inv
 });
 
 test('pins that stand alone become price pills; the native source still holds only IDs and rounded points', async () => {
+  // Only this dormant future-HITNO scenario opts in; V1 defaults to OFF.
+  process.env.EXPO_PUBLIC_URGENT = '1';
   await render(); await ready();
   expect(sourceData().features.map((item: { properties: object }) => item.properties)).toEqual(rows.map(item => ({ needId: item.id })));
   expect(source().props.data).not.toMatch(/RSD|Ponude|Posao/);
@@ -152,6 +154,8 @@ test('positive account relations label individual pins without putting private o
 });
 
 test('selected urgent own task keeps selection, urgency and relationship distinct; a shared point has no individual badge', async () => {
+  // Opt in only to the dormant HITNO behavior this specific assertion verifies.
+  process.env.EXPO_PUBLIC_URGENT = '1';
   extra = { relations: taskRelationIndex([{ needId: 'urgent', relation: 'OWNER' }], rows.map(item => item.id)) };
   selectedId = 'urgent'; await render(); await ready();
   const selected = pills().find(pill => pill.selected);
@@ -167,6 +171,8 @@ test('selected urgent own task keeps selection, urgency and relationship distinc
 // Review r3 item 8: the native side keys annotations by id. An id that stayed `pill-<point>` while the content changed let
 // an insert-before-remove in one commit leave a dead pill; the id now changes with what the pill says, as its key does.
 test('a pill\'s native id changes with what it says, as its key does', async () => {
+  // Opt in only to the dormant HITNO behavior this specific assertion verifies.
+  process.env.EXPO_PUBLIC_URGENT = '1';
   await render(); await ready();
   const ids = () => annotations().map(node => String(node.props.id));
   expect(ids()).toContain('pill-44.81,20.46-6.000 RSD-false');
@@ -618,6 +624,8 @@ test('many pins stay a bounded number of pills; native logo markers cover the re
 // Discovery V47 (the selected pin, Airbnb's pattern in USKOČI's look): the chosen pin is the one filled dark-green pill
 // with white words; every other stays white, and HITNO keeps its own marker on either.
 test('the chosen pin stays white with an orange selection; urgency retains its independent glyph', async () => {
+  // Only this dormant future-HITNO scenario opts in; V1 defaults to OFF.
+  process.env.EXPO_PUBLIC_URGENT = '1';
   rows = [...base(), row('hitno-izabran', 44.9, 20.3, HITNO)];
   mockRendered = rows.map(item => feature(item.id));
   await render(); await ready();
@@ -1208,4 +1216,11 @@ test('Nearby list refresh survives a late PEEK detent after region settle and be
   expect(mockEase).not.toHaveBeenCalled();
   await act(async () => jest.advanceTimersByTime(450));
   expect(search).toHaveBeenCalledTimes(1); expect(search.mock.calls[0][1]).toEqual(target);
+});
+
+// Never retain a dormant future-HITNO override beyond its test.
+const originalUrgentForV1Regression = process.env.EXPO_PUBLIC_URGENT;
+afterEach(() => {
+  if (originalUrgentForV1Regression === undefined) delete process.env.EXPO_PUBLIC_URGENT;
+  else process.env.EXPO_PUBLIC_URGENT = originalUrgentForV1Regression;
 });

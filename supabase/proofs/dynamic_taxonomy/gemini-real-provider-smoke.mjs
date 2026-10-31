@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import { withGeminiClassificationShadowSchema } from '../../functions/_shared/classificationGeminiShadow.mjs';
 import { workerServiceModeSchema } from '../../functions/_shared/workerServiceModeContext.mjs';
 import { workerAreaRequestSchema } from '../../functions/_shared/workerAreaResolver.mjs';
+import { assertProviderClassificationShadow } from './providerShadowValidator.mjs';
 
 const workerPath='supabase/functions/uskoci-worker-interview/index.ts';
 const needPath='supabase/functions/uskoci-ai-interview/index.ts';
@@ -132,10 +133,9 @@ async function liveCall(name,purpose,schema,key,model,toWire){
     throw new Error('WORKER_PATCH_INVALID');
   if(name==='need'&&(!Array.isArray(value.facts)||!value.dialogue||typeof value.dialogue!=='object'))
     throw new Error('NEED_DIALOGUE_INVALID');
-  if('classificationShadowJson' in value){
-    if(typeof value.classificationShadowJson!=='string'||!Array.isArray(JSON.parse(value.classificationShadowJson)))
-      throw new Error(name+'_SHADOW_JSON_INVALID');
-  }
+  // This is REQUIRED in the wire schema. Missing metadata cannot pass a paid
+  // smoke as if the empty array had been explicitly produced by Gemini.
+  assertProviderClassificationShadow(name,value);
   console.log(name.toUpperCase()+'_PROVIDER_SCHEMA_AND_OUTPUT_PASS (no content recorded)');
 }
 const mode=process.argv[2];

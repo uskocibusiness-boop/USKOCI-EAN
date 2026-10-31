@@ -63,9 +63,12 @@ test('review/Save is required before activation and matching authority',()=>{
 });
 test('optional biography does not add a mandatory interview or confirmation turn',()=>{
  assert.match(prompt,/Biography is optional and must not delay review/);
- assert.match(prompt,/do not open a biography-choice or approval question when routing facts are ready/);
- assert.match(prompt,/If the worker explicitly asks for a biography/);
- assert.match(prompt,/the single profile review owns its approval/);
+ assert.match(prompt,/include ONE short declarative offer in assistantMessage/);
+ assert.match(prompt,/not another required interview question and must not delay the single review or block Save/);
+ assert.match(prompt,/If the worker explicitly asks or accepts the offer/);
+ assert.match(prompt,/Do not invent experience, credentials, equipment, reliability, territory or promises/);
+ assert.match(prompt,/only the owner's review\/Save approves it/);
+ assert.match(prompt,/Show the proposed text in the same signed profile review/);
  assert.doesNotMatch(prompt,/Once the offered services, work territory and basic availability are gathered, politely ask/);
  assert.doesNotMatch(prompt,/Da li Vam odgovara ovakav opis/);
 });

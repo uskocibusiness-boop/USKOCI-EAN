@@ -28,6 +28,7 @@ jest.mock('../supabaseClient', () => {
 });
 
 import { aiNeedV2Production } from '../aiNeedV2Production';
+import { ru4Production } from '../ru4Production';
 
 const { mockRpc } = (jest.requireMock('../supabaseClient') as {
   __testMocks: { mockRpc: jest.Mock };
@@ -154,5 +155,39 @@ describe('RU-4 — confirmEdit', () => {
     const unconfirmed = await aiNeedV2Production.confirmEdit(NEED, 3, CONVERSATION, 'ru4-edit-abc12345');
     expect(unconfirmed).toMatchObject({ ok: false, kod: 'EDIT_FACTS_REQUIRE_HUMAN_CONFIRMATION' });
     if (!unconfirmed.ok) expect(unconfirmed.poruka).toContain('Potvrdi');
+  });
+});
+
+
+describe('R11f/X03 — stale-response resolution receipt', () => {
+  const input = { prijavaId: '11111111-1111-4111-8111-111111111111', ocekivanaVerzija: 3, ocekivanaPotrebaRevizija: 4,
+    clientRequestId: '22222222-2222-4222-8222-222222222222', akcija: 'UPDATE' as const, cenaRsd: 1200 };
+
+  it('returns the actual confirmed status, version and optional price basis, with no local version fallback', async () => {
+    resetRpc({ data: { status: 'SUBMITTED', version: 4, applicationPriceBasis: 'HOURLY' }, error: null });
+    await expect(ru4Production.resolveChangedApplication(input)).resolves.toEqual({
+      ok: true, podatak: { status: 'SUBMITTED', version: 4, priceBasis: 'HOURLY' },
+    });
+    expect(mockRpc).toHaveBeenCalledWith('rpc_resolve_stale_response_after_need_edit', expect.objectContaining({
+      p_response_id: input.prijavaId, p_expected_response_version: 3, p_expected_need_revision: 4, p_action: 'UPDATE',
+    }));
+    resetRpc({ data: { status: 'WITHDRAWN', version: 3 }, error: null });
+    await expect(ru4Production.resolveChangedApplication({ ...input, akcija: 'WITHDRAW' })).resolves.toMatchObject({
+      ok: true, podatak: { status: 'WITHDRAWN', version: 3 },
+    });
+  });
+
+  it('rejects missing, non-finite, fractional, mismatched and unknown results rather than claiming a successful change', async () => {
+    for (const data of [
+      null, {}, { status: 'SUBMITTED' }, { status: 'SUBMITTED', version: null },
+      { status: 'SUBMITTED', version: '4' }, { status: 'SUBMITTED', version: Number.POSITIVE_INFINITY },
+      { status: 'SUBMITTED', version: 3.5 }, { status: '', version: 4 },
+      { status: 'WITHDRAWN', version: 4 }, { status: 'SUBMITTED', version: 4, applicationPriceBasis: 'PER_PERSON' },
+    ]) {
+      resetRpc({ data, error: null });
+      await expect(ru4Production.resolveChangedApplication(input)).resolves.toMatchObject({
+        ok: false, kod: 'STALE_RESPONSE_RESOLUTION_UNCONFIRMED',
+      });
+    }
   });
 });

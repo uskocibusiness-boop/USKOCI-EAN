@@ -106,3 +106,11 @@ test('multiline scope is deliberate even when short; a later accepted version re
   expect(text()).not.toContain('Obim zadatka');
   expect(tree!.root.findAllByProps({ accessibilityRole: 'button' })).toHaveLength(0);
 });
+
+test.each([false, true])('hourly accepted terms keep their unit in overview and chat, compact=%s', async compact => {
+  await render(<AgreementTerms agreement={{ ...agreement, osnovaCene: 'HOURLY', vremeTekst: 'Trajanje po dogovoru' }} compact={compact} />);
+  expect(text().toLowerCase()).toContain('po osobi po satu');
+  expect(text()).toContain('5.500 RSD');
+  expect(text()).not.toContain('Dogovoreno ukupno');
+  expect(text()).not.toContain('11.000 RSD');
+});

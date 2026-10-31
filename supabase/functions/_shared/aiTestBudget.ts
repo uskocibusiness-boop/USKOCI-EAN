@@ -28,24 +28,50 @@ export async function reserveAiTestBudget(input: {
   const timeout = setTimeout(stop, 5000);
   input.signal?.addEventListener('abort', stop, { once: true });
   if (input.signal?.aborted) stop();
+  // A response body or fetch implementation may ignore AbortSignal. The five-
+  // second budget and caller cancellation must still settle this reservation.
+  // Do not interpret an interrupted reservation as proof of no provider charge
+  // or automatically create another paid operation.
+  const cancelled=new Promise<never>((_,reject)=>{
+    const onAbort=()=>reject(new Error('AI_TEST_BUDGET_UNAVAILABLE'));
+    if(abort.signal.aborted)onAbort();
+    else abort.signal.addEventListener('abort',onAbort,{once:true});
+  });
+  void cancelled.catch(()=>undefined);
   const assertActive = () => {
     if (abort.signal.aborted) throw new Error('AI_TEST_BUDGET_UNAVAILABLE');
   };
   try {
     assertActive();
-    const response = await fetch(input.supabaseUrl + '/rest/v1/rpc/rpc_ai_test_budget_reserve_service', {
+    const response = await Promise.race([fetch(input.supabaseUrl + '/rest/v1/rpc/rpc_ai_test_budget_reserve_service', {
       method: 'POST', redirect: 'error', signal: abort.signal,
       headers: { 'Content-Type': 'application/json', apikey: input.serviceRoleKey, Authorization: 'Bearer ' + input.serviceRoleKey },
       body: JSON.stringify({ p_account_id: input.accountId, p_operation_id: input.operationId, p_kind: input.kind,
         p_max_cost_microusd: input.kind === 'LLM' ? AI_TEST_LIMITS.llmReservationMicrousd : AI_TEST_LIMITS.speechReservationMicrousd }),
-    });
-    if (abort.signal.aborted || !response.ok || !response.body) { void response.body?.cancel(); throw new Error('AI_TEST_BUDGET_UNAVAILABLE'); }
+    }),cancelled]);
+    if (abort.signal.aborted || !response.ok || !response.body) {
+      // The deadline may win just before headers resolve. Cleanup MUST NOT
+      // replace the original budget refusal with a TypeError, even for a
+      // nonstandard transport that only exposes getReader().cancel().
+      // Do not await cleanup: its promise may ignore cancellation too.
+      try {
+        const body=response.body;
+        if (body && typeof body.cancel==='function')
+          void Promise.resolve(body.cancel()).catch(()=>undefined);
+        else if (body && typeof body.getReader==='function') {
+          const reader=body.getReader();
+          if (typeof reader.cancel==='function')
+            void Promise.resolve(reader.cancel()).catch(()=>undefined);
+        }
+      } catch { /* best effort, never changes the conservative refusal */ }
+      throw new Error('AI_TEST_BUDGET_UNAVAILABLE');
+    }
     const reader = response.body.getReader();
     let content = '', length = 0;
     try {
       const decoder = new TextDecoder();
       while (true) {
-        const part = await reader.read();
+        const part = await Promise.race([reader.read(),cancelled]);
         assertActive();
         if (part.done) break;
         length += part.value.byteLength;
@@ -66,8 +92,9 @@ export async function reserveAiTestBudget(input: {
   } finally { clearTimeout(timeout); input.signal?.removeEventListener('abort', stop); stop(); }
 }
 
-/** A session that produced nothing spent nothing, so its worst-case hold goes back.
- *  The RPC itself refuses to release any operation that has recorded usage. */
+/** Only call with proof that no audio was dispatched and no provider output observed.
+ * Missing output after dispatch is UNKNOWN, never proof of zero cost. The RPC also
+ * refuses release when usage exists, but absence of recorded usage is not that proof. */
 export async function releaseUnusedAiTestReservation(input: {
   supabaseUrl: string; serviceRoleKey: string; operationId: string;
 }): Promise<boolean> {
@@ -86,8 +113,9 @@ export async function releaseUnusedAiTestReservation(input: {
   finally { clearTimeout(timeout); }
 }
 
-/** A session that did transcribe settles against the audio it actually sent, priced at the
- *  published rate. The RPC refuses when provider usage exists, so reported usage always wins. */
+/** A fully completed session uses the existing duration/output estimate, not a provider
+ * invoice. Partial/unknown completion keeps its hold. The RPC refuses when provider
+ * usage exists, so reported usage always wins. */
 export async function settleAiTestAudio(input: {
   supabaseUrl: string; serviceRoleKey: string; operationId: string; audioBytes: number; transcriptChars: number;
 }): Promise<boolean> {

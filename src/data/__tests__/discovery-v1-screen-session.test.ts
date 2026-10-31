@@ -27,8 +27,8 @@ const pricedExact=(amount:number,revision=1):any=>({...exact(),items:[priced(amo
 const places=(more=false):any=>({version:'DISCOVERY_V1',mode:'PLACES',asOf:AT,filterKey:A,anchor:anchor(),
  items:[{key:'novi sad, liman',text:'Novi Sad, Liman',count:2}],hasMore:more,nextCursor:more?{count:2,text:'Novi Sad, Liman',key:'novi sad, liman'}:null,
  counts:{kind:'exact_live',observedAt:AT,everywhere:8,inArea:null}});
-type P={request:DiscoveryV1OwnerRequest;signal:AbortSignal;resolve:(v:any)=>void};
-const h=()=>{const pending:P[]=[];return {pending,transport:(request:DiscoveryV1OwnerRequest,signal:AbortSignal)=>new Promise<any>(resolve=>pending.push({request,signal,resolve}))};};
+type P={request:DiscoveryV1OwnerRequest;signal:AbortSignal;resolve:(v:any)=>void;reject:(error:Error)=>void};
+const h=()=>{const pending:P[]=[];return {pending,transport:(request:DiscoveryV1OwnerRequest,signal:AbortSignal)=>new Promise<any>((resolve,reject)=>pending.push({request,signal,resolve,reject}))};};
 const wait=async(x:{pending:P[]},index:number)=>{for(let n=0;n<30&&!x.pending[index];n++)await Promise.resolve();if(!x.pending[index])throw new Error('P6_TEST_PENDING_'+index);};
 const view=()=>({...initialMarketplaceView(),mode:'map' as const,viewport:{center:[20,45] as [number,number],zoom:10,bounds:[19,44,21,46] as [number,number,number,number]}});
 
@@ -455,4 +455,102 @@ it('snapshots hand out the same rows, cards and markers until a new answer lands
  expect(b.items).toBe(a.items);expect(b.wireItems).toBe(a.wireItems);expect(b.mapMarkers).toBe(a.mapMarkers);
  const more=s.settleMap([19.6,44.6,20.4,45.4]);x.pending[2].resolve(page([ID2]));x.pending[3].resolve(map([19.6,44.6,20.4,45.4]));await more;
  const c=s.snapshot();expect(c.items).not.toBe(a.items);expect(c.items.map(row=>row.id)).toEqual([ID2]);expect(c.mapMarkers).not.toBe(a.mapMarkers);
+});
+
+it.each(['transport','decode'])('F16: cold PAGE survives a %s MAP failure and MAP-only retry restores the current bounds',async failure=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(view());
+ x.pending[0].resolve(page());await wait(x,1);
+ if(failure==='transport')x.pending[1].reject(new Error('DISCOVERY_V1_READ_FAILED'));else x.pending[1].resolve({invalid:true});
+ const result=await opening;
+ expect(result.kind).toBe('applied');expect(result.snapshot.items.map(row=>row.id)).toEqual([ID1]);
+ expect(result.snapshot.mapRead).toMatchObject({loading:false,error:expect.any(String)});
+ const retry=s.retryMap();expect(s.snapshot().mapRead.loading).toBe(true);
+ expect(x.pending[2].request).toEqual(x.pending[1].request);
+ x.pending[2].resolve(map());expect((await retry).kind).toBe('applied');
+ expect(s.snapshot().mapRead).toEqual({loading:false,error:null});expect(s.snapshot().items.map(row=>row.id)).toEqual([ID1]);
+ expect(x.pending.map(read=>read.request.mode)).toEqual(['PAGE','MAP','MAP']);
+});
+it('F16: failed seed retry reads seed then whole-filter bounds without repeating PAGE',async()=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(fresh());
+ x.pending[0].resolve(page());await wait(x,1);x.pending[1].reject(new Error('DISCOVERY_V1_READ_FAILED'));await opening;
+ const retry=s.retryMap();expect((x.pending[2].request as any).bounds).toEqual([-180,-90,180,90]);
+ x.pending[2].resolve(map([-180,-90,180,90]));await wait(x,3);
+ expect((x.pending[3].request as any).bounds).toEqual([19,44,21,46]);x.pending[3].resolve(map());
+ expect((await retry).kind).toBe('applied');expect(s.snapshot().items).toHaveLength(1);expect(s.snapshot().mapRead.error).toBeNull();
+});
+it('F16: failure after a valid seed remains partial and retry completes both MAP stages',async()=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(fresh());
+ x.pending[0].resolve(page());await wait(x,1);x.pending[1].resolve(map([-180,-90,180,90]));await wait(x,2);
+ x.pending[2].resolve({bad:true});expect((await opening).kind).toBe('applied');
+ expect(s.snapshot().items).toHaveLength(1);expect(s.snapshot().mapRead.error).not.toBeNull();
+ const retry=s.retryMap();expect((x.pending[3].request as any).bounds).toEqual([-180,-90,180,90]);
+ x.pending[3].resolve(map([-180,-90,180,90]));await wait(x,4);x.pending[4].resolve(map());await retry;
+ expect(s.snapshot().mapRead).toEqual({loading:false,error:null});
+ expect(x.pending.map(read=>read.request.mode)).toEqual(['PAGE','MAP','MAP','MAP','MAP']);
+});
+it('F16: early MAP failure waits for the current PAGE and does not discard the selected task',async()=>{
+ const {x,s}=await openLoaded();
+ const marker=s.snapshot().mapMarkers[0],selection=s.selectMarker(marker);x.pending[2].resolve(exact());await selection;
+ const moving=s.settleMap([19.5,44.5,20.5,45.5]);let done=false;void moving.then(()=>{done=true;},()=>{done=true;});
+ x.pending[4].reject(new Error('DISCOVERY_V1_READ_FAILED'));await Promise.resolve();await Promise.resolve();
+ expect(done).toBe(false);x.pending[3].resolve(page([ID2]));expect((await moving).kind).toBe('applied');
+ expect(s.snapshot().items.map(row=>row.id)).toEqual([ID2]);expect(s.snapshot().mapRead.error).not.toBeNull();
+ expect(s.chosenKey()).toBe(marker.key);expect(s.snapshot().peek?.kind).toBe('TASK');
+});
+it('F16: an old MAP failure cannot overwrite a newer filter or its map loading state',async()=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),old=s.open(view());x.pending[0].resolve(page());await wait(x,1);
+ const next=s.open({...view(),query:'novo'});x.pending[2].resolve(page([ID2]));await wait(x,3);
+ x.pending[1].reject(new Error('DISCOVERY_V1_READ_FAILED'));expect((await old).kind).toBe('stale');
+ expect(s.snapshot().mapRead).toEqual({loading:true,error:null});
+ x.pending[3].resolve(map());await next;expect(s.snapshot().mapRead).toEqual({loading:false,error:null});
+ expect(s.snapshot().items.map(row=>row.id)).toEqual([ID2]);
+});
+it('F16: a superseded seed cannot launch its whole-bounds request over a newer viewport',async()=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(fresh());
+ x.pending[0].resolve(page());await wait(x,1);
+ const refreshing=s.refreshMap([19.5,44.5,20.5,45.5]);x.pending[2].resolve(map([19.5,44.5,20.5,45.5]));await refreshing;
+ x.pending[1].resolve(map([-180,-90,180,90]));expect((await opening).kind).toBe('applied');
+ expect(x.pending).toHaveLength(3);expect(s.snapshot().mapRead).toEqual({loading:false,error:null});
+});
+it('F16: failed refresh retains its markers, and same-bounds retry is never skipped',async()=>{
+ const {x,s}=await openLoaded(),before=s.snapshot().mapMarkers;
+ const moving=s.refreshMap([10,40,12,42]);x.pending[2].reject(new Error('DISCOVERY_V1_READ_TIMEOUT'));await moving;
+ expect(s.snapshot().mapMarkers).toBe(before);expect(s.snapshot().mapRead.error).toBe('TIMEOUT');
+ const retry=s.refreshMap([19,44,21,46]);expect(x.pending).toHaveLength(4);
+ x.pending[3].resolve(map());await retry;expect(s.snapshot().mapRead).toEqual({loading:false,error:null});
+});
+it('F16: suspend retires pending busy work but preserves the error and retry plan for the next visit',async()=>{
+ const {x,s}=await openLoaded();const failed=s.refreshMap([19.5,44.5,20.5,45.5]);x.pending[2].reject(new Error('DISCOVERY_V1_READ_TIMEOUT'));await failed;
+ const old=s.retryMap();expect(s.snapshot().mapRead.loading).toBe(true);s.suspend();
+ expect(s.snapshot().mapRead).toEqual({loading:false,error:'TIMEOUT'});
+ const retry=s.retryMap();x.pending[3].reject(new Error('DISCOVERY_V1_READ_FAILED'));expect((await old).kind).toBe('stale');
+ expect(s.snapshot().mapRead).toEqual({loading:true,error:'TIMEOUT'});
+ x.pending[4].resolve(map([19.5,44.5,20.5,45.5]));await retry;expect(s.snapshot().mapRead).toEqual({loading:false,error:null});
+});
+it('F16: repeated MAP failure preserves PAGE while an expired anchor still reaches the recovery owner',async()=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),opening=s.open(view());x.pending[0].resolve(page());await wait(x,1);
+ x.pending[1].reject(new Error('DISCOVERY_V1_READ_FAILED'));await opening;
+ const retry=s.retryMap();x.pending[2].resolve({bad:true});expect((await retry).kind).toBe('failed');
+ expect(s.snapshot().items.map(row=>row.id)).toEqual([ID1]);expect(s.snapshot().mapRead.loading).toBe(false);
+ const expired=s.retryMap();x.pending[3].reject(new Error('DISCOVERY_V1_ANCHOR_EXPIRED'));
+ await expect(expired).rejects.toThrow('DISCOVERY_V1_ANCHOR_EXPIRED');expect(s.snapshot().mapRead.loading).toBe(false);
+});
+it('F16: PAGE failure never becomes a successful empty result after a concurrent successful MAP',async()=>{
+ const {x,s}=await openLoaded(),moving=s.settleMap([19.5,44.5,20.5,45.5]);
+ x.pending[2].reject(new Error('DISCOVERY_V1_READ_FAILED'));x.pending[3].resolve(map([19.5,44.5,20.5,45.5]));
+ await expect(moving).rejects.toThrow('DISCOVERY_V1_READ_FAILED');
+ expect(s.snapshot().counts).toBeNull();expect(s.snapshot().mapRead).toEqual({loading:false,error:null});
+});
+it('F16: switching to REMOTE clears obsolete MAP failure and its retry cannot send a physical MAP',async()=>{
+ const {x,s}=await openLoaded(),failed=s.refreshMap([10,40,12,42]);x.pending[2].reject(new Error('DISCOVERY_V1_READ_FAILED'));await failed;
+ const remote=s.open({...view(),where:'remote'});x.pending[3].resolve(page());await remote;
+ expect(s.snapshot().mapRead).toEqual({loading:false,error:null});expect((await s.retryMap()).kind).toBe('noop');expect(x.pending).toHaveLength(4);
+});
+it('F16: a PAGE accepted just before a newer query cannot install the old MAP retry intent',async()=>{
+ const x=h(),s=createDiscoveryV1ScreenSession(x.transport),old=s.open(view());
+ x.pending[0].resolve(page());await Promise.resolve();
+ const next=s.open({...view(),where:'remote'});
+ expect((await old).kind).toBe('stale');expect(s.snapshot().mapRead).toEqual({loading:false,error:null});
+ x.pending[1].resolve(page([ID2]));await next;
+ expect((await s.retryMap()).kind).toBe('noop');expect(x.pending.map(read=>read.request.mode)).toEqual(['PAGE','PAGE']);
 });

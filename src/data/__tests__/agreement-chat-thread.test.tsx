@@ -19,7 +19,6 @@ import { AgreementChat, CLOSED_SENTENCE } from '../../ui/AgreementChat';
 import { civilInstant, shiftDate } from '../../ui/calendar/calendarPresentation';
 import { serbianToday } from '../../ui/calendar/serbianDays';
 import { sys } from '../../ui/system/tokens';
-import { forgetAutoResendForTests, takeAutoResend } from '../../ui/messages/threadModel';
 
 /**
  * The conversation of a Dogovor as proposal R draws it (team T3c): grouped bubbles, Serbian date lines, ONE small mark by each of
@@ -60,9 +59,7 @@ async function render(over: Partial<typeof props> = {}) {
   await act(async () => { tree = create(<AgreementChat {...props} {...over} />, { createNodeMock: element => element.type === ('ScrollView' as never) ? { scrollToEnd: jest.fn(), scrollTo: jest.fn() } : null }); });
 }
 beforeEach(() => {
-  jest.clearAllMocks(); counter = 0; forgetAutoResendForTests();
-  // Every unknown outcome in this suite is the fixture of a look; the automatic retry has its own suite.
-  takeAutoResend(['unknown_00000001', 'unknown_00000002'].map(id => entry(id, 'unknown')));
+  jest.clearAllMocks(); counter = 0;
   jest.spyOn(global, 'requestAnimationFrame').mockImplementation(() => 1);
   jest.spyOn(global, 'cancelAnimationFrame').mockImplementation(() => undefined);
   const state: OutboxSnapshot = { phase: 'ready', draft: '', capturing: false, entries: [], error: null };
@@ -158,9 +155,12 @@ describe('the small mark by my message', () => {
     await render({ state: { ...props.state, entries: [unknown] } });
     expect(marks().map(mark => mark.props.accessibilityLabel)).toEqual(['Ne znamo da li je stigla']);
     expect(texts()).toContain('Ne znamo da li je stigla'); expect(texts()).toContain('Proveri');
-    // One button, and it is not the one for a refused send: what is not known is checked, not sent as if it had failed.
-    expect(texts()).not.toContain('Pošalji ponovo'); expect(texts()).not.toContain('Nije poslato');
+    // Checking is read-only; a separate, clearly named write needs another gesture.
+    expect(texts()).toContain('Pošalji ponovo'); expect(texts()).not.toContain('Nije poslato');
     await act(async () => button(`Proveri da li je stigla: ${unknown.command.body}`).props.onPress());
+    expect(props.refresh).toHaveBeenCalledTimes(1);
+    expect(outbox.retry).not.toHaveBeenCalled();
+    await act(async () => button(`Ponovi slanje poruke ${unknown.command.body}`).props.onPress());
     expect(outbox.retry).toHaveBeenCalledWith('unknown_00000001');
   });
 

@@ -98,7 +98,7 @@ export type PotrebaProjekcija = {
   /** Number of attached photos. */
   brojFotografija?: number;
   rezimCene?: RezimCene;
-  /** Sta cena znaci: TOTAL = ceo zadatak, PER_PERSON = jedno mesto, HOURLY = po satu. null/undefined = postojece znacenje. */
+  /** Sta cena znaci: TOTAL = ceo zadatak, PER_PERSON = jedno mesto, HOURLY = po osobi po satu. null/undefined = postojece znacenje. */
   osnovaCene?: "TOTAL" | "PER_PERSON" | "HOURLY" | null;
   ponudjenaCena?: Novac;
   /** Missing only for earlier saved/mock projections; never infer missing topology. */
@@ -113,6 +113,8 @@ export type PotrebaProjekcija = {
  */
 export type PrilikaProjekcija = {
   id: string;
+  /** Public task revision for read invalidation; older projections may omit it. */
+  revision?: number;
   urgency?: NeedUrgencyProjection;
   naslov: string;
   opis?: string;
@@ -143,7 +145,7 @@ export type PrilikaProjekcija = {
   /** Približna tačka za mapu. Tačna lokacija se otkriva tek po pravilima Dogovora. */
   priblizno: { lat: number; lng: number } | null;
   rezimCene?: RezimCene;
-  /** Sta cena znaci: TOTAL = ceo zadatak, PER_PERSON = jedno mesto, HOURLY = po satu. null/undefined = postojece znacenje. */
+  /** Sta cena znaci: TOTAL = ceo zadatak, PER_PERSON = jedno mesto, HOURLY = po osobi po satu. null/undefined = postojece znacenje. */
   osnovaCene?: "TOTAL" | "PER_PERSON" | "HOURLY" | null;
   ponudjenaCena?: Novac;
 };
@@ -234,6 +236,8 @@ export type KandidatProjekcija = {
   ocenaTekst: string;
   recenzijeTekst: string;
   cena: Novac;
+  /** Immutable price unit: HOURLY is RSD per person per hour; other/legacy amounts are application totals. */
+  osnovaCene?: 'TOTAL' | 'HOURLY' | null;
   pokrivaMesta: number;
   preostaloMesta: number;
   dolazakTekst: string;
@@ -287,6 +291,8 @@ export type MojaPrijavaProjekcija = {
   naslov: string;
   opis: string;
   cena: Novac;
+  /** Immutable price unit: HOURLY is RSD per person per hour; other/legacy amounts are application totals. */
+  osnovaCene?: 'TOTAL' | 'HOURLY' | null;
   pokrivaMesta: number;
   napomena: string;
   podrucjeTekst: string;
@@ -381,6 +387,8 @@ export type DogovorProjekcija = {
   naslov: string;
   stanje: StanjeDogovora;
   cena: Novac;
+  /** Immutable price unit: HOURLY is RSD per person per hour; other/legacy amounts are application totals. */
+  osnovaCene?: 'TOTAL' | 'HOURLY' | null;
   vremeTekst: string;
   /** Validated start from accepted terms only; never the source task's current start. Absent when terms were not read. */
   prihvacenPocetak?: string | null;

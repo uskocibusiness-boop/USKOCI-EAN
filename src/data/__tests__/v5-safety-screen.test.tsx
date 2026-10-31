@@ -148,6 +148,17 @@ it('an undo the server does not confirm says so and offers nothing more; and a "
   const onPress = poruka.current()!.action!.onPress; mockSession = { user: { id: K }, accountRevision: 2 }; mockSafety.setBlock.mockClear();
   await act(async () => onPress()); expect(mockSafety.setBlock).not.toHaveBeenCalled();
 });
+it('a late block success cannot announce a confirmed toast after switching account incarnation',async()=>{
+  await render(); await act(async()=>action('Blokiraj osobu').onPress());
+  let resolve!: (value:unknown)=>void;
+  mockSafety.setBlock.mockReturnValueOnce(new Promise(done=>{resolve=done;}));
+  await act(async()=>{confirmButton().props.onPress();});
+  mockSession={user:{id:A},accountRevision:2};
+  await update();
+  await act(async()=>resolve({ok:true,podatak:{accountId:A,targetAccountId:B,blocked:true,revision:1,
+    clientRequestId:K,authoritative:true,idempotentReplay:false}}));
+  expect(poruka.current()).toBeNull();
+});
 it('a refused block says nothing in the outcome bar: only a confirmed change is announced', async () => {
   mockSafety.setBlock.mockResolvedValueOnce({ ok: false, kod: 'BLOCK_OUTCOME_UNKNOWN', poruka: 'Ishod blokiranja nije potvrđen.' });
   await render(); await act(async () => action('Blokiraj osobu').onPress()); await confirmBlock();

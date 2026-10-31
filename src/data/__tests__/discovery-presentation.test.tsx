@@ -2057,7 +2057,7 @@ test('the list keeps filters and refresh without restoring the floating publish 
 
 test('reading, not read and nothing in this view keep their meanings, through the one state view', async () => {
   error = true; rows = []; await render();
-  expect(texts()).toContain('Ne možemo da učitamo zadatke'); await click('Pokušaj ponovo'); expect(refresh).toHaveBeenCalledTimes(1);
+  expect(texts()).toContain('Ne možemo da učitamo zadatke'); await click('Pokušajte ponovo'); expect(refresh).toHaveBeenCalledTimes(1);
   // The top line says it too, never a blank.
   expect(countLine().props.accessibilityLabel).toBe('Zadaci nisu učitani');
   await act(async () => tree.unmount());
@@ -2829,6 +2829,71 @@ describe('Moja lokacija: an explicit camera-only location capture', () => {
 const p6Seam_ = (): DiscoveryV1PresentationSeam => ({
   map: { markers: [], selectedKey: null, wholeBounds: [19, 44, 21, 46], onSelect: jest.fn() },
   peek: null, counts: null, pageHasMore: false, onArea: jest.fn(), onClearPeek: jest.fn(), onShowPlace: jest.fn(), onShowAll: jest.fn(), onNextPage: jest.fn(),
+});
+describe('F16 independent MAP recovery', () => {
+  const retryLabel = 'Pokušajte ponovo sa mapom';
+  test.each(['AUTH_REQUIRED', 'FORBIDDEN', 'CONTRACT', 'NETWORK', 'TIMEOUT', 'UNAVAILABLE'] as const)(
+    'a %s MAP failure preserves PAGE cards, filters and the native renderer', async reason => {
+      rows = [row('a'), row('b')]; initial = { ...initial, sheet: 'half' };
+      const onRetry = jest.fn();
+      p6Seam = { ...p6Seam_(), mapRead: { loading: false, error: reason, onRetry } };
+      await render();
+      expect(cards()).toEqual(['a', 'b']); expect(map()).toBeDefined(); expect(filters()).toBeDefined();
+      expect(texts()).toContain('Oznake zadataka na mapi nisu učitane.');
+      expect(texts()).not.toContain(reason);
+      expect(tree.root.findAllByType(DiscoveryListState)).toHaveLength(0);
+      expect(press(retryLabel).props.accessibilityState).toEqual({ disabled: false, busy: false });
+      expect(StyleSheet.flatten(press(retryLabel).props.style).minHeight).toBeGreaterThanOrEqual(48);
+      expect(listSheet().props.index).toBe(1);
+      await tap(retryLabel);
+      expect(onRetry).toHaveBeenCalledTimes(1); expect(refresh).not.toHaveBeenCalled();
+      expect(cards()).toEqual(['a', 'b']); expect(snapshot.sheet).toBe('half');
+    });
+
+  test('MAP retry stays busy and disabled until its status settles, then removes its recovery row', async () => {
+    rows = [row('a')]; const onRetry = jest.fn();
+    p6Seam = { ...p6Seam_(), mapRead: { loading: false, error: 'NETWORK', onRetry } };
+    await render(); await tap(retryLabel);
+    p6Seam = { ...p6Seam, mapRead: { loading: true, error: null, onRetry } }; await update();
+    expect(texts()).toContain('Učitavamo oznake na mapi…');
+    expect(texts()).not.toContain('Oznake zadataka na mapi nisu učitane.');
+    expect(press(retryLabel).props.disabled).toBe(true);
+    expect(press(retryLabel).props.accessibilityState).toEqual({ disabled: true, busy: true });
+    expect(press(retryLabel).props.onPress).toBeUndefined();
+    expect(cards()).toEqual(['a']); expect(map()).toBeDefined();
+    p6Seam = { ...p6Seam, mapRead: { loading: false, error: null, onRetry } }; await update();
+    expect(pressable(retryLabel)).toHaveLength(0);
+    expect(texts()).not.toContain('Učitavamo oznake na mapi…'); expect(cards()).toEqual(['a']);
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  test('an idle MAP read adds no busy message during the initial PAGE wait', async () => {
+    rows = []; loading = true;
+    p6Seam = { ...p6Seam_(), mapRead: { loading: false, error: null, onRetry: jest.fn() } };
+    await render();
+    expect(texts()).not.toContain('Učitavamo oznake na mapi…'); expect(pressable(retryLabel)).toHaveLength(0);
+    expect(tree.root.findByType(DiscoveryListState).props.state.kind).toBe('loading');
+  });
+
+  test('a MAP failure labels retained markers as not refreshed and keeps their renderer', async () => {
+    rows = [row('a')]; const onRetry = jest.fn(), markers = [serverTask];
+    const seam = p6Seam_();
+    p6Seam = { ...seam, map: { ...seam.map, markers }, mapRead: { loading: false, error: null, onRetry } };
+    await render();
+    p6Seam = { ...p6Seam, mapRead: { loading: false, error: 'NETWORK', onRetry } }; await update();
+    expect(map().props.p6Server.markers).toBe(markers); expect(cards()).toEqual(['a']);
+    expect(texts()).toContain('Oznake zadataka na mapi nisu osvežene.');
+    expect(texts()).not.toContain('Oznake zadataka na mapi nisu učitane.');
+    await tap(retryLabel); expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  test('a successful MAP read does not remove an independent PAGE failure', async () => {
+    rows = []; error = true;
+    p6Seam = { ...p6Seam_(), mapRead: { loading: false, error: null, onRetry: jest.fn() } };
+    await render();
+    expect(tree.root.findByType(DiscoveryListState).props.state.kind).toBe('error');
+    expect(pressable(retryLabel)).toHaveLength(0);
+  });
 });
 test('P6 Mesta waits for the new city MAP seed instead of fitting the old bounded PAGE', async () => {
   const noviSad: [number, number, number, number] = [19.7, 45.1, 20, 45.4];

@@ -491,3 +491,10 @@ describe('schema-compatible historical Need detail', () => {
     await expect(needClientService.potreba(rawNeed.id)).rejects.toThrow('NEED_DETAIL_INVALID_PROJECTION');
   });
 });
+
+it('states hourly per-person meaning without deriving an unknown total from people alone', () => {
+  const hourly = { rezimCene: 'MY_PRICE', osnovaCene: 'HOURLY' as const,
+    ponudjenaCena: { iznos: 1200, prikaz: '1.200 RSD' }, pokrivenost: { ukupno: 2 } };
+  expect(needPriceText(hourly, { withTotal: true })).toBe('1.200 RSD po osobi po satu');
+  expect(needPriceBasisNote(hourly)).toBe('po osobi po satu');
+});

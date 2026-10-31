@@ -26,6 +26,7 @@ jest.mock('../motion', () => ({ useReducedMotion: () => true }));
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../FactArt', () => ({ FactArt: 'FactArt' }));
+jest.mock('../../reviews/ReviewCommentsSection', () => ({ ReviewCommentsSection: 'ReviewCommentsSection' }));
 
 import type { PublicWorkTrust } from '../../../data/workTrustClientService';
 import { PublicProfileSheet, SAFETY_LABEL, memberSinceFact, publicRatingFigure } from '../PublicProfileSheet';
@@ -58,7 +59,7 @@ const said = (name: string) => figure(name).findAll(node => String(node.type) ==
 const factRows = () => tree.root.findAll(node => typeof node.type === 'string' && typeof node.props.testID === 'string' && node.props.testID.startsWith('public-profile-fact-'));
 const factLabels = () => factRows().map(node => node.props.accessibilityLabel as string);
 const factIds = () => factRows().map(node => (node.props.testID as string).replace('public-profile-fact-', ''));
-afterEach(async () => { await act(async () => tree?.unmount()); mockWidth = 390; mockFontScale = 1; });
+afterEach(async () => { await act(async () => tree?.unmount()); mockWidth = 390; mockFontScale = 1; delete process.env.EXPO_PUBLIC_D12_REVIEW_COMMENT; });
 
 describe('the states of the sheet', () => {
   it('draws nothing without a state, a calm read state while loading, and a way to try again when the read failed', async () => {
@@ -193,6 +194,33 @@ describe('"O meni"', () => {
     await show(person({ biografija: value }));
     expect(tree.root.findAll(node => String(node.type) === 'T' && node.props.accessibilityRole === 'header').map(node => textOf(node))).toEqual(['Marija Marić']);
     expect(all()).not.toContain('O meni');
+  });
+});
+
+describe('public written reviews: existing server-authorized D12 reader, not private receipt exposure', () => {
+  it('mounts only on a loaded public profile when D12 is built, using the profile actually shown', async () => {
+    await show(person());
+    expect(tree.root.findAll(node => String(node.type) === 'ReviewCommentsSection')).toHaveLength(0);
+    process.env.EXPO_PUBLIC_D12_REVIEW_COMMENT = '1';
+    const shown = person({ profilId: PROFILE });
+    await act(async () => tree.update(<PublicProfileSheet state={{ loading: false, data: shown }} onClose={noop} onRetry={noop} />));
+    const comments = tree.root.findAll(node => String(node.type) === 'ReviewCommentsSection');
+    expect(comments).toHaveLength(1);
+    expect(comments[0].props.profileId).toBe(PROFILE);
+    await act(async () => tree.update(<PublicProfileSheet state={{ loading: true, data: null }} onClose={noop} onRetry={noop} />));
+    expect(tree.root.findAll(node => String(node.type) === 'ReviewCommentsSection')).toHaveLength(0);
+    await act(async () => tree.update(<PublicProfileSheet state={null} onClose={noop} onRetry={noop} />));
+    expect(tree.root.findAll(node => String(node.type) === 'ReviewCommentsSection')).toHaveLength(0);
+  });
+
+  it('uses only the author profile in the supplied portrait reader and retains its fallback', async () => {
+    process.env.EXPO_PUBLIC_D12_REVIEW_COMMENT = '1';
+    const picture = jest.fn((_id: string, _size?: number) => null);
+    await show(person(), { photo: picture });
+    const comments = tree.root.findAll(node => String(node.type) === 'ReviewCommentsSection')[0];
+    const fallback = 'Reviewer stand-in';
+    expect(comments.props.photo('author-profile', 40, fallback)).toBe(fallback);
+    expect(picture).toHaveBeenLastCalledWith('author-profile', 40);
   });
 });
 

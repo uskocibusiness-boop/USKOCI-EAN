@@ -123,3 +123,13 @@ it('decodes with an injected mapper, so a candidate the mapper refuses refuses t
   expect(seen).toEqual([uuid(1), uuid(2)]); expect(page?.items).toHaveLength(2);
   expect(decodeCandidatesPage(body, first, () => { throw new Error('no'); })).toBeNull();
 });
+
+it('retains each application price unit for paged and whole reads without treating a per-person rate as a total', async () => {
+  const docs = [document(1, { applicationPriceBasis: 'HOURLY', priceRsd: 1200 }), document(2, { applicationPriceBasis: 'TOTAL' })];
+  mockRpc.mockResolvedValue({ data: payload(docs), error: null });
+  expect((await candidateClientService.prijaveZaPotrebuStrana(NEED, first)).items.map(row => row.osnovaCene)).toEqual(['HOURLY', 'TOTAL']);
+  mockRpc.mockResolvedValue({ data: docs, error: null });
+  expect((await candidateClientService.prijaveZaPotrebu(NEED))[0]).toMatchObject({ osnovaCene: 'HOURLY', cena: { iznos: 1200 } });
+  mockRpc.mockResolvedValue({ data: payload([document(1, { applicationPriceBasis: 'PER_PERSON' })]), error: null });
+  await expect(candidateClientService.prijaveZaPotrebuStrana(NEED, first)).rejects.toThrow();
+});

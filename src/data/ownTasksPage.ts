@@ -38,6 +38,22 @@ export const ownTasksRefined = (view: Pick<MarketplaceView, 'query' | 'price'>):
 
 const COUNT_KEYS = ['total', 'active', 'drafts', 'history', 'waiting'] as const;
 
+// PostgreSQL keyset order is (created_at DESC, id DESC). Date.parse truncates
+// fractional seconds to milliseconds; compare the remaining microseconds
+// separately so two recent writes never swap order or repeat a cursor.
+// All accepted server instants have an explicit UTC offset.
+const KEYSET_INSTANT = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?(Z|[+-]\d{2}:\d{2})$/;
+function keysetInstant(value: string): { secondsMs: number; micros: number } {
+  const match = KEYSET_INSTANT.exec(value)!; // caller already ran timestamp()
+  return { secondsMs: Date.parse(match[1] + match[3]), micros: Number((match[2] ?? '').padEnd(6, '0')) };
+}
+function strictlyBeforeCursor(next: OwnTasksCursor, previous: OwnTasksCursor): boolean {
+  const a = keysetInstant(next.at), b = keysetInstant(previous.at);
+  if (a.secondsMs !== b.secondsMs) return a.secondsMs < b.secondsMs;
+  if (a.micros !== b.micros) return a.micros < b.micros;
+  return next.id.toLowerCase() < previous.id.toLowerCase();
+}
+
 /**
  * Strict: anything that does not add up is no answer, never a short or a guessed one. The documents are mapped by the caller's `map` (the one
  * `mapNeed` the whole-list read uses), so an invalid task document makes the page invalid and is never skipped.
@@ -45,6 +61,9 @@ const COUNT_KEYS = ['total', 'active', 'drafts', 'history', 'waiting'] as const;
 export function decodeOwnTasksPage(raw: unknown, request: Pick<OwnTasksPageRequest, 'limit' | 'cursor'>, map: (document: any) => PotrebaProjekcija):
   (OwnTasksPage & { documents: OwnTaskDocument[] }) | null {
   const data = record(raw);
+  if (!Number.isSafeInteger(request.limit) || request.limit < 1 || request.limit > 100
+      || (request.cursor !== null && (!record(request.cursor)
+        || !timestamp(request.cursor.at) || !uuid(request.cursor.id)))) return null;
   if (!data || !Array.isArray(data.items) || typeof data.hasMore !== 'boolean' || !timestamp(data.asOf) || data.items.length > request.limit
       || (data.hasMore && data.items.length !== request.limit)) return null;
   let counts: OwnedTaskCounts | null = null;
@@ -57,9 +76,13 @@ export function decodeOwnTasksPage(raw: unknown, request: Pick<OwnTasksPageReque
     counts = { total: n.total, active: n.active, waiting: n.waiting, drafts: n.drafts, history: n.history };
   } else if (data.counts !== null && data.counts !== undefined) return null;
   const items: PotrebaProjekcija[] = [], documents: OwnTaskDocument[] = [], seen = new Set<string>();
+  let previous: OwnTasksCursor | null = request.cursor;
   for (const value of data.items) {
     const document = record(value);
     if (!document || !uuid(document.id) || !timestamp(document.sortAt) || seen.has(document.id.toLowerCase())) return null;
+    const next = { at: document.sortAt, id: document.id };
+    if (previous && !strictlyBeforeCursor(next, previous)) return null;
+    previous = next;
     seen.add(document.id.toLowerCase());
     try { items.push(map(document)); } catch { return null; }
     documents.push(document as OwnTaskDocument);

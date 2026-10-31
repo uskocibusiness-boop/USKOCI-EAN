@@ -25,6 +25,7 @@ const mockNeed = jest.fn(), mockCorrect = jest.fn(), mockOpenEdit = jest.fn(), m
 const mockLocationRead = jest.fn(), mockLocationSave = jest.fn(), mockCancelResolver = jest.fn();
 const mockRouter = { replace: jest.fn(), push: jest.fn() };
 const mockHardwareBack = new Set<() => boolean>();
+jest.mock('../aiOpenIntakes', () => ({ readIntakeLifecycle: async (id: string) => ({ id, status: 'OPEN', boundNeedId: null }) }));
 jest.mock('../aiTaskReviewClientService', () => ({ aiTaskReviewClientService: {
   readLatest: (...args: unknown[]) => mockLatest(...args), read: (...args: unknown[]) => mockRead(...args),
   prepare: (...args: unknown[]) => mockPrepare(...args), acceptAndPublish: (...args: unknown[]) => mockAccept(...args),
@@ -1139,6 +1140,57 @@ it('a flip of the retired app mode retires nothing: a publish in flight still la
   const reads = mockRead.mock.calls.length;
   await act(async () => { held.resolve(ok(command('PUBLISHED'))); });
   expect(mockAccept).toHaveBeenCalledTimes(1); expect(mockRead.mock.calls.length).toBeGreaterThan(reads);
+});
+
+
+it('R04/F05: signed semantic candidate is shown without unlocking publish, private draft remains separate',async()=>{
+  const original=review();
+  const service='Montaža gotovog ormara';
+  const proposal={
+    service,mode:'ON_SITE' as const,categoryId:'66666666-6666-4666-8666-666666666666',
+    categoryLabel:'Sklapanje ormara',categoryParentId:null,
+    reason:'Isti konkretan posao sklapanja već gotovog ormara.',catalogVersion:17
+  };
+  const pending:AiTaskReviewEnvelope={...original,
+    publicProjection:[...original.publicProjection,
+      {id:'service',key:'need.category',value:service,displayValue:service,privacyClass:'PUBLIC',
+        source:'EXPLICIT_USER_ANSWER',status:'CONFIRMED'}],
+    classificationState:'REVIEW_REQUIRED',classificationCandidates:[],reviewedServiceModes:[],
+    classificationCatalogVersion:17,classificationCatalogFingerprint:'a'.repeat(32),
+    semanticReviewCandidates:[proposal]};
+  mockPrepare.mockResolvedValue(ok(pending));
+  await render();
+  expect(text()).toContain('Proverite predlog postojeće usluge');
+  expect(text()).toContain('Sklapanje ormara');
+  expect(text()).toContain('Ovo je AI predlog, ne potvrđena kategorija.');
+  expect(text()).toContain('Potvrdite značenje usluge pre objave.');
+  expect(publish().disabled).toBe(true);
+  expect(action('Sačuvaj nacrt').disabled).toBeFalsy();
+  expect(mockAccept).not.toHaveBeenCalled();
+  expect(mockDraft).not.toHaveBeenCalled();
+});
+
+
+it('R04/F05: accepted private draft with pending category cannot resume publication and offers same-Need edit',async()=>{
+  const service='Montaža gotovog ormara';
+  const shown:AiTaskReviewEnvelope={...review(),classificationState:'REVIEW_REQUIRED',
+    classificationCandidates:[],reviewedServiceModes:[],
+    classificationCatalogVersion:17,classificationCatalogFingerprint:'a'.repeat(32),
+    semanticReviewCandidates:[{service,mode:'ON_SITE',categoryId:'66666666-6666-4666-8666-666666666666',
+      categoryLabel:'Sklapanje ormara',categoryParentId:null,
+      reason:'Isti konkretan posao sklapanja gotovog ormara.',catalogVersion:17}]};
+  mockLatest.mockResolvedValue(ok({review:shown,command:command('ACCEPTED')}));
+  mockOpenEdit.mockResolvedValue(ok({conversationId:OTHER,needId:NEED,revision:1,
+    needStatus:'DRAFT',authoritative:true}));
+  await render();
+  expect(commands('Objavi ovaj nacrt')).toHaveLength(0);
+  expect(commands('Nastavi objavu')).toHaveLength(0);
+  expect(commands('Izmeni zadatak')).toHaveLength(1);
+  await act(async()=>action('Izmeni zadatak').onPress());
+  expect(mockOpenEdit).toHaveBeenCalledWith(NEED);
+  expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/nova',params:{conversationId:OTHER}});
+  expect(mockResume).not.toHaveBeenCalled();
+  expect(mockAccept).not.toHaveBeenCalled();
 });
 
 // Round 6 (objava): the review as the moment of truth. What still blocks publication is listed with its way to the fix,

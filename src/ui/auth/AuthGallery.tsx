@@ -17,7 +17,7 @@ import { OtpStep, PhoneStep, RecoverySentStep, RecoveryStep, SignupNextStep } fr
 import { RecoveryLinkContent, RecoveryLinkFooter, MISMATCH, type RecoveryLinkPhase, type RecoveryLinkValidation } from './RecoveryLinkSteps';
 import { RestrictedAccountScreen } from './RestrictedAccountPanel';
 import { authCopy } from './authCopy';
-import { authFieldMessages, tidyCity, type AuthFieldErrors, type AuthFormValues } from './authValidation';
+import { authFieldMessages, type AuthFieldErrors, type AuthFormValues } from './authValidation';
 
 /**
  * The gallery of the sign-in screens (round of 2026-10-08, F7), drawn with the REAL components and fixture data: nothing here
@@ -95,13 +95,13 @@ type FormFixture = {
   way: AuthWay; values?: Partial<AuthFormValues>; errors?: AuthFieldErrors; failure?: string; next?: 'HAVE_ACCOUNT' | 'RESEND';
   busy?: boolean; check?: AuthCheck; intent?: AuthIntentName; keyboard?: boolean;
 };
-const FILLED = { ime: 'Ana', prezime: 'Petrović', grad: 'Novi Sad', email: 'ana@example.test', lozinka: 'lozinka-za-probu' };
+const FILLED = { ime: 'Ana', prezime: 'Petrović', email: 'ana@example.test', lozinka: 'lozinka-za-probu' };
 const FORMS: Partial<Record<AuthSceneKey, FormFixture>> = {
   'ulaz-prijava': { way: 'LOGIN' },
   'ulaz-registracija': { way: 'SIGNUP', intent: 'REQUESTER' },
   'ulaz-greska-polja': { way: 'LOGIN', errors: { email: authFieldMessages.emailMissing, lozinka: authFieldMessages.lozinkaMissing } },
   'ulaz-greska-polja-registracija': { way: 'SIGNUP', values: { ime: 'Ana', email: 'ana@example', lozinka: 'abc' },
-    errors: { prezime: authFieldMessages.prezime, grad: authFieldMessages.grad, email: authFieldMessages.emailInvalid, lozinka: authFieldMessages.lozinkaShort } },
+    errors: { prezime: authFieldMessages.prezime, email: authFieldMessages.emailInvalid, lozinka: authFieldMessages.lozinkaShort } },
   'ulaz-pogresna-lozinka': { way: 'LOGIN', values: { email: FILLED.email, lozinka: FILLED.lozinka }, failure: SIGN_IN_FAILURE_COPY.BAD_CREDENTIALS },
   'ulaz-nema-veze': { way: 'LOGIN', values: { email: FILLED.email, lozinka: FILLED.lozinka }, failure: SIGN_IN_FAILURE_COPY.CONNECTION },
   'ulaz-nepotvrdjen-email': { way: 'LOGIN', values: { email: FILLED.email, lozinka: FILLED.lozinka }, failure: SIGN_IN_FAILURE_COPY.EMAIL_NOT_CONFIRMED, next: 'RESEND' },
@@ -115,7 +115,7 @@ const FORMS: Partial<Record<AuthSceneKey, FormFixture>> = {
 
 /** The first step with its real component; what is typed follows the fingers, the commands do nothing. */
 function FormScene({ fixture, onBack }: { fixture: FormFixture; onBack: () => void }) {
-  const [values, setValues] = useState<AuthFormValues>({ ime: '', prezime: '', grad: '', email: '', lozinka: '', ...fixture.values });
+  const [values, setValues] = useState<AuthFormValues>({ ime: '', prezime: '', email: '', lozinka: '', ...fixture.values });
   const [way, setWay] = useState<AuthWay>(fixture.way);
   const [intent, setIntent] = useState<AuthIntentName | null>(fixture.intent ?? null);
   const failureAction = fixture.next === 'HAVE_ACCOUNT' ? { note: 'Možda već imaš nalog.', label: authCopy.signIn, onPress: () => setWay('LOGIN') }
@@ -123,7 +123,6 @@ function FormScene({ fixture, onBack }: { fixture: FormFixture; onBack: () => vo
   return <SheetStage onBack={onBack} keyboard={fixture.keyboard} footer={<AuthFormFooter way={way} busy={!!fixture.busy} onSubmit={noop} />}>
     <AuthFormStep way={way} onWay={setWay} emailOpen signUpOpen phoneOpen={false} intent={intent} onIntentChange={setIntent}
       values={values} onValue={(name, value) => setValues(current => ({ ...current, [name]: value }))}
-      onCityBlur={() => setValues(current => ({ ...current, grad: tidyCity(current.grad) }))}
       errors={fixture.errors ?? {}} failure={fixture.failure ?? null} failureAction={failureAction} notice={null} confirmEmail
       busy={!!fixture.busy} check={fixture.check ?? 'done'} onRetryCheck={noop} onForgot={noop} onPhone={noop} onSubmit={noop} />
   </SheetStage>;
@@ -161,7 +160,7 @@ export function AuthGalleryScene({ scene, onBack }: { scene: AuthSceneKey; onBac
   switch (scene) {
     case 'ulaz-prijava-nedostupna': return <SheetStage onBack={onBack} footerReason="Prijava emailom trenutno nije dostupna." footer={<PrimaryButton title={authCopy.signIn} onPress={noop} disabled />}>
       <AuthFormStep way="LOGIN" onWay={noop} emailOpen={false} signUpOpen={false} phoneOpen={false} intent={null} onIntentChange={noop}
-        values={{ ime: '', prezime: '', grad: '', email: '', lozinka: '' }} onValue={noop} onCityBlur={noop} errors={{}} failure={null} failureAction={null}
+        values={{ ime: '', prezime: '', email: '', lozinka: '' }} onValue={noop} errors={{}} failure={null} failureAction={null}
         notice={null} confirmEmail busy={false} check="done" onRetryCheck={noop} onForgot={noop} onPhone={noop} onSubmit={noop} />
     </SheetStage>;
     case 'ulaz-oporavak': case 'ulaz-oporavak-greska-polja': return <SheetStage onBack={onBack} footer={<PrimaryButton title="Pošalji link" onPress={noop} />}>

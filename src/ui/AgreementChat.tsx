@@ -26,7 +26,6 @@ import { serbianToday } from './calendar/serbianDays';
 import { PhotoBubble, TextBubble, VoiceBubble } from './messages/MessageBubbles';
 import { MessageMark } from './messages/MessageMark';
 import { MARK_WORDS, buildThread, entryMark, messageSpoken, readMark, type ThreadMessage } from './messages/threadModel';
-import { useAutoResend } from './messages/useAutoResend';
 
 // The day/clock words and the spoken summary live with the thread model; they stay importable from here.
 export { messageMoment, messageSpoken } from './messages/threadModel';
@@ -96,7 +95,7 @@ const errors: Record<OutboxError, string> = {
 /**
  * A send that FAILED ticks once (haptic rule R5: a tick is an outcome, never a touch; `system/haptics`, kind `error`). Failed is the
  * entry's own state, the one that says "Nije poslato": a send whose outcome is merely unknown ("Ne znamo da li je stigla") is a wait
- * that retries itself, not a failure, and ticks nothing. What had already failed when the thread opened is not news and is not
+ * that requires an authoritative read or a separate explicit resend, not a failure, and ticks nothing. What had already failed when the thread opened is not news and is not
  * ticked; the same failed attempt is ticked once, and a new attempt that fails is a new failure. A tick is not movement, so this
  * does not touch the conversation's rule of no motion.
  */
@@ -171,7 +170,7 @@ function TerminalPhotoRecovery({ photos, capturing }: { photos: AgreementPhotosC
  *
  * Writing is one pill, "+ / text / microphone": a hold on the microphone sends on release (a screen reader keeps the review step),
  * and the same guards as ever stand behind it: one client message id per message, the retained command, the recovery states, the
- * 2.000-character limit. A send the network lost is tried once more by itself, only through that retained command. A closed Dogovor
+ * 2.000-character limit. An unknown outcome is checked with an authoritative message read, never an automatic retry. Explicit resend retains the same client message id. A closed Dogovor
  * draws no field, only one grey sentence under the thread. The composer stays above the keyboard.
  */
 export function AgreementChat(props: Props) {
@@ -387,8 +386,17 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
     const currentPhotos = source.current.photos;
     if (currentPhotos?.agreementId === photoAgreementId) await currentPhotos?.refresh();
   };
-  /** The one retry, explicit or automatic: the retained command with its own client message id, through the outbox that holds it. */
+  /** Read-only verification. A refresh reads this Agreement's canonical messages; the parent
+   * reconciles exact account/clientMessageId/body/media receipts, including the voice outbox.
+   * Absence from the current history window is not proof that a message was not delivered. */
+  const checkUnknown = () => {
+    if (!mounted.current || source.current.outbox !== outbox) return;
+    void source.current.refresh().catch(() => { /* The history owner reports read errors. */ });
+  };
+  /** Only an explicit resend can write. The outbox reuses the retained client message id. */
   const resend = (entry: typeof entries[number]) => {
+    if (!mounted.current || source.current.outbox !== outbox || !source.current.writable || source.current.terminal) return;
+    if (entry.command.voice ? voice?.outboxState.phase !== 'ready' : state.phase !== 'ready') return;
     const owner = entry.command.voice ? voice?.outbox : outbox;
     if (owner) void owner.retry(entry.command.clientMessageId).then(() => settleSend(outbox, entry.command.agreementId));
   };
@@ -452,12 +460,9 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
   // The transcript as runs and lines: grouped bubbles, Serbian day lines, one small mark by each of my messages.
   const today = serbianToday();
   const thread = useMemo(() => buildThread(shown), [shown, today]); // eslint-disable-line react-hooks/exhaustive-deps
-  // A send whose outcome the network left unknown is tried once more by itself (see useAutoResend): only a message whose own
-  // outbox is ready, in a Dogovor that takes messages, after the thread has been read. The text and the voice journals are two
-  // outboxes that become ready at their own moments, so each has its own "the thread opened" try.
-  const sendsAllowed = writable && !terminal && !loading && !error, broken = error || refreshError || historyError;
-  useAutoResend({ entries: state.entries, resend, enabled: sendsAllowed && ready, broken });
-  useAutoResend({ entries: voice?.outboxState.entries ?? [], resend, enabled: sendsAllowed && voice?.outboxState.phase === 'ready', broken });
+  // The server read is the only automatic recovery for an unknown send; mount,
+  // foreground and reconnect must never call a message writer.
+  const sendsAllowed = writable && !terminal && !loading && !error;
   return (
     <View style={s.screen}>
       <ScrollView ref={list} testID="agreement-chat-history" style={s.history} keyboardShouldPersistTaps="handled"
@@ -604,8 +609,8 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
         </View> : null}
         {/* What I sent and the read has not returned yet: said by its real outbox state, with no day of its own (an
             unconfirmed send may be older than today). */}
-        {/* Same shape, same single mark: a dot while it goes, a check once the server has acknowledged it. A send whose outcome is not
-            known says so under its bubble and offers "Proveri"; a refused one goes red and offers "Pošalji ponovo", for that exact message. */}
+        {/* The uncertain state offers a read-only check and a distinct user-requested resend with the same
+            command key. A definite failure offers only an explicit resend while writing is allowed. */}
         {local.map((entry, index) => {
           const failed = entry.state === 'failed';
           const kind = entryMark(entry);
@@ -627,9 +632,12 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
             {entry.state === 'unknown' || failed ? <View style={s.pendingNote}>
               <T variant="meta" tone={failed ? 'danger' : 'muted'} style={s.rightText} accessibilityLiveRegion="polite">{MARK_WORDS[kind]}</T>
               {failed && entry.error ? <T variant="meta" tone="muted" style={s.rightText}>{errors[entry.error]}</T> : null}
-              {/* What is not known is checked, what was refused is sent again; both act on this exact message, with its own key, so it is never sent twice. */}
-              <ChatAction label={failed ? entry.command.voice ? 'Pošalji glasovnu poruku ponovo' : `Ponovi slanje poruke ${entry.command.body}` : `Proveri da li je stigla: ${what}`}
-                text={failed ? 'Pošalji ponovo' : OUTCOME_ACTION.check} tone="ink" end onPress={() => resend(entry)} />
+              {entry.state === 'unknown' ? <ChatAction label={`Proveri da li je stigla: ${what}`}
+                text={OUTCOME_ACTION.check} tone="ink" end refresh busy={refreshing}
+                onPress={checkUnknown} /> : null}
+              {sendsAllowed && (entry.command.voice ? voice?.outboxState.phase === 'ready' : state.phase === 'ready') ? <ChatAction
+                label={entry.command.voice ? 'Pošalji glasovnu poruku ponovo' : `Ponovi slanje poruke ${entry.command.body}`}
+                text="Pošalji ponovo" tone="ink" end onPress={() => resend(entry)} /> : null}
             </View> : null}
           </View>;
         })}
@@ -733,7 +741,8 @@ const s = StyleSheet.create({
   chatAction: { minHeight: COMMAND, justifyContent: 'center', alignSelf: 'flex-start', paddingHorizontal: 4 },
   refreshAction: { flexDirection: 'row', alignItems: 'center', gap: sys.space.sm, paddingHorizontal: sys.space.base,
     borderWidth: 1, borderColor: sys.color.line, borderRadius: sys.radius.pill },
-  refreshQuiet: { borderWidth: 0, alignSelf: 'flex-end', paddingHorizontal: 8, height: 0, opacity: 0, overflow: 'hidden' },
+  // A focused button must also be visible and tappable. The previous zero-height/transparent style stranded screen-reader focus.
+  refreshQuiet: { borderWidth: 0, alignSelf: 'flex-end', paddingHorizontal: sys.space.sm },
   // A day or a pause, said once above its messages: a quiet word, no box (proposal R1). The bubble shape lives in ./messages/bubbleShape.
   day: { alignSelf: 'center', marginTop: sys.space.base, marginBottom: sys.space.sm, paddingHorizontal: sys.space.md,
     fontSize: 12, lineHeight: 16, fontWeight: '600', color: sys.color.muted, fontVariant: ['tabular-nums'] },

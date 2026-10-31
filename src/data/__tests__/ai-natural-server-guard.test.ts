@@ -110,12 +110,117 @@ describe('natural server AI response without bypassing authoritative review', ()
     expect(result.assistantMessage).toContain('proveriš predloženo mesto na mapi');
     expect(result.proposals).toHaveLength(0);
   });
-  it('does not allow a per-hour amount to become a confirmed task price', () => {
+  it('does not accept an hourly price without a consistent MY_PRICE/HOURLY contract', () => {
     const turn = reply('ACK', 'Zabeležio sam 1.200 po satu.', [{ key: 'need.price_rsd', value: 1200 }]);
     turn.dialogue.priceUnit = 'PER_HOUR';
     const result = call(turn);
     expect(result.safety).toBe('CLARIFY');
     expect(result.proposals).toHaveLength(0);
+  });
+  const hourlyTurn = (basis = 'HOURLY') => {
+    const turn = reply('ACK', 'Satnica je 1200 RSD po osobi po satu.', [
+      { key: 'need.price_mode', value: 'MY_PRICE' },
+      { key: 'need.price_rsd', value: 1200, evidence: '1200 RSD' },
+      { key: 'need.price_basis', value: basis },
+      { key: 'need.people_needed', value: 2 },
+    ]);
+    turn.dialogue.priceUnit = 'PER_HOUR';
+    return turn;
+  };
+  it.each(['Cena je 1200 RSD na sat.', 'Cena je 1200 RSD po osobi po satu.', 'Цена је 1200 РСД по особи по сату.'])(
+    'accepts the D06 unit rate without multiplying by two people or inventing a duration: %s', input => {
+      const turn = hourlyTurn();
+      const result = guard(turn, input, facts('need.people_needed'), { localDate: '2026-10-12' });
+      expect(result.safety).toBe('ALLOW');
+      expect(result.proposals).toEqual(turn.proposals);
+      expect(result.proposals.find(p => p.key === 'need.price_rsd')?.value).toBe(1200);
+      expect(result.proposals.some(p => p.key === 'need.ends_at')).toBe(false);
+    });
+  it.each(['TOTAL', 'PER_PERSON'])('cannot relabel an hourly quote as %s', basis => {
+    const result = guard(hourlyTurn(basis), 'Cena je 1200 RSD na sat.', facts('need.people_needed'), { localDate: '2026-10-12' });
+    expect(result.safety).toBe('CLARIFY');
+    expect(result.proposals).toEqual([{ key: 'need.people_needed', value: 2 }]);
+    expect(result.assistantMessage).toContain('po osobi po satu');
+  });
+  it.each(['Cena je 1200 RSD na sat za celu ekipu.', 'Cena je 1200 RSD za dve osobe po satu.',
+    'Цена је 1200 РСД на сат за целу екипу.'])(
+    'does not turn a team or ambiguous multi-person hourly quote into an individual rate: %s', input => {
+      const result = guard(hourlyTurn(), input, facts('need.people_needed'), { localDate: '2026-10-12' });
+      expect(result.safety).toBe('CLARIFY');
+      expect(result.proposals).toEqual([{ key: 'need.people_needed', value: 2 }]);
+      expect(result.assistantMessage).toContain('po osobi po satu');
+    });
+  it('uses provider interpretation for team wording beyond the narrow deterministic phrases', () => {
+    const turn = hourlyTurn(); turn.dialogue.priceUnit = 'PER_TEAM_HOUR';
+    const result = guard(turn, 'Naša trojka deli 1200 RSD za svaki sat.', facts('need.people_needed'), { localDate: '2026-10-12' });
+    expect(result.proposals).toEqual([{ key: 'need.people_needed', value: 2 }]);
+    expect(result.safety).toBe('CLARIFY');
+  });
+  it('keeps currency correction and its price retraction ahead of hourly clarification', () => {
+    const result = guard(hourlyTurn(), 'Cena je 1200 EUR po osobi po satu.', [
+      ...facts('need.people_needed'), { fact_key: 'need.price_rsd', fact_value: 5000, status: 'CONFIRMED' },
+    ], { localDate: '2026-10-12' });
+    expect(result.safety).toBe('CLARIFY');
+    expect(result).toMatchObject({ priceRetraction: 'UNSUPPORTED_CURRENCY' });
+    expect(result.assistantMessage).toContain('Prethodna cena više nije potvrđena');
+    expect(result.proposals).toEqual([{ key: 'need.people_needed', value: 2 }]);
+  });
+  it('preserves an explicit offers choice despite an invalid team hourly amount', () => {
+    const turn = hourlyTurn();
+    turn.proposals[0] = { key: 'need.price_mode', value: 'OFFERS', evidence: 'želim ponude' };
+    turn.dialogue.priceUnit = 'PER_TEAM_HOUR';
+    const result = guard(turn, 'Cena 1200 EUR na sat za celu ekipu; ipak želim ponude.',
+      facts('need.people_needed').filter(f => f.fact_key !== 'need.price_mode'), { localDate: '2026-10-12' });
+    expect(result.proposals).toEqual([turn.proposals[0], { key: 'need.people_needed', value: 2 }]);
+    expect(result.assistantMessage).toContain('tražiš ponude');
+    expect(result).not.toHaveProperty('priceRetraction');
+  });
+  it('does not turn a spurious hourly amount inferred from headcount into a price question', () => {
+    const turn = hourlyTurn(); turn.proposals[1] = { key: 'need.price_rsd', value: 2, evidence: '2 radnika' };
+    const result = guard(turn, '2 radnika', facts('need.people_needed'), { localDate: '2026-10-12' });
+    expect(result.proposals).toEqual([{ key: 'need.people_needed', value: 2 }]);
+    expect(result.assistantMessage).not.toContain('Koji iznos');
+  });
+  it('preserves policy REVIEW without leaking a team hourly price into its writer', () => {
+    const turn = hourlyTurn(); turn.safety = 'REVIEW';
+    const result = guard(turn, 'Cena je 1200 RSD na sat za celu ekipu.', facts(), { localDate: '2026-10-12' });
+    expect(result.safety).toBe('REVIEW');
+    expect(result.proposals).toEqual([{ key: 'need.people_needed', value: 2 }]);
+    expect(result.assistantMessage).toContain('dodatno proveriti');
+  });
+  it('retracts the old individual rate when the person corrects it to a team rate', () => {
+    const active = [...facts(), { fact_key: 'need.price_rsd', fact_value: 1200, status: 'CONFIRMED' },
+      { fact_key: 'need.price_basis', fact_value: 'HOURLY', status: 'CONFIRMED' }];
+    const result = guard(hourlyTurn(), 'Mislio sam 1200 RSD za celu ekipu na sat.', active, { localDate: '2026-10-12' });
+    expect(result).toMatchObject({ safety: 'CLARIFY', priceRetraction: 'UNSUPPORTED_PRICE_BASIS', proposals: [] });
+    expect(result.assistantMessage).toContain('Prethodna cena više nije potvrđena');
+  });
+  it.each(['PER_DAY', 'PER_HOUR'])('does not retract old consent for a schedule or provider-basis mismatch alone: %s', priceUnit => {
+    const turn = reply('ACK', 'Razumem.', []); turn.dialogue.priceUnit = priceUnit;
+    turn.dialogue.schedulePattern = 'REPEATED';
+    const result = guard(turn, 'Termin treba da bude u više dana.', [
+      ...facts(), { fact_key: 'need.price_rsd', fact_value: 1200, status: 'CONFIRMED' },
+    ], { localDate: '2026-10-12' });
+    expect(result).toMatchObject({ safety: 'CLARIFY' });
+    expect((result as any).priceRetraction).toBeUndefined();
+  });
+  it.each(['Treba poneti rukavice.', 'Treba poneti rukavice za celu ekipu.', 'Nije za celu ekipu.', 'Za celu ekipu?'])(
+    'does not revoke a confirmed rate using a hallucinated team hint: %s', input => {
+      const turn = reply('ACK', 'Razumem.', []); turn.dialogue.priceUnit = 'PER_TEAM_HOUR';
+      const result = guard(turn, input, [...facts(),
+        { fact_key: 'need.price_rsd', fact_value: 1200, status: 'CONFIRMED' },
+        { fact_key: 'need.price_basis', fact_value: 'HOURLY', status: 'CONFIRMED' },
+      ], { localDate: '2026-10-12' });
+      expect((result as any).priceRetraction).toBeUndefined();
+      expect(result.assistantMessage).not.toContain('Prethodna cena više nije potvrđena');
+    });
+  it('accepts a real short team-scope correction to an already confirmed hourly rate', () => {
+    const turn = reply('ACK', 'Razumem.', []); turn.dialogue.priceUnit = 'PER_TEAM_HOUR';
+    const result = guard(turn, 'Mislio sam za celu ekipu.', [...facts(),
+      { fact_key: 'need.price_rsd', fact_value: 1200, status: 'CONFIRMED' },
+      { fact_key: 'need.price_basis', fact_value: 'HOURLY', status: 'CONFIRMED' },
+    ], { localDate: '2026-10-12' });
+    expect(result).toMatchObject({ safety: 'CLARIFY', priceRetraction: 'UNSUPPORTED_PRICE_BASIS', proposals: [] });
   });
   it.each(['100 EUR', '100 evra', '€100', '100 евра'])(
     'keeps an explicit euro amount out of the RSD price fact: %s', amount => {
@@ -279,7 +384,7 @@ describe('natural server AI response without bypassing authoritative review', ()
     expect(result.safety).toBe('CLARIFY');
     expect(result.proposals).toEqual([people, place]);
     expect(result.dialogue.next).toBe('CLARIFY');
-    expect(result.assistantMessage).toContain('ceo posao');
+    expect(result.assistantMessage).toContain(priceUnit === 'PER_HOUR' ? 'po osobi po satu' : 'ceo posao');
   });
   it('retains people and location without turning repeated shifts into one appointment or a total price', () => {
     const people = { key: 'need.people_needed', value: 4 };
@@ -296,7 +401,7 @@ describe('natural server AI response without bypassing authoritative review', ()
     expect(result.dialogue.next).toBe('CLARIFY');
     expect(result.assistantMessage.toLowerCase()).toContain('odvojene smene');
   });
-  it('clarifies both daily price and repeated shifts while retaining an independently stated country', () => {
+  it('clarifies the repeated schedule first while retaining an independently stated country', () => {
     const country = { key: 'need.task_country_code', value: 'RS' };
     const turn = reply('ACK', 'Zabeleženo.', [country, { key: 'need.price_rsd', value: 5000 },
       { key: 'need.starts_at', value: '2026-10-13T15:00:00+02:00' }]);
@@ -304,7 +409,7 @@ describe('natural server AI response without bypassing authoritative review', ()
     const result = call(turn, facts('need.task_country_code'));
     expect(result.proposals).toEqual([country]);
     expect(result.assistantMessage.toLowerCase()).toContain('odvojene smene');
-    expect(result.assistantMessage).toContain('ceo posao');
+    expect(result.assistantMessage.match(/\?/g)).toHaveLength(1);
   });
   it('still validates a separate timestamp in a partial reply about hourly pricing', () => {
     const turn = reply('ACK', 'Zabeleženo.', [{ key: 'need.people_needed', value: 3 },

@@ -153,7 +153,7 @@ describe('Kandidati', () => {
 
 describe('Forma prijave', () => {
   it.each([
-    ['prazna', ['Tvoja ponuda', 'Koliko vas dolazi', 'Kada možeš', 'Poruka uz prijavu', 'Upiši svoju cenu da pregledaš prijavu.']],
+    ['prazna', ['Tvoja ponuda', 'Koliko vas dolazi', 'Termin zadatka', 'Prijava se odnosi na termin koji je naveden u zadatku.', 'Poruka uz prijavu', 'Upiši svoju cenu da pregledaš prijavu.']],
     ['ponuda', ['Pregledaj prijavu', '4.500 RSD ukupno']],
     ['veliko', ['Pregledaj prijavu']],
     ['pregled', ['Ovo šalješ', 'Pošalji ovu prijavu']],

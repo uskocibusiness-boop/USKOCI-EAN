@@ -181,7 +181,7 @@ export const applicationSelectionClientService: Pick<Izvor, 'podnesiPrijavu' | '
       p_scope_note: k.napomena, p_client_request_id: k.clientRequestId,
     };
     type Envelope =
-      | { kind: 'SUCCESS'; receipt: { prijavaId: string; verzija: number; hash: string } }
+      | { kind: 'SUCCESS'; receipt: { prijavaId: string; verzija: number; hash: string; osnovaCene?: 'TOTAL' | 'HOURLY' } }
       | { kind: 'REFUSAL'; refusal: ApplicationSubmitRefusal };
     const outcome = await readOwnedResult<Envelope>({ write: true, errors: applicationSelectionErrors,
       fallback: 'APPLICATION_SELECTION_UNCONFIRMED', invalid: 'APPLICATION_SELECTION_INVALID_RECEIPT',
@@ -206,8 +206,11 @@ export const applicationSelectionClientService: Pick<Izvor, 'podnesiPrijavu' | '
             !['SUBMITTED', 'VIEWED', 'SHORTLISTED'].includes(String(value.status)) ||
             !['MY_PRICE', 'OFFERS'].includes(String(value.pricingMode)) || value.coveredSlots !== k.pokrivenaMesta ||
             value.snapshotSchema !== 'APPLICATION_V1_SELF_DECLARED' || value.authoritative !== true ||
-            typeof value.idempotentReplay !== 'boolean') return null;
-        return { kind: 'SUCCESS', receipt: { prijavaId: value.responseId, verzija: value.version, hash: value.contentHash } };
+            typeof value.idempotentReplay !== 'boolean' ||
+            value.applicationPriceBasis != null && value.applicationPriceBasis !== 'TOTAL' && value.applicationPriceBasis !== 'HOURLY' ||
+            value.pricingMode === 'OFFERS' && value.applicationPriceBasis === 'HOURLY') return null;
+        return { kind: 'SUCCESS', receipt: { prijavaId: value.responseId, verzija: value.version, hash: value.contentHash,
+          ...(value.applicationPriceBasis == null ? {} : { osnovaCene: value.applicationPriceBasis }) } };
       },
     });
     if (!outcome.ok) return outcome;

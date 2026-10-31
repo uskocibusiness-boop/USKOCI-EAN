@@ -3,6 +3,7 @@ import { decodeSupportSnapshot } from '../../data/supportCaseReadDecoders';
 import { factLabel } from '../../data/aiNeedV2Ui';
 import { isNeedFactV2Key } from '../../contracts/needFactsV2';
 import { record, uuid } from '../../data/serverReceipt';
+import { BEZ_IZNOSA, novac } from '../../lib/novac';
 import type { SupportSnapshot } from '../../data/supportCaseTypes';
 import { AuthorizedPhoto } from '../media/AuthorizedPhoto';
 import { SettingsText as T } from '../settings/SettingsPresentation';
@@ -33,9 +34,14 @@ export function SupportReferenceView({ value, caseId }: { value: SupportSnapshot
     {['title', 'description', 'body'].map(key => typeof content[key] === 'string' && content[key]
       ? <T key={key}>{content[key] as string}</T> : null)}
     {facts.map(raw => { const f = record(raw); if (!f || typeof f.key !== 'string' || !isNeedFactV2Key(f.key)) return null;
-      const shown = typeof f.displayValue === 'string' ? f.displayValue : typeof f.value === 'string' || typeof f.value === 'number'
-        ? String(f.value) : typeof f.value === 'boolean' ? f.value ? 'Da' : 'Ne'
-          : Array.isArray(f.value) && f.value.every(x => typeof x === 'string') ? f.value.join(', ') : null;
+      // Read the captured typed amount without rewriting the immutable snapshot.
+      // A missing amount must not fall back to an old model-generated label.
+      const shown = f.key === 'need.price_rsd'
+        ? typeof f.value === 'number' ? novac(f.value, 'RSD') : BEZ_IZNOSA
+        : f.key === 'need.price_basis' && f.value === 'HOURLY' ? 'Po osobi po satu'
+        : typeof f.displayValue === 'string' ? f.displayValue : typeof f.value === 'string' || typeof f.value === 'number'
+          ? String(f.value) : typeof f.value === 'boolean' ? f.value ? 'Da' : 'Ne'
+            : Array.isArray(f.value) && f.value.every(x => typeof x === 'string') ? f.value.join(', ') : null;
       return shown ? <View key={f.key}><T variant="meta" tone="muted">{factLabel(f.key)}</T><T>{shown}</T></View> : null;
     })}
     {evaluation && typeof evaluation.outcome === 'string' && outcomes[evaluation.outcome]

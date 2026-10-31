@@ -20,7 +20,7 @@ it('uploads only the recorded bytes with the exact Agreement, version and key an
   mockInvoke.mockResolvedValue({ data: ready(), error: null }); const bytes = new ArrayBuffer(64);
   expect(await service.upload(ref, bytes)).toEqual({ ok: true, podatak: ready() });
   expect(mockInvoke).toHaveBeenCalledWith('uskoci-media', { body: bytes, headers: { 'x-media-operation': 'agreement-voice-upload',
-    'Content-Type': 'audio/mp4', 'x-media-target': agreementId, 'x-media-version': '3', 'x-media-request-id': clientRequestId }, signal: undefined });
+    'Content-Type': 'audio/mp4', 'x-media-target': agreementId, 'x-media-version': '3', 'x-media-request-id': clientRequestId }, signal: expect.any(AbortSignal) });
 });
 it.each([
   ['nothing', new ArrayBuffer(0)], ['a fragment under the minimum container', new ArrayBuffer(31)], ['more than 4 MiB', new ArrayBuffer(4_194_305)],
@@ -82,7 +82,7 @@ it('fences a late receipt after the same account session incarnation changes', a
 it('reads the bounded owner upload inventory without choosing, uploading or sending it', async () => {
   const envelope = { accountId, agreementId, uploads: [ready()], authoritative: true };
   mockInvoke.mockResolvedValue({ data: envelope, error: null }); expect(await service.list(agreementId)).toEqual({ ok: true, podatak: [ready()] });
-  expect(mockInvoke.mock.calls[0][1]).toEqual({ body: { agreementId }, headers: { 'x-media-operation': 'agreement-voice-upload-list' }, signal: undefined });
+  expect(mockInvoke.mock.calls[0][1]).toEqual({ body: { agreementId }, headers: { 'x-media-operation': 'agreement-voice-upload-list' }, signal: expect.any(AbortSignal) });
   for (const uploads of [[ready(), ready()], [{ ...ready(), accountId: messageId }], [{ ...ready(), attachedMessageId: messageId }], [{ ...ready(), state: 'FAILED', voice: null }],
     Array.from({ length: 21 }, (_, i) => ({ ...ready(), clientRequestId: `66666666-6666-4666-8666-${String(i).padStart(12, '0')}`, assetId: `77777777-7777-4777-8777-${String(i).padStart(12, '0')}`,
       voice: { ...voice, assetId: `77777777-7777-4777-8777-${String(i).padStart(12, '0')}` } }))]) {
@@ -93,7 +93,7 @@ it('plays back through the binary reader with the exact identity and never a URL
   const bytes = new ArrayBuffer(128);
   mockRead.mockResolvedValue({ data: { bytes, contentType: 'audio/mp4' }, error: null });
   expect(await service.playback({ agreementId, assetId, messageId })).toEqual({ ok: true, podatak: { assetId, bytes, contentType: 'audio/mp4' } });
-  expect(mockRead).toHaveBeenCalledWith({ account: { accountId, accountRevision: 0 }, signal: undefined, body: { agreementId, assetId, messageId } });
+  expect(mockRead).toHaveBeenCalledWith({ account: { accountId, accountRevision: 0 }, signal: expect.any(AbortSignal), body: { agreementId, assetId, messageId } });
   await service.playback({ agreementId, assetId }); expect(mockRead.mock.calls[1][0].body).toEqual({ agreementId, assetId });
   expect(mockInvoke).not.toHaveBeenCalled();
 });
@@ -112,15 +112,65 @@ it('fences a late playback answer after the account changes', async () => {
   mockRead.mockImplementation(async () => { mockRevision = 5; return { data: { bytes: new ArrayBuffer(8), contentType: 'audio/mp4' }, error: null }; });
   expect(await service.playback({ agreementId, assetId, messageId })).toMatchObject({ ok: false, kod: 'AUTH_ACCOUNT_CHANGED' });
 });
-it('the upload is the only call that asks for the longer receipt bound', async () => {
+it('upload keeps its 55s bound and readback keeps 15s, both aborting the actual request', async () => {
   jest.useFakeTimers();
   try {
     mockInvoke.mockImplementation(() => new Promise(() => undefined));
     const slow = service.upload(ref, new ArrayBuffer(64)); const fast = service.read(ref);
     await jest.advanceTimersByTimeAsync(15_001);
     expect(await fast).toMatchObject({ ok: false, kod: 'AGREEMENT_VOICE_UNCONFIRMED' });
+    expect(mockInvoke.mock.calls[1][1].signal.aborted).toBe(true);
+    expect(mockInvoke.mock.calls[0][1].signal.aborted).toBe(false);
     let settled = false; void slow.then(() => { settled = true; }); await jest.advanceTimersByTimeAsync(1_000); expect(settled).toBe(false);
     await jest.advanceTimersByTimeAsync(40_000);
     expect(await slow).toMatchObject({ ok: false, kod: 'AGREEMENT_VOICE_UNCONFIRMED' });
+    expect(mockInvoke.mock.calls[0][1].signal.aborted).toBe(true);
+    expect(mockInvoke).toHaveBeenCalledTimes(2);
+  } finally { jest.useRealTimers(); }
+});
+
+it.each(['read', 'cancel', 'list'] as const)('%s forwards owner cancellation without turning a late response into success', async method => {
+  let finish!: (value: unknown) => void;
+  mockInvoke.mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+  const caller = new AbortController();
+  const pending = method === 'list' ? service.list(agreementId, undefined, caller.signal) : service[method](ref, undefined, caller.signal);
+  await Promise.resolve();
+  caller.abort();
+  expect(await pending).toMatchObject({ ok: false, kod: 'AGREEMENT_VOICE_UNCONFIRMED' });
+  expect(mockInvoke.mock.calls[0][1].signal.aborted).toBe(true);
+  finish({ data: ready(), error: null }); await Promise.resolve();
+  expect(mockInvoke).toHaveBeenCalledTimes(1);
+});
+
+it('cancel timeout also bounds a delayed HTTP error body and preserves an unknown write result', async () => {
+  jest.useFakeTimers();
+  try {
+    const response = new Response('{}', { status: 409 });
+    jest.spyOn(response, 'json').mockImplementation(() => new Promise(() => {}));
+    mockInvoke.mockResolvedValue({ data: null, error: { context: response } });
+    const pending = service.cancel(ref);
+    await jest.advanceTimersByTimeAsync(15_000);
+    expect(await pending).toMatchObject({ ok: false, kod: 'AGREEMENT_VOICE_UNCONFIRMED' });
+    expect(mockInvoke.mock.calls[0][1].signal.aborted).toBe(true);
+    expect(mockInvoke).toHaveBeenCalledTimes(1); expect(jest.getTimerCount()).toBe(0);
+  } finally { jest.useRealTimers(); }
+});
+
+it('an expired attempt does not retire the mounted owner or prevent explicit same-key readback', async () => {
+  jest.useFakeTimers();
+  try {
+    const caller = new AbortController();
+    mockInvoke.mockImplementationOnce(() => new Promise(() => {}));
+    const pending = service.cancel(ref, undefined, caller.signal);
+    await jest.advanceTimersByTimeAsync(15_000);
+    expect(await pending).toMatchObject({ ok: false, kod: 'AGREEMENT_VOICE_UNCONFIRMED' });
+    expect(mockInvoke.mock.calls[0][1].signal.aborted).toBe(true);
+    expect(caller.signal.aborted).toBe(false);
+    const cancelled = { ...ready(), state: 'CANCELLED', voice: null };
+    mockInvoke.mockResolvedValueOnce({ data: cancelled, error: null });
+    expect(await service.read(ref, undefined, caller.signal)).toEqual({ ok: true, podatak: cancelled });
+    expect(mockInvoke.mock.calls[1][1].body).toEqual(ref);
+    expect(mockInvoke.mock.calls[1][1].signal.aborted).toBe(false);
+    expect(mockInvoke).toHaveBeenCalledTimes(2); expect(jest.getTimerCount()).toBe(0);
   } finally { jest.useRealTimers(); }
 });

@@ -51,6 +51,24 @@ it('allows a slow worker response within55 seconds and retains the same request 
   mockStream.mockReset();jest.useRealTimers();
  }
 });
+it('worker streaming uses the same public DEV fallback as SDK and blocks half-configured overrides',async()=>{
+ const previousUrl=process.env.EXPO_PUBLIC_SUPABASE_URL,previousKey=process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+ try{
+  mockSession.session={access_token:'SYNTHETIC_JWT'};
+  mockStream.mockResolvedValue({error:null,data:{turnId:REVIEW,conversationId:CONVERSATION,clientRequestId:KEY,
+    attemptId:PROFILE,state:'SUCCEEDED',retryAllowed:false,authoritative:true}});
+  delete process.env.EXPO_PUBLIC_SUPABASE_URL;delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+  await expect(service.send(CONVERSATION,'Ovo radim',KEY,{} as any)).resolves.toMatchObject({ok:true});
+  expect(mockStream.mock.calls[0][0].url).toBe('https://leqcwgzvjsxugfgzdmth.supabase.co');
+  process.env.EXPO_PUBLIC_SUPABASE_URL='https://other.example.test';
+  await expect(service.send(CONVERSATION,'Ovo radim',KEY,{} as any)).resolves.toMatchObject({ok:false});
+  expect(mockStream).toHaveBeenCalledTimes(1);
+ }finally{
+  if(previousUrl===undefined)delete process.env.EXPO_PUBLIC_SUPABASE_URL;else process.env.EXPO_PUBLIC_SUPABASE_URL=previousUrl;
+  if(previousKey===undefined)delete process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;else process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY=previousKey;
+  mockStream.mockReset();
+ }
+});
 it('explicit save sends only immutable server review identity/digest and one command key',async()=>{
  await expect(service.save(review(),KEY)).resolves.toEqual({ok:true,podatak:saved()});expect(mockRpc).toHaveBeenCalledTimes(1);
  expect(mockRpc).toHaveBeenCalledWith('rpc_save_worker_ai_review',{p_review_id:REVIEW,p_displayed_digest:'a'.repeat(64),p_client_request_id:KEY});
@@ -275,4 +293,32 @@ it('signed manual mode request sends the exact worker-selected service and scope
   if(old===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES;else process.env.EXPO_PUBLIC_USKOCI_WORKER_CONFIRMED_MODES=old;
   if(signed===undefined)delete process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW;else process.env.EXPO_PUBLIC_USKOCI_WORKER_SIGNED_REVIEW=signed;
  }
+});
+
+
+it('R04/F05: worker review displays an existing-ID meaning comparison but never upgrades it to READY',()=>{
+  const proposed={
+    service:'Prenos',mode:'ON_SITE',categoryId:SIGNED_CATEGORY,
+    categoryLabel:'Selidbe i prenos',categoryParentId:null,
+    reason:'Ovo je istovetno konkretnoj usluzi prenošenja nameštaja.',catalogVersion:3
+  };
+  const pending={...signedWorkerReview(),classificationState:'REVIEW_REQUIRED',
+    classificationCandidates:[],reviewedServiceModes:[],
+    semanticReviewCandidates:[proposed]};
+  const decoded=decodeWorkerAiReview(pending,OWNER,CONVERSATION);
+  expect(decoded).toMatchObject({classificationState:'REVIEW_REQUIRED',
+    semanticReviewCandidates:[proposed],classificationCandidates:[],reviewedServiceModes:[]});
+  // No new network write, permission or reviewed mode is derived from this hint.
+  expect(mockRpc).not.toHaveBeenCalled();
+  for(const patch of [
+    {classificationState:'READY'},
+    {semanticReviewCandidates:[{...proposed,categoryId:'not-an-id'}]},
+    {semanticReviewCandidates:[{...proposed,mode:'REMOTE'}],classificationCatalogVersion:4},
+    {semanticReviewCandidates:[{...proposed,service:'Drugi zadatak'}]},
+    {semanticReviewCandidates:[{...proposed,categoryLabel:'Čišćenje klima',unknown:true}]},
+    {reviewedServiceModes:[{service:'Prenos',mode:'ON_SITE'}]},
+    {classificationCandidates:signedWorkerReview().classificationCandidates},
+    {classificationCatalogFingerprint:null},
+  ]) expect(decodeWorkerAiReview({...pending,...patch},OWNER,CONVERSATION)).toBeNull();
+  expect(decodeWorkerAiReview({...pending,accountId:OTHER},OWNER,CONVERSATION)).toBeNull();
 });

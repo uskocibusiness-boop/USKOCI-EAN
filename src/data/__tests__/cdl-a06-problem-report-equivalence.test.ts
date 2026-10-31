@@ -34,11 +34,9 @@ function resetRpc(result: unknown) {
 describe('CDL-A06 — canonical problem-report contract', () => {
   it('physically eliminates both lower-precedence problem-report owners', () => {
     const dataDir = join(__dirname, '..');
-    const authoritySource = readFileSync(join(dataDir, 'productionAuthorityOverrides.ts'), 'utf8');
     const baselineSource = readFileSync(join(dataDir, 'supabaseIzvor.ts'), 'utf8');
     const canonicalSource = readFileSync(join(dataDir, 'agreementClientService.ts'), 'utf8');
 
-    expect(authoritySource).not.toContain('prijaviProblem');
     expect(baselineSource).not.toContain('async prijaviProblem(');
     expect(baselineSource).not.toContain('p_description');
     expect(baselineSource).toContain("'prijaviProblem'");

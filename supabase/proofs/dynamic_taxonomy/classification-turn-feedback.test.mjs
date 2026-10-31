@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { inspectGeminiClassificationShadow as inspect, classificationTurnFeedback as feedback }
+import { inspectGeminiClassificationShadow as inspect, classificationTurnFeedback as feedback, workerFinishReviewMessage }
   from '../../functions/_shared/classificationGeminiShadow.mjs';
 
 const rootId='11111111-1111-4111-8111-111111111111';
@@ -17,6 +17,23 @@ const review=(plans,purpose='NEED_SERVICE',services=['3D printovanje'],overrides
   const inspected=inspect(raw(plans,overrides),catalog,purpose);
   return {inspected,result:feedback(inspected,{purpose,services,readyForReview:true})};
 };
+
+test('worker can OFFER an optional 2-3 sentence biography at finish without making it a Save prerequisite',()=>{
+  const skills=['3D printovanje'], covered=[plan()];
+  const offered=workerFinishReviewMessage(skills,covered,true,true);
+  assert.match(offered,/Otvorite pregled profila/);
+  assert.match(offered,/Ako želite, mogu da sastavim kratak opis Vašeg rada/);
+  assert.match(offered,/nije uslov za pregled ili čuvanje/);
+  assert.doesNotMatch(offered,/sačuvano|aktivirano|objavljeno|automatski povezano/);
+  const existing=workerFinishReviewMessage(skills,covered,true,false);
+  assert.doesNotMatch(existing,/Ako želite, mogu da sastavim/);
+  const missing=workerFinishReviewMessage(['Druga usluga'],[],true,true);
+  assert.match(missing,/nije potvrđeno/);
+  assert.match(missing,/Ako želite, mogu da sastavim/);
+  const unavailable=workerFinishReviewMessage(skills,[],false,true);
+  assert.match(unavailable,/Otvorite pregled profila/);
+  assert.match(unavailable,/nije uslov za pregled ili čuvanje/);
+});
 
 test('both purposes retain exact/registered-alias candidates and leave the useful answer and facts intact',()=>{
   for(const purpose of ['NEED_SERVICE','WORKER_CAPABILITY'])for(const service of ['3D printovanje','3D štampa']){

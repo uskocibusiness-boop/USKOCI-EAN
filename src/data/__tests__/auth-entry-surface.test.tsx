@@ -91,8 +91,8 @@ async function render() {
   await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onSignIn());
 }
 /** What the entry's "Napravi nalog" does, and what a choice of one of its halves does: the form opens on creating an account. */
-const signUpFields = ['Ime', 'Prezime', 'Grad', 'Email', 'Lozinka'];
-const signUpValues: [string, string][] = [['Ime', 'Ana'], ['Prezime', 'Petrović'], ['Grad', 'Novi Sad'],
+const signUpFields = ['Ime', 'Prezime', 'Email', 'Lozinka'];
+const signUpValues: [string, string][] = [['Ime', 'Ana'], ['Prezime', 'Petrović'],
   ['Email', 'ana@example.test'], ['Lozinka', 'password']];
 const LEGAL = 'Uslovi korišćenja i Politika privatnosti još nisu objavljeni.';
 function deferred<T>() {
@@ -195,7 +195,7 @@ it('asks for the password once: the eye is on the field, the sign-up sends what 
   expect(input('Lozinka').props.autoComplete).toBe('new-password');
   for (const [label, value] of signUpValues) await fill(label, value);
   await press('Napravi nalog');
-  expect(mockAuth.signUp.mock.calls).toEqual([[{ email: 'ana@example.test', password: 'password', firstName: 'Ana', lastName: 'Petrović', city: 'Novi Sad' }]]);
+  expect(mockAuth.signUp.mock.calls).toEqual([[{ email: 'ana@example.test', password: 'password', firstName: 'Ana', lastName: 'Petrović' }]]);
 });
 
 it('still refuses a short password locally, on the one field there is, and sends nothing', async () => {
@@ -392,7 +392,7 @@ it('blocks duplicate signup, conflicting navigation and editing, then shows accu
   expect(mockAuth.signUp).toHaveBeenCalledTimes(1); expect(host('TextInput').every(node => node.props.editable === false)).toBe(true);
   const close = host('Pressable').find(node => node.props.accessibilityLabel === 'Nazad')!;
   expect(close.props.disabled).toBe(true); await act(async () => close.props.onPress());
-  expect(host('TextInput')).toHaveLength(5);
+  expect(host('TextInput')).toHaveLength(4);
   await act(async () => pending.resolve({ hasSession: false }));
   expect(text()).toContain('Poslaćemo ti poruku za potvrdu emaila'); expect(text()).not.toContain('Poslali smo Vam poruku');
   expect(button('Promeni email')).toBeDefined(); await press('Nazad na prijavu');
@@ -647,7 +647,7 @@ describe('Back on the one screen', () => {
   it('closes the sheet to the entry from the signing-up way and from the signing-in way, with the arrow and with the phone Back', async () => {
     await act(async () => { tree = create(<AuthScreen />); });
     await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onSignUp());
-    expect(host('TextInput')).toHaveLength(5);
+    expect(host('TextInput')).toHaveLength(4);
     await act(async () => arrow().props.onPress());
     expect(host('TextInput')).toHaveLength(0);
     await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onSignIn());
@@ -827,7 +827,7 @@ describe('what is wrong is said under the field it is about', () => {
 
   it('names each missing field of an account, sends nothing, and each message stands in its own field and nowhere else', async () => {
     await render(); await pressTab('Napravi nalog'); await press('Napravi nalog');
-    const wanted: [string, string][] = [['Ime', 'Unesi ime.'], ['Prezime', 'Unesi prezime.'], ['Grad', 'Unesi grad.'], ['Email', 'Unesi email.'], ['Lozinka', 'Unesi lozinku.']];
+    const wanted: [string, string][] = [['Ime', 'Unesi ime.'], ['Prezime', 'Unesi prezime.'], ['Email', 'Unesi email.'], ['Lozinka', 'Unesi lozinku.']];
     for (const [label, message] of wanted) expect(textOf(block(label))).toContain(message);
     expect([...alerts()].sort()).toEqual(wanted.map(([, message]) => message).sort());
     expect(mockAuth.signUp).not.toHaveBeenCalled();
@@ -905,19 +905,15 @@ describe('the next step of a failure', () => {
     expect(button('Prijavi se')).toBeDefined(); expect(button('Zaboravljena lozinka?')).toBeDefined();
   });
 
-  it('puts the city right when the person leaves the field, and keeps what was typed when it is already right', async () => {
+  it('registers without a city field or invented city metadata', async () => {
     await render(); await pressTab('Napravi nalog');
-    await fill('Grad', 'NovI SAD'); await act(async () => input('Grad').props.onBlur());
-    expect(input('Grad').props.value).toBe('Novi Sad');
-    await fill('Grad', 'Sremska Kamenica'); await act(async () => input('Grad').props.onBlur());
-    expect(input('Grad').props.value).toBe('Sremska Kamenica');
-  });
-
-  it('sends the city put right even when the person never left the field', async () => {
-    await render(); await pressTab('Napravi nalog');
-    for (const [label, value] of signUpValues) await fill(label, label === 'Grad' ? 'NOVI SAD' : value);
+    expect(host('TextInput').map(node => node.props.accessibilityLabel)).toEqual(signUpFields);
+    for (const [label, value] of signUpValues) await fill(label, value);
     await press('Napravi nalog');
-    expect(mockAuth.signUp.mock.calls[0][0]).toMatchObject({ city: 'Novi Sad' });
+    expect(mockAuth.signUp).toHaveBeenCalledWith({
+      email: 'ana@example.test', password: 'password', firstName: 'Ana', lastName: 'Petrović',
+    });
+    expect(Object.prototype.hasOwnProperty.call(mockAuth.signUp.mock.calls[0][0], 'city')).toBe(false);
   });
 
   it('chains the fields with the keyboard: "next" goes on to the next field and "go" on the password sends the form', async () => {
@@ -1118,7 +1114,7 @@ describe('signup email return in the real Auth form', () => {
     const pending = deferred<{ hasSession: boolean }>(); mockAuth.signUp.mockReturnValueOnce(pending.promise);
     await act(async () => { button('Napravi nalog').props.onPress(); });
     await act(async () => signupConfirmationIntent.publish('RETURNED'));
-    expect(host('TextInput')).toHaveLength(5);
+    expect(host('TextInput')).toHaveLength(4);
     await act(async () => pending.resolve({ hasSession: false }));
     expect(text()).toContain('Proveri email');
     expect(signupConfirmationIntent.snapshot()).toBeNull();

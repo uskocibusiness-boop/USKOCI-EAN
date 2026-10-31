@@ -144,3 +144,16 @@ it('maps cancel void ACK without inventing cancellation state and requires bound
  expect(mockRpc).toHaveBeenCalledWith('rpc_cancel_agreement',{p_agreement_id:ID,p_reason:'Razlog'});
  mockRpc.mockResolvedValue(ok({cancelled:true}));expect(await agreementChangeService.cancel(ID,'Razlog',account)).toMatchObject({ok:false,kod:'AGREEMENT_CHANGE_INVALID_RECEIPT'});
 });
+
+it('preserves hourly units in accepted and proposed terms and refuses an unsupported term unit', async () => {
+ const hourly = { ...terms, priceBasis: 'HOURLY' };
+ mockRpc.mockResolvedValue(ok({ ...workspace, terms: hourly, actionState: { ...actionState, pendingChanges: [{ ...actionState.pendingChanges[0], proposedTerms: { ...hourly, price_rsd: 1200 } }] } }));
+ expect(await agreementChangeService.read(ID, account)).toMatchObject({ ok: true, podatak: { terms: { priceBasis: 'HOURLY' }, proposals: [{ terms: { priceBasis: 'HOURLY', priceRsd: 1200 } }] } });
+ mockRpc.mockResolvedValue(ok({ ...workspace, terms: { ...terms, priceBasis: 'PER_PERSON' } }));
+ expect(await agreementChangeService.read(ID, account)).toMatchObject({ ok: true, podatak: { terms: null } });
+});
+
+it('refuses a proposal that would silently change the immutable unit of an accepted hourly agreement', async () => {
+ mockRpc.mockResolvedValue(ok({ ...workspace, terms: { ...terms, priceBasis: 'HOURLY' } }));
+ expect(await agreementChangeService.read(ID, account)).toMatchObject({ ok: false, kod: 'AGREEMENT_CHANGE_INVALID_RECEIPT' });
+});

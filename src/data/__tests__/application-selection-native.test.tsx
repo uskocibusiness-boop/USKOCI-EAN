@@ -146,8 +146,8 @@ const person = () => tree!.root.findAll(node => String(node.type) === 'Press' &&
 /** Why the green action of a flow cannot be pressed yet: the foot's one polite live line above it (it is not a hint of the button). */
 const footReason = () => tree!.root.findAll(node => String(node.type) === 'T' && node.props.testID === 'flow-footer-reason')
   .flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
-/** The composer's term row, found by its testID: its words are the term itself, so the row carries no label of its own over them. */
-const termRow = () => tree!.root.findAll(node => String(node.type) === 'Press' && node.props.testID === 'composer-term')[0];
+/** The P0 term is a read-only task fact, never a Press or an alternate-time editor. */
+const termRow = () => tree!.root.findAll(node => node.props.testID === 'composer-term')[0];
 
 it('previews the actual offer message without marking it viewed; opening keeps the full message', async () => {
   const message = 'Dolazimo nas dvojica. Donosimo trake. Kombi je veliki i može da stane ispred ulaza.';
@@ -197,11 +197,13 @@ it('reviews an offer without writing or sending and returns to the unchanged dra
   const note = tree!.root.findAll(node => String(node.type) === 'TextInput' && node.props.accessibilityLabel === 'Poruka uz prijavu')[0];
   expect(note.props.value).toBe('  Donosimo trake.  ');
 });
-it('the form says what the other side sees behind the ⓘ in its bar, asks "Kada možeš" for the term, and the sent receipt has no ⓘ', async () => {
+it('the form shows the task term without an alternate-time press, and the sent receipt has no ⓘ', async () => {
   await offer();
   const info = () => tree!.root.findAll(node => node.props.accessibilityLabel === 'Objašnjenje: Šta vidi druga strana');
   expect(info().length).toBeGreaterThan(0);
-  expect(text()).toContain('Kada možeš'); expect(text()).not.toMatch(/Osoba koja traži pomoć vidi/);
+  expect(text()).toContain('Termin zadatka'); expect(text()).toContain('Prijava se odnosi na termin koji je naveden u zadatku.');
+  expect(termRow().findAll(node => typeof node.props.onPress === 'function')).toHaveLength(0);
+  expect(text()).not.toMatch(/Osoba koja traži pomoć vidi|Možeš da predložiš drugi/);
   await sendOffer();
   expect(info()).toHaveLength(0); expect(text()).toContain('Prijava je poslata.');
 });
@@ -320,18 +322,19 @@ it('does not surface an old view failure or select after an account switch', asy
   expect(mockViewed).toHaveBeenCalledTimes(1); expect(mockSelect).not.toHaveBeenCalled(); expect(mockRouter.replace).not.toHaveBeenCalled();
 });
 
-it('sends one exact application after explicit interval review and duplicate taps', async () => {
-  await offer(); await act(async () => termRow().props.onPress());
-  await edit('Datum početka', '2026-09-20'); await edit('Početak', '12:00');
-  await edit('Datum kraja', '2026-09-20'); await edit('Kraj', '13:00'); await tap('Potvrdi termin');
-  expect(mockSubmit).not.toHaveBeenCalled(); expect(text()).toContain('12:00–13:00');
+it('sends one exact application at the task term after explicit review and duplicate taps', async () => {
+  await offer();
+  expect(termRow()).toBeDefined();
+  expect(termRow().findAll(node => typeof node.props.onPress === 'function')).toHaveLength(0);
+  expect(text()).toContain('10:00–11:00');
+  expect(mockSubmit).not.toHaveBeenCalled();
   await reviewOffer();
-  // r6: the review says the time is the worker's own proposal, with the task's window beside it, as the Termin row does.
-  expect(text()).toContain('Tvoj predlog · termin zadatka je 20. sep · 10:00–11:00');
+  expect(text()).toContain('10:00–11:00');
+  expect(text()).not.toContain('Tvoj predlog · termin zadatka je');
   const send = press('Pošalji ovu prijavu'); await act(async () => { send(); send(); });
   expect(mockSubmit).toHaveBeenCalledTimes(1);
   expect(mockSubmit.mock.calls[0][0]).toMatchObject({ potrebaRevizija: 3, pokrivenaMesta: 2, cenaRsd: 4500,
-    predlozeniPocetak: '2026-09-20T10:00:00.000Z', predlozeniKraj: '2026-09-20T11:00:00.000Z' });
+    predlozeniPocetak: null, predlozeniKraj: null });
   expect(text()).toContain('Prijava je poslata.'); expect(mockRouter.replace).not.toHaveBeenCalled();
 });
 it('opens exactly the confirmed application once, without another submission', async () => {
@@ -854,8 +857,9 @@ describe('the composer as a checkout step', () => {
     const head = tree!.root.findAll(node => typeof node.props.accessibilityLabel === 'string' && node.props.accessibilityLabel.startsWith('Unos ormara, '));
     expect(head).toHaveLength(1); expect(head[0].props.accessibilityLabel).toBe('Unos ormara, Liman 2, Novi Sad');
     expect(text()).toContain('Traži 3 osobe');
-    // The term row speaks its own words (the term and what a press does), not a label laid over them.
-    expect(termRow().props.accessibilityLabel).toBeUndefined();
+    // The P0 term is the same task time, visible without opening a competing editor.
+    expect(termRow()).toBeDefined();
+    expect(termRow().findAll(node => typeof node.props.onPress === 'function')).toHaveLength(0);
     expect(termRow().findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ')).toContain('10:00–11:00');
     expect(step('Pregledaj prijavu').props.icon).toBeUndefined();
   });
@@ -865,7 +869,8 @@ describe('the composer as a checkout step', () => {
     mockFocused = false; await update(); mockFocused = true; await update();
     expect(text()).toContain('Zadatak više ne prima prijave.'); expect(step('Pregledaj prijavu').props.disabled).toBe(true);
     for (const label of ['Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', 'Koliko ljudi dolazi', 'Poruka uz prijavu']) expect(inputs(label)[0].props.editable).toBe(false);
-    expect(step('Jedna osoba više').props.disabled).toBe(true); expect(termRow().props.disabled).toBe(true);
+    expect(step('Jedna osoba više').props.disabled).toBe(true);
+    expect(termRow()).toBeDefined(); expect(termRow().findAll(node => typeof node.props.onPress === 'function')).toHaveLength(0);
     await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '9999'); expect(inputs('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)')[0].props.value).toBe('4500');
     const go = press('Pogledaj druge zadatke'); expect(go).toBeDefined();
     await act(async () => { go(); go(); });

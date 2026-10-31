@@ -1,4 +1,8 @@
+import { readFailureReason, type ReadFailureReason } from './readFailure';
+
 export type ResourceState<T> = { data: T | null; loading: boolean; error: boolean;
+  /** Safe category for the current failed read; error remains the existing boolean state. */
+  errorReason?: ReadFailureReason;
   /** A user-asked re-read while what is on screen stays on screen. Never true on a first load. */
   refreshing: boolean;
   /** Opt-in retained refresh failed; data is still the last successfully read snapshot. */
@@ -54,17 +58,17 @@ export function createFocusedResource<T>(load: (signal: AbortSignal) => Promise<
     if (!active || request !== generation || !isCurrent()) { controller.abort(); return; }
     const holding = how !== 'load' && state.data !== null && !state.error;
     if (!holding) publish(empty);
-    else if (how === 'keep') publish({ ...state, refreshing: true, ...(options.retainOnRefresh ? { refreshError: false } : {}) });
+    else if (how === 'keep') publish({ ...state, refreshing: true, ...(options.retainOnRefresh ? { refreshError: false, errorReason: undefined } : {}) });
     try {
       const data = await load(controller.signal);
       if (active && request === generation && isCurrent()) publish({ data, loading: false, error: false, refreshing: false });
-    } catch {
+    } catch (error) {
       if (!active || request !== generation || !isCurrent()) return;
       // A re-read nobody asked for must not turn a screen that was working into an error. What is
       // on it is the last thing the server actually said; the refresh control can be asked again.
-      publish(holding && options.retainOnRefresh ? { ...state, refreshing: false, refreshError: true }
+      publish(holding && options.retainOnRefresh ? { ...state, refreshing: false, refreshError: true, errorReason: readFailureReason(error) }
         : holding && how === 'silent' ? { ...state, refreshing: false }
-        : { data: null, loading: false, error: true, refreshing: false });
+        : { data: null, loading: false, error: true, refreshing: false, errorReason: readFailureReason(error) });
     } finally {
       // Also retires a reader abandoned by its caller's timeout race. Never abort a newer read.
       controller.abort();

@@ -14,12 +14,19 @@ export function useTaskFit({ prilika, relation, izvor, accountId, accountRevisio
   prilika: PrilikaProjekcija | null; relation: TaskRelation; izvor: Pick<Izvor, 'mojiDogovori'>; accountId: string | undefined; accountRevision: number;
 }): TaskFitContext | undefined {
   const [read, setRead] = useState<{ key: string; fit: TaskFitContext } | null>(null);
-  const live = useRef({ prilika, izvor }); live.current = { prilika, izvor };
-  const key = prilika && accountId && relation.kind === 'NONE' && prilika.primaNovePrijave !== false ? `${accountId}:${accountRevision}:${prilika.id}:${prilika.schedule?.startsAt ?? ''}` : null;
+  const key = prilika && accountId && relation.kind === 'NONE' && prilika.primaNovePrijave !== false ? JSON.stringify([
+    accountId, accountRevision, prilika.id, prilika.revision,
+    prilika.schedule?.kind, prilika.schedule?.startsAt, prilika.schedule?.endsAt,
+    prilika.priblizno?.lat, prilika.priblizno?.lng, prilika.detalji?.rezimLokacije,
+  ]) : null;
+  const live = useRef({ prilika, izvor, key }); live.current = { prilika, izvor, key };
   useEffect(() => {
-    if (!key || !accountId) return;
+    // Retiring a read also retires its result, even if the same task returns after a refresh.
+    setRead(null);
+    const task = live.current.prilika;
+    if (!key || !accountId || !task) return;
     let alive = true;
-    const same = () => alive && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
+    const same = () => alive && live.current.key === key && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
     const agreements = async (): Promise<readonly DogovorProjekcija[] | null> => {
       try { return typeof live.current.izvor.mojiDogovori === 'function' ? await live.current.izvor.mojiDogovori({ includeRatings: false }) : null; } catch { return null; }
     };
@@ -34,10 +41,9 @@ export function useTaskFit({ prilika, relation, izvor, accountId, accountRevisio
       } catch { return null; }
     };
     void Promise.all([agreements(), workArea()]).then(([held, area]) => {
-      const task = live.current.prilika;
-      if (!same() || !task) return;
+      if (!same()) return;
       const fit = taskFit({ schedule: task.schedule, pin: task.priblizno, remote: task.detalji?.rezimLokacije === 'REMOTE', agreements: held, workArea: area });
-      if (fit.overlapTitle || typeof fit.distanceKm === 'number') setRead({ key, fit });
+      setRead(fit.overlapTitle || typeof fit.distanceKm === 'number' ? { key, fit } : null);
     });
     return () => { alive = false; };
   }, [key, accountId, accountRevision]);

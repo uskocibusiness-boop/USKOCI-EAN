@@ -9,6 +9,7 @@ import { decodeTaskApplicationDeadlineFact } from '../contracts/taskApplicationD
 import { decodeServiceHandoff } from '../contracts/serviceHandoff';
 import type { Ishod } from './ports';
 import { supabaseKlijent } from './supabaseClient';
+import { readPublicSupabaseConfig } from './publicSupabaseConfig';
 import { listOpenIntakes } from './aiOpenIntakes';
 import { sesijaSada } from '../store/sesija';
 import { aiAvailabilityFromSdkError, requestAiTurnStream, type AiTurnStreamOptions } from './aiNeedTurnStream';
@@ -86,7 +87,7 @@ const ERRORS: Readonly<Record<string, string>> = {
   V2_EXACT_ADDRESS_INVALID: 'Adresa može imati najviše 1.000 znakova.',
   V2_ACCESS_NOTES_INVALID: 'Napomena o pristupu može imati najviše 2.000 znakova.',
   V2_PRICE_MODE_INVALID: 'Cena može biti „moja cena“ ili „ponude“.',
-  V2_PRICE_BASIS_INVALID: 'Cena može biti „ukupno“, „po osobi“ ili „po satu“.',
+  V2_PRICE_BASIS_INVALID: 'Cena može biti „ukupno“, „po osobi“ ili „po osobi po satu“.',
   V2_SCHEDULE_KIND_INVALID: 'Termin izmeni prirodnim jezikom kroz razgovor.',
   V2_AREA_GEOGRAPHY_INVALID: 'Lokaciju izmeni kroz razgovor.',
   V2_STATIONARY_GEOGRAPHY_INVALID: 'Lokaciju izmeni kroz razgovor.',
@@ -390,7 +391,8 @@ export const aiNeedV2Production = {
         if (!account) return scopeChanged();
         if (stream) {
           const session = sesijaSada().session;
-          const url = process.env.EXPO_PUBLIC_SUPABASE_URL, anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+          const config = readPublicSupabaseConfig();
+          const url = config?.url, anonKey = config?.anonKey;
           if (!session?.access_token || !url || !anonKey) return scopeChanged();
           return requestAiTurnStream({ ...stream, url, anonKey, accessToken: session.access_token,
             conversationId, clientRequestId, text, deadline, current: () => scopeCurrent(account),

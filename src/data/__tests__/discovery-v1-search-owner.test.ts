@@ -160,6 +160,70 @@ it('PLACES continuation retains prefix facet area and cursor, then deduplicates 
  expect(owner.snapshot().placeHasMore).toBe(false);
 });
 
+describe('R02 SB11 place continuation recovery',()=>{
+ const seed=async()=>{
+  const h=harness(),owner=createDiscoveryV1SearchOwner(h.transport),v=view({query:'nov'});
+  const first=owner.preview(v,[19,44,21,46],2);
+  h.pending[0].resolve(page(42));h.pending[1].resolve(places());await first;
+  return {h,owner,v};
+ };
+
+ it.each(['transport','decode'])('%s failure releases paging and retries the same accepted cursor',async failure=>{
+  const {h,owner}=await seed(),before=owner.snapshot();
+  const next=owner.nextPlaces(),rejected=expect(next).rejects.toBeInstanceOf(Error);
+  expect(owner.snapshot().placePaging).toBe(true);
+  if(failure==='transport')h.pending[2].reject(new Error('DISCOVERY_V1_READ_FAILED'));
+  else h.pending[2].resolve({bad:'places'});
+  await rejected;
+  expect(owner.snapshot()).toEqual({...before,placePaging:false,facetError:true});
+  expect(h.pending[2].signal.aborted).toBe(true);
+  const retry=owner.nextPlaces();
+  expect(h.pending[3].request).toEqual(h.pending[2].request);
+  h.pending[3].resolve(places([{key:'novi sad, liman',text:'Novi Sad, Liman',count:9},
+    {key:'novi sad, centar',text:'Novi Sad, Centar',count:4}],false));
+  expect((await retry).kind).toBe('applied');
+  expect(owner.snapshot()).toMatchObject({status:'ready',count:42,placePaging:false,facetError:false,placeHasMore:false});
+  expect(owner.snapshot().places.map(row=>row.key)).toEqual(['novi sad, liman','novi sad, centar']);
+  expect(h.pending[3].signal.aborted).toBe(true);
+ });
+
+ it.each(['resolve','reject'])('a superseded %s cannot finish or replace the newer continuation',async settlement=>{
+  const {h,owner}=await seed(),old=owner.nextPlaces(),fresh=owner.nextPlaces();
+  expect(h.pending[2].signal.aborted).toBe(true);
+  if(settlement==='resolve')h.pending[2].resolve({bad:'obsolete'});
+  else h.pending[2].reject(new Error('DISCOVERY_V1_READ_FAILED'));
+  expect((await old).kind).toBe('stale');
+  expect(owner.snapshot()).toMatchObject({placePaging:true,facetError:false});
+  expect(h.pending[3].signal.aborted).toBe(false);
+  h.pending[3].resolve(places([{key:'novi sad, centar',text:'Novi Sad, Centar',count:4}],false));
+  expect((await fresh).kind).toBe('applied');
+  expect(owner.snapshot()).toMatchObject({placePaging:false,facetError:false,placeHasMore:false});
+  expect(owner.snapshot().places.map(row=>row.key)).toEqual(['novi sad, liman','novi sad, centar']);
+ });
+
+ it.each(['resolve','reject'])('a late superseded %s cannot overwrite an accepted newer continuation',async settlement=>{
+  const {h,owner}=await seed(),old=owner.nextPlaces(),fresh=owner.nextPlaces();
+  h.pending[3].resolve(places([{key:'novi sad, centar',text:'Novi Sad, Centar',count:4}],false));
+  await fresh;const accepted=owner.snapshot();
+  if(settlement==='resolve')h.pending[2].resolve(places([{key:'staro mesto',text:'Staro mesto',count:2}],true));
+  else h.pending[2].reject(new Error('DISCOVERY_V1_READ_FAILED'));
+  expect((await old).kind).toBe('stale');
+  expect(owner.snapshot()).toEqual(accepted);
+ });
+
+ it.each(['draft','suspend','retire'])('%s invalidates a pending continuation without reviving its state',async boundary=>{
+  const {h,owner,v}=await seed(),old=owner.nextPlaces();
+  if(boundary==='draft'){
+   const fresh=owner.preview({...v,query:'novo'},null,2);
+   h.pending[3].resolve(page(6));h.pending[4].resolve(places([],false));await fresh;
+  }else if(boundary==='suspend')owner.suspend();else owner.retire();
+  const accepted=owner.snapshot();
+  h.pending[2].resolve({bad:'obsolete'});
+  expect((await old).kind).toBe('stale');expect(owner.snapshot()).toEqual(accepted);
+  expect(h.pending[2].signal.aborted).toBe(true);
+ });
+});
+
 it('remote preview never asks for locality facets',async()=>{
  const h=harness(),owner=createDiscoveryV1SearchOwner(h.transport),v=view({where:'remote',query:'online'});
  const read=owner.preview(v,[19,44,21,46],10);

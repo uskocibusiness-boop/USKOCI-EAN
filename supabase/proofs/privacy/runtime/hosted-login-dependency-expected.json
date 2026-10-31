@@ -1,0 +1,97 @@
+{
+  "unit": "R01_HOSTED_LOGIN_DEV_BASELINE",
+  "format_version": 1,
+  "query_sha256": "5eef1e82ea40ba6365608182b923f408863f9976ed48ae8123f5e386410cede1",
+  "observation": {
+    "unit": "R01_HOSTED_LOGIN_DEPENDENCY_CAPTURE",
+    "format_version": 1,
+    "read_only": "on",
+    "server_version_num": 170006,
+    "database": "postgres",
+    "principals": [
+      "anon",
+      "authenticated",
+      "authenticator",
+      "postgres",
+      "service_role",
+      "supabase_admin",
+      "supabase_auth_admin",
+      "supabase_functions_admin",
+      "supabase_realtime_admin",
+      "supabase_storage_admin"
+    ],
+    "hosted_role": {
+      "superuser": false,
+      "createrole": false,
+      "createdb": false,
+      "replication": false,
+      "bypassrls": false,
+      "login": true,
+      "inherit": false
+    },
+    "membership": [
+      {
+        "role": "postgres",
+        "member": "cli_login_postgres",
+        "admin": false,
+        "inherit": false,
+        "set": true
+      }
+    ],
+    "reachability": [
+      {
+        "principal": "anon",
+        "usage": false,
+        "set": false
+      },
+      {
+        "principal": "authenticated",
+        "usage": false,
+        "set": false
+      },
+      {
+        "principal": "authenticator",
+        "usage": false,
+        "set": false
+      },
+      {
+        "principal": "postgres",
+        "usage": false,
+        "set": false
+      },
+      {
+        "principal": "service_role",
+        "usage": false,
+        "set": false
+      },
+      {
+        "principal": "supabase_admin",
+        "usage": true,
+        "set": true
+      },
+      {
+        "principal": "supabase_auth_admin",
+        "usage": false,
+        "set": false
+      },
+      {
+        "principal": "supabase_functions_admin",
+        "usage": false,
+        "set": false
+      },
+      {
+        "principal": "supabase_realtime_admin",
+        "usage": false,
+        "set": false
+      },
+      {
+        "principal": "supabase_storage_admin",
+        "usage": false,
+        "set": false
+      }
+    ],
+    "shared_dependency_count": 0,
+    "role_settings_count": 0,
+    "routine_literal_mentions": 0
+  }
+}

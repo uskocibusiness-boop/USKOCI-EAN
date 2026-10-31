@@ -1,0 +1,1633 @@
+{
+  "unit": "R01_EXTENSION_ACL_TUPLES_DEV_BASELINE",
+  "format_version": 1,
+  "query_sha256": "4b0a368affd9616268cb92c13bee5753df51bbedd828120af09ac1f8766ab419",
+  "observation": {
+    "unit": "R01_EXTENSION_ACL_TUPLES_CAPTURE",
+    "database": "postgres",
+    "routines": [
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "0375367c2590fbdcec92d8b3cb129345",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "0524ab1eb0887fed13654169ba88c639",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "0655ca009604bd058469819ff3222796",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "112167cb60b77f4bfee4535acdc900a7",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "19005a1ac5a7dc89d9d2038edb5a67c9",
+        "extension": "uuid-ossp",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "1ccbf2e84690d8f7212a1d21b51ae63d",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "1f8d7ab03f5b65fb41e5bd36bad8c28e",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "229e349cd858cb479fda456757c8c47d",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "2e859db5297a727e201808b654766944",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "2fe6825095a3016054341227546d8c3e",
+        "extension": "uuid-ossp",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "3d2000c0b9066796ac761d4b36fd843c",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "410d816817f6ed2f21208338a541bf40",
+        "extension": "uuid-ossp",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "4dd722cf25a4168d0ad93ee4d03e658e",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "5487b56d7728f6a469ed0606cec7970f",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "54fff4576a10645338a9602008d077ef",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "5a95bf23d37d9dbd5970e4f6c4ebb91a",
+        "extension": "pg_stat_statements",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "5b846b4ae260d53b636a53f1178f2ee5",
+        "extension": "uuid-ossp",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "5bae4ed1774c1d006a03fb629dc024cc",
+        "extension": "uuid-ossp",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "625dba7d8f3226abb77a621f05d5f024",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "6337fc3dba1e918cd38a670a3346451d",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "634efd1c8a55bfc9c33cee6e3336a4d7",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "6498840bba5e8073bc500bca26838197",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "7deba90b4d74a8889e099f6b73e53871",
+        "extension": "pg_stat_statements",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "8bb21c2aa54e1fa2817e94d2774aebc1",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "91e6ae6961dd94294fcdc5f1cf5c66bf",
+        "extension": "uuid-ossp",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "9323a6e8f28826eeca878aeb044cdf3f",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "93e24c1447f1de84bf628e8e5f9d74ee",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "a331321a488d0c4c7a61b076ace305ac",
+        "extension": "uuid-ossp",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "a545ff39be410a1d25d86e29c1cca02d",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "aceabb8356613c8db4716099dec7fa59",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "ad7d28aa152a2e899d4e45aa96dce490",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "b9b31ef3169496ec25e8475a4cbf1c47",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "be653c36f5a5e8f614909f5317548c7b",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "c1be458672300bcb113535da20713058",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "c32b5e4f4e52ba59263330656185b23e",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "c56c71602f3fc148f490a455df72ef4b",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "c6c7cc2167930ec2e4cab87c09ed6789",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "d0999131ac4dd514ae2da2ba2655b1b5",
+        "extension": "pg_stat_statements",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "d42dc0e009d2bd3470cc9551f58eb44b",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "d5b0f9d39810850ed9978e8eb5acc023",
+        "extension": "uuid-ossp",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "dd511461615980c3a4428997eca17fb6",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "e52c398166bbf1e6f25933f86a729055",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "e9ac6b84f23604ec028465ca814bd7ae",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "eb2209c3b1943f48e80e1d94ab4f2585",
+        "extension": "uuid-ossp",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "ed02e3a041322a181ff1e08834f873a2",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "ef3491c9b4043e2a5f139ff692028b8e",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "f152a3d34474cb0ef83f1b5725ecaf52",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "f47583377aecabc8c683bac6b25d1d0a",
+        "extension": "uuid-ossp",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      },
+      {
+        "acl": [
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "cd0c6092d6a6874f379fe4827ed1db8b",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": true,
+            "privilege": "EXECUTE",
+            "grantee_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": true,
+            "dashboard_entry": false
+          },
+          {
+            "grantable": false,
+            "privilege": "EXECUTE",
+            "grantee_md5": "f4c5f37ac762c823056c456d470f73d5",
+            "grantor_md5": "e8a48653851e28c69d0506508fb27fc5",
+            "owner_entry": false,
+            "dashboard_entry": true
+          }
+        ],
+        "acl_null": false,
+        "key_hash": "f4d921a701ea83b59703ccacef2c7867",
+        "extension": "pgcrypto",
+        "owner_md5": "e8a48653851e28c69d0506508fb27fc5"
+      }
+    ],
+    "read_only": "on",
+    "dashboard_role": {
+      "login": false,
+      "inherit": true,
+      "bypassrls": false,
+      "superuser": false,
+      "createrole": true
+    },
+    "format_version": 1,
+    "server_version_num": 170006,
+    "dashboard_reachability": [
+      {
+        "set": false,
+        "usage": false,
+        "principal": "anon"
+      },
+      {
+        "set": false,
+        "usage": false,
+        "principal": "authenticated"
+      },
+      {
+        "set": false,
+        "usage": false,
+        "principal": "authenticator"
+      },
+      {
+        "set": false,
+        "usage": false,
+        "principal": "postgres"
+      },
+      {
+        "set": false,
+        "usage": false,
+        "principal": "service_role"
+      },
+      {
+        "set": true,
+        "usage": true,
+        "principal": "supabase_admin"
+      },
+      {
+        "set": false,
+        "usage": false,
+        "principal": "supabase_auth_admin"
+      },
+      {
+        "set": false,
+        "usage": false,
+        "principal": "supabase_functions_admin"
+      },
+      {
+        "set": false,
+        "usage": false,
+        "principal": "supabase_realtime_admin"
+      },
+      {
+        "set": false,
+        "usage": false,
+        "principal": "supabase_storage_admin"
+      }
+    ]
+  }
+}

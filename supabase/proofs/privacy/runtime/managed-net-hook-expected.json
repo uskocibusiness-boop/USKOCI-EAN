@@ -1,0 +1,27 @@
+{
+  "unit": "R01_MANAGED_NET_HOOK_BASELINE",
+  "format_version": 1,
+  "query_sha256": "f9f230f2888013f945e855abf3f7fa604d193657b314cf6f33b18586ff3fb6cd",
+  "observed": {
+    "unit": "R01_MANAGED_NET_HOOK_CAPTURE",
+    "event": {
+      "tags_md5": "b6fb2e77a01c9bb866396dbb5a1cec17",
+      "event_md5": "ffcc30a3954e066434a34542a931faa7",
+      "owner_md5": "a468f0e091a23006e68f2991c1e449e4",
+      "enabled_md5": "f186217753c37b9b9f958d906208506e",
+      "function_md5": "192ca806ca1d9ac02f4a93a521de933d"
+    },
+    "helper": {
+      "acl_md5": "2b6f8e745f51e13c2cf6ec056c52835b",
+      "body_md5": "2ee4e6920eeba3068bcfa838105352e2",
+      "owner_md5": "a468f0e091a23006e68f2991c1e449e4",
+      "config_md5": "af3be9c3d4c2d891da1a7618c49685d3",
+      "definition_md5": "1d06ef4fb47bb0ab6e6f8818a62013bb",
+      "security_definer": false
+    },
+    "format_version": 1,
+    "net_get_invoker": true,
+    "net_post_invoker": true,
+    "webhook_schema_absent": true
+  }
+}

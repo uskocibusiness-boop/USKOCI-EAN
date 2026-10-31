@@ -9,8 +9,8 @@ import type { MarketplaceItem } from '../marketplaceView';
 import { layoutClassFor } from '../../ui/system/textScale';
 /** Current visual composition: full-width titles; value/capacity and offers stack for larger text.
  * Keep facts, commands and accessible descriptions across window sizes. Historical title/price adjacency
- * no longer describes TaskCard (CardHead has no production consumer). The font-table guard remains
- * because the discovery card head (cardHeadFit) and the calendar steps still use textWidth for their geometry.
+ * no longer describes TaskCard. The font-table guard remains because the calendar steps
+ * still use textWidth for their geometry.
  * Native8d22 evidence at361dp/115%/130% is recorded separately; these are structural safeguards only.
  */
 let mockScale = 1, mockWidth = 411;
@@ -141,6 +141,8 @@ describe('what a screen reader hears does not depend on the layout', () => {
   const HEARD_APPLICATION = 'Poslata, 20. sep · 10:00–11:00, ponuda 4.500 RSD ukupno, 2 osobe, tvoja poruka: Donosim trake.';
 
   it.each(WINDOWS)('width %s dp, text scale %s: the command name and every word are the same sentence', async (width, scale) => {
+  // Only this dormant future-HITNO scenario opts in; V1 defaults to OFF.
+  process.env.EXPO_PUBLIC_URGENT = '1';
     mockWidth = width; mockScale = scale;
     // The task card says all of it as its own label: the command name, then every fact (one press, no value apart).
     await render(<TaskCard item={task()} onOpen={jest.fn()} />);
@@ -218,3 +220,10 @@ const titleWidth = (text: string, size: number, scale: number) => [...text].redu
     // A glyph that is not in the table is taken as wide as the widest, never as nothing.
     expect(textWidth('ß', 20)).toBeGreaterThanOrEqual(textWidth('W', 20));
   });
+
+// Never retain a dormant future-HITNO override beyond its test.
+const originalUrgentForV1Regression = process.env.EXPO_PUBLIC_URGENT;
+afterEach(() => {
+  if (originalUrgentForV1Regression === undefined) delete process.env.EXPO_PUBLIC_URGENT;
+  else process.env.EXPO_PUBLIC_URGENT = originalUrgentForV1Regression;
+});

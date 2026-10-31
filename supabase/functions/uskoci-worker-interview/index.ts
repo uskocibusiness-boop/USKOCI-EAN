@@ -26,7 +26,7 @@ import { withClassificationFeedback } from '../_shared/classificationReply.mjs';
 import { readWorkerServiceModeContext, workerServiceModeSchema, workerServiceModeInstruction, workerModeRequests, preserveWorkerServiceModes, recoverWorkerExistingIdentity } from '../_shared/workerServiceModeContext.mjs';
 import { guardWorkerAreaOutput } from '../_shared/workerAreaAdmission.mjs';
 import { workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas } from '../_shared/workerAreaResolver.mjs';
-import { buildWorkerFullTreeTaxonomyProposals, loadFullCatalogTree, runInBackground, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint, workerSkillsFingerprint } from '../_shared/backgroundTaxonomyArchitect.mjs';
+import { buildWorkerFullTreeTaxonomyProposals, runInBackground, captureTaxonomyHintsWithReceipt, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint, workerSkillsFingerprint } from '../_shared/backgroundTaxonomyArchitect.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
 const isLiveDualGemini = (): boolean =>
@@ -201,7 +201,7 @@ Administrative profile city is separate from work territory. The server activati
 The phone already showed the introduction, so do not repeat it. Lead proactively toward review without field names or a magic finish phrase. Count requested facts, not question marks: at most ONE per reply. Resolve routing ambiguity before optional details. If asked why a city, radius or schedule is needed, answer first and retain independent corrections. Understand typing mistakes; clarify only the important unclear value.
 Working-area questions concern ON_SITE work only. Use patch.areaRequests for a COMPLETE replacement of the desired area list, max five, omitting it when unchanged. COUNTRY with countryCode RS, query empty and radiusKm null means Cela Srbija. CITY with canonical nominative query and radiusKm null means work in that named locality, without inventing a travel radius. RADIUS requires a canonical city query and explicitly stated 1–200 kilometres. Novi Sad i Beograd means two CITY entries; Novi Sad i okolina needs the missing km question, not a default. Preserve areas the person has not removed when adding a city. Never ask for street, house number, home pin or GPS. Never generate coordinates, sourceRef or patch.workAreas: the server resolves areaRequests against the geocoder. Do not send legacy patch.location together with areaRequests. The review shows the complete resolved territory before saving.
 Vojvodina, Balkan and other region/cross-border scopes do not yet have verified matching boundaries. Explain that briefly and ask which Serbian cities (up to five) or whether all Serbia is acceptable. Never replace a region with a giant radius or silently narrow the person to one city. Requests outside Serbia need clarification; do not claim they were saved. Keep this explanation distinct from any missing calendar detail; ask at most one question in this reply.
-Reconcile the public biography with explicit corrections: when the person replaces a service, mode or working area, inspect the existing bio for a claim that this change makes obsolete. In the SAME patch, update only that affected claim using the person's stated facts, preserving unrelated introduction and limitations. For example, if bio says work throughout Vojvodina and the person now explicitly says only Novi Sad and up to 30 km, do not leave the old province-wide claim in bio. If the person merely chooses a temporary matching radius while still accepting work elsewhere, do not infer that broader real-world availability was withdrawn; ask only if the distinction matters. Do not rewrite a personal introduction simply because location changes. Omit unchanged fields means omit facts that remain true, not retain a contradiction created by the current change. Biography is optional and must not delay review. Never silently invent or impose one, and do not open a biography-choice or approval question when routing facts are ready. If the worker explicitly asks for a biography, draft 2-3 concise Serbian sentences from confirmed facts in patch.bio and show the draft; the single profile review owns its approval. Respect the worker's own text and explicit adjustments.
+Reconcile the public biography with explicit corrections: when the person replaces a service, mode or working area, inspect the existing bio for a claim that this change makes obsolete. In the SAME patch, update only that affected claim using the person's stated facts, preserving unrelated introduction and limitations. For example, if bio says work throughout Vojvodina and the person now explicitly says only Novi Sad and up to 30 km, do not leave the old province-wide claim in bio. If the person merely chooses a temporary matching radius while still accepting work elsewhere, do not infer that broader real-world availability was withdrawn; ask only if the distinction matters. Do not rewrite a personal introduction simply because location changes. Omit unchanged fields means omit facts that remain true, not retain a contradiction created by the current change. Biography is optional and must not delay review. Never silently invent or impose one. When routing facts are clear and the owned candidate has no biography, include ONE short declarative offer in assistantMessage: you can write a brief public profile description for the worker, using only confirmed facts, if they want. This is not another required interview question and must not delay the single review or block Save. If the worker explicitly asks or accepts the offer, draft 2-3 concise Serbian sentences in patch.bio from their stated offered services and relevant confirmed details. Do not invent experience, credentials, equipment, reliability, territory or promises. Show the proposed text in the same signed profile review; only the owner's review/Save approves it. Respect the worker's existing words, previous bio and explicit corrections.
 If the person says to je to, gotovo, sačuvaj or asks to finish, open no optional calendar questions. Proactively suggest a single profile review once routing facts are known; review owns explicit saving and shows missing requirements. Do not say saved, activated, verified or all complete. A finish-only turn has an empty patch. Calendar detail is not mandatory; never reconfirm unchanged hours or availableNow.
 The skills array is a COMPLETE replacement list, not additions. When adding a service, keep every existing offered service the person has not explicitly removed; return the complete desired skills list. When removing or correcting a service, change only what the person explicitly named and preserve the others. Merely not mentioning an existing service is not a withdrawal. Never infer an offered job from equipment, knowledge or a newly added related service. Existing tools and vehicles in the candidate are historical data: do not ask about them, propose patch.tools or patch.vehicles, clear them, or claim they were removed. Do not move a new equipment claim into bio as a substitute. This also applies when equipment is volunteered or the person requests an equipment edit; explain briefly that this interview cannot change it now, then continue with other clear changes. Existing values remain visible in the signed profile review because Save still writes the whole candidate. Historical equipment is preserved privately and is not part of the new review or new application evidence. Country must be explicitly known; no assumption from language. Use the structured areaRequests contract above for work territory. Biography is plain text, no contact data invented.
 Availability intent is a required provider-only check: availabilityChange is {kind: NONE|PATCH|CLARIFY, evidence: string}. Use NONE and empty evidence only when this turn requests no availability change. Use PATCH both for INITIAL stated working hours and for later changes, with a short verbatim quote copied from the owned USER history and a real patch.availability operation. Initial hours are a change from an empty calendar, never NONE. For Radnim danima od 15 do 19, vikendom ne radim with an empty calendar, add one null-ruleId AVAILABLE weekly rule targeting [1,2,3,4,5], 15:00–19:00; do not add weekend hours or ask again for the days/hours already supplied. For an incomplete request use CLARIFY with its exact USER quote and patch.availability=null: preserve the known days/start in conversation and ask only for the missing part. For 'radnim danima posle 16', ask 'Do koliko sati radnim danima?', never ask the days/start again or invent an end time. Keep independently useful service/area questions; a calendar clarification must not erase them. The prose and this intent are NOT a calendar change by themselves. Before returning, verify that every availability change acknowledged in assistantMessage has the matching ruleChanges/windowsUpsert/windowIdsRemove/timezone/availableNow operation. Never say changed or ready if the requested operation is absent.
@@ -214,7 +214,12 @@ No other fields, account IDs, task facts, publication actions or hidden tool com
 // instruction or a sentence containing a correction must still reach the model.
 function finishOnly(input: string): boolean {
   const normalized = input.normalize('NFKC').toLowerCase().trim().replace(/[.!?,…]+/g, ' ').replace(/\s+/g, ' ').trim();
-  return /^(?:to je to|to je sve|gotovo|gotovo to je sve|sačuvaj|sacuvaj|sačuvaj profil|sacuvaj profil|то је то|то је све|готово|сачувај|сачувај профил)$/.test(normalized);
+  // Thanks is natural conversation framing, not a second command or a correction.
+  // Remove only a complete, bounded greeting/farewell; exact finish intents remain
+  // anchored so "to je to, ali promenite..." reaches the normal interview.
+  const utterance = normalized.replace(/^(?:hvala(?: vam)?|хвала(?: вам)?)\s+/u, '')
+    .replace(/\s+(?:hvala(?: vam)?|хвала(?: вам)?)$/u, '');
+  return /^(?:to je to|to je sve|gotovo|gotovo to je sve|sačuvaj|sacuvaj|sačuvaj profil|sacuvaj profil|то је то|то је све|готово|сачувај|сачувај профил)$/.test(utterance);
 }
 
 export async function handleWorkerInterview(req: Request): Promise<Response> {
@@ -287,7 +292,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
   const dualGeminiActive = isLiveDualGemini();
   let pendingWorkerClarificationHint: any = null;
   if (dualGeminiActive) {
-    void loadFullCatalogTree((name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? req.signal, t ?? 4000), req.signal).catch(() => null);
+    // The BG builder loads a fresh complete snapshot only when needed. A
+    // speculative load on every message duplicates that RPC without saving I/O.
     try {
       pendingWorkerClarificationHint = await fetchUnconsumedClarificationHint(
         (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? req.signal, t ?? 2500),
@@ -490,7 +496,9 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
         let reviewHints = initialReviewHints;
         let output = preparedOutput;
         if (finishOnly(input.text) && ['ALLOW','CLARIFY'].includes(output.safety) && !dualGeminiActive) {
-          output={...output,assistantMessage:workerFinishReviewMessage(context.candidate?.skills,reviewHints,!!taxonomyCatalog)};
+          const proposedBio = Object.hasOwn(output.patch,'bio') ? output.patch.bio : context.candidate?.bio;
+          const mayOfferBio = typeof proposedBio !== 'string' || !proposedBio.trim();
+          output={...output,assistantMessage:workerFinishReviewMessage(context.candidate?.skills,reviewHints,!!taxonomyCatalog,mayOfferBio)};
         }
         if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW') && !dualGeminiActive) {
           const services=output.patch.skills ?? context.candidate.skills;
@@ -577,15 +585,17 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
                 if (stored.some((ok: boolean) => !ok)) console.info('WORKER_TAXONOMY_HINT_STORE', 'UNAVAILABLE');
               }
               if (built && built.proposals.length > 0 && devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
-                const ack = await rpc('rpc_taxonomy_capture_gemini_turn_hints_service', {
+                const status = await captureTaxonomyHintsWithReceipt(
+                  (name: string, args: Record<string,unknown>)=>rpc(name,args,bgAbort.signal,3500),{
                   p_account_id: account, p_conversation_id: input.conversationId,
                   p_client_request_id: input.clientRequestId,
                   p_turn_id: claim.turn.turnId, p_attempt_id: claim.turn.attemptId,
                   p_purpose: 'WORKER_CAPABILITY', p_catalog_version: built.catalogVersion,
                   p_proposals: built.proposals,
-                }, bgAbort.signal, 3500);
-                if (ack?.action !== 'HINT_CAPTURED' || ack?.authority !== 'NONE')
-                  console.info('WORKER_TAXONOMY_HINT_CAPTURE', 'RECEIPT_UNEXPECTED');
+                },Deno.env.get('USKOCI_TAXONOMY_CAPTURE_RECEIPT_READBACK_ENABLED')==='true');
+                if (status!=='ACKED' && status!=='HISTORICAL_CAPTURE_PRESENT')
+                  console.info('WORKER_TAXONOMY_HINT_CAPTURE',
+                    status==='UNEXPECTED_ACK'?'RECEIPT_UNEXPECTED':'UNAVAILABLE');
               }
             } catch { console.info('WORKER_TAXONOMY_HINT_CAPTURE', 'UNAVAILABLE'); } finally {
               clearTimeout(bgTimer);
@@ -596,15 +606,17 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
             devTaxonomyFlagP1('USKOCI_TAXONOMY_SHADOW_CAPTURE')) {
           const captureCatalogVersion = taxonomyCatalog.catalogVersion;
           try {
-            const ack=await measureAiPhase('WORKER_HINT_CAPTURE', () => rpc('rpc_taxonomy_capture_gemini_turn_hints_service',{
-              p_account_id:account,p_conversation_id:input.conversationId,
-              p_client_request_id:input.clientRequestId,
-              p_turn_id:claim.turn.turnId,p_attempt_id:claim.turn.attemptId,
-              p_purpose:'WORKER_CAPABILITY',p_catalog_version:captureCatalogVersion,
-              p_proposals:reviewHints,
-            },abort.signal,2500));
-            if (ack?.action!=='HINT_CAPTURED' || ack?.authority!=='NONE')
-              console.info('WORKER_TAXONOMY_HINT_CAPTURE','RECEIPT_UNEXPECTED');
+            const status=await measureAiPhase('WORKER_HINT_CAPTURE', () =>
+              captureTaxonomyHintsWithReceipt((name: string,args:Record<string,unknown>)=>rpc(name,args,abort.signal,2500),{
+                p_account_id:account,p_conversation_id:input.conversationId,
+                p_client_request_id:input.clientRequestId,
+                p_turn_id:claim.turn.turnId,p_attempt_id:claim.turn.attemptId,
+                p_purpose:'WORKER_CAPABILITY',p_catalog_version:captureCatalogVersion,
+                p_proposals:reviewHints,
+              },Deno.env.get('USKOCI_TAXONOMY_CAPTURE_RECEIPT_READBACK_ENABLED')==='true'));
+            if (status!=='ACKED' && status!=='HISTORICAL_CAPTURE_PRESENT')
+              console.info('WORKER_TAXONOMY_HINT_CAPTURE',
+                status==='UNEXPECTED_ACK'?'RECEIPT_UNEXPECTED':'UNAVAILABLE');
           } catch { console.info('WORKER_TAXONOMY_HINT_CAPTURE','UNAVAILABLE'); }
         }
         send('text_delta',{text:output.assistantMessage});

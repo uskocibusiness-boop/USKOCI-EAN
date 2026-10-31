@@ -74,9 +74,16 @@ function mapApplication(raw: any, options: { facts: 'optional' | 'required' } = 
   const version = Number(raw?.version ?? 0);
   const coveredSlots = Number(raw?.coveredSlots ?? 0);
 
-  if (!raw?.applicationId || !raw?.needId || currentNeedRevision < 1 || submittedNeedRevision < 1 || version < 1 || coveredSlots < 1 || amount <= 0) {
+  // PostgREST numeric fields can be number-like, but NaN/Infinity and fractional revisions/seats never become a valid card.
+  if (!raw?.applicationId || !raw?.needId || !Number.isFinite(amount) || amount <= 0
+    || !Number.isSafeInteger(currentNeedRevision) || currentNeedRevision < 1
+    || !Number.isSafeInteger(submittedNeedRevision) || submittedNeedRevision < 1
+    || !Number.isSafeInteger(version) || version < 1
+    || !Number.isSafeInteger(coveredSlots) || coveredSlots < 1) {
     throw new Error('MY_APPLICATIONS_INVALID_PROJECTION');
   }
+  if (raw.applicationPriceBasis != null && !['TOTAL', 'HOURLY'].includes(raw.applicationPriceBasis))
+    throw new Error('APPLICATION_PRICE_BASIS_INVALID');
   const facts = readTaskFacts(raw, options.facts === 'required');
   if (raw.calendarConflict !== undefined && typeof raw.calendarConflict !== 'boolean') throw new Error('MY_APPLICATIONS_CALENDAR_INVALID');
 
@@ -96,6 +103,7 @@ function mapApplication(raw: any, options: { facts: 'optional' | 'required' } = 
       prikaz: novac(amount),
     },
     pokrivaMesta: coveredSlots,
+    ...(raw.applicationPriceBasis == null ? {} : { osnovaCene: raw.applicationPriceBasis }),
     napomena: String(raw?.scopeNote ?? ''),
     // With the task's facts the card says what the task says: remote is "Na daljinu" (never a city), and the term is written the way the task card writes it,
     // end date and zone included. Without them (the whole-list read) it keeps its older wording.

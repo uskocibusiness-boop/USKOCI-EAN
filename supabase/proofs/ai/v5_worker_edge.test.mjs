@@ -118,7 +118,7 @@ function dualModeFixture({modes=['REMOTE'],handoff,evidence,quote,priorMode='ON_
    profileStatus:'ACTIVE',serviceModeContext:modeContext,
    candidate:{skills:[service],bio:'Prethodni opis.',availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},
    messages:[{role:'USER',body:userText},{role:'ASSISTANT',body:'ASSISTANT_ONLY_SCOPE_QUOTE'}]},
-  snapshot:{catalogVersion:7,catalogFingerprint:'a'.repeat(32),categories:[{
+  snapshot:{catalogVersion:7,catalogFingerprint:'a'.repeat(32),count:1,categories:[{
    categoryId,parentId:null,label:service,aliases:[],path:[service],isLeaf:true,modes:catalogModes}]},
   output:{assistantMessage:'Predlog izmene je u nacrtu.',safety:outputSafety,patch:{bio:'Dopunjen opis.'},serviceModeChangesJson:JSON.stringify(changes)},
   backgroundProvider:()=>backgroundStatus?new Response('PRIVATE_BG_PROVIDER_BODY',{status:backgroundStatus}):json({candidates:[{content:{parts:[{text:JSON.stringify({items:modes.map(mode=>({service,mode,
@@ -844,14 +844,19 @@ for(const change of ['add','remove'])test(`worker ${change} instruction keeps un
  assert.ok(prompt.includes("'Imam kombi' is equipment, NOT consent to transport or removals"));
 });
 
-for(const input of ['To je to.','Sačuvaj','Сачувај','Gotovo, to je sve!'])
+for(const input of ['To je to.','Sačuvaj','Сачувај','Gotovo, to je sve!','Hvala, to je to.','To je sve, hvala Vam!','Хвала, то је све.','То је то, хвала!'])
  test('finish request hands off to profile review without another availability question: '+input,async()=>{
   const output={assistantMessage:'Da li su tvoje radno vreme i dostupnost tačni?',safety:'ALLOW',patch:{tools:['Izmišljeni alat']}};
   const f=fixture({output}),es=await events(f,{text:input});
   assert.equal(es.at(-1).kind,'final');
   const applied=completions(f)[0].body.p_output;
   assert.deepEqual(applied.patch,{},'finish is not authorization for invented profile changes');
-  assert.equal(applied.assistantMessage,'Otvorite pregled profila. Tamo možete da dopunite podatke i potvrdite čuvanje.');
+  assert.equal(applied.assistantMessage,
+   'Otvorite pregled profila. Tamo možete da dopunite podatke i potvrdite čuvanje.'+
+   ' Ako želite, mogu da sastavim kratak opis Vašeg rada na osnovu potvrđenih podataka.'+
+   ' Opis nije uslov za pregled ili čuvanje.');
+  assert.ok(!applied.assistantMessage.includes('?'),'optional offer is a statement, not a new interview question');
+  assert.ok(!Object.hasOwn(applied.patch,'bio'),'finish must not silently invent a biography');
   assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),applied.assistantMessage);
   assert.ok(!es.some(e=>e.text?.includes('dostupnost')));
   assert.equal(providers(f).length,1,'no second paid model call to rewrite a reply');
@@ -860,6 +865,10 @@ for(const input of ['To je to.','Sačuvaj','Сачувај','Gotovo, to je sve!'
 test('finish handling does not swallow a correction or override a safety refusal',async()=>{
  const plain=fixture(),es=await events(plain,{text:'Nemoj još da sačuvaš.'});assert.equal(es.at(-1).kind,'final');
  assert.deepEqual(completions(plain)[0].body.p_output,plain.output);
+ const courtesy=fixture();
+ await events(courtesy,{text:'Hvala, to je to, ali želim da promenim uslugu.'});
+ assert.deepEqual(completions(courtesy)[0].body.p_output,courtesy.output,
+   'a polite correction must reach the actual provider, not be erased by finish-only');
  const equipment=fixture(),equipmentEvents=await events(equipment,{text:'Sačuvaj, ali dodaj da imam kolica.'});
  assert.equal(equipmentEvents.at(-1).kind,'final');
  assert.deepEqual(completions(equipment)[0].body.p_output.patch,equipment.output.patch);

@@ -23,7 +23,6 @@ function deferred<T>() { let resolve!: (value: T) => void; const promise = new P
 describe('canonical private location contract', () => {
   it('has one physical production reveal owner and no exact data in Agreement projection', () => {
     const dir = join(__dirname, '..');
-    expect(readFileSync(join(dir, 'productionAuthorityOverrides.ts'), 'utf8')).not.toContain('otkrijTacnuLokaciju');
     const baseline = readFileSync(join(dir, 'supabaseIzvor.ts'), 'utf8');
     expect(baseline).not.toContain('async otkrijTacnuLokaciju('); expect(baseline).toContain("'otkrijTacnuLokaciju'");
     const source = readFileSync(join(dir, 'contactClientService.ts'), 'utf8');

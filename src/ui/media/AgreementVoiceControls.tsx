@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import type { PorukaProjekcija } from '../../contracts/projections';
 import type { AgreementVoiceController } from '../../hooks/useAgreementVoice';
+import { voiceClock } from '../../features/voiceMessages/voiceCopy';
 import { Press } from '../Press';
 import { T } from '../Text';
 import { Glyph } from '../system/Glyph';
@@ -11,10 +12,8 @@ import { sys } from '../system/tokens';
 import { usePressLift } from '../system/usePressLift';
 import { useLayoutClass } from '../system/textScale';
 
-export function voiceTime(ms: number): string {
-  const seconds = Math.max(0, Math.floor(ms / 1000));
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
-}
+// One formatter for the voice workflow. The shared owner rejects NaN/Infinity and negative mock/provider values.
+export const voiceTime = voiceClock;
 function Action({ label, onPress, disabled = false, primary = false }: {
   label: string; onPress(): void; disabled?: boolean; primary?: boolean;
 }) {
@@ -150,12 +149,24 @@ export function AgreementVoicePanel({ voice, writable }: { voice: AgreementVoice
     </View> : null}
     {state.error ? <T variant="note" tone="danger" accessibilityLiveRegion="polite">{state.error.message}</T> : null}
     {voice.interactionError ? <T variant="note" tone="danger" accessibilityLiveRegion="polite">{voice.interactionError}</T> : null}
+    {state.unresolved.map(item => <View style={s.preview} key={item.ref.clientRequestId}>
+      <T variant="bodyStrong">Nepotvrđeno slanje glasovne poruke</T>
+      <T variant="note" tone="muted">{item.state === 'STAGED' ? 'Snimak čeka obradu na serveru.'
+        : item.state === 'PROCESSING' ? 'Snimak se još obrađuje.'
+          : item.state === 'ABSENT' ? 'Server još ne potvrđuje ovaj pokušaj. Proveri isti snimak.'
+            : 'Stanje ranijeg snimka trenutno nije provereno.'}</T>
+      <View style={s.row}>
+        <Action label="Proveri stanje snimka" disabled={state.recoveryBusy} onPress={() => { void voice.refreshRecovery(); }} />
+        <Action label="Otkaži nepotvrđeni snimak" disabled={state.recoveryBusy}
+          onPress={() => { void voice.cancelUnresolved(item.ref); }} />
+      </View>
+    </View>)}
     {state.recovered.map(item => <View style={s.preview} key={item.ref.clientRequestId}>
       <T variant="bodyStrong">Sačuvan snimak · {voiceTime(item.durationMs)}</T>
       <T variant="note" tone="muted">Snimak je sačuvan, ali još nije poslat.</T>
       <View style={s.row}>
-        <Action label="Odbaci sačuvan snimak" onPress={() => { void voice.discardRecovered(item.ref); }} />
-        {writable ? <Action label="Pošalji sačuvan snimak" primary onPress={() => { void voice.sendRecovered(item.ref); }} /> : null}
+        <Action label="Odbaci sačuvan snimak" disabled={state.recoveryBusy} onPress={() => { void voice.discardRecovered(item.ref); }} />
+        {writable ? <Action label="Pošalji sačuvan snimak" primary disabled={state.recoveryBusy} onPress={() => { void voice.sendRecovered(item.ref); }} /> : null}
       </View>
     </View>)}
   </View>;

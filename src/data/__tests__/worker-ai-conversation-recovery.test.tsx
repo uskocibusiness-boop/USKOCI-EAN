@@ -41,6 +41,7 @@ jest.mock('../../ui/Text',()=>({T:'T'}));
 jest.mock('../../ui/v2/V2Action',()=>({V2Action:'Action'}));
 import Screen from '../../app/(app)/profil/razgovor';
 import type { WorkerAiProfile } from '../workerAiClientService';
+import type { WorkerArea } from '../../contracts/workerAreas';
 import { ConfirmSheet } from '../../ui/system/ConfirmSheet';
 import { ActionSheet } from '../../ui/system/ActionSheet';
 const intent=()=>({accountId:A,conversationId:C,clientRequestId:K});
@@ -153,6 +154,60 @@ it('keeps partial city data out of the chat and never starts classification or a
  mockApi.read.mockResolvedValue(ok({...snapshot(),candidate:{...candidate(),skills:[],location:{...candidate().location,city:'Novi Sad'}}}));
  await render();expect(shell().props.card(false)).toBeNull();
  expect(shell().props.footerAction.props.kind).toBe('secondary');expect(mockApi.prepare).not.toHaveBeenCalled();
+});
+const areaOnlyCases:WorkerArea[]=[
+ {kind:'COUNTRY',countryCode:'RS',label:'Cela Srbija',city:null,sourceRef:null,latitude:null,longitude:null,radiusKm:null},
+ {kind:'CITY',countryCode:'RS',label:'Novi Sad',city:'Novi Sad',sourceRef:'osm:relation:100',latitude:45.27,longitude:19.83,radiusKm:null},
+ {kind:'RADIUS',countryCode:'RS',label:'Novi Sad · do 25 km',city:'Novi Sad',sourceRef:'osm:relation:100',latitude:45.27,longitude:19.83,radiusKm:25},
+];
+it.each(areaOnlyCases)('a $kind-only draft offers a quiet review entry, not completion or automatic Save',async area=>{
+ const profile={...candidate(),skills:[],workAreas:[area]};
+ // Exercise the supported decoded shape, including COUNTRY without a legacy city.
+ expect(jest.requireActual('../workerAiClientService').decodeWorkerAiProfile(profile)).toEqual(profile);
+ mockApi.read.mockResolvedValue(ok({...snapshot(),candidate:profile}));
+ mockApi.prepare.mockResolvedValue({ok:false,kod:'WORKER_AI_REVIEW_REQUIRED',poruka:'Pregled još nije spreman.'});
+ await render();
+ expect(shell().props.card(false)).toBeNull();expect(shell().props.closed).toBe(false);
+ expect(shell().props.welcome).toBe('Dobar dan! Šta želite da dopunite? 🧡');
+ expect(shell().props.showWelcomeArt).toBe(false);expect(shell().props.canEdit).toBe(true);
+ const reviewAction=shell().props.footerAction;
+ expect(reviewAction).toBeDefined();expect(reviewAction.props.kind).toBe('secondary');
+ expect(reviewAction.props.disabled).toBe(false);
+ expect(mockApi.prepare).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+ expect(mockApi.patch).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
+ await act(async()=>shell().props.onChange('Još nisam poslao koju uslugu nudim.'));
+ await act(async()=>reviewAction.props.onPress());
+ expect(mockApi.prepare).toHaveBeenCalledWith(C,0,false);
+ expect(shell().props.value).toBe('Još nisam poslao koju uslugu nudim.');
+ expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.patch).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
+});
+it.each([undefined,[]])('empty work areas (%p) and legacy equipment do not create a review entry',async workAreas=>{
+ mockApi.read.mockResolvedValue(ok({...snapshot(),candidate:{...candidate(),skills:[],tools:['Bušilica'],vehicles:['Kombi'],
+  ...(workAreas===undefined?{}:{workAreas})}}));
+ await render();expect(shell().props.footerAction).toBeUndefined();expect(shell().props.showWelcomeArt).toBe(true);
+ expect(mockApi.prepare).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
+});
+it.each(['PROCESSING','UNKNOWN_OUTCOME'])('an area-only draft keeps the %s turn fence before review',async state=>{
+ mockApi.read.mockResolvedValue(ok({...snapshot(turn(state)),candidate:{...candidate(),skills:[],workAreas:[areaOnlyCases[0]]}}));
+ await render();const reviewAction=shell().props.footerAction;
+ expect(reviewAction).toBeDefined();expect(reviewAction.props.kind).toBe('secondary');expect(reviewAction.props.disabled).toBe(true);
+ await act(async()=>reviewAction.props.onPress());
+ expect(mockApi.prepare).not.toHaveBeenCalled();expect(mockApi.save).not.toHaveBeenCalled();
+});
+it.each([false,true])('an area-only draft respects the server review refusal for activate=%p',async activate=>{
+ const data={...snapshot(),candidate:{...candidate(),skills:[],workAreas:[areaOnlyCases[0]]}};
+ const frozen={schemaVersion:'WORKER_PROFILE_V1',reviewId:K,conversationId:C,accountId:A,profileId:B,
+  revision:0,profile:data.candidate,activate,missingRequired:['Veštine'],canAccept:false,
+  expiresAt:new Date(Date.now()+60_000).toISOString(),displayedContentDigest:'a'.repeat(64)};
+ mockApi.prepare.mockResolvedValue(ok(frozen));mockApi.read.mockResolvedValue(ok({...data,review:frozen}));
+ await render();expect(shell().props.footerAction.props.kind).toBe('secondary');
+ await act(async()=>shell().props.footerAction.props.onPress());
+ expect(mockApi.prepare).toHaveBeenCalledWith(C,0,activate);
+ expect(tree.root.findByType('Review' as any).props.review).toBe(frozen);
+ const label=activate?'Sačuvaj i aktiviraj profil':'Sačuvaj profil';
+ expect(action(label).props.disabled).toBe(true);await click(label);
+ expect(mockApi.save).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+ expect(mockApi.patch).not.toHaveBeenCalled();
 });
 it('duplicate active events preserve the worker chat, typed draft and in-flight answer without another read',async()=>{
  const sending=deferred();mockApi.send.mockReturnValueOnce(sending.promise);

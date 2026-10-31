@@ -114,6 +114,8 @@ describe('the groups by phase', () => {
  });
 
  test('the group says the state, so the card does not wear the chip a second time, and it still says its state aloud and keeps HITNO', async () => {
+  // Only this dormant future-HITNO scenario opts in; V1 defaults to OFF.
+  process.env.EXPO_PUBLIC_URGENT = '1';
   rows = [row('choosing', { stanje: 'CEKA_PRIJAVE', brojPrijava: 3, brojPrijavaZaIzbor: 3 }),
    row('urgent', { stanje: 'OBJAVLJENA', urgency: { level: 'HITNO', expiresAt: '2099-01-01T00:00:00Z' } })];
   await render();
@@ -474,4 +476,11 @@ test('a closed task whose ending was not carried, and an archived one, get no ch
  expect(cards()).toHaveLength(2);
  expect(chips()).toHaveLength(0);
  expect(texts()).toContain('Zadatak je zatvoren.'); expect(texts()).toContain('Zadatak je u arhivi.'); expect(words()).not.toContain('Zatvoren');
+});
+
+// Never retain a dormant future-HITNO override beyond its test.
+const originalUrgentForV1Regression = process.env.EXPO_PUBLIC_URGENT;
+afterEach(() => {
+  if (originalUrgentForV1Regression === undefined) delete process.env.EXPO_PUBLIC_URGENT;
+  else process.env.EXPO_PUBLIC_URGENT = originalUrgentForV1Regression;
 });

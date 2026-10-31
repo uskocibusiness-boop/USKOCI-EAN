@@ -100,7 +100,7 @@ describe('the group "Ulaz i prijava na nalog"', () => {
     expect(inputs()).toEqual(['Email', 'Lozinka']); expect(text()).toContain('Nastavi tamo gde si stao.'); expect(text()).toContain('Zaboravljena lozinka?');
     await exit();
     await pressHost('Galerija: Ulaz: registracija');
-    expect(inputs()).toEqual(['Ime', 'Prezime', 'Grad', 'Email', 'Lozinka']); expect(text()).toContain('Tražiš pomoć'); expect(text()).toContain('Najmanje 6 znakova.');
+    expect(inputs()).toEqual(['Ime', 'Prezime', 'Email', 'Lozinka']); expect(text()).toContain('Tražiš pomoć'); expect(text()).toContain('Najmanje 6 znakova.');
     await exit();
     await pressHost('Galerija: Ulaz: greške u poljima (prijava)');
     expect(text()).toContain('Unesi email.'); expect(text()).toContain('Unesi lozinku.');

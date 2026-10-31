@@ -33,7 +33,7 @@ jest.mock('phosphor-react-native', () => ({ CaretRight: 'CaretRight', CaretDown:
 import { TaskCard, CARD_PRESS_SCALE } from '../../ui/v2/TaskCard';
 import { TaskAgeContext } from '../../ui/v2/discovery/taskAge';
 import { DistanceFromContext } from '../../ui/v2/discovery/taskDistance';
-import { CardPlaces, ownerNext, placesText, scheduleConfirmed, taskStatus } from '../../ui/v2/TaskFace';
+import { ownerNext, placesText, scheduleConfirmed, taskStatus } from '../../ui/v2/TaskFace';
 
 const needs = (patch: Partial<NeedDetailProjection['zahtevi']> = {}): NeedDetailProjection['zahtevi'] => ({ vestine: [], alati: [], vozila: [], dozvole: [],
   bitniUslovi: null, iskustvoGodina: null, potvrdjenIdentitet: false, ...patch });
@@ -221,13 +221,10 @@ describe('the places and the person', () => {
     expect(tree.root.findAll(node => node.type === VIEW && node.props.testID === 'task-face-foot')).toHaveLength(0);
   });
 
-  it('retains the full audience-specific count in the shared component used by the composer and preview', async () => {
+  it('retains full audience-specific capacity wording', () => {
     const places = { ukupno: 3, popunjeno: 1, preostalo: 2, udeo: 1 / 3 };
-    await render(<CardPlaces places={places} audience="worker" />);
-    expect(texts()).toEqual(['Još 2 od 3 mesta']);
-    expect(placesText(places, 'worker').spoken).toBe('Još 2 od 3 mesta');
-    await act(async () => tree.update(<CardPlaces places={places} audience="owner" />));
-    expect(texts()).toEqual(['1/3 popunjeno']);
+    expect(placesText(places, 'worker')).toEqual({ text: 'Još 2 od 3 mesta', spoken: 'Još 2 od 3 mesta' });
+    expect(placesText(places, 'owner')).toEqual({ text: '1/3 popunjeno', spoken: '1 od 3 mesta popunjeno' });
   });
 
   it('show the owner the progress on a task of mine met in discovery, with no person', async () => {
@@ -426,6 +423,8 @@ describe('what this account is to the task, and how far it is', () => {
 describe('what a screen reader hears', () => {
   // The card is heard once: its command name, then every fact it shows in order. Nothing inside it is a stop of its own.
   it('is one sentence after the command name, in the order the face is drawn', async () => {
+  // Only this dormant future-HITNO scenario opts in; V1 defaults to OFF.
+  process.env.EXPO_PUBLIC_URGENT = '1';
     await render(<TaskCard item={task({ urgency: LATER, detalji: detail({}, { vozila: ['Kombi'] }) })} relation="APPLIED" onOpen={jest.fn()} />);
     const [card] = presses();
     expect(card.props.accessibilityLabel).toBe('Otvori zadatak Farbanje dnevne sobe. HITNO, Prijava poslata, Budžet 5.500 RSD ukupno, Liman, Novi Sad, 24. sep · 17:00, '
@@ -435,6 +434,8 @@ describe('what a screen reader hears', () => {
   });
 
   it('has no stop of its own inside: the whole face sits under a subtree hidden from assistive technology', async () => {
+  // Opt in only to the dormant HITNO behavior this specific assertion verifies.
+  process.env.EXPO_PUBLIC_URGENT = '1';
     await render(<TaskCard item={task({ urgency: LATER })} onOpen={jest.fn()} />);
     const [card] = presses();
     const hidden = (node: ReactTestInstance): boolean => node !== card && (node.props.importantForAccessibility === 'no-hide-descendants'
@@ -483,4 +484,17 @@ describe('card interaction ownership', () => {
     expect(presses()).toHaveLength(1);
     expect(presses()[0].props.accessibilityLabel).toContain('Farbanje dnevne sobe');
   });
+});
+
+it('keeps the complete hourly unit readable at larger text', async () => {
+  mockScale = 1.3;
+  await render(<TaskCard item={task({ osnovaCene: 'HOURLY' })} onOpen={jest.fn()} />);
+  expect(textNode('po osobi po satu').props.numberOfLines).toBeUndefined();
+});
+
+// Never retain a dormant future-HITNO override beyond its test.
+const originalUrgentForV1Regression = process.env.EXPO_PUBLIC_URGENT;
+afterEach(() => {
+  if (originalUrgentForV1Regression === undefined) delete process.env.EXPO_PUBLIC_URGENT;
+  else process.env.EXPO_PUBLIC_URGENT = originalUrgentForV1Regression;
 });

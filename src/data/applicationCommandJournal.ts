@@ -8,7 +8,7 @@ import { calendarInstant } from '../lib/calendarTime';
  * remounted or cold-restored composer can replay the same rpc_submit_response
  * command instead of allocating a new key. It stores no server receipt and no
  * cross-account state; the owner's own offer lives only on the owner's device. */
-export type ApplicationCommandRecord = Readonly<{ version: 1; accountId: string; needId: string; command: PodnesiPrijavuKomanda }>;
+export type ApplicationCommandRecord = Readonly<{ version: 1; accountId: string; needId: string; applicationPriceBasis?: 'TOTAL' | 'HOURLY'; command: PodnesiPrijavuKomanda }>;
 export type ApplicationCommandLoad = { state: 'ABSENT' } | { state: 'PRESENT'; record: ApplicationCommandRecord } | { state: 'CORRUPT' };
 
 const commandKeys = ['clientRequestId', 'potrebaId', 'potrebaRevizija', 'radnikProfilId', 'pokrivenaMesta', 'cenaRsd',
@@ -28,7 +28,8 @@ function queue<T>(key: string, work: () => Promise<T>): Promise<T> {
 export function parseApplicationCommand(raw: string, accountId: string, needId: string): ApplicationCommandRecord {
   if (raw.length > 6000) throw new Error('APPLICATION_COMMAND_JOURNAL_INVALID');
   const value = record(JSON.parse(raw)), command = record(value?.command);
-  if (!value || Object.keys(value).length !== 4 || value.version !== 1 || !accountKey(accountId) || value.accountId !== accountId
+  if (!value || Object.keys(value).some(key => !['version', 'accountId', 'needId', 'command', 'applicationPriceBasis'].includes(key))
+    || (value.applicationPriceBasis !== undefined && value.applicationPriceBasis !== 'TOTAL' && value.applicationPriceBasis !== 'HOURLY') || value.version !== 1 || !accountKey(accountId) || value.accountId !== accountId
     || !uuid(needId) || value.needId !== needId || !command || Object.keys(command).length !== commandKeys.length
     || commandKeys.some(key => !Object.hasOwn(command, key)) || !requestKey(command.clientRequestId)
     || !uuid(command.potrebaId) || command.potrebaId.toLowerCase() !== needId.toLowerCase() || !positiveInteger(command.potrebaRevizija)
@@ -37,7 +38,7 @@ export function parseApplicationCommand(raw: string, accountId: string, needId: 
     || (command.napomena !== null && (typeof command.napomena !== 'string' || command.napomena.length > 4000))) {
     throw new Error('APPLICATION_COMMAND_JOURNAL_INVALID');
   }
-  return { version: 1, accountId, needId, command: Object.freeze({
+  return { version: 1, accountId, needId, ...(value.applicationPriceBasis === undefined ? {} : { applicationPriceBasis: value.applicationPriceBasis }), command: Object.freeze({
     clientRequestId: command.clientRequestId, potrebaId: command.potrebaId, potrebaRevizija: command.potrebaRevizija,
     radnikProfilId: command.radnikProfilId, pokrivenaMesta: command.pokrivenaMesta, cenaRsd: command.cenaRsd,
     predlozeniPocetak: command.predlozeniPocetak, predlozeniKraj: command.predlozeniKraj, napomena: command.napomena,
@@ -66,7 +67,8 @@ export const applicationCommandJournal = {
       if (old.state === 'CORRUPT') throw new Error('APPLICATION_COMMAND_JOURNAL_INVALID');
       if (old.state === 'PRESENT') {
         if (old.record.command.clientRequestId !== next.command.clientRequestId) throw new Error('APPLICATION_COMMAND_UNRESOLVED');
-        if (commandKeys.some(key => old.record.command[key] !== next.command[key])) throw new Error('APPLICATION_COMMAND_PAYLOAD_CHANGED');
+        if (commandKeys.some(key => old.record.command[key] !== next.command[key])
+          || (old.record.applicationPriceBasis ?? 'TOTAL') !== (next.applicationPriceBasis ?? 'TOTAL')) throw new Error('APPLICATION_COMMAND_PAYLOAD_CHANGED');
       }
       await AsyncStorage.setItem(storageKey(next.accountId, next.needId), JSON.stringify(next));
     });

@@ -10,6 +10,7 @@ import { publishedTaskRoute, rememberPublication } from '../../data/publicationH
 import { readIntakeReviewReturn } from '../../data/intakeReviewReturn';
 import { rememberAiCorrection, taskCorrectionTarget, type AiCorrectionTarget } from '../../data/aiCorrectionIntent';
 import { aiNeedV2Izvor, izvor } from '../../data';
+import { readIntakeLifecycle } from '../../data/aiOpenIntakes';
 import { factLabel, priceAmountRowValue } from '../../data/aiNeedV2Ui';
 import { needRequirementRows } from '../../data/needDetailPresentation';
 import type { NeedFactV2Key } from '../../contracts/needFactsV2';
@@ -54,7 +55,7 @@ import type { PartPencil } from '../../ui/objava/EditPencil';
 import { reviewAsTask } from '../../ui/objava/reviewAsTask';
 import { useReviewPerson } from '../../ui/objava/useReviewPerson';
 
-type Snapshot = { review: AiTaskReviewEnvelope; command: AiTaskPublicationCommand | null; publishedReadback: boolean; locationConflict: boolean;
+type Snapshot = { review: AiTaskReviewEnvelope | null; abandoned?: boolean; command: AiTaskPublicationCommand | null; publishedReadback: boolean; locationConflict: boolean;
   /** The task this review is bound to, when it reads as a private draft that was never published: then the review is its FIRST publication. */
   draftNeed: PotrebaProjekcija | null;
   /** The bound task is (or, once accepted, was) a private draft, so the words are those of a first publication, not of an edit. */
@@ -79,6 +80,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const accountId = user?.id;
   const focus = useRef<object | null>(null), navigating = useRef(false);
   const pending = useRef<{ review: AiTaskReviewEnvelope; id: string } | null>(null);
+  const pendingAbandon = useRef<string | null>(null);
   const [locationEditor, setLocationEditor] = useState<NeedLocationReview | null>(null);
   // What the task does not say yet is named in one row ("Dodaj još podataka"), and that row opens it. Nothing is hidden;
   // a wall of "Nema navedenih stavki" is just not a wall.
@@ -121,6 +123,19 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     const current = () => scope !== null && scope === focus.current && !!accountId
       && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
     if (!conversationId || !current()) return changed();
+    const abandoned = (): Ishod<Snapshot> => ({ ok: true, podatak: { review: null, command: null,
+      abandoned: true, publishedReadback: false, locationConflict: false, draftNeed: null, firstPublication: false } });
+    // An uncertain abandon owns a different outcome from publication. Read the
+    // same conversation before touching the immutable review or preparing another.
+    let lifecycle: Awaited<ReturnType<typeof readIntakeLifecycle>> | null = null;
+    if (pendingAbandon.current === conversationId) {
+      lifecycle = await readIntakeLifecycle(conversationId);
+      if (!current()) return changed();
+      if (lifecycle.status === 'ABANDONED' && lifecycle.boundNeedId === null) return abandoned();
+      // OPEN permits a fresh explicit choice; this read never repeats abandonment.
+      // A completed/bound conversation must recover its actual review command.
+      pendingAbandon.current = null;
+    }
     const latest = pending.current
       ? await aiTaskReviewClientService.read(pending.current.review.reviewId)
       : await aiTaskReviewClientService.readLatest(conversationId);
@@ -138,6 +153,16 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       return { ok: true, podatak: { review, command, publishedReadback, locationConflict: false, draftNeed: null,
         firstPublication: !!review.draftId && firstPublicationOf.current === review.draftId } };
     }
+    // Also check after remount/refocus: an in-memory pending action can be lost,
+    // while the server's abandoned state survives. Never prepare a closed intake.
+    lifecycle ??= await readIntakeLifecycle(conversationId);
+    if (!current()) return changed();
+    if (lifecycle.status === 'ABANDONED') {
+      return lifecycle.boundNeedId === null ? abandoned() : { ok: false, kod: 'AI_INTAKE_STATE_UNCONFIRMED',
+        poruka: 'Stanje razgovora nije potvrđeno. Proveri ponovo.' };
+    }
+    if (lifecycle.status === 'COMPLETED') return { ok: false,
+      kod: 'AI_INTAKE_STATE_UNCONFIRMED', poruka: 'Razgovor više nije otvoren. Njegov sačuvani ishod još nije potvrđen. Proveri ponovo.' };
     let locationConflict = false;
     const savedReview = latest.podatak?.review;
     let location = locationProposal.current ?? (savedReview?.location
@@ -216,6 +241,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
     && !lifecycleNow.current;
   const navigate = (fn: () => void) => { if (!current() || navigating.current) return; navigating.current = true; fn(); };
   const back = () => navigate(() => {
+    if (snapshot?.abandoned) { router.replace('/'); return; }
     if (!conversationId) { router.replace('/nova'); return; }
     // Keep the original route key: adding the newly assigned conversationId remounted a new
     // intake and erased its unsent text. Direct/restored reviews still open the canonical ID.
@@ -321,7 +347,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
       || (command.evaluation?.kind === 'DECISION' && command.evaluation.decision.outcome !== 'ALLOW'));
     // The canonical ACCEPTED state has no evaluation dispatch;145 also blocks
     // any later claim for this immutable unsupported review. Unknown stays read-only.
-    const unavailableEditExit = !!unavailableIdentityFact && command.authoritative === true
+    // An accepted private draft with a still-unresolved signed category must
+    // open the existing edit conversation, not offer an unsupported publish.
+    const unavailableEditExit = (!!unavailableIdentityFact || classificationPending)
+      && command.authoritative === true
       && (command.state === 'EVALUATED' || command.state === 'ACCEPTED');
     if (!supportedEditExit && !unavailableEditExit && !commandMapIncomplete) return;
     await editor.save(async () => {
@@ -379,10 +408,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
         if (!mine || busyNow.current || !canAct()) return;
         // The sheet waits on the command it started and shows no outcome of its own: the bar and the next screen do.
         return editor.save(async () => {
+          pendingAbandon.current = id;
           const result = await aiNeedV2Izvor.abandonConversation(id);
           if (!current()) return changed();
           if (!result.ok) return result;
-          poruka.show({ text: 'Nacrt je obrisan.', confirmed: true });
+          pendingAbandon.current = null;
+          poruka.show({ text: 'Razgovor je napušten.', confirmed: true });
           navigate(() => router.replace('/'));
           return { ok: true, podatak: snapshot! };
         });
@@ -448,7 +479,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // would be refused by the very question it asked.
   const screenBusy = editor.busy || editor.loading || editor.uncertain || opening;
   const disabled = screenBusy || lifecycleActive;
-  const publishBlocked = !review || disabled || publishedEditUnavailable || !review.canAccept || !locationReadiness.ready || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
+  // R04: saving a private DRAFT is separate from publishing for matching.
+  // A signed but unconfirmed semantic comparison must not appear publish-ready.
+  const classificationPending = !!review?.classificationState && review.classificationState!=='READY';
+  const publishBlocked = !review || disabled || publishedEditUnavailable || !review.canAccept || classificationPending || !locationReadiness.ready || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
   // "Loading = the write this action started": only the publish spins the publish button; while a draft or a fact saves
   // it simply waits grey.
   const publishWorking = editor.busy && publishing;
@@ -457,7 +491,8 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // One line ABOVE the publish button, in the foot, ONLY when the button is grey: the first thing in its way, short (the full list is "Još treba"
   // above). A grey button always says why, and the reason stands over it, not under it, where it read as the next thing. A button that can be pressed
   // says what it does by its name and has no sentence over it ("Objavljuješ ovu verziju zadatka." said what "Objavi zadatak" is; the owner, 8 Oct 2026).
-  const caption = todos.length || unavailableIdentityFact ? 'Prvo uradi ono što piše pod „Još treba“.' : null;
+  const caption = todos.length || unavailableIdentityFact ? 'Prvo uradi ono što piše pod „Još treba“.' :
+    classificationPending ? 'Potvrdite značenje usluge pre objave. Nacrt možete da sačuvate.' : null;
   // A command that fails ticks once with the failure pattern (haptics rule R5), whether it ends in a refusal or in an outcome not known.
   const failedWith = useRef<string | null>(null);
   useEffect(() => { if (editor.error && editor.error !== failedWith.current) tick('error'); failedWith.current = editor.error; }, [editor.error]);
@@ -484,6 +519,12 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const factName = (key: NeedFactV2Key) => key === 'need.people_needed' ? 'Broj ljudi' : factLabel(key);
   /** What is shown at the top of the screen after a failure about the place is said where it can be read (a note, and the screen goes up to it). */
   const showAtTop = () => scroll.current?.scrollTo({ y: 0, animated: !reduced });
+
+  if (snapshot?.abandoned) return <SafeAreaView edges={['top', 'bottom']} style={frame.canvas}>
+    <StateView title="Razgovor je napušten." art="check"
+      body="Ovaj razgovor više ne možeš da nastaviš. Njegovi podaci nisu trajno obrisani."
+      primary={{ label: 'Na početnu', onPress: () => navigate(() => router.replace('/')) }} />
+  </SafeAreaView>;
 
   // The moment replaces the whole review: a finished publication has nothing left to change here. It continues to the task's own
   // overview by itself, on a tap and on Android Back (see `PublishedMoment`); this route's own fence decides whether it may.
@@ -558,9 +599,10 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   const moreFacts = command ? [] : publicFacts.filter(item => !!item.id && MORE_LISTS.includes(item.key) && blankList(item));
   // Which green action a stored command offers: its resume, or the way back to the conversation. With neither, the check is the one way forward
   // and wears the green itself.
-  const resumeShown = resumableCommand && locationReadiness.ready && !unavailableIdentityFact;
+  const resumeShown = resumableCommand && locationReadiness.ready && !unavailableIdentityFact && !classificationPending;
   const editShown = !!command && ((command.state === 'EVALUATED' && (evaluation?.kind === 'NOT_READY' || (!!outcome && outcome !== 'ALLOW')))
-    || (!!unavailableIdentityFact && command.authoritative === true && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')) || commandMapIncomplete);
+    || ((!!unavailableIdentityFact || classificationPending) && command.authoritative === true
+      && (command.state === 'EVALUATED' || command.state === 'ACCEPTED')) || commandMapIncomplete);
   // The table's three words (`system/outcomeCopy`): what is not known is looked at ("Proveri", one button), what may be old is read again
   // ("Osveži"). A screen reader still hears what is read.
   const check = (label: string, primary = false, spoken?: string) => <V2Action label={label} accessibilityLabel={spoken} style={primary ? brandAction : undefined}
@@ -633,6 +675,13 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
           {snapshot?.locationConflict ? <Surface kind="note" tone="warn"><T accessibilityRole="alert" style={s.warnText}>
             Mesto je promenjeno posle prethodnog pregleda. Prikazano je trenutno mesto; pregledaj ga ili izmeni pre objave.
           </T></Surface> : null}
+          {review.semanticReviewCandidates?.length ? <Surface kind="note">
+            <T accessibilityRole="header" variant="bodyStrong">Proverite predlog postojeće usluge</T>
+            {review.semanticReviewCandidates.map(item=><T testID="need-semantic-review-proposal" key={item.service+'|'+item.mode} variant="note">
+              {item.service} → {item.categoryLabel} ({item.mode==='ON_SITE'?'na lokaciji':'na daljinu'}). {item.reason}
+            </T>)}
+            <T accessibilityRole="alert" variant="note" tone="muted">Ovo je AI predlog, ne potvrđena kategorija. Objavljivanje i povezivanje čekaju proveru. Za ispravku se vratite u isti razgovor; privatan nacrt možete da sačuvate.</T>
+          </Surface> : null}
           {/* The task detail as it is published: Airbnb-style clean preview with zero redundant intermediate cards. */}
           <ReviewDetail need={need} parts={parts} person={reviewer} knownPeopleCount={knownPeopleCount}
             deadlineDecision={process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1 === 'true'

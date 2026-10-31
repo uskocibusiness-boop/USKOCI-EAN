@@ -18,6 +18,8 @@ export type DiscoveryV1PresentationActions = {
   onShowPlace: () => void;
   onShowAll: () => void;
   onNextPage: () => void;
+  /** Retries the MAP read without replacing the current PAGE or its filters. */
+  onRetryMap?: () => void;
   onSearchDraft?: (draft: SearchDraft, mapArea: PublicBounds | null) => void;
   onNextSearchPlaces?: () => void;
   /** The list shows rows `first` to `last`: their optional details are read when they are outside the window read so far. */
@@ -71,6 +73,7 @@ export function discoveryV1PresentationBridgeModel(snapshot: DiscoveryV1ScreenSn
     p6Seam: {
       map: { markers: snapshot.mapMarkers, selectedKey: selectedMarkerKey, selectedTask, wholeBounds: snapshot.mapWholeBounds,
         onSelect: actions.onSelectMarker, ...(actions.onViewportSettled ? { onViewportSettled: actions.onViewportSettled } : {}) },
+      ...(actions.onRetryMap ? { mapRead: { ...snapshot.mapRead, onRetry: actions.onRetryMap } } : {}),
       peek,
       counts: snapshot.counts,
       // Whole-filter facts of every published task the server knows (not of the loaded page): which quick chips have anything to say.

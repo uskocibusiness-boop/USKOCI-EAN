@@ -36,6 +36,7 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
   const { user, accountRevision } = useSesija(), accountId = user?.id;
   const confirmation = useConfirmSheet(), closeConfirmation = confirmation.close;
   const questionGeneration = useRef(0);
+  const focusLifetime = useRef({ epoch: 0, active: false });
   const [, redrawQuestion] = useState(0);
   const retireConfirmation = useCallback(() => {
     questionGeneration.current++; closeConfirmation(); redrawQuestion(value => value + 1);
@@ -45,8 +46,17 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
     accountId: string; accountRevision: number; targetAccountId: string; revision: number; blocked: boolean; id: string;
   } | null>(null);
   // A question belongs to the account, context and read that displayed it, including when the screen is retained on blur.
-  useFocusEffect(useCallback(() => () => retireConfirmation(),
-    [accountId, accountRevision, p.targetAccountId, p.needId, p.agreementId, retireConfirmation]));
+  useFocusEffect(useCallback(() => {
+    const epoch = ++focusLifetime.current.epoch;
+    focusLifetime.current.active = true;
+    return () => {
+      if (focusLifetime.current.epoch === epoch) {
+        focusLifetime.current.active = false;
+        focusLifetime.current.epoch++;
+      }
+      retireConfirmation();
+    };
+  }, [accountId, accountRevision, p.targetAccountId, p.needId, p.agreementId, retireConfirmation]));
   const renderedGeneration = questionGeneration.current;
   const currentChoice = () => questionGeneration.current === renderedGeneration && !!accountId &&
     sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision &&
@@ -61,7 +71,10 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
   // names the question ("Blokirati {ime}?") and heads the screen. With no name everything keeps its generic words.
   const name = useSafetyTargetName(profileId && safetyTargetNameBuilt() ? profileId : null, p.targetAccountId);
   const changeBlock = async () => {
-    if (!currentChoice()) return;
+    if (!currentChoice() || !focusLifetime.current.active) return;
+    const lifetime = focusLifetime.current.epoch;
+    const originCurrent = () => focusLifetime.current.active && focusLifetime.current.epoch === lifetime
+      && !!accountId && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision;
     const value = editor.data!;
     let confirmed: AccountBlockReceipt | null = null;
     await editor.save(async () => {
@@ -75,7 +88,11 @@ export function SafetyScreen({ profileId, ...p }: Context & { profileId?: string
     });
     // Said only once the server has confirmed it, in the one outcome bar, with the way to put it back.
     const receipt = confirmed as AccountBlockReceipt | null;
-    if (receipt && accountId) announceBlockChange(receipt, { accountId, accountRevision }, { onSettled: () => { void editor.refresh(); } });
+    if (receipt && accountId && receipt.targetAccountId === p.targetAccountId)
+      announceBlockChange(receipt, { accountId, accountRevision }, {
+        stillCurrent: originCurrent,
+        onSettled: () => { if (originCurrent()) void editor.refresh(); },
+      });
   };
   const askBlock = () => {
     if (!currentChoice()) return;

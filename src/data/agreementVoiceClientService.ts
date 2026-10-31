@@ -52,8 +52,8 @@ async function edge<T>(operation: string, body: ArrayBuffer | Record<string, unk
   headers?: Record<string, string>, signal?: AbortSignal, slow = false): Promise<Ishod<T>> {
   const account = owner(scope); if (!account) return failure('AUTH_REQUIRED', agreementVoiceErrors.AUTH_REQUIRED);
   return readOwnedResult({ account, write, errors: agreementVoiceErrors, fallback: 'AGREEMENT_VOICE_UNCONFIRMED', invalid: 'AGREEMENT_VOICE_INVALID_RESPONSE',
-    decode, ...(slow ? { timeoutMs: 55_000 as const } : {}), request: async () => {
-      const result = await supabaseKlijent().functions.invoke('uskoci-media', { body, headers: { 'x-media-operation': operation, ...headers }, signal });
+    decode, signal, ...(slow ? { timeoutMs: 55_000 as const } : {}), request: async ownedSignal => {
+      const result = await supabaseKlijent().functions.invoke('uskoci-media', { body, headers: { 'x-media-operation': operation, ...headers }, signal: ownedSignal });
       if (result.error) {
         const context = record(result.error)?.context;
         if (context instanceof Response) { try { const error = record(await context.json());
@@ -64,7 +64,7 @@ async function edge<T>(operation: string, body: ArrayBuffer | Record<string, unk
     } });
 }
 export const agreementVoiceClientService = {
-  list: (agreementId: string, scope?: ReceiptAccount): Promise<Ishod<readonly AgreementVoiceUpload[]>> => {
+  list: (agreementId: string, scope?: ReceiptAccount, signal?: AbortSignal): Promise<Ishod<readonly AgreementVoiceUpload[]>> => {
     const account = owner(scope); if (!account || !uuid(agreementId)) return Promise.resolve(failure('MEDIA_NOT_FOUND', agreementVoiceErrors.MEDIA_NOT_FOUND));
     return edge('agreement-voice-upload-list', { agreementId }, raw => {
       const r = record(raw);
@@ -74,7 +74,7 @@ export const agreementVoiceClientService = {
       if (uploads.some(v => !v || !sameId(v.agreementId, agreementId) || v.attachedMessageId !== null || ['ABSENT', 'FAILED', 'CANCELLED'].includes(v.state))
         || new Set(uploads.map(v => v!.clientRequestId)).size !== uploads.length || new Set(uploads.map(v => v!.assetId)).size !== uploads.length) return null;
       return uploads as AgreementVoiceUpload[];
-    }, account);
+    }, account, false, undefined, signal);
   },
   /** The recording's bytes as they were recorded: the server validates the container and stores exactly these bytes. */
   upload: (ref: AgreementUploadRef, bytes: ArrayBuffer, scope?: ReceiptAccount, signal?: AbortSignal): Promise<Ishod<AgreementVoiceUpload>> => {
@@ -85,13 +85,13 @@ export const agreementVoiceClientService = {
       'Content-Type': 'audio/mp4', 'x-media-target': ref.agreementId, 'x-media-version': String(ref.agreementVersion), 'x-media-request-id': ref.clientRequestId,
     }, signal, true);
   },
-  read: (ref: AgreementUploadRef, scope?: ReceiptAccount): Promise<Ishod<AgreementVoiceUpload>> => {
+  read: (ref: AgreementUploadRef, scope?: ReceiptAccount, signal?: AbortSignal): Promise<Ishod<AgreementVoiceUpload>> => {
     const account = owner(scope); if (!account || !validRef(ref)) return Promise.resolve(failure('MEDIA_NOT_FOUND', agreementVoiceErrors.MEDIA_NOT_FOUND));
-    return edge('agreement-voice-upload-read', { ...ref }, v => decodeVoiceUpload(v, account.accountId, ref), account);
+    return edge('agreement-voice-upload-read', { ...ref }, v => decodeVoiceUpload(v, account.accountId, ref), account, false, undefined, signal);
   },
-  cancel: (ref: AgreementUploadRef, scope?: ReceiptAccount): Promise<Ishod<AgreementVoiceUpload>> => {
+  cancel: (ref: AgreementUploadRef, scope?: ReceiptAccount, signal?: AbortSignal): Promise<Ishod<AgreementVoiceUpload>> => {
     const account = owner(scope); if (!account || !validRef(ref)) return Promise.resolve(failure('MEDIA_NOT_FOUND', agreementVoiceErrors.MEDIA_NOT_FOUND));
-    return edge('agreement-voice-upload-cancel', { ...ref }, v => decodeVoiceUpload(v, account.accountId, ref), account, true);
+    return edge('agreement-voice-upload-cancel', { ...ref }, v => decodeVoiceUpload(v, account.accountId, ref), account, true, undefined, signal);
   },
   /** The authenticated bytes of a voice message. A message id is required for anything already sent (received messages included); an own unsent recording
    * may be played back without one. The caller writes the bytes to a temporary file and removes it on stop, blur and logout. */
@@ -99,8 +99,8 @@ export const agreementVoiceClientService = {
     const account = owner(scope); if (!account) return failure('AUTH_REQUIRED', agreementVoiceErrors.AUTH_REQUIRED);
     if (!uuid(input.agreementId) || !uuid(input.assetId) || (input.messageId !== undefined && !uuid(input.messageId)) || signal?.aborted)
       return failure('MEDIA_NOT_FOUND', agreementVoiceErrors.MEDIA_NOT_FOUND);
-    return readOwnedResult({ account, errors: agreementVoiceErrors, fallback: 'MEDIA_UNAVAILABLE', invalid: 'MEDIA_INVALID_RESPONSE', request: async () => {
-      const result = await readVoiceBinary({ account, signal, body: { agreementId: input.agreementId, assetId: input.assetId, ...(input.messageId ? { messageId: input.messageId } : {}) } });
+    return readOwnedResult({ account, signal, timeoutMs: 30_000, errors: agreementVoiceErrors, fallback: 'MEDIA_UNAVAILABLE', invalid: 'MEDIA_INVALID_RESPONSE', request: async ownedSignal => {
+      const result = await readVoiceBinary({ account, signal: ownedSignal, body: { agreementId: input.agreementId, assetId: input.assetId, ...(input.messageId ? { messageId: input.messageId } : {}) } });
       return result.data ? { data: { ...result.data, assetId: input.assetId }, error: null } : result;
     }, decode: raw => {
       const r = record(raw);

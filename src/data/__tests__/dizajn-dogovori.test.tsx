@@ -143,11 +143,12 @@ describe('the ideas of the UI pass, as the gallery draws them', () => {
     expect(text()).not.toContain(SAVE_WARNING); expect(text()).toContain('Izaberi ocenu.');
   });
 
-  it('a send whose outcome is not known says so under its bubble with the one "Proveri"; a refused one keeps "Nije poslato" and "Pošalji ponovo"', async () => {
+  it('an unknown send shows a read-only check and a distinct explicit resend; refused send stays failed', async () => {
     await open('chat-unknown');
     expect(text()).toContain('Ne znamo da li je stigla'); expect(text()).not.toContain('Nije poslato');
-    expect(labels()).toContain('Proveri da li je stigla: Parking je iza zgrade.'); expect(labels()).not.toContain('Ponovi slanje poruke Parking je iza zgrade.');
-    expect(text()).not.toContain('Pošalji ponovo');
+    expect(labels()).toContain('Proveri da li je stigla: Parking je iza zgrade.');
+    expect(labels()).toContain('Ponovi slanje poruke Parking je iza zgrade.');
+    expect(text()).toContain('Pošalji ponovo');
     await act(async () => { tree.unmount(); });
     await open('chat');
     expect(text()).toContain('Nije poslato'); expect(text()).toContain('Poruka nije sačuvana na telefonu. Tekst nije odbačen; pokušaj ponovo.');

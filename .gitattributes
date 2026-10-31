@@ -95,3 +95,10 @@ supabase/functions/_shared/locationReply.ts text eol=lf
 supabase/operations/dev-alpha/ledger/20261002185306_dev_alpha_ai_location_01_contextual_map_dialogue.sql -text whitespace=cr-at-eol
 # WPP02 isolated contract and recorded source hashes must survive Windows checkouts.
 supabase/candidates/worker-personal-v2-20261003/** text eol=lf
+
+# Preserve captured function body bytes, including meaningful CRLF/trailing spaces.
+supabase/proofs/privacy/bootstrap/current-application.sql -text whitespace=cr-at-eol,-blank-at-eol
+
+# Portable evidence archives are immutable binary payloads.
+docs/continuation/payload/*.zip binary
+docs/continuation/*.py text eol=lf

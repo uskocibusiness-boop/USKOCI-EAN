@@ -8,8 +8,13 @@ import { displaysUrgent } from '../../lib/needUrgency';
 const active = () => ({ needId: nid, level: 'HITNO', activatedAt: '2026-09-13T10:00:00Z', expiresAt: '2026-09-13T11:00:00Z',
   policyVersion: 1, reasonCodes: ['URGENT_ACTIVE'], authoritative: true });
 const flush = async () => { for (let index = 0; index < 12; index++) await Promise.resolve(); };
-beforeEach(() => { jest.useFakeTimers(); mockRpc.mockReset(); mockAccount = aid; mockRevision = 0; });
-afterEach(async () => { await flush(); expect(jest.getTimerCount()).toBe(0); jest.useRealTimers(); });
+// Future-feature-only coverage: the real V1 Jest default no longer enables HITNO.
+const originalUrgentFlag = process.env.EXPO_PUBLIC_URGENT;
+beforeEach(() => { process.env.EXPO_PUBLIC_URGENT = '1'; jest.useFakeTimers(); mockRpc.mockReset(); mockAccount = aid; mockRevision = 0; });
+afterEach(async () => { await flush(); expect(jest.getTimerCount()).toBe(0); jest.useRealTimers();
+  if (originalUrgentFlag === undefined) delete process.env.EXPO_PUBLIC_URGENT;
+  else process.env.EXPO_PUBLIC_URGENT = originalUrgentFlag;
+});
 it('uses the existing authority once per flagged visible ID and never derives urgency from raw flags', async () => {
   mockRpc.mockResolvedValue({ data: active(), error: null });
   const result = await readNeedUrgencies([{ id: nid, urgent: true }, { id: nid, urgent: true }, { id: aid, urgent: false }, { id: aid }, { id: 'bad', urgent: true }]);

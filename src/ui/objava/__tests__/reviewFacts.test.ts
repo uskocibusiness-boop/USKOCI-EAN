@@ -213,3 +213,9 @@ describe('todoActionLabel', () => {
     for (const todo of rows) expect(todoActionLabel(todo)).toEqual(expect.any(String));
   });
 });
+
+it.each(['100 EUR', '100 €', '999999 RSD'])('main review retains typed RSD with historical display %s', displayValue => {
+  const row = { ...fact('need.price_rsd', 100), displayValue };
+  expect(reviewRowValue(row)).toBe('100 RSD');
+  expect(row.displayValue).toBe(displayValue);
+});

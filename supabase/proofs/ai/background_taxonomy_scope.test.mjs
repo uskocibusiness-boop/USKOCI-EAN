@@ -93,9 +93,11 @@ for (const purpose of ['need', 'worker']) {
         content: { parts: [{ text: JSON.stringify(purpose === 'need' ? { decisions: [decision] } : { items: [decision] }) }] },
       }] })));
       const args = { geminiKey: 'synthetic', geminiModel: 'synthetic',
-        rpc: async () => ({ ok: true, data: { catalogVersion: 809040 + Number(short), catalogFingerprint: purpose + short,
-          categories: [{ categoryId: '11111111-1111-4111-8111-111111111111', label: 'Servis uređaja',
-            path: ['Servis uređaja'], aliases: [], modes: ['ON_SITE'] }] } }),
+        rpc: async () => ({ ok: true, data: { catalogVersion: 809040 + Number(short), catalogFingerprint: purpose + short, count: 1,
+          categories: [{ categoryId: '11111111-1111-4111-8111-111111111111', parentId: null, isLeaf: true,
+            label: 'Servis uređaja', path: ['Servis uređaja'],
+            pathIds: ['11111111-1111-4111-8111-111111111111'],
+            aliases: [], modes: ['ON_SITE'] }] } }),
       };
       const result = purpose === 'need'
         ? await buildFullTreeTaxonomyProposals({ ...args, items: [{ service: 'klima', mode: 'ON_SITE' }] })
@@ -168,16 +170,17 @@ test('novel task classification receives bounded public scope and does not reuse
   globalThis.fetch = async (_url, init) => {
     const body = JSON.parse(init.body);
     payloads.push(JSON.parse(body.contents[0].parts[0].text));
-    return new Response(JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({
+    return new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP', content: { parts: [{ text: JSON.stringify({
       decisions: [{ service: 'klima', mode: 'ON_SITE', action: 'CREATE_CHILD', parentId,
         reason: 'Potvrđeni obim određuje granu klimatizacije.' }],
     }) }] } }] }), { status: 200 });
   };
   const rpc = async (name) => {
     assert.equal(name, 'rpc_taxonomy_fetch_snapshot_v1');
-    return { ok: true, data: { catalogVersion: 987654321, catalogFingerprint: 'scope-test',
-      categories: [{ categoryId: parentId, label: 'Klimatizacija', path: ['Klimatizacija'],
-        aliases: [], modes: ['ON_SITE'] }] } };
+    return { ok: true, data: { catalogVersion: 987654321, catalogFingerprint: 'scope-test', count: 1,
+      categories: [{ categoryId: parentId, parentId: null, isLeaf: true,
+        label: 'Klimatizacija', path: ['Klimatizacija'],
+        pathIds: [parentId], aliases: [], modes: ['ON_SITE'] }] } };
   };
   const classify = (scopeSummary) => buildFullTreeTaxonomyProposals({
     rpc, geminiKey: 'test-key', geminiModel: 'test-model',

@@ -147,10 +147,11 @@ export function MyApplicationsPresentation(props: Props) {
         {draft ? <View style={s.fields}>
           <T accessibilityRole="header" variant="heading">Izmeni svoju prijavu</T>
           <T variant="note" tone="muted">{draft.pricing.rezimCene === 'OFFERS' ? 'Cena važi za ceo ponuđeni obim.'
+            : draft.pricing.osnovaCene === 'HOURLY' ? 'Satnica važi za svaku osobu za jedan sat rada. Ukupan iznos zavisi od trajanja.'
             : draft.pricing.osnovaCene === 'PER_PERSON' ? 'Cena po osobi iz zadatka množi se brojem ljudi u tvojoj prijavi.'
             : draft.pricing.osnovaCene === 'TOTAL' ? 'Tvoja cena se računa srazmerno broju ljudi, zaokruženo na najbliži dinar.' : 'Cena je određena u zadatku.'}</T>
-          <T variant="meta" tone="muted">Cena prijave ukupno (RSD)</T>
-          <TextInput accessibilityLabel="Cena ponude (RSD)" value={draft.price} keyboardType="number-pad" editable={!disabled && draft.pricing.rezimCene === 'OFFERS'} onChangeText={price => props.onChange({ ...draft, price })} style={s.input} />
+          <T variant="meta" tone="muted">{draft.pricing.osnovaCene === 'HOURLY' ? 'Satnica po osobi (RSD po satu)' : 'Cena prijave ukupno (RSD)'}</T>
+          <TextInput accessibilityLabel={draft.pricing.osnovaCene === 'HOURLY' ? 'Satnica po osobi (RSD po satu)' : 'Cena ponude (RSD)'} value={draft.price} keyboardType="number-pad" editable={!disabled && draft.pricing.rezimCene === 'OFFERS'} onChangeText={price => props.onChange({ ...draft, price })} style={s.input} />
           {invalidFixedPrice ? <T accessibilityRole="alert" variant="note">Cena za ovaj broj ljudi mora biti najmanje 1 RSD. Proveri broj ljudi.</T> : null}
           <T variant="meta" tone="muted">Ljudi koje obezbeđuješ</T>
           <ApplicationPeopleInput label="Broj ljudi" value={draft.people} maximum={draft.pricing.pokrivenost.ukupno} disabled={disabled}
@@ -158,7 +159,7 @@ export function MyApplicationsPresentation(props: Props) {
           <T variant="meta" tone="muted">Napomena</T>
           <TextInput accessibilityLabel="Napomena uz ponudu" value={draft.note} multiline editable={!disabled} onChangeText={note => props.onChange({ ...draft, note })} style={[s.input, s.multiline]} />
           <T variant="note" tone="muted">Ponuđeni termin ostaje nepromenjen: {draft.start || draft.end
-            ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: draft.start, endsAt: draft.end }, deviceZone()) : 'Nije naveden u prijavi.'}</T>
+            ? needScheduleText({ kind: 'FIXED_WINDOW', startsAt: draft.start, endsAt: draft.end }, p.zadatak?.vremenskaZona || deviceZone()) : 'Nije naveden u prijavi.'}</T>
           <V2Action label="Sačuvaj izmenjenu prijavu" onPress={() => props.onUpdate(p)} disabled={disabled || props.draftStale || invalidPeople || invalidFixedPrice} style={brandAction} />
           <V2Action label="Odustani od izmene" onPress={props.onCancelEdit} disabled={disabled} kind="quiet" />
         </View> : <View>

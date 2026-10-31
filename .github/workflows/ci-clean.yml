@@ -34,24 +34,69 @@ jobs:
           deno-version: v2.5.6
       - name: Install exact dependencies and verify native patch
         run: npm ci
+      - name: R01 future public default ACL boundary (isolated PostgreSQL only)
+        run: node --test --test-reporter=spec supabase/proofs/privacy/r01_future_public_default_grants.test.mjs
+      - name: R01 existing nonrow public ACL boundary (isolated PostgreSQL only)
+        run: node --test --test-reporter=spec supabase/proofs/privacy/r01_existing_public_nonrow_privileges.test.mjs
+      - name: R01 PHONE closure against current SQL definitions (isolated only)
+        run: node --test --test-reporter=spec supabase/proofs/privacy/r01_phone_messages_only_current.test.mjs
+      - name: R01 DEV zero-row probe safety contracts (offline only)
+        run: node --test --test-reporter=spec supabase/proofs/privacy/r01-dev-column-probe.test.mjs
       - name: TypeScript
         run: npx tsc --noEmit
-      - name: Deno AI Edge import and type checks (no execution)
+      - name: Deno non-npm Edge type checks (11 main functions; no execution)
         run: |
           deno check --no-config --no-lock --no-npm --no-remote \
+            supabase/functions/uskoci-account-closure-worker/index.ts \
             supabase/functions/uskoci-ai-interview/index.ts \
-            supabase/functions/uskoci-worker-interview/index.ts \
-            supabase/functions/uskoci-taxonomy-postsave-worker/index.ts
+            supabase/functions/uskoci-data-export-download/index.ts \
+            supabase/functions/uskoci-data-export-worker/index.ts \
+            supabase/functions/uskoci-location-search/index.ts \
+            supabase/functions/uskoci-publication-evaluate/index.ts \
+            supabase/functions/uskoci-push-transport/index.ts \
+            supabase/functions/uskoci-qa-classify/index.ts \
+            supabase/functions/uskoci-speech-session/index.ts \
+            supabase/functions/uskoci-taxonomy-postsave-worker/index.ts \
+            supabase/functions/uskoci-worker-interview/index.ts
+      - name: Deno pinned npm Media Edge type check (12th main function; no execution)
+        run: deno check --no-config --no-lock --no-remote --node-modules-dir=none supabase/functions/uskoci-media/index.ts
+      - name: R04 semantic SQL isolation and signed publication fence (no DEV write)
+        run: |
+          node --test --test-reporter=spec supabase/proofs/ai/r04_semantic_review_pending.test.mjs supabase/proofs/ai/r04_signed_taxonomy_publish_fence.test.mjs
+      - name: Isolate-local media upload admission FIFO and cancellation
+        run: node --test --test-reporter=spec supabase/proofs/media/mediaUploadAdmission.test.mjs
       - name: Mobile unit and contract tests
         run: npm test -- --maxWorkers=2 --silent
+      - name: Optional profile skill SDK and SQL comparison
+        run: node --test scripts/f13-skill-cas.test.mjs
+      - name: Hourly application and Agreement SQL chain
+        run: |
+          python supabase/proofs/ai/generate_hourly_candidate.py --check
+          node --test scripts/r07b-hourly-chain.test.mjs
+      - name: R03 guarded page source only (no SQL execution)
+        run: |
+          python supabase/proofs/ex04/build_r03_existing_helper.py --check
+          python -m unittest discover -s supabase/proofs/ex04 -p 'test_r03_*.py'
+      - name: R10/R12 closure roster source checks (no DB execution)
+        run: node --test supabase/proofs/ex04/r03-closure-roster.test.mjs
+      - name: R05 guarded TODAY source and synthetic PostgreSQL day windows
+        run: |
+          python supabase/proofs/r05/build_today_candidate.py --check
+          python -m unittest discover -s supabase/proofs/r05 -p 'test_*.py'
+          node --test supabase/proofs/r05/today_window.test.mjs
+      - name: R11b blind review publication (isolated PGlite; no DEV write)
+        run: node --test --test-reporter=spec supabase/proofs/ai/r11b_blind_review_publication.test.mjs
       - name: AI intake and taxonomy contracts
         run: |
-          node --test --test-concurrency=2 --test-reporter=dot supabase/proofs/ai/*.test.mjs
+          node --test --test-reporter=spec supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs
+          node --test --test-reporter=spec supabase/proofs/dynamic_taxonomy/provider-shadow-validator.test.mjs
+          node supabase/proofs/dynamic_taxonomy/gemini-real-provider-smoke.mjs --offline
+          node --test --test-concurrency=2 --test-reporter=spec supabase/proofs/ai/*.test.mjs
           node --test --test-reporter=dot \
             supabase/proofs/dynamic_taxonomy/worker-interview-question-policy.test.mjs \
             supabase/proofs/taxonomy/published_need_category_gate.test.mjs \
             supabase/proofs/taxonomy/live_writer_characterization.test.mjs \
-            supabase/proofs/dynamic_taxonomy/classification-owner-review.test.mjs \
+            supabase/proofs/dynamic_taxonomy/classification-active-review.test.mjs \
             supabase/proofs/dynamic_taxonomy/worker-signed-review-source.test.mjs \
             supabase/proofs/dynamic_taxonomy/need-review-signed-source.test.mjs
           node --test --test-reporter=dot \
@@ -66,3 +111,9 @@ jobs:
         run: |
           python supabase/migrations/check_migration_integrity.py
           python -m unittest discover -s supabase/migrations -p test_migration_integrity.py
+      - name: Need column privacy boundary (isolated SQL)
+        run: |
+          node --test supabase/proofs/privacy/runtime/extension-provenance.test.mjs supabase/proofs/privacy/runtime/extension-provenance-sql.test.mjs
+          node supabase/proofs/privacy/r01-column-boundary.test.mjs
+          node supabase/proofs/privacy/r01-bootstrap-parity.test.mjs
+          python -B -m unittest discover -s supabase/proofs/privacy/bootstrap -p 'test_*.py'

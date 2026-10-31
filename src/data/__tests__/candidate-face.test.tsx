@@ -37,7 +37,7 @@ jest.mock('../../ui/system/Avatar', () => ({ Avatar: 'Avatar', FaceEdge: 'FaceEd
 jest.mock('@expo/ui/community/datetime-picker', () => ({ DateTimePicker: 'DateTimePicker' }));
 import { CandidateListPresentation, CandidateSelectionPresentation, MEASURE_BEST_RATING, MEASURE_LOWEST_PRICE, candidateMeasures, candidateRatingFigure,
   sortCandidates } from '../../ui/v2/ApplicationSelectionPresentation';
-import { UNPRICED, candidateChip, candidateHas, candidateSpoken, candidateStatus, candidateTerm, candidateTrust, candidateValue, compareIdentityHeight, requesterPrijava,
+import { UNPRICED, candidateChip, candidateHas, candidateSpoken, candidateStatus, candidateTerm, candidateTrust, candidateValue, compareIdentityHeight,
   splitAmount } from '../../ui/v2/CandidateFace';
 import { DogovorenoMoment } from '../../ui/v2/DogovorenoMoment';
 import { PublicProfileSheet } from '../../ui/system/PublicProfileSheet';
@@ -204,12 +204,7 @@ describe('the candidate row', () => {
     expect(splitAmount('4.500')).toEqual(['4.500', '']);
   });
 
-  it('builds the one model both lists draw, with only what the read carried', () => {
-    const model = requesterPrijava(k({ napomena: '  ' }), { timezone: 'Europe/Belgrade', taskTerm: 'Sutra, fleksibilno', viewed: true, avatar: null });
-    expect(model).toMatchObject({ status: 'application.seen', reason: null, term: 'Sutra, fleksibilno', showTerm: false, people: '2 osobe', message: null,
-      has: { art: 'vehicle', text: 'Ima: Kombi · Trake' }, price: { kind: 'amount', amount: '4.500 RSD', basis: 'ukupno' }, who: { kind: 'person', name: 'Milan Petrović' } });
-    // The term is on the card only when the person proposed one; what they have is only what they declared (a vehicle first, then the tools).
-    expect(requesterPrijava(k({ predlozeniPocetak: '2026-09-20T08:00:00Z', predlozeniKraj: '2026-09-20T09:00:00Z' }), { timezone: 'Europe/Belgrade', taskTerm: 'x', avatar: null }).showTerm).toBe(true);
+  it('keeps candidate requirements, time and spoken text faithful to the read', () => {
     expect(candidateHas(k({ dokazPrijave: { sema: 'APPLICATION_V1_SELF_DECLARED', kapacitetTima: 1, vestine: ['Farbanje'], alati: ['Trake', ' '], vozila: [], licence: [] } })))
       .toEqual({ art: 'tool', text: 'Ima: Trake' });
     expect(candidateHas(k({ dokazPrijave: { sema: 'APPLICATION_V1_SELF_DECLARED', kapacitetTima: 1, vestine: ['Farbanje'], alati: [], vozila: [], licence: [] } }))).toBeNull();
@@ -442,6 +437,16 @@ describe('the offer sheet', () => {
       readAgreement={async () => ({ ok: true, podatak: { dogovorId: null } })} openLinkedAgreement={noop} {...patch} />;
   const green = () => tree.root.findAll(node => node.type === ('Press' as unknown as React.ElementType)
     && flat(node.props.style).backgroundColor === sys.color.green).map(node => node.props.accessibilityLabel);
+
+  it('reviews a per-person hourly rate in the selection sheet and final confirmation without calling it a total', async () => {
+    await render(offer({ candidate: k({ osnovaCene: 'HOURLY', cena: { iznos: 1200, valuta: 'RSD', prikaz: '1.200 RSD' } }) }));
+    expect(tree.root.findAll(node => node.type === ('View' as unknown as React.ElementType)
+      && node.props.accessibilityLabel === 'Satnica: 1.200 RSD, Po osobi po satu')).toHaveLength(1);
+    expect(texts()).not.toContain('Ukupna ponuda');
+    expect(texts()).not.toContain('Ukupno za 2 osobe');
+    await act(async () => pressNamed('Izaberi osobu').props.onPress());
+    expect(texts()).toContain('Prihvataš: 1.200 RSD po osobi po satu · 2 osobe');
+  });
 
   it('is a centred review with one primary action that asks before it chooses', async () => {
     const choose = jest.fn();
@@ -723,4 +728,17 @@ describe('the public profile sheet', () => {
     const bio = tree.root.findAll(node => node.props.children === data.biografija)[0];
     expect(bio.props.numberOfLines).toBeUndefined(); expect(bio.props.selectable).toBe(true);
   });
+});
+
+it('labels an immutable hourly application per person per hour without multiplying its headcount', () => {
+  const hourly = k({ osnovaCene: 'HOURLY', cena: { iznos: 1200, valuta: 'RSD', prikaz: '1.200 RSD' }, pokrivaMesta: 2 });
+  expect(candidateValue(hourly)).toEqual({ kind: 'amount', amount: '1.200 RSD', basis: 'po osobi po satu' });
+  expect(candidateSpoken(hourly, 'Trajanje po dogovoru')).toContain('1.200 RSD po osobi po satu');
+  expect(candidateValue(k())).toMatchObject({ basis: 'ukupno' });
+});
+it('does not compare a total against an hourly rate when an older application remains in the list', () => {
+  const total = k({ prijavaId: 'total', cena: { iznos: 6000, valuta: 'RSD', prikaz: '6.000 RSD' } });
+  const hourly = k({ prijavaId: 'hourly', osnovaCene: 'HOURLY', cena: { iznos: 1200, valuta: 'RSD', prikaz: '1.200 RSD' } });
+  expect([...candidateMeasures([total, hourly], true).values()]).not.toContain(MEASURE_LOWEST_PRICE);
+  expect(sortCandidates([total, hourly], 'PRICE')).toEqual([total, hourly]);
 });

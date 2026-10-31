@@ -23,7 +23,6 @@ import type {
 } from '../contracts/projections';
 import { noTaskRelations, taskRelationIndex } from './taskRelation';
 import type { Ishod, IzborKomanda, IzmenaKomanda, PodnesiPrijavuKomanda, PovuciPrijavuKomanda, Izvor } from './ports';
-import { lazniAi, resetujAi } from './lazniAi';
 import { osoba } from '../ui/system/plural';
 import { novac } from '../lib/novac';
 import { composeHome } from './homeSnapshot';
@@ -52,7 +51,7 @@ type Kandidat = Omit<
   'stanje' | 'preostaloMesta' | 'napomena' | 'mozeIzabrati' | 'dokazPrijave' | 'razlogPreporuke'
 >;
 
-const KANDIDATI: Kandidat[] = [
+const POCETNI_KANDIDATI: Kandidat[] = [
   { prijavaId: 'p-marko', radnikProfilId: 'radnik-marko', verzija: 2, hash: 'h-marko-2', ime: 'Marko Ilić', inicijali: 'MI', ocenaTekst: '5,0', recenzijeTekst: '11 recenzija', cena: rsd(5200), pokrivaMesta: 2, dolazakTekst: 'Sutra · 17:00', prevozTekst: 'Kombi' },
   { prijavaId: 'p-jelena', radnikProfilId: 'radnik-jelena', verzija: 1, hash: 'h-jelena-1', ime: 'Jelena Marković', inicijali: 'JM', ocenaTekst: '4,9', recenzijeTekst: '32 recenzije', cena: rsd(4800), pokrivaMesta: 2, dolazakTekst: 'Sutra · 16:30', prevozTekst: 'Kombi' },
   { prijavaId: 'p-nikola', radnikProfilId: 'radnik-nikola', verzija: 1, hash: 'h-nikola-1', ime: 'Nikola Petrović', inicijali: 'NP', ocenaTekst: '—', recenzijeTekst: 'Nov na USKOČI', cena: rsd(4500), pokrivaMesta: 1, dolazakTekst: 'Sutra · posle 15h', prevozTekst: 'Kombi' },
@@ -87,6 +86,7 @@ type Zavrsetak = {
 
 type Stanje = {
   potrebaRevizija: number;
+  kandidati: Kandidat[];
   deljenje: Record<string, Deljenje>;
   zavrsetak: Record<string, Zavrsetak>;
   /** Serverski sat. Testovi ga pomeraju; klijent ga nikad ne dira. */
@@ -104,6 +104,7 @@ type Stanje = {
 
 const POCETNO: Stanje = {
   potrebaRevizija: 3,
+  kandidati: POCETNI_KANDIDATI,
   deljenje: {},
   zavrsetak: {},
   sadaMs: Date.UTC(2026, 7, 29, 12, 0, 0),
@@ -135,6 +136,7 @@ let stanje: Stanje = struktuiraj(POCETNO);
 function struktuiraj(s: Stanje): Stanje {
   return {
     potrebaRevizija: s.potrebaRevizija,
+    kandidati: s.kandidati.map(k => ({ ...k, cena: { ...k.cena } })),
     deljenje: JSON.parse(JSON.stringify(s.deljenje)),
     zavrsetak: JSON.parse(JSON.stringify(s.zavrsetak)),
     sadaMs: s.sadaMs,
@@ -153,7 +155,6 @@ function struktuiraj(s: Stanje): Stanje {
 /** Samo za testove — vraća izvor na poznato stanje. */
 export function resetujLazniIzvor() {
   stanje = struktuiraj(POCETNO);
-  resetujAi();
 }
 
 const PROZOR_MS = 48 * 3600 * 1000;
@@ -226,7 +227,7 @@ function kontaktZa(dogovorId: string): KontaktProjekcija {
 }
 
 function dogovorIz(a: Alokacija): DogovorProjekcija {
-  const k = KANDIDATI.find((c) => c.prijavaId === a.prijavaId)!;
+  const k = stanje.kandidati.find((c) => c.prijavaId === a.prijavaId)!;
   const z = zavrsetakZa(a.dogovorId);
   // Every Dogovor in this test double comes from the double's own user choosing a candidate for the
   // double's own task, so that user is its requester. It used to follow the app's global mode.
@@ -311,7 +312,7 @@ async function potrebaProjekcija(): Promise<PotrebaProjekcija> {
     vremeTekst: 'Sutra · posle 15h',
     podrucjeTekst: 'Liman → Detelinara',
     uslovi: ['Kombi', '4. sprat', 'Nema lifta'],
-    brojPrijava: KANDIDATI.length,
+    brojPrijava: stanje.kandidati.length,
   };
 }
 
@@ -337,7 +338,7 @@ function fakePublicProfile(profileId: string): JavniProfilProjekcija | null {
     };
   }
 
-  const kandidat = KANDIDATI.find((k) => k.radnikProfilId === profileId);
+  const kandidat = stanje.kandidati.find((k) => k.radnikProfilId === profileId);
   if (!kandidat && profileId !== stanje.profil.id) return null;
   const ime = kandidat?.ime ?? stanje.profil.ime;
   return {
@@ -372,14 +373,6 @@ export const lazniIzvor: Izvor = {
     return { rows: home.attention, more: home.attentionMore, asOf: new Date().toISOString() };
   },
   poreklo: 'lazni',
-
-  // R02 — AI intake. Isti port, pa zamena Supabaseom ne dira ekran.
-  otvoriRazgovor: lazniAi.otvoriRazgovor,
-  razgovor: lazniAi.razgovor,
-  posaljiKorisnikovuPoruku: lazniAi.posaljiKorisnikovuPoruku,
-  potvrdiCinjenicu: lazniAi.potvrdiCinjenicu,
-  ispraviCinjenicu: lazniAi.ispraviCinjenicu,
-  objaviPotrebu: lazniAi.objaviPotrebu,
 
   async mojePotrebe() {
     await kasnjenje();
@@ -468,9 +461,9 @@ export const lazniIzvor: Izvor = {
     await kasnjenje();
     const preostalo = Math.max(0, UKUPNO_MESTA - popunjeno());
     const izabraniIds = stanje.alokacije.map((a) => a.prijavaId);
-    const slobodni = KANDIDATI.filter((k) => !izabraniIds.includes(k.prijavaId));
+    const slobodni = stanje.kandidati.filter((k) => !izabraniIds.includes(k.prijavaId));
 
-    return KANDIDATI.map((k) => {
+    return stanje.kandidati.map((k) => {
       const izabran = izabraniIds.includes(k.prijavaId);
       const prviSlobodan = slobodni[0]?.prijavaId === k.prijavaId;
       const kandidatStanje = izabran
@@ -517,7 +510,7 @@ export const lazniIzvor: Izvor = {
 
   async mojePrijave(): Promise<MojaPrijavaProjekcija[]> {
     await kasnjenje();
-    return KANDIDATI
+    return stanje.kandidati
       .filter((k) => k.radnikProfilId === stanje.profil.id)
       .map((k) => {
         const allocation = stanje.alokacije.find((a) => a.prijavaId === k.prijavaId);
@@ -600,7 +593,7 @@ export const lazniIzvor: Izvor = {
     stanje.brojac += 1;
     const hash = `hash_${prijavaId}_v1`;
     stanje.prijavaRevizije[prijavaId] = k.potrebaRevizija;
-    KANDIDATI.push({
+    stanje.kandidati.push({
       prijavaId,
       radnikProfilId: stanje.profil.id,
       verzija: 1,
@@ -631,7 +624,7 @@ export const lazniIzvor: Izvor = {
     if (previous && previous !== signature) {
       return { ok: false, kod: 'IDEMPOTENCY_KEY_REUSED', poruka: 'Isti zahtev ne može da se koristi za drugačije povlačenje.' };
     }
-    const kandidat = KANDIDATI.find((x) => x.prijavaId === k.prijavaId && x.radnikProfilId === stanje.profil.id);
+    const kandidat = stanje.kandidati.find((x) => x.prijavaId === k.prijavaId && x.radnikProfilId === stanje.profil.id);
     if (!kandidat) return { ok: false, kod: 'RESPONSE_NOT_FOUND', poruka: 'Prijava ne postoji.' };
     if (stanje.alokacije.some((a) => a.prijavaId === k.prijavaId)) {
       return { ok: false, kod: 'RESPONSE_ALREADY_SELECTED', poruka: 'Izabrana Prijava se više ne može povući.' };
@@ -661,7 +654,7 @@ export const lazniIzvor: Izvor = {
       };
     }
 
-    const kandidat = KANDIDATI.find((c) => c.prijavaId === k.prijavaId);
+    const kandidat = stanje.kandidati.find((c) => c.prijavaId === k.prijavaId);
     if (!kandidat) return { ok: false, kod: 'NOT_FOUND', poruka: 'Prijava više ne postoji.' };
 
     // Tačna verzija i hash prijave.

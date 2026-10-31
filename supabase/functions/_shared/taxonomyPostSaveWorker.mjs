@@ -54,8 +54,21 @@ export async function processTaxonomyPostSaveTick(rpc,{limit=3,reconcileLimit=25
     }catch(error){
       // An uncertain network response may hide a successful committed receipt:
       // retry the SAME request key; PostgreSQL replays it idempotently.
-      errorCode=error instanceof TaxonomyWorkerProtocolError || error?.retryable===true
-        ? 'TEMPORARY_UNAVAILABLE':'BATCH_REVIEW_REQUIRED';
+      // A generic exception may happen AFTER the database committed but
+      // BEFORE the client received its receipt. Only an explicitly classified
+      // permanent internal transport error may require human review now.
+      // Unknown errors and malformed receipts retain the SAME request key
+      // through the database's bounded RETRY/lease protocol (max 5 claims).
+      let confirmedPermanent=false;
+      try {
+        // Deno/Node VM boundaries can throw Error objects from another realm:
+        // instanceof Error is NOT a reliable proof of a known 4xx failure.
+        // Require our internal transport's explicit own boolean classification.
+        confirmedPermanent=error!==null && typeof error==='object'
+          && !(error instanceof TaxonomyWorkerProtocolError)
+          && Object.hasOwn(error,'retryable') && error.retryable===false;
+      } catch { /* hostile or broken error metadata is still UNKNOWN */ }
+      errorCode=confirmedPermanent?'BATCH_REVIEW_REQUIRED':'TEMPORARY_UNAVAILABLE';
     }
     // We never claim success from the Edge alone: only the database receipt
     // may finalize a lease. If this fails, lease expiration safely reclaims it.

@@ -36,7 +36,8 @@ const scopeText = (terms: AgreementChangeTerms) => terms.scopeNote || 'Nije doda
  * A price as the terms say it: an amount above zero is written as one, anything else - a price that was never saved - is
  * "Iznos nije sačuvan", in words. A missing price never looks like an amount, and never reads "0 RSD".
  */
-const priceText = (rsd: number) => Number.isFinite(rsd) && rsd > 0 ? novac(rsd) : BEZ_IZNOSA;
+const priceText = (rsd: number, basis?: 'TOTAL' | 'HOURLY') => Number.isFinite(rsd) && rsd > 0
+  ? novac(rsd) + (basis === 'HOURLY' ? ' po osobi po satu' : '') : BEZ_IZNOSA;
 
 /**
  * One fact of the terms. With `before`, the line under the value is the one mark of a change ("umesto 3.500 RSD") or
@@ -62,7 +63,7 @@ function Fact({ art, label, value, before }: { art: FactArtKind; label: string; 
 function Terms({ terms, base }: { terms: AgreementChangeTerms | null; base?: AgreementChangeTerms | null }) {
   if (!terms) return <T variant="copy" tone="muted">Uslovi nisu dostupni za pregled.</T>;
   return <View style={s.facts}>
-    <Fact art="money" label="Cena" value={priceText(terms.priceRsd)} before={base ? priceText(base.priceRsd) : undefined} />
+    <Fact art="money" label="Cena" value={priceText(terms.priceRsd, terms.priceBasis)} before={base ? priceText(base.priceRsd, base.priceBasis) : undefined} />
     <Fact art="calendar" label="Termin" value={schedule(terms)} before={base ? schedule(base) : undefined} />
     <Fact art="document" label="Obim" value={scopeText(terms)} before={base ? scopeText(base) : undefined} />
   </View>;
@@ -268,14 +269,15 @@ function Form({ form, base, busy, onEdit }: { form: AgreementActionForm; base: A
     {form.reentry ? <T variant="copy" tone="muted">Prethodni unos nije sačuvan na telefonu. Unesi iste podatke i isti razlog kao prvi put da bismo proverili da li je već stiglo.</T> : null}
     {form.kind === 'PROPOSE' ? <>
       <View style={s.field}>
-        <T variant="meta">Cena</T>
+        <T variant="meta">{base?.priceBasis === 'HOURLY' ? 'Satnica po osobi' : 'Cena'}</T>
         {/* The amount never stands without its currency: the row is the one field box, RSD inside it beside the number. */}
         <View style={s.amount}>
-          <TextInput accessibilityLabel="Predložena cena u RSD" value={form.price} onChangeText={price => onEdit({ price, priceChanged: true })}
+          <TextInput accessibilityLabel={base?.priceBasis === 'HOURLY' ? 'Predložena satnica po osobi u RSD po satu' : 'Predložena cena u RSD'} value={form.price} onChangeText={price => onEdit({ price, priceChanged: true })}
             editable={!busy} keyboardType="number-pad" maxLength={100} style={s.amountInput} />
           <T variant="bodyStrong" style={s.unit} importantForAccessibility="no" accessibilityElementsHidden>RSD</T>
         </View>
-        {instead(was.price !== null && form.price.trim() !== was.price, base ? priceText(base.priceRsd) : '')}
+        {base?.priceBasis === 'HOURLY' ? <T variant="note" tone="muted">RSD po osobi po satu. Promena iznosa ne menja ovu osnovicu.</T> : null}
+        {instead(was.price !== null && form.price.trim() !== was.price, base ? priceText(base.priceRsd, base.priceBasis) : '')}
       </View>
       {showScope ? input('Predloženi obim zadatka', form.scope, scope => onEdit({ scope, scopeChanged: true }), true,
         instead(was.scope !== null && form.scope.trim() !== was.scope, was.scope ?? ''))

@@ -254,6 +254,22 @@ it('shows both sides of one account and gives an undated active Dogovor no card,
   expect(cards()).toHaveLength(0); expect(planner()).toHaveLength(0);
 });
 
+it('R11a/SB01 opens the worker application card on the public opportunity, never the requester-only Need route', async () => {
+  mockSource.mojePrijaveStrana.mockResolvedValue(applicationPage([application('polica')]));
+  await render();
+  const cards = tree.root.findAll(node => String(node.type) === 'Press'
+    && String(node.props.accessibilityLabel).startsWith('Otvori zadatak: Tuđ polica'));
+  expect(cards).toHaveLength(1);
+  await act(async () => cards[0].props.onPress());
+  expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
+  expect(mockRouter.navigate).toHaveBeenCalledWith({
+    pathname: '/prilike/[id]', params: { id: 'n-polica' },
+  });
+  expect(mockRouter.navigate).not.toHaveBeenCalledWith({
+    pathname: '/potrebe/[id]/pregled', params: { id: 'n-polica' },
+  });
+});
+
 it('names and opens the upcoming accepted appointment ahead of work awaiting completion, day first in Serbian time', async () => {
   jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-09-27T10:00:00Z'));
   mockSource.mojiDogovori.mockResolvedValue([

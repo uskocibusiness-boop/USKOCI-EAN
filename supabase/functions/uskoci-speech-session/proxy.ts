@@ -8,10 +8,11 @@ const safeText = (v: unknown): v is string => typeof v === 'string' && v.length 
 
 /** All audio remains in bounded memory. The client cannot choose model, tools, VAD or pricing bounds. */
 export function bridgeSpeech(client: Socket, upstream: Socket, conversationId: string, operationId: string,
-  onFinished?: (transcribed: boolean, audioBytes: number, transcriptChars: number) => void) {
-  let transcribedAnything = false;
+  onFinished?: (completed: boolean, audioBytes: number, transcriptChars: number) => void) {
+  let completed = false;
   let ended = false, ready = false, providerSetup = false, released = false, eventSequence = 0, audioSequence = 0;
   let audioBytes = 0, segmentIndex = 0, finalText = '', interimText = '', turnComplete = false;
+  let observedOutputChars = 0;
   let receivedProviderBytes = 0;
   let deadline: ReturnType<typeof setTimeout>;
   const send = (event: Record<string, unknown>) => {
@@ -22,25 +23,30 @@ export function bridgeSpeech(client: Socket, upstream: Socket, conversationId: s
   const close = () => {
     if (ended) return;
     ended = true; clearTimeout(deadline);
-    // Reported before the buffers are cleared, so the caller can settle a session that
-    // never transcribed anything and therefore cost nothing.
-    // audioBytes counts exactly what was forwarded to the provider, which is what the
-    // provider bills for; the transcript size bounds the output side.
-    try { onFinished?.(transcribedAnything, audioBytes, finalText.length); } catch { }
+    // Count audio send attempts, including a send that throws: local failure is
+    // not proof of remote rollback or zero usage. Partial output is not completion.
+    // Empty replacement frames cannot erase earlier output evidence. Only a
+    // completed turn uses the exact final transcript for the existing estimate.
+    try { onFinished?.(completed, audioBytes, completed ? finalText.length : observedOutputChars); } catch { }
     finalText = ''; interimText = '';
     try { upstream.close(1000, 'session ended'); } catch { }
     try { client.close(1000, 'session ended'); } catch { }
   };
   const error = (code: string) => { send({ kind: 'error', code }); close(); };
+  const sendUpstream = (message: object) => {
+    try { upstream.send(JSON.stringify(message)); return true; }
+    catch { error('SPEECH_UNAVAILABLE'); return false; }
+  };
   const timeout = (ms: number) => { clearTimeout(deadline); deadline = setTimeout(() => error('SPEECH_TIMEOUT'), ms); };
   const complete = () => {
     if (!released || !turnComplete || interimText || !finalText.trim()) return;
+    completed = true;
     send({ kind: 'final', text: finalText.trim() }); close();
   };
   const beginInput = () => {
     if (ended || ready || !providerSetup || client.readyState !== 1) return;
     ready = true;
-    upstream.send(JSON.stringify({ realtimeInput: { activityStart: {} } }));
+    if (!sendUpstream({ realtimeInput: { activityStart: {} } })) return;
     if (!send({ kind: 'ready' })) { close(); return; }
     timeout(SPEECH_LIMITS.captureMs);
   };
@@ -49,11 +55,11 @@ export function bridgeSpeech(client: Socket, upstream: Socket, conversationId: s
 
   upstream.onopen = () => {
     if (ended) { try { upstream.close(); } catch { } return; }
-    upstream.send(JSON.stringify({ setup: { model: 'models/' + SPEECH_MODEL,
+    sendUpstream({ setup: { model: 'models/' + SPEECH_MODEL,
       generationConfig: { responseModalities: ['TEXT'], maxOutputTokens: AI_TEST_LIMITS.speechMaxOutputTokens, candidateCount: 1 },
       realtimeInputConfig: { automaticActivityDetection: { disabled: true }, activityHandling: 'NO_INTERRUPTION' },
       inputAudioTranscription: { languageCodes: ['sr-RS'], mode: 'VERBATIM' },
-    } }));
+    } });
   };
   // The provider delivers its JSON frames as binary, so a string-only reader rejects even
   // `{"setupComplete": {}}`. Decoding is async for a Blob, and transcript order matters,
@@ -103,15 +109,16 @@ export function bridgeSpeech(client: Socket, upstream: Socket, conversationId: s
     if (content.interimInputTranscription) {
       const text = content.interimInputTranscription.text;
       if (!safeText(text) || finalText.length + text.length > SPEECH_LIMITS.transcriptCharacters) { error('SPEECH_LIMIT'); return; }
+      observedOutputChars = Math.max(observedOutputChars, finalText.length + text.length);
       interimText = text;
       if (!send({ kind: 'segment', index: segmentIndex, final: false, text })) { close(); return; }
     }
     if (content.inputTranscription) {
       const text = content.inputTranscription.text;
       if (!safeText(text) || finalText.length + text.length > SPEECH_LIMITS.transcriptCharacters) { error('SPEECH_LIMIT'); return; }
+      observedOutputChars = Math.max(observedOutputChars, finalText.length + text.length);
       // Provider final chunks are ordered by this WebSocket; do not deduplicate repeated spoken words by value.
       finalText += text;
-      if (text.trim()) transcribedAnything = true;
       interimText = '';
       if (!send({ kind: 'segment', index: segmentIndex++, final: true, text })) { close(); return; }
     }
@@ -139,7 +146,7 @@ export function bridgeSpeech(client: Socket, upstream: Socket, conversationId: s
     if (!ready || released || upstream.readyState !== 1) { error('SPEECH_INVALID'); return; }
     if (message.kind === 'release' && Object.keys(message).length === 1) {
       released = true;
-      upstream.send(JSON.stringify({ realtimeInput: { activityEnd: {} } }));
+      if (!sendUpstream({ realtimeInput: { activityEnd: {} } })) return;
       timeout(SPEECH_LIMITS.finalizationMs);
       return;
     }
@@ -151,7 +158,7 @@ export function bridgeSpeech(client: Socket, upstream: Socket, conversationId: s
       error('SPEECH_LIMIT'); return;
     }
     audioBytes += bytes; audioSequence++;
-    upstream.send(JSON.stringify({ realtimeInput: { audio: { data: message.pcmBase64, mimeType: 'audio/pcm;rate=16000' } } }));
+    sendUpstream({ realtimeInput: { audio: { data: message.pcmBase64, mimeType: 'audio/pcm;rate=16000' } } });
     message.pcmBase64 = ''; // Do not retain audio in session state, storage or logs.
   };
   client.onerror = close;

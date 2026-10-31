@@ -19,6 +19,8 @@ export declare function geminiClassificationShadowInstruction(purpose?: Classifi
 export declare function inspectGeminiClassificationShadow(
   raw: unknown, snapshot: CatalogSnapshot | null, purpose: ClassificationPurpose,
 ): ClassificationInspection;
+/** Syntax-only check; never category/owner/Save authority. */
+export declare function isValidClassificationPlanShape(plan: unknown): boolean;
 
 /** Advisory only; never mutates the response, grants Save, or makes a provider call. */
 export declare function classificationTurnFeedback(
@@ -33,4 +35,4 @@ export declare function workerServicesMissingScope(skills: unknown, reviewPropos
   count: number; labels: string[];
 };
 /** Owner-facing finish-only guidance; no profile Save or capability write. */
-export declare function workerFinishReviewMessage(skills: unknown, reviewProposals: unknown, catalogAvailable: boolean): string;
+export declare function workerFinishReviewMessage(skills: unknown, reviewProposals: unknown, catalogAvailable: boolean, mayOfferBio?: boolean): string;

@@ -47,7 +47,7 @@ const draw = async (element: React.ReactElement) => { await act(async () => { tr
 const hosts = (name: string) => tree.root.findAll(node => String(node.type) === name);
 const texts = () => hosts('T').flatMap(node => node.children.filter(child => typeof child === 'string')) as string[];
 const group = () => hosts('SettingsGroup')[0];
-beforeEach(() => { jest.clearAllMocks(); mockReceived.mockReset(); mockUser = { id: A }; mockRevision = 1; });
+beforeEach(() => { jest.clearAllMocks(); mockReceived.mockReset(); mockUser = { id: A }; mockRevision = 1; refreshRevision = 0; });
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('what stands under the list, said in the words the server\'s numbers allow', () => {
@@ -174,7 +174,8 @@ function T_Photo() { return React.createElement('Photo'); }
 
 type Probed = ReturnType<typeof useReceivedReviews>;
 let probed: Probed;
-function Probe() { probed = useReceivedReviews(); return null; }
+let refreshRevision = 0;
+function Probe() { probed = useReceivedReviews(refreshRevision); return null; }
 const deferred = <V,>() => { let resolve!: (value: V) => void; const promise = new Promise<V>(done => { resolve = done; }); return { promise, resolve }; };
 
 describe('the hook', () => {
@@ -209,6 +210,24 @@ describe('the hook', () => {
     mockReceived.mockRejectedValue(new Error('network'));
     await draw(<Probe />);
     expect(probed.state.phase).toBe('error');
+  });
+
+  it('reads a new first page on screen return even with identical review IDs, retaining the last good page on a failed return', async () => {
+    mockReceived.mockResolvedValueOnce({ ok: true, podatak: page([review(1)]) });
+    await draw(<Probe />);
+    expect(probed.state.items[0].comment).toBe('Sve kako smo se dogovorili.');
+    const late = deferred<unknown>();
+    mockReceived.mockReturnValueOnce(late.promise);
+    refreshRevision += 1;
+    await act(async () => { tree.update(<Probe />); });
+    expect(probed.state.items[0].comment).toBe('Sve kako smo se dogovorili.');
+    await act(async () => late.resolve({ ok: true, podatak: page([review(1, { comment: 'Nova ocena.' })]) }));
+    expect(probed.state.items[0].comment).toBe('Nova ocena.');
+    mockReceived.mockRejectedValueOnce(new Error('temporarily offline'));
+    refreshRevision += 1;
+    await act(async () => { tree.update(<Probe />); });
+    expect(probed.state).toMatchObject({ phase: 'ready', items: [{ comment: 'Nova ocena.' }] });
+    expect(mockReceived).toHaveBeenCalledTimes(3);
   });
 
   it('asks for the next page with the cursor it was given, adds it after the first and shows a review that came twice once', async () => {

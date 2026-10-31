@@ -431,7 +431,7 @@ export function DiscoverySearchPanel({ items, view, mine, now, mapArea, blurTarg
           else edit({ price });
         }} />
         {minPriceVisible ? <>
-          <T variant="note" tone="muted">Najmanja fiksna cena, ako želiš da je odrediš. {draft.price === 'all' ? 'Ponude ostaju u rezultatima.' : ''}</T>
+          <T variant="note" tone="muted">Najmanji navedeni iznos: ukupna cena, cena po osobi ili satnica po osobi. {draft.price === 'all' ? 'Ponude ostaju u rezultatima.' : ''}</T>
           <TextInput testID="filters-min-budget-input" accessibilityLabel="Najmanja fiksna cena u dinarima"
             value={minText} placeholder="Na primer 3000" keyboardType="number-pad" maxLength={10}
             onChangeText={text => {
