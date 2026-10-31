@@ -121,6 +121,18 @@ it('new application never submits a second term or writes a worker skill without
   expect(mockAddSkill).not.toHaveBeenCalled();
 });
 
+it('explicit profile-skill consent is retired when account revision changes and cannot return on A→B→A', async () => {
+  mockNeed.mockResolvedValue({ ...need(), detalji: { kategorija: 'Selidbe' } });
+  mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'ACTIVE', vestine: [] });
+  await offer(); await explicitSkillConsent();
+  expect(tree!.root.findByType(ApplicationSelectionPresentation).props.skillOptIn.enabled).toBe(true);
+  mockAccount = { user: { id: 'owner-a' }, accountRevision: 2 }; await update();
+  expect(tree!.root.findByType(ApplicationSelectionPresentation).props.skillOptIn.enabled).toBe(false);
+  mockAccount = { user: { id: 'owner-a' }, accountRevision: 1 }; await update();
+  expect(tree!.root.findByType(ApplicationSelectionPresentation).props.skillOptIn.enabled).toBe(false);
+  await sendOffer(); expect(mockAddSkill).not.toHaveBeenCalled();
+});
+
 it('does not show a different task or account the unsent application, and gives recovery to the captured command', async () => {
   await offer(); await edit('Poruka uz prijavu', 'Moja privatna poruka');
   await act(async () => tree!.unmount()); tree = undefined;
