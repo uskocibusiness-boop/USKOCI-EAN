@@ -1,16 +1,9 @@
 // @ts-nocheck
 import { measureAiPhase } from '../_shared/aiPhaseTiming.mjs';
+import { taxonomyOptionalEnabled, taxonomyDualGeminiEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
 import { canAcceptDirectClassification } from '../_shared/classificationDirectReply.mjs';
-// DEV-phase-1 only. Explicit false is an immediate kill switch; other projects
-// stay default-OFF. Do NOT copy this DEV override into production release.
-const devTaxonomyFlagP1=(name:string):boolean=>{
-  // DEV provider compatibility for the optional STRING schema was verified via
-  // two real Gemini calls (worker and requester, HTTP 200, 2026-10-16).
-  // Explicit environment false remains an immediate rollback switch.
-  const setting=Deno.env.get(name);
-  return setting==='true'||(setting!=='false'&&
-    (Deno.env.get('SUPABASE_URL')??'').replace(/\/$/,'')==='https://leqcwgzvjsxugfgzdmth.supabase.co');
-};
+// New taxonomy operations have a single explicit server-side rollout owner.
+const devTaxonomyFlagP1=(name:string):boolean=>taxonomyOptionalEnabled((key:string)=>Deno.env.get(key),name);
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION, AI_AVAILABILITY_HEADER } from '../../../src/contracts/aiAvailability.ts';
 // USKOCI server-side AI intake boundary.
 // Provider secrets live only in Supabase Edge Function environment. Never expose
@@ -54,10 +47,7 @@ import {
   fetchUnconsumedClarificationHint,
 } from '../_shared/backgroundTaxonomyArchitect.mjs';
 
-const isLiveDualGemini = (): boolean =>
-  (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '') === 'https://leqcwgzvjsxugfgzdmth.supabase.co' &&
-  Boolean(Deno.env.get('SUPABASE_ANON_KEY')) &&
-  Deno.env.get('USKOCI_TAXONOMY_DUAL_GEMINI') !== 'false';
+const isLiveDualGemini = (): boolean => taxonomyDualGeminiEnabled((key:string)=>Deno.env.get(key));
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

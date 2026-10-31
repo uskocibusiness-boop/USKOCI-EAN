@@ -70,23 +70,18 @@ test('hint capture candidate is service-only, private, versioned and has no admi
  assert.doesNotMatch(captureSql,/INSERT INTO public\.notification_deliveries/i);
 });
 
-test('DEV shadow is provider-proven and environment-off remains an immediate rollback gate',()=>{
- const canonicalDev='https://leqcwgzvjsxugfgzdmth.supabase.co';
+test('optional taxonomy and paid dual rollout share explicit default-OFF config without hardcoded DEV URL',()=>{
  const harness=readFileSync(new URL('gemini-real-provider-smoke.mjs',import.meta.url),'utf8');
  assert.match(harness,/WORKER_CAPABILITY/);
  assert.match(harness,/NEED_SERVICE/);
  assert.match(harness,/--provider/);
  assert.match(harness,/classificationShadowJson/);
  for(const source of [worker,need]){
-  const start=source.indexOf('const devTaxonomyFlagP1=');
-  const end=source.indexOf('};',start);
-  assert.ok(start>=0&&end>start,'flag helper must exist');
-  const flag=source.slice(start,end+2);
-  assert.ok(flag.includes(canonicalDev),'default ON only for canonical DEV');
-  assert.match(flag,/const setting=Deno\.env\.get\(name\)/);
-  assert.match(flag,/setting!=='false'/,'explicit false is rollback switch');
-  assert.match(flag,/setting==='true'/,'explicit on remains supported');
-  assert.doesNotMatch(flag,/name===['"]USKOCI_TAXONOMY_UNIFIED_SHADOW['"]/, 'old unconditional shadow block must be retired');
+  assert.match(source,/taxonomyRuntimeConfig\.mjs/);
+  assert.match(source,/taxonomyOptionalEnabled\(/);
+  assert.match(source,/taxonomyDualGeminiEnabled\(/);
+  assert.doesNotMatch(source,/https:\/\/leqcwgzvjsxugfgzdmth\.supabase\.co/);
+  assert.doesNotMatch(source,/USKOCI_TAXONOMY_DUAL_GEMINI'\) !== 'false'/);
   assert.match(source,/withGeminiClassificationShadowSchema/);
  }
 });

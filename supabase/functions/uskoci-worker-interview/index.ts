@@ -1,16 +1,9 @@
 import { canAcceptDirectClassification } from '../_shared/classificationDirectReply.mjs';
 import { normalizedClassificationIdentity } from '../_shared/classificationEngine.mjs';
 import { measureAiPhase } from '../_shared/aiPhaseTiming.mjs';
-// DEV-phase-1 only. Explicit false is an immediate kill switch; other projects
-// stay default-OFF. Do NOT copy this DEV override into production release.
-const devTaxonomyFlagP1=(name:string):boolean=>{
-  // DEV provider compatibility for the optional STRING schema was verified via
-  // two real Gemini calls (worker and requester, HTTP 200, 2026-10-16).
-  // Explicit environment false remains an immediate rollback switch.
-  const setting=Deno.env.get(name);
-  return setting==='true'||(setting!=='false'&&
-    (Deno.env.get('SUPABASE_URL')??'').replace(/\/$/,'')==='https://leqcwgzvjsxugfgzdmth.supabase.co');
-};
+import { taxonomyOptionalEnabled, taxonomyDualGeminiEnabled } from '../_shared/taxonomyRuntimeConfig.mjs';
+// New taxonomy operations have a single explicit server-side rollout owner.
+const devTaxonomyFlagP1=(name:string):boolean=>taxonomyOptionalEnabled((key:string)=>Deno.env.get(key),name);
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION } from '../../../src/contracts/aiAvailability.ts';
 // Distinct owned WORKER_PROFILE_V1 proposals. No task facts or canonical writes.
 import { interviewVoiceInstruction } from '../_shared/interviewVoiceInstruction.mjs';
@@ -29,10 +22,7 @@ import { workerAreaRequestSchema, parseWorkerAreaRequests, resolveWorkerAreas } 
 import { buildWorkerFullTreeTaxonomyProposals, runInBackground, captureTaxonomyHintsWithReceipt, fetchUnconsumedClarificationHint, persistClarificationHint, persistConsumeClarificationHint, workerSkillsFingerprint } from '../_shared/backgroundTaxonomyArchitect.mjs';
 declare const Deno: { env: { get(name:string):string|undefined }; serve(handler:(request:Request)=>Promise<Response>):void };
 
-const isLiveDualGemini = (): boolean =>
-  (Deno.env.get('SUPABASE_URL') ?? '').replace(/\/$/, '') === 'https://leqcwgzvjsxugfgzdmth.supabase.co' &&
-  Boolean(Deno.env.get('SUPABASE_ANON_KEY')) &&
-  Deno.env.get('USKOCI_TAXONOMY_DUAL_GEMINI') !== 'false';
+const isLiveDualGemini = (): boolean => taxonomyDualGeminiEnabled((key:string)=>Deno.env.get(key));
 
 const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization,apikey,content-type,x-client-info',
   'Access-Control-Allow-Methods': 'POST,OPTIONS', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' };

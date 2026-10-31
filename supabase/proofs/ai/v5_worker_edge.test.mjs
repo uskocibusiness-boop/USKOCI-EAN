@@ -113,7 +113,9 @@ function dualModeFixture({modes=['REMOTE'],handoff,evidence,quote,priorMode='ON_
  const modeContext={schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:4,
   savedServices:[{service,categoryId,mode:priorMode,...(priorHandoff?{handoff:priorHandoff}:{})}],draftServices:[],unresolvedServices:[]};
  const changes=[{service,modes,evidence:evidence??userText,...(handoff?{handoff}:{})}];
- const f=fixture({env:{SUPABASE_URL:'https://leqcwgzvjsxugfgzdmth.supabase.co'},log,
+ const f=fixture({env:{SUPABASE_URL:'https://leqcwgzvjsxugfgzdmth.supabase.co',
+  USKOCI_TAXONOMY_DUAL_GEMINI:'true',USKOCI_TAXONOMY_ROLLOUT_SCOPE:'DEV',
+  USKOCI_TAXONOMY_ALLOWED_PROJECT_REF:'leqcwgzvjsxugfgzdmth'},log,
   context:{schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:4,
    profileStatus:'ACTIVE',serviceModeContext:modeContext,
    candidate:{skills:[service],bio:'Prethodni opis.',availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},
@@ -230,7 +232,8 @@ test('recovery proof loader binds the current complete worker bundle without net
   'supabase/functions/_shared/serviceHandoff.mjs','supabase/functions/_shared/serviceExecutionInstruction.mjs',
   'supabase/functions/_shared/taxonomyProviderBudget.ts','supabase/functions/_shared/researchDeadline.ts',
   'supabase/functions/_shared/workerAreaAdmission.mjs','supabase/functions/_shared/workerAreaResolver.mjs',
-  'supabase/functions/_shared/backgroundTaxonomyArchitect.mjs'].sort());
+  'supabase/functions/_shared/backgroundTaxonomyArchitect.mjs',
+  'supabase/functions/_shared/taxonomyRuntimeConfig.mjs'].sort());
  assert.equal((await loaded.handler(new Request('https://edge.invalid',{method:'GET'}))).status,405);
 });
 for(const status of [402,429])for(const diagnostics of [false,true])

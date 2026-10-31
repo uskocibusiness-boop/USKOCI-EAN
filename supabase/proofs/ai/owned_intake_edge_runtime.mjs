@@ -61,6 +61,7 @@ export function loadOwnedIntakeHandler(options){
   assert.equal(name,'./aiTestBudget.ts');return budget;
  });
  const researchDeadline=historical?null:evaluate('supabase/functions/_shared/researchDeadline.ts',()=>assert.fail('UNDECLARED_DEADLINE_IMPORT'));
+ const taxonomyConfig=historical?null:evaluate('supabase/functions/_shared/taxonomyRuntimeConfig.mjs',()=>assert.fail('UNDECLARED_TAXONOMY_CONFIG_IMPORT'));
  const serviceModes=historical?null:evaluate('supabase/functions/_shared/workerServiceModeContext.mjs',name=>{
   if(name==='./serviceHandoff.mjs')return handoff;
   assert.equal(name,'./classificationEngine.mjs');return classification;
@@ -76,6 +77,7 @@ export function loadOwnedIntakeHandler(options){
    '../_shared/classificationDirectReply.mjs':directReply,
    '../_shared/classificationExplorer.mjs':explorer,'../_shared/geminiToolConversation.ts':toolConversation,
    '../_shared/taxonomyProviderBudget.ts':providerBudget,'../_shared/researchDeadline.ts':researchDeadline,
+   '../_shared/taxonomyRuntimeConfig.mjs':taxonomyConfig,
    '../_shared/interviewVoiceInstruction.mjs':voice,'../_shared/aiPhaseTiming.mjs':timing,'../_shared/serviceHandoff.mjs':handoff,'../_shared/serviceExecutionInstruction.mjs':execution,
    '../_shared/backgroundTaxonomyArchitect.mjs':backgroundArchitect}:{})};
  evaluate(entry,name=>{assert.ok(Object.hasOwn(imports,name),'UNDECLARED_EDGE_IMPORT');return imports[name];});

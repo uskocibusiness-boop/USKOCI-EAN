@@ -58,6 +58,7 @@ export function loadWorkerRecoveryHandler(options){
   assert.equal(name,'./aiTestBudget.ts');return budget;
  });
  const researchDeadline=evaluate('supabase/functions/_shared/researchDeadline.ts',()=>assert.fail('UNDECLARED_DEADLINE_IMPORT'));
+ const taxonomyConfig=evaluate('supabase/functions/_shared/taxonomyRuntimeConfig.mjs',()=>assert.fail('UNDECLARED_TAXONOMY_CONFIG_IMPORT'));
  const areaAdmission=evaluate('supabase/functions/_shared/workerAreaAdmission.mjs',()=>assert.fail('UNDECLARED_AREA_IMPORT'));
  const areaResolver=evaluate('supabase/functions/_shared/workerAreaResolver.mjs',()=>assert.fail('UNDECLARED_AREA_IMPORT'));
  const backgroundArchitect=evaluate('supabase/functions/_shared/backgroundTaxonomyArchitect.mjs',name=>{
@@ -70,7 +71,8 @@ export function loadWorkerRecoveryHandler(options){
   '../_shared/classificationDirectReply.mjs':directReply,
   '../_shared/workerServiceModeContext.mjs':serviceModes,'../_shared/classificationExplorer.mjs':explorer,
   '../_shared/geminiToolConversation.ts':toolConversation,'../_shared/taxonomyProviderBudget.ts':providerBudget,
-  '../_shared/researchDeadline.ts':researchDeadline,'../_shared/interviewVoiceInstruction.mjs':voice,'../_shared/aiPhaseTiming.mjs':timing,'../_shared/serviceHandoff.mjs':handoff,'../_shared/serviceExecutionInstruction.mjs':execution,
+  '../_shared/researchDeadline.ts':researchDeadline,'../_shared/taxonomyRuntimeConfig.mjs':taxonomyConfig,
+  '../_shared/interviewVoiceInstruction.mjs':voice,'../_shared/aiPhaseTiming.mjs':timing,'../_shared/serviceHandoff.mjs':handoff,'../_shared/serviceExecutionInstruction.mjs':execution,
   '../_shared/workerAreaAdmission.mjs':areaAdmission,'../_shared/workerAreaResolver.mjs':areaResolver,
   '../_shared/backgroundTaxonomyArchitect.mjs':backgroundArchitect};
  evaluate(entry,name=>{assert.ok(Object.hasOwn(imports,name),'UNDECLARED_EDGE_IMPORT');return imports[name];});
