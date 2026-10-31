@@ -390,6 +390,27 @@ describe('one screen for both sets', () => {
   expect(button('Pokušaj ponovo')).toBeUndefined();
   expect(mockSave).toHaveBeenCalledTimes(2);
   expect(held.REQUESTER.settings.in_app_enabled).toBe(false); expect(held.WORKER.settings.in_app_enabled).toBe(true);
+  // The next explicit Save must apply only the unfinished role, using its unchanged CAS revision.
+  expect(button('Sačuvaj podešavanja').props.disabled).toBe(false);
+  mockSave.mockImplementationOnce((_a: string, role: NotificationRole, saved: NotificationSettings, revision: number) => {
+   held[role] = { ...held[role], revision: revision + 1, settings: saved }; return Promise.resolve(held[role]);
+  });
+  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
+  expect(mockSave).toHaveBeenCalledTimes(3);
+  expect(mockSave).toHaveBeenLastCalledWith(USER, 'WORKER', { ...settings, in_app_enabled: false }, 5);
+  expect(held.REQUESTER.revision).toBe(3); expect(held.WORKER.revision).toBe(6);
+  expect(button('Sačuvaj podešavanja').props.success).toBe(true);
+ });
+ it('a changed foreign revision prevents silently continuing an uncertain shared setting', async () => {
+  await mount(); await openAdvanced(); act(() => control('Obaveštenja u aplikaciji').props.onPress());
+  mockSave.mockRejectedValueOnce(Error('unknown'));
+  await act(async () => { button('Sačuvaj podešavanja').props.onPress(); await flush(); });
+  held.WORKER = record('WORKER', { responses_enabled: false }, 6);
+  await act(async () => { button('Pokušaj ponovo').props.onPress(); await flush(); });
+  expect(screenText()).toContain('Podešavanja su promenjena na drugom mestu.');
+  expect(button('Sačuvaj podešavanja').props.disabled).toBe(true);
+  expect(mockSave).toHaveBeenCalledTimes(1);
+  expect(held.WORKER.settings.responses_enabled).toBe(false);
  });
  it('a set whose app list differs from the other reads as off and says so, and one touch makes both the same', async () => {
   serve({ WORKER: { in_app_enabled: false } }); await mount(); await openAdvanced();
