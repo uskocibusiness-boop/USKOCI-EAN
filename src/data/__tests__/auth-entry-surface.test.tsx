@@ -392,7 +392,7 @@ it('blocks duplicate signup, conflicting navigation and editing, then shows accu
   expect(mockAuth.signUp).toHaveBeenCalledTimes(1); expect(host('TextInput').every(node => node.props.editable === false)).toBe(true);
   const close = host('Pressable').find(node => node.props.accessibilityLabel === 'Nazad')!;
   expect(close.props.disabled).toBe(true); await act(async () => close.props.onPress());
-  expect(host('TextInput')).toHaveLength(5);
+  expect(host('TextInput')).toHaveLength(4);
   await act(async () => pending.resolve({ hasSession: false }));
   expect(text()).toContain('Poslaćemo ti poruku za potvrdu emaila'); expect(text()).not.toContain('Poslali smo Vam poruku');
   expect(button('Promeni email')).toBeDefined(); await press('Nazad na prijavu');
@@ -647,7 +647,7 @@ describe('Back on the one screen', () => {
   it('closes the sheet to the entry from the signing-up way and from the signing-in way, with the arrow and with the phone Back', async () => {
     await act(async () => { tree = create(<AuthScreen />); });
     await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onSignUp());
-    expect(host('TextInput')).toHaveLength(5);
+    expect(host('TextInput')).toHaveLength(4);
     await act(async () => arrow().props.onPress());
     expect(host('TextInput')).toHaveLength(0);
     await act(async () => tree.root.findByType('Hero' as React.ElementType).props.onSignIn());
@@ -1114,7 +1114,7 @@ describe('signup email return in the real Auth form', () => {
     const pending = deferred<{ hasSession: boolean }>(); mockAuth.signUp.mockReturnValueOnce(pending.promise);
     await act(async () => { button('Napravi nalog').props.onPress(); });
     await act(async () => signupConfirmationIntent.publish('RETURNED'));
-    expect(host('TextInput')).toHaveLength(5);
+    expect(host('TextInput')).toHaveLength(4);
     await act(async () => pending.resolve({ hasSession: false }));
     expect(text()).toContain('Proveri email');
     expect(signupConfirmationIntent.snapshot()).toBeNull();
