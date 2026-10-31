@@ -1048,10 +1048,10 @@ describe('signup email return in the real Auth form', () => {
     await act(async () => mockBlur?.());
     await act(async () => signupConfirmationIntent.publish('LINK_UNAVAILABLE'));
     expect(signupConfirmationIntent.snapshot()?.kind).toBe('LINK_UNAVAILABLE');
-    expect(button('Pošalji novu potvrdu')).toBeUndefined();
+    expect(button('Pošaljite novu potvrdu')).toBeUndefined();
     await act(async () => { mockBlur = mockFocus() || undefined; });
     expect(text()).toContain('Ovaj link više nije važeći.');
-    expect(button('Pošalji novu potvrdu')).toBeDefined();
+    expect(button('Pošaljite novu potvrdu')).toBeDefined();
     expect(signupConfirmationIntent.snapshot()).toBeNull();
   });
 
@@ -1069,7 +1069,7 @@ describe('signup email return in the real Auth form', () => {
     // Same route and same category still need to reveal the new link's result.
     await act(async () => signupConfirmationIntent.publish('LINK_UNAVAILABLE'));
     expect(scrollTo).toHaveBeenCalledWith({ y: 0, animated: false });
-    await press('Pošalji novu potvrdu');
+    await press('Pošaljite novu potvrdu');
     expect(mockAuth.resendSignupConfirmation).toHaveBeenCalledWith('ana@example.test');
     expect(text()).toContain('Ako email čeka potvrdu, stići će nova poruka.');
   });
@@ -1093,19 +1093,19 @@ describe('signup email return in the real Auth form', () => {
     await render();
     await act(async () => signupConfirmationIntent.publish('LINK_UNAVAILABLE'));
     expect(text()).toContain('Ovaj link više nije važeći.');
-    await press('Pošalji novu potvrdu');
+    await press('Pošaljite novu potvrdu');
     expect(mockAuth.resendSignupConfirmation).not.toHaveBeenCalled();
     expect(input('Email').props.accessibilityLabel).toBe('Email');
     await fill('Email', 'ana@example.test');
-    expect(button('Pošalji novu potvrdu')).toBeDefined();
+    expect(button('Pošaljite novu potvrdu')).toBeDefined();
     const pending = deferred<void>(); mockAuth.resendSignupConfirmation.mockReturnValueOnce(pending.promise);
-    const send = button('Pošalji novu potvrdu').props.onPress;
+    const send = button('Pošaljite novu potvrdu').props.onPress;
     await act(async () => { send(); send(); });
     expect(mockAuth.resendSignupConfirmation).toHaveBeenCalledTimes(1);
     expect(input('Lozinka').props.value).toBe('');
     await act(async () => pending.resolve());
     expect(text()).toContain('Ako email čeka potvrdu, stići će nova poruka.');
-    expect(button('Pošalji novu potvrdu')).toBeUndefined();
+    expect(button('Pošaljite novu potvrdu')).toBeUndefined();
   });
 
   it('does not interrupt or replay navigation over an in-flight signup', async () => {
@@ -1123,10 +1123,10 @@ describe('signup email return in the real Auth form', () => {
   it('manual form change dismisses the callback; a new callback is a new event', async () => {
     await render();
     await act(async () => signupConfirmationIntent.publish('INVALID_LINK'));
-    expect(button('Pošalji novu potvrdu')).toBeDefined();
+    expect(button('Pošaljite novu potvrdu')).toBeDefined();
     await pressTab('Napravite nalog');
-    expect(button('Pošalji novu potvrdu')).toBeUndefined();
+    expect(button('Pošaljite novu potvrdu')).toBeUndefined();
     await act(async () => signupConfirmationIntent.publish('INVALID_LINK'));
-    expect(button('Prijavite se')).toBeDefined(); expect(button('Pošalji novu potvrdu')).toBeDefined();
+    expect(button('Prijavite se')).toBeDefined(); expect(button('Pošaljite novu potvrdu')).toBeDefined();
   });
 });
