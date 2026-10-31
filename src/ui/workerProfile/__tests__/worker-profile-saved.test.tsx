@@ -92,6 +92,20 @@ describe('what the saved profile shows', () => {
     expect(confirmMap).not.toHaveBeenCalled();
   });
 
+  it.each(['loading', 'unconfirmed', 'unavailable'] as const)(
+    'does not infer permission to visit from a stale stored work area while %s', async kind => {
+      const confirmMap = jest.fn();
+      await show({ executionModes: { kind }, confirmMap }, draft({ vestine: ['Prevoz'], workAreas: [{
+        kind: 'COUNTRY', countryCode: 'RS', label: 'Cela Srbija', city: null, sourceRef: null,
+        latitude: null, longitude: null, radiusKm: null,
+      }] }));
+      expect(all()).not.toContain('Područje dolaska');
+      expect(all()).not.toContain('Cela Srbija');
+      expect(press('Područje dolaska')).toBeUndefined();
+      expect(action('Potvrdi tačku na mapi')).toBeUndefined();
+      expect(confirmMap).not.toHaveBeenCalled();
+    });
+
   it('names the visit area separately from confirmed remote work and keeps its edit in the same AI topic', async () => {
     const { openConversation, navigate } = await show({ executionModes: { kind: 'confirmed', modes: ['REMOTE', 'ON_SITE'] } });
     expect(all()).toEqual(expect.arrayContaining(['Na lokaciji i na daljinu', 'Područje dolaska', 'Novi Sad · do 20 km']));
