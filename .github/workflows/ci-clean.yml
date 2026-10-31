@@ -42,6 +42,14 @@ jobs:
         run: node --test --test-reporter=spec supabase/proofs/privacy/r01_phone_messages_only_current.test.mjs
       - name: R01 DEV zero-row probe safety contracts (offline only)
         run: node --test --test-reporter=spec supabase/proofs/privacy/r01-dev-column-probe.test.mjs
+      - name: AI handler preflight (fast failure before full AI matrix)
+        run: |
+          # Compile and exercise the exact current NEED and WORKER handlers.
+          # Keep real unit tests, not a source regex or a skipped assertion.
+          # A failed import or early provider gate must not occupy a 30-minute
+          # full matrix and hide the first useful stack trace.
+          node --test --test-reporter=spec --test-name-pattern='verified Auth identity and owned context' supabase/proofs/ai/owned_intake_edge.test.mjs
+          node --test --test-reporter=spec --test-name-pattern='worker streaming provider has one count-only latency phase' supabase/proofs/ai/v5_worker_edge.test.mjs
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Deno non-npm Edge type checks (11 main functions; no execution)
