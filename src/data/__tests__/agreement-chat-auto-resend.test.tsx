@@ -19,14 +19,11 @@ jest.mock('../../ui/media/AgreementPhotoComposer', () => ({ AgreementPhotoCompos
 jest.mock('../../ui/media/AuthorizedPhoto', () => ({ AuthorizedPhoto: 'AuthorizedPhoto' }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
 import { AgreementChat } from '../../ui/AgreementChat';
-import { forgetAutoResendForTests } from '../../ui/messages/threadModel';
 
 /**
- * AUTO-RESEND (team T3c, 2026-10-07). A message whose send the network left unknown is tried once more by itself, ONLY through the
- * outbox's own `retry(clientMessageId)`: the same retained command with the same client message id. The server below behaves like
- * `rpc_send_agreement_message_v2` (a unique (sender, client message id) and the first message's id on every replay), so the proof
- * that no second message can appear is run against the REAL outbox, not a mock of it. Each message is tried automatically once;
- * the explicit "Proveri" is the person's and stays.
+ * R09 current contract: UNKNOWN is never a trigger for a write. Verify reads the
+ * authorized history and exact-key reconciliation; resend is an explicit act.
+ * The fake service still models a unique message per (sender, clientMessageId).
  */
 const account = '10000000-0000-4000-8000-000000000001';
 const agreement = '20000000-0000-4000-8000-000000000001';
@@ -76,181 +73,128 @@ const entries = (outbox: Outbox) => outbox.getSnapshot().entries;
 async function sendOne(outbox: Outbox, text = 'Stižem za 10 minuta.') {
   await outbox.start(); outbox.setDraft(text); await outbox.sendDraft();
 }
-beforeEach(() => { jest.clearAllMocks(); forgetAutoResendForTests(); mockAppListeners.clear(); ids = 0;
+beforeEach(() => { jest.clearAllMocks(); mockAppListeners.clear(); ids = 0;
   jest.spyOn(global, 'requestAnimationFrame').mockImplementation(() => 1); jest.spyOn(global, 'cancelAnimationFrame').mockImplementation(() => undefined); });
 afterEach(async () => { await act(async () => tree?.unmount()); tree = undefined; jest.restoreAllMocks(); });
 
-describe('a send whose response was lost after the server stored it', () => {
-  it('is retried once when the conversation opens, with the same client message id, and the server still holds ONE message', async () => {
-    const server = fakeServer(['lost-after']);
-    const outbox = makeOutbox(server);
+describe('unknown send is read-only until the person explicitly resends', () => {
+  it('opening and checking a lost-after-send receipt performs no second write; canonical read confirms it', async () => {
+    const server = fakeServer(['lost-after']), outbox = makeOutbox(server);
     await sendOne(outbox);
     expect(entries(outbox)[0]).toMatchObject({ state: 'unknown', error: 'UNAVAILABLE' });
-    expect(server.stored.size).toBe(1); expect(server.calls).toEqual(['poruka_00000001']);
-
-    await mount(<Harness outbox={outbox} />);
-    await until(() => entries(outbox)[0].state === 'confirmed');
-    expect(server.calls).toEqual(['poruka_00000001', 'poruka_00000001']);          // the same id, twice
-    expect(server.stored.size).toBe(1);                                              // never a second message
-    expect(entries(outbox)[0].messageId).toBe(uuid(1));                              // the id of the message the server already had
-    expect(entries(outbox)).toHaveLength(1);
-    expect(refresh).toHaveBeenCalled();                                              // the thread reads the stored message back
-  });
-
-  it('is never sent a third time by itself: later events find it confirmed', async () => {
-    const server = fakeServer(['lost-after']);
-    const outbox = makeOutbox(server);
-    await sendOne(outbox);
-    await mount(<Harness outbox={outbox} />);
-    await until(() => entries(outbox)[0].state === 'confirmed');
-    await emit('background', 'active', 'inactive', 'active');
-    await quiet();
-    expect(server.send).toHaveBeenCalledTimes(2);
     expect(server.stored.size).toBe(1);
-  });
-});
-
-describe('a send the network never delivered', () => {
-  it('is tried once by itself and, if the network is still down, left for the person: later returns to the foreground do nothing more', async () => {
-    const server = fakeServer(['lost-before', 'lost-before']);
-    const outbox = makeOutbox(server);
-    await sendOne(outbox);
-    expect(server.stored.size).toBe(0);
     await mount(<Harness outbox={outbox} />);
-    await until(() => server.send.mock.calls.length === 2);
     await quiet();
-    expect(entries(outbox)[0]).toMatchObject({ state: 'unknown', error: 'UNAVAILABLE' });
-    await emit('background', 'active'); await quiet();
-    await emit('background', 'active'); await quiet();
-    expect(server.send).toHaveBeenCalledTimes(2);                                    // once automatically, never more
-    expect(server.stored.size).toBe(0);
-
-    // The explicit "Proveri" is the person's and still works, once the network is back: one message, the same id.
-    const retry = tree!.root.findByProps({ accessibilityLabel: 'Proveri da li je stigla: Stižem za 10 minuta.' });
-    await act(async () => retry.props.onPress());
-    await until(() => entries(outbox)[0].state === 'confirmed');
-    expect(server.calls).toEqual(['poruka_00000001', 'poruka_00000001', 'poruka_00000001']);
+    expect(server.calls).toEqual(['poruka_00000001']);
+    const action = tree!.root.findByProps({ accessibilityLabel: 'Proveri da li je stigla: Stižem za 10 minuta.' });
+    await act(async () => action.props.onPress());
+    expect(refresh).toHaveBeenCalledTimes(1);
+    expect(server.calls).toEqual(['poruka_00000001']);
+    const command = entries(outbox)[0].command;
+    await act(async () => outbox.reconcile([{ senderAccountId: account, clientMessageId: command.clientMessageId,
+      messageId: uuid(1), body: command.body }]));
+    expect(entries(outbox)[0]).toMatchObject({ state: 'confirmed', messageId: uuid(1) });
     expect(server.stored.size).toBe(1);
-  });
-
-  it('is not tried at the moment of the failure, when the connection is surely down: only on a return to the foreground', async () => {
-    const server = fakeServer(['lost-before', 'ok']);
-    const outbox = makeOutbox(server);
-    await outbox.start();
-    await mount(<Harness outbox={outbox} />);
-    await act(async () => { outbox.setDraft('Stižem.'); });
-    await act(async () => { await outbox.sendDraft(); });
-    await quiet();
-    expect(entries(outbox)[0]).toMatchObject({ state: 'unknown' });
-    expect(server.send).toHaveBeenCalledTimes(1);                                    // no retry just because it failed
-    await emit('active');                                                            // "active" again without leaving: not a return
-    await quiet();
     expect(server.send).toHaveBeenCalledTimes(1);
-    await emit('background', 'active');                                              // a real return
-    await until(() => entries(outbox)[0].state === 'confirmed');
-    expect(server.calls).toEqual(['poruka_00000001', 'poruka_00000001']);
-    expect(server.stored.size).toBe(1);
   });
 
-  it('two events at once still make one retry', async () => {
-    const server = fakeServer(['lost-before', 'ok']);
-    const outbox = makeOutbox(server);
+  it('foreground, repeated active, reconnect and re-opening cannot retry an unknown write', async () => {
+    const server = fakeServer(['lost-before', 'ok']), outbox = makeOutbox(server);
     await sendOne(outbox);
-    await mount(<Harness outbox={outbox} />, );
-    await act(async () => { [...mockAppListeners].forEach(listener => listener('background')); [...mockAppListeners].forEach(listener => listener('active'));
-      [...mockAppListeners].forEach(listener => listener('background')); [...mockAppListeners].forEach(listener => listener('active')); });
-    await until(() => entries(outbox)[0].state === 'confirmed');
-    await quiet();
-    expect(server.send.mock.calls.length).toBeLessThanOrEqual(2);
-    expect(server.stored.size).toBe(1);
-  });
-
-  it('is tried when a read that was failing works again', async () => {
-    const server = fakeServer(['lost-before', 'ok']);
-    const outbox = makeOutbox(server);
-    await sendOne(outbox);
-    // The thread is opened while its own read is failing: nothing is sent into a thread that cannot be read back.
     await mount(<Harness outbox={outbox} error />);
-    await quiet();
-    expect(server.send).toHaveBeenCalledTimes(1);
+    await emit('background', 'active', 'inactive', 'active', 'active');
     await act(async () => tree!.update(<Harness outbox={outbox} error={false} />));
+    await quiet();
+    await act(async () => tree!.unmount()); tree = undefined;
+    await mount(<Harness outbox={outbox} />);
+    await quiet();
+    expect(entries(outbox)[0].state).toBe('unknown');
+    expect(server.calls).toEqual(['poruka_00000001']);
+    expect(server.stored.size).toBe(0);
+  });
+
+  it('checking an absent message does not send; a separate explicit resend uses the original id', async () => {
+    const server = fakeServer(['lost-before', 'ok']), outbox = makeOutbox(server);
+    const sendDraft = jest.spyOn(outbox, 'sendDraft');
+    await sendOne(outbox);
+    const firstDraftCalls = sendDraft.mock.calls.length;
+    await mount(<Harness outbox={outbox} />);
+    await act(async () => tree!.root.findByProps({
+      accessibilityLabel: 'Proveri da li je stigla: Stižem za 10 minuta.',
+    }).props.onPress());
+    expect(entries(outbox)[0].state).toBe('unknown');
+    expect(server.calls).toEqual(['poruka_00000001']);
+    await act(async () => tree!.root.findByProps({
+      accessibilityLabel: 'Ponovi slanje poruke Stižem za 10 minuta.',
+    }).props.onPress());
     await until(() => entries(outbox)[0].state === 'confirmed');
     expect(server.calls).toEqual(['poruka_00000001', 'poruka_00000001']);
     expect(server.stored.size).toBe(1);
+    expect(sendDraft.mock.calls.length).toBe(firstDraftCalls);
+    expect(ids).toBe(1);
   });
-});
 
-describe('what is never retried by itself', () => {
-  it('a refusal, a closed Dogovor, a Dogovor that takes no messages, and a message the server already confirmed', async () => {
-    // A definite refusal.
-    const refuse = { send: jest.fn(async () => { throw new AgreementMessageError('READ_ONLY'); }) };
-    const refused = makeOutbox(refuse);
-    await sendOne(refused);
-    expect(entries(refused)[0]).toMatchObject({ state: 'failed', error: 'READ_ONLY' });
-    await mount(<Harness outbox={refused} />);
-    await quiet(); await emit('background', 'active'); await quiet();
-    expect(refuse.send).toHaveBeenCalledTimes(1);
-    await act(async () => tree!.unmount()); tree = undefined;
+  it('failed-before-send remains UNKNOWN after explicit resend if offline, without further automatic attempts', async () => {
+    const server = fakeServer(['lost-before', 'lost-before', 'ok']), outbox = makeOutbox(server);
+    await sendOne(outbox);
+    await mount(<Harness outbox={outbox} />);
+    await act(async () => tree!.root.findByProps({
+      accessibilityLabel: 'Ponovi slanje poruke Stižem za 10 minuta.',
+    }).props.onPress());
+    await quiet();
+    expect(entries(outbox)[0].state).toBe('unknown');
+    expect(server.calls).toHaveLength(2);
+    await emit('background', 'active', 'background', 'active');
+    await quiet();
+    expect(server.calls).toHaveLength(2);
+    expect(server.stored.size).toBe(0);
+  });
 
-    // An unknown outcome, but the Dogovor is closed or does not take messages.
+  it('closed/read-only Dogovori allow a read-only check but expose no resend button', async () => {
     for (const over of [{ terminal: true, writable: false }, { writable: false }] as const) {
-      forgetAutoResendForTests();
-      const server = fakeServer(['lost-before']);
-      const outbox = makeOutbox(server);
+      const server = fakeServer(['lost-before']), outbox = makeOutbox(server);
       await sendOne(outbox);
       await mount(<Harness outbox={outbox} {...over} />);
-      await quiet(); await emit('background', 'active'); await quiet();
+      expect(tree!.root.findAllByProps({ accessibilityLabel: 'Ponovi slanje poruke Stižem za 10 minuta.' })).toHaveLength(0);
+      await act(async () => tree!.root.findByProps({
+        accessibilityLabel: 'Proveri da li je stigla: Stižem za 10 minuta.',
+      }).props.onPress());
+      expect(server.send).toHaveBeenCalledTimes(1);
+      await emit('background', 'active');
       expect(server.send).toHaveBeenCalledTimes(1);
       await act(async () => tree!.unmount()); tree = undefined;
     }
-
-    // Confirmed already.
-    forgetAutoResendForTests();
-    const fine = fakeServer(['ok']);
-    const sent = makeOutbox(fine);
-    await sendOne(sent);
-    expect(entries(sent)[0].state).toBe('confirmed');
-    await mount(<Harness outbox={sent} />);
-    await quiet(); await emit('background', 'active'); await quiet();
-    expect(fine.send).toHaveBeenCalledTimes(1);
   });
 
-  it.each(['STORAGE_UNAVAILABLE', 'INVALID_RESPONSE', 'CONFLICT'] as const)('an unknown outcome that is %s, not the network, is left for the person', async error => {
-    const command = { accountId: account, agreementId: agreement, clientMessageId: 'poruka_00000077', body: 'Stižem.' };
-    const snapshot = { phase: 'ready' as const, draft: '', capturing: false, error: null,
-      entries: [{ command, state: 'unknown' as const, error, persisted: true, attempt: 1 }] };
-    const stub = { subscribe: () => () => {}, getSnapshot: () => snapshot, retry: jest.fn().mockResolvedValue(undefined),
-      setDraft: jest.fn(), sendDraft: jest.fn().mockResolvedValue(undefined), start: jest.fn().mockResolvedValue(undefined) } as unknown as Outbox;
-    await mount(<Harness outbox={stub} />);
-    await quiet(); await emit('background', 'active'); await quiet();
-    expect(stub.retry).not.toHaveBeenCalled();
-  });
-
-  it('while the network is the cause (or the answer never came), the same stub is retried: the filter is the error and nothing else', async () => {
-    const command = { accountId: account, agreementId: agreement, clientMessageId: 'poruka_00000078', body: 'Stižem.' };
-    const snapshot = { phase: 'ready' as const, draft: '', capturing: false, error: null,
-      entries: [{ command, state: 'unknown' as const, error: 'UNAVAILABLE' as const, persisted: true, attempt: 1 }] };
-    const stub = { subscribe: () => () => {}, getSnapshot: () => snapshot, retry: jest.fn().mockResolvedValue(undefined),
-      setDraft: jest.fn(), sendDraft: jest.fn().mockResolvedValue(undefined), start: jest.fn().mockResolvedValue(undefined) } as unknown as Outbox;
-    await mount(<Harness outbox={stub} />);
-    await quiet(); await emit('background', 'active'); await quiet();
-    expect(stub.retry).toHaveBeenCalledTimes(1);
-    expect(stub.retry).toHaveBeenCalledWith('poruka_00000078');
-    expect(stub.sendDraft).not.toHaveBeenCalled();
-  });
-});
-
-describe('the retry is the outbox\'s own, so the id is the retained one', () => {
-  it('never mints a new client message id: the draft path is not touched', async () => {
-    const server = fakeServer(['lost-before', 'ok']);
-    const outbox = makeOutbox(server);
-    const sendDraft = jest.spyOn(outbox, 'sendDraft');
+  it('server refusal never auto-retries; an explicit retry still requires a writable screen', async () => {
+    const refused = { send: jest.fn(async () => { throw new AgreementMessageError('READ_ONLY'); }) };
+    const outbox = makeOutbox(refused);
     await sendOne(outbox);
-    const draftCalls = sendDraft.mock.calls.length;
+    expect(entries(outbox)[0].state).toBe('failed');
     await mount(<Harness outbox={outbox} />);
-    await until(() => entries(outbox)[0].state === 'confirmed');
-    expect(sendDraft.mock.calls.length).toBe(draftCalls);
-    expect(new Set(server.calls).size).toBe(1);
-    expect(ids).toBe(1);                                                             // `newId` was called once, for the first send
+    await emit('background', 'active');
+    expect(refused.send).toHaveBeenCalledTimes(1);
+    await act(async () => tree!.root.findByProps({
+      accessibilityLabel: 'Ponovi slanje poruke Stižem za 10 minuta.',
+    }).props.onPress());
+    await quiet();
+    expect(refused.send).toHaveBeenCalledTimes(2);
   });
+
+  it.each(['STORAGE_UNAVAILABLE', 'INVALID_RESPONSE', 'CONFLICT', 'UNAVAILABLE'] as const)(
+    '%s unknown recovery never sends without explicit intent', async error => {
+      const command = { accountId: account, agreementId: agreement, clientMessageId: 'poruka_00000077', body: 'Stižem.' };
+      const snapshot = { phase: 'ready' as const, draft: '', capturing: false, error: null,
+        entries: [{ command, state: 'unknown' as const, error, persisted: true, attempt: 1 }] };
+      const stub = { subscribe: () => () => {}, getSnapshot: () => snapshot, retry: jest.fn().mockResolvedValue(undefined),
+        setDraft: jest.fn(), sendDraft: jest.fn().mockResolvedValue(undefined), start: jest.fn().mockResolvedValue(undefined) } as unknown as Outbox;
+      await mount(<Harness outbox={stub} />);
+      await quiet(); await emit('background', 'active');
+      await act(async () => tree!.root.findByProps({
+        accessibilityLabel: 'Proveri da li je stigla: Stižem.',
+      }).props.onPress());
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(stub.retry).not.toHaveBeenCalled();
+      expect(stub.sendDraft).not.toHaveBeenCalled();
+    });
 });

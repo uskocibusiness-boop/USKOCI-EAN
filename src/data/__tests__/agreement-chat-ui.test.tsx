@@ -19,7 +19,6 @@ jest.mock('../supabaseClient', () => ({ supabaseKlijent: () => ({}) }));
 jest.mock('../../ui/system/haptics', () => ({ tick: jest.fn(), forgetTicks: jest.fn() }));
 import { tick } from '../../ui/system/haptics';
 import { AgreementChat, CLOSED_SENTENCE, messageSpoken } from '../../ui/AgreementChat';
-import { forgetAutoResendForTests, takeAutoResend } from '../../ui/messages/threadModel';
 
 const account = '10000000-0000-4000-8000-000000000001';
 const agreement = '20000000-0000-4000-8000-000000000001';
@@ -55,10 +54,6 @@ async function render(overrides: Partial<typeof props> = {}) {
 }
 beforeEach(() => {
   jest.clearAllMocks();
-  // These cases are about the person's own retry. The automatic retry (once per message, on opening the thread, on the return
-  // to the foreground or when a failing read works again) has its own suite, so the fixture message is spent here.
-  forgetAutoResendForTests();
-  takeAutoResend([{ command, state: 'unknown', persisted: true, attempt: 1 }]);
   frames.clear(); frameId = 0;
   jest.spyOn(global, 'requestAnimationFrame').mockImplementation(callback => { frames.set(++frameId, callback); return frameId; });
   jest.spyOn(global, 'cancelAnimationFrame').mockImplementation(id => { if (id != null) frames.delete(id); });
@@ -226,6 +221,9 @@ describe('D03 actual message component', () => {
     await act(async () => button('Ponovo proveri nove poruke').props.onPress());
     expect(props.refresh).toHaveBeenCalledTimes(1);
     await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
+    expect(props.refresh).toHaveBeenCalledTimes(2);
+    expect(outbox.retry).not.toHaveBeenCalled();
+    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
     expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
     expect(photos.refresh).toHaveBeenCalledTimes(1);
   });
