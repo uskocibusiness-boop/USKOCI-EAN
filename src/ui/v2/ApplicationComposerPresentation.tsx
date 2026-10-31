@@ -4,8 +4,6 @@ import type { PotrebaProjekcija, PrilikaProjekcija } from '../../contracts/proje
 import { fixedApplicationPrice, needScheduleText, readableTitle } from '../../data/needDetailPresentation';
 import { calendarInstant } from '../../lib/calendarTime';
 import { novac } from '../../lib/novac';
-import { CivilField } from '../calendar/CalendarControls';
-import { civilInstant, zonedParts } from '../calendar/calendarPresentation';
 import { ProductHeader } from '../product/ProductDetails';
 import { ProductSheet } from '../product/ProductSheet';
 import { FactArt } from '../system/FactArt';
@@ -24,7 +22,6 @@ import { Section } from '../system/Section';
 import { StateView } from '../system/StateView';
 import { StatusChip } from '../system/StatusChip';
 import { Surface } from '../system/Surface';
-import { useLayoutClass } from '../system/textScale';
 import { brandAction, fieldBox, sys } from '../system/tokens';
 import { T } from '../Text';
 import { withInter } from '../interFont';
@@ -257,47 +254,6 @@ function SentReceipt({ fresh, price, hourly, title, people, time, timeNote, mess
   </>;
 }
 
-/** The exact time of this application, in the one sheet engine; nothing is applied until "Potvrdi termin". */
-function ExactTimeSheet({ draft, timezone, taskTime, close, accept }: {
-  draft: ApplicationDraft; timezone: string; taskTime: string; close: () => void; accept: (start: string | null, end: string | null) => void;
-}) {
-  const { stacked } = useLayoutClass();
-  const [start, setStart] = useState(() => draft.start ? zonedParts(new Date(draft.start), timezone) : { date: '', time: '' });
-  const [end, setEnd] = useState(() => draft.end ? zonedParts(new Date(draft.end), timezone) : { date: '', time: '' });
-  const [dirtyStart, setDirtyStart] = useState(false), [dirtyEnd, setDirtyEnd] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const apply = () => {
-    const from = draft.start && !dirtyStart ? { value: draft.start, error: null } : civilInstant(start.date, start.time, timezone);
-    const to = draft.end && !dirtyEnd ? { value: draft.end, error: null } : civilInstant(end.date, end.time, timezone);
-    if (!from.value || !to.value) { setError(from.error ?? to.error); return; }
-    const a = calendarInstant(from.value), b = calendarInstant(to.value);
-    if (a === null || b === null || a >= b) { setError('Kraj termina mora biti posle početka.'); return; }
-    accept(from.value, to.value);
-  };
-  // Two fields side by side while both fit; stacked on a narrow phone or at the owner's Large text.
-  const row = stacked ? s.stack : s.pair;
-  const cell = stacked ? null : s.cell;
-  return <ProductSheet title="Tačan termin" closeLabel="Zatvori izbor termina" dirty={dirtyStart || dirtyEnd} onClose={close}
-    footer={() => <>
-      <V2Action label="Potvrdi termin" onPress={apply} style={brandAction} />
-      <V2Action label="Koristi termin zadatka" kind="quiet" onPress={() => accept(null, null)} />
-    </>}>
-    {() => <>
-      <T variant="meta" tone="muted">{timezone === 'Europe/Belgrade' ? 'Po vremenu u Srbiji.' : `Vremenska zona: ${timezone}.`}</T>
-      <T variant="body">{`Termin zadatka: ${taskTime}`}</T>
-      <View style={row}>
-        <View style={cell}><CivilField label="Datum početka" mode="date" value={start.date} onChange={value => { setStart(v => ({ ...v, date: value })); setDirtyStart(true); }} /></View>
-        <View style={cell}><CivilField label="Početak" mode="time" value={start.time} onChange={value => { setStart(v => ({ ...v, time: value })); setDirtyStart(true); }} /></View>
-      </View>
-      <View style={row}>
-        <View style={cell}><CivilField label="Datum kraja" mode="date" value={end.date} onChange={value => { setEnd(v => ({ ...v, date: value })); setDirtyEnd(true); }} /></View>
-        <View style={cell}><CivilField label="Kraj" mode="time" value={end.time} onChange={value => { setEnd(v => ({ ...v, time: value })); setDirtyEnd(true); }} /></View>
-      </View>
-      {error ? <T accessibilityRole="alert" variant="note" tone="danger">{error}</T> : null}
-    </>}
-  </ProductSheet>;
-}
-
 /** A new application follows the task's term; historical frozen commands may still show an old proposed term in their receipt. */
 export function ApplicationComposerPresentation({ applicationPriceBasis, need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset, blocked, pendingHelp, refreshHelps = true, initialSheet, skillOptIn }: {
   applicationPriceBasis?: 'TOTAL' | 'HOURLY';
@@ -311,14 +267,13 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
   /** False when the error on screen is one a fresh read of the task cannot fix (the phone could not save the request). */
   refreshHelps?: boolean;
   /** A sheet open from the start. Only the internal gallery sets it; the review it opens is still retired by any change. */
-  initialSheet?: 'review' | 'time';
+  initialSheet?: 'review';
   /** Option to add task category into the worker's profile for future notifications and dispatches. */
   skillOptIn?: { category: string; enabled: boolean; onToggle: (enabled: boolean) => void } | null;
 }) {
   // The review only stages presentation. The route still validates, journals and sends the command.
   // A changed draft/task cannot be sent through a retained confirmation from the previous review.
   const reviewKey = JSON.stringify([need.id, need.revizija, need.naslov, need.vremeTekst, need.taskTimezone, need.schedule, need.rezimCene, need.osnovaCene, applicationPriceBasis, draft]);
-  const [editingTime, setEditingTime] = useState(initialSheet === 'time');
   const [review, setReview] = useState<{ key: string } | null>(() => initialSheet === 'review' ? { key: reviewKey } : null);
   const [focused, setFocused] = useState<'price' | 'note' | null>(null);
   // The success mark springs only when the send was confirmed while this screen was open.
@@ -360,7 +315,7 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
   const locked = confirmed || pending || uncertain;
   const reviewReason = shownBlock?.reason ?? issue.reason;
   const openReview = () => {
-    if (!disabled && canSubmit && !reviewing && !issue.reason && !editingTime) { Keyboard.dismiss(); setReview({ key: reviewKey }); }
+    if (!disabled && canSubmit && !reviewing && !issue.reason) { Keyboard.dismiss(); setReview({ key: reviewKey }); }
   };
   // Every green action is label-only, as the brand action is drawn everywhere else (r6: two of them carried a glyph).
   const primary = confirmed ? <V2Action label="Otvori moje prijave" onPress={openApplications} style={brandAction} />
@@ -471,9 +426,6 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
       </Section> : null}
     </>}
     </>}
-    {editingTime && !disabled && !reviewing ? <ExactTimeSheet draft={draft} timezone={timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone}
-      taskTime={fixed ?? need.vremeTekst} close={() => setEditingTime(false)}
-      accept={(start, end) => { change({ ...draft, start, end }); setEditingTime(false); }} /> : null}
     {reviewing ? <ProductSheet title="Ovo šalješ" closeLabel="Nazad na izmenu prijave" backdropHint="Vraća na izmenu prijave." onClose={closeReview}
       footer={() => <>
         <V2Action label="Pošalji ovu prijavu" onPress={confirmReview} style={brandAction} />
@@ -544,7 +496,6 @@ const s = StyleSheet.create({
   summary: { flexShrink: 1, fontVariant: ['tabular-nums'] },
   center: { textAlign: 'center' },
   blocked: { alignItems: 'center', gap: sys.space.xs, paddingTop: sys.space.xs },
-  pair: { flexDirection: 'row', gap: sys.space.md }, stack: { gap: sys.space.md }, cell: { flex: 1, minWidth: 0 },
   skillRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: sys.space.md },
   skillBody: { flex: 1, minWidth: 0, gap: sys.space.xs },
 });
