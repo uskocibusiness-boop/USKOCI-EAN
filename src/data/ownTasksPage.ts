@@ -1,5 +1,7 @@
 import type { PotrebaProjekcija } from '../contracts/projections';
-import type { MarketplaceView, OwnedTaskCounts } from './marketplaceView';
+import type { MarketplaceView, OwnedTaskCounts, OwnTasksScope } from './marketplaceView';
+export { ownTasksScope } from './marketplaceView';
+export type { OwnTasksScope } from './marketplaceView';
 import { record, timestamp, uuid } from './serverReceipt';
 
 /**
@@ -8,7 +10,6 @@ import { record, timestamp, uuid } from './serverReceipt';
  * basis and the selectable count are the ones `mapNeed` already reads; `sortAt` is the keyset value. Pure and React-free: the pager, the service and
  * the fake source share it.
  */
-export type OwnTasksScope = 'ALL' | 'ACTIVE' | 'DRAFTS' | 'HISTORY' | 'WAITING';
 export type OwnTasksCursor = { at: string; id: string };
 export type OwnTasksPageRequest = { scope: OwnTasksScope; limit: number; cursor: OwnTasksCursor | null };
 export type OwnTasksPage = {
@@ -25,14 +26,6 @@ export type OwnTaskDocument = Record<string, unknown> & { id: string; sortAt: st
 const SCOPES: readonly OwnTasksScope[] = ['ALL', 'ACTIVE', 'DRAFTS', 'HISTORY', 'WAITING'];
 export const isOwnTasksScope = (value: unknown): value is OwnTasksScope => SCOPES.includes(value as OwnTasksScope);
 
-/**
- * The set the person is looking at, in the server's words. "Treba moja radnja" narrows to the tasks that wait for my choice, which are active by
- * definition, so a draft or a closed set with it is empty by rule and nothing is read (null).
- */
-export function ownTasksScope(view: Pick<MarketplaceView, 'section' | 'attention'>): OwnTasksScope | null {
-  if (view.attention) return view.section === 'drafts' || view.section === 'history' ? null : 'WAITING';
-  return view.section === 'active' ? 'ACTIVE' : view.section === 'drafts' ? 'DRAFTS' : view.section === 'history' ? 'HISTORY' : 'ALL';
-}
 /** Search and the price filter are refinements of the loaded set: while one is on, the rest of the set is read so the answer is complete. */
 export const ownTasksRefined = (view: Pick<MarketplaceView, 'query' | 'price'>): boolean => view.query.trim() !== '' || view.price !== 'all';
 

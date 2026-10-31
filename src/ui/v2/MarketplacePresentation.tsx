@@ -3,8 +3,7 @@ import { FlatList, Keyboard, Platform, StyleSheet, TextInput, View, type ListRen
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { PotrebaProjekcija } from '../../contracts/projections';
 import type { MarketplaceItem, MarketplaceView, OwnedTaskCounts } from '../../data/marketplaceView';
-import { initialMarketplaceView, isOwnedNeed, marketplaceItems, ownedTaskCounts } from '../../data/marketplaceView';
-import { ownTasksScope } from '../../data/ownTasksPage';
+import { initialMarketplaceView, isOwnedNeed, marketplaceItems, ownedTaskCounts, ownTasksScope } from '../../data/marketplaceView';
 import { Press } from '../Press';
 import { Appear, useAppear } from '../system/Appear';
 import { FactArt } from '../system/FactArt';
