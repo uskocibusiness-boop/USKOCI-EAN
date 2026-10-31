@@ -28,8 +28,8 @@ describe('the sign-in screens say each thing one way', () => {
 
   it('"Zdravo." is not the title of anything, and each way names its action', () => {
     for (const path of FILES) expect(codeOf(path)).not.toMatch(/['"`]Zdravo\.['"`]/);
-    expect(authCopy.signIn).toBe('Prijavi se');
-    expect(authCopy.signUp).toBe('Napravi nalog');
+    expect(authCopy.signIn).toBe('Prijavite se');
+    expect(authCopy.signUp).toBe('Napravite nalog');
   });
 
   it('password recovery has one name, in the title of its step and in the bar of the link\'s own screen', () => {
@@ -42,7 +42,7 @@ describe('the sign-in screens say each thing one way', () => {
     expect(authCopy.legal).toBe('Uslovi korišćenja i Politika privatnosti još nisu objavljeni.');
   });
 
-  it('the voice is "ti" without gender: no participle that says who the person is ("nisi prijavljen", "si uneo")', () => {
+  it('the voice is formal Vi without gender: no participle that says who the person is ("nisi prijavljen", "si uneo")', () => {
     const GENDERED = /\b(?:nisi|si)\s+(?:prijavljen|prijavljena|odjavljen|odjavljena|izabran|izabrana|uneo|unela|registrovan|registrovana)\b/i;
     // The check finds what it is for, and lets the neutral words through.
     expect(GENDERED.test('Još nisi prijavljen.')).toBe(true);
@@ -50,8 +50,8 @@ describe('the sign-in screens say each thing one way', () => {
     for (const path of FILES) expect([path, GENDERED.test(codeOf(path))]).toEqual([path, false]);
   });
 
-  it('the retry button is "Pokušaj ponovo" everywhere ("Probaj" and "Ponovi" are not words of the app)', () => {
-    expect(authCopy.retry).toBe('Pokušaj ponovo');
+  it('the retry button is "Pokušajte ponovo" everywhere ("Probaj" and "Ponovi" are not words of the app)', () => {
+    expect(authCopy.retry).toBe('Pokušajte ponovo');
     for (const path of FILES) expect(codeOf(path)).not.toMatch(/Probaj|Ponovi\b/);
   });
 });
