@@ -32,7 +32,13 @@ async function bytes(message:Request|Response,max:number,signal:AbortSignal):Pro
  try{for(;;){if(signal.aborted)throw new Error('CANCELLED');const part=await reader.read();if(signal.aborted)throw new Error('CANCELLED');if(part.done)break;
   total+=part.value.byteLength;if(total>max)throw new Safe('MEDIA_INPUT_INVALID',413);chunks.push(part.value);}
   if(declared!==null&&Number(declared)!==total)throw new Error('TRUNCATED');const out=new Uint8Array(total);let offset=0;for(const c of chunks){out.set(c,offset);offset+=c.length;}return out;
- }finally{signal.removeEventListener('abort',stop);void reader.cancel().catch(()=>undefined);}
+ }finally{
+  signal.removeEventListener('abort',stop);
+  // The returned compact copy owns the data. Clear the temporary streaming
+  // chunks on success AND on truncation, cancellation or an oversize body.
+  for(const chunk of chunks)chunk.fill(0);
+  void reader.cancel().catch(()=>undefined);
+ }
 }
 const digest=async(data:Uint8Array)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new Uint8Array(data).buffer)),v=>v.toString(16).padStart(2,'0')).join('');
 const parse=(data:Uint8Array)=>JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(data));
@@ -348,7 +354,12 @@ export async function handleMedia(req:Request):Promise<Response>{
   if(req.headers.get('x-media-operation')!=='upload'||!['TASK','AVATAR'].includes(scope??'')||!id(target)||!id(key)||!['image/jpeg','image/png','image/webp'].includes(type??''))throw new Safe('MEDIA_INPUT_INVALID');
   releaseAdmission=await imageAdmission.acquire(abort.signal);
   if(!releaseAdmission){if(abort.signal.aborted)throw new Error('MEDIA_WAIT_ABORTED');return json(429,{code:'MEDIA_UPLOAD_PENDING'});}
-  const input=await bytes(req,10485760,abort.signal);if(!input.length)throw new Safe('MEDIA_INPUT_INVALID');
+  const input=await bytes(req,10485760,abort.signal);
+  // Legacy TASK/AVATAR transport also owns sensitive buffers on every early
+  // receipt, SQL error, Storage timeout and failed sanitizer, not just success.
+  const wipe:Uint8Array[]=[input];
+  try{
+  if(!input.length)throw new Safe('MEDIA_INPUT_INVALID');
   const claim=row(await rpc('rpc_claim_media_upload_service',{p_account_id:aid,p_scope:scope,p_target_id:target,p_client_request_id:key,
    p_input_sha256:await digest(input),p_input_bytes:input.length,p_input_type:type}));
   if(!claim||typeof claim.acquired!=='boolean')throw new Error('INVALID_CLAIM');const a=asset(claim.asset,aid);
@@ -359,7 +370,7 @@ export async function handleMedia(req:Request):Promise<Response>{
    if(staged.dispatchState!=='DISPATCHING'&&!(staged.dispatchState==='SETTLED'&&staged.dispatchOutcome==='STORED'))return json(200,a);
   }else{
    if(!id(claim.attemptId)||a.state!=='PROCESSING')throw new Error('INVALID_CLAIM');
-   let sanitized;try{sanitized=sanitizeImage(input,type,await loadMediaRuntime());}
+   let sanitized;try{sanitized=sanitizeImage(input,type,await loadMediaRuntime());wipe.push(sanitized.bytes);}
    catch(e){await rpc('rpc_fail_media_upload_service',{p_account_id:aid,p_asset_id:a.assetId,p_attempt_id:claim.attemptId});
     throw new Safe(e instanceof Error&&safeCodes.includes(e.message)?e.message:'MEDIA_SANITIZATION_FAILED');}
    input.fill(0);
@@ -381,6 +392,7 @@ export async function handleMedia(req:Request):Promise<Response>{
   const verified=await objectBytes(staged.path,staged.sha256,staged.byteSize);verified.fill(0);
   await rpc('rpc_settle_media_upload_service',{p_account_id:aid,p_asset_id:a.assetId,p_storage_sha256:staged.sha256,p_outcome:'STORED'});
   return json(200,asset(await rpc('rpc_complete_media_upload_service',{p_account_id:aid,p_asset_id:a.assetId,p_storage_sha256:staged.sha256}),aid));
+  }finally{for(const data of wipe)data.fill(0);}
  }catch(e){return e instanceof Safe?json(e.status,{code:e.code}):json(503,{code:'MEDIA_UNCONFIRMED'});}
  finally{clearTimeout(timer);req.signal.removeEventListener('abort',stop);stop();releaseAdmission?.();}
 }

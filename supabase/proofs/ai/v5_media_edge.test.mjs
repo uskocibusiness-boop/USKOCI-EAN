@@ -12,7 +12,7 @@ const asset=(state='READY',patch={})=>({assetId:aid,accountId:account,scope:'TAS
  ref:state==='READY'?ref:null,sha256:state==='READY'?sha:null,width:state==='READY'?160:null,height:state==='READY'?80:null,
  byteSize:state==='READY'?sanitized.bytes.length:null,contentType:'image/jpeg',authoritative:true,...patch});
 function fixture(options={}){
- let handler;const calls=[],environment={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'ANON',SUPABASE_SERVICE_ROLE_KEY:'SERVICE'};
+ let handler;const calls=[],memory={rawCopies:[],sanitizedCopies:[]},environment={SUPABASE_URL:'https://db.invalid',SUPABASE_ANON_KEY:'ANON',SUPABASE_SERVICE_ROLE_KEY:'SERVICE'};
  const fetch=async(url,init={})=>{
   const path=new URL(url).pathname,call={path,init,body:typeof init.body==='string'?JSON.parse(init.body):init.body};calls.push(call);
   if(options.transport){const overridden=await options.transport(call);if(overridden)return overridden;}
@@ -33,15 +33,26 @@ function fixture(options={}){
   assert.fail('Unexpected transport '+path);
  };
  const runtime={...m,initializeImageMagick:async()=>undefined};
+ // Preserve real handler behavior but retain references to its private buffers.
+ // This is not a fake upload: the actual WASM sanitizer and service/fetch flows run.
+ class ObservedBytes extends Uint8Array {
+  constructor(...args){
+   super(...args);
+   if(args.length===1&&typeof args[0]==='number'&&args[0]===input.length)memory.rawCopies.push(this);
+  }
+ }
+ const observedSanitizer=options.trackMemory?{...sanitizer,sanitizeImage(...args){
+  const clean=sanitizer.sanitizeImage(...args);memory.sanitizedCopies.push(clean.bytes);return clean;
+ }}:sanitizer;
  const source=readFileSync('supabase/functions/uskoci-media/index.ts','utf8').replace("import.meta.resolve('npm:@imagemagick/magick-wasm@0.0.43/magick.wasm')","'file:///synthetic-wasm-runtime-already-initialized'");
  const compiled=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
- const context=vm.createContext({exports:{},require:name=>{if(name.startsWith('npm:'))return runtime;if(name==='../_shared/voiceM4a.mjs')return voice;if(name==='../_shared/mediaUploadAdmission.mjs')return admission;assert.equal(name,'../_shared/mediaImageSanitizer.mjs');return sanitizer;},Request,Response,Headers,URL,TextEncoder,TextDecoder,
-  Uint8Array,ArrayBuffer,DataView,AbortController,crypto:webcrypto,setTimeout,clearTimeout,fetch,atob,
+ const context=vm.createContext({exports:{},require:name=>{if(name.startsWith('npm:'))return runtime;if(name==='../_shared/voiceM4a.mjs')return voice;if(name==='../_shared/mediaUploadAdmission.mjs')return admission;assert.equal(name,'../_shared/mediaImageSanitizer.mjs');return observedSanitizer;},Request,Response,Headers,URL,TextEncoder,TextDecoder,
+  Uint8Array:options.trackMemory?ObservedBytes:Uint8Array,ArrayBuffer,DataView,AbortController,crypto:webcrypto,setTimeout,clearTimeout,fetch,atob,
   Deno:{env:{get:n=>environment[n]},readFile:async()=>new Uint8Array(),serve:fn=>handler=fn}});
  new vm.Script(compiled).runInContext(context);
  const invoke=(body=input,headers={})=>handler(new Request('https://edge.invalid',{method:'POST',headers:{Authorization:'Bearer SYNTHETIC','Content-Type':'image/png',
   'x-media-operation':'upload','x-media-scope':'TASK','x-media-target':cid,'x-media-request-id':key,...headers},body}));
- return{calls,invoke,read:(id=aid)=>invoke(JSON.stringify({assetId:id,needId:need}),{'x-media-operation':'read','Content-Type':'application/json'}),
+ return{calls,invoke,memory,read:(id=aid)=>invoke(JSON.stringify({assetId:id,needId:need}),{'x-media-operation':'read','Content-Type':'application/json'}),
   list:()=>invoke(JSON.stringify({needId:need}),{'x-media-operation':'list-need','Content-Type':'application/json'})};
 }
 const paths=f=>f.calls.map(c=>c.path);
@@ -60,6 +71,26 @@ test('unknown staged Storage command recovers exact immutable bytes without anot
  assert.equal((await f.invoke()).status,200);assert.equal(f.calls.filter(c=>c.path.startsWith('/storage/')&&c.init.method==='POST').length,0);
  assert.ok(paths(f).includes('/rest/v1/rpc/rpc_settle_media_upload_service'));
 });
+test('raw and sanitized legacy image buffers are wiped on replay, rejection, Storage failure and success',async()=>{
+ const variants=[
+  {name:'already-settled replay',status:200,options:{claim:{acquired:false,attemptId:null,asset:asset('READY'),staged:null}},sanitized:false},
+  {name:'sanitizer rejected',status:400,options:{},body:new TextEncoder().encode('not an image at all'),sanitized:false},
+  {name:'definitive Storage reject',status:503,options:{transport:c=>c.path.startsWith('/storage/')&&c.init.method==='POST'?json({},403):null},sanitized:true},
+  {name:'unknown Storage 500',status:503,options:{transport:c=>c.path.startsWith('/storage/')&&c.init.method==='POST'?json({},500):null},sanitized:true},
+  {name:'successful upload',status:200,options:{},sanitized:true},
+ ];
+ for(const variant of variants){
+  const f=fixture({...variant.options,trackMemory:true});
+  const result=await f.invoke(variant.body??input);assert.equal(result.status,variant.status,variant.name);
+  if(variant.body===undefined){
+   assert.ok(f.memory.rawCopies.length>0,variant.name+' read did not allocate private request bytes');
+   assert.ok(f.memory.rawCopies.every(copy=>copy.every(byte=>byte===0)),variant.name+' retained original request bytes');
+  }
+  assert.equal(f.memory.sanitizedCopies.length,variant.sanitized?1:0,variant.name);
+  assert.ok(f.memory.sanitizedCopies.every(copy=>copy.every(byte=>byte===0)),variant.name+' retained sanitized image bytes');
+ }
+});
+
 test('timeout and Storage500 remain unresolved; no false quiescence or automatic retry',async()=>{
  for(const thrown of [false,true]){const f=fixture({transport:c=>{if(c.path.startsWith('/storage/')&&c.init.method==='POST'){if(thrown)throw new Error('PRIVATE_NETWORK_ERROR');return json({},500);}}});
   const r=await f.invoke();assert.equal(r.status,503);assert.deepEqual(await r.json(),{code:'MEDIA_UNCONFIRMED'});
