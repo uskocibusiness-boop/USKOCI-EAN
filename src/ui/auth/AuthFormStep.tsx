@@ -34,8 +34,6 @@ export type AuthFormStepProps = {
   onIntentChange: (next: AuthIntentName) => void;
   values: AuthFormValues;
   onValue: (name: AuthFieldName, value: string) => void;
-  /** The city is put right when the person leaves the field ("NovI SAD" becomes "Novi Sad"). */
-  onCityBlur: () => void;
   /** What is wrong with a field, said under it. */
   errors: AuthFieldErrors;
   /** What the server or the connection answered to the command, and the one thing to do about it when there is one. */
@@ -93,9 +91,7 @@ export function AuthFormStep(p: AuthFormStepProps) {
     {p.emailOpen ? <View style={s.fields}>
       {signingUp ? <>
         <AuthField label="Ime" autoCapitalize="words" autoComplete="name-given" returnKeyType="next" onSubmitEditing={next('prezime')} {...text('ime')} />
-        <AuthField label="Prezime" autoCapitalize="words" autoComplete="name-family" returnKeyType="next" onSubmitEditing={next('grad')} {...text('prezime')} />
-        <AuthField label="Grad" autoCapitalize="words" autoComplete="postal-address-locality" returnKeyType="next" onSubmitEditing={next('email')}
-          onBlur={p.onCityBlur} {...text('grad')} />
+        <AuthField label="Prezime" autoCapitalize="words" autoComplete="name-family" returnKeyType="next" onSubmitEditing={next('email')} {...text('prezime')} />
       </> : null}
       <AuthField label="Email" keyboardType="email-address" placeholder="ime@primer.rs" returnKeyType="next" onSubmitEditing={next('lozinka')} {...text('email')} />
       {/* A new password field per way: what was shown with the eye is hidden again when the way changes. */}

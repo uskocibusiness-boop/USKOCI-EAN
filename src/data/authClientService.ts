@@ -63,7 +63,8 @@ export const authClientService: AuthClientPort = {
         // The existing signup trigger reads full_name. Keep the split metadata
         // as well; neither credentials nor historical profile rows are rewritten.
         options: { emailRedirectTo, data: { first_name: firstName, last_name: lastName,
-          full_name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' '), city } },
+          full_name: [firstName.trim(), lastName.trim()].filter(Boolean).join(' '),
+          ...(city === undefined ? {} : { city }) } },
       });
     } catch (thrown) { throw safeAuthFailure(thrown, 'SIGN_UP'); }
     const { data, error } = result;

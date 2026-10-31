@@ -54,6 +54,14 @@ describe('central Auth client boundary', () => {
     });
   });
 
+  it('omits optional city metadata when signup has no city input, preserving the trigger default', async () => {
+    mockAuth.signUp.mockResolvedValue({ data: { session: null }, error: null });
+    await authClientService.signUp({ email: 'ana@example.test', password: 'password', firstName: 'Ana', lastName: 'Petrović' });
+    expect(mockAuth.signUp.mock.calls[0][0].options.data).toEqual({
+      first_name: 'Ana', last_name: 'Petrović', full_name: 'Ana Petrović',
+    });
+  });
+
   it('binds signup and signup-confirmation resend to the same stable native callback', async () => {
     mockCurrent = { user: null, accountRevision: 0 };
     mockAuth.signUp.mockResolvedValue({ data: { session: null, user: { id: 'account-a' } }, error: null });

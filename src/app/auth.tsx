@@ -14,7 +14,7 @@ import { RestrictedAccountScreen } from '../ui/auth/RestrictedAccountPanel';
 import { authCopy } from '../ui/auth/authCopy';
 import { defaultAuthMethods } from '../ui/auth/authMethods';
 import {
-  authFieldMessages, firstInvalidField, isEmailAddress, tidyCity, validateAuthForm, type AuthFieldErrors, type AuthFieldName,
+  authFieldMessages, firstInvalidField, isEmailAddress, validateAuthForm, type AuthFieldErrors, type AuthFieldName,
 } from '../ui/auth/authValidation';
 import { publicSupportMailto } from '../ui/auth/supportContact';
 
@@ -64,7 +64,6 @@ export default function AuthScreen() {
 
   const [ime, setIme] = useState('');
   const [prezime, setPrezime] = useState('');
-  const [grad, setGrad] = useState('');
   const [email, setEmail] = useState('');
   // Signing up asks for the password once (design proposal N2): the eye on the field shows it, so a typo can be seen and
   // fixed there, and a second field that had to match the first is gone.
@@ -104,7 +103,7 @@ export default function AuthScreen() {
   // in then, so there is no private support to open; "Obrati se podršci" is drawn only when the owner has given a public address.
   const supportUrl = publicSupportMailto();
   const inputRefs: Record<AuthFieldName, RefObject<TextInput | null>> = {
-    ime: useRef<TextInput>(null), prezime: useRef<TextInput>(null), grad: useRef<TextInput>(null),
+    ime: useRef<TextInput>(null), prezime: useRef<TextInput>(null),
     email: useRef<TextInput>(null), lozinka: useRef<TextInput>(null),
   };
 
@@ -235,7 +234,7 @@ export default function AuthScreen() {
     const ready = offered();
     if (!(rezim === 'SIGNUP' ? ready.emailSignup : ready.emailPassword)) return;
     // What is missing or wrong is said under the field it is about, before anything is sent; the first such field takes the focus.
-    const problems = validateAuthForm(rezim, { ime, prezime, grad, email, lozinka });
+    const problems = validateAuthForm(rezim, { ime, prezime, email, lozinka });
     const first = firstInvalidField(problems);
     if (first) {
       clearFeedback();
@@ -255,7 +254,7 @@ export default function AuthScreen() {
       }
       const result = await authClientService.signUp({
         email: email.trim(), password: lozinka,
-        firstName: ime.trim(), lastName: prezime.trim(), city: tidyCity(grad),
+        firstName: ime.trim(), lastName: prezime.trim(),
       });
       return result.hasSession;
     }, hasSession => {
@@ -328,7 +327,7 @@ export default function AuthScreen() {
     scroller.current?.scrollTo?.({ y: 0, animated: false });
   });
   const onValue = (name: AuthFieldName, value: string) => commands.changeForm(() => {
-    ({ ime: setIme, prezime: setPrezime, grad: setGrad, email: setEmail, lozinka: setLozinka })[name](value);
+    ({ ime: setIme, prezime: setPrezime, email: setEmail, lozinka: setLozinka })[name](value);
     // What was said about a field is not true any more once it is edited; neither is the answer to the last command.
     setFieldErrors(current => {
       if (current[name] === undefined) return current;
@@ -358,8 +357,7 @@ export default function AuthScreen() {
     } else {
       content = <AuthFormStep way={rezim} onWay={switchWay} emailOpen={emailAvailable} signUpOpen={methods.emailSignup}
         phoneOpen={methods.phoneOtp} intent={selectedIntent} onIntentChange={next => { void izaberiNameru(next, undefined, true); }}
-        values={{ ime, prezime, grad, email, lozinka }} onValue={onValue}
-        onCityBlur={() => { const tidy = tidyCity(grad); if (tidy !== grad) commands.changeForm(() => setGrad(tidy)); }}
+        values={{ ime, prezime, email, lozinka }} onValue={onValue}
         errors={fieldErrors} failure={greska} failureAction={failureAction} notice={poruka} confirmEmail={methods.emailConfirmationRequired}
         signupReturn={signupReturn?.accountRevision === session.accountRevision && rezim === 'LOGIN' ? signupReturn.kind : null}
         onResendConfirmation={() => void ponoviPotvrduEmaila()}
