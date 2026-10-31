@@ -23,11 +23,11 @@ export function RecoveryStep({ available, email, failure, onSubmit, ...field }: 
 }) {
   return <>
     <AuthIntro title={authCopy.recoveryName} art="lock"
-      copy={available ? 'Unesi email koji koristiš za USKOČI.' : 'Oporavak lozinke još nije dostupan u aplikaciji.'} />
+      copy={available ? 'Unesite email koji koristite za USKOČI.' : 'Oporavak lozinke još nije dostupan u aplikaciji.'} />
     {available ? <View style={s.fields}>
       <AuthField label="Email" keyboardType="email-address" placeholder="ime@primer.rs" returnKeyType="go" onSubmitEditing={onSubmit}
         value={email} onChangeText={field.onChange} editable={field.editable} error={field.error ?? null} inputRef={field.inputRef} />
-      <T variant="note" tone="muted">Otvorićeš link iz emaila i izabrati novu lozinku. Tvoji zadaci i Dogovori ostaju na istom nalogu.</T>
+      <T variant="note" tone="muted">Otvorićete link iz emaila i izabrati novu lozinku. Vaši zadaci i Dogovori ostaju na istom nalogu.</T>
       {failure ? <T variant="note" tone="danger" accessibilityRole="alert" accessibilityLiveRegion="polite">{failure}</T> : null}
     </View> : null}
   </>;
@@ -36,10 +36,10 @@ export function RecoveryStep({ available, email, failure, onSubmit, ...field }: 
 /** The link was asked for. Only what is known is said: IF the account exists, the mail comes (it is not promised for an email nobody has). */
 export function RecoverySentStep({ email, onChangeEmail }: { email: string; onChangeEmail: () => void }) {
   return <>
-    <AuthIntro title="Proveri email" art="send" copy="Ako nalog sa ovim emailom postoji, dobićeš link za novu lozinku. Proveri i neželjenu poštu." />
+    <AuthIntro title="Proverite email" art="send" copy="Ako nalog sa ovim emailom postoji, dobićete link za novu lozinku. Proverite i neželjenu poštu." />
     <View>
       <T variant="note" tone="muted">{email.trim()}</T>
-      <LinkAction title="Promeni email ili pošalji ponovo" onPress={onChangeEmail} />
+      <LinkAction title="Promenite email ili pošaljite ponovo" onPress={onChangeEmail} />
     </View>
   </>;
 }
@@ -54,16 +54,16 @@ export function SignupNextStep({ confirmationRequired, email, notice, failure, b
   onResend: () => void; onChangeEmail: () => void;
 }) {
   return <>
-    <AuthIntro title={confirmationRequired ? 'Proveri email' : 'Nastavi prijavu'} art="send"
+    <AuthIntro title={confirmationRequired ? 'Proverite email' : 'Nastavite prijavu'} art="send"
       copy={confirmationRequired
-        ? 'Poslaćemo ti poruku za potvrdu emaila. Kad je otvoriš, vraćaš se u aplikaciju.'
-        : 'Prijava još nije gotova. Ako ti je stigla poruka za potvrdu emaila, prvo je otvori. Zatim se vrati na prijavu.'} />
+        ? 'Poslaćemo Vam poruku za potvrdu emaila. Kada je otvorite, vratićete se u aplikaciju.'
+        : 'Prijava još nije gotova. Ako Vam je stigla poruka za potvrdu emaila, prvo je otvorite. Zatim se vratite na prijavu.'} />
     {email.trim() ? <T variant="note" tone="muted">{email.trim()}</T> : null}
     {notice ? <AuthNote tone="ok">{notice}</AuthNote> : null}
     {failure ? <T variant="note" tone="danger" accessibilityRole="alert" accessibilityLiveRegion="polite">{failure}</T> : null}
     <View>
-      {confirmationRequired ? <LinkAction title="Pošalji ponovo potvrdu" disabled={busy} onPress={onResend} /> : null}
-      <LinkAction title="Promeni email" disabled={busy} onPress={onChangeEmail} />
+      {confirmationRequired ? <LinkAction title="Pošaljite ponovo potvrdu" disabled={busy} onPress={onResend} /> : null}
+      <LinkAction title="Promenite email" disabled={busy} onPress={onChangeEmail} />
     </View>
   </>;
 }
@@ -73,11 +73,11 @@ export function PhoneStep({ signUp, phone, failure, onSubmit, ...field }: FieldP
   signUp: boolean; phone: string; failure: string | null; onSubmit: () => void;
 }) {
   return <>
-    <AuthIntro title={signUp ? 'Napravi nalog telefonom' : 'Prijavi se telefonom'} copy="Unesi broj telefona." />
+    <AuthIntro title={signUp ? 'Napravite nalog telefonom' : 'Prijavite se telefonom'} copy="Unesite broj telefona." />
     <View style={s.fields}>
       <AuthField label="Broj telefona" keyboardType="phone-pad" placeholder="+381 6x xxx xxxx" returnKeyType="go" onSubmitEditing={onSubmit}
         value={phone} onChangeText={field.onChange} editable={field.editable} error={field.error ?? null} inputRef={field.inputRef} />
-      <T variant="note" tone="muted">Poslaćemo ti jednokratni kod.</T>
+      <T variant="note" tone="muted">Poslaćemo Vam jednokratni kod.</T>
       {failure ? <T variant="note" tone="danger" accessibilityRole="alert" accessibilityLiveRegion="polite">{failure}</T> : null}
     </View>
   </>;
@@ -88,7 +88,7 @@ export function OtpStep({ code, notice, failure, busy, onSubmit, onResend, onCha
   onSubmit: () => void; onResend: () => void; onChangePhone: () => void;
 }) {
   return <>
-    <AuthIntro title="Unesi kod" art="phone" copy="Unesi kod kada stigne na tvoj broj. Ako ne stigne, zatraži novi." />
+    <AuthIntro title="Unesite kod" art="phone" copy="Unesite kod kada stigne na Vaš broj. Ako ne stigne, zatražite novi." />
     {notice ? <AuthNote tone="ok">{notice}</AuthNote> : null}
     <View style={s.fields}>
       <AuthField label="Kod" keyboardType="number-pad" placeholder="123456" autoComplete="one-time-code" returnKeyType="go" onSubmitEditing={onSubmit}
@@ -96,8 +96,8 @@ export function OtpStep({ code, notice, failure, busy, onSubmit, onResend, onCha
       {failure ? <T variant="note" tone="danger" accessibilityRole="alert" accessibilityLiveRegion="polite">{failure}</T> : null}
     </View>
     <View>
-      <LinkAction title="Pošalji novi kod" disabled={busy} onPress={onResend} />
-      <LinkAction title="Promeni broj" disabled={busy} onPress={onChangePhone} />
+      <LinkAction title="Pošaljite novi kod" disabled={busy} onPress={onResend} />
+      <LinkAction title="Promenite broj" disabled={busy} onPress={onChangePhone} />
     </View>
   </>;
 }
