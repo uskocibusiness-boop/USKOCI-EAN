@@ -15,7 +15,7 @@
     { "id": "confirm.resend", "text": "Pošaljite ponovo potvrdu", "match": "exact", "kind": "button", "sources": ["src/ui/auth/AuthStateSteps.tsx"] },
     { "id": "confirm.edit_email", "text": "Promenite email", "match": "exact", "kind": "button", "sources": ["src/ui/auth/AuthStateSteps.tsx"] },
     { "id": "confirm.resend_accepted", "text": "Ako email čeka potvrdu, stići će nova poruka.", "match": "contains", "kind": "text", "sources": ["src/app/auth.tsx"] },
-    { "id": "confirm.rate_limited", "text": "Previše pokušaja. Sačekaj kratko pa pokušaj ponovo.", "match": "contains", "kind": "text", "sources": ["src/data/authFailureClasses.ts", "src/data/authClientService.ts"] },
+    { "id": "confirm.rate_limited", "text": "Previše pokušaja. Sačekajte kratko pa pokušajte ponovo.", "match": "contains", "kind": "text", "sources": ["src/data/authFailureClasses.ts", "src/data/authClientService.ts"] },
     { "id": "recovery.request.submit", "text": "Pošaljite link", "match": "exact", "kind": "button", "sources": ["src/app/auth.tsx"] },
     { "id": "recovery.request.title", "text": "Oporavak lozinke", "match": "exact", "kind": "text", "sources": ["src/ui/auth/authCopy.ts"] },
     { "id": "recovery.sent.accepted", "text": "Ako nalog sa ovim emailom postoji", "match": "contains", "kind": "text", "sources": ["src/ui/auth/AuthStateSteps.tsx"] },
