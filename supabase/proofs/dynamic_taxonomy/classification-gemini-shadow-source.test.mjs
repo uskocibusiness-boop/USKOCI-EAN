@@ -42,7 +42,10 @@ test('both handlers write optional hint receipts only after immutable successful
   assert.match(source,/captureTaxonomyHintsWithReceipt/);
   assert.match(source,/USKOCI_TAXONOMY_CAPTURE_RECEIPT_READBACK_ENABLED/);
   assert.match(source,/HISTORICAL_CAPTURE_PRESENT/);
-  assert.match(source,/authority[^\n]*NONE/);
+  // Both callers supply the complete owned turn identity; they never perform canonical admission.
+  for (const key of ['p_account_id','p_conversation_id','p_client_request_id','p_turn_id','p_attempt_id',
+    'p_purpose','p_catalog_version','p_proposals']) assert.match(source,new RegExp(key+'\\s*:'));
+  assert.doesNotMatch(source,/rpc_taxonomy_commit_admission_service/);
  }
  // The actual writer remains in the single reused helper, not a second
  // classifier or a client-side writer. Its historical receipt never grants
@@ -50,6 +53,7 @@ test('both handlers write optional hint receipts only after immutable successful
  assert.match(activeCapture,/rpc\('rpc_taxonomy_capture_gemini_turn_hints_service'/);
  assert.match(activeCapture,/rpc\('rpc_taxonomy_read_gemini_turn_hint_receipt_service'/);
  assert.match(activeCapture,/ack\.authority === 'NONE'/);
+ assert.match(activeCapture,/receipt\.authority !== 'NONE'/);
  assert.match(activeCapture,/receipt\.applicability !== 'NOT_EVALUATED'/);
  assert.match(activeCapture,/receipt\.retryAllowed !== false/);
 });
