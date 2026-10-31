@@ -164,11 +164,29 @@ test('R06 a captured status requires the actual same-source receipt, not a model
  await db.query('SELECT public.rpc_taxonomy_first_plan_mark_dispatched_service($1::uuid,$2::uuid,$3::uuid)',
    [row.jobId,row.leaseToken,row.jobId]);
  await db.query('INSERT INTO private.work_taxonomy_gemini_turn_hints_v1 VALUES($1,$2,$3,$4,$5,$6,$7)',
-   ['NEED_SERVICE',a,c,k,t,attempt,row.sourceFingerprint]);
+   // The callback's "t" is a TestContext, not the saved turn UUID. Reuse the exact enrolled turn identity.
+   ['NEED_SERVICE',a,c,k,need[3],attempt,row.sourceFingerprint]);
  const result=(await db.query(
   'SELECT public.rpc_taxonomy_first_plan_finish_service($1::uuid,$2::uuid,$3::text) result',
   [row.jobId,row.leaseToken,'CAPTURE_CONFIRMED'])).rows[0].result;
  assert.equal(result.state,'CAPTURED');assert.equal(result.retryAllowed,false);
+});
+test('R06 claimed capture without a matching durable source receipt remains UNKNOWN',async t=>{
+ const db=await setup();t.after(()=>db.close());await needFixture(db);
+ await db.exec('UPDATE private.work_taxonomy_first_plan_control_v1 SET enabled=true');
+ await enqueue(db,need);
+ const row=(await db.query('SELECT public.rpc_taxonomy_first_plan_claim_service(1) result')).rows[0].result[0];
+ await db.query('SELECT public.rpc_taxonomy_first_plan_mark_dispatched_service($1::uuid,$2::uuid,$3::uuid)',
+   [row.jobId,row.leaseToken,row.jobId]);
+ // An otherwise identical capture from an unrelated source is not authority to publish.
+ const wrongFingerprint=row.sourceFingerprint[0]==='0'?'1'+row.sourceFingerprint.slice(1):'0'+row.sourceFingerprint.slice(1);
+ await db.query('INSERT INTO private.work_taxonomy_gemini_turn_hints_v1 VALUES($1,$2,$3,$4,$5,$6,$7)',
+   ['NEED_SERVICE',a,c,k,need[3],attempt,wrongFingerprint]);
+ const outcome=(await db.query('SELECT public.rpc_taxonomy_first_plan_finish_service($1::uuid,$2::uuid,$3::text) result',
+   [row.jobId,row.leaseToken,'CAPTURE_CONFIRMED'])).rows[0].result;
+ assert.equal(outcome.state,'UNKNOWN');
+ assert.equal(outcome.retryAllowed,false);
+ assert.deepEqual((await db.query('SELECT public.rpc_taxonomy_first_plan_claim_service(1) result')).rows[0].result,[]);
 });
 test('R06 a closing account is never claimed by the worker or billed',async t=>{
  const db=await setup();t.after(()=>db.close());await needFixture(db);
