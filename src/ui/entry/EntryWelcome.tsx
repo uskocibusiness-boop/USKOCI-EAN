@@ -7,6 +7,7 @@ import { useSystemReducedMotion } from '../../hooks/useSystemReducedMotion';
 import { sesijaSada, useSesija } from '../../store/sesija';
 import { Press } from '../Press';
 import { T } from '../Text';
+import { authCopy } from '../auth/authCopy';
 import { profileLift, sys } from '../system/tokens';
 
 type Intent = 'REQUESTER' | 'WORKER';
@@ -105,7 +106,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
     const deliver = async () => {
       if (!isCurrent()) return;
       try { await callback({ isCurrent }); }
-      catch { if (isCurrent()) setSelectionError('Izbor trenutno nije sačuvan. Pokušaj ponovo.'); }
+      catch { if (isCurrent()) setSelectionError('Izbor trenutno nije sačuvan. Pokušajte ponovo.'); }
       finally {
         if (generation.current === id) {
           pending.current = null;
@@ -146,40 +147,40 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
           style={{ width: logoWidth, height: logoWidth / 3, alignSelf: 'center' }}
           accessible accessibilityLabel="USKOČI" onLoad={() => acknowledgeImage('logo')} />
         <T testID="entry-title" style={[styles.title, width < 350 && styles.narrowTitle]}>Za svaki zadatak,{`\n`}prava osoba.</T>
-        <T style={styles.description}>Objavi šta ti treba ili uskoči svojim vremenom i znanjem.</T>
+        <T style={styles.description}>Objavite šta Vam treba ili uskočite svojim vremenom i znanjem.</T>
         <View style={[styles.choices, { gap: artGap }]}>
           <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-            <Press testID="entry-requester" accessibilityRole="button" accessibilityLabel="Objavi zadatak"
-              accessibilityHint="Pripremi objavljivanje zadatka. Isti nalog može i da se prijavljuje na zadatke."
+            <Press testID="entry-requester" accessibilityRole="button" accessibilityLabel="Objavite zadatak"
+              accessibilityHint="Pripremite objavljivanje zadatka. Isti nalog može i da se prijavljuje na zadatke."
               accessibilityState={{ disabled: !available, busy: selected === 'REQUESTER' }}
               disabled={!available} haptic={available ? 'select' : 'none'} scaleTo={sys.motion.scale.button}
               onPress={() => choose('REQUESTER')} style={[styles.choice, { width: artSize }]}>
               <Image testID="entry-art-publish" source={publish} contentFit="contain" transition={0}
                 style={{ width: artSize, height: artSize }} accessible={false} onLoad={() => acknowledgeImage('publish')} />
-              <T style={styles.choiceLabel}>Objavi zadatak</T>
+              <T style={styles.choiceLabel}>Objavite zadatak</T>
             </Press>
           </Animated.View>
-          <Press testID="entry-worker" accessibilityRole="button" accessibilityLabel="Uskoči i zaradi"
-            accessibilityHint="Pronađi zadatke koji ti odgovaraju. Isti nalog može i da objavljuje zadatke."
+          <Press testID="entry-worker" accessibilityRole="button" accessibilityLabel="Uskočite i zaradite"
+            accessibilityHint="Pronađite zadatke koji Vam odgovaraju. Isti nalog može i da objavljuje zadatke."
             accessibilityState={{ disabled: !available, busy: selected === 'WORKER' }}
             disabled={!available} haptic={available ? 'select' : 'none'} scaleTo={sys.motion.scale.button}
             onPress={() => choose('WORKER')} style={[styles.choice, { width: artSize }]}>
             <Image testID="entry-art-discover" source={discover} contentFit="contain" transition={0}
               style={{ width: artSize, height: artSize }} accessible={false} onLoad={() => acknowledgeImage('discover')} />
-            <T style={styles.choiceLabel}>Uskoči i zaradi</T>
+            <T style={styles.choiceLabel}>Uskočite i zaradite</T>
           </Press>
         </View>
       </Animated.View>
       <Animated.View testID="entry-auth-footer" style={[styles.authFooter, { opacity: enterAnim }]}>
-        <Press accessibilityRole="button" accessibilityLabel="Prijavi se" disabled={!available}
+        <Press accessibilityRole="button" accessibilityLabel={authCopy.signIn} disabled={!available}
           accessibilityState={{ disabled: !available }} haptic={available ? 'select' : 'none'}
           scaleTo={sys.motion.scale.button} onPress={() => openAuth(onSignIn)} style={styles.signIn}>
-          <T style={styles.signInText}>Prijavi se</T>
+          <T style={styles.signInText}>{authCopy.signIn}</T>
         </Press>
-        {onSignUp ? <Press accessibilityRole="button" accessibilityLabel="Napravi nalog" disabled={!available}
+        {onSignUp ? <Press accessibilityRole="button" accessibilityLabel={authCopy.signUp} disabled={!available}
           accessibilityState={{ disabled: !available }} haptic={available ? 'select' : 'none'}
           scaleTo={sys.motion.scale.button} onPress={() => openAuth(onSignUp)} style={styles.signUp}>
-          <T style={styles.signUpText}>Napravi nalog</T>
+          <T style={styles.signUpText}>{authCopy.signUp}</T>
         </Press> : null}
         {(error || selectionError) ? <T accessibilityRole="alert" style={styles.error}>{error || selectionError}</T> : null}
         <View style={styles.footnote}>
