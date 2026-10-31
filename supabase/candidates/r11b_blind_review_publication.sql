@@ -1,6 +1,7 @@
 -- R11b/S13 BLIND PUBLICATION: LOCAL_ONLY future rollout candidate, not deployed.
 -- 31 Oct DEV metadata PIN: source reader bodies and ACL/owner stay unchanged
--- except for narrow filter; review push delivery and erasure remain separate gates.
+-- except for narrow publication filters and the TEST/REAL caller-world fence.
+-- Review push delivery and erasure remain separate gates.
 BEGIN;
 DO $guard$
 BEGIN
@@ -8,8 +9,11 @@ BEGIN
   OR current_user<>'postgres' OR current_database()<>'postgres'
   OR to_regrole('cli_login_postgres') IS NOT NULL
   OR to_regprocedure('private.agreement_review_publication_ready_v1(uuid,timestamp with time zone)') IS NOT NULL
+  OR to_regprocedure('private.accounts_same_world(uuid,uuid)') IS NULL
  THEN RAISE EXCEPTION 'R11B_LOCAL_ONLY' USING errcode='55000'; END IF;
  IF md5(pg_get_functiondef(to_regprocedure('private.account_reputation(uuid)'))) IS DISTINCT FROM '05e252f69f7e0dff14527f83cac18ada'
+ OR md5(pg_get_functiondef(to_regprocedure('public.rpc_get_account_reputation(uuid)'))) IS DISTINCT FROM 'dcf8e88289bf45aef0ce45f663386a9d'
+ OR md5(pg_get_functiondef(to_regprocedure('private.accounts_same_world(uuid,uuid)'))) IS DISTINCT FROM '2d6beb6df93bc8eb6ae2622de8319ac5'
  OR md5(pg_get_functiondef(to_regprocedure('public.rpc_list_received_reviews_v1(integer,text)'))) IS DISTINCT FROM '839db76bca79fb3bac96c371a4cfd156'
  OR md5(pg_get_functiondef(to_regprocedure('public.rpc_list_review_comments_v1(uuid,integer,jsonb)'))) IS DISTINCT FROM 'a45554c0b1e1d5093b6d9a7fa7ee832f'
  THEN RAISE EXCEPTION 'R11B_CURRENT_READERS_DRIFT' USING errcode='55000'; END IF;
@@ -55,15 +59,23 @@ BEGIN
    'where rv.target_account_id = v_actor and private.agreement_review_publication_ready_v1(rv.agreement_id)'),
   ('public.rpc_list_review_comments_v1(uuid,integer,jsonb)',
    'where c.target_account_id=v_profile.account_id and c.hidden_at is null',
-   'where c.target_account_id=v_profile.account_id and c.hidden_at is null and private.agreement_review_publication_ready_v1(rv.agreement_id)')
+   'where c.target_account_id=v_profile.account_id and c.hidden_at is null and private.agreement_review_publication_ready_v1(rv.agreement_id)'),
+  ('public.rpc_get_account_reputation(uuid)',
+   'or (auth.uid()<>p_account_id and private.safety_pair_blocked(auth.uid(),p_account_id)) then',
+   'or private.accounts_same_world(auth.uid(),p_account_id) IS NOT TRUE
+ or (auth.uid()<>p_account_id and private.safety_pair_blocked(auth.uid(),p_account_id)) then')
  ) v(signature,anchor,replacement) LOOP
   v_old:=pg_get_functiondef(to_regprocedure(v_signature));
   IF v_old IS NULL OR length(v_old)-length(replace(v_old,v_anchor,''))<>length(v_anchor)
   THEN RAISE EXCEPTION 'R11B_READER_ANCHOR_DRIFT' USING errcode='55000'; END IF;
   v_new:=replace(v_old,v_anchor,v_replacement);
   EXECUTE v_new;
-  IF position('private.agreement_review_publication_ready_v1(rv.agreement_id)' in
-     pg_get_functiondef(to_regprocedure(v_signature)))=0
+  IF v_signature='public.rpc_get_account_reputation(uuid)' THEN
+   IF position('private.accounts_same_world(auth.uid(),p_account_id) IS NOT TRUE' in
+      pg_get_functiondef(to_regprocedure(v_signature)))=0
+   THEN RAISE EXCEPTION 'R11B_WORLD_GUARD_NOT_APPLIED' USING errcode='55000'; END IF;
+  ELSIF position('private.agreement_review_publication_ready_v1(rv.agreement_id)' in
+      pg_get_functiondef(to_regprocedure(v_signature)))=0
   THEN RAISE EXCEPTION 'R11B_READER_NOT_GATED' USING errcode='55000'; END IF;
  END LOOP;
 END; $patch$;

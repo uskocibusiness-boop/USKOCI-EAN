@@ -24,10 +24,12 @@ const ready=(db,now='2026-10-02T12:00:00Z',aid=agreement)=>db.query(
  'SELECT private.agreement_review_publication_ready_v1($1::uuid,$2::timestamptz) AS ok',[aid,now]).then(r=>r.rows[0].ok);
 const write=(db,reviewer,target,aid=agreement)=>db.query(
  'INSERT INTO private.agreement_reviews VALUES($1,$2,$3,5)',[aid,reviewer,target]);
-test('source-level 3 public reader patches are exactly source-pinned and default private',()=>{
+test('source-level 3 publication readers and public reputation world fence are source-pinned and default private',()=>{
  assert.match(sql,/R11B_LOCAL_ONLY/);assert.match(sql,/R11B_CURRENT_READERS_DRIFT/);
  for(const sig of ['private.account_reputation(uuid)','public.rpc_list_received_reviews_v1(integer,text)',
-  'public.rpc_list_review_comments_v1(uuid,integer,jsonb)'])assert.ok(sql.includes("'"+sig+"'"));
+  'public.rpc_list_review_comments_v1(uuid,integer,jsonb)','public.rpc_get_account_reputation(uuid)'])assert.ok(sql.includes("'"+sig+"'"));
+ assert.match(sql,/private\.accounts_same_world\(auth\.uid\(\),p_account_id\) IS NOT TRUE/);
+ assert.match(sql,/R11B_WORLD_GUARD_NOT_APPLIED/);
  assert.equal((sql.match(/private\.agreement_review_publication_ready_v1\(rv\.agreement_id\)/g)||[]).length,4);
  assert.match(sql,/REVOKE ALL ON FUNCTION private\.agreement_review_publication_ready_v1/);
 });
@@ -68,9 +70,17 @@ test('R11b patches all three current reader shapes and hides early ratings in ev
  const db=await setup();t.after(()=>db.close());
  const profile=id(6);
  await db.exec([
+  'CREATE SCHEMA auth;',
   'CREATE TABLE public.app_profiles(id uuid PRIMARY KEY,account_id uuid);',
+  'CREATE TABLE public.app_accounts(id uuid PRIMARY KEY);',
+  'CREATE TABLE private.reputation_worlds(account_id uuid PRIMARY KEY,world text);',
+  `CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $f$ SELECT '${a}'::uuid; $f$;`,
+  "CREATE FUNCTION private.accounts_same_world(p_a uuid,p_b uuid) RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT (SELECT world FROM private.reputation_worlds WHERE account_id=p_a)=(SELECT world FROM private.reputation_worlds WHERE account_id=p_b); $f$;",
+  'CREATE FUNCTION private.closure_account_restricted(uuid) RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT false; $f$;',
+  'CREATE FUNCTION private.safety_pair_blocked(uuid,uuid) RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT false; $f$;',
   'CREATE TABLE private.agreement_review_comments_v1(agreement_id uuid,target_account_id uuid,hidden_at timestamptz);',
   "CREATE FUNCTION private.account_reputation(account_id uuid) RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER AS $f$ SELECT jsonb_build_object('count',count(*)::int) from private.agreement_reviews where target_account_id=account_id; $f$;",
+  "CREATE FUNCTION public.rpc_get_account_reputation(p_account_id uuid) RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER AS $f$ BEGIN IF auth.uid() IS NULL THEN RAISE EXCEPTION 'AUTH_REQUIRED'; END IF; IF p_account_id IS NULL OR NOT EXISTS(SELECT 1 FROM public.app_accounts WHERE id=p_account_id) OR private.closure_account_restricted(auth.uid()) OR private.closure_account_restricted(p_account_id) OR (auth.uid()<>p_account_id and private.safety_pair_blocked(auth.uid(),p_account_id)) then RAISE EXCEPTION 'REPUTATION_NOT_AVAILABLE'; END IF; RETURN private.account_reputation(p_account_id); END; $f$;",
   "CREATE FUNCTION public.rpc_list_received_reviews_v1(p_limit integer,p_after text) RETURNS integer LANGUAGE plpgsql SECURITY DEFINER AS $f$ DECLARE v_actor uuid:='"+b+"'; BEGIN RETURN (SELECT count(*)::integer FROM private.agreement_reviews rv where rv.target_account_id = v_actor); END; $f$;",
   "CREATE FUNCTION public.rpc_list_review_comments_v1(p_profile_id uuid,p_limit integer,p_after jsonb) RETURNS integer LANGUAGE plpgsql SECURITY DEFINER AS $f$ DECLARE v_profile public.app_profiles; BEGIN SELECT * INTO v_profile FROM public.app_profiles WHERE id=p_profile_id; RETURN (SELECT count(*)::integer FROM private.agreement_review_comments_v1 c JOIN private.agreement_reviews rv ON rv.agreement_id=c.agreement_id AND rv.target_account_id=c.target_account_id where c.target_account_id=v_profile.account_id and c.hidden_at is null); END; $f$;",
  ].join('\n'));
@@ -94,4 +104,14 @@ test('R11b patches all three current reader shapes and hides early ratings in ev
  assert.deepEqual(await publicRows(),[0,0,0]);
  await write(db,b,a);
  assert.deepEqual(await publicRows(),[1,1,1]);
+ // World partitioning is independent of review publication and applies even if
+ // the target UUID is known. An unknown world must fail closed (SQL NULL is not FALSE).
+ await db.query('INSERT INTO public.app_accounts VALUES ($1),($2)',[a,b]);
+ await db.query("INSERT INTO private.reputation_worlds VALUES ($1,'REAL'),($2,'TEST')",[a,b]);
+ const publicRating=()=>db.query('SELECT public.rpc_get_account_reputation($1::uuid) AS rating',[b]);
+ await assert.rejects(publicRating(),/REPUTATION_NOT_AVAILABLE/);
+ await db.query("UPDATE private.reputation_worlds SET world='REAL' WHERE account_id=$1",[b]);
+ assert.deepEqual((await publicRating()).rows[0].rating,{count:1});
+ await db.query('DELETE FROM private.reputation_worlds WHERE account_id=$1',[b]);
+ await assert.rejects(publicRating(),/REPUTATION_NOT_AVAILABLE/);
 });
