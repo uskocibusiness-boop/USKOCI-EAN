@@ -117,7 +117,8 @@ BEGIN
    OR p_purpose NOT IN('NEED_SERVICE','WORKER_CAPABILITY')
    OR jsonb_typeof(p_targets) IS DISTINCT FROM 'array'
    OR pg_column_size(p_targets)>18000
-   OR jsonb_array_length(p_targets) NOT BETWEEN 1 AND
+   OR jsonb_array_length(p_targets)<1
+   OR jsonb_array_length(p_targets)>
      CASE WHEN p_purpose='NEED_SERVICE' THEN 1 ELSE 24 END
  THEN RAISE EXCEPTION 'R06_FIRST_PLAN_INVALID' USING errcode='22023'; END IF;
  FOR v_target IN SELECT value FROM jsonb_array_elements(p_targets) LOOP
