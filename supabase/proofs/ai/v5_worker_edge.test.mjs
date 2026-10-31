@@ -107,7 +107,7 @@ test('worker Gemini prompt asks one question while preserving area, availability
 
 // Exact current handler with both Gemini transports stubbed. These scenarios
 // prove routing and accepted patch boundaries, not real provider semantics.
-function dualModeFixture({modes=['REMOTE'],handoff,evidence,quote,priorMode='ON_SITE',priorHandoff,outputSafety='ALLOW',backgroundStatus,log,catalogModes=['REMOTE','ON_SITE']}={}){
+function dualModeFixture({modes=['REMOTE'],handoff,evidence,quote,priorMode='ON_SITE',priorHandoff,outputSafety='ALLOW',backgroundStatus,log,catalogModes=['REMOTE','ON_SITE'],captureEnabled=true}={}){
  const service='Časovi engleskog',categoryId=id(20);
  const userText=quote??'Od sada držim časove engleskog samo online.';
  const modeContext={schemaVersion:'WORKER_SERVICE_MODE_CONTEXT_V1',revision:4,
@@ -115,7 +115,10 @@ function dualModeFixture({modes=['REMOTE'],handoff,evidence,quote,priorMode='ON_
  const changes=[{service,modes,evidence:evidence??userText,...(handoff?{handoff}:{})}];
  const f=fixture({env:{SUPABASE_URL:'https://leqcwgzvjsxugfgzdmth.supabase.co',
   USKOCI_TAXONOMY_DUAL_GEMINI:'true',USKOCI_TAXONOMY_ROLLOUT_SCOPE:'DEV',
-  USKOCI_TAXONOMY_ALLOWED_PROJECT_REF:'leqcwgzvjsxugfgzdmth'},log,
+  USKOCI_TAXONOMY_ALLOWED_PROJECT_REF:'leqcwgzvjsxugfgzdmth',
+  // This synthetic scenario expressly opts into the otherwise default-OFF
+  // capture feature. The host/project alone never enables a billable BG call.
+  USKOCI_TAXONOMY_SHADOW_CAPTURE:captureEnabled?'true':'false'},log,
   context:{schemaVersion:'WORKER_PROFILE_V1',accountId:account,conversationId:conversation,status:'OPEN',stale:false,safety:'ALLOW',revision:4,
    profileStatus:'ACTIVE',serviceModeContext:modeContext,
    candidate:{skills:[service],bio:'Prethodni opis.',availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},
@@ -129,6 +132,15 @@ function dualModeFixture({modes=['REMOTE'],handoff,evidence,quote,priorMode='ON_
  return {...f,userText,changes,modeContext};
 }
 async function settleBackground(){for(let i=0;i<20;i++)await new Promise(resolve=>setImmediate(resolve));}
+test('dual worker capture flag OFF preserves the confirmed foreground without paid background work',async()=>{
+ const f=dualModeFixture({captureEnabled:false,handoff:{required:false}});
+ const es=await events(f,{text:f.userText});await settleBackground();
+ assert.equal(es.at(-1).kind,'final');
+ assert.equal(completions(f).length,1);
+ assert.equal(providers(f).filter(call=>call.url.includes(':streamGenerateContent')).length,1);
+ assert.equal(providers(f).filter(call=>call.url.includes(':generateContent')).length,0);
+ assert.equal(f.calls.filter(call=>/rpc_taxonomy_capture_gemini_turn_hints_service|rpc_taxonomy_store_classification_turn_hint_service/.test(call.url)).length,0);
+});
 test('dual worker mode-only correction reaches background review without a skills edit',async()=>{
  const f=dualModeFixture({handoff:{required:false}});
  const es=await events(f,{text:f.userText});await settleBackground();
