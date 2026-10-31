@@ -82,6 +82,11 @@ async function reviewOffer() {
 }
 async function sendOffer() { await reviewOffer(); await tap('Pošalji ovu prijavu'); }
 async function offer() { await render(); await edit('Tvoja ukupna ponuda za ljude koje dovodiš (RSD)', '4500'); await edit('Koliko ljudi dolazi', '2'); }
+async function explicitSkillConsent() {
+ const toggle = tree!.root.findAll(node => String(node.type) === 'Switch' && node.props.testID === 'composer-skill-opt-in-switch')[0];
+ expect(toggle?.props.value).toBe(false);
+ await act(async () => toggle.props.onValueChange(true));
+}
 async function selection() { await render(Candidates); await tap('Pogledaj prijavu: Milan'); await tap('Pregledaj povezivanje'); }
 
 it('restores only this account and task\'s unsent application after Back and route remount', async () => {
@@ -95,10 +100,25 @@ it('restores only this account and task\'s unsent application after Back and rou
   await act(async () => tree!.unmount()); tree = undefined;
   await render();
   const restored = tree!.root.findByType(ApplicationSelectionPresentation).props.draft;
+  // Legacy in-memory date edits are normalized away for a new application, not sent to the server.
   expect(restored).toEqual({ price: '4500', people: '2', note: 'Dolazimo sa trakama.',
-    start: '2026-09-20T08:00:00Z', end: '2026-09-20T09:00:00Z' });
+    start: null, end: null });
   expect(press('Pregledaj prijavu')).toBeDefined();
   expect(mockSubmit).not.toHaveBeenCalled();
+});
+
+it('new application never submits a second term or writes a worker skill without an explicit opt-in', async () => {
+  mockNeed.mockResolvedValue({ ...need(), detalji: { kategorija: 'Selidbe' } });
+  mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'ACTIVE', vestine: [] });
+  await offer();
+  const view = tree!.root.findByType(ApplicationSelectionPresentation).props;
+  await act(async () => view.change({ ...view.draft, start: '2026-09-20T07:00:00Z', end: '2026-09-20T10:00:00Z' }));
+  const form = tree!.root.findByType(ApplicationSelectionPresentation).props;
+  expect(form.draft.start).toBeNull(); expect(form.draft.end).toBeNull();
+  await sendOffer();
+  expect(mockSubmit).toHaveBeenCalledTimes(1);
+  expect(mockSubmit.mock.calls[0][0]).toMatchObject({ predlozeniPocetak: null, predlozeniKraj: null });
+  expect(mockAddSkill).not.toHaveBeenCalled();
 });
 
 it('does not show a different task or account the unsent application, and gives recovery to the captured command', async () => {
@@ -124,7 +144,7 @@ it('keeps the accepted application confirmed and reports an optional work-profil
   mockNeed.mockResolvedValue({ ...need(), detalji: { kategorija: 'Selidbe' } });
   mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'ACTIVE', vestine: [] });
   mockAddSkill.mockResolvedValue({ ok: false, kod: 'PROFILE_UPDATE_FAILED', poruka: 'Update failed.' });
-  await offer(); await sendOffer();
+  await offer(); await explicitSkillConsent(); await sendOffer();
   expect(mockSubmit).toHaveBeenCalledTimes(1);
   expect(mockAddSkill).toHaveBeenCalledWith({ accountId: 'owner-a', accountRevision: 1,
     profileId: '10000000-0000-4000-8000-000000000002', skill: 'Selidbe' }, expect.any(Function));
@@ -144,7 +164,7 @@ describe('F13 optional profile skill belongs to the original application screen'
     mockProfile.mockResolvedValue({ id: '10000000-0000-4000-8000-000000000002', stanje: 'ACTIVE', vestine: ['Nošenje'] });
   });
 
-  it('opt-out sends the application without any profile write', async () => {
+  it('does not add a skill by default and an explicitly switched-off choice stays off', async () => {
     await offer(); await act(async () => toggle()(false)); await sendOffer();
     expect(text()).toContain('Prijava je poslata.');
     expect(mockAddSkill).not.toHaveBeenCalled(); expect(mockWorkWrite).not.toHaveBeenCalled();
@@ -160,7 +180,7 @@ describe('F13 optional profile skill belongs to the original application screen'
   it('freezes the original choice, identity and single skill before journal storage; stale arrays never become a write', async () => {
     const gate = deferred();
     storage.setItem.mockImplementationOnce(async (key: string, value: string) => { await gate.promise; mockStorage.set(key, value); });
-    await offer(); const retainedToggle = toggle(); await sendOffer();
+    await offer(); await explicitSkillConsent(); const retainedToggle = toggle(); await sendOffer();
     expect(mockSubmit).not.toHaveBeenCalled();
     await act(async () => retainedToggle(false));
     await act(async () => gate.resolve(undefined));
@@ -184,7 +204,7 @@ describe('F13 optional profile skill belongs to the original application screen'
   };
   it.each(transitions)('does not add a skill when %s replaces the screen while the application is pending', async transition => {
     const gate = deferred(); mockSubmit.mockReturnValueOnce(gate.promise);
-    await offer(); await sendOffer();
+    await offer(); await explicitSkillConsent(); await sendOffer();
     await leaveOriginal(transition);
     await act(async () => gate.resolve(receipt()));
     expect(mockSubmit).toHaveBeenCalledTimes(1); expect(mockAddSkill).not.toHaveBeenCalled();
@@ -194,7 +214,7 @@ describe('F13 optional profile skill belongs to the original application screen'
   it.each(transitions)('checks ownership again after journal cleanup when %s replaces the screen', async transition => {
     const gate = deferred();
     storage.removeItem.mockImplementationOnce(async (key: string) => { await gate.promise; mockStorage.delete(key); });
-    await offer(); await sendOffer();
+    await offer(); await explicitSkillConsent(); await sendOffer();
     expect(storage.removeItem).toHaveBeenCalledTimes(1); expect(mockAddSkill).not.toHaveBeenCalled();
     await leaveOriginal(transition);
     await act(async () => gate.resolve(undefined));
@@ -203,7 +223,7 @@ describe('F13 optional profile skill belongs to the original application screen'
 
   it('a fresh read followed by an explicit application replay does not revive the old optional intent', async () => {
     mockSubmit.mockResolvedValueOnce(unknown);
-    await offer(); await sendOffer();
+    await offer(); await explicitSkillConsent(); await sendOffer();
     const original = mockSubmit.mock.calls[0][0];
     await tap('Proveri da li je poslato'); await tap('Pošalji ponovo');
     expect(mockSubmit.mock.calls[1][0]).toEqual(original);
@@ -212,7 +232,7 @@ describe('F13 optional profile skill belongs to the original application screen'
 
   it('a cold journal restore never invents consent for the optional profile addition', async () => {
     mockSubmit.mockResolvedValueOnce(unknown);
-    await offer(); await sendOffer(); const original = mockSubmit.mock.calls[0][0];
+    await offer(); await explicitSkillConsent(); await sendOffer(); const original = mockSubmit.mock.calls[0][0];
     await act(async () => tree!.unmount()); tree = undefined; await render();
     await tap('Pošalji ponovo');
     expect(mockSubmit.mock.calls[1][0]).toEqual(original);
@@ -222,7 +242,7 @@ describe('F13 optional profile skill belongs to the original application screen'
 
   it('consumes the optional attempt once, preserving success even if it throws and the receipt is replayed', async () => {
     mockAddSkill.mockRejectedValueOnce(new Error('private transport details'));
-    await offer(); await sendOffer();
+    await offer(); await explicitSkillConsent(); await sendOffer();
     expect(text()).toContain('Prijava je poslata, ali dodavanje veštine „Selidbe“ nije potvrđeno.');
     expect(text()).not.toContain('private transport details'); expect(press('Otvori moje prijave')).toBeDefined();
     const original = mockSubmit.mock.calls[0][0];
@@ -233,7 +253,7 @@ describe('F13 optional profile skill belongs to the original application screen'
 
   it('passes a live screen guard to the profile command and drops a late optional failure notice after refocus', async () => {
     const gate = deferred(); mockAddSkill.mockReturnValueOnce(gate.promise);
-    await offer(); await sendOffer();
+    await offer(); await explicitSkillConsent(); await sendOffer();
     const guard = mockAddSkill.mock.calls[0][1]; expect(guard()).toBe(true);
     await leaveOriginal('blur and refocus'); expect(guard()).toBe(false);
     await act(async () => gate.resolve({ ok: false, kod: 'PROFILE_UPDATE_FAILED', poruka: 'Update failed.' }));
