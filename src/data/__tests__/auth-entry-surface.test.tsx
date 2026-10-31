@@ -293,7 +293,7 @@ describe('the form never waits for the check of the available ways in', () => {
     await press('Napravite nalog');
     expect(mockAuth.signUp).toHaveBeenCalledTimes(1);
     // The check could not say whether a confirmation is needed, so the cautious thing is said after the sign-up.
-    expect(text()).toContain('Poslaćemo ti poruku za potvrdu emaila');
+    expect(text()).toContain('Poslaćemo Vam poruku za potvrdu emaila');
   });
 
   it('"Pokušajte ponovo" reads again and keeps what was typed; the note goes when the read succeeds', async () => {
@@ -320,7 +320,7 @@ describe('the form never waits for the check of the available ways in', () => {
     try {
       mockRead.mockRejectedValue(new Error('offline'));
       await render(); await fill('Email', 'ana@example.test'); await press('Zaboravljena lozinka?');
-      await press('Pošalji link');
+      await press('Pošaljite link');
       expect(mockAuth.requestPasswordRecovery.mock.calls).toEqual([['ana@example.test']]);
     } finally { delete process.env.EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL; }
   });
@@ -372,7 +372,7 @@ it('keeps the long registration form full-height, then presents its short confir
   expect(tree.root.findByType(AuthSheet).props.expanded).toBe(false);
   expect(viewport().backgroundColor).toBe(sys.color.scrim);
   expect(panel().maxHeight).toBe('76%');
-  expect(text()).toContain('Proveri email');
+  expect(text()).toContain('Proverite email');
   expect(input('Email')).toBeUndefined();
   mockWindow = { width: 320, height: 568, scale: 2, fontScale: 1 };
   await act(async () => tree.update(<AuthScreen />));
@@ -394,8 +394,8 @@ it('blocks duplicate signup, conflicting navigation and editing, then shows accu
   expect(close.props.disabled).toBe(true); await act(async () => close.props.onPress());
   expect(host('TextInput')).toHaveLength(4);
   await act(async () => pending.resolve({ hasSession: false }));
-  expect(text()).toContain('Poslaćemo ti poruku za potvrdu emaila'); expect(text()).not.toContain('Poslali smo Vam poruku');
-  expect(button('Promeni email')).toBeDefined(); await press('Nazad na prijavu');
+  expect(text()).toContain('Poslaćemo Vam poruku za potvrdu emaila'); expect(text()).not.toContain('Poslali smo Vam poruku');
+  expect(button('Promenite email')).toBeDefined(); await press('Nazad na prijavu');
   expect(button('Prijavite se')).toBeDefined(); expect(input('Email').props.value).toBe('ana@example.test');
 });
 
@@ -421,7 +421,7 @@ it('visibly gates unfinished recovery and never sends a broken reset link', asyn
   const title = host('Text').find(node => node.props.accessibilityRole === 'header' && textOf(node) === 'Oporavak lozinke')!;
   expect(StyleSheet.flatten(title.props.style).fontSize).toBe(type.pageTitle.fontSize);
   expect(textOf(title)).not.toContain('\n');
-  expect(host('TextInput')).toHaveLength(0); expect(button('Pošalji link')).toBeUndefined();
+  expect(host('TextInput')).toHaveLength(0); expect(button('Pošaljite link')).toBeUndefined();
   expect(mockAuth.requestPasswordRecovery).not.toHaveBeenCalled();
   await press('Nazad na prijavu'); expect(button('Prijavite se')).toBeDefined();
 });
@@ -444,7 +444,7 @@ it('rejects an old login press after the form changes to signup', async () => {
 
 it('does not invoke an old phone command after fresh settings disable phone', async () => {
   mockRead.mockResolvedValue({ ...emailOnly, phoneOtp: true }); await render(); await press('Telefon');
-  const oldPress = button('Pošalji kod').props.onPress;
+  const oldPress = button('Pošaljite kod').props.onPress;
   mockRead.mockResolvedValue(emailOnly); await act(async () => mockForeground('active'));
   expect(text()).toContain('Prijava telefonom trenutno nije dostupna.');
   await act(async () => oldPress()); expect(mockAuth.sendPhoneOtp).not.toHaveBeenCalled();
@@ -453,12 +453,12 @@ it('does not invoke an old phone command after fresh settings disable phone', as
 
 it('serializes SMS verify and resend through the same command boundary', async () => {
   mockRead.mockResolvedValue({ ...emailOnly, phoneOtp: true }); await render(); await press('Telefon');
-  await fill('Broj telefona', '+381601234567'); await press('Pošalji kod'); await fill('Kod', '012345');
+  await fill('Broj telefona', '+381601234567'); await press('Pošaljite kod'); await fill('Kod', '012345');
   const pending = deferred<void>(); mockAuth.verifyPhoneOtp.mockReturnValueOnce(pending.promise);
-  await act(async () => { button('Potvrdi kod').props.onPress(); button('Pošalji novi kod').props.onPress(); });
+  await act(async () => { button('Potvrdite kod').props.onPress(); button('Pošaljite novi kod').props.onPress(); });
   expect(mockAuth.verifyPhoneOtp).toHaveBeenCalledTimes(1); expect(mockAuth.sendPhoneOtp).toHaveBeenCalledTimes(1);
   await act(async () => pending.reject(new Error('Kod nije prihvaćen.')));
-  expect(text()).toContain('Kod nije prihvaćen.'); await press('Pošalji novi kod');
+  expect(text()).toContain('Kod nije prihvaćen.'); await press('Pošaljite novi kod');
   expect(mockAuth.sendPhoneOtp).toHaveBeenCalledTimes(2);
 });
 
@@ -660,9 +660,9 @@ describe('Back on the one screen', () => {
   it('steps from a later stage back to the sign-in form, and only then to the entry', async () => {
     mockRead.mockResolvedValue({ ...emailOnly, phoneOtp: true });
     await render(); await press('Telefon');
-    expect(button('Pošalji kod')).toBeDefined();
+    expect(button('Pošaljite kod')).toBeDefined();
     await act(async () => arrow().props.onPress());
-    expect(input('Email')).toBeDefined(); expect(button('Pošalji kod')).toBeUndefined();
+    expect(input('Email')).toBeDefined(); expect(button('Pošaljite kod')).toBeUndefined();
     await act(async () => { mockBack!(); });
     expect(host('TextInput')).toHaveLength(0);
   });
@@ -675,7 +675,7 @@ it('submits recovery only on user action and reports accepted rather than delive
   await press('Zaboravljena lozinka?');
   expect(mockAuth.requestPasswordRecovery).not.toHaveBeenCalled();
   expect(host('TextInput')).toHaveLength(1);
-  await press('Pošalji link');
+  await press('Pošaljite link');
   expect(mockAuth.requestPasswordRecovery.mock.calls).toEqual([['ana@example.test']]);
   expect(text()).toContain('Ako nalog sa ovim emailom postoji');
   expect(text()).not.toContain('Poslali smo');
@@ -686,7 +686,7 @@ it('prevents duplicate recovery sends and keeps a failed request editable', asyn
   mockRead.mockResolvedValue({ ...emailOnly, passwordRecovery: true });
   const waiting = deferred<void>(); mockAuth.requestPasswordRecovery.mockReturnValue(waiting.promise);
   await render(); await press('Zaboravljena lozinka?'); await fill('Email', 'ana@example.test');
-  const send = button('Pošalji link').props.onPress;
+  const send = button('Pošaljite link').props.onPress;
   await act(async () => { send(); send(); });
   expect(mockAuth.requestPasswordRecovery).toHaveBeenCalledTimes(1);
   expect(input('Email').props.editable).toBe(false);
@@ -743,11 +743,11 @@ describe('a restricted account has a screen of its own', () => {
     mockRead.mockResolvedValue({ ...emailOnly, phoneOtp: true }); await render(); await press('Telefon');
     await fill('Broj telefona', '+381601234567');
     if (step === 'send') mockAuth.sendPhoneOtp.mockRejectedValueOnce(new SignInFailureError('RESTRICTED_ACCOUNT'));
-    await press('Pošalji kod');
+    await press('Pošaljite kod');
     if (step === 'verify') {
       await fill('Kod', '012345');
       mockAuth.verifyPhoneOtp.mockRejectedValueOnce(new SignInFailureError('RESTRICTED_ACCOUNT'));
-      await press('Potvrdi kod');
+      await press('Potvrdite kod');
     }
     expectScreen();
     await press('Nazad na prijavu');
@@ -758,7 +758,7 @@ describe('a restricted account has a screen of its own', () => {
     mockRead.mockResolvedValue({ ...emailOnly, passwordRecovery: true });
     await render(); await fill('Email', 'ana@example.test'); await press('Zaboravljena lozinka?');
     mockAuth.requestPasswordRecovery.mockRejectedValueOnce(new PasswordRecoveryError('RESTRICTED_ACCOUNT'));
-    await press('Pošalji link');
+    await press('Pošaljite link');
     expectScreen();
     expect(text()).not.toContain('Ako nalog sa ovim emailom postoji');
   });
@@ -1079,11 +1079,11 @@ describe('signup email return in the real Auth form', () => {
     await act(async () => { tree = create(<AuthScreen />); }); await pressTab('Napravite nalog');
     for (const [label, value] of signUpValues) await fill(label, value);
     await press('Napravite nalog');
-    expect(text()).toContain('Proveri email');
+    expect(text()).toContain('Proverite email');
     await act(async () => signupConfirmationIntent.publish('RETURNED'));
     expect(button('Prijavite se')).toBeDefined();
     expect(input('Email').props.value).toBe('ana@example.test');
-    expect(text()).toContain('Nastavi prijavu svojim emailom i lozinkom.');
+    expect(text()).toContain('Nastavite prijavu svojom email adresom i lozinkom.');
     expect(text()).not.toContain('Email je potvrđen');
     expect(signupConfirmationIntent.snapshot()).toBeNull();
     expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
@@ -1116,7 +1116,7 @@ describe('signup email return in the real Auth form', () => {
     await act(async () => signupConfirmationIntent.publish('RETURNED'));
     expect(host('TextInput')).toHaveLength(4);
     await act(async () => pending.resolve({ hasSession: false }));
-    expect(text()).toContain('Proveri email');
+    expect(text()).toContain('Proverite email');
     expect(signupConfirmationIntent.snapshot()).toBeNull();
   });
 
