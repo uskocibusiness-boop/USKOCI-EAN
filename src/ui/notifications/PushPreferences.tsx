@@ -41,6 +41,7 @@ type Snapshot = { preferences: Roles<NotificationPreferences>; native: NativePus
 type Scope = AuthAccountScope & { alive: boolean; busy: boolean; generation: number; foreground: boolean;
  permissionPending?: boolean; resumePermission?: () => void; cancelPending?: () => void };
 type Draft = { owner: Scope; settings: Roles<NotificationSettings> };
+type PendingWrite = { owner: Scope; original: Roles<NotificationPreferences>; wanted: Roles<NotificationSettings>; roles: readonly NotificationRole[] };
 const SETTING_KEYS: (keyof NotificationSettings)[] = [
  'in_app_enabled', 'push_enabled', 'opportunities_enabled', 'responses_enabled', 'dogovor_enabled', 'execution_enabled',
  'recovery_enabled', 'account_enabled', 'quiet_hours_enabled', 'quiet_start', 'quiet_end', 'quiet_timezone', 'urgent_overrides_quiet_hours',
@@ -50,6 +51,19 @@ type QuietKey = typeof QUIET_KEYS[number];
 const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,6})?)?$/;
 function sameSettings(a: NotificationSettings, b: NotificationSettings) { return SETTING_KEYS.every(key => a[key] === b[key]); }
 function cloneSettings(value: NotificationSettings): NotificationSettings { return { ...value }; }
+/** Re-read before any retry: only unchanged rows can retain an unfinished explicit choice. */
+function reconcilePendingWrite(pending: PendingWrite, snapshot: Snapshot) {
+ const settings: Roles<NotificationSettings> = {
+  REQUESTER: cloneSettings(snapshot.preferences.REQUESTER.settings),
+  WORKER: cloneSettings(snapshot.preferences.WORKER.settings),
+ };
+ const incomplete = pending.roles.filter(role => !sameSettings(snapshot.preferences[role].settings, pending.wanted[role]));
+ const conflict = incomplete.some(role => snapshot.preferences[role].revision !== pending.original[role].revision
+  || !sameSettings(snapshot.preferences[role].settings, pending.original[role].settings));
+ // An external change to either role invalidates the proposed shared edit as a whole.
+ if (!conflict) for (const role of incomplete) settings[role] = cloneSettings(pending.wanted[role]);
+ return { settings, conflict, confirmed: incomplete.length === 0 };
+}
 function validateDraft(value: NotificationSettings): string | null {
  if (!value.quiet_timezone.trim()) return 'Izaberi zonu telefona za tihe sate.';
  if (!value.quiet_hours_enabled) return null;
@@ -110,6 +124,7 @@ export function PushPreferences({ onDirtyChange, onWritingChange }: {
  const [working, setWorking] = useState<Working>(null);
  /** The snapshot a save's own re-read returned; the check shows only once that very read-back is on screen. */
  const savedSnapshot = useRef<Snapshot | null>(null);
+ const pendingWrite = useRef<PendingWrite | null>(null);
  const current = (scope: Scope, generation: number) => scopeRef.current === scope && scope.alive && scope.generation === generation
   && sesijaSada().user?.id === scope.accountId && sesijaSada().accountRevision === scope.accountRevision
   && renderedOwner.current.accountId === scope.accountId && renderedOwner.current.accountRevision === scope.accountRevision;
@@ -177,8 +192,18 @@ export function PushPreferences({ onDirtyChange, onWritingChange }: {
    // an unhurried answer to the OS dialog. No token/RPC work is unbounded.
    const snapshot = await bounded(permissionWait => work(generation, permissionWait), scope);
    if (current(scope, generation)) {
+    const pending = pendingWrite.current?.owner === scope ? pendingWrite.current : null;
+    const recovered = pending ? reconcilePendingWrite(pending, snapshot) : null;
     setView({ owner: scope, snapshot });
-    setDraft({ owner: scope, settings: { REQUESTER: cloneSettings(snapshot.preferences.REQUESTER.settings), WORKER: cloneSettings(snapshot.preferences.WORKER.settings) } });
+    setDraft({ owner: scope, settings: recovered?.settings ?? {
+     REQUESTER: cloneSettings(snapshot.preferences.REQUESTER.settings),
+     WORKER: cloneSettings(snapshot.preferences.WORKER.settings),
+    } });
+    if (pending) {
+     pendingWrite.current = null;
+     savedSnapshot.current = kind === 'save' && recovered?.confirmed ? snapshot : null;
+     if (recovered?.conflict) setValidation('Podešavanja su promenjena na drugom mestu. Proveri obe uloge pre novog čuvanja.');
+    } else if (kind === 'save') savedSnapshot.current = null;
    }
   }
   catch { if (scopeRef.current === scope && scope.alive) setError(true); }
@@ -189,7 +214,8 @@ export function PushPreferences({ onDirtyChange, onWritingChange }: {
  useFocusEffect(useCallback(() => {
   const scope: Scope = { accountId, accountRevision, alive: true, busy: false, generation: 0,
    foreground: AppState.currentState !== 'background' && AppState.currentState !== 'inactive' };
-  scopeRef.current = scope; setView(null); setDraft(null); setError(false); setValidation(null); setBusy(false); setWorking(null);
+  scopeRef.current = scope; pendingWrite.current = null; savedSnapshot.current = null;
+  setView(null); setDraft(null); setError(false); setValidation(null); setBusy(false); setWorking(null);
   if (accountId) void run(scope, generation => read(scope, generation, false));
   // Back from the phone's own settings, where the person may just have allowed notifications: read the state again, but
   // only when that read can change something shown (a denial or a missing permission) and never over unsaved changes,
@@ -259,15 +285,15 @@ export function PushPreferences({ onDirtyChange, onWritingChange }: {
   for (const role of changed) { const problem = validateDraft(settings[role]); if (problem) { setValidation(problem); return; } }
   const original = snapshot.preferences; const payload: Roles<NotificationSettings> = { REQUESTER: cloneSettings(settings.REQUESTER), WORKER: cloneSettings(settings.WORKER) };
   void run(scope, async generation => {
+   // Retain only this account/revision's explicit intention; never replay it on an unknown result.
+   pendingWrite.current = { owner: scope, original, wanted: payload, roles: changed };
    // Only the set that changed is written, each against the revision it was read at; the first that fails leaves the others as they were,
    // and the read-back (the "Pokušaj ponovo" of an unconfirmed outcome) shows which of them the server holds.
    for (const role of changed) {
     await notificationPreferencesClientService.save(scope.accountId, role, payload[role], original[role].revision);
     if (!current(scope, generation)) throw Error('STALE');
    }
-   const confirmed = await read(scope, generation, false);
-   savedSnapshot.current = confirmed;
-   return confirmed;
+   return read(scope, generation, false);
   }, 'save');
  }
  const push = snapshot ? pushScope({ REQUESTER: snapshot.preferences.REQUESTER.settings, WORKER: snapshot.preferences.WORKER.settings }) : null;
