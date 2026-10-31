@@ -56,7 +56,7 @@ function tileOf(photos: AgreementPhotosController, item: Item, index: number, di
   const retry = !reserved && !photos.busy && photos.canRetry(item.ref.clientRequestId) && (!receipt || receipt.state === 'ABSENT');
   return { key: item.ref.clientRequestId, state, preview: photos.preview(item.ref.clientRequestId),
     onRemove: reserved ? undefined : () => ask(removalRequest('AGREEMENT', () => photos.remove(item.ref))),
-    removeLabel: `Ukloni pripremljenu fotografiju ${index + 1}`, removeDisabled: disabled,
+    removeLabel: `Uklonite pripremljenu fotografiju ${index + 1}`, removeDisabled: disabled,
     onRetry: retry ? () => { void photos.retry(item.ref); } : undefined, retryDisabled: disabled };
 }
 
@@ -83,7 +83,7 @@ export function AgreementPhotoComposer({ photos, capturing, showSaved = false, o
   return <View style={s.tray}>
     {tiles.length ? <PhotoAttachStrip testID="agreement-photo-strip" tiles={tiles} context={{ agreementId: photos.agreementId }}
       viewerTitle="Fotografije uz poruku" /> : null}
-    {reserved ? <T variant="meta" tone="muted">Fotografija je uz poruku. Prvo proveri da li je poslata.</T> : null}
+    {reserved ? <T variant="meta" tone="muted">Fotografija je uz poruku. Prvo proverite da li je poslata.</T> : null}
     {absent ? <T variant="meta" tone="muted">Slanje fotografije nije započeto. Dodirni je da je pošalješ ponovo ili je ukloni.</T> : null}
     {unknown ? <T variant="meta" tone="muted">Ne znamo da li je fotografija poslata.</T> : null}
     {why && tiles.length ? <T variant="meta" tone="muted">{why}</T> : null}

@@ -151,7 +151,7 @@ describe('the ideas of the UI pass, as the gallery draws them', () => {
     expect(text()).toContain('Pošaljite ponovo');
     await act(async () => { tree.unmount(); });
     await open('chat');
-    expect(text()).toContain('Nije poslato'); expect(text()).toContain('Poruka nije sačuvana na telefonu. Tekst nije odbačen; pokušaj ponovo.');
+    expect(text()).toContain('Nije poslato'); expect(text()).toContain('Poruka nije sačuvana na telefonu. Tekst nije odbačen; pokušajte ponovo.');
     expect(text()).toContain('Pošaljite ponovo'); expect(text()).not.toContain('Proverite da li je stigla:');
   });
 

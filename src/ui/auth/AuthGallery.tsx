@@ -105,7 +105,7 @@ const FORMS: Partial<Record<AuthSceneKey, FormFixture>> = {
   'ulaz-pogresna-lozinka': { way: 'LOGIN', values: { email: FILLED.email, lozinka: FILLED.lozinka }, failure: SIGN_IN_FAILURE_COPY.BAD_CREDENTIALS },
   'ulaz-nema-veze': { way: 'LOGIN', values: { email: FILLED.email, lozinka: FILLED.lozinka }, failure: SIGN_IN_FAILURE_COPY.CONNECTION },
   'ulaz-nepotvrdjen-email': { way: 'LOGIN', values: { email: FILLED.email, lozinka: FILLED.lozinka }, failure: SIGN_IN_FAILURE_COPY.EMAIL_NOT_CONFIRMED, next: 'RESEND' },
-  'ulaz-greska-registracije': { way: 'SIGNUP', values: FILLED, failure: 'Registracija trenutno nije uspela. Proveri podatke i pokušaj ponovo.', next: 'HAVE_ACCOUNT' },
+  'ulaz-greska-registracije': { way: 'SIGNUP', values: FILLED, failure: 'Registracija trenutno nije uspela. Proverite podatke i pokušajte ponovo.', next: 'HAVE_ACCOUNT' },
   'ulaz-previse-pokusaja': { way: 'LOGIN', values: { email: FILLED.email, lozinka: FILLED.lozinka }, failure: RATE_LIMITED_COPY },
   'ulaz-provera-nacina': { way: 'LOGIN', check: 'failed' },
   'ulaz-ucitavanje': { way: 'LOGIN', values: { email: FILLED.email, lozinka: FILLED.lozinka }, busy: true },
@@ -118,8 +118,8 @@ function FormScene({ fixture, onBack }: { fixture: FormFixture; onBack: () => vo
   const [values, setValues] = useState<AuthFormValues>({ ime: '', prezime: '', email: '', lozinka: '', ...fixture.values });
   const [way, setWay] = useState<AuthWay>(fixture.way);
   const [intent, setIntent] = useState<AuthIntentName | null>(fixture.intent ?? null);
-  const failureAction = fixture.next === 'HAVE_ACCOUNT' ? { note: 'Možda već imaš nalog.', label: authCopy.signIn, onPress: () => setWay('LOGIN') }
-    : fixture.next === 'RESEND' ? { label: 'Pošalji ponovo potvrdu', onPress: noop } : null;
+  const failureAction = fixture.next === 'HAVE_ACCOUNT' ? { note: 'Možda već imate nalog.', label: authCopy.signIn, onPress: () => setWay('LOGIN') }
+    : fixture.next === 'RESEND' ? { label: 'Pošaljite ponovo potvrdu', onPress: noop } : null;
   return <SheetStage onBack={onBack} keyboard={fixture.keyboard} footer={<AuthFormFooter way={way} busy={!!fixture.busy} onSubmit={noop} />}>
     <AuthFormStep way={way} onWay={setWay} emailOpen signUpOpen phoneOpen={false} intent={intent} onIntentChange={setIntent}
       values={values} onValue={(name, value) => setValues(current => ({ ...current, [name]: value }))}

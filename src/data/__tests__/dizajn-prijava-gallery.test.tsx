@@ -118,13 +118,13 @@ describe('the group "Ulaz i prijava na nalog"', () => {
     expect(text()).toContain('Unesi email.'); expect(text()).toContain('Unesi lozinku.');
     await exit();
     await pressHost('Galerija: Ulaz: pogrešna lozinka');
-    expect(text()).toContain('Prijava nije uspela. Proverite email i lozinku i pokušaj ponovo.');
+    expect(text()).toContain('Prijava nije uspela. Proverite email i lozinku i pokušajte ponovo.');
     await exit();
     await pressHost('Galerija: Ulaz: email nije potvrđen');
     expect(text()).toContain('Pošaljite ponovo potvrdu');
     await exit();
     await pressHost('Galerija: Ulaz: registracija nije prošla');
-    expect(text()).toContain('Možda već imaš nalog.');
+    expect(text()).toContain('Možda već imate nalog.');
   });
 
   it('a failed check of the available ways in is a quiet note under a form that is all there', async () => {
@@ -142,7 +142,7 @@ describe('the group "Ulaz i prijava na nalog"', () => {
   it('every scene can be opened directly by its key', async () => {
     mockParams = { scene: 'ulaz-nema-veze' };
     await act(async () => { tree = create(<DizajnPrijava />); });
-    expect(text()).toContain('Ne možemo da se povežemo, pa prijava nije uspela. Proveri vezu i pokušaj ponovo.');
+    expect(text()).toContain('Ne možemo da se povežemo, pa prijava nije uspela. Proverite vezu i pokušajte ponovo.');
     mockParams = { scene: 'ponude' };
     await act(async () => { tree.unmount(); tree = create(<DizajnPrijava />); });
     // Only the sign-in scenes are opened by a key: the others keep the list as their way in.

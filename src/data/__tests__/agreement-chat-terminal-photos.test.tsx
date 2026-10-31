@@ -52,8 +52,11 @@ it.each(['READY', 'PROCESSING', 'unknown'] as const)('retains exact %s photo rec
   expect(buttons('Osvežite fotografije poruke')).toHaveLength(1);
   for (const label of ['Napišite poruku', 'Pošaljite poruku', 'Dodaj fotografije', 'Galerija',
     'Kamera', 'Pošaljite ponovo · fotografija 1']) expect(buttons(label)).toHaveLength(0);
+  await act(async () => { button('Uklonite pripremljenu fotografiju 1').props.onPress(); });
+  // Removal must not write until the person confirms the destructive action.
+  expect(photos.remove).not.toHaveBeenCalled();
   await act(async () => {
-    button('Uklonite pripremljenu fotografiju 1').props.onPress();
+    button('Ukloni').props.onPress();
     button('Osvežite fotografije poruke').props.onPress(); retainedSend();
   });
   expect(photos.remove).toHaveBeenCalledWith(ref); expect(photos.refresh).toHaveBeenCalledTimes(1);
