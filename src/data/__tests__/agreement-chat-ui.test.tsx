@@ -320,7 +320,7 @@ describe('D03 actual message component', () => {
       entries: [{ command, state: 'unknown', persisted: true, attempt: 1 }] } });
     expect(button('Napišite poruku').props.value).toBe(state.draft);
     expect(button(`Proverite da li je stigla: ${command.body}`)).toBeTruthy();
-    await act(async () => button('Ponovo učitajte sačuvane poruke').props.onPress());
+    await act(async () => button('Ponovo učitaj sačuvane poruke').props.onPress());
     expect(outbox.start).toHaveBeenCalledTimes(1);
   });
 
@@ -510,7 +510,7 @@ describe('D03 actual message component', () => {
     await render(); expect(texts()).toContain('Napišite prvu poruku');
     await act(async () => tree.update(<AgreementChat {...props} error />));
     expect(texts()).toContain('Poruke nisu učitane'); expect(texts()).not.toContain('Napišite prvu poruku');
-    await act(async () => button('Ponovo učitajte poruke').props.onPress());
+    await act(async () => button('Ponovo učitaj poruke').props.onPress());
     expect(props.refresh).toHaveBeenCalledTimes(1);
     await act(async () => tree.update(<AgreementChat {...props} loading />));
     expect(texts()).not.toContain('Napišite prvu poruku');
@@ -603,7 +603,7 @@ describe('D03 actual message component', () => {
     await render({ state: { ...state, phase: 'error', error: 'STORAGE_UNAVAILABLE' } });
     expect(button('Pošaljite poruku').props.disabled).toBe(true);
     expect(button('Napišite poruku').props.value).toBe('Nova poruka');
-    await act(async () => button('Ponovo učitajte sačuvane poruke').props.onPress());
+    await act(async () => button('Ponovo učitaj sačuvane poruke').props.onPress());
     expect(outbox.start).toHaveBeenCalledTimes(1);
   });
   it('offers only a canonical selected historical message, with its persisted version independent of current writable state', async () => {
@@ -616,7 +616,7 @@ describe('D03 actual message component', () => {
     // It stands under the bubble as a sibling, never inside the bubble's press, so a screen reader reaches its buttons.
     const supportNode = tree.root.findByType('SupportContextEntry' as React.ElementType);
     expect(held('Vi').findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(0);
-    expect(supportNode.props.label).toBe('Izaberi ovu poruku za podršku');
+    expect(supportNode.props.label).toBe('Izaberite ovu poruku za podršku');
     const entry = supportNode.props;
     expect(entry.reference).toEqual({ kind: 'AGREEMENT_MESSAGE', id: read.id, revision: 2 });
     expect(entry.previewText).toBe(read.telo); expect(entry.canAct()).toBe(true);
@@ -632,7 +632,7 @@ describe('D03 actual message component', () => {
     expect(held('Vi').props.accessibilityRole).toBe('text');
     expect(held('Vi').props.accessibilityActions).toBeUndefined();
     await act(async () => tree.update(<AgreementChat {...props} messages={[read]} support={{ canAct: () => true, navigate: jest.fn() }} />));
-    expect(held('Vi').props.accessibilityActions).toEqual([{ name: 'activate', label: 'Izaberi ovu poruku za podršku' }]);
+    expect(held('Vi').props.accessibilityActions).toEqual([{ name: 'activate', label: 'Izaberite ovu poruku za podršku' }]);
     await act(async () => held('Vi').props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
     expect(tree.root.findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(1);
     await act(async () => held('Vi').props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
