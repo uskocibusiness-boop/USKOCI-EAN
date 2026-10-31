@@ -9,7 +9,7 @@ Aplikacija je Expo / React Native; DEV Supabase je `leqcwgzvjsxugfgzdmth`.
 
 1. Prvo pročitaj [nastavak rada](docs/continuation/NASTAVAK_RADA.md), proveri stvarni remote HEAD / lokalno stablo i poslednji CI na tom SHA-u.
 2. **Jedini operativni plan** je [CODEX_PLAN_RADA.md](docs/plan/CODEX_PLAN_RADA.md), posebno §11.2a (izvršni status), §4.2–4.3 (zavisnosti i acceptance) i **§12.5–12.6** (integritet dokaza i usaglašena izvršna istina).
-3. **Jedini noviji Product/UX kanon** je [USKOCI_PRODUCT_UX_MASTER.md](docs/product/USKOCI_PRODUCT_UX_MASTER.md) (tačna originalna kopija 29.10.2026). Čitaj samo relevantni S01–S18 i E/J ugovor za konkretan posao; istorija iza „ISTORIJSKA EVIDENCIJA” nije novi autoritet.
+3. **Jedini noviji Product/UX kanon** je [USKOCI_PRODUCT_UX_MASTER.md](docs/product/USKOCI_PRODUCT_UX_MASTER.md) (izvorni Product/UX master 29.10, **važeća vlasnička korekcija 31.10: jedna zajednička reputacija naloga**). Čitaj samo relevantni S01–S18 i E/J ugovor za konkretan posao; istorija iza „ISTORIJSKA EVIDENCIJA” nije novi autoritet.
 4. [REV10/REV13/REV14 dokazni most](docs/continuation/source-bridge-20261030/README.md) ima 208 mapiranih istorijskih nalaza, 77 ekranskih ugovora i 44 dodatna nalaza. **Istorijski dokaz NIJE trenutni bug niti potvrđen PASS.** Obnovi/verifikuj jednom, otvaraj samo potrebne izvore.
 5. Kod, SQL, Edge, DEV, NATIVE i PROD razlikuj po izvoru, testu, run ID-ju i statusu. R01 strict FAIL, R10 closure i release ostaju stvarni gates. Ne pravi drugi master, ne biraj old default branch i ne ponavljaj puni audit svakog ZIP-a za svaku ispravku.
 
