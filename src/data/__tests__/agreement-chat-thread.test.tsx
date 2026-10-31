@@ -73,7 +73,7 @@ describe('grouped bubbles and Serbian date lines', () => {
     await render({ messages: [row(false, 'Dobar dan!', at(1, 9, 0)), row(false, 'Sastavljam ormar.', at(1, 9, 2)), row(true, 'Da, dva krila.', at(0, 1, 0))] });
     expect(headers()).toEqual(['Juče', 'Danas · 01:00']);
     expect(stops('Marko')[0].props.accessibilityLabel).toBe('Marko: Dobar dan!, Juče, 09:00');
-    expect(stops('Ti')[0].props.accessibilityLabel).toBe('Ti: Da, dva krila., Danas, 01:00, poslato');
+    expect(stops('Vi')[0].props.accessibilityLabel).toBe('Vi: Da, dva krila., Danas, 01:00, poslato');
     // The words of the old read ("sutra · 03:33") are never used when the instant is there.
     expect(texts()).not.toContain('sutra');
   });
@@ -94,7 +94,7 @@ describe('grouped bubbles and Serbian date lines', () => {
       row(true, 'Da.', at(1, 9, 5)),
       row(true, 'Odlično.', at(1, 9, 20)),
     ] });
-    const theirs = stops('Marko'), mine = stops('Ti');
+    const theirs = stops('Marko'), mine = stops('Vi');
     // top-left, top-right, bottom-right, bottom-left
     expect(corners(theirs[0])).toEqual([BIG, BIG, BIG, BIG]);           // first of the run
     expect(corners(theirs[1])).toEqual([JOINT, BIG, BIG, BIG]);         // middle
@@ -122,7 +122,7 @@ describe('the small mark by my message', () => {
     expect(mark.findAllByType(Path)).toHaveLength(1);
     expect(stops('Marko')[0].findAll(node => node.props.accessibilityRole === 'image')).toHaveLength(0);
     // It is inside my bubble, and the bubble speaks it.
-    expect(stops('Ti')[0].findAll(node => node.props.accessibilityRole === 'image')).not.toHaveLength(0);
+    expect(stops('Vi')[0].findAll(node => node.props.accessibilityRole === 'image')).not.toHaveLength(0);
   });
 
   it('is two checks ONLY when the read says procitano === true; null and false are never "seen"', async () => {
@@ -130,7 +130,7 @@ describe('the small mark by my message', () => {
       row(true, 'tri', at(1, 9, 40), { procitano: true })] });
     expect(marks().map(mark => mark.props.accessibilityLabel)).toEqual(['Poslato', 'Poslato', 'Viđeno']);
     expect(marks('Viđeno')[0].findAllByType(Path)).toHaveLength(2);
-    expect(stops('Ti').map(node => node.props.accessibilityLabel.split(', ').pop())).toEqual(['poslato', 'poslato', 'viđeno']);
+    expect(stops('Vi').map(node => node.props.accessibilityLabel.split(', ').pop())).toEqual(['poslato', 'poslato', 'viđeno']);
   });
 
   it('is never "seen" because of anything but the field: a reply, a later message of the other person or a real instant change nothing', async () => {
@@ -147,32 +147,32 @@ describe('the small mark by my message', () => {
     expect(marks('Šalje se')[0].findAllByType(Path)).toHaveLength(0);
     expect(texts()).not.toContain('Šalje se'); expect(texts()).not.toContain('Poslato');
     // No retry for either: nothing is wrong.
-    expect(tree.root.findAllByProps({ accessibilityLabel: `Ponovi slanje poruke ${sending.command.body}` })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: `Ponovite slanje poruke ${sending.command.body}` })).toHaveLength(0);
   });
 
   it('an unconfirmed send keeps a quiet dot, says so under its bubble and offers the one "Proveri" for that exact message', async () => {
     const unknown = entry('unknown_00000001', 'unknown', { error: 'UNAVAILABLE' });
     await render({ state: { ...props.state, entries: [unknown] } });
     expect(marks().map(mark => mark.props.accessibilityLabel)).toEqual(['Ne znamo da li je stigla']);
-    expect(texts()).toContain('Ne znamo da li je stigla'); expect(texts()).toContain('Proveri');
+    expect(texts()).toContain('Ne znamo da li je stigla'); expect(texts()).toContain('Proverite');
     // Checking is read-only; a separate, clearly named write needs another gesture.
-    expect(texts()).toContain('Pošalji ponovo'); expect(texts()).not.toContain('Nije poslato');
-    await act(async () => button(`Proveri da li je stigla: ${unknown.command.body}`).props.onPress());
+    expect(texts()).toContain('Pošaljite ponovo'); expect(texts()).not.toContain('Nije poslato');
+    await act(async () => button(`Proverite da li je stigla: ${unknown.command.body}`).props.onPress());
     expect(props.refresh).toHaveBeenCalledTimes(1);
     expect(outbox.retry).not.toHaveBeenCalled();
-    await act(async () => button(`Ponovi slanje poruke ${unknown.command.body}`).props.onPress());
+    await act(async () => button(`Ponovite slanje poruke ${unknown.command.body}`).props.onPress());
     expect(outbox.retry).toHaveBeenCalledWith('unknown_00000001');
   });
 
-  it('a refused send goes red, draws no mark, says why, and keeps "Pošalji ponovo"', async () => {
+  it('a refused send goes red, draws no mark, says why, and keeps "Pošaljite ponovo"', async () => {
     const failed = entry('failed_00000001', 'failed', { error: 'UNAVAILABLE' });
     await render({ state: { ...props.state, entries: [failed] } });
     expect(marks()).toHaveLength(0);
-    const bubble = stops('Ti')[0];
+    const bubble = stops('Vi')[0];
     expect(flat(bubble.props.style).backgroundColor).toBe(sys.color.dangerSoft);
-    expect(texts()).toContain('Nije poslato'); expect(texts()).toContain('Veza je prekinuta. Ne znamo da li je poruka stigla.'); expect(texts()).toContain('Pošalji ponovo');
-    // The action keeps the long name a screen reader hears, with the visible words "Pošalji ponovo".
-    expect(button(`Ponovi slanje poruke ${failed.command.body}`)).toBeTruthy();
+    expect(texts()).toContain('Nije poslato'); expect(texts()).toContain('Veza je prekinuta. Ne znamo da li je poruka stigla.'); expect(texts()).toContain('Pošaljite ponovo');
+    // The action keeps the long name a screen reader hears, with the visible words "Pošaljite ponovo".
+    expect(button(`Ponovite slanje poruke ${failed.command.body}`)).toBeTruthy();
   });
 });
 
@@ -183,8 +183,8 @@ describe('photos stay in the bubble shape', () => {
 
   it('draws a photo with a caption as one bubble: the caption is the stop, the mark closes its line, the photo is its own control', async () => {
     await render({ photos, messages: [row(true, 'Evo kako izgleda', at(1, 9, 0), { fotografije: [photo], dogovorVerzija: 3 })] });
-    const stop = stops('Ti')[0];
-    expect(stop.props.accessibilityLabel).toBe('Ti: Evo kako izgleda, 1 fotografija, Juče, 09:00, poslato');
+    const stop = stops('Vi')[0];
+    expect(stop.props.accessibilityLabel).toBe('Vi: Evo kako izgleda, 1 fotografija, Juče, 09:00, poslato');
     expect(stop.findAllByType('AuthorizedPhoto' as never)).toHaveLength(0);
     expect(tree.root.findAllByType('AuthorizedPhoto' as never)).toHaveLength(1);
     expect(stop.findAll(node => node.props.accessibilityRole === 'image')).not.toHaveLength(0);
@@ -194,7 +194,7 @@ describe('photos stay in the bubble shape', () => {
     await render({ photos, terminal: true, writable: false, messages: [row(false, '', at(1, 9, 0), { fotografije: [photo], dogovorVerzija: 3 })] });
     expect(tree.root.findAllByType('AuthorizedPhoto' as never)).toHaveLength(1);
     expect(texts()).toContain(CLOSED_SENTENCE);
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Napiši poruku' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Napišite poruku' })).toHaveLength(0);
     expect(tree.root.findAllByProps({ accessibilityLabel: 'Dodaj fotografije' })).toHaveLength(0);
   });
 });
@@ -204,8 +204,8 @@ describe('a closed Dogovor', () => {
     await render({ terminal: true, writable: false, messages: [row(false, 'Zdravo', at(1, 9, 0))] });
     expect(tree.root.findAllByProps({ testID: 'agreement-chat-composer' })).toHaveLength(0);
     const closed = tree.root.findByProps({ testID: 'agreement-chat-closed' });
-    expect(closed.props.accessibilityLabel).toBe('Dogovor je zatvoren. Poruke možeš samo da čitaš.');
-    expect(CLOSED_SENTENCE).toBe('Dogovor je zatvoren. Poruke možeš samo da čitaš.');
+    expect(closed.props.accessibilityLabel).toBe('Dogovor je zatvoren. Poruke možete samo da čitate.');
+    expect(CLOSED_SENTENCE).toBe('Dogovor je zatvoren. Poruke možete samo da čitate.');
     const sentence = closed.findAll(node => String(node.type) === 'T')[0];
     expect(texts(closed)).toBe(CLOSED_SENTENCE);
     expect(sentence.props.tone).toBe('muted');
@@ -230,7 +230,7 @@ describe('a closed Dogovor', () => {
 describe('the pill: plus, text, microphone (or send)', () => {
   it('writes in one rounded, softly lifted capsule whose field says only "Poruka" and is still named for a screen reader', async () => {
     await render();
-    const input = button('Napiši poruku');
+    const input = button('Napišite poruku');
     expect(input.props.placeholder).toBe('Poruka');
     const pill = input.parent!.parent!;
     expect(flat(pill.props.style)).toMatchObject({ borderRadius: sys.radius.sheet, backgroundColor: sys.conversation.surface });
@@ -240,17 +240,17 @@ describe('the pill: plus, text, microphone (or send)', () => {
   it('shows whether Send is available and blocks an empty message', async () => {
     await render({ state: { ...props.state, draft: 'Nešto' } });
     const circle = (node: ReactTestInstance) => flat(node.findAll(child => String(child.type) === 'View')[0].props.style);
-    const activeFill = circle(button('Pošalji poruku')).backgroundColor;
-    expect(button('Pošalji poruku').props.disabled).toBeFalsy();
+    const activeFill = circle(button('Pošaljite poruku')).backgroundColor;
+    expect(button('Pošaljite poruku').props.disabled).toBeFalsy();
     await act(async () => tree.update(<AgreementChat {...props} state={{ ...props.state, draft: '' }} />));
-    expect(circle(button('Pošalji poruku')).backgroundColor).not.toBe(activeFill);
-    expect(button('Pošalji poruku').props.disabled).toBe(true);
+    expect(circle(button('Pošaljite poruku')).backgroundColor).not.toBe(activeFill);
+    expect(button('Pošaljite poruku').props.disabled).toBe(true);
   });
 
   it('still counts code points against the 2.000-character limit and keeps the guard', async () => {
     await render({ state: { ...props.state, draft: '😀'.repeat(2001) } });
-    expect(button('Pošalji poruku').props.disabled).toBe(true);
-    expect(texts()).toContain('skrati poruku');
+    expect(button('Pošaljite poruku').props.disabled).toBe(true);
+    expect(texts()).toContain('skratite poruku');
   });
 });
 
