@@ -15,7 +15,6 @@ import { tick } from '../system/haptics';
 import { InfoButton } from '../system/InfoButton';
 import { KeyValueRow } from '../system/KeyValueRow';
 import { layout } from '../system/layout';
-import { ListRow } from '../system/ListRow';
 import { MoneySummary } from '../system/MoneySummary';
 import { useReducedMotion } from '../system/motion';
 import { dolaziOsoba, osoba, plural } from '../system/plural';
@@ -299,7 +298,7 @@ function ExactTimeSheet({ draft, timezone, taskTime, close, accept }: {
   </ProductSheet>;
 }
 
-/** Composer of one application: what is offered, how many people come, an optional exact time, a short note, one send. */
+/** A new application follows the task's term; historical frozen commands may still show an old proposed term in their receipt. */
 export function ApplicationComposerPresentation({ applicationPriceBasis, need, opportunity, draft, change, submit, back, busy, pending, uncertain, refresh, error, confirmed, openApplications, canSubmit, reset, blocked, pendingHelp, refreshHelps = true, initialSheet, skillOptIn }: {
   applicationPriceBasis?: 'TOTAL' | 'HOURLY';
   need: PotrebaProjekcija; opportunity: PrilikaProjekcija; draft: ApplicationDraft; change: (value: ApplicationDraft) => void;
@@ -437,10 +436,11 @@ export function ApplicationComposerPresentation({ applicationPriceBasis, need, o
         <ApplicationPeopleInput value={draft.people} maximum={left} disabled={disabled}
           onChange={people => change({ ...draft, people })} help={placesText(need.pokrivenost, 'worker').text} />
       </Section>
-      <Section title="Kada možeš">
-        <ListRow title={time} subtitle={exact ? `Tvoj predlog termina${proposedTaskTime ? ` · termin zadatka je ${proposedTaskTime}` : ''}` : 'Termin zadatka. Možeš da predložiš drugi.'}
-          testID="composer-term" accessibilityHint="Otvara izbor tačnog termina" disabled={disabled}
-          onPress={() => { if (!disabled && !reviewing) setEditingTime(true); }} last />
+      <Section title="Termin zadatka">
+        <View testID="composer-term">
+          <FactRow art="calendar" label="Termin" value={time} size="detail" />
+          <T variant="note" tone="muted">Prijava se odnosi na termin koji je naveden u zadatku.</T>
+        </View>
       </Section>
       <Section title="Poruka uz prijavu">
         <View style={s.group}>
