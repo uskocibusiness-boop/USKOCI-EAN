@@ -197,10 +197,10 @@ describe('every other Auth operation keeps its copy exactly (sign-up, resend and
   const RATE = 'Previše pokušaja. Sačekaj kratko pa pokušaj ponovo.';
   const operations = [
     ['SIGN_UP', 'signUp', () => authClientService.signUp({ email: EMAIL, password: PASSWORD, firstName: 'Ana', lastName: 'Ivić', city: 'Novi Sad' }),
-      'Registracija trenutno nije uspela. Proveri podatke i pokušaj ponovo.'],
-    ['SIGNUP_RESEND', 'resend', () => authClientService.resendSignupConfirmation(EMAIL), 'Novu potvrdu trenutno nije moguće zatražiti. Pokušaj ponovo.'],
-    ['PHONE_SEND', 'signInWithOtp', () => authClientService.sendPhoneOtp({ phone: '+381601234567' }), 'Kod trenutno nije moguće poslati. Proveri broj i pokušaj ponovo.'],
-    ['PHONE_VERIFY', 'verifyOtp', () => authClientService.verifyPhoneOtp({ phone: '+381601234567', token: '012345' }), 'Kod nije potvrđen. Proveri kod i pokušaj ponovo.'],
+      'Registracija trenutno nije uspela. Proverite podatke i pokušajte ponovo.'],
+    ['SIGNUP_RESEND', 'resend', () => authClientService.resendSignupConfirmation(EMAIL), 'Novu potvrdu trenutno nije moguće zatražiti. Pokušajte ponovo.'],
+    ['PHONE_SEND', 'signInWithOtp', () => authClientService.sendPhoneOtp({ phone: '+381601234567' }), 'Kod trenutno nije moguće poslati. Proverite broj i pokušajte ponovo.'],
+    ['PHONE_VERIFY', 'verifyOtp', () => authClientService.verifyPhoneOtp({ phone: '+381601234567', token: '012345' }), 'Kod nije potvrđen. Proverite kod i pokušajte ponovo.'],
   ] as const;
   const signals: [string, unknown, 'DEFAULT' | 'RATE' | 'UNAVAILABLE' | 'BANNED'][] = [
     ['no answer at all (status 0)', new AuthRetryableFetchError(SENTINEL, 0), 'DEFAULT'],
