@@ -170,6 +170,16 @@ test('R06 a captured status requires the actual same-source receipt, not a model
   [row.jobId,row.leaseToken,'CAPTURE_CONFIRMED'])).rows[0].result;
  assert.equal(result.state,'CAPTURED');assert.equal(result.retryAllowed,false);
 });
+test('R06 a closing account is never claimed by the worker or billed',async t=>{
+ const db=await setup();t.after(()=>db.close());await needFixture(db);
+ await db.exec('UPDATE private.work_taxonomy_first_plan_control_v1 SET enabled=true');
+ const job=await enqueue(db,need);assert.equal(job.state,'PENDING');
+ await db.query("INSERT INTO private.account_closure_requests VALUES($1,'READY')",[a]);
+ const claims=(await db.query('SELECT public.rpc_taxonomy_first_plan_claim_service(1) result')).rows[0].result;
+ assert.deepEqual(claims,[]);
+ assert.equal((await db.query("SELECT count(*)::int n FROM private.work_taxonomy_first_plan_jobs_v1 WHERE state='PENDING' AND attempts=0")).rows[0].n,1);
+});
+
 test('R06 expired dispatched lease reconciles UNKNOWN without a paid replay',async t=>{
  const db=await setup();t.after(()=>db.close());await needFixture(db);
  await db.exec('UPDATE private.work_taxonomy_first_plan_control_v1 SET enabled=true');
