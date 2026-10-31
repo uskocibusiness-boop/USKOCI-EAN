@@ -8,8 +8,9 @@ import { useAgreementVoice, type AgreementVoiceScope, type AgreementVoiceControl
 import { AgreementVoiceMic, AgreementVoicePanel, voiceTime } from './media/AgreementVoiceControls';
 import type { AgreementPhotosController } from '../hooks/useAgreementPhotos';
 import { AgreementPhotoComposer, AgreementPhotoSheet } from './media/AgreementPhotoComposer';
-import { PHOTO_WORDS } from './media/photoWords';
+import { PHOTO_WORDS, removalRequest } from './media/photoWords';
 import { Glyph } from './system/Glyph';
+import { useConfirmSheet } from './system/ConfirmSheet';
 import { tick } from './system/haptics';
 import { AuthorizedPhoto } from './media/AuthorizedPhoto';
 import { PhotoViewer, type PhotoReadContext, type PagePhoto } from './media/PhotoViewer';
@@ -84,7 +85,7 @@ const errors: Record<OutboxError, string> = {
   READ_ONLY: 'Dogovor trenutno ne prihvata nove poruke. Osvežite njegov status.',
   NOT_AVAILABLE: 'Više nemate pristup slanju u ovom Dogovoru. Osvežite njegov status.',
   AUTH_CONTEXT_CHANGED: 'Nalog je promenjen. Vratite se na Dogovore.',
-  CONFLICT: 'Ova poruka se razlikuje od sačuvane. Možete da kopiraš tekst.',
+  CONFLICT: 'Ova poruka se razlikuje od sačuvane. Možete da kopirate tekst.',
   UNAVAILABLE: 'Veza je prekinuta. Ne znamo da li je poruka stigla.',
   // The words describe and the button ("Proverite", `outcomeCopy`) commands: the line does not say the verb of the button twice.
   INVALID_RESPONSE: 'Ne znamo da li je poruka stigla. Neće se poslati dvaput.',
@@ -134,6 +135,7 @@ const recoverablePhoto = (receipt: AgreementPhotosController['items'][number]['r
 /** Closing an Agreement forbids new photos; existing opaque intents still need exact read/cancel recovery. */
 function TerminalPhotoRecovery({ photos, capturing }: { photos: AgreementPhotosController; capturing: boolean }) {
   const [showSaved, setShowSaved] = useState(false);
+  const confirm = useConfirmSheet();
   const items = photos.items?.filter(item => recoverablePhoto(item.receipt)) ?? [];
   const saved = photos.saved?.filter(recoverablePhoto) ?? [];
   if (!items.length && !saved.length && (photos.loaded || !photos.message)) return null;
@@ -147,7 +149,7 @@ function TerminalPhotoRecovery({ photos, capturing }: { photos: AgreementPhotosC
       {photos.reserved(item) ? <T variant="meta" tone="muted">Fotografija je uz poruku. Prvo proverite da li je poslata.</T> : <>
         <T variant="meta" tone="muted">{item.receipt?.state === 'READY' ? 'Fotografija nije pridružena poruci.' : 'Ne znamo da li je fotografija poslata.'}</T>
         <ChatAction label={`Uklonite pripremljenu fotografiju ${index + 1}`} text="Uklonite fotografiju" busy={busy}
-          onPress={() => { void photos.remove(item.ref); }} />
+          onPress={() => confirm.ask(removalRequest('AGREEMENT', () => photos.remove(item.ref)))} />
       </>}
     </View>)}
     {saved.length ? <>
@@ -156,6 +158,7 @@ function TerminalPhotoRecovery({ photos, capturing }: { photos: AgreementPhotosC
         label={`Prikažite ranije pripremljenu fotografiju ${index + 1}`} text={`Fotografija ${index + 1} · Prikažite za uklanjanje`}
         busy={busy || photos.items.length >= 6} onPress={() => { void photos.restore(upload.clientRequestId); }} />) : null}
     </> : null}
+    {confirm.sheet}
   </View>;
 }
 

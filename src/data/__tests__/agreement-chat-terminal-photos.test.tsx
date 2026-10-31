@@ -56,8 +56,8 @@ it.each(['READY', 'PROCESSING', 'unknown'] as const)('retains exact %s photo rec
   // Removal must not write until the person confirms the destructive action.
   expect(photos.remove).not.toHaveBeenCalled();
   await act(async () => {
-    button('Ukloni').props.onPress();
     button('Osvežite fotografije poruke').props.onPress(); retainedSend();
+    button('Ukloni').props.onPress();
   });
   expect(photos.remove).toHaveBeenCalledWith(ref); expect(photos.refresh).toHaveBeenCalledTimes(1);
   expect(photos.pick).not.toHaveBeenCalled(); expect(photos.retry).not.toHaveBeenCalled(); expect(sendDraft).not.toHaveBeenCalled();
