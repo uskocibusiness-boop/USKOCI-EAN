@@ -440,7 +440,8 @@ describe('the order of the applications', () => {
     const hourly = [hourlyTeam, hourlySingle];
     expect(sortCandidates(hourly, 'PRICE').map(k => k.prijavaId)).toEqual(['hourlySingle', 'hourlyTeam']);
     expect(candidateMeasures(hourly, true).get('hourlySingle')).toBe(MEASURE_LOWEST_PRICE);
-    expect(candidateMeasures(hourly, true).get('hourlyTeam')).toBeUndefined();
+    // A non-cheapest candidate may still earn the independent best-rating marker.
+    expect(candidateMeasures(hourly, true).get('hourlyTeam')).not.toBe(MEASURE_LOWEST_PRICE);
     const total = k({ prijavaId: 'total', cena: { iznos: 4000, valuta: 'RSD', prikaz: '4.000 RSD' }, pokrivaMesta: 2 });
     const mixed = [total, hourlySingle];
     expect(sortCandidates(mixed, 'PRICE')).toBe(mixed);
