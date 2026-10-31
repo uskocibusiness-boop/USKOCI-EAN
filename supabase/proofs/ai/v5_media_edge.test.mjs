@@ -2,7 +2,7 @@
 // only; asserts protocol boundaries, not a deployed Supabase Storage service.
 import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';
 import {readFileSync} from 'node:fs';import {createRequire} from 'node:module';import {webcrypto,createHash} from 'node:crypto';import ts from 'typescript';
-import * as m from '@imagemagick/magick-wasm';import * as sanitizer from '../../functions/_shared/mediaImageSanitizer.mjs';import * as voice from '../../functions/_shared/voiceM4a.mjs';
+import * as m from '@imagemagick/magick-wasm';import * as sanitizer from '../../functions/_shared/mediaImageSanitizer.mjs';import * as voice from '../../functions/_shared/voiceM4a.mjs';import * as admission from '../../functions/_shared/mediaUploadAdmission.mjs';
 const require=createRequire(import.meta.url);await m.initializeImageMagick(readFileSync(require.resolve('@imagemagick/magick-wasm/magick.wasm')));
 const id=n=>`${String(n).padStart(8,'0')}-1111-4111-8111-111111111111`,account=id(1),cid=id(2),key=id(3),aid=id(4),attempt=id(5),need=id(6),profile=id(7);
 const input=m.ImageMagick.read(m.MagickColors.Blue,160,80,i=>{i.setAttribute('comment','PRIVATE_EXIF');return i.write(m.MagickFormat.Png,b=>new Uint8Array(b));});
@@ -35,7 +35,7 @@ function fixture(options={}){
  const runtime={...m,initializeImageMagick:async()=>undefined};
  const source=readFileSync('supabase/functions/uskoci-media/index.ts','utf8').replace("import.meta.resolve('npm:@imagemagick/magick-wasm@0.0.43/magick.wasm')","'file:///synthetic-wasm-runtime-already-initialized'");
  const compiled=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
- const context=vm.createContext({exports:{},require:name=>name.startsWith('npm:')?runtime:name==='../_shared/voiceM4a.mjs'?voice:sanitizer,Request,Response,Headers,URL,TextEncoder,TextDecoder,
+ const context=vm.createContext({exports:{},require:name=>{if(name.startsWith('npm:'))return runtime;if(name==='../_shared/voiceM4a.mjs')return voice;if(name==='../_shared/mediaUploadAdmission.mjs')return admission;assert.equal(name,'../_shared/mediaImageSanitizer.mjs');return sanitizer;},Request,Response,Headers,URL,TextEncoder,TextDecoder,
   Uint8Array,ArrayBuffer,DataView,AbortController,crypto:webcrypto,setTimeout,clearTimeout,fetch,atob,
   Deno:{env:{get:n=>environment[n]},readFile:async()=>new Uint8Array(),serve:fn=>handler=fn}});
  new vm.Script(compiled).runInContext(context);

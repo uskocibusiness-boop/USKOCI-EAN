@@ -20,7 +20,7 @@ async function setup(install=true){
   'CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role; CREATE ROLE unrelated_api_role;',
   "CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$ SELECT jsonb_build_object('role',current_setting('test.jwt_role',true)) $$;",
   'CREATE TABLE private.account_closure_requests(account_id uuid,state text);',
-  "CREATE FUNCTION private.closure_assert_open(uuid) RETURNS void LANGUAGE plpgsql AS $$ BEGIN IF EXISTS(SELECT 1 FROM private.account_closure_requests WHERE account_id=$1 AND state IN('READY','EXECUTING','FAILED','CLOSED')) THEN RAISE EXCEPTION 'ACCOUNT_CLOSING' USING errcode='42501'; END IF; END $$;",
+  "CREATE FUNCTION private.closure_assert_open(uuid) RETURNS void LANGUAGE plpgsql AS $$ BEGIN IF EXISTS(SELECT 1 FROM private.account_closure_requests WHERE account_id=$1 AND state IN('READY','EXECUTING','FAILED','CLOSED')) THEN RAISE EXCEPTION 'ACCOUNT_CLOSING' USING errcode='42501'; END IF; END; $;",
   "CREATE FUNCTION private.taxonomy_normalize_v1(text) RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT lower(btrim($1)) $$;",
   "CREATE FUNCTION private.taxonomy_handoff_valid_v1(jsonb) RETURNS boolean LANGUAGE sql IMMUTABLE AS $$ SELECT jsonb_typeof($1)='object' $$;",
   'CREATE TABLE public.ai_conversations(id uuid PRIMARY KEY,account_id uuid,purpose text);',

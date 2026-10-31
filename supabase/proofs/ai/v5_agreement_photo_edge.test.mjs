@@ -2,7 +2,7 @@
 // unit-only. Actual SQL/Storage authorization is tested by the144 disposable proof.
 import test from 'node:test';import assert from 'node:assert/strict';import vm from 'node:vm';
 import {readFileSync} from 'node:fs';import {createRequire} from 'node:module';import {webcrypto,createHash} from 'node:crypto';import ts from 'typescript';
-import * as magick from '@imagemagick/magick-wasm';import * as sanitizer from '../../functions/_shared/mediaImageSanitizer.mjs';import * as voice from '../../functions/_shared/voiceM4a.mjs';
+import * as magick from '@imagemagick/magick-wasm';import * as sanitizer from '../../functions/_shared/mediaImageSanitizer.mjs';import * as voice from '../../functions/_shared/voiceM4a.mjs';import * as admission from '../../functions/_shared/mediaUploadAdmission.mjs';
 const require=createRequire(import.meta.url);await magick.initializeImageMagick(readFileSync(require.resolve('@imagemagick/magick-wasm/magick.wasm')));
 const id=n=>`${String(n).padStart(8,'0')}-1111-4111-8111-111111111111`,account=id(1),agreement=id(2),key=id(3),asset=id(4),attempt=id(5),session=id(6),message=id(7);
 const original=magick.ImageMagick.read(magick.MagickColors.Blue,80,40,i=>{i.setAttribute('comment','PRIVATE_METADATA');return i.write(magick.MagickFormat.Png,b=>new Uint8Array(b));});
@@ -41,7 +41,7 @@ function fixture(options={}){
  const source=readFileSync('supabase/functions/uskoci-media/index.ts','utf8').replace("import.meta.resolve('npm:@imagemagick/magick-wasm@0.0.43/magick.wasm')","'file:///unit-pinned-wasm'");
  const compiled=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}}).outputText;
  const runtime={...magick,initializeImageMagick:async()=>undefined};
- new vm.Script(compiled).runInContext(vm.createContext({exports:{},require:name=>{if(name==='npm:@imagemagick/magick-wasm@0.0.43')return runtime;if(name==='../_shared/voiceM4a.mjs')return voice;assert.equal(name,'../_shared/mediaImageSanitizer.mjs');return sanitizer;},
+ new vm.Script(compiled).runInContext(vm.createContext({exports:{},require:name=>{if(name==='npm:@imagemagick/magick-wasm@0.0.43')return runtime;if(name==='../_shared/voiceM4a.mjs')return voice;if(name==='../_shared/mediaUploadAdmission.mjs')return admission;assert.equal(name,'../_shared/mediaImageSanitizer.mjs');return sanitizer;},
  Request,Response,Headers,URL,TextEncoder,TextDecoder,Uint8Array,ArrayBuffer,DataView,AbortController,crypto:webcrypto,setTimeout,clearTimeout,fetch,atob,
  Deno:{env:{get:n=>environment[n]},readFile:async()=>new Uint8Array(),serve:fn=>handler=fn}}));
  const invoke=(op='agreement-upload',body=new Uint8Array(original),headers={})=>handler(new Request('https://edge.invalid',{method:'POST',headers:{Authorization:'Bearer '+token(),'Content-Type':'image/png',
