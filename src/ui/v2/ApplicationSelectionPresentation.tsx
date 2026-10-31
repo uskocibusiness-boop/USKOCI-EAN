@@ -239,7 +239,13 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   // Reading the applications again is a pull on the list, not a button under it: the screen shows its own loading state while it reads.
   const pull = usePullRefresh(refresh, refreshing);
   // Read a page at a time, the number of applications is the server's, and how many of them can still be chosen is only known once every one is loaded.
-  const known = !paging || !paging.hasMore;
+  // Server completion alone is insufficient: a later cursor may end early
+  // after concurrent edits. Never label a partial set "cheapest/best" or sort it.
+  // Recheck the authoritative first-page count against every unique loaded row.
+  const known = !refreshing && (!paging || (paging.total !== null && !paging.hasMore
+    && !paging.loadingMore && !paging.moreError && paging.total === candidates.length));
+  const incompleteFinal = !!paging && !paging.hasMore && !paging.loadingMore &&
+    (paging.total === null || paging.total !== candidates.length);
   // The lowest price and the best rating are orders of the WHOLE list: the server sorts only by arrival, so while a page is still to come the list is
   // not ordered by price or rating at all and the control is not drawn (the approved draft R4: only when the list is whole). Arrival is the server's own order.
   const sort: CandidateSort = known ? chosenSort ?? ownSort : 'ARRIVAL';
@@ -301,6 +307,10 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
               : hourlyOnly ? 'Poređenje je po osobi po satu; iznos na kartici je satnica.'
               : 'Poređenje je po osobi; iznos na kartici ostaje ukupna ponuda.'}
           </T> : null}
+          {incompleteFinal ? <Surface kind="note" tone="warn">
+            <T variant="note" tone="muted">Broj prijava ne odgovara učitanom spisku. Proveri prijave ponovo pre poređenja ili izbora najniže cene.</T>
+            <V2Action label="Proveri prijave ponovo" kind="quiet" compact disabled={refreshing} onPress={refresh} />
+          </Surface> : null}
           {!known && compare ? <View accessibilityLiveRegion="polite" style={s.notes}>
             <T variant="note" tone="muted">Porediš učitane prijave. Još nisu prikazane sve prijave.</T>
             {paging?.moreError ? <V2Action label="Učitaj preostale prijave" kind="quiet" compact onPress={paging.onLoadMore} />
