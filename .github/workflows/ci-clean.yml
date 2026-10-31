@@ -84,6 +84,8 @@ jobs:
           python supabase/proofs/r05/build_today_candidate.py --check
           python -m unittest discover -s supabase/proofs/r05 -p 'test_*.py'
           node --test supabase/proofs/r05/today_window.test.mjs
+      - name: R11b blind review publication (isolated PGlite; no DEV write)
+        run: node --test --test-reporter=spec supabase/proofs/ai/r11b_blind_review_publication.test.mjs
       - name: AI intake and taxonomy contracts
         run: |
           node --test --test-reporter=spec supabase/proofs/dynamic_taxonomy/taxonomy-postsave-worker.test.mjs
