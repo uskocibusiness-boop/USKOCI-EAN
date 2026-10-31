@@ -378,17 +378,17 @@ export default function AuthScreen() {
     } else if (faza === 'PHONE') {
       content = <PhoneStep signUp={rezim === 'SIGNUP'} phone={telefon} onChange={value => commands.changeForm(() => setTelefon(value))}
         editable={!radi} error={null} failure={greska} onSubmit={() => void posaljiTelefon()} />;
-      footer = <PrimaryButton title="Pošalji kod" onPress={() => void posaljiTelefon()} busy={radi} />;
+      footer = <PrimaryButton title="Pošaljite kod" onPress={() => void posaljiTelefon()} busy={radi} />;
     } else {
       content = <OtpStep code={otp} onChange={value => commands.changeForm(() => setOtp(value))} editable={!radi} error={null}
         notice={poruka} failure={greska} busy={radi} onSubmit={() => void potvrdiOtp()} onResend={() => void posaljiTelefon()}
         onChangePhone={() => commands.changeForm(() => setFaza('PHONE'))} />;
-      footer = <PrimaryButton title="Potvrdi kod" onPress={() => void potvrdiOtp()} busy={radi} />;
+      footer = <PrimaryButton title="Potvrdite kod" onPress={() => void potvrdiOtp()} busy={radi} />;
     }
   } else if (faza === 'RECOVERY') {
     content = <RecoveryStep available={methods.passwordRecovery} email={email} onChange={value => onValue('email', value)} editable={!radi}
       error={fieldErrors.email ?? null} inputRef={inputRefs.email} failure={greska} onSubmit={() => void zatraziOporavak()} />;
-    footer = methods.passwordRecovery ? <PrimaryButton title="Pošalji link" busy={radi} onPress={() => void zatraziOporavak()} /> : toSignIn;
+    footer = methods.passwordRecovery ? <PrimaryButton title="Pošaljite link" busy={radi} onPress={() => void zatraziOporavak()} /> : toSignIn;
   } else if (faza === 'RECOVERY_SENT') {
     content = <RecoverySentStep email={email} onChangeEmail={() => commands.changeForm(() => { setFaza('RECOVERY'); clearFeedback(); })} />;
     footer = <PrimaryButton title={authCopy.backToSignIn} onPress={nazadNaEmail} />;
