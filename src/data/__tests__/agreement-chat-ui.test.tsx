@@ -33,7 +33,7 @@ let tree: ReactTestRenderer;
 let props: React.ComponentProps<typeof AgreementChat>;
 const texts = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
 const button = (label: string) => tree.root.findByProps({ accessibilityLabel: label });
-// Review r4 rd item 2: a bubble is heard as the message itself ("Ti: <tekst>, Danas, 12:00"); it was "Poruka: <ime>", which
+// Review r4 rd item 2: a bubble is heard as the message itself ("Vi: <tekst>, Danas, 12:00"); it was "Poruka: <ime>", which
 // hid the text and the time. A bubble is found by who wrote it, the start of that label.
 const held = (who: string) => tree.root.findAll(node => String(node.type) === 'Press' && typeof node.props.accessibilityLabel === 'string'
   && node.props.accessibilityLabel.startsWith(`${who}: `))[0];
@@ -178,7 +178,7 @@ describe('D03 actual message component', () => {
       tree.root.findByProps({ testID: 'agreement-message-row-held' }).props.onLayout({ nativeEvent: { layout: { y: 500 } } });
     });
     await flushFrames();
-    await act(async () => button('Učitaj starije poruke').props.onPress());
+    await act(async () => button('Učitajte starije poruke').props.onPress());
     expect(onLoadOlder).toHaveBeenCalledTimes(1);
     const expanded = [{ ...messages[0], id: 'older' }, ...messages];
     await act(async () => tree.update(<AgreementChat {...props} messages={expanded} readingPosition={readingPosition}
@@ -209,21 +209,21 @@ describe('D03 actual message component', () => {
     const pending = { ...state, entries: [{ command, state: 'unknown' as const, persisted: true, attempt: 1 }] };
     await render({ messages: history, photos, state: pending, refreshing: true });
     expect(tree.root.findByType('ScrollView' as any).props.refreshControl.props.refreshing).toBe(true);
-    expect(button('Osveži poruke').props.accessibilityState).toEqual({ busy: true, disabled: true });
+    expect(button('Osvežite poruke').props.accessibilityState).toEqual({ busy: true, disabled: true });
     expect(texts()).toContain('Prethodna poruka'); expect(texts()).toContain('Ne znamo da li je stigla');
-    expect(button('Napiši poruku').props.value).toBe('Nova poruka');
+    expect(button('Napišite poruku').props.value).toBe('Nova poruka');
     expect(tree.root.findByType('AgreementPhotoComposer' as any).props.photos).toBe(photos);
     await act(async () => tree.update(<AgreementChat {...props} messages={history} photos={photos} state={pending} refreshError />));
     expect(texts()).toContain('Nove poruke nisu proverene.'); expect(texts()).not.toContain('Poruke nisu učitane');
     expect(texts()).toContain('Prethodna poruka'); expect(texts()).toContain('Ne znamo da li je stigla');
-    expect(button('Napiši poruku').props.value).toBe('Nova poruka');
+    expect(button('Napišite poruku').props.value).toBe('Nova poruka');
     expect(tree.root.findByType('ScrollView' as any).props.refreshControl.props.refreshing).toBe(false);
-    await act(async () => button('Ponovo proveri nove poruke').props.onPress());
+    await act(async () => button('Ponovo proverite nove poruke').props.onPress());
     expect(props.refresh).toHaveBeenCalledTimes(1);
-    await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
+    await act(async () => button(`Proverite da li je stigla: ${command.body}`).props.onPress());
     expect(props.refresh).toHaveBeenCalledTimes(2);
     expect(outbox.retry).not.toHaveBeenCalled();
-    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
+    await act(async () => button(`Ponovite slanje poruke ${command.body}`).props.onPress());
     expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
     expect(photos.refresh).toHaveBeenCalledTimes(1);
   });
@@ -318,9 +318,9 @@ describe('D03 actual message component', () => {
   it('offers draft storage recovery without hiding ready unknown-command retry', async () => {
     await render({ state: { ...state, error: 'STORAGE_UNAVAILABLE',
       entries: [{ command, state: 'unknown', persisted: true, attempt: 1 }] } });
-    expect(button('Napiši poruku').props.value).toBe(state.draft);
-    expect(button(`Proveri da li je stigla: ${command.body}`)).toBeTruthy();
-    await act(async () => button('Ponovo učitaj sačuvane poruke').props.onPress());
+    expect(button('Napišite poruku').props.value).toBe(state.draft);
+    expect(button(`Proverite da li je stigla: ${command.body}`)).toBeTruthy();
+    await act(async () => button('Ponovo učitajte sačuvane poruke').props.onPress());
     expect(outbox.start).toHaveBeenCalledTimes(1);
   });
 
@@ -331,12 +331,12 @@ describe('D03 actual message component', () => {
     const newPhotos = { ...oldPhotos, refresh: jest.fn().mockResolvedValue(undefined) };
     const pending = { ...state, entries: [{ command, state: 'unknown' as const, persisted: true, attempt: 1 }] };
     await render({ state: pending, photos: oldPhotos });
-    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
+    await act(async () => button(`Ponovite slanje poruke ${command.body}`).props.onPress());
     await act(async () => tree.update(<AgreementChat {...props} state={pending} photos={newPhotos} />));
     await act(async () => settle());
     expect(oldPhotos.refresh).not.toHaveBeenCalled(); expect(newPhotos.refresh).toHaveBeenCalledTimes(1);
     outbox.retry.mockImplementationOnce(() => new Promise<void>(resolve => { settle = resolve; }));
-    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
+    await act(async () => button(`Ponovite slanje poruke ${command.body}`).props.onPress());
     await act(async () => tree.unmount());
     await act(async () => settle());
     expect(newPhotos.refresh).toHaveBeenCalledTimes(1); expect(props.refresh).toHaveBeenCalledTimes(1);
@@ -346,14 +346,14 @@ describe('D03 actual message component', () => {
     await render({ messages: [{ id: 'message', telo: 'Starija poruka', moja: false, posiljalacIme: 'Marko', vremeTekst: '12:00', procitano: null }] });
     const history = tree.root.findByProps({ testID: 'agreement-chat-history' });
     const context = () => tree.root.findByProps({ testID: 'agreement-chat-context' });
-    expect(context().findByProps({ accessibilityLabel: 'Osveži poruke' })).toBeTruthy();
+    expect(context().findByProps({ accessibilityLabel: 'Osvežite poruke' })).toBeTruthy();
     await act(async () => {
       context().props.onLayout({ nativeEvent: { layout: { height: 48 } } });
       history.props.onScrollBeginDrag(scrollEvent(200)); history.props.onScrollEndDrag(scrollEvent(200));
     });
     scrollToEnd.mockClear();
     await act(async () => tree.update(<AgreementChat {...props} messages={[{ id: 'message', telo: 'Starija poruka', moja: false, posiljalacIme: 'Marko', vremeTekst: '12:00', procitano: null }]} refreshError />));
-    expect(context().findByProps({ accessibilityLabel: 'Ponovo proveri nove poruke' })).toBeTruthy();
+    expect(context().findByProps({ accessibilityLabel: 'Ponovo proverite nove poruke' })).toBeTruthy();
     await act(async () => context().props.onLayout({ nativeEvent: { layout: { height: 90 } } }));
     // The notice replaced the 48-high action; only its additional 42 shifts the message.
     expect(scrollTo).toHaveBeenLastCalledWith({ y: 242, animated: false });
@@ -368,14 +368,14 @@ describe('D03 actual message component', () => {
     const photos = { loaded: true, busy: false, ready: true, hasSelection: true, agreementId: agreement,
       canSubmit: jest.fn(() => true), capture: jest.fn(() => attachments), refresh: jest.fn().mockResolvedValue(undefined) } as any;
     await render({ state: { ...state, draft: '' }, photos });
-    expect(button('Pošalji poruku').props.disabled).toBe(false); expect(outbox.sendDraft).not.toHaveBeenCalled();
-    await act(async () => button('Pošalji poruku').props.onPress()); expect(outbox.sendDraft).toHaveBeenCalledWith(attachments);
+    expect(button('Pošaljite poruku').props.disabled).toBe(false); expect(outbox.sendDraft).not.toHaveBeenCalled();
+    await act(async () => button('Pošaljite poruku').props.onPress()); expect(outbox.sendDraft).toHaveBeenCalledWith(attachments);
     expect(photos.refresh).toHaveBeenCalledTimes(1);
-    const retained = button('Pošalji poruku').props.onPress;
+    const retained = button('Pošaljite poruku').props.onPress;
     photos.canSubmit.mockReturnValue(false);
     await act(async () => retained()); expect(outbox.sendDraft).toHaveBeenCalledTimes(1);
     await act(async () => tree.update(<AgreementChat {...props} photos={{ ...photos, ready: false }} />));
-    expect(button('Pošalji poruku').props.disabled).toBe(true);
+    expect(button('Pošaljite poruku').props.disabled).toBe(true);
   });
   it('reads historical photographs under exact Agreement/message IDs and refuses false local reconciliation on attachment mismatch', async () => {
     const photo = { assetId: '40000000-0000-4000-8000-000000000001', width: 1600, height: 900, byteSize: 50, contentType: 'image/jpeg' as const };
@@ -398,16 +398,16 @@ describe('D03 actual message component', () => {
     const photos = { loaded: true, busy: false, ready: false, hasSelection: false, agreementId: agreement, canSubmit: () => false } as any;
     await render({ messages: [read], photos, support: { canAct: () => true, navigate: jest.fn() } });
     // A photo-only message is heard as its photos, with its day, its clock and, for mine, its state.
-    expect(held('Ti').props.accessibilityLabel).toBe('Ti: 1 fotografija, Danas, 12:00, poslato');
+    expect(held('Vi').props.accessibilityLabel).toBe('Vi: 1 fotografija, Danas, 12:00, poslato');
     // Retry belongs to AuthorizedPhoto; no accessible message button may swallow that separate action. The photo is held
     // (long press) through a wrapper that is itself no stop, so sighted people can offer the message to support from the photo.
-    expect(held('Ti').findAllByType('AuthorizedPhoto' as React.ElementType)).toHaveLength(0);
+    expect(held('Vi').findAllByType('AuthorizedPhoto' as React.ElementType)).toHaveLength(0);
     const photoHold = tree.root.findByType('AuthorizedPhoto' as React.ElementType).parent!;
     expect(photoHold.props.accessible).toBe(false); expect(photoHold.props.accessibilityLabel).toBeUndefined();
-    expect(photoHold.props.onLongPress).toBe(held('Ti').props.onLongPress);
-    expect(tree.root.findByType('AuthorizedPhoto' as React.ElementType).props.open.onLongPress).toBe(held('Ti').props.onLongPress);
+    expect(photoHold.props.onLongPress).toBe(held('Vi').props.onLongPress);
+    expect(tree.root.findByType('AuthorizedPhoto' as React.ElementType).props.open.onLongPress).toBe(held('Vi').props.onLongPress);
     // The support entry no longer stands under every message; it belongs to the one being held.
-    await act(async () => held('Ti').props.onLongPress());
+    await act(async () => held('Vi').props.onLongPress());
     const entry = tree.root.findByType('SupportContextEntry' as React.ElementType).props;
     expect(entry.previewText).toContain('Privatne fotografije uz ovu poruku: 1');
     expect(entry.reference).toEqual({ kind: 'AGREEMENT_MESSAGE', id: read.id, revision: 3 }); expect(read.telo).toBe('');
@@ -424,7 +424,7 @@ describe('D03 actual message component', () => {
     expect(held('Milan').props.accessibilityLabel).toBe('Milan: Evo kako izgleda, 2 fotografije, 24. sep, 12:00');
     expect(held('Milan').findAllByType('AuthorizedPhoto' as React.ElementType)).toHaveLength(0);
     expect(tree.root.findAllByType('AuthorizedPhoto' as React.ElementType)).toHaveLength(2);
-    expect(messageSpoken({ moja: true, posiljalacIme: 'Ja', telo: '', fotografije: [] }, { day: null, clock: '12:00' })).toBe('Ti: poruka bez teksta, 12:00');
+    expect(messageSpoken({ moja: true, posiljalacIme: 'Ja', telo: '', fotografije: [] }, { day: null, clock: '12:00' })).toBe('Vi: poruka bez teksta, 12:00');
   });
   it('shows latest history initially, preserves an older reading position, and follows an explicit outgoing message', async () => {
     await render();
@@ -439,7 +439,7 @@ describe('D03 actual message component', () => {
     await act(async () => scroll.props.onScrollEndDrag(scrollEvent(400)));
     await act(async () => scroll.props.onContentSizeChange(300, 3200));
     expect(scrollToEnd).not.toHaveBeenCalled();
-    await act(async () => button('Pošalji poruku').props.onPress());
+    await act(async () => button('Pošaljite poruku').props.onPress());
     // A fast response may be first rendered as confirmed, without a sending frame.
     const sending: OutboxSnapshot = { ...state, entries: [{ command, state: 'confirmed', persisted: true, attempt: 1 }] };
     await act(async () => tree.update(<AgreementChat {...props} state={sending} />));
@@ -507,22 +507,22 @@ describe('D03 actual message component', () => {
     expect(outbox.retry).not.toHaveBeenCalled();
   });
   it('distinguishes successful empty, loading and failed reads', async () => {
-    await render(); expect(texts()).toContain('Napiši prvu poruku');
+    await render(); expect(texts()).toContain('Napišite prvu poruku');
     await act(async () => tree.update(<AgreementChat {...props} error />));
-    expect(texts()).toContain('Poruke nisu učitane'); expect(texts()).not.toContain('Napiši prvu poruku');
-    await act(async () => button('Ponovo učitaj poruke').props.onPress());
+    expect(texts()).toContain('Poruke nisu učitane'); expect(texts()).not.toContain('Napišite prvu poruku');
+    await act(async () => button('Ponovo učitajte poruke').props.onPress());
     expect(props.refresh).toHaveBeenCalledTimes(1);
     await act(async () => tree.update(<AgreementChat {...props} loading />));
-    expect(texts()).not.toContain('Napiši prvu poruku');
+    expect(texts()).not.toContain('Napišite prvu poruku');
   });
   it('preserves composer text in offline/error state and keeps it outside the history scroller', async () => {
     await render({ error: true });
-    expect(button('Napiši poruku').props.value).toBe('Nova poruka');
+    expect(button('Napišite poruku').props.value).toBe('Nova poruka');
     const scroll = tree.root.findByType('ScrollView' as any);
-    expect(scroll.findAllByProps({ accessibilityLabel: 'Napiši poruku' })).toHaveLength(0);
+    expect(scroll.findAllByProps({ accessibilityLabel: 'Napišite poruku' })).toHaveLength(0);
     // The screen owns the one KAV; a nested KAV loses the header origin on Android.
     expect(tree.root.findAllByType('KeyboardAvoidingView' as any)).toHaveLength(0);
-    expect(button('Pošalji poruku')).toBeTruthy();
+    expect(button('Pošaljite poruku')).toBeTruthy();
   });
   it('returns to the photo controls when explicitly opening them from older history', async () => {
     const photos = { loaded: true, busy: false, ready: false, hasSelection: false, agreementId: agreement, items: [], message: null,
@@ -550,10 +550,10 @@ describe('D03 actual message component', () => {
     await render({ state });
     expect(texts()).toContain('Ne znamo da li je stigla'); expect(texts()).not.toContain('Poslato');
     expect(texts()).not.toContain('Pročitano'); expect(texts()).not.toContain('Isporučeno');
-    await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
+    await act(async () => button(`Proverite da li je stigla: ${command.body}`).props.onPress());
     expect(props.refresh).toHaveBeenCalledTimes(1);
     expect(outbox.retry).not.toHaveBeenCalled();
-    await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
+    await act(async () => button(`Ponovite slanje poruke ${command.body}`).props.onPress());
     expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId);
   });
   it('an answer the app cannot read says what is not known, once, and the one button is the check (the word of `outcomeCopy`)', async () => {
@@ -561,24 +561,24 @@ describe('D03 actual message component', () => {
     await render({ state });
     expect(texts()).toContain('Ne znamo da li je poruka stigla. Neće se poslati dvaput.');
     // The line describes; the button commands ("Proveri"), and the line does not say the button's verb a second time.
-    expect(texts()).not.toContain('Proveri;'); expect(texts()).not.toContain('Pokušaj ponovo;');
-    expect(button(`Proveri da li je stigla: ${command.body}`).findByType('T' as React.ElementType).children).toEqual(['Proveri']);
+    expect(texts()).not.toContain('Proverite;'); expect(texts()).not.toContain('Pokušajte ponovo;');
+    expect(button(`Proverite da li je stigla: ${command.body}`).findByType('T' as React.ElementType).children).toEqual(['Proverite']);
   });
   it('an in-flight message does not block composing another message', async () => {
     await render({ state: { ...state, entries: [{ command, state: 'sending', persisted: true, attempt: 1 }] } });
-    expect(button('Pošalji poruku').props.disabled).toBe(false);
-    await act(async () => button('Pošalji poruku').props.onPress());
+    expect(button('Pošaljite poruku').props.disabled).toBe(false);
+    await act(async () => button('Pošaljite poruku').props.onPress());
     expect(outbox.sendDraft).toHaveBeenCalledTimes(1);
   });
   it('terminal state blocks every write but retains read-only unknown verification', async () => {
     await render({ terminal: true, writable: false, state: { ...state, entries: [{ command, state: 'unknown', persisted: true, attempt: 1 }] } });
     // A finished Dogovor draws no field and no send at all (owner, 2026-09-23); the one line says it is read-only.
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Napiši poruku' })).toHaveLength(0);
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošalji poruku' })).toHaveLength(0);
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži status Dogovora' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Napišite poruku' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošaljite poruku' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Osvežite status Dogovora' })).toHaveLength(0);
     expect(texts()).toContain(CLOSED_SENTENCE);
-    expect(tree.root.findAllByProps({ accessibilityLabel: `Ponovi slanje poruke ${command.body}` })).toHaveLength(0);
-    await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
+    expect(tree.root.findAllByProps({ accessibilityLabel: `Ponovite slanje poruke ${command.body}` })).toHaveLength(0);
+    await act(async () => button(`Proverite da li je stigla: ${command.body}`).props.onPress());
     expect(props.refresh).toHaveBeenCalledTimes(1);
     expect(outbox.retry).not.toHaveBeenCalled();
   });
@@ -593,17 +593,17 @@ describe('D03 actual message component', () => {
   });
   it('uses Unicode code points for the 2,000-character limit and preserves over-limit text', async () => {
     await render({ state: { ...state, draft: '😀'.repeat(2000) } });
-    expect(button('Pošalji poruku').props.disabled).toBe(false);
+    expect(button('Pošaljite poruku').props.disabled).toBe(false);
     await act(async () => tree.update(<AgreementChat {...props} state={{ ...state, draft: '😀'.repeat(2001) }} />));
-    expect(button('Pošalji poruku').props.disabled).toBe(true);
-    expect(button('Napiši poruku').props.value).toBe('😀'.repeat(2001));
-    expect(texts()).toContain('skrati poruku');
+    expect(button('Pošaljite poruku').props.disabled).toBe(true);
+    expect(button('Napišite poruku').props.value).toBe('😀'.repeat(2001));
+    expect(texts()).toContain('skratite poruku');
   });
   it('shows actionable storage failure and retains the draft', async () => {
     await render({ state: { ...state, phase: 'error', error: 'STORAGE_UNAVAILABLE' } });
-    expect(button('Pošalji poruku').props.disabled).toBe(true);
-    expect(button('Napiši poruku').props.value).toBe('Nova poruka');
-    await act(async () => button('Ponovo učitaj sačuvane poruke').props.onPress());
+    expect(button('Pošaljite poruku').props.disabled).toBe(true);
+    expect(button('Napišite poruku').props.value).toBe('Nova poruka');
+    await act(async () => button('Ponovo učitajte sačuvane poruke').props.onPress());
     expect(outbox.start).toHaveBeenCalledTimes(1);
   });
   it('offers only a canonical selected historical message, with its persisted version independent of current writable state', async () => {
@@ -612,10 +612,10 @@ describe('D03 actual message component', () => {
       posiljalacAccountId: account, telo: 'Samo ova stara poruka.', moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null };
     await render({ messages: [read], terminal: true, writable: false, support });
     // The support entry no longer stands under every message; it belongs to the one being held.
-    await act(async () => held('Ti').props.onLongPress());
+    await act(async () => held('Vi').props.onLongPress());
     // It stands under the bubble as a sibling, never inside the bubble's press, so a screen reader reaches its buttons.
     const supportNode = tree.root.findByType('SupportContextEntry' as React.ElementType);
-    expect(held('Ti').findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(0);
+    expect(held('Vi').findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(0);
     expect(supportNode.props.label).toBe('Izaberi ovu poruku za podršku');
     const entry = supportNode.props;
     expect(entry.reference).toEqual({ kind: 'AGREEMENT_MESSAGE', id: read.id, revision: 2 });
@@ -629,13 +629,13 @@ describe('D03 actual message component', () => {
     const read = { id: '30000000-0000-4000-8000-000000000001', dogovorVerzija: 2,
       posiljalacAccountId: account, telo: 'Proveri ovu poruku.', moja: true, posiljalacIme: 'Ja', vremeTekst: '12:00', procitano: null };
     await render({ messages: [read] });
-    expect(held('Ti').props.accessibilityRole).toBe('text');
-    expect(held('Ti').props.accessibilityActions).toBeUndefined();
+    expect(held('Vi').props.accessibilityRole).toBe('text');
+    expect(held('Vi').props.accessibilityActions).toBeUndefined();
     await act(async () => tree.update(<AgreementChat {...props} messages={[read]} support={{ canAct: () => true, navigate: jest.fn() }} />));
-    expect(held('Ti').props.accessibilityActions).toEqual([{ name: 'activate', label: 'Izaberi ovu poruku za podršku' }]);
-    await act(async () => held('Ti').props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
+    expect(held('Vi').props.accessibilityActions).toEqual([{ name: 'activate', label: 'Izaberi ovu poruku za podršku' }]);
+    await act(async () => held('Vi').props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
     expect(tree.root.findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(1);
-    await act(async () => held('Ti').props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
+    await act(async () => held('Vi').props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
     expect(tree.root.findAllByType('SupportContextEntry' as React.ElementType)).toHaveLength(0);
   });
   // Owner step 8: a calm, modern conversation. The other person on the left on the wash, mine on the right on pale green,
@@ -670,38 +670,38 @@ describe('D03 actual message component', () => {
       await render({ messages: [message('1', false, 'Zdravo', '10:00'), message('2', true, 'Ćao', '10:01')] });
       expect(flat(bubble('Marko')[0].props.style)).toMatchObject({ alignSelf: 'flex-start', backgroundColor: sys.conversation.surface,
         borderWidth: 1, borderColor: sys.conversation.edge });
-      expect(flat(bubble('Ti')[0].props.style)).toMatchObject({ alignSelf: 'flex-end', backgroundColor: sys.conversation.user });
+      expect(flat(bubble('Vi')[0].props.style)).toMatchObject({ alignSelf: 'flex-end', backgroundColor: sys.conversation.user });
       // The name is heard with the bubble, not drawn in it: the bar above already names the person. Review r4 rd item 2:
       // what the bubble says and when is heard with it too, and for my message how far it has got.
       expect(bubble('Marko')[0].props.accessibilityLabel).toBe('Marko: Zdravo, Danas, 10:00');
-      expect(bubble('Ti')[0].props.accessibilityLabel).toBe('Ti: Ćao, Danas, 10:01, poslato');
+      expect(bubble('Vi')[0].props.accessibilityLabel).toBe('Vi: Ćao, Danas, 10:01, poslato');
       expect(lines()).not.toContain('Marko');
-      const mine = bubble('Ti')[0].findAll(node => String(node.type) === 'T');
+      const mine = bubble('Vi')[0].findAll(node => String(node.type) === 'T');
       expect(mine.map(node => flat(node.props.style).color)).toEqual([sys.conversation.onUser]);
       expect(texts()).not.toContain('Povuci naniže');
     });
     it('keeps the multiline draft and reserved send target in one stable writing row', async () => {
       await render();
-      const send = button('Pošalji poruku');
+      const send = button('Pošaljite poruku');
       expect(flat(send.props.style)).toMatchObject({ width: 48, height: 48 });
       const circle = (node: typeof send) => flat(node.findAll(child => String(child.type) === 'View')[0].props.style);
       // The send command remains named and available for the valid draft.
       expect(send.props.disabled).toBeFalsy();
-      expect(send.props.accessibilityLabel).toBe('Pošalji poruku');
+      expect(send.props.accessibilityLabel).toBe('Pošaljite poruku');
       const commandSlot = send.parent!;
       const writingRow = commandSlot.parent!;
       const pill = writingRow.parent!;
       expect(flat(commandSlot.props.style)).toMatchObject({ width: 48, height: 48, flexShrink: 0 });
       expect(flat(writingRow.props.style)).toMatchObject({ flexDirection: 'row' });
       expect(flat(pill.props.style)).toMatchObject({ backgroundColor: sys.conversation.surface, borderRadius: sys.radius.sheet });
-      const input = pill.findByProps({ accessibilityLabel: 'Napiši poruku' });
+      const input = pill.findByProps({ accessibilityLabel: 'Napišite poruku' });
       expect(input.props.multiline).toBe(true);
       expect(input.parent).toBe(writingRow);
       expect(writingRow.children.indexOf(input)).toBeLessThan(writingRow.children.indexOf(commandSlot));
       expect(flat(input.props.style)).toMatchObject({ flex: 1 });
       await act(async () => tree.update(<AgreementChat {...props} state={{ ...state, draft: '' }} />));
-      expect(button('Pošalji poruku').props.disabled).toBe(true);
-      expect(circle(button('Pošalji poruku')).backgroundColor).toBe(sys.color.control);
+      expect(button('Pošaljite poruku').props.disabled).toBe(true);
+      expect(circle(button('Pošaljite poruku')).backgroundColor).toBe(sys.color.control);
     });
     // Owner, 2026-10-07: the "+" is the shared photo sheet (Galerija, Kamera), the same one the task conversation opens; the
     // tray above writing shows only what is prepared, and a chosen photo is never hidden.
@@ -739,7 +739,7 @@ describe('D03 actual message component', () => {
       await act(async () => button('Dodaj fotografije').props.onPress());
       await act(async () => tree.root.findByType('AgreementPhotoSheet' as React.ElementType).props.onShowSaved());
       expect(trays()).toHaveLength(1); expect(trays()[0].props.showSaved).toBe(true);
-      await act(async () => button('Pošalji poruku').props.onPress());
+      await act(async () => button('Pošaljite poruku').props.onPress());
       expect(trays()).toHaveLength(0);
       await act(async () => tree.update(<AgreementChat {...props} photos={{ ...photos, message: 'Dozvoli pristup kameri.' }} />));
       expect(trays()).toHaveLength(1); expect(trays()[0].props.showSaved).toBe(false);
@@ -756,7 +756,7 @@ describe('D03 actual message component', () => {
     it('offers a quiet refresh at the head of the thread and in the empty thread, and none where nothing new can come', async () => {
       await render({ messages: [message('1', false, 'Zdravo', '10:00')] });
       // SB10: the refresh action cannot be focusable while hidden at zero height or opacity.
-      const visibleRefresh = button('Osveži poruke');
+      const visibleRefresh = button('Osvežite poruke');
       const visibleStyle = Object.assign({}, ...[visibleRefresh.props.style].flat(4).filter(Boolean));
       expect(visibleStyle.minHeight).toBeGreaterThanOrEqual(44);
       expect(visibleStyle.height).not.toBe(0);
@@ -764,18 +764,18 @@ describe('D03 actual message component', () => {
       await act(async () => visibleRefresh.props.onPress());
       expect(props.refresh).toHaveBeenCalledTimes(1);
       await act(async () => tree.update(<AgreementChat {...props} messages={[]} />));
-      expect(texts()).toContain('Napiši prvu poruku');
+      expect(texts()).toContain('Napišite prvu poruku');
       // Verify r4c item 2: in the empty thread the action stands under the empty state's words, never above its drawing.
-      expect(texts().indexOf('Osveži poruke')).toBeGreaterThan(texts().indexOf('Poruke vide samo učesnici ovog Dogovora.'));
-      expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži poruke' }).filter(node => String(node.type) === 'Press')).toHaveLength(1);
-      await act(async () => button('Osveži poruke').props.onPress());
+      expect(texts().indexOf('Osvežite poruke')).toBeGreaterThan(texts().indexOf('Poruke vide samo učesnici ovog Dogovora.'));
+      expect(tree.root.findAllByProps({ accessibilityLabel: 'Osvežite poruke' }).filter(node => String(node.type) === 'Press')).toHaveLength(1);
+      await act(async () => button('Osvežite poruke').props.onPress());
       expect(props.refresh).toHaveBeenCalledTimes(2);
       await act(async () => tree.update(<AgreementChat {...props} terminal writable={false} messages={[message('1', false, 'Zdravo', '10:00')]} />));
-      expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži poruke' })).toHaveLength(0);
+      expect(tree.root.findAllByProps({ accessibilityLabel: 'Osvežite poruke' })).toHaveLength(0);
       await act(async () => tree.update(<AgreementChat {...props} error />));
-      expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži poruke' })).toHaveLength(0);
+      expect(tree.root.findAllByProps({ accessibilityLabel: 'Osvežite poruke' })).toHaveLength(0);
       await act(async () => tree.update(<AgreementChat {...props} loading messages={[]} />));
-      expect(tree.root.findAllByProps({ accessibilityLabel: 'Osveži poruke' })).toHaveLength(0);
+      expect(tree.root.findAllByProps({ accessibilityLabel: 'Osvežite poruke' })).toHaveLength(0);
     });
     // Review r4 rd item 8: the first read's status stands in the middle, like every other state.
     it('centres the first read and sits a read thread on the composer', async () => {
@@ -789,7 +789,7 @@ describe('D03 actual message component', () => {
       await render({ messages: [message('1', false, 'Zdravo', '10:00')],
         state: { ...state, entries: [{ command, state: 'failed', error: 'UNAVAILABLE', persisted: true, attempt: 2 }] } });
       expect(texts()).toContain('Nije poslato'); expect(texts()).toContain('Veza je prekinuta. Ne znamo da li je poruka stigla.');
-      await act(async () => button(`Ponovi slanje poruke ${command.body}`).props.onPress());
+      await act(async () => button(`Ponovite slanje poruke ${command.body}`).props.onPress());
       expect(outbox.retry).toHaveBeenCalledWith(command.clientMessageId); expect(props.refresh).toHaveBeenCalledTimes(1);
     });
     it('says a closed Dogovor is closed, true of a finished and of a cancelled one', async () => {
