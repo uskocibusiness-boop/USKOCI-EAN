@@ -74,6 +74,15 @@ test('stale, excluded, ambiguous, unconfirmed or foreign category never grants a
  await db.query("UPDATE private.work_taxonomy_categories SET state='PENDING' WHERE id=$1",[remote]);
  assert.equal(await eligible(db),false);
 });
+test('first signed AI Save cannot be activated from a remote label before the saved mode owner confirms it',async t=>{
+ const db=await dbWithConfirmedRemote();t.after(()=>db.close());
+ // The current Save RPC calls complete_worker_profile before inserting worker_ai_saves,
+ // and the outbox/binder is post-Save. Existing draft skills alone are not consent.
+ await db.query('DELETE FROM private.taxonomy_confirmed_worker_modes_v1 WHERE worker_account_id=$1',[owner]);
+ assert.equal(await eligible(db,owner,['Logotip']),false);
+ await db.query("INSERT INTO private.taxonomy_confirmed_worker_modes_v1 VALUES($1,$2,true,'REMOTE',now())",[owner,remote]);
+ assert.equal(await eligible(db,owner,['Logotip']),true);
+});
 test('registered alias maps to exactly one confirmed remote category',async t=>{
  const db=await dbWithConfirmedRemote();t.after(()=>db.close());
  await db.query("INSERT INTO private.work_taxonomy_aliases VALUES($1,'grafički logo')",[remote]);

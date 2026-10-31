@@ -82,7 +82,7 @@ test('first screen welcomes naturally and named sections describe offered skills
  assert.match(welcome,/Za početak, koje vrste poslova ili usluga želite da ponudite/);
  assert.match(welcome,/na kraju sve mirno pregledate i potvrđujete/);
  assert.match(welcome,/izmene važe tek kada ih pregledate i sačuvate/);
- assert.match(facts,/skills: 'Usluge koje nudiš'/);
+ assert.match(facts,/skills: 'Usluge koje nudite'/);
  assert.match(facts,/key: 'skills', label: 'Usluge'/);
 });
 test('new DRAFT city requirement matches activation while REMOTE remains nationwide-capable',()=>{

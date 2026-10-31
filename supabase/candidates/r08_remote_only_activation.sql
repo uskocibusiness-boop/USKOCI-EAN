@@ -1,5 +1,10 @@
 -- R08/S14: narrow REMOTE-only worker activation, LOCAL_ONLY candidate, NEVER a migration.
 -- The live RPC currently rejects a missing city even for a fully confirmed REMOTE-only worker.
+-- IMPORTANT: first AI Save+activate calls complete_worker_profile BEFORE worker_ai_saves
+-- is inserted or its async taxonomy binder can confirm modes. This helper is
+-- intentionally FALSE for that first unbound Save: it is not a complete fix for
+-- first-time remote-only activation. A separate signed-review-in-transaction
+-- gate remains mandatory; never fabricate a city or pre-confirm AI proposals.
 -- Keep every existing owner/DRAFT/name/skill/activation/requeue contract and fail closed
 -- unless EVERY saved skill maps uniquely to an existing, active, consented REMOTE category.
 -- Do not trust the profile-wide mode hint: it explicitly has matchingAuthority=NONE.
