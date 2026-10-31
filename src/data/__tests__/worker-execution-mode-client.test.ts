@@ -73,6 +73,25 @@ test('malformed server receipt cannot claim remote consent', async () => {
   await expect(workerExecutionModeClientService.read(OWNER, 5)).rejects.toThrow('WORKER_MODE_INVALID_RECEIPT');
 });
 
+test.each([
+  { confirmed: true, modes: ['REMOTE'], confirmedAt: null },
+  { confirmed: true, modes: ['REMOTE'], confirmedAt: 'not a date' },
+  { confirmed: true, modes: ['REMOTE'], confirmedAt: '2026-10-12T00:10:52' },
+  { confirmed: true, modes: ['REMOTE'], confirmedAt: '2026-02-30T00:10:52Z' },
+  { confirmed: false, modes: [], confirmedAt: '2026-10-12T00:10:52Z' },
+  { confirmed: false, modes: [], confirmedAt: undefined },
+])('refuses a contradictory or unzoned consent timestamp: %j', async patch => {
+  mockRpc.mockResolvedValue({ data: { ...receipt(['REMOTE']), ...patch }, error: null });
+  await expect(workerExecutionModeClientService.read(OWNER, 5)).rejects.toThrow('WORKER_MODE_INVALID_RECEIPT');
+});
+
+test('accepts valid UTC-offset and leap-day timestamps from the authoritative worker receipt', async () => {
+  mockRpc.mockResolvedValue({ data: { ...receipt(['REMOTE']), confirmedAt: '2028-02-29T23:59:59.123456+01:00' }, error: null });
+  await expect(workerExecutionModeClientService.read(OWNER, 5)).resolves.toMatchObject({
+    confirmed: true, modes: ['REMOTE'], confirmedAt: '2028-02-29T23:59:59.123456+01:00',
+  });
+});
+
 test('invalid duplicate modes never call a write RPC', async () => {
   await expect(workerExecutionModeClientService.save(OWNER, 5, ['REMOTE', 'REMOTE']))
     .rejects.toThrow('WORKER_MODE_SELECTION_REQUIRED');

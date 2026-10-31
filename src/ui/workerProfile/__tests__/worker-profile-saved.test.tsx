@@ -74,6 +74,24 @@ describe('what the saved profile shows', () => {
     expect(press('Područje dolaska')).toBeUndefined(); expect(spies.navigate).not.toHaveBeenCalled();
   });
 
+  it('does not offer a visit or map action for confirmed REMOTE-only work even if an older saved on-site area remains', async () => {
+    const confirmMap = jest.fn();
+    const { openConversation } = await show({
+      executionModes: { kind: 'confirmed', modes: ['REMOTE'] }, confirmMap,
+    }, draft({ vestine: ['Izrada logotipa'], workAreas: [{
+      kind: 'COUNTRY', countryCode: 'RS', label: 'Cela Srbija', city: null, sourceRef: null,
+      latitude: null, longitude: null, radiusKm: null,
+    }] }));
+    expect(all()).toContain('Na daljinu');
+    expect(all()).toContain('Grad profila');
+    expect(all()).not.toContain('Područje dolaska');
+    expect(all()).not.toContain('Cela Srbija');
+    expect(press('Područje dolaska')).toBeUndefined();
+    expect(action('Potvrdi tačku na mapi')).toBeUndefined();
+    expect(openConversation).not.toHaveBeenCalled();
+    expect(confirmMap).not.toHaveBeenCalled();
+  });
+
   it('names the visit area separately from confirmed remote work and keeps its edit in the same AI topic', async () => {
     const { openConversation, navigate } = await show({ executionModes: { kind: 'confirmed', modes: ['REMOTE', 'ON_SITE'] } });
     expect(all()).toEqual(expect.arrayContaining(['Na lokaciji i na daljinu', 'Područje dolaska', 'Novi Sad · do 20 km']));
