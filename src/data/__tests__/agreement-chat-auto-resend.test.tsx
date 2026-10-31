@@ -86,7 +86,7 @@ describe('unknown send is read-only until the person explicitly resends', () => 
     await mount(<Harness outbox={outbox} />);
     await quiet();
     expect(server.calls).toEqual(['poruka_00000001']);
-    const action = tree!.root.findByProps({ accessibilityLabel: 'Proveri da li je stigla: Stižem za 10 minuta.' });
+    const action = tree!.root.findByProps({ accessibilityLabel: 'Proverite da li je stigla: Stižem za 10 minuta.' });
     await act(async () => action.props.onPress());
     expect(refresh).toHaveBeenCalledTimes(1);
     expect(server.calls).toEqual(['poruka_00000001']);
@@ -120,12 +120,12 @@ describe('unknown send is read-only until the person explicitly resends', () => 
     const firstDraftCalls = sendDraft.mock.calls.length;
     await mount(<Harness outbox={outbox} />);
     await act(async () => tree!.root.findByProps({
-      accessibilityLabel: 'Proveri da li je stigla: Stižem za 10 minuta.',
+      accessibilityLabel: 'Proverite da li je stigla: Stižem za 10 minuta.',
     }).props.onPress());
     expect(entries(outbox)[0].state).toBe('unknown');
     expect(server.calls).toEqual(['poruka_00000001']);
     await act(async () => tree!.root.findByProps({
-      accessibilityLabel: 'Ponovi slanje poruke Stižem za 10 minuta.',
+      accessibilityLabel: 'Ponovite slanje poruke Stižem za 10 minuta.',
     }).props.onPress());
     await until(() => entries(outbox)[0].state === 'confirmed');
     expect(server.calls).toEqual(['poruka_00000001', 'poruka_00000001']);
@@ -139,7 +139,7 @@ describe('unknown send is read-only until the person explicitly resends', () => 
     await sendOne(outbox);
     await mount(<Harness outbox={outbox} />);
     await act(async () => tree!.root.findByProps({
-      accessibilityLabel: 'Ponovi slanje poruke Stižem za 10 minuta.',
+      accessibilityLabel: 'Ponovite slanje poruke Stižem za 10 minuta.',
     }).props.onPress());
     await quiet();
     expect(entries(outbox)[0].state).toBe('unknown');
@@ -155,9 +155,9 @@ describe('unknown send is read-only until the person explicitly resends', () => 
       const server = fakeServer(['lost-before']), outbox = makeOutbox(server);
       await sendOne(outbox);
       await mount(<Harness outbox={outbox} {...over} />);
-      expect(tree!.root.findAllByProps({ accessibilityLabel: 'Ponovi slanje poruke Stižem za 10 minuta.' })).toHaveLength(0);
+      expect(tree!.root.findAllByProps({ accessibilityLabel: 'Ponovite slanje poruke Stižem za 10 minuta.' })).toHaveLength(0);
       await act(async () => tree!.root.findByProps({
-        accessibilityLabel: 'Proveri da li je stigla: Stižem za 10 minuta.',
+        accessibilityLabel: 'Proverite da li je stigla: Stižem za 10 minuta.',
       }).props.onPress());
       expect(server.send).toHaveBeenCalledTimes(1);
       await emit('background', 'active');
@@ -175,7 +175,7 @@ describe('unknown send is read-only until the person explicitly resends', () => 
     await emit('background', 'active');
     expect(refused.send).toHaveBeenCalledTimes(1);
     await act(async () => tree!.root.findByProps({
-      accessibilityLabel: 'Ponovi slanje poruke Stižem za 10 minuta.',
+      accessibilityLabel: 'Ponovite slanje poruke Stižem za 10 minuta.',
     }).props.onPress());
     await quiet();
     expect(refused.send).toHaveBeenCalledTimes(2);
@@ -191,7 +191,7 @@ describe('unknown send is read-only until the person explicitly resends', () => 
       await mount(<Harness outbox={stub} />);
       await quiet(); await emit('background', 'active');
       await act(async () => tree!.root.findByProps({
-        accessibilityLabel: 'Proveri da li je stigla: Stižem.',
+        accessibilityLabel: 'Proverite da li je stigla: Stižem.',
       }).props.onPress());
       expect(refresh).toHaveBeenCalledTimes(1);
       expect(stub.retry).not.toHaveBeenCalled();
