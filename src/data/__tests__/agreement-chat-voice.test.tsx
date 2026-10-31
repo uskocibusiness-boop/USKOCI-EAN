@@ -79,8 +79,8 @@ describe('a voice message in the thread', () => {
 
   it('mine carries the one small mark and a summary with who, what, when and state; the play control stays its own stop', async () => {
     await render({ messages: [voiceRow(true)] });
-    const stop = tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Ti: '))[0];
-    expect(stop.props.accessibilityLabel).toBe('Ti: glasovna poruka 0:14, Danas, 14:12, poslato');
+    const stop = tree.root.findAll(node => String(node.type) === 'Press' && String(node.props.accessibilityLabel).startsWith('Vi: '))[0];
+    expect(stop.props.accessibilityLabel).toBe('Vi: glasovna poruka 0:14, Danas, 14:12, poslato');
     expect(stop.findAll(node => node.props.accessibilityRole === 'image')[0].props.accessibilityLabel).toBe('Poslato');
     expect(stop.findAllByProps({ accessibilityLabel: 'Preslušaj glasovnu poruku, 0:14' })).toHaveLength(0);
   });
@@ -105,10 +105,10 @@ describe('a voice message in the thread', () => {
     mockVoice.outboxState = { phase: 'ready', error: null, entries: [{ command, state: 'unknown', error: 'INVALID_RESPONSE', persisted: true, attempt: 1 }] };
     await render();
     expect(texts()).toContain('Glasovna poruka'); expect(texts()).toContain('Ne znamo da li je stigla');
-    await act(async () => button('Proveri da li je stigla: glasovna poruka').props.onPress());
+    await act(async () => button('Proverite da li je stigla: glasovna poruka').props.onPress());
     expect(props.refresh).toHaveBeenCalledTimes(1);
     expect(mockVoice.outbox.retry).not.toHaveBeenCalled();
-    await act(async () => button('Pošalji glasovnu poruku ponovo').props.onPress());
+    await act(async () => button('Pošaljite glasovnu poruku ponovo').props.onPress());
     // A second explicit gesture uses the original VOICE command, never the text journal.
     expect(mockVoice.outbox.retry).toHaveBeenCalledWith('glas_00000009');
     expect(outbox.retry).not.toHaveBeenCalled();
@@ -145,7 +145,7 @@ describe('a voice send the network left unknown', () => {
     await act(async () => tree.update(<AgreementChat {...props} />));
     expect(mockVoice.outbox.retry).not.toHaveBeenCalled();
     expect(outbox.retry).not.toHaveBeenCalled();
-    await act(async () => button('Pošalji glasovnu poruku ponovo').props.onPress());
+    await act(async () => button('Pošaljite glasovnu poruku ponovo').props.onPress());
     expect(mockVoice.outbox.retry).toHaveBeenCalledWith('glas_00000010');
     expect(outbox.retry).not.toHaveBeenCalled(); expect(outbox.sendDraft).not.toHaveBeenCalled();
   });
@@ -153,14 +153,14 @@ describe('a voice send the network left unknown', () => {
   it('restoring the voice outbox does not send; explicit resend is still possible once ready', async () => {
     mockVoice.outboxState = { phase: 'loading', error: null, entries: [unknown('UNAVAILABLE')] };
     await render();
-    expect(has('Pošalji glasovnu poruku ponovo')).toBe(false);
-    expect(has('Proveri da li je stigla: glasovna poruka')).toBe(true);
+    expect(has('Pošaljite glasovnu poruku ponovo')).toBe(false);
+    expect(has('Proverite da li je stigla: glasovna poruka')).toBe(true);
     expect(mockVoice.outbox.retry).not.toHaveBeenCalled();
     mockVoice.outboxState = { phase: 'ready', error: null, entries: [unknown('UNAVAILABLE')] };
     await act(async () => tree.update(<AgreementChat {...props} />));
-    expect(has('Pošalji glasovnu poruku ponovo')).toBe(true);
+    expect(has('Pošaljite glasovnu poruku ponovo')).toBe(true);
     expect(mockVoice.outbox.retry).not.toHaveBeenCalled();
-    await act(async () => button('Pošalji glasovnu poruku ponovo').props.onPress());
+    await act(async () => button('Pošaljite glasovnu poruku ponovo').props.onPress());
     expect(mockVoice.outbox.retry).toHaveBeenCalledWith('glas_00000010');
   });
 
@@ -180,7 +180,7 @@ describe('the pill with a microphone', () => {
     await render();
     expect(has('Drži za glasovnu poruku')).toBe(true);
     expect(has('Dodaj fotografije')).toBe(false); // no photo controller in this scene: only the microphone stands in the toolbar
-    expect(flat(button('Pošalji poruku').props.style).display).toBe('none');
+    expect(flat(button('Pošaljite poruku').props.style).display).toBe('none');
     expect(has('Pregledaj snimak pre slanja')).toBe(false);
   });
 
@@ -198,11 +198,11 @@ describe('the pill with a microphone', () => {
   it('typing text swaps the microphone for the send, and clearing it brings the microphone back', async () => {
     await render();
     await act(async () => tree.update(<AgreementChat {...props} state={{ ...props.state, draft: 'Nešto' }} />));
-    expect(flat(button('Pošalji poruku').props.style).display).toBeUndefined();
+    expect(flat(button('Pošaljite poruku').props.style).display).toBeUndefined();
     const micSlot = button('Drži za glasovnu poruku').parent!;
     expect(micSlot).toBeTruthy();
     await act(async () => tree.update(<AgreementChat {...props} state={{ ...props.state, draft: '' }} />));
-    expect(flat(button('Pošalji poruku').props.style).display).toBe('none');
+    expect(flat(button('Pošaljite poruku').props.style).display).toBe('none');
   });
 
   it('with a screen reader the microphone is a start/stop button and the review step stays: the field hides while a recording waits', async () => {
@@ -217,7 +217,7 @@ describe('the pill with a microphone', () => {
     expect(has('Pošalji snimak')).toBe(true); expect(has('Odbaci snimak')).toBe(true);
     await act(async () => button('Pošalji snimak').props.onPress());
     expect(mockVoice.send).toHaveBeenCalledTimes(1);
-    expect(button('Napiši poruku').parent!.props.accessibilityElementsHidden).toBe(true);
+    expect(button('Napišite poruku').parent!.props.accessibilityElementsHidden).toBe(true);
   });
 });
 
