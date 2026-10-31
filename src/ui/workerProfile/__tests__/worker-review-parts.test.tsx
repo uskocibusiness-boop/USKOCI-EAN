@@ -98,7 +98,7 @@ describe('the review in parts (M2)', () => {
       expect(texts()).not.toContain('Cela Srbija');
       expect(texts()).not.toContain('Područje dolaska za poslove na lokaciji');
       expect(texts()).not.toContain('Domet se računa od centra');
-      expect(tree.root.findAllByType('ReviewedWorkAreaMap')).toHaveLength(0);
+      expect(tree.root.findAllByType('ReviewedWorkAreaMap' as React.ElementType)).toHaveLength(0);
       expect(texts()).not.toMatch(/20 km|Približan centar za terenske zadatke/);
       if(classificationState==='READY')expect(texts()).toContain('Posao radiš bez dolaska kod naručioca');
     });
