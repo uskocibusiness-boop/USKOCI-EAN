@@ -91,12 +91,33 @@ const CandidateItem = memo(function CandidateItem({ candidate, need, index, anim
   </Appear>;
 });
 
+/** Exact comparison unit: TOTAL is the amount for every person in that application,
+ * so rank by RSD per person. HOURLY is already per person per hour, never divide
+ * it by headcount or compare it against a TOTAL. A hidden/malformed price cannot rank. */
+type ComparablePrice = { amount: number; people: number; unit: 'TOTAL_PER_PERSON' | 'HOURLY_PER_PERSON_HOUR' };
+function comparablePrice(k: KandidatProjekcija): ComparablePrice | null {
+  if (candidateValue(k).kind !== 'amount' || !Number.isSafeInteger(k.pokrivaMesta) || k.pokrivaMesta < 1) return null;
+  return { amount: k.cena.iznos, people: k.osnovaCene === 'HOURLY' ? 1 : k.pokrivaMesta,
+    unit: k.osnovaCene === 'HOURLY' ? 'HOURLY_PER_PERSON_HOUR' : 'TOTAL_PER_PERSON' };
+}
+/** Compare without rounding displayed dinars or creating fictitious accepted terms.
+ * The normal product (RSD <= INT32, people <= 50) is exact in a JS safe integer. */
+function comparePrices(a: ComparablePrice, b: ComparablePrice): number {
+  const left = a.amount * b.people, right = b.amount * a.people;
+  if (Number.isSafeInteger(left) && Number.isSafeInteger(right)) return left < right ? -1 : left > right ? 1 : 0;
+  const divided = a.amount / a.people - b.amount / b.people;
+  return divided < 0 ? -1 : divided > 0 ? 1 : 0;
+}
+function differentPriceUnits(prices: readonly (ComparablePrice | null)[]): boolean {
+  return new Set(prices.filter((price): price is ComparablePrice => price !== null).map(price => price.unit)).size > 1;
+}
+
 /** The two things a whole list can say about an application that can still be chosen, in the owner's words. */
 export const MEASURE_LOWEST_PRICE = 'Najniža cena';
 export const MEASURE_BEST_RATING = 'Najbolja ocena';
 /**
  * What a list says about its applications by comparing them, and only what is true: among the applications that can still be chosen, the
- * one with the lowest total (when at least two have one) and the one with the best rating (when at least two have a rating that stands on
+ * one with the lowest comparable per-person price (when at least two have one) and the one with the best rating (when at least two have a rating that stands on
  * at least one rating: a lone rating is not "the best" of anything). A tie is a tie: both are said. An application that cannot be chosen,
  * one without a stored total and one without a rating are never ranked, and nothing is said for a list that is not whole, because a
  * lower price or a better rating may be on the page that has not been read. The lowest price takes the one mark when an application is both.
@@ -105,13 +126,16 @@ export function candidateMeasures(candidates: readonly KandidatProjekcija[], who
   const marks = new Map<string, string>();
   if (!whole) return marks;
   const open = candidates.filter(k => k.stanje === 'SELECTABLE');
-  const priced = open.filter(k => candidateValue(k).kind === 'amount');
-  const comparable = new Set(priced.map(k => k.osnovaCene === 'HOURLY' ? 'HOURLY' : 'TOTAL')).size <= 1;
-  const lowest = comparable && priced.length > 1 ? Math.min(...priced.map(k => k.cena.iznos)) : null;
+  const priced = open.map(k => ({ k, price: comparablePrice(k) }))
+    .filter((entry): entry is { k: KandidatProjekcija; price: ComparablePrice } => entry.price !== null);
+  const comparable = !differentPriceUnits(priced.map(entry => entry.price));
+  const lowest = comparable && priced.length > 1
+    ? priced.reduce((best, entry) => comparePrices(entry.price, best.price) < 0 ? entry : best) : null;
   const rated = open.map(k => ({ k, figure: candidateRatingFigure(k) })).filter(entry => entry.figure && entry.figure.count > 0);
   const best = rated.length > 1 ? Math.max(...rated.map(entry => entry.figure!.rating)) : null;
   for (const k of open) {
-    if (lowest !== null && candidateValue(k).kind === 'amount' && k.cena.iznos === lowest) marks.set(k.prijavaId, MEASURE_LOWEST_PRICE);
+    if (lowest !== null && priced.some(entry => entry.k === k && comparePrices(entry.price, lowest.price) === 0))
+      marks.set(k.prijavaId, MEASURE_LOWEST_PRICE);
     else if (best !== null && rated.some(entry => entry.k === k && entry.figure!.rating === best)) marks.set(k.prijavaId, MEASURE_BEST_RATING);
   }
   return marks;
@@ -120,7 +144,7 @@ export function candidateMeasures(candidates: readonly KandidatProjekcija[], who
 /**
  * How the loaded offers are ordered, on the phone and without a new request. The rows carry no time of
  * sending, so there is no "newest" to promise: the first order is the server's own, which
- * `rpc_list_need_candidates` sends by `submitted_at asc` (earliest first); the others are by the total asked and by the rating the
+ * `rpc_list_need_candidates` sends by `submitted_at asc` (earliest first); the others are by the comparable per-person price and by the rating the
  * person has. All are stable, so offers that tie keep their order of arrival.
  */
 export type CandidateSort = 'ARRIVAL' | 'PRICE' | 'RATING';
@@ -140,13 +164,14 @@ export function candidateRatingFigure(k: Pick<KandidatProjekcija, 'ocenaTekst' |
 export function sortCandidates(candidates: readonly KandidatProjekcija[], sort: CandidateSort): readonly KandidatProjekcija[] {
   // The server's order is the list exactly as read: the same array, so the default draws what it always drew.
   if (sort === 'ARRIVAL') return candidates;
-  // A rate and a total are different units; keep arrival order instead of ranking unlike amounts.
-  if (sort === 'PRICE' && new Set(candidates.filter(k => candidateValue(k).kind === 'amount')
-    .map(k => k.osnovaCene === 'HOURLY' ? 'HOURLY' : 'TOTAL')).size > 1) return candidates;
   const indexed = candidates.map((k, at) => ({ k, at }));
-  if (sort === 'PRICE') return indexed.map(entry => ({ ...entry, price: candidateValue(entry.k) })).sort((a, b) =>
-    a.price.kind === 'amount' && b.price.kind === 'amount' ? a.k.cena.iznos - b.k.cena.iznos || a.at - b.at
-      : a.price.kind === 'amount' ? -1 : b.price.kind === 'amount' ? 1 : a.at - b.at).map(({ k }) => k);
+  if (sort === 'PRICE') {
+    const entries = indexed.map(entry => ({ ...entry, price: comparablePrice(entry.k) }));
+    // Unlike units have no meaningful common "cheapest" ranking.
+    if (differentPriceUnits(entries.map(entry => entry.price))) return candidates;
+    return entries.sort((a, b) => a.price && b.price ? comparePrices(a.price, b.price) || a.at - b.at
+      : a.price ? -1 : b.price ? 1 : a.at - b.at).map(({ k }) => k);
+  }
   // The best rating first; the same rating, the one that stands on more ratings; the same again, the earlier application. No rating, last.
   return indexed.map(entry => ({ ...entry, figure: candidateRatingFigure(entry.k) })).sort((a, b) => a.figure && b.figure
     ? b.figure.rating - a.figure.rating || b.figure.count - a.figure.count || a.at - b.at : a.figure ? -1 : b.figure ? 1 : a.at - b.at).map(({ k }) => k);
@@ -218,6 +243,9 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   // The lowest price and the best rating are orders of the WHOLE list: the server sorts only by arrival, so while a page is still to come the list is
   // not ordered by price or rating at all and the control is not drawn (the approved draft R4: only when the list is whole). Arrival is the server's own order.
   const sort: CandidateSort = known ? chosenSort ?? ownSort : 'ARRIVAL';
+  const visiblePrices = candidates.map(comparablePrice);
+  const priceUnitsMixed = differentPriceUnits(visiblePrices);
+  const hourlyOnly = visiblePrices.some(p => p?.unit === 'HOURLY_PER_PERSON_HOUR') && !priceUnitsMixed;
   // The comparison has to know how much room there is (two columns of at least 200 dp), so it reads the width through the one hook that may; the
   // kind of room (the owner's large text, a window under 340 dp) is the layout class. A gallery that gives its own text size decides by it.
   const room = useWindowRoom();
@@ -268,6 +296,11 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
               onPress={() => setSorting(true)} style={s.sortButton}>
               <T variant="copy" tone="green" style={s.sortText}>{SORT_LABEL[sort]}</T><Glyph name="caret-down" size={16} tone="green" />
             </Press> : null}</View> : null}
+          {known && sort === 'PRICE' ? <T variant="note" tone="muted">
+            {priceUnitsMixed ? 'Cene sa različitim jedinicama nisu uporedive; prikazan je redosled prijava.'
+              : hourlyOnly ? 'Poređenje je po osobi po satu; iznos na kartici je satnica.'
+              : 'Poređenje je po osobi; iznos na kartici ostaje ukupna ponuda.'}
+          </T> : null}
           {!known && compare ? <View accessibilityLiveRegion="polite" style={s.notes}>
             <T variant="note" tone="muted">Porediš učitane prijave. Još nisu prikazane sve prijave.</T>
             {paging?.moreError ? <V2Action label="Učitaj preostale prijave" kind="quiet" compact onPress={paging.onLoadMore} />

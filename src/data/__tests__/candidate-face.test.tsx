@@ -418,6 +418,58 @@ describe('the order of the applications', () => {
     expect(sortCandidates([unknown, a, lower], 'PRICE').map(candidate => candidate.prijavaId)).toEqual(['lower', 'a', 'unknown']);
   });
 
+  it('orders OFFERS by comparable RSD per person, not total crew amount, and marks only the actual cheapest', () => {
+    const single = k({ prijavaId: 'single', cena: { iznos: 4000, valuta: 'RSD', prikaz: '4.000 RSD' }, pokrivaMesta: 1 });
+    const team = k({ prijavaId: 'team', cena: { iznos: 6000, valuta: 'RSD', prikaz: '6.000 RSD' }, pokrivaMesta: 3 });
+    const tied = k({ prijavaId: 'tie', cena: { iznos: 2000, valuta: 'RSD', prikaz: '2.000 RSD' }, pokrivaMesta: 1 });
+    const rows = [single, team, tied];
+    expect(sortCandidates(rows, 'PRICE').map(k => k.prijavaId)).toEqual(['team', 'tie', 'single']);
+    expect(candidateMeasures(rows, true).get('team')).toBe(MEASURE_LOWEST_PRICE);
+    expect(candidateMeasures(rows, true).get('tie')).toBe(MEASURE_LOWEST_PRICE);
+    expect(candidateMeasures(rows, true).get('single')).not.toBe(MEASURE_LOWEST_PRICE);
+    expect(candidateMeasures(rows, false).size).toBe(0);
+    expect(sortCandidates(rows, 'ARRIVAL')).toBe(rows);
+    expect(rows.map(k => k.prijavaId)).toEqual(['single', 'team', 'tie']);
+  });
+
+  it('does not divide an hourly per-person rate by team size or compare hourly against total', () => {
+    const hourlyTeam = k({ prijavaId: 'hourlyTeam', osnovaCene: 'HOURLY',
+      cena: { iznos: 1200, valuta: 'RSD', prikaz: '1.200 RSD' }, pokrivaMesta: 3 });
+    const hourlySingle = k({ prijavaId: 'hourlySingle', osnovaCene: 'HOURLY',
+      cena: { iznos: 1000, valuta: 'RSD', prikaz: '1.000 RSD' }, pokrivaMesta: 1 });
+    const hourly = [hourlyTeam, hourlySingle];
+    expect(sortCandidates(hourly, 'PRICE').map(k => k.prijavaId)).toEqual(['hourlySingle', 'hourlyTeam']);
+    expect(candidateMeasures(hourly, true).get('hourlySingle')).toBe(MEASURE_LOWEST_PRICE);
+    expect(candidateMeasures(hourly, true).get('hourlyTeam')).toBeUndefined();
+    const total = k({ prijavaId: 'total', cena: { iznos: 4000, valuta: 'RSD', prikaz: '4.000 RSD' }, pokrivaMesta: 2 });
+    const mixed = [total, hourlySingle];
+    expect(sortCandidates(mixed, 'PRICE')).toBe(mixed);
+    expect([...candidateMeasures(mixed, true).values()]).not.toContain(MEASURE_LOWEST_PRICE);
+  });
+
+  it('sorts unpriced offers last, preserves fractional per-person ties and rejects invalid headcounts', () => {
+    const one = k({ prijavaId: 'one', cena: { iznos: 1001, valuta: 'RSD', prikaz: '1.001 RSD' }, pokrivaMesta: 2 });
+    const two = k({ prijavaId: 'two', cena: { iznos: 2002, valuta: 'RSD', prikaz: '2.002 RSD' }, pokrivaMesta: 4 });
+    const unknown = k({ prijavaId: 'missing', cena: { iznos: 0, valuta: 'RSD', prikaz: '' } });
+    const invalid = k({ prijavaId: 'invalid', pokrivaMesta: 0 });
+    expect(sortCandidates([unknown, one, two, invalid], 'PRICE').map(k => k.prijavaId))
+      .toEqual(['one', 'two', 'missing', 'invalid']);
+    expect(candidateMeasures([one, two], true).get('one')).toBe(MEASURE_LOWEST_PRICE);
+    expect(candidateMeasures([one, two], true).get('two')).toBe(MEASURE_LOWEST_PRICE);
+  });
+
+  it('explains price units only after choosing the price order, without replacing accepted offer totals', async () => {
+    const three = k({ prijavaId: 'three', ime: 'Milan', cena: { iznos: 6000, valuta: 'RSD', prikaz: '6.000 RSD' }, pokrivaMesta: 3 });
+    const one = k({ prijavaId: 'one', ime: 'Ana', cena: { iznos: 4000, valuta: 'RSD', prikaz: '4.000 RSD' }, pokrivaMesta: 1 });
+    await render(<CandidateListPresentation need={need} candidates={[one, three]} open={noop} back={noop} refresh={noop} />);
+    expect(texts()).not.toContain('Poređenje je po osobi;');
+    await act(async () => pressNamed('Redosled prijava: Najranije').props.onPress());
+    await act(async () => pressNamed('Najniža cena').props.onPress());
+    expect(names()).toEqual(['Milan', 'Ana']);
+    expect(texts()).toContain('Poređenje je po osobi; iznos na kartici ostaje ukupna ponuda.');
+    expect(texts()).toContain('6.000');
+  });
+
   it('offers "Najbolja ocena" beside the other two orders and orders the loaded list by it, without a new read', async () => {
     const refresh = jest.fn();
     await render(<CandidateListPresentation need={need} candidates={[a, b, c, d, e]} open={noop} back={noop} refresh={refresh} />);
