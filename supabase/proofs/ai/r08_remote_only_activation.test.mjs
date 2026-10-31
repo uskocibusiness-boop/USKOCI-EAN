@@ -32,6 +32,7 @@ test('candidate pins exact current worker activation owner and is not a deploy/m
  assert.match(source,/private\.worker_remote_only_activation_ready_v1\(v_uid,v_profile\.skills\) IS NOT TRUE/);
  assert.match(source,/REVOKE ALL ON FUNCTION private\.worker_remote_only_activation_ready_v1/);
  assert.ok(functionOnly?.includes('SECURITY INVOKER'));
+ assert.match(functionOnly, /END; \$f\$;/);
 });
 test('only a saved, uniquely mapped and confirmed REMOTE capability permits an absent city',async t=>{
  const db=await dbWithConfirmedRemote();t.after(()=>db.close());

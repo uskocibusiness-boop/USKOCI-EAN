@@ -84,6 +84,35 @@ describe('the review in parts (M2)', () => {
     expect(tree.root.findAll(node=>String(node.type)==='ReviewedWorkAreaMap')).toHaveLength(0);
   });
 
+  it.each(['READY', 'PENDING_CLASSIFICATION'] as const)(
+    'never presents retained on-site areas as remote work or unconfirmed %s work', async classificationState => {
+      const retained=review({skills:['Izrada logotipa'],workAreas:[{
+        kind:'COUNTRY',countryCode:'RS',label:'Cela Srbija',city:null,sourceRef:null,
+        latitude:null,longitude:null,radiusKm:null,
+      }],location:{operatingCountryCode:'RS',city:'Novi Sad',radiusKm:20,
+        approximatePosition:{latitude:45.25,longitude:19.83}}});
+      const signed:WorkerAiReview={...retained,classificationState,
+        reviewedServiceModes:classificationState==='READY'?[{service:'Izrada logotipa',mode:'REMOTE'}]:[]};
+      await act(async()=>{tree=create(<WorkerAiReviewDetails review={signed}/>);});
+      expect(texts()).toContain('Novi Sad · RS · grad profila');
+      expect(texts()).not.toContain('Cela Srbija');
+      expect(texts()).not.toContain('Područje dolaska za poslove na lokaciji');
+      expect(texts()).not.toContain('Domet se računa od centra');
+      expect(tree.root.findAllByType('ReviewedWorkAreaMap')).toHaveLength(0);
+      expect(texts()).not.toMatch(/20 km|Približan centar za terenske zadatke/);
+      if(classificationState==='READY')expect(texts()).toContain('Posao radiš bez dolaska kod naručioca');
+    });
+
+  it('keeps a saved on-site work area only for an explicitly signed ON_SITE review',async()=>{
+    const signed:WorkerAiReview={...review({workAreas:[{
+      kind:'COUNTRY',countryCode:'RS',label:'Cela Srbija',city:null,sourceRef:null,
+      latitude:null,longitude:null,radiusKm:null,
+    }]}),classificationState:'READY',reviewedServiceModes:[{service:'Selidbe',mode:'ON_SITE'}]};
+    await act(async()=>{tree=create(<WorkerAiReviewDetails review={signed}/>);});
+    expect(texts()).toContain('Cela Srbija');
+    expect(texts()).toContain('Područje dolaska za poslove na lokaciji');
+  });
+
   it('offers one accessible AI correction action for the whole review', async () => {
     const edit = jest.fn();
     await act(async () => { tree = create(<WorkerAiReviewDetails review={full} onEdit={edit} />); });

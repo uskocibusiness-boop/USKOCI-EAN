@@ -192,7 +192,8 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
         </T>:null}
     </ReviewGroup>
     <ReviewGroup part="area">
-      {p.workAreas?.length?<>
+      {/* Legacy area facts cannot authorize an on-site visit without signed ON_SITE modes. */}
+      {onSite && !!p.workAreas?.length?<>
         <Fact art="pin">{workerAreasLabel(p.workAreas)}</Fact>
         <T testID="worker-area-scope-note" variant="note" tone="muted">{p.workAreas.some(a=>a.kind==='RADIUS')
           ?'Domet se računa od centra navedenog mesta. Kućna adresa nije potrebna.'

@@ -56,7 +56,7 @@ BEGIN
   ) THEN RETURN false; END IF;
  END LOOP;
  RETURN true;
-END $f$;
+END; $f$;
 -- TESTABLE FUNCTION ENDS.
 REVOKE ALL ON FUNCTION private.worker_remote_only_activation_ready_v1(uuid,text[])
  FROM PUBLIC,anon,authenticated,service_role;
