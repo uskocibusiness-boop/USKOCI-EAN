@@ -84,7 +84,13 @@ export function decodeOwnTasksPage(raw: unknown, request: Pick<OwnTasksPageReque
     if (previous && !strictlyBeforeCursor(next, previous)) return null;
     previous = next;
     seen.add(document.id.toLowerCase());
-    try { items.push(map(document)); } catch { return null; }
+    let mapped:PotrebaProjekcija;
+    try { mapped=map(document); } catch { return null; }
+    // The public owner reader's cursor/document identity and the rendered task
+    // identity are one authority. A mismatched mapper output must never become
+    // an actionable row under a different task ID.
+    if(!mapped||!uuid(mapped.id)||mapped.id.toLowerCase()!==document.id.toLowerCase())return null;
+    items.push(mapped);
     documents.push(document as OwnTaskDocument);
   }
   // A page that promises more and gives none could never advance.

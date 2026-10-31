@@ -81,6 +81,17 @@ it.each([
   await expect(needClientService.mojePotrebeStrana(request)).rejects.toThrow('OWN_TASKS_PAGE_INVALID');
 });
 
+it('rejects a mapped task whose ID disagrees with the server keyset row (and accepts canonical UUID case)', () => {
+  const body = payload([document(1)]);
+  const other = uuid(999);
+  expect(decodeOwnTasksPage(body, first, () => ({ id: other } as any))).toBeNull();
+  expect(decodeOwnTasksPage(body, first, () => ({ id: '' } as any))).toBeNull();
+  expect(decodeOwnTasksPage(body, first, () => ({} as any))).toBeNull();
+  const same = decodeOwnTasksPage(body, first, (wire: any) => ({ id: wire.id.toUpperCase() } as any));
+  expect(same?.items[0].id).toBe(body.items[0].id.toUpperCase());
+  expect(same?.cursor?.id).toBe(body.items[0].id);
+});
+
 it('a page that is not an object at all is invalid', async () => {
   for (const data of [null, [], 'x', 3]) { mockRpc.mockResolvedValue({ data, error: null }); await expect(needClientService.mojePotrebeStrana(first)).rejects.toThrow('OWN_TASKS_PAGE_INVALID'); }
 });
