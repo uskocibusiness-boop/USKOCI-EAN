@@ -81,11 +81,11 @@ export function AuthFormStep(p: AuthFormStepProps) {
     </View> : null}
     {p.notice ? <RevealWhenShown key={p.notice} testID="auth-notice"><AuthNote tone="ok">{p.notice}</AuthNote></RevealWhenShown> : null}
     {p.signupReturn ? <View style={s.group} accessibilityLiveRegion="polite" testID="signup-return">
-      <AuthNote>{p.signupReturn === 'RETURNED' ? 'Nastavi prijavu svojim emailom i lozinkom.'
+      <AuthNote>{p.signupReturn === 'RETURNED' ? 'Nastavite prijavu svojom email adresom i lozinkom.'
         : p.signupReturn === 'LINK_UNAVAILABLE'
-          ? 'Ovaj link više nije važeći. Ako je email već potvrđen, prijavi se. U suprotnom zatraži novu potvrdu.'
-          : 'Ovaj link ne možemo da upotrebimo. Prijavi se ili zatraži novu potvrdu emaila.'}</AuthNote>
-      {p.signupReturn !== 'RETURNED' && p.onResendConfirmation ? <LinkAction title="Pošalji novu potvrdu" disabled={p.busy} onPress={p.onResendConfirmation} /> : null}
+          ? 'Ovaj link više nije važeći. Ako je email već potvrđen, prijavite se. U suprotnom zatražite novu potvrdu.'
+          : 'Ovaj link ne možemo da upotrebimo. Prijavite se ili zatražite novu potvrdu emaila.'}</AuthNote>
+      {p.signupReturn !== 'RETURNED' && p.onResendConfirmation ? <LinkAction title="Pošaljite novu potvrdu" disabled={p.busy} onPress={p.onResendConfirmation} /> : null}
     </View> : null}
 
     {p.emailOpen ? <View style={s.fields}>
@@ -108,7 +108,7 @@ export function AuthFormStep(p: AuthFormStepProps) {
     </View> : null}
 
     {p.emailOpen && !p.signUpOpen ? <T variant="note" tone="muted">Otvaranje novih naloga trenutno nije dostupno.</T> : null}
-    {signingUp && p.emailOpen && p.confirmEmail ? <T variant="note" tone="muted">Pre prve prijave potrebno je da potvrdiš email.</T> : null}
+    {signingUp && p.emailOpen && p.confirmEmail ? <T variant="note" tone="muted">Pre prve prijave potrebno je da potvrdite email.</T> : null}
 
     {p.check === 'failed' ? <View>
       <T variant="note" tone="muted">Dodatne načine prijave nismo uspeli da proverimo.</T>
@@ -120,9 +120,9 @@ export function AuthFormStep(p: AuthFormStepProps) {
         <View accessible={false} importantForAccessibility="no-hide-descendants"><FactArt kind="phone" size={24} /></View>
         <T variant="bodyStrong">Telefon</T>
       </Press>
-    </View> : !p.emailOpen && p.way === 'LOGIN' && p.signUpOpen ? <T variant="note" tone="muted">Možeš da napraviš nalog.</T>
+    </View> : !p.emailOpen && p.way === 'LOGIN' && p.signUpOpen ? <T variant="note" tone="muted">Možete da napravite nalog.</T>
       // No way in is open: the foot says why the command is grey, and here is what to do about it.
-      : !p.emailOpen ? <T variant="note" tone="muted">Pokušaj ponovo malo kasnije.</T> : null}
+      : !p.emailOpen ? <T variant="note" tone="muted">Pokušajte ponovo malo kasnije.</T> : null}
   </>;
 }
 
