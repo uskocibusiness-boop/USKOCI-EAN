@@ -247,6 +247,13 @@ export function PushPreferences({ onDirtyChange, onWritingChange }: {
    if (fresh.native.kind !== 'READY' || !fresh.device) return fresh;
    const registered = await pushDeviceClientService.set(scope, fresh.native.token, fresh.native.platform, true, fresh.device.revision);
    if (!current(scope, generation) || !registered.ok) throw Error('REGISTRATION_UNCONFIRMED');
+   // A partially acknowledged two-role switch is resumed only after readback, never by registering again.
+   pendingWrite.current = { owner: scope, original: fresh.preferences,
+    roles: ROLES.filter(role => !fresh.preferences[role].settings.push_enabled),
+    wanted: {
+     REQUESTER: { ...fresh.preferences.REQUESTER.settings, push_enabled: true },
+     WORKER: { ...fresh.preferences.WORKER.settings, push_enabled: true },
+    } };
    // Switching on is the one consent of the account: both sets send to the phone, each written with its own revision.
    for (const role of ROLES) {
     const held = fresh.preferences[role];
@@ -262,6 +269,12 @@ export function PushPreferences({ onDirtyChange, onWritingChange }: {
   const scope = scopeRef.current; if (!scope || !snapshot || view?.owner !== scope || scope.busy || scope.generation !== renderedGeneration) return;
   const original = snapshot.preferences;
   void run(scope, async generation => {
+   pendingWrite.current = { owner: scope, original,
+    roles: ROLES.filter(role => original[role].settings.push_enabled),
+    wanted: {
+     REQUESTER: { ...original.REQUESTER.settings, push_enabled: false },
+     WORKER: { ...original.WORKER.settings, push_enabled: false },
+    } };
    for (const role of ROLES) {
     if (!original[role].settings.push_enabled) continue;
     await notificationPreferencesClientService.save(scope.accountId, role, { ...original[role].settings, push_enabled: false }, original[role].revision);
