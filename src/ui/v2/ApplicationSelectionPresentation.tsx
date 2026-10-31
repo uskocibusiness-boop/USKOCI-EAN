@@ -125,7 +125,9 @@ export const MEASURE_BEST_RATING = 'Najbolja ocena';
 export function candidateMeasures(candidates: readonly KandidatProjekcija[], whole: boolean): ReadonlyMap<string, string> {
   const marks = new Map<string, string>();
   if (!whole) return marks;
-  const open = candidates.filter(k => k.stanje === 'SELECTABLE');
+  // The server may return SELECTABLE while denying selection (calendar, account,
+  // closed capacity); state alone is not a grant of authority to mark "best".
+  const open = candidates.filter(k => k.stanje === 'SELECTABLE' && k.mozeIzabrati === true);
   const priced = open.map(k => ({ k, price: comparablePrice(k) }))
     .filter((entry): entry is { k: KandidatProjekcija; price: ComparablePrice } => entry.price !== null);
   const comparable = !differentPriceUnits(priced.map(entry => entry.price));
@@ -282,7 +284,7 @@ export function CandidateListPresentation({ need, candidates, open, back, refres
   // Ordering only rearranges the row objects already read; a memoised row redraws only if its place changed.
   const rows = useMemo(() => sortCandidates(candidates, sort), [candidates, sort]);
   const choose = (value: CandidateSort) => { setSorting(false); if (onSort) onSort(value); else setOwnSort(value); };
-  const selectable = candidates.filter(k => k.stanje === 'SELECTABLE').length;
+  const selectable = candidates.filter(k => k.stanje === 'SELECTABLE' && k.mozeIzabrati === true).length;
   const counts = `${prijava(known ? candidates.length : paging?.total ?? candidates.length)}${known && selectable !== candidates.length ? ` · ${selectable} za izbor` : ''}`;
   return <SafeAreaView edges={['top', 'bottom']} style={s.screen}>
     <ProductHeader backLabel={compare ? 'Nazad na prijave' : 'Nazad na zadatak'} title={compare ? 'Uporedi prijave' : 'Prijave'} back={compare ? () => setCompare(false) : back}

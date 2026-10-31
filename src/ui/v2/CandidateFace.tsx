@@ -241,7 +241,7 @@ export const CandidateCard = memo(function CandidateCard({ candidate: k, timezon
   const message = k.napomena?.trim() ?? '';
   const stacked = large || narrow;
   const mark: { text: string; tone: CandidateMarkTone } | null = reason ? { text: reason.text, tone: reason.tone }
-    : measure && k.stanje === 'SELECTABLE' ? { text: measure, tone: 'green' } : null;
+    : measure && k.stanje === 'SELECTABLE' && k.mozeIzabrati === true ? { text: measure, tone: 'green' } : null;
   const total = <OfferedTotal value={value} stacked={stacked} />;
   // The one thing to do with an offer that can be chosen now; any other offer (changed, full, closed, chosen, withdrawn) has none.
   const choosable = k.stanje === 'SELECTABLE' && k.mozeIzabrati;

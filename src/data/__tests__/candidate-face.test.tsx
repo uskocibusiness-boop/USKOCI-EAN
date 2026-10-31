@@ -471,6 +471,24 @@ describe('the order of the applications', () => {
     expect(texts()).toContain('6.000');
   });
 
+  it('never awards a price/rating advantage to SELECTABLE rows that the server says cannot be selected', async () => {
+    const excluded = k({ prijavaId: 'excluded', ime: 'Nije dozvoljeno', stanje: 'SELECTABLE', mozeIzabrati: false,
+      cena: { iznos: 100, valuta: 'RSD', prikaz: '100 RSD' }, ocenaTekst: '5', recenzijeTekst: '50 ocena' });
+    const eligible = k({ prijavaId: 'eligible', ime: 'Izbor je dozvoljen', cena: { iznos: 3000, valuta: 'RSD', prikaz: '3.000 RSD' } });
+    const other = k({ prijavaId: 'other', ime: 'Drugi izbor', cena: { iznos: 5000, valuta: 'RSD', prikaz: '5.000 RSD' } });
+    const rows = [excluded, eligible, other];
+    const marks = candidateMeasures(rows, true);
+    expect(marks.get('excluded')).toBeUndefined();
+    expect(marks.get('eligible')).toBe(MEASURE_LOWEST_PRICE);
+    await render(list(rows));
+    expect(texts()).toContain('3 prijave · 2 za izbor');
+    expect(texts()).not.toContain('Nije dozvoljeno Najniža cena');
+    const blocked = pressNamed('Pogledaj prijavu: Nije dozvoljeno');
+    expect(blocked.props.accessibilityValue.text).not.toContain('Najniža cena');
+    expect(blocked.findAll(node => node.props.children === 'Najniža cena')).toHaveLength(0);
+    expect(pressNamed('Izaberi: Nije dozvoljeno')).toBeUndefined();
+  });
+
   it('offers "Najbolja ocena" beside the other two orders and orders the loaded list by it, without a new read', async () => {
     const refresh = jest.fn();
     await render(<CandidateListPresentation need={need} candidates={[a, b, c, d, e]} open={noop} back={noop} refresh={refresh} />);
