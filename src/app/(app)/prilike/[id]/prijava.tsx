@@ -21,12 +21,14 @@ type Receipt = { prijavaId: string; verzija: number; hash: string; osnovaCene?: 
 type Loaded = { need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; applications: MojaPrijavaProjekcija[]; receipt: Receipt | null };
 type SkillAddition = Readonly<{ input: Readonly<{ accountId: string; accountRevision: number; profileId: string; skill: string }>; current: () => boolean }>;
 type Pending = { applicationPriceBasis: 'TOTAL' | 'HOURLY'; command: PodnesiPrijavuKomanda; need: PotrebaProjekcija; opportunity: PrilikaProjekcija; profile: RadnikProfilProjekcija; result: Ishod<Receipt> | null; inFlight: boolean; reconciled: boolean; skillAddition: SkillAddition | null };
-/** A price the task names is never typed: it follows the people this application brings (deep read 8.10). */
+/** A NEW offer follows the task's own term. Older unconfirmed journals are never rewritten:
+ * those exact commands bypass this draft normalizer and keep their original key/terms. */
 function withTaskPrice(draft: ApplicationDraft, need: PotrebaProjekcija): ApplicationDraft {
-  if (need.rezimCene !== 'MY_PRICE') return draft;
-  const people = draft.people;
+  const canonical = { ...draft, start: null, end: null };
+  if (need.rezimCene !== 'MY_PRICE') return canonical;
+  const people = canonical.people;
   const price = fixedApplicationPrice(need, /^\d+$/.test(people) ? Number(people) : NaN);
-  return { ...draft, people, price: price === null ? '' : String(price) };
+  return { ...canonical, people, price: price === null ? '' : String(price) };
 }
 export default function Prijava() {
   const params = useLocalSearchParams<{ id?: string }>();
@@ -43,7 +45,7 @@ export default function Prijava() {
     profileSkillNotice: null as string | null }), [id, izvor, user?.id, accountRevision]);
   const [, render] = useState(0);
   const [validation, setValidation] = useState<string | null>(null);
-  const [addCategoryToProfile, setAddCategoryToProfile] = useState(true);
+  const [addCategoryToProfile, setAddCategoryToProfile] = useState(false);
   useFocusEffect(useCallback(() => {
     session.focused = true; session.focusToken++; render(v => v + 1);
     return () => { session.focused = false; };
@@ -137,7 +139,8 @@ export default function Prijava() {
       if (typeof deadline === 'string' && Date.parse(deadline) <= Date.now()) { setValidation('Rok za prijave je istekao. Osveži zadatak.'); return; }
       const command: PodnesiPrijavuKomanda = Object.freeze({ clientRequestId: noviZahtevId('prijava'), potrebaId: data.need.id, potrebaRevizija: data.need.revizija,
         radnikProfilId: data.profile.id, pokrivenaMesta: Number(draft.people), cenaRsd: Number(draft.price),
-        predlozeniPocetak: draft.start, predlozeniKraj: draft.end, napomena: draft.note.trim() || null });
+        // New applications never invent a second term; old saved commands keep their exact original fields.
+        predlozeniPocetak: null, predlozeniKraj: null, napomena: draft.note.trim() || null });
       const skill = data.need.detalji?.kategorija ?? data.opportunity.detalji?.kategorija ?? null;
       const hasSkill = skill ? (data.profile.vestine ?? []).some(value => value.trim().toLowerCase() === skill.trim().toLowerCase()) : true;
       // Freeze the single requested addition and its screen generation before the first await.
