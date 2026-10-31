@@ -396,6 +396,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
   /** Only an explicit resend can write. The outbox reuses the retained client message id. */
   const resend = (entry: typeof entries[number]) => {
     if (!mounted.current || source.current.outbox !== outbox || !source.current.writable || source.current.terminal) return;
+    if (entry.command.voice ? voice?.outboxState.phase !== 'ready' : state.phase !== 'ready') return;
     const owner = entry.command.voice ? voice?.outbox : outbox;
     if (owner) void owner.retry(entry.command.clientMessageId).then(() => settleSend(outbox, entry.command.agreementId));
   };
@@ -634,7 +635,7 @@ function AgreementChatContent({ messages, loading, error, writable, terminal, re
               {entry.state === 'unknown' ? <ChatAction label={`Proveri da li je stigla: ${what}`}
                 text={OUTCOME_ACTION.check} tone="ink" end refresh busy={refreshing}
                 onPress={checkUnknown} /> : null}
-              {sendsAllowed ? <ChatAction
+              {sendsAllowed && (entry.command.voice ? voice?.outboxState.phase === 'ready' : state.phase === 'ready') ? <ChatAction
                 label={entry.command.voice ? 'Pošalji glasovnu poruku ponovo' : `Ponovi slanje poruke ${entry.command.body}`}
                 text="Pošalji ponovo" tone="ink" end onPress={() => resend(entry)} /> : null}
             </View> : null}

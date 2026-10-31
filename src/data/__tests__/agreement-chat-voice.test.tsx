@@ -153,9 +153,12 @@ describe('a voice send the network left unknown', () => {
   it('restoring the voice outbox does not send; explicit resend is still possible once ready', async () => {
     mockVoice.outboxState = { phase: 'loading', error: null, entries: [unknown('UNAVAILABLE')] };
     await render();
+    expect(has('Pošalji glasovnu poruku ponovo')).toBe(false);
+    expect(has('Proveri da li je stigla: glasovna poruka')).toBe(true);
     expect(mockVoice.outbox.retry).not.toHaveBeenCalled();
     mockVoice.outboxState = { phase: 'ready', error: null, entries: [unknown('UNAVAILABLE')] };
     await act(async () => tree.update(<AgreementChat {...props} />));
+    expect(has('Pošalji glasovnu poruku ponovo')).toBe(true);
     expect(mockVoice.outbox.retry).not.toHaveBeenCalled();
     await act(async () => button('Pošalji glasovnu poruku ponovo').props.onPress());
     expect(mockVoice.outbox.retry).toHaveBeenCalledWith('glas_00000010');
