@@ -49,6 +49,18 @@ it('opens every scene by its visible label and comes back with "Nazad na listu s
   }
 }, 60000);
 
+it('keeps the historical term scene key but never opens an alternate-time editor', async () => {
+  await act(async () => { tree = create(<DizajnPrijava />); });
+  await pressHost('Galerija: Termin zadatka');
+  expect(text()).toContain('Termin zadatka');
+  expect(text()).toContain('Prijava se odnosi na termin koji je naveden u zadatku.');
+  expect(text()).not.toContain('Potvrdi termin');
+  expect(tree.root.findAll(node => node.props.accessibilityHint === 'Otvara izbor tačnog termina')).toHaveLength(0);
+  expect(tree.root.findAll(node => node.type === ('DateTimePicker' as React.ElementType))).toHaveLength(0);
+  await pressHost('Nazad na listu scena');
+  expect(text()).toContain('Termin zadatka');
+});
+
 it('draws the composer, its review and the sent state, and the rating with its person', async () => {
   await act(async () => { tree = create(<DizajnPrijava />); });
   await pressHost('Galerija: Pregled pre slanja');
