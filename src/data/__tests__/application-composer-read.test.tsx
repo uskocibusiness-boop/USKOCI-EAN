@@ -692,6 +692,27 @@ it('restores a pre-hourly journal as its original total even when the current ta
   expect(text()).toContain('Ukupna ponuda');
   expect(text()).not.toContain('Po osobi po satu');
 });
+it('replays a pre-existing frozen alternate-time journal unchanged; never rewrites it into the new task-term command', async () => {
+  const original = {
+    clientRequestId: 'prijava_legacy_term_001', potrebaId: mockId, potrebaRevizija: 3,
+    radnikProfilId: k().radnikProfilId, pokrivenaMesta: 2, cenaRsd: 4500,
+    predlozeniPocetak: '2026-09-20T08:00:00Z', predlozeniKraj: '2026-09-20T09:00:00Z', napomena: 'Stara započeta prijava.',
+  };
+  const oldKey = `uskoci.application.command.v1.owner-a.${mockId}`;
+  const bytes = JSON.stringify({ version: 1, accountId: 'owner-a', needId: mockId, command: original });
+  mockStorage.set(oldKey, bytes);
+  await render();
+  const restored = tree!.root.findByType(ApplicationSelectionPresentation).props;
+  expect(restored.pending).toBe(true);
+  expect(restored.draft.start).toBe(original.predlozeniPocetak);
+  expect(restored.draft.end).toBe(original.predlozeniKraj);
+  expect(mockSubmit).not.toHaveBeenCalled();
+  await tap('Pošalji ponovo');
+  expect(mockSubmit).toHaveBeenCalledTimes(1);
+  expect(mockSubmit.mock.calls[0][0]).toEqual(original);
+  expect(mockStorage.has(oldKey)).toBe(false);
+});
+
 it('does not first-submit an old total journal as hourly under the same task revision', async () => {
   const key = `uskoci.application.command.v1.owner-a.${mockId}`;
   const bytes = JSON.stringify({ version: 1, accountId: 'owner-a', needId: mockId, command: {
