@@ -76,7 +76,7 @@ it.each([844, 480])('keeps inbox Back separate from task context at height %s wi
     : `Dogovor: ${agreement.naslov}. ${agreement.ucesnici[0].ime}`;
   await act(async () => button(context).props.onPress());
   expect(props.onOverview).toHaveBeenCalledTimes(1);
-  expect(button('Napiši poruku').props.value).toBe('Moj sačuvani nacrt');
+  expect(button('Napišite poruku').props.value).toBe('Moj sačuvani nacrt');
 });
 
 it('gives 320 dp / font scale 2 history the full identity and accepted terms while keeping overview outside the scroll', async () => {
@@ -100,13 +100,13 @@ it('gives 320 dp / font scale 2 history the full identity and accepted terms whi
   await act(async () => button('Nazad').props.onPress());
   expect(props.onOverview).toHaveBeenCalledTimes(2);
   const composer = tree.root.findByProps({ testID: 'agreement-chat-composer' });
-  expect(history().findAllByProps({ accessibilityLabel: 'Napiši poruku' })).toHaveLength(0);
+  expect(history().findAllByProps({ accessibilityLabel: 'Napišite poruku' })).toHaveLength(0);
   expect(flat(composer.props.style).flexShrink).toBe(0);
-  expect(button('Napiši poruku').props).toMatchObject({ value: 'Moj sačuvani nacrt', multiline: true, scrollEnabled: true });
+  expect(button('Napišite poruku').props).toMatchObject({ value: 'Moj sačuvani nacrt', multiline: true, scrollEnabled: true });
   // Two complete large-text lines can be seen instead of clipping a multiline draft to a one-line viewport.
-  expect(flat(button('Napiši poruku').props.style).maxHeight).toBeGreaterThanOrEqual(120);
-  expect(flat(button('Napiši poruku').props.style).maxHeight).toBeLessThanOrEqual(140);
-  expect(flat(button('Pošalji poruku').props.style)).toMatchObject({ width: 48, height: 48 });
+  expect(flat(button('Napišite poruku').props.style).maxHeight).toBeGreaterThanOrEqual(120);
+  expect(flat(button('Napišite poruku').props.style).maxHeight).toBeLessThanOrEqual(140);
+  expect(flat(button('Pošaljite poruku').props.style)).toMatchObject({ width: 48, height: 48 });
 });
 
 it('responds to the measured keyboard space without remounting the draft or losing an open photo tray', async () => {
@@ -114,7 +114,7 @@ it('responds to the measured keyboard space without remounting the draft or losi
   props.chat.photos = { ...props.chat.photos!, hasSelection: true };
   await render();
   expect(tree.root.findAllByProps({ testID: 'agreement-thread-full-bar' })).toHaveLength(1);
-  const input = button('Napiši poruku');
+  const input = button('Napišite poruku');
   const tray = tree.root.findByType('AgreementPhotoComposer' as any);
   await measure(410);
   expect(tree.root.findAllByProps({ testID: 'agreement-thread-full-bar' })).toHaveLength(0);
@@ -122,13 +122,13 @@ it('responds to the measured keyboard space without remounting the draft or losi
   expect(button(`Poruke: ${agreement.ucesnici[0].ime}`).props.children).toBe(agreement.ucesnici[0].ime);
   expect(text(tree.root.findByProps({ testID: 'agreement-thread-compact-bar' }))).toContain(agreement.naslov);
   expect(text(history().findByProps({ testID: 'agreement-thread-context' }))).toContain(agreement.ucesnici[0].ime);
-  expect(button('Napiši poruku')).toBe(input);
+  expect(button('Napišite poruku')).toBe(input);
   expect(tree.root.findByType('AgreementPhotoComposer' as any)).toBe(tray);
   expect(tray.props.photos).toBe(props.chat.photos);
   expect(history().findByType('AgreementPhotoComposer' as any)).toBe(tray);
   await measure(790);
   expect(tree.root.findAllByProps({ testID: 'agreement-thread-full-bar' })).toHaveLength(1);
-  expect(button('Napiši poruku')).toBe(input);
+  expect(button('Napišite poruku')).toBe(input);
   expect(tree.root.findByType('AgreementPhotoComposer' as any)).toBe(tray);
   expect(button('Dodaj fotografije').props.disabled).toBe(false);
   expect(props.chat.outbox.sendDraft).not.toHaveBeenCalled();
@@ -166,12 +166,12 @@ it('identifies this job beside the person and opens its accepted overview from t
 it('lets enlarged text use a full-width draft without recreating it or closing prepared photos', async () => {
   props.chat.photos = { ...props.chat.photos!, hasSelection: true };
   await render();
-  const input = button('Napiši poruku');
+  const input = button('Napišite poruku');
   expect(flat(input.props.style).flex).toBe(1);
   const tray = tree.root.findByType('AgreementPhotoComposer' as any);
   mockWindow = { ...mockWindow, fontScale: 1.5 };
   await act(async () => tree.update(<AgreementThreadPresentation {...props} />));
-  expect(button('Napiši poruku')).toBe(input);
+  expect(button('Napišite poruku')).toBe(input);
   // The dedicated writing row keeps the input flexible at both scales; identity and draft must survive.
   expect(flat(input.props.style).flex).toBe(1);
   expect(input.props.value).toBe('Moj sačuvani nacrt');
@@ -191,9 +191,9 @@ it('keeps storage recovery and a forced pending-photo tray in the scroll, with t
   expect(text(history())).toContain('Poruka nije sačuvana na telefonu.');
   await act(async () => history().findByProps({ accessibilityLabel: 'Ponovo učitaj sačuvane poruke' }).props.onPress());
   expect(props.chat.outbox.start).toHaveBeenCalledTimes(1);
-  expect(button('Pošalji poruku').props.disabled).toBe(true);
-  expect(button('Napiši poruku').props.value).toBe('Moj sačuvani nacrt');
-  expect(history().findAllByProps({ accessibilityLabel: 'Pošalji poruku' })).toHaveLength(0);
+  expect(button('Pošaljite poruku').props.disabled).toBe(true);
+  expect(button('Napišite poruku').props.value).toBe('Moj sačuvani nacrt');
+  expect(history().findAllByProps({ accessibilityLabel: 'Pošaljite poruku' })).toHaveLength(0);
 });
 
 it('leaves a closed thread read-only with exact unknown-outcome check and accepted terms access', async () => {
@@ -203,15 +203,15 @@ it('leaves a closed thread read-only with exact unknown-outcome check and accept
   props.chat = { ...props.chat, terminal: true, writable: false,
     state: { ...props.chat.state, entries: [{ command, state: 'unknown', persisted: true, attempt: 1 }] } };
   await render();
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Napiši poruku' })).toHaveLength(0);
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošalji poruku' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Napišite poruku' })).toHaveLength(0);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Pošaljite poruku' })).toHaveLength(0);
   expect(tree.root.findAllByType('AgreementPhotoComposer' as any)).toHaveLength(0);
   expect(text(history())).toContain('Ne znamo da li je stigla');
   // The closed sentence stands under the thread, where the field was (proposal R2), not inside the scroll.
   expect(text()).toContain(CLOSED_SENTENCE); expect(text(history())).not.toContain(CLOSED_SENTENCE);
   expect(tree.root.findByProps({ testID: 'agreement-chat-closed' })).toBeTruthy();
-  expect(tree.root.findAllByProps({ accessibilityLabel: `Ponovi slanje poruke ${command.body}` })).toHaveLength(0);
-  await act(async () => button(`Proveri da li je stigla: ${command.body}`).props.onPress());
+  expect(tree.root.findAllByProps({ accessibilityLabel: `Ponovite slanje poruke ${command.body}` })).toHaveLength(0);
+  await act(async () => button(`Proverite da li je stigla: ${command.body}`).props.onPress());
   expect(props.chat.outbox.retry).not.toHaveBeenCalled();
   expect(props.chat.refresh).toHaveBeenCalledTimes(1);
   expect(props.chat.photos!.refresh).not.toHaveBeenCalled();
