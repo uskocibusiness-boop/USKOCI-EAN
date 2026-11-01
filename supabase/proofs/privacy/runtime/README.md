@@ -144,3 +144,41 @@ differences. Its report hashes identities and string values; only validated
 boolean capability fields are public. Exact query bytes are bound to the baseline.
 This diagnostic does not accept any previously observed catalog differences or
 claim full extension dependency, Auth, HTTP or application behavior coverage.
+
+`native-net-invoker.sql` adds the missing observed-invoker portion of the managed
+hook investigation. It never calls the hook or creates an extension. In a bounded
+READ ONLY transaction it models only the helper's exact empty search_path override,
+or preserves the current caller path when the helper inherits it; ROLLBACK restores
+the caller setting. It checks the three unqualified catalog names in the pinned
+helper, including temporary relation shadows and competing routine overloads. It
+also records direct database-CREATE/role flags and transitive USAGE/SET routes
+for the four API roles, including the registered Supautils privileged role. Output
+contains only fixed names, hashes, booleans and counts, never arbitrary role/path
+names or function bodies.
+Catalog functions, types and comparison operators are explicitly qualified: the
+collector must not execute a shadow operator while inspecting a hostile path.
+
+The hosted baseline was captured read-only from canonical DEV
+`leqcwgzvjsxugfgzdmth` on 2026-11-01 at 12:43 UTC, as `postgres`, with these exact
+SQL bytes. The runtime separately captures the disposable context through its
+existing `supabase_admin` socket client and stores that observation and paired
+comparison in the existing runtime receipt, `native-net-invoker-observed.json` and
+`native-net-invoker-diff.json`.
+`native_net_invoker_paired_verified` is true only when that native capture matches
+all pinned prerequisites; the baseline itself cannot supply the native side.
+`compareNativeNetInvoker` binds the actual hosted result to the SQL bytes and exact
+helper source hashes, PostgreSQL 17.6 and pg_net 0.20.4. Its narrow result is not full hook
+reachability, ADMIN OPTION-mediated grants, arbitrary future session state,
+SECURITY DEFINER/dynamic SQL analysis,
+image provenance or R01 boundary admission (`r01_boundary_admitted` is always
+false). All original strict gates remain, even if this paired prerequisite passes.
+
+Run the evaluator and actual catalog regression tests locally:
+
+```sh
+node --test supabase/proofs/privacy/runtime/native-net-invoker.test.mjs supabase/proofs/privacy/runtime/native-net-invoker-sql.test.mjs
+```
+
+The actual SQL tests use PGlite 18 with a stub event hook and explicit roles. They
+exercise lookup/privilege semantics and prove that the evaluator rejects that
+runtime as PostgreSQL 17.6 evidence; they are not a live Supabase receipt.

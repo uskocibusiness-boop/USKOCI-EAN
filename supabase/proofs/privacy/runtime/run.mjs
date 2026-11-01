@@ -17,6 +17,7 @@ import {storageAclObservation, compareStorageOwnerAcl, validateStorageAclBaselin
 import {extensionAclTupleObservation, compareExtensionAclTuples, validateExtensionAclTupleBaseline} from './extension-acl-tuples.mjs';
 import {requestPathObservation, compareRequestPath, validateRequestPathBaseline} from './request-call-graph.mjs';
 import {extensionProvenanceObservation, compareExtensionProvenance} from './extension-provenance.mjs';
+import {compareNativeNetInvoker, parseNativeNetInvokerOutput, validateNativeNetInvokerBaseline} from './native-net-invoker.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repository = resolve(here, '../../../..');
@@ -39,6 +40,9 @@ const files = {
   native_net_query: join(here, 'native-net-provenance.sql'),
   native_net_expected: join(here, 'native-net-provenance-expected.json'),
   native_net_comparator: join(here, 'native-net-provenance.mjs'),
+  native_net_invoker_query: join(here, 'native-net-invoker.sql'),
+  native_net_invoker_expected: join(here, 'native-net-invoker-expected.json'),
+  native_net_invoker_comparator: join(here, 'native-net-invoker.mjs'),
   hosted_login_query: join(here, 'hosted-login-dependency.sql'),
   hosted_login_expected: join(here, 'hosted-login-dependency-expected.json'),
   hosted_login_comparator: join(here, 'hosted-login-dependency.mjs'),
@@ -191,6 +195,11 @@ function sourceCheck() {
   required(readFileSync(files.native_net_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
     'NATIVE_NET_QUERY_NOT_READ_ONLY');
   validateNativeNetBaseline(json(files.native_net_expected), sha256(readFileSync(files.native_net_query)));
+  required(readFileSync(files.native_net_invoker_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;') &&
+    readFileSync(files.native_net_invoker_query, 'utf8').trim().endsWith('ROLLBACK;'),
+    'NATIVE_NET_INVOKER_QUERY_NOT_READ_ONLY');
+  validateNativeNetInvokerBaseline(json(files.native_net_invoker_expected),
+    sha256(readFileSync(files.native_net_invoker_query)));
   required(readFileSync(files.hosted_login_query, 'utf8').includes('BEGIN TRANSACTION READ ONLY;'),
     'HOSTED_LOGIN_QUERY_NOT_READ_ONLY');
   validateHostedLoginBaseline(json(files.hosted_login_expected), sha256(readFileSync(files.hosted_login_query)));
@@ -239,7 +248,8 @@ async function run() {
   const receipt = {unit: 'R01_DISPOSABLE_SCHEMA_RUNTIME', result: 'FAIL', source_sha: process.env.GITHUB_SHA,
     stages: [], live_access: false, fixtures_run: false, candidate_applied: false, actual_auth_proven: false,
     postgrest_boundary_proven: false, metadata_equal: false,
-    native_net_provenance_verified: false, hosted_login_dependency_verified: false,
+    native_net_provenance_verified: false, native_net_invoker_paired_verified: false,
+    hosted_login_dependency_verified: false,
     admin_effective_path_verified: false, extension_acl_caller_scope_verified: false,
     storage_owner_acl_verified: false, extension_acl_tuples_captured: false,
     request_path_qualified_source_verified: false};
@@ -258,7 +268,7 @@ async function run() {
     }
     if (!accepted && ['PG_ADMISSION', 'SERVICE_MIGRATION_ADMISSION', 'AUTH_SEARCH_INDEXES', 'PLATFORM_EXTENSIONS', 'EXTENSION_ADMISSION',
       'EXTENSION_PROVENANCE_BEFORE', 'EXTENSION_PROVENANCE_AFTER',
-      'MANAGED_NET_HOOK_CAPTURE', 'NATIVE_NET_PROVENANCE_CAPTURE', 'HOSTED_LOGIN_DEPENDENCY_CAPTURE', 'ADMIN_EFFECTIVE_PATH_CAPTURE', 'EXTENSION_ACL_SCOPE_CAPTURE', 'STORAGE_OWNER_ACL_CAPTURE', 'EXTENSION_ACL_TUPLES_CAPTURE', 'REQUEST_PATH_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
+      'MANAGED_NET_HOOK_CAPTURE', 'NATIVE_NET_PROVENANCE_CAPTURE', 'NATIVE_NET_INVOKER_CAPTURE', 'HOSTED_LOGIN_DEPENDENCY_CAPTURE', 'ADMIN_EFFECTIVE_PATH_CAPTURE', 'EXTENSION_ACL_SCOPE_CAPTURE', 'STORAGE_OWNER_ACL_CAPTURE', 'EXTENSION_ACL_TUPLES_CAPTURE', 'REQUEST_PATH_CAPTURE', 'APPLICATION_SCHEMA', 'CURRENT_CATALOG_CAPTURE', 'PLATFORM_EFFECTIVE_CAPTURE'].includes(label)) {
       receipt.sql_failures ??= [];
       receipt.sql_failures.push({stage: label, ...scrubSqlFailure(result.stderr ?? '')});
     }
@@ -466,6 +476,17 @@ async function run() {
     receipt.native_net_provenance_verified = nativeNetComparison.provenance_verified;
     writeJSON(join(paths.publicDir, 'native-net-provenance-diff.json'), nativeNetComparison);
     console.log('R01_NATIVE_NET_PROVENANCE_JSON ' + JSON.stringify(nativeNetComparison));
+    // Paired observed context only. It never replaces the original strict gate.
+    const nativeInvoker = parseNativeNetInvokerOutput(sql('NATIVE_NET_INVOKER_CAPTURE',
+      readFileSync(files.native_net_invoker_query, 'utf8'), 'supabase_admin'));
+    receipt.native_net_invoker_observed = nativeInvoker;
+    writeJSON(join(paths.publicDir, 'native-net-invoker-observed.json'), nativeInvoker);
+    const invokerComparison = compareNativeNetInvoker(json(files.native_net_invoker_expected), nativeInvoker,
+      receipt.source_hashes.native_net_invoker_query);
+    receipt.native_net_invoker_paired_verified = invokerComparison.observed_context_prerequisite_verified;
+    receipt.native_net_invoker_comparison = invokerComparison;
+    writeJSON(join(paths.publicDir, 'native-net-invoker-diff.json'), invokerComparison);
+    console.log('R01_NATIVE_NET_INVOKER_JSON ' + JSON.stringify(invokerComparison));
     // The supplemental report never overrides strict catalog admission.
     stage = 'STRICT_PARITY';
     receipt.metadata_equal = scrubbed.metadata_equal;
