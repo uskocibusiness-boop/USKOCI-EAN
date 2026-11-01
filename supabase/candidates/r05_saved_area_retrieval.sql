@@ -2,6 +2,10 @@
 -- The dispatch retrieval is a superset of the authoritative worker_area_fit_v1;
 -- no extension of manual application, no guessed GPS, no false notification.
 -- Both original candidate_profile_ids and capped v1b require the same gap fix.
+-- CURRENT LIMITATION: p_limit bounds returned candidates, not examined far rows.
+-- The extra pass can read every far worker's latest saved review before finding
+-- one match (or none). A raw scan LIMIT would lose sparse valid candidates;
+-- indexed saved-area retrieval/continuation and real PostGIS plans remain open.
 -- Never run on DEV, migrations, production or managed Auth without R01 approval.
 BEGIN;
 DO $admit$

@@ -124,3 +124,65 @@ test('no-GPS preference is still handled by the existing fallback without invent
  await db.exec(patch);
  assert.deepEqual(await list(db,false,3),[near,far,nullPin]);
 });
+
+// Characterize the remaining deployment blocker, not a performance acceptance.
+// This counter exists only in the synthetic fixture: production keeps its exact
+// STABLE reader. Count actual area-reader calls, without wall-clock thresholds.
+async function sparseFarDb(rejectedCount){
+ const db=await makeDb();
+ await db.exec(`
+  DELETE FROM private.saved_areas;
+  DELETE FROM public.worker_match_preferences;
+  DELETE FROM public.app_profiles;
+  CREATE SEQUENCE private.area_probe_calls MINVALUE 0 START WITH 0;
+  CREATE OR REPLACE FUNCTION private.worker_saved_areas_v1(aid uuid)
+  RETURNS jsonb LANGUAGE plpgsql STABLE AS $f$
+  BEGIN
+   PERFORM nextval('private.area_probe_calls');
+   RETURN coalesce((SELECT areas FROM private.saved_areas WHERE owner=aid),'[]'::jsonb);
+  END; $f$;
+ `);
+ const eligible=uid(1000+rejectedCount);
+ for(let i=0;i<=rejectedCount;i++){
+  const id=uid(1000+i),account=uid(10000+i);
+  await db.query("INSERT INTO public.app_profiles VALUES($1,$2,'WORKER','ACTIVE')",[id,account]);
+  await db.query('INSERT INTO public.worker_match_preferences VALUES($1,$2,600000::numeric)',[id,account]);
+ }
+ await db.query("INSERT INTO private.saved_areas VALUES($1,'[\"RS\"]')",[uid(10000+rejectedCount)]);
+ return {db,eligible};
+}
+async function areaProbeCount(db){
+ const r=await db.query('SELECT CASE WHEN is_called THEN last_value+1 ELSE 0 END AS calls FROM private.area_probe_calls');
+ return Number(r.rows[0].calls);
+}
+async function resetAreaProbeCount(db){
+ await db.query("SELECT setval('private.area_probe_calls',0,false)");
+}
+test('remaining blocker: one returned far candidate can require every saved-area read',async t=>{
+ const {db,eligible}=await sparseFarDb(128);t.after(()=>db.close());
+ await db.exec(patch);
+ for(const [capped,cap] of [[false,null],[true,null],[true,2]]){
+  await resetAreaProbeCount(db);
+  assert.deepEqual(await list(db,capped,1,cap),[eligible]);
+  assert.equal(await areaProbeCount(db),129,'output limit one is not an examined-row budget');
+ }
+ await db.exec('DELETE FROM private.saved_areas');
+ await resetAreaProbeCount(db);
+ assert.deepEqual(await list(db,false,1),[]);
+ assert.equal(await areaProbeCount(db),129,'an empty page still reads all far profiles');
+});
+test('a raw scan cap loses the sparse match and retry cannot advance this stateless reader',async t=>{
+ const {db}=await sparseFarDb(32);t.after(()=>db.close());
+ // Deliberately unsafe local mutant: never promote this to the candidate.
+ const anchor='order by pref.worker_profile_id\n      loop';
+ assert.equal(patch.split(anchor).length-1,2,'both real inserted passes are exercised');
+ const naiveCap=patch.replaceAll(anchor,'order by pref.worker_profile_id LIMIT 8\n      loop');
+ await db.exec(naiveCap);
+ for(const [capped,cap] of [[false,null],[true,null],[true,2]]){
+  for(let attempt=0;attempt<2;attempt++){
+   await resetAreaProbeCount(db);
+   assert.deepEqual(await list(db,capped,1,cap),[]);
+   assert.equal(await areaProbeCount(db),8,'same rejected prefix is examined again');
+  }
+ }
+});
