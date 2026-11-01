@@ -1,8 +1,9 @@
 import type { PotrebaProjekcija } from '../contracts/projections';
+import { calendarInstant } from '../lib/calendarTime';
 import type { MarketplaceView, OwnedTaskCounts, OwnTasksScope } from './marketplaceView';
 export { ownTasksScope } from './marketplaceView';
 export type { OwnTasksScope } from './marketplaceView';
-import { record, timestamp, uuid } from './serverReceipt';
+import { record, uuid } from './serverReceipt';
 
 /**
  * EX-04 S1 (A09 Moji zadaci). The server's own sets of my tasks, one keyset page at a time: the three tabs (Aktivni, Nacrti, Istorija), all of them,
@@ -31,20 +32,22 @@ export const ownTasksRefined = (view: Pick<MarketplaceView, 'query' | 'price'>):
 
 const COUNT_KEYS = ['total', 'active', 'drafts', 'history', 'waiting'] as const;
 
-// PostgreSQL keyset order is (created_at DESC, id DESC). Date.parse truncates
-// fractional seconds to milliseconds; compare the remaining microseconds
-// separately so two recent writes never swap order or repeat a cursor.
-// All accepted server instants have an explicit UTC offset.
-const KEYSET_INSTANT = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?(Z|[+-]\d{2}:\d{2})$/;
-function keysetInstant(value: string): { secondsMs: number; micros: number } {
-  const match = KEYSET_INSTANT.exec(value)!; // caller already ran timestamp()
-  return { secondsMs: Date.parse(match[1] + match[3]), micros: Number((match[2] ?? '').padEnd(6, '0')) };
+/** Guard requested set before RPC. Invalid input must not be an empty success. */
+export function isOwnTasksPageRequest(value: unknown): value is OwnTasksPageRequest {
+  const input = record(value);
+  if (!input || !isOwnTasksScope(input.scope) || typeof input.limit !== 'number'
+    || !Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 100) return false;
+  if (input.cursor === null) return true;
+  const cursor = record(input.cursor);
+  return !!cursor && calendarInstant(cursor.at) !== null && uuid(cursor.id);
 }
+
+/** PostgreSQL keyset (created_at DESC, id DESC): compare full microsecond
+ * instants, including offsets; Date.parse can normalize an invalid civil day. */
 function strictlyBeforeCursor(next: OwnTasksCursor, previous: OwnTasksCursor): boolean {
-  const a = keysetInstant(next.at), b = keysetInstant(previous.at);
-  if (a.secondsMs !== b.secondsMs) return a.secondsMs < b.secondsMs;
-  if (a.micros !== b.micros) return a.micros < b.micros;
-  return next.id.toLowerCase() < previous.id.toLowerCase();
+  const a = calendarInstant(next.at), b = calendarInstant(previous.at);
+  if (a === null || b === null) return false;
+  return a === b ? next.id.toLowerCase() < previous.id.toLowerCase() : a < b;
 }
 
 /**
@@ -56,8 +59,8 @@ export function decodeOwnTasksPage(raw: unknown, request: Pick<OwnTasksPageReque
   const data = record(raw);
   if (!Number.isSafeInteger(request.limit) || request.limit < 1 || request.limit > 100
       || (request.cursor !== null && (!record(request.cursor)
-        || !timestamp(request.cursor.at) || !uuid(request.cursor.id)))) return null;
-  if (!data || !Array.isArray(data.items) || typeof data.hasMore !== 'boolean' || !timestamp(data.asOf) || data.items.length > request.limit
+        || calendarInstant(request.cursor.at) === null || !uuid(request.cursor.id)))) return null;
+  if (!data || !Array.isArray(data.items) || typeof data.hasMore !== 'boolean' || calendarInstant(data.asOf) === null || data.items.length > request.limit
       || (data.hasMore && data.items.length !== request.limit)) return null;
   let counts: OwnedTaskCounts | null = null;
   if (request.cursor === null) {
@@ -72,7 +75,7 @@ export function decodeOwnTasksPage(raw: unknown, request: Pick<OwnTasksPageReque
   let previous: OwnTasksCursor | null = request.cursor;
   for (const value of data.items) {
     const document = record(value);
-    if (!document || !uuid(document.id) || !timestamp(document.sortAt) || seen.has(document.id.toLowerCase())) return null;
+    if (!document || !uuid(document.id) || calendarInstant(document.sortAt) === null || seen.has(document.id.toLowerCase())) return null;
     const next = { at: document.sortAt, id: document.id };
     if (previous && !strictlyBeforeCursor(next, previous)) return null;
     previous = next;

@@ -8,7 +8,7 @@ import { needScheduleText } from './needDetailPresentation';
 import { supabaseKlijent } from './supabaseClient';
 import { readNeedUrgencies } from './needUrgencyClientService';
 import { novac } from '../lib/novac';
-import { decodeOwnTasksPage } from './ownTasksPage';
+import { decodeOwnTasksPage, isOwnTasksPageRequest } from './ownTasksPage';
 import { endingOfStatus, type WithEnding } from './needEnding';
 import { readOwnedResult, timestamp } from './serverReceipt';
 
@@ -181,6 +181,7 @@ export const needClientService: NeedReadService = {
    * counts of the sets. A page that does not add up is an invalid read, never a short one; the optional urgency badges share their own 4 s budget.
    */
   async mojePotrebeStrana(request, options) {
+    if (!isOwnTasksPageRequest(request)) throw new Error('OWN_TASKS_PAGE_INVALID');
     const args: Record<string, unknown> = { p_scope: request.scope, p_limit: request.limit };
     if (request.cursor) { args.p_before_at = request.cursor.at; args.p_before_id = request.cursor.id; }
     const result = await readOwnedResult({

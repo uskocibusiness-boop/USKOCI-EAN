@@ -8,7 +8,7 @@ import { dogovorenoVreme } from '../lib/dogovorenoVreme';
 import { podrucjeTekst } from '../lib/location';
 import { timeZone } from '../lib/market';
 import { needScheduleText } from './needDetailPresentation';
-import { decodeOwnApplicationsPage } from './ownApplicationsPage';
+import { decodeOwnApplicationsPage, isOwnApplicationsPageRequest } from './ownApplicationsPage';
 import { positiveInteger, readOwnedResult } from './serverReceipt';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
@@ -131,6 +131,7 @@ export const applicationClientService: ApplicationLifecycleService = {
    * flag keeps the screen on `mojePrijave` until DEV has it.
    */
   async mojePrijaveStrana(request) {
+    if (!isOwnApplicationsPageRequest(request)) throw new Error('OWN_APPLICATIONS_PAGE_INVALID');
     const args: Record<string, unknown> = { p_scope: request.scope, p_limit: request.limit };
     if (request.cursor) { args.p_before_at = request.cursor.at; args.p_before_id = request.cursor.id; args.p_before_rank = request.cursor.rank; }
     const result = await readOwnedResult({

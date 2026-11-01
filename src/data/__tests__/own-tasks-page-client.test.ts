@@ -167,6 +167,29 @@ it('rejects malformed paging parameters at the client boundary', () => {
   expect(decodeOwnTasksPage(body, { ...first, cursor: { at: AS_OF, id: 'bad' } }, map)).toBeNull();
 });
 
+it('rejects invalid civil day rollover in task keyset timestamps, cursor and first-page asOf', () => {
+  const map = (doc: any) => ({ id: doc.id }) as any;
+  const good = payload([document(1)]);
+  for (const invalid of ['2026-02-30T10:00:00+00:00', '2026-04-31T10:00:00Z',
+    '2026-10-01T25:00:00+00:00', '2026-10-01T10:00:00+20:00']) {
+    expect(decodeOwnTasksPage({ ...good, asOf: invalid }, first, map)).toBeNull();
+    expect(decodeOwnTasksPage(payload([document(1, { sortAt: invalid })]), first, map)).toBeNull();
+    expect(decodeOwnTasksPage(good, { ...first, cursor: { at: invalid, id: uuid(9) } }, map)).toBeNull();
+  }
+});
+
+it('refuses malformed own-task page requests before any RPC is dispatched', async () => {
+  for (const request of [
+    { ...first, scope: 'FOREIGN' }, { ...first, limit: 0 }, { ...first, limit: 101 },
+    { ...first, limit: '30' }, { ...first, cursor: { at: '2026-02-30T10:00:00Z', id: uuid(1) } },
+    { ...first, cursor: { at: AS_OF, id: '../foreign' } },
+  ]) {
+    mockRpc.mockClear();
+    await expect(needClientService.mojePotrebeStrana(request as any)).rejects.toThrow('OWN_TASKS_PAGE_INVALID');
+    expect(mockRpc).not.toHaveBeenCalled();
+  }
+});
+
 it('decodes with an injected mapper, so a task the mapper refuses refuses the page', () => {
   const body = payload([document(1), document(2)]);
   const seen: string[] = [];

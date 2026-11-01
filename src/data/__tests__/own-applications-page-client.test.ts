@@ -140,6 +140,34 @@ it.each<[string, OwnApplicationsPageRequest, (page: any) => void]>([
   await expect(applicationClientService.mojePrijaveStrana(request)).rejects.toThrow('OWN_APPLICATIONS_PAGE_INVALID');
 });
 
+it('refuses malformed own-application paging requests before any RPC', async () => {
+  for (const request of [
+    { ...first, scope: 'WRONG' }, { ...first, limit: 0 }, { ...first, limit: 101 },
+    { ...first, limit: '30' }, { ...first, cursor: { at: AS_OF, id: uuid(9), rank: -1 } },
+    { ...first, cursor: { at: '2026-02-30T08:00:00+00:00', id: uuid(9), rank: 0 } },
+    { ...first, cursor: { at: AS_OF, id: 'not-uuid', rank: 0 } },
+    { ...first, scope: 'ACTIVE', cursor: { at: AS_OF, id: uuid(9), rank: 0 } },
+  ]) {
+    mockRpc.mockClear();
+    await expect(applicationClientService.mojePrijaveStrana(request as any)).rejects.toThrow('OWN_APPLICATIONS_PAGE_INVALID');
+    expect(mockRpc).not.toHaveBeenCalled();
+  }
+});
+
+it('refuses invalid civil dates and a mapper whose application ID differs from the server keyset row', () => {
+  const docs = ordered().slice(0, 3);
+  const body = payload(docs, { counts: { total: 3, attention: 1, active: 2, finished: 0 } });
+  const map = (doc: any) => ({ prijavaId: doc.id, stanje: doc.state, traziPaznju: doc.attentionRequired }) as any;
+  for (const invalid of ['2026-02-30T10:00:00Z', '2026-04-31T10:00:00+00:00']) {
+    expect(decodeOwnApplicationsPage({ ...body, asOf: invalid }, first, map)).toBeNull();
+    const changed = [...docs]; changed[0] = { ...changed[0], sortAt: invalid };
+    expect(decodeOwnApplicationsPage({ ...body, items: changed }, first, map)).toBeNull();
+  }
+  expect(decodeOwnApplicationsPage(body, first, (doc: any) =>
+    ({ prijavaId: doc.id === docs[0].id ? uuid(777) : doc.id, stanje: doc.state,
+      traziPaznju: doc.attentionRequired }) as any)).toBeNull();
+});
+
 it('a page that is not an object at all is invalid', async () => {
   for (const data of [null, [], 'x', 3]) { mockRpc.mockResolvedValue({ data, error: null }); await expect(applicationClientService.mojePrijaveStrana(first)).rejects.toThrow('OWN_APPLICATIONS_PAGE_INVALID'); }
 });
