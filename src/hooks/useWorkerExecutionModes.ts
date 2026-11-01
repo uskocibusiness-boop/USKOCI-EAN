@@ -3,10 +3,12 @@ import { AppState } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { workerExecutionModeClientService, type WorkerExecutionMode } from '../data/workerExecutionModeClientService';
 import { sesijaSada, useSesija } from '../store/sesija';
+import type { WorkerSavedService } from '../contracts/workerSavedServices';
 
 /** Display consent only. This receipt grants no category or matching authority. */
-export type WorkerExecutionModeView = { kind: 'loading' | 'unavailable' | 'unconfirmed' }
-  | { kind: 'confirmed'; modes: readonly WorkerExecutionMode[] };
+export type WorkerExecutionModeView = { kind: 'loading' | 'unavailable' }
+  | { kind: 'unconfirmed'; services?: readonly WorkerSavedService[] }
+  | { kind: 'confirmed'; modes: readonly WorkerExecutionMode[]; services?: readonly WorkerSavedService[] };
 
 /** A fresh owned read on focus and after a profile readback; never retain a previous visit's area claim. */
 export function useWorkerExecutionModes(profileId: string | null, profileRead = 0) {
@@ -25,8 +27,9 @@ export function useWorkerExecutionModes(profileId: string | null, profileRead = 
       if (!owned() || !profileId || AppState.currentState === 'background' || AppState.currentState === 'inactive') return;
       void workerExecutionModeClientService.read(accountId!, accountRevision).then(receipt => {
         if (!owned() || turn !== request) return;
+        const details = receipt.services ? { services: receipt.services } : {};
         setState({ key, view: receipt.workerProfileId !== profileId ? { kind: 'unavailable' }
-          : receipt.confirmed ? { kind: 'confirmed', modes: receipt.modes } : { kind: 'unconfirmed' } });
+          : receipt.confirmed ? { kind: 'confirmed', modes: receipt.modes, ...details } : { kind: 'unconfirmed', ...details } });
       }).catch(() => { if (owned() && turn === request) setState({ key, view: { kind: 'unavailable' } }); });
     };
     refreshRef.current = read;

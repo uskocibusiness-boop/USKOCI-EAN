@@ -1,6 +1,7 @@
 import { sesijaSada } from '../store/sesija';
 import { ownProfileClientService } from './ownProfileClientService';
 import { supabaseKlijent } from './supabaseClient';
+import { decodeWorkerSavedServices, type WorkerSavedService } from '../contracts/workerSavedServices';
 
 export type WorkerExecutionMode = 'ON_SITE' | 'REMOTE';
 export type WorkerExecutionModeReceipt = {
@@ -8,6 +9,8 @@ export type WorkerExecutionModeReceipt = {
   confirmed: boolean;
   modes: WorkerExecutionMode[];
   confirmedAt: string | null;
+  /** Undefined on the legacy reader; never fill from an AI conversation draft. */
+  services?: readonly WorkerSavedService[];
 };
 
 export function canonicalWorkerExecutionModes(modes: readonly WorkerExecutionMode[]): WorkerExecutionMode[] {
@@ -53,7 +56,7 @@ function confirmedInstant(value: unknown): value is string {
   return month >= 1 && month <= 12 && day >= 1 && day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-function readReceipt(value: unknown, profileId: string): WorkerExecutionModeReceipt {
+export function decodeWorkerExecutionModeReceipt(value: unknown, profileId: string): WorkerExecutionModeReceipt {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('WORKER_MODE_INVALID_RECEIPT');
   const row = value as Record<string, unknown>;
   if (row.workerProfileId !== profileId || typeof row.confirmed !== 'boolean' || !Array.isArray(row.modes)
@@ -61,9 +64,13 @@ function readReceipt(value: unknown, profileId: string): WorkerExecutionModeRece
     || row.modes.length > 2 || new Set(row.modes).size !== row.modes.length
     || (row.confirmed ? row.modes.length < 1 : row.modes.length !== 0)
     || (row.confirmed ? !confirmedInstant(row.confirmedAt) : row.confirmedAt !== null)) throw new Error('WORKER_MODE_INVALID_RECEIPT');
+  const hasServices = 'servicesVersion' in row || 'services' in row;
+  const services = hasServices ? decodeWorkerSavedServices(row.services) : undefined;
+  if (hasServices && (row.servicesVersion !== 'WORKER_SAVED_SERVICES_V1' || !services)) throw new Error('WORKER_MODE_INVALID_RECEIPT');
   return { workerProfileId: profileId, confirmed: row.confirmed,
     modes: canonicalWorkerExecutionModes(row.modes as WorkerExecutionMode[]),
-    confirmedAt: row.confirmed ? row.confirmedAt as string : null };
+    confirmedAt: row.confirmed ? row.confirmedAt as string : null,
+    ...(services ? { services } : {}) };
 }
 
 async function ownedWorkerId(accountId: string, accountRevision: number): Promise<string> {
@@ -82,7 +89,7 @@ export const workerExecutionModeClientService = {
     });
     scoped(accountId, accountRevision);
     if (error) throw new Error('WORKER_MODE_READ_FAILED');
-    return readReceipt(data, profileId);
+    return decodeWorkerExecutionModeReceipt(data, profileId);
   },
 
   async save(accountId: string, accountRevision: number, modes: WorkerExecutionMode[]): Promise<WorkerExecutionModeReceipt> {

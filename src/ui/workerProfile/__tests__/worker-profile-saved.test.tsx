@@ -42,6 +42,50 @@ const show = async (patch: Partial<React.ComponentProps<typeof WorkerProfileSave
 afterEach(async () => { await act(async () => tree?.unmount()); });
 
 describe('what the saved profile shows', () => {
+  it('renders owned per-service modes, handoff and pending instead of local draft services', async () => {
+    await show({ executionModes: { kind: 'confirmed', modes: ['ON_SITE', 'REMOTE'], services: [
+      { service: 'Popravka računara', status: 'CONFIRMED', modes: [
+        { mode: 'ON_SITE', status: 'CONFIRMED', handoff: null },
+        { mode: 'REMOTE', status: 'CONFIRMED', handoff: { required: true, localExchange: { countryCode: 'RS', city: 'Novi Sad' } } },
+      ] },
+      { service: 'Nova usluga', status: 'PENDING', modes: [{ mode: 'REMOTE', status: 'PENDING', handoff: null }] },
+    ] } }, draft({ vestine: ['Nepotvrđen lokalni predlog'] }));
+    expect(all()).toEqual(expect.arrayContaining(['Popravka računara', 'Na lokaciji · Potvrđeno', 'Na daljinu · Potvrđeno',
+      'Lično preuzimanje: Novi Sad (RS)', 'Nova usluga', 'Na daljinu · Čeka potvrdu']));
+    expect(all()).not.toContain('Nepotvrđen lokalni predlog');
+    expect(all().join(' ')).not.toMatch(/svetska|kurir|Spremno za povezivanje/);
+    expect(tree.root.findAllByProps({ testID: 'worker-saved-service-handoff' })).toHaveLength(1);
+  });
+
+  it('keeps a saved draft service pending and never derives its mode from aggregate consent', async () => {
+    await show({ executionModes: { kind: 'unconfirmed', services: [
+      { service: 'Nova usluga', status: 'PENDING', modes: [] },
+      { service: 'Stara usluga', status: 'UNCONFIRMED', modes: [] },
+    ] } });
+    expect(all()).toEqual(expect.arrayContaining(['Nova usluga', 'Čeka potvrdu usluge', 'Stara usluga', 'Način rada još nije potvrđen']));
+    expect(tree.root.findAllByProps({ testID: 'worker-saved-service-mode' })).toHaveLength(0);
+    expect(all()).not.toContain('Područje dolaska');
+  });
+
+  it('authoritative empty services replace stale names, while old-server absence is explicitly unknown', async () => {
+    await show({ executionModes: { kind: 'confirmed', modes: ['REMOTE'], services: [] } });
+    expect(all()).toContain('Nema sačuvanih veština.'); expect(all()).not.toContain('Selidbe');
+    await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled={false} navigate={jest.fn()}
+      executionModes={{ kind: 'confirmed', modes: ['REMOTE'] }} />));
+    expect(all()).toContain('Selidbe'); expect(all()).toContain('Detalji po uslugama trenutno nisu dostupni.');
+    expect(tree.root.findAllByProps({ testID: 'worker-saved-service-mode' })).toHaveLength(0);
+  });
+
+  it('reveals long authoritative service details without editing or writing', async () => {
+    const services = Array.from({ length: SKILL_CHIPS_MAX + 1 }, (_, index) => ({ service: `Usluga ${index + 1}`,
+      status: 'PENDING' as const, modes: [] }));
+    const { navigate, openConversation } = await show({ executionModes: { kind: 'unconfirmed', services } });
+    expect(all()).not.toContain(`Usluga ${SKILL_CHIPS_MAX + 1}`);
+    await act(async () => press('Prikaži sve: Veštine').props.onPress());
+    expect(all()).toContain(`Usluga ${SKILL_CHIPS_MAX + 1}`);
+    expect(navigate).not.toHaveBeenCalled(); expect(openConversation).not.toHaveBeenCalled();
+  });
+
   it('keeps map confirmation separate from the AI area edit and from the primary action', async () => {
     const confirmMap = jest.fn();
     const { openConversation, navigate } = await show({ confirmMap });

@@ -15,6 +15,8 @@ import { NameDifference, namesDiffer } from './NameDifference';
 import type { WorkerDraft } from './workerProfileDraft';
 import type { WorkerExecutionModeView } from '../../hooks/useWorkerExecutionModes';
 import type { WorkerAiPart } from './workerProfileFacts';
+import { serviceHandoffText } from '../../contracts/serviceHandoff';
+import type { WorkerSavedService, WorkerSavedServiceStatus } from '../../contracts/workerSavedServices';
 
 /** The places the saved profile opens: the area and the week of a worker. */
 export type SavedProfilePath = '/profil/lokacija' | '/profil/dostupnost';
@@ -53,6 +55,7 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
   const name = accountName?.trim() || draft.ime.trim();
   const confirmed = executionModes?.kind === 'confirmed' ? executionModes.modes : [];
   const onSite = confirmed.includes('ON_SITE'), remote = confirmed.includes('REMOTE');
+  const services = executionModes?.kind === 'confirmed' || executionModes?.kind === 'unconfirmed' ? executionModes.services : undefined;
   const modeLabel = onSite && remote ? 'Na lokaciji i na daljinu' : onSite ? 'Na lokaciji' : remote ? 'Na daljinu'
     : executionModes?.kind === 'loading' ? 'Učitavamo način rada…'
       : executionModes?.kind === 'unconfirmed' ? 'Još nije potvrđen' : 'Trenutno nije dostupan';
@@ -77,7 +80,7 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
     <View testID="worker-profile-work-card" style={s.sectionCard}>
       <T variant="heading" accessibilityRole="header">Kako radiš</T>
       <SettingsGroup>
-        <SkillsRow skills={draft.vestine} />
+        <SkillsRow skills={draft.vestine} services={services} loading={executionModes?.kind === 'loading'} />
         <ListRow title="Način rada" subtitle={modeLabel} leading={<FactArt kind={remote && !onSite ? 'remote' : 'tasks'} size={32} />}
           last={!onSite && !grad} />
         {executionModes?.kind === 'unavailable' && refreshModes ? <V2Action label="Proveri način rada" tone="neutral" kind="quiet" compact onPress={refreshModes} /> : null}
@@ -102,19 +105,41 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
 }
 
 /** All skills are readable; the disclosure changes only presentation. */
-function SkillsRow({ skills }: { skills: readonly string[] }) {
+const savedStatus: Record<WorkerSavedServiceStatus, string> = {
+  CONFIRMED: 'Potvrđeno', PENDING: 'Čeka potvrdu', UNCONFIRMED: 'Nije potvrđeno',
+};
+
+function SkillsRow({ skills, services, loading }: { skills: readonly string[]; services?: readonly WorkerSavedService[]; loading?: boolean }) {
   const [expanded, setExpanded] = useState(false);
-  const shown = expanded ? skills : skills.slice(0, SKILL_CHIPS_MAX);
+  // The owned reader replaces the names as well as the details. A stale local
+  // conversation/draft must not add services to a newer authoritative read.
+  const names = services ? services.map(service => service.service) : skills;
+  const shown = expanded ? names : names.slice(0, SKILL_CHIPS_MAX);
   return <View testID="worker-skills-row" style={s.skillsRow}>
     <View style={s.slot}><FactArt kind="tasks" size={32} /></View>
     <View style={s.skillsCopy}>
       <T variant="bodyStrong">Šta radiš</T>
-      {skills.length
+      {names.length
         ? <View testID="worker-profile-skills" style={s.services}>
-          {shown.map((skill, index) => <T key={`${index}:${skill}`} selectable variant="body" style={s.ink}>{skill}</T>)}
+          {shown.map((skill, index) => {
+            const detail = services?.find(service => service.service === skill);
+            return <View key={`${index}:${skill}`} style={s.serviceDetail}>
+              <T selectable variant="body" style={s.ink}>{skill}</T>
+              {detail?.modes.map(mode => <View key={`${mode.mode}:${mode.status}`} style={s.serviceDetail}>
+                <T testID="worker-saved-service-mode" variant="note" tone="muted">
+                  {`${mode.mode === 'REMOTE' ? 'Na daljinu' : 'Na lokaciji'} · ${savedStatus[mode.status]}`}
+                </T>
+                {mode.handoff ? <T testID="worker-saved-service-handoff" variant="note" tone="muted">{serviceHandoffText(mode.handoff)}</T> : null}
+              </View>)}
+              {detail && !detail.modes.length ? <T testID="worker-saved-service-status" variant="note" tone="muted">
+                {detail.status === 'PENDING' ? 'Čeka potvrdu usluge' : 'Način rada još nije potvrđen'}
+              </T> : null}
+            </View>;
+          })}
         </View>
         : <T variant="note" tone="muted">Nema sačuvanih veština.</T>}
-      {skills.length > SKILL_CHIPS_MAX ? <Disclosure label="Veštine" expanded={expanded} onPress={() => setExpanded(value => !value)} /> : null}
+      {names.length > 0 && !services ? <T variant="note" tone="muted">{loading ? 'Učitavamo detalje usluga…' : 'Detalji po uslugama trenutno nisu dostupni.'}</T> : null}
+      {names.length > SKILL_CHIPS_MAX ? <Disclosure label="Veštine" expanded={expanded} onPress={() => setExpanded(value => !value)} /> : null}
     </View>
     <View pointerEvents="none" style={s.rule} />
   </View>;
@@ -151,6 +176,7 @@ const s = StyleSheet.create({
   skillsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: sys.space.md, paddingVertical: sys.space.md, minHeight: layout.rowMin },
   skillsCopy: { flex: 1, minWidth: 0, gap: sys.space.sm },
   services: { gap: sys.space.sm },
+  serviceDetail: { gap: sys.space.xs },
   group: { gap: layout.group },
   disclosure: { minHeight: layout.touch, justifyContent: 'center', alignSelf: 'flex-start' },
   // The divider is not a border: it begins where the words begin, like the one of a `ListRow`.
