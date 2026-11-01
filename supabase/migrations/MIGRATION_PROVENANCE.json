@@ -3517,6 +3517,29 @@
         "current_bootstrap_recaptured": false,
         "r01_boundary_admitted": false,
         "next_r01_capture": "Include all three approved 20261101 DEV applications (F10, R08 and R03), with actual migration versions. The earlier catalog verification predates R03; preserve its historical scope and all frozen baseline files."
+      },
+      {
+        "version": "20261101174446",
+        "name": "application_attention_agreement_lifecycle_v1",
+        "classification": "APPLIED_EXACT_OPERATION_LEDGER_BYTES",
+        "live_applied": true,
+        "observed_at_utc": "2026-11-01T17:45:35.231133Z",
+        "recorded_statement_count": 1,
+        "recorded_md5": "3bc38e464ecf429a2d74fdea8b8b19c7",
+        "recorded_sha256": "5e174baae5fe232e07d1676008be42ec25676767c8a9346d0920051ea679269d",
+        "recorded_bytes": 49879,
+        "exact_text": "supabase/operations/dev-alpha/ledger/20261101174446_application_attention_agreement_lifecycle_v1.sql",
+        "evidence": "supabase/operations/dev-alpha/ledger/20261101174446_application_attention_agreement_lifecycle_v1.receipt.json",
+        "reviewed_packet": "supabase/operations/dev-alpha/r07-application-attention-20261101/",
+        "emitted_bytes_match_catalog": true,
+        "independent_readonly_postflight": "R07_ATTENTION_DEV_POSTIMAGE_MATCH",
+        "pinned_function_definitions_and_attributes_checked": 12,
+        "independent_authenticated_positive_functional_acceptance": false,
+        "closure_readiness_and_bindings_unchanged": true,
+        "portable_replay_admitted": false,
+        "current_bootstrap_recaptured": false,
+        "r01_boundary_admitted": false,
+        "next_r01_capture": "Include all four approved 20261101 DEV applications (F10, R08, R03 and R07), with actual migration versions. Preserve earlier catalog captures and frozen baseline files as historical evidence."
       }
     ],
     "subsequent_catalog_verification": {

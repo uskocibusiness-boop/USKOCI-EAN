@@ -482,6 +482,15 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // R04: saving a private DRAFT is separate from publishing for matching.
   // A signed but unconfirmed semantic comparison must not appear publish-ready.
   const classificationPending = !!review?.classificationState && review.classificationState!=='READY';
+  // A pending server comparison is not a missing user confirmation. The existing
+  // refresh can read a newer signed result; it cannot perform semantic admission.
+  const classificationModeMissing = review?.classificationState === 'SERVICE_MODE_CONFIRMATION_REQUIRED';
+  const classificationReason = review?.classificationState === 'CATALOG_UNAVAILABLE'
+    ? 'Provera usluge trenutno nije dostupna.'
+    : review?.classificationState === 'STALE_CATALOG' ? 'Podaci za proveru usluge su se promenili.'
+    : review?.classificationState === 'REVIEW_REQUIRED' ? 'Usluga još nije potvrđena za objavu.'
+    : classificationModeMissing ? 'Način rada još nije potvrđen.'
+    : 'Provera usluge još nije završena.';
   const publishBlocked = !review || disabled || publishedEditUnavailable || !review.canAccept || classificationPending || !locationReadiness.ready || !!factProblem || !!unavailableIdentityFact || !!locationEditor;
   // "Loading = the write this action started": only the publish spins the publish button; while a draft or a fact saves
   // it simply waits grey.
@@ -492,7 +501,7 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
   // above). A grey button always says why, and the reason stands over it, not under it, where it read as the next thing. A button that can be pressed
   // says what it does by its name and has no sentence over it ("Objavljuješ ovu verziju zadatka." said what "Objavi zadatak" is; the owner, 8 Oct 2026).
   const caption = todos.length || unavailableIdentityFact ? 'Prvo uradi ono što piše pod „Još treba“.' :
-    classificationPending ? 'Potvrdite značenje usluge pre objave. Nacrt možete da sačuvate.' : null;
+    classificationPending ? classificationReason : null;
   // A command that fails ticks once with the failure pattern (haptics rule R5), whether it ends in a refusal or in an outcome not known.
   const failedWith = useRef<string | null>(null);
   useEffect(() => { if (editor.error && editor.error !== failedWith.current) tick('error'); failedWith.current = editor.error; }, [editor.error]);
@@ -682,6 +691,11 @@ function ReviewedTask({ conversationId, intakeReturn }: { conversationId: string
             </T>)}
             <T accessibilityRole="alert" variant="note" tone="muted">Ovo je AI predlog, ne potvrđena kategorija. Objavljivanje i povezivanje čekaju proveru. Za ispravku se vratite u isti razgovor; privatan nacrt možete da sačuvate.</T>
           </Surface> : null}
+          {!command && classificationPending && !editor.error && !editor.uncertain ? <V2Action
+            label={classificationModeMissing ? 'Dopuni način rada' : 'Osveži pregled'} kind="quiet"
+            disabled={quietEdit} loading={!classificationModeMissing && editor.loading}
+            onPress={classificationModeMissing ? () => editInConversation('task.location')
+              : () => { if (canAct() && !locationEditor) refresh(); }} /> : null}
           {/* The task detail as it is published: Airbnb-style clean preview with zero redundant intermediate cards. */}
           <ReviewDetail need={need} parts={parts} person={reviewer} knownPeopleCount={knownPeopleCount}
             deadlineDecision={process.env.EXPO_PUBLIC_USKOCI_TASK_AI_APPLICATION_DEADLINE_V1 === 'true'

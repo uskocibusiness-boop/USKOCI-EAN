@@ -1,8 +1,12 @@
 # R07 application attention after a completed Agreement
 
-Status: **PREPARED_NOT_APPLIED**. This package has performed no hosted writes.
-The [preparation receipt](preparation-receipt.json) records the successful exact
-read-only DEV preflight and local verification; it is not an application receipt.
+Current status: **APPLIED_EXACT_OPERATION_LEDGER_BYTES** on canonical DEV as
+`20261101174446_application_attention_agreement_lifecycle_v1` at 17:44:46 UTC.
+The [application receipt](../ledger/20261101174446_application_attention_agreement_lifecycle_v1.receipt.json)
+records the controlled application and independent ledger/postflight readback.
+The frozen manifest, generated SQL and [preparation receipt](preparation-receipt.json)
+retain their earlier preparation-time state. Native acceptance is separate root
+evidence and is not attested by this package's catalog verification.
 
 The installed Android app showed a selected application under `Čeka te` even
 though its exact Agreement was completed and its review was already stored.
@@ -93,3 +97,14 @@ only Auth-required refusal and NULL-owner query compatibility. Real two-account
 Auth, installed Android behavior, old client fleet, full R01/R10 and public
 release readiness require their separate evidence. No DEV application or native
 success is claimed by preparation or a local PASS.
+
+## Applied DEV readback
+
+The independent 17:45:35.231133 UTC read-only ledger query found one statement,
+49,879 UTF-8 bytes, MD5 `3bc38e464ecf429a2d74fdea8b8b19c7` and SHA-256
+`5e174baae5fe232e07d1676008be42ec25676767c8a9346d0920051ea679269d`. Its exact
+statement text equals `promotion.sql` and the archived ledger SQL. The exact
+frozen `postflight.sql` independently returned `R07_ATTENTION_DEV_POSTIMAGE_MATCH`:
+all 12 pinned definitions/attributes and the complete unchanged closure state.
+`authenticated_positive_functional_acceptance=false` remains explicit. This
+readback does not admit R01 parity, R10 activation or a production release.

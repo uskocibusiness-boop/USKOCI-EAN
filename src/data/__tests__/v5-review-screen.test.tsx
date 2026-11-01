@@ -1143,6 +1143,85 @@ it('a flip of the retired app mode retires nothing: a publish in flight still la
 });
 
 
+it.each([
+  ['PENDING_CLASSIFICATION','Provera usluge još nije završena.'],
+  ['CATALOG_UNAVAILABLE','Provera usluge trenutno nije dostupna.'],
+  ['STALE_CATALOG','Podaci za proveru usluge su se promenili.'],
+  ['REVIEW_REQUIRED','Usluga još nije potvrđena za objavu.'],
+] as const)('R04 recovery: %s offers a real review refresh without inventing user confirmation',async(classificationState,reason)=>{
+  const pending:AiTaskReviewEnvelope={...review(),classificationState,
+    classificationCandidates:[],reviewedServiceModes:[]};
+  mockPrepare.mockResolvedValue(ok(pending));
+  await render();
+  expect(text()).toContain(reason);
+  expect(text()).not.toContain('Potvrdite značenje usluge');
+  expect(publish().disabled).toBe(true);
+  expect(action('Sačuvaj nacrt').disabled).toBeFalsy();
+  const refresh=action('Osveži pregled');
+  const next=deferred<ReturnType<typeof ok>>();
+  mockPrepare.mockReturnValueOnce(next.promise);
+  const reads=mockPrepare.mock.calls.length;
+  await act(async()=>refresh.onPress());
+  expect(mockPrepare).toHaveBeenCalledTimes(reads+1);
+  expect(mockPrepare).toHaveBeenLastCalledWith({conversationId:CONVERSATION,responseDeadline:null});
+  expect(action('Osveži pregled').disabled).toBe(true);
+  await act(async()=>next.resolve(ok(pending)));
+  expect(publish().disabled).toBe(true);
+  expect(mockAccept).not.toHaveBeenCalled();
+  expect(mockResume).not.toHaveBeenCalled();
+  expect(mockDraft).not.toHaveBeenCalled();
+  expect(mockCorrect).not.toHaveBeenCalled();
+  expect(mockRouter.replace).not.toHaveBeenCalled();
+});
+
+it('R04 recovery: only missing execution mode opens the existing same-conversation location correction',async()=>{
+  mockPrepare.mockResolvedValue(ok({...review(),classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',
+    classificationCandidates:[],reviewedServiceModes:[]}));
+  await render();
+  expect(text()).toContain('Način rada još nije potvrđen.');
+  expect(commands('Osveži pregled')).toHaveLength(0);
+  expect(publish().disabled).toBe(true);
+  await act(async()=>action('Dopuni način rada').onPress());
+  expect(mockRouter.replace).toHaveBeenCalledWith({pathname:'/nova',params:{conversationId:CONVERSATION,aiCorrection:expect.any(String)}});
+  const route=mockRouter.replace.mock.calls[0][0];
+  expect(takeAiCorrection(route.params.aiCorrection,{accountId:OWNER,accountRevision:1},'task',CONVERSATION)?.target).toBe('task.location');
+  expect(mockAccept).not.toHaveBeenCalled();expect(mockCorrect).not.toHaveBeenCalled();
+});
+
+it.each([undefined,'READY'])('R04 recovery: %s has no pending refresh or false confirmation request',async classificationState=>{
+  mockPrepare.mockResolvedValue(ok({...review(),classificationState}));
+  await render();
+  expect(commands('Osveži pregled')).toHaveLength(0);
+  expect(commands('Dopuni način rada')).toHaveLength(0);
+  expect(text()).not.toContain('Potvrdite značenje usluge');
+  expect(publish().disabled).toBe(false);
+});
+
+it('R04 recovery: retained refresh cannot act after an account switch',async()=>{
+  mockPrepare.mockResolvedValue(ok({...review(),classificationState:'PENDING_CLASSIFICATION',
+    classificationCandidates:[],reviewedServiceModes:[]}));
+  await render();
+  const retained=action('Osveži pregled').onPress;
+  mockSession={user:{id:OTHER},accountRevision:2};await update();
+  const reads=mockPrepare.mock.calls.length;
+  await act(async()=>retained());
+  expect(mockPrepare).toHaveBeenCalledTimes(reads);
+  expect(mockAccept).not.toHaveBeenCalled();expect(mockCorrect).not.toHaveBeenCalled();
+});
+
+it('R04 recovery: network failure retains the existing single error recovery and cannot unlock publication',async()=>{
+  mockPrepare.mockResolvedValue(ok({...review(),classificationState:'PENDING_CLASSIFICATION',
+    classificationCandidates:[],reviewedServiceModes:[]}));
+  await render();
+  mockPrepare.mockRejectedValueOnce(new Error('offline'));
+  await act(async()=>action('Osveži pregled').onPress());
+  expect(commands('Osveži pregled')).toHaveLength(0);
+  expect(commands('Osveži')).toHaveLength(1);
+  expect(text()).toContain('Podaci nisu učitani. Proveri vezu i pokušaj ponovo.');
+  expect(publish().disabled).toBe(true);
+  expect(mockAccept).not.toHaveBeenCalled();expect(mockDraft).not.toHaveBeenCalled();
+});
+
 it('R04/F05: signed semantic candidate is shown without unlocking publish, private draft remains separate',async()=>{
   const original=review();
   const service='Montaža gotovog ormara';
@@ -1163,7 +1242,7 @@ it('R04/F05: signed semantic candidate is shown without unlocking publish, priva
   expect(text()).toContain('Proverite predlog postojeće usluge');
   expect(text()).toContain('Sklapanje ormara');
   expect(text()).toContain('Ovo je AI predlog, ne potvrđena kategorija.');
-  expect(text()).toContain('Potvrdite značenje usluge pre objave.');
+  expect(text()).toContain('Usluga još nije potvrđena za objavu.');
   expect(publish().disabled).toBe(true);
   expect(action('Sačuvaj nacrt').disabled).toBeFalsy();
   expect(mockAccept).not.toHaveBeenCalled();
