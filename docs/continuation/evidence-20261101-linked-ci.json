@@ -1,0 +1,136 @@
+{
+  "unit": "USKOCI_LINKED_SOURCE_CI_EVIDENCE",
+  "format_version": 1,
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "source_head": "4f229fbcbd8094198958e002541d509ebb6645c3",
+  "tested_merge_sha": "ead0f8c3b460422222ec758357d891babf8935af",
+  "main_ci": {
+    "workflow_run_id": 41308081333,
+    "job_id": 124852521292,
+    "conclusion": "success",
+    "mobile": {
+      "suites_passed": 626,
+      "tests_passed": 14479,
+      "snapshots_passed": 3
+    },
+    "ai": {
+      "tests": 1404,
+      "passed": 1403,
+      "failed": 0,
+      "todo": 1,
+      "todo_description": "R07a real Auth and full signed accept/Save/publish after price retraction, including an already prepared review"
+    },
+    "typescript": "PASS",
+    "edge_typechecks_passed": 12,
+    "migration_integrity": "PASS",
+    "isolated_privacy": "PASS"
+  },
+  "r01": {
+    "unit": "R01_NATIVE_NET_INVOKER_CI_EVIDENCE",
+    "format_version": 1,
+    "repository": "uskocibusiness-boop/USKOCI-EAN",
+    "workflow_run_id": 41308081381,
+    "job_id": 124852521309,
+    "head_sha": "4f229fbcbd8094198958e002541d509ebb6645c3",
+    "tested_merge_sha": "ead0f8c3b460422222ec758357d891babf8935af",
+    "observed": {
+      "unit": "R01_NATIVE_NET_INVOKER_CAPTURE",
+      "event": {
+        "invokes_helper": true,
+        "create_extension_only": true
+      },
+      "helper": {
+        "invoker": true,
+        "plpgsql": true,
+        "config_kind": "INHERITED",
+        "event_return": true,
+        "source_sha256": "55abda380efd46b37b26d3c6e4f3b514e28b7c7c1df44f5ae0315ece4052370d"
+      },
+      "database": "postgres",
+      "read_only": "on",
+      "delegation": {
+        "registered": true,
+        "role_sha256": "19d4e620c7d14b3a7daf1b6910309a1922d4257e28c241685f784122b1eb79b7"
+      },
+      "principals": [
+        {
+          "present": true,
+          "principal": "anon",
+          "superuser": false,
+          "createrole": false,
+          "database_create": false,
+          "authority_set_count": 0,
+          "authority_usage_count": 0
+        },
+        {
+          "present": true,
+          "principal": "authenticated",
+          "superuser": false,
+          "createrole": false,
+          "database_create": false,
+          "authority_set_count": 0,
+          "authority_usage_count": 0
+        },
+        {
+          "present": true,
+          "principal": "authenticator",
+          "superuser": false,
+          "createrole": false,
+          "database_create": false,
+          "authority_set_count": 0,
+          "authority_usage_count": 0
+        },
+        {
+          "present": true,
+          "principal": "service_role",
+          "superuser": false,
+          "createrole": false,
+          "database_create": false,
+          "authority_set_count": 0,
+          "authority_usage_count": 0
+        }
+      ],
+      "resolution": {
+        "catalog_first": true,
+        "roles_builtin": true,
+        "extension_builtin": true,
+        "ddl_commands_builtin": true,
+        "visible_shadow_routines": 0
+      },
+      "capture_role": "supabase_admin",
+      "format_version": 1,
+      "extension_version": "0.20.4",
+      "server_version_num": 170006
+    },
+    "comparison": {
+      "unit": "R01_NATIVE_NET_INVOKER_COMPARISON",
+      "format_version": 1,
+      "query_sha256": "9e27587c5e235d187290d235337041ea86a04d91e1ccbec7de76eef40f7d254d",
+      "observed_context_prerequisite_verified": true,
+      "difference_count": 0,
+      "differences": [],
+      "r01_boundary_admitted": false,
+      "limitations": "Only paired observed helper invoker name resolution, direct request-role database/role flags and USAGE/SET routes. No helper execution, CREATE EXTENSION attempt, arbitrary future search_path/temp state, ADMIN OPTION-mediated grants, indirect SECURITY DEFINER/dynamic SQL reachability, full Supautils behavior, image/build history, strict parity, Auth/PostgREST, fixture, candidate or deployment admission."
+    },
+    "full_r01": {
+      "result": "FAIL",
+      "failure_stage": "STRICT_PARITY",
+      "failure_code": "METADATA_PARITY_DIFFERENT",
+      "strict_difference_count": 8,
+      "supplemental_difference_count": 49,
+      "managed_hook_differences": [
+        "helper.config_md5",
+        "helper.body_md5",
+        "helper.definition_md5"
+      ],
+      "extension_acl_caller_scope_verified": false,
+      "live_access": false,
+      "fixtures_run": false,
+      "candidate_applied": false,
+      "actual_auth_proven": false,
+      "postgrest_boundary_proven": false
+    },
+    "cleanup_step_conclusion": "success"
+  },
+  "scope": "Parsed from the completed GitHub Actions jobs above. Source, isolated SQL and disposable infrastructure evidence only. No DEV migration or Edge deployment, installed Android evidence, production build or release admission."
+}
