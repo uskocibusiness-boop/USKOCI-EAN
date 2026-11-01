@@ -1,0 +1,186 @@
+{
+  "unit": "USKOCI_CURRENT_LOCK_PRODUCTION_DEPENDENCY_AUDIT",
+  "format_version": 1,
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/rev14-review-f17",
+  "source_head": "1a673bd353bbb1bb1203fbccdf70e4154c335c77",
+  "package_lock_sha256": "998565cfa4fd46a135405d7f67af762576304ffcd4de26d717474f86fa545afd",
+  "checked_on_utc": "2026-11-01",
+  "recorded_at_utc": "2026-11-01T17:54:23Z",
+  "basis": "Fresh registry audit of the current lock, installed dependency paths and bounded static caller inspection. This is not the GitHub default-branch alert count.",
+  "prior_evidence_reviewed": [
+    "docs/plan/CODEX_PLAN_RADA.md:3486",
+    "docs/plan/CODEX_PLAN_RADA.md:4603",
+    "docs/plan/CODEX_PLAN_RADA.md:4623"
+  ],
+  "command": "npm audit --omit=dev --json",
+  "command_exit_code": 1,
+  "registry_result": "SUCCESS_VALID_AUDIT_JSON_WITH_FINDINGS",
+  "audit_report_version": 2,
+  "counts": {
+    "info": 0,
+    "low": 1,
+    "moderate": 20,
+    "high": 6,
+    "critical": 0,
+    "total": 27
+  },
+  "unique_advisory_urls": 21,
+  "dependency_counts": {
+    "prod": 734,
+    "dev": 166,
+    "optional": 13,
+    "peer": 12,
+    "peerOptional": 0,
+    "total": 923
+  },
+  "count_interpretation": "27 affected package records include parent/meta-vulnerability aggregates; they are not 27 independently proven mobile vulnerabilities. Six high records include five leaf package families and the @expo/cli parent aggregate. --omit=dev still includes build/CLI/test tooling declared as ordinary dependencies by upstream packages.",
+  "parent_paths": [
+    {
+      "package": "compression",
+      "installed_versions": [
+        "1.8.1"
+      ],
+      "severity": "high",
+      "path": "expo@57.0.18 > @expo/cli@57.0.20 > compression@1.8.1",
+      "static_caller": "node_modules/expo/node_modules/@expo/cli/build/src/start/server/metro/dev-server/compression.js:11-24; createMetroMiddleware.js:46,64",
+      "classification": "DEVELOPMENT_SERVER",
+      "reachability_limit": "Actual Metro middleware caller found. Exposure to hostile network clients depends on dev-server access/configuration, not assessed completely here. No installed-APK HTTP-server path demonstrated.",
+      "advisory_urls": [
+        "https://github.com/advisories/GHSA-vc2v-76pw-4v95"
+      ]
+    },
+    {
+      "package": "brace-expansion",
+      "installed_versions": [
+        "5.0.9",
+        "1.1.18"
+      ],
+      "severity": "high",
+      "path": "expo-updates@57.0.24 / Expo CLI/config/fingerprint > glob@13.0.6 > minimatch@10.2.6 > brace-expansion@5.0.9; react-native@0.86.3 > @react-native/jest-preset > babel-jest > babel-plugin-istanbul > test-exclude > minimatch@3.1.5 > brace-expansion@1.1.18",
+      "static_caller": "Installed dependency tree: glob/minimatch tooling; no direct app source import found.",
+      "classification": "BUILD_AND_TEST_TOOLING",
+      "reachability_limit": "Affected expansion components present. Hostile input reaching these tooling operations was not proven; no APK runtime caller demonstrated.",
+      "advisory_urls": [
+        "https://github.com/advisories/GHSA-q2hr-2g5m-vwhr",
+        "https://github.com/advisories/GHSA-qhr7-859c-m2p7",
+        "https://github.com/advisories/GHSA-6j4f-fj2g-mc7p"
+      ]
+    },
+    {
+      "package": "node-forge",
+      "installed_versions": [
+        "1.4.0"
+      ],
+      "severity": "high",
+      "path": "expo-updates@57.0.24 > @expo/code-signing-certificates@0.0.6 > node-forge@1.4.0; expo@57.0.18 > @expo/cli@57.0.20 > node-forge@1.4.0",
+      "static_caller": "node_modules/@expo/code-signing-certificates/build/main.js:8,53,64,73,82,100,158,176,201-203,246; Expo CLI build/src/run/ios/codeSigning/Security.js:42",
+      "classification": "BUILD_SIGNING_AND_CLI_TOOLING",
+      "reachability_limit": "PEM/key/certificate/CSR and signature callers exist in signing tooling. Attacker-controlled input reaching each advisory sink was not established. This audit does not clear signing tooling or prove a mobile exploit.",
+      "advisory_urls": [
+        "https://github.com/advisories/GHSA-86w9-cpqp-85rv",
+        "https://github.com/advisories/GHSA-4642-5mcj-2rqw",
+        "https://github.com/advisories/GHSA-6wvx-3r32-xmcg",
+        "https://github.com/advisories/GHSA-525v-9gp9-w22h",
+        "https://github.com/advisories/GHSA-7wch-p9px-956x",
+        "https://github.com/advisories/GHSA-h6cr-wjv9-3cpp",
+        "https://github.com/advisories/GHSA-4487-j8r4-4g2f",
+        "https://github.com/advisories/GHSA-5cwg-6vw7-rj6p",
+        "https://github.com/advisories/GHSA-jc66-7q78-782g",
+        "https://github.com/advisories/GHSA-8hrf-8g6f-7xwp",
+        "https://github.com/advisories/GHSA-hqq3-7jhf-c5jx",
+        "https://github.com/advisories/GHSA-5x38-2vff-x55p"
+      ]
+    },
+    {
+      "package": "source-map-js",
+      "installed_versions": [
+        "1.2.1"
+      ],
+      "severity": "high",
+      "path": "expo@57.0.18 > @expo/metro-config@57.0.12 > postcss@8.5.26 > source-map-js@1.2.1",
+      "static_caller": "node_modules/postcss/lib/input.js:5; map-generator.js:4; previous-map.js:5",
+      "classification": "METRO_BUILD_SOURCE_MAP_TOOLING",
+      "reachability_limit": "PostCSS/source-map caller exists. A hostile indexed source map reaching it was not demonstrated; no app runtime path found.",
+      "advisory_urls": [
+        "https://github.com/advisories/GHSA-68fv-2mgg-jv7q"
+      ]
+    },
+    {
+      "package": "zod",
+      "installed_versions": [
+        "3.25.76"
+      ],
+      "severity": "high",
+      "path": "expo@57.0.18 > @expo/cli@57.0.20 > zod@3.25.76",
+      "static_caller": "Expo CLI build/src/start/server/DevToolsPlugin.schema.js:20; createMCPDevToolsExtensionSchema.js:12",
+      "classification": "CLI_DEVTOOLS_SCHEMA_VALIDATION",
+      "reachability_limit": "DevTools/plugin schema callers found. Oversized hostile collections reaching the vulnerable validation path were not established. No app runtime caller demonstrated; advisory patched major is not assumed to be a compatible update.",
+      "advisory_urls": [
+        "https://github.com/advisories/GHSA-mrhx-c7xc-m3w5"
+      ]
+    }
+  ],
+  "other_affected_leaf_packages": [
+    {
+      "package": "deepmerge",
+      "versions": [
+        "4.3.1"
+      ],
+      "severity": "low",
+      "path": "@expo/config config/plugin option merging",
+      "advisory_urls": [
+        "https://github.com/advisories/GHSA-gcqx-w48m-w2h4"
+      ]
+    },
+    {
+      "package": "glob",
+      "versions": [
+        "13.0.6",
+        "7.2.3"
+      ],
+      "severity": "moderate",
+      "path": "Expo/Jest tooling; old glob also receives transitive findings",
+      "advisory_urls": [
+        "https://github.com/advisories/GHSA-3g3m-2fjr-6pw4"
+      ]
+    },
+    {
+      "package": "minimatch",
+      "versions": [
+        "10.2.6",
+        "3.1.5"
+      ],
+      "severity": "moderate",
+      "path": "Expo/Jest glob tooling",
+      "advisory_urls": [
+        "https://github.com/advisories/GHSA-g3hv-75wg-m249"
+      ]
+    }
+  ],
+  "verification": {
+    "installed_tree_command": "npm ls --omit=dev compression brace-expansion node-forge source-map-js zod deepmerge glob minimatch --all",
+    "installed_tree_exit_code": 0,
+    "direct_app_import_search": "No direct imports/requires of the audited leaf packages found in src, scripts, plugins or app.config.js.",
+    "earlier_android_source_map": {
+      "path": "android/app/build/generated/sourcemaps/react/release/index.android.bundle.map",
+      "modified_at_utc": "2026-11-01T17:38:02.793Z",
+      "source_count": 5840,
+      "audited_leaf_path_matches": 0,
+      "final_current_head_apk_proof": false,
+      "limitation": "Earlier generated map only. Its absence of these packages must not be promoted to exact final APK or native reachability clearance."
+    },
+    "previously_fixed_packages": {
+      "decode_uri_component_upstream": "0.5.1; absent from current findings",
+      "shell_quote": "1.11.0; absent from current findings"
+    },
+    "package_json_or_lock_changed": false,
+    "dependency_install_update_or_fix_run": false
+  },
+  "conclusion": "OPEN_DEPENDENCY_FINDINGS_WITH_TOOLCHAIN_CALLERS; bounded inspection found no demonstrated APK exploit path, but does not prove that all dependencies or release tooling are safe.",
+  "limitations": [
+    "No dynamic exploit execution or exhaustive reachability assessment for all 21 advisories.",
+    "No final current-head APK dependency clearance, device exploit proof or production security approval.",
+    "No automatic audit fix: registry suggestions include incompatible framework changes/downgrades, which were not applied."
+  ]
+}

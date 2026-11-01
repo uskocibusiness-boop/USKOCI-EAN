@@ -10,7 +10,8 @@ import { readNeedUrgencies } from './needUrgencyClientService';
 import { novac } from '../lib/novac';
 import { decodeOwnTasksPage, isOwnTasksPageRequest } from './ownTasksPage';
 import { endingOfStatus, type WithEnding } from './needEnding';
-import { readOwnedResult, timestamp } from './serverReceipt';
+import { readOwnedResult, record, timestamp } from './serverReceipt';
+import { sesijaSada } from '../store/sesija';
 
 const supabase = new Proxy({} as ReturnType<typeof supabaseKlijent>, {
   get: (_target, prop) => (supabaseKlijent() as never)[prop],
@@ -212,11 +213,32 @@ export const needClientService: NeedReadService = {
     const needId = id.trim();
     if (!needId) return null;
 
-    const { data, error } = await supabase.rpc('rpc_read_task', { p_need_id: needId });
-
-    if (error) throw new Error(error.message || 'NEED_READ_FAILED');
-    if (!data) return null;
-    const urgency = await readNeedUrgencies([data]);
-    return { ...mapNeed(data), urgency: urgency.get(data.id) };
+    const owner = sesijaSada();
+    const result = await readOwnedResult({
+      request: async signal => {
+        const request = supabase.rpc('rpc_read_task', { p_need_id: needId });
+        // Bound the whole transport, including an SDK that does not settle on
+        // abort. Keep the existing Error/mapping API outside the receipt decoder.
+        return { data: await (typeof request.abortSignal === 'function' ? request.abortSignal(signal) : request), error: null };
+      },
+      decode: raw => {
+        const response = record(raw);
+        return response && Object.prototype.hasOwnProperty.call(response, 'data')
+          && (response.error === null || record(response.error)) ? response : null;
+      },
+      errors: {}, fallback: 'NEED_READ_FAILED', invalid: 'NEED_DETAIL_INVALID_PROJECTION',
+    });
+    if (!result.ok) throw new Error(result.kod);
+    const { data, error } = result.podatak;
+    const message = record(error)?.message;
+    if (error) throw new Error(typeof message === 'string' && message || 'NEED_READ_FAILED');
+    if (data === null) return null;
+    const document = record(data);
+    if (!document) throw new Error('NEED_DETAIL_INVALID_PROJECTION');
+    const need = mapNeed(document);
+    const urgency = await readNeedUrgencies([{ id: document.id, urgent: document.urgent }]);
+    if (sesijaSada().user?.id !== owner.user?.id || sesijaSada().accountRevision !== owner.accountRevision)
+      throw new Error('AUTH_ACCOUNT_CHANGED');
+    return { ...need, urgency: urgency.get(need.id) };
   },
 };

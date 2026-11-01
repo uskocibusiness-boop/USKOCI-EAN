@@ -1,0 +1,203 @@
+{
+  "unit": "USKOCI_R03_R07_R04_FULL_CI_CHECKPOINT",
+  "format_version": 1,
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/rev14-review-f17",
+  "pull_request": 43,
+  "source_head": "1a673bd353bbb1bb1203fbccdf70e4154c335c77",
+  "tested_merge_sha": "6abc5755df8af17bb57d6c756af9c43cd6723fac",
+  "integration_base_sha": "a9692e11942609bab9406215c3e407d79589dafa",
+  "checked_at_utc": "2026-11-01T18:01:11Z",
+  "evidence_basis": "Completed workflow and job metadata plus actual checkout/test/runtime logs. No expected totals were substituted.",
+  "main_ci": {
+    "run_id": 41333436023,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41333436023",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "id": 124928159250,
+        "name": "source-and-contracts",
+        "status": "completed",
+        "conclusion": "success",
+        "step_count": 33,
+        "all_steps_success": true,
+        "non_success_steps": []
+      },
+      {
+        "id": 124928159518,
+        "name": "r05-postgis-candidates",
+        "status": "completed",
+        "conclusion": "success",
+        "step_count": 9,
+        "all_steps_success": true,
+        "non_success_steps": []
+      }
+    ],
+    "checks": {
+      "typescript": "PASS",
+      "deno_edge_typechecks": {
+        "function_count": 12,
+        "conclusion": "PASS",
+        "execution": false
+      },
+      "mobile_jest": {
+        "suites_passed": 626,
+        "suites_total": 626,
+        "tests_passed": 14541,
+        "tests_total": 14541,
+        "snapshots_passed": 3,
+        "snapshots_total": 3
+      },
+      "ai_matrix": {
+        "command": "node --test --test-concurrency=2 --test-reporter=spec supabase/proofs/ai/*.test.mjs",
+        "tests": 1488,
+        "passed": 1487,
+        "failed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 1,
+        "open_todo": "R07a integration: real Auth and full signed accept/Save/publish after price retraction, including an already prepared review"
+      },
+      "reviewed_dev_packages": {
+        "tests": 37,
+        "passed": 37,
+        "failed": 0,
+        "included_r03_tests": 6,
+        "included_r07_tests": 7
+      },
+      "r10_work_areas_export_isolated": {
+        "tests": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      "need_column_privacy_isolated": {
+        "tests": 16,
+        "passed": 16,
+        "failed": 0
+      },
+      "migration_source_integrity": "PASS",
+      "r05_real_postgis": "PASS"
+    },
+    "summary_log_lines": [
+      "2026-11-01T17:55:06.4093374Z Test Suites: 626 passed, 626 total",
+      "2026-11-01T17:55:06.4094207Z Tests:       14541 passed, 14541 total",
+      "2026-11-01T17:55:06.4094819Z Snapshots:   3 passed, 3 total",
+      "2026-11-01T17:59:44.1859442Z ℹ tests 1488",
+      "2026-11-01T17:59:44.1860434Z ℹ pass 1487",
+      "2026-11-01T17:59:44.1862978Z ℹ todo 1",
+      "2026-11-01T17:59:56.3013995Z PASS migration_integrity files=193 live_snapshot=87 pending=60 physical_suffix=43 oct26_suffix=3 191500=RECORDED_STATEMENT_RECONSTRUCTION exact_byte_mirror=false participant_contract=PASS"
+    ]
+  },
+  "r03": {
+    "test_file": "supabase/operations/dev-alpha/r03-owner-page-20261101/package.test.mjs",
+    "local_preparation_evidence": "supabase/operations/dev-alpha/r03-owner-page-20261101/preparation-receipt.json",
+    "local_preparation": {
+      "tests": 6,
+      "passed": 6,
+      "failed": 0,
+      "scope": "Historical local SQL/client preparation; uncommitted packet at source e870. The same six test names now have CI witnesses at the tested merge."
+    },
+    "ci": {
+      "tests": 6,
+      "passed": 6,
+      "failed": 0,
+      "included_in_reviewed_dev_package_total": true,
+      "passed_test_log_lines": [
+        "2026-11-01T17:51:18.4049595Z ✔ frozen package changes exactly the existing page body, not closure or authority (18.101431ms)",
+        "2026-11-01T17:51:18.4073628Z ✔ exact current SQL reproduces empty and nonempty OWN_TASKS_PAGE_INVALID in the real service (5239.42047ms)",
+        "2026-11-01T17:51:18.4080639Z ✔ new actual SQL maps every scope and cursor through current client; whole-list documents and counts agree (3946.147934ms)",
+        "2026-11-01T17:51:18.4082878Z ✔ new reader denies missing/closed/anonymous callers and invalid input; preserves no-private-field document (2944.890328ms)",
+        "2026-11-01T17:51:18.4084736Z ✔ one-body rollback restores the captured failure without changing helper/ACL; reapply succeeds (3188.78953ms)",
+        "2026-11-01T17:51:18.4086459Z ✔ actual catalog delta assertion accepts one body only and rejects an unrelated helper change (2671.466878ms)"
+      ]
+    },
+    "promotion_sha256": "b10e5c3532378b340d83e9c19b54ac6765c2f5641e9f2f18f296e7c60f16cc24",
+    "separate_dev_native_evidence": "docs/continuation/evidence-20261101-r03-native-dev.json",
+    "scope": "Exact captured SQL/client contract reproduction, five scopes/counts/cursors, ownership and refusal, private-field exclusion, inverse rollback and unrelated-delta rejection. CI is isolated and does not itself apply or establish native acceptance."
+  },
+  "r05": {
+    "job_id": 124928159518,
+    "conclusion": "success",
+    "tested_merge_sha": "6abc5755df8af17bb57d6c756af9c43cd6723fac",
+    "log_evidence": "2026-11-01T17:50:29.1596355Z R05 PostGIS PASS; evidence /home/runner/work/USKOCI-EAN/USKOCI-EAN/artifacts/r05-postgis",
+    "artifact": {
+      "id": 13093264417,
+      "name": "r05-postgis-saved-area-proof",
+      "size_in_bytes": 14065,
+      "sha256": "25af2d30b13f84d89e44142141a19568ddb3bdb0a10a3ae5186705d5380d60b5",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41333436023/artifacts/13093264417",
+      "archive_downloaded_in_this_check": false
+    },
+    "scope": "Synthetic disposable PostgreSQL/PostGIS proof. No live DEV deployment, full-schema dispatch or real Auth/push claim. Detailed prior same-source-candidate scope is recorded in evidence-20261101-r05-postgis-ci.json."
+  },
+  "r01": {
+    "run_id": 41333436024,
+    "job_id": 124928159069,
+    "status": "completed",
+    "conclusion": "failure",
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41333436024",
+    "tested_merge_sha": "6abc5755df8af17bb57d6c756af9c43cd6723fac",
+    "failure_stage": "STRICT_PARITY",
+    "failure_code": "METADATA_PARITY_DIFFERENT",
+    "strict_difference_count": 8,
+    "supplementary_difference_count": 49,
+    "managed_hook_difference_count": 3,
+    "native_net_invoker_paired_verified": true,
+    "native_net_invoker_difference_count": 0,
+    "r01_boundary_admitted": false,
+    "metadata_equal": false,
+    "live_access": false,
+    "fixtures_run": false,
+    "candidate_applied": false,
+    "actual_auth_proven": false,
+    "postgrest_boundary_proven": false,
+    "bootstrap_sql_sha256": "1702ea9a70a08265d74441557c04b6840a343493905a780c6b89fc4dc598f99f",
+    "cleanup_step_conclusion": "success",
+    "cleanup_log_evidence": "2026-11-01T17:52:32.7169897Z R01 disposable project stopped without retaining its data volumes.",
+    "artifact": {
+      "id": 13094525859,
+      "name": "r01-schema-6abc5755df8af17bb57d6c756af9c43cd6723fac-41333436024-1",
+      "size_in_bytes": 51077,
+      "sha256": "895819d116fa20fb6f8635eb771f1f7a12075a81c0d33964dae92e3f7be354ae",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41333436024/artifacts/13094525859",
+      "archive_downloaded_in_this_check": false
+    },
+    "comparison": "Same failure stage, 8/49/3 counts, paired invoker true/0 and cleanup success as evidence-20261101-774bdc93-full-ci.json; no repeated wider analysis or tuple-equality claim."
+  },
+  "limitations": [
+    "This full CI proves the checked-out merge and declared isolated tests. Real Auth/PostgREST, Gemini availability, push delivery, complete Android user flows and release readiness need separate evidence.",
+    "The R01 workflow uses the unchanged frozen bootstrap. It does not compare the full current live DEV catalog including F10/R08/R03/R07 operational deltas.",
+    "R01 strict parity remains failed. The paired native-net prerequisite does not admit the broader boundary.",
+    "All source changes after 1a673bd3, including the pending task-detail timeout remediation, are outside this CI checkpoint. A passing source CI does not settle the observed native refresh delay.",
+    "This collection made no workflow rerun, SQL mutation, Edge deployment, source/master edit, commit or push. Only this evidence file was added."
+  ],
+  "r07": {
+    "test_file": "supabase/operations/dev-alpha/r07-application-attention-20261101/package.test.mjs",
+    "ci": {
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "included_in_reviewed_dev_package_total": true,
+      "passed_test_log_lines": [
+        "2026-11-01T17:51:19.1894779Z ✔ frozen package preserves every signature, metadata and closure admission; changes three bodies only (15.838776ms)",
+        "2026-11-01T17:51:19.1964372Z ✔ exact preimage reproduces completed selection as false attention through SQL and the actual client (4831.140544ms)",
+        "2026-11-01T17:51:19.1976859Z ✔ corrected SQL separates lifecycle attention from selection and preserves exact Agreement links/terms (3120.123429ms)",
+        "2026-11-01T17:51:19.1978717Z ✔ all scopes, counts, microsecond ties and keyset pages agree with the corrected whole-list order (3787.414415ms)",
+        "2026-11-01T17:51:23.3634900Z ✔ ownership, empty results, no-Auth/anonymous denial and page input guards survive; NULL-owner acceptance executes (4174.109636ms)",
+        "2026-11-01T17:51:26.8119078Z ✔ atomic rollback restores exact historical behavior and metadata; reapply moves completed selection to history (3445.769782ms)",
+        "2026-11-01T17:51:29.0900766Z ✔ actual catalog assertion allows exactly three body changes and rejects unrelated changes atomically (2286.090258ms)"
+      ]
+    },
+    "promotion_sha256": "5e174baae5fe232e07d1676008be42ec25676767c8a9346d0920051ea679269d",
+    "separate_dev_native_evidence": "docs/continuation/evidence-20261101-r07-native-dev.json",
+    "scope": "Captured SQL plus actual application client: terminal Agreement attention correction, preserved selection/link/terms, owned latest Agreement, scopes/counts/cursors, refusal, inverse rollback and unrelated-delta rejection. Isolated CI does not itself apply or prove hosted/native behavior."
+  },
+  "r04": {
+    "changed_source": "src/app/(app)/pregled-zadatka.tsx",
+    "changed_test": "src/data/__tests__/v5-review-screen.test.tsx",
+    "scope": "Truthful classification-state copy, same-conversation missing-mode correction, existing refresh action, unchanged publication guards, account-switch and error-recovery tests.",
+    "separate_native_evidence": "docs/continuation/evidence-20261101-r04-ai-native.json",
+    "limitation": "Semantic classification/publish remains a separate server gate. The subsequently observed long native refresh and subsequent timeout remediation are not proven fixed by this CI head."
+  }
+}
