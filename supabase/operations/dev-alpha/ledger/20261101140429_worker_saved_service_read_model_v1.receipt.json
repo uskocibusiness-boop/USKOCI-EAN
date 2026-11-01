@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "package": "F10_SAVED_WORKER_SERVICES",
+  "classification": "APPLIED_EXACT_OPERATION_LEDGER_BYTES",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "migration": {
+    "version": "20261101140429",
+    "name": "worker_saved_service_read_model_v1",
+    "appliedAtUtc": "2026-11-01T14:04:29Z",
+    "method": "Supabase apply_migration",
+    "appliedBy": "root agent under authorized controlled DEV procedure",
+    "statementCount": 1,
+    "recordedBytes": 25571,
+    "recordedMd5": "288595ddc32a15b44a6ae219364610de",
+    "recordedSha256": "dccf2985db7eb81b568120e4f7e7a35ab9c036aa3d09b53846356af1b054d731",
+    "exactTextInRepo": "supabase/operations/dev-alpha/ledger/20261101140429_worker_saved_service_read_model_v1.sql",
+    "reviewedEmitter": "supabase/operations/dev-alpha/f10-saved-services-20261101/build.mjs --emit forward",
+    "emittedComparedWithCatalog": "IDENTICAL_BYTES",
+    "archiveComparedWithCatalog": "IDENTICAL_BYTES"
+  },
+  "postflight": {
+    "rootImmediateResult": "F10_DEV_POSTIMAGE_MATCH",
+    "rootReadbackAtUtc": "2026-11-01T14:04:38Z",
+    "independentReaderReadbackAtUtc": "2026-11-01T14:06:56.646979Z",
+    "signature": "public.rpc_get_worker_execution_modes(uuid)",
+    "beforeDefinitionMd5": "f42fe6666c33e8b5faa8313c72f8501d",
+    "afterDefinitionMd5": "f30385f3c31eba2e846577a52a933325",
+    "afterBodyMd5": "d7770879ae958a1136c961537f22ad17",
+    "owner": "postgres",
+    "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}",
+    "securityDefiner": true,
+    "config": ["search_path=pg_catalog"],
+    "matchesFrozenPostimage": true
+  },
+  "acceptance": {
+    "noRowSqlAcceptancePassedInsideMigration": true,
+    "missingAuthRejected": true,
+    "nullProfileOwnershipRejected": true,
+    "exactEmptyProjectionExecuted": true,
+    "realOwnedSaveReopenProven": false,
+    "realJwtAuthenticationProven": false,
+    "androidProven": false
+  },
+  "effects": {
+    "changedFunctions": 1,
+    "newFunctions": 0,
+    "newTables": 0,
+    "profileWrites": 0,
+    "providerCalls": 0,
+    "edgeDeployments": 0,
+    "matchingOrActivationAuthorityChanged": false
+  },
+  "provenance": {
+    "frozenPackageManifestUnchanged": true,
+    "oldHistoricalSnapshotsUnchanged": true,
+    "portableMigrationReplayAdmitted": false,
+    "currentBootstrapRecaptured": false,
+    "nextR01Capture": "Include this approved exact function delta and actual migration version; the previous bootstrap is historical, not a fresh DEV read.",
+    "archivePolicy": "Operational evidence only. Do not replay the DEV OID-pinned archive as a portable migration. Use reviewed package guards/rollback for this DEV project."
+  },
+  "limits": [
+    "DEV reader deployment does not prove the real two-account Save/binder/reopen journey.",
+    "No production release, native build, rollout or legal readiness is claimed."
+  ]
+}

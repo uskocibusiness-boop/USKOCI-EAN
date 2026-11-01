@@ -1,0 +1,22 @@
+{
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "source_commit": "53a3220d58643ee30e6646b6be04c807f9c1eb19",
+  "date": "2026-11-01",
+  "method": "Exact checked-in preflight.sql via canonical read-only connector, after R08 SQL promotion",
+  "result": [
+    {
+      "metadata_result": "EDGE_AI_25_RPC_METADATA_MATCH",
+      "environment_verified": false,
+      "functional_acceptance_proven": false
+    }
+  ],
+  "package_tests": {
+    "tests": 7,
+    "pass": 7,
+    "fail": 0
+  },
+  "limitations": [
+    "Timestamp is the execution date only; rerun exact preflight immediately before promotion.",
+    "No hosted Edge deployment, Auth sign-in, provider invocation or device result."
+  ]
+}

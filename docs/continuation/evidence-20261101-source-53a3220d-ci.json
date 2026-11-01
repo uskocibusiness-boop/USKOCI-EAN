@@ -1,0 +1,38 @@
+{
+  "unit": "USKOCI_LINKED_SOURCE_CI_EVIDENCE",
+  "format_version": 1,
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "source_head": "53a3220d58643ee30e6646b6be04c807f9c1eb19",
+  "tested_merge_sha": "1bc85fe8a67bcd8cdbe8919de285874a9a9d5ee0",
+  "main_ci": {
+    "workflow_run_id": 41313606192,
+    "job_id": 124868933375,
+    "conclusion": "success",
+    "mobile": {"suites_passed": 626, "tests_passed": 14496, "snapshots_passed": 3},
+    "ai": {"tests": 1478, "passed": 1477, "failed": 0, "todo": 1},
+    "typescript": "PASS",
+    "edge_typechecks_passed": 12,
+    "migration_integrity": "PASS",
+    "isolated_privacy": "PASS"
+  },
+  "r01": {
+    "workflow_run_id": 41313606180,
+    "job_id": 124868933447,
+    "conclusion": "failure",
+    "failure_stage": "STRICT_PARITY",
+    "failure_code": "METADATA_PARITY_DIFFERENT",
+    "strict_differences": 8,
+    "supplemental_differences": 49,
+    "managed_hook_differences": 3,
+    "paired_invoker_differences": 0,
+    "extension_acl_caller_scope_verified": false,
+    "real_auth_and_candidate_admitted": false,
+    "disposable_cleanup": "PASS"
+  },
+  "scope": "Source CI, before the separately recorded F10/R08 DEV migrations and AI Edge promotion. Not Android, real Auth/Gemini, push or release evidence.",
+  "limitations": [
+    "The existing R07a real Auth/Save/publish TODO is not a passing test.",
+    "R01 uses a frozen historical catalog; it is not a new live DEV capture after the November 1 migrations.",
+    "Operations package tests and deployment receipts are recorded separately."
+  ]
+}

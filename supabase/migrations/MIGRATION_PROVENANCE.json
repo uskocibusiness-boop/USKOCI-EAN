@@ -3452,5 +3452,59 @@
         "raw_bytes": 7036
       }
     ]
+  },
+  "dev_operation_applications_20261101": {
+    "project": "leqcwgzvjsxugfgzdmth",
+    "scope": "Append-only operational application evidence. DEV OID-pinned packages are archived separately from the portable physical migration replay suffix. Historical snapshots, counts and checksums are not refreshed by this supplement.",
+    "entries": [
+      {
+        "version": "20261101140429",
+        "name": "worker_saved_service_read_model_v1",
+        "classification": "APPLIED_EXACT_OPERATION_LEDGER_BYTES",
+        "live_applied": true,
+        "observed_at_utc": "2026-11-01T14:06:56.646979Z",
+        "recorded_md5": "288595ddc32a15b44a6ae219364610de",
+        "recorded_sha256": "dccf2985db7eb81b568120e4f7e7a35ab9c036aa3d09b53846356af1b054d731",
+        "recorded_bytes": 25571,
+        "exact_text": "supabase/operations/dev-alpha/ledger/20261101140429_worker_saved_service_read_model_v1.sql",
+        "evidence": "supabase/operations/dev-alpha/ledger/20261101140429_worker_saved_service_read_model_v1.receipt.json",
+        "reviewed_packet": "supabase/operations/dev-alpha/f10-saved-services-20261101/",
+        "emitted_bytes_match_catalog": true,
+        "portable_replay_admitted": false,
+        "current_bootstrap_recaptured": false,
+        "next_r01_capture": "Include the approved owned-reader delta and actual migration version. Earlier baseline files remain historical captures, not fresh DEV state."
+      },
+      {
+        "version": "20261101140909",
+        "name": "worker_signed_remote_only_activation_v1",
+        "classification": "APPLIED_EXACT_OPERATION_LEDGER_BYTES",
+        "live_applied": true,
+        "observed_at_utc": "2026-11-01T14:10:07.100729Z",
+        "recorded_md5": "38941f60c1453a6e21a163a30385ee0e",
+        "recorded_sha256": "e3478c24695a97c6fb4fe1714c319a2cda02fda8d4e9993c9f1840a28c378036",
+        "recorded_bytes": 186229,
+        "exact_text": "supabase/operations/dev-alpha/ledger/20261101140909_worker_signed_remote_only_activation_v1.sql",
+        "evidence": "supabase/operations/dev-alpha/ledger/20261101140909_worker_signed_remote_only_activation_v1.receipt.json",
+        "reviewed_packet": "supabase/operations/dev-alpha/r08-remote-only-20261101/",
+        "emitted_bytes_match_catalog": true,
+        "hosted_synthetic_sql_acceptance": "PASS_INSIDE_MIGRATION_TRANSACTION",
+        "synthetic_fixture_persisted": false,
+        "real_auth_http_android_proven": false,
+        "portable_replay_admitted": false,
+        "current_bootstrap_recaptured": false,
+        "r01_boundary_admitted": false,
+        "next_r01_capture": "Include both approved 20261101 DEV deltas (F10 reader and R08 activation), with actual migration versions. Preserve historical baseline files until the controlled recapture; do not rewrite old history."
+      }
+    ],
+    "subsequent_catalog_verification": {
+      "captured_at": "2026-11-01T14:22:26.596221Z",
+      "evidence": "docs/continuation/evidence-20261101-r01-dev-catalog.json",
+      "capture_sha256": "c56fc3032e61fd8d76378060c3471ac56bbd51dd488f4a358a3e65c47fb25e29",
+      "expected_function_deltas": 11,
+      "unexpected_deltas": 0,
+      "frozen_bootstrap_changed": false,
+      "portable_replay_admitted": false,
+      "r01_boundary_admitted": false
+    }
   }
 }

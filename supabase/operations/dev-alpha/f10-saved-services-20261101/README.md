@@ -1,6 +1,17 @@
 # F10 — controlled DEV owned-reader promotion
 
-Prepared for `leqcwgzvjsxugfgzdmth` only; **not applied**. The package changes only
+**Applied to canonical DEV** `leqcwgzvjsxugfgzdmth` at **2026-11-01 14:04:29 UTC**
+as migration `20261101140429_worker_saved_service_read_model_v1`. Immediate
+postflight passed; independent catalog readback matches the frozen postimage.
+The exact recorded SQL is byte-identical to `build.mjs --emit forward`.
+See the [application receipt](../ledger/20261101140429_worker_saved_service_read_model_v1.receipt.json)
+and [exact operational SQL archive](../ledger/20261101140429_worker_saved_service_read_model_v1.sql).
+The immutable manifest's `PREPARED_NOT_APPLIED` records preparation, not this
+later application. Do not reapply the package or reinterpret the earlier
+bootstrap as a fresh DEV snapshot. The next R01 capture must include this approved
+delta. Real owned Save/reopen and Android acceptance remain unproven.
+
+The package changes only
 `public.rpc_get_worker_execution_modes(uuid)`. It adds owned per-service display
 facts and preserves its existing aggregate response, owner and ACL. It writes no
 profile, review, capability, activation or matching data.

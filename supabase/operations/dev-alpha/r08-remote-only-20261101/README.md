@@ -2,8 +2,22 @@
 
 This is an execution packet under the existing CODEX master, not a new plan.
 Target: `leqcwgzvjsxugfgzdmth`, PostgreSQL `170006`, database `postgres`.
-Status: **PREPARED_NOT_APPLIED**. No Edge/mobile deployment or device acceptance
-is represented by this packet. R01 strict parity is unchanged and remains open.
+Current status: **APPLIED TO DEV, HOSTED SYNTHETIC SQL ACCEPTANCE PASS**.
+Migration `20261101140909` / `worker_signed_remote_only_activation_v1` was applied
+at 14:09:09 UTC by the coordinator. The exact `promotion.sql` SHA256 is
+`e3478c24695a97c6fb4fe1714c319a2cda02fda8d4e9993c9f1840a28c378036`.
+The real PostgreSQL prepare/save/readback/batch/binder assertions passed inside
+the transaction; fixtures rolled back before code commit. Immediate and repeated
+postflight returned `R08_DEV_POSTIMAGE_MATCH`; independent 14:10:07 UTC readback
+found zero synthetic Auth, conversation and Save rows. The metadata query's
+`functional_acceptance_proven=false` remains accurate for that metadata query;
+the separate in-transaction assertions establish the synthetic SQL acceptance.
+Exact applied SQL and receipt are in `../ledger/20261101140909_worker_signed_remote_only_activation_v1.*`.
+Frozen `manifest.json` and `preparation-receipt.json` retain their historical
+**PREPARED_NOT_APPLIED** state. The subsequent complete AI Edge promotion is
+recorded separately in `../edge-ai-20261101/applied-receipt.json`; it is not part
+of this SQL receipt. No mobile deployment, genuine GoTrue/HTTP journey or device
+acceptance is represented. R01 strict parity remains open.
 
 The seven owners were captured read-only at 13:42:39 UTC and their dependencies
 at 13:45:02 UTC. `preimage.json` preserves exact definitions, OIDs, owner and ACL.
@@ -50,7 +64,8 @@ node --test supabase/proofs/ai/r08_remote_only_activation.test.mjs
    statement timeouts, original OID/body/owner/ACL/dependency guards and final
    postimage guards. Forward/revert files themselves are transaction fragments.
 4. Apply **promotion.sql** using the existing controlled migration procedure after coordinator
-   review. This packet has not been applied. The Supabase `execute_sql` connector
+   review. This recorded step is now complete; do not rerun the original forward
+   against its changed postimage. The Supabase `execute_sql` connector
    requires `apply_migration` for DDL; do not send the forward through that reader
    as a substitute. A pre-apply DDL rollback rehearsal requires a permitted direct
    PostgreSQL connection. A migration-history write is not a rollback rehearsal.
@@ -92,21 +107,22 @@ other workers and are discarded at the savepoint. The fixture changes no catalog
 identity/mode: it reuses the existing REMOTE service `Izrada jednostavnog sajta`.
 It is explicitly TEST lineage. There is no provider, HTTP, push or email call in
 the reviewed fixture path. Exact trigger/function guards refuse drift before the
-fixture runs. The same guard passed read-only against DEV; no DML has run there.
+fixture runs. The same guard passed read-only against DEV before promotion.
 
 `acceptance.test.mjs` executes the exact fragment with the existing limited R08
 PGlite fixture, including the captured Auth bootstrap trigger and real
 prepare/save/readback/batch/binder definitions. Both success/fixture rollback and
 failure/enclosing-DDL rollback pass. The fixture still substitutes closure/requeue
-and omits hosted RLS/PostGIS; only a successful promotion will establish the
-hosted PostgreSQL dependency result. The prebinding check here is the durable
+and omits hosted RLS/PostGIS; the subsequent successful DEV promotion established
+the hosted PostgreSQL dependency result for this fixture. The prebinding check here is the durable
 scope predicate, not a completed application/matching/push proof.
 
-This SQL packet contains no Edge payload. Live versions last inspected by the
-coordinator are Worker 104 / Need 151 / post-save 6. The existing post-save
-batch/binder RPC contract is retained. Coordinate the smallest reviewed Worker
-prompt change and matching mobile preview; deploying the whole branch may include
-unrelated dependencies. Current mobile source understands the explicit refusal
+This SQL packet contains no Edge payload. Its original Edge baseline was Worker
+104 / Need 151 / post-save 6. The separate `../edge-ai-20261101/` packet records
+the subsequent complete, reviewed Need/Worker source promotion and configuration
+revisions; consult its receipts for current versions. The existing post-save
+batch/binder RPC contract is retained. Coordinate a matching mobile preview.
+Current mobile source understands the explicit refusal
 and creates a fresh signed review if the user chooses Save Draft. Older clients
 must not invent a city or suppress the server refusal.
 
