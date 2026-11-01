@@ -73,7 +73,7 @@ export function V2Action({ label, accessibilityLabel, onPress, disabled = false,
   const [outer, inner] = wrapped ? splitPlacement(flat) : [null, style];
   useAnnouncedReason(why, loading);
   const button = <Press accessibilityRole="button" accessibilityLabel={accessibilityLabel ?? label} accessibilityHint={why ?? undefined}
-    accessibilityState={loading ? { disabled: true, busy: true } : { disabled }}
+    accessibilityState={{ disabled: inactive, busy: loading }}
     onPress={onPress} disabled={inactive} haptic={inactive ? 'none' : kind === 'primary' ? 'light' : 'select'}
     style={[{ minHeight: kind === 'primary' ? 54 : ACTION_MIN_HEIGHT, borderRadius: sys.radius.control,
       paddingHorizontal: sys.space.base, paddingVertical: sys.space.sm, gap: sys.space.sm,

@@ -42,7 +42,7 @@ it('retains a generous touch target for every action material', async () => {
 
 it('keeps a readable label when disabled: muted ink on the quiet wash, never a faded ghost', async () => {
   await render(<V2Action label="Sačuvaj područje rada" style={brandAction} disabled onPress={noop} />);
-  expect(press().props.accessibilityState).toEqual({ disabled: true });
+  expect(press().props.accessibilityState).toEqual({ disabled: true, busy: false });
   expect(press().props.disabled).toBe(true);
   expect(flat(surface())).toMatchObject({ backgroundColor: sys.color.wash });
   expect(flat(surface()).opacity ?? 1).toBe(1);
@@ -62,7 +62,21 @@ it('keeps its colour and its words while loading, shows a spinner, cannot be pre
   expect(tree.root.findAllByType(ActivityIndicator)).toHaveLength(1);
   await update(<V2Action label="Sačuvaj područje rada" style={brandAction} onPress={noop} />);
   expect(tree.root.findAllByType(ActivityIndicator)).toHaveLength(0);
-  expect(press().props.accessibilityState).toEqual({ disabled: false });
+  expect(press().props.accessibilityState).toEqual({ disabled: false, busy: false });
+});
+
+it.each([false, true])('explicitly clears Android busy on the same button when loading ends with disabled=%s', async disabled => {
+  await render(<V2Action label="Osveži pregled" kind="quiet" loading onPress={noop} />);
+  const nativeButton = surface();
+  expect(nativeButton.props.accessibilityState).toMatchObject({ disabled: true, busy: true });
+  await update(<V2Action label="Osveži pregled" kind="quiet" disabled={disabled} onPress={noop} />);
+  expect(surface()).toBe(nativeButton);
+  expect(tree.root.findAllByType(ActivityIndicator)).toHaveLength(0);
+  // Android BaseViewManager refreshes its content description when the new
+  // accessibilityState contains busy. Omitting the key can retain "busy" even
+  // after the spinner disappears and the same native button becomes enabled.
+  expect(nativeButton.props.accessibilityState).toMatchObject({ disabled, busy: false });
+  expect(press().props.disabled).toBe(disabled);
 });
 
 it('shows a temporary check only when the caller says the write is confirmed', async () => {
@@ -103,7 +117,7 @@ it('draws a danger outline and the caller\'s message right under the button, ann
   expect(alert.props.children).toBe('Lokacija nije podeljena. Pokušaj ponovo.');
   expect(flat(alert).color).toBe(sys.color.danger);
   // The button itself stays usable: an error is a reason to try again, not a lock.
-  expect(press().props.accessibilityState).toEqual({ disabled: false });
+  expect(press().props.accessibilityState).toEqual({ disabled: false, busy: false });
 });
 
 // Review r3 item 1: the grey wash under a disabled green button hid its white icon ("Slanje…", "Preuzimanje i čuvanje…").
@@ -125,7 +139,7 @@ it('says why a disabled action cannot be pressed: a muted line under it and the 
   const note = () => tree.root.findAllByType(Text).find(node => node.props.children === reason);
   await render(<V2Action label="Pregledaj ponudu" style={brandAction} disabled reason={reason} onPress={noop} />);
   expect(press().props.accessibilityHint).toBe(reason);
-  expect(press().props.accessibilityState).toEqual({ disabled: true });
+  expect(press().props.accessibilityState).toEqual({ disabled: true, busy: false });
   expect(flat(note()!).color).toBe(sys.color.muted);
   // Spoken once, as the hint; the drawn line is not read a second time.
   expect(note()!.props.accessibilityElementsHidden).toBe(true);

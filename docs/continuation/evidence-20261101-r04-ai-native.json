@@ -55,7 +55,7 @@
     "reproductionFailures": 6,
     "focusedTestsPassed": 186,
     "typeScriptPassed": true,
-    "nativeVerificationOfNewCopy": "PASS on installed source 1a673bd3: truthful pending caption, disabled publication and visible refresh. Refresh completion is separately unresolved in evidence-20261101-native-1a673.json; copy acceptance does not close R04."
+    "nativeVerificationOfNewCopy": "PASS on installed source 1a673bd3: truthful pending caption, disabled publication and working repeated refresh. Android retains a stale accessibility busy label after completion; the corrected native evidence separates that label from a real loading stall. Copy acceptance does not close R04."
   },
   "nextExistingContract": "R04 §6.4: bind owner confirmation to the exact signed semantic candidate/digest/source/catalog/mode/handoff; validate it through existing Save, batch and binder; no global alias insertion or model-authority shortcut.",
   "artifacts": {
