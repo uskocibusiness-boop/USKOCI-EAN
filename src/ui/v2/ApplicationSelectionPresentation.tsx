@@ -26,7 +26,8 @@ import { LARGE_TEXT_SCALE, useLayoutClass, useWindowRoom } from '../system/textS
 import { brandAction, sys } from '../system/tokens';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { T } from '../Text';
-import { CandidateCard, CandidateCompareCard, CandidatePerson, UNPRICED, candidateChip, candidateHas, candidateStatus, candidateTime, candidateValue, candidateRatingValue } from './CandidateFace';
+import { CandidateCard, CandidateCompareCard, CandidatePerson, UNPRICED, candidateChip, candidateHas, candidateStatus, candidateTime, candidateValue } from './CandidateFace';
+import { candidateRatingValue } from '../../data/candidateRating';
 import { DogovorenoMoment } from './DogovorenoMoment';
 import { ChoiceRow } from './offer/ChoiceRow';
 import { PrijavaState } from './PrijavaCard';
