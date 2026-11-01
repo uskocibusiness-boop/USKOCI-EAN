@@ -11,7 +11,7 @@ import { AI_TEST_LIMITS, reserveAiTestBudget } from '../_shared/aiTestBudget.ts'
 import { GeminiCreditsUnavailableError, streamGeminiTask, type GeminiUsage } from '../_shared/geminiTaskStream.ts';
 import { createClassificationExplorer, taxonomyToolDeclaration } from '../_shared/classificationExplorer.mjs';
 import { generateGeminiToolConversation } from '../_shared/geminiToolConversation.ts';
-import { createTaxonomyProviderBudget } from '../_shared/taxonomyProviderBudget.ts';
+import { createTaxonomyProviderBudget, createBackgroundTaxonomyProviderBudget } from '../_shared/taxonomyProviderBudget.ts';
 import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruction.mjs';
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
 import { withGeminiClassificationShadowSchema, inspectGeminiClassificationShadow, geminiClassificationShadowInstruction, workerFinishReviewMessage, classificationTurnFeedback } from '../_shared/classificationGeminiShadow.mjs';
@@ -539,6 +539,8 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
             // Budget includes work done while the foreground completion is pending.
             bgTimer = setTimeout(stopBackground, 9000);
             dualWorkerArchitectPromise = measureAiPhase('WORKER_BG_ARCHITECT', () => buildWorkerFullTreeTaxonomyProposals({
+              providerBudget: createBackgroundTaxonomyProviderBudget({ supabaseUrl: url, serviceRoleKey: service,
+                accountId: account, conversationId: input.conversationId, operationId: input.clientRequestId, purpose: 'PROFILE', model }),
               rpc: (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 5000),
               geminiKey: key,
               geminiModel: model,

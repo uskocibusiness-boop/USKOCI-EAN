@@ -13,7 +13,7 @@ const USER='SYNTHETIC_PRIVATE_USER: nudim '+SERVICE+' kod naručioca.';
 const REASON='SYNTHETIC_PRIVATE_REASON: potrebno je precizirati vrstu usluge.';
 const PROMPT='SYNTHETIC_PRIVATE_QUESTION: koju tačno vrstu usluge želiš?';
 const json=(data,status=200)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json'}});
-const providerResult=body=>json({candidates:[{content:{parts:[{text:JSON.stringify(body)}]},finishReason:'STOP'}]});
+const providerResult=(body,usageMetadata)=>json({candidates:[{content:{parts:[{text:JSON.stringify(body)}]},finishReason:'STOP'}],usageMetadata});
 const receipt={userMessageId:id(7),assistantMessageId:id(8),proposedCount:1,safety:'ALLOW',schemaVersion:'NEED_FACT_V2',authoritative:true};
 const needTurn=(state='SUCCEEDED')=>({conversationId:conversation,clientRequestId:key,state,turnId,retryAllowed:false,
   receipt:state==='SUCCEEDED'?receipt:null});
@@ -71,7 +71,9 @@ function fixture(kind,operation,responseFactory,options={}){
       candidate:{skills:unchanged?[SERVICE]:options.priorSkills??[],availability:{timezone:'Europe/Belgrade',rules:[],windows:[]}},messages:[{role:'USER',body:user}]});
     if(name==='rpc_ai_dispatch_need_turn_v2_service')return json(true);
     if(name==='rpc_dispatch_worker_ai_turn_service')return json({dispatched:true,turn:currentTurn('PROCESSING')});
-    if(name==='rpc_ai_test_budget_reserve_service')return json({admitted:true,reservationId:id(9),replay:false,code:'AI_TEST_RESERVED'});
+    if(name==='rpc_ai_test_budget_reserve_service')return options.denyBackgroundBudget&&body.p_operation_id!==requestKey()
+      ? json({admitted:false,reservationId:null,replay:false,code:'AI_TEST_BUDGET_EXHAUSTED'})
+      : json({admitted:true,reservationId:id(9),replay:false,code:'AI_TEST_RESERVED'});
     if(name==='rpc_ai_complete_need_turn_v2_service')return json({...currentTurn(),receipt:{...receipt,
       proposedCount:body.p_proposals.length,safety:body.p_safety}});
     if(name==='rpc_complete_worker_ai_turn_service')return json(currentTurn());
@@ -104,7 +106,7 @@ function fixture(kind,operation,responseFactory,options={}){
     if(name==='rpc_ai_fail_need_turn_v2_service')return json(currentTurn('FAILED'));
     if(name==='rpc_fail_worker_ai_turn_service')return json(currentTurn('FAILED'));
     if(address.startsWith('https://generativelanguage.googleapis.com/')){
-      if(address.includes(':generateContent'))return providerResult(kind==='NEED'?{decisions:[decision]}:{items:options.workerDecisions??[decision]});
+      if(address.includes(':generateContent'))return providerResult(kind==='NEED'?{decisions:[decision]}:{items:options.workerDecisions??[decision]},options.backgroundUsage);
       const output=unchanged?(kind==='NEED'?withDialogue({safety:'ALLOW',assistantMessage:'Nacrt je ostao isti.',facts:[]}):
         {safety:'ALLOW',assistantMessage:'Opis je dopunjen.',patch:{bio:'Dopunjen opis.'},availabilityChange:{kind:'NONE',evidence:''}}):mainOutput;
       const data='data: '+JSON.stringify({candidates:[{content:{parts:[{text:JSON.stringify(output)}]},finishReason:'STOP'}]})+'\n\n';
@@ -221,6 +223,34 @@ for(const modes of [['ON_SITE'],['REMOTE'],['ON_SITE','REMOTE']]){
 
 
 for(const kind of ['NEED','WORKER']){
+  test(kind+' active BG uses its own durable budget key and measured usage receipt',async()=>{
+    const f=fixture(kind,'capture',()=>json({action:'LOCAL_HINTS_CAPTURED',authority:'NONE'}),{
+      backgroundUsage:{promptTokenCount:100,cachedContentTokenCount:80,candidatesTokenCount:20,thoughtsTokenCount:7,totalTokenCount:127},
+    });
+    await f.invoke();
+    const reservations=f.calls.filter(call=>call.url.endsWith('/rpc_ai_test_budget_reserve_service'));
+    assert.equal(reservations.length,2);
+    assert.equal(reservations[0].body.p_operation_id,key);
+    const bg=reservations[1];assert.notEqual(bg.body.p_operation_id,key);
+    assert.equal(bg.body.p_account_id,account);assert.equal(bg.body.p_kind,'LLM');
+    const provider=f.calls.find(call=>call.url.includes(':generateContent'));
+    assert.ok(f.calls.indexOf(bg)<f.calls.indexOf(provider));
+    const usages=f.calls.filter(call=>call.url.endsWith('/rpc_ai_test_record_usage_service'));
+    assert.equal(usages.length,1,'the foreground has no reported usage in this fixture, never reuse its allocation');
+    assert.deepEqual(usages[0].body,{p_operation_id:bg.body.p_operation_id,p_model:'gemini-3.8-flash',
+      p_prompt_tokens:100,p_output_tokens:27,p_total_tokens:127});
+    assert.ok(f.calls.indexOf(usages[0])>f.calls.indexOf(provider));
+    assert.equal(f.calls.filter(call=>call.url.endsWith('/'+captureRpc)).length,1);
+  });
+  test(kind+' refused BG budget preserves completed foreground without a second provider call',async()=>{
+    const f=fixture(kind,'capture',()=>assert.fail('unadmitted BG has no hint to capture'),{denyBackgroundBudget:true});
+    await f.invoke();
+    assert.equal(f.calls.filter(call=>call.url.includes(':streamGenerateContent')).length,1);
+    assert.equal(f.calls.filter(call=>call.url.includes(':generateContent')).length,0);
+    assert.equal(f.calls.filter(call=>call.url.endsWith('/rpc_ai_test_record_usage_service')).length,0);
+    assert.equal(f.calls.filter(call=>call.url.endsWith('/rpc_ai_test_budget_reserve_service')).length,2);
+    assert.ok(!f.calls.some(call=>/release_unused|settle_audio/.test(call.url)));
+  });
   test(kind+' capture lost ACK resolves via exact historical receipt without rewriting or reclassifying',async()=>{
     const f=fixture(kind,'capture',()=>json(null),{captureReadback:true});
     await f.execute();

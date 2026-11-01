@@ -1,6 +1,7 @@
 // Synthetic provider/catalog transports only. No live Gemini or database writes.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { syntheticBackgroundBudget } from './background_budget_fixture.mjs';
 import { buildFullTreeTaxonomyProposals, buildWorkerFullTreeTaxonomyProposals } from '../../functions/_shared/backgroundTaxonomyArchitect.mjs';
 
 const categoryId = '11111111-1111-4111-8111-111111111111';
@@ -22,7 +23,7 @@ function fixture(t, provider, modes = ['ON_SITE'], categoryPatch = {}) {
         path: ['Servis klima'], pathIds: [categoryId], ...categoryPatch },
     ] } };
   };
-  return { calls, requestOptions, args: { rpc, geminiKey: 'synthetic', geminiModel: 'synthetic', conversationId: 'synthetic-conversation', draftRevision: 4 } };
+  return { calls, requestOptions, args: { rpc, providerBudget: syntheticBackgroundBudget, geminiKey: 'synthetic', geminiModel: 'synthetic', conversationId: 'synthetic-conversation', draftRevision: 4 } };
 }
 const response = (value, extra = {}) => new Response(JSON.stringify({ candidates: [
   { finishReason: 'STOP', content: { parts: [{ text: JSON.stringify(value) }] }, ...extra },
@@ -467,7 +468,7 @@ test('R04/F05: worker BOTH cannot silently assign two distinct existing category
       count:cats.length,categories:cats}};
   };
   const evidence='Popravku klima nudim i kod Vas i na daljinu.';
-  const result=await worker({rpc,geminiKey:'synthetic',geminiModel:'synthetic'},{
+  const result=await worker({rpc,providerBudget:syntheticBackgroundBudget,geminiKey:'synthetic',geminiModel:'synthetic'},{
     skills:['Popravka klima'],messages:[{role:'USER',body:evidence}],
     serviceModeChangesJson:JSON.stringify([{service:'Popravka klima',
       modes:['ON_SITE','REMOTE'],evidence}])});
@@ -585,7 +586,7 @@ test('R04 BOTH: two CREATE_CHILD hints cannot put one service under different pa
       isLeaf: true, label: i ? 'Računari' : 'Servis klima', aliases: [], modes: ['ON_SITE', 'REMOTE'],
       path: [i ? 'Računari' : 'Servis klima'], pathIds: [id] })),
   } });
-  const result = await worker({ rpc, geminiKey: 'synthetic', geminiModel: 'synthetic' }, bothRequest);
+  const result = await worker({ rpc, providerBudget: syntheticBackgroundBudget, geminiKey: 'synthetic', geminiModel: 'synthetic' }, bothRequest);
   assert.deepEqual(result.proposals, []);
   assert.deepEqual(result.unresolvedServices, ['Popravka klima']);
   assert.ok(result.failures.some(f => f.code === 'WORKER_SERVICE_CATEGORY_ID_CONFLICT'));

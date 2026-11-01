@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { syntheticBackgroundBudget } from './background_budget_fixture.mjs';
 
 const ROOT = '11111111-1111-4111-8111-111111111111';
 const LEAF = '22222222-2222-4222-8222-222222222222';
@@ -32,6 +33,7 @@ async function fixture(t, reply) {
       content: { parts: [{ text: JSON.stringify({ decisions: result }) }] } }] });
   });
   const request = overrides => build({
+    providerBudget: syntheticBackgroundBudget,
     rpc: async name => {
       assert.equal(name, 'rpc_taxonomy_fetch_snapshot_v1', 'no business writer is used');
       return { ok: true, data: structuredClone(catalog) };

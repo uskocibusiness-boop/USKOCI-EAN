@@ -147,8 +147,7 @@ async function boundedProviderJson(res, signal) {
     try { void (reader ? reader.cancel() : res.body?.cancel())?.catch(() => undefined); } catch { /* best-effort cleanup */ }
   }
 }
-async function providerEntries(res, field, signal) {
-  const data = await boundedProviderJson(res, signal);
+function providerEntries(data, field) {
   if (data?.promptFeedback?.blockReason) throw new TaxonomyProviderError('PROVIDER_REFUSED', 'PROVIDER_PERMANENT_FAILURE');
   const candidate = data?.candidates?.[0];
   if (!candidate?.finishReason) throw new TaxonomyProviderError('PROVIDER_INCOMPLETE_RESULT');
@@ -162,6 +161,56 @@ async function providerEntries(res, field, signal) {
   try { parsed = JSON.parse(rawText); } catch { throw new TaxonomyProviderError('PROVIDER_INVALID_MODEL_JSON'); }
   if (!Array.isArray(parsed?.[field]) || parsed[field].length === 0) throw new TaxonomyProviderError('PROVIDER_INCOMPLETE_RESULT');
   return parsed[field];
+}
+
+async function accountedProviderEntries({ geminiKey, request, field, signal, providerBudget }) {
+  // Only the actual paid dispatch is admitted. Exact/catalog/cache reuse never
+  // acquires a reservation. A caller missing accounting cannot call Gemini.
+  const requestBytes = new TextEncoder().encode(request.body).byteLength;
+  if (requestBytes > 262144) throw new TaxonomyProviderError('PROVIDER_REQUEST_TOO_LARGE');
+  if (typeof providerBudget?.beforeAttempt !== 'function' || typeof providerBudget?.onAttempt !== 'function') {
+    throw new TaxonomyProviderError('PROVIDER_BUDGET_UNAVAILABLE');
+  }
+  let admission;
+  try { admission = await providerBudget.beforeAttempt({ requestBytes, signal }); }
+  catch { throw new TaxonomyProviderError('PROVIDER_BUDGET_UNAVAILABLE'); }
+  if (!admission?.reservationId) throw new TaxonomyProviderError('PROVIDER_BUDGET_UNAVAILABLE');
+  let dispatched = false, data, httpStatus = null, outcome = 'FAILED', errorCode = null;
+  let rejectStopped;
+  const stopped = new Promise((_, reject) => { rejectStopped = reject; });
+  void stopped.catch(() => undefined);
+  const stop = () => rejectStopped(new TaxonomyProviderError('PROVIDER_ABORTED'));
+  signal?.addEventListener('abort', stop, { once: true });
+  try {
+    if (signal?.aborted) throw new TaxonomyProviderError('PROVIDER_ABORTED');
+    dispatched = true;
+    const pending = fetch(request.url, { method: 'POST', redirect: 'error',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': geminiKey }, body: request.body, signal,
+    }).then(response => {
+      if (signal?.aborted) {
+        try { void response.body?.cancel().catch(() => undefined); } catch { /* best effort */ }
+        throw new TaxonomyProviderError('PROVIDER_ABORTED');
+      }
+      return response;
+    });
+    const response = await Promise.race([pending, stopped]);
+    httpStatus = response.status;
+    data = await boundedProviderJson(response, signal);
+    const entries = providerEntries(data, field);
+    outcome = 'SUCCEEDED';
+    return entries;
+  } catch (error) {
+    errorCode = providerFailure(error).code;
+    throw error;
+  } finally {
+    signal?.removeEventListener('abort', stop);
+    // Settlement has its own bounded receipt wait even after provider abort.
+    // Missing usage remains UNKNOWN; a lost ACK never replays/refunds anything.
+    // A valid semantic result can still be captured if accounting ACK is lost.
+    try { await providerBudget.onAttempt({ reservationId: admission.reservationId, dispatched,
+      outcome, httpStatus, usageMetadata: data?.usageMetadata, errorCode }); }
+    catch { try { console.warn('BG_TAXONOMY_ACCOUNTING_UNCONFIRMED'); } catch { /* diagnostics cannot alter the result */ } }
+  }
 }
 // PostgreSQL char_length counts codepoints; UTF-16 slice can split an emoji.
 const boundedCodepoints = (value, limit) => Array.from(value).slice(0, limit).join('');
@@ -785,19 +834,8 @@ async function novelDecisionKey(request, catalog, unresolved) {
     .map(byte => byte.toString(16).padStart(2, '0')).join('');
 }
 
-async function classifyNovelServicesWithGemini({ geminiKey, request, signal }) {
-  const res = await fetch(request.url, {
-    method: 'POST',
-    redirect: 'error',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': geminiKey,
-    },
-    body: request.body,
-    signal,
-  });
-
-  return providerEntries(res, 'decisions', signal);
+async function classifyNovelServicesWithGemini({ geminiKey, request, signal, providerBudget }) {
+  return accountedProviderEntries({ geminiKey, request, signal, providerBudget, field: 'decisions' });
 }
 
 /**
@@ -814,6 +852,7 @@ export async function buildFullTreeTaxonomyProposals({
   conversationId,
   draftRevision,
   signal,
+  providerBudget,
 }) {
   if (!Array.isArray(items) || items.length === 0) return null;
   // The caller passes the typed public description, not the private address,
@@ -878,7 +917,7 @@ export async function buildFullTreeTaxonomyProposals({
             action: 'CREATE_CHILD', parentId: cached.parentId, reason: cached.reason }];
           cacheKey = null; // Revalidation below must not renew the cached age.
         } else {
-          aiDecisions = await classifyNovelServicesWithGemini({ geminiKey, request, signal });
+          aiDecisions = await classifyNovelServicesWithGemini({ geminiKey, request, signal, providerBudget });
           if (signal?.aborted) throw new TaxonomyProviderError('PROVIDER_ABORTED');
         }
       } catch (err) {
@@ -970,6 +1009,7 @@ async function classifyWorkerServicesWithGemini({
   priorModes,
   hasWorkAreas,
   signal,
+  providerBudget,
 }) {
   const treeLines = formatFullCatalogHierarchy(catalog);
 
@@ -1019,14 +1059,7 @@ async function classifyWorkerServicesWithGemini({
   };
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent`;
-  const res = await fetch(url, {
-    method: 'POST',
-    redirect: 'error',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': geminiKey,
-    },
-    body: JSON.stringify({
+  const body = JSON.stringify({
       systemInstruction: { parts: [{ text: systemText }] },
       contents: [{ role: 'user', parts: [{ text: userText }] }],
       generationConfig: {
@@ -1036,11 +1069,8 @@ async function classifyWorkerServicesWithGemini({
         responseSchema,
         ...(String(geminiModel).includes('2.5') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
       },
-    }),
-    signal,
-  });
-
-  return providerEntries(res, 'items', signal);
+    });
+  return accountedProviderEntries({ geminiKey, request: { url, body }, signal, providerBudget, field: 'items' });
 }
 
 export async function buildWorkerFullTreeTaxonomyProposals({
@@ -1055,6 +1085,7 @@ export async function buildWorkerFullTreeTaxonomyProposals({
   conversationId,
   draftRevision,
   signal,
+  providerBudget,
 }) {
   const cleanSkills = Array.isArray(skills)
     ? skills.filter((s) => typeof s === 'string' && s.trim().length >= 3).map((s) => s.trim())
@@ -1117,6 +1148,7 @@ export async function buildWorkerFullTreeTaxonomyProposals({
         priorModes,
         hasWorkAreas: Boolean(hasWorkAreas),
         signal,
+        providerBudget,
       });
     } catch (err) {
       reportProviderFailure(err, failures);

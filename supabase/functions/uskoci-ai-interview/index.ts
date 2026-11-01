@@ -28,7 +28,7 @@ import { scopedNeedPreviewArgs, scopedNeedPreviewSafeAction } from '../_shared/t
 import { normalizedClassificationIdentity, type CatalogSnapshot } from '../_shared/classificationEngine.mjs';
 import { createClassificationExplorer, taxonomyToolDeclaration, type ClassificationExplorer } from '../_shared/classificationExplorer.mjs';
 import { generateGeminiToolConversation } from '../_shared/geminiToolConversation.ts';
-import { createTaxonomyProviderBudget } from '../_shared/taxonomyProviderBudget.ts';
+import { createTaxonomyProviderBudget, createBackgroundTaxonomyProviderBudget } from '../_shared/taxonomyProviderBudget.ts';
 import { serviceExecutionInstruction } from '../_shared/serviceExecutionInstruction.mjs';
 import { decodeServiceHandoff } from '../_shared/serviceHandoff.mjs';
 import { createResearchDeadline } from '../_shared/researchDeadline.ts';
@@ -1615,6 +1615,8 @@ Deno.serve(async (req: Request) => {
             // Budget includes work done while the foreground completion is pending.
             bgTimer = setTimeout(stopBackground, 9000);
             dualArchitectPromise = measureAiPhase('NEED_BG_ARCHITECT', () => buildFullTreeTaxonomyProposals({
+              providerBudget: createBackgroundTaxonomyProviderBudget({ supabaseUrl, serviceRoleKey, accountId, conversationId,
+                operationId: requestId, purpose: 'NEED_INTAKE', model: geminiModel }),
               rpc: (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 5000),
               geminiKey,
               geminiModel,

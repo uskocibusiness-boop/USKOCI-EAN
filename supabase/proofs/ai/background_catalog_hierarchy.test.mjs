@@ -1,6 +1,7 @@
 // R04: parent-first, explicit identity/hierarchy in BOTH AI model prompts.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { syntheticBackgroundBudget } from './background_budget_fixture.mjs';
 import {formatFullCatalogHierarchy,loadFullCatalogTree,buildFullTreeTaxonomyProposals,
   buildWorkerFullTreeTaxonomyProposals} from '../../functions/_shared/backgroundTaxonomyArchitect.mjs';
 
@@ -82,7 +83,7 @@ test('both real background provider paths receive the same parent-first, explici
     return {ok:true,data:{catalogVersion:987650810,catalogFingerprint:'a'.repeat(32),
       count:2,categories:[child,root]}};
   };
-  const args={rpc,geminiKey:'synthetic',geminiModel:'synthetic'};
+  const args={rpc,providerBudget:syntheticBackgroundBudget,geminiKey:'synthetic',geminiModel:'synthetic'};
   const requester=await buildFullTreeTaxonomyProposals({...args,
     items:[{service:'Novi servis',mode:'ON_SITE'}]});
   const worker=await buildWorkerFullTreeTaxonomyProposals({...args,

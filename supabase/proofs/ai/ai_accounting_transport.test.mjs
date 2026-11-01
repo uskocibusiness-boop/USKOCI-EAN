@@ -25,7 +25,10 @@ function setup(transport) {
   });
   const load = (code, require) => new vm.Script(`(function(exports,require){${code};return exports;})`).runInContext(context)({}, require);
   const budget = load(budgetSource, () => assert.fail('unexpected dependency'));
-  const taxonomy = load(taxonomySource, name => { assert.equal(name, './aiTestBudget.ts'); return budget; });
+  const taxonomy = load(taxonomySource, name => {
+    if (name === './geminiTaskStream.ts') return { decodeGeminiUsage: () => assert.fail('foreground receipt test does not decode BG usage') };
+    assert.equal(name, './aiTestBudget.ts'); return budget;
+  });
   return { budget, taxonomy, calls, timers,
     expire() { for (const [id, timer] of [...timers]) { timers.delete(id); timer.callback(); } },
   };

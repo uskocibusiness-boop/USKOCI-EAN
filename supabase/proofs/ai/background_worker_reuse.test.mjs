@@ -2,6 +2,7 @@
 // Saved continuity is not a new approval, worker capability or provider cache.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { syntheticBackgroundBudget } from './background_budget_fixture.mjs';
 import { buildWorkerFullTreeTaxonomyProposals } from '../../functions/_shared/backgroundTaxonomyArchitect.mjs';
 
 const id = n => `${String(n).padStart(8, '0')}-1111-4111-8111-111111111111`;
@@ -29,7 +30,7 @@ function fixture(t, options = {}) {
   const args = { rpc: async name => {
     calls.push(name); assert.equal(name, 'rpc_taxonomy_fetch_snapshot_v1');
     return { catalogVersion: 98001, catalogFingerprint: 'a'.repeat(32), count: categories.length, categories };
-  }, geminiKey: options.key ?? 'SYNTHETIC', geminiModel: 'synthetic',
+  }, providerBudget: syntheticBackgroundBudget, geminiKey: options.key ?? 'SYNTHETIC', geminiModel: 'synthetic',
   skills: options.skills ?? [known], messages: changes.map(entry => ({ role: 'USER', body: entry.evidence })),
   serviceModeContext: { savedServices: options.saved ?? [saved()], draftServices: options.draft ?? [] },
   serviceModeChangesJson: options.rawChanges ?? JSON.stringify(changes),

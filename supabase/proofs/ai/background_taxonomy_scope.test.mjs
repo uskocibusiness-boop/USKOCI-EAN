@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { syntheticBackgroundBudget } from './background_budget_fixture.mjs';
 import { buildFullTreeTaxonomyProposals, buildWorkerFullTreeTaxonomyProposals, consumeClarificationHint, fetchUnconsumedClarificationHint,
   getUnconsumedClarificationHint, hintDraftRevision, persistClarificationHint, storeClarificationHint,
   taskClassificationFingerprint, taskTaxonomyMode, taskTaxonomyScope, workerSkillsFingerprint } from '../../functions/_shared/backgroundTaxonomyArchitect.mjs';
@@ -92,7 +93,7 @@ for (const purpose of ['need', 'worker']) {
       t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ candidates: [{ finishReason: 'STOP',
         content: { parts: [{ text: JSON.stringify(purpose === 'need' ? { decisions: [decision] } : { items: [decision] }) }] },
       }] })));
-      const args = { geminiKey: 'synthetic', geminiModel: 'synthetic',
+      const args = { providerBudget: syntheticBackgroundBudget, geminiKey: 'synthetic', geminiModel: 'synthetic',
         rpc: async () => ({ ok: true, data: { catalogVersion: 809040 + Number(short), catalogFingerprint: purpose + short, count: 1,
           categories: [{ categoryId: '11111111-1111-4111-8111-111111111111', parentId: null, isLeaf: true,
             label: 'Servis uređaja', path: ['Servis uređaja'],
@@ -183,7 +184,7 @@ test('novel task classification receives bounded public scope and does not reuse
         pathIds: [parentId], aliases: [], modes: ['ON_SITE'] }] } };
   };
   const classify = (scopeSummary) => buildFullTreeTaxonomyProposals({
-    rpc, geminiKey: 'test-key', geminiModel: 'test-model',
+    rpc, providerBudget: syntheticBackgroundBudget, geminiKey: 'test-key', geminiModel: 'test-model',
     items: [{ service: 'klima', mode: 'ON_SITE' }], scopeSummary,
   });
   try {

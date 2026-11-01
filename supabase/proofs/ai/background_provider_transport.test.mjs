@@ -1,6 +1,7 @@
 // Real active builders, synthetic catalog/provider only. No model calls or SQL writes.
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { syntheticBackgroundBudget } from './background_budget_fixture.mjs';
 import { buildFullTreeTaxonomyProposals, buildWorkerFullTreeTaxonomyProposals } from '../../functions/_shared/backgroundTaxonomyArchitect.mjs';
 
 const MAX_BYTES = 524288;
@@ -20,6 +21,7 @@ function fixture(t, purpose, provider) {
   t.mock.method(globalThis, 'fetch', async (_url, init) => { calls.push(init); return provider(); });
   t.mock.method(console, 'warn', (...values) => warnings.push(values));
   const args = {
+    providerBudget: syntheticBackgroundBudget,
     rpc: async name => {
       assert.equal(name, 'rpc_taxonomy_fetch_snapshot_v1');
       return { ok: true, data: { catalogVersion, catalogFingerprint: String(catalogVersion), count: 1, categories: [
@@ -174,7 +176,7 @@ for (const purpose of ['need', 'worker']) {
     assertFailure(result, f, 'PROVIDER_ABORTED');
     assert.equal(f.calls[0].signal, caller.signal, 'the existing lifecycle owner is forwarded, not replaced');
     assert.equal(cancellations, 1);
-    assert.equal(removed.mock.callCount(), 1);
+    assert.equal(removed.mock.callCount(), 2, 'header and body abort listeners are both removed');
     finish({ done: false, value: encoder.encode(envelope()) });
     await Promise.resolve();
     assert.deepEqual(result.proposals, []);

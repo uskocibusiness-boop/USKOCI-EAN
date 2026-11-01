@@ -55,6 +55,7 @@ export function loadWorkerRecoveryHandler(options){
   assert.equal(name,'./geminiTaskStream.ts');return stream;
  });
  const providerBudget=evaluate('supabase/functions/_shared/taxonomyProviderBudget.ts',name=>{
+  if(name==='./geminiTaskStream.ts')return stream;
   assert.equal(name,'./aiTestBudget.ts');return budget;
  });
  const researchDeadline=evaluate('supabase/functions/_shared/researchDeadline.ts',()=>assert.fail('UNDECLARED_DEADLINE_IMPORT'));
