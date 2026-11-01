@@ -261,14 +261,14 @@ BEGIN
    ELSIF v_action = 'REUSE_EXISTING' AND v_count = 0 THEN
      -- Human-reviewed semantic synonym reuse of an established leaf.
      -- Verified through safety triage and valid category path.
-     -- Logged in audit as SYNONYM_REUSED without creating a global alias.
+     -- Logged in audit as EXISTING_REUSED without creating a global alias.
      IF private.taxonomy_risk_triage_v1(v_service) IS DISTINCT FROM 'LOW_RISK_CANDIDATE'
        OR private.taxonomy_risk_triage_v1(v_plan->>'categoryLabel') IS DISTINCT FROM 'LOW_RISK_CANDIDATE'
        OR NOT private.taxonomy_category_path_valid_v1(v_category) THEN
        RAISE EXCEPTION 'BATCH_SEMANTIC_SAFETY_REVIEW_REQUIRED' USING errcode='42501';
      END IF;
      INSERT INTO private.work_taxonomy_audit(action,category_id,normalized_key,catalog_version,source_ref)
-       VALUES('SYNONYM_REUSED',v_category,v_key,v_version,'REVIEWED_BATCH:'||p_request_key::text);
+       VALUES('EXISTING_REUSED',v_category,v_key,v_version,'REVIEWED_BATCH:'||p_request_key::text);
    ELSE
      RAISE EXCEPTION 'BATCH_SEMANTIC_IDENTITY_MISMATCH'
        USING errcode=CASE WHEN v_catalog_changed THEN 'PT409' ELSE '42501' END;

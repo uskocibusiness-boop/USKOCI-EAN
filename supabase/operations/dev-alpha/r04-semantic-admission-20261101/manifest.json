@@ -17,7 +17,7 @@
   ],
   "source_candidates_sha256": {
     "r04_semantic_review_pending_projection.sql": "824f2dd8db17d3853bae6ae2d06030f3691cf7a7320f2f311cc6b6efaa00d26a",
-    "r04_semantic_batch_admission.sql": "3eb8a0266dc50ac76178928f001977e2c446f4cc24d539d72b2262bd185c8c91"
+    "r04_semantic_batch_admission.sql": "7769052c739cfee2f8e0f0be100e527c834bf7e55396ef725ca9aa94af800db2"
   },
   "preimage_sha256": "30d9ef2f2b62f312624d721e9d0dd3f1e98011acfed64fbca84e91e1fe3e1b26",
   "builder_sha256": "83caa6001ef008bcfbbfc73a3b479c5fcc79c78284bb3fee193eeb68d8d85197",

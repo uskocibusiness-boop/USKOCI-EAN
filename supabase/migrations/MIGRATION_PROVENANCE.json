@@ -3544,9 +3544,9 @@
       {
         "version": "20261101223000",
         "name": "semantic_admission_single_word_publication_v1",
-        "classification": "APPLIED_EXACT_OPERATION_LEDGER_BYTES",
-        "live_applied": true,
-        "observed_at_utc": "2026-11-01T22:30:00Z",
+        "classification": "PREPARED_EXACT_OPERATION_NOT_APPLIED",
+        "live_applied": false,
+        "observed_at_utc": null,
         "recorded_statement_count": 1,
         "recorded_md5": "e3d972494a4174c14508437b95d0aa37",
         "recorded_sha256": "f2f9125c078fec1c65fefc8415de46af823017ed77971c351bf3fbdb13a1ec48",
