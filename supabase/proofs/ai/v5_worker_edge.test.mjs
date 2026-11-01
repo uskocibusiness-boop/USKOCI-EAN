@@ -643,11 +643,14 @@ test('stale painting proposal cannot become a current service mode despite a kno
 test('completed/unknown claim replay cannot reserve or call the provider again',async()=>{
  const f=fixture({replay:true});assert.deepEqual(await(await f.invoke()).json(),turn());assert.equal(providers(f).length,0);assert.equal(f.calls.length,2);
 });
-test('draft worker requires administrative city for activation without limiting remote work or asking an address',async()=>{
+test('REMOTE-only activation follows the signed server review without inventing city or taxonomy authority',async()=>{
  const f=fixture(); await events(f);
  const instruction=providers(f)[0].body.systemInstruction.parts.map(p=>p.text).join('\n');
- assert.match(instruction,/rpc_complete_worker_profile requires a city for a NEW DRAFT, even for REMOTE work/);
- assert.match(instruction,/if missing, ask ONE short natural question for the administrative city/);
+ assert.match(instruction,/Do not ask for an administrative city solely to activate an explicitly REMOTE-only profile/);
+ assert.match(instruction,/signed server review alone decides whether Save\+Activate is available/);
+ assert.match(instruction,/REMOTE proposal or user-selected mode does not confirm a service category/);
+ assert.match(instruction,/save a draft and return to the review after service confirmation/);
+ assert.doesNotMatch(instruction,/requires a city for a NEW DRAFT, even for REMOTE/);
  assert.match(instruction,/Administrative city does NOT restrict REMOTE matching/);
  assert.match(instruction,/Do not reopen the city interview only because an old profile lacks a city/);
  assert.match(instruction,/never invent a city or infer it from language, phone, service, work area or geolocation/);
