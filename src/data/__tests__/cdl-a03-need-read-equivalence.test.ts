@@ -120,6 +120,36 @@ describe('CDL-A03 — canonical Need read contract', () => {
     expect(unknown.home.prompts?.[0].title).toBe('Nastavi nacrt');
   });
 
+  it.each([undefined, null, false, { id: 'response-1' }, [{ id: '' }], [null], [{}], [{ id: 2 }]])(
+    'rejects an unavailable or malformed owner application collection instead of falsely reporting zero: %p', async rows => {
+      mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, marketplace_responses: rows } });
+      await expect(needClientService.potreba(rawNeed.id)).rejects.toThrow('NEED_RESPONSE_COUNT_INVALID');
+    });
+  it('reports zero applications only when the response collection is confirmed empty', async () => {
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, marketplace_responses: [] } });
+    expect((await needClientService.potreba(rawNeed.id))?.brojPrijava).toBe(0);
+  });
+
+  it.each([
+    { fields: { revision: null }, code: 'NEED_REVISION_INVALID' },
+    { fields: { revision: 0 }, code: 'NEED_REVISION_INVALID' },
+    { fields: { revision: '4' }, code: 'NEED_REVISION_INVALID' },
+    { fields: { revision: 1.5 }, code: 'NEED_REVISION_INVALID' },
+    { fields: { revision: Number.NaN }, code: 'NEED_REVISION_INVALID' },
+    { fields: { requester_price_rsd: 0 }, code: 'NEED_PRICE_INVALID' },
+    { fields: { requester_price_rsd: -1 }, code: 'NEED_PRICE_INVALID' },
+    { fields: { requester_price_rsd: '2500' }, code: 'NEED_PRICE_INVALID' },
+    { fields: { requester_price_rsd: 100.2 }, code: 'NEED_PRICE_INVALID' },
+    { fields: { requester_price_rsd: Number.NaN }, code: 'NEED_PRICE_INVALID' },
+  ])('rejects an invalid owner revision or price without inventing its exact contract: $fields', async ({ fields, code }) => {
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, ...fields } });
+    await expect(needClientService.potreba(rawNeed.id)).rejects.toThrow(code);
+  });
+  it('keeps a draft without an agreed price valid, without inventing 0 RSD', async () => {
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, mode: 'OFFERS', requester_price_rsd: null } });
+    expect((await needClientService.potreba(rawNeed.id))?.ponudjenaCena).toBeUndefined();
+  });
+
   it('PKG-045: reads selectable count in the explicit document and preserves the historical total', async () => {
     mocks.mockOrder.mockResolvedValue({ error: null, data: [{ ...rawNeed, selectable_application_count: 0 }] });
     const [row] = await needClientService.mojePotrebe();
@@ -131,6 +161,23 @@ describe('CDL-A03 — canonical Need read contract', () => {
     mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, selectable_application_count: count } });
     await expect(needClientService.potreba(rawNeed.id)).rejects.toThrow('NEED_ACTIONABLE_COUNT_INVALID');
   });
+  it.each([
+    { required_slots: null }, { required_slots: undefined }, { required_slots: 0 },
+    { required_slots: 51 }, { required_slots: 1.5 }, { required_slots: Number.NaN },
+    { required_slots: '2' }, { covered_slots: null }, { covered_slots: undefined },
+    { covered_slots: -1 }, { covered_slots: 3 }, { covered_slots: Number.NaN },
+    { covered_slots: 1.5 }, { covered_slots: '1' },
+  ])('never invents or clamps a missing, invalid or overfilled Need capacity: %p', async fields => {
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, ...fields } });
+    await expect(needClientService.potreba(rawNeed.id)).rejects.toThrow('NEED_CAPACITY_INVALID');
+  });
+  it('preserves exact zero and fully-covered capacities without inventing an action', async () => {
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, required_slots: 1, covered_slots: 0 } });
+    expect((await needClientService.potreba(rawNeed.id))?.pokrivenost).toMatchObject({ ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 });
+    mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, required_slots: 50, covered_slots: 50 } });
+    expect((await needClientService.potreba(rawNeed.id))?.pokrivenost).toMatchObject({ ukupno: 50, popunjeno: 50, preostalo: 0, udeo: 1 });
+  });
+
   it('preserves null when the server does not disclose the owner count', async () => {
     mocks.mockMaybeSingle.mockResolvedValue({ error: null, data: { ...rawNeed, selectable_application_count: null } });
     expect((await needClientService.potreba(rawNeed.id))?.brojPrijavaZaIzbor).toBeNull();

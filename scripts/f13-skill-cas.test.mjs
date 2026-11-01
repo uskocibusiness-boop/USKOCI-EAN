@@ -89,7 +89,9 @@ client.auth.getUser = async () => ({ data: { user: { id: session.user?.id } }, e
 function loadService() {
   const allowed = new Set([
     'src/data/workerProfileClientService.ts', 'src/data/serverReceipt.ts',
-    'src/lib/capabilityTerms.ts', 'src/contracts/workerCapacity.ts',
+    // The shared receipt now uses the exact PostgreSQL civil-instant validator.
+    // Execute its real source through the same strict VM loader, not a fake timer or date.
+    'src/lib/capabilityTerms.ts', 'src/lib/calendarTime.ts', 'src/contracts/workerCapacity.ts',
   ].map(path => resolve(root, path)));
   const mocks = new Map([
     [resolve(root, 'src/store/sesija.ts'), { sesijaSada: () => session }],

@@ -84,12 +84,25 @@ export function readPublicNeedDetail(raw: Record<string, any>): { detail: NeedDe
 function mapNeed(raw: any): WithEnding<PotrebaProjekcija> {
   const { detail: detalji, schedule } = readPublicNeedDetail(raw);
   const kraj = endingOfStatus(raw.status);
-  const ukupno = Math.max(1, Number(raw.required_slots ?? 1));
-  const popunjeno = Math.max(0, Math.min(ukupno, Number(raw.covered_slots ?? 0)));
-  const brojPrijava = Array.isArray(raw.marketplace_responses)
-    ? raw.marketplace_responses.length
-    : 0;
+  // Canonical Need rows always supply the 1–50 required slots and an exact
+  // nonnegative covered count. Missing, fractional or overfilled wire values
+  // cannot silently become 1/0 or be clamped into false capacity facts.
+  const ukupno = raw.required_slots, popunjeno = raw.covered_slots;
+  if (!Number.isSafeInteger(ukupno) || ukupno < 1 || ukupno > 50
+    || !Number.isSafeInteger(popunjeno) || popunjeno < 0 || popunjeno > ukupno)
+    throw new Error('NEED_CAPACITY_INVALID');
+  // This owner reader always returns a concrete list of response IDs. An
+  // unavailable or malformed collection is not proof of zero applications.
+  if (!Array.isArray(raw.marketplace_responses) || raw.marketplace_responses.some(
+    (row: unknown) => !row || typeof row !== 'object' || Array.isArray(row)
+      || typeof (row as { id?: unknown }).id !== 'string' || !(row as { id: string }).id.trim()))
+    throw new Error('NEED_RESPONSE_COUNT_INVALID');
+  const brojPrijava = raw.marketplace_responses.length;
   const cena = raw.requester_price_rsd;
+  const revizija = raw.revision;
+  if (!Number.isSafeInteger(revizija) || revizija < 1) throw new Error('NEED_REVISION_INVALID');
+  if (cena !== null && cena !== undefined && (!Number.isSafeInteger(cena) || cena < 1))
+    throw new Error('NEED_PRICE_INVALID');
   const brojPrijavaZaIzbor = raw.selectable_application_count;
   if (brojPrijavaZaIzbor !== null && (!Number.isSafeInteger(brojPrijavaZaIzbor) || brojPrijavaZaIzbor < 0)) {
     throw new Error('NEED_ACTIONABLE_COUNT_INVALID');
@@ -103,7 +116,7 @@ function mapNeed(raw: any): WithEnding<PotrebaProjekcija> {
     ...(timestamp(raw.updated_at) ? { azurirano: raw.updated_at } : {}),
     ...(timestamp(raw.published_at) ? { objavljeno: raw.published_at } : {}),
     brojFotografija: Array.isArray(raw.public_photo_paths) ? raw.public_photo_paths.length : 0,
-    revizija: Number(raw.revision),
+    revizija,
     naslov: raw.title ?? '',
     opis: raw.description ?? '',
     stanje: stanje(String(raw.status), popunjeno, ukupno, brojPrijavaZaIzbor),
@@ -140,9 +153,9 @@ function mapNeed(raw: any): WithEnding<PotrebaProjekcija> {
       cena === null || cena === undefined
         ? undefined
         : {
-            iznos: Number(cena),
+            iznos: cena,
             valuta: 'RSD',
-            prikaz: novac(Number(cena)),
+            prikaz: novac(cena),
           },
   };
 }
