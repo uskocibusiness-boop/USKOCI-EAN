@@ -1,0 +1,15 @@
+{
+  "unit": "F10_DEV_PREFLIGHT",
+  "project_id": "leqcwgzvjsxugfgzdmth",
+  "verified_at": "2026-11-01T14:02:39.033Z",
+  "method": "Supabase connector execute_sql, READ ONLY catalog check",
+  "query_sha256": "4ef43205a1febe269378efd08a1d255a7cd520e3fc2f37faea56bb5fa1fa021c",
+  "result": {
+    "metadata_result": "F10_DEV_PREIMAGE_MATCH",
+    "functional_acceptance_proven": false
+  },
+  "applied": false,
+  "hosted_ddl_executed": false,
+  "user_rows_read": false,
+  "user_rows_written": false
+}
