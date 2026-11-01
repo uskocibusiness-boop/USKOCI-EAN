@@ -11,7 +11,7 @@ const inertPlugin = './plugins/withFirebaseEnrollmentDisabled.js';
 const originalEnv = { ...process.env };
 const copy = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
-function preview(overrides: Partial<NodeJS.ProcessEnv> = {}) {
+function preview(overrides: Record<string, string | undefined> = {}) {
   const env: NodeJS.ProcessEnv = { ...originalEnv, ...sourceEas.build.preview.env,
     EAS_BUILD_PROFILE: 'preview', EAS_BUILD_PLATFORM: 'android', NODE_ENV: 'production' };
   delete env.JEST_WORKER_ID;
