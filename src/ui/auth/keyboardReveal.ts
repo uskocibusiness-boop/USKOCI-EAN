@@ -22,7 +22,10 @@ import { sys } from '../system/tokens';
 
 /** Anything that can say where it is in the window (a View, a ScrollView). Optional, because a test double or the web may not. */
 export type RevealBox = { measureInWindow?: (callback: (x: number, y: number, width: number, height: number) => void) => void };
-export type RevealScroll = RevealBox & { scrollTo?: (options: { x?: number; y?: number; animated?: boolean }) => void };
+export type RevealScroll = RevealBox & {
+  scrollTo?: (options: { x?: number; y?: number; animated?: boolean }) => void;
+  getInnerViewRef?: () => RevealBox | null;
+};
 
 /**
  * How far to scroll (positive: down, content moves up) so that the box between `top` and `bottom` is fully inside the box
@@ -69,26 +72,35 @@ export function useFocusReveal(scroll: RefObject<RevealScroll | null>) {
     const mine = ++ticket.current;
     view.measureInWindow((_x, viewTop, _width, viewHeight) => {
       if (mine !== ticket.current) return;
-      box.measureInWindow?.((_fx, top, _fw, height) => {
+      const measureField = (currentOffset: number) => box.measureInWindow?.((_fx, top, _fw, height) => {
         if (mine !== ticket.current) return;
         let viewBottom = viewTop + viewHeight;
         // A keyboard that lies over the screen instead of shrinking it still ends the visible part where it begins.
         const keyboardTop = Keyboard.isVisible?.() ? Keyboard.metrics?.()?.screenY : undefined;
         if (keyboardTop !== undefined && keyboardTop > viewTop && keyboardTop < viewBottom) viewBottom = keyboardTop;
         const delta = revealDelta({ top, bottom: top + height, viewTop, viewBottom, margin: REVEAL_MARGIN });
-        if (Math.abs(delta) >= 1) view.scrollTo?.({ y: Math.max(0, offset.current + delta), animated: glide.current });
+        if (Math.abs(delta) >= 1) view.scrollTo?.({ y: Math.max(0, currentOffset + delta), animated: glide.current });
       });
+      // Android can apply a scroll before its onScroll event reaches JS. During
+      // keyboard resize, adding a new native delta to that old JS offset sends
+      // the field back under the footer. Read the native content position too.
+      const inner = view.getInnerViewRef?.();
+      if (inner?.measureInWindow) {
+        inner.measureInWindow((_ix, contentTop) => {
+          if (mine === ticket.current) measureField(viewTop - contentTop);
+        });
+      } else measureField(offset.current);
     });
   }, [scroll]);
 
   const api = useMemo<FocusReveal>(() => ({
     focus: box => { focused.current = box; reveal(); },
-    blur: box => { if (focused.current === box) focused.current = null; },
+    blur: box => { if (focused.current === box) { focused.current = null; ticket.current++; } },
   }), [reveal]);
 
   useEffect(() => {
     const subscription = Keyboard.addListener('keyboardDidShow', reveal);
-    return () => subscription.remove();
+    return () => { ticket.current++; subscription.remove(); };
   }, [reveal]);
 
   return {

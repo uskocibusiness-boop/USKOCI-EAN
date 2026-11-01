@@ -211,7 +211,7 @@ it('keeps an empty password submission local and immediately editable', async ()
   await render(); await press('Prijavite se');
   expect(mockAuth.signInWithPassword).not.toHaveBeenCalled();
   // Said under the field it is about, one sentence each, and the first of them takes the focus.
-  expect(text()).toContain('Unesi email.'); expect(text()).toContain('Unesi lozinku.');
+  expect(text()).toContain('Unesite email.'); expect(text()).toContain('Unesite lozinku.');
   expect(input('Email').props.editable).toBe(true);
 });
 
@@ -827,7 +827,7 @@ describe('what is wrong is said under the field it is about', () => {
 
   it('names each missing field of an account, sends nothing, and each message stands in its own field and nowhere else', async () => {
     await render(); await pressTab('Napravite nalog'); await press('Napravite nalog');
-    const wanted: [string, string][] = [['Ime', 'Unesi ime.'], ['Prezime', 'Unesi prezime.'], ['Email', 'Unesi email.'], ['Lozinka', 'Unesi lozinku.']];
+    const wanted: [string, string][] = [['Ime', 'Unesite ime.'], ['Prezime', 'Unesite prezime.'], ['Email', 'Unesite email.'], ['Lozinka', 'Unesite lozinku.']];
     for (const [label, message] of wanted) expect(textOf(block(label))).toContain(message);
     expect([...alerts()].sort()).toEqual(wanted.map(([, message]) => message).sort());
     expect(mockAuth.signUp).not.toHaveBeenCalled();
@@ -837,9 +837,9 @@ describe('what is wrong is said under the field it is about', () => {
     await render(); await pressTab('Napravite nalog');
     for (const [label, value] of signUpValues) await fill(label, label === 'Email' ? 'ana@example' : label === 'Lozinka' ? 'abc' : value);
     await press('Napravite nalog');
-    expect(textOf(block('Email'))).toContain('Unesi ispravnu email adresu.');
+    expect(textOf(block('Email'))).toContain('Unesite ispravnu email adresu.');
     expect(textOf(block('Lozinka'))).toContain('Lozinka mora imati najmanje 6 znakova.');
-    expect(textOf(block('Ime'))).not.toContain('Unesi'); expect(mockAuth.signUp).not.toHaveBeenCalled();
+    expect(textOf(block('Ime'))).not.toContain('Unesite'); expect(mockAuth.signUp).not.toHaveBeenCalled();
   });
 
   it('says the length of a new password BEFORE it can be wrong, and asks for no length when signing in', async () => {
@@ -853,9 +853,9 @@ describe('what is wrong is said under the field it is about', () => {
 
   it('forgets what was said about a field as soon as that field is edited, and about the form when the email or the password is', async () => {
     await render(); await press('Prijavite se');
-    expect(textOf(block('Email'))).toContain('Unesi email.'); expect(textOf(block('Lozinka'))).toContain('Unesi lozinku.');
+    expect(textOf(block('Email'))).toContain('Unesite email.'); expect(textOf(block('Lozinka'))).toContain('Unesite lozinku.');
     await fill('Email', 'a');
-    expect(textOf(block('Email'))).not.toContain('Unesi email.'); expect(textOf(block('Lozinka'))).toContain('Unesi lozinku.');
+    expect(textOf(block('Email'))).not.toContain('Unesite email.'); expect(textOf(block('Lozinka'))).toContain('Unesite lozinku.');
     await fill('Email', 'ana@example.test'); await fill('Lozinka', 'password');
     mockAuth.signInWithPassword.mockRejectedValueOnce(new SignInFailureError('BAD_CREDENTIALS')); await press('Prijavite se');
     expect(alerts()).toEqual([SIGN_IN_FAILURE_COPY.BAD_CREDENTIALS]);

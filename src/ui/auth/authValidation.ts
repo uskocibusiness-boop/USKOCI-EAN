@@ -17,11 +17,11 @@ const EMAIL_ADDRESS = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const isEmailAddress = (value: string): boolean => EMAIL_ADDRESS.test(value.trim());
 
 export const authFieldMessages = {
-  ime: 'Unesi ime.',
-  prezime: 'Unesi prezime.',
-  emailMissing: 'Unesi email.',
-  emailInvalid: 'Unesi ispravnu email adresu.',
-  lozinkaMissing: 'Unesi lozinku.',
+  ime: 'Unesite ime.',
+  prezime: 'Unesite prezime.',
+  emailMissing: 'Unesite email.',
+  emailInvalid: 'Unesite ispravnu email adresu.',
+  lozinkaMissing: 'Unesite lozinku.',
   lozinkaShort: `Lozinka mora imati najmanje ${MIN_PASSWORD_LENGTH} znakova.`,
   /** The quiet line under the password while a new one is being made, before it can be wrong. */
   lozinkaHint: `Najmanje ${MIN_PASSWORD_LENGTH} znakova.`,

@@ -14,14 +14,14 @@ describe('validateAuthForm', () => {
   it('asks signup for name, surname, email and password without requiring any city', () => {
     expect(validateAuthForm('SIGNUP', full)).toEqual({});
     expect(validateAuthForm('SIGNUP', { ime: ' ', prezime: '', email: '', lozinka: '' })).toEqual({
-      ime: 'Unesi ime.', prezime: 'Unesi prezime.', email: 'Unesi email.', lozinka: 'Unesi lozinku.' });
+      ime: 'Unesite ime.', prezime: 'Unesite prezime.', email: 'Unesite email.', lozinka: 'Unesite lozinku.' });
     expect(validateAuthForm('SIGNUP', { ...full, lozinka: '12345' })).toEqual({ lozinka: 'Lozinka mora imati najmanje 6 znakova.' });
     expect(validateAuthForm('SIGNUP', { ...full, lozinka: '123456' })).toEqual({});
   });
 
   it('says an address that is not one, and lets a spaced one through (it is trimmed when sent)', () => {
-    expect(validateAuthForm('LOGIN', { ...full, email: 'ana@example' })).toEqual({ email: 'Unesi ispravnu email adresu.' });
-    expect(validateAuthForm('LOGIN', { ...full, email: 'ana example.test' })).toEqual({ email: 'Unesi ispravnu email adresu.' });
+    expect(validateAuthForm('LOGIN', { ...full, email: 'ana@example' })).toEqual({ email: 'Unesite ispravnu email adresu.' });
+    expect(validateAuthForm('LOGIN', { ...full, email: 'ana example.test' })).toEqual({ email: 'Unesite ispravnu email adresu.' });
     expect(validateAuthForm('LOGIN', { ...full, email: '  ana@example.test  ' })).toEqual({});
     expect([isEmailAddress('a@b.rs'), isEmailAddress('a@b'), isEmailAddress('@b.rs'), isEmailAddress('')]).toEqual([true, false, false, false]);
   });
@@ -32,7 +32,7 @@ describe('validateAuthForm', () => {
     expect(firstInvalidField({ lozinka: 'x', prezime: 'y', ime: 'z' })).toBe('ime');
   });
 
-  it('every sentence is plain Serbian in the "ti" voice, short, with a full stop and without the words of the engine', () => {
+  it('every sentence is plain Serbian in the formal "Vi" voice, short, with a full stop and without the words of the engine', () => {
     for (const sentence of Object.values(authFieldMessages)) {
       expect(sentence).toMatch(/\.$/);
       expect(sentence).not.toMatch(/server|zahtev|greška|neispravn|nevalidn|polje/i);

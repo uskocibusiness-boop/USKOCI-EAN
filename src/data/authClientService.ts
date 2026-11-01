@@ -78,7 +78,7 @@ export const authClientService: AuthClientPort = {
     const emailRedirectTo = signupConfirmationRedirect();
     if (!emailRedirectTo) throw new Error('Potvrda registracije trenutno nije dostupna. Pokušajte ponovo malo kasnije.');
     const address = email.trim();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) throw new Error('Unesi ispravnu email adresu.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address)) throw new Error('Unesite ispravnu email adresu.');
     let error: unknown;
     try { ({ error } = await supabaseKlijent().auth.resend({ type: 'signup', email: address, options: { emailRedirectTo } })); }
     catch (thrown) {

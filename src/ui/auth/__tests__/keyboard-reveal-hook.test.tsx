@@ -68,6 +68,64 @@ describe('useFocusReveal', () => {
     expect(scrollTo).toHaveBeenCalledWith({ y: 194, animated: false });
   });
 
+  it('keeps a field above the pinned footer when native scrolling precedes the JS scroll event during keyboard resize', () => {
+    mockReduced = true;
+    let nativeOffset = 0;
+    let viewportHeight = 300;
+    const scrollTo = jest.fn(({ y }: { y?: number }) => { if (y !== undefined) nativeOffset = y; });
+    const inner = { measureInWindow: (done: Parameters<NonNullable<RevealBox['measureInWindow']>>[0]) =>
+      done(0, 100 - nativeOffset, 361, 900) };
+    const { out } = mount({
+      measureInWindow: done => done(0, 100, 361, viewportHeight),
+      getInnerViewRef: () => inner,
+      scrollTo,
+    });
+    const field = { current: { measureInWindow: (done: Parameters<NonNullable<RevealBox['measureInWindow']>>[0]) =>
+      done(0, 500 - nativeOffset, 361, 78) } };
+    act(() => out.api!.api.focus(field));
+    expect(nativeOffset).toBe(194);
+    // Android has applied the first scroll, but JS has not received onScroll.
+    // The keyboard/CTA now leaves a shorter viewport. A stale offset would
+    // scroll back to 160 and leave the focused field below the footer again.
+    viewportHeight = 140;
+    act(() => out.api!.onLayout({} as never));
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 354, animated: false });
+    expect(500 - nativeOffset).toBeGreaterThanOrEqual(100 + REVEAL_MARGIN);
+    expect(500 - nativeOffset + 78).toBeLessThanOrEqual(100 + viewportHeight - REVEAL_MARGIN);
+  });
+
+  it('does not complete an old native measurement after the field has lost focus', () => {
+    let complete: Parameters<NonNullable<RevealBox['measureInWindow']>>[0] | undefined;
+    const scrollTo = jest.fn();
+    const { out } = mount({ measureInWindow: done => { complete = done; }, scrollTo });
+    const box = boxAt(500);
+    act(() => out.api!.api.focus(box));
+    act(() => out.api!.api.blur(box));
+    act(() => complete!(0, 100, 361, 300));
+    expect(scrollTo).not.toHaveBeenCalled();
+  });
+
+  it.each(['unmount', 'another field'] as const)('retires a delayed native content measurement after %s', change => {
+    let complete: Parameters<NonNullable<RevealBox['measureInWindow']>>[0] | undefined;
+    const scrollTo = jest.fn();
+    const { out, tree } = mount({
+      measureInWindow: measure(100, 300),
+      getInnerViewRef: () => ({ measureInWindow: done => { complete = done; } }),
+      scrollTo,
+    });
+    act(() => out.api!.api.focus(boxAt(500)));
+    const previous = complete!;
+    if (change === 'unmount') act(() => tree.unmount());
+    else act(() => out.api!.api.focus(boxAt(150)));
+    act(() => previous(0, 100, 361, 900));
+    expect(scrollTo).not.toHaveBeenCalled();
+    if (change === 'another field') {
+      act(() => complete!(0, 100, 361, 900));
+      expect(scrollTo).not.toHaveBeenCalled();
+      act(() => tree.unmount());
+    }
+  });
+
   it('forgets a field that let go of the focus: the scroll area changing size afterwards scrolls nothing', () => {
     const scrollTo = jest.fn();
     const { out } = mount({ measureInWindow: measure(100, 300), scrollTo });

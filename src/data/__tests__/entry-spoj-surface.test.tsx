@@ -97,18 +97,26 @@ it('only releases the splash scene after all bundled images load, while retainin
   expect(mockSceneReady).toHaveBeenCalledTimes(1);
 });
 
-it.each([[390, 844, 33, 140], [320, 568, 24, 122]])(
-  'keeps the artwork and auth in a scrollable safe-area composition at %i×%i', async (width, height, top, size) => {
-    mockWindow = { width, height, fontScale: 2 };
+it.each([[390, 844, 33, 140, 2], [320, 568, 24, 122, 2], [360, 640, 32, 130, 1.3]])(
+  'keeps the artwork and auth in a scrollable safe-area composition at %i×%i', async (width, height, top, size, fontScale) => {
+    mockWindow = { width, height, fontScale };
     mockInsets = { ...mockInsets, top, bottom: 24 };
     await render();
     const scroll = tree.root.findByProps({ testID: 'entry-scroll' });
+    const root = StyleSheet.flatten(tree.root.findByProps({ testID: 'entry-welcome' }).props.style);
+    const viewport = StyleSheet.flatten(scroll.props.style);
     const content = StyleSheet.flatten(scroll.props.contentContainerStyle);
     const card = StyleSheet.flatten(tree.root.findByProps({ testID: 'entry-card' }).props.style);
     const artwork = StyleSheet.flatten(tree.root.findByProps({ testID: 'entry-art-publish' }).props.style);
     expect(scroll.props.scrollEnabled).toBe(true);
-    expect(content.paddingTop).toBeGreaterThanOrEqual(top);
-    expect(content.paddingBottom).toBeGreaterThanOrEqual(48);
+    // Insets must protect the viewport after scrolling as well as at offset 0.
+    // Content-only padding moves away and let the real Android welcome draw under the clock.
+    expect(root.paddingTop).toBe(top);
+    expect(root.paddingBottom).toBe(24);
+    expect(viewport).toMatchObject({ flex: 1, overflow: 'hidden' });
+    // Moving the inset outside the scroll must preserve the initial artwork and last CTA spacing.
+    expect(root.paddingTop + content.paddingTop).toBe(Math.max(24, top + (height < 700 ? 12 : 36)));
+    expect(root.paddingBottom + content.paddingBottom).toBe(48);
     expect(card.backgroundColor).toBe(sys.color.surface);
     expect(artwork.width).toBe(size);
     expect(artwork.height).toBe(size);

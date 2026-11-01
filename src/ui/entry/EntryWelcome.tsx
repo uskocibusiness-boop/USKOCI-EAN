@@ -29,6 +29,8 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
 }) {
   const { width, height, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const safeTop = Math.max(0, insets.top ?? 0);
+  const safeBottom = Math.max(0, insets.bottom ?? 0);
   const reducedMotion = useSystemReducedMotion();
   const { onLayout, onSceneReady } = useEntrySplashReady({ waitForScene: true });
   const session = useSesija();
@@ -137,11 +139,13 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
   const artSize = Math.min(140, Math.max(80, (width - 2 * gutter - 2 * cardPadding - artGap) / 2));
   const logoWidth = Math.min(285, Math.max(0, width - 2 * gutter - 2 * cardPadding));
 
-  return <View testID="entry-welcome" onLayout={onLayout} style={styles.root}>
-    <ScrollView testID="entry-scroll" scrollEnabled={!selected} bounces={false}
+  // Insets belong to the viewport: content padding alone scrolls away and lets
+  // the card draw beneath Android's status bar. Keep the initial spacing unchanged.
+  return <View testID="entry-welcome" onLayout={onLayout} style={[styles.root, { paddingTop: safeTop, paddingBottom: safeBottom }]}>
+    <ScrollView testID="entry-scroll" style={styles.viewport} scrollEnabled={!selected} bounces={false}
       accessibilityElementsHidden={!!selected} importantForAccessibility={selected ? 'no-hide-descendants' : 'auto'}
       contentContainerStyle={[styles.content, { paddingHorizontal: gutter,
-        paddingTop: Math.max(24, insets.top + (height < 700 ? 12 : 36)), paddingBottom: Math.max(24, insets.bottom + 24) }]}>
+        paddingTop: Math.max(24, safeTop + (height < 700 ? 12 : 36)) - safeTop, paddingBottom: 24 }]}>
       <Animated.View testID="entry-card" style={[styles.card, { padding: cardPadding, opacity: enterAnim, transform: [{ translateY: enterAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }] }]}>
         <Image testID="entry-logo" source={logo} contentFit="contain" transition={0}
           style={{ width: logoWidth, height: logoWidth / 3, alignSelf: 'center' }}
@@ -207,6 +211,7 @@ export function EntryWelcome({ onRequester, onWorker, onSignIn, onSignUp, busy =
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: sys.color.wash },
+  viewport: { flex: 1, overflow: 'hidden' },
   content: { flexGrow: 1, alignItems: 'stretch', gap: 20 },
   card: { ...profileLift, backgroundColor: sys.color.surface, borderRadius: 24, gap: 16 },
   title: { fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -0.9,

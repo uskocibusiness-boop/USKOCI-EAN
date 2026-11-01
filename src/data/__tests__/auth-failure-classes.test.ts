@@ -249,7 +249,7 @@ describe('every other Auth operation keeps its copy exactly (sign-up, resend and
     await expect(authClientService.resendSignupConfirmation(EMAIL)).rejects.toThrow(new Error('Potvrda registracije je namenjena neprijavljenom nalogu.'));
     await expect(authClientService.requestPasswordRecovery(EMAIL)).rejects.toMatchObject({ code: 'SIGNED_IN' });
     mockCurrent = { user: null, accountRevision: 0 };
-    await expect(authClientService.resendSignupConfirmation('not an email')).rejects.toThrow(new Error('Unesi ispravnu email adresu.'));
+    await expect(authClientService.resendSignupConfirmation('not an email')).rejects.toThrow(new Error('Unesite ispravnu email adresu.'));
     delete process.env.EXPO_PUBLIC_AUTH_RECOVERY_REDIRECT_URL;
     await expect(authClientService.requestPasswordRecovery(EMAIL)).rejects.toMatchObject({
       code: 'UNCONFIGURED', message: 'Oporavak lozinke još nije podešen za ovu verziju aplikacije.',
