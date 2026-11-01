@@ -50,6 +50,24 @@ it('unknown legal acceptance does not replay or expose backend text', async () =
   expect(result).toMatchObject({ ok: false, kod: 'LEGAL_ACCEPT_OUTCOME_UNKNOWN' });
   expect(JSON.stringify(result)).not.toContain('PRIVATE_CONTENT'); expect(mockRpc).toHaveBeenCalledTimes(1);
 });
+it('only a returned server review-change response carries intent-retirement authority', async () => {
+  const invalid = await legal.acceptReviewedBundle('malformed', SHA, PRIVACY);
+  expect(invalid).toMatchObject({ ok: false, kod: 'LEGAL_REVIEW_CHANGED' });
+  expect(invalid).not.toHaveProperty('authoritativeReviewChanged'); expect(mockRpc).not.toHaveBeenCalled();
+  mockRpc.mockResolvedValueOnce({ data: null, error: { message: 'LEGAL_REVIEW_CHANGED', code: 'PT409' } });
+  expect(await legal.acceptReviewedBundle(K, SHA, PRIVACY)).toMatchObject({ ok: false, kod: 'LEGAL_REVIEW_CHANGED', authoritativeReviewChanged: true });
+  mockRpc.mockRejectedValueOnce(new Error('LEGAL_REVIEW_CHANGED'));
+  const thrown = await legal.acceptReviewedBundle(K, SHA, PRIVACY);
+  expect(thrown).toMatchObject({ ok: false, kod: 'LEGAL_ACCEPT_OUTCOME_UNKNOWN' });
+  expect(thrown).not.toHaveProperty('authoritativeReviewChanged');
+});
+it('a server rejection after account ABA cannot retire the old reviewed intent', async () => {
+  let resolve!: (r: unknown) => void; mockRpc.mockImplementation(() => new Promise(r => { resolve = r; }));
+  const request = legal.acceptReviewedBundle(K, SHA, PRIVACY); mockSession = { user: { id: A }, accountRevision: 3 };
+  resolve({ data: null, error: { message: 'LEGAL_REVIEW_CHANGED', code: 'PT409' } });
+  const result = await request; expect(result).toMatchObject({ ok: false, kod: 'AUTH_ACCOUNT_CHANGED' });
+  expect(result).not.toHaveProperty('authoritativeReviewChanged');
+});
 it('reads absent acceptance as absent and does not create consent', async () => {
   respond({ accountId: A, clientRequestId: K, found: false, receipt: null, authoritative: true });
   expect(await legal.readAcceptance(K)).toEqual({ ok: true, podatak: { found: false, receipt: null } });

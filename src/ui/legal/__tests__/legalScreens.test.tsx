@@ -2,6 +2,7 @@ import React from 'react';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import type { LegalBundleStatus } from '../../../contracts/legal';
 const mockRead = jest.fn(), mockProcessors = jest.fn(), mockAccept = jest.fn(), mockOutcome = jest.fn(), mockOpen = jest.fn(), mockBack = jest.fn();
+const mockNewId = jest.fn(() => '33333333-3333-4333-8333-333333333333');
 let mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' } as { id: string } | null, accountRevision: 1 };
 let mockFocused = true;
 jest.mock('react-native', () => {
@@ -15,7 +16,7 @@ jest.mock('react-native-safe-area-context', () => ({ SafeAreaView: 'SafeAreaView
 jest.mock('../../Press', () => ({ Press: 'Press' }));
 jest.mock('../../Text', () => ({ T: 'T' }));
 jest.mock('../../../store/sesija', () => ({ sesijaSada: () => mockOwner, useSesija: () => mockOwner }));
-jest.mock('../../../lib/idempotencija', () => ({ noviUuidZahtevId: () => '33333333-3333-4333-8333-333333333333' }));
+jest.mock('../../../lib/idempotencija', () => ({ noviUuidZahtevId: () => mockNewId() }));
 jest.mock('../../../data/legalClientService', () => ({ legalClientService: {
   readBundle: (...args: unknown[]) => mockRead(...args), acceptReviewedBundle: (...args: unknown[]) => mockAccept(...args), readAcceptance: (...args: unknown[]) => mockOutcome(...args),
 } }));
@@ -45,6 +46,7 @@ const deferredOpen = () => {
 };
 beforeEach(() => {
   jest.clearAllMocks(); mockOpen.mockReset(); mockFocused = true; mockOwner = { user: { id: '11111111-1111-4111-8111-111111111111' }, accountRevision: 1 };
+  mockNewId.mockReset().mockReturnValue('33333333-3333-4333-8333-333333333333');
   mockRead.mockResolvedValue(ok(bundle())); mockProcessors.mockResolvedValue(ok({ ready: false, reason: 'PROCESSOR_MAP_NOT_PUBLISHED', missingProviders: [] }));
   mockAccept.mockResolvedValue(ok(receipt)); mockOutcome.mockResolvedValue(ok({ found: true, receipt })); mockOpen.mockResolvedValue(undefined);
 });
@@ -271,11 +273,11 @@ it('a running readback and a running replay each keep their words with a spinner
   await act(async () => action('Prihvati pregledane dokumente').props.onPress());
   await act(async () => { action('Proveri da li je prihvaćeno').props.onPress(); });
   expect(action('Proveri da li je prihvaćeno').props).toMatchObject({ loading: true, disabled: true });
-  expect(action('Prihvati ponovo')).toBeUndefined();
+  expect(action('Ponovi prethodno prihvatanje')).toBeUndefined();
   await act(async () => found(ok({ found: false, receipt: null })));
   let accepted!: (value: unknown) => void; mockAccept.mockReturnValueOnce(new Promise(done => { accepted = done; }));
-  await act(async () => { action('Prihvati ponovo').props.onPress(); });
-  expect(action('Prihvati ponovo').props).toMatchObject({ loading: true, disabled: true });
+  await act(async () => { action('Ponovi prethodno prihvatanje').props.onPress(); });
+  expect(action('Ponovi prethodno prihvatanje').props).toMatchObject({ loading: true, disabled: true });
   expect(action('Proveri da li je prihvaćeno')).toBeUndefined(); expect(mockAccept).toHaveBeenCalledTimes(2);
   await act(async () => accepted(ok(receipt)));
   expect(renderedCopy()).toContain('Prihvaćene su trenutne verzije dokumenata.');
@@ -288,4 +290,28 @@ it('an acceptance failure is said right above the button that failed', async () 
   const alerts = tree.root.findAll(node => node.type === ('SettingsText' as React.ElementType) && [node.props.children].flat().includes('Ishod nije potvrđen.'));
   expect(alerts).toHaveLength(1); expect(alerts[0].props.accessibilityRole).toBe('alert');
   expect(action('Proveri da li je prihvaćeno')).toBeDefined();
+});
+it('changed documents and ABSENT offer a named old replay, then require a fresh explicit consent after server rejection', async () => {
+  mockOwner = { ...mockOwner, accountRevision: 10 };
+  const oldKey = '33333333-3333-4333-8333-333333333333', nextKey = '44444444-4444-4444-8444-444444444444';
+  mockNewId.mockReturnValueOnce(oldKey).mockReturnValueOnce(nextKey);
+  mockAccept.mockResolvedValueOnce({ ok: false, kod: 'LEGAL_ACCEPT_OUTCOME_UNKNOWN', poruka: 'Ishod nije potvrđen.' });
+  mockOutcome.mockResolvedValueOnce(ok({ found: false, receipt: null }));
+  await act(async () => { tree = create(<LegalRoute />); });
+  await act(async () => action('Prihvati pregledane dokumente').props.onPress());
+  const next = bundle(); next.documents[0].sha256 = 'c'.repeat(64); mockRead.mockResolvedValue(ok(next));
+  await act(async () => pull().onRefresh());
+  await act(async () => action('Proveri da li je prihvaćeno').props.onPress());
+  expect(mockAccept).toHaveBeenCalledTimes(1); expect(mockNewId).toHaveBeenCalledTimes(1);
+  expect(action('Prihvati pregledane dokumente')).toBeUndefined();
+  expect(renderedCopy()).toContain('Možete ponoviti isto prihvatanje.');
+  mockAccept.mockResolvedValueOnce({ ok: false, kod: 'LEGAL_REVIEW_CHANGED', poruka: 'Pročitajte aktuelne dokumente.', authoritativeReviewChanged: true });
+  await act(async () => action('Ponovi prethodno prihvatanje').props.onPress());
+  expect(mockAccept.mock.calls).toEqual([[oldKey, 'a'.repeat(64), 'b'.repeat(64)], [oldKey, 'a'.repeat(64), 'b'.repeat(64)]]);
+  expect(action('Prihvati pregledane dokumente')).toBeUndefined(); expect(action('Ponovi prethodno prihvatanje')).toBeUndefined();
+  await act(async () => pull().onRefresh()); expect(mockAccept).toHaveBeenCalledTimes(2);
+  mockAccept.mockResolvedValueOnce(ok({ ...receipt, termsSha256: 'c'.repeat(64) }));
+  await act(async () => action('Prihvati pregledane dokumente').props.onPress());
+  expect(mockAccept).toHaveBeenLastCalledWith(nextKey, 'c'.repeat(64), 'b'.repeat(64));
+  expect(renderedCopy()).toContain('Prihvaćene su trenutne verzije dokumenata.');
 });
