@@ -1,0 +1,226 @@
+{
+  "unit": "USKOCI_V2_ACTION_ACCESSIBILITY_CI_CHECKPOINT",
+  "format_version": 1,
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/rev14-review-f17",
+  "pull_request": 43,
+  "source_head": "51ac4e24c805c4b99db0b82bf1e4b1c9b1785286",
+  "tested_merge_sha": "b7fdbd85dd8567319888bc06a085f610b89996bd",
+  "integration_base_sha": "a9692e11942609bab9406215c3e407d79589dafa",
+  "checked_at_utc": "2026-11-01 18:22:42 UTC",
+  "evidence_basis": "Completed workflow and job metadata plus actual checkout/test/runtime logs. No expected totals were substituted.",
+  "main_ci": {
+    "run_id": 41335325789,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41335325789",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "id": 124933819804,
+        "name": "r05-postgis-candidates",
+        "status": "completed",
+        "conclusion": "success",
+        "step_count": 9,
+        "all_steps_success": true,
+        "non_success_steps": []
+      },
+      {
+        "id": 124933820059,
+        "name": "source-and-contracts",
+        "status": "completed",
+        "conclusion": "success",
+        "step_count": 33,
+        "all_steps_success": true,
+        "non_success_steps": []
+      }
+    ],
+    "checks": {
+      "typescript": "PASS",
+      "deno_edge_typechecks": {
+        "function_count": 12,
+        "conclusion": "PASS",
+        "execution": false
+      },
+      "mobile_jest": {
+        "suites_passed": 626,
+        "suites_total": 626,
+        "tests_passed": 14565,
+        "tests_total": 14565,
+        "snapshots_passed": 3,
+        "snapshots_total": 3
+      },
+      "ai_matrix": {
+        "command": "node --test --test-concurrency=2 --test-reporter=spec supabase/proofs/ai/*.test.mjs",
+        "tests": 1488,
+        "passed": 1487,
+        "failed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 1,
+        "open_todo": "R07a integration: real Auth and full signed accept/Save/publish after price retraction, including an already prepared review"
+      },
+      "reviewed_dev_packages": {
+        "tests": 37,
+        "passed": 37,
+        "failed": 0,
+        "included_r03_tests": 6,
+        "included_r07_tests": 7
+      },
+      "r10_work_areas_export_isolated": {
+        "tests": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      "need_column_privacy_isolated": {
+        "tests": 16,
+        "passed": 16,
+        "failed": 0
+      },
+      "migration_source_integrity": "PASS",
+      "r05_real_postgis": "PASS"
+    },
+    "summary_log_lines": [
+      "2026-11-01T18:17:00.8252068Z Test Suites: 626 passed, 626 total",
+      "2026-11-01T18:17:00.8252571Z Tests:       14565 passed, 14565 total",
+      "2026-11-01T18:17:00.8253170Z Snapshots:   3 passed, 3 total",
+      "2026-11-01T18:21:31.7872953Z ℹ tests 1488",
+      "2026-11-01T18:21:31.7873736Z ℹ pass 1487",
+      "2026-11-01T18:21:31.7875574Z ℹ todo 1",
+      "2026-11-01T18:21:44.0186068Z PASS migration_integrity files=193 live_snapshot=87 pending=60 physical_suffix=43 oct26_suffix=3 191500=RECORDED_STATEMENT_RECONSTRUCTION exact_byte_mirror=false participant_contract=PASS"
+    ]
+  },
+  "r03": {
+    "test_file": "supabase/operations/dev-alpha/r03-owner-page-20261101/package.test.mjs",
+    "local_preparation_evidence": "supabase/operations/dev-alpha/r03-owner-page-20261101/preparation-receipt.json",
+    "local_preparation": {
+      "tests": 6,
+      "passed": 6,
+      "failed": 0,
+      "scope": "Historical local SQL/client preparation; uncommitted packet at source e870. The same six test names now have CI witnesses at the tested merge."
+    },
+    "ci": {
+      "tests": 6,
+      "passed": 6,
+      "failed": 0,
+      "included_in_reviewed_dev_package_total": true,
+      "passed_test_log_lines": [
+        "2026-11-01T18:13:18.2566637Z ✔ frozen package changes exactly the existing page body, not closure or authority (11.909827ms)",
+        "2026-11-01T18:13:18.2568832Z ✔ exact current SQL reproduces empty and nonempty OWN_TASKS_PAGE_INVALID in the real service (5055.123352ms)",
+        "2026-11-01T18:13:18.2571551Z ✔ new actual SQL maps every scope and cursor through current client; whole-list documents and counts agree (3802.898922ms)",
+        "2026-11-01T18:13:18.2573964Z ✔ new reader denies missing/closed/anonymous callers and invalid input; preserves no-private-field document (3132.442437ms)",
+        "2026-11-01T18:13:18.2576532Z ✔ one-body rollback restores the captured failure without changing helper/ACL; reapply succeeds (3254.023122ms)",
+        "2026-11-01T18:13:18.2578582Z ✔ actual catalog delta assertion accepts one body only and rejects an unrelated helper change (2955.970075ms)"
+      ]
+    },
+    "promotion_sha256": "b10e5c3532378b340d83e9c19b54ac6765c2f5641e9f2f18f296e7c60f16cc24",
+    "separate_dev_native_evidence": "docs/continuation/evidence-20261101-r03-native-dev.json",
+    "scope": "Exact captured SQL/client contract reproduction, five scopes/counts/cursors, ownership and refusal, private-field exclusion, inverse rollback and unrelated-delta rejection. CI is isolated and does not itself apply or establish native acceptance."
+  },
+  "r05": {
+    "job_id": 124933819804,
+    "conclusion": "success",
+    "tested_merge_sha": "b7fdbd85dd8567319888bc06a085f610b89996bd",
+    "log_evidence": "2026-11-01T18:12:23.0703753Z R05 PostGIS PASS; evidence /home/runner/work/USKOCI-EAN/USKOCI-EAN/artifacts/r05-postgis",
+    "artifact": {
+      "id": 13094419198,
+      "name": "r05-postgis-saved-area-proof",
+      "size_in_bytes": 14049,
+      "sha256": "26cc3d497c147b5196a235c7f3bcd096ab53a32b02b4f51dd7fe24667d64b547",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41335325789/artifacts/13094419198",
+      "archive_downloaded_in_this_check": false
+    },
+    "scope": "Synthetic disposable PostgreSQL/PostGIS proof. No live DEV deployment, full-schema dispatch or real Auth/push claim. Detailed prior same-source-candidate scope is recorded in evidence-20261101-r05-postgis-ci.json."
+  },
+  "r01": {
+    "run_id": 41335325947,
+    "job_id": 124933817354,
+    "status": "completed",
+    "conclusion": "failure",
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41335325947",
+    "tested_merge_sha": "b7fdbd85dd8567319888bc06a085f610b89996bd",
+    "failure_stage": "STRICT_PARITY",
+    "failure_code": "METADATA_PARITY_DIFFERENT",
+    "strict_difference_count": 8,
+    "supplementary_difference_count": 49,
+    "managed_hook_difference_count": 3,
+    "native_net_invoker_paired_verified": true,
+    "native_net_invoker_difference_count": 0,
+    "r01_boundary_admitted": false,
+    "metadata_equal": false,
+    "live_access": false,
+    "fixtures_run": false,
+    "candidate_applied": false,
+    "actual_auth_proven": false,
+    "postgrest_boundary_proven": false,
+    "bootstrap_sql_sha256": "1702ea9a70a08265d74441557c04b6840a343493905a780c6b89fc4dc598f99f",
+    "cleanup_step_conclusion": "success",
+    "cleanup_log_evidence": "2026-11-01T18:14:55.3635664Z R01 disposable project stopped without retaining its data volumes.",
+    "artifact": {
+      "id": 13094788796,
+      "name": "r01-schema-b7fdbd85dd8567319888bc06a085f610b89996bd-41335325947-1",
+      "size_in_bytes": 51074,
+      "sha256": "4afff522dd9ba989791fe38cdb73179741ece968171823e12bb069f684b30fdf",
+      "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41335325947/artifacts/13094788796",
+      "archive_downloaded_in_this_check": false
+    },
+    "comparison": "Same failure stage, 8/49/3 counts, paired invoker true/0 and cleanup success as evidence-20261101-207a6618-ci.json; no repeated wider analysis or tuple-equality claim."
+  },
+  "limitations": [
+    "CI proves only the checked-out merge and declared isolated tests. Real Auth/PostgREST, Gemini availability, push delivery, Android user flows and release readiness need separate evidence.",
+    "The R01 workflow uses the unchanged frozen bootstrap, not a fresh full live DEV catalog including operational deltas. Strict parity remains failed and paired invoker success admits no broader boundary.",
+    "Source-level timeout protection and accessibility state reset are separate fixes. A native content-description containing busy alone does not prove a pending request or failed server response.",
+    "This collection made no workflow rerun/cancel, SQL mutation, Edge deployment, source/master edit, commit or push. The evidence file is written only after the active APK source freeze ends."
+  ],
+  "r07": {
+    "test_file": "supabase/operations/dev-alpha/r07-application-attention-20261101/package.test.mjs",
+    "ci": {
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "included_in_reviewed_dev_package_total": true,
+      "passed_test_log_lines": [
+        "2026-11-01T18:13:22.4857991Z ✔ frozen package preserves every signature, metadata and closure admission; changes three bodies only (5.417539ms)",
+        "2026-11-01T18:13:22.4875539Z ✔ exact preimage reproduces completed selection as false attention through SQL and the actual client (4583.232449ms)",
+        "2026-11-01T18:13:22.4909509Z ✔ corrected SQL separates lifecycle attention from selection and preserves exact Agreement links/terms (3054.102086ms)",
+        "2026-11-01T18:13:22.4929303Z ✔ all scopes, counts, microsecond ties and keyset pages agree with the corrected whole-list order (3768.417264ms)",
+        "2026-11-01T18:13:22.4965593Z ✔ ownership, empty results, no-Auth/anonymous denial and page input guards survive; NULL-owner acceptance executes (4169.833693ms)",
+        "2026-11-01T18:13:25.7785329Z ✔ atomic rollback restores exact historical behavior and metadata; reapply moves completed selection to history (3286.85205ms)",
+        "2026-11-01T18:13:27.9345184Z ✔ actual catalog assertion allows exactly three body changes and rejects unrelated changes atomically (2164.060076ms)"
+      ]
+    },
+    "promotion_sha256": "5e174baae5fe232e07d1676008be42ec25676767c8a9346d0920051ea679269d",
+    "separate_dev_native_evidence": "docs/continuation/evidence-20261101-r07-native-dev.json",
+    "scope": "Captured SQL plus actual application client: terminal Agreement attention correction, preserved selection/link/terms, owned latest Agreement, scopes/counts/cursors, refusal, inverse rollback and unrelated-delta rejection. Isolated CI does not itself apply or prove hosted/native behavior."
+  },
+  "r04": {
+    "changed_source": "src/app/(app)/pregled-zadatka.tsx",
+    "changed_test": "src/data/__tests__/v5-review-screen.test.tsx",
+    "scope": "Truthful classification-state copy, same-conversation missing-mode correction, existing refresh action, unchanged publication guards, account-switch and error-recovery tests.",
+    "separate_native_evidence": "docs/continuation/evidence-20261101-r04-ai-native.json",
+    "limitation": "Semantic classification/publish remains a separate server gate. A native content-description containing busy is not evidence that this CI or any request remained pending; native state requires its separate reviewed evidence."
+  },
+  "task_detail_timeout": {
+    "source": "src/data/needClientService.ts",
+    "test": "src/data/__tests__/cdl-a03-need-read-equivalence.test.ts",
+    "ci_scope": "Included in the full passed Jest step. The bounded detail RPC, late resolve/reject, malformed/null/backend error, account-incarnation and 4s optional urgency boundaries are source/test evidence.",
+    "native_causality": "This does not assert that the timeout gap caused the separately observed Android stale busy accessibility description."
+  },
+  "v2_action_accessibility": {
+    "source": "src/ui/v2/V2Action.tsx",
+    "test": "src/ui/system/__tests__/action-states.test.tsx",
+    "change": "Always supplies accessibilityState.busy as the loading boolean, including explicit false after loading ends; disabled remains the existing effective inactive state.",
+    "local_red": {
+      "tests": 2,
+      "failed": 2,
+      "reason": "After loading true to false, the same host button omitted busy instead of supplying false."
+    },
+    "local_green": {
+      "suites": 5,
+      "tests": 254,
+      "failed": 0,
+      "typescript": "PASS"
+    },
+    "scope": "Same-host transition tests for enabled and externally disabled controls plus related action/haptics/review/state suites. The change clears an explicit native semantic state; it does not establish request or server behavior.",
+    "native_limit": "Android stale busy was independently reproduced before this change. Final native verification of this source is recorded separately; these CI logs are not native proof."
+  }
+}
