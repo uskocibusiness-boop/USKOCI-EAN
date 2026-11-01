@@ -5,12 +5,36 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
 import {PGlite} from '@electric-sql/pglite';
 import {pgcrypto} from '@electric-sql/pglite/contrib/pgcrypto';
 const source=readFileSync(new URL('../../candidates/r08_remote_only_activation.sql',import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const snapshot=readFileSync(new URL('../privacy/bootstrap/current-application.sql',import.meta.url),'utf8').replace(/\r\n/g,'\n');
 const id=n=>'00000000-0038-4338-8338-'+String(n).padStart(12,'0');
 const owner=id(1),other=id(2),remote=id(3),local=id(4),profile=id(5),conversation=id(6),request=id(7),need=id(8);
+// Run the real mobile decoder against SQL output. Native session/SDK/stream IO
+// is forbidden; pure decoding dependencies are evaluated from their current source.
+function mobileDecoder(){
+ const cache=new Map(),context=vm.createContext({Intl,Date,process:{env:{}}});
+ const noIo=()=>assert.fail('UNEXPECTED_MOBILE_IO');
+ function load(url){
+  if(cache.has(url.href))return cache.get(url.href);
+  if(url.pathname.endsWith('/src/store/sesija.ts'))return {sesijaSada:noIo};
+  if(url.pathname.endsWith('/src/data/supabaseClient.ts'))return {supabaseKlijent:noIo};
+  if(url.pathname.endsWith('/src/data/aiNeedTurnStream.ts'))return {requestAiTurnStream:noIo};
+  const compiled=ts.transpileModule(readFileSync(url,'utf8'),{fileName:url.pathname.replace(/\.mjs$/,'.ts'),reportDiagnostics:true,
+   compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS}});
+  assert.deepEqual(compiled.diagnostics?.filter(d=>d.category===ts.DiagnosticCategory.Error),[]);
+  const exports={};cache.set(url.href,exports);
+  new vm.Script(`(function(exports,require){${compiled.outputText}\n})`,{filename:url.pathname}).runInContext(context)(exports,name=>{
+   assert.ok(name.startsWith('.'),'Only declared local decoding imports are allowed');
+   return load(new URL(/\.(?:ts|mjs)$/.test(name)?name:name+'.ts',url));
+  });
+  return exports;
+ }
+ return load(new URL('../../../src/data/workerAiClientService.ts',import.meta.url));
+}
 const sqlFunction=name=>{
  const start=snapshot.indexOf('CREATE OR REPLACE FUNCTION '+name+'(');assert.ok(start>=0,name);
  const marker=snapshot.indexOf('AS $function$',start),end=snapshot.indexOf('$function$;',marker+13);
@@ -227,6 +251,37 @@ test('catalog/mode/alias drift, unknown skills and proposal actions do not grant
  await db.query("INSERT INTO private.work_taxonomy_category_modes(category_id,execution_scope,source_ref) VALUES($1,'REMOTE','fixture')",[remote]);
  await db.query("INSERT INTO private.work_taxonomy_aliases(category_id,locale,label) VALUES($1,'sr','Logotip')",[local]);
  await assert.rejects(save(db,r),/WORKER_AI_STALE/);
+});
+
+test('actual REMOTE extension refusal reaches mobile review; choosing draft preserves no activation authority',async t=>{
+ const db=await setup(t);
+ await db.exec(tableSql('private.work_taxonomy_risk_rules'));
+ await db.exec(sqlFunction('private.taxonomy_risk_triage_v1'));
+ await db.exec(sqlFunction('private.taxonomy_category_path_valid_v1'));
+ await db.query('DELETE FROM private.work_taxonomy_category_modes WHERE category_id=$1',[remote]);
+ await db.query("UPDATE private.work_taxonomy_categories SET label='Izrada logotipa',canonical_key='izrada logotipa' WHERE id=$1",[remote]);
+ await db.exec(`UPDATE private.worker_ai_sessions SET candidate=jsonb_set(candidate,'{skills}','["Izrada logotipa"]');
+  UPDATE private.work_taxonomy_gemini_turn_hints_v1 h SET source_fingerprint=encode(extensions.digest(
+   convert_to(s.candidate::text||'|'||s.revision::text||'|'||s.base_hash,'UTF8'),'sha256'),'hex')
+  FROM private.worker_ai_sessions s WHERE s.conversation_id=h.conversation_id;`);
+ await db.query(`UPDATE private.work_taxonomy_gemini_turn_hints_v1 SET proposals=jsonb_build_array(jsonb_build_object(
+  'action','EXTEND_MODE','service','Izrada logotipa','mode','REMOTE','categoryId',$1::text,'parentId','',
+  'proposedPath','[]'::jsonb,'catalogVersion',1,'reason','Explicit remote service needs mode admission','handoff',jsonb_build_object('required',false)))`,[remote]);
+ const blocked=await prepare(db);
+ assert.equal(blocked.classificationState,'READY');assert.equal(blocked.classificationCandidates[0].action,'EXTEND_MODE');
+ assert.equal(blocked.canAccept,false);assert.deepEqual(blocked.missingRequired,['Potvrda usluga za rad na daljinu']);
+ const decoder=mobileDecoder();
+ assert.deepEqual(JSON.parse(JSON.stringify(decoder.decodeWorkerAiReview(blocked,owner,conversation))),blocked);
+ await assert.rejects(save(db,blocked),/WORKER_AI_STALE/);
+ const draft=await prepare(db,false,false);
+ assert.equal(draft.activate,false);assert.equal(draft.canAccept,true);assert.deepEqual(draft.missingRequired,[]);
+ assert.notEqual(draft.reviewId,blocked.reviewId);assert.notEqual(draft.displayedContentDigest,blocked.displayedContentDigest);
+ assert.deepEqual(JSON.parse(JSON.stringify(decoder.decodeWorkerAiReview(draft,owner,conversation))),draft);
+ const receipt=await save(db,draft);assert.equal(receipt.profileStatus,'DRAFT');
+ assert.equal((await db.query('SELECT city,profile_status FROM public.app_profiles')).rows[0].city,'');
+ await assert.rejects(db.query('SELECT public.rpc_complete_worker_profile($1)',[profile]),/CITY_REQUIRED/);
+ assert.equal((await db.query('SELECT count(*)::int n FROM private.taxonomy_confirmed_worker_modes_v1')).rows[0].n,0);
+ assert.equal((await db.query('SELECT count(*)::int n FROM private.work_taxonomy_worker_capabilities')).rows[0].n,0);
 });
 
 test('digest tampering, source revision drift and trigger failure roll back profile/receipt/conversation',async t=>{

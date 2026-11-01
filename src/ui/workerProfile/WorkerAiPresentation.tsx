@@ -154,9 +154,13 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
   const confirmedModes=review.classificationState==='READY'?review.reviewedServiceModes??[]:[];
   const onSite=confirmedModes.some(item=>item.mode==='ON_SITE'),remote=confirmedModes.some(item=>item.mode==='REMOTE');
   const hasSchedule=p.availability.rules.length>0||p.availability.windows.length>0;
+  const pendingActivation=review.missingRequired.includes('Potvrda usluga za rad na daljinu');
+  const missingFacts=review.missingRequired.filter(label=>label!=='Potvrda usluga za rad na daljinu');
   return <View style={s.review}>
-    {review.missingRequired.length?<View style={s.reviewNotice}><FactArt kind="info" size={24} cut="art" role="waiting"/>
-      <T accessibilityRole="alert" variant="body" style={[s.grow,s.ink]}>Dopunite: {review.missingRequired.map(missingLabel).join(', ')}.</T></View>:null}
+    {missingFacts.length?<View style={s.reviewNotice}><FactArt kind="info" size={24} cut="art" role="waiting"/>
+      <T accessibilityRole="alert" variant="body" style={[s.grow,s.ink]}>Dopunite: {missingFacts.map(missingLabel).join(', ')}.</T></View>:null}
+    {pendingActivation?<View style={s.reviewNotice}><FactArt kind="info" size={24} cut="art" role="waiting"/>
+      <T accessibilityRole="alert" variant="body" style={[s.grow,s.ink]}>Aktivacija čeka potvrdu usluga za rad na daljinu. Za čuvanje bez aktivacije izaberite „Nacrt“.</T></View>:null}
     {review.missingRequired.includes('Ime')&&onAddName?<V2Action label="Dodaj ime" kind="secondary" compact onPress={onAddName} style={s.addName}/>:null}
     <ReviewGroup part="skills">
       {p.skills.length?<View style={s.services}>{p.skills.map((skill,index)=>{

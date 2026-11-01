@@ -331,6 +331,47 @@ const enterReview=async()=>{
 };
 const reviewBack=()=>tree.root.findByType('Frame' as any).props.back;
 
+it.each([false,true])('signed cityless REMOTE refusal can be saved only after a new draft review; lost ACK=%p',async lostAck=>{
+ const decoder=jest.requireActual('../workerAiClientService');
+ const profile={...candidate(),displayName:'Mila',skills:['Izrada logotipa'],location:{...candidate().location,operatingCountryCode:null}};
+ const blocked={schemaVersion:'WORKER_PROFILE_V1',reviewId:K,conversationId:C,accountId:A,profileId:B,
+  revision:0,profile,activate:true,missingRequired:['Potvrda usluga za rad na daljinu'],canAccept:false,
+  expiresAt:new Date(Date.now()+60_000).toISOString(),displayedContentDigest:'a'.repeat(64),classificationState:'READY',
+  classificationCatalogVersion:1,classificationCatalogFingerprint:'c'.repeat(32),
+  reviewedServiceModes:[{service:'Izrada logotipa',mode:'REMOTE'}],
+  classificationCandidates:[{action:'EXTEND_MODE',service:'Izrada logotipa',mode:'REMOTE',categoryId:K,
+   categoryLabel:'Izrada logotipa',categoryParentId:null,catalogVersion:1,reason:'Remote mode needs catalog approval'}]};
+ const draft={...blocked,reviewId:'55555555-5555-4555-8555-555555555555',activate:false,canAccept:true,
+  missingRequired:[],displayedContentDigest:'b'.repeat(64)};
+ let raw:Record<string,unknown>={...snapshot(),candidate:profile,review:blocked};
+ mockApi.read.mockImplementation(async()=>{
+  const decoded=decoder.decodeWorkerAiSnapshot(raw,A,C);
+  return decoded?ok(decoded):{ok:false,kod:'WORKER_AI_INVALID_RESPONSE',poruka:'Pregled nije potvrđen.'};
+ });
+ mockApi.prepare.mockImplementation(async(_cid,_revision,activate)=>{
+  raw={...raw,review:activate?blocked:draft};return ok(decoder.decodeWorkerAiReview(raw.review,A,C));
+ });
+ mockApi.save.mockImplementation(async frozen=>{
+  expect(frozen).toEqual(draft);
+  const receipt={reviewId:draft.reviewId,conversationId:C,accountId:A,profileId:B,profileStatus:'DRAFT',saved:true,authoritative:true};
+  raw={...raw,status:'COMPLETED',saved:receipt};
+  return lostAck?{ok:false,kod:'UNKNOWN',poruka:'Odgovor nije stigao.'}:ok(receipt);
+ });
+ await render();await act(async()=>shell().props.footerAction.props.onPress());
+ expect(action('Sačuvaj i aktiviraj profil').props.disabled).toBe(true);
+ await click('Sačuvaj i aktiviraj profil');expect(mockApi.save).not.toHaveBeenCalled();
+ await act(async()=>tree.root.findByType('Activation' as any).props.change(false));
+ expect(mockApi.prepare.mock.calls.map(call=>call.slice(0,3))).toEqual([[C,0,true],[C,0,false]]);
+ expect(tree.root.findByType('Review' as any).props.review).toEqual(draft);
+ expect(action('Sačuvaj profil').props.disabled).toBe(false);expect(mockApi.save).not.toHaveBeenCalled();
+ await click('Sačuvaj profil');
+ expect(mockApi.save).toHaveBeenCalledTimes(1);expect(mockApi.save.mock.calls[0][0]).toEqual(draft);
+ expect(visibleText()).toContain('Profil je sačuvan');expect(visibleText()).not.toContain(' i aktivan');
+ expect(tree.root.findByType('Review' as any).props.review.profile.location).toMatchObject({city:'',operatingCountryCode:null});
+ expect(mockApi.send).not.toHaveBeenCalled();expect(mockApi.patch).not.toHaveBeenCalled();
+ await click('Otvori sačuvani profil');expect(mockRouter.replace).toHaveBeenCalledWith('/profil/radnik');
+});
+
 it('a legacy review does not claim confirmed matching when classification authority is absent',async()=>{
  await render();await enterReview();
  const note=tree.root.findAll(node=>node.props?.testID==='worker-review-notifications-note');

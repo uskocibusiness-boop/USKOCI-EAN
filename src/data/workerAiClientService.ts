@@ -228,10 +228,15 @@ export function decodeWorkerAiReview(raw:unknown,account:string,cid:string):Work
     ||(areas&&v.workAreaPolicy!=='SIGNED_WORK_AREAS_V1')
     ||v.schemaVersion!=='WORKER_PROFILE_V1'||!uuid(v.reviewId)||!sameId(v.conversationId,cid)||!sameId(v.accountId,account)||!uuid(v.profileId)
     ||!revision(v.revision)||!profile||typeof v.activate!=='boolean'||typeof v.canAccept!=='boolean'||!Array.isArray(v.missingRequired)
-    ||v.missingRequired.length>4||v.missingRequired.some(x=>!['Ime','Mesto rada','Veštine','Država i mesto rada'].includes(x))
+    ||v.missingRequired.length>4||v.missingRequired.some(x=>!['Ime','Mesto rada','Veštine','Država i mesto rada','Potvrda usluga za rad na daljinu'].includes(x))
     ||v.canAccept!==(v.missingRequired.length===0)||!text(v.expiresAt,40)||calendarInstant(v.expiresAt)===null||!digest(v.displayedContentDigest))return null;
   const classification=extra?decodeClassification(v,profile):null;
   if(extra&&!classification)return null;
+  // This is an activation refusal in the signed cityless REMOTE review, not a
+  // missing location or permission to activate a proposed category on the client.
+  if(v.missingRequired.includes('Potvrda usluga za rad na daljinu')
+    &&(!v.activate||profile.location.city.trim().length>=2||classification?.classificationState!=='READY'
+      ||!classification.reviewedServiceModes.length||classification.reviewedServiceModes.some(mode=>mode.mode!=='REMOTE')))return null;
   return {schemaVersion:'WORKER_PROFILE_V1',reviewId:v.reviewId,conversationId:v.conversationId,accountId:v.accountId,profileId:v.profileId,
     revision:v.revision,profile,activate:v.activate,missingRequired:[...v.missingRequired],canAccept:v.canAccept,expiresAt:v.expiresAt,displayedContentDigest:v.displayedContentDigest,
     ...classification,...(equipment?{equipmentPolicy:'PRESERVE_LEGACY_NO_WRITE_V1' as const}:{}),...(areas?{workAreaPolicy:'SIGNED_WORK_AREAS_V1' as const}:{})};

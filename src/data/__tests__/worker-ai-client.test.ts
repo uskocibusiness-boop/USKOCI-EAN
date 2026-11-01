@@ -162,6 +162,38 @@ it('accepts signed ON_SITE scope for the actual visible worker skill and preserv
  expect(mockRpc.mock.calls).toEqual([['rpc_save_worker_ai_review',
    {p_review_id:REVIEW,p_displayed_digest:'a'.repeat(64),p_client_request_id:KEY}]]);
 });
+const pendingRemoteActivation=():WorkerAiReview=>({...signedWorkerReview(),
+ profile:{...profile(),location:{...profile().location,city:'',operatingCountryCode:null}},
+ missingRequired:['Potvrda usluga za rad na daljinu'],canAccept:false,
+ reviewedServiceModes:[{service:'Prenos',mode:'REMOTE'}],
+ classificationCandidates:[{action:'EXTEND_MODE',service:'Prenos',mode:'REMOTE',categoryId:SIGNED_CATEGORY,
+  categoryLabel:'Prenos',categoryParentId:null,catalogVersion:3,reason:'Remote mode needs catalog approval'}],
+});
+it('reads a signed cityless REMOTE activation refusal without granting Save or inventing a place',async()=>{
+ const frozen=pendingRemoteActivation();
+ expect(decodeWorkerAiReview(frozen,OWNER,CONVERSATION)).toEqual(frozen);
+ const raw={...snapshot(),candidate:frozen.profile,review:frozen};
+ mockRpc.mockResolvedValueOnce({data:raw,error:null});
+ await expect(service.read(CONVERSATION)).resolves.toEqual({ok:true,podatak:raw});
+ mockRpc.mockClear();
+ await expect(service.save(frozen,KEY)).resolves.toMatchObject({ok:false,kod:'WORKER_AI_REVIEW_REQUIRED'});
+ expect(mockRpc).not.toHaveBeenCalled();
+ expect(frozen.profile.location).toMatchObject({city:'',operatingCountryCode:null,approximatePosition:null});
+});
+it.each(['unsigned','save-only','city','ON_SITE','BOTH','foreign owner','canAccept','unknown reason'])(
+ 'REMOTE confirmation refusal remains fail-closed for %s',condition=>{
+ const frozen=pendingRemoteActivation();let invalid:unknown=frozen;
+ if(condition==='unsigned')invalid={...review(),profile:frozen.profile,missingRequired:frozen.missingRequired,canAccept:false};
+ if(condition==='save-only')invalid={...frozen,activate:false};
+ if(condition==='city')invalid={...frozen,profile:{...frozen.profile,location:{...frozen.profile.location,city:'Novi Sad'}}};
+ if(condition==='ON_SITE')invalid={...signedWorkerReview(),profile:frozen.profile,missingRequired:frozen.missingRequired,canAccept:false};
+ if(condition==='BOTH')invalid={...frozen,reviewedServiceModes:[...frozen.reviewedServiceModes!,...signedWorkerReview().reviewedServiceModes],
+  classificationCandidates:[...frozen.classificationCandidates!,...signedWorkerReview().classificationCandidates]};
+ if(condition==='foreign owner')invalid={...frozen,accountId:OTHER};
+ if(condition==='canAccept')invalid={...frozen,canAccept:true};
+ if(condition==='unknown reason')invalid={...frozen,missingRequired:['REMOTE activation allowed']};
+ expect(decodeWorkerAiReview(invalid,OWNER,CONVERSATION)).toBeNull();expect(mockRpc).not.toHaveBeenCalled();
+});
 it('accepts two explicit modes under one visible service without two approval buttons',()=>{
  const first=signedWorkerReview();
  const twice={...first,reviewedServiceModes:[...first.reviewedServiceModes,{service:'Prenos',mode:'REMOTE'}],

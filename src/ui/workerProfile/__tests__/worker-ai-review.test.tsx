@@ -113,6 +113,18 @@ it('does not offer the way to the name when the name is not what is missing or t
   await act(async () => tree.update(<WorkerAiReviewDetails review={{ ...review(), missingRequired: ['Ime'], canAccept: false }} />));
   expect(tree.root.findAll(node => node.props.label === 'Dodaj ime')).toHaveLength(0);
 });
+it.each([{missing:[]},{missing:['Ime']}])('REMOTE activation confirmation is system work, separate from missing facts $missing',async({missing})=>{
+ const frozen={...review({}, {location:{operatingCountryCode:null,city:'',radiusKm:20,approximatePosition:null}}),
+  activate:true,missingRequired:[...missing,'Potvrda usluga za rad na daljinu'],canAccept:false};
+ const onAddName=jest.fn();
+ await act(async()=>{tree=create(<WorkerAiReviewDetails review={frozen} onAddName={onAddName}/>);});
+ expect(texts()).toContain('Aktivacija čeka potvrdu usluga za rad na daljinu. Za čuvanje bez aktivacije izaberite „Nacrt“.');
+ const alerts=tree.root.findAll(node=>String(node.type)==='T'&&node.props.accessibilityRole==='alert').map(node=>node.children.join(''));
+ expect(alerts.filter(text=>text.startsWith('Dopunite:'))).toEqual(missing.length?['Dopunite: Ime naloga.']:[]);
+ expect(texts()).not.toContain('Dopunite: Potvrda');
+ expect(texts()).not.toMatch(/grad profila|20 km|Aktivan profil|Profil je sačuvan/);
+ expect(onAddName).not.toHaveBeenCalled();
+});
 
 it('writes the year of a rule day only when it is not the current one', async () => {
   const next = String(new Date().getFullYear() + 1), now = String(new Date().getFullYear());
