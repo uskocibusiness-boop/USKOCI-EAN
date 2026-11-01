@@ -236,6 +236,13 @@ describe('the candidate row', () => {
     expect(candidateTrust({ ocenaTekst: '—', recenzijeTekst: '0 ocena' })).toEqual({ star: false, text: 'Još nema ocena', spoken: 'još nema ocena' });
     // A word where a figure should be ("Novo") is not a rating and gets no star.
     expect(candidateTrust({ ocenaTekst: 'Novo', recenzijeTekst: 'Nema ocena' }).star).toBe(false);
+    // Invalid metadata cannot create a star even when some digits are present.
+    for (const invalid of ['0', '0,0', '5,1', '99', 'NaN', '1e3', 'Ocena 4,8', '4,8 više']) {
+      expect(candidateTrust({ ocenaTekst: invalid, recenzijeTekst: '2 ocene' }).star).toBe(false);
+    }
+    expect(candidateTrust({ ocenaTekst: '4,8', recenzijeTekst: '0 ocena' })).toEqual({
+      star: false, text: 'Još nema ocena', spoken: 'još nema ocena',
+    });
     await render(list([k({ prijavaId: 'a', ime: 'Ana', ocenaTekst: '—', recenzijeTekst: '' }), k({ prijavaId: 'b', ime: 'Bojan', ocenaTekst: '4,8', recenzijeTekst: '' })]));
     const ana = pressNamed('Pogledaj prijavu: Ana'), bojan = pressNamed('Pogledaj prijavu: Bojan');
     expect(stars(ana)).toHaveLength(0);
@@ -401,6 +408,12 @@ describe('the order of the applications', () => {
     expect(candidateRatingFigure({ ocenaTekst: '5', recenzijeTekst: '2 recenzije' })).toEqual({ rating: 5, count: 2 });
     expect(candidateRatingFigure({ ocenaTekst: '4.5', recenzijeTekst: '' })).toEqual({ rating: 4.5, count: 0 });
     for (const word of ['—', 'Novo', '', 'Još nema ocena']) expect(candidateRatingFigure({ ocenaTekst: word, recenzijeTekst: '3 ocene' })).toBeNull();
+    for (const invalid of ['0', '99', '5,1', '3.9999', '1e3', 'Novo 4']) {
+      expect(candidateRatingFigure({ ocenaTekst: invalid, recenzijeTekst: '3 ocene' })).toBeNull();
+    }
+    expect(candidateRatingFigure({ ocenaTekst: '4,8', recenzijeTekst: '0 ocena' })).toBeNull();
+    expect(candidateRatingFigure({ ocenaTekst: '4,8', recenzijeTekst: '999999999999999999999 ocena' }))
+      .toEqual({ rating: 4.8, count: 0 });
   });
 
   it('puts the best rated first, then the one that stands on more ratings, then the earlier one; nobody without a rating comes before anybody with one', () => {

@@ -86,6 +86,31 @@ it.each<[string, CandidatesPageRequest, (page: any) => void]>([
   await expect(candidateClientService.prijaveZaPotrebuStrana(NEED, request)).rejects.toThrow('CANDIDATE_PAGE_INVALID');
 });
 
+it('does not send candidate page requests with invalid limits or cursors', async () => {
+  for (const request of [
+    { limit: 0, cursor: null }, { limit: 101, cursor: null }, { limit: '50', cursor: null },
+    { limit: 50, cursor: { at: '2026-02-30T08:00:00+00:00', id: uuid(1) } },
+    { limit: 50, cursor: { at: AS_OF, id: '../invalid' } },
+  ]) {
+    mockRpc.mockClear();
+    await expect(candidateClientService.prijaveZaPotrebuStrana(NEED, request as any)).rejects.toThrow('CANDIDATE_PAGE_INVALID');
+    expect(mockRpc).not.toHaveBeenCalled();
+  }
+});
+
+it('refuses nonexistent civil dates and a forged candidate ID in a returned page', () => {
+  const docs = [document(1), document(2)];
+  const body = payload(docs);
+  const map = (doc: any) => ({ prijavaId: doc.responseId }) as any;
+  for (const invalid of ['2026-02-30T10:00:00+00:00', '2026-04-31T10:00:00Z']) {
+    expect(decodeCandidatesPage({ ...body, asOf: invalid }, first, map)).toBeNull();
+    const next = [...docs]; next[0] = { ...next[0], sortAt: invalid };
+    expect(decodeCandidatesPage({ ...body, items: next }, first, map)).toBeNull();
+  }
+  expect(decodeCandidatesPage(body, first, (doc: any) =>
+    ({ prijavaId: doc.responseId === docs[0].responseId ? uuid(999) : doc.responseId }) as any)).toBeNull();
+});
+
 it('a page that is not an object at all is invalid', async () => {
   for (const data of [null, [], 'x', 3]) { mockRpc.mockResolvedValue({ data, error: null }); await expect(candidateClientService.prijaveZaPotrebuStrana(NEED, first)).rejects.toThrow('CANDIDATE_PAGE_INVALID'); }
 });
@@ -122,6 +147,17 @@ it('decodes with an injected mapper, so a candidate the mapper refuses refuses t
   const page = decodeCandidatesPage(body, first, (doc: any) => { seen.push(doc.responseId); return { prijavaId: doc.responseId } as any; });
   expect(seen).toEqual([uuid(1), uuid(2)]); expect(page?.items).toHaveLength(2);
   expect(decodeCandidatesPage(body, first, () => { throw new Error('no'); })).toBeNull();
+});
+
+it('does not present a zero or impossible numeric server average as a public star', async () => {
+  const noReviews = document(1, { publicProfile: { displayName: 'Novi uskočer',
+    trust: { ratingAverage: 0, reviewCount: 0, completedCount: 0 } } });
+  const impossible = document(2, { publicProfile: { displayName: 'Netačan prosek',
+    trust: { ratingAverage: 9, reviewCount: 5, completedCount: 5 } } });
+  mockRpc.mockResolvedValue({ data: payload([noReviews, impossible]), error: null });
+  const [first, second] = (await candidateClientService.prijaveZaPotrebuStrana(NEED, { limit: 50, cursor: null })).items;
+  expect(first).toMatchObject({ ocenaTekst: '—', recenzijeTekst: '0 ocena' });
+  expect(second).toMatchObject({ ocenaTekst: '—', recenzijeTekst: '5 ocena' });
 });
 
 it('retains each application price unit for paged and whole reads without treating a per-person rate as a total', async () => {

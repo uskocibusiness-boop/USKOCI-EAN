@@ -2,7 +2,7 @@ import type { DokazPrijave, KandidatProjekcija, StanjePrijave } from '../contrac
 import type { Izvor } from './ports';
 import { supabaseKlijent } from './supabaseClient';
 import { positiveInteger, readOwnedResult, uuid } from './serverReceipt';
-import { decodeCandidatesPage } from './candidatesPage';
+import { decodeCandidatesPage, isCandidatesPageRequest } from './candidatesPage';
 import { calendarInstant } from '../lib/calendarTime';
 import { novac } from '../lib/novac';
 import { dogovorenoVreme } from '../lib/dogovorenoVreme';
@@ -90,7 +90,7 @@ function mapCandidate(raw: any): KandidatProjekcija {
     ? profile.displayName.trim()
     : 'Ime nije dostupno';
   const trust = profile?.trust;
-  const rating = typeof trust?.ratingAverage === 'number' && Number.isFinite(trust.ratingAverage) && trust.ratingAverage >= 0 && trust.ratingAverage <= 5 ? trust.ratingAverage : null;
+  const rating = typeof trust?.ratingAverage === 'number' && Number.isFinite(trust.ratingAverage) && trust.ratingAverage >= 1 && trust.ratingAverage <= 5 ? trust.ratingAverage : null;
   const reviews = Number.isInteger(trust?.reviewCount) && trust.reviewCount >= 0 ? trust.reviewCount : null;
   // A count the read did not carry is unknown, never zero (review r4 rk item 4): "0 završenih poslova" was a number the
   // server never sent.
@@ -160,6 +160,7 @@ export const candidateClientService: CandidateService = {
   async prijaveZaPotrebuStrana(potrebaId, request) {
     const id = potrebaId.trim();
     if (!id) throw new Error('CANDIDATE_PAGE_NEED_REQUIRED');
+    if (!isCandidatesPageRequest(request)) throw new Error('CANDIDATE_PAGE_INVALID');
     const args: Record<string, unknown> = { p_need_id: id, p_limit: request.limit };
     if (request.cursor) { args.p_after_at = request.cursor.at; args.p_after_id = request.cursor.id; }
     const result = await readOwnedResult({

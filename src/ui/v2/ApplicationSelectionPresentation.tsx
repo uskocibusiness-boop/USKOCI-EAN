@@ -26,7 +26,7 @@ import { LARGE_TEXT_SCALE, useLayoutClass, useWindowRoom } from '../system/textS
 import { brandAction, sys } from '../system/tokens';
 import { usePullRefresh } from '../system/usePullRefresh';
 import { T } from '../Text';
-import { CandidateCard, CandidateCompareCard, CandidatePerson, UNPRICED, candidateChip, candidateHas, candidateStatus, candidateTime, candidateValue } from './CandidateFace';
+import { CandidateCard, CandidateCompareCard, CandidatePerson, UNPRICED, candidateChip, candidateHas, candidateStatus, candidateTime, candidateValue, candidateRatingValue } from './CandidateFace';
 import { DogovorenoMoment } from './DogovorenoMoment';
 import { ChoiceRow } from './offer/ChoiceRow';
 import { PrijavaState } from './PrijavaCard';
@@ -158,10 +158,11 @@ const SORT_LABEL: Record<CandidateSort, string> = { ARRIVAL: 'Najranije', PRICE:
  * stands on. A person with no rating ("—", "Još nema ocena") has none (null), which is not a bad one: they come after everyone who has one.
  */
 export function candidateRatingFigure(k: Pick<KandidatProjekcija, 'ocenaTekst' | 'recenzijeTekst'>): { rating: number; count: number } | null {
-  const rating = /^\s*(\d+(?:[.,]\d+)?)\s*$/.exec(k.ocenaTekst ?? '');
-  if (!rating) return null;
-  const count = /^\s*(\d+)\s+(?:ocen|recenzij)/.exec(k.recenzijeTekst ?? '');
-  return { rating: Number(rating[1].replace(',', '.')), count: count ? Number(count[1]) : 0 };
+  const rating = candidateRatingValue(k.ocenaTekst);
+  if (rating === null || k.recenzijeTekst?.trim() === '0 ocena') return null;
+  const countMatch = /^\s*(\d+)\s+(?:ocen|recenzij)/.exec(k.recenzijeTekst ?? '');
+  const count = countMatch ? Number(countMatch[1]) : 0;
+  return { rating, count: Number.isSafeInteger(count) && count >= 0 ? count : 0 };
 }
 export function sortCandidates(candidates: readonly KandidatProjekcija[], sort: CandidateSort): readonly KandidatProjekcija[] {
   // The server's order is the list exactly as read: the same array, so the default draws what it always drew.

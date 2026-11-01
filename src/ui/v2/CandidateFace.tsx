@@ -55,6 +55,14 @@ import { PRICE_NOT_STORED, PrijavaPriceText, PrijavaState, prijavaStatusWord, ty
 /** What the service writes when the read carried no rating (`candidateClientService`). */
 const NO_RATING = '—';
 
+/** Only a real rating from 1 to 5 may create a star or a "best" comparison.
+ * Accidental digits, unbounded numbers and invalid values are not ratings. */
+export function candidateRatingValue(raw: unknown): number | null {
+  if (typeof raw !== 'string' || raw.trim() === NO_RATING || !/^\s*[1-5](?:[.,]\d{1,3})?\s*$/.test(raw)) return null;
+  const value = Number(raw.trim().replace(',', '.'));
+  return Number.isFinite(value) && value >= 1 && value <= 5 ? value : null;
+}
+
 export type CandidateTrust = { text: string; star: boolean; spoken: string };
 /**
  * The rating with the count it stands on, as the read gave them. A star only beside a real figure; a missing rating is
@@ -63,7 +71,7 @@ export type CandidateTrust = { text: string; star: boolean; spoken: string };
  */
 export function candidateTrust(k: Pick<KandidatProjekcija, 'ocenaTekst' | 'recenzijeTekst'>): CandidateTrust {
   const rating = (k.ocenaTekst ?? '').trim(), count = (k.recenzijeTekst ?? '').trim();
-  const rated = rating !== '' && rating !== NO_RATING && /\d/.test(rating);
+  const rated = candidateRatingValue(rating) !== null && count !== '0 ocena';
   if (rated) return { star: true, text: count ? `${rating} · ${count}` : rating, spoken: count ? `ocena ${rating}, ${count}` : `ocena ${rating}` };
   // The read counted the ratings and there are none: that is news the person can read, not a rating that is "unavailable".
   if (count === '0 ocena') return { star: false, text: 'Još nema ocena', spoken: 'još nema ocena' };

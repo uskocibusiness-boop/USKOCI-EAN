@@ -1,11 +1,24 @@
 /** @jest-environment node */
-import { readOwnedResult } from '../serverReceipt';
+import { readOwnedResult, timestamp } from '../serverReceipt';
 
 const accountId = '11111111-1111-4111-8111-111111111111';
 let mockRevision = 4;
 jest.mock('../../store/sesija', () => ({ sesijaSada: () => ({ user: { id: accountId }, accountRevision: mockRevision }) }));
 jest.mock('../supabaseClient', () => ({ supabaseKlijent: jest.fn() }));
 const base = { account: { accountId, accountRevision: 4 }, errors: {}, fallback: 'UNCONFIRMED', invalid: 'INVALID' };
+it('accepts only real PostgreSQL civil instants, with exact offset and microsecond notation', () => {
+  for (const valid of [
+    '2026-02-28T23:59:59.123456Z', '2028-02-29T00:00:00+00:00',
+    '2026-10-25T02:30:00+01:00', '2026-10-25T02:30:00.000001+02:00',
+  ]) expect(timestamp(valid)).toBe(true);
+  for (const invalid of [
+    '2026-02-29T12:00:00Z', '2026-02-30T12:00:00+00:00',
+    '2026-04-31T12:00:00Z', '2026-13-01T10:00:00Z',
+    '2026-10-25T25:00:00+00:00', '2026-10-25T02:30:00+20:00',
+    '2026-10-25T02:30:60Z', 'tomorrow', '', null, new Date('2026-10-25T00:00:00Z'),
+  ]) expect(timestamp(invalid)).toBe(false);
+});
+
 beforeEach(() => { mockRevision = 4; jest.useFakeTimers(); });
 afterEach(() => jest.useRealTimers());
 

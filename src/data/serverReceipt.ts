@@ -1,4 +1,5 @@
 import type { Ishod } from './ports';
+import { calendarInstant } from '../lib/calendarTime';
 import { sesijaSada } from '../store/sesija';
 import { supabaseKlijent } from './supabaseClient';
 
@@ -14,8 +15,10 @@ export function positiveInteger(value: unknown): value is number {
 export function sameId(value: unknown, expected: string): value is string {
   return uuid(value) && value.toLowerCase() === expected.toLowerCase();
 }
+/** An RPC instant must be real Gregorian civil time, not Date.parse's
+ * normalized result for February 30 or an impossible zone offset. */
 export function timestamp(value: unknown): value is string {
-  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/.test(value) && Number.isFinite(Date.parse(value));
+  return typeof value === 'string' && calendarInstant(value) !== null;
 }
 export function failure(kod: string, poruka: string): Ishod<never> { return { ok: false, kod, poruka }; }
 
