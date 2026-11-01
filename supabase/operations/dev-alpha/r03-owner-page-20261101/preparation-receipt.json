@@ -1,0 +1,73 @@
+{
+  "unit": "R03_DEV_OWNER_PAGE_PREPARATION",
+  "status": "PREPARED_NOT_APPLIED",
+  "project_ref": "leqcwgzvjsxugfgzdmth",
+  "source_head": "e870fbf7556f17e706ecda285ee20a7c84b80925",
+  "package_uncommitted_at_test": true,
+  "capture_at": "2026-11-01T17:15:38.58941+00:00",
+  "confirmed_mismatch": {
+    "current_page_body_lf_md5": "dad1de3234e72d4e2f44be5e920eda61",
+    "frozen_corrected_page_body_md5": "509d6c345c84cc6a597bde46d9ae6b75",
+    "actual_client_reproduction": "OWN_TASKS_PAGE_INVALID for empty and nonempty current SQL replies; same whole-list SQL/client read succeeds",
+    "current_server_scopes": [
+      "ALL",
+      "ACTIVE",
+      "HISTORY"
+    ],
+    "required_scopes": [
+      "ALL",
+      "ACTIVE",
+      "DRAFTS",
+      "HISTORY",
+      "WAITING"
+    ],
+    "first_page_counts_missing": true,
+    "current_document_format": "camelCase",
+    "required_document_format": "canonical rpc_read_task snake_case plus sortAt"
+  },
+  "local_sql_client": {
+    "command": "node --test supabase/operations/dev-alpha/r03-owner-page-20261101/package.test.mjs",
+    "tests": 6,
+    "pass": 6,
+    "fail": 0,
+    "modules": "Current real needClientService/mapNeed/readPublicNeedDetail/ownTasksPage/marketplaceView through existing TS VM loader; SQL backed transport stub",
+    "proof": "nonempty owned/foreign, empty, five scopes, counts, limits 1/2/30, equal-microsecond keyset ties, missing/closed/anonymous refusal, invalid inputs, private-field exclusion, code inverse rollback and reapply"
+  },
+  "actual_dev_readonly": {
+    "preflight": {
+      "result": "R03_DEV_PREIMAGE_MATCH",
+      "authenticated_positive_functional_acceptance": false,
+      "source_file_sha256": "fed035ce9a9e2857ee487fe668ec18e386630f06be3d14517c473b2d2a47bab6",
+      "transport_note": "PowerShell transport appended trailing whitespace; submitted query is identical after trimEnd(). All generated checks executed."
+    },
+    "empty_projection": {
+      "result": "R03_ACTUAL_PG_EMPTY_PROJECTION_PASS",
+      "checked_at": "2026-11-01T17:21:21.667909+00:00",
+      "authenticated_positive_functional_acceptance": false,
+      "exact_submitted_sql_file": "acceptance-readonly.sql",
+      "sha256": "a1b38b6903faf0d2d2a351e1755aff4fbae268ac030fc81f1b438d49ae5e72db"
+    },
+    "business_rows_read_or_returned": false,
+    "ddl": false,
+    "dml": false,
+    "provider_calls": 0
+  },
+  "closure": {
+    "schema": "df82c2cb19edfa86ee092fb6fdc97528b82a2482f05ae64c45939268346af84c",
+    "source": "0c03679b287ed6d726b0b6845bedf54c1463d3fe0efcaf9cd8a947997e160b56",
+    "erasure": "5e121db0bd932accd4b007f80098db67ebc97e99f29e0b76f06378de0f9c4d96",
+    "certificate": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "source_ready": false,
+    "export_binding": null,
+    "erasure_binding": null
+  },
+  "promotion_sha256": "b10e5c3532378b340d83e9c19b54ac6765c2f5641e9f2f18f296e7c60f16cc24",
+  "rollback_sha256": "130727d4e7920ee408d4c0c3f68ddd0aa7efb82eb04fc2379c981f264a1d83ce",
+  "limits": [
+    "No hosted migration applied by this author.",
+    "Positive Auth/PostgREST and installed Android after correction remain OPEN.",
+    "Full forward/rollback target guards and closure digest invariants are not simulated as a complete PGlite target; generated preflight ran on actual DEV and both function bodies ran locally.",
+    "Auth claims, closure-open state and final candidate states are fixture substitutes; geography inert text and most production triggers/constraints absent.",
+    "Old LOCAL_ONLY candidate unmodified. New controlled operation preserves all actual closure values, including false readiness/null bindings; no R01/R10/production admission."
+  ]
+}

@@ -385,7 +385,7 @@ describe('the empty states', () => {
  test.each(['loading', 'error'])('%s removes stale cards and the two rows; retry is bound', async status => {
   rows = everyState(); loading = status === 'loading'; error = status === 'error'; await render();
   expect(cards()).toHaveLength(0); expect(groups()).toEqual([]); expect(tree.root.findAllByProps({ accessibilityHint: 'Otvara nacrte.' })).toHaveLength(0);
-  if (error) { await click('Pokušaj ponovo'); expect(refresh).toHaveBeenCalledTimes(1); }
+  if (error) { await click('Pokušajte ponovo'); expect(refresh).toHaveBeenCalledTimes(1); }
   else {
    expect(texts()).toContain('Učitavamo zadatke…');
    expect(texts()).toContain('Proveravamo tvoje objave, nacrte i istoriju.');
@@ -405,10 +405,12 @@ describe('the empty states', () => {
   expect(open).not.toHaveBeenCalled(); expect(refresh).not.toHaveBeenCalled();
  });
 
- test('"Pokušaj ponovo" after a failed read asks for the list again and changes nothing else', async () => {
+ test('"Pokušajte ponovo" after a failed read asks for the list again and changes nothing else', async () => {
   error = true; initial.query = 'Pomoć'; initial.section = 'history'; await render();
   expect(texts()).toContain('Ne možemo da učitamo zadatke');
-  await click('Pokušaj ponovo');
+  expect(texts()).toContain('Učitavanje nije uspelo. Pokušajte ponovo.');
+  expect(texts()).not.toContain('internet');
+  await click('Pokušajte ponovo');
   expect(refresh).toHaveBeenCalledTimes(1); expect(snapshot).toMatchObject({ query: 'Pomoć', section: 'history' });
  });
 });

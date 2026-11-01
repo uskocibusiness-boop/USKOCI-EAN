@@ -233,8 +233,8 @@ export function MarketplacePresentation(props: MarketplacePresentationProps) {
   // Reading, a failed read, an empty filtered view and a first empty list remain distinct.
   const empty = <View style={s.empty}>
     {reading ? <QuietReadState art="tasks" title="Učitavamo zadatke…" body="Proveravamo tvoje objave, nacrte i istoriju." />
-      : error ? <StateView kind="error" art="tasks" title="Ne možemo da učitamo zadatke" body="Proveri internet vezu i pokušaj ponovo."
-        primary={{ label: 'Pokušaj ponovo', onPress: props.onRefresh }} />
+      : error ? <StateView kind="error" art="tasks" title="Ne možemo da učitamo zadatke" body="Učitavanje nije uspelo. Pokušajte ponovo."
+        primary={{ label: 'Pokušajte ponovo', onPress: props.onRefresh }} />
         : incompleteFinal ? <StateView kind="error" art="tasks" title="Spisak zadataka nije potpun"
           body="Broj učitanih zadataka ne odgovara serverskom stanju. Proveri spisak ponovo."
           primary={{ label: 'Proveri spisak zadataka', onPress: props.onRefresh }} />
