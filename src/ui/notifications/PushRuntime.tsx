@@ -25,7 +25,15 @@ export function PushRuntime({ ready = false }: { ready?: boolean }) {
   let activeTimer: ReturnType<typeof setTimeout> | undefined;
   const scope = { accountId, accountRevision };
   const identity = { ...scope, sessionEpoch };
-  const owned = () => alive && sesijaSada().user?.id === accountId && sesijaSada().accountRevision === accountRevision && sesijaSada().sessionEpoch === sessionEpoch;
+  const owned = () => {
+   const owner = rendered.current;
+   // Auth/recovery or account closure can retire readiness in the render before
+   // passive cleanup. Retained token callbacks and in-flight native reads must
+   // stop at the same boundary as notification presentation and navigation.
+   return alive && owner.ready && owner.accountId === accountId && owner.accountRevision === accountRevision
+    && owner.sessionEpoch === sessionEpoch && sesijaSada().user?.id === accountId
+    && sesijaSada().accountRevision === accountRevision && sesijaSada().sessionEpoch === sessionEpoch;
+  };
   let foreground = AppState.currentState === 'active';
   Notifications.setNotificationHandler({ handleNotification: async notification => {
    const owner = rendered.current;
