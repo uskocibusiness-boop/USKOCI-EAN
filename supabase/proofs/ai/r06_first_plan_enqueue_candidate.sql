@@ -315,8 +315,19 @@ BEGIN
    RAISE EXCEPTION 'R06_FIRST_PLAN_DENIED' USING errcode='42501'; END IF;
  IF p_limit IS NULL OR p_limit NOT BETWEEN 1 AND 10 THEN
    RAISE EXCEPTION 'R06_FIRST_PLAN_LIMIT_INVALID' USING errcode='22023'; END IF;
+ -- UNKNOWN stops provider retries, not reconciliation of a later durable
+ -- capture. Only the exact historical identity can close it; this proves a
+ -- stored hint, not current publication authority or the provider's invoice.
+ -- Exclude still-unknown rows without a receipt before LIMIT so they cannot
+ -- permanently starve a later reconcilable job in the bounded batch.
  FOR j IN SELECT * FROM private.work_taxonomy_first_plan_jobs_v1 q
-  WHERE q.state='DISPATCHED' AND q.lease_until<statement_timestamp()
+  WHERE (q.state='DISPATCHED' AND q.lease_until<statement_timestamp())
+     OR (q.state='UNKNOWN' AND EXISTS(
+       SELECT 1 FROM private.work_taxonomy_gemini_turn_hints_v1 h
+       WHERE h.purpose=q.purpose AND h.account_id=q.account_id
+         AND h.conversation_id=q.conversation_id AND h.client_request_id=q.client_request_id
+         AND h.turn_id=q.turn_id AND h.attempt_id=q.attempt_id
+         AND h.source_fingerprint=q.source_fingerprint))
   ORDER BY q.created_at,q.id LIMIT p_limit FOR UPDATE SKIP LOCKED LOOP
    v_state:=CASE WHEN EXISTS(
      SELECT 1 FROM private.work_taxonomy_gemini_turn_hints_v1 h

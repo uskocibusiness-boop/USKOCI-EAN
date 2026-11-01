@@ -210,3 +210,47 @@ test('R06 expired dispatched lease reconciles UNKNOWN without a paid replay',asy
  assert.deepEqual(out,[{jobId:row.jobId,state:'UNKNOWN',authority:'NONE',retryAllowed:false}]);
  assert.deepEqual((await db.query('SELECT public.rpc_taxonomy_first_plan_claim_service(1) result')).rows[0].result,[]);
 });
+
+for(const unknownVia of ['finish','expired lease']) test(`R06 late exact capture resolves UNKNOWN after ${unknownVia} without another provider attempt`,async context=>{
+ const db=await setup();context.after(()=>db.close());await needFixture(db);
+ await db.exec('UPDATE private.work_taxonomy_first_plan_control_v1 SET enabled=true');
+ await enqueue(db,need);
+ const row=(await db.query('SELECT public.rpc_taxonomy_first_plan_claim_service(1) result')).rows[0].result[0];
+ await db.query('SELECT public.rpc_taxonomy_first_plan_mark_dispatched_service($1::uuid,$2::uuid,$3::uuid)',
+   [row.jobId,row.leaseToken,row.jobId]);
+ const reconcile=()=>db.query('SELECT public.rpc_taxonomy_first_plan_reconcile_service(1) result').then(r=>r.rows[0].result);
+ if(unknownVia==='finish'){
+  await db.query('SELECT public.rpc_taxonomy_first_plan_finish_service($1::uuid,$2::uuid,$3::text)',
+    [row.jobId,row.leaseToken,'PROVIDER_UNKNOWN']);
+ }else{
+  assert.deepEqual(await reconcile(),[]); // An active lease still belongs to its worker.
+  await db.query("UPDATE private.work_taxonomy_first_plan_jobs_v1 SET lease_until=now()-interval '1 second' WHERE id=$1",[row.jobId]);
+  assert.equal((await reconcile())[0].state,'UNKNOWN');
+ }
+ assert.deepEqual(await reconcile(),[]);
+ const exact=['NEED_SERVICE',a,c,k,need[3],attempt,row.sourceFingerprint];
+ // Every identity coordinate matters; neither another account nor a stale turn,
+ // attempt or source can convert an unknown operation into a captured one.
+ for(let coordinate=0;coordinate<exact.length;coordinate++){
+  const other=[...exact];
+  other[coordinate]=coordinate===0?'WORKER_CAPABILITY':coordinate===6?'f'.repeat(64):id(100+coordinate);
+  await db.query('INSERT INTO private.work_taxonomy_gemini_turn_hints_v1 VALUES($1,$2,$3,$4,$5,$6,$7)',other);
+ }
+ assert.deepEqual(await reconcile(),[]);
+ // An older UNKNOWN without a receipt cannot starve this later job at LIMIT 1.
+ await db.query(`INSERT INTO private.work_taxonomy_first_plan_jobs_v1
+   (id,purpose,account_id,conversation_id,client_request_id,turn_id,attempt_id,source_fingerprint,targets,
+    state,attempts,dispatched_at,provider_operation_id,created_at)
+   SELECT $1,purpose,account_id,conversation_id,client_request_id,$2,attempt_id,source_fingerprint,targets,
+    'UNKNOWN',1,dispatched_at,$1,created_at-interval '1 day'
+   FROM private.work_taxonomy_first_plan_jobs_v1 WHERE id=$3`,[id(201),id(202),row.jobId]);
+ await db.query('INSERT INTO private.work_taxonomy_gemini_turn_hints_v1 VALUES($1,$2,$3,$4,$5,$6,$7)',exact);
+ assert.deepEqual(await reconcile(),[{jobId:row.jobId,state:'CAPTURED',authority:'NONE',retryAllowed:false}]);
+ assert.deepEqual(await reconcile(),[]);
+ assert.deepEqual((await db.query('SELECT public.rpc_taxonomy_first_plan_claim_service(1) result')).rows[0].result,[]);
+ const receipt=(await db.query('SELECT public.rpc_taxonomy_first_plan_receipt_service($1::uuid) result',[row.jobId])).rows[0].result;
+ assert.equal(receipt.state,'CAPTURED');assert.equal(receipt.attempts,1);
+ assert.equal(receipt.providerAuthority,'NONE');assert.equal(receipt.retryAllowed,false);
+ const saved=(await db.query('SELECT provider_operation_id,lease_token,lease_until,error_code FROM private.work_taxonomy_first_plan_jobs_v1 WHERE id=$1',[row.jobId])).rows[0];
+ assert.deepEqual(saved,{provider_operation_id:row.jobId,lease_token:null,lease_until:null,error_code:null});
+});
