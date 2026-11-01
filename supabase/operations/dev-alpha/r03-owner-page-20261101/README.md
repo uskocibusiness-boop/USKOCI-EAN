@@ -1,9 +1,10 @@
 # R03 own-task page: controlled DEV reader correction
 
 The installed Android flow expects five scopes, first-page counts and canonical
-`rpc_read_task` documents. The current DEV page body `dad1de...` returns three
-scopes and camelCase documents without counts. The real current client service
-reproduces `OWN_TASKS_PAGE_INVALID` for both empty and nonempty replies. Its
+`rpc_read_task` documents. The captured pre-application DEV page body `dad1de...`
+returned three scopes and camelCase documents without counts. The real current
+client service reproduces `OWN_TASKS_PAGE_INVALID` for both empty and nonempty
+replies against that historical body. Its
 ordinary whole-list reader succeeds against the same synthetic data. This is a
 server contract mismatch; a connection failure is not established.
 
@@ -46,7 +47,9 @@ allows only this one body change; all helper bodies and privileges are preserved
 4. Run `postflight.sql`, then repeat the signed-in installed Android page:
    open own tasks, switch Active/Drafts/History, inspect nonempty cards and
    details, load further pages where present, refresh and switch accounts.
-   Do not collect tokens or unrelated private user data. This step is still open.
+   Do not collect tokens or unrelated private user data. Positive native evidence
+   is tracked separately by the application receipt; the read-only postflight
+   does not close this complete functional acceptance checklist.
 5. If needed, use reviewed exact `rollback.sql` through the migration procedure.
    It only restores the old reader definition after exact postimage checks;
    there is no data compensation. It intentionally restores the known old
@@ -72,4 +75,18 @@ that proves actual PostgreSQL relation/statement compatibility only, not a
 positive authenticated account flow. Actual Auth/PostgREST/native acceptance,
 historical supported clients, full R01 and R10 release readiness remain separate.
 
-Status: **PREPARED_NOT_APPLIED**. No DEV mutation has been performed by this package's author.
+Current status: **APPLIED_EXACT_OPERATION_LEDGER_BYTES** on canonical DEV as
+`20261101172612_owner_task_page_contract_v1` at 2026-11-01 17:26:12 UTC. The
+[application receipt](../ledger/20261101172612_owner_task_page_contract_v1.receipt.json)
+records the controlled application and separate functional evidence. The frozen
+manifest and generated files retain their preparation-time state.
+
+An independent read-only ledger query at 17:28:56.760969 UTC confirmed one
+statement, 35,453 UTF-8 bytes, MD5 `8374604d7d932fd68c0e1fc3faadba45` and SHA-256
+`b10e5c3532378b340d83e9c19b54ac6765c2f5641e9f2f18f296e7c60f16cc24`, matching both
+the reviewed promotion and archived ledger SQL. Running the exact frozen
+`postflight.sql` independently returned `R03_DEV_POSTIMAGE_MATCH`: all 14 pinned
+function definitions and attributes match, with closure readiness and bindings
+unchanged. Its `authenticated_positive_functional_acceptance=false` limits this
+result to catalog/contract verification. It is not a native E2E, R01 parity, R10
+readiness or production admission result.

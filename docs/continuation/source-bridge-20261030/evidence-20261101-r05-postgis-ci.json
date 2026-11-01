@@ -1,0 +1,117 @@
+{
+  "unit": "R05_INDEXED_SAVED_AREA_REAL_POSTGIS_CI_EVIDENCE",
+  "format_version": 1,
+  "verified_at": "2026-11-01T17:26:46Z",
+  "status": "CI_PROVEN",
+  "status_scope": "Indexed retrieval candidate and synthetic PostgreSQL/PostGIS proof only; R05 as a complete user flow remains PARTIAL.",
+  "repository": "uskocibusiness-boop/USKOCI-EAN",
+  "branch": "work/rev14-review-f17",
+  "pull_request": 43,
+  "source_head": "e870fbf7556f17e706ecda285ee20a7c84b80925",
+  "ci_checkout": {
+    "kind": "pull_request_merge",
+    "sha": "8a1901e414d0d160810a2fab558e03d6b8378fa2",
+    "base_sha": "a9692e11942609bab9406215c3e407d79589dafa",
+    "evidence": "The source-and-contracts checkout log identifies the merge of the source head into this base and prints the full checked-out SHA."
+  },
+  "main_ci": {
+    "run_id": 41330546228,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41330546228",
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      {"id": 124919517380, "name": "source-and-contracts", "conclusion": "success"},
+      {"id": 124919517578, "name": "r05-postgis-candidates", "conclusion": "success"}
+    ],
+    "checks": {
+      "typescript": "PASS",
+      "deno_main_edge_type_checks": {"functions": 12, "conclusion": "PASS", "execution": false},
+      "mobile_jest": {"suites_passed": 626, "suites_total": 626, "tests_passed": 14532, "tests_total": 14532},
+      "ai_matrix": {
+        "command": "node --test --test-concurrency=2 --test-reporter=spec supabase/proofs/ai/*.test.mjs",
+        "tests": 1488,
+        "passed": 1487,
+        "failed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 1,
+        "open_todo": "R07a integration: real Auth and full signed accept/Save/publish after price retraction, including an already prepared review"
+      },
+      "reviewed_dev_package_tests": {"passed": 24, "failed": 0, "scope": "R08, F10 and Edge packages at this source head; the later R03 DEV packet is not included."},
+      "r10_work_areas_export_isolated_tests": {"passed": 7, "failed": 0},
+      "migration_source_integrity": "PASS",
+      "need_column_privacy_boundary_isolated": "PASS"
+    }
+  },
+  "separate_r01_ci": {
+    "run_id": 41330546348,
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41330546348",
+    "status": "completed",
+    "conclusion": "failure",
+    "scope": "Final state verified from the commit workflow listing; this evidence does not re-audit the R01 failure or admit schema parity."
+  },
+  "r05_artifact": {
+    "id": 13092808958,
+    "name": "r05-postgis-saved-area-proof",
+    "url": "https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41330546228/artifacts/13092808958",
+    "created_at": "2026-11-01T17:16:30Z",
+    "expires_at": "2026-11-15T17:16:29Z",
+    "bytes": 14103,
+    "sha256": "2aff4ddc52e602a6cb64174cadb3ed5d236662462e57a359125293460a47689c",
+    "downloaded_hash_matches_github_digest": true,
+    "proof_sha256": "40c5be09facafee6a4bcd5d30538039ee310564e89c4800b92a94a68f72aaccd",
+    "proof_matches_generated_source_sql": true,
+    "observation_sha256": "28ca022f5f1a8328cdb5928afef49e75aea60f8a561bd5e724afe767d7222502",
+    "receipt_sha256": "f49ed40bd5c51882445c8cd6e1310d62020e49b6a46930883367affd96327c46",
+    "local_archive": "artifacts/r05-postgis-ci-41330546228/",
+    "local_archive_note": "Ignored local artifact directory; the hashes and public summary are retained here after the GitHub artifact expires."
+  },
+  "r05_real_postgis": {
+    "command": "node supabase/proofs/r05/run_saved_area_postgis_proof.mjs",
+    "image": "supabase/postgres:17.6.1.165",
+    "postgres_version_num": 170006,
+    "postgis_version": "3.3.7",
+    "isolation": "Disposable local container, no network or published ports; synthetic rows and rollback; no DEV connection.",
+    "fixture": {"unrelated_saved_reviews": 4000, "analyze_executed": true, "sequential_scans_not_disabled": true},
+    "selected_plan": {
+      "query": "Actual indexed superset SQL extracted from the candidate helper",
+      "returned_accounts": 3,
+      "indexes": [
+        {"name": "r05_worker_review_area_keys_idx", "scan": "Bitmap Index Scan", "actual_rows": 2, "actual_loops": 1},
+        {"name": "r05_worker_review_radius_centers_idx", "scan": "Index Scan", "actual_rows": 1, "actual_loops": 1},
+        {"name": "r05_worker_saves_latest_idx", "scan": "Index Only Scan", "actual_rows_per_loop": 1, "actual_loops": 3}
+      ],
+      "worker_ai_reviews_sequential_scan": false,
+      "planning_ms": 0.686,
+      "execution_ms": 0.738,
+      "timing_limit": "Single warm synthetic fixture observation, not a production latency or capacity guarantee."
+    },
+    "sparse_other_location": {"returned_accounts": 1, "radius_index_rows": 0, "country_match_preserved": true},
+    "radius_boundary": {
+      "cases": 960,
+      "accepted_by_existing_rounded_haversine": 960,
+      "accepted_cases_lost_by_201km_superset": 0,
+      "scope": "Radii 1/200 km; 0.0049 km rounded boundary offset; 24 bearings and 20 centers including polar/antimeridian coordinates. Finite matrix, not exhaustive geographic proof."
+    },
+    "retrieval": {"old_far_candidate_omission_reproduced": true, "saved_country_rescued": true, "null_cap_delegation": true, "numeric_cap_replacement": true},
+    "receipt": {"success": true, "cleanup": true, "dev_writes": false, "full_schema_parity": false, "real_auth": false, "dispatch_acceptance": false}
+  },
+  "isolated_candidate_regressions": {
+    "source": "supabase/proofs/ai/r05_saved_area_retrieval.test.mjs",
+    "ci_log_confirms": [
+      "Sparse indexed retrieval reads only the matching latest saved area, no-match reads none, retry is stable.",
+      "The negative control preserves the old 129-read witness and demonstrates why a raw cap is invalid.",
+      "Actual superset SQL used by EXPLAIN is executable and equivalent to the candidate helper."
+    ],
+    "scope": "These checks are part of the successful isolated AI matrix; they are not real Auth or dispatch evidence."
+  },
+  "remaining": [
+    "R05 candidate is not deployed by this work; original LOCAL_ONLY admission guards remain unchanged.",
+    "The real PostgreSQL proof executes the indexed SQL and reduced retrieval fixtures, not the complete current DEV schema or full candidate admission block.",
+    "The final dispatch gate is stubbed in the PostGIS fixture. A real signed Save, matching, dispatch and notification for the same owned pair remain unproven.",
+    "Historical matching reviews, country-wide eligibility and later final-gate rejections do not have a proven hard total work budget.",
+    "R01 failure, R10 readiness, Android/iOS full user flows and production/store readiness are not closed by CI success.",
+    "Later local changes, the R03 DEV promotion packet and subsequent native observations are outside this source head."
+  ],
+  "effects": {"dev_writes": false, "provider_calls": false, "production_changes": false, "master_changed": false, "workflow_changed": false}
+}
