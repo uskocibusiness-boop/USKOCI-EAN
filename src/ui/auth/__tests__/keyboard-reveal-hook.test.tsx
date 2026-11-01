@@ -68,6 +68,25 @@ describe('useFocusReveal', () => {
     expect(scrollTo).toHaveBeenCalledWith({ y: 194, animated: false });
   });
 
+  it.each([[57, 16], [80, 5]])('keeps the %idp input visible when its label and error cannot fit above the legal footer', (height, margin) => {
+    const scrollTo = jest.fn();
+    const { out } = mount({ measureInWindow: measure(100, 90), scrollTo });
+    act(() => out.api!.api.focus(boxAt(300, 110), boxAt(326, height)));
+    const expected = 326 + height + margin - 190;
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: expected, animated: true });
+    expect(326 - expected).toBeGreaterThanOrEqual(100);
+    expect(326 - expected + height).toBeLessThanOrEqual(190);
+  });
+
+  it('still reveals the whole field and error when they fit, without preferring only its input', () => {
+    const scrollTo = jest.fn();
+    const controlMeasure = jest.fn(measure(526, 52));
+    const { out } = mount({ measureInWindow: measure(100, 300), scrollTo });
+    act(() => out.api!.api.focus(boxAt(500, 110), { current: { measureInWindow: controlMeasure } }));
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 226, animated: true });
+    expect(controlMeasure).not.toHaveBeenCalled();
+  });
+
   it('keeps a field above the pinned footer when native scrolling precedes the JS scroll event during keyboard resize', () => {
     mockReduced = true;
     let nativeOffset = 0;

@@ -949,6 +949,24 @@ describe('the field being typed in stays in view', () => {
     expect(scrollTo).toHaveBeenLastCalledWith({ y: 194, animated: true });
   });
 
+  it('prioritizes the signup input when its error makes the whole field taller than the space above the legal footer', async () => {
+    const scrollTo = jest.fn();
+    mockWindow = { width: 360, height: 640, scale: 3, fontScale: 1.3 };
+    await createWithBoxes(scrollTo, [100, 90], { 'auth-field:Ime': [300, 110], 'auth-input:Ime': [326, 57] });
+    await pressTab('Napravite nalog');
+    await press('Napravite nalog');
+    await act(async () => input('Ime').props.onFocus());
+    expect(scrollTo).toHaveBeenLastCalledWith({ y: 209, animated: true });
+    expect(text()).toContain('Unesite ime.');
+    const footer = host('View').find(node => node.props.testID === 'auth-footer')!;
+    expect(textOf(footer)).toContain(LEGAL);
+    expect(mockAuth.signUp).not.toHaveBeenCalled();
+    // Existing parent-owned refs/Next and the validation clear path remain usable.
+    await fill('Ime', 'Ana');
+    expect(input('Ime').props.value).toBe('Ana');
+    expect(text()).not.toContain('Unesite ime.');
+  });
+
   it('adds the distance to where the sheet is scrolled to, and looks again when the scroll area changes size', async () => {
     const scrollTo = jest.fn();
     await createWithBoxes(scrollTo, [100, 300], { 'auth-field:Lozinka': [500, 78] });

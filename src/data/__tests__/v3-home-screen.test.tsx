@@ -76,7 +76,7 @@ const applicationPage = (rows: any[]) => ({ items: rows.slice(0, 1), counts: app
 const agreement = (id: string, mine: 'narucilac' | 'uskocer') => ({ id, naslov: `Dogovor ${id}`, stanje: 'CONFIRMED', vremeTekst: 'danas', problemOtvoren: false,
   ucesnici: [{ id: A, ime: 'Ja', uloga: mine, viSte: true }, { id: B, ime: 'Jelena', uloga: mine === 'narucilac' ? 'uskocer' : 'narucilac', viSte: false }] });
 const text = () => tree.root.findAll(node => String(node.type) === 'T').flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
-const action = (label: string) => ['Objavi zadatak', 'Uskoči i zaradi'].includes(label)
+const action = (label: string) => ['Objavite zadatak', 'Uskočite i zaradite'].includes(label)
   ? tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0].props
   : tree.root.findByProps({ label }).props;
 const row = (start: string) => tree.root.findAll(node => String(node.type) === 'Press' && (String(node.props.accessibilityLabel).startsWith(start)
@@ -114,7 +114,7 @@ it('keeps missing application counts unavailable instead of counting the one ret
   mockSource.mojePrijaveStrana.mockResolvedValue({ ...applicationPage([application('one')]), counts: null });
   await render();
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nedostupno');
-  expect(action('Osveži pregled')).toBeDefined();
+  expect(action('Osvežite pregled')).toBeDefined();
   expect(mockSource.mojePrijaveStrana).toHaveBeenCalledTimes(1);
 });
 it.each(['blur', 'account', 'background', 'unmount'])('cancels an in-flight Agreement transport on %s', async kind => {
@@ -142,7 +142,7 @@ it('times out a stalled Agreement transport and still shows the successful accou
     expect(signal.aborted).toBe(true);
     expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan');
     expect(text()).toContain('Ne možemo da učitamo Dogovore.');
-    expect(action('Osveži pregled')).toBeDefined();
+    expect(action('Osvežite pregled')).toBeDefined();
   } finally { jest.useRealTimers(); }
 });
 
@@ -229,11 +229,11 @@ it('keeps the current resume row usable immediately on refocus while rejecting t
 it('offers both things a person can start before any read has answered, and they go where they say', async () => {
   const wait = deferred<never[]>(); mockSource.mojePotrebe.mockReturnValue(wait.promise);
   await render();
-  await act(async () => action('Objavi zadatak').onPress());
+  await act(async () => action('Objavite zadatak').onPress());
   expect(mockRouter.push).toHaveBeenCalledWith({ pathname: '/nova', params: { entryKey: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' } });
   expect(mockRouter.navigate).not.toHaveBeenCalledWith('/nova');
   await act(async () => tree.unmount()); await render();
-  await act(async () => action('Uskoči i zaradi').onPress()); expect(mockRouter.navigate).toHaveBeenCalledWith('/zadaci');
+  await act(async () => action('Uskočite i zaradite').onPress()); expect(mockRouter.navigate).toHaveBeenCalledWith('/zadaci');
   await act(async () => wait.resolve([]));
 });
 
@@ -254,20 +254,18 @@ it('shows both sides of one account and gives an undated active Dogovor no card,
   expect(cards()).toHaveLength(0); expect(planner()).toHaveLength(0);
 });
 
-it('R11a/SB01 opens the worker application card on the public opportunity, never the requester-only Need route', async () => {
-  mockSource.mojePrijaveStrana.mockResolvedValue(applicationPage([application('polica')]));
+it('S01 keeps proven list summaries without horizontal task/application cards', async () => {
+  mockSource.mojePotrebe.mockResolvedValue([need('owned')]);
+  mockSource.mojePrijaveStrana.mockResolvedValue(applicationPage([application('sent')]));
   await render();
-  const cards = tree.root.findAll(node => String(node.type) === 'Press'
-    && String(node.props.accessibilityLabel).startsWith('Otvori zadatak: Tuđ polica'));
-  expect(cards).toHaveLength(1);
-  await act(async () => cards[0].props.onPress());
+  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan');
+  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. 1 čeka odgovor');
+  expect(tree.root.findAll(node => String(node.type) === 'ScrollView' && node.props.horizontal)).toHaveLength(0);
+  expect(text()).not.toContain('Moj owned'); expect(text()).not.toContain('Tuđ sent');
+  await act(async () => row('Moje prijave').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
-  expect(mockRouter.navigate).toHaveBeenCalledWith({
-    pathname: '/prilike/[id]', params: { id: 'n-polica' },
-  });
-  expect(mockRouter.navigate).not.toHaveBeenCalledWith({
-    pathname: '/potrebe/[id]/pregled', params: { id: 'n-polica' },
-  });
+  expect(mockRouter.navigate).toHaveBeenCalledWith('/moje-prijave');
+  expect(mockRouter.navigate).not.toHaveBeenCalledWith({ pathname: '/potrebe/[id]/pregled', params: { id: 'n-sent' } });
 });
 
 it('names and opens the upcoming accepted appointment ahead of work awaiting completion, day first in Serbian time', async () => {
@@ -432,7 +430,7 @@ describe('the "Sledeće" block', () => {
   });
 
   // The owner's phone, 8 Oct 2026: "Raspored — 1 Dogovor bez tačnog termina" under the doors was a weak row (and the Dogovor was asked about under
-  // "Čeka te" in the same breath). With no appointment ahead there is NO block: a Dogovor with no day is asked for where it waits ("Predloži
+  // "Čeka Vas" in the same breath). With no appointment ahead there is NO block: a Dogovor with no day is asked for where it waits ("Predloži
   // termin") and listed in Raspored; Početna counts nothing of it.
   describe('without a card: an active Dogovor with no day to show it on', () => {
     const unconfirmed = (id: string, patch: object = {}) => ({ ...agreement(id, 'narucilac'), naslov: 'Krečenje stana u belo',
@@ -443,7 +441,7 @@ describe('the "Sledeće" block', () => {
       tacanTermin: { pocetak: '2026-10-06T08:00:00Z', kraj: '2026-10-06T09:00:00Z' }, ...patch });
     const NO_LINE = /bez tačnog termina|čeka završetak|čekaju završetak/;
 
-    it('draws no block and no line of counts: the Dogovor is asked for once, under "Čeka te", and Raspored is not drawn', async () => {
+    it('draws no block and no line of counts: the Dogovor is asked for once, under "Čeka Vas", and Raspored is not drawn', async () => {
       mockSource.mojiDogovori.mockResolvedValue([unconfirmed('krecenje')]);
       await render();
       expect(heading('Sledeće')).toHaveLength(0); expect(link()).toHaveLength(0); expect(cards()).toHaveLength(0);
@@ -517,10 +515,10 @@ it('a row only navigates, and to the exact place: a waiting choice opens its can
   mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [{ id: 'need:orman:applications', title: '2 prijave', detail: 'Moj orman · čeka tvoj izbor',
     target: { kind: 'CANDIDATES', needId: 'orman' } }], more: 0, asOf: '2026-09-22T10:00:00Z' });
   await render();
-  expect(text()).toContain('Čeka te');
+  expect(text()).toContain('Čeka Vas');
   await act(async () => row('2 prijave').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/kandidati', params: { id: 'orman' } });
-  // The door counts by the list's own rule; that the task waits for a choice is said once, under "Čeka te".
+  // The door counts by the list's own rule; that the task waits for a choice is said once, under "Čeka Vas".
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan');
   await act(async () => tree.unmount()); await render();
   await act(async () => row('Moji zadaci').onPress());
@@ -532,7 +530,7 @@ it('a row only navigates, and to the exact place: a waiting choice opens its can
 
 it.each([[390, 1], [320, 2]])('separates the real attention task from its action without splitting or repeating its title at %idp / font %i', async (width, fontScale) => {
   mockWindow = { width, height: 844, scale: 3, fontScale };
-  // An appointment lies ahead, so the waiting thing is a row of "Čeka te" (the task leads, the action is under it), not the record that leads when none does.
+  // An appointment lies ahead, so the waiting thing is a row of "Čeka Vas" (the task leads, the action is under it), not the record that leads when none does.
   jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-10-07T09:00:00Z'));
   mockSource.mojiDogovori.mockResolvedValue([{ ...agreement('today', 'narucilac'), prihvacenPocetak: '2026-10-07T12:00:00Z',
     tacanTermin: { pocetak: '2026-10-07T12:00:00Z', kraj: '2026-10-07T14:00:00Z' } }]);
@@ -555,7 +553,7 @@ it.each([[390, 1], [320, 2]])('separates the real attention task from its action
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: 'changed' } });
 });
 
-// "Danas u 14" (owner's pick, 2026-10-08): the next appointment's time is the largest word and stands directly under the doors, before "Čeka te";
+// "Danas u 14" (owner's pick, 2026-10-08): the next appointment's time is the largest word and stands directly under the doors, before "Čeka Vas";
 // with none ahead the first thing that waits takes its place as the one record, its number first, and the rest stay rows.
 describe('what leads Početna', () => {
   const choice = { id: 'need:orman:applications', title: '2 prijave', taskTitle: 'Pomoć pri selidbi', detail: 'Čeka tvoj izbor.', target: { kind: 'CANDIDATES' as const, needId: 'orman' } };
@@ -565,20 +563,20 @@ describe('what leads Početna', () => {
   const dots = () => tree.root.findAll(node => node.props.testID === 'attention-dot');
   const largest = () => tree.root.findAll(node => String(node.type) === 'T' && node.props.variant === 'priceLarge').map(node => node.props.children);
 
-  it('puts "Sledeće" before "Čeka te" when an appointment lies ahead, and then every waiting thing is a row', async () => {
+  it('puts "Sledeće" before "Čeka Vas" when an appointment lies ahead, and then every waiting thing is a row', async () => {
     const home = waiting();
     home.agreements = { kind: 'known', value: { more: 0, rows: [{ id: 'agreement:soon', title: 'Montaža police u hodniku', detail: 'x', target: { kind: 'AGREEMENT', agreementId: 'soon' },
       upcoming: true, appointment: { timeText: '', counterpartName: 'Jelena Nikolić', roleLabel: 'Tvoj zadatak', counterpartProfileId: null, counterpartInitials: 'JN' },
       raspored: { when: 'Danas · 14:00–16:00', spoken: 'Danas, od 14:00 do 16:00', more: null, zone: null } }] } };
     await direct(home);
-    expect(headings().filter(name => name === 'Sledeće' || name === 'Čeka te')).toEqual(['Sledeće', 'Čeka te']);
+    expect(headings().filter(name => name === 'Sledeće' || name === 'Čeka Vas')).toEqual(['Sledeće', 'Čeka Vas']);
     // The time is the one largest word; both waiting things are rows (the task leads, the action under it), each with the orange dot.
     expect(largest()).toEqual(['Danas · 14:00–16:00']);
     expect(row('2 prijave').accessibilityLabel).toBe('2 prijave. Pomoć pri selidbi. Čeka tvoj izbor.');
     expect(dots()).toHaveLength(2);
     const copy = text();
-    expect(copy.indexOf('Danas · 14:00–16:00')).toBeLessThan(copy.indexOf('Objavi zadatak'));
-    expect(copy.indexOf('Pomoć pri selidbi')).toBeLessThan(copy.indexOf('Objavi zadatak'));
+    expect(copy.indexOf('Danas · 14:00–16:00')).toBeLessThan(copy.indexOf('Objavite zadatak'));
+    expect(copy.indexOf('Pomoć pri selidbi')).toBeLessThan(copy.indexOf('Objavite zadatak'));
   });
 
   it('with no appointment ahead the first thing that waits is the one record: its task first, the action and reason below, the others rows', async () => {
@@ -606,7 +604,7 @@ describe('what leads Početna', () => {
     await act(async () => tree.unmount());
     const failed = waiting(); failed.attentionState = 'unavailable'; failed.attention = []; failed.prompts = [];
     await direct(failed);
-    expect(text()).toContain('Ne možemo da učitamo ono što te čeka.'); expect(dots()).toHaveLength(0);
+    expect(text()).toContain('Ne možemo da učitamo ono što Vas čeka.'); expect(dots()).toHaveLength(0);
     await act(async () => tree.unmount());
     const quiet = emptyHome(); quiet.firstRun = false;
     await direct(quiet);
@@ -627,26 +625,26 @@ describe('what leads Početna', () => {
     expect(heading.props.allowFontScaling).not.toBe(false); expect(text()).toContain('2 prijave · čeka tvoj izbor');
   });
 
-  // The approved blueprint (8 Oct 2026, T3): "Čeka te" holds three things at most. What does not fit is counted, together with what the
+  // The approved blueprint (8 Oct 2026, T3): "Čeka Vas" holds three things at most. What does not fit is counted, together with what the
   // server and the phone already said they left out, in the one grey line; a rating is a thing like the others and is counted when it does not fit.
   describe('holds three things at most', () => {
     const change = { id: 'agreement:change', title: 'Odgovori na predlog izmene', taskTitle: 'Montaža police', detail: 'Druga strana predlaže izmenu uslova.',
       target: { kind: 'AGREEMENT_CHANGE' as const, agreementId: 'change' } };
     const draft = { id: 'need:draft', title: 'Nastavi nacrt', taskTitle: 'Prevoz ormana', detail: 'Nacrt još nije objavljen.', target: { kind: 'NEED' as const, needId: 'draft' } };
-    const moreLine = /I još\s+(\d+)\s+u tvojim zadacima, prijavama i Dogovorima\./;
+    const moreLine = /I još\s+(\d+)\s+u Vašim zadacima, prijavama i Dogovorima\./;
 
     it('draws the first three and counts the draft and the ratings that do not fit', async () => {
       const home = waiting(); home.attention = [choice, term, change, draft]; home.ratingsDue = 2;
       await direct(home);
       expect(row('2 prijave')).toBeDefined(); expect(row('Predloži termin')).toBeDefined(); expect(row('Odgovori na predlog izmene')).toBeDefined();
-      expect(text()).not.toContain('Nastavi nacrt'); expect(text()).not.toContain('Oceni 2 završena Dogovora');
+      expect(text()).not.toContain('Nastavi nacrt'); expect(text()).not.toContain('Ocenite 2 završena Dogovora');
       expect(text().match(moreLine)?.[1]).toBe('2');
     });
 
     it('draws a rating when there is room for it, and counts nothing', async () => {
       const home = waiting(); home.attention = [choice]; home.ratingsDue = 2;
       await direct(home);
-      expect(text()).toContain('Oceni 2 završena Dogovora'); expect(text()).not.toMatch(moreLine);
+      expect(text()).toContain('Ocenite 2 završena Dogovora'); expect(text()).not.toMatch(moreLine);
     });
 
     it('adds what the server and the phone left out to what did not fit', async () => {
@@ -658,7 +656,7 @@ describe('what leads Početna', () => {
     it('counts a rating that did not fit as one thing, however many Dogovori it names', async () => {
       const home = waiting(); home.attention = [choice, term, change]; home.ratingsDue = 7;
       await direct(home);
-      expect(text()).not.toContain('Oceni 7'); expect(text().match(moreLine)?.[1]).toBe('1');
+      expect(text()).not.toContain('Ocenite 7'); expect(text().match(moreLine)?.[1]).toBe('1');
     });
   });
 });
@@ -686,7 +684,7 @@ it.each([[390, 1], [390, 1.2], [390, 1.2999999523], [320, 1], [320, 2]])(
   'keeps both launch actions readable and available at %idp / font %s', async (width, fontScale) => {
     mockWindow = { width, height: 844, scale: 3, fontScale };
     await render();
-    for (const label of ['Objavi zadatak', 'Uskoči i zaradi']) {
+    for (const label of ['Objavite zadatak', 'Uskočite i zaradite']) {
       const entry = tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label);
       expect(entry).toHaveLength(1);
       expect(entry[0].props.accessibilityRole).toBe('button');
@@ -709,7 +707,7 @@ it('keeps both intentions touchable and moves to full-width rows for large text'
   for (const fontScale of [1, 1.15, 1.2999999523, 2]) {
     mockWindow = { width: 390, height: 844, scale: 3, fontScale };
     await act(async () => tree?.unmount()); await render();
-    const doors = ['Objavi zadatak', 'Uskoči i zaradi'].map(label => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0]);
+    const doors = ['Objavite zadatak', 'Uskočite i zaradite'].map(label => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0]);
     const heights = doors.map(door => StyleSheet.flatten(door.props.style).minHeight as number);
     expect(heights[0]).toBe(heights[1]);
     expect(heights.every(height => height >= sys.touch.min)).toBe(true);
@@ -723,9 +721,9 @@ it('keeps both intentions touchable and moves to full-width rows for large text'
 
 it('says the doors in "zadatak" and never "posao", in the hints too', async () => {
   await render();
-  expect(text()).toContain('Opiši šta ti treba.'); expect(text()).toContain('Pronađi zadatak.');
-  const hints = ['Objavi zadatak', 'Uskoči i zaradi'].map(label => action(label).accessibilityHint);
-  expect(hints).toEqual(['Opiši šta ti treba.', 'Pronađi zadatak.']);
+  expect(text()).toContain('Opišite šta Vam treba.'); expect(text()).toContain('Pronađite zadatak.');
+  const hints = ['Objavite zadatak', 'Uskočite i zaradite'].map(label => action(label).accessibilityHint);
+  expect(hints).toEqual(['Opišite šta Vam treba.', 'Pronađite zadatak.']);
   expect(`${text()} ${hints.join(' ')}`).not.toMatch(/posao|poslov/i);
 });
 
@@ -746,7 +744,7 @@ it('puts "Moji zadaci" and "Moje prijave" in one group of rows, with the screen\
 it('keeps personal-list targets generous while their counts remain independently named', async () => {
   mockSource.mojePotrebe.mockResolvedValue([need('orman')]);
   await render();
-  for (const label of ['Moji zadaci. 1 aktivan', 'Moje prijave. Još nemaš prijavu']) {
+  for (const label of ['Moji zadaci. 1 aktivan', 'Moje prijave. Još nemate prijavu']) {
     expect(StyleSheet.flatten(row(label).style).minHeight).toBeGreaterThanOrEqual(64);
   }
 });
@@ -755,8 +753,8 @@ const completed = (id: string) => ({ ...agreement(id, 'uskocer'), stanje: 'COMPL
 
 it('an incomplete rating read opens Dogovori without claiming zero, an exact total or the single known rating', async () => {
   mockSource.mojiDogovori.mockResolvedValue([completed('due'), { ...completed('unknown'), ocenaMoguca: false, stanjeProvereOcene: 'UNAVAILABLE' }]);
-  await render(); expect(text()).toContain('Proveri ocene'); expect(text()).not.toContain('Oceni završen Dogovor');
-  await act(async () => row('Proveri ocene u Dogovorima').onPress());
+  await render(); expect(text()).toContain('Proverite ocene'); expect(text()).not.toContain('Ocenite završen Dogovor');
+  await act(async () => row('Proverite ocene u Dogovorima').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith('/dogovori');
 });
 
@@ -766,11 +764,11 @@ it('names the completed Dogovori that wait for my rating once, verb first, with 
   mockSource.mojiDogovori.mockResolvedValue([completed('d1'), completed('d2')]);
   await render();
   // Seen on the emulator 2026-09-23 as "2 2 završena Dogovora": the count was written by plural() and again in front of it.
-  expect(text()).toContain('Oceni 2 završena Dogovora'); expect(text()).not.toContain('2 2 ');
-  // It waits for me, so it stands under "Čeka te"; with no next Dogovor there is no empty "Nemaš zakazan Dogovor." line.
-  expect(text()).toContain('Čeka te'); expect(text()).not.toContain('Nemaš zakazan Dogovor'); expect(text()).not.toContain('Sledeći Dogovor');
-  expect(row('Oceni 2 završena Dogovora').accessibilityHint).toBe('Otvara Dogovore.');
-  await act(async () => row('Oceni 2 završena Dogovora').onPress());
+  expect(text()).toContain('Ocenite 2 završena Dogovora'); expect(text()).not.toContain('2 2 ');
+  // It waits for me, so it stands under "Čeka Vas"; with no next Dogovor there is no empty "Nemaš zakazan Dogovor." line.
+  expect(text()).toContain('Čeka Vas'); expect(text()).not.toContain('Nemaš zakazan Dogovor'); expect(text()).not.toContain('Sledeći Dogovor');
+  expect(row('Ocenite 2 završena Dogovora').accessibilityHint).toBe('Otvara Dogovore.');
+  await act(async () => row('Ocenite 2 završena Dogovora').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith('/dogovori');
 });
 
@@ -779,15 +777,15 @@ it('names the completed Dogovori that wait for my rating once, verb first, with 
 it('with exactly one Dogovor waiting for my rating, opens that rating in one tap', async () => {
   mockSource.mojiDogovori.mockResolvedValue([completed('d1'), { ...agreement('rated', 'uskocer'), stanje: 'COMPLETED', ocenaMoguca: false }]);
   await render();
-  expect(text()).toContain('Oceni završen Dogovor');
-  expect(row('Oceni završen Dogovor').accessibilityHint).toBe('Otvara ocenu saradnje.');
-  await act(async () => row('Oceni završen Dogovor').onPress());
+  expect(text()).toContain('Ocenite završen Dogovor');
+  expect(row('Ocenite završen Dogovor').accessibilityHint).toBe('Otvara ocenu saradnje.');
+  await act(async () => row('Ocenite završen Dogovor').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
   // Round 2c (verifier vf, must 1): the rating is told it was opened from Početna, so its way back names Početna.
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/oceni-dogovor', params: { agreementId: 'd1', from: 'pocetna' } });
 });
 
-it.each([[5, 'Oceni 5 završenih Dogovora'], [21, 'Oceni 21 završen Dogovor'], [22, 'Oceni 22 završena Dogovora']])(
+it.each([[5, 'Ocenite 5 završenih Dogovora'], [21, 'Ocenite 21 završen Dogovor'], [22, 'Ocenite 22 završena Dogovora']])(
   'writes %i due ratings in the Serbian form', async (count, expected) => {
     mockSource.mojiDogovori.mockResolvedValue(Array.from({ length: count }, (_, index) => completed(`d${index}`)));
     await render();
@@ -799,7 +797,7 @@ it('a section that failed says so and offers the read again; it is never drawn a
   await render();
   expect(text()).toContain('Ne možemo da učitamo Dogovore.'); expect(text()).not.toContain('Nemaš aktivan Dogovor.');
   expect(text()).toContain('1 aktivan');
-  await act(async () => action('Osveži pregled').onPress()); expect(mockSource.mojiDogovori).toHaveBeenCalledTimes(2);
+  await act(async () => action('Osvežite pregled').onPress()); expect(mockSource.mojiDogovori).toHaveBeenCalledTimes(2);
 });
 
 it('offers one shared recovery for multiple unavailable sections and rejects duplicate retained retry taps', async () => {
@@ -810,34 +808,34 @@ it('offers one shared recovery for multiple unavailable sections and rejects dup
   await render();
   expect(text()).toContain('Deo pregleda trenutno nije učitan.');
   expect(text()).toContain('Ne možemo da učitamo Dogovore.');
-  expect(text()).toContain('Ne možemo da učitamo ono što te čeka.');
+  expect(text()).toContain('Ne možemo da učitamo ono što Vas čeka.');
   // A read that failed is named where it failed; nothing here may read as "nothing waits".
   expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nedostupno');
-  expect(tree.root.findAll(node => String(node.type) === 'Action' && node.props.label === 'Osveži pregled')).toHaveLength(1);
+  expect(tree.root.findAll(node => String(node.type) === 'Action' && node.props.label === 'Osvežite pregled')).toHaveLength(1);
   expect(tree.root.findAllByProps({ label: 'Pokušaj ponovo' })).toHaveLength(0);
   const wait = deferred<never[]>(); mockSource.mojePotrebe.mockReturnValue(wait.promise);
-  const retry = action('Osveži pregled').onPress;
+  const retry = action('Osvežite pregled').onPress;
   try {
     await act(async () => { retry(); retry(); });
     for (const read of Object.values(mockSource)) expect(read).toHaveBeenCalledTimes(2);
-    expect(action('Osveži pregled')).toMatchObject({ loading: true, disabled: true });
+    expect(action('Osvežite pregled')).toMatchObject({ loading: true, disabled: true });
     await act(async () => retry());
     for (const read of Object.values(mockSource)) expect(read).toHaveBeenCalledTimes(2);
-    expect(action('Objavi zadatak')).toBeDefined(); expect(action('Uskoči i zaradi')).toBeDefined();
+    expect(action('Objavite zadatak')).toBeDefined(); expect(action('Uskočite i zaradite')).toBeDefined();
   } finally { await act(async () => wait.resolve([])); }
-  expect(action('Osveži pregled')).toMatchObject({ loading: false, disabled: false });
+  expect(action('Osvežite pregled')).toMatchObject({ loading: false, disabled: false });
 });
 
 it('a retry retained by the previous focus cannot start the shared read after returning Home', async () => {
   mockSource.mojiDogovori.mockRejectedValue(new Error('AGREEMENTS_FAILED'));
   await render();
-  const retired = action('Osveži pregled').onPress;
+  const retired = action('Osvežite pregled').onPress;
   await act(async () => { mockFocused = false; tree.update(<Pocetna />); });
   await act(async () => { mockFocused = true; tree.update(<Pocetna />); });
   await act(async () => retired());
   for (const read of Object.values(mockSource)) expect(read).toHaveBeenCalledTimes(2);
-  await act(async () => action('Osveži pregled').onPress());
+  await act(async () => action('Osvežite pregled').onPress());
   for (const read of Object.values(mockSource)) expect(read).toHaveBeenCalledTimes(3);
 });
 
@@ -847,7 +845,7 @@ it('a failed foreground read can be retried while an abandoned older retry still
   const abandoned = deferred<never[]>(), currentRetry = deferred<never[]>();
   mockSource.mojePotrebe.mockReturnValueOnce(abandoned.promise);
   try {
-    await act(async () => action('Osveži pregled').onPress());
+    await act(async () => action('Osvežite pregled').onPress());
     expect(mockSource.mojePotrebe).toHaveBeenCalledTimes(2);
     await act(async () => {
       mockAppState = 'background'; mockAppStateListeners.forEach(listener => listener('background'));
@@ -856,10 +854,10 @@ it('a failed foreground read can be retried while an abandoned older retry still
     await act(async () => {
       mockAppState = 'active'; mockAppStateListeners.forEach(listener => listener('active'));
     });
-    expect(text()).toContain('Pregled nije učitan. Proveri vezu i pokušaj ponovo.');
-    expect(action('Osveži pregled')).toMatchObject({ loading: false, disabled: false });
+    expect(text()).toContain('Pregled nije učitan. Proverite vezu i pokušajte ponovo.');
+    expect(action('Osvežite pregled')).toMatchObject({ loading: false, disabled: false });
     mockSource.mojePotrebe.mockReturnValueOnce(currentRetry.promise);
-    const retry = action('Osveži pregled').onPress;
+    const retry = action('Osvežite pregled').onPress;
     await act(async () => retry());
     for (const read of Object.values(mockSource)) expect(read).toHaveBeenCalledTimes(4);
     // The all-failed foreground read has no snapshot to retain; recovery shows
@@ -877,20 +875,20 @@ it('a failed foreground read can be retried while an abandoned older retry still
 it('four failed reads are a failed screen, not an empty account, and the two doors never say zero', async () => {
   for (const read of Object.values(mockSource)) read.mockRejectedValue(new Error('READ_FAILED'));
   await render();
-  expect(text()).toContain('Pregled nije učitan. Proveri vezu i pokušaj ponovo.');
+  expect(text()).toContain('Pregled nije učitan. Proverite vezu i pokušajte ponovo.');
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Trenutno nedostupno');
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nedostupno');
   expect(text()).not.toMatch(/\b0\b/); expect(text()).not.toContain('Još nemaš');
-  // No answer at all: neither "Čeka te" with its quiet "nothing" nor the steps of a new account may stand in for it.
-  expect(text()).not.toContain('Ništa ne čeka tvoju odluku.'); expect(text()).not.toContain('Čeka te');
+  // No answer at all: neither "Čeka Vas" with its quiet "nothing" nor the steps of a new account may stand in for it.
+  expect(text()).not.toContain('Ništa ne čeka tvoju odluku.'); expect(text()).not.toContain('Čeka Vas');
   expect(text()).not.toContain('Opiši zadatak'); expect(text()).not.toContain('Raspored');
-  expect(action('Objavi zadatak')).toBeDefined();
+  expect(action('Objavite zadatak')).toBeDefined();
 });
 
 it('one failed side says it is not loaded while the other is counted', async () => {
   mockSource.mojePrijaveStrana.mockRejectedValue(new Error('APPLICATIONS_FAILED')); mockSource.mojePotrebe.mockResolvedValue([need('orman'), need('nacrt', { stanje: 'NACRT' })]);
   await render();
-  // The one draft is offered under "Čeka te" ("Nastavi nacrt") and still counted in its list: the row is the count of what it opens.
+  // The one draft is offered under "Čeka Vas" ("Nastavi nacrt") and still counted in its list: the row is the count of what it opens.
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan · 1 nacrt');
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Trenutno nedostupno');
 });
@@ -923,8 +921,8 @@ it('PKG-042: server attention and remaining rows stay visible without a misleadi
   expect(text()).toContain('Zadatak je izmenjen'); expect(text()).toMatch(/I još\s+12/);
   // The independent rating read is unknown; its recovery action shares this section.
   // Keep all server rows and its "12 more", without implying that 13 counts every action.
-  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka te: 13 stavki' })).toHaveLength(0);
-  expect(heading('Čeka te')).toHaveLength(1);
+  expect(tree.root.findAllByProps({ accessibilityLabel: 'Čeka Vas: 13 stavki' })).toHaveLength(0);
+  expect(heading('Čeka Vas')).toHaveLength(1);
 
   await act(async () => row('Zadatak je izmenjen').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/moje-prijave', params: { prijavaId: 'server' } });
@@ -934,12 +932,12 @@ it('PKG-042: attention failure is explicit and never replaced with conclusions f
   mockSource.mojePotrebe.mockResolvedValue([need('old', { brojPrijava: 2, brojPrijavaZaIzbor: 2 })]);
   mockSource.paznjaZaPocetnu.mockRejectedValue(new Error('PRIVATE_BACKEND_ERROR'));
   await render();
-  expect(text()).toContain('Ne možemo da učitamo ono što te čeka.');
+  expect(text()).toContain('Ne možemo da učitamo ono što Vas čeka.');
   expect(text()).not.toContain('čeka tvoj izbor'); expect(text()).not.toContain('PRIVATE_BACKEND_ERROR');
-  // "Čeka te" stays unavailable, and the door does not stand in for it: it counts the list, never what waits.
+  // "Čeka Vas" stays unavailable, and the door does not stand in for it: it counts the list, never what waits.
   expect(text()).not.toContain('čeka izbor');
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan');
-  await act(async () => action('Osveži pregled').onPress());
+  await act(async () => action('Osvežite pregled').onPress());
   expect(mockSource.paznjaZaPocetnu).toHaveBeenCalledTimes(2);
 });
 
@@ -949,12 +947,12 @@ it('PKG-042: a known empty aggregate suppresses obsolete locally inferred attent
   await render();
   expect(mockSource.paznjaZaPocetnu).toHaveBeenCalledTimes(1);
   // Known empty attention stays hidden; the account lists remain available.
-  expect(text()).not.toContain('Čeka te'); expect(text()).not.toContain('Ništa ne čeka tvoju odluku.'); expect(text()).toContain('1 aktivan');
+  expect(text()).not.toContain('Čeka Vas'); expect(text()).not.toContain('Ništa ne čeka tvoju odluku.'); expect(text()).toContain('1 aktivan');
   expect(text()).not.toContain('čeka tvoj izbor');
   // Neither door contradicts the known empty list with a count of its own of what waits.
   expect(text()).not.toContain('čeka izbor'); expect(text()).not.toContain('čeka te');
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan');
-  // The application is in the list's own "Čeka te" set, not in "Aktivne": the door names it without calling it inactive.
+  // The application is in the list's own "Čeka Vas" set, not in "Aktivne": the door names it without calling it inactive.
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. 1 prijava');
 });
 
@@ -966,21 +964,21 @@ it('PKG-042: a late private attention result from the previous account cannot ap
   await act(async () => late.resolve({ rows: [{ id: 'private-a', title: 'PRIVATE_A_TASK', detail: '',
     target: { kind: 'NEED', needId: A } }], more: 0, asOf: '2026-09-22T10:00:00Z' }));
   expect(text()).not.toContain('PRIVATE_A_TASK');
-  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemaš zadatak');
+  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemate zadatak');
 });
 
 it('a known empty account names both empty lists without invented zero statistics', async () => {
   await render();
   expect(text()).not.toMatch(/\b0\b/);
-  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemaš zadatak');
-  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Još nemaš prijavu');
+  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemate zadatak');
+  expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Još nemate prijavu');
 });
 
 // Owner's 18 Oct cleanup: hide empty sections, retain failed-read recovery.
 it('hides empty attention while preserving my lists and partial-read recovery', async () => {
   mockSource.mojePotrebe.mockResolvedValue([need('orman')]);
   await render();
-  expect(heading('Čeka te')).toHaveLength(0);
+  expect(heading('Čeka Vas')).toHaveLength(0);
   expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
   expect(row('Moji zadaci')).toBeDefined();
   await act(async () => tree.unmount());
@@ -999,38 +997,38 @@ it('what waits is still said, and the quiet row is not drawn beside it', async (
   mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [], more: 0, asOf: '2026-09-22T10:00:00Z' });
   mockSource.mojiDogovori.mockResolvedValue([completed('d1')]);
   await render();
-  expect(text()).toContain('Oceni završen Dogovor'); expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
+  expect(text()).toContain('Ocenite završen Dogovor'); expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
 });
 
 // Design proposal N4 (owner, 2026-10-07): an account with nothing in it yet sees the two doors and ONE quiet row, "Kako radi",
-// three short steps with a "Sakrij"; the row goes by itself with the first draft, application or Dogovor, and once hidden it
+// three short steps with a "Sakrijte"; the row goes by itself with the first draft, application or Dogovor, and once hidden it
 // never returns.
 describe('a brand-new account', () => {
   const how = () => tree.root.findAll(node => String(node.type) === 'View' && node.props.testID === 'how-it-works');
-  const steps = () => tree.root.findAll(node => String(node.type) === 'View' && String(node.props.accessibilityLabel).startsWith('1. Objavi ili pronađi'));
-  const hide = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Sakrij')[0];
-  const STEP_WORDS = ['Objavi ili pronađi', 'Zadatak', 'Dogovori se', 'Prijava i poruke', 'Oceni', 'Posle završetka'];
-  it('sees one row "Kako radi" under the two doors, and no "Čeka te" (nothing could wait yet)', async () => {
+  const steps = () => tree.root.findAll(node => String(node.type) === 'View' && String(node.props.accessibilityLabel).startsWith('1. Objavite ili pronađite'));
+  const hide = () => tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Sakrijte')[0];
+  const STEP_WORDS = ['Objavite ili pronađite', 'Zadatak', 'Dogovorite se', 'Prijava i poruke', 'Ocenite', 'Posle završetka'];
+  it('sees one row "Kako radi" under the two doors, and no "Čeka Vas" (nothing could wait yet)', async () => {
     await render();
     expect(how()).toHaveLength(1);
     expect(heading('Kako radi')).toHaveLength(1);
     for (const word of STEP_WORDS) expect(text()).toContain(word);
-    expect(text()).not.toContain('Čeka te'); expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
+    expect(text()).not.toContain('Čeka Vas'); expect(text()).not.toContain('Ništa ne čeka tvoju odluku.');
     // The old unlabelled steps are gone with their words.
     for (const old of ['Opiši zadatak', 'Izaberi prijavu', 'Dogovor i ocena']) expect(text()).not.toContain(old);
     expect(steps()).toHaveLength(1);
     expect(steps()[0].props).toMatchObject({ accessible: true,
-      accessibilityLabel: '1. Objavi ili pronađi, Zadatak. 2. Dogovori se, Prijava i poruke. 3. Oceni, Posle završetka.' });
+      accessibilityLabel: '1. Objavite ili pronađite, Zadatak. 2. Dogovorite se, Prijava i poruke. 3. Ocenite, Posle završetka.' });
     expect(StyleSheet.flatten(steps()[0].props.style).flexDirection).toBe('row');
-    // Three pictures of 32 dp, one per step; the only thing that can be pressed in the row is "Sakrij", and the doors stay.
+    // Three pictures of 32 dp, one per step; the only thing that can be pressed in the row is "Sakrijte", and the doors stay.
     expect([...new Set(steps()[0].findAllByProps({ size: 32 }).filter(node => typeof node.type !== 'string').map(node => node.props.kind))])
       .toEqual(['publish', 'agreements', 'star']);
     expect(steps()[0].findAll(node => String(node.type) === 'Press')).toHaveLength(0);
-    expect(how()[0].findAll(node => String(node.type) === 'Press').map(node => node.props.accessibilityLabel)).toEqual(['Sakrij']);
-    expect(action('Objavi zadatak')).toBeDefined(); expect(action('Uskoči i zaradi')).toBeDefined();
+    expect(how()[0].findAll(node => String(node.type) === 'Press').map(node => node.props.accessibilityLabel)).toEqual(['Sakrijte']);
+    expect(action('Objavite zadatak')).toBeDefined(); expect(action('Uskočite i zaradite')).toBeDefined();
   });
 
-  it('keeps every word at 12 px or more and "Sakrij" at 48 dp, and never names the sides of a task', async () => {
+  it('keeps every word at 12 px or more and "Sakrijte" at 48 dp, and never names the sides of a task', async () => {
     await render();
     const styled = how()[0].findAll(node => String(node.type) === 'T');
     expect(styled.length).toBeGreaterThan(0);
@@ -1059,14 +1057,14 @@ describe('a brand-new account', () => {
     // ... and as on a later run of the app, when only the device's memory is left.
     forgetHiddenHowItWorks();
     await act(async () => tree.unmount()); await render();
-    expect(how()).toHaveLength(0); expect(action('Objavi zadatak')).toBeDefined();
+    expect(how()).toHaveLength(0); expect(action('Objavite zadatak')).toBeDefined();
   });
 
   it('is not drawn when the device already remembers it was hidden', async () => {
     mockStored.set(HOW_IT_WORKS_KEY, '1');
     await render();
     expect(how()).toHaveLength(0); expect(text()).not.toContain('Kako radi');
-    expect(action('Objavi zadatak')).toBeDefined(); expect(action('Uskoči i zaradi')).toBeDefined();
+    expect(action('Objavite zadatak')).toBeDefined(); expect(action('Uskočite i zaradite')).toBeDefined();
   });
 
   it('still hides when the device cannot write, for as long as the app runs, and shows once more if it cannot read either', async () => {
@@ -1094,7 +1092,7 @@ describe('a brand-new account', () => {
     arrange();
     await render();
     expect(how()).toHaveLength(0); expect(text()).not.toContain('Kako radi');
-    expect(text().includes('Čeka te')).toBe(_name === 'a first draft' || _name === 'a first thing that waits');
+    expect(text().includes('Čeka Vas')).toBe(_name === 'a first draft' || _name === 'a first thing that waits');
   });
 
   it('never sees it while a read is missing: a failed read is not an empty account', async () => {
@@ -1110,34 +1108,34 @@ it('keeps the stable doors and list entries in place during the first read, with
   expect(StyleSheet.flatten(loading.props.style)).toMatchObject({ minHeight: expect.any(Number), backgroundColor: sys.color.surface });
   expect(StyleSheet.flatten(loading.props.style).minHeight).toBeGreaterThanOrEqual(160);
   expect(tree.root.findAllByType(ListSkeleton)).toHaveLength(0);
-  expect(text()).toContain('Učitavamo tvoj pregled…');
-  expect(text()).not.toContain('Čeka te'); expect(text()).not.toContain('Ništa ne čeka tvoju odluku.'); expect(text()).not.toContain('Opiši zadatak');
+  expect(text()).toContain('Učitavamo Vaš pregled…');
+  expect(text()).not.toContain('Čeka Vas'); expect(text()).not.toContain('Ništa ne čeka tvoju odluku.'); expect(text()).not.toContain('Opiši zadatak');
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci'); expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave');
   const order = tree.root.findAll(node => node.props.testID === 'home-initial-loading' || String(node.type) === 'Press'
-    && ['Objavi zadatak', 'Uskoči i zaradi', 'Moji zadaci', 'Moje prijave'].includes(node.props.accessibilityLabel))
+    && ['Objavite zadatak', 'Uskočite i zaradite', 'Moji zadaci', 'Moje prijave'].includes(node.props.accessibilityLabel))
     .map(node => node.props.testID === 'home-initial-loading' ? 'loading' : node.props.accessibilityLabel);
-  expect(order).toEqual(['Objavi zadatak', 'Uskoči i zaradi', 'Moji zadaci', 'Moje prijave', 'loading']);
-  await act(async () => action('Objavi zadatak').onPress()); expect(handlers.onPublish).toHaveBeenCalledTimes(1);
+  expect(order).toEqual(['Objavite zadatak', 'Uskočite i zaradite', 'Moji zadaci', 'Moje prijave', 'loading']);
+  await act(async () => action('Objavite zadatak').onPress()); expect(handlers.onPublish).toHaveBeenCalledTimes(1);
 });
 
 it('keeps the same launch targets mounted as the initial overview read completes', async () => {
   const wait = deferred<never[]>(); mockSource.mojePotrebe.mockReturnValue(wait.promise);
   await render();
-  const before = ['Objavi zadatak', 'Uskoči i zaradi'].map(label => tree.root.findAll(
+  const before = ['Objavite zadatak', 'Uskočite i zaradite'].map(label => tree.root.findAll(
     node => String(node.type) === 'Press' && node.props.accessibilityLabel === label)[0]);
   expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci');
   await act(async () => wait.resolve([]));
   expect(tree.root.findAllByProps({ testID: 'home-initial-loading' })).toHaveLength(0);
   before.forEach((entry, index) => expect(tree.root.findAll(node => String(node.type) === 'Press'
-    && node.props.accessibilityLabel === ['Objavi zadatak', 'Uskoči i zaradi'][index])[0]).toBe(entry));
-  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemaš zadatak');
+    && node.props.accessibilityLabel === ['Objavite zadatak', 'Uskočite i zaradite'][index])[0]).toBe(entry));
+  expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. Još nemate zadatak');
 });
 
 it('an account with a withdrawn application says that none waits for an answer, not that it has no application history', async () => {
   mockSource.mojePrijaveStrana.mockResolvedValue(applicationPage([{ ...application('stara'), stanje: 'WITHDRAWN' }]));
   await render();
   expect(row('Moje prijave').accessibilityLabel).toBe('Moje prijave. Nijedna ne čeka odgovor');
-  expect(text()).not.toContain('Još nemaš prijavu');
+  expect(text()).not.toContain('Još nemate prijavu');
 });
 
 it('a failed refresh never claims an empty account: the last overview stays, one line says so, and both start tiles stay available (R31)', async () => {
@@ -1148,10 +1146,10 @@ it('a failed refresh never claims an empty account: the last overview stays, one
   await act(async () => refresh());
   // What was read before is still what is shown; the line says it is the last one, and the one action reads again.
   expect(text()).toContain('Nema veze. Prikazano je poslednje učitano.'); expect(text()).toContain('1 aktivan');
-  expect(text()).not.toContain('Pregled nije učitan'); expect(action('Osveži pregled')).toBeDefined();
+  expect(text()).not.toContain('Pregled nije učitan'); expect(action('Osvežite pregled')).toBeDefined();
 
-  expect(action('Objavi zadatak')).toBeDefined(); expect(action('Uskoči i zaradi')).toBeDefined();
-  await act(async () => action('Uskoči i zaradi').onPress());
+  expect(action('Objavite zadatak')).toBeDefined(); expect(action('Uskočite i zaradite')).toBeDefined();
+  await act(async () => action('Uskočite i zaradite').onPress());
   expect(mockRouter.navigate).toHaveBeenCalledWith('/zadaci');
 });
 
@@ -1190,7 +1188,7 @@ it('logout of A and login of B never shows A, and a late answer for A cannot pai
 
 it('returning Home enables current navigation while its silent refresh waits, without reviving a retired callback', async () => {
   await render();
-  const retired = action('Uskoči i zaradi').onPress;
+  const retired = action('Uskočite i zaradite').onPress;
   await act(async () => { mockFocused = false; tree.update(<Pocetna />); });
   const wait = deferred<never[]>(); mockSource.mojePotrebe.mockReturnValue(wait.promise);
   try {
@@ -1198,7 +1196,7 @@ it('returning Home enables current navigation while its silent refresh waits, wi
     expect(mockSource.mojePotrebe).toHaveBeenCalledTimes(2);
     await act(async () => retired());
     expect(mockRouter.navigate).not.toHaveBeenCalled();
-    await act(async () => action('Uskoči i zaradi').onPress());
+    await act(async () => action('Uskočite i zaradite').onPress());
     expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
     expect(mockRouter.navigate).toHaveBeenCalledWith('/zadaci');
   } finally {
@@ -1206,9 +1204,9 @@ it('returning Home enables current navigation while its silent refresh waits, wi
   }
 });
 
-// UI/UX pass, 2026-10-08 (F1): "Početna ne laže". What waits for me that only the Dogovori and own-task reads can tell stands in "Čeka te" after the
+// UI/UX pass, 2026-10-08 (F1): "Početna ne laže". What waits for me that only the Dogovori and own-task reads can tell stands in "Čeka Vas" after the
 // server's rows, each one opens the place that settles it, and the calm sentence is never said over any of them.
-describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and what it asks of the work profile (R20, R06)', () => {
+describe('what the phone adds to "Čeka Vas" (R02, a change to answer, R18) and what it asks of the work profile (R20, R06)', () => {
   const profileRead = jest.fn();
   beforeEach(() => {
     (mockSource as Record<string, unknown>).mojRadnikProfil = profileRead;
@@ -1223,7 +1221,7 @@ describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and w
   it('asks for a term where a confirmed Dogovor has none, opens the form that proposes one, and no longer says that nothing waits (R02)', async () => {
     mockSource.mojiDogovori.mockResolvedValue([termless('krecenje')]);
     await render();
-    expect(heading('Čeka te')).toHaveLength(1);
+    expect(heading('Čeka Vas')).toHaveLength(1);
     expect(text()).toContain('Krečenje stana u belo'); expect(text()).toContain('Predloži termin');
     // The action and the task, and nothing else the eye has to read twice (the owner's phone, 8 Oct 2026): the sentence that repeated the
     // action is in the label a screen reader hears, and nowhere else. With no appointment ahead this is the one record that leads: the action
@@ -1275,7 +1273,7 @@ describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and w
     expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/potrebe/[id]/pregled', params: { id: 'n1' } });
   });
 
-  it('counts the drafts in the door when there are more than the one that "Čeka te" offers, and when none is offered', async () => {
+  it('counts the drafts in the door when there are more than the one that "Čeka Vas" offers, and when none is offered', async () => {
     mockSource.mojePotrebe.mockResolvedValue([need('a'), need('n1', { stanje: 'NACRT', naslov: 'Prevoz ormana iz Novog Sada' }), need('n4', { stanje: 'NACRT', naslov: 'Drugi nacrt' })]);
     await render();
     expect(row('Nastavi nacrt')).toBeDefined(); expect(row('Moji zadaci').accessibilityLabel).toBe('Moji zadaci. 1 aktivan · 2 nacrta');
@@ -1291,10 +1289,10 @@ describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and w
     'says what the work profile is for and opens its conversation for %s (R20)', async (_name, profile) => {
       profileRead.mockResolvedValue(profile);
       await render();
-      expect(row('Podesi radni profil').accessibilityLabel).toBe('Podesi radni profil. Dobijaš zadatke koji ti odgovaraju.');
-      expect(text()).toContain('Dobijaš zadatke koji ti odgovaraju.');
+      expect(row('Podesite radni profil').accessibilityLabel).toBe('Podesite radni profil. Dobijate zadatke koji Vam odgovaraju.');
+      expect(text()).toContain('Dobijate zadatke koji Vam odgovaraju.');
       expect(switchNode()).toBeUndefined();
-      await act(async () => row('Podesi radni profil').onPress());
+      await act(async () => row('Podesite radni profil').onPress());
       expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor');
     });
 
@@ -1302,16 +1300,16 @@ describe('what the phone adds to "Čeka te" (R02, a change to answer, R18) and w
     'asks nothing about the work profile of %s, and a profile that could not be read is not said to be missing', async (_name, profile) => {
       profileRead.mockResolvedValue(profile);
       await render();
-      expect(text()).not.toContain('Podesi radni profil');
+      expect(text()).not.toContain('Podesite radni profil');
       await act(async () => tree.unmount());
       profileRead.mockRejectedValue(new Error('PROFILE_FAILED'));
       await render();
-      expect(text()).not.toContain('Podesi radni profil'); expect(text()).not.toContain('Deo pregleda');
+      expect(text()).not.toContain('Podesite radni profil'); expect(text()).not.toContain('Deo pregleda');
     });
 it('opens availability as an AI topic and keeps the saved state until review and save', async () => {
     profileRead.mockResolvedValue({ stanje:'ACTIVE',dostupanOdmah:false }); await render();
     expect(switchNode()).toBeUndefined(); expect(text()).toContain('Mogu odmah: isključeno');
-    await act(async()=>row('Izmeni dostupnost kroz razgovor').onPress());
+    await act(async()=>row('Izmenite dostupnost kroz razgovor').onPress());
     const route=mockRouter.navigate.mock.calls.at(-1)![0];
     expect(takeAiCorrection(route.params.aiCorrection,{accountId:A,accountRevision:1},'worker','cccccccc-cccc-4ccc-8ccc-cccccccccccc')?.target).toBe('worker.time');
     expect(mockAvailability.read).not.toHaveBeenCalled(); expect(mockAvailability.save).not.toHaveBeenCalled();
@@ -1320,7 +1318,7 @@ it('opens availability as an AI topic and keeps the saved state until review and
 
 it('retires a captured availability entry after focus or account changes', async () => {
     profileRead.mockResolvedValue({ stanje:'ACTIVE',dostupanOdmah:true }); await render();
-    const retained=row('Izmeni dostupnost kroz razgovor').onPress;
+    const retained=row('Izmenite dostupnost kroz razgovor').onPress;
     mockFocused=false; await act(async()=>tree.update(<Pocetna/>));
     await act(async()=>retained()); expect(mockRouter.navigate).not.toHaveBeenCalled();
     mockFocused=true; mockSession={user:{id:B},accountRevision:2}; await act(async()=>tree.update(<Pocetna/>));
@@ -1335,17 +1333,16 @@ it('uses quiet illustrations for both intentions without a radar loop', async ()
   expect(tree.root.findAllByType('HomeLaunchArt' as React.ElementType).map(node => node.props.kind)).toEqual(['publish', 'discover']);
 });
 
-describe('independent optional Home reads', () => {
+describe('S01 optional work profile stays independent from core reads', () => {
   const worker = jest.fn(), opportunities = jest.fn(), fullMarketplace = jest.fn();
-  const offered = (id = B) => ({ id, naslov: `Tuđ zadatak ${id}`, vremeTekst: 'Fleksibilno', podrucjeTekst: 'Novi Sad',
-    rezimCene: 'OFFERS', primaNovePrijave: true, pokrivenost: { ukupno: 1, popunjeno: 0, preostalo: 1, udeo: 0 } });
   const presentation = () => tree.root.findByType(HomePresentation).props;
   beforeEach(() => {
     (mockSource as Record<string, unknown>).mojRadnikProfil = worker;
     (mockSource as Record<string, unknown>).prilikeZaPocetnu = opportunities;
     (mockSource as Record<string, unknown>).otvorenePrilike = fullMarketplace;
+    worker.mockReset().mockResolvedValue(null);
+    opportunities.mockReset().mockRejectedValue(new Error('Home must not read a discovery preview'));
     fullMarketplace.mockReset().mockRejectedValue(new Error('Home must not walk discovery'));
-    worker.mockReset().mockResolvedValue(null); opportunities.mockReset().mockResolvedValue([]);
   });
   afterEach(() => {
     delete (mockSource as Record<string, unknown>).mojRadnikProfil;
@@ -1354,16 +1351,20 @@ describe('independent optional Home reads', () => {
     jest.useRealTimers();
   });
 
-  it('requests only the dedicated bounded preview, never the full marketplace', async () => {
+  it('S01 never reads a second marketplace preview, including on refresh', async () => {
     await render();
-    expect(opportunities).toHaveBeenCalledTimes(1);
-    expect(opportunities).toHaveBeenCalledWith({ signal: expect.any(AbortSignal) });
-    expect(fullMarketplace).not.toHaveBeenCalled();
+    await act(async () => presentation().onRefresh());
+    expect(opportunities).not.toHaveBeenCalled(); expect(fullMarketplace).not.toHaveBeenCalled();
+    expect(text()).not.toContain('Aktuelni zadaci');
+    expect(text()).not.toContain('Učitavamo aktuelne zadatke');
+    expect(mockSource.mojePotrebe).toHaveBeenCalledTimes(2);
+    expect(mockSource.mojePrijaveStrana).toHaveBeenCalledTimes(2);
+    expect(mockSource.mojiDogovori).toHaveBeenCalledTimes(2);
+    expect(mockSource.paznjaZaPocetnu).toHaveBeenCalledTimes(2);
   });
 
-  it('shows complete core counts and attention while both optional reads wait, and each optional result appears independently', async () => {
-    const work = deferred<null>(), tasks = deferred<ReturnType<typeof offered>[]>();
-    worker.mockReturnValueOnce(work.promise); opportunities.mockReturnValueOnce(tasks.promise);
+  it('shows complete core counts and attention while the optional work-profile read waits', async () => {
+    const work = deferred<null>(); worker.mockReturnValueOnce(work.promise);
     mockSource.mojePotrebe.mockResolvedValue([need('owned')]);
     mockSource.mojePrijaveStrana.mockResolvedValue(applicationPage([application('sent')]));
     mockSource.paznjaZaPocetnu.mockResolvedValue({ rows: [{ id: 'answer', title: 'Pregledaj prijave', detail: 'Čeka tvoj izbor.',
@@ -1372,55 +1373,46 @@ describe('independent optional Home reads', () => {
     expect(presentation().loading).toBe(false); expect(presentation().home.firstRun).toBe(false);
     expect(row('Moji zadaci').accessibilityLabel).toContain('1 aktivan');
     expect(row('Moje prijave').accessibilityLabel).toContain('1'); expect(text()).toContain('Pregledaj prijave');
-    expect(text()).toContain('Učitavamo radni profil…'); expect(text()).toContain('Učitavamo aktuelne zadatke…');
-    expect(presentation().home.workerProfile).toBeUndefined();
-    await act(async () => tasks.resolve([offered()]));
-    expect(presentation().opportunities).toHaveLength(1); expect(text()).toContain('Aktuelni zadaci');
     expect(text()).toContain('Učitavamo radni profil…');
+    expect(presentation().home.workerProfile).toBeUndefined();
     await act(async () => work.resolve(null));
-    expect(text()).toContain('Podesi radni profil');
+    expect(text()).toContain('Podesite radni profil');
   });
 
-  it('keeps first-run truth from complete core reads while optional reads time out and offers explicit recovery', async () => {
-    jest.useFakeTimers();
-    worker.mockReturnValue(new Promise(() => undefined)); opportunities.mockReturnValue(new Promise(() => undefined));
+  it('keeps first-run truth from complete core reads when the optional profile times out', async () => {
+    jest.useFakeTimers(); worker.mockReturnValue(new Promise(() => undefined));
     await render();
     expect(presentation().home.firstRun).toBe(true); expect(presentation().loading).toBe(false);
     await act(async () => jest.advanceTimersByTime(15_000));
     expect(presentation().home.firstRun).toBe(true); expect(presentation().home.partial).toBe(false);
     expect(text()).toContain('Radni profil trenutno nije učitan.');
-    expect(text()).toContain('Aktuelni zadaci trenutno nisu učitani.');
-    expect(text()).not.toContain('Podesi radni profil');
-    expect(action('Osveži radni profil')).toBeDefined(); expect(action('Osveži aktuelne zadatke')).toBeDefined();
+    expect(text()).not.toContain('Podesite radni profil');
+    expect(action('Osvežite radni profil')).toBeDefined();
   });
 
-  it('retains both last-known optional values after a failed refresh, and retries only the chosen section once', async () => {
-    worker.mockResolvedValueOnce({ stanje: 'DRAFT', dostupanOdmah: false }); opportunities.mockResolvedValueOnce([offered()]);
-    await render();
-    worker.mockRejectedValueOnce(new Error('offline')); opportunities.mockRejectedValueOnce(new Error('offline'));
+  it('retains the last-known work profile after a failed refresh and retries only that section once', async () => {
+    worker.mockResolvedValueOnce({ stanje: 'DRAFT', dostupanOdmah: false });
+    await render(); worker.mockRejectedValueOnce(new Error('offline'));
     await act(async () => presentation().onRefresh());
     expect(presentation().home.workerProfile).toEqual({ kind: 'known', value: { state: 'DRAFT', availableNow: false } });
-    expect(presentation().opportunities.map((item: { id: string }) => item.id)).toEqual([B]);
     expect(text()).toContain('Radni profil nije osvežen. Prikazano je poslednje učitano.');
-    expect(text()).toContain('Aktuelni zadaci nisu osveženi. Prikazano je poslednje učitano.');
     const wait = deferred<null>(); worker.mockReturnValueOnce(wait.promise);
-    const retry = action('Osveži radni profil').onPress;
+    const retry = action('Osvežite radni profil').onPress;
     await act(async () => { retry(); retry(); });
-    expect(worker).toHaveBeenCalledTimes(3); expect(opportunities).toHaveBeenCalledTimes(2);
+    expect(worker).toHaveBeenCalledTimes(3); expect(opportunities).not.toHaveBeenCalled();
     expect(text()).toContain('Osvežavamo radni profil…');
-    expect(action('Osveži radni profil')).toMatchObject({ loading: true, disabled: true });
+    expect(action('Osvežite radni profil')).toMatchObject({ loading: true, disabled: true });
     expect(mockSource.mojePotrebe).toHaveBeenCalledTimes(2);
+    expect(mockSource.mojePrijaveStrana).toHaveBeenCalledTimes(2);
+    expect(mockSource.mojiDogovori).toHaveBeenCalledTimes(2);
+    expect(mockSource.paznjaZaPocetnu).toHaveBeenCalledTimes(2);
     await act(async () => wait.resolve(null));
     expect(presentation().home.workerProfile.value.state).toBe('NONE');
     expect(text()).not.toContain('Radni profil nije osvežen.');
-    await act(async () => action('Osveži aktuelne zadatke').onPress());
-    expect(opportunities).toHaveBeenCalledTimes(3); expect(worker).toHaveBeenCalledTimes(3);
-    expect(presentation().opportunities).toEqual([]); expect(text()).not.toContain('Aktuelni zadaci nisu osveženi.');
   });
 
-  it.each(['focus', 'account', 'account revision', 'background'])('rejects both delayed optional results after a change of %s', async change => {
-    const work = deferred<{ stanje: string; dostupanOdmah: boolean }>(), tasks = deferred<ReturnType<typeof offered>[]>();
-    worker.mockReturnValueOnce(work.promise); opportunities.mockReturnValueOnce(tasks.promise);
+  it.each(['focus', 'account', 'account revision', 'background'])('rejects delayed work-profile results after a change of %s', async change => {
+    const work = deferred<{ stanje: string; dostupanOdmah: boolean }>(); worker.mockReturnValueOnce(work.promise);
     await render();
     if (change === 'focus') {
       await act(async () => { mockFocused = false; tree.update(<Pocetna />); });
@@ -1431,22 +1423,20 @@ describe('independent optional Home reads', () => {
     } else {
       await act(async () => { mockSession = { user: { id: change === 'account' ? B : A }, accountRevision: 2 }; tree.update(<Pocetna />); });
     }
-    await act(async () => { work.resolve({ stanje: 'ACTIVE', dostupanOdmah: true }); tasks.resolve([offered()]); });
-    expect(presentation().home.workerProfile.value.state).toBe('NONE'); expect(presentation().opportunities).toEqual([]);
-    expect(presentation().availableNow).toBeUndefined(); expect(text()).not.toContain(`Tuđ zadatak ${B}`);
+    await act(async () => work.resolve({ stanje: 'ACTIVE', dostupanOdmah: true }));
+    expect(presentation().home.workerProfile.value.state).toBe('NONE');
+    expect(presentation().availableNow).toBeUndefined(); expect(opportunities).not.toHaveBeenCalled();
   });
 
-  it('rejects retry callbacks retained from a previous focus while current retries remain available', async () => {
-    worker.mockRejectedValue(new Error('offline')); opportunities.mockRejectedValue(new Error('offline'));
-    await render();
-    const oldWorker = action('Osveži radni profil').onPress, oldTasks = action('Osveži aktuelne zadatke').onPress;
+  it('rejects a retry callback retained from a previous focus while current retries remain available', async () => {
+    worker.mockRejectedValue(new Error('offline'));
+    await render(); const oldWorker = action('Osvežite radni profil').onPress;
     await act(async () => { mockFocused = false; tree.update(<Pocetna />); });
     await act(async () => { mockFocused = true; tree.update(<Pocetna />); });
-    await act(async () => { oldWorker(); oldTasks(); });
-    expect(worker).toHaveBeenCalledTimes(2); expect(opportunities).toHaveBeenCalledTimes(2);
-    worker.mockResolvedValue(null); opportunities.mockResolvedValue([]);
-    await act(async () => { action('Osveži radni profil').onPress(); action('Osveži aktuelne zadatke').onPress(); });
-    expect(worker).toHaveBeenCalledTimes(3); expect(opportunities).toHaveBeenCalledTimes(3);
-    expect(presentation().workProfileRead.error).toBe(false); expect(presentation().opportunitiesRead.error).toBe(false);
+    await act(async () => oldWorker()); expect(worker).toHaveBeenCalledTimes(2);
+    worker.mockResolvedValue(null);
+    await act(async () => action('Osvežite radni profil').onPress());
+    expect(worker).toHaveBeenCalledTimes(3); expect(opportunities).not.toHaveBeenCalled();
+    expect(presentation().workProfileRead.error).toBe(false);
   });
 });

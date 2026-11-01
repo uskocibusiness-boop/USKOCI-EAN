@@ -8,7 +8,7 @@ import { sys } from '../system/tokens';
 
 /**
  * "Kako radi" (design proposal N4, owner 2026-10-07): the first time a brand-new account opens Početna there is ONE quiet row
- * under the two doors, three short steps with a "Sakrij" beside the heading. One touch hides it, and a hidden row never
+ * under the two doors, three short steps with a "Sakrijte" beside the heading. One touch hides it, and a hidden row never
  * returns. There is no guide and no introduction screen; the row is the whole of it.
  *
  * What was hidden is a presentation fact kept on the device, like the entry's "intro seen" receipt: cosmetic, never blocking.
@@ -19,9 +19,9 @@ export const HOW_IT_WORKS_KEY = 'uskoci.home.how-it-works-hidden.v1';
 
 /** The steps, in the order of a task's life. The words are the proposal's own; the pictures are the app's own fact pictures. */
 export const HOW_IT_WORKS_STEPS: readonly { art: FactArtKind; title: string; note: string }[] = [
-  { art: 'publish', title: 'Objavi ili pronađi', note: 'Zadatak' },
-  { art: 'agreements', title: 'Dogovori se', note: 'Prijava i poruke' },
-  { art: 'star', title: 'Oceni', note: 'Posle završetka' },
+  { art: 'publish', title: 'Objavite ili pronađite', note: 'Zadatak' },
+  { art: 'agreements', title: 'Dogovorite se', note: 'Prijava i poruke' },
+  { art: 'star', title: 'Ocenite', note: 'Posle završetka' },
 ];
 
 /** How long a slow device read may delay the row: storage must never hold up the screen (the entry's receipt uses the same bound). */
@@ -64,12 +64,12 @@ export function useHowItWorks() {
 
 /**
  * The row. `stacked` puts the three steps in a column when there is no room for three beside each other (large text, narrow window).
- * It is a `Section` like every other block of Početna: its heading, then the steps, and "Sakrij" at the end of the heading's line.
+ * It is a `Section` like every other block of Početna: its heading, then the steps, and "Sakrijte" at the end of the heading's line.
  */
 export function HowItWorks({ stacked }: { stacked: boolean }) {
   const { visible, hide } = useHowItWorks();
   if (!visible) return null;
-  return <Section testID="how-it-works" title="Kako radi" action={{ label: 'Sakrij', onPress: hide }}>
+  return <Section testID="how-it-works" title="Kako radi" action={{ label: 'Sakrijte', onPress: hide }}>
     <View accessible accessibilityLabel={HOW_IT_WORKS_STEPS.map((step, index) => `${index + 1}. ${step.title}, ${step.note}`).join('. ') + '.'}
       style={[s.steps, stacked && s.stepsStacked]}>
       {HOW_IT_WORKS_STEPS.map(step => <View key={step.title} style={[s.step, stacked && s.stepStacked]}>

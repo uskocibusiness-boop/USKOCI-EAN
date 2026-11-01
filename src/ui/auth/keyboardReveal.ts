@@ -42,9 +42,9 @@ export function revealDelta({ top, bottom, viewTop, viewBottom, margin }: {
   return 0;
 }
 
-/** What a field tells the sheet: it has been focused, or let go. `box` is the view to keep on screen (the whole field). */
+/** Keep the whole field in view, or its input control when label/error make the whole field too tall. */
 export type FocusReveal = {
-  focus: (box: RefObject<RevealBox | null>) => void;
+  focus: (box: RefObject<RevealBox | null>, control?: RefObject<RevealBox | null>) => void;
   blur: (box: RefObject<RevealBox | null>) => void;
 };
 
@@ -59,6 +59,7 @@ export const REVEAL_MARGIN = sys.space.base;
 export function useFocusReveal(scroll: RefObject<RevealScroll | null>) {
   const offset = useRef(0);
   const focused = useRef<RefObject<RevealBox | null> | null>(null);
+  const control = useRef<RefObject<RevealBox | null> | null>(null);
   const ticket = useRef(0);
   // The scroll glides unless the person asked the phone for no motion (one source for that: `ui/system/motion`).
   const reduced = useReducedMotion();
@@ -66,7 +67,7 @@ export function useFocusReveal(scroll: RefObject<RevealScroll | null>) {
   glide.current = !reduced;
 
   const reveal = useCallback(() => {
-    const view = scroll.current, box = focused.current?.current;
+    const view = scroll.current, box = focused.current?.current, input = control.current?.current;
     if (!view?.measureInWindow || !box?.measureInWindow) return;
     // A newer request retires an older one, so a slow measure never scrolls to where the field used to be.
     const mine = ++ticket.current;
@@ -78,8 +79,18 @@ export function useFocusReveal(scroll: RefObject<RevealScroll | null>) {
         // A keyboard that lies over the screen instead of shrinking it still ends the visible part where it begins.
         const keyboardTop = Keyboard.isVisible?.() ? Keyboard.metrics?.()?.screenY : undefined;
         if (keyboardTop !== undefined && keyboardTop > viewTop && keyboardTop < viewBottom) viewBottom = keyboardTop;
-        const delta = revealDelta({ top, bottom: top + height, viewTop, viewBottom, margin: REVEAL_MARGIN });
-        if (Math.abs(delta) >= 1) view.scrollTo?.({ y: Math.max(0, currentOffset + delta), animated: glide.current });
+        const room = viewBottom - viewTop;
+        const show = (targetTop: number, targetHeight: number, margin: number) => {
+          if (mine !== ticket.current) return;
+          const delta = revealDelta({ top: targetTop, bottom: targetTop + targetHeight, viewTop, viewBottom, margin });
+          if (Math.abs(delta) >= 1) view.scrollTo?.({ y: Math.max(0, currentOffset + delta), animated: glide.current });
+        };
+        if (height + 2 * REVEAL_MARGIN > room && input?.measureInWindow) {
+          // The legal footer and large text can leave room for the input but
+          // not its label + error. Keep typing visible; both texts stay in the scroll.
+          input.measureInWindow((_cx, inputTop, _cw, inputHeight) =>
+            show(inputTop, inputHeight, Math.min(REVEAL_MARGIN, Math.max(0, (room - inputHeight) / 2))));
+        } else show(top, height, REVEAL_MARGIN);
       });
       // Android can apply a scroll before its onScroll event reaches JS. During
       // keyboard resize, adding a new native delta to that old JS offset sends
@@ -94,8 +105,8 @@ export function useFocusReveal(scroll: RefObject<RevealScroll | null>) {
   }, [scroll]);
 
   const api = useMemo<FocusReveal>(() => ({
-    focus: box => { focused.current = box; reveal(); },
-    blur: box => { if (focused.current === box) { focused.current = null; ticket.current++; } },
+    focus: (box, input) => { focused.current = box; control.current = input ?? null; reveal(); },
+    blur: box => { if (focused.current === box) { focused.current = null; control.current = null; ticket.current++; } },
   }), [reveal]);
 
   useEffect(() => {
