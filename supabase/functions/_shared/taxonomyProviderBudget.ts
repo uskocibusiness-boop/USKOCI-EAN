@@ -55,20 +55,34 @@ export function createTaxonomyProviderBudget(input: {
       } catch { /* Observability cannot prevent usage settlement or answer delivery. */ }
       // Unknown outcomes retain the whole reservation. Missing usage is never 0.
       if (!event.usage || !event.attemptUsageComplete) return;
-      const abort = new AbortController(), timer = setTimeout(() => abort.abort(), 3000);
+      const abort = new AbortController();
+      const stopped = new Promise<never>((_, reject) => {
+        abort.signal.addEventListener('abort', () => reject(new Error('AI_TOOL_USAGE_UNAVAILABLE')), { once: true });
+      });
+      void stopped.catch(() => undefined);
+      const timer = setTimeout(() => abort.abort(), 3000);
+      const check = () => { if (abort.signal.aborted) throw new Error('AI_TOOL_USAGE_UNAVAILABLE'); };
       try {
-        const response = await fetch(input.supabaseUrl + '/rest/v1/rpc/rpc_ai_test_record_usage_service', {
+        const request = fetch(input.supabaseUrl + '/rest/v1/rpc/rpc_ai_test_record_usage_service', {
           method:'POST',redirect:'error',signal:abort.signal,
           headers:{apikey:input.serviceRoleKey,Authorization:'Bearer '+input.serviceRoleKey,'Content-Type':'application/json'},
           body:JSON.stringify({p_operation_id:admitted.operationId,p_model:input.model,
             p_prompt_tokens:event.usage.promptTokens,p_output_tokens:event.usage.outputTokens,p_total_tokens:event.usage.totalTokens}),
+        }).then(response => {
+          if (abort.signal.aborted || !response.ok || response.redirected || !response.body) {
+            try { void response.body?.cancel().catch(() => undefined); } catch { /* best effort cleanup */ }
+            throw new Error('AI_TOOL_USAGE_UNAVAILABLE');
+          }
+          return response;
         });
-        if (!response.ok || response.redirected || !response.body) { void response.body?.cancel(); throw new Error('AI_TOOL_USAGE_UNAVAILABLE'); }
-        const reader=response.body.getReader(); let raw='',size=0; const decoder=new TextDecoder();
-        try { for (;;) { const part=await reader.read(); if(part.done)break;
+        const response = await Promise.race([request, stopped]);
+        check();
+        const reader=response.body!.getReader(); let raw='',size=0; const decoder=new TextDecoder('utf-8', { fatal: true });
+        try { for (;;) { const part=await Promise.race([reader.read(), stopped]); check(); if(part.done)break;
           size+=part.value.byteLength;if(size>4096)throw new Error('AI_TOOL_USAGE_INVALID');raw+=decoder.decode(part.value,{stream:true}); }
           raw+=decoder.decode();
-        } finally { void reader.cancel().catch(()=>undefined); }
+        } finally { try { void reader.cancel().catch(()=>undefined); } catch { /* best effort cleanup */ } }
+        check();
         const receipt=JSON.parse(raw);
         if (receipt?.operationId!==admitted.operationId || typeof receipt.recorded!=='boolean' || receipt.authoritative!==true ||
           receipt.promptTokens!==event.usage.promptTokens || receipt.outputTokens!==event.usage.outputTokens || receipt.totalTokens!==event.usage.totalTokens)
