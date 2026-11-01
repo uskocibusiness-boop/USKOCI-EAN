@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {interviewVoiceInstruction} from '../../functions/_shared/interviewVoiceInstruction.mjs';
 import {serviceExecutionInstruction} from '../../functions/_shared/serviceExecutionInstruction.mjs';
+import {capturedParts} from '../../../src/ui/workerProfile/workerProfileFacts.ts';
 
 // Exact-source safety assertions, not synthetic claims of real Gemini quality.
 const source=readFileSync(new URL('../../functions/uskoci-worker-interview/index.ts',import.meta.url),'utf8');
@@ -85,18 +86,41 @@ test('first screen welcomes naturally and named sections describe offered skills
  assert.match(facts,/skills: 'Usluge koje nudite'/);
  assert.match(facts,/key: 'skills', label: 'Usluge'/);
 });
-test('new DRAFT city requirement matches activation while REMOTE remains nationwide-capable',()=>{
- assert.match(prompt,/server activation rpc_complete_worker_profile requires a city for a NEW DRAFT/);
- assert.match(prompt,/ask ONE short natural question for the administrative city/);
+test('only signed canonical REMOTE readiness may omit city; proposals and ON_SITE/BOTH retain their guards',()=>{
+ const candidate=readFileSync(new URL('../../candidates/r08_remote_only_activation.sql',import.meta.url),'utf8');
+ assert.match(candidate,/LOCAL_ONLY, NEVER a migration/);
+ assert.match(prompt,/Do not ask for an administrative city solely to activate an explicitly REMOTE-only profile/);
+ assert.match(prompt,/signed server review alone decides whether Save\+Activate is available/);
+ assert.match(prompt,/a REMOTE proposal or user-selected mode does not confirm a service category/);
+ assert.match(prompt,/save a draft and return to the review after service confirmation/);
+ assert.match(prompt,/never claim activation or matching before server confirmation/);
+ // Isolated candidate, not DEV rollout. ON_SITE, including BOTH represented
+ // by two modes, fails the city-free gate; proposals cannot invent categories.
+ assert.match(candidate,/m->>'mode' IS DISTINCT FROM 'REMOTE'/);
+ assert.match(candidate,/p->>'action' IS DISTINCT FROM 'REUSE_EXISTING'/);
+ assert.match(candidate,/private\.taxonomy_review_exact_projection_v1\('WORKER_CAPABILITY'/);
+ assert.match(candidate,/and private\.worker_remote_review_ready_v1\(doc\) IS NOT TRUE/);
+ assert.match(candidate,/else missing:=missing\|\|'"Mesto rada"'::jsonb; end if;/);
+ assert.match(prompt,/For ON_SITE work ask only about the actual area of arrival that is still missing, one highest-priority fact per message/);
  assert.match(prompt,/Administrative city does NOT restrict REMOTE matching/);
  assert.match(prompt,/Do not reopen the city interview only because an old profile lacks a city/);
  assert.match(prompt,/never invent a city or infer it from language, phone, service, work area or geolocation/);
- assert.match(prompt,/not a home street, house number, map pin, GPS point or work radius/);
+ assert.match(prompt,/Never ask for street, house number, home pin or GPS/);
+ assert.doesNotMatch(prompt,/requires a city for a NEW DRAFT, even for REMOTE work/);
 });
-test('activation progress requires actual stored administrative city and country',()=>{
- const facts=readFileSync(new URL('../../../src/ui/workerProfile/workerProfileFacts.ts',import.meta.url),'utf8');
- assert.match(facts,/Activation needs a country and a city/);
- assert.match(facts,/place\.operatingCountryCode && place\.city\.trim\(\)\.length > 0/);
- assert.match(prompt,/If operating country is also unknown, ask only for the highest-priority missing fact per message/);
+test('literal location progress needs both supplied country and city; it never establishes activation or residence',()=>{
+ // This legacy factual helper is not a server readiness decision or an active
+ // UI gate. An absent location stays absent even when signed REMOTE can activate.
+ for(const [operatingCountryCode,city,expected] of [
+  [null,'',false],['RS','',false],[null,'Novi Sad',false],['RS','  ',false],['RS','Novi Sad',true],
+ ]){
+  const profile={skills:['Izrada logotipa'],location:{operatingCountryCode,city},
+   availability:{availableNow:false,rules:[],windows:[]}};
+  const before=structuredClone(profile);
+  assert.equal(capturedParts(profile).find(part=>part.key==='area').done,expected);
+  assert.deepEqual(profile,before,'progress must not fabricate a country or city');
+ }
+ assert.match(prompt,/Serbia \(RS\) is the supported work-area market, not proof of residence/);
+ assert.match(prompt,/Ask at most ONE short question per reply for exactly ONE missing fact/);
  assert.match(prompt,/Never require a home city, address or GPS for a new worker/);
 });
