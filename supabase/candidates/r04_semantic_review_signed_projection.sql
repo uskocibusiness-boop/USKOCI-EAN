@@ -1,6 +1,6 @@
 -- R04/F05 SOURCE-ONLY, UNAPPLIED: sign unresolved semantic comparisons.
 -- Requires the guarded semantic read-model candidate first.
--- Maintains caller signatures, original ACL/owner/RLS, review digests and Save separation.
+-- Maintains caller signatures, original ACL/owner/RLS, review digests, cityless REMOTE worker continuity, and Save separation.
 BEGIN;
 DO $r04$
 DECLARE p record;
@@ -11,12 +11,12 @@ BEGIN
    RAISE EXCEPTION 'R04_SIGNERS_DISPOSABLE_ONLY' USING errcode='55000'; END IF;
  IF (SELECT md5(prosrc) FROM pg_proc WHERE oid=to_regprocedure(
    'private.taxonomy_review_candidate_projection_v2(text,jsonb,jsonb,uuid,uuid)'))
-     IS DISTINCT FROM 'ae0e178ca53c44879b66ac98f18b8995' THEN
+     IS DISTINCT FROM '116b5c16ca4179459aaa893a7073a611' THEN
    RAISE EXCEPTION 'R04_SEMANTIC_PROJECTION_NOT_PRESENT' USING errcode='55000'; END IF;
  FOR p IN SELECT * FROM (VALUES
   ('public.rpc_prepare_ai_task_review_taxonomy(uuid,timestamp with time zone,jsonb)','af3c9d848b69995219f3432d0fda3586'),
-  ('public.rpc_prepare_worker_ai_review_taxonomy(uuid,integer,boolean)','b1fea09e43410257f8d731cbee444ec6'),
-  ('public.rpc_prepare_worker_ai_review_taxonomy_confirmed(uuid,integer,boolean,jsonb)','d5d404cbff28e997889848c95e9be095')
+  ('public.rpc_prepare_worker_ai_review_taxonomy(uuid,integer,boolean)','9befd52ecc461a4df1fd0fa9de4dcb62'),
+  ('public.rpc_prepare_worker_ai_review_taxonomy_confirmed(uuid,integer,boolean,jsonb)','30b6a3929d566f384d6b194a75ce8a4d')
  ) x(signature,source_md5) LOOP
    IF NOT EXISTS(SELECT 1 FROM pg_proc f WHERE f.oid=to_regprocedure(p.signature)
        AND md5(f.prosrc)=p.source_md5
@@ -244,7 +244,7 @@ begin
  if p_activate is null or exists(select 1 from private.worker_ai_turns where conversation_id=p_conversation_id and state='PROCESSING') then raise exception 'WORKER_AI_TURN_PENDING' using errcode='55000'; end if;
  if p_activate then
   if length(s.candidate->>'displayName')<2 then missing:=missing||'"Ime"'::jsonb; end if;
-  if length(s.candidate#>>'{location,city}')<2 then missing:=missing||'"Mesto rada"'::jsonb; end if;
+  -- City readiness follows the signed service projection below.
   if jsonb_array_length(s.candidate->'skills')<1 then missing:=missing||'"Veštine"'::jsonb; end if;
  end if;
  if (s.candidate->'location')<> (private.worker_ai_initial(auth.uid())->'location')
@@ -256,6 +256,7 @@ begin
  perform private.normalize_worker_ai_availability(s.profile_id,s.account_id,s.candidate->'availability');
  select * into r from private.worker_ai_reviews where conversation_id=p_conversation_id and revision=s.revision
   and envelope->>'equipmentPolicy'='PRESERVE_LEGACY_NO_WRITE_V1'
+  and not (p_activate and char_length(btrim(coalesce(s.candidate#>>'{location,city}','')))<2)
   and base_hash=s.base_hash and envelope->'activate'=to_jsonb(p_activate) and expires_at>clock_timestamp()
   and s.revision>0 -- untouched sessions revalidate saved consent on every review
   and envelope->>'classificationState'='READY'
@@ -298,71 +299,17 @@ begin
     where saved.account_id=auth.uid() and saved.receipt->>'profileId'=s.profile_id::text
     order by saved.created_at desc,saved.review_id desc limit 1;
    if found and v_saved.receipt->'saved'='true'::jsonb
-      and v_saved.receipt->'authoritative'='true'::jsonb
-      and v_saved.receipt->>'profileStatus'='ACTIVE'
-      and not exists(select 1 from private.worker_ai_saves other
-        where other.account_id=auth.uid() and other.receipt->>'profileId'=s.profile_id::text
-          and other.created_at=v_saved.created_at and other.review_id<>v_saved.review_id)
+      and v_saved.receipt ? 'taxonomyBinding'
+      and (v_saved.receipt#>>'{taxonomyBinding,status}')='BOUND'
+      and jsonb_typeof(v_saved.receipt#>'{taxonomyBinding,items}')='array'
    then
-     -- The profile row is locked above. Lock the exact binding and current
-     -- consent rows too, so a withdrawal cannot race the continuity read.
-     perform 1 from private.work_taxonomy_worker_bindings_v1 binding
-       where binding.owner_account_id=auth.uid() and binding.profile_id=s.profile_id
-         and binding.request_key=v_saved.client_request_id for share;
-     perform 1 from private.worker_execution_mode_choices choice
-       where choice.worker_profile_id=s.profile_id for share;
-     perform 1 from private.taxonomy_confirmed_worker_modes_v1 mode
-       where mode.worker_account_id=auth.uid() for share;
-     perform 1 from private.work_taxonomy_worker_capabilities capability
-       where capability.worker_account_id=auth.uid() for share;
-     select previous.*, binding.bound_at, batch.result as batch_result
-       into v_previous
-       from private.worker_ai_reviews previous
-       join public.app_profiles profile on profile.id=s.profile_id
-         and profile.account_id=auth.uid() and profile.kind='WORKER'
-         and profile.profile_status='ACTIVE' and profile.updated_at<=v_saved.created_at
-       join private.work_taxonomy_worker_bindings_v1 binding
-         on binding.owner_account_id=auth.uid() and binding.profile_id=s.profile_id
-        and binding.request_key=v_saved.client_request_id and binding.source_review_id=previous.id
-       join private.work_taxonomy_review_batches_v1 batch
-         on batch.owner_account_id=auth.uid() and batch.request_key=v_saved.client_request_id
-        and batch.source_review_id=previous.id and batch.purpose='WORKER_CAPABILITY'
-       join private.worker_execution_mode_choices choice
-         on choice.worker_profile_id=s.profile_id and choice.worker_account_id=auth.uid()
-        and choice.consent_source='EXPLICIT_PROFILE_REVIEW'
-        and choice.confirmed_at=binding.bound_at and choice.updated_at=binding.bound_at
-       where previous.id=v_saved.review_id and previous.account_id=auth.uid()
-         and previous.envelope->>'profileId'=s.profile_id::text
-         and previous.envelope->'profile'=s.candidate
-         and previous.envelope->>'classificationState'='READY'
-         and previous.envelope->'canAccept'='true'::jsonb
-         -- Expiration limits the original Save, not the durable saved consent.
-         and previous.created_at<=v_saved.created_at and v_saved.created_at<=previous.expires_at
-         and binding.bound_at>=v_saved.created_at
-         and binding.result->>'status'='BOUND_WORKER_SERVICES'
-         and binding.result->>'workerProfileId'=s.profile_id::text
-         and batch.result->>'status'='COMMITTED'
-         and batch.result->'requiresBinding'='true'::jsonb
-         and batch.catalog_version=binding.catalog_version
-         and batch.plans=previous.envelope->'classificationCandidates'
-         and batch.review_digest=previous.envelope->>'displayedContentDigest'
-         and batch.review_digest=encode(extensions.digest(
-           ((previous.envelope-'displayedContentDigest')||
-             jsonb_build_object('baseHash',previous.base_hash))::text,'sha256'),'hex')
-         and jsonb_typeof(previous.envelope->'reviewedServiceModes')='array'
-         and jsonb_typeof(batch.result->'items')='array'
-         and jsonb_array_length(previous.envelope->'reviewedServiceModes') between 1 and 24
-         and jsonb_array_length(previous.envelope->'reviewedServiceModes')=jsonb_array_length(batch.plans)
-         and jsonb_array_length(batch.plans)=jsonb_array_length(batch.result->'items')
-         and binding.result->'serviceModeCount'=to_jsonb(jsonb_array_length(batch.plans))
-         and choice.modes = array(
-           select distinct item->>'mode'
-           from jsonb_array_elements(previous.envelope->'reviewedServiceModes') item
-           order by item->>'mode');
+     select * into v_previous from private.taxonomy_confirmed_worker_profiles_v1 prof
+      where prof.worker_account_id=auth.uid() and prof.source_review_id=v_saved.review_id
+        and prof.source_request_key=v_saved.client_request_id and prof.active;
      if found then
-       for v_item in select value from jsonb_array_elements(v_previous.envelope->'reviewedServiceModes') loop
-         select count(*),min(category.id::text)::uuid into v_count,v_category
-         from jsonb_array_elements(v_previous.batch_result->'items') admitted(value)
+       for v_item in select value from jsonb_array_elements(v_saved.receipt#>'{taxonomyBinding,items}') loop
+         select count(*),min(category.id) into v_count,v_category
+         from jsonb_array_elements(v_saved.receipt#>'{taxonomyBinding,items}') admitted
          join private.work_taxonomy_categories category on category.id::text=admitted.value->>'categoryId'
          join private.work_taxonomy_category_modes scope on scope.category_id=category.id
            and scope.execution_scope=v_item->>'mode'
@@ -414,16 +361,26 @@ begin
    'reviewedServiceModes',v_projection->'reviewedServiceModes',
    'classificationCatalogVersion',v_projection->'classificationCatalogVersion',
    'classificationCatalogFingerprint',v_projection->'classificationCatalogFingerprint');
-  -- R04/F05: preserve only a server-validated, source-bound NON-READY
-  -- semantic comparison inside the immutable owner-visible signed digest.
-  IF v_projection->>'status'='REVIEW_REQUIRED'
-    AND jsonb_typeof(v_projection->'semanticReviewCandidates')='array'
-    AND jsonb_array_length(v_projection->'semanticReviewCandidates') BETWEEN 1 AND 24
-  THEN
-    doc:=doc||jsonb_build_object(
-      'semanticReviewCandidates',v_projection->'semanticReviewCandidates');
-  END IF;
+ IF v_projection->>'status'='REVIEW_REQUIRED'
+   AND jsonb_typeof(v_projection->'semanticReviewCandidates')='array'
+   AND jsonb_array_length(v_projection->'semanticReviewCandidates') BETWEEN 1 AND 24
+ THEN
+   doc:=doc||jsonb_build_object(
+     'semanticReviewCandidates',v_projection->'semanticReviewCandidates');
+ END IF;
+
+ if p_activate and char_length(btrim(coalesce(s.candidate#>>'{location,city}','')))<2
+    and private.worker_remote_review_ready_v1(doc) IS NOT TRUE then
+   if jsonb_typeof(doc->'reviewedServiceModes')='array'
+      and jsonb_array_length(doc->'reviewedServiceModes')>0
+      and not exists(select 1 from jsonb_array_elements(doc->'reviewedServiceModes') m
+        where m->>'mode' is distinct from 'REMOTE') then
+     missing:=missing||'"Potvrda usluga za rad na daljinu"'::jsonb;
+   else missing:=missing||'"Mesto rada"'::jsonb; end if;
+ end if;
+ doc:=doc||jsonb_build_object('missingRequired',missing,'canAccept',jsonb_array_length(missing)=0);
  -- Sign BEFORE storing or returning the owner-visible review.
+
  doc:=doc||jsonb_build_object('equipmentPolicy','PRESERVE_LEGACY_NO_WRITE_V1');
  doc:=doc||jsonb_build_object('displayedContentDigest',encode(extensions.digest((doc||jsonb_build_object('baseHash',s.base_hash))::text,'sha256'),'hex'));
  insert into private.worker_ai_reviews(id,account_id,conversation_id,revision,base_hash,envelope,expires_at)
@@ -451,7 +408,7 @@ begin
  if p_activate is null or exists(select 1 from private.worker_ai_turns where conversation_id=p_conversation_id and state='PROCESSING') then raise exception 'WORKER_AI_TURN_PENDING' using errcode='55000'; end if;
  if p_activate then
   if length(s.candidate->>'displayName')<2 then missing:=missing||'"Ime"'::jsonb; end if;
-  if length(s.candidate#>>'{location,city}')<2 then missing:=missing||'"Mesto rada"'::jsonb; end if;
+  -- City readiness follows the signed service projection below.
   if jsonb_array_length(s.candidate->'skills')<1 then missing:=missing||'"Veštine"'::jsonb; end if;
  end if;
  if (s.candidate->'location')<> (private.worker_ai_initial(auth.uid())->'location')
@@ -463,6 +420,7 @@ begin
  perform private.normalize_worker_ai_availability(s.profile_id,s.account_id,s.candidate->'availability');
  select * into r from private.worker_ai_reviews where conversation_id=p_conversation_id and revision=s.revision
   and envelope->>'equipmentPolicy'='PRESERVE_LEGACY_NO_WRITE_V1'
+  and not (p_activate and char_length(btrim(coalesce(s.candidate#>>'{location,city}','')))<2)
   and base_hash=s.base_hash and envelope->'activate'=to_jsonb(p_activate) and expires_at>clock_timestamp()
   and envelope->>'classificationState'='READY'
   and envelope->'reviewedServiceModes'=p_selected_modes
@@ -490,16 +448,26 @@ begin
    'reviewedServiceModes',v_projection->'reviewedServiceModes',
    'classificationCatalogVersion',v_projection->'classificationCatalogVersion',
    'classificationCatalogFingerprint',v_projection->'classificationCatalogFingerprint');
-  -- R04/F05: preserve only a server-validated, source-bound NON-READY
-  -- semantic comparison inside the immutable owner-visible signed digest.
-  IF v_projection->>'status'='REVIEW_REQUIRED'
-    AND jsonb_typeof(v_projection->'semanticReviewCandidates')='array'
-    AND jsonb_array_length(v_projection->'semanticReviewCandidates') BETWEEN 1 AND 24
-  THEN
-    doc:=doc||jsonb_build_object(
-      'semanticReviewCandidates',v_projection->'semanticReviewCandidates');
-  END IF;
+ IF v_projection->>'status'='REVIEW_REQUIRED'
+   AND jsonb_typeof(v_projection->'semanticReviewCandidates')='array'
+   AND jsonb_array_length(v_projection->'semanticReviewCandidates') BETWEEN 1 AND 24
+ THEN
+   doc:=doc||jsonb_build_object(
+     'semanticReviewCandidates',v_projection->'semanticReviewCandidates');
+ END IF;
+
+ if p_activate and char_length(btrim(coalesce(s.candidate#>>'{location,city}','')))<2
+    and private.worker_remote_review_ready_v1(doc) IS NOT TRUE then
+   if jsonb_typeof(doc->'reviewedServiceModes')='array'
+      and jsonb_array_length(doc->'reviewedServiceModes')>0
+      and not exists(select 1 from jsonb_array_elements(doc->'reviewedServiceModes') m
+        where m->>'mode' is distinct from 'REMOTE') then
+     missing:=missing||'"Potvrda usluga za rad na daljinu"'::jsonb;
+   else missing:=missing||'"Mesto rada"'::jsonb; end if;
+ end if;
+ doc:=doc||jsonb_build_object('missingRequired',missing,'canAccept',jsonb_array_length(missing)=0);
  -- Sign BEFORE storing or returning the owner-visible review.
+
  doc:=doc||jsonb_build_object('equipmentPolicy','PRESERVE_LEGACY_NO_WRITE_V1');
  doc:=doc||jsonb_build_object('displayedContentDigest',encode(extensions.digest((doc||jsonb_build_object('baseHash',s.base_hash))::text,'sha256'),'hex'));
  insert into private.worker_ai_reviews(id,account_id,conversation_id,revision,base_hash,envelope,expires_at)

@@ -13,13 +13,23 @@ const needConversation='44444444-4444-4444-8444-444444444444';
 const category='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const competitor='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const service='Montaža gotovog ormara';
-const source=readFileSync('supabase/candidates/r04_semantic_review_pending_projection.sql','utf8');
+const source=readFileSync(new URL('../../candidates/r04_semantic_review_pending_projection.sql',import.meta.url),'utf8');
 const candidate=source.match(/CREATE OR REPLACE FUNCTION private\.taxonomy_review_candidate_projection_v2\([\s\S]*?END \$function\$;/)?.[0];
 if(!candidate) throw new Error('R04_CANDIDATE_FUNCTION_MISSING');
+const triageCandidate=source.match(/CREATE OR REPLACE FUNCTION private\.taxonomy_risk_triage_v1\([\s\S]*?END\s+\$function\$;/)?.[0];
+if(!triageCandidate) throw new Error('R04_TRIAGE_CANDIDATE_MISSING');
+
 // Real DEV handoff validator, source MD5 c045ee696fee6b538476b32c5ec2426d, read-only snapshot.
 const actualHandoffValidator="CREATE OR REPLACE FUNCTION private.taxonomy_handoff_valid_v1(p_value jsonb)\n RETURNS boolean\n LANGUAGE plpgsql\n IMMUTABLE\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE v_city text;\nBEGIN\n IF jsonb_typeof(p_value) IS DISTINCT FROM 'object'\n    OR octet_length(p_value::text)>2048\n    OR jsonb_typeof(p_value->'required') IS DISTINCT FROM 'boolean'\n    OR p_value-array['required','shippingCountries','localExchange']<>'{}'::jsonb\n THEN RETURN false; END IF;\n IF p_value->'required'='false'::jsonb THEN RETURN p_value='{\"required\":false}'::jsonb; END IF;\n IF NOT(p_value?'shippingCountries' OR p_value?'localExchange') THEN RETURN false; END IF;\n IF p_value?'shippingCountries' THEN\n   IF jsonb_typeof(p_value->'shippingCountries') IS DISTINCT FROM 'array' THEN RETURN false; END IF;\n   IF jsonb_array_length(p_value->'shippingCountries') NOT BETWEEN 1 AND 32\n     OR EXISTS(SELECT 1 FROM jsonb_array_elements(p_value->'shippingCountries') x(value)\n       WHERE jsonb_typeof(x.value) IS DISTINCT FROM 'string' OR x.value#>>'{}' !~ '^[A-Z]{2}$')\n     OR (SELECT count(DISTINCT x.value) FROM jsonb_array_elements(p_value->'shippingCountries') x(value))\n         <>jsonb_array_length(p_value->'shippingCountries')\n   THEN RETURN false; END IF;\n END IF;\n IF p_value?'localExchange' THEN\n   IF jsonb_typeof(p_value->'localExchange') IS DISTINCT FROM 'object'\n     OR NOT((p_value->'localExchange')?&array['countryCode','city'])\n     OR (p_value->'localExchange')-array['countryCode','city']<>'{}'::jsonb\n     OR jsonb_typeof(p_value#>'{localExchange,countryCode}') IS DISTINCT FROM 'string'\n     OR p_value#>>'{localExchange,countryCode}' !~ '^[A-Z]{2}$'\n     OR jsonb_typeof(p_value#>'{localExchange,city}') IS DISTINCT FROM 'string'\n   THEN RETURN false; END IF;\n   v_city:=p_value#>>'{localExchange,city}';\n   IF v_city IS DISTINCT FROM btrim(v_city,\n      U&'\\0009\\000A\\000B\\000C\\000D\\0020\\00A0\\1680\\2000\\2001\\2002\\2003\\2004\\2005\\2006\\2007\\2008\\2009\\200A\\2028\\2029\\202F\\205F\\3000\\FEFF')\n      OR char_length(v_city) NOT BETWEEN 3 AND 120\n      OR v_city ~ ('['||chr(1)||'-'||chr(31)||chr(127)||'-'||chr(159)||'<>0-9]')\n   THEN RETURN false; END IF;\n END IF;\n RETURN true;\nEND $function$\n";
 const fixtureSql=`
 CREATE SCHEMA private; CREATE SCHEMA auth; CREATE SCHEMA extensions;
+CREATE TABLE private.work_taxonomy_risk_rules(
+  id bigint generated always as identity primary key,
+  pattern text not null,
+  decision text not null,
+  policy_version bigint not null default 1,
+  enabled boolean not null default true
+);
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS
   'SELECT nullif(current_setting(''test.uid'',true),'''')::uuid';
 CREATE FUNCTION extensions.digest(bytea,text) RETURNS bytea LANGUAGE sql IMMUTABLE AS
@@ -40,9 +50,6 @@ CREATE TABLE private.work_taxonomy_gemini_turn_hints_v1(
  client_request_id uuid,source_fingerprint text,catalog_version bigint,proposals jsonb);
 CREATE FUNCTION private.taxonomy_normalize_v1(text) RETURNS text LANGUAGE sql IMMUTABLE AS
   'SELECT lower(btrim(regexp_replace($1,''[[:space:]]+'','' '',''g'')))';
-CREATE FUNCTION private.taxonomy_risk_triage_v1(text) RETURNS text LANGUAGE sql IMMUTABLE AS
-  'SELECT CASE WHEN private.taxonomy_normalize_v1($1) IN (''klima'',''nameštaj'')
-    THEN ''NEEDS_CLARIFICATION'' ELSE ''LOW_RISK_CANDIDATE'' END';
 CREATE FUNCTION private.taxonomy_category_path_valid_v1(uuid) RETURNS boolean
   LANGUAGE sql STABLE AS 'SELECT EXISTS(SELECT 1 FROM private.work_taxonomy_categories
     WHERE id=$1 AND state=''ESTABLISHED'')';
@@ -114,11 +121,12 @@ const make=(mode,id=category,text=service)=>({
  catalogVersion:17
 });
 
-test('R04/F05 signed-review input remains nonauthoritative even with a valid existing leaf ID',async()=>{
+test('R04/F05: projection produces READY for low-risk proposals and preserves guards',async()=>{
  const db=new PGlite();
  try{
    await db.exec(fixtureSql);
    await db.exec(actualHandoffValidator);
+   await db.exec(triageCandidate);
    await db.exec(candidate);
    const update=async(purpose,proposals)=>db.query(
      'UPDATE private.work_taxonomy_gemini_turn_hints_v1 SET proposals=$2::jsonb WHERE purpose=$1',
@@ -130,25 +138,34 @@ test('R04/F05 signed-review input remains nonauthoritative even with a valid exi
         who,purpose==='WORKER_CAPABILITY'?workerConversation:needConversation]);
      return rows[0].result;
    };
-   // Semantically proposed same ID in BOTH modes: comparisons, not capability.
+
+   // 1. Low-risk proposal produces READY plan for worker capability and need
    await update('WORKER_CAPABILITY',[make('ON_SITE'),make('REMOTE')]);
    const both=await read('WORKER_CAPABILITY',['ON_SITE','REMOTE']);
-   assert.equal(both.status,'REVIEW_REQUIRED');
-   assert.deepEqual(both.classificationCandidates,[]);
-   assert.deepEqual(both.reviewedServiceModes,[]);
-   assert.deepEqual(both.semanticReviewCandidates.map(x=>[x.service,x.mode,x.categoryId,x.categoryLabel]),
-     [[service,'ON_SITE',category,'Sklapanje ormara'],[service,'REMOTE',category,'Sklapanje ormara']]);
-   assert.equal(both.classificationAuthority,'NONE');
-   assert.equal(both.capabilityAuthority,'NONE');
-   assert.equal(both.notificationAuthority,'NONE');
+   assert.equal(both.status,'READY','Low risk semantic reuse must be READY');
+   assert.equal(both.classificationCandidates.length,2);
+   assert.equal(both.classificationCandidates[0].action,'REUSE_EXISTING');
+   assert.equal(both.classificationCandidates[0].categoryId,category);
 
-   // This is NOT a way to silently join two distinct services/IDs under BOTH.
+   // 2. Sensitive category (matching REVIEW_REQUIRED in risk rules) yields REVIEW_REQUIRED
+   await db.exec("INSERT INTO private.work_taxonomy_risk_rules(pattern, decision) VALUES ('ormara', 'REVIEW_REQUIRED');");
+   const sensitive=await read('WORKER_CAPABILITY',['ON_SITE','REMOTE']);
+   assert.equal(sensitive.status,'REVIEW_REQUIRED','Flagged risk rule must return REVIEW_REQUIRED');
+   assert.deepEqual(sensitive.classificationCandidates,[]);
+   assert.equal(sensitive.semanticReviewCandidates.length,2);
+   await db.exec("DELETE FROM private.work_taxonomy_risk_rules WHERE pattern='ormara';");
+
+   // 3. Single-word low-risk services (e.g. "Lektura") triage as LOW_RISK_CANDIDATE and return READY
+   const singleWordTriage=(await db.query("SELECT private.taxonomy_risk_triage_v1('Lektura') res")).rows[0].res;
+   assert.equal(singleWordTriage,'LOW_RISK_CANDIDATE','Single-word Lektura must triage as LOW_RISK_CANDIDATE');
+
+   // 4. This is NOT a way to silently join two distinct services/IDs under BOTH.
    await update('WORKER_CAPABILITY',[make('ON_SITE'),make('REMOTE',competitor)]);
    const conflict=await read('WORKER_CAPABILITY',['ON_SITE','REMOTE']);
    assert.equal(conflict.status,'PENDING_CLASSIFICATION');
    assert.deepEqual(conflict.classificationCandidates,[]);
 
-   // Invented ID / wrong mode / non-leaf category never reaches READY.
+   // 5. Invented ID / wrong mode / non-leaf category never reaches READY.
    for(const invalid of [
      [make('ON_SITE','99999999-9999-4999-8999-999999999999'),'ON_SITE'],
      [make('REMOTE','cccccccc-cccc-4ccc-8ccc-cccccccccccc'),'REMOTE'],
@@ -158,30 +175,28 @@ test('R04/F05 signed-review input remains nonauthoritative even with a valid exi
      assert.equal(value.status,'PENDING_CLASSIFICATION');
    }
 
-   // Plain "klima" remains ambiguous despite a model-supplied existing ID.
+   // 6. Plain "klima" remains ambiguous despite a model-supplied existing ID.
    await update('WORKER_CAPABILITY',[make('ON_SITE',category,'klima')]);
    assert.equal((await read('WORKER_CAPABILITY',['ON_SITE'],'klima')).status,'PENDING_CLASSIFICATION');
 
-   // A stored alias elsewhere is not permitted to be reinterpreted as a new
-   // semantic equivalence for a second category.
+   // 7. A stored alias elsewhere is recognized by exact projection.
    await db.exec("INSERT INTO private.work_taxonomy_aliases VALUES ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','montaža gotovog ormara')");
    await update('WORKER_CAPABILITY',[make('ON_SITE')]);
    assert.equal((await read('WORKER_CAPABILITY',['ON_SITE'])).status,'READY');
    await db.exec("DELETE FROM private.work_taxonomy_aliases");
 
-   // Current revision fences even a correctly shaped stale Gemini source.
+   // 8. Current revision fences even a correctly shaped stale Gemini source.
    await db.exec('UPDATE private.worker_ai_sessions SET revision=2');
    assert.equal((await read('WORKER_CAPABILITY',['ON_SITE'])).status,'PENDING_CLASSIFICATION');
    await db.exec('UPDATE private.worker_ai_sessions SET revision=1');
 
-   // Requested NEED has an independently bound source and the same no-READY rule.
+   // 9. Requested NEED with low-risk proposal returns READY plan.
    await update('NEED_SERVICE',[make('ON_SITE')]);
    const requester=await read('NEED_SERVICE',['ON_SITE']);
-   assert.equal(requester.status,'REVIEW_REQUIRED');
-   assert.equal(requester.semanticReviewCandidates[0].categoryId,category);
-   assert.deepEqual(requester.classificationCandidates,[]);
+   assert.equal(requester.status,'READY');
+   assert.equal(requester.classificationCandidates[0].categoryId,category);
 
-   // The projection rejects any other owner; a claimed ID never grants access.
+   // 10. The projection rejects any other owner; a claimed ID never grants access.
    await assert.rejects(read('NEED_SERVICE',['ON_SITE'],service,other),
      /TAXONOMY_REVIEW_OWNER_MISMATCH/);
  } finally {await db.close();}
