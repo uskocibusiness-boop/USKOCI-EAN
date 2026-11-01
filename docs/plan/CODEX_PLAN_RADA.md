@@ -3485,7 +3485,7 @@ Tačni izvršeni SQL i nezavisne naknadne provere obe migracije čuvaju se u pos
 | R09 | PARTIAL | Source/CAS/readback i navigacija postoje; stvarna push dostava/tap/tihi sati/dva uređaja nedostaju. Stari nalaz „Proveri ishod ponovo šalje poruku“ je OBSOLETE za sadašnji source. |
 | R10 | BLOCKED | SB03 source popravljen, ali privacy/retention/export/closure source binding i pravi životni ciklus podataka nisu zatvoreni. |
 | R11 | PARTIAL | R11g build admission popravljen; blind-review publication kandidat nije DEV potvrda. Jedna zajednička reputacija ostaje važeća odluka. |
-| R12 | BLOCKED | Interni `cbefce43` APK i signed-out emulator UI PASS; nema kompletnog A/B Auth/AI/push/Agreement Android E2E, fizičkog telefona, produkcionog ugovora, AAB/Play i poslovno-pravnog prihvata. |
+| R12 | BLOCKED | Interni `cbefce43` APK i signed-out emulator UI PASS; nema kompletnog A/B Auth/AI/push/Agreement Android E2E, potvrde na fizičkom telefonu, produkcionog ugovora, AAB/Play i poslovno-pravnog prihvata. |
 
 Cleanup se ne proglašava lansiranjem: C01–C09/C12/C18 SOURCE_DONE; C10/C11/C13/C15/C17 PARTIAL; C14/C16/C19 kompletno povlačenje NOT_STARTED prema postojećem ledger-u. SV01/SV06/SV14 BLOCKED; SV02/SV03/SV04/SV05/SV08/SV13 PARTIAL (SV04 v6 ima raniji uski DEV_PROVEN transport); SV07/SV09–SV12 potpuno povlačenje NOT_STARTED. Ne uklanjati odbijajuće compatibility wrapper-e, arhive ili korisne testove bez ugovorenog dokaza.
 
