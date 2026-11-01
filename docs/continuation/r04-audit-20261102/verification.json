@@ -1,0 +1,65 @@
+{
+  "kind": "ISOLATED_PROOFS_AND_REPRODUCED_OPEN_DEFECTS",
+  "sourceHead": "a55d4a20cbd1c0ba3bd23a463cd18891b07041bc",
+  "reviewedWipPatch": "local-wip.patch",
+  "packageTestSha256": "d544bfbf86d44023ff2cc618ca271eca18166214fe82370be9ccd15721b6e67f",
+  "checks": [
+    {
+      "command": "node --test supabase/operations/dev-alpha/r04-semantic-admission-20261101/package.test.mjs",
+      "result": "PASS",
+      "tests": 12,
+      "failed": 0,
+      "durationMs": 14099.1917,
+      "scope": "Synthetic PGlite admission and partial Need binder. Not full application E2E."
+    },
+    {
+      "command": "node supabase/operations/dev-alpha/r04-semantic-admission-20261101/build.mjs --check",
+      "result": "PASS",
+      "scope": "Generated files match current builder; not proof of live execution."
+    },
+    {
+      "command": "python supabase/migrations/check_migration_integrity.py",
+      "result": "PASS",
+      "files": 193,
+      "liveSnapshot": 87,
+      "pending": 60,
+      "physicalSuffix": 43,
+      "oct26Suffix": 3,
+      "exactByteMirror": false,
+      "participantContract": "PASS"
+    },
+    {
+      "command": "supabase/operations/dev-alpha/r04-semantic-admission-20261101/preflight.sql",
+      "target": "leqcwgzvjsxugfgzdmth",
+      "result": "R04_SEMANTIC_DEV_PREIMAGE_MATCH",
+      "authenticatedPositiveFunctionalAcceptance": false,
+      "scope": "Executed read-only/rollback; no migration applied."
+    },
+    {
+      "command": "node docs/continuation/r04-audit-20261102/reproduce-client-contract.cjs",
+      "result": "BUG_REPRODUCED_NOT_FIXED",
+      "needExistingShapeAccepted": true,
+      "needNewSqlShapeAccepted": false,
+      "workerExistingShapeAccepted": true,
+      "workerNewSqlShapeAccepted": false,
+      "scope": "Actual local client decoder functions, synthetic review input, network entrypoints disabled. Not a device test."
+    }
+  ],
+  "limits": [
+    "Review/Save rows and digests are inserted directly in package fixtures; actual prepare/Save/Accept RPCs and Auth HTTP are not executed.",
+    "Need fixtures insert PUBLISHED rows directly; this does not prove publication.",
+    "taxonomy_handoff_valid_v1 in fixture returns true; REMOTE missing-handoff scenarios do not prove actual guard behavior.",
+    "CREATE_NEW_BRANCH in the test title is not invoked; CREATE_CHILD covers a one-level path only.",
+    "BOTH test runs batch admission only, without worker binder, profile activation or saved capabilities readback.",
+    "Package tests run ddl(postimages)/ddl(originals), not the complete guarded promotion.sql/rollback.sql.",
+    "Post-closure hashes are literal expected values, not independently derived by these tests; certificate is unchanged.",
+    "Readiness of R05/R06/R09/release and device state were not re-audited in this documentation update."
+  ],
+  "mutations": {
+    "dev": false,
+    "production": false,
+    "providerCalls": false,
+    "pushSends": false,
+    "apkBuildOrInstall": false
+  }
+}

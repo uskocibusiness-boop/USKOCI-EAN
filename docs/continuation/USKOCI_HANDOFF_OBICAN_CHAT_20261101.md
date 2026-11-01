@@ -1,5 +1,7 @@
 # USKOČI — detaljan komandni izveštaj za nastavak u običnom ChatGPT razgovoru
 
+> **Naknadni presek 02.11.2026:** ovaj izveštaj ostaje istorijski. Za aktuelni DEV, R04 WIP, reprodukovan klijentski kvar i sledeći rad prvo čitati „R04/DEV revizija i primopredaja 02.11.2026“ u [jedinom CODEX masteru](../plan/CODEX_PLAN_RADA.md) i [dokazni prilog](r04-audit-20261102/verification.json).
+
 Datum preseka: 1. novembar 2026. Pripremljeno posle provere GitHub-a u 19:25 UTC.
 Namena: samostalan prenos konteksta iz razvojnog razgovora u običan ChatGPT razgovor.
 Ovo je datirani izveštaj o stanju i uputstvo za nastavak. Nije novi master plan.
