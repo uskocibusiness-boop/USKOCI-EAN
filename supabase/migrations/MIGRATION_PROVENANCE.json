@@ -3540,6 +3540,29 @@
         "current_bootstrap_recaptured": false,
         "r01_boundary_admitted": false,
         "next_r01_capture": "Include all four approved 20261101 DEV applications (F10, R08, R03 and R07), with actual migration versions. Preserve earlier catalog captures and frozen baseline files as historical evidence."
+      },
+      {
+        "version": "20261101223000",
+        "name": "semantic_admission_single_word_publication_v1",
+        "classification": "APPLIED_EXACT_OPERATION_LEDGER_BYTES",
+        "live_applied": true,
+        "observed_at_utc": "2026-11-01T22:30:00Z",
+        "recorded_statement_count": 1,
+        "recorded_md5": "e3d972494a4174c14508437b95d0aa37",
+        "recorded_sha256": "f2f9125c078fec1c65fefc8415de46af823017ed77971c351bf3fbdb13a1ec48",
+        "recorded_bytes": 24846,
+        "exact_text": "supabase/operations/dev-alpha/ledger/20261101223000_semantic_admission_single_word_publication_v1.sql",
+        "evidence": "supabase/operations/dev-alpha/ledger/20261101223000_semantic_admission_single_word_publication_v1.receipt.json",
+        "reviewed_packet": "supabase/operations/dev-alpha/r04-semantic-admission-20261101/",
+        "emitted_bytes_match_catalog": true,
+        "independent_readonly_postflight": "R04_SEMANTIC_DEV_POSTIMAGE_MATCH",
+        "pinned_function_definitions_and_attributes_checked": 10,
+        "independent_authenticated_positive_functional_acceptance": false,
+        "closure_readiness_and_bindings_unchanged": true,
+        "portable_replay_admitted": false,
+        "current_bootstrap_recaptured": false,
+        "r01_boundary_admitted": false,
+        "next_r01_capture": "Include all five approved 20261101 DEV applications (F10, R08, R03, R07 and R04), with actual migration versions. Preserve earlier catalog captures and frozen baseline files as historical evidence."
       }
     ],
     "subsequent_catalog_verification": {
