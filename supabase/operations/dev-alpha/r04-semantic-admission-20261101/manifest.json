@@ -1,0 +1,43 @@
+{
+  "unit": "R04_DEV_SEMANTIC_ADMISSION_PACKAGE",
+  "status": "PREPARED_NOT_APPLIED",
+  "project_ref": "leqcwgzvjsxugfgzdmth",
+  "captured_at": "2026-11-01T21:45:00.000000+00:00",
+  "changed_functions": [
+    "private.taxonomy_risk_triage_v1(text)",
+    "private.taxonomy_review_candidate_projection_v2(text,jsonb,jsonb,uuid,uuid)",
+    "private.needs_sync_taxonomy_category_trigger_fn()"
+  ],
+  "new_functions": 0,
+  "new_tables": 0,
+  "acl_changes": 0,
+  "source_candidates": [
+    "supabase/candidates/r04_semantic_review_pending_projection.sql",
+    "supabase/candidates/r04_semantic_batch_admission.sql"
+  ],
+  "source_candidates_sha256": {
+    "r04_semantic_review_pending_projection.sql": "824f2dd8db17d3853bae6ae2d06030f3691cf7a7320f2f311cc6b6efaa00d26a",
+    "r04_semantic_batch_admission.sql": "3eb8a0266dc50ac76178928f001977e2c446f4cc24d539d72b2262bd185c8c91"
+  },
+  "preimage_sha256": "30d9ef2f2b62f312624d721e9d0dd3f1e98011acfed64fbca84e91e1fe3e1b26",
+  "builder_sha256": "83caa6001ef008bcfbbfc73a3b479c5fcc79c78284bb3fee193eeb68d8d85197",
+  "files": {
+    "forward.sql": "88e722d3b2779b11623c610ce760b75b6d9694c8a6f83bf19e4ba85b0dcdd792",
+    "promotion.sql": "f2f9125c078fec1c65fefc8415de46af823017ed77971c351bf3fbdb13a1ec48",
+    "rollback.sql": "0602556eba67d1149b3d494e13548e4748c54b3e522db76d0a69e69c98f3aa64",
+    "preflight.sql": "ffdb9ca47deb363dfda4b8badd3b92f7fbf9294f06abc2050a6d108a30794daa",
+    "postflight.sql": "da96d6157e95ad53a98154421ea87e2768b19ab022796f3eecbdbc76c813b374",
+    "acceptance.sql": "acb854041fb03649882b2018cd5b0770f9b311c861634caf96d7aa3b364e8d3d",
+    "acceptance-readonly.sql": "81b8fafe5bc36c4f9d4ddddfe92ed4e3481577c80c2a595b73af1df86358fc0f",
+    "postimages.json": "922267553f7c8f4ac615bef5a035b5e57b5e67d17a2fd8d8f4a5775c742c516d"
+  },
+  "limitations": [
+    "Project identity is the connector binding; the GUC is only an intent marker.",
+    "R10 source_ready=false and NULL export/erasure bindings stay unchanged; no certification or activation occurs.",
+    "Only three existing function bodies change; full catalog delta, ACL/config/owner preservation and exact inverse rollback are mandatory.",
+    "Single-word low-risk services are unblocked for task publication while maintaining strict screening for broad or ambiguous terms and regulated categories.",
+    "Unrecorded synonyms are admitted into review audit ledger as SYNONYM_REUSED without mutating global private.work_taxonomy_aliases.",
+    "Hosted acceptance covers low-risk single-word triage validation; positive real Auth/native acceptance remains a separate root step.",
+    "No full R01, R10, supported old fleet, provider, push or production admission is claimed."
+  ]
+}

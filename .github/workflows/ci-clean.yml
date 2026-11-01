@@ -99,7 +99,7 @@ jobs:
           node --test --test-reporter=spec supabase/proofs/ai/r04_semantic_review_pending.test.mjs supabase/proofs/ai/r04_signed_taxonomy_publish_fence.test.mjs
       - name: Reviewed DEV package derivation, acceptance and rollback (isolated only)
         run: |
-          node --test --test-reporter=spec supabase/operations/dev-alpha/r08-remote-only-20261101/package.test.mjs supabase/operations/dev-alpha/r08-remote-only-20261101/acceptance.test.mjs supabase/operations/dev-alpha/f10-saved-services-20261101/package.test.mjs supabase/operations/dev-alpha/edge-ai-20261101/package.test.mjs supabase/operations/dev-alpha/edge-ai-20261101/probe.test.mjs supabase/operations/dev-alpha/r03-owner-page-20261101/package.test.mjs supabase/operations/dev-alpha/r07-application-attention-20261101/package.test.mjs
+          node --test --test-reporter=spec supabase/operations/dev-alpha/r08-remote-only-20261101/package.test.mjs supabase/operations/dev-alpha/r08-remote-only-20261101/acceptance.test.mjs supabase/operations/dev-alpha/f10-saved-services-20261101/package.test.mjs supabase/operations/dev-alpha/edge-ai-20261101/package.test.mjs supabase/operations/dev-alpha/edge-ai-20261101/probe.test.mjs supabase/operations/dev-alpha/r03-owner-page-20261101/package.test.mjs supabase/operations/dev-alpha/r07-application-attention-20261101/package.test.mjs supabase/operations/dev-alpha/r04-semantic-admission-20261101/package.test.mjs
       - name: Isolate-local media upload admission FIFO and cancellation
         run: node --test --test-reporter=spec supabase/proofs/media/mediaUploadAdmission.test.mjs
       - name: Mobile unit and contract tests
