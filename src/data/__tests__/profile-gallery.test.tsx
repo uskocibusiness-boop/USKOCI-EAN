@@ -76,7 +76,7 @@ it('the worker gallery follows AI-only corrections and never exposes manual prof
   await act(async () => presses().find(node => node.props.accessibilityLabel === 'Radni profil: aktivan')!.props.onPress());
   expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
   expect(presses().map(node=>node.props.accessibilityLabel)).not.toContain('Izmeni: Vozila');
-  await act(async () => presses().find(node => node.props.accessibilityLabel === 'Uredi kroz razgovor')!.props.onPress());
+  await act(async () => presses().find(node => node.props.accessibilityLabel === 'Uredite kroz razgovor')!.props.onPress());
   expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
   nothingReadOrWritten();
 });

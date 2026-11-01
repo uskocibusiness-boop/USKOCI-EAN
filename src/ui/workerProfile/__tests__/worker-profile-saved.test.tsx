@@ -81,7 +81,7 @@ describe('what the saved profile shows', () => {
       status: 'PENDING' as const, modes: [] }));
     const { navigate, openConversation } = await show({ executionModes: { kind: 'unconfirmed', services } });
     expect(all()).not.toContain(`Usluga ${SKILL_CHIPS_MAX + 1}`);
-    await act(async () => press('Prikaži sve: Veštine').props.onPress());
+    await act(async () => press('Prikažite sve: Veštine').props.onPress());
     expect(all()).toContain(`Usluga ${SKILL_CHIPS_MAX + 1}`);
     expect(navigate).not.toHaveBeenCalled(); expect(openConversation).not.toHaveBeenCalled();
   });
@@ -91,8 +91,8 @@ describe('what the saved profile shows', () => {
     const { openConversation, navigate } = await show({ confirmMap });
     await act(async () => press('Područje dolaska').props.onPress());
     expect(openConversation).toHaveBeenCalledWith('area');
-    expect(action('Potvrdi tačku na mapi').props.kind).toBe('quiet');
-    await act(async () => action('Potvrdi tačku na mapi').props.onPress());
+    expect(action('Potvrdite tačku na mapi').props.kind).toBe('quiet');
+    await act(async () => action('Potvrdite tačku na mapi').props.onPress());
     expect(confirmMap).toHaveBeenCalledWith(); expect(navigate).not.toHaveBeenCalled();
   });
 
@@ -104,9 +104,9 @@ describe('what the saved profile shows', () => {
           : ['unconfirmed', 'loading', 'unavailable'].includes(state) ? { kind: state as 'unconfirmed' | 'loading' | 'unavailable' }
             : { kind: 'confirmed', modes: ['ON_SITE'] } });
       if (state === 'disabled') {
-        expect(action('Potvrdi tačku na mapi').props.disabled).toBe(true);
-        await act(async () => action('Potvrdi tačku na mapi').props.onPress());
-      } else expect(action('Potvrdi tačku na mapi')).toBeUndefined();
+        expect(action('Potvrdite tačku na mapi').props.disabled).toBe(true);
+        await act(async () => action('Potvrdite tačku na mapi').props.onPress());
+      } else expect(action('Potvrdite tačku na mapi')).toBeUndefined();
       expect(confirmMap).not.toHaveBeenCalled();
     });
 
@@ -131,7 +131,7 @@ describe('what the saved profile shows', () => {
     expect(all()).not.toContain('Područje dolaska');
     expect(all()).not.toContain('Cela Srbija');
     expect(press('Područje dolaska')).toBeUndefined();
-    expect(action('Potvrdi tačku na mapi')).toBeUndefined();
+    expect(action('Potvrdite tačku na mapi')).toBeUndefined();
     expect(openConversation).not.toHaveBeenCalled();
     expect(confirmMap).not.toHaveBeenCalled();
   });
@@ -146,7 +146,7 @@ describe('what the saved profile shows', () => {
       expect(all()).not.toContain('Područje dolaska');
       expect(all()).not.toContain('Cela Srbija');
       expect(press('Područje dolaska')).toBeUndefined();
-      expect(action('Potvrdi tačku na mapi')).toBeUndefined();
+      expect(action('Potvrdite tačku na mapi')).toBeUndefined();
       expect(confirmMap).not.toHaveBeenCalled();
     });
 
@@ -169,12 +169,12 @@ describe('what the saved profile shows', () => {
   it('shows the account, services and availability once, with one main AI edit action', async () => {
     await show({ rating: <RatingLineView average={4.8} count={12} /> });
     const copy = all();
-    for (const part of ['Ana Petrović', '4,8 · 12 ocena', 'Šta radiš', 'Selidbe', 'Nošenje', 'Područje dolaska', 'Novi Sad · do 20 km',
+    for (const part of ['Ana Petrović', '4,8 · 12 ocena', 'Šta radite', 'Selidbe', 'Nošenje', 'Područje dolaska', 'Novi Sad · do 20 km',
       'Kada', 'Mogu odmah', 'Nedeljni raspored']) expect(copy).toContain(part);
     expect(copy.join(' ')).not.toMatch(/Oprema|Bušilica|Kombi/);
     expect(copy.filter(text => text === 'Selidbe')).toHaveLength(1);
     expect(copy).not.toContain('Tvoj radni profil'); expect(copy).not.toContain('Selidbe · Nošenje');
-    expect(action('Uredi kroz razgovor')).toBeTruthy();
+    expect(action('Uredite kroz razgovor')).toBeTruthy();
     // 8 Oct 2026 (owner's phone): "Mogu odmah · dostupnost" said the same thing twice; the profile of the old design said it, and so did "samo informacija" and a row of notifications.
     expect(copy).not.toContain('Mogu odmah · dostupnost'); expect(copy.join(' ')).not.toMatch(/Izmeni razgovorom|Izmeni ručno|Obaveštenja o zadacima|Na šta utiče|samo informacija/);
     expect(tree.root.findAll(node => typeof node.props.accessibilityLabel === 'string' && node.props.accessibilityLabel.startsWith('Izmeni: '))).toHaveLength(0);
@@ -199,19 +199,19 @@ describe('what the saved profile shows', () => {
     const { navigate, openConversation } = await show();
     await act(async () => { press('Područje dolaska').props.onPress(); press('Nedeljni raspored').props.onPress(); });
     expect(navigate).not.toHaveBeenCalled();
-    expect(press('Šta radiš')).toBeUndefined(); expect(press('Alat')).toBeUndefined(); expect(press('Vozila')).toBeUndefined();
+    expect(press('Šta radite')).toBeUndefined(); expect(press('Alat')).toBeUndefined(); expect(press('Vozila')).toBeUndefined();
     expect(openConversation.mock.calls).toEqual([['area'],['time']]);
   });
 
   it('opens the generic conversation without treating a native press event as a correction topic', async () => {
     const { openConversation } = await show();
-    await act(async () => action('Uredi kroz razgovor').props.onPress({ nativeEvent: { target: 1 } }));
+    await act(async () => action('Uredite kroz razgovor').props.onPress({ nativeEvent: { target: 1 } }));
     expect(openConversation).toHaveBeenCalledWith();
   });
 
   it('keeps area and schedule corrections in AI when the generic conversation action is supplied by the route footer', async () => {
     const { navigate, openConversation } = await show({ showConversationAction: false });
-    expect(action('Uredi kroz razgovor')).toBeUndefined();
+    expect(action('Uredite kroz razgovor')).toBeUndefined();
     await act(async () => { press('Područje dolaska').props.onPress(); press('Nedeljni raspored').props.onPress(); });
     expect(openConversation.mock.calls).toEqual([['area'], ['time']]);
     expect(navigate).not.toHaveBeenCalled();
@@ -220,7 +220,7 @@ describe('what the saved profile shows', () => {
   it('says what is missing in one plain sentence each, and invents nothing', async () => {
     await show({}, draft({ ime: '', biografija: '', vestine: [], alati: [], vozila: [], grad: '', radius: '', dostupanOdmah: false }));
     const copy = all();
-    expect(copy).toContain('Nema sačuvanih veština.'); expect(copy).toContain('Reci gde dolaziš na zadatak');
+    expect(copy).toContain('Nema sačuvanih veština.'); expect(copy).toContain('Recite gde dolazite na zadatak');
     // A list with nothing in it is "Dodaj", never a zero; with neither a name nor a kind of work the card is not drawn.
     expect(copy.filter(text => text === 'Nije navedeno')).toHaveLength(0); expect(copy.join(' ')).not.toMatch(/\b0\b/);
     expect(tree.root.findAllByProps({ testID: 'worker-profile-kit' })).toHaveLength(0);
@@ -234,10 +234,10 @@ describe('what the saved profile shows', () => {
     const chips = tree.root.findByProps({ testID: 'worker-profile-skills' });
     const words = chips.findAll(node => String(node.type) === 'T').map(node => textOf(node));
     expect(words).toEqual(skills.slice(0, SKILL_CHIPS_MAX));
-    expect(press('Prikaži sve: Veštine').props.accessibilityState.expanded).toBe(false);
-    await act(async () => press('Prikaži sve: Veštine').props.onPress());
+    expect(press('Prikažite sve: Veštine').props.accessibilityState.expanded).toBe(false);
+    await act(async () => press('Prikažite sve: Veštine').props.onPress());
     expect(all()).toContain('Veština 11');
-    await act(async () => press('Prikaži manje: Veštine').props.onPress());
+    await act(async () => press('Prikažite manje: Veštine').props.onPress());
     expect(all()).not.toContain('Veština 11');
     expect(all().filter(text => text === 'Veština 1')).toHaveLength(1);
     expect(navigate).not.toHaveBeenCalled(); expect(openConversation).not.toHaveBeenCalled();
@@ -343,7 +343,7 @@ describe('one name', () => {
     expect(all()).toContain('Na radnom profilu piše „Pera peric“.');
     expect(action('Koristi „Milos“').props).toMatchObject({ kind: 'secondary', disabled: false, loading: false });
     // Name reconciliation remains secondary to the single conversation action.
-    expect(action('Uredi kroz razgovor').props.style).toBe(brandAction);
+    expect(action('Uredite kroz razgovor').props.style).toBe(brandAction);
     expect(tree.root.findAll(node => String(node.type) === 'Action' && node.props.style === brandAction)).toHaveLength(1);
     await act(async () => { action('Koristi „Milos“').props.onPress(); }); expect(onUse).toHaveBeenCalledTimes(1);
   });
@@ -369,15 +369,15 @@ describe('one name', () => {
 describe('the assistant', () => {
   it('offers one primary conversation action, refuses a disabled callback and hides it without a route', async () => {
     const { openConversation } = await show();
-    expect(action('Uredi kroz razgovor').props.style).toBe(brandAction); expect(action('Uredi kroz razgovor').props.disabled).toBe(false);
-    await act(async () => { action('Uredi kroz razgovor').props.onPress(); }); expect(openConversation).toHaveBeenCalledTimes(1);
+    expect(action('Uredite kroz razgovor').props.style).toBe(brandAction); expect(action('Uredite kroz razgovor').props.disabled).toBe(false);
+    await act(async () => { action('Uredite kroz razgovor').props.onPress(); }); expect(openConversation).toHaveBeenCalledTimes(1);
     openConversation.mockClear();
     await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled navigate={jest.fn()} openConversation={openConversation} />));
-    expect(action('Uredi kroz razgovor').props.disabled).toBe(true);
-    await act(async () => action('Uredi kroz razgovor').props.onPress());
+    expect(action('Uredite kroz razgovor').props.disabled).toBe(true);
+    await act(async () => action('Uredite kroz razgovor').props.onPress());
     expect(openConversation).not.toHaveBeenCalled();
     await act(async () => tree.update(<WorkerProfileSaved draft={draft()} status={<></>} disabled={false} navigate={jest.fn()} />));
-    expect(action('Uredi kroz razgovor')).toBeUndefined();
+    expect(action('Uredite kroz razgovor')).toBeUndefined();
   });
 });
 
@@ -389,15 +389,15 @@ describe('saved biography and suspended state', () => {
     await act(async () => tree.update(<WorkerProfileSaved draft={draft({ biografija: bio })} status={<></>} disabled={false} navigate={jest.fn()} />));
     const copy = () => tree.root.findAll(node => String(node.type) === 'T' && textOf(node) === bio)[0];
     expect(copy().props.numberOfLines).toBe(4);
-    await act(async () => press('Prikaži sve: O meni').props.onPress());
+    await act(async () => press('Prikažite sve: O meni').props.onPress());
     expect(copy().props.numberOfLines).toBeUndefined(); expect(textOf(copy())).toBe(bio);
-    await act(async () => press('Prikaži manje: O meni').props.onPress()); expect(copy().props.numberOfLines).toBe(4);
+    await act(async () => press('Prikažite manje: O meni').props.onPress()); expect(copy().props.numberOfLines).toBe(4);
   });
   it('keeps facts readable while a suspended profile has no editing or availability entry', async () => {
     const onEdit = jest.fn();
     const { navigate, openConversation } = await show({ readOnly: true, accountName: 'Milos', onUseAccountName: jest.fn(), availableNow: { value: true, onEdit } },
       draft({ alati: Array.from({ length: 5 }, (_, index) => `Alat ${index}`) }));
-    expect(action('Uredi kroz razgovor')).toBeUndefined(); expect(press('Područje dolaska')).toBeUndefined();
+    expect(action('Uredite kroz razgovor')).toBeUndefined(); expect(press('Područje dolaska')).toBeUndefined();
     expect(action('Koristi „Milos“').props.disabled).toBe(true);
     expect(press('Nedeljni raspored')).toBeUndefined(); expect(toggle()).toBeUndefined();
     expect(all().join(' ')).not.toContain('Alat 4');

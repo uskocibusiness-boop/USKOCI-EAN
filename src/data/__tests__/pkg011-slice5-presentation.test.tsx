@@ -35,7 +35,7 @@ test('the personal profile reads saved facts and offers AI corrections without m
   expect(texts()).toContain('Selidbe'); expect(texts()).toContain('Montaža'); expect(texts()).not.toContain('Kolica');
   expect(inputs()).toEqual([]);
   expect(labels().filter(label => String(label).startsWith('Izmeni:') || String(label).startsWith('Ukloni '))).toEqual([]);
-  await act(async () => byLabel('Uredi kroz razgovor').props.onPress()); expect(openConversation).toHaveBeenCalledTimes(1);
+  await act(async () => byLabel('Uredite kroz razgovor').props.onPress()); expect(openConversation).toHaveBeenCalledTimes(1);
   await act(async () => byLabel('Nedeljni raspored').props.onPress()); expect(openConversation).toHaveBeenLastCalledWith('time');
   expect(change).not.toHaveBeenCalled(); expect(navigate).not.toHaveBeenCalled();
 });

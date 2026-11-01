@@ -69,6 +69,19 @@ const real = (need: PrilikaProjekcija) => <PublicNeedPresentation need={need} lo
   relation={{ kind: 'NONE' }} onOwnTask={noop} onOwnApplication={noop} back={noop} retry={noop} apply={noop} map={<React.Fragment>{null}</React.Fragment>} />;
 const preview = (need: PrilikaProjekcija) => <ReviewDetail need={need} parts={NO_PARTS} person={need.narucilacIme ? { ...PERSON, profile: null } : null} />;
 
+it('lets the owner read the description before price, people, time, place, requirements and requester', async () => {
+  const need = reviewAsTask({ reviewId: 'review-1', draftId: null, responseDeadline: null,
+    location: placed(STATIONARY), publicProjection: FULL }, PERSON);
+  await render(preview(need));
+  const visible = texts();
+  const landmarks = [need.naslov, need.opis!, need.ponudjenaCena!.prikaz,
+    placesText(need.pokrivenost, 'worker').text, need.vremeTekst, taskPlace(need).text,
+    'Važno za ovaj zadatak', 'Naručilac', PERSON.name];
+  const positions = landmarks.map(value => visible.indexOf(value));
+  expect(positions.every(position => position >= 0)).toBe(true);
+  expect(positions).toEqual([...positions].sort((a, b) => a - b));
+});
+
 it('owner-only known single headcount stays visible without an edit pencil; an absent fact stays absent', async () => {
   const need=reviewAsTask({reviewId:'r',draftId:null,responseDeadline:null,location:null,publicProjection:[]});
   await render(<ReviewDetail need={need} parts={NO_PARTS} knownPeopleCount={1} />);

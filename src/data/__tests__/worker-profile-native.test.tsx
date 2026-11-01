@@ -77,7 +77,7 @@ afterEach(async () => { await act(async () => tree?.unmount()); jest.useRealTime
 
 it('opens a dedicated map confirmation bound to the saved worker and leaves area edits in AI', async () => {
   await renderReading();
-  await click('Potvrdi tačku na mapi');
+  await click('Potvrdite tačku na mapi');
   expect(mockRouter.navigate).toHaveBeenCalledWith({ pathname: '/profil/lokacija', params: { mode: 'point', profileId: profile.id } });
   expect(mockWrite).not.toHaveBeenCalled();
   const retained = tree.root.findByType(WorkerProfileForm).props.confirmMap;
@@ -99,7 +99,7 @@ it('passes owned remote mode into the saved profile instead of assuming its city
 it('an absent pristine profile opens the guarded conversation without creating an empty profile', async () => {
   mockRead.mockResolvedValue(null); await render();
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Sačuvaj profil' })).toHaveLength(0);
-  click('Uredi kroz razgovor');
+  click('Uredite kroz razgovor');
   expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor');
   expect(mockWrite).not.toHaveBeenCalled();
 });
@@ -146,7 +146,7 @@ describe('the saved profile is read first', () => {
     expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
     expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
     expect(texts()).not.toContain('Tvoj radni profil'); expect(texts()).toContain('Ana');
-    expect(texts()).toContain('Šta radiš'); expect(texts()).toContain('Prevoz, utovar');
+    expect(texts()).toContain('Šta radite'); expect(texts()).toContain('Prevoz, utovar');
     expect(texts()).toContain('Područje dolaska'); expect(texts()).toContain('Novi Sad · do 20 km');
     expect(texts()).toContain('Kada'); expect(texts()).toContain('Mogu odmah'); expect(texts()).not.toContain('Mogu odmah · dostupnost'); expect(texts()).toContain('Dostupnost');
     expect(texts()).not.toMatch(/Oprema|Bušilica|Kombi/);
@@ -156,7 +156,7 @@ describe('the saved profile is read first', () => {
     // "Na šta utiče" was a block of rows; it is the sentences behind the "ⓘ" in the bar now.
     expect(texts()).not.toContain('Na šta utiče'); expect(texts()).not.toContain('Javni profil');
     expect(control('Objašnjenje: Na šta utiče radni profil')).toBeTruthy();
-    expect(control('Uredi kroz razgovor')).toBeTruthy();
+    expect(control('Uredite kroz razgovor')).toBeTruthy();
     // A clean finished profile has no save footer: there is nothing here to save.
     expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(0);
     expect(mockWrite).not.toHaveBeenCalled();
@@ -186,8 +186,8 @@ describe('the saved profile is read first', () => {
     expect(texts()).not.toMatch(/Oprema|Bušilica|Kombi/);
   });
 
-  it('"Uredi kroz razgovor" opens the guarded conversation, and writes nothing', async () => {
-    await renderReading(); click('Uredi kroz razgovor');
+  it('"Uredite kroz razgovor" opens the guarded conversation, and writes nothing', async () => {
+    await renderReading(); click('Uredite kroz razgovor');
     expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
   });
   it('"Područje dolaska" leads to the area and "Nedeljni raspored" to the week, and neither writes anything', async () => {
@@ -201,7 +201,7 @@ describe('the saved profile is read first', () => {
       mockRead.mockResolvedValue({ ...profile, stanje: 'DRAFT' }); await renderReading();
       expect(control('Pregled za aktivaciju')).toBeTruthy();
       expect(tree.root.findAllByProps({ testID: 'worker-profile-footer' })).toHaveLength(1);
-      expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi kroz razgovor' })).toHaveLength(0);
+      expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredite kroz razgovor' })).toHaveLength(0);
       click(label);
       expect(mockRouter.navigate).toHaveBeenCalledTimes(1);
       const route = mockRouter.navigate.mock.calls[0][0];
@@ -213,7 +213,7 @@ describe('the saved profile is read first', () => {
     });
   it('saved skills and equipment stay readable without opening a manual editor', async () => {
     await renderReading();
-    for (const label of ['Šta radiš', 'Alat', 'Vozila']) {
+    for (const label of ['Šta radite', 'Alat', 'Vozila']) {
       expect(tree.root.findAll(node => node.props.accessibilityLabel === label && typeof node.props.onPress === 'function')).toHaveLength(0);
     }
     expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
@@ -225,7 +225,7 @@ describe('the saved profile is read first', () => {
     mockAccountName = { state: 'ready', name: 'Milos' }; mockRead.mockResolvedValue({ ...profile, ime: 'Pera peric' }); await renderReading();
     click('Koristi „Milos“'); await settle();
     // While the name is being written the rows are locked.
-    expect(control('Uredi kroz razgovor').props.disabled).toBe(true); expect(control('Područje dolaska').props.disabled).toBe(true);
+    expect(control('Uredite kroz razgovor').props.disabled).toBe(true); expect(control('Područje dolaska').props.disabled).toBe(true);
     act(() => tree.root.findByType(WorkerProfileForm).props.onEditPart('skills'));
     expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
     mockRead.mockResolvedValue({ ...profile, ime: 'Milos' });
@@ -236,7 +236,7 @@ describe('the saved profile is read first', () => {
     mockRead.mockResolvedValue({ ...profile, stanje: 'SUSPENDED' }); await renderReading();
     expect(tree.root.findAllByProps({ testID: 'worker-profile-saved' })).toHaveLength(1);
     expect(texts()).toContain('Profil je trenutno suspendovan'); expect(control('Obrati se podršci')).toBeTruthy();
-    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredi kroz razgovor' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ accessibilityLabel: 'Uredite kroz razgovor' })).toHaveLength(0);
     const form = tree.root.findByType(WorkerProfileForm);
     act(() => { form.props.openConversation(); form.props.navigate('/profil/lokacija'); form.props.navigate('/profil/dostupnost'); form.props.onEditPart('skills'); });
     expect(mockRouter.push).not.toHaveBeenCalled(); expect(mockRouter.navigate).not.toHaveBeenCalled();
@@ -325,7 +325,7 @@ describe('one name for the account and the work profile', () => {
 
   it('the first conversation entry of an empty account still writes nothing', async () => {
     mockAccountName = { state: 'ready', name: 'Milos' }; mockRead.mockResolvedValue(null); await render();
-    click('Uredi kroz razgovor'); expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
+    click('Uredite kroz razgovor'); expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
   });
 });
 
@@ -362,7 +362,7 @@ it('a first visit is only a calm AI entry; opening it creates no profile or manu
   expect(tree.root.findAllByProps({ testID: 'worker-profile-intro' })).toHaveLength(1);
   expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
   expect(tree.root.findAllByProps({ accessibilityLabel: 'Izmeni: O meni' })).toHaveLength(0);
-  click('Uredi kroz razgovor');
+  click('Uredite kroz razgovor');
   expect(mockRouter.navigate).toHaveBeenCalledWith('/profil/razgovor'); expect(mockWrite).not.toHaveBeenCalled();
 });
 
@@ -416,7 +416,7 @@ it('a retained legacy draft and unknown command remain recoverable without reope
   expect(tree.root.findAll(node => String(node.type) === 'TextInput')).toHaveLength(0);
   mockWrite.mockResolvedValueOnce({ ok: false, kod: 'UNKNOWN', poruka: 'Nepotvrđeno' });
   click('Sačuvaj izmene'); await settle();
-  click('Uredi kroz razgovor'); expect(mockRouter.navigate).not.toHaveBeenCalled();
+  click('Uredite kroz razgovor'); expect(mockRouter.navigate).not.toHaveBeenCalled();
   expect(tree.root.findByType(WorkerProfileForm).props.draft.biografija).toBe('Zadržani lokalni opis');
   mockRead.mockResolvedValue({ ...profile, biografija: 'Zadržani lokalni opis' });
   click('Pogledaj sačuvani profil'); await settle();

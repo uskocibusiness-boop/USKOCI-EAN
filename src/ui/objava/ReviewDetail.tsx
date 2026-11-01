@@ -22,9 +22,9 @@ import { PencilOverPhoto, type PartPencil } from './EditPencil';
 import { deadlineWords, type AddressFrame } from './reviewFacts';
 
 /**
- * The owner's review of the exact task projection: title and description first, then price, place, time and people.
- * Shared fact renderers keep its values consistent with the public task. Optional photos, requirements and the requester follow
- * the decision itself, without claiming that this preview has already been published.
+ * The owner's review of the exact task projection: photos, title, description, price, people, time, place,
+ * requirements and requester (Product S16.4). Shared fact renderers keep the values consistent with the
+ * public task, without claiming that this preview has already been published. Exact addresses remain last and owner-only.
  * Contextual corrections remain route-owned; private address content and the frozen map never become editable by presentation alone.
  */
 
@@ -94,25 +94,25 @@ export function ReviewDetail({ need, parts, photos, map, address, more, person, 
     <View style={s.summary}>
       <PartRow part={parts.title}><TaskDecisionTitle onLayout={noop}>{readableTitle(need.naslov)}</TaskDecisionTitle></PartRow>
     </View>
-    <View style={s.facts}>
-      <PartRow part={parts.time}><FactRow size="detail" art="calendar" value={time} /></PartRow>
-      <PartRow part={parts.place}><FactRow size="detail" art={place.remote ? 'remote' : 'pin'} value={place.text} /></PartRow>
-      {showPeople ? <PartRow part={parts.people}><FactRow size="detail" art="users" value={people.text} /></PartRow> : null}
-      <PartRow part={parts.value}><TaskDecisionValue need={need} /></PartRow>
-    </View>
     {need.opis ? <PartSection title="O zadatku" part={parts.description}><DetailDescription text={need.opis} /></PartSection> : null}
-    {person ? <Publisher person={person} /> : null}
+    <View style={s.facts}>
+      <PartRow part={parts.value}><TaskDecisionValue need={need} /></PartRow>
+      {showPeople ? <PartRow part={parts.people}><FactRow size="detail" art="users" value={people.text} /></PartRow> : null}
+      <PartRow part={parts.time}><FactRow size="detail" art="calendar" value={time} /></PartRow>
+    </View>
+    <PartSection title="Prijave" part={parts.deadline}><T variant="body">{deadlineWords(need.rokZaPrijaveIso ?? null, deadlineDecision)}</T></PartSection>
+    <PartRow part={parts.place}><FactRow size="detail" art={place.remote ? 'remote' : 'pin'} value={place.text} /></PartRow>
+    {!remote && (map || stops.length) ? <PartSection title="Približno mesto" part={parts.map}>
+      <View style={s.stack}>{map}{stops.length ? <DetailRoute rows={stops} /> : null}</View>
+    </PartSection> : null}
     {requirements.length ? <Section title="Važno za ovaj zadatak">
       <View>{requirements.map((row, index) => <PartRow key={`${row.label}:${index}`} part={parts.requirements[row.label] ?? NO_PART}>
         <FactRow size="detail" art={REQUIREMENT_ART[row.label] ?? 'document'} value={requirementValues(row.value)} note={row.label} />
       </PartRow>)}</View>
     </Section> : null}
     {more}
-    {!remote && (map || stops.length) ? <PartSection title="Približno mesto" part={parts.map}>
-      <View style={s.stack}>{map}{stops.length ? <DetailRoute rows={stops} /> : null}</View>
-    </PartSection> : null}
+    {person ? <Publisher person={person} /> : null}
     {address}
-    <PartSection title="Prijave" part={parts.deadline}><T variant="body">{deadlineWords(need.rokZaPrijaveIso ?? null, deadlineDecision)}</T></PartSection>
   </View>;
 }
 

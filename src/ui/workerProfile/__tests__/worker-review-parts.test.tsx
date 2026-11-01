@@ -46,7 +46,7 @@ describe('the review in parts (M2)', () => {
     await act(async()=>{tree=create(<WorkerAiReviewDetails review={signed} onEdit={edit}/>);});
     const rows=tree.root.findAllByProps({testID:'worker-review-service'}).map(row=>row.findAll(node=>String(node.type)==='T').map(node=>node.props.children));
     expect(rows).toEqual([['Montaža nameštaja','Na lokaciji'],['3D štampa','Na daljinu']]);
-    await act(async()=>press('Izmeni kroz razgovor').props.onPress());
+    await act(async()=>press('Izmenite kroz razgovor').props.onPress());
     expect(edit).toHaveBeenCalledWith();
     await act(async()=>tree.update(<WorkerAiReviewDetails review={{...signed,classificationState:'SERVICE_MODE_CONFIRMATION_REQUIRED',reviewedServiceModes:[]}} onEdit={edit}/>));
     expect(tree.root.findByProps({testID:'worker-classification-pending'}).props.children).toMatch(/automatsko povezivanje čeka/i);
@@ -79,7 +79,7 @@ describe('the review in parts (M2)', () => {
     expect(texts()).toContain('Izrada 3D figurica');
     expect(texts()).not.toContain('Predlog za katalog');
     expect(texts()).toContain('Novi Sad · RS · grad profila');
-    expect(texts()).toContain('Posao radiš bez dolaska kod naručioca: onlajn ili kod sebe.');
+    expect(texts()).toContain('Posao radite bez dolaska kod naručioca: onlajn ili kod sebe.');
     expect(texts()).not.toContain('Novi Sad · RS · do 20 km');
     expect(tree.root.findAll(node=>String(node.type)==='ReviewedWorkAreaMap')).toHaveLength(0);
   });
@@ -100,7 +100,7 @@ describe('the review in parts (M2)', () => {
       expect(texts()).not.toContain('Domet se računa od centra');
       expect(tree.root.findAllByType('ReviewedWorkAreaMap' as React.ElementType)).toHaveLength(0);
       expect(texts()).not.toMatch(/20 km|Približan centar za terenske zadatke/);
-      if(classificationState==='READY')expect(texts()).toContain('Posao radiš bez dolaska kod naručioca');
+      if(classificationState==='READY')expect(texts()).toContain('Posao radite bez dolaska kod naručioca');
     });
 
   it('keeps a saved on-site work area only for an explicitly signed ON_SITE review',async()=>{
@@ -118,7 +118,7 @@ describe('the review in parts (M2)', () => {
     await act(async () => { tree = create(<WorkerAiReviewDetails review={full} onEdit={edit} />); });
     const actions=tree.root.findAll(node=>String(node.type)==='Press');
     expect(actions).toHaveLength(1);
-    const correction=press('Izmeni kroz razgovor');
+    const correction=press('Izmenite kroz razgovor');
     await act(async()=>correction.props.onPress());
     expect(edit).toHaveBeenCalledTimes(1); expect(edit).toHaveBeenCalledWith();
     expect(correction.props.accessibilityRole).toBe('button');
@@ -130,8 +130,8 @@ describe('the review in parts (M2)', () => {
     expect(tree.root.findAll(node => String(node.type) === 'Press')).toHaveLength(0);
     const edit = jest.fn();
     await act(async () => tree.update(<WorkerAiReviewDetails review={full} onEdit={edit} editDisabled />));
-    expect(press('Izmeni kroz razgovor').props.disabled).toBe(true);
-    await act(async () => { press('Izmeni kroz razgovor').props.onPress(); });
+    expect(press('Izmenite kroz razgovor').props.disabled).toBe(true);
+    await act(async () => { press('Izmenite kroz razgovor').props.onPress(); });
     expect(edit).not.toHaveBeenCalled();
   });
 
@@ -192,9 +192,9 @@ describe('the conversation draft is not matching readiness', () => {
     expect(tree.root.findAllByProps({ testID: 'worker-understood-handoff' })).toHaveLength(0);
     expect(texts()).not.toMatch(/sprem|potvrđen|aktivan|obaveštenja|od 2|od 5/i);
     expect(tree.root.findAllByProps({ accessibilityRole: 'progressbar' })).toHaveLength(0);
-    expect(tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pregledaj profil')).toHaveLength(1);
+    expect(tree.root.findAll(node => String(node.type) === 'Press' && node.props.accessibilityLabel === 'Pregledajte profil')).toHaveLength(1);
     expect(openReview).not.toHaveBeenCalled();
-    await act(async () => { press('Pregledaj profil').props.onPress(); });
+    await act(async () => { press('Pregledajte profil').props.onPress(); });
     expect(openReview).toHaveBeenCalledTimes(1);
   });
 
@@ -221,7 +221,7 @@ describe('the conversation draft is not matching readiness', () => {
     const withoutEquipment = review({}, { availableNow: true, rules: [], windows: [] });
     await act(async () => { tree = create(<WorkerAiCard profile={withoutEquipment.profile} compact={true} disabled={false} review={jest.fn()} />); });
     expect(texts()).not.toMatch(/još treba|nije navedeno|alat|vozilo|područje/i);
-    expect(press('Pregledaj profil').props.disabled).toBe(false);
+    expect(press('Pregledajte profil').props.disabled).toBe(false);
     expect(capturedParts(withoutEquipment.profile).map(part => part.key)).toEqual(['skills', 'area', 'time']);
   });
 });
@@ -233,7 +233,7 @@ describe('classification recovery uses the existing conversation',()=>{
   expect(tree.root.findByProps({testID:'worker-classification-pending'}).props.children).toContain('U istom razgovoru navedite');
   expect(tree.root.findAllByProps({accessibilityRole:'radio'})).toHaveLength(0);
   expect(texts()).not.toContain('Izaberi ga za svaku uslugu');
-  await act(async()=>press('Izmeni kroz razgovor').props.onPress());
+  await act(async()=>press('Izmenite kroz razgovor').props.onPress());
   expect(edit).toHaveBeenCalledTimes(1);
  });
  it.each(['CATALOG_UNAVAILABLE','STALE_CATALOG'] as const)('%s explains catalog recovery without asking for modes',async classificationState=>{

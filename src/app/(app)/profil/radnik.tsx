@@ -263,10 +263,10 @@ function OwnedWorkerProfile({ accountId, accountRevision }: { accountId?: string
     if (status === 'SUSPENDED') return { label: 'Proveri profil', run: refresh };
     if (status === 'ACTIVE') return localDirty
       ? { label: 'Sačuvaj izmene', run: () => { void save(false); } }
-      : { label: 'Uredi kroz razgovor', run: () => openConversation() };
+      : { label: 'Uredite kroz razgovor', run: () => openConversation() };
     if (firstSave) return localDirty
       ? { label: 'Sačuvaj profil', run: () => { void save(false); } }
-      : { label: 'Uredi kroz razgovor', run: () => openConversation() };
+      : { label: 'Uredite kroz razgovor', run: () => openConversation() };
     if (status !== 'DRAFT') return { label: 'Osveži radni profil', run: refresh };
     if (reading) return basicsReady && !!value && value.grad.trim().length >= 2
       ? { label: 'Pregled za aktivaciju', run: () => openConversation(undefined, true) }

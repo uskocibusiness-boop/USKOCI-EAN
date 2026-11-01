@@ -48,14 +48,14 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
   return <Surface kind="panel" testID="worker-draft-summary"
     style={[s.card,compact&&s.cardCompact]}>
     <Press testID="worker-draft-disclosure" accessibilityRole="button"
-      accessibilityLabel={expanded ? 'Sakrij detalje nacrta radnog profila' : 'Pokaži detalje nacrta radnog profila'}
+      accessibilityLabel={expanded ? 'Sakrijte detalje nacrta radnog profila' : 'Prikažite detalje nacrta radnog profila'}
       accessibilityValue={{text:skills}} accessibilityState={{expanded}}
       accessibilityHint="Prikazuje sažetak unetih podataka u razgovoru."
       onPress={toggle} haptic="select" style={s.previewHead}>
       <FactArt kind="tasks" size={32} cut="art" />
       <View style={[s.grow,s.previewSummary]}>
         <T variant="bodyStrong">Razumeo sam</T>
-        <T variant="note" tone="muted">Nacrt · nije sačuvan · {expanded?'Sakrij detalje':'Detalji'}</T>
+        <T variant="note" tone="muted">Nacrt · nije sačuvan · {expanded?'Sakrijte detalje':'Detalji'}</T>
       </View>
       <Glyph name={expanded?'caret-up':'caret-down'} tone="muted"/>
     </Press>
@@ -86,12 +86,12 @@ export function WorkerAiCard({profile,compact,review,disabled,reviewInFooter=fal
         {profile.availability.rules.length||profile.availability.windows.length?<PreviewFact art="calendar">{schedule}</PreviewFact>:null}
       </View>:null}
     {showReview&&!reviewInFooter?<View style={s.reviewAction}>
-      <Press testID="worker-draft-review" accessibilityRole="button" accessibilityLabel="Pregledaj profil"
+      <Press testID="worker-draft-review" accessibilityRole="button" accessibilityLabel="Pregledajte profil"
         accessibilityHint={disabled&&reviewReason?reviewReason:'Otvara sve podatke pre završnog čuvanja.'}
         accessibilityState={{disabled}} disabled={disabled}
         onPress={() => { if (!disabled) review(); }} haptic={disabled?'none':'select'}
         style={[s.reviewButton, disabled && s.reviewButtonDisabled]}>
-        <T variant="note" style={[s.reviewButtonText, disabled && s.muted]}>Pregledaj profil</T>
+        <T variant="note" style={[s.reviewButtonText, disabled && s.muted]}>Pregledajte profil</T>
         <ReviewCue disabled={disabled}/>
       </Press>
       {disabled&&reviewReason?<T accessibilityLiveRegion="polite" variant="note" tone="muted">{reviewReason}</T>:null}
@@ -150,7 +150,9 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
   /** The way to "Lični podaci" when the account has no name; without it the missing name is only said. */ onAddName?:()=>void}){
   const p=review.profile;
   const point=displayedPinPosition(p.location.approximatePosition,true);
-  const place=[p.location.city.trim()?cityLabel(p.location.city):null,p.location.operatingCountryCode].filter(Boolean).join(' · ');
+  // A country alone is not a profile city. REMOTE-only work can have no city.
+  const city=p.location.city.trim();
+  const place=city?[cityLabel(city),p.location.operatingCountryCode].filter(Boolean).join(' · '):'';
   const confirmedModes=review.classificationState==='READY'?review.reviewedServiceModes??[]:[];
   const onSite=confirmedModes.some(item=>item.mode==='ON_SITE'),remote=confirmedModes.some(item=>item.mode==='REMOTE');
   const hasSchedule=p.availability.rules.length>0||p.availability.windows.length>0;
@@ -161,7 +163,7 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
       <T accessibilityRole="alert" variant="body" style={[s.grow,s.ink]}>Dopunite: {missingFacts.map(missingLabel).join(', ')}.</T></View>:null}
     {pendingActivation?<View style={s.reviewNotice}><FactArt kind="info" size={24} cut="art" role="waiting"/>
       <T accessibilityRole="alert" variant="body" style={[s.grow,s.ink]}>Aktivacija čeka potvrdu usluga za rad na daljinu. Za čuvanje bez aktivacije izaberite „Nacrt“.</T></View>:null}
-    {review.missingRequired.includes('Ime')&&onAddName?<V2Action label="Dodaj ime" kind="secondary" compact onPress={onAddName} style={s.addName}/>:null}
+    {review.missingRequired.includes('Ime')&&onAddName?<V2Action label="Dodajte ime" kind="secondary" compact onPress={onAddName} style={s.addName}/>:null}
     <ReviewGroup part="skills">
       {p.skills.length?<View style={s.services}>{p.skills.map((skill,index)=>{
         // Scope shown here is part of the server-digested review, not a client
@@ -202,12 +204,12 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
         <T testID="worker-area-scope-note" variant="note" tone="muted">{p.workAreas.some(a=>a.kind==='RADIUS')
           ?'Domet se računa od centra navedenog mesta. Kućna adresa nije potrebna.'
           :'Područje dolaska za poslove na lokaciji. Poslovi na daljinu se proveravaju zasebno.'}</T>
-      </>:<><Fact art="pin" quiet={!place}>{place
+      </>:<>{place||onSite?<Fact art="pin" quiet={!place}>{place
         ?onSite
           ?`${place} · do ${p.location.radiusKm} km${point?'':' (za okolna mesta potvrdite centar)'}`
           :`${place} · grad profila`
-        :EMPTY}</Fact>
-      {remote?<T variant="note" tone="muted">Posao radiš bez dolaska kod naručioca: onlajn ili kod sebe.</T>:null}
+        :EMPTY}</Fact>:null}
+      {remote?<T variant="note" tone="muted">Posao radite bez dolaska kod naručioca: onlajn ili kod sebe.</T>:null}
       {onSite&&point?<ResolvedPinMap coarse disabled height={220} position={point}
         scopeKey={`worker-review:${review.accountId}:${review.profileId}:${review.reviewId}:${review.revision}`}
         onChoose={()=>{ /* Frozen review, never a location editor. */ }}/>:null}
@@ -239,9 +241,9 @@ export function WorkerAiReviewDetails({review,onEdit,editDisabled=false,onAddNam
       <T selectable variant="body" style={p.bio?s.ink:s.muted}>{p.bio||EMPTY}</T>
       {p.bio?<T testID="worker-matching-explanation" variant="note" tone="muted">Vidljivo na Vašem profilu.</T>:null}
     </ReviewGroup>
-    {onEdit?<Press accessibilityRole="button" accessibilityLabel="Izmeni kroz razgovor" accessibilityState={{disabled:editDisabled}}
+    {onEdit?<Press accessibilityRole="button" accessibilityLabel="Izmenite kroz razgovor" accessibilityState={{disabled:editDisabled}}
       disabled={editDisabled} haptic={editDisabled?'none':'select'} onPress={()=>{if(!editDisabled)onEdit();}} style={s.edit}>
-      <T variant="tab" style={editDisabled?s.muted:s.editText}>Izmeni kroz razgovor</T>
+      <T variant="tab" style={editDisabled?s.muted:s.editText}>Izmenite kroz razgovor</T>
     </Press>:null}
   </View>;
 }

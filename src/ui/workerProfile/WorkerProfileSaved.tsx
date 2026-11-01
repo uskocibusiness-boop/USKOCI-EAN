@@ -72,26 +72,26 @@ export function WorkerProfileSaved({ draft, status, disabled, navigate, openConv
         {rating ? <View style={s.rating}><View pointerEvents="none" style={s.identityRule} />{rating}</View> : null}
       </View> : null}
       {status}
-      {openConversation && showConversationAction && !readOnly ? <V2Action label="Uredi kroz razgovor" disabled={disabled} onPress={() => { if (!disabled) openConversation(); }} style={brandAction} /> : null}
+      {openConversation && showConversationAction && !readOnly ? <V2Action label="Uredite kroz razgovor" disabled={disabled} onPress={() => { if (!disabled) openConversation(); }} style={brandAction} /> : null}
     </View>
     {onUseAccountName && namesDiffer(draft.ime, accountName)
       ? <NameDifference workName={draft.ime} accountName={accountName!} disabled={disabled || nameWorking || readOnly} working={nameWorking} onUse={onUseAccountName} /> : null}
     {/* What the worker does and where: two rows of ONE group, every picture in the same slot, every title at the same edge. */}
     <View testID="worker-profile-work-card" style={s.sectionCard}>
-      <T variant="heading" accessibilityRole="header">Kako radiš</T>
+      <T variant="heading" accessibilityRole="header">Kako radite</T>
       <SettingsGroup>
         <SkillsRow skills={draft.vestine} services={services} loading={executionModes?.kind === 'loading'} />
         <ListRow title="Način rada" subtitle={modeLabel} leading={<FactArt kind={remote && !onSite ? 'remote' : 'tasks'} size={32} />}
           last={!onSite && !grad} />
-        {executionModes?.kind === 'unavailable' && refreshModes ? <V2Action label="Proveri način rada" tone="neutral" kind="quiet" compact onPress={refreshModes} /> : null}
+        {executionModes?.kind === 'unavailable' && refreshModes ? <V2Action label="Proverite način rada" tone="neutral" kind="quiet" compact onPress={refreshModes} /> : null}
         {/* An old saved area does not turn a confirmed REMOTE-only service into a visit. */}
         {onSite ? readOnly ? <ListRow title="Područje dolaska" value={area || 'Nije navedeno'} leading={<FactArt kind="pin" size={32} />} />
-          : <SettingsRow label="Područje dolaska" value={area || undefined} detail={area ? undefined : 'Reci gde dolaziš na zadatak'} icon={<FactArt kind="pin" size={32} />}
+          : <SettingsRow label="Područje dolaska" value={area || undefined} detail={area ? undefined : 'Recite gde dolazite na zadatak'} icon={<FactArt kind="pin" size={32} />}
             disabled={disabled} onPress={() => openConversation ? openConversation('area') : navigate('/profil/lokacija')} last />
           : grad ? <ListRow title="Grad profila" value={grad} leading={<FactArt kind="pin" size={32} />} last /> : null}
       </SettingsGroup>
     </View>
-    {onSite && !readOnly && confirmMap ? <V2Action label="Potvrdi tačku na mapi" tone="neutral" kind="quiet" compact disabled={disabled}
+    {onSite && !readOnly && confirmMap ? <V2Action label="Potvrdite tačku na mapi" tone="neutral" kind="quiet" compact disabled={disabled}
       onPress={() => { if (!disabled) confirmMap(); }} /> : null}
     <View testID="worker-profile-time-card" style={s.sectionCard}><SettingsGroup title="Kada">
         {availableNow && !readOnly
@@ -118,7 +118,7 @@ function SkillsRow({ skills, services, loading }: { skills: readonly string[]; s
   return <View testID="worker-skills-row" style={s.skillsRow}>
     <View style={s.slot}><FactArt kind="tasks" size={32} /></View>
     <View style={s.skillsCopy}>
-      <T variant="bodyStrong">Šta radiš</T>
+      <T variant="bodyStrong">Šta radite</T>
       {names.length
         ? <View testID="worker-profile-skills" style={s.services}>
           {shown.map((skill, index) => {
@@ -146,9 +146,9 @@ function SkillsRow({ skills, services, loading }: { skills: readonly string[]; s
 }
 
 function Disclosure({ label, expanded, onPress }: { label: string; expanded: boolean; onPress: () => void }) {
-  return <Press accessibilityRole="button" accessibilityLabel={`${expanded ? 'Prikaži manje' : 'Prikaži sve'}: ${label}`}
+  return <Press accessibilityRole="button" accessibilityLabel={`${expanded ? 'Prikažite manje' : 'Prikažite sve'}: ${label}`}
     accessibilityState={{ expanded }} onPress={onPress} haptic="select" style={s.disclosure}>
-    <T variant="note" style={s.ink}>{expanded ? 'Prikaži manje' : 'Prikaži sve'}</T>
+    <T variant="note" style={s.ink}>{expanded ? 'Prikažite manje' : 'Prikažite sve'}</T>
   </Press>;
 }
 
