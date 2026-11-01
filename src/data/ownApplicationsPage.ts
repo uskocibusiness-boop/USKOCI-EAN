@@ -3,6 +3,9 @@ import { calendarInstant } from '../lib/calendarTime';
 import { applicationSection, type ApplicationCounts, type ApplicationSection } from './myApplicationsView';
 import { record, uuid } from './serverReceipt';
 
+/** Reject nonexistent civil instants and narrow decoded JSON values to strings. */
+const exactInstant = (value: unknown): value is string => typeof value === 'string' && calendarInstant(value) !== null;
+
 /**
  * EX-04 S2 (B10 Moje prijave). The server's own sets of my applications, one keyset page at a time: the four tabs of the screen (Sve, Čeka te, Aktivne,
  * Završene). The order is the one the whole-list read has always had: what waits for me first (rank 0), then the open applications (rank 1), then the
@@ -39,7 +42,7 @@ export function isOwnApplicationsPageRequest(value: unknown): value is OwnApplic
     || input.limit < 1 || input.limit > 100) return false;
   if (input.cursor === null) return true;
   const cursor = record(input.cursor);
-  if (!cursor || calendarInstant(cursor.at) === null || !uuid(cursor.id)
+  if (!cursor || !exactInstant(cursor.at) || !uuid(cursor.id)
     || ![0, 1, 2].includes(cursor.rank as number)) return false;
   const wanted = ownApplicationsScopeRank(input.scope as OwnApplicationsScope);
   return wanted === null || cursor.rank === wanted;
@@ -66,7 +69,7 @@ export function decodeOwnApplicationsPage(raw: unknown, request: Pick<OwnApplica
   map: (document: any) => MojaPrijavaProjekcija): OwnApplicationsPage | null {
   const data = record(raw);
   if (!isOwnApplicationsPageRequest(request)) return null;
-  if (!data || !Array.isArray(data.items) || typeof data.hasMore !== 'boolean' || calendarInstant(data.asOf) === null || data.items.length > request.limit
+  if (!data || !Array.isArray(data.items) || typeof data.hasMore !== 'boolean' || !exactInstant(data.asOf) || data.items.length > request.limit
       || (data.hasMore && data.items.length !== request.limit)) return null;
   let counts: ApplicationCounts | null = null;
   if (request.cursor === null) {
@@ -89,7 +92,7 @@ export function decodeOwnApplicationsPage(raw: unknown, request: Pick<OwnApplica
   for (const value of data.items) {
     const document = record(value);
     if (!document || !uuid(document.id) || !uuid(document.applicationId) || document.applicationId.toLowerCase() !== document.id.toLowerCase()
-        || calendarInstant(document.sortAt) === null || seen.has(document.id.toLowerCase())) return null;
+        || !exactInstant(document.sortAt) || seen.has(document.id.toLowerCase())) return null;
     seen.add(document.id.toLowerCase());
     let row: MojaPrijavaProjekcija;
     try { row = map(document); } catch { return null; }

@@ -5,6 +5,9 @@ export { ownTasksScope } from './marketplaceView';
 export type { OwnTasksScope } from './marketplaceView';
 import { record, uuid } from './serverReceipt';
 
+/** Reject nonexistent civil instants and narrow decoded JSON values to strings. */
+const exactInstant = (value: unknown): value is string => typeof value === 'string' && calendarInstant(value) !== null;
+
 /**
  * EX-04 S1 (A09 Moji zadaci). The server's own sets of my tasks, one keyset page at a time: the three tabs (Aktivni, Nacrti, Istorija), all of them,
  * and the tasks that wait for my choice. Every item of a page IS the `rpc_read_task` document the whole-list read returns, so the card, the price
@@ -39,7 +42,7 @@ export function isOwnTasksPageRequest(value: unknown): value is OwnTasksPageRequ
     || !Number.isSafeInteger(input.limit) || input.limit < 1 || input.limit > 100) return false;
   if (input.cursor === null) return true;
   const cursor = record(input.cursor);
-  return !!cursor && calendarInstant(cursor.at) !== null && uuid(cursor.id);
+  return !!cursor && exactInstant(cursor.at) && uuid(cursor.id);
 }
 
 /** PostgreSQL keyset (created_at DESC, id DESC): compare full microsecond
@@ -59,8 +62,8 @@ export function decodeOwnTasksPage(raw: unknown, request: Pick<OwnTasksPageReque
   const data = record(raw);
   if (!Number.isSafeInteger(request.limit) || request.limit < 1 || request.limit > 100
       || (request.cursor !== null && (!record(request.cursor)
-        || calendarInstant(request.cursor.at) === null || !uuid(request.cursor.id)))) return null;
-  if (!data || !Array.isArray(data.items) || typeof data.hasMore !== 'boolean' || calendarInstant(data.asOf) === null || data.items.length > request.limit
+        || !exactInstant(request.cursor.at) || !uuid(request.cursor.id)))) return null;
+  if (!data || !Array.isArray(data.items) || typeof data.hasMore !== 'boolean' || !exactInstant(data.asOf) || data.items.length > request.limit
       || (data.hasMore && data.items.length !== request.limit)) return null;
   let counts: OwnedTaskCounts | null = null;
   if (request.cursor === null) {
@@ -75,7 +78,7 @@ export function decodeOwnTasksPage(raw: unknown, request: Pick<OwnTasksPageReque
   let previous: OwnTasksCursor | null = request.cursor;
   for (const value of data.items) {
     const document = record(value);
-    if (!document || !uuid(document.id) || calendarInstant(document.sortAt) === null || seen.has(document.id.toLowerCase())) return null;
+    if (!document || !uuid(document.id) || !exactInstant(document.sortAt) || seen.has(document.id.toLowerCase())) return null;
     const next = { at: document.sortAt, id: document.id };
     if (previous && !strictlyBeforeCursor(next, previous)) return null;
     previous = next;
