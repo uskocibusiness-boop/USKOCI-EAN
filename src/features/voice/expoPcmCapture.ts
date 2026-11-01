@@ -8,6 +8,7 @@ import { permissionAsk } from '../../ui/permissions/permissionAsk';
 type Subscription = { remove(): void };
 type Pcm = { sessionId: string; sequence: number; pcmBase64: string; rms: number };
 type Interrupted = { sessionId: string; code: string };
+const supported = () => !Platform.isTV && (Platform.OS === 'android' || Platform.OS === 'ios');
 type Session = {
   id: string; cancelled: boolean; stream: AudioStream | null; subscriptions: Subscription[];
   starting: Promise<void> | null; stopping: Promise<void> | null;
@@ -17,7 +18,7 @@ type Session = {
 
 /** Called only by the existing explicit hold-to-talk permission action. */
 export async function requestExpoSpeechPermission(signal: AbortSignal): Promise<'granted' | 'denied' | 'unavailable' | 'later'> {
-  if (Platform.OS !== 'android' || signal.aborted) return 'unavailable';
+  if (!supported() || signal.aborted) return 'unavailable';
   try {
     const permission = await getRecordingPermissionsAsync();
     if (signal.aborted) return 'denied';
@@ -44,9 +45,11 @@ function base64(bytes: Uint8Array): string {
 }
 
 /**
- * Real Expo 57 AudioModule.AudioStream adapter, kept behind an explicit build flag.
- * No file, resampling, provider change or automatic fallback. Native interruption
- * parity is still pending: Expo's stream does not expose an audio-focus event.
+ * Expo 57 PCM adapter for iOS and the explicit Android alternative.
+ * No file, JS resampling, provider change or automatic fallback. AppState,
+ * stream status and a bounded stall watchdog retire interrupted captures.
+ * Expo's stream does not expose audio-focus/AVAudioSession interruption events;
+ * native interruption and route-change behavior still needs device acceptance.
  */
 export function createExpoPcmCapture(): NativePcmModule {
   let active: Session | null = null;
@@ -114,7 +117,7 @@ export function createExpoPcmCapture(): NativePcmModule {
     finally { bytes?.fill(0); }
   }
   function start(sessionId: string, maxDurationMs: number): Promise<void> {
-    if (active || Platform.OS !== 'android' || AppState.currentState !== 'active'
+    if (active || !supported() || AppState.currentState !== 'active'
         || !sessionId || !Number.isFinite(maxDurationMs) || maxDurationMs <= 0 || maxDurationMs > SPEECH_LIMITS.captureMs) {
       return Promise.reject(new Error('MIC_UNAVAILABLE'));
     }

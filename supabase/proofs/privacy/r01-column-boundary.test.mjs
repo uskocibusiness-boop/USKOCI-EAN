@@ -9,6 +9,7 @@ import {createHash} from 'node:crypto';
 import {PGlite} from '@electric-sql/pglite';
 import {pgcrypto} from '@electric-sql/pglite/contrib/pgcrypto';
 import {snapshot} from './r01_fixture.mjs';
+import {discoverySnapshot} from './r01_discovery_fixture.mjs';
 
 const candidate = readFileSync(new URL('../../candidates/r01_needs_column_privileges.sql', import.meta.url), 'utf8');
 // All columns outside the reviewed 38-column direct-read allowlist. Keep the
@@ -71,11 +72,21 @@ test('R01 current SQL boundary and compatibility controls', async t => {
     assert.deepEqual(snapshot.columns.map(c=>c.name)
       .filter(name=>!publicColumns.includes(name)).sort(),[...nonPublicColumns].sort(),
     'every current column excluded from the public projection must be denied in SQL');
-    for(const f of snapshot.functions) {
+    assert.equal(discoverySnapshot.prior_fixture_current_body_hashes.length,snapshot.functions.length);
+    for(const f of snapshot.functions) assert.equal(
+      discoverySnapshot.prior_fixture_current_body_hashes.find(current=>
+        current.signature.replaceAll('public.','')===f.signature.replaceAll('public.',''))?.body_md5,
+      f.body_md5,`2026-11-01 metadata must still bind ${f.signature}`);
+    for(const f of [...snapshot.functions,...discoverySnapshot.functions]) {
       const body=f.definition.match(/AS \$function\$([\s\S]*)\$function\$/)?.[1];
       assert(body, f.signature);
       assert.equal(createHash('md5').update(body).digest('hex'),f.body_md5,f.signature);
     }
+    assert(discoverySnapshot.functions.every(f=>f.definer===false),'Discovery runs with caller privileges');
+    const policyShape=p=>({policyname:p.policyname,cmd:p.cmd,permissive:p.permissive,roles:p.roles,
+      qual:p.qual?.replaceAll('public.','')??null,with_check:p.with_check?.replaceAll('public.','')??null});
+    assert.deepEqual(discoverySnapshot.current_reader_policies.filter(p=>p.tablename==='needs').map(policyShape),
+      snapshot.policies.map(policyShape),'the original Need policies must still match current metadata');
     assert.equal(await scalar('select current_user'),'postgres');
   });
 
@@ -83,6 +94,10 @@ test('R01 current SQL boundary and compatibility controls', async t => {
     await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
       create schema auth; create schema private; create schema rls_private; create schema extensions;
       create extension pgcrypto with schema extensions;
+      -- PGlite has no ICU provider. Preserve the exact function bodies by giving
+      -- their collation name an explicit C substitute. ASCII fixtures below do
+      -- not establish Serbian case folding/sorting or hosted collation parity.
+      create collation pg_catalog."sr-Latn-RS-x-icu" from pg_catalog."C";
       grant usage on schema public,auth to anon,authenticated,service_role;
       grant usage on schema rls_private to authenticated;
       create function auth.uid() returns uuid language sql stable as
@@ -129,6 +144,7 @@ test('R01 current SQL boundary and compatibility controls', async t => {
     await db.exec(`create table public.needs(${ddl},primary key(id)); alter table public.needs enable row level security;`);
     // Function install order is allowed by PL/pgSQL's deferred statement planning.
     for(const f of snapshot.functions) await db.exec(f.definition);
+    for(const f of discoverySnapshot.functions) await db.exec(f.definition);
     await db.exec(`revoke all on all functions in schema public,private,rls_private from public,anon,authenticated;
       grant execute on all functions in schema public to authenticated,service_role;
       grant execute on all functions in schema rls_private to authenticated;
@@ -140,6 +156,12 @@ test('R01 current SQL boundary and compatibility controls', async t => {
     for(const p of snapshot.policies) {
       await db.exec(`create policy ${p.policyname} on public.needs as ${p.permissive} for ${p.cmd}
         to ${p.roles.join(',')}${p.qual?` using (${p.qual})`:''}${p.with_check?` with check (${p.with_check})`:''}`);
+    }
+    for(const table of ['need_geography','need_requirement_details']) {
+      await db.exec(`alter table public.${table} enable row level security`);
+      for(const p of discoverySnapshot.current_reader_policies.filter(p=>p.tablename===table))
+        await db.exec(`create policy ${p.policyname} on public.${table} as ${p.permissive} for ${p.cmd}
+          to ${p.roles.join(',')}${p.qual?` using (${p.qual})`:''}${p.with_check?` with check (${p.with_check})`:''}`);
     }
     for(const [id,status,who] of [[published,'PUBLISHED',owner],[selection,'SELECTION',owner],[active,'ACTIVE',owner],[draft,'DRAFT',owner],[realNeed,'PUBLISHED',real]]) {
       await db.query(`insert into public.needs(id,requester_account_id,status,title,description,category,
@@ -251,6 +273,109 @@ test('R01 current SQL boundary and compatibility controls', async t => {
     assert.equal(forged,null);
     assert.equal(await as('authenticated',reader,()=>scalar(`select public.covered_slots(
       jsonb_populate_record(null::public.needs,jsonb_build_object('id',$1::uuid)))`,[active])),1);
+  });
+
+  await t.test('current Discovery preserves positive owned/foreign pages, exact landing and scope after the column patch', async () => {
+    const second=uuid(106), onsite=uuid(107);
+    const request={mode:'PAGE',filter:{text:'',price:'all',where:'any',places:1,when:'any',dates:null,place:null},
+      anchor:null,scope:{kind:'ALL'},limit:30,after:null};
+    const discover=(actor,body=request)=>as('authenticated',actor,
+      ()=>scalar('select public.rpc_discovery_v1($1::jsonb)',[JSON.stringify(body)]));
+    const exact=(actor,id)=>discover(actor,{mode:'EXACT_PUBLIC',needId:id});
+    const ids=result=>result.items.map(item=>item.id);
+    const publicOnly=result=>{
+      const forbidden=new Set([...nonPublicColumns,'requesterAccountId','remainingSearchClosedByAccountId',
+        'remainingSearchCloseReason','categoryId']);
+      const visit=value=>{ if(value && typeof value==='object') for(const [key,child] of Object.entries(value)) {
+        assert(!forbidden.has(key),`private field ${key}`); visit(child);
+      }};
+      visit(result);
+      assert(!JSON.stringify(result).includes(marker));
+      assert(!JSON.stringify(result).includes(internalCategory));
+    };
+    // Two nonempty actors and both work modes avoid an empty-RLS success. Private
+    // markers remain populated while only the reviewed public contract is read.
+    await db.query(`insert into public.needs(id,requester_account_id,status,title,category,category_id,
+      schedule_kind,mode,required_slots,execution_location_mode,task_country_code,task_timezone,
+      approximate_city,approximate_lat,approximate_lng,published_at)
+      values($1,$2,'PUBLISHED','Remote second','Cleaning',$5,'FLEXIBLE','OFFERS',3,'REMOTE','RS','Europe/Belgrade',
+        '',null,null,statement_timestamp()-interval '12 hours'),
+      ($3,$4,'SELECTION','Onsite third','Cleaning',$5,'FLEXIBLE','OFFERS',3,'ON_SITE','RS','Europe/Belgrade',
+        'Belgrade',44.81,20.46,statement_timestamp()-interval '6 hours')`,[second,reader,onsite,owner,internalCategory]);
+    try {
+      await db.query('insert into public.need_geography values($1,$2::jsonb)',
+        [onsite,JSON.stringify({kind:'POINT',precision:'COARSE_1KM',lat:44.81,lng:20.46})]);
+      await db.query('insert into public.need_requirement_details values($1,$2::text[])',[onsite,['Bring tools']]);
+      for(const actor of [owner,reader,participant]) {
+        const page=await discover(actor);
+        assert.deepEqual(ids(page),[onsite,second,published]);
+        assert.equal(page.counts.listed,3);
+        assert.equal(page.hasMore,false);
+        publicOnly(page);
+        for(const id of [onsite,second,published]) {
+          const landing=await exact(actor,id);
+          assert.deepEqual(ids(landing),[id]);
+          assert.equal(landing.items[0].coveredSlots,0);
+          assert.equal(landing.items[0].acceptsApplications,true);
+          if(id===onsite) {
+            assert.deepEqual(landing.items[0].publicTopology,{kind:'POINT',precision:'COARSE_1KM',lat:44.81,lng:20.46});
+            assert.deepEqual(landing.items[0].criticalConditions,['Bring tools']);
+          }
+          publicOnly(landing);
+        }
+      }
+      // The same actors still receive only their own private workspace lists.
+      const own=await as('authenticated',reader,()=>scalar('select public.rpc_list_my_tasks()'));
+      const ownPage=await as('authenticated',reader,()=>scalar("select public.rpc_list_my_needs_page('ALL',30,null,null)"));
+      assert.deepEqual(own.map(item=>item.id),[second]);
+      assert.deepEqual(ids(ownPage),[second]);
+      publicOnly(own); publicOnly(ownPage);
+      const remote=await discover(reader,{...request,filter:{...request.filter,where:'remote'}});
+      assert.deepEqual(ids(remote),[second,published]); publicOnly(remote);
+      const area=await discover(reader,{...request,scope:{kind:'AREA',bounds:[20,44,21,45]}});
+      assert.deepEqual(ids(area),[onsite,second,published]);
+      assert.equal(area.counts.inArea,1); assert.equal(area.counts.withoutPoint,2); publicOnly(area);
+
+      let page=await discover(reader,{...request,limit:1});
+      const seen=[];
+      for(let i=0;i<3;i++) {
+        seen.push(...ids(page)); publicOnly(page);
+        assert.equal(page.hasMore,i<2);
+        if(i<2) {
+          assert(page.nextCursor);
+          page=await discover(reader,{...request,limit:1,anchor:page.anchor,after:page.nextCursor});
+        } else assert.equal(page.nextCursor,null);
+      }
+      assert.deepEqual(seen,[onsite,second,published],'column restriction must not break or skip cursor pages');
+      assert.deepEqual(ids(await discover(real)),[realNeed]);
+      for(const id of [realNeed,selection,active,draft]) assert.deepEqual(ids(await exact(reader,id)),[]);
+      assert.deepEqual(ids(await exact(real,published)),[]);
+      await denied(discover(closed));
+      await denied(as('anon',null,()=>scalar('select public.rpc_discovery_v1($1::jsonb)',[JSON.stringify(request)])));
+      await assert.rejects(discover(null),e=>e.code==='28000');
+      for(const column of nonPublicColumns) await denied(as('authenticated',reader,
+        ()=>query(`select ${column} from public.needs where id=$1`,[onsite])));
+    } finally {
+      await db.query('delete from public.need_geography where need_id=$1',[onsite]);
+      await db.query('delete from public.need_requirement_details where need_id=$1',[onsite]);
+      await db.query('delete from public.needs where id=any($1::uuid[])',[[second,onsite]]);
+    }
+  });
+
+  await t.test('a whole-row Discovery regression fails instead of bypassing the candidate boundary', async () => {
+    const captured=discoverySnapshot.functions.find(f=>f.signature==='public.rpc_discovery_v1(jsonb)');
+    const safe="public.covered_slots(jsonb_populate_record(null::public.needs,jsonb_build_object('id',n.id)))";
+    assert.equal(captured.definition.split(safe).length,2,'adversary targets one actual call site');
+    try {
+      await db.exec(captured.definition.replace(safe,'public.covered_slots(n)'));
+      await denied(as('authenticated',reader,()=>scalar('select public.rpc_discovery_v1($1::jsonb)',
+        [JSON.stringify({mode:'EXACT_PUBLIC',needId:published})])));
+    } finally {
+      await db.exec(captured.definition);
+    }
+    assert.equal(await scalar("select md5(prosrc) from pg_proc where oid='public.rpc_discovery_v1(jsonb)'::regprocedure"),captured.body_md5);
+    assert.equal((await as('authenticated',reader,()=>scalar('select public.rpc_discovery_v1($1::jsonb)',
+      [JSON.stringify({mode:'EXACT_PUBLIC',needId:published})]))).items[0].id,published);
   });
 
   await t.test('owner close-search writer still stores private actor/reason and rejects foreign caller', async () => {

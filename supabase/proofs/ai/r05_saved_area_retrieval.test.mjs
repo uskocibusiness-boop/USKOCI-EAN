@@ -1,188 +1,166 @@
-// R05: execute exact LOCAL_ONLY patch against a synthetic PostgreSQL area model.
-// Distance is a numeric domain (not real PostGIS), so this is retrieval control-flow
-// proof, not production geography/index performance, HTTP, or DEV acceptance.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {PGlite} from '@electric-sql/pglite';
-const sql=readFileSync(new URL('../../candidates/r05_saved_area_retrieval.sql',import.meta.url),'utf8');
-const patch=sql.split('-- PATCH BEGINS:')[1]?.split('-- PATCH ENDS.')[0];
-const uid=n=>'00000000-0005-4005-8005-'+String(n).padStart(12,'0');
-const task=uid(1),near=uid(11),far=uid(12),outside=uid(13),withoutArea=uid(14),nullPin=uid(15);
-const acct=n=>uid(100+n);
-function baseline(capped){
- const n=capped?'candidate_profile_ids_v1b':'candidate_profile_ids';
- const cap=capped?',p_cap integer':'';
- const room=capped?'private.worker_notify_room_v1b(c.uid,p_cap) and ':'';
- const uidSelect=capped?',pref.worker_account_id as uid':'';
- const uidFallback=capped?',p.account_id as uid':'';
- const prefix=capped?'if p_cap is null then return query select * from private.candidate_profile_ids(nid,p_limit);return;end if;':'';
- return [
- 'CREATE FUNCTION private.'+n+'(nid uuid,p_limit integer'+cap+') RETURNS TABLE(worker_profile_id uuid)',
- "LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'pg_catalog' AS $f$",
- 'declare n public.needs; admitted integer:=0; c record; task_geog extensions.geography;',
- 'begin',
- prefix,
- 'select * into n from public.needs where id=nid;',
- 'if not found or p_limit is null or p_limit<1 then return;end if;',
- "if n.execution_location_mode IN ('STATIONARY','POINT_TO_POINT','MULTI_STOP','AREA_BASED') and n.approx_geog is not null then",
- 'task_geog:=n.approx_geog;',
- 'for c in select pref.worker_profile_id as pid'+uidSelect+' from public.worker_match_preferences pref',
- 'where pref.approximate_geog is not null and extensions.ST_DWithin(pref.approximate_geog,task_geog,300000.0)',
- 'order by pref.worker_profile_id loop',
- 'if '+room+'private.dispatch_cheap_candidate_admitted(n.id,c.pid) then',
- 'worker_profile_id:=c.pid;return next;admitted:=admitted+1;exit when admitted>=p_limit;end if;',
- 'end loop;',
- '    if admitted < p_limit then',
- '      for c in',
- '        select p.id as pid'+uidFallback,
- '        from public.app_profiles p left join public.worker_match_preferences pref on pref.worker_profile_id=p.id',
- "        where p.kind='WORKER' and p.profile_status='ACTIVE'",
- '        and (pref.worker_profile_id is null or pref.approximate_geog is null) order by p.id',
- '      loop',
- '       if '+room+'private.dispatch_cheap_candidate_admitted(n.id,c.pid) then',
- '        worker_profile_id:=c.pid;return next;admitted:=admitted+1;exit when admitted>=p_limit;end if;',
- '      end loop;',
- '    end if;',
- 'return;',
- 'end if;',
- 'for c in select p.id as pid'+uidFallback+" from public.app_profiles p where p.kind='WORKER' and p.profile_status='ACTIVE' order by p.id loop",
- ' if '+room+'private.dispatch_cheap_candidate_admitted(n.id,c.pid) then',
- ' worker_profile_id:=c.pid;return next;admitted:=admitted+1;exit when admitted>=p_limit;end if;',
- 'end loop;',
- 'end; $f$;'
- ].join('\n');
-}
-async function makeDb(){
- const db=new PGlite();
- await db.exec([
- 'CREATE SCHEMA private;CREATE SCHEMA extensions;',
- 'CREATE DOMAIN extensions.geography AS numeric;',
- "CREATE FUNCTION extensions.ST_DWithin(a extensions.geography,b extensions.geography,d double precision) RETURNS boolean LANGUAGE sql IMMUTABLE AS $f$ SELECT abs(a::numeric-b::numeric)<=d; $f$;",
- 'CREATE TABLE public.needs(id uuid PRIMARY KEY,execution_location_mode text,approx_geog extensions.geography,task_country_code text,approximate_city text,approximate_lat numeric,approximate_lng numeric);',
- 'CREATE TABLE public.app_profiles(id uuid PRIMARY KEY,account_id uuid,kind text,profile_status text);',
- 'CREATE TABLE public.worker_match_preferences(worker_profile_id uuid,worker_account_id uuid,approximate_geog extensions.geography);',
- 'CREATE TABLE private.saved_areas(owner uuid PRIMARY KEY,areas jsonb);',
- "CREATE FUNCTION private.worker_saved_areas_v1(aid uuid) RETURNS jsonb LANGUAGE sql STABLE AS $f$ SELECT coalesce((SELECT areas FROM private.saved_areas WHERE owner=aid),'[]'::jsonb); $f$;",
- 'CREATE FUNCTION private.worker_area_fit_v1(areas jsonb,mode text,country text,city text,lat numeric,lng numeric) RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT coalesce(areas ? country,false); $f$;',
- "CREATE FUNCTION private.dispatch_cheap_candidate_admitted(nid uuid,pid uuid) RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT exists(SELECT 1 FROM public.app_profiles p WHERE p.id=pid AND p.profile_status='ACTIVE'); $f$;",
- "CREATE FUNCTION private.worker_notify_room_v1b(p_uid uuid,p_cap integer) RETURNS boolean LANGUAGE sql STABLE AS $f$ SELECT p_cap>=2 OR p_uid<> '"+acct(11)+"'::uuid; $f$;",
- baseline(false),baseline(true)
- ].join('\n'));
- await db.query("INSERT INTO public.needs VALUES($1,'STATIONARY',0::numeric,'RS','Novi Sad',45.25,19.83)",[task]);
- for(const [id,point] of [[near,10000],[far,600000],[outside,700000],[withoutArea,850000]]){
-  const account=acct(Number(id.slice(-2)));
-  await db.query("INSERT INTO public.app_profiles VALUES ($1,$2,'WORKER','ACTIVE')",[id,account]);
-  await db.query('INSERT INTO public.worker_match_preferences VALUES($1,$2,$3::numeric)',[id,account,point]);
- }
- await db.query("INSERT INTO private.saved_areas VALUES($1,'[\"RS\"]'),($2,'[\"ME\"]')",[acct(12),acct(13)]);
- return db;
-}
-async function list(db,capped,limit,cap){
- const q=capped?'SELECT worker_profile_id FROM private.candidate_profile_ids_v1b($1::uuid,$2::integer,$3::integer)'
-  :'SELECT worker_profile_id FROM private.candidate_profile_ids($1::uuid,$2::integer)';
- const r=await db.query(q,capped?[task,limit,cap]:[task,limit]);
- return r.rows.map(v=>v.worker_profile_id);
-}
-test('exact source pins both readers and does not claim PostGIS/DEV admission',()=>{
+import {sql,patch,indexedSource,uid,task,near,far,nullPin,acct,countryArea,cityArea,radiusArea,saveAreas,makeDb,applyIndexed,list} from '../r05/saved_area_fixture.mjs';
+
+test('pins exact readers, area semantics and LOCAL_ONLY admission without widening RPC grants',()=>{
+ for(const pin of ['665d3bcba58ea4a930a5ac5801383a84','60b8eae4b4efa8a6b05b81c6c08b0021','4b9e8a4114dc962f58aa5488b2ee9675',
+ '89bb9de67e0cae401b0447636a9e0939','3a29aaf12ec94c4a83743944a973dc09','591a2c4ca91722217a098e05f2bbb9ab',
+ '22233ee6f1029842db9fe465ddb5398f','6ea6e5923e7aaf8934ac277a864b9067','5a5848cbf4f91f2f216290e00cf89f1e']) assert.ok(sql.includes(pin));
  assert.match(sql,/R05_SAVED_AREA_LOCAL_ONLY/);
- assert.match(sql,/665d3bcba58ea4a930a5ac5801383a84/);
- assert.match(sql,/60b8eae4b4efa8a6b05b81c6c08b0021/);
- for(const sha of ['4b9e8a4114dc962f58aa5488b2ee9675','89bb9de67e0cae401b0447636a9e0939',
-   '3a29aaf12ec94c4a83743944a973dc09','591a2c4ca91722217a098e05f2bbb9ab'])
-   assert.ok(sql.includes(sha),'each live helper must be source-pinned before a future SQL release');
- assert.match(sql,/private\.worker_area_fit_v1/);
- assert.match(sql,/private\.worker_notify_room_v1b/);
- assert.ok(patch?.includes('R05_SAVED_AREA_300KM_RESCUE'));
+ assert.equal((indexedSource.match(/REVOKE ALL ON FUNCTION/g)||[]).length,3);
+ assert.doesNotMatch(indexedSource,/SECURITY DEFINER|CREATE TABLE|CREATE TRIGGER|GRANT /);
+ assert.match(patch,/private\.worker_saved_areas_v1\(c.uid\)/);
+ assert.match(patch,/private\.worker_area_fit_v1/);
 });
-test('actual injected SQL includes far signed-area candidate after nearby candidates',async t=>{
+test('actual pinned readers include far latest saved area after nearby candidates',async t=>{
  const db=await makeDb();t.after(()=>db.close());
- assert.deepEqual(await list(db,false,5),[near]);
- await db.exec(patch);
+ assert.deepEqual(await list(db),[near]);
+ await applyIndexed(db);
  assert.deepEqual(await list(db,false,2),[near,far]);
  assert.deepEqual(await list(db,false,1),[near]);
- assert.deepEqual(await list(db,false,5),[near,far]);
+ assert.deepEqual(await list(db),[near,far]);
 });
-test('capped retrieval preserves suppression and NULL cap delegates to original flow',async t=>{
- const db=await makeDb();t.after(()=>db.close());
- await db.exec(patch);
+test('numeric cap suppression and NULL delegation retain the same reader contract',async t=>{
+ const db=await makeDb();t.after(()=>db.close());await applyIndexed(db);
  assert.deepEqual(await list(db,true,2,null),[near,far]);
  assert.deepEqual(await list(db,true,1,1),[far]);
  assert.deepEqual(await list(db,true,2,2),[near,far]);
 });
-test('far invalid area and DRAFT worker cannot slip into the rescue',async t=>{
- const db=await makeDb();t.after(()=>db.close());await db.exec(patch);
- await db.query("UPDATE private.saved_areas SET areas='[\"ME\"]'::jsonb WHERE owner=$1",[acct(12)]);
- assert.deepEqual(await list(db,false,4),[near]);
- await db.query("UPDATE private.saved_areas SET areas='[\"RS\"]'::jsonb WHERE owner=$1",[acct(12)]);
+test('far invalid area, inactive worker, owner mismatch and final gate denial cannot enter',async t=>{
+ const db=await makeDb();t.after(()=>db.close());await applyIndexed(db);
+ await db.query('UPDATE private.worker_ai_reviews SET envelope=$1::jsonb WHERE account_id=$2',[JSON.stringify({profile:{workAreas:[cityArea('Niš')]}}),acct(12)]);
+ assert.deepEqual(await list(db),[near]);
+ await db.query('UPDATE private.worker_ai_reviews SET envelope=$1::jsonb WHERE account_id=$2',[JSON.stringify({profile:{workAreas:[countryArea()]}}),acct(12)]);
  await db.query("UPDATE public.app_profiles SET profile_status='DRAFT' WHERE id=$1",[far]);
  assert.deepEqual(await list(db,true,4,2),[near]);
+ await db.query("UPDATE public.app_profiles SET profile_status='ACTIVE' WHERE id=$1",[far]);
+ await db.query('INSERT INTO private.blocked_profiles VALUES($1)',[far]);
+ assert.deepEqual(await list(db),[near]);
+ await db.exec('DELETE FROM private.blocked_profiles');
+ await db.query('UPDATE public.worker_match_preferences SET worker_account_id=$1 WHERE worker_profile_id=$2',[acct(13),far]);
+ assert.deepEqual(await list(db),[near]);
 });
-test('no-GPS preference is still handled by the existing fallback without inventing a pin',async t=>{
+test('no-pin fallback and REMOTE path retain original behavior without inventing a location',async t=>{
  const db=await makeDb();t.after(()=>db.close());
  await db.query("INSERT INTO public.app_profiles VALUES($1,$2,'WORKER','ACTIVE')",[nullPin,acct(15)]);
- await db.exec(patch);
+ await db.query("UPDATE public.needs SET execution_location_mode='REMOTE',approx_geog=null,approximate_lat=null,approximate_lng=null");
+ const before=await list(db);await applyIndexed(db);
+ assert.deepEqual(await list(db),before,'REMOTE remains its existing rotation/final matcher path');
+ await db.query("UPDATE public.needs SET execution_location_mode='STATIONARY',approx_geog='0'::jsonb,approximate_lat=45.25,approximate_lng=19.83");
  assert.deepEqual(await list(db,false,3),[near,far,nullPin]);
 });
+test('latest owned Save wins, newer unsaved review and accepted-review expiry do not change authority',async t=>{
+ const db=await makeDb();t.after(()=>db.close());await applyIndexed(db);
+ await saveAreas(db,acct(12),[cityArea('Niš')],{review:uid(200001),saved:false});
+ assert.deepEqual(await list(db),[near,far],'expired but accepted country is still authoritative');
+ await saveAreas(db,acct(12),[cityArea('Niš')],{review:uid(200002),at:'2026-11-01T13:00:00Z'});
+ assert.deepEqual(await list(db),[near],'old saved country cannot override newer saved city');
+ await saveAreas(db,acct(12),[countryArea()],{review:uid(200003),at:'2026-11-01T13:00:00Z'});
+ assert.deepEqual(await list(db),[near,far],'review-id tie break matches canonical saved reader');
+ await saveAreas(db,acct(12),[],{review:uid(200004),at:'2026-11-01T14:00:00Z',reviewOwner:acct(13)});
+ assert.deepEqual(await list(db),[near,far],'foreign-owned review is not a current owned Save');
+ await saveAreas(db,acct(12),[],{review:uid(200005),at:'2026-11-01T15:00:00Z'});
+ assert.deepEqual(await list(db),[near],'latest empty saved areas remove indexed match without reviving history');
+});
+test('canonical CITY normalization and COUNTRY country gate use exact existing evaluator',async t=>{
+ const db=await makeDb();t.after(()=>db.close());
+ await saveAreas(db,acct(12),[cityArea('НОВИ   САД')],{review:uid(210001),at:'2026-11-01T13:00:00Z'});
+ await applyIndexed(db);
+ assert.deepEqual(await list(db),[near,far]);
+ await db.query("UPDATE public.needs SET approximate_city='Novi Beograd'");
+ assert.deepEqual(await list(db),[near]);
+ await saveAreas(db,acct(12),[countryArea()],{review:uid(210002),at:'2026-11-01T14:00:00Z'});
+ await db.query("UPDATE public.needs SET task_country_code='ME'");
+ assert.deepEqual(await list(db),[near]);
+ await db.query("UPDATE public.needs SET task_country_code='RS',approximate_city=null,approximate_lat=null,approximate_lng=null");
+ assert.deepEqual(await list(db),[near,far],'country does not invent or require a task coordinate');
+});
+test('all five RADIUS centers are candidates, but broad retrieval does not replace exact radius fit',async t=>{
+ const db=await makeDb();t.after(()=>db.close());
+ const areas=[1,2,3,4].map((n)=>radiusArea(1,41+n/100,20,n));areas.push(radiusArea(1));
+ await saveAreas(db,acct(12),areas,{review:uid(220001),at:'2026-11-01T13:00:00Z'});
+ await applyIndexed(db);assert.deepEqual(await list(db),[near,far]);
+ await saveAreas(db,acct(12),[radiusArea(1,45.7,19.83)],{review:uid(220002),at:'2026-11-01T14:00:00Z'});
+ assert.ok((await db.query("SELECT * FROM private.worker_saved_area_candidates_v1('RS','Novi Sad',45.25,19.83)")).rows.some(r=>r.worker_account_id===acct(12)),'201km retrieval intentionally over-selects');
+ assert.deepEqual(await list(db),[near],'exact 1km radius still rejects distant task');
+});
+test('malformed, unknown and erased review JSON cannot break index build or act as signed area',async t=>{
+ const db=await makeDb();t.after(()=>db.close());
+ const bad=[null,{},'x',[{}],[null],[7],['x'],[[]],[{...radiusArea(),radiusKm:'ten'}],[{...radiusArea(),latitude:'NaN'}],[{...cityArea(),kind:'FUTURE'}],{erasedBy:'AF-D22'}];
+ for(let i=0;i<bad.length;i++) await saveAreas(db,acct(12),bad[i],{review:uid(230000+i),saved:false});
+ await applyIndexed(db);
+ for(const areas of bad){
+  const r=await db.query('SELECT private.worker_area_retrieval_keys_v1($1::jsonb) AS keys,private.worker_area_radius_centers_v1($1::jsonb) AS centers',[JSON.stringify(areas)]);
+  assert.deepEqual(r.rows[0],{keys:[],centers:null});
+ }
+ assert.deepEqual(await list(db),[near,far]);
+ await db.query("UPDATE private.worker_ai_reviews SET envelope='{}'::jsonb WHERE account_id=$1",[acct(12)]);
+ assert.deepEqual(await list(db),[near],'erasure updates indexes without retaining location projection');
+});
 
-// Characterize the remaining deployment blocker, not a performance acceptance.
-// This counter exists only in the synthetic fixture: production keeps its exact
-// STABLE reader. Count actual area-reader calls, without wall-clock thresholds.
 async function sparseFarDb(rejectedCount){
- const db=await makeDb();
- await db.exec(`
-  DELETE FROM private.saved_areas;
-  DELETE FROM public.worker_match_preferences;
-  DELETE FROM public.app_profiles;
-  CREATE SEQUENCE private.area_probe_calls MINVALUE 0 START WITH 0;
-  CREATE OR REPLACE FUNCTION private.worker_saved_areas_v1(aid uuid)
-  RETURNS jsonb LANGUAGE plpgsql STABLE AS $f$
-  BEGIN
-   PERFORM nextval('private.area_probe_calls');
-   RETURN coalesce((SELECT areas FROM private.saved_areas WHERE owner=aid),'[]'::jsonb);
-  END; $f$;
- `);
+ const db=await makeDb({seed:false});
+ await db.exec(`CREATE SEQUENCE private.area_probe_calls MINVALUE 0 START WITH 0;
+ CREATE OR REPLACE FUNCTION private.worker_saved_areas_v1(aid uuid) RETURNS jsonb LANGUAGE plpgsql STABLE AS $f$
+ BEGIN
+  PERFORM nextval('private.area_probe_calls');
+  RETURN coalesce((SELECT r.envelope#>'{profile,workAreas}' FROM private.worker_ai_saves s
+   JOIN private.worker_ai_reviews r ON r.id=s.review_id AND r.account_id=s.account_id
+   WHERE s.account_id=aid ORDER BY s.created_at DESC,s.review_id DESC LIMIT 1),'[]'::jsonb);
+ END; $f$;`);
  const eligible=uid(1000+rejectedCount);
  for(let i=0;i<=rejectedCount;i++){
   const id=uid(1000+i),account=uid(10000+i);
   await db.query("INSERT INTO public.app_profiles VALUES($1,$2,'WORKER','ACTIVE')",[id,account]);
-  await db.query('INSERT INTO public.worker_match_preferences VALUES($1,$2,600000::numeric)',[id,account]);
+  await db.query("INSERT INTO public.worker_match_preferences VALUES($1,$2,'600000'::jsonb)",[id,account]);
+  await saveAreas(db,account,i===rejectedCount?[countryArea()]:[cityArea('Niš',43.32,21.90)]);
  }
- await db.query("INSERT INTO private.saved_areas VALUES($1,'[\"RS\"]')",[uid(10000+rejectedCount)]);
  return {db,eligible};
 }
-async function areaProbeCount(db){
- const r=await db.query('SELECT CASE WHEN is_called THEN last_value+1 ELSE 0 END AS calls FROM private.area_probe_calls');
- return Number(r.rows[0].calls);
-}
-async function resetAreaProbeCount(db){
- await db.query("SELECT setval('private.area_probe_calls',0,false)");
-}
-test('remaining blocker: one returned far candidate can require every saved-area read',async t=>{
- const {db,eligible}=await sparseFarDb(128);t.after(()=>db.close());
- await db.exec(patch);
+async function countReads(db){return Number((await db.query('SELECT CASE WHEN is_called THEN last_value+1 ELSE 0 END AS calls FROM private.area_probe_calls')).rows[0].calls);}
+async function resetReads(db){await db.query("SELECT setval('private.area_probe_calls',0,false)");}
+const indexedFrom='from private.worker_saved_area_candidates_v1(n.task_country_code,n.approximate_city,n.approximate_lat,n.approximate_lng) saved\n        join public.worker_match_preferences pref on pref.worker_account_id=saved.worker_account_id';
+
+test('sparse indexed retrieval reads only matching latest saved area, no-match reads none, retry is stable',async t=>{
+ const {db,eligible}=await sparseFarDb(128);t.after(()=>db.close());await applyIndexed(db);
  for(const [capped,cap] of [[false,null],[true,null],[true,2]]){
-  await resetAreaProbeCount(db);
-  assert.deepEqual(await list(db,capped,1,cap),[eligible]);
-  assert.equal(await areaProbeCount(db),129,'output limit one is not an examined-row budget');
- }
- await db.exec('DELETE FROM private.saved_areas');
- await resetAreaProbeCount(db);
- assert.deepEqual(await list(db,false,1),[]);
- assert.equal(await areaProbeCount(db),129,'an empty page still reads all far profiles');
-});
-test('a raw scan cap loses the sparse match and retry cannot advance this stateless reader',async t=>{
- const {db}=await sparseFarDb(32);t.after(()=>db.close());
- // Deliberately unsafe local mutant: never promote this to the candidate.
- const anchor='order by pref.worker_profile_id\n      loop';
- assert.equal(patch.split(anchor).length-1,2,'both real inserted passes are exercised');
- const naiveCap=patch.replaceAll(anchor,'order by pref.worker_profile_id LIMIT 8\n      loop');
- await db.exec(naiveCap);
- for(const [capped,cap] of [[false,null],[true,null],[true,2]]){
-  for(let attempt=0;attempt<2;attempt++){
-   await resetAreaProbeCount(db);
-   assert.deepEqual(await list(db,capped,1,cap),[]);
-   assert.equal(await areaProbeCount(db),8,'same rejected prefix is examined again');
+  for(let retry=0;retry<2;retry++){
+   await resetReads(db);assert.deepEqual(await list(db,capped,1,cap),[eligible]);
+   assert.equal(await countReads(db),1,'128 unrelated far saved-area readers are not called');
   }
  }
+ await db.query('DELETE FROM private.worker_ai_saves WHERE account_id=$1',[uid(10128)]);
+ await resetReads(db);assert.deepEqual(await list(db,false,1),[]);assert.equal(await countReads(db),0);
+});
+test('negative control preserves old 129-read witness and demonstrates why a raw cap is invalid',async t=>{
+ for(const limit of [null,8]){
+  const {db,eligible}=await sparseFarDb(128);t.after(()=>db.close());
+  assert.equal(patch.split(indexedFrom).length-1,2);
+  let old=patch.replaceAll(indexedFrom,'from public.worker_match_preferences pref');
+  if(limit) old=old.replaceAll('order by pref.worker_profile_id\n      loop','order by pref.worker_profile_id LIMIT 8\n      loop');
+  await db.exec(old);
+  for(const [capped,cap] of [[false,null],[true,null],[true,2]]){
+   for(let retry=0;retry<2;retry++){
+    await resetReads(db);assert.deepEqual(await list(db,capped,1,cap),limit?[]:[eligible]);
+    assert.equal(await countReads(db),limit??129);
+   }
+  }
+ }
+});
+test('actual GIN and latest-Save btree are chosen for selective core PostgreSQL queries',async t=>{
+ const db=await makeDb({seed:false});t.after(()=>db.close());await applyIndexed(db);
+ await db.query(`INSERT INTO private.worker_ai_reviews(id,account_id,envelope)
+  SELECT md5('review'||g)::uuid,md5('owner'||g)::uuid,
+  jsonb_build_object('profile',jsonb_build_object('workAreas',jsonb_build_array($1::jsonb||jsonb_build_object('city','City'||g,'label','City'||g))))
+  FROM generate_series(1,4000) g`,[JSON.stringify(cityArea())]);
+ await db.exec(`INSERT INTO private.worker_ai_saves SELECT id,account_id,'2026-11-01'::timestamptz FROM private.worker_ai_reviews; ANALYZE private.worker_ai_reviews; ANALYZE private.worker_ai_saves;`);
+ const plan=(await db.query(`EXPLAIN (ANALYZE,FORMAT JSON) SELECT id FROM private.worker_ai_reviews
+  WHERE private.worker_area_retrieval_keys_v1(envelope#>'{profile,workAreas}') && ARRAY['CITY:city3999']`)).rows[0]['QUERY PLAN'];
+ assert.match(JSON.stringify(plan),/r05_worker_review_area_keys_idx/);
+ assert.equal(plan[0].Plan['Actual Rows'],1);
+ const latest=(await db.query(`EXPLAIN (ANALYZE,FORMAT JSON) SELECT review_id FROM private.worker_ai_saves
+  WHERE account_id=md5('owner3999')::uuid ORDER BY created_at DESC,review_id DESC LIMIT 1`)).rows[0]['QUERY PLAN'];
+ assert.match(JSON.stringify(latest),/r05_worker_saves_latest_idx/);
+ assert.equal(latest[0].Plan['Actual Rows'],1);
+ // No GiST/PostGIS plan assertion: PGlite does not provide that extension.
 });

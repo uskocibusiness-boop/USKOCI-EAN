@@ -31,14 +31,14 @@ it('names the brand with its mark, not with a second title, and keeps the words'
   expect(heading.length).toBeGreaterThan(0); expect(heading[0].props.accessible).toBe(true);
   expect(heading[0].findAllByType('BrandLockup' as React.ElementType)).toHaveLength(1);
   const copy = texts().flatMap(node => node.children.filter(child => typeof child === 'string')).join(' ');
-  expect(copy).toContain('Pomoć počinje dogovorom.');
-  expect(copy).toContain('Tražiš pomoć ili uskačeš — na istom nalogu');
-  expect(copy).toContain('Objavi zadatak');
-  expect(copy).toContain('Izaberi ko će pomoći.');
-  expect(copy).toContain('Uskoči i zaradi');
-  expect(copy).toContain('Pronađi zadatak za svoje veštine.');
+  expect(copy).toContain('USKOČI — Vaš partner za svaki zadatak.');
+  expect(copy).toContain('Tražite pomoć ili uskačete — na istom nalogu');
+  expect(copy).toContain('Objavite zadatak');
+  expect(copy).toContain('Izaberite ko će pomoći.');
+  expect(copy).toContain('Uskočite i zaradite');
+  expect(copy).toContain('Pronađite zadatak za svoje veštine.');
   // "AI" is not written: in the screen's type its I is one stroke and it read "Al" (owner's phone, 8 Oct 2026).
-  expect(copy).toContain('Asistent pomaže da sastaviš zadatak. Ti pregledaš i potvrđuješ.'); expect(copy).not.toMatch(/AI/);
+  expect(copy).toContain('Asistent pomaže da sastavite zadatak. Vi pregledate i potvrđujete.'); expect(copy).not.toMatch(/AI/);
   expect(tree.root.findAllByType('BuildIdentity' as React.ElementType)).toHaveLength(1);
 });
 
@@ -69,15 +69,15 @@ describe('the composition', () => {
 
   it('names two sections after the brand, in the order a person reads them', async () => {
     await render();
-    expect(headings().filter(title => title !== 'O aplikaciji')).toEqual(['Tražiš pomoć ili uskačeš — na istom nalogu', 'Pravila i privatnost']);
+    expect(headings().filter(title => title !== 'O aplikaciji')).toEqual(['Tražite pomoć ili uskačete — na istom nalogu', 'Pravila i privatnost']);
   });
 
   it('says the two things one account can do as two facts with their pictures, and the sentence about the AI once', async () => {
     await render();
     expect(factRows().map(row => [row.props.art, row.props.value, row.props.note, row.props.size])).toEqual([
-      ['publish', 'Objavi zadatak', 'Reci šta ti treba. Izaberi ko će pomoći.', 'detail'], ['map', 'Uskoči i zaradi', 'Pronađi zadatak za svoje veštine.', 'detail']]);
+      ['publish', 'Objavite zadatak', 'Recite šta Vam treba. Izaberite ko će pomoći.', 'detail'], ['map', 'Uskočite i zaradite', 'Pronađite zadatak za svoje veštine.', 'detail']]);
     const copy = texts().flatMap(node => node.children.filter(child => typeof child === 'string')).join(' | ');
-    expect(copy.match(/Asistent pomaže da sastaviš zadatak\. Ti pregledaš i potvrđuješ\./g)).toHaveLength(1);
+    expect(copy.match(/Asistent pomaže da sastavite zadatak\. Vi pregledate i potvrđujete\./g)).toHaveLength(1);
   });
 
   it('gives the two rows that lead on the same pictures the profile gives them, and nothing else on the screen is pressable but Back', async () => {

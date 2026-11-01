@@ -15,6 +15,29 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  r05-postgis-candidates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install exact proof dependencies
+        run: npm ci
+      - name: R05 real PostGIS saved-area retrieval and index plans (disposable only)
+        run: node supabase/proofs/r05/run_saved_area_postgis_proof.mjs
+      - name: Retain bounded PostGIS evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r05-postgis-saved-area-proof
+          path: artifacts/r05-postgis/
+          if-no-files-found: warn
+          retention-days: 14
   source-and-contracts:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -93,6 +116,8 @@ jobs:
           python -m unittest discover -s supabase/proofs/ex04 -p 'test_r03_*.py'
       - name: R10/R12 closure roster source checks (no DB execution)
         run: node --test supabase/proofs/ex04/r03-closure-roster.test.mjs
+      - name: R10 saved work areas export (isolated PostgreSQL; no DEV write)
+        run: node --test --test-reporter=spec supabase/proofs/legal/r10-work-areas-export.test.mjs
       - name: R05 guarded TODAY source and synthetic PostgreSQL day windows
         run: |
           python supabase/proofs/r05/build_today_candidate.py --check

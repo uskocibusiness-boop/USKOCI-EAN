@@ -21,6 +21,7 @@ Run from the repository root with the installed, locked development dependencies
 ```sh
 node --check supabase/proofs/privacy/r01-column-boundary.test.mjs
 node --check supabase/proofs/privacy/r01_fixture.mjs
+node --check supabase/proofs/privacy/r01_discovery_fixture.mjs
 node supabase/proofs/privacy/r01-column-boundary.test.mjs
 ```
 
@@ -41,6 +42,44 @@ PostgREST, Storage, Realtime, full closure digest, native/OTA or live deployment
 proven by this test. Its fixture certificate check demonstrates that the candidate
 does not write those rows, not that real closure certification is valid. Current
 owner-page R03 wire incompatibility is characterized, not repaired.
+
+### Current Discovery compatibility addition, 2026-11-01
+
+Fresh read-only DEV metadata at 16:56:40 UTC still shows effective authenticated
+SELECT on all 42 Need columns. It also confirms that all ten function bodies in
+the original fixture remain current. `r01_discovery_fixture.mjs` adds the exact
+current `rpc_discovery_v1(jsonb)` body and six existing `p6_discovery_*` helpers
+(helpers captured at 17:02:40 UTC). Only reviewed function source and metadata are
+included; no application or Auth rows were read. Every captured body is hash-bound
+before installation into the same disposable fixture. The six original Need RLS
+policies are also checked against this fresh metadata; current geography and
+requirement-detail policies execute with positive synthetic child projections.
+
+The expanded command above passes **16/16** local SQL tests. After applying the
+actual LOCAL_ONLY column candidate, positive owned/foreign REMOTE and ON_SITE
+tasks survive current Discovery PAGE and EXACT_PUBLIC reads, three cursor pages,
+AREA counts, and the existing own-list/page readers. TEST/REAL isolation, closed
+and anonymous refusal, missing claims, nonpublic-field absence and direct private
+column denial remain enforced. A deliberately regressed whole-row
+`covered_slots(n)` call is rejected with `42501`; restoring the exact captured
+body restores the successful public read. This is a compatibility proof, not a
+runtime code repair or DEV apply.
+
+PGlite has no ICU provider, so this fixture explicitly assigns the required
+`sr-Latn-RS-x-icu` name to C collation and uses ASCII inputs. The production
+function bodies are unchanged, but Serbian case folding/sorting is **not** proven.
+The proof does not execute legacy PostGIS paths, MAP/PLACES, real client decoders,
+GoTrue/PostgREST, native/OTA or the complete closure dependency chain. The prior
+fixture substitutes and limits above still apply. No R01 parity exception,
+expected-catalog change, DEV privilege change or closure digest rebind was made.
+
+Before promotion, the remaining authenticated HTTP/client compatibility gates
+below still require a faithful current test target and positive synthetic data.
+The controlled migration also needs the current exact ACL preimage/postimage and
+a reviewed closure-binding consequence; changing Need ACL changes the erasure
+program digest. The LOCAL_ONLY candidate remains unchanged and is not a DEV
+operation packet. These tests do not authorize bypassing that guard or recertifying
+an already incomplete closure/export contract.
 
 ## Metadata and promotion checks
 
