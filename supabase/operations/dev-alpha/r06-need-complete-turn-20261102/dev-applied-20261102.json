@@ -70,6 +70,23 @@
     "cause": "Need prompt used REVIEW ambiguously for conversational preview and policy hold; Worker prompt already distinguished them.",
     "fix": "Prompt-only separation of safety and dialogue.next; no runtime downgrade or SQL change.",
     "tests": "188 PASS / 0 FAIL / 1 existing TODO; actual handler and scheduling SQL; explicit REVIEW/BLOCK retention",
-    "edge_status": "PENDING_CI_AND_DEPLOY"
+    "edge_status": "DEPLOYED_NEED_161_FULL_CI_41463124056_SUCCESS",
+    "historical_probe": true
+  },
+  "native_acceptance_20261102_1514": {
+    "source_commit": "ebfc067ed7177879bb86a6846d740fcf01b53b22",
+    "full_ci": {"run_id": 41466868632, "status": "SUCCESS", "mobile_pass": 14584, "ai_pass": 1578, "ai_existing_todo": 1},
+    "r01": {"run_id": 41466868567, "status": "FAILURE"},
+    "edges": {"need_version": 162, "need_files_verified": 23, "worker_version": 113, "worker_files_verified": 21},
+    "background_fix": "9s classification; timely complete result and confirmed foreground get one 7s capture/readback window; independent retained 3s usage settlement; no provider retry",
+    "focused_tests": {"failed_before_fix": 4, "passed_after_fix": 270},
+    "apk_source": "68748a4c280cd9321146cda46a820e831a3b7220",
+    "conversation_id": "f06e4718-f18e-486e-b382-d2c9d9d38dda",
+    "scope_edit": {"state": "SUCCEEDED", "safety": "ALLOW", "proposed_count": 1, "background_ms": 7015, "hint_captured": true},
+    "schedule_edit": {"state": "SUCCEEDED", "safety": "ALLOW", "proposed_count": 1, "classification_carried": true, "additional_background_calls": 0},
+    "publication": {"need_id": "f90fe165-79a7-4fd9-a5e0-3267641c0938", "status": "PUBLISHED", "category_id": "8766e4e3-5a44-4ddf-ab90-1cb607b6de53", "same_category_as_saved_worker": true, "outbox_state": "COMMITTED", "outbox_attempts": 1, "binding_state": "BOUND", "binding_attempts": 1, "created_categories": 0},
+    "native_readback": {"cold_restart": true, "owner_list": true, "detail": true, "start": "2026-11-04T09:00:00 Europe/Belgrade", "end": "2026-11-06T17:00:00 Europe/Belgrade", "price_rsd": 1500, "price_basis": "TOTAL", "mode": "REMOTE", "slots": 1},
+    "trial_budget": {"calls": 18, "settled_usd": 0.301152, "unsettled": 0, "owner_limit_eur": 1, "hard_cap_proven": false},
+    "not_proven": ["second-account matching and push", "application and Agreement", "completion and ratings", "all-screen UX", "durable recovery of an already lost first plan", "R01/R10 closure", "production release"]
   }
 }
