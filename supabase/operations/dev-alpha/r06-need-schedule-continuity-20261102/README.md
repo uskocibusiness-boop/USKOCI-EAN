@@ -1,6 +1,8 @@
 # Need scheduling continuity — 2026-11-02
 
-PREPARED_NOT_APPLIED. Native DEV reproduction: the classifier selected the correct existing category ID, then a second ordinary scheduling answer changed the signed source. Edge correctly avoided another paid classification call, but the old source-bound hint was no longer eligible for review. The task remained PENDING_CLASSIFICATION.
+SUPERSEDED_PREPARED_NOT_APPLIED. The active proposal is now [the combined two-function package](../r06-need-complete-turn-20261102/README.md), which includes this same scheduling fix and the native 13-fact correction. Do not promote this older package alongside its successor. Its exact source and proofs remain historical evidence.
+
+Original prepared scope: Native DEV reproduction: the classifier selected the correct existing category ID, then a second ordinary scheduling answer changed the signed source. Edge correctly avoided another paid classification call, but the old source-bound hint was no longer eligible for review. The task remained PENDING_CLASSIFICATION.
 
 This bounded package changes one existing completion body. It may carry an exact preceding capture into a new non-authoritative capture only for a scheduling-only successful turn. The existing owned completion, receipt, safety, source, catalog and capture guards remain. Old receipts are never rewritten. Review, owner consent, category binding and publication remain separate authorities. No extra Gemini call, schema/ACL/trigger change, readiness flag or certificate update.
 
