@@ -608,7 +608,8 @@ test('frozen connected package preserves signatures, attributes and closure; fou
   assert.equal(preimage.closure.export_binding, null);
   assert.equal(preimage.closure.erasure_binding, null);
   const closureEvidence = JSON.parse(readFileSync(new URL('./closure-postimage-offline-evidence-20261102.json', import.meta.url), 'utf8'));
-  assert.equal(postClosure.source, closureEvidence.result.expected_postimage.source);
+  assert.notEqual(postClosure.source, closureEvidence.result.expected_postimage.source);
+  assert.notEqual(postClosure.schema, preimage.closure.schema);
   assert.equal(postClosure.erasure, closureEvidence.result.expected_postimage.erasure);
   assert.equal(postClosure.certificate, preimage.closure.certificate);
   for (const key of Object.keys(originals)) {

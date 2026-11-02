@@ -52,19 +52,20 @@
   },
   "preimage_sha256": "30d9ef2f2b62f312624d721e9d0dd3f1e98011acfed64fbca84e91e1fe3e1b26",
   "connected_preimage_sha256": "267a52d803eb23b6386e9ef2b5f57642151a7547308173f8dabf7c39f19511aa",
-  "builder_sha256": "bd0212049f24fe800ad2728feb7486eeb0f193c7edc8b1a78ef0520223f3d188",
-  "closure_derivation_sha256": "67dc8975a8a98394dd85d1dc503b9a1ab4968eead9bd3a29376d08141109b6a2",
+  "builder_sha256": "ebeb4776506127fdddb5458f36e63ad1f984f6ba2a4a597d1c9122da7815dfd0",
+  "closure_derivation_sha256": "d67e78d6e01c1d057f67a916759cab24609510efdbe450c828bc1385eb84e104",
   "closure_capture_sha256": "568008a039975ccdadbae83f72dfb32eef9bf1102c7b32a838bbeca57fbc0f6f",
+  "closure_schema_capture_sha256": "69b51f4b5fd3a139e479b930b1227dffb6b731c592bf31a658d14155e50ac36a",
   "required_compatible_edge_sources_sha256": {
     "supabase/functions/uskoci-taxonomy-postsave-worker/index.ts": "49edf91be14e337b10d75990f60a729b47627f39fc2d8be1320e7b469ba1c4d2",
     "supabase/functions/_shared/taxonomyPostSaveWorker.mjs": "1a787842735041cb754e0811fbbc83d4c78c39d7098758a1c4d03ae06607a584"
   },
   "files": {
-    "forward.sql": "94160324f4743ca9d762f6f4f1d283984e83cbeb965533ffd4a398d9dbf146f7",
-    "promotion.sql": "b461279c133d7201f566a528a4818a4581fe469c4c09efb23a5491de1310039c",
-    "rollback.sql": "ecc7521447989225056158c2173ccae9744425fb4b02584ae8e5bb11275cb59d",
-    "preflight.sql": "4dc8f6c6a2cb2db64a47865bb30e192bc9ceb9f830450a2526613cd43190d102",
-    "postflight.sql": "50c10ba5b4a1e6909e1c123f6e415f7b7889b5727b757ab89d9404a1751071d5",
+    "forward.sql": "89e225386e5bcc83e513d4000daa2d3072d29c7f00583461645b8330376c48d4",
+    "promotion.sql": "5e97d9e075c16dccb51d8fe8d16c5f48a8f9800852bffe36bfa9db57e75f2de7",
+    "rollback.sql": "addec76f5f08c6a104c20951a16c26c154987d93939b3b581cdc5c7ebfe48951",
+    "preflight.sql": "f1f1c6fb285f0124f5d7c4569239a72c70a75d97f775c8ffe0c4ef5625c049ab",
+    "postflight.sql": "235c4b5e66e3370847b52ad89b2f9598fd5fa8817d5843279eed5741651d1daf",
     "acceptance.sql": "bb9940c1b9db2b56c40068e3598843e1945cbab1e07255218fbc7ec39250e7f6",
     "acceptance-readonly.sql": "95c19d6a4ac9111c6c4da0314bd6f5c729eaff1b1f1bb6a30352f0c6ed6a7420",
     "postimages.json": "70fff35f625663a5c9805fbe7727f176d3ef96c8ea464b9c81d834d965dc2f2a"

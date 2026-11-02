@@ -120,8 +120,13 @@ IF (SELECT jsonb_build_object('source',private.closure_source_digest_v5(),
  'certificate',(SELECT sha256 FROM private.closure_source_v5 WHERE singleton),
  'schema',private.closure_schema_digest_v5_139(),'erasure',private.closure_erasure_program_digest_v5(),
  'source_ready',private.retention_ai_source_ready(),'erasure_binding',private.closure_erasure_binding_v5(),
- 'export_binding',private.data_export_policy_binding())) IS DISTINCT FROM '{"schema":"df82c2cb19edfa86ee092fb6fdc97528b82a2482f05ae64c45939268346af84c","source":"2f2d9ffa9bb33c8b3b2486d6ed2a71411e333c877ecb128e8b4950966b154d92","erasure":"0935fabefce8549bb2d42dcb3be7cf8c3796ceb5108e87b569f678b09670568b","certificate":"0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb","source_ready":false,"export_binding":null,"erasure_binding":null}'::jsonb
- THEN RAISE EXCEPTION 'R04_SEMANTIC_DEV_CLOSURE_STATE_CHANGED'; END IF;
+ 'export_binding',private.data_export_policy_binding())) IS DISTINCT FROM '{"schema":"5f864f673b792681532c6a4c4e16de1fd9682e6094faca516d749ee0d1c90a14","source":"0801d13b1b112c288143c396ecc44c3dac3b9e405ca5d6f2cd1a1b7ddef45021","erasure":"0935fabefce8549bb2d42dcb3be7cf8c3796ceb5108e87b569f678b09670568b","certificate":"0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb","source_ready":false,"export_binding":null,"erasure_binding":null}'::jsonb
+ THEN RAISE EXCEPTION 'R04_SEMANTIC_DEV_CLOSURE_STATE_CHANGED'
+ USING DETAIL=jsonb_build_object('expected','{"schema":"5f864f673b792681532c6a4c4e16de1fd9682e6094faca516d749ee0d1c90a14","source":"0801d13b1b112c288143c396ecc44c3dac3b9e405ca5d6f2cd1a1b7ddef45021","erasure":"0935fabefce8549bb2d42dcb3be7cf8c3796ceb5108e87b569f678b09670568b","certificate":"0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb","source_ready":false,"export_binding":null,"erasure_binding":null}'::jsonb,'observed',(SELECT jsonb_build_object('source',private.closure_source_digest_v5(),
+ 'certificate',(SELECT sha256 FROM private.closure_source_v5 WHERE singleton),
+ 'schema',private.closure_schema_digest_v5_139(),'erasure',private.closure_erasure_program_digest_v5(),
+ 'source_ready',private.retention_ai_source_ready(),'erasure_binding',private.closure_erasure_binding_v5(),
+ 'export_binding',private.data_export_policy_binding())))::text; END IF;
 END; $r04_flight$;
 
 SELECT 'R04_SEMANTIC_DEV_POSTIMAGE_MATCH' result,false AS authenticated_positive_functional_acceptance;ROLLBACK;

@@ -62,7 +62,8 @@ export const closureQuery=`SELECT jsonb_build_object('source',private.closure_so
  'export_binding',private.data_export_policy_binding())`;
 
 export const postClosure=deriveClosurePostimage({
- evidence:JSON.parse(read('closure-postimage-offline-evidence-20261102.json')),
+ evidence:{...JSON.parse(read('closure-postimage-offline-evidence-20261102.json')),
+  schema_capture:JSON.parse(read('closure-schema-input-20261102.json')).capture},
  originals,postimages,preimageClosure:preimage.closure
 });
 
@@ -114,6 +115,7 @@ export const promotionPostimages=Object.fromEntries(Object.entries(promotionOrig
 }));
 export const connectedClosureEvidence={
  ...JSON.parse(read('closure-postimage-offline-evidence-20261102.json')),
+ schema_capture:JSON.parse(read('closure-schema-input-20261102.json')).capture,
  changed_function_preimages:connectedPreimage.functions
 };
 export const promotionPostClosure=deriveClosurePostimage({evidence:connectedClosureEvidence,
@@ -122,7 +124,8 @@ export const promotionPostClosure=deriveClosurePostimage({evidence:connectedClos
 const closureGuard=images=>{
  const target=(images===promotionPostimages)?promotionPostClosure:connectedPreimage.closure;
  return `IF (${closureQuery}) IS DISTINCT FROM ${quote(JSON.stringify(target))}::jsonb
- THEN RAISE EXCEPTION 'R04_SEMANTIC_DEV_CLOSURE_STATE_CHANGED'; END IF;`;
+ THEN RAISE EXCEPTION 'R04_SEMANTIC_DEV_CLOSURE_STATE_CHANGED'
+ USING DETAIL=jsonb_build_object('expected',${quote(JSON.stringify(target))}::jsonb,'observed',(${closureQuery}))::text; END IF;`;
 };
 
 const contextGuard=intent=>`IF current_database()<>'postgres' OR current_user<>'postgres'
@@ -258,6 +261,7 @@ SELECT '${result}' result,false AS authenticated_positive_functional_acceptance;
   builder_sha256:hash(read('build.mjs')),
   closure_derivation_sha256:hash(read('closure-postimage.mjs')),
   closure_capture_sha256:hash(read('closure-postimage-offline-evidence-20261102.json')),
+  closure_schema_capture_sha256:hash(read('closure-schema-input-20261102.json')),
   required_compatible_edge_sources_sha256:Object.fromEntries([
    'supabase/functions/uskoci-taxonomy-postsave-worker/index.ts',
    'supabase/functions/_shared/taxonomyPostSaveWorker.mjs'
