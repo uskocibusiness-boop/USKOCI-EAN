@@ -121,13 +121,23 @@ BEGIN
       JOIN private.work_taxonomy_category_modes cm ON cm.category_id=c.id
       WHERE c.id=v_category AND c.state='ESTABLISHED'
         AND cm.execution_scope=v_mode
-        AND (c.canonical_key=v_key OR EXISTS(
-          SELECT 1 FROM private.work_taxonomy_aliases a
-          WHERE a.category_id=c.id AND a.normalized_key=v_key)
+        AND (
+          c.canonical_key=v_key OR EXISTS(
+            SELECT 1 FROM private.work_taxonomy_aliases a
+            WHERE a.category_id=c.id AND a.normalized_key=v_key)
           OR (
-            -- This is NOT a model grant: the immutable signed review and
-            -- owner/Save/COMMITTED batch/receipt have already been verified.
-            -- New semantic REUSE/EXTEND must carry the original category witness.
+            -- Signed category witness: not model authority, but the same
+            -- human-reviewed COMMITTED plan and Save already checked above.
+            v_plan->>'action' IN ('REUSE_EXISTING','EXTEND_MODE')
+            AND v_plan ? 'categoryLabel'
+            AND v_plan ? 'categoryParentId'
+          )
+        )
+        AND (
+          -- Metadata supplied by an exact/alias or semantic plan is binding.
+          -- Do not bypass a rename merely because canonical_key stayed intact.
+          NOT (v_plan ? 'categoryLabel' OR v_plan ? 'categoryParentId')
+          OR (
             v_plan->>'action' IN ('REUSE_EXISTING','EXTEND_MODE')
             AND v_plan ? 'categoryLabel'
             AND v_plan ? 'categoryParentId'
@@ -139,7 +149,8 @@ BEGIN
               SELECT 1 FROM private.work_taxonomy_categories child
               WHERE child.parent_id=c.id AND child.state='ESTABLISHED')
             AND private.taxonomy_category_path_valid_v1(c.id)
-          )))
+          )
+        ))
    THEN RAISE EXCEPTION 'WORKER_BINDER_CATEGORY_STALE' USING errcode='42501'; END IF;
    -- A past withdrawal (excluded=true) is NOT permanent: the owner may
    -- deliberately offer this service again in a NEW signed Save. ONLY this

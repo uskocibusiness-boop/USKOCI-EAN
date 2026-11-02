@@ -1497,6 +1497,41 @@ test('R04/R08 downstream: unregistered signed worker synonym fails old binder, s
   assert.equal((await db.query('SELECT count(*)::int n FROM private.work_taxonomy_worker_bindings_v1')).rows[0].n,1);
 });
 
+
+test('R04/R08 canonical category witness rejects label drift despite unchanged canonical key', async t => {
+  const db=await setup();t.after(()=>db.close());await db.exec(ddl(postimages));
+  const reviewId='11111111-2222-4333-8444-555555555561';
+  const requestKey='22222222-3333-4444-8555-666666666661';
+  const profileId='44444444-5555-4666-8777-888888888861';
+  const plan={action:'REUSE_EXISTING',service:'Lektura i korektura',mode:'REMOTE',
+    categoryId:category,categoryLabel:'Lektura i korektura',categoryParentId:null,
+    catalogVersion:17,reason:'Existing exact service with frozen category identity'};
+  const envelope={canAccept:true,classificationState:'READY',classificationCatalogVersion:17,
+    classificationCatalogFingerprint:repeat('a',32),classificationCandidates:[plan],profileId,
+    profile:{skills:['Lektura i korektura']},
+    reviewedServiceModes:[{service:'Lektura i korektura',mode:'REMOTE'}]};
+  await insertWorkerReview(db,reviewId,account,envelope);
+  await db.query("INSERT INTO public.app_profiles(id,account_id,kind,profile_status,skills,updated_at) VALUES($1,$2,'WORKER','ACTIVE',$3::jsonb,now()-interval '1 minute')",
+    [profileId,account,JSON.stringify(['Lektura i korektura'])]);
+  await db.query("INSERT INTO private.worker_ai_saves(review_id,account_id,client_request_id,receipt,created_at) VALUES($1,$2,$3,jsonb_build_object('saved',true,'profileId',$4::text,'profileStatus','ACTIVE'),now())",
+    [reviewId,account,requestKey,profileId]);
+  const committed=(await db.query("SELECT public.rpc_taxonomy_commit_reviewed_batch_service($1,$2,'WORKER_CAPABILITY',$3,$4::jsonb) res",
+    [account,requestKey,reviewId,JSON.stringify([plan])])).rows[0].res;
+  assert.equal(committed.status,'COMMITTED');
+  await db.query("SELECT set_config('test.jwt',$1,false)",[JSON.stringify({role:'service_role'})]);
+  const source=readFileSync(new URL('worker-semantic-binder-local-only.sql',import.meta.url),'utf8');
+  const fixtureClause='to_jsonb(v_profile.skills) IS DISTINCT FROM v_skills';
+  assert.equal(source.split(fixtureClause).length,2);
+  await db.exec(source.replace(fixtureClause,'v_profile.skills IS DISTINCT FROM v_skills'));
+  const bind=()=>db.query('SELECT public.rpc_taxonomy_bind_reviewed_worker_service($1,$2,$3,$4) res',
+    [account,requestKey,reviewId,profileId]);
+  await db.query('UPDATE private.work_taxonomy_categories SET label=$1 WHERE id=$2',['Lektura izmenjen label',category]);
+  await assert.rejects(bind(),/WORKER_BINDER_CATEGORY_STALE/);
+  assert.equal((await db.query('SELECT count(*)::int n FROM private.work_taxonomy_worker_capabilities')).rows[0].n,0);
+  await db.query('UPDATE private.work_taxonomy_categories SET label=$1 WHERE id=$2',['Lektura i korektura',category]);
+  assert.equal((await bind()).rows[0].res.status,'BOUND_WORKER_SERVICES');
+});
+
 function repeat(char, n) {
   return char.repeat(n);
 }

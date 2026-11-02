@@ -132,6 +132,16 @@ function dualModeFixture({modes=['REMOTE'],handoff,evidence,quote,priorMode='ON_
  return {...f,userText,changes,modeContext};
 }
 async function settleBackground(){for(let i=0;i<20;i++)await new Promise(resolve=>setImmediate(resolve));}
+async function awaitBackgroundCapture(f,timeoutMs=2500){
+  const observed=()=>f.calls.some(call=>call.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
+  const deadline=Date.now()+timeoutMs;
+  while(!observed()&&Date.now()<deadline){
+    // A specific RPC receipt is a stable completion signal; fixed setImmediate
+    // loops are not, especially under concurrent CI. Keep a firm timeout.
+    await new Promise(resolve=>setTimeout(resolve,5));
+  }
+  assert.ok(observed(),'bounded worker background taxonomy capture was not observed');
+}
 test('dual worker capture flag OFF preserves the confirmed foreground without paid background work',async()=>{
  const f=dualModeFixture({captureEnabled:false,handoff:{required:false}});
  const es=await events(f,{text:f.userText});await settleBackground();
@@ -160,7 +170,7 @@ test('dual worker mode-only correction reaches background review without a skill
 test('dual worker handoff-only correction retains REMOTE and queues the new bounded handoff',async()=>{
  const f=dualModeFixture({priorMode:'REMOTE',priorHandoff:{required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}},
   quote:'Od sada šaljem urađene radove poštom samo unutar Srbije.',handoff:{required:true,shippingCountries:['RS']}});
- const es=await events(f,{text:f.userText});await settleBackground();assert.equal(es.at(-1).kind,'final');
+ const es=await events(f,{text:f.userText});await awaitBackgroundCapture(f);assert.equal(es.at(-1).kind,'final');
  assert.equal(providers(f).filter(call=>call.url.includes(':generateContent')).length,1);
  const capture=f.calls.find(call=>call.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
  assert.deepEqual(capture?.body.p_proposals.map(p=>({mode:p.mode,handoff:p.handoff})),[{mode:'REMOTE',handoff:{required:true,shippingCountries:['RS']}}]);
