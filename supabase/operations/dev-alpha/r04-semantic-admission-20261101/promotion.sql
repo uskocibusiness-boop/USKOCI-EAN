@@ -2325,7 +2325,9 @@ DO $commit_check$ BEGIN
    PERFORM public.rpc_taxonomy_commit_reviewed_batch_service(NULL, NULL, 'NEED_SERVICE', NULL, '[]'::jsonb);
    RAISE EXCEPTION 'R04_COMMIT_GUARD_FAILED';
  EXCEPTION WHEN OTHERS THEN
-   IF SQLSTATE <> '22023' THEN RAISE; END IF;
+    -- The real closure guard rejects a NULL owner before input validation.
+    -- An unrelated permission error or a later input error is not this proof.
+    IF SQLSTATE <> '42501' OR SQLERRM <> 'CLOSURE_CONTEXT_INVALID' THEN RAISE; END IF;
  END;
 END;$commit_check$;
 DO $delta$ BEGIN

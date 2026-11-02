@@ -635,6 +635,33 @@ test('preimage reproduces single-word block ("Lektura" -> NEEDS_CLARIFICATION)',
   assert.equal(triage.rows[0].res, 'NEEDS_CLARIFICATION');
 });
 
+test('deployment acceptance executes the captured real NULL-owner closure guard and rejects false positives', async t => {
+  const db = await setup();
+  t.after(() => db.close());
+  await db.exec(ddl(postimages));
+  const bootstrap = readFileSync(new URL('../../../proofs/privacy/bootstrap/current-application.sql', import.meta.url), 'utf8');
+  const guard = bootstrap.match(/CREATE OR REPLACE FUNCTION private\.closure_assert_open\(a uuid,[\s\S]*?\$function\$;/)?.[0];
+  assert.ok(guard, 'captured closure guard must exist');
+  const body = guard.slice(guard.indexOf('AS $function$') + 'AS $function$'.length, guard.lastIndexOf('$function$;'));
+  assert.equal(hash(body.replaceAll('\r\n', '\n'), 'md5'), 'dc9bc4c718593850da4fdb49e612dbd2');
+  await db.exec(guard);
+  const oldAcceptance = acceptance.replace(
+    "SQLSTATE <> '42501' OR SQLERRM <> 'CLOSURE_CONTEXT_INVALID'", "SQLSTATE <> '22023'");
+  await assert.rejects(db.exec(oldAcceptance), error => error.code === '42501' && error.message === 'CLOSURE_CONTEXT_INVALID');
+  await db.exec(acceptance);
+  // The old permissive fixture used to hide the real first denial. It must no
+  // longer turn a later input error into an accepted deployment smoke result.
+  await db.exec(`CREATE OR REPLACE FUNCTION private.closure_assert_open(a uuid, b uuid DEFAULT NULL::uuid)
+    RETURNS void LANGUAGE sql AS $$SELECT NULL::void$$;`);
+  await assert.rejects(db.exec(acceptance), error => error.code === '22023');
+  await db.exec(`CREATE OR REPLACE FUNCTION private.closure_assert_open(a uuid, b uuid DEFAULT NULL::uuid)
+    RETURNS void LANGUAGE plpgsql AS $$BEGIN RAISE EXCEPTION 'ACCOUNT_CLOSING' USING errcode='42501'; END$$;`);
+  await assert.rejects(db.exec(acceptance), error => error.code === '42501' && error.message === 'ACCOUNT_CLOSING');
+  await db.exec(postimages.commit.definition.replace(/AS \$function\$[\s\S]*\$function\$;/,
+    "AS $function$ BEGIN RETURN '{}'::jsonb; END $function$;"));
+  await assert.rejects(db.exec(acceptance), /R04_COMMIT_GUARD_FAILED/);
+});
+
 test('forward DDL unblocks single-word triage ("Lektura" -> LOW_RISK_CANDIDATE) and preserves screening', async t => {
   const db = await setup();
   t.after(() => db.close());
