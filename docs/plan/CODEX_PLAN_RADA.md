@@ -3432,6 +3432,12 @@ Izraz „definisano” nije „nacrtano”, „nacrtano” nije „implementiran
 
 ### 11.2a. Aktuelni izvršni status — 28.10.2026.
 
+#### R07 — nedostajuća jedinica cene u readback-u prijave, 02.11.2026
+
+Pripremljen [kompatibilni paket](../../supabase/operations/dev-alpha/r07-response-price-schema-20261102/README.md) za dve nullable `price_basis` kolone. Stvarni DEV preflight `R07_RESPONSE_SCHEMA_PREIMAGE_MATCH`; početne obe tabele imaju0 redova. Aktuelni mobilni čitač padao je sa42703; izolovana reprodukcija potvrđuje isti uzrok. Paket ne menja iznose, istorijske hash-eve, RPC-jeve, owner/ACL/RLS, trigere ili naplatu. Postojeći writer-i nastavljaju sa NULL/legacy ukupnom cenom; HOURLY writer nije uključen. Stari puni R07b kandidat sa zastarelim preimage-ima nije primenjen.
+
+Dokaz: `r07_response_price_schema.test.mjs` **8 PASS** (stvarni generisani transakcioni paket u izolovanom PostgreSQL-u, legacy podaci, ograničenja jedinice, fixture row access, rollback/reapply/drift); postojeća dva mobilna čitača **51 PASS**; generator/integritet193 migracije PASS. Auth/closed-account fixture nije hosted Auth dokaz. Schema/source closure hash se očekivano menja samo zbog dve kolone/check-a; oba posthash-a unapred izvedena read-only i izolovano proverena. Certifikat ostaje isti, readiness=false i bindings=NULL, bez R01/R10 waiver-a. **SOURCE/ISOLATED potvrđeno; Full CI, DEV primena i HTTP readback još čekaju.** Nakon tačnog CI-a kontrolisana promocija, bez novog APK-a za ovaj serverski dodatak; dvokorisnička prijava/izbor/Dogovor i puna satnica ostaju otvoreni.
+
 #### R04/R08 — prenos pojedinačnih načina rada pozadinskom modelu, 02.11.2026
 
 Na početnom `7f93f126` builder proverava kompletan USER-quoted `serviceModeChangesJson`, ali Gemini dobija samo `priorModes` i poslednjih10 USER poruka. Stariji citat može nestati iz njegovog ulaza, dok rezultat mora pokriti baš oba izabrana moda. Uputstvo traži jedan mode bez eksplicitnog pravila za dva item-a iste usluge. Ispravljen `backgroundTaxonomyArchitect.mjs`: model dobija isti validirani `requestedChanges` po usluzi sa citatom i eventualnim handoff-om, traži se jedan rezultat po ponuđenom service/mode paru, a postojeći gate i dalje odbija nepotpun BOTH i ne daje saglasnost pre signed Save. Nevažeće deklaracije se ne šalju u naplaćenu klasifikaciju; nezavisna validna usluga nastavlja. Nema novog klasifikatora, tabele, globalnog alias-a ili uklanjanja zaštita.
