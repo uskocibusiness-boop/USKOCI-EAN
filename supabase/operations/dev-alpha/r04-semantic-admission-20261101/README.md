@@ -1,6 +1,10 @@
 # R04 semantic admission — reviewed single-word services, synonyms and execution modes
 
-**Status: PREPARED_NOT_APPLIED** on DEV `leqcwgzvjsxugfgzdmth`. The existing generator now combines **14 existing function bodies** into one guarded promotion and inverse code rollback: core semantic admission, downstream Worker continuity/prepare/readback and R06 receipt recovery. The fresh read-only preimage is `connected-dev-preimage-20261102.json`; all function metadata, ACLs and closure conditions are pinned. **Source/PGlite tests do not establish DEV or Android acceptance.** Relevant R01/R10 admission and explicit approval remain required; no SQL/Edge deployment is performed by generation. Earlier four-body-only descriptions below are dated history.
+**Status: APPLIED_CONTROLLED_INTERNAL_DEV** on `leqcwgzvjsxugfgzdmth`. Source `39e5bf8d` passed Full CI41435448239; migration `20261102113012/r04_semantic_worker_continuity_receipt_recovery_v1` installed all14 guarded bodies. Postflight `R04_SEMANTIC_DEV_POSTIMAGE_MATCH` and read-only PG guard acceptance passed. Compatible post-save Edge v12 was deployed and both files read back byte-identical; active cron and worker flag restored, service tick HTTP200. Certificate/readiness remain unchanged. See [`dev-applied-20261102.json`](dev-applied-20261102.json).
+
+Frozen build manifests retain their preparation-time status; the later execution receipt is the deployment evidence. Dated NOT_APPLIED entries below describe earlier states. The owner separately requested and authorized a fresh test-data reset; see [the exact operation and receipt](../dev-owner-data-reset-20261102/README.md).
+
+**Positive business acceptance is still pending.** The first real Android Worker turn returned safety REVIEW for an ordinary profile preview and did not save a profile. A focused prompt/schema and truthful rejection-message correction has139/139 local tests PASS; it is not yet deployed or live-model verified. R01 remains FAILURE, R10 readiness=false, and no release-ready claim is made.
 
 ## Connected source milestone — 2026-11-02
 

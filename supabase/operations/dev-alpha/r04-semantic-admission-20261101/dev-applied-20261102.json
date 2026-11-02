@@ -1,0 +1,149 @@
+{
+  "project": "leqcwgzvjsxugfgzdmth",
+  "source_sha": "39e5bf8d6ca3ea4bdaac39dc63aeb5bcd26f0365",
+  "stage": "DEV_SQL_AND_EDGE_APPLIED_HEALTHY",
+  "attempts": [
+    {
+      "source_sha": "95838c8bb055b9e2ecc3ff2cf268429e33b7d41b",
+      "promotion_sha256": "d861dcf2966fdbba078501ec34453d6e37f8a064d4b14388b00caf9d43f297cb",
+      "result": "ATOMIC_ROLLBACK",
+      "error": "42501 CLOSURE_CONTEXT_INVALID",
+      "cause": "Smoke expected22023; real NULL-owner guard rejects earlier. Fixed7ff4dd0c; exact denial test now executed."
+    },
+    {
+      "source_sha": "7ff4dd0c3c70aa6b941f270493ce184e24cad05e",
+      "promotion_sha256": "b461279c133d7201f566a528a4818a4581fe469c4c09efb23a5491de1310039c",
+      "result": "ATOMIC_ROLLBACK",
+      "error": "R04_SEMANTIC_DEV_CLOSURE_STATE_CHANGED",
+      "cause": "Offline projection omitted schema digest's direct trigger body. Fixed39e5bf8d; live read-only schema/source/erasure projections independently match."
+    }
+  ],
+  "first_full_ci": {
+    "id": 41432740135,
+    "result": "SUCCESS"
+  },
+  "current_full_ci": {
+    "id": 41435448239,
+    "result": "SUCCESS"
+  },
+  "focused_checks": {
+    "tests": 32,
+    "passed": 32,
+    "duration_ms": 22614.4971,
+    "generator_check": "PASS",
+    "diff_check": "PASS"
+  },
+  "schema_projection": [
+    {
+      "checked_at": "2026-11-02 11:13:10.812647+00",
+      "actual_preimage": "df82c2cb19edfa86ee092fb6fdc97528b82a2482f05ae64c45939268346af84c",
+      "independently_projected_schema": "5f864f673b792681532c6a4c4e16de1fd9682e6094faca516d749ee0d1c90a14"
+    }
+  ],
+  "closure_projection": [
+    {
+      "checked_at": "2026-11-02 11:14:57.67394+00",
+      "independently_projected_erasure": "0935fabefce8549bb2d42dcb3be7cf8c3796ceb5108e87b569f678b09670568b",
+      "independently_projected_source": "0801d13b1b112c288143c396ecc44c3dac3b9e405ca5d6f2cd1a1b7ddef45021"
+    }
+  ],
+  "expected_post_closure": {
+    "schema": "5f864f673b792681532c6a4c4e16de1fd9682e6094faca516d749ee0d1c90a14",
+    "source": "0801d13b1b112c288143c396ecc44c3dac3b9e405ca5d6f2cd1a1b7ddef45021",
+    "erasure": "0935fabefce8549bb2d42dcb3be7cf8c3796ceb5108e87b569f678b09670568b",
+    "certificate": "0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb",
+    "source_ready": false,
+    "export_binding": null,
+    "erasure_binding": null
+  },
+  "cron_restore": [
+    {
+      "restored_at": "2026-11-02 11:10:49.692495+00",
+      "jobid": 3,
+      "jobname": "uskoci_taxonomy_postsave_tick_dev",
+      "active": true,
+      "command_md5": "b1e89b08b31a550f0ccce47ddcf3cb08"
+    }
+  ],
+  "restored_worker_health": [
+    {
+      "id": 56636,
+      "status_code": 200,
+      "content": "{\"kind\":\"CATALOG_AND_BINDING_TICK\",\"reconciled\":0,\"claimed\":0,\"admitted\":0,\"reviewRequired\":0,\"retry\":0,\"capabilityAuthority\":\"NONE\",\"needRevisionAuthority\":\"NONE\",\"notificationAuthority\":\"NONE\",\"binding\":{\"kind\":\"BINDING_ONLY_TICK\",\"claimed\":0,\"bound\":0,\"retry\":0,\"reviewRequired\":0},\"dispatchAuthority\":\"NONE\"}",
+      "error_msg": null,
+      "timed_out": false
+    }
+  ],
+  "feature_flag": {
+    "name": "USKOCI_TAXONOMY_POSTSAVE_WORKER_ENABLED",
+    "before": "ABSENT_DEFAULT_ENABLED",
+    "pause": "false",
+    "current": "true",
+    "restored_at": "2026-11-02T11:31:01Z"
+  },
+  "paid_model_calls": 1,
+  "paid_budget_eur": 1,
+  "android_positive_acceptance": false,
+  "native_limit": "ADB can control the emulator; logged-in preview app, no credentials extracted or session altered.",
+  "old_queue": [
+    {
+      "purpose": "WORKER_CAPABILITY",
+      "state": "COMMITTED",
+      "binding_state": "REVIEW_REQUIRED",
+      "error_code": null,
+      "binding_error_code": "BINDING_REVIEW_REQUIRED",
+      "rows": 2,
+      "without_category_witness": 2,
+      "oldest": "2026-10-19 15:27:01.07015+00"
+    },
+    {
+      "purpose": "WORKER_CAPABILITY",
+      "state": "REVIEW_REQUIRED",
+      "binding_state": "PENDING",
+      "error_code": "BATCH_REVIEW_REQUIRED",
+      "binding_error_code": null,
+      "rows": 1,
+      "without_category_witness": 0,
+      "oldest": "2026-10-20 20:27:09.857459+00"
+    }
+  ],
+  "current_r01": {
+    "id": 41435448258,
+    "result": "FAILURE"
+  },
+  "migration": {
+    "version": "20261102113012",
+    "name": "r04_semantic_worker_continuity_receipt_recovery_v1",
+    "promotion_sha256": "5e97d9e075c16dccb51d8fe8d16c5f48a8f9800852bffe36bfa9db57e75f2de7",
+    "result": "SUCCESS"
+  },
+  "postflight": "R04_SEMANTIC_DEV_POSTIMAGE_MATCH",
+  "readonly_acceptance": "R04_ACTUAL_PG_TRIAGE_AND_NULL_OWNER_GUARD_PASS",
+  "edge": {
+    "version": 12,
+    "exact_files_match": true,
+    "status": "ACTIVE"
+  },
+  "cron_current_active": true,
+  "android_authorization": "Explicit ADB authorization; old DEV task/worker reset separately authorized and completed.",
+  "native_first_worker_probe": {
+    "result": "FAILED_SAFETY_REVIEW_ON_BENIGN_PREVIEW",
+    "observed_at": "2026-11-02T11:45:44Z",
+    "model": "gemini-3.8-flash",
+    "tokens": {
+      "prompt": 4357,
+      "output": 451
+    },
+    "settled_microusd": 4959,
+    "profile_saved": false,
+    "background_classifier_called": false,
+    "fix_status": "SOURCE_TESTED_NOT_DEPLOYED",
+    "focused": {
+      "command": "node --test supabase/proofs/ai/v5_worker_edge.test.mjs",
+      "pass": 139,
+      "fail": 0,
+      "duration_ms": 33452.9261
+    },
+    "limits": "Ambiguous safety/preview instructions are the diagnosed hypothesis; actual paid retry still required. REVIEW/BLOCK are preserved, never upgraded."
+  }
+}

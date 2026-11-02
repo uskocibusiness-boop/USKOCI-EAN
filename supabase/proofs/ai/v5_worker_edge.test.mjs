@@ -975,13 +975,35 @@ test('offered vehicle repair remains a legitimate service and biography',async()
  assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),output.assistantMessage);
 });
 
+for(const safety of ['REVIEW','BLOCK'])test(`${safety} never acknowledges a discarded profile patch as applied`,async()=>{
+ const output={assistantMessage:'Dodao sam lekturu u nacrt. Možete pregledati profil.',safety,
+  patch:{skills:['Lektura'],bio:'Radim lekturu onlajn.'}};
+ const f=fixture({output}),es=await events(f);
+ const accepted=completions(f)[0].body.p_output;
+ assert.equal(accepted.safety,safety);
+ assert.deepEqual(accepted.patch,{});
+ assert.match(accepted.assistantMessage,/Nacrt nije promenjen/);
+ assert.ok(!accepted.assistantMessage.includes('Dodao sam'));
+ assert.equal(es.filter(e=>e.kind==='text_delta').map(e=>e.text).join(''),accepted.assistantMessage);
+ assert.equal(providers(f).length,1);
+});
+
+test('ordinary profile preview remains ALLOW and provider distinguishes it from safety REVIEW',async()=>{
+ const output={assistantMessage:'Možete pregledati nacrt profila.',safety:'ALLOW',patch:{skills:['Lektura']}};
+ const f=fixture({output});await events(f);
+ assert.deepEqual(completions(f)[0].body.p_output,output);
+ const request=providers(f)[0].body;
+ assert.match(request.systemInstruction.parts.map(p=>p.text).join(' '),/REVIEW is a safety hold/);
+ assert.match(request.generationConfig.responseSchema.properties.safety.description,/ordinary profile preview/);
+});
+
 for(const safety of ['REVIEW','BLOCK'])test(`${safety} does not admit equipment or biography from a rejected equipment turn`,async()=>{
  const output={assistantMessage:safety==='REVIEW'?'Potreban je pregled.':'Ne mogu da pomognem sa tim zahtevom.',safety,
   patch:{bio:'Imam novi kombi.',tools:['Bušilica'],vehicles:['Kombi']}};
  const f=fixture({output}),es=await events(f);
  assert.equal(es.at(-1).kind,'final');
  const accepted=completions(f)[0].body.p_output;
- assert.equal(accepted.safety,safety);assert.equal(accepted.assistantMessage,output.assistantMessage);
+ assert.equal(accepted.safety,safety);assert.match(accepted.assistantMessage,/Nacrt nije promenjen/);
  assert.deepEqual(accepted.patch,{});
 });
 test('truncated provider response settles failure without a second call or candidate completion',async()=>{

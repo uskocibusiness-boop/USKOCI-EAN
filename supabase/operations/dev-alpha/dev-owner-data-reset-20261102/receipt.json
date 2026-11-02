@@ -1,0 +1,44 @@
+{
+  "classification": "EXECUTED_ONE_TIME_OWNER_AUTHORIZED_DEV_DATA_RESET",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "migration": {
+    "version": "20261102114148",
+    "name": "dev_owner_requested_test_data_reset_v1"
+  },
+  "source_sql": "executed.sql",
+  "deleted": {
+    "rows": 4444,
+    "tables": 59,
+    "needs": 35,
+    "worker_profiles": 14,
+    "old_profile_or_need_conversations": 163,
+    "agreements": 2,
+    "applications": 4
+  },
+  "retained": {
+    "auth_users": 14,
+    "requester_profiles": 14,
+    "taxonomy_categories": 153,
+    "storage_objects": 34
+  },
+  "proof": {
+    "dry_run": "Actual DELETE + all postchecks, then ROLLBACK; original roots reverified",
+    "postflight": "2026-11-02T11:42:01.310684Z: roots/capabilities/queue zero; R04 postimage match",
+    "other_public_private_tables": "167-table fingerprint scope proves only exact selected rows changed",
+    "guards": "Five immutable history triggers suspended only within locked transaction, restored before commit; full trigger/schema/source/erasure/certificate unchanged",
+    "cron": "All 3 jobs restored active 2026-11-02T11:42:03.181279Z"
+  },
+  "backup": {
+    "local_ignored_path": "artifacts/dev-data-reset-20261102/backup-private-locked.json.gz.dpapi",
+    "sha256": "ecbab8886b28368b3b1e07abd312ec19b5a633766fa203d808b81d7ed2f7a50b",
+    "rows": 4444,
+    "encryption": "Windows DPAPI CurrentUser over gzip; decrypt/byte roundtrip verified",
+    "database_restore": "Manual controlled restore not rehearsed; no automatic restore claim"
+  },
+  "limits": [
+    "Owner asked to reset old tasks/worker profiles, not delete Auth accounts or taxonomy.",
+    "Physical storage blobs retained for recovery; this is not a privacy erasure.",
+    "Subsequent fresh AI tests create new conversation records.",
+    "Not reusable: pinned content hashes intentionally reject later state."
+  ]
+}
