@@ -1,0 +1,23 @@
+{
+  "scope": "isolated PGlite executing actual captured DEV function bodies; minimal fixtures, no live business mutations",
+  "checks": [
+    {
+      "case": "TOTAL 6000 / 3 people, offer for 2 people = 4000",
+      "result": "accepted"
+    },
+    {
+      "case": "MY_PRICE HOURLY 1000 per person per hour",
+      "result": "UNKNOWN_PRICE_BASIS"
+    },
+    {
+      "case": "single review, no publication/completion/two-party check in actual aggregate",
+      "result": {
+        "state": "RATED",
+        "accountId": "00000000-0011-4111-8111-000000000003",
+        "reviewCount": 1,
+        "authoritative": true,
+        "averageRating": 5
+      }
+    }
+  ]
+}
