@@ -604,5 +604,122 @@
     ],
     "verified_previously_applied_function_count": 15,
     "applied_match_scope": "Matches the earlier applied F10/R08/R03/R07 package postimages, not every newer GitHub candidate and not actual Auth/E2E."
+  },
+  "connected_milestone": {
+    "recorded_at": "2026-11-02T10:09:36.859676+00:00",
+    "classification": "SOURCE_AND_ISOLATION_PASS_DEV_PREFLIGHT_ONLY",
+    "ui_source_sha": "6c96c573",
+    "server_source_sha": "24ac38a75acfad3a6de401e3939ca721fced61b4",
+    "checks": [
+      {
+        "command": "node --test --test-reporter=spec supabase/operations/dev-alpha/r04-semantic-admission-20261101/package.test.mjs supabase/operations/dev-alpha/r04-semantic-admission-20261101/closure-postimage.test.mjs",
+        "result": "PASS",
+        "tests": 30,
+        "duration_ms": 23324.2596,
+        "log": "artifacts/20261102-r04-package-final-after-handoff.log"
+      },
+      {
+        "command": "node --test supabase/proofs/ai/r04_worker_semantic_save_chain.test.mjs",
+        "result": "PASS",
+        "tests": 10,
+        "duration_ms": 22991.5608,
+        "log": "artifacts/r04-worker-continuity-20261102.log"
+      },
+      {
+        "command": "node --test --test-reporter=spec supabase/operations/dev-alpha/r04-semantic-admission-20261101/package.test.mjs supabase/operations/dev-alpha/r04-semantic-admission-20261101/closure-postimage.test.mjs supabase/proofs/ai/r04_need_semantic_save_chain.test.mjs supabase/proofs/ai/r04_semantic_review_pending.test.mjs",
+        "result": "PASS",
+        "tests": 34,
+        "duration_ms": 27073.5337,
+        "log": "artifacts/20261102-connected-r04-package-final.log",
+        "scope": "Before final Worker handoff edit; final affected Worker/package/closure suites rerun above. Need3 and semantic projection1 unchanged afterward."
+      },
+      {
+        "command": "node supabase/operations/dev-alpha/r04-semantic-admission-20261101/build.mjs --check",
+        "result": "PASS"
+      },
+      {
+        "command": "python supabase/migrations/check_migration_integrity.py",
+        "result": "PASS",
+        "files": 193
+      },
+      {
+        "command": "npx tsc --noEmit",
+        "result": "PASS"
+      },
+      {
+        "command": "git diff --check",
+        "result": "PASS"
+      }
+    ],
+    "ui": {
+      "runtime_files": 17,
+      "expectation_files": 24,
+      "unique_suites_covered": 30,
+      "unique_tests_covered": 1363,
+      "one_shot_full_pass": false,
+      "results": [
+        {
+          "log": "artifacts/20261102-ai-ui-copy-focused-final.log",
+          "suites": 29,
+          "passed_tests": 1340,
+          "failed_tests": 3,
+          "cause": "Incorrect expectations for unchanged local Discovery Refresh label; reverted, no final Discovery diff."
+        },
+        {
+          "log": "artifacts/20261102-ai-ui-copy-followup.log",
+          "command": "node node_modules/jest/bin/jest.js --runInBand --runTestsByPath src/data/__tests__/ai-conversation-layout.test.tsx src/data/__tests__/ai-owned-intake-screen.test.tsx src/data/__tests__/v5-review-screen.test.tsx src/data/__tests__/discovery-presentation.test.tsx src/data/__tests__/dizajn-galerija-pregled.test.tsx",
+          "suites": 5,
+          "passed_tests": 683,
+          "failed_tests": 2,
+          "cause": "Two stale expectations in additionally included gallery; corrected."
+        },
+        {
+          "log": "artifacts/20261102-ai-ui-copy-gallery.log",
+          "command": "node node_modules/jest/bin/jest.js --runInBand --runTestsByPath src/data/__tests__/dizajn-galerija-pregled.test.tsx",
+          "result": "PASS",
+          "tests": 20
+        }
+      ],
+      "scope": "Formal visible copy and CTA only; user-authored content, signed payloads, component structure and navigation preserved. No pixel/layout/native claim."
+    },
+    "dev": {
+      "project_ref": "leqcwgzvjsxugfgzdmth",
+      "checked_at": "2026-11-02T10:02:23.005226Z",
+      "result": "R04_SEMANTIC_DEV_PREIMAGE_MATCH",
+      "authenticated_positive_functional_acceptance": false,
+      "preflight_sha256": "4dc8f6c6a2cb2db64a47865bb30e192bc9ceb9f830450a2526613cd43190d102",
+      "latest_migration": "20261101174446",
+      "edge_active": {
+        "need": 154,
+        "worker": 107,
+        "publication": 24,
+        "postsave": 8,
+        "push": 39,
+        "media": 24,
+        "export": 24,
+        "download": 24,
+        "closure": 14
+      },
+      "applied": false
+    },
+    "proof_boundaries": [
+      "Need positive publication uses actual Edge evaluation/decision/mobile resume/publisher/readback with synthetic Auth/provider/policy and selected helpers. No paid provider or hosted RLS proof.",
+      "Worker current and historical handoff/mode changes cannot restore old choices implicitly; an ACTIVE edit Save is new consent, not complete catalog revalidation. Capabilities still require binding.",
+      "Fourteen bodies only; metadata, full catalog delta, derived closure and inverse code rollback verified. Existing certificate/readiness=false/NULL bindings preserved. Rollback of newly admitted data is not proven.",
+      "No DEV SQL/Edge apply, flag/billing change or public release. R01/R10 and hosted/native acceptance remain open."
+    ],
+    "full_ci": "PENDING_ON_GROUPED_PUSH; prior41418479603 does not prove these edits",
+    "native": "Old51ac APK installed; new source APK not built yet",
+    "file_sha256": {
+      "supabase/operations/dev-alpha/r04-semantic-admission-20261101/build.mjs": "7848670b83ae7801b01ca160ab109f4adb465e1e74a622748378d40021b14c43",
+      "supabase/operations/dev-alpha/r04-semantic-admission-20261101/manifest.json": "11f54e70adba1177d7bbea57ef7997a3f5ae09112dae9027300745d43a584555",
+      "supabase/operations/dev-alpha/r04-semantic-admission-20261101/preflight.sql": "4dc8f6c6a2cb2db64a47865bb30e192bc9ceb9f830450a2526613cd43190d102",
+      "supabase/operations/dev-alpha/r04-semantic-admission-20261101/promotion.sql": "d861dcf2966fdbba078501ec34453d6e37f8a064d4b14388b00caf9d43f297cb",
+      "supabase/operations/dev-alpha/r04-semantic-admission-20261101/rollback.sql": "ecc7521447989225056158c2173ccae9744425fb4b02584ae8e5bb11275cb59d",
+      "supabase/operations/dev-alpha/r04-semantic-admission-20261101/connected-dev-preimage-20261102.json": "267a52d803eb23b6386e9ef2b5f57642151a7547308173f8dabf7c39f19511aa",
+      "supabase/operations/dev-alpha/r04-semantic-admission-20261101/worker-semantic-mode-context-local-only.sql": "5e78e42b02cae909802c6f5d9d95c3e6f1210c997fe5794c9358c363e9dfb581",
+      "supabase/operations/dev-alpha/r04-semantic-admission-20261101/worker-semantic-prepare-local-only.sql": "fe91217b2c0ce2d0551eb122ab1d7b8e60ee5c90b473f92731f0d4773952ab31",
+      "supabase/operations/dev-alpha/r04-semantic-admission-20261101/worker-semantic-confirmed-prepare-local-only.sql": "2e46681906bd20dc328c637063b7f9a02eed42f606297bd4058133c5ccc527c6"
+    }
   }
 }
