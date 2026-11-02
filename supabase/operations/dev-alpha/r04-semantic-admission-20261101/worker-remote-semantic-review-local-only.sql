@@ -55,35 +55,8 @@ BEGIN
      OR jsonb_typeof(v_plan->'service') IS DISTINCT FROM 'string'
      OR length(btrim(v_plan->>'service')) NOT BETWEEN 3 AND 120
      OR v_plan->>'categoryId' IS NULL
-     OR v_plan->>'categoryId' !~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12} (v_plan ? 'categoryLabel' AND v_plan ? 'categoryParentId')
-     OR jsonb_typeof(v_plan->'categoryLabel') IS DISTINCT FROM 'string'
-     OR (v_plan ? 'handoff' AND private.taxonomy_handoff_valid_v1(v_plan->'handoff') IS NOT TRUE)
-   THEN RETURN false; END IF;
-   v_service:=private.taxonomy_normalize_v1(v_plan->>'service');
-   IF v_service IS NULL OR v_service=ANY(v_seen)
-      OR private.taxonomy_risk_triage_v1(v_plan->>'service') IS DISTINCT FROM 'LOW_RISK_CANDIDATE'
-   THEN RETURN false; END IF;
-   SELECT count(*) INTO v_n FROM jsonb_array_elements_text(p_review#>'{profile,skills}') s(value)
-     WHERE private.taxonomy_normalize_v1(s.value)=v_service;
-   IF v_n<>1 THEN RETURN false; END IF;
-   SELECT count(*) INTO v_n FROM jsonb_array_elements(p_review->'reviewedServiceModes') m(value)
-     WHERE private.taxonomy_normalize_v1(m.value->>'service')=v_service AND m.value->>'mode'='REMOTE';
-   IF v_n<>1 THEN RETURN false; END IF;
-   v_category:=(v_plan->>'categoryId')::uuid;
-   IF NOT EXISTS(SELECT 1 FROM private.work_taxonomy_categories c
-      JOIN private.work_taxonomy_category_modes cm ON cm.category_id=c.id AND cm.execution_scope='REMOTE'
-      WHERE c.id=v_category AND c.state='ESTABLISHED'
-        AND c.label IS NOT DISTINCT FROM v_plan->>'categoryLabel'
-        AND coalesce(to_jsonb(c.parent_id),'null'::jsonb) IS NOT DISTINCT FROM v_plan->'categoryParentId'
-        AND NOT EXISTS(SELECT 1 FROM private.work_taxonomy_categories child
-          WHERE child.parent_id=c.id AND child.state='ESTABLISHED')
-        AND private.taxonomy_category_path_valid_v1(c.id))
-   THEN RETURN false; END IF;
-   v_seen:=array_append(v_seen,v_service);
- END LOOP;
- RETURN cardinality(v_seen)=jsonb_array_length(p_review#>'{profile,skills}');
-END; $function$
-
+     OR char_length(v_plan->>'categoryId') IS DISTINCT FROM 36
+     OR v_plan->>'categoryId' !~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
      OR NOT (v_plan ? 'categoryLabel' AND v_plan ? 'categoryParentId')
      OR jsonb_typeof(v_plan->'categoryLabel') IS DISTINCT FROM 'string'
      OR (v_plan ? 'handoff' AND private.taxonomy_handoff_valid_v1(v_plan->'handoff') IS NOT TRUE)
@@ -111,4 +84,4 @@ END; $function$
    v_seen:=array_append(v_seen,v_service);
  END LOOP;
  RETURN cardinality(v_seen)=jsonb_array_length(p_review#>'{profile,skills}');
-END; $function$
+END; $function$;
