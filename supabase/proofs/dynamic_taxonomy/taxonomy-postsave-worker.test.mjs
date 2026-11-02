@@ -113,6 +113,24 @@ test('lost commit ACK with an untyped error retries the SAME already-committed o
   assert.ok(!calls.some(x=>/publish|dispatch|push|ai_test|gemini/i.test(x.name)));
 });
 
+test('last-attempt lost ACK accepts the finalizer exact durable receipt without another commit',async()=>{
+ const {rpc,calls}=setup({claim:[{...job,attempts:5}],
+  commitError:new Error('synthetic ACK lost after database commit'),settle:finish});
+ const result=await processTaxonomyPostSaveTick(rpc);
+ assert.equal(result.admitted,1);assert.equal(result.retry,0);assert.equal(result.reviewRequired,0);
+ assert.equal(calls[3].args.p_error_code,'TEMPORARY_UNAVAILABLE');
+ assert.equal(calls.filter(x=>x.name==='rpc_taxonomy_commit_reviewed_batch_service').length,1);
+ assert.equal(calls[2].args.p_request_key,request);
+ assert.equal(result.capabilityAuthority,'NONE');assert.equal(result.notificationAuthority,'NONE');
+});
+
+test('unknown commit never accepts a different outbox receipt or missing finalizer result',async()=>{
+ for(const settle of [null,{status:'COMMITTED',outboxId:owner},{status:'UNKNOWN',outboxId:id}]){
+  const {rpc}=setup({commitError:new Error('synthetic lost ACK'),settle});
+  await assert.rejects(processTaxonomyPostSaveTick(rpc),TaxonomyWorkerProtocolError);
+ }
+});
+
 test('unknown error or throwing retryable getter cannot be classified as semantic denial',async()=>{
   for(const failure of [
     new TypeError('synthetic parser failure with unknown commit outcome'),

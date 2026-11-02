@@ -119,6 +119,7 @@ async function setup() {
       account_id uuid not null,
       envelope jsonb not null,
       base_hash text,
+      created_at timestamptz not null default statement_timestamp(),
       expires_at timestamptz not null default (now() + interval '1 hour')
     );
 
@@ -136,7 +137,7 @@ async function setup() {
       account_id uuid not null,
       kind text not null default 'WORKER',
       profile_status text not null default 'ACTIVE',
-      skills jsonb not null default '[]'::jsonb,
+      skills text[] not null default ARRAY[]::text[],
       updated_at timestamptz not null default now()
     );
 
@@ -180,6 +181,7 @@ async function setup() {
       catalog_version bigint not null,
       result jsonb not null,
       created_at timestamptz not null default now(),
+      bound_at timestamptz not null default statement_timestamp(),
       primary key (owner_account_id, request_key)
     );
 
@@ -509,7 +511,7 @@ async function setup() {
      IF NOT FOUND OR v_profile.profile_status<>'ACTIVE'
        OR v_profile.updated_at>v_save.created_at
        OR jsonb_typeof(v_skills)<>'array'
-       OR v_profile.skills IS DISTINCT FROM v_skills
+       OR to_jsonb(v_profile.skills) IS DISTINCT FROM v_skills
      THEN RAISE EXCEPTION 'WORKER_BINDER_CURRENT_PROFILE_REQUIRED' USING errcode='PT409'; END IF;
      FOR v_count IN 0..jsonb_array_length(v_batch.plans)-1 LOOP
        v_plan:=v_batch.plans->v_count;
@@ -779,7 +781,7 @@ async function insertWorkerReview(db, id, accountId, envelope, baseHash = 'base1
 }
 
 // =========================================================================
-// FULL-CHAIN END-TO-END INTEGRATION TESTS (ALL CORE SCENARIOS)
+// ISOLATED SQL CHAINS (synthetic prepare/Save rows; not Auth/native E2E)
 // =========================================================================
 
 test('scenario 1: existing canonical service REUSE_EXISTING commits and binds need', async t => {
@@ -1077,7 +1079,7 @@ test('scenario 4: BOTH execution mode supported across worker capabilities and n
 
   await insertWorkerReview(db, reviewId, account, envelope, 'base123');
   await db.query(`INSERT INTO public.app_profiles (id, account_id, kind, profile_status, skills, updated_at)
-    VALUES ($1, $2, 'WORKER', 'ACTIVE', '["Lektura i korektura"]'::jsonb, now() - interval '1 minute')`, [profileId, account]);
+    VALUES ($1, $2, 'WORKER', 'ACTIVE', ARRAY['Lektura i korektura']::text[], now() - interval '1 minute')`, [profileId, account]);
   await db.query(`INSERT INTO private.worker_ai_saves (review_id, account_id, client_request_id, receipt, created_at)
     VALUES ($1, $2, $3, jsonb_build_object('saved', true, 'profileId', $4::text, 'profileStatus', 'ACTIVE'), now())`, [reviewId, account, requestKey, profileId]);
 
@@ -1450,7 +1452,7 @@ test('R04/R08 downstream: unregistered signed worker synonym fails old binder, s
     profileId, profile:{skills:['Lektura']}, reviewedServiceModes:[{service:'Lektura',mode:'REMOTE'}],
   };
   await insertWorkerReview(db, reviewId, account, envelope, 'base123');
-  await db.query("INSERT INTO public.app_profiles(id,account_id,kind,profile_status,skills,updated_at) VALUES($1,$2,'WORKER','ACTIVE',$3::jsonb, now()-interval '1 minute')",
+  await db.query("INSERT INTO public.app_profiles(id,account_id,kind,profile_status,skills,updated_at) VALUES($1,$2,'WORKER','ACTIVE',ARRAY(SELECT jsonb_array_elements_text($3::jsonb)), now()-interval '1 minute')",
     [profileId,account,JSON.stringify(['Lektura'])]);
   await db.query("INSERT INTO private.worker_ai_saves(review_id,account_id,client_request_id,receipt,created_at) VALUES($1,$2,$3,jsonb_build_object('saved',true,'profileId',$4::text,'profileStatus','ACTIVE'),now())",
     [reviewId,account,requestKey,profileId]);
@@ -1464,15 +1466,11 @@ test('R04/R08 downstream: unregistered signed worker synonym fails old binder, s
   // This is the exact pre-fix regression; a green old binder is a test failure.
   await assert.rejects(bind(),/WORKER_BINDER_CATEGORY_STALE/);
   assert.equal((await db.query('SELECT count(*)::int n FROM private.work_taxonomy_worker_capabilities')).rows[0].n,0);
-  // The live signature is retained. Only the fixture-specific skills jsonb
-  // comparison differs from live app_profiles.skills text[]; no semantic guard
-  // or owner/Save/receipt checks are weakened in the candidate itself.
+  // Execute unchanged candidate against the actual text[] profile column type.
   const source=readFileSync(new URL('worker-semantic-binder-local-only.sql',import.meta.url),'utf8');
   assert.match(source,/v_plan \? 'categoryParentId'/);
   assert.match(source,/worker semantic|signed worker|signed review/i);
-  const liveSkillsClause='to_jsonb(v_profile.skills) IS DISTINCT FROM v_skills';
-  assert.equal(source.split(liveSkillsClause).length,2);
-  await db.exec(source.replace(liveSkillsClause,'v_profile.skills IS DISTINCT FROM v_skills'));
+  await db.exec(source);
   await db.query('UPDATE private.work_taxonomy_categories SET label=$1 WHERE id=$2',['Preimenovana usluga',category]);
   await assert.rejects(bind(),/WORKER_BINDER_CATEGORY_STALE/);
   await db.query('UPDATE private.work_taxonomy_categories SET label=$1,parent_id=$2 WHERE id=$3',
@@ -1511,7 +1509,7 @@ test('R04/R08 canonical category witness rejects label drift despite unchanged c
     profile:{skills:['Lektura i korektura']},
     reviewedServiceModes:[{service:'Lektura i korektura',mode:'REMOTE'}]};
   await insertWorkerReview(db,reviewId,account,envelope);
-  await db.query("INSERT INTO public.app_profiles(id,account_id,kind,profile_status,skills,updated_at) VALUES($1,$2,'WORKER','ACTIVE',$3::jsonb,now()-interval '1 minute')",
+  await db.query("INSERT INTO public.app_profiles(id,account_id,kind,profile_status,skills,updated_at) VALUES($1,$2,'WORKER','ACTIVE',ARRAY(SELECT jsonb_array_elements_text($3::jsonb)),now()-interval '1 minute')",
     [profileId,account,JSON.stringify(['Lektura i korektura'])]);
   await db.query("INSERT INTO private.worker_ai_saves(review_id,account_id,client_request_id,receipt,created_at) VALUES($1,$2,$3,jsonb_build_object('saved',true,'profileId',$4::text,'profileStatus','ACTIVE'),now())",
     [reviewId,account,requestKey,profileId]);
@@ -1520,9 +1518,7 @@ test('R04/R08 canonical category witness rejects label drift despite unchanged c
   assert.equal(committed.status,'COMMITTED');
   await db.query("SELECT set_config('test.jwt',$1,false)",[JSON.stringify({role:'service_role'})]);
   const source=readFileSync(new URL('worker-semantic-binder-local-only.sql',import.meta.url),'utf8');
-  const fixtureClause='to_jsonb(v_profile.skills) IS DISTINCT FROM v_skills';
-  assert.equal(source.split(fixtureClause).length,2);
-  await db.exec(source.replace(fixtureClause,'v_profile.skills IS DISTINCT FROM v_skills'));
+  await db.exec(source);
   const bind=()=>db.query('SELECT public.rpc_taxonomy_bind_reviewed_worker_service($1,$2,$3,$4) res',
     [account,requestKey,reviewId,profileId]);
   await db.query('UPDATE private.work_taxonomy_categories SET label=$1 WHERE id=$2',['Lektura izmenjen label',category]);
@@ -1571,6 +1567,162 @@ test('R08 cityless REMOTE reviewed synonym accepts only complete signed existing
   await db.query("INSERT INTO private.work_taxonomy_categories(id,parent_id,label,canonical_key,state) VALUES($1,$2,'Dodatni list','dodatni list','ESTABLISHED')",[child,category]);
   assert.equal(await check(review),false);
   assert.equal((await db.query('SELECT count(*)::int n FROM private.work_taxonomy_worker_capabilities')).rows[0].n,0);
+});
+
+test('R04/R08 actual AFTER skills trigger retains signed synonyms without reviving removed capabilities', async t => {
+  const db = await setup(); t.after(() => db.close()); await db.exec(ddl(postimages));
+  const captured = JSON.parse(readFileSync(new URL('worker-sync-dev-preimage-20261102.json', import.meta.url)));
+  for (const fn of captured.functions) assert.equal(hash(fn.definition, 'md5'), fn.definition_md5);
+  await db.exec(`
+    CREATE FUNCTION private.closure_taxonomy_profile_erasing_v1(uuid) RETURNS boolean
+      LANGUAGE sql STABLE AS $$SELECT false$$;
+    CREATE TABLE private.work_taxonomy_related_acceptances(worker_account_id uuid,source_category_id uuid);
+  `);
+  await db.exec(captured.functions.map(f => f.definition + ';').join('\n'));
+  await db.exec(`CREATE TRIGGER profile_capabilities AFTER INSERT OR UPDATE OF skills ON public.app_profiles
+    FOR EACH ROW EXECUTE FUNCTION private.worker_profile_sync_taxonomy_capabilities_trg_fn();`);
+  const reviewId='11111111-2222-4333-8444-555555555570';
+  const requestKey='22222222-3333-4444-8555-666666666670';
+  const profileId='44444444-5555-4666-8777-888888888870';
+  const plan={action:'REUSE_EXISTING',service:'Lektura',mode:'REMOTE',
+    categoryId:category,categoryLabel:'Lektura i korektura',categoryParentId:null,
+    catalogVersion:17,reason:'Reviewed existing identity',handoff:{required:false}};
+  const envelope={canAccept:true,classificationState:'READY',classificationCatalogVersion:17,
+    classificationCatalogFingerprint:repeat('a',32),classificationCandidates:[plan],profileId,accountId:account,reviewId,
+    profile:{skills:['Lektura']},reviewedServiceModes:[{service:'Lektura',mode:'REMOTE'}]};
+  await insertWorkerReview(db,reviewId,account,envelope);
+  await db.query("INSERT INTO public.app_profiles(id,account_id,skills,updated_at) VALUES($1,$2,ARRAY['Lektura'],now()-interval '1 minute')",[profileId,account]);
+  await db.query(`INSERT INTO private.worker_ai_saves(review_id,account_id,client_request_id,receipt)
+    VALUES($1,$2,$3,jsonb_build_object('saved',true,'authoritative',true,'accountId',$2::uuid::text,'reviewId',$1::uuid::text,'profileId',$4::text,'profileStatus','ACTIVE'))`,
+    [reviewId,account,requestKey,profileId]);
+  await db.query("SELECT public.rpc_taxonomy_commit_reviewed_batch_service($1,$2,'WORKER_CAPABILITY',$3,$4::jsonb)",
+    [account,requestKey,reviewId,JSON.stringify([plan])]);
+  await db.query("SELECT set_config('test.jwt',$1,false)",[JSON.stringify({role:'service_role'})]);
+  await db.exec(readFileSync(new URL('worker-semantic-binder-local-only.sql',import.meta.url),'utf8'));
+  const bind=()=>db.query('SELECT public.rpc_taxonomy_bind_reviewed_worker_service($1,$2,$3,$4) res',[account,requestKey,reviewId,profileId]);
+  const readers=JSON.parse(readFileSync(new URL('worker-readback-dev-preimage-20261102.json',import.meta.url)));
+  for(const fn of readers.functions) assert.equal(hash(fn.definition,'md5'),fn.definition_md5);
+  const oldRemote=readers.functions.find(f=>f.signature.startsWith('private.worker_remote_only_activation_ready_v1('));
+  const oldReader=readers.functions.find(f=>f.signature.startsWith('public.rpc_get_worker_execution_modes('));
+  await db.exec(oldRemote.definition+';'+oldReader.definition+';');
+  const remote=async()=> (await db.query('SELECT private.worker_remote_only_activation_ready_v1($1,(SELECT skills FROM public.app_profiles WHERE id=$2)) ok',[account,profileId])).rows[0].ok;
+  await db.query("SELECT set_config('test.uid',$1,false)",[account]);
+  const services=async()=> (await db.query('SELECT public.rpc_get_worker_execution_modes($1) res',[profileId])).rows[0].res.services;
+  assert.equal(await remote(),false); // Save alone never grants ability.
+  assert.equal((await services())[0].status,'PENDING');
+  assert.equal((await bind()).rows[0].res.status,'BOUND_WORKER_SERVICES');
+  assert.equal(await remote(),false); // Reproduce both live downstream vetoes.
+  assert.equal((await services())[0].status,'UNCONFIRMED');
+  await db.exec(readFileSync(new URL('worker-remote-semantic-activation-local-only.sql',import.meta.url),'utf8'));
+  await db.exec(readFileSync(new URL('worker-semantic-readback-local-only.sql',import.meta.url),'utf8'));
+  assert.equal(await remote(),true);
+  assert.deepEqual((await services())[0],{service:'Lektura',status:'CONFIRMED',modes:[{mode:'REMOTE',status:'CONFIRMED',handoff:{required:false}}]});
+  // An existing related opt-in must survive retaining the SAME service.
+  await db.query('UPDATE private.work_taxonomy_worker_capabilities SET allow_related_offers=true WHERE worker_account_id=$1',[account]);
+  await db.query('INSERT INTO private.work_taxonomy_related_acceptances VALUES($1,$2)',[account,category]);
+  const read=async()=> (await db.query('SELECT category_id,excluded,allow_related_offers,confirmed_at FROM private.work_taxonomy_worker_capabilities WHERE worker_account_id=$1',[account])).rows;
+  const before=await read();
+  const skills=values=>db.query('UPDATE public.app_profiles SET skills=$1::text[] WHERE id=$2',[values,profileId]);
+  // Actual original trigger+sync wrongly revokes the unchanged signed synonym
+  // when another (unconfirmed) service is added. Rollback keeps the same proof.
+  await db.exec('BEGIN');
+  await skills(['Lektura','Nova nezavisna usluga']);
+  assert.equal((await read())[0].excluded,true);
+  assert.equal((await db.query('SELECT count(*)::int n FROM private.work_taxonomy_related_acceptances')).rows[0].n,0);
+  await db.exec('ROLLBACK');
+  const fixed=readFileSync(new URL('worker-semantic-sync-local-only.sql',import.meta.url),'utf8');
+  await db.exec(fixed);
+  await skills(['Lektura','Nova nezavisna usluga']);
+  assert.deepEqual(await read(),before);
+  assert.equal((await db.query('SELECT count(*)::int n FROM private.work_taxonomy_related_acceptances')).rows[0].n,1);
+  const sync=()=>db.query('SELECT private.sync_worker_skills_to_taxonomy_capabilities($1,(SELECT skills FROM public.app_profiles WHERE id=$2)) res',[account,profileId]);
+  const receipt=(await sync()).rows[0].res;
+  assert.deepEqual(receipt.retainedExistingCategoryIds,[category]);
+  assert.deepEqual(receipt.unmappedSkillLabels,['Nova nezavisna usluga']);
+  assert.equal(receipt.assignedCount,0); assert.equal(receipt.openNeedsRequeued,0);
+  assert.equal(receipt.newCapabilityAuthority,'NONE');
+  assert.equal(await remote(),false); // Unknown addition is not certified REMOTE.
+  assert.deepEqual((await services()).map(x=>x.status),['CONFIRMED','UNCONFIRMED']);
+  await assert.rejects(db.query('SELECT private.sync_worker_skills_to_taxonomy_capabilities($1,$2::text[])',[account,['Lektura']]),/TAXONOMY_PROFILE_SKILLS_MISMATCH/);
+  await skills(['Lektura']);
+  assert.equal(await remote(),true);
+  // An unrelated later Save does not invalidate an active per-service binding.
+  await db.exec('BEGIN');
+  await db.query(`INSERT INTO private.worker_ai_saves(review_id,account_id,client_request_id,receipt,created_at)
+    VALUES(gen_random_uuid(),$1,gen_random_uuid(),jsonb_build_object('profileId',$2::text),now()+interval '1 second')`,[account,profileId]);
+  assert.equal(await remote(),true);
+  assert.equal((await services())[0].status,'CONFIRMED');
+  await db.exec('ROLLBACK');
+  // Each missing/altered authority must remove the fallback, not widen it.
+  for (const mutation of [
+    "DELETE FROM private.work_taxonomy_worker_bindings_v1",
+    "UPDATE private.work_taxonomy_worker_bindings_v1 SET profile_id='99999999-9999-4999-8999-999999999999'",
+    "UPDATE private.worker_ai_saves SET receipt=receipt-'authoritative'",
+    "UPDATE private.worker_ai_reviews SET envelope=jsonb_set(envelope,'{profile,skills}','[\"Druga usluga\"]')",
+    "UPDATE private.work_taxonomy_review_batches_v1 SET result=jsonb_set(result,'{items,0,categoryId}','\"cccccccc-cccc-4ccc-8ccc-cccccccccccc\"')",
+    "UPDATE private.taxonomy_confirmed_worker_modes_v1 SET active=false",
+    "UPDATE private.work_taxonomy_categories SET label='Promenjena kategorija' WHERE id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'",
+    "UPDATE private.work_taxonomy_categories SET parent_id='cccccccc-cccc-4ccc-8ccc-cccccccccccc' WHERE id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'",
+    "INSERT INTO private.work_taxonomy_categories(parent_id,label,canonical_key,state) VALUES('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','Novi list','novi list','ESTABLISHED')",
+  ]) {
+    await db.exec('BEGIN'); await db.exec(mutation);
+    assert.equal(await remote(),false,mutation);
+    assert.notEqual((await services())[0].status,'CONFIRMED',mutation);
+    assert.equal((await sync()).rows[0].res.retainedExistingCategoryCount,0,mutation);
+    assert.equal((await read())[0].excluded,true,mutation);
+    await db.exec('ROLLBACK');
+  }
+  // Empty list is explicit withdrawal. Re-adding text, or replaying the old
+  // binding receipt, is NOT renewed consent and must never revive capabilities.
+  await skills([]); assert.equal((await read())[0].excluded,true);
+  assert.equal(await remote(),false); assert.deepEqual(await services(),[]);
+  assert.equal((await read())[0].allow_related_offers,false);
+  await skills(['Lektura']);
+  await bind();
+  assert.equal((await read())[0].excluded,true);
+  assert.equal(await remote(),false);
+  assert.notEqual((await services())[0].status,'CONFIRMED');
+  assert.equal((await db.query('SELECT count(*)::int n FROM private.work_taxonomy_related_acceptances')).rows[0].n,0);
+  assert.equal((await db.query('SELECT count(*)::int n FROM private.work_taxonomy_aliases')).rows[0].n,0);
+  // Renewed authority requires a NEW signed Save/batch/binder. Exercise actual
+  // replacement of the same ID's mode set, including a physical handoff.
+  for (const modes of [['ON_SITE','REMOTE'],['ON_SITE'],['REMOTE']]) {
+    const nextReview=(await db.query('SELECT gen_random_uuid() id')).rows[0].id;
+    const nextRequest=(await db.query('SELECT gen_random_uuid() id')).rows[0].id;
+    const nextPlans=modes.map(mode=>({...plan,mode,
+      ...(mode==='REMOTE'?{handoff:{required:true,shippingCountries:['RS']}}:{handoff:undefined})}));
+    const nextEnvelope={...envelope,reviewId:nextReview,classificationCandidates:nextPlans,
+      reviewedServiceModes:modes.map(mode=>({service:'Lektura',mode}))};
+    await insertWorkerReview(db,nextReview,account,nextEnvelope);
+    await db.query(`INSERT INTO private.worker_ai_saves(review_id,account_id,client_request_id,receipt)
+      VALUES($1,$2,$3,jsonb_build_object('saved',true,'authoritative',true,'accountId',$2::uuid::text,
+        'reviewId',$1::uuid::text,'profileId',$4::text,'profileStatus','ACTIVE'))`,[nextReview,account,nextRequest,profileId]);
+    await db.query("SELECT public.rpc_taxonomy_commit_reviewed_batch_service($1,$2,'WORKER_CAPABILITY',$3,$4::jsonb)",
+      [account,nextRequest,nextReview,JSON.stringify(nextPlans)]);
+    assert.equal((await db.query('SELECT public.rpc_taxonomy_bind_reviewed_worker_service($1,$2,$3,$4) res',
+      [account,nextRequest,nextReview,profileId])).rows[0].res.status,'BOUND_WORKER_SERVICES');
+    assert.equal((await read())[0].excluded,false);
+    assert.equal((await read())[0].allow_related_offers,false);
+    assert.deepEqual((await services())[0].modes.map(m=>[m.mode,m.status]),modes.map(mode=>[mode,'CONFIRMED']));
+    assert.equal(await remote(),modes.length===1&&modes[0]==='REMOTE');
+    await skills(['Lektura','Nova nezavisna usluga']);
+    assert.equal((await read())[0].excluded,false); // Both modes survive trigger.
+    await skills(['Lektura']);
+  }
+  assert.equal(await remote(),true);
+  for(const spelling of ['lektura',' Lektura ']) {
+    await skills([spelling]);
+    assert.equal((await read())[0].excluded,false);
+    assert.equal(await remote(),true);
+    const [service]=await services();
+    assert.equal(service.service,spelling); // Preserve visible user text.
+    assert.equal(service.status,'CONFIRMED');
+  }
+  await skills(['Lektura']);
+  await db.query("SELECT set_config('test.uid','99999999-9999-4999-8999-999999999999',false)");
+  await assert.rejects(services(),/WORKER_PROFILE_NOT_OWNED/);
+  await db.query("SELECT set_config('test.uid',$1,false)",[account]);
+  assert.equal((await services())[0].status,'CONFIRMED');
 });
 
 function repeat(char, n) {

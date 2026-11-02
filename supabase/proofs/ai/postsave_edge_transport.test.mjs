@@ -82,6 +82,23 @@ test('complete owned catalog-only tick preserves receipt/lease and no binding au
   assert.equal(f.timers.size, 0); assert.deepEqual(f.logs, []);
 });
 
+test('last-attempt lost commit ACK is recovered by authoritative SQL finalization, without redispatch', async () => {
+  const f = fixture({ response: name => {
+    if (name === rpcName(1)) return json([{ ...job, attempts: 5 }]);
+    if (name === rpcName(2)) throw new Error('synthetic lost ACK after durable commit');
+    if (name === rpcName(3)) return json({ outboxId: job.id, status: 'COMMITTED' });
+  } });
+  const out = await f.invoke();
+  assert.equal(out.status, 200);
+  const data = await out.json();
+  assert.equal(data.admitted, 1); assert.equal(data.retry, 0); assert.equal(data.reviewRequired, 0);
+  assert.equal(data.capabilityAuthority, 'NONE'); assert.equal(data.notificationAuthority, 'NONE');
+  assert.equal(f.calls[3].args.p_error_code, 'TEMPORARY_UNAVAILABLE');
+  assert.equal(f.calls[2].args.p_request_key, job.requestKey);
+  assert.deepEqual(f.calls.map(c => c.name), names.map((_, i) => rpcName(i)));
+  assert.equal(f.timers.size, 0); assert.deepEqual(f.logs, []);
+});
+
 test('already cancelled caller cannot dispatch reconciliation or claim writes', async () => {
   const controller = new AbortController(); controller.abort();
   const f = fixture(); const out = await f.invoke({ signal: controller.signal });
