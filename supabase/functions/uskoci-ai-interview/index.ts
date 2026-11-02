@@ -14,6 +14,9 @@ import {
   NEED_FACT_SCHEMA_V2,
   NEED_FACT_V2_DEFINITIONS,
   AI_PROPOSABLE_NEED_FACT_V2_KEYS,
+  MAX_AI_NEED_FACT_V2_PROPOSALS,
+  NEED_FACT_TURN_CAPABILITY_HEADER,
+  NEED_FACT_TURN_CAPABILITY_VERSION,
   isAiProposableNeedFactV2Key,
   isNeedFactV2Key,
 } from '../../../src/contracts/needFactsV2.ts';
@@ -51,7 +54,7 @@ const isLiveDualGemini = (): boolean => taxonomyDualGeminiEnabled((key:string)=>
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
+  'Access-Control-Allow-Headers': `authorization, apikey, content-type, x-client-info, ${NEED_FACT_TURN_CAPABILITY_HEADER}`,
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
@@ -327,7 +330,7 @@ function validTurn(value: unknown, conversationId: string, requestId: string) {
   const r = value.receipt;
   return !value.retryAllowed && exact(r, ['userMessageId', 'assistantMessageId', 'proposedCount', 'safety', 'schemaVersion', 'authoritative']) &&
     isUuid(r.userMessageId) && isUuid(r.assistantMessageId) && r.userMessageId !== r.assistantMessageId &&
-    Number.isSafeInteger(r.proposedCount) && r.proposedCount >= 0 && r.proposedCount <= 12 &&
+    Number.isSafeInteger(r.proposedCount) && r.proposedCount >= 0 && r.proposedCount <= MAX_AI_NEED_FACT_V2_PROPOSALS &&
     ['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(r.safety) && r.schemaVersion === NEED_FACT_SCHEMA_V2 && r.authoritative === true &&
     (r.safety !== 'BLOCK' || r.proposedCount === 0);
 }
@@ -397,7 +400,7 @@ function legacyProviderSchema() {
   };
 }
 
-function v2ProviderSchema() {
+function v2ProviderSchema(maxProposals = 12) {
   return {
     type: 'OBJECT',
     additionalProperties: false,
@@ -412,7 +415,7 @@ function v2ProviderSchema() {
         required: Object.keys(DIALOGUE_VALUES) },
       facts: {
         type: 'ARRAY',
-        maxItems: 12,
+        maxItems: maxProposals,
         items: {
           type: 'OBJECT',
           additionalProperties: false,
@@ -639,10 +642,10 @@ function valueMatchesContract(key: string, value: unknown): boolean {
   return true;
 }
 
-function parseV2Output(parsed: any): ParsedTurn {
+function parseV2Output(parsed: any, maxProposals = 12): ParsedTurn {
   rejectManualOnlyFacts(parsed);
   if (!exact(parsed, ['safety', 'assistantMessage', 'facts', 'dialogue']) || !['ALLOW', 'CLARIFY', 'REVIEW', 'BLOCK'].includes(parsed.safety) ||
-    !Array.isArray(parsed.facts) || parsed.facts.length > 12) {
+    !Array.isArray(parsed.facts) || parsed.facts.length > maxProposals) {
     // Distinguish contract failures without logging user text or provider data.
     console.info('NEED_AI_OUTPUT_GATE', 'ROOT_SHAPE',
       'rootExact', exact(parsed, ['safety', 'assistantMessage', 'facts', 'dialogue']),
@@ -727,6 +730,7 @@ async function callGemini(
   providerBudget?: ReturnType<typeof createTaxonomyProviderBudget>,
   researchTimeoutMs = 35000,
   clarificationHint?: { ambiguityPrompt?: string; service?: string } | null,
+  maxProposals = 12,
 ) {
   const contents = history.slice(-30).map((row) => ({
     role: row.role === 'ASSISTANT' ? 'model' : 'user',
@@ -761,7 +765,8 @@ async function callGemini(
       console.info('NEED_TAXONOMY_INVALID_PLAN_CLASS',checked.invalidPlanCodes.join(','));
     // Apply intent/finish/time guards once, before classification derives the
     // effective task. Rejected facts must not leave a captured service hint.
-    const parsedTurn=locationContext ? parseLocationOutput(checked.output,locationContext,parseV2Output) : parseV2Output(checked.output);
+    const parseFacts=(output:any)=>parseV2Output(output,maxProposals);
+    const parsedTurn=locationContext ? parseLocationOutput(checked.output,locationContext,parseFacts) : parseFacts(checked.output);
     const previousMessage = history[history.length - 1];
     const pendingDeadlineQuestion = applicationDeadlineEnabled() && previousMessage?.role === 'ASSISTANT'
       && typeof previousMessage.body === 'string' && previousMessage.body.includes('?')
@@ -827,7 +832,7 @@ async function callGemini(
     systemInstruction: { parts: systemParts('research') },
     contents,
     generationConfig: { temperature: 0.2, maxOutputTokens: AI_TEST_LIMITS.llmMaxOutputTokens,
-      responseMimeType: 'application/json', responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? (taxonomyExplorer ? withGeminiClassificationShadowSchema(locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : locationContext ? locationProviderSchema(v2ProviderSchema()) : v2ProviderSchema()) : legacyProviderSchema() },
+      responseMimeType: 'application/json', responseSchema: schemaVersion === NEED_FACT_SCHEMA_V2 ? (taxonomyExplorer ? withGeminiClassificationShadowSchema(locationContext ? locationProviderSchema(v2ProviderSchema(maxProposals)) : v2ProviderSchema(maxProposals)) : locationContext ? locationProviderSchema(v2ProviderSchema(maxProposals)) : v2ProviderSchema(maxProposals)) : legacyProviderSchema() },
   });
   if (new TextEncoder().encode(payloadBody).byteLength > AI_TEST_LIMITS.llmRequestBytes) throw new Error('AI_CONTEXT_TOO_LARGE');
   if (taxonomyExplorer && providerBudget) {
@@ -1532,7 +1537,8 @@ Deno.serve(async (req: Request) => {
       aiTurn = await callGemini(geminiKey, geminiModel, schemaVersion, history, activeFacts, effectiveUserMessage, timeContext, research.signal, onText,
         (usage) => { reportedUsage = usage; }, locationContext, taxonomyPrompt, taxonomyExplorer,
         (hints,feedback,catalog) => { taxonomyReviewHints = hints; taxonomyFeedback = feedback; taxonomyCatalog = catalog; }, imageBase64, imageMime,
-        providerBudget, Math.min(35000,research.remainingMs()), pendingClarificationHint);
+        providerBudget, Math.min(35000,research.remainingMs()), pendingClarificationHint,
+        !locationContext && req.headers.get(NEED_FACT_TURN_CAPABILITY_HEADER) === NEED_FACT_TURN_CAPABILITY_VERSION ? MAX_AI_NEED_FACT_V2_PROPOSALS : 12);
       if (devTaxonomyFlagP1('USKOCI_TAXONOMY_UNIFIED_SHADOW') && !dualGeminiActive)
         aiTurn = withClassificationFeedback(aiTurn,taxonomyFeedback,{finishOnly:taskFinishOnly(effectiveUserMessage) && !locationContext,maximum:1200});
       if (locationContext) {

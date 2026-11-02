@@ -21,7 +21,7 @@ const providerResult={safety:'ALLOW',assistantMessage:'Pregledajte predloženi b
   {key:'need.people_needed',valueJson:'2',displayValue:'2 osobe',evidence:userText,confidence:0.9},
 ]};
 const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
-function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,historyCount=50,historyRows,schema='NEED_FACT_V2',activeFacts=[],providerOutput}={}){
+function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,historyCount=50,historyRows,schema='NEED_FACT_V2',activeFacts=[],providerOutput,factCapability}={}){
   const calls=[],logs=[],env={AI_PROVIDER:provider,SUPABASE_URL:'https://database.test.invalid',SUPABASE_ANON_KEY:'SYNTHETIC_PUBLIC_KEY',
     SUPABASE_SERVICE_ROLE_KEY:'SYNTHETIC_SERVICE_KEY',GEMINI_API_KEY:provider==='gemini'?'SYNTHETIC_GEMINI_KEY':'',
     GEMINI_MODEL:provider==='gemini'?'gemini-3.8-flash':'',USKOCI_GEMINI_PAID_TEST_ENABLED:'true',
@@ -98,7 +98,7 @@ function fixture({now='2026-09-07T12:00:00.000Z',provider='gemini',failure,histo
   }
   load(entry);assert.equal(typeof handler,'function');
   const request=overrides=>new Request('https://edge.test.invalid/uskoci-ai-interview',{method:'POST',
-    headers:{Authorization:'Bearer SYNTHETIC_USER_SESSION','Content-Type':'application/json'},
+    headers:{Authorization:'Bearer SYNTHETIC_USER_SESSION','Content-Type':'application/json',...(factCapability?{'x-uskoci-need-facts':factCapability}:{})},
     body:JSON.stringify({conversationId:conversation,text:userText,...(schema==='NEED_FACT_V2'?{clientRequestId:requestId}:{}),...overrides})});
   return {calls,logs,env,registry:load(registry),invoke:overrides=>handler(request(overrides))};
 }
@@ -106,6 +106,39 @@ const providerCall=fixture=>fixture.calls.find(x=>x.url.includes('googleapis')||
 const materialWrites=f=>f.calls.filter(call=>/\/(?:rpc_ai_complete_need_turn_v2_service|rpc_ai_apply_legacy_need_turn_service|rpc_ai_apply_interview_turn(?:_v2)?_service)$/.test(new URL(call.url).pathname));
 const prompt=call=>call.body.systemInstruction?.parts.map(p=>p.text).join('\n')??call.body.instructions;
 const timeContext=call=>JSON.parse(prompt(call).match(/Serverski vremenski kontekst za trenutni unos u Srbiji: (\{.+?\})\./)[1]);
+
+const completeTaskText='Lektura teksta od pet strana. Rad se obavlja online u Srbiji, bez fizicke predaje. Cena je 1500 RSD ukupno za jednu osobu. Pocetak je 3. novembar 2026. u 9, kraj 6. novembar 2026. u 17.';
+const completeTaskOutput=()=>({safety:'ALLOW',assistantMessage:'Pregledajte nacrt zadatka.',dialogue:syntheticDialogue(),facts:Object.entries({
+ 'need.title':'Lektura pet strana','need.description':'Lektura teksta od pet strana.','need.category':'Lektura teksta',
+ 'need.price_mode':'MY_PRICE','need.price_rsd':1500,'need.price_basis':'TOTAL','need.people_needed':1,
+ 'need.schedule_kind':'FIXED_WINDOW','need.starts_at':'2026-11-03T09:00:00+01:00','need.ends_at':'2026-11-06T17:00:00+01:00',
+ 'need.task_country_code':'RS','need.task_geography':{mode:'REMOTE'},'need.handoff':{required:false},
+}).map(([key,value])=>({key,valueJson:JSON.stringify(value),displayValue:typeof value==='string'?value:JSON.stringify(value),evidence:completeTaskText,confidence:0.95}))});
+
+test('capable client preserves all 13 ordinary task facts and the exact completion receipt in one call',async()=>{
+ const f=fixture({providerOutput:completeTaskOutput(),factCapability:'registry-v1',historyRows:[]});
+ const response=await f.invoke({text:completeTaskText});assert.equal(response.status,200,JSON.stringify(f.logs));
+ assert.equal((await response.json()).receipt.proposedCount,13);
+ const writes=materialWrites(f);assert.equal(writes.length,1);assert.equal(writes[0].body.p_proposals.length,13);
+ assert.deepEqual(writes[0].body.p_proposals.map(p=>p.key).sort(),completeTaskOutput().facts.map(p=>p.key).sort());
+ // The shared provider adapter omits array bounds; the actual decoder enforces
+ // them locally. This test checks saved facts, not an unenforced schema hint.
+ assert.equal(f.calls.filter(c=>c.url.includes('googleapis')).length,1);
+});
+for(const factCapability of [undefined,'unknown-version'])test('legacy/unknown fact capability keeps the 12-fact contract: '+factCapability,async()=>{
+ const f=fixture({providerOutput:completeTaskOutput(),factCapability,historyRows:[]});
+ assert.equal((await f.invoke({text:completeTaskText})).status,502);assert.equal(materialWrites(f).length,0);
+ assert.ok(f.logs.some(args=>args[0]==='NEED_AI_OUTPUT_GATE'&&args[1]==='ROOT_SHAPE'));
+});
+for(const kind of ['duplicate','oversize','manual','invalid-value'])test('full-turn capability keeps strict fact rejection: '+kind,async()=>{
+ const output=completeTaskOutput();
+ if(kind==='duplicate')output.facts.push({...output.facts[0]});
+ if(kind==='oversize')output.facts=Array.from({length:23},()=>({...output.facts[0]}));
+ if(kind==='manual')output.facts[0]={...output.facts[0],key:'need.resolved_location'};
+ if(kind==='invalid-value')output.facts[0]={...output.facts[0],key:'need.people_needed',valueJson:'0'};
+ const f=fixture({providerOutput:output,factCapability:'registry-v1',historyRows:[]});
+ assert.equal((await f.invoke({text:completeTaskText})).status,502);assert.equal(materialWrites(f).length,0);
+});
 
 test('provider refusal fails the owned attempt without a persistent conversation BLOCK',async()=>{
  const f=fixture({failure:'safety'});

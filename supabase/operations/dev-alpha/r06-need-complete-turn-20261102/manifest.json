@@ -1,0 +1,26 @@
+{
+  "status": "PREPARED_NOT_APPLIED",
+  "project": "leqcwgzvjsxugfgzdmth",
+  "functions": [
+    {
+      "signature": "public.rpc_ai_apply_interview_turn_v2_service(uuid,uuid,text,text,text,jsonb)",
+      "preimage_md5": "1276b7b6b562bf0c29534c4ad9bdc7d3",
+      "postimage_md5": "db25bcbffbef1d0947c53defb1a6cb05"
+    },
+    {
+      "signature": "public.rpc_ai_complete_need_turn_v2_service(uuid,uuid,uuid,uuid,text,text,text,jsonb)",
+      "preimage_md5": "ff2be465f91497787558d9d1a5cecdba",
+      "postimage_md5": "b867f1c7289fb7513f5acec4a050b8c8"
+    }
+  ],
+  "max_proposals": 22,
+  "scheduling_candidate_sha256": "d23a8b8bef68a197880ebdfda42aa4089e830b99842ccc3bfba874d2c1f39d59",
+  "preimage_sha256": "f0f77f9e5fd8b7d28dad52a5977b132402e51047f113c399733fe2a889900615",
+  "closure": "UNCHANGED_REQUIRED",
+  "files": {
+    "preflight.sql": "735f8dac81a0494192554444c71ae6f922166bfc84f514e54521a79f73e05999",
+    "promotion.sql": "b234317b2aa2cd809d98ef3c96833bb7a21a1aa59c1b1f30159173bd71456641",
+    "postflight.sql": "56a65b79d8435af89a09eb4dfa8927498be8e6dfe1029030cf05860e31285d67",
+    "rollback.sql": "74b3e52e0e2812a38c984b5b486dd10510c0d8c3a73d82749dcd817e059077af"
+  }
+}

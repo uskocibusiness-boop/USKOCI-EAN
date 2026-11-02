@@ -1,6 +1,7 @@
 import { AI_CREDITS_UNAVAILABLE, AI_DIAGNOSTICS_HEADER, AI_DIAGNOSTICS_VERSION, AI_AVAILABILITY_HEADER } from '../contracts/aiAvailability';
 import { uuid, record, sameId } from './serverReceipt';
 import { fetch as expoFetch } from 'expo/fetch';
+import { NEED_FACT_TURN_CAPABILITY_HEADER, NEED_FACT_TURN_CAPABILITY_VERSION } from '../contracts/needFactsV2';
 
 export type AiTurnStreamOptions = { onText: (delta: string) => void; signal?: AbortSignal };
 
@@ -63,7 +64,8 @@ export async function requestAiTurnStream(input: AiTurnStreamOptions & {
     if (!current()) throw new Error('AI_STREAM_STOPPED');
     const response = await expoFetch(input.url + '/functions/v1/' + (input.endpoint ?? 'uskoci-ai-interview'), {
       method: 'POST', signal: abort.signal, redirect: 'error',
-      headers: { Authorization: 'Bearer ' + input.accessToken, apikey: input.anonKey, 'Content-Type': 'application/json', Accept: 'text/event-stream', [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION },
+      headers: { Authorization: 'Bearer ' + input.accessToken, apikey: input.anonKey, 'Content-Type': 'application/json', Accept: 'text/event-stream', [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION,
+        ...(input.endpoint === 'uskoci-worker-interview' ? {} : { [NEED_FACT_TURN_CAPABILITY_HEADER]: NEED_FACT_TURN_CAPABILITY_VERSION }) },
       body: JSON.stringify({
         conversationId: input.conversationId,
         text: input.text,

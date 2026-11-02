@@ -1,7 +1,16 @@
-import { createAiTurnStreamDecoder } from '../aiNeedTurnStream';
+import { createAiTurnStreamDecoder, requestAiTurnStream } from '../aiNeedTurnStream';
+const mockFetch=jest.fn();
+jest.mock('expo/fetch',()=>({fetch:(...args:unknown[])=>mockFetch(...args)}));
 const id = (n: number) => `${String(n).padStart(8, '0')}-1111-4111-8111-111111111111`;
 const conversationId=id(1), clientRequestId=id(2), turnId=id(3), attemptId=id(4);
 const event=(sequence:number, kind:string, extra:object={})=>({ conversationId, clientRequestId, turnId, attemptId, sequence, kind, ...extra });
+it.each([undefined,'uskoci-ai-interview','uskoci-worker-interview'] as const)('advertises full Need receipts only for the Need stream: %s',async endpoint=>{
+  mockFetch.mockReset().mockRejectedValue(new Error('synthetic offline'));
+  await requestAiTurnStream({url:'https://synthetic.invalid',anonKey:'test-public',accessToken:'test-session',conversationId,clientRequestId,
+    text:'test',current:()=>true,deadline:Date.now()+1000,onText:()=>undefined,endpoint});
+  const headers=mockFetch.mock.calls[0][1].headers;
+  expect(headers['x-uskoci-need-facts']).toBe(endpoint==='uskoci-worker-interview'?undefined:'registry-v1');
+});
 function fixture(){ let current=true; const onText=jest.fn(); const decoder=createAiTurnStreamDecoder({conversationId,clientRequestId,current:()=>current,onText});
   return {...decoder,onText,retire:()=>{current=false;}}; }
 it('renders only ordered text deltas and yields the actual final DTO, never text as receipt',()=>{

@@ -1,4 +1,5 @@
 import { aiNeedV2Production as client } from '../aiNeedV2Production';
+import { AI_PROPOSABLE_NEED_FACT_V2_KEYS } from '../../contracts/needFactsV2';
 
 const ACCOUNT = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const C = '11111111-1111-4111-8111-111111111111';
@@ -89,7 +90,7 @@ describe('turn receipt contract and SDK error transport', () => {
     mockRpc.mockResolvedValue(ok({ ...turn(), ...patch }));
     await expect(client.readTurn(C, K)).resolves.toMatchObject({ ok: false, kod: 'AI_TURN_INVALID_RESPONSE' });
   });
-  it.each([{ proposedCount: '2' }, { proposedCount: -1 }, { proposedCount: 13 }, { proposedCount: 1.5 }, { proposedCount: NaN },
+  it.each([{ proposedCount: '2' }, { proposedCount: -1 }, { proposedCount: AI_PROPOSABLE_NEED_FACT_V2_KEYS.length + 1 }, { proposedCount: 1.5 }, { proposedCount: NaN },
     { userMessageId: AI_MESSAGE }, { assistantMessageId: 'bad' }, { safety: 'UNKNOWN' }, { schemaVersion: 'LEGACY_TEXT_V1' },
     { authoritative: false }, { extra: 'private' }])('never coerces success receipt %j', async patch => {
     mockRpc.mockResolvedValue(ok({ ...turn(), receipt: { ...receipt(), ...patch } }));
@@ -99,7 +100,7 @@ describe('turn receipt contract and SDK error transport', () => {
     mockRpc.mockResolvedValue(ok({ ...turn(state), receipt: receipt() }));
     await expect(client.readTurn(C, K)).resolves.toMatchObject({ ok: false });
   });
-  it.each([0, 12])('retains proposedCount=%s exactly', async proposedCount => {
+  it.each([0, 12, 13, AI_PROPOSABLE_NEED_FACT_V2_KEYS.length])('retains proposedCount=%s exactly', async proposedCount => {
     const value = { ...turn(), receipt: { ...receipt(), proposedCount } }; mockRpc.mockResolvedValue(ok(value));
     await expect(client.readTurn(C, K)).resolves.toEqual({ ok: true, podatak: value });
   });
@@ -107,7 +108,7 @@ describe('turn receipt contract and SDK error transport', () => {
     const value = turn(state); mockInvoke.mockResolvedValue(ok(value));
     await expect(client.sendMessage(C, '  Original text  ', K)).resolves.toEqual({ ok: true, podatak: value });
     expect(mockInvoke).toHaveBeenCalledWith('uskoci-ai-interview', { body: { conversationId: C, text: 'Original text', clientRequestId: K },
-      headers: { 'x-client-info': 'uskoci-app/ai-availability-v1' } });
+      headers: { 'x-client-info': 'uskoci-app/ai-availability-v1', 'x-uskoci-need-facts': 'registry-v1' } });
     expect(mockInvoke).toHaveBeenCalledTimes(1);
   });
   it('parses only a strict HTTP409 FAILED envelope as a known command result', async () => {

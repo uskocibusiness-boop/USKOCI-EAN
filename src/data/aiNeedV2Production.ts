@@ -4,7 +4,7 @@ import type {
   AiNeedEditConfirmed, AiNeedEditOpened, AiNeedMessage, AiNeedSafety,
   AiNeedTurnReceipt, AiNeedTurnStatus, AiNeedTurnRecovery, AiNeedV2Conversation, AiNeedV2Fact, AiNeedV2Review,
 } from '../contracts/aiNeedV2';
-import { MAX_NEED_FACT_V2_PAYLOAD, NEED_FACT_SCHEMA_V2, NEED_FACT_V2_DEFINITIONS, isNeedFactV2Key } from '../contracts/needFactsV2';
+import { MAX_AI_NEED_FACT_V2_PROPOSALS, MAX_NEED_FACT_V2_PAYLOAD, NEED_FACT_SCHEMA_V2, NEED_FACT_TURN_CAPABILITY_HEADER, NEED_FACT_TURN_CAPABILITY_VERSION, NEED_FACT_V2_DEFINITIONS, isNeedFactV2Key } from '../contracts/needFactsV2';
 import { decodeTaskApplicationDeadlineFact } from '../contracts/taskApplicationDeadline';
 import { decodeServiceHandoff } from '../contracts/serviceHandoff';
 import type { Ishod } from './ports';
@@ -141,7 +141,7 @@ function safeJson(value: unknown, depth = 0): boolean {
 function turnReceipt(raw: unknown): AiNeedTurnReceipt | null {
   const r = exact(raw, ['userMessageId', 'assistantMessageId', 'proposedCount', 'safety', 'schemaVersion', 'authoritative']);
   if (!r || !uuid(r.userMessageId) || !uuid(r.assistantMessageId) || sameId(r.userMessageId, r.assistantMessageId)
-    || typeof r.proposedCount !== 'number' || !Number.isInteger(r.proposedCount) || r.proposedCount < 0 || r.proposedCount > 12
+    || typeof r.proposedCount !== 'number' || !Number.isInteger(r.proposedCount) || r.proposedCount < 0 || r.proposedCount > MAX_AI_NEED_FACT_V2_PROPOSALS
     || !safety(r.safety) || r.schemaVersion !== NEED_FACT_SCHEMA_V2 || r.authoritative !== true) return null;
   return { userMessageId: r.userMessageId, assistantMessageId: r.assistantMessageId, proposedCount: r.proposedCount,
     safety: r.safety, schemaVersion: NEED_FACT_SCHEMA_V2, authoritative: true };
@@ -405,7 +405,7 @@ export const aiNeedV2Production = {
             clientRequestId,
             ...(image ? { imageBase64: image.base64, imageMime: image.mimeType } : {}),
           },
-          headers: { [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION },
+          headers: { [AI_DIAGNOSTICS_HEADER]: AI_DIAGNOSTICS_VERSION, [NEED_FACT_TURN_CAPABILITY_HEADER]: NEED_FACT_TURN_CAPABILITY_VERSION },
         });
         if (!scopeCurrent(account)) return scopeChanged();
         if (Date.now() >= deadline) return invalidResponse();

@@ -1,0 +1,20 @@
+# Complete Need turn — 2026-11-02
+
+PREPARED_NOT_APPLIED. This is the combined successor to the prepared scheduling-only operation, not an additional step to execute after it. It targets the same current DEV preimage and changes exactly two existing bodies: the V2 fact writer and owned completion. It includes the unchanged scheduling-continuity candidate plus the native-reproduced 13-fact fix. Do not run both promotion packages; each pins its exact starting state.
+
+The real v159 Android trial produced a structurally valid response with 13 facts. The old Edge decoder, writer, completion receipt and client each capped a turn at 12. Raising only the writer still rolls back at completion; raising only Edge still fails the writer. No facts are truncated, no counts fabricated, no extra provider request or split write is introduced.
+
+The new client reads counts up to the AI-proposable registry size (currently 22) and advertises `x-uskoci-need-facts: registry-v1` in normal and streaming Need requests. The Edge uses that bounded capacity only for ordinary intake with the exact capability. Missing/unknown capability and contextual location replies retain 12. The provider wire adapter intentionally omits array-size keywords; the actual local decoder enforces the limit, unique allowed keys, values and safety. This capability is compatibility metadata, never ownership or consent. Manual fields, licenses and disabled application deadlines are not newly admitted. Existing older-client turns and receipt schemas are unchanged. An old installed client cannot read a new >12 receipt; do not downgrade during recovery of a turn created by a capable client.
+
+Checks:
+
+- `node --test supabase/proofs/ai/r06_need_complete_turn.test.mjs`: actual captured writer/completion bodies, 13-fact preimage failure, writer-only atomic rollback, full write/readback/idempotency, oversize/BLOCK/manual/unknown/invalid-value/owner/closure/lease refusal and exact body rollback. Supporting Auth, context, leaf validator and tables are explicit PGlite fixtures; this is not hosted Auth/RLS or publication proof.
+- `node --test supabase/proofs/ai/ai_edge_context.test.mjs supabase/proofs/ai/r06_need_schedule_continuity.test.mjs`: actual handler with synthetic provider/transport, old-client cap, complete 13-fact response, negative decoding and existing scheduling safeguards.
+- Focused Jest: `w03-ai-need-client.test.ts`, `ai-need-turn-stream.test.ts`; TypeScript; generated package `build.mjs --check`.
+- Read-only hosted `preflight.sql`: `R06_COMPLETE_TURN_PREIMAGE_MATCH`. This does not mean either body has been applied.
+
+Promotion requires full CI on the final source, a fresh exact preflight and explicit approval of this **two-function** scope. The earlier pending question about one scheduling function does not authorize this larger package. Pause emulator submissions; apply the exact transaction to `leqcwgzvjsxugfgzdmth`, run postflight, then deploy the tested Need Edge bundle and install the matching capable preview APK. No production, ACL/RLS, readiness or certificate changes. The transaction checks unchanged function attributes, dependencies, registry, closure and unrelated function catalog.
+
+Acceptance is a new ordinary app conversation with all facts in one message, then review, explicit publication and authoritative server readback; separately test a scheduling-only follow-up retaining the category. Stay within the already approved paid budget. Existing failed conversations are not silently replayed or rewritten.
+
+Rollback restores the two exact preimage bodies without deleting facts or receipts. Stop new submissions while rolling back. Keep the capable client and receipt decoder available to read any already committed >12 receipts; reverting to the old Edge/APK is not a safe recovery path for those receipts. The body inverse is isolated-tested; no hosted rollback has been performed. Native Need publication, matching and push remain unproved until that controlled acceptance completes.
