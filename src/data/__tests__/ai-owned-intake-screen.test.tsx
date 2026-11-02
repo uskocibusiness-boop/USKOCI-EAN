@@ -143,6 +143,13 @@ function completeFacts(title = 'Prenos ormara'): AiNeedV2Conversation['facts'] {
     publicFact('need.task_country_code', 'RS'), publicFact('need.task_geography', { mode: 'REMOTE' })];
 }
 const noSummary = () => expect(tree.root.findAllByProps({ testID: 'intake-task-summary' })).toHaveLength(0);
+it('does not present empty readback fallback REVIEW as a content safety assessment', async () => {
+  const data = conversation({ safety: 'REVIEW', messages: [], facts: [] });
+  mockLoad.mockResolvedValue(data); await resume();
+  expect(text()).not.toContain('Zahtev traži dodatnu proveru');
+  expect(data.safety).toBe('REVIEW'); expect(data.review.canSaveDraft).toBe(false);
+  noSummary(); expect(mockSend).not.toHaveBeenCalled(); expect(mockRouter.push).not.toHaveBeenCalled();
+});
 it('shows one complete proposed task at the end, before explicit review confirmation', async () => {
   const facts = completeFacts().map(f => ({ ...f, status: 'NEEDS_CONFIRMATION' as const }));
   const data = conversation({ facts }); data.review.missingRequired = facts.map(f => f.key);

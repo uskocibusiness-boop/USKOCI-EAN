@@ -3432,6 +3432,10 @@ Izraz „definisano” nije „nacrtano”, „nacrtano” nije „implementiran
 
 #### Android nastavak: klasifikacija uspeva, dopuna termina prekida kontinuitet — 02.11.2026
 
+**Dopuna source provere:** povezani Worker + R06 proof run153/153 PASS; dodatne3 Need provider/root-shape provere PASS. Root-shape dijagnostika sada beleži samo booleane i broj činjenica, bez privatnog sadržaja, da sledeća stvarna proba razdvoji tačan uzrok. Prazan conversation readback koji bez AI odgovora ima zaštitni fallback REVIEW više ne prikazuje lažnu procenu sadržaja: underlying safety i zabrane upisa ostaju, pravi REVIEW/BLOCK i postojeći nacrti ostaju vidljivi.178/178 testova pogođenog intake ekrana PASS; dva formalna teksta usaglašena Vi/Vam. Novi APK još nije izgrađen/instaliran za ovu UI ispravku.
+
+
+
 **Stvarni Auth/emulator, ne sintetički nalaz:** Gemini je za „Lektura i korektura teksta” predložio postojeći ID `8766e4e3-5a44-4ddf-ab90-1cb607b6de53` („Lektura tekstova”), REMOTE/digitalna predaja, katalog11. Hint je stvarno sačuvan. Posle dopune početka/roka dobijeno ALLOW i ispravni datumi, ali kompletni source fingerprint se promenio; Edge nije ponavljao isti plaćeni klasifikator. Review zato ostaje PENDING_CLASSIFICATION. Nije problem traženje doslovnog sinonima u ovom slučaju.
 
 - **SOURCE+IZOLACIJA:** novi postojeće-R06 kandidat `r06_need_schedule_continuity_candidate.sql` čuva isti non-authoritative ID za scheduling-only uspešan turn, kroz novi capture i postojeće owner/attempt/source/catalog/safety kontrole; stare račune ne prepisuje.13 poslovnih/negativnih/rollback scenarija potvrđeno ciljanim izvršavanjima plus provera generisanja. Obuhvat nije Worker/location/price/title continuation niti kompletan first-plan recovery.

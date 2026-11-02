@@ -128,9 +128,9 @@ export function safetyMessage(safety: AiNeedSafety): string | null {
     case 'BLOCK':
       return 'Ovaj zahtev ne može da nastavi kroz AI unos.';
     case 'REVIEW':
-      return 'Zahtev traži dodatnu proveru pre objavljivanja. Nacrt možeš pregledati i sačuvati.';
+      return 'Zahtev traži dodatnu proveru pre objavljivanja. Nacrt možete pregledati i sačuvati.';
     case 'CLARIFY':
-      return 'AI još razjašnjava važan podatak. Odgovori u razgovoru pre završnog pregleda.';
+      return 'AI još razjašnjava važan podatak. Odgovorite u razgovoru pre završnog pregleda.';
     case 'ALLOW':
     default:
       return null;
