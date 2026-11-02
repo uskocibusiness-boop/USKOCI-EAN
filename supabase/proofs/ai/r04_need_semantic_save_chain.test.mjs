@@ -1,8 +1,10 @@
 // Connected isolated Need boundary: actual signed prepare -> current mobile
-// decoder -> actual accept/save -> owned read. No DEV/provider/Auth HTTP/native.
+// decoder -> actual accept/save -> owned read. No DEV/live provider/Auth HTTP/native.
 // Reuses the existing R08 schema/extractors; synthetic auth/closure and policy
 // are explicit. REMOTE has no PostGIS point; no geographic/hosted-RLS claim.
-// Publication stops at the real no-evaluation refusal; no ALLOW is fabricated.
+// The positive cases add actual Edge/SQL evaluation and canonical publication.
+// Policy content, provider output, Auth transport and budget are synthetic;
+// no decision, publication state, dispatch row or canonical receipt is fabricated.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -13,7 +15,11 @@ const text=readFileSync(proof,'utf8');
 const marker="test('baseline reproduces both first-save blockers;";
 assert.ok(text.includes(marker));
 let fixture=text.slice(0,text.indexOf(marker)).replaceAll('import.meta.url',JSON.stringify(proof.href))
- .replace('../../../src/data/workerAiClientService.ts','../../../src/data/aiTaskReviewClientService.ts');
+ .replace('../../../src/data/workerAiClientService.ts','../../../src/data/aiTaskReviewClientService.ts')
+ .replace('function mobileDecoder(){','function mobileDecoder(io={}){')
+ .replace('vm.createContext({Intl,Date,process:{env:{}}})','vm.createContext({Intl,Date,AbortController,setTimeout,clearTimeout,process:{env:{}}})')
+ .replace('{sesijaSada:noIo}','{sesijaSada:io.session??noIo}')
+ .replace('{supabaseKlijent:noIo}','{supabaseKlijent:io.client??noIo}');
 for(const name of ['@electric-sql/pglite','@electric-sql/pglite/contrib/pgcrypto','typescript'])
  fixture=fixture.replaceAll(`from '${name}'`,'from '+JSON.stringify(import.meta.resolve(name)));
 fixture+='\nexport {setup,tableSql,sqlFunction,mobileDecoder,owner,other,remote};';
@@ -24,6 +30,87 @@ const request='00000000-0044-4444-8444-000000000003';
 const one=async(db,sql,args=[]) => (await db.query(sql,args)).rows[0];
 const prepare=async db=>(await one(db,'SELECT public.rpc_prepare_ai_task_review_taxonomy($1) result',[cid])).result;
 const accept=(db,r,key=request)=>db.query('SELECT public.rpc_accept_ai_task_review($1,$2,$3) result',[r.reviewId,r.displayedContentDigest,key]);
+
+// Reuse the actual Edge VM loader, substituting only its HTTP boundaries.
+const edgeProof=new URL('../policy/publication_evaluator_edge.test.mjs',import.meta.url);
+const edgeText=readFileSync(edgeProof,'utf8');
+const edgeMarker="test('owned same-JWT context";
+assert.ok(edgeText.includes(edgeMarker));
+const edgeSource=edgeText.slice(0,edgeText.indexOf(edgeMarker))
+ .replaceAll('import.meta.url',JSON.stringify(edgeProof.href))
+ .replace("from 'typescript'",'from '+JSON.stringify(import.meta.resolve('typescript')))+'\nexport {fixture};';
+const {fixture:edgeFixture}=await import('data:text/javascript;base64,'+Buffer.from(edgeSource).toString('base64'));
+
+async function publicationFixture(db){
+ for(const name of ['private.need_publication_decisions','private.need_publish_commands','private.dispatch_schedule',
+  'private.closure_redaction_certificate_v5','private.closure_executions_v5','private.closure_actions_v5'])await db.exec(tableSql(name));
+ await db.exec(`CREATE FUNCTION auth.role() RETURNS text LANGUAGE sql STABLE AS $f$
+ SELECT current_setting('request.jwt.claim.role',true)$f$;`);
+ for(const name of ['private.publication_policy_bundle_ready','private.current_publication_policy_bundle',
+  'private.publication_policy_document','private.ai_task_review_policy','private.need_publication_location_readiness',
+  'private.need_publication_fingerprint_snapshot','private.need_publication_context','public.rpc_get_need_publication_context',
+  'public.rpc_claim_ai_task_review_evaluation_service','public.rpc_record_need_publication_decision_service',
+  'public.rpc_complete_ai_task_review_evaluation_service','private.task_replacement_origin','private.finalize_task_replacement',
+  'private.enqueue_dispatch','private.enqueue_on_need_change','private.closure_redaction_allowed_v5','private.guard_need_write',
+  'private.reject_need_publication_decision_mutation','public.rpc_publish_need_canonical'])await db.exec(sqlFunction(name));
+ await db.exec(`CREATE TRIGGER needs_enqueue_dispatch AFTER INSERT OR UPDATE OF status,revision ON public.needs
+ FOR EACH ROW EXECUTE FUNCTION private.enqueue_on_need_change();
+ CREATE TRIGGER needs_guard_write BEFORE INSERT OR UPDATE ON public.needs FOR EACH ROW EXECUTE FUNCTION private.guard_need_write();
+ CREATE TRIGGER need_publication_decisions_immutable BEFORE DELETE OR UPDATE ON private.need_publication_decisions
+ FOR EACH ROW EXECUTE FUNCTION private.reject_need_publication_decision_mutation();
+ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;`);
+ // Same disposable-only policy/content binding pattern as the existing W05
+ // proof. This is explicitly NOT legal policy review or a DEV activation.
+ const head={schemaVersion:'USKOCI_PUBLICATION_POLICY_V1',instructions:'SYNTHETIC DISPOSABLE TEST ONLY. No legal or production authority.'};
+ const rule={instructions:'SYNTHETIC TRANSPORT RULE ONLY.',outcomes:['ALLOW','CLARIFY','REVIEW','BLOCK'],safeReasonCodes:[]};
+ const bundle=(await one(db,`INSERT INTO private.publication_policy_bundles(policy_id,version,jurisdiction,is_reviewed,is_complete,is_active,reviewed_at,activated_at,review_provenance)
+ VALUES('RS_PUBLICATION_POLICY_MINIMUM',1,'RS',true,true,true,statement_timestamp(),statement_timestamp(),
+ jsonb_build_object('testBoundary','DISPOSABLE_SYNTHETIC_ONLY','evaluatorPolicy',$1::jsonb)) RETURNING id`,[JSON.stringify(head)])).id;
+ await db.query(`INSERT INTO private.publication_policy_rule_refs(bundle_id,rule_id,rule_provenance)
+ VALUES($1,'SYNTHETIC_RULE_1',jsonb_build_object('evaluation',$2::jsonb))`,[bundle,JSON.stringify(rule)]);
+ await db.query(`UPDATE private.publication_policy_bundles SET review_provenance=review_provenance||jsonb_build_object(
+ 'evaluatorContentSha256',encode(extensions.digest(convert_to($2::jsonb::text,'UTF8'),'sha256'),'hex')) WHERE id=$1`,
+ [bundle,JSON.stringify({...head,rules:[{ruleId:'SYNTHETIC_RULE_1',...rule}]})]);
+ assert.ok((await one(db,'SELECT private.publication_policy_document($1) doc',[bundle])).doc);
+}
+
+function connectedEvaluator(db,{loseCompletionAck=false}={}){
+ const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'Content-Type':'application/json'}});
+ // This explicit allowlist maps transport to actual SQL routines. No dynamic
+ // identifier comes from the handler or provider; all request arguments pass
+ // unchanged through named SQL parameters.
+ const args={
+  rpc_get_need_publication_context:['p_need_id','p_expected_revision'],
+  rpc_claim_ai_task_review_evaluation_service:['p_account_id','p_review_id','p_need_id','p_need_revision','p_binding'],
+  rpc_complete_ai_task_review_evaluation_service:['p_account_id','p_review_id','p_attempt_id','p_outcome','p_rule_ids','p_safe_reason_codes','p_provider_ref','p_model_ref','p_not_ready_code'],
+  rpc_read_ai_task_review:['p_review_id'],rpc_publish_accepted_ai_task_review:['p_review_id','p_client_request_id'],
+ };
+ const invokeSql=async(name,body,service=false)=>{
+  assert.ok(Object.hasOwn(args,name),name);assert.deepEqual(Object.keys(body).sort(),[...args[name]].sort());
+  await db.exec('RESET ROLE');await db.query("SELECT set_config('request.jwt.claim.sub',$1,false),set_config('request.jwt.claim.role',$2,false)",[owner,service?'service_role':'authenticated']);
+  if(!service)await db.exec('SET ROLE authenticated');
+  try{return {data:(await one(db,`SELECT public.${name}(${args[name].map((key,i)=>key+' => $'+(i+1)).join(',')}) result`,
+   args[name].map(key=>key==='p_binding'?JSON.stringify(body[key]):body[key]))).result,error:null};}
+  catch(e){return {data:null,error:{message:e.message,code:e.code}};}
+  finally{await db.exec('RESET ROLE');await db.exec("SELECT set_config('request.jwt.claim.role','authenticated',false)");}
+ };
+ const transport=async(call,service=false)=>{
+  assert.equal(call.headers.authorization,service?'Bearer SYNTHETIC_SERVICE_SECRET':'Bearer SYNTHETIC_USER_SESSION');
+  const name=new URL(call.url).pathname.split('/').at(-1),body=JSON.parse(call.body);
+  const r=await invokeSql(name,body,service);
+  if(r.error)return json(r.error,400);
+  if(loseCompletionAck&&name==='rpc_complete_ai_task_review_evaluation_service')throw new Error('SYNTHETIC_LOST_COMPLETION_ACK');
+  return json(r.data);
+ };
+ const edge=edgeFixture({auth:()=>json({id:owner,role:'authenticated'}),context:call=>transport(call),
+  reviewClaim:call=>transport(call,true),reviewComplete:call=>transport(call,true),
+  writer:()=>assert.fail('ACCEPTED_REVIEW_MUST_USE_ACTUAL_COMPLETION_WRAPPER'),
+  provider:()=>json({candidates:[{finishReason:'STOP',content:{role:'model',parts:[{text:JSON.stringify({outcome:'ALLOW',ruleIds:['SYNTHETIC_RULE_1'],safeReasonCodes:[]})}]}}]})});
+ const client={rpc:(name,body)=>invokeSql(name,body),auth:{getSession:async()=>({data:{session:{user:{id:owner},access_token:'SYNTHETIC_USER_SESSION'}},error:null})},
+  functions:{invoke:async(name,{body})=>{assert.equal(name,'uskoci-publication-evaluate');const r=await edge.invoke({body});return {data:await r.json(),error:r.ok?null:{message:'EDGE_FAILED'}};}}};
+ const mobile=mobileDecoder({session:()=>({user:{id:owner},accountRevision:1}),client:()=>client});
+ return {edge,mobile};
+}
 
 async function needFixture(t){
  const db=await setup(t,{patched:false});
@@ -153,4 +240,56 @@ test('Need actual signed prepare/decoder/Save/bind/readback, replay and no-ALLOW
  await db.exec('RESET ROLE');
  const stored=await one(db,'SELECT id,requester_account_id,status,revision,category FROM public.needs WHERE id=$1',[receipt.needId]);
  assert.equal(stored.status,'DRAFT');assert.equal(stored.revision,receipt.needRevision);assert.equal(stored.requester_account_id,owner);
+});
+
+for(const loseCompletionAck of [false,true])
+test('Need actual Edge evaluation -> mobile resume -> canonical PUBLISHED owned readback; '+(loseCompletionAck?'lost completion ACK':'normal ACK'),async t=>{
+ const db=await needFixture(t);await publicationFixture(db);
+ for(const f of Object.values(postimages))await db.exec(f.definition);
+ const reviewed=await prepare(db);
+ assert.equal(reviewed.classificationState,'READY');assert.equal(reviewed.canAccept,true);
+ assert.equal(mobileDecoder().decodeAiTaskReview(reviewed,owner).classificationCandidates[0].categoryId,remote);
+ await db.exec('SET ROLE authenticated');
+ const accepted=(await accept(db,reviewed)).rows[0].result;
+ assert.equal(accepted.state,'ACCEPTED');
+ await assert.rejects(db.query('SELECT public.rpc_publish_accepted_ai_task_review($1,$2)',[reviewed.reviewId,request]),/PUBLICATION_DECISION_NOT_ALLOW/);
+ await db.exec('RESET ROLE');
+ assert.equal((await one(db,'SELECT count(*)::int n FROM private.need_publication_decisions')).n,0);
+ await db.exec("SELECT set_config('request.jwt.claim.role','service_role',false)");
+ const batch=(await one(db,"SELECT public.rpc_taxonomy_commit_reviewed_batch_service($1,$2,'NEED_SERVICE',$3,$4::jsonb) result",
+  [owner,request,reviewed.reviewId,JSON.stringify(reviewed.classificationCandidates)])).result;
+ assert.equal(batch.status,'COMMITTED');
+ const bound=(await one(db,'SELECT public.rpc_taxonomy_bind_reviewed_need_service($1,$2,$3,$4,$5) result',
+  [owner,request,reviewed.reviewId,accepted.needId,accepted.needRevision])).result;
+ assert.equal(bound.status,'BOUND_NEED_REVISION');assert.equal(bound.categoryId,remote);
+ await db.exec("SELECT set_config('request.jwt.claim.role','authenticated',false)");
+ const {edge,mobile}=connectedEvaluator(db,{loseCompletionAck});
+ const result=await mobile.aiTaskReviewClientService.resume(accepted);
+ assert.equal(result.ok,true,JSON.stringify(result));assert.equal(result.podatak.state,'PUBLISHED');
+ assert.equal(result.podatak.evaluation.decision.outcome,'ALLOW');
+ assert.equal(result.podatak.needId,accepted.needId);assert.equal(result.podatak.needRevision,accepted.needRevision);
+ assert.deepEqual(edge.calls.map(c=>c.kind),['auth','context','reviewClaim','budget','provider','reviewComplete']);
+ assert.equal(edge.timers.size,0);
+ const context=(await one(db,'SELECT evaluation_binding FROM private.ai_task_review_commands WHERE review_id=$1',[reviewed.reviewId])).evaluation_binding;
+ const decision=await one(db,'SELECT need_id,need_revision,canonical_fingerprint,service_provenance FROM private.need_publication_decisions');
+ assert.equal(decision.need_id,accepted.needId);assert.equal(decision.need_revision,accepted.needRevision);
+ assert.equal(decision.canonical_fingerprint,context.canonicalFingerprint);
+ assert.deepEqual(decision.service_provenance,{evaluationContext:context});
+ assert.equal((await one(db,'SELECT count(*)::int n FROM private.dispatch_schedule WHERE need_id=$1',[accepted.needId])).n,1);
+ assert.equal((await one(db,'SELECT count(*)::int n FROM private.need_publish_commands')).n,1);
+ const calls=edge.calls.length;
+ assert.deepEqual(await mobile.aiTaskReviewClientService.resume(accepted),result,'stored PUBLISHED command replays without another provider');
+ assert.equal(edge.calls.length,calls);
+ await db.exec('SET ROLE authenticated');
+ const published=(await one(db,'SELECT public.rpc_read_task($1) result',[accepted.needId])).result;
+ assert.equal(published.status,'PUBLISHED');assert.equal(published.id,accepted.needId);
+ assert.equal(published.revision,accepted.needRevision);assert.equal(published.category,reviewed.classificationCandidates[0].service);
+ assert.equal(published.published_at,result.podatak.published.publishedAt);
+ await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)",[other]);
+ assert.equal((await one(db,'SELECT public.rpc_read_task($1) result',[accepted.needId])).result,null);
+ await assert.rejects(db.query('SELECT public.rpc_publish_accepted_ai_task_review($1,$2)',[reviewed.reviewId,request]),/TASK_REVIEW_NOT_FOUND/);
+ await db.exec('RESET ROLE');
+ assert.equal((await one(db,'SELECT category_id FROM public.needs WHERE id=$1',[accepted.needId])).category_id,remote);
+ assert.equal((await one(db,'SELECT count(*)::int n FROM private.need_publication_decisions')).n,1);
+ assert.equal((await one(db,'SELECT count(*)::int n FROM private.dispatch_schedule')).n,1);
 });

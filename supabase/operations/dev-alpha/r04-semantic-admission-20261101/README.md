@@ -1,21 +1,37 @@
 # R04 semantic admission — reviewed single-word services, synonyms and execution modes
 
-**Status: LOCAL_SOURCE_VERIFIED / NOT_APPLIED** on DEV `leqcwgzvjsxugfgzdmth`. Current corrections are `955da679` (closure derivation) and `84176fc9` (first cityless novel service consent). The original four-function promotion still excludes the five extra worker candidates and R06. **Source/PGlite tests do not establish DEV or Android acceptance.** Do not run `promotion.sql` merely because this package exists. The earlier `94c8862c` / `639c97d6` results below are historical.
+**Status: PREPARED_NOT_APPLIED** on DEV `leqcwgzvjsxugfgzdmth`. The existing generator now combines **14 existing function bodies** into one guarded promotion and inverse code rollback: core semantic admission, downstream Worker continuity/prepare/readback and R06 receipt recovery. The fresh read-only preimage is `connected-dev-preimage-20261102.json`; all function metadata, ACLs and closure conditions are pinned. **Source/PGlite tests do not establish DEV or Android acceptance.** Relevant R01/R10 admission and explicit approval remain required; no SQL/Edge deployment is performed by generation. Earlier four-body-only descriptions below are dated history.
+
+## Connected source milestone — 2026-11-02
+
+The actual Worker prepare/confirmed-prepare → mobile decoder → Save/Activate → batch/binder → public reader chain now retains independently bound services when a later conversation adds a new service, including an unregistered semantic label and physical handoff. Current and earlier explicit mode/handoff changes cannot silently restore the previous choice. Semantic EXTEND_MODE preserves the confirmed category ID without creating a global alias. The 10-case connected proof passed; new authority still requires binding. An already ACTIVE edit Save records new consent and is not a blanket catalog revalidation.
+
+The Need proof now also executes the actual evaluation Edge handler, decision writer and mobile publication resume through canonical PUBLISHED readback, with normal and lost completion ACK. Claims, provider, policy and selected supporting fixtures remain synthetic. This proves isolated publication/replay, not live model quality, hosted RLS or Android operation.
+
+The 14-body package includes an independent closure calculation and exact pg_proc metadata/whole-catalog delta/inverse-code-rollback proof. Fresh read-only DEV preflight at 10:02:23 UTC returned PREIMAGE_MATCH with positive Auth acceptance=false; none of these replacements was applied. See the same `local-verification-20261102.json` for commands, hashes, final CI and native scope as they become available. Historical limitations below are superseded only for these explicitly proven source/isolated scopes.
 
 ## What changes and why
 
 A single-word concrete service (e.g. `Lektura`) used to become `NEEDS_CLARIFICATION` solely because its label contained no space; a signed, semantically matched existing service could then remain `PENDING_CLASSIFICATION`. An unregistered synonym could fail batch admission even after the human approved the service. Existing Need and Worker clients also rejected the new server's two optional signed category-witness fields.
 
-This package changes **four existing function bodies**, without creating a table/function or widening ACLs:
+The core four bodies remain, without creating a table/function or widening ACLs:
 
 1. `private.taxonomy_risk_triage_v1(text)`: removes the blanket multiple-word requirement; preserves dangerous/regulated screening and explicit ambiguous-catch-all checks.
 2. `private.taxonomy_review_candidate_projection_v2(text,jsonb,jsonb,uuid,uuid)`: projects eligible reviewed service proposals into a signed classification state; unresolved or sensitive cases stay gated.
 3. `private.needs_sync_taxonomy_category_trigger_fn()`: resolves the canonical category key and registered aliases without granting an unreviewed category identity.
 4. `public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)`: admits reviewed existing IDs and low-risk unregistered synonyms with a category identity witness; checks label, parent, established leaf, actual mode, service intent, handoff and replay. It also supports validated `EXTEND_MODE`, `CREATE_CHILD` and `CREATE_NEW_BRANCH` under the existing audit and authorization boundaries.
 
+The same transaction now also includes these ten existing owners:
+
+- Worker semantic binding, skills sync, REMOTE activation eligibility and saved execution-mode readback.
+- Signed REMOTE review readiness, owned saved-service mode context and ordinary and explicit-mode Worker review preparation.
+- Existing post-save finalizer and reconciler, recovering only the same exact committed receipt after transport uncertainty.
+
+`manifest.json` lists all exact signatures, source hashes and required compatible post-save Edge files. Candidate wrappers remain LOCAL_ONLY; the generator takes only their reviewed bodies, retains captured function headers, checks all 14 complete `pg_proc` metadata rows, rejects unrelated function changes and verifies the derived closure postimage. It changes no certificate, readiness flag, table, grant or model budget. Deploying SQL alone does not update the separately pinned Edge worker or installed APK.
+
 The compatible source decoders are `src/data/aiTaskReviewClientService.ts` and `src/data/workerAiClientService.ts`: they preserve optional `categoryLabel`/`categoryParentId` and reject malformed or unrecognized fields. **Supported old APK/OTA behavior must be checked before the server rollout**; updated source code alone does not upgrade a running client.
 
-## Local verification and its limits
+## Historical local verification and its limits
 
 Reported checks for `94c8862c`:
 
@@ -43,7 +59,7 @@ Runtime source `d89f9aad2d176c9293a67c95943101659309e953` adds three more LOCAL_
 
 The **18/18 isolated package tests PASS**, including captured live old-body failures and actual trigger/batch/binder/eligibility/public-reader execution with `skills text[]`. That harness prepares review/Save/Auth synthetically. Full [CI41414604704](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41414604704) passed the first batch. Final [CI41418479603 SUCCESS](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41418479603), head `deae029243c08982fea9803ed6c237b589235a17`, now covers all subsequent corrections below: 626 Jest suites / 14,567 tests, 1,530 AI PASS / one existing TODO, TypeScript, all 12 Deno checks, SQL/PostGIS and migration integrity PASS. Separate [R0141418479574 FAILURE](https://github.com/uskocibusiness-boop/USKOCI-EAN/actions/runs/41418479574) remains strict8/owner-ACL49/managed-net3. See `local-verification-20261102.json` for exact scope, related R06 checks and the fresh read-only GitHub/DEV comparison. No deployment or native acceptance is implied.
 
-**All five extra worker SQL candidates remain outside the FOUR-body promotion.** None may be applied directly to DEV/PROD. The next promotion must be derived and reviewed as one expanded compatible pre/postimage/ACL/closure/rollback package; the four-body promotion alone is not the complete worker fix.
+At that earlier checkpoint the five extra Worker candidates remained outside the four-body promotion. The current 14-body derivation above supersedes that packaging limitation, adds three existing Worker context/prepare owners and two R06 owners, and retains the ban on applying raw LOCAL_ONLY files directly. Packaging is not DEV acceptance.
 
 The added `r04_worker_semantic_save_chain.test.mjs` executes actual prepare → current mobile decoder → Save/Activate → batch/binder → public readback. Its **7 cases + 18 package cases PASS** for existing IDs, new child/root, extension, two services, explicit physical handoff, replay and negative drift/owner/mode paths. New cityless activation gives consent, not capabilities: those remain absent and application readiness false until binding. Public submit reaches a declared calendar sentinel, not a completed application. Synthetic hints/claims and helper substitutes remain; real Auth, complete Need publication, matching and Android are unproven. A mixed novel plan with previously saved REUSE handoff absent from the current hint remains conservatively refused.
 
@@ -54,9 +70,11 @@ The connected Need proof (`3c3b54b6`, `r04_need_semantic_save_chain.test.mjs`, *
 ## Controlled DEV verification order
 
 1. Pin the exact source SHA and clean target. Require the relevant **full CI SUCCESS on the runtime SHA** and examine the separate R01 result; do not silently waive R01. Confirm that the relevant supported client(s) can decode both preimage and postimage server responses.
-2. Confirm manifest hashes, current four-function preimage, owner/ACL, `private.closure_*` digests/retention bindings, target project and rollback with the **read-only** `preflight.sql`. If any assertion fails, stop and investigate drift.
+2. Confirm manifest hashes, all 14 current function preimages and full catalog attributes, owner/ACL, `private.closure_*` digests/retention bindings, target project and rollback with the **read-only** `preflight.sql`. If any assertion fails, stop and investigate drift.
 3. Only after the plan's DEV promotion gates are satisfied, execute the reviewed, matching `promotion.sql` as a **single guarded transaction**, never by extracting unguarded statements from `forward.sql`. Keep its exact recovery `rollback.sql` available.
 4. Run `postflight.sql` and `acceptance-readonly.sql`; record real before/after hashes and migration ledger with truthful timestamps and no premature success receipts.
 5. Under the proper TEST account and supported Android build, verify the original "Lektura" blocker, signed review, actual Save/Publish/readback; repeat for Worker Save+Activate, BOTH and negative account/revision/handoff/drift paths. Do not modify real customer data or trigger paid provider requests accidentally.
+
+Rollback restores exact function code; it does not erase or reverse newly admitted business data. Before reverting after any successful new binding, pause affected writes and verify that old readers/activation/sync can still serve those records. Otherwise restore compatible code or keep the affected feature paused while repairing it. Do not delete user data to make rollback appear safe. The package's isolated metadata/transaction test does not prove that production-state compatibility.
 
 R10 `retention_ai_source_ready()` remains false and export/erasure bindings remain unbound; do not manually rewrite certificates, hashes or flags to appear ready. R01/R10/R12 release gates remain open. This work is **not** a public release authorization. The sole execution master is `docs/plan/CODEX_PLAN_RADA.md`.

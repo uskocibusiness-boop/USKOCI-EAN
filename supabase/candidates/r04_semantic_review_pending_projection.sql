@@ -223,11 +223,15 @@ BEGIN
          SELECT 1 FROM private.work_taxonomy_aliases a WHERE a.category_id=c.id AND a.normalized_key=v_key));
      SELECT c.label,c.parent_id INTO v_category_label,v_category_parent
        FROM private.work_taxonomy_categories c WHERE c.id=v_category AND c.state='ESTABLISHED'
-       AND (c.canonical_key=v_key OR EXISTS(SELECT 1 FROM private.work_taxonomy_aliases a
+       AND (v_matches=0 OR c.canonical_key=v_key OR EXISTS(SELECT 1 FROM private.work_taxonomy_aliases a
          WHERE a.category_id=c.id AND a.normalized_key=v_key));
-     IF v_matches<>1 OR v_category_label IS NULL
+     -- An explicit current-source ID may extend a semantic synonym too. A
+     -- conflicting/ambiguous canonical or alias identity still cannot be replaced.
+     IF v_matches NOT IN (0,1) OR v_category_label IS NULL
        OR private.taxonomy_risk_triage_v1(v_category_label) IS DISTINCT FROM 'LOW_RISK_CANDIDATE'
        OR NOT private.taxonomy_category_path_valid_v1(v_category)
+       OR (v_matches=0 AND EXISTS(SELECT 1 FROM private.work_taxonomy_categories child
+         WHERE child.parent_id=v_category AND child.state='ESTABLISHED'))
        OR EXISTS(SELECT 1 FROM private.work_taxonomy_category_modes
          WHERE category_id=v_category AND execution_scope=v_mode)
      THEN RETURN v_exact; END IF;

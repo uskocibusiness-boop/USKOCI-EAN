@@ -108,7 +108,9 @@ async function novelRemote(t,action){
   await db.exec(`CREATE TRIGGER semantic_profile_sync AFTER INSERT OR UPDATE OF skills ON public.app_profiles
     FOR EACH ROW EXECUTE FUNCTION private.worker_profile_sync_taxonomy_capabilities_trg_fn();`);
   for(const file of ['worker-remote-semantic-review-local-only.sql','worker-semantic-binder-local-only.sql',
-    'worker-remote-semantic-activation-local-only.sql','worker-semantic-readback-local-only.sql']) await db.exec(read(file));
+    'worker-remote-semantic-activation-local-only.sql','worker-semantic-readback-local-only.sql',
+    'worker-semantic-mode-context-local-only.sql','worker-semantic-prepare-local-only.sql',
+    'worker-semantic-confirmed-prepare-local-only.sql']) await db.exec(read(file));
   await db.query('UPDATE private.work_taxonomy_categories SET label=$2,canonical_key=private.taxonomy_normalize_v1($2) WHERE id=$1',
     [remote,action==='EXTEND_MODE'?service:'Digitalne usluge']);
   if(action==='EXTEND_MODE') await db.query("UPDATE private.work_taxonomy_category_modes SET execution_scope='ON_SITE' WHERE category_id=$1",[remote]);
@@ -261,4 +263,190 @@ test('new cityless service may still save a draft; draft cannot bind or become a
   await db.exec('RESET ROLE');
   await assert.rejects(bind(db,draft),/WORKER_BINDER_SAVE_OR_ACTIVATION_REQUIRED/);
   assert.deepEqual(await authority(),{caps:0,modes:0}); assert.equal(await eligible(),false);
+});
+
+for(const semantic of [false,true]) test(`mixed new plan preserves an already bound ${semantic?'semantic':'canonical'} physical handoff without a new hint`,async t=>{
+  const {db,service,proposal,services,authority}=await novelRemote(t,'EXTEND_MODE');
+  const handoff={required:true,shippingCountries:['RS']};
+  await db.query("UPDATE private.work_taxonomy_category_modes SET execution_scope='REMOTE' WHERE category_id=$1",[remote]);
+  if(semantic) await db.query("UPDATE private.work_taxonomy_categories SET label='Analiza skupova podataka',canonical_key='analiza skupova podataka' WHERE id=$1",[remote]);
+  await db.query('UPDATE private.work_taxonomy_gemini_turn_hints_v1 SET proposals=$1::jsonb',
+    [JSON.stringify([{...proposal,action:'REUSE_EXISTING',handoff}])]);
+  const original=await prepare(db);
+  assert.equal(original.canAccept,true);
+  await save(db,original); await bind(db,original);
+  assert.deepEqual((await services())[0].modes[0].handoff,handoff);
+  await db.exec(tableSql('public.ai_messages'));
+  for(const name of ['private.worker_ai_turn_document','private.worker_ai_document','public.rpc_open_worker_ai']) await db.exec(sqlFunction(name));
+  const reopened=(await db.query('SELECT public.rpc_open_worker_ai(gen_random_uuid()) doc')).rows[0].doc;
+  const cid=reopened.conversationId,newService='Digitalna obrada slika';
+  assert.equal(reopened.stale,false); assert.equal(reopened.revision,0);
+  await db.query(`UPDATE private.worker_ai_sessions SET candidate=jsonb_set(candidate,'{skills}',$2::jsonb),revision=1 WHERE conversation_id=$1`,
+    [cid,JSON.stringify([service,newService])]);
+  await db.query(`INSERT INTO private.work_taxonomy_gemini_turn_hints_v1
+    (account_id,conversation_id,client_request_id,turn_id,attempt_id,payload_digest,purpose,source_fingerprint,catalog_version,proposals)
+    SELECT account_id,conversation_id,gen_random_uuid(),gen_random_uuid(),gen_random_uuid(),repeat('a',64),'WORKER_CAPABILITY',
+    encode(extensions.digest(convert_to(candidate::text||'|'||revision::text||'|'||base_hash,'UTF8'),'sha256'),'hex'),
+    (SELECT catalog_version FROM private.work_taxonomy_control WHERE singleton),$2::jsonb FROM private.worker_ai_sessions WHERE conversation_id=$1`,
+    [cid,JSON.stringify([{action:'CREATE_NEW_BRANCH',service:newService,mode:'REMOTE',categoryId:'',parentId:'',
+      proposedPath:['Digitalna obrada',newService],catalogVersion:1,reason:'Synthetic new independent remote service',handoff:{required:false}}])]);
+  const context=(await db.query('SELECT private.worker_ai_service_mode_context_v1($1,$2) doc',[owner,cid])).rows[0].doc;
+  assert.deepEqual(context.savedServices,[{service,mode:'REMOTE',categoryId:remote,handoff}]);
+  await db.exec('BEGIN');
+  const formatted='  ANALIZA PODATAKA  ';
+  await db.query("UPDATE private.worker_ai_sessions SET candidate=jsonb_set(candidate,'{skills}',$2::jsonb) WHERE conversation_id=$1",
+    [cid,JSON.stringify([formatted,newService])]);
+  assert.deepEqual((await db.query('SELECT private.worker_ai_service_mode_context_v1($1,$2) doc',[owner,cid])).rows[0].doc.savedServices,
+    [{service:formatted,mode:'REMOTE',categoryId:remote,handoff}]);
+  await db.query("UPDATE private.worker_ai_sessions SET candidate=jsonb_set(candidate,'{skills}',$2::jsonb) WHERE conversation_id=$1",
+    [cid,JSON.stringify([formatted,service,newService])]);
+  assert.deepEqual((await db.query('SELECT private.worker_ai_service_mode_context_v1($1,$2) doc',[owner,cid])).rows[0].doc.savedServices,[]);
+  await db.exec('ROLLBACK');
+  await db.exec('BEGIN');
+  await db.query("UPDATE private.worker_ai_sessions SET candidate=jsonb_set(candidate,'{skills}',$2::jsonb) WHERE conversation_id=$1",
+    [cid,JSON.stringify([service,newService,'Nepoznata dodatna usluga'])]);
+  await db.query(`UPDATE private.work_taxonomy_gemini_turn_hints_v1 h SET source_fingerprint=
+    encode(extensions.digest(convert_to(s.candidate::text||'|'||s.revision::text||'|'||s.base_hash,'UTF8'),'sha256'),'hex')
+    FROM private.worker_ai_sessions s WHERE h.conversation_id=$1 AND s.conversation_id=h.conversation_id`,[cid]);
+  const incomplete=(await db.query('SELECT public.rpc_prepare_worker_ai_review_taxonomy($1,1,true) review',[cid])).rows[0].review;
+  assert.equal(incomplete.classificationState,'SERVICE_MODE_CONFIRMATION_REQUIRED'); assert.equal(incomplete.canAccept,false);
+  await db.exec('ROLLBACK');
+  await db.exec('BEGIN');
+  await db.query(`INSERT INTO private.work_taxonomy_gemini_turn_hints_v1
+    (account_id,conversation_id,client_request_id,turn_id,attempt_id,payload_digest,purpose,source_fingerprint,catalog_version,proposals)
+    SELECT account_id,conversation_id,gen_random_uuid(),gen_random_uuid(),gen_random_uuid(),repeat('b',64),'WORKER_CAPABILITY',
+      'previous-revision',(SELECT catalog_version FROM private.work_taxonomy_control WHERE singleton),$2::jsonb
+    FROM private.worker_ai_sessions WHERE conversation_id=$1`,[cid,JSON.stringify([{...proposal,service,action:'EXTEND_MODE',mode:'ON_SITE',handoff:undefined}])]);
+  const forgottenChange=(await db.query('SELECT public.rpc_prepare_worker_ai_review_taxonomy($1,1,true) review',[cid])).rows[0].review;
+  assert.equal(forgottenChange.canAccept,false); assert.notEqual(forgottenChange.classificationState,'READY');
+  await db.exec('ROLLBACK');
+  await db.exec('BEGIN');
+  await db.query(`INSERT INTO private.work_taxonomy_gemini_turn_hints_v1
+    (account_id,conversation_id,client_request_id,turn_id,attempt_id,payload_digest,purpose,source_fingerprint,catalog_version,proposals)
+    SELECT account_id,conversation_id,gen_random_uuid(),gen_random_uuid(),gen_random_uuid(),repeat('c',64),'WORKER_CAPABILITY',
+      'previous-handoff-revision',(SELECT catalog_version FROM private.work_taxonomy_control WHERE singleton),$2::jsonb
+    FROM private.worker_ai_sessions WHERE conversation_id=$1`,[cid,JSON.stringify([{...proposal,service,action:'REUSE_EXISTING',mode:'REMOTE',handoff:{required:false}}])]);
+  const forgottenHandoff=(await db.query('SELECT public.rpc_prepare_worker_ai_review_taxonomy_confirmed($1,1,true,$2::jsonb) review',
+    [cid,JSON.stringify([{service,mode:'REMOTE'},{service:newService,mode:'REMOTE'}])])).rows[0].review;
+  assert.equal(forgottenHandoff.canAccept,false);
+  assert.notEqual(forgottenHandoff.classificationState,'READY');
+  await db.query(`UPDATE private.work_taxonomy_gemini_turn_hints_v1 h SET proposals=proposals||$2::jsonb
+    FROM private.worker_ai_sessions s WHERE h.conversation_id=$1 AND s.conversation_id=h.conversation_id
+      AND h.source_fingerprint=encode(extensions.digest(convert_to(s.candidate::text||'|'||s.revision::text||'|'||s.base_hash,'UTF8'),'sha256'),'hex')`,
+    [cid,JSON.stringify([{...proposal,service,action:'REUSE_EXISTING',mode:'REMOTE',handoff:undefined}])]);
+  for(const rpc of [()=>db.query('SELECT public.rpc_prepare_worker_ai_review_taxonomy($1,1,true) review',[cid]),
+    ()=>db.query('SELECT public.rpc_prepare_worker_ai_review_taxonomy_confirmed($1,1,true,$2::jsonb) review',
+      [cid,JSON.stringify([{service,mode:'REMOTE'},{service:newService,mode:'REMOTE'}])])]){
+    const incompleteHandoff=(await rpc()).rows[0].review;
+    assert.equal(incompleteHandoff.canAccept,false); assert.notEqual(incompleteHandoff.classificationState,'READY');
+  }
+  await db.exec('ROLLBACK');
+  // A fresh explicit changed or invalid mode must not silently inherit REMOTE.
+  for(const changed of [{mode:'ON_SITE',action:'EXTEND_MODE'},{mode:null,action:'REUSE_EXISTING'},
+    {mode:'REMOTE',action:null},{mode:'UNKNOWN',action:'REUSE_EXISTING'}]){
+    await db.exec('BEGIN');
+    await db.query(`UPDATE private.work_taxonomy_gemini_turn_hints_v1 SET proposals=proposals||$2::jsonb WHERE conversation_id=$1`,
+      [cid,JSON.stringify([{...proposal,...changed,service,handoff:undefined}])]);
+    const altered=(await db.query('SELECT public.rpc_prepare_worker_ai_review_taxonomy($1,1,true) review',[cid])).rows[0].review;
+    assert.equal(altered.canAccept,false,JSON.stringify(changed));
+    await db.exec('ROLLBACK');
+  }
+  // Stale source and explicit removal cannot readmit the old mode.
+  await db.exec('BEGIN');
+  await db.query("UPDATE private.worker_ai_sessions SET base_hash='stale' WHERE conversation_id=$1",[cid]);
+  await assert.rejects(db.query('SELECT public.rpc_prepare_worker_ai_review_taxonomy($1,1,true)',[cid]),/WORKER_AI_STALE/);
+  await db.exec('ROLLBACK');
+  await db.exec('BEGIN');
+  await db.query("UPDATE private.worker_ai_sessions SET candidate=jsonb_set(candidate,'{skills}',$2::jsonb) WHERE conversation_id=$1",[cid,JSON.stringify([newService])]);
+  assert.deepEqual((await db.query('SELECT private.worker_ai_service_mode_context_v1($1,$2) doc',[owner,cid])).rows[0].doc.savedServices,[]);
+  await db.exec('ROLLBACK');
+  await db.exec('BEGIN');
+  await db.query('UPDATE private.work_taxonomy_worker_capabilities SET excluded=true WHERE worker_account_id=$1',[owner]);
+  const removed=(await db.query('SELECT public.rpc_prepare_worker_ai_review_taxonomy($1,1,true) review',[cid])).rows[0].review;
+  assert.equal(removed.canAccept,false);
+  await db.exec('ROLLBACK');
+  const automatic=(await db.query('SELECT public.rpc_prepare_worker_ai_review_taxonomy($1,1,true) review',[cid])).rows[0].review;
+  assert.equal(automatic.classificationState,'READY'); assert.equal(automatic.canAccept,true);
+  assert.deepEqual(automatic.classificationCandidates[0].handoff,handoff);
+  const selected=[{service,mode:'REMOTE'},{service:newService,mode:'REMOTE'}];
+  const reviewed=(await db.query('SELECT public.rpc_prepare_worker_ai_review_taxonomy_confirmed($1,1,true,$2::jsonb) review',[cid,JSON.stringify(selected)])).rows[0].review;
+  t.diagnostic(JSON.stringify({automatic:automatic.classificationState,automaticAccept:automatic.canAccept,
+    confirmed:reviewed.classificationState,confirmedAccept:reviewed.canAccept,missing:reviewed.missingRequired}));
+  assert.equal(reviewed.canAccept,true);
+  for(const changed of [[{service,mode:'ON_SITE'},{service:newService,mode:'REMOTE'}],
+    [{service,mode:'REMOTE'}]]){
+    const different=(await db.query('SELECT public.rpc_prepare_worker_ai_review_taxonomy_confirmed($1,1,true,$2::jsonb) review',
+      [cid,JSON.stringify(changed)])).rows[0].review;
+    assert.equal(different.canAccept,false);
+    assert.notEqual(different.classificationState,'READY');
+  }
+  assert.deepEqual(reviewed.classificationCandidates[0].handoff,handoff);
+  assert.ok(mobileDecoder().decodeWorkerAiReview(reviewed,owner,cid));
+  const key=(await db.query('SELECT gen_random_uuid() id')).rows[0].id;
+  await db.exec('BEGIN');
+  await db.query(`UPDATE private.taxonomy_confirmed_worker_modes_v1 SET handoff='{"required":false}' WHERE worker_account_id=$1`,[owner]);
+  assert.equal((await db.query('SELECT private.worker_remote_review_ready_v1($1::jsonb) ok',[JSON.stringify(automatic)])).rows[0].ok,false);
+  assert.equal((await services())[0].status,'UNCONFIRMED');
+  await db.exec('ROLLBACK');
+  await db.exec('BEGIN');
+  await db.query('UPDATE private.taxonomy_confirmed_worker_modes_v1 SET active=false WHERE worker_account_id=$1',[owner]);
+  assert.equal((await db.query('SELECT private.worker_remote_review_ready_v1($1::jsonb) ok',[JSON.stringify(automatic)])).rows[0].ok,false);
+  assert.equal((await services())[0].status,'UNCONFIRMED');
+  assert.equal((await db.query('SELECT private.worker_remote_only_activation_ready_v1($1,$2::text[]) ok',[owner,[service]])).rows[0].ok,false);
+  // Existing ACTIVE profile edits may Save new consent without reactivation.
+  // This is not catalog revalidation and must not revive the withdrawn mode.
+  assert.equal((await save(db,automatic,key)).profileStatus,'ACTIVE');
+  const withdrawnAuthority=await authority();
+  assert.equal(withdrawnAuthority.modes,0); assert.ok(withdrawnAuthority.caps<=1);
+  assert.equal((await db.query('SELECT private.worker_remote_only_activation_ready_v1($1,$2::text[]) ok',[owner,[service,newService]])).rows[0].ok,false);
+  assert.ok((await services()).every(s=>s.status!=='CONFIRMED'));
+  await db.exec('ROLLBACK');
+  assert.deepEqual((await db.query('SELECT skills FROM public.app_profiles WHERE id=$1',[profile])).rows[0].skills,[service]);
+  assert.equal((await db.query('SELECT count(*)::int n FROM private.worker_ai_saves')).rows[0].n,1);
+  await db.exec('BEGIN');
+  await db.query("SELECT set_config('request.jwt.claim.sub',$1,false)",[other]);
+  await db.exec('SAVEPOINT foreign_owner');
+  await assert.rejects(db.query('SELECT public.rpc_prepare_worker_ai_review_taxonomy($1,1,true)',[cid]),/WORKER_AI_DENIED/);
+  await db.exec('ROLLBACK TO SAVEPOINT foreign_owner');
+  await assert.rejects(db.query('SELECT public.rpc_prepare_worker_ai_review_taxonomy_confirmed($1,1,true,$2::jsonb)',[cid,JSON.stringify(selected)]),/WORKER_AI_DENIED/);
+  await db.exec('ROLLBACK');
+  assert.equal((await save(db,automatic,key)).profileStatus,'ACTIVE');
+  assert.deepEqual(await authority(),{caps:1,modes:1});
+  assert.deepEqual((await services()).map(x=>x.status),['CONFIRMED','PENDING']);
+  const pendingOpen=(await db.query('SELECT public.rpc_open_worker_ai(gen_random_uuid()) doc')).rows[0].doc;
+  const pendingContext=(await db.query('SELECT private.worker_ai_service_mode_context_v1($1,$2) doc',[owner,pendingOpen.conversationId])).rows[0].doc;
+  assert.deepEqual(pendingContext.savedServices,[{service,mode:'REMOTE',categoryId:remote,handoff}]);
+  assert.deepEqual(pendingContext.unresolvedServices,[newService]);
+  await db.query("SELECT set_config('request.jwt.claim.role','service_role',false)");
+  await db.query("SELECT public.rpc_taxonomy_commit_reviewed_batch_service($1,$2,'WORKER_CAPABILITY',$3,$4::jsonb)",[owner,key,automatic.reviewId,JSON.stringify(automatic.classificationCandidates)]);
+  await db.query('SELECT public.rpc_taxonomy_bind_reviewed_worker_service($1,$2,$3,$4)',[owner,key,automatic.reviewId,profile]);
+  assert.deepEqual(await authority(),{caps:2,modes:2});
+  assert.deepEqual((await services()).map(x=>x.status),['CONFIRMED','CONFIRMED']);
+  assert.deepEqual((await services())[0].modes[0].handoff,handoff);
+});
+
+test('semantic synonym may extend an established leaf mode without registering an alias',async t=>{
+  const {db,service,authority,eligible}=await novelRemote(t,'EXTEND_MODE');
+  await db.query("UPDATE private.work_taxonomy_categories SET label='Analiza skupova podataka',canonical_key='analiza skupova podataka' WHERE id=$1",[remote]);
+  // Conflicting exact names, changed parent/leaf and stale hints remain refused.
+  for(const sql of [
+    `UPDATE private.work_taxonomy_categories SET canonical_key='analiza podataka' WHERE id<>'${remote}'`,
+    `UPDATE private.work_taxonomy_categories SET parent_id='${remote}' WHERE id<>'${remote}'`,
+    `UPDATE private.work_taxonomy_gemini_turn_hints_v1 SET catalog_version=99`,
+    `UPDATE private.work_taxonomy_gemini_turn_hints_v1 SET source_fingerprint='stale'`
+  ]){
+    await db.exec('BEGIN'); await db.exec(sql);
+    const blocked=await prepare(db); assert.equal(blocked.canAccept,false); assert.notEqual(blocked.classificationState,'READY');
+    await db.exec('ROLLBACK');
+  }
+  const review=await prepare(db);
+  assert.equal(review.canAccept,true); assert.equal(review.classificationState,'READY');
+  assert.equal(review.classificationCandidates[0].action,'EXTEND_MODE');
+  assert.equal(review.classificationCandidates[0].categoryId,remote);
+  assert.equal(review.classificationCandidates[0].categoryLabel,'Analiza skupova podataka');
+  assert.equal((await save(db,review)).profileStatus,'ACTIVE');
+  assert.deepEqual(await authority(),{caps:0,modes:0}); assert.equal(await eligible(),false);
+  assert.equal((await bind(db,review)).status,'BOUND_WORKER_SERVICES');
+  assert.deepEqual(await authority(),{caps:1,modes:1}); assert.equal(await eligible(),true);
+  assert.equal((await db.query('SELECT count(*)::int n FROM private.work_taxonomy_aliases')).rows[0].n,0);
 });

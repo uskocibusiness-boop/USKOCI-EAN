@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { originals, postimages, postClosure, preimage } from './build.mjs';
+import { originals, postimages, postClosure, preimage,promotionPostimages,promotionPostClosure } from './build.mjs';
 import { deriveClosurePostimage } from './closure-postimage.mjs';
 
 const evidence = JSON.parse(readFileSync(new URL('./closure-postimage-offline-evidence-20261102.json', import.meta.url), 'utf8'));
@@ -20,9 +20,9 @@ test('generated closure postimage matches the independently reproduced DEV catal
   assert.equal(postClosure.erasure, evidence.result.expected_postimage.erasure);
 });
 
-test('independent PostgreSQL JSONB and SHA-256 reproduce the exact canonical closure postimage', async t => {
+test('independent PostgreSQL JSONB and SHA-256 reproduce the connected fourteen-body closure postimage', async t => {
   const db = new PGlite(); t.after(() => db.close());
-  const patches = Object.fromEntries(Object.values(postimages).map(f => [f.signature, f.body_md5]));
+  const patches = Object.fromEntries(Object.values(promotionPostimages).map(f => [f.signature, f.body_md5]));
   // Keep the captured PostgreSQL text and roster order. Expected hashes are
   // calculated here by PostgreSQL, without deriveClosurePostimage or JS replace.
   const { rows: [result] } = await db.query(`WITH before AS (
@@ -53,10 +53,10 @@ test('independent PostgreSQL JSONB and SHA-256 reproduce the exact canonical clo
   assert.equal(result.canonical_before, evidence.capture.erasure_input);
   assert.equal(result.erasure_before, evidence.capture.actual.erasure);
   assert.equal(result.source_before, evidence.capture.actual.source);
-  assert.equal(result.erasure_after, postClosure.erasure);
-  assert.equal(result.source_after, postClosure.source);
+  assert.equal(result.erasure_after, promotionPostClosure.erasure);
+  assert.equal(result.source_after, promotionPostClosure.source);
   for (const preserved of ['schema', 'certificate', 'source_ready', 'export_binding', 'erasure_binding']) {
-    assert.equal(postClosure[preserved], preimage.closure[preserved]);
+    assert.equal(promotionPostClosure[preserved], preimage.closure[preserved]);
   }
   assert.equal(postClosure.source_ready, false);
   assert.equal(postClosure.export_binding, null);

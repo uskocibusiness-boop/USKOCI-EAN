@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { PGlite } from '@electric-sql/pglite';
-import { generate, preimage, originals, postimages, postClosure, signatures, acceptance } from './build.mjs';
+import { generate, preimage, originals, postimages, postClosure, signatures, acceptance,
+  promotionOriginals,promotionPostimages,promotionPostClosure,catalogBefore,catalogAfter } from './build.mjs';
 
 const hash = (s, kind = 'sha256') => createHash(kind).update(s).digest('hex');
 
@@ -598,7 +599,7 @@ async function setup() {
   return db;
 }
 
-test('frozen package preserves signatures, attributes and closure; changes four bodies only', () => {
+test('frozen connected package preserves signatures, attributes and closure; fourteen existing bodies only', () => {
   const outputs = generate();
   for (const [name, s] of Object.entries(outputs)) {
     assert.equal(readFileSync(new URL(name, import.meta.url), 'utf8'), s, name);
@@ -613,7 +614,15 @@ test('frozen package preserves signatures, attributes and closure; changes four 
   for (const key of Object.keys(originals)) {
     assert.equal(hash(postimages[key].definition, 'md5'), postimages[key].definition_md5);
   }
-  assert.equal((outputs['forward.sql'].match(/CREATE OR REPLACE FUNCTION /g) || []).length, 4);
+  assert.equal((outputs['forward.sql'].match(/CREATE OR REPLACE FUNCTION /g) || []).length, 14);
+  assert.equal(Object.keys(promotionPostimages).length,14);
+  assert.equal(promotionPostClosure.certificate,preimage.closure.certificate);
+  assert.equal(promotionPostClosure.source_ready,false);
+  for(const[key,post]of Object.entries(promotionPostimages)){
+    assert.equal(post.definition.split('AS $function$')[0],promotionOriginals[key].definition.split('AS $function$')[0]);
+    assert.match(outputs['preflight.sql'],new RegExp(promotionOriginals[key].body_lf_md5));
+    assert.match(outputs['postflight.sql'],new RegExp(post.body_lf_md5));
+  }
   assert.match(outputs['forward.sql'], /R04_SEMANTIC_DEV_CLOSURE_STATE_CHANGED/);
   assert.match(outputs['forward.sql'], /R04_SEMANTIC_DEV_UNRELATED_FUNCTION_DELTA/);
 });
@@ -1724,6 +1733,35 @@ test('R04/R08 actual AFTER skills trigger retains signed synonyms without revivi
   await assert.rejects(services(),/WORKER_PROFILE_NOT_OWNED/);
   await db.query("SELECT set_config('test.uid',$1,false)",[account]);
   assert.equal((await services())[0].status,'CONFIRMED');
+});
+
+test('connected DDL preserves every pg_proc attribute, restores exact bodies and rolls back an unrelated delta',async t=>{
+  const db=new PGlite();t.after(()=>db.close());
+  // Metadata/transaction proof only. Business bodies run in the connected Need,
+  // Worker and R06 suites; no fictitious closure/Auth policy is installed here.
+  await db.exec('CREATE SCHEMA private;CREATE SCHEMA rls_private;SET check_function_bodies=off;');
+  await db.exec(ddl(promotionOriginals));
+  const snapshot=async()=> (await db.query(`SELECT n.nspname,p.proname,to_jsonb(p) attributes
+    FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname IN('public','private','rls_private') ORDER BY p.oid`)).rows;
+  const before=await snapshot();
+  await db.exec('BEGIN;'+catalogBefore+ddl(promotionPostimages)+catalogAfter+'COMMIT;');
+  const after=await snapshot();
+  assert.equal(after.length,before.length);
+  for(let i=0;i<before.length;i++){
+    const {prosrc:oldBody,...oldAttributes}=before[i].attributes;
+    const {prosrc:newBody,...newAttributes}=after[i].attributes;
+    assert.deepEqual(newAttributes,oldAttributes);
+    const post=Object.values(promotionPostimages).find(x=>x.signature.split('(')[0]===after[i].nspname+'.'+after[i].proname);
+    assert.equal(hash(newBody,'md5'),post.body_md5);
+  }
+  await db.exec('BEGIN;'+catalogBefore+ddl(promotionOriginals)+catalogAfter+'COMMIT;');
+  assert.deepEqual(await snapshot(),before,'inverse restores original bodies and all metadata');
+  await db.exec('BEGIN;'+catalogBefore+ddl(promotionPostimages));
+  await db.exec('CREATE FUNCTION public.unreviewed_delta() RETURNS integer LANGUAGE sql AS $$SELECT 1$$;');
+  await assert.rejects(db.exec(catalogAfter),/R04_SEMANTIC_DEV_UNRELATED_FUNCTION_DELTA/);
+  await db.exec('ROLLBACK;');
+  assert.deepEqual(await snapshot(),before,'entire failed function update is rolled back');
 });
 
 function repeat(char, n) {
