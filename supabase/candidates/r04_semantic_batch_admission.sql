@@ -256,19 +256,43 @@ BEGIN
        SELECT 1 FROM private.work_taxonomy_aliases a
        WHERE a.category_id=c.id AND a.normalized_key=v_key));
 
+   IF v_action = 'REUSE_EXISTING' AND (v_plan ? 'categoryLabel' OR v_plan ? 'categoryParentId') THEN
+     IF NOT EXISTS(SELECT 1 FROM private.work_taxonomy_categories c
+       WHERE c.id = v_category
+         AND (NOT v_plan ? 'categoryLabel' OR c.label IS NOT DISTINCT FROM v_plan->>'categoryLabel')
+         AND (NOT v_plan ? 'categoryParentId' OR coalesce(to_jsonb(c.parent_id),'null'::jsonb) IS NOT DISTINCT FROM v_plan->'categoryParentId')
+         AND NOT EXISTS(SELECT 1 FROM private.work_taxonomy_categories child
+           WHERE child.parent_id = c.id AND child.state = 'ESTABLISHED')
+     ) THEN
+       RAISE EXCEPTION 'BATCH_CATEGORY_IDENTITY_CHANGED' USING errcode='PT409';
+     END IF;
+   END IF;
+
    IF v_count = 1 AND v_canonical = v_category THEN
      NULL;
-   ELSIF v_action = 'REUSE_EXISTING' AND v_count = 0 THEN
-     -- Human-reviewed semantic synonym reuse of an established leaf.
+   ELSIF v_action IN ('REUSE_EXISTING', 'EXTEND_MODE') AND v_count = 0 THEN
+     -- Human-reviewed semantic synonym reuse or mode extension of an established leaf.
      -- Verified through safety triage and valid category path.
      -- Logged in audit as EXISTING_REUSED without creating a global alias.
+     IF jsonb_typeof(v_plan->'categoryLabel') IS DISTINCT FROM 'string'
+       OR NOT EXISTS(SELECT 1 FROM private.work_taxonomy_categories c
+         WHERE c.id = v_category
+           AND c.label IS NOT DISTINCT FROM v_plan->>'categoryLabel'
+           AND (NOT v_plan ? 'categoryParentId' OR coalesce(to_jsonb(c.parent_id),'null'::jsonb) IS NOT DISTINCT FROM v_plan->'categoryParentId')
+           AND NOT EXISTS(SELECT 1 FROM private.work_taxonomy_categories child
+             WHERE child.parent_id = c.id AND child.state = 'ESTABLISHED')
+       ) THEN
+       RAISE EXCEPTION 'BATCH_CATEGORY_IDENTITY_CHANGED' USING errcode='PT409';
+     END IF;
      IF private.taxonomy_risk_triage_v1(v_service) IS DISTINCT FROM 'LOW_RISK_CANDIDATE'
        OR private.taxonomy_risk_triage_v1(v_plan->>'categoryLabel') IS DISTINCT FROM 'LOW_RISK_CANDIDATE'
        OR NOT private.taxonomy_category_path_valid_v1(v_category) THEN
        RAISE EXCEPTION 'BATCH_SEMANTIC_SAFETY_REVIEW_REQUIRED' USING errcode='42501';
      END IF;
-     INSERT INTO private.work_taxonomy_audit(action,category_id,normalized_key,catalog_version,source_ref)
-       VALUES('EXISTING_REUSED',v_category,v_key,v_version,'REVIEWED_BATCH:'||p_request_key::text);
+     IF v_action = 'REUSE_EXISTING' THEN
+       INSERT INTO private.work_taxonomy_audit(action,category_id,normalized_key,catalog_version,source_ref)
+         VALUES('EXISTING_REUSED',v_category,v_key,v_version,'REVIEWED_BATCH:'||p_request_key::text);
+     END IF;
    ELSE
      RAISE EXCEPTION 'BATCH_SEMANTIC_IDENTITY_MISMATCH'
        USING errcode=CASE WHEN v_catalog_changed THEN 'PT409' ELSE '42501' END;

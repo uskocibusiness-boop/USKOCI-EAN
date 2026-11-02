@@ -63,6 +63,6 @@ const results = {
   workerExistingShapeAccepted: decodeWorkerAiReview(worker, owner, conversation) !== null,
   workerNewSqlShapeAccepted: decodeWorkerAiReview(sqlShape(worker), owner, conversation) !== null,
 };
-assert.deepEqual(results, { needExistingShapeAccepted: true, needNewSqlShapeAccepted: false,
-  workerExistingShapeAccepted: true, workerNewSqlShapeAccepted: false });
-console.log(JSON.stringify({ status: 'BUG_REPRODUCED_NOT_FIXED', ...results }));
+assert.deepEqual(results, { needExistingShapeAccepted: true, needNewSqlShapeAccepted: true,
+  workerExistingShapeAccepted: true, workerNewSqlShapeAccepted: true });
+console.log(JSON.stringify({ status: 'CONTRACT_VERIFIED_FIXED', ...results }));

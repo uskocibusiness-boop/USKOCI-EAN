@@ -354,6 +354,51 @@ it('Gate A signed canonical Need category and mode decode without a second accep
   expect(decodeAiTaskReview({...signed,classificationCatalogFingerprint:undefined},OWNER)).toBeNull();
 });
 
+it('accepts REUSE_EXISTING candidate with categoryLabel and categoryParentId metadata, rejecting invalid identity fields', () => {
+  const base = review();
+  const candidate = {
+    action: 'REUSE_EXISTING' as const,
+    service: 'Lektura',
+    mode: 'REMOTE' as const,
+    categoryId: '22222222-2222-4222-8222-222222222222',
+    categoryLabel: 'Lektura i korektura',
+    categoryParentId: null,
+    catalogVersion: 9,
+    reason: 'Verified existing canonical identity with explicit label'
+  };
+  const signed = {
+    ...base,
+    publicProjection: [{ id: null, key: 'need.category' as const, value: 'Lektura',
+      displayValue: 'Lektura', privacyClass: 'PUBLIC' as const, source: 'EXPLICIT_USER_ANSWER' as const, status: 'CONFIRMED' as const }],
+    classificationState: 'READY' as const,
+    classificationCandidates: [candidate],
+    classificationCatalogVersion: 9,
+    classificationCatalogFingerprint: 'f'.repeat(32),
+    reviewedServiceModes: [],
+  };
+  const checked = decodeAiTaskReview(signed, OWNER);
+  expect(checked).not.toBeNull();
+  expect(checked?.classificationCandidates?.[0]).toMatchObject({
+    categoryId: '22222222-2222-4222-8222-222222222222',
+    categoryLabel: 'Lektura i korektura',
+    categoryParentId: null
+  });
+
+  // Valid parent UUID is also accepted
+  const withParent = { ...candidate, categoryParentId: '33333333-3333-4333-8333-333333333333' };
+  expect(decodeAiTaskReview({ ...signed, classificationCandidates: [withParent] }, OWNER)).not.toBeNull();
+
+  // Negative checks:
+  // 1. Invalid parent ID (not a UUID)
+  expect(decodeAiTaskReview({ ...signed, classificationCandidates: [{ ...candidate, categoryParentId: 'bad-uuid' }] }, OWNER)).toBeNull();
+  // 2. Empty categoryLabel
+  expect(decodeAiTaskReview({ ...signed, classificationCandidates: [{ ...candidate, categoryLabel: '   ' }] }, OWNER)).toBeNull();
+  // 3. Excessively long categoryLabel (> 120 chars)
+  expect(decodeAiTaskReview({ ...signed, classificationCandidates: [{ ...candidate, categoryLabel: 'A'.repeat(121) }] }, OWNER)).toBeNull();
+  // 4. Extraneous unknown field
+  expect(decodeAiTaskReview({ ...signed, classificationCandidates: [{ ...candidate, extraField: true }] }, OWNER)).toBeNull();
+});
+
 it('keeps the signed task handoff and mode extension witness; malformed or on-site candidate handoff is rejected', () => {
   const handoff={required:true,localExchange:{countryCode:'RS',city:'Novi Sad'}};
   const candidate={action:'EXTEND_MODE',service:'Popravka muzičke kutije',mode:'REMOTE',categoryId:NEED,

@@ -25,6 +25,13 @@ IF NOT EXISTS(SELECT 1 FROM pg_proc p
  AND pg_get_userbyid(p.proowner)='postgres'
  AND p.proacl::text IS NOT DISTINCT FROM NULL)
  THEN RAISE EXCEPTION 'R04_SEMANTIC_DEV_FUNCTION_DRIFT:%','private.needs_sync_taxonomy_category_trigger_fn()'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p
+ WHERE p.oid=to_regprocedure('public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)')
+ AND md5(replace(p.prosrc,E'\r\n',E'\n'))='757a754bd2310d07eb0587e1f8279b2b'
+ AND p.prosecdef=true
+ AND pg_get_userbyid(p.proowner)='postgres'
+ AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'R04_SEMANTIC_DEV_FUNCTION_DRIFT:%','public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)'; END IF;
 IF (SELECT jsonb_build_object('source',private.closure_source_digest_v5(),
  'certificate',(SELECT sha256 FROM private.closure_source_v5 WHERE singleton),
  'schema',private.closure_schema_digest_v5_139(),'erasure',private.closure_erasure_program_digest_v5(),

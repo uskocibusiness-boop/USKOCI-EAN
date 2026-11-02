@@ -10,7 +10,8 @@ export const preimage=JSON.parse(read('preimage.json'));
 export const signatures={
  triage:'private.taxonomy_risk_triage_v1(text)',
  proj:'private.taxonomy_review_candidate_projection_v2(text,jsonb,jsonb,uuid,uuid)',
- trigger:'private.needs_sync_taxonomy_category_trigger_fn()'
+ trigger:'private.needs_sync_taxonomy_category_trigger_fn()',
+ commit:'public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)'
 };
 
 export const originals=Object.fromEntries(
@@ -47,7 +48,8 @@ function extractCandidateDefinition(sql,signature){
 export const postimages={
  triage:{...originals.triage,...extractCandidateDefinition(cand1,'private.taxonomy_risk_triage_v1')},
  proj:{...originals.proj,...extractCandidateDefinition(cand1,'private.taxonomy_review_candidate_projection_v2')},
- trigger:{...originals.trigger,...extractCandidateDefinition(cand2,'private.needs_sync_taxonomy_category_trigger_fn')}
+ trigger:{...originals.trigger,...extractCandidateDefinition(cand2,'private.needs_sync_taxonomy_category_trigger_fn')},
+ commit:{...originals.commit,...extractCandidateDefinition(cand2,'public.rpc_taxonomy_commit_reviewed_batch_service')}
 };
 
 export const closureQuery=`SELECT jsonb_build_object('source',private.closure_source_digest_v5(),
@@ -56,8 +58,17 @@ export const closureQuery=`SELECT jsonb_build_object('source',private.closure_so
  'source_ready',private.retention_ai_source_ready(),'erasure_binding',private.closure_erasure_binding_v5(),
  'export_binding',private.data_export_policy_binding())`;
 
-const closureGuard=`IF (${closureQuery}) IS DISTINCT FROM ${quote(JSON.stringify(preimage.closure))}::jsonb
+export const postClosure={
+ ...preimage.closure,
+ source:'4a6a2f79f99939efe3088b1c1daee61acb7b7fe87caf6191d1741fa91788433f',
+ erasure:'2a98426f53e0280ddbc8fc4937247a528d4432bfd34a86542b38923c0b0abfdb'
+};
+
+const closureGuard=images=>{
+ const target=(images===postimages)?postClosure:preimage.closure;
+ return `IF (${closureQuery}) IS DISTINCT FROM ${quote(JSON.stringify(target))}::jsonb
  THEN RAISE EXCEPTION 'R04_SEMANTIC_DEV_CLOSURE_STATE_CHANGED'; END IF;`;
+};
 
 const contextGuard=intent=>`IF current_database()<>'postgres' OR current_user<>'postgres'
  OR current_setting('server_version_num')<>'170006'
@@ -72,7 +83,7 @@ const functionGuard=images=>Object.values(images).map(f=>`IF NOT EXISTS(SELECT 1
  AND p.proacl::text IS NOT DISTINCT FROM ${f.acl===null?'NULL':quote(f.acl)})
  THEN RAISE EXCEPTION 'R04_SEMANTIC_DEV_FUNCTION_DRIFT:%',${quote(f.signature)}; END IF;`).join('\n');
 
-const guard=(name,images,intent=false)=>`DO $${name}$ BEGIN\n${contextGuard(intent)}\n${functionGuard(images)}\n${closureGuard}\nEND; $${name}$;\n`;
+const guard=(name,images,intent=false)=>`DO $${name}$ BEGIN\n${contextGuard(intent)}\n${functionGuard(images)}\n${closureGuard(images)}\nEND; $${name}$;\n`;
 
 const ddl=images=>Object.values(images).map(f=>f.definition.trimEnd()+';\n').join('');
 
@@ -88,7 +99,8 @@ export const catalogAfter=`DO $delta$ BEGIN
  CASE WHEN before.oid IN (
    to_regprocedure('private.taxonomy_risk_triage_v1(text)'),
    to_regprocedure('private.taxonomy_review_candidate_projection_v2(text,jsonb,jsonb,uuid,uuid)'),
-   to_regprocedure('private.needs_sync_taxonomy_category_trigger_fn()')
+   to_regprocedure('private.needs_sync_taxonomy_category_trigger_fn()'),
+   to_regprocedure('public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)')
  ) THEN before.attributes-'prosrc' IS DISTINCT FROM after.attributes-'prosrc'
  ELSE before.attributes IS DISTINCT FROM after.attributes END)
  THEN RAISE EXCEPTION 'R04_SEMANTIC_DEV_UNRELATED_FUNCTION_DELTA'; END IF;
@@ -105,7 +117,15 @@ DO $triage$ BEGIN
  IF private.taxonomy_risk_triage_v1('bilo sta') IS DISTINCT FROM 'NEEDS_CLARIFICATION' THEN
    RAISE EXCEPTION 'R04_TRIAGE_BILO_STA_FAILED';
  END IF;
-END;$triage$;\n`;
+END;$triage$;
+DO $commit_check$ BEGIN
+ BEGIN
+   PERFORM public.rpc_taxonomy_commit_reviewed_batch_service(NULL, NULL, 'NEED_SERVICE', NULL, '[]'::jsonb);
+   RAISE EXCEPTION 'R04_COMMIT_GUARD_FAILED';
+ EXCEPTION WHEN OTHERS THEN
+   IF SQLSTATE <> '22023' THEN RAISE; END IF;
+ END;
+END;$commit_check$;\n`;
 
 export function wrap(sql){
  return `BEGIN;\nSET LOCAL search_path=pg_catalog;SET LOCAL statement_timeout='25s';SET LOCAL lock_timeout='3s';
@@ -127,11 +147,16 @@ export function generate(){
   assert.equal(hash(f.definition,'md5'),f.definition_md5);
  }
 
- for(const name of ['private.closure_source_digest_v5()','private.closure_erasure_program_digest_v5()']){
-  for(const changed of Object.values(signatures)){
-   assert(!preimage.functions.find(f=>f.signature===name).definition.includes(changed.split('(')[0]),
-    'changed function is not a source/erasure roster member');
-  }
+ for(const changed of Object.values(signatures)){
+  const isCommit = changed.startsWith('public.rpc_taxonomy_commit_reviewed_batch_service');
+  assert(
+   isCommit || !preimage.functions.find(f=>f.signature==='private.closure_source_digest_v5()').definition.includes(changed.split('(')[0]),
+   'unauthorized source roster member'
+  );
+  assert(
+   isCommit || !preimage.functions.find(f=>f.signature==='private.closure_erasure_program_digest_v5()').definition.includes(changed.split('(')[0]),
+   'unauthorized erasure roster member'
+  );
  }
 
  const forward=guard('r04_pre',originals,true)+catalogBefore+ddl(postimages)+acceptance+
@@ -177,10 +202,11 @@ SELECT '${result}' result,false AS authenticated_positive_functional_acceptance;
   limitations:[
    'Project identity is the connector binding; the GUC is only an intent marker.',
    'R10 source_ready=false and NULL export/erasure bindings stay unchanged; no certification or activation occurs.',
-   'Only three existing function bodies change; full catalog delta, ACL/config/owner preservation and exact inverse rollback are mandatory.',
+   'Four existing function bodies change; full catalog delta, ACL/config/owner preservation and exact inverse rollback are mandatory.',
    'Single-word low-risk services are unblocked for task publication while maintaining strict screening for broad or ambiguous terms and regulated categories.',
-   'Unrecorded synonyms are admitted into review audit ledger as SYNONYM_REUSED without mutating global private.work_taxonomy_aliases.',
-   'Hosted acceptance covers low-risk single-word triage validation; positive real Auth/native acceptance remains a separate root step.',
+   'Unrecorded synonyms are admitted into review audit ledger as EXISTING_REUSED without mutating global private.work_taxonomy_aliases.',
+   'Category identity drift between review and commit is strictly checked via categoryLabel (BATCH_CATEGORY_IDENTITY_CHANGED).',
+   'Hosted acceptance covers low-risk single-word triage validation and commit guard; positive real Auth/native acceptance remains a separate root step.',
    'No full R01, R10, supported old fleet, provider, push or production admission is claimed.'
   ]
  },null,2)+'\n';

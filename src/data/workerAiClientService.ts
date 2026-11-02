@@ -47,7 +47,7 @@ export function explicitWorkerModes(skills:readonly string[],choices:Readonly<Re
   return result.length<=24?result:null;
 }
 export type WorkerAiClassificationCandidate = Readonly<{handoff?:import('../contracts/serviceHandoff').ServiceHandoff} & (
-  {action:'REUSE_EXISTING';service:string;mode:'ON_SITE'|'REMOTE';categoryId:string;catalogVersion:number;reason:string}|
+  {action:'REUSE_EXISTING';service:string;mode:'ON_SITE'|'REMOTE';categoryId:string;categoryLabel?:string;categoryParentId?:string|null;catalogVersion:number;reason:string}|
   {action:'EXTEND_MODE';service:string;mode:'ON_SITE'|'REMOTE';categoryId:string;categoryLabel:string;categoryParentId:string|null;
     catalogVersion:number;reason:string}|
   {action:'CREATE_CHILD';service:string;mode:'ON_SITE'|'REMOTE';parentId:string;parentLabel:string;
@@ -182,8 +182,13 @@ function decodeClassification(v:Record<string,unknown>,profile:WorkerAiProfile):
     const hasHandoff=Object.hasOwn(c,'handoff');
     if(hasHandoff&&(c.mode!=='REMOTE'||!decodeServiceHandoff(c.handoff)))return null;
     const candidateKeys=(keys:string[])=>hasHandoff?[...keys,'handoff']:keys;
-    const reuse=c.action==='REUSE_EXISTING'&&exact(c,candidateKeys(['action','service','mode','categoryId','catalogVersion','reason']))
-      &&uuid(c.categoryId);
+    const hasLabel=Object.hasOwn(c,'categoryLabel');
+    const reuseKeys=hasLabel
+      ? ['action','service','mode','categoryId','categoryLabel','categoryParentId','catalogVersion','reason']
+      : ['action','service','mode','categoryId','catalogVersion','reason'];
+    const reuse=c.action==='REUSE_EXISTING'&&exact(c,candidateKeys(reuseKeys))
+      &&uuid(c.categoryId)
+      &&(!hasLabel||(text(c.categoryLabel,120)&&c.categoryLabel.trim().length>=3&&(c.categoryParentId===null||uuid(c.categoryParentId))));
     const extend=c.action==='EXTEND_MODE'&&exact(c,candidateKeys(['action','service','mode','categoryId','categoryLabel','categoryParentId','catalogVersion','reason']))
       &&uuid(c.categoryId)&&text(c.categoryLabel,120)&&c.categoryLabel.trim().length>=3
       &&(c.categoryParentId===null||uuid(c.categoryParentId));
@@ -202,9 +207,12 @@ function decodeClassification(v:Record<string,unknown>,profile:WorkerAiProfile):
     if(!seen.has(key)||plans.has(key))return null;
     plans.add(key);
     const handoff=hasHandoff?{handoff:decodeServiceHandoff(c.handoff)!}:{};
+    const extraReuse=hasLabel
+      ?{categoryLabel:c.categoryLabel as string,categoryParentId:c.categoryParentId as string|null}
+      :{};
     result.classificationCandidates.push(reuse
       ?{...handoff,action:'REUSE_EXISTING',service:c.service,mode:c.mode,categoryId:c.categoryId as string,
-        catalogVersion:version,reason:c.reason}
+        ...extraReuse,catalogVersion:version,reason:c.reason}
       :extend?{...handoff,action:'EXTEND_MODE',service:c.service,mode:c.mode,categoryId:c.categoryId as string,
         categoryLabel:c.categoryLabel as string,categoryParentId:c.categoryParentId as string|null,catalogVersion:version,reason:c.reason}
       :child?{...handoff,action:'CREATE_CHILD',service:c.service,mode:c.mode,parentId:c.parentId as string,

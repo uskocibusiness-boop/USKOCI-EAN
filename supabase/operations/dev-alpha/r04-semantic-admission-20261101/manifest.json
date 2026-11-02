@@ -6,7 +6,8 @@
   "changed_functions": [
     "private.taxonomy_risk_triage_v1(text)",
     "private.taxonomy_review_candidate_projection_v2(text,jsonb,jsonb,uuid,uuid)",
-    "private.needs_sync_taxonomy_category_trigger_fn()"
+    "private.needs_sync_taxonomy_category_trigger_fn()",
+    "public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)"
   ],
   "new_functions": 0,
   "new_tables": 0,
@@ -17,27 +18,28 @@
   ],
   "source_candidates_sha256": {
     "r04_semantic_review_pending_projection.sql": "824f2dd8db17d3853bae6ae2d06030f3691cf7a7320f2f311cc6b6efaa00d26a",
-    "r04_semantic_batch_admission.sql": "7769052c739cfee2f8e0f0be100e527c834bf7e55396ef725ca9aa94af800db2"
+    "r04_semantic_batch_admission.sql": "2b2fabe0d272385a6821f12f3a2850b098766a668cc2478b98e4d11e9892fcee"
   },
   "preimage_sha256": "30d9ef2f2b62f312624d721e9d0dd3f1e98011acfed64fbca84e91e1fe3e1b26",
-  "builder_sha256": "83caa6001ef008bcfbbfc73a3b479c5fcc79c78284bb3fee193eeb68d8d85197",
+  "builder_sha256": "b1b5f22ccd2b0d6ba316d1e13d9bd61909259c2f295b90036e4f696f51ea8a03",
   "files": {
-    "forward.sql": "88e722d3b2779b11623c610ce760b75b6d9694c8a6f83bf19e4ba85b0dcdd792",
-    "promotion.sql": "f2f9125c078fec1c65fefc8415de46af823017ed77971c351bf3fbdb13a1ec48",
-    "rollback.sql": "0602556eba67d1149b3d494e13548e4748c54b3e522db76d0a69e69c98f3aa64",
-    "preflight.sql": "ffdb9ca47deb363dfda4b8badd3b92f7fbf9294f06abc2050a6d108a30794daa",
-    "postflight.sql": "da96d6157e95ad53a98154421ea87e2768b19ab022796f3eecbdbc76c813b374",
-    "acceptance.sql": "acb854041fb03649882b2018cd5b0770f9b311c861634caf96d7aa3b364e8d3d",
-    "acceptance-readonly.sql": "81b8fafe5bc36c4f9d4ddddfe92ed4e3481577c80c2a595b73af1df86358fc0f",
-    "postimages.json": "922267553f7c8f4ac615bef5a035b5e57b5e67d17a2fd8d8f4a5775c742c516d"
+    "forward.sql": "ec0f0fd5ad433f3983ec4ac6eb4be3bdb9477cf9fb04cd7bd7cc1f419a16e25f",
+    "promotion.sql": "8575b9bec4edd830eca62181d9f107af233332da14c2bde1725ef3d438c71173",
+    "rollback.sql": "169d139924693d3e0cbb88934e9218a6247b3c20688d7e76afb19813635137e1",
+    "preflight.sql": "71cea8324196ad24dce4167a73d45725f42a18ed0f1c3d7e4aaf23f8c0d645dc",
+    "postflight.sql": "df557cb38cc6890ea7265a46faa02f6eb54f2be9857a135a1888b8779645be05",
+    "acceptance.sql": "48009f80f1e1f39b1459ce98e06ce2f26556d1f9843f9173b60f5371b09bd137",
+    "acceptance-readonly.sql": "d689934d97208410baeeb413f00a5bf4c0355e46bdf92259722e550fcf1fbb79",
+    "postimages.json": "c36f336d75ce1de00b96018e40e347b5f101df19bc6d45aff1495a16adafa3e4"
   },
   "limitations": [
     "Project identity is the connector binding; the GUC is only an intent marker.",
     "R10 source_ready=false and NULL export/erasure bindings stay unchanged; no certification or activation occurs.",
-    "Only three existing function bodies change; full catalog delta, ACL/config/owner preservation and exact inverse rollback are mandatory.",
+    "Four existing function bodies change; full catalog delta, ACL/config/owner preservation and exact inverse rollback are mandatory.",
     "Single-word low-risk services are unblocked for task publication while maintaining strict screening for broad or ambiguous terms and regulated categories.",
-    "Unrecorded synonyms are admitted into review audit ledger as SYNONYM_REUSED without mutating global private.work_taxonomy_aliases.",
-    "Hosted acceptance covers low-risk single-word triage validation; positive real Auth/native acceptance remains a separate root step.",
+    "Unrecorded synonyms are admitted into review audit ledger as EXISTING_REUSED without mutating global private.work_taxonomy_aliases.",
+    "Category identity drift between review and commit is strictly checked via categoryLabel (BATCH_CATEGORY_IDENTITY_CHANGED).",
+    "Hosted acceptance covers low-risk single-word triage validation and commit guard; positive real Auth/native acceptance remains a separate root step.",
     "No full R01, R10, supported old fleet, provider, push or production admission is claimed."
   ]
 }

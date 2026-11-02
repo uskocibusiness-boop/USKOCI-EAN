@@ -25,11 +25,18 @@ IF NOT EXISTS(SELECT 1 FROM pg_proc p
  AND pg_get_userbyid(p.proowner)='postgres'
  AND p.proacl::text IS NOT DISTINCT FROM NULL)
  THEN RAISE EXCEPTION 'R04_SEMANTIC_DEV_FUNCTION_DRIFT:%','private.needs_sync_taxonomy_category_trigger_fn()'; END IF;
+IF NOT EXISTS(SELECT 1 FROM pg_proc p
+ WHERE p.oid=to_regprocedure('public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)')
+ AND md5(replace(p.prosrc,E'\r\n',E'\n'))='f1122a1dcbfa7bedbee5ecae2d6d9a3c'
+ AND p.prosecdef=true
+ AND pg_get_userbyid(p.proowner)='postgres'
+ AND p.proacl::text IS NOT DISTINCT FROM '{postgres=X/postgres,service_role=X/postgres}')
+ THEN RAISE EXCEPTION 'R04_SEMANTIC_DEV_FUNCTION_DRIFT:%','public.rpc_taxonomy_commit_reviewed_batch_service(uuid,uuid,text,uuid,jsonb)'; END IF;
 IF (SELECT jsonb_build_object('source',private.closure_source_digest_v5(),
  'certificate',(SELECT sha256 FROM private.closure_source_v5 WHERE singleton),
  'schema',private.closure_schema_digest_v5_139(),'erasure',private.closure_erasure_program_digest_v5(),
  'source_ready',private.retention_ai_source_ready(),'erasure_binding',private.closure_erasure_binding_v5(),
- 'export_binding',private.data_export_policy_binding())) IS DISTINCT FROM '{"schema":"df82c2cb19edfa86ee092fb6fdc97528b82a2482f05ae64c45939268346af84c","source":"0c03679b287ed6d726b0b6845bedf54c1463d3fe0efcaf9cd8a947997e160b56","erasure":"5e121db0bd932accd4b007f80098db67ebc97e99f29e0b76f06378de0f9c4d96","certificate":"0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb","source_ready":false,"export_binding":null,"erasure_binding":null}'::jsonb
+ 'export_binding',private.data_export_policy_binding())) IS DISTINCT FROM '{"schema":"df82c2cb19edfa86ee092fb6fdc97528b82a2482f05ae64c45939268346af84c","source":"4a6a2f79f99939efe3088b1c1daee61acb7b7fe87caf6191d1741fa91788433f","erasure":"2a98426f53e0280ddbc8fc4937247a528d4432bfd34a86542b38923c0b0abfdb","certificate":"0201a7ccf74a3a5d0ed397d714392881af6ea1056b42f549097f9d3ecd9a4acb","source_ready":false,"export_binding":null,"erasure_binding":null}'::jsonb
  THEN RAISE EXCEPTION 'R04_SEMANTIC_DEV_CLOSURE_STATE_CHANGED'; END IF;
 END; $r04_flight$;
 

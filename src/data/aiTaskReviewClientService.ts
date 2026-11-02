@@ -23,7 +23,7 @@ export type AiTaskReviewFact = Readonly<{
   privacyClass: 'PUBLIC' | 'PRIVATE'; source: AiNeedV2FactSource; status: AiNeedV2FactStatus;
 }>;
 export type SignedNeedClassification = Readonly<{handoff?:ServiceHandoff} & (
-  {action:'REUSE_EXISTING';service:string;mode:'ON_SITE'|'REMOTE';categoryId:string;catalogVersion:number;reason:string}|
+  {action:'REUSE_EXISTING';service:string;mode:'ON_SITE'|'REMOTE';categoryId:string;categoryLabel?:string;categoryParentId?:string|null;catalogVersion:number;reason:string}|
   {action:'EXTEND_MODE';service:string;mode:'ON_SITE'|'REMOTE';categoryId:string;categoryLabel:string;categoryParentId:string|null;
     catalogVersion:number;reason:string}|
   {action:'CREATE_CHILD';service:string;mode:'ON_SITE'|'REMOTE';parentId:string;parentLabel:string;
@@ -197,8 +197,13 @@ export function decodeAiTaskReview(raw: unknown, accountId: string): AiTaskRevie
       const visibleHandoff=publicProjection.find(f=>f?.key==='need.handoff'&&f.status!=='UNKNOWN');
       if(hasHandoff&&JSON.stringify(decodeServiceHandoff(candidate!.handoff))!==JSON.stringify(decodeServiceHandoff(visibleHandoff?.value)))return null;
       const candidateKeys=(keys:string[])=>hasHandoff?[...keys,'handoff']:keys;
+      const hasLabel=!!candidate&&Object.hasOwn(candidate,'categoryLabel');
+      const reuseKeys=hasLabel
+        ? ['action','service','mode','categoryId','categoryLabel','categoryParentId','catalogVersion','reason']
+        : ['action','service','mode','categoryId','catalogVersion','reason'];
       const reuse=!!candidate&&candidate.action==='REUSE_EXISTING'&&only(candidate,
-        candidateKeys(['action','service','mode','categoryId','catalogVersion','reason']))&&uuid(candidate.categoryId);
+        candidateKeys(reuseKeys))&&uuid(candidate.categoryId)
+        &&(!hasLabel||(text(candidate.categoryLabel,120)&&(candidate.categoryParentId===null||uuid(candidate.categoryParentId))));
       const extend=!!candidate&&candidate.action==='EXTEND_MODE'&&only(candidate,
         candidateKeys(['action','service','mode','categoryId','categoryLabel','categoryParentId','catalogVersion','reason']))
         &&uuid(candidate.categoryId)&&text(candidate.categoryLabel,120)

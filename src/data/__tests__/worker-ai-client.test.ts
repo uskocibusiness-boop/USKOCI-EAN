@@ -162,6 +162,36 @@ it('accepts signed ON_SITE scope for the actual visible worker skill and preserv
  expect(mockRpc.mock.calls).toEqual([['rpc_save_worker_ai_review',
    {p_review_id:REVIEW,p_displayed_digest:'a'.repeat(64),p_client_request_id:KEY}]]);
 });
+it('accepts REUSE_EXISTING candidate with categoryLabel and categoryParentId metadata and preserves them', async () => {
+ const base = signedWorkerReview();
+ const candidate = {
+   ...base.classificationCandidates[0],
+   categoryLabel: 'Prenos robe i tereta',
+   categoryParentId: null,
+ };
+ const signed = { ...base, classificationCandidates: [candidate] };
+ const decoded = decodeWorkerAiReview(signed, OWNER, CONVERSATION);
+ expect(decoded).not.toBeNull();
+ expect(decoded?.classificationCandidates[0]).toMatchObject({
+   action: 'REUSE_EXISTING',
+   categoryLabel: 'Prenos robe i tereta',
+   categoryParentId: null
+ });
+
+ // Valid parent UUID is accepted
+ const withParent = { ...candidate, categoryParentId: '55555555-5555-4555-8555-555555555555' };
+ expect(decodeWorkerAiReview({ ...base, classificationCandidates: [withParent] }, OWNER, CONVERSATION)).not.toBeNull();
+
+ // Negative checks:
+ // 1. Invalid parent ID (not a UUID)
+ expect(decodeWorkerAiReview({ ...base, classificationCandidates: [{ ...candidate, categoryParentId: 'invalid' }] }, OWNER, CONVERSATION)).toBeNull();
+ // 2. Short / empty categoryLabel (< 3 chars)
+ expect(decodeWorkerAiReview({ ...base, classificationCandidates: [{ ...candidate, categoryLabel: 'AB' }] }, OWNER, CONVERSATION)).toBeNull();
+ // 3. Excessively long categoryLabel (> 120 chars)
+ expect(decodeWorkerAiReview({ ...base, classificationCandidates: [{ ...candidate, categoryLabel: 'P'.repeat(121) }] }, OWNER, CONVERSATION)).toBeNull();
+ // 4. Extraneous unknown field
+ expect(decodeWorkerAiReview({ ...base, classificationCandidates: [{ ...candidate, unexpected: 123 }] }, OWNER, CONVERSATION)).toBeNull();
+});
 const pendingRemoteActivation=():WorkerAiReview=>({...signedWorkerReview(),
  profile:{...profile(),location:{...profile().location,city:'',operatingCountryCode:null}},
  missingRequired:['Potvrda usluga za rad na daljinu'],canAccept:false,

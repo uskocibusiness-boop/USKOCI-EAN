@@ -10,3 +10,11 @@ DO $triage$ BEGIN
    RAISE EXCEPTION 'R04_TRIAGE_BILO_STA_FAILED';
  END IF;
 END;$triage$;
+DO $commit_check$ BEGIN
+ BEGIN
+   PERFORM public.rpc_taxonomy_commit_reviewed_batch_service(NULL, NULL, 'NEED_SERVICE', NULL, '[]'::jsonb);
+   RAISE EXCEPTION 'R04_COMMIT_GUARD_FAILED';
+ EXCEPTION WHEN OTHERS THEN
+   IF SQLSTATE <> '22023' THEN RAISE; END IF;
+ END;
+END;$commit_check$;
