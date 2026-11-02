@@ -1,6 +1,6 @@
 # Complete Need turn — 2026-11-02
 
-DEV_APPLIED 02.11.2026: migration `20261102141629`, postflight PASS, Need Edge160 exact23-file verification. Native trial stored13 facts; a remaining client conversation-read cap is fixed in source and awaits the new APK. Publication is not yet proven. See [live receipt](dev-applied-20261102.json). The manifest and prepared-verification record retain the immutable preparation checkpoint.
+DEV_APPLIED 02.11.2026: migration `20261102141629`, postflight PASS. APK68748a4c reopened the same13-fact turn without another provider call. Need Edge161 (23 verified files, Full CI41463124056 SUCCESS on805ecad3) also separates preview from safety. Its fresh13-fact ALLOW turn exposed a background accounting/capture deadline race; the new source fix has270 focused PASS but awaits its own CI/deploy/native acceptance. Publication is not yet proven. See [live receipt](dev-applied-20261102.json) and the existing master §11.2a. The manifest and prepared-verification record retain the immutable preparation checkpoint.
 
 This is the combined successor to the prepared scheduling-only operation, not an additional step to execute after it. It targets the same current DEV preimage and changes exactly two existing bodies: the V2 fact writer and owned completion. It includes the unchanged scheduling-continuity candidate plus the native-reproduced 13-fact fix. Do not run both promotion packages; each pins its exact starting state.
 

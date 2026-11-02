@@ -581,6 +581,11 @@ export async function handleWorkerInterview(req: Request): Promise<Response> {
           void runInBackground((async () => {
             try {
               const built = await dualWorkerArchitectPromise;
+              if (bgAbort.signal.aborted || !built || !(built.proposals.length || built.clarifications?.length)) return;
+              // Only a completed, timely classification of a confirmed turn can
+              // enter persistence. No more provider work: 3.5s write + 3.5s readback.
+              clearTimeout(bgTimer);
+              bgTimer = setTimeout(stopBackground, 7000);
               if (built?.clarifications?.length) {
                 const stored = await Promise.all(built.clarifications.slice(0,1).map((hint: any) => persistClarificationHint(
                   (name: string, args: Record<string, unknown>, sig?: AbortSignal, t?: number) => rpc(name, args, sig ?? bgAbort.signal, t ?? 2500), hint)));

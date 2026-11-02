@@ -324,7 +324,7 @@ for(const kind of ['NEED','WORKER']){
     assert.ok(!f.logs.some(args=>args[0]===kind+'_TAXONOMY_HINT_STORE'));
     assert.equal(f.calls.filter(call=>call.url.endsWith('/'+storeRpc)).length,1);
   });
-  test(kind+' clarification readback is aborted by the existing overall background deadline',async()=>{
+  test(kind+' clarification readback is aborted by the bounded persistence deadline',async()=>{
     const timers=new Map();let timerId=0,notifyRead,readSignal,watchdog;
     const readStarted=new Promise(resolve=>{notifyRead=resolve;});
     const f=fixture(kind,'store',()=>json(null),{commitBeforeReply:true,
@@ -341,8 +341,9 @@ for(const kind of ['NEED','WORKER']){
       })]);
       assert.equal(events.at(-1).turn.state,'SUCCEEDED');
       assert.equal(readSignal.aborted,false);
-      const deadlines=[...timers.values()].filter(timer=>timer.ms===9000);
-      assert.equal(deadlines.length,1,'readback must not create or restart an overall background deadline');
+      assert.equal([...timers.values()].filter(timer=>timer.ms===9000).length,0,'classification has completed');
+      const deadlines=[...timers.values()].filter(timer=>timer.ms===7000);
+      assert.equal(deadlines.length,1,'write and readback share one persistence deadline');
       deadlines[0].fn();
       assert.equal(readSignal.aborted,true,'the existing owner deadline reaches the GET child signal');
       await f.settle();
@@ -351,7 +352,7 @@ for(const kind of ['NEED','WORKER']){
       assert.equal(f.calls.filter(call=>call.url.endsWith('/'+storeRpc)).length,1);
     }finally{
       clearTimeout(watchdog);
-      for(const timer of [...timers.values()])if(timer.ms===9000)timer.fn();
+      for(const timer of [...timers.values()])if(timer.ms===9000||timer.ms===7000)timer.fn();
       await f.settle();
     }
   });

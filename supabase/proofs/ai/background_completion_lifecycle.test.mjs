@@ -14,10 +14,11 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), { status
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 const flush = () => new Promise(resolve => setImmediate(resolve));
 
-function fixture(purpose, outcome = 'SUCCEEDED', { pendingHint = false, background = true } = {}) {
+function fixture(purpose, outcome = 'SUCCEEDED', { pendingHint = false, background = true, holdUsage = false, holdCapture = false } = {}) {
   const worker = purpose === 'worker';
   const calls = [], logs = [], waits = [], timers = new Map(), timerHistory = [];
   const bgStarted = deferred(), releaseBg = deferred(), releaseCompletion = deferred();
+  const usageStarted = deferred(), releaseUsage = deferred(), captureStarted = deferred(), releaseCapture = deferred();
   const abort = new AbortController();
   let bgSignal, mainProviderCalls = 0, backgroundProviderCalls = 0, timerId = 0;
   const env = { SUPABASE_URL: 'https://leqcwgzvjsxugfgzdmth.supabase.co', SUPABASE_ANON_KEY: 'SYNTHETIC_PUBLIC',
@@ -50,7 +51,7 @@ function fixture(purpose, outcome = 'SUCCEEDED', { pendingHint = false, backgrou
     if (worker) { mainOutput.patch = {}; mainOutput.serviceModeChangesJson = '[]'; }
     else mainOutput.facts = [];
   }
-  const providerResponse = output => json({ candidates: [{ content: { parts: [{ text: JSON.stringify(output) }] }, finishReason: 'STOP' }] });
+  const providerResponse = (output, usageMetadata) => json({ candidates: [{ content: { parts: [{ text: JSON.stringify(output) }] }, finishReason: 'STOP' }], usageMetadata });
   const fetch = async (input, init = {}) => {
     const url = String(input), body = init.body ? JSON.parse(init.body) : null;
     calls.push({ url, body, signal: init.signal, abortedAtCall: init.signal?.aborted });
@@ -78,8 +79,12 @@ function fixture(purpose, outcome = 'SUCCEEDED', { pendingHint = false, backgrou
     if (url.endsWith('/rpc_taxonomy_consume_turn_hint_revision_service')) return json({ consumed: 1, draftRevision: body.p_draft_revision });
     if (url.endsWith('/rpc_ai_fail_need_turn_v2_service')) return json(taskTurn('FAILED'));
     if (url.endsWith('/rpc_fail_worker_ai_turn_service')) return json(workerTurn('FAILED'));
-    if (url.endsWith('/rpc_ai_test_record_usage_service')) return json({ recorded: true, authoritative: true,
-      operationId: requestKey, promptTokens: body.p_prompt_tokens, outputTokens: body.p_output_tokens, totalTokens: body.p_total_tokens });
+    if (url.endsWith('/rpc_ai_test_record_usage_service')) {
+      usageStarted.resolve();
+      if (holdUsage) await releaseUsage.promise;
+      return json({ recorded: true, authoritative: true,
+        operationId: body.p_operation_id, promptTokens: body.p_prompt_tokens, outputTokens: body.p_output_tokens, totalTokens: body.p_total_tokens });
+    }
     if (/\/rpc_(?:ai_complete_need_turn_v2|complete_worker_ai_turn)_service$/.test(url)) {
       if (background) await bgStarted.promise;
       if (outcome === 'HOLD') await releaseCompletion.promise;
@@ -88,7 +93,15 @@ function fixture(purpose, outcome = 'SUCCEEDED', { pendingHint = false, backgrou
       if (outcome === 'INVALID') return json({ invalid: true });
       return json(worker ? workerTurn(outcome === 'HOLD' ? 'SUCCEEDED' : outcome) : taskTurn(outcome === 'HOLD' ? 'SUCCEEDED' : outcome, body));
     }
-    if (url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service')) return json({ action: 'HINT_CAPTURED', authority: 'NONE' });
+    if (url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service')) {
+      captureStarted.resolve();
+      if (holdCapture) await Promise.race([releaseCapture.promise, new Promise((_, reject) => {
+        const stop = () => reject(new Error('SYNTHETIC_CAPTURE_ABORT'));
+        init.signal.addEventListener('abort', stop, { once: true });
+        if (init.signal.aborted) stop();
+      })]);
+      return json({ action: 'HINT_CAPTURED', authority: 'NONE' });
+    }
     if (url.startsWith('https://generativelanguage.googleapis.com/')) {
       const background = !!body.generationConfig?.responseSchema?.properties?.decisions
         || !!body.generationConfig?.responseSchema?.properties?.items;
@@ -101,7 +114,8 @@ function fixture(purpose, outcome = 'SUCCEEDED', { pendingHint = false, backgrou
         if (init.signal.aborted) throw Object.assign(new Error('SYNTHETIC_BG_ABORT'), { name: 'AbortError' });
         const decision = { service, mode: 'REMOTE', action: 'CREATE_CHILD', parentId,
           reason: 'Nova konkretna usluga pod potvrđenim roditeljem.', handoffKind: 'SHIPPING_RS', handoffCity: '' };
-        return providerResponse(worker ? { items: [decision] } : { decisions: [decision] });
+        return providerResponse(worker ? { items: [decision] } : { decisions: [decision] },
+          holdUsage ? { promptTokenCount: 100, candidatesTokenCount: 20, totalTokenCount: 120 } : undefined);
       }
       mainProviderCalls++;
       if (url.includes(':streamGenerateContent')) return new Response('data: ' + JSON.stringify({
@@ -131,12 +145,43 @@ function fixture(purpose, outcome = 'SUCCEEDED', { pendingHint = false, backgrou
     return { status: response.status, text };
   };
   const captures = () => calls.filter(call => call.url.endsWith('/rpc_taxonomy_capture_gemini_turn_hints_service'));
-  const drain = async () => { releaseCompletion.resolve(); releaseBg.resolve(); for (let i = 0; i < 8; i++) await flush(); await Promise.all(waits); };
-  return { ...loaded, invoke, bgStarted, releaseBg, releaseCompletion, abort, calls, logs, waits, timers, timerHistory, captures, drain,
+  const drain = async () => { releaseCompletion.resolve(); releaseBg.resolve(); releaseUsage.resolve(); releaseCapture.resolve(); for (let i = 0; i < 8; i++) await flush(); await Promise.all(waits); };
+  return { ...loaded, invoke, bgStarted, releaseBg, releaseCompletion, usageStarted, releaseUsage, captureStarted, abort, calls, logs, waits, timers, timerHistory, captures, drain,
     get bgSignal() { return bgSignal; }, get providerCalls() { return { main: mainProviderCalls, background: backgroundProviderCalls }; } };
 }
 
 for (const purpose of ['task', 'worker']) {
+  test(`${purpose}: complete provider result reaches capture while usage settlement is still pending`, { timeout: 5000 }, async t => {
+    const f = fixture(purpose, 'SUCCEEDED', { holdUsage: true });
+    t.after(() => f.drain());
+    await f.invoke();
+    f.releaseBg.resolve();
+    await f.usageStarted.promise;
+    for (let i = 0; i < 8; i++) await flush();
+    assert.equal(f.captures().length, 1, 'a paid valid answer must not wait behind accounting ACK');
+    assert.equal(f.waits.length, 2, 'EdgeRuntime retains both settlement and capture');
+    assert.deepEqual(f.providerCalls, { main: 1, background: 1 });
+    assert.equal(f.calls.filter(call => call.url.endsWith('/rpc_ai_test_record_usage_service')).length, 1);
+    assert.equal([...f.timers.values()].filter(timer => timer.ms === 9000).length, 0);
+  });
+
+  test(`${purpose}: completed classification gets one bounded capture window without more provider time`, { timeout: 5000 }, async t => {
+    const f = fixture(purpose, 'SUCCEEDED', { holdCapture: true });
+    t.after(() => f.drain());
+    await f.invoke();
+    f.releaseBg.resolve();
+    await f.captureStarted.promise;
+    assert.equal([...f.timers.values()].filter(timer => timer.ms === 9000).length, 0);
+    const captureTimers = [...f.timers.values()].filter(timer => timer.ms === 7000);
+    assert.equal(captureTimers.length, 1, 'write plus optional readback have one shared bounded deadline');
+    assert.equal(f.bgSignal.aborted, false);
+    captureTimers[0].fn();
+    assert.equal(f.captures()[0].signal.aborted, true);
+    await f.drain();
+    assert.equal(f.captures().length, 1);
+    assert.deepEqual(f.providerCalls, { main: 1, background: 1 });
+    assert.equal([...f.timers.values()].filter(timer => timer.ms === 7000).length, 0);
+  });
   for (const outcome of ['THROW', 'INVALID', 'ABORT', ...(purpose === 'task' ? ['PROCESSING', 'FAILED'] : [])]) {
     test(`${purpose}: ${outcome} completion aborts already-started classification without capturing`, { timeout: 5000 }, async t => {
       const f = fixture(purpose, outcome, { pendingHint: true });
@@ -185,6 +230,7 @@ for (const purpose of ['task', 'worker']) {
     await running;
     await f.drain();
     assert.equal(f.captures().length, 0);
+    assert.equal(f.timerHistory.filter(timer => timer.ms === 7000).length, 0, 'expired classification cannot acquire a capture window');
     const consumed = f.calls.filter(call => call.url.endsWith('/rpc_taxonomy_consume_turn_hint_revision_service'));
     assert.equal(consumed.length, 1, 'confirmed turn metadata survives the exhausted classifier budget');
     assert.deepEqual(consumed[0].body, { p_conversation_id: conversation, p_draft_revision: 0, p_service: service });

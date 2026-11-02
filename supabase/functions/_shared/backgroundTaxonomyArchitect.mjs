@@ -204,12 +204,14 @@ async function accountedProviderEntries({ geminiKey, request, field, signal, pro
     throw error;
   } finally {
     signal?.removeEventListener('abort', stop);
-    // Settlement has its own bounded receipt wait even after provider abort.
-    // Missing usage remains UNKNOWN; a lost ACK never replays/refunds anything.
-    // A valid semantic result can still be captured if accounting ACK is lost.
-    try { await providerBudget.onAttempt({ reservationId: admission.reservationId, dispatched,
-      outcome, httpStatus, usageMetadata: data?.usageMetadata, errorCode }); }
-    catch { try { console.warn('BG_TAXONOMY_ACCOUNTING_UNCONFIRMED'); } catch { /* diagnostics cannot alter the result */ } }
+    // Settlement owns a separate three-second receipt deadline. Retain it with
+    // EdgeRuntime, but never spend the classification/capture budget awaiting
+    // its ACK. Missing usage stays UNKNOWN; no retry or refund is inferred.
+    void runInBackground((async () => {
+      try { await providerBudget.onAttempt({ reservationId: admission.reservationId, dispatched,
+        outcome, httpStatus, usageMetadata: data?.usageMetadata, errorCode }); }
+      catch { try { console.warn('BG_TAXONOMY_ACCOUNTING_UNCONFIRMED'); } catch { /* diagnostics cannot alter the result */ } }
+    })());
   }
 }
 // PostgreSQL char_length counts codepoints; UTF-16 slice can split an emoji.

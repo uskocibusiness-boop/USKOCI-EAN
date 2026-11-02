@@ -152,10 +152,15 @@ for (const purpose of ['need', 'worker']) {
   }
 
   test(`${purpose}: lost usage ACK preserves valid result without retry or refund`, async t => {
+    const retained = [], priorRuntime = globalThis.EdgeRuntime;
+    globalThis.EdgeRuntime = { waitUntil: promise => retained.push(promise) };
+    t.after(() => { if (priorRuntime === undefined) delete globalThis.EdgeRuntime; else globalThis.EdgeRuntime = priorRuntime; });
     const p = productionBudget(purpose);
     const io = accountingTransport(t, { usageAck: () => { throw new Error('SYNTHETIC_COMMITTED_ACK_LOST'); } });
     const warnings = []; t.mock.method(console, 'warn', (...values) => warnings.push(values));
     const result = await fixture(purpose, p.budget)();
+    assert.equal(retained.length, 1, 'settlement remains alive independently of the semantic result');
+    await Promise.all(retained);
     assert.equal(result.proposals.length, 1); assert.equal(io.calls.length, 3); assert.equal(io.usage.size, 1);
     assert.deepEqual(warnings, [['BG_TAXONOMY_ACCOUNTING_UNCONFIRMED']]);
   });
