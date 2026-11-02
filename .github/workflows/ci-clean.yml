@@ -45,6 +45,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          # Historical DEV packages must still verify their immutable source
+          # after runtime files evolve. A depth-1 checkout has no pinned commit.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
