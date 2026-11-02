@@ -23,8 +23,14 @@
     "result": "SUCCESS"
   },
   "current_full_ci": {
-    "id": 41435448239,
-    "result": "SUCCESS"
+    "id": 41448373776,
+    "result": "SUCCESS",
+    "source_sha": "3394458b0487b2f0641204a3a860b74a1e88f499",
+    "mobile_suites": 626,
+    "mobile_tests": 14573,
+    "ai_pass": 1554,
+    "ai_todo": 1,
+    "ai_fail": 0
   },
   "focused_checks": {
     "tests": 32,
@@ -81,7 +87,7 @@
     "current": "true",
     "restored_at": "2026-11-02T11:31:01Z"
   },
-  "paid_model_calls": 5,
+  "paid_model_calls": 10,
   "paid_budget_eur": 1,
   "android_positive_acceptance": false,
   "native_limit": "ADB can control the emulator; logged-in preview app, no credentials extracted or session altered.",
@@ -108,8 +114,12 @@
     }
   ],
   "current_r01": {
-    "id": 41435448258,
-    "result": "FAILURE"
+    "id": 41448373686,
+    "result": "FAILURE",
+    "last_inspected_diff_run": 41444069853,
+    "strict_differences": 8,
+    "owner_acl_differences": 49,
+    "managed_net_differences": 3
   },
   "migration": {
     "version": "20261102113012",
@@ -137,14 +147,14 @@
     "settled_microusd": 4959,
     "profile_saved": false,
     "background_classifier_called": false,
-    "fix_status": "SOURCE_TESTED_NOT_DEPLOYED",
+    "fix_status": "DEPLOYED_WORKER_V112_RETRY_ALLOW",
     "focused": {
       "command": "node --test supabase/proofs/ai/v5_worker_edge.test.mjs",
       "pass": 139,
       "fail": 0,
       "duration_ms": 33452.9261
     },
-    "limits": "Ambiguous safety/preview instructions are the diagnosed hypothesis; actual paid retry still required. REVIEW/BLOCK are preserved, never upgraded."
+    "limits": "Historical first failure. Later real retries returned ALLOW; REVIEW/BLOCK were not downgraded."
   },
   "native_need_schedule_probe": {
     "result": "CORRECT_SEMANTIC_ID_THEN_STALE_SOURCE_AFTER_SCHEDULE",
@@ -160,8 +170,88 @@
     "provider_completed": true,
     "edge_code": "AI_V2_OUTPUT_INVALID",
     "gate": "ROOT_SHAPE",
-    "exact_root_cause": "NOT_YET_PROVEN",
-    "published": false
+    "exact_root_cause": "CONFIRMED_13_FACTS_EXCEED_12_BOUND",
+    "published": false,
+    "diagnostic_at": "2026-11-02T12:54:04.138Z",
+    "edge_version": 159,
+    "root_exact": true,
+    "safety_valid": true,
+    "fact_count": 13,
+    "provider_duration_ms": 9008,
+    "fix_status": "OPEN_SHARED_EDGE_SQL_CLIENT_CONTRACT",
+    "next": "Coordinate provider schema/parser, SQL writer/completion and client receipt bound with supported-client compatibility; no truncation or partial write"
   },
-  "total_paid_settled_microusd": 66331
+  "total_paid_settled_microusd": 154897,
+  "open_paid_reservations_microusd": 0,
+  "android_positive_acceptance_scope": "Full two-account task-to-review E2E remains false. The bounded Worker chain below is DEV/native proven.",
+  "interview_edge_deployments": {
+    "source_sha": "7d13e67301b81a724b4978c74d41687fe5b3375a",
+    "full_ci": 41445313124,
+    "worker": {
+      "version": 112,
+      "byte_identical_files": 21,
+      "change": "Distinguish ordinary preview from content safety REVIEW; truthful withheld-patch message"
+    },
+    "need": {
+      "version": 159,
+      "byte_identical_files": 23,
+      "change": "Count-only ROOT_SHAPE diagnostics; no raw private content"
+    },
+    "verify_jwt": "false preserved for both; own request authentication unchanged",
+    "rollback": "Ignored local preimage bundles retained"
+  },
+  "native_worker_name_reproduction": {
+    "result": "REPRODUCED_AND_FIXED",
+    "one_ai_turn": true,
+    "review_name_patch_revision": "1 -> 2",
+    "prior_empty_name_reconstruction_matches_hint": true,
+    "fix": "Align account name before a fresh AI turn; preserve recovery context and key",
+    "focused_tests": 147,
+    "typescript": "PASS",
+    "scope": "New known-name conversation; later external account-name edits and every Worker mode are not claimed accepted"
+  },
+  "native_worker_final_probe": {
+    "observed_at": "2026-11-02T13:08:00Z",
+    "source_sha": "3394458b0487b2f0641204a3a860b74a1e88f499",
+    "edge_version": 112,
+    "device": "emulator-5554",
+    "real_auth": true,
+    "result": "WORKER_CHAT_REVIEW_FIRST_SAVE_ACTIVATE_BIND_AND_NATIVE_READBACK_PASS",
+    "review_classification": "READY",
+    "same_category_id": "8766e4e3-5a44-4ddf-ab90-1cb607b6de53",
+    "execution_scope": "REMOTE",
+    "physical_handoff": false,
+    "city_empty": true,
+    "profile_status": "ACTIVE",
+    "outbox_state": "COMMITTED",
+    "binding_state": "BOUND",
+    "commit_attempts": 1,
+    "binding_attempts": 1,
+    "capability_origin": "WORKER_CONFIRMED",
+    "capability_excluded": false,
+    "native_readback": "Na daljinu · Potvrđeno",
+    "outbox_created_at": "2026-11-02T13:06:30.158277Z",
+    "bound_at": "2026-11-02T13:07:02.226039Z",
+    "limitations": [
+      "One existing category / REMOTE / no city only",
+      "No new branch, BOTH or second-account matching/push proof",
+      "Full app/release readiness remains false"
+    ]
+  },
+  "native_apk": {
+    "source_sha": "3394458b0487b2f0641204a3a860b74a1e88f499",
+    "path": "artifacts/android-preview-3394458b-20261102/uskoci-preview-3394458b-internal.apk",
+    "sha256": "8150194096f60e0a67fcee76cf8931032831acc772c784dd16d67e3c64ed18fb",
+    "bytes": 123053279,
+    "embedded_update": "86ecb166-c0e0-45f6-b619-669bf1875bc3",
+    "installed_identity_verified": true,
+    "auth_preserved": true,
+    "network_restored": true,
+    "signing": "EXISTING_ANDROID_DEBUG_KEY_NOT_STORE",
+    "signature_v2": true,
+    "zipalign_16kb": true,
+    "native_inputs_preserved": true,
+    "ui_empty_readback_safety_fix": "NATIVE_PASS",
+    "screenshot": "artifacts/android-preview-3394458b-20261102/worker-active-bound.png"
+  }
 }

@@ -4,7 +4,7 @@
 
 Frozen build manifests retain their preparation-time status; the later execution receipt is the deployment evidence. Dated NOT_APPLIED entries below describe earlier states. The owner separately requested and authorized a fresh test-data reset; see [the exact operation and receipt](../dev-owner-data-reset-20261102/README.md).
 
-**Positive business acceptance is still pending.** The first real Android Worker turn returned safety REVIEW for an ordinary profile preview and did not save a profile. A focused prompt/schema and truthful rejection-message correction has139/139 local tests PASS; it is not yet deployed or live-model verified. R01 remains FAILURE, R10 readiness=false, and no release-ready claim is made.
+**Bounded Worker DEV/native acceptance passed on 02.11.2026.** Worker Edge112 and client3394458b (Full CI41448373776 SUCCESS) pass a real authenticated conversation, READY review, first Save+Activate without a city, COMMITTED/BOUND processing and reopened native readback: REMOTE, same existing category ID, WORKER_CONFIRMED. The original preview/safety failure and subsequent name-patch source invalidation are fixed for this path. Need publication, new branches/BOTH, two-account matching/push and full E2E remain open. A real Need13-fact reply is rejected by the old12-fact Edge/SQL/client bound; the separate scheduling continuity package still awaits approval. R01 remains FAILURE, R10 readiness=false; no release-ready claim.
 
 ## Connected source milestone — 2026-11-02
 
