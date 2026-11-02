@@ -174,9 +174,20 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
   };
   const turn=data?.turn,awaiting=turn?.state==='PROCESSING'||turn?.state==='UNKNOWN_OUTCOME';
   const writable=data?.status==='OPEN'&&!data.stale&&data.safety!=='BLOCK'&&data.safety!=='REVIEW';
+  const rename=(snapshot:WorkerAiSnapshot):WorkerAiPatch|null=>accountName&&snapshot.candidate.displayName.trim()!==accountName?{displayName:accountName}:null;
   const send=async(body:string,submittedDraft:SubmittedDraft|null=null)=>{
     if(!canAct()||!writable||awaiting||!data||!body.trim()||(pending.current&&!recovery?.retryAllowed))return;
     await editor.save(async()=>{
+      // Name alignment changes the signed candidate revision. Do it before a
+      // new AI turn captures classification, never between that capture and review.
+      // Recovery of an existing command must retain its original context/key.
+      if(!pending.current){
+        if(account.state!=='ready')return {ok:false,kod:'WORKER_ACCOUNT_NAME_UNAVAILABLE',
+          poruka:'Ime naloga još nije učitano. Ponovo otvorite razgovor; poruka nije poslata.'};
+        const name=rename(data);
+        if(name){const named=await api.patch(data.conversationId,data.revision,name);
+          if(!current())return unavailable();if(!named.ok)return named;}
+      }
       const command=pending.current??{id:noviUuidZahtevId(),text:body,submittedDraft};
       if(!command.text)return unavailable();pending.current=command;intentChanged(n=>n+1);setRecovery(null);
       const controller=new AbortController();abort.current=controller;setStream('');
@@ -269,8 +280,6 @@ function OwnedWorkerConversation({initialId,invalid,correctionToken,activationRe
       // can retire the journal; an abort alone never means cancellation.
       return read();});
   };
-  // The proposal takes the account's name while it carries another (the assistant's own, or the profile's old one). Nothing is sent when they agree.
-  const rename=(snapshot:WorkerAiSnapshot):WorkerAiPatch|null=>accountName&&snapshot.candidate.displayName.trim()!==accountName?{displayName:accountName}:null;
   const reviewActivation=data?.review?.activate??(activationChoice.current?.conversationId===data?.conversationId
     ?activationChoice.current?.activate:false)??false;
   const review=async(activate=reviewActivation)=>{

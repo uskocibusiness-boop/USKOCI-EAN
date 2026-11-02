@@ -77,6 +77,42 @@ const succeedWorkerTurn=()=>{
  mockApi.send.mockImplementation(async(_cid,_text,key)=>ok(turn('SUCCEEDED',key)));
  mockApi.recoverTurn.mockImplementation(async(_cid,key)=>ok({...recovery('SUCCEEDED'),clientRequestId:key,turn:turn('SUCCEEDED',key)}));
 };
+it('sets the account name before the paid turn, so review does not invalidate its classification',async()=>{
+ mockAccountName={state:'ready',name:'Milos'};
+ const named={...snapshot(),revision:1,candidate:{...candidate(),displayName:'Milos'}};
+ mockApi.patch.mockResolvedValue(ok(named));succeedWorkerTurn();
+ await render();act(()=>shell().props.onChange('Radim lekturu online.'));
+ mockApi.read.mockResolvedValue(ok({...named,revision:2}));
+ await act(async()=>shell().props.onSend());
+ expect(mockApi.patch).toHaveBeenCalledWith(C,0,{displayName:'Milos'});
+ expect(mockApi.patch.mock.invocationCallOrder[0]).toBeLessThan(mockApi.send.mock.invocationCallOrder[0]);
+ mockApi.prepare.mockResolvedValue(ok({}));
+ await act(async()=>shell().props.footerAction.props.onPress());
+ expect(mockApi.patch).toHaveBeenCalledTimes(1);
+ expect(mockApi.prepare).toHaveBeenCalledWith(C,2,false);
+});
+it('does not pay for a turn or persist its intent when account-name alignment is unconfirmed',async()=>{
+ mockAccountName={state:'ready',name:'Milos'};
+ mockApi.patch.mockResolvedValue({ok:false,kod:'UNKNOWN',poruka:'Izmena nije potvrđena.'});
+ await render();act(()=>shell().props.onChange('Radim lekturu online.'));
+ await act(async()=>shell().props.onSend());
+ expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.save).not.toHaveBeenCalled();
+ expect(shell().props.value).toBe('Radim lekturu online.');
+});
+it.each(['loading','error'])('waits for authoritative account name before a new paid turn: %s',async state=>{
+ mockAccountName={state};await render();act(()=>shell().props.onChange('Radim lekturu online.'));
+ await act(async()=>shell().props.onSend());
+ expect(mockApi.patch).not.toHaveBeenCalled();expect(mockApi.send).not.toHaveBeenCalled();
+ expect(mockJournal.save).not.toHaveBeenCalled();expect(shell().props.value).toBe('Radim lekturu online.');
+});
+it('leaving during account-name alignment cannot dispatch the departed AI turn',async()=>{
+ mockAccountName={state:'ready',name:'Milos'};const patch=deferred();mockApi.patch.mockReturnValue(patch.promise);
+ await render();act(()=>shell().props.onChange('Radim lekturu online.'));
+ await act(async()=>shell().props.onSend());
+ await act(async()=>shell().props.onBack());
+ await act(async()=>patch.resolve(ok({...snapshot(),revision:1,candidate:{...candidate(),displayName:'Milos'}})));
+ expect(mockApi.send).not.toHaveBeenCalled();expect(mockJournal.save).not.toHaveBeenCalled();
+});
 it('a new empty interview starts with the invitation instead of an empty profile card',async()=>{
  mockApi.read.mockResolvedValue(ok({...snapshot(),candidate:{...candidate(),skills:[]}}));
  await render();
