@@ -32,7 +32,10 @@ closure because the insertion trigger would otherwise not run.
   closed/wrong account, stale base, completed/abandoned, consumed command,
   cancelled task, Agreement and legacy duplicate selection.
 - Existing actual mobile opener/owner screen contracts: 2 suites / 30 PASS.
-- Full CI and DEV/native acceptance are separate evidence, not implied here.
+- Full CI41483609100 SUCCESS on 5d98952d: 626 mobile suites / 14584 tests; AI1599 PASS / 0FAIL / 1 existing TODO; TypeScript/Deno/SQL/PostGIS/integrity PASS.
+- Fresh read-only DEV preflight: R06_EDIT_RESUME_PREIMAGE_MATCH.
+- R0141483609292 FAILURE remains 8 strict / 49 effective / 3 managed-net.
+- DEV/native/concurrent-transaction acceptance remains separate and OPEN.
 
 Run:
 
