@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { serviceExecutionInstruction } from '../../functions/_shared/serviceExecutionInstruction.mjs';
+import { geminiClassificationShadowInstruction } from '../../functions/_shared/classificationGeminiShadow.mjs';
 
 // Source-only integrity guard. Does NOT invoke Gemini, deploy an Edge function,
 // create a category or prove end-to-end dispatch.
@@ -20,8 +21,11 @@ test('existing model proposes need.category from work meaning, not room or total
   // Rules moved to the canonical V2 instruction, not to a literal legacy sentence.
   assert.match(edge, /need\.category je konkretna VRSTA USLUGE iz celog razgovora/);
   assert.match(edge, /nezavisna od prostorije, kvadrature, komada, adrese, cene i datuma/);
-  assert.match(edge, /vrste usluga nisu zatvoren spisak starih grupa/);
-  assert.match(edge, /Klasifikacija i kanonsko imenovanje slede classificationShadowJson ugovor/);
+  assert.match(edge, /vrste usluga nisu zatvoren spisak starih grupa/i);
+  assert.match(edge, /geminiClassificationShadowInstruction\('NEED_SERVICE',phase\)/);
+  const classification=geminiClassificationShadowInstruction('NEED_SERVICE');
+  assert.match(classification,/Required classificationShadowJson STRING/);
+  assert.match(classification,/canonical naming must preserve the exact meaning/);
   assert.match(facts, /'need\.category': \{ valueType: 'TEXT'/);
   assert.match(facts, /'need\.required_skills': \{ valueType: 'TEXT_ARRAY'/);
 });

@@ -43,7 +43,7 @@ test('live Edge invokes service-only RPC but never uses shadow result as matcher
  assert.match(edge,/const taxonomyArgs = scopedNeedPreviewArgs\(activeFacts, aiTurn\.proposals\)/);
  assert.match(edge,/TAXONOMY_SCOPED_SHADOW/);
  // Completion is now timed via measureAiPhase; its server RPC is unchanged.
- assert.match(edge,/measureAiPhase\('NEED_COMPLETE', \(\) => rpc\(locationContext \? 'rpc_ai_complete_need_location_turn_v1_service' : 'rpc_ai_complete_need_turn_v2_service'/);
+ assert.match(edge,/measureAiPhase\('NEED_COMPLETE', async \(\) => await rpc\(locationContext \? 'rpc_ai_complete_need_location_turn_v1_service' : 'rpc_ai_complete_need_turn_v2_service'/);
  assert.match(edge,/p_proposals: aiTurn\.proposals/);
  assert.match(edge,/if \(!result\.ok \|\| !validTurn\(completed, conversationId, requestId\)/);
  assert.doesNotMatch(edge,/p_taxonomy_category_id:/);

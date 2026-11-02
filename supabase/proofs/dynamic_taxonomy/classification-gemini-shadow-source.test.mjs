@@ -16,9 +16,13 @@ test('both worker and need use one shadow schema/inspection module',()=>{
 // handler in proofs/ai/v5_worker_edge.test.mjs, independent of variable names.
 test('need strips new fields before strict facts parser and owner-bound completion',()=>{
  const checked=need.indexOf('inspectGeminiClassificationShadow(value');
- const strict=need.indexOf('parseV2Output(checked.output)');
+ // The same strict parser is now bound to the negotiated fact capacity. Check
+ // that binding too: replacing it with a passthrough must fail this boundary.
+ const binding=need.indexOf('const parseFacts=(output:any)=>parseV2Output(output,maxProposals)');
+ const strict=need.indexOf('parseFacts(checked.output)');
  const completion=need.indexOf("'rpc_ai_complete_need_turn_v2_service'");
- assert.ok(checked>0&&strict>checked&&completion>strict);
+ assert.ok(checked>0&&binding>checked&&strict>binding&&completion>strict);
+ assert.match(need,/parseLocationOutput\(checked\.output,locationContext,parseFacts\)/);
  assert.doesNotMatch(need,/rpc_taxonomy_commit_admission_service/);
 });
 test('need category is a single service label and taxonomy tree stays in shadow metadata',()=>{

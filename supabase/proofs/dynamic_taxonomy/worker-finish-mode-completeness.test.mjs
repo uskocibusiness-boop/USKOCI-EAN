@@ -9,7 +9,7 @@ test('4 offered skills and 2 hinted modes produce two missing confirmations, nev
  const result=workerServicesMissingScope(skills,hints);
  assert.deepEqual(result,{count:2,labels:['Montaža nameštaja','IT podrška']});
  const message=workerFinishReviewMessage(skills,hints,true);
- assert.match(message,/Otvori pregled profila/);
+ assert.match(message,/Otvorite pregled profila/);
  assert.match(message,/Montaža nameštaja/);
  assert.match(message,/IT podrška/);
  assert.match(message,/bez automatskog povezivanja/);
@@ -25,7 +25,7 @@ test('explicit mode is required; UNCONFIRMED, duplicates and unknown service can
 test('all modes covered or missing catalog preserves short finish and optional review',()=>{
  const skills=['Krečenje','Gletovanje'];
  const hints=[{service:'Krečenje',mode:'ON_SITE'},{service:'Gletovanje',mode:'ON_SITE'}];
- const expected='Otvori pregled profila. Tamo možeš da dopuniš podatke i potvrdiš čuvanje.';
+ const expected='Otvorite pregled profila. Tamo možete da dopunite podatke i potvrdite čuvanje.';
  assert.equal(workerFinishReviewMessage(skills,hints,true),expected);
  assert.equal(workerFinishReviewMessage(skills,[],false),expected);
  assert.deepEqual(workerServicesMissingScope([],hints),{count:0,labels:[]});
@@ -38,7 +38,7 @@ test('finish guidance is bounded and does not enter a mandatory question loop',(
  assert.match(msg,/i još 43 usluga/);
  assert.ok(msg.length<500);
  assert.doesNotMatch(msg,/Usluga broj 45/);
- assert.match(msg,/Možeš to razjasniti u razgovoru, ili sačuvati profil/);
+ assert.match(msg,/Možete to razjasniti u razgovoru, ili sačuvati profil/);
 });
 // Actual finish output after mode preservation is exercised through the real
 // worker handler in proofs/ai/v5_worker_edge.test.mjs, not source formatting.
